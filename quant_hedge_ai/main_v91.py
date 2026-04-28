@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import argparse
+import logging
 import os
 import random
 import time
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 try:
     from quant_hedge_ai.agents.execution.arbitrage_agent import ArbitrageAgent
@@ -61,6 +64,7 @@ from quant_hedge_ai.agents.research.strategy_researcher import \
 from quant_hedge_ai.agents.risk.drawdown_guard import DrawdownGuard
 from quant_hedge_ai.agents.risk.exposure_manager import ExposureManager
 from quant_hedge_ai.agents.risk.risk_monitor import RiskMonitor
+from supervision.ops_watchdog import OpsWatchdog
 from quant_hedge_ai.agents.strategy.genetic_optimizer import GeneticOptimizer
 from quant_hedge_ai.agents.strategy.rl_trader import RLTrader
 from quant_hedge_ai.agents.strategy.strategy_generator import StrategyGenerator
@@ -202,6 +206,10 @@ def run_v91_system(
     liquidity = LiquidityAnalyzer()
     paper = PaperTradingEngine()
 
+    # ===== MONITORING OPÉRATIONNEL =====
+    watchdog = OpsWatchdog.from_env()
+    watchdog.enable_heartbeat(interval_seconds=3600.0)
+
     # ===== SURVEILLANCE =====
     perf_monitor = PerformanceMonitor()
     system_monitor = SystemMonitor()
@@ -231,6 +239,12 @@ def run_v91_system(
     # Attente que le snapshot soit peuplé avant le premier cycle
     time.sleep(3)
     print(f"StreamBus prêt — {bus.stats()}")
+
+    execution.start_session(equity=paper.balance)
+    watchdog.notify_startup(
+        mode="live" if execution._live else "paper",
+        symbols=scanner.symbols,
+    )
 
     # === Initialisation GlobalRiskGate ===
     _telegram_bot = build_telegram_bot()
@@ -291,9 +305,32 @@ def run_v91_system(
             )
 
         # ===== 1. SCAN MARCHÉ + INTELLIGENCE =====
-        market = scanner.scan()
-        candles = market["candles"]
+        try:
+            market = scanner.scan()
+        except Exception as _scan_exc:
+            logger.error("[Cycle %d] scanner.scan() échoué: %s — cycle ignoré", cycle, _scan_exc)
+            time.sleep(cfg.sleep_seconds)
+            continue
+
+        candles = market.get("candles", [])
+        if not candles:
+            logger.warning("[Cycle %d] Aucune bougie reçue — cycle ignoré", cycle)
+            time.sleep(cfg.sleep_seconds)
+            continue
+
+        # Vérification de fraîcheur des données StreamBus
+        bus_age = bus.snapshot.updated_at
+        if time.time() - bus_age > 30:
+            logger.warning("[Cycle %d] StreamBus stale (%.0fs) — données WS peut-être obsolètes", cycle, time.time() - bus_age)
+            watchdog.check_ws_staleness("StreamBus", bus_age, threshold_seconds=120.0)
+
         market_db.save_snapshot(market)
+        dq = scanner.data_quality()
+        if dq["real_ratio"] < 0.5 and cycle > 1:
+            logger.warning(
+                "[Cycle %d] Qualité données faible : %.0f%% réelles (circuit=%s)",
+                cycle, dq["real_ratio"] * 100, dq["circuit_state"],
+            )
 
         symbols = [c["symbol"] for c in candles]
         close_prices = [float(c["close"]) for c in candles]
@@ -503,6 +540,8 @@ def run_v91_system(
         size = drawdown_guard.adjust_position_size(dd, base_size=1.0)
 
         order = execution.create_order(symbol=symbol, action=action, size=size)
+        watchdog.on_order_result(order)
+        watchdog.on_session_guard(execution._guard)
         paper_state = paper.execute(order, mark_price=price)
 
         if cycle % cfg.display_frequency == 0:
@@ -664,6 +703,8 @@ def run_v91_system(
             print(f"[MONTECARLO] MonteCarlo Results: {mc}")
             print(f"[PAPER] Paper Trading State: {paper_state}")
 
+        watchdog.tick_heartbeat(f"cycle={cycle} signal={action} pnl={paper.total_pnl():+.2f}")
+
         if cfg.max_cycles > 0 and cycle >= cfg.max_cycles:
             break
 
@@ -743,4 +784,13 @@ if __name__ == "__main__":
         doctor_agent = CreatePromptAgent()
         print(doctor_agent.generate_prompt())
     else:
-        run_v91_system(runtime=runtime_cfg, enable_director=dashboard_mode)
+        _watchdog = OpsWatchdog.from_env()
+        try:
+            run_v91_system(runtime=runtime_cfg, enable_director=dashboard_mode)
+        except KeyboardInterrupt:
+            _watchdog.notify_shutdown("keyboard interrupt")
+            raise
+        except Exception as _exc:
+            if _watchdog._notifier:
+                _watchdog._notifier.crash("run_v91_system", _exc)
+            raise
