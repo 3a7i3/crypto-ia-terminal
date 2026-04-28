@@ -162,6 +162,17 @@ def _signals(
 # ── BacktestLab ────────────────────────────────────────────────────────────────
 
 
+_TIMEFRAME_PERIODS_PER_YEAR: dict[str, int] = {
+    "1m": 525_600,
+    "5m": 105_120,
+    "15m": 35_040,
+    "30m": 17_520,
+    "1h": 8_760,
+    "4h": 2_190,
+    "1d": 365,
+}
+
+
 class BacktestLab:
     """
     Backtest basé sur de vrais signaux calculés depuis la série OHLCV réelle.
@@ -169,9 +180,11 @@ class BacktestLab:
     """
 
     COMMISSION = 0.001  # 0.1 % par trade (maker Binance)
-    MIN_BARS = 20  # minimum pour backtester
+    MIN_BARS = 50  # minimum pour un backtest statistiquement valide
 
-    def run_backtest(self, strategy: dict, data: list[dict]) -> dict:
+    def run_backtest(
+        self, strategy: dict, data: list[dict], timeframe: str = "1h"
+    ) -> dict:
         closes = [float(c["close"]) for c in data]
         highs = [float(c.get("high", c["close"])) for c in data]
         lows = [float(c.get("low", c["close"])) for c in data]
@@ -226,7 +239,10 @@ class BacktestLab:
             if trade_ret > 0:
                 wins += 1
 
-        sharpe = self._sharpe(bar_returns)
+        periods_per_year = _TIMEFRAME_PERIODS_PER_YEAR.get(
+            strategy.get("timeframe", timeframe), 8_760
+        )
+        sharpe = self._sharpe(bar_returns, periods_per_year)
         return {
             "strategy": strategy,
             "pnl": round((equity - 1.0) * 100, 4),
@@ -238,7 +254,7 @@ class BacktestLab:
         }
 
     @staticmethod
-    def _sharpe(returns: list[float], periods_per_year: int = 8760) -> float:
+    def _sharpe(returns: list[float], periods_per_year: int = 8_760) -> float:
         n = len(returns)
         if n < 2:
             return 0.0
