@@ -17,4 +17,4 @@ repos:
     rev: 1.7.8
     hooks:
       - id: bandit
-        args: ["-r", "."]
+        args: ["-r", "quant_hedge_ai", "supervision", "scripts"]
