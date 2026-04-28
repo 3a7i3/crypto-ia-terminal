@@ -1,19 +1,44 @@
 [run]
 branch = True
 include =
-    evolution_core.py
-    supervise_all.py
+    # Supervision & alertes
     supervision/alert_manager.py
     supervision/bot_doctor.py
     supervision/custom_module.py
     supervision/botdoctor_dashboard.py
+    supervision/ops_watchdog.py
     supervision/notifications/multi_notifier.py
     supervision/notifications/slack_notifier.py
     supervision/notifications/telegram_notifier.py
-    core/quant/logging_alerts.py
-    dashboard/alert_dashboard.py
+    supervision/notifications/ops_notifier.py
+
+    # Chantier 1 — pipeline données réelles
+    quant_hedge_ai/agents/market/ohlcv_validator.py
+    quant_hedge_ai/agents/market/retry_policy.py
+    quant_hedge_ai/agents/market/market_scanner.py
+    quant_hedge_ai/agents/market/historical_fetcher.py
+
+    # Chantier 2 — validation historique
+    quant_hedge_ai/agents/quant/backtest_lab.py
+    quant_hedge_ai/agents/quant/walk_forward.py
+
+    # Chantier 3 — sécurité live trading
+    quant_hedge_ai/agents/execution/execution_engine.py
+    quant_hedge_ai/agents/execution/order_deduplicator.py
+    quant_hedge_ai/agents/execution/trade_logger.py
+    quant_hedge_ai/agents/execution/paper_trading_engine.py
+    quant_hedge_ai/agents/risk/session_guard.py
+    quant_hedge_ai/agents/risk/drawdown_guard.py
+    quant_hedge_ai/agents/risk/risk_monitor.py
+
+    # Strategy lab
     quant_hedge_ai/strategy_lab/feature_cache.py
 
 [report]
 show_missing = True
 skip_empty = True
+exclude_lines =
+    pragma: no cover
+    if __name__ == .__main__.:
+    raise NotImplementedError
+    \.\.\.
