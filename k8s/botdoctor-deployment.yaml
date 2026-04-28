@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: botdoctor
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: botdoctor
+  template:
+    metadata:
+      labels:
+        app: botdoctor
+    spec:
+      containers:
+      - name: botdoctor
+        image: botdoctor-supervision:latest
+        ports:
+        - containerPort: 8008
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8008
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8008
+          initialDelaySeconds: 5
+          periodSeconds: 15
+        env:
+        - name: ENV
+          value: "production"
+        volumeMounts:
+        - name: results
+          mountPath: /app/results
+      volumes:
+      - name: results
+        emptyDir: {}

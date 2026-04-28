@@ -1,0 +1,23 @@
+{
+  "patterns_detected": {
+    "volatility_cluster": 0.02122465706579748,
+    "volume_spike": false,
+    "regime_shift": false,
+    "anomaly": false
+  },
+  "research_hypotheses": [],
+  "strategy_recommendations": [],
+  "explanations": {
+    "general": "Aucun pattern critique d\u00e9tect\u00e9."
+  },
+  "visualizations": [
+    "pattern_chart.png",
+    "risk_score_plot.png"
+  ],
+  "audit": {
+    "generated_at": "2026-04-07T10:27:59.201975+00:00",
+    "pattern_count": 4,
+    "hypothesis_count": 0,
+    "recommendation_count": 0
+  }
+}

@@ -1,0 +1,5 @@
+[
+  {"pop_size": 50, "n_gen": 30, "migration_freq": 5, "migration_rate": 0.1, "show_plots": false},
+  {"pop_size": 100, "n_gen": 50, "migration_freq": 10, "migration_rate": 0.2, "show_plots": false},
+  {"pop_size": 200, "n_gen": 20, "migration_freq": 4, "migration_rate": 0.05, "show_plots": false}
+]

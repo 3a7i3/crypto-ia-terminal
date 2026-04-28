@@ -1,5 +1,6 @@
 from strategy_factory.genetic_evolution import GeneticEvolution
 
+
 class EvolutionEngine:
     def __init__(self):
         self.genetic = GeneticEvolution()

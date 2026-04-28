@@ -1,0 +1,7 @@
+🛡️ Supervision & Auto-Heal	OK	C:\Users\WINDOWS\crypto_ai_terminal\dashboard\alert_dashboard.py	Port:❌	HTTP:❌	Code:
+🩺 BotDoctor Dashboard	OK	C:\Users\WINDOWS\crypto_ai_terminal\supervision\botdoctor_dashboard.py	Port:❌	HTTP:❌	Code:
+🌐 Evolution Multi-Monde	OK	C:\Users\WINDOWS\crypto_ai_terminal\evolution_dashboard.py	Port:❌	HTTP:❌	Code:
+🌐 3D Evolution Viewer	OK	C:\Users\WINDOWS\crypto_ai_terminal\evolution_3d_view.py	Port:❌	HTTP:❌	Code:
+📊 Quant V16 Panel	OK	C:\Users\WINDOWS\crypto_ai_terminal\crypto_quant_v16\ui\quant_dashboard.py	Port:❌	HTTP:❌	Code:
+📈 Quant Terminal V12	OK	C:\Users\WINDOWS\crypto_ai_terminal\quant_hedge_ai\dashboard\quant_terminal_v12.py	Port:❌	HTTP:❌	Code:
+🧠 R&D Feedback Dashboard	OK	C:\Users\WINDOWS\crypto_ai_terminal\ai_autonomous_loop\feedback_dashboard.py	Port:❌	HTTP:❌	Code:

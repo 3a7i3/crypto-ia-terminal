@@ -1,4 +1,1 @@
-"""
-🎛️ UI Module – Dashboard & Visualization
-Panel/Streamlit dashboard for real-time monitoring
-"""
+"""crypto_quant_v16.ui — Interface utilisateur du terminal V16."""

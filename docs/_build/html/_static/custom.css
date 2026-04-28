@@ -1,0 +1,24 @@
+/* Placez ici vos personnalisations CSS pour un style moderne */
+body, .wy-nav-content, .wy-side-nav-search {
+    background: #181A20 !important;
+    color: #E0E3EB !important;
+    font-family: 'Inter', 'Roboto', Arial, sans-serif;
+}
+.wy-side-nav-search {
+    background: #23272F !important;
+}
+.wy-nav-top {
+    background: #2962FF !important;
+    color: #fff !important;
+}
+.rst-content code, .rst-content pre {
+    background: #23272F !important;
+    color: #f2a900 !important;
+}
+.wy-menu-vertical a {
+    color: #E0E3EB !important;
+}
+.wy-menu-vertical a.current {
+    background: #2962FF !important;
+    color: #fff !important;
+}

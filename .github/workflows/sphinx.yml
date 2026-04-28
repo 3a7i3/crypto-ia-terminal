@@ -1,0 +1,70 @@
+# Automatisation du build Sphinx
+
+
+# Badges à ajouter dans le README.md :
+# ![Docs](https://github.com/<OWNER>/<REPO>/actions/workflows/sphinx.yml/badge.svg)
+# ![GitHub Pages](https://img.shields.io/github/deployments/<OWNER>/<REPO>/github-pages)
+
+name: Build & Deploy Sphinx Docs
+
+on:
+  push:
+    paths:
+      - 'docs/**'
+      - '*.md'
+      - 'quant_hedge_ai/**'
+      - 'crypto_quant_v16/**'
+      - '.github/workflows/sphinx.yml'
+  workflow_dispatch:
+
+jobs:
+  build-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r docs/requirements.txt
+      - name: Copy Markdown files
+        run: |
+          python copy_docs_for_sphinx.py
+      - name: Build Sphinx HTML
+        run: |
+          sphinx-build -b html docs docs/_build/html
+      - name: Check for broken links
+        run: |
+          pip install sphinx-linkcheck
+          sphinx-build -b linkcheck docs docs/_build/linkcheck
+      - name: Notify Discord (optionnel)
+        if: always()
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        run: |
+          if [ -n "$DISCORD_WEBHOOK" ]; then
+            STATUS=$(if [ ${{ job.status }} == 'success' ]; then echo '🟢'; else echo '🔴'; fi)
+            curl -H "Content-Type: application/json" -d '{"content": "'$STATUS' Build Sphinx Docs: ${{ github.repository }} @ ${{ github.sha }}"}' $DISCORD_WEBHOOK
+          fi
+      - name: Notify Slack (optionnel)
+        if: always()
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+        run: |
+          if [ -n "$SLACK_WEBHOOK" ]; then
+            STATUS=$(if [ ${{ job.status }} == 'success' ]; then echo ':white_check_mark:'; else echo ':x:'; fi)
+            curl -X POST -H 'Content-type: application/json' --data '{"text":"'$STATUS' Build Sphinx Docs: ${{ github.repository }} @ ${{ github.sha }}"}' $SLACK_WEBHOOK
+          fi
+      - name: Upload HTML artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sphinx-docs-html
+          path: docs/_build/html
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: docs/_build/html

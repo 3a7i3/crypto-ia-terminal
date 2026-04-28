@@ -1,5 +1,6 @@
 from strategy_factory.genome import StrategyGenome
 
+
 class StrategyGenerator:
     def generate(self, n=200):
         genomes = []

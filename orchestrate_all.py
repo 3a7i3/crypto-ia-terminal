@@ -1,6 +1,6 @@
+import os
 import subprocess
 import sys
-import os
 
 # 1. Lancer la simulation évolutive
 print("[1/4] Lancement de la simulation darwinienne...")
@@ -17,16 +17,18 @@ if ret.returncode != 0:
     sys.exit(1)
 
 # 3. (Optionnel) Lancer le dashboard interactif si disponible
-panel_script = os.path.join("results", "dashboard_panel.py")
+panel_script = os.path.join("results", "dashboard_evolution_results.py")
 if os.path.exists(panel_script):
     print("[3/4] Lancement du dashboard Panel...")
     subprocess.Popen([sys.executable, panel_script])
 else:
     print("[3/4] Dashboard Panel non trouvé (optionnel)")
 
+
 # 4. (Optionnel) Générer les vidéos MP4 à partir des GIF
 try:
     import moviepy.editor as mpy
+
     for world in ["trend", "range", "crash", "chaos"]:
         gif_path = f"results/species_evolution_{world}.gif"
         mp4_path = f"results/species_evolution_{world}.mp4"
@@ -36,5 +38,39 @@ try:
             clip.write_videofile(mp4_path, fps=10)
 except ImportError:
     print("moviepy non installé : conversion GIF->MP4 sautée.")
+
+# 5. (NOUVEAU) Profilage backtest & monitoring supervision
+print("[5/5] Profilage backtest & monitoring supervision...")
+try:
+    ret1 = subprocess.run(
+        [
+            sys.executable,
+            "strategy_factory/backtest_profiler.py",
+            "--n",
+            "5000",
+            "--n_strat",
+            "4",
+            "--logfile",
+            "results/backtest_profiler.log",
+            "--save",
+            "results/backtest_profiler_results.csv",
+        ]
+    )
+    if ret1.returncode != 0:
+        print("[ERREUR] backtest_profiler.py a échoué.")
+    ret2 = subprocess.run(
+        [
+            sys.executable,
+            "supervision/monitoring_profiler.py",
+            "--duration",
+            "5",
+            "--logfile",
+            "results/monitoring_profiler.log",
+        ]
+    )
+    if ret2.returncode != 0:
+        print("[ERREUR] monitoring_profiler.py a échoué.")
+except Exception as e:
+    print(f"[ERREUR] lors du profiling/monitoring: {e}")
 
 print("\nOrchestration complète terminée. Tout est prêt dans le dossier results !")

@@ -1,0 +1,1 @@
+"""core.quant — utilitaires quantitatifs."""

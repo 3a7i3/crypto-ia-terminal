@@ -1,0 +1,5 @@
+#!/bin/sh
+# Pre-commit hook: Regenerate dashboards table before commit
+.venv/Scripts/python scripts/generate_dashboards_table.py
+# Add the README if changed
+git add DASHBOARDS_README.md

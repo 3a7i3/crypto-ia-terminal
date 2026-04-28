@@ -23,3 +23,14 @@ Thumbs.db
 # Ignore data files
 data/
 *.csv
+
+# Ignore backups and archives
+*.broken_backup
+*.tar.gz
+*.zip
+.coverage
+archives/
+
+# Ignore SQLite databases
+*.sqlite
+*.db

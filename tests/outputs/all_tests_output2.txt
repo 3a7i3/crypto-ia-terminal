@@ -1,0 +1,164 @@
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.0.3, pluggy-1.6.0
+rootdir: C:\Users\WINDOWS\crypto_ai_terminal\quant-ai-system
+configfile: pytest.ini
+plugins: anyio-4.13.0, asyncio-1.3.0, timeout-2.4.0
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 1 item
+
+quant-ai-system\quant_ai_tests\test_infrastructure.py s                  [100%]
+
+============================= 1 skipped in 0.23s ==============================
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.0.3, pluggy-1.6.0 -- C:\Users\WINDOWS\AppData\Local\Programs\Python\Python314\python.exe
+cachedir: .pytest_cache
+rootdir: C:\Users\WINDOWS\crypto_ai_terminal
+configfile: pytest.ini
+plugins: anyio-4.13.0, asyncio-1.3.0, timeout-2.4.0
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 29 items / 2 skipped
+
+crypto_quant_v16/tests/test_components.py::TestComponents::test_create_candlestick_chart PASSED [  3%]
+crypto_quant_v16/tests/test_components.py::TestComponents::test_create_equity_curve PASSED [  6%]
+crypto_quant_v16/tests/test_components.py::TestComponents::test_create_kpi_indicators PASSED [ 10%]
+crypto_quant_v16/tests/test_components.py::TestComponents::test_create_market_table PASSED [ 13%]
+crypto_quant_v16/tests/test_components.py::TestComponents::test_create_portfolio_pie PASSED [ 17%]
+crypto_quant_v16/tests/test_dashboard_charts.py::TestDashboardCharts::test_create_candlestick_chart PASSED [ 20%]
+crypto_quant_v16/tests/test_dashboard_charts.py::TestDashboardCharts::test_create_equity_curve FAILED [ 24%]
+crypto_quant_v16/tests/test_dashboard_charts.py::TestDashboardCharts::test_create_portfolio_pie PASSED [ 27%]
+crypto_quant_v16/tests/test_dashboard_components.py::TestDashboardComponents::test_create_kpi_indicators PASSED [ 31%]
+crypto_quant_v16/tests/test_dashboard_components.py::TestDashboardComponents::test_create_market_table PASSED [ 34%]
+crypto_quant_v16/tests/test_execution_engine.py::TestExecutionEngine::test_cancel_order 
+-------------------------------- live log call --------------------------------
+WARNING  asyncio:base_events.py:2041 Executing <Handle BaseProactorEventLoop._loop_self_reading() created at C:\Users\WINDOWS\AppData\Local\Programs\Python\Python314\Lib\asyncio\windows_events.py:320> took 0.116 seconds
+INFO     crypto_quant_v16.core.execution_engine:execution_engine.py:77 \U0001f4c4 Paper order: buy 1.0 BTCUSDT\nWARNING  crypto_quant_v16.core.execution_engine:execution_engine.py:124 Order 0 not pending, cannot cancel.
+WARNING  crypto_quant_v16.core.execution_engine:execution_engine.py:124 Order 0 not pending, cannot cancel.
+PASSED                                                                   [ 37%]
+crypto_quant_v16/tests/test_execution_engine.py::TestExecutionEngine::test_create_order_paper 
+-------------------------------- live log call --------------------------------
+INFO     crypto_quant_v16.core.execution_engine:execution_engine.py:77 \U0001f4c4 Paper order: buy 1.0 BTCUSDT\nPASSED                                                                   [ 41%]
+crypto_quant_v16/tests/test_execution_engine.py::TestExecutionEngine::test_set_stop_loss 
+-------------------------------- live log call --------------------------------
+INFO     crypto_quant_v16.core.execution_engine:execution_engine.py:107 \U0001f6d1 Stop-loss set: BTCUSDT @ 47500.0\nPASSED                                                                   [ 44%]
+crypto_quant_v16/tests/test_paper_trading.py::TestPaperTrader::test_open_and_close_position FAILED [ 48%]
+crypto_quant_v16/tests/test_paper_trading.py::TestPaperTrader::test_persistence FAILED [ 51%]
+crypto_quant_v16/tests/test_portfolio_brain.py::TestPortfolioBrain::test_apply_risk_limits PASSED [ 55%]
+crypto_quant_v16/tests/test_quant_dashboard_v26.py::TestQuantDashboardV26::test_dashboard_instantiation FAILED [ 58%]
+crypto_quant_v16/tests/test_quant_dashboard_v26.py::TestQuantDashboardV26::test_panel_template FAILED [ 62%]
+crypto_quant_v16/tests/test_quant_dashboard_v26_visual.py::TestQuantDashboardV26Visual::test_dashboard_renders_and_screenshot FAILED [ 65%]
+crypto_quant_v16/tests/test_quant_dashboard_v26_widgets.py::TestQuantDashboardV26Widgets::test_panel_template_renders FAILED [ 68%]
+crypto_quant_v16/tests/test_quant_dashboard_v26_widgets.py::TestQuantDashboardV26Widgets::test_profile_select_widget FAILED [ 72%]
+crypto_quant_v16/tests/test_quant_dashboard_v26_widgets.py::TestQuantDashboardV26Widgets::test_refresh_button_click FAILED [ 75%]
+crypto_quant_v16/tests/test_quant_dashboard_v26_widgets.py::TestQuantDashboardV26Widgets::test_symbol_widget FAILED [ 79%]
+crypto_quant_v16/tests/test_sniper_bot.py::TestSniperBot::test_failed_trade 
+-------------------------------- live log call --------------------------------
+INFO     memecoin_alpha.sniper_bot:sniper_bot.py:48 Snipe TOKEN2: price=1.0, slippage=0.50%, final=1.005
+WARNING  memecoin_alpha.sniper_bot:sniper_bot.py:63 Trade failed for TOKEN2
+PASSED                                                                   [ 82%]
+crypto_quant_v16/tests/test_sniper_bot.py::TestSniperBot::test_snipe_trade_log 
+-------------------------------- live log call --------------------------------
+INFO     memecoin_alpha.sniper_bot:sniper_bot.py:48 Snipe TOKEN1: price=1.0, slippage=1.00%, final=1.01
+INFO     memecoin_alpha.sniper_bot:sniper_bot.py:61 Trade executed: TOKEN1 net=999.0
+PASSED                                                                   [ 86%]
+crypto_quant_v16/tests/test_strategy_evolution.py::TestStrategyEvolution::test_backtest_score PASSED [ 89%]
+crypto_quant_v16/tests/test_strategy_evolution.py::TestStrategyEvolution::test_evolve_population PASSED [ 93%]
+crypto_quant_v16/tests/test_strategy_evolution.py::TestStrategyEvolution::test_generate_strategy PASSED [ 96%]
+crypto_quant_v16/tests/test_strategy_evolution.py::TestStrategyEvolution::test_mutate_strategy PASSED [100%]
+
+================================== FAILURES ===================================
+________________ TestDashboardCharts.test_create_equity_curve _________________
+crypto_quant_v16\tests\test_dashboard_charts.py:101: in test_create_equity_curve
+    fig5 = components.create_equity_curve({"a": 1})
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+crypto_quant_v16\ui\components.py:328: in create_equity_curve
+    peak = equity[0]
+           ^^^^^^^^^
+E   KeyError: 0
+________________ TestPaperTrader.test_open_and_close_position _________________
+crypto_quant_v16\tests\test_paper_trading.py:11: in test_open_and_close_position
+    self.assertIsNotNone(pid, "open_position a retourné None (capital insuffisant ?)")
+E   AssertionError: unexpectedly None : open_position a retourné None (capital insuffisant ?)
+______________________ TestPaperTrader.test_persistence _______________________
+crypto_quant_v16\tests\test_paper_trading.py:19: in test_persistence
+    self.assertIsNotNone(pid, "open_position a retourné None (capital insuffisant ?)")
+E   AssertionError: unexpectedly None : open_position a retourné None (capital insuffisant ?)
+_____________ TestQuantDashboardV26.test_dashboard_instantiation ______________
+crypto_quant_v16\tests\test_quant_dashboard_v26.py:9: in test_dashboard_instantiation
+    self.assertTrue(hasattr(dashboard, "pn"))
+E   AssertionError: False is not true
+__________________ TestQuantDashboardV26.test_panel_template __________________
+crypto_quant_v16\tests\test_quant_dashboard_v26.py:15: in test_panel_template
+    self.assertTrue(hasattr(dashboard_quant_v26, "pn"))
+E   AssertionError: False is not true
+
+During handling of the above exception, another exception occurred:
+crypto_quant_v16\tests\test_quant_dashboard_v26.py:17: in test_panel_template
+    self.fail(f"Panel template failed to instantiate: {e}")
+E   AssertionError: Panel template failed to instantiate: False is not true
+______ TestQuantDashboardV26Visual.test_dashboard_renders_and_screenshot ______
+crypto_quant_v16\tests\test_quant_dashboard_v26_visual.py:31: in test_dashboard_renders_and_screenshot
+    self.driver.get(DASHBOARD_URL)
+..\AppData\Local\Programs\Python\Python314\Lib\site-packages\selenium\webdriver\remote\webdriver.py:466: in get
+    self.execute(Command.GET, {"url": url})
+..\AppData\Local\Programs\Python\Python314\Lib\site-packages\selenium\webdriver\remote\webdriver.py:446: in execute
+    self.error_handler.check_response(response)
+..\AppData\Local\Programs\Python\Python314\Lib\site-packages\selenium\webdriver\remote\errorhandler.py:232: in check_response
+    raise exception_class(message, screen, stacktrace)
+E   selenium.common.exceptions.WebDriverException: Message: unknown error: net::ERR_CONNECTION_REFUSED
+E     (Session info: chrome=147.0.7727.103)
+E   Stacktrace:
+E   	chromedriver!GetHandleVerifier [0x7ff7b76ea8e5+14e45]
+E   	chromedriver!GetHandleVerifier [0x7ff7b76ea950+14eb0]
+E   	chromedriver!(No symbol) [0x7ff7b745d6ed]
+E   	chromedriver!(No symbol) [0x7ff7b745a224]
+E   	chromedriver!(No symbol) [0x7ff7b744a191]
+E   	chromedriver!(No symbol) [0x7ff7b744c07f]
+E   	chromedriver!(No symbol) [0x7ff7b744a733]
+E   	chromedriver!(No symbol) [0x7ff7b7449efb]
+E   	chromedriver!(No symbol) [0x7ff7b7449bb1]
+E   	chromedriver!(No symbol) [0x7ff7b74477e1]
+E   	chromedriver!(No symbol) [0x7ff7b7447f42]
+E   	chromedriver!(No symbol) [0x7ff7b74619a6]
+E   	chromedriver!(No symbol) [0x7ff7b7505664]
+E   	chromedriver!(No symbol) [0x7ff7b74e002a]
+E   	chromedriver!(No symbol) [0x7ff7b750483b]
+E   	chromedriver!(No symbol) [0x7ff7b74a90e8]
+E   	chromedriver!(No symbol) [0x7ff7b74a9fc3]
+E   	chromedriver!GetHandleVerifier [0x7ff7b7a00149+32a6a9]
+E   	chromedriver!GetHandleVerifier [0x7ff7b79fa715+324c75]
+E   	chromedriver!GetHandleVerifier [0x7ff7b7a1c012+346572]
+E   	chromedriver!GetHandleVerifier [0x7ff7b7707cb5+32215]
+E   	chromedriver!GetHandleVerifier [0x7ff7b771087c+3addc]
+E   	chromedriver!GetHandleVerifier [0x7ff7b76f40e4+1e644]
+E   	chromedriver!GetHandleVerifier [0x7ff7b76f4296+1e7f6]
+E   	chromedriver!GetHandleVerifier [0x7ff7b76d8737+2c97]
+E   	KERNEL32!BaseThreadInitThunk [0x7fffdbe9e8d7+17]
+E   	ntdll!RtlUserThreadStart [0x7fffdcd6c3fc+2c]
+__________ TestQuantDashboardV26Widgets.test_panel_template_renders ___________
+crypto_quant_v16\tests\test_quant_dashboard_v26_widgets.py:37: in test_panel_template_renders
+    self.assertIsNotNone(layout)
+E   AssertionError: unexpectedly None
+___________ TestQuantDashboardV26Widgets.test_profile_select_widget ___________
+crypto_quant_v16\tests\test_quant_dashboard_v26_widgets.py:19: in test_profile_select_widget
+    self.assertIsNotNone(profile_select)
+E   AssertionError: unexpectedly None
+___________ TestQuantDashboardV26Widgets.test_refresh_button_click ____________
+crypto_quant_v16\tests\test_quant_dashboard_v26_widgets.py:25: in test_refresh_button_click
+    self.assertIsNotNone(refresh_btn)
+E   AssertionError: unexpectedly None
+_______________ TestQuantDashboardV26Widgets.test_symbol_widget _______________
+crypto_quant_v16\tests\test_quant_dashboard_v26_widgets.py:13: in test_symbol_widget
+    self.assertIsNotNone(symbol)
+E   AssertionError: unexpectedly None
+=========================== short test summary info ===========================
+FAILED crypto_quant_v16/tests/test_dashboard_charts.py::TestDashboardCharts::test_create_equity_curve
+FAILED crypto_quant_v16/tests/test_paper_trading.py::TestPaperTrader::test_open_and_close_position
+FAILED crypto_quant_v16/tests/test_paper_trading.py::TestPaperTrader::test_persistence
+FAILED crypto_quant_v16/tests/test_quant_dashboard_v26.py::TestQuantDashboardV26::test_dashboard_instantiation
+FAILED crypto_quant_v16/tests/test_quant_dashboard_v26.py::TestQuantDashboardV26::test_panel_template
+FAILED crypto_quant_v16/tests/test_quant_dashboard_v26_visual.py::TestQuantDashboardV26Visual::test_dashboard_renders_and_screenshot
+FAILED crypto_quant_v16/tests/test_quant_dashboard_v26_widgets.py::TestQuantDashboardV26Widgets::test_panel_template_renders
+FAILED crypto_quant_v16/tests/test_quant_dashboard_v26_widgets.py::TestQuantDashboardV26Widgets::test_profile_select_widget
+FAILED crypto_quant_v16/tests/test_quant_dashboard_v26_widgets.py::TestQuantDashboardV26Widgets::test_refresh_button_click
+FAILED crypto_quant_v16/tests/test_quant_dashboard_v26_widgets.py::TestQuantDashboardV26Widgets::test_symbol_widget
+================== 10 failed, 19 passed, 2 skipped in 56.90s ==================

@@ -1,0 +1,86 @@
+{
+  "_version": 1,
+  "size": 4,
+  "genomes": [
+    {
+      "_version": 1,
+      "id": "414fcf19",
+      "genes": {
+        "entry.type": "mean_reversion",
+        "entry.rsi_period": 5,
+        "entry.rsi_buy": 50.0,
+        "ma_short": 5.0,
+        "ma_long": 20.0,
+        "ma_signal": "cross_over",
+        "exit.tp": 1.0,
+        "exit.sl": 0.5,
+        "risk.risk_per_trade": 0.01
+      },
+      "fitness": -0.03845735864803162,
+      "fitness_trend": -0.025580319233803744,
+      "fitness_range": 0.1382563784701546,
+      "fitness_crash": -0.2280481351804457,
+      "parent_ids": []
+    },
+    {
+      "_version": 1,
+      "id": "ef28d515",
+      "genes": {
+        "entry.type": "mean_reversion",
+        "entry.rsi_period": 5,
+        "entry.rsi_buy": 50.0,
+        "ma_short": 5.0,
+        "ma_long": 20.0,
+        "ma_signal": "cross_over",
+        "exit.tp": 1.0,
+        "exit.sl": 0.5,
+        "risk.risk_per_trade": 0.01
+      },
+      "fitness": -0.0625549767119493,
+      "fitness_trend": 0.03278053539899212,
+      "fitness_range": 0.008221075357401936,
+      "fitness_crash": -0.22866654089224198,
+      "parent_ids": []
+    },
+    {
+      "_version": 1,
+      "id": "955721d8",
+      "genes": {
+        "entry.type": "mean_reversion",
+        "entry.rsi_period": 5,
+        "entry.rsi_buy": 50.0,
+        "ma_short": 5,
+        "ma_long": 20,
+        "ma_signal": "cross_over",
+        "exit.tp": 1.0,
+        "exit.sl": 0.5,
+        "risk.risk_per_trade": 0.01
+      },
+      "fitness": -0.09294410729825915,
+      "fitness_trend": -0.09384903717332227,
+      "fitness_range": 0.015037858736667159,
+      "fitness_crash": -0.20002114345812239,
+      "parent_ids": []
+    },
+    {
+      "_version": 1,
+      "id": "68257b59",
+      "genes": {
+        "entry.type": "mean_reversion",
+        "entry.rsi_period": 5,
+        "entry.rsi_buy": 48.56908958598376,
+        "ma_short": 5,
+        "ma_long": 20,
+        "ma_signal": "cross_over",
+        "exit.tp": 1.0,
+        "exit.sl": 0.5,
+        "risk.risk_per_trade": 0.01
+      },
+      "fitness": -0.16258130659418626,
+      "fitness_trend": -0.24224984233746183,
+      "fitness_range": 0.03986279458162273,
+      "fitness_crash": -0.28535687202671967,
+      "parent_ids": []
+    }
+  ]
+}

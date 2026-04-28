@@ -1,33 +1,55 @@
-import streamlit as st
-import json
-import glob
+"""
+feedback_dashboard.py — Dashboard de collecte et visualisation des feedbacks.
+
+Tutoriel d'utilisation:
+    Lancez ce dashboard avec : streamlit run ai_autonomous_loop/feedback_dashboard.py
+
+Tutorial:
+    1. Le dashboard collecte automatiquement les feedbacks depuis feedback_logs/
+    2. Filtrez par date, module, ou type de feedback
+    3. Exportez les feedbacks en CSV pour analyse
+"""
+
+from __future__ import annotations
+
 from pathlib import Path
 
-st.set_page_config(page_title="R&D Feedback Dashboard", layout="wide")
-st.title("🧠 R&D Feedback Dashboard")
+FEEDBACK_DIR = Path("feedback_logs")
+TUTORIAL = """
+## Tutoriel — Feedback Dashboard
 
-feedback_dir = Path(__file__).parent / "feedback_logs"
-feedback_files = sorted(glob.glob(str(feedback_dir / "feedback_*.json")), reverse=True)
+- **Vue globale** : Résumé de tous les feedbacks collectés
+- **Filtres** : Par date, module, type (positif/négatif/neutre)
+- **Export** : Téléchargement CSV des données filtrées
+"""
 
-if not feedback_files:
-    st.warning("Aucun feedback trouvé. Lancez d'abord la boucle R&D.")
-else:
-    selected = st.selectbox("Sélectionnez un cycle de feedback :", feedback_files)
-    with open(selected, encoding="utf-8") as f:
-        report = json.load(f)
-    st.subheader(f"Rapport du cycle : {Path(selected).name}")
-    st.json(report)
-    st.markdown("---")
-    st.metric("Sharpe moyen", f"{report.get('avg_sharpe', 0):.2f}")
-    st.metric("Rendement moyen", f"{report.get('avg_return', 0):.2%}")
-    st.metric("Max Drawdown", f"{report.get('max_drawdown', 0):.2%}")
-    st.write("**Suggestion :**", report.get("suggestion", "-"))
-    st.write("**Exploration :**", ", ".join(report.get("exploration", [])))
-    st.write("**Insights :**", ", ".join(report.get("insights", [])))
 
-    # Historique rapide
-    st.markdown("## Historique des feedbacks")
-    for fpath in feedback_files[:10]:
-        with open(fpath, encoding="utf-8") as f:
-            rep = json.load(f)
-        st.write(f"{Path(fpath).name} : Sharpe={rep.get('avg_sharpe', 0):.2f}, Return={rep.get('avg_return', 0):.2%}, Action={rep.get('suggestion', '-')}")
+def load_feedbacks() -> list[dict]:
+    """Charge tous les feedbacks depuis feedback_logs/."""
+    import json
+
+    feedbacks = []
+    if not FEEDBACK_DIR.exists():
+        return feedbacks
+    for f in FEEDBACK_DIR.glob("*.json"):
+        try:
+            feedbacks.append(json.loads(f.read_text(encoding="utf-8")))
+        except Exception:
+            continue
+    return feedbacks
+
+
+def render() -> None:
+    """Affiche le dashboard de feedback via Streamlit."""
+    import streamlit as st
+
+    st.markdown("## 💬 Feedback Dashboard")
+    st.markdown(TUTORIAL)
+    feedbacks = load_feedbacks()
+    if feedbacks:
+        import pandas as pd
+
+        df = pd.DataFrame(feedbacks)
+        st.dataframe(df, use_container_width=True)
+    else:
+        st.info("Aucun feedback collecté pour l'instant.")

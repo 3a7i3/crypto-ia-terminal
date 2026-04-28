@@ -1,0 +1,166 @@
+{
+  "_version": 1,
+  "size": 8,
+  "genomes": [
+    {
+      "_version": 1,
+      "id": "89d925ce",
+      "genes": {
+        "entry.type": "hybrid",
+        "entry.rsi_period": 23.095620664756137,
+        "entry.rsi_buy": 30.37919251501532,
+        "ma_short": 10.840929579246783,
+        "ma_long": 173.28236602382242,
+        "ma_signal": "cross_under",
+        "exit.tp": 1.9576120362745921,
+        "exit.sl": 1.9272743007508168,
+        "risk.risk_per_trade": 0.012722759997937302
+      },
+      "fitness": 1.0,
+      "fitness_trend": 0.0,
+      "fitness_range": 0.0,
+      "fitness_crash": 0.0,
+      "parent_ids": []
+    },
+    {
+      "_version": 1,
+      "id": "489e9f0c",
+      "genes": {
+        "entry.type": "hybrid",
+        "entry.rsi_period": 23.095620664756137,
+        "entry.rsi_buy": 30.37919251501532,
+        "ma_short": 10.840929579246783,
+        "ma_long": 173.28236602382242,
+        "ma_signal": "cross_under",
+        "exit.tp": 1.5696951997083273,
+        "exit.sl": 1.9272743007508168,
+        "risk.risk_per_trade": 0.015495921088130919
+      },
+      "fitness": 1.0,
+      "fitness_trend": 0.0,
+      "fitness_range": 0.0,
+      "fitness_crash": 0.0,
+      "parent_ids": []
+    },
+    {
+      "_version": 1,
+      "id": "7ac490ce",
+      "genes": {
+        "entry.type": "mean_reversion",
+        "entry.rsi_period": 23.095620664756137,
+        "entry.rsi_buy": 30.37919251501532,
+        "ma_short": 10.840929579246783,
+        "ma_long": 141.69141734010242,
+        "ma_signal": "cross_under",
+        "exit.tp": 1.9576120362745921,
+        "exit.sl": 1.7891254516948134,
+        "risk.risk_per_trade": 0.016600781588212054
+      },
+      "fitness": 1.0,
+      "fitness_trend": 0.0,
+      "fitness_range": 0.0,
+      "fitness_crash": 0.0,
+      "parent_ids": []
+    },
+    {
+      "_version": 1,
+      "id": "880b0d09",
+      "genes": {
+        "entry.type": "hybrid",
+        "entry.rsi_period": 22.761522039892846,
+        "entry.rsi_buy": 30.37919251501532,
+        "ma_short": 10.840929579246783,
+        "ma_long": 173.28236602382242,
+        "ma_signal": "cross_under",
+        "exit.tp": 1.9576120362745921,
+        "exit.sl": 1.9272743007508168,
+        "risk.risk_per_trade": 0.011662279394759403
+      },
+      "fitness": 1.0,
+      "fitness_trend": 0.0,
+      "fitness_range": 0.0,
+      "fitness_crash": 0.0,
+      "parent_ids": []
+    },
+    {
+      "_version": 1,
+      "id": "d28cf745",
+      "genes": {
+        "entry.type": "hybrid",
+        "entry.rsi_period": 25.02643305543451,
+        "entry.rsi_buy": 30.37919251501532,
+        "ma_short": 10.840929579246783,
+        "ma_long": 173.28236602382242,
+        "ma_signal": "cross_under",
+        "exit.tp": 1.565406103640842,
+        "exit.sl": 1.9272743007508168,
+        "risk.risk_per_trade": 0.01384211096577484
+      },
+      "fitness": 1.0,
+      "fitness_trend": 0.0,
+      "fitness_range": 0.0,
+      "fitness_crash": 0.0,
+      "parent_ids": []
+    },
+    {
+      "_version": 1,
+      "id": "5311185d",
+      "genes": {
+        "entry.type": "hybrid",
+        "entry.rsi_period": 23.095620664756137,
+        "entry.rsi_buy": 30,
+        "ma_short": 10.840929579246783,
+        "ma_long": 173.28236602382242,
+        "ma_signal": "cross_under",
+        "exit.tp": 1.9576120362745921,
+        "exit.sl": 1.9272743007508168,
+        "risk.risk_per_trade": 0.012722759997937302
+      },
+      "fitness": 1.0,
+      "fitness_trend": 0.0,
+      "fitness_range": 0.0,
+      "fitness_crash": 0.0,
+      "parent_ids": []
+    },
+    {
+      "_version": 1,
+      "id": "2dff09ab",
+      "genes": {
+        "entry.type": "trend",
+        "entry.rsi_period": 12.412008435079038,
+        "entry.rsi_buy": 39.93006026051748,
+        "ma_short": 34.60714856858182,
+        "ma_long": 194.65040781248356,
+        "ma_signal": "cross_over",
+        "exit.tp": 3.0157293969720556,
+        "exit.sl": 0.5578925056863273,
+        "risk.risk_per_trade": 0.020905265395386896
+      },
+      "fitness": 1.0,
+      "fitness_trend": 0.0,
+      "fitness_range": 0.0,
+      "fitness_crash": 0.0,
+      "parent_ids": []
+    },
+    {
+      "_version": 1,
+      "id": "76452fcc",
+      "genes": {
+        "entry.type": "trend",
+        "entry.rsi_period": 21.011795580699435,
+        "entry.rsi_buy": 39.364888503370096,
+        "ma_short": 44.24309748196939,
+        "ma_long": 168.43472913701973,
+        "ma_signal": "cross_over",
+        "exit.tp": 2.794337422302453,
+        "exit.sl": 0.7613718708087771,
+        "risk.risk_per_trade": 0.024386340661730746
+      },
+      "fitness": 1.0,
+      "fitness_trend": 0.0,
+      "fitness_range": 0.0,
+      "fitness_crash": 0.0,
+      "parent_ids": []
+    }
+  ]
+}

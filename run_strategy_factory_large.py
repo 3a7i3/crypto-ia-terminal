@@ -1,14 +1,17 @@
-from strategy_factory.generator import StrategyGenerator
-from strategy_factory.backtester import Backtester
-from strategy_factory.evolution import EvolutionEngine
-from strategy_factory.alpha_vault import AlphaVault
 import pandas as pd
 
+from strategy_factory.alpha_vault import AlphaVault
+from strategy_factory.backtester import Backtester
+from strategy_factory.evolution import EvolutionEngine
+from strategy_factory.generator import StrategyGenerator
+
 # Génère un DataFrame factice (à remplacer par de vraies données marché)
-df = pd.DataFrame({
-    "momentum": [0.2 + 0.01*i for i in range(200)],
-    "close": [100 + i*0.5 for i in range(200)]
-})
+df = pd.DataFrame(
+    {
+        "momentum": [0.2 + 0.01 * i for i in range(200)],
+        "close": [100 + i * 0.5 for i in range(200)],
+    }
+)
 
 generator = StrategyGenerator()
 evolution = EvolutionEngine()

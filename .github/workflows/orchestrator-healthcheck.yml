@@ -1,0 +1,30 @@
+# .github/workflows/orchestrator-healthcheck.yml
+# GitHub Actions : Healthcheck orchestrateur après chaque push sur main
+
+name: Orchestrator Healthcheck
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  healthcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: Install dependencies
+        run: |
+          pip install requests
+      - name: Start orchestrator (background)
+        run: |
+          pwsh -Command "Start-Process -NoNewWindow -FilePath 'powershell' -ArgumentList '-ExecutionPolicy Bypass -File orchestration/orchestrate_all.ps1'"
+          sleep 10
+      - name: Healthcheck orchestrator
+        run: |
+          python orchestration/healthcheck_orchestrator.py

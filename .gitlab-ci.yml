@@ -1,0 +1,43 @@
+audit-dashboards:
+  stage: test
+  script:
+    - echo "[CI] Vérification de la cohérence des dashboards/applications (audit strict)"
+    - python scripts/generate_audit_report.py
+  variables:
+    DASHBOARD_AUDIT_STRICT: "1"
+  allow_failure: false
+  only:
+    - main
+# .gitlab-ci.yml
+# CI pour tests Python, couverture, robustesse et visualisation sur GitLab
+stages:
+  - test
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+
+before_script:
+  - python --version
+  - pip install -r requirements.txt
+  - pip install pytest pytest-cov
+
+
+test:
+  stage: test
+  script:
+    - pytest --maxfail=1 --disable-warnings --cov=supervision supervision/test_*.py --cov-report=term-missing
+  artifacts:
+    paths:
+      - .coverage
+    reports:
+      junit: junit.xml
+
+docker-build:
+  stage: test
+  image: docker:latest
+  services:
+    - docker:dind
+  script:
+    - docker build -t botdoctor-supervision:latest .
+  only:
+    - main

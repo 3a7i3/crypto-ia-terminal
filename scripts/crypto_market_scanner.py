@@ -1,7 +1,7 @@
-import panel as pn
-import pandas as pd
 import ccxt
 import hvplot.pandas
+import pandas as pd
+import panel as pn
 import ta
 
 pn.extension()
@@ -16,7 +16,7 @@ symbols = [
     "SOL/USDT",
     "XRP/USDT",
     "ADA/USDT",
-    "DOGE/USDT"
+    "DOGE/USDT",
 ]
 
 timeframe = "5m"
@@ -28,8 +28,7 @@ def get_data(symbol):
     ohlcv = exchange.fetch_ohlcv(symbol, timeframe=timeframe, limit=limit)
 
     df = pd.DataFrame(
-        ohlcv,
-        columns=["timestamp","open","high","low","close","volume"]
+        ohlcv, columns=["timestamp", "open", "high", "low", "close", "volume"]
     )
 
     df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms")
@@ -71,12 +70,14 @@ def scan_market():
 
             rsi = df["rsi"].iloc[-1]
 
-            results.append({
-                "symbol": symbol,
-                "price": round(price,2),
-                "rsi": round(rsi,2),
-                "signal": signal
-            })
+            results.append(
+                {
+                    "symbol": symbol,
+                    "price": round(price, 2),
+                    "rsi": round(rsi, 2),
+                    "signal": signal,
+                }
+            )
 
         except Exception as e:
 
@@ -97,22 +98,16 @@ def update_dashboard(symbol):
 
     chart = df.hvplot(
         x="timestamp",
-        y=["close","ma20","ma50"],
+        y=["close", "ma20", "ma50"],
         height=400,
-        title=symbol_select.value
+        title=symbol_select.value,
     )
 
     return pn.Column(
-        "# 🚀 Crypto AI Market Scanner",
-        "## Market signals",
-        market,
-        chart
+        "# 🚀 Crypto AI Market Scanner", "## Market signals", market, chart
     )
 
 
-dashboard = pn.Column(
-    symbol_select,
-    update_dashboard
-)
+dashboard = pn.Column(symbol_select, update_dashboard)
 
 dashboard.servable()

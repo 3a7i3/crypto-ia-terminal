@@ -1,0 +1,6 @@
+sphinx
+sphinx_rtd_theme
+myst-parser
+furo
+sphinxcontrib-mermaid
+myst-nb

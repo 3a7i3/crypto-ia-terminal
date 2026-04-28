@@ -7,8 +7,26 @@ $ErrorActionPreference = 'Stop'
 
 $Root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $Python = Join-Path $Root '.venv\Scripts\python.exe'
+$StreamlitPort = 8501
+$StreamlitTitle = '3D Evolution Viewer'
+$StreamlitScript = 'evolution_3d_view.py'
 $WindowStyle = if ($Visible) { 'Normal' } else { 'Minimized' }
 $EnvFile = Join-Path $Root '.env'
+
+# === Étape 0 : Vérification automatique des systèmes et tests ===
+$VerifyScript = Join-Path $Root 'scripts\verify_all_systems.ps1'
+if (Test-Path $VerifyScript) {
+    Write-Host '============================================================'
+    Write-Host '  [AUTO-TEST] Vérification des systèmes et tests critiques'
+    Write-Host '============================================================'
+    $verifyResult = & $VerifyScript
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host '[ERREUR] Un ou plusieurs tests critiques ont échoué. Arrêt du lancement.' -ForegroundColor Red
+        exit $LASTEXITCODE
+    }
+    Write-Host '[OK] Tous les tests critiques sont passés.' -ForegroundColor Green
+    Write-Host ''
+}
 
 function Write-Section {
     param([string]$Text)
@@ -105,34 +123,76 @@ function Ensure-BackgroundPython {
     Start-Process -FilePath 'cmd.exe' -ArgumentList '/k', $cmd -WindowStyle $WindowStyle | Out-Null
 }
 
+
+# === Vérification de la version de Python ===
 if (-not (Test-Path $Python)) {
     throw "Python executable not found: $Python"
 }
+$pythonVersion = & $Python --version 2>&1
+Write-Host "[INFO] Python version: $pythonVersion"
+
+# === Vérification des ports déjà utilisés ===
+$allPorts = @(5010, $StreamlitPort)
+$busyPorts = @()
+foreach ($p in $allPorts) {
+    if (Test-PortListening -Port $p) {
+        $busyPorts += $p
+    }
+}
+if ($busyPorts.Count -gt 0) {
+    Write-Host "[WARN] Ports déjà occupés: $($busyPorts -join ', ')" -ForegroundColor Yellow
+}
 
 Write-Host '============================================================'
-Write-Host '  AI Quant Platform - PowerShell Launcher'
-Write-Host '  V12 (5010) / V16 (5011) / V13 (5013) / V26 (5026) + Alerts'
+Write-Host '  AI Quant Platform - PowerShell Launcher (V9.1 + Evolution)'
+Write-Host '  V12 Dashboard (5010) + 3D Evolution Viewer (8501)'
 Write-Host '============================================================'
 
 if ($LoadEnv) {
     Load-DotEnv -FilePath $EnvFile
 }
 
-Ensure-PanelService -Port 5010 -Title 'V12 Dashboard' -WorkingDir (Join-Path $Root 'quant-hedge-ai') -ScriptPath 'dashboard\quant_terminal_v12.py'
-Ensure-PanelService -Port 5011 -Title 'V16 Dashboard' -WorkingDir (Join-Path $Root 'crypto_quant_v16') -ScriptPath 'ui\quant_dashboard.py'
-Ensure-PanelService -Port 5013 -Title 'V13 Dashboard' -WorkingDir (Join-Path $Root 'crypto_quant_v16') -ScriptPath 'ui\quant_dashboard_v13.py'
-Ensure-PanelService -Port 5026 -Title 'V26 Dashboard' -WorkingDir (Join-Path $Root 'crypto_quant_v16') -ScriptPath 'ui\quant_dashboard_v26.py'
 
-Ensure-BackgroundPython -Title 'V13 Autonomous Loop' -Match 'main_v13.py' -WorkingDir (Join-Path $Root 'crypto_quant_v16') -Command 'main_v13.py'
-Ensure-BackgroundPython -Title 'Binance Alert App' -Match 'binance_alert_app.py' -WorkingDir (Join-Path $Root 'crypto_quant_v16') -Command 'binance_alert_app.py --symbol BTC/USDT --timeframe 1h --poll 45'
+# === V12 Dashboard (V9.1 Quant Terminal) ===
+# Note : utilise quant_hedge_ai/ (avec underscore — le vrai code).
+# Le dossier quant-hedge-ai/ avec tiret n'est qu'un wrapper compat sans dashboard.
+Ensure-PanelService -Port 5010 -Title 'V12 Dashboard' -WorkingDir (Join-Path $Root 'quant_hedge_ai') -ScriptPath 'dashboard\quant_terminal_v12.py'
+
+# === Dashboards V13/V16/V26 désactivés ===
+# Ces dashboards appartiennent à crypto_quant_v16/ qui est dans _old/ (legacy).
+# Pour les réactiver, il faudrait sortir le dossier de _old/ et décommenter ci-dessous.
+# Ensure-PanelService -Port 5011 -Title 'V16 Dashboard' -WorkingDir (Join-Path $Root 'crypto_quant_v16') -ScriptPath 'ui\quant_dashboard.py'
+# Ensure-PanelService -Port 5013 -Title 'V13 Dashboard' -WorkingDir (Join-Path $Root 'crypto_quant_v16') -ScriptPath 'ui\quant_dashboard_v13.py'
+# Ensure-PanelService -Port 5026 -Title 'V26 Dashboard' -WorkingDir (Join-Path $Root 'crypto_quant_v16') -ScriptPath 'ui\quant_dashboard_v26.py'
+
+# === Lancement du 3D Evolution Viewer (Streamlit) ===
+function Ensure-StreamlitService {
+    param(
+        [int]$Port,
+        [string]$Title,
+        [string]$ScriptPath
+    )
+    if (Test-PortListening -Port $Port) {
+        Write-Host "[$Title] already running on port $Port, skipping."
+        return
+    }
+    $cmd = "cd /d `"$Root`" && `"$Python`" -m streamlit run $ScriptPath --server.port $Port --server.headless true"
+    Write-Host "[$Title] starting on port $Port ..."
+    Start-Process -FilePath 'cmd.exe' -ArgumentList '/k', $cmd -WindowStyle $WindowStyle | Out-Null
+    Start-Sleep -Seconds 2
+}
+
+Ensure-StreamlitService -Port $StreamlitPort -Title $StreamlitTitle -ScriptPath $StreamlitScript
+
+# === Loops legacy désactivés ===
+# main_v13.py et binance_alert_app.py vivaient dans crypto_quant_v16/ qui est dans _old/.
+# Réactivez-les en sortant le dossier de _old/ si vous en avez besoin.
+# Ensure-BackgroundPython -Title 'V13 Autonomous Loop' -Match 'main_v13.py' -WorkingDir (Join-Path $Root 'crypto_quant_v16') -Command 'main_v13.py'
+# Ensure-BackgroundPython -Title 'Binance Alert App' -Match 'binance_alert_app.py' -WorkingDir (Join-Path $Root 'crypto_quant_v16') -Command 'binance_alert_app.py --symbol BTC/USDT --timeframe 1h --poll 45'
 
 Write-Section 'Services state checked:'
 Write-Host '  V12 Dashboard   : http://localhost:5010/quant_terminal_v12'
-Write-Host '  V16 Dashboard   : http://localhost:5011/quant_dashboard'
-Write-Host '  V13 Dashboard   : http://localhost:5013/quant_dashboard_v13'
-Write-Host '  V26 Dashboard   : http://localhost:5026/quant_dashboard_v26'
-Write-Host '  V13 Autonomous  : (background terminal)'
-Write-Host '  Binance Alerts  : (background terminal)'
+Write-Host "  3D Evolution    : http://localhost:$StreamlitPort"
 Write-Host "  Window Mode     : $WindowStyle"
 Write-Host ''
 Write-Host 'Use stop_all.bat to stop everything cleanly.'

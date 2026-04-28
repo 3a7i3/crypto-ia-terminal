@@ -1,0 +1,16 @@
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.0.2, pluggy-1.6.0
+rootdir: C:\Users\WINDOWS\crypto_ai_terminal\quant-ai-system
+configfile: pytest.ini
+collected 1 item
+
+tests\test_infrastructure.py s                                           [100%]
+
+============================== warnings summary ===============================
+..\.venv\Lib\site-packages\_pytest\config\__init__.py:1428
+  C:\Users\WINDOWS\crypto_ai_terminal\.venv\Lib\site-packages\_pytest\config\__init__.py:1428: PytestConfigWarning: Unknown config option: asyncio_mode
+  
+    self._warn_or_fail_if_strict(f"Unknown config option: {key}\n")
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================== 1 skipped, 1 warning in 0.05s ========================

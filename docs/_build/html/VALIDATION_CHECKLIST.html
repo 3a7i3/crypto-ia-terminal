@@ -1,0 +1,1152 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="./">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="genindex.html"><link rel="search" title="Search" href="search.html"><link rel="next" title="🎉 V9.1 PROJECT COMPLETION SUMMARY" href="PROJECT_COMPLETION_SUMMARY.html"><link rel="prev" title="⚙️ V9.1 CONFIGURATION REFERENCE" href="CONFIG_REFERENCE_V91.html">
+        <link rel="prefetch" href="_static/../assets/logo_ai_quant.png" as="image">
+        <link rel="prefetch" href="_static/../assets/logo_ai_quant.png" as="image">
+
+    <link rel="shortcut icon" href="_static/favicon.ico"><!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
+        <title>✅ V9.1 VALIDATION CHECKLIST - Crypto AI Terminal 9.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=1b9cecba" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="index.html"><div class="brand">Crypto AI Terminal 9.1 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="index.html">
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="_static/../assets/logo_ai_quant.png" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="_static/../assets/logo_ai_quant.png" alt="Dark Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Sommaire</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="HOME.html">Page d’accueil personnalisée pour la documentation Crypto AI Terminal</a></li>
+<li class="toctree-l1"><a class="reference internal" href="README.html">🚀 Crypto AI Terminal</a></li>
+<li class="toctree-l1"><a class="reference internal" href="DOCUMENTATION_AUTOMATIQUE.html">📚 Documentation automatique – Crypto AI Terminal</a></li>
+<li class="toctree-l1"><a class="reference internal" href="QUICK_START_V91.html">⚡ QUICK START - V9.1 Autonomous Quant Lab</a></li>
+<li class="toctree-l1"><a class="reference internal" href="DEMARRAGE_RAPIDE_FR.html">🚀 DÉMARRAGE RAPIDE - V9.1 (VERSION FRANÇAISE)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="DOCUMENTATION_INDEX.html">📚 MASTER DOCUMENTATION INDEX - V9.1 System</a></li>
+<li class="toctree-l1"><a class="reference internal" href="CONFIG_REFERENCE_V91.html">⚙️ V9.1 CONFIGURATION REFERENCE</a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">✅ V9.1 VALIDATION CHECKLIST</a></li>
+<li class="toctree-l1"><a class="reference internal" href="PROJECT_COMPLETION_SUMMARY.html">🎉 V9.1 PROJECT COMPLETION SUMMARY</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ROADMAP_V9_V10_V11.html">🚀 VERSIONS ROADMAP - V9 → V9.1 → V10 → Beyond</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/blob/main/docs/VALIDATION_CHECKLIST.md?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/edit/main/docs/VALIDATION_CHECKLIST.md" rel="edit" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="v9-1-validation-checklist">
+<h1>✅ V9.1 VALIDATION CHECKLIST<a class="headerlink" href="#v9-1-validation-checklist" title="Link to this heading">¶</a></h1>
+<section id="system-status">
+<h2>🎯 System Status<a class="headerlink" href="#system-status" title="Link to this heading">¶</a></h2>
+<p>Before using V9.1 in any capacity (research, demo, production), verify:</p>
+</section>
+<hr class="docutils" />
+<section id="environment-setup">
+<h2>1️⃣ ENVIRONMENT SETUP<a class="headerlink" href="#environment-setup" title="Link to this heading">¶</a></h2>
+<section id="python-environment">
+<h3>Python Environment<a class="headerlink" href="#python-environment" title="Link to this heading">¶</a></h3>
+<div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="c"># ✓ Verify venv is active</span>
+<span class="p">&gt;</span> <span class="nb">Get-ChildItem</span> <span class="n">-Path</span> <span class="n">env</span><span class="p">:</span> <span class="p">|</span> <span class="nb">Where-Object</span> <span class="p">{</span><span class="nv">$_</span><span class="p">.</span><span class="n">Name</span> <span class="o">-eq</span> <span class="s2">&quot;VIRTUAL_ENV&quot;</span><span class="p">}</span>
+
+<span class="n">Expected</span> <span class="n">Output</span><span class="p">:</span>
+<span class="n">Name</span>                           <span class="n">Value</span>
+<span class="p">----</span>                           <span class="p">-----</span>
+<span class="n">VIRTUAL_ENV</span>                    <span class="n">C</span><span class="p">:\</span><span class="n">Users</span><span class="p">\</span><span class="n">WINDOWS</span><span class="p">\</span><span class="n">crypto_ai_terminal</span><span class="p">\.</span><span class="n">venv</span>
+
+<span class="c"># ✓ Verify Python 3.11+</span>
+<span class="p">&gt;</span> <span class="n">python</span> <span class="p">-</span><span class="n">-version</span>
+<span class="n">Expected</span><span class="p">:</span> <span class="n">Python</span> <span class="n">3</span><span class="p">.</span><span class="n">11</span><span class="p">.</span><span class="n">x</span> <span class="n">or</span> <span class="n">3</span><span class="p">.</span><span class="n">12</span><span class="p">.</span><span class="n">x</span> <span class="n">or</span> <span class="n">3</span><span class="p">.</span><span class="n">14</span><span class="p">.</span><span class="n">x</span>
+
+<span class="c"># ✓ Verify pip packages installed</span>
+<span class="p">&gt;</span> <span class="n">pip</span> <span class="n">list</span> <span class="p">|</span> <span class="nb">Select-Object</span> <span class="n">-First</span> <span class="n">20</span>
+<span class="n">Expected</span><span class="p">:</span> <span class="n">numpy</span><span class="p">,</span> <span class="n">pandas</span><span class="p">,</span> <span class="n">plotly</span><span class="p">,</span> <span class="n">streamlit</span><span class="p">,</span> <span class="n">etc</span><span class="p">.</span>
+</pre></div>
+</div>
+<!-- Checklist Items -->
+<ul class="contains-task-list simple">
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> Virtual environment active</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> Python version correct (3.11+)</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> Required packages installed</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> No conflicting package versions</p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="project-structure">
+<h2>2️⃣ PROJECT STRUCTURE<a class="headerlink" href="#project-structure" title="Link to this heading">¶</a></h2>
+<section id="v9-1-directory-structure">
+<h3>V9.1 Directory Structure<a class="headerlink" href="#v9-1-directory-structure" title="Link to this heading">¶</a></h3>
+<div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="c"># ✓ Verify V9.1 directory exists</span>
+<span class="p">&gt;</span> <span class="nb">cd </span><span class="n">quant-hedge-ai</span>
+<span class="p">&gt;</span> <span class="nb">Get-ChildItem</span> <span class="n">-Directory</span>
+
+<span class="n">Expected</span> <span class="n">directories</span><span class="p">:</span>
+<span class="n">agents</span><span class="p">/</span>
+<span class="err">├──</span> <span class="n">research</span><span class="p">/</span>
+<span class="err">├──</span> <span class="n">market</span><span class="p">/</span>
+<span class="err">├──</span> <span class="n">strategy</span><span class="p">/</span>
+<span class="err">├──</span> <span class="n">quant</span><span class="p">/</span>
+<span class="err">├──</span> <span class="n">risk</span><span class="p">/</span>
+<span class="err">├──</span> <span class="n">execution</span><span class="p">/</span>
+<span class="err">├──</span> <span class="n">monitoring</span><span class="p">/</span>
+<span class="err">├──</span> <span class="n">intelligence</span><span class="p">/</span>
+<span class="err">├──</span> <span class="n">portfolio</span><span class="p">/</span>
+<span class="err">└──</span> <span class="n">whales</span><span class="p">/</span>
+<span class="n">core</span><span class="p">/</span>
+<span class="n">dashboard</span><span class="p">/</span>
+<span class="n">databases</span><span class="p">/</span>
+<span class="n">data</span><span class="p">/</span>
+<span class="n">tests</span><span class="p">/</span>
+<span class="n">engine</span><span class="p">/</span>
+</pre></div>
+</div>
+<ul class="contains-task-list simple">
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> V9.1 directory exists</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> All subdirectories present</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> <strong>init</strong>.py files exist (verify imports)</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> No missing files</p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="main-orchestrator">
+<h2>3️⃣ MAIN ORCHESTRATOR<a class="headerlink" href="#main-orchestrator" title="Link to this heading">¶</a></h2>
+<section id="main-v91-py-validation">
+<h3>main_v91.py Validation<a class="headerlink" href="#main-v91-py-validation" title="Link to this heading">¶</a></h3>
+<div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="c"># ✓ Check file exists and size</span>
+<span class="p">&gt;</span> <span class="nb">Get-Item</span> <span class="n">main_v91</span><span class="p">.</span><span class="n">py</span> <span class="p">|</span> <span class="nb">Select-Object</span> <span class="n">-Property</span> <span class="n">Name</span><span class="p">,</span> <span class="n">Length</span>
+
+<span class="n">Expected</span><span class="p">:</span> <span class="p">~</span><span class="n">280</span><span class="p">-</span><span class="n">300</span> <span class="n">lines</span> <span class="p">(~</span><span class="n">10</span><span class="p">-</span><span class="n">15</span> <span class="n">KB</span><span class="p">)</span>
+
+<span class="c"># ✓ Check for syntax errors</span>
+<span class="p">&gt;</span> <span class="n">python</span> <span class="n">-m</span> <span class="n">py_compile</span> <span class="n">main_v91</span><span class="p">.</span><span class="n">py</span>
+<span class="n">Expected</span><span class="p">:</span> <span class="n">No</span> <span class="n">output</span> <span class="p">=</span> <span class="n">success</span>
+
+<span class="c"># ✓ Check imports work</span>
+<span class="p">&gt;</span> <span class="n">python</span> <span class="n">-c</span> <span class="s2">&quot;import main_v91&quot;</span>
+<span class="n">Expected</span><span class="p">:</span> <span class="n">No</span> <span class="n">import</span> <span class="n">errors</span>
+</pre></div>
+</div>
+<ul class="contains-task-list simple">
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> main_v91.py exists</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> No syntax errors</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> All imports valid</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> File size reasonable</p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="agent-modules">
+<h2>4️⃣ AGENT MODULES<a class="headerlink" href="#agent-modules" title="Link to this heading">¶</a></h2>
+<section id="core-agents-20-total">
+<h3>Core Agents (20 total)<a class="headerlink" href="#core-agents-20-total" title="Link to this heading">¶</a></h3>
+<div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="c"># ✓ Test each agent module imports</span>
+<span class="p">&gt;</span> <span class="n">python</span> <span class="n">-c</span> <span class="s2">&quot;from agents.research.market_scanner import MarketScanner&quot;</span>
+<span class="p">&gt;</span> <span class="n">python</span> <span class="n">-c</span> <span class="s2">&quot;from agents.strategy.generator import StrategyGenerator&quot;</span>
+<span class="p">&gt;</span> <span class="n">python</span> <span class="n">-c</span> <span class="s2">&quot;from agents.quant.backtest_lab import BacktestLab&quot;</span>
+<span class="c"># ... etc for all agents</span>
+
+<span class="n">Expected</span><span class="p">:</span> <span class="n">All</span> <span class="n">imports</span> <span class="n">succeed</span>
+</pre></div>
+</div>
+<p><strong>Core Agents Checklist</strong>:</p>
+<p>Research Module:</p>
+<ul class="contains-task-list simple">
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> research_coordinator.py (imports)</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> market_scanner.py (imports)</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> technical_analyst.py (imports)</p></li>
+</ul>
+<p>Market Module:</p>
+<ul class="contains-task-list simple">
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> market_research.py (imports)</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> correlation_analyzer.py (imports)</p></li>
+</ul>
+<p>Strategy Module:</p>
+<ul class="contains-task-list simple">
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> generator.py (imports)</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> optimizer.py (imports)</p></li>
+</ul>
+<p>Quant Module:</p>
+<ul class="contains-task-list simple">
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> backtest_lab.py (imports)</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> genetic_optimizer.py (imports)</p></li>
+</ul>
+<p>Risk Module:</p>
+<ul class="contains-task-list simple">
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> risk_monitor.py (imports)</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> position_calculator.py (imports)</p></li>
+</ul>
+<p>Execution Module:</p>
+<ul class="contains-task-list simple">
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> execution_engine.py (imports)</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> rl_trader.py (imports)</p></li>
+</ul>
+<p>Monitoring Module:</p>
+<ul class="contains-task-list simple">
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> performance_monitor.py (imports)</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> cycle_metrics.py (imports)</p></li>
+</ul>
+<p>Intelligence Module (NEW):</p>
+<ul class="contains-task-list simple">
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> <strong>init</strong>.py has FeatureEngineer class</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> regime_detector.py has AdvancedRegimeDetector class</p></li>
+</ul>
+<p>Portfolio Module (NEW):</p>
+<ul class="contains-task-list simple">
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> <strong>init</strong>.py has KellyAllocator class</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> Has VolatilityTargeter class</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> Has PortfolioBrain class</p></li>
+</ul>
+<p>Whales Module (NEW):</p>
+<ul class="contains-task-list simple">
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> <strong>init</strong>.py has WhaleRadar class</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> scan() method exists</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> analyze_pattern() method exists</p></li>
+</ul>
+<p>Engine Module (NEW):</p>
+<ul class="contains-task-list simple">
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> decision_engine.py exists</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> StrategyRanker class exists</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> DecisionEngine class exists</p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="database-setup">
+<h2>5️⃣ DATABASE SETUP<a class="headerlink" href="#database-setup" title="Link to this heading">¶</a></h2>
+<section id="strategy-scoreboard-database">
+<h3>Strategy Scoreboard Database<a class="headerlink" href="#strategy-scoreboard-database" title="Link to this heading">¶</a></h3>
+<div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="c"># ✓ Check database file exists or can be created</span>
+<span class="p">&gt;</span> <span class="nb">Get-Item</span> <span class="n">databases</span><span class="p">/</span><span class="n">strategy_scoreboard</span><span class="p">.</span><span class="n">json</span> <span class="n">-ErrorAction</span> <span class="n">SilentlyContinue</span>
+<span class="n">Expected</span><span class="p">:</span> <span class="n">File</span> <span class="n">exists</span> <span class="n">OR</span> <span class="n">will</span> <span class="n">be</span> <span class="n">created</span> <span class="n">on</span> <span class="n">first</span> <span class="n">run</span>
+
+<span class="c"># ✓ If exists, validate JSON format</span>
+<span class="p">&gt;</span> <span class="nb">Get-Content</span> <span class="n">databases</span><span class="p">/</span><span class="n">strategy_scoreboard</span><span class="p">.</span><span class="n">json</span> <span class="p">|</span> <span class="nb">ConvertFrom-Json</span> <span class="p">|</span> <span class="nb">Measure-Object</span>
+<span class="n">Expected</span><span class="p">:</span> <span class="n">Can</span> <span class="n">read</span> <span class="n">as</span> <span class="n">JSON</span><span class="p">,</span> <span class="n">contains</span> <span class="n">strategy</span> <span class="n">records</span>
+</pre></div>
+</div>
+<ul class="contains-task-list simple">
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> Database directory exists</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> Can create/write to database</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> JSON format valid (if exists)</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> No corrupted data</p></li>
+</ul>
+</section>
+<section id="data-directories">
+<h3>Data Directories<a class="headerlink" href="#data-directories" title="Link to this heading">¶</a></h3>
+<div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="c"># ✓ Check data directories</span>
+<span class="p">&gt;</span> <span class="nb">Get-Item</span> <span class="n">data</span><span class="p">/</span> <span class="n">-ErrorAction</span> <span class="n">SilentlyContinue</span>
+<span class="p">&gt;</span> <span class="nb">Get-Item</span> <span class="n">logs</span><span class="p">/</span> <span class="n">-ErrorAction</span> <span class="n">SilentlyContinue</span>
+
+<span class="n">Expected</span><span class="p">:</span> <span class="n">Directories</span> <span class="n">exist</span> <span class="n">and</span> <span class="n">are</span> <span class="n">writable</span>
+</pre></div>
+</div>
+<ul class="contains-task-list simple">
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> data/ directory writable</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> logs/ directory writable</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> No permission errors</p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="configuration-parameters">
+<h2>6️⃣ CONFIGURATION PARAMETERS<a class="headerlink" href="#configuration-parameters" title="Link to this heading">¶</a></h2>
+<section id="default-configuration">
+<h3>Default Configuration<a class="headerlink" href="#default-configuration" title="Link to this heading">¶</a></h3>
+<div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="c"># ✓ Check environment variables</span>
+<span class="p">&gt;</span> <span class="nv">$env:V9_MAX_CYCLES</span>
+<span class="p">&gt;</span> <span class="nv">$env:V9_POPULATION</span>
+<span class="p">&gt;</span> <span class="nv">$env:V9_GENERATIONS</span>
+
+<span class="n">Expected</span><span class="p">:</span> <span class="n">Empty</span> <span class="p">(</span><span class="n">will</span> <span class="n">use</span> <span class="n">defaults</span><span class="p">)</span> <span class="n">or</span> <span class="nb">set </span><span class="n">to</span> <span class="n">valid</span> <span class="n">values</span>
+</pre></div>
+</div>
+<ul class="contains-task-list simple">
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> No invalid environment variables</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> None conflicting with system</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> Default values work (if unset)</p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="quick-test-run">
+<h2>7️⃣ QUICK TEST RUN<a class="headerlink" href="#quick-test-run" title="Link to this heading">¶</a></h2>
+<section id="minute-smoke-test">
+<h3>1-Minute Smoke Test<a class="headerlink" href="#minute-smoke-test" title="Link to this heading">¶</a></h3>
+<div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="c"># ✓ Set minimal config for speed</span>
+<span class="nv">$env:V9_MAX_CYCLES</span> <span class="p">=</span> <span class="s2">&quot;1&quot;</span>
+<span class="nv">$env:V9_POPULATION</span> <span class="p">=</span> <span class="s2">&quot;10&quot;</span>
+<span class="nv">$env:V9_GENERATIONS</span> <span class="p">=</span> <span class="s2">&quot;1&quot;</span>
+
+<span class="c"># ✓ Run V9.1</span>
+<span class="nb">cd </span><span class="n">quant-hedge-ai</span>
+<span class="n">python</span> <span class="n">main_v91</span><span class="p">.</span><span class="n">py</span>
+
+<span class="n">Expected</span> <span class="n">Output</span><span class="p">:</span>
+<span class="p">-</span> <span class="s2">&quot;Starting V9.1 Cycle...&quot;</span>
+<span class="p">-</span> <span class="s2">&quot;AI CONTROL CENTER - CYCLE 1&quot;</span>
+<span class="p">-</span> <span class="n">All</span> <span class="n">7</span> <span class="n">sections</span> <span class="n">displayed</span>
+<span class="p">-</span> <span class="n">No</span> <span class="n">errors</span>
+<span class="p">-</span> <span class="n">Completes</span> <span class="k">in</span> <span class="p">&lt;</span> <span class="n">30</span> <span class="n">seconds</span>
+</pre></div>
+</div>
+</section>
+<section id="run-output-validation">
+<h3>Run Output Validation<a class="headerlink" href="#run-output-validation" title="Link to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Expected to see:
+✓ &quot;🤖 AI CONTROL CENTER&quot;
+✓ &quot;📊 MARKET REGIME&quot;
+✓ &quot;🐋 WHALE RADAR&quot;
+✓ &quot;🎯 BEST STRATEGY&quot;
+✓ &quot;📈 SCOREBOARD STATS&quot;
+✓ &quot;💼 PORTFOLIO ALLOCATION&quot;
+✓ &quot;⚡ EXECUTION DECISION&quot;
+✓ &quot;❤️ SYSTEM HEALTH&quot;
+✓ &quot;📊 MonteCarlo Results&quot;
+✓ &quot;💰 Paper Trading State&quot;
+
+Unexpected to see:
+✗ Any errors or exceptions
+✗ Import errors
+✗ Type errors
+✗ NoneType errors
+</pre></div>
+</div>
+<ul class="contains-task-list simple">
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> Command runs without errors</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> Completes in reasonable time (&lt; 30s)</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> Control Center displays all sections</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> No exceptions thrown</p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="control-center-output">
+<h2>8️⃣ CONTROL CENTER OUTPUT<a class="headerlink" href="#control-center-output" title="Link to this heading">¶</a></h2>
+<section id="dashboard-sections">
+<h3>Dashboard Sections<a class="headerlink" href="#dashboard-sections" title="Link to this heading">¶</a></h3>
+<p>Check each section displays correctly:</p>
+<p><strong>📊 Market Regime</strong></p>
+<ul class="contains-task-list simple">
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> Shows regime (bull_trend, bear_trend, etc.)</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> Shows suggested strategy type</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> Shows momentum value (reasonable: -1 to +1)</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> Shows volatility value (reasonable: 0.01 to 0.5)</p></li>
+</ul>
+<p><strong>🐋 Whale Radar</strong></p>
+<ul class="contains-task-list simple">
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> Shows threat level (low/medium/high/critical)</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> Shows detected alerts (0-10 typical)</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> Alert types meaningful (WHALE_BUY, WHALE_SELL, etc.)</p></li>
+</ul>
+<p><strong>🎯 Best Strategy</strong></p>
+<ul class="contains-task-list simple">
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> Shows strategy type (BOLLINGER, RSI, MACD, etc.)</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> Shows Sharpe ratio (typically 8-15)</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> Shows Drawdown (typically 0.01-0.05)</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> Shows win rate (typically 0.5-0.8)</p></li>
+</ul>
+<p><strong>📈 Scoreboard Stats</strong></p>
+<ul class="contains-task-list simple">
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> Shows total strategies tested</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> Shows average Sharpe ratio</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> Shows best Sharpe ratio</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> Shows median Sharpe ratio</p></li>
+</ul>
+<p><strong>💼 Portfolio Allocation</strong></p>
+<ul class="contains-task-list simple">
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> Shows top 5 strategies</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> Shows Kelly fraction (0.2-0.3 typical)</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> Shows volatility target</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> Shows max position weight</p></li>
+</ul>
+<p><strong>⚡ Execution Decision</strong></p>
+<ul class="contains-task-list simple">
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> Shows “Should Trade: YES” or “NO”</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> Shows reason for decision</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> Shows risk limits (max position, stop loss, TP)</p></li>
+</ul>
+<p><strong>❤️ System Health</strong></p>
+<ul class="contains-task-list simple">
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> Shows status “running”</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> Shows 20 agents active</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> Shows strategies generated (population size)</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> Shows backtests completed</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> Shows model version</p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="strategy-scoreboard">
+<h2>9️⃣ STRATEGY SCOREBOARD<a class="headerlink" href="#strategy-scoreboard" title="Link to this heading">¶</a></h2>
+<section id="database-verification">
+<h3>Database Verification<a class="headerlink" href="#database-verification" title="Link to this heading">¶</a></h3>
+<div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="c"># After running, check scoreboard was created</span>
+<span class="p">&gt;</span> <span class="nb">Get-Item</span> <span class="n">databases</span><span class="p">/</span><span class="n">strategy_scoreboard</span><span class="p">.</span><span class="n">json</span>
+
+<span class="c"># Read first few entries</span>
+<span class="p">&gt;</span> <span class="nv">$scores</span> <span class="p">=</span> <span class="nb">Get-Content</span> <span class="n">databases</span><span class="p">/</span><span class="n">strategy_scoreboard</span><span class="p">.</span><span class="n">json</span> <span class="p">|</span> <span class="nb">ConvertFrom-Json</span>
+<span class="p">&gt;</span> <span class="nv">$scores</span><span class="p">[</span><span class="n">0</span><span class="p">..</span><span class="n">2</span><span class="p">]</span> <span class="p">|</span> <span class="nb">Format-Table</span>
+
+<span class="n">Expected</span><span class="p">:</span>
+<span class="p">-</span> <span class="n">Array</span> <span class="n">of</span> <span class="n">strategy</span> <span class="n">records</span>
+<span class="p">-</span> <span class="n">Each</span> <span class="n">has</span><span class="p">:</span> <span class="n">strategy</span> <span class="p">(</span><span class="n">dict</span><span class="p">),</span> <span class="n">metrics</span> <span class="p">(</span><span class="n">dict</span><span class="p">)</span>
+<span class="p">-</span> <span class="n">Metrics</span> <span class="n">include</span><span class="p">:</span> <span class="n">sharpe</span><span class="p">,</span> <span class="n">drawdown</span><span class="p">,</span> <span class="n">pnl</span><span class="p">,</span> <span class="n">win_rate</span><span class="p">,</span> <span class="n">cycle</span>
+</pre></div>
+</div>
+<ul class="contains-task-list simple">
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> Scoreboard file created</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> Contains valid JSON</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> Has multiple strategies</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> Metrics calculated correctly</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> Top strategy has Sharpe &gt; 8</p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="advanced-modules">
+<h2>🔟 ADVANCED MODULES<a class="headerlink" href="#advanced-modules" title="Link to this heading">¶</a></h2>
+<section id="intelligence-layer">
+<h3>Intelligence Layer<a class="headerlink" href="#intelligence-layer" title="Link to this heading">¶</a></h3>
+<div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="c"># ✓ Test feature extraction</span>
+<span class="p">&gt;</span> <span class="n">python</span> <span class="n">-c</span> <span class="s2">&quot;</span>
+<span class="s2">from agents.intelligence import FeatureEngineer</span>
+<span class="s2">f = FeatureEngineer()</span>
+<span class="s2">candles = [{&#39;close&#39;: 100}, {&#39;close&#39;: 101}, {&#39;close&#39;: 102}]</span>
+<span class="s2">features = f.extract_features(candles)</span>
+<span class="s2">print(features)</span>
+<span class="s2">&quot;</span>
+<span class="n">Expected</span><span class="p">:</span> <span class="n">Dict</span> <span class="n">with</span> <span class="n">7</span> <span class="n">keys</span> <span class="p">(</span><span class="n">momentum</span><span class="p">,</span> <span class="n">vol</span><span class="p">,</span> <span class="n">volume_trend</span><span class="p">,</span> <span class="n">etc</span><span class="p">.)</span>
+</pre></div>
+</div>
+<ul class="contains-task-list simple">
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> FeatureEngineer instantiates</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> extract_features() returns 7D dict</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> All features are numeric</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> No NaN values</p></li>
+</ul>
+</section>
+<section id="portfolio-brain">
+<h3>Portfolio Brain<a class="headerlink" href="#portfolio-brain" title="Link to this heading">¶</a></h3>
+<div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="c"># ✓ Test Kelly allocation</span>
+<span class="p">&gt;</span> <span class="n">python</span> <span class="n">-c</span> <span class="s2">&quot;</span>
+<span class="s2">from agents.portfolio import PortfolioBrain</span>
+<span class="s2">p = PortfolioBrain()</span>
+<span class="s2">allocation = p.compute_allocation([...], 0.03)</span>
+<span class="s2">print(allocation)</span>
+<span class="s2">&quot;</span>
+<span class="n">Expected</span><span class="p">:</span> <span class="n">Dict</span> <span class="n">of</span> <span class="n">strategy</span> <span class="n">weights</span> <span class="n">summing</span> <span class="n">to</span> <span class="p">~</span><span class="n">1</span><span class="p">.</span><span class="n">0</span>
+</pre></div>
+</div>
+<ul class="contains-task-list simple">
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> PortfolioBrain instantiates</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> compute_allocation() works</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> Weights sum to ~100%</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> All weights between 0-1</p></li>
+</ul>
+</section>
+<section id="whale-radar">
+<h3>Whale Radar<a class="headerlink" href="#whale-radar" title="Link to this heading">¶</a></h3>
+<div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="c"># ✓ Test whale detection</span>
+<span class="p">&gt;</span> <span class="n">python</span> <span class="n">-c</span> <span class="s2">&quot;</span>
+<span class="s2">from agents.whales import WhaleRadar</span>
+<span class="s2">w = WhaleRadar()</span>
+<span class="s2">alerts = w.scan(&#39;BTC/USDT&#39;, 1000000, 42000)</span>
+<span class="s2">print(alerts)</span>
+<span class="s2">&quot;</span>
+<span class="n">Expected</span><span class="p">:</span> <span class="n">List</span> <span class="n">of</span> <span class="n">detected</span> <span class="n">whale</span> <span class="n">transactions</span>
+</pre></div>
+</div>
+<ul class="contains-task-list simple">
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> WhaleRadar instantiates</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> scan() method works</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> Returns reasonable alert count</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> No exceptions</p></li>
+</ul>
+</section>
+<section id="decision-engine">
+<h3>Decision Engine<a class="headerlink" href="#decision-engine" title="Link to this heading">¶</a></h3>
+<div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="c"># ✓ Test strategy ranking</span>
+<span class="p">&gt;</span> <span class="n">python</span> <span class="n">-c</span> <span class="s2">&quot;</span>
+<span class="s2">from engine.decision_engine import DecisionEngine</span>
+<span class="s2">d = DecisionEngine()</span>
+<span class="s2">should_trade = d.should_trade(best_strategy, regime, whale_alerts)</span>
+<span class="s2">print(should_trade)</span>
+<span class="s2">&quot;</span>
+<span class="n">Expected</span><span class="p">:</span> <span class="n">Boolean</span> <span class="p">(</span><span class="n">True</span><span class="p">/</span><span class="n">False</span><span class="p">)</span>
+</pre></div>
+</div>
+<ul class="contains-task-list simple">
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> DecisionEngine instantiates</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> should_trade() returns boolean</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> Logic applies all filters</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> No exceptions</p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="extended-run-test">
+<h2>1️⃣1️⃣ EXTENDED RUN TEST<a class="headerlink" href="#extended-run-test" title="Link to this heading">¶</a></h2>
+<section id="minute-research-run">
+<h3>10-Minute Research Run<a class="headerlink" href="#minute-research-run" title="Link to this heading">¶</a></h3>
+<div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="c"># ✓ Run more cycles for data gathering</span>
+<span class="nv">$env:V9_MAX_CYCLES</span> <span class="p">=</span> <span class="s2">&quot;5&quot;</span>
+<span class="nv">$env:V9_POPULATION</span> <span class="p">=</span> <span class="s2">&quot;100&quot;</span>
+<span class="nv">$env:V9_GENERATIONS</span> <span class="p">=</span> <span class="s2">&quot;2&quot;</span>
+
+<span class="n">python</span> <span class="n">main_v91</span><span class="p">.</span><span class="n">py</span>
+
+<span class="n">Expected</span><span class="p">:</span>
+<span class="p">-</span> <span class="n">5</span> <span class="n">cycles</span> <span class="n">complete</span>
+<span class="p">-</span> <span class="n">Scoreboard</span> <span class="n">grows</span> <span class="p">(</span><span class="n">10</span><span class="p">-</span><span class="n">20</span> <span class="n">strategies</span><span class="p">)</span>
+<span class="p">-</span> <span class="n">Best</span> <span class="n">Sharpe</span> <span class="n">improves</span> <span class="n">over</span> <span class="n">cycles</span>
+<span class="p">-</span> <span class="n">No</span> <span class="n">crashes</span> <span class="n">or</span> <span class="n">errors</span>
+<span class="p">-</span> <span class="n">Total</span> <span class="n">time</span><span class="p">:</span> <span class="n">10</span><span class="p">-</span><span class="n">15</span> <span class="n">minutes</span>
+</pre></div>
+</div>
+<ul class="contains-task-list simple">
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> Runs 5 cycles without error</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> Scoreboard updated each cycle</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> Performance metrics reasonable</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> No memory leaks (RAM stable)</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> All cycles complete successfully</p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="error-handling">
+<h2>1️⃣2️⃣ ERROR HANDLING<a class="headerlink" href="#error-handling" title="Link to this heading">¶</a></h2>
+<section id="error-recovery-test">
+<h3>Error Recovery Test<a class="headerlink" href="#error-recovery-test" title="Link to this heading">¶</a></h3>
+<div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="c"># ✓ Test recovery from data errors</span>
+<span class="c"># Create invalid market data to trigger error handling</span>
+<span class="c"># Expected: System catches error and continues</span>
+
+<span class="c"># ✓ Test recovery from strategy errors</span>
+<span class="c"># Pass malformed parameters to strategy generator</span>
+<span class="c"># Expected: System skips bad strategy, continues</span>
+
+<span class="c"># ✓ Test recovery from database errors</span>
+<span class="c"># Corrupt strategy_scoreboard.json</span>
+<span class="c"># Expected: System recreates or handles gracefully</span>
+</pre></div>
+</div>
+<ul class="contains-task-list simple">
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> No unhandled exceptions</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> Errors logged appropriately</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> System recovers from errors</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> User is informed of issues</p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="performance-baseline">
+<h2>1️⃣3️⃣ PERFORMANCE BASELINE<a class="headerlink" href="#performance-baseline" title="Link to this heading">¶</a></h2>
+<section id="timing-test">
+<h3>Timing Test<a class="headerlink" href="#timing-test" title="Link to this heading">¶</a></h3>
+<div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="c"># Record cycle times to establish baseline</span>
+<span class="nv">$env:V9_MAX_CYCLES</span> <span class="p">=</span> <span class="s2">&quot;3&quot;</span>
+<span class="nv">$env:V9_POPULATION</span> <span class="p">=</span> <span class="s2">&quot;100&quot;</span>
+
+<span class="nb">Measure-Command</span> <span class="p">{</span> <span class="n">python</span> <span class="n">main_v91</span><span class="p">.</span><span class="n">py</span> <span class="p">}</span>
+
+<span class="n">Expected</span> <span class="n">Timing</span><span class="p">:</span>
+<span class="p">-</span> <span class="n">1</span> <span class="n">cycle</span> <span class="n">with</span> <span class="n">100</span> <span class="n">strategies</span><span class="p">:</span> <span class="p">~</span><span class="n">5</span><span class="p">-</span><span class="n">10</span> <span class="n">seconds</span>
+<span class="p">-</span> <span class="n">3</span> <span class="n">cycles</span> <span class="n">with</span> <span class="n">100</span> <span class="n">strategies</span><span class="p">:</span> <span class="p">~</span><span class="n">15</span><span class="p">-</span><span class="n">30</span> <span class="n">seconds</span>
+<span class="p">-</span> <span class="n">1</span> <span class="n">cycle</span> <span class="n">with</span> <span class="n">300</span> <span class="n">strategies</span><span class="p">:</span> <span class="p">~</span><span class="n">15</span><span class="p">-</span><span class="n">20</span> <span class="n">seconds</span>
+</pre></div>
+</div>
+<ul class="contains-task-list simple">
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> Cycle 1 completes in &lt; 20s</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> Subsequent cycles maintain speed</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> No degradation over multiple cycles</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> Memory usage stable</p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="documentation-verification">
+<h2>1️⃣4️⃣ DOCUMENTATION VERIFICATION<a class="headerlink" href="#documentation-verification" title="Link to this heading">¶</a></h2>
+<section id="files-checklist">
+<h3>Files Checklist<a class="headerlink" href="#files-checklist" title="Link to this heading">¶</a></h3>
+<div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="c"># Verify all documentation files exist</span>
+<span class="p">&gt;</span> <span class="nb">Get-ChildItem</span> <span class="n">-Path</span> <span class="p">*.</span><span class="nb">md </span><span class="o">-File</span> <span class="p">|</span> <span class="nb">Select-Object</span> <span class="n">-Property</span> <span class="n">Name</span>
+
+<span class="n">Expected</span> <span class="n">files</span> <span class="k">in</span> <span class="n">workspace</span> <span class="n">root</span><span class="p">:</span>
+<span class="err">├──</span> <span class="n">QUICK_START_V91</span><span class="p">.</span><span class="nb">md </span><span class="p">........................</span> <span class="err">✓</span>
+<span class="err">├──</span> <span class="n">README_V91</span><span class="p">.</span><span class="nb">md </span><span class="p">............................</span> <span class="err">✓</span>
+<span class="err">├──</span> <span class="n">CONFIG_REFERENCE_V91</span><span class="p">.</span><span class="nb">md </span><span class="p">.................</span> <span class="err">✓</span>
+<span class="err">├──</span> <span class="n">V91_COMPLETE_SUMMARY</span><span class="p">.</span><span class="nb">md </span><span class="p">.................</span> <span class="err">✓</span>
+<span class="err">├──</span> <span class="n">DOCUMENTATION_INDEX</span><span class="p">.</span><span class="nb">md </span><span class="p">..................</span> <span class="err">✓</span>
+<span class="err">├──</span> <span class="n">ROADMAP_V9_V10_V11</span><span class="p">.</span><span class="nb">md </span><span class="p">...................</span> <span class="err">✓</span>
+<span class="err">├──</span> <span class="n">V10_IMPLEMENTATION_ROADMAP</span><span class="p">.</span><span class="nb">md </span><span class="p">...........</span> <span class="err">✓</span>
+<span class="err">└──</span> <span class="n">VALIDATION_CHECKLIST</span><span class="p">.</span><span class="nb">md </span><span class="p">.................</span> <span class="err">✓</span> <span class="p">(</span><span class="n">you</span> <span class="n">are</span> <span class="n">here</span><span class="p">)</span>
+</pre></div>
+</div>
+<ul class="contains-task-list simple">
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> All 8+ documentation files exist</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> Files have reasonable size (&gt; 10KB each)</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> Markdown syntax valid</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> Links and references work</p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="reproducibility-test">
+<h2>1️⃣5️⃣ REPRODUCIBILITY TEST<a class="headerlink" href="#reproducibility-test" title="Link to this heading">¶</a></h2>
+<section id="reproducibility-verification">
+<h3>Reproducibility Verification<a class="headerlink" href="#reproducibility-verification" title="Link to this heading">¶</a></h3>
+<div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="c"># Run 1: With seed</span>
+<span class="nv">$env:V9_SEED</span> <span class="p">=</span> <span class="s2">&quot;42&quot;</span>
+<span class="nv">$env:V9_MAX_CYCLES</span> <span class="p">=</span> <span class="s2">&quot;2&quot;</span>
+<span class="n">python</span> <span class="n">main_v91</span><span class="p">.</span><span class="n">py</span> <span class="p">&gt;</span> <span class="n">run1</span><span class="p">.</span><span class="n">txt</span>
+
+<span class="c"># Run 2: With same seed</span>
+<span class="nv">$env:V9_SEED</span> <span class="p">=</span> <span class="s2">&quot;42&quot;</span>
+<span class="nv">$env:V9_MAX_CYCLES</span> <span class="p">=</span> <span class="s2">&quot;2&quot;</span>
+<span class="n">python</span> <span class="n">main_v91</span><span class="p">.</span><span class="n">py</span> <span class="p">&gt;</span> <span class="n">run2</span><span class="p">.</span><span class="n">txt</span>
+
+<span class="c"># Compare outputs</span>
+<span class="p">&gt;</span> <span class="nb">Compare-Object</span> <span class="p">(</span><span class="nb">Get-Content</span> <span class="n">run1</span><span class="p">.</span><span class="n">txt</span><span class="p">)</span> <span class="p">(</span><span class="nb">Get-Content</span> <span class="n">run2</span><span class="p">.</span><span class="n">txt</span><span class="p">)</span>
+
+<span class="n">Expected</span><span class="p">:</span> <span class="n">Same</span> <span class="n">strategies</span> <span class="n">generated</span><span class="p">,</span> <span class="n">same</span> <span class="n">metrics</span>
+</pre></div>
+</div>
+<ul class="contains-task-list simple">
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> Results reproducible with same seed</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> Different seed produces different results</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> Randomness properly seeded</p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="cross-platform-check-windows">
+<h2>1️⃣6️⃣ CROSS-PLATFORM CHECK (Windows)<a class="headerlink" href="#cross-platform-check-windows" title="Link to this heading">¶</a></h2>
+<section id="windows-specific-validation">
+<h3>Windows-Specific Validation<a class="headerlink" href="#windows-specific-validation" title="Link to this heading">¶</a></h3>
+<div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="c"># ✓ Path handling</span>
+<span class="p">&gt;</span> <span class="n">python</span> <span class="n">-c</span> <span class="s2">&quot;import os; print(os.path.exists(&#39;databases&#39;))&quot;</span>
+<span class="n">Expected</span><span class="p">:</span> <span class="n">True</span>
+
+<span class="c"># ✓ File permissions</span>
+<span class="p">&gt;</span> <span class="nb">Test-Path</span> <span class="n">databases</span><span class="p">/</span> <span class="n">-PathType</span> <span class="n">Container</span>
+<span class="p">&gt;</span> <span class="nb">Get-ChildItem</span> <span class="n">databases</span><span class="p">/</span> <span class="p">|</span> <span class="nb">Measure-Object</span>
+<span class="n">Expected</span><span class="p">:</span> <span class="n">Can</span> <span class="n">read</span><span class="p">/</span><span class="nb">write</span>
+
+<span class="c"># ✓ PowerShell compatibility</span>
+<span class="p">&gt;</span> <span class="n">python</span> <span class="n">main_v91</span><span class="p">.</span><span class="n">py</span>
+<span class="n">Expected</span><span class="p">:</span> <span class="n">Works</span> <span class="n">from</span> <span class="n">PowerShell</span> <span class="p">(</span><span class="n">not</span> <span class="n">just</span> <span class="n">CMD</span><span class="p">)</span>
+</pre></div>
+</div>
+<ul class="contains-task-list simple">
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> Paths handle Windows backslashes</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> File operations work</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> PowerShell compatible</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> No Unix-only dependencies</p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="integration-with-existing-systems">
+<h2>1️⃣7️⃣ INTEGRATION WITH EXISTING SYSTEMS<a class="headerlink" href="#integration-with-existing-systems" title="Link to this heading">¶</a></h2>
+<section id="v9-comparison">
+<h3>V9 Comparison<a class="headerlink" href="#v9-comparison" title="Link to this heading">¶</a></h3>
+<div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="c"># Compare V9 vs V9.1 on same population</span>
+<span class="nb">cd </span><span class="n">quant-hedge-ai</span>
+<span class="nv">$env:V9_MAX_CYCLES</span> <span class="p">=</span> <span class="s2">&quot;2&quot;</span>
+<span class="nv">$env:V9_POPULATION</span> <span class="p">=</span> <span class="s2">&quot;100&quot;</span>
+
+<span class="c"># Run V9.1</span>
+<span class="n">python</span> <span class="n">main_v91</span><span class="p">.</span><span class="n">py</span>
+<span class="c"># Note: Best Sharpe from run</span>
+
+<span class="c"># Expected improvements:</span>
+<span class="c"># - Better risk management (Kelly allocation)</span>
+<span class="c"># - Whale alerts detected  </span>
+<span class="c"># - Better strategy selection (decision engine)</span>
+<span class="c"># - More metrics displayed</span>
+</pre></div>
+</div>
+<ul class="contains-task-list simple">
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> V9.1 runs better than V9</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> Metrics improve with new modules</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> No regression vs baseline</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"> All features integrated smoothly</p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="final-sign-off">
+<h2>1️⃣8️⃣ FINAL SIGN-OFF<a class="headerlink" href="#final-sign-off" title="Link to this heading">¶</a></h2>
+<section id="production-readiness-checklist">
+<h3>Production Readiness Checklist<a class="headerlink" href="#production-readiness-checklist" title="Link to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>BEFORE USING V9.1 IN PRODUCTION:
+
+□ All checklist items above: PASS
+□ 10-minute test run: SUCCESSFUL  
+□ No errors in logs: CONFIRMED
+□ Performance baseline: ACCEPTABLE
+□ Strategy quality: Sharpe &gt; 8.0
+□ Risk management: Working correctly
+□ Database: Persisting data properly
+□ Documentation: Complete and accurate
+□ Team trained on operation: YES
+</pre></div>
+</div>
+<p><strong>Sign-Off</strong>:</p>
+<ul class="simple">
+<li><p>System Status: ✅ <strong>READY FOR USE</strong></p></li>
+<li><p>V9.1 Version: <strong>1.0.0 STABLE</strong></p></li>
+<li><p>Last Validated: <strong>[Date &amp; Time]</strong></p></li>
+<li><p>Validated By: <strong>[Your Name]</strong></p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="troubleshooting-failed-checks">
+<h2>📞 Troubleshooting Failed Checks<a class="headerlink" href="#troubleshooting-failed-checks" title="Link to this heading">¶</a></h2>
+<section id="check-failed-main-v91-py-import-errors">
+<h3>Check Failed: “main_v91.py import errors”<a class="headerlink" href="#check-failed-main-v91-py-import-errors" title="Link to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Solution:
+1. Verify all agent modules have __init__.py
+2. Run: python -m py_compile agents/**/*.py
+3. Check for circular imports
+4. See: QUICK_START_V91.md → Troubleshooting
+</pre></div>
+</div>
+</section>
+<section id="check-failed-strategy-scoreboard-not-created">
+<h3>Check Failed: “Strategy Scoreboard not created”<a class="headerlink" href="#check-failed-strategy-scoreboard-not-created" title="Link to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Solution</span><span class="p">:</span>
+<span class="mf">1.</span> <span class="n">Check</span> <span class="n">databases</span><span class="o">/</span> <span class="n">directory</span> <span class="n">writable</span>
+<span class="mf">2.</span> <span class="n">Delete</span> <span class="n">strategy_scoreboard</span><span class="o">.</span><span class="n">json</span> <span class="p">(</span><span class="k">if</span> <span class="n">corrupted</span><span class="p">)</span>
+<span class="mf">3.</span> <span class="n">Rerun</span><span class="p">:</span> <span class="n">python</span> <span class="n">main_v91</span><span class="o">.</span><span class="n">py</span>
+<span class="mf">4.</span> <span class="n">Should</span> <span class="n">auto</span><span class="o">-</span><span class="n">create</span> <span class="n">on</span> <span class="n">first</span> <span class="n">run</span>
+</pre></div>
+</div>
+</section>
+<section id="check-failed-control-center-not-displaying">
+<h3>Check Failed: “Control Center not displaying”<a class="headerlink" href="#check-failed-control-center-not-displaying" title="Link to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Solution</span><span class="p">:</span>
+<span class="mf">1.</span> <span class="n">Check</span> <span class="k">for</span> <span class="nb">print</span><span class="p">()</span> <span class="n">statement</span> <span class="n">errors</span>
+<span class="mf">2.</span> <span class="n">Verify</span> <span class="n">Unicode</span> <span class="n">symbols</span> <span class="n">supported</span>
+<span class="mf">3.</span> <span class="n">Try</span><span class="p">:</span> <span class="n">TERM</span><span class="o">=</span><span class="n">xterm</span> <span class="n">python</span> <span class="n">main_v91</span><span class="o">.</span><span class="n">py</span>
+<span class="mf">4.</span> <span class="n">Check</span> <span class="n">Windows</span> <span class="n">Terminal</span> <span class="n">settings</span>
+</pre></div>
+</div>
+</section>
+<section id="check-failed-performance-too-slow">
+<h3>Check Failed: “Performance too slow”<a class="headerlink" href="#check-failed-performance-too-slow" title="Link to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Solution</span><span class="p">:</span>
+<span class="mf">1.</span> <span class="n">Reduce</span> <span class="n">population</span><span class="p">:</span> <span class="n">V9_POPULATION</span><span class="o">=</span><span class="mi">50</span>
+<span class="mf">2.</span> <span class="n">Reduce</span> <span class="n">generations</span><span class="p">:</span> <span class="n">V9_GENERATIONS</span><span class="o">=</span><span class="mi">1</span>
+<span class="mf">3.</span> <span class="n">Skip</span> <span class="n">Monte</span> <span class="n">Carlo</span><span class="p">:</span> <span class="n">Remove</span> <span class="n">MONTECARLO</span> <span class="n">code</span>
+<span class="mf">4.</span> <span class="n">Use</span> <span class="n">faster</span> <span class="n">hardware</span> <span class="p">(</span><span class="n">SSD</span> <span class="k">for</span> <span class="n">I</span><span class="o">/</span><span class="n">O</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="success-criteria">
+<h2>✅ SUCCESS CRITERIA<a class="headerlink" href="#success-criteria" title="Link to this heading">¶</a></h2>
+<p>Once all checks pass:</p>
+<p>✅ V9.1 is <strong>validated and production-ready</strong><br />
+✅ You can run it with <strong>confidence</strong><br />
+✅ System is <strong>debugged and stable</strong><br />
+✅ Performance is <strong>optimized</strong><br />
+✅ Documentation is <strong>complete</strong></p>
+</section>
+<hr class="docutils" />
+<section id="next-steps-after-validation">
+<h2>🚀 Next Steps After Validation<a class="headerlink" href="#next-steps-after-validation" title="Link to this heading">¶</a></h2>
+<ol class="arabic simple">
+<li><p>✅ <strong>Run periodically</strong> - Keep system active</p></li>
+<li><p>✅ <strong>Monitor performance</strong> - Track Sharpe ratios</p></li>
+<li><p>✅ <strong>Review strategies</strong> - Check scoreboard daily</p></li>
+<li><p>✅ <strong>Tune configuration</strong> - Experiment with parameters</p></li>
+<li><p>✅ <strong>Plan V10</strong> - Start Phase 1 (API integration)</p></li>
+<li><p>✅ <strong>Document findings</strong> - Keep notes on what works</p></li>
+<li><p>✅ <strong>Share results</strong> - Show other team members</p></li>
+</ol>
+<hr class="docutils" />
+<p><strong>All checks passed? You’re ready! 🎉</strong></p>
+<p><strong>Run V9.1</strong>: <code class="docutils literal notranslate"><span class="pre">cd</span> <span class="pre">quant-hedge-ai</span> <span class="pre">&amp;&amp;</span> <span class="pre">python</span> <span class="pre">main_v91.py</span></code></p>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="PROJECT_COMPLETION_SUMMARY.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">🎉 V9.1 PROJECT COMPLETION SUMMARY</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="CONFIG_REFERENCE_V91.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">⚙️ V9.1 CONFIGURATION REFERENCE</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Crypto AI Terminal
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">✅ V9.1 VALIDATION CHECKLIST</a><ul>
+<li><a class="reference internal" href="#system-status">🎯 System Status</a></li>
+<li><a class="reference internal" href="#environment-setup">1️⃣ ENVIRONMENT SETUP</a><ul>
+<li><a class="reference internal" href="#python-environment">Python Environment</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#project-structure">2️⃣ PROJECT STRUCTURE</a><ul>
+<li><a class="reference internal" href="#v9-1-directory-structure">V9.1 Directory Structure</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#main-orchestrator">3️⃣ MAIN ORCHESTRATOR</a><ul>
+<li><a class="reference internal" href="#main-v91-py-validation">main_v91.py Validation</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#agent-modules">4️⃣ AGENT MODULES</a><ul>
+<li><a class="reference internal" href="#core-agents-20-total">Core Agents (20 total)</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#database-setup">5️⃣ DATABASE SETUP</a><ul>
+<li><a class="reference internal" href="#strategy-scoreboard-database">Strategy Scoreboard Database</a></li>
+<li><a class="reference internal" href="#data-directories">Data Directories</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#configuration-parameters">6️⃣ CONFIGURATION PARAMETERS</a><ul>
+<li><a class="reference internal" href="#default-configuration">Default Configuration</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#quick-test-run">7️⃣ QUICK TEST RUN</a><ul>
+<li><a class="reference internal" href="#minute-smoke-test">1-Minute Smoke Test</a></li>
+<li><a class="reference internal" href="#run-output-validation">Run Output Validation</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#control-center-output">8️⃣ CONTROL CENTER OUTPUT</a><ul>
+<li><a class="reference internal" href="#dashboard-sections">Dashboard Sections</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#strategy-scoreboard">9️⃣ STRATEGY SCOREBOARD</a><ul>
+<li><a class="reference internal" href="#database-verification">Database Verification</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#advanced-modules">🔟 ADVANCED MODULES</a><ul>
+<li><a class="reference internal" href="#intelligence-layer">Intelligence Layer</a></li>
+<li><a class="reference internal" href="#portfolio-brain">Portfolio Brain</a></li>
+<li><a class="reference internal" href="#whale-radar">Whale Radar</a></li>
+<li><a class="reference internal" href="#decision-engine">Decision Engine</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#extended-run-test">1️⃣1️⃣ EXTENDED RUN TEST</a><ul>
+<li><a class="reference internal" href="#minute-research-run">10-Minute Research Run</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#error-handling">1️⃣2️⃣ ERROR HANDLING</a><ul>
+<li><a class="reference internal" href="#error-recovery-test">Error Recovery Test</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#performance-baseline">1️⃣3️⃣ PERFORMANCE BASELINE</a><ul>
+<li><a class="reference internal" href="#timing-test">Timing Test</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#documentation-verification">1️⃣4️⃣ DOCUMENTATION VERIFICATION</a><ul>
+<li><a class="reference internal" href="#files-checklist">Files Checklist</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#reproducibility-test">1️⃣5️⃣ REPRODUCIBILITY TEST</a><ul>
+<li><a class="reference internal" href="#reproducibility-verification">Reproducibility Verification</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#cross-platform-check-windows">1️⃣6️⃣ CROSS-PLATFORM CHECK (Windows)</a><ul>
+<li><a class="reference internal" href="#windows-specific-validation">Windows-Specific Validation</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#integration-with-existing-systems">1️⃣7️⃣ INTEGRATION WITH EXISTING SYSTEMS</a><ul>
+<li><a class="reference internal" href="#v9-comparison">V9 Comparison</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#final-sign-off">1️⃣8️⃣ FINAL SIGN-OFF</a><ul>
+<li><a class="reference internal" href="#production-readiness-checklist">Production Readiness Checklist</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#troubleshooting-failed-checks">📞 Troubleshooting Failed Checks</a><ul>
+<li><a class="reference internal" href="#check-failed-main-v91-py-import-errors">Check Failed: “main_v91.py import errors”</a></li>
+<li><a class="reference internal" href="#check-failed-strategy-scoreboard-not-created">Check Failed: “Strategy Scoreboard not created”</a></li>
+<li><a class="reference internal" href="#check-failed-control-center-not-displaying">Check Failed: “Control Center not displaying”</a></li>
+<li><a class="reference internal" href="#check-failed-performance-too-slow">Check Failed: “Performance too slow”</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#success-criteria">✅ SUCCESS CRITERIA</a></li>
+<li><a class="reference internal" href="#next-steps-after-validation">🚀 Next Steps After Validation</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="_static/documentation_options.js?v=ef6a59ae"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    </body>
+</html>

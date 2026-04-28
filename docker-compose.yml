@@ -1,0 +1,53 @@
+version: '3.8'
+
+# =============================
+# docker-compose.yml DIAGNOSTIC
+# =============================
+#
+# Rôle :
+# Ce fichier définit la configuration Docker Compose pour le service "botdoctor".
+# Il permet de lancer un conteneur Docker prêt à l'emploi pour l'application botdoctor,
+# en exposant les ports nécessaires pour l'API (8008) et le Dashboard (8501),
+# en montant les dossiers de résultats et de logs, et en fixant le fuseau horaire.
+#
+# Diagnostic & Améliorations :
+# - Le service est bien isolé et redémarre automatiquement sauf arrêt manuel.
+# - Les volumes assurent la persistance des résultats et logs.
+# - Les ports sont explicitement documentés.
+# - Le build context est le dossier courant (assurez-vous que le Dockerfile est à la racine).
+# - Le nom du conteneur est fixé pour faciliter la gestion.
+#
+# Suggestions d'enrichissement :
+# - Ajouter une section "healthcheck" pour surveiller la santé du service.
+# - Ajouter des variables d'environnement pour la configuration dynamique si besoin.
+# - Documenter les prérequis (ex: structure attendue des dossiers results/logs).
+# - Ajouter un réseau dédié si d'autres services doivent communiquer avec botdoctor.
+#
+services:
+  botdoctor:
+    build: .
+    container_name: botdoctor
+    volumes:
+      - ./results:/app/results  # Persistance des résultats
+      - ./logs:/app/logs        # Persistance des logs
+    ports:
+      - "8008:8008"  # API
+      - "8501:8501"  # Dashboard
+    environment:
+      - TZ=Europe/Paris
+    restart: unless-stopped
+    # Healthcheck : surveille la disponibilité de l'API botdoctor
+    # Décommentez la section ci-dessous pour activer le healthcheck
+    # healthcheck:
+    #   test: ["CMD", "curl", "-f", "http://localhost:8008/health"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 3
+    #   start_period: 20s
+
+    # Explications :
+    # - test : commande exécutée pour vérifier la santé (ici, accès à l'endpoint /health)
+    # - interval : fréquence des vérifications
+    # - timeout : délai maximal pour chaque test
+    # - retries : nombre d'échecs avant de considérer le service comme unhealthy
+    # - start_period : délai d'attente avant le début des vérifications après le démarrage

@@ -1,7 +1,7 @@
-import panel as pn
-import pandas as pd
 import ccxt
 import hvplot.pandas
+import pandas as pd
+import panel as pn
 import ta
 
 pn.extension()
@@ -13,13 +13,13 @@ symbol = "BTC/USDT"
 timeframe = "1m"
 limit = 200
 
+
 def get_data():
 
     ohlcv = exchange.fetch_ohlcv(symbol, timeframe=timeframe, limit=limit)
 
     df = pd.DataFrame(
-        ohlcv,
-        columns=["timestamp","open","high","low","close","volume"]
+        ohlcv, columns=["timestamp", "open", "high", "low", "close", "volume"]
     )
 
     df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms")
@@ -53,28 +53,18 @@ def update():
     signal = trading_signal(df)
 
     chart = df.hvplot(
-        x="timestamp",
-        y=["close","ma20","ma50"],
-        height=400,
-        title=f"{symbol} price"
+        x="timestamp", y=["close", "ma20", "ma50"], height=400, title=f"{symbol} price"
     )
 
-    rsi_chart = df.hvplot(
-        x="timestamp",
-        y="rsi",
-        height=200,
-        title="RSI"
-    )
+    rsi_chart = df.hvplot(x="timestamp", y="rsi", height=200, title="RSI")
 
     return pn.Column(
         f"# 🚀 Crypto Quant Bot",
         f"### Signal : **{signal}**",
         chart,
         rsi_chart,
-        df.tail(10)
+        df.tail(10),
     )
 
 
-dashboard = pn.Column(
-    update()
-).servable()
+dashboard = pn.Column(update()).servable()

@@ -1,0 +1,19 @@
+[run]
+branch = True
+include =
+    evolution_core.py
+    supervise_all.py
+    supervision/alert_manager.py
+    supervision/bot_doctor.py
+    supervision/custom_module.py
+    supervision/botdoctor_dashboard.py
+    supervision/notifications/multi_notifier.py
+    supervision/notifications/slack_notifier.py
+    supervision/notifications/telegram_notifier.py
+    core/quant/logging_alerts.py
+    dashboard/alert_dashboard.py
+    quant_hedge_ai/strategy_lab/feature_cache.py
+
+[report]
+show_missing = True
+skip_empty = True

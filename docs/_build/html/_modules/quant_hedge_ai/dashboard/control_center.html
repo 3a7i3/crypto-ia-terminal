@@ -1,0 +1,271 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>quant_hedge_ai.dashboard.control_center &mdash; Crypto AI Terminal 9.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=6e94e9f2"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Crypto AI Terminal
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Crypto AI Terminal</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">quant_hedge_ai.dashboard.control_center</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for quant_hedge_ai.dashboard.control_center</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Dashboard Control Center - Comprehensive monitoring dashboard.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timezone</span>
+
+
+<div class="viewcode-block" id="AIControlCenter">
+<a class="viewcode-back" href="../../../index.html#quant_hedge_ai.dashboard.control_center.AIControlCenter">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">AIControlCenter</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Real-time monitoring dashboard for AI trading system.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="AIControlCenter.render_multi_sector_opps">
+<a class="viewcode-back" href="../../../index.html#quant_hedge_ai.dashboard.control_center.AIControlCenter.render_multi_sector_opps">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">render_multi_sector_opps</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">flow_data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="n">opps</span> <span class="o">=</span> <span class="n">flow_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;multi_sector_opportunities&quot;</span><span class="p">,</span> <span class="p">[])</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">opps</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s2">&quot;🧩 MULTI-SECTOR OPPORTUNITIES</span><span class="se">\n</span><span class="s2">  None detected</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="n">lines</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;🧩 MULTI-SECTOR OPPORTUNITIES&quot;</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">opp</span> <span class="ow">in</span> <span class="n">opps</span><span class="p">[:</span><span class="mi">5</span><span class="p">]:</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;  Sectors: </span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">opp</span><span class="p">[</span><span class="s1">&#39;sectors&#39;</span><span class="p">])</span><span class="si">}</span><span class="s2"> | Score: </span><span class="si">{</span><span class="n">opp</span><span class="p">[</span><span class="s1">&#39;score&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> | Momentum: </span><span class="si">{</span><span class="n">opp</span><span class="p">[</span><span class="s1">&#39;momentum&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> | Whale Flow: </span><span class="si">{</span><span class="n">opp</span><span class="p">[</span><span class="s1">&#39;whale_flow&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> | Volume: </span><span class="si">{</span><span class="n">opp</span><span class="p">[</span><span class="s1">&#39;volume&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span></div>
+
+
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Real-time monitoring dashboard for AI trading system.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="AIControlCenter.render_header">
+<a class="viewcode-back" href="../../../index.html#quant_hedge_ai.dashboard.control_center.AIControlCenter.render_header">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">render_header</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cycle</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">timestamp</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="si">{</span><span class="s1">&#39;=&#39;</span><span class="o">*</span><span class="mi">100</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;🤖 AI CONTROL CENTER - CYCLE </span><span class="si">{</span><span class="n">cycle</span><span class="si">}</span><span class="s2"> @ </span><span class="si">{</span><span class="n">timestamp</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="s1">&#39;=&#39;</span><span class="o">*</span><span class="mi">100</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="AIControlCenter.render_market_regime">
+<a class="viewcode-back" href="../../../index.html#quant_hedge_ai.dashboard.control_center.AIControlCenter.render_market_regime">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">render_market_regime</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">regime</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;📊 MARKET REGIME</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;  Current: </span><span class="si">{</span><span class="n">regime</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;regime&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;unknown&#39;</span><span class="p">)</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;  Suggested Strategy: </span><span class="si">{</span><span class="n">regime</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;strategy_type&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;neutral&#39;</span><span class="p">)</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;  Momentum: </span><span class="si">{</span><span class="n">regime</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;momentum&#39;</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">)</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;  Volatility: </span><span class="si">{</span><span class="n">regime</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;realized_volatility&#39;</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">)</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;  Anomalies: </span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">regime</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;anomalies&#39;</span><span class="p">,</span><span class="w"> </span><span class="p">[]))</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="AIControlCenter.render_whale_radar">
+<a class="viewcode-back" href="../../../index.html#quant_hedge_ai.dashboard.control_center.AIControlCenter.render_whale_radar">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">render_whale_radar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">whale_data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="n">alerts</span> <span class="o">=</span> <span class="n">whale_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;alerts&quot;</span><span class="p">,</span> <span class="p">[])</span>
+        <span class="n">alert_str</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">    &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">alerts</span><span class="p">)</span> <span class="k">if</span> <span class="n">alerts</span> <span class="k">else</span> <span class="s2">&quot;None&quot;</span>
+        <span class="n">sector_cov</span> <span class="o">=</span> <span class="n">whale_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;sector_coverage&quot;</span><span class="p">,</span> <span class="p">{})</span>
+        <span class="k">if</span> <span class="n">sector_cov</span><span class="p">:</span>
+            <span class="n">sector_lines</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="sa">f</span><span class="s2">&quot;    </span><span class="si">{</span><span class="n">sector</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">cov</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">%&quot;</span> <span class="k">for</span> <span class="n">sector</span><span class="p">,</span> <span class="n">cov</span> <span class="ow">in</span> <span class="n">sector_cov</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="p">]</span>
+            <span class="n">sector_str</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">sector_lines</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">sector_str</span> <span class="o">=</span> <span class="s2">&quot;    No sector coverage data&quot;</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;🐋 WHALE RADAR</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;  Threat Level: </span><span class="si">{</span><span class="n">whale_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;threat_level&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;low&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;  Detected Alerts:</span><span class="se">\n</span><span class="s2">    </span><span class="si">{</span><span class="n">alert_str</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;  Sector Whale Coverage:</span><span class="se">\n</span><span class="si">{</span><span class="n">sector_str</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="AIControlCenter.render_strategy_performance">
+<a class="viewcode-back" href="../../../index.html#quant_hedge_ai.dashboard.control_center.AIControlCenter.render_strategy_performance">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">render_strategy_performance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">best</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">stats</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">best</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s2">&quot;🎯 BEST STRATEGY: None found</span><span class="se">\n</span><span class="s2">&quot;</span>
+
+        <span class="n">strat</span> <span class="o">=</span> <span class="n">best</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;strategy&quot;</span><span class="p">,</span> <span class="p">{})</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;🎯 BEST STRATEGY</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;  Type: </span><span class="si">{</span><span class="n">strat</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;entry_indicator&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2"> → </span><span class="si">{</span><span class="n">strat</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;exit_indicator&#39;</span><span class="p">)</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;  Period: </span><span class="si">{</span><span class="n">strat</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;period&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">, Threshold: </span><span class="si">{</span><span class="n">strat</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;threshold&#39;</span><span class="p">)</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;  Sharpe: </span><span class="si">{</span><span class="n">best</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;sharpe&#39;</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">)</span><span class="si">}</span><span class="s2">, Drawdown: </span><span class="si">{</span><span class="n">best</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;drawdown&#39;</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">)</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;  Win Rate: </span><span class="si">{</span><span class="n">best</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;win_rate&#39;</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">)</span><span class="si">}</span><span class="s2">, PnL: </span><span class="si">{</span><span class="n">best</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;pnl&#39;</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">)</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">📈 SCOREBOARD STATS</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;  Total Strategies Tested: </span><span class="si">{</span><span class="n">stats</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;total_strategies&#39;</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;  Avg Sharpe: </span><span class="si">{</span><span class="n">stats</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;avg_sharpe&#39;</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">)</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;  Best Sharpe: </span><span class="si">{</span><span class="n">stats</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;best_sharpe&#39;</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">)</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;  Median Sharpe: </span><span class="si">{</span><span class="n">stats</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;median_sharpe&#39;</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">)</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="AIControlCenter.render_portfolio">
+<a class="viewcode-back" href="../../../index.html#quant_hedge_ai.dashboard.control_center.AIControlCenter.render_portfolio">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">render_portfolio</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">allocation</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">brain_info</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="n">top_5</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">allocation</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)[:</span><span class="mi">5</span><span class="p">]</span>
+        <span class="n">alloc_str</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">    &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">weight</span><span class="si">:</span><span class="s2">.2%</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">weight</span> <span class="ow">in</span> <span class="n">top_5</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;💼 PORTFOLIO ALLOCATION (Top 5)</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;    </span><span class="si">{</span><span class="n">alloc_str</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">  Kelly Fraction: </span><span class="si">{</span><span class="n">brain_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;kelly_fraction&#39;</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">)</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;  Vol Target: </span><span class="si">{</span><span class="n">brain_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;vol_target&#39;</span><span class="p">,</span><span class="w"> </span><span class="mf">0.02</span><span class="p">)</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;  Max Position: </span><span class="si">{</span><span class="n">brain_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;max_position&#39;</span><span class="p">,</span><span class="w"> </span><span class="mf">0.3</span><span class="p">)</span><span class="si">:</span><span class="s2">.2%</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="AIControlCenter.render_decision">
+<a class="viewcode-back" href="../../../index.html#quant_hedge_ai.dashboard.control_center.AIControlCenter.render_decision">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">render_decision</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">decision</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;⚡ EXECUTION DECISION</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;  Should Trade: </span><span class="si">{</span><span class="s1">&#39;YES&#39;</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">decision</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;should_trade&#39;</span><span class="p">)</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">&#39;NO&#39;</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;  Reason: </span><span class="si">{</span><span class="n">decision</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;reason&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;N/A&#39;</span><span class="p">)</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;  Risk Limits:</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;    Max Position: </span><span class="si">{</span><span class="n">decision</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;risk_limits&#39;</span><span class="p">,</span><span class="w"> </span><span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;max_position_size&#39;</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">)</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;    Stop Loss: </span><span class="si">{</span><span class="n">decision</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;risk_limits&#39;</span><span class="p">,</span><span class="w"> </span><span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;stop_loss_pct&#39;</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">)</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;    Take Profit: </span><span class="si">{</span><span class="n">decision</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;risk_limits&#39;</span><span class="p">,</span><span class="w"> </span><span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;take_profit_pct&#39;</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">)</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="AIControlCenter.render_system_health">
+<a class="viewcode-back" href="../../../index.html#quant_hedge_ai.dashboard.control_center.AIControlCenter.render_system_health">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">render_system_health</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">health</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;❤️  SYSTEM HEALTH</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;  Status: </span><span class="si">{</span><span class="n">health</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;status&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;running&#39;</span><span class="p">)</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;  Agents Active: </span><span class="si">{</span><span class="n">health</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;agents_count&#39;</span><span class="p">,</span><span class="w"> </span><span class="mi">20</span><span class="p">)</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;  Strategies Generated: </span><span class="si">{</span><span class="n">health</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;strategies_gen&#39;</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;  Backtests Completed: </span><span class="si">{</span><span class="n">health</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;backtests_completed&#39;</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;  Model Version: </span><span class="si">{</span><span class="n">health</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;model_version&#39;</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="AIControlCenter.render_full_report">
+<a class="viewcode-back" href="../../../index.html#quant_hedge_ai.dashboard.control_center.AIControlCenter.render_full_report">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">render_full_report</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">cycle</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">market_regime</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+        <span class="n">whale_data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+        <span class="n">best_strategy</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">stats</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+        <span class="n">allocation</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+        <span class="n">brain_info</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+        <span class="n">decision</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+        <span class="n">health</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+        <span class="n">flow_data</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Render complete control center dashboard.&quot;&quot;&quot;</span>
+        <span class="n">timestamp</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span>
+
+        <span class="n">report</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">render_header</span><span class="p">(</span><span class="n">cycle</span><span class="p">,</span> <span class="n">timestamp</span><span class="p">)</span>
+        <span class="n">report</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">render_market_regime</span><span class="p">(</span><span class="n">market_regime</span><span class="p">)</span>
+        <span class="n">report</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="n">report</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">render_whale_radar</span><span class="p">(</span><span class="n">whale_data</span><span class="p">)</span>
+        <span class="n">report</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="k">if</span> <span class="n">flow_data</span><span class="p">:</span>
+            <span class="n">report</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">render_multi_sector_opps</span><span class="p">(</span><span class="n">flow_data</span><span class="p">)</span>
+            <span class="n">report</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="n">report</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">render_strategy_performance</span><span class="p">(</span><span class="n">best_strategy</span><span class="p">,</span> <span class="n">stats</span><span class="p">)</span>
+        <span class="n">report</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="n">report</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">render_portfolio</span><span class="p">(</span><span class="n">allocation</span><span class="p">,</span> <span class="n">brain_info</span><span class="p">)</span>
+        <span class="n">report</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="n">report</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">render_decision</span><span class="p">(</span><span class="n">decision</span><span class="p">)</span>
+        <span class="n">report</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="n">report</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">render_system_health</span><span class="p">(</span><span class="n">health</span><span class="p">)</span>
+        <span class="n">report</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="si">{</span><span class="s1">&#39;=&#39;</span><span class="o">*</span><span class="mi">100</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+
+        <span class="k">return</span> <span class="n">report</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, Crypto AI Terminal.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

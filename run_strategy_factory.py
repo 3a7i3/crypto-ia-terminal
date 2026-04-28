@@ -1,31 +1,144 @@
-import matplotlib.pyplot as plt
-def migrate(populations, migration_rate=0.1):
-    # populations: dict {monde: [population]}
-    # migration_rate: fraction d'individus à migrer
-    keys = list(populations.keys())
-    migrants = {k: [] for k in keys}
-    for k in keys:
-        pop = populations[k]
-        n_mig = max(1, int(len(pop) * migration_rate))
-        migrants[k] = random.sample(pop, n_mig)
-    # Envoie les migrants dans le monde suivant (anneau)
-    for i, k in enumerate(keys):
-        next_k = keys[(i+1)%len(keys)]
-        populations[next_k].extend(migrants[k])
-        # Retire les migrants de leur monde d'origine
-        populations[k] = [g for g in populations[k] if g not in migrants[k]]
-    return populations
-from collections import Counter
+# =============================================================
+# Configuration centralisée : strategy_factory_config.ini
+# Les paramètres de simulation et d'affichage sont lus automatiquement.
+# Modifiez le fichier INI pour ajuster la population, le nombre de générations, etc.
+# =============================================================
 
-# --- ENVIRONNEMENT CHAOTIQUE ---
-ENV_OPTIONS = ["trend", "range", "crash"]
-def get_random_environment():
-    return random.choice(ENV_OPTIONS)
+
+import configparser
+
+import matplotlib.pyplot as plt
+
+from terminal_core.quant.logging_alerts import log_and_alert
+
+config = configparser.ConfigParser()
+config.read("strategy_factory_config.ini")
+
+# Paramètres simulation
+POP_SIZE = config.getint("simulation", "pop_size", fallback=100)
+N_GEN = config.getint("simulation", "n_gen", fallback=100)
+MIGRATION_FREQ = config.getint("simulation", "migration_freq", fallback=5)
+MIGRATION_RATE = config.getfloat("simulation", "migration_rate", fallback=0.1)
+
+# Paramètre visualisation
+SHOW_PLOTS = config.getboolean("visualization", "show_plots", fallback=True)
+
+
+# --- MIGRATION ENTRE MONDES ---
+def migrate(populations, migration_rate=0.1):
+    """Migre un pourcentage d'individus entre les mondes pour favoriser la diversité."""
+    world_names = list(populations.keys())
+    n_migrate = max(1, int(POP_SIZE * migration_rate))
+    # Sélectionne les meilleurs de chaque monde
+    migrants = {
+        w: sorted(populations[w], key=lambda g: g.fitness, reverse=True)[:n_migrate]
+        for w in world_names
+    }
+    # Effectue la migration circulaire
+    for i, w in enumerate(world_names):
+        next_w = world_names[(i + 1) % len(world_names)]
+        # Remplace les moins bons par les migrants du monde précédent
+        populations[next_w][-n_migrate:] = [g.copy() for g in migrants[w]]
+    return populations
+
+
+# === Visualisation GOD MODE (3D scatter des stratégies par espèce) ===
+def plot_god_mode(df, tracked_id=None):
+    """
+    Visualisation 3D des stratégies, couleur=espèce, symbole=cluster (si dispo), info=env+score.
+    Si tracked_id est fourni, met en surbrillance la stratégie correspondante.
+    """
+    import matplotlib.pyplot as plt
+    import numpy as np
+    from mpl_toolkits.mplot3d import Axes3D
+
+    # Vérifier colonnes requises
+    if not all(
+        col in df.columns for col in ["exit.tp", "exit.sl", "fitness", "species"]
+    ):
+        print("[plot_god_mode] Colonnes manquantes dans le DataFrame!")
+        return
+    fig = plt.figure(figsize=(10, 7))
+    ax = fig.add_subplot(111, projection="3d")
+    species_list = df["species"].unique()
+    # Utilise un colormap qui supporte plus de 10 couleurs si besoin
+    cmap = plt.get_cmap("tab20") if len(species_list) > 10 else plt.get_cmap("tab10")
+    colors = [cmap(i % cmap.N) for i in range(len(species_list))]
+    for i, species in enumerate(species_list):
+        sub = df[df["species"] == species]
+        ax.scatter(
+            sub["exit.tp"],
+            sub["exit.sl"],
+            sub["fitness"],
+            label=species,
+            color=colors[i],
+            alpha=0.7,
+        )
+    # Highlight tracked_id if present
+    if tracked_id and tracked_id in df["id"].values:
+        tracked = df[df["id"] == tracked_id]
+        ax.scatter(
+            tracked["exit.tp"],
+            tracked["exit.sl"],
+            tracked["fitness"],
+            color="red",
+            s=120,
+            marker="*",
+            label="Tracked",
+        )
+    ax.set_xlabel("Take Profit")
+    ax.set_ylabel("Stop Loss")
+    ax.set_zlabel("Fitness")
+    ax.set_title("GOD MODE: 3D Evolutionary Strategies")
+    ax.legend()
+    plt.tight_layout()
+    plt.savefig("results/god_mode_3d.png")
+    print("[plot_god_mode] Graphique exporté : results/god_mode_3d.png")
+    if SHOW_PLOTS:
+        plt.show()
+    else:
+        plt.close()
+
+
+# === GLOBALS ===
+history = []
+TRACKED_ID = None  # Renseignez un ID pour suivre une stratégie
+N_WORLDS = 4
+WORLD_NAMES = ["trend", "range", "crash", "chaos"]
+# Les paramètres POP_SIZE, N_GEN, MIGRATION_FREQ, MIGRATION_RATE sont maintenant lus via configparser plus haut
+
+
+# === Visualisation domination par espèce ===
+def plot_dominance(full_df):
+    """
+    Visualisation de la domination par espèce au fil des générations.
+    Affiche un graphique montrant le nombre d'individus par espèce à chaque génération.
+    """
+    # Vérifier que les colonnes nécessaires existent
+    if not all(col in full_df.columns for col in ["generation", "species"]):
+        print("[plot_dominance] Colonnes manquantes dans le DataFrame!")
+        return
+    # Pivot table: index=generation, columns=species, values=count
+    pivot = full_df.groupby(["generation", "species"]).size().unstack(fill_value=0)
+    pivot.plot(kind="area", stacked=True, colormap="tab20", figsize=(12, 6))
+    plt.title("Domination par espèce au fil des générations")
+    plt.xlabel("Génération")
+    plt.ylabel("Nombre d'individus")
+    plt.legend(title="Espèce", bbox_to_anchor=(1.05, 1), loc="upper left")
+    plt.tight_layout()
+    plt.savefig("results/dominance_by_species.png")
+    print("[plot_dominance] Graphique exporté : results/dominance_by_species.png")
+    if SHOW_PLOTS:
+        plt.show()
+    else:
+        plt.close()
+
 
 # --- EXTINCTION D'ESPÈCES ---
 def apply_extinction(population, min_species_size=5):
     counts = Counter(g.genes["entry.type"] for g in population)
     return [g for g in population if counts[g.genes["entry.type"]] >= min_species_size]
+
 
 # --- REPRODUCTION PAR ESPÈCE ---
 def select_parents(survivors):
@@ -37,6 +150,12 @@ def select_parents(survivors):
     else:
         parent2 = random.choice(survivors)
     return parent1, parent2
+
+
+def get_random_environment():
+    """Retourne un environnement aléatoire parmi trend, range, crash."""
+    return random.choice(["trend", "range", "crash"])
+
 
 # --- EVOLVE AGGRESSIVE ---
 def evolve_aggressive(population):
@@ -52,14 +171,18 @@ def evolve_aggressive(population):
             g.fitness = float(score_env_crash(g))
 
     population.sort(key=lambda g: g.fitness, reverse=True)
-    survivors = population[:max(1, int(len(population)*0.08))]
+    survivors = population[: max(1, int(len(population) * 0.08))]
     survivors = apply_extinction(survivors)
 
     # Si extinction totale, on relâche la pression pour éviter le crash
     if not survivors:
         # On prend les 3 meilleurs de la population pour relancer
-        survivors = population[:min(3, len(population))]
-        print("[⚠️ EXTINCTION TOTALE] Relance avec les meilleurs survivants!")
+        survivors = population[: min(3, len(population))]
+        log_and_alert(
+            "warning",
+            "[EXTINCTION TOTALE] Relance avec les meilleurs survivants!",
+            alert=True,
+        )
 
     new_population = survivors.copy()
     while len(new_population) < len(population) - 2:
@@ -88,31 +211,58 @@ def evolve_aggressive(population):
         new_population.append(g)
     return new_population, current_env
 
+
 # --- SCORE PAR ENVIRONNEMENT ---
 def score_env_trend(g):
+    assert hasattr(
+        g, "genes"
+    ), "L'objet passé à score_env_trend n'est pas un Genome valide."
     prices = generate_trend_market()
     equity = backtest(g, prices)
+    import numpy as np
+
+    assert not np.isnan(equity).any(), "Equity contient des NaN."
+    assert not np.isinf(equity).any(), "Equity contient des valeurs infinies."
     final_return = equity[-1]
     drawdown = compute_drawdown(equity)
     sharpe = compute_sharpe(equity)
     return final_return * 0.4 + sharpe * 0.4 - drawdown * 0.6
+
 
 def score_env_range(g):
+    assert hasattr(
+        g, "genes"
+    ), "L'objet passé à score_env_range n'est pas un Genome valide."
     prices = generate_range_market()
     equity = backtest(g, prices)
+    import numpy as np
+
+    assert not np.isnan(equity).any(), "Equity contient des NaN."
+    assert not np.isinf(equity).any(), "Equity contient des valeurs infinies."
     final_return = equity[-1]
     drawdown = compute_drawdown(equity)
     sharpe = compute_sharpe(equity)
     return final_return * 0.4 + sharpe * 0.4 - drawdown * 0.6
 
+
 def score_env_crash(g):
+    assert hasattr(
+        g, "genes"
+    ), "L'objet passé à score_env_crash n'est pas un Genome valide."
     prices = generate_crash_market()
     equity = backtest(g, prices)
+    import numpy as np
+
+    assert not np.isnan(equity).any(), "Equity contient des NaN."
+    assert not np.isinf(equity).any(), "Equity contient des valeurs infinies."
     final_return = equity[-1]
     drawdown = compute_drawdown(equity)
     sharpe = compute_sharpe(equity)
     return final_return * 0.4 + sharpe * 0.4 - drawdown * 0.6
+
+
 # === Générateurs de marchés multiples ===
+
 
 def generate_trend_market(length=500):
     prices = [100.0]
@@ -140,10 +290,15 @@ def generate_crash_market(length=500):
         prices.append(prices[-1] * (1 + change * 0.01))
     return np.array(prices)
 
+
 # === Algorithme évolutif standalone (Step 1+2) ===
+
 import random
 import uuid
+from collections import Counter
+
 import numpy as np
+import pandas as pd
 
 # 1. GeneSpace (l'univers des gènes)
 
@@ -152,17 +307,19 @@ GENE_SPACE = {
     "entry.type": ["trend", "mean_reversion", "hybrid"],
     "entry.rsi_period": (5, 30),
     "entry.rsi_buy": (30, 70),
-    "ma_short": (5, 50),   # période de la moyenne mobile courte
+    "ma_short": (5, 50),  # période de la moyenne mobile courte
     "ma_long": (20, 200),  # période de la moyenne mobile longue
     "ma_signal": ["cross_over", "cross_under"],
     "exit.tp": (0.5, 5.0),
     "exit.sl": (0.3, 3.0),
-    "risk.risk_per_trade": (0.001, 0.03)
+    "risk.risk_per_trade": (0.001, 0.03),
 }
+
+
 # 7b. MA crossover
 def ma_signal(prices, short, long, signal_type="cross_over"):
-    ma_s = np.convolve(prices, np.ones(int(short))/int(short), mode='valid')
-    ma_l = np.convolve(prices, np.ones(int(long))/int(long), mode='valid')
+    ma_s = np.convolve(prices, np.ones(int(short)) / int(short), mode="valid")
+    ma_l = np.convolve(prices, np.ones(int(long)) / int(long), mode="valid")
     min_len = min(len(ma_s), len(ma_l))
     ma_s = ma_s[-min_len:]
     ma_l = ma_l[-min_len:]
@@ -171,6 +328,7 @@ def ma_signal(prices, short, long, signal_type="cross_over"):
     else:
         return np.where(np.diff((ma_s < ma_l).astype(int)) == 1)[0] + 1
 
+
 # 1b. Clamp gene (bornes)
 def clamp_gene(key, value):
     space = GENE_SPACE[key]
@@ -178,7 +336,9 @@ def clamp_gene(key, value):
         return max(space[0], min(space[1], value))
     return value
 
+
 # 2. Classe Genome
+
 
 class Genome:
     def __init__(self, genes=None):
@@ -205,6 +365,7 @@ class Genome:
     def get(self, key, default=None):
         return self.genes.get(key, default)
 
+
 # 3. Mutation
 def mutate(genome, mutation_rate=0.2, intensity=0.1):
     new_genes = genome.genes.copy()
@@ -220,6 +381,7 @@ def mutate(genome, mutation_rate=0.2, intensity=0.1):
                 new_genes[key] = random.choice(space)
     return Genome(new_genes)
 
+
 # 4. Crossover
 def crossover(parent1, parent2):
     child_genes = {}
@@ -233,9 +395,11 @@ def crossover(parent1, parent2):
     child.parent_ids = [parent1.id, parent2.id]
     return child
 
+
 # 5. Population initiale
 def create_population(size=50):
     return [Genome() for _ in range(size)]
+
 
 # 6. Génération de prix simulés (marché)
 def generate_price_series(length=500):
@@ -246,13 +410,14 @@ def generate_price_series(length=500):
         prices.append(prices[-1] * (1 + change * 0.01))
     return np.array(prices)
 
+
 # 7. RSI
 def compute_rsi(prices, period=14):
     deltas = np.diff(prices)
     gains = np.maximum(deltas, 0)
     losses = -np.minimum(deltas, 0)
-    avg_gain = np.convolve(gains, np.ones(period)/period, mode='valid')
-    avg_loss = np.convolve(losses, np.ones(period)/period, mode='valid')
+    avg_gain = np.convolve(gains, np.ones(period) / period, mode="valid")
+    avg_loss = np.convolve(losses, np.ones(period) / period, mode="valid")
     rs = avg_gain / (avg_loss + 1e-6)
     rsi = 100 - (100 / (1 + rs))
     return rsi
@@ -281,7 +446,7 @@ def backtest(genome, prices):
     ma_idx_set = set(ma_idx)
 
     # Align all signals to the same index base
-    min_len = min(len(rsi), len(prices)-1)
+    min_len = min(len(rsi), len(prices) - 1)
     for i in range(min_len):
         price = prices[i + 1]
         signal = False
@@ -300,10 +465,11 @@ def backtest(genome, prices):
         elif position == "long":
             change = (price - entry_price) / entry_price
             if change >= tp or change <= -sl:
-                capital *= (1 + change)
+                capital *= 1 + change
                 position = None
         equity_curve.append(capital)
     return equity_curve
+
 
 # 9b. Drawdown
 def compute_drawdown(equity_curve):
@@ -312,6 +478,7 @@ def compute_drawdown(equity_curve):
     drawdown = (equity - peak) / peak
     max_dd = np.min(drawdown)
     return abs(max_dd)
+
 
 # 9c. Sharpe ratio
 def compute_sharpe(equity_curve):
@@ -322,9 +489,11 @@ def compute_sharpe(equity_curve):
     sharpe = np.mean(returns) / np.std(returns)
     return sharpe
 
+
 # 9. Fitness réel
 
 # 10. Fitness composite
+
 
 def evaluate_fitness(genome):
     # Spécialisation par environnement
@@ -337,24 +506,23 @@ def evaluate_fitness(genome):
         final_return = equity[-1]
         drawdown = compute_drawdown(equity)
         sharpe = compute_sharpe(equity)
-        score = (
-            final_return * 0.4 +
-            sharpe * 0.4 -
-            drawdown * 0.6
-        )
+        score = final_return * 0.4 + sharpe * 0.4 - drawdown * 0.6
         return score
 
     genome.fitness_trend = score_env(trend_prices)
     genome.fitness_range = score_env(range_prices)
     genome.fitness_crash = score_env(crash_prices)
-    genome.fitness = (genome.fitness_trend + genome.fitness_range + genome.fitness_crash) / 3
+    genome.fitness = (
+        genome.fitness_trend + genome.fitness_range + genome.fitness_crash
+    ) / 3
+
 
 # 10. Cycle évolution
 def evolve(population):
     for g in population:
         evaluate_fitness(g)
     population.sort(key=lambda x: x.fitness, reverse=True)
-    survivors = population[:max(1, int(len(population)*0.2))]
+    survivors = population[: max(1, int(len(population) * 0.2))]
     new_population = []
     for s in survivors:
         if s.fitness is None:
@@ -369,93 +537,89 @@ def evolve(population):
         new_population.append(child)
     return new_population
 
-# 11. Test rapide
-if __name__ == "__main__":
-    import pandas as pd
-    history = []
-    # --- GOD MODE ---
-    TRACKED_ID = None  # Renseignez un ID pour suivre une stratégie
-    # --- MONDES PARALLÈLES ---
-    N_WORLDS = 4
-    WORLD_NAMES = ["trend", "range", "crash", "chaos"]
-    POP_SIZE = 100
-    N_GEN = 100  # Accélération temporelle (ex: 100 générations)
-    MIGRATION_FREQ = 5
-    MIGRATION_RATE = 0.1
 
-    # Initialisation des mondes
+# 11. Test rapide
+def main():
+    import json
+
     populations = {w: create_population(POP_SIZE) for w in WORLD_NAMES}
     envs = {w: w for w in WORLD_NAMES}
     histories = {w: [] for w in WORLD_NAMES}
 
+    def evolve_world(pop, env):
+        if env == "chaos":
+            current_env = get_random_environment()
+        else:
+            current_env = env
+        for g in pop:
+            if current_env == "trend":
+                g.fitness = float(score_env_trend(g))
+            elif current_env == "range":
+                g.fitness = float(score_env_range(g))
+            elif current_env == "crash":
+                g.fitness = float(score_env_crash(g))
+        pop.sort(key=lambda g: g.fitness, reverse=True)
+        survivors = pop[: max(1, int(len(pop) * 0.08))]
+        survivors = apply_extinction(survivors)
+        if not survivors:
+            survivors = pop[: min(3, len(pop))]
+        new_pop = survivors.copy()
+        while len(new_pop) < len(pop) - 2:
+            if len(survivors) == 0:
+                p1 = p2 = random.choice(pop)
+            else:
+                p1, p2 = select_parents(survivors)
+            child = crossover(p1, p2)
+            child = mutate(child, mutation_rate=0.3, intensity=0.2)
+            if current_env == "trend":
+                child.fitness = float(score_env_trend(child))
+            elif current_env == "range":
+                child.fitness = float(score_env_range(child))
+            elif current_env == "crash":
+                child.fitness = float(score_env_crash(child))
+            new_pop.append(child)
+        for _ in range(2):
+            g = Genome()
+            if current_env == "trend":
+                g.fitness = float(score_env_trend(g))
+            elif current_env == "range":
+                g.fitness = float(score_env_range(g))
+            elif current_env == "crash":
+                g.fitness = float(score_env_crash(g))
+            new_pop.append(g)
+        return new_pop, current_env
+
     for generation in range(N_GEN):
         for w in WORLD_NAMES:
-            # Pour chaque monde, évolution dans son environnement
-            def evolve_world(pop, env):
-                # Monde chaotique : environnement aléatoire à chaque génération
-                if env == "chaos":
-                    current_env = get_random_environment()
-                else:
-                    current_env = env
-                for g in pop:
-                    if current_env == "trend":
-                        g.fitness = float(score_env_trend(g))
-                    elif current_env == "range":
-                        g.fitness = float(score_env_range(g))
-                    elif current_env == "crash":
-                        g.fitness = float(score_env_crash(g))
-                pop.sort(key=lambda g: g.fitness, reverse=True)
-                survivors = pop[:max(1, int(len(pop)*0.08))]
-                survivors = apply_extinction(survivors)
-                if not survivors:
-                    survivors = pop[:min(3, len(pop))]
-                new_pop = survivors.copy()
-                while len(new_pop) < len(pop) - 2:
-                    if len(survivors) == 0:
-                        p1 = p2 = random.choice(pop)
-                    else:
-                        p1, p2 = select_parents(survivors)
-                    child = crossover(p1, p2)
-                    child = mutate(child, mutation_rate=0.3, intensity=0.2)
-                    if current_env == "trend":
-                        child.fitness = float(score_env_trend(child))
-                    elif current_env == "range":
-                        child.fitness = float(score_env_range(child))
-                    elif current_env == "crash":
-                        child.fitness = float(score_env_crash(child))
-                    new_pop.append(child)
-                # Ajout de 2 random
-                for _ in range(2):
-                    g = Genome()
-                    if current_env == "trend":
-                        g.fitness = float(score_env_trend(g))
-                    elif current_env == "range":
-                        g.fitness = float(score_env_range(g))
-                    elif current_env == "crash":
-                        g.fitness = float(score_env_crash(g))
-                    new_pop.append(g)
-                return new_pop, current_env
-            # On stocke l'environnement courant pour le monde chaotique
             if w == "chaos":
                 populations[w], envs[w] = evolve_world(populations[w], w)
             else:
                 populations[w] = evolve_world(populations[w], envs[w])[0]
-        # Migration croisée
-        if (generation+1) % MIGRATION_FREQ == 0:
+        if (generation + 1) % MIGRATION_FREQ == 0:
             populations = migrate(populations, migration_rate=MIGRATION_RATE)
             print(f"\n🌐 MIGRATION entre mondes à la génération {generation+1}\n")
-        # Logs et historique
         for w in WORLD_NAMES:
             pop = populations[w]
             pop_data = []
             for g in pop:
-                row = {**g.genes, "fitness": g.fitness, "id": g.id, "environment": envs[w], "species": g.genes["entry.type"], "world": w, "parent_ids": ",".join(g.parent_ids) if hasattr(g, "parent_ids") else ""}
+                row = {
+                    **g.genes,
+                    "fitness": g.fitness,
+                    "id": g.id,
+                    "environment": envs[w],
+                    "species": g.genes["entry.type"],
+                    "world": w,
+                    "parent_ids": (
+                        ",".join(g.parent_ids) if hasattr(g, "parent_ids") else ""
+                    ),
+                }
                 pop_data.append(row)
             df = pd.DataFrame(pop_data)
             histories[w].append(df)
             species_counts = Counter(g.genes["entry.type"] for g in pop)
             best = max(pop, key=lambda g: g.fitness)
-            print(f"""
+            print(
+                f"""
             [MONDE: {w}] Gen {generation}
             🌍 Environment: {envs[w]}
             🧬 Best fitness: {best.fitness:.4f}
@@ -463,79 +627,33 @@ if __name__ == "__main__":
             🦠 Species counts: {dict(species_counts)}
             🔗 Best ID: {best.id}
             🧬 Parents: {getattr(best, 'parent_ids', [])}
-            """)
+            """
+            )
             if TRACKED_ID and best.id == TRACKED_ID:
                 print("🔥 TRACKED STRATEGY SURVIVED")
-            # Export CSV de la population
             df.to_csv(f"results/{w}_pop_gen_{generation}.csv", index=False)
             print(f"  CSV exporté : results/{w}_pop_gen_{generation}.csv")
 
-    # --- VISUALISATION ---
-    # Diversité des espèces et fitness moyenne par monde
+    best_strategies = {}
     for w in WORLD_NAMES:
-        generations = list(range(N_GEN))
-        diversity = []
-        mean_fitness = []
-        for df in histories[w]:
-            diversity.append(len(set(df['species'])))
-            mean_fitness.append(df['fitness'].mean())
-        plt.figure(figsize=(10,4))
-        plt.subplot(1,2,1)
-        plt.plot(generations, diversity, label='Diversité (espèces)')
-        plt.title(f"Diversité des espèces - {w}")
-        plt.xlabel("Génération")
-        plt.ylabel("Nombre d'espèces")
-        plt.subplot(1,2,2)
-        plt.plot(generations, mean_fitness, label='Fitness moyenne')
-        plt.title(f"Fitness moyenne - {w}")
-        plt.xlabel("Génération")
-        plt.ylabel("Fitness")
-        plt.tight_layout()
-        plt.savefig(f"results/plot_{w}.png")
-        print(f"  Graphique exporté : results/plot_{w}.png")
-
-    # === TIMELINE ÉVOLUTIVE CINÉMATIQUE ===
-    import plotly.express as px
-    # 1. Stockage history pour timeline
-    history = []
-    for gen in range(N_GEN):
-        for w in WORLD_NAMES:
-            df = histories[w][gen].copy()
-            df["generation"] = gen
-            df["environment"] = envs[w]
-            history.append(df)
-    # 2. Dataset global
-    full_df = pd.concat(history, ignore_index=True)
-    # 3. Visualisation GOD MODE
-    def plot_god_mode(full_df, tracked_id=None):
-        df = full_df.copy()
-        if tracked_id:
-            df["highlight"] = df["id"].apply(lambda x: "TRACKED" if x == tracked_id else "normal")
+        last_df = histories[w][-1] if histories[w] else pd.DataFrame()
+        if (
+            not last_df.empty
+            and "fitness" in last_df.columns
+            and not last_df["fitness"].isnull().all()
+        ):
+            best = last_df.loc[last_df["fitness"].idxmax()]
+            best_strategies[w] = best.to_dict()
         else:
-            df["highlight"] = "normal"
-        fig = px.scatter_3d(
-            df,
-            x="exit.tp",
-            y="exit.sl",
-            z="fitness",
-            color="species",
-            symbol="highlight",
-            animation_frame="generation",
-            size="fitness",
-            hover_data=["id", "environment", "parent_ids"],
-            title="👁️ GOD MODE - Strategy Evolution"
-        )
-        fig.show()
-    plot_god_mode(full_df, tracked_id=TRACKED_ID)
-    # 4. Visualisation domination par espèce
-    def plot_dominance(full_df):
-        df = full_df.groupby(["generation", "species"]).size().reset_index(name="count")
-        fig = px.area(
-            df,
-            x="generation",
-            y="count",
-            color="species",
-            title="🌍 Species Domination Over Time"
-        )
-        fig.show()
-    plot_dominance(full_df)
+            print(
+                f"[WARN] Aucun survivant ou colonne 'fitness' manquante pour le monde {w}"
+            )
+    with open("results/best_strategies_cross_world.json", "w", encoding="utf-8") as f:
+        json.dump(best_strategies, f, indent=2, ensure_ascii=False)
+    print(
+        "\n[EXPORT] Meilleurs survivants cross-monde exportés dans results/best_strategies_cross_world.json"
+    )
+
+
+if __name__ == "__main__":
+    main()

@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import os
 
-from quant-hedge-ai.main_v91 import _get_env_int
-from quant-hedge-ai.runtime_config import get_env_bool, get_env_float, get_env_str, load_runtime_config_from_env
-
+from quant_hedge_ai.main_v91 import _get_env_int
+from quant_hedge_ai.runtime_config import (get_env_bool, get_env_float,
+                                           get_env_str,
+                                           load_runtime_config_from_env)
 
 
 def test_get_env_int_returns_default_when_missing() -> None:
@@ -12,17 +13,14 @@ def test_get_env_int_returns_default_when_missing() -> None:
     assert _get_env_int("V9_TEST_INT", 7) == 7
 
 
-
 def test_get_env_int_returns_default_on_invalid_value() -> None:
     os.environ["V9_TEST_INT"] = "abc"
     assert _get_env_int("V9_TEST_INT", 11) == 11
 
 
-
 def test_get_env_int_applies_min_value() -> None:
     os.environ["V9_TEST_INT"] = "-5"
     assert _get_env_int("V9_TEST_INT", 3, min_value=0) == 0
-
 
 
 def test_get_env_int_parses_valid_integer() -> None:

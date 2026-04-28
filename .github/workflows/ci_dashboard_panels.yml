@@ -1,0 +1,37 @@
+name: CI Dashboard Panels
+
+on:
+  push:
+    paths:
+      - '**evolution_3d_view.py'
+      - '**dashboard/alert_dashboard.py'
+      - '**supervision/botdoctor_dashboard.py'
+      - '**evolution_dashboard.py'
+      - '**crypto_quant_v16/ui/quant_dashboard.py'
+      - '**quant_hedge_ai/dashboard/quant_terminal_v12.py'
+      - '**ai_autonomous_loop/feedback_dashboard.py'
+      - '**panel_ci_report.py'
+      - '**requirements.txt'
+  workflow_dispatch:
+
+jobs:
+  test-panels:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install streamlit plotly scikit-learn pandas matplotlib seaborn
+      - name: Run CI Panel Report
+        run: |
+          python panel_ci_report.py
+      - name: Upload HTML Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: panel-ci-report
+          path: panel_ci_report.html

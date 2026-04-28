@@ -1,0 +1,8 @@
+#!/bin/bash
+# Pre-commit hook: vérifie que l’audit dashboards est à jour
+. .venv/bin/activate
+python scripts/generate_audit_report.py
+if [ $? -ne 0 ]; then
+  echo "[PRE-COMMIT] L’audit des dashboards/applications a changé. Veuillez committer DASHBOARDS_AUDIT_REPORT.md."
+  exit 1
+fi

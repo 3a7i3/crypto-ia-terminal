@@ -1,4 +1,5 @@
 import os
+
 import panel as pn
 
 # Créer un dossier dans data/
@@ -11,5 +12,5 @@ pn.extension()
 pn.Column(
     "# 🚀 Crypto AI Terminal",
     f"Dossier créé : {dossier}",
-    "Sujet : Analyse des cryptomonnaies avec IA"
+    "Sujet : Analyse des cryptomonnaies avec IA",
 ).servable()
