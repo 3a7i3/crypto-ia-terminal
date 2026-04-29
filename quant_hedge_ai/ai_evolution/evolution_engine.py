@@ -181,7 +181,43 @@ class EvolutionEngine:
             report.best_sharpe,
             report.saved_to_memory,
         )
+
+        self._emit_events(report)
         return report
+
+    def _emit_events(self, report: EvolutionReport) -> None:
+        """Émet les events d'évolution sur le bus — silencieux si non dispo."""
+        try:
+            from event_bus.bus import EventBus
+            from event_bus.events import EvolutionCycleEvent, NewBestStrategyEvent
+
+            bus = EventBus.get()
+            bus.emit(
+                EvolutionCycleEvent(
+                    cycle=report.cycle,
+                    generation=report.generation,
+                    regime=report.regime,
+                    candidates_tested=report.backtests_run,
+                    best_sharpe=report.best_sharpe,
+                    avg_sharpe=report.avg_sharpe,
+                    saved_to_memory=report.saved_to_memory,
+                )
+            )
+            if report.best_sharpe > 0 and report.best_strategy:
+                strat = report.best_strategy
+                bus.emit(
+                    NewBestStrategyEvent(
+                        regime=report.regime,
+                        sharpe=report.best_sharpe,
+                        drawdown=float(strat.get("drawdown", 0)),
+                        strategy_name=(
+                            f"{strat.get('entry_indicator', '?')}"
+                            f"->{strat.get('exit_indicator', '?')}"
+                        ),
+                    )
+                )
+        except Exception:
+            pass
 
     def render(self, report: EvolutionReport) -> str:
         """Render evolution report as text."""

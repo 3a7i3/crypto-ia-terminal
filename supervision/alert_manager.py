@@ -49,8 +49,42 @@ class AlertManager:
         self.alerts.append(alert)
         with open(self.audit_file, "a", encoding="utf-8") as f:
             f.write(json.dumps(alert.to_dict()) + "\n")
+        self._emit_event(alert)
         if alert.severity == "critical" and alert.module in self.autoheal_registry:
             self.run_autoheal(alert)
+
+    def _emit_event(self, alert: Alert) -> None:
+        """Émet l'alerte sur l'EventBus global — silencieux si non dispo."""
+        try:
+            from event_bus.bus import EventBus
+            from event_bus.events import DrawdownAlertEvent, SecurityAlertEvent
+
+            if alert.type == "drawdown":
+                EventBus.get().emit(
+                    DrawdownAlertEvent(
+                        current_drawdown_pct=float(
+                            alert.context.get("drawdown_pct", 0)
+                        ),
+                        max_allowed_pct=float(alert.context.get("max_allowed_pct", 0)),
+                        symbol=alert.context.get("symbol", ""),
+                        action_taken=alert.context.get("action", "warn"),
+                        source=f"alert_manager.{alert.module}",
+                    )
+                )
+            else:
+                EventBus.get().emit(
+                    SecurityAlertEvent(
+                        severity=alert.severity,
+                        rule=alert.type,
+                        file=alert.module,
+                        line=0,
+                        message=alert.message[:200],
+                        tentacle="alert_manager",
+                        source=f"alert_manager.{alert.module}",
+                    )
+                )
+        except Exception:
+            pass
 
     def get_alerts(self, filter_func=None) -> List[Alert]:
         if filter_func:

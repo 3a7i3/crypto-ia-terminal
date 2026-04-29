@@ -1,5 +1,9 @@
 [run]
 branch = True
+
+[report]
+show_missing = True
+skip_empty = True
 include =
     # Supervision & alertes
     supervision/alert_manager.py
@@ -30,13 +34,11 @@ include =
     quant_hedge_ai/agents/risk/session_guard.py
     quant_hedge_ai/agents/risk/drawdown_guard.py
     quant_hedge_ai/agents/risk/risk_monitor.py
+    quant_hedge_ai/agents/intelligence/feature_engineer.py
 
     # Strategy lab
     quant_hedge_ai/strategy_lab/feature_cache.py
 
-[report]
-show_missing = True
-skip_empty = True
 exclude_lines =
     pragma: no cover
     if __name__ == .__main__.:

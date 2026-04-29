@@ -8,8 +8,7 @@ from pathlib import Path
 # Ensure project root is on path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from quant_hedge_ai.market_radar.anomaly_detector import (AnomalyDetector,
-                                                          MarketAnomaly)
+from quant_hedge_ai.market_radar.anomaly_detector import AnomalyDetector, MarketAnomaly
 from quant_hedge_ai.market_radar.radar_core import MarketRadar
 from quant_hedge_ai.market_radar.social_scanner import SocialScanner
 from quant_hedge_ai.market_radar.token_scanner import TokenInfo, TokenScanner

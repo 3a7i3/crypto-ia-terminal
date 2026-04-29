@@ -1,4 +1,4 @@
-"""Advanced regime detection — classifies current market regime from features."""
+"""Advanced regime detection with market regime classification."""
 
 from __future__ import annotations
 
@@ -18,24 +18,31 @@ class AdvancedRegimeDetector:
         vol = float(features.get("realized_volatility", 0.0))
         trend = float(features.get("trend_strength", 0.5))
 
-        if vol > 0.20:
-            return "flash_crash"
         if vol > 0.15:
             return "high_volatility_regime"
+
         if momentum > 0.03 and trend > 0.7:
             return "bull_trend"
+
         if momentum < -0.03 and trend < 0.3:
             return "bear_trend"
+
         if abs(momentum) < 0.01 and vol < 0.05:
             return "sideways"
+
+        if vol > 0.2:
+            return "flash_crash"
+
         return "sideways"
 
     def suggest_strategy_type(self, regime: str) -> str:
-        mapping = {
-            "bull_trend": "momentum_following",
-            "bear_trend": "short_strategies",
-            "sideways": "mean_reversion",
-            "high_volatility_regime": "volatility_harvesting",
-            "flash_crash": "volatility_harvesting",
-        }
-        return mapping.get(regime, "neutral")
+        """Suggest strategy class for detected regime."""
+        if regime == "bull_trend":
+            return "momentum_following"
+        if regime == "bear_trend":
+            return "short_strategies"
+        if regime == "sideways":
+            return "mean_reversion"
+        if regime in ["high_volatility_regime", "flash_crash"]:
+            return "volatility_harvesting"
+        return "neutral"

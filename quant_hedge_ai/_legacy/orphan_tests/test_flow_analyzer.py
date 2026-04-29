@@ -2,10 +2,12 @@
 
 import pytest
 
-from quant_hedge_ai.liquidity_map.flow_analyzer import (FlowReport,
-                                                        LiquidityFlowMap,
-                                                        SectorFlow,
-                                                        _classify_sector)
+from quant_hedge_ai.liquidity_map.flow_analyzer import (
+    FlowReport,
+    LiquidityFlowMap,
+    SectorFlow,
+    _classify_sector,
+)
 
 # --- Fixtures ---
 
