@@ -116,8 +116,9 @@ if not candles:
     st.stop()
 
 # ── Tabs ──────────────────────────────────────────────────────────────────────
-tab_market, tab_backtest, tab_paper, tab_risk, tab_notif = st.tabs(
+tab_bot, tab_market, tab_backtest, tab_paper, tab_risk, tab_notif = st.tabs(
     [
+        "🤖 Bot Live",
         "📊 Marché Live",
         "🏆 Backtesting",
         "📋 Paper Trading",
@@ -125,6 +126,118 @@ tab_market, tab_backtest, tab_paper, tab_risk, tab_notif = st.tabs(
         "🔔 Notifications",
     ]
 )
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# TAB 0 — BOT LIVE (lit databases/live_snapshot.json)
+# ═══════════════════════════════════════════════════════════════════════════════
+with tab_bot:
+    import datetime as _dt
+    import json as _snap_json
+    from pathlib import Path as _Path
+
+    _SNAP_PATH = _Path("databases/live_snapshot.json")
+
+    @st.cache_data(ttl=2, show_spinner=False)
+    def _load_snap() -> dict | None:
+        try:
+            return _snap_json.loads(_SNAP_PATH.read_text(encoding="utf-8"))
+        except Exception:
+            return None
+
+    snap = _load_snap()
+
+    if snap is None:
+        st.warning(
+            "Aucun snapshot disponible. Lance d'abord `advisor_loop.py` pour générer `databases/live_snapshot.json`."
+        )
+    else:
+        ts = snap.get("ts", 0)
+        age_s = time.time() - ts
+        age_label = f"{age_s:.0f}s" if age_s < 120 else f"{age_s/60:.1f}min"
+        ts_str = _dt.datetime.fromtimestamp(ts).strftime("%H:%M:%S")
+
+        # ── En-tête ──────────────────────────────────────────────────────────
+        col_h1, col_h2, col_h3, col_h4 = st.columns(4)
+        col_h1.metric("Cycle", f"#{snap.get('cycle', '?')}")
+        col_h2.metric("Capital", f"${snap.get('capital', 0):,.0f} USDT")
+        safe = snap.get("safe_mode", False)
+        col_h3.metric("Mode", "SAFE" if safe else "TRADING", delta=None)
+        ex = snap.get("exchange", {})
+        ex_ok = ex.get("healthy", True)
+        col_h4.metric(
+            "Exchange",
+            "OK" if ex_ok else "HORS LIGNE",
+            f"{ex.get('last_latency_ms', 0):.0f}ms",
+            delta_color="normal" if ex_ok else "inverse",
+        )
+        st.caption(
+            f"Snapshot à {ts_str} — il y a {age_label} | uptime exchange {ex.get('uptime_pct', 100):.1f}%"
+        )
+
+        st.divider()
+
+        # ── Tableau par symbole ───────────────────────────────────────────────
+        st.markdown("### Signaux par symbole")
+        syms = snap.get("symbols", [])
+        if syms:
+            rows = []
+            for s in syms:
+                sig = s.get("signal", "?")
+                allowed = s.get("trade_allowed") or s.get("gate_allowed", False)
+                rows.append(
+                    {
+                        "Symbole": s.get("symbol", "?"),
+                        "Prix": f"${s.get('prix', 0):,.2f}",
+                        "Signal": sig,
+                        "Score": f"{s.get('score', 0):.0f}",
+                        "Régime": s.get("regime", "?"),
+                        "Confirmé": "✓" if s.get("confirmed") else "✗",
+                        "Gate": "OK" if allowed else "BLOQUÉ",
+                        "Conviction": (
+                            f"{s.get('conviction_score', 0) or 0:.0f}"
+                            if s.get("conviction_score") is not None
+                            else "—"
+                        ),
+                        "Personnalité": s.get("personality") or "—",
+                        "Exécution": (
+                            str(s.get("futures_result", {}) or {}).get("mode", "—")
+                            if isinstance(s.get("futures_result"), dict)
+                            else "—"
+                        ),
+                    }
+                )
+            df_syms = pd.DataFrame(rows)
+
+            def _color_signal(v):
+                if v == "BUY":
+                    return "color: #00e676"
+                if v == "SELL":
+                    return "color: #ff5252"
+                return "color: #ffb300"
+
+            def _color_gate(v):
+                return "color: #00e676" if v == "OK" else "color: #ff5252"
+
+            styled = df_syms.style.map(_color_signal, subset=["Signal"]).map(
+                _color_gate, subset=["Gate"]
+            )
+            st.dataframe(styled, use_container_width=True, hide_index=True)
+        else:
+            st.info("Aucun symbole dans le snapshot.")
+
+        # ── Positions ouvertes ────────────────────────────────────────────────
+        positions = snap.get("positions", [])
+        if positions:
+            st.divider()
+            st.markdown("### Positions ouvertes")
+            df_pos = pd.DataFrame(positions)
+            st.dataframe(df_pos, use_container_width=True, hide_index=True)
+
+    # Auto-refresh
+    if auto_refresh:
+        time.sleep(2)
+        st.cache_data.clear()
+        st.rerun()
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # TAB 1 — MARCHÉ LIVE
@@ -329,7 +442,9 @@ with tab_paper:
     st.markdown("## 📋 Paper Trading — Compte virtuel")
 
     from quant_hedge_ai.agents.execution.paper_trading_engine import (
-        _STATE_FILE, PaperTradingEngine)
+        _STATE_FILE,
+        PaperTradingEngine,
+    )
     from quant_hedge_ai.agents.execution.signal_engine import compute_signal
 
     # Charger l'état persisté (pas de nouvelles requêtes réseau)
@@ -353,10 +468,12 @@ with tab_paper:
     # Signal multi-timeframe depuis la meilleure stratégie backtestée
     import json as _json
 
-    from quant_hedge_ai.agents.execution.multi_timeframe_signal import \
-        MultiTimeframeSignal as _MTFSig
-    from quant_hedge_ai.agents.market.multi_timeframe_scanner import \
-        MultiTimeframeScanner as _MTFScanner
+    from quant_hedge_ai.agents.execution.multi_timeframe_signal import (
+        MultiTimeframeSignal as _MTFSig,
+    )
+    from quant_hedge_ai.agents.market.multi_timeframe_scanner import (
+        MultiTimeframeScanner as _MTFScanner,
+    )
 
     candles_json = _json.dumps(candles)
     with st.spinner("Calcul backtests + MTF…"):

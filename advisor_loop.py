@@ -16,11 +16,11 @@ Usage:
 from __future__ import annotations
 
 import argparse
-from concurrent.futures import ThreadPoolExecutor
 import logging
 import os
 import sys
 import time
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any, cast
 
 from advisor_runtime_adapters import AdvisorRuntime, load_advisor_runtime
@@ -62,6 +62,7 @@ def _get_regret_counts(regret_engine: Any) -> tuple[int, int]:
     candidates = cast(list[Any], getattr(regret_engine, "_candidates", []))
     return len(records), len(candidates)
 
+
 load_dotenv()
 
 logging.basicConfig(
@@ -79,33 +80,45 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
 log = logging.getLogger("advisor_loop")
 
 SYMBOLS_DEFAULT = ["BTC/USDT", "ETH/USDT", "SOL/USDT"]
-TELEGRAM_TOKEN  = os.getenv("TELEGRAM_BOT_TOKEN", "")
-TELEGRAM_CHAT   = os.getenv("TELEGRAM_CHAT_ID", "")
-NOTIFY_EVERY    = int(os.getenv("ADVISOR_NOTIFY_EVERY", "3"))
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
+TELEGRAM_CHAT = os.getenv("TELEGRAM_CHAT_ID", "")
+NOTIFY_EVERY = int(os.getenv("ADVISOR_NOTIFY_EVERY", "3"))
 MTF_REFRESH_EVERY = int(os.getenv("ADVISOR_MTF_REFRESH_EVERY", "12"))
 ADVISOR_1H_LIMIT = int(os.getenv("ADVISOR_1H_LIMIT", "96"))
-ADVISOR_PREWARM_1H = os.getenv(
-    "ADVISOR_PREWARM_1H",
-    os.getenv("ADVISOR_WARMUP", "true"),
-).lower() == "true"
+ADVISOR_PREWARM_1H = (
+    os.getenv(
+        "ADVISOR_PREWARM_1H",
+        os.getenv("ADVISOR_WARMUP", "true"),
+    ).lower()
+    == "true"
+)
 # Prewarm MTF optionnel (4h + 1d) en parallèle du bootstrap.
 # Ne s'active que si ADVISOR_PREWARM_1H est aussi actif (même executor).
 # Désactivé par défaut — activer avec ADVISOR_PREWARM_MTF=true.
 ADVISOR_PREWARM_MTF = (
-    os.getenv("ADVISOR_PREWARM_MTF", "false").lower() == "true"
-    and ADVISOR_PREWARM_1H
+    os.getenv("ADVISOR_PREWARM_MTF", "false").lower() == "true" and ADVISOR_PREWARM_1H
 )
-ADVISOR_LIVE_EXECUTION_BOOTSTRAP = os.getenv("ADVISOR_LIVE_EXECUTION_BOOTSTRAP", "false").lower() == "true"
-ADVISOR_BACKGROUND_POSITION_WATCH = os.getenv("ADVISOR_BACKGROUND_POSITION_WATCH", "false").lower() == "true"
-ADVISOR_DEFER_OPTIONAL_INTEL = os.getenv("ADVISOR_DEFER_OPTIONAL_INTEL", "true").lower() == "true"
-ADVISOR_DEFER_POST_CYCLE_SERVICES = os.getenv("ADVISOR_DEFER_POST_CYCLE_SERVICES", "true").lower() == "true"
+ADVISOR_LIVE_EXECUTION_BOOTSTRAP = (
+    os.getenv("ADVISOR_LIVE_EXECUTION_BOOTSTRAP", "false").lower() == "true"
+)
+ADVISOR_BACKGROUND_POSITION_WATCH = (
+    os.getenv("ADVISOR_BACKGROUND_POSITION_WATCH", "false").lower() == "true"
+)
+ADVISOR_DEFER_OPTIONAL_INTEL = (
+    os.getenv("ADVISOR_DEFER_OPTIONAL_INTEL", "true").lower() == "true"
+)
+ADVISOR_DEFER_POST_CYCLE_SERVICES = (
+    os.getenv("ADVISOR_DEFER_POST_CYCLE_SERVICES", "true").lower() == "true"
+)
 ADVISOR_STARTUP_LIGHT = os.getenv("ADVISOR_STARTUP_LIGHT", "false").lower() == "true"
 ADVISOR_THREAT_RADAR_EVERY = max(1, int(os.getenv("ADVISOR_THREAT_RADAR_EVERY", "1")))
 ADVISOR_CYCLE_BUDGET_SECONDS = float(os.getenv("ADVISOR_CYCLE_BUDGET_SECONDS", "0"))
 ADVISOR_LOAD_SHED_CYCLES = max(1, int(os.getenv("ADVISOR_LOAD_SHED_CYCLES", "1")))
 # Warmup persistant : thread daemon qui maintient le cache OHLCV chaud entre les cycles.
 # Active avec ADVISOR_PERSISTENT_WARMUP=true ; ne remplace pas ADVISOR_PREWARM_1H.
-ADVISOR_PERSISTENT_WARMUP = os.getenv("ADVISOR_PERSISTENT_WARMUP", "false").lower() == "true"
+ADVISOR_PERSISTENT_WARMUP = (
+    os.getenv("ADVISOR_PERSISTENT_WARMUP", "false").lower() == "true"
+)
 # Session primer — pre-create the CCXT exchange and call load_markets() in a daemon thread
 # launched BEFORE scanner creation so exchange_init + load_markets overlap the full bootstrap.
 # Prewarm threads then skip directly to fetch_ohlcv(), saving up to ~650ms from cycle 1.
@@ -119,7 +132,8 @@ def _session_primer_config() -> JSONDict:
             "defaultType": "spot",
             "adjustForTimeDifference": os.getenv(
                 "MARKET_SCANNER_ADJUST_TIME", "false"
-            ).lower() == "true",
+            ).lower()
+            == "true",
             "connectionPoolSize": int(os.getenv("MARKET_SCANNER_POOL_SIZE", "8")),
         },
     }
@@ -138,6 +152,7 @@ def _prime_exchange_session(
     bootstrap sequence.  Returns elapsed seconds for the timing report.
     """
     import threading as _threading
+
     t0 = time.perf_counter()
     key = (exchange_id, testnet)
     try:
@@ -165,19 +180,21 @@ def _prime_exchange_session(
 
         if injected:
             exchange_call_lock = scanner_cls._get_exchange_call_lock(key)
-            markets_ready      = scanner_cls._get_exchange_markets_ready(key)
+            markets_ready = scanner_cls._get_exchange_markets_ready(key)
             if not markets_ready.is_set():
                 with exchange_call_lock:
                     if not markets_ready.is_set():
                         exchange.load_markets()
                         markets_ready.set()
 
-        elapsed   = time.perf_counter() - t0
-        t_lm_ms   = elapsed * 1000 - t_init_ms
+        elapsed = time.perf_counter() - t0
+        t_lm_ms = elapsed * 1000 - t_init_ms
         if trace:
             log.info(
                 "[SessionPrimer] exchange_init=%.0fms load_markets=%.0fms total=%.0fms",
-                t_init_ms, t_lm_ms, elapsed * 1000,
+                t_init_ms,
+                t_lm_ms,
+                elapsed * 1000,
             )
         return elapsed
     except Exception as exc:
@@ -186,6 +203,7 @@ def _prime_exchange_session(
 
 
 # ── Telegram ──────────────────────────────────────────────────────────────────
+
 
 def _telegram(text: str) -> None:
     if not TELEGRAM_TOKEN or not TELEGRAM_CHAT:
@@ -203,6 +221,7 @@ def _telegram(text: str) -> None:
 
 
 # ── Analyse d'un symbole ──────────────────────────────────────────────────────
+
 
 def analyze_symbol(
     symbol: str,
@@ -259,15 +278,15 @@ def analyze_symbol(
         candles_1h: Candles = cast(
             Candles,
             (
-            market.get("history", {}).get(symbol)
-            or market.get("candles", {}).get(symbol)
-            or []
+                market.get("history", {}).get(symbol)
+                or market.get("candles", {}).get(symbol)
+                or []
             ),
         )
 
     # Scan MTF (4h + 1d)
     with watchdog.measure(f"scan_mtf_{symbol}"):
-        mtf_data    = scanners["mtf"][symbol].scan(cycle=cycle)
+        mtf_data = scanners["mtf"][symbol].scan(cycle=cycle)
         mtf_scanner_cls = MultiTimeframeScanner
         mtf_candles: MTFCandles = cast(
             MTFCandles,
@@ -300,19 +319,23 @@ def analyze_symbol(
 
         # Enrichissement V2 : features microstructure + on-chain
         if market_snapshot:
-            features.update({
-                "ob_imbalance":       market_snapshot.order_book_imbalance,
-                "funding_rate":       market_snapshot.funding_rate,
-                "funding_velocity":   market_snapshot.funding_velocity,
-                "liquidation_risk":   market_snapshot.liquidation_risk_score,
-                "whale_score":        market_snapshot.whale_accumulation_score,
-            })
+            features.update(
+                {
+                    "ob_imbalance": market_snapshot.order_book_imbalance,
+                    "funding_rate": market_snapshot.funding_rate,
+                    "funding_velocity": market_snapshot.funding_velocity,
+                    "liquidation_risk": market_snapshot.liquidation_risk_score,
+                    "whale_score": market_snapshot.whale_accumulation_score,
+                }
+            )
         if micro_report:
-            features.update({
-                "micro_pressure":     micro_report.directional_pressure,
-                "micro_spread_bps":   micro_report.spread_bps,
-                "execution_risk":     micro_report.execution_risk,
-            })
+            features.update(
+                {
+                    "micro_pressure": micro_report.directional_pressure,
+                    "micro_spread_bps": micro_report.spread_bps,
+                    "execution_risk": micro_report.execution_risk,
+                }
+            )
 
         try:
             regime_detector = AdvancedRegimeDetector()
@@ -341,7 +364,9 @@ def analyze_symbol(
         transition_forecast = None
         if v2_regime_predictor and regime_probs:
             try:
-                transition_forecast = v2_regime_predictor.forecast(symbol, regime_probs, features)
+                transition_forecast = v2_regime_predictor.forecast(
+                    symbol, regime_probs, features
+                )
                 if transition_forecast.crash_risk:
                     log.warning("[V2/RegimePredictor] %s — CRASH RISK détecté", symbol)
             except Exception as _exc_v2:
@@ -351,11 +376,17 @@ def analyze_symbol(
     ml_decision = None
     if meta_learner:
         volatility = float(features.get("atr_ratio", features.get("volatility", 0.015)))
-        ml_decision = meta_learner.find_best({"regime": regime, "volatility": volatility})
+        ml_decision = meta_learner.find_best(
+            {"regime": regime, "volatility": volatility}
+        )
         if ml_decision:
-            log.debug("[MetaLearner] %s → exit=%s tp=%s sl=%s",
-                      regime, ml_decision.get("exit_type"),
-                      ml_decision.get("tp"), ml_decision.get("sl"))
+            log.debug(
+                "[MetaLearner] %s → exit=%s tp=%s sl=%s",
+                regime,
+                ml_decision.get("exit_type"),
+                ml_decision.get("tp"),
+                ml_decision.get("sl"),
+            )
 
     # Threat Radar — feed candles + check environnement
     radar_report = None
@@ -398,14 +429,20 @@ def analyze_symbol(
 
     # Signal
     with watchdog.measure("signal"):
-        signal = engine.evaluate(symbol, mtf_candles, features=features,
-                                 memory_sharpe=memory_sharpe)
-    log.info("[FLOW] %s SIGNAL → %s score=%d actionable=%s",
-             symbol, signal.signal, signal.score, signal.actionable)
+        signal = engine.evaluate(
+            symbol, mtf_candles, features=features, memory_sharpe=memory_sharpe
+        )
+    log.info(
+        "[FLOW] %s SIGNAL → %s score=%d actionable=%s",
+        symbol,
+        signal.signal,
+        signal.score,
+        signal.actionable,
+    )
 
     # ── Validation Meta-Strategy ───────────────────────────────────────────────
     meta_allowed = True
-    meta_reason  = "OK"
+    meta_reason = "OK"
     if meta_engine and personality:
         meta_allowed, meta_reason = meta_engine.validate_signal(
             signal.signal, signal.score, signal.confirmed, personality
@@ -413,7 +450,9 @@ def analyze_symbol(
 
     # Risk gate
     with watchdog.measure("risk"):
-        gate_result = gate.check(signal, portfolio_drawdown=0.0, order_size_usd=order_size_usd)
+        gate_result = gate.check(
+            signal, portfolio_drawdown=0.0, order_size_usd=order_size_usd
+        )
 
     # ── TEST MODE — réduire seuil de score pour forcer des trades faibles ──
     min_score_override = float(os.getenv("GATE_MIN_SCORE_OVERRIDE", "0"))
@@ -424,13 +463,23 @@ def analyze_symbol(
         # Force BUY signal pour tester (pas HOLD)
         if signal.signal == "HOLD":
             signal_to_execute = "BUY"
-            log.info("[GATE_OVERRIDE] Score %.0f >= override %.0f → force BUY (was HOLD)",
-                     signal.score, min_score_override)
+            log.info(
+                "[GATE_OVERRIDE] Score %.0f >= override %.0f → force BUY (was HOLD)",
+                signal.score,
+                min_score_override,
+            )
         else:
             signal_to_execute = signal.signal
 
-    log.info("[FLOW] %s GATE → %s",
-             symbol, "OK" if gate_result.allowed else f"BLOQUÉ({getattr(gate_result, 'reason', '?')})")
+    log.info(
+        "[FLOW] %s GATE → %s",
+        symbol,
+        (
+            "OK"
+            if gate_result.allowed
+            else f"BLOQUÉ({getattr(gate_result, 'reason', '?')})"
+        ),
+    )
 
     # Advisor
     with watchdog.measure("advisor"):
@@ -446,25 +495,38 @@ def analyze_symbol(
     if awareness_engine:
         awareness_state = awareness_engine.evaluate()
         if not awareness_engine.is_safe_to_trade():
-            log.warning("[SelfAwareness] Trading bloqué — niveau: %s", awareness_state.level.name)
+            log.warning(
+                "[SelfAwareness] Trading bloqué — niveau: %s",
+                awareness_state.level.name,
+            )
 
     # ── Conviction Engine ─────────────────────────────────────────────────────
     conviction = None
     if conviction_engine:
         with watchdog.measure("conviction"):
             conviction = conviction_engine.evaluate(
-                signal, features, candles_1h, regime, memory_sharpe,
+                signal,
+                features,
+                candles_1h,
+                regime,
+                memory_sharpe,
                 personality_name=personality.name if personality else "unknown",
             )
             if conviction.blocks_trade():
-                log.info("[Conviction] Trade bloqué — conviction minimale (score=%.0f)", conviction.score)
+                log.info(
+                    "[Conviction] Trade bloqué — conviction minimale (score=%.0f)",
+                    conviction.score,
+                )
 
     # ── No-Trade Intelligence check ───────────────────────────────────────────
     no_trade_verdict = None
     if no_trade_layer and signal.actionable:
         with watchdog.measure("no_trade"):
             no_trade_verdict = no_trade_layer.check(
-                signal, candles_1h, features, regime,
+                signal,
+                candles_1h,
+                features,
+                regime,
                 personality_name=personality.name if personality else "unknown",
             )
 
@@ -473,14 +535,14 @@ def analyze_symbol(
     if mistake_memory and signal.actionable:
         with watchdog.measure("mistake_memory"):
             mm_check = mistake_memory.check_before_trade(
-                symbol             = symbol,
-                signal             = signal.signal,
-                score              = signal.score,
-                regime             = regime,
-                features           = features,
-                consecutive_losses = consecutive_losses,
-                conviction_level   = conviction.level.value if conviction else "medium",
-                signal_age_sec     = time.time() - signal.timestamp,
+                symbol=symbol,
+                signal=signal.signal,
+                score=signal.score,
+                regime=regime,
+                features=features,
+                consecutive_losses=consecutive_losses,
+                conviction_level=conviction.level.value if conviction else "medium",
+                signal_age_sec=time.time() - signal.timestamp,
             )
             if mm_check.blocked:
                 log.info("[MistakeMemory] Trade bloqué: %s", mm_check.reason)
@@ -490,47 +552,65 @@ def analyze_symbol(
     if portfolio_brain and signal.actionable:
         with watchdog.measure("portfolio_brain"):
             pb_verdict = portfolio_brain.check_new_trade(
-                symbol          = symbol,
-                action          = signal.signal,
-                size_usd        = order_size_usd,
-                regime          = regime,
-                open_positions  = open_positions_list,
-                leverage        = 1,
-                conviction_score = conviction.score if conviction else 50.0,
+                symbol=symbol,
+                action=signal.signal,
+                size_usd=order_size_usd,
+                regime=regime,
+                open_positions=open_positions_list,
+                leverage=1,
+                conviction_score=conviction.score if conviction else 50.0,
             )
             if not pb_verdict.allowed:
                 log.info("[PortfolioBrain] Bloqué: %s", pb_verdict.reason)
             elif pb_verdict.size_factor < 1.0:
                 order_size_usd = order_size_usd * pb_verdict.size_factor
-                log.debug("[PortfolioBrain] Taille réduite ×%.2f → $%.2f", pb_verdict.size_factor, order_size_usd)
+                log.debug(
+                    "[PortfolioBrain] Taille réduite ×%.2f → $%.2f",
+                    pb_verdict.size_factor,
+                    order_size_usd,
+                )
 
     # ── Capital Allocation Engine — taille optimale Kelly/EV/vol ─────────────
     allocation = None
-    if capital_engine and signal.actionable and (pb_verdict is None or pb_verdict.allowed):
+    if (
+        capital_engine
+        and signal.actionable
+        and (pb_verdict is None or pb_verdict.allowed)
+    ):
         with watchdog.measure("capital_engine"):
             # Récupère les stats depuis le ranker si disponible
             cae_stats: JSONDict = {}
             if ranker:
-                strategy_key = "btc_momentum" if "BTC" in symbol else (
-                    "eth_volatility" if "ETH" in symbol else "sol_experimental"
+                strategy_key = (
+                    "btc_momentum"
+                    if "BTC" in symbol
+                    else ("eth_volatility" if "ETH" in symbol else "sol_experimental")
                 )
-                cae_stats = capital_engine.stats_from_ranker(ranker, strategy_key, regime)
-            volatility = float(features.get("atr_ratio", features.get("volatility", 0.015)))
+                cae_stats = capital_engine.stats_from_ranker(
+                    ranker, strategy_key, regime
+                )
+            volatility = float(
+                features.get("atr_ratio", features.get("volatility", 0.015))
+            )
             allocation = capital_engine.allocate(
-                base_size_usd    = order_size_usd,
-                win_rate         = cae_stats.get("win_rate",         0.50),
-                avg_win_pct      = cae_stats.get("avg_win_pct",      0.03),
-                avg_loss_pct     = cae_stats.get("avg_loss_pct",     0.02),
-                volatility       = volatility,
-                conviction_factor = conviction.size_factor if conviction else 1.0,
-                regime           = regime,
-                leverage         = 1,
-                n_trades_history = cae_stats.get("n_trades_history", 0),
+                base_size_usd=order_size_usd,
+                win_rate=cae_stats.get("win_rate", 0.50),
+                avg_win_pct=cae_stats.get("avg_win_pct", 0.03),
+                avg_loss_pct=cae_stats.get("avg_loss_pct", 0.02),
+                volatility=volatility,
+                conviction_factor=conviction.size_factor if conviction else 1.0,
+                regime=regime,
+                leverage=1,
+                n_trades_history=cae_stats.get("n_trades_history", 0),
             )
             if allocation.size_usd > 0:
                 order_size_usd = allocation.size_usd
-                log.debug("[CAE] Taille allouée: $%.2f | kelly=%.4f ev=%.5f",
-                          allocation.size_usd, allocation.kelly_fraction, allocation.ev_score)
+                log.debug(
+                    "[CAE] Taille allouée: $%.2f | kelly=%.4f ev=%.5f",
+                    allocation.size_usd,
+                    allocation.kelly_fraction,
+                    allocation.ev_score,
+                )
             else:
                 log.info("[CAE] Allocation refusée: %s", allocation.reason)
 
@@ -538,35 +618,75 @@ def analyze_symbol(
     eo_verdict = None
     if executive_override and signal.actionable:
         eo_verdict = executive_override.check_trade(
-            size_usd         = order_size_usd,
-            conviction_score = conviction.score if conviction else 50.0,
+            size_usd=order_size_usd,
+            conviction_score=conviction.score if conviction else 50.0,
         )
         if not eo_verdict.allowed:
             log.warning("[ExecutiveOverride] VETO: %s", eo_verdict.reason)
         elif eo_verdict.size_factor < 1.0:
             order_size_usd = order_size_usd * eo_verdict.size_factor
-            log.info("[ExecutiveOverride] %s — taille x%.0f%%",
-                     eo_verdict.level.name, eo_verdict.size_factor * 100)
+            log.info(
+                "[ExecutiveOverride] %s — taille x%.0f%%",
+                eo_verdict.level.name,
+                eo_verdict.size_factor * 100,
+            )
 
     # ── V2 : Decision Arbitrator — consensus pondéré multi-agents ────────────
     arbitration_result = None
     if v2_arbitrator and signal.actionable:
         try:
-            from quant_hedge_ai.agents.intelligence.v2.decision_arbitrator import AgentVote
+            from quant_hedge_ai.agents.intelligence.v2.decision_arbitrator import (
+                AgentVote,
+            )
+
             arb_votes = [
-                AgentVote("global_risk_gate",  1.0 if gate_result.allowed else -1.0, veto=not gate_result.allowed),
-                AgentVote("conviction_engine", ((conviction.score / 100.0) * 2 - 1) if conviction else 0.0),
-                AgentVote("no_trade_layer",    0.0 if no_trade_verdict is None else (1.0 if bool(no_trade_verdict) else -0.6)),
-                AgentVote("portfolio_brain",   0.0 if pb_verdict is None else (1.0 if bool(pb_verdict) else -0.8)),
-                AgentVote("meta_strategy",     0.8 if meta_allowed else -0.5),
-                AgentVote("mistake_memory",    0.0 if mm_check is None else (0.5 if bool(mm_check) else -0.7)),
-                AgentVote("executive_override", 0.0 if eo_verdict is None else (1.0 if bool(eo_verdict) else -1.0),
-                          veto=(eo_verdict is not None and not bool(eo_verdict))),
-                AgentVote("threat_radar",      0.0 if radar_report is None else (0.5 if radar_report.trade_allowed else -0.8)),
+                AgentVote(
+                    "global_risk_gate",
+                    1.0 if gate_result.allowed else -1.0,
+                    veto=not gate_result.allowed,
+                ),
+                AgentVote(
+                    "conviction_engine",
+                    ((conviction.score / 100.0) * 2 - 1) if conviction else 0.0,
+                ),
+                AgentVote(
+                    "no_trade_layer",
+                    (
+                        0.0
+                        if no_trade_verdict is None
+                        else (1.0 if bool(no_trade_verdict) else -0.6)
+                    ),
+                ),
+                AgentVote(
+                    "portfolio_brain",
+                    0.0 if pb_verdict is None else (1.0 if bool(pb_verdict) else -0.8),
+                ),
+                AgentVote("meta_strategy", 0.8 if meta_allowed else -0.5),
+                AgentVote(
+                    "mistake_memory",
+                    0.0 if mm_check is None else (0.5 if bool(mm_check) else -0.7),
+                ),
+                AgentVote(
+                    "executive_override",
+                    0.0 if eo_verdict is None else (1.0 if bool(eo_verdict) else -1.0),
+                    veto=(eo_verdict is not None and not bool(eo_verdict)),
+                ),
+                AgentVote(
+                    "threat_radar",
+                    (
+                        0.0
+                        if radar_report is None
+                        else (0.5 if radar_report.trade_allowed else -0.8)
+                    ),
+                ),
             ]
             # Enrichir avec signaux V2
             if micro_report:
-                side_pressure = micro_report.directional_pressure if signal.signal == "long" else -micro_report.directional_pressure
+                side_pressure = (
+                    micro_report.directional_pressure
+                    if signal.signal == "long"
+                    else -micro_report.directional_pressure
+                )
                 arb_votes.append(AgentVote("microstructure", side_pressure * 0.7))
             if regime_probs:
                 if signal.signal == "long":
@@ -584,31 +704,44 @@ def analyze_symbol(
 
     # ── V2 : Timing Engine — attendre le bon moment d'exécution ──────────────
     timing_signal = None
-    if v2_timing_engine and signal.actionable and (arbitration_result is None or arbitration_result.size_multiplier > 0):
+    if (
+        v2_timing_engine
+        and signal.actionable
+        and (arbitration_result is None or arbitration_result.size_multiplier > 0)
+    ):
         try:
             spread = micro_report.spread_bps if micro_report else 5.0
             imbalance = micro_report.imbalance if micro_report else 0.0
             atr = float(features.get("atr_pct", 0.01))
             urgency = float(signal.score) / 100.0 if hasattr(signal, "score") else 0.5
-            timing_signal = v2_timing_engine.evaluate(symbol, signal.signal, spread, imbalance, atr, urgency)
+            timing_signal = v2_timing_engine.evaluate(
+                symbol, signal.signal, spread, imbalance, atr, urgency
+            )
             if not timing_signal.execute_now:
                 log.debug("[V2/Timing] %s — attendre: %s", symbol, timing_signal.reason)
         except Exception as _exc_v2:
             log.debug("[V2/Timing] skip: %s", _exc_v2)
 
     # Décision finale d'autorisation
-    _awareness_ok  = awareness_engine is None or awareness_engine.is_safe_to_trade()
+    _awareness_ok = awareness_engine is None or awareness_engine.is_safe_to_trade()
     _conviction_ok = conviction is None or not conviction.blocks_trade()
-    _notrade_ok    = no_trade_verdict is None or bool(no_trade_verdict)
-    _pb_ok         = pb_verdict is None or bool(pb_verdict)
-    _cae_ok        = allocation is None or bool(allocation)
-    _mm_ok         = mm_check is None or bool(mm_check)
-    _eo_ok         = eo_verdict is None or bool(eo_verdict)
-    _radar_ok      = radar_report is None or radar_report.trade_allowed
+    _notrade_ok = no_trade_verdict is None or bool(no_trade_verdict)
+    _pb_ok = pb_verdict is None or bool(pb_verdict)
+    _cae_ok = allocation is None or bool(allocation)
+    _mm_ok = mm_check is None or bool(mm_check)
+    _eo_ok = eo_verdict is None or bool(eo_verdict)
+    _radar_ok = radar_report is None or radar_report.trade_allowed
 
     # ── FORCE_TEST_EXECUTION — bypass all checks except gate/signal ──
     force_test_execution = os.getenv("FORCE_TEST_EXECUTION", "false").lower() == "true"
-    if force_test_execution and gate_result.allowed and signal.score >= min_score_override:
+    if (
+        force_test_execution
+        and gate_result.allowed
+        and signal.score >= min_score_override
+    ):
+        meta_allowed = (
+            True  # bypass meta-strategy (sinon MEAN_REVERSION exige score>=72)
+        )
         _awareness_ok = True
         _conviction_ok = True
         _notrade_ok = True
@@ -617,60 +750,106 @@ def analyze_symbol(
         _mm_ok = True
         _eo_ok = True
         _radar_ok = True
-        log.info("[FORCE_TEST_EXECUTION] Bypass all layers — signal only")
+        # Restaure la taille d'ordre si elle a ete reduite a 0 par
+        # meta_strategy (TRADING BLOQUE) ou conviction (size_factor=0).
+        # Sinon les logs affichent $0.00 et l'execution_engine fallback
+        # sur min_notional Binance (~5$) au lieu d'EXEC_MAX_ORDER_USD.
+        if order_size_usd <= 0:
+            order_size_usd = float(os.getenv("EXEC_MAX_ORDER_USD", "50"))
+        log.info(
+            "[FORCE_TEST_EXECUTION] Bypass all layers — signal only (size=$%.2f)",
+            order_size_usd,
+        )
 
     # V2 arbitration : si disponible, son verdict remplace la logique dispersée
     if arbitration_result is not None:
-        from quant_hedge_ai.agents.intelligence.v2.decision_arbitrator import ArbitrationDecision
-        _arb_ok = arbitration_result.decision not in (ArbitrationDecision.REJECT, ArbitrationDecision.EMERGENCY_EXIT)
+        from quant_hedge_ai.agents.intelligence.v2.decision_arbitrator import (
+            ArbitrationDecision,
+        )
+
+        _arb_ok = arbitration_result.decision not in (
+            ArbitrationDecision.REJECT,
+            ArbitrationDecision.EMERGENCY_EXIT,
+        )
         if arbitration_result.size_multiplier > 0 and _arb_ok:
             order_size_usd = order_size_usd * arbitration_result.size_multiplier
     else:
         _arb_ok = True
-    trade_allowed = (meta_allowed and gate_result.allowed and _awareness_ok and _conviction_ok
-                     and _notrade_ok and _pb_ok and _cae_ok and _mm_ok and _eo_ok and _radar_ok and _arb_ok)
+    trade_allowed = (
+        meta_allowed
+        and gate_result.allowed
+        and _awareness_ok
+        and _conviction_ok
+        and _notrade_ok
+        and _pb_ok
+        and _cae_ok
+        and _mm_ok
+        and _eo_ok
+        and _radar_ok
+        and _arb_ok
+    )
     if signal.actionable:
-        _flow_blockers = ", ".join(filter(None, [
-            "meta" if not meta_allowed else "",
-            "gate" if not gate_result.allowed else "",
-            "awareness" if not _awareness_ok else "",
-            "conviction" if not _conviction_ok else "",
-            "no_trade" if not _notrade_ok else "",
-            "portfolio" if not _pb_ok else "",
-            "cae" if not _cae_ok else "",
-            "mistake_mem" if not _mm_ok else "",
-            "exec_override" if not _eo_ok else "",
-            "radar" if not _radar_ok else "",
-            "arbitrator" if not _arb_ok else "",
-        ]))
-        _alloc_str = f" alloc=${allocation.size_usd:.0f}" if allocation and allocation.size_usd > 0 else ""
-        log.info("[FLOW] %s VERDICT → %s%s%s",
-                 symbol,
-                 "TRADE_OK" if trade_allowed else "BLOQUÉ",
-                 _alloc_str,
-                 f" [{_flow_blockers}]" if _flow_blockers else "")
+        _flow_blockers = ", ".join(
+            filter(
+                None,
+                [
+                    "meta" if not meta_allowed else "",
+                    "gate" if not gate_result.allowed else "",
+                    "awareness" if not _awareness_ok else "",
+                    "conviction" if not _conviction_ok else "",
+                    "no_trade" if not _notrade_ok else "",
+                    "portfolio" if not _pb_ok else "",
+                    "cae" if not _cae_ok else "",
+                    "mistake_mem" if not _mm_ok else "",
+                    "exec_override" if not _eo_ok else "",
+                    "radar" if not _radar_ok else "",
+                    "arbitrator" if not _arb_ok else "",
+                ],
+            )
+        )
+        _alloc_str = (
+            f" alloc=${allocation.size_usd:.0f}"
+            if allocation and allocation.size_usd > 0
+            else ""
+        )
+        log.info(
+            "[FLOW] %s VERDICT → %s%s%s",
+            symbol,
+            "TRADE_OK" if trade_allowed else "BLOQUÉ",
+            _alloc_str,
+            f" [{_flow_blockers}]" if _flow_blockers else "",
+        )
 
     # ── Regret Engine — enregistre les refus potentiellement rentables ─────────
     if regret_engine and signal.actionable and not trade_allowed:
         refused_by_list: list[str] = []
-        if not _eo_ok:          refused_by_list.append("executive_override")
-        if not _mm_ok:          refused_by_list.append("mistake_memory")
-        if not _pb_ok:          refused_by_list.append("portfolio_brain")
-        if not _conviction_ok:  refused_by_list.append("conviction")
-        if not _notrade_ok:     refused_by_list.append("no_trade")
-        if not _awareness_ok:   refused_by_list.append("awareness")
-        if not meta_allowed:    refused_by_list.append("meta_strategy")
-        if not gate_result.allowed: refused_by_list.append("gate")
-        if not _radar_ok:           refused_by_list.append("threat_radar")
+        if not _eo_ok:
+            refused_by_list.append("executive_override")
+        if not _mm_ok:
+            refused_by_list.append("mistake_memory")
+        if not _pb_ok:
+            refused_by_list.append("portfolio_brain")
+        if not _conviction_ok:
+            refused_by_list.append("conviction")
+        if not _notrade_ok:
+            refused_by_list.append("no_trade")
+        if not _awareness_ok:
+            refused_by_list.append("awareness")
+        if not meta_allowed:
+            refused_by_list.append("meta_strategy")
+        if not gate_result.allowed:
+            refused_by_list.append("gate")
+        if not _radar_ok:
+            refused_by_list.append("threat_radar")
         regret_engine.register_candidate(
-            symbol           = symbol,
-            signal           = signal.signal,
-            score            = signal.score,
-            regime           = regime,
-            price            = prix,
-            refused_by       = refused_by_list,
-            cycle            = cycle,
-            conviction_level = conviction.level.value if conviction else "medium",
+            symbol=symbol,
+            signal=signal.signal,
+            score=signal.score,
+            regime=regime,
+            price=prix,
+            refused_by=refused_by_list,
+            cycle=cycle,
+            conviction_level=conviction.level.value if conviction else "medium",
         )
 
     # ── Decision Quality — évaluation avant exécution ─────────────────────────
@@ -678,13 +857,15 @@ def analyze_symbol(
     if dqe and signal.actionable:
         dq_record = dqe.evaluate_decision(
             signal,
-            conviction_score  = conviction.score if conviction else 50.0,
-            conviction_level  = conviction.level.value if conviction else "medium",
-            regime            = regime,
-            personality_name  = personality.name if personality else "unknown",
-            no_trade_score    = no_trade_verdict.rejection_score if no_trade_verdict else 0.0,
-            meta_allowed      = meta_allowed,
-            gate_allowed      = gate_result.allowed,
+            conviction_score=conviction.score if conviction else 50.0,
+            conviction_level=conviction.level.value if conviction else "medium",
+            regime=regime,
+            personality_name=personality.name if personality else "unknown",
+            no_trade_score=(
+                no_trade_verdict.rejection_score if no_trade_verdict else 0.0
+            ),
+            meta_allowed=meta_allowed,
+            gate_allowed=gate_result.allowed,
         )
 
     # Shadow execution — simule l'ordre sans l'envoyer
@@ -705,48 +886,69 @@ def analyze_symbol(
                 log.info("[SHADOW] %s", shadow_trade.summary())
 
     persona_name = personality.name if personality else "N/A"
-    conv_str     = f" | conv: {conviction.level.value}({conviction.score:.0f})" if conviction else ""
-    aw_str       = f" | aware: {awareness_state.level.name}" if awareness_state else ""
-    pb_str       = f" | pb: {pb_verdict.size_factor:.2f}" if pb_verdict else ""
-    cae_str      = f" | cae: ${allocation.size_usd:.0f}" if allocation and allocation.size_usd > 0 else ""
-    mm_str       = f" | mm: BLOQUE" if mm_check and mm_check.blocked else ""
-    eo_str       = f" | eo: {eo_verdict.level.name}" if eo_verdict and eo_verdict.level.value > 0 else ""
+    conv_str = (
+        f" | conv: {conviction.level.value}({conviction.score:.0f})"
+        if conviction
+        else ""
+    )
+    aw_str = f" | aware: {awareness_state.level.name}" if awareness_state else ""
+    pb_str = f" | pb: {pb_verdict.size_factor:.2f}" if pb_verdict else ""
+    cae_str = (
+        f" | cae: ${allocation.size_usd:.0f}"
+        if allocation and allocation.size_usd > 0
+        else ""
+    )
+    mm_str = f" | mm: BLOQUE" if mm_check and mm_check.blocked else ""
+    eo_str = (
+        f" | eo: {eo_verdict.level.name}"
+        if eo_verdict and eo_verdict.level.value > 0
+        else ""
+    )
     log.info(
         "  %s | $%.2f | score: %d/100 | %s | regime: %s | perso: %s | gate: %s%s%s%s%s%s%s",
-        symbol, prix, signal.score, signal.signal,
-        regime, persona_name,
+        symbol,
+        prix,
+        signal.score,
+        signal.signal,
+        regime,
+        persona_name,
         "OK" if trade_allowed else "BLOQUE",
-        conv_str, aw_str, pb_str, cae_str, mm_str, eo_str,
+        conv_str,
+        aw_str,
+        pb_str,
+        cae_str,
+        mm_str,
+        eo_str,
     )
 
     return {
-        "symbol":           symbol,
-        "prix":             prix,
-        "signal":           signal,
-        "gate":             gate_result,
-        "advice":           advice,
-        "explanation":      explanation,
-        "shadow":           shadow_trade,
-        "personality":      personality,
-        "meta_allowed":     meta_allowed,
-        "meta_reason":      meta_reason,
-        "conviction":       conviction,
+        "symbol": symbol,
+        "prix": prix,
+        "signal": signal,
+        "gate": gate_result,
+        "advice": advice,
+        "explanation": explanation,
+        "shadow": shadow_trade,
+        "personality": personality,
+        "meta_allowed": meta_allowed,
+        "meta_reason": meta_reason,
+        "conviction": conviction,
         "no_trade_verdict": no_trade_verdict,
-        "awareness_state":  awareness_state,
-        "pb_verdict":       pb_verdict,
-        "allocation":       allocation,
-        "mm_check":         mm_check,
-        "eo_verdict":       eo_verdict,
-        "dq_record":        dq_record,
-        "trade_allowed":    trade_allowed,
-        "order_size":       order_size_usd,
-        "regime":           regime,
-        "features":         features,
-        "radar_report":     radar_report,
-        "ml_decision":      ml_decision,
-        "n_1h":             len(candles_1h),
-        "n_4h":             len(mtf_candles.get("4h", [])),
-        "n_1d":             len(mtf_candles.get("1d", [])),
+        "awareness_state": awareness_state,
+        "pb_verdict": pb_verdict,
+        "allocation": allocation,
+        "mm_check": mm_check,
+        "eo_verdict": eo_verdict,
+        "dq_record": dq_record,
+        "trade_allowed": trade_allowed,
+        "order_size": order_size_usd,
+        "regime": regime,
+        "features": features,
+        "radar_report": radar_report,
+        "ml_decision": ml_decision,
+        "n_1h": len(candles_1h),
+        "n_4h": len(mtf_candles.get("4h", [])),
+        "n_1d": len(mtf_candles.get("1d", [])),
         "signal_to_execute": signal_to_execute,  # ← Override signal (for test mode)
     }
 
@@ -755,20 +957,21 @@ def analyze_symbol(
 
 _SIGNAL_ICON = {"BUY": "📈", "SELL": "📉", "HOLD": "⏸"}
 _REGIME_FR = {
-    "bull_trend":             "Tendance haussiere",
-    "bear_trend":             "Tendance baissiere",
-    "sideways":               "Range lateral",
+    "bull_trend": "Tendance haussiere",
+    "bear_trend": "Tendance baissiere",
+    "sideways": "Range lateral",
     "high_volatility_regime": "Haute volatilite",
-    "flash_crash":            "KRACH ECLAIR",
-    "unknown":                "Indetermine",
+    "flash_crash": "KRACH ECLAIR",
+    "unknown": "Indetermine",
 }
 _SCORE_BAR = [
     (85, "FORT"),
     (70, "BON"),
     (50, "MOYEN"),
     (30, "FAIBLE"),
-    (0,  "TRES FAIBLE"),
+    (0, "TRES FAIBLE"),
 ]
+
 
 def _score_label(score: int) -> str:
     for threshold, label in _SCORE_BAR:
@@ -782,17 +985,17 @@ def _build_summary(results: list[AnalysisResult], cycle: int) -> str:
     lines = [f"Crypto AI Terminal — Rapport cycle {cycle}", ""]
 
     for r in results:
-        s      = r["signal"]
-        g      = r["gate"]
-        a      = r["advice"]
-        icon   = _SIGNAL_ICON.get(s.signal, "?")
+        s = r["signal"]
+        g = r["gate"]
+        a = r["advice"]
+        icon = _SIGNAL_ICON.get(s.signal, "?")
         regime = _REGIME_FR.get(s.regime, s.regime)
-        label  = _score_label(s.score)
+        label = _score_label(s.score)
         gate_s = "PRET" if g.allowed else "BLOQUE"
-        comps  = s.components
+        comps = s.components
 
-        persona  = r.get("personality")
-        p_name   = persona.name if persona else "N/A"
+        persona = r.get("personality")
+        p_name = persona.name if persona else "N/A"
         p_factor = f"x{persona.order_size_factor:.1f}" if persona else ""
         lines += [
             f"{icon} {r['symbol']} | ${r['prix']}",
@@ -815,14 +1018,14 @@ def _build_summary(results: list[AnalysisResult], cycle: int) -> str:
 
 def _build_alert(r: AnalysisResult, cycle: int) -> str:
     """Message d'alerte immédiate — signal actionable détecté."""
-    s      = r["signal"]
-    g      = r["gate"]
-    a      = r["advice"]
-    sh     = r.get("shadow")
-    ex     = r.get("explanation")
-    icon   = _SIGNAL_ICON.get(s.signal, "?")
+    s = r["signal"]
+    g = r["gate"]
+    a = r["advice"]
+    sh = r.get("shadow")
+    ex = r.get("explanation")
+    icon = _SIGNAL_ICON.get(s.signal, "?")
     regime = _REGIME_FR.get(s.regime, s.regime)
-    comps  = s.components
+    comps = s.components
 
     lines = [
         f"SIGNAL ACTIONABLE — Cycle {cycle}",
@@ -898,8 +1101,11 @@ def _build_alert(r: AnalysisResult, cycle: int) -> str:
         advisor_only = os.getenv("V9_ADVISOR_ONLY", "true").lower() == "true"
         lines += [
             "",
-            "Mode observation — aucun ordre place" if advisor_only
-            else "Gate bloquee ou safe mode — aucun ordre place",
+            (
+                "Mode observation — aucun ordre place"
+                if advisor_only
+                else "Gate bloquee ou safe mode — aucun ordre place"
+            ),
         ]
 
     lines += [
@@ -948,6 +1154,7 @@ def _build_guide() -> str:
 
 # ── Boucle principale ─────────────────────────────────────────────────────────
 
+
 def main(
     symbols: list[str],
     interval: int = 300,
@@ -959,7 +1166,9 @@ def main(
     os.makedirs("logs", exist_ok=True)
     os.makedirs("databases/shadow_execution", exist_ok=True)
 
-    _t_main_start = time.perf_counter()   # référence pour comparaison bootstrap / cycle 1
+    _t_main_start = (
+        time.perf_counter()
+    )  # référence pour comparaison bootstrap / cycle 1
     bootstrap_profile: list[tuple[str, float]] = []
 
     def _profile_bootstrap_step(label: str, fn: Any) -> Any:
@@ -970,8 +1179,12 @@ def main(
             bootstrap_profile.append((label, time.perf_counter() - started))
 
     log.info("=== ADVISOR LOOP DEMARRE ===")
-    log.info("Symboles: %s | Intervalle: %ds | Notify every: %d cycles",
-             symbols, interval, NOTIFY_EVERY)
+    log.info(
+        "Symboles: %s | Intervalle: %ds | Notify every: %d cycles",
+        symbols,
+        interval,
+        NOTIFY_EVERY,
+    )
 
     # ── Session primer — lancé AVANT la création des scanners ─────────────────
     # Crée l'exchange CCXT et appelle load_markets() dans un thread daemon.
@@ -983,22 +1196,29 @@ def main(
     _primer_future: Any = None
     _primer_executor: ThreadPoolExecutor | None = None
     if ADVISOR_SESSION_PRIMER:
-        _exchange_id  = os.getenv("MARKET_SCANNER_EXCHANGE", "binance")
-        _testnet      = os.getenv("BINANCE_TESTNET", "false").lower() == "true"
-        _trace_primer = os.getenv("MARKET_SCANNER_TRACE_TIMINGS", "false").lower() == "true"
+        _exchange_id = os.getenv("MARKET_SCANNER_EXCHANGE", "binance")
+        _testnet = os.getenv("BINANCE_TESTNET", "false").lower() == "true"
+        _trace_primer = (
+            os.getenv("MARKET_SCANNER_TRACE_TIMINGS", "false").lower() == "true"
+        )
         try:
             _scanner_cls = runtime.MarketScanner  # class reference, not instance
-            _primer_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="SessionPrimer")
-            _t_primer_start  = time.perf_counter()
-            _primer_future   = _primer_executor.submit(
+            _primer_executor = ThreadPoolExecutor(
+                max_workers=1, thread_name_prefix="SessionPrimer"
+            )
+            _t_primer_start = time.perf_counter()
+            _primer_future = _primer_executor.submit(
                 _prime_exchange_session,
-                _exchange_id, _testnet, _scanner_cls,
+                _exchange_id,
+                _testnet,
+                _scanner_cls,
                 trace=_trace_primer,
             )
             log.info(
                 "[SessionPrimer] Lancé en avance (exchange=%s testnet=%s) "
                 "— exchange_init + load_markets en parallèle du bootstrap",
-                _exchange_id, _testnet,
+                _exchange_id,
+                _testnet,
             )
         except Exception as _pe:
             log.warning("[SessionPrimer] Impossible de lancer: %s", _pe)
@@ -1013,8 +1233,18 @@ def main(
     scanners: dict[str, dict[str, Any]] = _profile_bootstrap_step(
         "scanners",
         lambda: {
-            "1h":  {sym: runtime.MarketScanner(symbols=[sym], timeframe="1h", limit=ADVISOR_1H_LIMIT) for sym in symbols},
-            "mtf": {sym: runtime.MultiTimeframeScanner(symbols=[sym], refresh_every=MTF_REFRESH_EVERY) for sym in symbols},
+            "1h": {
+                sym: runtime.MarketScanner(
+                    symbols=[sym], timeframe="1h", limit=ADVISOR_1H_LIMIT
+                )
+                for sym in symbols
+            },
+            "mtf": {
+                sym: runtime.MultiTimeframeScanner(
+                    symbols=[sym], refresh_every=MTF_REFRESH_EVERY
+                )
+                for sym in symbols
+            },
         },
     )
     prewarm_executor: ThreadPoolExecutor | None = None
@@ -1029,7 +1259,9 @@ def main(
     live_execution_bootstrap = ADVISOR_LIVE_EXECUTION_BOOTSTRAP and not startup_light
     background_position_watch = ADVISOR_BACKGROUND_POSITION_WATCH and not startup_light
     defer_optional_intel = ADVISOR_DEFER_OPTIONAL_INTEL or startup_light
-    defer_post_cycle_services = advisor_only and (ADVISOR_DEFER_POST_CYCLE_SERVICES or startup_light)
+    defer_post_cycle_services = advisor_only and (
+        ADVISOR_DEFER_POST_CYCLE_SERVICES or startup_light
+    )
     persistent_warmup_enabled = ADVISOR_PERSISTENT_WARMUP and not startup_light
     threat_radar_every = max(ADVISOR_THREAT_RADAR_EVERY, 3 if startup_light else 1)
     cycle_budget_seconds = ADVISOR_CYCLE_BUDGET_SECONDS
@@ -1045,11 +1277,21 @@ def main(
 
     if prewarm_1h_enabled:
         n_mtf_slots = len(symbols) if prewarm_mtf_enabled else 0
-        max_workers = max(1, min(
-            len(symbols) + n_mtf_slots,
-            int(os.getenv("ADVISOR_PREWARM_MAX_WORKERS", str(len(symbols) + n_mtf_slots or 1)))
-        ))
-        prewarm_executor = ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="AdvisorWarm")
+        max_workers = max(
+            1,
+            min(
+                len(symbols) + n_mtf_slots,
+                int(
+                    os.getenv(
+                        "ADVISOR_PREWARM_MAX_WORKERS",
+                        str(len(symbols) + n_mtf_slots or 1),
+                    )
+                ),
+            ),
+        )
+        prewarm_executor = ThreadPoolExecutor(
+            max_workers=max_workers, thread_name_prefix="AdvisorWarm"
+        )
         _t_warmup_start = time.perf_counter()
         prewarm_futures = {
             sym: prewarm_executor.submit(scanners["1h"][sym].scan)
@@ -1057,8 +1299,10 @@ def main(
             if hasattr(scanners["1h"][sym], "scan")
         }
         if prewarm_futures:
-            log.info("[Warmup] Prechauffage 1h lance EN AVANCE pour %d symbole(s) (avant services boot)",
-                     len(prewarm_futures))
+            log.info(
+                "[Warmup] Prechauffage 1h lance EN AVANCE pour %d symbole(s) (avant services boot)",
+                len(prewarm_futures),
+            )
         if prewarm_mtf_enabled:
             prewarm_mtf_futures = {
                 sym: prewarm_executor.submit(scanners["mtf"][sym].scan)
@@ -1066,8 +1310,9 @@ def main(
                 if hasattr(scanners["mtf"][sym], "scan")
             }
             if prewarm_mtf_futures:
-                log.info("[Warmup] Prechauffage MTF (4h+1d) lance en background",
-                         )
+                log.info(
+                    "[Warmup] Prechauffage MTF (4h+1d) lance en background",
+                )
         if not prewarm_futures and not prewarm_mtf_futures:
             prewarm_executor.shutdown(wait=False, cancel_futures=True)
             prewarm_executor = None
@@ -1120,7 +1365,9 @@ def main(
             exchange_monitor_started = True
 
     if defer_post_cycle_services:
-        log.info("[Startup] ExchangeMonitor differe apres le cycle 1 (observation seule)")
+        log.info(
+            "[Startup] ExchangeMonitor differe apres le cycle 1 (observation seule)"
+        )
     else:
         _start_exchange_monitor()
 
@@ -1131,28 +1378,45 @@ def main(
     )
 
     # Composant 1 : exchange
+    def _exchange_restart() -> None:
+        log.warning("[SelfHeal] Exchange unhealthy — tentative de reconnexion")
+        try:
+            ok = exec_engine.reconnect()
+            if ok:
+                log.info("[SelfHeal] Exchange reconnecté avec succès")
+            else:
+                log.error("[SelfHeal] Reconnexion échouée — bot en mode dégradé")
+        except Exception as exc:
+            log.exception("[SelfHeal] Reconnexion exception: %s", exc)
+
     _profile_bootstrap_step(
         "self_healing.register_exchange",
         lambda: healer.register_simple(
             "exchange",
             health_fn=exchange_monitor.is_healthy,
-            restart_fn=lambda: log.warning("[SelfHeal] Exchange unhealthy — aucun restart auto possible"),
+            restart_fn=_exchange_restart,
         ),
     )
+
     # Composant 2 : LM Studio (non bloquant — le bot fonctionne sans)
     def _lm_health() -> bool:
         try:
             import requests as _r
+
             r = _r.get("http://localhost:1234/v1/models", timeout=3)
             return r.status_code == 200
         except Exception:
             return True  # LM Studio optionnel — pas de restart si absent
+
     def _lm_restart() -> None:
         log.warning("[SelfHeal] LM Studio inaccessible — bascule déterministe")
         os.environ["LM_STUDIO_AVAILABLE"] = "false"
+
     _profile_bootstrap_step(
         "self_healing.register_lm_studio",
-        lambda: healer.register_simple("lm_studio", health_fn=_lm_health, restart_fn=_lm_restart),
+        lambda: healer.register_simple(
+            "lm_studio", health_fn=_lm_health, restart_fn=_lm_restart
+        ),
     )
     healer_started = False
 
@@ -1172,9 +1436,12 @@ def main(
     if persistent_warmup_enabled:
         try:
             from quant_hedge_ai.persistent_warmup import CacheWarmer
+
             _persistent_warmer = _profile_bootstrap_step(
                 "persistent_warmup",
-                lambda: CacheWarmer(scanner=None, symbols=symbols, timeframes=["1h", "4h", "1d"]),
+                lambda: CacheWarmer(
+                    scanner=None, symbols=symbols, timeframes=["1h", "4h", "1d"]
+                ),
             )
             _profile_bootstrap_step("persistent_warmup.start", _persistent_warmer.start)
             log.info("[PersistentWarmup] daemon demarre pour %d symboles", len(symbols))
@@ -1188,20 +1455,30 @@ def main(
     tracker_run_cycle = runtime.tracker_run_cycle
 
     if advisor_only and not live_execution_bootstrap:
-        exec_engine = _profile_bootstrap_step("execution_engine", runtime.ExecutionEngine)
+        exec_engine = _profile_bootstrap_step(
+            "execution_engine", runtime.ExecutionEngine
+        )
         has_futures = False
         futures_bal = 0.0
     else:
-        exec_engine = _profile_bootstrap_step("execution_engine.from_env", runtime.ExecutionEngine.from_env)
+        exec_engine = _profile_bootstrap_step(
+            "execution_engine.from_env", runtime.ExecutionEngine.from_env
+        )
         has_futures = exec_engine.has_futures_demo()
         futures_bal = exec_engine.fetch_futures_balance() if has_futures else 0.0
 
     # Lire le capital réel disponible (balance USDT testnet ou .env fallback)
     real_capital = exec_engine.fetch_available_capital()
-    max_order    = float(os.getenv("EXEC_MAX_ORDER_USD", "50"))
-    order_size   = min(max_order, real_capital * float(os.getenv("V9_MAX_POSITION_WEIGHT", "0.05")))
-    log.info("Capital disponible: $%.2f | Taille ordre: $%.2f (max $%.2f)",
-             real_capital, order_size, max_order)
+    max_order = float(os.getenv("EXEC_MAX_ORDER_USD", "50"))
+    order_size = min(
+        max_order, real_capital * float(os.getenv("V9_MAX_POSITION_WEIGHT", "0.05"))
+    )
+    log.info(
+        "Capital disponible: $%.2f | Taille ordre: $%.2f (max $%.2f)",
+        real_capital,
+        order_size,
+        max_order,
+    )
 
     trading_mode = (
         "OBSERVATION ONLY (V9_ADVISOR_ONLY=true)"
@@ -1228,8 +1505,11 @@ def main(
     sub_manager = None
     try:
         from quant_hedge_ai.agents.execution.subaccount_manager import SubaccountManager
+
         sub_manager = SubaccountManager.from_env()
-        log.info("[SubaccountManager] Initialisé — positions seront synchronisées vers dashboard")
+        log.info(
+            "[SubaccountManager] Initialisé — positions seront synchronisées vers dashboard"
+        )
     except Exception as _sm_exc:
         log.warning("[SubaccountManager] Non disponible: %s", _sm_exc)
 
@@ -1247,9 +1527,14 @@ def main(
         log.info("[PositionManager] Désactivé en observation seule")
 
     def _tracker_payload_from_position(pos: Any) -> dict[str, Any]:
-        side = "BUY" if getattr(pos, "side", None) and pos.side.value == "long" else "SELL"
+        side = (
+            "BUY" if getattr(pos, "side", None) and pos.side.value == "long" else "SELL"
+        )
         return {
-            "id": str(getattr(pos, "order_id", "") or f"{pos.symbol}_{int(getattr(pos, 'opened_at', time.time()) * 1000)}"),
+            "id": str(
+                getattr(pos, "order_id", "")
+                or f"{pos.symbol}_{int(getattr(pos, 'opened_at', time.time()) * 1000)}"
+            ),
             "symbol": pos.symbol,
             "side": side,
             "entry_price": float(pos.entry_price),
@@ -1259,7 +1544,12 @@ def main(
             "confidence": float(getattr(pos, "signal_score", 0.0)),
             "max_price": float(getattr(pos, "highest_price", pos.entry_price)),
             "min_price": float(getattr(pos, "lowest_price", pos.entry_price)),
-            "price_path": [float(pos.entry_price), float(getattr(pos, "current_price", pos.entry_price) or pos.entry_price)],
+            "price_path": [
+                float(pos.entry_price),
+                float(
+                    getattr(pos, "current_price", pos.entry_price) or pos.entry_price
+                ),
+            ],
             "subaccount": getattr(pos, "subaccount", "default"),
             "leverage": int(getattr(pos, "leverage", 1)),
             "qty": float(getattr(pos, "qty", 0.0)),
@@ -1274,7 +1564,9 @@ def main(
         try:
             tracker_run_cycle(run_optimizer=False)
         except Exception as tracker_exc:
-            log.warning("[TrackerSystem] refresh échoué après %s: %s", event_name, tracker_exc)
+            log.warning(
+                "[TrackerSystem] refresh échoué après %s: %s", event_name, tracker_exc
+            )
 
     def _build_position_from_execution(
         order_result: JSONDict,
@@ -1284,9 +1576,9 @@ def main(
         effective_size: float,
     ) -> Any:
         personality = result_row.get("personality")
-        feat        = result_row.get("features", {})
-        atr_val     = float(feat.get("atr", 0.0))
-        vol_val     = float(feat.get("atr_ratio", feat.get("volatility", 0.0)))
+        feat = result_row.get("features", {})
+        atr_val = float(feat.get("atr", 0.0))
+        vol_val = float(feat.get("atr_ratio", feat.get("volatility", 0.0)))
         entry_price = _to_float(
             order_result.get("price")
             or order_result.get("average")
@@ -1314,15 +1606,27 @@ def main(
                 symbol,
                 action,
                 effective_size,
-                tp_pct=(result_row["ml_decision"].get("tp") or (personality.tp_pct if personality else 0.04)),
-                sl_pct=(result_row["ml_decision"].get("sl") or (personality.sl_pct if personality else 0.02)),
-                trailing=(result_row["ml_decision"].get("trail_pct") or (personality.trailing_pct if personality else 0.0)),
+                tp_pct=(
+                    result_row["ml_decision"].get("tp")
+                    or (personality.tp_pct if personality else 0.04)
+                ),
+                sl_pct=(
+                    result_row["ml_decision"].get("sl")
+                    or (personality.sl_pct if personality else 0.02)
+                ),
+                trailing=(
+                    result_row["ml_decision"].get("trail_pct")
+                    or (personality.trailing_pct if personality else 0.0)
+                ),
                 atr=atr_val,
                 volatility=vol_val,
                 regime=result_row.get("regime", "unknown"),
             )
         else:
-            from quant_hedge_ai.agents.execution.position_manager import PositionSide as _PS
+            from quant_hedge_ai.agents.execution.position_manager import (
+                PositionSide as _PS,
+            )
+
             pos = Position(
                 symbol=symbol,
                 side=_PS.LONG if action.upper() == "BUY" else _PS.SHORT,
@@ -1332,11 +1636,17 @@ def main(
                 subaccount="main",
             )
 
-        pos.signal_score     = result_row["signal"].score
-        pos.conviction_level = result_row["conviction"].level.value if result_row.get("conviction") else "medium"
-        pos.signal_age_sec   = time.time() - result_row["signal"].timestamp
-        pos.subaccount = "btc_momentum" if "BTC" in symbol else (
-            "eth_volatility" if "ETH" in symbol else "sol_experimental"
+        pos.signal_score = result_row["signal"].score
+        pos.conviction_level = (
+            result_row["conviction"].level.value
+            if result_row.get("conviction")
+            else "medium"
+        )
+        pos.signal_age_sec = time.time() - result_row["signal"].timestamp
+        pos.subaccount = (
+            "btc_momentum"
+            if "BTC" in symbol
+            else ("eth_volatility" if "ETH" in symbol else "sol_experimental")
         )
         return pos
 
@@ -1372,16 +1682,25 @@ def main(
                     unit = sub_manager.get(subaccount_name)
                     if unit and unit.position_manager:
                         unit.position_manager.add_position(pos)
-                        log.debug("[SubaccountManager SYNC] Position enregistrée dans %s", subaccount_name)
+                        log.debug(
+                            "[SubaccountManager SYNC] Position enregistrée dans %s",
+                            subaccount_name,
+                        )
                 except Exception as _sync_exc:
                     log.debug("[SubaccountManager SYNC] Failed: %s", _sync_exc)
             try:
                 import json as _json
                 import os as _os
+
                 _snap_path: str = _os.path.join("databases", "positions_snapshot.json")
-                _snap_tmp: str  = _snap_path + ".tmp"
-                _snap_positions: list[dict[str, Any]] = _snapshot_list(pos_manager.snapshot())
-                _snap_data: dict[str, Any] = {"ts": time.time(), "positions": _snap_positions}
+                _snap_tmp: str = _snap_path + ".tmp"
+                _snap_positions: list[dict[str, Any]] = _snapshot_list(
+                    pos_manager.snapshot()
+                )
+                _snap_data: dict[str, Any] = {
+                    "ts": time.time(),
+                    "positions": _snap_positions,
+                }
                 with open(_snap_tmp, "w", encoding="utf-8") as _sf:
                     _json.dump(_snap_data, _sf)
                 _os.replace(_snap_tmp, _snap_path)
@@ -1391,7 +1710,11 @@ def main(
                 tracker_open_position(
                     symbol=symbol,
                     side=action,
-                    price=float(getattr(pos, "entry_price", _to_float(result_row.get("prix", 0.0)))),
+                    price=float(
+                        getattr(
+                            pos, "entry_price", _to_float(result_row.get("prix", 0.0))
+                        )
+                    ),
                     size=float(effective_size),
                     regime=result_row.get("regime", "unknown"),
                     confidence=float(result_row["signal"].score),
@@ -1409,7 +1732,9 @@ def main(
                 )
                 _refresh_tracker_artifacts("open")
             except Exception as tracker_exc:
-                log.warning("[TrackerSystem] open échoué pour %s: %s", symbol, tracker_exc)
+                log.warning(
+                    "[TrackerSystem] open échoué pour %s: %s", symbol, tracker_exc
+                )
             _consecutive_losses["value"] = 0
             return True
         except Exception as pos_exc:
@@ -1424,7 +1749,10 @@ def main(
                 unit = sub_manager.get(subaccount_name)
                 if unit and unit.position_manager:
                     unit.position_manager.close_position(pos.symbol, reason)
-                    log.debug("[SubaccountManager SYNC] Position fermée dans %s", subaccount_name)
+                    log.debug(
+                        "[SubaccountManager SYNC] Position fermée dans %s",
+                        subaccount_name,
+                    )
             except Exception as _sync_exc:
                 log.debug("[SubaccountManager SYNC close] Failed: %s", _sync_exc)
         try:
@@ -1436,7 +1764,9 @@ def main(
             )
             _refresh_tracker_artifacts("close")
         except Exception as tracker_exc:
-            log.warning("[TrackerSystem] finalize échoué pour %s: %s", pos.symbol, tracker_exc)
+            log.warning(
+                "[TrackerSystem] finalize échoué pour %s: %s", pos.symbol, tracker_exc
+            )
 
         sign = "+" if pos.pnl_usd >= 0 else ""
         _telegram(
@@ -1449,12 +1779,18 @@ def main(
 
     pos_manager.on_close(_on_position_close)
 
-    gate     = _profile_bootstrap_step("global_risk_gate", runtime.GlobalRiskGate)
-    engine   = _profile_bootstrap_step("live_signal_engine", runtime.LiveSignalEngine)
-    advisor  = _profile_bootstrap_step("ai_advisor", runtime.AIAdvisor)
-    shadow   = _profile_bootstrap_step("shadow_execution", lambda: runtime.ShadowExecutionEngine(risk_gate=gate))
-    watchdog = _profile_bootstrap_step("performance_watchdog", runtime.PerformanceWatchdog)
-    memory   = _profile_bootstrap_step("strategy_memory_store", runtime.StrategyMemoryStore)
+    gate = _profile_bootstrap_step("global_risk_gate", runtime.GlobalRiskGate)
+    engine = _profile_bootstrap_step("live_signal_engine", runtime.LiveSignalEngine)
+    advisor = _profile_bootstrap_step("ai_advisor", runtime.AIAdvisor)
+    shadow = _profile_bootstrap_step(
+        "shadow_execution", lambda: runtime.ShadowExecutionEngine(risk_gate=gate)
+    )
+    watchdog = _profile_bootstrap_step(
+        "performance_watchdog", runtime.PerformanceWatchdog
+    )
+    memory = _profile_bootstrap_step(
+        "strategy_memory_store", runtime.StrategyMemoryStore
+    )
 
     # Meta-Strategy Engine — personnalité adaptée au régime
     meta_engine = _profile_bootstrap_step("meta_strategy", runtime.MetaStrategyEngine)
@@ -1478,10 +1814,14 @@ def main(
     )
 
     # No-Trade Intelligence — refus intelligents
-    no_trade_layer = _profile_bootstrap_step("no_trade_intelligence", runtime.NoTradeIntelligence)
+    no_trade_layer = _profile_bootstrap_step(
+        "no_trade_intelligence", runtime.NoTradeIntelligence
+    )
 
     # Conviction Engine — 4 niveaux de conviction
-    conviction_engine = _profile_bootstrap_step("conviction_engine", runtime.ConvictionEngine)
+    conviction_engine = _profile_bootstrap_step(
+        "conviction_engine", runtime.ConvictionEngine
+    )
 
     # Decision Quality Engine — note qualité indépendamment du résultat
     dqe = _profile_bootstrap_step("decision_quality", runtime.DecisionQualityEngine)
@@ -1503,17 +1843,24 @@ def main(
     def _get_mistake_memory() -> Any:
         nonlocal mistake_memory
         if mistake_memory is None:
-            mistake_memory = _profile_bootstrap_step("mistake_memory", runtime.MistakeMemory)
+            mistake_memory = _profile_bootstrap_step(
+                "mistake_memory", runtime.MistakeMemory
+            )
             mm_stats = _stats_dict(mistake_memory.stats())
-            log.info("[MistakeMemory] %d erreurs memorisees | %d regles actives",
-                     int(mm_stats.get("total", 0) or 0), int(mm_stats.get("rules_active", 0) or 0))
+            log.info(
+                "[MistakeMemory] %d erreurs memorisees | %d regles actives",
+                int(mm_stats.get("total", 0) or 0),
+                int(mm_stats.get("rules_active", 0) or 0),
+            )
         return mistake_memory
 
     if not (advisor_only and defer_optional_intel):
         _get_mistake_memory()
 
     # Executive Override — commandement supreme (domine toutes les couches)
-    def _on_override_change(old_level: Any, new_level: Any, triggers: list[str]) -> None:
+    def _on_override_change(
+        old_level: Any, new_level: Any, triggers: list[str]
+    ) -> None:
         trigger_str = " | ".join(triggers[:3])
         _telegram(
             f"EXECUTIVE OVERRIDE — {old_level.name} -> {new_level.name}\n"
@@ -1525,24 +1872,33 @@ def main(
     executive_override = _profile_bootstrap_step(
         "executive_override",
         lambda: runtime.ExecutiveOverride(
-            total_capital    = real_capital,
-            on_level_change  = _on_override_change,
+            total_capital=real_capital,
+            on_level_change=_on_override_change,
         ),
     )
 
     # Black Box Recorder — boite noire indestructible
     black_box = _profile_bootstrap_step("black_box", runtime.BlackBox)
-    black_box.record_system_event("DEMARRAGE", f"capital={real_capital:.0f} mode={trading_mode}")
+    black_box.record_system_event(
+        "DEMARRAGE", f"capital={real_capital:.0f} mode={trading_mode}"
+    )
 
     regret_engine: Any = None
 
     def _get_regret_engine() -> Any:
         nonlocal regret_engine
         if regret_engine is None:
-            regret_engine = _profile_bootstrap_step("regret_engine", runtime.RegretEngine)
-            regret_record_count, regret_candidate_count = _get_regret_counts(regret_engine)
-            log.info("[RegretEngine] %d records charges | %d candidats en attente",
-                     regret_record_count, regret_candidate_count)
+            regret_engine = _profile_bootstrap_step(
+                "regret_engine", runtime.RegretEngine
+            )
+            regret_record_count, regret_candidate_count = _get_regret_counts(
+                regret_engine
+            )
+            log.info(
+                "[RegretEngine] %d records charges | %d candidats en attente",
+                regret_record_count,
+                regret_candidate_count,
+            )
         return regret_engine
 
     if not (advisor_only and defer_optional_intel):
@@ -1553,7 +1909,9 @@ def main(
     def _get_chief_officer() -> Any:
         nonlocal chief_officer
         if chief_officer is None:
-            chief_officer = _profile_bootstrap_step("chief_officer", runtime.ChiefOfficer)
+            chief_officer = _profile_bootstrap_step(
+                "chief_officer", runtime.ChiefOfficer
+            )
         return chief_officer
 
     threat_radar = _profile_bootstrap_step("threat_radar", runtime.ThreatRadar)
@@ -1581,7 +1939,11 @@ def main(
                 strategy_name=pos.subaccount,
                 regime=pos_regime,
                 pnl_pct=pos.pnl_pct,
-                sharpe=max(0.0, pos.pnl_pct / max(0.001, abs(pos.pnl_pct))) if pos.pnl_pct else 0.0,
+                sharpe=(
+                    max(0.0, pos.pnl_pct / max(0.001, abs(pos.pnl_pct)))
+                    if pos.pnl_pct
+                    else 0.0
+                ),
                 drawdown=max(0.0, -pos.pnl_pct) if pos.pnl_pct < 0 else 0.0,
             )
             # Meta-strategy
@@ -1601,18 +1963,22 @@ def main(
             dqe.close_decision(pos.order_id, pos.pnl_pct)
             # Mistake Memory — analyse l'erreur et génère des règles
             try:
-                side_signal = "BUY" if getattr(pos, "side", None) and pos.side.value == "long" else "SELL"
+                side_signal = (
+                    "BUY"
+                    if getattr(pos, "side", None) and pos.side.value == "long"
+                    else "SELL"
+                )
                 _get_mistake_memory().record_trade_result(
-                    order_id           = pos.order_id,
-                    symbol             = pos.symbol,
-                    signal             = side_signal,
-                    score              = getattr(pos, "signal_score", 70),
-                    regime             = pos_regime,
-                    conviction_level   = getattr(pos, "conviction_level", "medium"),
-                    pnl_pct            = pos.pnl_pct,
-                    context_features   = {},
-                    signal_age_sec     = getattr(pos, "signal_age_sec", 0.0),
-                    consecutive_losses = _consecutive_losses["value"],
+                    order_id=pos.order_id,
+                    symbol=pos.symbol,
+                    signal=side_signal,
+                    score=getattr(pos, "signal_score", 70),
+                    regime=pos_regime,
+                    conviction_level=getattr(pos, "conviction_level", "medium"),
+                    pnl_pct=pos.pnl_pct,
+                    context_features={},
+                    signal_age_sec=getattr(pos, "signal_age_sec", 0.0),
+                    consecutive_losses=_consecutive_losses["value"],
                 )
             except Exception as _me:
                 log.debug("[MistakeMemory] record échoué: %s", _me)
@@ -1626,11 +1992,17 @@ def main(
             # Alimenter l'Override avec les métriques de session
             try:
                 pm_stats_live = _stats_dict(pos_manager.stats())
-                open_pnl_pct  = _to_float(pm_stats_live.get("open_pnl_usd", 0.0)) / max(1.0, real_capital)
+                open_pnl_pct = _to_float(pm_stats_live.get("open_pnl_usd", 0.0)) / max(
+                    1.0, real_capital
+                )
                 executive_override.update(
-                    loss_streak     = _consecutive_losses["value"],
-                    open_pnl_pct    = open_pnl_pct,
-                    daily_loss_pct  = max(0.0, -_to_float(pm_stats_live.get("total_pnl_usd", 0.0)) / max(1.0, real_capital)),
+                    loss_streak=_consecutive_losses["value"],
+                    open_pnl_pct=open_pnl_pct,
+                    daily_loss_pct=max(
+                        0.0,
+                        -_to_float(pm_stats_live.get("total_pnl_usd", 0.0))
+                        / max(1.0, real_capital),
+                    ),
                 )
             except Exception:
                 pass
@@ -1644,26 +2016,38 @@ def main(
                 buf = _meta_pnl_buffer.setdefault(pos_regime, [])
                 buf.append(pos.pnl_pct)
                 if len(buf) >= 5:
-                    wins     = sum(1 for p in buf if p > 0)
+                    wins = sum(1 for p in buf if p > 0)
                     win_rate = wins / len(buf)
-                    avg_pnl  = sum(buf) / len(buf)
-                    sharpe   = avg_pnl * win_rate * 10
+                    avg_pnl = sum(buf) / len(buf)
+                    sharpe = avg_pnl * win_rate * 10
                     trailing = getattr(pos, "trailing", 0) or 0
                     exit_type = "trailing" if trailing > 0 else "tp_sl"
                     meta_learner.learn(
-                        context    = {"regime": pos_regime,
-                                      "volatility": getattr(pos, "volatility", 0.015)},
-                        decision   = {"exit_type": exit_type,
-                                      "tp": getattr(pos, "tp_pct", 0.04),
-                                      "sl": getattr(pos, "sl_pct", 0.02),
-                                      "trail_pct": trailing or None},
-                        performance = {"sharpe": round(sharpe, 4),
-                                       "win_rate": round(win_rate, 4),
-                                       "avg_pnl": round(avg_pnl, 6),
-                                       "n_trades": len(buf)},
+                        context={
+                            "regime": pos_regime,
+                            "volatility": getattr(pos, "volatility", 0.015),
+                        },
+                        decision={
+                            "exit_type": exit_type,
+                            "tp": getattr(pos, "tp_pct", 0.04),
+                            "sl": getattr(pos, "sl_pct", 0.02),
+                            "trail_pct": trailing or None,
+                        },
+                        performance={
+                            "sharpe": round(sharpe, 4),
+                            "win_rate": round(win_rate, 4),
+                            "avg_pnl": round(avg_pnl, 6),
+                            "n_trades": len(buf),
+                        },
                     )
-                    log.info("[MetaLearner] Apprentissage %s: exit=%s wr=%.0f%% sharpe=%.3f n=%d",
-                             pos_regime, exit_type, win_rate * 100, sharpe, len(buf))
+                    log.info(
+                        "[MetaLearner] Apprentissage %s: exit=%s wr=%.0f%% sharpe=%.3f n=%d",
+                        pos_regime,
+                        exit_type,
+                        win_rate * 100,
+                        sharpe,
+                        len(buf),
+                    )
                     buf.clear()
             except Exception as _mle:
                 log.debug("[MetaLearner] learn échoué: %s", _mle)
@@ -1673,7 +2057,7 @@ def main(
 
     pos_manager.on_close(_on_position_close_rank)
 
-    _consecutive_losses = {"value": 0}   # compteur partagé entre cycles
+    _consecutive_losses = {"value": 0}  # compteur partagé entre cycles
 
     # ── PROTECTIONS OBLIGATOIRES POUR MODE TEST ───────────────────────────────────
     # #1 Cooldown après perte (5 min)
@@ -1697,7 +2081,9 @@ def main(
         # ── Kill switch check ──────────────────────────────────────────────────
         if kill_switch.is_halted() or _halt_requested["value"]:
             log.critical("[main] Kill switch actif — boucle suspendue")
-            _telegram("Boucle suspendue par Kill Switch. Envoyer /RESUME pour reprendre.")
+            _telegram(
+                "Boucle suspendue par Kill Switch. Envoyer /RESUME pour reprendre."
+            )
             # Attendre que l'opérateur envoie /RESUME
             while kill_switch.is_halted() or _halt_requested["value"]:
                 time.sleep(5)
@@ -1744,10 +2130,42 @@ def main(
             except Exception:
                 pass
 
+            # ── Runtime config — rechargement à chaud chaque cycle ────────────
+            try:
+                import json as _rtjson
+                from pathlib import Path as _rtPath
+
+                _rt_path = _rtPath("databases/runtime_config.json")
+                if _rt_path.exists():
+                    _rt = _rtjson.loads(_rt_path.read_text(encoding="utf-8"))
+                    _RT_KEYS = {
+                        "GATE_MIN_SCORE_OVERRIDE",
+                        "FORCE_TEST_EXECUTION",
+                        "EXEC_MAX_ORDER_USD",
+                        "SIGNAL_MIN_SCORE",
+                        "EO_DD_VETO",
+                        "EO_DD_RECOVERY",
+                        "EXCHANGE_HEARTBEAT_S",
+                    }
+                    for _k, _v in _rt.items():
+                        if _k in _RT_KEYS:
+                            os.environ[_k] = (
+                                str(_v).lower() if isinstance(_v, bool) else str(_v)
+                            )
+            except Exception as _rt_exc:
+                log.debug("[RuntimeConfig] Erreur rechargement: %s", _rt_exc)
+
             results: list[AnalysisResult] = []
             for sym in symbols:
                 r = analyze_symbol(
-                    sym, scanners, engine, gate, advisor, shadow, watchdog, memory,
+                    sym,
+                    scanners,
+                    engine,
+                    gate,
+                    advisor,
+                    shadow,
+                    watchdog,
+                    memory,
                     cycle,
                     order_size_usd=order_size,
                     meta_engine=meta_engine,
@@ -1758,29 +2176,44 @@ def main(
                     conviction_engine=conviction_engine,
                     awareness_engine=awareness_engine,
                     dqe=dqe,
-                    portfolio_brain     = portfolio_brain,
-                    capital_engine      = capital_engine,
-                    mistake_memory      = (None if advisor_only and defer_optional_intel else _get_mistake_memory()),
-                    executive_override  = executive_override,
-                    black_box           = black_box,
-                    regret_engine       = (None if advisor_only and defer_optional_intel else _get_regret_engine()),
-                    threat_radar        = (
+                    portfolio_brain=portfolio_brain,
+                    capital_engine=capital_engine,
+                    mistake_memory=(
+                        None
+                        if advisor_only and defer_optional_intel
+                        else _get_mistake_memory()
+                    ),
+                    executive_override=executive_override,
+                    black_box=black_box,
+                    regret_engine=(
+                        None
+                        if advisor_only and defer_optional_intel
+                        else _get_regret_engine()
+                    ),
+                    threat_radar=(
                         threat_radar
                         if (
                             not shed_optional_work
-                            and (threat_radar_every <= 1 or cycle % threat_radar_every == 0)
+                            and (
+                                threat_radar_every <= 1
+                                or cycle % threat_radar_every == 0
+                            )
                         )
                         else None
                     ),
-                    meta_learner        = meta_learner,
-                    runtime             = runtime,
+                    meta_learner=meta_learner,
+                    runtime=runtime,
                 )
                 results.append(r)
                 # ── Exécution réelle/paper ─────────────────────────────────────
                 r["futures_result"] = None
                 # Taille effective : depuis CAE si disponible, sinon order_size global
                 allocation = r.get("allocation")
-                effective_size = allocation.size_usd if allocation and allocation.size_usd > 0 else r.get("order_size", order_size)
+                effective_size = (
+                    allocation.size_usd
+                    if allocation and allocation.size_usd > 0
+                    else r.get("order_size", order_size)
+                )
 
                 # ── PROTECTIONS OBLIGATOIRES POUR MODE TEST ───────────────────────────────────
                 # Vérification AVANT exécution
@@ -1792,7 +2225,9 @@ def main(
                 if sym in last_loss_time:
                     time_since_loss = current_time - last_loss_time[sym]
                     if time_since_loss < 300:
-                        protection_blocks.append(f"cooldown_loss({time_since_loss:.0f}s)")
+                        protection_blocks.append(
+                            f"cooldown_loss({time_since_loss:.0f}s)"
+                        )
 
                 # #2 Pas de re-entry même direction
                 if sym in last_trade_signal:
@@ -1804,15 +2239,26 @@ def main(
                 hour_ago = now - 3600
                 if sym not in trades_this_hour:
                     trades_this_hour[sym] = []
-                trades_this_hour[sym] = [t for t in trades_this_hour[sym] if t > hour_ago]
+                trades_this_hour[sym] = [
+                    t for t in trades_this_hour[sym] if t > hour_ago
+                ]
                 if len(trades_this_hour[sym]) >= 10:
-                    protection_blocks.append(f"max_trades_1h({len(trades_this_hour[sym])})")
+                    protection_blocks.append(
+                        f"max_trades_1h({len(trades_this_hour[sym])})"
+                    )
 
                 if protection_blocks:
-                    log.info("[PROTECTION] %s BLOQUE par: %s", sym, " | ".join(protection_blocks))
+                    log.info(
+                        "[PROTECTION] %s BLOQUE par: %s",
+                        sym,
+                        " | ".join(protection_blocks),
+                    )
 
                 # ── Test mode check: allow execution even if signal.actionable=False if gate override ──
-                gate_override_active = r.get("signal_to_execute") is not None and r.get("signal_to_execute") != r["signal"].signal
+                gate_override_active = (
+                    r.get("signal_to_execute") is not None
+                    and r.get("signal_to_execute") != r["signal"].signal
+                )
 
                 if (
                     (r["signal"].actionable or gate_override_active)
@@ -1825,24 +2271,36 @@ def main(
                         # Use signal_to_execute if available (test mode override), else original signal
                         signal_action = r.get("signal_to_execute", r["signal"].signal)
                         if exec_engine.has_futures_demo():
-                            fut = _stats_dict(exec_engine.create_futures_order(
-                                sym, signal_action, effective_size
-                            ))
+                            fut = _stats_dict(
+                                exec_engine.create_futures_order(
+                                    sym, signal_action, effective_size
+                                )
+                            )
                             exec_label = "FUTURES DEMO"
                         else:
-                            fut = _stats_dict(exec_engine.create_order(
-                                sym, signal_action, effective_size
-                            ))
+                            fut = _stats_dict(
+                                exec_engine.create_order(
+                                    sym, signal_action, effective_size
+                                )
+                            )
                             exec_label = "EXECUTION"
                         fut_mode = str(fut.get("mode", ""))
                         fut_id = str(fut.get("id", ""))
                         r["futures_result"] = fut
-                        log.info("[FLOW] %s EXECUTION → %s $%.2f", sym, exec_label, effective_size)
+                        log.info(
+                            "[FLOW] %s EXECUTION → %s $%.2f",
+                            sym,
+                            exec_label,
+                            effective_size,
+                        )
                         log.info(
                             "[%s] %s %s $%.2f → mode=%s id=%s",
                             exec_label,
-                            signal_action, sym, effective_size,
-                            fut_mode, fut_id,
+                            signal_action,
+                            sym,
+                            effective_size,
+                            fut_mode,
+                            fut_id,
                         )
                         _pos_registered = _register_position_from_execution(
                             fut,
@@ -1852,7 +2310,9 @@ def main(
                             effective_size,
                         )
                         if _pos_registered:
-                            log.info("[FLOW] %s POSITION → registered mode=%s", sym, fut_mode)
+                            log.info(
+                                "[FLOW] %s POSITION → registered mode=%s", sym, fut_mode
+                            )
                             # ── PROTECTIONS: Enregistre le trade pour tracking ──
                             last_trade_signal[sym] = signal_action
                             trades_this_hour[sym].append(current_time)
@@ -1891,20 +2351,31 @@ def main(
 
                 # Alerte immédiate si signal actionable (sauf si safe mode)
                 if r["signal"].actionable and not kill_switch.is_safe_mode():
-                    log.info("SIGNAL ACTIONABLE: %s score=%d %s",
-                             sym, r["signal"].score, r["signal"].signal)
+                    log.info(
+                        "SIGNAL ACTIONABLE: %s score=%d %s",
+                        sym,
+                        r["signal"].score,
+                        r["signal"].signal,
+                    )
                     _telegram(_build_alert(r, cycle))
                 elif r["signal"].actionable and kill_switch.is_safe_mode():
-                    log.info("SIGNAL ACTIONABLE (safe mode — non envoye): %s score=%d",
-                             sym, r["signal"].score)
+                    log.info(
+                        "SIGNAL ACTIONABLE (safe mode — non envoye): %s score=%d",
+                        sym,
+                        r["signal"].score,
+                    )
 
             # ── Rapport timing bootstrap vs cycle 1 ──────────────────────────
             if cycle == 1:
                 _t_cycle_1_end = time.perf_counter()
                 t_bootstrap_s = _t_bootstrap_end - _t_main_start
-                t_warmup_s    = (_t_warmup_end - _t_warmup_start) if (_t_warmup_start and _t_warmup_end) else 0.0
-                t_cycle_1_s   = _t_cycle_1_end - _t_cycle_start
-                t_total_s     = _t_cycle_1_end - _t_main_start
+                t_warmup_s = (
+                    (_t_warmup_end - _t_warmup_start)
+                    if (_t_warmup_start and _t_warmup_end)
+                    else 0.0
+                )
+                t_cycle_1_s = _t_cycle_1_end - _t_cycle_start
+                t_total_s = _t_cycle_1_end - _t_main_start
                 # Session primer: collect elapsed and estimate cycle-1 gain.
                 t_primer_s = 0.0
                 if _primer_future is not None:
@@ -1913,7 +2384,8 @@ def main(
                     except Exception:
                         t_primer_s = (
                             (time.perf_counter() - _t_primer_start)
-                            if _t_primer_start else 0.0
+                            if _t_primer_start
+                            else 0.0
                         )
                     finally:
                         if _primer_executor is not None:
@@ -1921,20 +2393,27 @@ def main(
                 log.info(
                     "[Timing] Bootstrap=%.1fs | Primer=%.1fs | Warmup=%.1fs"
                     " | Cycle1=%.1fs | Total=%.1fs | Cache_1h=%s",
-                    t_bootstrap_s, t_primer_s, t_warmup_s, t_cycle_1_s, t_total_s,
+                    t_bootstrap_s,
+                    t_primer_s,
+                    t_warmup_s,
+                    t_cycle_1_s,
+                    t_total_s,
                     "CHAUD" if prewarm_1h_enabled else "FROID",
                 )
                 if bootstrap_profile:
                     bootstrap_detail = " | ".join(
                         f"{name}={duration:.2f}s"
-                        for name, duration in sorted(bootstrap_profile, key=lambda item: item[1], reverse=True)
+                        for name, duration in sorted(
+                            bootstrap_profile, key=lambda item: item[1], reverse=True
+                        )
                     )
                     log.info("[Timing] Bootstrap detail: %s", bootstrap_detail)
                 if ADVISOR_SESSION_PRIMER and t_primer_s > 0:
                     log.info(
                         "[Timing] Gain SessionPrimer: exchange_init + load_markets (%.1fs)"
                         " effectués en parallèle du bootstrap — ~%.0fms économisés sur le cycle 1",
-                        t_primer_s, t_primer_s * 1000,
+                        t_primer_s,
+                        t_primer_s * 1000,
                     )
                 if prewarm_1h_enabled:
                     log.info(
@@ -1984,7 +2463,10 @@ def main(
                         msg += f"\n\nExchange: OK ({_to_float(ex.get('last_latency_ms', 0)):.0f}ms | uptime {_to_float(ex.get('uptime_pct', 0)):.1f}%)"
                     # Stats positions ouvertes
                     pm_stats = _stats_dict(pos_manager.stats())
-                    if pm_stats.get("open_count", 0) > 0 or pm_stats.get("closed_count", 0) > 0:
+                    if (
+                        pm_stats.get("open_count", 0) > 0
+                        or pm_stats.get("closed_count", 0) > 0
+                    ):
                         msg += (
                             f"\n\nPOSITIONS:\n"
                             f"  Ouvertes:   {pm_stats.get('open_count', 0)} | PnL ouvert: {_to_float(pm_stats.get('open_pnl_usd', 0)):+.2f}$\n"
@@ -2013,7 +2495,7 @@ def main(
 
                     # Executive Override — état du commandement
                     eo_snap = _stats_dict(executive_override.metrics_snapshot())
-                    eo_lvl  = eo_snap.get("level", "CLEAR")
+                    eo_lvl = eo_snap.get("level", "CLEAR")
                     if eo_lvl != "CLEAR":
                         msg += (
                             f"\n\nCOMMANDEMENT OVERRIDE: {eo_lvl}"
@@ -2030,7 +2512,7 @@ def main(
                     mm_stats = _stats_dict(mm.stats())
                     if mm_stats.get("total", 0) > 0:
                         last_errors = cast(list[str], mm.explain_last_mistakes(3))
-                        rules       = cast(list[str], mm.active_rules_summary())
+                        rules = cast(list[str], mm.active_rules_summary())
                         msg += (
                             f"\n\nMISTAKE MEMORY ({mm_stats.get('total', 0)} trades | "
                             f"erreur rate: {_to_float(mm_stats.get('error_rate', 0)):.0%} | "
@@ -2042,7 +2524,9 @@ def main(
                             msg += f"\n  REGLE: {rule}"
 
                     # Portfolio Brain — santé globale du portefeuille
-                    pb_health = _stats_dict(portfolio_brain.portfolio_health(pos_manager.get_open()))
+                    pb_health = _stats_dict(
+                        portfolio_brain.portfolio_health(pos_manager.get_open())
+                    )
                     msg += (
                         f"\n\nPORTFOLIO BRAIN:"
                         f"\n  Exposition: {_to_float(pb_health.get('total_exposure_pct', 0)):.1f}%"
@@ -2053,19 +2537,21 @@ def main(
                     )
 
                     # AI Chief Officer — briefing de synthese
-                    awareness_current = awareness_engine.evaluate() if awareness_engine else None
+                    awareness_current = (
+                        awareness_engine.evaluate() if awareness_engine else None
+                    )
                     coo_brief = _get_chief_officer().briefing(
-                        cycle           = cycle,
-                        symbols         = symbols,
-                        results         = results,
-                        pos_manager     = pos_manager,
-                        awareness_state = awareness_current,
-                        override        = executive_override,
-                        regret_engine   = regret_engine,
-                        mistake_memory  = mistake_memory,
-                        ranker          = ranker,
-                        meta_engine     = meta_engine,
-                        black_box       = black_box,
+                        cycle=cycle,
+                        symbols=symbols,
+                        results=results,
+                        pos_manager=pos_manager,
+                        awareness_state=awareness_current,
+                        override=executive_override,
+                        regret_engine=regret_engine,
+                        mistake_memory=mistake_memory,
+                        ranker=ranker,
+                        meta_engine=meta_engine,
+                        black_box=black_box,
                     )
                     if coo_brief:
                         _telegram(coo_brief)
@@ -2091,6 +2577,76 @@ def main(
                     _telegram(msg)
                 except Exception as report_exc:
                     log.warning("[RAPPORT] Erreur construction rapport: %s", report_exc)
+
+            # ── Snapshot live — écrit databases/live_snapshot.json chaque cycle ──
+            try:
+                from pathlib import Path as _Path
+
+                from quant_hedge_ai.dashboard.live_snapshot import (
+                    write_snapshot as _write_snap,
+                )
+
+                _snap_data = {
+                    "ts": time.time(),
+                    "cycle": cycle,
+                    "capital": real_capital,
+                    "safe_mode": kill_switch.is_safe_mode(),
+                    "exchange": exchange_monitor.snapshot(),
+                    "positions": _snapshot_list(pos_manager.snapshot()),
+                    "symbols": [
+                        {
+                            "symbol": r["symbol"],
+                            "prix": r.get("prix", 0.0),
+                            "signal": r["signal"].signal,
+                            "score": r["signal"].score,
+                            "actionable": r["signal"].actionable,
+                            "regime": r["signal"].regime,
+                            "confirmed": r["signal"].confirmed,
+                            "gate_allowed": r["gate"].allowed,
+                            "gate_reason": getattr(r["gate"], "reason", ""),
+                            "trade_allowed": r.get("trade_allowed"),
+                            "conviction_level": (
+                                r["conviction"].level.value
+                                if r.get("conviction")
+                                else None
+                            ),
+                            "conviction_score": (
+                                r["conviction"].score if r.get("conviction") else None
+                            ),
+                            "personality": (
+                                r["personality"].name if r.get("personality") else None
+                            ),
+                            "signal_to_execute": r.get("signal_to_execute"),
+                            "futures_result": r.get("futures_result"),
+                        }
+                        for r in results
+                    ],
+                }
+                _write_snap(_snap_data, _Path("databases/live_snapshot.json"))
+
+                # ── JSONL persistence — une ligne par cycle ──────────────────
+                import datetime as _dt_mod
+                import json as _json_mod
+
+                _jsonl_path = _Path("databases/cycle_data.jsonl")
+                try:
+                    if (
+                        _jsonl_path.exists()
+                        and _jsonl_path.stat().st_size > 50 * 1024 * 1024
+                    ):
+                        _archive = (
+                            _jsonl_path.parent
+                            / f"cycle_data.{_dt_mod.date.today().strftime('%Y%m%d')}.jsonl"
+                        )
+                        _jsonl_path.rename(_archive)
+                        log.info("[CycleData] Rotation → %s", _archive.name)
+                    with _jsonl_path.open("a", encoding="utf-8") as _jf:
+                        _jf.write(_json_mod.dumps(_snap_data, default=str) + "\n")
+                except Exception as _jl_exc:
+                    log.debug("[CycleData] Erreur écriture JSONL: %s", _jl_exc)
+
+            except Exception as _snap_exc:
+                log.debug("[LiveSnapshot] Erreur: %s", _snap_exc)
 
             # Watchdog fin de cycle
             watchdog.end_cycle(cycle)
@@ -2145,7 +2701,7 @@ def main(
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Advisor loop multi-symboles")
     parser.add_argument("--interval", type=int, default=300)
-    parser.add_argument("--symbols",  nargs="+", default=SYMBOLS_DEFAULT)
+    parser.add_argument("--symbols", nargs="+", default=SYMBOLS_DEFAULT)
     parser.add_argument("--max-cycles", type=int, default=None)
     args = parser.parse_args()
     main(symbols=args.symbols, interval=args.interval, max_cycles=args.max_cycles)

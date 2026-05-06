@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import logging
 import os
+import time
 
-from supervision.alert_manager import Alert, AlertManager
 from quant_hedge_ai.agents.execution.order_deduplicator import OrderDeduplicator
 from quant_hedge_ai.agents.execution.trade_logger import TradeLogger
 from quant_hedge_ai.agents.risk.session_guard import (
@@ -11,6 +11,7 @@ from quant_hedge_ai.agents.risk.session_guard import (
     SessionGuard,
     SessionHaltedError,
 )
+from supervision.alert_manager import Alert, AlertManager
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +46,7 @@ class ExecutionEngine:
         self._live = live
         self._position_manager = None
         self._exchange = None
-        self._exchange_futures = None   # futures demo séparé
+        self._exchange_futures = None  # futures demo séparé
         self._mode = "paper"
         if live:
             self._exchange = self._init_exchange()
@@ -70,18 +71,21 @@ class ExecutionEngine:
         """Initialise le client Spot (testnet ou live) selon les variables d'env."""
         try:
             import ccxt
-            api_key    = os.getenv("BINANCE_API_KEY")
+
+            api_key = os.getenv("BINANCE_API_KEY")
             api_secret = os.getenv("BINANCE_API_SECRET")
             if not api_key or not api_secret:
                 logger.warning("[ExecutionEngine] Clés spot manquantes — mode paper")
                 self._live = False
                 return None
-            exchange = ccxt.binance({
-                "apiKey": api_key,
-                "secret": api_secret,
-                "enableRateLimit": True,
-                "options": {"defaultType": "spot", "adjustForTimeDifference": True},
-            })
+            exchange = ccxt.binance(
+                {
+                    "apiKey": api_key,
+                    "secret": api_secret,
+                    "enableRateLimit": True,
+                    "options": {"defaultType": "spot", "adjustForTimeDifference": True},
+                }
+            )
             if os.getenv("BINANCE_TESTNET", "false").lower() == "true":
                 exchange.set_sandbox_mode(True)
                 self._mode = "spot_testnet"
@@ -103,17 +107,20 @@ class ExecutionEngine:
         """
         try:
             import ccxt
-            key    = os.getenv("BINANCE_FUTURES_DEMO_KEY", "")
+
+            key = os.getenv("BINANCE_FUTURES_DEMO_KEY", "")
             secret = os.getenv("BINANCE_FUTURES_DEMO_SECRET", "")
             if not key or not secret:
                 logger.debug("[ExecutionEngine] Pas de clés futures demo — ignoré")
                 return None
-            ex = ccxt.binanceusdm({
-                "apiKey": key,
-                "secret": secret,
-                "enableRateLimit": True,
-                "options": {"adjustForTimeDifference": True},
-            })
+            ex = ccxt.binanceusdm(
+                {
+                    "apiKey": key,
+                    "secret": secret,
+                    "enableRateLimit": True,
+                    "options": {"adjustForTimeDifference": True},
+                }
+            )
             ex.enable_demo_trading(True)
             # Test de connexion rapide
             bal = ex.fetch_balance()
@@ -123,6 +130,75 @@ class ExecutionEngine:
         except Exception as exc:
             logger.warning("[ExecutionEngine] Futures demo non disponible: %s", exc)
             return None
+
+    def reconnect(self) -> bool:
+        """
+        Ferme et recrée les clients CCXT spot et futures.
+        Retourne True si au moins un client est actif après reconnexion.
+        Appelé automatiquement par SelfHealingBot quand l'exchange est hors ligne.
+        """
+        t0 = time.time()
+        logger.info("[ExecutionEngine] Reconnexion en cours...")
+        was_live = self._live
+        for ex in (self._exchange, self._exchange_futures):
+            if ex is not None:
+                try:
+                    ex.close()
+                except Exception:
+                    pass
+        self._exchange = None
+        self._exchange_futures = None
+        try:
+            if was_live:
+                self._exchange = self._init_exchange()
+            self._exchange_futures = self._init_futures_demo()
+            # _init_exchange met _live=False sur erreur — restaurer pour réessais futurs
+            if was_live and self._exchange is None:
+                self._live = True
+            ok = self._exchange is not None or self._exchange_futures is not None
+            elapsed = time.time() - t0
+            if ok:
+                logger.info("[ExecutionEngine] Reconnexion réussie en %.1fs", elapsed)
+            else:
+                logger.error(
+                    "[ExecutionEngine] Reconnexion échouée — aucun client actif après %.1fs",
+                    elapsed,
+                )
+            return ok
+        except Exception as exc:
+            self._live = was_live
+            logger.error("[ExecutionEngine] Reconnexion exception: %s", exc)
+            return False
+
+    def _with_retry(self, fn, *args, **kwargs):
+        """
+        Exécute fn avec jusqu'à 3 essais (backoff 0.5s / 1s / 2s).
+        Sur 3e échec, tente une reconnexion puis un dernier essai.
+        Lève la dernière exception si tout échoue.
+        """
+        delays = (0.5, 1.0, 2.0)
+        last_exc: Exception | None = None
+        for i, delay in enumerate(delays):
+            try:
+                return fn(*args, **kwargs)
+            except Exception as exc:
+                last_exc = exc
+                logger.warning(
+                    "[ExecutionEngine] Retry %d/%d (pause %.1fs): %s",
+                    i + 1,
+                    len(delays),
+                    delay,
+                    exc,
+                )
+                time.sleep(delay)
+        logger.warning(
+            "[ExecutionEngine] 3 échecs consécutifs — reconnexion avant dernier essai"
+        )
+        try:
+            self.reconnect()
+            return fn(*args, **kwargs)
+        except Exception as exc:
+            raise exc from last_exc
 
     @classmethod
     def from_env(cls) -> "ExecutionEngine":
@@ -157,16 +233,27 @@ class ExecutionEngine:
     def fetch_available_capital(self) -> float:
         """
         Retourne le capital USDT libre sur le compte (live/testnet).
-        Fallback sur V9_INITIAL_CAPITAL si l'exchange n'est pas disponible.
+
+        - Au premier appel : si l'exchange echoue, fallback sur V9_INITIAL_CAPITAL.
+        - Aux appels suivants : si l'exchange echoue (ex : timestamp drift Binance),
+          on retourne la DERNIERE valeur connue plutot que le fallback fixe.
+          Cela evite de fabriquer un faux drawdown quand fetch_balance plante
+          temporairement (cf bug DD=89.9% / ExecutiveOverride VETO).
         """
         if self._exchange is not None:
             try:
-                bal = self._exchange.fetch_balance()
+                bal = self._with_retry(self._exchange.fetch_balance)
                 usdt = float(bal.get("free", {}).get(self._quote_asset, 0.0))
                 if usdt > 0:
+                    self._last_known_capital = usdt
                     return usdt
             except Exception as exc:
-                logger.warning("[ExecutionEngine] fetch_balance erreur: %s", exc)
+                logger.warning(
+                    "[ExecutionEngine] fetch_balance erreur après retry: %s", exc
+                )
+        last = getattr(self, "_last_known_capital", 0.0)
+        if last > 0:
+            return last
         return float(os.getenv("V9_INITIAL_CAPITAL", "1000"))
 
     def detect_quote_asset(self, symbol: str) -> str:
@@ -206,7 +293,9 @@ class ExecutionEngine:
             self._guard.check_order(symbol, action, size_usd=size)
         except (SessionHaltedError, OrderTooLargeError) as exc:
             reason = str(exc)
-            logger.warning("[ExecutionEngine] Order rejected by SessionGuard: %s", reason)
+            logger.warning(
+                "[ExecutionEngine] Order rejected by SessionGuard: %s", reason
+            )
             self._logger.log_rejected(symbol, action, size, reason)
             return {
                 "symbol": symbol,
@@ -266,8 +355,11 @@ class ExecutionEngine:
         size_usd = max(futures_min, min(futures_max, size_usd))
 
         if self._exchange_futures is None:
-            return {"symbol": symbol, "mode": "futures_unavailable",
-                    "error": "Futures demo non configuré — ajouter BINANCE_FUTURES_DEMO_KEY dans .env"}
+            return {
+                "symbol": symbol,
+                "mode": "futures_unavailable",
+                "error": "Futures demo non configuré — ajouter BINANCE_FUTURES_DEMO_KEY dans .env",
+            }
 
         side = "buy" if action.upper() == "BUY" else "sell"
         # Binance USDM perp: BTC/USDT → BTC/USDT:USDT
@@ -289,35 +381,57 @@ class ExecutionEngine:
                 except Exception:
                     pass
 
-            ticker = self._exchange_futures.fetch_ticker(ccxt_symbol)
-            price  = float(ticker["last"])
+            ticker = self._with_retry(self._exchange_futures.fetch_ticker, ccxt_symbol)
+            price = float(ticker["last"])
 
             # Limites du marché
             try:
-                markets      = self._exchange_futures.load_markets()
-                mkt          = markets.get(ccxt_symbol, {})
+                markets = self._exchange_futures.load_markets()
+                mkt = markets.get(ccxt_symbol, {})
                 amt_precision = mkt.get("precision", {}).get("amount") or 0.001
-                min_qty      = (mkt.get("limits") or {}).get("amount", {}).get("min") or 0.001
+                min_qty = (mkt.get("limits") or {}).get("amount", {}).get(
+                    "min"
+                ) or 0.001
             except Exception:
                 amt_precision = 0.001
-                min_qty       = 0.001
+                min_qty = 0.001
 
-            raw_qty  = size_usd / price
-            decimals = max(0, -int(round(_math.log10(amt_precision)))) if 0 < amt_precision < 1 else 3
-            qty      = max(min_qty, round(raw_qty, decimals))
+            raw_qty = size_usd / price
+            decimals = (
+                max(0, -int(round(_math.log10(amt_precision))))
+                if 0 < amt_precision < 1
+                else 3
+            )
+            qty = max(min_qty, round(raw_qty, decimals))
 
-            order = self._exchange_futures.create_order(ccxt_symbol, "market", side, qty)
+            order = self._with_retry(
+                self._exchange_futures.create_order, ccxt_symbol, "market", side, qty
+            )
             logger.info(
                 "[ExecutionEngine] Ordre FUTURES DEMO: %s %.4f %s @ $%.2f (lev x%d) id=%s",
-                action, qty, symbol, price, leverage, order.get("id"),
+                action,
+                qty,
+                symbol,
+                price,
+                leverage,
+                order.get("id"),
             )
-            self._logger.log({**order, "mode": "futures_demo", "usd_size": round(qty * price, 2)})
+            self._logger.log(
+                {**order, "mode": "futures_demo", "usd_size": round(qty * price, 2)}
+            )
             return {**order, "mode": "futures_demo", "usd_size": round(qty * price, 2)}
 
         except Exception as exc:
-            logger.error("[ExecutionEngine] Echec futures demo %s %s: %s", action, symbol, exc)
-            return {"symbol": symbol, "action": action, "size": size_usd,
-                    "mode": "futures_failed", "error": str(exc)}
+            logger.error(
+                "[ExecutionEngine] Echec futures demo %s %s: %s", action, symbol, exc
+            )
+            return {
+                "symbol": symbol,
+                "action": action,
+                "size": size_usd,
+                "mode": "futures_failed",
+                "error": str(exc),
+            }
 
     # ── Live order placement ───────────────────────────────────────────────────
 
@@ -330,26 +444,28 @@ class ExecutionEngine:
         ccxt_symbol = symbol.replace("USDT", "/USDT") if "/" not in symbol else symbol
         try:
             # Récupérer le prix actuel et les limites du marché
-            ticker  = self._exchange.fetch_ticker(ccxt_symbol)
-            price   = float(ticker["last"])
+            ticker = self._with_retry(self._exchange.fetch_ticker, ccxt_symbol)
+            price = float(ticker["last"])
 
             # Charger les limites de marché (min notionnel, précision)
             try:
                 markets = self._exchange.load_markets()
-                mkt     = markets.get(ccxt_symbol, {})
+                mkt = markets.get(ccxt_symbol, {})
                 min_notional = float(
                     (mkt.get("limits") or {}).get("cost", {}).get("min") or 5.0
                 )
                 amt_precision = mkt.get("precision", {}).get("amount") or 1e-5
             except Exception:
-                min_notional  = 5.0
+                min_notional = 5.0
                 amt_precision = 1e-5
 
             # Vérifier que le montant USD couvre le minimum notionnel
             if size < min_notional:
                 logger.warning(
                     "[ExecutionEngine] Montant $%.2f < minimum notionnel $%.2f pour %s — ajusté",
-                    size, min_notional, ccxt_symbol,
+                    size,
+                    min_notional,
+                    ccxt_symbol,
                 )
                 size = min_notional * 1.05  # 5% de marge au-dessus du minimum
 
@@ -361,24 +477,38 @@ class ExecutionEngine:
                 if available < size:
                     logger.warning(
                         "[ExecutionEngine] Balance %s insuffisante (%.2f < %.2f USD) — taille réduite",
-                        quote, available, size,
+                        quote,
+                        available,
+                        size,
                     )
                     size = available * 0.95  # utilise 95% de la balance disponible
 
             # Convertir USD → quantité de base avec la bonne précision
             import math as _math
+
             raw_qty = size / price
             # Arrondir à la précision du marché (ex: 1e-5 → 5 décimales)
-            decimals = max(0, -int(round(_math.log10(amt_precision)))) if 0 < amt_precision < 1 else 5
+            decimals = (
+                max(0, -int(round(_math.log10(amt_precision))))
+                if 0 < amt_precision < 1
+                else 5
+            )
             qty = round(raw_qty, decimals)
 
             if qty <= 0:
                 raise ValueError(f"Quantité calculée nulle ou négative: {qty}")
 
-            order = self._exchange.create_order(ccxt_symbol, "market", side, qty)
+            order = self._with_retry(
+                self._exchange.create_order, ccxt_symbol, "market", side, qty
+            )
             logger.info(
                 "[ExecutionEngine] Ordre live: %s %.8f %s @ $%.2f (USD: $%.2f) id=%s",
-                action, qty, symbol, price, qty * price, order.get("id"),
+                action,
+                qty,
+                symbol,
+                price,
+                qty * price,
+                order.get("id"),
             )
             return {**order, "mode": "live", "usd_size": round(qty * price, 4)}
 
@@ -397,6 +527,7 @@ class ExecutionEngine:
     @staticmethod
     def _log10_safe(x: float) -> float:
         import math
+
         return math.log10(x) if x > 0 else 0.0
 
     # ── Observability ──────────────────────────────────────────────────────────

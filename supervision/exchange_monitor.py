@@ -33,29 +33,29 @@ import requests
 log = logging.getLogger("exchange_monitor")
 
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
-TELEGRAM_CHAT  = os.getenv("TELEGRAM_CHAT_ID", "")
+TELEGRAM_CHAT = os.getenv("TELEGRAM_CHAT_ID", "")
 
 SMTP_SERVER = os.getenv("EMAIL_SMTP_SERVER", "smtp.gmail.com")
-SMTP_PORT   = int(os.getenv("EMAIL_SMTP_PORT", "587"))
-SMTP_USER   = os.getenv("EMAIL_FROM_ADDR", "")
-SMTP_PASS   = os.getenv("EMAIL_SMTP_PASS", "")
-EMAIL_TO    = os.getenv("EMAIL_TO_ADDR", "ia.strategy.support@gmail.com")
+SMTP_PORT = int(os.getenv("EMAIL_SMTP_PORT", "587"))
+SMTP_USER = os.getenv("EMAIL_FROM_ADDR", "")
+SMTP_PASS = os.getenv("EMAIL_SMTP_PASS", "")
+EMAIL_TO = os.getenv("EMAIL_TO_ADDR", "ia.strategy.support@gmail.com")
 
-CHECK_INTERVAL   = 60    # secondes entre chaque ping
-WARN_AFTER       = 2     # checks échoués avant alerte Telegram
-CRITICAL_AFTER   = 5     # checks échoués avant alerte mail
+CHECK_INTERVAL = int(os.getenv("EXCHANGE_HEARTBEAT_S", "15"))
+WARN_AFTER = 2  # checks échoués avant alerte Telegram
+CRITICAL_AFTER = 5  # checks échoués avant alerte mail
 
 
 @dataclass
 class ExchangeHealth:
-    healthy: bool           = True
-    last_check_ts: float    = 0.0
-    last_latency_ms: float  = 0.0
+    healthy: bool = True
+    last_check_ts: float = 0.0
+    last_latency_ms: float = 0.0
     consecutive_failures: int = 0
-    total_checks: int       = 0
-    total_failures: int     = 0
-    last_error: str         = ""
-    latency_history: list   = field(default_factory=list)  # dernières 20 latences
+    total_checks: int = 0
+    total_failures: int = 0
+    last_error: str = ""
+    latency_history: list = field(default_factory=list)  # dernières 20 latences
 
     def record_success(self, latency_ms: float) -> None:
         self.healthy = True
@@ -97,15 +97,15 @@ class ExchangeMonitor:
         on_recovered: Callable | None = None,
     ) -> None:
         self._health = ExchangeHealth()
-        self._lock   = threading.Lock()
+        self._lock = threading.Lock()
         self._thread: threading.Thread | None = None
         self._running = False
-        self._alerted_warn     = False
+        self._alerted_warn = False
         self._alerted_critical = False
-        self._was_offline      = False
+        self._was_offline = False
 
         # Callbacks optionnels
-        self._on_offline   = on_offline
+        self._on_offline = on_offline
         self._on_recovered = on_recovered
 
     # ── API publique ──────────────────────────────────────────────────────────
@@ -131,13 +131,13 @@ class ExchangeMonitor:
         with self._lock:
             h = self._health
             return {
-                "healthy":              h.healthy,
+                "healthy": h.healthy,
                 "consecutive_failures": h.consecutive_failures,
-                "last_latency_ms":      round(h.last_latency_ms, 1),
-                "avg_latency_ms":       round(h.avg_latency_ms, 1),
-                "uptime_pct":           round(h.uptime_pct, 1),
-                "total_checks":         h.total_checks,
-                "last_error":           h.last_error,
+                "last_latency_ms": round(h.last_latency_ms, 1),
+                "avg_latency_ms": round(h.avg_latency_ms, 1),
+                "uptime_pct": round(h.uptime_pct, 1),
+                "total_checks": h.total_checks,
+                "last_error": h.last_error,
             }
 
     # ── Boucle de surveillance ────────────────────────────────────────────────
@@ -157,8 +157,8 @@ class ExchangeMonitor:
             testnet = os.getenv("BINANCE_TESTNET", "false").lower() == "true"
             base_url = (
                 "https://testnet.binance.vision"
-                if testnet else
-                "https://api.binance.com"
+                if testnet
+                else "https://api.binance.com"
             )
             r = requests.get(f"{base_url}/api/v3/ping", timeout=8)
             latency_ms = (time.time() - t0) * 1000
@@ -250,8 +250,8 @@ class ExchangeMonitor:
         try:
             msg = MIMEMultipart("alternative")
             msg["Subject"] = subject
-            msg["From"]    = SMTP_USER
-            msg["To"]      = EMAIL_TO
+            msg["From"] = SMTP_USER
+            msg["To"] = EMAIL_TO
             msg.attach(MIMEText(body, "plain", "utf-8"))
             with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as smtp:
                 smtp.ehlo()
