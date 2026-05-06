@@ -1933,100 +1933,91 @@ def main(
 
             # Rapport périodique toutes les N cycles
             if cycle % NOTIFY_EVERY == 0:
-                msg = _build_summary(results, cycle)
-                # Indiquer safe mode dans le rapport
-                if kill_switch.is_safe_mode():
-                    msg += "\n\n[SAFE MODE] Alertes actions suspendues."
-                # Etat exchange monitor
-                ex = _stats_dict(exchange_monitor.snapshot())
-                if not ex["healthy"]:
-                    msg += (
-                        f"\n\nEXCHANGE HORS LIGNE — {ex['consecutive_failures']} echecs\n"
-                        f"Derniere erreur: {ex['last_error']}"
-                    )
-                else:
-                    msg += f"\n\nExchange: OK ({ex['last_latency_ms']:.0f}ms | uptime {ex['uptime_pct']:.1f}%)"
-                # Stats positions ouvertes
-                pm_stats = _stats_dict(pos_manager.stats())
-                if pm_stats["open_count"] > 0 or pm_stats["closed_count"] > 0:
-                    msg += (
-                        f"\n\nPOSITIONS:\n"
-                        f"  Ouvertes:   {pm_stats['open_count']} | PnL ouvert: {pm_stats['open_pnl_usd']:+.2f}$\n"
-                        f"  Fermees:    {pm_stats['closed_count']} | PnL realise: {pm_stats['total_pnl_usd']:+.2f}$\n"
-                        f"  Win rate:   {pm_stats['win_rate']:.0%}"
-                    )
-                    # Détail positions ouvertes
-                    for snap in _snapshot_list(pos_manager.snapshot()):
-                        dist = snap["liq_dist_pct"]
-                        liq_warn = f" LIQ RISK {dist:.0f}%!" if dist < 10 else ""
+                try:
+                    msg = _build_summary(results, cycle)
+                    # Indiquer safe mode dans le rapport
+                    if kill_switch.is_safe_mode():
+                        msg += "\n\n[SAFE MODE] Alertes actions suspendues."
+                    # Etat exchange monitor
+                    ex = _stats_dict(exchange_monitor.snapshot())
+                    if not ex.get("healthy", True):
                         msg += (
-                            f"\n  {snap['side'].upper()} {snap['symbol']} "
-                            f"entry=${snap['entry']:.0f} | PnL {snap['pnl_usd']:+.1f}$ "
-                            f"({snap['pnl_pct']:+.1f}%){liq_warn}"
+                            f"\n\nEXCHANGE HORS LIGNE — {ex.get('consecutive_failures', 0)} echecs\n"
+                            f"Derniere erreur: {ex.get('last_error', '?')}"
+                        )
+                    else:
+                        msg += f"\n\nExchange: OK ({_to_float(ex.get('last_latency_ms', 0)):.0f}ms | uptime {_to_float(ex.get('uptime_pct', 0)):.1f}%)"
+                    # Stats positions ouvertes
+                    pm_stats = _stats_dict(pos_manager.stats())
+                    if pm_stats.get("open_count", 0) > 0 or pm_stats.get("closed_count", 0) > 0:
+                        msg += (
+                            f"\n\nPOSITIONS:\n"
+                            f"  Ouvertes:   {pm_stats.get('open_count', 0)} | PnL ouvert: {_to_float(pm_stats.get('open_pnl_usd', 0)):+.2f}$\n"
+                            f"  Fermees:    {pm_stats.get('closed_count', 0)} | PnL realise: {_to_float(pm_stats.get('total_pnl_usd', 0)):+.2f}$\n"
+                            f"  Win rate:   {_to_float(pm_stats.get('win_rate', 0.0)):.0%}"
+                        )
+                        # Détail positions ouvertes
+                        for snap in _snapshot_list(pos_manager.snapshot()):
+                            dist = snap.get("liq_dist_pct", 100)
+                            liq_warn = f" LIQ RISK {dist:.0f}%!" if dist < 10 else ""
+                            msg += (
+                                f"\n  {snap.get('side', '?').upper()} {snap.get('symbol', '?')} "
+                                f"entry=${_to_float(snap.get('entry', 0)):.0f} | PnL {_to_float(snap.get('pnl_usd', 0)):+.1f}$ "
+                                f"({_to_float(snap.get('pnl_pct', 0)):+.1f}%){liq_warn}"
+                            )
+
+                    # Ajouter stats shadow si des trades ont été simulés
+                    shadow_stats = _stats_dict(shadow.stats())
+                    if shadow_stats.get("n_trades", 0) > 0:
+                        msg += (
+                            f"\n\nSHADOW STATS ({shadow_stats.get('n_trades', 0)} trades simules):\n"
+                            f"  Slippage moy: {_to_float(shadow_stats.get('avg_slippage_pct', 0)):.3f}%\n"
+                            f"  Latence moy:  {_to_float(shadow_stats.get('avg_latency_ms', 0)):.1f}ms\n"
+                            f"  Par regime:   {shadow_stats.get('by_regime', '?')}"
                         )
 
-                # Ajouter stats shadow si des trades ont été simulés
-                shadow_stats = _stats_dict(shadow.stats())
-                if shadow_stats.get("n_trades", 0) > 0:
-                    msg += (
-                        f"\n\nSHADOW STATS ({shadow_stats['n_trades']} trades simules):\n"
-                        f"  Slippage moy: {shadow_stats['avg_slippage_pct']:.3f}%\n"
-                        f"  Latence moy:  {shadow_stats['avg_latency_ms']:.1f}ms\n"
-                        f"  Par regime:   {shadow_stats['by_regime']}"
-                    )
-
-                # Executive Override — état du commandement
-                try:
+                    # Executive Override — état du commandement
                     eo_snap = _stats_dict(executive_override.metrics_snapshot())
                     eo_lvl  = eo_snap.get("level", "CLEAR")
                     if eo_lvl != "CLEAR":
                         msg += (
                             f"\n\nCOMMANDEMENT OVERRIDE: {eo_lvl}"
-                            f"\n  DD: -{eo_snap['drawdown_pct']:.1f}%"
-                            f" | Daily: -{eo_snap['daily_loss_pct']:.1f}%"
-                            f" | Streak: {eo_snap['loss_streak']}"
-                            f" | Taille: x{eo_snap['size_factor']:.0%}"
+                            f"\n  DD: -{_to_float(eo_snap.get('drawdown_pct', 0)):.1f}%"
+                            f" | Daily: -{_to_float(eo_snap.get('daily_loss_pct', 0)):.1f}%"
+                            f" | Streak: {eo_snap.get('loss_streak', 0)}"
+                            f" | Taille: x{_to_float(eo_snap.get('size_factor', 1.0)):.0%}"
                         )
                     else:
                         msg += f"\n\nCOMMANDEMENT: CLEAR | Taille x100%"
-                except Exception:
-                    pass
 
-                # Mistake Memory — dernières erreurs + règles actives
-                try:
+                    # Mistake Memory — dernières erreurs + règles actives
                     mm = _get_mistake_memory()
                     mm_stats = _stats_dict(mm.stats())
                     if mm_stats.get("total", 0) > 0:
                         last_errors = cast(list[str], mm.explain_last_mistakes(3))
                         rules       = cast(list[str], mm.active_rules_summary())
                         msg += (
-                            f"\n\nMISTAKE MEMORY ({mm_stats['total']} trades | "
-                            f"erreur rate: {mm_stats['error_rate']:.0%} | "
-                            f"{mm_stats['rules_active']} règles actives)"
+                            f"\n\nMISTAKE MEMORY ({mm_stats.get('total', 0)} trades | "
+                            f"erreur rate: {_to_float(mm_stats.get('error_rate', 0)):.0%} | "
+                            f"{mm_stats.get('rules_active', 0)} règles actives)"
                         )
                         for err in last_errors:
                             msg += f"\n  {err}"
                         for rule in rules[:3]:
                             msg += f"\n  REGLE: {rule}"
-                except Exception:
-                    pass
 
-                # Portfolio Brain — santé globale du portefeuille
-                try:
+                    # Portfolio Brain — santé globale du portefeuille
                     pb_health = _stats_dict(portfolio_brain.portfolio_health(pos_manager.get_open()))
                     msg += (
                         f"\n\nPORTFOLIO BRAIN:"
-                        f"\n  Exposition: {pb_health['total_exposure_pct']:.1f}%"
-                        f" | Libre: ${pb_health['free_capital']:.0f}"
-                        f"\n  Positions: {pb_health['n_positions']}"
-                        f" | Corr risk: {pb_health['correlation_risk']:.1f}%"
-                        f"\n  PnL ouvert: {pb_health['open_pnl_usd']:+.2f}$"
+                        f"\n  Exposition: {_to_float(pb_health.get('total_exposure_pct', 0)):.1f}%"
+                        f" | Libre: ${_to_float(pb_health.get('free_capital', 0)):.0f}"
+                        f"\n  Positions: {pb_health.get('n_positions', 0)}"
+                        f" | Corr risk: {_to_float(pb_health.get('correlation_risk', 0)):.1f}%"
+                        f"\n  PnL ouvert: {_to_float(pb_health.get('open_pnl_usd', 0)):+.2f}$"
                     )
-                except Exception:
-                    pass
 
-                # AI Chief Officer — briefing de synthese
-                try:
+                    # AI Chief Officer — briefing de synthese
                     awareness_current = awareness_engine.evaluate() if awareness_engine else None
                     coo_brief = _get_chief_officer().briefing(
                         cycle           = cycle,
@@ -2043,28 +2034,28 @@ def main(
                     )
                     if coo_brief:
                         _telegram(coo_brief)
-                except Exception:
-                    pass
 
-                # Meta-Strategy + Ranker — personnalité active + top stratégies
-                current_personality = meta_engine.current_personality()
-                if current_personality is not None:
-                    p = current_personality
-                    msg += (
-                        f"\n\nMETA-STRATEGY: {p.name}"
-                        f"\n  Taille: x{p.order_size_factor:.1f} | "
-                        f"TP:{p.tp_pct:.0%} SL:{p.sl_pct:.0%}"
-                    )
-                top3 = cast(list[JSONDict], ranker.leaderboard(3))
-                if top3:
-                    msg += "\n\nTOP STRATEGIES:"
-                    for i, s in enumerate(top3, 1):
+                    # Meta-Strategy + Ranker — personnalité active + top stratégies
+                    current_personality = meta_engine.current_personality()
+                    if current_personality is not None:
+                        p = current_personality
                         msg += (
-                            f"\n  #{i} {s['name']}/{s['regime']} "
-                            f"score={s['composite']:.0f} wr={s['win_rate']:.0%} "
-                            f"sharpe={s['avg_sharpe']:.2f}"
+                            f"\n\nMETA-STRATEGY: {p.name}"
+                            f"\n  Taille: x{p.order_size_factor:.1f} | "
+                            f"TP:{p.tp_pct:.0%} SL:{p.sl_pct:.0%}"
                         )
-                _telegram(msg)
+                    top3 = cast(list[JSONDict], ranker.leaderboard(3))
+                    if top3:
+                        msg += "\n\nTOP STRATEGIES:"
+                        for i, s in enumerate(top3, 1):
+                            msg += (
+                                f"\n  #{i} {s.get('name', '?')}/{s.get('regime', '?')} "
+                                f"score={_to_float(s.get('composite', 0)):.0f} wr={_to_float(s.get('win_rate', 0.0)):.0%} "
+                                f"sharpe={_to_float(s.get('avg_sharpe', 0.0)):.2f}"
+                            )
+                    _telegram(msg)
+                except Exception as report_exc:
+                    log.warning("[RAPPORT] Erreur construction rapport: %s", report_exc)
 
             # Watchdog fin de cycle
             watchdog.end_cycle(cycle)
