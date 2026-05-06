@@ -22,6 +22,7 @@ def main():
     env["FORCE_TEST"] = "true"
     env["V9_ADVISOR_ONLY"] = "false"  # ← Active vraie exécution
     env["GATE_MIN_SCORE_OVERRIDE"] = "50"  # ← Allow trades at score 50+ (normally 70)
+    env["FORCE_TEST_EXECUTION"] = "true"  # ← Bypass conviction + other layers
 
     # Symbole + sizing test
     env["TEST_SYMBOLS"] = "BTCUSDT"

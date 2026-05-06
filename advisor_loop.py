@@ -605,6 +605,20 @@ def analyze_symbol(
     _mm_ok         = mm_check is None or bool(mm_check)
     _eo_ok         = eo_verdict is None or bool(eo_verdict)
     _radar_ok      = radar_report is None or radar_report.trade_allowed
+
+    # ── FORCE_TEST_EXECUTION — bypass all checks except gate/signal ──
+    force_test_execution = os.getenv("FORCE_TEST_EXECUTION", "false").lower() == "true"
+    if force_test_execution and gate_result.allowed and signal.score >= min_score_override:
+        _awareness_ok = True
+        _conviction_ok = True
+        _notrade_ok = True
+        _pb_ok = True
+        _cae_ok = True
+        _mm_ok = True
+        _eo_ok = True
+        _radar_ok = True
+        log.info("[FORCE_TEST_EXECUTION] Bypass all layers — signal only")
+
     # V2 arbitration : si disponible, son verdict remplace la logique dispersée
     if arbitration_result is not None:
         from quant_hedge_ai.agents.intelligence.v2.decision_arbitrator import ArbitrationDecision
