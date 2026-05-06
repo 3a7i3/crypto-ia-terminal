@@ -421,7 +421,6 @@ def analyze_symbol(
     if min_score_override > 0 and signal.score >= min_score_override:
         # Override gate pour mode test — permet de trader avec score < 70
         gate_result.allowed = True
-        signal.actionable = True
         # Force BUY signal pour tester (pas HOLD)
         if signal.signal == "HOLD":
             signal_to_execute = "BUY"
@@ -1798,8 +1797,11 @@ def main(
                 if protection_blocks:
                     log.info("[PROTECTION] %s BLOQUE par: %s", sym, " | ".join(protection_blocks))
 
+                # ── Test mode check: allow execution even if signal.actionable=False if gate override ──
+                gate_override_active = r.get("signal_to_execute") is not None and r.get("signal_to_execute") != r["signal"].signal
+
                 if (
-                    r["signal"].actionable
+                    (r["signal"].actionable or gate_override_active)
                     and r.get("trade_allowed", r["gate"].allowed)
                     and not advisor_only
                     and not kill_switch.is_safe_mode()
