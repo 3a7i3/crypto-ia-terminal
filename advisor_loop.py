@@ -417,10 +417,18 @@ def analyze_symbol(
 
     # ── TEST MODE — réduire seuil de score pour forcer des trades faibles ──
     min_score_override = float(os.getenv("GATE_MIN_SCORE_OVERRIDE", "0"))
-    if min_score_override > 0 and signal.score >= min_score_override and signal.signal != "HOLD":
+    signal_to_execute = signal.signal  # Default: use original signal
+    if min_score_override > 0 and signal.score >= min_score_override:
         # Override gate pour mode test — permet de trader avec score < 70
         gate_result.allowed = True
-        log.info("[GATE_OVERRIDE] Score %.0f >= override %.0f — ALLOWED", signal.score, min_score_override)
+        signal.actionable = True
+        # Force BUY signal pour tester (pas HOLD)
+        if signal.signal == "HOLD":
+            signal_to_execute = "BUY"
+            log.info("[GATE_OVERRIDE] Score %.0f >= override %.0f → force BUY (was HOLD)",
+                     signal.score, min_score_override)
+        else:
+            signal_to_execute = signal.signal
 
     log.info("[FLOW] %s GATE → %s",
              symbol, "OK" if gate_result.allowed else f"BLOQUÉ({getattr(gate_result, 'reason', '?')})")
@@ -726,6 +734,7 @@ def analyze_symbol(
         "n_1h":             len(candles_1h),
         "n_4h":             len(mtf_candles.get("4h", [])),
         "n_1d":             len(mtf_candles.get("1d", [])),
+        "signal_to_execute": signal_to_execute,  # ← Override signal (for test mode)
     }
 
 
@@ -1797,14 +1806,16 @@ def main(
                     and not protection_blocks  # ← CRITICAL: skip si protections activées
                 ):
                     try:
+                        # Use signal_to_execute if available (test mode override), else original signal
+                        signal_action = r.get("signal_to_execute", r["signal"].signal)
                         if exec_engine.has_futures_demo():
                             fut = _stats_dict(exec_engine.create_futures_order(
-                                sym, r["signal"].signal, effective_size
+                                sym, signal_action, effective_size
                             ))
                             exec_label = "FUTURES DEMO"
                         else:
                             fut = _stats_dict(exec_engine.create_order(
-                                sym, r["signal"].signal, effective_size
+                                sym, signal_action, effective_size
                             ))
                             exec_label = "EXECUTION"
                         fut_mode = str(fut.get("mode", ""))
@@ -1814,20 +1825,20 @@ def main(
                         log.info(
                             "[%s] %s %s $%.2f → mode=%s id=%s",
                             exec_label,
-                            r["signal"].signal, sym, effective_size,
+                            signal_action, sym, effective_size,
                             fut_mode, fut_id,
                         )
                         _pos_registered = _register_position_from_execution(
                             fut,
                             r,
                             sym,
-                            r["signal"].signal,
+                            signal_action,
                             effective_size,
                         )
                         if _pos_registered:
                             log.info("[FLOW] %s POSITION → registered mode=%s", sym, fut_mode)
                             # ── PROTECTIONS: Enregistre le trade pour tracking ──
-                            last_trade_signal[sym] = r["signal"].signal
+                            last_trade_signal[sym] = signal_action
                             trades_this_hour[sym].append(current_time)
                         elif fut_mode in {"futures_failed", "live_failed"}:
                             _consecutive_losses["value"] += 1
