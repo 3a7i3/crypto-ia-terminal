@@ -21,6 +21,7 @@ def main():
     # Mode test
     env["FORCE_TEST"] = "true"
     env["V9_ADVISOR_ONLY"] = "false"  # ← Active vraie exécution
+    env["GATE_MIN_SCORE_OVERRIDE"] = "50"  # ← Allow trades at score 50+ (normally 70)
 
     # Symbole + sizing test
     env["TEST_SYMBOLS"] = "BTCUSDT"

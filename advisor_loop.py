@@ -414,6 +414,14 @@ def analyze_symbol(
     # Risk gate
     with watchdog.measure("risk"):
         gate_result = gate.check(signal, portfolio_drawdown=0.0, order_size_usd=order_size_usd)
+
+    # ── TEST MODE — réduire seuil de score pour forcer des trades faibles ──
+    min_score_override = float(os.getenv("GATE_MIN_SCORE_OVERRIDE", "0"))
+    if min_score_override > 0 and signal.score >= min_score_override and signal.signal != "HOLD":
+        # Override gate pour mode test — permet de trader avec score < 70
+        gate_result.allowed = True
+        log.info("[GATE_OVERRIDE] Score %.0f >= override %.0f — ALLOWED", signal.score, min_score_override)
+
     log.info("[FLOW] %s GATE → %s",
              symbol, "OK" if gate_result.allowed else f"BLOQUÉ({getattr(gate_result, 'reason', '?')})")
 

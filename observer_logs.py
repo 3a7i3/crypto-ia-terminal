@@ -44,6 +44,24 @@ def monitor_logs(log_file: str = "logs/advisor_loop.log", check_interval: float 
                     continue
 
                 # ── EXTRACTION PATTERNS ─────────────────────────────────────────
+                # Signals
+                if "[LSE]" in line and "score=" in line:
+                    import re
+                    match = re.search(r"score=(\d+)\s+signal=(\w+)", line)
+                    if match:
+                        score, signal = match.group(1), match.group(2)
+                        stats[f"signal_{signal}"] = stats.get(f"signal_{signal}", 0) + 1
+                        if signal != "HOLD":
+                            print(f"  📊 SIGNAL: {signal} score={score}")
+
+                # Gate decisions
+                if "[FLOW]" in line and "GATE" in line:
+                    if "OK" in line:
+                        stats["gate_allowed"] += 1
+                        print(f"  ✓ GATE ALLOWED")
+                    elif "BLOQUE" in line:
+                        stats["gate_blocked"] += 1
+
                 # Trade execution
                 if "[EXECUTION]" in line or "[FUTURES DEMO]" in line:
                     if "BUY" in line:
@@ -84,6 +102,11 @@ def monitor_logs(log_file: str = "logs/advisor_loop.log", check_interval: float 
                         stats["block_max_trades"] += 1
                         print(f"  🔒 MAX TRADES BLOCK")
 
+                # Gate override
+                elif "[GATE_OVERRIDE]" in line:
+                    stats["gate_overrides"] += 1
+                    print(f"  ⚡ GATE OVERRIDE (test mode)")
+
                 # Dedup checks
                 elif "dedup" in line.lower():
                     stats["dedup_checks"] += 1
@@ -97,10 +120,12 @@ def monitor_logs(log_file: str = "logs/advisor_loop.log", check_interval: float 
                     stats["errors"] += 1
                     print(f"  ❌ ERROR: {line.strip()[:80]}")
 
-                # Print every 20 seconds summary
-                if sum(stats.values()) % 100 == 0:
+                # Print every 50 updates summary
+                if sum(stats.values()) % 50 == 0:
                     elapsed = datetime.now().strftime("%H:%M:%S")
-                    print(f"\n[{elapsed}] STATS:")
+                    print(f"\n[{elapsed}] SUMMARY:")
+                    print(f"  Signals: BUY={stats.get('signal_BUY', 0)} SELL={stats.get('signal_SELL', 0)} HOLD={stats.get('signal_HOLD', 0)}")
+                    print(f"  Gate: Allowed={stats.get('gate_allowed', 0)} Blocked={stats.get('gate_blocked', 0)} Overrides={stats.get('gate_overrides', 0)}")
                     print(f"  Trades: BUY={stats['trades_buy']} SELL={stats['trades_sell']}")
                     print(f"  Exits: TP={stats['tp_reached']} SL={stats['sl_triggered']}")
                     print(f"  Closed: {stats['positions_closed']}")
