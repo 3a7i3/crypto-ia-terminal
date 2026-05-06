@@ -10,13 +10,16 @@ Usage :
     validator = WalkForwardValidator()
     result = validator.validate(strategy, candles_2_years)
     if result.is_overfit:
-        print(f"Overfitting détecté — Sharpe IS={result.sharpe_in:.2f} OOS={result.sharpe_out:.2f}")
+        print(
+            "Overfitting détecté — "
+            f"Sharpe IS={result.sharpe_in:.2f} "
+            f"OOS={result.sharpe_out:.2f}"
+        )
 """
 
 from __future__ import annotations
 
 import logging
-import math
 from dataclasses import dataclass, field
 
 logger = logging.getLogger(__name__)
@@ -43,7 +46,7 @@ class WalkForwardResult:
 
     # Verdict
     is_overfit: bool = False
-    overfit_score: float = 0.0   # 0 = pas d'overfit, 1 = overfit total
+    overfit_score: float = 0.0  # 0 = pas d'overfit, 1 = overfit total
     verdict: str = "unknown"
 
     def as_dict(self) -> dict:
@@ -156,7 +159,9 @@ class WalkForwardValidator:
         # Critère 4 : drawdown OOS >> drawdown IS
         if r.drawdown_in > 0 and r.drawdown_out > r.drawdown_in * 2:
             score += 0.1
-            reasons.append(f"Drawdown IS={r.drawdown_in:.1%} → OOS={r.drawdown_out:.1%}")
+            reasons.append(
+                f"Drawdown IS={r.drawdown_in:.1%} → OOS={r.drawdown_out:.1%}"
+            )
 
         score = min(score, 1.0)
         is_overfit = score >= 0.5
@@ -171,7 +176,12 @@ class WalkForwardValidator:
             verdict = "OVERFIT"
 
         if reasons:
-            logger.debug("[WalkForward] %s score=%.2f — %s", verdict, score, ", ".join(reasons))
+            logger.debug(
+                "[WalkForward] %s score=%.2f — %s",
+                verdict,
+                score,
+                ", ".join(reasons),
+            )
 
         return score, is_overfit, verdict
 

@@ -3,10 +3,7 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 from unittest.mock import MagicMock, patch
-
-import pytest
 
 from supervision.alert_manager import Alert, AlertManager
 from supervision.notifications.multi_notifier import MultiNotifier

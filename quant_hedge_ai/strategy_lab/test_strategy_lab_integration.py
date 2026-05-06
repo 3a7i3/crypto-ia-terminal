@@ -7,7 +7,6 @@ import unittest
 from quant_hedge_ai.strategy_lab.backtest_launcher import BacktestLauncher
 from quant_hedge_ai.strategy_lab.generator import StrategyGenerator
 from quant_hedge_ai.strategy_lab.parameter_space import ParameterSpace
-from quant_hedge_ai.strategy_lab.ranker import StrategyRanker
 from quant_hedge_ai.strategy_lab.signal_builder import SignalBuilder
 from quant_hedge_ai.strategy_lab.strategy_db import StrategyDatabase
 from quant_hedge_ai.strategy_lab.templates import StrategyTemplate
@@ -41,7 +40,7 @@ class TestStrategyLabIntegration(unittest.TestCase):
         features = [f"momentum_{i}" for i in range(20)]
         templates = ["momentum"]
         generator = StrategyGenerator(features, templates)
-        combos = generator.generate()
+        generator.generate()
         param_space = ParameterSpace("momentum")
         grid = param_space.get_grid()
         logic = "IF momentum_0 > {threshold}: BUY ELSE: HOLD"

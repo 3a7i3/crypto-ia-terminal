@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-import sys
-from pathlib import Path
-
 from quant_hedge_ai.ai_evolution import StrategyMemoryStore
 from quant_hedge_ai.strategy_factory import StrategyFactory
 from quant_hedge_ai.strategy_factory.bot_doctor_validator import \

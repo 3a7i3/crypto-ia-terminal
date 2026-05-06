@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import sys
 
 if __name__ != "__main__" and (
@@ -27,11 +29,13 @@ Run:
         cd quant-hedge-ai
                 cd quant_hedge_ai
         panel serve dashboard/dashboard_quant_terminal.py --show --port 5010
+
+Tutoriel d'utilisation:
+    Lancez le panel puis utilisez la navigation laterale pour explorer les
+    sections signaux, risk engine, scoreboard et system metrics.
 """
 
-from __future__ import annotations
-
-import json
+import importlib
 import random
 import sys
 import time
@@ -97,13 +101,19 @@ COINS_TOP = [
 
     **📚 Documentation enrichie / Enhanced Docs**
 
-    - [README_CONSOLIDATED.md](README_CONSOLIDATED.md) — Guide d’installation, configuration, lancement rapide, FAQ, bonnes pratiques
-    - [DASHBOARD_USAGE_TEMPLATES.md](DASHBOARD_USAGE_TEMPLATES.md) — Exemples d’utilisation pour chaque dashboard (Panel/Streamlit)
-    - [ACTION_PLAN_CHECKLIST.md](ACTION_PLAN_CHECKLIST.md) — Plan d’action détaillé pour finaliser et maintenir le système
+    - [README_CONSOLIDATED.md](README_CONSOLIDATED.md) — Guide d’installation,
+      configuration, lancement rapide, FAQ, bonnes pratiques
+    - [DASHBOARD_USAGE_TEMPLATES.md](DASHBOARD_USAGE_TEMPLATES.md) — Exemples
+      d’utilisation pour chaque dashboard (Panel/Streamlit)
+    - [ACTION_PLAN_CHECKLIST.md](ACTION_PLAN_CHECKLIST.md) — Plan d’action
+      détaillé pour finaliser et maintenir le système
 
-    *Conseil : commencez par le README_CONSOLIDATED.md pour une vue d’ensemble, puis utilisez les templates et le plan d’action pour accélérer votre onboarding ou vos évolutions.*
+    *Conseil : commencez par le README_CONSOLIDATED.md pour une vue d’ensemble,
+    puis utilisez les templates et le plan d’action pour accélérer votre
+    onboarding ou vos évolutions.*
 
-    For a professional onboarding, usage examples, and a step-by-step action plan, see the above links.
+    For a professional onboarding, usage examples, and a step-by-step action
+    plan, see the above links.
     """
     # ...existing code from quant_terminal_v12.py...
     "FLOKI",
@@ -413,7 +423,11 @@ def scoreboard_df(n: int = 20) -> pd.DataFrame:
                     m = entry.get("metrics", {})
                     rows.append(
                         {
-                            "Strategy": f"{s.get('entry_indicator','?')}→{s.get('exit_indicator','?')} p{s.get('period','?')}",
+                            "Strategy": (
+                                f"{s.get('entry_indicator', '?')}→"
+                                f"{s.get('exit_indicator', '?')} "
+                                f"p{s.get('period', '?')}"
+                            ),
                             "Sharpe": round(float(m.get("sharpe", 0)), 3),
                             "WinRate%": round(float(m.get("win_rate", 0)) * 100, 1),
                             "PnL%": round(float(m.get("pnl", 0)), 2),
@@ -870,11 +884,11 @@ _sys_md = pn.pane.Markdown(
 
 
 def _sys_text() -> str:
-    ub = 6  # placeholder: cannot import psutil reliably
     return (
         f"### 🖥 System Status\n\n"
         f"| | |\n|---|---|\n"
-        f"| **V9.1 Scoreboard** | {'✅ connected' if _HAS_SCOREBOARD else '⚪ standalone'} |\n"
+        f"| **V9.1 Scoreboard** | "
+        f"{'✅ connected' if _HAS_SCOREBOARD else '⚪ standalone'} |\n"
         f"| **Cycles completed** | {_CYCLE_COUNT[0]} |\n"
         f"| **Uptime** | {uptime_str()} |\n"
         f"| **Last update** | {datetime.now().strftime('%H:%M:%S')} |\n"
@@ -960,7 +974,8 @@ pn.state.add_periodic_callback(_full_update, period=5000)  # 5 s
 
 _header_md = pn.pane.Markdown(
     f"## 🤖 Autonomous Quant AI Control Center — V12\n"
-    f"*{datetime.now().strftime('%A %d %B %Y')}  ·  Synthetic data mode  ·  V9.1 integrated*",
+    f"*{datetime.now().strftime('%A %d %B %Y')}  ·  "
+    "Synthetic data mode  ·  V9.1 integrated*",
     sizing_mode="stretch_width",
     styles={
         "background": DARK["panel"],
@@ -1076,10 +1091,6 @@ tabs = pn.Tabs(
     dynamic=True,
     sizing_mode="stretch_width",
 )
-
-
-# --- PAGE D'ACCUEIL AVEC BOUTONS ET ETAT DES PANELS ---
-import importlib
 
 
 def check_panel_status(module_name, file_hint=None):

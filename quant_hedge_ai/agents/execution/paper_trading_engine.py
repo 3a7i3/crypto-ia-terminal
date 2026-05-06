@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import json
+import logging
 import time
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 _STATE_FILE = Path("databases/paper_trading/state.json")
 
@@ -130,8 +133,8 @@ class PaperTradingEngine:
             self.positions = state.get("positions", {})
             self.trade_history = state.get("trade_history", [])
             self.equity_curve = state.get("equity_curve", [])
-        except (json.JSONDecodeError, KeyError):
-            pass
+        except (json.JSONDecodeError, KeyError) as exc:
+            logger.warning("[PaperTradingEngine] Etat corrompu ou incomplet — reset: %s", exc)
 
     def reset(self) -> None:
         self.balance = self._initial_balance

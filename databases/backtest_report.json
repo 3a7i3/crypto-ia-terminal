@@ -1,0 +1,877 @@
+{
+  "metadata": {
+    "generated_at": "2026-05-05T08:32:22.631384+00:00",
+    "symbols": [
+      "BTC/USDT",
+      "ETH/USDT",
+      "BNB/USDT",
+      "SOL/USDT"
+    ],
+    "timeframe": "1h",
+    "years": 1.0,
+    "elapsed_sec": 67.92,
+    "data_sources": {
+      "BTC/USDT": "real",
+      "ETH/USDT": "real",
+      "BNB/USDT": "real",
+      "SOL/USDT": "real"
+    },
+    "strategies_tested": 10,
+    "total_runs": 40
+  },
+  "total_trades": 34660,
+  "best_strategies": [
+    {
+      "strategy": {
+        "name": "MACD-8-21",
+        "entry_indicator": "MACD",
+        "period": 21,
+        "threshold": 0.9,
+        "timeframe": "1h"
+      },
+      "pnl": 7690.0491,
+      "sharpe": 9.1451,
+      "drawdown": 0.3664,
+      "win_rate": 0.3382,
+      "trades": 680,
+      "bars": 8760,
+      "symbol": "ETH/USDT",
+      "data_source": "real"
+    },
+    {
+      "strategy": {
+        "name": "MACD-8-21",
+        "entry_indicator": "MACD",
+        "period": 21,
+        "threshold": 0.9,
+        "timeframe": "1h"
+      },
+      "pnl": 703.4955,
+      "sharpe": 8.8905,
+      "drawdown": 0.2389,
+      "win_rate": 0.3489,
+      "trades": 665,
+      "bars": 8760,
+      "symbol": "BTC/USDT",
+      "data_source": "real"
+    },
+    {
+      "strategy": {
+        "name": "MACD-8-21",
+        "entry_indicator": "MACD",
+        "period": 21,
+        "threshold": 0.9,
+        "timeframe": "1h"
+      },
+      "pnl": 1124.0825,
+      "sharpe": 8.6483,
+      "drawdown": 0.2579,
+      "win_rate": 0.3504,
+      "trades": 682,
+      "bars": 8760,
+      "symbol": "BNB/USDT",
+      "data_source": "real"
+    },
+    {
+      "strategy": {
+        "name": "MACD-8-21",
+        "entry_indicator": "MACD",
+        "period": 21,
+        "threshold": 0.9,
+        "timeframe": "1h"
+      },
+      "pnl": 4704.9496,
+      "sharpe": 8.2654,
+      "drawdown": 0.356,
+      "win_rate": 0.3304,
+      "trades": 690,
+      "bars": 8760,
+      "symbol": "SOL/USDT",
+      "data_source": "real"
+    },
+    {
+      "strategy": {
+        "name": "MACD-12-26",
+        "entry_indicator": "MACD",
+        "period": 26,
+        "threshold": 1.0,
+        "timeframe": "1h"
+      },
+      "pnl": 5036.7966,
+      "sharpe": 7.9603,
+      "drawdown": 0.4012,
+      "win_rate": 0.3523,
+      "trades": 528,
+      "bars": 8760,
+      "symbol": "ETH/USDT",
+      "data_source": "real"
+    },
+    {
+      "strategy": {
+        "name": "MACD-12-26",
+        "entry_indicator": "MACD",
+        "period": 26,
+        "threshold": 1.0,
+        "timeframe": "1h"
+      },
+      "pnl": 777.2559,
+      "sharpe": 7.2383,
+      "drawdown": 0.2741,
+      "win_rate": 0.3641,
+      "trades": 552,
+      "bars": 8760,
+      "symbol": "BNB/USDT",
+      "data_source": "real"
+    },
+    {
+      "strategy": {
+        "name": "MACD-12-26",
+        "entry_indicator": "MACD",
+        "period": 26,
+        "threshold": 1.0,
+        "timeframe": "1h"
+      },
+      "pnl": 382.4994,
+      "sharpe": 7.0965,
+      "drawdown": 0.2623,
+      "win_rate": 0.3658,
+      "trades": 544,
+      "bars": 8760,
+      "symbol": "BTC/USDT",
+      "data_source": "real"
+    },
+    {
+      "strategy": {
+        "name": "MACD-12-26",
+        "entry_indicator": "MACD",
+        "period": 26,
+        "threshold": 1.0,
+        "timeframe": "1h"
+      },
+      "pnl": 2152.157,
+      "sharpe": 6.551,
+      "drawdown": 0.3782,
+      "win_rate": 0.3281,
+      "trades": 573,
+      "bars": 8760,
+      "symbol": "SOL/USDT",
+      "data_source": "real"
+    },
+    {
+      "strategy": {
+        "name": "BOLL-20",
+        "entry_indicator": "BOLLINGER",
+        "period": 20,
+        "threshold": 2.0,
+        "timeframe": "1h"
+      },
+      "pnl": 67.8402,
+      "sharpe": 4.0968,
+      "drawdown": 0.2797,
+      "win_rate": 0.348,
+      "trades": 296,
+      "bars": 8760,
+      "symbol": "BTC/USDT",
+      "data_source": "real"
+    },
+    {
+      "strategy": {
+        "name": "BOLL-20",
+        "entry_indicator": "BOLLINGER",
+        "period": 20,
+        "threshold": 2.0,
+        "timeframe": "1h"
+      },
+      "pnl": 87.8604,
+      "sharpe": 3.5122,
+      "drawdown": 0.2152,
+      "win_rate": 0.3521,
+      "trades": 284,
+      "bars": 8760,
+      "symbol": "BNB/USDT",
+      "data_source": "real"
+    }
+  ],
+  "results": [
+    {
+      "strategy": {
+        "name": "RSI-14",
+        "entry_indicator": "RSI",
+        "period": 14,
+        "threshold": 1.0,
+        "timeframe": "1h"
+      },
+      "pnl": -75.6405,
+      "sharpe": -1.657,
+      "drawdown": 0.7904,
+      "win_rate": 0.4948,
+      "trades": 479,
+      "bars": 8760,
+      "symbol": "BTC/USDT",
+      "data_source": "real"
+    },
+    {
+      "strategy": {
+        "name": "EMA-20",
+        "entry_indicator": "EMA",
+        "period": 20,
+        "threshold": 1.2,
+        "timeframe": "1h"
+      },
+      "pnl": -98.3955,
+      "sharpe": -3.8206,
+      "drawdown": 0.984,
+      "win_rate": 0.537,
+      "trades": 1637,
+      "bars": 8760,
+      "symbol": "BTC/USDT",
+      "data_source": "real"
+    },
+    {
+      "strategy": {
+        "name": "MACD-12-26",
+        "entry_indicator": "MACD",
+        "period": 26,
+        "threshold": 1.0,
+        "timeframe": "1h"
+      },
+      "pnl": 382.4994,
+      "sharpe": 7.0965,
+      "drawdown": 0.2623,
+      "win_rate": 0.3658,
+      "trades": 544,
+      "bars": 8760,
+      "symbol": "BTC/USDT",
+      "data_source": "real"
+    },
+    {
+      "strategy": {
+        "name": "BOLL-20",
+        "entry_indicator": "BOLLINGER",
+        "period": 20,
+        "threshold": 2.0,
+        "timeframe": "1h"
+      },
+      "pnl": 67.8402,
+      "sharpe": 4.0968,
+      "drawdown": 0.2797,
+      "win_rate": 0.348,
+      "trades": 296,
+      "bars": 8760,
+      "symbol": "BTC/USDT",
+      "data_source": "real"
+    },
+    {
+      "strategy": {
+        "name": "VWAP-10",
+        "entry_indicator": "VWAP",
+        "period": 10,
+        "threshold": 0.8,
+        "timeframe": "1h"
+      },
+      "pnl": -97.2471,
+      "sharpe": -0.8359,
+      "drawdown": 0.9725,
+      "win_rate": 0.5012,
+      "trades": 1728,
+      "bars": 8760,
+      "symbol": "BTC/USDT",
+      "data_source": "real"
+    },
+    {
+      "strategy": {
+        "name": "ATR-14",
+        "entry_indicator": "ATR",
+        "period": 14,
+        "threshold": 1.5,
+        "timeframe": "1h"
+      },
+      "pnl": -84.9455,
+      "sharpe": -3.3306,
+      "drawdown": 0.8587,
+      "win_rate": 0.6135,
+      "trades": 520,
+      "bars": 8760,
+      "symbol": "BTC/USDT",
+      "data_source": "real"
+    },
+    {
+      "strategy": {
+        "name": "RSI-7",
+        "entry_indicator": "RSI",
+        "period": 7,
+        "threshold": 1.5,
+        "timeframe": "1h"
+      },
+      "pnl": -61.3533,
+      "sharpe": -0.2207,
+      "drawdown": 0.7339,
+      "win_rate": 0.4697,
+      "trades": 413,
+      "bars": 8760,
+      "symbol": "BTC/USDT",
+      "data_source": "real"
+    },
+    {
+      "strategy": {
+        "name": "EMA-9",
+        "entry_indicator": "EMA",
+        "period": 9,
+        "threshold": 0.8,
+        "timeframe": "1h"
+      },
+      "pnl": -98.3644,
+      "sharpe": -4.0193,
+      "drawdown": 0.9836,
+      "win_rate": 0.5745,
+      "trades": 1605,
+      "bars": 8760,
+      "symbol": "BTC/USDT",
+      "data_source": "real"
+    },
+    {
+      "strategy": {
+        "name": "MACD-8-21",
+        "entry_indicator": "MACD",
+        "period": 21,
+        "threshold": 0.9,
+        "timeframe": "1h"
+      },
+      "pnl": 703.4955,
+      "sharpe": 8.8905,
+      "drawdown": 0.2389,
+      "win_rate": 0.3489,
+      "trades": 665,
+      "bars": 8760,
+      "symbol": "BTC/USDT",
+      "data_source": "real"
+    },
+    {
+      "strategy": {
+        "name": "BOLL-10",
+        "entry_indicator": "BOLLINGER",
+        "period": 10,
+        "threshold": 1.5,
+        "timeframe": "1h"
+      },
+      "pnl": 28.9908,
+      "sharpe": 2.7249,
+      "drawdown": 0.2569,
+      "win_rate": 0.374,
+      "trades": 254,
+      "bars": 8760,
+      "symbol": "BTC/USDT",
+      "data_source": "real"
+    },
+    {
+      "strategy": {
+        "name": "RSI-14",
+        "entry_indicator": "RSI",
+        "period": 14,
+        "threshold": 1.0,
+        "timeframe": "1h"
+      },
+      "pnl": -60.9128,
+      "sharpe": 0.3834,
+      "drawdown": 0.7164,
+      "win_rate": 0.498,
+      "trades": 506,
+      "bars": 8760,
+      "symbol": "ETH/USDT",
+      "data_source": "real"
+    },
+    {
+      "strategy": {
+        "name": "EMA-20",
+        "entry_indicator": "EMA",
+        "period": 20,
+        "threshold": 1.2,
+        "timeframe": "1h"
+      },
+      "pnl": -98.6369,
+      "sharpe": -1.4217,
+      "drawdown": 0.9881,
+      "win_rate": 0.5276,
+      "trades": 1869,
+      "bars": 8760,
+      "symbol": "ETH/USDT",
+      "data_source": "real"
+    },
+    {
+      "strategy": {
+        "name": "MACD-12-26",
+        "entry_indicator": "MACD",
+        "period": 26,
+        "threshold": 1.0,
+        "timeframe": "1h"
+      },
+      "pnl": 5036.7966,
+      "sharpe": 7.9603,
+      "drawdown": 0.4012,
+      "win_rate": 0.3523,
+      "trades": 528,
+      "bars": 8760,
+      "symbol": "ETH/USDT",
+      "data_source": "real"
+    },
+    {
+      "strategy": {
+        "name": "BOLL-20",
+        "entry_indicator": "BOLLINGER",
+        "period": 20,
+        "threshold": 2.0,
+        "timeframe": "1h"
+      },
+      "pnl": 121.9491,
+      "sharpe": 3.1781,
+      "drawdown": 0.4137,
+      "win_rate": 0.3707,
+      "trades": 294,
+      "bars": 8760,
+      "symbol": "ETH/USDT",
+      "data_source": "real"
+    },
+    {
+      "strategy": {
+        "name": "VWAP-10",
+        "entry_indicator": "VWAP",
+        "period": 10,
+        "threshold": 0.8,
+        "timeframe": "1h"
+      },
+      "pnl": -97.9251,
+      "sharpe": 0.9065,
+      "drawdown": 0.9814,
+      "win_rate": 0.508,
+      "trades": 2055,
+      "bars": 8760,
+      "symbol": "ETH/USDT",
+      "data_source": "real"
+    },
+    {
+      "strategy": {
+        "name": "ATR-14",
+        "entry_indicator": "ATR",
+        "period": 14,
+        "threshold": 1.5,
+        "timeframe": "1h"
+      },
+      "pnl": -89.6241,
+      "sharpe": -2.9178,
+      "drawdown": 0.9064,
+      "win_rate": 0.6174,
+      "trades": 528,
+      "bars": 8760,
+      "symbol": "ETH/USDT",
+      "data_source": "real"
+    },
+    {
+      "strategy": {
+        "name": "RSI-7",
+        "entry_indicator": "RSI",
+        "period": 7,
+        "threshold": 1.5,
+        "timeframe": "1h"
+      },
+      "pnl": -65.632,
+      "sharpe": -0.2772,
+      "drawdown": 0.7862,
+      "win_rate": 0.4893,
+      "trades": 421,
+      "bars": 8760,
+      "symbol": "ETH/USDT",
+      "data_source": "real"
+    },
+    {
+      "strategy": {
+        "name": "EMA-9",
+        "entry_indicator": "EMA",
+        "period": 9,
+        "threshold": 0.8,
+        "timeframe": "1h"
+      },
+      "pnl": -99.1911,
+      "sharpe": -2.5934,
+      "drawdown": 0.9923,
+      "win_rate": 0.5455,
+      "trades": 1925,
+      "bars": 8760,
+      "symbol": "ETH/USDT",
+      "data_source": "real"
+    },
+    {
+      "strategy": {
+        "name": "MACD-8-21",
+        "entry_indicator": "MACD",
+        "period": 21,
+        "threshold": 0.9,
+        "timeframe": "1h"
+      },
+      "pnl": 7690.0491,
+      "sharpe": 9.1451,
+      "drawdown": 0.3664,
+      "win_rate": 0.3382,
+      "trades": 680,
+      "bars": 8760,
+      "symbol": "ETH/USDT",
+      "data_source": "real"
+    },
+    {
+      "strategy": {
+        "name": "BOLL-10",
+        "entry_indicator": "BOLLINGER",
+        "period": 10,
+        "threshold": 1.5,
+        "timeframe": "1h"
+      },
+      "pnl": 21.7064,
+      "sharpe": 1.8741,
+      "drawdown": 0.4632,
+      "win_rate": 0.3605,
+      "trades": 258,
+      "bars": 8760,
+      "symbol": "ETH/USDT",
+      "data_source": "real"
+    },
+    {
+      "strategy": {
+        "name": "RSI-14",
+        "entry_indicator": "RSI",
+        "period": 14,
+        "threshold": 1.0,
+        "timeframe": "1h"
+      },
+      "pnl": -71.2605,
+      "sharpe": -1.0809,
+      "drawdown": 0.7363,
+      "win_rate": 0.4938,
+      "trades": 401,
+      "bars": 8760,
+      "symbol": "BNB/USDT",
+      "data_source": "real"
+    },
+    {
+      "strategy": {
+        "name": "EMA-20",
+        "entry_indicator": "EMA",
+        "period": 20,
+        "threshold": 1.2,
+        "timeframe": "1h"
+      },
+      "pnl": -99.1442,
+      "sharpe": -4.3107,
+      "drawdown": 0.9914,
+      "win_rate": 0.5359,
+      "trades": 1812,
+      "bars": 8760,
+      "symbol": "BNB/USDT",
+      "data_source": "real"
+    },
+    {
+      "strategy": {
+        "name": "MACD-12-26",
+        "entry_indicator": "MACD",
+        "period": 26,
+        "threshold": 1.0,
+        "timeframe": "1h"
+      },
+      "pnl": 777.2559,
+      "sharpe": 7.2383,
+      "drawdown": 0.2741,
+      "win_rate": 0.3641,
+      "trades": 552,
+      "bars": 8760,
+      "symbol": "BNB/USDT",
+      "data_source": "real"
+    },
+    {
+      "strategy": {
+        "name": "BOLL-20",
+        "entry_indicator": "BOLLINGER",
+        "period": 20,
+        "threshold": 2.0,
+        "timeframe": "1h"
+      },
+      "pnl": 87.8604,
+      "sharpe": 3.5122,
+      "drawdown": 0.2152,
+      "win_rate": 0.3521,
+      "trades": 284,
+      "bars": 8760,
+      "symbol": "BNB/USDT",
+      "data_source": "real"
+    },
+    {
+      "strategy": {
+        "name": "VWAP-10",
+        "entry_indicator": "VWAP",
+        "period": 10,
+        "threshold": 0.8,
+        "timeframe": "1h"
+      },
+      "pnl": -98.3491,
+      "sharpe": 0.3131,
+      "drawdown": 0.9835,
+      "win_rate": 0.5388,
+      "trades": 2075,
+      "bars": 8760,
+      "symbol": "BNB/USDT",
+      "data_source": "real"
+    },
+    {
+      "strategy": {
+        "name": "ATR-14",
+        "entry_indicator": "ATR",
+        "period": 14,
+        "threshold": 1.5,
+        "timeframe": "1h"
+      },
+      "pnl": -85.621,
+      "sharpe": -2.8829,
+      "drawdown": 0.8576,
+      "win_rate": 0.6547,
+      "trades": 530,
+      "bars": 8760,
+      "symbol": "BNB/USDT",
+      "data_source": "real"
+    },
+    {
+      "strategy": {
+        "name": "RSI-7",
+        "entry_indicator": "RSI",
+        "period": 7,
+        "threshold": 1.5,
+        "timeframe": "1h"
+      },
+      "pnl": -56.894,
+      "sharpe": -0.0414,
+      "drawdown": 0.6827,
+      "win_rate": 0.4803,
+      "trades": 381,
+      "bars": 8760,
+      "symbol": "BNB/USDT",
+      "data_source": "real"
+    },
+    {
+      "strategy": {
+        "name": "EMA-9",
+        "entry_indicator": "EMA",
+        "period": 9,
+        "threshold": 0.8,
+        "timeframe": "1h"
+      },
+      "pnl": -98.9598,
+      "sharpe": -3.4,
+      "drawdown": 0.9896,
+      "win_rate": 0.5746,
+      "trades": 1817,
+      "bars": 8760,
+      "symbol": "BNB/USDT",
+      "data_source": "real"
+    },
+    {
+      "strategy": {
+        "name": "MACD-8-21",
+        "entry_indicator": "MACD",
+        "period": 21,
+        "threshold": 0.9,
+        "timeframe": "1h"
+      },
+      "pnl": 1124.0825,
+      "sharpe": 8.6483,
+      "drawdown": 0.2579,
+      "win_rate": 0.3504,
+      "trades": 682,
+      "bars": 8760,
+      "symbol": "BNB/USDT",
+      "data_source": "real"
+    },
+    {
+      "strategy": {
+        "name": "BOLL-10",
+        "entry_indicator": "BOLLINGER",
+        "period": 10,
+        "threshold": 1.5,
+        "timeframe": "1h"
+      },
+      "pnl": 28.8623,
+      "sharpe": 2.3453,
+      "drawdown": 0.2672,
+      "win_rate": 0.3837,
+      "trades": 245,
+      "bars": 8760,
+      "symbol": "BNB/USDT",
+      "data_source": "real"
+    },
+    {
+      "strategy": {
+        "name": "RSI-14",
+        "entry_indicator": "RSI",
+        "period": 14,
+        "threshold": 1.0,
+        "timeframe": "1h"
+      },
+      "pnl": -67.267,
+      "sharpe": 0.0978,
+      "drawdown": 0.8477,
+      "win_rate": 0.4942,
+      "trades": 514,
+      "bars": 8760,
+      "symbol": "SOL/USDT",
+      "data_source": "real"
+    },
+    {
+      "strategy": {
+        "name": "EMA-20",
+        "entry_indicator": "EMA",
+        "period": 20,
+        "threshold": 1.2,
+        "timeframe": "1h"
+      },
+      "pnl": -99.0688,
+      "sharpe": -2.2336,
+      "drawdown": 0.9914,
+      "win_rate": 0.5268,
+      "trades": 1900,
+      "bars": 8760,
+      "symbol": "SOL/USDT",
+      "data_source": "real"
+    },
+    {
+      "strategy": {
+        "name": "MACD-12-26",
+        "entry_indicator": "MACD",
+        "period": 26,
+        "threshold": 1.0,
+        "timeframe": "1h"
+      },
+      "pnl": 2152.157,
+      "sharpe": 6.551,
+      "drawdown": 0.3782,
+      "win_rate": 0.3281,
+      "trades": 573,
+      "bars": 8760,
+      "symbol": "SOL/USDT",
+      "data_source": "real"
+    },
+    {
+      "strategy": {
+        "name": "BOLL-20",
+        "entry_indicator": "BOLLINGER",
+        "period": 20,
+        "threshold": 2.0,
+        "timeframe": "1h"
+      },
+      "pnl": 25.4732,
+      "sharpe": 2.0021,
+      "drawdown": 0.2881,
+      "win_rate": 0.2885,
+      "trades": 305,
+      "bars": 8760,
+      "symbol": "SOL/USDT",
+      "data_source": "real"
+    },
+    {
+      "strategy": {
+        "name": "VWAP-10",
+        "entry_indicator": "VWAP",
+        "period": 10,
+        "threshold": 0.8,
+        "timeframe": "1h"
+      },
+      "pnl": -96.5768,
+      "sharpe": -1.0658,
+      "drawdown": 0.9668,
+      "win_rate": 0.516,
+      "trades": 1500,
+      "bars": 8760,
+      "symbol": "SOL/USDT",
+      "data_source": "real"
+    },
+    {
+      "strategy": {
+        "name": "ATR-14",
+        "entry_indicator": "ATR",
+        "period": 14,
+        "threshold": 1.5,
+        "timeframe": "1h"
+      },
+      "pnl": -90.4729,
+      "sharpe": -2.7423,
+      "drawdown": 0.9133,
+      "win_rate": 0.6367,
+      "trades": 512,
+      "bars": 8760,
+      "symbol": "SOL/USDT",
+      "data_source": "real"
+    },
+    {
+      "strategy": {
+        "name": "RSI-7",
+        "entry_indicator": "RSI",
+        "period": 7,
+        "threshold": 1.5,
+        "timeframe": "1h"
+      },
+      "pnl": -74.7477,
+      "sharpe": -0.7767,
+      "drawdown": 0.7836,
+      "win_rate": 0.491,
+      "trades": 442,
+      "bars": 8760,
+      "symbol": "SOL/USDT",
+      "data_source": "real"
+    },
+    {
+      "strategy": {
+        "name": "EMA-9",
+        "entry_indicator": "EMA",
+        "period": 9,
+        "threshold": 0.8,
+        "timeframe": "1h"
+      },
+      "pnl": -99.5526,
+      "sharpe": -3.6862,
+      "drawdown": 0.9956,
+      "win_rate": 0.5348,
+      "trades": 1980,
+      "bars": 8760,
+      "symbol": "SOL/USDT",
+      "data_source": "real"
+    },
+    {
+      "strategy": {
+        "name": "MACD-8-21",
+        "entry_indicator": "MACD",
+        "period": 21,
+        "threshold": 0.9,
+        "timeframe": "1h"
+      },
+      "pnl": 4704.9496,
+      "sharpe": 8.2654,
+      "drawdown": 0.356,
+      "win_rate": 0.3304,
+      "trades": 690,
+      "bars": 8760,
+      "symbol": "SOL/USDT",
+      "data_source": "real"
+    },
+    {
+      "strategy": {
+        "name": "BOLL-10",
+        "entry_indicator": "BOLLINGER",
+        "period": 10,
+        "threshold": 1.5,
+        "timeframe": "1h"
+      },
+      "pnl": 151.7815,
+      "sharpe": 2.9077,
+      "drawdown": 0.3533,
+      "win_rate": 0.3962,
+      "trades": 260,
+      "bars": 8760,
+      "symbol": "SOL/USDT",
+      "data_source": "real"
+    }
+  ]
+}

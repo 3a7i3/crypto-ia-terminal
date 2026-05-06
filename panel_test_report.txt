@@ -1,0 +1,64 @@
+Rapport d'échec panels (2026-04-29 22:32:35.047686):
+
+---
+Panel: 🛡️ Supervision & Auto-Heal
+Erreur:
+Traceback (most recent call last):
+  File "C:\Users\WINDOWS\crypto_ai_terminal\evolution_3d_view.py", line 141, in <module>
+    import seaborn as sns
+ModuleNotFoundError: No module named 'seaborn'
+
+
+---
+Panel: 🩺 BotDoctor Dashboard
+Erreur:
+Traceback (most recent call last):
+  File "C:\Users\WINDOWS\crypto_ai_terminal\evolution_3d_view.py", line 141, in <module>
+    import seaborn as sns
+ModuleNotFoundError: No module named 'seaborn'
+
+
+---
+Panel: 🌐 Evolution Multi-Monde
+Erreur:
+Traceback (most recent call last):
+  File "C:\Users\WINDOWS\crypto_ai_terminal\evolution_3d_view.py", line 141, in <module>
+    import seaborn as sns
+ModuleNotFoundError: No module named 'seaborn'
+
+
+---
+Panel: 🌐 3D Evolution Viewer
+Erreur:
+Traceback (most recent call last):
+  File "C:\Users\WINDOWS\crypto_ai_terminal\evolution_3d_view.py", line 141, in <module>
+    import seaborn as sns
+ModuleNotFoundError: No module named 'seaborn'
+
+
+---
+Panel: 📊 Quant V16 Panel
+Erreur:
+Traceback (most recent call last):
+  File "C:\Users\WINDOWS\crypto_ai_terminal\evolution_3d_view.py", line 141, in <module>
+    import seaborn as sns
+ModuleNotFoundError: No module named 'seaborn'
+
+
+---
+Panel: 📈 Quant Terminal V12
+Erreur:
+Traceback (most recent call last):
+  File "C:\Users\WINDOWS\crypto_ai_terminal\evolution_3d_view.py", line 141, in <module>
+    import seaborn as sns
+ModuleNotFoundError: No module named 'seaborn'
+
+
+---
+Panel: 🧠 R&D Feedback Dashboard
+Erreur:
+Traceback (most recent call last):
+  File "C:\Users\WINDOWS\crypto_ai_terminal\evolution_3d_view.py", line 141, in <module>
+    import seaborn as sns
+ModuleNotFoundError: No module named 'seaborn'
+

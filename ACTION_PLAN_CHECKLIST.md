@@ -49,6 +49,18 @@ This checklist provides a step-by-step guide to finalize, professionalize, and m
 
 ---
 
+## Priorite moyenne - Nouveaux modules
+- [x] Ecrire tests unitaires pour `event_bus/` (`event_bus/bus.py`, `event_bus/bridge.py`, `event_bus/events.py`)
+- [x] Ecrire tests pour `lm_studio/` (`lm_studio/client.py`, `lm_studio/ai_router.py`)
+- [x] Ajouter tests pour `pieuvre/` - systeme auto-evolutif a 8 tentacules
+
+## Moins adapte a Codex
+- Decisions d'architecture: quoi garder ou supprimer
+- Debugging de comportements runtime: paper trading, evolution engine
+- Fichiers JSON de checkpoints/databases: donnees live, pas du code
+
+---
+
 **Legend:**
 - [x] = Complete
 - [ ] = Pending

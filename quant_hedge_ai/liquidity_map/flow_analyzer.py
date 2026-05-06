@@ -348,8 +348,9 @@ class LiquidityFlowMap:
     def render(self, report: FlowReport) -> str:
         """Render flow report as text."""
         lines = [
-            f"[FLOW] LIQUIDITY FLOW MAP",
-            f"   Regime: {report.regime}  |  Concentration: {report.capital_concentration:.1%}",
+            "[FLOW] LIQUIDITY FLOW MAP",
+            f"   Regime: {report.regime}  |  "
+            f"Concentration: {report.capital_concentration:.1%}",
             f"   Total Volume: ${report.total_volume_usd:,.0f}  |  "
             f"Whale Flow: ${report.total_whale_flow_usd:,.0f}",
             f"   Whale Parse: alerts=${report.parsed_whale_alerts_usd:,.0f}  |  "

@@ -416,3 +416,144 @@ class TestEndToEndFlow:
 
         data = json.loads(lines[0])
         assert data["event_type"] == "SecurityAlertEvent"
+
+
+# ── SupervisionBridge handlers coverage ───────────────────────────────────────
+
+class TestBridgeHandlersCoverage:
+    """Appelle chaque handler directement pour couvrir les lignes manquantes."""
+
+    @pytest.fixture
+    def bridge(self, fresh_bus):
+        from event_bus.bridge import SupervisionBridge
+        notifier = MagicMock()
+        b = SupervisionBridge(notifier=notifier)
+        b.activate()
+        return b, notifier
+
+    def test_on_incident_resolved(self, bridge, fresh_bus):
+        b, notifier = bridge
+        fresh_bus.emit(IncidentResolvedEvent(
+            incident_id="x1", severity="high",
+            strength_gained=0.1, new_force=1.1,
+            immunity_patterns=["exec_call"],
+        ))
+        notifier.info.assert_called()
+
+    def test_on_regrowth(self, bridge, fresh_bus):
+        b, notifier = bridge
+        from event_bus.events import PieuvreRegrowthEvent
+        fresh_bus.emit(PieuvreRegrowthEvent(generation=2, total_force=1.5, total_immunities=3))
+        # regrowth only logs, no notify — just assert no crash
+        assert fresh_bus.stats().get("PieuvreRegrowthEvent", 0) == 1
+
+    def test_on_api_key_error(self, bridge, fresh_bus):
+        b, notifier = bridge
+        from event_bus.events import ApiKeyErrorEvent
+        fresh_bus.emit(ApiKeyErrorEvent(exchange="binance", error="401 Unauthorized"))
+        notifier.info.assert_called()
+
+    def test_on_api_validated_ok(self, bridge, fresh_bus):
+        b, notifier = bridge
+        from event_bus.events import ApiKeyValidatedEvent
+        fresh_bus.emit(ApiKeyValidatedEvent(exchange="binance", ok=True, latency_ms=42.0))
+        # logs only
+        assert fresh_bus.stats().get("ApiKeyValidatedEvent", 0) == 1
+
+    def test_on_api_validated_fail(self, bridge, fresh_bus):
+        b, notifier = bridge
+        from event_bus.events import ApiKeyValidatedEvent
+        fresh_bus.emit(ApiKeyValidatedEvent(exchange="binance", ok=False, error="expired"))
+        assert fresh_bus.stats().get("ApiKeyValidatedEvent", 0) == 1
+
+    def test_on_drawdown(self, bridge, fresh_bus):
+        b, notifier = bridge
+        fresh_bus.emit(DrawdownAlertEvent(
+            current_drawdown_pct=8.0, max_allowed_pct=5.0,
+            symbol="BTCUSDT", action_taken="halt",
+        ))
+        notifier.info.assert_called()
+
+    def test_on_order_rejected_non_duplicate(self, bridge, fresh_bus):
+        b, notifier = bridge
+        from event_bus.events import OrderRejectedEvent
+        fresh_bus.emit(OrderRejectedEvent(
+            symbol="BTCUSDT", side="buy", size=100.0, reason="session halted"
+        ))
+        notifier.info.assert_called()
+
+    def test_on_order_rejected_duplicate_suppressed(self, bridge, fresh_bus):
+        b, notifier = bridge
+        from event_bus.events import OrderRejectedEvent
+        fresh_bus.emit(OrderRejectedEvent(
+            symbol="BTCUSDT", side="buy", size=100.0,
+            reason="duplicate order within 30s window",
+        ))
+        notifier.info.assert_not_called()
+
+    def test_on_order_filled(self, bridge, fresh_bus):
+        b, notifier = bridge
+        from event_bus.events import OrderFilledEvent
+        fresh_bus.emit(OrderFilledEvent(
+            symbol="BTCUSDT", side="buy", size=1.0, price=50000.0, mode="paper"
+        ))
+        assert fresh_bus.stats().get("OrderFilledEvent", 0) == 1
+
+    def test_on_trend_change(self, bridge, fresh_bus):
+        b, notifier = bridge
+        from event_bus.events import TrendChangeEvent
+        fresh_bus.emit(TrendChangeEvent(
+            symbol="BTC", old_regime="sideways", new_regime="bull_trend", confidence=0.85
+        ))
+        assert fresh_bus.stats().get("TrendChangeEvent", 0) == 1
+
+    def test_on_startup(self, bridge, fresh_bus):
+        b, notifier = bridge
+        from event_bus.events import SystemStartupEvent
+        fresh_bus.emit(SystemStartupEvent(
+            mode="paper", exchanges=["binance"], symbols=["BTC/USDT"]
+        ))
+        notifier.info.assert_called()
+
+    def test_on_shutdown(self, bridge, fresh_bus):
+        b, notifier = bridge
+        from event_bus.events import SystemShutdownEvent
+        fresh_bus.emit(SystemShutdownEvent(
+            reason="ctrl-c", uptime_seconds=3600.0, total_cycles=42
+        ))
+        notifier.info.assert_called()
+
+    def test_on_ws_stale(self, bridge, fresh_bus):
+        b, notifier = bridge
+        from event_bus.events import WsStaleEvent
+        fresh_bus.emit(WsStaleEvent(symbol="BTC/USDT", stale_seconds=150.0))
+        assert fresh_bus.stats().get("WsStaleEvent", 0) == 1
+
+    def test_on_health_degraded(self, bridge, fresh_bus):
+        b, notifier = bridge
+        from event_bus.events import SystemHealthEvent
+        fresh_bus.emit(SystemHealthEvent(cpu_pct=95.0, ram_pct=88.0, status="degraded"))
+        assert fresh_bus.stats().get("SystemHealthEvent", 0) == 1
+
+    def test_on_health_ok_no_warning(self, bridge, fresh_bus):
+        b, notifier = bridge
+        from event_bus.events import SystemHealthEvent
+        fresh_bus.emit(SystemHealthEvent(cpu_pct=10.0, ram_pct=30.0, status="ok"))
+        assert fresh_bus.stats().get("SystemHealthEvent", 0) == 1
+
+    def test_from_env_fallback_when_ops_notifier_missing(self, fresh_bus):
+        from event_bus.bridge import SupervisionBridge
+        with patch("supervision.notifications.ops_notifier.OpsNotifier.from_env",
+                   side_effect=ImportError("not installed")):
+            b = SupervisionBridge.from_env()
+        assert b._notifier is None
+
+    def test_notify_swallows_notifier_exception(self, fresh_bus):
+        from event_bus.bridge import SupervisionBridge
+        from event_bus.events import CrashEvent
+        notifier = MagicMock()
+        notifier.info.side_effect = RuntimeError("notifier down")
+        b = SupervisionBridge(notifier=notifier)
+        b.activate()
+        # Should not raise
+        fresh_bus.emit(CrashEvent(context="x", error="boom", error_type="E"))

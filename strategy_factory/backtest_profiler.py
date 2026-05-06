@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import argparse
 import random
-import sys
 import time
 
 
@@ -47,7 +46,8 @@ def main() -> None:
         res = run_backtest(i, args.n)
         results.append(res)
         print(
-            f"  Stratégie {i}: equity={res['final_equity']:.4f} sharpe={res['sharpe']:.4f}"
+            f"  Stratégie {i}: equity={res['final_equity']:.4f} "
+            f"sharpe={res['sharpe']:.4f}"
         )
 
     elapsed = time.perf_counter() - t0

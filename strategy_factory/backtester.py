@@ -1,17 +1,7 @@
-from multiprocessing import Pool
+"""
+DEPRECATED: Use quant_hedge_ai.strategy_factory.backtester instead.
+This module is maintained for backward compatibility only.
+"""
+from quant_hedge_ai.strategy_factory.backtester import FactoryBacktester as Backtester
 
-
-class Backtester:
-    def evaluate(self, strategy, df):
-        pnl = 0
-        for i in range(10, len(df)):
-            if df["momentum"][i] > strategy.threshold:
-                pnl += df["close"][i] - df["close"][i - 1]
-        return pnl
-
-
-def run_parallel(strategies, df):
-    backtester = Backtester()
-    with Pool(8) as p:
-        scores = p.starmap(backtester.evaluate, [(s, df) for s in strategies])
-    return scores
+__all__ = ["Backtester"]

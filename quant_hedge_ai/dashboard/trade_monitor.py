@@ -78,12 +78,16 @@ class TradeMonitor:
         if pnl != 0:
             self._balance += pnl
         logger.debug(
-            "TradeMonitor: recorded %s %s @ %.4f (pnl=%.2f)", action, symbol, price, pnl
+            "TradeMonitor: recorded %s %s @ %.4f (pnl=%.2f)",
+            action,
+            symbol,
+            price,
+            pnl,
         )
         return trade
 
     def record_paper_state(self, paper_state: dict, cycle: int) -> None:
-        """Import paper trading engine state dict (from PaperTradingEngine.execute())."""
+        """Import PaperTradingEngine state."""
         balance = paper_state.get("balance", self._balance)
         self._balance = float(balance)
 
@@ -122,8 +126,11 @@ class TradeMonitor:
         pnl_sign = "+" if report.total_pnl >= 0 else ""
         lines = [
             "💰 TRADE MONITOR",
-            f"   Balance : ${report.balance:,.2f}  |  P&L: {pnl_sign}{report.total_pnl:,.2f}",
-            f"   Win Rate: {report.win_rate:.1%}  (W:{report.win_count} L:{report.loss_count} Blocked:{report.blocked_count})",
+            f"   Balance : ${report.balance:,.2f}  |  "
+            f"P&L: {pnl_sign}{report.total_pnl:,.2f}",
+            f"   Win Rate: {report.win_rate:.1%}  "
+            f"(W:{report.win_count} L:{report.loss_count} "
+            f"Blocked:{report.blocked_count})",
         ]
         if report.active_positions:
             lines.append("   Active Positions:")
@@ -133,10 +140,11 @@ class TradeMonitor:
             lines.append("   Active Positions: None")
 
         if report.recent_trades:
-            lines.append(f"   Recent Trades (last 5 cycles):")
+            lines.append("   Recent Trades (last 5 cycles):")
             for t in report.recent_trades[-5:]:
                 pnl_str = f"  pnl={t.pnl:+.2f}" if t.pnl != 0 else ""
                 lines.append(
-                    f"      [{t.action:4s}] {t.symbol:<16s} size={t.size:.4f} @ {t.price:.4f}{pnl_str}"
+                    f"      [{t.action:4s}] {t.symbol:<16s} "
+                    f"size={t.size:.4f} @ {t.price:.4f}{pnl_str}"
                 )
         return "\n".join(lines)

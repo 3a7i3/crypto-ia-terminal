@@ -25,7 +25,6 @@ import logging
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
 
 # Allow running standalone: python dashboard/director_dashboard.py
 if __name__ == "__main__":
@@ -33,7 +32,8 @@ if __name__ == "__main__":
 
 from quant_hedge_ai.dashboard.agent_monitor import (AgentMonitor,
                                                     AgentMonitorReport)
-from quant_hedge_ai.dashboard.bot_doctor_panel import BotDoctorPanel
+from quant_hedge_ai.dashboard.bot_doctor_panel import (BotDoctorPanel,
+                                                       DoctorPanelReport)
 from quant_hedge_ai.dashboard.system_health import (SystemHealth,
                                                     SystemHealthReport)
 from quant_hedge_ai.dashboard.trade_monitor import (TradeMonitor,
@@ -209,9 +209,11 @@ class DirectorDashboard:
         r = s.radar_summary
         lines += [
             "",
-            f"📡 MARKET RADAR",
-            f"   Regime   : {s.market_regime.upper():<20s}  Strategy Type : {s.strategy_type}",
-            f"   Whale Flow: {s.whale_flow:<20s}  Risk Level    : {r.get('risk_level', 'n/a')}",
+            "📡 MARKET RADAR",
+            f"   Regime   : {s.market_regime.upper():<20s}  "
+            f"Strategy Type : {s.strategy_type}",
+            f"   Whale Flow: {s.whale_flow:<20s}  "
+            f"Risk Level    : {r.get('risk_level', 'n/a')}",
             f"   Opportunities: {r.get('opportunities_count', 0)}  |  "
             f"Social Sentiment: {r.get('social_sentiment', 0.0):+.2f}  |  "
             f"Tokens Scanned: {r.get('tokens_scanned', 0)}",
@@ -229,9 +231,13 @@ class DirectorDashboard:
                 "",
                 "🏭 STRATEGY FACTORY",
                 f"   Regime   : {sf.get('regime', 'unknown')}",
-                f"   Generated: {sf.get('generated_count', 0)}  |  Backtested: {sf.get('backtested_count', 0)}  |  Filtered: {sf.get('filtered_count', 0)}",
-                f"   Approved : {sf.get('approved_count', 0)}  |  Blocked   : {sf.get('blocked_count', 0)}",
-                f"   Memory   : loaded={sf.get('memory_loaded_count', 0)}  saved={sf.get('memory_saved_count', 0)}",
+                f"   Generated: {sf.get('generated_count', 0)}  |  "
+                f"Backtested: {sf.get('backtested_count', 0)}  |  "
+                f"Filtered: {sf.get('filtered_count', 0)}",
+                f"   Approved : {sf.get('approved_count', 0)}  |  "
+                f"Blocked   : {sf.get('blocked_count', 0)}",
+                f"   Memory   : loaded={sf.get('memory_loaded_count', 0)}  "
+                f"saved={sf.get('memory_saved_count', 0)}",
             ]
 
         # --- Best Strategy section ---
@@ -240,7 +246,8 @@ class DirectorDashboard:
             strat = s.top_strategy.get("strategy", {})
             lines += [
                 "📊 STRATEGY PERFORMANCE",
-                f"   Best: {strat.get('entry_indicator', '?')} → {strat.get('exit_indicator', '?')}  "
+                f"   Best: {strat.get('entry_indicator', '?')} → "
+                f"{strat.get('exit_indicator', '?')}  "
                 f"period={strat.get('period', '?')}",
                 f"   Sharpe: {s.top_strategy.get('sharpe', 0.0):.4f}  |  "
                 f"Drawdown: {s.top_strategy.get('drawdown', 0.0):.2%}  |  "
@@ -259,7 +266,8 @@ class DirectorDashboard:
         if ev:
             lines += [
                 "\U0001f9ec AI EVOLUTION LAB",
-                f"   Generation  : {ev.get('generation', 0)}  |  Regime: {ev.get('regime', 'unknown')}",
+                f"   Generation  : {ev.get('generation', 0)}  |  "
+                f"Regime: {ev.get('regime', 'unknown')}",
                 f"   Candidates  : {ev.get('candidates', 0)} "
                 f"({ev.get('from_memory', 0)} memory + "
                 f"{ev.get('candidates', 0) - ev.get('from_memory', 0)} fresh)",
@@ -282,7 +290,9 @@ class DirectorDashboard:
                 ]
                 all_sectors = set(sd["sector"] for sd in sector_details)
                 coverage_pct = (
-                    (len(mapped_sectors) / len(all_sectors)) * 100 if all_sectors else 0
+                    (len(mapped_sectors) / len(all_sectors)) * 100
+                    if all_sectors
+                    else 0
                 )
                 if coverage_pct < 50:
                     # Import dynamique pour éviter dépendance si non utilisé
@@ -299,10 +309,18 @@ class DirectorDashboard:
                         from quant_hedge_ai.v26.telegram_alerts import \
                             send_alert
 
+                        mapped_label = (
+                            ", ".join(mapped_sectors) if mapped_sectors else "aucun"
+                        )
+                        message = (
+                            "Couverture sectorielle faible : "
+                            f"{coverage_pct:.1f}%\n"
+                            f"Secteurs mappés : {mapped_label}"
+                        )
                         send_alert(
                             level="warning",
                             key="sector_coverage",
-                            message=f"Couverture sectorielle faible : {coverage_pct:.1f}%\nSecteurs mappés : {', '.join(mapped_sectors) if mapped_sectors else 'aucun'}",
+                            message=message,
                         )
                     except Exception as e:
                         logger.warning(f"Erreur envoi alerte Telegram : {e}")
@@ -314,7 +332,8 @@ class DirectorDashboard:
                 f"(score={fl.get('top_sector_score', 0):.1f})",
                 f"   Total Volume: ${fl.get('total_volume_usd', 0):,.0f}  |  "
                 f"Whale Flow: ${fl.get('total_whale_flow_usd', 0):,.0f}",
-                f"   Whale Parse : alerts=${fl.get('parsed_whale_alerts_usd', 0):,.0f}  |  "
+                f"   Whale Parse : "
+                f"alerts=${fl.get('parsed_whale_alerts_usd', 0):,.0f}  |  "
                 f"unmapped=${fl.get('whale_unmapped_usd', 0):,.0f}  |  "
                 f"coverage={fl.get('whale_mapping_coverage', 0.0):.1%}  |  "
                 f"gap=${fl.get('whale_consistency_gap_usd', 0):,.0f}",
@@ -334,15 +353,11 @@ class DirectorDashboard:
             )
             # Couleur ANSI
             if coverage_pct >= 80:
-                color = "\033[92m"  # vert
                 symbol = "✅"
             elif coverage_pct >= 50:
-                color = "\033[93m"  # orange
                 symbol = "⚠️"
             else:
-                color = "\033[91m"  # rouge
                 symbol = "❌"
-            endc = "\033[0m"
             # Barre ASCII (pour compatibilité test)
             bar_len = 20
             filled = int(bar_len * coverage_pct / 100)

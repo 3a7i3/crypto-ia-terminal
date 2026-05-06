@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import math
 import logging
+import math
 from dataclasses import dataclass, field
 
 logger = logging.getLogger(__name__)
@@ -54,19 +54,19 @@ def _check_candle(c: dict) -> str | None:
 
     o = float(c["open"])
     h = float(c["high"])
-    l = float(c["low"])
+    low = float(c["low"])
     cl = float(c["close"])
     v = float(c["volume"])
 
-    if o <= 0 or cl <= 0 or h <= 0 or l <= 0:
+    if o <= 0 or cl <= 0 or h <= 0 or low <= 0:
         return "non_positive_price"
     if v < 0:
         return "negative_volume"
     if h < max(o, cl) * 0.9999:
         return "high_below_oc"
-    if l > min(o, cl) * 1.0001:
+    if low > min(o, cl) * 1.0001:
         return "low_above_oc"
-    if l > 0 and h / l > _MAX_PRICE_RATIO:
+    if low > 0 and h / low > _MAX_PRICE_RATIO:
         return "price_spike"
 
     return None

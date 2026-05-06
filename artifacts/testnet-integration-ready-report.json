@@ -1,0 +1,26 @@
+{
+  "targets": [
+    "tests/integration/test_market_pipeline.py::TestMarketScannerTestnet",
+    "tests/integration/test_execution_pipeline.py::TestExecutionTestnet",
+    "tests/integration/test_full_pipeline.py::TestFullPipelineTestnet",
+    "tests/integration/test_backtest_pipeline.py::TestBacktestOnTestnetData"
+  ],
+  "exitCode": null,
+  "generatedAt": "2026-05-04T22:13:23.3887513-07:00",
+  "pythonExe": "C:\\Users\\WINDOWS\\crypto_ai_terminal\\.venv\\Scripts\\python.exe",
+  "command": "C:\\Users\\WINDOWS\\crypto_ai_terminal\\.venv\\Scripts\\python.exe -m pytest -q -rs tests/integration/test_market_pipeline.py::TestMarketScannerTestnet tests/integration/test_execution_pipeline.py::TestExecutionTestnet tests/integration/test_full_pipeline.py::TestFullPipelineTestnet tests/integration/test_backtest_pipeline.py::TestBacktestOnTestnetData",
+  "repoRoot": "C:\\Users\\WINDOWS\\crypto_ai_terminal",
+  "pytestArgs": "-q -rs",
+  "validation": {
+    "missingVars": [],
+    "isTestnetTrue": true,
+    "ready": true
+  },
+  "status": "ready",
+  "environment": {
+    "BINANCE_TESTNET": "true",
+    "hasBinanceApiKey": true,
+    "hasBinanceApiSecret": true
+  },
+  "mode": "dry-run"
+}

@@ -18,7 +18,6 @@ import logging
 import os
 import time
 from datetime import datetime, timezone
-from pathlib import Path
 
 from quant_hedge_ai.agents.market.ohlcv_validator import validate_candles
 from quant_hedge_ai.agents.market.retry_policy import retry_with_backoff
@@ -105,8 +104,13 @@ class HistoricalDataFetcher:
 
         logger.info(
             "[HistoricalFetcher] Fetch %s %s — %.1f an(s) ≈ %d bougies depuis %s",
-            symbol, timeframe, years, total_candles,
-            datetime.fromtimestamp(since_ms / 1000, tz=timezone.utc).strftime("%Y-%m-%d"),
+            symbol,
+            timeframe,
+            years,
+            total_candles,
+            datetime.fromtimestamp(since_ms / 1000, tz=timezone.utc).strftime(
+                "%Y-%m-%d"
+            ),
         )
 
         all_candles: list[dict] = []
@@ -157,10 +161,13 @@ class HistoricalDataFetcher:
                 pct = len(all_candles) / max(total_candles, 1) * 100
                 logger.info(
                     "[HistoricalFetcher] %s page %d — %d bougies (%.0f%%) — last: %s",
-                    symbol, page,
+                    symbol,
+                    page,
                     len(all_candles),
                     pct,
-                    datetime.fromtimestamp(last_ts / 1000, tz=timezone.utc).strftime("%Y-%m-%d %H:%M"),
+                    datetime.fromtimestamp(
+                        last_ts / 1000, tz=timezone.utc
+                    ).strftime("%Y-%m-%d %H:%M"),
                 )
 
             # Stop si la dernière bougie dépasse maintenant
@@ -187,7 +194,10 @@ class HistoricalDataFetcher:
 
         logger.info(
             "[HistoricalFetcher] %s %s — %d bougies uniques récupérées (%.1f ans)",
-            symbol, timeframe, len(unique), years,
+            symbol,
+            timeframe,
+            len(unique),
+            years,
         )
         return unique
 
@@ -220,6 +230,10 @@ class HistoricalDataFetcher:
             }
             saved = db.save_snapshot(fake_market)
             results[symbol] = saved
-            logger.info("[HistoricalFetcher] %s → %d bougies sauvegardées", symbol, saved)
+            logger.info(
+                "[HistoricalFetcher] %s → %d bougies sauvegardées",
+                symbol,
+                saved,
+            )
 
         return results

@@ -1,4 +1,5 @@
 import os
+import sys
 import unittest
 
 SENSITIVE_FILES = [
@@ -9,6 +10,7 @@ SENSITIVE_FILES = [
 
 
 class TestSecurityPermissions(unittest.TestCase):
+    @unittest.skipIf(sys.platform == "win32", "Permissions Unix non applicables sur Windows")
     def test_no_world_read_access(self):
         # Vérifie que les fichiers sensibles ne sont pas world-readable
         for f in SENSITIVE_FILES:

@@ -4,7 +4,7 @@
   "genomes": [
     {
       "_version": 1,
-      "id": "89d925ce",
+      "id": "6824bb26",
       "genes": {
         "entry.type": "hybrid",
         "entry.rsi_period": 23.095620664756137,
@@ -24,7 +24,7 @@
     },
     {
       "_version": 1,
-      "id": "489e9f0c",
+      "id": "2acecb04",
       "genes": {
         "entry.type": "hybrid",
         "entry.rsi_period": 23.095620664756137,
@@ -44,7 +44,7 @@
     },
     {
       "_version": 1,
-      "id": "7ac490ce",
+      "id": "34407743",
       "genes": {
         "entry.type": "mean_reversion",
         "entry.rsi_period": 23.095620664756137,
@@ -64,7 +64,7 @@
     },
     {
       "_version": 1,
-      "id": "880b0d09",
+      "id": "d995c593",
       "genes": {
         "entry.type": "hybrid",
         "entry.rsi_period": 22.761522039892846,
@@ -84,7 +84,7 @@
     },
     {
       "_version": 1,
-      "id": "d28cf745",
+      "id": "df666d43",
       "genes": {
         "entry.type": "hybrid",
         "entry.rsi_period": 25.02643305543451,
@@ -104,7 +104,7 @@
     },
     {
       "_version": 1,
-      "id": "5311185d",
+      "id": "c85618b9",
       "genes": {
         "entry.type": "hybrid",
         "entry.rsi_period": 23.095620664756137,
@@ -124,7 +124,7 @@
     },
     {
       "_version": 1,
-      "id": "2dff09ab",
+      "id": "76e38954",
       "genes": {
         "entry.type": "trend",
         "entry.rsi_period": 12.412008435079038,
@@ -144,7 +144,7 @@
     },
     {
       "_version": 1,
-      "id": "76452fcc",
+      "id": "bdfeb249",
       "genes": {
         "entry.type": "trend",
         "entry.rsi_period": 21.011795580699435,

@@ -13,8 +13,20 @@ __pycache__/
 
 # Ignore environment and setup files
 .env
+.env.*
+*.env
+venv/
 .venv/
 setup/
+
+# Ignore API secrets and credentials
+secrets.json
+secrets.yaml
+secrets.yml
+*_secret*
+*_key*
+*_credentials*
+api_keys.json
 
 # Ignore OS files
 .DS_Store
@@ -34,3 +46,10 @@ archives/
 # Ignore SQLite databases
 *.sqlite
 *.db
+
+# Ignore temporary files
+*.tmp
+*.temp
+~$*
+*.swp
+*.bak

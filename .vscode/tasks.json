@@ -1,0 +1,178 @@
+{
+  "version": "2.0.0",
+  "inputs": [
+    {
+      "id": "trackerIntervalSeconds",
+      "type": "promptString",
+      "description": "Tracker scheduler interval in seconds",
+      "default": "300"
+    },
+    {
+      "id": "trackerOptimizerMode",
+      "type": "pickString",
+      "description": "Optimizer mode",
+      "default": "-NoOptimizer",
+      "options": [
+        "-NoOptimizer",
+        "-Optimizer"
+      ]
+    },
+    {
+      "id": "trackerTailLogs",
+      "type": "promptString",
+      "description": "Number of log lines to show after a foreground cycle",
+      "default": "20"
+    }
+  ],
+  "tasks": [
+    {
+      "label": "Tracker Scheduler: Start",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}\\tracker_scheduler.ps1",
+        "start",
+        "-IntervalSeconds",
+        "${input:trackerIntervalSeconds}",
+        "${input:trackerOptimizerMode}"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Tracker Scheduler: Status",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}\\tracker_scheduler.ps1",
+        "status"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Tracker Scheduler: Status (JSON)",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}\\tracker_scheduler.ps1",
+        "status",
+        "-Json"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Tracker Scheduler: Once",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}\\tracker_scheduler.ps1",
+        "once",
+        "${input:trackerOptimizerMode}",
+        "-IntervalSeconds",
+        "${input:trackerIntervalSeconds}",
+        "-TailLogs",
+        "${input:trackerTailLogs}"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Tracker Scheduler: Stop",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}\\tracker_scheduler.ps1",
+        "stop"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Tracker Scheduler: Stop (JSON)",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}\\tracker_scheduler.ps1",
+        "stop",
+        "-Json"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Tracker Scheduler: Clean",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}\\tracker_scheduler.ps1",
+        "clean",
+        "-Force"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Tracker Scheduler: Clean (JSON)",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}\\tracker_scheduler.ps1",
+        "clean",
+        "-Force",
+        "-Json"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    }
+  ]
+}

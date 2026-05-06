@@ -121,16 +121,6 @@ def supervision_autoheal_panel():
 import sys
 
 import streamlit as st
-
-if __name__ != "__main__" and (
-    "pytest" in sys.modules or any("pytest" in arg for arg in sys.argv)
-):
-    import pytest
-
-    pytest.skip(
-        "evolution_3d_view.py is a Streamlit app and should not be tested with pytest.",
-        allow_module_level=True,
-    )
 import glob
 import os
 
@@ -138,7 +128,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import plotly.graph_objs as go
-import seaborn as sns
 from mpl_toolkits.mplot3d import Axes3D  # noqa: F401
 from sklearn.cluster import KMeans
 
@@ -161,6 +150,16 @@ EXTERNAL_LINKS = [
     ("Documentation (EN)", "DOCUMENTATION_EVOLUTION_DASHBOARD_EN.md"),
     ("GitHub Project", "https://github.com/your-org/crypto_ai_terminal"),
 ]
+
+
+def _load_seaborn():
+    try:
+        import seaborn as sns
+    except ImportError as exc:
+        raise RuntimeError(
+            "Le package optionnel 'seaborn' est requis pour les visualisations statistiques de ce dashboard."
+        ) from exc
+    return sns
 
 
 def home_panel():
@@ -405,6 +404,7 @@ def evolution_3d_panel():
     # --- Visualisation supplémentaire : distribution fitness par espèce ---
     st.header("Distribution du fitness par espèce")
     try:
+        sns = _load_seaborn()
         fig_dist, ax_dist = plt.subplots(figsize=(8, 4))
         sns.boxplot(data=df_gen, x="species", y="fitness", ax=ax_dist)
         ax_dist.set_title(
@@ -638,6 +638,7 @@ def evolution_3d_panel():
             )
             error_report = None
             try:
+                sns = _load_seaborn()
                 palette = (
                     sns.color_palette(
                         palette_choice, n_colors=len(species_list)

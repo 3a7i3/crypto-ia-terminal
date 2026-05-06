@@ -65,6 +65,7 @@ def save_feedback_local(feedback, csv_path="onboarding_feedback.csv", allow_temp
         filename=log_path,
         level=logging.ERROR,
         format="%(asctime)s %(levelname)s %(message)s",
+        encoding="utf-8",
     )
     try:
         base_dir = os.path.abspath(os.getcwd())

@@ -1,0 +1,16 @@
+{
+  "edge": {
+    "min_mfe_for_exit_review_pct": 1.0,
+    "poor_efficiency_pct": 50.0,
+    "review_efficiency_pct": 65.0,
+    "min_expectancy_pct": 0.15,
+    "max_drawdown_hard_pct": 4.0,
+    "max_drawdown_review_pct": 2.5,
+    "min_capture_ratio": 0.75
+  },
+  "regime": {
+    "range_avoid_avg_pnl_pct": 0.1,
+    "strong_regime_avg_pnl_pct": 0.5,
+    "strong_regime_winrate_pct": 55.0
+  }
+}

@@ -2,3 +2,8 @@ panel
 pandas
 hvplot
 requests
+httpx
+psutil
+streamlit
+plotly
+python-dotenv

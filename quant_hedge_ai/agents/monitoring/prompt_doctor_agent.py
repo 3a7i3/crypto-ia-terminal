@@ -9,10 +9,10 @@ from typing import Any
 
 
 class CreatePromptAgent:
-    """Generate enhancement prompts and apply basic doctor corrections to strategy payloads."""
+    """Generate prompts and apply basic doctor corrections to strategies."""
 
     def send_telegram_message(self, user_id: int | str, message: str) -> None:
-        """Fallback Telegram sender (placeholder). Replace with real integration if needed."""
+        """Fallback Telegram sender placeholder."""
         print(f"[Telegram] To {user_id}: {message}")
 
     def __init__(self) -> None:
@@ -54,7 +54,9 @@ class CreatePromptAgent:
                     "severity": "info",
                     "component": "system",
                     "issue": "No critical anomalies detected",
-                    "recommendation": "Maintain current configuration and continue monitoring.",
+                    "recommendation": (
+                        "Maintain current configuration and continue monitoring."
+                    ),
                     "priority": 10,
                 }
             )
@@ -126,7 +128,10 @@ class CreatePromptAgent:
                     ],
                     "interaction": "Can alert users via Telegram or dashboard",
                 },
-                "output": "Detailed prompt for generating new features and proactive correction for AI bot + Telegram",
+                "output": (
+                    "Detailed prompt for generating new features and proactive "
+                    "correction for AI bot + Telegram"
+                ),
             },
         }
 
@@ -195,14 +200,20 @@ class CreatePromptAgent:
             corrected_strategy["allocation"] = (
                 0.0 if fallback_allocation is None else fallback_allocation
             )
-            issue = f"Correction applied on allocation: {allocation!r} -> {corrected_strategy['allocation']!r}"
+            issue = (
+                f"Correction applied on allocation: {allocation!r} -> "
+                f"{corrected_strategy['allocation']!r}"
+            )
             current_issues.append(issue)
             self.doctor_log.append(issue)
         else:
             bounded_allocation = min(1.0, max(0.0, parsed_allocation))
             corrected_strategy["allocation"] = bounded_allocation
             if bounded_allocation != parsed_allocation:
-                issue = f"Correction applied on allocation: {parsed_allocation!r} -> {bounded_allocation!r}"
+                issue = (
+                    f"Correction applied on allocation: {parsed_allocation!r} -> "
+                    f"{bounded_allocation!r}"
+                )
                 current_issues.append(issue)
                 self.doctor_log.append(issue)
 
@@ -317,7 +328,9 @@ class CreatePromptAgent:
     def interactive_doctor_panel(self, filter_by: str = "") -> dict[str, Any]:
         logs = self.doctor_log
         if filter_by:
-            filtered = [l for l in logs if filter_by.lower() in l.lower()]
+            filtered = [
+                log_line for log_line in logs if filter_by.lower() in log_line.lower()
+            ]
         else:
             filtered = logs
         return {

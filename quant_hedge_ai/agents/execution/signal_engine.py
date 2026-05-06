@@ -48,7 +48,7 @@ def compute_signal(strategy: dict, candles: list[dict]) -> str:
                 return "SELL"
 
         elif indicator == "MACD":
-            fast, slow, signal = 12, 26, 9
+            fast, slow = 12, 26
             macd_line = _ema(closes, fast)[-1] - _ema(closes, slow)[-1]
             macd_prev = (
                 _ema(closes[:-1], fast)[-1] - _ema(closes[:-1], slow)[-1]

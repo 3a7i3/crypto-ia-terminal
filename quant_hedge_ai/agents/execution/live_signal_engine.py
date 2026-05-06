@@ -1,0 +1,388 @@
+"""
+live_signal_engine.py — Moteur de signaux live 0-100 par symbole.
+
+Agrège :
+  - Signal MTF (MultiTimeframeSignal, poids 40 %)
+  - Régime de marché (AdvancedRegimeDetector, poids 25 %)
+  - Qualité OHLCV (OHLCVValidator, poids 15 %)
+  - Contexte de mémoire stratégique (StrategyMemoryStore, poids 20 %)
+
+Un score ≥ SIGNAL_MIN_SCORE (défaut 70) déclenche une opportunité de trading.
+"""
+
+from __future__ import annotations
+
+import logging
+import os
+import time
+from dataclasses import dataclass, field
+from typing import Callable
+
+logger = logging.getLogger(__name__)
+
+_DEFAULT_MIN_SCORE: int = int(os.getenv("SIGNAL_MIN_SCORE", "70"))
+
+
+@dataclass
+class SignalResult:
+    symbol: str
+    score: int                        # 0-100
+    signal: str                       # BUY | SELL | HOLD
+    regime: str = "unknown"
+    confirmed: bool = False
+    strength: float = 0.0
+    components: dict = field(default_factory=dict)
+    timestamp: float = field(default_factory=time.time)
+
+    @property
+    def actionable(self) -> bool:
+        return self.score >= _DEFAULT_MIN_SCORE and self.signal in ("BUY", "SELL")
+
+    def as_dict(self) -> dict:
+        return {
+            "symbol": self.symbol,
+            "score": self.score,
+            "signal": self.signal,
+            "regime": self.regime,
+            "confirmed": self.confirmed,
+            "strength": self.strength,
+            "actionable": self.actionable,
+            "components": self.components,
+            "timestamp": self.timestamp,
+        }
+
+
+class LiveSignalEngine:
+    """
+    Agrège plusieurs sources d'analyse pour produire un score 0-100 par symbole.
+
+    Usage:
+        engine = LiveSignalEngine(strategy=my_strategy)
+        result = engine.evaluate(symbol="BTCUSDT", mtf_candles={...}, features={...})
+        if result.actionable:
+            ...
+    """
+
+    def __init__(
+        self,
+        strategy: dict | None = None,
+        min_score: int = _DEFAULT_MIN_SCORE,
+        regime_blacklist: set[str] | None = None,
+    ) -> None:
+        self.strategy = strategy or {}
+        self.min_score = min_score
+        self.regime_blacklist: set[str] = regime_blacklist or set()
+        self._last_results: dict[str, SignalResult] = {}
+
+    # ── API principale ─────────────────────────────────────────────────────────
+
+    def evaluate(
+        self,
+        symbol: str,
+        mtf_candles: dict[str, list[dict]],
+        features: dict | None = None,
+        memory_sharpe: float | None = None,
+    ) -> SignalResult:
+        """
+        Calcule le score de signal pour un symbole.
+
+        Args:
+            symbol       : ex. "BTCUSDT"
+            mtf_candles  : {timeframe: [candles]} — doit avoir ≥1 TF
+            features     : dict de features de marché (issu de FeatureEngineer)
+            memory_sharpe: meilleur Sharpe mémorisé pour ce régime (optionnel)
+
+        Returns:
+            SignalResult avec score 0-100
+        """
+        features = features or {}
+        components: dict[str, float] = {}
+
+        # ① Score MTF (40 points max)
+        mtf_score, mtf_signal, mtf_confirmed, mtf_strength = self._score_mtf(
+            mtf_candles, components
+        )
+
+        # ② Score régime (25 points max)
+        regime, regime_score = self._score_regime(features, components)
+
+        # ③ Score qualité données (15 points max)
+        data_score = self._score_data_quality(mtf_candles, components)
+
+        # ④ Score mémoire stratégique (20 points max)
+        mem_score = self._score_memory(memory_sharpe, components)
+
+        raw = mtf_score + regime_score + data_score + mem_score
+        score = max(0, min(100, int(raw)))
+
+        # Veto si régime blacklisté
+        if regime in self.regime_blacklist:
+            score = min(score, 30)
+            components["regime_blacklist_veto"] = -1.0
+            logger.debug("[LSE] %s — régime blacklisté (%s), score plafonné à 30", symbol, regime)
+
+        result = SignalResult(
+            symbol=symbol,
+            score=score,
+            signal=mtf_signal,
+            regime=regime,
+            confirmed=mtf_confirmed,
+            strength=mtf_strength,
+            components=components,
+        )
+        self._last_results[symbol] = result
+        logger.info("[LSE] %s → score=%d signal=%s régime=%s actionable=%s",
+                    symbol, score, mtf_signal, regime, result.actionable)
+        return result
+
+    def evaluate_batch(
+        self,
+        symbols_data: dict[str, dict],
+    ) -> list[SignalResult]:
+        """
+        Évalue plusieurs symboles en un appel.
+
+        Args:
+            symbols_data: {symbol: {"mtf_candles": {...}, "features": {...}, "memory_sharpe": float}}
+
+        Returns:
+            Liste triée par score décroissant
+        """
+        results = []
+        for symbol, data in symbols_data.items():
+            try:
+                r = self.evaluate(
+                    symbol=symbol,
+                    mtf_candles=data.get("mtf_candles", {}),
+                    features=data.get("features"),
+                    memory_sharpe=data.get("memory_sharpe"),
+                )
+                results.append(r)
+            except Exception as exc:
+                logger.warning("[LSE] Erreur %s: %s", symbol, exc)
+        results.sort(key=lambda r: r.score, reverse=True)
+        return results
+
+    def top_opportunities(self, n: int = 3) -> list[SignalResult]:
+        """Retourne les N meilleures opportunités actionnables du dernier batch."""
+        actionable = [r for r in self._last_results.values() if r.actionable]
+        return sorted(actionable, key=lambda r: r.score, reverse=True)[:n]
+
+    def blacklist_regime(self, regime: str) -> None:
+        self.regime_blacklist.add(regime)
+        logger.info("[LSE] Régime blacklisté: %s", regime)
+
+    def unblacklist_regime(self, regime: str) -> None:
+        self.regime_blacklist.discard(regime)
+
+    # ── Sous-scores ───────────────────────────────────────────────────────────
+
+    def _score_mtf(
+        self, mtf_candles: dict, components: dict
+    ) -> tuple[float, str, bool, float]:
+        """
+        Score MTF enrichi : combine le vote multi-timeframe classique
+        avec les indicateurs techniques (RSI, MACD, EMA) de chaque TF.
+        Retourne (score 0-40, signal, confirmed, strength).
+        """
+        if not mtf_candles:
+            components["mtf"] = 0.0
+            return 0.0, "HOLD", False, 0.0
+
+        from quant_hedge_ai.agents.intelligence.feature_engineer import FeatureEngineer
+        fe = FeatureEngineer()
+
+        # ── Vote indicateurs par TF ────────────────────────────────────────
+        tf_weights = {"1d": 3.0, "4h": 2.0, "1h": 1.0, "15m": 0.5}
+        buy_score  = 0.0
+        sell_score = 0.0
+        total_w    = 0.0
+        tf_signals: dict[str, str] = {}
+
+        for tf, candles in mtf_candles.items():
+            if not candles or len(candles) < 20:
+                continue
+            w    = tf_weights.get(tf, 1.0)
+            feat = fe.extract_features(candles)
+            sig  = self._indicator_signal(feat)
+            tf_signals[tf] = sig
+            if sig == "BUY":
+                buy_score  += w
+            elif sig == "SELL":
+                sell_score += w
+            total_w += w
+
+        # ── Vote classique (fallback si pas assez de TF) ──────────────────
+        try:
+            from quant_hedge_ai.agents.execution.multi_timeframe_signal import MultiTimeframeSignal
+            mtf     = MultiTimeframeSignal()
+            result  = mtf.confirm(self.strategy, mtf_candles)
+            classic = result.get("signal", "HOLD")
+            if classic == "BUY":
+                buy_score  += 1.0
+            elif classic == "SELL":
+                sell_score += 1.0
+            total_w += 1.0
+        except Exception:
+            pass
+
+        if total_w == 0:
+            components["mtf"] = 0.0
+            return 0.0, "HOLD", False, 0.0
+
+        if buy_score > sell_score:
+            candidate = "BUY"
+            strength  = buy_score / total_w
+        elif sell_score > buy_score:
+            candidate = "SELL"
+            strength  = sell_score / total_w
+        else:
+            components["mtf"] = 5.0
+            return 5.0, "HOLD", False, 0.0
+
+        n_agree   = sum(1 for s in tf_signals.values() if s == candidate)
+        confirmed = strength >= 0.5 and n_agree >= 2
+
+        if not confirmed:
+            score = strength * 15.0
+        else:
+            score = 20.0 + strength * 20.0   # 20-40 pts si confirmé
+
+        signal = candidate if confirmed else "HOLD"
+        logger.debug("[LSE] MTF: %s strength=%.2f n_agree=%d tfs=%s",
+                     signal, strength, n_agree, tf_signals)
+
+        components["mtf"]    = round(score, 2)
+        components["mtf_tfs"] = tf_signals
+        return score, signal, confirmed, round(strength, 3)
+
+    @staticmethod
+    def _indicator_signal(feat: dict) -> str:
+        """
+        Signal composite depuis RSI + MACD + EMA + Bollinger.
+        Retourne BUY / SELL / HOLD.
+        """
+        buy_votes  = 0
+        sell_votes = 0
+
+        # RSI
+        rsi = feat.get("rsi", 50.0)
+        if rsi < 35:
+            buy_votes  += 2   # sur-vendu = fort signal BUY
+        elif rsi < 45:
+            buy_votes  += 1
+        elif rsi > 65:
+            sell_votes += 2   # sur-acheté = fort signal SELL
+        elif rsi > 55:
+            sell_votes += 1
+
+        # MACD histogramme
+        macd_h = feat.get("macd_hist", 0.0)
+        if macd_h > 0:
+            buy_votes  += 1
+        elif macd_h < 0:
+            sell_votes += 1
+
+        # EMA alignment
+        if feat.get("ema_bullish", False) and feat.get("ema_cross", 0) > 0:
+            buy_votes += 1
+        elif not feat.get("ema_bullish", True) and feat.get("ema_cross", 0) < 0:
+            sell_votes += 1
+
+        # Bollinger position
+        bb_pct = feat.get("bb_pct", 0.5)
+        if bb_pct < 0.2:
+            buy_votes  += 1   # proche de la bande inférieure
+        elif bb_pct > 0.8:
+            sell_votes += 1   # proche de la bande supérieure
+
+        # Momentum
+        mom = feat.get("momentum", 0.0)
+        if mom > 0.01:
+            buy_votes += 1
+        elif mom < -0.01:
+            sell_votes += 1
+
+        total = buy_votes + sell_votes
+        if total == 0:
+            return "HOLD"
+        if buy_votes >= 3 and buy_votes > sell_votes * 1.5:
+            return "BUY"
+        if sell_votes >= 3 and sell_votes > buy_votes * 1.5:
+            return "SELL"
+        return "HOLD"
+
+    def _score_regime(self, features: dict, components: dict) -> tuple[str, float]:
+        """Retourne (regime, score 0-25)."""
+        if not features:
+            components["regime"] = 0.0
+            return "unknown", 0.0
+
+        try:
+            from quant_hedge_ai.agents.intelligence.regime_detector import (
+                AdvancedRegimeDetector,
+            )
+            det = AdvancedRegimeDetector()
+            regime = det.classify(features)
+        except Exception:
+            regime = "unknown"
+
+        # Bonus selon régime favorable à un signal directionnel
+        regime_scores = {
+            "bull_trend": 25.0,
+            "bear_trend": 20.0,
+            "high_volatility_regime": 15.0,
+            "flash_crash": 5.0,
+            "sideways": 12.0,
+            "unknown": 0.0,
+        }
+        score = regime_scores.get(regime, 10.0)
+        components["regime"] = round(score, 2)
+        return regime, score
+
+    def _score_data_quality(self, mtf_candles: dict, components: dict) -> float:
+        """Retourne un score 0-15 selon la qualité des données."""
+        if not mtf_candles:
+            components["data_quality"] = 0.0
+            return 0.0
+
+        try:
+            from quant_hedge_ai.agents.market.ohlcv_validator import validate_candles
+
+            total_score = 0.0
+            total_weight = 0.0
+            tf_weights = {"1d": 3.0, "4h": 2.0, "1h": 1.0, "15m": 0.5}
+
+            for tf, candles in mtf_candles.items():
+                if not candles:
+                    continue
+                w = tf_weights.get(tf, 1.0)
+                valid, report = validate_candles(candles)
+                quality = report.valid / report.total if report.total > 0 else 0.5
+                total_score += quality * w
+                total_weight += w
+
+            ratio = (total_score / total_weight) if total_weight > 0 else 0.5
+            score = ratio * 15.0
+        except Exception as exc:
+            logger.debug("[LSE] Qualité données error: %s", exc)
+            score = 7.5  # score neutre si validator indisponible
+
+        components["data_quality"] = round(score, 2)
+        return score
+
+    def _score_memory(self, memory_sharpe: float | None, components: dict) -> float:
+        """Retourne 0-20 selon le meilleur Sharpe mémorisé pour ce régime."""
+        if memory_sharpe is None:
+            components["memory"] = 10.0  # neutre si pas de mémoire
+            return 10.0
+
+        if memory_sharpe <= 0:
+            score = 0.0
+        elif memory_sharpe >= 2.0:
+            score = 20.0
+        else:
+            score = memory_sharpe / 2.0 * 20.0
+
+        components["memory"] = round(score, 2)
+        return score

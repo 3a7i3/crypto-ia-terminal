@@ -1,0 +1,59 @@
+name: Testnet Integration
+
+on:
+  workflow_dispatch:
+
+jobs:
+  testnet-integration:
+    name: Binance Testnet Integration
+    runs-on: windows-latest
+    env:
+      BINANCE_TESTNET: "true"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-ci.txt
+
+      - name: Export testnet secrets
+        shell: pwsh
+        env:
+          ALL_SECRETS_JSON: ${{ toJson(secrets) }}
+        run: |
+          $allSecrets = $env:ALL_SECRETS_JSON | ConvertFrom-Json -AsHashtable
+          $apiKey = if ($allSecrets.ContainsKey('BINANCE_API_KEY')) { [string]$allSecrets['BINANCE_API_KEY'] } else { '' }
+          $apiSecret = if ($allSecrets.ContainsKey('BINANCE_API_SECRET')) { [string]$allSecrets['BINANCE_API_SECRET'] } else { '' }
+
+          if ([string]::IsNullOrWhiteSpace($apiKey) -or [string]::IsNullOrWhiteSpace($apiSecret)) {
+            throw "BINANCE_API_KEY / BINANCE_API_SECRET secrets are required for the testnet integration workflow."
+          }
+
+          Add-Content -Path $env:GITHUB_ENV -Value "BINANCE_API_KEY=$apiKey"
+          Add-Content -Path $env:GITHUB_ENV -Value "BINANCE_API_SECRET=$apiSecret"
+
+      - name: Validate testnet secrets
+        shell: pwsh
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:BINANCE_API_KEY) -or [string]::IsNullOrWhiteSpace($env:BINANCE_API_SECRET)) {
+            throw "BINANCE_API_KEY / BINANCE_API_SECRET secrets are required for the testnet integration workflow."
+          }
+
+      - name: Run Binance testnet integration slice
+        shell: pwsh
+        run: .\scripts\run_testnet_integration.ps1 -ReportPath artifacts/testnet-integration-report.json
+
+      - name: Upload testnet integration report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: testnet-integration-report
+          path: artifacts/testnet-integration-report.json

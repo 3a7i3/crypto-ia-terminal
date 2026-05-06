@@ -39,6 +39,37 @@ include =
     # Strategy lab
     quant_hedge_ai/strategy_lab/feature_cache.py
 
+    # Event bus (Phase 3)
+    event_bus/bus.py
+    event_bus/bridge.py
+    event_bus/events.py
+
+    # Intelligence agents (Phase 1 — restaurés)
+    quant_hedge_ai/agents/intelligence/regime_detector.py
+
+    # Evolution engine (Phase 3 — branché event bus)
+    quant_hedge_ai/ai_evolution/evolution_engine.py
+
+    # Phase 4 — Live Signal Engine
+    quant_hedge_ai/agents/execution/live_signal_engine.py
+
+    # Phase 5 — Trade Post-Mortem + Blacklist
+    quant_hedge_ai/agents/execution/trade_postmortem.py
+    quant_hedge_ai/ai_evolution/strategy_memory.py
+
+    # Phase 6 — AIAdvisor + WeeklyReport
+    quant_hedge_ai/agents/intelligence/ai_advisor.py
+    quant_hedge_ai/agents/intelligence/weekly_report.py
+
+    # Phase 7 — GlobalRiskGate + OrderSizer
+    quant_hedge_ai/agents/risk/global_risk_gate.py
+    quant_hedge_ai/agents/risk/order_sizer.py
+
+    # Phase 8 — Alertes proactives, HealthEndpoint, AdvisorOnly
+    quant_hedge_ai/agents/intelligence/proactive_alerts.py
+    quant_hedge_ai/health_endpoint.py
+    quant_hedge_ai/advisor_only_mode.py
+
 exclude_lines =
     pragma: no cover
     if __name__ == .__main__.:

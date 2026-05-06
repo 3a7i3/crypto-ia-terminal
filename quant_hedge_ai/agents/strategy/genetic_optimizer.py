@@ -8,9 +8,9 @@ class GeneticOptimizer:
 
     def mutate(self, strategy: dict) -> dict:
         child = dict(strategy)
-        child["period"] = max(2, int(child.get("period", 20)) + random.randint(-8, 8))
+        child["period"] = max(2, int(child.get("period") or 20) + random.randint(-8, 8))
         child["threshold"] = round(
-            max(0.1, float(child.get("threshold", 1.0)) + random.uniform(-0.2, 0.2)), 3
+            max(0.1, float(child.get("threshold") or 1.0) + random.uniform(-0.2, 0.2)), 3
         )
         return child
 

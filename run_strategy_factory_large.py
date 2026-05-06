@@ -1,7 +1,7 @@
 import pandas as pd
 
 from strategy_factory.alpha_vault import AlphaVault
-from strategy_factory.backtester import Backtester
+from quant_hedge_ai.strategy_factory.backtester import FactoryBacktester as Backtester
 from strategy_factory.evolution import EvolutionEngine
 from strategy_factory.generator import StrategyGenerator
 
@@ -21,7 +21,9 @@ backtester = Backtester()
 strategies = generator.generate(2000)
 
 for generation in range(30):
-    scores = [backtester.evaluate(s, df) for s in strategies]
+    candles = [{"close": c} for c in df["close"].tolist()]  # Convert to candle format
+    results = backtester.run(strategies, candles)
+    scores = [r.get("total_pnl", 0) if isinstance(r, dict) else r for r in results]
     # Sauvegarde les 10 meilleures stratégies de chaque génération
     top = sorted(zip(strategies, scores), key=lambda x: x[1], reverse=True)[:10]
     for strat, score in top:

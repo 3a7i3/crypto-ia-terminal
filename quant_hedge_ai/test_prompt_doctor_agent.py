@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 import json
-import tempfile
 import unittest
-from pathlib import Path
 
 from quant_hedge_ai.agents.monitoring.prompt_doctor_agent import \
     CreatePromptAgent

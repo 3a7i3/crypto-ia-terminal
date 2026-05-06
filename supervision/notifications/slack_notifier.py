@@ -5,7 +5,6 @@ slack_notifier.py — Envoi de notifications via Slack webhook.
 from __future__ import annotations
 
 import logging
-from typing import Optional
 
 logger = logging.getLogger("SlackNotifier")
 

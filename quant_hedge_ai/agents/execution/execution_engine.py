@@ -26,9 +26,15 @@ alert_manager.register_autoheal("execution", execution_autoheal)
 
 class ExecutionEngine:
     """
-    Moteur d'exécution — mode paper par défaut, live si BINANCE_API_KEY est défini.
+    Moteur d'exécution multi-mode.
 
-    Safety layer (toujours actif, paper et live) :
+    Modes supportés (BINANCE_MODE dans .env) :
+      spot_testnet   — Testnet Spot Binance   (BINANCE_API_KEY/SECRET + BINANCE_TESTNET=true)
+      futures_demo   — Demo Trading Futures   (BINANCE_FUTURES_DEMO_KEY/SECRET)
+      live           — Live réel              (BINANCE_LIVE_API_KEY/SECRET + BINANCE_TESTNET=false)
+      paper          — Simulation locale      (défaut si aucune clé)
+
+    Safety layer (toujours actif) :
       1. OrderDeduplicator  — bloque les ordres dupliqués (< 30 s)
       2. SessionGuard       — halt si drawdown / pertes consécutives dépassent les seuils
       3. TradeLogger        — log SQLite de tous les ordres (audit)
@@ -37,9 +43,13 @@ class ExecutionEngine:
     def __init__(self, live: bool = False) -> None:
         self._size_factor: float = 1.0
         self._live = live
+        self._position_manager = None
         self._exchange = None
+        self._exchange_futures = None   # futures demo séparé
+        self._mode = "paper"
         if live:
             self._exchange = self._init_exchange()
+            self._exchange_futures = self._init_futures_demo()
 
         # Safety layer
         self._dedup = OrderDeduplicator(
@@ -54,47 +64,86 @@ class ExecutionEngine:
         self._logger = TradeLogger(
             db_path=os.getenv("EXEC_TRADE_LOG", "databases/trade_log.sqlite")
         )
+        self._quote_asset = "USDT"
 
     def _init_exchange(self):
-        """Initialise un exchange ccxt avec les clés API depuis l'environnement."""
+        """Initialise le client Spot (testnet ou live) selon les variables d'env."""
         try:
             import ccxt
-
-            api_key = os.getenv("BINANCE_API_KEY")
+            api_key    = os.getenv("BINANCE_API_KEY")
             api_secret = os.getenv("BINANCE_API_SECRET")
             if not api_key or not api_secret:
-                logger.warning(
-                    "[ExecutionEngine] BINANCE_API_KEY/SECRET manquants — bascule paper"
-                )
+                logger.warning("[ExecutionEngine] Clés spot manquantes — mode paper")
                 self._live = False
                 return None
-            config: dict = {
+            exchange = ccxt.binance({
                 "apiKey": api_key,
                 "secret": api_secret,
                 "enableRateLimit": True,
-            }
+                "options": {"defaultType": "spot", "adjustForTimeDifference": True},
+            })
             if os.getenv("BINANCE_TESTNET", "false").lower() == "true":
-                config["options"] = {"defaultType": "spot"}
-                config["urls"] = {
-                    "api": {
-                        "public": "https://testnet.binance.vision/api",
-                        "private": "https://testnet.binance.vision/api",
-                    }
-                }
-                logger.info("[ExecutionEngine] Mode TESTNET Binance activé")
+                exchange.set_sandbox_mode(True)
+                self._mode = "spot_testnet"
+                logger.info("[ExecutionEngine] Mode SPOT TESTNET Binance")
             else:
-                logger.info("[ExecutionEngine] Mode LIVE Binance activé")
-            return ccxt.binance(config)
+                self._mode = "live"
+                logger.info("[ExecutionEngine] Mode SPOT LIVE Binance")
+            return exchange
         except Exception as exc:
-            logger.error("[ExecutionEngine] Impossible d'initialiser ccxt: %s", exc)
+            logger.error("[ExecutionEngine] Init spot erreur: %s", exc)
             self._live = False
+            return None
+
+    def _init_futures_demo(self):
+        """
+        Initialise le client Futures Demo Trading Binance.
+        Nécessite BINANCE_FUTURES_DEMO_KEY et BINANCE_FUTURES_DEMO_SECRET dans .env.
+        Clés à créer sur https://demo.binance.com → Mon Compte → Gestion des API.
+        """
+        try:
+            import ccxt
+            key    = os.getenv("BINANCE_FUTURES_DEMO_KEY", "")
+            secret = os.getenv("BINANCE_FUTURES_DEMO_SECRET", "")
+            if not key or not secret:
+                logger.debug("[ExecutionEngine] Pas de clés futures demo — ignoré")
+                return None
+            ex = ccxt.binanceusdm({
+                "apiKey": key,
+                "secret": secret,
+                "enableRateLimit": True,
+                "options": {"adjustForTimeDifference": True},
+            })
+            ex.enable_demo_trading(True)
+            # Test de connexion rapide
+            bal = ex.fetch_balance()
+            usdt = bal.get("total", {}).get("USDT", 0)
+            logger.info("[ExecutionEngine] Futures Demo connecté — USDT: %.2f", usdt)
+            return ex
+        except Exception as exc:
+            logger.warning("[ExecutionEngine] Futures demo non disponible: %s", exc)
             return None
 
     @classmethod
     def from_env(cls) -> "ExecutionEngine":
-        """Retourne un moteur live si les clés API sont présentes, sinon paper."""
+        """Retourne un moteur live si des clés API sont présentes, sinon paper."""
         live = bool(os.getenv("BINANCE_API_KEY") and os.getenv("BINANCE_API_SECRET"))
         return cls(live=live)
+
+    def has_futures_demo(self) -> bool:
+        """True si le client Futures Demo est connecté."""
+        return self._exchange_futures is not None
+
+    def fetch_futures_balance(self) -> float:
+        """Retourne la balance USDT sur le compte Futures Demo."""
+        if self._exchange_futures is None:
+            return 0.0
+        try:
+            bal = self._exchange_futures.fetch_balance()
+            return float(bal.get("free", {}).get("USDT", 0.0))
+        except Exception as exc:
+            logger.warning("[ExecutionEngine] fetch_futures_balance erreur: %s", exc)
+            return 0.0
 
     # ── Configuration ──────────────────────────────────────────────────────────
 
@@ -104,6 +153,27 @@ class ExecutionEngine:
     def start_session(self, equity: float) -> None:
         """Reset session-level risk counters. Call once per trading session."""
         self._guard.start_session(equity)
+
+    def fetch_available_capital(self) -> float:
+        """
+        Retourne le capital USDT libre sur le compte (live/testnet).
+        Fallback sur V9_INITIAL_CAPITAL si l'exchange n'est pas disponible.
+        """
+        if self._exchange is not None:
+            try:
+                bal = self._exchange.fetch_balance()
+                usdt = float(bal.get("free", {}).get(self._quote_asset, 0.0))
+                if usdt > 0:
+                    return usdt
+            except Exception as exc:
+                logger.warning("[ExecutionEngine] fetch_balance erreur: %s", exc)
+        return float(os.getenv("V9_INITIAL_CAPITAL", "1000"))
+
+    def detect_quote_asset(self, symbol: str) -> str:
+        """Détecte la devise de quote d'une paire (ex: BTC/USDT → USDT)."""
+        if "/" in symbol:
+            return symbol.split("/")[1]
+        return self._quote_asset
 
     # ── Main API ───────────────────────────────────────────────────────────────
 
@@ -176,19 +246,142 @@ class ExecutionEngine:
 
         return result
 
+    def create_futures_order(
+        self,
+        symbol: str,
+        action: str,
+        size_usd: float,
+        leverage: int = 1,
+    ) -> dict:
+        """
+        Passe un ordre Futures Demo via le compte demo.binance.com.
+        symbol    : ex. 'BTC/USDT' — sera converti en paire perp USDT-M
+        action    : 'BUY' (long) ou 'SELL' (short)
+        size_usd  : notionnel en USD (minimum $50 exigé par Binance Futures)
+        leverage  : levier (1 = pas de levier, max recommandé: 3)
+        """
+        # Respecter le minimum notionnel Binance Futures ($50)
+        futures_min = float(os.getenv("EXEC_FUTURES_MIN_ORDER_USD", "55"))
+        futures_max = float(os.getenv("EXEC_FUTURES_MAX_ORDER_USD", "100"))
+        size_usd = max(futures_min, min(futures_max, size_usd))
+
+        if self._exchange_futures is None:
+            return {"symbol": symbol, "mode": "futures_unavailable",
+                    "error": "Futures demo non configuré — ajouter BINANCE_FUTURES_DEMO_KEY dans .env"}
+
+        side = "buy" if action.upper() == "BUY" else "sell"
+        # Binance USDM perp: BTC/USDT → BTC/USDT:USDT
+        if ":" in symbol:
+            ccxt_symbol = symbol
+        elif "/" in symbol:
+            quote = symbol.split("/")[1]
+            ccxt_symbol = f"{symbol}:{quote}"
+        else:
+            ccxt_symbol = f"{symbol[:3]}/USDT:USDT"  # ex: BTCUSDT → BTC/USDT:USDT
+
+        try:
+            import math as _math
+
+            # Définir le levier
+            if leverage != 1:
+                try:
+                    self._exchange_futures.set_leverage(leverage, ccxt_symbol)
+                except Exception:
+                    pass
+
+            ticker = self._exchange_futures.fetch_ticker(ccxt_symbol)
+            price  = float(ticker["last"])
+
+            # Limites du marché
+            try:
+                markets      = self._exchange_futures.load_markets()
+                mkt          = markets.get(ccxt_symbol, {})
+                amt_precision = mkt.get("precision", {}).get("amount") or 0.001
+                min_qty      = (mkt.get("limits") or {}).get("amount", {}).get("min") or 0.001
+            except Exception:
+                amt_precision = 0.001
+                min_qty       = 0.001
+
+            raw_qty  = size_usd / price
+            decimals = max(0, -int(round(_math.log10(amt_precision)))) if 0 < amt_precision < 1 else 3
+            qty      = max(min_qty, round(raw_qty, decimals))
+
+            order = self._exchange_futures.create_order(ccxt_symbol, "market", side, qty)
+            logger.info(
+                "[ExecutionEngine] Ordre FUTURES DEMO: %s %.4f %s @ $%.2f (lev x%d) id=%s",
+                action, qty, symbol, price, leverage, order.get("id"),
+            )
+            self._logger.log({**order, "mode": "futures_demo", "usd_size": round(qty * price, 2)})
+            return {**order, "mode": "futures_demo", "usd_size": round(qty * price, 2)}
+
+        except Exception as exc:
+            logger.error("[ExecutionEngine] Echec futures demo %s %s: %s", action, symbol, exc)
+            return {"symbol": symbol, "action": action, "size": size_usd,
+                    "mode": "futures_failed", "error": str(exc)}
+
     # ── Live order placement ───────────────────────────────────────────────────
 
     def _place_live_order(self, symbol: str, action: str, size: float) -> dict:
-        """Passe un ordre market réel via ccxt."""
+        """
+        Passe un ordre market réel via ccxt.
+        size = montant en USD à dépenser (BUY) ou valeur USD à vendre (SELL).
+        """
         side = "buy" if action.upper() == "BUY" else "sell"
         ccxt_symbol = symbol.replace("USDT", "/USDT") if "/" not in symbol else symbol
         try:
-            order = self._exchange.create_order(ccxt_symbol, "market", side, size)
+            # Récupérer le prix actuel et les limites du marché
+            ticker  = self._exchange.fetch_ticker(ccxt_symbol)
+            price   = float(ticker["last"])
+
+            # Charger les limites de marché (min notionnel, précision)
+            try:
+                markets = self._exchange.load_markets()
+                mkt     = markets.get(ccxt_symbol, {})
+                min_notional = float(
+                    (mkt.get("limits") or {}).get("cost", {}).get("min") or 5.0
+                )
+                amt_precision = mkt.get("precision", {}).get("amount") or 1e-5
+            except Exception:
+                min_notional  = 5.0
+                amt_precision = 1e-5
+
+            # Vérifier que le montant USD couvre le minimum notionnel
+            if size < min_notional:
+                logger.warning(
+                    "[ExecutionEngine] Montant $%.2f < minimum notionnel $%.2f pour %s — ajusté",
+                    size, min_notional, ccxt_symbol,
+                )
+                size = min_notional * 1.05  # 5% de marge au-dessus du minimum
+
+            # Vérifier la balance quote disponible pour un achat
+            if side == "buy":
+                quote = self.detect_quote_asset(ccxt_symbol)
+                bal = self._exchange.fetch_balance()
+                available = float(bal.get("free", {}).get(quote, 0.0))
+                if available < size:
+                    logger.warning(
+                        "[ExecutionEngine] Balance %s insuffisante (%.2f < %.2f USD) — taille réduite",
+                        quote, available, size,
+                    )
+                    size = available * 0.95  # utilise 95% de la balance disponible
+
+            # Convertir USD → quantité de base avec la bonne précision
+            import math as _math
+            raw_qty = size / price
+            # Arrondir à la précision du marché (ex: 1e-5 → 5 décimales)
+            decimals = max(0, -int(round(_math.log10(amt_precision)))) if 0 < amt_precision < 1 else 5
+            qty = round(raw_qty, decimals)
+
+            if qty <= 0:
+                raise ValueError(f"Quantité calculée nulle ou négative: {qty}")
+
+            order = self._exchange.create_order(ccxt_symbol, "market", side, qty)
             logger.info(
-                "[ExecutionEngine] Ordre live: %s %s %s → id=%s",
-                action, size, symbol, order.get("id"),
+                "[ExecutionEngine] Ordre live: %s %.8f %s @ $%.2f (USD: $%.2f) id=%s",
+                action, qty, symbol, price, qty * price, order.get("id"),
             )
-            return {**order, "mode": "live"}
+            return {**order, "mode": "live", "usd_size": round(qty * price, 4)}
+
         except Exception as exc:
             logger.error(
                 "[ExecutionEngine] Echec ordre live %s %s: %s", action, symbol, exc
@@ -200,6 +393,11 @@ class ExecutionEngine:
                 "mode": "live_failed",
                 "error": str(exc),
             }
+
+    @staticmethod
+    def _log10_safe(x: float) -> float:
+        import math
+        return math.log10(x) if x > 0 else 0.0
 
     # ── Observability ──────────────────────────────────────────────────────────
 

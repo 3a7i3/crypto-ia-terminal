@@ -31,7 +31,7 @@ id,fitness,species,exit.tp,exit.sl,entry.type,entry.rsi_period,entry.rsi_buy,ma_
 - Les valeurs numériques doivent utiliser le point comme séparateur décimal.
 
 ## Validation
-Utilisez le script `test_validate_population_csv.py` pour vérifier automatiquement la conformité de vos fichiers CSV.
+Utilisez le script `scripts/validate_population_csv.py` pour vérifier automatiquement la conformité de vos fichiers CSV.
 
 ---
 Pour toute question ou exemple détaillé, consultez la documentation du dashboard ou contactez l’équipe technique.

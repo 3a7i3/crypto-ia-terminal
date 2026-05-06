@@ -18,7 +18,7 @@ class TestStrategyLabPerformance(unittest.TestCase):
         features = [f"momentum_{i}" for i in range(30)]
         templates = ["momentum"]
         generator = StrategyGenerator(features, templates)
-        combos = generator.generate()
+        generator.generate()
         param_space = ParameterSpace("momentum")
         grid = param_space.get_grid()
         logic = "IF momentum_0 > {threshold}: BUY ELSE: HOLD"

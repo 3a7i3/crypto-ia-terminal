@@ -14,13 +14,15 @@ def engineer() -> FeatureEngineer:
 
 class TestExtractFeatures:
     def test_empty_candles_returns_neutral_features(self, engineer):
-        assert engineer.extract_features([]) == {
-            "momentum": 0.0,
-            "realized_volatility": 0.0,
-            "trend_strength": 0.5,
-            "avg_volume": 0.0,
-            "volume_ratio": 1.0,
-        }
+        features = engineer.extract_features([])
+        assert features["momentum"] == 0.0
+        assert features["realized_volatility"] == 0.0
+        assert features["trend_strength"] == 0.5
+        assert features["avg_volume"] == 0.0
+        assert features["volume_ratio"] == 1.0
+        assert features["rsi"] == 50.0
+        assert features["macd_hist"] == 0.0
+        assert features["bb_pct"] == 0.5
 
     def test_single_candle_returns_volume_without_returns(self, engineer):
         features = engineer.extract_features([{"close": 100, "volume": 2500}])

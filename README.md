@@ -273,6 +273,15 @@ pytest tests/
 python -m unittest discover -s tests
 ```
 
+### Lancer la tranche d'integration Binance testnet
+```powershell
+./scripts/run_testnet_integration.ps1 -DryRun -ReportPath artifacts/testnet-integration-report.json
+./scripts/run_testnet_integration.ps1 -ReportPath artifacts/testnet-integration-report.json
+```
+- Pré-requis: `BINANCE_API_KEY`, `BINANCE_API_SECRET`, `BINANCE_TESTNET=true`
+- `-DryRun` affiche la commande et génère un rapport sans exécuter pytest
+- Le workflow manuel associé est [.github/workflows/testnet-integration.yml](.github/workflows/testnet-integration.yml)
+
 ### Structure des tests
 - `tests/test_backtest_profiler.py` : test du profiling (exécution, robustesse)
 - `tests/test_monitoring_profiler.py` : test du monitoring (exécution, robustesse)

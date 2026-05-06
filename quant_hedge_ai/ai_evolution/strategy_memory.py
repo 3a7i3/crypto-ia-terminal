@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import json
+import logging
 from dataclasses import dataclass
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -22,22 +25,6 @@ class StrategyMemoryStore:
         self.cfg = cfg or MemoryConfig()
         self.cfg.file_path.parent.mkdir(parents=True, exist_ok=True)
 
-    def load_by_regime(self, regime: str, limit: int = 20) -> list[dict]:
-        payload = self._read()
-        regimes = payload.get("regimes", {})
-        bucket = regimes.get(regime, [])
-        stability = self.get_regime_stability(regime, payload=payload)
-        ranked = self._rank_for_loading(bucket, regime_stability=stability)
-        selected = ranked[: max(0, limit)]
-
-        # Track actual load frequency so heavily reused strategies get penalized later.
-        if selected:
-            for row in selected:
-                row["usage_count"] = int(row.get("usage_count", 0)) + 1
-            self._write(payload)
-
-        return selected
-
     def save_for_regime(self, regime: str, strategies: list[dict]) -> int:
         payload = self._read()
         payload = self._age_all(payload)
@@ -54,6 +41,62 @@ class StrategyMemoryStore:
         payload["regime_count"] = len(regimes)
         self._write(payload)
         return len(merged)
+
+    def blacklist_regime(self, strategy_name: str, regime: str) -> None:
+        """Marque une stratégie comme bannie pour un régime donné.
+
+        Retire toutes les entrées correspondant à strategy_name dans le bucket
+        du régime et enregistre l'interdiction pour éviter de les recharger.
+        """
+        payload = self._read()
+        blacklist: list[dict] = payload.setdefault("blacklist", [])
+
+        entry = {"strategy": strategy_name, "regime": regime}
+        if entry not in blacklist:
+            blacklist.append(entry)
+
+        # Supprime les stratégies blacklistées du bucket régime
+        regimes = payload.setdefault("regimes", {})
+        bucket = regimes.get(regime, [])
+        regimes[regime] = [
+            row for row in bucket
+            if row.get("strategy", {}).get("name", "") != strategy_name
+        ]
+
+        self._write(payload)
+        logger.info("[StrategyMemory] Blacklisté %s pour régime %s", strategy_name, regime)
+
+    def is_blacklisted(self, strategy_name: str, regime: str) -> bool:
+        """Retourne True si la stratégie est bannie pour ce régime."""
+        payload = self._read()
+        blacklist = payload.get("blacklist", [])
+        return {"strategy": strategy_name, "regime": regime} in blacklist
+
+    def load_by_regime(self, regime: str, limit: int = 20) -> list[dict]:
+        payload = self._read()
+        regimes = payload.get("regimes", {})
+        bucket = regimes.get(regime, [])
+
+        # Filtre les stratégies blacklistées
+        blacklist = payload.get("blacklist", [])
+        blacklisted_names = {
+            b["strategy"] for b in blacklist if b.get("regime") == regime
+        }
+        bucket = [
+            row for row in bucket
+            if row.get("strategy", {}).get("name", "") not in blacklisted_names
+        ]
+
+        stability = self.get_regime_stability(regime, payload=payload)
+        ranked = self._rank_for_loading(bucket, regime_stability=stability)
+        selected = ranked[: max(0, limit)]
+
+        if selected:
+            for row in selected:
+                row["usage_count"] = int(row.get("usage_count", 0)) + 1
+            self._write(payload)
+
+        return selected
 
     def get_regime_stability(self, regime: str, payload: dict | None = None) -> float:
         state = payload or self._read()

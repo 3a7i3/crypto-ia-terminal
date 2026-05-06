@@ -1,12 +1,9 @@
-from __future__ import annotations
+"""
+regime_detector.py — Compatibility shim → pointe vers intelligence/regime_detector.py
 
+Ce fichier est conservé pour la rétro-compatibilité des imports existants.
+La vraie implémentation est dans agents/intelligence/regime_detector.py.
+"""
+from quant_hedge_ai.agents.intelligence.regime_detector import AdvancedRegimeDetector as RegimeDetector
 
-class RegimeDetector:
-    def detect(self, momentum: float, volatility: float) -> str:
-        if volatility > 0.03:
-            return "high_volatility"
-        if momentum > 0.01:
-            return "bull"
-        if momentum < -0.01:
-            return "bear"
-        return "sideways"
+__all__ = ["RegimeDetector"]

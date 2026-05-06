@@ -1,9 +1,5 @@
 """Tests for AI Evolution Engine."""
 
-import json
-from pathlib import Path
-from unittest.mock import patch
-
 import pytest
 
 from quant_hedge_ai.ai_evolution.evolution_engine import (EvolutionEngine,
