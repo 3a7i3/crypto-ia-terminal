@@ -1589,6 +1589,8 @@ def main(
             # Mise à jour compteur pertes consécutives + Executive Override
             if pos.pnl_pct < 0:
                 _consecutive_losses["value"] += 1
+                # ── PROTECTIONS: Enregistre SL pour cooldown ──
+                last_loss_time[pos.symbol] = time.time()
             else:
                 _consecutive_losses["value"] = 0
             # Alimenter l'Override avec les métriques de session
@@ -1642,6 +1644,14 @@ def main(
     pos_manager.on_close(_on_position_close_rank)
 
     _consecutive_losses = {"value": 0}   # compteur partagé entre cycles
+
+    # ── PROTECTIONS OBLIGATOIRES POUR MODE TEST ───────────────────────────────────
+    # #1 Cooldown après perte (5 min)
+    last_loss_time: dict[str, float] = {}
+    # #2 Pas de re-entry même direction
+    last_trade_signal: dict[str, str] = {}
+    # #3 Max 10 trades par heure
+    trades_this_hour: dict[str, list[float]] = {}
 
     _t_bootstrap_end = time.perf_counter()
 
@@ -1741,11 +1751,42 @@ def main(
                 # Taille effective : depuis CAE si disponible, sinon order_size global
                 allocation = r.get("allocation")
                 effective_size = allocation.size_usd if allocation and allocation.size_usd > 0 else r.get("order_size", order_size)
+
+                # ── PROTECTIONS OBLIGATOIRES POUR MODE TEST ───────────────────────────────────
+                # Vérification AVANT exécution
+                protection_blocks = []
+                current_time = time.time()
+                current_signal = r["signal"].signal
+
+                # #1 Cooldown après perte (5 min = 300s)
+                if sym in last_loss_time:
+                    time_since_loss = current_time - last_loss_time[sym]
+                    if time_since_loss < 300:
+                        protection_blocks.append(f"cooldown_loss({time_since_loss:.0f}s)")
+
+                # #2 Pas de re-entry même direction
+                if sym in last_trade_signal:
+                    if last_trade_signal[sym] == current_signal:
+                        protection_blocks.append(f"same_direction({current_signal})")
+
+                # #3 Max 10 trades par heure
+                now = current_time
+                hour_ago = now - 3600
+                if sym not in trades_this_hour:
+                    trades_this_hour[sym] = []
+                trades_this_hour[sym] = [t for t in trades_this_hour[sym] if t > hour_ago]
+                if len(trades_this_hour[sym]) >= 10:
+                    protection_blocks.append(f"max_trades_1h({len(trades_this_hour[sym])})")
+
+                if protection_blocks:
+                    log.info("[PROTECTION] %s BLOQUE par: %s", sym, " | ".join(protection_blocks))
+
                 if (
                     r["signal"].actionable
                     and r.get("trade_allowed", r["gate"].allowed)
                     and not advisor_only
                     and not kill_switch.is_safe_mode()
+                    and not protection_blocks  # ← CRITICAL: skip si protections activées
                 ):
                     try:
                         if exec_engine.has_futures_demo():
@@ -1777,6 +1818,9 @@ def main(
                         )
                         if _pos_registered:
                             log.info("[FLOW] %s POSITION → registered mode=%s", sym, fut_mode)
+                            # ── PROTECTIONS: Enregistre le trade pour tracking ──
+                            last_trade_signal[sym] = r["signal"].signal
+                            trades_this_hour[sym].append(current_time)
                         elif fut_mode in {"futures_failed", "live_failed"}:
                             _consecutive_losses["value"] += 1
                     except Exception as _fe:
