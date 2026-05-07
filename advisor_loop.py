@@ -898,7 +898,7 @@ def analyze_symbol(
         if allocation and allocation.size_usd > 0
         else ""
     )
-    mm_str = f" | mm: BLOQUE" if mm_check and mm_check.blocked else ""
+    mm_str = " | mm: BLOQUE" if mm_check and mm_check.blocked else ""
     eo_str = (
         f" | eo: {eo_verdict.level.name}"
         if eo_verdict and eo_verdict.level.value > 0
@@ -1035,7 +1035,7 @@ def _build_alert(r: AnalysisResult, cycle: int) -> str:
         f"Regime: {regime} | Confirme: {s.confirmed}",
         f"Force: {s.strength:.0%}",
         "",
-        f"Scores detail:",
+        "Scores detail:",
         f"  MTF:     {comps.get('mtf',0):.1f}/40",
         f"  Regime:  {comps.get('regime',0):.1f}/25",
         f"  Donnees: {comps.get('data_quality',0):.1f}/15",
@@ -1070,7 +1070,7 @@ def _build_alert(r: AnalysisResult, cycle: int) -> str:
     if sh:
         lines += [
             "",
-            f"SHADOW EXECUTION (simule, pas envoye):",
+            "SHADOW EXECUTION (simule, pas envoye):",
             f"  Prix signal:   ${sh.signal_price:.2f}",
             f"  Prix fill sim: ${sh.simulated_fill_price:.2f}",
             f"  Slippage:      {sh.slippage_pct:.3f}%",
@@ -1087,7 +1087,7 @@ def _build_alert(r: AnalysisResult, cycle: int) -> str:
         if mode == "futures_demo":
             lines += [
                 "",
-                f"ORDRE FUTURES DEMO PLACE:",
+                "ORDRE FUTURES DEMO PLACE:",
                 f"  ID:         {fut.get('id', '?')}",
                 f"  Notionnel:  ${fut.get('usd_size', 0):.2f}",
                 f"  Statut:     {fut.get('status', '?')}",
@@ -2505,7 +2505,7 @@ def main(
                             f" | Taille: x{_to_float(eo_snap.get('size_factor', 1.0)):.0%}"
                         )
                     else:
-                        msg += f"\n\nCOMMANDEMENT: CLEAR | Taille x100%"
+                        msg += "\n\nCOMMANDEMENT: CLEAR | Taille x100%"
 
                     # Mistake Memory — dernières erreurs + règles actives
                     mm = _get_mistake_memory()

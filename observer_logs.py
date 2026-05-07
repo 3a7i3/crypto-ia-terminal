@@ -4,12 +4,12 @@ Observer — surveille logs en temps réel pendant le test
 Cherche patterns critiques: SL, trade spam, dedup issues, cooldown
 """
 
-import time
-import subprocess
 import sys
-from pathlib import Path
+import time
 from collections import defaultdict
 from datetime import datetime
+from pathlib import Path
+
 
 def monitor_logs(log_file: str = "logs/advisor_loop.log", check_interval: float = 1.0):
     """Tail logs + pattern detection."""
@@ -22,14 +22,15 @@ def monitor_logs(log_file: str = "logs/advisor_loop.log", check_interval: float 
 
     stats = defaultdict(int)
     last_trades = {}  # {symbol: (timestamp, signal)}
-    last_pos_close = {}  # {symbol: timestamp}
 
-    print("""
+    print(
+        """
     ╔════════════════════════════════════════════════════════════════════════════╗
     ║                        OBSERVER — LOG MONITORING                           ║
     ║                   Press Ctrl+C to stop monitoring                          ║
     ╚════════════════════════════════════════════════════════════════════════════╝
-    """)
+    """
+    )
 
     try:
         with open(log_path, "r", encoding="utf-8", errors="replace") as f:
@@ -47,6 +48,7 @@ def monitor_logs(log_file: str = "logs/advisor_loop.log", check_interval: float 
                 # Signals
                 if "[LSE]" in line and "score=" in line:
                     import re
+
                     match = re.search(r"score=(\d+)\s+signal=(\w+)", line)
                     if match:
                         score, signal = match.group(1), match.group(2)
@@ -58,7 +60,7 @@ def monitor_logs(log_file: str = "logs/advisor_loop.log", check_interval: float 
                 if "[FLOW]" in line and "GATE" in line:
                     if "OK" in line:
                         stats["gate_allowed"] += 1
-                        print(f"  ✓ GATE ALLOWED")
+                        print("  ✓ GATE ALLOWED")
                     elif "BLOQUE" in line:
                         stats["gate_blocked"] += 1
 
@@ -78,34 +80,34 @@ def monitor_logs(log_file: str = "logs/advisor_loop.log", check_interval: float 
                 # SL triggered
                 elif "TP/SL" in line or "sl_pct" in line.lower():
                     stats["sl_triggered"] += 1
-                    print(f"  ⚠ SL TRIGGERED")
+                    print("  ⚠ SL TRIGGERED")
 
                 # TP reached
                 elif "tp_pct" in line.lower() and "POSITION" in line:
                     stats["tp_reached"] += 1
-                    print(f"  ✓ TP REACHED")
+                    print("  ✓ TP REACHED")
 
                 # Position closed
                 elif "POSITION FERMEE" in line or "FERMEE" in line:
                     stats["positions_closed"] += 1
-                    print(f"  ✗ POSITION CLOSED")
+                    print("  ✗ POSITION CLOSED")
 
                 # Protections blocking
                 elif "[PROTECTION]" in line and "BLOQUE" in line:
                     if "cooldown" in line:
                         stats["block_cooldown"] += 1
-                        print(f"  🔒 COOLDOWN BLOCK")
+                        print("  🔒 COOLDOWN BLOCK")
                     elif "same_direction" in line:
                         stats["block_reentry"] += 1
-                        print(f"  🔒 RE-ENTRY BLOCK")
+                        print("  🔒 RE-ENTRY BLOCK")
                     elif "max_trades" in line:
                         stats["block_max_trades"] += 1
-                        print(f"  🔒 MAX TRADES BLOCK")
+                        print("  🔒 MAX TRADES BLOCK")
 
                 # Gate override
                 elif "[GATE_OVERRIDE]" in line:
                     stats["gate_overrides"] += 1
-                    print(f"  ⚡ GATE OVERRIDE (test mode)")
+                    print("  ⚡ GATE OVERRIDE (test mode)")
 
                 # Dedup checks
                 elif "dedup" in line.lower():
@@ -124,12 +126,22 @@ def monitor_logs(log_file: str = "logs/advisor_loop.log", check_interval: float 
                 if sum(stats.values()) % 50 == 0:
                     elapsed = datetime.now().strftime("%H:%M:%S")
                     print(f"\n[{elapsed}] SUMMARY:")
-                    print(f"  Signals: BUY={stats.get('signal_BUY', 0)} SELL={stats.get('signal_SELL', 0)} HOLD={stats.get('signal_HOLD', 0)}")
-                    print(f"  Gate: Allowed={stats.get('gate_allowed', 0)} Blocked={stats.get('gate_blocked', 0)} Overrides={stats.get('gate_overrides', 0)}")
-                    print(f"  Trades: BUY={stats['trades_buy']} SELL={stats['trades_sell']}")
-                    print(f"  Exits: TP={stats['tp_reached']} SL={stats['sl_triggered']}")
+                    print(
+                        f"  Signals: BUY={stats.get('signal_BUY', 0)} SELL={stats.get('signal_SELL', 0)} HOLD={stats.get('signal_HOLD', 0)}"
+                    )
+                    print(
+                        f"  Gate: Allowed={stats.get('gate_allowed', 0)} Blocked={stats.get('gate_blocked', 0)} Overrides={stats.get('gate_overrides', 0)}"
+                    )
+                    print(
+                        f"  Trades: BUY={stats['trades_buy']} SELL={stats['trades_sell']}"
+                    )
+                    print(
+                        f"  Exits: TP={stats['tp_reached']} SL={stats['sl_triggered']}"
+                    )
                     print(f"  Closed: {stats['positions_closed']}")
-                    print(f"  Blocks: Cooldown={stats['block_cooldown']} ReEntry={stats['block_reentry']} MaxTrades={stats['block_max_trades']}")
+                    print(
+                        f"  Blocks: Cooldown={stats['block_cooldown']} ReEntry={stats['block_reentry']} MaxTrades={stats['block_max_trades']}"
+                    )
                     print(f"  Errors: {stats['errors']}\n")
 
     except KeyboardInterrupt:
@@ -137,6 +149,7 @@ def monitor_logs(log_file: str = "logs/advisor_loop.log", check_interval: float 
         print("\nFinal stats:")
         for key, val in sorted(stats.items()):
             print(f"  {key}: {val}")
+
 
 if __name__ == "__main__":
     log_file = sys.argv[1] if len(sys.argv) > 1 else "logs/advisor_loop.log"

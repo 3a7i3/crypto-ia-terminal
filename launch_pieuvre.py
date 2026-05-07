@@ -97,11 +97,11 @@ def print_report(repo_path: Path, as_json: bool = False) -> None:
 
     recurring = store.recurring_rules(min_count=2)
     if recurring:
-        print(f"\n  🔁 Patterns récurrents:")
+        print("\n  🔁 Patterns récurrents:")
         for rule, count in sorted(recurring.items(), key=lambda x: -x[1]):
             print(f"     {rule}: {count}x")
 
-    print(f"\n  Derniers incidents:")
+    print("\n  Derniers incidents:")
     for inc in sorted(incidents, key=lambda i: i.timestamp, reverse=True)[:5]:
         resolved_str = "✅" if inc.resolved_at else "⏳"
         print(

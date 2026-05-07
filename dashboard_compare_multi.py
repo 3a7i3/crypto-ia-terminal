@@ -1,3 +1,8 @@
+import os
+
+import pandas as pd
+import streamlit as st
+
 # --- Comparatif multi-simulations ---
 with st.container():
     st.markdown("### 📊 Comparatif multi-simulations")

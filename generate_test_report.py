@@ -33,7 +33,7 @@ def generate_report():
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     summary = parse_pytest_output(output_path)
     with open(report_path, "w", encoding="utf-8") as f:
-        f.write(f"# Test Report\n\n")
+        f.write("# Test Report\n\n")
         f.write(f"**Date:** {now}\n\n")
         f.write("## Résumé\n")
         f.write(summary or "Aucun résultat trouvé.")

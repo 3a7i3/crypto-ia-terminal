@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(python -m pytest tests/ --cov=evolution_core --cov=supervision.alert_manager --cov=supervision.bot_doctor --cov=dashboard.alert_dashboard --cov=core.quant.logging_alerts --cov=quant_hedge_ai.strategy_lab.feature_cache --cov-report=term-missing -q --no-header)",
-      "Bash(.venv/Scripts/python.exe)"
+      "Bash(.venv/Scripts/python.exe)",
+      "Bash(python -m py_compile dashboard_live.py)",
+      "Bash(python -m py_compile advisor_loop.py)"
     ]
   }
 }

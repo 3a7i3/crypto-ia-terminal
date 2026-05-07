@@ -141,6 +141,10 @@ class TestBacktestOnTestnetData:
     def test_backtest_on_real_btc_data(self, scanner_testnet, lab):
         result_scan = scanner_testnet.scan()
         candles = result_scan["history"]["BTCUSDT"]
+        if len(candles) < lab.MIN_BARS:
+            pytest.skip(
+                f"Pas assez de bougies testnet ({len(candles)} < {lab.MIN_BARS})"
+            )
         result = lab.run_backtest(STRATEGY_EMA, candles)
         assert result["bars"] == len(candles)
         assert isinstance(result["sharpe"], float)

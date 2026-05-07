@@ -15,7 +15,7 @@ import json
 import os
 import sqlite3
 import time
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 
 import streamlit as st
@@ -36,7 +36,8 @@ REFRESH_INTERVAL = 30  # secondes
 
 # ── CSS ───────────────────────────────────────────────────────────────────────
 
-st.markdown("""
+st.markdown(
+    """
 <style>
 /* Global dark override */
 .main { background-color: #0a0e1a; }
@@ -146,10 +147,13 @@ hr { border-color: #1e3a5f; margin: 8px 0; }
 /* Stale data indicator */
 .stale { color: #ff9100; font-size: 10px; }
 </style>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
 
 # ── Data Loaders ──────────────────────────────────────────────────────────────
+
 
 @st.cache_data(ttl=REFRESH_INTERVAL)
 def _load_jsonl(path: str, limit: int = 200) -> list[dict]:
@@ -226,6 +230,7 @@ def _pct_color(v: float) -> str:
 
 # ── Derived State ─────────────────────────────────────────────────────────────
 
+
 def _get_black_box() -> list[dict]:
     return _load_jsonl(os.getenv("BB_PATH", "databases/black_box.jsonl"), 300)
 
@@ -259,6 +264,7 @@ def _get_supervision() -> list[dict]:
 
 # ── Component renderers ───────────────────────────────────────────────────────
 
+
 def _metric(label: str, value: str, color: str = "", sub: str = "") -> str:
     val_cls = f"value {color}" if color else "value"
     sub_html = f'<div class="sub">{sub}</div>' if sub else ""
@@ -271,7 +277,13 @@ def _metric(label: str, value: str, color: str = "", sub: str = "") -> str:
 
 
 def _override_badge(level: str) -> str:
-    icons = {"CLEAR": "✅", "REDUCE": "⚠️", "CAREFUL": "🟠", "MINIMAL": "🔴", "VETO": "🚫"}
+    icons = {
+        "CLEAR": "✅",
+        "REDUCE": "⚠️",
+        "CAREFUL": "🟠",
+        "MINIMAL": "🔴",
+        "VETO": "🚫",
+    }
     icon = icons.get(level, "")
     return f'<span class="override-badge override-{level}">{icon} {level}</span>'
 
@@ -282,8 +294,10 @@ def _render_header() -> None:
         st.markdown("# 🎯 Crypto AI — Command Center")
     with col2:
         now = datetime.now().strftime("%H:%M:%S")
-        st.markdown(f"<div style='text-align:right;color:#6b8cad;padding-top:14px'>🕐 {now}</div>",
-                    unsafe_allow_html=True)
+        st.markdown(
+            f"<div style='text-align:right;color:#6b8cad;padding-top:14px'>🕐 {now}</div>",
+            unsafe_allow_html=True,
+        )
     with col3:
         if st.button("🔄 Refresh", use_container_width=True):
             st.cache_data.clear()
@@ -291,43 +305,59 @@ def _render_header() -> None:
 
 
 def _render_override_panel(bb_events: list[dict]) -> None:
-    st.markdown('<div class="section-header">⚡ Executive Override</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="section-header">⚡ Executive Override</div>',
+        unsafe_allow_html=True,
+    )
 
-    # Derive from last BB events
-    override_events = [e for e in reversed(bb_events) if e.get("decision_type") == "SYSTEM_EVENT"
-                       and "OVERRIDE" in str(e.get("reason", "")).upper()]
     # Fallback: look at last TRADE_REFUSED reasons
-    recent_refused = [e for e in reversed(bb_events) if e.get("decision_type") == "TRADE_REFUSED"]
+    recent_refused = [
+        e for e in reversed(bb_events) if e.get("decision_type") == "TRADE_REFUSED"
+    ]
 
     # Try to infer current level from latest system events
     level = "CLEAR"
     for e in reversed(bb_events):
         reason = str(e.get("reason", ""))
         if "VETO" in reason:
-            level = "VETO"; break
+            level = "VETO"
+            break
         if "MINIMAL" in reason:
-            level = "MINIMAL"; break
+            level = "MINIMAL"
+            break
         if "CAREFUL" in reason:
-            level = "CAREFUL"; break
+            level = "CAREFUL"
+            break
         if "REDUCE" in reason:
-            level = "REDUCE"; break
+            level = "REDUCE"
+            break
 
     c1, c2 = st.columns([2, 3])
     with c1:
         st.markdown(_override_badge(level), unsafe_allow_html=True)
     with c2:
-        factors = {"CLEAR": "100%", "REDUCE": "50%", "CAREFUL": "25%", "MINIMAL": "10%", "VETO": "0%"}
+        factors = {
+            "CLEAR": "100%",
+            "REDUCE": "50%",
+            "CAREFUL": "25%",
+            "MINIMAL": "10%",
+            "VETO": "0%",
+        }
         size_factor = factors.get(level, "—")
         refused_count = len(recent_refused)
-        st.markdown(f"<div style='color:#a8c8e8;font-size:13px;padding-top:4px'>Taille ordre : <b>{size_factor}</b> &nbsp;|&nbsp; Refus récents : <b>{refused_count}</b></div>",
-                    unsafe_allow_html=True)
+        st.markdown(
+            f"<div style='color:#a8c8e8;font-size:13px;padding-top:4px'>Taille ordre : <b>{size_factor}</b> &nbsp;|&nbsp; Refus récents : <b>{refused_count}</b></div>",
+            unsafe_allow_html=True,
+        )
 
 
 def _render_capital_health(bb_events: list[dict]) -> None:
-    st.markdown('<div class="section-header">💰 Capital Health</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="section-header">💰 Capital Health</div>', unsafe_allow_html=True
+    )
 
     executed = [e for e in bb_events if e.get("decision_type") == "TRADE_EXECUTED"]
-    closed   = [e for e in bb_events if e.get("decision_type") == "POSITION_CLOSED"]
+    closed = [e for e in bb_events if e.get("decision_type") == "POSITION_CLOSED"]
 
     total_trades = len(executed)
     wins = sum(1 for e in closed if float(e.get("score", 0)) > 0)
@@ -336,72 +366,100 @@ def _render_capital_health(bb_events: list[dict]) -> None:
 
     c1, c2, c3 = st.columns(3)
     with c1:
-        st.markdown(_metric("TRADES EXÉCUTÉS", str(total_trades), sub=f"{len(closed)} fermés"), unsafe_allow_html=True)
+        st.markdown(
+            _metric("TRADES EXÉCUTÉS", str(total_trades), sub=f"{len(closed)} fermés"),
+            unsafe_allow_html=True,
+        )
     with c2:
         color = "green" if wr >= 55 else ("yellow" if wr >= 45 else "red")
         st.markdown(_metric("WIN RATE", f"{wr:.1f}%", color), unsafe_allow_html=True)
     with c3:
-        st.markdown(_metric("WINS / LOSSES", f"{wins} / {losses}", "green" if wins >= losses else "red"), unsafe_allow_html=True)
+        st.markdown(
+            _metric(
+                "WINS / LOSSES",
+                f"{wins} / {losses}",
+                "green" if wins >= losses else "red",
+            ),
+            unsafe_allow_html=True,
+        )
 
 
 def _render_active_positions(bb_events: list[dict]) -> None:
-    st.markdown('<div class="section-header">📊 Positions Actives</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="section-header">📊 Positions Actives</div>', unsafe_allow_html=True
+    )
 
-    opened  = {e.get("symbol"): e for e in bb_events if e.get("decision_type") == "TRADE_EXECUTED"}
-    closed  = {e.get("symbol") for e in bb_events if e.get("decision_type") == "POSITION_CLOSED"}
-    active  = {sym: e for sym, e in opened.items() if sym not in closed}
+    opened = {
+        e.get("symbol"): e
+        for e in bb_events
+        if e.get("decision_type") == "TRADE_EXECUTED"
+    }
+    closed = {
+        e.get("symbol")
+        for e in bb_events
+        if e.get("decision_type") == "POSITION_CLOSED"
+    }
+    active = {sym: e for sym, e in opened.items() if sym not in closed}
 
     if not active:
-        st.markdown('<div class="info-box">Aucune position ouverte actuellement.</div>', unsafe_allow_html=True)
+        st.markdown(
+            '<div class="info-box">Aucune position ouverte actuellement.</div>',
+            unsafe_allow_html=True,
+        )
         return
 
     for sym, e in active.items():
-        sig  = e.get("signal", "HOLD")
+        sig = e.get("signal", "HOLD")
         price = e.get("price", 0)
         score = e.get("score", 0)
         regime = e.get("regime", "—")
         ts = e.get("ts", 0)
-        cls  = "pos-long" if sig == "BUY" else "pos-short"
+        cls = "pos-long" if sig == "BUY" else "pos-short"
         direction = "LONG" if sig == "BUY" else "SHORT"
         st.markdown(
             f'<div class="event-row trade">'
             f'<b>{sym}</b> &nbsp; <span class="{cls}">{direction}</span> &nbsp;|&nbsp; '
-            f'Entry ~${price:,.0f} &nbsp;|&nbsp; Score {score} &nbsp;|&nbsp; Régime: {regime} &nbsp;|&nbsp; {_age_str(ts)}'
-            f'</div>',
+            f"Entry ~${price:,.0f} &nbsp;|&nbsp; Score {score} &nbsp;|&nbsp; Régime: {regime} &nbsp;|&nbsp; {_age_str(ts)}"
+            f"</div>",
             unsafe_allow_html=True,
         )
 
 
 def _render_black_box(bb_events: list[dict]) -> None:
-    st.markdown('<div class="section-header">📦 Black Box — Dernières Décisions</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="section-header">📦 Black Box — Dernières Décisions</div>',
+        unsafe_allow_html=True,
+    )
 
     icons = {
         "TRADE_EXECUTED": ("trade", "🟢"),
-        "TRADE_REFUSED":  ("refused", "🟠"),
-        "POSITION_CLOSED":("trade", "🔵"),
+        "TRADE_REFUSED": ("refused", "🟠"),
+        "POSITION_CLOSED": ("trade", "🔵"),
         "HALT_TRIGGERED": ("halt", "🔴"),
-        "REGIME_CHANGE":  ("regime", "🟣"),
-        "SYSTEM_EVENT":   ("", "⚪"),
+        "REGIME_CHANGE": ("regime", "🟣"),
+        "SYSTEM_EVENT": ("", "⚪"),
     }
 
     for e in reversed(bb_events[-20:]):
-        dt    = e.get("decision_type", "EVENT")
+        dt = e.get("decision_type", "EVENT")
         cls, icon = icons.get(dt, ("", "⚪"))
-        sym   = e.get("symbol", "SYS")
+        sym = e.get("symbol", "SYS")
         reason = e.get("reason", "")[:80]
         score = e.get("score")
-        ts    = e.get("ts", 0)
+        ts = e.get("ts", 0)
         score_str = f" · Score {score}" if score is not None else ""
         st.markdown(
             f'<div class="event-row {cls}">'
             f'{icon} <b>{sym}</b> [{dt}]{score_str} — {reason} <span class="stale">{_age_str(ts)}</span>'
-            f'</div>',
+            f"</div>",
             unsafe_allow_html=True,
         )
 
 
 def _render_mistakes(mistakes: list[dict]) -> None:
-    st.markdown('<div class="section-header">🧠 Mistake Memory</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="section-header">🧠 Mistake Memory</div>', unsafe_allow_html=True
+    )
 
     rules = [m for m in mistakes if m.get("type") == "RULE_CREATED"]
     errors = [m for m in mistakes if m.get("type") not in ("RULE_CREATED",)]
@@ -413,16 +471,23 @@ def _render_mistakes(mistakes: list[dict]) -> None:
 
     c1, c2 = st.columns(2)
     with c1:
-        st.markdown(_metric("RÈGLES ACTIVES", str(len(rules)), "yellow" if rules else "green"), unsafe_allow_html=True)
+        st.markdown(
+            _metric("RÈGLES ACTIVES", str(len(rules)), "yellow" if rules else "green"),
+            unsafe_allow_html=True,
+        )
     with c2:
-        st.markdown(_metric("ERREURS ENREGISTRÉES", str(len(errors))), unsafe_allow_html=True)
+        st.markdown(
+            _metric("ERREURS ENREGISTRÉES", str(len(errors))), unsafe_allow_html=True
+        )
 
     if error_types:
         st.markdown("**Distribution des erreurs :**")
         for etype, cnt in sorted(error_types.items(), key=lambda x: -x[1])[:5]:
             bar = "█" * min(cnt, 20)
-            st.markdown(f"<div style='font-size:12px;color:#a8c8e8'>`{etype}` {bar} {cnt}</div>",
-                        unsafe_allow_html=True)
+            st.markdown(
+                f"<div style='font-size:12px;color:#a8c8e8'>`{etype}` {bar} {cnt}</div>",
+                unsafe_allow_html=True,
+            )
 
     if rules:
         st.markdown("**Règles de blocage :**")
@@ -434,9 +499,11 @@ def _render_mistakes(mistakes: list[dict]) -> None:
 
 
 def _render_regrets(regrets: list[dict]) -> None:
-    st.markdown('<div class="section-header">😔 Regret Engine</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="section-header">😔 Regret Engine</div>', unsafe_allow_html=True
+    )
 
-    missed  = [r for r in regrets if r.get("outcome") == "MISSED_WIN"]
+    missed = [r for r in regrets if r.get("outcome") == "MISSED_WIN"]
     correct = [r for r in regrets if r.get("outcome") == "GOOD_REFUSAL"]
     neutral = [r for r in regrets if r.get("outcome") == "NEUTRAL"]
 
@@ -445,19 +512,26 @@ def _render_regrets(regrets: list[dict]) -> None:
 
     c1, c2, c3 = st.columns(3)
     with c1:
-        st.markdown(_metric("MISSED WIN", str(len(missed)), "red" if missed else "green"), unsafe_allow_html=True)
+        st.markdown(
+            _metric("MISSED WIN", str(len(missed)), "red" if missed else "green"),
+            unsafe_allow_html=True,
+        )
     with c2:
-        st.markdown(_metric("BON REFUS", str(len(correct)), "green"), unsafe_allow_html=True)
+        st.markdown(
+            _metric("BON REFUS", str(len(correct)), "green"), unsafe_allow_html=True
+        )
     with c3:
         color = "green" if acc >= 60 else ("yellow" if acc >= 40 else "red")
-        st.markdown(_metric("PRÉCISION REFUS", f"{acc:.1f}%", color), unsafe_allow_html=True)
+        st.markdown(
+            _metric("PRÉCISION REFUS", f"{acc:.1f}%", color), unsafe_allow_html=True
+        )
 
     if missed:
         st.markdown("**Derniers MISSED_WIN :**")
         for r in reversed(missed[-3:]):
-            sym  = r.get("symbol", "?")
+            sym = r.get("symbol", "?")
             move = r.get("move_pct", 0) * 100
-            val  = r.get("regret_value", 0)
+            val = r.get("regret_value", 0)
             refused_by = r.get("refused_by", [])
             st.markdown(
                 f'<div class="event-row refused">💸 {sym} +{move:.2f}% (regret={val:.2f}) — bloqué par: {refused_by}</div>',
@@ -466,11 +540,16 @@ def _render_regrets(regrets: list[dict]) -> None:
 
 
 def _render_strategy_health(ranking: dict) -> None:
-    st.markdown('<div class="section-header">🏆 Strategy Ranking</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="section-header">🏆 Strategy Ranking</div>', unsafe_allow_html=True
+    )
 
     strategies = ranking.get("strategies", {}) if isinstance(ranking, dict) else {}
     if not strategies:
-        st.markdown('<div class="info-box">Pas encore de données de ranking.</div>', unsafe_allow_html=True)
+        st.markdown(
+            '<div class="info-box">Pas encore de données de ranking.</div>',
+            unsafe_allow_html=True,
+        )
         return
 
     sorted_strats = sorted(
@@ -483,33 +562,48 @@ def _render_strategy_health(ranking: dict) -> None:
         if not isinstance(data, dict):
             continue
         score = data.get("composite_score", 0)
-        wr    = data.get("win_rate", 0) * 100
+        wr = data.get("win_rate", 0) * 100
         trades = data.get("total_trades", 0)
         status = data.get("status", "active")
-        color  = "green" if status == "active" else ("red" if status == "blacklisted" else "yellow")
-        bar    = "█" * int(score / 10)
+        color = (
+            "green"
+            if status == "active"
+            else ("red" if status == "blacklisted" else "yellow")
+        )
+        bar = "█" * int(score / 10)
         st.markdown(
             f'<div class="event-row">'
             f'<span style="color:#{_score_hex(score)}">{bar}</span> '
-            f'<b>{name}</b> — Score {score:.0f} | WR {wr:.0f}% | {trades} trades | '
+            f"<b>{name}</b> — Score {score:.0f} | WR {wr:.0f}% | {trades} trades | "
             f'<span style="color:{"#00e676" if color=="green" else "#ff4444"}">{status.upper()}</span>'
-            f'</div>',
+            f"</div>",
             unsafe_allow_html=True,
         )
 
 
 def _score_hex(score: float) -> str:
-    if score >= 70: return "00e676"
-    if score >= 50: return "ffd600"
+    if score >= 70:
+        return "00e676"
+    if score >= 50:
+        return "ffd600"
     return "ff4444"
 
 
 def _render_system_health(bb_events: list[dict]) -> None:
-    st.markdown('<div class="section-header">🔧 System Health</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="section-header">🔧 System Health</div>', unsafe_allow_html=True
+    )
 
     halts = [e for e in bb_events if e.get("decision_type") == "HALT_TRIGGERED"]
     sys_events = [e for e in bb_events if e.get("decision_type") == "SYSTEM_EVENT"]
-    last_boot = next((e for e in reversed(sys_events) if "DEMARRAGE" in str(e.get("reason", "")).upper()), None)
+    last_boot = next(
+        (
+            e
+            for e in reversed(sys_events)
+            if "DEMARRAGE" in str(e.get("reason", "")).upper()
+        ),
+        None,
+    )
     last_event_ts = bb_events[-1].get("ts", 0) if bb_events else 0
 
     age = time.time() - last_event_ts if last_event_ts else None
@@ -517,83 +611,134 @@ def _render_system_health(bb_events: list[dict]) -> None:
 
     c1, c2, c3 = st.columns(3)
     with c1:
-        st.markdown(_metric("HALTS", str(len(halts)), "red" if halts else "green",
-                             f"Dernier: {_age_str(halts[-1].get('ts',0)) if halts else 'jamais'}"),
-                    unsafe_allow_html=True)
+        st.markdown(
+            _metric(
+                "HALTS",
+                str(len(halts)),
+                "red" if halts else "green",
+                f"Dernier: {_age_str(halts[-1].get('ts',0)) if halts else 'jamais'}",
+            ),
+            unsafe_allow_html=True,
+        )
     with c2:
         status_color = "red" if stale else "green"
         status_label = "STALE" if stale else "ACTIF"
-        st.markdown(_metric("SYSTÈME", status_label, status_color,
-                             f"Dernier event: {_age_str(last_event_ts)}"),
-                    unsafe_allow_html=True)
+        st.markdown(
+            _metric(
+                "SYSTÈME",
+                status_label,
+                status_color,
+                f"Dernier event: {_age_str(last_event_ts)}",
+            ),
+            unsafe_allow_html=True,
+        )
     with c3:
         boot_ts = last_boot.get("ts", 0) if last_boot else 0
-        st.markdown(_metric("DERNIER BOOT", _age_str(boot_ts) if boot_ts else "—"), unsafe_allow_html=True)
+        st.markdown(
+            _metric("DERNIER BOOT", _age_str(boot_ts) if boot_ts else "—"),
+            unsafe_allow_html=True,
+        )
 
     if halts:
-        st.markdown('<div class="alert-box">🚨 HALT DÉTECTÉ — vérifier logs/advisor_loop.log</div>',
-                    unsafe_allow_html=True)
+        st.markdown(
+            '<div class="alert-box">🚨 HALT DÉTECTÉ — vérifier logs/advisor_loop.log</div>',
+            unsafe_allow_html=True,
+        )
 
 
 def _render_chief_officer_brief(bb_events: list[dict]) -> None:
-    st.markdown('<div class="section-header">🤖 AI Chief Officer — Dernier Brief</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="section-header">🤖 AI Chief Officer — Dernier Brief</div>',
+        unsafe_allow_html=True,
+    )
 
-    coo_events = [e for e in bb_events
-                  if e.get("decision_type") == "SYSTEM_EVENT"
-                  and "CHIEF" in str(e.get("reason", "")).upper()]
+    coo_events = [
+        e
+        for e in bb_events
+        if e.get("decision_type") == "SYSTEM_EVENT"
+        and "CHIEF" in str(e.get("reason", "")).upper()
+    ]
 
     if not coo_events:
-        st.markdown('<div class="info-box">Pas encore de brief du Chief Officer. Il parle tous les 6 cycles.</div>',
-                    unsafe_allow_html=True)
+        st.markdown(
+            '<div class="info-box">Pas encore de brief du Chief Officer. Il parle tous les 6 cycles.</div>',
+            unsafe_allow_html=True,
+        )
         return
 
     last = coo_events[-1]
-    ts   = last.get("ts", 0)
+    ts = last.get("ts", 0)
     text = last.get("reason", "")
     st.markdown(
         f'<div class="event-row" style="border-left-color:#7c4dff;padding:12px">'
         f'<div style="color:#6b8cad;font-size:11px">{_age_str(ts)}</div>'
         f'<div style="color:#e8f4fd;white-space:pre-wrap">{text[:600]}</div>'
-        f'</div>',
+        f"</div>",
         unsafe_allow_html=True,
     )
 
 
 def _render_supervision_alerts(alerts: list[dict]) -> None:
-    st.markdown('<div class="section-header">🚨 Supervision Alerts</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="section-header">🚨 Supervision Alerts</div>',
+        unsafe_allow_html=True,
+    )
 
     if not alerts:
-        st.markdown('<div class="info-box">Aucune alerte supervision.</div>', unsafe_allow_html=True)
+        st.markdown(
+            '<div class="info-box">Aucune alerte supervision.</div>',
+            unsafe_allow_html=True,
+        )
         return
 
     for alert in reversed(alerts[-10:]):
         level = str(alert.get("level", "INFO")).upper()
-        msg   = str(alert.get("message", alert.get("msg", "")))[:120]
-        ts    = alert.get("ts", alert.get("timestamp", 0))
-        color = "#ff4444" if level in ("CRITICAL", "ERROR") else ("#ffd600" if level == "WARNING" else "#a8c8e8")
-        cls   = "halt" if level in ("CRITICAL", "ERROR") else ("refused" if level == "WARNING" else "")
+        msg = str(alert.get("message", alert.get("msg", "")))[:120]
+        ts = alert.get("ts", alert.get("timestamp", 0))
+        color = (
+            "#ff4444"
+            if level in ("CRITICAL", "ERROR")
+            else ("#ffd600" if level == "WARNING" else "#a8c8e8")
+        )
+        cls = (
+            "halt"
+            if level in ("CRITICAL", "ERROR")
+            else ("refused" if level == "WARNING" else "")
+        )
         st.markdown(
             f'<div class="event-row {cls}" style="border-left-color:{color}">'
             f'<b>[{level}]</b> {msg} <span class="stale">{_age_str(float(ts)) if ts else ""}</span>'
-            f'</div>',
+            f"</div>",
             unsafe_allow_html=True,
         )
 
 
 def _render_trade_history(trades: list[dict]) -> None:
-    st.markdown('<div class="section-header">📋 Historique Trades (DB)</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="section-header">📋 Historique Trades (DB)</div>',
+        unsafe_allow_html=True,
+    )
 
     if not trades:
-        st.markdown('<div class="info-box">Aucun trade dans la base de données.</div>', unsafe_allow_html=True)
+        st.markdown(
+            '<div class="info-box">Aucun trade dans la base de données.</div>',
+            unsafe_allow_html=True,
+        )
         return
 
-    cols = [c for c in ("symbol", "side", "status", "price", "amount", "pnl", "timestamp") if c in (trades[0] if trades else {})]
+    cols = [
+        c
+        for c in ("symbol", "side", "status", "price", "amount", "pnl", "timestamp")
+        if c in (trades[0] if trades else {})
+    ]
     if not cols:
         cols = list(trades[0].keys())[:6]
 
     header = " | ".join(f"<b>{c.upper()}</b>" for c in cols)
-    st.markdown(f'<div style="font-size:11px;color:#6b8cad;border-bottom:1px solid #1e3a5f;padding-bottom:4px">{header}</div>',
-                unsafe_allow_html=True)
+    st.markdown(
+        f'<div style="font-size:11px;color:#6b8cad;border-bottom:1px solid #1e3a5f;padding-bottom:4px">{header}</div>',
+        unsafe_allow_html=True,
+    )
 
     for t in trades[:10]:
         pnl = t.get("pnl", t.get("realized_pnl", None))
@@ -601,7 +746,9 @@ def _render_trade_history(trades: list[dict]) -> None:
         if pnl is not None:
             try:
                 pnl_f = float(pnl)
-                color = "#00e676" if pnl_f > 0 else ("#ff4444" if pnl_f < 0 else "#6b8cad")
+                color = (
+                    "#00e676" if pnl_f > 0 else ("#ff4444" if pnl_f < 0 else "#6b8cad")
+                )
                 pnl_str = f'<span style="color:{color}">{pnl_f:+.2f}</span>'
             except Exception:
                 pnl_str = str(pnl)
@@ -615,21 +762,27 @@ def _render_trade_history(trades: list[dict]) -> None:
                 row_parts.append(str(v)[:20])
 
         side = str(t.get("side", "")).upper()
-        side_color = "#00e676" if side in ("BUY", "LONG") else ("#ff4444" if side in ("SELL", "SHORT") else "#a8c8e8")
+        side_color = (
+            "#00e676"
+            if side in ("BUY", "LONG")
+            else ("#ff4444" if side in ("SELL", "SHORT") else "#a8c8e8")
+        )
 
         st.markdown(
-            f'<div class="event-row" style="font-size:11px">'
+            '<div class="event-row" style="font-size:11px">'
             + " | ".join(
                 f'<span style="color:{side_color}">{p}</span>' if c == "side" else p
                 for c, p in zip(cols, row_parts)
             )
-            + '</div>',
+            + "</div>",
             unsafe_allow_html=True,
         )
 
 
 def _render_regime_panel(bb_events: list[dict]) -> None:
-    st.markdown('<div class="section-header">🌊 Régime de Marché</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="section-header">🌊 Régime de Marché</div>', unsafe_allow_html=True
+    )
 
     regime_events = [e for e in reversed(bb_events) if e.get("regime")]
     regime_counts: dict[str, int] = {}
@@ -642,40 +795,53 @@ def _render_regime_panel(bb_events: list[dict]) -> None:
     c1, c2 = st.columns(2)
     with c1:
         regime_colors = {
-            "bull_trend": "green", "bear_trend": "red",
-            "sideways": "yellow", "high_volatility": "orange",
-            "flash_crash": "red", "unknown": ""
+            "bull_trend": "green",
+            "bear_trend": "red",
+            "sideways": "yellow",
+            "high_volatility": "orange",
+            "flash_crash": "red",
+            "unknown": "",
         }
         color = regime_colors.get(current_regime, "")
-        st.markdown(_metric("RÉGIME ACTUEL", current_regime.replace("_", " ").upper(), color),
-                    unsafe_allow_html=True)
+        st.markdown(
+            _metric("RÉGIME ACTUEL", current_regime.replace("_", " ").upper(), color),
+            unsafe_allow_html=True,
+        )
     with c2:
         top_regime = max(regime_counts, key=regime_counts.get) if regime_counts else "—"
-        st.markdown(_metric("RÉGIME DOMINANT (50 derniers)", top_regime.replace("_", " ").upper()),
-                    unsafe_allow_html=True)
+        st.markdown(
+            _metric(
+                "RÉGIME DOMINANT (50 derniers)", top_regime.replace("_", " ").upper()
+            ),
+            unsafe_allow_html=True,
+        )
 
 
 # ── Main Layout ───────────────────────────────────────────────────────────────
+
 
 def main() -> None:
     _render_header()
     st.markdown("<hr>", unsafe_allow_html=True)
 
     # Load data
-    bb_events   = _get_black_box()
-    regrets     = _get_regrets()
-    mistakes    = _get_mistakes()
-    trades      = _get_trades()
-    ranking     = _get_ranking()
-    alerts      = _get_supervision()
+    bb_events = _get_black_box()
+    regrets = _get_regrets()
+    mistakes = _get_mistakes()
+    trades = _get_trades()
+    ranking = _get_ranking()
+    alerts = _get_supervision()
 
     if not bb_events:
-        st.markdown("""
+        st.markdown(
+            """
 <div class="alert-box">
 ⚠️ <b>Black Box vide</b> — Le système n'a pas encore enregistré d'événements.<br>
 Lancez <code>python advisor_loop.py</code> pour démarrer la collecte de données.
 </div>
-""", unsafe_allow_html=True)
+""",
+            unsafe_allow_html=True,
+        )
 
     # ── Ligne 1 : Override + Capital Health ──────────────────────────────────
     col_left, col_right = st.columns([1, 2])
@@ -726,11 +892,11 @@ Lancez <code>python advisor_loop.py</code> pour démarrer la collecte de donnée
     # ── Auto-refresh ─────────────────────────────────────────────────────────
     st.markdown(
         f'<div style="text-align:center;color:#2a4060;font-size:11px;margin-top:20px">'
-        f'Auto-refresh toutes les {REFRESH_INTERVAL}s · '
-        f'{len(bb_events)} événements Black Box · '
-        f'{len(mistakes)} erreurs enregistrées · '
-        f'{len(regrets)} candidats regret'
-        f'</div>',
+        f"Auto-refresh toutes les {REFRESH_INTERVAL}s · "
+        f"{len(bb_events)} événements Black Box · "
+        f"{len(mistakes)} erreurs enregistrées · "
+        f"{len(regrets)} candidats regret"
+        f"</div>",
         unsafe_allow_html=True,
     )
 

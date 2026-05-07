@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-import pytest
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 
 @pytest.fixture
@@ -15,6 +16,7 @@ def eng(tmp_path, monkeypatch):
     monkeypatch.setenv("EXEC_MAX_ORDER_USD", "10000")
     monkeypatch.setenv("EXEC_DEDUP_WINDOW", "30")
     from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
+
     e = ExecutionEngine(live=False)
     e.start_session(equity=10_000.0)
     return e
@@ -26,6 +28,7 @@ class TestFromEnv:
         monkeypatch.delenv("BINANCE_API_KEY", raising=False)
         monkeypatch.delenv("BINANCE_API_SECRET", raising=False)
         from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
+
         e = ExecutionEngine.from_env()
         assert e._live is False
 
@@ -34,6 +37,7 @@ class TestFromEnv:
         monkeypatch.setenv("BINANCE_API_KEY", "fake_key")
         monkeypatch.setenv("BINANCE_API_SECRET", "fake_secret")
         from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
+
         e = ExecutionEngine.from_env()
         assert isinstance(e._live, bool)
 
@@ -98,18 +102,31 @@ class TestLiveFallback:
         monkeypatch.setenv("BINANCE_API_SECRET", "s")
         with patch.dict("sys.modules", {"ccxt": None}):
             from quant_hedge_ai.agents.execution import execution_engine as mod
+
             try:
                 e = mod.ExecutionEngine(live=True)
                 assert isinstance(e._live, bool)
             except Exception:
                 pass
 
-    def test_place_live_order_exception_returns_live_failed(self, tmp_path, monkeypatch):
+    def _setup_mock_exchange(
+        self, mock_exchange, usdt_balance: float = 10_000.0
+    ) -> None:
+        mock_exchange.fetch_ticker.return_value = {"last": 50_000.0}
+        mock_exchange.load_markets.return_value = {}
+        mock_exchange.fetch_balance.return_value = {"free": {"USDT": usdt_balance}}
+
+    def test_place_live_order_exception_returns_live_failed(
+        self, tmp_path, monkeypatch
+    ):
         monkeypatch.setenv("EXEC_TRADE_LOG", str(tmp_path / "t.sqlite"))
+        monkeypatch.setenv("EXEC_MAX_ORDER_USD", "10000")
         from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
+
         e = ExecutionEngine(live=False)
         e._live = True
         mock_exchange = MagicMock()
+        self._setup_mock_exchange(mock_exchange)
         mock_exchange.create_order.side_effect = RuntimeError("connection refused")
         e._exchange = mock_exchange
         e.start_session(10_000.0)
@@ -119,10 +136,13 @@ class TestLiveFallback:
 
     def test_place_live_order_success(self, tmp_path, monkeypatch):
         monkeypatch.setenv("EXEC_TRADE_LOG", str(tmp_path / "t.sqlite"))
+        monkeypatch.setenv("EXEC_MAX_ORDER_USD", "10000")
         from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
+
         e = ExecutionEngine(live=False)
         e._live = True
         mock_exchange = MagicMock()
+        self._setup_mock_exchange(mock_exchange)
         mock_exchange.create_order.return_value = {"id": "abc123", "status": "closed"}
         e._exchange = mock_exchange
         e.start_session(10_000.0)
@@ -132,10 +152,13 @@ class TestLiveFallback:
 
     def test_place_live_order_sell_side(self, tmp_path, monkeypatch):
         monkeypatch.setenv("EXEC_TRADE_LOG", str(tmp_path / "t.sqlite"))
+        monkeypatch.setenv("EXEC_MAX_ORDER_USD", "10000")
         from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
+
         e = ExecutionEngine(live=False)
         e._live = True
         mock_exchange = MagicMock()
+        self._setup_mock_exchange(mock_exchange)
         mock_exchange.create_order.return_value = {"id": "sell1"}
         e._exchange = mock_exchange
         e.start_session(10_000.0)
@@ -144,10 +167,13 @@ class TestLiveFallback:
 
     def test_place_live_order_symbol_slash_conversion(self, tmp_path, monkeypatch):
         monkeypatch.setenv("EXEC_TRADE_LOG", str(tmp_path / "t.sqlite"))
+        monkeypatch.setenv("EXEC_MAX_ORDER_USD", "10000")
         from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
+
         e = ExecutionEngine(live=False)
         e._live = True
         mock_exchange = MagicMock()
+        self._setup_mock_exchange(mock_exchange)
         mock_exchange.create_order.return_value = {"id": "x"}
         e._exchange = mock_exchange
         e.start_session(10_000.0)

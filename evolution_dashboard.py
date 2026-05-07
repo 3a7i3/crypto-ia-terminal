@@ -16,6 +16,7 @@ Lancez avec : streamlit run evolution_dashboard.py
 
 
 import configparser
+
 # --- Log de démarrage fichier ---
 import datetime
 import glob
@@ -32,7 +33,7 @@ try:
         f.write(
             f"[START] {datetime.datetime.now().isoformat()} - evolution_dashboard.py lancé\n"
         )
-except Exception as e:
+except Exception:
     pass
 
 # --- Vérification des fichiers critiques + mode diagnostic ---
@@ -65,7 +66,7 @@ with st.expander("🛠️ Diagnostic rapide (cliquer pour ouvrir)"):
         f"**Python :** {platform.python_version()} | Platform : {platform.platform()}"
     )
     st.write(f"**cwd :** {os.getcwd()}")
-    st.write(f"**Fichiers/dossiers présents :**")
+    st.write("**Fichiers/dossiers présents :**")
     st.write(os.listdir("."))
     st.write(
         f"**results/** : {os.listdir('results') if os.path.isdir('results') else 'absent'}"
@@ -80,9 +81,9 @@ with st.expander("🛠️ Diagnostic rapide (cliquer pour ouvrir)"):
         f"**CSV population :** {glob.glob(os.path.join('results', '*_pop_gen_*.csv'))}"
     )
     st.write(
-        f"**Dépendances :** streamlit, pandas, matplotlib, json, configparser, glob, os"
+        "**Dépendances :** streamlit, pandas, matplotlib, json, configparser, glob, os"
     )
-    st.write(f"**Fichier de log :** dashboard_startup.log")
+    st.write("**Fichier de log :** dashboard_startup.log")
     try:
         with open("dashboard_startup.log", "r", encoding="utf-8") as flog:
             st.code(flog.read(), language="text")
@@ -264,7 +265,6 @@ filtered_df = df[
 ]
 
 
-import base64
 import io
 
 # Visualisation fitness par génération (filtrée) avec export automatique, bouton de téléchargement et stats

@@ -3,8 +3,6 @@ import subprocess
 import sys
 import time
 
-import requests
-
 # Panels and their dashboard files
 PANELS = [
     ("🛡️ Supervision & Auto-Heal", "dashboard/alert_dashboard.py"),
@@ -28,7 +26,7 @@ for label, path in PANELS:
     # Tentative d'ouverture dans VS Code (si installé)
     try:
         subprocess.run(["code", abs_path], check=False)
-        print(f"[OK] Ouverture dans VS Code (si installé)")
+        print("[OK] Ouverture dans VS Code (si installé)")
     except Exception as e:
         print(f"[WARN] Impossible d’ouvrir dans VS Code : {e}")
     # Tentative d’exécution si c’est un dashboard Streamlit ou Python
@@ -44,7 +42,7 @@ for label, path in PANELS:
             proc.terminate()
             out, err = proc.communicate()
             if proc.returncode == 0:
-                print(f"[OK] Exécution sans erreur fatale.")
+                print("[OK] Exécution sans erreur fatale.")
                 REPORT.append((label, "OK", abs_path))
             else:
                 print(

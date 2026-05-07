@@ -19,9 +19,13 @@ def test_orchestrate_ecosystem_main(monkeypatch, tmp_path):
     # Patch subprocess.run pour éviter l'exécution réelle
     calls = []
 
-    def fake_run(cmd, check):
+    def fake_run(cmd, check=False, **kwargs):
         calls.append(cmd)
-        return 0
+
+        class _R:
+            returncode = 0
+
+        return _R()
 
     monkeypatch.setattr("subprocess.run", fake_run)
 
