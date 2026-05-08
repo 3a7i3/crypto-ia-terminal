@@ -27,13 +27,13 @@ alert_manager.register_autoheal("execution", execution_autoheal)
 
 class ExecutionEngine:
     """
-    Moteur d'exécution multi-mode.
+    Moteur d'exécution multi-exchange (Gate.io, Bybit, OKX, MEXC, Binance…).
 
-    Modes supportés (BINANCE_MODE dans .env) :
-      spot_testnet   — Testnet Spot Binance   (BINANCE_API_KEY/SECRET + BINANCE_TESTNET=true)
-      futures_demo   — Demo Trading Futures   (BINANCE_FUTURES_DEMO_KEY/SECRET)
-      live           — Live réel              (BINANCE_LIVE_API_KEY/SECRET + BINANCE_TESTNET=false)
-      paper          — Simulation locale      (défaut si aucune clé)
+    Exchange actif : EXCHANGE_ID dans .env (défaut: binance)
+    Modes détectés automatiquement par ExchangeFactory :
+      testnet   — clés API + EXCHANGE_TESTNET=true
+      live      — clés API + EXCHANGE_TESTNET=false
+      paper     — aucune clé (simulation locale)
 
     Safety layer (toujours actif) :
       1. OrderDeduplicator  — bloque les ordres dupliqués (< 30 s)
@@ -189,8 +189,11 @@ class ExecutionEngine:
 
     @classmethod
     def from_env(cls) -> "ExecutionEngine":
-        """Retourne un moteur live si des clés API sont présentes, sinon paper."""
-        live = bool(os.getenv("BINANCE_API_KEY") and os.getenv("BINANCE_API_SECRET"))
+        """Retourne un moteur live si des clés API sont présentes pour l'exchange actif, sinon paper."""
+        from exchange_factory import ExchangeFactory
+
+        info = ExchangeFactory.info()
+        live = info["has_api_key"] and info["mode"] != "paper"
         return cls(live=live)
 
     def has_futures_demo(self) -> bool:
@@ -345,7 +348,7 @@ class ExecutionEngine:
             return {
                 "symbol": symbol,
                 "mode": "futures_unavailable",
-                "error": "Futures demo non configuré — ajouter BINANCE_FUTURES_DEMO_KEY dans .env",
+                "error": "Futures demo non configuré — ajouter BINANCE_FUTURES_DEMO_KEY dans .env (Binance uniquement)",
             }
 
         side = "buy" if action.upper() == "BUY" else "sell"
