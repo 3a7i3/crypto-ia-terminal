@@ -4,19 +4,18 @@ Prédire le meilleur moment pour sortir une position
 Basé sur: features technicals + ML (simple neural network)
 """
 
-from typing import List, Dict, Tuple, Optional
 import math
 from statistics import mean, stdev
+from typing import Dict, List, Optional, Tuple
 
 
 class ExitFeatureEngineer:
     """Ingénierie de features pour ML exit prediction"""
 
     @staticmethod
-    def extract_features(candles: List[Dict],
-                        entry_price: float,
-                        entry_idx: int,
-                        lookback: int = 20) -> Dict[str, float]:
+    def extract_features(
+        candles: List[Dict], entry_price: float, entry_idx: int, lookback: int = 20
+    ) -> Dict[str, float]:
         """
         Extrait features technicals pour prédire exit
 
@@ -36,55 +35,57 @@ class ExitFeatureEngineer:
             return {}
 
         current_candle = candles[-1]
-        current_price = current_candle['close']
+        current_price = current_candle["close"]
 
         features = {}
 
         # 1. RSI (Relative Strength Index)
-        features['rsi'] = ExitFeatureEngineer._calculate_rsi(
-            [c['close'] for c in candles[-20:]]
+        features["rsi"] = ExitFeatureEngineer._calculate_rsi(
+            [c["close"] for c in candles[-20:]]
         )
 
         # 2. MACD (Moving Average Convergence Divergence)
-        features['macd'] = ExitFeatureEngineer._calculate_macd(
-            [c['close'] for c in candles[-26:]]
+        features["macd"] = ExitFeatureEngineer._calculate_macd(
+            [c["close"] for c in candles[-26:]]
         )
 
         # 3. Trend strength
-        features['trend_strength'] = ExitFeatureEngineer._calculate_trend_strength(
-            [c['close'] for c in candles[-lookback:]]
+        features["trend_strength"] = ExitFeatureEngineer._calculate_trend_strength(
+            [c["close"] for c in candles[-lookback:]]
         )
 
         # 4. Volatility
-        features['volatility'] = ExitFeatureEngineer._calculate_volatility(
-            [c['close'] for c in candles[-lookback:]]
+        features["volatility"] = ExitFeatureEngineer._calculate_volatility(
+            [c["close"] for c in candles[-lookback:]]
         )
 
         # 5. Distance from entry
-        features['distance_to_entry'] = (current_price - entry_price) / entry_price
+        features["distance_to_entry"] = (current_price - entry_price) / entry_price
 
         # 6. MFE (Maximum Favorable Excursion)
         candles_since_entry = candles[entry_idx:]
         if candles_since_entry:
-            max_price = max(c['high'] for c in candles_since_entry)
-            features['mfe_pct'] = (max_price - entry_price) / entry_price
+            max_price = max(c["high"] for c in candles_since_entry)
+            features["mfe_pct"] = (max_price - entry_price) / entry_price
 
         # 7. MAE (Maximum Adverse Excursion)
         if candles_since_entry:
-            min_price = min(c['low'] for c in candles_since_entry)
-            features['mae_pct'] = (min_price - entry_price) / entry_price
+            min_price = min(c["low"] for c in candles_since_entry)
+            features["mae_pct"] = (min_price - entry_price) / entry_price
 
         # 8. Bollinger Bands position
-        features['bb_position'] = ExitFeatureEngineer._calculate_bb_position(
-            [c['close'] for c in candles[-20:]], current_price
+        features["bb_position"] = ExitFeatureEngineer._calculate_bb_position(
+            [c["close"] for c in candles[-20:]], current_price
         )
 
         # 9. Momentum
-        closes = [c['close'] for c in candles[-10:]]
-        features['momentum'] = (closes[-1] - closes[0]) / closes[0] if closes[0] > 0 else 0
+        closes = [c["close"] for c in candles[-10:]]
+        features["momentum"] = (
+            (closes[-1] - closes[0]) / closes[0] if closes[0] > 0 else 0
+        )
 
         # 10. Time in trade (relative)
-        features['time_in_trade'] = min(1.0, (len(candles) - entry_idx) / lookback)
+        features["time_in_trade"] = min(1.0, (len(candles) - entry_idx) / lookback)
 
         return features
 
@@ -94,7 +95,7 @@ class ExitFeatureEngineer:
         if len(prices) < period + 1:
             return 50.0
 
-        deltas = [prices[i] - prices[i-1] for i in range(1, len(prices))]
+        deltas = [prices[i] - prices[i - 1] for i in range(1, len(prices))]
         seed = deltas[:period]
 
         up = sum(d for d in seed if d > 0) / period
@@ -163,7 +164,7 @@ class ExitFeatureEngineer:
         if len(prices) < 2:
             return 0.0
 
-        returns = [math.log(prices[i] / prices[i-1]) for i in range(1, len(prices))]
+        returns = [math.log(prices[i] / prices[i - 1]) for i in range(1, len(prices))]
         return stdev(returns) if len(returns) > 1 else 0.0
 
     @staticmethod
@@ -198,9 +199,13 @@ class SimpleNeuralNetwork:
 
         # Poids (initialisés aléatoirement petit)
         import random
+
         random.seed(42)
 
-        self.w1 = [[random.gauss(0, 0.1) for _ in range(hidden_size)] for _ in range(input_size)]
+        self.w1 = [
+            [random.gauss(0, 0.1) for _ in range(hidden_size)]
+            for _ in range(input_size)
+        ]
         self.b1 = [0.0] * hidden_size
 
         self.w2 = [random.gauss(0, 0.1) for _ in range(hidden_size)]
@@ -214,8 +219,9 @@ class SimpleNeuralNetwork:
         """Sigmoid activation (pour probabilité)"""
         try:
             return 1.0 / (1.0 + math.exp(-x))
-        except:
-            return 0.5
+        except OverflowError:
+            # math.exp déborde pour |x| très grand : sigmoid → 0 ou 1 selon le signe
+            return 0.0 if x < 0 else 1.0
 
     def forward(self, inputs: List[float]) -> float:
         """Forward pass"""
@@ -263,10 +269,9 @@ class MLExitPredictor:
         self.feature_engineer = ExitFeatureEngineer()
         self.model = SimpleNeuralNetwork(input_size=10, hidden_size=16)
 
-    def predict_exit(self,
-                     candles: List[Dict],
-                     entry_price: float,
-                     entry_idx: int) -> Dict:
+    def predict_exit(
+        self, candles: List[Dict], entry_price: float, entry_idx: int
+    ) -> Dict:
         """
         Prédit le meilleur exit pour une position
 
@@ -290,7 +295,7 @@ class MLExitPredictor:
                 "quality": "hold",
                 "confidence": 0.5,
                 "features": {},
-                "reason": "Not enough data"
+                "reason": "Not enough data",
             }
 
         # Normaliser features (simple z-score)
@@ -309,7 +314,7 @@ class MLExitPredictor:
             "quality": quality,
             "confidence": confidence,
             "features": features,
-            "reason": reason
+            "reason": reason,
         }
 
     def _normalize_features(self, features: Dict[str, float]) -> List[float]:
@@ -318,8 +323,16 @@ class MLExitPredictor:
         #        mfe_pct, mae_pct, bb_position, momentum, time_in_trade
 
         feature_order = [
-            "rsi", "macd", "trend_strength", "volatility", "distance_to_entry",
-            "mfe_pct", "mae_pct", "bb_position", "momentum", "time_in_trade"
+            "rsi",
+            "macd",
+            "trend_strength",
+            "volatility",
+            "distance_to_entry",
+            "mfe_pct",
+            "mae_pct",
+            "bb_position",
+            "momentum",
+            "time_in_trade",
         ]
 
         vector = []

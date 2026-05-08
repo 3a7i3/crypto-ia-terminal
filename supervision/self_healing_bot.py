@@ -27,7 +27,18 @@ from typing import Any, Callable
 logger = logging.getLogger(__name__)
 
 _DEFAULT_CHECK_INTERVAL = 15.0  # secondes
-_DEFAULT_MAX_RESTARTS = 5        # par fenêtre de 10 minutes
+_DEFAULT_MAX_RESTARTS = 5  # par fenêtre de 10 minutes
+
+try:
+    from errors.error_bus import ErrorCategory as _ErrCat
+    from errors.error_bus import ErrorSeverity as _ErrSev
+    from errors.error_bus import error_bus as _error_bus
+    from system.module_registry import ModuleStatus as _ModuleStatus
+    from system.module_registry import module_registry as _module_registry
+
+    _OBS_AVAILABLE = True
+except Exception:
+    _OBS_AVAILABLE = False
 
 
 @dataclass
@@ -106,8 +117,9 @@ class SelfHealingBot:
         )
         logger.info("[SelfHealing] Composant enregistré: %s", name)
 
-    def register_simple(self, name: str, health_fn: Callable[[], bool],
-                        restart_fn: Callable[[], None]) -> None:
+    def register_simple(
+        self, name: str, health_fn: Callable[[], bool], restart_fn: Callable[[], None]
+    ) -> None:
         """Alias simplifié sans composant objet."""
         self.register(name, None, health_fn, restart_fn)
 
@@ -119,8 +131,10 @@ class SelfHealingBot:
             target=self._watch_loop, daemon=True, name="SelfHealingBot"
         )
         self._thread.start()
-        logger.info("[SelfHealing] Démarré — %d composant(s) surveillé(s)",
-                    len(self._components))
+        logger.info(
+            "[SelfHealing] Démarré — %d composant(s) surveillé(s)",
+            len(self._components),
+        )
 
     def stop(self) -> None:
         self._running = False
@@ -129,7 +143,8 @@ class SelfHealingBot:
     def force_check(self, name: str | None = None) -> dict[str, bool]:
         """Vérifie immédiatement la santé (utile pour les tests)."""
         targets = (
-            {name: self._components[name]} if name and name in self._components
+            {name: self._components[name]}
+            if name and name in self._components
             else self._components
         )
         results = {}
@@ -176,6 +191,12 @@ class SelfHealingBot:
             if not comp.is_healthy:
                 logger.info("[SelfHealing] %s — RÉCUPÉRÉ", comp.name)
                 self._log_event(comp.name, "recovered")
+                if _OBS_AVAILABLE:
+                    try:
+                        _module_registry.heartbeat(comp.name)
+                        _module_registry.set_status(comp.name, _ModuleStatus.HEALTHY)
+                    except Exception:
+                        pass
             comp.is_healthy = True
             comp.consecutive_failures = 0
             return True
@@ -185,8 +206,28 @@ class SelfHealingBot:
         comp.consecutive_failures += 1
         logger.warning(
             "[SelfHealing] %s — DÉFAILLANT (échec #%d) erreur: %s",
-            comp.name, comp.consecutive_failures, comp.last_error,
+            comp.name,
+            comp.consecutive_failures,
+            comp.last_error,
         )
+        if _OBS_AVAILABLE:
+            try:
+                _module_registry.report_error(
+                    comp.name, comp.last_error or "health_check_failed"
+                )
+                _module_registry.set_status(comp.name, _ModuleStatus.UNHEALTHY)
+                _error_bus.emit_raw(
+                    module=f"self_healing_bot.{comp.name}",
+                    message=f"health_check_failed: {comp.last_error}",
+                    category=_ErrCat.SYSTEM,
+                    severity=(
+                        _ErrSev.HIGH
+                        if comp.consecutive_failures < 3
+                        else _ErrSev.CRITICAL
+                    ),
+                )
+            except Exception:
+                pass
 
         if comp.can_restart():
             self._restart(comp)
@@ -194,22 +235,38 @@ class SelfHealingBot:
             logger.error(
                 "[SelfHealing] %s — Limite de restarts atteinte (%d/%d). "
                 "Intervention manuelle requise.",
-                comp.name, comp.restart_count, comp.max_restarts_per_window,
+                comp.name,
+                comp.restart_count,
+                comp.max_restarts_per_window,
             )
             self._log_event(comp.name, "restart_limit_reached")
+            if _OBS_AVAILABLE:
+                try:
+                    _error_bus.emit_raw(
+                        module=f"self_healing_bot.{comp.name}",
+                        message=f"restart_limit_reached after {comp.restart_count} attempts",
+                        category=_ErrCat.SYSTEM,
+                        severity=_ErrSev.CRITICAL,
+                    )
+                except Exception:
+                    pass
             self._emit_critical_alert(comp)
 
         return False
 
     def _restart(self, comp: ComponentHealth) -> None:
-        logger.warning("[SelfHealing] %s — Tentative de restart #%d",
-                       comp.name, comp.restart_count + 1)
+        logger.warning(
+            "[SelfHealing] %s — Tentative de restart #%d",
+            comp.name,
+            comp.restart_count + 1,
+        )
         try:
             comp.restart_fn()
             comp.restart_count += 1
             comp.total_restarts += 1
-            self._log_event(comp.name, "restarted",
-                            extra={"attempt": comp.restart_count})
+            self._log_event(
+                comp.name, "restarted", extra={"attempt": comp.restart_count}
+            )
             logger.info("[SelfHealing] %s — Restart effectué", comp.name)
         except Exception as exc:
             comp.last_error = f"restart_failed: {exc}"
@@ -231,6 +288,7 @@ class SelfHealingBot:
         try:
             from event_bus.bus import EventBus
             from event_bus.events import SessionHaltEvent
+
             EventBus.get().emit(
                 SessionHaltEvent(
                     reason=f"SelfHealingBot: {comp.name} restart_limit_reached",
@@ -248,14 +306,15 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+
 import requests as _requests
 
 _TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
-_TELEGRAM_CHAT  = os.getenv("TELEGRAM_CHAT_ID", "")
-_PID_FILE       = Path("logs/advisor_loop.pid")
-_ADVISOR_LOG    = Path("logs/advisor_loop.log")
-_MAX_RESTARTS   = 5
-_FREEZE_TIMEOUT = 600   # 10 min sans log = boucle figée
+_TELEGRAM_CHAT = os.getenv("TELEGRAM_CHAT_ID", "")
+_PID_FILE = Path("logs/advisor_loop.pid")
+_ADVISOR_LOG = Path("logs/advisor_loop.log")
+_MAX_RESTARTS = 5
+_FREEZE_TIMEOUT = 600  # 10 min sans log = boucle figée
 
 
 def _tg(text: str) -> None:
@@ -275,6 +334,7 @@ def _pid_alive(pid: int) -> bool:
     try:
         if sys.platform == "win32":
             import ctypes
+
             h = ctypes.windll.kernel32.OpenProcess(0x00100000, False, pid)
             if h == 0:
                 return False
@@ -296,7 +356,7 @@ def _log_lag() -> float:
         return float("inf")
 
 
-def _start_advisor_process() -> subprocess.Popen:
+def _start_advisor_process() -> tuple[subprocess.Popen, "IO[str]"]:
     log_out = open("logs/advisor_loop_stdout.log", "a", encoding="utf-8")
     proc = subprocess.Popen(
         [sys.executable, "advisor_loop.py"],
@@ -306,7 +366,7 @@ def _start_advisor_process() -> subprocess.Popen:
     )
     _PID_FILE.write_text(str(proc.pid))
     logger.info("[ProcessWrap] Démarré PID %d", proc.pid)
-    return proc
+    return proc, log_out
 
 
 class AdvisorProcessWrapper:
@@ -316,17 +376,19 @@ class AdvisorProcessWrapper:
     """
 
     def __init__(self, check_interval: int = 60) -> None:
-        self._interval  = check_interval
+        self._interval = check_interval
         self._proc: subprocess.Popen | None = None
+        self._log_out = None  # handle fichier log du subprocess — fermé à l'arrêt
         self._restarts: list[float] = []
 
     def run(self) -> None:
         import os
+
         os.makedirs("logs", exist_ok=True)
         logger.info("[ProcessWrap] Mode wrapper démarré")
         _tg("Self-Healing Wrapper actif — surveillance advisor_loop.py")
 
-        self._proc = _start_advisor_process()
+        self._proc, self._log_out = _start_advisor_process()
         self._restarts.append(time.time())
 
         while True:
@@ -337,6 +399,8 @@ class AdvisorProcessWrapper:
                 logger.info("[ProcessWrap] Arrêt — kill process fils")
                 if self._proc:
                     self._proc.terminate()
+                if self._log_out:
+                    self._log_out.close()
                 break
             except Exception as exc:
                 logger.error("[ProcessWrap] Erreur: %s", exc)
@@ -364,16 +428,24 @@ class AdvisorProcessWrapper:
         self._restarts = [t for t in self._restarts if now - t < 3600]
         if len(self._restarts) >= _MAX_RESTARTS:
             logger.critical("[ProcessWrap] MAX_RESTARTS atteint — arrêt du wrapper")
-            _tg(f"CRITIQUE — Self-Heal MAX_RESTARTS atteint.\nRaison: {reason}\nIntervention requise.")
+            _tg(
+                f"CRITIQUE — Self-Heal MAX_RESTARTS atteint.\nRaison: {reason}\nIntervention requise."
+            )
             self._proc = None
             return
         _tg(f"Self-Heal: redémarrage advisor_loop.py\nRaison: {reason}")
-        self._proc = _start_advisor_process()
+        if self._log_out:
+            try:
+                self._log_out.close()
+            except Exception as _e:
+                logger.debug("[ProcessWrap] Fermeture log_out: %s", _e)
+        self._proc, self._log_out = _start_advisor_process()
         self._restarts.append(now)
         _tg(f"Self-Heal: redémarré (PID {self._proc.pid})")
 
 
 # ── Factories pour cas d'usage courants ──────────────────────────────────────
+
 
 def make_websocket_watchdog(
     bot: SelfHealingBot,
@@ -382,14 +454,16 @@ def make_websocket_watchdog(
     name: str = "websocket",
 ) -> None:
     """Enregistre un watchdog pour un composant WebSocket."""
+
     def health() -> bool:
         try:
             return bool(getattr(ws_component, "is_alive", lambda: True)())
         except Exception:
             return False
 
-    bot.register(name, ws_component, health, reconnect_fn,
-                 check_interval_s=10.0, max_restarts=10)
+    bot.register(
+        name, ws_component, health, reconnect_fn, check_interval_s=10.0, max_restarts=10
+    )
 
 
 def make_db_watchdog(
@@ -400,8 +474,9 @@ def make_db_watchdog(
     name: str = "database",
 ) -> None:
     """Enregistre un watchdog pour une connexion base de données."""
-    bot.register(name, db_component, ping_fn, reconnect_fn,
-                 check_interval_s=30.0, max_restarts=3)
+    bot.register(
+        name, db_component, ping_fn, reconnect_fn, check_interval_s=30.0, max_restarts=3
+    )
 
 
 def make_api_watchdog(
@@ -412,5 +487,6 @@ def make_api_watchdog(
     name: str = "exchange_api",
 ) -> None:
     """Enregistre un watchdog pour un client exchange API."""
-    bot.register(name, api_component, health_fn, reset_fn,
-                 check_interval_s=20.0, max_restarts=5)
+    bot.register(
+        name, api_component, health_fn, reset_fn, check_interval_s=20.0, max_restarts=5
+    )

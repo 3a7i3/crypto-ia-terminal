@@ -68,31 +68,18 @@ class ExecutionEngine:
         self._quote_asset = "USDT"
 
     def _init_exchange(self):
-        """Initialise le client Spot (testnet ou live) selon les variables d'env."""
+        """Initialise le client Spot via ExchangeFactory (multi-exchange)."""
         try:
-            import ccxt
+            from exchange_factory import ExchangeFactory, detect_mode
 
-            api_key = os.getenv("BINANCE_API_KEY")
-            api_secret = os.getenv("BINANCE_API_SECRET")
-            if not api_key or not api_secret:
-                logger.warning("[ExecutionEngine] Clés spot manquantes — mode paper")
+            exchange = ExchangeFactory.create()
+            if exchange is None:
+                logger.warning("[ExecutionEngine] ExchangeFactory échec — mode paper")
                 self._live = False
                 return None
-            exchange = ccxt.binance(
-                {
-                    "apiKey": api_key,
-                    "secret": api_secret,
-                    "enableRateLimit": True,
-                    "options": {"defaultType": "spot", "adjustForTimeDifference": True},
-                }
-            )
-            if os.getenv("BINANCE_TESTNET", "false").lower() == "true":
-                exchange.set_sandbox_mode(True)
-                self._mode = "spot_testnet"
-                logger.info("[ExecutionEngine] Mode SPOT TESTNET Binance")
-            else:
-                self._mode = "live"
-                logger.info("[ExecutionEngine] Mode SPOT LIVE Binance")
+            mode = detect_mode()
+            self._mode = mode
+            logger.info("[ExecutionEngine] Exchange initialisé — mode=%s", mode)
             return exchange
         except Exception as exc:
             logger.error("[ExecutionEngine] Init spot erreur: %s", exc)

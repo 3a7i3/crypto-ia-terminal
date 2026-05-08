@@ -1,7 +1,7 @@
 """
 advisor_loop.py — Boucle d'observation multi-symboles en mode ADVISOR ONLY.
 
-Analyse BTC/USDT, ETH/USDT, SOL/USDT toutes les 5 minutes.
+Analyse BTC/USDT, ETH/USDT, SOL/USDT, DOGE/USDT toutes les 5 minutes.
 Envoie un rapport Telegram toutes les 15 min (cycle 3, 6, 9...).
 Alerte immédiate si un signal actionable est détecté (score >= 70).
 Watchdog surveille les latences et auto-heal si dégradation.
@@ -79,7 +79,18 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
 
 log = logging.getLogger("advisor_loop")
 
-SYMBOLS_DEFAULT = ["BTC/USDT", "ETH/USDT", "SOL/USDT"]
+# ── Observability integration (non-blocking — graceful if layers not ready) ──
+try:
+    from errors.error_bus import ErrorCategory, ErrorSeverity, error_bus
+    from observability.heartbeat_system import heartbeat_system
+    from observability.metrics_bus import metrics_bus
+    from system.module_registry import ModulePriority, module_registry
+
+    _OBS_AVAILABLE = True
+except Exception:
+    _OBS_AVAILABLE = False
+
+SYMBOLS_DEFAULT = ["BTC/USDT", "ETH/USDT", "SOL/USDT", "DOGE/USDT"]
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT = os.getenv("TELEGRAM_CHAT_ID", "")
 NOTIFY_EVERY = int(os.getenv("ADVISOR_NOTIFY_EVERY", "3"))
@@ -409,7 +420,19 @@ def analyze_symbol(
             memory_sharpe = ranker.best_sharpe(regime) or None
         if not memory_sharpe:
             stored = memory.load_by_regime(regime, limit=10)
-            memory_sharpe = max((s.get("sharpe", 0) for s in stored), default=None)
+            # Filtrer les entrées sans stratégie nommée (données de test/garbage)
+            valid_sharpes = [
+                s.get("sharpe", 0)
+                for s in stored
+                if s.get("strategy")
+                and isinstance(s.get("strategy"), dict)
+                and s["strategy"].get("name")
+                and s.get("sharpe", 0) > 0
+            ]
+            memory_sharpe = max(valid_sharpes, default=None)
+        # Plafond sanity : Sharpe > 5.0 est irréaliste → probablement données de test
+        if memory_sharpe and memory_sharpe > 5.0:
+            memory_sharpe = None
     except Exception:
         memory_sharpe = None
 
@@ -1186,6 +1209,19 @@ def main(
         NOTIFY_EVERY,
     )
 
+    if _OBS_AVAILABLE:
+        try:
+            module_registry.register(
+                "advisor_loop",
+                priority=ModulePriority.HIGH,
+                heartbeat_timeout_sec=max(interval * 2, 120),
+            )
+            heartbeat_system.register(
+                "advisor_loop", timeout_sec=max(interval * 2, 120)
+            )
+        except Exception:
+            pass
+
     # ── Session primer — lancé AVANT la création des scanners ─────────────────
     # Crée l'exchange CCXT et appelle load_markets() dans un thread daemon.
     # Démarré en tout premier pour maximiser le chevauchement avec le reste
@@ -1197,7 +1233,12 @@ def main(
     _primer_executor: ThreadPoolExecutor | None = None
     if ADVISOR_SESSION_PRIMER:
         _exchange_id = os.getenv("MARKET_SCANNER_EXCHANGE", "binance")
-        _testnet = os.getenv("BINANCE_TESTNET", "false").lower() == "true"
+        # MARKET_SCANNER_TESTNET prioritaire — OHLCV publics = vrai exchange
+        _scanner_testnet_env = os.getenv("MARKET_SCANNER_TESTNET", "").lower()
+        if _scanner_testnet_env in ("true", "false"):
+            _testnet = _scanner_testnet_env == "true"
+        else:
+            _testnet = os.getenv("BINANCE_TESTNET", "false").lower() == "true"
         _trace_primer = (
             os.getenv("MARKET_SCANNER_TRACE_TIMINGS", "false").lower() == "true"
         )
@@ -2078,6 +2119,13 @@ def main(
         cycle_completed = False
         shed_optional_work = cycle <= shed_optional_until_cycle
 
+        if _OBS_AVAILABLE:
+            try:
+                heartbeat_system.beat("advisor_loop")
+                module_registry.heartbeat("advisor_loop")
+            except Exception:
+                pass
+
         # ── Kill switch check ──────────────────────────────────────────────────
         if kill_switch.is_halted() or _halt_requested["value"]:
             log.critical("[main] Kill switch actif — boucle suspendue")
@@ -2102,17 +2150,35 @@ def main(
         _t_cycle_start = time.perf_counter()
         try:
             if cycle == 1 and (prewarm_futures or prewarm_mtf_futures):
-                warmup_timeout = float(os.getenv("ADVISOR_PREWARM_TIMEOUT", "30"))
-                for sym, future in prewarm_futures.items():
-                    try:
-                        future.result(timeout=warmup_timeout)
-                    except Exception as exc:
-                        log.warning("[Warmup] %s prechauffage 1h echoue: %s", sym, exc)
-                for sym, future in prewarm_mtf_futures.items():
-                    try:
-                        future.result(timeout=warmup_timeout)
-                    except Exception as exc:
-                        log.warning("[Warmup] %s prechauffage MTF echoue: %s", sym, exc)
+                # Attendre les futures avec un timeout court par future (non-bloquant).
+                # Si un fetch est lent, on continue sans lui — cycle 1 fetche à la volée.
+                warmup_timeout = float(os.getenv("ADVISOR_PREWARM_TIMEOUT", "12"))
+                from concurrent.futures import FIRST_COMPLETED as _FC
+                from concurrent.futures import wait as _fut_wait
+
+                all_futures = list(prewarm_futures.values()) + list(
+                    prewarm_mtf_futures.values()
+                )
+                _deadline = time.perf_counter() + warmup_timeout
+                _remaining = list(all_futures)
+                while _remaining and time.perf_counter() < _deadline:
+                    _done, _remaining = _fut_wait(
+                        _remaining,
+                        timeout=min(2.0, _deadline - time.perf_counter()),
+                        return_when=_FC,
+                    )
+                    for _f in _done:
+                        try:
+                            _f.result()
+                        except Exception as exc:
+                            log.warning("[Warmup] Prechauffage echoue: %s", exc)
+                if _remaining:
+                    log.info(
+                        "[Warmup] %d fetch(s) incomplet(s) — cycle 1 fetche a la volee",
+                        len(_remaining),
+                    )
+                    for _f in _remaining:
+                        _f.cancel()
                 _t_warmup_end = time.perf_counter()
                 prewarm_futures.clear()
                 prewarm_mtf_futures.clear()
@@ -2349,6 +2415,23 @@ def main(
                 except Exception as _tpsl_exc:
                     log.warning("[TP/SL] check échoué pour %s: %s", sym, _tpsl_exc)
 
+                # Métriques par symbole
+                if _OBS_AVAILABLE:
+                    try:
+                        metrics_bus.record(
+                            "advisor_loop", "signal_score", float(r["signal"].score)
+                        )
+                        if r["signal"].actionable:
+                            metrics_bus.increment("advisor_loop", "signals_actionable")
+                        if r.get("trade_allowed"):
+                            metrics_bus.increment("advisor_loop", "trades_approved")
+                        if r.get("futures_result") and r["futures_result"].get(
+                            "mode"
+                        ) not in ("futures_failed", "live_failed", None):
+                            metrics_bus.increment("advisor_loop", "trades_executed")
+                    except Exception:
+                        pass
+
                 # Alerte immédiate si signal actionable (sauf si safe mode)
                 if r["signal"].actionable and not kill_switch.is_safe_mode():
                     log.info(
@@ -2575,6 +2658,11 @@ def main(
                                 f"sharpe={_to_float(s.get('avg_sharpe', 0.0)):.2f}"
                             )
                     _telegram(msg)
+                    log.info(
+                        "[RAPPORT] Telegram envoye — cycle %d (%d symboles)",
+                        cycle,
+                        len(results),
+                    )
                 except Exception as report_exc:
                     log.warning("[RAPPORT] Erreur construction rapport: %s", report_exc)
 
@@ -2674,6 +2762,26 @@ def main(
         except Exception as exc:
             consecutive_errors += 1
             log.error("Erreur cycle %d: %s", cycle, exc, exc_info=True)
+            if _OBS_AVAILABLE:
+                try:
+                    sev = (
+                        ErrorSeverity.CRITICAL
+                        if consecutive_errors >= 3
+                        else ErrorSeverity.HIGH
+                    )
+                    error_bus.emit(
+                        module="advisor_loop",
+                        error=exc,
+                        category=ErrorCategory.SYSTEM,
+                        severity=sev,
+                        context={
+                            "cycle": cycle,
+                            "consecutive_errors": consecutive_errors,
+                        },
+                    )
+                    module_registry.report_error("advisor_loop", str(exc))
+                except Exception:
+                    pass
             if consecutive_errors >= 5:
                 _telegram(
                     f"ALERTE — 5 erreurs consecutives\n"

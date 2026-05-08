@@ -153,14 +153,42 @@ class ExchangeMonitor:
     def _check_once(self) -> None:
         t0 = time.time()
         try:
-            # Ping l'endpoint public Binance (pas besoin de clé)
-            testnet = os.getenv("BINANCE_TESTNET", "false").lower() == "true"
-            base_url = (
-                "https://testnet.binance.vision"
-                if testnet
-                else "https://api.binance.com"
+            # Ping l'exchange actif (configurable via EXCHANGE_ID)
+            exchange_id = os.getenv("EXCHANGE_ID", "binance").lower()
+            testnet = (
+                os.getenv(
+                    "EXCHANGE_TESTNET", os.getenv("BINANCE_TESTNET", "false")
+                ).lower()
+                == "true"
             )
-            r = requests.get(f"{base_url}/api/v3/ping", timeout=8)
+            ping_urls = {
+                "gateio": (
+                    (
+                        "https://fx-api-testnet.gateio.ws/api/v4/futures/usdt/contracts"
+                        if testnet
+                        else "https://api.gateio.ws/api/v4/spot/currencies/USDT"
+                    ),
+                    200,
+                ),
+                "binance": (
+                    (
+                        "https://testnet.binance.vision/api/v3/ping"
+                        if testnet
+                        else "https://api.binance.com/api/v3/ping"
+                    ),
+                    200,
+                ),
+                "bybit": (
+                    (
+                        "https://api-testnet.bybit.com/v5/market/time"
+                        if testnet
+                        else "https://api.bybit.com/v5/market/time"
+                    ),
+                    200,
+                ),
+            }
+            ping_url, _ = ping_urls.get(exchange_id, ping_urls["binance"])
+            r = requests.get(ping_url, timeout=8)
             latency_ms = (time.time() - t0) * 1000
 
             if r.status_code == 200:

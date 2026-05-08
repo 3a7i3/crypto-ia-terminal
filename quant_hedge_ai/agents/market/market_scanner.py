@@ -45,6 +45,23 @@ _CACHE_TTL_SECONDS = float(os.getenv("MARKET_SCANNER_CACHE_TTL", "60"))
 _PROFILE_ENABLED = os.getenv("MARKET_SCANNER_PROFILE", "false").lower() == "true"
 
 
+def _get_int_env(key: str, default: int) -> int:
+    """Lit une variable d'environnement entière avec fallback + warning si invalide."""
+    raw = os.getenv(key)
+    if raw is None:
+        return default
+    try:
+        return int(raw)
+    except ValueError:
+        logger.warning(
+            "[MarketScanner] %s='%s' invalide — utilisation du défaut %d",
+            key,
+            raw,
+            default,
+        )
+        return default
+
+
 def _timeframe_to_seconds(timeframe: str) -> float:
     unit = timeframe[-1].lower()
     try:
@@ -136,17 +153,28 @@ class MarketScanner:
             "MARKET_SCANNER_EXCHANGE", "binance"
         )
         self._timeframe = timeframe or os.getenv("MARKET_SCANNER_TIMEFRAME", "1h")
-        self._limit = limit or int(os.getenv("MARKET_SCANNER_LIMIT", "200"))
-        self._max_retries = max_retries if max_retries is not None else int(os.getenv("MARKET_SCANNER_MAX_RETRIES", "3"))
+        self._limit = limit or _get_int_env("MARKET_SCANNER_LIMIT", 200)
+        self._max_retries = (
+            max_retries
+            if max_retries is not None
+            else _get_int_env("MARKET_SCANNER_MAX_RETRIES", 3)
+        )
         self._retry_base_delay = (
-            retry_base_delay if retry_base_delay is not None else float(os.getenv("MARKET_SCANNER_RETRY_BASE_DELAY", "1.0"))
+            retry_base_delay
+            if retry_base_delay is not None
+            else float(os.getenv("MARKET_SCANNER_RETRY_BASE_DELAY", "1.0"))
         )
         self._retry_max_delay = (
-            retry_max_delay if retry_max_delay is not None else float(os.getenv("MARKET_SCANNER_RETRY_MAX_DELAY", "20.0"))
+            retry_max_delay
+            if retry_max_delay is not None
+            else float(os.getenv("MARKET_SCANNER_RETRY_MAX_DELAY", "20.0"))
         )
         self._timeframe_seconds = _timeframe_to_seconds(self._timeframe)
         self._freshness_seconds = float(
-            os.getenv("MARKET_SCANNER_FRESHNESS_SECONDS", str(max(self._timeframe_seconds, 3600.0)))
+            os.getenv(
+                "MARKET_SCANNER_FRESHNESS_SECONDS",
+                str(max(self._timeframe_seconds, 3600.0)),
+            )
         )
         self._allow_stale_cache = (
             os.getenv("MARKET_SCANNER_ALLOW_STALE_CACHE", "true").lower() == "true"
@@ -154,9 +182,7 @@ class MarketScanner:
         self._trace_timings = (
             os.getenv("MARKET_SCANNER_TRACE_TIMINGS", "false").lower() == "true"
         )
-        self._profile = (
-            os.getenv("MARKET_SCANNER_PROFILE", "false").lower() == "true"
-        )
+        self._profile = os.getenv("MARKET_SCANNER_PROFILE", "false").lower() == "true"
         # Accumulateur de profiling (réinitialisé à chaque scan via reset_profile())
         self._profile_data: dict[str, list[float]] = {
             "exchange_pool_lock_wait_ms": [],
@@ -190,10 +216,15 @@ class MarketScanner:
         self._stats: dict[str, int] = {"real": 0, "synthetic": 0, "cached": 0}
 
     def _exchange_key(self) -> tuple[str, bool]:
-        return (
-            self._exchange_id,
-            os.getenv("BINANCE_TESTNET", "false").lower() == "true",
-        )
+        # MARKET_SCANNER_TESTNET prioritaire sur BINANCE_TESTNET.
+        # Les données OHLCV sont publiques — utiliser le vrai exchange par défaut
+        # même si BINANCE_TESTNET=true (le testnet a trop peu d'historique).
+        scanner_testnet = os.getenv("MARKET_SCANNER_TESTNET", "").lower()
+        if scanner_testnet in ("true", "false"):
+            use_testnet = scanner_testnet == "true"
+        else:
+            use_testnet = os.getenv("BINANCE_TESTNET", "false").lower() == "true"
+        return (self._exchange_id, use_testnet)
 
     @classmethod
     def _get_exchange_call_lock(cls, key: tuple[str, bool]) -> threading.Lock:
@@ -234,8 +265,10 @@ class MarketScanner:
             if old is not None:
                 try:
                     old.close()
-                except Exception:
-                    pass
+                except Exception as _close_err:
+                    logger.debug(
+                        "[MarketScanner] exchange.close() failed: %s", _close_err
+                    )
             cls._exchange_created_at.pop(key, None)
             cls._exchange_transport_errors[key] = 0
             cls._exchange_generation[key] = cls._exchange_generation.get(key, 0) + 1
@@ -247,15 +280,19 @@ class MarketScanner:
             cls._exchange_market_preload_started.discard(key)
         logger.info(
             "[MarketScanner] Session invalidée (raison=%s key=%s) — recréation au prochain fetch",
-            reason, key,
+            reason,
+            key,
         )
 
     @staticmethod
     def _is_transport_error(exc: Exception) -> bool:
         """Return True for CCXT transport-layer errors (network, timeout, etc.)."""
         transport_names = {
-            "NetworkError", "RequestTimeout", "DDoSProtection",
-            "ExchangeNotAvailable", "ExchangeError",
+            "NetworkError",
+            "RequestTimeout",
+            "DDoSProtection",
+            "ExchangeNotAvailable",
+            "ExchangeError",
         }
         return any(cls.__name__ in transport_names for cls in type(exc).__mro__)
 
@@ -349,7 +386,9 @@ class MarketScanner:
                 with self._exchange_pool_lock:
                     _pool_lock_wait = (time.perf_counter() - _t_pool_lock) * 1000
                     if self._profile:
-                        self._profile_data["exchange_pool_lock_wait_ms"].append(_pool_lock_wait)
+                        self._profile_data["exchange_pool_lock_wait_ms"].append(
+                            _pool_lock_wait
+                        )
                     shared_exchange = self._exchange_pool.get(key)
                     if shared_exchange is None:
                         started_at = time.perf_counter()
@@ -363,19 +402,22 @@ class MarketScanner:
                                 # L'horloge serveur est considérée suffisamment précise sans resync.
                                 "adjustForTimeDifference": os.getenv(
                                     "MARKET_SCANNER_ADJUST_TIME", "false"
-                                ).lower() == "true",
+                                ).lower()
+                                == "true",
                                 # Taille du pool de connexions HTTP keep-alive (défaut CCXT = 1)
                                 # Augmenter à N_SYMBOLS pour fetch parallèle sans attente socket
-                                "connectionPoolSize": int(os.getenv(
-                                    "MARKET_SCANNER_POOL_SIZE", "8"
-                                )),
+                                "connectionPoolSize": _get_int_env(
+                                    "MARKET_SCANNER_POOL_SIZE", 8
+                                ),
                             },
                         }
                         shared_exchange = getattr(ccxt, self._exchange_id)(config)
                         created_exchange = True
                         if key[1]:
                             shared_exchange.set_sandbox_mode(True)
-                            logger.info("[MarketScanner] Mode TESTNET — donnees publiques")
+                            logger.info(
+                                "[MarketScanner] Mode TESTNET — donnees publiques"
+                            )
                         self._exchange_pool[key] = shared_exchange
                         # Record TTL baseline and ensure generation entry exists.
                         self.__class__._exchange_created_at[key] = time.monotonic()
@@ -393,7 +435,8 @@ class MarketScanner:
                         self._profile_data["exchange_create_ms"].append(_t_create_ms)
                         logger.info(
                             "[MarketScannerProfile] exchange.__init__()=%.1fms pool_lock_wait=%.1fms",
-                            _t_create_ms, _pool_lock_wait,
+                            _t_create_ms,
+                            _pool_lock_wait,
                         )
                 if self._trace_timings and created_exchange and started_at is not None:
                     logger.info(
@@ -409,7 +452,10 @@ class MarketScanner:
                         self._timeframe,
                     )
 
-                if os.getenv("MARKET_SCANNER_PRELOAD_MARKETS", "false").lower() == "true":
+                if (
+                    os.getenv("MARKET_SCANNER_PRELOAD_MARKETS", "false").lower()
+                    == "true"
+                ):
                     self._start_markets_preload(self._exchange, key)
             except Exception as exc:
                 logger.warning(
@@ -445,8 +491,14 @@ class MarketScanner:
         fetch_limit = limit or self._limit
 
         if not markets_ready.is_set():
-            preload_wait_ms = max(0.0, float(os.getenv("MARKET_SCANNER_PRELOAD_WAIT_MS", "250")))
-            if preload_wait_ms > 0 and os.getenv("MARKET_SCANNER_PRELOAD_MARKETS", "false").lower() == "true":
+            preload_wait_ms = max(
+                0.0, float(os.getenv("MARKET_SCANNER_PRELOAD_WAIT_MS", "250"))
+            )
+            if (
+                preload_wait_ms > 0
+                and os.getenv("MARKET_SCANNER_PRELOAD_MARKETS", "false").lower()
+                == "true"
+            ):
                 markets_ready.wait(preload_wait_ms / 1000.0)
             if not markets_ready.is_set():
                 try:
@@ -460,14 +512,18 @@ class MarketScanner:
             with exchange_lock:
                 _lock_wait_ms = (time.perf_counter() - _t_lock_start) * 1000
                 _t_http_start = time.perf_counter()
-                ohlcvs = exchange.fetch_ohlcv(ccxt_sym, self._timeframe, limit=fetch_limit)
+                ohlcvs = exchange.fetch_ohlcv(
+                    ccxt_sym, self._timeframe, limit=fetch_limit
+                )
                 _http_ms = (time.perf_counter() - _t_http_start) * 1000
             if self._profile:
                 self._profile_data["exchange_call_lock_wait_ms"].append(_lock_wait_ms)
                 self._profile_data["fetch_ohlcv_http_ms"].append(_http_ms)
                 logger.info(
                     "[MarketScannerProfile] %s lock_wait=%.1fms http=%.1fms total=%.1fms",
-                    symbol, _lock_wait_ms, _http_ms,
+                    symbol,
+                    _lock_wait_ms,
+                    _http_ms,
                     (time.perf_counter() - started_at) * 1000,
                 )
             if self._trace_timings:
@@ -479,7 +535,10 @@ class MarketScanner:
                     fetch_limit,
                 )
             if not ohlcvs:
-                raise ValueError(f"fetch_ohlcv retourné vide pour {ccxt_sym}")
+                raise ValueError(
+                    f"fetch_ohlcv retourné vide pour {ccxt_sym} "
+                    f"(tf={self._timeframe}, limit={fetch_limit}, exchange={self._exchange_id})"
+                )
             _t_parse = time.perf_counter()
             series = [
                 {
@@ -518,13 +577,17 @@ class MarketScanner:
             _transport_exc = _exc
             if self._is_transport_error(_exc):
                 max_errors = int(os.getenv("MARKET_SCANNER_SESSION_MAX_ERRORS", "5"))
+                should_invalidate = False
                 with self.__class__._exchange_pool_lock:
                     current = self.__class__._exchange_transport_errors.get(key, 0) + 1
                     self.__class__._exchange_transport_errors[key] = current
-                if current >= max_errors:
+                    if current >= max_errors:
+                        should_invalidate = True
+                if should_invalidate:
                     logger.warning(
                         "[MarketScanner] %d erreurs transport consécutives (%s) — session invalidée",
-                        current, type(_exc).__name__,
+                        current,
+                        type(_exc).__name__,
                     )
                     self.__class__._invalidate_exchange_session(
                         key, reason=f"{current}x_{type(_exc).__name__}"
@@ -534,7 +597,9 @@ class MarketScanner:
                 else:
                     logger.debug(
                         "[MarketScanner] Erreur transport %d/%d: %s",
-                        current, max_errors, type(_exc).__name__,
+                        current,
+                        max_errors,
+                        type(_exc).__name__,
                     )
             raise
 
@@ -554,7 +619,9 @@ class MarketScanner:
         clean, report = validate_candles(raw, symbol=symbol)
         if self._profile and self._profile_data["parse_validate_ms"]:
             # Ajoute le temps de validate_candles au dernier parse
-            self._profile_data["parse_validate_ms"][-1] += (time.perf_counter() - _t_val) * 1000
+            self._profile_data["parse_validate_ms"][-1] += (
+                time.perf_counter() - _t_val
+            ) * 1000
         if not clean:
             logger.warning(
                 "[MarketScanner] %s : 0 bougies valides après validation", symbol
@@ -569,19 +636,22 @@ class MarketScanner:
         latest_series: list[dict],
     ) -> list[dict]:
         merged_by_timestamp = {
-            candle["timestamp"]: dict(candle)
-            for candle in existing_series
+            candle["timestamp"]: dict(candle) for candle in existing_series
         }
         for candle in latest_series:
             merged_by_timestamp[candle["timestamp"]] = dict(candle)
-        merged = sorted(merged_by_timestamp.values(), key=lambda candle: candle["timestamp"])
+        merged = sorted(
+            merged_by_timestamp.values(), key=lambda candle: candle["timestamp"]
+        )
         return merged[-self._limit :]
 
     def _refresh_series_incremental(self, symbol: str) -> list[dict] | None:
         latest_series = self._fetch_series(symbol, limit=min(2, self._limit))
         if latest_series is None:
             return None
-        return self._merge_incremental_series(self._history.get(symbol, []), latest_series)
+        return self._merge_incremental_series(
+            self._history.get(symbol, []), latest_series
+        )
 
     # ------------------------------------------------------------------
     # API publique
@@ -616,25 +686,25 @@ class MarketScanner:
             if not vals:
                 return {"n": 0, "mean_ms": 0.0, "max_ms": 0.0, "total_ms": 0.0}
             return {
-                "n":        len(vals),
-                "mean_ms":  round(_st.mean(vals), 2),
-                "max_ms":   round(max(vals), 2),
+                "n": len(vals),
+                "mean_ms": round(_st.mean(vals), 2),
+                "max_ms": round(max(vals), 2),
                 "total_ms": round(sum(vals), 2),
             }
 
         report = {k: _agg(v) for k, v in self._profile_data.items()}
         # Résumé lisible
-        http_mean   = report["fetch_ohlcv_http_ms"]["mean_ms"]
-        lock_mean   = report["exchange_call_lock_wait_ms"]["mean_ms"]
+        http_mean = report["fetch_ohlcv_http_ms"]["mean_ms"]
+        lock_mean = report["exchange_call_lock_wait_ms"]["mean_ms"]
         create_mean = report["exchange_create_ms"]["mean_ms"]
-        parse_mean  = report["parse_validate_ms"]["mean_ms"]
-        total_est   = create_mean + lock_mean + http_mean + parse_mean
+        parse_mean = report["parse_validate_ms"]["mean_ms"]
+        total_est = create_mean + lock_mean + http_mean + parse_mean
         report["_summary"] = {
-            "estimated_cold_cost_ms":    round(total_est, 1),
-            "pct_http":                  round(http_mean / max(total_est, 0.001) * 100, 1),
-            "pct_lock_wait":             round(lock_mean / max(total_est, 0.001) * 100, 1),
-            "pct_exchange_create":       round(create_mean / max(total_est, 0.001) * 100, 1),
-            "pct_parse_validate":        round(parse_mean / max(total_est, 0.001) * 100, 1),
+            "estimated_cold_cost_ms": round(total_est, 1),
+            "pct_http": round(http_mean / max(total_est, 0.001) * 100, 1),
+            "pct_lock_wait": round(lock_mean / max(total_est, 0.001) * 100, 1),
+            "pct_exchange_create": round(create_mean / max(total_est, 0.001) * 100, 1),
+            "pct_parse_validate": round(parse_mean / max(total_est, 0.001) * 100, 1),
         }
         if self._profile:
             logger.info(
@@ -681,9 +751,7 @@ class MarketScanner:
             # 1. Utiliser le cache si TTL non expiré
             last_fetch = self._fetch_ts.get(symbol, 0.0)
             cache_hit = (
-                has_history
-                and (now - last_fetch) < _CACHE_TTL_SECONDS
-                and series_fresh
+                has_history and (now - last_fetch) < _CACHE_TTL_SECONDS and series_fresh
             )
             stale_cache_hit = (
                 has_history
@@ -720,7 +788,9 @@ class MarketScanner:
                 if series is not None:
                     self._fetch_ts[symbol] = now
                     self._stats["real"] += 1
-                    source_label = "ccxt_live" if source_label == "synthetic" else source_label
+                    source_label = (
+                        "ccxt_live" if source_label == "synthetic" else source_label
+                    )
 
             # 3. Fallback synthétique
             if series is None:

@@ -1,0 +1,23 @@
+# Crypto AI Terminal — dépendances VPS (advisor_loop + pipeline complet)
+# Install : pip install -r requirements-vps.txt
+
+# Exchange & données marché
+ccxt>=4.2.0
+
+# Data science
+numpy>=1.26.0
+pandas>=2.1.0
+
+# HTTP & API
+requests>=2.31.0
+
+# Config
+python-dotenv>=1.0.0
+
+# Visualisation (dashboard optionnel)
+plotly>=5.18.0
+streamlit>=1.30.0
+
+# ML / optimisation (modules optionnels)
+joblib>=1.3.0
+scikit-learn>=1.4.0

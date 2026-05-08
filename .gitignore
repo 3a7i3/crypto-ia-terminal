@@ -43,9 +43,11 @@ data/
 .coverage
 archives/
 
-# Ignore SQLite databases
+# Ignore SQLite databases et bases de données runtime
 *.sqlite
 *.db
+databases/
+*.jsonl
 
 # Ignore temporary files
 *.tmp

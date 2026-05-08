@@ -22,12 +22,21 @@ logger = logging.getLogger(__name__)
 
 _DEFAULT_MIN_SCORE: int = int(os.getenv("SIGNAL_MIN_SCORE", "70"))
 
+try:
+    from errors.error_bus import ErrorCategory as _ErrCat
+    from errors.error_bus import error_bus as _error_bus
+    from observability.metrics_bus import metrics_bus as _metrics_bus
+
+    _OBS_AVAILABLE = True
+except Exception:
+    _OBS_AVAILABLE = False
+
 
 @dataclass
 class SignalResult:
     symbol: str
-    score: int                        # 0-100
-    signal: str                       # BUY | SELL | HOLD
+    score: int  # 0-100
+    signal: str  # BUY | SELL | HOLD
     regime: str = "unknown"
     confirmed: bool = False
     strength: float = 0.0
@@ -119,7 +128,9 @@ class LiveSignalEngine:
         if regime in self.regime_blacklist:
             score = min(score, 30)
             components["regime_blacklist_veto"] = -1.0
-            logger.debug("[LSE] %s — régime blacklisté (%s), score plafonné à 30", symbol, regime)
+            logger.debug(
+                "[LSE] %s — régime blacklisté (%s), score plafonné à 30", symbol, regime
+            )
 
         result = SignalResult(
             symbol=symbol,
@@ -131,8 +142,24 @@ class LiveSignalEngine:
             components=components,
         )
         self._last_results[symbol] = result
-        logger.info("[LSE] %s → score=%d signal=%s régime=%s actionable=%s",
-                    symbol, score, mtf_signal, regime, result.actionable)
+        logger.info(
+            "[LSE] %s → score=%d signal=%s régime=%s actionable=%s",
+            symbol,
+            score,
+            mtf_signal,
+            regime,
+            result.actionable,
+        )
+        if _OBS_AVAILABLE:
+            try:
+                _metrics_bus.record("live_signal_engine", "score", float(score))
+                _metrics_bus.gauge(
+                    "live_signal_engine", f"score.{symbol}", float(score)
+                )
+                if result.actionable:
+                    _metrics_bus.increment("live_signal_engine", "actionable_signals")
+            except Exception:
+                pass
         return result
 
     def evaluate_batch(
@@ -160,6 +187,16 @@ class LiveSignalEngine:
                 results.append(r)
             except Exception as exc:
                 logger.warning("[LSE] Erreur %s: %s", symbol, exc)
+                if _OBS_AVAILABLE:
+                    try:
+                        _error_bus.emit(
+                            module="live_signal_engine",
+                            error=exc,
+                            category=_ErrCat.AI,
+                            context={"symbol": symbol},
+                        )
+                    except Exception:
+                        pass
         results.sort(key=lambda r: r.score, reverse=True)
         return results
 
@@ -190,41 +227,47 @@ class LiveSignalEngine:
             return 0.0, "HOLD", False, 0.0
 
         from quant_hedge_ai.agents.intelligence.feature_engineer import FeatureEngineer
+
         fe = FeatureEngineer()
 
         # ── Vote indicateurs par TF ────────────────────────────────────────
-        tf_weights = {"1d": 3.0, "4h": 2.0, "1h": 1.0, "15m": 0.5}
-        buy_score  = 0.0
+        tf_weights = {"1d": 3.0, "4h": 2.0, "1h": 1.0, "15m": 0.5, "1m": 0.2}
+        buy_score = 0.0
         sell_score = 0.0
-        total_w    = 0.0
+        total_w = 0.0
         tf_signals: dict[str, str] = {}
 
         for tf, candles in mtf_candles.items():
             if not candles or len(candles) < 20:
                 continue
-            w    = tf_weights.get(tf, 1.0)
+            w = tf_weights.get(tf, 1.0)
             feat = fe.extract_features(candles)
-            sig  = self._indicator_signal(feat)
+            sig = self._indicator_signal(feat)
             tf_signals[tf] = sig
             if sig == "BUY":
-                buy_score  += w
+                buy_score += w
             elif sig == "SELL":
                 sell_score += w
             total_w += w
 
         # ── Vote classique (fallback si pas assez de TF) ──────────────────
         try:
-            from quant_hedge_ai.agents.execution.multi_timeframe_signal import MultiTimeframeSignal
-            mtf     = MultiTimeframeSignal()
-            result  = mtf.confirm(self.strategy, mtf_candles)
+            from quant_hedge_ai.agents.execution.multi_timeframe_signal import (
+                MultiTimeframeSignal,
+            )
+
+            mtf = MultiTimeframeSignal()
+            result = mtf.confirm(self.strategy, mtf_candles)
             classic = result.get("signal", "HOLD")
             if classic == "BUY":
-                buy_score  += 1.0
+                buy_score += 1.0
             elif classic == "SELL":
                 sell_score += 1.0
             total_w += 1.0
-        except Exception:
-            pass
+        except ImportError as _ie:
+            logger.warning("[LSE] MultiTimeframeSignal indisponible: %s", _ie)
+        except Exception as _exc:
+            logger.warning("[LSE] MultiTimeframeSignal erreur: %s", _exc)
 
         if total_w == 0:
             components["mtf"] = 0.0
@@ -232,27 +275,32 @@ class LiveSignalEngine:
 
         if buy_score > sell_score:
             candidate = "BUY"
-            strength  = buy_score / total_w
+            strength = buy_score / total_w
         elif sell_score > buy_score:
             candidate = "SELL"
-            strength  = sell_score / total_w
+            strength = sell_score / total_w
         else:
             components["mtf"] = 5.0
             return 5.0, "HOLD", False, 0.0
 
-        n_agree   = sum(1 for s in tf_signals.values() if s == candidate)
+        n_agree = sum(1 for s in tf_signals.values() if s == candidate)
         confirmed = strength >= 0.5 and n_agree >= 2
 
         if not confirmed:
             score = strength * 15.0
         else:
-            score = 20.0 + strength * 20.0   # 20-40 pts si confirmé
+            score = 20.0 + strength * 20.0  # 20-40 pts si confirmé
 
         signal = candidate if confirmed else "HOLD"
-        logger.debug("[LSE] MTF: %s strength=%.2f n_agree=%d tfs=%s",
-                     signal, strength, n_agree, tf_signals)
+        logger.debug(
+            "[LSE] MTF: %s strength=%.2f n_agree=%d tfs=%s",
+            signal,
+            strength,
+            n_agree,
+            tf_signals,
+        )
 
-        components["mtf"]    = round(score, 2)
+        components["mtf"] = round(score, 2)
         components["mtf_tfs"] = tf_signals
         return score, signal, confirmed, round(strength, 3)
 
@@ -262,24 +310,27 @@ class LiveSignalEngine:
         Signal composite depuis RSI + MACD + EMA + Bollinger.
         Retourne BUY / SELL / HOLD.
         """
-        buy_votes  = 0
+        buy_votes = 0
         sell_votes = 0
 
-        # RSI
-        rsi = feat.get("rsi", 50.0)
+        # RSI — clamp 0-100 (valeurs hors bornes = artefact de calcul)
+        rsi = float(feat.get("rsi", 50.0))
+        if rsi < 0.0 or rsi > 100.0:
+            logger.warning("[LSE] RSI hors bornes (%.2f) — clamp 0-100", rsi)
+            rsi = max(0.0, min(100.0, rsi))
         if rsi < 35:
-            buy_votes  += 2   # sur-vendu = fort signal BUY
+            buy_votes += 2  # sur-vendu = fort signal BUY
         elif rsi < 45:
-            buy_votes  += 1
+            buy_votes += 1
         elif rsi > 65:
-            sell_votes += 2   # sur-acheté = fort signal SELL
+            sell_votes += 2  # sur-acheté = fort signal SELL
         elif rsi > 55:
             sell_votes += 1
 
         # MACD histogramme
         macd_h = feat.get("macd_hist", 0.0)
         if macd_h > 0:
-            buy_votes  += 1
+            buy_votes += 1
         elif macd_h < 0:
             sell_votes += 1
 
@@ -292,9 +343,9 @@ class LiveSignalEngine:
         # Bollinger position
         bb_pct = feat.get("bb_pct", 0.5)
         if bb_pct < 0.2:
-            buy_votes  += 1   # proche de la bande inférieure
+            buy_votes += 1  # proche de la bande inférieure
         elif bb_pct > 0.8:
-            sell_votes += 1   # proche de la bande supérieure
+            sell_votes += 1  # proche de la bande supérieure
 
         # Momentum
         mom = feat.get("momentum", 0.0)
@@ -322,9 +373,14 @@ class LiveSignalEngine:
             from quant_hedge_ai.agents.intelligence.regime_detector import (
                 AdvancedRegimeDetector,
             )
+
             det = AdvancedRegimeDetector()
             regime = det.classify(features)
-        except Exception:
+        except ImportError as _ie:
+            logger.warning("[LSE] AdvancedRegimeDetector indisponible: %s", _ie)
+            regime = "unknown"
+        except Exception as _exc:
+            logger.warning("[LSE] RegimeDetector erreur: %s", _exc)
             regime = "unknown"
 
         # Bonus selon régime favorable à un signal directionnel
@@ -351,7 +407,7 @@ class LiveSignalEngine:
 
             total_score = 0.0
             total_weight = 0.0
-            tf_weights = {"1d": 3.0, "4h": 2.0, "1h": 1.0, "15m": 0.5}
+            tf_weights = {"1d": 3.0, "4h": 2.0, "1h": 1.0, "15m": 0.5, "1m": 0.2}
 
             for tf, candles in mtf_candles.items():
                 if not candles:

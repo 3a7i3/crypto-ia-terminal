@@ -18,10 +18,12 @@ from quant_hedge_ai.agents.market.market_scanner import MarketScanner
 logger = logging.getLogger(__name__)
 
 # Timeframes disponibles par ordre croissant
-HIGHER_TFS: list[str] = ["4h", "1d"]
+HIGHER_TFS: list[str] = ["1m", "15m", "4h", "1d"]
 
 # Nombre de bougies par timeframe (suffisant pour les indicateurs)
 _TF_LIMIT: dict[str, int] = {
+    "1m": 60,  # 60 × 1m = 1h — signal live quasi-temps-réel
+    "15m": 96,  # 96 × 15m = 24h — réactivité intra-heure
     "4h": 60,
     "1d": 50,
 }
@@ -48,9 +50,15 @@ class MultiTimeframeScanner:
         self.timeframes = timeframes or HIGHER_TFS
         self._refresh_every = refresh_every
         self._trace_timings = (
-            os.getenv("MTF_SCAN_TRACE_TIMINGS", os.getenv("MARKET_SCANNER_TRACE_TIMINGS", "false")).lower() == "true"
+            os.getenv(
+                "MTF_SCAN_TRACE_TIMINGS",
+                os.getenv("MARKET_SCANNER_TRACE_TIMINGS", "false"),
+            ).lower()
+            == "true"
         )
-        self._max_workers = max(1, int(os.getenv("MTF_SCAN_MAX_WORKERS", str(len(self.timeframes) or 1))))
+        self._max_workers = max(
+            1, int(os.getenv("MTF_SCAN_MAX_WORKERS", str(len(self.timeframes) or 1)))
+        )
         mtf_max_retries = int(os.getenv("MTF_SCAN_MAX_RETRIES", "1"))
         mtf_retry_base_delay = float(os.getenv("MTF_SCAN_RETRY_BASE_DELAY", "0.5"))
         mtf_retry_max_delay = float(os.getenv("MTF_SCAN_RETRY_MAX_DELAY", "2.0"))
@@ -83,7 +91,9 @@ class MultiTimeframeScanner:
 
         started_at = time.perf_counter()
         result: dict[str, dict[str, list[dict]]] = {sym: {} for sym in self.symbols}
-        with ThreadPoolExecutor(max_workers=self._max_workers, thread_name_prefix="MTFScan") as executor:
+        with ThreadPoolExecutor(
+            max_workers=self._max_workers, thread_name_prefix="MTFScan"
+        ) as executor:
             futures = {
                 executor.submit(scanner.scan): tf
                 for tf, scanner in self._scanners.items()
