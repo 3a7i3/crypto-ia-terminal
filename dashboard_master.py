@@ -108,6 +108,59 @@ def fmt_ts(ts: float) -> str:
     return datetime.fromtimestamp(ts, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
 
 
+def compute_coherence(decisions: list[dict]) -> list[dict]:
+    """
+    Croise TRADE_EXECUTED avec POSITION_CLOSED (même symbole, clôture après entrée).
+    Retourne une liste de trades classifiés :
+      VALIDATED  — score ≥ 70 + win
+      LUCKY      — score < 70 + win
+      UNLUCKY    — score ≥ 70 + loss
+      MISTAKE    — score < 70 + loss
+    """
+    executions = [d for d in decisions if d.get("decision_type") == "TRADE_EXECUTED"]
+    closures = [d for d in decisions if d.get("decision_type") == "POSITION_CLOSED"]
+    # Index closures par symbole pour lookup rapide
+    closures_by_sym: dict[str, list[dict]] = {}
+    for c in closures:
+        closures_by_sym.setdefault(c.get("symbol", ""), []).append(c)
+
+    results = []
+    for ex in executions:
+        sym = ex.get("symbol", "")
+        ex_ts = ex.get("ts", 0)
+        score = ex.get("score", 0)
+        # Trouver la clôture la plus proche APRÈS l'exécution
+        candidates = [c for c in closures_by_sym.get(sym, []) if c.get("ts", 0) > ex_ts]
+        if not candidates:
+            continue
+        cl = min(candidates, key=lambda c: c["ts"] - ex_ts)
+        pnl_pct = cl.get("pnl_pct", 0.0)
+        win = pnl_pct > 0
+        high_conf = score >= 70
+        if high_conf and win:
+            label = "VALIDATED"
+        elif not high_conf and win:
+            label = "LUCKY"
+        elif high_conf and not win:
+            label = "UNLUCKY"
+        else:
+            label = "MISTAKE"
+        results.append(
+            {
+                "symbol": sym,
+                "entry_ts": fmt_ts(ex_ts),
+                "score": score,
+                "regime": ex.get("regime", ""),
+                "pnl_pct": round(pnl_pct * 100, 2),
+                "win": win,
+                "label": label,
+                "duration_min": round((cl["ts"] - ex_ts) / 60, 1),
+                "close_reason": cl.get("close_reason", ""),
+            }
+        )
+    return results
+
+
 # ── Layout ────────────────────────────────────────────────────────────────────
 
 header_col, refresh_col = st.columns([5, 1])
@@ -545,6 +598,105 @@ with tab3:
             )
             st.dataframe(df_pass, use_container_width=True, hide_index=True)
 
+        # ── Cohérence Signal vs Résultat ──────────────────────────────────────
+        st.divider()
+        st.markdown("#### 🔬 Cohérence Signal → Résultat (post-mortem automatique)")
+
+        coherence = compute_coherence(decisions)
+        if not coherence:
+            st.info(
+                "Pas encore de trades fermés à analyser — "
+                "la cohérence s'affiche dès la première clôture de position."
+            )
+        else:
+            cnt_labels = Counter(r["label"] for r in coherence)
+            total_coh = len(coherence)
+            wins_coh = sum(1 for r in coherence if r["win"])
+
+            cc1, cc2, cc3, cc4, cc5 = st.columns(5)
+            cc1.metric("Trades analysés", total_coh)
+            cc2.metric(
+                "✅ VALIDATED",
+                cnt_labels.get("VALIDATED", 0),
+                f"{100*cnt_labels.get('VALIDATED',0)//total_coh}%",
+            )
+            cc3.metric(
+                "🍀 LUCKY",
+                cnt_labels.get("LUCKY", 0),
+                f"{100*cnt_labels.get('LUCKY',0)//total_coh}%",
+            )
+            cc4.metric(
+                "😓 UNLUCKY",
+                cnt_labels.get("UNLUCKY", 0),
+                f"{100*cnt_labels.get('UNLUCKY',0)//total_coh}%",
+            )
+            cc5.metric(
+                "❌ MISTAKE",
+                cnt_labels.get("MISTAKE", 0),
+                f"{100*cnt_labels.get('MISTAKE',0)//total_coh}%",
+            )
+
+            # Verdict de qualité
+            validated_pct = cnt_labels.get("VALIDATED", 0) / total_coh * 100
+            mistake_pct = cnt_labels.get("MISTAKE", 0) / total_coh * 100
+            win_rate_high = (
+                sum(1 for r in coherence if r["win"] and r["score"] >= 70)
+                / max(sum(1 for r in coherence if r["score"] >= 70), 1)
+                * 100
+            )
+            win_rate_low = (
+                sum(1 for r in coherence if r["win"] and r["score"] < 70)
+                / max(sum(1 for r in coherence if r["score"] < 70), 1)
+                * 100
+            )
+
+            if validated_pct >= 50:
+                coh_verdict = (
+                    f"🟢 MODÈLE COHÉRENT — {validated_pct:.0f}% des trades"
+                    f" haute conviction sont gagnants"
+                )
+            elif mistake_pct >= 40:
+                coh_verdict = (
+                    f"🔴 MODÈLE INCOHÉRENT — {mistake_pct:.0f}% de MISTAKE"
+                    " (score élevé mais perte)"
+                )
+            elif win_rate_high > win_rate_low + 10:
+                coh_verdict = (
+                    f"🟡 SIGNAL UTILE — Win rate score≥70 : {win_rate_high:.0f}%"
+                    f" vs score<70 : {win_rate_low:.0f}%"
+                )
+            else:
+                coh_verdict = (
+                    f"⚪ SIGNAL NEUTRE — Win rate similaire peu importe le score"
+                    f" ({win_rate_high:.0f}% vs {win_rate_low:.0f}%)"
+                )
+            st.info(coh_verdict)
+
+            # Barre de classification
+            df_coh_bar = pd.DataFrame(
+                [(k, v) for k, v in cnt_labels.most_common()],
+                columns=["Classification", "Count"],
+            )
+            st.bar_chart(df_coh_bar.set_index("Classification"), height=160)
+
+            # Win rate score≥70 vs score<70
+            wr_col1, wr_col2 = st.columns(2)
+            wr_col1.metric(
+                "Win rate score ≥ 70 (haute conviction)",
+                f"{win_rate_high:.1f}%",
+            )
+            wr_col2.metric(
+                "Win rate score < 70 (basse conviction)",
+                f"{win_rate_low:.1f}%",
+            )
+
+            # Tableau détaillé
+            with st.expander("📋 Détail trade par trade"):
+                df_coh = pd.DataFrame(coherence)
+                df_coh = df_coh.sort_values("entry_ts", ascending=False)
+                st.dataframe(df_coh, use_container_width=True, hide_index=True)
+
+        # ── 50 dernières décisions ─────────────────────────────────────────────
         st.divider()
         st.markdown("#### 📜 50 dernières décisions")
         recent = decisions[-50:][::-1]
