@@ -9,6 +9,16 @@ Checklist avant tout ordre live :
   5. Régime de marché non blacklisté
 
 Si au moins une condition échoue → ordre BLOQUÉ + raison détaillée.
+
+Migration DecisionPacket :
+  - GlobalRiskGate.check_packet() — API souveraine sur DecisionPacket.
+    C'est ICI et UNIQUEMENT ICI que packet.reject() est appelé en flux normal.
+    Chaque rejet est tracé dans state_history + reasoning du packet.
+  - check() classique préservé pour compatibilité ascendante.
+
+Souveraineté : le risk_gate lit les opinions advisory (lse_actionable,
+conviction, conviction_size_factor) sans en être gouverné.
+Il applique les règles de gouvernance et décide seul.
 """
 
 from __future__ import annotations
@@ -47,7 +57,10 @@ class GateResult:
     def summary(self) -> str:
         if self.allowed:
             return f"GATE PASS — toutes les conditions OK ({len(self.conditions)}/5)"
-        return f"GATE BLOCK — {len(self.failed)} condition(s) échouée(s): {', '.join(self.failed)}"
+        return (
+            f"GATE BLOCK — {len(self.failed)} condition(s)"
+            f" échouée(s): {', '.join(self.failed)}"
+        )
 
 
 class GlobalRiskGate:
@@ -117,7 +130,10 @@ class GlobalRiskGate:
         if not c2:
             failed.append("drawdown_ok")
         elif portfolio_drawdown > self.max_portfolio_drawdown * 0.7:
-            warnings.append(f"Drawdown {portfolio_drawdown:.1%} proche du seuil max {self.max_portfolio_drawdown:.1%}")
+            warnings.append(
+                f"Drawdown {portfolio_drawdown:.1%} proche"
+                f" du seuil max {self.max_portfolio_drawdown:.1%}"
+            )
 
         # ③ Score suffisant
         score = getattr(signal_result, "score", 0)
@@ -141,8 +157,9 @@ class GlobalRiskGate:
             failed.append(f"regime_blacklisted ({regime})")
 
         allowed = len(failed) == 0
-        result = GateResult(allowed=allowed, conditions=conditions,
-                            failed=failed, warnings=warnings)
+        result = GateResult(
+            allowed=allowed, conditions=conditions, failed=failed, warnings=warnings
+        )
 
         log_fn = logger.info if allowed else logger.warning
         log_fn("[GlobalRiskGate] %s", result.summary())
@@ -151,6 +168,188 @@ class GlobalRiskGate:
                 logger.warning("[GlobalRiskGate] ⚠️  %s", w)
 
         self._emit_event(result, signal_result)
+        return result
+
+    # ── API DecisionPacket ────────────────────────────────────────────────────
+
+    def check_packet(
+        self,
+        packet,
+        portfolio_drawdown: float = 0.0,
+        order_size_usd: float = 0.0,
+    ) -> "GateResult":
+        """
+        Vérification pré-trade depuis un DecisionPacket.
+
+        SOUVERAINETÉ : c'est ici et uniquement ici que packet.reject() est
+        appelé en flux normal. Chaque rejet est tracé dans state_history.
+
+        Lit en advisory (sans en être gouverné) :
+          - packet.metadata["lse_actionable"]         → recommandation LSE
+          - packet.conviction                          → niveau conviction
+          - packet.metadata["conviction_size_factor"]  → sizing advisory
+
+        Args:
+            packet            : DecisionPacket en état CONTEXT_ENRICHED
+            portfolio_drawdown: drawdown courant du portefeuille (0.0–1.0)
+            order_size_usd    : taille de l'ordre en USD (pour SessionGuard)
+
+        Returns:
+            GateResult — packet transitionne vers RISK_EVALUATED ou REJECTED
+        """
+        from core.decision_packet import DecisionSide, DecisionState
+
+        actor = "global_risk_gate"
+        packet.add_agent(actor)
+
+        conditions: dict[str, bool] = {}
+        failed: list[str] = []
+        warnings: list[str] = []
+
+        # ── Guard préliminaire : direction détectée ────────────────────────
+        # Un packet FLAT n'a rien à faire ici — signal HOLD confirmé.
+        # Tracé séparément de la checklist pour distinguer de l'échec de score.
+        if packet.side == DecisionSide.FLAT:
+            packet.add_reasoning(
+                actor,
+                "Signal HOLD (side=FLAT) : aucune direction détectée, rejet immédiat",
+                confidence_impact=-50.0,
+                category="risk_governance",
+            )
+            packet.reject(actor, "side=FLAT — aucune direction tradeable")
+            return GateResult(
+                allowed=False,
+                conditions={"direction_detected": False},
+                failed=["direction_detected"],
+                warnings=[],
+            )
+
+        # ── Lecture advisory (observabilité, pas gouvernance) ──────────────
+        lse_actionable = packet.metadata.get("lse_actionable", True)
+        conviction_level = packet.conviction.value  # ex. "SKIP", "LOW", ...
+
+        # ① Session active
+        c1 = self._check_session_packet(packet, order_size_usd)
+        conditions["session_active"] = c1
+        if not c1:
+            failed.append("session_active")
+            packet.add_reasoning(
+                actor,
+                "Session halted ou ordre refusé par SessionGuard",
+                confidence_impact=-20.0,
+                category="risk_governance",
+            )
+
+        # ② Drawdown acceptable
+        c2 = self._check_drawdown(portfolio_drawdown)
+        conditions["drawdown_ok"] = c2
+        packet.features["risk_drawdown_pct"] = round(portfolio_drawdown * 100, 2)
+        if not c2:
+            failed.append("drawdown_ok")
+            packet.add_reasoning(
+                actor,
+                f"Drawdown {portfolio_drawdown:.1%}"
+                f" dépasse seuil max {self.max_portfolio_drawdown:.1%}",
+                confidence_impact=-30.0,
+                category="risk_governance",
+            )
+        elif portfolio_drawdown > self.max_portfolio_drawdown * 0.7:
+            warn_msg = (
+                f"Drawdown {portfolio_drawdown:.1%}"
+                f" proche du seuil max {self.max_portfolio_drawdown:.1%}"
+            )
+            warnings.append(warn_msg)
+            packet.add_reasoning(
+                actor,
+                warn_msg,
+                confidence_impact=-5.0,
+                category="risk_governance",
+            )
+
+        # ③ Score suffisant — gouvernance du seuil min_signal_score
+        score = packet.confidence
+        c3 = score >= self.min_signal_score
+        conditions["signal_score"] = c3
+        if not c3:
+            failed.append(f"signal_score ({score:.0f}<{self.min_signal_score})")
+            packet.add_reasoning(
+                actor,
+                f"Score {score:.0f} insuffisant (seuil={self.min_signal_score})",
+                confidence_impact=-15.0,
+                category="risk_governance",
+            )
+        # LSE disait non mais score passe — noter la divergence pour le meta-learning
+        if not lse_actionable and c3:
+            packet.add_reasoning(
+                actor,
+                f"Advisory LSE=non-actionable mais"
+                f" score={score:.0f} passe la gouvernance",
+                confidence_impact=0.0,
+                category="risk_governance",
+            )
+
+        # ④ Signal confirmé MTF
+        confirmed = bool(packet.metadata.get("mtf_confirmed", False))
+        c4 = confirmed if self.require_confirmed else True
+        conditions["signal_confirmed"] = c4
+        if not c4:
+            failed.append("signal_confirmed")
+            packet.add_reasoning(
+                actor,
+                "Signal non confirmé multi-timeframes",
+                confidence_impact=-10.0,
+                category="trend_alignment",
+            )
+
+        # ⑤ Régime non blacklisté (MarketRegime.value dans le monde packet)
+        regime_value = packet.regime.value  # ex. "TREND_BULL"
+        c5 = regime_value not in self.blacklisted_regimes
+        conditions["regime_allowed"] = c5
+        if not c5:
+            failed.append(f"regime_blacklisted ({regime_value})")
+            packet.add_reasoning(
+                actor,
+                f"Régime {regime_value} blacklisté",
+                confidence_impact=-25.0,
+                category="risk_governance",
+            )
+
+        # ── Écriture dans le packet ────────────────────────────────────────
+        packet.metadata["risk_conditions"] = conditions
+        packet.metadata["risk_failed"] = failed
+        packet.metadata["risk_warnings"] = warnings
+        packet.metadata["risk_conviction_advisory"] = conviction_level
+
+        allowed = len(failed) == 0
+        result = GateResult(
+            allowed=allowed, conditions=conditions, failed=failed, warnings=warnings
+        )
+
+        log_fn = logger.info if allowed else logger.warning
+        log_fn("[GlobalRiskGate] %s | %s", packet.symbol, result.summary())
+        for w in warnings:
+            logger.warning("[GlobalRiskGate] %s", w)
+
+        # ── Transition d'état — la souveraineté s'exerce ici ──────────────
+        if allowed:
+            packet.transition_to(
+                DecisionState.RISK_EVALUATED,
+                actor,
+                f"Gate pass — {len(conditions)}/{len(conditions)} conditions OK"
+                + (
+                    f" | conviction={conviction_level}"
+                    if conviction_level != "SKIP"
+                    else ""
+                ),
+            )
+        else:
+            packet.reject(
+                actor,
+                f"Gate block — {len(failed)} condition(s)"
+                f" échouée(s): {', '.join(failed)}",
+            )
+
+        self._emit_event(result, None)
         return result
 
     def blacklist_regime(self, regime: str) -> None:
@@ -173,6 +372,25 @@ class GlobalRiskGate:
             logger.warning("[GlobalRiskGate] SessionGuard: %s", exc)
             return False
 
+    def _check_session_packet(self, packet, order_size_usd: float) -> bool:
+        """Variante de _check_session pour DecisionPacket."""
+        if self._session_guard is None:
+            return True
+        try:
+            from core.decision_packet import DecisionSide
+
+            action_map = {
+                DecisionSide.LONG: "BUY",
+                DecisionSide.SHORT: "SELL",
+                DecisionSide.FLAT: "HOLD",
+            }
+            action = action_map.get(packet.side, "BUY")
+            self._session_guard.check_order(packet.symbol, action, order_size_usd)
+            return True
+        except Exception as exc:
+            logger.warning("[GlobalRiskGate] SessionGuard: %s", exc)
+            return False
+
     def _check_drawdown(self, portfolio_drawdown: float) -> bool:
         if self._drawdown_guard is not None:
             adjusted = self._drawdown_guard.adjust_position_size(portfolio_drawdown)
@@ -186,6 +404,7 @@ class GlobalRiskGate:
         try:
             from event_bus.bus import EventBus
             from event_bus.events import SessionHaltEvent
+
             EventBus.get().emit(
                 SessionHaltEvent(
                     reason="; ".join(result.failed),

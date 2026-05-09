@@ -8,6 +8,11 @@ Agrège :
   - Contexte de mémoire stratégique (StrategyMemoryStore, poids 20 %)
 
 Un score ≥ SIGNAL_MIN_SCORE (défaut 70) déclenche une opportunité de trading.
+
+Migration DecisionPacket :
+  - SignalResult.to_decision_packet() — conversion vers le contrat central
+  - LiveSignalEngine.evaluate_as_packet() — évalue et retourne un DecisionPacket
+  Les appelants existants d'evaluate() ne sont pas impactés.
 """
 
 from __future__ import annotations
@@ -16,9 +21,18 @@ import logging
 import os
 import time
 from dataclasses import dataclass, field
-from typing import Callable
 
 logger = logging.getLogger(__name__)
+
+# Mapping régimes LSE → MarketRegime (déclaré ici pour éviter import circulaire)
+_REGIME_MAP: dict[str, str] = {
+    "bull_trend": "TREND_BULL",
+    "bear_trend": "TREND_BEAR",
+    "sideways": "RANGE",
+    "high_volatility_regime": "VOLATILE",
+    "flash_crash": "VOLATILE",
+    "unknown": "UNKNOWN",
+}
 
 _DEFAULT_MIN_SCORE: int = int(os.getenv("SIGNAL_MIN_SCORE", "70"))
 
@@ -170,7 +184,8 @@ class LiveSignalEngine:
         Évalue plusieurs symboles en un appel.
 
         Args:
-            symbols_data: {symbol: {"mtf_candles": {...}, "features": {...}, "memory_sharpe": float}}
+            symbols_data: {symbol: {"mtf_candles": {...},
+                           "features": {...}, "memory_sharpe": float}}
 
         Returns:
             Liste triée par score décroissant
@@ -442,3 +457,141 @@ class LiveSignalEngine:
 
         components["memory"] = round(score, 2)
         return score
+
+    # ── API DecisionPacket ────────────────────────────────────────────────────
+
+    def evaluate_as_packet(
+        self,
+        symbol: str,
+        mtf_candles: dict[str, list[dict]],
+        features: dict | None = None,
+        memory_sharpe: float | None = None,
+        cycle_id: str | None = None,
+    ) -> "DecisionPacket":
+        """
+        Évalue le symbole et retourne un DecisionPacket prêt pour les couches suivantes.
+
+        Wrapper autour d'evaluate() — zéro duplication de logique signal.
+        Les appelants existants d'evaluate() ne sont pas impactés.
+        """
+        result = self.evaluate(symbol, mtf_candles, features, memory_sharpe)
+        timeframe = self.strategy.get("timeframe", "1h")
+        return result.to_decision_packet(
+            timeframe=timeframe,
+            cycle_id=cycle_id,
+            actor="live_signal_engine",
+        )
+
+
+# ── Conversion SignalResult → DecisionPacket ──────────────────────────────────
+
+
+def _split_components(components: dict) -> tuple[dict[str, float], dict]:
+    """
+    Sépare les composantes en :
+      - features : dict[str, float]  — valeurs numériques ML-ready
+      - metadata  : dict             — tout le reste (dicts, strings, booleans)
+
+    Révèle un couplage implicite dans live_signal_engine :
+    components["mtf_tfs"] est un dict de strings (pas un float) — il va en metadata.
+    """
+    features: dict[str, float] = {}
+    meta: dict = {}
+    for k, v in components.items():
+        if isinstance(v, (int, float)) and not isinstance(v, bool):
+            features[k] = float(v)
+        else:
+            meta[k] = v
+    return features, meta
+
+
+def _to_decision_packet(
+    result: "SignalResult",
+    timeframe: str = "1h",
+    cycle_id: str | None = None,
+    actor: str = "live_signal_engine",
+) -> "DecisionPacket":
+    """
+    Convertit un SignalResult en DecisionPacket.
+
+    Mapping :
+      score      → confidence (0-100)
+      signal     → side (BUY→LONG, SELL→SHORT, HOLD→FLAT)
+      regime     → regime (via _REGIME_MAP)
+      components → features (float) + metadata (reste)
+      confirmed  → metadata["mtf_confirmed"]
+      strength   → features["mtf_strength"]
+    """
+    from core.decision_packet import (
+        DecisionPacket,
+        DecisionSide,
+        DecisionState,
+        MarketRegime,
+    )
+
+    side_map = {
+        "BUY": DecisionSide.LONG,
+        "SELL": DecisionSide.SHORT,
+        "HOLD": DecisionSide.FLAT,
+    }
+    side = side_map.get(result.signal, DecisionSide.FLAT)
+
+    regime_str = _REGIME_MAP.get(result.regime, "UNKNOWN")
+    try:
+        regime = MarketRegime(regime_str)
+    except ValueError:
+        regime = MarketRegime.UNKNOWN
+
+    features, extra_meta = _split_components(result.components)
+    features["mtf_strength"] = result.strength
+
+    metadata = {
+        "signal_raw": result.signal,
+        "mtf_confirmed": result.confirmed,
+        "lse_timestamp": result.timestamp,
+        **extra_meta,
+    }
+
+    packet = DecisionPacket(
+        symbol=result.symbol,
+        timeframe=timeframe,
+        side=side,
+        confidence=float(result.score),
+        regime=regime,
+        created_cycle_id=cycle_id,
+        features=features,
+        metadata=metadata,
+    )
+    packet.add_agent(actor)
+    packet.add_reasoning(
+        actor=actor,
+        message=(
+            f"score={result.score} signal={result.signal} "
+            f"régime={result.regime} confirmé={result.confirmed}"
+        ),
+        confidence_impact=0.0,
+        category="signal_quality",
+    )
+
+    # Le signal engine constate une opportunité statistique — il ne juge pas le risque.
+    # Le rejet appartient à risk_gate, pas ici.
+    # confidence, signal_raw et actionable sont en metadata pour que risk_gate décide.
+    packet.metadata["lse_actionable"] = result.actionable
+    packet.transition_to(
+        DecisionState.SIGNAL_GENERATED,
+        actor,
+        f"Signal détecté : score={result.score} direction={result.signal}",
+    )
+
+    return packet
+
+
+# Attache la méthode à SignalResult sans modifier sa définition originale
+SignalResult.to_decision_packet = _to_decision_packet  # type: ignore[attr-defined]
+
+
+# Nécessaire pour le type hint forward dans evaluate_as_packet
+try:
+    from core.decision_packet import DecisionPacket  # noqa: F401 (import de référence)
+except ImportError:
+    pass

@@ -19,6 +19,16 @@ La conviction est calculée depuis 6 dimensions :
   4. Mémoire historique (Sharpe passé pour ce régime)
   5. Qualité des données (nb bougies, volume, fraîcheur)
   6. Consensus personnalité/signal (le mode actuel valide l'action)
+
+Migration DecisionPacket :
+  - ConvictionEngine.enrich_packet() — enrichit un DecisionPacket en place.
+    Règle absolue : enrich_packet() n'appelle jamais reject() ni veto_by().
+    Le rejet appartient à risk_gate, pas ici.
+  - evaluate() classique préservé pour compatibilité.
+
+Attention : ConvictionLevel local (minimal/low/.../exceptional) ≠ core.ConvictionLevel
+(SKIP/LOW/.../VERY_HIGH). Voir _LOCAL_TO_CORE_CONVICTION pour le mapping.
+NOTE ARCHITECTURALE : les deux enums devraient fusionner dans core/ à terme.
 """
 
 from __future__ import annotations
@@ -33,20 +43,20 @@ logger = logging.getLogger(__name__)
 
 
 class ConvictionLevel(str, Enum):
-    MINIMAL     = "minimal"
-    LOW         = "low"
-    MEDIUM      = "medium"
-    HIGH        = "high"
+    MINIMAL = "minimal"
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
     EXCEPTIONAL = "exceptional"
 
 
 @dataclass
 class ConvictionResult:
-    level:          ConvictionLevel
-    score:          float           # [0, 100]
-    size_factor:    float           # multiplicateur taille [0.0, 1.5]
-    dimensions:     dict            # détail par dimension
-    notes:          list            # explications
+    level: ConvictionLevel
+    score: float  # [0, 100]
+    size_factor: float  # multiplicateur taille [0.0, 1.5]
+    dimensions: dict  # détail par dimension
+    notes: list  # explications
 
     def summary(self) -> str:
         return (
@@ -62,19 +72,19 @@ class ConvictionResult:
 # ── Mapping niveau → facteur taille ───────────────────────────────────────────
 
 _SIZE_FACTORS = {
-    ConvictionLevel.MINIMAL:     0.0,
-    ConvictionLevel.LOW:         float(os.getenv("CONV_SIZE_LOW",         "0.3")),
-    ConvictionLevel.MEDIUM:      float(os.getenv("CONV_SIZE_MEDIUM",      "0.6")),
-    ConvictionLevel.HIGH:        float(os.getenv("CONV_SIZE_HIGH",        "1.0")),
+    ConvictionLevel.MINIMAL: 0.0,
+    ConvictionLevel.LOW: float(os.getenv("CONV_SIZE_LOW", "0.3")),
+    ConvictionLevel.MEDIUM: float(os.getenv("CONV_SIZE_MEDIUM", "0.6")),
+    ConvictionLevel.HIGH: float(os.getenv("CONV_SIZE_HIGH", "1.0")),
     ConvictionLevel.EXCEPTIONAL: float(os.getenv("CONV_SIZE_EXCEPTIONAL", "1.5")),
 }
 
 _LEVEL_THRESHOLDS = [
     (float(os.getenv("CONV_THRESH_EXCEPTIONAL", "90")), ConvictionLevel.EXCEPTIONAL),
-    (float(os.getenv("CONV_THRESH_HIGH",         "75")), ConvictionLevel.HIGH),
-    (float(os.getenv("CONV_THRESH_MEDIUM",        "60")), ConvictionLevel.MEDIUM),
-    (float(os.getenv("CONV_THRESH_LOW",           "40")), ConvictionLevel.LOW),
-    (0.0,                                                  ConvictionLevel.MINIMAL),
+    (float(os.getenv("CONV_THRESH_HIGH", "75")), ConvictionLevel.HIGH),
+    (float(os.getenv("CONV_THRESH_MEDIUM", "60")), ConvictionLevel.MEDIUM),
+    (float(os.getenv("CONV_THRESH_LOW", "40")), ConvictionLevel.LOW),
+    (0.0, ConvictionLevel.MINIMAL),
 ]
 
 
@@ -91,33 +101,35 @@ class ConvictionEngine:
 
     Usage :
         engine = ConvictionEngine()
-        result = engine.evaluate(signal, features, candles, regime, memory_sharpe, personality)
+        result = engine.evaluate(
+            signal, features, candles, regime, memory_sharpe, personality
+        )
         effective_size = base_size * result.size_factor
     """
 
     # Poids des dimensions [somme = 100]
-    W_SIGNAL    = float(os.getenv("CONV_W_SIGNAL",    "30"))  # score brut du signal
-    W_MTF       = float(os.getenv("CONV_W_MTF",       "25"))  # alignement multi-timeframe
-    W_REGIME    = float(os.getenv("CONV_W_REGIME",    "20"))  # régime favorable
-    W_MEMORY    = float(os.getenv("CONV_W_MEMORY",    "15"))  # historique Sharpe
-    W_QUALITY   = float(os.getenv("CONV_W_QUALITY",   "10"))  # qualité données
+    W_SIGNAL = float(os.getenv("CONV_W_SIGNAL", "30"))  # score brut du signal
+    W_MTF = float(os.getenv("CONV_W_MTF", "25"))  # alignement multi-timeframe
+    W_REGIME = float(os.getenv("CONV_W_REGIME", "20"))  # régime favorable
+    W_MEMORY = float(os.getenv("CONV_W_MEMORY", "15"))  # historique Sharpe
+    W_QUALITY = float(os.getenv("CONV_W_QUALITY", "10"))  # qualité données
 
     def evaluate(
         self,
-        signal,                             # SignalResult
-        features:       dict,
-        candles:        list,
-        regime:         str,
-        memory_sharpe:  Optional[float]  = None,
-        personality_name: str            = "unknown",
+        signal,  # SignalResult
+        features: dict,
+        candles: list,
+        regime: str,
+        memory_sharpe: Optional[float] = None,
+        personality_name: str = "unknown",
     ) -> ConvictionResult:
 
-        dims  = {}
+        dims = {}
         notes = []
 
         # ── Dim 1 : Score signal brut ──────────────────────────────────────────
         sig_score = float(getattr(signal, "score", 0))
-        d_signal  = min(100.0, sig_score)
+        d_signal = min(100.0, sig_score)
         dims["signal"] = d_signal
         if sig_score >= 85:
             notes.append(f"Signal fort: {sig_score:.0f}/100")
@@ -126,10 +138,10 @@ class ConvictionEngine:
 
         # ── Dim 2 : Alignement MTF ─────────────────────────────────────────────
         components = getattr(signal, "components", {})
-        mtf_raw    = float(components.get("mtf", 0))   # max 40pts
-        d_mtf      = (mtf_raw / 40) * 100
+        mtf_raw = float(components.get("mtf", 0))  # max 40pts
+        d_mtf = (mtf_raw / 40) * 100
         dims["mtf"] = d_mtf
-        confirmed  = getattr(signal, "confirmed", False)
+        confirmed = getattr(signal, "confirmed", False)
         if confirmed:
             d_mtf = min(100.0, d_mtf + 15)
             notes.append("MTF confirmé sur 3 timeframes")
@@ -138,7 +150,7 @@ class ConvictionEngine:
 
         # ── Dim 3 : Adéquation régime ──────────────────────────────────────────
         sig_action = getattr(signal, "signal", "HOLD")
-        d_regime   = self._regime_score(regime, sig_action, personality_name)
+        d_regime = self._regime_score(regime, sig_action, personality_name)
         dims["regime"] = d_regime
         if d_regime >= 80:
             notes.append(f"Régime favorable: {regime}")
@@ -164,11 +176,11 @@ class ConvictionEngine:
 
         # ── Score composite ────────────────────────────────────────────────────
         composite = (
-            d_signal  * self.W_SIGNAL  / 100 +
-            d_mtf     * self.W_MTF     / 100 +
-            d_regime  * self.W_REGIME  / 100 +
-            d_memory  * self.W_MEMORY  / 100 +
-            d_quality * self.W_QUALITY / 100
+            d_signal * self.W_SIGNAL / 100
+            + d_mtf * self.W_MTF / 100
+            + d_regime * self.W_REGIME / 100
+            + d_memory * self.W_MEMORY / 100
+            + d_quality * self.W_QUALITY / 100
         )
 
         # Bonus : force du signal (strength)
@@ -181,7 +193,7 @@ class ConvictionEngine:
         if sig_action == "HOLD":
             composite = min(composite, 35.0)
 
-        level       = _score_to_level(composite)
+        level = _score_to_level(composite)
         size_factor = _SIZE_FACTORS[level]
 
         result = ConvictionResult(
@@ -192,8 +204,11 @@ class ConvictionEngine:
             notes=notes,
         )
 
-        logger.info("[Conviction] %s | dims=%s", result.summary(),
-                    {k: f"{v:.0f}" for k, v in dims.items()})
+        logger.info(
+            "[Conviction] %s | dims=%s",
+            result.summary(),
+            {k: f"{v:.0f}" for k, v in dims.items()},
+        )
         return result
 
     # ── Helpers ───────────────────────────────────────────────────────────────
@@ -203,18 +218,18 @@ class ConvictionEngine:
         """Score [0-100] : le régime est-il favorable pour cette action ?"""
         matrix = {
             # (regime, action) → score
-            ("bull_trend",             "BUY"):  95,
-            ("bull_trend",             "SELL"): 20,
-            ("bear_trend",             "SELL"): 90,
-            ("bear_trend",             "BUY"):  15,
-            ("sideways",               "BUY"):  55,
-            ("sideways",               "SELL"): 55,
-            ("high_volatility_regime", "BUY"):  40,
+            ("bull_trend", "BUY"): 95,
+            ("bull_trend", "SELL"): 20,
+            ("bear_trend", "SELL"): 90,
+            ("bear_trend", "BUY"): 15,
+            ("sideways", "BUY"): 55,
+            ("sideways", "SELL"): 55,
+            ("high_volatility_regime", "BUY"): 40,
             ("high_volatility_regime", "SELL"): 40,
-            ("flash_crash",            "BUY"):   5,
-            ("flash_crash",            "SELL"):  5,
-            ("unknown",                "BUY"):  45,
-            ("unknown",                "SELL"): 45,
+            ("flash_crash", "BUY"): 5,
+            ("flash_crash", "SELL"): 5,
+            ("unknown", "BUY"): 45,
+            ("unknown", "SELL"): 45,
         }
         return float(matrix.get((regime, action.upper()), 50))
 
@@ -235,7 +250,227 @@ class ConvictionEngine:
 
         # Features disponibles
         key_features = ["momentum", "realized_volatility", "trend_strength", "atr"]
-        present = sum(1 for k in key_features if k in features and features[k] is not None)
+        present = sum(
+            1 for k in key_features if k in features and features[k] is not None
+        )
         score += (present / len(key_features)) * 30
 
         return min(100.0, score)
+
+    # ── API DecisionPacket ────────────────────────────────────────────────────
+
+    def enrich_packet(
+        self,
+        packet: "DecisionPacket",
+        candles: list,
+        memory_sharpe: Optional[float] = None,
+        personality_name: str = "unknown",
+    ) -> None:
+        """
+        Enrichit le packet en place avec la conviction calculée.
+
+        Lit depuis le packet :
+          - confidence       → score signal brut (dim 1)
+          - features["mtf"]  → alignement MTF (dim 2)
+          - metadata["mtf_confirmed"] → bonus confirmation
+          - metadata["signal_raw"]    → BUY/SELL/HOLD pour régime et malus HOLD
+          - features["mtf_strength"]  → bonus force signal
+          - regime           → adéquation régime (dim 3)
+
+        Écrit dans le packet :
+          - conviction       (core.ConvictionLevel)
+          - reasoning entries pour chaque dimension significative
+          - metadata["conviction_size_factor"]
+            (advisory, lecture seule pour order_sizer)
+          - metadata["conviction_dimensions"]  (détail des 5 scores)
+
+        RÈGLE ABSOLUE : jamais de reject() ni veto_by() ici.
+        Le rejet appartient à risk_gate.
+        """
+        from core.decision_packet import DecisionState
+
+        actor = "conviction_engine"
+        packet.add_agent(actor)
+
+        sig_score = packet.confidence
+        features = packet.features
+        regime = packet.regime.value.lower()  # ex. "trend_bull"
+        sig_action = packet.metadata.get("signal_raw", "HOLD")
+        confirmed = bool(packet.metadata.get("mtf_confirmed", False))
+        strength = float(features.get("mtf_strength", 0.5))
+
+        dims: dict[str, float] = {}
+
+        # ── Dim 1 : Score signal brut ──────────────────────────────────────
+        d_signal = min(100.0, sig_score)
+        dims["signal"] = d_signal
+        if sig_score >= 85:
+            packet.add_reasoning(
+                actor,
+                f"Signal fort: {sig_score:.0f}/100",
+                confidence_impact=0.0,
+                category="signal_quality",
+            )
+        elif sig_score < 60:
+            packet.add_reasoning(
+                actor,
+                f"Signal faible: {sig_score:.0f}/100",
+                confidence_impact=0.0,
+                category="signal_quality",
+            )
+
+        # ── Dim 2 : Alignement MTF ─────────────────────────────────────────
+        mtf_raw = float(features.get("mtf", 0.0))
+        d_mtf = (mtf_raw / 40) * 100
+        if confirmed:
+            d_mtf = min(100.0, d_mtf + 15)
+            packet.add_reasoning(
+                actor,
+                "MTF confirmé sur 3 timeframes",
+                confidence_impact=+4.0,
+                category="trend_alignment",
+            )
+        elif d_mtf < 50:
+            packet.add_reasoning(
+                actor,
+                f"Alignement MTF faible: {d_mtf:.0f}/100",
+                confidence_impact=-3.0,
+                category="trend_alignment",
+            )
+        dims["mtf"] = d_mtf
+
+        # ── Dim 3 : Adéquation régime ──────────────────────────────────────
+        # Traduit le regime DecisionPacket vers le format attendu par _regime_score
+        _regime_map_reverse = {
+            "trend_bull": "bull_trend",
+            "trend_bear": "bear_trend",
+            "range": "sideways",
+            "volatile": "high_volatility_regime",
+            "unknown": "unknown",
+        }
+        regime_lse = _regime_map_reverse.get(regime, "unknown")
+        d_regime = self._regime_score(regime_lse, sig_action, personality_name)
+        dims["regime"] = d_regime
+        if d_regime >= 80:
+            packet.add_reasoning(
+                actor,
+                f"Régime favorable: {regime}",
+                confidence_impact=+5.0,
+                category="regime_confirmation",
+            )
+        elif d_regime < 40:
+            packet.add_reasoning(
+                actor,
+                f"Régime défavorable pour {sig_action}: {regime}",
+                confidence_impact=-5.0,
+                category="regime_confirmation",
+            )
+
+        # ── Dim 4 : Mémoire Sharpe ─────────────────────────────────────────
+        if memory_sharpe is not None and memory_sharpe > 0:
+            d_memory = min(100.0, (memory_sharpe / 3.0) * 100)
+            if memory_sharpe >= 2.0:
+                packet.add_reasoning(
+                    actor,
+                    f"Excellent historique Sharpe={memory_sharpe:.2f}",
+                    confidence_impact=+4.0,
+                    category="historical_memory",
+                )
+            elif memory_sharpe < 0.5:
+                packet.add_reasoning(
+                    actor,
+                    f"Historique faible Sharpe={memory_sharpe:.2f}",
+                    confidence_impact=-2.0,
+                    category="historical_memory",
+                )
+        else:
+            d_memory = 50.0
+        dims["memory"] = d_memory
+
+        # ── Dim 5 : Qualité données ────────────────────────────────────────
+        d_quality = self._data_quality_score(candles, features)
+        dims["quality"] = d_quality
+        if d_quality < 50:
+            packet.add_reasoning(
+                actor,
+                f"Données de faible qualité: {d_quality:.0f}/100",
+                confidence_impact=-3.0,
+                category="data_quality",
+            )
+
+        # ── Score composite ────────────────────────────────────────────────
+        composite = (
+            d_signal * self.W_SIGNAL / 100
+            + d_mtf * self.W_MTF / 100
+            + d_regime * self.W_REGIME / 100
+            + d_memory * self.W_MEMORY / 100
+            + d_quality * self.W_QUALITY / 100
+        )
+        if strength >= 0.8:
+            composite = min(100.0, composite + 5)
+            packet.add_reasoning(
+                actor,
+                f"Signal très fort (strength={strength:.0%})",
+                confidence_impact=+2.0,
+                category="signal_quality",
+            )
+        if sig_action == "HOLD":
+            composite = min(composite, 35.0)
+            packet.add_reasoning(
+                actor,
+                "Signal HOLD : conviction plafonnée à 35",
+                confidence_impact=0.0,
+                category="signal_quality",
+            )
+
+        # ── Mapping local ConvictionLevel → core ConvictionLevel ──────────
+        local_level = _score_to_level(composite)
+        packet.conviction = _LOCAL_TO_CORE_CONVICTION[local_level]
+
+        # size_factor : opinion advisory, décision finale dans order_sizer
+        size_factor = _SIZE_FACTORS[local_level]
+        packet.metadata["conviction_size_factor"] = size_factor
+        packet.metadata["conviction_score"] = round(composite, 1)
+        packet.metadata["conviction_level_local"] = local_level.value
+        packet.metadata["conviction_dimensions"] = {
+            k: round(v, 1) for k, v in dims.items()
+        }
+
+        packet.transition_to(
+            DecisionState.CONTEXT_ENRICHED,
+            actor,
+            f"Conviction {local_level.value} score={composite:.0f}/100",
+        )
+
+        logger.info(
+            "[Conviction] %s | %s | dims=%s",
+            packet.symbol,
+            f"[{local_level.value.upper()}] conviction={composite:.0f}/100"
+            f" size={size_factor:.2f}",
+            {k: f"{v:.0f}" for k, v in dims.items()},
+        )
+
+
+# ── Mapping ConvictionLevel local → core.ConvictionLevel ──────────────────────
+# NOTE ARCHITECTURALE : les deux enums devraient fusionner dans core/ à terme.
+# Actuellement : local (minimal/low/medium/high/exceptional)
+#             != core (SKIP/LOW/MEDIUM/HIGH/VERY_HIGH)
+try:
+    from core.decision_packet import ConvictionLevel as _CoreConvictionLevel
+
+    _LOCAL_TO_CORE_CONVICTION = {
+        ConvictionLevel.MINIMAL: _CoreConvictionLevel.SKIP,
+        ConvictionLevel.LOW: _CoreConvictionLevel.LOW,
+        ConvictionLevel.MEDIUM: _CoreConvictionLevel.MEDIUM,
+        ConvictionLevel.HIGH: _CoreConvictionLevel.HIGH,
+        ConvictionLevel.EXCEPTIONAL: _CoreConvictionLevel.VERY_HIGH,
+    }
+except ImportError:
+    _LOCAL_TO_CORE_CONVICTION = {}  # fallback si core non disponible
+
+
+# Nécessaire pour le type hint forward dans enrich_packet
+try:
+    from core.decision_packet import DecisionPacket  # noqa: F401
+except ImportError:
+    pass
