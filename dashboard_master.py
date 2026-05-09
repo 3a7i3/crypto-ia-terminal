@@ -293,6 +293,8 @@ with tab1:
             0,
         ),
         ("Threat Radar", "quant_hedge_ai/agents/intelligence/threat_radar.py", 0),
+        ("Watchdog VPS", "watchdog_vps.py", 0),
+        ("Watchdog Audit", "supervision/watchdog_audit.jsonl", 10),
     ]
     cols = st.columns(4)
     for i, (name, fpath, min_bytes) in enumerate(MODULES):
