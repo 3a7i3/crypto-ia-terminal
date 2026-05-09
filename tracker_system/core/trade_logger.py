@@ -37,7 +37,9 @@ def _float_default(value: Any, default: float) -> float:
         return default
 
 
-def log_event(event: dict[str, Any], log_file: Path = TRADES_LOG_FILE) -> dict[str, Any]:
+def log_event(
+    event: dict[str, Any], log_file: Path = TRADES_LOG_FILE
+) -> dict[str, Any]:
     payload = dict(event)
     payload.setdefault("logged_at", _utcnow_iso())
     payload.setdefault("timestamp", _utcnow_iso())
@@ -94,7 +96,9 @@ def log_exit(
     duration_min: float,
     log_file: Path = TRADES_LOG_FILE,
 ) -> dict[str, Any]:
-    side = str(position.get("side") or position.get("direction") or "BUY").strip().upper()
+    side = (
+        str(position.get("side") or position.get("direction") or "BUY").strip().upper()
+    )
     legacy_direction = _legacy_direction(side)
     size = float(position.get("size", position.get("size_usd", 0.0)))
     rounded_duration = round(duration_min, 3)
@@ -102,6 +106,13 @@ def log_exit(
     rounded_pnl_usd = round(pnl_usd, 6)
     rounded_mfe = round(mfe, 6)
     rounded_mae = round(mae, 6)
+    # fee estimé: 0.04% par side (taker Gate.io/Binance)
+    _fee_usd = round(size * 0.0004 * 2, 4)
+    # R-multiple = PnL réalisé / risque initial (en $)
+    _entry = float(position.get("entry_price") or 0.0)
+    _sl = float(position.get("stop_loss") or 0.0)
+    _risk_usd = abs(_entry - _sl) / _entry * size if _entry and _sl else 0.0
+    _r_multiple = round(rounded_pnl_usd / _risk_usd, 3) if _risk_usd > 0 else 0.0
     payload = {
         "type": "exit",
         "id": position.get("id"),
@@ -122,8 +133,16 @@ def log_exit(
         "duration_min": rounded_duration,
         "duration_minutes": rounded_duration,
         "exit_reason": exit_reason,
-        "price_path": [round(float(price), 8) for price in position.get("price_path", [])[-PRICE_PATH_LIMIT:]],
+        "fee_usd": _fee_usd,
+        "r_multiple": _r_multiple,
+        "price_path": [
+            round(float(price), 8)
+            for price in position.get("price_path", [])[-PRICE_PATH_LIMIT:]
+        ],
     }
-    payload.setdefault("signal_type", _text_default(position.get("signal_type", position.get("signal")), "unknown"))
+    payload.setdefault(
+        "signal_type",
+        _text_default(position.get("signal_type", position.get("signal")), "unknown"),
+    )
     payload.setdefault("paper", bool(position.get("paper", True)))
     return log_event(payload, log_file=log_file)
