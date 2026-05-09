@@ -50,8 +50,13 @@ class HistoricalDataFetcher:
         5. Respecte le rate limit de l'exchange
     """
 
-    def __init__(self, exchange_id: str = "binance") -> None:
-        self._exchange_id = exchange_id
+    def __init__(self, exchange_id: str | None = None) -> None:
+        self._exchange_id = (
+            exchange_id
+            or os.getenv("EXCHANGE_ID")
+            or os.getenv("ACTIVE_EXCHANGE")
+            or "binance"
+        )
         self._exchange = None
 
     def _get_exchange(self):
@@ -61,21 +66,25 @@ class HistoricalDataFetcher:
             import ccxt
 
             config: dict = {"enableRateLimit": True}
-            api_key = os.getenv("BINANCE_API_KEY")
-            api_secret = os.getenv("BINANCE_API_SECRET")
-            if api_key and api_secret:
-                config["apiKey"] = api_key
-                config["secret"] = api_secret
-                if os.getenv("BINANCE_TESTNET", "false").lower() == "true":
-                    config["options"] = {"defaultType": "spot"}
-                    config["urls"] = {
-                        "api": {
-                            "public": "https://testnet.binance.vision/api",
-                            "private": "https://testnet.binance.vision/api",
-                        }
-                    }
-            self._exchange = getattr(ccxt, self._exchange_id)(config)
-            logger.info("[HistoricalFetcher] Exchange %s initialisé", self._exchange_id)
+            eid = self._exchange_id.lower()
+
+            if eid == "gateio":
+                api_key = os.getenv("GATEIO_API_KEY")
+                api_secret = os.getenv("GATEIO_API_SECRET")
+                if api_key and api_secret:
+                    config["apiKey"] = api_key
+                    config["secret"] = api_secret
+                if os.getenv("GATEIO_TESTNET", "false").lower() == "true":
+                    config["options"] = {"defaultType": "swap"}
+            else:
+                api_key = os.getenv("BINANCE_API_KEY")
+                api_secret = os.getenv("BINANCE_API_SECRET")
+                if api_key and api_secret:
+                    config["apiKey"] = api_key
+                    config["secret"] = api_secret
+
+            self._exchange = getattr(ccxt, eid)(config)
+            logger.info("[HistoricalFetcher] Exchange %s initialisé", eid)
         except Exception as exc:
             logger.error("[HistoricalFetcher] Impossible d'initialiser ccxt: %s", exc)
         return self._exchange
@@ -165,9 +174,9 @@ class HistoricalDataFetcher:
                     page,
                     len(all_candles),
                     pct,
-                    datetime.fromtimestamp(
-                        last_ts / 1000, tz=timezone.utc
-                    ).strftime("%Y-%m-%d %H:%M"),
+                    datetime.fromtimestamp(last_ts / 1000, tz=timezone.utc).strftime(
+                        "%Y-%m-%d %H:%M"
+                    ),
                 )
 
             # Stop si la dernière bougie dépasse maintenant
