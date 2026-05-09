@@ -2674,11 +2674,71 @@ def main(
                     write_snapshot as _write_snap,
                 )
 
+                _cycle_elapsed_ms = round(
+                    (time.perf_counter() - _t_cycle_start) * 1000, 1
+                )
+
+                # Refusal breakdown — compte combien de fois chaque couche a bloqué
+                _refusal_tally: dict[str, int] = {}
+                _regime_tally: dict[str, int] = {}
+                _n_actionable = 0
+                _n_traded = 0
+                for _r in results:
+                    _sig = _r["signal"]
+                    _regime_tally[_sig.regime] = _regime_tally.get(_sig.regime, 0) + 1
+                    if _sig.actionable:
+                        _n_actionable += 1
+                    if _r.get("trade_allowed"):
+                        _n_traded += 1
+                    if not _r.get("trade_allowed") and _sig.actionable:
+                        for _layer in [
+                            ("gate", not _r["gate"].allowed),
+                            (
+                                "conviction",
+                                not (getattr(_r.get("conviction"), "ok", True)),
+                            ),
+                            ("meta", not _r.get("meta_allowed", True)),
+                            (
+                                "no_trade",
+                                not (
+                                    getattr(_r.get("no_trade_verdict"), "allow", True)
+                                ),
+                            ),
+                            (
+                                "awareness",
+                                not (getattr(_r.get("awareness_state"), "ok", True)),
+                            ),
+                            (
+                                "portfolio",
+                                not (getattr(_r.get("pb_verdict"), "allow", True)),
+                            ),
+                            (
+                                "exec_override",
+                                not (getattr(_r.get("eo_verdict"), "allow", True)),
+                            ),
+                            (
+                                "threat_radar",
+                                _r.get("radar_report")
+                                and not getattr(_r.get("radar_report"), "safe", True),
+                            ),
+                        ]:
+                            if _layer[1]:
+                                _refusal_tally[_layer[0]] = (
+                                    _refusal_tally.get(_layer[0], 0) + 1
+                                )
+
                 _snap_data = {
                     "ts": time.time(),
                     "cycle": cycle,
                     "capital": real_capital,
                     "safe_mode": kill_switch.is_safe_mode(),
+                    "cycle_duration_ms": _cycle_elapsed_ms,
+                    "n_symbols": len(results),
+                    "n_actionable": _n_actionable,
+                    "n_traded": _n_traded,
+                    "n_refused": _n_actionable - _n_traded,
+                    "refusal_breakdown": _refusal_tally,
+                    "regime_distribution": _regime_tally,
                     "exchange": exchange_monitor.snapshot(),
                     "positions": _snapshot_list(pos_manager.snapshot()),
                     "symbols": [
@@ -2706,6 +2766,15 @@ def main(
                             ),
                             "signal_to_execute": r.get("signal_to_execute"),
                             "futures_result": r.get("futures_result"),
+                            # ── Indicateurs techniques enrichis ──────────────
+                            "rsi": r.get("features", {}).get("rsi"),
+                            "atr_ratio": r.get("features", {}).get("atr_ratio"),
+                            "bb_pct": r.get("features", {}).get("bb_pct"),
+                            "macd_bullish": r.get("features", {}).get("macd_bullish"),
+                            "ema_bullish": r.get("features", {}).get("ema_bullish"),
+                            "bb_squeeze": r.get("features", {}).get("bb_squeeze"),
+                            "vwap_dist": r.get("features", {}).get("vwap_dist"),
+                            "n_candles_1h": r.get("n_1h", 0),
                         }
                         for r in results
                     ],
