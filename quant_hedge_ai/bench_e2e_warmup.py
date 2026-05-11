@@ -30,7 +30,6 @@ Exécution :
 from __future__ import annotations
 
 import argparse
-import math
 import random
 import statistics
 import time
@@ -80,7 +79,6 @@ def _simulate_run(prewarm: bool, pool_warm: bool, rng: random.Random) -> dict:
     t = {}
 
     # ── Phase 1 : Bootstrap ─────────────────────────────────────────────────
-    t_boot_start = 0.0
 
     t["py_init"]   = _sample("py_init", rng)
     t["ccxt_init"] = _sample("ccxt_init", rng)
@@ -224,7 +222,7 @@ def print_report(results: dict, n_runs: int) -> None:
     print("  " + "-" * 68)
 
     # ── Variance réseau
-    print(f"\n  VARIANCE RESEAU (std):")
+    print("\n  VARIANCE RESEAU (std):")
     print(f"    E2E prewarm=true  : ±{_stats(e2e_pw)['std']:.0f}ms")
     print(f"    E2E prewarm=false : ±{_stats(e2e_npw)['std']:.0f}ms")
     print(f"    Variance réduite  : {_stats(e2e_npw)['std'] - _stats(e2e_pw)['std']:+.0f}ms "
@@ -235,7 +233,7 @@ def print_report(results: dict, n_runs: int) -> None:
     print(f"  GAIN CYCLE 1      : +{gain_cycle1:.0f}ms  ({gain_cycle1 / max(statistics.mean(c1_npw), 1) * 100:.1f}%)")
 
     # ── Percentiles détaillés
-    print(f"\n  PERCENTILES E2E (ms):")
+    print("\n  PERCENTILES E2E (ms):")
     sp = _stats(e2e_pw)
     sn = _stats(e2e_npw)
     for pct in ("min", "p50", "p95", "max"):
@@ -254,7 +252,7 @@ def print_report(results: dict, n_runs: int) -> None:
     # Si on lance MTF en même temps que 1h (en parallèle du bootstrap)
     # Le MTF prewarm prend max(4h_sym, 1d_sym) × N_SYMBOLS en // = ~2 symboles
     # ≈ max latences MTF parmi N workers
-    mtf_boot_cost_mean = statistics.mean(
+    statistics.mean(
         [_stats([r["warmup_parallel_ms"] for r in pw])["mean"]]
         * 1  # déjà mesuré
     )
@@ -262,7 +260,7 @@ def print_report(results: dict, n_runs: int) -> None:
     # Bootstrap additionnel estimé pour MTF en parallèle
     # MTF = 4h + 1d simultané via ThreadPool. Durée ≈ même pool que 1h warmup
     # → surcoût bootstrap ≈ 0 (même executor), surcoût sur temps d'attente au cycle 1
-    estimated_mtf_warmup_ms = (
+    (
         statistics.mean([_stats([_LAT["fetch_4h"][0], _LAT["fetch_1d"][0]])[k]
                          for k in ("mean",)])
         if True else 0
@@ -275,7 +273,7 @@ def print_report(results: dict, n_runs: int) -> None:
 
     print(f"\n  Cout fetch MTF à froid au cycle 1 : ~{mtf_cold_mean:.0f}ms")
     print(f"  Durée estimée warmup MTF parallèle : ~{mtf_warmup_est:.0f}ms")
-    print(f"  Bootstrap delta (même executor)    : ~0ms  (threads déjà actifs)")
+    print("  Bootstrap delta (même executor)    : ~0ms  (threads déjà actifs)")
 
     if mtf_warmup_est <= gain_from_mtf_warmup:
         verdict = "RECOMMANDE"
@@ -288,7 +286,7 @@ def print_report(results: dict, n_runs: int) -> None:
 
     print(f"\n  VERDICT MTF PREWARM : {verdict}")
     print(f"    {reason}")
-    print(f"    Activer avec : ADVISOR_PREWARM_MTF=true")
+    print("    Activer avec : ADVISOR_PREWARM_MTF=true")
     print()
     print("=" * 72)
     print()

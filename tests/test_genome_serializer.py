@@ -3,7 +3,6 @@ Tests pour GenomeSerializer : round-trip JSON, save/load, robustesse.
 """
 
 import json
-from pathlib import Path
 
 import pytest
 

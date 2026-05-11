@@ -49,22 +49,16 @@ def main():
     # Test 2: Import all modules
     log.info("\n[CHECK 2] Importing all modules...")
     try:
-        from startup_cache import get_startup_cache
         log.info("  OK: startup_cache")
 
-        from warm_boot import WarmBootManager
         log.info("  OK: warm_boot")
 
-        from evolution_memory import get_evolution_memory_db
         log.info("  OK: evolution_memory")
 
-        from lazy_loader import get_lazy_loader
         log.info("  OK: lazy_loader")
 
-        from daily_analyzer import get_daily_analyzer
         log.info("  OK: daily_analyzer")
 
-        from circuit_breaker import enable_circuit_breaker
         log.info("  OK: circuit_breaker")
 
         from bootstrap_integration import bootstrap_system

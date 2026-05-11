@@ -1,7 +1,6 @@
 import os
 import sys
 
-import pytest
 
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 import importlib
@@ -14,7 +13,6 @@ def test_analyze_strategy_niches_empty(monkeypatch, tmp_path):
     monkeypatch.setattr("glob.glob", lambda pattern: [])
     if "analyze_strategy_niches" in sys.modules:
         importlib.reload(sys.modules["analyze_strategy_niches"])
-    import analyze_strategy_niches
 
     # La fonction principale doit être adaptée pour accepter un paramètre de dossier
     # ou patcher pd.read_csv si besoin
@@ -31,7 +29,6 @@ def test_analyze_strategy_niches_with_csv(monkeypatch, tmp_path):
     monkeypatch.setattr("glob.glob", lambda pattern: [str(fake_file)])
     if "analyze_strategy_niches" in sys.modules:
         importlib.reload(sys.modules["analyze_strategy_niches"])
-    import analyze_strategy_niches
 
     # Ici, on pourrait patcher pd.read_csv pour vérifier l'appel
     assert True

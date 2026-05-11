@@ -21,10 +21,9 @@ import argparse
 import socket
 import ssl
 import statistics
-import sys
 import time
 from contextlib import contextmanager
-from typing import Generator
+from typing import Any, Generator
 
 # ── Timer utilitaire ──────────────────────────────────────────────────────────
 

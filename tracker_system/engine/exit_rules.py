@@ -43,7 +43,7 @@ class TimeExitRule:
 
     def check(self, pos: dict, price: float, context: dict | None = None) -> str | None:
         import time
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         try:
             raw_ts = pos.get("timestamp")
@@ -103,10 +103,10 @@ class RegimeProtectionRule:
 
         # Exit long si regime change de bullish → bearish
         if pos.get("side") == "BUY" and position_regime == "bullish" and current_regime == "bearish":
-            return f"REGIME_CHANGE (bullish→bearish)"
+            return "REGIME_CHANGE (bullish→bearish)"
 
         # Exit short si regime change de bearish → bullish
         if pos.get("side") == "SELL" and position_regime == "bearish" and current_regime == "bullish":
-            return f"REGIME_CHANGE (bearish→bullish)"
+            return "REGIME_CHANGE (bearish→bullish)"
 
         return None

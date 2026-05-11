@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import Callable, Dict, List, Optional
+from typing import Callable, List, Optional
 
 from system.dependency_manager import dependency_manager
 from system.module_registry import ModulePriority, ModuleStatus, module_registry

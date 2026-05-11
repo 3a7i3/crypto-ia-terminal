@@ -64,7 +64,7 @@ def render() -> None:
         st.info("Aucune alerte enregistrée dans le fichier d'audit.")
         return
 
-    df = pd.DataFrame(entries)
+    pd.DataFrame(entries)
 
     # Filtres sidebar
     modules = sorted(

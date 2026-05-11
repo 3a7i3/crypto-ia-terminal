@@ -14,7 +14,7 @@ Usage:
 from __future__ import annotations
 
 import time
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Set
 
 from system.dependency_manager import dependency_manager
 from system.module_registry import ModuleStatus, module_registry

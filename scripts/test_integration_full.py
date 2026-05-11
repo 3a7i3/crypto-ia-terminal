@@ -9,7 +9,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from tracker_system.core.trade_tracker import open_position, update_positions, finalize_position
+from tracker_system.core.trade_tracker import open_position, finalize_position
 from tracker_system.analytics.metrics import compute_all_metrics
 from tracker_system.backtesting.auto_backtester import run_backtest
 from meta_learning.memory import MetaMemory
@@ -66,7 +66,7 @@ def test_full_pipeline():
         )
 
     metrics = compute_all_metrics(log_file)
-    print(f"Metrics:")
+    print("Metrics:")
     print(f"  Trades: {metrics.get('trades', 0)}")
     print(f"  Winrate: {metrics.get('winrate', 0.0):.2%}")
     print(f"  Expectancy: {metrics.get('expectancy', 0.0):.6f}")

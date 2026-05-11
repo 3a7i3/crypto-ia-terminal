@@ -1,7 +1,7 @@
 import logging
 import unittest
 
-from run_strategy_factory import create_population, evaluate_fitness, mutate
+from run_strategy_factory import create_population, evaluate_fitness
 
 
 class TestFallbacksIntelligents(unittest.TestCase):

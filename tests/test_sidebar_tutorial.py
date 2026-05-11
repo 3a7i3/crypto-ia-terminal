@@ -1,4 +1,3 @@
-import pytest
 import streamlit
 
 from evolution_3d_view import show_sidebar_tutorial

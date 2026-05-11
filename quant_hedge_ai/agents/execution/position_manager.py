@@ -573,9 +573,9 @@ class PositionManager:
         for sym, positions in by_symbol.items():
             longs  = [p for p in positions if p.side == PositionSide.LONG]
             shorts = [p for p in positions if p.side == PositionSide.SHORT]
-            for l in longs:
+            for lng in longs:
                 for s in shorts:
-                    hedges.append((l, s))
+                    hedges.append((lng, s))
                     logger.warning("[PositionManager] Hedge détecté: %s LONG + SHORT", sym)
         return hedges
 

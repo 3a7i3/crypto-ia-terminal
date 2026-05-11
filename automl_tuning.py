@@ -5,7 +5,6 @@ AutoML/Auto-tuning (grid search) pour optimiser les hyperparamètres automatique
 
 import os
 
-import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import ParameterGrid

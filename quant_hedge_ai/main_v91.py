@@ -136,7 +136,7 @@ from quant_hedge_ai.agents.quant.stress_test import MonteCarloStressTester
 from quant_hedge_ai.agents.intelligence.confidence_explainer import ConfidenceExplainer
 from supervision.kill_switch import TelegramKillSwitch
 from supervision.self_healing_bot import (
-    SelfHealingBot, make_websocket_watchdog, make_api_watchdog
+    SelfHealingBot, make_websocket_watchdog
 )
 
 
@@ -217,7 +217,7 @@ def run_v91_system(
     )
 
     # #5 — Trade Replay System
-    trade_replay = TradeReplaySystem()
+    TradeReplaySystem()
 
     # #6 — Monte Carlo Stress Tester (run une fois au démarrage)
     _stress_tester = MonteCarloStressTester(
@@ -919,12 +919,18 @@ def _build_runtime_from_args() -> tuple[RuntimeConfig, bool, bool, bool]:
     args = parser.parse_args()
 
     cfg = load_runtime_config_from_env()
-    if args.max_cycles    is not None: cfg.max_cycles      = max(0, args.max_cycles)
-    if args.population    is not None: cfg.population_size = max(1, args.population)
-    if args.sleep_seconds is not None: cfg.sleep_seconds   = max(0, args.sleep_seconds)
-    if args.dry_run:      cfg.dry_run                      = True
-    if args.dashboard:    cfg.director_dashboard_enabled   = True
-    if args.advisor_only: os.environ["V9_ADVISOR_ONLY"]    = "true"
+    if args.max_cycles is not None:
+        cfg.max_cycles = max(0, args.max_cycles)
+    if args.population is not None:
+        cfg.population_size = max(1, args.population)
+    if args.sleep_seconds is not None:
+        cfg.sleep_seconds = max(0, args.sleep_seconds)
+    if args.dry_run:
+        cfg.dry_run = True
+    if args.dashboard:
+        cfg.director_dashboard_enabled = True
+    if args.advisor_only:
+        os.environ["V9_ADVISOR_ONLY"] = "true"
 
     return cfg, bool(args.doctor_prompt_only), bool(args.radar), bool(args.dashboard)
 

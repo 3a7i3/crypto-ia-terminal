@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import math
-from statistics import mean, stdev
+from statistics import stdev
 
 
 class FeatureEngineer:

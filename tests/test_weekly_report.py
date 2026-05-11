@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import pytest
 from unittest.mock import MagicMock, patch
-from datetime import datetime
 
 from quant_hedge_ai.agents.intelligence.weekly_report import (
     WeeklyReportAgent,

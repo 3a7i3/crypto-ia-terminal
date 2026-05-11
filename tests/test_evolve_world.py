@@ -5,22 +5,26 @@ environments, extinction totale, stagnation, sauvegarde checkpoint.
 
 from unittest.mock import MagicMock
 
-import pytest
 
-from evolution_core import (Genome, apply_extinction, evolve_world,
-                            score_env_crash, score_env_range, score_env_trend,
+from evolution_core import (Genome, evolve_world,
                             select_parents)
 
 # ---------------------------------------------------------------------------
 # Helpers — scoreurs déterministes (pas de marchés aléatoires)
 # ---------------------------------------------------------------------------
 
-FAST_SCORE = lambda g: 1.0  # score fixe, pas de backtest
-SCORE_TREND = lambda g: 1.0
-SCORE_RANGE = lambda g: 0.5
-SCORE_CRASH = lambda g: 0.2
-NO_EXTINCTION = lambda pop: pop  # aucun filtre
-FULL_EXTINCTION = lambda pop: []  # extinction totale
+def FAST_SCORE(g):
+    return 1.0  # score fixe, pas de backtest
+def SCORE_TREND(g):
+    return 1.0
+def SCORE_RANGE(g):
+    return 0.5
+def SCORE_CRASH(g):
+    return 0.2
+def NO_EXTINCTION(pop):
+    return pop  # aucun filtre
+def FULL_EXTINCTION(pop):
+    return []  # extinction totale
 
 
 def make_pop(n=10):
@@ -145,7 +149,8 @@ class TestExtinction:
         assert len(new_pop) == len(pop)
 
     def test_partial_extinction_still_fills_population(self):
-        keep_one = lambda p: p[:1]
+        def keep_one(p):
+            return p[:1]
         pop = make_pop(8)
         new_pop, _ = call_evolve_world(pop, extinction=keep_one)
         assert len(new_pop) == 8

@@ -266,7 +266,6 @@ class TestEventBusEmission:
     def test_high_score_emits_event(self):
         advisor = AIAdvisor(use_lm_studio=False)
         r = _result(score=85, signal="BUY")
-        events = []
         with patch("event_bus.bus.EventBus.get") as mock_bus:
             mock_instance = MagicMock()
             mock_bus.return_value = mock_instance

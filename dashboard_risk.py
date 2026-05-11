@@ -89,7 +89,7 @@ def load_advisor_log_tail(n: int = 200) -> list[str]:
     try:
         with ADVISOR_LOG.open(encoding="utf-8", errors="replace") as f:
             lines = f.readlines()
-        return [l.rstrip() for l in lines[-n:]]
+        return [line.rstrip() for line in lines[-n:]]
     except Exception:
         return []
 
@@ -530,8 +530,10 @@ with st.expander("Lancer une simulation de survie", expanded=False):
             def _color_surv(val):
                 try:
                     v = float(val)
-                    if v >= 90: return "background-color: #d4edda"
-                    if v >= 70: return "background-color: #fff3cd"
+                    if v >= 90:
+                        return "background-color: #d4edda"
+                    if v >= 70:
+                        return "background-color: #fff3cd"
                     return "background-color: #f8d7da"
                 except Exception:
                     return ""

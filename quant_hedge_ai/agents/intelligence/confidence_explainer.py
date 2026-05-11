@@ -20,7 +20,7 @@ Usage:
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from quant_hedge_ai.agents.execution.live_signal_engine import SignalResult
 
@@ -135,8 +135,8 @@ class ScoreExplanation:
                 }
                 for c in self.components
             ],
-            "bonuses": [{"label": l, "pts": p} for l, p in self.bonuses],
-            "penalties": [{"label": l, "pts": p} for l, p in self.penalties],
+            "bonuses": [{"label": lbl, "pts": p} for lbl, p in self.bonuses],
+            "penalties": [{"label": lbl, "pts": p} for lbl, p in self.penalties],
             "verdict": self.verdict,
             "confidence_level": self.confidence_level,
             "one_liner": self.one_liner,

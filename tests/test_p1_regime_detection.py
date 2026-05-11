@@ -5,7 +5,6 @@ TEST P1 — Auto Regime Detection
 
 import sys
 from pathlib import Path
-import math
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -61,7 +60,7 @@ def test_regime_detection():
     regime, confidence = detector.detect(bull_candles)
     print(f"   Detected: {regime}")
     print(f"   Confidence: {confidence:.1%}")
-    print(f"   Expected: bull_trend or range")
+    print("   Expected: bull_trend or range")
 
     # Test 2: Bear trend
     print("\n2. BEAR TREND (prix descend regulierement)")
@@ -188,7 +187,7 @@ def test_integrated_workflow():
         positions_created.append(pos)
 
         print(f"[{trend.upper()}] Detected: {regime} ({conf:.0%})")
-        print(f"  -> Position created:")
+        print("  -> Position created:")
         print(f"     TP: {(pos['tp']/pos['entry_price']-1):.2%} @ ${pos['tp']:.0f}")
         print(f"     SL: {(1-pos['sl']/pos['entry_price']):.2%} @ ${pos['sl']:.0f}")
         print()

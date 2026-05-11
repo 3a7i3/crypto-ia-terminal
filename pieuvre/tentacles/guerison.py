@@ -17,10 +17,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from pieuvre.incidents.models import (
-    RECOVERY_SECONDS,
     Finding,
     Incident,
-    IncidentType,
     Severity,
 )
 from pieuvre.tentacles.base import BaseTentacle

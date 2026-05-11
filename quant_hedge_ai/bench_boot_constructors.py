@@ -25,7 +25,6 @@ import sys
 import time
 import traceback
 from dataclasses import dataclass, field
-from typing import Any, Callable
 
 # Force mode observation seule pour éviter tout appel réseau dans les constructeurs
 os.environ.setdefault("V9_ADVISOR_ONLY",       "true")
@@ -316,7 +315,7 @@ def print_report(all_passes: list[list[Measurement]]) -> None:
 
     # ── Modules avec I/O disque
     if io_modules:
-        print(f"\n  MODULES AVEC I/O DISQUE (candidats lazy-load prioritaires)")
+        print("\n  MODULES AVEC I/O DISQUE (candidats lazy-load prioritaires)")
         io_total = 0.0
         for label, cost_ms in sorted(io_modules, key=lambda x: x[1], reverse=True):
             print(f"    {label:<30} {cost_ms:>7.2f}ms")
@@ -324,7 +323,7 @@ def print_report(all_passes: list[list[Measurement]]) -> None:
         print(f"    {'TOTAL I/O':<30} {io_total:>7.2f}ms")
 
     # ── Analyse passes
-    print(f"\n  EVOLUTION PASSES (init_ms total par passe)")
+    print("\n  EVOLUTION PASSES (init_ms total par passe)")
     for i, pass_ in enumerate(all_passes):
         total = sum(m.init_ms for m in pass_ if not m.error)
         label = "FROIDE" if i == 0 else "TIEDE " if i == 1 else f"CHAUDE {i}"
@@ -339,19 +338,19 @@ def print_report(all_passes: list[list[Measurement]]) -> None:
             heavy.append((spec.label, max(inits)))
 
     if heavy:
-        print(f"\n  MODULES > 5ms INIT (candidats lazy-load)")
+        print("\n  MODULES > 5ms INIT (candidats lazy-load)")
         for label, cost in sorted(heavy, key=lambda x: x[1], reverse=True):
             spec_io = next((s.io_hint for s in _SPECS if s.label == label), "")
             print(f"    {label:<30} {cost:>7.1f}ms  {spec_io}")
 
     # ── Recommandations
-    print(f"\n  CONCLUSIONS")
-    print(f"    ThreatRadar : pure in-memory, cost ~0ms — pas de lazy-load utile")
-    print(f"    MetaLearner : lit meta_memory.json — lazy-load utile si fichier grand")
-    print(f"    MistakeMemory / RegretEngine : JSONL disk — lazy-load actif via ADVISOR_DEFER_OPTIONAL_INTEL=true")
+    print("\n  CONCLUSIONS")
+    print("    ThreatRadar : pure in-memory, cost ~0ms — pas de lazy-load utile")
+    print("    MetaLearner : lit meta_memory.json — lazy-load utile si fichier grand")
+    print("    MistakeMemory / RegretEngine : JSONL disk — lazy-load actif via ADVISOR_DEFER_OPTIONAL_INTEL=true")
     print(f"    Total init   : {total_init:.0f}ms sequentiel")
-    print(f"    Warmup 1h    : ~3700ms reseau — demarre deja en paralele → couvrent le boot")
-    print(f"    Gain reorder : deplacer scanners+warmup avant kill_switch → +~15-20ms de parallelisme")
+    print("    Warmup 1h    : ~3700ms reseau — demarre deja en paralele → couvrent le boot")
+    print("    Gain reorder : deplacer scanners+warmup avant kill_switch → +~15-20ms de parallelisme")
     print()
     print("=" * 88)
     print()

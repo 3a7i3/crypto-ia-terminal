@@ -3,7 +3,7 @@ AUTO DECISION ENGINE — Système autonome contrôlé
 Observe → Décide → Agit → Contrôle → Apprend
 """
 
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 from typing import Dict, Any, Tuple, List, Optional
 from datetime import datetime
 import json

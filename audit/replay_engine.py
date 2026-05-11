@@ -76,7 +76,6 @@ class TradeReplay:
         alternatives = []
         for tp in tp_values:
             for sl in sl_values:
-                from tracker_system.engine.exit_engine import ExitEngine
                 from tracker_system.engine.rules.tp_sl import TPSLRule
 
                 engine = ExitEngine([TPSLRule(tp=tp, sl=sl)])
@@ -104,7 +103,7 @@ class TradeReplay:
 
     def analyze_mfe_mae(self) -> dict[str, Any]:
         """Analyse MFE vs MAE."""
-        entry_price = float(self.entry.get("entry_price", 0.0))
+        float(self.entry.get("entry_price", 0.0))
         actual_pnl = float(self.exit.get("pnl_pct", 0.0))
         mfe = float(self.exit.get("mfe", 0.0))
         mae = float(self.exit.get("mae", 0.0))

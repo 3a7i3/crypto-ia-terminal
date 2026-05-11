@@ -7,21 +7,19 @@ Couvre les branches non atteintes par test_evolve_world.py :
   create_population, apply_extinction (espèce rare), select_parents (cross-species).
 """
 
-import json
 import math
 import random
 
 import numpy as np
 import pytest
 
-from evolution_core import (GENE_SPACE, Genome, GenomeSerializer,
+from evolution_core import (Genome, GenomeSerializer,
                             _compute_evolution_params, apply_extinction,
-                            backtest, clamp_gene, compute_drawdown,
+                            backtest, compute_drawdown,
                             compute_rsi, compute_sharpe, create_population,
-                            crossover, enrich_evolve, evaluate_fitness, evolve,
+                            enrich_evolve, evaluate_fitness, evolve,
                             generate_crash_market, generate_range_market,
-                            generate_trend_market, ma_signal, migrate, mutate,
-                            save_simulation_summary, score_env_crash,
+                            generate_trend_market, ma_signal, migrate, save_simulation_summary, score_env_crash,
                             score_env_range, score_env_trend, select_parents)
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
@@ -84,7 +82,7 @@ class TestMigrate:
             "w1": [Genome() for _ in range(10)],
             "w2": [Genome() for _ in range(10)],
         }
-        original_ids_w1 = {g.id for g in pops["w1"]}
+        {g.id for g in pops["w1"]}
         result = migrate(pops, migration_rate=0.2, pop_size=10)
         final_ids_w2 = {g.id for g in result["w2"]}
         # Après migration des meilleurs de w1 vers w2, au moins un ID de w1

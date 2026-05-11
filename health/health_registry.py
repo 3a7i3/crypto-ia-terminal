@@ -118,7 +118,7 @@ class HealthRegistry:
         try:
             passed = check.check_fn()
             error = None
-        except Exception as e:
+        except Exception:
             passed = False
             error = traceback.format_exc(limit=3)
         duration_ms = (time.time() - t0) * 1000

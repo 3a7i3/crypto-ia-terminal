@@ -6,7 +6,7 @@ import pytest
 from unittest.mock import MagicMock, patch
 
 from quant_hedge_ai.agents.risk.global_risk_gate import GlobalRiskGate, GateResult
-from quant_hedge_ai.agents.risk.session_guard import SessionGuard, SessionHaltedError
+from quant_hedge_ai.agents.risk.session_guard import SessionGuard
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────

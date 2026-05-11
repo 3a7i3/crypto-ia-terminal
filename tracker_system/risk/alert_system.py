@@ -4,7 +4,7 @@ Détecte: perte quotidienne, drawdown maximal, concentration excessive
 """
 
 from datetime import datetime
-from typing import Optional, List, Dict, Tuple
+from typing import Optional, List, Dict
 
 
 class AlertSystem:

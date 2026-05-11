@@ -225,7 +225,7 @@ class SubaccountUnit:
             OrderTooLargeError, SessionHaltedError,
         )
         from quant_hedge_ai.agents.execution.position_manager import (
-            PositionManager, Position,
+            Position,
         )
 
         try:
@@ -277,7 +277,6 @@ class SubaccountUnit:
         return result
 
     def _place_futures(self, symbol: str, action: str, size_usd: float) -> dict:
-        import math as _math
         side = "buy" if action.upper() == "BUY" else "sell"
         ccxt_sym = PositionManager._to_ccxt_symbol(symbol)
         try:

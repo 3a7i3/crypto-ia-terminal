@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import time
 import unittest
-from unittest.mock import MagicMock, patch, call
+from unittest.mock import MagicMock, patch
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -147,7 +147,6 @@ class TestFetchPagination(unittest.TestCase):
         page1 = _make_raw_candles(self.PAGE_SIZE, start_ms=1_000_000_000_000)
         page2 = _make_raw_candles(3, start_ms=1_000_000_000_000 + self.PAGE_SIZE * 3_600_000)
 
-        captured_since = []
         original_retry = None
 
         import quant_hedge_ai.agents.market.historical_fetcher as hf_module
@@ -326,8 +325,8 @@ class TestFetchAndSave(unittest.TestCase):
 
     def test_multiple_symbols_processed(self):
         """Chaque symbole de la liste est fetché indépendamment."""
-        candles_btc = _make_raw_candles(5)
-        candles_eth = _make_raw_candles(3, start_ms=1_800_000_000_000)
+        _make_raw_candles(5)
+        _make_raw_candles(3, start_ms=1_800_000_000_000)
 
         # fetch retourne des données différentes pour chaque symbole
         fake_results = {

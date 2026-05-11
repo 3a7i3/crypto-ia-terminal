@@ -342,7 +342,7 @@ def _send_kpi_report(learning: PostTradeLearning, risk_engine: RiskEngineMVP) ->
         f"Meilleur signal : {kpis.best_signal}\n"
     )
     if lessons:
-        msg += "\nLecons recentes:\n" + "\n".join(f"• {l}" for l in lessons)
+        msg += "\nLecons recentes:\n" + "\n".join(f"• {lesson}" for lesson in lessons)
     if status["trading_halted"]:
         msg += "\nALERTE: TRADING HALTE (hard drawdown atteint)"
     log.info("[KPI] %s", kpis.summary())

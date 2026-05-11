@@ -1,4 +1,3 @@
-import pytest
 import streamlit
 
 from evolution_3d_view import (botdoctor_dashboard_panel,

@@ -115,7 +115,6 @@ class DashboardBuilder:
     def export_csv(self, output_file: str = "dashboard_export.csv") -> None:
         """Export as CSV."""
         import csv
-        import json
 
         report = self.intelligence.generate_report()
 

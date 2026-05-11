@@ -12,7 +12,7 @@ from __future__ import annotations
 import logging
 import time
 from collections import deque
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -139,7 +139,7 @@ class OrderBookAnalyzer:
         """Trouve le premier mur de liquidité (niveau avec volume exceptionnel)."""
         if not levels:
             return 0.0
-        qtys = [float(l[1]) for l in levels[:20]]
+        qtys = [float(lvl[1]) for lvl in levels[:20]]
         if not qtys:
             return 0.0
         avg_qty = sum(qtys) / len(qtys)

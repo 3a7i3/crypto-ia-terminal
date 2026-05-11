@@ -149,7 +149,7 @@ def test_slack_notifier_success():
         "urllib.request.urlopen",
         return_value=__import__("contextlib").nullcontext(mock_resp),
     ):
-        result = notifier.notify("test slack")
+        notifier.notify("test slack")
     # La fonction doit retourner True ou False sans lever
 
 
@@ -227,10 +227,9 @@ def test_feature_cache_clear():
 # ── alert_dashboard ────────────────────────────────────────────────────────────
 
 import json
-from pathlib import Path
 
-from dashboard.alert_dashboard import (AUDIT_FILE, filter_by_module,
-                                       filter_by_severity, load_audit)
+from dashboard.alert_dashboard import (filter_by_module,
+                                       filter_by_severity)
 
 
 def test_load_audit_missing_file(tmp_path, monkeypatch):

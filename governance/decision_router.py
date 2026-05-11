@@ -52,7 +52,7 @@ from typing import Any, Dict, List, Optional
 
 from governance.confidence_gate import confidence_gate
 from governance.execution_approval import ApprovalRequest, execution_approval
-from governance.risk_authorizer import AuthorizationResult, RiskContext, risk_authorizer
+from governance.risk_authorizer import RiskContext, risk_authorizer
 from observability.json_logger import get_logger
 from observability.metrics_bus import metrics_bus
 

@@ -6,7 +6,6 @@ Clustering des stratégies (KMeans + t-SNE) pour visualiser les familles de solu
 import os
 
 import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
 from sklearn.cluster import KMeans
 from sklearn.manifold import TSNE

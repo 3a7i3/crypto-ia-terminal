@@ -14,7 +14,6 @@ from tracker_system.autonomous.auto_decision_engine import (
     AutoDecisionEngine,
     RiskGuard,
     ActionExecutor,
-    DecisionLogger,
     AutoDecisionOrchestrator
 )
 
@@ -150,7 +149,7 @@ def test_action_executor():
     new_config, success, msg = executor.execute(decision)
     print(f"  Trading enabled: {new_config['trading_enabled']}")
 
-    print(f"\nExecution history:")
+    print("\nExecution history:")
     for entry in executor.execution_history[-3:]:
         print(f"  - {entry['action']}: {entry['message']}")
 
@@ -211,7 +210,7 @@ def test_full_orchestration():
     status = orchestrator.get_status()
     print(f"  Total decisions: {status['total_decisions']}")
     print(f"  Trading enabled: {status['trading_enabled']}")
-    print(f"  Current config:")
+    print("  Current config:")
     print(f"    TP: {status['current_config']['tp']:.4f}")
     print(f"    SL: {status['current_config']['sl']:.4f}")
     print(f"    Position size: {status['current_config']['position_size']:.3f}")

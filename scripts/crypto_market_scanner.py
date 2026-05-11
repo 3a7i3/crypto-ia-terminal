@@ -1,5 +1,4 @@
 import ccxt
-import hvplot.pandas
 import pandas as pd
 import panel as pn
 import ta

@@ -1,6 +1,6 @@
 """Tests pour MultiTimeframeScanner et MultiTimeframeSignal."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -50,7 +50,7 @@ class TestMultiTimeframeScanner:
         mtf = MultiTimeframeScanner(
             symbols=["BTC/USDT"], timeframes=["4h"], refresh_every=2
         )
-        r1 = mtf.scan(cycle=0)
+        mtf.scan(cycle=0)
         r2 = mtf.scan(cycle=5)
         # r2 est un scan frais (pas forcément un objet différent, mais re-fetché)
         assert "BTC/USDT" in r2
@@ -142,7 +142,6 @@ class TestMultiTimeframeSignal:
     def test_divergence_returns_hold(self):
         """1h=BUY, 1d=SELL → pas de majorité → HOLD."""
         sig = MultiTimeframeSignal(min_strength=0.5, min_agreement=2)
-        side_effects = {"1h": "BUY", "4h": "HOLD", "1d": "SELL"}
 
         def _mock(strategy, candles):
             # On distingue par la taille des candles (1h=50, 4h=30, 1d=20)

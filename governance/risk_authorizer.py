@@ -34,7 +34,7 @@ Usage:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from observability.metrics_bus import metrics_bus
 from system.state_manager import SystemState, state_manager

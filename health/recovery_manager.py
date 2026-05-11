@@ -20,17 +20,16 @@ Usage:
 
 from __future__ import annotations
 
-import logging
 import threading
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import Callable, Dict, List, Optional
+from typing import Callable, Dict, List
 
 from observability.json_logger import get_logger
 from observability.metrics_bus import metrics_bus
-from system.module_registry import ModulePriority, ModuleStatus, module_registry
+from system.module_registry import ModulePriority, module_registry
 from system.runtime_controller import runtime_controller
 from system.state_manager import SystemState, state_manager
 

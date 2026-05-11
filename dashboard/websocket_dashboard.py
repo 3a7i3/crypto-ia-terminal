@@ -5,9 +5,6 @@ FastAPI + WebSocket pour updates temps réel
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
-from fastapi.staticfiles import StaticFiles
-import asyncio
-import json
 from datetime import datetime
 from typing import Dict, Any, List
 import logging

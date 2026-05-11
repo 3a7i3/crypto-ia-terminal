@@ -14,7 +14,6 @@ Chaque signal retourne : direction, score [0-100], confiance [0-1].
 """
 from __future__ import annotations
 
-import json
 import logging
 import pickle
 import time
@@ -170,7 +169,7 @@ class SignalEngineMVP:
         rsi         = features.get("rsi_14", 50.0)
         vol_ratio   = features.get("volume_ratio_20", 1.0)
         macd_hist   = features.get("macd_hist", 0.0)
-        slope_10    = features.get("price_slope_10", 0.0)
+        features.get("price_slope_10", 0.0)
 
         # Long momentum
         if ema_cross > 0 and 45 < rsi < 72 and vol_ratio > 0.8:
@@ -245,7 +244,7 @@ class SignalEngineMVP:
         range_break   = features.get("range_breakout", 0.0)   # >0 = breakout haussier
         vol_ratio     = features.get("volume_ratio_20", 1.0)
         atr_expansion = features.get("atr_expansion", 1.0)    # ATR vs moyenne 20 ATRs
-        rsi           = features.get("rsi_14", 50.0)
+        features.get("rsi_14", 50.0)
 
         # Breakout haussier
         if range_break > 0 and vol_ratio > 1.8 and atr_expansion > 1.3:

@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 
 from evolution_core import (Genome, backtest, compute_drawdown, compute_rsi,
-                            compute_sharpe, evaluate_fitness, evolve,
+                            compute_sharpe, evolve,
                             generate_crash_market, generate_range_market,
                             generate_trend_market)
 from quant_hedge_ai.strategy_lab.feature_cache import (clear_cache,
@@ -175,7 +175,7 @@ class TestFeatureCacheExtensions:
         assert "correlation" in features
 
     def test_register_overrides_existing(self):
-        original = compute_feature("mean", (2.0, 4.0))
+        compute_feature("mean", (2.0, 4.0))
         register_feature("mean", lambda values: -1.0)
         overridden = compute_feature("mean", (2.0, 4.0))
         assert overridden == pytest.approx(-1.0)

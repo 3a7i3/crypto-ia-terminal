@@ -1,4 +1,3 @@
-import pytest
 
 from evolution_core import (Genome, apply_extinction, create_population,
                             crossover, evaluate_fitness, mutate)

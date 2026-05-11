@@ -44,7 +44,7 @@ import json
 import logging
 import os
 import time
-from dataclasses import dataclass, asdict, field
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
 
@@ -369,8 +369,8 @@ class MistakeMemory:
         )
         if recent_losses >= 3 and pnl_pct < -0.01:
             return ErrorType.OVERTRADING, (
-                f"3+ pertes récentes détectées — probable overtrading. "
-                f"Le bot devrait se reposer 30 minutes."
+                "3+ pertes récentes détectées — probable overtrading. "
+                "Le bot devrait se reposer 30 minutes."
             )
 
         return ErrorType.UNKNOWN, (

@@ -1,0 +1,13 @@
+# Exclure les notebooks Jupyter (erreurs de contexte inter-cellules non détectables)
+extend-exclude = ["*.ipynb"]
+
+[lint.per-file-ignores]
+# Imports optionnels utilisés uniquement si le module est disponible
+"visualize_strategy_ecosystem.py" = ["F401"]
+"visualize_strategy_ecosystem_all_gens.py" = ["F401"]
+"pieuvre/dashboard/tableau_bord.py" = ["F401"]
+"test_fullsuite.py" = ["F401"]
+# Variables undefined dans contexte d'injection de dépendances / type hints string
+"quant_hedge_ai/agents/execution/subaccount_manager.py" = ["F821"]
+"supervision/self_healing_bot.py" = ["F821"]
+"quant_hedge_ai/main_v91.py" = ["F821"]

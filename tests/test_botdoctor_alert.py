@@ -1,7 +1,4 @@
-import sys
-import types
 
-import pytest
 
 
 # Simule un notifier (Slack ou Telegram)

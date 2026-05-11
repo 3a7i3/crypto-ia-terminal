@@ -28,8 +28,8 @@ else:
 
     import pandas as pd
 
-    from run_strategy_factory import (N_GEN, POP_SIZE, Genome,
-                                      apply_extinction, create_population,
+    from run_strategy_factory import (Genome,
+                                      create_population,
                                       mutate, plot_dominance, plot_god_mode)
 
 
@@ -39,7 +39,7 @@ class TestFullSuite(unittest.TestCase):
         pop_size = 200
         pop = create_population(pop_size)
         start = time.time()
-        mutated = [mutate(g, mutation_rate=1, intensity=1) for g in pop]
+        [mutate(g, mutation_rate=1, intensity=1) for g in pop]
         duration = time.time() - start
         self.assertLess(
             duration,

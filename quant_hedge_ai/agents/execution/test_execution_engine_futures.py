@@ -98,13 +98,13 @@ class TestFuturesSymbolConversion:
 
 class TestFuturesSizeClamping:
     def test_below_min_clamped_up(self, eng):
-        mock_ex = _with_futures(eng)
+        _with_futures(eng)
         result = eng.create_futures_order("BTC/USDT", "BUY", 1.0)
         assert result["mode"] == "futures_demo"
         assert result["usd_size"] >= 55.0
 
     def test_above_max_clamped_down(self, eng):
-        mock_ex = _with_futures(eng)
+        _with_futures(eng)
         result = eng.create_futures_order("BTC/USDT", "BUY", 99999.0)
         assert result["mode"] == "futures_demo"
         # size_usd est clampé à 200 avant conversion en qty ;
@@ -113,7 +113,7 @@ class TestFuturesSizeClamping:
         assert result["usd_size"] > 0
 
     def test_within_range_unchanged(self, eng):
-        mock_ex = _with_futures(eng)
+        _with_futures(eng)
         result = eng.create_futures_order("BTC/USDT", "BUY", 100.0)
         assert result["mode"] == "futures_demo"
 
