@@ -35,18 +35,21 @@ except Exception:
 st.markdown(
     """
 <style>
+.block-container { padding-top: 0.4rem !important; padding-bottom: 0 !important; }
+h1, h2 { font-size: 1.1rem !important; margin-bottom: 0.15rem !important; }
 .hub-card {
     background: #1e293b;
     border: 1px solid #334155;
-    border-radius: 10px;
-    padding: 1rem 1.2rem;
-    margin-bottom: 0.5rem;
+    border-radius: 7px;
+    padding: 0.55rem 0.85rem;
+    margin-bottom: 0.35rem;
     transition: border-color 0.2s;
 }
 .hub-card:hover { border-color: #3b82f6; }
-.hub-title { font-size: 1rem; font-weight: 700; color: #f8fafc; margin-bottom: 0.2rem; }
-.hub-desc  { font-size: 0.8rem; color: #94a3b8; margin-bottom: 0.6rem; }
-.hub-port  { font-size: 0.7rem; color: #475569; font-family: monospace; }
+.hub-title { font-size: 0.85rem; font-weight: 700; color: #f8fafc; margin-bottom: 0.1rem; }
+.hub-desc  { font-size: 0.72rem; color: #94a3b8; margin-bottom: 0.35rem; }
+.hub-port  { font-size: 0.65rem; color: #475569; font-family: monospace; }
+div[data-testid="stMetricValue"] { color: #ffffff !important; }
 </style>
 """,
     unsafe_allow_html=True,

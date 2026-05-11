@@ -46,24 +46,37 @@ st.markdown(
     """
 <style>
 .main { background-color: #080d1a; }
-.block-container { padding-top: 0.8rem; padding-bottom: 0rem; }
+.block-container { padding-top: 0.35rem; padding-bottom: 0rem; }
 div[data-testid="metric-container"] {
     background: linear-gradient(135deg, #0d1b2a 0%, #1a2744 100%);
     border: 1px solid #1e3a5f;
-    border-radius: 10px;
-    padding: 12px 16px;
+    border-radius: 7px;
+    padding: 6px 10px;
 }
+div[data-testid="metric-container"] label {
+    font-size: 0.68rem !important;
+    color: #6b8cad !important;
+}
+div[data-testid="stMetricValue"] {
+    font-size: 1.05rem !important;
+    color: #ffffff !important;
+    font-weight: 700;
+}
+div[data-testid="stMetricDelta"] { font-size: 0.7rem !important; }
+h1, h2 { font-size: 1.1rem !important; margin-bottom: 0.2rem !important; }
+h3, h4 { font-size: 0.88rem !important; margin-bottom: 0.15rem !important; }
 .status-ok   { color: #00d4aa; font-weight: 700; }
 .status-warn { color: #f0a500; font-weight: 700; }
 .status-err  { color: #ff4444; font-weight: 700; }
-.module-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+hr { margin: 0.35rem 0 !important; }
+div[data-testid="stAlert"] { padding: 0.45rem 0.75rem !important; font-size: 0.8rem; }
 .mod-card {
     background: #0d1b2a;
     border: 1px solid #1e3a5f;
-    border-radius: 8px;
-    padding: 8px 14px;
-    font-size: 12px;
-    min-width: 140px;
+    border-radius: 6px;
+    padding: 5px 10px;
+    font-size: 11px;
+    min-width: 130px;
 }
 </style>
 """,
@@ -336,12 +349,12 @@ with tab1:
             ch_cap, ch_dur = st.columns(2)
             with ch_cap:
                 st.markdown("#### 💰 Capital (150 derniers cycles)")
-                st.line_chart(df_cyc.set_index("cycle")["capital"], height=180)
+                st.line_chart(df_cyc.set_index("cycle")["capital"], height=130)
             with ch_dur:
                 st.markdown("#### ⚡ Durée cycle ms (150 derniers cycles)")
                 df_dur = df_cyc.dropna(subset=["duration_ms"])
                 if not df_dur.empty:
-                    st.line_chart(df_dur.set_index("cycle")["duration_ms"], height=180)
+                    st.line_chart(df_dur.set_index("cycle")["duration_ms"], height=130)
                 else:
                     st.info("Durée non encore enregistrée (redémarrer le bot)")
 
@@ -357,7 +370,7 @@ with tab1:
                 sorted(total_ref.items(), key=lambda x: -x[1]),
                 columns=["Couche", "Refus totaux"],
             )
-            st.bar_chart(df_tot.set_index("Couche"), height=200)
+            st.bar_chart(df_tot.set_index("Couche"), height=140)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -517,13 +530,13 @@ with tab3:
             st.markdown("**Régimes détectés**")
             regimes = Counter(d.get("regime", "unknown") for d in decisions)
             df_reg = pd.DataFrame(regimes.most_common(), columns=["Régime", "Count"])
-            st.bar_chart(df_reg.set_index("Régime"), height=200)
+            st.bar_chart(df_reg.set_index("Régime"), height=140)
 
             # Conviction
             st.markdown("**Niveaux de conviction**")
             convs = Counter(d.get("conviction_level", "—") for d in decisions)
             df_conv = pd.DataFrame(convs.most_common(), columns=["Conviction", "Count"])
-            st.bar_chart(df_conv.set_index("Conviction"), height=180)
+            st.bar_chart(df_conv.set_index("Conviction"), height=120)
 
         with col_right:
             # Score distribution
@@ -536,7 +549,7 @@ with tab3:
             if scores:
                 df_scores = pd.DataFrame({"score": scores})
                 hist = df_scores["score"].value_counts().sort_index()
-                st.bar_chart(hist, height=200)
+                st.bar_chart(hist, height=140)
                 avg_s = sum(scores) / len(scores)
                 st.caption(
                     f"Score moyen : {avg_s:.1f}"
@@ -549,7 +562,7 @@ with tab3:
             df_perso = pd.DataFrame(
                 persos.most_common(), columns=["Personnalité", "Count"]
             )
-            st.bar_chart(df_perso.set_index("Personnalité"), height=180)
+            st.bar_chart(df_perso.set_index("Personnalité"), height=120)
 
         # Évolution du score par cycle (par symbole)
         st.divider()
@@ -569,7 +582,7 @@ with tab3:
                 df_s = pd.DataFrame(pts).groupby("cycle")["score"].mean().rename(sym)
                 dfs.append(df_s)
             df_scores_time = pd.concat(dfs, axis=1).sort_index().tail(100)
-            st.line_chart(df_scores_time, height=220)
+            st.line_chart(df_scores_time, height=150)
             st.caption(
                 "Score moyen par cycle — ligne pointillée mentale à 70 = seuil de trade"
             )
@@ -679,7 +692,7 @@ with tab3:
                 [(k, v) for k, v in cnt_labels.most_common()],
                 columns=["Classification", "Count"],
             )
-            st.bar_chart(df_coh_bar.set_index("Classification"), height=160)
+            st.bar_chart(df_coh_bar.set_index("Classification"), height=110)
 
             # Win rate score≥70 vs score<70
             wr_col1, wr_col2 = st.columns(2)
@@ -802,7 +815,7 @@ with tab4:
                 )
             df_pnl = pd.DataFrame(pnl_cumul).set_index("trade")
             st.markdown("#### 📈 PnL cumulé ($)")
-            st.line_chart(df_pnl["pnl_cumul"], height=180)
+            st.line_chart(df_pnl["pnl_cumul"], height=130)
 
         # Breakdown par raison de sortie
         exit_reasons = Counter(e.get("exit_reason", "?")[:30] for e in exits)
