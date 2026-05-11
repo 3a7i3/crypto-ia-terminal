@@ -27,11 +27,7 @@ import plotly.graph_objects as go
 
 from dashboard.colors import (
     C,
-    conviction_color,
     css_inject,
-    regime_color,
-    state_color,
-    status_badge,
 )
 from quant_hedge_ai.agents.market.market_scanner import MarketScanner
 
@@ -450,10 +446,8 @@ with tab_paper:
     st.markdown("## 📋 Paper Trading — Compte virtuel")
 
     from quant_hedge_ai.agents.execution.paper_trading_engine import (
-        _STATE_FILE,
         PaperTradingEngine,
     )
-    from quant_hedge_ai.agents.execution.signal_engine import compute_signal
 
     # Charger l'état persisté (pas de nouvelles requêtes réseau)
     _pt = PaperTradingEngine(persist=True)

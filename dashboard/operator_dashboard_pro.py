@@ -3,8 +3,6 @@
 OPERATOR DASHBOARD PRO — Version finale hedge fund UI
 """
 
-from datetime import datetime
-import json
 
 
 DASHBOARD_HTML = """
