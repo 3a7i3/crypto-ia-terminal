@@ -137,10 +137,13 @@ ADVISOR_SESSION_PRIMER = os.getenv("ADVISOR_SESSION_PRIMER", "true").lower() == 
 
 
 def _session_primer_config() -> JSONDict:
+    _futures_exchanges = {"krakenfutures", "binanceusdm", "bybit", "okx"}
+    _exch = os.getenv("EXCHANGE_ID", "binance").lower()
+    _default_type = "swap" if _exch in _futures_exchanges else "spot"
     return {
         "enableRateLimit": True,
         "options": {
-            "defaultType": "spot",
+            "defaultType": _default_type,
             "adjustForTimeDifference": os.getenv(
                 "MARKET_SCANNER_ADJUST_TIME", "false"
             ).lower()
@@ -463,6 +466,28 @@ def analyze_symbol(
         signal.actionable,
     )
 
+    # ── DecisionPacket — pipeline souverain parallèle ────────────────────────
+    # Dual track : le packet traverse les 4 couches dans l'ordre du lifecycle.
+    # Les variables legacy (gate_result, pb_verdict…) pilotent encore les décisions.
+    # Ce bloc produit l'audit trail complet + prépare la migration future.
+    _dp = None
+    try:
+        from quant_hedge_ai.agents.execution.live_signal_engine import (
+            _to_decision_packet,
+        )
+
+        _dp = _to_decision_packet(signal, cycle_id=str(cycle))
+        if conviction_engine and _dp:
+            conviction_engine.enrich_packet(
+                _dp,
+                candles_1h,
+                memory_sharpe,
+                personality_name=personality.name if personality else "unknown",
+            )
+    except Exception as _dp_exc:
+        log.debug("[DecisionPacket] init/enrich: %s", _dp_exc)
+        _dp = None
+
     # ── Validation Meta-Strategy ───────────────────────────────────────────────
     meta_allowed = True
     meta_reason = "OK"
@@ -476,6 +501,13 @@ def analyze_symbol(
         gate_result = gate.check(
             signal, portfolio_drawdown=0.0, order_size_usd=order_size_usd
         )
+    if _dp and not _dp.is_terminal() and hasattr(gate, "check_packet"):
+        try:
+            gate.check_packet(
+                _dp, portfolio_drawdown=0.0, order_size_usd=order_size_usd
+            )
+        except Exception as _dp_exc:
+            log.debug("[DecisionPacket] check_packet: %s", _dp_exc)
 
     # ── TEST MODE — réduire seuil de score pour forcer des trades faibles ──
     min_score_override = float(os.getenv("GATE_MIN_SCORE_OVERRIDE", "0"))
@@ -592,6 +624,11 @@ def analyze_symbol(
                     pb_verdict.size_factor,
                     order_size_usd,
                 )
+    if _dp and _dp.lifecycle_state.value == "RISK_EVALUATED" and portfolio_brain:
+        try:
+            portfolio_brain.approve_packet(_dp, open_positions_list, order_size_usd)
+        except Exception as _dp_exc:
+            log.debug("[DecisionPacket] approve_packet: %s", _dp_exc)
 
     # ── Capital Allocation Engine — taille optimale Kelly/EV/vol ─────────────
     allocation = None
@@ -636,6 +673,48 @@ def analyze_symbol(
                 )
             else:
                 log.info("[CAE] Allocation refusée: %s", allocation.reason)
+
+    if _dp and _dp.lifecycle_state.value == "APPROVED":
+        try:
+            from core.decision_packet import (
+                DecisionState,
+                ReasoningCategory,
+                ReasoningSeverity,
+            )
+
+            _dp.add_agent("capital_engine")
+            if allocation and allocation.size_usd > 0:
+                _dp.features["os_size_usd"] = round(allocation.size_usd, 2)
+                _dp.features["os_kelly"] = getattr(allocation, "kelly_fraction", 0.0)
+                _dp.add_reasoning(
+                    "capital_engine",
+                    f"Kelly={getattr(allocation,'kelly_fraction',0):.3f}"
+                    f" ev={getattr(allocation,'ev_score',0):.4f}"
+                    f" → ${allocation.size_usd:.2f}",
+                    confidence_impact=0.0,
+                    category=ReasoningCategory.SIZING,
+                )
+                _dp.transition_to(
+                    DecisionState.EXECUTION_PENDING,
+                    "capital_engine",
+                    f"Sizing: ${allocation.size_usd:.2f}",
+                )
+            else:
+                reason = (
+                    getattr(allocation, "reason", "allocation refusée")
+                    if allocation
+                    else "capital_engine absent"
+                )
+                _dp.add_reasoning(
+                    "capital_engine",
+                    f"Sizing refusé: {reason}",
+                    confidence_impact=-20.0,
+                    category=ReasoningCategory.SIZING,
+                    severity=ReasoningSeverity.WARNING,
+                )
+                _dp.reject("capital_engine", f"Sizing refusé: {reason}")
+        except Exception as _dp_exc:
+            log.debug("[DecisionPacket] sizing: %s", _dp_exc)
 
     # ── Executive Override — commandement suprême ─────────────────────────────
     eo_verdict = None
@@ -944,6 +1023,28 @@ def analyze_symbol(
         eo_str,
     )
 
+    # ── Persistance DecisionPacket ────────────────────────────────────────────
+    # Rotation quotidienne : DP_LOG_PATH explicite → utilisé tel quel (compat).
+    # Sinon : DP_LOG_DIR/decision_packets_YYYY-MM-DD.jsonl (UTC).
+    if _dp and _dp.lifecycle_state.value != "CREATED":
+        try:
+            import json as _json
+            from datetime import datetime as _dt
+            from pathlib import Path as _Path
+
+            _explicit = os.getenv("DP_LOG_PATH")
+            if _explicit:
+                _dp_path = _Path(_explicit)
+            else:
+                _log_dir = _Path(os.getenv("DP_LOG_DIR", "databases"))
+                _date = _dt.utcnow().strftime("%Y-%m-%d")
+                _dp_path = _log_dir / f"decision_packets_{_date}.jsonl"
+            _dp_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(_dp_path, "a", encoding="utf-8") as _f:
+                _f.write(_json.dumps(_dp.to_dict(), ensure_ascii=False) + "\n")
+        except Exception as _dp_exc:
+            log.debug("[DecisionPacket] log: %s", _dp_exc)
+
     return {
         "symbol": symbol,
         "prix": prix,
@@ -972,7 +1073,8 @@ def analyze_symbol(
         "n_1h": len(candles_1h),
         "n_4h": len(mtf_candles.get("4h", [])),
         "n_1d": len(mtf_candles.get("1d", [])),
-        "signal_to_execute": signal_to_execute,  # ← Override signal (for test mode)
+        "signal_to_execute": signal_to_execute,
+        "decision_packet": _dp,
     }
 
 
@@ -1232,13 +1334,15 @@ def main(
     _primer_future: Any = None
     _primer_executor: ThreadPoolExecutor | None = None
     if ADVISOR_SESSION_PRIMER:
-        _exchange_id = os.getenv("MARKET_SCANNER_EXCHANGE", "binance")
+        _exchange_id = os.getenv(
+            "MARKET_SCANNER_EXCHANGE", os.getenv("EXCHANGE_ID", "binance")
+        )
         # MARKET_SCANNER_TESTNET prioritaire — OHLCV publics = vrai exchange
         _scanner_testnet_env = os.getenv("MARKET_SCANNER_TESTNET", "").lower()
         if _scanner_testnet_env in ("true", "false"):
             _testnet = _scanner_testnet_env == "true"
         else:
-            _testnet = os.getenv("BINANCE_TESTNET", "false").lower() == "true"
+            _testnet = os.getenv("EXCHANGE_TESTNET", "false").lower() == "true"
         _trace_primer = (
             os.getenv("MARKET_SCANNER_TRACE_TIMINGS", "false").lower() == "true"
         )

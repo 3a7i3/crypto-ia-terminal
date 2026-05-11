@@ -21,9 +21,9 @@ Source de vérité : `core/decision_packet.py` — `DecisionState`, `VALID_TRANS
 | `CLOSED` | `position_manager` | Position fermée. PnL réalisé connu. |
 | `POSTMORTEM_ANALYZED` | `postmortem_engine` | Analyse causale terminée. VALIDATED / LUCKY / UNLUCKY / MISTAKE. |
 
-### États terminaux (irréversibles)
+### États terminaux exceptionnels (`EXCEPTIONAL_TERMINAL_STATES`)
 
-Accessibles depuis **n'importe quel état vivant** — veto, expiry, panne peuvent survenir à tout moment.
+**Accessibles depuis n'importe quel état vivant** — mort prématurée du packet. Veto, expiry, panne ou annulation peuvent survenir à tout moment dans le lifecycle.
 
 | État | Émis par | Cause typique |
 |---|---|---|
@@ -32,6 +32,16 @@ Accessibles depuis **n'importe quel état vivant** — veto, expiry, panne peuve
 | `EXPIRED` | `lifecycle_monitor` | Packet trop vieux pour être exécuté (conditions de marché changées). |
 | `CANCELLED` | `portfolio_brain` / opérateur | Annulation explicite avant exécution. |
 | `FAILED` | `execution_engine` | Erreur technique à l'exécution (exchange, réseau, fonds insuffisants). |
+
+### État terminal nominal
+
+**Accessible uniquement depuis `CLOSED`** — complétion complète du lifecycle. Ne contourne pas le graphe de transitions.
+
+| État | Émis par | Signification |
+|---|---|---|
+| `POSTMORTEM_ANALYZED` | `postmortem_engine` | Analyse causale terminée. Packet a vécu un cycle complet. |
+
+> **Distinction critique** : `EXCEPTIONAL_TERMINAL_STATES` signifie mort prématurée — le packet n'a pas atteint sa destination. `POSTMORTEM_ANALYZED` signifie complétion — le cycle est terminé normalement. Cette distinction est structurelle dans le code (`EXCEPTIONAL_TERMINAL_STATES` contourne le graphe, `POSTMORTEM_ANALYZED` ne le fait pas) et essentielle pour la validité des datasets, analytics et replay engines.
 
 ---
 
@@ -79,14 +89,18 @@ Depuis tout état vivant :
 - **Écrit :** `packet.features["risk_drawdown_pct"]`, `packet.metadata["risk_conditions"]`
 
 ### `portfolio_brain` — Couche allocation
-- **Produit :** `RISK_EVALUATED → APPROVED`
-- **Vérifie :** corrélation portefeuille, concentration, exposition totale
+- **Produit :** `RISK_EVALUATED → APPROVED` via `approve_packet()`
+- **Vérifie :** exposition totale, concentration symbole, régime, corrélation, levier, nombre de positions, direction dominante, fragmentation (8 checks)
 - **Peut :** appeler `reject()` si le portefeuille ne peut absorber la position
+- **Écrit dans features :** `pb_exposure_pct`, `pb_symbol_pct`, `pb_corr_risk`, `pb_leverage_weighted`
+- **Écrit dans metadata :** `pb_size_factor`, `pb_capital_available`, `pb_warnings`
+- **API legacy :** `check_new_trade()` préservée pour compatibilité ascendante
 
 ### `order_sizer` — Couche sizing
-- **Produit :** `APPROVED → EXECUTION_PENDING`
-- **Lit :** `conviction_size_factor` (advisory), Kelly, volatilité
-- **Écrit :** `allocation_pct`, `risk_score` final
+- **Produit :** `APPROVED → EXECUTION_PENDING` via `size_packet()`
+- **Lit en advisory :** `conviction_size_factor`, `pb_size_factor`, `realized_volatility`
+- **Écrit :** `allocation_pct`, `features["os_kelly"]`, `features["os_vol_factor"]`, `features["os_dd_factor"]`, `features["os_size_usd"]`
+- **Dans advisor_loop :** `capital_engine` joue ce rôle (acteur = `"capital_engine"`)
 
 ### `execution_engine` — Couche exécution
 - **Produit :** `EXECUTION_PENDING → EXECUTED` ou `FAILED`
@@ -169,13 +183,40 @@ CREATED
 
 ---
 
+## ReasoningEntry — dimensions orthogonales
+
+Chaque entrée de raisonnement porte quatre dimensions indépendantes :
+
+| Champ | Type | Signification |
+|---|---|---|
+| `confidence_impact` | `float` | Effet sur la croyance décisionnelle (positif = renforce, négatif = affaiblit) |
+| `severity` | `ReasoningSeverity` | Nature opérationnelle de l'événement — indépendant de l'impact |
+| `category` | `str` | Famille causale (`trend_alignment`, `risk_governance`, `signal_quality`…) |
+| `actor` | `str` | Agent source de la mutation |
+
+### ReasoningSeverity
+
+| Valeur | Signification |
+|---|---|
+| `INFO` | Observation normale dans le flux attendu |
+| `WARNING` | Dégradation, divergence ou condition dégradée |
+| `CRITICAL` | Menace pour la gouvernance ou la qualité d'exécution |
+| `FATAL` | Arrêt immédiat requis — veto, kill switch, anomalie systémique |
+
+> **Invariant** : `severity` et `confidence_impact` sont orthogonaux. Un `WARNING` peut avoir un impact positif (volatilité détectée, position réduite prudemment). Un `INFO` peut porter un impact fort (+15 pour un alignement MTF excellent). Ne jamais dériver `severity` depuis `confidence_impact`.
+
+`veto_by()` émet automatiquement `FATAL` + `category="governance"`. `reject()` reste `INFO` par défaut — le caller contextualise la gravité selon la cause du rejet.
+
+---
+
 ## Ce que ce graphe révèle
 
 - `REGIME_VALIDATED` est actuellement orphelin — aucune couche ne l'émet. À implémenter ou supprimer.
 - `CONTEXT_ENRICHED` porte à la fois conviction et enrichissement contextuel. Si une couche de contexte de marché distincte émerge, un état `MARKET_CONTEXTUALIZED` pourrait la précéder.
-- La distance `RISK_EVALUATED → APPROVED` est actuellement zéro latence. Quand `portfolio_brain` sera migré, cet espace sera comblé.
+- `RISK_EVALUATED → APPROVED` est maintenant produit par `portfolio_brain.approve_packet()`. L'espace institutionnel est comblé.
 - `reasoning[*].category` permet une analytics future : quelle famille de raisonnement (trend_alignment, risk_governance, signal_quality…) corrèle avec le PnL réel.
+- `StateTransition` porte maintenant `duration_ms`, `confidence_before`, `confidence_after` — base pour la performance analysis, bottleneck detection et governance latency. `confidence_before` est la confiance à l'entrée de l'état, `confidence_after` après tous les raisonnements de la couche propriétaire.
 
 ---
 
-*Dernière mise à jour : 2026-05-08 — après migration LSE, conviction, risk_gate, formalisation VALID_TRANSITIONS.*
+*Dernière mise à jour : 2026-05-09 — séparation EXCEPTIONAL_TERMINAL_STATES / terminal nominal, ajout ReasoningSeverity, audit de synchronisation code ↔ documentation, migration portfolio_brain (RISK_EVALUATED → APPROVED).*

@@ -1,0 +1,61 @@
+{
+  "module_id": "live_signal_engine",
+  "class_name": "LiveSignalEngine",
+  "file_path": "quant_hedge_ai/agents/execution/live_signal_engine.py",
+  "display_name": "Moteur de Signaux Live",
+  "layer": "signal",
+  "dashboard_tab": "Signal",
+
+  "role_fr": "Agrège plusieurs sources d'analyse pour produire un score 0-100 par symbole. Un score ≥ SIGNAL_MIN_SCORE (défaut 70) déclenche une opportunité de trading.",
+  "role_en": "Aggregates multiple analysis sources to produce a 0-100 score per symbol. A score ≥ SIGNAL_MIN_SCORE (default 70) triggers a trading opportunity.",
+
+  "sources": [
+    { "source": "MultiTimeframeSignal",     "weight_pct": 40, "description": "Signal agrégé sur plusieurs timeframes" },
+    { "source": "AdvancedRegimeDetector",   "weight_pct": 25, "description": "Détection du régime de marché" },
+    { "source": "OHLCVValidator",           "weight_pct": 15, "description": "Qualité des données de bougies" },
+    { "source": "StrategyMemoryStore",      "weight_pct": 20, "description": "Contexte mémoire stratégique historique" }
+  ],
+
+  "signal_result_fields": {
+    "symbol": "Symbole tradé (ex: BTC/USDT)",
+    "score": "Score composite 0-100",
+    "signal": "Direction : BUY | SELL | HOLD",
+    "regime": "Régime marché détecté",
+    "confirmed": "Signal confirmé multi-timeframes",
+    "strength": "Force du signal [0.0, 1.0]",
+    "components": "Détail par composant"
+  },
+
+  "regime_map": {
+    "bull_trend":            "TREND_BULL",
+    "bear_trend":            "TREND_BEAR",
+    "sideways":              "RANGE",
+    "high_volatility_regime":"VOLATILE",
+    "flash_crash":           "VOLATILE",
+    "unknown":               "UNKNOWN"
+  },
+
+  "key_metrics": [
+    { "metric_id": "score",     "label": "Score Signal",  "type": "int_0_100",
+      "dashboard_color_map": { "0-39": "red", "40-69": "orange", "70-89": "yellow", "90-100": "green" }
+    },
+    { "metric_id": "signal",    "label": "Direction",     "type": "enum",
+      "values": ["BUY", "SELL", "HOLD"],
+      "dashboard_color_map": { "BUY": "green", "SELL": "red", "HOLD": "gray" }
+    },
+    { "metric_id": "regime",    "label": "Régime",        "type": "str" },
+    { "metric_id": "confirmed", "label": "MTF Confirmé",  "type": "bool" },
+    { "metric_id": "strength",  "label": "Force",         "type": "float_0_1", "display": "{value:.0%}" },
+    { "metric_id": "actionable","label": "Actionnable",   "type": "bool" }
+  ],
+
+  "env_vars": [
+    { "var": "SIGNAL_MIN_SCORE", "default": "70", "description": "Seuil minimum pour qu'un signal soit actionnable" }
+  ],
+
+  "packet_api": {
+    "method": "evaluate_as_packet(symbol, mtf_candles, features)",
+    "returns": "DecisionPacket",
+    "note": "to_decision_packet() sur SignalResult pour compatibilité"
+  }
+}

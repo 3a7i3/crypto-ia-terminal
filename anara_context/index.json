@@ -1,0 +1,64 @@
+{
+  "_comment": "Index des modules pour Anara — système de génération automatique de textes dashboard",
+  "_version": "1.0",
+  "_updated": "2026-05-11",
+  "layers": [
+    {
+      "layer_id": "signal",
+      "display_name": "Signal Layer",
+      "modules": ["live_signal_engine", "feature_engineer", "market_scanner"]
+    },
+    {
+      "layer_id": "intelligence",
+      "display_name": "Intelligence Layer",
+      "modules": [
+        "conviction_engine",
+        "no_trade_layer",
+        "self_awareness_engine",
+        "threat_radar",
+        "ai_advisor",
+        "regime_detector"
+      ]
+    },
+    {
+      "layer_id": "risk",
+      "display_name": "Risk Layer",
+      "modules": [
+        "global_risk_gate",
+        "portfolio_brain",
+        "order_sizer",
+        "session_guard",
+        "executive_override"
+      ]
+    },
+    {
+      "layer_id": "execution",
+      "display_name": "Execution Layer",
+      "modules": [
+        "execution_engine",
+        "position_manager",
+        "shadow_engine",
+        "trade_postmortem"
+      ]
+    },
+    {
+      "layer_id": "learning",
+      "display_name": "Learning Layer",
+      "modules": [
+        "mistake_memory",
+        "decision_quality_engine",
+        "regret_engine",
+        "black_box"
+      ]
+    },
+    {
+      "layer_id": "infrastructure",
+      "display_name": "Infrastructure",
+      "modules": [
+        "exchange_factory",
+        "decision_packet",
+        "advisor_loop"
+      ]
+    }
+  ]
+}

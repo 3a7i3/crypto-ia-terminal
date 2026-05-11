@@ -1,0 +1,53 @@
+{
+  "module_id": "order_sizer",
+  "class_name": "OrderSizer",
+  "file_path": "quant_hedge_ai/agents/risk/order_sizer.py",
+  "display_name": "Calculateur de Taille",
+  "layer": "risk",
+  "dashboard_tab": "Risk",
+
+  "role_fr": "Calcule la taille optimale d'une position selon la formule Kelly modifiée, ajustée par la volatilité, le drawdown et la conviction.",
+  "role_en": "Computes optimal position size using a modified Kelly formula, adjusted for volatility, drawdown, and conviction.",
+
+  "formula": {
+    "kelly_raw": "f = (win_rate × avg_win - (1-win_rate) × avg_loss) / avg_win",
+    "kelly_applied": "kelly_raw × kelly_fraction (défaut: 0.25 = quart-Kelly)",
+    "vol_factor": "vol_target / realized_vol (réduit si vol > cible)",
+    "dd_factor": "max(0.1, 1.0 - drawdown × 2.5)",
+    "score_bonus": "1.0 + max(0, (score-70) / 300)",
+    "final": "capital × kelly_applied × vol_factor × dd_factor × score_bonus × conv_factor × pb_factor"
+  },
+
+  "safety_limits": [
+    { "name": "min_size_usd", "default": 10.0,   "description": "Taille minimale absolue" },
+    { "name": "max_size_usd", "default": 5000.0,  "description": "Taille maximale absolue" },
+    { "name": "kelly_fraction","default": 0.25,   "description": "Plafond Kelly (quart-Kelly = conservateur)" }
+  ],
+
+  "key_metrics": [
+    { "metric_id": "os_kelly",       "label": "Kelly brut",        "type": "float_0_1" },
+    { "metric_id": "os_vol_factor",  "label": "Facteur vol",       "type": "float_0_1" },
+    { "metric_id": "os_dd_factor",   "label": "Facteur drawdown",  "type": "float_0_1" },
+    { "metric_id": "os_size_usd",    "label": "Taille finale USD",  "type": "usd"       },
+    { "metric_id": "allocation_pct", "label": "Allocation % capital","type": "percent"  }
+  ],
+
+  "packet_state_transitions": [
+    { "from": "APPROVED", "to": "EXECUTION_PENDING", "condition": "Sizing calculé" }
+  ],
+
+  "advisory_inputs": [
+    { "key": "conviction_size_factor", "from": "conviction_engine", "description": "Multiplicateur conviction (0.0-1.5)" },
+    { "key": "pb_size_factor",         "from": "portfolio_brain",   "description": "Multiplicateur portefeuille (0.0-1.2)" }
+  ],
+
+  "output_fields": {
+    "size_usd": "Taille en USD",
+    "size_base": "Taille en unité de base (ex: BTC)",
+    "kelly_fraction": "Fraction Kelly brute avant plafonnement",
+    "volatility_factor": "Facteur volatilité appliqué",
+    "drawdown_factor": "Facteur drawdown appliqué",
+    "final_fraction": "Fraction finale du capital",
+    "capped": "True si taille plafonnée"
+  }
+}

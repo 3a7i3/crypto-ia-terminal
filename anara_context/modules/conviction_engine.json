@@ -1,0 +1,70 @@
+{
+  "module_id": "conviction_engine",
+  "class_name": "ConvictionEngine",
+  "file_path": "quant_hedge_ai/agents/intelligence/conviction_engine.py",
+  "display_name": "Moteur de Conviction",
+  "layer": "intelligence",
+  "dashboard_tab": "Intelligence",
+
+  "role_fr": "Mesure la conviction du bot sur un signal avant d'agir. Calcule un score composite sur 6 dimensions pour déterminer la taille de position optimale.",
+  "role_en": "Measures bot conviction on a signal before acting. Computes a composite score across 6 dimensions to determine optimal position sizing.",
+
+  "conviction_levels": [
+    { "level": "MINIMAL", "score_range": [0, 39], "size_factor": 0.0, "action": "Ignoré — trade bloqué" },
+    { "level": "LOW",     "score_range": [40, 59], "size_factor": 0.3, "action": "Surveillance uniquement" },
+    { "level": "MEDIUM",  "score_range": [60, 74], "size_factor": 0.6, "action": "Trade standard" },
+    { "level": "HIGH",    "score_range": [75, 89], "size_factor": 1.0, "action": "Trade confiant" },
+    { "level": "EXCEPTIONAL", "score_range": [90, 100], "size_factor": 1.5, "action": "Opportunité rare — sur-pondéré" }
+  ],
+
+  "dimensions": [
+    { "id": "signal",  "weight_pct": 30, "description": "Score brut du signal (0-100)" },
+    { "id": "mtf",     "weight_pct": 25, "description": "Alignement multi-timeframe (1h/4h/1d)" },
+    { "id": "regime",  "weight_pct": 20, "description": "Adéquation régime marché / action" },
+    { "id": "memory",  "weight_pct": 15, "description": "Historique Sharpe pour ce régime" },
+    { "id": "quality", "weight_pct": 10, "description": "Qualité des données OHLCV + features" }
+  ],
+
+  "key_metrics": [
+    {
+      "metric_id": "conviction_level",
+      "label": "Niveau Conviction",
+      "type": "enum",
+      "values": ["MINIMAL", "LOW", "MEDIUM", "HIGH", "EXCEPTIONAL"],
+      "dashboard_color_map": {
+        "MINIMAL": "red",
+        "LOW": "orange",
+        "MEDIUM": "yellow",
+        "HIGH": "green",
+        "EXCEPTIONAL": "purple"
+      }
+    },
+    { "metric_id": "conviction_score", "label": "Score Conviction", "type": "float_0_100" },
+    { "metric_id": "conviction_size_factor", "label": "Facteur Taille", "type": "float", "display": "×{value:.2f}" },
+    { "metric_id": "conviction_dimensions.signal", "label": "Dim Signal", "type": "float_0_100" },
+    { "metric_id": "conviction_dimensions.mtf",    "label": "Dim MTF",    "type": "float_0_100" },
+    { "metric_id": "conviction_dimensions.regime", "label": "Dim Régime", "type": "float_0_100" },
+    { "metric_id": "conviction_dimensions.memory", "label": "Dim Mémoire","type": "float_0_100" },
+    { "metric_id": "conviction_dimensions.quality","label": "Dim Qualité","type": "float_0_100" }
+  ],
+
+  "env_vars": [
+    { "var": "CONV_W_SIGNAL",  "default": "30",  "description": "Poids dimension signal" },
+    { "var": "CONV_W_MTF",     "default": "25",  "description": "Poids dimension MTF" },
+    { "var": "CONV_W_REGIME",  "default": "20",  "description": "Poids dimension régime" },
+    { "var": "CONV_W_MEMORY",  "default": "15",  "description": "Poids dimension mémoire" },
+    { "var": "CONV_W_QUALITY", "default": "10",  "description": "Poids dimension qualité" },
+    { "var": "CONV_THRESH_HIGH",       "default": "75", "description": "Seuil niveau HIGH" },
+    { "var": "CONV_THRESH_EXCEPTIONAL","default": "90", "description": "Seuil niveau EXCEPTIONAL" },
+    { "var": "CONV_SIZE_EXCEPTIONAL",  "default": "1.5","description": "Facteur taille EXCEPTIONAL" }
+  ],
+
+  "packet_api": {
+    "method": "enrich_packet(packet, candles, memory_sharpe, personality_name)",
+    "reads_from_packet": ["confidence", "features.mtf", "metadata.mtf_confirmed", "metadata.signal_raw", "regime"],
+    "writes_to_packet": ["conviction", "metadata.conviction_size_factor", "metadata.conviction_score", "metadata.conviction_dimensions"],
+    "rule": "Ne jamais appeler packet.reject() — le rejet appartient au risk_gate"
+  },
+
+  "architectural_note": "ConvictionLevel local (minimal/.../exceptional) ≠ core.ConvictionLevel (SKIP/.../VERY_HIGH). Fusion prévue dans core/ à terme."
+}

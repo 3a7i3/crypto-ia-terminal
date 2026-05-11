@@ -3,19 +3,21 @@ P0 — GESTIONNAIRE DE RISQUE PORTEFEUILLE
 Valide: exposition max, corrélation, concentration par actif
 """
 
-from typing import List, Dict, Tuple, Optional
-from statistics import mean, stdev
+from statistics import mean
+from typing import Any, Dict, List, Tuple
 
 
 class PortfolioRiskManager:
     """Vérifie les limites de risque au niveau portefeuille"""
 
-    def __init__(self,
-                 total_capital: float = 10000.0,
-                 max_single_exposure: float = 0.20,
-                 max_total_exposure: float = 0.80,
-                 max_drawdown_portfolio: float = 0.15,
-                 max_avg_correlation: float = 0.70):
+    def __init__(
+        self,
+        total_capital: float = 10000.0,
+        max_single_exposure: float = 0.20,
+        max_total_exposure: float = 0.80,
+        max_drawdown_portfolio: float = 0.15,
+        max_avg_correlation: float = 0.70,
+    ):
         """
         Args:
             total_capital: Capital total (ex: 10000)
@@ -31,11 +33,13 @@ class PortfolioRiskManager:
         self.max_corr = max_avg_correlation
         self.correlations_cache: Dict[Tuple[str, str], float] = {}
 
-    def validate_new_position(self,
-                              symbol: str,
-                              size: float,
-                              current_positions: List[Dict],
-                              estimated_price: float = 1.0) -> Tuple[bool, str]:
+    def validate_new_position(
+        self,
+        symbol: str,
+        size: float,
+        current_positions: List[Dict],
+        estimated_price: float = 1.0,
+    ) -> Tuple[bool, str]:
         """
         Valide si on peut ouvrir une nouvelle position
 
@@ -57,7 +61,9 @@ class PortfolioRiskManager:
                 return False, f"Position {single_ratio:.1%} > max {self.max_single:.1%}"
 
         # Check 2: Exposition totale
-        total_current = sum(p.get('size', 0) * p.get('price', 1.0) for p in current_positions)
+        total_current = sum(
+            p.get("size", 0) * p.get("price", 1.0) for p in current_positions
+        )
         total_after = total_current + position_value
 
         if self.capital > 0:
@@ -69,32 +75,35 @@ class PortfolioRiskManager:
         if current_positions:
             correlations = []
             for pos in current_positions:
-                corr = self._get_correlation(symbol, pos.get('symbol', ''))
+                corr = self._get_correlation(symbol, pos.get("symbol", ""))
                 correlations.append(corr)
 
             if correlations:
                 avg_corr = mean(correlations)
                 if avg_corr > self.max_corr:
-                    return False, f"Corrélation {avg_corr:.2f} > max {self.max_corr:.2f}"
+                    return (
+                        False,
+                        f"Corrélation {avg_corr:.2f} > max {self.max_corr:.2f}",
+                    )
 
         return True, "OK"
 
-    def check_portfolio_concentration(self, positions: List[Dict]) -> Dict[str, any]:
+    def check_portfolio_concentration(self, positions: List[Dict]) -> Dict[str, Any]:
         """Analyse la concentration du portefeuille"""
         if not positions:
             return {
                 "total_exposure": 0.0,
                 "max_single": 0.0,
                 "is_concentrated": False,
-                "breakdown": {}
+                "breakdown": {},
             }
 
-        total = sum(p.get('size', 0) for p in positions)
+        total = sum(p.get("size", 0) for p in positions)
         breakdown = {}
 
         for pos in positions:
-            symbol = pos.get('symbol', 'UNKNOWN')
-            size = pos.get('size', 0)
+            symbol = pos.get("symbol", "UNKNOWN")
+            size = pos.get("size", 0)
             ratio = (size / total) if total > 0 else 0  # Pas de *100, c'est un decimal
             breakdown[symbol] = ratio
 
@@ -107,7 +116,7 @@ class PortfolioRiskManager:
             "exposure_ratio": total / self.capital if self.capital > 0 else 0,
             "max_single_ratio": max_single,
             "is_concentrated": is_concentrated,
-            "breakdown": breakdown
+            "breakdown": breakdown,
         }
 
     def suggest_position_size(self, symbol: str, volatility: float = 0.02) -> float:
@@ -163,29 +172,31 @@ class PortfolioRiskManager:
         return {
             "capital": self.capital,
             "total_positions": len(positions),
-            "total_exposure": concentration['total_exposure'],
-            "exposure_ratio": concentration['exposure_ratio'],
-            "is_within_limits": concentration['exposure_ratio'] <= self.max_total,
+            "total_exposure": concentration["total_exposure"],
+            "exposure_ratio": concentration["exposure_ratio"],
+            "is_within_limits": concentration["exposure_ratio"] <= self.max_total,
             "max_single_allowed": self.capital * self.max_single,
             "max_total_allowed": self.capital * self.max_total,
-            "breakdown": concentration['breakdown'],
-            "recommendations": self._generate_recommendations(concentration)
+            "breakdown": concentration["breakdown"],
+            "recommendations": self._generate_recommendations(concentration),
         }
 
     def _generate_recommendations(self, concentration: Dict) -> List[str]:
         """Génère des recommandations basées sur l'état"""
         recs = []
 
-        if concentration['exposure_ratio'] > self.max_total * 0.9:
+        if concentration["exposure_ratio"] > self.max_total * 0.9:
             recs.append("Exposition proche du max — réduire nouvelles positions")
 
-        if concentration['exposure_ratio'] < self.max_total * 0.3:
+        if concentration["exposure_ratio"] < self.max_total * 0.3:
             recs.append("Exposition basse — peut augmenter si stratégie valide")
 
-        symbols = concentration['breakdown']
+        symbols = concentration["breakdown"]
         if symbols:
             max_sym = max(symbols, key=lambda k: symbols[k])
             if symbols[max_sym] > 0.4:
-                recs.append(f"{max_sym} représente {symbols[max_sym]:.1%} — réduire concentration")
+                recs.append(
+                    f"{max_sym} représente {symbols[max_sym]:.1%} — réduire concentration"
+                )
 
         return recs

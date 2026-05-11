@@ -1,0 +1,59 @@
+{
+  "module_id": "portfolio_brain",
+  "class_name": "PortfolioBrain",
+  "file_path": "quant_hedge_ai/agents/risk/portfolio_brain.py",
+  "display_name": "Cerveau Portefeuille",
+  "layer": "risk",
+  "dashboard_tab": "Risk",
+
+  "role_fr": "Pense portefeuille, pas trade isolé. 8 checks en temps réel pour protéger l'allocation globale du capital. Produit la transition RISK_EVALUATED → APPROVED.",
+  "role_en": "Thinks portfolio, not isolated trade. 8 real-time checks to protect global capital allocation. Produces RISK_EVALUATED → APPROVED transition.",
+
+  "sovereignty": "portfolio_brain — protège le portefeuille (exposition, corrélation, concentration). Distinct du risk_gate qui protège le système.",
+
+  "checks": [
+    { "id": 1, "name": "Exposition totale",     "limit_var": "PB_MAX_EXPOSURE_PCT",   "default": "40%", "blocks": true  },
+    { "id": 2, "name": "Concentration symbole", "limit_var": "PB_MAX_SYMBOL_PCT",     "default": "20%", "blocks": true  },
+    { "id": 3, "name": "Exposition régime",     "limit_var": "PB_MAX_REGIME_PCT",     "default": "30%", "blocks": false, "reduces_size": true },
+    { "id": 4, "name": "Corrélation",           "limit_var": "PB_MAX_CORRELATION",    "default": "0.75","blocks": false, "reduces_size": true },
+    { "id": 5, "name": "Levier agrégé",         "limit_var": "PB_MAX_LEVERAGE",       "default": "×2.0","blocks": false, "reduces_size": true },
+    { "id": 6, "name": "Nombre positions",      "limit_var": "PB_MAX_POSITIONS",      "default": "5",   "blocks": true  },
+    { "id": 7, "name": "Direction dominante",   "limit_var": "PB_MAX_SAME_DIRECTION", "default": "3",   "blocks": false, "reduces_size": true },
+    { "id": 8, "name": "Fragmentation",         "limit_var": "PB_MIN_POSITION_USD",   "default": "$30", "blocks": true  }
+  ],
+
+  "key_metrics": [
+    { "metric_id": "pb_exposure_pct",      "label": "Exposition totale",   "type": "percent",  "alert_threshold": 0.35 },
+    { "metric_id": "pb_symbol_pct",        "label": "Concentration actif", "type": "percent",  "alert_threshold": 0.18 },
+    { "metric_id": "pb_corr_risk",         "label": "Risque corrélation",  "type": "float_0_1","alert_threshold": 0.70 },
+    { "metric_id": "pb_leverage_weighted", "label": "Levier agrégé",       "type": "float",    "alert_threshold": 1.8  },
+    { "metric_id": "pb_size_factor",       "label": "Facteur taille PB",   "type": "float",    "display": "×{value:.2f}" },
+    { "metric_id": "pb_capital_available", "label": "Capital disponible",  "type": "usd"       },
+    { "metric_id": "pb_warnings",          "label": "Avertissements PB",   "type": "list_str"  }
+  ],
+
+  "portfolio_health_output": {
+    "method": "portfolio_health(open_positions)",
+    "fields": [
+      "total_exposure_pct", "n_positions", "open_pnl_usd",
+      "correlation_risk", "leverage_weighted", "by_symbol", "by_regime",
+      "capital", "free_capital"
+    ]
+  },
+
+  "packet_state_transitions": [
+    { "from": "RISK_EVALUATED", "to": "APPROVED",  "condition": "Tous checks OK" },
+    { "from": "RISK_EVALUATED", "to": "REJECTED",  "condition": "Check bloquant échoué (exposition/concentration/positions/fragmentation)" }
+  ],
+
+  "env_vars": [
+    { "var": "PB_MAX_EXPOSURE_PCT",    "default": "0.40", "description": "Exposition totale max (40% du capital)" },
+    { "var": "PB_MAX_SYMBOL_PCT",      "default": "0.20", "description": "Concentration max sur un actif (20%)" },
+    { "var": "PB_MAX_REGIME_PCT",      "default": "0.30", "description": "Max dans le même régime (30%)" },
+    { "var": "PB_MAX_LEVERAGE",        "default": "2.0",  "description": "Levier agrégé max" },
+    { "var": "PB_MAX_CORRELATION",     "default": "0.75", "description": "Risque corrélation max" },
+    { "var": "PB_MIN_POSITION_USD",    "default": "30.0", "description": "Taille minimale d'une position ($)" },
+    { "var": "PB_MAX_POSITIONS",       "default": "5",    "description": "Nombre max de positions simultanées" },
+    { "var": "PB_MAX_SAME_DIRECTION",  "default": "3",    "description": "Max positions dans la même direction" }
+  ]
+}

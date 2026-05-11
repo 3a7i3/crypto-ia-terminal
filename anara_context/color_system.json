@@ -1,0 +1,94 @@
+{
+  "_description": "Système de couleurs complet — palette institutionnelle du dashboard",
+
+  "status": {
+    "ok":      "#22c55e",
+    "warning": "#f59e0b",
+    "error":   "#ef4444",
+    "neutral": "#6b7280",
+    "info":    "#3b82f6"
+  },
+
+  "trading_modes": {
+    "paper":   "#9ca3af",
+    "testnet": "#3b82f6",
+    "live":    "#22c55e"
+  },
+
+  "signal_direction": {
+    "buy":  "#22c55e",
+    "sell": "#ef4444",
+    "hold": "#6b7280"
+  },
+
+  "conviction_levels": {
+    "VERY_HIGH": "#22c55e",
+    "HIGH":      "#84cc16",
+    "MEDIUM":    "#f59e0b",
+    "LOW":       "#f97316",
+    "SKIP":      "#6b7280"
+  },
+
+  "market_regimes": {
+    "TREND_BULL": "#22c55e",
+    "TREND_BEAR": "#ef4444",
+    "RANGE":      "#6b7280",
+    "VOLATILE":   "#f59e0b",
+    "UNKNOWN":    "#9ca3af"
+  },
+
+  "decision_states": {
+    "CREATED":              "#6b7280",
+    "SIGNAL_GENERATED":     "#6b7280",
+    "CONTEXT_ENRICHED":     "#3b82f6",
+    "REGIME_VALIDATED":     "#8b5cf6",
+    "RISK_EVALUATED":       "#f59e0b",
+    "APPROVED":             "#14b8a6",
+    "EXECUTION_PENDING":    "#f97316",
+    "EXECUTED":             "#22c55e",
+    "MONITORED":            "#22c55e",
+    "CLOSED":               "#6b7280",
+    "POSTMORTEM_ANALYZED":  "#6b7280",
+    "REJECTED":             "#ef4444",
+    "EXPIRED":              "#92400e",
+    "CANCELLED":            "#6b7280",
+    "FAILED":               "#ef4444",
+    "VETOED":               "#7f1d1d"
+  },
+
+  "severity": {
+    "INFO":     "#3b82f6",
+    "WARNING":  "#f59e0b",
+    "CRITICAL": "#ef4444",
+    "FATAL":    "#7f1d1d"
+  },
+
+  "postmortem_categories": {
+    "VALIDATED": "#22c55e",
+    "LUCKY":     "#84cc16",
+    "UNLUCKY":   "#f59e0b",
+    "MISTAKE":   "#ef4444"
+  },
+
+  "layers": {
+    "signal":         "#3b82f6",
+    "intelligence":   "#8b5cf6",
+    "risk":           "#ef4444",
+    "execution":      "#22c55e",
+    "learning":       "#f59e0b",
+    "infrastructure": "#6b7280"
+  },
+
+  "background": {
+    "dark":       "#0f172a",
+    "card":       "#1e293b",
+    "card_hover": "#334155",
+    "border":     "#334155"
+  },
+
+  "text": {
+    "primary":   "#f8fafc",
+    "secondary": "#94a3b8",
+    "muted":     "#475569"
+  }
+}

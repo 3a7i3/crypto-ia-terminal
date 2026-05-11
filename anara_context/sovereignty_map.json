@@ -1,0 +1,124 @@
+{
+  "_description": "Carte de souveraineté — qui peut faire quoi dans le pipeline décisionnel",
+  "_principle": "Séparation institutionnelle stricte. Aucun agent ne touche au domaine d'un autre.",
+
+  "pipeline_order": [
+    "LiveSignalEngine",
+    "ConvictionEngine",
+    "GlobalRiskGate",
+    "PortfolioBrain",
+    "OrderSizer",
+    "ExecutionEngine"
+  ],
+
+  "agents": [
+    {
+      "agent": "LiveSignalEngine",
+      "layer": "signal",
+      "step": 1,
+      "color": "#3b82f6",
+      "can_approve": false,
+      "can_reject": false,
+      "can_veto": false,
+      "can_enrich": true,
+      "sovereign_over": ["signal_score", "direction", "ttl", "sources"],
+      "output": "DecisionPacket en état SIGNAL_GENERATED",
+      "invariant": "Ne juge pas — détecte et structure le signal"
+    },
+    {
+      "agent": "ConvictionEngine",
+      "layer": "intelligence",
+      "step": 2,
+      "color": "#8b5cf6",
+      "can_approve": false,
+      "can_reject": false,
+      "can_veto": false,
+      "can_enrich": true,
+      "sovereign_over": ["conviction_level", "conviction_score", "5_dimensions"],
+      "output": "Packet enrichi — conviction calculée",
+      "invariant": "Enrichit uniquement — ne peut pas rejeter ni approuver"
+    },
+    {
+      "agent": "GlobalRiskGate",
+      "layer": "risk",
+      "step": 3,
+      "color": "#ef4444",
+      "can_approve": false,
+      "can_reject": true,
+      "can_veto": false,
+      "can_enrich": true,
+      "sovereign_over": ["drawdown_limit", "session_guard", "kill_switch", "daily_loss", "position_count"],
+      "output": "RISK_EVALUATED → APPROVED ou REJECTED",
+      "invariant": "Seul autorisé à REJECT en flux normal — 5 conditions binaires"
+    },
+    {
+      "agent": "PortfolioBrain",
+      "layer": "risk",
+      "step": 4,
+      "color": "#f97316",
+      "can_approve": true,
+      "can_reject": true,
+      "can_veto": false,
+      "can_enrich": true,
+      "sovereign_over": ["exposure", "concentration", "correlation", "position_count", "direction_balance"],
+      "output": "APPROVED ou REJECTED — 8 checks portefeuille",
+      "invariant": "Peut REJECT sur dépassement portefeuille — ne connaît pas le sizing"
+    },
+    {
+      "agent": "OrderSizer",
+      "layer": "risk",
+      "step": 5,
+      "color": "#14b8a6",
+      "can_approve": false,
+      "can_reject": false,
+      "can_veto": false,
+      "can_enrich": true,
+      "sovereign_over": ["allocation_pct", "size_usd", "kelly_fraction", "vol_factor", "dd_factor"],
+      "output": "Packet avec allocation_pct final — état EXECUTION_PENDING",
+      "invariant": "Lit les advisories sans gouvernance propre — ne peut pas rejeter"
+    },
+    {
+      "agent": "ExecutionEngine",
+      "layer": "execution",
+      "step": 6,
+      "color": "#22c55e",
+      "can_approve": false,
+      "can_reject": false,
+      "can_veto": false,
+      "can_enrich": true,
+      "sovereign_over": ["order_type", "exchange_routing", "paper_vs_live", "order_id"],
+      "output": "EXECUTED ou FAILED",
+      "invariant": "Exécute — ne décide pas. Mode déterminé par env var ORDER_MODE"
+    },
+    {
+      "agent": "ExecutiveOverride",
+      "layer": "governance",
+      "step": 0,
+      "color": "#7f1d1d",
+      "can_approve": false,
+      "can_reject": false,
+      "can_veto": true,
+      "can_enrich": false,
+      "sovereign_over": ["veto_all_agents", "kill_switch", "emergency_halt"],
+      "output": "VETOED — accessible depuis n'importe quel état",
+      "invariant": "Hors pipeline normal — veto absolu à tout moment. Niveau 1-5."
+    }
+  ],
+
+  "sovereign_rules": [
+    "ConvictionEngine ne peut pas rejeter — enrichit uniquement",
+    "GlobalRiskGate est le seul juge en flux normal (REJECT autorisé)",
+    "PortfolioBrain peut rejeter sur dépassement portefeuille uniquement",
+    "OrderSizer lit les advisories — n'a pas de gouvernance propre",
+    "ExecutiveOverride peut veto depuis n'importe quel état (hors flux normal)",
+    "Aucun agent ne doit modifier les champs souverains d'un autre agent"
+  ],
+
+  "veto_levels": [
+    { "level": 1, "name": "PAUSE",       "action": "Pause temporaire du trading" },
+    { "level": 2, "name": "REDUCE",      "action": "Réduction des tailles de 50%" },
+    { "level": 3, "name": "CLOSE_NEW",   "action": "Ferme les nouvelles positions" },
+    { "level": 4, "name": "CLOSE_ALL",   "action": "Ferme toutes les positions" },
+    { "level": 5, "name": "KILL_SWITCH", "action": "Arrêt total — système en lecture seule" }
+  ]
+}

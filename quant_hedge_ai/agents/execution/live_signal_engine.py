@@ -527,6 +527,7 @@ def _to_decision_packet(
         DecisionSide,
         DecisionState,
         MarketRegime,
+        ReasoningCategory,
     )
 
     side_map = {
@@ -570,7 +571,7 @@ def _to_decision_packet(
             f"régime={result.regime} confirmé={result.confirmed}"
         ),
         confidence_impact=0.0,
-        category="signal_quality",
+        category=ReasoningCategory.SIGNAL_QUALITY,
     )
 
     # Le signal engine constate une opportunité statistique — il ne juge pas le risque.

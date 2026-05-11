@@ -25,25 +25,33 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
+from dashboard.colors import (
+    C,
+    conviction_color,
+    css_inject,
+    regime_color,
+    state_color,
+    status_badge,
+)
 from quant_hedge_ai.agents.market.market_scanner import MarketScanner
 
 logging.basicConfig(level=logging.WARNING)
 
 # ── Styles ────────────────────────────────────────────────────────────────────
+css_inject()
 st.markdown(
-    """
+    f"""
 <style>
-.stApp { background: #0e1117; color: #e0e0e0; }
-.metric-card {
-    background: #1e2130; border-radius: 10px;
+.metric-card {{
+    background: {C["background"]["card"]}; border-radius: 10px;
     padding: 1rem 1.4rem; margin-bottom: 0.5rem;
-    border-left: 4px solid #00e0ff;
-}
-.risk-nominal  { border-left-color: #00e676; }
-.risk-warning  { border-left-color: #ffb300; }
-.risk-critical { border-left-color: #ff5252; }
-.risk-hardstop { border-left-color: #ff0000; background: #2a0000; }
-h1, h2, h3 { color: #00e0ff; }
+    border-left: 4px solid {C["status"]["info"]};
+}}
+.risk-nominal  {{ border-left-color: {C["status"]["ok"]}; }}
+.risk-warning  {{ border-left-color: {C["status"]["warning"]}; }}
+.risk-critical {{ border-left-color: {C["status"]["error"]}; }}
+.risk-hardstop {{ border-left-color: {C["severity"]["FATAL"]}; background: #2a0000; }}
+h1, h2, h3 {{ color: {C["status"]["info"]}; }}
 </style>
 """,
     unsafe_allow_html=True,

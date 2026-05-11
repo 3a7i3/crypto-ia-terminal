@@ -1,0 +1,36 @@
+{
+  "module_id": "mistake_memory",
+  "class_name": "MistakeMemory",
+  "file_path": "quant_hedge_ai/agents/intelligence/mistake_memory.py",
+  "display_name": "Mémoire des Erreurs",
+  "layer": "learning",
+  "dashboard_tab": "Learning",
+
+  "role_fr": "Apprend automatiquement des erreurs de trading. Détecte les patterns de pertes et génère des règles auto-correctrices pour éviter de répéter les mêmes erreurs.",
+  "role_en": "Automatically learns from trading mistakes. Detects loss patterns and generates self-correcting rules to avoid repeating the same errors.",
+
+  "error_categories": [
+    { "category": "VALIDATED", "description": "Trade correct — résultat aligné avec la conviction" },
+    { "category": "LUCKY",     "description": "Trade gagnant mais conviction faible — chanceux" },
+    { "category": "UNLUCKY",   "description": "Trade perdant mais conviction correcte — malchance" },
+    { "category": "MISTAKE",   "description": "Trade perdant ET conviction incorrecte — vraie erreur" }
+  ],
+
+  "learning_mechanism": {
+    "pattern_detection": "Détecte les régimes + signaux qui précèdent systématiquement des MISTAKE",
+    "rule_generation": "Génère des règles de blocage automatiques pour les patterns identifiés",
+    "memory_persistence": "Règles stockées en JSON persistant entre les sessions"
+  },
+
+  "key_metrics": [
+    { "metric_id": "total_mistakes",      "label": "Erreurs totales",     "type": "int" },
+    { "metric_id": "mistake_rate",        "label": "Taux erreur",         "type": "percent" },
+    { "metric_id": "rules_generated",     "label": "Règles générées",     "type": "int" },
+    { "metric_id": "rules_active",        "label": "Règles actives",      "type": "int" },
+    { "metric_id": "avoided_trades",      "label": "Trades évités",       "type": "int" },
+    { "metric_id": "learning_score",      "label": "Score d'apprentissage","type": "float_0_100" }
+  ],
+
+  "post_mortem_categories": ["VALIDATED", "LUCKY", "UNLUCKY", "MISTAKE"],
+  "dashboard_tab_note": "Données visibles dans l'onglet Post-Mortem (Tab 3) du dashboard"
+}

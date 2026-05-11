@@ -1,0 +1,135 @@
+{
+  "_description": "Taxinomie causale des raisonnements — domaine cognitif par agent émetteur",
+  "_note": "Chaque catégorie correspond à une couche institutionnelle précise. Taxinomie fermée.",
+
+  "categories": [
+    {
+      "id": "signal_quality",
+      "label": "Qualité du signal",
+      "layer": "signal",
+      "agent": "LiveSignalEngine",
+      "color": "#3b82f6",
+      "description": "Score, âge, direction détectée",
+      "examples": [
+        "Score signal 42/100 — sous le seuil minimum (60)",
+        "Signal âgé de 8.2s — TTL dépassé (max 5s)",
+        "Direction LONG confirmée par 3/4 sources"
+      ]
+    },
+    {
+      "id": "trend_alignment",
+      "label": "Alignement tendance",
+      "layer": "signal",
+      "agent": "LiveSignalEngine | ConvictionEngine",
+      "color": "#8b5cf6",
+      "description": "MTF, régime, momentum",
+      "examples": [
+        "Régime RANGE — momentum insuffisant pour LONG",
+        "Alignement MTF 2/3 — conviction réduite",
+        "TREND_BULL confirmé sur 15m et 1h"
+      ]
+    },
+    {
+      "id": "risk_governance",
+      "label": "Gouvernance risque",
+      "layer": "risk",
+      "agent": "GlobalRiskGate",
+      "color": "#ef4444",
+      "description": "Session, drawdown, seuils gate",
+      "examples": [
+        "Drawdown journalier -3.2% — seuil -3% dépassé",
+        "Session nocturne — trading suspendu 23h-6h",
+        "5/5 conditions risk gate validées"
+      ]
+    },
+    {
+      "id": "portfolio_exposure",
+      "label": "Exposition portefeuille",
+      "layer": "risk",
+      "agent": "PortfolioBrain",
+      "color": "#f97316",
+      "description": "Exposition totale, régime, levier",
+      "examples": [
+        "Exposition totale 87% — limite 80% dépassée",
+        "Levier effectif 2.1x — régime VOLATILE → max 1.5x",
+        "Exposition LONG 65% — dans les limites"
+      ]
+    },
+    {
+      "id": "portfolio_concentration",
+      "label": "Concentration",
+      "layer": "risk",
+      "agent": "PortfolioBrain",
+      "color": "#f59e0b",
+      "description": "Concentration par symbole",
+      "examples": [
+        "BTC représente 52% du capital — max 40%",
+        "Concentration ETH 18% — acceptable",
+        "3 positions sur même secteur DeFi"
+      ]
+    },
+    {
+      "id": "portfolio_correlation",
+      "label": "Corrélation",
+      "layer": "risk",
+      "agent": "PortfolioBrain",
+      "color": "#f59e0b",
+      "description": "Risque corrélation inter-positions",
+      "examples": [
+        "Corrélation BTC/ETH 0.92 — doublement du risque directionnel",
+        "Corrélation BTC/SOL 0.45 — acceptable",
+        "Ajout corrélation cross-asset détecté"
+      ]
+    },
+    {
+      "id": "portfolio_risk_budget",
+      "label": "Budget risque",
+      "layer": "risk",
+      "agent": "PortfolioBrain",
+      "color": "#f59e0b",
+      "description": "Nombre positions, direction, fragmentation",
+      "examples": [
+        "6 positions ouvertes — maximum 5 atteint",
+        "3 LONG simultanés — budget directionnel saturé",
+        "Fragmentation excessive — taille moyenne < $50"
+      ]
+    },
+    {
+      "id": "sizing",
+      "label": "Sizing",
+      "layer": "risk",
+      "agent": "OrderSizer",
+      "color": "#14b8a6",
+      "description": "Kelly, volatilité, drawdown, facteurs de réduction",
+      "examples": [
+        "Kelly brut 8.2% → final 2.1% après facteurs",
+        "Volatilité ATR élevée — taille réduite 40%",
+        "Drawdown actif — facteur protection 0.5x appliqué"
+      ]
+    },
+    {
+      "id": "governance",
+      "label": "Gouvernance absolue",
+      "layer": "override",
+      "agent": "ExecutiveOverride | KillSwitch",
+      "color": "#7f1d1d",
+      "description": "Veto, kill switch, règles absolues",
+      "examples": [
+        "VETO niveau 5 — kill switch activé",
+        "Override opérateur — CANCELLED",
+        "Règle absolue : pas de SHORT en TREND_BULL"
+      ]
+    },
+    {
+      "id": "uncategorized",
+      "label": "Non catégorisé",
+      "layer": "fallback",
+      "agent": "Any",
+      "color": "#6b7280",
+      "description": "Fallback — à éviter dans la production",
+      "examples": [
+        "Raison interne — voir logs"
+      ]
+    }
+  ]
+}

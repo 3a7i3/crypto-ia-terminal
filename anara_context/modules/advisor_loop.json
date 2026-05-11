@@ -1,0 +1,40 @@
+{
+  "module_id": "advisor_loop",
+  "class_name": "AdvisorLoop",
+  "file_path": "advisor_loop.py",
+  "display_name": "Boucle Principale",
+  "layer": "infrastructure",
+  "dashboard_tab": "System",
+
+  "role_fr": "Orchestrateur principal du système. Exécute en boucle les cycles signal → conviction → risk → exécution. Coordonne tous les agents décisionnels.",
+  "role_en": "Main system orchestrator. Runs continuous cycles of signal → conviction → risk → execution. Coordinates all decision agents.",
+
+  "cycle_pipeline": [
+    { "step": 1, "agent": "LiveSignalEngine",  "output": "SignalResult / DecisionPacket" },
+    { "step": 2, "agent": "ConvictionEngine",  "output": "Enrichit le packet — niveau conviction" },
+    { "step": 3, "agent": "GlobalRiskGate",    "output": "Pass / Block — 5 conditions" },
+    { "step": 4, "agent": "PortfolioBrain",    "output": "Approved / Rejected — 8 checks portfolio" },
+    { "step": 5, "agent": "OrderSizer",        "output": "Taille finale en USD" },
+    { "step": 6, "agent": "ExecutionEngine",   "output": "Ordre placé (paper/live/rejected)" }
+  ],
+
+  "key_metrics": [
+    { "metric_id": "cycle_count",       "label": "Cycles total",      "type": "int" },
+    { "metric_id": "cycle_duration_ms", "label": "Durée cycle",       "type": "int", "unit": "ms" },
+    { "metric_id": "signals_per_hour",  "label": "Signaux/heure",     "type": "float" },
+    { "metric_id": "trade_rate",        "label": "Taux exécution",    "type": "percent" },
+    { "metric_id": "last_cycle_ts",     "label": "Dernier cycle",     "type": "timestamp" },
+    { "metric_id": "status",            "label": "Statut",            "type": "enum",
+      "values": ["running", "paused", "halted", "error"],
+      "dashboard_color_map": {
+        "running": "green", "paused": "yellow", "halted": "orange", "error": "red"
+      }
+    }
+  ],
+
+  "observability_principles": [
+    "Tout rejet visible dans le dashboard avec raison détaillée",
+    "duration_ms cognitif enregistré par cycle",
+    "Chaque décision tracée dans black_box.jsonl"
+  ]
+}

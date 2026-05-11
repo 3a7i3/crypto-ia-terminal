@@ -287,7 +287,7 @@ class ConvictionEngine:
         RÈGLE ABSOLUE : jamais de reject() ni veto_by() ici.
         Le rejet appartient à risk_gate.
         """
-        from core.decision_packet import DecisionState
+        from core.decision_packet import DecisionState, ReasoningCategory
 
         actor = "conviction_engine"
         packet.add_agent(actor)
@@ -309,14 +309,14 @@ class ConvictionEngine:
                 actor,
                 f"Signal fort: {sig_score:.0f}/100",
                 confidence_impact=0.0,
-                category="signal_quality",
+                category=ReasoningCategory.SIGNAL_QUALITY,
             )
         elif sig_score < 60:
             packet.add_reasoning(
                 actor,
                 f"Signal faible: {sig_score:.0f}/100",
                 confidence_impact=0.0,
-                category="signal_quality",
+                category=ReasoningCategory.SIGNAL_QUALITY,
             )
 
         # ── Dim 2 : Alignement MTF ─────────────────────────────────────────
@@ -328,14 +328,14 @@ class ConvictionEngine:
                 actor,
                 "MTF confirmé sur 3 timeframes",
                 confidence_impact=+4.0,
-                category="trend_alignment",
+                category=ReasoningCategory.TREND_ALIGNMENT,
             )
         elif d_mtf < 50:
             packet.add_reasoning(
                 actor,
                 f"Alignement MTF faible: {d_mtf:.0f}/100",
                 confidence_impact=-3.0,
-                category="trend_alignment",
+                category=ReasoningCategory.TREND_ALIGNMENT,
             )
         dims["mtf"] = d_mtf
 
@@ -356,14 +356,14 @@ class ConvictionEngine:
                 actor,
                 f"Régime favorable: {regime}",
                 confidence_impact=+5.0,
-                category="regime_confirmation",
+                category=ReasoningCategory.TREND_ALIGNMENT,
             )
         elif d_regime < 40:
             packet.add_reasoning(
                 actor,
                 f"Régime défavorable pour {sig_action}: {regime}",
                 confidence_impact=-5.0,
-                category="regime_confirmation",
+                category=ReasoningCategory.TREND_ALIGNMENT,
             )
 
         # ── Dim 4 : Mémoire Sharpe ─────────────────────────────────────────
@@ -374,14 +374,14 @@ class ConvictionEngine:
                     actor,
                     f"Excellent historique Sharpe={memory_sharpe:.2f}",
                     confidence_impact=+4.0,
-                    category="historical_memory",
+                    category=ReasoningCategory.UNCATEGORIZED,
                 )
             elif memory_sharpe < 0.5:
                 packet.add_reasoning(
                     actor,
                     f"Historique faible Sharpe={memory_sharpe:.2f}",
                     confidence_impact=-2.0,
-                    category="historical_memory",
+                    category=ReasoningCategory.UNCATEGORIZED,
                 )
         else:
             d_memory = 50.0
@@ -395,7 +395,7 @@ class ConvictionEngine:
                 actor,
                 f"Données de faible qualité: {d_quality:.0f}/100",
                 confidence_impact=-3.0,
-                category="data_quality",
+                category=ReasoningCategory.SIGNAL_QUALITY,
             )
 
         # ── Score composite ────────────────────────────────────────────────
@@ -412,7 +412,7 @@ class ConvictionEngine:
                 actor,
                 f"Signal très fort (strength={strength:.0%})",
                 confidence_impact=+2.0,
-                category="signal_quality",
+                category=ReasoningCategory.SIGNAL_QUALITY,
             )
         if sig_action == "HOLD":
             composite = min(composite, 35.0)
@@ -420,7 +420,7 @@ class ConvictionEngine:
                 actor,
                 "Signal HOLD : conviction plafonnée à 35",
                 confidence_impact=0.0,
-                category="signal_quality",
+                category=ReasoningCategory.SIGNAL_QUALITY,
             )
 
         # ── Mapping local ConvictionLevel → core ConvictionLevel ──────────

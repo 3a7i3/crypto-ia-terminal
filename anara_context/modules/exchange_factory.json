@@ -1,0 +1,55 @@
+{
+  "module_id": "exchange_factory",
+  "class_name": "ExchangeFactory",
+  "file_path": "exchange_factory.py",
+  "display_name": "Fabrique d'Exchange",
+  "layer": "infrastructure",
+  "dashboard_tab": "System",
+
+  "role_fr": "Crée un client CCXT configuré selon les variables d'environnement. Supporte tous les exchanges CCXT (Binance, Bybit, OKX, Kraken, Gate.io, Kucoin…).",
+  "role_en": "Creates a configured CCXT client from environment variables. Supports all CCXT exchanges (Binance, Bybit, OKX, Kraken, Gate.io, Kucoin…).",
+
+  "supported_exchanges": [
+    "binance", "bybit", "okx", "kraken", "krakenfutures",
+    "coinbase", "kucoin", "gateio", "mexc"
+  ],
+
+  "mode_detection_priority": [
+    "EXCHANGE_TESTNET env var",
+    "{EXCHANGE}_TESTNET env var (rétrocompat)",
+    "Présence de clés API live vs testnet"
+  ],
+
+  "modes": [
+    { "mode": "live",         "color": "green",  "description": "Clés live + EXCHANGE_TESTNET=false" },
+    { "mode": "testnet",      "color": "blue",   "description": "Clés + EXCHANGE_TESTNET=true" },
+    { "mode": "futures_demo", "color": "purple", "description": "Binance BINANCE_FUTURES_DEMO_KEY" },
+    { "mode": "paper",        "color": "gray",   "description": "Aucune clé — simulation locale" }
+  ],
+
+  "key_metrics": [
+    { "metric_id": "exchange_id",  "label": "Exchange",      "type": "str" },
+    { "metric_id": "mode",         "label": "Mode",          "type": "enum" },
+    { "metric_id": "testnet",      "label": "Testnet",       "type": "bool" },
+    { "metric_id": "has_api_key",  "label": "Clés API",      "type": "bool" },
+    { "metric_id": "status",       "label": "Connexion",     "type": "enum", "values": ["ok", "error"] },
+    { "metric_id": "latency_ms",   "label": "Latence",       "type": "int", "unit": "ms" },
+    { "metric_id": "balance_usdt", "label": "Balance USDT",  "type": "usd" }
+  ],
+
+  "public_api": [
+    { "method": "ExchangeFactory.create(exchange_id, testnet, api_key, api_secret)", "returns": "ccxt.Exchange" },
+    { "method": "ExchangeFactory.test_connection(exchange_id)", "returns": "dict statut" },
+    { "method": "ExchangeFactory.info()", "returns": "dict config courante" },
+    { "method": "detect_mode(exchange)", "returns": "str mode" }
+  ],
+
+  "env_vars": [
+    { "var": "EXCHANGE_ID",               "default": "binance",  "description": "ID CCXT de l'exchange actif" },
+    { "var": "EXCHANGE_TESTNET",          "default": "false",    "description": "true/false — mode testnet" },
+    { "var": "{EXCHANGE}_API_KEY",        "default": null,       "description": "Clé API (ex. BINANCE_API_KEY)" },
+    { "var": "{EXCHANGE}_API_SECRET",     "default": null,       "description": "Secret API" },
+    { "var": "BINANCE_LIVE_API_KEY",      "default": null,       "description": "Clé live Binance (alias rétrocompat)" },
+    { "var": "BINANCE_FUTURES_DEMO_KEY",  "default": null,       "description": "Clé futures demo Binance" }
+  ]
+}

@@ -1,0 +1,104 @@
+{
+  "module_id": "execution_engine",
+  "class_name": "ExecutionEngine",
+  "file_path": "quant_hedge_ai/agents/execution/execution_engine.py",
+  "display_name": "Moteur d'Exécution",
+  "layer": "execution",
+  "dashboard_tab": "Execution",
+
+  "role_fr": "Passerelle multi-exchange pour le placement d'ordres. Gère les modes paper/testnet/live automatiquement selon les clés API.",
+  "role_en": "Multi-exchange order placement gateway. Auto-detects paper/testnet/live mode from API keys.",
+
+  "safety_components": [
+    {
+      "name": "OrderDeduplicator",
+      "purpose": "Bloque les ordres dupliqués dans une fenêtre de 30 secondes"
+    },
+    {
+      "name": "SessionGuard",
+      "purpose": "Halt si drawdown session ou pertes consécutives dépassent les seuils"
+    },
+    {
+      "name": "TradeLogger",
+      "purpose": "Log SQLite de tous les ordres pour audit"
+    }
+  ],
+
+  "trading_modes": [
+    { "mode": "paper", "description": "Simulation locale — aucune clé API requise" },
+    { "mode": "testnet", "description": "Exchange testnet — clés + EXCHANGE_TESTNET=true" },
+    { "mode": "live", "description": "Live réel — clés live + EXCHANGE_TESTNET=false" },
+    { "mode": "futures_demo", "description": "Binance futures demo — BINANCE_FUTURES_DEMO_KEY requis" }
+  ],
+
+  "order_result_modes": [
+    "paper",
+    "live",
+    "live_failed",
+    "rejected",
+    "futures_demo",
+    "futures_failed",
+    "futures_unavailable"
+  ],
+
+  "key_metrics": [
+    {
+      "metric_id": "mode",
+      "label": "Mode",
+      "type": "enum",
+      "values": ["paper", "testnet", "live", "futures_demo"],
+      "dashboard_color_map": {
+        "paper": "gray",
+        "testnet": "blue",
+        "live": "green",
+        "futures_demo": "purple"
+      }
+    },
+    {
+      "metric_id": "live_mode",
+      "label": "Live",
+      "type": "bool"
+    },
+    {
+      "metric_id": "session.drawdown_pct",
+      "label": "Drawdown Session",
+      "type": "percent",
+      "alert_threshold": 0.05
+    },
+    {
+      "metric_id": "session.consecutive_losses",
+      "label": "Pertes consécutives",
+      "type": "int",
+      "alert_threshold": 3
+    },
+    {
+      "metric_id": "trade_log.total",
+      "label": "Ordres total",
+      "type": "int"
+    },
+    {
+      "metric_id": "trade_log.rejected",
+      "label": "Ordres rejetés",
+      "type": "int"
+    }
+  ],
+
+  "env_vars": [
+    { "var": "EXCHANGE_ID", "default": "binance", "description": "ID CCXT de l'exchange actif" },
+    { "var": "EXCHANGE_TESTNET", "default": "false", "description": "Active le mode testnet" },
+    { "var": "EXEC_DEDUP_WINDOW", "default": "30", "description": "Fenêtre déduplication en secondes" },
+    { "var": "EXEC_MAX_DD", "default": "0.05", "description": "Drawdown session max (5%)" },
+    { "var": "EXEC_MAX_LOSS", "default": "0.03", "description": "Perte session max (3%)" },
+    { "var": "EXEC_MAX_CONSEC_LOSSES", "default": "3", "description": "Pertes consécutives max" },
+    { "var": "EXEC_MAX_ORDER_USD", "default": "10000", "description": "Taille max d'un ordre en USD" }
+  ],
+
+  "public_api": [
+    { "method": "create_order(symbol, action, size)", "returns": "dict avec mode field" },
+    { "method": "create_futures_order(symbol, action, size_usd, leverage)", "returns": "dict" },
+    { "method": "fetch_available_capital()", "returns": "float USD" },
+    { "method": "safety_status()", "returns": "dict snapshot sécurité" },
+    { "method": "reconnect()", "returns": "bool" },
+    { "method": "from_env()", "returns": "ExecutionEngine configuré depuis .env" }
+  ]
+}

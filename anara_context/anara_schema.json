@@ -1,0 +1,105 @@
+{
+  "_readme": "Schéma de contrat entre Anara et le projet crypto_ai_terminal. Anara lit ce fichier + les modules/ pour générer les descriptions et labels du dashboard.",
+  "_version": "1.0",
+  "_project": "crypto_ai_terminal",
+  "_updated": "2026-05-11",
+
+  "generation_rules": {
+    "language": "fr",
+    "fallback_language": "en",
+    "tone": "professionnel, concis, technique",
+    "max_label_chars": 30,
+    "max_description_chars": 120,
+    "use_emojis": false
+  },
+
+  "dashboard_structure": {
+    "tabs": [
+      {
+        "tab_id": "signal",
+        "label": "Signal",
+        "modules": ["live_signal_engine", "feature_engineer", "market_scanner"],
+        "primary_metric": "score",
+        "description": "Analyse de marché et génération de signaux de trading"
+      },
+      {
+        "tab_id": "intelligence",
+        "label": "Intelligence",
+        "modules": ["conviction_engine", "no_trade_layer", "ai_advisor", "threat_radar"],
+        "primary_metric": "conviction_level",
+        "description": "Évaluation de la conviction et filtrage intelligent des signaux"
+      },
+      {
+        "tab_id": "risk",
+        "label": "Risque",
+        "modules": ["global_risk_gate", "portfolio_brain", "order_sizer", "session_guard"],
+        "primary_metric": "gate_result",
+        "description": "Gouvernance du risque — checklist pré-trade et sizing"
+      },
+      {
+        "tab_id": "execution",
+        "label": "Exécution",
+        "modules": ["execution_engine", "position_manager", "shadow_engine"],
+        "primary_metric": "order_mode",
+        "description": "Placement d'ordres et gestion des positions ouvertes"
+      },
+      {
+        "tab_id": "learning",
+        "label": "Apprentissage",
+        "modules": ["mistake_memory", "decision_quality_engine", "black_box", "regret_engine"],
+        "primary_metric": "mistake_rate",
+        "description": "Analyse post-mortem et apprentissage automatique des erreurs"
+      },
+      {
+        "tab_id": "system",
+        "label": "Système",
+        "modules": ["advisor_loop", "exchange_factory", "decision_packet"],
+        "primary_metric": "status",
+        "description": "Santé système, connectivité exchange et infrastructure"
+      }
+    ]
+  },
+
+  "color_conventions": {
+    "status_ok":      "#22c55e",
+    "status_warning": "#f59e0b",
+    "status_error":   "#ef4444",
+    "status_neutral": "#6b7280",
+    "buy":            "#22c55e",
+    "sell":           "#ef4444",
+    "hold":           "#6b7280",
+    "paper":          "#9ca3af",
+    "testnet":        "#3b82f6",
+    "live":           "#22c55e"
+  },
+
+  "metric_display_templates": {
+    "percent":    "{value:.1f}%",
+    "usd":        "${value:,.2f}",
+    "float_0_1":  "{value:.3f}",
+    "float_0_100":"{value:.0f}/100",
+    "int":        "{value:,}",
+    "bool_fr":    { "true": "Oui", "false": "Non" },
+    "timestamp":  "HH:MM:SS"
+  },
+
+  "alert_levels": [
+    { "level": "INFO",     "color": "blue",   "icon": "i" },
+    { "level": "WARNING",  "color": "orange", "icon": "!" },
+    { "level": "CRITICAL", "color": "red",    "icon": "X" }
+  ],
+
+  "modules_index": {
+    "execution_engine":     "modules/execution_engine.json",
+    "conviction_engine":    "modules/conviction_engine.json",
+    "global_risk_gate":     "modules/global_risk_gate.json",
+    "portfolio_brain":      "modules/portfolio_brain.json",
+    "order_sizer":          "modules/order_sizer.json",
+    "live_signal_engine":   "modules/live_signal_engine.json",
+    "exchange_factory":     "modules/exchange_factory.json",
+    "decision_packet":      "modules/decision_packet.json",
+    "black_box":            "modules/black_box.json",
+    "mistake_memory":       "modules/mistake_memory.json",
+    "advisor_loop":         "modules/advisor_loop.json"
+  }
+}

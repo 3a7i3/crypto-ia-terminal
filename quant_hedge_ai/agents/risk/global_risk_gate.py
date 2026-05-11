@@ -197,7 +197,7 @@ class GlobalRiskGate:
         Returns:
             GateResult — packet transitionne vers RISK_EVALUATED ou REJECTED
         """
-        from core.decision_packet import DecisionSide, DecisionState
+        from core.decision_packet import DecisionSide, DecisionState, ReasoningCategory
 
         actor = "global_risk_gate"
         packet.add_agent(actor)
@@ -214,7 +214,7 @@ class GlobalRiskGate:
                 actor,
                 "Signal HOLD (side=FLAT) : aucune direction détectée, rejet immédiat",
                 confidence_impact=-50.0,
-                category="risk_governance",
+                category=ReasoningCategory.RISK_GOVERNANCE,
             )
             packet.reject(actor, "side=FLAT — aucune direction tradeable")
             return GateResult(
@@ -237,7 +237,7 @@ class GlobalRiskGate:
                 actor,
                 "Session halted ou ordre refusé par SessionGuard",
                 confidence_impact=-20.0,
-                category="risk_governance",
+                category=ReasoningCategory.RISK_GOVERNANCE,
             )
 
         # ② Drawdown acceptable
@@ -251,7 +251,7 @@ class GlobalRiskGate:
                 f"Drawdown {portfolio_drawdown:.1%}"
                 f" dépasse seuil max {self.max_portfolio_drawdown:.1%}",
                 confidence_impact=-30.0,
-                category="risk_governance",
+                category=ReasoningCategory.RISK_GOVERNANCE,
             )
         elif portfolio_drawdown > self.max_portfolio_drawdown * 0.7:
             warn_msg = (
@@ -263,7 +263,7 @@ class GlobalRiskGate:
                 actor,
                 warn_msg,
                 confidence_impact=-5.0,
-                category="risk_governance",
+                category=ReasoningCategory.RISK_GOVERNANCE,
             )
 
         # ③ Score suffisant — gouvernance du seuil min_signal_score
@@ -276,7 +276,7 @@ class GlobalRiskGate:
                 actor,
                 f"Score {score:.0f} insuffisant (seuil={self.min_signal_score})",
                 confidence_impact=-15.0,
-                category="risk_governance",
+                category=ReasoningCategory.RISK_GOVERNANCE,
             )
         # LSE disait non mais score passe — noter la divergence pour le meta-learning
         if not lse_actionable and c3:
@@ -285,7 +285,7 @@ class GlobalRiskGate:
                 f"Advisory LSE=non-actionable mais"
                 f" score={score:.0f} passe la gouvernance",
                 confidence_impact=0.0,
-                category="risk_governance",
+                category=ReasoningCategory.RISK_GOVERNANCE,
             )
 
         # ④ Signal confirmé MTF
@@ -298,7 +298,7 @@ class GlobalRiskGate:
                 actor,
                 "Signal non confirmé multi-timeframes",
                 confidence_impact=-10.0,
-                category="trend_alignment",
+                category=ReasoningCategory.TREND_ALIGNMENT,
             )
 
         # ⑤ Régime non blacklisté (MarketRegime.value dans le monde packet)
@@ -311,7 +311,7 @@ class GlobalRiskGate:
                 actor,
                 f"Régime {regime_value} blacklisté",
                 confidence_impact=-25.0,
-                category="risk_governance",
+                category=ReasoningCategory.RISK_GOVERNANCE,
             )
 
         # ── Écriture dans le packet ────────────────────────────────────────

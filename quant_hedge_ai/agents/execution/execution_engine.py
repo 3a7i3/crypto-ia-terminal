@@ -48,6 +48,9 @@ class ExecutionEngine:
         self._exchange = None
         self._exchange_futures = None  # futures demo séparé
         self._mode = "paper"
+        _exch_id = os.getenv("EXCHANGE_ID", "binance").lower()
+        _futures_exchanges = {"krakenfutures", "binanceusdm"}
+        self._quote_asset = "USD" if _exch_id in _futures_exchanges else "USDT"
         if live:
             self._exchange = self._init_exchange()
             self._exchange_futures = self._init_futures_demo()
@@ -65,7 +68,6 @@ class ExecutionEngine:
         self._logger = TradeLogger(
             db_path=os.getenv("EXEC_TRADE_LOG", "databases/trade_log.sqlite")
         )
-        self._quote_asset = "USDT"
 
     def _init_exchange(self):
         """Initialise le client Spot via ExchangeFactory (multi-exchange)."""
@@ -88,10 +90,20 @@ class ExecutionEngine:
 
     def _init_futures_demo(self):
         """
-        Initialise le client Futures Demo Trading Binance.
-        Nécessite BINANCE_FUTURES_DEMO_KEY et BINANCE_FUTURES_DEMO_SECRET dans .env.
-        Clés à créer sur https://demo.binance.com → Mon Compte → Gestion des API.
+        Initialise le client Futures Demo.
+        - krakenfutures testnet : réutilise self._exchange (même exchange)
+        - Binance futures demo  : BINANCE_FUTURES_DEMO_KEY requis (legacy)
         """
+        exch_id = os.getenv("EXCHANGE_ID", "").lower()
+
+        # krakenfutures testnet — même exchange que le principal
+        if exch_id == "krakenfutures" and self._exchange is not None:
+            logger.info(
+                "[ExecutionEngine] Futures Demo = krakenfutures testnet (exchange partagé)"
+            )
+            return self._exchange
+
+        # Binance futures demo (legacy)
         try:
             import ccxt
 
@@ -109,10 +121,11 @@ class ExecutionEngine:
                 }
             )
             ex.enable_demo_trading(True)
-            # Test de connexion rapide
             bal = ex.fetch_balance()
             usdt = bal.get("total", {}).get("USDT", 0)
-            logger.info("[ExecutionEngine] Futures Demo connecté — USDT: %.2f", usdt)
+            logger.info(
+                "[ExecutionEngine] Futures Demo Binance connecté — USDT: %.2f", usdt
+            )
             return ex
         except Exception as exc:
             logger.warning("[ExecutionEngine] Futures demo non disponible: %s", exc)
@@ -127,12 +140,14 @@ class ExecutionEngine:
         t0 = time.time()
         logger.info("[ExecutionEngine] Reconnexion en cours...")
         was_live = self._live
+        closed = set()
         for ex in (self._exchange, self._exchange_futures):
-            if ex is not None:
+            if ex is not None and id(ex) not in closed:
                 try:
                     ex.close()
-                except Exception:
-                    pass
+                    closed.add(id(ex))
+                except Exception as _exc:
+                    logger.debug("[ExecutionEngine] close() ignoré: %s", _exc)
         self._exchange = None
         self._exchange_futures = None
         try:
@@ -201,12 +216,13 @@ class ExecutionEngine:
         return self._exchange_futures is not None
 
     def fetch_futures_balance(self) -> float:
-        """Retourne la balance USDT sur le compte Futures Demo."""
+        """Retourne la balance USD/USDT sur le compte Futures Demo."""
         if self._exchange_futures is None:
             return 0.0
         try:
             bal = self._exchange_futures.fetch_balance()
-            return float(bal.get("free", {}).get("USDT", 0.0))
+            free = bal.get("free", {})
+            return float(free.get("USDT", 0.0) or free.get("USD", 0.0))
         except Exception as exc:
             logger.warning("[ExecutionEngine] fetch_futures_balance erreur: %s", exc)
             return 0.0
@@ -325,6 +341,20 @@ class ExecutionEngine:
 
         return result
 
+    def _to_futures_symbol(self, symbol: str) -> str:
+        """Convertit un symbole spot vers le format perp de l'exchange actif."""
+        exch_id = os.getenv("EXCHANGE_ID", "binance").lower()
+        if ":" in symbol:
+            return symbol
+        base = symbol.split("/")[0] if "/" in symbol else symbol[:3]
+        if exch_id == "krakenfutures":
+            # krakenfutures: BTC/USDT → BTC/USD:BTC  (inverse perpetual)
+            return f"{base}/USD:{base}"
+        else:
+            # Binance USDM perp: BTC/USDT → BTC/USDT:USDT
+            quote = symbol.split("/")[1] if "/" in symbol else "USDT"
+            return f"{base}/{quote}:{quote}"
+
     def create_futures_order(
         self,
         symbol: str,
@@ -333,13 +363,12 @@ class ExecutionEngine:
         leverage: int = 1,
     ) -> dict:
         """
-        Passe un ordre Futures Demo via le compte demo.binance.com.
-        symbol    : ex. 'BTC/USDT' — sera converti en paire perp USDT-M
+        Passe un ordre Futures Demo (krakenfutures testnet ou Binance demo).
+        symbol    : ex. 'BTC/USDT' — converti automatiquement selon l'exchange
         action    : 'BUY' (long) ou 'SELL' (short)
-        size_usd  : notionnel en USD (minimum $50 exigé par Binance Futures)
+        size_usd  : notionnel en USD
         leverage  : levier (1 = pas de levier, max recommandé: 3)
         """
-        # Respecter le minimum notionnel Binance Futures ($50)
         futures_min = float(os.getenv("EXEC_FUTURES_MIN_ORDER_USD", "55"))
         futures_max = float(os.getenv("EXEC_FUTURES_MAX_ORDER_USD", "100"))
         size_usd = max(futures_min, min(futures_max, size_usd))
@@ -348,18 +377,11 @@ class ExecutionEngine:
             return {
                 "symbol": symbol,
                 "mode": "futures_unavailable",
-                "error": "Futures demo non configuré — ajouter BINANCE_FUTURES_DEMO_KEY dans .env (Binance uniquement)",
+                "error": "Futures demo non configuré — vérifier EXCHANGE_ID et clés API dans .env",
             }
 
         side = "buy" if action.upper() == "BUY" else "sell"
-        # Binance USDM perp: BTC/USDT → BTC/USDT:USDT
-        if ":" in symbol:
-            ccxt_symbol = symbol
-        elif "/" in symbol:
-            quote = symbol.split("/")[1]
-            ccxt_symbol = f"{symbol}:{quote}"
-        else:
-            ccxt_symbol = f"{symbol[:3]}/USDT:USDT"  # ex: BTCUSDT → BTC/USDT:USDT
+        ccxt_symbol = self._to_futures_symbol(symbol)
 
         try:
             import math as _math

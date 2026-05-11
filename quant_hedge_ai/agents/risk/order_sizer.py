@@ -10,19 +10,25 @@ Sécurités :
   - Facteur de volatilité : réduit la taille quand σ est élevée
   - Taille minimale et maximale absolues (en USD)
   - Intégration DrawdownGuard : réduit si drawdown en cours
+
+Migration DecisionPacket :
+  - OrderSizer.size_packet() — API souveraine sur DecisionPacket.
+    Produit la transition APPROVED → EXECUTION_PENDING.
+    Lit conviction_size_factor et pb_size_factor en advisory.
+    Écrit allocation_pct, os_kelly, os_vol_factor, os_dd_factor, os_size_usd.
+  - compute() / compute_from_signal() préservées pour compatibilité.
 """
 
 from __future__ import annotations
 
 import logging
-import math
 from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
 
-_DEFAULT_KELLY_FRACTION = 0.25   # quart-Kelly par défaut (sécuritaire)
-_DEFAULT_MIN_SIZE_USD   = 10.0
-_DEFAULT_MAX_SIZE_USD   = 5_000.0
+_DEFAULT_KELLY_FRACTION = 0.25  # quart-Kelly par défaut (sécuritaire)
+_DEFAULT_MIN_SIZE_USD = 10.0
+_DEFAULT_MAX_SIZE_USD = 5_000.0
 
 
 @dataclass
@@ -30,12 +36,12 @@ class SizeResult:
     """Résultat du calcul de taille de position."""
 
     size_usd: float
-    size_base: float        # en unité de base (ex: BTC)
-    kelly_fraction: float   # fraction Kelly brute avant plafonnement
+    size_base: float  # en unité de base (ex: BTC)
+    kelly_fraction: float  # fraction Kelly brute avant plafonnement
     volatility_factor: float
     drawdown_factor: float
-    final_fraction: float   # fraction finale du capital allouée
-    capped: bool            # True si la taille a été plafonnée
+    final_fraction: float  # fraction finale du capital allouée
+    capped: bool  # True si la taille a été plafonnée
     notes: list[str]
 
     def as_dict(self) -> dict:
@@ -74,7 +80,7 @@ class OrderSizer:
         kelly_fraction: float = _DEFAULT_KELLY_FRACTION,
         min_size_usd: float = _DEFAULT_MIN_SIZE_USD,
         max_size_usd: float = _DEFAULT_MAX_SIZE_USD,
-        vol_target: float = 0.02,    # volatilité cible journalière (2%)
+        vol_target: float = 0.02,  # volatilité cible journalière (2%)
         drawdown_guard=None,
     ) -> None:
         self.kelly_fraction = max(0.01, min(1.0, kelly_fraction))
@@ -118,11 +124,15 @@ class OrderSizer:
         # ① Kelly brut
         kelly_raw = self._kelly(win_rate, avg_win_pct, avg_loss_pct)
         kelly_applied = kelly_raw * self.kelly_fraction
-        notes.append(f"Kelly brut={kelly_raw:.3f} × {self.kelly_fraction} = {kelly_applied:.3f}")
+        notes.append(
+            f"Kelly brut={kelly_raw:.3f} × {self.kelly_fraction} = {kelly_applied:.3f}"
+        )
 
         # ② Facteur volatilité (réduit si vol > cible)
         vol_factor = self._volatility_factor(realized_volatility)
-        notes.append(f"Vol factor={vol_factor:.3f} (vol={realized_volatility:.3f}, cible={self.vol_target})")
+        notes.append(
+            f"Vol factor={vol_factor:.3f} (vol={realized_volatility:.3f}, cible={self.vol_target})"
+        )
 
         # ③ Facteur drawdown
         dd_factor = self._drawdown_factor(current_drawdown)
@@ -154,7 +164,11 @@ class OrderSizer:
 
         logger.info(
             "[OrderSizer] capital=%.0f win_rate=%.1f%% → size=$%.2f (%.2f%%  capital) capped=%s",
-            capital, win_rate * 100, size_usd, final_fraction * 100, capped,
+            capital,
+            win_rate * 100,
+            size_usd,
+            final_fraction * 100,
+            capped,
         )
 
         return SizeResult(
@@ -198,6 +212,124 @@ class OrderSizer:
             signal_score=score,
         )
 
+    # ── API DecisionPacket ────────────────────────────────────────────────────
+
+    def size_packet(
+        self,
+        packet,
+        capital: float,
+        win_rate: float = 0.55,
+        avg_win_pct: float = 2.0,
+        avg_loss_pct: float = 1.5,
+        current_drawdown: float = 0.0,
+        price: float = 1.0,
+    ) -> "SizeResult":
+        """
+        Calcule la taille et produit la transition APPROVED → EXECUTION_PENDING.
+
+        Lit en advisory depuis le packet :
+          - metadata["conviction_size_factor"]  → multiplicateur conviction
+          - metadata["pb_size_factor"]           → multiplicateur portefeuille
+          - features["realized_volatility"]      → volatilité réalisée
+          - confidence                            → signal_score proxy
+
+        Écrit dans le packet :
+          - allocation_pct                (fraction du capital allouée)
+          - features["os_kelly"]          (fraction Kelly brute)
+          - features["os_vol_factor"]     (facteur volatilité)
+          - features["os_dd_factor"]      (facteur drawdown)
+          - features["os_size_usd"]       (taille finale en USD)
+        """
+        from core.decision_packet import (
+            DecisionState,
+            ReasoningCategory,
+            ReasoningSeverity,
+        )
+
+        actor = "order_sizer"
+        packet.add_agent(actor)
+
+        # Inputs advisory
+        vol = float(
+            packet.features.get(
+                "realized_volatility", packet.features.get("atr_ratio", 0.02)
+            )
+        )
+        conv_factor = float(packet.metadata.get("conviction_size_factor", 1.0))
+        pb_factor = float(packet.metadata.get("pb_size_factor", 1.0))
+        signal_score = int(packet.confidence)
+
+        result = self.compute(
+            capital=capital,
+            win_rate=win_rate,
+            avg_win_pct=avg_win_pct,
+            avg_loss_pct=avg_loss_pct,
+            realized_volatility=vol,
+            current_drawdown=current_drawdown,
+            price=price,
+            signal_score=signal_score,
+        )
+
+        # Appliquer les facteurs advisory
+        final_size = result.size_usd * conv_factor * pb_factor
+        final_size = max(self.min_size_usd, min(self.max_size_usd, final_size))
+        allocation_pct = final_size / capital if capital > 0 else 0.0
+
+        # Écriture packet
+        packet.allocation_pct = round(allocation_pct, 6)
+        packet.features["os_kelly"] = result.kelly_fraction
+        packet.features["os_vol_factor"] = result.volatility_factor
+        packet.features["os_dd_factor"] = result.drawdown_factor
+        packet.features["os_size_usd"] = round(final_size, 2)
+
+        # Reasoning
+        packet.add_reasoning(
+            actor,
+            f"Kelly={result.kelly_fraction:.3f} × vol={result.volatility_factor:.2f}"
+            f" × dd={result.drawdown_factor:.2f} → base=${result.size_usd:.2f}",
+            confidence_impact=0.0,
+            category=ReasoningCategory.SIZING,
+        )
+        if conv_factor != 1.0 or pb_factor != 1.0:
+            sev = (
+                ReasoningSeverity.WARNING
+                if (conv_factor < 0.5 or pb_factor < 0.5)
+                else ReasoningSeverity.INFO
+            )
+            packet.add_reasoning(
+                actor,
+                f"Facteurs advisory : conviction×{conv_factor:.2f} portfolio×{pb_factor:.2f}"
+                f" → final ${final_size:.2f} ({allocation_pct:.1%} capital)",
+                confidence_impact=0.0,
+                category=ReasoningCategory.SIZING,
+                severity=sev,
+            )
+        else:
+            packet.add_reasoning(
+                actor,
+                f"Taille finale ${final_size:.2f} ({allocation_pct:.1%} capital)",
+                confidence_impact=0.0,
+                category=ReasoningCategory.SIZING,
+            )
+
+        if result.capped:
+            packet.add_reasoning(
+                actor,
+                f"Taille plafonnée : {result.notes[-1]}",
+                confidence_impact=0.0,
+                category=ReasoningCategory.SIZING,
+                severity=ReasoningSeverity.WARNING,
+            )
+
+        packet.transition_to(
+            DecisionState.EXECUTION_PENDING,
+            actor,
+            f"Sizing: ${final_size:.2f} ({allocation_pct:.1%} capital)"
+            + (" [capped]" if result.capped else ""),
+        )
+
+        return result
+
     # ── Calculs internes ──────────────────────────────────────────────────────
 
     @staticmethod
@@ -221,7 +353,9 @@ class OrderSizer:
     def _drawdown_factor(self, current_drawdown: float) -> float:
         """Réduit la taille si drawdown en cours ; utilise DrawdownGuard si dispo."""
         if self._drawdown_guard is not None:
-            return self._drawdown_guard.adjust_position_size(current_drawdown, base_size=1.0)
+            return self._drawdown_guard.adjust_position_size(
+                current_drawdown, base_size=1.0
+            )
         if current_drawdown <= 0:
             return 1.0
         factor = max(0.1, 1.0 - current_drawdown * 2.5)

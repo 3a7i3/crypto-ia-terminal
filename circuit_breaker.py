@@ -4,26 +4,29 @@ Monitore: mémoire, latence, erreurs → arrêt/pause intelligent si seuils dép
 """
 
 import logging
-import psutil
 import threading
 import time
 from dataclasses import dataclass
 from enum import Enum
-from typing import Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
+
+import psutil
 
 log = logging.getLogger("circuit_breaker")
 
 
 class CircuitState(Enum):
     """États du circuit"""
-    CLOSED = "closed"      # Normal
+
+    CLOSED = "closed"  # Normal
     HALF_OPEN = "half_open"  # Recup en cours
-    OPEN = "open"          # Problème détecté, en pause
+    OPEN = "open"  # Problème détecté, en pause
 
 
 @dataclass
 class Threshold:
     """Seuil de déclenchement"""
+
     name: str
     metric_name: str
     warning_level: float
@@ -38,19 +41,19 @@ class CircuitBreaker:
         "memory": Threshold(
             name="Memory Usage",
             metric_name="memory",
-            warning_level=75.0,   # 75% alerte
+            warning_level=75.0,  # 75% alerte
             critical_level=90.0,  # 90% critique
         ),
         "latency": Threshold(
             name="Operation Latency",
             metric_name="latency",
-            warning_level=2.0,    # 2s en ms
-            critical_level=5.0,   # 5s en ms
+            warning_level=2.0,  # 2s en ms
+            critical_level=5.0,  # 5s en ms
         ),
         "error_rate": Threshold(
             name="Error Rate",
             metric_name="error_rate",
-            warning_level=0.05,   # 5% erreurs
+            warning_level=0.05,  # 5% erreurs
             critical_level=0.20,  # 20% erreurs
         ),
     }
@@ -186,7 +189,7 @@ class CircuitBreaker:
         """Vérifie si circuit permet d'avancer"""
         return self.state != CircuitState.OPEN
 
-    def get_state(self) -> Dict[str, any]:
+    def get_state(self) -> Dict[str, Any]:
         """Retourne état actuel"""
         return {
             "state": self.state.value,
@@ -233,8 +236,7 @@ def enable_circuit_breaker(
 
 if __name__ == "__main__":
     logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s %(levelname)-8s %(name)s - %(message)s"
+        level=logging.INFO, format="%(asctime)s %(levelname)-8s %(name)s - %(message)s"
     )
 
     breaker = get_circuit_breaker()
@@ -252,7 +254,9 @@ if __name__ == "__main__":
     print("Testing circuit breaker (30s)...")
     for i in range(30):
         state = breaker.get_state()
-        print(f"[{i}] State: {state['state']}, Memory: {state['metrics']['memory']:.1f}%")
+        print(
+            f"[{i}] State: {state['state']}, Memory: {state['metrics']['memory']:.1f}%"
+        )
         time.sleep(1)
 
     breaker.stop()

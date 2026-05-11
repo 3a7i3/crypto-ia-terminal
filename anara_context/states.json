@@ -1,0 +1,192 @@
+{
+  "_description": "États du cycle de vie d'un DecisionPacket — machine d'état institutionnelle",
+
+  "nominal_flow": [
+    "CREATED",
+    "SIGNAL_GENERATED",
+    "CONTEXT_ENRICHED",
+    "REGIME_VALIDATED",
+    "RISK_EVALUATED",
+    "APPROVED",
+    "EXECUTION_PENDING",
+    "EXECUTED",
+    "MONITORED",
+    "CLOSED",
+    "POSTMORTEM_ANALYZED"
+  ],
+
+  "states": [
+    {
+      "state": "CREATED",
+      "label": "Créé",
+      "color": "#6b7280",
+      "badge": "gray",
+      "description": "Packet instancié — signal initial reçu",
+      "actor": "LiveSignalEngine",
+      "terminal": false
+    },
+    {
+      "state": "SIGNAL_GENERATED",
+      "label": "Signal généré",
+      "color": "#6b7280",
+      "badge": "gray",
+      "description": "Signal structuré avec score et direction",
+      "actor": "LiveSignalEngine",
+      "terminal": false
+    },
+    {
+      "state": "CONTEXT_ENRICHED",
+      "label": "Enrichi",
+      "color": "#3b82f6",
+      "badge": "blue",
+      "description": "Conviction calculée — 5 dimensions scorées",
+      "actor": "ConvictionEngine",
+      "terminal": false
+    },
+    {
+      "state": "REGIME_VALIDATED",
+      "label": "Régime validé",
+      "color": "#8b5cf6",
+      "badge": "purple",
+      "description": "Régime marché confirmé (optionnel dans le pipeline)",
+      "actor": "RegimeValidator",
+      "terminal": false
+    },
+    {
+      "state": "RISK_EVALUATED",
+      "label": "Risque évalué",
+      "color": "#f59e0b",
+      "badge": "yellow",
+      "description": "5 conditions risk gate analysées — verdict rendu",
+      "actor": "GlobalRiskGate",
+      "terminal": false
+    },
+    {
+      "state": "APPROVED",
+      "label": "Approuvé",
+      "color": "#14b8a6",
+      "badge": "teal",
+      "description": "Capital autorisé — 8 checks portefeuille passés",
+      "actor": "PortfolioBrain",
+      "terminal": false
+    },
+    {
+      "state": "EXECUTION_PENDING",
+      "label": "En attente",
+      "color": "#f97316",
+      "badge": "orange",
+      "description": "Taille calculée — en file d'exécution",
+      "actor": "OrderSizer",
+      "terminal": false
+    },
+    {
+      "state": "EXECUTED",
+      "label": "Exécuté",
+      "color": "#22c55e",
+      "badge": "green",
+      "description": "Ordre placé sur l'exchange — capital engagé",
+      "actor": "ExecutionEngine",
+      "terminal": false
+    },
+    {
+      "state": "MONITORED",
+      "label": "Surveillé",
+      "color": "#22c55e",
+      "badge": "green",
+      "description": "Position ouverte — TP/SL actifs",
+      "actor": "PositionManager",
+      "terminal": false
+    },
+    {
+      "state": "CLOSED",
+      "label": "Fermé",
+      "color": "#6b7280",
+      "badge": "gray",
+      "description": "Position clôturée — PnL réalisé",
+      "actor": "PositionManager",
+      "terminal": false
+    },
+    {
+      "state": "POSTMORTEM_ANALYZED",
+      "label": "Post-mortem",
+      "color": "#6b7280",
+      "badge": "gray",
+      "description": "Analysé — VALIDATED / LUCKY / UNLUCKY / MISTAKE",
+      "actor": "MistakeMemory",
+      "terminal": true,
+      "terminal_type": "nominal"
+    },
+    {
+      "state": "REJECTED",
+      "label": "Rejeté",
+      "color": "#ef4444",
+      "badge": "red",
+      "description": "Bloqué par risk gate ou portfolio brain",
+      "actor": "GlobalRiskGate | PortfolioBrain",
+      "terminal": true,
+      "terminal_type": "exceptional"
+    },
+    {
+      "state": "EXPIRED",
+      "label": "Expiré",
+      "color": "#92400e",
+      "badge": "brown",
+      "description": "Signal périmé avant exécution",
+      "actor": "System",
+      "terminal": true,
+      "terminal_type": "exceptional"
+    },
+    {
+      "state": "CANCELLED",
+      "label": "Annulé",
+      "color": "#6b7280",
+      "badge": "gray",
+      "description": "Annulé manuellement ou par override",
+      "actor": "ExecutiveOverride | Operator",
+      "terminal": true,
+      "terminal_type": "exceptional"
+    },
+    {
+      "state": "FAILED",
+      "label": "Échec",
+      "color": "#ef4444",
+      "badge": "red",
+      "description": "Erreur technique lors de l'exécution",
+      "actor": "ExecutionEngine",
+      "terminal": true,
+      "terminal_type": "exceptional"
+    },
+    {
+      "state": "VETOED",
+      "label": "Veto",
+      "color": "#7f1d1d",
+      "badge": "dark-red",
+      "description": "Veto absolu — niveau 4-5 ExecOverride ou kill switch",
+      "actor": "ExecutiveOverride | KillSwitch",
+      "terminal": true,
+      "terminal_type": "exceptional"
+    }
+  ],
+
+  "severity_colors": {
+    "INFO":     "#3b82f6",
+    "WARNING":  "#f59e0b",
+    "CRITICAL": "#ef4444",
+    "FATAL":    "#7f1d1d"
+  },
+
+  "valid_transitions": {
+    "CREATED":            ["SIGNAL_GENERATED"],
+    "SIGNAL_GENERATED":   ["CONTEXT_ENRICHED"],
+    "CONTEXT_ENRICHED":   ["REGIME_VALIDATED", "RISK_EVALUATED"],
+    "REGIME_VALIDATED":   ["RISK_EVALUATED"],
+    "RISK_EVALUATED":     ["APPROVED"],
+    "APPROVED":           ["EXECUTION_PENDING"],
+    "EXECUTION_PENDING":  ["EXECUTED"],
+    "EXECUTED":           ["MONITORED"],
+    "MONITORED":          ["CLOSED"],
+    "CLOSED":             ["POSTMORTEM_ANALYZED"]
+  },
+
+  "exceptional_terminal_note": "REJECTED, EXPIRED, CANCELLED, FAILED, VETOED sont accessibles depuis n'importe quel état non-terminal (veto, expiry, panne système)"
+}

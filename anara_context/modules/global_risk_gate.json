@@ -1,0 +1,88 @@
+{
+  "module_id": "global_risk_gate",
+  "class_name": "GlobalRiskGate",
+  "file_path": "quant_hedge_ai/agents/risk/global_risk_gate.py",
+  "display_name": "Portail de Risque Global",
+  "layer": "risk",
+  "dashboard_tab": "Risk",
+
+  "role_fr": "Checklist pré-trade en 5 conditions. C'est ICI et UNIQUEMENT ICI que packet.reject() est appelé en flux normal. Souveraineté absolue sur les décisions de blocage.",
+  "role_en": "5-condition pre-trade checklist. This is the ONLY place where packet.reject() is called in the normal flow. Has absolute sovereignty over blocking decisions.",
+
+  "sovereignty": "risk_gate — protège le système (signal, régime, session). Lit les opinions advisory sans en être gouverné.",
+
+  "checklist": [
+    {
+      "condition_id": "session_active",
+      "label": "Session Active",
+      "description": "SessionGuard non halted, ordre acceptable",
+      "blocks_on_fail": true
+    },
+    {
+      "condition_id": "drawdown_ok",
+      "label": "Drawdown OK",
+      "description": "Drawdown portefeuille ≤ seuil max (défaut 10%)",
+      "blocks_on_fail": true,
+      "warning_threshold_pct": 70
+    },
+    {
+      "condition_id": "signal_score",
+      "label": "Score Suffisant",
+      "description": "Score signal ≥ min_signal_score (défaut 70)",
+      "blocks_on_fail": true
+    },
+    {
+      "condition_id": "signal_confirmed",
+      "label": "MTF Confirmé",
+      "description": "Signal confirmé multi-timeframes",
+      "blocks_on_fail": true
+    },
+    {
+      "condition_id": "regime_allowed",
+      "label": "Régime Autorisé",
+      "description": "Régime marché non dans la blacklist",
+      "blocks_on_fail": true
+    }
+  ],
+
+  "gate_outcomes": [
+    { "outcome": "GATE PASS", "color": "green", "description": "Toutes conditions OK — ordre autorisé" },
+    { "outcome": "GATE BLOCK", "color": "red",   "description": "Au moins une condition échouée — ordre bloqué" }
+  ],
+
+  "key_metrics": [
+    {
+      "metric_id": "risk_conditions",
+      "label": "Conditions Gate",
+      "type": "dict_bool",
+      "display": "checklist 5 items"
+    },
+    {
+      "metric_id": "risk_failed",
+      "label": "Conditions Échouées",
+      "type": "list_str"
+    },
+    {
+      "metric_id": "risk_warnings",
+      "label": "Avertissements",
+      "type": "list_str"
+    },
+    {
+      "metric_id": "risk_conviction_advisory",
+      "label": "Conviction Advisory",
+      "type": "str",
+      "note": "Lecture seule — le gate ne s'en laisse pas gouverner"
+    }
+  ],
+
+  "blacklisted_regimes_default": [],
+  "packet_state_transitions": [
+    { "from": "CONTEXT_ENRICHED", "to": "RISK_EVALUATED", "condition": "Gate PASS" },
+    { "from": "CONTEXT_ENRICHED", "to": "REJECTED",       "condition": "Gate BLOCK" },
+    { "from": "CONTEXT_ENRICHED", "to": "REJECTED",       "condition": "side=FLAT (HOLD)" }
+  ],
+
+  "env_vars": [
+    { "var": "SIGNAL_MIN_SCORE", "default": "70", "description": "Score signal minimum pour passer le gate" }
+  ]
+}

@@ -4,9 +4,17 @@ Lance les simulations, génère les rapports, exécute les analyses avancées, e
 """
 
 import os
+import shutil
 import subprocess
 import sys
-import time
+from ftplib import FTP
+
+import automl_tuning
+import clustering
+import export_latex_md
+import pareto_front
+import sensitivity_analysis
+import timeline_animation
 
 # 1. Lancer les simulations (adapter le script si besoin)
 print("[AUTO] Lancement des simulations...")
@@ -20,14 +28,7 @@ subprocess.run([sys.executable, "generate_html_report.py"])
 print("[AUTO] Génération du rapport Excel...")
 subprocess.run([sys.executable, "export_excel_report.py"])
 
-import automl_tuning
-import clustering
-import export_latex_md
-import pareto_front
 # 3. Analyses avancées
-import sensitivity_analysis
-import timeline_animation
-
 print("[AUTO] Analyse de sensibilité...")
 sensitivity_analysis.plot_sensitivity(
     sim_csv_dir="sim_summaries", output_file="sensitivity_plot.png"
@@ -84,8 +85,6 @@ for f in [
     "results.md",
 ]:
     if os.path.exists(f):
-        import shutil
-
         shutil.copy(f, os.path.join(cloud_dir, f))
         print(f"[AUTO] Exporté dans {cloud_dir} : {f}")
 
@@ -204,8 +203,6 @@ except Exception as e:
 
 try:
     # FTP
-    from ftplib import FTP
-
     ftp_host = "ftp.monsite.com"  # À personnaliser
     ftp_user = "user"  # À personnaliser
     ftp_pass = "password"  # À personnaliser

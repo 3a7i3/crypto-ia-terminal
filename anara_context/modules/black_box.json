@@ -1,0 +1,42 @@
+{
+  "module_id": "black_box",
+  "class_name": "BlackBoxRecorder",
+  "file_path": "quant_hedge_ai/agents/intelligence/black_box.py",
+  "display_name": "Boîte Noire",
+  "layer": "learning",
+  "dashboard_tab": "Audit",
+
+  "role_fr": "Enregistre chaque décision du système dans un fichier JSONL immuable. Piste d'audit complète : signaux, rejets, ordres, performances.",
+  "role_en": "Records every system decision into an immutable JSONL file. Complete audit trail: signals, rejections, orders, performance.",
+
+  "storage": {
+    "format": "JSONL (une décision par ligne)",
+    "file": "databases/black_box.jsonl",
+    "immutable": true,
+    "note": "Aucune suppression — chaque ligne est un enregistrement permanent"
+  },
+
+  "recorded_events": [
+    { "event": "signal_generated",   "description": "Signal produit par LSE" },
+    { "event": "trade_rejected",     "description": "Trade bloqué avec raison" },
+    { "event": "order_placed",       "description": "Ordre envoyé à l'exchange" },
+    { "event": "order_filled",       "description": "Ordre exécuté" },
+    { "event": "session_halted",     "description": "Session stoppée par SessionGuard" },
+    { "event": "conviction_scored",  "description": "Conviction calculée avec dimensions" },
+    { "event": "gate_block",         "description": "Risk gate a bloqué" },
+    { "event": "gate_pass",          "description": "Risk gate a autorisé" }
+  ],
+
+  "key_metrics": [
+    { "metric_id": "total_events",    "label": "Événements total", "type": "int" },
+    { "metric_id": "rejection_rate",  "label": "Taux rejet",       "type": "percent" },
+    { "metric_id": "last_event_ts",   "label": "Dernier événement","type": "timestamp" },
+    { "metric_id": "events_24h",      "label": "Événements 24h",   "type": "int" }
+  ],
+
+  "enriched_fields": [
+    "decision_id", "drawdown_pct", "n_trades_today", "fee_usd", "r_multiple"
+  ],
+
+  "usage_for_anara": "Source primaire pour les métriques historiques et statistiques de décision sur le dashboard"
+}

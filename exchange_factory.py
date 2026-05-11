@@ -69,6 +69,11 @@ _EXCHANGE_OPTIONS: dict[str, dict[str, Any]] = {
         }
     },
     "kraken": {},
+    "krakenfutures": {
+        "options": {
+            "defaultType": "swap",
+        }
+    },
     "coinbase": {},
     "kucoin": {},
     "gateio": {
@@ -418,8 +423,6 @@ class ExchangeFactory:
 # ── Point d'entrée diagnostic ──────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    import json
-
     from dotenv import load_dotenv
 
     load_dotenv()
@@ -430,16 +433,16 @@ if __name__ == "__main__":
 
     print("\n=== ExchangeFactory — Diagnostic ===")
     info = ExchangeFactory.info()
-    print(f"\n  Configuration:")
+    print("\n  Configuration:")
     print(f"    Exchange   : {info['exchange_id']}")
     print(f"    Mode       : {info['mode']}")
     print(f"    Testnet    : {info['testnet']}")
     print(f"    Clés API   : {'✓' if info['has_api_key'] else '✗ (mode paper)'}")
-    print(f"\n  Variables env:")
+    print("\n  Variables env:")
     for k, v in info["env_vars"].items():
         print(f"    {k} = {v}")
 
-    print(f"\n  Test de connexion...")
+    print("\n  Test de connexion...")
     result = ExchangeFactory.test_connection()
     print(f"    Statut     : {result['status']}")
     print(f"    Latence    : {result['latency_ms']} ms")

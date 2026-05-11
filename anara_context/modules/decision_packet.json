@@ -1,0 +1,65 @@
+{
+  "module_id": "decision_packet",
+  "class_name": "DecisionPacket",
+  "file_path": "core/decision_packet.py",
+  "display_name": "Contrat de Décision",
+  "layer": "infrastructure",
+  "dashboard_tab": "Decisions",
+
+  "role_fr": "Contrat central qui traverse toutes les couches décisionnelles. Chaque agent enrichit le packet sans le détruire. L'historique des transitions constitue un dataset ML natif.",
+  "role_en": "Central contract traversing all decision layers. Each agent enriches the packet without destroying it. State transition history forms a native ML dataset.",
+
+  "lifecycle_states": [
+    { "state": "CREATED",            "color": "gray",   "description": "Packet créé par LSE" },
+    { "state": "CONTEXT_ENRICHED",   "color": "blue",   "description": "Enrichi par conviction_engine" },
+    { "state": "RISK_EVALUATED",     "color": "yellow", "description": "Validé par global_risk_gate" },
+    { "state": "APPROVED",           "color": "teal",   "description": "Approuvé par portfolio_brain" },
+    { "state": "EXECUTION_PENDING",  "color": "orange", "description": "Dimensionné par order_sizer" },
+    { "state": "EXECUTED",           "color": "green",  "description": "Ordre passé avec succès" },
+    { "state": "REJECTED",           "color": "red",    "description": "Rejeté par risk_gate ou portfolio_brain" },
+    { "state": "EXPIRED",            "color": "brown",  "description": "Signal expiré sans exécution" }
+  ],
+
+  "conviction_levels": [
+    "SKIP", "LOW", "MEDIUM", "HIGH", "VERY_HIGH"
+  ],
+
+  "decision_sides": [
+    { "side": "LONG",  "action": "BUY"  },
+    { "side": "SHORT", "action": "SELL" },
+    { "side": "FLAT",  "action": "HOLD" }
+  ],
+
+  "market_regimes": [
+    "TREND_BULL", "TREND_BEAR", "RANGE", "VOLATILE", "UNKNOWN"
+  ],
+
+  "core_fields": [
+    { "field": "symbol",        "type": "str",           "description": "Symbole tradé" },
+    { "field": "side",          "type": "DecisionSide",  "description": "Direction : LONG/SHORT/FLAT" },
+    { "field": "regime",        "type": "MarketRegime",  "description": "Régime marché au moment de la décision" },
+    { "field": "conviction",    "type": "ConvictionLevel","description": "Niveau conviction (SKIP→VERY_HIGH)" },
+    { "field": "confidence",    "type": "float",         "description": "Score signal [0-100]" },
+    { "field": "allocation_pct","type": "float",         "description": "Fraction du capital allouée [0-1]" },
+    { "field": "features",      "type": "dict",          "description": "Features enrichies par les agents" },
+    { "field": "metadata",      "type": "dict",          "description": "Métadonnées advisory inter-agents" },
+    { "field": "state",         "type": "DecisionState", "description": "État courant du cycle de vie" },
+    { "field": "state_history", "type": "list",          "description": "Historique complet des transitions" },
+    { "field": "reasoning",     "type": "list",          "description": "Justifications par agent et catégorie" }
+  ],
+
+  "reasoning_categories": [
+    "SIGNAL_QUALITY", "TREND_ALIGNMENT", "RISK_GOVERNANCE",
+    "PORTFOLIO_EXPOSURE", "PORTFOLIO_CONCENTRATION", "PORTFOLIO_CORRELATION",
+    "PORTFOLIO_RISK_BUDGET", "SIZING", "UNCATEGORIZED"
+  ],
+
+  "sovereign_rules": [
+    "conviction_engine : enrichit uniquement (pas de reject/veto)",
+    "global_risk_gate  : seul autorisé à reject() en flux normal",
+    "portfolio_brain   : peut reject() sur dépassement portefeuille",
+    "order_sizer       : lit advisory sans gouvernance propre"
+  ],
+
+  "ml_dataset_note": "state_history + reasoning par packet = dataset d'apprentissage natif. Chaque packet rejeté est un exemple négatif labelisé avec cause."
+}

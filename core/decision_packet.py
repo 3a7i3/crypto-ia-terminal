@@ -52,6 +52,50 @@ class ConvictionLevel(str, Enum):
     SKIP = "SKIP"  # Ne pas trader
 
 
+class ReasoningSeverity(str, Enum):
+    """
+    Nature opérationnelle d'un raisonnement — orthogonal à confidence_impact.
+
+    INFO     : observation normale dans le flux attendu
+    WARNING  : dégradation, divergence ou condition dégradée
+    CRITICAL : menace pour la gouvernance ou la qualité d'exécution
+    FATAL    : arrêt immédiat requis — veto, kill switch, anomalie systémique
+    """
+
+    INFO = "INFO"
+    WARNING = "WARNING"
+    CRITICAL = "CRITICAL"
+    FATAL = "FATAL"
+
+
+class ReasoningCategory(str, Enum):
+    """
+    Famille causale d'un raisonnement — domaine cognitif de l'agent émetteur.
+
+    Chaque valeur correspond à une couche institutionnelle précise.
+    Utilisée pour le meta-learning futur : mesurer l'impact moyen par domaine
+    sur le PnL réel, détecter les agents toxiques, ranker les catégories causales.
+
+    Taxinomie fermée — toute nouvelle catégorie requiert une justification
+    institutionnelle explicite pour éviter la pollution sémantique.
+    """
+
+    SIGNAL_QUALITY = "signal_quality"  # score, âge, direction détectée
+    TREND_ALIGNMENT = "trend_alignment"  # MTF, régime, momentum
+    RISK_GOVERNANCE = "risk_governance"  # session, drawdown, seuils gate
+    PORTFOLIO_EXPOSURE = "portfolio_exposure"  # exposition totale, régime, levier
+    PORTFOLIO_CONCENTRATION = "portfolio_concentration"  # concentration par symbole
+    PORTFOLIO_CORRELATION = (
+        "portfolio_correlation"  # risque corrélation inter-positions
+    )
+    PORTFOLIO_RISK_BUDGET = (
+        "portfolio_risk_budget"  # nombre positions, direction, fragmentation
+    )
+    SIZING = "sizing"  # Kelly, volatilité, drawdown, facteurs
+    GOVERNANCE = "governance"  # veto, kill switch, règles absolues
+    UNCATEGORIZED = "uncategorized"  # fallback — à éviter
+
+
 class DecisionState(str, Enum):
     """
     Machine d'état du cycle de vie d'une décision.
@@ -94,19 +138,29 @@ class DecisionState(str, Enum):
     VETOED = "VETOED"
 
 
-# États terminaux — un packet dans ces états ne peut plus progresser
-TERMINAL_STATES: Set[DecisionState] = {
+# États terminaux exceptionnels — mort prématurée du packet.
+# Accessibles depuis n'importe quel état non-terminal : veto, expiry, panne,
+# annulation peuvent survenir à tout moment dans le lifecycle.
+EXCEPTIONAL_TERMINAL_STATES: Set[DecisionState] = {
     DecisionState.REJECTED,
     DecisionState.EXPIRED,
     DecisionState.CANCELLED,
     DecisionState.FAILED,
     DecisionState.VETOED,
+}
+
+# Tous les états terminaux — un packet dans ces états ne peut plus progresser.
+# POSTMORTEM_ANALYZED est terminal nominal (fin de flux complet) mais N'EST PAS
+# exceptionnel : il ne peut être atteint que depuis CLOSED via le graphe.
+# Distinction critique : empêche CREATED → POSTMORTEM_ANALYZED ou tout autre
+# court-circuit qui casserait la causalité, les analytics et les replay engines.
+TERMINAL_STATES: Set[DecisionState] = EXCEPTIONAL_TERMINAL_STATES | {
     DecisionState.POSTMORTEM_ANALYZED,
 }
 
 # Graphe des transitions valides — non-terminales uniquement.
-# Règle : les états terminaux sont toujours accessibles depuis n'importe quel
-# état non-terminal (veto système, expiry, panne). Pas besoin de les lister ici.
+# Règle : seuls EXCEPTIONAL_TERMINAL_STATES sont accessibles depuis n'importe
+# quel état non-terminal (veto système, expiry, panne).
 # REGIME_VALIDATED est optionnel : CONTEXT_ENRICHED peut le court-circuiter
 # si aucune couche de validation de régime n'est présente dans le pipeline.
 _DS = DecisionState
@@ -135,6 +189,10 @@ class StateTransition:
     """
     Enregistrement d'une transition d'état.
     Devient : audit trail, replay engine, dataset RL, debugger causal.
+
+    duration_ms       : temps passé dans from_state avant cette transition
+    confidence_before : confiance du packet au moment de quitter from_state
+    confidence_after  : confiance après la transition (post add_reasoning)
     """
 
     from_state: str
@@ -142,6 +200,9 @@ class StateTransition:
     timestamp: datetime
     actor: str
     reason: str
+    duration_ms: int = 0
+    confidence_before: float = 0.0
+    confidence_after: float = 0.0
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -150,6 +211,9 @@ class StateTransition:
             "timestamp": self.timestamp.isoformat(),
             "actor": self.actor,
             "reason": self.reason,
+            "duration_ms": self.duration_ms,
+            "confidence_before": self.confidence_before,
+            "confidence_after": self.confidence_after,
         }
 
     @classmethod
@@ -160,6 +224,9 @@ class StateTransition:
             timestamp=datetime.fromisoformat(d["timestamp"]),
             actor=d["actor"],
             reason=d["reason"],
+            duration_ms=int(d.get("duration_ms", 0)),
+            confidence_before=float(d.get("confidence_before", 0.0)),
+            confidence_after=float(d.get("confidence_after", 0.0)),
         )
 
 
@@ -182,7 +249,8 @@ class ReasoningEntry:
     message: str
     confidence_impact: float
     timestamp: datetime
-    category: str = "uncategorized"
+    category: ReasoningCategory = ReasoningCategory.UNCATEGORIZED
+    severity: ReasoningSeverity = ReasoningSeverity.INFO
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -190,17 +258,23 @@ class ReasoningEntry:
             "message": self.message,
             "confidence_impact": self.confidence_impact,
             "timestamp": self.timestamp.isoformat(),
-            "category": self.category,
+            "category": self.category.value,
+            "severity": self.severity.value,
         }
 
     @classmethod
     def from_dict(cls, d: Dict[str, Any]) -> ReasoningEntry:
+        try:
+            category = ReasoningCategory(d.get("category", "uncategorized"))
+        except ValueError:
+            category = ReasoningCategory.UNCATEGORIZED
         return cls(
             actor=d["actor"],
             message=d["message"],
             confidence_impact=float(d.get("confidence_impact", 0.0)),
             timestamp=datetime.fromisoformat(d["timestamp"]),
-            category=d.get("category", "uncategorized"),
+            category=category,
+            severity=ReasoningSeverity(d.get("severity", "INFO")),
         )
 
 
@@ -308,8 +382,10 @@ class DecisionPacket:
                 f"Demandé par {actor} vers {new_state.value}."
             )
 
-        # Garde 2 : transition non-terminale hors graphe
-        if new_state not in TERMINAL_STATES:
+        # Garde 2 : transition non-terminale hors graphe.
+        # Seuls les terminaux exceptionnels contournent le graphe — pas
+        # POSTMORTEM_ANALYZED qui doit passer par CLOSED comme tout autre état.
+        if new_state not in EXCEPTIONAL_TERMINAL_STATES:
             allowed = VALID_TRANSITIONS.get(current, [])
             if new_state not in allowed:
                 raise RuntimeError(
@@ -319,12 +395,26 @@ class DecisionPacket:
                     f"Demandé par {actor}."
                 )
 
+        now = datetime.utcnow()
+        duration_ms = (
+            int((now - self.state_history[-1].timestamp).total_seconds() * 1000)
+            if self.state_history
+            else 0
+        )
+        # confidence_before = confiance à l'entrée de from_state
+        # (= confidence_after de la transition précédente, ou 0.0 au départ)
+        confidence_before = (
+            self.state_history[-1].confidence_after if self.state_history else 0.0
+        )
         transition = StateTransition(
             from_state=current.value,
             to_state=new_state.value,
-            timestamp=datetime.utcnow(),
+            timestamp=now,
             actor=actor,
             reason=reason,
+            duration_ms=duration_ms,
+            confidence_before=confidence_before,
+            confidence_after=self.confidence,
         )
         self.state_history.append(transition)
         self.lifecycle_state = new_state
@@ -343,12 +433,15 @@ class DecisionPacket:
         actor: str,
         message: str,
         confidence_impact: float = 0.0,
-        category: str = "uncategorized",
+        category: ReasoningCategory = ReasoningCategory.UNCATEGORIZED,
+        severity: ReasoningSeverity = ReasoningSeverity.INFO,
     ) -> None:
         """
         Ajoute une entrée de raisonnement structurée.
         confidence_impact applique automatiquement le delta à self.confidence.
         category permet le meta-learning : mesurer l'impact moyen par famille.
+        severity exprime la nature opérationnelle de l'événement — orthogonal
+        à confidence_impact (un WARNING peut avoir un impact positif et vice versa).
         """
         self.reasoning.append(
             ReasoningEntry(
@@ -357,6 +450,7 @@ class DecisionPacket:
                 confidence_impact=confidence_impact,
                 timestamp=datetime.utcnow(),
                 category=category,
+                severity=severity,
             )
         )
         if confidence_impact != 0.0:
@@ -367,11 +461,17 @@ class DecisionPacket:
         self.veto = True
         self.veto_reason = reason
         self.add_agent(actor)
-        self.add_reasoning(actor, f"[VETO] {reason}", confidence_impact=-100.0)
+        self.add_reasoning(
+            actor,
+            f"[VETO] {reason}",
+            confidence_impact=-100.0,
+            category=ReasoningCategory.GOVERNANCE,
+            severity=ReasoningSeverity.FATAL,
+        )
         self.transition_to(DecisionState.VETOED, actor, reason)
 
     def reject(self, actor: str, reason: str) -> None:
-        """Rejet par risk_gate, portfolio_brain ou no_trade_engine."""
+        """Rejet par risk_gate ou portfolio_brain. no_trade_layer opère en amont via AgentVote."""
         self.add_agent(actor)
         self.add_reasoning(actor, f"[REJECTED] {reason}")
         self.transition_to(DecisionState.REJECTED, actor, reason)

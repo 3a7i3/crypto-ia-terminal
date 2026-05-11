@@ -1,0 +1,129 @@
+{
+  "_description": "Exemples de DecisionPackets réels — 4 résolutions représentatives pour calibrer l'affichage",
+  "_usage": "Donne à Anara une vue concrète des variations d'état, de conviction et de sizing",
+
+  "packets": [
+    {
+      "_case": "APPROVED — trade exécuté en paper avec haute conviction",
+      "decision_id": "dec_2026-05-11_001",
+      "symbol": "BTC/USDT",
+      "side": "LONG",
+      "regime": "TREND_BULL",
+      "conviction": "HIGH",
+      "conviction_score": 74,
+      "confidence": 81,
+      "allocation_pct": 0.038,
+      "size_usd": 95.0,
+      "state": "EXECUTED",
+      "order_mode": "paper",
+      "entry_price": 61420.5,
+      "reasoning": [
+        { "category": "signal_quality",   "severity": "INFO",    "text": "Score 81/100 — 4/4 sources alignées" },
+        { "category": "trend_alignment",  "severity": "INFO",    "text": "TREND_BULL confirmé sur 15m et 1h" },
+        { "category": "risk_governance",  "severity": "INFO",    "text": "5/5 conditions risk gate validées" },
+        { "category": "portfolio_exposure","severity": "INFO",   "text": "Exposition totale 42% — dans les limites" },
+        { "category": "sizing",           "severity": "INFO",    "text": "Kelly 5.1% → final 3.8% après facteurs vol" }
+      ],
+      "state_history": [
+        { "from": "CREATED", "to": "SIGNAL_GENERATED", "actor": "LiveSignalEngine", "duration_ms": 12 },
+        { "from": "SIGNAL_GENERATED", "to": "CONTEXT_ENRICHED", "actor": "ConvictionEngine", "duration_ms": 45 },
+        { "from": "CONTEXT_ENRICHED", "to": "RISK_EVALUATED", "actor": "GlobalRiskGate", "duration_ms": 8 },
+        { "from": "RISK_EVALUATED", "to": "APPROVED", "actor": "PortfolioBrain", "duration_ms": 15 },
+        { "from": "APPROVED", "to": "EXECUTION_PENDING", "actor": "OrderSizer", "duration_ms": 6 },
+        { "from": "EXECUTION_PENDING", "to": "EXECUTED", "actor": "ExecutionEngine", "duration_ms": 23 }
+      ],
+      "cycle_duration_ms": 109
+    },
+
+    {
+      "_case": "REJECTED par GlobalRiskGate — drawdown journalier dépassé",
+      "decision_id": "dec_2026-05-11_002",
+      "symbol": "ETH/USDT",
+      "side": "LONG",
+      "regime": "RANGE",
+      "conviction": "MEDIUM",
+      "conviction_score": 51,
+      "confidence": 63,
+      "allocation_pct": 0.0,
+      "size_usd": 0.0,
+      "state": "REJECTED",
+      "order_mode": "paper",
+      "rejection_reason": "Drawdown journalier -3.4% — seuil -3.0% dépassé",
+      "rejection_agent": "GlobalRiskGate",
+      "reasoning": [
+        { "category": "signal_quality",   "severity": "INFO",    "text": "Score 63/100 — signal faible mais valide" },
+        { "category": "trend_alignment",  "severity": "WARNING", "text": "Régime RANGE — signal contre-tendance" },
+        { "category": "risk_governance",  "severity": "CRITICAL","text": "Drawdown -3.4% — gate fermée jusqu'à minuit UTC" }
+      ],
+      "state_history": [
+        { "from": "CREATED", "to": "SIGNAL_GENERATED", "actor": "LiveSignalEngine", "duration_ms": 11 },
+        { "from": "SIGNAL_GENERATED", "to": "CONTEXT_ENRICHED", "actor": "ConvictionEngine", "duration_ms": 48 },
+        { "from": "CONTEXT_ENRICHED", "to": "RISK_EVALUATED", "actor": "GlobalRiskGate", "duration_ms": 7 },
+        { "from": "RISK_EVALUATED", "to": "REJECTED", "actor": "GlobalRiskGate", "duration_ms": 2 }
+      ],
+      "cycle_duration_ms": 68
+    },
+
+    {
+      "_case": "VETOED — kill switch activé par ExecutiveOverride niveau 5",
+      "decision_id": "dec_2026-05-11_003",
+      "symbol": "SOL/USDT",
+      "side": "SHORT",
+      "regime": "VOLATILE",
+      "conviction": "LOW",
+      "conviction_score": 32,
+      "confidence": 58,
+      "allocation_pct": 0.0,
+      "size_usd": 0.0,
+      "state": "VETOED",
+      "order_mode": "paper",
+      "veto_level": 5,
+      "veto_reason": "Kill switch activé — perte consécutive de 5 trades (−8.2% session)",
+      "veto_agent": "ExecutiveOverride",
+      "reasoning": [
+        { "category": "signal_quality",  "severity": "WARNING", "text": "Score 58/100 — conviction insuffisante" },
+        { "category": "trend_alignment", "severity": "WARNING", "text": "Régime VOLATILE — signal non fiable" },
+        { "category": "governance",      "severity": "FATAL",   "text": "VETO niveau 5 — 5 pertes consécutives détectées. Système en lecture seule." }
+      ],
+      "state_history": [
+        { "from": "CREATED", "to": "SIGNAL_GENERATED", "actor": "LiveSignalEngine", "duration_ms": 13 },
+        { "from": "SIGNAL_GENERATED", "to": "VETOED", "actor": "ExecutiveOverride", "duration_ms": 3 }
+      ],
+      "cycle_duration_ms": 16
+    },
+
+    {
+      "_case": "FAILED — erreur exchange lors du placement de l'ordre",
+      "decision_id": "dec_2026-05-11_004",
+      "symbol": "BTC/USDT",
+      "side": "LONG",
+      "regime": "TREND_BULL",
+      "conviction": "VERY_HIGH",
+      "conviction_score": 89,
+      "confidence": 91,
+      "allocation_pct": 0.052,
+      "size_usd": 130.0,
+      "state": "FAILED",
+      "order_mode": "live",
+      "failure_reason": "ccxt.NetworkError: timeout après 3 tentatives — ordre non placé",
+      "failure_agent": "ExecutionEngine",
+      "reasoning": [
+        { "category": "signal_quality",    "severity": "INFO",    "text": "Score 91/100 — signal exceptionnel" },
+        { "category": "trend_alignment",   "severity": "INFO",    "text": "TREND_BULL — 3 sources MTF alignées" },
+        { "category": "risk_governance",   "severity": "INFO",    "text": "Risk gate passé — toutes conditions OK" },
+        { "category": "portfolio_exposure","severity": "INFO",    "text": "Exposition 38% — espace disponible" },
+        { "category": "sizing",            "severity": "INFO",    "text": "Kelly 6.8% → final 5.2% — conviction VERY_HIGH" },
+        { "category": "governance",        "severity": "CRITICAL","text": "FAILED — timeout réseau. Aucun capital engagé. Reconnexion en cours." }
+      ],
+      "state_history": [
+        { "from": "CREATED", "to": "SIGNAL_GENERATED", "actor": "LiveSignalEngine", "duration_ms": 14 },
+        { "from": "SIGNAL_GENERATED", "to": "CONTEXT_ENRICHED", "actor": "ConvictionEngine", "duration_ms": 51 },
+        { "from": "CONTEXT_ENRICHED", "to": "RISK_EVALUATED", "actor": "GlobalRiskGate", "duration_ms": 9 },
+        { "from": "RISK_EVALUATED", "to": "APPROVED", "actor": "PortfolioBrain", "duration_ms": 17 },
+        { "from": "APPROVED", "to": "EXECUTION_PENDING", "actor": "OrderSizer", "duration_ms": 7 },
+        { "from": "EXECUTION_PENDING", "to": "FAILED", "actor": "ExecutionEngine", "duration_ms": 3024 }
+      ],
+      "cycle_duration_ms": 3122
+    }
+  ]
+}

@@ -1,6 +1,3 @@
-import streamlit as st
-
-
 def show_sidebar_tutorial(panel_name, doc_link):
     key_btn = f"show_tuto_sidebar_{panel_name}"
     key_exp = f"show_tuto_expander_{panel_name}"
@@ -85,8 +82,6 @@ def supervision_autoheal_panel():
     - Export Excel/HTML/PDF/JSON, QR code, thèmes, auto-refresh
     """
     )
-    import os
-
     st.markdown(
         "**Fichier source :** `dashboard/alert_dashboard.py`  \\n[✏️ Éditer dans VS Code](vscode://file/"
         + os.path.abspath("dashboard/alert_dashboard.py")
@@ -118,9 +113,6 @@ def supervision_autoheal_panel():
     )
 
 
-import sys
-
-import streamlit as st
 import glob
 import os
 
@@ -128,13 +120,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import plotly.graph_objs as go
+import streamlit as st
 from mpl_toolkits.mplot3d import Axes3D  # noqa: F401
 from sklearn.cluster import KMeans
 
 from ONBOARDING_SCRIPT import sidebar_onboarding
-from ui_utils import (export_plotly_png, export_plotly_svg, export_qr_code,
-                      show_fallback, show_faq, show_tutorial,
-                      sidebar_navigation)
+from ui_utils import export_plotly_png, export_plotly_svg, export_qr_code, show_fallback
 
 INTERNAL_DASHBOARDS = [
     ("🛡️ Supervision & Auto-Heal", "dashboard/alert_dashboard.py"),
@@ -174,7 +165,6 @@ Bienvenue sur le dashboard 3D Evolution.
     for label, path in INTERNAL_DASHBOARDS:
         if st.button(label, key=f"nav_{label}"):
             # Réinitialiser les variables d’état spécifiques au panneau
-            prefix = label.replace(" ", "_")
             keys_to_delete = [
                 k
                 for k in st.session_state.keys()
@@ -611,8 +601,6 @@ def evolution_3d_panel():
                 )
                 st.json(study.best_params)
                 if export_optuna:
-                    import json
-
                     optuna_json = study.trials_dataframe().to_json(orient="records")
                     st.download_button(
                         "Télécharger les résultats Optuna (JSON)",
@@ -867,8 +855,6 @@ def botdoctor_dashboard_panel():
         st.session_state["active_panel"] = "Accueil 3D Evolution"
         st.rerun()
     show_sidebar_tutorial("botdoctor", "DOC_NOTIFY_TEST_STATUS.md")
-    import json
-
     st.title("🩺 BotDoctor Dashboard")
     with st.expander("ℹ️ Aide & Astuces", expanded=False):
         st.markdown(
@@ -1042,8 +1028,6 @@ def quant_terminal_v12_panel():
         )
     st.dataframe(rows)
     st.header("Export rapide")
-    import io
-
     import pandas as pd
 
     df = pd.DataFrame(rows)
@@ -1064,8 +1048,6 @@ def feedback_dashboard_panel():
         st.session_state["active_panel"] = "Accueil 3D Evolution"
         st.rerun()
     show_sidebar_tutorial("feedback", "DOC_NOTIFY_TEST_STATUS.md")
-    import json
-
     st.title("🧠 R&D Feedback Dashboard")
     with st.expander("ℹ️ Aide & Astuces", expanded=False):
         st.markdown("- Analysez la santé de chaque bot en un clic.")
