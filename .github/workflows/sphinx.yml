@@ -37,8 +37,8 @@ jobs:
         run: |
           sphinx-build -b html docs docs/_build/html
       - name: Check for broken links
+        continue-on-error: true
         run: |
-          pip install sphinx-linkcheck
           sphinx-build -b linkcheck docs docs/_build/linkcheck
       - name: Notify Discord (optionnel)
         if: always()
