@@ -55,7 +55,7 @@ div[data-testid="metric-container"] {
 }
 div[data-testid="metric-container"] label {
     font-size: 0.78rem !important;
-    color: #8ab0d0 !important;
+    color: #d0e8ff !important;
     text-transform: uppercase;
     letter-spacing: 0.04em;
 }
@@ -66,8 +66,10 @@ div[data-testid="stMetricValue"] {
     line-height: 1.2;
 }
 div[data-testid="stMetricDelta"] { font-size: 0.72rem !important; }
-h1, h2 { font-size: 1.1rem !important; margin-bottom: 0.15rem !important; }
-h3, h4 { font-size: 0.9rem !important; margin-bottom: 0.1rem !important; }
+h1, h2 { font-size: 1.1rem !important; margin-bottom: 0.15rem !important; color: #ffffff !important; }
+h3, h4 { font-size: 0.9rem !important; margin-bottom: 0.1rem !important; color: #ffffff !important; }
+.stMarkdown strong, .stMarkdown b { color: #ffffff !important; }
+p { color: #e8eaf0; }
 .status-ok   { color: #00d4aa; font-weight: 700; }
 .status-warn { color: #f0a500; font-weight: 700; }
 .status-err  { color: #ff4444; font-weight: 700; }
