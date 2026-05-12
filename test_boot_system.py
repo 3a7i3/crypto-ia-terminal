@@ -24,7 +24,7 @@ import os
 import sys
 import time
 import traceback
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 
 # Charger .env avant tout
@@ -239,7 +239,7 @@ class BootValidator:
             from quant_hedge_ai.agents.risk.executive_override import ExecutiveOverride
 
             # Bougies synthétiques : tendance haussière claire
-            import math, random
+            import random
             random.seed(42)
             base = 77000.0
             candles = []
@@ -341,7 +341,7 @@ class BootValidator:
                 True
             )
 
-        except Exception as e:
+        except Exception:
             tb = traceback.format_exc().strip().split("\n")[-1]
             self.results.append(CheckResult("chain.complete", False, tb))
             self._print_result("  CHAINE COMPLETE", False, tb)

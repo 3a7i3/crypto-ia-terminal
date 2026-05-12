@@ -27,11 +27,7 @@ import plotly.graph_objects as go
 
 from dashboard.colors import (
     C,
-    conviction_color,
     css_inject,
-    regime_color,
-    state_color,
-    status_badge,
 )
 from quant_hedge_ai.agents.market.market_scanner import MarketScanner
 
@@ -43,9 +39,9 @@ st.markdown(
     f"""
 <style>
 .metric-card {{
-    background: {C["background"]["card"]}; border-radius: 10px;
-    padding: 1rem 1.4rem; margin-bottom: 0.5rem;
-    border-left: 4px solid {C["status"]["info"]};
+    background: {C["background"]["card"]}; border-radius: 7px;
+    padding: 0.55rem 0.9rem; margin-bottom: 0.35rem;
+    border-left: 3px solid {C["status"]["info"]};
 }}
 .risk-nominal  {{ border-left-color: {C["status"]["ok"]}; }}
 .risk-warning  {{ border-left-color: {C["status"]["warning"]}; }}
@@ -290,8 +286,8 @@ with tab_market:
         title=f"{primary_symbol} — {timeframe}",
         xaxis_rangeslider_visible=False,
         template="plotly_dark",
-        height=450,
-        margin=dict(l=0, r=0, t=40, b=0),
+        height=320,
+        margin=dict(l=0, r=0, t=30, b=0),
     )
     st.plotly_chart(fig_candle, use_container_width=True)
 
@@ -309,8 +305,8 @@ with tab_market:
     )
     fig_vol.update_layout(
         template="plotly_dark",
-        height=150,
-        margin=dict(l=0, r=0, t=10, b=0),
+        height=100,
+        margin=dict(l=0, r=0, t=5, b=0),
         showlegend=False,
     )
     st.plotly_chart(fig_vol, use_container_width=True)
@@ -353,8 +349,8 @@ with tab_market:
         fig_norm.update_layout(
             title="Performance normalisée (%)",
             template="plotly_dark",
-            height=300,
-            margin=dict(l=0, r=0, t=40, b=0),
+            height=200,
+            margin=dict(l=0, r=0, t=30, b=0),
             yaxis_title="%",
         )
         st.plotly_chart(fig_norm, use_container_width=True)
@@ -411,7 +407,7 @@ with tab_backtest:
         title="Sharpe par indicateur",
         template="plotly_dark",
     )
-    fig_sharpe.update_layout(height=300, margin=dict(l=0, r=0, t=40, b=0))
+    fig_sharpe.update_layout(height=200, margin=dict(l=0, r=0, t=28, b=0))
     st.plotly_chart(fig_sharpe, use_container_width=True)
 
     # Scatter Sharpe vs Drawdown
@@ -425,7 +421,7 @@ with tab_backtest:
         title="Sharpe vs Drawdown",
         template="plotly_dark",
     )
-    fig_scatter.update_layout(height=320, margin=dict(l=0, r=0, t=40, b=0))
+    fig_scatter.update_layout(height=220, margin=dict(l=0, r=0, t=28, b=0))
     st.plotly_chart(fig_scatter, use_container_width=True)
 
     # Meilleure stratégie
@@ -450,10 +446,8 @@ with tab_paper:
     st.markdown("## 📋 Paper Trading — Compte virtuel")
 
     from quant_hedge_ai.agents.execution.paper_trading_engine import (
-        _STATE_FILE,
         PaperTradingEngine,
     )
-    from quant_hedge_ai.agents.execution.signal_engine import compute_signal
 
     # Charger l'état persisté (pas de nouvelles requêtes réseau)
     _pt = PaperTradingEngine(persist=True)
@@ -559,8 +553,8 @@ Stratégie : <b>{_best_s.get('entry_indicator','?')}</b> p=<b>{_best_s.get('peri
         fig_eq.update_layout(
             title="Equity Curve — compte paper",
             template="plotly_dark",
-            height=300,
-            margin=dict(l=0, r=0, t=40, b=0),
+            height=200,
+            margin=dict(l=0, r=0, t=28, b=0),
             yaxis_title="USD",
         )
         st.plotly_chart(fig_eq, use_container_width=True)
@@ -672,7 +666,7 @@ with tab_risk:
         )
     )
     fig_gauge.update_layout(
-        template="plotly_dark", height=280, margin=dict(l=20, r=20, t=40, b=20)
+        template="plotly_dark", height=200, margin=dict(l=10, r=10, t=28, b=10)
     )
     st.plotly_chart(fig_gauge, use_container_width=True)
 
@@ -689,7 +683,7 @@ with tab_risk:
             labels={"x": "Rendement (%)", "y": "Fréquence"},
         )
         fig_ret.add_vline(x=0, line_dash="dash", line_color="#aaa")
-        fig_ret.update_layout(height=280, margin=dict(l=0, r=0, t=40, b=0))
+        fig_ret.update_layout(height=190, margin=dict(l=0, r=0, t=28, b=0))
         st.plotly_chart(fig_ret, use_container_width=True)
 
 # ═══════════════════════════════════════════════════════════════════════════════

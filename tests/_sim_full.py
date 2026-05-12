@@ -102,10 +102,10 @@ for i, t in enumerate(TRADES):
 # ── Phase 2 : JSONL structure et cohérence ────────────────────────────────────
 print("\n=== PHASE 2 : JSONL cohérence ===")
 raw_lines = TEST_LOG.read_text(encoding="utf-8").splitlines()
-non_empty = [l for l in raw_lines if l.strip()]
+non_empty = [line for line in raw_lines if line.strip()]
 assert len(raw_lines) == len(non_empty), "Lignes vides détectées dans le JSONL"
 
-events = [json.loads(l) for l in non_empty]
+events = [json.loads(line) for line in non_empty]
 counts = {t: sum(1 for e in events if e["type"] == t)
           for t in ["signal_detected", "entry", "exit"]}
 print(f"  Counts: {counts}")

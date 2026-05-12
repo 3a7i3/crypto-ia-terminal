@@ -6,8 +6,8 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
 
-from tracker_system.core.trade_logger import log_entry, log_exit
-from tracker_system.core.event_writer import record_entry_from_mvp, record_exit_from_mvp
+from tracker_system.core.trade_logger import log_entry
+from tracker_system.core.event_writer import record_entry_from_mvp
 import tracker_system.core.trade_tracker as core_tracker
 
 

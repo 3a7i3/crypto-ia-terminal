@@ -19,10 +19,8 @@ Usage:
 
 from __future__ import annotations
 
-import math
 import random
 from dataclasses import dataclass, field
-from typing import Any
 
 
 @dataclass
@@ -184,7 +182,7 @@ class MonteCarloStressTester:
     def _sim_low_liquidity(self, paths: int, steps: int) -> dict:
         """Slippage extrême — le prix réel est bien pire que théorique."""
         def modifier(step: int, eq: float) -> tuple[float, float]:
-            avg_win = self.avg_win * 0.6    # gain réduit par slippage
+            self.avg_win * 0.6    # gain réduit par slippage
             avg_loss = self.avg_loss * 1.8  # perte amplifiée par slippage
             return self.win_rate, avg_loss
 

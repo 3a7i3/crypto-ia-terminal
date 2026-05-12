@@ -180,7 +180,7 @@ class MarketStateEngine:
         ema21 = self._ema(closes_1h, 21)
         ema55 = self._ema(closes_1h, 55)
         rsi   = self._rsi(closes_1h, 14)
-        price = closes_1h[-1]
+        closes_1h[-1]
 
         # Score directionnel 1h [-1, +1]
         ema_signal = (ema21 - ema55) / ema55 if ema55 else 0.0

@@ -18,7 +18,6 @@ import os
 import random
 import statistics
 import time
-from typing import Any
 
 # Désactive les logs trop verbeux pendant le bench
 os.environ.setdefault("MARKET_SCANNER_SYNTHETIC", "true")
@@ -47,12 +46,12 @@ def _synthetic_ohlcv(seed: int, n_bars: int) -> list[dict]:
         ret = rng.gauss(0, 0.012)
         price = max(price * math.exp(ret), 0.01)
         h = price * (1 + abs(rng.gauss(0, 0.004)))
-        l = price * (1 - abs(rng.gauss(0, 0.004)))
+        lo = price * (1 - abs(rng.gauss(0, 0.004)))
         bars.append({
             "timestamp": ts,
             "open":  price,
             "high":  h,
-            "low":   l,
+            "low":   lo,
             "close": price,
             "volume": abs(rng.gauss(1000, 300)),
         })

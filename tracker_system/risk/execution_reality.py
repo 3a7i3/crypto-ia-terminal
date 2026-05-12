@@ -3,7 +3,7 @@ P0 — RÉALISME EXECUTION (Slippage + Frais)
 Simule conditions réelles: slippage 2bps, frais 0.15% maker/0.15% taker
 """
 
-from typing import Dict, Optional
+from typing import Dict
 
 
 class ExecutionReality:

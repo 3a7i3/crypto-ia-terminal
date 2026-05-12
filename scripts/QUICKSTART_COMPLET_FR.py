@@ -19,7 +19,7 @@ print("="*70 + "\n")
 print("[PHASE 1-2] EXÉCUTER LES TRADES")
 print("-" * 70)
 
-from tracker_system.core.trade_tracker import open_position, update_positions, finalize_position
+from tracker_system.core.trade_tracker import open_position, finalize_position
 
 trades = [
     ("BTCUSDT", "BUY", 50000.0, 0.1, "bull_trend", 0.85),

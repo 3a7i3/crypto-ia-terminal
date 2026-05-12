@@ -3,8 +3,6 @@
 OPERATOR DASHBOARD PRO — Version finale hedge fund UI
 """
 
-from datetime import datetime
-import json
 
 
 DASHBOARD_HTML = """
@@ -25,7 +23,7 @@ DASHBOARD_HTML = """
             font-family: 'Monaco', 'Courier New', monospace;
             background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
             color: #e0e0e0;
-            padding: 20px;
+            padding: 10px 14px;
             min-height: 100vh;
         }
 
@@ -37,85 +35,85 @@ DASHBOARD_HTML = """
         header {
             background: rgba(20, 25, 45, 0.9);
             border-bottom: 2px solid #4ade80;
-            padding: 20px;
-            margin-bottom: 20px;
-            border-radius: 8px;
+            padding: 10px 14px;
+            margin-bottom: 12px;
+            border-radius: 6px;
         }
 
         h1 {
             color: #4ade80;
-            font-size: 24px;
-            margin-bottom: 10px;
+            font-size: 16px;
+            margin-bottom: 6px;
         }
 
         .status-line {
             display: flex;
-            gap: 30px;
-            font-size: 12px;
+            gap: 18px;
+            font-size: 11px;
             color: #94a3b8;
         }
 
         .status-line span {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
         }
 
         .indicator {
-            width: 8px;
-            height: 8px;
+            width: 7px;
+            height: 7px;
             border-radius: 50%;
         }
 
         .indicator.active {
             background: #4ade80;
-            box-shadow: 0 0 10px #4ade80;
+            box-shadow: 0 0 7px #4ade80;
         }
 
         .grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            margin-bottom: 20px;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 10px;
+            margin-bottom: 10px;
         }
 
         .panel {
             background: rgba(30, 39, 73, 0.8);
             border: 1px solid #334155;
-            border-radius: 8px;
-            padding: 20px;
+            border-radius: 6px;
+            padding: 10px 12px;
             backdrop-filter: blur(10px);
         }
 
         .panel h3 {
             color: #94a3b8;
-            font-size: 11px;
+            font-size: 10px;
             text-transform: uppercase;
-            letter-spacing: 2px;
-            margin-bottom: 15px;
+            letter-spacing: 1.5px;
+            margin-bottom: 8px;
             border-bottom: 1px solid #334155;
-            padding-bottom: 10px;
+            padding-bottom: 6px;
         }
 
         .metric {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 12px;
-            padding: 8px;
+            margin-bottom: 6px;
+            padding: 5px 7px;
             background: rgba(15, 23, 41, 0.5);
             border-radius: 4px;
         }
 
         .metric-label {
             color: #64748b;
-            font-size: 12px;
+            font-size: 11px;
         }
 
         .metric-value {
-            font-size: 16px;
+            font-size: 13px;
             font-weight: bold;
-            color: #4ade80;
+            color: #ffffff;
             font-family: 'Monaco', monospace;
         }
 
@@ -130,12 +128,12 @@ DASHBOARD_HTML = """
         .chart-container {
             background: rgba(15, 23, 41, 0.5);
             border-radius: 4px;
-            padding: 15px;
-            height: 200px;
+            padding: 8px;
+            height: 120px;
             display: flex;
             align-items: flex-end;
             justify-content: space-around;
-            gap: 5px;
+            gap: 4px;
         }
 
         .bar {
@@ -153,19 +151,19 @@ DASHBOARD_HTML = """
         .alerts {
             background: rgba(30, 39, 73, 0.8);
             border: 1px solid #334155;
-            border-radius: 8px;
-            padding: 20px;
+            border-radius: 6px;
+            padding: 10px 12px;
         }
 
         .alert-item {
             background: rgba(15, 23, 41, 0.8);
             border-left: 3px solid #f59e0b;
-            padding: 12px;
-            margin-bottom: 10px;
+            padding: 6px 9px;
+            margin-bottom: 5px;
             border-radius: 4px;
-            font-size: 12px;
+            font-size: 11px;
             display: flex;
-            gap: 10px;
+            gap: 7px;
         }
 
         .alert-item.critical {
@@ -178,21 +176,21 @@ DASHBOARD_HTML = """
 
         .action-panel {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-top: 20px;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 8px;
+            margin-top: 10px;
         }
 
         button {
             background: #4ade80;
             color: #0a0e27;
             border: none;
-            padding: 12px 20px;
+            padding: 7px 14px;
             border-radius: 4px;
             font-weight: bold;
             cursor: pointer;
             transition: all 0.3s;
-            font-size: 12px;
+            font-size: 11px;
             text-transform: uppercase;
             letter-spacing: 1px;
         }
@@ -214,9 +212,9 @@ DASHBOARD_HTML = """
         .footer {
             text-align: center;
             color: #64748b;
-            font-size: 11px;
-            margin-top: 40px;
-            padding: 20px;
+            font-size: 10px;
+            margin-top: 14px;
+            padding: 8px;
             border-top: 1px solid #334155;
         }
 

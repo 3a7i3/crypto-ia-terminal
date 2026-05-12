@@ -24,7 +24,7 @@ import time
 from typing import Any, Dict, Optional
 
 from system.dependency_manager import dependency_manager
-from system.module_registry import ModulePriority, ModuleStatus, module_registry
+from system.module_registry import ModuleStatus, module_registry
 from system.runtime_controller import runtime_controller
 from system.startup_sequence import startup_sequence
 from system.state_manager import SystemState, state_manager
@@ -156,7 +156,7 @@ class SystemKernel:
 
     def _evaluate_system_health(self) -> None:
         score = module_registry.system_health_score()
-        unhealthy = module_registry.unhealthy_modules()
+        module_registry.unhealthy_modules()
         critical_ok = module_registry.all_critical_healthy()
         current = state_manager.state
 

@@ -358,7 +358,7 @@ class ChiefOfficer:
         if eo_level == "CAREFUL":
             return f"Prudence maximale (streak={streak}). Taille x25%. Attendre signal exceptionnel."
         if eo_level == "REDUCE":
-            return f"Pression detectable. Taille x50%. Eviter les entrees marginales."
+            return "Pression detectable. Taille x50%. Eviter les entrees marginales."
         if aw_level in ("DANGER", "CRITICAL"):
             return "Derive comportementale critique. Reduire taille et surveiller regime."
         if accuracy < 0.5 and regret.get("missed_wins", 0) >= 3:

@@ -18,7 +18,6 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from typing import Any
 
 from quant_hedge_ai.agents.quant.backtest_lab import BacktestLab
 from quant_hedge_ai.agents.strategy.genetic_optimizer import GeneticOptimizer

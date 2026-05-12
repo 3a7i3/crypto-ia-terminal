@@ -2,7 +2,6 @@ import os
 import sys
 
 import pytest
-import streamlit as st
 
 # Ensure workspace root is in sys.path for dashboard import
 WORKSPACE_ROOT = os.path.dirname(os.path.abspath(__file__))

@@ -8,7 +8,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from tracker_system.core.trade_tracker import open_position, update_positions, finalize_position
+from tracker_system.core.trade_tracker import open_position, update_positions
 from tracker_system.analytics.metrics import compute_all_metrics
 from tracker_system.backtesting.auto_backtester import run_backtest
 from meta_learning.learner import MetaLearner

@@ -3,7 +3,6 @@ GlobalRiskGate — circuit breaker systémique pour Annalise
 S'insère dans la boucle principale de main_v91.py avant toute exécution.
 """
 
-import asyncio
 import logging
 import time
 from dataclasses import dataclass, field

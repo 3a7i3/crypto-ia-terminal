@@ -100,7 +100,7 @@ def _simulate_run(
         # ① Pool lock wait
         t0 = time.perf_counter()
         with pool_lock:
-            pool_wait_ms = (time.perf_counter() - t0) * 1000
+            (time.perf_counter() - t0) * 1000
             # Simule le vrai wait avec latence injectée
             simulated_pool_wait = _sample(
                 "pool_lock_warm" if pool_warm else "pool_lock_cold", rng
@@ -121,7 +121,7 @@ def _simulate_run(
         call_lock = exchange_call_locks.setdefault(id(exchange), threading.Lock())
         t_call_lock = time.perf_counter()
         with call_lock:
-            call_lock_wait_ms = (time.perf_counter() - t_call_lock) * 1000
+            (time.perf_counter() - t_call_lock) * 1000
             # Injecter contention si demandé (2ème thread en attente)
             simulated_call_wait = _sample(
                 "call_lock_contention" if contention and sym_i == 0 else "call_lock_serial",
@@ -131,7 +131,6 @@ def _simulate_run(
             # ④ HTTP fetch
             t_http = time.perf_counter()
             # 1ère connexion du run = froid, les suivantes = keep-alive
-            conn_warm = pool_warm or sym_i > 0
             ohlcvs = exchange.fetch_ohlcv(symbol, "1h", limit=96)
             http_ms = (time.perf_counter() - t_http) * 1000
 
@@ -234,7 +233,7 @@ def print_report(r: dict) -> None:
     print("=" * 76)
 
     # ── Tableau global (toutes phases, tous runs)
-    print(f"\n  TOUTES PHASES — tous runs confondus")
+    print("\n  TOUTES PHASES — tous runs confondus")
     print(f"  {'Phase':<22} {'mean':>7} {'std':>7} {'min':>7} {'p50':>7} {'p95':>7} {'max':>7} {'CV%':>6}")
     print("  " + "-" * 66)
     phases = list(_LABELS.keys())
@@ -272,8 +271,8 @@ def print_report(r: dict) -> None:
             print(f"    Speedup pool chaud     : x{speedup:.1f}")
 
     # ── Analyse de variance
-    print(f"\n  ANALYSE VARIANCE (CV% = std/mean × 100)")
-    print(f"    La phase avec la plus grande variance :")
+    print("\n  ANALYSE VARIANCE (CV% = std/mean × 100)")
+    print("    La phase avec la plus grande variance :")
     max_cv_phase = max(phases, key=lambda p: r["phases"][p].get("cv_pct", 0))
     d = r["phases"][max_cv_phase]
     print(f"    → {_LABELS[max_cv_phase].strip()} : CV={d['cv_pct']:.1f}%  "
@@ -284,16 +283,16 @@ def print_report(r: dict) -> None:
     create_mean = r["phases"]["exchange_create_ms"].get("mean", 0)
     total_cold = r["cold_run"].get("mean", 0)
 
-    print(f"\n  CONCLUSIONS")
+    print("\n  CONCLUSIONS")
     print(f"    HTTP fetch_ohlcv   = {http_mean:.0f}ms/sym = dominante ({http_mean/max(total_cold/sym, 1)*100:.0f}% du coût froid)")
     print(f"    Exchange create()  = {create_mean:.0f}ms (payé 1 seule fois → pool partagé OK)")
-    print(f"    Parse + validate   = négligeable (<2ms)")
-    print(f"    Verrous (pool+call)= négligeables (<1ms sans contention)")
-    print(f"\n    Solutions efficaces :")
-    print(f"    1. ADVISOR_PREWARM_1H=true  → absorbe HTTP fetch en parallèle du bootstrap")
-    print(f"    2. pool classe-level déjà en place → exchange_create payé 1× seulement")
-    print(f"    3. adjustForTimeDifference=False → supprime GET /time (~200ms à froid)")
-    print(f"    4. MARKET_SCANNER_CACHE_TTL augmenté → moins de refetches HTTP")
+    print("    Parse + validate   = négligeable (<2ms)")
+    print("    Verrous (pool+call)= négligeables (<1ms sans contention)")
+    print("\n    Solutions efficaces :")
+    print("    1. ADVISOR_PREWARM_1H=true  → absorbe HTTP fetch en parallèle du bootstrap")
+    print("    2. pool classe-level déjà en place → exchange_create payé 1× seulement")
+    print("    3. adjustForTimeDifference=False → supprime GET /time (~200ms à froid)")
+    print("    4. MARKET_SCANNER_CACHE_TTL augmenté → moins de refetches HTTP")
     print()
     print("=" * 76)
     print()

@@ -5,12 +5,7 @@ from pathlib import Path
 
 import pandas as pd
 import streamlit as st
-from streamlit_extras.stylable_container import stylable_container
 
-from dashboard_functions import (comparatif_multi_simulations,
-                                 evolution_fitness, import_export_csv,
-                                 stats_par_espece, top5_et_heatmap,
-                                 visualisation_3d)
 
 st.set_page_config(
     page_title="Evolutionary Strategy Dashboard",

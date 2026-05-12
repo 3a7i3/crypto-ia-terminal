@@ -6,7 +6,6 @@ Simule des updates de métriques et envoie des alertes
 
 import asyncio
 import aiohttp
-import json
 import random
 from datetime import datetime
 
@@ -107,7 +106,7 @@ class DashboardTestClient:
         print("\nTrading day simulation complete!")
         status = await self.check_status()
         if status:
-            print(f"\nFinal Status:")
+            print("\nFinal Status:")
             print(f"  Connected clients: {status['connected_clients']}")
             print(f"  Final equity: ${status['current_metrics']['equity']:.2f}")
 

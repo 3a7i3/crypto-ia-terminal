@@ -16,7 +16,7 @@ import re
 import subprocess
 from pathlib import Path
 
-from pieuvre.incidents.models import Finding, IncidentType, Severity
+from pieuvre.incidents.models import Finding, Severity
 from pieuvre.tentacles.base import BaseTentacle
 
 logger = logging.getLogger(__name__)

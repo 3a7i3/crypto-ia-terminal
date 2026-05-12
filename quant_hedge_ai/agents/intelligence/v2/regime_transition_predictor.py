@@ -161,7 +161,7 @@ class RegimeTransitionPredictor:
         P(régime change) = 1 - P(même régime dans n_steps)
         """
         try:
-            n = trans_matrix.shape[0]
+            trans_matrix.shape[0]
             state_names = ["bull", "bear", "chop", "high_vol"]
             current_idx = state_names.index(probs.dominant) if probs.dominant in state_names else 0
             # Puissance de la matrice de transition

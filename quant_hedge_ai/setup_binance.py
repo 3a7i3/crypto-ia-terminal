@@ -247,7 +247,7 @@ def run_setup() -> None:
     if _confirm(f"Sauvegarder dans {ENV_FILE} ?"):
         _write_env(updates)
         _print("\n  ✅  Configuration terminée !", _GREEN)
-        _print(f"  Lancez votre système avec : python -m quant_hedge_ai.backtest_real", _CYAN)
+        _print("  Lancez votre système avec : python -m quant_hedge_ai.backtest_real", _CYAN)
     else:
         _print("\n  Configuration non sauvegardée.", _YELL)
 

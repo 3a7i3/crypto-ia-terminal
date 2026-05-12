@@ -46,24 +46,70 @@ st.markdown(
     """
 <style>
 .main { background-color: #080d1a; }
-.block-container { padding-top: 0.8rem; padding-bottom: 0rem; }
+.block-container { padding-top: 0.3rem; padding-bottom: 0rem; }
 div[data-testid="metric-container"] {
     background: linear-gradient(135deg, #0d1b2a 0%, #1a2744 100%);
     border: 1px solid #1e3a5f;
-    border-radius: 10px;
-    padding: 12px 16px;
+    border-radius: 8px;
+    padding: 8px 14px;
 }
+div[data-testid="metric-container"] label {
+    font-size: 0.78rem !important;
+    color: #d0e8ff !important;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+div[data-testid="stMetricValue"] {
+    font-size: 1.45rem !important;
+    color: #ffffff !important;
+    font-weight: 700;
+    line-height: 1.2;
+}
+div[data-testid="stMetricDelta"] { font-size: 0.72rem !important; }
+h1, h2 { font-size: 1.1rem !important; margin-bottom: 0.15rem !important; color: #ffffff !important; }
+h3, h4 { font-size: 0.9rem !important; margin-bottom: 0.1rem !important; color: #ffffff !important; }
+.stMarkdown strong, .stMarkdown b { color: #ffffff !important; }
+p { color: #e8eaf0; }
 .status-ok   { color: #00d4aa; font-weight: 700; }
 .status-warn { color: #f0a500; font-weight: 700; }
 .status-err  { color: #ff4444; font-weight: 700; }
-.module-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+hr { margin: 0.3rem 0 !important; }
+div[data-testid="stAlert"] { padding: 0.45rem 0.75rem !important; font-size: 0.8rem; }
 .mod-card {
     background: #0d1b2a;
     border: 1px solid #1e3a5f;
-    border-radius: 8px;
-    padding: 8px 14px;
-    font-size: 12px;
-    min-width: 140px;
+    border-radius: 6px;
+    padding: 5px 10px;
+    font-size: 11.5px;
+    min-width: 130px;
+}
+.info-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+}
+.info-table th {
+    background: #1a2744;
+    color: #8ab0d0;
+    padding: 5px 10px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+}
+.info-table td {
+    background: #0d1b2a;
+    color: #e8eaf0;
+    padding: 5px 10px;
+    border-top: 1px solid #1e3a5f;
+}
+.info-table tr:hover td { background: #111f33; }
+.exch-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 700;
 }
 </style>
 """,
@@ -201,57 +247,80 @@ with tab1:
         capital = snap.get("capital", 0.0)
         safe = snap.get("safe_mode", False)
         exch = snap.get("exchange", {})
+        exch_ok = exch.get("healthy", False)
 
+        # ── Ligne 1 : métriques principales ──────────────────────────────────
         c1, c2, c3, c4, c5, c6 = st.columns(6)
         c1.metric("💰 Capital", f"${capital:,.2f}")
         c2.metric("🔄 Cycle", cycle)
         c3.metric("⚡ Durée cycle", f"{snap.get('cycle_duration_ms', 0):.0f} ms")
-        c4.metric("⏱ Latence exchange", f"{exch.get('last_latency_ms', 0):.0f} ms")
-        c5.metric("📡 Uptime exchange", f"{exch.get('uptime_pct', 0):.1f}%")
+        c4.metric("⏱ Latence exch.", f"{exch.get('last_latency_ms', 0):.0f} ms")
+        c5.metric("📡 Uptime exch.", f"{exch.get('uptime_pct', 0):.1f}%")
         c6.metric("🛡 Safe Mode", "OUI ⚠️" if safe else "NON ✅")
 
-        # Ligne 2 — signaux du cycle
+        # ── Ligne 2 : signaux du cycle ────────────────────────────────────────
         n_sym = snap.get("n_symbols", 0)
         n_act = snap.get("n_actionable", 0)
         n_trd = snap.get("n_traded", 0)
         n_ref = snap.get("n_refused", 0)
-        d1, d2, d3, d4 = st.columns(4)
-        d1.metric("📊 Symboles analysés", n_sym)
-        d2.metric("🎯 Signaux actionnables", n_act)
-        d3.metric("✅ Trades exécutés", n_trd)
+        d1, d2, d3, d4, d5 = st.columns([2, 2, 2, 2, 4])
+        d1.metric("📊 Symboles", n_sym)
+        d2.metric("🎯 Actionnables", n_act)
+        d3.metric("✅ Tradés", n_trd)
         d4.metric("🚫 Refusés", n_ref)
-
-        st.caption(f"Dernière mise à jour : {ts_str} | Cycle #{cycle}")
-
-        # Exchange status
-        exch_ok = exch.get("healthy", False)
-        st.markdown(
-            f"**Exchange** : <span class='{'status-ok' if exch_ok else 'status-err'}'>"
-            f"{'✅ Connecté' if exch_ok else '❌ Déconnecté'}</span> "
-            f"— Échecs consécutifs : {exch.get('consecutive_failures', 0)} "
-            f"— Vérifications totales : {exch.get('total_checks', 0)}",
+        # Exchange status dans la 5e colonne
+        badge_style = "background:#0d3b2a;color:#00d4aa;border:1px solid #00d4aa" if exch_ok else "background:#3b0d0d;color:#ff4444;border:1px solid #ff4444"
+        badge_txt = "✅ Connecté" if exch_ok else "❌ Déconnecté"
+        d5.markdown(
+            f"<div style='margin-top:8px'>"
+            f"<span style='color:#8ab0d0;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.04em'>Exchange</span><br>"
+            f"<span class='exch-badge' style='{badge_style}'>{badge_txt}</span>"
+            f"&nbsp; <span style='color:#8ab0d0;font-size:0.8rem'>"
+            f"Échecs : {exch.get('consecutive_failures', 0)} &nbsp;·&nbsp; Checks : {exch.get('total_checks', 0)}"
+            f"</span></div>",
             unsafe_allow_html=True,
         )
+
+        st.caption(f"⏱ Mise à jour : {ts_str} | Cycle #{cycle}")
+
         if exch.get("last_error"):
-            with st.expander("Dernière erreur exchange"):
+            with st.expander("⚠️ Dernière erreur exchange"):
                 st.code(exch["last_error"], language=None)
 
-        # Refusal breakdown + régimes
+        # ── Refus + Régimes (HTML tables, dark theme) ─────────────────────────
         col_rb, col_rd = st.columns(2)
+
         with col_rb:
             rb = snap.get("refusal_breakdown", {})
+            st.markdown("**🚫 Couches de refus**")
             if rb:
-                st.markdown("**🚫 Couches de refus (cycle courant)**")
-                df_rb = pd.DataFrame(rb.items(), columns=["Couche", "Refus"])
-                st.dataframe(df_rb, use_container_width=True, hide_index=True)
+                rows_html = "".join(
+                    f"<tr><td>{layer}</td><td style='text-align:right;color:#f0a500;font-weight:700'>{cnt}</td></tr>"
+                    for layer, cnt in sorted(rb.items(), key=lambda x: -x[1])
+                )
+                st.markdown(
+                    f"<table class='info-table'><thead><tr><th>Couche</th><th style='text-align:right'>Refus</th></tr></thead>"
+                    f"<tbody>{rows_html}</tbody></table>",
+                    unsafe_allow_html=True,
+                )
             else:
-                st.markdown("**🚫 Refus ce cycle :** aucun signal actionnable bloqué")
+                st.markdown("<span style='color:#00d4aa;font-size:0.85rem'>✅ Aucun signal bloqué ce cycle</span>", unsafe_allow_html=True)
+
         with col_rd:
             rd = snap.get("regime_distribution", {})
+            st.markdown("**📈 Régimes détectés**")
             if rd:
-                st.markdown("**📈 Régimes détectés ce cycle**")
-                df_rd = pd.DataFrame(rd.items(), columns=["Régime", "Symboles"])
-                st.dataframe(df_rd, use_container_width=True, hide_index=True)
+                rows_html = "".join(
+                    f"<tr><td>{regime}</td><td style='text-align:right;color:#00d4aa;font-weight:700'>{count}</td></tr>"
+                    for regime, count in sorted(rd.items(), key=lambda x: -x[1])
+                )
+                st.markdown(
+                    f"<table class='info-table'><thead><tr><th>Régime</th><th style='text-align:right'>Symboles</th></tr></thead>"
+                    f"<tbody>{rows_html}</tbody></table>",
+                    unsafe_allow_html=True,
+                )
+            else:
+                st.markdown("<span style='color:#8ab0d0;font-size:0.85rem'>Aucun régime détecté</span>", unsafe_allow_html=True)
     else:
         st.warning("Snapshot live introuvable — le bot est-il en cours d'exécution ?")
 
@@ -336,12 +405,12 @@ with tab1:
             ch_cap, ch_dur = st.columns(2)
             with ch_cap:
                 st.markdown("#### 💰 Capital (150 derniers cycles)")
-                st.line_chart(df_cyc.set_index("cycle")["capital"], height=180)
+                st.line_chart(df_cyc.set_index("cycle")["capital"], height=130)
             with ch_dur:
                 st.markdown("#### ⚡ Durée cycle ms (150 derniers cycles)")
                 df_dur = df_cyc.dropna(subset=["duration_ms"])
                 if not df_dur.empty:
-                    st.line_chart(df_dur.set_index("cycle")["duration_ms"], height=180)
+                    st.line_chart(df_dur.set_index("cycle")["duration_ms"], height=130)
                 else:
                     st.info("Durée non encore enregistrée (redémarrer le bot)")
 
@@ -357,7 +426,7 @@ with tab1:
                 sorted(total_ref.items(), key=lambda x: -x[1]),
                 columns=["Couche", "Refus totaux"],
             )
-            st.bar_chart(df_tot.set_index("Couche"), height=200)
+            st.bar_chart(df_tot.set_index("Couche"), height=140)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -517,13 +586,13 @@ with tab3:
             st.markdown("**Régimes détectés**")
             regimes = Counter(d.get("regime", "unknown") for d in decisions)
             df_reg = pd.DataFrame(regimes.most_common(), columns=["Régime", "Count"])
-            st.bar_chart(df_reg.set_index("Régime"), height=200)
+            st.bar_chart(df_reg.set_index("Régime"), height=140)
 
             # Conviction
             st.markdown("**Niveaux de conviction**")
             convs = Counter(d.get("conviction_level", "—") for d in decisions)
             df_conv = pd.DataFrame(convs.most_common(), columns=["Conviction", "Count"])
-            st.bar_chart(df_conv.set_index("Conviction"), height=180)
+            st.bar_chart(df_conv.set_index("Conviction"), height=120)
 
         with col_right:
             # Score distribution
@@ -536,7 +605,7 @@ with tab3:
             if scores:
                 df_scores = pd.DataFrame({"score": scores})
                 hist = df_scores["score"].value_counts().sort_index()
-                st.bar_chart(hist, height=200)
+                st.bar_chart(hist, height=140)
                 avg_s = sum(scores) / len(scores)
                 st.caption(
                     f"Score moyen : {avg_s:.1f}"
@@ -549,7 +618,7 @@ with tab3:
             df_perso = pd.DataFrame(
                 persos.most_common(), columns=["Personnalité", "Count"]
             )
-            st.bar_chart(df_perso.set_index("Personnalité"), height=180)
+            st.bar_chart(df_perso.set_index("Personnalité"), height=120)
 
         # Évolution du score par cycle (par symbole)
         st.divider()
@@ -569,7 +638,7 @@ with tab3:
                 df_s = pd.DataFrame(pts).groupby("cycle")["score"].mean().rename(sym)
                 dfs.append(df_s)
             df_scores_time = pd.concat(dfs, axis=1).sort_index().tail(100)
-            st.line_chart(df_scores_time, height=220)
+            st.line_chart(df_scores_time, height=150)
             st.caption(
                 "Score moyen par cycle — ligne pointillée mentale à 70 = seuil de trade"
             )
@@ -679,7 +748,7 @@ with tab3:
                 [(k, v) for k, v in cnt_labels.most_common()],
                 columns=["Classification", "Count"],
             )
-            st.bar_chart(df_coh_bar.set_index("Classification"), height=160)
+            st.bar_chart(df_coh_bar.set_index("Classification"), height=110)
 
             # Win rate score≥70 vs score<70
             wr_col1, wr_col2 = st.columns(2)
@@ -802,7 +871,7 @@ with tab4:
                 )
             df_pnl = pd.DataFrame(pnl_cumul).set_index("trade")
             st.markdown("#### 📈 PnL cumulé ($)")
-            st.line_chart(df_pnl["pnl_cumul"], height=180)
+            st.line_chart(df_pnl["pnl_cumul"], height=130)
 
         # Breakdown par raison de sortie
         exit_reasons = Counter(e.get("exit_reason", "?")[:30] for e in exits)

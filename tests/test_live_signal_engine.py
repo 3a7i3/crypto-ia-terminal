@@ -2,14 +2,11 @@
 
 from __future__ import annotations
 
-import os
 import pytest
-from unittest.mock import MagicMock, patch
 
 from quant_hedge_ai.agents.execution.live_signal_engine import (
     LiveSignalEngine,
     SignalResult,
-    _DEFAULT_MIN_SCORE,
 )
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
@@ -146,7 +143,7 @@ class TestBlacklist:
     def test_blacklisted_regime_caps_score(self, engine, mtf_flat):
         features = {"momentum": 0.08, "realized_volatility": 0.02, "trend_strength": 0.9}
         # Sans blacklist
-        r1 = engine.evaluate("BTC", mtf_flat, features=features)
+        engine.evaluate("BTC", mtf_flat, features=features)
         # Avec blacklist du régime bull_trend
         engine.blacklist_regime("bull_trend")
         r2 = engine.evaluate("BTC", mtf_flat, features=features)

@@ -1,7 +1,6 @@
 import configparser
 import glob
 import os
-from typing import Iterable
 
 
 def missing_module_message():

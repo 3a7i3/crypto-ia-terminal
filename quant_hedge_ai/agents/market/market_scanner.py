@@ -549,11 +549,11 @@ class MarketScanner:
                     "open": float(o),
                     "close": float(c),
                     "high": float(h),
-                    "low": float(l),
+                    "low": float(lo),
                     "volume": float(v),
                     "source": "ccxt_live",
                 }
-                for ts, o, h, l, c, v in ohlcvs
+                for ts, o, h, lo, c, v in ohlcvs
             ]
             if self._profile:
                 self._profile_data["parse_validate_ms"].append(

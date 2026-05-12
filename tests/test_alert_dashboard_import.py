@@ -1,7 +1,6 @@
 def test_alert_dashboard_import():
     """Test minimal: vérifie que le module s'importe sans erreur fatale."""
     import importlib
-    import os
     import pathlib
     import sys
 

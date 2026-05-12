@@ -16,7 +16,6 @@ author = "Crypto AI Team"
 release = "9.1"
 
 extensions = [
-    "myst_parser",
     "myst_nb",
     "sphinx.ext.autodoc",
     "sphinx.ext.napoleon",

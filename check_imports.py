@@ -4,7 +4,6 @@ Exécutez : python check_imports.py
 """
 
 import importlib
-import os
 import sys
 
 # Liste des modules principaux à tester (à compléter dynamiquement ensuite)

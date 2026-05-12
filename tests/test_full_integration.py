@@ -6,7 +6,6 @@ Binance API + Backtest Engine + Autonomous Decisions + Safe Mode
 
 import sys
 from pathlib import Path
-import json
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -77,7 +76,7 @@ def test_binance_client():
 
     # Create paper trading client (testnet mode)
     client = create_binance_client(mode="paper")
-    print(f"[OK] Created Binance client in paper mode")
+    print("[OK] Created Binance client in paper mode")
 
     # Fetch historical data
     klines = client.get_klines("BTCUSDT", interval="1h", limit=100)
@@ -175,7 +174,7 @@ def test_safe_execution():
         current_config
     )
 
-    print(f"\n[Decision Execution]")
+    print("\n[Decision Execution]")
     print(f"  Action: {decision['action']}")
     print(f"  Executed: {executed}")
     print(f"  Reason: {reason}")
@@ -185,7 +184,7 @@ def test_safe_execution():
 
     # Check status
     status = framework.get_status()
-    print(f"\n[Framework Status]")
+    print("\n[Framework Status]")
     print(f"  Decisions executed: {status['decisions_executed']}")
     print(f"  Rollbacks triggered: {status['rollbacks_triggered']}")
     print(f"  Active throttle: {status['active_throttle']}")
@@ -201,12 +200,12 @@ def test_orchestration():
 
     config, klines, auto, safety, report = _run_complete_orchestration_report()
     print(f"  Fetched {len(klines)} candles from market")
-    print(f"  Created autonomous decision engine")
-    print(f"  Created safety execution framework")
-    print(f"  Created backtest engine")
+    print("  Created autonomous decision engine")
+    print("  Created safety execution framework")
+    print("  Created backtest engine")
     print("\n[OK] Running complete pipeline...")
 
-    print(f"\n[Pipeline Results]")
+    print("\n[Pipeline Results]")
     print(f"  Initial: ${config.initial_capital:,.2f}")
     print(f"  Final: ${report['final_capital']:,.2f}")
     print(f"  PnL: {report['total_pnl_pct']:.2f}%")
@@ -216,13 +215,13 @@ def test_orchestration():
 
     # Get autonomous engine status
     auto_status = auto.get_status()
-    print(f"\n[Autonomous Engine]")
+    print("\n[Autonomous Engine]")
     print(f"  Total decisions: {auto_status['total_decisions']}")
     print(f"  Actions taken: {auto_status['action_breakdown']}")
 
     # Get safety status
     safety_status = safety.get_status()
-    print(f"\n[Safety Framework]")
+    print("\n[Safety Framework]")
     print(f"  Decisions executed: {safety_status['decisions_executed']}")
     print(f"  Rollbacks triggered: {safety_status['rollbacks_triggered']}")
 
@@ -236,7 +235,7 @@ if __name__ == "__main__":
         print("\n" + "="*70)
         print("[INTEGRATION-4] COMPLETE ORCHESTRATION")
         print("="*70)
-        print(f"\n[Pipeline Results]")
+        print("\n[Pipeline Results]")
         print(f"  Initial: ${config.initial_capital:,.2f}")
         print(f"  Final: ${report['final_capital']:,.2f}")
         print(f"  PnL: {report['total_pnl_pct']:.2f}%")
@@ -248,15 +247,15 @@ if __name__ == "__main__":
         print("[SUCCESS] FULL INTEGRATION TEST PASSED")
         print("="*70)
         print("\n[Summary]")
-        print(f"  Market data: OK (BinanceClientStub)")
+        print("  Market data: OK (BinanceClientStub)")
         print(f"  Backtest engine: OK ({report['num_trades']} trades)")
-        print(f"  Autonomous decisions: OK")
-        print(f"  Safe execution: OK")
-        print(f"  Complete pipeline: OK")
+        print("  Autonomous decisions: OK")
+        print("  Safe execution: OK")
+        print("  Complete pipeline: OK")
         print("\n[Next Steps]")
-        print(f"  1. Load dashboard: python -m uvicorn dashboard.operator_dashboard_pro:app")
-        print(f"  2. Deploy with live API keys when ready")
-        print(f"  3. Run paper trading on Binance testnet")
+        print("  1. Load dashboard: python -m uvicorn dashboard.operator_dashboard_pro:app")
+        print("  2. Deploy with live API keys when ready")
+        print("  3. Run paper trading on Binance testnet")
 
     except Exception as e:
         print(f"\n[ERROR] {e}")

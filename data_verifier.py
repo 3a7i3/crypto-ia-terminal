@@ -543,7 +543,7 @@ def _print_exchange(conn: dict) -> None:
     if st == "ok":
         btc = conn.get("last_btc_price", 0)
         print(
-            f"  Ping       : {_ok(f'Reseau OK')}  {_c(f'{latency} ms', 'grey')}"
+            f"  Ping       : {_ok('Reseau OK')}  {_c(f'{latency} ms', 'grey')}"
             + (f"  BTC={btc:,.0f}" if btc else "")
         )
         if balance > 0:
@@ -569,7 +569,7 @@ def _print_ohlcv(rep: dict) -> None:
     source = rep.get("source", "?")
     fresh = rep.get("freshness_ok", False)
     close = rep.get("latest_close")
-    ts = rep.get("latest_ts", "")
+    rep.get("latest_ts", "")
     fetch_ms = rep.get("fetch_ms", 0)
     dropped = rep.get("candles_dropped", 0)
 
@@ -714,7 +714,7 @@ def _print_signal(sig: dict) -> None:
     if score >= 70:
         print(f"    Threshold  : {_ok('Score >= 70 (actionable)')}")
     else:
-        print(f"    Threshold  : {_warn(f'Score < 70 (non actionable, seuil=70)')}")
+        print(f"    Threshold  : {_warn('Score < 70 (non actionable, seuil=70)')}")
 
     if conf:
         print(f"    Confiance  : {float(conf):.1%}")
@@ -835,7 +835,7 @@ def run_verification(
         sig_parts = []
         for sig in signal_reports:
             if sig.get("status") == "ok":
-                emoji = {"BUY": "📈", "SELL": "📉", "HOLD": "⏸"}.get(
+                {"BUY": "📈", "SELL": "📉", "HOLD": "⏸"}.get(
                     sig.get("signal", ""), "❓"
                 )
                 sig_parts.append(

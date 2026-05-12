@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import logging
 import os
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from quant_hedge_ai.agents.execution.live_signal_engine import SignalResult
 

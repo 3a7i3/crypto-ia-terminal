@@ -1,6 +1,6 @@
-sphinx
+sphinx>=7.0,<9.0
 sphinx_rtd_theme
-myst-parser
+myst-parser>=2.0,<4.0
 furo
 sphinxcontrib-mermaid
 myst-nb

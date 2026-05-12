@@ -10,7 +10,6 @@ import random
 import uuid
 from collections import Counter
 from pathlib import Path
-from typing import Any
 
 import numpy as np
 
@@ -137,9 +136,6 @@ def evolve_world(
         logger.warning("evolve_world: extinction totale, conservation des 3 meilleurs")
 
     # --- Mutation adaptative ---
-    alert_stagnation = False
-    alert_extinction = False
-    alert_surperformance = False
     if fitness_history is not None and len(fitness_history) >= stagnation_patience:
         best_fitness = max(fitness_history)
         if all(
@@ -149,11 +145,9 @@ def evolve_world(
                 "evolve_world: stagnation sur %d générations — extinction dynamique",
                 stagnation_patience,
             )
-            alert_stagnation = True
             # extinction dynamique : on ne garde que 1 élite
             survivors = pop[:1]
             mutation_rate = min(1.0, mutation_base * 2)
-            alert_extinction = True
         else:
             mutation_rate = mutation_base * (
                 0.5
@@ -167,7 +161,6 @@ def evolve_world(
         # Surperformance : record battu
         if pop[0].fitness > best_fitness:
             logger.info("evolve_world: nouveau record de fitness %.4f", pop[0].fitness)
-            alert_surperformance = True
     else:
         mutation_rate = mutation_base
     logger.debug("evolve_world: mutation adaptative taux=%.3f", mutation_rate)
@@ -464,7 +457,6 @@ def evolve(
 def save_simulation_summary(summary_dict, filename):
     """Sauvegarde un résumé de simulation (dict) dans un fichier CSV ou pickle."""
     import csv
-    import os
     import pickle
 
     os.makedirs("sim_summaries", exist_ok=True)

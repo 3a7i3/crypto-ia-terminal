@@ -69,7 +69,7 @@ def test_phase8_9_integration():
     print(f"  Skilled ratio: {quality_report['skilled_ratio']:.1%}")
 
     if audits:
-        print(f"\n[Audit] First trade analysis")
+        print("\n[Audit] First trade analysis")
         first = audits[0]
         print(first.generate_narrative())
 

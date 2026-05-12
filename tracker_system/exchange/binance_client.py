@@ -2,12 +2,11 @@
 BINANCE API CLIENT — Production-ready integration
 """
 
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Dict, List, Optional
 from dataclasses import dataclass
 from datetime import datetime
 import hashlib
 import hmac
-import json
 from urllib.parse import urlencode
 
 

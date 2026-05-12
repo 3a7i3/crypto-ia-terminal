@@ -4,7 +4,6 @@ score_env_*, migrate(), enrich_evolve(), save_simulation_summary().
 """
 
 import csv
-import os
 import pickle
 
 import pytest

@@ -23,7 +23,7 @@ import os
 import time
 from dataclasses import dataclass, field
 from enum import Enum
-from statistics import mean, stdev
+from statistics import mean
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -283,7 +283,8 @@ class ThreatRadar:
             return threats
 
         recent = candles[-10:]
-        buys = 0; sells = 0
+        buys = 0
+        sells = 0
         for i in range(1, len(recent)):
             c_now  = float(recent[i].get("close", 0))
             c_prev = float(recent[i-1].get("close", 0))
@@ -390,7 +391,7 @@ class ThreatRadar:
         if not report.threats:
             return "Environnement propre — aucune menace détectée"
 
-        levels_count = {l: 0 for l in ThreatLevel}
+        levels_count = {lvl: 0 for lvl in ThreatLevel}
         for t in report.threats:
             levels_count[t.level] += 1
 

@@ -19,8 +19,6 @@ Usage sans Telegram (dev):
 from __future__ import annotations
 
 import logging
-import traceback
-from typing import TYPE_CHECKING
 
 from event_bus.bus import EventBus
 from event_bus.events import (

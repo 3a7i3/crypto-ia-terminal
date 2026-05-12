@@ -50,7 +50,7 @@ def test_phase3_metrics():
     print(f"Efficiency: {all_metrics.get('efficiency', 0.0):.2%}")
 
     if all_metrics.get("regimes"):
-        print(f"\nRegimes:")
+        print("\nRegimes:")
         for regime_metrics in all_metrics["regimes"]:
             print(f"  {regime_metrics.get('regime')}: winrate={regime_metrics.get('winrate', 0.0):.2%}, trades={regime_metrics.get('trades', 0)}")
 

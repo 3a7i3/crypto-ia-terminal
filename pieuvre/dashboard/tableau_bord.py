@@ -16,11 +16,10 @@ from __future__ import annotations
 import os
 import sys
 from datetime import datetime
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from pieuvre.brain import BrainState, PieuvreGigante
+    from pieuvre.brain import PieuvreGigante
 
 _USE_RICH = False
 try:

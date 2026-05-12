@@ -277,7 +277,7 @@ class CacheWarmer:
             tag = "FRAIS" if fresh else "EXPIRE"
             print(f"    {key:<20} {ms:>6.0f}ms  [{tag}]")
         print()
-        print(f"  IMPACT CYCLE 1 (estimé):")
+        print("  IMPACT CYCLE 1 (estimé):")
         print(f"    Sans CacheWarmer : {cycle1_without_cache:.0f}ms fetch froid × {n_sym} sym")
         print(f"    Avec CacheWarmer : {cycle1_with_cache:.0f}ms (cache chaud)")
         print(f"    Gain             : +{gain_ms:.0f}ms  (≈{gain_ms/max(cycle1_without_cache,1)*100:.0f}%)")
@@ -341,7 +341,6 @@ def _synthetic_ohlcv(symbol: str, timeframe: str, limit: int = 96) -> list:
 
 def _run_demo(n_cycles: int = 5) -> None:
     """Demo : compare bootstrap vs cycle 1 avec et sans CacheWarmer."""
-    import sys
 
     print("\n" + "=" * 64)
     print("  DEMO CacheWarmer — Comparaison bootstrap vs cycle 1")
@@ -413,7 +412,7 @@ if __name__ == "__main__":
         # Mode standalone : démarre le warmer et maintient actif
         warmer = CacheWarmer(scanner=None)
         warmer.start()
-        print(f"CacheWarmer démarré. CTRL+C pour arrêter.")
+        print("CacheWarmer démarré. CTRL+C pour arrêter.")
         try:
             warmer.wait_ready(timeout=30.0)
             warmer.compare_bootstrap_vs_cycle1()

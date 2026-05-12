@@ -55,3 +55,7 @@ databases/
 ~$*
 *.swp
 *.bak
+
+# Sphinx build output
+docs/_build/
+docs/README.md

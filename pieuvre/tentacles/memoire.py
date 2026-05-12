@@ -14,7 +14,7 @@ import logging
 from collections import Counter
 from pathlib import Path
 
-from pieuvre.incidents.models import Finding, IncidentType, Severity
+from pieuvre.incidents.models import Finding, Severity
 from pieuvre.incidents.store import IncidentStore
 from pieuvre.tentacles.base import BaseTentacle
 
@@ -78,7 +78,7 @@ class MemoireTentacle(BaseTentacle):
 
     def _check_unresolved_backlog(self, incidents) -> list[Finding]:
         """Incidents non résolus depuis trop longtemps."""
-        from datetime import datetime, timedelta
+        from datetime import datetime
 
         findings = []
         now = datetime.now()
