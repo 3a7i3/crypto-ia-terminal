@@ -107,7 +107,33 @@ try:
 except Exception:
     _EXEC_CONSTRAINTS_AVAILABLE = False
 
-SYMBOLS_DEFAULT = ["BTC/USDT", "ETH/USDT", "SOL/USDT", "DOGE/USDT"]
+SYMBOLS_DEFAULT = [
+    # Core majors — leaders structurels, capturent le régime global
+    "BTC/USDT",
+    "ETH/USDT",
+    "SOL/USDT",
+    "BNB/USDT",
+    # High-beta momentum — impulsions, liquidations, flow émotionnel
+    "DOGE/USDT",
+    "PEPE/USDT",
+    "WIF/USDT",
+    "BONK/USDT",
+    # Infrastructure / IA / narratives — souvent décorrélés de BTC
+    "LINK/USDT",
+    "RNDR/USDT",
+    "TAO/USDT",
+    "FET/USDT",
+    # Market structure / DeFi — réactions macro différentes
+    "XRP/USDT",
+    "ADA/USDT",
+    "AVAX/USDT",
+    "AAVE/USDT",
+    # Stress / volatility — tests slippage et robustesse
+    "LTC/USDT",
+    "BCH/USDT",
+    "SUI/USDT",
+    "INJ/USDT",
+]
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT = os.getenv("TELEGRAM_CHAT_ID", "")
 NOTIFY_EVERY = int(os.getenv("ADVISOR_NOTIFY_EVERY", "3"))
