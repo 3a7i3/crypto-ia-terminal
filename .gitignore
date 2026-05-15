@@ -55,3 +55,11 @@ databases/
 ~$*
 *.swp
 *.bak
+
+# Ignore frontend build artifacts
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+dist/
+build/

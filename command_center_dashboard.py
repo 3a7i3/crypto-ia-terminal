@@ -299,7 +299,7 @@ def _render_header() -> None:
             unsafe_allow_html=True,
         )
     with col3:
-        if st.button("🔄 Refresh", use_container_width=True):
+        if st.button("🔄 Refresh", width="stretch"):
             st.cache_data.clear()
             st.rerun()
 

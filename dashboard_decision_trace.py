@@ -382,7 +382,7 @@ with tab2:
                     height=380,
                     margin=dict(t=20, b=80, l=60, r=20),
                 )
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, width="stretch")
 
                 # Table détail
                 df = pd.DataFrame(
@@ -397,7 +397,7 @@ with tab2:
                         for r in entries
                     ]
                 )
-                st.dataframe(df, use_container_width=True, hide_index=True)
+                st.dataframe(df, width="stretch", hide_index=True)
 
 
 # ══ Zone 3 — Reasoning Feed ══════════════════════════════════════════════════
@@ -536,7 +536,7 @@ with tab4:
             )
 
         df = pd.DataFrame(rows)
-        st.dataframe(df, use_container_width=True, hide_index=True, height=400)
+        st.dataframe(df, width="stretch", hide_index=True, height=400)
 
         # Distribution par acteur
         if len(rows) > 1:
@@ -563,7 +563,7 @@ with tab4:
                 yaxis=dict(gridcolor="#1a1e2a"),
                 margin=dict(t=10, b=40, l=40, r=20),
             )
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
 
 
 # ══ Zone 5 — System Sovereignty Map ══════════════════════════════════════════
@@ -662,6 +662,6 @@ with tab5:
                     for a, n in sorted(actor_counts.items(), key=lambda x: -x[1])
                 ]
             )
-            st.dataframe(df_sov, use_container_width=True, hide_index=True)
+            st.dataframe(df_sov, width="stretch", hide_index=True)
         else:
             st.info("Aucun rejet souverain dans les données actuelles.")

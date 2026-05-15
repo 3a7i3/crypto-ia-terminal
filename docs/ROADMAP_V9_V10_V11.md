@@ -1,498 +1,308 @@
-# 🚀 VERSIONS ROADMAP - V9 → V9.1 → V10 → Beyond
+# ROADMAP — Crypto AI Terminal
+
+> Dernière mise à jour : 2026-05-15
+> État : P5 livré — Observation Sprint en cours sur VPS
 
 ---
 
-## 📊 COMPARISON TABLE
+## ÉTAT ACTUEL : Phase 5 — Paper Trading Live
 
-| Feature | V7 (Docker) | V9 (Original) | V9.1 (NEW!) | V10 (Planned) | V11+ (Vision) |
-|---------|----------|-----------|-----------|-------------|-------------|
-| **Agents Count** | 7-10 | 20 | 20 | 25+ | 30+ |
-| **Market Data** | Real API connectors | Synthetic mock | Synthetic mock | Real (CCXT) | Real + On-chain + News |
-| **Feature Engineering** | 1D (momentum) | 1D (momentum) | 7D (micro-structure) | 15D (advanced) | 30D (multi-modal) |
-| **Anomaly Detection** | None | None | Anomaly flags | Anomaly learning | Predictive anomalies |
-| **Whale Detection** | None | None | Transaction scanner | Blockchain RPC | Real-time on-chain |
-| **Portfolio Allocation** | None | Flat weight | Kelly criterion | Kelly + CVaR | Multi-objective optimization |
-| **Strategy Ranking** | None | Sharpe only | Multi-criteria | Neural ranking | Meta-learning |
-| **Backtest Volume/Cycle** | Few | 300-500 | 300-500 | 5,000-10,000 | 50,000+ |
-| **Strategy Persistence** | None | JSON | Scoreboard DB | Time-series DB | Graph DB |
-| **Risk Management** | Basic | Drawdown guard | Kelly fraction | Advanced CVaR | Real-time PnL control |
-| **Execution** | Paper | Paper | Paper | Paper → Real | Real + Arbitrage |
-| **RL Model Persistence** | N/A | None | None | Save/reload | Distributed checkpointing |
-| **Dashboard** | Streamlit web | Console | Control Center | Web UI | Multi-page admin console |
-| **Deployment** | Docker | Standalone | Standalone | Docker | Kubernetes cluster |
-| **GPU Acceleration** | No | No | No | Optional TF | Required (TPU/GPU) |
-| **Distributed Computing** | N/A | No | No | Ray cluster | Spark + Dask |
-| **Code Generation** | No | No | No | v10+ (code_generator) | Self-optimizing code |
-| **News Integration** | No | No | No | v10+ (news_collector) | Real-time sentiment |
-| **On-Chain Integration** | No | No | No | v10+ (blockchain_collector) | Full blockchain indexing |
-| **Multi-Exchange** | No | No | No | v10+ (multi-exchange) | 10+ exchanges + DEX |
+### Ce qui est livré et opérationnel
 
----
-
-## 🎯 V9 vs V9.1 - What Changed?
-
-### V9 Issues Fixed in V9.1
-
-```
-V9 PROBLEMS                          V9.1 SOLUTIONS
-─────────────────────────────────────────────────────────
-1. Poor strategy selection            1. Multi-criteria scoring
-   └─ Only ranked by Sharpe            └─ Composite: (Sharpe/DD)*(1+WR+PnL)
-
-2. Flat portfolio allocation          2. Kelly criterion allocation
-   └─ 10% per strategy always           └─ Optimal sizing with vol targeting
-
-3. No regime adaptation               3. Advanced regime detector
-   └─ Same strategies in all modes      └─ Suggests strategy type per regime
-
-4. No whale protection                4. Whale Radar + threat classifier
-   └─ Ignorant of large activity        └─ Blocks trades during anomalies
-
-5. Weak features                      5. 7D micro-structure features
-   └─ Only momentum tracked             └─ momentum, vol, volume_trend, etc.
-
-6. No strategy persistence            6. Scoreboard leaderboard DB
-   └─ Lost history between runs         └─ Top 500 tracked historically
-
-7. Basic monitoring                   7. Professional Control Center
-   └─ Console logs only                 └─ 7-section dashboard with metrics
-
-8. No anomaly awareness               8. Intelligent anomaly detection
-   └─ Blindly generated strategies      └─ Flags extreme conditions
-```
+| Couche | Composant | Statut |
+|--------|-----------|--------|
+| **Marché** | MarketScanner CCXT multi-exchange | ✅ Live |
+| **Marché** | MultiTimeframeScanner (1m/15m/4h/1d) | ✅ Live |
+| **Marché** | Connecteurs dédiés Binance/MEXC/Hyperliquid | ✅ Live |
+| **Marché** | Multi-exchange feed (Binance/Bybit/OKX/MEXC/HL) | ✅ Live |
+| **Signal** | LiveSignalEngine (score 0-100, régime, gate) | ✅ Live |
+| **Décision** | ConvictionEngine (5 niveaux, sizing) | ✅ Live |
+| **Décision** | GlobalRiskGate (7 conditions) | ✅ Live |
+| **Décision** | MetaStrategyEngine (personnalité par régime) | ✅ Live |
+| **Décision** | NoTradeIntelligence (rejet intelligent) | ✅ Live |
+| **Décision** | SelfAwareness (4 niveaux dérive) | ✅ Live |
+| **Risque** | HardLimits (MAX_ORDER_USD=200, MAX_DD=20%) | ✅ Frozen |
+| **Risque** | PortfolioBrain (8 checks exposition/corrélation) | ✅ Live |
+| **Risque** | KillSwitch + SafeMode | ✅ Live |
+| **Exécution** | PaperTrading engine (simulation réaliste) | ✅ Live |
+| **Exécution** | ExecutionSimulator (slippage/latence/fill) | ✅ Live |
+| **Exécution** | OrderValidator (LOT_SIZE, MIN_NOTIONAL) | ✅ Live |
+| **Exécution** | RateLimiter (10 ordres/s Binance) | ✅ Live |
+| **Audit** | BlackBox JSONL | ✅ Live |
+| **Audit** | TradeLogger + PostMortem | ✅ Live |
+| **Robustesse** | RobustnessReport (GO/NO-GO, 30 trades) | ✅ Live |
+| **Robustesse** | WalkForward (OOS metrics) | ✅ Live |
+| **Infrastructure** | VPS GCP (crypto-advisor.service) | ✅ Live |
+| **Infrastructure** | API Server FastAPI (crypto-api.service :8000) | ✅ Live |
+| **Infrastructure** | Multi-exchange feed (crypto-feed.service) | ✅ Live |
+| **Infrastructure** | VPS→PC sync toutes les 30s | ✅ Live |
+| **Dashboards** | Dashboard Hub (port 8500) | ✅ Live |
+| **Dashboards** | Execution Health / P2 Audit (port 8509) | ✅ Live |
+| **Dashboards** | Risk Dashboard (port 8505) | ✅ Live |
+| **Dashboards** | Master Dashboard (port 8502) | ✅ Live |
+| **Dashboards** | Decision Trace (port 8503) | ✅ Live |
+| **Dashboards** | Multi-Exchange Live (port 8510) | ✅ Live |
 
 ---
 
-## 📗 DETAILED MODULE BREAKDOWN
-
-### V9.1 STRUCTURE (Current)
+## Architecture de déploiement actuelle
 
 ```
-agents/research/              (4 agents)
-├─ paper_analyzer
-├─ strategy_researcher
-├─ feature_engineer
-└─ model_builder
+VPS GCP (34.171.188.99)
+  ├── crypto-advisor.service   advisor_loop.py — cycle 300s
+  │     ├── MarketScanner (CCXT Binance testnet)
+  │     ├── MultiTimeframeScanner (1m/15m/4h/1d)
+  │     ├── LiveSignalEngine → score → gate → conviction
+  │     ├── PaperTrading engine
+  │     └── BlackBox + audit JSONL
+  │
+  ├── crypto-api.service       api_server.py :8000
+  │     └── /api/raw/* → sert les fichiers locaux
+  │
+  └── crypto-feed.service      multi_exchange_feed.py
+        └── Binance/Bybit/OKX/MEXC/Hyperliquid → 30s
 
-agents/market/                (4 agents)
-├─ market_scanner
-├─ orderflow_agent
-├─ volatility_agent
-└─ regime_detector
-
-agents/intelligence/          (2 agents - NEW!)
-├─ feature_engineer (advanced)
-└─ regime_detector (advanced)
-
-agents/strategy/              (3 agents)
-├─ strategy_generator
-├─ genetic_optimizer
-└─ rl_trader
-
-agents/quant/                 (3 agents)
-├─ backtest_lab
-├─ monte_carlo
-└─ portfolio_optimizer
-
-agents/portfolio/             (3 agents - NEW!)
-├─ kelly_allocator
-├─ volatility_targeter
-└─ portfolio_brain
-
-agents/whales/                (1 agent - NEW!)
-└─ whale_radar
-
-agents/risk/                  (3 agents)
-├─ risk_monitor
-├─ drawdown_guard
-└─ exposure_manager
-
-agents/execution/             (4 agents)
-├─ execution_engine
-├─ arbitrage_agent
-├─ liquidity_agent
-└─ paper_trading_engine
-
-agents/monitoring/            (2 agents)
-├─ performance_monitor
-└─ system_monitor
-
-engine/                       (1 orchestrator - NEW!)
-└─ decision_engine
-
-databases/                    (1 storage - NEW!)
-└─ strategy_scoreboard
-
-Total: 20 agents
+PC local (Windows 11)
+  ├── vps_data_sync.py         poll VPS toutes les 30s → fichiers locaux
+  ├── Dashboard Hub :8500      lanceur de tous les dashboards
+  ├── Execution Health :8509   audit P2 pipeline
+  └── [autres dashboards]      lancés à la demande depuis le Hub
 ```
 
 ---
 
-## 🚀 ROADMAP V10 (Next Phase)
+## Zones fragiles / à surveiller (audit 2026-05-15)
 
-### V10 Goals
-- **Real market data** integration (Binance API via CCXT)
-- **10x strategy throughput** (distributed backtesting)
-- **Advanced optimization** (Bayesian hyperparams)
-- **Production-ready** code quality
-- **Real trading mode** option
+### 🔴 Critique — À corriger rapidement
 
-### V10 Architecture
+| Zone | Problème | Impact |
+|------|----------|--------|
+| `advisor_loop.py` | Cycle de 300s — si un exchange timeout, le cycle entier ralentit | Signal stale |
+| `live_snapshot.json` | Écrit à chaque cycle, pas de lock — corruption possible si restart pendant écriture | Dashboard stale |
+| `walk_forward/` + `quant_hedge_ai/agents/quant/walk_forward.py` | Deux implémentations parallèles — risque d'incohérence | Tests faux positifs |
+| `databases/` exclu du .gitignore | Les fichiers JSONL/JSON live ne sont pas dans git (normal), mais le VPS et le PC ont des états différents | Divergence silencieuse |
+
+### 🟡 Moyen — À planifier
+
+| Zone | Problème | Impact |
+|------|----------|--------|
+| `evolution_core.py` (racine) | Module à la racine au lieu de `quant_hedge_ai/` — cassable si renommé | main.py casse |
+| `anara_context/` | 15 fichiers JSON de documentation, seul `color_system.json` est utilisé | Confusion |
+| `market_data/` connecteurs | Bybit/OKX/Kraken : CCXT uniquement, pas de WebSocket dédié | Latence données |
+| `execution_health.py` | Attend `logs/execution_audit/audit.jsonl` qui n'existe que quand un ordre passe le gate | Dashboard vide en sideways |
+| Score 42/100 constant | Le marché est sideways depuis 24h — système bloque correctement mais log répétitif | Bruit dans les logs |
+
+### 🟢 Faible — Inoffensif
+
+| Zone | Problème | Impact |
+|------|----------|--------|
+| `project_os/` | Module de diagnostic non intégré en prod | Aucun |
+| `frontend/` (React) | Frontend React non connecté au système Python | Aucun |
+| `docs/runbooks/` | 3 runbooks créés, jamais testés en vrai incident | Potentiellement inexacts |
+| `tune.py` | Script de tuning standalone, non intégré | Aucun |
+
+---
+
+## Arborescence actuelle (modules actifs)
 
 ```
-V10_AUTONOMOUS_QUANT_LAB/
-
-core/
-├─ orchestrator_v10.py       # Master coordinator
-├─ scheduler_v10.py          # Job scheduling
-└─ config_v10.py             # Configuration management
-
-data_collectors/             (NEW!)
-├─ binance_collector.py      # CCXT integration
-├─ blockchain_collector.py   # Glassnode/Santiment
-├─ news_collector.py         # CryptoNews API
-└─ sentiment_analyzer.py     # TextBlob + transformers
-
-ai/                          (Enhanced)
-├─ code_generator.py         # Auto-generates strategy code
-├─ strategy_optimizer.py     # Bayesian optimization
-├─ rl_trainer_gpu.py         # TensorFlow RL (GPU)
-└─ meta_learner.py           # Learn to learn
-
-quant/                       (Distributed)
-├─ backtest_cluster.py       # Ray distributed
-├─ monte_carlo_advanced.py   # Better simulation
-└─ optimizer_advanced.py     # Differential evolution
-
-execution/                   (Real trading)
-├─ binance_executor.py       # Real orders
-├─ risk_circuit_breaker.py   # Emergency stops
-└─ arbitrage_multi_exchange.py
-
-monitoring/                  (Professional)
-├─ prometheus_exporter.py    # Metrics export
-├─ grafana_dashboard.py      # Advanced viz
-└─ slack_alerts.py           # Notifications
-
-databases/                   (Advanced)
-├─ timeseries_db.py          # ClickHouse
-├─ strategy_db_advanced.py   # Full history
-└─ experiment_logger.py      # Experiment tracking
-```
-
-### V10 Key Features
-
-```python
-# 1. REAL DATA CONNECTION
-exchange = ccxt.binance()
-btc_data = exchange.fetch_ohlcv("BTC/USDT", "1m")
-# Real-time market data instead of synthetic
-
-# 2. DISTRIBUTED BACKTESTING
-from ray import distributed_backtest
-results = distributed_backtest.run(
-    strategies=10000,
-    workers=8,
-    data=real_market_data
-)
-# 10,000 strategies backtested in parallel
-
-# 3. BAYESIAN OPTIMIZATION
-from optuna import suggest
-best_params = suggest.optimize(
-    strategy=strategy,
-    data=market_data,
-    n_trials=1000
-)
-# Automatically find best hyperparameters
-
-# 4. ON-CHAIN DATA
-from glassnode import get_whale_transactions
-whale_data = get_whale_transactions("BTC")
-# Real blockchain whale tracking
-
-# 5. REAL TRADING
-exchange.create_limit_order(symbol, amount, price)
-# Switch from paper → real (with circuit breakers)
+crypto_ai_terminal/
+│
+├── advisor_loop.py                  ← ORCHESTRATEUR PRINCIPAL (cycle 300s)
+├── multi_exchange_feed.py           ← Feed prix live 5 exchanges
+├── vps_data_sync.py                 ← Sync VPS→PC (30s)
+├── api_server.py                    ← FastAPI :8000
+├── watchdog_vps.py                  ← Watchdog + Telegram alert
+│
+├── quant_hedge_ai/                  ← NOYAU IA
+│   └── agents/
+│       ├── market/
+│       │   ├── market_scanner.py        score/signal
+│       │   ├── multi_timeframe_scanner.py
+│       │   └── live_signal_engine.py
+│       ├── intelligence/
+│       │   ├── conviction_engine.py
+│       │   ├── meta_strategy_engine.py
+│       │   ├── no_trade_intelligence.py
+│       │   └── self_awareness.py
+│       ├── risk/
+│       │   ├── global_risk_gate.py
+│       │   ├── portfolio_brain.py
+│       │   └── order_sizer.py
+│       └── execution/
+│           ├── execution_engine.py
+│           └── position_manager.py
+│
+├── market_data/                     ← CONNECTEURS EXCHANGE
+│   ├── connectors/
+│   │   ├── base.py
+│   │   ├── binance.py               ← WebSocket complet
+│   │   ├── mexc.py                  ← REST uniquement
+│   │   └── hyperliquid.py           ← Perpétuels USDC
+│   ├── metrics/
+│   │   ├── flow.py                  ← CVD, sweeps
+│   │   └── orderbook.py             ← imbalance, depth
+│   ├── models.py                    ← NormalizedTrade/OrderBook/Candle
+│   └── stream.py                    ← MultiExchangeStream
+│
+├── exchange_constraints/            ← VALIDATION ORDRES
+│   ├── order_validator.py           ← LOT_SIZE, MIN_NOTIONAL
+│   ├── rate_limiter.py              ← 10 ordres/s
+│   └── binance_rules.py
+│
+├── execution_simulator/             ← SIMULATION RÉALISTE
+│   ├── fill_simulator.py
+│   ├── slippage.py
+│   ├── latency.py
+│   └── spread.py
+│
+├── paper_trading/                   ← PAPER TRADING ENGINE
+│   ├── engine.py
+│   ├── ledger.py
+│   └── sandbox_validator.py
+│
+├── risk_limits.py                   ← HARD LIMITS (frozen)
+│
+├── metrics/                         ← ROBUSTESSE
+│   ├── robustness.py                ← GO/NO-GO
+│   ├── oos_metrics.py               ← Out-of-sample
+│   └── stability_score.py
+│
+├── walk_forward/                    ← WALK FORWARD (tests intégration)
+│   ├── engine.py
+│   ├── window_splitter.py
+│   └── reporter.py
+│
+├── monitor/                         ← DÉGRADATION
+│   └── degradation_tracker.py
+│
+├── monitoring/                      ← OBSERVABILITÉ
+│   ├── logger.py
+│   ├── metrics.py
+│   └── pipeline_monitor.py
+│
+├── tracker_system/                  ← SESSIONS & ANALYTICS
+│   ├── sessions/
+│   │   ├── session_manager.py
+│   │   ├── session_analyzer.py
+│   │   └── session_validator.py
+│   └── analytics/
+│       └── score_drift_monitor.py   ← Alerte dérive signal
+│
+├── databases/                       ← DONNÉES RUNTIME (non-git)
+│   ├── live_snapshot.json           ← Snapshot cycle courant
+│   ├── black_box.jsonl              ← Toutes les décisions
+│   ├── cycle_data.jsonl             ← Historique cycles
+│   ├── multi_exchange_snapshot.json ← Prix 5 exchanges
+│   └── strategy_ranking.json
+│
+├── logs/                            ← LOGS RUNTIME (non-git)
+│   ├── advisor_loop.log
+│   ├── trades.jsonl
+│   └── execution_audit/audit.jsonl  ← Créé au premier ordre
+│
+├── dashboards (Streamlit)
+│   ├── dashboard_hub.py             :8500 ← Hub launcher
+│   ├── execution_health.py          :8509 ← P2 Audit
+│   ├── dashboard_master.py          :8502
+│   ├── dashboard_risk.py            :8505
+│   ├── dashboard_decision_trace.py  :8503
+│   ├── dashboard_multi_exchange.py  :8510 ← Multi-exchange live
+│   └── dashboard_live.py            :8501
+│
+├── deploy/                          ← DÉPLOIEMENT VPS
+│   ├── deploy.sh
+│   └── setup_vps.sh
+│
+└── docs/
+    ├── ROADMAP_V9_V10_V11.md        ← CE FICHIER
+    └── runbooks/
+        ├── incident_degradation.md
+        ├── incident_high_latency.md
+        └── incident_data_leakage.md
 ```
 
 ---
 
-## 🧠 ROADMAP V11+ (Vision)
-
-### V11 - Multi-Agent Intelligence System
+## Modules secondaires (non critiques, garder)
 
 ```
-V11 = V10 + [Advanced AI Agents]
-
-Research Agents:
-├─ Academic Paper Reader (arXiv scraper)
-├─ Strategy Researcher (discovers novel strategies)
-└─ Feature Breakthrough Agent (finds new features)
-
-Market Agents:
-├─ News Analyzer (sentiment + impact)
-├─ Social Media Monitor (Twitter/Reddit/Discord)
-├─ Whale Tracker (on-chain movement)
-├─ Volatility Predictor (multi-timeframe)
-└─ Regime Forecaster (prediction model)
-
-Intelligence Agents:
-├─ Anomaly Detector (statistical + ML)
-├─ Flash Crash Predictor
-└─ Black Swan Classifier
-
-Strategy Agents:
-├─ Code Generator (auto-writes strategies)
-├─ Genetic Evolutionary Engine
-├─ RL Trainer (distributed, GPU)
-└─ Meta-Strategy Learner
-
-Portfolio Agents:
-├─ Advanced CVaR Optimizer
-├─ Regime-Adaptive Allocator
-├─ Currency Hedge Agent
-└─ Portfolio Rebalancer
-
-Execution Agents:
-├─ Multi-Exchange Arbitrage (Binance+Bybit+Kraken)
-├─ Smart Order Router
-├─ Real-Time Risk Limiter
-└─ Slippage Minimizer
-
-Total: 30+ specialized agents
-```
-
-### V12 - Self-Improving AI System
-
-```
-V12 = V11 + [Self-Optimization Loop]
-
-Self-Improvement Features:
-├─ Code Optimizer Agent
-│   └─ Rewrites own strategy code for performance
-├─ Model Meta-Learner
-│   └─ Learns to train better models
-├─ Hyperparameter Tuner
-│   └─ Auto-tunes all parameters
-└─ Architecture Evolve Agent
-    └─ Modifies agent structure for efficiency
-
-Result: System continuously improves itself
+evolution_core.py            ← Utilisé par main.py + run_multi_simulations.py
+project_os/                  ← Outils de diagnostic (audit manuel)
+anara_context/               ← color_system.json utilisé par dashboard/colors.py
+                               Le reste est documentation système (garder)
+frontend/                    ← React app non connectée (futur dashboard web)
+walk_forward/                ← Utilisé par tests d'intégration P4
 ```
 
 ---
 
-## 📈 PERFORMANCE EXPECTATIONS
+## Roadmap prochaines phases
 
-### Current State (V9.1)
-```
-Strategies/Cycle:      300-500
-Backtest Time/Cycle:   2-3 seconds
-Strategy Turnover:     Every cycle
-Best Sharpe Found:     ~14-16
-Drawdown Control:      Good (< 5%)
-Real Market Data:      ❌ No (synthetic)
-True Performance:      ⚠️ Unknown (backtest only)
-Production Ready:      ⚠️ Partial
-```
-
-### V10 (Distributed)
-```
-Strategies/Cycle:      5,000-10,000
-Backtest Time/Cycle:   10-20 seconds (Ray cluster)
-Strategy Turnover:     Continuous update
-Best Sharpe Found:     ~18-22 (realistic)
-Drawdown Control:      Excellent (< 3%)
-Real Market Data:      ✅ Yes (CCXT)
-True Performance:      ✅ Known (real data)
-Production Ready:      ✅ Yes
-```
-
-### V11+ (Full Intelligence)
-```
-Strategies/Cycle:      50,000+ (GPU acceleration)
-Backtest Time/Cycle:   Real-time pipeline
-Strategy Turnover:     Continuous
-Best Sharpe Found:     ~25-30 (multi-modal)
-Drawdown Control:      Professional (< 1%)
-Real Market Data:      ✅ Real + On-chain + News
-True Performance:      ✅ Realtime monitoring
-Production Ready:      ✅ Enterprise-grade
-```
-
----
-
-## 🎯 DECISION: Which Version?
-
-### Use V9 if:
-- Learning/educational purposes
-- Understanding core concepts
-- Local development
-- No real money at stake
-
-### Use V9.1 if:
-- Want creative portfolio brain
-- Interested in Kelly criterion
-- Need professional-looking dashboard
-- Educational + semi-serious testing
-
-### Use V10 when ready:
-- Real market data required
-- Scalability needed (10k+ strategies)
-- Production deployment planned
-- Real trading capital available
-
-### Use V11+ for:
-- Enterprise trading platform
-- Serious quant fund operations
-- Maximum alpha generation
-- Multi-year research projects
-
----
-
----
-
-## 🔧 V9.1.x — Operational Hardening (ajouté 2026-05-11)
-
-> **Contexte :** Run long de validation (26 trades, winrate 92 %, PnL total -1,75).
-> Enseignement principal : le système produit des scores utiles mais n'est pas encore
-> au niveau d'un pilotage robuste. Les pertes asymétriques en sideways effacent les gains
-> en tendance. Passage à plus d'autonomie conditionné à ces garde-fous.
-
-### Métriques de robustesse manquantes
-
-| KPI | Statut | Priorité |
-|-----|--------|----------|
-| avg\_win / avg\_loss (ratio asymétrie) | ❌ absent | P0 |
-| Profit factor (gross\_win / gross\_loss) | ❌ absent | P0 |
-| Worst single trade ($ et %) | ❌ absent | P0 |
-| Rolling 20 trades winrate + expectancy | ❌ absent | P1 |
-| Score stability (variance du signal sur fenêtre) | ❌ absent | P1 |
-| Drawdown normalisé sur capital de référence | ⚠️ non fiable | P0 |
-
-> **Note :** Le drawdown affiché actuellement est calculé sur la courbe de PnL réalisé,
-> pas sur un capital notionnel de référence. Ne pas l'utiliser comme KPI risk principal
-> tant qu'il n'est pas normalisé.
-
-### Garde-fous par régime
-
-- [x] **Bloquer les entrées en sideways/range faible** : winrate observé 0 %, avg PnL -3,05 % — gate actif via `is_regime_tradable()` dans `open_position()`
-- [ ] **Réduire la taille de position en sideways** (facteur ≤ 0,3 du sizing normal) tant que le profit factor < 1
-- [x] **Déclencher une alerte** quand winrate ≥ 85 % ET PnL total négatif (`asymmetry_alert` + `AlertSystem.check_asymmetric_risk`)
-- [x] **No-trade gate par régime** : configurable via `NO_TRADE_REGIMES` et `MIN_PROFIT_FACTOR` dans settings
-
-### Consolidation schéma tracker / logs
-
-- [ ] Audit et unification des formats legacy vs structured dans `logs/trades.jsonl`
-- [ ] Champ `pnl_usd` obligatoire à chaque exit (actuellement parfois absent en legacy)
-- [ ] Validation schema au boot : rejeter les events malformés avec log d'erreur explicite
-- [ ] Monitoring de dérive de score : alerte si le score moyen dérive de > 2σ sur 10 trades
-
-### Monitoring de dérive
-
-- [ ] Tracker de drift signal : comparer score moyen des 10 derniers trades vs baseline session
-- [ ] Alerte Telegram si winrate rolling 20 passe sous 40 %
-- [ ] Dashboard : distinguer clairement KPIs **fiables en production** vs **exploratoires**
-
-### Critères go/no-go avant plus d'autonomie
+### P5 — Observation Sprint (en cours, 7-14 jours)
+**Objectif :** Accumuler 30 trades paper → valider GO/NO-GO robustesse
 
 ```
-AVANT de passer à un mode plus autonome (taille réelle, fréquence augmentée) :
+✅ Bot tourne sur VPS (cycle 300s)
+✅ Dashboards connectés via API
+✅ Multi-exchange feed actif
+⏳ En attente : 30 trades pour GO/NO-GO dashboard
+⏳ Observer : fills, stale states, websocket reconnects, OOS drift
+```
 
-✅ Profit factor ≥ 1,5 sur 50+ trades
-✅ Drawdown normalisé < 5 % sur capital de référence  
-✅ Sideways gate actif et testé
-✅ avg_win / avg_loss ≥ 1,5
-✅ Schéma JSONL validé sans legacy drift
-✅ Score stability variance < 0,15 sur rolling 20
+### P6 — Stabilisation données live (après P5)
+**Objectif :** Améliorer qualité et stabilité des données de marché
+
+```
+[ ] Connecteur Bybit dédié (WebSocket) — actuellement CCXT uniquement
+[ ] Connecteur OKX dédié
+[ ] Lock fichier live_snapshot.json (éviter corruption)
+[ ] Health endpoint VPS → dashboard status services
+[ ] Unifier les 2 walk_forward (racine + quant_hedge_ai)
+[ ] Déplacer evolution_core.py dans quant_hedge_ai/
+```
+
+### P7 — Live Capital (conditionnel à P5 GO)
+**Objectif :** Passer du paper au capital réel contrôlé
+
+```
+Pré-requis GO/NO-GO :
+  [ ] ≥ 30 trades paper avec robustness GO
+  [ ] Profit factor ≥ 1.5 sur 50 trades
+  [ ] Drawdown normalisé < 5%
+  [ ] avg_win/avg_loss ≥ 1.5
+  [ ] 0 incident de corruption de données
+
+Actions :
+  [ ] Créer clés API Binance (Read + Futures Trading)
+  [ ] Activer LIVE_MODE=true dans .env VPS
+  [ ] Capital initial : ≤ $500 (hard limit MIN_CAPITAL_USD)
+  [ ] Monitoring 24h/j via Telegram watchdog
 ```
 
 ---
 
-## 📋 IMPLEMENTATION CHECKLIST
-
-### V9.1 Status: ✅ COMPLETE
-- [x] Intelligence Layer
-- [x] AI Portfolio Brain
-- [x] Whale Radar
-- [x] Decision Engine
-- [x] Strategy Scoreboard
-- [x] Control Center
-- [x] Full orchestration
-
-### V9.1.x Operational Hardening TODO
-- [x] Métriques robustesse : avg_win/avg_loss, profit factor, worst trade
-- [x] Rolling 20 trades window dans dashboard
-- [x] Drawdown normalisé sur capital de référence
-- [x] Sideways no-trade gate (ValueError dans open_position)
-- [x] Alerte winrate haut + PnL négatif (asymmetry_alert)
-- [x] Validation schéma JSONL au boot (`boot_validator.py` — rejet events sans pnl_usd/exit_price)
-- [x] Score drift monitor (`score_drift_monitor.py` — z-score + winrate rolling 20 < 40%)
-- [x] Réduction sizing sideways (`get_size_factor()` — facteur 0.3 si pf < 1.2)
-
-### V10 TODO
-- [ ] CCXT Binance integration
-- [ ] Ray distributed backtesting
-- [ ] Bayesian hyperparameter tuning
-- [ ] Real trading mode
-- [ ] Prometheus monitoring
-- [ ] Grafana dashboards
-- [ ] Database (ClickHouse)
-
-### V11 TODO
-- [ ] News sentiment analysis
-- [ ] On-chain data collector
-- [ ] Advanced regime forecasting
-- [ ] Multi-exchange arbitrage
-- [ ] 30+ specialized agents
-- [ ] Self-improving loop
-
-### V12 TODO
-- [ ] Code self-optimization
-- [ ] Meta-learning systems
-- [ ] Architecture evolution
-- [ ] Enterprise deployment
-
----
-
-## 🎓 LEARNING PROGRESSION
+## Problèmes silencieux à surveiller
 
 ```
-Legend/Student (V9)
-        ↓
-Practitioner (V9.1)
-        ↓
-Professional (V10)
-        ↓
-Expert/Researcher (V11)
-        ↓
-Visionary (V12+)
+1. Score 42/100 constant en sideways
+   → Normal, mais vérifier que le signal change quand le régime change
+   → Si score reste 42 pendant 24h, vérifier LSE + régime detector
+
+2. Execution audit vide
+   → logs/execution_audit/audit.jsonl créé seulement au premier ordre exécuté
+   → En sideways, ce fichier n'existe pas = dashboard Execution Health vide
+   → NORMAL en phase d'observation
+
+3. Sync 7→8 fichiers
+   → multi_exchange_snapshot.json ajouté aujourd'hui
+   → Vérifier que le sync affiche bien 8/8 après redémarrage du vps_data_sync
+
+4. walk_forward en doublon
+   → deux modules avec des APIs différentes
+   → Si un test passe mais pas l'autre, chercher lequel est appelé
+
+5. evolution_core.py à la racine
+   → main.py l'importe directement
+   → Si quelqu'un déplace le fichier, main.py casse sans erreur évidente
 ```
-
----
-
-## 💡 RECOMMENDATION
-
-**Start with V9.1** because:
-1. ✅ Already implemented and tested
-2. ✅ Creative portfolio brain is valuable
-3. ✅ Professional monitoring dashboard
-4. ✅ Good learning tool
-5. ✅ Foundation for V10 upgrade
-
-**Then plan V10** when:
-1. Comfortable with current system
-2. Ready for real market data
-3. Want to scale strategy throughput
-4. Have a clear deployment plan
-
-**Then V11/V12** when:
-1. Running in production
-2. Generating real returns
-3. Need multiple revenue strategies
-4. Building a quant fund
-
----
-
-**Current Recommendation: V9.1 is READY FOR USE** 🚀

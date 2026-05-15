@@ -229,7 +229,7 @@ with tab_bot:
             styled = df_syms.style.map(_color_signal, subset=["Signal"]).map(
                 _color_gate, subset=["Gate"]
             )
-            st.dataframe(styled, use_container_width=True, hide_index=True)
+            st.dataframe(styled, width="stretch", hide_index=True)
         else:
             st.info("Aucun symbole dans le snapshot.")
 
@@ -239,7 +239,7 @@ with tab_bot:
             st.divider()
             st.markdown("### Positions ouvertes")
             df_pos = pd.DataFrame(positions)
-            st.dataframe(df_pos, use_container_width=True, hide_index=True)
+            st.dataframe(df_pos, width="stretch", hide_index=True)
 
     # Auto-refresh
     if auto_refresh:
@@ -293,7 +293,7 @@ with tab_market:
         height=450,
         margin=dict(l=0, r=0, t=40, b=0),
     )
-    st.plotly_chart(fig_candle, use_container_width=True)
+    st.plotly_chart(fig_candle, width="stretch")
 
     # Volume
     colors = ["#00e676" if c["close"] >= c["open"] else "#ff5252" for c in candles]
@@ -313,7 +313,7 @@ with tab_market:
         margin=dict(l=0, r=0, t=10, b=0),
         showlegend=False,
     )
-    st.plotly_chart(fig_vol, use_container_width=True)
+    st.plotly_chart(fig_vol, width="stretch")
 
     # Multi-symboles
     if len(symbols_choice) > 1:
@@ -357,7 +357,7 @@ with tab_market:
             margin=dict(l=0, r=0, t=40, b=0),
             yaxis_title="%",
         )
-        st.plotly_chart(fig_norm, use_container_width=True)
+        st.plotly_chart(fig_norm, width="stretch")
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # TAB 2 — BACKTESTING
@@ -396,7 +396,7 @@ with tab_backtest:
         df_bt.style.background_gradient(
             subset=["Sharpe"], cmap="Greens"
         ).background_gradient(subset=["PnL %"], cmap="RdYlGn"),
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
     )
 
@@ -412,7 +412,7 @@ with tab_backtest:
         template="plotly_dark",
     )
     fig_sharpe.update_layout(height=300, margin=dict(l=0, r=0, t=40, b=0))
-    st.plotly_chart(fig_sharpe, use_container_width=True)
+    st.plotly_chart(fig_sharpe, width="stretch")
 
     # Scatter Sharpe vs Drawdown
     fig_scatter = px.scatter(
@@ -426,7 +426,7 @@ with tab_backtest:
         template="plotly_dark",
     )
     fig_scatter.update_layout(height=320, margin=dict(l=0, r=0, t=40, b=0))
-    st.plotly_chart(fig_scatter, use_container_width=True)
+    st.plotly_chart(fig_scatter, width="stretch")
 
     # Meilleure stratégie
     if bt_results:
@@ -563,7 +563,7 @@ Stratégie : <b>{_best_s.get('entry_indicator','?')}</b> p=<b>{_best_s.get('peri
             margin=dict(l=0, r=0, t=40, b=0),
             yaxis_title="USD",
         )
-        st.plotly_chart(fig_eq, use_container_width=True)
+        st.plotly_chart(fig_eq, width="stretch")
     else:
         st.info(
             "Pas encore de trades. Lancez `python -m quant_hedge_ai.main_v91` pour démarrer."
@@ -587,7 +587,7 @@ Stratégie : <b>{_best_s.get('entry_indicator','?')}</b> p=<b>{_best_s.get('peri
                 ),
                 subset=["action"],
             ),
-            use_container_width=True,
+            width="stretch",
             hide_index=True,
         )
     else:
@@ -674,7 +674,7 @@ with tab_risk:
     fig_gauge.update_layout(
         template="plotly_dark", height=280, margin=dict(l=20, r=20, t=40, b=20)
     )
-    st.plotly_chart(fig_gauge, use_container_width=True)
+    st.plotly_chart(fig_gauge, width="stretch")
 
     # Distribution des rendements
     if len(closes) >= 10:
@@ -690,7 +690,7 @@ with tab_risk:
         )
         fig_ret.add_vline(x=0, line_dash="dash", line_color="#aaa")
         fig_ret.update_layout(height=280, margin=dict(l=0, r=0, t=40, b=0))
-        st.plotly_chart(fig_ret, use_container_width=True)
+        st.plotly_chart(fig_ret, width="stretch")
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # TAB 4 — NOTIFICATIONS

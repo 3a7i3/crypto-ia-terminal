@@ -33,15 +33,16 @@ st.set_page_config(
 REFRESH_INTERVAL = int(os.getenv("DASHBOARD_REFRESH", "10"))
 
 SUBACCOUNTS = {
-    "btc_momentum":    "BTC Momentum",
-    "eth_volatility":  "ETH Volatility",
-    "sol_experimental":"SOL Experimental",
-    "shadow_validation":"Shadow / Validation",
-    "genetic_optimizer":"Genetic Optimizer",
+    "btc_momentum": "BTC Momentum",
+    "eth_volatility": "ETH Volatility",
+    "sol_experimental": "SOL Experimental",
+    "shadow_validation": "Shadow / Validation",
+    "genetic_optimizer": "Genetic Optimizer",
 }
 
 
 # ── Helpers lecture DB ──────────────────────────────────────────────────────────
+
 
 @st.cache_data(ttl=REFRESH_INTERVAL)
 def _load_trades(db_path: str, n: int = 100) -> list[dict]:
@@ -50,9 +51,7 @@ def _load_trades(db_path: str, n: int = 100) -> list[dict]:
     try:
         con = sqlite3.connect(db_path)
         con.row_factory = sqlite3.Row
-        cur = con.execute(
-            "SELECT * FROM trades ORDER BY ts DESC LIMIT ?", (n,)
-        )
+        cur = con.execute("SELECT * FROM trades ORDER BY ts DESC LIMIT ?", (n,))
         rows = [dict(r) for r in cur.fetchall()]
         con.close()
         return rows
@@ -60,7 +59,9 @@ def _load_trades(db_path: str, n: int = 100) -> list[dict]:
         return []
 
 
-_SNAPSHOT_PATH = Path(os.getenv("POSITION_SNAPSHOT", "databases/positions_snapshot.json"))
+_SNAPSHOT_PATH = Path(
+    os.getenv("POSITION_SNAPSHOT", "databases/positions_snapshot.json")
+)
 
 
 @st.cache_data(ttl=REFRESH_INTERVAL)
@@ -70,6 +71,7 @@ def _load_snapshot() -> list[dict]:
         return []
     try:
         import json
+
         data = json.loads(_SNAPSHOT_PATH.read_text(encoding="utf-8"))
         return data.get("positions", [])
     except Exception:
@@ -92,6 +94,7 @@ _sub_manager = None
 
 try:
     from quant_hedge_ai.agents.execution.subaccount_manager import SubaccountManager
+
     _sub_manager = SubaccountManager.from_env()
     # Récupère le premier position manager actif
     for unit in _sub_manager.all_active():
@@ -108,16 +111,19 @@ st.header("Positions ouvertes")
 
 if _sub_manager:
     open_positions = _sub_manager.all_open_positions()
-    global_pnl     = _sub_manager.global_pnl()
+    global_pnl = _sub_manager.global_pnl()
 
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("Positions ouvertes", len(open_positions))
-    col2.metric("PnL ouvert",  f"{global_pnl['open_pnl_usd']:+.2f} $",
-                delta_color="normal")
-    col3.metric("PnL réalisé", f"{global_pnl['closed_pnl_usd']:+.2f} $",
-                delta_color="normal")
-    col4.metric("PnL total",   f"{global_pnl['total_pnl_usd']:+.2f} $",
-                delta_color="normal")
+    col2.metric(
+        "PnL ouvert", f"{global_pnl['open_pnl_usd']:+.2f} $", delta_color="normal"
+    )
+    col3.metric(
+        "PnL réalisé", f"{global_pnl['closed_pnl_usd']:+.2f} $", delta_color="normal"
+    )
+    col4.metric(
+        "PnL total", f"{global_pnl['total_pnl_usd']:+.2f} $", delta_color="normal"
+    )
 
     if open_positions:
         st.subheader("Détail positions")
@@ -128,30 +134,40 @@ if _sub_manager:
             with st.container():
                 cols = st.columns([2, 1, 1, 1, 1, 1, 1, 1])
                 side_icon = "🟢" if pos["side"] == "long" else "🔴"
-                cols[0].markdown(f"**{side_icon} {pos['symbol']}** — *{pos.get('subaccount','?')}*")
+                cols[0].markdown(
+                    f"**{side_icon} {pos['symbol']}** — *{pos.get('subaccount','?')}*"
+                )
                 cols[1].metric("Entry", f"${pos['entry']:.2f}")
                 cols[2].metric("Actuel", f"${pos['current']:.2f}")
 
                 pnl_usd = pos["pnl_usd"]
                 pnl_pct = pos["pnl_pct"]
-                cols[3].metric("PnL $", f"{pnl_usd:+.2f}",
-                               delta=f"{pnl_pct:+.1f}%",
-                               delta_color="normal" if pnl_usd >= 0 else "inverse")
+                cols[3].metric(
+                    "PnL $",
+                    f"{pnl_usd:+.2f}",
+                    delta=f"{pnl_pct:+.1f}%",
+                    delta_color="normal" if pnl_usd >= 0 else "inverse",
+                )
 
                 cols[4].metric("SL", f"${pos['sl']:.2f}")
                 cols[5].metric("TP", f"${pos['tp']:.2f}")
                 cols[6].metric("Levier", f"x{pos.get('leverage', 1)}")
 
                 liq_label = f"⚠️ {liq_dist:.0f}%" if is_danger else f"{liq_dist:.0f}%"
-                cols[7].metric("Dist. Liq.", liq_label,
-                               delta_color="inverse" if is_danger else "off")
+                cols[7].metric(
+                    "Dist. Liq.",
+                    liq_label,
+                    delta_color="inverse" if is_danger else "off",
+                )
 
                 if is_danger:
-                    st.error(f"🚨 RISQUE LIQUIDATION — {pos['symbol']} distance: {liq_dist:.1f}%")
+                    st.error(
+                        f"🚨 RISQUE LIQUIDATION — {pos['symbol']} distance: {liq_dist:.1f}%"
+                    )
 
                 # Barre de progression PnL (de -sl% à +tp%)
-                sl_pct  = 2.0   # défaut 2%
-                tp_pct  = 4.0   # défaut 4%
+                sl_pct = 2.0  # défaut 2%
+                tp_pct = 4.0  # défaut 4%
                 progress = min(1.0, max(0.0, (pnl_pct + sl_pct) / (sl_pct + tp_pct)))
                 st.progress(progress, text=f"Progression vers TP: {pnl_pct:+.1f}%")
                 st.divider()
@@ -161,31 +177,43 @@ else:
     # Fallback 1 : snapshot JSON écrit par advisor_loop
     _snapshot_positions = _load_snapshot()
     if _snapshot_positions:
-        st.info(f"⚡ Source : snapshot advisor_loop ({len(_snapshot_positions)} position(s))")
+        st.info(
+            f"⚡ Source : snapshot advisor_loop ({len(_snapshot_positions)} position(s))"
+        )
         for pos in _snapshot_positions:
             liq_dist = pos.get("liq_dist_pct", 100)
             is_danger = liq_dist < 10
             with st.container():
                 cols = st.columns([2, 1, 1, 1, 1, 1, 1, 1])
                 side_icon = "🟢" if pos.get("side") == "long" else "🔴"
-                cols[0].markdown(f"**{side_icon} {pos['symbol']}** — *{pos.get('subaccount','?')}*")
+                cols[0].markdown(
+                    f"**{side_icon} {pos['symbol']}** — *{pos.get('subaccount','?')}*"
+                )
                 cols[1].metric("Entry", f"${pos['entry']:.2f}")
                 cols[2].metric("Actuel", f"${pos.get('current', pos['entry']):.2f}")
                 pnl_usd = pos.get("pnl_usd", 0.0)
                 pnl_pct = pos.get("pnl_pct", 0.0)
-                cols[3].metric("PnL $", f"{pnl_usd:+.2f}",
-                               delta=f"{pnl_pct:+.1f}%",
-                               delta_color="normal" if pnl_usd >= 0 else "inverse")
+                cols[3].metric(
+                    "PnL $",
+                    f"{pnl_usd:+.2f}",
+                    delta=f"{pnl_pct:+.1f}%",
+                    delta_color="normal" if pnl_usd >= 0 else "inverse",
+                )
                 cols[4].metric("SL", f"${pos.get('sl', 0.0):.2f}")
                 cols[5].metric("TP", f"${pos.get('tp', 0.0):.2f}")
                 cols[6].metric("Levier", f"x{pos.get('leverage', 1)}")
                 liq_label = f"⚠️ {liq_dist:.0f}%" if is_danger else f"{liq_dist:.0f}%"
-                cols[7].metric("Dist. Liq.", liq_label,
-                               delta_color="inverse" if is_danger else "off")
+                cols[7].metric(
+                    "Dist. Liq.",
+                    liq_label,
+                    delta_color="inverse" if is_danger else "off",
+                )
                 if is_danger:
-                    st.error(f"🚨 RISQUE LIQUIDATION — {pos['symbol']} distance: {liq_dist:.1f}%")
-                sl_pct  = 2.0
-                tp_pct  = 4.0
+                    st.error(
+                        f"🚨 RISQUE LIQUIDATION — {pos['symbol']} distance: {liq_dist:.1f}%"
+                    )
+                sl_pct = 2.0
+                tp_pct = 4.0
                 progress = min(1.0, max(0.0, (pnl_pct + sl_pct) / (sl_pct + tp_pct)))
                 st.progress(progress, text=f"Progression vers TP: {pnl_pct:+.1f}%")
                 st.divider()
@@ -213,33 +241,41 @@ if _sub_manager:
                 st.metric("Positions fermées", pos_s.get("closed_count", 0))
                 st.metric("Win rate", f"{pos_s.get('win_rate', 0):.0%}")
                 pnl = pos_s.get("total_pnl_usd", 0)
-                st.metric("PnL réalisé", f"{pnl:+.2f} $",
-                          delta_color="normal" if pnl >= 0 else "inverse")
+                st.metric(
+                    "PnL réalisé",
+                    f"{pnl:+.2f} $",
+                    delta_color="normal" if pnl >= 0 else "inverse",
+                )
             guard = stats.get("guard", {})
             if guard:
                 dd = guard.get("session_drawdown_pct", 0)
-                st.progress(min(1.0, abs(dd) / 3.0),
-                            text=f"Drawdown session: {dd:.1f}%")
+                st.progress(
+                    min(1.0, abs(dd) / 3.0), text=f"Drawdown session: {dd:.1f}%"
+                )
 else:
     # Mode fallback : lecture SQLite directe
     st.subheader("Lecture depuis base de données")
     for name, label in SUBACCOUNTS.items():
         db_path = f"databases/trade_log_{name}.sqlite"
-        trades  = _load_trades(db_path, n=50)
+        trades = _load_trades(db_path, n=50)
         if trades:
             with st.expander(f"{label} — {len(trades)} trades"):
                 import pandas as pd
+
                 df = pd.DataFrame(trades)
-                st.dataframe(df[["ts", "symbol", "action", "size", "mode", "status"]].head(20),
-                             use_container_width=True)
+                st.dataframe(
+                    df[["ts", "symbol", "action", "size", "mode", "status"]].head(20),
+                    width="stretch",
+                )
 
 
 # ── Section 3 : Historique trades SQLite ───────────────────────────────────────
 
 st.header("Historique des trades")
 
-selected_sub = st.selectbox("Subcompte", list(SUBACCOUNTS.keys()),
-                             format_func=lambda x: SUBACCOUNTS[x])
+selected_sub = st.selectbox(
+    "Subcompte", list(SUBACCOUNTS.keys()), format_func=lambda x: SUBACCOUNTS[x]
+)
 db_path = f"databases/trade_log_{selected_sub}.sqlite"
 # Fallback sur la DB principale
 if not Path(db_path).exists():
@@ -248,17 +284,25 @@ if not Path(db_path).exists():
 trades = _load_trades(db_path, n=200)
 if trades:
     import pandas as pd
+
     df = pd.DataFrame(trades)
     # Stats rapides
     c1, c2, c3 = st.columns(3)
     c1.metric("Total trades", len(df))
-    ok   = df[df.get("status", pd.Series()) == "ok"] if "status" in df else df
+    ok = df[df.get("status", pd.Series()) == "ok"] if "status" in df else df
     c2.metric("Exécutés", len(ok))
-    rej  = df[df.get("status", pd.Series()) == "error"] if "status" in df else pd.DataFrame()
+    rej = (
+        df[df.get("status", pd.Series()) == "error"]
+        if "status" in df
+        else pd.DataFrame()
+    )
     c3.metric("Erreurs", len(rej))
-    cols_show = [c for c in ["ts", "symbol", "action", "size", "mode", "status", "error"]
-                 if c in df.columns]
-    st.dataframe(df[cols_show], use_container_width=True, height=300)
+    cols_show = [
+        c
+        for c in ["ts", "symbol", "action", "size", "mode", "status", "error"]
+        if c in df.columns
+    ]
+    st.dataframe(df[cols_show], width="stretch", height=300)
 else:
     st.info(f"Aucun trade enregistré pour {SUBACCOUNTS[selected_sub]}.")
 
@@ -270,6 +314,7 @@ st.header("Événements récents")
 audit_path = Path("supervision/alerts_audit.jsonl")
 if audit_path.exists():
     import json
+
     events = []
     try:
         lines = audit_path.read_text(encoding="utf-8").strip().split("\n")
@@ -280,10 +325,14 @@ if audit_path.exists():
         pass
     if events:
         import pandas as pd
+
         df_ev = pd.DataFrame(events[::-1])
-        cols_ev = [c for c in ["ts", "type", "severity", "module", "message"]
-                   if c in df_ev.columns]
-        st.dataframe(df_ev[cols_ev], use_container_width=True, height=250)
+        cols_ev = [
+            c
+            for c in ["ts", "type", "severity", "module", "message"]
+            if c in df_ev.columns
+        ]
+        st.dataframe(df_ev[cols_ev], width="stretch", height=250)
     else:
         st.info("Aucun événement récent.")
 else:

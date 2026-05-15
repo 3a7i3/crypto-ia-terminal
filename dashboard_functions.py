@@ -28,7 +28,7 @@ def visualisation_3d(df: pd.DataFrame) -> None:
             color="fitness",
             title="Visualisation 3D TP/SL/Fitness",
         )
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
     except ImportError:
         st.error("plotly requis : pip install plotly")
     except Exception as e:
@@ -41,10 +41,10 @@ def stats_par_espece(df: pd.DataFrame) -> None:
 
     if "species" not in df.columns:
         st.info("Colonne 'species' absente — stats globales affichées.")
-        st.dataframe(df.describe(), use_container_width=True)
+        st.dataframe(df.describe(), width="stretch")
         return
     stats = df.groupby("species").agg(["mean", "std", "count"]).round(4)
-    st.dataframe(stats, use_container_width=True)
+    st.dataframe(stats, width="stretch")
 
 
 def top5_et_heatmap(df: pd.DataFrame) -> None:
@@ -58,14 +58,14 @@ def top5_et_heatmap(df: pd.DataFrame) -> None:
     sort_col = "fitness" if "fitness" in df.columns else num_cols[0]
     top5 = df.nlargest(5, sort_col) if sort_col in df.columns else df.head(5)
     st.markdown("#### Top 5 stratégies")
-    st.dataframe(top5, use_container_width=True)
+    st.dataframe(top5, width="stretch")
     if len(num_cols) >= 2:
         try:
             import plotly.express as px
 
             corr = df[num_cols].corr().round(2)
             fig = px.imshow(corr, text_auto=True, title="Heatmap de corrélation")
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
         except ImportError:
             st.error("plotly requis : pip install plotly")
         except Exception as e:
@@ -92,7 +92,7 @@ def evolution_fitness(df: pd.DataFrame) -> None:
             y="fitness",
             title="Évolution de la fitness par génération",
         )
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
     except ImportError:
         st.error("plotly requis : pip install plotly")
     except Exception as e:
@@ -111,13 +111,13 @@ def comparatif_multi_simulations(df: pd.DataFrame) -> None:
         st.warning("Aucune colonne numérique pour le comparatif.")
         return
     st.markdown("#### Statistiques comparatives")
-    st.dataframe(df[num_cols].describe().round(4), use_container_width=True)
+    st.dataframe(df[num_cols].describe().round(4), width="stretch")
     if "fitness" in df.columns:
         try:
             import plotly.express as px
 
             fig = px.histogram(df, x="fitness", title="Distribution de la fitness")
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
         except ImportError:
             pass
 
@@ -139,6 +139,6 @@ def import_export_csv(df: pd.DataFrame) -> None:
             st.success(
                 f"Fichier importé : {len(imported)} lignes × {len(imported.columns)} colonnes"
             )
-            st.dataframe(imported.head(20), use_container_width=True)
+            st.dataframe(imported.head(20), width="stretch")
         except Exception as e:
             st.error(f"Erreur d'import : {e}")

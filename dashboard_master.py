@@ -392,7 +392,7 @@ with tab1:
                 st.markdown("**Couches de refus — cycle courant**")
                 st.dataframe(
                     pd.DataFrame(rb.items(), columns=["Couche", "Refus"]),
-                    use_container_width=True,
+                    width="stretch",
                     hide_index=True,
                 )
             else:
@@ -403,7 +403,7 @@ with tab1:
                 st.markdown("**Régimes détectés ce cycle**")
                 st.dataframe(
                     pd.DataFrame(rd.items(), columns=["Régime", "Symboles"]),
-                    use_container_width=True,
+                    width="stretch",
                     hide_index=True,
                 )
     else:
@@ -548,7 +548,7 @@ with tab2:
                     "Trade": "✓" if s.get("trade_allowed") else "—",
                 }
             )
-        st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+        st.dataframe(pd.DataFrame(rows), width="stretch", hide_index=True)
 
         st.markdown("**Détail par symbole**")
 
@@ -681,11 +681,9 @@ with tab2:
                         if c in df_exp.columns
                     ]
                     if exp_cols:
-                        st.dataframe(
-                            df_exp[exp_cols], use_container_width=True, hide_index=True
-                        )
+                        st.dataframe(df_exp[exp_cols], width="stretch", hide_index=True)
                     else:
-                        st.dataframe(df_exp, use_container_width=True, hide_index=True)
+                        st.dataframe(df_exp, width="stretch", hide_index=True)
                 else:
                     st.info("Aucune position ouverte — exposition nulle.")
 
@@ -798,7 +796,7 @@ with tab3:
             regimes = Counter(d.get("regime", "unknown") for d in decisions)
             st.dataframe(
                 pd.DataFrame(regimes.most_common(), columns=["Régime", "Count"]),
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
                 height=175,
             )
@@ -816,7 +814,7 @@ with tab3:
                     for k, v in persos.most_common(5)
                 ]
             )
-            st.dataframe(df_cp, use_container_width=True, hide_index=True, height=175)
+            st.dataframe(df_cp, width="stretch", hide_index=True, height=175)
 
         if not COMPACT:
             st.divider()
@@ -849,7 +847,7 @@ with tab3:
             cnt = Counter(all_refused_by)
             st.dataframe(
                 pd.DataFrame(cnt.most_common(15), columns=["Raison", "Occurrences"]),
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
             )
         else:
@@ -867,7 +865,7 @@ with tab3:
                     pd.DataFrame(
                         cnt2.most_common(10), columns=["Module", "Validations"]
                     ),
-                    use_container_width=True,
+                    width="stretch",
                     hide_index=True,
                 )
 
@@ -958,7 +956,7 @@ with tab3:
                 df_coh = pd.DataFrame(coherence).sort_values(
                     "entry_ts", ascending=False
                 )
-                st.dataframe(df_coh, use_container_width=True, hide_index=True)
+                st.dataframe(df_coh, width="stretch", hide_index=True)
 
         st.divider()
         st.markdown("**50 dernières décisions**")
@@ -977,7 +975,7 @@ with tab3:
                     "Raison": (d.get("reason") or "")[:60],
                 }
             )
-        st.dataframe(pd.DataFrame(rows_dec), use_container_width=True, hide_index=True)
+        st.dataframe(pd.DataFrame(rows_dec), width="stretch", hide_index=True)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -990,9 +988,7 @@ with tab4:
 
     st.markdown("**Positions ouvertes**")
     if open_positions:
-        st.dataframe(
-            pd.DataFrame(open_positions), use_container_width=True, hide_index=True
-        )
+        st.dataframe(pd.DataFrame(open_positions), width="stretch", hide_index=True)
     else:
         st.info("Aucune position ouverte.")
 
@@ -1042,7 +1038,7 @@ with tab4:
             )
 
         df_hist = pd.DataFrame(rows_hist)
-        st.dataframe(df_hist, use_container_width=True, hide_index=True)
+        st.dataframe(df_hist, width="stretch", hide_index=True)
 
         st.divider()
 
@@ -1083,7 +1079,7 @@ with tab4:
                     pd.DataFrame(
                         exit_reasons.most_common(), columns=["Raison", "Count"]
                     ),
-                    use_container_width=True,
+                    width="stretch",
                     hide_index=True,
                 )
     else:

@@ -268,7 +268,7 @@ if cycle_data:
     ).reset_index()
     chart_data = chart_data.set_index("ts")
 
-    st.line_chart(chart_data, use_container_width=True)
+    st.line_chart(chart_data, width="stretch")
 
     # Seuils
     st.caption("Seuils: 70+ signal actionable | 50-69 à surveiller | <50 pas d'action")
@@ -310,7 +310,7 @@ if shadow_trades:
             df_show["slippage_pct"] = df_show["slippage_pct"].map("{:.4f}%".format)
         if "notional" in df_show.columns:
             df_show["notional"] = df_show["notional"].map("${:.2f}".format)
-        st.dataframe(df_show, use_container_width=True)
+        st.dataframe(df_show, width="stretch")
 
     # Stats agrégées
     if "slippage_pct" in df_sh.columns:
@@ -339,7 +339,7 @@ st.subheader("📋 Journal des ordres")
 
 if real_trades:
     df_tr = pd.DataFrame(real_trades)
-    st.dataframe(df_tr, use_container_width=True)
+    st.dataframe(df_tr, width="stretch")
 else:
     db_path = str(TRADE_LOG_DB)
     if TRADE_LOG_DB.exists():
@@ -434,7 +434,7 @@ with st.expander("Recherche dans les shadow trades", expanded=False):
                     ]
                     if c in df_rp.columns
                 ]
-                st.dataframe(df_rp[cols_rp], use_container_width=True)
+                st.dataframe(df_rp[cols_rp], width="stretch")
                 st.caption(f"{len(results)} résultats trouvés")
             else:
                 st.info("Aucun résultat pour ces critères.")
@@ -524,7 +524,7 @@ with st.expander("Décomposition détaillée du dernier score", expanded=True):
             df_ex = df_ex.set_index("ts")[["score"]].rename(
                 columns={"score": f"Score {ex_sym}"}
             )
-            st.line_chart(df_ex, use_container_width=True)
+            st.line_chart(df_ex, width="stretch")
             # Ligne de seuil à 70
             st.caption("Seuil d'activation: 70/100 | Score actuel: " + str(score_ex))
     else:
@@ -646,7 +646,7 @@ with st.expander("Lancer une simulation de survie", expanded=False):
 
             st.dataframe(
                 df_mc.style.applymap(_color_surv, subset=["Survie (%)"]),
-                use_container_width=True,
+                width="stretch",
             )
 
             # Verdict

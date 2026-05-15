@@ -26,7 +26,7 @@ with st.container():
                 hover_data=["run", "seed"],
                 title="Best fitness vs Std fitness",
             )
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
         else:
             st.info("Aucun résumé de simulation trouvé dans sim_summaries/.")
     else:

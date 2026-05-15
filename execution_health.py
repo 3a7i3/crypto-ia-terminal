@@ -166,7 +166,7 @@ st.markdown(
 col_h1, col_h2 = st.columns([8, 2])
 with col_h2:
     st.caption(f"Auto-refresh {REFRESH_SEC}s")
-    if st.button("↻ Refresh", use_container_width=True):
+    if st.button("↻ Refresh", width="stretch"):
         st.cache_data.clear()
         st.rerun()
 
@@ -277,7 +277,7 @@ with tab1:
                 }
             )
         df_audit = pd.DataFrame(rows_table)
-        st.dataframe(df_audit, use_container_width=True, hide_index=True)
+        st.dataframe(df_audit, width="stretch", hide_index=True)
 
         # Slippage distribution
         if slip_vals:
@@ -349,9 +349,7 @@ with tab2:
                 }
                 for reg, v in sorted(regime_stats.items(), key=lambda x: -x[1]["n"])
             ]
-            st.dataframe(
-                pd.DataFrame(reg_rows), use_container_width=True, hide_index=True
-            )
+            st.dataframe(pd.DataFrame(reg_rows), width="stretch", hide_index=True)
 
         with col_s:
             st.markdown("**Top 5 meilleures sorties**")
@@ -368,7 +366,7 @@ with tab2:
                         for t in top5
                     ]
                 ),
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
             )
 
@@ -394,9 +392,7 @@ with tab2:
                     "Raison sortie": t.get("exit_reason", "?"),
                 }
             )
-        st.dataframe(
-            pd.DataFrame(table_rows), use_container_width=True, hide_index=True
-        )
+        st.dataframe(pd.DataFrame(table_rows), width="stretch", hide_index=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB 3 — Pipeline & Rejections
@@ -449,7 +445,7 @@ with tab3:
             df_rej = pd.DataFrame(
                 [{"Raison": k, "Count": v} for k, v in counts.most_common(15)]
             )
-            st.dataframe(df_rej, use_container_width=True, hide_index=True)
+            st.dataframe(df_rej, width="stretch", hide_index=True)
         else:
             st.markdown(
                 f"<div class='eh-empty'>Aucun rejet enregistré</div>",
@@ -476,7 +472,7 @@ with tab3:
                         {"Percentile": "Max", "ms": f"{p_max:.1f}"},
                     ]
                 ),
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
             )
             st.bar_chart(pd.Series(pipeline_ms_vals[:500], name="pipeline_ms"))
@@ -503,7 +499,7 @@ with tab3:
                     "Pipeline ms": f"{ctx.get('pipeline_ms', '?')}",
                 }
             )
-        st.dataframe(pd.DataFrame(rej_table), use_container_width=True, hide_index=True)
+        st.dataframe(pd.DataFrame(rej_table), width="stretch", hide_index=True)
     else:
         st.markdown(
             f"<div class='eh-empty'>Aucun rejet dans les logs chargés</div>",
@@ -529,7 +525,7 @@ with tab3:
             }
             for r in sys_dec[-30:]
         ]
-        st.dataframe(pd.DataFrame(sys_rows), use_container_width=True, hide_index=True)
+        st.dataframe(pd.DataFrame(sys_rows), width="stretch", hide_index=True)
     else:
         st.markdown(
             f"<div class='eh-empty'>Aucune décision système enregistrée</div>",
@@ -697,7 +693,7 @@ padding:20px 28px;text-align:center;margin-bottom:20px'>
                 ]
                 st.dataframe(
                     pd.DataFrame(inputs, columns=["Paramètre", "Valeur"]),
-                    use_container_width=True,
+                    width="stretch",
                     hide_index=True,
                 )
 
@@ -754,7 +750,7 @@ padding:20px 28px;text-align:center;margin-bottom:20px'>
                 },
             ]
             df_lims = pd.DataFrame(lim_rows)
-            st.dataframe(df_lims, use_container_width=True, hide_index=True)
+            st.dataframe(df_lims, width="stretch", hide_index=True)
 
             # ── Évolution survival score dans le temps ────────────────────────
             st.markdown("---")
