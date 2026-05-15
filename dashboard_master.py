@@ -23,9 +23,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import pandas as pd
+import plotly.graph_objects as go
 import streamlit as st
 
 from dashboard.colors import C, css_inject
+from dashboard_utils import CHART_THEME, compact_df, inject_css
 
 # ── Config ────────────────────────────────────────────────────────────────────
 
@@ -56,6 +58,7 @@ st.set_page_config(
 )
 
 css_inject()
+inject_css()
 st.markdown(
     f"""
 <style>
@@ -390,10 +393,8 @@ with tab1:
             rb = snap.get("refusal_breakdown", {})
             if rb:
                 st.markdown("**Couches de refus — cycle courant**")
-                st.dataframe(
-                    pd.DataFrame(rb.items(), columns=["Couche", "Refus"]),
-                    width="stretch",
-                    hide_index=True,
+                compact_df(
+                    pd.DataFrame(rb.items(), columns=["Couche", "Refus"]), height=180
                 )
             else:
                 st.markdown("Aucun signal bloqué ce cycle.")
@@ -401,10 +402,8 @@ with tab1:
             rd = snap.get("regime_distribution", {})
             if rd:
                 st.markdown("**Régimes détectés ce cycle**")
-                st.dataframe(
-                    pd.DataFrame(rd.items(), columns=["Régime", "Symboles"]),
-                    width="stretch",
-                    hide_index=True,
+                compact_df(
+                    pd.DataFrame(rd.items(), columns=["Régime", "Symboles"]), height=180
                 )
     else:
         st.warning("Snapshot live introuvable — le bot tourne-t-il ?")
@@ -449,7 +448,7 @@ with tab1:
         ("Watchdog VPS", "watchdog_vps.py", 0),
         ("Watchdog Audit", "supervision/watchdog_audit.jsonl", 10),
     ]
-    cols = st.columns(4)
+    cols = st.columns(2)
     for i, (name, fpath, min_bytes) in enumerate(MODULES):
         p = BASE / fpath
         if not p.exists():
@@ -458,10 +457,10 @@ with tab1:
             color, tag = _COL_WARN, "vide"
         else:
             color, tag = _COL_OK, "OK"
-        cols[i % 4].markdown(
+        cols[i % 2].markdown(
             f"<div class='mod-card' style='border-left-color:{color}'>"
             f"<span style='color:{color};font-size:0.62rem;font-weight:700'>{tag.upper()}</span>"
-            f"<br><span style='color:{_TEXT_PRI}'>{name}</span></div>",
+            f" <span style='color:{_TEXT_PRI};font-size:0.78rem'>{name}</span></div>",
             unsafe_allow_html=True,
         )
 
@@ -508,7 +507,16 @@ with tab1:
                     sorted(total_ref.items(), key=lambda x: -x[1]),
                     columns=["Couche", "Refus totaux"],
                 )
-                st.bar_chart(df_tot.set_index("Couche"), height=190)
+                fig_ref = go.Figure(
+                    go.Bar(
+                        x=df_tot["Couche"],
+                        y=df_tot["Refus totaux"],
+                        marker_color="#ef4444",
+                        width=0.5,
+                    )
+                )
+                fig_ref.update_layout(height=140, **CHART_THEME)
+                st.plotly_chart(fig_ref, use_container_width=True)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -548,7 +556,7 @@ with tab2:
                     "Trade": "✓" if s.get("trade_allowed") else "—",
                 }
             )
-        st.dataframe(pd.DataFrame(rows), width="stretch", hide_index=True)
+        compact_df(pd.DataFrame(rows), height=300)
 
         st.markdown("**Détail par symbole**")
 
@@ -681,9 +689,9 @@ with tab2:
                         if c in df_exp.columns
                     ]
                     if exp_cols:
-                        st.dataframe(df_exp[exp_cols], width="stretch", hide_index=True)
+                        compact_df(df_exp[exp_cols], height=200)
                     else:
-                        st.dataframe(df_exp, width="stretch", hide_index=True)
+                        compact_df(df_exp, height=200)
                 else:
                     st.info("Aucune position ouverte — exposition nulle.")
 
@@ -786,7 +794,16 @@ with tab3:
         if scores:
             st.markdown("**Distribution des scores de signal**")
             hist = pd.DataFrame({"score": scores})["score"].value_counts().sort_index()
-            st.bar_chart(hist, height=190)
+            fig_scores = go.Figure(
+                go.Bar(
+                    x=hist.index,
+                    y=hist.values,
+                    marker_color="#3b82f6",
+                    width=1.0,
+                )
+            )
+            fig_scores.update_layout(height=140, **CHART_THEME)
+            st.plotly_chart(fig_scores, use_container_width=True)
             st.caption(f"Moyenne {avg_score:.1f} · Max {max_score} · Min {min(scores)}")
 
         # Tableaux compacts (régimes / conviction+personnalité) — pas de bar charts
@@ -794,11 +811,9 @@ with tab3:
         with col_l:
             st.markdown("**Régimes**")
             regimes = Counter(d.get("regime", "unknown") for d in decisions)
-            st.dataframe(
+            compact_df(
                 pd.DataFrame(regimes.most_common(), columns=["Régime", "Count"]),
-                width="stretch",
-                hide_index=True,
-                height=175,
+                height=150,
             )
         with col_r:
             st.markdown("**Conviction · Personnalité**")
@@ -814,7 +829,7 @@ with tab3:
                     for k, v in persos.most_common(5)
                 ]
             )
-            st.dataframe(df_cp, width="stretch", hide_index=True, height=175)
+            compact_df(df_cp, height=150)
 
         if not COMPACT:
             st.divider()
@@ -845,10 +860,9 @@ with tab3:
             all_refused_by.extend(d.get("refused_by", []))
         if all_refused_by:
             cnt = Counter(all_refused_by)
-            st.dataframe(
+            compact_df(
                 pd.DataFrame(cnt.most_common(15), columns=["Raison", "Occurrences"]),
-                width="stretch",
-                hide_index=True,
+                height=200,
             )
         else:
             st.info("Aucun refus enregistré.")
@@ -861,12 +875,11 @@ with tab3:
                 all_passed.extend(d.get("passed_by", []))
             if all_passed:
                 cnt2 = Counter(all_passed)
-                st.dataframe(
+                compact_df(
                     pd.DataFrame(
                         cnt2.most_common(10), columns=["Module", "Validations"]
                     ),
-                    width="stretch",
-                    hide_index=True,
+                    height=170,
                 )
 
         # ── Cohérence Signal → Résultat ──────────────────────────────────────
@@ -956,7 +969,7 @@ with tab3:
                 df_coh = pd.DataFrame(coherence).sort_values(
                     "entry_ts", ascending=False
                 )
-                st.dataframe(df_coh, width="stretch", hide_index=True)
+                compact_df(df_coh, height=280)
 
         st.divider()
         st.markdown("**50 dernières décisions**")
@@ -975,7 +988,7 @@ with tab3:
                     "Raison": (d.get("reason") or "")[:60],
                 }
             )
-        st.dataframe(pd.DataFrame(rows_dec), width="stretch", hide_index=True)
+        compact_df(pd.DataFrame(rows_dec), height=300)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -988,7 +1001,7 @@ with tab4:
 
     st.markdown("**Positions ouvertes**")
     if open_positions:
-        st.dataframe(pd.DataFrame(open_positions), width="stretch", hide_index=True)
+        compact_df(pd.DataFrame(open_positions), height=250)
     else:
         st.info("Aucune position ouverte.")
 
@@ -1038,7 +1051,7 @@ with tab4:
             )
 
         df_hist = pd.DataFrame(rows_hist)
-        st.dataframe(df_hist, width="stretch", hide_index=True)
+        compact_df(df_hist, height=280)
 
         st.divider()
 
@@ -1075,12 +1088,11 @@ with tab4:
             exit_reasons = Counter(e.get("exit_reason", "?")[:30] for e in exits)
             if exit_reasons:
                 st.markdown("**Raisons de sortie**")
-                st.dataframe(
+                compact_df(
                     pd.DataFrame(
                         exit_reasons.most_common(), columns=["Raison", "Count"]
                     ),
-                    width="stretch",
-                    hide_index=True,
+                    height=150,
                 )
     else:
         st.info("Aucun historique de trade enregistré.")

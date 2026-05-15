@@ -18,8 +18,11 @@ import time
 from datetime import datetime
 from pathlib import Path
 
+import pandas as pd
 import streamlit as st
 from dotenv import load_dotenv
+
+from dashboard_utils import compact_df, inject_css
 
 load_dotenv()
 
@@ -146,10 +149,14 @@ hr { border-color: #1e3a5f; margin: 8px 0; }
 
 /* Stale data indicator */
 .stale { color: #ff9100; font-size: 10px; }
+
+/* Compact metric card */
+.metric-card .value { font-size: 18px !important; }
 </style>
 """,
     unsafe_allow_html=True,
 )
+inject_css()
 
 
 # ── Data Loaders ──────────────────────────────────────────────────────────────
@@ -440,7 +447,7 @@ def _render_black_box(bb_events: list[dict]) -> None:
         "SYSTEM_EVENT": ("", "⚪"),
     }
 
-    for e in reversed(bb_events[-20:]):
+    for e in reversed(bb_events[-10:]):
         dt = e.get("decision_type", "EVENT")
         cls, icon = icons.get(dt, ("", "⚪"))
         sym = e.get("symbol", "SYS")
@@ -726,57 +733,12 @@ def _render_trade_history(trades: list[dict]) -> None:
         )
         return
 
-    cols = [
-        c
-        for c in ("symbol", "side", "status", "price", "amount", "pnl", "timestamp")
-        if c in (trades[0] if trades else {})
-    ]
-    if not cols:
-        cols = list(trades[0].keys())[:6]
+    preferred = ("symbol", "side", "status", "price", "amount", "pnl", "timestamp")
+    first = trades[0] if trades else {}
+    cols = [c for c in preferred if c in first] or list(first.keys())[:6]
 
-    header = " | ".join(f"<b>{c.upper()}</b>" for c in cols)
-    st.markdown(
-        f'<div style="font-size:11px;color:#6b8cad;border-bottom:1px solid #1e3a5f;padding-bottom:4px">{header}</div>',
-        unsafe_allow_html=True,
-    )
-
-    for t in trades[:10]:
-        pnl = t.get("pnl", t.get("realized_pnl", None))
-        pnl_str = ""
-        if pnl is not None:
-            try:
-                pnl_f = float(pnl)
-                color = (
-                    "#00e676" if pnl_f > 0 else ("#ff4444" if pnl_f < 0 else "#6b8cad")
-                )
-                pnl_str = f'<span style="color:{color}">{pnl_f:+.2f}</span>'
-            except Exception:
-                pnl_str = str(pnl)
-
-        row_parts = []
-        for c in cols:
-            v = t.get(c, "—")
-            if c == "pnl" and pnl_str:
-                row_parts.append(pnl_str)
-            else:
-                row_parts.append(str(v)[:20])
-
-        side = str(t.get("side", "")).upper()
-        side_color = (
-            "#00e676"
-            if side in ("BUY", "LONG")
-            else ("#ff4444" if side in ("SELL", "SHORT") else "#a8c8e8")
-        )
-
-        st.markdown(
-            '<div class="event-row" style="font-size:11px">'
-            + " | ".join(
-                f'<span style="color:{side_color}">{p}</span>' if c == "side" else p
-                for c, p in zip(cols, row_parts)
-            )
-            + "</div>",
-            unsafe_allow_html=True,
-        )
+    df = pd.DataFrame(trades[:20])[cols] if cols else pd.DataFrame(trades[:20])
+    compact_df(df, height=250)
 
 
 def _render_regime_panel(bb_events: list[dict]) -> None:

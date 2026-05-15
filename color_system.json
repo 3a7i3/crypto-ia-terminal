@@ -1,0 +1,70 @@
+{
+  "background": {
+    "dark": "#0f172a",
+    "card": "#1e293b",
+    "card_hover": "#334155",
+    "border": "#334155"
+  },
+  "text": {
+    "primary": "#f8fafc",
+    "secondary": "#94a3b8",
+    "muted": "#475569"
+  },
+  "status": {
+    "ok": "#22c55e",
+    "warning": "#f59e0b",
+    "error": "#ef4444",
+    "neutral": "#6b7280",
+    "info": "#3b82f6"
+  },
+  "accent": "#00e0ff",
+  "conviction": {
+    "VERY_HIGH": "#22c55e",
+    "HIGH": "#84cc16",
+    "MEDIUM": "#f59e0b",
+    "LOW": "#f97316",
+    "SKIP": "#6b7280"
+  },
+  "regime": {
+    "TREND_BULL": "#22c55e",
+    "TREND_BEAR": "#ef4444",
+    "RANGE": "#6b7280",
+    "VOLATILE": "#f59e0b",
+    "UNKNOWN": "#9ca3af"
+  },
+  "signal_badge": {
+    "TRADE": {"bg": "#00e0ff", "fg": "#0a0c12"},
+    "WATCH": {"bg": "#f59e0b", "fg": "#0a0c12"},
+    "HOLD":  {"bg": "#334155", "fg": "#94a3b8"},
+    "BLOCK": {"bg": "#ef4444", "fg": "#ffffff"}
+  },
+  "lifecycle": {
+    "CREATED":             "#6b7280",
+    "SIGNAL_GENERATED":    "#6b7280",
+    "CONTEXT_ENRICHED":    "#3b82f6",
+    "REGIME_VALIDATED":    "#8b5cf6",
+    "RISK_EVALUATED":      "#f59e0b",
+    "APPROVED":            "#14b8a6",
+    "EXECUTION_PENDING":   "#f97316",
+    "EXECUTED":            "#22c55e",
+    "MONITORED":           "#22c55e",
+    "CLOSED":              "#6b7280",
+    "POSTMORTEM_ANALYZED": "#6b7280",
+    "REJECTED":            "#ef4444",
+    "EXPIRED":             "#92400e",
+    "VETOED":              "#7f1d1d"
+  },
+  "postmortem": {
+    "VALIDATED": "#22c55e",
+    "LUCKY":     "#84cc16",
+    "UNLUCKY":   "#f59e0b",
+    "MISTAKE":   "#ef4444"
+  },
+  "exchanges": {
+    "Binance":     "#f3ba2f",
+    "Bybit":       "#f7a600",
+    "OKX":         "#00d4aa",
+    "MEXC":        "#1d9bf0",
+    "Hyperliquid": "#a855f7"
+  }
+}
