@@ -120,7 +120,7 @@ SYMBOLS_DEFAULT = [
     "BONK/USDT",
     # Infrastructure / IA / narratives — souvent décorrélés de BTC
     "LINK/USDT",
-    "RNDR/USDT",
+    "NEAR/USDT",
     "TAO/USDT",
     "FET/USDT",
     # Market structure / DeFi — réactions macro différentes
@@ -1985,7 +1985,11 @@ def main(
 
     pos_manager.on_close(_on_position_close)
 
-    gate = _profile_bootstrap_step("global_risk_gate", runtime.GlobalRiskGate)
+    _gate_min_score = int(os.getenv("SIGNAL_MIN_SCORE", "70"))
+    gate = _profile_bootstrap_step(
+        "global_risk_gate",
+        lambda: runtime.GlobalRiskGate(min_signal_score=_gate_min_score),
+    )
     engine = _profile_bootstrap_step("live_signal_engine", runtime.LiveSignalEngine)
     advisor = _profile_bootstrap_step("ai_advisor", runtime.AIAdvisor)
     shadow = _profile_bootstrap_step(
