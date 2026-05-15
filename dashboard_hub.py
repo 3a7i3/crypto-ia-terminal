@@ -126,6 +126,14 @@ DASHBOARDS = [
         "tag": "EXECUTION",
         "tag_color": "#00e0ff",
     },
+    {
+        "name": "Multi-Exchange",
+        "file": "dashboard_multi_exchange.py",
+        "port": 8510,
+        "description": "Prix live Binance · Bybit · OKX · MEXC · Hyperliquid — spreads inter-exchange",
+        "tag": "LIVE DATA",
+        "tag_color": "#a855f7",
+    },
 ]
 
 # ── State — processus lancés ───────────────────────────────────────────────────

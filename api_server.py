@@ -24,6 +24,7 @@ TRADES = BASE / "logs" / "trades.jsonl"
 AUDIT = BASE / "logs" / "execution_audit" / "audit.jsonl"
 MISTAKE_MEMORY = BASE / "databases" / "mistake_memory.jsonl"
 STRATEGY_RANKING = BASE / "databases" / "strategy_ranking.json"
+MULTI_EXCHANGE = BASE / "databases" / "multi_exchange_snapshot.json"
 
 app = FastAPI(title="CryptoAI API", version="1.0")
 app.add_middleware(
@@ -386,3 +387,8 @@ def raw_strategy_ranking() -> dict:
 @app.get("/api/raw/mistake_memory")
 def raw_mistake_memory(n: int = 500) -> dict:
     return {"lines": read_jsonl(MISTAKE_MEMORY, max_lines=n)}
+
+
+@app.get("/api/raw/multi_exchange")
+def raw_multi_exchange() -> dict:
+    return read_json(MULTI_EXCHANGE)

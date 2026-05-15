@@ -39,6 +39,7 @@ TARGETS = [
     ("cycles", BASE / "databases" / "cycle_data.jsonl", "jsonl"),
     ("strategy_ranking", BASE / "databases" / "strategy_ranking.json", "json"),
     ("mistake_memory", BASE / "databases" / "mistake_memory.jsonl", "jsonl"),
+    ("multi_exchange", BASE / "databases" / "multi_exchange_snapshot.json", "json"),
 ]
 
 
