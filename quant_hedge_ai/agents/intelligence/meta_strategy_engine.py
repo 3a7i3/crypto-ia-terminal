@@ -33,29 +33,29 @@ logger = logging.getLogger(__name__)
 class TradingPersonality:
     """Paramètres actifs pour une personnalité de trading."""
 
-    name:               str
-    description:        str
-    allowed_signals:    list    # ["BUY", "SELL", "HOLD"] ou sous-ensemble
+    name: str
+    description: str
+    allowed_signals: list  # ["BUY", "SELL", "HOLD"] ou sous-ensemble
 
     # Sizing
-    order_size_factor:  float   # multiplie order_size de base (0.0 = bloqué)
-    max_positions:      int     # nb max positions simultanées
+    order_size_factor: float  # multiplie order_size de base (0.0 = bloqué)
+    max_positions: int  # nb max positions simultanées
 
     # TP / SL / Trailing
-    tp_pct:             float
-    sl_pct:             float
-    trailing_pct:       float
-    partial_close_pct:  float   # 0 = désactivé
+    tp_pct: float
+    sl_pct: float
+    trailing_pct: float
+    partial_close_pct: float  # 0 = désactivé
 
     # Signal
-    min_score:          int     # score minimum pour déclencher
+    min_score: int  # score minimum pour déclencher
     require_confirmation: bool  # exige signal.confirmed=True
 
     # Contexte
-    leverage:           int     = 1
-    regime:             str     = "unknown"
-    selected_at:        float   = field(default_factory=time.time)
-    reason:             str     = ""
+    leverage: int = 1
+    regime: str = "unknown"
+    selected_at: float = field(default_factory=time.time)
+    reason: str = ""
 
     def blocks_trading(self) -> bool:
         return self.order_size_factor <= 0.0
@@ -73,7 +73,9 @@ class TradingPersonality:
 
 # ── Personnalités prédéfinies ──────────────────────────────────────────────────
 
+
 def _momentum_following(regime: str) -> TradingPersonality:
+    min_s = int(os.getenv("META_MOMENTUM_MIN_SCORE", "62"))
     return TradingPersonality(
         name="momentum_following",
         description="Tendance haussière confirmée — suivre le momentum",
@@ -84,14 +86,15 @@ def _momentum_following(regime: str) -> TradingPersonality:
         sl_pct=float(os.getenv("META_MOMENTUM_SL", "0.02")),
         trailing_pct=float(os.getenv("META_MOMENTUM_TRAIL", "0.02")),
         partial_close_pct=0.5,
-        min_score=70,
+        min_score=min_s,
         require_confirmation=True,
         regime=regime,
-        reason="Bull trend détecté — taille pleine, TP large, trailing actif",
+        reason=f"Bull trend détecté — taille pleine, TP large, trailing actif (min_score={min_s})",
     )
 
 
 def _defensive_short(regime: str) -> TradingPersonality:
+    min_s = int(os.getenv("META_SHORT_MIN_SCORE", "68"))
     return TradingPersonality(
         name="defensive_short",
         description="Tendance baissière — short défensif taille réduite",
@@ -102,14 +105,15 @@ def _defensive_short(regime: str) -> TradingPersonality:
         sl_pct=float(os.getenv("META_SHORT_SL", "0.015")),
         trailing_pct=float(os.getenv("META_SHORT_TRAIL", "0.015")),
         partial_close_pct=0.0,
-        min_score=75,
+        min_score=min_s,
         require_confirmation=True,
         regime=regime,
-        reason="Bear trend — taille réduite 60%, SL serré 1.5%",
+        reason=f"Bear trend — taille réduite 60%, SL serré 1.5% (min_score={min_s})",
     )
 
 
 def _mean_reversion(regime: str) -> TradingPersonality:
+    min_s = int(os.getenv("META_RANGE_MIN_SCORE", "60"))
     return TradingPersonality(
         name="mean_reversion",
         description="Range lateral — rebonds courts, sorties rapides",
@@ -120,14 +124,15 @@ def _mean_reversion(regime: str) -> TradingPersonality:
         sl_pct=float(os.getenv("META_RANGE_SL", "0.015")),
         trailing_pct=0.0,
         partial_close_pct=0.0,
-        min_score=72,
+        min_score=min_s,
         require_confirmation=False,
         regime=regime,
-        reason="Sideways — TP court 2.5%, pas de trailing, sortie rapide",
+        reason=f"Sideways — TP court 2.5%, pas de trailing, sortie rapide (min_score={min_s})",
     )
 
 
 def _scalping_mode(regime: str) -> TradingPersonality:
+    min_s = int(os.getenv("META_SCALP_MIN_SCORE", "65"))
     return TradingPersonality(
         name="scalping_mode",
         description="Haute volatilité — positions minuscules, sorties ultra-rapides",
@@ -138,10 +143,10 @@ def _scalping_mode(regime: str) -> TradingPersonality:
         sl_pct=float(os.getenv("META_SCALP_SL", "0.01")),
         trailing_pct=0.0,
         partial_close_pct=0.0,
-        min_score=80,
+        min_score=min_s,
         require_confirmation=True,
         regime=regime,
-        reason="Haute vol — taille 30%, TP 1.5%, score 80+ requis",
+        reason=f"Haute vol — taille 30%, TP 1.5% (min_score={min_s})",
     )
 
 
@@ -184,12 +189,12 @@ def _neutral(regime: str) -> TradingPersonality:
 # ── Mapping régime → personnalité ─────────────────────────────────────────────
 
 _REGIME_MAP = {
-    "bull_trend":             _momentum_following,
-    "bear_trend":             _defensive_short,
-    "sideways":               _mean_reversion,
+    "bull_trend": _momentum_following,
+    "bear_trend": _defensive_short,
+    "sideways": _mean_reversion,
     "high_volatility_regime": _scalping_mode,
-    "flash_crash":            _capital_protection,
-    "unknown":                _neutral,
+    "flash_crash": _capital_protection,
+    "unknown": _neutral,
 }
 
 
@@ -203,19 +208,19 @@ class MetaStrategyEngine:
     """
 
     def __init__(self) -> None:
-        self._current:      Optional[TradingPersonality] = None
-        self._history:      list[dict]                   = []
-        self._regime_stats: dict[str, dict]              = {}   # régime → {wins, losses, sharpe}
+        self._current: Optional[TradingPersonality] = None
+        self._history: list[dict] = []
+        self._regime_stats: dict[str, dict] = {}  # régime → {wins, losses, sharpe}
 
     # ── Sélection principale ───────────────────────────────────────────────────
 
     def select(
         self,
-        regime:             str,
-        features:           dict,
-        memory_sharpe:      Optional[float] = None,
-        consecutive_losses: int             = 0,
-        open_positions:     int             = 0,
+        regime: str,
+        features: dict,
+        memory_sharpe: Optional[float] = None,
+        consecutive_losses: int = 0,
+        open_positions: int = 0,
     ) -> TradingPersonality:
         """
         Retourne la personnalité adaptée au contexte courant.
@@ -234,17 +239,19 @@ class MetaStrategyEngine:
 
         # Personnalité de base selon régime
         factory = _REGIME_MAP.get(regime, _neutral)
-        p       = factory(regime)
+        p = factory(regime)
 
         # ── Ajustements dynamiques ─────────────────────────────────────────────
 
         # 1. Trop de pertes consécutives → downgrade
         if consecutive_losses >= 3:
             p.order_size_factor *= 0.4
-            p.min_score         = max(p.min_score, 80)
+            p.min_score = max(p.min_score, 80)
             p.reason += f" | DOWNGRADE: {consecutive_losses} pertes consec."
-            logger.warning("[MetaStrategy] Downgrade taille ×0.4 — %d pertes consec.",
-                           consecutive_losses)
+            logger.warning(
+                "[MetaStrategy] Downgrade taille ×0.4 — %d pertes consec.",
+                consecutive_losses,
+            )
 
         elif consecutive_losses >= 2:
             p.order_size_factor *= 0.7
@@ -254,12 +261,12 @@ class MetaStrategyEngine:
         if memory_sharpe is not None:
             if memory_sharpe < 0.5:
                 p.order_size_factor *= 0.5
-                p.min_score         = max(p.min_score, 80)
-                p.reason           += f" | Sharpe mémoire faible: {memory_sharpe:.2f}"
+                p.min_score = max(p.min_score, 80)
+                p.reason += f" | Sharpe mémoire faible: {memory_sharpe:.2f}"
             elif memory_sharpe > 2.0:
                 # Bon historique → légère augmentation de taille (cap à 1.2)
                 p.order_size_factor = min(1.2, p.order_size_factor * 1.15)
-                p.reason           += f" | Sharpe mémoire excellent: {memory_sharpe:.2f}"
+                p.reason += f" | Sharpe mémoire excellent: {memory_sharpe:.2f}"
 
         # 3. Trop de positions ouvertes → bloquer
         if open_positions >= p.max_positions:
@@ -279,9 +286,9 @@ class MetaStrategyEngine:
     def validate_signal(
         self,
         signal_action: str,
-        signal_score:  int,
-        confirmed:     bool,
-        personality:   TradingPersonality,
+        signal_score: int,
+        confirmed: bool,
+        personality: TradingPersonality,
     ) -> tuple[bool, str]:
         """
         Retourne (autorisé, raison).
@@ -307,7 +314,9 @@ class MetaStrategyEngine:
 
         return True, "OK"
 
-    def effective_order_size(self, base_size: float, personality: TradingPersonality) -> float:
+    def effective_order_size(
+        self, base_size: float, personality: TradingPersonality
+    ) -> float:
         """Applique le facteur de taille de la personnalité."""
         return round(base_size * personality.order_size_factor, 2)
 
@@ -315,30 +324,39 @@ class MetaStrategyEngine:
 
     def record_trade_result(
         self,
-        regime:     str,
+        regime: str,
         personality: str,
-        pnl_pct:    float,
-        sharpe:     float = 0.0,
+        pnl_pct: float,
+        sharpe: float = 0.0,
     ) -> None:
         """
         Enregistre le résultat d'un trade pour améliorer la sélection future.
         Appelé par le PositionManager à chaque fermeture de position.
         """
-        stats = self._regime_stats.setdefault(regime, {
-            "wins": 0, "losses": 0, "total_pnl": 0.0,
-            "best_sharpe": 0.0, "personality": personality,
-        })
+        stats = self._regime_stats.setdefault(
+            regime,
+            {
+                "wins": 0,
+                "losses": 0,
+                "total_pnl": 0.0,
+                "best_sharpe": 0.0,
+                "personality": personality,
+            },
+        )
         if pnl_pct > 0:
-            stats["wins"]  += 1
+            stats["wins"] += 1
         else:
             stats["losses"] += 1
-        stats["total_pnl"]   += pnl_pct
-        stats["best_sharpe"]  = max(stats["best_sharpe"], sharpe)
+        stats["total_pnl"] += pnl_pct
+        stats["best_sharpe"] = max(stats["best_sharpe"], sharpe)
         logger.info(
             "[MetaStrategy] Résultat enregistré — régime=%s perso=%s pnl=%.2f%% "
             "wins=%d losses=%d",
-            regime, personality, pnl_pct * 100,
-            stats["wins"], stats["losses"],
+            regime,
+            personality,
+            pnl_pct * 100,
+            stats["wins"],
+            stats["losses"],
         )
 
     def regime_stats(self) -> dict:
@@ -354,14 +372,16 @@ class MetaStrategyEngine:
 
     def _record(self, p: TradingPersonality) -> TradingPersonality:
         self._current = p
-        self._history.append({
-            "ts":         p.selected_at,
-            "name":       p.name,
-            "regime":     p.regime,
-            "size_factor": p.order_size_factor,
-            "min_score":  p.min_score,
-            "reason":     p.reason,
-        })
+        self._history.append(
+            {
+                "ts": p.selected_at,
+                "name": p.name,
+                "regime": p.regime,
+                "size_factor": p.order_size_factor,
+                "min_score": p.min_score,
+                "reason": p.reason,
+            }
+        )
         if len(self._history) > 200:
             self._history = self._history[-200:]
         return p
