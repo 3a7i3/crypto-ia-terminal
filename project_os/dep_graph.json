@@ -1,0 +1,228 @@
+{
+  "metadata": {
+    "total_files": 631,
+    "total_modules": 631,
+    "total_packages": 26,
+    "scope": "package",
+    "include_lazy": false
+  },
+  "graph": {
+    "audit": [
+      "meta_learning",
+      "observability",
+      "tracker_system"
+    ],
+    "dashboard": [
+      "meta_learning",
+      "tracker_system"
+    ],
+    "dashboard_decision_trace": [
+      "dashboard"
+    ],
+    "dashboard_live": [
+      "dashboard",
+      "quant_hedge_ai"
+    ],
+    "dashboard_master": [
+      "dashboard"
+    ],
+    "errors": [
+      "observability"
+    ],
+    "governance": [
+      "observability",
+      "system"
+    ],
+    "health": [
+      "observability",
+      "system"
+    ],
+    "meta_learning": [
+      "tracker_system"
+    ],
+    "mvp": [
+      "tracker_system"
+    ],
+    "observability": [
+      "system"
+    ],
+    "orchestrate_ecosystem": [
+      "supervision"
+    ],
+    "quant-hedge-ai": [
+      "quant_hedge_ai"
+    ],
+    "quant_hedge_ai": [
+      "supervision"
+    ],
+    "replay_cli": [
+      "quant_hedge_ai"
+    ],
+    "run_strategy_factory": [
+      "terminal_core"
+    ],
+    "run_strategy_factory_large": [
+      "quant_hedge_ai",
+      "strategy_factory"
+    ],
+    "scripts": [
+      "audit",
+      "core",
+      "dashboard",
+      "meta_learning",
+      "quant_hedge_ai",
+      "tracker_system"
+    ],
+    "strategy_factory": [
+      "quant_hedge_ai"
+    ],
+    "stress_test_cli": [
+      "quant_hedge_ai"
+    ],
+    "supervise_all": [
+      "supervision"
+    ],
+    "terminal_core": [
+      "core"
+    ],
+    "tests": [
+      "core",
+      "dashboard",
+      "event_bus",
+      "lm_studio",
+      "mvp",
+      "pieuvre",
+      "quant_hedge_ai",
+      "supervision",
+      "tracker_system"
+    ],
+    "validate_vault_dashboard": [
+      "tracker_system"
+    ]
+  },
+  "cycles": [],
+  "lazy_cycle_candidates": [],
+  "hubs": [
+    {
+      "module": "quant_hedge_ai",
+      "dependants": 8,
+      "dependencies": 1,
+      "coupling_score": 9
+    },
+    {
+      "module": "tracker_system",
+      "dependants": 7,
+      "dependencies": 0,
+      "coupling_score": 7
+    },
+    {
+      "module": "dashboard",
+      "dependants": 5,
+      "dependencies": 2,
+      "coupling_score": 7
+    },
+    {
+      "module": "observability",
+      "dependants": 4,
+      "dependencies": 1,
+      "coupling_score": 5
+    },
+    {
+      "module": "supervision",
+      "dependants": 4,
+      "dependencies": 0,
+      "coupling_score": 4
+    },
+    {
+      "module": "meta_learning",
+      "dependants": 3,
+      "dependencies": 1,
+      "coupling_score": 4
+    },
+    {
+      "module": "core",
+      "dependants": 3,
+      "dependencies": 0,
+      "coupling_score": 3
+    },
+    {
+      "module": "system",
+      "dependants": 3,
+      "dependencies": 0,
+      "coupling_score": 3
+    },
+    {
+      "module": "event_bus",
+      "dependants": 1,
+      "dependencies": 0,
+      "coupling_score": 1
+    },
+    {
+      "module": "lm_studio",
+      "dependants": 1,
+      "dependencies": 0,
+      "coupling_score": 1
+    },
+    {
+      "module": "terminal_core",
+      "dependants": 1,
+      "dependencies": 1,
+      "coupling_score": 2
+    },
+    {
+      "module": "mvp",
+      "dependants": 1,
+      "dependencies": 1,
+      "coupling_score": 2
+    },
+    {
+      "module": "audit",
+      "dependants": 1,
+      "dependencies": 3,
+      "coupling_score": 4
+    },
+    {
+      "module": "strategy_factory",
+      "dependants": 1,
+      "dependencies": 1,
+      "coupling_score": 2
+    },
+    {
+      "module": "pieuvre",
+      "dependants": 1,
+      "dependencies": 0,
+      "coupling_score": 1
+    },
+    {
+      "module": "quant-hedge-ai",
+      "dependants": 0,
+      "dependencies": 1,
+      "coupling_score": 1
+    },
+    {
+      "module": "tests",
+      "dependants": 0,
+      "dependencies": 9,
+      "coupling_score": 9
+    },
+    {
+      "module": "run_strategy_factory",
+      "dependants": 0,
+      "dependencies": 1,
+      "coupling_score": 1
+    },
+    {
+      "module": "errors",
+      "dependants": 0,
+      "dependencies": 1,
+      "coupling_score": 1
+    },
+    {
+      "module": "dashboard_decision_trace",
+      "dependants": 0,
+      "dependencies": 1,
+      "coupling_score": 1
+    }
+  ],
+  "orphans": []
+}

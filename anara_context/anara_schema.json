@@ -51,8 +51,8 @@
         "description": "Analyse post-mortem et apprentissage automatique des erreurs"
       },
       {
-        "tab_id": "system",
-        "label": "Système",
+        "tab_id": "infrastructure",
+        "label": "Infrastructure",
         "modules": ["advisor_loop", "exchange_factory", "decision_packet"],
         "primary_metric": "status",
         "description": "Santé système, connectivité exchange et infrastructure"
@@ -84,9 +84,10 @@
   },
 
   "alert_levels": [
-    { "level": "INFO",     "color": "blue",   "icon": "i" },
-    { "level": "WARNING",  "color": "orange", "icon": "!" },
-    { "level": "CRITICAL", "color": "red",    "icon": "X" }
+    { "level": "INFO",     "color": "#3b82f6", "icon": "i" },
+    { "level": "WARNING",  "color": "#f59e0b", "icon": "!" },
+    { "level": "CRITICAL", "color": "#ef4444", "icon": "X" },
+    { "level": "FATAL",    "color": "#7f1d1d", "icon": "!!" }
   ],
 
   "modules_index": {

@@ -2,14 +2,18 @@ from __future__ import annotations
 
 import argparse
 import json
-from pathlib import Path
 import sys
+from pathlib import Path
 from typing import Any
 
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from tracker_system.analytics.metrics import compute_all_metrics
+from tracker_system.analytics.score_drift_monitor import (
+    check_score_drift,
+    check_winrate_drift,
+)
 from tracker_system.backtesting.auto_backtester import run_backtest
 from tracker_system.config.settings import (
     AUTO_UPDATE_LOG_FILE,
@@ -20,6 +24,7 @@ from tracker_system.config.settings import (
     bootstrap_tracker_layout,
     get_tracker_status,
 )
+from tracker_system.core.boot_validator import boot_validate
 from tracker_system.core.trade_tracker import sync_entries_from_log, update_positions
 from tracker_system.dashboard.builder import build_dashboard
 from tracker_system.scheduler.auto_update import run_auto_update
@@ -35,6 +40,7 @@ def run_cycle(
     vault_dir: Path | None = None,
     optimizer_min_trades: int = 20,
 ) -> dict[str, Any]:
+    validation = boot_validate(log_file)
     imported_entries = sync_entries_from_log(log_file=log_file, state_file=state_file)
     closed_positions = (
         update_positions(current_prices or {}, state_file=state_file, log_file=log_file)
@@ -42,11 +48,15 @@ def run_cycle(
         else []
     )
     optimizer = (
-        run_backtest(min_trades=optimizer_min_trades, log_file=log_file, out_file=optimizer_file)
+        run_backtest(
+            min_trades=optimizer_min_trades, log_file=log_file, out_file=optimizer_file
+        )
         if run_optimizer
         else {}
     )
     metrics = compute_all_metrics(log_file)
+    drift = check_score_drift(log_file)
+    winrate_drift = check_winrate_drift(log_file)
     dashboard_path = build_dashboard(
         log_file=log_file,
         optimizer_file=optimizer_file,
@@ -54,9 +64,12 @@ def run_cycle(
         vault_dir=vault_dir,
     )
     return {
+        "validation": validation,
         "imported_entries": imported_entries,
         "closed_positions": closed_positions,
         "metrics": metrics,
+        "drift": drift,
+        "winrate_drift": winrate_drift,
         "optimizer": optimizer,
         "dashboard": str(dashboard_path),
     }
@@ -65,14 +78,44 @@ def run_cycle(
 def main() -> None:
     parser = argparse.ArgumentParser(description="tracker_system main entrypoint")
     parser.add_argument("--prices", default="{}", help="JSON object of current prices")
-    parser.add_argument("--optimizer", action="store_true", help="Run backtester before building dashboard")
-    parser.add_argument("--scheduler", action="store_true", help="Run periodic tracker refresh loop")
-    parser.add_argument("--interval-seconds", type=float, default=1800.0, help="Delay between scheduler iterations")
-    parser.add_argument("--max-iterations", type=int, default=None, help="Stop scheduler after N iterations")
-    parser.add_argument("--no-optimizer", action="store_true", help="Scheduler mode: skip optimizer refresh")
-    parser.add_argument("--scheduler-log-file", default=str(AUTO_UPDATE_LOG_FILE), help="Scheduler log file path")
-    parser.add_argument("--bootstrap", action="store_true", help="Ensure tracker runtime layout exists")
-    parser.add_argument("--status", action="store_true", help="Print tracker structure and runtime status")
+    parser.add_argument(
+        "--optimizer",
+        action="store_true",
+        help="Run backtester before building dashboard",
+    )
+    parser.add_argument(
+        "--scheduler", action="store_true", help="Run periodic tracker refresh loop"
+    )
+    parser.add_argument(
+        "--interval-seconds",
+        type=float,
+        default=1800.0,
+        help="Delay between scheduler iterations",
+    )
+    parser.add_argument(
+        "--max-iterations",
+        type=int,
+        default=None,
+        help="Stop scheduler after N iterations",
+    )
+    parser.add_argument(
+        "--no-optimizer",
+        action="store_true",
+        help="Scheduler mode: skip optimizer refresh",
+    )
+    parser.add_argument(
+        "--scheduler-log-file",
+        default=str(AUTO_UPDATE_LOG_FILE),
+        help="Scheduler log file path",
+    )
+    parser.add_argument(
+        "--bootstrap", action="store_true", help="Ensure tracker runtime layout exists"
+    )
+    parser.add_argument(
+        "--status",
+        action="store_true",
+        help="Print tracker structure and runtime status",
+    )
     args = parser.parse_args()
 
     if args.bootstrap:

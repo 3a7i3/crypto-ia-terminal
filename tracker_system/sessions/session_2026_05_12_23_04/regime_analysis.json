@@ -1,0 +1,16 @@
+{
+  "trend": {
+    "trades": 2,
+    "winrate": 0.5,
+    "profit_factor": 2.0,
+    "expectancy": 0.25,
+    "recommendation": "maintenir"
+  },
+  "sideways": {
+    "trades": 1,
+    "winrate": 1.0,
+    "profit_factor": "inf",
+    "expectancy": 0.99,
+    "recommendation": "augmenter sizing"
+  }
+}

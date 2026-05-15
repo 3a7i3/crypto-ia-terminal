@@ -176,17 +176,17 @@
   },
 
   "valid_transitions": {
-    "CREATED":            ["SIGNAL_GENERATED"],
-    "SIGNAL_GENERATED":   ["CONTEXT_ENRICHED"],
-    "CONTEXT_ENRICHED":   ["REGIME_VALIDATED", "RISK_EVALUATED"],
-    "REGIME_VALIDATED":   ["RISK_EVALUATED"],
-    "RISK_EVALUATED":     ["APPROVED"],
-    "APPROVED":           ["EXECUTION_PENDING"],
-    "EXECUTION_PENDING":  ["EXECUTED"],
+    "CREATED":            ["SIGNAL_GENERATED", "VETOED", "EXPIRED", "CANCELLED"],
+    "SIGNAL_GENERATED":   ["CONTEXT_ENRICHED", "VETOED", "EXPIRED", "CANCELLED"],
+    "CONTEXT_ENRICHED":   ["REGIME_VALIDATED", "RISK_EVALUATED", "VETOED", "EXPIRED", "CANCELLED"],
+    "REGIME_VALIDATED":   ["RISK_EVALUATED", "VETOED", "EXPIRED", "CANCELLED"],
+    "RISK_EVALUATED":     ["APPROVED", "REJECTED", "VETOED", "EXPIRED", "CANCELLED"],
+    "APPROVED":           ["EXECUTION_PENDING", "REJECTED", "VETOED", "CANCELLED"],
+    "EXECUTION_PENDING":  ["EXECUTED", "FAILED", "VETOED", "CANCELLED"],
     "EXECUTED":           ["MONITORED"],
     "MONITORED":          ["CLOSED"],
     "CLOSED":             ["POSTMORTEM_ANALYZED"]
   },
 
-  "exceptional_terminal_note": "REJECTED, EXPIRED, CANCELLED, FAILED, VETOED sont accessibles depuis n'importe quel état non-terminal (veto, expiry, panne système)"
+  "exceptional_terminal_note": "REJECTED (GlobalRiskGate/PortfolioBrain), VETOED (ExecutiveOverride, tout état), FAILED (ExecutionEngine), EXPIRED (TTL système), CANCELLED (opérateur) — tous encodés dans valid_transitions"
 }

@@ -1,0 +1,48 @@
+{
+  "summary": {
+    "trades": 12,
+    "winrate": 0.6667,
+    "avg_win_pct": 0.33,
+    "avg_loss_pct": -0.25,
+    "pnl_total_usd": 10.0
+  },
+  "expectancy": {
+    "value": 0.1367,
+    "label": "fragile"
+  },
+  "payoff_ratio": {
+    "value": 1.32,
+    "target": 1.5,
+    "ok": false
+  },
+  "profit_factor": 2.64,
+  "recovery_factor": 6.6667,
+  "streaks": {
+    "max_win_streak": 2,
+    "max_loss_streak": 1,
+    "avg_win_streak": 1.6,
+    "avg_loss_streak": 1
+  },
+  "regime_matrix": {
+    "trend": {
+      "trades": 7,
+      "winrate": 0.7143,
+      "profit_factor": 3.3,
+      "expectancy": 0.1643,
+      "recommendation": "maintenir"
+    },
+    "sideways": {
+      "trades": 5,
+      "winrate": 0.6,
+      "profit_factor": 1.98,
+      "expectancy": 0.098,
+      "recommendation": "maintenir"
+    }
+  },
+  "signal_stability": {
+    "index": 0.9608,
+    "label": "tr\u00e8s stable"
+  },
+  "trade_quality_score": 0.3067,
+  "drift_events": []
+}

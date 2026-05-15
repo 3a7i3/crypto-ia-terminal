@@ -68,7 +68,7 @@
       "agent": "OrderSizer",
       "layer": "risk",
       "step": 5,
-      "color": "#14b8a6",
+      "color": "#0ea5e9",
       "can_approve": false,
       "can_reject": false,
       "can_veto": false,

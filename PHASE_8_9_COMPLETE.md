@@ -2,7 +2,26 @@
 
 **Date:** 2026-05-05  
 **Status:** ALL PHASES 1-9 COMPLETE AND TESTED  
-**Ready for:** Production deployment
+**Ready for:** Controlled production — voir section "Limitations run long" ci-dessous
+
+---
+
+## Limitations identifiées — Run long 2026-05-11
+
+**Données :** 26 trades, winrate 92,31 %, expectancy 0,0346, PnL total -1,75
+
+| Observation | Implication |
+|-------------|------------|
+| Winrate très élevé mais PnL négatif | Pertes asymétriques : les losers coûtent trop vs les winners |
+| sideways : 0 % winrate, -3,05 % avg PnL | Régime non tradable en l'état — gate obligatoire |
+| bull_trend : très bon | Signal produit valide sur ce régime |
+| Drawdown % peu fiable | Calculé sur courbe PnL, pas sur capital de référence |
+
+**KPIs manquants identifiés :** avg_win/avg_loss, profit factor, worst trade, rolling 20, score stability
+
+**Critères go/no-go avant passage à plus d'autonomie :** voir `docs/ROADMAP_V9_V10_V11.md` section V9.1.x
+
+---
 
 ## Overview
 

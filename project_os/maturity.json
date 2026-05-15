@@ -1,0 +1,81 @@
+{
+  "generated_at": "2026-05-13T01:10:10.462860",
+  "domains": [
+    {
+      "domain_id": "modular_architecture",
+      "domain": "Modular architecture",
+      "level": 1,
+      "level_description": "Tout dans un seul module, pas de separation claire",
+      "next_level": 2,
+      "next_goal": "Quelques packages isoles, couplages residus forts",
+      "description": "Decouplage global du projet en packages/domaines coherents"
+    },
+    {
+      "domain_id": "market_replay",
+      "domain": "Market replay (no-lookahead)",
+      "level": 2,
+      "level_description": "Replay base sur des fichiers, lookahead possible",
+      "next_level": 3,
+      "next_goal": "Replay cadence, clock controlee, lookahead detecte",
+      "description": "Rejeu de marche sans fuite de donnees futures"
+    },
+    {
+      "domain_id": "statistical_reliability",
+      "domain": "Statistical reliability",
+      "level": 3,
+      "level_description": "Metriques avec intervalle de confiance, variance estimee",
+      "next_level": 4,
+      "next_goal": "Tests de robustesse systematiques, regime analysis",
+      "description": "Validite statistique des metriques et backtests"
+    },
+    {
+      "domain_id": "execution_realism",
+      "domain": "Execution realism",
+      "level": 3,
+      "level_description": "Slippage dynamique, spread bid/ask estime",
+      "next_level": 4,
+      "next_goal": "Simulation d'ordres, file d'attente, fills partiels",
+      "description": "Simulation d'execution realiste (slippage, latence, spread, fills)"
+    },
+    {
+      "domain_id": "exchange_constraints",
+      "domain": "Exchange realism constraints",
+      "level": 1,
+      "level_description": "Aucune contrainte d'echange prise en compte",
+      "next_level": 2,
+      "next_goal": "Quelques regles (lot size) verifiees",
+      "description": "Contraintes reelles des exchanges (lots, tick, rate limits)"
+    },
+    {
+      "domain_id": "walk_forward_oos",
+      "domain": "Walk-forward / OOS validation",
+      "level": 1,
+      "level_description": "Pas de validation OOS",
+      "next_level": 2,
+      "next_goal": "Train/test split manuel, pas de walk-forward",
+      "description": "Validation hors-echantillon systematique"
+    },
+    {
+      "domain_id": "observability",
+      "domain": "Observability",
+      "level": 5,
+      "level_description": "Tracing distribue, profiling automatique, alerte proactive",
+      "next_level": null,
+      "next_goal": null,
+      "description": "Monitoring, logging, alerting, debugging"
+    },
+    {
+      "domain_id": "live_readiness",
+      "domain": "Live readiness",
+      "level": 2,
+      "level_description": "Paper trading manuel, pas de surveillance",
+      "next_level": 3,
+      "next_goal": "Paper trading automatise, sandbox exchange",
+      "description": "Prete a passer en production reelle"
+    }
+  ],
+  "summary": {
+    "overall": 2.25,
+    "count": 8
+  }
+}

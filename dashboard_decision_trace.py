@@ -20,6 +20,8 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
+from dashboard.colors import C, severity_color, state_color
+
 st.set_page_config(
     page_title="Decision Trace",
     layout="wide",
@@ -32,7 +34,7 @@ st.set_page_config(
 st.markdown(
     """
 <style>
-.stApp { background: #0a0c12; color: #d0d4e0; }
+.stApp { background: #0f172a; color: #f8fafc; }
 .stTabs [data-baseweb="tab-list"] { background: #111420; border-radius: 8px; }
 .stTabs [data-baseweb="tab"] { color: #8899aa; }
 .stTabs [data-baseweb="tab"][aria-selected="true"] { color: #00e0ff; }
@@ -41,12 +43,6 @@ st.markdown(
     font-size: 0.75rem; font-weight: 600; margin: 1px 2px;
     font-family: monospace;
 }
-.badge-green  { background: #0d2e1a; color: #22cc66; border: 1px solid #1a5c33; }
-.badge-red    { background: #2e0d0d; color: #ff4455; border: 1px solid #5c1a1a; }
-.badge-yellow { background: #2e260d; color: #ffcc22; border: 1px solid #5c4a1a; }
-.badge-blue   { background: #0d1a2e; color: #4499ff; border: 1px solid #1a3a5c; }
-.badge-gray   { background: #1a1e2a; color: #8899aa; border: 1px solid #2a3040; }
-.badge-fatal  { background: #3a0000; color: #ff2200; border: 1px solid #880000; }
 .section-header {
     font-size: 0.7rem; font-weight: 700; color: #445566;
     letter-spacing: 0.12em; text-transform: uppercase;
@@ -84,31 +80,7 @@ def _resolve_dp_path(selected_date: str | None = None) -> Path:
     return _LOG_DIR / f"decision_packets_{_dt.utcnow().strftime('%Y-%m-%d')}.jsonl"
 
 
-_STATE_COLOR = {
-    "CREATED": "gray",
-    "SIGNAL_GENERATED": "blue",
-    "CONTEXT_ENRICHED": "blue",
-    "REGIME_VALIDATED": "blue",
-    "RISK_EVALUATED": "blue",
-    "APPROVED": "green",
-    "EXECUTION_PENDING": "green",
-    "EXECUTED": "green",
-    "MONITORED": "green",
-    "CLOSED": "green",
-    "POSTMORTEM_ANALYZED": "green",
-    "REJECTED": "red",
-    "VETOED": "fatal",
-    "EXPIRED": "yellow",
-    "CANCELLED": "yellow",
-    "FAILED": "red",
-}
-
-_SEVERITY_COLOR = {
-    "INFO": "#4499ff",
-    "WARNING": "#ffcc22",
-    "CRITICAL": "#ff8800",
-    "FATAL": "#ff2200",
-}
+# Couleurs via color_system.json — state_color() et severity_color() depuis dashboard/colors.py
 
 _SOVEREIGNTY = [
     ("live_signal_engine", "advisory_only", "Détecte une opportunité statistique"),
@@ -155,8 +127,12 @@ def packet_label(p: dict) -> str:
     return f"{ts}  {p.get('symbol','?')}  {p.get('side','?')}  → {p.get('lifecycle_state','?')}"
 
 
-def badge(text: str, color: str) -> str:
-    return f'<span class="state-badge badge-{color}">{text}</span>'
+def badge(text: str, color_hex: str) -> str:
+    """Badge inline — color_hex depuis state_color() ou severity_color()."""
+    return (
+        f'<span class="state-badge" style="background:{color_hex}22;color:{color_hex};'
+        f'border:1px solid {color_hex}55;">{text}</span>'
+    )
 
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
@@ -261,9 +237,8 @@ with tab1:
             st.markdown(f"**Conviction** `{p.get('conviction','?')}`")
 
             final_state = p.get("lifecycle_state", "?")
-            color = _STATE_COLOR.get(final_state, "gray")
             st.markdown(
-                f"**État final** {badge(final_state, color)}",
+                f"**État final** {badge(final_state, state_color(final_state))}",
                 unsafe_allow_html=True,
             )
             st.markdown(f"**Confiance finale** {p.get('confidence', 0):.1f} / 100")
@@ -294,7 +269,6 @@ with tab1:
                 st.info("Aucune transition enregistrée.")
             else:
                 for i, t in enumerate(history):
-                    color = _STATE_COLOR.get(t.get("to_state", ""), "gray")
                     dur = t.get("duration_ms", 0)
                     cb = t.get("confidence_before", 0.0)
                     ca = t.get("confidence_after", 0.0)
@@ -303,7 +277,7 @@ with tab1:
                     dur_str = f"{dur}ms" if dur < 2000 else f"{dur/1000:.1f}s"
 
                     st.markdown(
-                        f'{badge(t.get("to_state","?"), color)} '
+                        f'{badge(t.get("to_state","?"), state_color(t.get("to_state","")))} '
                         f'<span style="color:#445566;font-size:0.75rem">'
                         f'by **{t.get("actor","?")}** — {dur_str} — '
                         f"conf {cb:.0f}→{ca:.0f} ({delta_str})"
@@ -343,7 +317,10 @@ with tab2:
                     for r in entries
                 ]
                 impacts = [r.get("confidence_impact", 0) for r in entries]
-                colors = ["#22cc66" if v >= 0 else "#ff4455" for v in impacts]
+                colors = [
+                    C["status"]["ok"] if v >= 0 else C["status"]["error"]
+                    for v in impacts
+                ]
                 severities = [r.get("severity", "INFO") for r in entries]
 
                 # Calcul du running total
@@ -477,7 +454,7 @@ with tab3:
     else:
         for r in reversed(feed[-100:]):
             sev = r.get("severity", "INFO")
-            color = _SEVERITY_COLOR.get(sev, "#8899aa")
+            color = severity_color(sev)
             impact = r.get("confidence_impact", 0)
             impact_str = (
                 f"+{impact:.1f}"
@@ -485,7 +462,9 @@ with tab3:
                 else (f"{impact:.1f}" if impact < 0 else "")
             )
             impact_color = (
-                "#22cc66" if impact > 0 else ("#ff4455" if impact < 0 else "#445566")
+                C["status"]["ok"]
+                if impact > 0
+                else (C["status"]["error"] if impact < 0 else "#445566")
             )
             st.markdown(
                 f'<div style="border-left:3px solid {color};padding:4px 10px;'
@@ -570,7 +549,7 @@ with tab4:
                 go.Bar(
                     x=by_actor.index.tolist(),
                     y=by_actor.values.tolist(),
-                    marker_color="#ff4455",
+                    marker_color=C["status"]["error"],
                     text=by_actor.values.tolist(),
                     textposition="outside",
                 )

@@ -4,6 +4,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from tracker_system.analytics.metrics import compute_all_metrics
+from tracker_system.analytics.score_drift_monitor import (
+    check_score_drift,
+    check_winrate_drift,
+)
 from tracker_system.config.settings import (
     DASHBOARD_FILE,
     OBSIDIAN_VAULT_PATH,
@@ -98,7 +102,92 @@ xychart-beta
     y-axis \"PnL USD\" {y_min:.2f} --> {y_max:.2f}
     line [{{y_axis}}]
 ```
-""".replace("{x_axis}", x_axis).replace("{y_axis}", y_axis)
+""".replace(
+        "{x_axis}", x_axis
+    ).replace(
+        "{y_axis}", y_axis
+    )
+
+
+def _build_drift_section(drift: dict, winrate_drift: dict) -> str:
+    lines: list[str] = []
+
+    score_alert = drift.get("alert")
+    wr_alert = winrate_drift.get("alert")
+
+    if score_alert:
+        lines.append(f"> ⚠️ {score_alert}")
+    if wr_alert:
+        lines.append(f"> ⚠️ {wr_alert}")
+
+    direction = drift.get("direction", "stable")
+    flag = (
+        "✅" if direction == "stable" else ("❌" if direction == "degradation" else "⚠️")
+    )
+    z = drift.get("z_score")
+    b_mean = drift.get("baseline_mean")
+    r_mean = drift.get("recent_mean")
+    wr_rolling = winrate_drift.get("winrate_rolling")
+
+    if z is not None:
+        lines.append(f"- Score drift: z={z:.2f} ({direction}) {flag}")
+        lines.append(
+            f"  baseline={b_mean:.4f} | recent={r_mean:.4f} | n_baseline={drift.get('n_baseline')} | n_recent={drift.get('n_recent')}"
+        )
+    else:
+        lines.append("- Score drift: insuffisant (< 12 trades avec score)")
+
+    if wr_rolling is not None:
+        wr_flag = "✅" if wr_rolling >= 0.40 else "❌"
+        lines.append(f"- Winrate rolling 20: {wr_rolling:.1%} {wr_flag}")
+
+    return "\n".join(lines) if lines else "- no drift data"
+
+
+def _build_robustness_section(metrics: dict) -> str:
+    pf = metrics.get("profit_factor", None)
+    ratio = metrics.get("avg_win_loss_ratio", None)
+    worst_pct = metrics.get("worst_trade_pct", None)
+    worst_usd = metrics.get("worst_trade_usd", None)
+    dd_norm = metrics.get("drawdown_normalized_pct", None)
+    ref_cap = metrics.get("drawdown_reference_capital", 1000.0)
+    r20 = metrics.get("rolling_20", {})
+    alert = metrics.get("asymmetry_alert")
+
+    lines: list[str] = []
+
+    if alert:
+        lines.append(f"> ⚠️ {alert}")
+        lines.append("")
+
+    if pf is not None:
+        pf_display = f"{pf:.4f}" if pf != float("inf") else "∞"
+        flag = " ✅" if pf >= 1.5 else (" ⚠️" if pf >= 1.0 else " ❌")
+        lines.append(f"- Profit factor: {pf_display}{flag}")
+
+    if ratio is not None:
+        ratio_display = f"{ratio:.4f}" if ratio != float("inf") else "∞"
+        flag = " ✅" if ratio >= 1.5 else (" ⚠️" if ratio >= 1.0 else " ❌")
+        lines.append(f"- Avg win/loss ratio: {ratio_display}{flag}")
+
+    if worst_pct is not None:
+        lines.append(f"- Worst trade: {worst_pct * 100:.2f}% ({worst_usd:.2f}$)")
+
+    if dd_norm is not None:
+        flag = " ✅" if dd_norm < 0.05 else (" ⚠️" if dd_norm < 0.10 else " ❌")
+        lines.append(
+            f"- Drawdown normalisé: {dd_norm * 100:.2f}% (ref capital: {ref_cap:.0f}$){flag}"
+        )
+        lines.append("  _(normalisé sur capital de référence — fiable en production)_")
+
+    if r20:
+        lines.append(
+            f"- Rolling 20 trades: {r20.get('trades', 0)} trades | "
+            f"winrate={_format_pct(r20.get('winrate', 0))} | "
+            f"expectancy={r20.get('expectancy', 0):.4f}"
+        )
+
+    return "\n".join(lines) if lines else "- no robustness data"
 
 
 def build_dashboard(
@@ -109,6 +198,8 @@ def build_dashboard(
 ) -> Path:
     metrics = compute_all_metrics(log_file)
     optimizer = load_json(optimizer_file, {})
+    drift = check_score_drift(log_file)
+    winrate_drift = check_winrate_drift(log_file)
 
     # Priority: explicit vault_dir > OBSIDIAN_VAULT_PATH env var > legacy output_file
     if vault_dir is not None:
@@ -128,12 +219,19 @@ _Last update: {datetime.now(timezone.utc).isoformat()}_
 - Winrate: {_format_pct(metrics.get('winrate', 0))}
 - Expectancy: {metrics.get('expectancy', 0):.4f}
 
+## Surveillance (Drift & Dégradation)
+{_build_drift_section(drift, winrate_drift)}
+
+## Robustesse (KPIs fiables production)
+{_build_robustness_section(metrics)}
+
 ## Trade Quality
 - Avg MFE: {_format_pct(metrics.get('avg_mfe', 0))}
 - Avg MAE: {_format_pct(metrics.get('avg_mae', 0))}
 - Efficiency: {_format_pct(metrics.get('efficiency', 0))}
 
 ## Equity Curve
+> ⚠️ Drawdown ci-dessous calculé sur courbe PnL réalisé (exploratoire). Voir "Drawdown normalisé" ci-dessus pour le KPI fiable.
 {_build_equity_curve(log_file)}
 
 ## Regime State

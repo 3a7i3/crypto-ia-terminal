@@ -4,17 +4,19 @@ Détecte: perte quotidienne, drawdown maximal, concentration excessive
 """
 
 from datetime import datetime
-from typing import Optional, List, Dict, Tuple
+from typing import Dict, List, Optional, Tuple
 
 
 class AlertSystem:
     """Système d'alertes pour détection de risques en temps réel"""
 
-    def __init__(self,
-                 initial_capital: float = 10000.0,
-                 daily_loss_threshold: float = -100.0,
-                 drawdown_threshold: float = 0.15,
-                 position_concentration_threshold: float = 0.80):
+    def __init__(
+        self,
+        initial_capital: float = 10000.0,
+        daily_loss_threshold: float = -100.0,
+        drawdown_threshold: float = 0.15,
+        position_concentration_threshold: float = 0.80,
+    ):
         """
         Args:
             initial_capital: Capital initial (ex: 10000)
@@ -66,7 +68,7 @@ class AlertSystem:
 
     def check_position_concentration(self, positions: List[Dict]) -> Optional[str]:
         """Vérifie si exposition totale > seuil"""
-        total_exposure = sum(p.get('size', 0) for p in positions)
+        total_exposure = sum(p.get("size", 0) for p in positions)
 
         if self.current_equity > 0:
             exposure_ratio = total_exposure / self.current_equity
@@ -74,6 +76,19 @@ class AlertSystem:
                 msg = f"ALERTE: Concentration {exposure_ratio:.1%} > {self.concentration_threshold:.1%}"
                 self._record_alert("CONCENTRATION", msg, "ORANGE")
                 return msg
+        return None
+
+    def check_asymmetric_risk(
+        self, winrate: float, pnl_total: float, winrate_threshold: float = 0.85
+    ) -> Optional[str]:
+        """Alerte si winrate élevé mais PnL négatif — pertes asymétriques cachées sous un bon winrate."""
+        if winrate >= winrate_threshold and pnl_total < 0:
+            msg = (
+                f"ALERTE asymétrie : winrate={winrate:.1%} mais PnL={pnl_total:.2f}$ — "
+                "les losers coûtent trop cher vs les winners. Vérifier avg_loss."
+            )
+            self._record_alert("ASYMMETRIC_RISK", msg, "ORANGE")
+            return msg
         return None
 
     def run_all_checks(self, positions: List[Dict]) -> List[str]:
@@ -96,14 +111,16 @@ class AlertSystem:
 
     def _record_alert(self, alert_type: str, message: str, severity: str) -> None:
         """Enregistre une alerte pour historique"""
-        self.alerts.append({
-            "timestamp": datetime.now().isoformat(),
-            "type": alert_type,
-            "message": message,
-            "severity": severity,
-            "equity": self.current_equity,
-            "daily_pnl": self.daily_pnl,
-        })
+        self.alerts.append(
+            {
+                "timestamp": datetime.now().isoformat(),
+                "type": alert_type,
+                "message": message,
+                "severity": severity,
+                "equity": self.current_equity,
+                "daily_pnl": self.daily_pnl,
+            }
+        )
 
     def get_alert_history(self) -> List[Dict]:
         """Retourne l'historique des alertes"""
@@ -111,11 +128,15 @@ class AlertSystem:
 
     def get_critical_alerts(self) -> List[Dict]:
         """Retourne seulement les alertes ROUGE_URGENT"""
-        return [a for a in self.alerts if a['severity'] == 'ROUGE_URGENT']
+        return [a for a in self.alerts if a["severity"] == "ROUGE_URGENT"]
 
     def summary(self) -> Dict:
         """Résumé de l'état du risque"""
-        dd = (self.max_equity - self.current_equity) / self.max_equity if self.max_equity > 0 else 0
+        dd = (
+            (self.max_equity - self.current_equity) / self.max_equity
+            if self.max_equity > 0
+            else 0
+        )
 
         return {
             "current_equity": self.current_equity,

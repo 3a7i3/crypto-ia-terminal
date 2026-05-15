@@ -90,6 +90,23 @@ try:
 except Exception:
     _OBS_AVAILABLE = False
 
+# P2 Operational Closure — execution constraints + simulation pipeline
+import json as _json
+
+try:
+    import exchange_constraints.binance_rules as _binance_rules_mod
+    from exchange_constraints.order_validator import OrderValidator as _OrderValidator
+    from exchange_constraints.rate_limiter import OrderRateLimiter as _OrderRateLimiter
+    from execution_simulator.config import (
+        binance_usdt_futures_simulator as _binance_sim_factory,
+    )
+    from execution_simulator.models import MarketSnapshot as _MarketSnapshot
+    from execution_simulator.models import OrderIntent as _OrderIntent
+
+    _EXEC_CONSTRAINTS_AVAILABLE = True
+except Exception:
+    _EXEC_CONSTRAINTS_AVAILABLE = False
+
 SYMBOLS_DEFAULT = ["BTC/USDT", "ETH/USDT", "SOL/USDT", "DOGE/USDT"]
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT = os.getenv("TELEGRAM_CHAT_ID", "")
@@ -1614,6 +1631,24 @@ def main(
 
     # Lire le capital réel disponible (balance USDT testnet ou .env fallback)
     real_capital = exec_engine.fetch_available_capital()
+
+    # P2: Refresh exchange rules from live API + init execution pipeline
+    if _EXEC_CONSTRAINTS_AVAILABLE:
+        try:
+            _binance_rules_mod.refresh_from_exchange()
+            log.info("[P2] Règles exchange rafraîchies depuis l'API Binance live")
+        except Exception as _ref_exc:
+            log.warning(
+                "[P2] refresh_from_exchange() échoué (snapshot statique utilisé): %s",
+                _ref_exc,
+            )
+        _order_validator = _OrderValidator()
+        _rate_limiter = _OrderRateLimiter()
+        _exec_sim = _binance_sim_factory()
+        os.makedirs("logs/execution_audit", exist_ok=True)
+    else:
+        _order_validator = _rate_limiter = _exec_sim = None
+
     max_order = float(os.getenv("EXEC_MAX_ORDER_USD", "50"))
     order_size = min(
         max_order, real_capital * float(os.getenv("V9_MAX_POSITION_WEIGHT", "0.05"))
@@ -2440,54 +2475,217 @@ def main(
                     try:
                         # Use signal_to_execute if available (test mode override), else original signal
                         signal_action = r.get("signal_to_execute", r["signal"].signal)
-                        if exec_engine.has_futures_demo():
-                            fut = _stats_dict(
-                                exec_engine.create_futures_order(
-                                    sym, signal_action, effective_size
-                                )
+                        _ref_price = float(r.get("prix", 0.0))
+                        _side = "buy" if signal_action in ("buy", "long") else "sell"
+                        _validated = True
+                        _sim_fill_dict: dict = {}
+
+                        # 0. Hard limits — filet de sécurité absolu (P5.4)
+                        try:
+                            from risk_limits import HardLimitBreached, check_hard_limits
+
+                            _open_count = (
+                                len(pos_manager.get_open_positions())
+                                if hasattr(pos_manager, "get_open_positions")
+                                else 0
                             )
-                            exec_label = "FUTURES DEMO"
-                        else:
-                            fut = _stats_dict(
-                                exec_engine.create_order(
-                                    sym, signal_action, effective_size
-                                )
+                            check_hard_limits(
+                                order_size_usd=effective_size,
+                                capital_usd=max(real_capital, 1.0),
+                                current_drawdown_pct=(
+                                    float(r.get("gate", {}).get("drawdown_pct", 0.0))
+                                    if hasattr(r.get("gate"), "get")
+                                    else 0.0
+                                ),
+                                open_positions=_open_count,
+                                consecutive_losses=int(
+                                    _consecutive_losses.get("value", 0)
+                                ),
                             )
-                            exec_label = "EXECUTION"
-                        fut_mode = str(fut.get("mode", ""))
-                        fut_id = str(fut.get("id", ""))
-                        r["futures_result"] = fut
-                        log.info(
-                            "[FLOW] %s EXECUTION → %s $%.2f",
-                            sym,
-                            exec_label,
-                            effective_size,
-                        )
-                        log.info(
-                            "[%s] %s %s $%.2f → mode=%s id=%s",
-                            exec_label,
-                            signal_action,
-                            sym,
-                            effective_size,
-                            fut_mode,
-                            fut_id,
-                        )
-                        _pos_registered = _register_position_from_execution(
-                            fut,
-                            r,
-                            sym,
-                            signal_action,
-                            effective_size,
-                        )
-                        if _pos_registered:
+                        except HardLimitBreached as _hlb:
+                            log.warning("[HARD_LIMIT] %s %s", sym, _hlb)
+                            r["futures_result"] = {
+                                "mode": "hard_limit_breached",
+                                "reason": str(_hlb),
+                            }
+                            _validated = False
+                        except Exception:
+                            pass  # hard limits non disponibles — non bloquant
+
+                        # A. OrderValidator — validate + adjust qty before exchange
+                        if _EXEC_CONSTRAINTS_AVAILABLE and _order_validator is not None:
+                            try:
+                                _sym_clean = sym.replace("/", "")
+                                _sym_info = (
+                                    _binance_rules_mod.BINANCE_FUTURES_SYMBOLS.get(
+                                        _sym_clean
+                                    )
+                                )
+                                if _sym_info is not None and _ref_price > 0:
+                                    _qty_base = effective_size / _ref_price
+                                    _validation = _order_validator.validate(
+                                        _sym_info, _qty_base, _ref_price, "market"
+                                    )
+                                    if not _validation.is_valid:
+                                        log.warning(
+                                            "[VALIDATION] %s rejeté: %s",
+                                            sym,
+                                            _validation.rejection_reason,
+                                        )
+                                        r["futures_result"] = {
+                                            "mode": "validation_rejected",
+                                            "reason": _validation.rejection_reason,
+                                        }
+                                        _validated = False
+                                    elif _validation.size_was_adjusted:
+                                        effective_size = (
+                                            _validation.adjusted_size * _ref_price
+                                        )
+                                        log.info(
+                                            "[VALIDATION] %s qty ajustée → %.4f (%.2f USD)",
+                                            sym,
+                                            _validation.adjusted_size,
+                                            effective_size,
+                                        )
+                            except Exception as _ve:
+                                log.debug("[VALIDATION] erreur non-bloquante: %s", _ve)
+
+                        # B. RateLimiter — wait before sending to exchange
+                        if (
+                            _validated
+                            and _EXEC_CONSTRAINTS_AVAILABLE
+                            and _rate_limiter is not None
+                        ):
+                            _rl_ok = _rate_limiter.wait_and_acquire(
+                                "POST /fapi/v1/order", timeout_s=5.0
+                            )
+                            if not _rl_ok:
+                                log.warning(
+                                    "[RATE_LIMIT] %s timeout — ordre annulé", sym
+                                )
+                                _validated = False
+
+                        # C. ExecutionSimulator — fill réaliste pour audit pré-envoi
+                        if (
+                            _validated
+                            and _EXEC_CONSTRAINTS_AVAILABLE
+                            and _exec_sim is not None
+                            and _ref_price > 0
+                        ):
+                            try:
+                                _qty_base = max(0.001, effective_size / _ref_price)
+                                _intent = _OrderIntent(
+                                    symbol=sym.replace("/", ""),
+                                    side=_side,
+                                    size=_qty_base,
+                                    order_type="market",
+                                    signal_price=_ref_price,
+                                    timestamp=time.time(),
+                                )
+                                _snapshot = _MarketSnapshot(
+                                    symbol=sym.replace("/", ""),
+                                    price=_ref_price,
+                                    volume_24h=float(
+                                        r.get("features", {}).get(
+                                            "volume_24h", 1_000_000.0
+                                        )
+                                    ),
+                                    volatility_pct=float(
+                                        r.get("features", {}).get("atr_ratio", 1.0)
+                                    ),
+                                    timestamp=time.time(),
+                                )
+                                _sim = _exec_sim.execute(_intent, _snapshot)
+                                _sim_fill_dict = {
+                                    "fill_price": round(_sim.fill_price, 4),
+                                    "slippage_bps": round(_sim.slippage_bps, 2),
+                                    "latency_ms": round(_sim.latency_ms, 1),
+                                    "fee_usd": round(_sim.fee_usd, 4),
+                                    "is_partial": _sim.is_partial,
+                                    "is_rejected": _sim.is_rejected,
+                                }
+                                r["simulated_fill"] = _sim_fill_dict
+                            except Exception as _se:
+                                log.debug("[SIM] erreur non-bloquante: %s", _se)
+
+                        # D. Audit log — une ligne JSONL par ordre tenté
+                        if _validated and _EXEC_CONSTRAINTS_AVAILABLE:
+                            try:
+                                _audit = {
+                                    "ts": time.time(),
+                                    "symbol": sym,
+                                    "side": _side,
+                                    "intent": {
+                                        "size_usd": round(effective_size, 4),
+                                        "price": _ref_price,
+                                    },
+                                    "validated": True,
+                                    "adjusted": {
+                                        "size_usd": round(effective_size, 4),
+                                        "price": _ref_price,
+                                    },
+                                    "simulated_fill": _sim_fill_dict,
+                                }
+                                with open(
+                                    "logs/execution_audit/audit.jsonl",
+                                    "a",
+                                    encoding="utf-8",
+                                ) as _af:
+                                    _af.write(_json.dumps(_audit) + "\n")
+                            except Exception:
+                                pass
+
+                        if _validated:
+                            if exec_engine.has_futures_demo():
+                                fut = _stats_dict(
+                                    exec_engine.create_futures_order(
+                                        sym, signal_action, effective_size
+                                    )
+                                )
+                                exec_label = "FUTURES DEMO"
+                            else:
+                                fut = _stats_dict(
+                                    exec_engine.create_order(
+                                        sym, signal_action, effective_size
+                                    )
+                                )
+                                exec_label = "EXECUTION"
+                            fut_mode = str(fut.get("mode", ""))
+                            fut_id = str(fut.get("id", ""))
+                            r["futures_result"] = fut
                             log.info(
-                                "[FLOW] %s POSITION → registered mode=%s", sym, fut_mode
+                                "[FLOW] %s EXECUTION → %s $%.2f",
+                                sym,
+                                exec_label,
+                                effective_size,
                             )
-                            # ── PROTECTIONS: Enregistre le trade pour tracking ──
-                            last_trade_signal[sym] = signal_action
-                            trades_this_hour[sym].append(current_time)
-                        elif fut_mode in {"futures_failed", "live_failed"}:
-                            _consecutive_losses["value"] += 1
+                            log.info(
+                                "[%s] %s %s $%.2f → mode=%s id=%s",
+                                exec_label,
+                                signal_action,
+                                sym,
+                                effective_size,
+                                fut_mode,
+                                fut_id,
+                            )
+                            _pos_registered = _register_position_from_execution(
+                                fut,
+                                r,
+                                sym,
+                                signal_action,
+                                effective_size,
+                            )
+                            if _pos_registered:
+                                log.info(
+                                    "[FLOW] %s POSITION → registered mode=%s",
+                                    sym,
+                                    fut_mode,
+                                )
+                                # ── PROTECTIONS: Enregistre le trade pour tracking ──
+                                last_trade_signal[sym] = signal_action
+                                trades_this_hour[sym].append(current_time)
+                            elif fut_mode in {"futures_failed", "live_failed"}:
+                                _consecutive_losses["value"] += 1
                     except Exception as _fe:
                         log.error("[EXECUTION] Erreur ordre %s: %s", sym, _fe)
                         _consecutive_losses["value"] += 1

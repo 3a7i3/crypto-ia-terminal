@@ -351,6 +351,65 @@ Production Ready:      ✅ Enterprise-grade
 
 ---
 
+---
+
+## 🔧 V9.1.x — Operational Hardening (ajouté 2026-05-11)
+
+> **Contexte :** Run long de validation (26 trades, winrate 92 %, PnL total -1,75).
+> Enseignement principal : le système produit des scores utiles mais n'est pas encore
+> au niveau d'un pilotage robuste. Les pertes asymétriques en sideways effacent les gains
+> en tendance. Passage à plus d'autonomie conditionné à ces garde-fous.
+
+### Métriques de robustesse manquantes
+
+| KPI | Statut | Priorité |
+|-----|--------|----------|
+| avg\_win / avg\_loss (ratio asymétrie) | ❌ absent | P0 |
+| Profit factor (gross\_win / gross\_loss) | ❌ absent | P0 |
+| Worst single trade ($ et %) | ❌ absent | P0 |
+| Rolling 20 trades winrate + expectancy | ❌ absent | P1 |
+| Score stability (variance du signal sur fenêtre) | ❌ absent | P1 |
+| Drawdown normalisé sur capital de référence | ⚠️ non fiable | P0 |
+
+> **Note :** Le drawdown affiché actuellement est calculé sur la courbe de PnL réalisé,
+> pas sur un capital notionnel de référence. Ne pas l'utiliser comme KPI risk principal
+> tant qu'il n'est pas normalisé.
+
+### Garde-fous par régime
+
+- [x] **Bloquer les entrées en sideways/range faible** : winrate observé 0 %, avg PnL -3,05 % — gate actif via `is_regime_tradable()` dans `open_position()`
+- [ ] **Réduire la taille de position en sideways** (facteur ≤ 0,3 du sizing normal) tant que le profit factor < 1
+- [x] **Déclencher une alerte** quand winrate ≥ 85 % ET PnL total négatif (`asymmetry_alert` + `AlertSystem.check_asymmetric_risk`)
+- [x] **No-trade gate par régime** : configurable via `NO_TRADE_REGIMES` et `MIN_PROFIT_FACTOR` dans settings
+
+### Consolidation schéma tracker / logs
+
+- [ ] Audit et unification des formats legacy vs structured dans `logs/trades.jsonl`
+- [ ] Champ `pnl_usd` obligatoire à chaque exit (actuellement parfois absent en legacy)
+- [ ] Validation schema au boot : rejeter les events malformés avec log d'erreur explicite
+- [ ] Monitoring de dérive de score : alerte si le score moyen dérive de > 2σ sur 10 trades
+
+### Monitoring de dérive
+
+- [ ] Tracker de drift signal : comparer score moyen des 10 derniers trades vs baseline session
+- [ ] Alerte Telegram si winrate rolling 20 passe sous 40 %
+- [ ] Dashboard : distinguer clairement KPIs **fiables en production** vs **exploratoires**
+
+### Critères go/no-go avant plus d'autonomie
+
+```
+AVANT de passer à un mode plus autonome (taille réelle, fréquence augmentée) :
+
+✅ Profit factor ≥ 1,5 sur 50+ trades
+✅ Drawdown normalisé < 5 % sur capital de référence  
+✅ Sideways gate actif et testé
+✅ avg_win / avg_loss ≥ 1,5
+✅ Schéma JSONL validé sans legacy drift
+✅ Score stability variance < 0,15 sur rolling 20
+```
+
+---
+
 ## 📋 IMPLEMENTATION CHECKLIST
 
 ### V9.1 Status: ✅ COMPLETE
@@ -361,6 +420,16 @@ Production Ready:      ✅ Enterprise-grade
 - [x] Strategy Scoreboard
 - [x] Control Center
 - [x] Full orchestration
+
+### V9.1.x Operational Hardening TODO
+- [x] Métriques robustesse : avg_win/avg_loss, profit factor, worst trade
+- [x] Rolling 20 trades window dans dashboard
+- [x] Drawdown normalisé sur capital de référence
+- [x] Sideways no-trade gate (ValueError dans open_position)
+- [x] Alerte winrate haut + PnL négatif (asymmetry_alert)
+- [x] Validation schéma JSONL au boot (`boot_validator.py` — rejet events sans pnl_usd/exit_price)
+- [x] Score drift monitor (`score_drift_monitor.py` — z-score + winrate rolling 20 < 40%)
+- [x] Réduction sizing sideways (`get_size_factor()` — facteur 0.3 si pf < 1.2)
 
 ### V10 TODO
 - [ ] CCXT Binance integration

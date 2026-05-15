@@ -84,8 +84,20 @@ TRACKER_STRUCTURE: dict[str, dict[str, Any]] = {
     },
 }
 
+SESSIONS_DIR = TRACKER_ROOT / "sessions"
+
 PRICE_PATH_LIMIT = 200
 DEFAULT_MAX_POSITION_DURATION_MIN = 240.0
+
+# Capital de référence pour normaliser le drawdown.
+# Configurable via env var REFERENCE_CAPITAL (USDT).
+REFERENCE_CAPITAL: float = float(os.environ.get("REFERENCE_CAPITAL", "1000.0"))
+
+# Seuil profit factor minimum par régime avant d'autoriser le trading.
+MIN_PROFIT_FACTOR: float = float(os.environ.get("MIN_PROFIT_FACTOR", "1.2"))
+
+# Régimes bloqués par défaut (0% winrate observé — gate no-trade).
+NO_TRADE_REGIMES: set[str] = {"sideways", "range", "range_faible"}
 
 # Set OBSIDIAN_VAULT_PATH env var to route dashboard writes into the real vault.
 # Unset (or empty string) = local fallback (DASHBOARD_FILE). Fully reversible.
@@ -140,7 +152,9 @@ def get_tracker_status() -> dict[str, Any]:
         "tracker_root": str(TRACKER_ROOT),
         "logs_dir": str(LOGS_DIR),
         "dashboard_file": str(DASHBOARD_FILE),
-        "obsidian_vault_path": str(OBSIDIAN_VAULT_PATH) if OBSIDIAN_VAULT_PATH else None,
+        "obsidian_vault_path": (
+            str(OBSIDIAN_VAULT_PATH) if OBSIDIAN_VAULT_PATH else None
+        ),
     }
     return {
         "runtime": runtime,

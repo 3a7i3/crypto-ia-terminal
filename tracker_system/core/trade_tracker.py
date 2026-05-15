@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from tracker_system.config.exit_config import get_size_factor, is_regime_tradable
 from tracker_system.config.settings import (
     DEFAULT_MAX_POSITION_DURATION_MIN,
     OPEN_POSITIONS_FILE,
@@ -13,8 +14,8 @@ from tracker_system.config.settings import (
 )
 from tracker_system.core.position_manager import load_positions, save_positions
 from tracker_system.core.trade_logger import log_entry, log_exit
-from tracker_system.engine.exit_factory import build_exit_engine
 from tracker_system.engine.exit_engine import ExitEngine
+from tracker_system.engine.exit_factory import build_exit_engine
 from tracker_system.storage.loader import load_jsonl
 
 
@@ -52,7 +53,9 @@ def _parse_event_timestamp(raw_timestamp: Any) -> float:
         return float(raw_timestamp)
     if isinstance(raw_timestamp, str) and raw_timestamp:
         try:
-            return datetime.fromisoformat(raw_timestamp.replace("Z", "+00:00")).timestamp()
+            return datetime.fromisoformat(
+                raw_timestamp.replace("Z", "+00:00")
+            ).timestamp()
         except ValueError:
             return _utc_timestamp()
     return _utc_timestamp()
@@ -73,10 +76,18 @@ def open_position(
     size: float,
     regime: str | None = None,
     confidence: float | None = None,
+    profit_factor: float | None = None,
     log_file: Path = TRADES_LOG_FILE,
     state_file: Path = OPEN_POSITIONS_FILE,
     **extra: Any,
 ) -> dict[str, Any]:
+    tradable, reason = is_regime_tradable(regime)
+    if not tradable:
+        raise ValueError(f"open_position bloquée — {reason}")
+
+    size_factor = get_size_factor(regime, profit_factor)
+    effective_size = float(size) * size_factor
+
     positions = load_positions(state_file)
     now_ts = _utc_timestamp()
     entry_price = float(price)
@@ -87,7 +98,9 @@ def open_position(
         "symbol": symbol,
         "side": _normalize_side(side),
         "entry_price": entry_price,
-        "size": float(size),
+        "size": effective_size,
+        "size_requested": float(size),
+        "size_factor": size_factor,
         "timestamp": extra.pop("timestamp", now_ts),
         "regime": regime,
         "confidence": confidence,
@@ -100,7 +113,18 @@ def open_position(
     }
     positions.append(position)
     save_positions(positions, state_file)
-    log_entry(symbol, position["side"], entry_price, float(size), stop_loss=float(stop_loss), take_profit=float(take_profit), regime=regime, confidence=confidence, log_file=log_file, id=position["id"])
+    log_entry(
+        symbol,
+        position["side"],
+        entry_price,
+        float(size),
+        stop_loss=float(stop_loss),
+        take_profit=float(take_profit),
+        regime=regime,
+        confidence=confidence,
+        log_file=log_file,
+        id=position["id"],
+    )
     return position
 
 
@@ -118,12 +142,20 @@ def close_position(
 
     if side == "BUY":
         pnl_pct = (exit_price - entry_price) / entry_price
-        mfe = (float(position.get("max_price", entry_price)) - entry_price) / entry_price
-        mae = (float(position.get("min_price", entry_price)) - entry_price) / entry_price
+        mfe = (
+            float(position.get("max_price", entry_price)) - entry_price
+        ) / entry_price
+        mae = (
+            float(position.get("min_price", entry_price)) - entry_price
+        ) / entry_price
     else:
         pnl_pct = (entry_price - exit_price) / entry_price
-        mfe = (entry_price - float(position.get("min_price", entry_price))) / entry_price
-        mae = (entry_price - float(position.get("max_price", entry_price))) / entry_price
+        mfe = (
+            entry_price - float(position.get("min_price", entry_price))
+        ) / entry_price
+        mae = (
+            entry_price - float(position.get("max_price", entry_price))
+        ) / entry_price
 
     pnl_usd = pnl_pct * size
     record = log_exit(
@@ -167,10 +199,16 @@ def finalize_position(
 
     current_price = float(price)
     target_position.setdefault("price_path", []).append(current_price)
-    target_position["max_price"] = max(float(target_position.get("max_price", current_price)), current_price)
-    target_position["min_price"] = min(float(target_position.get("min_price", current_price)), current_price)
+    target_position["max_price"] = max(
+        float(target_position.get("max_price", current_price)), current_price
+    )
+    target_position["min_price"] = min(
+        float(target_position.get("min_price", current_price)), current_price
+    )
 
-    record = close_position(target_position, current_price, exit_reason=exit_reason, log_file=log_file)
+    record = close_position(
+        target_position, current_price, exit_reason=exit_reason, log_file=log_file
+    )
     save_positions(remaining_positions, state_file)
     return record
 
@@ -181,7 +219,9 @@ def sync_entries_from_log(
 ) -> int:
     events = load_jsonl(log_file)
     positions = load_positions(state_file)
-    existing_ids = {position.get("id") for position in positions if position.get("id") is not None}
+    existing_ids = {
+        position.get("id") for position in positions if position.get("id") is not None
+    }
     closed_ids = {
         event.get("id")
         for event in events
@@ -199,15 +239,20 @@ def sync_entries_from_log(
             continue
         positions.append(
             {
-                "id": event_id or f"{event.get('symbol')}_{int(_utc_timestamp() * 1000)}",
+                "id": event_id
+                or f"{event.get('symbol')}_{int(_utc_timestamp() * 1000)}",
                 "symbol": event.get("symbol"),
                 "side": _normalize_side(event.get("side", event.get("direction"))),
                 "entry_price": float(event.get("entry_price", 0.0)),
                 "size": float(event.get("size", event.get("size_usd", 0.0))),
-                "timestamp": _parse_event_timestamp(event.get("timestamp", event.get("entry_ts"))),
+                "timestamp": _parse_event_timestamp(
+                    event.get("timestamp", event.get("entry_ts"))
+                ),
                 "regime": _text_default(event.get("regime"), "unknown"),
                 "confidence": _float_default(event.get("confidence"), 0.0),
-                "signal_type": _text_default(event.get("signal_type", event.get("signal")), "unknown"),
+                "signal_type": _text_default(
+                    event.get("signal_type", event.get("signal")), "unknown"
+                ),
                 "score": float(event.get("score", 0.0)),
                 "atr_pct": float(event.get("atr_pct", event.get("atr_ratio", 0.0))),
                 "paper": bool(event.get("paper", True)),
@@ -252,13 +297,24 @@ def update_positions(
         position["max_price"] = max(float(position.get("max_price", price)), price)
         position["min_price"] = min(float(position.get("min_price", price)), price)
 
-        dynamic_engine = exit_engine or build_exit_engine(position.get("regime"), position.get("confidence"))
-        exit_reason = dynamic_engine.check_exit(position, price, context={"regime": position.get("regime")})
-        if exit_reason is None and _duration_minutes(position, now_ts) >= max_duration_min:
+        dynamic_engine = exit_engine or build_exit_engine(
+            position.get("regime"), position.get("confidence")
+        )
+        exit_reason = dynamic_engine.check_exit(
+            position, price, context={"regime": position.get("regime")}
+        )
+        if (
+            exit_reason is None
+            and _duration_minutes(position, now_ts) >= max_duration_min
+        ):
             exit_reason = f"TIME_EXIT @ {price:.8f}"
 
         if exit_reason:
-            closed_positions.append(close_position(position, price, exit_reason=exit_reason, log_file=log_file))
+            closed_positions.append(
+                close_position(
+                    position, price, exit_reason=exit_reason, log_file=log_file
+                )
+            )
         else:
             remaining_positions.append(position)
 

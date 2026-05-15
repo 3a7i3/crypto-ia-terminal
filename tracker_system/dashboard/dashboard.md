@@ -1,36 +1,52 @@
 # Dashboard Intelligence
 
-_Last update: 2026-05-06T11:06:03.065636+00:00_
+_Last update: 2026-05-12T23:19:47.291666+00:00_
 
 ## Performance
-- Trades: 26
-- Total PnL: -1.75
-- Winrate: 92.31%
-- Expectancy: 0.0346
+- Trades: 36
+- Total PnL: -1.25
+- Winrate: 94.44%
+- Expectancy: 0.0389
+
+## Surveillance (Drift & Dégradation)
+- Score drift: z=0.00 (stable) ✅
+  baseline=0.0000 | recent=0.0000 | n_baseline=39 | n_recent=10
+- Winrate rolling 20: 90.0% ✅
+
+## Robustesse (KPIs fiables production)
+> ⚠️ ALERTE asymétrie : winrate=94.4% mais PnL=-1.25$ — les pertes coûtent trop cher par rapport aux gains. Vérifier avg_loss vs avg_win.
+
+- Profit factor: 23.9419 ✅
+- Avg win/loss ratio: 1.4083 ⚠️
+- Worst trade: -3.12% (-1.56$)
+- Drawdown normalisé: 0.30% (ref capital: 1000$) ✅
+  _(normalisé sur capital de référence — fiable en production)_
+- Rolling 20 trades: 20 trades | winrate=90.00% | expectancy=0.0420
 
 ## Trade Quality
-- Avg MFE: 3.73%
-- Avg MAE: -0.27%
-- Efficiency: 98.97%
+- Avg MFE: 4.08%
+- Avg MAE: -0.20%
+- Efficiency: 99.32%
 
 ## Equity Curve
-- Last equity: -1.75
-- Peak equity: 1.30
-- Current drawdown: 3.05
-- Max drawdown: 3.05 (234.18%)
-- Points: 26
+> ⚠️ Drawdown ci-dessous calculé sur courbe PnL réalisé (exploratoire). Voir "Drawdown normalisé" ci-dessus pour le KPI fiable.
+- Last equity: -1.82
+- Peak equity: 0.73
+- Current drawdown: 2.55
+- Max drawdown: 3.05 (419.97%)
+- Points: 30
 
 ```mermaid
 xychart-beta
     title "Realized Equity Curve"
-    x-axis [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26]
-    y-axis "PnL USD" -1.75 --> 1.30
-    line [0.5000, 0.5500, 0.5530, 0.5630, 0.5660, 0.5760, 0.5790, 0.5890, 0.5920, 0.6020, 0.6520, 0.7020, 0.7520, 0.8020, 0.8520, 0.9020, 0.9520, 1.0020, 1.0520, 1.1020, 1.1520, 1.2020, 1.2520, 1.3020, -0.2570, -1.7470]
+    x-axis [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
+    y-axis "PnL USD" -2.32 --> 0.73
+    line [0.0030, 0.0130, 0.0160, 0.0260, 0.0760, 0.1260, 0.1760, 0.2260, 0.2760, 0.3260, 0.3760, 0.4260, 0.4760, 0.5260, 0.5760, 0.6260, 0.6760, 0.7260, -0.8330, -2.3230, -2.2730, -2.2230, -2.1730, -2.1230, -2.0730, -2.0230, -1.9730, -1.9230, -1.8730, -1.8230]
 ```
 
 
 ## Regime State
-- bull_trend: 23 trades | winrate=100.00% | avg pnl=4.13%
+- bull_trend: 33 trades | winrate=100.00% | avg pnl=4.39%
 - bullish: 1 trades | winrate=100.00% | avg pnl=1.00%
 - sideways: 2 trades | winrate=0.00% | avg pnl=-3.05%
 
@@ -39,7 +55,7 @@ xychart-beta
 - TP: 0.012
 - SL: 0.008
 - Trailing: 0.004
-- Score: 0.041304
+- Score: 0.043939
 - Winrate: 100.00%
 ### bullish
 - TP: 0.012
@@ -47,3 +63,9 @@ xychart-beta
 - Trailing: 0.004
 - Score: 0.020000
 - Winrate: 100.00%
+### sideways
+- TP: 0.012
+- SL: 0.008
+- Trailing: 0.004
+- Score: -0.000000
+- Winrate: 0.00%

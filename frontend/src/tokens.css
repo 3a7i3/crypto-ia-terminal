@@ -1,0 +1,80 @@
+/* ── Design tokens — Crypto AI Terminal ─────────────────────────────────── */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap");
+
+:root {
+  /* Backgrounds */
+  --bg-dark:      #0f172a;
+  --bg-card:      #1e293b;
+  --bg-hover:     #263348;
+  --bg-border:    #2d3f55;
+
+  /* Text */
+  --text-pri:     #f8fafc;
+  --text-sec:     #94a3b8;
+  --text-muted:   #475569;
+
+  /* Functional palette — 4 couleurs max */
+  --accent:       #00e0ff;
+  --accent-dim:   rgba(0, 224, 255, 0.10);
+  --ok:           #22c55e;
+  --ok-dim:       rgba(34, 197, 94, 0.10);
+  --warn:         #f59e0b;
+  --warn-dim:     rgba(245, 158, 11, 0.10);
+  --danger:       #ef4444;
+  --danger-dim:   rgba(239, 68, 68, 0.10);
+  --neutral:      #6b7280;
+  --neutral-dim:  rgba(107, 114, 128, 0.10);
+
+  /* Conviction */
+  --cv-vh:        #22c55e;
+  --cv-hi:        #84cc16;
+  --cv-md:        #f59e0b;
+  --cv-lo:        #f97316;
+  --cv-skip:      #6b7280;
+
+  /* Postmortem */
+  --pm-validated: #22c55e;
+  --pm-lucky:     #84cc16;
+  --pm-unlucky:   #f59e0b;
+  --pm-mistake:   #ef4444;
+
+  /* Decision states */
+  --ds-created:   #475569;
+  --ds-enriched:  #00e0ff;
+  --ds-regime:    #8b5cf6;
+  --ds-risk:      #f59e0b;
+  --ds-approved:  #14b8a6;
+  --ds-pending:   #f97316;
+  --ds-executed:  #22c55e;
+  --ds-rejected:  #ef4444;
+  --ds-vetoed:    #7f1d1d;
+
+  /* Typography */
+  --font-sans:    "Inter", system-ui, sans-serif;
+  --font-mono:    "JetBrains Mono", "Fira Code", ui-monospace, monospace;
+
+  /* Radius */
+  --r-card:       6px;
+  --r-chip:       3px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+  background: var(--bg-dark);
+  color: var(--text-pri);
+  -webkit-font-smoothing: antialiased;
+}
+
+::-webkit-scrollbar              { width: 4px; height: 4px; }
+::-webkit-scrollbar-track        { background: transparent; }
+::-webkit-scrollbar-thumb        { background: var(--bg-border); border-radius: 2px; }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-3px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fade-in { animation: fadeIn 0.15s ease-out; }

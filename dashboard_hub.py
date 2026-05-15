@@ -118,6 +118,14 @@ DASHBOARDS = [
         "tag": "ANALYSE",
         "tag_color": "#6b7280",
     },
+    {
+        "name": "Execution Health",
+        "file": "execution_health.py",
+        "port": 8509,
+        "description": "Santé d'exécution P2 — audit ordres, slippage simulé, rejections, pipeline",
+        "tag": "EXECUTION",
+        "tag_color": "#00e0ff",
+    },
 ]
 
 # ── State — processus lancés ───────────────────────────────────────────────────

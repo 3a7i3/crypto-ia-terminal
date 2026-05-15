@@ -1,0 +1,5188 @@
+[
+  {
+    "path": "__init__.py",
+    "package": "root",
+    "lines": 1,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "advisor_loop.py",
+    "package": "root",
+    "lines": 2989,
+    "local_deps": [
+      "advisor_runtime_adapters",
+      "core",
+      "errors",
+      "observability",
+      "quant_hedge_ai",
+      "system"
+    ],
+    "third_party_deps": [
+      "ccxt",
+      "dotenv",
+      "requests"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "advisor_runtime_adapters.py",
+    "package": "root",
+    "lines": 120,
+    "local_deps": [
+      "quant_hedge_ai",
+      "supervision",
+      "tracker_system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "ai_autonomous_loop\\__init__.py",
+    "package": "ai_autonomous_loop",
+    "lines": 2,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "ai_autonomous_loop\\feedback_dashboard.py",
+    "package": "ai_autonomous_loop",
+    "lines": 56,
+    "local_deps": [],
+    "third_party_deps": [
+      "pandas",
+      "streamlit"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "analyze_strategy_niches.py",
+    "package": "root",
+    "lines": 148,
+    "local_deps": [],
+    "third_party_deps": [
+      "pandas",
+      "plotly",
+      "sklearn"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "api_rest.py",
+    "package": "root",
+    "lines": 34,
+    "local_deps": [],
+    "third_party_deps": [
+      "fastapi",
+      "pandas"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "api_server.py",
+    "package": "root",
+    "lines": 348,
+    "local_deps": [],
+    "third_party_deps": [
+      "fastapi"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "audit\\__init__.py",
+    "package": "audit",
+    "lines": 13,
+    "local_deps": [
+      "audit"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "audit\\decision_ledger.py",
+    "package": "audit",
+    "lines": 333,
+    "local_deps": [
+      "observability"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "audit\\decision_trace.py",
+    "package": "audit",
+    "lines": 136,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "audit\\replay_engine.py",
+    "package": "audit",
+    "lines": 157,
+    "local_deps": [
+      "meta_learning",
+      "tracker_system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "audit\\trade_audit.py",
+    "package": "audit",
+    "lines": 164,
+    "local_deps": [
+      "tracker_system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "automate_pipeline.py",
+    "package": "root",
+    "lines": 232,
+    "local_deps": [
+      "automl_tuning",
+      "clustering",
+      "export_latex_md",
+      "notifications",
+      "pareto_front",
+      "sensitivity_analysis",
+      "timeline_animation"
+    ],
+    "third_party_deps": [
+      "azure",
+      "boto3",
+      "dropbox",
+      "pydrive2"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "automl_tuning.py",
+    "package": "root",
+    "lines": 49,
+    "local_deps": [],
+    "third_party_deps": [
+      "numpy",
+      "pandas",
+      "sklearn"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "bootstrap_integration.py",
+    "package": "root",
+    "lines": 257,
+    "local_deps": [
+      "circuit_breaker",
+      "daily_analyzer",
+      "evolution_memory",
+      "lazy_loader",
+      "startup_cache",
+      "warm_boot"
+    ],
+    "third_party_deps": [
+      "psutil"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "check_imports.py",
+    "package": "root",
+    "lines": 37,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "circuit_breaker.py",
+    "package": "root",
+    "lines": 263,
+    "local_deps": [],
+    "third_party_deps": [
+      "psutil"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "clustering.py",
+    "package": "root",
+    "lines": 54,
+    "local_deps": [],
+    "third_party_deps": [
+      "matplotlib",
+      "numpy",
+      "pandas",
+      "sklearn"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "command_center_dashboard.py",
+    "package": "root",
+    "lines": 910,
+    "local_deps": [],
+    "third_party_deps": [
+      "dotenv",
+      "streamlit"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "config_utils.py",
+    "package": "root",
+    "lines": 37,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "conftest.py",
+    "package": "root",
+    "lines": 38,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "copy_docs_for_sphinx.py",
+    "package": "root",
+    "lines": 27,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "core\\__init__.py",
+    "package": "core",
+    "lines": 2,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "core\\decision_packet.py",
+    "package": "core",
+    "lines": 577,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "core\\quant\\__init__.py",
+    "package": "core",
+    "lines": 2,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "core\\quant\\logging_alerts.py",
+    "package": "core",
+    "lines": 56,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "crypto_quant_v16\\__init__.py",
+    "package": "crypto_quant_v16",
+    "lines": 2,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "crypto_quant_v16\\ui\\__init__.py",
+    "package": "crypto_quant_v16",
+    "lines": 2,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "crypto_quant_v16\\ui\\quant_dashboard.py",
+    "package": "crypto_quant_v16",
+    "lines": 33,
+    "local_deps": [],
+    "third_party_deps": [
+      "streamlit"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "daily_analyzer.py",
+    "package": "root",
+    "lines": 326,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "dashboard\\__init__.py",
+    "package": "dashboard",
+    "lines": 2,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "dashboard\\alert_dashboard.py",
+    "package": "dashboard",
+    "lines": 94,
+    "local_deps": [],
+    "third_party_deps": [
+      "pandas",
+      "streamlit"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "dashboard\\builder.py",
+    "package": "dashboard",
+    "lines": 142,
+    "local_deps": [
+      "dashboard"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "dashboard\\colors.py",
+    "package": "dashboard",
+    "lines": 138,
+    "local_deps": [],
+    "third_party_deps": [
+      "streamlit"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "dashboard\\exporter.py",
+    "package": "dashboard",
+    "lines": 204,
+    "local_deps": [
+      "dashboard"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "dashboard\\intelligence.py",
+    "package": "dashboard",
+    "lines": 125,
+    "local_deps": [
+      "dashboard"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "dashboard\\metrics_aggregator.py",
+    "package": "dashboard",
+    "lines": 99,
+    "local_deps": [
+      "meta_learning",
+      "tracker_system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "dashboard\\operator_dashboard_pro.py",
+    "package": "dashboard",
+    "lines": 427,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "dashboard\\websocket_dashboard.py",
+    "package": "dashboard",
+    "lines": 430,
+    "local_deps": [],
+    "third_party_deps": [
+      "fastapi",
+      "uvicorn"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "dashboard_compare_multi.py",
+    "package": "root",
+    "lines": 36,
+    "local_deps": [],
+    "third_party_deps": [
+      "pandas",
+      "plotly",
+      "streamlit"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "dashboard_decision_trace.py",
+    "package": "root",
+    "lines": 668,
+    "local_deps": [
+      "dashboard"
+    ],
+    "third_party_deps": [
+      "pandas",
+      "plotly",
+      "streamlit"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "dashboard_functions.py",
+    "package": "root",
+    "lines": 145,
+    "local_deps": [],
+    "third_party_deps": [
+      "pandas",
+      "plotly",
+      "streamlit"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "dashboard_hub.py",
+    "package": "root",
+    "lines": 250,
+    "local_deps": [
+      "dashboard"
+    ],
+    "third_party_deps": [
+      "streamlit"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "dashboard_live.py",
+    "package": "root",
+    "lines": 751,
+    "local_deps": [
+      "dashboard",
+      "notifications",
+      "quant_hedge_ai"
+    ],
+    "third_party_deps": [
+      "pandas",
+      "plotly",
+      "streamlit"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "dashboard_master.py",
+    "package": "root",
+    "lines": 1103,
+    "local_deps": [
+      "dashboard"
+    ],
+    "third_party_deps": [
+      "pandas",
+      "streamlit"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "dashboard_positions.py",
+    "package": "root",
+    "lines": 297,
+    "local_deps": [
+      "quant_hedge_ai"
+    ],
+    "third_party_deps": [
+      "dotenv",
+      "pandas",
+      "streamlit"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "dashboard_risk.py",
+    "package": "root",
+    "lines": 589,
+    "local_deps": [
+      "quant_hedge_ai"
+    ],
+    "third_party_deps": [
+      "dotenv",
+      "pandas",
+      "requests",
+      "streamlit"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "data_verifier.py",
+    "package": "root",
+    "lines": 984,
+    "local_deps": [
+      "quant_hedge_ai"
+    ],
+    "third_party_deps": [
+      "ccxt",
+      "dotenv",
+      "requests"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "diagnostic_env.py",
+    "package": "root",
+    "lines": 108,
+    "local_deps": [],
+    "third_party_deps": [
+      "pip",
+      "pkg_resources"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "errors\\__init__.py",
+    "package": "errors",
+    "lines": 2,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "errors\\error_bus.py",
+    "package": "errors",
+    "lines": 326,
+    "local_deps": [
+      "observability",
+      "system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "errors\\incident_manager.py",
+    "package": "errors",
+    "lines": 325,
+    "local_deps": [
+      "errors",
+      "observability",
+      "system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "event_bus\\__init__.py",
+    "package": "event_bus",
+    "lines": 8,
+    "local_deps": [
+      "event_bus"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "event_bus\\bridge.py",
+    "package": "event_bus",
+    "lines": 308,
+    "local_deps": [
+      "event_bus",
+      "supervision"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "event_bus\\bus.py",
+    "package": "event_bus",
+    "lines": 276,
+    "local_deps": [
+      "event_bus"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "event_bus\\events.py",
+    "package": "event_bus",
+    "lines": 389,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "evolution_3d_view.py",
+    "package": "root",
+    "lines": 1142,
+    "local_deps": [
+      "ONBOARDING_SCRIPT",
+      "ui_utils"
+    ],
+    "third_party_deps": [
+      "matplotlib",
+      "mpl_toolkits",
+      "numpy",
+      "optuna",
+      "pandas",
+      "plotly",
+      "seaborn",
+      "sklearn",
+      "streamlit"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "evolution_core.py",
+    "package": "root",
+    "lines": 624,
+    "local_deps": [],
+    "third_party_deps": [
+      "numpy"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "evolution_dashboard.py",
+    "package": "root",
+    "lines": 377,
+    "local_deps": [
+      "ui_utils"
+    ],
+    "third_party_deps": [
+      "matplotlib",
+      "pandas",
+      "pytest",
+      "streamlit"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "evolution_memory.py",
+    "package": "root",
+    "lines": 309,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "exchange_factory.py",
+    "package": "root",
+    "lines": 455,
+    "local_deps": [],
+    "third_party_deps": [
+      "ccxt",
+      "dotenv"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "export_excel_report.py",
+    "package": "root",
+    "lines": 61,
+    "local_deps": [],
+    "third_party_deps": [
+      "numpy",
+      "pandas"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "export_latex_md.py",
+    "package": "root",
+    "lines": 32,
+    "local_deps": [],
+    "third_party_deps": [
+      "pandas"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "final_validation.py",
+    "package": "root",
+    "lines": 135,
+    "local_deps": [
+      "bootstrap_integration",
+      "circuit_breaker",
+      "daily_analyzer",
+      "evolution_memory",
+      "lazy_loader",
+      "startup_cache",
+      "warm_boot"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "generate_ai_quant_lab_structure.py",
+    "package": "root",
+    "lines": 130,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "generate_coverage_report.py",
+    "package": "root",
+    "lines": 20,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "generate_html_report.py",
+    "package": "root",
+    "lines": 122,
+    "local_deps": [],
+    "third_party_deps": [
+      "jinja2",
+      "pandas",
+      "plotly"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "generate_report.py",
+    "package": "root",
+    "lines": 58,
+    "local_deps": [],
+    "third_party_deps": [
+      "fpdf",
+      "matplotlib",
+      "pandas"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "generate_test_report.py",
+    "package": "root",
+    "lines": 45,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "global_risk_gate.py",
+    "package": "root",
+    "lines": 306,
+    "local_deps": [],
+    "third_party_deps": [
+      "numpy"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "governance\\__init__.py",
+    "package": "governance",
+    "lines": 2,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "governance\\ai_constraints.py",
+    "package": "governance",
+    "lines": 259,
+    "local_deps": [
+      "observability"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "governance\\confidence_gate.py",
+    "package": "governance",
+    "lines": 128,
+    "local_deps": [
+      "system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "governance\\decision_router.py",
+    "package": "governance",
+    "lines": 308,
+    "local_deps": [
+      "governance",
+      "observability"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "governance\\execution_approval.py",
+    "package": "governance",
+    "lines": 208,
+    "local_deps": [
+      "observability",
+      "system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "governance\\risk_authorizer.py",
+    "package": "governance",
+    "lines": 237,
+    "local_deps": [
+      "observability",
+      "system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "health\\__init__.py",
+    "package": "health",
+    "lines": 2,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "health\\health_registry.py",
+    "package": "health",
+    "lines": 287,
+    "local_deps": [
+      "observability",
+      "system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "health\\recovery_manager.py",
+    "package": "health",
+    "lines": 316,
+    "local_deps": [
+      "observability",
+      "system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "launch_pieuvre.py",
+    "package": "root",
+    "lines": 208,
+    "local_deps": [
+      "pieuvre"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "lazy_loader.py",
+    "package": "root",
+    "lines": 134,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "lm_studio\\__init__.py",
+    "package": "lm_studio",
+    "lines": 14,
+    "local_deps": [
+      "lm_studio"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "lm_studio\\ai_router.py",
+    "package": "lm_studio",
+    "lines": 63,
+    "local_deps": [
+      "lm_studio"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "lm_studio\\client.py",
+    "package": "lm_studio",
+    "lines": 199,
+    "local_deps": [],
+    "third_party_deps": [
+      "httpx"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "lm_studio\\status.py",
+    "package": "lm_studio",
+    "lines": 53,
+    "local_deps": [
+      "lm_studio"
+    ],
+    "third_party_deps": [
+      "dotenv"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "main.py",
+    "package": "root",
+    "lines": 239,
+    "local_deps": [
+      "config_utils",
+      "evolution_core",
+      "visualization"
+    ],
+    "third_party_deps": [
+      "pandas"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "meta_learning\\__init__.py",
+    "package": "meta_learning",
+    "lines": 6,
+    "local_deps": [
+      "meta_learning"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "meta_learning\\decision_engine.py",
+    "package": "meta_learning",
+    "lines": 90,
+    "local_deps": [
+      "meta_learning",
+      "tracker_system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "meta_learning\\learner.py",
+    "package": "meta_learning",
+    "lines": 102,
+    "local_deps": [
+      "meta_learning"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "meta_learning\\memory.py",
+    "package": "meta_learning",
+    "lines": 63,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "meta_learning\\similarity.py",
+    "package": "meta_learning",
+    "lines": 55,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "mvp\\__init__.py",
+    "package": "mvp",
+    "lines": 15,
+    "local_deps": [
+      "mvp"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "mvp\\execution_engine_mvp.py",
+    "package": "mvp",
+    "lines": 245,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "mvp\\market_state_engine.py",
+    "package": "mvp",
+    "lines": 358,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "mvp\\mvp_orchestrator.py",
+    "package": "mvp",
+    "lines": 434,
+    "local_deps": [
+      "mvp",
+      "tracker_system"
+    ],
+    "third_party_deps": [
+      "ccxt",
+      "dotenv",
+      "requests"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "mvp\\post_trade_learning.py",
+    "package": "mvp",
+    "lines": 360,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "mvp\\risk_engine_mvp.py",
+    "package": "mvp",
+    "lines": 343,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "mvp\\signal_engine_mvp.py",
+    "package": "mvp",
+    "lines": 513,
+    "local_deps": [],
+    "third_party_deps": [
+      "lightgbm",
+      "numpy",
+      "sklearn"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "mvp\\trade_logger.py",
+    "package": "mvp",
+    "lines": 135,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "notifications.py",
+    "package": "root",
+    "lines": 152,
+    "local_deps": [
+      "supervision"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "notify_selenium_report_discord.py",
+    "package": "root",
+    "lines": 34,
+    "local_deps": [],
+    "third_party_deps": [
+      "bs4",
+      "requests"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "notify_selenium_report_slack.py",
+    "package": "root",
+    "lines": 34,
+    "local_deps": [],
+    "third_party_deps": [
+      "bs4",
+      "requests"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "notify_test_status.py",
+    "package": "root",
+    "lines": 191,
+    "local_deps": [],
+    "third_party_deps": [
+      "requests"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "observability\\__init__.py",
+    "package": "observability",
+    "lines": 2,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "observability\\heartbeat_system.py",
+    "package": "observability",
+    "lines": 204,
+    "local_deps": [
+      "observability",
+      "system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "observability\\json_logger.py",
+    "package": "observability",
+    "lines": 233,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "observability\\live_topology.py",
+    "package": "observability",
+    "lines": 219,
+    "local_deps": [
+      "system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "observability\\metrics_bus.py",
+    "package": "observability",
+    "lines": 229,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "observability\\telemetry.py",
+    "package": "observability",
+    "lines": 164,
+    "local_deps": [
+      "observability",
+      "system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "observer_logs.py",
+    "package": "root",
+    "lines": 157,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "ONBOARDING_SCRIPT.py",
+    "package": "root",
+    "lines": 237,
+    "local_deps": [],
+    "third_party_deps": [
+      "pandas",
+      "streamlit"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "orchestrate_all.py",
+    "package": "root",
+    "lines": 77,
+    "local_deps": [],
+    "third_party_deps": [
+      "moviepy"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "orchestrate_and_test_panels.py",
+    "package": "root",
+    "lines": 69,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "orchestrate_ecosystem.py",
+    "package": "root",
+    "lines": 224,
+    "local_deps": [
+      "supervision"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "orchestrate_internal_panels.py",
+    "package": "root",
+    "lines": 26,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "orchestrate_panels_test.py",
+    "package": "root",
+    "lines": 35,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "panel_ci_report.py",
+    "package": "root",
+    "lines": 89,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "panel_http_test.py",
+    "package": "root",
+    "lines": 90,
+    "local_deps": [],
+    "third_party_deps": [
+      "requests"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "panel_registry.py",
+    "package": "root",
+    "lines": 54,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "panel_selenium_test.py",
+    "package": "root",
+    "lines": 95,
+    "local_deps": [],
+    "third_party_deps": [
+      "selenium"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "pareto_front.py",
+    "package": "root",
+    "lines": 47,
+    "local_deps": [],
+    "third_party_deps": [
+      "matplotlib",
+      "numpy",
+      "pandas"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "pieuvre\\__init__.py",
+    "package": "pieuvre",
+    "lines": 21,
+    "local_deps": [
+      "pieuvre"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "pieuvre\\brain.py",
+    "package": "pieuvre",
+    "lines": 448,
+    "local_deps": [
+      "event_bus",
+      "pieuvre"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "pieuvre\\dashboard\\__init__.py",
+    "package": "pieuvre",
+    "lines": 4,
+    "local_deps": [
+      "pieuvre"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "pieuvre\\dashboard\\tableau_bord.py",
+    "package": "pieuvre",
+    "lines": 198,
+    "local_deps": [
+      "pieuvre"
+    ],
+    "third_party_deps": [
+      "rich"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "pieuvre\\incidents\\__init__.py",
+    "package": "pieuvre",
+    "lines": 5,
+    "local_deps": [
+      "pieuvre"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "pieuvre\\incidents\\models.py",
+    "package": "pieuvre",
+    "lines": 149,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "pieuvre\\incidents\\store.py",
+    "package": "pieuvre",
+    "lines": 92,
+    "local_deps": [
+      "pieuvre"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "pieuvre\\tentacles\\__init__.py",
+    "package": "pieuvre",
+    "lines": 22,
+    "local_deps": [
+      "pieuvre"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "pieuvre\\tentacles\\audit_commits.py",
+    "package": "pieuvre",
+    "lines": 243,
+    "local_deps": [
+      "pieuvre"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "pieuvre\\tentacles\\base.py",
+    "package": "pieuvre",
+    "lines": 102,
+    "local_deps": [
+      "pieuvre"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "pieuvre\\tentacles\\evolution.py",
+    "package": "pieuvre",
+    "lines": 212,
+    "local_deps": [
+      "pieuvre"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "pieuvre\\tentacles\\guerison.py",
+    "package": "pieuvre",
+    "lines": 149,
+    "local_deps": [
+      "pieuvre"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "pieuvre\\tentacles\\memoire.py",
+    "package": "pieuvre",
+    "lines": 146,
+    "local_deps": [
+      "pieuvre"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "pieuvre\\tentacles\\performance.py",
+    "package": "pieuvre",
+    "lines": 175,
+    "local_deps": [
+      "pieuvre"
+    ],
+    "third_party_deps": [
+      "psutil"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "pieuvre\\tentacles\\resilience.py",
+    "package": "pieuvre",
+    "lines": 184,
+    "local_deps": [
+      "pieuvre"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "pieuvre\\tentacles\\securite.py",
+    "package": "pieuvre",
+    "lines": 221,
+    "local_deps": [
+      "pieuvre"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "pieuvre\\tentacles\\surveillance.py",
+    "package": "pieuvre",
+    "lines": 224,
+    "local_deps": [
+      "pieuvre"
+    ],
+    "third_party_deps": [
+      "psutil"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "population_csv_validator.py",
+    "package": "root",
+    "lines": 51,
+    "local_deps": [],
+    "third_party_deps": [
+      "pandas"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "project_os\\__init__.py",
+    "package": "project_os",
+    "lines": 1,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "project_os\\scanner.py",
+    "package": "project_os",
+    "lines": 298,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\__init__.py",
+    "package": "quant_hedge_ai",
+    "lines": 1,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\_legacy\\__init__.py",
+    "package": "quant_hedge_ai",
+    "lines": 8,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\_legacy\\archived_modules\\intelligence\\__init__.py",
+    "package": "quant_hedge_ai",
+    "lines": 92,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\_legacy\\archived_modules\\intelligence\\regime_detector.py",
+    "package": "quant_hedge_ai",
+    "lines": 49,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\_legacy\\archived_modules\\liquidity_map\\__init__.py",
+    "package": "quant_hedge_ai",
+    "lines": 6,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\_legacy\\archived_modules\\liquidity_map\\flow_analyzer.py",
+    "package": "quant_hedge_ai",
+    "lines": 407,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\_legacy\\archived_modules\\market_radar\\__init__.py",
+    "package": "quant_hedge_ai",
+    "lines": 16,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\_legacy\\archived_modules\\market_radar\\anomaly_detector.py",
+    "package": "quant_hedge_ai",
+    "lines": 220,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\_legacy\\archived_modules\\market_radar\\radar_core.py",
+    "package": "quant_hedge_ai",
+    "lines": 273,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\_legacy\\archived_modules\\market_radar\\social_scanner.py",
+    "package": "quant_hedge_ai",
+    "lines": 163,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\_legacy\\archived_modules\\market_radar\\token_scanner.py",
+    "package": "quant_hedge_ai",
+    "lines": 191,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\_legacy\\archived_modules\\market_radar\\whale_tracker.py",
+    "package": "quant_hedge_ai",
+    "lines": 222,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\_legacy\\archived_modules\\massive_backtest_engine\\batch_manager.py",
+    "package": "quant_hedge_ai",
+    "lines": 12,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\_legacy\\archived_modules\\massive_backtest_engine\\cache_manager.py",
+    "package": "quant_hedge_ai",
+    "lines": 11,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\_legacy\\archived_modules\\massive_backtest_engine\\engine.py",
+    "package": "quant_hedge_ai",
+    "lines": 24,
+    "local_deps": [],
+    "third_party_deps": [
+      "batch_manager",
+      "parallel_executor",
+      "ranking",
+      "results_collector"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\_legacy\\archived_modules\\massive_backtest_engine\\parallel_executor.py",
+    "package": "quant_hedge_ai",
+    "lines": 18,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\_legacy\\archived_modules\\massive_backtest_engine\\ranking.py",
+    "package": "quant_hedge_ai",
+    "lines": 13,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\_legacy\\archived_modules\\massive_backtest_engine\\results_collector.py",
+    "package": "quant_hedge_ai",
+    "lines": 9,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\_legacy\\archived_modules\\research\\__init__.py",
+    "package": "quant_hedge_ai",
+    "lines": 2,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\_legacy\\archived_modules\\research\\feature_engineer.py",
+    "package": "quant_hedge_ai",
+    "lines": 32,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\_legacy\\archived_modules\\research\\model_builder.py",
+    "package": "quant_hedge_ai",
+    "lines": 21,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\_legacy\\archived_modules\\research\\paper_analyzer.py",
+    "package": "quant_hedge_ai",
+    "lines": 31,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\_legacy\\archived_modules\\research\\strategy_researcher.py",
+    "package": "quant_hedge_ai",
+    "lines": 23,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\advisor_only_mode.py",
+    "package": "quant_hedge_ai",
+    "lines": 168,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\__init__.py",
+    "package": "quant_hedge_ai",
+    "lines": 2,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\execution\\__init__.py",
+    "package": "quant_hedge_ai",
+    "lines": 2,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\execution\\arbitrage_agent.py",
+    "package": "quant_hedge_ai",
+    "lines": 10,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\execution\\execution_engine.py",
+    "package": "quant_hedge_ai",
+    "lines": 554,
+    "local_deps": [
+      "exchange_factory",
+      "quant_hedge_ai",
+      "supervision"
+    ],
+    "third_party_deps": [
+      "ccxt"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\execution\\execution_v2\\__init__.py",
+    "package": "quant_hedge_ai",
+    "lines": 10,
+    "local_deps": [
+      "quant_hedge_ai"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\execution\\execution_v2\\execution_optimizer.py",
+    "package": "quant_hedge_ai",
+    "lines": 198,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\execution\\execution_v2\\optimal_timing_engine.py",
+    "package": "quant_hedge_ai",
+    "lines": 175,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\execution\\execution_v2\\slippage_predictor.py",
+    "package": "quant_hedge_ai",
+    "lines": 166,
+    "local_deps": [],
+    "third_party_deps": [
+      "numpy"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\execution\\latency_monitor.py",
+    "package": "quant_hedge_ai",
+    "lines": 206,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\execution\\liquidity_agent.py",
+    "package": "quant_hedge_ai",
+    "lines": 11,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\execution\\live_signal_engine.py",
+    "package": "quant_hedge_ai",
+    "lines": 599,
+    "local_deps": [
+      "core",
+      "errors",
+      "observability",
+      "quant_hedge_ai"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\execution\\multi_timeframe_signal.py",
+    "package": "quant_hedge_ai",
+    "lines": 143,
+    "local_deps": [
+      "quant_hedge_ai"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\execution\\order_deduplicator.py",
+    "package": "quant_hedge_ai",
+    "lines": 61,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\execution\\paper_trading_engine.py",
+    "package": "quant_hedge_ai",
+    "lines": 146,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\execution\\position_manager.py",
+    "package": "quant_hedge_ai",
+    "lines": 621,
+    "local_deps": [
+      "supervision"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\execution\\shadow_engine.py",
+    "package": "quant_hedge_ai",
+    "lines": 271,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\execution\\signal_engine.py",
+    "package": "quant_hedge_ai",
+    "lines": 138,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\execution\\subaccount_manager.py",
+    "package": "quant_hedge_ai",
+    "lines": 402,
+    "local_deps": [
+      "quant_hedge_ai"
+    ],
+    "third_party_deps": [
+      "ccxt"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\execution\\trade_logger.py",
+    "package": "quant_hedge_ai",
+    "lines": 185,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\execution\\trade_postmortem.py",
+    "package": "quant_hedge_ai",
+    "lines": 337,
+    "local_deps": [
+      "event_bus"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\execution\\trade_replay.py",
+    "package": "quant_hedge_ai",
+    "lines": 330,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\intelligence\\__init__.py",
+    "package": "quant_hedge_ai",
+    "lines": 7,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\intelligence\\ai_advisor.py",
+    "package": "quant_hedge_ai",
+    "lines": 288,
+    "local_deps": [
+      "event_bus",
+      "lm_studio",
+      "quant_hedge_ai"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\intelligence\\black_box.py",
+    "package": "quant_hedge_ai",
+    "lines": 487,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\intelligence\\chief_officer.py",
+    "package": "quant_hedge_ai",
+    "lines": 387,
+    "local_deps": [
+      "lm_studio"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\intelligence\\confidence_explainer.py",
+    "package": "quant_hedge_ai",
+    "lines": 322,
+    "local_deps": [
+      "quant_hedge_ai"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\intelligence\\conviction_engine.py",
+    "package": "quant_hedge_ai",
+    "lines": 477,
+    "local_deps": [
+      "core"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\intelligence\\decision_quality_engine.py",
+    "package": "quant_hedge_ai",
+    "lines": 360,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\intelligence\\feature_engineer.py",
+    "package": "quant_hedge_ai",
+    "lines": 234,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\intelligence\\meta_strategy_engine.py",
+    "package": "quant_hedge_ai",
+    "lines": 368,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\intelligence\\mistake_memory.py",
+    "package": "quant_hedge_ai",
+    "lines": 535,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\intelligence\\no_trade_layer.py",
+    "package": "quant_hedge_ai",
+    "lines": 307,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\intelligence\\proactive_alerts.py",
+    "package": "quant_hedge_ai",
+    "lines": 246,
+    "local_deps": [
+      "event_bus",
+      "supervision"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\intelligence\\regime_detector.py",
+    "package": "quant_hedge_ai",
+    "lines": 42,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\intelligence\\regret_engine.py",
+    "package": "quant_hedge_ai",
+    "lines": 338,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\intelligence\\self_awareness_engine.py",
+    "package": "quant_hedge_ai",
+    "lines": 506,
+    "local_deps": [
+      "supervision"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\intelligence\\threat_radar.py",
+    "package": "quant_hedge_ai",
+    "lines": 428,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\intelligence\\v2\\__init__.py",
+    "package": "quant_hedge_ai",
+    "lines": 10,
+    "local_deps": [
+      "quant_hedge_ai"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\intelligence\\v2\\decision_arbitrator.py",
+    "package": "quant_hedge_ai",
+    "lines": 236,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\intelligence\\v2\\hmm_regime_engine.py",
+    "package": "quant_hedge_ai",
+    "lines": 230,
+    "local_deps": [],
+    "third_party_deps": [
+      "hmmlearn",
+      "numpy"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\intelligence\\v2\\regime_transition_predictor.py",
+    "package": "quant_hedge_ai",
+    "lines": 199,
+    "local_deps": [],
+    "third_party_deps": [
+      "numpy"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\intelligence\\weekly_report.py",
+    "package": "quant_hedge_ai",
+    "lines": 257,
+    "local_deps": [
+      "event_bus"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\market\\__init__.py",
+    "package": "quant_hedge_ai",
+    "lines": 2,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\market\\historical_fetcher.py",
+    "package": "quant_hedge_ai",
+    "lines": 249,
+    "local_deps": [
+      "quant_hedge_ai"
+    ],
+    "third_party_deps": [
+      "ccxt"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\market\\market_scanner.py",
+    "package": "quant_hedge_ai",
+    "lines": 831,
+    "local_deps": [
+      "quant_hedge_ai"
+    ],
+    "third_party_deps": [
+      "ccxt"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\market\\microstructure\\__init__.py",
+    "package": "quant_hedge_ai",
+    "lines": 10,
+    "local_deps": [
+      "quant_hedge_ai"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\market\\microstructure\\microstructure_engine.py",
+    "package": "quant_hedge_ai",
+    "lines": 143,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\market\\microstructure\\orderbook_analyzer.py",
+    "package": "quant_hedge_ai",
+    "lines": 189,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\market\\microstructure\\spread_predictor.py",
+    "package": "quant_hedge_ai",
+    "lines": 100,
+    "local_deps": [],
+    "third_party_deps": [
+      "numpy"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\market\\multi_timeframe_scanner.py",
+    "package": "quant_hedge_ai",
+    "lines": 148,
+    "local_deps": [
+      "quant_hedge_ai"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\market\\ohlcv_validator.py",
+    "package": "quant_hedge_ai",
+    "lines": 126,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\market\\orderflow_agent.py",
+    "package": "quant_hedge_ai",
+    "lines": 11,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\market\\regime_detector.py",
+    "package": "quant_hedge_ai",
+    "lines": 10,
+    "local_deps": [
+      "quant_hedge_ai"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\market\\retry_policy.py",
+    "package": "quant_hedge_ai",
+    "lines": 145,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\market\\volatility_agent.py",
+    "package": "quant_hedge_ai",
+    "lines": 20,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\monitoring\\__init__.py",
+    "package": "quant_hedge_ai",
+    "lines": 6,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\monitoring\\performance_monitor.py",
+    "package": "quant_hedge_ai",
+    "lines": 22,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\monitoring\\prompt_doctor_agent.py",
+    "package": "quant_hedge_ai",
+    "lines": 345,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\monitoring\\system_monitor.py",
+    "package": "quant_hedge_ai",
+    "lines": 13,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\onchain\\__init__.py",
+    "package": "quant_hedge_ai",
+    "lines": 10,
+    "local_deps": [
+      "quant_hedge_ai"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\onchain\\blockchain_ingester.py",
+    "package": "quant_hedge_ai",
+    "lines": 192,
+    "local_deps": [],
+    "third_party_deps": [
+      "requests"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\onchain\\exchange_flow_tracker.py",
+    "package": "quant_hedge_ai",
+    "lines": 152,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\onchain\\whale_behavior_classifier.py",
+    "package": "quant_hedge_ai",
+    "lines": 157,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\portfolio\\__init__.py",
+    "package": "quant_hedge_ai",
+    "lines": 110,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\quant\\__init__.py",
+    "package": "quant_hedge_ai",
+    "lines": 2,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\quant\\backtest_lab.py",
+    "package": "quant_hedge_ai",
+    "lines": 276,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\quant\\monte_carlo.py",
+    "package": "quant_hedge_ai",
+    "lines": 26,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\quant\\portfolio_optimizer.py",
+    "package": "quant_hedge_ai",
+    "lines": 19,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\quant\\stress_test.py",
+    "package": "quant_hedge_ai",
+    "lines": 314,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\quant\\walk_forward.py",
+    "package": "quant_hedge_ai",
+    "lines": 237,
+    "local_deps": [
+      "quant_hedge_ai"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\research\\__init__.py",
+    "package": "quant_hedge_ai",
+    "lines": 9,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\research\\feature_engineer.py",
+    "package": "quant_hedge_ai",
+    "lines": 32,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\research\\model_builder.py",
+    "package": "quant_hedge_ai",
+    "lines": 21,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\research\\paper_analyzer.py",
+    "package": "quant_hedge_ai",
+    "lines": 31,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\research\\strategy_researcher.py",
+    "package": "quant_hedge_ai",
+    "lines": 23,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\risk\\__init__.py",
+    "package": "quant_hedge_ai",
+    "lines": 2,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\risk\\capital_allocation_engine.py",
+    "package": "quant_hedge_ai",
+    "lines": 257,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\risk\\drawdown_guard.py",
+    "package": "quant_hedge_ai",
+    "lines": 10,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\risk\\executive_override.py",
+    "package": "quant_hedge_ai",
+    "lines": 341,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\risk\\exposure_manager.py",
+    "package": "quant_hedge_ai",
+    "lines": 11,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\risk\\global_risk_gate.py",
+    "package": "quant_hedge_ai",
+    "lines": 417,
+    "local_deps": [
+      "core",
+      "event_bus"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\risk\\order_sizer.py",
+    "package": "quant_hedge_ai",
+    "lines": 363,
+    "local_deps": [
+      "core"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\risk\\portfolio_brain.py",
+    "package": "quant_hedge_ai",
+    "lines": 697,
+    "local_deps": [
+      "core"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\risk\\risk_dashboard_api.py",
+    "package": "quant_hedge_ai",
+    "lines": 219,
+    "local_deps": [],
+    "third_party_deps": [
+      "fastapi",
+      "uvicorn"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\risk\\risk_monitor.py",
+    "package": "quant_hedge_ai",
+    "lines": 10,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\risk\\session_guard.py",
+    "package": "quant_hedge_ai",
+    "lines": 213,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\strategy\\__init__.py",
+    "package": "quant_hedge_ai",
+    "lines": 2,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\strategy\\genetic_optimizer.py",
+    "package": "quant_hedge_ai",
+    "lines": 47,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\strategy\\rl_trader.py",
+    "package": "quant_hedge_ai",
+    "lines": 29,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\strategy\\strategy_generator.py",
+    "package": "quant_hedge_ai",
+    "lines": 21,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\agents\\whales\\__init__.py",
+    "package": "quant_hedge_ai",
+    "lines": 54,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\ai_evolution\\__init__.py",
+    "package": "quant_hedge_ai",
+    "lines": 8,
+    "local_deps": [
+      "quant_hedge_ai"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\ai_evolution\\evolution_engine.py",
+    "package": "quant_hedge_ai",
+    "lines": 245,
+    "local_deps": [
+      "event_bus",
+      "quant_hedge_ai"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\ai_evolution\\strategy_memory.py",
+    "package": "quant_hedge_ai",
+    "lines": 204,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\ai_evolution\\strategy_ranker.py",
+    "package": "quant_hedge_ai",
+    "lines": 331,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\ai_evolution\\v2\\__init__.py",
+    "package": "quant_hedge_ai",
+    "lines": 10,
+    "local_deps": [
+      "quant_hedge_ai"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\ai_evolution\\v2\\adaptive_calibration_engine.py",
+    "package": "quant_hedge_ai",
+    "lines": 187,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\ai_evolution\\v2\\model_degradation_monitor.py",
+    "package": "quant_hedge_ai",
+    "lines": 186,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\ai_evolution\\v2\\unified_learning_layer.py",
+    "package": "quant_hedge_ai",
+    "lines": 254,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\backtest_real.py",
+    "package": "quant_hedge_ai",
+    "lines": 306,
+    "local_deps": [
+      "quant_hedge_ai"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\bench_1h_limit.py",
+    "package": "quant_hedge_ai",
+    "lines": 215,
+    "local_deps": [
+      "quant_hedge_ai"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\bench_boot_constructors.py",
+    "package": "quant_hedge_ai",
+    "lines": 373,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\bench_ccxt_cold.py",
+    "package": "quant_hedge_ai",
+    "lines": 314,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\bench_e2e_warmup.py",
+    "package": "quant_hedge_ai",
+    "lines": 308,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\bench_session_contention.py",
+    "package": "quant_hedge_ai",
+    "lines": 343,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\binance_connector.py",
+    "package": "quant_hedge_ai",
+    "lines": 433,
+    "local_deps": [
+      "quant_hedge_ai"
+    ],
+    "third_party_deps": [
+      "ccxt"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\dashboard\\__init__.py",
+    "package": "quant_hedge_ai",
+    "lines": 1,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\dashboard\\agent_monitor.py",
+    "package": "quant_hedge_ai",
+    "lines": 134,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\dashboard\\ai_dashboard.py",
+    "package": "quant_hedge_ai",
+    "lines": 23,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\dashboard\\bot_doctor_panel.py",
+    "package": "quant_hedge_ai",
+    "lines": 127,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\dashboard\\control_center.py",
+    "package": "quant_hedge_ai",
+    "lines": 144,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\dashboard\\dashboard_ai.py",
+    "package": "quant_hedge_ai",
+    "lines": 2,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\dashboard\\dashboard_bot_doctor.py",
+    "package": "quant_hedge_ai",
+    "lines": 4,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\dashboard\\dashboard_control_center.py",
+    "package": "quant_hedge_ai",
+    "lines": 4,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\dashboard\\dashboard_director.py",
+    "package": "quant_hedge_ai",
+    "lines": 72,
+    "local_deps": [],
+    "third_party_deps": [
+      "streamlit"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\dashboard\\dashboard_quant_terminal.py",
+    "package": "quant_hedge_ai",
+    "lines": 32,
+    "local_deps": [],
+    "third_party_deps": [
+      "pytest"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\dashboard\\director_dashboard.py",
+    "package": "quant_hedge_ai",
+    "lines": 473,
+    "local_deps": [
+      "quant_hedge_ai"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\dashboard\\live_snapshot.py",
+    "package": "quant_hedge_ai",
+    "lines": 56,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\dashboard\\operator_dashboard_pro.py",
+    "package": "quant_hedge_ai",
+    "lines": 742,
+    "local_deps": [
+      "quant_hedge_ai"
+    ],
+    "third_party_deps": [
+      "pandas",
+      "plotly",
+      "psutil",
+      "streamlit"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\dashboard\\quant_terminal_v12.py",
+    "package": "quant_hedge_ai",
+    "lines": 1205,
+    "local_deps": [],
+    "third_party_deps": [
+      "databases",
+      "numpy",
+      "pandas",
+      "panel",
+      "plotly",
+      "pytest"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\dashboard\\system_health.py",
+    "package": "quant_hedge_ai",
+    "lines": 217,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\dashboard\\trade_monitor.py",
+    "package": "quant_hedge_ai",
+    "lines": 151,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\engine\\decision_engine.py",
+    "package": "quant_hedge_ai",
+    "lines": 81,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\features\\__init__.py",
+    "package": "quant_hedge_ai",
+    "lines": 7,
+    "local_deps": [
+      "quant_hedge_ai"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\features\\feature_materializer.py",
+    "package": "quant_hedge_ai",
+    "lines": 182,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\features\\feature_registry.py",
+    "package": "quant_hedge_ai",
+    "lines": 90,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\features\\feature_store.py",
+    "package": "quant_hedge_ai",
+    "lines": 186,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\features\\feature_validator.py",
+    "package": "quant_hedge_ai",
+    "lines": 95,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\fetch_audit.py",
+    "package": "quant_hedge_ai",
+    "lines": 297,
+    "local_deps": [],
+    "third_party_deps": [
+      "ccxt"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\health_endpoint.py",
+    "package": "quant_hedge_ai",
+    "lines": 192,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\liquidity_map\\__init__.py",
+    "package": "quant_hedge_ai",
+    "lines": 6,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\liquidity_map\\flow_analyzer.py",
+    "package": "quant_hedge_ai",
+    "lines": 408,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\main_system.py",
+    "package": "quant_hedge_ai",
+    "lines": 225,
+    "local_deps": [
+      "quant_hedge_ai"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\main_v91.py",
+    "package": "quant_hedge_ai",
+    "lines": 972,
+    "local_deps": [
+      "event_bus",
+      "quant_hedge_ai",
+      "stream_bus",
+      "supervision"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\market_radar\\__init__.py",
+    "package": "quant_hedge_ai",
+    "lines": 16,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\market_radar\\anomaly_detector.py",
+    "package": "quant_hedge_ai",
+    "lines": 220,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\market_radar\\radar_core.py",
+    "package": "quant_hedge_ai",
+    "lines": 273,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\market_radar\\social_scanner.py",
+    "package": "quant_hedge_ai",
+    "lines": 163,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\market_radar\\token_scanner.py",
+    "package": "quant_hedge_ai",
+    "lines": 190,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\market_radar\\whale_tracker.py",
+    "package": "quant_hedge_ai",
+    "lines": 222,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\persistent_warmup.py",
+    "package": "quant_hedge_ai",
+    "lines": 427,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\runtime_config.py",
+    "package": "quant_hedge_ai",
+    "lines": 164,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\setup_binance.py",
+    "package": "quant_hedge_ai",
+    "lines": 265,
+    "local_deps": [
+      "quant_hedge_ai"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\strategy_factory\\__init__.py",
+    "package": "quant_hedge_ai",
+    "lines": 6,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\strategy_factory\\backtester.py",
+    "package": "quant_hedge_ai",
+    "lines": 14,
+    "local_deps": [
+      "quant_hedge_ai"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\strategy_factory\\bot_doctor_validator.py",
+    "package": "quant_hedge_ai",
+    "lines": 103,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\strategy_factory\\factory_core.py",
+    "package": "quant_hedge_ai",
+    "lines": 144,
+    "local_deps": [
+      "quant_hedge_ai"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\strategy_factory\\multi_timeframe_backtester.py",
+    "package": "quant_hedge_ai",
+    "lines": 109,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\strategy_factory\\performance_analyzer.py",
+    "package": "quant_hedge_ai",
+    "lines": 44,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\strategy_factory\\strategy_generator.py",
+    "package": "quant_hedge_ai",
+    "lines": 30,
+    "local_deps": [
+      "quant_hedge_ai"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\strategy_lab\\__init__.py",
+    "package": "quant_hedge_ai",
+    "lines": 3,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\strategy_lab\\backtest_launcher.py",
+    "package": "quant_hedge_ai",
+    "lines": 15,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\strategy_lab\\batch_runner.py",
+    "package": "quant_hedge_ai",
+    "lines": 18,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\strategy_lab\\evolution_engine.py",
+    "package": "quant_hedge_ai",
+    "lines": 40,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\strategy_lab\\example_pipeline.py",
+    "package": "quant_hedge_ai",
+    "lines": 55,
+    "local_deps": [],
+    "third_party_deps": [
+      "backtest_launcher",
+      "generator",
+      "parameter_space",
+      "ranker",
+      "signal_builder",
+      "strategy_db",
+      "templates"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\strategy_lab\\feature_cache.py",
+    "package": "quant_hedge_ai",
+    "lines": 82,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\strategy_lab\\generator.py",
+    "package": "quant_hedge_ai",
+    "lines": 12,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\strategy_lab\\market_db.py",
+    "package": "quant_hedge_ai",
+    "lines": 194,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\strategy_lab\\parallel_engine.py",
+    "package": "quant_hedge_ai",
+    "lines": 24,
+    "local_deps": [],
+    "third_party_deps": [
+      "joblib"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\strategy_lab\\parameter_space.py",
+    "package": "quant_hedge_ai",
+    "lines": 23,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\strategy_lab\\ranker.py",
+    "package": "quant_hedge_ai",
+    "lines": 19,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\strategy_lab\\signal_builder.py",
+    "package": "quant_hedge_ai",
+    "lines": 43,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\strategy_lab\\strategy_db.py",
+    "package": "quant_hedge_ai",
+    "lines": 56,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "quant_hedge_ai\\strategy_lab\\templates.py",
+    "package": "quant_hedge_ai",
+    "lines": 14,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "replay_cli.py",
+    "package": "root",
+    "lines": 194,
+    "local_deps": [
+      "quant_hedge_ai"
+    ],
+    "third_party_deps": [
+      "dotenv"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "run_all_tests.py",
+    "package": "root",
+    "lines": 192,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "run_multi_simulations.py",
+    "package": "root",
+    "lines": 65,
+    "local_deps": [
+      "evolution_core"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "run_strategy_factory.py",
+    "package": "root",
+    "lines": 660,
+    "local_deps": [
+      "terminal_core"
+    ],
+    "third_party_deps": [
+      "matplotlib",
+      "mpl_toolkits",
+      "numpy",
+      "pandas"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "run_strategy_factory_batch.py",
+    "package": "root",
+    "lines": 91,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "run_strategy_factory_large.py",
+    "package": "root",
+    "lines": 35,
+    "local_deps": [
+      "quant_hedge_ai",
+      "strategy_factory"
+    ],
+    "third_party_deps": [
+      "pandas"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "scripts\\alert_dashboard_csv_export.py",
+    "package": "scripts",
+    "lines": 40,
+    "local_deps": [],
+    "third_party_deps": [
+      "pandas"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "scripts\\alert_dashboard_playwright_csv.py",
+    "package": "scripts",
+    "lines": 44,
+    "local_deps": [],
+    "third_party_deps": [
+      "playwright"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "scripts\\boot_system_validator.py",
+    "package": "scripts",
+    "lines": 390,
+    "local_deps": [
+      "quant_hedge_ai"
+    ],
+    "third_party_deps": [
+      "dotenv"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "scripts\\check_badges.py",
+    "package": "scripts",
+    "lines": 39,
+    "local_deps": [],
+    "third_party_deps": [
+      "requests"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "scripts\\crypto_market_scanner.py",
+    "package": "scripts",
+    "lines": 114,
+    "local_deps": [],
+    "third_party_deps": [
+      "ccxt",
+      "hvplot",
+      "pandas",
+      "panel",
+      "ta"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "scripts\\crypto_terminal.py",
+    "package": "scripts",
+    "lines": 71,
+    "local_deps": [],
+    "third_party_deps": [
+      "ccxt",
+      "hvplot",
+      "pandas",
+      "panel",
+      "ta"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "scripts\\dashboard_launch.py",
+    "package": "scripts",
+    "lines": 37,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "scripts\\demo_p0_integration.py",
+    "package": "scripts",
+    "lines": 197,
+    "local_deps": [
+      "tracker_system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "scripts\\generate_audit_report.py",
+    "package": "scripts",
+    "lines": 157,
+    "local_deps": [],
+    "third_party_deps": [
+      "requests"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "scripts\\generate_dashboards_table.py",
+    "package": "scripts",
+    "lines": 81,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "scripts\\generate_panel_screenshots.py",
+    "package": "scripts",
+    "lines": 50,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "scripts\\minimal_test.py",
+    "package": "scripts",
+    "lines": 23,
+    "local_deps": [
+      "tracker_system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "scripts\\optimization_stack_validator.py",
+    "package": "scripts",
+    "lines": 17,
+    "local_deps": [],
+    "third_party_deps": [
+      "pytest"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "scripts\\panels_with_report.py",
+    "package": "scripts",
+    "lines": 52,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "scripts\\performance_benchmarks.py",
+    "package": "scripts",
+    "lines": 53,
+    "local_deps": [
+      "run_strategy_factory"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "scripts\\plotly_matplotlib_compat.py",
+    "package": "scripts",
+    "lines": 54,
+    "local_deps": [],
+    "third_party_deps": [
+      "matplotlib",
+      "mpl_toolkits",
+      "numpy",
+      "plotly"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "scripts\\quickstart.py",
+    "package": "scripts",
+    "lines": 132,
+    "local_deps": [
+      "meta_learning",
+      "tracker_system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "scripts\\QUICKSTART_COMPLET_FR.py",
+    "package": "scripts",
+    "lines": 213,
+    "local_deps": [
+      "audit",
+      "dashboard",
+      "meta_learning",
+      "tracker_system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "scripts\\QUICKSTART_COMPLETE.py",
+    "package": "scripts",
+    "lines": 214,
+    "local_deps": [
+      "audit",
+      "dashboard",
+      "meta_learning",
+      "tracker_system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "scripts\\seed_decision_packets.py",
+    "package": "scripts",
+    "lines": 284,
+    "local_deps": [
+      "core"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "scripts\\seed_strategy_memory.py",
+    "package": "scripts",
+    "lines": 184,
+    "local_deps": [
+      "quant_hedge_ai"
+    ],
+    "third_party_deps": [
+      "dotenv"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "scripts\\smoke_test_ci.py",
+    "package": "scripts",
+    "lines": 239,
+    "local_deps": [
+      "quant_hedge_ai",
+      "supervision"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "scripts\\stream_bus_simulation.py",
+    "package": "scripts",
+    "lines": 495,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "scripts\\streamlit_onboarding_integration.py",
+    "package": "scripts",
+    "lines": 43,
+    "local_deps": [],
+    "third_party_deps": [
+      "requests"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "scripts\\TEST_AUDIT_FR.py",
+    "package": "scripts",
+    "lines": 107,
+    "local_deps": [
+      "audit",
+      "tracker_system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "scripts\\validate_historical.py",
+    "package": "scripts",
+    "lines": 273,
+    "local_deps": [
+      "quant_hedge_ai"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "scripts\\validate_population_csv.py",
+    "package": "scripts",
+    "lines": 29,
+    "local_deps": [
+      "population_csv_validator"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "scripts\\watch_dashboards.py",
+    "package": "scripts",
+    "lines": 29,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "send_orchestration_notification.py",
+    "package": "root",
+    "lines": 55,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "sensitivity_analysis.py",
+    "package": "root",
+    "lines": 44,
+    "local_deps": [],
+    "third_party_deps": [
+      "matplotlib",
+      "numpy",
+      "pandas",
+      "sklearn"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "startup_cache.py",
+    "package": "root",
+    "lines": 173,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "strategy_factory\\__init__.py",
+    "package": "strategy_factory",
+    "lines": 1,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "strategy_factory\\alpha_vault.py",
+    "package": "strategy_factory",
+    "lines": 7,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "strategy_factory\\backtest_profiler.py",
+    "package": "strategy_factory",
+    "lines": 66,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "strategy_factory\\backtester.py",
+    "package": "strategy_factory",
+    "lines": 8,
+    "local_deps": [
+      "quant_hedge_ai"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "strategy_factory\\evolution.py",
+    "package": "strategy_factory",
+    "lines": 10,
+    "local_deps": [
+      "strategy_factory"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "strategy_factory\\generator.py",
+    "package": "strategy_factory",
+    "lines": 10,
+    "local_deps": [
+      "strategy_factory"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "strategy_factory\\genetic_evolution.py",
+    "package": "strategy_factory",
+    "lines": 22,
+    "local_deps": [
+      "strategy_factory"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "strategy_factory\\genome.py",
+    "package": "strategy_factory",
+    "lines": 23,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "strategy_factory\\reproduction.py",
+    "package": "strategy_factory",
+    "lines": 15,
+    "local_deps": [
+      "strategy_factory"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "stream_bus.py",
+    "package": "root",
+    "lines": 318,
+    "local_deps": [],
+    "third_party_deps": [
+      "ccxt"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "streamlit_dashboard.py",
+    "package": "root",
+    "lines": 1292,
+    "local_deps": [
+      "automl_tuning",
+      "clustering",
+      "dashboard_functions",
+      "export_latex_md",
+      "notifications",
+      "pareto_front",
+      "sensitivity_analysis",
+      "timeline_animation"
+    ],
+    "third_party_deps": [
+      "azure",
+      "boto3",
+      "dropbox",
+      "matplotlib",
+      "numpy",
+      "pandas",
+      "plotly",
+      "pydrive2",
+      "seaborn",
+      "sklearn",
+      "streamlit",
+      "streamlit_extras"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "stress_test_cli.py",
+    "package": "root",
+    "lines": 191,
+    "local_deps": [
+      "quant_hedge_ai"
+    ],
+    "third_party_deps": [
+      "dotenv"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "supervise_all.py",
+    "package": "root",
+    "lines": 61,
+    "local_deps": [
+      "supervision"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "supervision\\__init__.py",
+    "package": "supervision",
+    "lines": 2,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "supervision\\alert_manager.py",
+    "package": "supervision",
+    "lines": 113,
+    "local_deps": [
+      "event_bus"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "supervision\\bot_doctor.py",
+    "package": "supervision",
+    "lines": 74,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "supervision\\botdoctor_dashboard.py",
+    "package": "supervision",
+    "lines": 38,
+    "local_deps": [
+      "supervision"
+    ],
+    "third_party_deps": [
+      "streamlit"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "supervision\\custom_module.py",
+    "package": "supervision",
+    "lines": 20,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "supervision\\exchange_monitor.py",
+    "package": "supervision",
+    "lines": 293,
+    "local_deps": [],
+    "third_party_deps": [
+      "requests"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "supervision\\kill_switch.py",
+    "package": "supervision",
+    "lines": 234,
+    "local_deps": [
+      "event_bus",
+      "supervision"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "supervision\\monitoring_profiler.py",
+    "package": "supervision",
+    "lines": 53,
+    "local_deps": [],
+    "third_party_deps": [
+      "psutil"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "supervision\\notifications\\__init__.py",
+    "package": "supervision",
+    "lines": 2,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "supervision\\notifications\\email_notifier.py",
+    "package": "supervision",
+    "lines": 23,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "supervision\\notifications\\multi_notifier.py",
+    "package": "supervision",
+    "lines": 23,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "supervision\\notifications\\ops_notifier.py",
+    "package": "supervision",
+    "lines": 163,
+    "local_deps": [
+      "supervision"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "supervision\\notifications\\slack_notifier.py",
+    "package": "supervision",
+    "lines": 35,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "supervision\\notifications\\telegram_notifier.py",
+    "package": "supervision",
+    "lines": 37,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "supervision\\ops_watchdog.py",
+    "package": "supervision",
+    "lines": 173,
+    "local_deps": [
+      "supervision"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "supervision\\performance_watchdog.py",
+    "package": "supervision",
+    "lines": 292,
+    "local_deps": [
+      "lm_studio"
+    ],
+    "third_party_deps": [
+      "requests"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "supervision\\self_healing_bot.py",
+    "package": "supervision",
+    "lines": 493,
+    "local_deps": [
+      "errors",
+      "event_bus",
+      "system"
+    ],
+    "third_party_deps": [
+      "requests"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "supervision\\telegram_kill_switch.py",
+    "package": "supervision",
+    "lines": 313,
+    "local_deps": [],
+    "third_party_deps": [
+      "requests"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "surveillance_continue.py",
+    "package": "root",
+    "lines": 128,
+    "local_deps": [],
+    "third_party_deps": [
+      "dotenv"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "system\\__init__.py",
+    "package": "system",
+    "lines": 2,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "system\\dependency_manager.py",
+    "package": "system",
+    "lines": 190,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "system\\kernel.py",
+    "package": "system",
+    "lines": 262,
+    "local_deps": [
+      "system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "system\\module_registry.py",
+    "package": "system",
+    "lines": 255,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "system\\runtime_controller.py",
+    "package": "system",
+    "lines": 217,
+    "local_deps": [
+      "system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "system\\startup_sequence.py",
+    "package": "system",
+    "lines": 178,
+    "local_deps": [
+      "system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "system\\state_manager.py",
+    "package": "system",
+    "lines": 201,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "terminal_core\\__init__.py",
+    "package": "terminal_core",
+    "lines": 2,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "terminal_core\\quant\\__init__.py",
+    "package": "terminal_core",
+    "lines": 2,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "terminal_core\\quant\\logging_alerts.py",
+    "package": "terminal_core",
+    "lines": 6,
+    "local_deps": [
+      "core"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "timeline_animation.py",
+    "package": "root",
+    "lines": 43,
+    "local_deps": [],
+    "third_party_deps": [
+      "matplotlib",
+      "pandas"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tools\\analyze_cycles.py",
+    "package": "tools",
+    "lines": 263,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\__init__.py",
+    "package": "tracker_system",
+    "lines": 23,
+    "local_deps": [
+      "tracker_system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\analytics\\__init__.py",
+    "package": "tracker_system",
+    "lines": 3,
+    "local_deps": [
+      "tracker_system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\analytics\\advanced_metrics.py",
+    "package": "tracker_system",
+    "lines": 300,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\analytics\\metrics.py",
+    "package": "tracker_system",
+    "lines": 160,
+    "local_deps": [
+      "tracker_system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\analytics\\mfe_mae.py",
+    "package": "tracker_system",
+    "lines": 24,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\analytics\\regime_analysis.py",
+    "package": "tracker_system",
+    "lines": 26,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\analytics\\score_drift_monitor.py",
+    "package": "tracker_system",
+    "lines": 156,
+    "local_deps": [
+      "tracker_system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\auto_backtester.py",
+    "package": "tracker_system",
+    "lines": 247,
+    "local_deps": [
+      "tracker_system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\autonomous\\auto_decision_engine.py",
+    "package": "tracker_system",
+    "lines": 350,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\backtest\\backtest_engine.py",
+    "package": "tracker_system",
+    "lines": 243,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\backtesting\\__init__.py",
+    "package": "tracker_system",
+    "lines": 4,
+    "local_deps": [
+      "tracker_system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\backtesting\\auto_backtester.py",
+    "package": "tracker_system",
+    "lines": 90,
+    "local_deps": [
+      "tracker_system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\backtesting\\simulator.py",
+    "package": "tracker_system",
+    "lines": 26,
+    "local_deps": [
+      "tracker_system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\config\\__init__.py",
+    "package": "tracker_system",
+    "lines": 23,
+    "local_deps": [
+      "tracker_system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\config\\exit_config.py",
+    "package": "tracker_system",
+    "lines": 126,
+    "local_deps": [
+      "tracker_system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\config\\settings.py",
+    "package": "tracker_system",
+    "lines": 166,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\core\\__init__.py",
+    "package": "tracker_system",
+    "lines": 15,
+    "local_deps": [
+      "tracker_system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\core\\boot_validator.py",
+    "package": "tracker_system",
+    "lines": 131,
+    "local_deps": [
+      "tracker_system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\core\\event_writer.py",
+    "package": "tracker_system",
+    "lines": 151,
+    "local_deps": [
+      "tracker_system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\core\\position_manager.py",
+    "package": "tracker_system",
+    "lines": 24,
+    "local_deps": [
+      "tracker_system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\core\\trade_logger.py",
+    "package": "tracker_system",
+    "lines": 149,
+    "local_deps": [
+      "tracker_system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\core\\trade_tracker.py",
+    "package": "tracker_system",
+    "lines": 323,
+    "local_deps": [
+      "tracker_system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\dashboard\\__init__.py",
+    "package": "tracker_system",
+    "lines": 3,
+    "local_deps": [
+      "tracker_system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\dashboard\\builder.py",
+    "package": "tracker_system",
+    "lines": 251,
+    "local_deps": [
+      "tracker_system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\engine\\__init__.py",
+    "package": "tracker_system",
+    "lines": 4,
+    "local_deps": [
+      "tracker_system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\engine\\composite_exit_engine.py",
+    "package": "tracker_system",
+    "lines": 108,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\engine\\exit_engine.py",
+    "package": "tracker_system",
+    "lines": 29,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\engine\\exit_factory.py",
+    "package": "tracker_system",
+    "lines": 18,
+    "local_deps": [
+      "tracker_system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\engine\\exit_rules.py",
+    "package": "tracker_system",
+    "lines": 113,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\engine\\rules\\__init__.py",
+    "package": "tracker_system",
+    "lines": 5,
+    "local_deps": [
+      "tracker_system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\engine\\rules\\breakeven.py",
+    "package": "tracker_system",
+    "lines": 27,
+    "local_deps": [
+      "tracker_system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\engine\\rules\\tp_sl.py",
+    "package": "tracker_system",
+    "lines": 27,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\engine\\rules\\trailing.py",
+    "package": "tracker_system",
+    "lines": 22,
+    "local_deps": [
+      "tracker_system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\exchange\\binance_client.py",
+    "package": "tracker_system",
+    "lines": 320,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\exit_engine\\__init__.py",
+    "package": "tracker_system",
+    "lines": 9,
+    "local_deps": [
+      "tracker_system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\exit_engine\\base.py",
+    "package": "tracker_system",
+    "lines": 14,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\exit_engine\\breakeven.py",
+    "package": "tracker_system",
+    "lines": 40,
+    "local_deps": [
+      "tracker_system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\exit_engine\\engine.py",
+    "package": "tracker_system",
+    "lines": 49,
+    "local_deps": [
+      "tracker_system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\exit_engine\\tp_sl.py",
+    "package": "tracker_system",
+    "lines": 48,
+    "local_deps": [
+      "tracker_system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\exit_engine\\trailing.py",
+    "package": "tracker_system",
+    "lines": 47,
+    "local_deps": [
+      "tracker_system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\intelligence\\auto_regime_detector.py",
+    "package": "tracker_system",
+    "lines": 271,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\main.py",
+    "package": "tracker_system",
+    "lines": 146,
+    "local_deps": [
+      "tracker_system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\meta_learner.py",
+    "package": "tracker_system",
+    "lines": 170,
+    "local_deps": [
+      "tracker_system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\meta_memory.py",
+    "package": "tracker_system",
+    "lines": 61,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\ml\\exit_predictor.py",
+    "package": "tracker_system",
+    "lines": 383,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\p0_integration.py",
+    "package": "tracker_system",
+    "lines": 222,
+    "local_deps": [
+      "tracker_system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\portfolio\\multi_asset.py",
+    "package": "tracker_system",
+    "lines": 293,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\risk\\__init__.py",
+    "package": "tracker_system",
+    "lines": 18,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\risk\\alert_system.py",
+    "package": "tracker_system",
+    "lines": 149,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\risk\\execution_reality.py",
+    "package": "tracker_system",
+    "lines": 169,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\risk\\portfolio_risk.py",
+    "package": "tracker_system",
+    "lines": 203,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\safety\\safe_execution_framework.py",
+    "package": "tracker_system",
+    "lines": 351,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\scheduler\\__init__.py",
+    "package": "tracker_system",
+    "lines": 3,
+    "local_deps": [
+      "tracker_system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\scheduler\\auto_update.py",
+    "package": "tracker_system",
+    "lines": 133,
+    "local_deps": [
+      "tracker_system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\sessions\\__init__.py",
+    "package": "tracker_system",
+    "lines": 51,
+    "local_deps": [
+      "tracker_system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\sessions\\schemas\\__init__.py",
+    "package": "tracker_system",
+    "lines": 1,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\sessions\\schemas\\metrics_schema.py",
+    "package": "tracker_system",
+    "lines": 39,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\sessions\\schemas\\session_schema.py",
+    "package": "tracker_system",
+    "lines": 27,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\sessions\\schemas\\trade_schema.py",
+    "package": "tracker_system",
+    "lines": 28,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\sessions\\session_analyzer.py",
+    "package": "tracker_system",
+    "lines": 260,
+    "local_deps": [
+      "tracker_system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\sessions\\session_compare.py",
+    "package": "tracker_system",
+    "lines": 121,
+    "local_deps": [
+      "tracker_system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\sessions\\session_labels.py",
+    "package": "tracker_system",
+    "lines": 131,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\sessions\\session_manager.py",
+    "package": "tracker_system",
+    "lines": 161,
+    "local_deps": [
+      "tracker_system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\sessions\\session_ranking.py",
+    "package": "tracker_system",
+    "lines": 126,
+    "local_deps": [
+      "tracker_system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\sessions\\session_report_builder.py",
+    "package": "tracker_system",
+    "lines": 189,
+    "local_deps": [
+      "tracker_system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\sessions\\session_scoring.py",
+    "package": "tracker_system",
+    "lines": 148,
+    "local_deps": [
+      "tracker_system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\sessions\\session_validator.py",
+    "package": "tracker_system",
+    "lines": 184,
+    "local_deps": [
+      "tracker_system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\storage\\__init__.py",
+    "package": "tracker_system",
+    "lines": 4,
+    "local_deps": [
+      "tracker_system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\storage\\loader.py",
+    "package": "tracker_system",
+    "lines": 31,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\storage\\saver.py",
+    "package": "tracker_system",
+    "lines": 16,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\tracker.py",
+    "package": "tracker_system",
+    "lines": 470,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tracker_system\\trade_tracker.py",
+    "package": "tracker_system",
+    "lines": 303,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "tune.py",
+    "package": "root",
+    "lines": 196,
+    "local_deps": [],
+    "third_party_deps": [
+      "streamlit"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "ui_utils.py",
+    "package": "root",
+    "lines": 76,
+    "local_deps": [],
+    "third_party_deps": [
+      "plotly",
+      "qrcode",
+      "streamlit"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "validate_vault_dashboard.py",
+    "package": "root",
+    "lines": 51,
+    "local_deps": [
+      "tracker_system"
+    ],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "visualization.py",
+    "package": "root",
+    "lines": 75,
+    "local_deps": [],
+    "third_party_deps": [
+      "matplotlib",
+      "mpl_toolkits",
+      "numpy"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "visualize_strategy_ecosystem.py",
+    "package": "root",
+    "lines": 73,
+    "local_deps": [],
+    "third_party_deps": [
+      "pandas",
+      "plotly"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "visualize_strategy_ecosystem_all_gens.py",
+    "package": "root",
+    "lines": 84,
+    "local_deps": [],
+    "third_party_deps": [
+      "pandas",
+      "plotly"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "warm_boot.py",
+    "package": "root",
+    "lines": 279,
+    "local_deps": [
+      "startup_cache"
+    ],
+    "third_party_deps": [
+      "dotenv",
+      "requests"
+    ],
+    "status": "OK",
+    "error": null
+  },
+  {
+    "path": "watchdog_vps.py",
+    "package": "root",
+    "lines": 162,
+    "local_deps": [],
+    "third_party_deps": [],
+    "status": "OK",
+    "error": null
+  }
+]

@@ -1,0 +1,115 @@
+[
+  {
+    "session_id": "session_2026_05_12_23_04",
+    "start_time": "2026-05-12T23:04:33.383278+00:00",
+    "mode": "paper",
+    "market": "BTCUSDT",
+    "system_version": "V9.2",
+    "trades": 3,
+    "winrate": 0.6667,
+    "expectancy": 0.4967,
+    "profit_factor": 3.98,
+    "quality_score": 35.2,
+    "label": "unstable",
+    "confidence": 0.03,
+    "regime_coverage": 0.2857,
+    "failure_causes": [],
+    "session_dna": {
+      "expectancy": 0.4967,
+      "profit_factor": 3.98,
+      "stability": 0.9342,
+      "recovery_factor": 3.0,
+      "drift_score": 1.0,
+      "winrate": 0.6667,
+      "regime_trend": 0.6667,
+      "regime_momentum": 0.0,
+      "regime_sideways": 0.3333,
+      "regime_range": 0.0,
+      "regime_range_faible": 0.0,
+      "regime_volatile": 0.0,
+      "regime_unknown": 0.0
+    },
+    "market_fingerprint": {
+      "volatility_mean": 0.8632,
+      "trend_strength": 0.6667,
+      "sideways_ratio": 0.3333,
+      "anomaly_ratio": 0.0
+    }
+  },
+  {
+    "session_id": "session_2026_05_12_23_11",
+    "start_time": "2026-05-12T23:11:11.817320+00:00",
+    "mode": "paper",
+    "market": "BTCUSDT",
+    "system_version": "V9.2",
+    "trades": 12,
+    "winrate": 0.6667,
+    "expectancy": 0.1367,
+    "profit_factor": 2.64,
+    "quality_score": 33.23,
+    "label": "unstable",
+    "confidence": 0.12,
+    "regime_coverage": 0.2857,
+    "failure_causes": [
+      "sur-exposition aux r\u00e9gimes bloqu\u00e9s (42% des trades)"
+    ],
+    "session_dna": {
+      "expectancy": 0.1367,
+      "profit_factor": 2.64,
+      "stability": 0.9608,
+      "recovery_factor": 6.6667,
+      "drift_score": 1.0,
+      "winrate": 0.6667,
+      "regime_trend": 0.5833,
+      "regime_momentum": 0.0,
+      "regime_sideways": 0.4167,
+      "regime_range": 0.0,
+      "regime_range_faible": 0.0,
+      "regime_volatile": 0.0,
+      "regime_unknown": 0.0
+    },
+    "market_fingerprint": {
+      "volatility_mean": 0.2856,
+      "trend_strength": 0.5833,
+      "sideways_ratio": 0.4167,
+      "anomaly_ratio": 0.0
+    }
+  },
+  {
+    "session_id": "session_2026_05_12_23_19",
+    "start_time": "2026-05-12T23:19:39.130515+00:00",
+    "mode": "paper",
+    "market": "BTCUSDT",
+    "system_version": "V9.2",
+    "trades": 15,
+    "winrate": 0.6667,
+    "expectancy": 0.0027,
+    "profit_factor": 1.8649,
+    "quality_score": 16.95,
+    "label": "unstable",
+    "confidence": 0.15,
+    "regime_coverage": 0.7143,
+    "failure_causes": [],
+    "session_dna": {
+      "expectancy": 0.0027,
+      "profit_factor": 1.8649,
+      "stability": 0.9065,
+      "recovery_factor": 1.5404,
+      "drift_score": 1.0,
+      "winrate": 0.6667,
+      "regime_trend": 0.2,
+      "regime_momentum": 0.2,
+      "regime_sideways": 0.2,
+      "regime_range": 0.2,
+      "regime_range_faible": 0.0,
+      "regime_volatile": 0.2,
+      "regime_unknown": 0.0
+    },
+    "market_fingerprint": {
+      "volatility_mean": 0.0099,
+      "trend_strength": 0.4,
+      "sideways_ratio": 0.4,
+      "anomaly_ratio": 0.2
+    }
+  }
+]

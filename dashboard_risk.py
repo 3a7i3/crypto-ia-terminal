@@ -37,9 +37,9 @@ st.set_page_config(
 
 # ── Constantes ────────────────────────────────────────────────────────────────
 
-SHADOW_LOG   = Path("databases/shadow_execution/shadow_log.jsonl")
+SHADOW_LOG = Path("databases/shadow_execution/shadow_log.jsonl")
 TRADE_LOG_DB = Path(os.getenv("EXEC_TRADE_LOG", "databases/trade_log.sqlite"))
-ADVISOR_LOG  = Path("logs/advisor_loop.log")
+ADVISOR_LOG = Path("logs/advisor_loop.log")
 
 REFRESH_INTERVAL = int(os.getenv("DASHBOARD_REFRESH", "15"))  # secondes
 
@@ -48,6 +48,7 @@ STATUS_EMOJI = {"ok": "✅", "warn": "⚠️", "degraded": "🔴", "offline": "�
 
 
 # ── Chargement des données ────────────────────────────────────────────────────
+
 
 @st.cache_data(ttl=REFRESH_INTERVAL)
 def load_shadow_trades(n: int = 50) -> list[dict]:
@@ -71,13 +72,18 @@ def load_trade_log(n: int = 50) -> list[dict]:
         return []
     try:
         import sqlite3
+
         con = sqlite3.connect(str(TRADE_LOG_DB))
         cur = con.execute(
-            "SELECT symbol, action, size, status, ts FROM trades ORDER BY ts DESC LIMIT ?", (n,)
+            "SELECT symbol, action, size, status, ts FROM trades ORDER BY ts DESC LIMIT ?",
+            (n,),
         )
         rows = cur.fetchall()
         con.close()
-        return [{"symbol": r[0], "action": r[1], "size": r[2], "status": r[3], "ts": r[4]} for r in rows]
+        return [
+            {"symbol": r[0], "action": r[1], "size": r[2], "status": r[3], "ts": r[4]}
+            for r in rows
+        ]
     except Exception:
         return []
 
@@ -89,7 +95,7 @@ def load_advisor_log_tail(n: int = 200) -> list[str]:
     try:
         with ADVISOR_LOG.open(encoding="utf-8", errors="replace") as f:
             lines = f.readlines()
-        return [l.rstrip() for l in lines[-n:]]
+        return [line.rstrip() for line in lines[-n:]]
     except Exception:
         return []
 
@@ -102,17 +108,24 @@ def parse_cycle_data(log_lines: list[str]) -> list[dict]:
         if " | score: " in line and " | regime: " in line:
             try:
                 parts = line.split(" | ")
-                ts_part  = parts[0].split()[0] + " " + parts[0].split()[1]
-                sym      = parts[0].split()[-1]
-                price    = float(parts[1].replace("$", ""))
-                score    = int(parts[2].replace("score: ", "").replace("/100", ""))
-                signal   = parts[3].strip()
-                regime   = parts[4].replace("regime: ", "").strip()
-                gate     = parts[5].replace("gate: ", "").strip() if len(parts) > 5 else "?"
-                records.append({
-                    "ts": ts_part, "symbol": sym, "price": price,
-                    "score": score, "signal": signal, "regime": regime, "gate": gate,
-                })
+                ts_part = parts[0].split()[0] + " " + parts[0].split()[1]
+                sym = parts[0].split()[-1]
+                price = float(parts[1].replace("$", ""))
+                score = int(parts[2].replace("score: ", "").replace("/100", ""))
+                signal = parts[3].strip()
+                regime = parts[4].replace("regime: ", "").strip()
+                gate = parts[5].replace("gate: ", "").strip() if len(parts) > 5 else "?"
+                records.append(
+                    {
+                        "ts": ts_part,
+                        "symbol": sym,
+                        "price": price,
+                        "score": score,
+                        "signal": signal,
+                        "regime": regime,
+                        "gate": gate,
+                    }
+                )
             except Exception:
                 continue
     return records
@@ -121,6 +134,7 @@ def parse_cycle_data(log_lines: list[str]) -> list[dict]:
 def check_exchange_health() -> dict:
     """Ping Binance testnet et retourne la santé."""
     import requests as req
+
     testnet = os.getenv("BINANCE_TESTNET", "false").lower() == "true"
     base = "https://testnet.binance.vision" if testnet else "https://api.binance.com"
     t0 = time.time()
@@ -131,20 +145,26 @@ def check_exchange_health() -> dict:
             return {"status": "ok", "latency_ms": round(ms, 0), "error": ""}
     except Exception as exc:
         return {"status": "offline", "latency_ms": 0.0, "error": str(exc)}
-    return {"status": "warn", "latency_ms": round((time.time() - t0) * 1000, 0), "error": ""}
+    return {
+        "status": "warn",
+        "latency_ms": round((time.time() - t0) * 1000, 0),
+        "error": "",
+    }
 
 
 # ── Layout ────────────────────────────────────────────────────────────────────
 
 st.title("📊 Crypto AI Terminal — Risk Dashboard")
-st.caption(f"Actualisation automatique toutes les {REFRESH_INTERVAL}s | Mode: ADVISOR ONLY")
+st.caption(
+    f"Actualisation automatique toutes les {REFRESH_INTERVAL}s | Mode: ADVISOR ONLY"
+)
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
 
 with st.sidebar:
     st.header("⚙️ Paramètres")
     n_shadow = st.slider("Shadow trades affichés", 10, 200, 50)
-    n_log    = st.slider("Lignes de log", 50, 500, 200)
+    n_log = st.slider("Lignes de log", 50, 500, 200)
     show_raw_log = st.checkbox("Afficher log brut", value=False)
     st.divider()
     st.markdown("**Commandes Telegram**")
@@ -165,7 +185,11 @@ with col1:
     st.metric(
         label=f"{emoji} Exchange Binance",
         value="En ligne" if exchange["status"] == "ok" else "HORS LIGNE",
-        delta=f"{exchange['latency_ms']:.0f} ms" if exchange["status"] == "ok" else exchange["error"][:30],
+        delta=(
+            f"{exchange['latency_ms']:.0f} ms"
+            if exchange["status"] == "ok"
+            else exchange["error"][:30]
+        ),
     )
 
 # Shadow trades summary
@@ -174,7 +198,11 @@ with col2:
     n_sh = len(shadow_trades)
     if n_sh > 0:
         avg_slip = sum(t.get("slippage_pct", 0) for t in shadow_trades) / n_sh
-        st.metric(label="🧪 Shadow Trades", value=str(n_sh), delta=f"Slippage moy: {avg_slip:.3f}%")
+        st.metric(
+            label="🧪 Shadow Trades",
+            value=str(n_sh),
+            delta=f"Slippage moy: {avg_slip:.3f}%",
+        )
     else:
         st.metric(label="🧪 Shadow Trades", value="0", delta="Aucun signal actionable")
 
@@ -182,7 +210,7 @@ with col2:
 real_trades = load_trade_log(50)
 with col3:
     n_real = len(real_trades)
-    n_rej  = sum(1 for t in real_trades if t.get("status") == "rejected")
+    n_rej = sum(1 for t in real_trades if t.get("status") == "rejected")
     st.metric(label="📋 Ordres loggés", value=str(n_real), delta=f"{n_rej} rejetés")
 
 # Advisor log last cycle
@@ -245,7 +273,9 @@ if cycle_data:
     # Seuils
     st.caption("Seuils: 70+ signal actionable | 50-69 à surveiller | <50 pas d'action")
 else:
-    st.info("Aucune donnée de cycle disponible — lancez `python advisor_loop.py` pour démarrer.")
+    st.info(
+        "Aucune donnée de cycle disponible — lancez `python advisor_loop.py` pour démarrer."
+    )
 
 st.divider()
 
@@ -255,10 +285,22 @@ st.subheader("🧪 Shadow Trades simulés")
 
 if shadow_trades:
     df_sh = pd.DataFrame(shadow_trades)
-    cols_display = [c for c in [
-        "id", "symbol", "signal", "signal_price", "simulated_fill_price",
-        "slippage_pct", "notional", "signal_to_order_ms", "regime", "timestamp"
-    ] if c in df_sh.columns]
+    cols_display = [
+        c
+        for c in [
+            "id",
+            "symbol",
+            "signal",
+            "signal_price",
+            "simulated_fill_price",
+            "slippage_pct",
+            "notional",
+            "signal_to_order_ms",
+            "regime",
+            "timestamp",
+        ]
+        if c in df_sh.columns
+    ]
 
     if cols_display:
         df_show = df_sh[cols_display].tail(20)
@@ -285,7 +327,9 @@ if shadow_trades:
                 lat = df_sh["signal_to_order_ms"].mean()
                 st.metric("Latence moyenne", f"{lat:.1f} ms")
 else:
-    st.info("Aucun shadow trade enregistré. Les trades simulés apparaissent quand le score atteint 70+.")
+    st.info(
+        "Aucun shadow trade enregistré. Les trades simulés apparaissent quand le score atteint 70+."
+    )
 
 st.divider()
 
@@ -314,6 +358,7 @@ with st.expander("Rejouer un trade par ID", expanded=False):
     if st.button("Rejouer") and replay_id.strip():
         try:
             from quant_hedge_ai.agents.execution.trade_replay import TradeReplaySystem
+
             rp = TradeReplaySystem()
             report = rp.replay(replay_id.strip())
             if report.found:
@@ -348,13 +393,23 @@ with st.expander("Recherche dans les shadow trades", expanded=False):
     with s_col1:
         s_symbol = st.selectbox("Symbole", ["", "BTC/USDT", "ETH/USDT", "SOL/USDT"])
     with s_col2:
-        s_regime = st.selectbox("Régime", ["", "bull_trend", "bear_trend", "sideways",
-                                            "high_volatility_regime", "flash_crash"])
+        s_regime = st.selectbox(
+            "Régime",
+            [
+                "",
+                "bull_trend",
+                "bear_trend",
+                "sideways",
+                "high_volatility_regime",
+                "flash_crash",
+            ],
+        )
     with s_col3:
         s_min_score = st.slider("Score minimum", 0, 100, 0)
     if st.button("Rechercher"):
         try:
             from quant_hedge_ai.agents.execution.trade_replay import TradeReplaySystem
+
             rp = TradeReplaySystem()
             results = rp.search(
                 symbol=s_symbol or None,
@@ -364,9 +419,21 @@ with st.expander("Recherche dans les shadow trades", expanded=False):
             )
             if results:
                 df_rp = pd.DataFrame(results)
-                cols_rp = [c for c in ["id", "symbol", "action", "signal_score",
-                                        "regime", "slippage_pct", "notional",
-                                        "signal_to_order_ms", "timestamp"] if c in df_rp.columns]
+                cols_rp = [
+                    c
+                    for c in [
+                        "id",
+                        "symbol",
+                        "action",
+                        "signal_score",
+                        "regime",
+                        "slippage_pct",
+                        "notional",
+                        "signal_to_order_ms",
+                        "timestamp",
+                    ]
+                    if c in df_rp.columns
+                ]
                 st.dataframe(df_rp[cols_rp], use_container_width=True)
                 st.caption(f"{len(results)} résultats trouvés")
             else:
@@ -419,37 +486,51 @@ with st.expander("Décomposition détaillée du dernier score", expanded=True):
             ]
             for label, val, max_val in comp_rows:
                 pct = min(100.0, val / max_val * 100) if max_val else 0
-                rating = "excellent" if pct >= 85 else ("bon" if pct >= 65 else ("moyen" if pct >= 40 else "faible"))
+                rating = (
+                    "excellent"
+                    if pct >= 85
+                    else ("bon" if pct >= 65 else ("moyen" if pct >= 40 else "faible"))
+                )
                 color = "green" if pct >= 65 else ("orange" if pct >= 40 else "red")
-                st.markdown(f"**{label}** — {val:.1f}/{max_val} ({pct:.0f}%) :{color}[{rating}]")
+                st.markdown(
+                    f"**{label}** — {val:.1f}/{max_val} ({pct:.0f}%) :{color}[{rating}]"
+                )
                 st.progress(int(pct))
 
-            # Verdict
-            total = sum(v for v, _ in [(comp_data.get("mtf", 0), 40),
-                                        (comp_data.get("regime", 0), 25),
-                                        (comp_data.get("data_quality", 0), 15),
-                                        (comp_data.get("memory", 0), 20)])
-            if total >= 70:
-                st.success(f"Verdict: SIGNAL ACTIONABLE — score {total:.0f}/100 au-dessus du seuil (70)")
-            elif total >= 50:
-                st.warning(f"Verdict: A SURVEILLER — score {total:.0f}/100 proche du seuil (70)")
+            # Verdict — utilise le vrai score signal, pas la somme des sous-composants
+            if score_ex >= 70:
+                st.success(
+                    f"Verdict: SIGNAL ACTIONABLE — score {score_ex}/100 au-dessus du seuil (70)"
+                )
+            elif score_ex >= 50:
+                st.warning(
+                    f"Verdict: A SURVEILLER — score {score_ex}/100 proche du seuil (70)"
+                )
             else:
-                st.info(f"Verdict: EN ATTENTE — score {total:.0f}/100 sous le seuil (70)")
+                st.info(
+                    f"Verdict: EN ATTENTE — score {score_ex}/100 sous le seuil (70)"
+                )
         else:
             # Afficher ce qu'on a depuis les logs
             st.markdown("**Composants (depuis les logs) :**")
-            st.info("Score issu des cycles en cours. Les composants détaillés apparaissent quand un shadow trade est déclenché (score ≥ 70).")
+            st.info(
+                "Score issu des cycles en cours. Les composants détaillés apparaissent quand un shadow trade est déclenché (score ≥ 70)."
+            )
 
         # Graphique historique du score pour ce symbole
         if len(sym_data_ex) > 1:
             df_ex = pd.DataFrame(sym_data_ex)
             df_ex["ts"] = pd.to_datetime(df_ex["ts"], errors="coerce")
-            df_ex = df_ex.set_index("ts")[["score"]].rename(columns={"score": f"Score {ex_sym}"})
+            df_ex = df_ex.set_index("ts")[["score"]].rename(
+                columns={"score": f"Score {ex_sym}"}
+            )
             st.line_chart(df_ex, use_container_width=True)
             # Ligne de seuil à 70
             st.caption("Seuil d'activation: 70/100 | Score actuel: " + str(score_ex))
     else:
-        st.info(f"Aucune donnée disponible pour {ex_sym} — en attente du premier cycle.")
+        st.info(
+            f"Aucune donnée disponible pour {ex_sym} — en attente du premier cycle."
+        )
 
 st.divider()
 
@@ -460,26 +541,45 @@ st.subheader("🎲 Monte Carlo Stress Test")
 with st.expander("Lancer une simulation de survie", expanded=False):
     mc_col1, mc_col2, mc_col3 = st.columns(3)
     with mc_col1:
-        mc_equity   = st.number_input("Capital ($)", value=float(os.getenv("V9_INITIAL_CAPITAL", "1000")), min_value=100.0)
-        mc_win_rate = st.slider("Win rate estimé", 0.30, 0.75, 0.55, 0.01, format="%.2f")
+        mc_equity = st.number_input(
+            "Capital ($)",
+            value=float(os.getenv("V9_INITIAL_CAPITAL", "1000")),
+            min_value=100.0,
+        )
+        mc_win_rate = st.slider(
+            "Win rate estimé", 0.30, 0.75, 0.55, 0.01, format="%.2f"
+        )
     with mc_col2:
-        mc_avg_win  = st.slider("Gain moyen / trade (%)", 0.5, 5.0, 1.5, 0.1, format="%.1f%%")
-        mc_avg_loss = st.slider("Perte moyenne / trade (%)", 0.3, 4.0, 1.0, 0.1, format="%.1f%%")
+        mc_avg_win = st.slider(
+            "Gain moyen / trade (%)", 0.5, 5.0, 1.5, 0.1, format="%.1f%%"
+        )
+        mc_avg_loss = st.slider(
+            "Perte moyenne / trade (%)", 0.3, 4.0, 1.0, 0.1, format="%.1f%%"
+        )
     with mc_col3:
-        mc_paths    = st.select_slider("Simulations", options=[200, 500, 1000, 2000], value=500)
-        mc_steps    = st.select_slider("Trades simulés", options=[100, 200, 500], value=200)
-        mc_pos_pct  = st.slider("Taille position (%)", 1.0, 10.0, 2.0, 0.5, format="%.1f%%")
+        mc_paths = st.select_slider(
+            "Simulations", options=[200, 500, 1000, 2000], value=500
+        )
+        mc_steps = st.select_slider(
+            "Trades simulés", options=[100, 200, 500], value=200
+        )
+        mc_pos_pct = st.slider(
+            "Taille position (%)", 1.0, 10.0, 2.0, 0.5, format="%.1f%%"
+        )
 
-    use_shadow_calib = st.checkbox("Calibrer depuis les shadow trades réels", value=False)
+    use_shadow_calib = st.checkbox(
+        "Calibrer depuis les shadow trades réels", value=False
+    )
 
     if st.button("Lancer le stress test", type="primary"):
         try:
-            from quant_hedge_ai.agents.quant.stress_test import MonteCarloStressTester
             import json as _json
 
-            win_r  = mc_win_rate
-            avg_w  = mc_avg_win / 100.0
-            avg_l  = mc_avg_loss / 100.0
+            from quant_hedge_ai.agents.quant.stress_test import MonteCarloStressTester
+
+            win_r = mc_win_rate
+            avg_w = mc_avg_win / 100.0
+            avg_l = mc_avg_loss / 100.0
 
             # Calibration shadow si demandée
             if use_shadow_calib and SHADOW_LOG.exists():
@@ -491,14 +591,18 @@ with st.expander("Lancer une simulation de survie", expanded=False):
                             trades_sh.append(_json.loads(_ln))
                 if len(trades_sh) >= 3:
                     n_buys = sum(1 for t in trades_sh if t.get("action") == "BUY")
-                    win_r  = n_buys / len(trades_sh)
-                    slips  = [t.get("slippage_pct", 0.05) / 100.0 for t in trades_sh]
+                    win_r = n_buys / len(trades_sh)
+                    slips = [t.get("slippage_pct", 0.05) / 100.0 for t in trades_sh]
                     avg_sl = sum(slips) / len(slips)
-                    avg_w  = max(0.005, 0.015 - avg_sl)
-                    avg_l  = max(0.005, 0.010 + avg_sl)
-                    st.info(f"Calibration: win_rate={win_r:.1%}  avg_win={avg_w:.2%}  avg_loss={avg_l:.2%}")
+                    avg_w = max(0.005, 0.015 - avg_sl)
+                    avg_l = max(0.005, 0.010 + avg_sl)
+                    st.info(
+                        f"Calibration: win_rate={win_r:.1%}  avg_win={avg_w:.2%}  avg_loss={avg_l:.2%}"
+                    )
 
-            with st.spinner(f"Simulation en cours ({mc_paths} chemins × {mc_steps} trades)..."):
+            with st.spinner(
+                f"Simulation en cours ({mc_paths} chemins × {mc_steps} trades)..."
+            ):
                 tester = MonteCarloStressTester(
                     equity=mc_equity,
                     win_rate=win_r,
@@ -513,25 +617,29 @@ with st.expander("Lancer une simulation de survie", expanded=False):
             rows = []
             for s in report.scenarios:
                 r = s.result
-                rows.append({
-                    "Scénario":       s.name,
-                    "Survie (%)":     r["survival_rate_pct"],
-                    "Ruine (%)":      r["ruin_rate_pct"],
-                    "Capital médian": f"${r['median_final_equity']:,.0f}",
-                    "p5 (pire)":      f"${r['p05_final_equity']:,.0f}",
-                    "p95 (meilleur)": f"${r['p95_final_equity']:,.0f}",
-                    "DD moy (%)":     r["avg_max_drawdown_pct"],
-                    "DD pire (%)":    r["worst_max_drawdown_pct"],
-                    "Retour méd (%)": r["median_return_pct"],
-                })
+                rows.append(
+                    {
+                        "Scénario": s.name,
+                        "Survie (%)": r["survival_rate_pct"],
+                        "Ruine (%)": r["ruin_rate_pct"],
+                        "Capital médian": f"${r['median_final_equity']:,.0f}",
+                        "p5 (pire)": f"${r['p05_final_equity']:,.0f}",
+                        "p95 (meilleur)": f"${r['p95_final_equity']:,.0f}",
+                        "DD moy (%)": r["avg_max_drawdown_pct"],
+                        "DD pire (%)": r["worst_max_drawdown_pct"],
+                        "Retour méd (%)": r["median_return_pct"],
+                    }
+                )
             df_mc = pd.DataFrame(rows)
 
             # Coloriser selon taux de survie
             def _color_surv(val):
                 try:
                     v = float(val)
-                    if v >= 90: return "background-color: #d4edda"
-                    if v >= 70: return "background-color: #fff3cd"
+                    if v >= 90:
+                        return "background-color: #d4edda"
+                    if v >= 70:
+                        return "background-color: #fff3cd"
                     return "background-color: #f8d7da"
                 except Exception:
                     return ""
@@ -546,11 +654,17 @@ with st.expander("Lancer une simulation de survie", expanded=False):
             if worst:
                 min_surv = worst.survival_rate()
                 if min_surv >= 90:
-                    st.success(f"GO LIVE — taux de survie minimum {min_surv:.1f}% (scénario: {worst.name})")
+                    st.success(
+                        f"GO LIVE — taux de survie minimum {min_surv:.1f}% (scénario: {worst.name})"
+                    )
                 elif min_surv >= 70:
-                    st.warning(f"PRUDENCE — taux de survie minimum {min_surv:.1f}% (scénario: {worst.name})")
+                    st.warning(
+                        f"PRUDENCE — taux de survie minimum {min_surv:.1f}% (scénario: {worst.name})"
+                    )
                 else:
-                    st.error(f"RISQUE ELEVE — taux de survie minimum {min_surv:.1f}% (scénario: {worst.name})")
+                    st.error(
+                        f"RISQUE ELEVE — taux de survie minimum {min_surv:.1f}% (scénario: {worst.name})"
+                    )
 
             # Graphique survival par scénario
             surv_data = {s.name: s.survival_rate() for s in report.scenarios}

@@ -1,0 +1,149 @@
+{
+  "generated_at": "2026-05-13T01:10:42.701155",
+  "total_items": 10,
+  "debt_items": [
+    {
+      "id": "DEBT-006",
+      "category": "securite",
+      "name": "Secrets potentiellement dans le code",
+      "severity": 5,
+      "impact": 5,
+      "module": "root",
+      "description": "Presence de .env, cles API visibles dans l'historique.",
+      "action": "Rotation des cles, .env.example complet, validation pre-commit",
+      "effort": "S",
+      "status": "identifie",
+      "priority_score": 25
+    },
+    {
+      "id": "DEBT-005",
+      "category": "tests",
+      "name": "Faible visibilite sur les tests manquants",
+      "severity": 4,
+      "impact": 5,
+      "module": "tous",
+      "description": "Beaucoup de fichiers sans tests correspondants. Regressions silencieuses.",
+      "action": "Scan coverage par module + alerte de regressions",
+      "effort": "L",
+      "status": "en_cours",
+      "priority_score": 20
+    },
+    {
+      "id": "DEBT-003",
+      "category": "documentation",
+      "name": "Documentation dispersee",
+      "severity": 4,
+      "impact": 4,
+      "module": "tous",
+      "description": "Documentation repartie entre README, QUICKSTART, docstrings, fichiers .md.",
+      "action": "Hub doc unique + index automatise (docs/index.md + generateur)",
+      "effort": "L",
+      "status": "identifie",
+      "priority_score": 16
+    },
+    {
+      "id": "DEBT-004",
+      "category": "process",
+      "name": "Absence de tracking de maturite",
+      "severity": 4,
+      "impact": 4,
+      "module": "project_os",
+      "description": "Aucune vue d'ensemble de la maturite par domaine.",
+      "action": "Project OS scorecards + reporting automatise (daily/weekly)",
+      "effort": "L",
+      "status": "en_cours",
+      "priority_score": 16
+    },
+    {
+      "id": "DEBT-010",
+      "category": "documentation",
+      "name": "Pas de runbook d'incident",
+      "severity": 3,
+      "impact": 4,
+      "module": "ops",
+      "description": "En cas de panne, pas de procedure documentee.",
+      "action": "Rediger les runbooks (panne, regression, deviation de performance)",
+      "effort": "M",
+      "status": "identifie",
+      "priority_score": 12
+    },
+    {
+      "id": "DEBT-001",
+      "category": "couplage",
+      "name": "Couplage analytics / execution",
+      "severity": 3,
+      "impact": 3,
+      "module": "tracker_system / quant_hedge_ai",
+      "description": "Les metriques d'analyse sont melangees avec la logique d'execution.",
+      "action": "Contrats d'interface stricts entre couche metriques et execution",
+      "effort": "M",
+      "status": "identifie",
+      "priority_score": 9
+    },
+    {
+      "id": "DEBT-002",
+      "category": "architecture",
+      "name": "Multiplication des points d'entree",
+      "severity": 3,
+      "impact": 3,
+      "module": "root",
+      "description": "Plusieurs main.py, launch scripts, points d'entree differents.",
+      "action": "Un seul entrypoint canonique par phase",
+      "effort": "M",
+      "status": "identifie",
+      "priority_score": 9
+    },
+    {
+      "id": "DEBT-008",
+      "category": "tests",
+      "name": "Tests dormants / non maintenus",
+      "severity": 3,
+      "impact": 3,
+      "module": "tests/",
+      "description": "Tests ecrits pour des versions anterieures, potentiellement faux positifs.",
+      "action": "Audit et mise a jour de tous les tests existants",
+      "effort": "M",
+      "status": "identifie",
+      "priority_score": 9
+    },
+    {
+      "id": "DEBT-009",
+      "category": "couplage",
+      "name": "Dependance implicite au regime de marche",
+      "severity": 3,
+      "impact": 3,
+      "module": "quant_hedge_ai / tracker_system",
+      "description": "Parametres optimises pour un regime specifique sans detection auto.",
+      "action": "Systematiser la detection de regime et l'adaptation des parametres",
+      "effort": "L",
+      "status": "identifie",
+      "priority_score": 9
+    },
+    {
+      "id": "DEBT-007",
+      "category": "architecture",
+      "name": "Code legacy non archive (_legacy/)",
+      "severity": 2,
+      "impact": 2,
+      "module": "quant_hedge_ai._legacy",
+      "description": "Modules archives mais toujours presents dans l'arborescence active.",
+      "action": "Nettoyage ou isolation totale du dossier _legacy/",
+      "effort": "S",
+      "status": "identifie",
+      "priority_score": 4
+    }
+  ],
+  "summary": {
+    "total_score": 129,
+    "high_severity": 4,
+    "medium_severity": 6,
+    "by_category": {
+      "couplage": 2,
+      "architecture": 2,
+      "documentation": 2,
+      "tests": 2,
+      "securite": 1,
+      "process": 1
+    }
+  }
+}

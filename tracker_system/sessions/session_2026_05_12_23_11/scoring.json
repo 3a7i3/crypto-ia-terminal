@@ -1,0 +1,41 @@
+{
+  "quality_score": 33.23,
+  "label": "unstable",
+  "confidence": {
+    "value": 0.12,
+    "label": "faible"
+  },
+  "regime_coverage": {
+    "value": 0.2857,
+    "label": "non repr\u00e9sentatif",
+    "unique_regimes": 2,
+    "total_possible": 7
+  },
+  "market_fingerprint": {
+    "volatility_mean": 0.2856,
+    "trend_strength": 0.5833,
+    "sideways_ratio": 0.4167,
+    "anomaly_ratio": 0.0
+  },
+  "failure_analysis": {
+    "has_failures": true,
+    "root_causes": [
+      "sur-exposition aux r\u00e9gimes bloqu\u00e9s (42% des trades)"
+    ]
+  },
+  "session_dna": {
+    "expectancy": 0.1367,
+    "profit_factor": 2.64,
+    "stability": 0.9608,
+    "recovery_factor": 6.6667,
+    "drift_score": 1.0,
+    "winrate": 0.6667,
+    "regime_trend": 0.5833,
+    "regime_momentum": 0.0,
+    "regime_sideways": 0.4167,
+    "regime_range": 0.0,
+    "regime_range_faible": 0.0,
+    "regime_volatile": 0.0,
+    "regime_unknown": 0.0
+  }
+}

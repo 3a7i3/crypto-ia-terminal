@@ -243,6 +243,27 @@ What each mode does:
 - [x] All tests pass
 - [x] Zero external dependencies (JSON only)
 
+## KPIs — Statut de fiabilité en production (2026-05-11)
+
+| Métrique | Fiable prod ? | Note |
+|----------|--------------|------|
+| Winrate global | ✅ Oui | Mais trompeur seul — toujours croiser avec avg_loss |
+| Expectancy | ✅ Oui | Indicateur synthétique sain |
+| PnL total | ✅ Oui | Référence réalisée |
+| Performance par régime | ✅ Oui | Sortie produit principale |
+| Drawdown % actuel | ⚠️ Exploratoire | Calculé sur PnL réalisé, pas normalisé sur capital |
+| avg_win / avg_loss | ❌ Manquant | À implémenter — P0 |
+| Profit factor | ❌ Manquant | À implémenter — P0 |
+| Worst trade | ❌ Manquant | À implémenter — P0 |
+| Rolling 20 trades | ❌ Manquant | À implémenter — P1 |
+| Score stability | ❌ Manquant | À implémenter — P1 |
+
+## Garde-fous régime (à implémenter)
+
+- **sideways/range faible** : no-trade gate requis (0 % winrate observé, -3,05 % avg PnL)
+- Taille de position sideways ≤ 0,3× du sizing normal si profit factor < 1
+- Alerte si winrate ≥ 85 % ET PnL négatif (signe de pertes asymétriques)
+
 ## Next Steps (Phase 8-9)
 
 ### Phase 8: Dashboard

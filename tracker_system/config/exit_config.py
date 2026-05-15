@@ -1,7 +1,18 @@
 from __future__ import annotations
 
-from tracker_system.config.settings import OPTIMIZER_FILE
+from tracker_system.config.settings import (
+    MIN_PROFIT_FACTOR,
+    NO_TRADE_REGIMES,
+    OPTIMIZER_FILE,
+)
 from tracker_system.storage.loader import load_json
+
+# Régimes pour lesquels on réduit le sizing quand profit factor < seuil
+_SOFT_REGIME_FACTOR: dict[str, float] = {
+    "sideways": 0.3,
+    "range": 0.3,
+    "range_faible": 0.3,
+}
 
 EXIT_CONFIG = {
     "bull_trend": {
@@ -64,7 +75,40 @@ def _optimizer_override(regime: str) -> dict[str, float]:
     return override
 
 
-def get_exit_config(regime: str | None, confidence: float | None = None) -> dict[str, float]:
+def get_size_factor(regime: str | None, profit_factor: float | None = None) -> float:
+    """
+    Retourne un multiplicateur de taille (0.0–1.0) selon le régime et le profit factor.
+
+    Si le régime est dégradé (sideways/range) ET profit_factor < MIN_PROFIT_FACTOR,
+    retourne 0.3 pour forcer une taille réduite.
+    Dans tous les autres cas, retourne 1.0 (taille normale).
+    """
+    key = str(regime or "").strip().lower()
+    factor = _SOFT_REGIME_FACTOR.get(key)
+    if factor is None:
+        return 1.0
+
+    pf = float(profit_factor) if profit_factor is not None else 0.0
+    if pf < MIN_PROFIT_FACTOR:
+        return factor
+
+    return 1.0
+
+
+def is_regime_tradable(regime: str | None) -> tuple[bool, str]:
+    """Retourne (tradable, raison). Bloque les régimes en no-trade gate."""
+    key = str(regime or "").strip().lower()
+    if key in NO_TRADE_REGIMES:
+        return (
+            False,
+            f"Régime '{key}' bloqué par no-trade gate (profit factor historique insuffisant).",
+        )
+    return True, ""
+
+
+def get_exit_config(
+    regime: str | None, confidence: float | None = None
+) -> dict[str, float]:
     key = str(regime or "default").strip().lower()
     config = dict(EXIT_CONFIG.get(key, EXIT_CONFIG["default"]))
     config.update(_optimizer_override(key))

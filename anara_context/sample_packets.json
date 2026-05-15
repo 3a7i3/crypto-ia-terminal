@@ -1,5 +1,5 @@
 {
-  "_description": "Exemples de DecisionPackets réels — 4 résolutions représentatives pour calibrer l'affichage",
+  "_description": "Exemples de DecisionPackets réels — 5 états représentatifs pour calibrer l'affichage",
   "_usage": "Donne à Anara une vue concrète des variations d'état, de conviction et de sizing",
 
   "packets": [
@@ -90,6 +90,36 @@
         { "from": "SIGNAL_GENERATED", "to": "VETOED", "actor": "ExecutiveOverride", "duration_ms": 3 }
       ],
       "cycle_duration_ms": 16
+    },
+
+    {
+      "_case": "APPROVED — packet en vol, OrderSizer en calcul (état mid-pipeline)",
+      "decision_id": "dec_2026-05-11_005",
+      "symbol": "ETH/USDT",
+      "side": "LONG",
+      "regime": "TREND_BULL",
+      "conviction": "HIGH",
+      "conviction_score": 68,
+      "confidence": 77,
+      "allocation_pct": null,
+      "size_usd": null,
+      "state": "APPROVED",
+      "order_mode": "paper",
+      "reasoning": [
+        { "category": "signal_quality",    "severity": "INFO",    "text": "Score 77/100 — 3/4 sources alignées" },
+        { "category": "trend_alignment",   "severity": "INFO",    "text": "TREND_BULL confirmé sur 15m" },
+        { "category": "risk_governance",   "severity": "INFO",    "text": "5/5 conditions risk gate validées" },
+        { "category": "portfolio_exposure","severity": "INFO",    "text": "Exposition totale 55% — dans les limites" },
+        { "category": "sizing",            "severity": "WARNING", "text": "Calcul Kelly en cours — allocation_pct non encore défini" }
+      ],
+      "state_history": [
+        { "from": "CREATED",          "to": "SIGNAL_GENERATED", "actor": "LiveSignalEngine",  "duration_ms": 11 },
+        { "from": "SIGNAL_GENERATED", "to": "CONTEXT_ENRICHED", "actor": "ConvictionEngine",  "duration_ms": 44 },
+        { "from": "CONTEXT_ENRICHED", "to": "RISK_EVALUATED",   "actor": "GlobalRiskGate",    "duration_ms": 8  },
+        { "from": "RISK_EVALUATED",   "to": "APPROVED",          "actor": "PortfolioBrain",    "duration_ms": 14 }
+      ],
+      "cycle_duration_ms": null,
+      "_note": "Packet en transit APPROVED → EXECUTION_PENDING. Représente l'état mid-pipeline pour calibrage visuel du dashboard."
     },
 
     {

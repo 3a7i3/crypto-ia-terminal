@@ -467,12 +467,13 @@ def save_simulation_summary(summary_dict, filename):
     import os
     import pickle
 
-    os.makedirs("sim_summaries", exist_ok=True)
+    sim_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sim_summaries")
+    os.makedirs(sim_dir, exist_ok=True)
     if filename.endswith(".pkl"):
-        with open(os.path.join("sim_summaries", filename), "wb") as f:
+        with open(os.path.join(sim_dir, filename), "wb") as f:
             pickle.dump(summary_dict, f)
     else:
-        with open(os.path.join("sim_summaries", filename), "w", newline="") as f:
+        with open(os.path.join(sim_dir, filename), "w", newline="") as f:
             writer = csv.DictWriter(f, fieldnames=list(summary_dict.keys()))
             writer.writeheader()
             writer.writerow(summary_dict)
