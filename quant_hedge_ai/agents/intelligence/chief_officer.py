@@ -39,7 +39,7 @@ from typing import Optional
 
 logger = logging.getLogger(__name__)
 
-_BRIEF_EVERY = int(os.getenv("COO_BRIEF_EVERY",  "6"))    # cycles entre briefings
+_BRIEF_EVERY = int(os.getenv("COO_BRIEF_EVERY", "6"))  # cycles entre briefings
 _LM_SYSTEM_PROMPT = (
     "Tu es le Chief Officer d'un systeme de trading crypto algorithmique. "
     "Tu fournis des briefings courts, factuels, actionnables, sans markdown."
@@ -78,18 +78,19 @@ class ChiefOfficer:
 
     def briefing(
         self,
-        cycle:           int,
-        symbols:         list,
-        results:         list,
-        pos_manager      = None,
-        awareness_state  = None,
-        override         = None,
-        regret_engine    = None,
-        mistake_memory   = None,
-        ranker           = None,
-        meta_engine      = None,
-        black_box        = None,
-        force:           bool = False,
+        cycle: int,
+        symbols: list,
+        results: list,
+        pos_manager=None,
+        awareness_state=None,
+        override=None,
+        regret_engine=None,
+        mistake_memory=None,
+        ranker=None,
+        meta_engine=None,
+        black_box=None,
+        activity_tracker=None,
+        force: bool = False,
     ) -> Optional[str]:
         """
         Genere un briefing si le moment est venu (tous les N cycles).
@@ -99,12 +100,21 @@ class ChiefOfficer:
             return None
 
         self._last_brief_cycle = cycle
-        self._last_brief_ts    = time.time()
+        self._last_brief_ts = time.time()
 
         context = self._build_context(
-            cycle, symbols, results, pos_manager,
-            awareness_state, override, regret_engine,
-            mistake_memory, ranker, meta_engine, black_box,
+            cycle,
+            symbols,
+            results,
+            pos_manager,
+            awareness_state,
+            override,
+            regret_engine,
+            mistake_memory,
+            ranker,
+            meta_engine,
+            black_box,
+            activity_tracker,
         )
 
         # Essayer LM Studio d'abord
@@ -119,9 +129,9 @@ class ChiefOfficer:
 
     def quick_alert(
         self,
-        event:   str,
+        event: str,
         context: dict,
-        cycle:   int = 0,
+        cycle: int = 0,
     ) -> str:
         """
         Alerte rapide sur un evenement specifique.
@@ -144,19 +154,29 @@ class ChiefOfficer:
     # ── Construction du contexte ──────────────────────────────────────────────
 
     def _build_context(
-        self, cycle, symbols, results, pos_manager,
-        awareness_state, override, regret_engine,
-        mistake_memory, ranker, meta_engine, black_box,
+        self,
+        cycle,
+        symbols,
+        results,
+        pos_manager,
+        awareness_state,
+        override,
+        regret_engine,
+        mistake_memory,
+        ranker,
+        meta_engine,
+        black_box,
+        activity_tracker=None,
     ) -> dict:
         ctx: dict = {"cycle": cycle, "symbols": symbols}
 
         # Signaux courants
         ctx["signals"] = [
             {
-                "symbol":  r.get("symbol"),
-                "signal":  r.get("signal").signal if r.get("signal") else "?",
-                "score":   r.get("signal").score  if r.get("signal") else 0,
-                "regime":  r.get("regime", "unknown"),
+                "symbol": r.get("symbol"),
+                "signal": r.get("signal").signal if r.get("signal") else "?",
+                "score": r.get("signal").score if r.get("signal") else 0,
+                "regime": r.get("regime", "unknown"),
                 "allowed": r.get("trade_allowed", False),
             }
             for r in results
@@ -167,11 +187,11 @@ class ChiefOfficer:
             try:
                 stats = pos_manager.stats()
                 ctx["positions"] = {
-                    "open":       stats.get("open_count", 0),
-                    "pnl_open":   round(stats.get("open_pnl_usd", 0.0), 2),
-                    "pnl_total":  round(stats.get("total_pnl_usd", 0.0), 2),
-                    "win_rate":   round(stats.get("win_rate", 0.0), 3),
-                    "closed":     stats.get("closed_count", 0),
+                    "open": stats.get("open_count", 0),
+                    "pnl_open": round(stats.get("open_pnl_usd", 0.0), 2),
+                    "pnl_total": round(stats.get("total_pnl_usd", 0.0), 2),
+                    "win_rate": round(stats.get("win_rate", 0.0), 3),
+                    "closed": stats.get("closed_count", 0),
                 }
             except Exception:
                 ctx["positions"] = {}
@@ -179,10 +199,16 @@ class ChiefOfficer:
         # Self-Awareness
         if awareness_state:
             ctx["awareness"] = {
-                "level":       awareness_state.level.name if hasattr(awareness_state, "level") else "?",
+                "level": (
+                    awareness_state.level.name
+                    if hasattr(awareness_state, "level")
+                    else "?"
+                ),
                 "size_factor": getattr(awareness_state, "size_factor", 1.0),
-                "safe_mode":   getattr(awareness_state, "safe_mode", False),
-                "drifts":      [d.message for d in getattr(awareness_state, "active_drifts", [])[:3]],
+                "safe_mode": getattr(awareness_state, "safe_mode", False),
+                "drifts": [
+                    d.message for d in getattr(awareness_state, "active_drifts", [])[:3]
+                ],
             }
 
         # Executive Override
@@ -199,10 +225,10 @@ class ChiefOfficer:
         if mistake_memory:
             mm_stats = mistake_memory.stats()
             ctx["mistakes"] = {
-                "total":        mm_stats.get("total", 0),
-                "error_rate":   mm_stats.get("error_rate", 0.0),
+                "total": mm_stats.get("total", 0),
+                "error_rate": mm_stats.get("error_rate", 0.0),
                 "rules_active": mm_stats.get("rules_active", 0),
-                "recent":       mistake_memory.explain_last_mistakes(2),
+                "recent": mistake_memory.explain_last_mistakes(2),
             }
 
         # Ranker — top strategie
@@ -218,7 +244,7 @@ class ChiefOfficer:
             p = meta_engine.current_personality()
             if p:
                 ctx["personality"] = {
-                    "name":   p.name,
+                    "name": p.name,
                     "tp_pct": p.tp_pct,
                     "sl_pct": p.sl_pct,
                 }
@@ -226,7 +252,14 @@ class ChiefOfficer:
         # Black Box — derniers evenements
         if black_box:
             ctx["bb_recent"] = black_box.last_n_summary(5)
-            ctx["bb_stats"]  = black_box.stats()
+            ctx["bb_stats"] = black_box.stats()
+
+        # Activity Tracker — inactivité du capital
+        if activity_tracker is not None:
+            try:
+                ctx["activity"] = activity_tracker.report()
+            except Exception:
+                pass
 
         return ctx
 
@@ -234,7 +267,7 @@ class ChiefOfficer:
 
     def _lm_analysis(self, ctx: dict) -> Optional[str]:
         ctx_str = self._format_context_short(ctx)
-        prompt  = (
+        prompt = (
             "Tu es le Chief Officer d'un systeme de trading crypto algorithmique. "
             "Analyse l'etat ci-dessous et produis un briefing de 4-6 phrases maximum. "
             "Sois direct, factuel, actionnable. Pas de markdown. "
@@ -283,13 +316,15 @@ class ChiefOfficer:
 
         # Signaux
         signals = ctx.get("signals", [])
-        active  = [s for s in signals if s["score"] >= 70]
+        active = [s for s in signals if s["score"] >= 70]
         blocked = [s for s in signals if s["score"] >= 65 and not s["allowed"]]
         if active:
             lines.append("SIGNAUX ACTIFS:")
             for s in active:
-                lines.append(f"  {s['symbol']} {s['signal']} score={s['score']} "
-                              f"regime={s['regime']} | {'OK' if s['allowed'] else 'BLOQUE'}")
+                lines.append(
+                    f"  {s['symbol']} {s['signal']} score={s['score']} "
+                    f"regime={s['regime']} | {'OK' if s['allowed'] else 'BLOQUE'}"
+                )
             lines.append("")
         if blocked:
             lines.append("SIGNAUX BLOQUES:")
@@ -301,9 +336,11 @@ class ChiefOfficer:
         pos = ctx.get("positions", {})
         if pos:
             pnl_total = pos.get("pnl_total", 0)
-            wr        = pos.get("win_rate", 0)
-            lines.append(f"PORTEFEUILLE: {pos.get('open',0)} ouvertes | "
-                          f"PnL total: {pnl_total:+.2f}$ | WR: {wr:.0%}")
+            wr = pos.get("win_rate", 0)
+            lines.append(
+                f"PORTEFEUILLE: {pos.get('open',0)} ouvertes | "
+                f"PnL total: {pnl_total:+.2f}$ | WR: {wr:.0%}"
+            )
             lines.append("")
 
         # Awareness
@@ -318,8 +355,10 @@ class ChiefOfficer:
         missed = regret.get("missed_wins", 0)
         if missed > 0:
             accuracy = regret.get("refusal_accuracy", 0.0)
-            lines.append(f"ANALYSE REGRETS: {missed} opportunites manquees | "
-                          f"Precision refus: {accuracy:.0%}")
+            lines.append(
+                f"ANALYSE REGRETS: {missed} opportunites manquees | "
+                f"Precision refus: {accuracy:.0%}"
+            )
             hints = ctx.get("regret_hints", [])
             for h in hints[:2]:
                 lines.append(f"  Calibration: {h['hint'][:80]}")
@@ -328,10 +367,26 @@ class ChiefOfficer:
         # Mistakes
         mm = ctx.get("mistakes", {})
         if mm.get("rules_active", 0) > 0:
-            lines.append(f"REGLES AUTO: {mm['rules_active']} actives | "
-                          f"Taux erreur: {mm.get('error_rate', 0):.0%}")
+            lines.append(
+                f"REGLES AUTO: {mm['rules_active']} actives | "
+                f"Taux erreur: {mm.get('error_rate', 0):.0%}"
+            )
             for err in mm.get("recent", [])[:1]:
                 lines.append(f"  Derniere: {err[:80]}")
+            lines.append("")
+
+        # Activité du capital
+        activity = ctx.get("activity", {})
+        if activity:
+            inactivity = activity.get("inactivity_ratio", 0.0)
+            exec_ratio = activity.get("execution_ratio", 1.0)
+            since = activity.get("cycles_since_last_trade", 0)
+            alert = activity.get("alert_overfiltered", False)
+            prefix = "ALERTE " if alert else ""
+            lines.append(
+                f"{prefix}CAPITAL: activite={1 - inactivity:.0%} | "
+                f"exec={exec_ratio:.0%} | sans trade depuis {since} cycles"
+            )
             lines.append("")
 
         # Recommandation finale
@@ -344,43 +399,70 @@ class ChiefOfficer:
     def _recommend(self, ctx: dict) -> str:
         override = ctx.get("override", {})
         eo_level = override.get("level", "CLEAR")
-        aw       = ctx.get("awareness", {})
+        aw = ctx.get("awareness", {})
         aw_level = aw.get("level", "OK")
-        regret   = ctx.get("regret", {})
+        regret = ctx.get("regret", {})
         accuracy = regret.get("refusal_accuracy", 1.0)
-        dd       = override.get("drawdown_pct", 0)
-        streak   = override.get("loss_streak", 0)
+        dd = override.get("drawdown_pct", 0)
+        streak = override.get("loss_streak", 0)
 
         if eo_level == "VETO":
             return "HALTE COMPLETE. Attendre stabilisation. Ne pas ouvrir de positions."
         if eo_level == "MINIMAL":
-            return f"Mode survie actif (DD={dd:.1f}%). Taille minimum. Surveiller recovery."
+            return (
+                f"Mode survie actif (DD={dd:.1f}%). "
+                "Taille minimum. Surveiller recovery."
+            )
         if eo_level == "CAREFUL":
-            return f"Prudence maximale (streak={streak}). Taille x25%. Attendre signal exceptionnel."
+            return (
+                f"Prudence maximale (streak={streak}). "
+                "Taille x25%. Attendre signal exceptionnel."
+            )
         if eo_level == "REDUCE":
             return f"Pression detectable. Taille x50%. Eviter les entrees marginales."
         if aw_level in ("DANGER", "CRITICAL"):
-            return "Derive comportementale critique. Reduire taille et surveiller regime."
+            return (
+                "Derive comportementale critique. Reduire taille et surveiller regime."
+            )
+        activity = ctx.get("activity", {})
+        if (
+            activity.get("alert_overfiltered")
+            and activity.get("cycles_since_last_trade", 0) >= 20
+        ):
+            return (
+                f"Capital inactif depuis {activity['cycles_since_last_trade']} cycles "
+                f"(activite={1 - activity.get('inactivity_ratio', 1):.0%}). "
+                "Sur-filtrage probable — verifier seuils et conviction."
+            )
         if accuracy < 0.5 and regret.get("missed_wins", 0) >= 3:
-            return "Trop de bons trades bloques. Envisager d'assouplir conviction/no-trade."
+            return (
+                "Trop de bons trades bloques. "
+                "Envisager d'assouplir conviction/no-trade."
+            )
         return "Systeme en ordre. Continuer selon les signaux habituels."
 
     def _quick_deterministic(self, event: str, ctx: dict) -> str:
-        return f"COO ALERTE: {event} | Contexte: {self._format_context_short(ctx)[:100]}"
+        return (
+            f"COO ALERTE: {event} | Contexte: {self._format_context_short(ctx)[:100]}"
+        )
 
     @staticmethod
     def _format_context_short(ctx: dict) -> str:
         parts = []
         if "override" in ctx:
             o = ctx["override"]
-            parts.append(f"Override={o.get('level','?')} DD={o.get('drawdown_pct',0):.1f}% "
-                          f"streak={o.get('loss_streak',0)}")
+            parts.append(
+                f"Override={o.get('level','?')} DD={o.get('drawdown_pct',0):.1f}% "
+                f"streak={o.get('loss_streak',0)}"
+            )
         if "awareness" in ctx:
             parts.append(f"Awareness={ctx['awareness'].get('level','?')}")
         if "positions" in ctx:
             p = ctx["positions"]
             parts.append(f"Pos={p.get('open',0)} PnL={p.get('pnl_total',0):+.1f}$")
         if "signals" in ctx:
-            sigs = [f"{s['symbol']}:{s['signal']}({s['score']})" for s in ctx["signals"][:3]]
+            sigs = [
+                f"{s['symbol']}:{s['signal']}({s['score']})" for s in ctx["signals"][:3]
+            ]
             parts.append(f"Signals={' '.join(sigs)}")
         return " | ".join(parts) if parts else str(ctx)[:200]

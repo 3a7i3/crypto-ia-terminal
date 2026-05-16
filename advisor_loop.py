@@ -1585,11 +1585,23 @@ def main(
         except Exception as exc:
             log.exception("[SelfHeal] Reconnexion exception: %s", exc)
 
+    def _exchange_health_check() -> bool:
+        # is_healthy() retourne False sans lever d'exception → last_error resterait vide.
+        # On lève explicitement avec le snapshot pour avoir un message exploitable dans les logs.
+        if not exchange_monitor.is_healthy():
+            snap = exchange_monitor.snapshot()
+            err = (
+                snap.get("last_error")
+                or f"ping KO ({snap.get('consecutive_failures', '?')} échecs)"
+            )
+            raise RuntimeError(err)
+        return True
+
     _profile_bootstrap_step(
         "self_healing.register_exchange",
         lambda: healer.register_simple(
             "exchange",
-            health_fn=exchange_monitor.is_healthy,
+            health_fn=_exchange_health_check,
             restart_fn=_exchange_restart,
         ),
     )
@@ -2290,6 +2302,23 @@ def main(
     cycle = 0
     consecutive_errors = 0
     shed_optional_until_cycle = 0
+    # ── Boucle de rétroaction adaptative ──────────────────────────────────────
+    # _adaptive_regime : régime stable (confirmé sur N cycles consécutifs)
+    # _regime_votes    : fenêtre glissante des N dernières observations
+    # _activity_tracker: métriques d'inactivité du capital
+    _adaptive_regime: str = "unknown"
+    _regime_votes: list = []  # dernières N observations de régime
+    _REGIME_STABILITY = int(
+        os.getenv("REGIME_STABILITY_WINDOW", "3")
+    )  # cycles à confirmer
+    try:
+        from quant_hedge_ai.agents.intelligence.activity_tracker import (
+            ActivityTracker as _ActivityTrackerCls,
+        )
+
+        _activity_tracker: Any = _ActivityTrackerCls()
+    except Exception:
+        _activity_tracker = None
 
     while True:
         cycle += 1
@@ -2397,6 +2426,30 @@ def main(
                             )
             except Exception as _rt_exc:
                 log.debug("[RuntimeConfig] Erreur rechargement: %s", _rt_exc)
+
+            # ── Boucle de rétroaction régime-aware — AVANT scoring ───────────
+            # Le delta doit être calculé AVANT analyze_symbol : si on l'applique
+            # après, le gate a déjà scoré avec l'ancien seuil → causalité inversée.
+            # Toutes les 6 cycles (~30 min) pour éviter l'oscillation.
+            if regret_engine is not None and cycle % 6 == 0 and cycle > 1:
+                try:
+                    _pm_fb = _stats_dict(pos_manager.stats())
+                    _winrate_exec = float(_pm_fb.get("win_rate", 0.5))
+                    _re_delta = regret_engine.get_threshold_delta(
+                        current_regime=_adaptive_regime,
+                        winrate_executed=_winrate_exec,
+                    )
+                    if _re_delta != 0:
+                        gate.apply_regret_delta(_re_delta)
+                        log.info(
+                            "[RegretFeedback] Cycle %d — régime=%s winrate=%.0f%% → delta=%+d",
+                            cycle,
+                            _adaptive_regime,
+                            _winrate_exec * 100,
+                            _re_delta,
+                        )
+                except Exception as _re_fb_exc:
+                    log.debug("[RegretFeedback] Erreur: %s", _re_fb_exc)
 
             results: list[AnalysisResult] = []
             for sym in symbols:
@@ -2788,6 +2841,51 @@ def main(
                         r["signal"].score,
                     )
 
+            # ── Post-cycle: régime dominant + métriques d'activité ───────────
+            # Régime : mise à jour seulement si N cycles consécutifs identiques
+            # (évite l'oscillation TREND→SIDEWAYS→TREND en 15 min).
+            if results:
+                _obs = results[0].get("regime", _adaptive_regime)
+                _regime_votes.append(_obs)
+                if len(_regime_votes) > _REGIME_STABILITY:
+                    _regime_votes = _regime_votes[-_REGIME_STABILITY:]
+                if (
+                    len(_regime_votes) == _REGIME_STABILITY
+                    and len(set(_regime_votes)) == 1
+                    and _regime_votes[0] != _adaptive_regime
+                ):
+                    log.info(
+                        "[RegimeStability] Transition confirmée: %s → %s (%d cycles)",
+                        _adaptive_regime,
+                        _regime_votes[0],
+                        _REGIME_STABILITY,
+                    )
+                    _adaptive_regime = _regime_votes[0]
+            if _activity_tracker is not None:
+                try:
+                    _open_pos_count = len(pos_manager.get_open())
+                    _any_refused = any(
+                        not r.get("trade_allowed", True)
+                        and r.get("signal") is not None
+                        and r["signal"].score >= 65
+                        for r in results
+                    )
+                    _any_executed = any(
+                        r.get("futures_result") is not None
+                        and r["futures_result"].get("mode")
+                        not in (None, "futures_failed", "live_failed")
+                        for r in results
+                    )
+                    _activity_tracker.record_cycle(
+                        has_position=_open_pos_count > 0,
+                        signal_refused=_any_refused,
+                        signal_executed=_any_executed,
+                    )
+                    if cycle % 12 == 0:
+                        log.info(_activity_tracker.summary())
+                except Exception:
+                    pass
+
             # ── Rapport timing bootstrap vs cycle 1 ──────────────────────────
             if cycle == 1:
                 _t_cycle_1_end = time.perf_counter()
@@ -2975,7 +3073,15 @@ def main(
                         ranker=ranker,
                         meta_engine=meta_engine,
                         black_box=black_box,
+                        activity_tracker=_activity_tracker,
                     )
+
+                    # Alertes probation stratégies (une seule fois par seuil)
+                    try:
+                        for _prob_msg in ranker.check_probation_alerts():
+                            _telegram(f"PROBATION STRATEGIE\n{_prob_msg}")
+                    except Exception:
+                        pass
                     if coo_brief:
                         _telegram(coo_brief)
 

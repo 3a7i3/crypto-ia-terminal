@@ -18,6 +18,7 @@ Usage:
 
 from __future__ import annotations
 
+import enum
 import logging
 import threading
 import time
@@ -28,6 +29,18 @@ logger = logging.getLogger(__name__)
 
 _DEFAULT_CHECK_INTERVAL = 15.0  # secondes
 _DEFAULT_MAX_RESTARTS = 5  # par fenêtre de 10 minutes
+
+_BACKOFF_INITIAL_S = 60.0  # premier cooldown après restart_limit_reached
+_BACKOFF_MAX_S = 600.0  # plafond du backoff (10 min)
+_DISABLED_PROBE_S = 600.0  # période de sonde en état DISABLED
+
+
+class ComponentState(enum.Enum):
+    HEALTHY = "healthy"  # aucune anomalie
+    UNSTABLE = "unstable"  # défaillances sporadiques, recovery probable
+    DEGRADED = "degraded"  # restart limit atteinte, backoff exponentiel
+    DISABLED = "disabled"  # trop de tentatives, sonde périodique seulement
+
 
 try:
     from errors.error_bus import ErrorCategory as _ErrCat
@@ -58,6 +71,10 @@ class ComponentHealth:
     total_restarts: int = 0
     last_error: str = ""
     consecutive_failures: int = 0
+    # Machine d'états HEALTHY → UNSTABLE → DEGRADED → DISABLED
+    state: ComponentState = field(default=ComponentState.HEALTHY)
+    backoff_until: float = 0.0  # skip check jusqu'à ce timestamp
+    backoff_delay_s: float = _BACKOFF_INITIAL_S  # délai courant (double chaque cycle)
 
     def reset_window_if_needed(self) -> None:
         """Reset le compteur de restart toutes les 10 minutes."""
@@ -180,16 +197,40 @@ class SelfHealingBot:
             time.sleep(self._global_interval)
 
     def _check_one(self, comp: ComponentHealth) -> bool:
-        comp.last_check = time.time()
+        now = time.time()
+
+        # DISABLED : sonde périodique seulement (évite le spam de logs/retry)
+        if comp.state == ComponentState.DISABLED:
+            if now < comp.backoff_until:
+                return False  # encore en cooldown, on ne touche à rien
+            # Tentative de récupération périodique
+            logger.info(
+                "[SelfHealing] %s — sonde périodique (état DISABLED)", comp.name
+            )
+
+        # DEGRADED : backoff exponentiel entre chaque sonde
+        elif comp.state == ComponentState.DEGRADED:
+            if now < comp.backoff_until:
+                return False  # encore en backoff
+
+        comp.last_check = now
         try:
             healthy = comp.health_fn()
         except Exception as exc:
             healthy = False
-            comp.last_error = str(exc)
+            # repr() inclut le nom de la classe de l'exception + message,
+            # ce qui évite les messages vides ("health_check_failed: ").
+            comp.last_error = repr(exc)
+            # logger.exception() écrit la stacktrace complète → enfin visible.
+            logger.exception("[SelfHealing] %s — exception dans health_fn", comp.name)
 
         if healthy:
-            if not comp.is_healthy:
-                logger.info("[SelfHealing] %s — RÉCUPÉRÉ", comp.name)
+            if not comp.is_healthy or comp.state != ComponentState.HEALTHY:
+                logger.info(
+                    "[SelfHealing] %s — RÉCUPÉRÉ (était %s)",
+                    comp.name,
+                    comp.state.value,
+                )
                 self._log_event(comp.name, "recovered")
                 if _OBS_AVAILABLE:
                     try:
@@ -199,6 +240,11 @@ class SelfHealingBot:
                         pass
             comp.is_healthy = True
             comp.consecutive_failures = 0
+            comp.state = ComponentState.HEALTHY
+            comp.backoff_delay_s = (
+                _BACKOFF_INITIAL_S  # reset backoff pour prochaine fois
+            )
+            comp.backoff_until = 0.0
             return True
 
         # Composant malade
@@ -218,7 +264,10 @@ class SelfHealingBot:
                 _module_registry.set_status(comp.name, _ModuleStatus.UNHEALTHY)
                 _error_bus.emit_raw(
                     module=f"self_healing_bot.{comp.name}",
-                    message=f"health_check_failed: {comp.last_error}",
+                    message=(
+                        "health_check_failed: "
+                        f"{comp.last_error or '(voir stacktrace log)'}"
+                    ),
                     category=_ErrCat.SYSTEM,
                     severity=(
                         _ErrSev.HIGH
@@ -229,28 +278,71 @@ class SelfHealingBot:
             except Exception:
                 pass
 
-        if comp.can_restart():
+        # ── Transition d'état selon le nombre de failures ──────────────────
+        if comp.consecutive_failures <= 2:
+            comp.state = ComponentState.UNSTABLE
+        elif comp.can_restart():
+            comp.state = ComponentState.UNSTABLE
             self._restart(comp)
         else:
-            logger.error(
-                "[SelfHealing] %s — Limite de restarts atteinte (%d/%d). "
-                "Intervention manuelle requise.",
-                comp.name,
-                comp.restart_count,
-                comp.max_restarts_per_window,
-            )
-            self._log_event(comp.name, "restart_limit_reached")
-            if _OBS_AVAILABLE:
-                try:
-                    _error_bus.emit_raw(
-                        module=f"self_healing_bot.{comp.name}",
-                        message=f"restart_limit_reached after {comp.restart_count} attempts",
-                        category=_ErrCat.SYSTEM,
-                        severity=_ErrSev.CRITICAL,
+            # Restart limit atteinte → DEGRADED avec backoff exponentiel
+            if comp.state not in (ComponentState.DEGRADED, ComponentState.DISABLED):
+                # Première fois → DEGRADED
+                comp.state = ComponentState.DEGRADED
+                comp.backoff_until = time.time() + comp.backoff_delay_s
+                logger.error(
+                    "[SelfHealing] %s → DEGRADED — backoff %.0fs "
+                    "(restarts=%d/%d erreur=%s)",
+                    comp.name,
+                    comp.backoff_delay_s,
+                    comp.restart_count,
+                    comp.max_restarts_per_window,
+                    comp.last_error,
+                )
+                self._log_event(
+                    comp.name,
+                    "state_degraded",
+                    extra={"backoff_s": comp.backoff_delay_s},
+                )
+            elif comp.state == ComponentState.DEGRADED:
+                # Backoff exponentiel : doubler jusqu'au plafond
+                comp.backoff_delay_s = min(comp.backoff_delay_s * 2, _BACKOFF_MAX_S)
+                comp.backoff_until = time.time() + comp.backoff_delay_s
+                if comp.backoff_delay_s >= _BACKOFF_MAX_S:
+                    # Passage en DISABLED : sonde périodique uniquement
+                    comp.state = ComponentState.DISABLED
+                    comp.backoff_until = time.time() + _DISABLED_PROBE_S
+                    logger.error(
+                        "[SelfHealing] %s → DISABLED — "
+                        "sonde périodique toutes les %.0fs. "
+                        "Intervention requise si le problème persiste.",
+                        comp.name,
+                        _DISABLED_PROBE_S,
                     )
-                except Exception:
-                    pass
-            self._emit_critical_alert(comp)
+                    self._log_event(comp.name, "state_disabled")
+                    if _OBS_AVAILABLE:
+                        try:
+                            _error_bus.emit_raw(
+                                module=f"self_healing_bot.{comp.name}",
+                                message=(
+                                    "component_disabled: "
+                                    f"{comp.last_error or '(voir stacktrace log)'}"
+                                ),
+                                category=_ErrCat.SYSTEM,
+                                severity=_ErrSev.CRITICAL,
+                            )
+                        except Exception:
+                            pass
+                    self._emit_critical_alert(comp)
+                else:
+                    logger.warning(
+                        "[SelfHealing] %s — DEGRADED, prochaine sonde dans %.0fs",
+                        comp.name,
+                        comp.backoff_delay_s,
+                    )
+            elif comp.state == ComponentState.DISABLED:
+                # Encore DISABLED après sonde → replanifier
+                comp.backoff_until = time.time() + _DISABLED_PROBE_S
 
         return False
 
@@ -302,12 +394,12 @@ class SelfHealingBot:
 
 # ── Wrapper de process advisor_loop.py ───────────────────────────────────────
 
-import os
-import subprocess
-import sys
-from pathlib import Path
+import os  # noqa: E402
+import subprocess  # noqa: E402
+import sys  # noqa: E402
+from pathlib import Path  # noqa: E402
 
-import requests as _requests
+import requests as _requests  # noqa: E402
 
 _TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 _TELEGRAM_CHAT = os.getenv("TELEGRAM_CHAT_ID", "")
@@ -356,7 +448,7 @@ def _log_lag() -> float:
         return float("inf")
 
 
-def _start_advisor_process() -> tuple[subprocess.Popen, "IO[str]"]:
+def _start_advisor_process() -> tuple[subprocess.Popen, "Any"]:
     log_out = open("logs/advisor_loop_stdout.log", "a", encoding="utf-8")
     proc = subprocess.Popen(
         [sys.executable, "advisor_loop.py"],
@@ -429,7 +521,8 @@ class AdvisorProcessWrapper:
         if len(self._restarts) >= _MAX_RESTARTS:
             logger.critical("[ProcessWrap] MAX_RESTARTS atteint — arrêt du wrapper")
             _tg(
-                f"CRITIQUE — Self-Heal MAX_RESTARTS atteint.\nRaison: {reason}\nIntervention requise."
+                f"CRITIQUE — Self-Heal MAX_RESTARTS atteint.\n"
+                f"Raison: {reason}\nIntervention requise."
             )
             self._proc = None
             return

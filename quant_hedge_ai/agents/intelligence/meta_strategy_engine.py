@@ -278,6 +278,27 @@ class MetaStrategyEngine:
             p.order_size_factor = min(p.order_size_factor, 0.5)
             p.reason += f" | Vol élevée {vol:.2%} — taille plafonnée à 50%"
 
+        # 5. SL ATR-adaptatif (range et haute vol seulement)
+        # En régime latéral, un SL fixe est battu par le bruit de range.
+        # On remplace sl_pct par max(facteur × ATR, plancher) pour donner
+        # plus de room sans agrandir la taille de position.
+        atr_pct = float(features.get("atr_pct", 0.0))
+        if atr_pct > 0 and regime in ("sideways", "high_volatility_regime"):
+            sl_factor = 1.5 if regime == "sideways" else 1.8
+            atr_sl = max(atr_pct * sl_factor, 0.008)  # plancher 0.8%
+            if abs(atr_sl - p.sl_pct) > 0.001:
+                logger.info(
+                    "[MetaStrategy] SL ATR-adaptatif [%s]: %.2f%% → %.2f%% "
+                    "(ATR=%.2f%% × %.1f)",
+                    regime,
+                    p.sl_pct * 100,
+                    atr_sl * 100,
+                    atr_pct * 100,
+                    sl_factor,
+                )
+                p.sl_pct = round(atr_sl, 4)
+                p.reason += f" | SL ATR: {atr_sl:.2%} (ATR={atr_pct:.2%}×{sl_factor})"
+
         logger.info("[MetaStrategy] Personnalité: %s", p.summary())
         return self._record(p)
 

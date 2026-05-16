@@ -28,6 +28,15 @@ from dataclasses import dataclass, field
 
 logger = logging.getLogger(__name__)
 
+try:
+    from quant_hedge_ai.agents.intelligence.market_regime_classifier import (
+        MarketRegimeClassifier as _RegimeClassifier,
+    )
+
+    _regime_clf = _RegimeClassifier()
+except Exception:
+    _regime_clf = None  # type: ignore[assignment]
+
 _CONDITION_NAMES = [
     "session_active",
     "drawdown_ok",
@@ -90,10 +99,13 @@ class GlobalRiskGate:
     ) -> None:
         self._session_guard = session_guard
         self._drawdown_guard = drawdown_guard
-        self.min_signal_score = min_signal_score
+        self.min_signal_score = min_signal_score  # base statique (env var)
         self.require_confirmed = require_confirmed
         self.blacklisted_regimes: set[str] = blacklisted_regimes or set()
         self.max_portfolio_drawdown = max_portfolio_drawdown
+        # Calibration adaptative
+        self._regret_delta: int = 0  # feedback du RegretEngine
+        self._last_regime: str = "unknown"  # régime courant pour le log
 
     # ── API principale ─────────────────────────────────────────────────────────
 
@@ -135,12 +147,14 @@ class GlobalRiskGate:
                 f" du seuil max {self.max_portfolio_drawdown:.1%}"
             )
 
-        # ③ Score suffisant
+        # ③ Score suffisant — seuil régime-aware
         score = getattr(signal_result, "score", 0)
-        c3 = score >= self.min_signal_score
+        regime_str = getattr(signal_result, "regime", "unknown")
+        effective_min = self._effective_min_score(regime_str)
+        c3 = score >= effective_min
         conditions["signal_score"] = c3
         if not c3:
-            failed.append(f"signal_score ({score}<{self.min_signal_score})")
+            failed.append(f"signal_score ({score}<{effective_min})")
 
         # ④ Signal confirmé MTF
         confirmed = getattr(signal_result, "confirmed", False)
@@ -266,15 +280,18 @@ class GlobalRiskGate:
                 category=ReasoningCategory.RISK_GOVERNANCE,
             )
 
-        # ③ Score suffisant — gouvernance du seuil min_signal_score
+        # ③ Score suffisant — seuil régime-aware + delta RegretEngine
         score = packet.confidence
-        c3 = score >= self.min_signal_score
+        regime_str = packet.regime.value  # ex. "RANGE", "TREND_BULL"
+        effective_min = self._effective_min_score(regime_str)
+        c3 = score >= effective_min
         conditions["signal_score"] = c3
         if not c3:
-            failed.append(f"signal_score ({score:.0f}<{self.min_signal_score})")
+            failed.append(f"signal_score ({score:.0f}<{effective_min})")
             packet.add_reasoning(
                 actor,
-                f"Score {score:.0f} insuffisant (seuil={self.min_signal_score})",
+                f"Score {score:.0f} insuffisant "
+                f"(seuil régime={regime_str}: {effective_min})",
                 confidence_impact=-15.0,
                 category=ReasoningCategory.RISK_GOVERNANCE,
             )
@@ -351,6 +368,54 @@ class GlobalRiskGate:
 
         self._emit_event(result, None)
         return result
+
+    # ── Calibration adaptative ────────────────────────────────────────────────
+
+    def apply_regret_delta(self, delta: int) -> None:
+        """
+        Applique un ajustement de seuil provenant du RegretEngine.
+
+        delta < 0 → plus permissif (trop de MISSED_WIN)
+        delta > 0 → plus strict   (trop de false positifs)
+        delta = 0 → stable
+
+        L'ajustement est accumulatif et plafonné à [-10, +5].
+        """
+        prev = self._regret_delta
+        self._regret_delta = max(-10, min(5, self._regret_delta + delta))
+        if self._regret_delta != prev:
+            logger.info(
+                "[GlobalRiskGate] Delta regret: %+d → %+d (min_score base=%d)",
+                prev,
+                self._regret_delta,
+                self.min_signal_score,
+            )
+
+    def _effective_min_score(self, regime: str) -> int:
+        """
+        Seuil effectif pour un régime donné.
+
+        Priorité :
+          1. MarketRegimeClassifier.effective_min_score(regime, delta)
+             → adapte au régime ET au feedback du RegretEngine
+          2. Fallback : self.min_signal_score + delta (borne [-10,+5])
+
+        Le seuil global self.min_signal_score reste la valeur de référence
+        pour les régimes inconnus.
+        """
+        if _regime_clf is not None:
+            effective = _regime_clf.effective_min_score(regime, self._regret_delta)
+            if regime != self._last_regime:
+                self._last_regime = regime
+                logger.info(
+                    "[GlobalRiskGate] Seuil régime %s → %d (delta=%+d)",
+                    regime,
+                    effective,
+                    self._regret_delta,
+                )
+            return effective
+        # Fallback sans classifier
+        return max(self.min_signal_score + self._regret_delta, 55)
 
     def blacklist_regime(self, regime: str) -> None:
         self.blacklisted_regimes.add(regime)
