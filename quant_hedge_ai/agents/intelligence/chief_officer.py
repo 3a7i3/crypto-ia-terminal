@@ -90,6 +90,7 @@ class ChiefOfficer:
         meta_engine=None,
         black_box=None,
         activity_tracker=None,
+        stability_monitor=None,
         force: bool = False,
     ) -> Optional[str]:
         """
@@ -115,6 +116,7 @@ class ChiefOfficer:
             meta_engine,
             black_box,
             activity_tracker,
+            stability_monitor,
         )
 
         # Essayer LM Studio d'abord
@@ -167,6 +169,7 @@ class ChiefOfficer:
         meta_engine,
         black_box,
         activity_tracker=None,
+        stability_monitor=None,
     ) -> dict:
         ctx: dict = {"cycle": cycle, "symbols": symbols}
 
@@ -258,6 +261,13 @@ class ChiefOfficer:
         if activity_tracker is not None:
             try:
                 ctx["activity"] = activity_tracker.report()
+            except Exception:
+                pass
+
+        # Behavioral Stability Monitor — derives systemiques
+        if stability_monitor is not None:
+            try:
+                ctx["stability"] = stability_monitor.report()
             except Exception:
                 pass
 
@@ -389,6 +399,25 @@ class ChiefOfficer:
             )
             lines.append("")
 
+        # Stabilite comportementale
+        stab = ctx.get("stability", {})
+        if stab:
+            state = stab.get("state", "stable")
+            flips = stab.get("regime_flips_10c", 0)
+            delta = stab.get("threshold_cumul_delta", 0)
+            entropy = stab.get("portfolio_entropy", 1.0)
+            violations = stab.get("violations", [])
+            prefix = "ALERTE " if violations else ""
+            lines.append(
+                f"{prefix}STABILITE: etat={state} | "
+                f"flips={flips}/10c | "
+                f"delta={delta:+d} | "
+                f"entropie={entropy:.2f}"
+            )
+            for v in violations[:2]:
+                lines.append(f"  ! {v[:80]}")
+            lines.append("")
+
         # Recommandation finale
         lines.append("RECOMMANDATION:")
         rec = self._recommend(ctx)
@@ -423,6 +452,25 @@ class ChiefOfficer:
         if aw_level in ("DANGER", "CRITICAL"):
             return (
                 "Derive comportementale critique. Reduire taille et surveiller regime."
+            )
+        stab = ctx.get("stability", {})
+        stab_state = stab.get("state", "stable")
+        if stab_state == "degraded":
+            violations = stab.get("violations", [])
+            v_str = " | ".join(violations[:2])
+            return (
+                f"SYSTEME DEGRADE — {len(violations)} invariante(s) violee(s): "
+                f"{v_str[:80]}. Intervention manuelle requise."
+            )
+        if stab_state == "oscillating":
+            return (
+                f"Oscillation regimes detectee ({stab.get('regime_flips_10c', 0)} "
+                f"flips/10c). Verifier stabilite donnees marche."
+            )
+        if stab_state == "drifting":
+            return (
+                f"Derive threshold: delta={stab.get('threshold_cumul_delta', 0):+d}. "
+                "RegretEngine sur-corrige — verifier qualite des trades refuses."
             )
         activity = ctx.get("activity", {})
         if (

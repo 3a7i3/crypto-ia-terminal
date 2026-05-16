@@ -2322,6 +2322,17 @@ def main(
     except Exception:
         _activity_tracker = None
 
+    try:
+        from quant_hedge_ai.agents.intelligence.behavioral_stability_monitor import (
+            BehavioralStabilityMonitor as _BSMCls,
+        )
+
+        _stability_monitor: Any = _BSMCls(
+            threshold_baseline=int(os.getenv("SIGNAL_MIN_SCORE", "70"))
+        )
+    except Exception:
+        _stability_monitor = None
+
     while True:
         cycle += 1
         cycle_completed = False
@@ -2888,6 +2899,36 @@ def main(
                 except Exception:
                     pass
 
+            if _stability_monitor is not None:
+                try:
+                    _eff_threshold = gate.min_signal_score + getattr(
+                        gate, "_regret_delta", 0
+                    )
+                    _traded_sym = next(
+                        (
+                            r.get("symbol", "")
+                            for r in results
+                            if r.get("futures_result") is not None
+                            and r["futures_result"].get("mode")
+                            not in (None, "futures_failed", "live_failed")
+                        ),
+                        "",
+                    )
+                    _stability_monitor.record_cycle(
+                        regime=_adaptive_regime,
+                        threshold=_eff_threshold,
+                        strategy_name=_traded_sym,
+                        trade_executed=bool(_traded_sym),
+                    )
+                    _bsm_violations = _stability_monitor.check_invariants()
+                    if _bsm_violations:
+                        for _viol in _bsm_violations:
+                            log.warning("[BSM] Invariante violee: %s", _viol)
+                    if cycle % 12 == 0:
+                        log.info("[BSM] %s", _stability_monitor.summary_line())
+                except Exception:
+                    pass
+
             # ── Rapport timing bootstrap vs cycle 1 ──────────────────────────
             if cycle == 1:
                 _t_cycle_1_end = time.perf_counter()
@@ -3076,6 +3117,7 @@ def main(
                         meta_engine=meta_engine,
                         black_box=black_box,
                         activity_tracker=_activity_tracker,
+                        stability_monitor=_stability_monitor,
                     )
 
                     # Alertes probation stratégies (une seule fois par seuil)
