@@ -44,6 +44,8 @@ EMAIL_TO = os.getenv("EMAIL_TO_ADDR", "ia.strategy.support@gmail.com")
 CHECK_INTERVAL = int(os.getenv("EXCHANGE_HEARTBEAT_S", "15"))
 WARN_AFTER = 2  # checks échoués avant alerte Telegram
 CRITICAL_AFTER = 5  # checks échoués avant alerte mail
+# URL override: si défini, on pinge cette URL au lieu de l'exchange actif
+MONITOR_URL_OVERRIDE = os.getenv("EXCHANGE_MONITOR_URL", "")
 
 
 @dataclass
@@ -153,41 +155,40 @@ class ExchangeMonitor:
     def _check_once(self) -> None:
         t0 = time.time()
         try:
-            # Ping l'exchange actif (configurable via EXCHANGE_ID)
-            exchange_id = os.getenv("EXCHANGE_ID", "binance").lower()
-            testnet = (
-                os.getenv(
-                    "EXCHANGE_TESTNET", os.getenv("BINANCE_TESTNET", "false")
-                ).lower()
-                == "true"
-            )
-            ping_urls = {
-                "gateio": (
-                    (
+            if MONITOR_URL_OVERRIDE:
+                ping_url = MONITOR_URL_OVERRIDE
+            else:
+                # Ping l'exchange actif (configurable via EXCHANGE_ID)
+                exchange_id = os.getenv("EXCHANGE_ID", "binance").lower()
+                testnet = (
+                    os.getenv(
+                        "EXCHANGE_TESTNET", os.getenv("BINANCE_TESTNET", "false")
+                    ).lower()
+                    == "true"
+                )
+                ping_urls = {
+                    "gateio": (
                         "https://fx-api-testnet.gateio.ws/api/v4/futures/usdt/contracts"
                         if testnet
                         else "https://api.gateio.ws/api/v4/spot/currencies/USDT"
                     ),
-                    200,
-                ),
-                "binance": (
-                    (
+                    "binance": (
                         "https://testnet.binance.vision/api/v3/ping"
                         if testnet
                         else "https://api.binance.com/api/v3/ping"
                     ),
-                    200,
-                ),
-                "bybit": (
-                    (
+                    "bybit": (
                         "https://api-testnet.bybit.com/v5/market/time"
                         if testnet
                         else "https://api.bybit.com/v5/market/time"
                     ),
-                    200,
-                ),
-            }
-            ping_url, _ = ping_urls.get(exchange_id, ping_urls["binance"])
+                    "okx": "https://www.okx.com/api/v5/public/time",
+                    "mexc": "https://api.mexc.com/api/v3/ping",
+                    "krakenfutures": (
+                        "https://futures.kraken.com/derivatives/api/v3/instruments"
+                    ),
+                }
+                ping_url = ping_urls.get(exchange_id, ping_urls["binance"])
             r = requests.get(ping_url, timeout=8)
             latency_ms = (time.time() - t0) * 1000
 
