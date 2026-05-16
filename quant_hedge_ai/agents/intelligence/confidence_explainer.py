@@ -20,34 +20,34 @@ Usage:
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+import os
+from dataclasses import dataclass
 
 from quant_hedge_ai.agents.execution.live_signal_engine import SignalResult
-
 
 # -- Seuils d'évaluation par composant -----------------------------------------
 
 _COMPONENT_MAX = {
-    "mtf":          40.0,
-    "regime":       25.0,
+    "mtf": 40.0,
+    "regime": 25.0,
     "data_quality": 15.0,
-    "memory":       20.0,
+    "memory": 20.0,
 }
 
 _COMPONENT_LABELS = {
-    "mtf":          "Alignement multi-timeframes",
-    "regime":       "Régime de marché",
+    "mtf": "Alignement multi-timeframes",
+    "regime": "Régime de marché",
     "data_quality": "Qualité des données",
-    "memory":       "Mémoire stratégique (Sharpe)",
+    "memory": "Mémoire stratégique (Sharpe)",
 }
 
 _REGIME_SENTIMENT = {
-    "bull_trend":             ("positif", 0),
-    "bear_trend":             ("négatif", -3),
-    "sideways":               ("neutre", -2),
+    "bull_trend": ("positif", 0),
+    "bear_trend": ("négatif", -3),
+    "sideways": ("neutre", -2),
     "high_volatility_regime": ("risqué", -5),
-    "flash_crash":            ("extrême", -15),
-    "unknown":                ("indéterminé", -8),
+    "flash_crash": ("extrême", -15),
+    "unknown": ("indéterminé", -8),
 }
 
 
@@ -57,9 +57,9 @@ class ComponentBreakdown:
     label: str
     value: float
     max_value: float
-    pct: float        # valeur / max en %
-    rating: str       # excellent | bon | moyen | faible | bloquant
-    contribution: str # "+32/40" ou "-8"
+    pct: float  # valeur / max en %
+    rating: str  # excellent | bon | moyen | faible | bloquant
+    contribution: str  # "+32/40" ou "-8"
     note: str = ""
 
 
@@ -70,10 +70,10 @@ class ScoreExplanation:
     signal: str
     regime: str
     components: list[ComponentBreakdown]
-    bonuses: list[tuple[str, int]]    # [(label, points)]
+    bonuses: list[tuple[str, int]]  # [(label, points)]
     penalties: list[tuple[str, int]]  # [(label, points)]
     verdict: str
-    confidence_level: str             # low | moderate | high | exceptional
+    confidence_level: str  # low | moderate | high | exceptional
     one_liner: str
 
     def render(self) -> str:
@@ -135,8 +135,8 @@ class ScoreExplanation:
                 }
                 for c in self.components
             ],
-            "bonuses": [{"label": l, "pts": p} for l, p in self.bonuses],
-            "penalties": [{"label": l, "pts": p} for l, p in self.penalties],
+            "bonuses": [{"label": lbl, "pts": p} for lbl, p in self.bonuses],
+            "penalties": [{"label": lbl, "pts": p} for lbl, p in self.penalties],
             "verdict": self.verdict,
             "confidence_level": self.confidence_level,
             "one_liner": self.one_liner,
@@ -158,8 +158,9 @@ class ConfidenceExplainer:
 
     def explain(self, result: SignalResult) -> ScoreExplanation:
         comps = result.components or {}
-        components = [self._explain_component(k, comps.get(k, 0.0))
-                      for k in _COMPONENT_MAX]
+        components = [
+            self._explain_component(k, comps.get(k, 0.0)) for k in _COMPONENT_MAX
+        ]
 
         bonuses = self._compute_bonuses(result)
         penalties = self._compute_penalties(result)
@@ -257,8 +258,9 @@ class ConfidenceExplainer:
             penalties.append(("Haute volatilité -- slippage accru", -5))
         if not result.confirmed:
             penalties.append(("Signal non confirmé tous TF", -8))
-        if result.score < 70:
-            penalties.append(("Score sous le seuil minimum (70)", -6))
+        _min_score = int(os.getenv("SIGNAL_MIN_SCORE", "70"))
+        if result.score < _min_score:
+            penalties.append((f"Score sous le seuil minimum ({_min_score})", -6))
         if result.regime == "unknown":
             penalties.append(("Régime indéterminé -- incertitude macro", -8))
         return penalties
@@ -318,4 +320,8 @@ class ConfidenceExplainer:
             parts.append(f"faiblesse: {worst.label.lower()}")
         if penalties:
             parts.append(f"risque: {penalties[0][0].lower()}")
-        return "Score " + str(result.score) + "/100 -- " + " | ".join(parts) if parts else f"Score {result.score}/100"
+        return (
+            "Score " + str(result.score) + "/100 -- " + " | ".join(parts)
+            if parts
+            else f"Score {result.score}/100"
+        )

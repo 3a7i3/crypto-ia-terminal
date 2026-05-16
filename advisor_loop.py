@@ -1108,6 +1108,7 @@ def analyze_symbol(
         "eo_verdict": eo_verdict,
         "dq_record": dq_record,
         "trade_allowed": trade_allowed,
+        "blockers": _flow_blockers if signal.actionable else "",
         "order_size": order_size_usd,
         "regime": regime,
         "features": features,
@@ -1260,6 +1261,13 @@ def _build_alert(r: AnalysisResult, cycle: int) -> str:
                 f"  Notionnel:  ${fut.get('usd_size', 0):.2f}",
                 f"  Statut:     {fut.get('status', '?')}",
             ]
+        elif mode == "paper":
+            lines += [
+                "",
+                "ORDRE PAPER PLACE (simulation locale):",
+                f"  Cote:       {r.get('signal', {}).side if hasattr(r.get('signal', None), 'side') else '?'}",
+                f"  Taille:     ${r.get('order_size', 0):.2f}",
+            ]
         elif mode == "futures_failed":
             lines += [
                 "",
@@ -1267,14 +1275,14 @@ def _build_alert(r: AnalysisResult, cycle: int) -> str:
             ]
     else:
         advisor_only = os.getenv("V9_ADVISOR_ONLY", "true").lower() == "true"
-        lines += [
-            "",
-            (
-                "Mode observation — aucun ordre place"
-                if advisor_only
-                else "Gate bloquee ou safe mode — aucun ordre place"
-            ),
-        ]
+        blockers = r.get("blockers", "")
+        if advisor_only:
+            suffix = "Mode observation — aucun ordre place"
+        elif blockers:
+            suffix = f"Bloque par: {blockers} — aucun ordre place"
+        else:
+            suffix = "Gate bloquee ou safe mode — aucun ordre place"
+        lines += ["", suffix]
 
     lines += [
         "",
