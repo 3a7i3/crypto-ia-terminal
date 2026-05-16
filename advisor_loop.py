@@ -646,13 +646,16 @@ def analyze_symbol(
                 log.info("[MistakeMemory] Trade bloqué: %s", mm_check.reason)
 
     # ── Portfolio Brain — risque portefeuille global ──────────────────────────
+    # La taille effective inclut le facteur conviction AVANT le check portfolio
+    # pour que portfolio_brain évalue la taille réellement exécutée.
+    _pb_size = order_size_usd * (conviction.size_factor if conviction else 1.0)
     pb_verdict = None
     if portfolio_brain and signal.actionable:
         with watchdog.measure("portfolio_brain"):
             pb_verdict = portfolio_brain.check_new_trade(
                 symbol=symbol,
                 action=signal.signal,
-                size_usd=order_size_usd,
+                size_usd=_pb_size,
                 regime=regime,
                 open_positions=open_positions_list,
                 leverage=1,
@@ -871,7 +874,7 @@ def analyze_symbol(
     _awareness_ok = awareness_engine is None or awareness_engine.is_safe_to_trade()
     _conviction_ok = conviction is None or not conviction.blocks_trade()
     _notrade_ok = no_trade_verdict is None or bool(no_trade_verdict)
-    _pb_ok = pb_verdict is None or bool(pb_verdict)
+    _pb_ok = pb_verdict is None or pb_verdict.allowed
     _cae_ok = allocation is None or bool(allocation)
     _mm_ok = mm_check is None or bool(mm_check)
     _eo_ok = eo_verdict is None or bool(eo_verdict)

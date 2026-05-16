@@ -101,7 +101,7 @@ class PortfolioBrain:
         os.getenv("PB_MAX_CORRELATION", "0.75")
     )  # risque corrélation max
     MIN_FRAGMENTATION_USD = float(
-        os.getenv("PB_MIN_POSITION_USD", "30.0")
+        os.getenv("PB_MIN_POSITION_USD", "10.0")
     )  # taille minimum
     MAX_POSITIONS = int(os.getenv("PB_MAX_POSITIONS", "5"))  # max positions simultanées
     MAX_SAME_DIRECTION = int(
