@@ -258,7 +258,18 @@ class ConfidenceExplainer:
             penalties.append(("Haute volatilité -- slippage accru", -5))
         if not result.confirmed:
             penalties.append(("Signal non confirmé tous TF", -8))
-        _min_score = int(os.getenv("SIGNAL_MIN_SCORE", "70"))
+        try:
+            from quant_hedge_ai.agents.intelligence.market_regime_classifier import (
+                MarketRegimeClassifier,
+            )
+
+            _min_score = (
+                MarketRegimeClassifier()
+                .get_config(getattr(result, "regime", "unknown"))
+                .min_score
+            )
+        except Exception:
+            _min_score = int(os.getenv("SIGNAL_MIN_SCORE", "70"))
         if result.score < _min_score:
             penalties.append((f"Score sous le seuil minimum ({_min_score})", -6))
         if result.regime == "unknown":

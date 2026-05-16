@@ -1869,6 +1869,8 @@ def main(
             else "medium"
         )
         pos.signal_age_sec = time.time() - result_row["signal"].timestamp
+        raw_features = result_row.get("features")
+        pos.entry_features = raw_features if isinstance(raw_features, dict) else {}
         pos.subaccount = (
             "btc_momentum"
             if "BTC" in symbol
@@ -2206,7 +2208,7 @@ def main(
                     regime=pos_regime,
                     conviction_level=getattr(pos, "conviction_level", "medium"),
                     pnl_pct=pos.pnl_pct,
-                    context_features={},
+                    context_features=getattr(pos, "entry_features", {}),
                     signal_age_sec=getattr(pos, "signal_age_sec", 0.0),
                     consecutive_losses=_consecutive_losses["value"],
                 )
