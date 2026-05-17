@@ -547,10 +547,17 @@ with tab_system:
 
     with c2:
         st.markdown('<div class="section-title">EXCHANGE</div>', unsafe_allow_html=True)
-        exchange_snap = snap.get("exchange", "gateio")
-        st.metric("Exchange", exchange_snap or "gateio")
+        exchange_raw = snap.get("exchange", "gateio")
+        if isinstance(exchange_raw, dict):
+            exchange_name = exchange_raw.get("name", exchange_raw.get("id", "gateio"))
+            ex_latency = exchange_raw.get("last_latency_ms", 0)
+            ex_up = exchange_raw.get("uptime_pct", 100)
+            st.metric("Exchange", str(exchange_name))
+            st.metric("Latence", f"{ex_latency:.0f} ms")
+            st.metric("Uptime", f"{ex_up:.1f}%")
+        else:
+            st.metric("Exchange", str(exchange_raw) or "gateio")
         st.metric("Symboles", snap.get("n_symbols", 20))
-        st.metric("Signaux analysés/cycle", snap.get("n_symbols", 20))
         regime_dist = snap.get("regime_distribution", {})
         if regime_dist:
             dominant = max(regime_dist, key=regime_dist.get)
