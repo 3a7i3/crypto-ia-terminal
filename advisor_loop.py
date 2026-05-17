@@ -2224,6 +2224,9 @@ def main(
                 last_loss_time[pos.symbol] = time.time()
             else:
                 _consecutive_losses["value"] = 0
+            # Libère la protection same_direction après fermeture de position
+            # (last_loss_time couvre déjà la re-entry immédiate après perte)
+            last_trade_signal.pop(pos.symbol, None)
             # Alimenter l'Override avec les métriques de session
             try:
                 pm_stats_live = _stats_dict(pos_manager.stats())
@@ -2565,6 +2568,12 @@ def main(
                         sym,
                         " | ".join(protection_blocks),
                     )
+                    if r["signal"].actionable:
+                        _existing = r.get("blockers", "")
+                        _prot_str = "protection(" + "|".join(protection_blocks) + ")"
+                        r["blockers"] = (
+                            (_existing + ", " + _prot_str) if _existing else _prot_str
+                        )
 
                 # ── Test mode check: allow execution even if signal.actionable=False if gate override ──
                 gate_override_active = (
