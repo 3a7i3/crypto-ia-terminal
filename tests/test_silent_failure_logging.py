@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import builtins
 import logging
-import sys
 from types import SimpleNamespace
 
 from paper_trading.engine import PaperTradingEngine
@@ -182,8 +181,20 @@ def test_heartbeat_errors_are_logged(monkeypatch, caplog):
     assert "Heartbeat monitor loop failed" in caplog.text
 
 
-def test_execution_engine_leverage_failures_are_logged(monkeypatch, tmp_path, caplog):
-    monkeypatch.setenv("EXEC_TRADE_LOG", str(tmp_path / "trade_log.sqlite"))
+def test_execution_engine_leverage_failures_are_logged(monkeypatch, caplog):
+    logged_orders: list[dict] = []
+
+    class _FakeTradeLogger:
+        def __init__(self, db_path: str) -> None:
+            self.db_path = db_path
+
+        def log(self, payload: dict) -> None:
+            logged_orders.append(payload)
+
+    monkeypatch.setattr(
+        "quant_hedge_ai.agents.execution.execution_engine.TradeLogger",
+        _FakeTradeLogger,
+    )
     engine = ExecutionEngine(live=False)
 
     class _FakeFuturesExchange:
@@ -205,7 +216,6 @@ def test_execution_engine_leverage_failures_are_logged(monkeypatch, tmp_path, ca
             return {"id": "ord-1", "symbol": symbol, "type": order_type, "side": side, "amount": qty}
 
     engine._exchange_futures = _FakeFuturesExchange()
-    engine._logger = SimpleNamespace(log=lambda payload: None)
 
     with caplog.at_level(
         logging.ERROR, logger="quant_hedge_ai.agents.execution.execution_engine"
@@ -213,6 +223,7 @@ def test_execution_engine_leverage_failures_are_logged(monkeypatch, tmp_path, ca
         order = engine.create_futures_order("BTC/USDT", "BUY", 60.0, leverage=3)
 
     assert order["mode"] == "futures_demo"
+    assert logged_orders and logged_orders[0]["mode"] == "futures_demo"
     assert "set_leverage failed for BTC/USDT:USDT (lev x3)" in caplog.text
 
 
@@ -260,11 +271,14 @@ def test_position_manager_liquidation_alert_errors_are_logged(monkeypatch, caplo
         def send(self, message: str) -> None:
             raise RuntimeError("telegram boom")
 
-    monkeypatch.setitem(
-        sys.modules,
-        "supervision.notifications.telegram_notifier",
-        SimpleNamespace(TelegramNotifier=_BrokenNotifier),
-    )
+    original_import = builtins.__import__
+
+    def _import_with_broken_notifier(name, globals=None, locals=None, fromlist=(), level=0):
+        if name == "supervision.notifications.telegram_notifier":
+            return SimpleNamespace(TelegramNotifier=_BrokenNotifier)
+        return original_import(name, globals, locals, fromlist, level)
+
+    monkeypatch.setattr(builtins, "__import__", _import_with_broken_notifier)
 
     with caplog.at_level(
         logging.ERROR, logger="quant_hedge_ai.agents.execution.position_manager"
