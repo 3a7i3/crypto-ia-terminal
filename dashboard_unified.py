@@ -18,6 +18,12 @@ import time
 from datetime import datetime
 
 import streamlit as st
+from dashboard_unified_helpers import (
+    build_signal_lists,
+    describe_feed_status,
+    normalize_positions,
+    summarize_multi_exchange,
+)
 
 ROOT = pathlib.Path(__file__).parent
 DB = ROOT / "databases"
@@ -142,15 +148,35 @@ def load_live_snapshot() -> dict:
 
 
 @st.cache_data(ttl=10, show_spinner=False)
-def load_positions() -> list[dict]:
+def load_positions_snapshot() -> dict | list:
     p = DB / "positions_snapshot.json"
     if not p.exists():
-        return []
+        return {}
     try:
-        data = json.loads(p.read_text())
-        return data if isinstance(data, list) else data.get("positions", [])
+        return json.loads(p.read_text())
     except Exception:
-        return []
+        return {}
+
+
+@st.cache_data(ttl=10, show_spinner=False)
+def load_positions() -> list[dict]:
+    data = load_positions_snapshot()
+    if isinstance(data, list):
+        return data
+    if isinstance(data, dict):
+        return data.get("positions", [])
+    return []
+
+
+@st.cache_data(ttl=15, show_spinner=False)
+def load_multi_exchange_snapshot() -> dict:
+    p = DB / "multi_exchange_snapshot.json"
+    if not p.exists():
+        return {}
+    try:
+        return json.loads(p.read_text())
+    except Exception:
+        return {}
 
 
 @st.cache_data(ttl=30, show_spinner=False)
@@ -252,7 +278,9 @@ def last_log_lines(n: int = 20) -> list[str]:
 
 # ── Données ───────────────────────────────────────────────────────────────────
 snap = load_live_snapshot()
+positions_snapshot = load_positions_snapshot()
 positions = load_positions()
+multi_exchange = load_multi_exchange_snapshot()
 ranking = load_strategy_ranking()
 shadow = load_shadow_log()
 mistakes = load_mistake_memory()
@@ -269,11 +297,17 @@ n_traded = snap.get("n_traded", 0)
 n_refused = snap.get("n_refused", 0)
 cycle_ms = snap.get("cycle_duration_ms", 0)
 
-open_pos = [p for p in positions if p.get("status") == "open"]
+open_pos = [p for p in positions if p.get("status", "open") == "open"]
+display_positions = normalize_positions(open_pos)
 total_pnl = sum(p.get("pnl_usd", 0.0) for p in positions)
 win_count = sum(1 for p in positions if p.get("pnl_usd", 0) > 0)
 total_closed = sum(1 for p in positions if p.get("status") == "closed")
 win_rate = (win_count / total_closed * 100) if total_closed > 0 else 0.0
+signal_lists = build_signal_lists(snap.get("symbols", []), top_n=5)
+live_feed = describe_feed_status(snap)
+positions_feed = describe_feed_status(positions_snapshot)
+multi_exchange_feed = describe_feed_status(multi_exchange)
+multi_exchange_summary = summarize_multi_exchange(multi_exchange)
 
 # ── LAYER 1 — Cockpit header ──────────────────────────────────────────────────
 now_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
@@ -401,22 +435,7 @@ with tab_trading:
         if open_pos:
             import pandas as pd
 
-            df_pos = pd.DataFrame(open_pos)[
-                [
-                    c
-                    for c in [
-                        "symbol",
-                        "side",
-                        "entry_price",
-                        "current_price",
-                        "pnl_usd",
-                        "pnl_pct",
-                        "size_usd",
-                    ]
-                    if c in pd.DataFrame(open_pos).columns
-                ]
-            ]
-            df_pos.columns = [c.upper() for c in df_pos.columns]
+            df_pos = pd.DataFrame(display_positions)
             st.dataframe(df_pos, use_container_width=True, hide_index=True)
         else:
             st.caption("Aucune position ouverte.")
@@ -474,6 +493,46 @@ with tab_trading:
                     st.caption("Pas de shadow log.")
 
     with col_right:
+        st.markdown(
+            '<div class="section-title">TOP 5 DOMINATION</div>', unsafe_allow_html=True
+        )
+        if signal_lists["dominant"]:
+            import pandas as pd
+
+            st.dataframe(
+                pd.DataFrame(signal_lists["dominant"]),
+                use_container_width=True,
+                hide_index=True,
+            )
+        else:
+            st.caption("Aucun signal dominant disponible.")
+
+        split_buy, split_sell = st.columns(2)
+        with split_buy:
+            st.markdown(
+                '<div class="section-title">TOP 5 BUY</div>', unsafe_allow_html=True
+            )
+            if signal_lists["buy"]:
+                st.dataframe(
+                    pd.DataFrame(signal_lists["buy"]),
+                    use_container_width=True,
+                    hide_index=True,
+                )
+            else:
+                st.caption("Aucun BUY prioritaire.")
+        with split_sell:
+            st.markdown(
+                '<div class="section-title">TOP 5 SELL</div>', unsafe_allow_html=True
+            )
+            if signal_lists["sell"]:
+                st.dataframe(
+                    pd.DataFrame(signal_lists["sell"]),
+                    use_container_width=True,
+                    hide_index=True,
+                )
+            else:
+                st.caption("Aucun SELL prioritaire.")
+
         # Breakdown refus
         st.markdown(
             '<div class="section-title">REFUS CE CYCLE</div>', unsafe_allow_html=True
@@ -576,6 +635,57 @@ with tab_system:
                     f"{r} — <b style='color:#f9fafb'>{pct:.0f}%</b></div>",
                     unsafe_allow_html=True,
                 )
+
+    st.markdown(
+        '<div class="section-title">CONNECTIVITÉ DONNÉES</div>',
+        unsafe_allow_html=True,
+    )
+    feed_c1, feed_c2, feed_c3, feed_c4 = st.columns(4)
+    with feed_c1:
+        st.metric("Live snapshot", live_feed["status"], live_feed["age_label"])
+    with feed_c2:
+        st.metric("Positions", positions_feed["status"], positions_feed["age_label"])
+    with feed_c3:
+        st.metric(
+            "Multi-exchange",
+            multi_exchange_feed["status"],
+            multi_exchange_feed["age_label"],
+        )
+    with feed_c4:
+        st.metric("Mode trading", "SAFE" if safe_mode else "ACTIF")
+
+    multi_c1, multi_c2 = st.columns([2, 3])
+    with multi_c1:
+        st.markdown(
+            '<div class="section-title">COUVERTURE MULTI-EXCHANGE</div>',
+            unsafe_allow_html=True,
+        )
+        st.metric("Couverture globale", f"{multi_exchange_summary['coverage_pct']:.1f}%")
+        if multi_exchange_summary["exchange_rows"]:
+            import pandas as pd
+
+            st.dataframe(
+                pd.DataFrame(multi_exchange_summary["exchange_rows"]),
+                use_container_width=True,
+                hide_index=True,
+            )
+        else:
+            st.caption("Snapshot multi-exchange absent.")
+    with multi_c2:
+        st.markdown(
+            '<div class="section-title">COUVERTURE PAR SYMBOLE</div>',
+            unsafe_allow_html=True,
+        )
+        if multi_exchange_summary["symbol_rows"]:
+            import pandas as pd
+
+            st.dataframe(
+                pd.DataFrame(multi_exchange_summary["symbol_rows"]),
+                use_container_width=True,
+                hide_index=True,
+            )
+        else:
+            st.caption("Aucune donnée multi-exchange disponible.")
 
     st.markdown('<div class="section-title">LOGS RÉCENTS</div>', unsafe_allow_html=True)
     with st.expander("Dernières lignes du log bot", expanded=False):
