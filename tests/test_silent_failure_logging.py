@@ -227,6 +227,74 @@ def test_execution_engine_leverage_failures_are_logged(monkeypatch, caplog):
     assert "set_leverage failed for BTC/USDT:USDT (lev x3)" in caplog.text
 
 
+def test_execution_engine_futures_market_metadata_fallback_is_logged(monkeypatch, caplog):
+    logged_orders: list[dict] = []
+
+    class _FakeTradeLogger:
+        def __init__(self, db_path: str) -> None:
+            self.db_path = db_path
+
+        def log(self, payload: dict) -> None:
+            logged_orders.append(payload)
+
+    monkeypatch.setattr(
+        "quant_hedge_ai.agents.execution.execution_engine.TradeLogger",
+        _FakeTradeLogger,
+    )
+    engine = ExecutionEngine(live=False)
+
+    class _FakeFuturesExchange:
+        def fetch_ticker(self, symbol: str) -> dict:
+            return {"last": 100.0}
+
+        def load_markets(self) -> dict:
+            raise RuntimeError("markets boom")
+
+        def create_order(self, symbol: str, order_type: str, side: str, qty: float) -> dict:
+            return {"id": "ord-2", "symbol": symbol, "type": order_type, "side": side, "amount": qty}
+
+    engine._exchange_futures = _FakeFuturesExchange()
+
+    with caplog.at_level(
+        logging.ERROR, logger="quant_hedge_ai.agents.execution.execution_engine"
+    ):
+        order = engine.create_futures_order("BTC/USDT", "BUY", 60.0)
+
+    assert order["mode"] == "futures_demo"
+    assert logged_orders and logged_orders[0]["mode"] == "futures_demo"
+    assert (
+        "Futures market metadata unavailable for BTC/USDT:USDT; using default sizing"
+        in caplog.text
+    )
+
+
+def test_execution_engine_live_market_metadata_fallback_is_logged(caplog):
+    engine = ExecutionEngine(live=False)
+
+    class _FakeExchange:
+        def fetch_ticker(self, symbol: str) -> dict:
+            return {"last": 100.0}
+
+        def load_markets(self) -> dict:
+            raise RuntimeError("live markets boom")
+
+        def fetch_balance(self) -> dict:
+            return {"free": {"USDT": 1000.0}}
+
+        def create_order(self, symbol: str, order_type: str, side: str, qty: float) -> dict:
+            return {"id": "ord-live-1", "symbol": symbol, "type": order_type, "side": side, "amount": qty}
+
+    engine._exchange = _FakeExchange()
+
+    with caplog.at_level(
+        logging.ERROR, logger="quant_hedge_ai.agents.execution.execution_engine"
+    ):
+        order = engine._place_live_order("BTCUSDT", "BUY", 50.0)
+
+    assert order["mode"] == "live"
+    assert "Live market metadata unavailable for BTC/USDT; using default sizing" in caplog.text
+
+
 def test_position_manager_close_callback_errors_are_logged(caplog):
     manager = PositionManager(paper_mode=True)
     position = Position(

@@ -409,6 +409,10 @@ class ExecutionEngine:
                     "min"
                 ) or 0.001
             except Exception:
+                logger.exception(
+                    "[ExecutionEngine] Futures market metadata unavailable for %s; using default sizing",
+                    ccxt_symbol,
+                )
                 amt_precision = 0.001
                 min_qty = 0.001
 
@@ -472,6 +476,10 @@ class ExecutionEngine:
                 )
                 amt_precision = mkt.get("precision", {}).get("amount") or 1e-5
             except Exception:
+                logger.exception(
+                    "[ExecutionEngine] Live market metadata unavailable for %s; using default sizing",
+                    ccxt_symbol,
+                )
                 min_notional = 5.0
                 amt_precision = 1e-5
 
