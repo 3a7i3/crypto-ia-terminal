@@ -59,8 +59,7 @@ class SignalResult:
 
     @property
     def actionable(self) -> bool:
-        min_s = int(os.getenv("SIGNAL_MIN_SCORE", "70"))
-        return self.score >= min_s and self.signal in ("BUY", "SELL")
+        return self.signal in ("BUY", "SELL")
 
     def as_dict(self) -> dict:
         return {
