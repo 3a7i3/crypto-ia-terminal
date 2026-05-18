@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import builtins
 import logging
 
+from paper_trading.engine import PaperTradingEngine
+from paper_trading.ledger import PaperTrade
 from health.health_registry import HealthRegistry
 from health.recovery_manager import RecoveryManager, RecoveryOutcome, RecoveryStrategy
 from system.module_registry import ModulePriority, ModuleRegistry, ModuleStatus
@@ -88,3 +91,29 @@ def test_health_registry_loop_errors_are_logged(monkeypatch, caplog):
 
     assert calls["count"] == 1
     assert "Health registry polling loop failed" in caplog.text
+
+
+def test_paper_trading_audit_failures_are_logged(monkeypatch, tmp_path, caplog):
+    engine = PaperTradingEngine(simulator=object(), log_path=str(tmp_path / "paper.jsonl"))
+    trade = PaperTrade(
+        trade_id="abc123",
+        symbol="BTCUSDT",
+        side="buy",
+        size_usd=100.0,
+        signal_price=100.0,
+        entry_price=100.0,
+        entry_slippage_bps=0.0,
+        entry_latency_ms=0.0,
+        entry_fee_usd=0.0,
+        entry_ts=1.0,
+    )
+
+    def broken_open(*args, **kwargs):
+        raise OSError("disk full")
+
+    monkeypatch.setattr(builtins, "open", broken_open)
+
+    with caplog.at_level(logging.ERROR, logger="paper_trading.engine"):
+        engine._log(trade)
+
+    assert "Failed to append paper trading audit log for BTCUSDT (abc123)" in caplog.text

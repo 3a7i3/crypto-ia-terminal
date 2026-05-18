@@ -29,6 +29,7 @@ Usage :
 from __future__ import annotations
 
 import json
+import logging
 import time
 import uuid
 from pathlib import Path
@@ -37,6 +38,8 @@ from typing import Optional
 from execution_simulator.models import MarketSnapshot, OrderIntent
 from execution_simulator.simulator import ExecutionSimulator
 from paper_trading.ledger import PaperLedger, PaperTrade
+
+logger = logging.getLogger("paper_trading.engine")
 
 
 class PaperTradingEngine:
@@ -261,4 +264,9 @@ class PaperTradingEngine:
             with open(self._log_path, "a", encoding="utf-8") as f:
                 f.write(json.dumps(trade.as_dict()) + "\n")
         except Exception:
-            pass
+            logger.exception(
+                "Failed to append paper trading audit log for %s (%s) to %s",
+                trade.symbol,
+                trade.trade_id,
+                self._log_path,
+            )
