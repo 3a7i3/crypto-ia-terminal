@@ -20,12 +20,15 @@ Usage:
 
 from __future__ import annotations
 
+import logging
 import statistics
 import threading
 import time
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional, Tuple
+
+logger = logging.getLogger("observability.metrics_bus")
 
 
 @dataclass
@@ -195,7 +198,9 @@ class MetricsBus:
             try:
                 cb(module, metric, value)
             except Exception:
-                pass
+                logger.exception(
+                    "Metrics listener failed for %s.%s", module, metric
+                )
 
     # ------------------------------------------------------------------
     # Snapshot

@@ -17,6 +17,7 @@ Usage:
 
 from __future__ import annotations
 
+import logging
 import threading
 import time
 from dataclasses import dataclass, field
@@ -24,6 +25,8 @@ from typing import Callable, Dict, List, Optional
 
 from observability.metrics_bus import metrics_bus
 from system.module_registry import ModuleStatus, module_registry
+
+logger = logging.getLogger("observability.heartbeat_system")
 
 
 @dataclass
@@ -133,7 +136,7 @@ class HeartbeatSystem:
             try:
                 self._check_all()
             except Exception:
-                pass
+                logger.exception("Heartbeat monitor loop failed")
             time.sleep(self.POLL_INTERVAL_SEC)
 
     def _check_all(self) -> None:
@@ -154,7 +157,7 @@ class HeartbeatSystem:
             try:
                 cb(module)
             except Exception:
-                pass
+                logger.exception("Heartbeat death callback failed for %s", module)
 
     def _on_revival(self, module: str) -> None:
         module_registry.set_status(module, ModuleStatus.HEALTHY, "heartbeat resumed")
@@ -162,7 +165,7 @@ class HeartbeatSystem:
             try:
                 cb(module)
             except Exception:
-                pass
+                logger.exception("Heartbeat revival callback failed for %s", module)
 
     # ------------------------------------------------------------------
     # Callbacks

@@ -6,6 +6,8 @@ import logging
 from paper_trading.engine import PaperTradingEngine
 from paper_trading.ledger import PaperTrade
 from health.health_registry import HealthRegistry
+from observability.heartbeat_system import HeartbeatSystem
+from observability.metrics_bus import MetricsBus
 from health.recovery_manager import RecoveryManager, RecoveryOutcome, RecoveryStrategy
 from system.module_registry import ModulePriority, ModuleRegistry, ModuleStatus
 from system.state_manager import StateManager, SystemState
@@ -117,3 +119,55 @@ def test_paper_trading_audit_failures_are_logged(monkeypatch, tmp_path, caplog):
         engine._log(trade)
 
     assert "Failed to append paper trading audit log for BTCUSDT (abc123)" in caplog.text
+
+
+def test_metrics_bus_listener_errors_are_logged(caplog):
+    bus = MetricsBus()
+
+    def broken_listener(module: str, metric: str, value: float) -> None:
+        raise RuntimeError("metrics boom")
+
+    bus.subscribe(broken_listener)
+
+    with caplog.at_level(logging.ERROR, logger="observability.metrics_bus"):
+        bus.gauge("signal_engine", "score", 0.91)
+
+    assert "Metrics listener failed for signal_engine.score" in caplog.text
+
+
+def test_heartbeat_system_loop_and_callbacks_are_logged(monkeypatch, caplog):
+    heartbeat = HeartbeatSystem()
+    heartbeat.register("signal_engine", timeout_sec=0.1)
+
+    death_seen: list[str] = []
+    revival_seen: list[str] = []
+
+    def broken_death(module: str) -> None:
+        death_seen.append(module)
+        raise RuntimeError("death boom")
+
+    def broken_revival(module: str) -> None:
+        revival_seen.append(module)
+        raise RuntimeError("revival boom")
+
+    heartbeat.on_death(broken_death)
+    heartbeat.on_revival(broken_revival)
+
+    with caplog.at_level(logging.ERROR, logger="observability.heartbeat_system"):
+        heartbeat._on_death("signal_engine")
+        heartbeat._on_revival("signal_engine")
+
+        def boom() -> None:
+            heartbeat._running = False
+            raise RuntimeError("monitor boom")
+
+        monkeypatch.setattr(heartbeat, "_check_all", boom)
+        monkeypatch.setattr("observability.heartbeat_system.time.sleep", lambda _: None)
+        heartbeat._running = True
+        heartbeat._monitor_loop()
+
+    assert death_seen == ["signal_engine"]
+    assert revival_seen == ["signal_engine"]
+    assert "Heartbeat death callback failed for signal_engine" in caplog.text
+    assert "Heartbeat revival callback failed for signal_engine" in caplog.text
+    assert "Heartbeat monitor loop failed" in caplog.text
