@@ -3,16 +3,25 @@ AUTO DECISION ENGINE — Système autonome contrôlé
 Observe → Décide → Agit → Contrôle → Apprend
 """
 
-from dataclasses import dataclass, asdict
-from typing import Dict, Any, Tuple, List, Optional
-from datetime import datetime
 import json
+import time
+from dataclasses import dataclass
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Tuple
+
+# Cooldown minimal après STOP_TRADING avant de pouvoir reprendre (secondes)
+_RESUME_COOLDOWN_S = 3600  # 1h minimum après un arrêt
+
+# Seuils de recovery pour RESUME_TRADING
+_RESUME_DRAWDOWN_MAX = 0.03  # drawdown doit être < 3% pour reprendre
+_RESUME_LOSS_STREAK_MAX = 1  # loss_streak doit être <= 1
 
 
 @dataclass
 class Decision:
     """Représente une décision du système"""
-    action: str  # ADJUST_TP, ADJUST_SL, REDUCE_RISK, STOP_TRADING, APPLY_META, NO_ACTION
+
+    action: str  # see AutoDecisionEngine.ACTIONS
     params: Dict[str, Any]
     reason: str
     confidence: float = 0.5
@@ -26,82 +35,125 @@ class Decision:
 class AutoDecisionEngine:
     """Moteur de décision automatique"""
 
-    # Actions possibles (SEULEMENT CES 3)
     ACTIONS = [
-        "ADJUST_TP",      # Augmenter TP si exits trop tôt
-        "ADJUST_SL",      # Réduire SL si MAE trop élevé
-        "REDUCE_RISK",    # Réduire taille position si streak de pertes
-        "STOP_TRADING",   # Arrêt si DD trop élevé
-        "APPLY_META",     # Appliquer config meta-learning
-        "NO_ACTION",      # Rien faire
+        "ADJUST_TP",  # Augmenter TP si exits trop tôt
+        "ADJUST_SL",  # Réduire SL si MAE trop élevé
+        "REDUCE_RISK",  # Réduire taille position si streak de pertes
+        "STOP_TRADING",  # Arrêt si DD trop élevé
+        "RESUME_TRADING",  # Reprise après recovery des conditions
+        "APPLY_META",  # Appliquer config meta-learning
+        "NO_ACTION",  # Rien faire
     ]
 
     def __init__(self, config: Dict[str, Any]):
-        """
-        Args:
-            config: Paramètres de trading actuels
-        """
         self.config = config
+        # Récupérer le timestamp d'arrêt depuis la config persistée si disponible
+        self._halted_at: Optional[float] = config.get("_halted_at")
 
-    def decide(self,
-              metrics: Dict[str, Any],
-              meta_suggestion: Optional[Dict] = None,
-              risk_state: Optional[Dict] = None) -> Decision:
-        """
-        Prend une décision basée sur:
-        1. Métriques de performance
-        2. Suggestions meta-learning
-        3. État du risque
+    @property
+    def is_halted(self) -> bool:
+        return not self.config.get("trading_enabled", True)
 
-        Priorité:
-        1. Risk first (arrêt si dangereux)
-        2. Réduction risque (loss streak)
-        3. Optimisation exits (efficiency)
-        4. Meta-learning suggestion
+    def decide(
+        self,
+        metrics: Dict[str, Any],
+        meta_suggestion: Optional[Dict] = None,
+        risk_state: Optional[Dict] = None,
+    ) -> Decision:
         """
+        Priorité :
+        0. Recovery — si halted ET conditions améliorées → RESUME_TRADING
+        1. Risk first — STOP_TRADING si DD > 5%
+        2. Réduction risque — REDUCE_RISK si loss_streak >= 4
+        3. Exit optimization — ADJUST_TP / ADJUST_SL
+        4. Meta-learning — APPLY_META
+        5. NO_ACTION
+        """
+
+        # PRIORITY 0: RECOVERY CHECK (si le système est actuellement arrêté)
+        if self.is_halted and risk_state:
+            drawdown = risk_state.get("drawdown", 1.0)
+            loss_streak = risk_state.get("loss_streak", 99)
+            elapsed = time.time() - (self._halted_at or 0)
+
+            if (
+                elapsed >= _RESUME_COOLDOWN_S
+                and drawdown < _RESUME_DRAWDOWN_MAX
+                and loss_streak <= _RESUME_LOSS_STREAK_MAX
+            ):
+                return Decision(
+                    action="RESUME_TRADING",
+                    params={},
+                    reason=(
+                        f"Recovery confirmed: drawdown={drawdown:.1%}"
+                        f" < {_RESUME_DRAWDOWN_MAX:.0%},"
+                        f" loss_streak={loss_streak}"
+                        f" <= {_RESUME_LOSS_STREAK_MAX},"
+                        f" cooldown elapsed {elapsed/3600:.1f}h"
+                    ),
+                    confidence=0.90,
+                )
+
+            # Si halted et recovery pas atteinte — éviter de répéter STOP_TRADING
+            if self.is_halted:
+                return Decision(
+                    action="NO_ACTION",
+                    params={},
+                    reason=(
+                        f"Trading halted — waiting for recovery"
+                        f" (dd={drawdown:.1%}, streak={loss_streak},"
+                        f" elapsed={elapsed/60:.0f}min)"
+                    ),
+                    confidence=0.99,
+                )
 
         # PRIORITY 1: RISK CONTROL
         if risk_state:
-            # Drawdown trop élevé
-            if risk_state.get("drawdown", 0) > 0.05:
+            drawdown = risk_state.get("drawdown", 0)
+            if drawdown > 0.05:
                 return Decision(
                     action="STOP_TRADING",
                     params={},
-                    reason="Drawdown > 5% - stopping to prevent catastrophic loss",
-                    confidence=0.95
+                    reason=(
+                        f"Drawdown {drawdown:.1%} > 5%"
+                        " — stopping to prevent catastrophic loss"
+                    ),
+                    confidence=0.95,
                 )
 
-            # Streak de pertes
             loss_streak = risk_state.get("loss_streak", 0)
             if loss_streak >= 4:
                 return Decision(
                     action="REDUCE_RISK",
                     params={"position_size_factor": 0.5},
-                    reason=f"Loss streak of {loss_streak} detected - reducing position size",
-                    confidence=0.85
+                    reason=(
+                        f"Loss streak of {loss_streak} detected"
+                        " — reducing position size"
+                    ),
+                    confidence=0.85,
                 )
 
         # PRIORITY 2: EXIT OPTIMIZATION
         if metrics:
             efficiency = metrics.get("efficiency", 0)
-
-            # Exits trop tôt (efficiency faible)
             if efficiency < 0.45:
                 return Decision(
                     action="ADJUST_TP",
-                    params={"tp_factor": 1.15},  # Augmenter TP de 15%
-                    reason=f"Exit efficiency too low ({efficiency:.1%}) - increasing TP target",
-                    confidence=0.72
+                    params={"tp_factor": 1.15},
+                    reason=(
+                        f"Exit efficiency too low ({efficiency:.1%})"
+                        " — increasing TP target"
+                    ),
+                    confidence=0.72,
                 )
 
-            # MAE trop élevé (SL trop large)
             mae = metrics.get("mae_pct", 0)
-            if mae < -0.025:  # -2.5%
+            if mae < -0.025:
                 return Decision(
                     action="ADJUST_SL",
-                    params={"sl_factor": 0.85},  # Réduire SL de 15%
-                    reason=f"MAE too high ({mae:.2%}) - tightening stop loss",
-                    confidence=0.68
+                    params={"sl_factor": 0.85},
+                    reason=f"MAE too high ({mae:.2%}) — tightening stop loss",
+                    confidence=0.68,
                 )
 
         # PRIORITY 3: META-LEARNING
@@ -110,15 +162,14 @@ class AutoDecisionEngine:
                 action="APPLY_META",
                 params=meta_suggestion,
                 reason="Applying meta-learned configuration",
-                confidence=meta_suggestion.get("confidence", 0.6)
+                confidence=meta_suggestion.get("confidence", 0.6),
             )
 
-        # NO ACTION NEEDED
         return Decision(
             action="NO_ACTION",
             params={},
-            reason="System stable - no adjustments needed",
-            confidence=0.5
+            reason="System stable — no adjustments needed",
+            confidence=0.5,
         )
 
 
@@ -138,7 +189,7 @@ class RiskGuard:
             "max_tp_increase": 0.3,
             "max_sl_decrease": 0.3,
             "max_position_reduction": 0.7,
-            **limits
+            **limits,
         }
 
     def validate(self, decision: Decision) -> Tuple[bool, str]:
@@ -207,11 +258,34 @@ class ActionExecutor:
             factor = decision.params.get("position_size_factor", 1.0)
             old_size = self.config.get("position_size", 0.1)
             self.config["position_size"] = old_size * factor
-            msg = f"Position size reduced: {old_size:.3f} -> {self.config['position_size']:.3f}"
+            msg = (
+                f"Position size reduced: {old_size:.3f}"
+                f" -> {self.config['position_size']:.3f}"
+            )
 
         elif decision.action == "STOP_TRADING":
             self.config["trading_enabled"] = False
+            self.config["_halted_at"] = time.time()
             msg = "Trading stopped (RISK LIMIT)"
+            try:
+                from system.state_machine import get_state_machine as _gsm
+
+                _gsm().transition(
+                    "HALTED", reason=decision.reason, halt_source="AutoDecisionEngine"
+                )
+            except Exception:
+                pass
+
+        elif decision.action == "RESUME_TRADING":
+            self.config["trading_enabled"] = True
+            self.config.pop("_halted_at", None)
+            msg = "Trading resumed — risk conditions normalized"
+            try:
+                from system.state_machine import get_state_machine as _gsm
+
+                _gsm().transition("RECOVERY", reason=decision.reason)
+            except Exception:
+                pass
 
         elif decision.action == "APPLY_META":
             # Appliquer config meta-learning
@@ -223,12 +297,14 @@ class ActionExecutor:
         else:
             return self.config, False, f"Unknown action: {decision.action}"
 
-        self.execution_history.append({
-            "timestamp": datetime.utcnow().isoformat(),
-            "action": decision.action,
-            "success": True,
-            "message": msg
-        })
+        self.execution_history.append(
+            {
+                "timestamp": datetime.utcnow().isoformat(),
+                "action": decision.action,
+                "success": True,
+                "message": msg,
+            }
+        )
 
         return self.config, True, msg
 
@@ -239,7 +315,9 @@ class DecisionLogger:
     def __init__(self, log_file: str = "logs/decisions.jsonl"):
         self.log_file = log_file
 
-    def log(self, decision: Decision, validated: bool, executed: bool, reason: str = ""):
+    def log(
+        self, decision: Decision, validated: bool, executed: bool, reason: str = ""
+    ):
         """
         Enregistre une décision
 
@@ -257,7 +335,7 @@ class DecisionLogger:
             "confidence": decision.confidence,
             "validated": validated,
             "executed": executed,
-            "validation_reason": reason
+            "validation_reason": reason,
         }
 
         try:
@@ -283,10 +361,12 @@ class DecisionLogger:
 class AutoDecisionOrchestrator:
     """Orchestre l'ensemble du pipeline décisionnel"""
 
-    def __init__(self,
-                 initial_config: Dict[str, Any],
-                 limits: Dict[str, float] = None,
-                 log_file: str = "logs/decisions.jsonl"):
+    def __init__(
+        self,
+        initial_config: Dict[str, Any],
+        limits: Dict[str, float] = None,
+        log_file: str = "logs/decisions.jsonl",
+    ):
         """
         Args:
             initial_config: Configuration initiale de trading
@@ -301,10 +381,12 @@ class AutoDecisionOrchestrator:
         self.current_config = initial_config.copy()
         self.decision_count = 0
 
-    def run_decision_cycle(self,
-                          metrics: Dict[str, Any],
-                          risk_state: Dict[str, Any],
-                          meta_suggestion: Optional[Dict] = None) -> Tuple[Dict, Decision, bool]:
+    def run_decision_cycle(
+        self,
+        metrics: Dict[str, Any],
+        risk_state: Dict[str, Any],
+        meta_suggestion: Optional[Dict] = None,
+    ) -> Tuple[Dict, Decision, bool]:
         """
         Exécute un cycle complet de décision
 
@@ -321,10 +403,14 @@ class AutoDecisionOrchestrator:
         # STEP 3: Exécuter si valide
         executed = False
         if is_valid:
-            self.current_config, executed, execution_reason = self.executor.execute(decision)
+            self.current_config, executed, execution_reason = self.executor.execute(
+                decision
+            )
 
         # STEP 4: Logger
-        self.logger.log(decision, is_valid, executed, validation_reason if not is_valid else "")
+        self.logger.log(
+            decision, is_valid, executed, validation_reason if not is_valid else ""
+        )
 
         # STEP 5: Stats
         self.decision_count += 1

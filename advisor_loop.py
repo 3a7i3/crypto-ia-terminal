@@ -1966,6 +1966,27 @@ def main(
                 log.warning(
                     "[TrackerSystem] open échoué pour %s: %s", symbol, tracker_exc
                 )
+            # ── PaperTradeRecorder — source de vérité entry ───────────────────
+            try:
+                from paper_trading.recorder import get_recorder as _get_recorder
+
+                _get_recorder().record_open(
+                    trade_id=str(getattr(pos, "order_id", "") or id(pos)),
+                    symbol=symbol,
+                    side=action,
+                    price=float(
+                        getattr(
+                            pos, "entry_price", _to_float(result_row.get("prix", 0.0))
+                        )
+                    ),
+                    size_usd=float(effective_size),
+                    regime=result_row.get("regime", "unknown"),
+                    score=int(_to_float(getattr(result_row.get("signal"), "score", 0))),
+                    order_id=str(getattr(pos, "order_id", "")),
+                    mode=str(order_result.get("mode", "futures_demo")),
+                )
+            except Exception as _rec_exc:
+                log.debug("[PaperRecorder] open échoué: %s", _rec_exc)
             _consecutive_losses["value"] = 0
             return True
         except Exception as pos_exc:
@@ -1998,6 +2019,27 @@ def main(
             log.warning(
                 "[TrackerSystem] finalize échoué pour %s: %s", pos.symbol, tracker_exc
             )
+
+        # ── PaperTradeRecorder — source de vérité exit ───────────────────────
+        try:
+            from paper_trading.recorder import get_recorder as _get_recorder
+
+            _get_recorder().record_close(
+                trade_id=str(getattr(pos, "order_id", "") or id(pos)),
+                exit_price=float(getattr(pos, "current_price", 0.0) or pos.entry_price),
+                pnl_usd=float(getattr(pos, "pnl_usd", 0.0) or 0.0),
+                pnl_pct=float(getattr(pos, "pnl_pct", 0.0) or 0.0),
+                reason=getattr(reason, "value", str(reason)),
+                opened_at=float(getattr(pos, "opened_at", 0.0) or 0.0),
+                symbol=str(getattr(pos, "symbol", "")),
+                side=getattr(
+                    getattr(pos, "side", None), "value", str(getattr(pos, "side", ""))
+                ),
+                size_usd=float(getattr(pos, "size_usd", 0.0) or 0.0),
+                mode=str(getattr(pos, "mode", "futures_demo")),
+            )
+        except Exception as _rec_exc:
+            log.debug("[PaperRecorder] close échoué: %s", _rec_exc)
 
         sign = "+" if pos.pnl_usd >= 0 else ""
         _telegram(
@@ -2338,6 +2380,28 @@ def main(
         )
     except Exception:
         _stability_monitor = None
+
+    # ── Initialisation unique des composants d'observabilité ─────────────────
+    try:
+        from system.position_reconciler import PositionReconciler as _RecCls
+        from system.state_machine import get_state_machine as _get_sm_boot
+
+        _sm_boot = _get_sm_boot()
+        # Amorcer last_successful_order_at si des positions existent déjà au boot
+        if (
+            hasattr(pos_manager, "get_open_positions")
+            and pos_manager.get_open_positions()
+        ):
+            _sm_boot.update_heartbeat(
+                n_signals=0,
+                n_orders=1,
+                exchange_ok=True,
+                open_positions=len(pos_manager.get_open_positions()),
+            )
+        _position_reconciler = _RecCls(_get_exchange_futures(exec_engine), pos_manager)
+    except Exception as _obs_boot_exc:
+        log.debug("[Observability] init boot échoué: %s", _obs_boot_exc)
+        _position_reconciler = None
 
     while True:
         cycle += 1
@@ -3303,6 +3367,48 @@ def main(
                         _jf.write(_json_mod.dumps(_snap_data, default=str) + "\n")
                 except Exception as _jl_exc:
                     log.debug("[CycleData] Erreur écriture JSONL: %s", _jl_exc)
+
+                # ── SystemStateMachine heartbeat ─────────────────────────────
+                try:
+                    from system.state_machine import get_state_machine as _get_sm
+
+                    _ex_ok = bool(exchange_monitor.snapshot().get("uptime_pct", 0) > 0)
+                    _open_cnt = (
+                        len(pos_manager.get_open_positions())
+                        if hasattr(pos_manager, "get_open_positions")
+                        else 0
+                    )
+                    _sm_alerts = _get_sm().update_heartbeat(
+                        n_signals=_n_actionable,
+                        n_orders=_n_traded,
+                        exchange_ok=_ex_ok,
+                        open_positions=_open_cnt,
+                    )
+                    for _alert_key, _alert_msg in _sm_alerts.items():
+                        log.warning("[SystemState] %s: %s", _alert_key, _alert_msg)
+                        if _alert_key == "STALL":
+                            _telegram(
+                                f"[ALERTE] Pipeline execution bloque\n{_alert_msg}"
+                            )
+                except Exception as _sm_exc:
+                    log.debug("[SystemState] heartbeat échoué: %s", _sm_exc)
+
+                # ── Position Reconciliation (toutes les heures) ───────────────
+                try:
+                    if (
+                        _position_reconciler is not None
+                        and _position_reconciler.should_reconcile()
+                    ):
+                        _rec_report = _position_reconciler.reconcile()
+                        if _rec_report.has_drift:
+                            log.critical(
+                                "[Reconciler] DRIFT: %s", _rec_report.summary()
+                            )
+                            _telegram(
+                                f"[ALERTE] Reconciliation positions\n{_rec_report.summary()}"
+                            )
+                except Exception as _rec_exc:
+                    log.debug("[Reconciler] erreur non-bloquante: %s", _rec_exc)
 
             except Exception as _snap_exc:
                 log.debug("[LiveSnapshot] Erreur: %s", _snap_exc)
