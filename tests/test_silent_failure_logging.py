@@ -2,12 +2,21 @@ from __future__ import annotations
 
 import builtins
 import logging
+import sys
+from types import SimpleNamespace
 
 from paper_trading.engine import PaperTradingEngine
 from paper_trading.ledger import PaperTrade
 from health.health_registry import HealthRegistry
 from observability.heartbeat_system import HeartbeatSystem
 from observability.metrics_bus import MetricsBus
+from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
+from quant_hedge_ai.agents.execution.position_manager import (
+    CloseReason,
+    Position,
+    PositionManager,
+    PositionSide,
+)
 from health.recovery_manager import RecoveryManager, RecoveryOutcome, RecoveryStrategy
 from system.module_registry import ModulePriority, ModuleRegistry, ModuleStatus
 from system.state_manager import StateManager, SystemState
@@ -171,3 +180,95 @@ def test_heartbeat_errors_are_logged(monkeypatch, caplog):
     assert "Heartbeat death callback failed for signal_engine" in caplog.text
     assert "Heartbeat revival callback failed for signal_engine" in caplog.text
     assert "Heartbeat monitor loop failed" in caplog.text
+
+
+def test_execution_engine_leverage_failures_are_logged(monkeypatch, tmp_path, caplog):
+    monkeypatch.setenv("EXEC_TRADE_LOG", str(tmp_path / "trade_log.sqlite"))
+    engine = ExecutionEngine(live=False)
+
+    class _FakeFuturesExchange:
+        def set_leverage(self, leverage: int, symbol: str) -> None:
+            raise RuntimeError("leverage boom")
+
+        def fetch_ticker(self, symbol: str) -> dict:
+            return {"last": 100.0}
+
+        def load_markets(self) -> dict:
+            return {
+                "BTC/USDT:USDT": {
+                    "precision": {"amount": 0.001},
+                    "limits": {"amount": {"min": 0.001}},
+                }
+            }
+
+        def create_order(self, symbol: str, order_type: str, side: str, qty: float) -> dict:
+            return {"id": "ord-1", "symbol": symbol, "type": order_type, "side": side, "amount": qty}
+
+    engine._exchange_futures = _FakeFuturesExchange()
+    engine._logger = SimpleNamespace(log=lambda payload: None)
+
+    with caplog.at_level(
+        logging.ERROR, logger="quant_hedge_ai.agents.execution.execution_engine"
+    ):
+        order = engine.create_futures_order("BTC/USDT", "BUY", 60.0, leverage=3)
+
+    assert order["mode"] == "futures_demo"
+    assert "set_leverage failed for BTC/USDT:USDT (lev x3)" in caplog.text
+
+
+def test_position_manager_close_callback_errors_are_logged(caplog):
+    manager = PositionManager(paper_mode=True)
+    position = Position(
+        symbol="BTCUSDT",
+        side=PositionSide.LONG,
+        entry_price=100.0,
+        size_usd=100.0,
+        qty=1.0,
+    )
+
+    seen: list[tuple[str, str]] = []
+
+    def broken_callback(pos: Position, reason: CloseReason) -> None:
+        seen.append((pos.symbol, reason.value))
+        raise RuntimeError("close callback boom")
+
+    manager.on_close(broken_callback)
+
+    with caplog.at_level(
+        logging.ERROR, logger="quant_hedge_ai.agents.execution.position_manager"
+    ):
+        manager._close_position(position, CloseReason.MANUAL)
+
+    assert position.closed is True
+    assert seen == [("BTCUSDT", "manual")]
+    assert "Close callback failed for BTCUSDT (manual)" in caplog.text
+
+
+def test_position_manager_liquidation_alert_errors_are_logged(monkeypatch, caplog):
+    manager = PositionManager(paper_mode=True)
+    position = Position(
+        symbol="ETHUSDT",
+        side=PositionSide.LONG,
+        entry_price=100.0,
+        size_usd=100.0,
+        qty=1.0,
+        leverage=10,
+    )
+    position.update_price(100.0)
+
+    class _BrokenNotifier:
+        def send(self, message: str) -> None:
+            raise RuntimeError("telegram boom")
+
+    monkeypatch.setitem(
+        sys.modules,
+        "supervision.notifications.telegram_notifier",
+        SimpleNamespace(TelegramNotifier=_BrokenNotifier),
+    )
+
+    with caplog.at_level(
+        logging.ERROR, logger="quant_hedge_ai.agents.execution.position_manager"
+    ):
+        manager._check_liquidation_defense(position)
+
+    assert "Telegram liquidation alert failed for ETHUSDT" in caplog.text

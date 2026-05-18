@@ -391,7 +391,11 @@ class ExecutionEngine:
                 try:
                     self._exchange_futures.set_leverage(leverage, ccxt_symbol)
                 except Exception:
-                    pass
+                    logger.exception(
+                        "[ExecutionEngine] set_leverage failed for %s (lev x%d)",
+                        ccxt_symbol,
+                        leverage,
+                    )
 
             ticker = self._with_retry(self._exchange_futures.fetch_ticker, ccxt_symbol)
             price = float(ticker["last"])

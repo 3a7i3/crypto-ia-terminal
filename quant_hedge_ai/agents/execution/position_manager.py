@@ -519,7 +519,10 @@ class PositionManager:
                     f"PnL: {pos.pnl_usd:+.2f}$"
                 )
             except Exception:
-                pass
+                logger.exception(
+                    "[PositionManager] Telegram liquidation alert failed for %s",
+                    pos.symbol,
+                )
         # Fermeture d'urgence si dist < seuil defense
         if dist < pos.liq_defense_pct:
             logger.critical(
@@ -588,7 +591,11 @@ class PositionManager:
             try:
                 fn(pos, reason)
             except Exception:
-                pass
+                logger.exception(
+                    "[PositionManager] Close callback failed for %s (%s)",
+                    pos.symbol,
+                    reason.value,
+                )
 
     def _send_close_order(
         self,
