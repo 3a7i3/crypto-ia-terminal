@@ -35,6 +35,7 @@ from system.runtime_controller import runtime_controller
 from system.state_manager import SystemState, state_manager
 
 log = get_logger("recovery_manager")
+logger = logging.getLogger("health.recovery_manager")
 
 
 # ------------------------------------------------------------------
@@ -255,7 +256,11 @@ class RecoveryManager:
             try:
                 cb(event)
             except Exception:
-                pass
+                logger.exception(
+                    "Recovery callback failed for %s (%s)",
+                    module,
+                    outcome.name,
+                )
 
         return outcome
 
