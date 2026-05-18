@@ -135,7 +135,7 @@ def test_metrics_bus_listener_errors_are_logged(caplog):
     assert "Metrics listener failed for signal_engine.score" in caplog.text
 
 
-def test_heartbeat_system_loop_and_callbacks_are_logged(monkeypatch, caplog):
+def test_heartbeat_errors_are_logged(monkeypatch, caplog):
     heartbeat = HeartbeatSystem()
     heartbeat.register("signal_engine", timeout_sec=0.1)
 
@@ -157,11 +157,11 @@ def test_heartbeat_system_loop_and_callbacks_are_logged(monkeypatch, caplog):
         heartbeat._on_death("signal_engine")
         heartbeat._on_revival("signal_engine")
 
-        def boom() -> None:
+        def simulate_monitor_failure() -> None:
             heartbeat._running = False
             raise RuntimeError("monitor boom")
 
-        monkeypatch.setattr(heartbeat, "_check_all", boom)
+        monkeypatch.setattr(heartbeat, "_check_all", simulate_monitor_failure)
         monkeypatch.setattr("observability.heartbeat_system.time.sleep", lambda _: None)
         heartbeat._running = True
         heartbeat._monitor_loop()
