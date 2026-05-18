@@ -186,7 +186,7 @@ def test_execution_engine_leverage_failures_are_logged(monkeypatch, caplog):
 
     class _FakeTradeLogger:
         def __init__(self, db_path: str) -> None:
-            self.db_path = db_path
+            _ = db_path
 
         def log(self, payload: dict) -> None:
             logged_orders.append(payload)
@@ -232,7 +232,7 @@ def test_execution_engine_futures_market_metadata_fallback_is_logged(monkeypatch
 
     class _FakeTradeLogger:
         def __init__(self, db_path: str) -> None:
-            self.db_path = db_path
+            _ = db_path
 
         def log(self, payload: dict) -> None:
             logged_orders.append(payload)
@@ -250,8 +250,8 @@ def test_execution_engine_futures_market_metadata_fallback_is_logged(monkeypatch
         def load_markets(self) -> dict:
             raise RuntimeError("markets boom")
 
-        def create_order(self, symbol: str, order_type: str, side: str, qty: float) -> dict:
-            return {"id": "ord-2", "symbol": symbol, "type": order_type, "side": side, "amount": qty}
+        def create_order(self, symbol: str, order_type: str, side: str, amount: float) -> dict:
+            return {"id": "ord-2", "symbol": symbol, "type": order_type, "side": side, "amount": amount}
 
     engine._exchange_futures = _FakeFuturesExchange()
 
@@ -281,8 +281,8 @@ def test_execution_engine_live_market_metadata_fallback_is_logged(caplog):
         def fetch_balance(self) -> dict:
             return {"free": {"USDT": 1000.0}}
 
-        def create_order(self, symbol: str, order_type: str, side: str, qty: float) -> dict:
-            return {"id": "ord-live-1", "symbol": symbol, "type": order_type, "side": side, "amount": qty}
+        def create_order(self, symbol: str, order_type: str, side: str, amount: float) -> dict:
+            return {"id": "ord-live-1", "symbol": symbol, "type": order_type, "side": side, "amount": amount}
 
     engine._exchange = _FakeExchange()
 
