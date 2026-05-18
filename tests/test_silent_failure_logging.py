@@ -10,6 +10,7 @@ from health.health_registry import HealthRegistry
 from observability.heartbeat_system import HeartbeatSystem
 from observability.metrics_bus import MetricsBus
 from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
+from quant_hedge_ai.agents.execution.live_signal_engine import LiveSignalEngine
 from quant_hedge_ai.agents.execution.position_manager import (
     CloseReason,
     Position,
@@ -19,6 +20,19 @@ from quant_hedge_ai.agents.execution.position_manager import (
 from health.recovery_manager import RecoveryManager, RecoveryOutcome, RecoveryStrategy
 from system.module_registry import ModulePriority, ModuleRegistry, ModuleStatus
 from system.state_manager import StateManager, SystemState
+
+
+def _flat_candles(n: int = 30, close: float = 100.0) -> list[dict]:
+    return [
+        {
+            "open": close,
+            "high": close + 1,
+            "low": close - 1,
+            "close": close,
+            "volume": 1000.0,
+        }
+        for _ in range(n)
+    ]
 
 
 class _SuccessStrategy(RecoveryStrategy):
@@ -141,6 +155,64 @@ def test_metrics_bus_listener_errors_are_logged(caplog):
         bus.gauge("signal_engine", "score", 0.91)
 
     assert "Metrics listener failed for signal_engine.score" in caplog.text
+
+
+def test_live_signal_engine_metrics_failures_are_logged(monkeypatch, caplog):
+    engine = LiveSignalEngine()
+
+    class _BrokenMetricsBus:
+        def record(self, module: str, metric: str, value: float) -> None:
+            raise RuntimeError("metrics emit boom")
+
+        def gauge(self, module: str, metric: str, value: float) -> None:
+            raise AssertionError("gauge should not be called after record failure")
+
+        def increment(self, module: str, metric: str) -> None:
+            raise AssertionError("increment should not be called in this test")
+
+    monkeypatch.setattr(
+        "quant_hedge_ai.agents.execution.live_signal_engine._OBS_AVAILABLE", True
+    )
+    monkeypatch.setattr(
+        "quant_hedge_ai.agents.execution.live_signal_engine._metrics_bus",
+        _BrokenMetricsBus(),
+    )
+
+    with caplog.at_level(
+        logging.ERROR, logger="quant_hedge_ai.agents.execution.live_signal_engine"
+    ):
+        result = engine.evaluate("BTCUSDT", {"1h": _flat_candles(), "4h": _flat_candles()})
+
+    assert result.symbol == "BTCUSDT"
+    assert "Metrics emission failed for BTCUSDT" in caplog.text
+
+
+def test_live_signal_engine_error_bus_failures_are_logged(monkeypatch, caplog):
+    engine = LiveSignalEngine()
+
+    class _BrokenErrorBus:
+        def emit(self, **kwargs) -> None:
+            raise RuntimeError("error bus boom")
+
+    monkeypatch.setattr(
+        "quant_hedge_ai.agents.execution.live_signal_engine._OBS_AVAILABLE", True
+    )
+    monkeypatch.setattr(
+        "quant_hedge_ai.agents.execution.live_signal_engine._error_bus",
+        _BrokenErrorBus(),
+    )
+    monkeypatch.setattr(
+        "quant_hedge_ai.agents.execution.live_signal_engine._ErrCat",
+        SimpleNamespace(AI="ai"),
+    )
+
+    with caplog.at_level(
+        logging.ERROR, logger="quant_hedge_ai.agents.execution.live_signal_engine"
+    ):
+        results = engine.evaluate_batch({"BAD": "not-a-dict"})
+
+    assert results == []
+    assert "Error bus emission failed for BAD after evaluation error" in caplog.text
 
 
 def test_heartbeat_errors_are_logged(monkeypatch, caplog):
