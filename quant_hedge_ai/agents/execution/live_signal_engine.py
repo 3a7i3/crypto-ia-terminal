@@ -35,8 +35,6 @@ _REGIME_MAP: dict[str, str] = {
 }
 
 _DEFAULT_MIN_SCORE: int = int(os.getenv("SIGNAL_MIN_SCORE", "70"))
-# Nombre minimum de TF alignés pour confirmer un signal (défaut=2, paper=1)
-_LSE_MTF_MIN_AGREE: int = int(os.getenv("LSE_MTF_MIN_AGREE", "2"))
 
 try:
     from errors.error_bus import ErrorCategory as _ErrCat
@@ -301,7 +299,9 @@ class LiveSignalEngine:
             return 5.0, "HOLD", False, 0.0
 
         n_agree = sum(1 for s in tf_signals.values() if s == candidate)
-        confirmed = strength >= 0.5 and n_agree >= _LSE_MTF_MIN_AGREE
+        confirmed = strength >= 0.5 and n_agree >= int(
+            os.getenv("LSE_MTF_MIN_AGREE", "2")
+        )
 
         if not confirmed:
             score = strength * 15.0
