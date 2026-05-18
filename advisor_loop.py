@@ -2053,9 +2053,15 @@ def main(
     pos_manager.on_close(_on_position_close)
 
     _gate_min_score = int(os.getenv("SIGNAL_MIN_SCORE", "70"))
+    _gate_require_confirmed = (
+        os.getenv("GATE_REQUIRE_CONFIRMED", "true").lower() == "true"
+    )
     gate = _profile_bootstrap_step(
         "global_risk_gate",
-        lambda: runtime.GlobalRiskGate(min_signal_score=_gate_min_score),
+        lambda: runtime.GlobalRiskGate(
+            min_signal_score=_gate_min_score,
+            require_confirmed=_gate_require_confirmed,
+        ),
     )
     engine = _profile_bootstrap_step("live_signal_engine", runtime.LiveSignalEngine)
     advisor = _profile_bootstrap_step("ai_advisor", runtime.AIAdvisor)
