@@ -295,6 +295,40 @@ def test_execution_engine_live_market_metadata_fallback_is_logged(caplog):
     assert "Live market metadata unavailable for BTC/USDT; using default sizing" in caplog.text
 
 
+def test_execution_engine_reconnect_close_failure_is_logged_once(monkeypatch, caplog):
+    engine = ExecutionEngine(live=False)
+
+    class _SharedExchange:
+        def __init__(self) -> None:
+            self.close_calls = 0
+
+        def close(self) -> None:
+            self.close_calls += 1
+            raise RuntimeError("close boom")
+
+    shared = _SharedExchange()
+    engine._exchange = shared
+    engine._exchange_futures = shared
+
+    init_calls: list[str] = []
+
+    def _fake_init_futures_demo():
+        init_calls.append("futures")
+        return object()
+
+    monkeypatch.setattr(engine, "_init_futures_demo", _fake_init_futures_demo)
+
+    with caplog.at_level(
+        logging.WARNING, logger="quant_hedge_ai.agents.execution.execution_engine"
+    ):
+        ok = engine.reconnect()
+
+    assert ok is True
+    assert shared.close_calls == 1
+    assert init_calls == ["futures"]
+    assert "close() failed during reconnect for _SharedExchange: close boom" in caplog.text
+
+
 def test_position_manager_close_callback_errors_are_logged(caplog):
     manager = PositionManager(paper_mode=True)
     position = Position(

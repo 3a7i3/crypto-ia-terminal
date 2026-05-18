@@ -143,11 +143,15 @@ class ExecutionEngine:
         closed = set()
         for ex in (self._exchange, self._exchange_futures):
             if ex is not None and id(ex) not in closed:
+                closed.add(id(ex))
                 try:
                     ex.close()
-                    closed.add(id(ex))
-                except Exception as _exc:
-                    logger.debug("[ExecutionEngine] close() ignoré: %s", _exc)
+                except Exception as exc:
+                    logger.warning(
+                        "[ExecutionEngine] close() failed during reconnect for %s: %s",
+                        type(ex).__name__,
+                        exc,
+                    )
         self._exchange = None
         self._exchange_futures = None
         try:
