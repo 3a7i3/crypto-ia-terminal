@@ -59,7 +59,8 @@ class SignalResult:
 
     @property
     def actionable(self) -> bool:
-        return self.score >= _DEFAULT_MIN_SCORE and self.signal in ("BUY", "SELL")
+        min_s = int(os.getenv("SIGNAL_MIN_SCORE", "70"))
+        return self.score >= min_s and self.signal in ("BUY", "SELL")
 
     def as_dict(self) -> dict:
         return {
@@ -299,7 +300,8 @@ class LiveSignalEngine:
             return 5.0, "HOLD", False, 0.0
 
         n_agree = sum(1 for s in tf_signals.values() if s == candidate)
-        confirmed = strength >= 0.5 and n_agree >= int(
+        min_strength = float(os.getenv("LSE_MTF_MIN_STRENGTH", "0.5"))
+        confirmed = strength >= min_strength and n_agree >= int(
             os.getenv("LSE_MTF_MIN_AGREE", "2")
         )
 
