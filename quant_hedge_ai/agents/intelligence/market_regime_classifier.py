@@ -22,6 +22,7 @@ Supporte les deux formats de régime :
 from __future__ import annotations
 
 import logging
+import os
 from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
@@ -101,7 +102,7 @@ _REGIME_CONFIGS: dict[str, RegimeConfig] = {
     ),
     "sideways": RegimeConfig(
         regime="sideways",
-        min_score=66,
+        min_score=int(os.getenv("REGIME_SIDEWAYS_MIN_SCORE", "66")),
         sl_factor_atr=1.5,
         tp_factor_atr=2.0,
         size_factor=0.7,
@@ -220,7 +221,10 @@ class MarketRegimeClassifier:
         return cfg
 
     def effective_min_score(
-        self, regime: str, delta: int = 0, absolute_floor: int = 55
+        self,
+        regime: str,
+        delta: int = 0,
+        absolute_floor: int = int(os.getenv("REGIME_ABSOLUTE_FLOOR", "55")),
     ) -> int:
         """
         Seuil de score effectif = config.min_score + delta.
