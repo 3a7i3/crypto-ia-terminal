@@ -297,7 +297,18 @@ n_traded = snap.get("n_traded", 0)
 n_refused = snap.get("n_refused", 0)
 cycle_ms = snap.get("cycle_duration_ms", 0)
 
-open_pos = [p for p in positions if p.get("status", "open") == "open"]
+positions_missing_status = [
+    p.get("symbol", "—") for p in positions if isinstance(p, dict) and "status" not in p
+]
+open_pos = [
+    p
+    for p in positions
+    if p.get("status") == "open"
+    or (
+        "status" not in p
+        and any(key in p for key in ("entry", "entry_price", "current", "current_price"))
+    )
+]
 display_positions = normalize_positions(open_pos)
 total_pnl = sum(p.get("pnl_usd", 0.0) for p in positions)
 win_count = sum(1 for p in positions if p.get("pnl_usd", 0) > 0)
@@ -432,6 +443,12 @@ with tab_trading:
             '<div class="section-title">POSITIONS OUVERTES</div>',
             unsafe_allow_html=True,
         )
+        if positions_missing_status:
+            st.warning(
+                "Certaines positions snapshot n'ont pas de statut explicite et sont "
+                "affichées comme ouvertes : "
+                + ", ".join(positions_missing_status[:5])
+            )
         if open_pos:
             import pandas as pd
 

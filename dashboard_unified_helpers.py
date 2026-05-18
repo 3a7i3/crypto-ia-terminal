@@ -81,6 +81,13 @@ def normalize_positions(positions: list[dict]) -> list[dict]:
 
 
 def build_signal_lists(symbols: list[dict], top_n: int = 5) -> dict[str, list[dict]]:
+    def row_key(symbol: dict) -> tuple:
+        return (
+            symbol.get("symbol", "—"),
+            symbol.get("signal", "—"),
+            symbol.get("score", 0),
+        )
+
     def sort_key(symbol: dict) -> tuple:
         conviction = symbol.get("conviction_score")
         conviction_val = float(conviction) if conviction is not None else -1.0
@@ -110,12 +117,14 @@ def build_signal_lists(symbols: list[dict], top_n: int = 5) -> dict[str, list[di
     dominant = sorted(symbols, key=sort_key, reverse=True)[:top_n]
     buys = [s for s in dominant if str(s.get("signal", "")).upper() == "BUY"]
     sells = [s for s in dominant if str(s.get("signal", "")).upper() == "SELL"]
+    buy_keys = {row_key(s) for s in buys}
+    sell_keys = {row_key(s) for s in sells}
 
     if len(buys) < top_n:
         extra_buys = [
             s
             for s in sorted(symbols, key=sort_key, reverse=True)
-            if str(s.get("signal", "")).upper() == "BUY" and s not in buys
+            if str(s.get("signal", "")).upper() == "BUY" and row_key(s) not in buy_keys
         ]
         buys.extend(extra_buys[: top_n - len(buys)])
 
@@ -123,7 +132,8 @@ def build_signal_lists(symbols: list[dict], top_n: int = 5) -> dict[str, list[di
         extra_sells = [
             s
             for s in sorted(symbols, key=sort_key, reverse=True)
-            if str(s.get("signal", "")).upper() == "SELL" and s not in sells
+            if str(s.get("signal", "")).upper() == "SELL"
+            and row_key(s) not in sell_keys
         ]
         sells.extend(extra_sells[: top_n - len(sells)])
 
