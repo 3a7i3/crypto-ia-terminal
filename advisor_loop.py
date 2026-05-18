@@ -63,7 +63,7 @@ def _get_regret_counts(regret_engine: Any) -> tuple[int, int]:
     return len(records), len(candidates)
 
 
-load_dotenv()
+load_dotenv(override=True)
 
 logging.basicConfig(
     level=getattr(logging, os.getenv("V9_LOG_LEVEL", "INFO")),
