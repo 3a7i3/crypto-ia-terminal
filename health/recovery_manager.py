@@ -34,8 +34,8 @@ from system.module_registry import ModulePriority, ModuleStatus, module_registry
 from system.runtime_controller import runtime_controller
 from system.state_manager import SystemState, state_manager
 
-log = get_logger("recovery_manager")
-logger = logging.getLogger("health.recovery_manager")
+structured_logger = get_logger("recovery_manager")
+exception_logger = logging.getLogger("health.recovery_manager")
 
 
 # ------------------------------------------------------------------
@@ -102,7 +102,7 @@ class RestartStrategy(RecoveryStrategy):
             return RecoveryOutcome.ESCALATED
 
         wait = self.backoff_sec * (2 ** (attempt - 1))
-        log.warning(
+        structured_logger.warning(
             "recovery_restart_wait", module=module, attempt=attempt, wait_sec=wait
         )
         time.sleep(min(wait, 60.0))
@@ -149,7 +149,7 @@ class RiskOffAndRestartStrategy(RecoveryStrategy):
             )
 
         if attempt > self.max_attempts:
-            log.critical(
+            structured_logger.critical(
                 "recovery_max_attempts_exceeded", module=module, attempt=attempt
             )
             state_manager.force_panic(f"unrecoverable module: {module}")
@@ -217,7 +217,7 @@ class RecoveryManager:
             self._attempts[module] = attempt
 
         strategy = self._get_strategy(module)
-        log.warning(
+        structured_logger.warning(
             "recovery_started",
             module=module,
             reason=reason,
@@ -244,7 +244,7 @@ class RecoveryManager:
                 self._attempts[module] = 0  # reset counter on success
 
         metrics_bus.increment(module, f"recovery.{outcome.name.lower()}")
-        log.info(
+        structured_logger.info(
             "recovery_outcome",
             module=module,
             outcome=outcome.name,
@@ -256,7 +256,7 @@ class RecoveryManager:
             try:
                 cb(event)
             except Exception:
-                logger.exception(
+                exception_logger.exception(
                     "Recovery callback failed for %s (%s)",
                     module,
                     outcome.name,

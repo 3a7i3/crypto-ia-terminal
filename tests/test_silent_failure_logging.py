@@ -57,7 +57,11 @@ def test_module_status_listener_errors_are_logged(caplog):
 def test_recovery_callback_errors_are_logged(caplog):
     manager = RecoveryManager()
     manager.register_strategy("signal_engine", _SuccessStrategy())
-    manager.on_recovery_event(lambda event: (_ for _ in ()).throw(RuntimeError("callback boom")))
+
+    def broken_callback(event) -> None:
+        raise RuntimeError("callback boom")
+
+    manager.on_recovery_event(broken_callback)
 
     with caplog.at_level(logging.ERROR, logger="health.recovery_manager"):
         outcome = manager.recover("signal_engine", "listener failed")
