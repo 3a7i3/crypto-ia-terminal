@@ -3484,9 +3484,14 @@ def main(
 
 
 if __name__ == "__main__":
+    _env_symbols = os.getenv("V9_SYMBOLS", "")
+    _symbols_from_env = (
+        _env_symbols.split() if _env_symbols.strip() else SYMBOLS_DEFAULT
+    )
+
     parser = argparse.ArgumentParser(description="Advisor loop multi-symboles")
     parser.add_argument("--interval", type=int, default=300)
-    parser.add_argument("--symbols", nargs="+", default=SYMBOLS_DEFAULT)
+    parser.add_argument("--symbols", nargs="+", default=_symbols_from_env)
     parser.add_argument("--max-cycles", type=int, default=None)
     args = parser.parse_args()
     main(symbols=args.symbols, interval=args.interval, max_cycles=args.max_cycles)
