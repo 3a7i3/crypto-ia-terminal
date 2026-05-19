@@ -348,8 +348,9 @@ class ExecutionEngine:
             return symbol
         base = symbol.split("/")[0] if "/" in symbol else symbol[:3]
         if exch_id == "krakenfutures":
-            # krakenfutures: BTC/USDT → BTC/USD:BTC  (inverse perpetual)
-            return f"{base}/USD:{base}"
+            # krakenfutures linear perp (settled in USD): BTC/USDT → BTC/USD:USD
+            # Inverse perps (BTC/USD:BTC) require 1 BTC minimum — too large for small orders
+            return f"{base}/USD:USD"
         else:
             # Binance USDM perp: BTC/USDT → BTC/USDT:USDT
             quote = symbol.split("/")[1] if "/" in symbol else "USDT"
