@@ -92,12 +92,24 @@ echo "$ALL_FILES" | tr '\n' '\0' | \
 log "Transfert OK"
 
 # ── Redémarrage du service (optionnel) ───────────────────────────────────────
-if [[ -n "$VPS_RESTART_CMD" ]]; then
-    log "Redémarrage : $VPS_RESTART_CMD"
+# Redémarre seulement si advisor_loop.py est dans les fichiers déployés,
+# ou si VPS_RESTART_CMD est explicitement forcé avec FORCE_RESTART=1.
+NEEDS_RESTART=0
+if echo "$ALL_FILES" | grep -qE "advisor_loop\.py|position_manager\.py|execution_engine\.py|exchange_monitor\.py"; then
+    NEEDS_RESTART=1
+fi
+[[ "${FORCE_RESTART:-0}" == "1" ]] && NEEDS_RESTART=1
+
+if [[ $NEEDS_RESTART -eq 1 && -n "$VPS_RESTART_CMD" ]]; then
+    log "Redémarrage (fichier critique modifié)..."
     # shellcheck disable=SC2029
-    ssh $SSH_OPTS "$VPS_USER@$VPS_HOST" "cd '$VPS_PATH' && $VPS_RESTART_CMD" \
-        && log "Service redémarré" \
-        || log "AVERTISSEMENT — Redémarrage a échoué (service peut-être absent)"
+    ssh $SSH_OPTS "$VPS_USER@$VPS_HOST" \
+        "cd '$VPS_PATH' && { pkill -f advisor_loop.py 2>/dev/null; true; }; sleep 2; nohup python3 advisor_loop.py >> logs/advisor.log 2>&1 < /dev/null & disown; sleep 1; pgrep -f advisor_loop.py > /dev/null && echo RUNNING" \
+        | grep -q RUNNING \
+        && log "Service redémarré (PID OK)" \
+        || log "AVERTISSEMENT — PID non détecté après redémarrage"
+elif [[ -n "$VPS_RESTART_CMD" ]]; then
+    log "SKIP restart — aucun fichier critique modifié (utilise FORCE_RESTART=1 pour forcer)"
 fi
 
 log "Déploiement terminé"
