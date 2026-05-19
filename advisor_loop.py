@@ -2902,12 +2902,14 @@ def main(
                     pass
 
                 # Vérification TP/SL avec le prix live du cycle courant.
-                # Indispensable en paper_mode où _fetch_price() retourne None
-                # et le thread _watch_loop ne peut pas obtenir de prix.
+                # Uniquement en paper_mode (pas d'exchange) où _fetch_price() retourne None.
+                # En futures_demo, le _watch_loop fetch le prix testnet directement — injecter
+                # le prix live spot causerait un mismatch avec les prix testnet de l'exchange.
                 try:
-                    prix_live = float(r.get("prix", 0.0))
-                    if prix_live > 0:
-                        pos_manager.update_price_and_check(sym, prix_live)
+                    if getattr(pos_manager, "_paper", True):
+                        prix_live = float(r.get("prix", 0.0))
+                        if prix_live > 0:
+                            pos_manager.update_price_and_check(sym, prix_live)
                 except Exception as _tpsl_exc:
                     log.warning("[TP/SL] check échoué pour %s: %s", sym, _tpsl_exc)
 
