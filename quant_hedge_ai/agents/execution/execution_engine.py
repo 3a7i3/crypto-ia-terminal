@@ -348,8 +348,10 @@ class ExecutionEngine:
             return symbol
         base = symbol.split("/")[0] if "/" in symbol else symbol[:3]
         if exch_id == "krakenfutures":
-            # krakenfutures linear perp (settled in USD): BTC/USDT → BTC/USD:USD
-            # Inverse perps (BTC/USD:BTC) require 1 BTC minimum — too large for small orders
+            # XRP uses inverse perp (XRP/USD:XRP) — testnet price tracks real price, no collar issues
+            # BTC/SOL/ETH use linear perp (USD:USD) — inverse requires 1 full coin minimum
+            if base == "XRP":
+                return f"{base}/USD:{base}"
             return f"{base}/USD:USD"
         else:
             # Binance USDM perp: BTC/USDT → BTC/USDT:USDT
