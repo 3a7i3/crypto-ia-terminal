@@ -2699,7 +2699,15 @@ def main(
                             pass  # hard limits non disponibles — non bloquant
 
                         # A. OrderValidator — validate + adjust qty before exchange
-                        if _EXEC_CONSTRAINTS_AVAILABLE and _order_validator is not None:
+                        # Only apply Binance rules when actually on a Binance exchange
+                        _is_binance_exchange = (
+                            "binance" in os.getenv("ACTIVE_EXCHANGE", "").lower()
+                        )
+                        if (
+                            _EXEC_CONSTRAINTS_AVAILABLE
+                            and _order_validator is not None
+                            and _is_binance_exchange
+                        ):
                             try:
                                 _sym_clean = sym.replace("/", "")
                                 _sym_info = (
