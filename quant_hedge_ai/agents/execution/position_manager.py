@@ -621,9 +621,10 @@ class PositionManager:
         if ":" in symbol:
             return symbol
         if "/" in symbol:
-            quote = symbol.split("/")[1]
-            return f"{symbol}:{quote}"
-        return f"{symbol[:3]}/USDT:USDT"
+            base, quote = symbol.split("/")
+            settle = "USD" if quote == "USDT" else quote
+            return f"{base}/{settle}:{settle}"
+        return f"{symbol[:3]}/USD:USD"
 
     # ── Hedging detection ──────────────────────────────────────────────────────
 
