@@ -1839,15 +1839,15 @@ def main(
                 action,
                 effective_size,
                 tp_pct=(
-                    result_row["ml_decision"].get("tp")
+                    (result_row.get("ml_decision") or {}).get("tp")
                     or (personality.tp_pct if personality else 0.04)
                 ),
                 sl_pct=(
-                    result_row["ml_decision"].get("sl")
+                    (result_row.get("ml_decision") or {}).get("sl")
                     or (personality.sl_pct if personality else 0.02)
                 ),
                 trailing=(
-                    result_row["ml_decision"].get("trail_pct")
+                    (result_row.get("ml_decision") or {}).get("trail_pct")
                     or (personality.trailing_pct if personality else 0.0)
                 ),
                 atr=atr_val,

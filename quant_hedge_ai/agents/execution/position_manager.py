@@ -133,7 +133,11 @@ class Position:
         self.lowest_price = self.entry_price
 
     def _recalc_tp_sl(self) -> None:
-        """Recalcule TP/SL — ATR prioritaire si disponible, sinon % fixe."""
+        """Recalcule TP/SL — ATR prioritaire si disponible, sinon % fixe.
+
+        self.tp_pct / self.sl_pct sont la source de vérité.
+        PM_TP_PCT env est honoré via le default param de from_futures_order().
+        """
         if self.use_atr and self.atr > 0:
             tp_dist = self.atr * self.tp_atr_mult
             sl_dist = self.atr * self.sl_atr_mult
@@ -534,12 +538,14 @@ class PositionManager:
         if not pos.time_stop_enabled:
             return
         age = pos.age_minutes()
-        if age >= pos.max_age_minutes:
+        # Lu dynamiquement depuis l'env pour permettre l'override sans restart
+        max_age = float(os.getenv("PM_MAX_AGE_MIN", str(pos.max_age_minutes)))
+        if age >= max_age:
             logger.info(
                 "[PositionManager] TIME STOP %s âge=%.0fmin max=%.0fmin PnL=%.2f$",
                 pos.symbol,
                 age,
-                pos.max_age_minutes,
+                max_age,
                 pos.pnl_usd,
             )
             self._close_position(pos, CloseReason.TIME_STOP)
@@ -623,6 +629,9 @@ class PositionManager:
         if "/" in symbol:
             base, quote = symbol.split("/")
             settle = "USD" if quote == "USDT" else quote
+            # XRP uses inverse perp (XRP/USD:XRP) — mirrors execution_engine mapping
+            if base == "XRP" and settle == "USD":
+                return f"{base}/{settle}:{base}"
             return f"{base}/{settle}:{settle}"
         return f"{symbol[:3]}/USD:USD"
 
