@@ -28,6 +28,17 @@ def test_meta_strategy_applies_atr_sl_to_trend_regimes():
     assert bear.sl_pct == 0.021
 
 
+def test_meta_strategy_keeps_atr_sl_floor_for_low_atr():
+    engine = MetaStrategyEngine()
+
+    personality = engine.select(
+        "bull_trend",
+        {"atr_pct": 0.002, "realized_volatility": 0.01},
+    )
+
+    assert personality.sl_pct == 0.008
+
+
 def test_meta_strategy_uses_smoothed_transition_sl_factor():
     engine = MetaStrategyEngine()
 
@@ -76,7 +87,7 @@ def test_global_risk_gate_uses_transition_threshold_override():
     assert result.conditions["signal_score"] is True
 
 
-def test_transition_debug_log_emits_temporal_fields(caplog, monkeypatch):
+def test_transition_debug_log_includes_required_fields(caplog, monkeypatch):
     monkeypatch.setenv("TRANSITION_DEBUG_LOG", "true")
     caplog.set_level(logging.INFO, logger="advisor_loop")
 

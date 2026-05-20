@@ -66,7 +66,7 @@ def _get_regret_counts(regret_engine: Any) -> tuple[int, int]:
 def _log_transition_debug(snapshot: dict[str, Any]) -> None:
     if not snapshot:
         return
-    if not os.getenv("TRANSITION_DEBUG_LOG", "true").lower() in {
+    if os.getenv("TRANSITION_DEBUG_LOG", "true").lower() not in {
         "1",
         "true",
         "yes",
@@ -3024,6 +3024,9 @@ def main(
                         _REGIME_STABILITY,
                     )
                     _adaptive_regime = _regime_votes[0]
+            # Une seule boucle adaptative active à la fois :
+            # pendant une transition de régime lissée, on évite que les métriques
+            # d'inactivité réinjectent une correction concurrente.
             if _activity_tracker is not None and not (
                 _transition_profile and _transition_profile.get("transition_active")
             ):

@@ -20,6 +20,8 @@ from quant_hedge_ai.agents.intelligence.market_regime_classifier import (
     MarketRegimeClassifier,
 )
 
+_FLOAT_EPSILON = 1e-9
+
 
 @dataclass(frozen=True)
 class TransitionSnapshot:
@@ -100,7 +102,7 @@ class RegimeTransitionSmoother:
         if (
             target_regime != self._target_regime
             or target_threshold != self._target_threshold
-            or abs(target_sl_factor - self._target_sl_factor) > 1e-9
+            or abs(target_sl_factor - self._target_sl_factor) > _FLOAT_EPSILON
         ):
             self._old_regime = self._target_regime
             self._target_regime = target_regime
@@ -110,7 +112,8 @@ class RegimeTransitionSmoother:
             self._target_sl_factor = target_sl_factor
             if (
                 self._start_threshold == self._target_threshold
-                and abs(self._start_sl_factor - self._target_sl_factor) <= 1e-9
+                and abs(self._start_sl_factor - self._target_sl_factor)
+                <= _FLOAT_EPSILON
             ):
                 self._transition_remaining = 0
             else:

@@ -292,12 +292,14 @@ class MetaStrategyEngine:
         # Si une transition de régime est en cours, on applique le facteur lissé
         # pour éviter un saut brutal de protection entre deux cycles.
         atr_pct = float(features.get("atr_pct", 0.0))
-        sl_factor = 0.0
-        if transition_profile:
-            try:
-                sl_factor = float(transition_profile.get("smoothed_sl_factor", 0.0))
-            except (TypeError, ValueError):
-                sl_factor = 0.0
+        try:
+            sl_factor = (
+                float(transition_profile.get("smoothed_sl_factor", 0.0))
+                if transition_profile
+                else 0.0
+            )
+        except (TypeError, ValueError):
+            sl_factor = 0.0
         if sl_factor <= 0 and _regime_clf is not None:
             sl_factor = _regime_clf.get_config(regime).sl_factor_atr
         if sl_factor <= 0 and regime in ("sideways", "high_volatility_regime"):
