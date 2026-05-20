@@ -379,10 +379,10 @@ class GlobalRiskGate:
         delta > 0 → plus strict   (trop de false positifs)
         delta = 0 → stable
 
-        L'ajustement est accumulatif et plafonné à [-10, +5].
+        L'ajustement est accumulatif et plafonné à [-5, +5] (anti-windup).
         """
         prev = self._regret_delta
-        self._regret_delta = max(-10, min(5, self._regret_delta + delta))
+        self._regret_delta = max(-5, min(5, self._regret_delta + delta))
         if self._regret_delta != prev:
             logger.info(
                 "[GlobalRiskGate] Delta regret: %+d → %+d (min_score base=%d)",
@@ -390,6 +390,22 @@ class GlobalRiskGate:
                 self._regret_delta,
                 self.min_signal_score,
             )
+
+    def set_adaptive_delta(self, delta: int) -> None:
+        """
+        Remplace le delta de calibration par la valeur PID de l'ATE.
+
+        Contrairement à apply_regret_delta (accumulatif), ici le delta est
+        positionnel : l'AdaptiveThresholdEngine est la source de vérité.
+        """
+        clamped = max(-5, min(5, delta))
+        if clamped != self._regret_delta:
+            logger.debug(
+                "[GlobalRiskGate] ATE delta: %+d → %+d",
+                self._regret_delta,
+                clamped,
+            )
+            self._regret_delta = clamped
 
     def _effective_min_score(self, regime: str) -> int:
         """

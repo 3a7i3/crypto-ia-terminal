@@ -278,26 +278,42 @@ class MetaStrategyEngine:
             p.order_size_factor = min(p.order_size_factor, 0.5)
             p.reason += f" | Vol élevée {vol:.2%} — taille plafonnée à 50%"
 
-        # 5. SL ATR-adaptatif (range et haute vol seulement)
-        # En régime latéral, un SL fixe est battu par le bruit de range.
-        # On remplace sl_pct par max(facteur × ATR, plancher) pour donner
-        # plus de room sans agrandir la taille de position.
+        # 5. SL/TP ATR-adaptatif — tous les régimes via MarketRegimeClassifier
+        # sl_factor_atr dépend du régime : SIDEWAYS=1.5, TREND=2.0, HIGH_VOL=1.8
+        # flash_crash et régimes avec sl_factor_atr=0 : SL fixe conservé.
         atr_pct = float(features.get("atr_pct", 0.0))
-        if atr_pct > 0 and regime in ("sideways", "high_volatility_regime"):
-            sl_factor = 1.5 if regime == "sideways" else 1.8
-            atr_sl = max(atr_pct * sl_factor, 0.008)  # plancher 0.8%
-            if abs(atr_sl - p.sl_pct) > 0.001:
-                logger.info(
-                    "[MetaStrategy] SL ATR-adaptatif [%s]: %.2f%% → %.2f%% "
-                    "(ATR=%.2f%% × %.1f)",
-                    regime,
-                    p.sl_pct * 100,
-                    atr_sl * 100,
-                    atr_pct * 100,
-                    sl_factor,
+        if atr_pct > 0:
+            try:
+                from quant_hedge_ai.agents.intelligence.market_regime_classifier import (
+                    MarketRegimeClassifier as _MRC,
                 )
-                p.sl_pct = round(atr_sl, 4)
-                p.reason += f" | SL ATR: {atr_sl:.2%} (ATR={atr_pct:.2%}×{sl_factor})"
+
+                _cfg = _MRC().get_config(regime)
+                sl_factor = _cfg.sl_factor_atr
+                tp_factor = _cfg.tp_factor_atr
+            except Exception:
+                sl_factor = 1.5
+                tp_factor = 2.5
+            if sl_factor > 0:
+                atr_sl = max(atr_pct * sl_factor, 0.008)  # plancher 0.8%
+                atr_tp = max(atr_pct * tp_factor, atr_sl * 2.0)  # RR ≥ 2:1
+                if abs(atr_sl - p.sl_pct) > 0.001:
+                    logger.info(
+                        "[MetaStrategy] SL/TP ATR [%s]: SL %.2f%% TP %.2f%%"
+                        " (ATR=%.2f%% SL×%.1f TP×%.1f)",
+                        regime,
+                        atr_sl * 100,
+                        atr_tp * 100,
+                        atr_pct * 100,
+                        sl_factor,
+                        tp_factor,
+                    )
+                    p.sl_pct = round(atr_sl, 4)
+                    p.tp_pct = round(atr_tp, 4)
+                    p.reason += (
+                        f" | SL ATR: {atr_sl:.2%} TP ATR: {atr_tp:.2%}"
+                        f" (×{sl_factor:.1f}/×{tp_factor:.1f})"
+                    )
 
         logger.info("[MetaStrategy] Personnalité: %s", p.summary())
         return self._record(p)

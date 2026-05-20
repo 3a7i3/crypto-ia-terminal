@@ -23,9 +23,131 @@ from __future__ import annotations
 
 import logging
 import os
+from collections import deque
 from dataclasses import dataclass
+from typing import Deque
 
 logger = logging.getLogger(__name__)
+
+
+# ── RegimePacket — sortie enrichie du classifieur ────────────────────────────
+
+
+@dataclass
+class RegimePacket:
+    """
+    Snapshot complet du régime de marché pour un cycle donné.
+
+    Remplace le simple string renvoyé par AdvancedRegimeDetector.
+    Consommé par AdaptiveThresholdEngine, RegimeTransitionSmoother,
+    et tout composant qui a besoin du contexte régime.
+    """
+
+    regime: str
+    confidence: float  # 0.0 → 1.0 (décroît sans confirmation)
+    duration_cycles: int  # cycles consécutifs dans ce régime
+    transition_from: str  # régime précédent (vide si inconnu)
+    entropy: float  # 0.0 = stable, 1.0 = chaos total
+    in_transition: bool = False  # True si changement récent (< stabilité)
+
+
+# ── RegimeStateTracker — hystérésis + confidence + entropy ───────────────────
+
+
+class RegimeStateTracker:
+    """
+    Suit l'évolution du régime dans le temps.
+
+    Centralise la logique d'hystérésis (déjà dans advisor_loop._REGIME_STABILITY),
+    de confidence decay et d'entropie. Émet des RegimePacket.
+
+    Usage :
+        tracker = RegimeStateTracker(stability=3, decay=0.97, history=10)
+
+        # À chaque cycle :
+        packet = tracker.update(observed_regime)
+        # packet.regime         → régime stable (après hystérésis)
+        # packet.confidence     → confiance décroissante sans confirmation
+        # packet.entropy        → instabilité récente (flips / history)
+    """
+
+    def __init__(
+        self,
+        stability: int = 3,
+        confidence_decay: float = 0.97,
+        history_size: int = 10,
+    ) -> None:
+        self._stability = stability
+        self._decay = confidence_decay
+        self._history: Deque[str] = deque(maxlen=history_size)
+        self._stable_regime: str = "unknown"
+        self._votes: list[str] = []
+        self._confidence: float = 0.5
+        self._duration: int = 0
+        self._prev_stable: str = ""
+        self._in_transition: bool = False
+
+    def update(self, observed: str) -> RegimePacket:
+        """
+        Intègre une observation et retourne le RegimePacket du cycle courant.
+
+        Args:
+            observed : régime brut du AdvancedRegimeDetector (ou HMM)
+        """
+        self._history.append(observed)
+        self._votes.append(observed)
+        if len(self._votes) > self._stability:
+            self._votes = self._votes[-self._stability :]
+
+        # ── Hystérésis : transition validée après N cycles identiques ────────
+        changed = False
+        if (
+            len(self._votes) == self._stability
+            and len(set(self._votes)) == 1
+            and self._votes[0] != self._stable_regime
+        ):
+            self._prev_stable = self._stable_regime
+            self._stable_regime = self._votes[0]
+            self._duration = 0
+            self._confidence = 0.5  # reset à la transition
+            self._in_transition = True
+            changed = True
+            logger.info(
+                "[RegimeStateTracker] Transition confirmée: %s → %s",
+                self._prev_stable,
+                self._stable_regime,
+            )
+        else:
+            self._in_transition = False
+
+        # ── Confidence decay + boost si confirmation ─────────────────────────
+        if observed == self._stable_regime:
+            # Confirmation → confidence monte vers 1.0
+            self._confidence = min(
+                1.0, self._confidence + (1.0 - self._confidence) * 0.1
+            )
+            self._duration += 1
+        else:
+            # Divergence → confidence décroît
+            self._confidence *= self._decay
+
+        # ── Entropie : fréquence des changements récents ─────────────────────
+        history_list = list(self._history)
+        flips = sum(
+            1
+            for i in range(1, len(history_list))
+            if history_list[i] != history_list[i - 1]
+        )
+        entropy = flips / max(1, len(history_list) - 1)
+
+        return RegimePacket(
+            regime=self._stable_regime,
+            confidence=round(self._confidence, 3),
+            duration_cycles=self._duration,
+            transition_from=self._prev_stable,
+            entropy=round(entropy, 3),
+            in_transition=self._in_transition,
+        )
 
 
 @dataclass(frozen=True)

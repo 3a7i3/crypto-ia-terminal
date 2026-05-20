@@ -2370,6 +2370,17 @@ def main(
     _REGIME_STABILITY = int(
         os.getenv("REGIME_STABILITY_WINDOW", "3")
     )  # cycles à confirmer
+
+    # P6 — Adaptive Core
+    _ate: Any = _profile_bootstrap_step(
+        "adaptive_threshold_engine", runtime.AdaptiveThresholdEngine
+    )
+    _regime_smoother: Any = _profile_bootstrap_step(
+        "regime_transition_smoother", runtime.RegimeTransitionSmoother
+    )
+    _regime_tracker: Any = _profile_bootstrap_step(
+        "regime_state_tracker", runtime.RegimeStateTracker
+    )
     try:
         from quant_hedge_ai.agents.intelligence.activity_tracker import (
             ActivityTracker as _ActivityTrackerCls,
@@ -2519,29 +2530,38 @@ def main(
             except Exception as _rt_exc:
                 log.debug("[RuntimeConfig] Erreur rechargement: %s", _rt_exc)
 
-            # ── Boucle de rétroaction régime-aware — AVANT scoring ───────────
-            # Le delta doit être calculé AVANT analyze_symbol : si on l'applique
-            # après, le gate a déjà scoré avec l'ancien seuil → causalité inversée.
-            # Toutes les 6 cycles (~30 min) pour éviter l'oscillation.
-            if regret_engine is not None and cycle % 6 == 0 and cycle > 1:
+            # ── P6 — Adaptive Core : ATE + RegimeSmoother — AVANT scoring ────
+            # L'ATE calcule le delta PID (I+D) toutes les 6 cycles (anti-oscil.)
+            # puis gate.set_adaptive_delta remplace l'ancien accumulation naïf.
+            if _ate is not None and cycle % 6 == 0 and cycle > 1:
                 try:
-                    _pm_fb = _stats_dict(pos_manager.stats())
-                    _winrate_exec = float(_pm_fb.get("win_rate", 0.5))
-                    _re_delta = regret_engine.get_threshold_delta(
-                        current_regime=_adaptive_regime,
-                        winrate_executed=_winrate_exec,
-                    )
-                    if _re_delta != 0:
-                        gate.apply_regret_delta(_re_delta)
+                    _re_raw = 0
+                    if regret_engine is not None:
+                        _pm_fb = _stats_dict(pos_manager.stats())
+                        _winrate_exec = float(_pm_fb.get("win_rate", 0.5))
+                        _re_raw = regret_engine.get_threshold_delta(
+                            current_regime=_adaptive_regime,
+                            winrate_executed=_winrate_exec,
+                        )
+                    _ate_delta = _ate.update(_adaptive_regime, _re_raw)
+                    gate.set_adaptive_delta(_ate_delta)
+                    if _re_raw != 0 or _ate_delta != 0:
                         log.info(
-                            "[RegretFeedback] Cycle %d — régime=%s winrate=%.0f%% → delta=%+d",
+                            "[P6/ATE] Cycle %d régime=%s raw=%+d → ate_delta=%+d",
                             cycle,
                             _adaptive_regime,
-                            _winrate_exec * 100,
-                            _re_delta,
+                            _re_raw,
+                            _ate_delta,
                         )
-                except Exception as _re_fb_exc:
-                    log.debug("[RegretFeedback] Erreur: %s", _re_fb_exc)
+                except Exception as _ate_exc:
+                    log.debug("[P6/ATE] Erreur: %s", _ate_exc)
+
+            # RegimeSmoother : avance la rampe une fois par cycle
+            if _regime_smoother is not None:
+                try:
+                    _regime_smoother.update(_adaptive_regime)
+                except Exception:
+                    pass
 
             results: list[AnalysisResult] = []
             for sym in symbols:
@@ -2952,6 +2972,20 @@ def main(
             # (évite l'oscillation TREND→SIDEWAYS→TREND en 15 min).
             if results:
                 _obs = results[0].get("regime", _adaptive_regime)
+                # P6 — RegimeStateTracker : confidence + entropy (post-scoring)
+                if _regime_tracker is not None:
+                    try:
+                        _rpkt = _regime_tracker.update(_obs)
+                        if cycle % 12 == 0:
+                            log.info(
+                                "[P6/RegimeTracker] %s conf=%.0f%% entropy=%.2f dur=%dc",
+                                _rpkt.regime,
+                                _rpkt.confidence * 100,
+                                _rpkt.entropy,
+                                _rpkt.duration_cycles,
+                            )
+                    except Exception:
+                        pass
                 _regime_votes.append(_obs)
                 if len(_regime_votes) > _REGIME_STABILITY:
                     _regime_votes = _regime_votes[-_REGIME_STABILITY:]
