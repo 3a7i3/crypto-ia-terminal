@@ -3,8 +3,6 @@ from __future__ import annotations
 import logging
 from types import SimpleNamespace
 
-import advisor_loop
-
 from quant_hedge_ai.agents.intelligence.meta_strategy_engine import MetaStrategyEngine
 from quant_hedge_ai.agents.intelligence.regime_transition_smoother import (
     RegimeTransitionSmoother,
@@ -88,6 +86,8 @@ def test_global_risk_gate_uses_transition_threshold_override():
 
 
 def test_transition_debug_log_includes_required_fields(caplog, monkeypatch):
+    import advisor_loop
+
     monkeypatch.setenv("TRANSITION_DEBUG_LOG", "true")
     caplog.set_level(logging.INFO, logger="advisor_loop")
 

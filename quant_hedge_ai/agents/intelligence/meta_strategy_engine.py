@@ -299,6 +299,10 @@ class MetaStrategyEngine:
                 else 0.0
             )
         except (TypeError, ValueError):
+            logger.debug(
+                "[MetaStrategy] transition_profile invalide pour smoothed_sl_factor: %r",
+                transition_profile,
+            )
             sl_factor = 0.0
         if sl_factor <= 0 and _regime_clf is not None:
             sl_factor = _regime_clf.get_config(regime).sl_factor_atr
