@@ -2375,6 +2375,7 @@ def main(
     _REGIME_STABILITY = int(
         os.getenv("REGIME_STABILITY_WINDOW", "3")
     )  # cycles à confirmer
+    _last_mismatch_cycle: int = 0  # cooldown REGIME_MISMATCH
 
     # P6 — Adaptive Core
     _ate: Any = _profile_bootstrap_step(
@@ -3056,9 +3057,9 @@ def main(
                 try:
                     _open_pos_count = len(pos_manager.get_open())
                     _any_refused = any(
-                        not r.get("trade_allowed", True)
-                        and r.get("signal") is not None
-                        and r["signal"].score >= 65
+                        r.get("signal") is not None
+                        and r["signal"].actionable
+                        and not r.get("trade_allowed", True)
                         for r in results
                     )
                     _any_executed = any(
@@ -3075,7 +3076,14 @@ def main(
                     if cycle % 12 == 0:
                         log.info(_activity_tracker.summary())
                     # P6 — REGIME_MISMATCH: capital gelé + regret actif → baisser threshold
-                    if regret_engine is not None and cycle % 3 == 0:
+                    _mismatch_cooldown = int(
+                        os.getenv("REGIME_MISMATCH_COOLDOWN", "15")
+                    )
+                    if (
+                        regret_engine is not None
+                        and cycle % 3 == 0
+                        and (cycle - _last_mismatch_cycle) >= _mismatch_cooldown
+                    ):
                         _at = _activity_tracker.metrics()
                         if (
                             _at.cycles_since_last_trade > 20
@@ -3083,9 +3091,11 @@ def main(
                             and regret_engine.calibration_hints()
                         ):
                             gate.apply_regret_delta(-1)
+                            _regime_votes.clear()  # force recalcul classifieur
+                            _last_mismatch_cycle = cycle
                             log.warning(
                                 "[ActivityTracker] REGIME_MISMATCH: %d cycles sans trade "
-                                "(inactivite=%.0f%%) → threshold reduit de 1",
+                                "(inactivite=%.0f%%) → threshold -1, regime reset",
                                 _at.cycles_since_last_trade,
                                 _at.inactivity_ratio * 100,
                             )
