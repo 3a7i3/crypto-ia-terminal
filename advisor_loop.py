@@ -322,6 +322,8 @@ def analyze_symbol(
     v2_timing_engine: Any = None,
     meta_learner: Any = None,
     runtime: AdvisorRuntime | None = None,
+    sl_factor_override: float | None = None,
+    tp_factor_override: float | None = None,
 ) -> AnalysisResult:
     runtime = runtime or load_advisor_runtime()
     MultiTimeframeScanner = runtime.MultiTimeframeScanner
@@ -492,6 +494,8 @@ def analyze_symbol(
                 memory_sharpe=memory_sharpe,
                 consecutive_losses=consecutive_losses,
                 open_positions=open_positions_count,
+                sl_factor_override=sl_factor_override,
+                tp_factor_override=tp_factor_override,
             )
         # Ajuster la taille d'ordre selon la personnalité
         order_size_usd = meta_engine.effective_order_size(order_size_usd, personality)
@@ -2557,12 +2561,56 @@ def main(
                 except Exception as _ate_exc:
                     log.debug("[P6/ATE] Erreur: %s", _ate_exc)
 
-            # RegimeSmoother : avance la rampe une fois par cycle
+            # RegimeSmoother : avance la rampe + câblage threshold/SL vers gate
+            _smoothed_sl: float | None = None
+            _smoothed_tp: float | None = None
             if _regime_smoother is not None:
                 try:
                     _regime_smoother.update(_adaptive_regime)
-                except Exception:
-                    pass
+                    if _regime_smoother.in_transition:
+                        _from_r = _regime_smoother._state.from_regime
+                        _to_r = _adaptive_regime
+                        _old_thr = gate._effective_min_score(_from_r)
+                        _new_thr = gate._effective_min_score(_to_r)
+                        _s_thr = _regime_smoother.smooth_int(_old_thr, _new_thr)
+                        gate.set_transition_threshold(_s_thr)
+                        # Factors SL/TP via configs régime
+                        try:
+                            from quant_hedge_ai.agents.intelligence.market_regime_classifier import (  # noqa: E501
+                                MarketRegimeClassifier as _SMRC,
+                            )
+
+                            _smrc = _SMRC()
+                            _old_cfg = _smrc.get_config(_from_r)
+                            _new_cfg = _smrc.get_config(_to_r)
+                            _smoothed_sl = _regime_smoother.smooth_float(
+                                _old_cfg.sl_factor_atr, _new_cfg.sl_factor_atr
+                            )
+                            _smoothed_tp = _regime_smoother.smooth_float(
+                                _old_cfg.tp_factor_atr, _new_cfg.tp_factor_atr
+                            )
+                        except Exception:
+                            pass
+                        log.info(
+                            "[TRANSITION] %s→%s %d/%d (%.0f%%) "
+                            "| thr %d→%d smoothed=%d "
+                            "| SL×%.2f→%.2f smoothed=%.2f",
+                            _from_r,
+                            _to_r,
+                            _regime_smoother._state.elapsed,
+                            _regime_smoother._state.duration,
+                            _regime_smoother.progress * 100,
+                            _old_thr,
+                            _new_thr,
+                            _s_thr,
+                            _old_cfg.sl_factor_atr if _smoothed_sl else 0,
+                            _new_cfg.sl_factor_atr if _smoothed_sl else 0,
+                            _smoothed_sl or 0,
+                        )
+                    else:
+                        gate.set_transition_threshold(None)
+                except Exception as _smth_exc:
+                    log.debug("[RegimeSmoother] Erreur câblage: %s", _smth_exc)
 
             results: list[AnalysisResult] = []
             for sym in symbols:
@@ -2612,6 +2660,8 @@ def main(
                     ),
                     meta_learner=meta_learner,
                     runtime=runtime,
+                    sl_factor_override=_smoothed_sl,
+                    tp_factor_override=_smoothed_tp,
                 )
                 results.append(r)
                 # ── Exécution réelle/paper ─────────────────────────────────────

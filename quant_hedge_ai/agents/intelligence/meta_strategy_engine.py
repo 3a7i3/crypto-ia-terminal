@@ -221,6 +221,8 @@ class MetaStrategyEngine:
         memory_sharpe: Optional[float] = None,
         consecutive_losses: int = 0,
         open_positions: int = 0,
+        sl_factor_override: Optional[float] = None,
+        tp_factor_override: Optional[float] = None,
     ) -> TradingPersonality:
         """
         Retourne la personnalité adaptée au contexte courant.
@@ -279,8 +281,8 @@ class MetaStrategyEngine:
             p.reason += f" | Vol élevée {vol:.2%} — taille plafonnée à 50%"
 
         # 5. SL/TP ATR-adaptatif — tous les régimes via MarketRegimeClassifier
-        # sl_factor_atr dépend du régime : SIDEWAYS=1.5, TREND=2.0, HIGH_VOL=1.8
-        # flash_crash et régimes avec sl_factor_atr=0 : SL fixe conservé.
+        # sl_factor_override/tp_factor_override : valeurs lissées pendant transition
+        # (injectées par advisor_loop via RegimeTransitionSmoother)
         atr_pct = float(features.get("atr_pct", features.get("atr_ratio", 0.0)))
         if atr_pct > 0:
             try:
@@ -294,6 +296,11 @@ class MetaStrategyEngine:
             except Exception:
                 sl_factor = 1.5
                 tp_factor = 2.5
+            # Appliquer les overrides de transition si présents
+            if sl_factor_override is not None and sl_factor_override > 0:
+                sl_factor = sl_factor_override
+            if tp_factor_override is not None and tp_factor_override > 0:
+                tp_factor = tp_factor_override
             if sl_factor > 0:
                 atr_sl = max(atr_pct * sl_factor, 0.008)  # plancher 0.8%
                 atr_tp = max(atr_pct * tp_factor, atr_sl * 2.0)  # RR ≥ 2:1

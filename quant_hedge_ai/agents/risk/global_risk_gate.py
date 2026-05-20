@@ -106,6 +106,7 @@ class GlobalRiskGate:
         # Calibration adaptative
         self._regret_delta: int = 0  # feedback du RegretEngine
         self._last_regime: str = "unknown"  # régime courant pour le log
+        self._transition_threshold: int | None = None  # override rampe RegimeSmoother
 
     # ── API principale ─────────────────────────────────────────────────────────
 
@@ -391,6 +392,15 @@ class GlobalRiskGate:
                 self.min_signal_score,
             )
 
+    def set_transition_threshold(self, value: int | None) -> None:
+        """
+        Override le seuil effectif pendant une transition de régime.
+
+        Appelé par advisor_loop avec la valeur lissée du RegimeTransitionSmoother.
+        None = fin de transition, seuil régime reprend la main.
+        """
+        self._transition_threshold = value
+
     def set_adaptive_delta(self, delta: int) -> None:
         """
         Remplace le delta de calibration par la valeur PID de l'ATE.
@@ -412,13 +422,12 @@ class GlobalRiskGate:
         Seuil effectif pour un régime donné.
 
         Priorité :
-          1. MarketRegimeClassifier.effective_min_score(regime, delta)
-             → adapte au régime ET au feedback du RegretEngine
-          2. Fallback : self.min_signal_score + delta (borne [-10,+5])
-
-        Le seuil global self.min_signal_score reste la valeur de référence
-        pour les régimes inconnus.
+          1. _transition_threshold (rampe RegimeSmoother active)
+          2. MarketRegimeClassifier.effective_min_score(regime, delta)
+          3. Fallback : self.min_signal_score + delta
         """
+        if self._transition_threshold is not None:
+            return self._transition_threshold
         if _regime_clf is not None:
             effective = _regime_clf.effective_min_score(regime, self._regret_delta)
             if regime != self._last_regime:
