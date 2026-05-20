@@ -104,7 +104,7 @@ if [[ $NEEDS_RESTART -eq 1 && -n "$VPS_RESTART_CMD" ]]; then
     log "Redémarrage (fichier critique modifié)..."
     # shellcheck disable=SC2029
     ssh $SSH_OPTS "$VPS_USER@$VPS_HOST" \
-        "cd '$VPS_PATH' && { pkill -f advisor_loop.py 2>/dev/null; true; }; sleep 2; nohup python3 advisor_loop.py >> logs/advisor.log 2>&1 < /dev/null & disown; sleep 1; pgrep -f advisor_loop.py > /dev/null && echo RUNNING" \
+        "cd '$VPS_PATH' && { pkill -f advisor_loop.py 2>/dev/null; sleep 3; true; }; nohup python3 advisor_loop.py >> logs/advisor.log 2>&1 < /dev/null & disown; sleep 8; pgrep -f advisor_loop.py > /dev/null && echo RUNNING" \
         | grep -q RUNNING \
         && log "Service redémarré (PID OK)" \
         || log "AVERTISSEMENT — PID non détecté après redémarrage"

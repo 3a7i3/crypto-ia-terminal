@@ -1299,6 +1299,7 @@ def _build_alert(r: AnalysisResult, cycle: int) -> str:
 
 def _build_guide() -> str:
     """Guide d'interprétation envoyé au démarrage."""
+    _threshold = int(os.getenv("SIGNAL_MIN_SCORE", "70"))
     return (
         "Crypto AI Terminal — Guide de lecture\n"
         "\n"
@@ -1330,7 +1331,7 @@ def _build_guide() -> str:
         "  Memoire (20pts): historique strategies\n"
         "\n"
         "Rapport toutes les 15 min.\n"
-        "Alerte immediate si score >= 70."
+        f"Alerte immediate si score >= {_threshold}."
     )
 
 
@@ -1915,7 +1916,7 @@ def main(
                     subaccount_name = getattr(pos, "subaccount", "default")
                     unit = sub_manager.get(subaccount_name)
                     if unit and unit.position_manager:
-                        unit.position_manager.add_position(pos)
+                        unit.position_manager.add_position(pos, silent=True)
                         log.debug(
                             "[SubaccountManager SYNC] Position enregistrée dans %s",
                             subaccount_name,

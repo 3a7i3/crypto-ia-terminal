@@ -278,11 +278,12 @@ class PositionManager:
 
     # ── API publique ───────────────────────────────────────────────────────────
 
-    def add_position(self, pos: Position) -> None:
+    def add_position(self, pos: Position, silent: bool = False) -> None:
         key = pos.order_id or f"{pos.symbol}_{pos.opened_at}"
         with self._lock:
             self._positions[key] = pos
-        logger.info("[PositionManager] Position ajoutée: %s", pos.summary())
+        if not silent:
+            logger.info("[PositionManager] Position ajoutée: %s", pos.summary())
 
     def get_open(self) -> list[Position]:
         with self._lock:
