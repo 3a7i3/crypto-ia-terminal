@@ -63,6 +63,38 @@ def _get_regret_counts(regret_engine: Any) -> tuple[int, int]:
     return len(records), len(candidates)
 
 
+def _log_transition_debug(snapshot: dict[str, Any]) -> None:
+    if not snapshot:
+        return
+    if not os.getenv("TRANSITION_DEBUG_LOG", "true").lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }:
+        return
+    if not (
+        snapshot.get("transition_active")
+        or snapshot.get("transition_started")
+        or snapshot.get("transition_completed")
+    ):
+        return
+    log.info(
+        "[TRANSITION_DEBUG_LOG] old_regime=%s new_regime=%s cycle_index=%s "
+        "smoothed_threshold=%s target_threshold=%s "
+        "smoothed_sl_factor=%.4f target_sl_factor=%.4f "
+        "remaining_transition_cycles=%s",
+        snapshot.get("old_regime", "unknown"),
+        snapshot.get("new_regime", "unknown"),
+        snapshot.get("cycle_index", 0),
+        snapshot.get("smoothed_threshold", 0),
+        snapshot.get("target_threshold", 0),
+        float(snapshot.get("smoothed_sl_factor", 0.0)),
+        float(snapshot.get("target_sl_factor", 0.0)),
+        snapshot.get("remaining_transition_cycles", 0),
+    )
+
+
 load_dotenv(override=True)
 
 logging.basicConfig(
@@ -306,6 +338,8 @@ def analyze_symbol(
     black_box: Any = None,
     regret_engine: Any = None,
     threat_radar: Any = None,
+    regime_override: str | None = None,
+    transition_profile: dict[str, Any] | None = None,
     # ── V2 modules (optionnels, enrichissement progressif) ──────────────
     v2_data_unifier: Any = None,
     v2_microstructure: Any = None,
@@ -399,6 +433,7 @@ def analyze_symbol(
             regime = regime_detector.classify(features) if features else "unknown"
         except Exception:
             regime = "unknown"
+        effective_regime = regime_override or regime
 
         # ── V2 : HMM Regime (distribution probabiliste) ──────────────────────
         regime_probs = None
@@ -414,6 +449,7 @@ def analyze_symbol(
                     # Raffinement du régime avec HMM si confiance suffisante
                     if regime_probs.confidence >= 0.50:
                         regime = regime_probs.dominant
+                        effective_regime = regime_override or regime
             except Exception as _exc_v2:
                 log.debug("[V2/HMM] %s skip: %s", symbol, _exc_v2)
 
@@ -434,12 +470,12 @@ def analyze_symbol(
     if meta_learner:
         volatility = float(features.get("atr_ratio", features.get("volatility", 0.015)))
         ml_decision = meta_learner.find_best(
-            {"regime": regime, "volatility": volatility}
+            {"regime": effective_regime, "volatility": volatility}
         )
         if ml_decision:
             log.debug(
                 "[MetaLearner] %s → exit=%s tp=%s sl=%s",
-                regime,
+                effective_regime,
                 ml_decision.get("exit_type"),
                 ml_decision.get("tp"),
                 ml_decision.get("sl"),
@@ -487,11 +523,12 @@ def analyze_symbol(
     if meta_engine:
         with watchdog.measure("meta_strategy"):
             personality = meta_engine.select(
-                regime=regime,
+                regime=effective_regime,
                 features=features,
                 memory_sharpe=memory_sharpe,
                 consecutive_losses=consecutive_losses,
                 open_positions=open_positions_count,
+                transition_profile=transition_profile,
             )
         # Ajuster la taille d'ordre selon la personnalité
         order_size_usd = meta_engine.effective_order_size(order_size_usd, personality)
@@ -501,6 +538,7 @@ def analyze_symbol(
         signal = engine.evaluate(
             symbol, mtf_candles, features=features, memory_sharpe=memory_sharpe
         )
+    signal.regime = effective_regime
     log.info(
         "[FLOW] %s SIGNAL → %s score=%d actionable=%s",
         symbol,
@@ -1113,7 +1151,8 @@ def analyze_symbol(
         "trade_allowed": trade_allowed,
         "blockers": _flow_blockers if signal.actionable else "",
         "order_size": order_size_usd,
-        "regime": regime,
+        "regime": effective_regime,
+        "observed_regime": regime,
         "features": features,
         "radar_report": radar_report,
         "ml_decision": ml_decision,
@@ -2367,14 +2406,20 @@ def main(
     _REGIME_STABILITY = int(
         os.getenv("REGIME_STABILITY_WINDOW", "3")
     )  # cycles à confirmer
+    _transition_profile: dict[str, Any] | None = None
     try:
         from quant_hedge_ai.agents.intelligence.activity_tracker import (
             ActivityTracker as _ActivityTrackerCls,
         )
+        from quant_hedge_ai.agents.intelligence.regime_transition_smoother import (
+            RegimeTransitionSmoother as _TransitionSmootherCls,
+        )
 
         _activity_tracker: Any = _ActivityTrackerCls()
+        _transition_smoother: Any = _TransitionSmootherCls()
     except Exception:
         _activity_tracker = None
+        _transition_smoother = None
 
     try:
         from quant_hedge_ai.agents.intelligence.behavioral_stability_monitor import (
@@ -2540,6 +2585,27 @@ def main(
                 except Exception as _re_fb_exc:
                     log.debug("[RegretFeedback] Erreur: %s", _re_fb_exc)
 
+            if _transition_smoother is not None:
+                try:
+                    _transition_snapshot = _transition_smoother.advance(
+                        _adaptive_regime,
+                        cycle_index=cycle,
+                        regret_delta=getattr(gate, "_regret_delta", 0),
+                    )
+                    _transition_profile = _transition_snapshot.as_dict()
+                    if hasattr(gate, "set_transition_threshold"):
+                        gate.set_transition_threshold(
+                            _transition_profile.get("smoothed_threshold")
+                        )
+                    _log_transition_debug(_transition_profile)
+                except Exception as _transition_exc:
+                    _transition_profile = None
+                    if hasattr(gate, "set_transition_threshold"):
+                        gate.set_transition_threshold(None)
+                    log.debug("[TransitionSmoother] Erreur: %s", _transition_exc)
+            elif hasattr(gate, "set_transition_threshold"):
+                gate.set_transition_threshold(None)
+
             results: list[AnalysisResult] = []
             for sym in symbols:
                 r = analyze_symbol(
@@ -2586,6 +2652,8 @@ def main(
                         )
                         else None
                     ),
+                    regime_override=_adaptive_regime,
+                    transition_profile=_transition_profile,
                     meta_learner=meta_learner,
                     runtime=runtime,
                 )
@@ -2940,7 +3008,7 @@ def main(
             # Régime : mise à jour seulement si N cycles consécutifs identiques
             # (évite l'oscillation TREND→SIDEWAYS→TREND en 15 min).
             if results:
-                _obs = results[0].get("regime", _adaptive_regime)
+                _obs = results[0].get("observed_regime", _adaptive_regime)
                 _regime_votes.append(_obs)
                 if len(_regime_votes) > _REGIME_STABILITY:
                     _regime_votes = _regime_votes[-_REGIME_STABILITY:]
@@ -2956,7 +3024,9 @@ def main(
                         _REGIME_STABILITY,
                     )
                     _adaptive_regime = _regime_votes[0]
-            if _activity_tracker is not None:
+            if _activity_tracker is not None and not (
+                _transition_profile and _transition_profile.get("transition_active")
+            ):
                 try:
                     _open_pos_count = len(pos_manager.get_open())
                     _any_refused = any(
@@ -2983,8 +3053,10 @@ def main(
 
             if _stability_monitor is not None:
                 try:
-                    _eff_threshold = gate.min_signal_score + getattr(
-                        gate, "_regret_delta", 0
+                    _eff_threshold = (
+                        int(_transition_profile["smoothed_threshold"])
+                        if _transition_profile
+                        else gate.effective_min_score(_adaptive_regime)
                     )
                     _traded_sym = next(
                         (
