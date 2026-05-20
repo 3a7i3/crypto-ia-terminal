@@ -281,7 +281,7 @@ class MetaStrategyEngine:
         # 5. SL/TP ATR-adaptatif — tous les régimes via MarketRegimeClassifier
         # sl_factor_atr dépend du régime : SIDEWAYS=1.5, TREND=2.0, HIGH_VOL=1.8
         # flash_crash et régimes avec sl_factor_atr=0 : SL fixe conservé.
-        atr_pct = float(features.get("atr_pct", 0.0))
+        atr_pct = float(features.get("atr_pct", features.get("atr_ratio", 0.0)))
         if atr_pct > 0:
             try:
                 from quant_hedge_ai.agents.intelligence.market_regime_classifier import (

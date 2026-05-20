@@ -860,7 +860,7 @@ def analyze_symbol(
         try:
             spread = micro_report.spread_bps if micro_report else 5.0
             imbalance = micro_report.imbalance if micro_report else 0.0
-            atr = float(features.get("atr_pct", 0.01))
+            atr = float(features.get("atr_pct", features.get("atr_ratio", 0.01)))
             urgency = float(signal.score) / 100.0 if hasattr(signal, "score") else 0.5
             timing_signal = v2_timing_engine.evaluate(
                 symbol, signal.signal, spread, imbalance, atr, urgency
