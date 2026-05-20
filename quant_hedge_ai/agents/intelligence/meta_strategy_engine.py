@@ -28,6 +28,15 @@ from typing import Optional
 
 logger = logging.getLogger(__name__)
 
+try:
+    from quant_hedge_ai.agents.intelligence.market_regime_classifier import (
+        MarketRegimeClassifier as _RegimeClassifier,
+    )
+
+    _regime_clf = _RegimeClassifier()
+except Exception:
+    _regime_clf = None  # type: ignore[assignment]
+
 
 @dataclass
 class TradingPersonality:
@@ -221,6 +230,7 @@ class MetaStrategyEngine:
         memory_sharpe: Optional[float] = None,
         consecutive_losses: int = 0,
         open_positions: int = 0,
+        transition_profile: Optional[dict] = None,
     ) -> TradingPersonality:
         """
         Retourne la personnalité adaptée au contexte courant.
@@ -278,18 +288,32 @@ class MetaStrategyEngine:
             p.order_size_factor = min(p.order_size_factor, 0.5)
             p.reason += f" | Vol élevée {vol:.2%} — taille plafonnée à 50%"
 
-        # 5. SL ATR-adaptatif (range et haute vol seulement)
-        # En régime latéral, un SL fixe est battu par le bruit de range.
-        # On remplace sl_pct par max(facteur × ATR, plancher) pour donner
-        # plus de room sans agrandir la taille de position.
+        # 5. SL ATR-adaptatif cohérent pour tous les régimes.
+        # Si une transition de régime est en cours, on applique le facteur lissé
+        # pour éviter un saut brutal de protection entre deux cycles.
         atr_pct = float(features.get("atr_pct", 0.0))
-        if atr_pct > 0 and regime in ("sideways", "high_volatility_regime"):
+        try:
+            sl_factor = (
+                float(transition_profile.get("smoothed_sl_factor", 0.0))
+                if transition_profile
+                else 0.0
+            )
+        except (TypeError, ValueError):
+            logger.debug(
+                "[MetaStrategy] transition_profile invalide pour smoothed_sl_factor: %r",
+                transition_profile,
+            )
+            sl_factor = 0.0
+        if sl_factor <= 0 and _regime_clf is not None:
+            sl_factor = _regime_clf.get_config(regime).sl_factor_atr
+        if sl_factor <= 0 and regime in ("sideways", "high_volatility_regime"):
             sl_factor = 1.5 if regime == "sideways" else 1.8
+        if atr_pct > 0 and sl_factor > 0:
             atr_sl = max(atr_pct * sl_factor, 0.008)  # plancher 0.8%
             if abs(atr_sl - p.sl_pct) > 0.001:
                 logger.info(
                     "[MetaStrategy] SL ATR-adaptatif [%s]: %.2f%% → %.2f%% "
-                    "(ATR=%.2f%% × %.1f)",
+                    "(ATR=%.2f%% × %.2f)",
                     regime,
                     p.sl_pct * 100,
                     atr_sl * 100,

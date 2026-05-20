@@ -106,6 +106,7 @@ class GlobalRiskGate:
         # Calibration adaptative
         self._regret_delta: int = 0  # feedback du RegretEngine
         self._last_regime: str = "unknown"  # régime courant pour le log
+        self._transition_min_score_override: int | None = None
 
     # ── API principale ─────────────────────────────────────────────────────────
 
@@ -391,6 +392,16 @@ class GlobalRiskGate:
                 self.min_signal_score,
             )
 
+    def set_transition_threshold(self, min_score: int | None) -> None:
+        """Override court-terme utilisé pendant une transition de régime lissée."""
+        self._transition_min_score_override = (
+            None if min_score is None else max(int(min_score), 55)
+        )
+
+    def effective_min_score(self, regime: str) -> int:
+        """Expose le seuil effectif pour observabilité / monitoring."""
+        return self._effective_min_score(regime)
+
     def _effective_min_score(self, regime: str) -> int:
         """
         Seuil effectif pour un régime donné.
@@ -403,6 +414,8 @@ class GlobalRiskGate:
         Le seuil global self.min_signal_score reste la valeur de référence
         pour les régimes inconnus.
         """
+        if self._transition_min_score_override is not None:
+            return self._transition_min_score_override
         if _regime_clf is not None:
             effective = _regime_clf.effective_min_score(regime, self._regret_delta)
             if regime != self._last_regime:
