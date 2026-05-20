@@ -185,11 +185,13 @@ class ExchangeMonitor:
                     "okx": "https://www.okx.com/api/v5/public/time",
                     "mexc": "https://api.mexc.com/api/v3/ping",
                     "krakenfutures": (
-                        "https://futures.kraken.com/derivatives/api/v3/instruments"
+                        "https://demo-futures.kraken.com/derivatives/api/v3/instruments"
+                        if testnet
+                        else "https://futures.kraken.com/derivatives/api/v3/instruments"
                     ),
                 }
                 ping_url = ping_urls.get(exchange_id, ping_urls["binance"])
-            r = requests.get(ping_url, timeout=8)
+            r = requests.get(ping_url, timeout=15)
             latency_ms = (time.time() - t0) * 1000
 
             if r.status_code == 200:
@@ -203,7 +205,7 @@ class ExchangeMonitor:
                     self._alerted_warn = False
                     self._alerted_critical = False
                     log.info("[ExchangeMonitor] Exchange rétabli")
-                    self._send_telegram("Exchange Binance RETABLI — connexion OK")
+                    self._send_telegram("Exchange RETABLI — connexion OK")
                     if self._on_recovered:
                         try:
                             self._on_recovered()
@@ -227,7 +229,7 @@ class ExchangeMonitor:
             self._alerted_warn = True
             log.error("[ExchangeMonitor] Exchange HORS LIGNE (%d checks)", failures)
             self._send_telegram(
-                f"ALERTE — Exchange Binance HORS LIGNE\n"
+                f"ALERTE — Exchange HORS LIGNE\n"
                 f"Echecs consecutifs: {failures}\n"
                 f"Erreur: {error}\n"
                 f"Les cycles continuent en mode degradé."
@@ -242,15 +244,15 @@ class ExchangeMonitor:
             self._alerted_critical = True
             log.critical("[ExchangeMonitor] Exchange CRITIQUE — %d echecs", failures)
             self._send_email(
-                subject="[URGENT] Crypto AI — Exchange Binance hors ligne",
+                subject="[URGENT] Crypto AI — Exchange hors ligne",
                 body=(
                     f"ALERTE CRITIQUE\n\n"
-                    f"L'exchange Binance ne répond pas depuis {failures} checks "
+                    f"L'exchange ne répond pas depuis {failures} checks "
                     f"({failures * CHECK_INTERVAL // 60} minutes).\n\n"
                     f"Dernière erreur: {error}\n\n"
                     f"Actions possibles:\n"
-                    f"  1. Vérifier la connexion internet\n"
-                    f"  2. Vérifier https://status.binance.com\n"
+                    f"  1. Vérifier la connexion internet du VPS\n"
+                    f"  2. Vérifier le statut de l'exchange\n"
                     f"  3. Envoyer /STOP_ALL sur Telegram si le bot doit s'arrêter\n\n"
                     f"Le bot continue à observer sans passer d'ordres."
                 ),

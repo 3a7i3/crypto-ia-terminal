@@ -1184,7 +1184,10 @@ def _build_summary(results: list[AnalysisResult], cycle: int) -> str:
     if os.getenv("V9_ADVISOR_ONLY", "true").lower() == "true":
         lines.append("Mode observation — aucun ordre place")
     else:
-        lines.append("TRADING ACTIF — ordres Futures Demo executes sur signaux >= 70")
+        _min_score_disp = int(os.getenv("SIGNAL_MIN_SCORE", "70"))
+        lines.append(
+            f"TRADING ACTIF — ordres Futures Demo executes sur signaux >= {_min_score_disp}"
+        )
     return "\n".join(lines)
 
 
@@ -1589,14 +1592,14 @@ def main(
             log.exception("[SelfHeal] Reconnexion exception: %s", exc)
 
     def _exchange_health_check() -> bool:
-        # is_healthy() retourne False sans lever d'exception → last_error resterait vide.
-        # On lève explicitement avec le snapshot pour avoir un message exploitable dans les logs.
+        # Tolère les timeouts transitoires du testnet — ne déclenche une reconnexion
+        # qu'après 3 échecs consécutifs pour éviter les faux positifs.
         if not exchange_monitor.is_healthy():
             snap = exchange_monitor.snapshot()
-            err = (
-                snap.get("last_error")
-                or f"ping KO ({snap.get('consecutive_failures', '?')} échecs)"
-            )
+            failures = snap.get("consecutive_failures", 0)
+            if failures < 3:
+                return True  # transitoire, pas encore critique
+            err = snap.get("last_error") or f"ping KO ({failures} échecs)"
             raise RuntimeError(err)
         return True
 
@@ -2901,15 +2904,13 @@ def main(
                 except Exception:
                     pass
 
-                # Vérification TP/SL avec le prix live du cycle courant.
-                # Uniquement en paper_mode (pas d'exchange) où _fetch_price() retourne None.
-                # En futures_demo, le _watch_loop fetch le prix testnet directement — injecter
-                # le prix live spot causerait un mismatch avec les prix testnet de l'exchange.
+                # Vérification TP/SL avec le prix spot du cycle courant.
+                # Toujours actif : en futures_demo sur Kraken testnet SOL/XRP, les prix testnet
+                # suivent le spot réel — le _watch_loop retourne 503 trop souvent pour être fiable.
                 try:
-                    if getattr(pos_manager, "_paper", True):
-                        prix_live = float(r.get("prix", 0.0))
-                        if prix_live > 0:
-                            pos_manager.update_price_and_check(sym, prix_live)
+                    prix_live = float(r.get("prix", 0.0))
+                    if prix_live > 0:
+                        pos_manager.update_price_and_check(sym, prix_live)
                 except Exception as _tpsl_exc:
                     log.warning("[TP/SL] check échoué pour %s: %s", sym, _tpsl_exc)
 
@@ -2988,6 +2989,21 @@ def main(
                     )
                     if cycle % 12 == 0:
                         log.info(_activity_tracker.summary())
+                    # P6 — REGIME_MISMATCH: capital gelé + regret actif → baisser threshold
+                    if regret_engine is not None and cycle % 3 == 0:
+                        _at = _activity_tracker.metrics()
+                        if (
+                            _at.cycles_since_last_trade > 20
+                            and _at.inactivity_ratio > 0.85
+                            and regret_engine.calibration_hints()
+                        ):
+                            gate.apply_regret_delta(-1)
+                            log.warning(
+                                "[ActivityTracker] REGIME_MISMATCH: %d cycles sans trade "
+                                "(inactivite=%.0f%%) → threshold reduit de 1",
+                                _at.cycles_since_last_trade,
+                                _at.inactivity_ratio * 100,
+                            )
                 except Exception:
                     pass
 
@@ -3228,7 +3244,7 @@ def main(
                         msg += (
                             f"\n\nMETA-STRATEGY: {p.name}"
                             f"\n  Taille: x{p.order_size_factor:.1f} | "
-                            f"TP:{p.tp_pct:.0%} SL:{p.sl_pct:.0%}"
+                            f"TP:{p.tp_pct:.1%} SL:{p.sl_pct:.1%}"
                         )
                     top3 = cast(list[JSONDict], ranker.leaderboard(3))
                     if top3:
@@ -3417,12 +3433,13 @@ def main(
                     ):
                         _rec_report = _position_reconciler.reconcile()
                         if _rec_report.has_drift:
-                            log.critical(
-                                "[Reconciler] DRIFT: %s", _rec_report.summary()
-                            )
-                            _telegram(
-                                f"[ALERTE] Reconciliation positions\n{_rec_report.summary()}"
-                            )
+                            _has_ghost = bool(_rec_report.ghost_positions)
+                            _log_fn = log.critical if _has_ghost else log.warning
+                            _log_fn("[Reconciler] DRIFT: %s", _rec_report.summary())
+                            if _has_ghost:
+                                _telegram(
+                                    f"[ALERTE] Reconciliation positions\n{_rec_report.summary()}"
+                                )
                 except Exception as _rec_exc:
                     log.debug("[Reconciler] erreur non-bloquante: %s", _rec_exc)
 
