@@ -53,7 +53,7 @@ if [[ ! -f "$VPS_KEY" ]]; then
     exit 1
 fi
 
-SSH_OPTS="-i $VPS_KEY -p $VPS_PORT -o BatchMode=yes -o StrictHostKeyChecking=no -o ConnectTimeout=15"
+SSH_OPTS="-i $VPS_KEY -p $VPS_PORT -o BatchMode=yes -o StrictHostKeyChecking=no -o ConnectTimeout=15 -o ServerAliveInterval=5 -o ServerAliveCountMax=6"
 
 # ── Collecter les fichiers modifiés dans le dernier commit ───────────────────
 cd "$ROOT_DIR"
@@ -104,7 +104,7 @@ if [[ $NEEDS_RESTART -eq 1 && -n "$VPS_RESTART_CMD" ]]; then
     log "Redémarrage (fichier critique modifié)..."
     # shellcheck disable=SC2029
     ssh $SSH_OPTS "$VPS_USER@$VPS_HOST" \
-        "cd '$VPS_PATH' && { pkill -f advisor_loop.py 2>/dev/null; sleep 3; true; } && nohup .venv/bin/python3 advisor_loop.py < /dev/null >> logs/advisor.log 2>&1 & sleep 12 && pgrep -f advisor_loop.py > /dev/null && echo RUNNING" \
+        "cd '$VPS_PATH' && { pkill -f advisor_loop.py 2>/dev/null; sleep 3; true; } && nohup .venv/bin/python3 advisor_loop.py < /dev/null >> logs/advisor.log 2>&1 & sleep 18 && pgrep -f advisor_loop.py > /dev/null && echo RUNNING" \
         | grep -q RUNNING \
         && log "Service redémarré (PID OK)" \
         || log "AVERTISSEMENT — PID non détecté après redémarrage"
