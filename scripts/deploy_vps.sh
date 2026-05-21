@@ -81,14 +81,22 @@ if ! ssh $SSH_OPTS "$VPS_USER@$VPS_HOST" "echo ping" &>/dev/null; then
     exit 1
 fi
 
-# ── Transférer via tar + SSH pipe ────────────────────────────────────────────
-# Crée l'archive localement → pipe SSH → extrait sur VPS
-# Préserve la structure de répertoires, aucun fichier temporaire sur disque.
-echo "$ALL_FILES" | tr '\n' '\0' | \
-    xargs -0 tar czf - 2>/dev/null | \
-    ssh $SSH_OPTS "$VPS_USER@$VPS_HOST" \
-        "mkdir -p '$VPS_PATH' && cd '$VPS_PATH' && tar xzf -"
+# ── Transférer via scp (robuste sur Windows/UTF-8) ───────────────────────────
+SCP_OPTS="-i $VPS_KEY -P $VPS_PORT -o BatchMode=yes -o StrictHostKeyChecking=no -o ConnectTimeout=15"
+_transfer_ok=1
+while IFS= read -r _file; do
+    [[ -z "$_file" ]] && continue
+    _dir="$(dirname "$_file")"
+    if [[ "$_dir" != "." ]]; then
+        ssh $SSH_OPTS "$VPS_USER@$VPS_HOST" "mkdir -p '$VPS_PATH/$_dir'" 2>/dev/null
+    fi
+    if ! scp $SCP_OPTS "$_file" "$VPS_USER@$VPS_HOST:$VPS_PATH/$_file" 2>/dev/null; then
+        log "ERREUR — scp échoué pour : $_file"
+        _transfer_ok=0
+    fi
+done <<< "$ALL_FILES"
 
+[[ $_transfer_ok -eq 0 ]] && { log "ERREUR — un ou plusieurs fichiers non transférés"; exit 1; }
 log "Transfert OK"
 
 # ── Redémarrage du service (optionnel) ───────────────────────────────────────
