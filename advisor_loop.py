@@ -142,6 +142,7 @@ SYMBOLS_DEFAULT = [
 ]
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT = os.getenv("TELEGRAM_CHAT_ID", "")
+TELEGRAM_BEHAVIOR_CHAT = os.getenv("TELEGRAM_BEHAVIOR_CHAT_ID", "")
 NOTIFY_EVERY = int(os.getenv("ADVISOR_NOTIFY_EVERY", "3"))
 MTF_REFRESH_EVERY = int(os.getenv("ADVISOR_MTF_REFRESH_EVERY", "12"))
 ADVISOR_1H_LIMIT = int(os.getenv("ADVISOR_1H_LIMIT", "96"))
@@ -281,6 +282,23 @@ def _telegram(text: str) -> None:
             log.warning("Telegram erreur: %s", r.text)
     except Exception as exc:
         log.warning("Telegram indisponible: %s", exc)
+
+
+def _telegram_behavior(text: str) -> None:
+    """Canal comportemental — [BEHAVIOR], transitions, REGIME_MISMATCH, BSM."""
+    chat = TELEGRAM_BEHAVIOR_CHAT or TELEGRAM_CHAT  # fallback canal principal
+    if not TELEGRAM_TOKEN or not chat:
+        return
+    try:
+        r = requests.post(
+            f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage",
+            json={"chat_id": chat, "text": text},
+            timeout=10,
+        )
+        if r.status_code != 200:
+            log.warning("Telegram behavior erreur: %s", r.text)
+    except Exception as exc:
+        log.warning("Telegram behavior indisponible: %s", exc)
 
 
 # ── Analyse d'un symbole ──────────────────────────────────────────────────────
@@ -3068,13 +3086,18 @@ def main(
                     and len(set(_regime_votes)) == 1
                     and _regime_votes[0] != _adaptive_regime
                 ):
+                    _new_regime = _regime_votes[0]
                     log.info(
                         "[RegimeStability] Transition confirmée: %s → %s (%d cycles)",
                         _adaptive_regime,
-                        _regime_votes[0],
+                        _new_regime,
                         _REGIME_STABILITY,
                     )
-                    _adaptive_regime = _regime_votes[0]
+                    _telegram_behavior(
+                        f"🔄 TRANSITION RÉGIME — {_adaptive_regime} → {_new_regime}\n"
+                        f"Confirmée sur {_REGIME_STABILITY} cycles consécutifs"
+                    )
+                    _adaptive_regime = _new_regime
             if _activity_tracker is not None:
                 try:
                     _open_pos_count = len(pos_manager.get_open())
@@ -3117,12 +3140,18 @@ def main(
                                     _stability_monitor.on_mismatch()
                                 except Exception:
                                     pass
+                            _mm_msg = (
+                                f"⚙️ REGIME_MISMATCH — {_at.cycles_since_last_trade} cycles sans trade"
+                                f" ({_at.inactivity_ratio:.0%} inactif)\n"
+                                f"→ threshold -1 | reset classifieur"
+                            )
                             log.warning(
                                 "[ActivityTracker] REGIME_MISMATCH: %d cycles sans trade "
                                 "(inactivite=%.0f%%) → threshold -1, regime reset",
                                 _at.cycles_since_last_trade,
                                 _at.inactivity_ratio * 100,
                             )
+                            _telegram_behavior(_mm_msg)
                 except Exception:
                     pass
 
@@ -3160,11 +3189,20 @@ def main(
                     if _bsm_violations:
                         for _viol in _bsm_violations:
                             log.warning("[BSM] Invariante violee: %s", _viol)
+                        # Router violation critique vers canal comportemental
+                        _bsm_state = _stability_monitor.behavioral_state().value
+                        if _bsm_state in ("oscillating", "degraded"):
+                            _telegram_behavior(
+                                f"⚠️ BSM ALERTE — état={_bsm_state}\n"
+                                + "\n".join(f"  • {v}" for v in _bsm_violations)
+                            )
                     if cycle % 12 == 0:
                         log.info("[BSM] %s", _stability_monitor.summary_line())
                     # V3 — log [BEHAVIOR] toutes les 50 cycles
                     if cycle % 50 == 0:
-                        log.info(_stability_monitor.behavior_log())
+                        _bh_line = _stability_monitor.behavior_log()
+                        log.info(_bh_line)
+                        _telegram_behavior(f"📊 {_bh_line}")
                 except Exception:
                     pass
 
