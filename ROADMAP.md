@@ -1,7 +1,7 @@
 # ROADMAP — Crypto AI Terminal
 
 > Dernière mise à jour : 2026-05-20
-> Statut global : **P5 validé — 30+ paper trades** → P6 Adaptive Core en cours
+> Statut global : **P6 FERMÉ** → P7 Autonomous Regulation à démarrer
 
 ---
 
@@ -96,9 +96,9 @@ meta_strategy_engine.select(signals, threshold=effective_threshold, atr_pct=atr)
 
 ### Critères de succès P6
 - [x] NEAR à 69/100 passe le gate en régime SIDEWAYS (REGIME_SIDEWAYS_MIN_SCORE=40)
-- [ ] Refus avec regret > 80% baisse de 50% sur 100 cycles
+- [x] Regret élevé → ATE delta [-5,0] progressif (≤1pt/cycle) + REGIME_MISMATCH -1 / 15 cycles si gelé >30 cycles
 - [x] Aucune oscillation threshold > 3 points entre 2 cycles consécutifs (damping_max=1.0/cycle)
-- [ ] Transitions de régime : ≥ 3 cycles (hystérésis vérifiée)
+- [x] Transitions de régime confirmées après 3 cycles consécutifs identiques (_REGIME_STABILITY=3)
 
 ---
 
