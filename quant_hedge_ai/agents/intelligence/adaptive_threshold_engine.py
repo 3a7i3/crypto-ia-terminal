@@ -70,10 +70,12 @@ class AdaptiveThresholdEngine:
         ewma_alpha: float = 0.15,
         damping_max: float = 1.0,
         integral_clamp: tuple[int, int] = (-5, 5),
+        safe_mode: bool = False,
     ) -> None:
         self._alpha = ewma_alpha
         self._damping = damping_max
         self._clamp = integral_clamp
+        self._safe_mode = safe_mode
         self._state = ATEState()
 
     # ── API ───────────────────────────────────────────────────────────────────
@@ -92,6 +94,9 @@ class AdaptiveThresholdEngine:
         s = self._state
         s.cycle += 1
         s.last_raw_regret = regret_delta
+
+        if self._safe_mode:
+            return 0
 
         # Flash crash : forcer résistance maximale
         if "flash" in regime.lower():

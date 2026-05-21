@@ -96,6 +96,7 @@ class GlobalRiskGate:
         require_confirmed: bool = True,
         blacklisted_regimes: set[str] | None = None,
         max_portfolio_drawdown: float = 0.10,
+        safe_mode: bool = False,
     ) -> None:
         self._session_guard = session_guard
         self._drawdown_guard = drawdown_guard
@@ -103,6 +104,7 @@ class GlobalRiskGate:
         self.require_confirmed = require_confirmed
         self.blacklisted_regimes: set[str] = blacklisted_regimes or set()
         self.max_portfolio_drawdown = max_portfolio_drawdown
+        self._safe_mode = safe_mode
         # Calibration adaptative
         self._regret_delta: int = 0  # feedback du RegretEngine
         self._last_regime: str = "unknown"  # régime courant pour le log
@@ -382,6 +384,8 @@ class GlobalRiskGate:
 
         L'ajustement est accumulatif et plafonné à [-5, +5] (anti-windup).
         """
+        if self._safe_mode:
+            return
         prev = self._regret_delta
         self._regret_delta = max(-5, min(5, self._regret_delta + delta))
         if self._regret_delta != prev:
@@ -399,6 +403,8 @@ class GlobalRiskGate:
         Appelé par advisor_loop avec la valeur lissée du RegimeTransitionSmoother.
         None = fin de transition, seuil régime reprend la main.
         """
+        if self._safe_mode:
+            return
         self._transition_threshold = value
 
     def set_adaptive_delta(self, delta: int) -> None:
@@ -408,6 +414,8 @@ class GlobalRiskGate:
         Contrairement à apply_regret_delta (accumulatif), ici le delta est
         positionnel : l'AdaptiveThresholdEngine est la source de vérité.
         """
+        if self._safe_mode:
+            return
         clamped = max(-5, min(5, delta))
         if clamped != self._regret_delta:
             logger.debug(

@@ -207,10 +207,11 @@ class MetaStrategyEngine:
       4. Le nombre de pertes consécutives récentes
     """
 
-    def __init__(self) -> None:
+    def __init__(self, safe_mode: bool = False) -> None:
         self._current: Optional[TradingPersonality] = None
         self._history: list[dict] = []
         self._regime_stats: dict[str, dict] = {}  # régime → {wins, losses, sharpe}
+        self._safe_mode = safe_mode
 
     # ── Sélection principale ───────────────────────────────────────────────────
 
@@ -296,11 +297,12 @@ class MetaStrategyEngine:
             except Exception:
                 sl_factor = 1.5
                 tp_factor = 2.5
-            # Appliquer les overrides de transition si présents
-            if sl_factor_override is not None and sl_factor_override > 0:
-                sl_factor = sl_factor_override
-            if tp_factor_override is not None and tp_factor_override > 0:
-                tp_factor = tp_factor_override
+            # Appliquer les overrides de transition si présents (no-op en safe mode)
+            if not self._safe_mode:
+                if sl_factor_override is not None and sl_factor_override > 0:
+                    sl_factor = sl_factor_override
+                if tp_factor_override is not None and tp_factor_override > 0:
+                    tp_factor = tp_factor_override
             if sl_factor > 0:
                 atr_sl = max(atr_pct * sl_factor, 0.008)  # plancher 0.8%
                 atr_tp = max(atr_pct * tp_factor, atr_sl * 2.0)  # RR ≥ 2:1

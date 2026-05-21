@@ -85,6 +85,11 @@ class BehavioralStabilityMonitor:
         self._last_state: BehavioralState = BehavioralState.STABLE
         self._last_ts: float = time.time()
 
+        # V2 — Oscillation detector (fenetre 50 cycles)
+        self._delta_window: deque[int] = deque(maxlen=50)
+        self._accepted_scores: deque[int] = deque(maxlen=100)
+        self._mismatch_count: int = 0
+
     # ── Enregistrement ────────────────────────────────────────────────────────
 
     def record_cycle(
@@ -267,4 +272,81 @@ class BehavioralStabilityMonitor:
             f"delta={self._last_cumul_delta:+d} "
             f"entropy={self._last_entropy:.2f} "
             f"idle={self._cycles_since_trade}c"
+        )
+
+    # ── V2 — Oscillation detector ──────────────────────────────────────────────
+
+    def on_threshold_delta(self, delta: int) -> None:
+        """Enregistrer le delta ATE du cycle courant (V2)."""
+        self._delta_window.append(delta)
+
+    def on_score_accepted(self, score: int) -> None:
+        """Enregistrer un score accepté par le gate (V3 baseline)."""
+        self._accepted_scores.append(score)
+
+    def on_mismatch(self) -> None:
+        """Incrémenter le compteur REGIME_MISMATCH (V3 baseline)."""
+        self._mismatch_count += 1
+
+    def _compute_threshold_flip_count(self) -> int:
+        """Nombre de changements de direction du delta sur la fenêtre."""
+        deltas = list(self._delta_window)
+        if len(deltas) < 3:
+            return 0
+        flips = 0
+        for i in range(2, len(deltas)):
+            prev_diff = deltas[i - 1] - deltas[i - 2]
+            curr_diff = deltas[i] - deltas[i - 1]
+            if prev_diff != 0 and curr_diff != 0 and prev_diff * curr_diff < 0:
+                flips += 1
+        return flips
+
+    @property
+    def oscillation_score(self) -> str:
+        """LOW / MED / HIGH selon flips threshold + flips régime."""
+        thr_flips = self._compute_threshold_flip_count()
+        reg_flips = self._last_flip_count
+        if thr_flips > 8 or reg_flips > 4:
+            return "HIGH"
+        if thr_flips > 4 or reg_flips > 2:
+            return "MED"
+        return "LOW"
+
+    # ── V3 — Log [BEHAVIOR] ────────────────────────────────────────────────────
+
+    def behavior_log(self) -> str:
+        """
+        Ligne [BEHAVIOR] périodique — snapshot comportemental complet.
+
+        Appeler toutes les N cycles pour tracer la stabilité à long terme.
+        """
+        thresholds = list(self._thresholds)
+        avg_thr = round(sum(thresholds) / len(thresholds)) if thresholds else 0
+        std_thr = round(math.sqrt(self._last_threshold_var), 1)
+
+        regimes = list(self._regimes)
+        if regimes:
+            counts = Counter(regimes)
+            total = len(regimes)
+            regime_dist = " ".join(
+                f"{r[:4].upper()}={c / total:.0%}"
+                for r, c in sorted(counts.items(), key=lambda x: -x[1])[:3]
+            )
+            transitions = sum(
+                1 for i in range(1, len(regimes)) if regimes[i] != regimes[i - 1]
+            )
+        else:
+            regime_dist = "?"
+            transitions = 0
+
+        scores = list(self._accepted_scores)
+        avg_score = round(sum(scores) / len(scores)) if scores else 0
+
+        thr_flips = self._compute_threshold_flip_count()
+
+        return (
+            f"[BEHAVIOR] avg_thr={avg_thr} std={std_thr} flips={thr_flips} "
+            f"| {regime_dist} | trans={transitions} "
+            f"| avg_score={avg_score} mismatch={self._mismatch_count} "
+            f"| state={self._last_state.value} osc={self.oscillation_score}"
         )

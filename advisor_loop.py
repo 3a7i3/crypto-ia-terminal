@@ -65,6 +65,12 @@ def _get_regret_counts(regret_engine: Any) -> tuple[int, int]:
 
 load_dotenv(override=True)
 
+P6_SAFE_MODE: bool = os.environ.get("P6_SAFE_MODE", "false").lower() in (
+    "true",
+    "1",
+    "yes",
+)
+
 logging.basicConfig(
     level=getattr(logging, os.getenv("V9_LOG_LEVEL", "INFO")),
     format="%(asctime)s %(levelname)-8s %(name)s - %(message)s",
@@ -2061,6 +2067,13 @@ def main(
 
     pos_manager.on_close(_on_position_close)
 
+    if P6_SAFE_MODE:
+        log.warning(
+            "[P6] SAFE MODE ACTIF — boucles adaptatives désactivées (threshold fixe)"
+        )
+    else:
+        log.info("[P6] Mode adaptatif — ATE + RegimeSmoother + REGIME_MISMATCH actifs")
+
     _gate_min_score = int(os.getenv("SIGNAL_MIN_SCORE", "70"))
     _gate_require_confirmed = (
         os.getenv("GATE_REQUIRE_CONFIRMED", "true").lower() == "true"
@@ -2070,6 +2083,7 @@ def main(
         lambda: runtime.GlobalRiskGate(
             min_signal_score=_gate_min_score,
             require_confirmed=_gate_require_confirmed,
+            safe_mode=P6_SAFE_MODE,
         ),
     )
     engine = _profile_bootstrap_step("live_signal_engine", runtime.LiveSignalEngine)
@@ -2085,7 +2099,10 @@ def main(
     )
 
     # Meta-Strategy Engine — personnalité adaptée au régime
-    meta_engine = _profile_bootstrap_step("meta_strategy", runtime.MetaStrategyEngine)
+    meta_engine = _profile_bootstrap_step(
+        "meta_strategy",
+        lambda: runtime.MetaStrategyEngine(safe_mode=P6_SAFE_MODE),
+    )
 
     # Strategy Ranker — notation et auto-promotion/rétrogradation
     ranker = _profile_bootstrap_step("strategy_ranker", runtime.StrategyRanker)
@@ -2380,10 +2397,12 @@ def main(
 
     # P6 — Adaptive Core
     _ate: Any = _profile_bootstrap_step(
-        "adaptive_threshold_engine", runtime.AdaptiveThresholdEngine
+        "adaptive_threshold_engine",
+        lambda: runtime.AdaptiveThresholdEngine(safe_mode=P6_SAFE_MODE),
     )
     _regime_smoother: Any = _profile_bootstrap_step(
-        "regime_transition_smoother", runtime.RegimeTransitionSmoother
+        "regime_transition_smoother",
+        lambda: runtime.RegimeTransitionSmoother(safe_mode=P6_SAFE_MODE),
     )
     _regime_tracker: Any = _profile_bootstrap_step(
         "regime_state_tracker", runtime.RegimeStateTracker
@@ -2552,6 +2571,8 @@ def main(
                         )
                     _ate_delta = _ate.update(_adaptive_regime, _re_raw)
                     gate.set_adaptive_delta(_ate_delta)
+                    if _stability_monitor is not None:
+                        _stability_monitor.on_threshold_delta(_ate_delta)
                     if _re_raw != 0 or _ate_delta != 0:
                         log.info(
                             "[P6/ATE] Cycle %d régime=%s raw=%+d → ate_delta=%+d",
@@ -3076,12 +3097,13 @@ def main(
                     )
                     if cycle % 12 == 0:
                         log.info(_activity_tracker.summary())
-                    # P6 — REGIME_MISMATCH: capital gelé + regret actif → baisser threshold
+                    # P6 — REGIME_MISMATCH: capital gelé → baisser threshold (désactivé en safe mode)
                     _mismatch_cooldown = int(
                         os.getenv("REGIME_MISMATCH_COOLDOWN", "15")
                     )
                     if (
-                        regret_engine is not None
+                        not P6_SAFE_MODE
+                        and regret_engine is not None
                         and cycle % 3 == 0
                         and (cycle - _last_mismatch_cycle) >= _mismatch_cooldown
                     ):
@@ -3090,6 +3112,11 @@ def main(
                             gate.apply_regret_delta(-1)
                             _regime_votes.clear()  # force recalcul classifieur
                             _last_mismatch_cycle = cycle
+                            if _stability_monitor is not None:
+                                try:
+                                    _stability_monitor.on_mismatch()
+                                except Exception:
+                                    pass
                             log.warning(
                                 "[ActivityTracker] REGIME_MISMATCH: %d cycles sans trade "
                                 "(inactivite=%.0f%%) → threshold -1, regime reset",
@@ -3120,12 +3147,24 @@ def main(
                         strategy_name=_traded_sym,
                         trade_executed=bool(_traded_sym),
                     )
+                    # V2 — scores acceptés (signaux ayant passé le gate)
+                    for _r in results:
+                        if _r.get("trade_allowed") and _r.get("signal") is not None:
+                            try:
+                                _stability_monitor.on_score_accepted(
+                                    int(_r["signal"].score)
+                                )
+                            except Exception:
+                                pass
                     _bsm_violations = _stability_monitor.check_invariants()
                     if _bsm_violations:
                         for _viol in _bsm_violations:
                             log.warning("[BSM] Invariante violee: %s", _viol)
                     if cycle % 12 == 0:
                         log.info("[BSM] %s", _stability_monitor.summary_line())
+                    # V3 — log [BEHAVIOR] toutes les 50 cycles
+                    if cycle % 50 == 0:
+                        log.info(_stability_monitor.behavior_log())
                 except Exception:
                     pass
 

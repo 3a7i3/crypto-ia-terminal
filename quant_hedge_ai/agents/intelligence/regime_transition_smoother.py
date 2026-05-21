@@ -50,10 +50,11 @@ class RegimeTransitionSmoother:
     en interpolant progressivement les paramètres sur N cycles.
     """
 
-    def __init__(self, ramp_cycles: int | None = None) -> None:
+    def __init__(self, ramp_cycles: int | None = None, safe_mode: bool = False) -> None:
         self._ramp = ramp_cycles or int(os.getenv("REGIME_RAMP_CYCLES", "4"))
         self._state = _RampState(duration=self._ramp)
         self._current: str = "unknown"
+        self._safe_mode = safe_mode
 
     # ── API ───────────────────────────────────────────────────────────────────
 
@@ -77,6 +78,11 @@ class RegimeTransitionSmoother:
         Si la rampe est active : avance d'un cycle.
         """
         s = self._state
+
+        if self._safe_mode:
+            self._current = new_regime
+            s.active = False
+            return
 
         if new_regime != self._current:
             if s.active:
