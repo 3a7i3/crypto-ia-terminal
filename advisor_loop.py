@@ -1156,7 +1156,9 @@ def _score_label(score: int) -> str:
     return "TRES FAIBLE"
 
 
-def _build_summary(results: list[AnalysisResult], cycle: int) -> str:
+def _build_summary(
+    results: list[AnalysisResult], cycle: int, min_score: int = 70
+) -> str:
     """Message de rapport périodique — toutes les N cycles."""
     lines = [f"Crypto AI Terminal — Rapport cycle {cycle}", ""]
 
@@ -1188,9 +1190,8 @@ def _build_summary(results: list[AnalysisResult], cycle: int) -> str:
     if os.getenv("V9_ADVISOR_ONLY", "true").lower() == "true":
         lines.append("Mode observation — aucun ordre place")
     else:
-        _min_score_disp = int(os.getenv("SIGNAL_MIN_SCORE", "70"))
         lines.append(
-            f"TRADING ACTIF — ordres Futures Demo executes sur signaux >= {_min_score_disp}"
+            f"TRADING ACTIF — ordres Futures Demo executes sur signaux >= {min_score}"
         )
     return "\n".join(lines)
 
@@ -3085,11 +3086,7 @@ def main(
                         and (cycle - _last_mismatch_cycle) >= _mismatch_cooldown
                     ):
                         _at = _activity_tracker.metrics()
-                        if (
-                            _at.cycles_since_last_trade > 20
-                            and _at.inactivity_ratio > 0.85
-                            and regret_engine.calibration_hints()
-                        ):
+                        if _at.cycles_since_last_trade > 30:
                             gate.apply_regret_delta(-1)
                             _regime_votes.clear()  # force recalcul classifieur
                             _last_mismatch_cycle = cycle
@@ -3215,7 +3212,8 @@ def main(
             # Rapport périodique toutes les N cycles
             if cycle % NOTIFY_EVERY == 0:
                 try:
-                    msg = _build_summary(results, cycle)
+                    _eff_score = gate._effective_min_score(_adaptive_regime)
+                    msg = _build_summary(results, cycle, min_score=_eff_score)
                     # Indiquer safe mode dans le rapport
                     if kill_switch.is_safe_mode():
                         msg += "\n\n[SAFE MODE] Alertes actions suspendues."
