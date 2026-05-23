@@ -157,15 +157,18 @@ class Histogram:
 
     def snapshot(self) -> dict:
         with self._lock:
+            obs = self._observations
+            mean = statistics.mean(obs) if obs else 0.0
+            maximum = max(obs) if obs else 0.0
             return {
                 "type": "histogram",
                 "name": self.name,
-                "count": self.count,
-                "mean": round(self.mean, 4),
-                "p50": round(self.p50, 4),
-                "p95": round(self.p95, 4),
-                "p99": round(self.p99, 4),
-                "max": round(self.maximum, 4),
+                "count": len(obs),
+                "mean": round(mean, 4),
+                "p50": round(self._percentile(50), 4),
+                "p95": round(self._percentile(95), 4),
+                "p99": round(self._percentile(99), 4),
+                "max": round(maximum, 4),
             }
 
 

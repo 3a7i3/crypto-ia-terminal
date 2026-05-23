@@ -102,7 +102,9 @@ class GlobalRiskGate:
         self._drawdown_guard = drawdown_guard
         self.min_signal_score = min_signal_score  # base statique (env var)
         self.require_confirmed = require_confirmed
-        self.blacklisted_regimes: set[str] = blacklisted_regimes or set()
+        self.blacklisted_regimes: set[str] = (blacklisted_regimes or set()) | {
+            "unknown"
+        }
         self.max_portfolio_drawdown = max_portfolio_drawdown
         self._safe_mode = safe_mode
         # Calibration adaptative
@@ -437,7 +439,12 @@ class GlobalRiskGate:
         if self._transition_threshold is not None:
             return self._transition_threshold
         if _regime_clf is not None:
-            effective = _regime_clf.effective_min_score(regime, self._regret_delta)
+            regime_effective = _regime_clf.effective_min_score(
+                regime, self._regret_delta
+            )
+            # min_signal_score est le plancher absolu de la config : le classifier
+            # peut seulement hausser le seuil, jamais le descendre en-dessous.
+            effective = max(self.min_signal_score, regime_effective)
             if regime != self._last_regime:
                 self._last_regime = regime
                 logger.info(

@@ -18,9 +18,12 @@ from __future__ import annotations
 import argparse
 import logging
 import os
+import smtplib
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
+from email.mime.text import MIMEText
+from logging.handlers import RotatingFileHandler
 from typing import Any, cast
 
 from advisor_runtime_adapters import AdvisorRuntime, load_advisor_runtime
@@ -76,7 +79,12 @@ logging.basicConfig(
     format="%(asctime)s %(levelname)-8s %(name)s - %(message)s",
     handlers=[
         logging.StreamHandler(sys.stdout),
-        logging.FileHandler("logs/advisor_loop.log", encoding="utf-8"),
+        RotatingFileHandler(
+            "logs/advisor_loop.log",
+            maxBytes=10 * 1024 * 1024,  # 10 MB
+            backupCount=5,
+            encoding="utf-8",
+        ),
     ],
 )
 if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
@@ -282,6 +290,29 @@ def _telegram(text: str) -> None:
             log.warning("Telegram erreur: %s", r.text)
     except Exception as exc:
         log.warning("Telegram indisponible: %s", exc)
+
+
+def _send_email(subject: str, body: str) -> None:
+    """Envoie un email de notification via SMTP (config .env)."""
+    smtp_server = os.getenv("EMAIL_SMTP_SERVER", "")
+    smtp_port = int(os.getenv("EMAIL_SMTP_PORT", "587"))
+    from_addr = os.getenv("EMAIL_FROM_ADDR", "")
+    smtp_pass = os.getenv("EMAIL_SMTP_PASS", "")
+    to_addr = os.getenv("EMAIL_TO_ADDR", "")
+    if not all([smtp_server, from_addr, smtp_pass, to_addr]):
+        return
+    try:
+        msg = MIMEText(body, "plain", "utf-8")
+        msg["Subject"] = f"[Crypto AI] {subject}"
+        msg["From"] = from_addr
+        msg["To"] = to_addr
+        with smtplib.SMTP(smtp_server, smtp_port, timeout=15) as srv:
+            srv.starttls()
+            srv.login(from_addr, smtp_pass)
+            srv.sendmail(from_addr, [to_addr], msg.as_string())
+        log.info("[Email] Envoyé : %s", subject)
+    except Exception as exc:
+        log.warning("[Email] Échec : %s", exc)
 
 
 def _telegram_behavior(text: str) -> None:
@@ -1551,6 +1582,7 @@ def main(
 
     # Kill switch — état partagé entre thread Telegram et boucle principale
     _halt_requested = {"value": False}
+    _awareness_ref: dict = {"engine": None}  # rempli après création awareness_engine
 
     def _on_stop_all():
         _halt_requested["value"] = True
@@ -1560,11 +1592,17 @@ def main(
         _halt_requested["value"] = True
         log.critical("[main] CLOSE_ALL recu — la boucle va s'arreter au prochain cycle")
 
+    def _on_resume():
+        if _awareness_ref["engine"] is not None:
+            _awareness_ref["engine"].reset()
+            log.info("[main] /RESUME — SelfAwareness reset (retour a OK)")
+
     kill_switch = _profile_bootstrap_step(
         "kill_switch",
         lambda: runtime.TelegramKillSwitch(
             on_stop_all=_on_stop_all,
             on_close_all=_on_close_all,
+            on_resume=_on_resume,
         ),
     )
     kill_switch_started = False
@@ -2139,6 +2177,7 @@ def main(
         "self_awareness",
         lambda: runtime.SelfAwarenessEngine(on_level_change=_on_awareness_change),
     )
+    _awareness_ref["engine"] = awareness_engine  # expose pour /RESUME callback
 
     # No-Trade Intelligence — refus intelligents
     no_trade_layer = _profile_bootstrap_step(
@@ -2398,9 +2437,17 @@ def main(
     trades_this_hour: dict[str, list[float]] = {}
 
     _t_bootstrap_end = time.perf_counter()
+    _send_email(
+        "Système démarré",
+        f"Crypto AI Terminal démarré avec succès.\n"
+        f"Symboles : {symbols}\n"
+        f"Intervalle : {interval}s\n"
+        f"Bootstrap : {_t_bootstrap_end - _t_main_start:.1f}s",
+    )
 
     cycle = 0
     consecutive_errors = 0
+    _clean_exit = False
     shed_optional_until_cycle = 0
     # ── Boucle de rétroaction adaptative ──────────────────────────────────────
     # _adaptive_regime : régime stable (confirmé sur N cycles consécutifs)
@@ -3129,6 +3176,10 @@ def main(
                         and regret_engine is not None
                         and cycle % 3 == 0
                         and (cycle - _last_mismatch_cycle) >= _mismatch_cooldown
+                        and (
+                            awareness_engine is None
+                            or awareness_engine.is_safe_to_trade()
+                        )
                     ):
                         _at = _activity_tracker.metrics()
                         if _at.cycles_since_last_trade > 30:
@@ -3638,6 +3689,7 @@ def main(
             log.info("Arret manuel.")
             _stop_runtime_services()
             _telegram("Crypto AI Terminal arrete manuellement.")
+            _clean_exit = True
             break
         except Exception as exc:
             consecutive_errors += 1
@@ -3663,10 +3715,15 @@ def main(
                 except Exception:
                     pass
             if consecutive_errors >= 5:
-                _telegram(
-                    f"ALERTE — 5 erreurs consecutives\n"
-                    f"Derniere: {exc}\n"
-                    f"Verifier logs/advisor_loop.log"
+                _crash_msg = (
+                    f"CRASH — 5 erreurs consecutives au cycle {cycle}\n"
+                    f"Derniere: {type(exc).__name__}: {exc}\n"
+                    f"Le systeme va s'arreter. Verifier logs/advisor_loop.log"
+                )
+                _telegram(_crash_msg)
+                _send_email(
+                    f"CRASH cycle {cycle}",
+                    _crash_msg,
                 )
                 log.critical("Trop d'erreurs, arret.")
                 _stop_runtime_services()
@@ -3684,6 +3741,10 @@ def main(
 
         log.info("Prochain cycle dans %ds...", interval)
         time.sleep(interval)
+
+    if not _clean_exit:
+        log.critical("[main] Sortie anormale — sys.exit(1)")
+        sys.exit(1)
 
 
 if __name__ == "__main__":

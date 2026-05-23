@@ -1,0 +1,22 @@
+[Unit]
+Description=Crypto AI Watchdog (surveillance + redémarrage auto)
+After=network-online.target crypto_advisor.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=mathieuhasard111
+WorkingDirectory=/home/mathieuhasard111/crypto_ai_terminal
+
+ExecStart=/home/mathieuhasard111/crypto_ai_terminal/.venv/bin/python watchdog_vps.py
+
+Restart=always
+RestartSec=10
+
+StandardOutput=append:/home/mathieuhasard111/crypto_ai_terminal/logs/watchdog.log
+StandardError=append:/home/mathieuhasard111/crypto_ai_terminal/logs/watchdog.log
+
+EnvironmentFile=/home/mathieuhasard111/crypto_ai_terminal/.env
+
+[Install]
+WantedBy=multi-user.target

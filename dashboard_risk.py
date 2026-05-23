@@ -26,11 +26,13 @@ import pandas as pd
 import streamlit as st
 from dotenv import load_dotenv
 
+from dashboard.colors import css_inject
+
 load_dotenv()
 
 st.set_page_config(
-    page_title="Crypto AI — Risk Dashboard",
-    page_icon="📊",
+    page_title="Crypto AI — Risk Gate",
+    page_icon="⬡",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -44,7 +46,12 @@ ADVISOR_LOG = Path("logs/advisor_loop.log")
 REFRESH_INTERVAL = int(os.getenv("DASHBOARD_REFRESH", "15"))  # secondes
 
 SIGNAL_COLOR = {"BUY": "green", "SELL": "red", "HOLD": "gray"}
-STATUS_EMOJI = {"ok": "✅", "warn": "⚠️", "degraded": "🔴", "offline": "❌"}
+STATUS_LABEL = {
+    "ok": "OK",
+    "warn": "WARN",
+    "degraded": "DÉGRADÉ",
+    "offline": "HORS LIGNE",
+}
 
 
 # ── Chargement des données ────────────────────────────────────────────────────
@@ -154,7 +161,8 @@ def check_exchange_health() -> dict:
 
 # ── Layout ────────────────────────────────────────────────────────────────────
 
-st.title("📊 Crypto AI Terminal — Risk Dashboard")
+st.title("Crypto AI Terminal — Risk Gate")
+css_inject()
 st.caption(
     f"Actualisation automatique toutes les {REFRESH_INTERVAL}s | Mode: ADVISOR ONLY"
 )
@@ -162,7 +170,7 @@ st.caption(
 # ── Sidebar ───────────────────────────────────────────────────────────────────
 
 with st.sidebar:
-    st.header("⚙️ Paramètres")
+    st.header("Paramètres")
     n_shadow = st.slider("Shadow trades affichés", 10, 200, 50)
     n_log = st.slider("Lignes de log", 50, 500, 200)
     show_raw_log = st.checkbox("Afficher log brut", value=False)
@@ -170,7 +178,7 @@ with st.sidebar:
     st.markdown("**Commandes Telegram**")
     st.code("/STATUS\n/SAFE_MODE\n/RESUME\n/STOP_ALL\n/CLOSE_ALL")
     st.divider()
-    if st.button("🔄 Actualiser maintenant"):
+    if st.button("Actualiser"):
         st.cache_data.clear()
         st.rerun()
 
@@ -181,9 +189,9 @@ col1, col2, col3, col4 = st.columns(4)
 # Exchange health
 exchange = check_exchange_health()
 with col1:
-    emoji = STATUS_EMOJI.get(exchange["status"], "?")
+    label = STATUS_LABEL.get(exchange["status"], "?")
     st.metric(
-        label=f"{emoji} Exchange Binance",
+        label=f"Exchange [{label}]",
         value="En ligne" if exchange["status"] == "ok" else "HORS LIGNE",
         delta=(
             f"{exchange['latency_ms']:.0f} ms"
@@ -199,19 +207,19 @@ with col2:
     if n_sh > 0:
         avg_slip = sum(t.get("slippage_pct", 0) for t in shadow_trades) / n_sh
         st.metric(
-            label="🧪 Shadow Trades",
+            label="Shadow Trades",
             value=str(n_sh),
             delta=f"Slippage moy: {avg_slip:.3f}%",
         )
     else:
-        st.metric(label="🧪 Shadow Trades", value="0", delta="Aucun signal actionable")
+        st.metric(label="Shadow Trades", value="0", delta="Aucun signal actionable")
 
 # Trade log
 real_trades = load_trade_log(50)
 with col3:
     n_real = len(real_trades)
     n_rej = sum(1 for t in real_trades if t.get("status") == "rejected")
-    st.metric(label="📋 Ordres loggés", value=str(n_real), delta=f"{n_rej} rejetés")
+    st.metric(label="Ordres loggés", value=str(n_real), delta=f"{n_rej} rejetés")
 
 # Advisor log last cycle
 log_lines = load_advisor_log_tail(n_log)
@@ -221,12 +229,12 @@ with col4:
     if cycle_data:
         last = cycle_data[-1]
         st.metric(
-            label="📈 Dernier signal",
+            label="Dernier signal",
             value=f"{last['symbol']} {last['signal']}",
             delta=f"Score: {last['score']}/100",
         )
     else:
-        st.metric(label="📈 Dernier signal", value="—", delta="En attente")
+        st.metric(label="Dernier signal", value="—", delta="En attente")
 
 st.divider()
 
@@ -281,7 +289,7 @@ st.divider()
 
 # ── Row 4 : Shadow trades détaillés ───────────────────────────────────────────
 
-st.subheader("🧪 Shadow Trades simulés")
+st.subheader("Shadow Trades simulés")
 
 if shadow_trades:
     df_sh = pd.DataFrame(shadow_trades)
@@ -335,7 +343,7 @@ st.divider()
 
 # ── Row 5 : Journal des ordres réels / paper ───────────────────────────────────
 
-st.subheader("📋 Journal des ordres")
+st.subheader("Journal des ordres")
 
 if real_trades:
     df_tr = pd.DataFrame(real_trades)
@@ -351,7 +359,7 @@ st.divider()
 
 # ── Row 6 : Trade Replay ───────────────────────────────────────────────────────
 
-st.subheader("🔁 Trade Replay")
+st.subheader("Trade Replay")
 
 with st.expander("Rejouer un trade par ID", expanded=False):
     replay_id = st.text_input("ID du trade (ex: SHD-1714300000-0001)", key="replay_id")
@@ -379,8 +387,8 @@ with st.expander("Rejouer un trade par ID", expanded=False):
                 if report.gate_conditions:
                     st.markdown("**Gate conditions:**")
                     for k, v in report.gate_conditions.items():
-                        icon = "✅" if v else "❌"
-                        st.write(f"{icon} {k}")
+                        status = "OUI" if v else "NON"
+                        st.write(f"[{status}] {k}")
                 with st.expander("JSON brut"):
                     st.json(report.raw)
             else:
@@ -445,7 +453,7 @@ st.divider()
 
 # ── Row 7 : Confidence Score Explainability ───────────────────────────────────
 
-st.subheader("🔍 Analyse de confiance par symbole")
+st.subheader("Analyse de confiance par symbole")
 
 with st.expander("Décomposition détaillée du dernier score", expanded=True):
     ex_sym = st.selectbox("Symbole à analyser", SYMBOLS, key="ex_sym")
@@ -536,7 +544,7 @@ st.divider()
 
 # ── Row 8 : Monte Carlo Stress Test ───────────────────────────────────────────
 
-st.subheader("🎲 Monte Carlo Stress Test")
+st.subheader("Monte Carlo Stress Test")
 
 with st.expander("Lancer une simulation de survie", expanded=False):
     mc_col1, mc_col2, mc_col3 = st.columns(3)
@@ -678,17 +686,16 @@ st.divider()
 # ── Row 9 : Log brut (optionnel) ───────────────────────────────────────────────
 
 if show_raw_log:
-    st.subheader("📄 Log brut (advisor_loop.log)")
+    st.subheader("Log brut (advisor_loop.log)")
     if log_lines:
-        # Coloriser les niveaux
         colored = []
         for ln in log_lines[-100:]:
             if "ERROR" in ln or "CRITICAL" in ln:
-                colored.append(f"🔴 {ln}")
+                colored.append(f"[ERROR] {ln}")
             elif "WARNING" in ln:
-                colored.append(f"⚠️ {ln}")
+                colored.append(f"[WARN] {ln}")
             elif "SIGNAL ACTIONABLE" in ln:
-                colored.append(f"📈 {ln}")
+                colored.append(f"[SIGNAL] {ln}")
             else:
                 colored.append(ln)
         st.text("\n".join(colored))
