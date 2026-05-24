@@ -260,8 +260,20 @@ def run() -> None:
 
     alert_sent = False
     consecutive_failures = 0
+    # Période de grâce au démarrage : le bot met ~2 min à écrire son premier snapshot
+    _startup_grace = int(os.getenv("WATCHDOG_STARTUP_GRACE", "300"))
+    _started_at = time.time()
 
     while True:
+        # Ne pas intervenir pendant la période de grâce post-démarrage watchdog
+        if time.time() - _started_at < _startup_grace:
+            logger.info(
+                "Grace period — %ds restants",
+                int(_startup_grace - (time.time() - _started_at)),
+            )
+            time.sleep(INTERVAL)
+            continue
+
         ok, msg, age = _check_snapshot()
 
         if ok:
