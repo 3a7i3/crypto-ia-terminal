@@ -2629,7 +2629,13 @@ def main(
                     _re_raw = 0
                     if regret_engine is not None:
                         _pm_fb = _stats_dict(pos_manager.stats())
-                        _winrate_exec = float(_pm_fb.get("win_rate", 0.5))
+                        _closed_trades = int(_pm_fb.get("closed_trades", 0))
+                        # Neutraliser le signal winrate si pas assez de trades fermés
+                        # (évite que win_rate=0% au démarrage lève le threshold)
+                        if _closed_trades >= 5:
+                            _winrate_exec = float(_pm_fb.get("win_rate", 0.5))
+                        else:
+                            _winrate_exec = 0.5  # neutre — pas assez de données
                         _re_raw = regret_engine.get_threshold_delta(
                             current_regime=_adaptive_regime,
                             winrate_executed=_winrate_exec,

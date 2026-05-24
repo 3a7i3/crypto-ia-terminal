@@ -111,6 +111,10 @@ class GlobalRiskGate:
         self._regret_delta: int = 0  # feedback du RegretEngine
         self._last_regime: str = "unknown"  # régime courant pour le log
         self._transition_threshold: int | None = None  # override rampe RegimeSmoother
+        # Plancher absolu : les ajustements régime peuvent descendre jusqu'ici
+        import os as _os
+
+        self._absolute_floor: int = int(_os.getenv("REGIME_ABSOLUTE_FLOOR", "55"))
 
     # ── API principale ─────────────────────────────────────────────────────────
 
@@ -442,9 +446,10 @@ class GlobalRiskGate:
             regime_effective = _regime_clf.effective_min_score(
                 regime, self._regret_delta
             )
-            # min_signal_score est le plancher absolu de la config : le classifier
-            # peut seulement hausser le seuil, jamais le descendre en-dessous.
-            effective = max(self.min_signal_score, regime_effective)
+            # Le plancher absolu (REGIME_ABSOLUTE_FLOOR=55) permet aux ajustements
+            # régime de descendre sous min_signal_score (ex: SIDEWAYS -4 → 66).
+            # min_signal_score reste la référence de l'ATE, pas un plancher dur.
+            effective = max(self._absolute_floor, regime_effective)
             if regime != self._last_regime:
                 self._last_regime = regime
                 logger.info(
