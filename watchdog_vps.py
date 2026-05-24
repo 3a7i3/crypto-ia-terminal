@@ -53,6 +53,7 @@ TIMEOUT = int(os.getenv("WATCHDOG_TIMEOUT", "300"))
 SNAPSHOT_PATH = Path(os.getenv("WATCHDOG_SNAPSHOT", "databases/live_snapshot.json"))
 MAX_RESTARTS = int(os.getenv("WATCHDOG_MAX_RESTARTS", "10"))
 RESTART_DELAY = int(os.getenv("WATCHDOG_RESTART_DELAY", "15"))
+USE_SYSTEMD = os.getenv("WATCHDOG_USE_SYSTEMD", "0") == "1"
 AUDIT_LOG = Path("supervision/watchdog_audit.jsonl")
 AUDIT_LOG.parent.mkdir(parents=True, exist_ok=True)
 
@@ -152,7 +153,7 @@ def _kill_zombie() -> None:
 
 
 def _start_bot() -> bool:
-    """Démarre advisor_loop.py. Retourne True si succès."""
+    """Redémarre advisor_loop.py. Retourne True si succès."""
     global _bot_process, _restart_count
 
     if _restart_count >= MAX_RESTARTS:
@@ -167,9 +168,22 @@ def _start_bot() -> bool:
         return False
 
     _restart_count += 1
+
+    if USE_SYSTEMD:
+        try:
+            result = subprocess.run(
+                ["sudo", "systemctl", "restart", "crypto_advisor.service"],
+                timeout=30,
+                check=True,
+            )
+            logger.info("Bot redémarré via systemd (restart #%d)", _restart_count)
+            return True
+        except Exception as exc:
+            logger.error("systemctl restart échoué: %s", exc)
+            return False
+
     log_out = open("logs/advisor_loop_stdout.log", "a", encoding="utf-8")
     log_err = open("logs/advisor_loop_stderr.log", "a", encoding="utf-8")
-
     try:
         _bot_process = subprocess.Popen(
             [str(PYTHON_BIN), str(BOT_SCRIPT)],
