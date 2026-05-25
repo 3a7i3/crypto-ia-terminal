@@ -134,6 +134,26 @@ except Exception:
 _cb_gate: Any = None
 _cb_mistake_memory: Any = None
 
+# S3 — Alertes Telegram + Shadow refusals (fail-silent si scripts/ absent)
+try:
+    from scripts.telegram_alerts import TelegramAlert as _TelegramAlertCls
+
+    _S3_TELEGRAM_AVAILABLE = True
+except Exception:
+    _S3_TELEGRAM_AVAILABLE = False
+    _TelegramAlertCls: Any = None
+
+try:
+    from scripts.shadow_execution import ShadowTracker as _ShadowTrackerCls
+
+    _S3_SHADOW_AVAILABLE = True
+except Exception:
+    _S3_SHADOW_AVAILABLE = False
+    _ShadowTrackerCls: Any = None
+
+_telegram_alert: Any = None
+_shadow_s3: Any = None
+
 SYMBOLS_DEFAULT = [
     # Core majors — leaders structurels, capturent le régime global
     "BTC/USDT",
@@ -1100,6 +1120,21 @@ def analyze_symbol(
             cycle=cycle,
             conviction_level=conviction.level.value if conviction else "medium",
         )
+
+        # S3 — log gate refusal pour analyse coût gate
+        if _shadow_s3 is not None and not gate_result.allowed:
+            try:
+                _shadow_s3.log_refused(
+                    symbol=symbol,
+                    side=signal.signal,
+                    score=float(signal.score),
+                    regime=regime,
+                    failed_checks=list(gate_result.failed),
+                    price=prix,
+                    cycle_id=str(cycle),
+                )
+            except Exception:
+                pass
 
     # ── Decision Quality — évaluation avant exécution ─────────────────────────
     dq_record = None
@@ -2541,6 +2576,15 @@ def main(
         _cb_mistake_memory = _CBClass("mistake_memory", fallback=None)
         log.info("[P7] CircuitBreakers initialisés: gate + mistake_memory")
 
+    # S3 — Telegram alerts + shadow refusals tracker
+    global _telegram_alert, _shadow_s3
+    if _S3_TELEGRAM_AVAILABLE:
+        _telegram_alert = _TelegramAlertCls()
+        log.info("[S3] TelegramAlert initialisé")
+    if _S3_SHADOW_AVAILABLE:
+        _shadow_s3 = _ShadowTrackerCls()
+        log.info("[S3] ShadowTracker initialisé")
+
     # P6 — Adaptive Core
     _ate: Any = _profile_bootstrap_step(
         "adaptive_threshold_engine",
@@ -3191,6 +3235,17 @@ def main(
                                     sym,
                                     fut_mode,
                                 )
+                                # S3 — alerte Telegram pour trade exécuté
+                                if _telegram_alert is not None:
+                                    try:
+                                        _telegram_alert.trade(
+                                            signal_action,
+                                            sym,
+                                            effective_size,
+                                            float(r.get("prix", 0.0)),
+                                        )
+                                    except Exception:
+                                        pass
                                 # ── PROTECTIONS: Enregistre le trade pour tracking ──
                                 last_trade_signal[sym] = signal_action
                                 trades_this_hour[sym].append(current_time)

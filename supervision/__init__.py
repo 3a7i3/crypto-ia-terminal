@@ -1,1 +1,13 @@
-"""Supervision helpers (alerts, auto-heal)."""
+"""Supervision — circuit breakers, alerts, monitoring, self-healing.
+
+Public API:
+  ComponentCircuitBreaker : 4-state CB with exponential backoff and fallback
+  KillSwitch              : emergency halt mechanism
+  AlertManager            : multi-channel alert dispatch
+"""
+
+from supervision.alert_manager import AlertManager
+from supervision.circuit_breaker_robust import ComponentCircuitBreaker
+from supervision.kill_switch import TelegramKillSwitch
+
+__all__ = ["ComponentCircuitBreaker", "TelegramKillSwitch", "AlertManager"]
