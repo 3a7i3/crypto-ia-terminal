@@ -12,6 +12,7 @@ ExecStart=/home/mathieuhasard111/crypto_ai_terminal/.venv/bin/python watchdog_vp
 
 Restart=always
 RestartSec=10
+LimitNOFILE=65536
 
 StandardOutput=append:/home/mathieuhasard111/crypto_ai_terminal/logs/watchdog.log
 StandardError=append:/home/mathieuhasard111/crypto_ai_terminal/logs/watchdog.log

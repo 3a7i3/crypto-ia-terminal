@@ -3677,6 +3677,37 @@ def main(
             watchdog.end_cycle(cycle)
             cycle_completed = True
 
+            # ── Heartbeat Telegram compact (toutes les N cycles ≈ 15 min) ────
+            _hb_every = int(os.getenv("HEARTBEAT_CYCLES", "3"))
+            if cycle % _hb_every == 0:
+                try:
+                    import resource as _res
+
+                    _ram_mb = _res.getrusage(_res.RUSAGE_SELF).ru_maxrss // 1024
+                except Exception:
+                    _ram_mb = 0
+                _hb_regime = _adaptive_regime or "?"
+                _hb_state = "OK"
+                if awareness_engine is not None:
+                    try:
+                        _hb_state = awareness_engine.evaluate().level.name
+                    except Exception:
+                        pass
+                _hb_capital = real_capital
+                _hb_pos = (
+                    len(pos_manager.get_open_positions())
+                    if hasattr(pos_manager, "get_open_positions")
+                    else 0
+                )
+                _hb_msg = (
+                    f"[ALIVE] Cycle {cycle}\n"
+                    f"Regime: {_hb_regime} | State: {_hb_state}\n"
+                    f"Capital: ${_hb_capital:,.0f} | Pos: {_hb_pos}\n"
+                    f"RAM: {_ram_mb}MB"
+                )
+                _telegram(_hb_msg)
+                log.info("[Heartbeat] %s", _hb_msg.replace("\n", " | "))
+
             cycle_elapsed = time.perf_counter() - _t_cycle_start
             if cycle_budget_seconds > 0 and cycle_elapsed > cycle_budget_seconds:
                 shed_optional_until_cycle = max(

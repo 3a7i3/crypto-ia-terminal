@@ -23,8 +23,9 @@ StandardOutput=append:/home/mathieuhasard111/crypto_ai_terminal/logs/advisor_loo
 StandardError=append:/home/mathieuhasard111/crypto_ai_terminal/logs/advisor_loop_stderr.log
 
 # Limites de ressources
-MemoryMax=1G
+MemoryMax=4G
 CPUQuota=80%
+LimitNOFILE=65536
 
 # Variables d'environnement
 EnvironmentFile=/home/mathieuhasard111/crypto_ai_terminal/.env

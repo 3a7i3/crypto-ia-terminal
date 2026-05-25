@@ -54,6 +54,10 @@ SNAPSHOT_PATH = Path(os.getenv("WATCHDOG_SNAPSHOT", "databases/live_snapshot.jso
 MAX_RESTARTS = int(os.getenv("WATCHDOG_MAX_RESTARTS", "10"))
 RESTART_DELAY = int(os.getenv("WATCHDOG_RESTART_DELAY", "15"))
 USE_SYSTEMD = os.getenv("WATCHDOG_USE_SYSTEMD", "0") == "1"
+RAM_ALERT_MB = int(os.getenv("WATCHDOG_RAM_ALERT_MB", "2048"))  # alert si RSS > 2 GB
+RAM_RESTART_MB = int(
+    os.getenv("WATCHDOG_RAM_RESTART_MB", "3072")
+)  # restart si RSS > 3 GB
 AUDIT_LOG = Path("supervision/watchdog_audit.jsonl")
 AUDIT_LOG.parent.mkdir(parents=True, exist_ok=True)
 
@@ -171,7 +175,7 @@ def _start_bot() -> bool:
 
     if USE_SYSTEMD:
         try:
-            result = subprocess.run(
+            subprocess.run(
                 ["sudo", "systemctl", "restart", "crypto_advisor.service"],
                 timeout=30,
                 check=True,
@@ -226,6 +230,33 @@ def _check_snapshot() -> tuple[bool, str, float]:
     return True, f"OK — cycle #{cycle} | age {age:.0f}s | ${capital:,.2f}", age
 
 
+def _get_bot_ram_mb() -> int:
+    """Retourne la RAM RSS du processus advisor_loop en MB, ou 0 si indisponible."""
+    try:
+        result = subprocess.run(
+            ["pgrep", "-f", "advisor_loop.py"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        pids = result.stdout.strip().split()
+        if not pids:
+            return 0
+        total_kb = 0
+        for pid in pids:
+            try:
+                status = Path(f"/proc/{pid}/status").read_text()
+                for line in status.splitlines():
+                    if line.startswith("VmRSS:"):
+                        total_kb += int(line.split()[1])
+                        break
+            except Exception:
+                pass
+        return total_kb // 1024
+    except Exception:
+        return 0
+
+
 def _is_bot_alive() -> bool:
     """Vérifie si le processus bot géré est encore vivant."""
     global _bot_process
@@ -275,6 +306,33 @@ def run() -> None:
             continue
 
         ok, msg, age = _check_snapshot()
+
+        # ── RAM monitoring ───────────────────────────────────────────────────
+        _ram_mb = _get_bot_ram_mb()
+        if _ram_mb > 0:
+            logger.info("RAM bot: %d MB", _ram_mb)
+            _log_event("RAM_CHECK", f"{_ram_mb} MB")
+            if _ram_mb > RAM_RESTART_MB:
+                _ram_msg = (
+                    f"[WATCHDOG] RAM critique : {_ram_mb} MB > {RAM_RESTART_MB} MB\n"
+                    f"Redémarrage forcé — {_utcnow()}"
+                )
+                logger.critical(_ram_msg)
+                _send_telegram(_ram_msg)
+                _send_email("RAM critique — redémarrage", _ram_msg)
+                _log_event("RAM_RESTART", f"{_ram_mb} MB")
+                _kill_zombie()
+                time.sleep(RESTART_DELAY)
+                _start_bot()
+                time.sleep(TIMEOUT // 2)
+            elif _ram_mb > RAM_ALERT_MB:
+                _ram_alert = (
+                    f"[WATCHDOG] RAM élevée : {_ram_mb} MB"
+                    f" > {RAM_ALERT_MB} MB — {_utcnow()}"
+                )
+                logger.warning(_ram_alert)
+                _send_telegram(_ram_alert)
+                _log_event("RAM_ALERT", f"{_ram_mb} MB")
 
         if ok:
             logger.info(msg)
