@@ -190,7 +190,7 @@ class RegimeConfig:
 #
 # min_score : seuil de score effectif pour ce régime
 #   - TREND  : 72  — on veut de la certitude avant d'entrer dans un trend
-#   - RANGE  : 66  — mean reversion accepte des setups plus incertains
+#   - RANGE  : 60  — mean reversion accepte des setups plus incertains
 #   - BEAR   : 68  — prudent mais pas paralysé
 #   - VOLATILE: 68 — petite taille, seuil modéré
 #   - UNKNOWN : 72 — prudence maximale
@@ -224,7 +224,7 @@ _REGIME_CONFIGS: dict[str, RegimeConfig] = {
     ),
     "sideways": RegimeConfig(
         regime="sideways",
-        min_score=int(os.getenv("REGIME_SIDEWAYS_MIN_SCORE", "66")),
+        min_score=int(os.getenv("REGIME_SIDEWAYS_MIN_SCORE", "60")),
         sl_factor_atr=1.5,
         tp_factor_atr=2.0,
         size_factor=0.7,
@@ -285,7 +285,7 @@ _REGIME_CONFIGS: dict[str, RegimeConfig] = {
     ),
     "RANGE": RegimeConfig(
         regime="RANGE",
-        min_score=66,
+        min_score=60,
         sl_factor_atr=1.5,
         tp_factor_atr=2.0,
         size_factor=0.7,

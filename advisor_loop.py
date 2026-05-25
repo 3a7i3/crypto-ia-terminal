@@ -807,8 +807,16 @@ def analyze_symbol(
             else:
                 reason = (
                     getattr(allocation, "reason", "allocation refusée")
-                    if allocation
-                    else "capital_engine absent"
+                    if allocation is not None
+                    else (
+                        "capital_engine non initialisé"
+                        if not capital_engine
+                        else (
+                            "signal non actionable"
+                            if not signal.actionable
+                            else "portfolio_brain bloqué"
+                        )
+                    )
                 )
                 _dp.add_reasoning(
                     "capital_engine",
