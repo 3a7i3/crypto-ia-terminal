@@ -388,6 +388,12 @@ class PositionManager:
             if pos.closed:
                 continue
             price = self._fetch_price(pos.symbol)
+            if price is None and pos.current_price > 0:
+                # Paper mode : prix live indisponible — utiliser dernier connu
+                # pour que time_stop et aging_tp se déclenchent régulièrement
+                self._check_time_stop(pos)
+                self._check_aging_tp(pos)
+                continue
             if price is None or price <= 0:
                 continue
             pos.update_price(price)
