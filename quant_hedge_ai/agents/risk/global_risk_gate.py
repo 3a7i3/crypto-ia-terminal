@@ -23,8 +23,54 @@ Il applique les règles de gouvernance et décide seul.
 
 from __future__ import annotations
 
+import csv
 import logging
+import os
+import time
 from dataclasses import dataclass, field
+
+_GATE_CSV = os.getenv("GATE_LOG_CSV", "databases/gate_rejections.csv")
+_GATE_CSV_FIELDS = [
+    "ts",
+    "symbol",
+    "regime",
+    "score",
+    "effective_min",
+    "allowed",
+    "failed",
+]
+
+
+def _gate_csv_log(
+    symbol: str,
+    regime: str,
+    score: float,
+    effective_min: int,
+    allowed: bool,
+    failed: list[str],
+) -> None:
+    try:
+        import json
+
+        write_header = not os.path.exists(_GATE_CSV) or os.path.getsize(_GATE_CSV) == 0
+        with open(_GATE_CSV, "a", newline="", encoding="utf-8") as _f:
+            _w = csv.DictWriter(_f, fieldnames=_GATE_CSV_FIELDS, extrasaction="ignore")
+            if write_header:
+                _w.writeheader()
+            _w.writerow(
+                {
+                    "ts": round(time.time(), 3),
+                    "symbol": symbol,
+                    "regime": regime,
+                    "score": score,
+                    "effective_min": effective_min,
+                    "allowed": allowed,
+                    "failed": json.dumps(failed),
+                }
+            )
+    except Exception:
+        pass
+
 
 logger = logging.getLogger(__name__)
 
@@ -191,6 +237,8 @@ class GlobalRiskGate:
             for w in warnings:
                 logger.warning("[GlobalRiskGate] ⚠️  %s", w)
 
+        symbol = getattr(signal_result, "symbol", "unknown")
+        _gate_csv_log(symbol, regime_str, score, effective_min, allowed, failed)
         self._emit_event(result, signal_result)
         return result
 
@@ -356,6 +404,8 @@ class GlobalRiskGate:
         log_fn("[GlobalRiskGate] %s | %s", packet.symbol, result.summary())
         for w in warnings:
             logger.warning("[GlobalRiskGate] %s", w)
+
+        _gate_csv_log(packet.symbol, regime_str, score, effective_min, allowed, failed)
 
         # ── Transition d'état — la souveraineté s'exerce ici ──────────────
         if allowed:
