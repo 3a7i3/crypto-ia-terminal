@@ -2353,6 +2353,8 @@ def main(
                     context_features=getattr(pos, "entry_features", {}),
                     signal_age_sec=getattr(pos, "signal_age_sec", 0.0),
                     consecutive_losses=_consecutive_losses["value"],
+                    exit_reason=getattr(pos, "close_reason", ""),
+                    personality=getattr(pos, "subaccount", ""),
                 )
             except Exception as _me:
                 log.debug("[MistakeMemory] record échoué: %s", _me)

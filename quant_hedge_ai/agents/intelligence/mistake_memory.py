@@ -65,6 +65,7 @@ class ErrorType:
     LATE_ENTRY = "LATE_ENTRY"
     CORRELATION_TRAP = "CORRELATION_TRAP"
     CONSECUTIVE_LOSS = "CONSECUTIVE_LOSS"
+    TIME_STOP = "TIME_STOP"
     GOOD_TRADE = "GOOD_TRADE"
     UNLUCKY = "UNLUCKY"
     UNKNOWN = "UNKNOWN"
@@ -157,8 +158,8 @@ class MistakeMemory:
     """
 
     MIN_LOSS_TO_ANALYZE = float(
-        os.getenv("MM_MIN_LOSS_PCT", "-0.01")
-    )  # -1% min pour analyser
+        os.getenv("MM_MIN_LOSS_PCT", "-0.003")
+    )  # -0.3% min pour analyser (couvre time_stop ~-0.5%)
     REPEAT_BLOCK_THRESHOLD = int(
         os.getenv("MM_REPEAT_THRESHOLD", "2")
     )  # 2 erreurs similaires → règle
@@ -237,6 +238,8 @@ class MistakeMemory:
         context_features: dict,
         signal_age_sec: float = 0.0,
         consecutive_losses: int = 0,
+        exit_reason: str = "",
+        personality: str = "",
     ) -> Optional[dict]:
         """
         Enregistre le résultat d'un trade et analyse s'il était une erreur.
@@ -253,6 +256,8 @@ class MistakeMemory:
             context_features,
             signal_age_sec,
             consecutive_losses,
+            exit_reason=exit_reason,
+            personality=personality,
         )
 
         record = {
@@ -264,6 +269,8 @@ class MistakeMemory:
             "regime": regime,
             "conviction_level": conviction_level,
             "pnl_pct": round(pnl_pct, 6),
+            "exit_reason": exit_reason,
+            "personality": personality,
             "error_type": error_type,
             "explanation": explanation,
             "context": {
@@ -332,6 +339,8 @@ class MistakeMemory:
         features: dict,
         signal_age_sec: float,
         consecutive_losses: int,
+        exit_reason: str = "",
+        personality: str = "",
     ) -> tuple[str, str]:
         """Retourne (error_type, explication lisible)."""
 
@@ -346,8 +355,19 @@ class MistakeMemory:
                 f"Petite perte ({pnl_pct:.2%}) — probablement malchance",
             )
 
+        # ── TIME_STOP ─────────────────────────────────────────────────────────
+        if exit_reason == "time_stop":
+            return ErrorType.TIME_STOP, (
+                f"Position expirée au time_stop ({pnl_pct:.2%}) — "
+                f"TP non atteint. Régime={regime}, personnalité={personality or '?'}"
+            )
+
         # ── REGIME_MISMATCH ───────────────────────────────────────────────────
-        momentum_in_range = signal in ("BUY", "SELL") and regime == "sideways"
+        momentum_in_range = (
+            signal in ("BUY", "SELL")
+            and regime == "sideways"
+            and personality not in ("mean_reversion", "range_fade")
+        )
         long_in_bear = signal == "BUY" and regime in ("bear_trend", "flash_crash")
         short_in_bull = signal == "SELL" and regime == "bull_trend"
         if momentum_in_range:
@@ -478,6 +498,15 @@ class MistakeMemory:
                 rule_id=rule_id,
                 error_type=error_type,
                 conditions={"consecutive_losses_min": 3, "max_score": 84},
+                explanation=explanation,
+            )
+
+        if error_type == ErrorType.TIME_STOP:
+            # TIME_STOP répété dans un régime → forcer score plus élevé
+            return BlockRule(
+                rule_id=rule_id,
+                error_type=error_type,
+                conditions={"regime": regime, "signal": signal, "max_score": 74},
                 explanation=explanation,
             )
 
