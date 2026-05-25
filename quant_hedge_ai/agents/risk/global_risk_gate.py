@@ -108,7 +108,8 @@ class GlobalRiskGate:
         self.max_portfolio_drawdown = max_portfolio_drawdown
         self._safe_mode = safe_mode
         # Calibration adaptative
-        self._regret_delta: int = 0  # feedback du RegretEngine
+        self._regret_delta: int = 0  # feedback du RegretEngine (ATE/P6)
+        self._governor_delta: int = 0  # delta d'état RiskGovernor (P7)
         self._last_regime: str = "unknown"  # régime courant pour le log
         self._transition_threshold: int | None = None  # override rampe RegimeSmoother
         # Plancher absolu : les ajustements régime peuvent descendre jusqu'ici
@@ -413,6 +414,10 @@ class GlobalRiskGate:
             return
         self._transition_threshold = value
 
+    def set_governor_delta(self, delta: int) -> None:
+        """Delta appliqué par le RiskGovernor (P7) — s'additionne au delta ATE."""
+        self._governor_delta = max(-10, min(20, delta))
+
     def set_adaptive_delta(self, delta: int) -> None:
         """
         Remplace le delta de calibration par la valeur PID de l'ATE.
@@ -443,9 +448,8 @@ class GlobalRiskGate:
         if self._transition_threshold is not None:
             return self._transition_threshold
         if _regime_clf is not None:
-            regime_effective = _regime_clf.effective_min_score(
-                regime, self._regret_delta
-            )
+            _combined_delta = self._regret_delta + self._governor_delta
+            regime_effective = _regime_clf.effective_min_score(regime, _combined_delta)
             # Le plancher absolu (REGIME_ABSOLUTE_FLOOR=55) permet aux ajustements
             # régime de descendre sous min_signal_score (ex: SIDEWAYS -4 → 66).
             # min_signal_score reste la référence de l'ATE, pas un plancher dur.
@@ -460,7 +464,9 @@ class GlobalRiskGate:
                 )
             return effective
         # Fallback sans classifier
-        return max(self.min_signal_score + self._regret_delta, 55)
+        return max(
+            self.min_signal_score + self._regret_delta + self._governor_delta, 55
+        )
 
     def blacklist_regime(self, regime: str) -> None:
         self.blacklisted_regimes.add(regime)

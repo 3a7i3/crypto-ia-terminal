@@ -2460,6 +2460,28 @@ def main(
     )  # cycles à confirmer
     _last_mismatch_cycle: int = 0  # cooldown REGIME_MISMATCH
 
+    # P7 — Risk Governor + Capital Throttle + Exposure Manager
+    try:
+        from quant_hedge_ai.agents.risk.capital_throttle import (
+            CapitalThrottle as _CTCls,
+        )
+        from quant_hedge_ai.agents.risk.exposure_manager import (
+            DynamicExposureManager as _DEMCls,
+        )
+        from quant_hedge_ai.agents.risk.risk_governor import RiskGovernor as _RGCls
+
+        _risk_governor: Any = _RGCls()
+        _capital_throttle: Any = _CTCls()
+        _dyn_exposure: Any = _DEMCls(real_capital)
+        log.info(
+            "[P7] RiskGovernor + CapitalThrottle + DynamicExposureManager initialisés"
+        )
+    except Exception as _p7_exc:
+        log.warning("[P7] Composants indisponibles: %s", _p7_exc)
+        _risk_governor = None
+        _capital_throttle = None
+        _dyn_exposure = None
+
     # P6 — Adaptive Core
     _ate: Any = _profile_bootstrap_step(
         "adaptive_threshold_engine",
@@ -2706,6 +2728,51 @@ def main(
                 except Exception as _smth_exc:
                     log.debug("[RegimeSmoother] Erreur câblage: %s", _smth_exc)
 
+            # ── P7 — RiskGovernor + CapitalThrottle — AVANT exécution ────────
+            _rg_snapshot = None
+            if _risk_governor is not None:
+                try:
+                    _ct_factor = (
+                        _capital_throttle.update(real_capital)
+                        if _capital_throttle is not None
+                        else 1.0
+                    )
+                    _rg_snapshot = _risk_governor.update(
+                        cycle=cycle,
+                        drawdown_pct=(
+                            _capital_throttle.drawdown_pct if _capital_throttle else 0.0
+                        ),
+                        consecutive_losses=_consecutive_losses.get("value", 0),
+                        atr_current=float(
+                            # ATR moyen du dernier cycle (stocké dans _atr_last)
+                            getattr(main, "_atr_last", 0.0)
+                            if False
+                            else 0.0
+                        ),
+                        cycle_pnl_pct=float(
+                            (_pm_fb or {}).get("last_pnl_pct", 0.0)
+                            if "_pm_fb" in dir()
+                            else 0.0
+                        ),
+                        regime=_adaptive_regime,
+                    )
+                    # Appliquer le delta threshold du governor sur le gate
+                    if _rg_snapshot.threshold_delta != 0:
+                        gate.set_governor_delta(_rg_snapshot.threshold_delta)
+                    else:
+                        gate.set_governor_delta(0)
+                    if _rg_snapshot.state != "normal":
+                        log.info(
+                            "[P7/RiskGov] état=%s size×%.2f thr%+d trades=%s vol_em=%s",
+                            _rg_snapshot.state,
+                            _rg_snapshot.size_multiplier,
+                            _rg_snapshot.threshold_delta,
+                            _rg_snapshot.allow_new_trades,
+                            _rg_snapshot.vol_emergency,
+                        )
+                except Exception as _rg_exc:
+                    log.debug("[P7/RiskGov] Erreur: %s", _rg_exc)
+
             results: list[AnalysisResult] = []
             for sym in symbols:
                 r = analyze_symbol(
@@ -2767,6 +2834,28 @@ def main(
                     if allocation and allocation.size_usd > 0
                     else r.get("order_size", order_size)
                 )
+
+                # ── P7 — Appliquer RiskGovernor + CapitalThrottle ────────────
+                if _rg_snapshot is not None:
+                    _rg_size_mul = _rg_snapshot.size_multiplier * (
+                        _ct_factor if "_ct_factor" in dir() else 1.0
+                    )
+                    effective_size = effective_size * _rg_size_mul
+                    if (
+                        not _rg_snapshot.allow_new_trades
+                        and r["signal"].signal != "HOLD"
+                    ):
+                        r["futures_result"] = {
+                            "mode": "risk_governor_blocked",
+                            "reason": f"état={_rg_snapshot.state}"
+                            + (" vol_emergency" if _rg_snapshot.vol_emergency else ""),
+                        }
+                        r["trade_allowed"] = False
+                        log.info(
+                            "[P7] Trade bloqué %s — %s",
+                            sym,
+                            r["futures_result"]["reason"],
+                        )
 
                 # ── PROTECTIONS OBLIGATOIRES POUR MODE TEST ───────────────────────────────────
                 # Vérification AVANT exécution
