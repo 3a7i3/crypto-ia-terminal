@@ -1,0 +1,8 @@
+{
+  "_comment": "Remplir bot_token et chat_id AVANT d'activer les alertes.",
+  "_how_to": "1. Créer un bot via @BotFather sur Telegram → obtenir le token",
+  "_how_to2": "2. GET https://api.telegram.org/botTOKEN/getUpdates → chat_id dans le JSON",
+  "bot_token": "VOTRE_BOT_TOKEN_ICI",
+  "chat_id": "VOTRE_CHAT_ID_ICI",
+  "enabled": false
+}
