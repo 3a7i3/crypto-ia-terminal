@@ -201,11 +201,15 @@ class ExchangeMonitor:
 
                 # Récupération après panne
                 if self._was_offline:
+                    _notify = (
+                        self._alerted_warn
+                    )  # n'envoyer RETABLI que si alerte HORS LIGNE
                     self._was_offline = False
                     self._alerted_warn = False
                     self._alerted_critical = False
                     log.info("[ExchangeMonitor] Exchange rétabli")
-                    self._send_telegram("Exchange RETABLI — connexion OK")
+                    if _notify:
+                        self._send_telegram("Exchange RETABLI — connexion OK")
                     if self._on_recovered:
                         try:
                             self._on_recovered()
