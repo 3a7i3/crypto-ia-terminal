@@ -3868,6 +3868,7 @@ def main(
         if max_cycles is not None and cycle >= max_cycles:
             log.info("Max cycles atteint (%d) — arrêt propre.", max_cycles)
             _stop_runtime_services()
+            _clean_exit = True
             break
 
         if cycle == 1 and cycle_completed and defer_post_cycle_services:

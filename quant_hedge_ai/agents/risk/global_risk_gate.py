@@ -500,9 +500,8 @@ class GlobalRiskGate:
         if _regime_clf is not None:
             _combined_delta = self._regret_delta + self._governor_delta
             regime_effective = _regime_clf.effective_min_score(regime, _combined_delta)
-            # Le plancher absolu (REGIME_ABSOLUTE_FLOOR=55) permet aux ajustements
-            # régime de descendre sous min_signal_score (ex: SIDEWAYS -4 → 66).
-            # min_signal_score reste la référence de l'ATE, pas un plancher dur.
+            # Le plancher absolu (REGIME_ABSOLUTE_FLOOR=55) s'applique.
+            # Le classifier est autoritaire sur min_signal_score quand présent.
             effective = max(self._absolute_floor, regime_effective)
             if regime != self._last_regime:
                 self._last_regime = regime

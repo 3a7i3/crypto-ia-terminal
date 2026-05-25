@@ -4,23 +4,27 @@ Integration Test COMPLET — Pipeline complet Phase 1-7
 DATA → TRADE → LOG → ANALYSE → LEARN → ADAPT
 """
 
+# noqa: E402
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from tracker_system.core.trade_tracker import open_position, update_positions, finalize_position
-from tracker_system.analytics.metrics import compute_all_metrics
-from tracker_system.backtesting.auto_backtester import run_backtest
-from meta_learning.memory import MetaMemory
-from meta_learning.learner import MetaLearner
-from meta_learning.decision_engine import DecisionEngine
+from meta_learning.decision_engine import DecisionEngine  # noqa: E402
+from meta_learning.learner import MetaLearner  # noqa: E402
+from meta_learning.memory import MetaMemory  # noqa: E402
+from tracker_system.analytics.metrics import compute_all_metrics  # noqa: E402
+from tracker_system.backtesting.auto_backtester import run_backtest  # noqa: E402
+from tracker_system.core.trade_tracker import (  # noqa: E402
+    finalize_position,
+    open_position,
+)
 
 
 def test_full_pipeline():
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("FULL PIPELINE TEST — Phase 1-7")
-    print("="*60)
+    print("=" * 60)
 
     log_file = Path("logs/integration_test.jsonl")
     state_file = Path("logs/integration_positions.json")
@@ -31,7 +35,7 @@ def test_full_pipeline():
     trades = [
         ("BTCUSDT", "BUY", 100.0, 1.0, "bull_trend", 0.85),
         ("ETHUSDT", "BUY", 50.0, 2.0, "bull_trend", 0.75),
-        ("BNBUSDT", "SELL", 200.0, 0.5, "range", 0.6),
+        ("BNBUSDT", "SELL", 200.0, 0.5, "breakout", 0.6),
     ]
 
     for symbol, side, price, size, regime, conf in trades:
@@ -73,7 +77,9 @@ def test_full_pipeline():
     print(f"  Total PnL: ${metrics.get('pnl_total', 0.0):.2f}")
 
     print("\n[PHASE 4] Optimize exit parameters")
-    backtest_results = run_backtest(min_trades=0, log_file=log_file, out_file=optimizer_file)
+    backtest_results = run_backtest(
+        min_trades=0, log_file=log_file, out_file=optimizer_file
+    )
     print(f"Optimizer found configs for {len(backtest_results) - 1} regimes")
     for regime, config in backtest_results.items():
         if regime == "_meta":
@@ -85,6 +91,7 @@ def test_full_pipeline():
     learner = MetaLearner(memory=memory)
 
     from tracker_system.storage.loader import load_jsonl
+
     trades_list = [e for e in load_jsonl(log_file) if e.get("type") == "exit"]
     for trade in trades_list[:2]:
         learner.learn_from_trade(
@@ -107,9 +114,9 @@ def test_full_pipeline():
         decision = engine.get_exit_decision(ctx)
         print(f"  {ctx['regime']}: TP={decision['tp']:.4f} (from {decision['source']})")
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("FULL PIPELINE SUCCESS!")
-    print("="*60)
+    print("=" * 60)
     print("\nArchitecture validee:")
     print("  1. Trade tracker > positions + logs")
     print("  2. Exit engine > modulaire avec rules")

@@ -380,7 +380,7 @@ class ExecutionEngine:
             return {
                 "symbol": symbol,
                 "mode": "futures_unavailable",
-                "error": "Futures demo non configuré — vérifier EXCHANGE_ID et clés API dans .env",
+                "error": "Futures demo non configuré — vérifier EXCHANGE_ID et BINANCE_FUTURES_DEMO_KEY dans .env",
             }
 
         side = "buy" if action.upper() == "BUY" else "sell"

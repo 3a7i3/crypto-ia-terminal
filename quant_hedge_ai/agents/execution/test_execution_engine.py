@@ -25,6 +25,7 @@ def eng(tmp_path, monkeypatch):
 class TestFromEnv:
     def test_from_env_paper_when_no_keys(self, tmp_path, monkeypatch):
         monkeypatch.setenv("EXEC_TRADE_LOG", str(tmp_path / "t.sqlite"))
+        monkeypatch.setenv("EXCHANGE_ID", "binance")  # isolate from .env
         monkeypatch.delenv("BINANCE_API_KEY", raising=False)
         monkeypatch.delenv("BINANCE_API_SECRET", raising=False)
         from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine

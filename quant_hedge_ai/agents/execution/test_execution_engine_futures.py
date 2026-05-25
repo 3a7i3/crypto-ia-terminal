@@ -2,14 +2,16 @@
 
 from __future__ import annotations
 
-import pytest
 from unittest.mock import MagicMock
 
+import pytest
 
 # ── Fixture ───────────────────────────────────────────────────────────────────
 
+
 @pytest.fixture
 def eng(tmp_path, monkeypatch):
+    monkeypatch.setenv("EXCHANGE_ID", "binance")  # isolate from .env krakenfutures
     monkeypatch.setenv("EXEC_TRADE_LOG", str(tmp_path / "trades.sqlite"))
     monkeypatch.setenv("EXEC_MAX_DD", "0.05")
     monkeypatch.setenv("EXEC_MAX_LOSS", "0.03")
@@ -19,6 +21,7 @@ def eng(tmp_path, monkeypatch):
     monkeypatch.setenv("EXEC_FUTURES_MIN_ORDER_USD", "55")
     monkeypatch.setenv("EXEC_FUTURES_MAX_ORDER_USD", "200")
     from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
+
     e = ExecutionEngine(live=False)
     e.start_session(equity=10_000.0)
     return e
@@ -28,12 +31,17 @@ def _with_futures(eng) -> MagicMock:
     mock_ex = MagicMock()
     mock_ex.fetch_ticker.return_value = {"last": 80000.0}
     mock_ex.load_markets.return_value = {}
-    mock_ex.create_order.return_value = {"id": "f123", "status": "closed", "avgPrice": 80000.0}
+    mock_ex.create_order.return_value = {
+        "id": "f123",
+        "status": "closed",
+        "avgPrice": 80000.0,
+    }
     eng._exchange_futures = mock_ex
     return mock_ex
 
 
 # ── Suite 1 : create_futures_order — disponibilité ───────────────────────────
+
 
 class TestFuturesUnavailable:
     def test_no_exchange_returns_unavailable(self, eng):
@@ -47,6 +55,7 @@ class TestFuturesUnavailable:
 
 
 # ── Suite 2 : create_futures_order — exécution nominale ──────────────────────
+
 
 class TestFuturesSuccess:
     def test_buy_returns_futures_demo_mode(self, eng):
@@ -74,6 +83,7 @@ class TestFuturesSuccess:
 
 # ── Suite 3 : symbol conversion ───────────────────────────────────────────────
 
+
 class TestFuturesSymbolConversion:
     def test_slash_pair_converted_to_perp(self, eng):
         mock_ex = _with_futures(eng)
@@ -95,6 +105,7 @@ class TestFuturesSymbolConversion:
 
 
 # ── Suite 4 : size clamping ────────────────────────────────────────────────────
+
 
 class TestFuturesSizeClamping:
     def test_below_min_clamped_up(self, eng):
@@ -120,6 +131,7 @@ class TestFuturesSizeClamping:
 
 # ── Suite 5 : leverage ────────────────────────────────────────────────────────
 
+
 class TestFuturesLeverage:
     def test_leverage_1_no_set_leverage_call(self, eng):
         mock_ex = _with_futures(eng)
@@ -140,6 +152,7 @@ class TestFuturesLeverage:
 
 
 # ── Suite 6 : error handling ──────────────────────────────────────────────────
+
 
 class TestFuturesErrors:
     def test_exchange_error_returns_futures_failed(self, eng):
@@ -165,11 +178,17 @@ class TestFuturesErrors:
 
 # ── Suite 7 : fetch_available_capital ─────────────────────────────────────────
 
+
 class TestFetchAvailableCapital:
+    @pytest.fixture(autouse=True)
+    def _isolate_exchange(self, monkeypatch):
+        monkeypatch.setenv("EXCHANGE_ID", "binance")
+
     def test_fallback_when_no_exchange(self, tmp_path, monkeypatch):
         monkeypatch.setenv("EXEC_TRADE_LOG", str(tmp_path / "t.sqlite"))
         monkeypatch.setenv("V9_INITIAL_CAPITAL", "2500")
         from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
+
         e = ExecutionEngine(live=False)
         assert e.fetch_available_capital() == 2500.0
 
@@ -177,6 +196,7 @@ class TestFetchAvailableCapital:
         monkeypatch.setenv("EXEC_TRADE_LOG", str(tmp_path / "t.sqlite"))
         monkeypatch.setenv("V9_INITIAL_CAPITAL", "1000")
         from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
+
         e = ExecutionEngine(live=False)
         mock_ex = MagicMock()
         mock_ex.fetch_balance.return_value = {"free": {"USDT": 4200.0}}
@@ -187,6 +207,7 @@ class TestFetchAvailableCapital:
         monkeypatch.setenv("EXEC_TRADE_LOG", str(tmp_path / "t.sqlite"))
         monkeypatch.setenv("V9_INITIAL_CAPITAL", "999")
         from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
+
         e = ExecutionEngine(live=False)
         mock_ex = MagicMock()
         mock_ex.fetch_balance.return_value = {"free": {"USDT": 0.0}}
@@ -197,6 +218,7 @@ class TestFetchAvailableCapital:
         monkeypatch.setenv("EXEC_TRADE_LOG", str(tmp_path / "t.sqlite"))
         monkeypatch.setenv("V9_INITIAL_CAPITAL", "888")
         from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
+
         e = ExecutionEngine(live=False)
         mock_ex = MagicMock()
         mock_ex.fetch_balance.side_effect = Exception("network error")
@@ -205,6 +227,7 @@ class TestFetchAvailableCapital:
 
 
 # ── Suite 8 : detect_quote_asset ──────────────────────────────────────────────
+
 
 class TestDetectQuoteAsset:
     def test_btc_usdt(self, eng):
@@ -218,6 +241,7 @@ class TestDetectQuoteAsset:
 
 
 # ── Suite 9 : deduplication ────────────────────────────────────────────────────
+
 
 class TestDeduplication:
     def test_same_order_rejected(self, eng):
@@ -238,6 +262,7 @@ class TestDeduplication:
 
 
 # ── Suite 10 : has_futures_demo ────────────────────────────────────────────────
+
 
 class TestHasFuturesDemo:
     def test_false_by_default(self, eng):

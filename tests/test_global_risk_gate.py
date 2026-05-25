@@ -2,17 +2,23 @@
 
 from __future__ import annotations
 
-import pytest
 from unittest.mock import MagicMock, patch
 
-from quant_hedge_ai.agents.risk.global_risk_gate import GlobalRiskGate, GateResult
-from quant_hedge_ai.agents.risk.session_guard import SessionGuard, SessionHaltedError
+import pytest
 
+from quant_hedge_ai.agents.risk.global_risk_gate import GateResult, GlobalRiskGate
+from quant_hedge_ai.agents.risk.session_guard import SessionGuard
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
-def _signal(score: int = 80, confirmed: bool = True, regime: str = "bull_trend",
-            signal: str = "BUY", symbol: str = "BTCUSDT"):
+
+def _signal(
+    score: int = 80,
+    confirmed: bool = True,
+    regime: str = "bull_trend",
+    signal: str = "BUY",
+    symbol: str = "BTCUSDT",
+):
     s = MagicMock()
     s.score = score
     s.confirmed = confirmed
@@ -28,6 +34,7 @@ def gate():
 
 
 # ── Tests GateResult ──────────────────────────────────────────────────────────
+
 
 class TestGateResult:
     def test_allowed_true_summary(self, gate):
@@ -48,6 +55,7 @@ class TestGateResult:
 
 
 # ── Tests condition 1 : session_active ───────────────────────────────────────
+
 
 class TestSessionCondition:
     def test_no_session_guard_passes(self, gate):
@@ -81,6 +89,7 @@ class TestSessionCondition:
 
 # ── Tests condition 2 : drawdown_ok ──────────────────────────────────────────
 
+
 class TestDrawdownCondition:
     def test_zero_drawdown_passes(self, gate):
         r = gate.check(_signal(), portfolio_drawdown=0.0)
@@ -104,6 +113,7 @@ class TestDrawdownCondition:
 
     def test_drawdown_guard_integrated(self):
         from quant_hedge_ai.agents.risk.drawdown_guard import DrawdownGuard
+
         dg = DrawdownGuard()
         gate = GlobalRiskGate(drawdown_guard=dg, max_portfolio_drawdown=0.5)
         # Drawdown de 40% → DrawdownGuard réduit la taille à 0.1 → BLOCK
@@ -113,13 +123,15 @@ class TestDrawdownCondition:
 
 # ── Tests condition 3 : signal_score ─────────────────────────────────────────
 
+
 class TestSignalScoreCondition:
     def test_score_above_min_passes(self, gate):
         r = gate.check(_signal(score=75))
         assert r.conditions["signal_score"] is True
 
     def test_score_exactly_at_min_passes(self, gate):
-        r = gate.check(_signal(score=70))
+        # sideways regime threshold (66) < min_signal_score (70), so floor=70 applies
+        r = gate.check(_signal(score=70, regime="sideways"))
         assert r.conditions["signal_score"] is True
 
     def test_score_below_min_blocks(self, gate):
@@ -128,12 +140,18 @@ class TestSignalScoreCondition:
         assert any("signal_score" in f for f in r.failed)
 
     def test_custom_min_score(self):
+        import unittest.mock as mock
+
+        import quant_hedge_ai.agents.risk.global_risk_gate as _gate_mod
+
         gate = GlobalRiskGate(min_signal_score=85)
-        r = gate.check(_signal(score=80))
+        with mock.patch.object(_gate_mod, "_regime_clf", None):
+            r = gate.check(_signal(score=80))
         assert r.conditions["signal_score"] is False
 
 
 # ── Tests condition 4 : signal_confirmed ─────────────────────────────────────
+
 
 class TestSignalConfirmedCondition:
     def test_confirmed_true_passes(self, gate):
@@ -152,6 +170,7 @@ class TestSignalConfirmedCondition:
 
 
 # ── Tests condition 5 : regime_allowed ───────────────────────────────────────
+
 
 class TestRegimeCondition:
     def test_normal_regime_passes(self, gate):
@@ -178,6 +197,7 @@ class TestRegimeCondition:
 
 # ── Tests multi-conditions échouées ──────────────────────────────────────────
 
+
 class TestMultipleFailures:
     def test_all_conditions_can_fail(self):
         guard = SessionGuard()
@@ -201,13 +221,16 @@ class TestMultipleFailures:
 
     def test_all_pass_gives_allowed_true(self):
         gate = GlobalRiskGate(min_signal_score=70, require_confirmed=True)
-        r = gate.check(_signal(score=80, confirmed=True, regime="bull_trend"),
-                       portfolio_drawdown=0.02)
+        r = gate.check(
+            _signal(score=80, confirmed=True, regime="bull_trend"),
+            portfolio_drawdown=0.02,
+        )
         assert r.allowed is True
         assert r.failed == []
 
 
 # ── Tests EventBus ────────────────────────────────────────────────────────────
+
 
 class TestEventBus:
     def test_blocked_emits_event(self):
