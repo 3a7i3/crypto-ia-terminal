@@ -24,6 +24,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from email.mime.text import MIMEText
 from logging.handlers import RotatingFileHandler
+from types import SimpleNamespace
 from typing import Any, cast
 
 from advisor_runtime_adapters import AdvisorRuntime, load_advisor_runtime
@@ -120,6 +121,18 @@ try:
     _EXEC_CONSTRAINTS_AVAILABLE = True
 except Exception:
     _EXEC_CONSTRAINTS_AVAILABLE = False
+
+# P7 — Circuit breakers (initialisés dans main, None jusqu'alors)
+try:
+    from supervision.circuit_breaker_robust import ComponentCircuitBreaker as _CBClass
+
+    _CB_AVAILABLE = True
+except Exception:
+    _CB_AVAILABLE = False
+    _CBClass: Any = None
+
+_cb_gate: Any = None
+_cb_mistake_memory: Any = None
 
 SYMBOLS_DEFAULT = [
     # Core majors — leaders structurels, capturent le régime global
@@ -598,11 +611,19 @@ def analyze_symbol(
             signal.signal, signal.score, signal.confirmed, personality
         )
 
-    # Risk gate
+    # Risk gate — protégé par circuit-breaker (P7)
     with watchdog.measure("risk"):
-        gate_result = gate.check(
-            signal, portfolio_drawdown=0.0, order_size_usd=order_size_usd
-        )
+        if _cb_gate is not None:
+            gate_result = _cb_gate.call(
+                gate.check,
+                signal,
+                portfolio_drawdown=0.0,
+                order_size_usd=order_size_usd,
+            )
+        else:
+            gate_result = gate.check(
+                signal, portfolio_drawdown=0.0, order_size_usd=order_size_usd
+            )
     if _dp and not _dp.is_terminal() and hasattr(gate, "check_packet"):
         try:
             gate.check_packet(
@@ -687,20 +708,33 @@ def analyze_symbol(
                 personality_name=personality.name if personality else "unknown",
             )
 
-    # ── Mistake Memory — vérification avant trade ─────────────────────────────
+    # ── Mistake Memory — vérification avant trade (protégée CB P7) ──────────────
     mm_check = None
     if mistake_memory and signal.actionable:
         with watchdog.measure("mistake_memory"):
-            mm_check = mistake_memory.check_before_trade(
-                symbol=symbol,
-                signal=signal.signal,
-                score=signal.score,
-                regime=regime,
-                features=features,
-                consecutive_losses=consecutive_losses,
-                conviction_level=conviction.level.value if conviction else "medium",
-                signal_age_sec=time.time() - signal.timestamp,
-            )
+            if _cb_mistake_memory is not None:
+                mm_check = _cb_mistake_memory.call(
+                    mistake_memory.check_before_trade,
+                    symbol=symbol,
+                    signal=signal.signal,
+                    score=signal.score,
+                    regime=regime,
+                    features=features,
+                    consecutive_losses=consecutive_losses,
+                    conviction_level=conviction.level.value if conviction else "medium",
+                    signal_age_sec=time.time() - signal.timestamp,
+                )
+            else:
+                mm_check = mistake_memory.check_before_trade(
+                    symbol=symbol,
+                    signal=signal.signal,
+                    score=signal.score,
+                    regime=regime,
+                    features=features,
+                    consecutive_losses=consecutive_losses,
+                    conviction_level=conviction.level.value if conviction else "medium",
+                    signal_age_sec=time.time() - signal.timestamp,
+                )
             if mm_check.blocked:
                 log.info("[MistakeMemory] Trade bloqué: %s", mm_check.reason)
 
@@ -2491,6 +2525,21 @@ def main(
         _risk_governor = None
         _capital_throttle = None
         _dyn_exposure = None
+
+    # P7 — Circuit breakers
+    global _cb_gate, _cb_mistake_memory
+    if _CB_AVAILABLE:
+        _cb_gate = _CBClass(
+            "global_risk_gate",
+            fallback=SimpleNamespace(
+                allowed=False,
+                conditions={},
+                failed=["gate_circuit_breaker"],
+                warnings=[],
+            ),
+        )
+        _cb_mistake_memory = _CBClass("mistake_memory", fallback=None)
+        log.info("[P7] CircuitBreakers initialisés: gate + mistake_memory")
 
     # P6 — Adaptive Core
     _ate: Any = _profile_bootstrap_step(
