@@ -271,6 +271,7 @@ def _is_bot_alive() -> bool:
 
 
 def run() -> None:
+    global _restart_count
     logger.info(
         "Watchdog démarré — snapshot: %s | intervalle: %ss"
         " | timeout: %ss | max_restarts: %d",
