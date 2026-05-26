@@ -19,14 +19,14 @@ Usage:
 from __future__ import annotations
 
 import json
-import logging
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
 
+_log = get_logger("quant_hedge_ai.agents.execution.shadow_engine")
 _SHADOW_LOG = Path("databases/shadow_execution/shadow_log.jsonl")
 
 
@@ -36,15 +36,15 @@ class ShadowTrade:
 
     id: str
     symbol: str
-    action: str                  # BUY | SELL
+    action: str  # BUY | SELL
     signal_score: int
-    signal_price: float          # prix au moment du signal
-    theoretical_price: float     # prix qu'on aurait payé (signal_price)
+    signal_price: float  # prix au moment du signal
+    theoretical_price: float  # prix qu'on aurait payé (signal_price)
     simulated_fill_price: float  # prix avec slippage simulé
     size: float
     notional: float
     slippage_pct: float
-    signal_to_order_ms: float    # latence signal→ordre (ms)
+    signal_to_order_ms: float  # latence signal→ordre (ms)
     regime: str
     gate_conditions: dict[str, bool]
     components: dict[str, float]
@@ -138,7 +138,7 @@ class ShadowExecutionEngine:
         # ① Vérification gate
         gate_result = self._run_gate(signal_result, portfolio_drawdown, live_price)
         if not gate_result.allowed:
-            logger.info(
+            _log.info(
                 "[Shadow] GATE BLOCK %s — %s", signal_result.symbol, gate_result.failed
             )
             return None
@@ -181,7 +181,7 @@ class ShadowExecutionEngine:
         self._trades.append(trade)
         self._persist(trade)
 
-        logger.info(trade.summary())
+        _log.info(trade.summary())
         return trade
 
     def compare_with_real(
@@ -234,7 +234,8 @@ class ShadowExecutionEngine:
 
     def _run_gate(self, signal_result, drawdown: float, price: float):
         if self._risk_gate is None:
-            from dataclasses import dataclass as _dc, field as _f
+            from dataclasses import dataclass as _dc
+            from dataclasses import field as _f
 
             @_dc
             class _FakeGate:
@@ -245,9 +246,7 @@ class ShadowExecutionEngine:
             return _FakeGate(allowed=True, conditions={}, failed=[])
         return self._risk_gate.check(signal_result, portfolio_drawdown=drawdown)
 
-    def _compute_size(
-        self, signal_result, capital: float, price: float
-    ) -> float:
+    def _compute_size(self, signal_result, capital: float, price: float) -> float:
         if self._order_sizer is None:
             notional = capital * 0.01  # 1 % du capital par défaut
             return round(notional / price, 6) if price > 0 else 0.0
@@ -255,7 +254,7 @@ class ShadowExecutionEngine:
             result = self._order_sizer.compute_from_signal(signal_result, capital)
             return result.size_base
         except Exception as exc:
-            logger.debug("[Shadow] OrderSizer error: %s", exc)
+            _log.debug("[Shadow] OrderSizer error: %s", exc)
             return 0.0
 
     def _estimate_slippage(self, regime: str) -> float:
@@ -267,4 +266,4 @@ class ShadowExecutionEngine:
             with self._log_path.open("a", encoding="utf-8") as fh:
                 fh.write(json.dumps(trade.as_dict()) + "\n")
         except Exception as exc:
-            logger.warning("[Shadow] Persist error: %s", exc)
+            _log.warning("[Shadow] Persist error: %s", exc)

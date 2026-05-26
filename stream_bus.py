@@ -7,7 +7,6 @@ Expose un LatestSnapshot lu par le cycle ML sans blocage.
 from __future__ import annotations
 
 import asyncio
-import logging
 import time
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
@@ -15,8 +14,9 @@ from typing import Any, Callable, Optional
 
 import ccxt.pro as ccxtpro
 
-logger = logging.getLogger("StreamBus")
+from observability.json_logger import get_logger
 
+_log = get_logger("StreamBus")
 # ------------------------------------------------------------------
 # Structures de données
 # ------------------------------------------------------------------
@@ -121,9 +121,7 @@ class StreamBus:
                             "private": "https://testnet.binance.vision/api",
                         }
                     }
-                logger.info(
-                    "StreamBus: clés API Binance chargées depuis l'environnement"
-                )
+                _log.info("StreamBus: clés API Binance chargées depuis l'environnement")
         self.exchange_config = exchange_config
         self.whale_threshold_usd = whale_threshold_usd
         self.queue_maxsize = queue_maxsize
@@ -142,7 +140,7 @@ class StreamBus:
         self._running = True
         exchange_class = getattr(ccxtpro, self.exchange_id)
         self._exchange = exchange_class(self.exchange_config)
-        logger.info(
+        _log.info(
             f"StreamBus démarré — {len(self.symbols)} symboles sur {self.exchange_id}"
         )
         try:
@@ -155,7 +153,7 @@ class StreamBus:
             )
         finally:
             await self._exchange.close()
-            logger.info("StreamBus arrêté")
+            _log.info("StreamBus arrêté")
 
     async def stop(self) -> None:
         self._running = False
@@ -166,7 +164,7 @@ class StreamBus:
                 tasks = [self._watch_orderbook(symbol) for symbol in self.symbols]
                 await asyncio.gather(*tasks, return_exceptions=True)
             except Exception as e:
-                logger.error(f"Orderbook ingest error: {e} — reconnexion dans 5s")
+                _log.error(f"Orderbook ingest error: {e} — reconnexion dans 5s")
                 await asyncio.sleep(5)
 
     async def _watch_orderbook(self, symbol: str) -> None:
@@ -182,7 +180,7 @@ class StreamBus:
                     )
                 )
             except Exception as e:
-                logger.warning(f"OrderBook {symbol}: {e}")
+                _log.warning(f"OrderBook {symbol}: {e}")
                 await asyncio.sleep(2)
 
     async def _ingest_trades(self) -> None:
@@ -191,7 +189,7 @@ class StreamBus:
                 tasks = [self._watch_trades(symbol) for symbol in self.symbols]
                 await asyncio.gather(*tasks, return_exceptions=True)
             except Exception as e:
-                logger.error(f"Trades ingest error: {e} — reconnexion dans 5s")
+                _log.error(f"Trades ingest error: {e} — reconnexion dans 5s")
                 await asyncio.sleep(5)
 
     async def _watch_trades(self, symbol: str) -> None:
@@ -215,7 +213,7 @@ class StreamBus:
                         )
                     )
             except Exception as e:
-                logger.warning(f"Trades {symbol}: {e}")
+                _log.warning(f"Trades {symbol}: {e}")
                 await asyncio.sleep(2)
 
     async def _ingest_tickers(self) -> None:
@@ -238,7 +236,7 @@ class StreamBus:
                         )
                     )
             except Exception as e:
-                logger.error(f"Tickers error: {e} — reconnexion dans 3s")
+                _log.error(f"Tickers error: {e} — reconnexion dans 3s")
                 await asyncio.sleep(3)
 
     async def _enqueue(self, tick: Tick) -> None:
@@ -262,7 +260,7 @@ class StreamBus:
             except asyncio.TimeoutError:
                 continue
             except Exception as e:
-                logger.error(f"Queue processor error: {e}")
+                _log.error(f"Queue processor error: {e}")
 
     def _apply(self, tick: Tick) -> None:
         s = tick.symbol
@@ -290,7 +288,7 @@ class StreamBus:
             self.snapshot.whale_alerts.append(alert)
             if len(self.snapshot.whale_alerts) > 50:
                 self.snapshot.whale_alerts = self.snapshot.whale_alerts[-50:]
-            logger.warning(
+            _log.warning(
                 f"WHALE {symbol} {trade['side'].upper()} "
                 f"${cost:,.0f} @ {trade['price']}"
             )
@@ -304,7 +302,7 @@ class StreamBus:
             else:
                 self.on_whale(alert)
         except Exception as e:
-            logger.error(f"Whale callback error: {e}")
+            _log.error(f"Whale callback error: {e}")
 
     def stats(self) -> dict:
         return {

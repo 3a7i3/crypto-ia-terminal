@@ -17,19 +17,19 @@ Usage:
 
 from __future__ import annotations
 
-import logging
 import signal
 import threading
 import time
 from typing import Any, Dict, Optional
 
+from observability.json_logger import get_logger
 from system.dependency_manager import dependency_manager
 from system.module_registry import ModulePriority, ModuleStatus, module_registry
 from system.runtime_controller import runtime_controller
 from system.startup_sequence import startup_sequence
 from system.state_manager import SystemState, state_manager
 
-logger = logging.getLogger("system.kernel")
+_log = get_logger("system.kernel")
 
 
 class SystemKernel:
@@ -60,25 +60,25 @@ class SystemKernel:
         Returns True if system is healthy after boot.
         """
         if self._booted:
-            logger.warning("[Kernel] boot() called but system already booted")
+            _log.warning("[Kernel] boot() called but system already booted")
             return True
 
-        logger.info("[Kernel] ==========================================")
-        logger.info("[Kernel]  SYSTEM KERNEL BOOT")
-        logger.info("[Kernel] ==========================================")
+        _log.info("[Kernel] ==========================================")
+        _log.info("[Kernel]  SYSTEM KERNEL BOOT")
+        _log.info("[Kernel] ==========================================")
 
         self._install_signal_handlers()
         runtime_controller.start_monitoring()
 
         success = startup_sequence.run()
         if not success:
-            logger.critical("[Kernel] Boot failed — system in PANIC")
+            _log.critical("[Kernel] Boot failed — system in PANIC")
             return False
 
         self._booted = True
         self._start_health_loop()
 
-        logger.info(f"[Kernel] Boot complete. State: {state_manager.state.name}")
+        _log.info(f"[Kernel] Boot complete. State: {state_manager.state.name}")
         return True
 
     def mark_ready(self) -> None:
@@ -88,17 +88,17 @@ class SystemKernel:
         """
         if state_manager.state == SystemState.SYNCING:
             state_manager.transition(SystemState.READY, "exchange sync complete")
-            logger.info("[Kernel] System READY")
+            _log.info("[Kernel] System READY")
 
     def enable_trading(self) -> bool:
         """Allow live execution. Only valid from READY state."""
         if state_manager.state != SystemState.READY:
-            logger.warning(
+            _log.warning(
                 f"[Kernel] Cannot enable trading from state {state_manager.state.name}"
             )
             return False
         state_manager.transition(SystemState.TRADING, "trading enabled by operator")
-        logger.info("[Kernel] TRADING enabled")
+        _log.info("[Kernel] TRADING enabled")
         return True
 
     def risk_off(self, reason: str = "") -> None:
@@ -106,12 +106,12 @@ class SystemKernel:
         if state_manager.try_transition(
             SystemState.RISK_OFF, reason or "risk_off triggered"
         ):
-            logger.warning(f"[Kernel] RISK_OFF: {reason}")
+            _log.warning(f"[Kernel] RISK_OFF: {reason}")
 
     def panic(self, reason: str) -> None:
         """Emergency halt. All execution stops immediately."""
         state_manager.force_panic(reason)
-        logger.critical(f"[Kernel] PANIC: {reason}")
+        _log.critical(f"[Kernel] PANIC: {reason}")
 
     # ------------------------------------------------------------------
     # Shutdown
@@ -119,7 +119,7 @@ class SystemKernel:
 
     def shutdown(self, reason: str = "operator shutdown") -> None:
         """Graceful shutdown — stop modules in reverse dependency order."""
-        logger.info(f"[Kernel] Initiating shutdown: {reason}")
+        _log.info(f"[Kernel] Initiating shutdown: {reason}")
         state_manager.try_transition(SystemState.SHUTDOWN, reason)
 
         self._shutdown_event.set()
@@ -134,7 +134,7 @@ class SystemKernel:
             }:
                 runtime_controller.stop_module(name, "system shutdown")
 
-        logger.info("[Kernel] Shutdown complete")
+        _log.info("[Kernel] Shutdown complete")
 
     # ------------------------------------------------------------------
     # Health loop
@@ -151,7 +151,7 @@ class SystemKernel:
             try:
                 self._evaluate_system_health()
             except Exception as e:
-                logger.error(f"[Kernel] Health loop error: {e}")
+                _log.error(f"[Kernel] Health loop error: {e}")
             time.sleep(self.HEALTH_CHECK_INTERVAL_SEC)
 
     def _evaluate_system_health(self) -> None:
@@ -166,7 +166,7 @@ class SystemKernel:
         if not critical_ok:
             # Critical module down — escalate
             if current == SystemState.TRADING:
-                logger.warning(
+                _log.warning(
                     "[Kernel] Critical module unhealthy during TRADING — RISK_OFF"
                 )
                 state_manager.try_transition(
@@ -182,7 +182,7 @@ class SystemKernel:
                 )
 
         elif score < 0.6 and current == SystemState.TRADING:
-            logger.warning(
+            _log.warning(
                 f"[Kernel] Health score {score:.2f} < 0.6 during TRADING — RISK_OFF"
             )
             state_manager.try_transition(
@@ -191,11 +191,11 @@ class SystemKernel:
 
         elif current == SystemState.DEGRADED and critical_ok and score > 0.8:
             # Recovery
-            logger.info("[Kernel] Health recovered — entering RECOVERY")
+            _log.info("[Kernel] Health recovered — entering RECOVERY")
             state_manager.try_transition(SystemState.RECOVERY, "health recovered")
 
         elif current == SystemState.RECOVERY and critical_ok and score >= 0.95:
-            logger.info("[Kernel] Full recovery — returning to READY")
+            _log.info("[Kernel] Full recovery — returning to READY")
             state_manager.try_transition(SystemState.READY, "full recovery")
 
     # ------------------------------------------------------------------
@@ -203,13 +203,13 @@ class SystemKernel:
     # ------------------------------------------------------------------
 
     def _on_state_change(self, old: SystemState, new: SystemState, reason: str) -> None:
-        logger.info(f"[Kernel] STATE: {old.name} → {new.name} | {reason}")
+        _log.info(f"[Kernel] STATE: {old.name} → {new.name} | {reason}")
         if new == SystemState.PANIC:
-            logger.critical("[Kernel] !! PANIC STATE — all execution halted !!")
+            _log.critical("[Kernel] !! PANIC STATE — all execution halted !!")
 
     def _on_module_status_change(self, name: str, status: ModuleStatus) -> None:
         if status in {ModuleStatus.UNHEALTHY, ModuleStatus.DISABLED}:
-            logger.warning(f"[Kernel] Module degraded: {name} → {status.name}")
+            _log.warning(f"[Kernel] Module degraded: {name} → {status.name}")
 
     # ------------------------------------------------------------------
     # Signal handlers

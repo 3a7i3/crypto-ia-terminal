@@ -52,21 +52,22 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import logging
 import os
 import random
 import threading
 import time
 from pathlib import Path
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
 
+_log = get_logger("quant_hedge_ai.main_v91")
 # ── Import guard ─────────────────────────────────────────────────────────────
 
 try:
     from quant_hedge_ai.agents.execution.arbitrage_agent import ArbitrageAgent
 except ModuleNotFoundError:
     import sys
+
     print("\n[ERREUR] Le module 'quant_hedge_ai' est introuvable.\n")
     print("Conseil : Lancez ce script depuis la racine du projet.")
     print(
@@ -78,12 +79,25 @@ except ModuleNotFoundError:
 
 # ── Imports métier ────────────────────────────────────────────────────────────
 
+from quant_hedge_ai.advisor_only_mode import AdvisorOnlyMode
 from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
+from quant_hedge_ai.agents.execution.latency_monitor import ExecutionLatencyMonitor
 from quant_hedge_ai.agents.execution.liquidity_agent import LiquidityAnalyzer
+from quant_hedge_ai.agents.execution.live_signal_engine import LiveSignalEngine
 from quant_hedge_ai.agents.execution.multi_timeframe_signal import MultiTimeframeSignal
 from quant_hedge_ai.agents.execution.paper_trading_engine import PaperTradingEngine
+from quant_hedge_ai.agents.execution.shadow_engine import ShadowExecutionEngine
+from quant_hedge_ai.agents.execution.trade_postmortem import (
+    TradePostMortem,
+    TradeRecord,
+)
+from quant_hedge_ai.agents.execution.trade_replay import TradeReplaySystem
 from quant_hedge_ai.agents.intelligence import FeatureEngineer
+from quant_hedge_ai.agents.intelligence.ai_advisor import AIAdvisor
+from quant_hedge_ai.agents.intelligence.confidence_explainer import ConfidenceExplainer
+from quant_hedge_ai.agents.intelligence.proactive_alerts import ProactiveAlerts
 from quant_hedge_ai.agents.intelligence.regime_detector import AdvancedRegimeDetector
+from quant_hedge_ai.agents.intelligence.weekly_report import WeeklyReportAgent
 from quant_hedge_ai.agents.market.market_scanner import MarketScanner
 from quant_hedge_ai.agents.market.multi_timeframe_scanner import MultiTimeframeScanner
 from quant_hedge_ai.agents.monitoring.performance_monitor import PerformanceMonitor
@@ -92,9 +106,13 @@ from quant_hedge_ai.agents.monitoring.system_monitor import SystemMonitor
 from quant_hedge_ai.agents.portfolio import PortfolioBrain
 from quant_hedge_ai.agents.quant.backtest_lab import BacktestLab
 from quant_hedge_ai.agents.quant.monte_carlo import MonteCarloSimulator
+from quant_hedge_ai.agents.quant.stress_test import MonteCarloStressTester
 from quant_hedge_ai.agents.research.model_builder import ModelBuilder
 from quant_hedge_ai.agents.research.strategy_researcher import StrategyResearcher
 from quant_hedge_ai.agents.risk.drawdown_guard import DrawdownGuard
+from quant_hedge_ai.agents.risk.global_risk_gate import GlobalRiskGate
+from quant_hedge_ai.agents.risk.order_sizer import OrderSizer
+from quant_hedge_ai.agents.risk.risk_dashboard_api import RiskDashboardAPI
 from quant_hedge_ai.agents.risk.risk_monitor import RiskMonitor
 from quant_hedge_ai.agents.strategy.genetic_optimizer import GeneticOptimizer
 from quant_hedge_ai.agents.strategy.rl_trader import RLTrader
@@ -106,41 +124,33 @@ from quant_hedge_ai.dashboard.control_center import AIControlCenter
 from quant_hedge_ai.dashboard.director_dashboard import DirectorDashboard
 from quant_hedge_ai.databases.strategy_scoreboard import StrategyScoreboard
 from quant_hedge_ai.engine.decision_engine import DecisionEngine
+from quant_hedge_ai.health_endpoint import HealthServer
 from quant_hedge_ai.liquidity_map.flow_analyzer import LiquidityFlowMap
 from quant_hedge_ai.market_radar import MarketRadar
-from quant_hedge_ai.runtime_config import RuntimeConfig, get_env_int, load_runtime_config_from_env
+from quant_hedge_ai.runtime_config import (
+    RuntimeConfig,
+    get_env_int,
+    load_runtime_config_from_env,
+)
 from quant_hedge_ai.strategy_factory import StrategyFactory
 from quant_hedge_ai.strategy_lab.market_db import MarketDatabase
-from supervision.ops_watchdog import OpsWatchdog
 from stream_bus import StreamBus
+from supervision.kill_switch import TelegramKillSwitch
+from supervision.ops_watchdog import OpsWatchdog
+from supervision.self_healing_bot import (
+    SelfHealingBot,
+    make_api_watchdog,
+    make_websocket_watchdog,
+)
 
 # ── Imports Phase 4-8 ─────────────────────────────────────────────────────────
 
-from quant_hedge_ai.agents.execution.live_signal_engine import LiveSignalEngine
-from quant_hedge_ai.agents.execution.trade_postmortem import TradePostMortem, TradeRecord
-from quant_hedge_ai.agents.intelligence.ai_advisor import AIAdvisor
-from quant_hedge_ai.agents.intelligence.proactive_alerts import ProactiveAlerts
-from quant_hedge_ai.agents.intelligence.weekly_report import WeeklyReportAgent
-from quant_hedge_ai.agents.risk.global_risk_gate import GlobalRiskGate
-from quant_hedge_ai.agents.risk.order_sizer import OrderSizer
-from quant_hedge_ai.advisor_only_mode import AdvisorOnlyMode
-from quant_hedge_ai.health_endpoint import HealthServer
 
 # ── Imports Renforcements (Idées #1-#8) ──────────────────────────────────────
 
-from quant_hedge_ai.agents.execution.shadow_engine import ShadowExecutionEngine
-from quant_hedge_ai.agents.execution.latency_monitor import ExecutionLatencyMonitor
-from quant_hedge_ai.agents.execution.trade_replay import TradeReplaySystem
-from quant_hedge_ai.agents.risk.risk_dashboard_api import RiskDashboardAPI
-from quant_hedge_ai.agents.quant.stress_test import MonteCarloStressTester
-from quant_hedge_ai.agents.intelligence.confidence_explainer import ConfidenceExplainer
-from supervision.kill_switch import TelegramKillSwitch
-from supervision.self_healing_bot import (
-    SelfHealingBot, make_websocket_watchdog, make_api_watchdog
-)
-
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
 
 def _get_env_int(name: str, default: int, min_value: int | None = None) -> int:
     return get_env_int(name, default, min_value=min_value)
@@ -163,6 +173,7 @@ def _start_streambus_background(bus: StreamBus) -> None:
 
 
 # ── Boucle principale ─────────────────────────────────────────────────────────
+
 
 def run_v91_system(
     max_cycles: int = 3,
@@ -192,14 +203,15 @@ def run_v91_system(
 
     # EventBus + SupervisionBridge
     try:
-        from event_bus.bus import EventBus
         from event_bus.bridge import SupervisionBridge
+        from event_bus.bus import EventBus
+
         _bus = EventBus.get()
         _bridge = SupervisionBridge()
         _bridge.activate()
-        logger.info("[Main] EventBus + SupervisionBridge actifs")
+        _log.info("[Main] EventBus + SupervisionBridge actifs")
     except Exception as _e:
-        logger.warning("[Main] EventBus indisponible: %s", _e)
+        _log.warning("[Main] EventBus indisponible: %s", _e)
 
     # Alertes Telegram proactives (Phase 8)
     alerts = ProactiveAlerts.from_env()
@@ -238,7 +250,7 @@ def run_v91_system(
     self_healing.start()
 
     # #3 — Telegram Kill Switch (démarré si token configuré)
-    _tg_token   = os.getenv("TELEGRAM_BOT_TOKEN", "")
+    _tg_token = os.getenv("TELEGRAM_BOT_TOKEN", "")
     _tg_chat_id = os.getenv("TELEGRAM_CHAT_ID", "")
     kill_switch: TelegramKillSwitch | None = None
     if _tg_token and _tg_chat_id:
@@ -248,17 +260,17 @@ def run_v91_system(
             poll_interval_s=float(os.getenv("KILL_SWITCH_POLL_S", "3")),
         )
         kill_switch.start()
-        logger.info("[Main] TelegramKillSwitch actif")
+        _log.info("[Main] TelegramKillSwitch actif")
 
     # =========================================================================
     # MARCHÉ & INTELLIGENCE
     # =========================================================================
 
-    scanner        = MarketScanner()
-    feature_eng    = FeatureEngineer()
+    scanner = MarketScanner()
+    feature_eng = FeatureEngineer()
     regime_detector = AdvancedRegimeDetector()
-    whale_radar    = WhaleRadar(threshold_usd=cfg.whale_threshold_usd)
-    market_radar   = MarketRadar(
+    whale_radar = WhaleRadar(threshold_usd=cfg.whale_threshold_usd)
+    market_radar = MarketRadar(
         min_liquidity_usd=1_000.0,
         min_volume_usd=500.0,
         whale_threshold_usd=cfg.whale_threshold_usd,
@@ -282,16 +294,16 @@ def run_v91_system(
         alerts=alerts,
     )
     if advisor_mode.active:
-        logger.warning("[Main] MODE V9_ADVISOR_ONLY actif — aucun ordre ne sera exécuté")
+        _log.warning("[Main] MODE V9_ADVISOR_ONLY actif — aucun ordre ne sera exécuté")
 
     # =========================================================================
     # MÉMOIRE & ÉVOLUTION STRATÉGIQUE
     # =========================================================================
 
-    memory_store     = StrategyMemoryStore()
+    memory_store = StrategyMemoryStore()
     strategy_generator = StrategyGenerator()
-    optimizer        = GeneticOptimizer()
-    rl_trader        = RLTrader()
+    optimizer = GeneticOptimizer()
+    rl_trader = RLTrader()
     strategy_factory = StrategyFactory()
     evolution_engine = EvolutionEngine(
         population_size=max(30, cfg.population_size // 5),
@@ -312,7 +324,7 @@ def run_v91_system(
     # =========================================================================
 
     drawdown_guard = DrawdownGuard()
-    risk_monitor   = RiskMonitor(max_drawdown=cfg.max_drawdown)
+    risk_monitor = RiskMonitor(max_drawdown=cfg.max_drawdown)
 
     global_risk_gate = GlobalRiskGate(
         min_signal_score=int(os.getenv("SIGNAL_MIN_SCORE", "70")),
@@ -335,7 +347,8 @@ def run_v91_system(
 
     # Register SelfHealingBot watchdog pour le StreamBus
     make_websocket_watchdog(
-        self_healing, bus,
+        self_healing,
+        bus,
         reconnect_fn=lambda: _start_streambus_background(bus),
         name="streambus",
     )
@@ -363,22 +376,24 @@ def run_v91_system(
     # EXÉCUTION
     # =========================================================================
 
-    execution  = ExecutionEngine.from_env()
-    arbitrage  = ArbitrageAgent()
-    liquidity  = LiquidityAnalyzer()
-    paper      = PaperTradingEngine()
+    execution = ExecutionEngine.from_env()
+    arbitrage = ArbitrageAgent()
+    liquidity = LiquidityAnalyzer()
+    paper = PaperTradingEngine()
 
     # #2 — Risk Dashboard (FastAPI) — démarré en background si activé
     if os.getenv("RISK_DASHBOARD_ENABLED", "false").lower() == "true":
         _dash_port = int(os.getenv("RISK_DASHBOARD_PORT", "8766"))
-        risk_dashboard = RiskDashboardAPI(paper_engine=paper, shadow_engine=shadow_engine)
+        risk_dashboard = RiskDashboardAPI(
+            paper_engine=paper, shadow_engine=shadow_engine
+        )
         risk_dashboard.run_background(port=_dash_port)
 
     # shadow_engine recevra risk_gate + order_sizer après leur initialisation
 
-    flow_map   = LiquidityFlowMap(opportunity_threshold=40.0)
+    flow_map = LiquidityFlowMap(opportunity_threshold=40.0)
     backtest_lab = BacktestLab()
-    monte_carlo  = MonteCarloSimulator()
+    monte_carlo = MonteCarloSimulator()
     portfolio_brain = PortfolioBrain()
     decision_engine = DecisionEngine(
         min_sharpe=cfg.min_sharpe_for_trade,
@@ -386,13 +401,15 @@ def run_v91_system(
         whale_block_threshold=cfg.whale_block_threshold,
     )
     strategy_researcher = StrategyResearcher()
-    model_builder       = ModelBuilder()
-    perf_monitor        = PerformanceMonitor()
-    system_monitor      = SystemMonitor()
-    control_center      = AIControlCenter()
-    director = DirectorDashboard(starting_balance=100_000.0) if enable_director else None
+    model_builder = ModelBuilder()
+    perf_monitor = PerformanceMonitor()
+    system_monitor = SystemMonitor()
+    control_center = AIControlCenter()
+    director = (
+        DirectorDashboard(starting_balance=100_000.0) if enable_director else None
+    )
     doctor_agent = CreatePromptAgent()
-    market_db  = MarketDatabase()
+    market_db = MarketDatabase()
     scoreboard = StrategyScoreboard()
 
     # =========================================================================
@@ -425,17 +442,19 @@ def run_v91_system(
 
     health.update("system", {"status": "running", "ok": True})
     health.update("paper_engine", {"balance": paper.balance, "ok": True})
-    health.update("signal_engine", {"min_score": live_signal_engine.min_score, "ok": True})
+    health.update(
+        "signal_engine", {"min_score": live_signal_engine.min_score, "ok": True}
+    )
     health.update("risk_gate", {"ok": True})
 
     # =========================================================================
     # BOUCLE PRINCIPALE
     # =========================================================================
 
-    cycle              = 0
+    cycle = 0
     _prev_doctor_health = 100.0
-    _last_regime        = "unknown"
-    _weekly_cycle       = int(os.getenv("WEEKLY_REPORT_EVERY", "168"))  # ~1 semaine
+    _last_regime = "unknown"
+    _weekly_cycle = int(os.getenv("WEEKLY_REPORT_EVERY", "168"))  # ~1 semaine
 
     while True:
         cycle += 1
@@ -447,14 +466,14 @@ def run_v91_system(
         try:
             market = scanner.scan()
         except Exception as _scan_exc:
-            logger.error("[Cycle %d] scan échoué: %s", cycle, _scan_exc)
+            _log.error("[Cycle %d] scan échoué: %s", cycle, _scan_exc)
             health.update("scanner", {"ok": False, "error": str(_scan_exc)})
             time.sleep(cfg.sleep_seconds)
             continue
 
         candles = market.get("candles", [])
         if not candles:
-            logger.warning("[Cycle %d] Aucune bougie — cycle ignoré", cycle)
+            _log.warning("[Cycle %d] Aucune bougie — cycle ignoré", cycle)
             time.sleep(cfg.sleep_seconds)
             continue
 
@@ -463,35 +482,39 @@ def run_v91_system(
         # Vérification StreamBus
         bus_age = bus.snapshot.updated_at
         if time.time() - bus_age > 30:
-            logger.warning("[Cycle %d] StreamBus stale (%.0fs)", cycle, time.time() - bus_age)
+            _log.warning(
+                "[Cycle %d] StreamBus stale (%.0fs)", cycle, time.time() - bus_age
+            )
             watchdog.check_ws_staleness("StreamBus", bus_age, threshold_seconds=120.0)
 
         stream_snap = bus.snapshot
         market_intel = {
-            "btc_price":     stream_snap.get_mid_price("BTC/USDT"),
+            "btc_price": stream_snap.get_mid_price("BTC/USDT"),
             "btc_imbalance": stream_snap.get_orderbook_imbalance("BTC/USDT"),
-            "btc_spread":    stream_snap.get_spread("BTC/USDT"),
-            "eth_price":     stream_snap.get_mid_price("ETH/USDT"),
-            "whale_alerts":  stream_snap.whale_alerts[-10:],
-            "raw_trades":    stream_snap.trades,
-            "tickers":       stream_snap.tickers,
+            "btc_spread": stream_snap.get_spread("BTC/USDT"),
+            "eth_price": stream_snap.get_mid_price("ETH/USDT"),
+            "whale_alerts": stream_snap.whale_alerts[-10:],
+            "raw_trades": stream_snap.trades,
+            "tickers": stream_snap.tickers,
         }
 
         market_db.save_snapshot(market)
 
-        symbols      = [c["symbol"] for c in candles]
+        symbols = [c["symbol"] for c in candles]
         close_prices = [float(c["close"]) for c in candles]
 
         # ── 2. FEATURES & RÉGIME ───────────────────────────────────────────────
 
-        features  = feature_eng.extract_features(candles)
+        features = feature_eng.extract_features(candles)
         anomalies = feature_eng.detect_anomalies(features)
-        regime    = regime_detector.classify(features, close_prices)
+        regime = regime_detector.classify(features, close_prices)
         suggested_strategy_type = regime_detector.suggest_strategy_type(regime)
 
         # Alerte Telegram si changement de régime (Phase 8)
         if regime != _last_regime:
-            alerts.on_regime_change(symbols[0] if symbols else "?", _last_regime, regime)
+            alerts.on_regime_change(
+                symbols[0] if symbols else "?", _last_regime, regime
+            )
             # Synchronise la blacklist du RiskGate selon le régime dangereux
             if regime in ("flash_crash",):
                 global_risk_gate.blacklist_regime(regime)
@@ -499,18 +522,20 @@ def run_v91_system(
 
         # ── 3. WHALE & RADAR ───────────────────────────────────────────────────
 
-        whale_data   = [
+        whale_data = [
             whale_radar.scan(c["symbol"], float(c["volume"]), float(c["close"]))
             for c in candles
         ]
         whale_alerts_list = [alert for w in whale_data for alert in w["alerts"]]
 
-        radar_report   = market_radar.sweep(candles, features, whale_alerts_list)
-        radar_summary  = radar_report.as_dict()
+        radar_report = market_radar.sweep(candles, features, whale_alerts_list)
+        radar_summary = radar_report.as_dict()
 
         if cycle % cfg.display_frequency == 0:
             top_opps = radar_report.top(3)
-            opp_str  = ", ".join(f"{o.symbol}({o.score:.0f})" for o in top_opps) or "aucune"
+            opp_str = (
+                ", ".join(f"{o.symbol}({o.score:.0f})" for o in top_opps) or "aucune"
+            )
             print(
                 f"[RADAR] {radar_summary['opportunities_count']} opportunités | "
                 f"risque={radar_summary['risk_level']} | top: {opp_str}"
@@ -519,7 +544,7 @@ def run_v91_system(
         # ── 4. LIVE SIGNAL ENGINE (Phase 4) ────────────────────────────────────
 
         _bt_symbol = symbols[0] if symbols else scanner.symbols[0]
-        bt_data    = market.get("history", {}).get(_bt_symbol, candles)
+        bt_data = market.get("history", {}).get(_bt_symbol, candles)
 
         # Score 0-100 pour le symbole principal
         live_signal = live_signal_engine.evaluate(
@@ -527,7 +552,9 @@ def run_v91_system(
             mtf_candles={"1h": candles, "4h": bt_data},
             features=features,
             memory_sharpe=float(
-                (memory_store.load_by_regime(regime, limit=1) or [{}])[0].get("sharpe", 0.0)
+                (memory_store.load_by_regime(regime, limit=1) or [{}])[0].get(
+                    "sharpe", 0.0
+                )
             ),
         )
 
@@ -536,12 +563,15 @@ def run_v91_system(
         if cycle % cfg.display_frequency == 0:
             print(f"[ADVISOR] {advice.short()}")
 
-        health.update("signal_engine", {
-            "ok": True,
-            "score": live_signal.score,
-            "signal": live_signal.signal,
-            "regime": regime,
-        })
+        health.update(
+            "signal_engine",
+            {
+                "ok": True,
+                "score": live_signal.score,
+                "signal": live_signal.signal,
+                "regime": regime,
+            },
+        )
 
         # ── 4b. CONFIDENCE EXPLAINER (#7) ─────────────────────────────────────
 
@@ -553,7 +583,9 @@ def run_v91_system(
 
         # Kill switch check (#3)
         if kill_switch is not None and not kill_switch.is_execution_allowed():
-            logger.warning("[Cycle %d] KillSwitch actif — mode %s", cycle, kill_switch.mode)
+            _log.warning(
+                "[Cycle %d] KillSwitch actif — mode %s", cycle, kill_switch.mode
+            )
             time.sleep(max(0, cfg.sleep_seconds))
             if cfg.max_cycles > 0 and cycle >= cfg.max_cycles:
                 break
@@ -575,16 +607,16 @@ def run_v91_system(
         # ── 6. ÉVOLUTION STRATÉGIQUE ───────────────────────────────────────────
 
         _mem_limit = max(5, cfg.population_size // 4)
-        _mem_seed  = [
+        _mem_seed = [
             r.get("strategy", r)
             for r in memory_store.load_by_regime(regime, limit=_mem_limit)
             if isinstance(r, dict)
         ]
         _fresh_count = max(1, cfg.population_size - len(_mem_seed))
-        population   = _mem_seed + strategy_generator.generate_population(_fresh_count)
-        evolved      = optimizer.evolve(population, generations=cfg.generations)
+        population = _mem_seed + strategy_generator.generate_population(_fresh_count)
+        evolved = optimizer.evolve(population, generations=cfg.generations)
 
-        results      = [backtest_lab.run_backtest(strategy=s, data=bt_data) for s in evolved]
+        results = [backtest_lab.run_backtest(strategy=s, data=bt_data) for s in evolved]
 
         factory_report = strategy_factory.run(
             candles,
@@ -596,19 +628,23 @@ def run_v91_system(
         results.extend(factory_report.approved_results)
 
         evo_report = evolution_engine.run_cycle(
-            cycle=cycle, regime=regime, candles=bt_data,
+            cycle=cycle,
+            regime=regime,
+            candles=bt_data,
             doctor_health=_prev_doctor_health,
         )
 
         flow_report = flow_map.analyze(
-            candles=candles, whale_alerts=whale_alerts_list,
-            regime=regime, cycle=cycle,
+            candles=candles,
+            whale_alerts=whale_alerts_list,
+            regime=regime,
+            cycle=cycle,
         )
 
-        ranked     = decision_engine.select_strategies(results, top_n=20)
-        filtered   = [r for r in ranked if risk_monitor.check(r)]
+        ranked = decision_engine.select_strategies(results, top_n=20)
+        filtered = [r for r in ranked if risk_monitor.check(r)]
         top_results = filtered[:10] if filtered else ranked[:10]
-        best        = strategy_researcher.best(top_results)
+        best = strategy_researcher.best(top_results)
 
         for strategy_result in ranked[:10]:
             strat = strategy_result.get("strategy")
@@ -618,14 +654,22 @@ def run_v91_system(
         scoreboard_stats = scoreboard.stats()
 
         # Sauvegarde mémoire
-        _winners = [r for r in top_results if float(r.get("sharpe", 0.0)) >= cfg.min_sharpe_for_trade]
+        _winners = [
+            r
+            for r in top_results
+            if float(r.get("sharpe", 0.0)) >= cfg.min_sharpe_for_trade
+        ]
         if _winners:
             memory_store.save_for_regime(regime, _winners[:10])
 
         # ── 7. RISK GATE (Phase 7) ─────────────────────────────────────────────
 
-        _best_sharpe  = float(best.get("sharpe", 0.0)) if best else 0.0
-        _portfolio_dd = max(0.0, -paper.total_pnl() / paper._initial_balance) if paper.balance else 0.0
+        _best_sharpe = float(best.get("sharpe", 0.0)) if best else 0.0
+        _portfolio_dd = (
+            max(0.0, -paper.total_pnl() / paper._initial_balance)
+            if paper.balance
+            else 0.0
+        )
 
         gate_result = global_risk_gate.check(
             signal_result=live_signal,
@@ -633,15 +677,18 @@ def run_v91_system(
             order_size_usd=float(os.getenv("DEFAULT_ORDER_USD", "500")),
         )
 
-        health.update("risk_gate", {
-            "ok": gate_result.allowed,
-            "failed": len(gate_result.failed),
-        })
+        health.update(
+            "risk_gate",
+            {
+                "ok": gate_result.allowed,
+                "failed": len(gate_result.failed),
+            },
+        )
 
         if not gate_result.allowed:
             # Alerte Telegram (Phase 8)
             alerts.on_risk_gate_blocked(gate_result, live_signal)
-            logger.warning("[Cycle %d] RiskGate BLOCK: %s", cycle, gate_result.summary())
+            _log.warning("[Cycle %d] RiskGate BLOCK: %s", cycle, gate_result.summary())
             time.sleep(max(0, cfg.sleep_seconds))
             if cfg.max_cycles > 0 and cycle >= cfg.max_cycles:
                 break
@@ -663,36 +710,51 @@ def run_v91_system(
         # ── 9. SIGNAL MTF & EXÉCUTION ──────────────────────────────────────────
 
         tradable = liquidity.filter_symbols(candles)
-        symbol   = tradable[0] if tradable else candles[0]["symbol"]
-        price    = next(float(c["close"]) for c in candles if c["symbol"] == symbol)
+        symbol = tradable[0] if tradable else candles[0]["symbol"]
+        price = next(float(c["close"]) for c in candles if c["symbol"] == symbol)
 
         should_trade = decision_engine.should_trade(best, regime, whale_alerts_list)
-        risk_limits  = decision_engine.compute_risk_limits(
+        risk_limits = decision_engine.compute_risk_limits(
             features.get("realized_volatility", 0.02), max_risk=cfg.max_risk_per_trade
         )
 
         if should_trade and best:
             _best_strat = best.get("strategy", {})
-            _mtf_raw    = mtf_scanner.scan(cycle=cycle)
-            _mtf_sym    = _bt_symbol if "/" in _bt_symbol else _bt_symbol[:3] + "/" + _bt_symbol[3:]
+            _mtf_raw = mtf_scanner.scan(cycle=cycle)
+            _mtf_sym = (
+                _bt_symbol
+                if "/" in _bt_symbol
+                else _bt_symbol[:3] + "/" + _bt_symbol[3:]
+            )
             _mtf_candles = MultiTimeframeScanner.merge_base(_mtf_raw, _mtf_sym, bt_data)
-            _mtf_result  = mtf_signal.confirm(_best_strat, _mtf_candles)
-            action       = _mtf_result["signal"]
+            _mtf_result = mtf_signal.confirm(_best_strat, _mtf_candles)
+            action = _mtf_result["signal"]
             if action == "HOLD":
-                action = rl_trader.choose_action(f"{regime}:{'pos' if features['momentum'] > 0 else 'neg'}")
+                action = rl_trader.choose_action(
+                    f"{regime}:{'pos' if features['momentum'] > 0 else 'neg'}"
+                )
         else:
-            action       = rl_trader.choose_action(f"{regime}:{'pos' if features['momentum'] > 0 else 'neg'}")
-            _mtf_result  = {"signal": action, "confirmed": False, "strength": 0.0, "alignment": {}}
+            action = rl_trader.choose_action(
+                f"{regime}:{'pos' if features['momentum'] > 0 else 'neg'}"
+            )
+            _mtf_result = {
+                "signal": action,
+                "confirmed": False,
+                "strength": 0.0,
+                "alignment": {},
+            }
 
         # Arbitrage override
-        if arbitrage.detect(price, price * random.uniform(0.985, 1.02), threshold=0.012):
+        if arbitrage.detect(
+            price, price * random.uniform(0.985, 1.02), threshold=0.012
+        ):
             action = "SELL"
 
         # Taille finale : OrderSizer (Kelly) ou DrawdownGuard fallback
         if size_result.size_usd > 0:
             size = size_result.size_base
         else:
-            dd   = float(best.get("drawdown", 0.0)) if best else 0.0
+            dd = float(best.get("drawdown", 0.0)) if best else 0.0
             size = drawdown_guard.adjust_position_size(dd, base_size=1.0)
 
         # #1 — Shadow execution (log l'ordre sans l'envoyer)
@@ -725,7 +787,7 @@ def run_v91_system(
 
         if action in ("BUY", "SELL") and order.get("status") == "filled":
             _entry = float(order.get("price", price))
-            _exit  = price   # prix courant comme sortie approximative
+            _exit = price  # prix courant comme sortie approximative
             _pm_trade = TradeRecord(
                 symbol=symbol,
                 action=action,
@@ -733,39 +795,67 @@ def run_v91_system(
                 exit_price=_exit,
                 size=size,
                 regime=regime,
-                strategy_name=str(best.get("strategy", {}).get("entry_indicator", "unknown")) if best else "unknown",
+                strategy_name=(
+                    str(best.get("strategy", {}).get("entry_indicator", "unknown"))
+                    if best
+                    else "unknown"
+                ),
                 entry_score=live_signal.score,
                 entry_signal_confirmed=live_signal.confirmed,
                 entry_strength=live_signal.strength,
             )
             _pm_report = postmortem.analyze(_pm_trade)
             if _pm_report.blacklisted:
-                logger.warning(
+                _log.warning(
                     "[Cycle %d] Stratégie blacklistée: %s",
-                    cycle, _pm_report.blacklist_key,
+                    cycle,
+                    _pm_report.blacklist_key,
                 )
 
-        health.update("paper_engine", {
-            "ok": True,
-            "balance": paper.balance,
-            "pnl_pct": paper.total_pnl() / paper._initial_balance * 100 if paper._initial_balance else 0,
-            "n_trades": len(paper.trade_history),
-        })
+        health.update(
+            "paper_engine",
+            {
+                "ok": True,
+                "balance": paper.balance,
+                "pnl_pct": (
+                    paper.total_pnl() / paper._initial_balance * 100
+                    if paper._initial_balance
+                    else 0
+                ),
+                "n_trades": len(paper.trade_history),
+            },
+        )
 
         # ── 11. BOT DOCTOR ─────────────────────────────────────────────────────
 
         _prev_doctor_health = 100.0
-        doctor_result_for_director = {"health_score": 100.0, "top_recommendation": "", "findings": []}
+        doctor_result_for_director = {
+            "health_score": 100.0,
+            "top_recommendation": "",
+            "findings": [],
+        }
         doctor_corrections_for_director: list[str] = []
 
         if cfg.doctor_telegram_enabled:
             dd_for_doctor = float(best.get("drawdown", 0.0)) if best else 0.0
-            risk_level    = "high" if dd_for_doctor > 0.10 else ("medium" if dd_for_doctor > 0.05 else "low")
-            doctor_input  = {"trade_signal": action, "allocation": None, "risk_level": risk_level}
-            corrected_strategy, doctor_issues = doctor_agent.apply_doctor_corrections_with_issues(doctor_input)
+            risk_level = (
+                "high"
+                if dd_for_doctor > 0.10
+                else ("medium" if dd_for_doctor > 0.05 else "low")
+            )
+            doctor_input = {
+                "trade_signal": action,
+                "allocation": None,
+                "risk_level": risk_level,
+            }
+            corrected_strategy, doctor_issues = (
+                doctor_agent.apply_doctor_corrections_with_issues(doctor_input)
+            )
             doctor_corrections_for_director = doctor_issues
             _prev_doctor_health = max(0.0, 100.0 - len(doctor_issues) * 20.0)
-            doctor_agent.simulate_telegram_alerts(cfg.doctor_telegram_user_id, corrected_strategy)
+            doctor_agent.simulate_telegram_alerts(
+                cfg.doctor_telegram_user_id, corrected_strategy
+            )
 
             if cfg.doctor_v26_report_enabled and cycle % cfg.display_frequency == 0:
                 doctor_report = doctor_agent.build_v26_compatible_report(doctor_issues)
@@ -800,10 +890,10 @@ def run_v91_system(
 
         # ── 13. MONITORING & CONTROL CENTER ────────────────────────────────────
 
-        heartbeat   = system_monitor.heartbeat(cycle)
+        heartbeat = system_monitor.heartbeat(cycle)
         performance = perf_monitor.summarize(top_results)
-        model_info  = model_builder.retrain(top_results)
-        mc          = monte_carlo.simulate(
+        model_info = model_builder.retrain(top_results)
+        mc = monte_carlo.simulate(
             mean_return=0.0005,
             volatility=min(0.08, max(0.001, features["realized_volatility"])),
             steps=cfg.monte_carlo_steps,
@@ -811,9 +901,15 @@ def run_v91_system(
         )
 
         portfolio_allocation = portfolio_brain.compute_allocation(
-            [{"strategy_id": f"s{i}", "sharpe": float(r.get("sharpe", 0.0)),
-              "drawdown": float(r.get("drawdown", 0.01)), "win_rate": float(r.get("win_rate", 0.5))}
-             for i, r in enumerate(top_results[:10])],
+            [
+                {
+                    "strategy_id": f"s{i}",
+                    "sharpe": float(r.get("sharpe", 0.0)),
+                    "drawdown": float(r.get("drawdown", 0.01)),
+                    "win_rate": float(r.get("win_rate", 0.5)),
+                }
+                for i, r in enumerate(top_results[:10])
+            ],
             features.get("realized_volatility", 0.02),
             max_strategy_weight=cfg.max_strategy_weight,
         )
@@ -830,22 +926,49 @@ def run_v91_system(
 
             report = control_center.render_full_report(
                 cycle,
-                {"regime": regime, "strategy_type": suggested_strategy_type,
-                 "momentum": features["momentum"],
-                 "realized_volatility": features["realized_volatility"],
-                 "anomalies": anomalies, "radar": radar_summary, "stream": market_intel},
-                {"alerts": whale_alerts_list,
-                 "threat_level": max((w["threat_level"] for w in whale_data), default="low", key=str.lower)},
-                best, scoreboard_stats, portfolio_allocation,
-                {"kelly_fraction": order_sizer.kelly_fraction, "vol_target": order_sizer.vol_target,
-                 "max_position": 0.3},
-                {"should_trade": should_trade,
-                 "reason": "High Sharpe + Low DD" if should_trade else "Conditions défavorables",
-                 "risk_limits": risk_limits},
-                {"status": "running", "agents_count": 20,
-                 "strategies_gen": len(evolved), "backtests_completed": len(results),
-                 "model_version": model_info.get("model_version", 1),
-                 "heartbeat": heartbeat, "performance": performance},
+                {
+                    "regime": regime,
+                    "strategy_type": suggested_strategy_type,
+                    "momentum": features["momentum"],
+                    "realized_volatility": features["realized_volatility"],
+                    "anomalies": anomalies,
+                    "radar": radar_summary,
+                    "stream": market_intel,
+                },
+                {
+                    "alerts": whale_alerts_list,
+                    "threat_level": max(
+                        (w["threat_level"] for w in whale_data),
+                        default="low",
+                        key=str.lower,
+                    ),
+                },
+                best,
+                scoreboard_stats,
+                portfolio_allocation,
+                {
+                    "kelly_fraction": order_sizer.kelly_fraction,
+                    "vol_target": order_sizer.vol_target,
+                    "max_position": 0.3,
+                },
+                {
+                    "should_trade": should_trade,
+                    "reason": (
+                        "High Sharpe + Low DD"
+                        if should_trade
+                        else "Conditions défavorables"
+                    ),
+                    "risk_limits": risk_limits,
+                },
+                {
+                    "status": "running",
+                    "agents_count": 20,
+                    "strategies_gen": len(evolved),
+                    "backtests_completed": len(results),
+                    "model_version": model_info.get("model_version", 1),
+                    "heartbeat": heartbeat,
+                    "performance": performance,
+                },
                 flow_data=flow_report.as_dict(),
             )
             print(report)
@@ -893,54 +1016,75 @@ def run_v91_system(
     health.update("system", {"status": "stopped", "ok": False})
     health.stop()
 
-    logger.info("[Main] Système arrêté après %d cycles", cycle)
-    logger.info("[Main] Post-mortem final: %s", postmortem.summary())
+    _log.info("[Main] Système arrêté après %d cycles", cycle)
+    _log.info("[Main] Post-mortem final: %s", postmortem.summary())
     if advisor_mode.active:
-        logger.info("[Main] Advisor-only: %s", advisor_mode.summary())
+        _log.info("[Main] Advisor-only: %s", advisor_mode.summary())
 
 
 # ── CLI ───────────────────────────────────────────────────────────────────────
 
+
 def _build_runtime_from_args() -> tuple[RuntimeConfig, bool, bool, bool]:
     parser = argparse.ArgumentParser(description="Run V9.1 autonomous quant system")
-    parser.add_argument("--dry-run", action="store_true",
-                        help="Valider la config et quitter")
-    parser.add_argument("--doctor-prompt-only", action="store_true",
-                        help="Afficher le prompt Bot Doctor et quitter")
-    parser.add_argument("--max-cycles",    type=int, help="Override V9_MAX_CYCLES")
-    parser.add_argument("--population",    type=int, help="Override V9_POPULATION")
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Valider la config et quitter"
+    )
+    parser.add_argument(
+        "--doctor-prompt-only",
+        action="store_true",
+        help="Afficher le prompt Bot Doctor et quitter",
+    )
+    parser.add_argument("--max-cycles", type=int, help="Override V9_MAX_CYCLES")
+    parser.add_argument("--population", type=int, help="Override V9_POPULATION")
     parser.add_argument("--sleep-seconds", type=int, help="Override V9_SLEEP_SECONDS")
-    parser.add_argument("--radar",         action="store_true",
-                        help="Lancer un sweep Market Radar et quitter")
-    parser.add_argument("--dashboard",     action="store_true",
-                        help="Activer le Director Dashboard")
-    parser.add_argument("--advisor-only",  action="store_true",
-                        help="Forcer V9_ADVISOR_ONLY (analyse sans trading)")
+    parser.add_argument(
+        "--radar", action="store_true", help="Lancer un sweep Market Radar et quitter"
+    )
+    parser.add_argument(
+        "--dashboard", action="store_true", help="Activer le Director Dashboard"
+    )
+    parser.add_argument(
+        "--advisor-only",
+        action="store_true",
+        help="Forcer V9_ADVISOR_ONLY (analyse sans trading)",
+    )
     args = parser.parse_args()
 
     cfg = load_runtime_config_from_env()
-    if args.max_cycles    is not None: cfg.max_cycles      = max(0, args.max_cycles)
-    if args.population    is not None: cfg.population_size = max(1, args.population)
-    if args.sleep_seconds is not None: cfg.sleep_seconds   = max(0, args.sleep_seconds)
-    if args.dry_run:      cfg.dry_run                      = True
-    if args.dashboard:    cfg.director_dashboard_enabled   = True
-    if args.advisor_only: os.environ["V9_ADVISOR_ONLY"]    = "true"
+    if args.max_cycles is not None:
+        cfg.max_cycles = max(0, args.max_cycles)
+    if args.population is not None:
+        cfg.population_size = max(1, args.population)
+    if args.sleep_seconds is not None:
+        cfg.sleep_seconds = max(0, args.sleep_seconds)
+    if args.dry_run:
+        cfg.dry_run = True
+    if args.dashboard:
+        cfg.director_dashboard_enabled = True
+    if args.advisor_only:
+        os.environ["V9_ADVISOR_ONLY"] = "true"
 
     return cfg, bool(args.doctor_prompt_only), bool(args.radar), bool(args.dashboard)
 
 
 if __name__ == "__main__":
-    runtime_cfg, doctor_prompt_only, radar_only, dashboard_mode = _build_runtime_from_args()
+    runtime_cfg, doctor_prompt_only, radar_only, dashboard_mode = (
+        _build_runtime_from_args()
+    )
 
     if radar_only:
         from quant_hedge_ai.agents.intelligence import FeatureEngineer as _FE
-        from quant_hedge_ai.agents.market.market_scanner import MarketScanner as _Scanner
+        from quant_hedge_ai.agents.market.market_scanner import (
+            MarketScanner as _Scanner,
+        )
+
         _scanner = _Scanner()
-        _fe      = _FE()
+        _fe = _FE()
         _candles = _scanner.scan()["candles"]
         _features = _fe.extract_features(_candles)
-        _radar   = MarketRadar(whale_threshold_usd=runtime_cfg.whale_threshold_usd)
-        _report  = _radar.sweep(_candles, _features)
+        _radar = MarketRadar(whale_threshold_usd=runtime_cfg.whale_threshold_usd)
+        _report = _radar.sweep(_candles, _features)
         print("\n📡 AI Market Radar — Single Sweep\n")
         for opp in _report.top(10):
             print(f"  {opp.symbol:20s}  score={opp.score:5.1f}  risk={opp.risk_level}")

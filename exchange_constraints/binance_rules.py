@@ -13,16 +13,15 @@ Usage recommande :
 from __future__ import annotations
 
 import json
-import logging
 from typing import Any, Optional
 from urllib.error import URLError
 from urllib.request import urlopen
 
 from exchange_constraints.models import SymbolInfo
 from exchange_constraints.precision_rules import compute_precision_from_step
+from observability.json_logger import get_logger
 
-log = logging.getLogger(__name__)
-
+_log = get_logger("exchange_constraints.binance_rules")
 _EXCHANGE_INFO_URL = "https://fapi.binance.com/fapi/v1/exchangeInfo"
 _REQUEST_TIMEOUT_S = 10
 
@@ -158,7 +157,7 @@ def _symbol_from_api(s: dict[str, Any]) -> Optional[SymbolInfo]:
             is_active=s.get("status", "TRADING") == "TRADING",
         )
     except (KeyError, ValueError, TypeError) as exc:
-        log.warning("Failed to parse symbol %s: %s", s.get("symbol", "?"), exc)
+        _log.warning("Failed to parse symbol %s: %s", s.get("symbol", "?"), exc)
         return None
 
 
@@ -201,7 +200,7 @@ def refresh_from_exchange(
         raise RuntimeError("refresh_from_exchange: no symbols parsed from API response")
 
     BINANCE_FUTURES_SYMBOLS.update(updated)
-    log.info(
+    _log.info(
         "exchange_constraints: refreshed %d symbols from Binance API", len(updated)
     )
     return BINANCE_FUTURES_SYMBOLS

@@ -26,12 +26,12 @@ Usage:
 
 from __future__ import annotations
 
-import logging
 import os
 from dataclasses import dataclass, field
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
 
+_log = get_logger("quant_hedge_ai.advisor_only_mode")
 _ENV_KEY = "V9_ADVISOR_ONLY"
 
 
@@ -39,14 +39,14 @@ _ENV_KEY = "V9_ADVISOR_ONLY"
 class AdvisorResult:
     """Résultat d'un cycle en mode advisor-only."""
 
-    signal: str                  # BUY | SELL | HOLD
+    signal: str  # BUY | SELL | HOLD
     score: int
     regime: str
     advice_text: str
     risk_level: str
     confidence: str
-    alerted: bool = False        # True si alerte Telegram envoyée
-    blocked_reason: str = ""     # "advisor_only" si mode actif
+    alerted: bool = False  # True si alerte Telegram envoyée
+    blocked_reason: str = ""  # "advisor_only" si mode actif
     components: dict = field(default_factory=dict)
 
     @property
@@ -91,9 +91,7 @@ class AdvisorOnlyMode:
         self._would_trade_count = 0
 
         if self.active:
-            logger.warning(
-                "[AdvisorOnlyMode] MODE ACTIF — aucun ordre ne sera exécuté."
-            )
+            _log.warning("[AdvisorOnlyMode] MODE ACTIF — aucun ordre ne sera exécuté.")
 
     @classmethod
     def from_env(
@@ -108,7 +106,9 @@ class AdvisorOnlyMode:
 
     # ── API principale ─────────────────────────────────────────────────────────
 
-    def process_signal(self, signal_result, features: dict | None = None) -> AdvisorResult:
+    def process_signal(
+        self, signal_result, features: dict | None = None
+    ) -> AdvisorResult:
         """
         Traite un signal en mode advisor-only.
 
@@ -127,7 +127,9 @@ class AdvisorOnlyMode:
             score=getattr(signal_result, "score", 0),
             regime=getattr(signal_result, "regime", "unknown"),
             advice_text=getattr(advice, "text", "") if advice else "",
-            risk_level=getattr(advice, "risk_level", "unknown") if advice else "unknown",
+            risk_level=(
+                getattr(advice, "risk_level", "unknown") if advice else "unknown"
+            ),
             confidence=getattr(advice, "confidence", "low") if advice else "low",
             alerted=alerted,
             blocked_reason="advisor_only" if self.active else "",
@@ -136,9 +138,12 @@ class AdvisorOnlyMode:
 
         if result.would_trade:
             self._would_trade_count += 1
-            logger.info(
+            _log.info(
                 "[AdvisorOnly] Signal %s score=%d AURAIT tradé (cycle %d, total=%d)",
-                result.signal, result.score, self._cycle_count, self._would_trade_count,
+                result.signal,
+                result.score,
+                self._cycle_count,
+                self._would_trade_count,
             )
 
         return result
@@ -151,7 +156,8 @@ class AdvisorOnlyMode:
             "would_trade_count": self._would_trade_count,
             "would_trade_rate": (
                 round(self._would_trade_count / self._cycle_count, 3)
-                if self._cycle_count > 0 else 0.0
+                if self._cycle_count > 0
+                else 0.0
             ),
         }
 
@@ -163,5 +169,5 @@ class AdvisorOnlyMode:
         try:
             return self._advisor.explain(signal_result)
         except Exception as exc:
-            logger.debug("[AdvisorOnly] Erreur advice: %s", exc)
+            _log.debug("[AdvisorOnly] Erreur advice: %s", exc)
             return None

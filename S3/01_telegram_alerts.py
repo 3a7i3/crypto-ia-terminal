@@ -23,7 +23,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import logging
 import os
 import queue
 import threading
@@ -31,8 +30,9 @@ import time
 from pathlib import Path
 from typing import Optional
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
 
+_log = get_logger("S3.01_telegram_alerts")
 _CONFIG_PATH = "config/telegram_config.json"
 _DEDUP_WINDOW_S = 300  # 5 minutes
 
@@ -72,9 +72,9 @@ class TelegramAlert:
         if self._enabled:
             t = threading.Thread(target=self._worker, daemon=True, name="TelegramAlert")
             t.start()
-            logger.info("[TelegramAlert] Démarré — token configuré")
+            _log.info("[TelegramAlert] Démarré — token configuré")
         else:
-            logger.info("[TelegramAlert] Token absent — alertes désactivées")
+            _log.info("[TelegramAlert] Token absent — alertes désactivées")
 
     # ── API publique ───────────────────────────────────────────────────────────
 
@@ -150,14 +150,14 @@ class TelegramAlert:
             }
 
             if not force and key in self._dedup:
-                logger.debug("[TelegramAlert] Dédoublonné: %s", key)
+                _log.debug("[TelegramAlert] Dédoublonné: %s", key)
                 return
             self._dedup[key] = now
 
         try:
             self._queue.put_nowait(text)
         except queue.Full:
-            logger.warning("[TelegramAlert] Queue pleine — message ignoré")
+            _log.warning("[TelegramAlert] Queue pleine — message ignoré")
 
     def _worker(self) -> None:
         import urllib.request
@@ -176,11 +176,11 @@ class TelegramAlert:
                 )
                 with urllib.request.urlopen(req, timeout=8) as resp:
                     if resp.status != 200:
-                        logger.warning("[TelegramAlert] HTTP %d", resp.status)
+                        _log.warning("[TelegramAlert] HTTP %d", resp.status)
             except queue.Empty:
                 pass
             except Exception as exc:
-                logger.warning("[TelegramAlert] Envoi échoué: %s", exc)
+                _log.warning("[TelegramAlert] Envoi échoué: %s", exc)
                 time.sleep(5)
 
     def stop(self) -> None:

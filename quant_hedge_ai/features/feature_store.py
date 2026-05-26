@@ -5,19 +5,20 @@ Stocke, versionne et sert les features calculées.
 Permet le time-travel (accès à n'importe quelle version passée),
 la détection de drift, et le recalcul incrémental.
 """
+
 from __future__ import annotations
 
 import hashlib
 import json
-import logging
 import time
 from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
 
+_log = get_logger("quant_hedge_ai.features.feature_store")
 _STORE_PATH = Path("databases/feature_store.jsonl")
 
 
@@ -28,7 +29,7 @@ class FeatureVector:
     version: str
     timestamp: float
     features: dict[str, float]
-    source_hash: str = ""       # hash des candles source
+    source_hash: str = ""  # hash des candles source
     quality_score: float = 1.0  # [0,1] : qualité des données entrantes
 
     def to_dict(self) -> dict:
@@ -53,7 +54,9 @@ class FeatureStore:
 
     CURRENT_VERSION = "v2.0"
 
-    def __init__(self, store_path: Path | None = None, ttl_seconds: float = 300.0) -> None:
+    def __init__(
+        self, store_path: Path | None = None, ttl_seconds: float = 300.0
+    ) -> None:
         self._path = store_path or _STORE_PATH
         self._path.parent.mkdir(parents=True, exist_ok=True)
         self._cache: dict[str, FeatureVector] = {}
@@ -108,7 +111,7 @@ class FeatureStore:
         age = time.time() - fv.timestamp
         effective_ttl = max_age if max_age is not None else self._ttl
         if age > effective_ttl:
-            logger.debug("[FeatureStore] %s stale (age=%.0fs)", key, age)
+            _log.debug("[FeatureStore] %s stale (age=%.0fs)", key, age)
             return None
         return fv
 
@@ -126,7 +129,9 @@ class FeatureStore:
         new_hash = self._hash_candles(source_candles)
         return fv.source_hash != new_hash
 
-    def history(self, symbol: str, timeframe: str = "1h", n: int = 10) -> list[FeatureVector]:
+    def history(
+        self, symbol: str, timeframe: str = "1h", n: int = 10
+    ) -> list[FeatureVector]:
         key = self._key(symbol, timeframe, self.CURRENT_VERSION)
         return self._history[key][-n:]
 
@@ -154,7 +159,9 @@ class FeatureStore:
     def _compute_quality(self, features: dict[str, float]) -> float:
         if not features:
             return 0.0
-        valid = sum(1 for v in features.values() if v is not None and v == v)  # NaN check
+        valid = sum(
+            1 for v in features.values() if v is not None and v == v
+        )  # NaN check
         return valid / len(features)
 
     def _check_drift(self, old: FeatureVector, new: FeatureVector) -> None:
@@ -166,7 +173,9 @@ class FeatureStore:
                 continue
             change = abs(new_val - old_val) / abs(old_val)
             if change > drift_threshold:
-                drifted.append({"feature": k, "old": old_val, "new": new_val, "change_pct": change})
+                drifted.append(
+                    {"feature": k, "old": old_val, "new": new_val, "change_pct": change}
+                )
         if drifted:
             alert = {
                 "symbol": new.symbol,
@@ -175,11 +184,16 @@ class FeatureStore:
                 "drifted_features": drifted,
             }
             self._drift_alerts.append(alert)
-            logger.warning("[FeatureStore] DRIFT detected on %s/%s: %d features", new.symbol, new.timeframe, len(drifted))
+            _log.warning(
+                "[FeatureStore] DRIFT detected on %s/%s: %d features",
+                new.symbol,
+                new.timeframe,
+                len(drifted),
+            )
 
     def _persist(self, fv: FeatureVector) -> None:
         try:
             with self._path.open("a", encoding="utf-8") as f:
                 f.write(json.dumps(fv.to_dict()) + "\n")
         except Exception as exc:
-            logger.debug("[FeatureStore] persist error: %s", exc)
+            _log.debug("[FeatureStore] persist error: %s", exc)

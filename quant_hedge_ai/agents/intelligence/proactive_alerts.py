@@ -12,29 +12,30 @@ Fonctionne sans Telegram configuré : no-op silencieux.
 
 from __future__ import annotations
 
-import logging
 import os
 import time
 from dataclasses import dataclass, field
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
 
-_COOLDOWN_SIGNAL   = float(os.getenv("ALERT_COOLDOWN_SIGNAL",  "300"))   # 5 min
-_COOLDOWN_REGIME   = float(os.getenv("ALERT_COOLDOWN_REGIME",  "600"))   # 10 min
-_COOLDOWN_RISK     = float(os.getenv("ALERT_COOLDOWN_RISK",    "120"))   # 2 min
+_log = get_logger("quant_hedge_ai.agents.intelligence.proactive_alerts")
+_COOLDOWN_SIGNAL = float(os.getenv("ALERT_COOLDOWN_SIGNAL", "300"))  # 5 min
+_COOLDOWN_REGIME = float(os.getenv("ALERT_COOLDOWN_REGIME", "600"))  # 10 min
+_COOLDOWN_RISK = float(os.getenv("ALERT_COOLDOWN_RISK", "120"))  # 2 min
 
 _ICONS = {
     "opportunity": "🟢",
-    "regime":      "🔄",
-    "risk_block":  "🔴",
-    "weekly":      "📊",
-    "advice":      "💡",
+    "regime": "🔄",
+    "risk_block": "🔴",
+    "weekly": "📊",
+    "advice": "💡",
 }
 
 
 @dataclass
 class AlertRecord:
     """Historique d'une alerte envoyée."""
+
     alert_type: str
     key: str
     message: str
@@ -69,13 +70,16 @@ class ProactiveAlerts:
         """Construit depuis les variables d'environnement TELEGRAM_*."""
         try:
             from supervision.notifications.ops_notifier import OpsNotifier
+
             notifier = OpsNotifier.from_env()
             if not notifier.enabled:
-                logger.info("[ProactiveAlerts] Telegram non configuré — alertes désactivées")
+                _log.info(
+                    "[ProactiveAlerts] Telegram non configuré — alertes désactivées"
+                )
                 return cls(notifier=None)
             return cls(notifier=notifier)
         except Exception as exc:
-            logger.debug("[ProactiveAlerts] Erreur init notifier: %s", exc)
+            _log.debug("[ProactiveAlerts] Erreur init notifier: %s", exc)
             return cls(notifier=None)
 
     @property
@@ -93,10 +97,10 @@ class ProactiveAlerts:
         if not getattr(signal_result, "actionable", False):
             return False
 
-        symbol  = getattr(signal_result, "symbol", "?")
-        signal  = getattr(signal_result, "signal", "?")
-        score   = getattr(signal_result, "score", 0)
-        regime  = getattr(signal_result, "regime", "unknown")
+        symbol = getattr(signal_result, "symbol", "?")
+        signal = getattr(signal_result, "signal", "?")
+        score = getattr(signal_result, "score", 0)
+        regime = getattr(signal_result, "regime", "unknown")
         strength = getattr(signal_result, "strength", 0.0)
 
         key = f"opportunity_{symbol}_{signal}"
@@ -117,9 +121,7 @@ class ProactiveAlerts:
 
         return self._send(key, "opportunity", "\n".join(lines))
 
-    def on_regime_change(
-        self, symbol: str, old_regime: str, new_regime: str
-    ) -> bool:
+    def on_regime_change(self, symbol: str, old_regime: str, new_regime: str) -> bool:
         """
         Alerte de type 2 : changement de régime de marché.
         """
@@ -172,7 +174,7 @@ class ProactiveAlerts:
     def on_weekly_report(self, report) -> bool:
         """Envoie le rapport hebdomadaire via Telegram."""
         key = "weekly_report"
-        if not self._can_send(key, 3600 * 24):   # max 1 fois par 24h
+        if not self._can_send(key, 3600 * 24):  # max 1 fois par 24h
             return False
 
         text = getattr(report, "text_summary", str(report))
@@ -203,8 +205,11 @@ class ProactiveAlerts:
         now = time.time()
         last = self._last_sent.get(key, 0.0)
         if (now - last) < cooldown:
-            logger.debug("[ProactiveAlerts] Rate-limit %s (%.0fs restants)",
-                         key, cooldown - (now - last))
+            _log.debug(
+                "[ProactiveAlerts] Rate-limit %s (%.0fs restants)",
+                key,
+                cooldown - (now - last),
+            )
             return False
         return True
 
@@ -217,15 +222,18 @@ class ProactiveAlerts:
                 self._notifier.info(message, key=alert_type)
                 success = True
             except Exception as exc:
-                logger.warning("[ProactiveAlerts] Erreur envoi %s: %s", alert_type, exc)
+                _log.warning("[ProactiveAlerts] Erreur envoi %s: %s", alert_type, exc)
         else:
-            logger.info("[ProactiveAlerts] (no Telegram) %s: %s",
-                        alert_type, message[:80])
-            success = True   # considéré OK si pas de notifier configuré
+            _log.info(
+                "[ProactiveAlerts] (no Telegram) %s: %s", alert_type, message[:80]
+            )
+            success = True  # considéré OK si pas de notifier configuré
 
-        self._history.append(AlertRecord(
-            alert_type=alert_type, key=key, message=message, success=success
-        ))
+        self._history.append(
+            AlertRecord(
+                alert_type=alert_type, key=key, message=message, success=success
+            )
+        )
         self._emit_event(alert_type, message)
         return success
 
@@ -233,6 +241,7 @@ class ProactiveAlerts:
         try:
             from event_bus.bus import EventBus
             from event_bus.events import SecurityAlertEvent
+
             if alert_type == "risk_block":
                 EventBus.get().emit(
                     SecurityAlertEvent(
@@ -242,4 +251,4 @@ class ProactiveAlerts:
                     )
                 )
         except Exception as exc:
-            logger.warning("[ProactiveAlerts] Erreur emission alerte securite: %s", exc)
+            _log.warning("[ProactiveAlerts] Erreur emission alerte securite: %s", exc)

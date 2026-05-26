@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
+
+_log = get_logger("quant_hedge_ai.dashboard.trade_monitor")
 
 
 @dataclass
@@ -77,7 +78,7 @@ class TradeMonitor:
         self._trades.append(trade)
         if pnl != 0:
             self._balance += pnl
-        logger.debug(
+        _log.debug(
             "TradeMonitor: recorded %s %s @ %.4f (pnl=%.2f)",
             action,
             symbol,

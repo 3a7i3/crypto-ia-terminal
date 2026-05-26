@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-import logging
 from abc import ABC, abstractmethod
 from pathlib import Path
 
+from observability.json_logger import get_logger
 from pieuvre.incidents.models import Finding
 
-logger = logging.getLogger(__name__)
+_log = get_logger("pieuvre.tentacles.base")
 
 
 class BaseTentacle(ABC):
@@ -40,16 +40,16 @@ class BaseTentacle(ABC):
 
     def pause(self) -> None:
         self.active = False
-        logger.debug("Tentacule %s mis en pause", self.name)
+        _log.debug("Tentacule %s mis en pause", self.name)
 
     def resume(self) -> None:
         self.active = True
-        logger.debug("Tentacule %s relancé", self.name)
+        _log.debug("Tentacule %s relancé", self.name)
 
     def add_immunity(self, pattern_name: str) -> None:
         """Injecte une immunité apprise d'un incident passé."""
         self._immunity.add(pattern_name)
-        logger.debug("Tentacule %s: immunité '%s' acquise", self.name, pattern_name)
+        _log.debug("Tentacule %s: immunité '%s' acquise", self.name, pattern_name)
 
     def load_immunities(self, patterns: set[str]) -> None:
         self._immunity.update(patterns)

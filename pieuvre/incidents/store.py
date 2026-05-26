@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import json
-import logging
 from pathlib import Path
 
+from observability.json_logger import get_logger
 from pieuvre.incidents.models import Incident
 
-logger = logging.getLogger(__name__)
+_log = get_logger("pieuvre.incidents.store")
 
 
 class IncidentStore:
@@ -31,7 +31,7 @@ class IncidentStore:
                 return
         self._cache.append(incident)
         self._flush()
-        logger.debug(
+        _log.debug(
             "Incident %s enregistré (sévérité=%s)", incident.id, incident.severity.value
         )
 
@@ -70,11 +70,9 @@ class IncidentStore:
         try:
             data = json.loads(self._path.read_text(encoding="utf-8"))
             self._cache = [Incident.from_dict(d) for d in data]
-            logger.debug("IncidentStore: %d incidents chargés", len(self._cache))
+            _log.debug("IncidentStore: %d incidents chargés", len(self._cache))
         except Exception as exc:
-            logger.warning(
-                "IncidentStore: erreur de lecture (%s) — démarrage vide", exc
-            )
+            _log.warning("IncidentStore: erreur de lecture (%s) — démarrage vide", exc)
             self._cache = []
 
     def _flush(self) -> None:
@@ -88,4 +86,4 @@ class IncidentStore:
                 encoding="utf-8",
             )
         except Exception as exc:
-            logger.error("IncidentStore: impossible d'écrire (%s)", exc)
+            _log.error("IncidentStore: impossible d'écrire (%s)", exc)

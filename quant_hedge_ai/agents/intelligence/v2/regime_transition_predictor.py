@@ -7,9 +7,9 @@ les prochaines N heures, en combinant :
 - les indicateurs de tension (vol, spread, OI)
 - les patterns historiques de transition
 """
+
 from __future__ import annotations
 
-import logging
 import time
 from collections import deque
 from dataclasses import dataclass
@@ -17,7 +17,9 @@ from typing import Any
 
 import numpy as np
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
+
+_log = get_logger("quant_hedge_ai.agents.intelligence.v2.regime_transition_predictor")
 
 
 @dataclass
@@ -29,17 +31,17 @@ class TransitionForecast:
     current_confidence: float = 0.0
 
     # Probabilités de transition dans les prochaines 4h
-    transition_prob_4h: float = 0.0     # probabilité de changer de régime
-    most_likely_next: str = "unknown"   # régime le plus probable après transition
+    transition_prob_4h: float = 0.0  # probabilité de changer de régime
+    most_likely_next: str = "unknown"  # régime le plus probable après transition
     next_prob: float = 0.0
 
     # Alertes
-    regime_fragile: bool = False        # True si le régime actuel est instable
-    breakout_imminent: bool = False     # True si forte prob transition range→trend
-    crash_risk: bool = False            # True si transition vers high_vol imminente
+    regime_fragile: bool = False  # True si le régime actuel est instable
+    breakout_imminent: bool = False  # True si forte prob transition range→trend
+    crash_risk: bool = False  # True si transition vers high_vol imminente
 
     # Tensions
-    tension_score: float = 0.0         # [0,1] niveau de tension pré-transition
+    tension_score: float = 0.0  # [0,1] niveau de tension pré-transition
 
     message: str = ""
 
@@ -53,9 +55,9 @@ class RegimeTransitionPredictor:
     """
 
     # Indicateurs de tension : seuils
-    VOL_EXPANSION_THRESHOLD = 1.5   # atr x1.5 vs moyenne = tension
-    FUNDING_EXTREME = 0.002         # funding > 0.2% = surchauffe
-    OI_SPIKE = 1.3                  # OI +30% = tension
+    VOL_EXPANSION_THRESHOLD = 1.5  # atr x1.5 vs moyenne = tension
+    FUNDING_EXTREME = 0.002  # funding > 0.2% = surchauffe
+    OI_SPIKE = 1.3  # OI +30% = tension
 
     def __init__(self, hmm_engine=None) -> None:
         self._hmm = hmm_engine
@@ -65,7 +67,7 @@ class RegimeTransitionPredictor:
     def forecast(
         self,
         symbol: str,
-        current_probs,          # RegimeProbabilities
+        current_probs,  # RegimeProbabilities
         features: dict[str, float],
     ) -> TransitionForecast:
         """Prédit la probabilité et la nature de la prochaine transition."""
@@ -90,12 +92,18 @@ class RegimeTransitionPredictor:
                     trans_matrix, current_probs
                 )
             else:
-                fc.transition_prob_4h = self._heuristic_transition_prob(fc.tension_score, current_probs)
+                fc.transition_prob_4h = self._heuristic_transition_prob(
+                    fc.tension_score, current_probs
+                )
         else:
-            fc.transition_prob_4h = self._heuristic_transition_prob(fc.tension_score, current_probs)
+            fc.transition_prob_4h = self._heuristic_transition_prob(
+                fc.tension_score, current_probs
+            )
 
         # Alertes
-        fc.regime_fragile = current_probs.is_transitioning(0.4) or fc.tension_score > 0.6
+        fc.regime_fragile = (
+            current_probs.is_transitioning(0.4) or fc.tension_score > 0.6
+        )
         fc.breakout_imminent = (
             current_probs.dominant == "chop"
             and fc.tension_score > 0.5
@@ -163,7 +171,11 @@ class RegimeTransitionPredictor:
         try:
             n = trans_matrix.shape[0]
             state_names = ["bull", "bear", "chop", "high_vol"]
-            current_idx = state_names.index(probs.dominant) if probs.dominant in state_names else 0
+            current_idx = (
+                state_names.index(probs.dominant)
+                if probs.dominant in state_names
+                else 0
+            )
             # Puissance de la matrice de transition
             trans_n = np.linalg.matrix_power(trans_matrix, n_steps)
             stay_prob = trans_n[current_idx, current_idx]
@@ -171,13 +183,19 @@ class RegimeTransitionPredictor:
         except Exception:
             return self._heuristic_transition_prob(0.5, probs)
 
-    def _predict_next_regime(self, trans_matrix: np.ndarray, probs) -> tuple[str, float]:
+    def _predict_next_regime(
+        self, trans_matrix: np.ndarray, probs
+    ) -> tuple[str, float]:
         """Identifie le régime le plus probable après une transition."""
         try:
             state_names = ["bull", "bear", "chop", "high_vol"]
-            current_idx = state_names.index(probs.dominant) if probs.dominant in state_names else 0
+            current_idx = (
+                state_names.index(probs.dominant)
+                if probs.dominant in state_names
+                else 0
+            )
             row = trans_matrix[current_idx].copy()
-            row[current_idx] = 0    # exclure le régime actuel
+            row[current_idx] = 0  # exclure le régime actuel
             next_idx = int(np.argmax(row))
             return state_names[next_idx], float(row[next_idx] / max(row.sum(), 1e-10))
         except Exception:
@@ -195,4 +213,6 @@ class RegimeTransitionPredictor:
             return f"Breakout imminent depuis range (tension {fc.tension_score:.0%})"
         if fc.regime_fragile:
             return f"Régime {fc.current_regime} fragile — transition {fc.transition_prob_4h:.0%} probable 4h"
-        return f"Régime {fc.current_regime} stable (confiance {fc.current_confidence:.0%})"
+        return (
+            f"Régime {fc.current_regime} stable (confiance {fc.current_confidence:.0%})"
+        )

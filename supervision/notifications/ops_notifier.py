@@ -16,20 +16,20 @@ Usage:
 
 from __future__ import annotations
 
-import logging
 import os
 import time
 import traceback
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
 
+_log = get_logger("supervision.notifications.ops_notifier")
 _ICON = {
-    "crash":          "[CRASH]",
-    "session_halt":   "[HALT]",
-    "ws_disconnect":  "[WS_DOWN]",
+    "crash": "[CRASH]",
+    "session_halt": "[HALT]",
+    "ws_disconnect": "[WS_DOWN]",
     "order_rejected": "[REJECTED]",
-    "live_failed":    "[LIVE_FAIL]",
-    "info":           "[INFO]",
+    "live_failed": "[LIVE_FAIL]",
+    "info": "[INFO]",
 }
 
 
@@ -55,10 +55,11 @@ class OpsNotifier:
         if bot_token and chat_id:
             try:
                 from supervision.notifications.telegram_notifier import TelegramNotifier
+
                 self._notifier = TelegramNotifier(bot_token, chat_id)
-                logger.info("[OpsNotifier] Telegram configured — alerts enabled")
+                _log.info("[OpsNotifier] Telegram configured — alerts enabled")
             except Exception as exc:
-                logger.warning("[OpsNotifier] Could not init TelegramNotifier: %s", exc)
+                _log.warning("[OpsNotifier] Could not init TelegramNotifier: %s", exc)
 
     @classmethod
     def from_env(cls) -> "OpsNotifier":
@@ -150,13 +151,15 @@ class OpsNotifier:
         now = time.time()
         last = self._last_sent.get(event_type, 0.0)
         if (now - last) < self._cooldown:
-            logger.debug(
+            _log.debug(
                 "[OpsNotifier] Rate-limited %s (%.0fs < cooldown %.0fs)",
-                event_type, now - last, self._cooldown,
+                event_type,
+                now - last,
+                self._cooldown,
             )
             return False
         self._last_sent[event_type] = now
         ok = self._notifier.notify(message)
         if not ok:
-            logger.warning("[OpsNotifier] Failed to send %s alert", event_type)
+            _log.warning("[OpsNotifier] Failed to send %s alert", event_type)
         return ok

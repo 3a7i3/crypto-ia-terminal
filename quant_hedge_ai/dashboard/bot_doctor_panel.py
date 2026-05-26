@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-import logging
 from dataclasses import dataclass, field
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
+
+_log = get_logger("quant_hedge_ai.dashboard.bot_doctor_panel")
 
 
 @dataclass
@@ -78,7 +79,7 @@ class BotDoctorPanel:
         if len(self._history) > 200:
             self._history = self._history[-100:]
 
-        logger.info(
+        _log.info(
             "BotDoctorPanel cycle %d: score=%.0f, status=%s", cycle, score, status
         )
         return report

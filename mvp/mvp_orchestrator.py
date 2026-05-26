@@ -20,6 +20,7 @@ Usage:
     python mvp/mvp_orchestrator.py --interval 60 --paper
     python mvp/mvp_orchestrator.py --symbols BTC/USDT ETH/USDT --capital 500
 """
+
 from __future__ import annotations
 
 import argparse
@@ -39,35 +40,35 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# Console fallback pour les composants legacy non encore migrés
 logging.basicConfig(
     level=getattr(logging, os.getenv("MVP_LOG_LEVEL", "INFO")),
     format="%(asctime)s %(levelname)-8s %(name)s - %(message)s",
-    handlers=[
-        logging.StreamHandler(sys.stdout),
-        logging.FileHandler("logs/mvp_orchestrator.log", encoding="utf-8"),
-    ],
+    handlers=[logging.StreamHandler(sys.stdout)],
 )
 if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
-log = logging.getLogger("mvp")
+from observability.json_logger import get_logger
 
-from mvp.market_state_engine  import MarketStateEngine
-from mvp.signal_engine_mvp    import SignalEngineMVP
-from mvp.risk_engine_mvp      import RiskEngineMVP
+_log = get_logger("mvp_orchestrator")
+
 from mvp.execution_engine_mvp import ExecutionEngineMVP, ExecutionResult
-from mvp.post_trade_learning  import PostTradeLearning
-from mvp.trade_logger         import log_signal
+from mvp.market_state_engine import MarketStateEngine
+from mvp.post_trade_learning import PostTradeLearning
+from mvp.risk_engine_mvp import RiskEngineMVP
+from mvp.signal_engine_mvp import SignalEngineMVP
+from mvp.trade_logger import log_signal
 from tracker_system.core.event_writer import record_entry_from_mvp, record_exit_from_mvp
 
-
 SYMBOLS_DEFAULT = ["BTC/USDT", "ETH/USDT", "SOL/USDT"]
-TELEGRAM_TOKEN  = os.getenv("TELEGRAM_BOT_TOKEN", "")
-TELEGRAM_CHAT   = os.getenv("TELEGRAM_CHAT_ID", "")
-REPORT_EVERY    = 6     # rapport KPIs tous les 6 cycles (30 min si interval=300s)
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
+TELEGRAM_CHAT = os.getenv("TELEGRAM_CHAT_ID", "")
+REPORT_EVERY = 6  # rapport KPIs tous les 6 cycles (30 min si interval=300s)
 
 
 # ── Telegram ──────────────────────────────────────────────────────────────────
+
 
 def _tg(text: str) -> None:
     if not TELEGRAM_TOKEN or not TELEGRAM_CHAT:
@@ -79,20 +80,22 @@ def _tg(text: str) -> None:
             timeout=10,
         )
     except Exception as exc:
-        log.debug("Telegram error: %s", exc)
+        _log.debug("TELEGRAM_ERROR", error=str(exc))
 
 
 # ── Fetch candles ─────────────────────────────────────────────────────────────
+
 
 def _fetch_candles(exchange, symbol: str, timeframe: str, limit: int = 100) -> list:
     try:
         return exchange.fetch_ohlcv(symbol, timeframe, limit=limit)
     except Exception as exc:
-        log.warning("[Fetch] %s %s: %s", symbol, timeframe, exc)
+        _log.warning("FETCH_FAILED", symbol=symbol, timeframe=timeframe, error=str(exc))
         return []
 
 
 # ── Cycle principal ───────────────────────────────────────────────────────────
+
 
 def run_cycle(
     symbols: list[str],
@@ -102,8 +105,8 @@ def run_cycle(
     risk_engine: RiskEngineMVP,
     exec_engine: ExecutionEngineMVP,
     learning: PostTradeLearning,
-    open_trades: dict,     # symbol → ExecutionResult
-    open_states: dict,     # symbol → (signal_type, regime, entry_features, entry_ts)
+    open_trades: dict,  # symbol → ExecutionResult
+    open_states: dict,  # symbol → (signal_type, regime, entry_features, entry_ts)
     cycle: int,
     paper_mode: bool,
 ) -> None:
@@ -111,18 +114,34 @@ def run_cycle(
     for symbol in symbols:
         try:
             _process_symbol(
-                symbol, exchange, market_engine, signal_engine,
-                risk_engine, exec_engine, learning,
-                open_trades, open_states, cycle, paper_mode,
+                symbol,
+                exchange,
+                market_engine,
+                signal_engine,
+                risk_engine,
+                exec_engine,
+                learning,
+                open_trades,
+                open_states,
+                cycle,
+                paper_mode,
             )
         except Exception as exc:
-            log.error("[Cycle] %s erreur: %s", symbol, exc, exc_info=True)
+            _log.error("CYCLE_ERROR", symbol=symbol, error=str(exc))
 
 
 def _process_symbol(
-    symbol, exchange, market_engine, signal_engine,
-    risk_engine, exec_engine, learning,
-    open_trades, open_states, cycle, paper_mode,
+    symbol,
+    exchange,
+    market_engine,
+    signal_engine,
+    risk_engine,
+    exec_engine,
+    learning,
+    open_trades,
+    open_states,
+    cycle,
+    paper_mode,
 ) -> None:
 
     # ── Fetch candles ─────────────────────────────────────────────────────
@@ -130,7 +149,7 @@ def _process_symbol(
     c4h = _fetch_candles(exchange, symbol, "4h", 60)
 
     if len(c1h) < 30:
-        log.debug("[%s] pas assez de candles (%d)", symbol, len(c1h))
+        _log.debug("INSUFFICIENT_CANDLES", symbol=symbol, count=len(c1h))
         return
 
     current_price = float(c1h[-1][4]) if c1h else 0.0
@@ -141,7 +160,7 @@ def _process_symbol(
         candles_1h=c1h,
         candles_4h=c4h,
     )
-    log.debug("[MarketState] %s", state.summary())
+    _log.debug("MARKET_STATE", symbol=symbol, summary=state.summary())
 
     # ── 2. Monitor positions ouvertes ─────────────────────────────────────
     if symbol in open_trades:
@@ -152,9 +171,19 @@ def _process_symbol(
             path.pop(0)
 
         entry_result = open_trades[symbol]
-        should_exit, exit_reason = exec_engine.check_exit(symbol, entry_result.direction, current_price, entry_result)
+        should_exit, exit_reason = exec_engine.check_exit(
+            symbol, entry_result.direction, current_price, entry_result
+        )
         if should_exit:
-            _close_trade(symbol, current_price, exit_reason, open_trades, open_states, risk_engine, learning)
+            _close_trade(
+                symbol,
+                current_price,
+                exit_reason,
+                open_trades,
+                open_states,
+                risk_engine,
+                learning,
+            )
             return
 
     # ── Pas de nouveau signal si déjà en position ─────────────────────────
@@ -163,21 +192,31 @@ def _process_symbol(
 
     # ── 3. SignalEngine ───────────────────────────────────────────────────
     if not state.is_tradeable():
-        log.debug("[%s] marché non tradeable (conf=%.0%)", symbol, state.global_confidence)
+        _log.debug("NOT_TRADEABLE", symbol=symbol, confidence=state.global_confidence)
         return
 
     signal = signal_engine.best_signal(symbol, c1h, state, c4h)
     if signal is None or not signal.actionable:
         return
 
-    log.info("[Signal] %s | %s %s score=%.0f conf=%.0%%",
-             symbol, signal.signal_type.value, signal.direction, signal.score, signal.confidence)
+    _log.trade(
+        "SIGNAL_GENERATED",
+        symbol=symbol,
+        signal_type=signal.signal_type.value,
+        direction=signal.direction,
+        score=signal.score,
+        confidence=signal.confidence,
+    )
 
     log_signal(
-        symbol=symbol, signal_type=signal.signal_type.value,
-        direction=signal.direction, score=signal.score,
-        confidence=signal.confidence, price=current_price,
-        regime=state.trend, trade_allowed=True,
+        symbol=symbol,
+        signal_type=signal.signal_type.value,
+        direction=signal.direction,
+        score=signal.score,
+        confidence=signal.confidence,
+        price=current_price,
+        regime=state.trend,
+        trade_allowed=True,
     )
 
     # ── 4. RiskEngine ─────────────────────────────────────────────────────
@@ -194,10 +233,12 @@ def _process_symbol(
     )
 
     if not risk.allowed:
-        log.info("[Risk] %s BLOQUÉ: %s", symbol, risk.reason)
+        _log.trade("RISK_BLOCKED", symbol=symbol, reason=risk.reason)
         return
 
-    log.info("[Risk] %s AUTORISÉ: %s", symbol, risk.reason)
+    _log.trade(
+        "RISK_APPROVED", symbol=symbol, reason=risk.reason, size_usd=risk.size_usd
+    )
 
     # ── 5. ExecutionEngine ────────────────────────────────────────────────
     result = exec_engine.execute(
@@ -210,7 +251,7 @@ def _process_symbol(
     )
 
     if result.status != "executed":
-        log.warning("[Exec] %s REJETÉ: %s", symbol, result.reason)
+        _log.warning("EXEC_REJECTED", symbol=symbol, reason=result.reason)
         return
 
     # Enregistrement
@@ -224,15 +265,23 @@ def _process_symbol(
         "entry_confidence": signal.confidence,
         "expected_slippage_bps": result.estimated_slippage_bps,
     }
-    risk_engine.register_open(symbol, signal.direction, risk.size_usd, result.entry_price)
+    risk_engine.register_open(
+        symbol, signal.direction, risk.size_usd, result.entry_price
+    )
 
     record_entry_from_mvp(
-        symbol=symbol, direction=signal.direction,
-        signal_type=signal.signal_type.value, regime=state.trend,
-        entry_price=result.entry_price, size_usd=risk.size_usd,
-        stop_loss=result.stop_loss_price, take_profit=result.take_profit_price,
-        score=signal.score, confidence=signal.confidence,
-        atr_pct=atr_pct, paper=paper_mode,
+        symbol=symbol,
+        direction=signal.direction,
+        signal_type=signal.signal_type.value,
+        regime=state.trend,
+        entry_price=result.entry_price,
+        size_usd=risk.size_usd,
+        stop_loss=result.stop_loss_price,
+        take_profit=result.take_profit_price,
+        score=signal.score,
+        confidence=signal.confidence,
+        atr_pct=atr_pct,
+        paper=paper_mode,
     )
 
     msg = (
@@ -247,7 +296,20 @@ def _process_symbol(
         f"Taille    : ${risk.size_usd:.2f} ({risk.size_pct_capital:.1%})\n"
         f"Mode      : {'PAPER' if paper_mode else 'LIVE'}"
     )
-    log.info(msg)
+    _log.trade(
+        "TRADE_OPENED",
+        symbol=symbol,
+        direction=signal.direction,
+        signal_type=signal.signal_type.value,
+        regime=state.trend,
+        entry_price=result.entry_price,
+        stop_loss=result.stop_loss_price,
+        take_profit=result.take_profit_price,
+        risk_reward=result.risk_reward,
+        size_usd=risk.size_usd,
+        size_pct=risk.size_pct_capital,
+        paper=paper_mode,
+    )
     _tg(msg)
 
 
@@ -261,18 +323,21 @@ def _close_trade(
     learning: PostTradeLearning,
 ) -> None:
     entry_result = open_trades.pop(symbol, None)
-    state_info   = open_states.pop(symbol, {})
+    state_info = open_states.pop(symbol, {})
     if entry_result is None:
         return
 
     entry_price = entry_result.entry_price
-    direction   = entry_result.direction
-    size_usd    = entry_result.executed_size_usd
-    fee_usd     = entry_result.total_fee_usd
-    duration    = (time.time() - state_info.get("entry_ts", time.time())) / 60.0
+    direction = entry_result.direction
+    size_usd = entry_result.executed_size_usd
+    fee_usd = entry_result.total_fee_usd
+    duration = (time.time() - state_info.get("entry_ts", time.time())) / 60.0
 
-    pnl_pct = ((exit_price - entry_price) / entry_price) if direction == "long" else (
-               (entry_price - exit_price) / entry_price)
+    pnl_pct = (
+        ((exit_price - entry_price) / entry_price)
+        if direction == "long"
+        else ((entry_price - exit_price) / entry_price)
+    )
     pnl_usd = size_usd * pnl_pct - fee_usd
 
     # Slippage réel (approximation)
@@ -298,13 +363,19 @@ def _close_trade(
     )
 
     record_exit_from_mvp(
-        symbol=symbol, direction=direction,
+        symbol=symbol,
+        direction=direction,
         signal_type=state_info.get("signal_type", "unknown"),
         regime=state_info.get("regime", "unknown"),
-        entry_price=entry_price, exit_price=exit_price,
-        size_usd=size_usd, pnl_usd=pnl_usd, pnl_pct=pnl_pct,
-        exit_reason=exit_reason, duration_minutes=duration,
-        attribution=rec.attribution, fee_usd=fee_usd,
+        entry_price=entry_price,
+        exit_price=exit_price,
+        size_usd=size_usd,
+        pnl_usd=pnl_usd,
+        pnl_pct=pnl_pct,
+        exit_reason=exit_reason,
+        duration_minutes=duration,
+        attribution=rec.attribution,
+        fee_usd=fee_usd,
         price_path=state_info.get("price_path", []),
     )
 
@@ -316,7 +387,16 @@ def _close_trade(
         f"Attribution: {rec.attribution}\n"
         f"{rec.lesson if rec.lesson else ''}"
     )
-    log.info(msg)
+    _log.trade(
+        "TRADE_CLOSED",
+        symbol=symbol,
+        direction=direction,
+        exit_reason=exit_reason,
+        pnl_usd=round(pnl_usd, 4),
+        pnl_pct=round(pnl_pct, 4),
+        duration_min=round(duration, 1),
+        attribution=rec.attribution,
+    )
     _tg(msg)
 
 
@@ -328,7 +408,7 @@ def _get_win_rate(learning: PostTradeLearning, signal_type: str) -> float | None
 
 
 def _send_kpi_report(learning: PostTradeLearning, risk_engine: RiskEngineMVP) -> None:
-    kpis   = learning.kpis()
+    kpis = learning.kpis()
     status = risk_engine.status()
     lessons = learning.recent_lessons(3)
 
@@ -345,15 +425,23 @@ def _send_kpi_report(learning: PostTradeLearning, risk_engine: RiskEngineMVP) ->
         msg += "\nLecons recentes:\n" + "\n".join(f"• {l}" for l in lessons)
     if status["trading_halted"]:
         msg += "\nALERTE: TRADING HALTE (hard drawdown atteint)"
-    log.info("[KPI] %s", kpis.summary())
+    _log.info(
+        "KPI_REPORT",
+        summary=kpis.summary(),
+        best_regime=kpis.best_regime,
+        best_signal=kpis.best_signal,
+    )
     _tg(msg)
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="MVP Orchestrator")
-    parser.add_argument("--interval", type=int, default=300, help="Secondes entre cycles")
+    parser.add_argument(
+        "--interval", type=int, default=300, help="Secondes entre cycles"
+    )
     parser.add_argument("--symbols", nargs="+", default=SYMBOLS_DEFAULT)
     parser.add_argument("--capital", type=float, default=1000.0)
     parser.add_argument("--paper", action="store_true", default=True)
@@ -362,35 +450,39 @@ def main() -> None:
 
     paper_mode = not args.live
 
-    log.info("=" * 60)
-    log.info("MVP ORCHESTRATOR — %s", "PAPER" if paper_mode else "LIVE")
-    log.info("Symboles  : %s", args.symbols)
-    log.info("Capital   : $%.2f", args.capital)
-    log.info("Interval  : %ds", args.interval)
-    log.info("=" * 60)
+    _log.info(
+        "MVP_START",
+        mode="PAPER" if paper_mode else "LIVE",
+        symbols=args.symbols,
+        capital=args.capital,
+        interval=args.interval,
+    )
 
     # ── Initialisation exchange ───────────────────────────────────────────
     try:
         import ccxt
-        exchange = ccxt.binance({
-            "apiKey":    os.getenv("BINANCE_API_KEY", ""),
-            "secret":    os.getenv("BINANCE_SECRET", ""),
-            "options":   {"defaultType": "future"},
-            "enableRateLimit": True,
-        })
+
+        exchange = ccxt.binance(
+            {
+                "apiKey": os.getenv("BINANCE_API_KEY", ""),
+                "secret": os.getenv("BINANCE_SECRET", ""),
+                "options": {"defaultType": "future"},
+                "enableRateLimit": True,
+            }
+        )
         exchange.load_markets()
-        log.info("Exchange Binance Futures connecté")
+        _log.info("EXCHANGE_CONNECTED", exchange="binance_futures")
     except Exception as exc:
-        log.warning("Exchange non disponible: %s — mode paper seulement", exc)
+        _log.warning("EXCHANGE_UNAVAILABLE", error=str(exc))
         exchange = None
         paper_mode = True
 
     # ── Instanciation des 5 moteurs ──────────────────────────────────────
     signal_engine = SignalEngineMVP()
-    learning      = PostTradeLearning(signal_engine=signal_engine)
+    learning = PostTradeLearning(signal_engine=signal_engine)
     market_engine = MarketStateEngine()
-    risk_engine   = RiskEngineMVP(capital_usd=args.capital)
-    exec_engine   = ExecutionEngineMVP(
+    risk_engine = RiskEngineMVP(capital_usd=args.capital)
+    exec_engine = ExecutionEngineMVP(
         exchange=exchange,
         paper_mode=paper_mode,
     )
@@ -404,7 +496,7 @@ def main() -> None:
     while True:
         cycle += 1
         t_start = time.time()
-        log.info("── Cycle %d ──", cycle)
+        _log.debug("CYCLE_START", cycle=cycle)
 
         run_cycle(
             symbols=args.symbols,
@@ -425,7 +517,12 @@ def main() -> None:
 
         elapsed = time.time() - t_start
         sleep_time = max(0, args.interval - elapsed)
-        log.debug("Cycle terminé en %.1fs, prochain dans %.0fs", elapsed, sleep_time)
+        _log.debug(
+            "CYCLE_END",
+            cycle=cycle,
+            elapsed_s=round(elapsed, 1),
+            next_in_s=round(sleep_time),
+        )
         time.sleep(sleep_time)
 
 

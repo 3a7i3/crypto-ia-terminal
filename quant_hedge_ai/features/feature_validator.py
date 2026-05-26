@@ -4,14 +4,16 @@ feature_validator.py — Feature Quality Assurance
 Détecte les features invalides : NaN, hors plage, obsolètes,
 constantes, ou fortement corrélées (redondance).
 """
+
 from __future__ import annotations
 
-import logging
 import math
 from dataclasses import dataclass
 from typing import Any
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
+
+_log = get_logger("quant_hedge_ai.features.feature_validator")
 
 
 @dataclass
@@ -20,7 +22,7 @@ class ValidationReport:
     n_features: int
     n_invalid: int
     issues: list[str]
-    quality_score: float    # [0,1]
+    quality_score: float  # [0,1]
     cleaned: dict[str, float]
 
 
@@ -45,7 +47,9 @@ class FeatureValidator:
 
         for name, val in features.items():
             # NaN / Inf
-            if val is None or (isinstance(val, float) and (math.isnan(val) or math.isinf(val))):
+            if val is None or (
+                isinstance(val, float) and (math.isnan(val) or math.isinf(val))
+            ):
                 issues.append(f"{name}: NaN/Inf value → replaced with 0")
                 cleaned[name] = 0.0
                 n_invalid += 1
@@ -55,7 +59,9 @@ class FeatureValidator:
             if self._registry:
                 meta = self._registry.get(name)
                 if meta and not (meta.expected_min <= val <= meta.expected_max):
-                    issues.append(f"{name}={val:.4f} hors plage [{meta.expected_min}, {meta.expected_max}]")
+                    issues.append(
+                        f"{name}={val:.4f} hors plage [{meta.expected_min}, {meta.expected_max}]"
+                    )
                     cleaned[name] = max(meta.expected_min, min(meta.expected_max, val))
                     n_invalid += 1
                     continue
@@ -66,13 +72,20 @@ class FeatureValidator:
         # On détecte juste les valeurs suspectes simples
         constant_suspects = [k for k, v in cleaned.items() if v == 0.0]
         if len(constant_suspects) > len(cleaned) * 0.5:
-            issues.append(f"WARN: {len(constant_suspects)}/{len(cleaned)} features à 0 — données manquantes?")
+            issues.append(
+                f"WARN: {len(constant_suspects)}/{len(cleaned)} features à 0 — données manquantes?"
+            )
 
         quality = 1.0 - (n_invalid / len(features)) if features else 0.0
         valid = n_invalid == 0 or not strict
 
         if issues:
-            logger.debug("[FeatureValidator] %s — %d issues, quality=%.0f%%", symbol, len(issues), quality * 100)
+            _log.debug(
+                "[FeatureValidator] %s — %d issues, quality=%.0f%%",
+                symbol,
+                len(issues),
+                quality * 100,
+            )
 
         return ValidationReport(
             valid=valid,

@@ -4,23 +4,25 @@ whale_behavior_classifier.py — Whale Behavior Taxonomy
 Classifie le comportement des baleines (grands wallets) en patterns
 reconnus : accumulation, distribution, rotation, neutre.
 """
+
 from __future__ import annotations
 
-import logging
 import time
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
+
+_log = get_logger("quant_hedge_ai.agents.onchain.whale_behavior_classifier")
 
 
 class WhaleBehavior(str, Enum):
-    ACCUMULATION = "accumulation"       # achats réguliers, outflow exchange
-    DISTRIBUTION = "distribution"       # ventes, inflow exchange massif
-    ROTATION = "rotation"               # mouvement inter-assets
-    HODL = "hodl"                       # pas de mouvement significatif
-    SQUEEZE = "squeeze"                 # liquidations forcées
+    ACCUMULATION = "accumulation"  # achats réguliers, outflow exchange
+    DISTRIBUTION = "distribution"  # ventes, inflow exchange massif
+    ROTATION = "rotation"  # mouvement inter-assets
+    HODL = "hodl"  # pas de mouvement significatif
+    SQUEEZE = "squeeze"  # liquidations forcées
     NEUTRAL = "neutral"
 
 
@@ -29,17 +31,20 @@ class WhaleSignal:
     symbol: str
     timestamp: float
     behavior: WhaleBehavior = WhaleBehavior.NEUTRAL
-    confidence: float = 0.5             # [0,1]
-    score: float = 0.0                  # [-1,+1] : -1 distrib, +1 accum
+    confidence: float = 0.5  # [0,1]
+    score: float = 0.0  # [-1,+1] : -1 distrib, +1 accum
     large_tx_count: int = 0
-    dominant_direction: str = "neutral" # "buy", "sell", "neutral"
+    dominant_direction: str = "neutral"  # "buy", "sell", "neutral"
     message: str = ""
 
     def is_bullish(self) -> bool:
         return self.behavior in (WhaleBehavior.ACCUMULATION,) and self.score > 0.3
 
     def is_bearish(self) -> bool:
-        return self.behavior in (WhaleBehavior.DISTRIBUTION, WhaleBehavior.SQUEEZE) and self.score < -0.3
+        return (
+            self.behavior in (WhaleBehavior.DISTRIBUTION, WhaleBehavior.SQUEEZE)
+            and self.score < -0.3
+        )
 
 
 class WhaleBehaviorClassifier:
@@ -49,9 +54,9 @@ class WhaleBehaviorClassifier:
     """
 
     # Seuils
-    LARGE_TX_THRESHOLD_USD = 500_000    # transaction "baleine" > 500k USD
-    ACCUMULATION_RATIO = 0.3            # outflow > inflow de 30%
-    DISTRIBUTION_RATIO = -0.3           # inflow > outflow de 30%
+    LARGE_TX_THRESHOLD_USD = 500_000  # transaction "baleine" > 500k USD
+    ACCUMULATION_RATIO = 0.3  # outflow > inflow de 30%
+    DISTRIBUTION_RATIO = -0.3  # inflow > outflow de 30%
 
     def __init__(self) -> None:
         self._history: dict[str, list[WhaleSignal]] = {}
@@ -61,7 +66,7 @@ class WhaleBehaviorClassifier:
         Classifie le comportement baleine depuis les données on-chain.
         onchain_data: OnChainData ou dict compatible.
         """
-        if hasattr(onchain_data, '__dict__'):
+        if hasattr(onchain_data, "__dict__"):
             inflow = onchain_data.exchange_inflow_usd
             outflow = onchain_data.exchange_outflow_usd
             large_tx = onchain_data.large_tx_count
@@ -81,7 +86,9 @@ class WhaleBehaviorClassifier:
         total_flow = inflow + outflow
         flow_ratio = (outflow - inflow) / total_flow if total_flow > 0 else 0.0
 
-        score = self._compute_score(flow_ratio, large_tx, whale_out, whale_in, dormancy, supply_profit)
+        score = self._compute_score(
+            flow_ratio, large_tx, whale_out, whale_in, dormancy, supply_profit
+        )
         behavior = self._map_behavior(score, flow_ratio, dormancy)
         direction = "buy" if score > 0.1 else "sell" if score < -0.1 else "neutral"
         confidence = min(abs(score) * 1.5, 1.0)
@@ -120,8 +127,13 @@ class WhaleBehaviorClassifier:
     # ------------------------------------------------------------------
 
     def _compute_score(
-        self, flow_ratio: float, large_tx: int, whale_out: float,
-        whale_in: float, dormancy: float, supply_profit: float
+        self,
+        flow_ratio: float,
+        large_tx: int,
+        whale_out: float,
+        whale_in: float,
+        dormancy: float,
+        supply_profit: float,
     ) -> float:
         score = flow_ratio * 0.4
         if large_tx > 10:
@@ -135,7 +147,9 @@ class WhaleBehaviorClassifier:
             score -= 0.1
         return max(-1.0, min(1.0, score))
 
-    def _map_behavior(self, score: float, flow_ratio: float, dormancy: float) -> WhaleBehavior:
+    def _map_behavior(
+        self, score: float, flow_ratio: float, dormancy: float
+    ) -> WhaleBehavior:
         if score > self.ACCUMULATION_RATIO:
             return WhaleBehavior.ACCUMULATION
         if score < self.DISTRIBUTION_RATIO:
@@ -146,7 +160,9 @@ class WhaleBehaviorClassifier:
             return WhaleBehavior.HODL
         return WhaleBehavior.NEUTRAL
 
-    def _describe(self, behavior: WhaleBehavior, flow_ratio: float, large_tx: int) -> str:
+    def _describe(
+        self, behavior: WhaleBehavior, flow_ratio: float, large_tx: int
+    ) -> str:
         if behavior == WhaleBehavior.ACCUMULATION:
             return f"Baleines accumulent ({large_tx} large tx, outflow net +{flow_ratio:.1%})"
         if behavior == WhaleBehavior.DISTRIBUTION:

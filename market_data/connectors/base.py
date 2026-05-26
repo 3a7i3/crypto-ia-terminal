@@ -14,7 +14,6 @@ Les methodes stream_* sont des generateurs asynchrones.
 
 from __future__ import annotations
 
-import logging
 from abc import ABC, abstractmethod
 from typing import AsyncGenerator, Optional
 
@@ -24,8 +23,9 @@ from market_data.models import (
     NormalizedOrderBook,
     NormalizedTrade,
 )
+from observability.json_logger import get_logger
 
-log = logging.getLogger(__name__)
+_log = get_logger("market_data.connectors.base")
 
 
 class BaseConnector(ABC):
@@ -43,7 +43,7 @@ class BaseConnector(ABC):
 
     def __init__(self, timeout_s: int = 10) -> None:
         self.timeout_s = timeout_s
-        self._log = logging.getLogger(f"market_data.{self.exchange_name}")
+        self._log = get_logger(f"market_data.{self.exchange_name}")
 
     # ------------------------------------------------------------------
     # REST (synchrone)

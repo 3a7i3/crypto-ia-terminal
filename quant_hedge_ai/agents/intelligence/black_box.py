@@ -20,7 +20,6 @@ Requêtes rapides : filtre par type, symbole, régime, décision.
 from __future__ import annotations
 
 import json
-import logging
 import os
 import time
 import uuid
@@ -29,8 +28,9 @@ from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
 
+_log = get_logger("quant_hedge_ai.agents.intelligence.black_box")
 _BB_PATH = os.getenv("BB_PATH", "databases/black_box.jsonl")
 _BB_MAX_SIZE = int(os.getenv("BB_MAX", "5000"))  # max entrées en mémoire
 
@@ -127,7 +127,7 @@ class BlackBox:
                             pass
             self._entries = self._entries[-_BB_MAX_SIZE:]
         except Exception as exc:
-            logger.warning("[BlackBox] Chargement partiel: %s", exc)
+            _log.warning("[BlackBox] Chargement partiel: %s", exc)
 
     # ── Helpers enrichissement ────────────────────────────────────────────────
 
@@ -475,8 +475,8 @@ class BlackBox:
             with open(self._path, "a", encoding="utf-8") as f:
                 f.write(json.dumps(asdict(entry), default=str) + "\n")
         except Exception as exc:
-            logger.warning("[BlackBox] Sauvegarde échouée: %s", exc)
-        logger.debug(
+            _log.warning("[BlackBox] Sauvegarde échouée: %s", exc)
+        _log.debug(
             "[BlackBox] %s | %s %s score=%d | %s",
             entry.decision_type,
             entry.symbol,

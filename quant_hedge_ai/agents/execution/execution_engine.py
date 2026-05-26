@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-import logging
 import os
 import time
 
+from observability.json_logger import get_logger
 from quant_hedge_ai.agents.execution.order_deduplicator import OrderDeduplicator
 from quant_hedge_ai.agents.execution.trade_logger import TradeLogger
 from quant_hedge_ai.agents.risk.session_guard import (
@@ -13,8 +13,7 @@ from quant_hedge_ai.agents.risk.session_guard import (
 )
 from supervision.alert_manager import Alert, AlertManager
 
-logger = logging.getLogger(__name__)
-
+_log = get_logger("quant_hedge_ai.agents.execution.execution_engine")
 alert_manager = AlertManager()
 
 
@@ -76,15 +75,15 @@ class ExecutionEngine:
 
             exchange = ExchangeFactory.create()
             if exchange is None:
-                logger.warning("[ExecutionEngine] ExchangeFactory échec — mode paper")
+                _log.warning("[ExecutionEngine] ExchangeFactory échec — mode paper")
                 self._live = False
                 return None
             mode = detect_mode()
             self._mode = mode
-            logger.info("[ExecutionEngine] Exchange initialisé — mode=%s", mode)
+            _log.info("[ExecutionEngine] Exchange initialisé — mode=%s", mode)
             return exchange
         except Exception as exc:
-            logger.error("[ExecutionEngine] Init spot erreur: %s", exc)
+            _log.error("[ExecutionEngine] Init spot erreur: %s", exc)
             self._live = False
             return None
 
@@ -98,7 +97,7 @@ class ExecutionEngine:
 
         # krakenfutures testnet — même exchange que le principal
         if exch_id == "krakenfutures" and self._exchange is not None:
-            logger.info(
+            _log.info(
                 "[ExecutionEngine] Futures Demo = krakenfutures testnet (exchange partagé)"
             )
             return self._exchange
@@ -110,7 +109,7 @@ class ExecutionEngine:
             key = os.getenv("BINANCE_FUTURES_DEMO_KEY", "")
             secret = os.getenv("BINANCE_FUTURES_DEMO_SECRET", "")
             if not key or not secret:
-                logger.debug("[ExecutionEngine] Pas de clés futures demo — ignoré")
+                _log.debug("[ExecutionEngine] Pas de clés futures demo — ignoré")
                 return None
             ex = ccxt.binanceusdm(
                 {
@@ -123,12 +122,12 @@ class ExecutionEngine:
             ex.enable_demo_trading(True)
             bal = ex.fetch_balance()
             usdt = bal.get("total", {}).get("USDT", 0)
-            logger.info(
+            _log.info(
                 "[ExecutionEngine] Futures Demo Binance connecté — USDT: %.2f", usdt
             )
             return ex
         except Exception as exc:
-            logger.warning("[ExecutionEngine] Futures demo non disponible: %s", exc)
+            _log.warning("[ExecutionEngine] Futures demo non disponible: %s", exc)
             return None
 
     def reconnect(self) -> bool:
@@ -138,7 +137,7 @@ class ExecutionEngine:
         Appelé automatiquement par SelfHealingBot quand l'exchange est hors ligne.
         """
         t0 = time.time()
-        logger.info("[ExecutionEngine] Reconnexion en cours...")
+        _log.info("[ExecutionEngine] Reconnexion en cours...")
         was_live = self._live
         closed = set()
         for ex in (self._exchange, self._exchange_futures):
@@ -147,7 +146,7 @@ class ExecutionEngine:
                     ex.close()
                     closed.add(id(ex))
                 except Exception as _exc:
-                    logger.debug("[ExecutionEngine] close() ignoré: %s", _exc)
+                    _log.debug("[ExecutionEngine] close() ignoré: %s", _exc)
         self._exchange = None
         self._exchange_futures = None
         try:
@@ -160,16 +159,16 @@ class ExecutionEngine:
             ok = self._exchange is not None or self._exchange_futures is not None
             elapsed = time.time() - t0
             if ok:
-                logger.info("[ExecutionEngine] Reconnexion réussie en %.1fs", elapsed)
+                _log.info("[ExecutionEngine] Reconnexion réussie en %.1fs", elapsed)
             else:
-                logger.error(
+                _log.error(
                     "[ExecutionEngine] Reconnexion échouée — aucun client actif après %.1fs",
                     elapsed,
                 )
             return ok
         except Exception as exc:
             self._live = was_live
-            logger.error("[ExecutionEngine] Reconnexion exception: %s", exc)
+            _log.error("[ExecutionEngine] Reconnexion exception: %s", exc)
             return False
 
     def _with_retry(self, fn, *args, **kwargs):
@@ -185,7 +184,7 @@ class ExecutionEngine:
                 return fn(*args, **kwargs)
             except Exception as exc:
                 last_exc = exc
-                logger.warning(
+                _log.warning(
                     "[ExecutionEngine] Retry %d/%d (pause %.1fs): %s",
                     i + 1,
                     len(delays),
@@ -193,7 +192,7 @@ class ExecutionEngine:
                     exc,
                 )
                 time.sleep(delay)
-        logger.warning(
+        _log.warning(
             "[ExecutionEngine] 3 échecs consécutifs — reconnexion avant dernier essai"
         )
         try:
@@ -224,7 +223,7 @@ class ExecutionEngine:
             free = bal.get("free", {})
             return float(free.get("USDT", 0.0) or free.get("USD", 0.0))
         except Exception as exc:
-            logger.warning("[ExecutionEngine] fetch_futures_balance erreur: %s", exc)
+            _log.warning("[ExecutionEngine] fetch_futures_balance erreur: %s", exc)
             return 0.0
 
     # ── Configuration ──────────────────────────────────────────────────────────
@@ -254,7 +253,7 @@ class ExecutionEngine:
                     self._last_known_capital = usdt
                     return usdt
             except Exception as exc:
-                logger.warning(
+                _log.warning(
                     "[ExecutionEngine] fetch_balance erreur après retry: %s", exc
                 )
         last = getattr(self, "_last_known_capital", 0.0)
@@ -299,9 +298,7 @@ class ExecutionEngine:
             self._guard.check_order(symbol, action, size_usd=size)
         except (SessionHaltedError, OrderTooLargeError) as exc:
             reason = str(exc)
-            logger.warning(
-                "[ExecutionEngine] Order rejected by SessionGuard: %s", reason
-            )
+            _log.warning("[ExecutionEngine] Order rejected by SessionGuard: %s", reason)
             self._logger.log_rejected(symbol, action, size, reason)
             return {
                 "symbol": symbol,
@@ -422,7 +419,7 @@ class ExecutionEngine:
             order = self._with_retry(
                 self._exchange_futures.create_order, ccxt_symbol, "market", side, qty
             )
-            logger.info(
+            _log.info(
                 "[ExecutionEngine] Ordre FUTURES DEMO: %s %.4f %s @ $%.2f (lev x%d) id=%s",
                 action,
                 qty,
@@ -437,7 +434,7 @@ class ExecutionEngine:
             return {**order, "mode": "futures_demo", "usd_size": round(qty * price, 2)}
 
         except Exception as exc:
-            logger.error(
+            _log.error(
                 "[ExecutionEngine] Echec futures demo %s %s: %s", action, symbol, exc
             )
             return {
@@ -476,7 +473,7 @@ class ExecutionEngine:
 
             # Vérifier que le montant USD couvre le minimum notionnel
             if size < min_notional:
-                logger.warning(
+                _log.warning(
                     "[ExecutionEngine] Montant $%.2f < minimum notionnel $%.2f pour %s — ajusté",
                     size,
                     min_notional,
@@ -490,7 +487,7 @@ class ExecutionEngine:
                 bal = self._exchange.fetch_balance()
                 available = float(bal.get("free", {}).get(quote, 0.0))
                 if available < size:
-                    logger.warning(
+                    _log.warning(
                         "[ExecutionEngine] Balance %s insuffisante (%.2f < %.2f USD) — taille réduite",
                         quote,
                         available,
@@ -516,7 +513,7 @@ class ExecutionEngine:
             order = self._with_retry(
                 self._exchange.create_order, ccxt_symbol, "market", side, qty
             )
-            logger.info(
+            _log.info(
                 "[ExecutionEngine] Ordre live: %s %.8f %s @ $%.2f (USD: $%.2f) id=%s",
                 action,
                 qty,
@@ -528,7 +525,7 @@ class ExecutionEngine:
             return {**order, "mode": "live", "usd_size": round(qty * price, 4)}
 
         except Exception as exc:
-            logger.error(
+            _log.error(
                 "[ExecutionEngine] Echec ordre live %s %s: %s", action, symbol, exc
             )
             return {

@@ -4,11 +4,12 @@ bot_doctor.py — Superviseur de modules avec détection de pannes et auto-heal.
 
 from __future__ import annotations
 
-import logging
 from datetime import datetime
 from typing import Any, List, Optional
 
-logger = logging.getLogger("BotDoctor")
+from observability.json_logger import get_logger
+
+_log = get_logger("BotDoctor")
 
 
 class ModuleStatus:
@@ -53,12 +54,12 @@ class BotDoctor:
         for status in self.statuses:
             if not status.is_healthy:
                 msg = f"[BotDoctor] ALERTE — {status.name}: {status.error}"
-                logger.warning(msg)
+                _log.warning(msg)
                 if self.notifier:
                     try:
                         self.notifier.notify(msg)
                     except Exception as exc:
-                        logger.error("Erreur notifier: %s", exc)
+                        _log.error("Erreur notifier: %s", exc)
         return self.statuses
 
     @property

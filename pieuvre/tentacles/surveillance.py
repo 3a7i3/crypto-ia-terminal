@@ -11,16 +11,15 @@ Tentacule Surveillance — monitoring runtime étendu.
 
 from __future__ import annotations
 
-import logging
 import os
 import time
 from pathlib import Path
 
+from observability.json_logger import get_logger
 from pieuvre.incidents.models import Finding, Severity
 from pieuvre.tentacles.base import BaseTentacle
 
-logger = logging.getLogger(__name__)
-
+_log = get_logger("pieuvre.tentacles.surveillance")
 _CPU_ALERT_THRESHOLD = 90.0  # %
 _RAM_ALERT_THRESHOLD = 85.0  # %
 _LOG_SIZE_ALERT_MB = 100.0  # Mo
@@ -105,7 +104,7 @@ class SurveillanceTentacle(BaseTentacle):
         except ImportError:
             pass  # psutil non installé — skip
         except Exception as exc:
-            logger.debug("Surveillance ressources: %s", exc)
+            _log.debug("Surveillance ressources: %s", exc)
 
         return findings
 
@@ -218,6 +217,6 @@ class SurveillanceTentacle(BaseTentacle):
         except ImportError:
             pass
         except Exception as exc:
-            logger.debug("Surveillance processus: %s", exc)
+            _log.debug("Surveillance processus: %s", exc)
 
         return findings

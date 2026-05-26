@@ -21,11 +21,11 @@ Migration DecisionPacket :
 
 from __future__ import annotations
 
-import logging
 from dataclasses import dataclass
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
 
+_log = get_logger("quant_hedge_ai.agents.risk.order_sizer")
 _DEFAULT_KELLY_FRACTION = 0.25  # quart-Kelly par défaut (sécuritaire)
 _DEFAULT_MIN_SIZE_USD = 10.0
 _DEFAULT_MAX_SIZE_USD = 5_000.0
@@ -162,7 +162,7 @@ class OrderSizer:
         # ⑧ Taille en unité de base
         size_base = size_usd / price if price > 0 else 0.0
 
-        logger.info(
+        _log.info(
             "[OrderSizer] capital=%.0f win_rate=%.1f%% → size=$%.2f (%.2f%%  capital) capped=%s",
             capital,
             win_rate * 100,

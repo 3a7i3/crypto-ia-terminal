@@ -19,13 +19,13 @@ Usage:
 from __future__ import annotations
 
 import json
-import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
 
+_log = get_logger("quant_hedge_ai.agents.execution.trade_replay")
 _PAPER_STATE = Path("databases/paper_trading/state.json")
 _SHADOW_LOG = Path("databases/shadow_execution/shadow_log.jsonl")
 _TRADE_LOG = Path("databases/trades/trade_log.jsonl")
@@ -55,7 +55,7 @@ class ReplayReport:
     latency_ms: float = 0.0
     reason_code: str = ""
     raw: dict = field(default_factory=dict)
-    source: str = "unknown"   # paper_engine | shadow_log | trade_log
+    source: str = "unknown"  # paper_engine | shadow_log | trade_log
 
     def render(self) -> str:
         if not self.found:
@@ -87,7 +87,11 @@ class ReplayReport:
         lines += [
             f"{'-'*40}",
             f"Entry     : {self.entry_price:.6f}",
-            f"Exit      : {self.exit_price:.6f}" if self.exit_price else "Exit      : (open position)",
+            (
+                f"Exit      : {self.exit_price:.6f}"
+                if self.exit_price
+                else "Exit      : (open position)"
+            ),
             f"Size      : {self.size:.6f}",
             f"Notional  : {self.notional:,.2f} USD",
         ]
@@ -185,8 +189,13 @@ class TradeReplaySystem:
         trades = self._load_paper_state_trades()
         return trades[-n:]
 
-    def search(self, symbol: str | None = None, regime: str | None = None,
-               min_score: int = 0, n: int = 100) -> list[dict]:
+    def search(
+        self,
+        symbol: str | None = None,
+        regime: str | None = None,
+        min_score: int = 0,
+        n: int = 100,
+    ) -> list[dict]:
         """Cherche des trades selon des critères dans le shadow log."""
         records = self._read_jsonl(self._shadow_log, 0)  # 0 = tout
         results = []
@@ -294,7 +303,7 @@ class TradeReplaySystem:
                     except json.JSONDecodeError:
                         continue
         except Exception as exc:
-            logger.debug("[TradeReplay] JSONL read error %s: %s", path, exc)
+            _log.debug("[TradeReplay] JSONL read error %s: %s", path, exc)
         return None
 
     def _read_jsonl(self, path: Path, n: int) -> list[dict]:

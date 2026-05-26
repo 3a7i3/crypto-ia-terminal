@@ -14,16 +14,15 @@ Variables d'env :
 
 from __future__ import annotations
 
-import logging
 import os
 import time
 from datetime import datetime, timezone
 
+from observability.json_logger import get_logger
 from quant_hedge_ai.agents.market.ohlcv_validator import validate_candles
 from quant_hedge_ai.agents.market.retry_policy import retry_with_backoff
 
-logger = logging.getLogger(__name__)
-
+_log = get_logger("quant_hedge_ai.agents.market.historical_fetcher")
 # Nombre de bougies par requête (max Binance = 1000, on prend 500 par sécurité)
 _PAGE_SIZE = 500
 
@@ -84,9 +83,9 @@ class HistoricalDataFetcher:
                     config["secret"] = api_secret
 
             self._exchange = getattr(ccxt, eid)(config)
-            logger.info("[HistoricalFetcher] Exchange %s initialisé", eid)
+            _log.info("[HistoricalFetcher] Exchange %s initialisé", eid)
         except Exception as exc:
-            logger.error("[HistoricalFetcher] Impossible d'initialiser ccxt: %s", exc)
+            _log.error("[HistoricalFetcher] Impossible d'initialiser ccxt: %s", exc)
         return self._exchange
 
     def fetch(
@@ -104,14 +103,14 @@ class HistoricalDataFetcher:
         """
         exchange = self._get_exchange()
         if exchange is None:
-            logger.error("[HistoricalFetcher] Exchange non disponible")
+            _log.error("[HistoricalFetcher] Exchange non disponible")
             return []
 
         tf_sec = _TIMEFRAME_SECONDS.get(timeframe, 3600)
         total_candles = int(years * 365 * 24 * 3600 / tf_sec)
         since_ms = int((time.time() - years * 365 * 24 * 3600) * 1000)
 
-        logger.info(
+        _log.info(
             "[HistoricalFetcher] Fetch %s %s — %.1f an(s) ≈ %d bougies depuis %s",
             symbol,
             timeframe,
@@ -141,7 +140,7 @@ class HistoricalDataFetcher:
             )
 
             if not batch_raw:
-                logger.info("[HistoricalFetcher] Page %d vide — fin du fetch", page)
+                _log.info("[HistoricalFetcher] Page %d vide — fin du fetch", page)
                 break
 
             batch_dicts = [
@@ -168,7 +167,7 @@ class HistoricalDataFetcher:
 
             if progress and page % 5 == 0:
                 pct = len(all_candles) / max(total_candles, 1) * 100
-                logger.info(
+                _log.info(
                     "[HistoricalFetcher] %s page %d — %d bougies (%.0f%%) — last: %s",
                     symbol,
                     page,
@@ -201,7 +200,7 @@ class HistoricalDataFetcher:
 
         unique.sort(key=lambda c: c["timestamp"])
 
-        logger.info(
+        _log.info(
             "[HistoricalFetcher] %s %s — %d bougies uniques récupérées (%.1f ans)",
             symbol,
             timeframe,
@@ -239,7 +238,7 @@ class HistoricalDataFetcher:
             }
             saved = db.save_snapshot(fake_market)
             results[symbol] = saved
-            logger.info(
+            _log.info(
                 "[HistoricalFetcher] %s → %d bougies sauvegardées",
                 symbol,
                 saved,

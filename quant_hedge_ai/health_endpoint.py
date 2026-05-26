@@ -17,26 +17,26 @@ Démarrage dans un thread daemon :
 from __future__ import annotations
 
 import json
-import logging
 import os
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from typing import Any
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
 
+_log = get_logger("quant_hedge_ai.health_endpoint")
 _DEFAULT_PORT = int(os.getenv("HEALTH_PORT", "8765"))
-_STARTED_AT   = time.time()
+_STARTED_AT = time.time()
 
 
 class _HealthHandler(BaseHTTPRequestHandler):
     """Handler HTTP minimaliste — lit le state depuis le server parent."""
 
-    server: "HealthServer"   # type: ignore[assignment]
+    server: "HealthServer"  # type: ignore[assignment]
 
     def log_message(self, fmt: str, *args: Any) -> None:
-        logger.debug("[HealthEndpoint] " + fmt, *args)
+        _log.debug("[HealthEndpoint] " + fmt, *args)
 
     def do_GET(self) -> None:  # noqa: N802
         path = self.path.rstrip("/")
@@ -86,7 +86,7 @@ class HealthServer:
             return
 
         server = HTTPServer(("0.0.0.0", self.port), _HealthHandler)
-        server.health_server = self   # référence pour le handler
+        server.health_server = self  # référence pour le handler
         # Monkey-patch pour que _HealthHandler.server pointe sur HealthServer
         # Le HTTPServer wrappe lui-même, on passe via un attribut custom
         server.__class__ = type(
@@ -94,8 +94,8 @@ class HealthServer:
             (HTTPServer,),
             {
                 "health_summary": lambda s: self.health_summary(),
-                "health_detail":  lambda s: self.health_detail(),
-                "metrics":        lambda s: self.metrics(),
+                "health_detail": lambda s: self.health_detail(),
+                "metrics": lambda s: self.metrics(),
             },
         )
 
@@ -104,14 +104,14 @@ class HealthServer:
             target=server.serve_forever, daemon=True, name="health-endpoint"
         )
         self._thread.start()
-        logger.info("[HealthServer] Démarré sur http://0.0.0.0:%d/health", self.port)
+        _log.info("[HealthServer] Démarré sur http://0.0.0.0:%d/health", self.port)
 
     def stop(self) -> None:
         """Arrête le serveur proprement."""
         if self._server is not None:
             self._server.shutdown()
             self._server = None
-        logger.info("[HealthServer] Arrêté")
+        _log.info("[HealthServer] Arrêté")
 
     @property
     def is_running(self) -> bool:
@@ -135,8 +135,12 @@ class HealthServer:
         return {
             "status": status,
             "uptime_seconds": round(time.time() - self._started_at, 1),
-            "components_ok": sum(1 for c in self._component_statuses().values() if c == "ok"),
-            "components_degraded": sum(1 for c in self._component_statuses().values() if c != "ok"),
+            "components_ok": sum(
+                1 for c in self._component_statuses().values() if c == "ok"
+            ),
+            "components_degraded": sum(
+                1 for c in self._component_statuses().values() if c != "ok"
+            ),
             "timestamp": time.time(),
         }
 

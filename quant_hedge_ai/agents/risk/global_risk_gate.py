@@ -24,10 +24,11 @@ Il applique les règles de gouvernance et décide seul.
 from __future__ import annotations
 
 import csv
-import logging
 import os
 import time
 from dataclasses import dataclass, field
+
+from observability.json_logger import get_logger
 
 _GATE_CSV = os.getenv("GATE_LOG_CSV", "databases/gate_rejections.csv")
 _GATE_CSV_FIELDS = [
@@ -72,8 +73,7 @@ def _gate_csv_log(
         pass
 
 
-logger = logging.getLogger(__name__)
-
+_log = get_logger("quant_hedge_ai.agents.risk.global_risk_gate")
 try:
     from quant_hedge_ai.agents.intelligence.market_regime_classifier import (
         MarketRegimeClassifier as _RegimeClassifier,
@@ -231,11 +231,11 @@ class GlobalRiskGate:
             allowed=allowed, conditions=conditions, failed=failed, warnings=warnings
         )
 
-        log_fn = logger.info if allowed else logger.warning
+        log_fn = _log.info if allowed else _log.warning
         log_fn("[GlobalRiskGate] %s", result.summary())
         if warnings:
             for w in warnings:
-                logger.warning("[GlobalRiskGate] ⚠️  %s", w)
+                _log.warning("[GlobalRiskGate] ⚠️  %s", w)
 
         symbol = getattr(signal_result, "symbol", "unknown")
         _gate_csv_log(symbol, regime_str, score, effective_min, allowed, failed)
@@ -400,10 +400,10 @@ class GlobalRiskGate:
             allowed=allowed, conditions=conditions, failed=failed, warnings=warnings
         )
 
-        log_fn = logger.info if allowed else logger.warning
+        log_fn = _log.info if allowed else _log.warning
         log_fn("[GlobalRiskGate] %s | %s", packet.symbol, result.summary())
         for w in warnings:
-            logger.warning("[GlobalRiskGate] %s", w)
+            _log.warning("[GlobalRiskGate] %s", w)
 
         _gate_csv_log(packet.symbol, regime_str, score, effective_min, allowed, failed)
 
@@ -446,7 +446,7 @@ class GlobalRiskGate:
         prev = self._regret_delta
         self._regret_delta = max(-5, min(5, self._regret_delta + delta))
         if self._regret_delta != prev:
-            logger.info(
+            _log.info(
                 "[GlobalRiskGate] Delta regret: %+d → %+d (min_score base=%d)",
                 prev,
                 self._regret_delta,
@@ -479,7 +479,7 @@ class GlobalRiskGate:
             return
         clamped = max(-5, min(5, delta))
         if clamped != self._regret_delta:
-            logger.debug(
+            _log.debug(
                 "[GlobalRiskGate] ATE delta: %+d → %+d",
                 self._regret_delta,
                 clamped,
@@ -505,7 +505,7 @@ class GlobalRiskGate:
             effective = max(self._absolute_floor, regime_effective)
             if regime != self._last_regime:
                 self._last_regime = regime
-                logger.info(
+                _log.info(
                     "[GlobalRiskGate] Seuil régime %s → %d (delta=%+d)",
                     regime,
                     effective,
@@ -534,7 +534,7 @@ class GlobalRiskGate:
             self._session_guard.check_order(symbol, action, order_size_usd)
             return True
         except Exception as exc:
-            logger.warning("[GlobalRiskGate] SessionGuard: %s", exc)
+            _log.warning("[GlobalRiskGate] SessionGuard: %s", exc)
             return False
 
     def _check_session_packet(self, packet, order_size_usd: float) -> bool:
@@ -553,7 +553,7 @@ class GlobalRiskGate:
             self._session_guard.check_order(packet.symbol, action, order_size_usd)
             return True
         except Exception as exc:
-            logger.warning("[GlobalRiskGate] SessionGuard: %s", exc)
+            _log.warning("[GlobalRiskGate] SessionGuard: %s", exc)
             return False
 
     def _check_drawdown(self, portfolio_drawdown: float) -> bool:
@@ -578,4 +578,4 @@ class GlobalRiskGate:
                 )
             )
         except Exception as exc:
-            logger.warning("[GlobalRiskGate] Erreur emission evenement halt: %s", exc)
+            _log.warning("[GlobalRiskGate] Erreur emission evenement halt: %s", exc)

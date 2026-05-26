@@ -3,7 +3,6 @@ circuit_breaker.py — Circuit-breaker proactif pour stabilité
 Monitore: mémoire, latence, erreurs → arrêt/pause intelligent si seuils dépassés
 """
 
-import logging
 import threading
 import time
 from dataclasses import dataclass
@@ -12,7 +11,9 @@ from typing import Any, Callable, Dict, List, Optional
 
 import psutil
 
-log = logging.getLogger("circuit_breaker")
+from observability.json_logger import get_logger
+
+_log = get_logger("circuit_breaker")
 
 
 class CircuitState(Enum):
@@ -86,7 +87,7 @@ class CircuitBreaker:
         try:
             return psutil.virtual_memory().percent
         except Exception as e:
-            log.warning(f"Failed to get memory: {e}")
+            _log.warning("MEMORY_CHECK_FAILED", error=str(e))
             return 0.0
 
     def update_metric(self, metric_name: str, value: float) -> None:
@@ -94,7 +95,7 @@ class CircuitBreaker:
         if metric_name in self._metrics:
             self._metrics[metric_name] = value
         else:
-            log.warning(f"Unknown metric: {metric_name}")
+            _log.warning("UNKNOWN_METRIC", metric=metric_name)
 
     def update_latency(self, latency_seconds: float) -> None:
         """Update latence (convertir en ms)"""
@@ -128,13 +129,13 @@ class CircuitBreaker:
         if not violations:
             # Pas de violation - peut récupérer
             if self.state == CircuitState.OPEN:
-                log.info("✓ All thresholds OK, attempting recovery...")
+                _log.info("CIRCUIT_RECOVERING", previous_state=self.state.value)
                 self.state = CircuitState.HALF_OPEN
                 for callback in self._callbacks_on_recover:
                     try:
                         callback()
                     except Exception as e:
-                        log.error(f"Callback error: {e}")
+                        _log.error("RECOVER_CALLBACK_ERROR", error=str(e))
             self._warning_count = 0
             return
 
@@ -143,20 +144,28 @@ class CircuitBreaker:
         self._warning_count += 1
 
         for name, level in violations.items():
-            log.warning(f"⚠ {name}: {level} ({self._warning_count} consecutive)")
+            _log.warning(
+                "THRESHOLD_VIOLATION",
+                threshold=name,
+                level=level,
+                consecutive=self._warning_count,
+            )
 
         if critical or self._warning_count >= 3:
             if self.state != CircuitState.OPEN:
-                log.critical("🛑 CIRCUIT BREAKER OPENED - Pausing operations")
+                _log.incident(
+                    "CIRCUIT_BREAKER_OPENED",
+                    violations=list(violations.keys()),
+                    critical_count=self._critical_count + 1,
+                )
                 self.state = CircuitState.OPEN
                 self._critical_count += 1
 
-                # Déclenche callbacks
                 for callback in self._callbacks_on_critical:
                     try:
                         callback()
                     except Exception as e:
-                        log.error(f"Callback error: {e}")
+                        _log.error("CRITICAL_CALLBACK_ERROR", error=str(e))
 
     def _monitor_loop(self) -> None:
         """Boucle de monitoring continu"""
@@ -165,25 +174,25 @@ class CircuitBreaker:
                 violations = self._check_thresholds()
                 self._handle_violations(violations)
             except Exception as e:
-                log.error(f"Monitor loop error: {e}")
+                _log.error("MONITOR_LOOP_ERROR", error=str(e))
 
             time.sleep(self.check_interval)
 
     def start(self) -> None:
         """Lance monitoring en background"""
         if self.is_running:
-            log.warning("Circuit breaker already running")
+            _log.warning("ALREADY_RUNNING")
             return
 
         self.is_running = True
         thread = threading.Thread(target=self._monitor_loop, daemon=True)
         thread.start()
-        log.info("Circuit breaker started")
+        _log.info("CIRCUIT_BREAKER_STARTED", interval=self.check_interval)
 
     def stop(self) -> None:
         """Arrête monitoring"""
         self.is_running = False
-        log.info("Circuit breaker stopped")
+        _log.info("CIRCUIT_BREAKER_STOPPED")
 
     def can_proceed(self) -> bool:
         """Vérifie si circuit permet d'avancer"""
@@ -201,7 +210,7 @@ class CircuitBreaker:
 
     def reset(self) -> None:
         """Reset le circuit"""
-        log.info("Resetting circuit breaker")
+        _log.info("CIRCUIT_BREAKER_RESET")
         self.state = CircuitState.CLOSED
         self._warning_count = 0
 
@@ -235,10 +244,6 @@ def enable_circuit_breaker(
 
 
 if __name__ == "__main__":
-    logging.basicConfig(
-        level=logging.INFO, format="%(asctime)s %(levelname)-8s %(name)s - %(message)s"
-    )
-
     breaker = get_circuit_breaker()
 
     def on_crit():

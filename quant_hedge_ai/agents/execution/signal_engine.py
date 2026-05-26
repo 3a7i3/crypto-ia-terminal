@@ -6,11 +6,11 @@ Utilisé par PaperTradingEngine pour décider l'action à chaque cycle.
 
 from __future__ import annotations
 
-import logging
 import math
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
 
+_log = get_logger("quant_hedge_ai.agents.execution.signal_engine")
 _INDICATORS = {"RSI", "EMA", "MACD", "BOLLINGER", "VWAP", "ATR"}
 
 
@@ -101,7 +101,7 @@ def compute_signal(strategy: dict, candles: list[dict]) -> str:
                 return "SELL"
 
     except Exception as exc:
-        logger.debug("[SignalEngine] %s: %s", indicator, exc)
+        _log.debug("[SignalEngine] %s: %s", indicator, exc)
 
     return "HOLD"
 

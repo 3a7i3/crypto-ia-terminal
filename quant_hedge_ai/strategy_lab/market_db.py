@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-import logging
 import sqlite3
 import threading
 import time
 from pathlib import Path
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
 
+_log = get_logger("quant_hedge_ai.strategy_lab.market_db")
 _DEFAULT_PATH = "databases/market_data.sqlite"
 
 
@@ -59,7 +59,7 @@ class MarketDatabase:
                 " ON ohlcv(symbol, timestamp DESC)"
             )
             conn.commit()
-        logger.debug("[MarketDatabase] Base initialisée : %s", self._path)
+        _log.debug("[MarketDatabase] Base initialisée : %s", self._path)
 
     def _connect(self) -> sqlite3.Connection:
         return sqlite3.connect(str(self._path), timeout=10)
@@ -110,7 +110,7 @@ class MarketDatabase:
             self._purge_old()
 
         if inserted:
-            logger.debug("[MarketDatabase] +%d nouvelles bougies persistées", inserted)
+            _log.debug("[MarketDatabase] +%d nouvelles bougies persistées", inserted)
         return inserted
 
     def get_latest_snapshot(self) -> dict:
@@ -186,7 +186,7 @@ class MarketDatabase:
                 ).rowcount
                 conn.commit()
         if deleted:
-            logger.info(
+            _log.info(
                 "[MarketDatabase] Purge : %d bougies > %dd supprimées",
                 deleted,
                 self._max_age_days,

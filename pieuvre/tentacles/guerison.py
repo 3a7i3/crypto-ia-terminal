@@ -11,11 +11,11 @@ Ce tentacule:
 
 from __future__ import annotations
 
-import logging
 import time
 from dataclasses import dataclass
 from pathlib import Path
 
+from observability.json_logger import get_logger
 from pieuvre.incidents.models import (
     RECOVERY_SECONDS,
     Finding,
@@ -25,8 +25,7 @@ from pieuvre.incidents.models import (
 )
 from pieuvre.tentacles.base import BaseTentacle
 
-logger = logging.getLogger(__name__)
-
+_log = get_logger("pieuvre.tentacles.guerison")
 # Réduction du temps de récupération par point de force au-delà de 1.0
 _EXPERIENCE_REDUCTION = 0.08  # 8% par point de force
 _MAX_REDUCTION = 0.60  # jamais en dessous de 40% du temps original
@@ -81,7 +80,7 @@ class GuerisonTentacle(BaseTentacle):
             actual_seconds=actual,
         )
 
-        logger.warning(
+        _log.warning(
             "[GUERISON] Récupération démarrée: %.0fs (base %.0fs, -%.0f%% expérience)",
             actual,
             original,
@@ -96,7 +95,7 @@ class GuerisonTentacle(BaseTentacle):
     def complete_recovery(self) -> None:
         self._healed_count += 1
         self.recovery = RecoveryState()
-        logger.info(
+        _log.info(
             "[GUERISON] Guérison terminée. Total guérisons: %d", self._healed_count
         )
 

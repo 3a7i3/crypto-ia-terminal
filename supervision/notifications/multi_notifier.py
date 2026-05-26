@@ -4,10 +4,11 @@ multi_notifier.py — Diffuse les alertes vers plusieurs notificateurs.
 
 from __future__ import annotations
 
-import logging
 from typing import Any, List
 
-logger = logging.getLogger("MultiNotifier")
+from observability.json_logger import get_logger
+
+_log = get_logger("MultiNotifier")
 
 
 class MultiNotifier:
@@ -19,4 +20,4 @@ class MultiNotifier:
             try:
                 notifier.notify(message)
             except Exception as exc:
-                logger.error("Erreur dans %s: %s", type(notifier).__name__, exc)
+                _log.error("Erreur dans %s: %s", type(notifier).__name__, exc)

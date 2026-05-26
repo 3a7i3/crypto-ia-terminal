@@ -13,14 +13,13 @@ Usage:
 
 from __future__ import annotations
 
-import logging
 import os
 from dataclasses import dataclass, field
 
+from observability.json_logger import get_logger
 from quant_hedge_ai.agents.execution.live_signal_engine import SignalResult
 
-logger = logging.getLogger(__name__)
-
+_log = get_logger("quant_hedge_ai.agents.intelligence.ai_advisor")
 _LM_STUDIO_MAX_TOKENS = int(os.getenv("LM_STUDIO_MAX_TOKENS", "160"))
 _LM_STUDIO_MIN_SCORE = int(os.getenv("LM_STUDIO_MIN_SCORE", "70"))
 
@@ -31,12 +30,12 @@ _SYSTEM_PROMPT = (
 )
 
 _REGIME_DESCRIPTIONS = {
-    "bull_trend":             "tendance haussière confirmée",
-    "bear_trend":             "tendance baissière confirmée",
-    "sideways":               "marché latéral / range",
+    "bull_trend": "tendance haussière confirmée",
+    "bear_trend": "tendance baissière confirmée",
+    "sideways": "marché latéral / range",
     "high_volatility_regime": "haute volatilité",
-    "flash_crash":            "krach éclair — risque extrême",
-    "unknown":                "régime indéterminé",
+    "flash_crash": "krach éclair — risque extrême",
+    "unknown": "régime indéterminé",
 }
 
 _SIGNAL_ICONS = {"BUY": "🟢", "SELL": "🔴", "HOLD": "🟡"}
@@ -50,10 +49,10 @@ class Advice:
     signal: str
     score: int
     regime: str
-    text: str                              # explication textuelle principale
-    risk_level: str = "medium"             # low | medium | high | extreme
-    confidence: str = "moderate"           # low | moderate | high
-    source: str = "deterministic"          # deterministic | lm_studio
+    text: str  # explication textuelle principale
+    risk_level: str = "medium"  # low | medium | high | extreme
+    confidence: str = "moderate"  # low | moderate | high
+    source: str = "deterministic"  # deterministic | lm_studio
     components_summary: str = ""
 
     def as_dict(self) -> dict:
@@ -120,7 +119,7 @@ class AIAdvisor:
             try:
                 advices.append(self.explain(r))
             except Exception as exc:
-                logger.warning("[AIAdvisor] Erreur %s: %s", r.symbol, exc)
+                _log.warning("[AIAdvisor] Erreur %s: %s", r.symbol, exc)
         return advices
 
     # ── Génération de texte ────────────────────────────────────────────────────
@@ -139,9 +138,15 @@ class AIAdvisor:
                 text = self._ask_lm_studio(result, risk, confidence)
                 return text, "lm_studio"
             except Exception as exc:
-                logger.debug("[AIAdvisor] LM Studio indisponible: %s — fallback déterministe", exc)
+                _log.debug(
+                    "[AIAdvisor] LM Studio indisponible: %s — fallback déterministe",
+                    exc,
+                )
 
-        return self._deterministic_advice(result, risk, confidence, components_summary), "deterministic"
+        return (
+            self._deterministic_advice(result, risk, confidence, components_summary),
+            "deterministic",
+        )
 
     def _should_use_lm_studio(self, result: SignalResult) -> bool:
         if getattr(result, "signal", "HOLD") == "HOLD":
@@ -154,6 +159,7 @@ class AIAdvisor:
 
     def _ask_lm_studio(self, result: SignalResult, risk: str, confidence: str) -> str:
         from lm_studio.ai_router import AIRouter
+
         router = AIRouter(mode=self.mode if self.mode != "deterministic" else "auto")
         prompt = self._build_prompt(result, risk, confidence)
         return router.ask(
@@ -273,6 +279,7 @@ class AIAdvisor:
         try:
             from event_bus.bus import EventBus
             from event_bus.events import NewBestStrategyEvent
+
             if result.signal in ("BUY", "SELL") and result.score >= 80:
                 EventBus.get().emit(
                     NewBestStrategyEvent(
@@ -284,4 +291,4 @@ class AIAdvisor:
                     )
                 )
         except Exception as exc:
-            logger.warning("[AIAdvisor] Erreur emission evenement evolution: %s", exc)
+            _log.warning("[AIAdvisor] Erreur emission evenement evolution: %s", exc)

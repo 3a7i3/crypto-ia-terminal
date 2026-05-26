@@ -19,7 +19,6 @@ Le bot cesse de trader "vite" pour trader "juste".
 
 from __future__ import annotations
 
-import logging
 import os
 import time
 from collections import deque
@@ -27,7 +26,9 @@ from dataclasses import dataclass, field
 from enum import IntEnum
 from typing import Callable, Optional
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
+
+_log = get_logger("quant_hedge_ai.agents.intelligence.self_awareness_engine")
 
 
 class DangerLevel(IntEnum):
@@ -216,7 +217,7 @@ class SelfAwarenessEngine:
             max_level >= DangerLevel.DANGER
             and self._halts_without_trade >= self.FREEZE_OVERRIDE_HALTS
         ):
-            logger.warning(
+            _log.warning(
                 "[SelfAwareness] FREEZE_OVERRIDE — %d halts consécutifs sans trade"
                 " → cap WARNING (size×0.25)",
                 self._halts_without_trade,
@@ -249,7 +250,7 @@ class SelfAwarenessEngine:
 
     def reset(self) -> None:
         """Reset manuel après intervention humaine."""
-        logger.info("[SelfAwareness] Reset manuel — retour à OK")
+        _log.info("[SelfAwareness] Reset manuel — retour à OK")
         self._state = AwarenessState()
         self._log_event("manual_reset", {})
 
@@ -545,19 +546,19 @@ class SelfAwarenessEngine:
         elif level == DangerLevel.CAUTION:
             self._state.size_factor = 0.5
             self._state.safe_mode = False
-            logger.warning("[SelfAwareness] CAUTION — taille réduite à 50%%")
+            _log.warning("[SelfAwareness] CAUTION — taille réduite à 50%%")
 
         elif level == DangerLevel.WARNING:
             self._state.size_factor = 0.25
             self._state.safe_mode = True
-            logger.warning("[SelfAwareness] WARNING — safe mode + taille 25%%")
+            _log.warning("[SelfAwareness] WARNING — safe mode + taille 25%%")
 
         elif level == DangerLevel.DANGER:
             self._state.size_factor = 0.0
             self._state.safe_mode = True
             self._state.halt_until = time.time() + self.HALT_DURATION_L3 * 60
             self._halts_without_trade += 1
-            logger.error(
+            _log.error(
                 "[SelfAwareness] DANGER — halt %d min | %s",
                 int(self.HALT_DURATION_L3),
                 " | ".join(
@@ -569,7 +570,7 @@ class SelfAwarenessEngine:
             self._state.size_factor = 0.0
             self._state.safe_mode = True
             self._state.halt_until = time.time() + 86400  # 24h
-            logger.critical("[SelfAwareness] CRITICAL — kill switch déclenché")
+            _log.critical("[SelfAwareness] CRITICAL — kill switch déclenché")
             self._send_telegram_critical(drifts)
 
     def _send_telegram_critical(self, drifts: list[DriftSignal]) -> None:

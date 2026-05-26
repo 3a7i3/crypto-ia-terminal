@@ -4,14 +4,16 @@ microstructure_engine.py — Market Microstructure Orchestrator
 Agrège l'analyse order book, spread, et flow pour produire
 un rapport de microstructure complet utilisable par le signal engine.
 """
+
 from __future__ import annotations
 
-import logging
 import time
 from dataclasses import dataclass
 from typing import Any
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
+
+_log = get_logger("quant_hedge_ai.agents.market.microstructure.microstructure_engine")
 
 
 @dataclass
@@ -20,18 +22,20 @@ class MicrostructureReport:
     timestamp: float
 
     # Signaux clés
-    directional_pressure: float = 0.0   # [-1,+1]
-    imbalance: float = 0.0              # [-1,+1]
-    spoofing_score: float = 0.0         # [0,1]
+    directional_pressure: float = 0.0  # [-1,+1]
+    imbalance: float = 0.0  # [-1,+1]
+    spoofing_score: float = 0.0  # [0,1]
     spread_bps: float = 0.0
-    liquidity_quality: float = 1.0      # [0,1] : 1 = liquidité excellente
-    execution_risk: float = 0.0         # [0,1] : risque d'exécution adverse
+    liquidity_quality: float = 1.0  # [0,1] : 1 = liquidité excellente
+    execution_risk: float = 0.0  # [0,1] : risque d'exécution adverse
 
     # Contexte
     has_bid_wall: bool = False
     has_ask_wall: bool = False
     spread_widening: bool = False
-    regime_microstructure: str = "normal"  # "accumulation", "distribution", "squeeze", "normal"
+    regime_microstructure: str = (
+        "normal"  # "accumulation", "distribution", "squeeze", "normal"
+    )
 
     def is_favorable_for_long(self) -> bool:
         return (
@@ -57,13 +61,17 @@ class MicrostructureEngine:
     Produit un MicrostructureReport exploitable par le pipeline de signal.
     """
 
-    def __init__(self, orderbook_analyzer=None, spread_predictor=None, exchange=None) -> None:
+    def __init__(
+        self, orderbook_analyzer=None, spread_predictor=None, exchange=None
+    ) -> None:
         self._ob_analyzer = orderbook_analyzer
         self._spread_predictor = spread_predictor
         self._exchange = exchange
         self._last_reports: dict[str, MicrostructureReport] = {}
 
-    def analyze(self, symbol: str, orderbook: dict | None = None) -> MicrostructureReport:
+    def analyze(
+        self, symbol: str, orderbook: dict | None = None
+    ) -> MicrostructureReport:
         """
         Analyse complète de microstructure pour un symbole.
         Récupère l'orderbook si non fourni et exchange disponible.
@@ -75,7 +83,7 @@ class MicrostructureEngine:
             try:
                 orderbook = self._exchange.fetch_order_book(symbol, limit=50)
             except Exception as exc:
-                logger.debug("[MicrostructureEngine] ob fetch error: %s", exc)
+                _log.debug("[MicrostructureEngine] ob fetch error: %s", exc)
 
         if orderbook and self._ob_analyzer:
             ob_signal = self._ob_analyzer.analyze(symbol, orderbook)
@@ -90,8 +98,12 @@ class MicrostructureEngine:
             # Qualité de liquidité
             total_depth = ob_signal.bid_depth_usd + ob_signal.ask_depth_usd
             if total_depth > 0:
-                depth_score = min(total_depth / 500_000, 1.0)     # 500k USD = liquidité excellente
-                spread_score = max(0.0, 1.0 - ob_signal.spread_bps / 20.0)  # >20bps = mauvais
+                depth_score = min(
+                    total_depth / 500_000, 1.0
+                )  # 500k USD = liquidité excellente
+                spread_score = max(
+                    0.0, 1.0 - ob_signal.spread_bps / 20.0
+                )  # >20bps = mauvais
                 report.liquidity_quality = (depth_score + spread_score) / 2
 
             # Risque d'exécution

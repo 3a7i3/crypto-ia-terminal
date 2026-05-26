@@ -20,13 +20,14 @@ Usage :
 
 from __future__ import annotations
 
-import logging
 import os
 import time
 from dataclasses import dataclass, field
 from typing import Optional
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
+
+_log = get_logger("quant_hedge_ai.agents.intelligence.meta_strategy_engine")
 
 
 @dataclass
@@ -251,7 +252,7 @@ class MetaStrategyEngine:
             p.order_size_factor *= 0.4
             p.min_score = max(p.min_score, 80)
             p.reason += f" | DOWNGRADE: {consecutive_losses} pertes consec."
-            logger.warning(
+            _log.warning(
                 "[MetaStrategy] Downgrade taille ×0.4 — %d pertes consec.",
                 consecutive_losses,
             )
@@ -307,7 +308,7 @@ class MetaStrategyEngine:
                 atr_sl = max(atr_pct * sl_factor, 0.008)  # plancher 0.8%
                 atr_tp = max(atr_pct * tp_factor, atr_sl * 2.0)  # RR ≥ 2:1
                 if abs(atr_sl - p.sl_pct) > 0.001:
-                    logger.info(
+                    _log.info(
                         "[MetaStrategy] SL/TP ATR [%s]: SL %.2f%% TP %.2f%%"
                         " (ATR=%.2f%% SL×%.1f TP×%.1f)",
                         regime,
@@ -324,7 +325,7 @@ class MetaStrategyEngine:
                         f" (×{sl_factor:.1f}/×{tp_factor:.1f})"
                     )
 
-        logger.info("[MetaStrategy] Personnalité: %s", p.summary())
+        _log.info("[MetaStrategy] Personnalité: %s", p.summary())
         return self._record(p)
 
     # ── Validation d'un signal ─────────────────────────────────────────────────
@@ -395,7 +396,7 @@ class MetaStrategyEngine:
             stats["losses"] += 1
         stats["total_pnl"] += pnl_pct
         stats["best_sharpe"] = max(stats["best_sharpe"], sharpe)
-        logger.info(
+        _log.info(
             "[MetaStrategy] Résultat enregistré — régime=%s perso=%s pnl=%.2f%% "
             "wins=%d losses=%d",
             regime,

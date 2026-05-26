@@ -10,13 +10,13 @@ circuit_breaker_robust.py — Circuit-breaker 4 états par composant (P7).
 
 from __future__ import annotations
 
-import logging
 import time
 from enum import Enum
 from typing import Any, Callable, Optional
 
-log = logging.getLogger("circuit_breaker_robust")
+from observability.json_logger import get_logger
 
+_log = get_logger("circuit_breaker_robust")
 _BACKOFF_SCHEDULE = [30, 60, 120, 300, 600]
 _RECOVERY_DEGRADED = 300  # s entre tentatives de recovery en DEGRADED
 _RECOVERY_DISABLED = 1800  # s entre tentatives de recovery en DISABLED
@@ -71,7 +71,7 @@ class ComponentCircuitBreaker:
             self._on_success()
             return result
         except Exception:
-            log.exception("[CB:%s] Échec appel", self.name)
+            _log.exception("[CB:%s] Échec appel", self.name)
             self._on_failure()
             return self._fallback
 
@@ -97,7 +97,7 @@ class ComponentCircuitBreaker:
         self._failures = max(0, self._failures - 1)
         self._backoff_until = 0.0
         if self._failures == 0 and self._state != CBState.HEALTHY:
-            log.info("[CB:%s] Recovery OK → HEALTHY", self.name)
+            _log.info("[CB:%s] Recovery OK → HEALTHY", self.name)
             self._state = CBState.HEALTHY
 
     def _on_failure(self) -> None:
@@ -108,7 +108,7 @@ class ComponentCircuitBreaker:
 
         if self._failures >= 10 and self._state != CBState.DISABLED:
             self._state = CBState.DISABLED
-            log.critical(
+            _log.critical(
                 "[CB:%s] → DISABLED après %d échecs — escalation requise",
                 self.name,
                 self._failures,
@@ -118,14 +118,14 @@ class ComponentCircuitBreaker:
             CBState.DISABLED,
         ):
             self._state = CBState.DEGRADED
-            log.error(
+            _log.error(
                 "[CB:%s] → DEGRADED après %d échecs — composant suspendu, stub actif",
                 self.name,
                 self._failures,
             )
         elif self._failures >= 2 and self._state == CBState.HEALTHY:
             self._state = CBState.UNSTABLE
-            log.warning("[CB:%s] → UNSTABLE (échec #%d)", self.name, self._failures)
+            _log.warning("[CB:%s] → UNSTABLE (échec #%d)", self.name, self._failures)
 
     def _should_attempt_recovery(self, current_state: CBState) -> bool:
         interval = (
@@ -137,13 +137,13 @@ class ComponentCircuitBreaker:
 
     def _try_recovery(self, fn: Callable, *args: Any, **kwargs: Any) -> Any:
         self._last_recovery_ts = time.time()
-        log.info("[CB:%s] Tentative recovery depuis %s", self.name, self._state.value)
+        _log.info("[CB:%s] Tentative recovery depuis %s", self.name, self._state.value)
         try:
             result = fn(*args, **kwargs)
             self._on_success()
             return result
         except Exception:
-            log.exception("[CB:%s] Recovery échouée", self.name)
+            _log.exception("[CB:%s] Recovery échouée", self.name)
             self._on_failure()
             return self._fallback
 

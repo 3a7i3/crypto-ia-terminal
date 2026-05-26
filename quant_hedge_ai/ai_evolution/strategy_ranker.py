@@ -23,15 +23,15 @@ Intégration :
 from __future__ import annotations
 
 import json
-import logging
 import os
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
 
+_log = get_logger("quant_hedge_ai.ai_evolution.strategy_ranker")
 _DB_PATH = Path(os.getenv("RANKER_DB", "databases/strategy_ranking.json"))
 
 
@@ -208,7 +208,7 @@ class StrategyRanker:
         )
 
         composite = score.composite_score()
-        logger.info(
+        _log.info(
             "[StrategyRanker] %s/%s — trade #%d pnl=%.2f%% composite=%.1f",
             strategy_name,
             regime,
@@ -325,7 +325,7 @@ class StrategyRanker:
                     f"PnL={score.total_pnl:.2%} confiance={score.confidence_score:.0%} "
                     f"— sous surveillance (blacklist à 3 rétrogradations)"
                 )
-                logger.warning("[StrategyRanker] %s", msg)
+                _log.warning("[StrategyRanker] %s", msg)
                 alerts.append(msg)
         if alerts:
             self._save()
@@ -346,7 +346,7 @@ class StrategyRanker:
             ):
                 del self._scores[key]
                 forgotten.append(score.name)
-                logger.info(
+                _log.info(
                     "[StrategyRanker] Oublié (stale): %s/%s", score.name, score.regime
                 )
         if forgotten:
@@ -360,7 +360,7 @@ class StrategyRanker:
         if c >= self.PROMOTE_THRESHOLD and score.promoted == score.demoted:
             score.promoted += 1
             self._log_event("promoted", score, c)
-            logger.info(
+            _log.info(
                 "[StrategyRanker] PROMU: %s/%s (score=%.1f)",
                 score.name,
                 score.regime,
@@ -369,7 +369,7 @@ class StrategyRanker:
         elif c <= self.DEMOTE_THRESHOLD:
             score.demoted += 1
             self._log_event("demoted", score, c)
-            logger.warning(
+            _log.warning(
                 "[StrategyRanker] RETROGRADE: %s/%s (score=%.1f demotion #%d)",
                 score.name,
                 score.regime,
@@ -379,7 +379,7 @@ class StrategyRanker:
             if score.demoted >= self.BLACKLIST_DEMOTES:
                 score.blacklisted = True
                 self._log_event("blacklisted", score, c)
-                logger.error(
+                _log.error(
                     "[StrategyRanker] BLACKLIST: %s/%s", score.name, score.regime
                 )
 
@@ -408,9 +408,9 @@ class StrategyRanker:
                 key = f"{d['name']}::{d['regime']}"
                 self._scores[key] = StrategyScore.from_dict(d)
             self._events = data.get("events", [])
-            logger.info("[StrategyRanker] Chargé: %d stratégies", len(self._scores))
+            _log.info("[StrategyRanker] Chargé: %d stratégies", len(self._scores))
         except Exception as exc:
-            logger.warning("[StrategyRanker] Erreur chargement: %s", exc)
+            _log.warning("[StrategyRanker] Erreur chargement: %s", exc)
 
     def _save(self) -> None:
         try:
@@ -420,4 +420,4 @@ class StrategyRanker:
             }
             _DB_PATH.write_text(json.dumps(data, indent=2), encoding="utf-8")
         except Exception as exc:
-            logger.warning("[StrategyRanker] Erreur sauvegarde: %s", exc)
+            _log.warning("[StrategyRanker] Erreur sauvegarde: %s", exc)

@@ -12,19 +12,22 @@ Sortie : dict structuré + texte formaté pour Telegram/Slack.
 
 from __future__ import annotations
 
-import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
+
+_log = get_logger("quant_hedge_ai.agents.intelligence.weekly_report")
 
 
 @dataclass
 class WeeklyStats:
     """Statistiques brutes d'une semaine."""
 
-    period_start: datetime = field(default_factory=lambda: datetime.now() - timedelta(days=7))
+    period_start: datetime = field(
+        default_factory=lambda: datetime.now() - timedelta(days=7)
+    )
     period_end: datetime = field(default_factory=datetime.now)
     n_trades: int = 0
     wins: int = 0
@@ -82,8 +85,11 @@ class WeeklyReportAgent:
         text = self._format_text(stats, improvements)
         report = WeeklyReport(stats=stats, improvements=improvements, text_summary=text)
         self._emit_event(report)
-        logger.info("[WeeklyReport] Rapport généré : %d trades, win_rate=%.1f%%",
-                    stats.n_trades, stats.win_rate * 100)
+        _log.info(
+            "[WeeklyReport] Rapport généré : %d trades, win_rate=%.1f%%",
+            stats.n_trades,
+            stats.win_rate * 100,
+        )
         return report
 
     # ── Collecte des données ──────────────────────────────────────────────────
@@ -106,7 +112,9 @@ class WeeklyReportAgent:
                 stats.total_pnl_pct = round(sum(pnls), 3)
                 stats.best_trade_pct = round(max(pnls), 3)
                 stats.worst_trade_pct = round(min(pnls), 3)
-                stats.max_drawdown_pct = round(abs(min((p for p in pnls if p < 0), default=0.0)), 3)
+                stats.max_drawdown_pct = round(
+                    abs(min((p for p in pnls if p < 0), default=0.0)), 3
+                )
 
                 # Régimes
                 regime_wins: dict[str, int] = {}
@@ -120,11 +128,13 @@ class WeeklyReportAgent:
                 if regime_wins:
                     stats.best_regime = max(regime_wins, key=lambda k: regime_wins[k])
                 if regime_losses:
-                    stats.worst_regime = max(regime_losses, key=lambda k: regime_losses[k])
+                    stats.worst_regime = max(
+                        regime_losses, key=lambda k: regime_losses[k]
+                    )
 
-                stats.blacklisted_strategies = list({
-                    r.trade.strategy_name for r in reports if r.blacklisted
-                })
+                stats.blacklisted_strategies = list(
+                    {r.trade.strategy_name for r in reports if r.blacklisted}
+                )
 
         if self._memory is not None:
             try:
@@ -133,7 +143,7 @@ class WeeklyReportAgent:
                 stats.active_strategies = list(regimes.keys())
                 stats.n_evolution_cycles = len(payload.get("regime_history", []))
             except Exception as exc:
-                logger.debug("[WeeklyReport] Erreur lecture mémoire: %s", exc)
+                _log.debug("[WeeklyReport] Erreur lecture mémoire: %s", exc)
 
         return stats
 
@@ -211,6 +221,7 @@ class WeeklyReportAgent:
         try:
             from event_bus.bus import EventBus
             from event_bus.events import EvolutionCycleEvent
+
             EventBus.get().emit(
                 EvolutionCycleEvent(
                     cycle=0,

@@ -4,7 +4,6 @@ S'insère dans la boucle principale de main_v91.py avant toute exécution.
 """
 
 import asyncio
-import logging
 import time
 from dataclasses import dataclass, field
 from enum import Enum
@@ -12,7 +11,9 @@ from typing import Optional
 
 import numpy as np
 
-logger = logging.getLogger("GlobalRiskGate")
+from observability.json_logger import get_logger
+
+_log = get_logger("global_risk_gate")
 
 
 class RiskLevel(Enum):
@@ -142,7 +143,7 @@ class GlobalRiskGate:
             current = state.get("current_value", 1.0)
             metrics["drawdown"] = (current - peak) / peak if peak > 0 else 0.0
         except Exception as e:
-            logger.warning(f"Drawdown collection failed: {e}")
+            _log.warning("METRIC_COLLECTION_FAILED", metric="drawdown", error=str(e))
             metrics["drawdown"] = 0.0
 
         # 2. Corrélation inter-stratégies
@@ -162,7 +163,7 @@ class GlobalRiskGate:
             else:
                 metrics["avg_correlation"] = 0.0
         except Exception as e:
-            logger.warning(f"Correlation collection failed: {e}")
+            _log.warning("METRIC_COLLECTION_FAILED", metric="correlation", error=str(e))
             metrics["avg_correlation"] = 0.0
 
         # 3. Volatilité marché relative
@@ -173,7 +174,7 @@ class GlobalRiskGate:
                 current_vol / self.baseline_vol if self.baseline_vol > 0 else 1.0
             )
         except Exception as e:
-            logger.warning(f"Volatility collection failed: {e}")
+            _log.warning("METRIC_COLLECTION_FAILED", metric="volatility", error=str(e))
             metrics["vol_ratio"] = 1.0
 
         # 4. Exposition nette
@@ -185,7 +186,7 @@ class GlobalRiskGate:
                 net_exposure / total_capital if total_capital > 0 else 0.0
             )
         except Exception as e:
-            logger.warning(f"Exposure collection failed: {e}")
+            _log.warning("METRIC_COLLECTION_FAILED", metric="exposure", error=str(e))
             metrics["net_exposure"] = 0.0
 
         return metrics
@@ -261,21 +262,43 @@ class GlobalRiskGate:
 
     async def _act(self, snap: RiskSnapshot) -> None:
         if snap.level == RiskLevel.CRITICAL:
-            logger.critical(f"[GlobalRiskGate] {snap.message}")
+            _log.incident(
+                "RISK_GATE_CRITICAL",
+                message=snap.message,
+                triggered=snap.triggered_conditions,
+                drawdown=snap.drawdown,
+                correlation=snap.avg_correlation,
+                vol_ratio=snap.vol_ratio,
+                net_exposure=snap.net_exposure,
+                cooldown_seconds=self.t.cooldown_seconds,
+            )
             self._cooldown_until = time.time() + self.t.cooldown_seconds
             await self._send_telegram(
                 f"🔴 ANNALISE — HARD STOP\n{snap.message}\nCooldown: {self.t.cooldown_seconds}s"
             )
 
         elif snap.level == RiskLevel.WARNING:
-            logger.warning(f"[GlobalRiskGate] {snap.message}")
+            _log.warning(
+                "RISK_GATE_WARNING",
+                message=snap.message,
+                triggered=snap.triggered_conditions,
+                size_factor=snap.size_factor,
+                drawdown=snap.drawdown,
+                correlation=snap.avg_correlation,
+                vol_ratio=snap.vol_ratio,
+                net_exposure=snap.net_exposure,
+            )
             await self._send_telegram(
                 f"🟡 ANNALISE — WARNING\n{snap.message}\nSize factor: {snap.size_factor:.0%}"
             )
 
         else:
-            logger.debug(
-                f"[GlobalRiskGate] SAFE — dd={snap.drawdown:.1%} cor={snap.avg_correlation:.2f} vol={snap.vol_ratio:.1f}× exp={snap.net_exposure:.1%}"
+            _log.debug(
+                "RISK_GATE_SAFE",
+                drawdown=snap.drawdown,
+                correlation=snap.avg_correlation,
+                vol_ratio=snap.vol_ratio,
+                net_exposure=snap.net_exposure,
             )
 
     async def _send_telegram(self, text: str) -> None:
@@ -284,7 +307,7 @@ class GlobalRiskGate:
         try:
             await self.telegram.send_message(text)
         except Exception as e:
-            logger.error(f"Telegram send failed: {e}")
+            _log.error("TELEGRAM_SEND_FAILED", error=str(e))
 
     # ------------------------------------------------------------------
     # Utilitaires

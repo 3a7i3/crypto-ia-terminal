@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-import logging
 from dataclasses import dataclass, field
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
+
+_log = get_logger("quant_hedge_ai.market_radar.anomaly_detector")
 
 
 @dataclass
@@ -82,7 +83,7 @@ class AnomalyDetector:
             high_count=high,
             risk_level=risk_level,
         )
-        logger.info(
+        _log.info(
             "AnomalyDetector: %d anomalies, risk=%s (critical=%d, high=%d)",
             len(anomalies),
             risk_level,

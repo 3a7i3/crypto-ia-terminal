@@ -32,13 +32,13 @@ Utilise LM Studio local si disponible, sinon analyse deterministe.
 
 from __future__ import annotations
 
-import logging
 import os
 import time
 from typing import Optional
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
 
+_log = get_logger("quant_hedge_ai.agents.intelligence.chief_officer")
 _BRIEF_EVERY = int(os.getenv("COO_BRIEF_EVERY", "6"))  # cycles entre briefings
 _LM_SYSTEM_PROMPT = (
     "Tu es le Chief Officer d'un systeme de trading crypto algorithmique. "
@@ -301,7 +301,7 @@ class ChiefOfficer:
             self._lm_available = True
             return text.strip()
         except Exception as exc:
-            logger.debug("[ChiefOfficer] LM Studio indisponible: %s", exc)
+            _log.debug("[ChiefOfficer] LM Studio indisponible: %s", exc)
         return None
 
     # ── Analyse deterministe (fallback) ──────────────────────────────────────

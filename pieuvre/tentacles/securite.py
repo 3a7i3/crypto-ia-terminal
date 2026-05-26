@@ -15,15 +15,15 @@ Détecte (15 règles):
 
 from __future__ import annotations
 
-import logging
 import re
 from dataclasses import dataclass
 from pathlib import Path
 
+from observability.json_logger import get_logger
 from pieuvre.incidents.models import Finding, Severity
 from pieuvre.tentacles.base import BaseTentacle
 
-logger = logging.getLogger(__name__)
+_log = get_logger("pieuvre.tentacles.securite")
 
 
 @dataclass
@@ -175,7 +175,7 @@ class SecuriteTentacle(BaseTentacle):
             high_count = sum(
                 1 for f in findings if f.severity in (Severity.HIGH, Severity.CRITICAL)
             )
-            logger.warning(
+            _log.warning(
                 "[SECURITE] %d trouvailles (%d HIGH/CRITICAL) sur %d fichiers",
                 len(findings),
                 high_count,

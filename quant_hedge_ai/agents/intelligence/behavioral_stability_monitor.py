@@ -30,12 +30,12 @@ Usage :
 
 from __future__ import annotations
 
-import logging
 import math
 import time
 from collections import Counter, deque
 from enum import Enum
 
+from observability.json_logger import get_logger
 from quant_hedge_ai.agents.intelligence.system_invariants import (
     MAX_CONSECUTIVE_IDLE_CYCLES,
     MAX_CUMULATIVE_DELTA,
@@ -46,7 +46,7 @@ from quant_hedge_ai.agents.intelligence.system_invariants import (
     THRESHOLD_VAR_WINDOW,
 )
 
-logger = logging.getLogger(__name__)
+_log = get_logger("quant_hedge_ai.agents.intelligence.behavioral_stability_monitor")
 
 
 class BehavioralState(str, Enum):

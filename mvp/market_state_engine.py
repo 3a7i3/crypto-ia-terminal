@@ -11,14 +11,16 @@ Produit un MarketState cohérent et lisible en 3 dimensions :
 Chaque dimension a un score de confiance.
 Pas de magie. Explicable. Auditable.
 """
+
 from __future__ import annotations
 
-import logging
 import time
 from dataclasses import dataclass, field
 from typing import Any
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
+
+_log = get_logger("mvp.market_state_engine")
 
 
 @dataclass
@@ -27,9 +29,11 @@ class MarketState:
     timestamp: float = field(default_factory=time.time)
 
     # Dimensions
-    trend: str = "chop"                     # bullish | bearish | chop
-    pressure: str = "neutral"              # neutral | long_squeeze | short_squeeze | liquidation_cascade
-    volatility: str = "normal"             # compression | normal | expansion | panic
+    trend: str = "chop"  # bullish | bearish | chop
+    pressure: str = (
+        "neutral"  # neutral | long_squeeze | short_squeeze | liquidation_cascade
+    )
+    volatility: str = "normal"  # compression | normal | expansion | panic
 
     # Scores de confiance [0, 1]
     trend_confidence: float = 0.0
@@ -116,13 +120,13 @@ class MarketStateEngine:
         state = MarketState(symbol=symbol)
 
         if not candles_1h or len(candles_1h) < 20:
-            logger.debug("[MarketState] %s — candles insuffisantes", symbol)
+            _log.debug("[MarketState] %s — candles insuffisantes", symbol)
             return state
 
         closes_1h = [float(c[4]) for c in candles_1h if len(c) >= 5]
-        highs_1h  = [float(c[2]) for c in candles_1h if len(c) >= 5]
-        lows_1h   = [float(c[3]) for c in candles_1h if len(c) >= 5]
-        volumes   = [float(c[5]) for c in candles_1h if len(c) >= 6]
+        highs_1h = [float(c[2]) for c in candles_1h if len(c) >= 5]
+        lows_1h = [float(c[3]) for c in candles_1h if len(c) >= 5]
+        volumes = [float(c[5]) for c in candles_1h if len(c) >= 6]
 
         # ── TREND ─────────────────────────────────────────────────────────────
         trend, trend_conf = self._classify_trend(closes_1h, candles_4h)
@@ -143,11 +147,7 @@ class MarketStateEngine:
 
         # ── CONFIANCE GLOBALE ─────────────────────────────────────────────────
         # Pondération : trend est le plus important
-        state.global_confidence = (
-            trend_conf * 0.45 +
-            pres_conf  * 0.30 +
-            vol_conf   * 0.25
-        )
+        state.global_confidence = trend_conf * 0.45 + pres_conf * 0.30 + vol_conf * 0.25
 
         # Inputs pour audit
         state.inputs = {
@@ -160,7 +160,7 @@ class MarketStateEngine:
             "ob_imbalance": ob_imbalance,
         }
 
-        logger.debug("[MarketState] %s", state.summary())
+        _log.debug("[MarketState] %s", state.summary())
         return state
 
     # ──────────────────────────────────────────────────────────────────────────
@@ -179,7 +179,7 @@ class MarketStateEngine:
 
         ema21 = self._ema(closes_1h, 21)
         ema55 = self._ema(closes_1h, 55)
-        rsi   = self._rsi(closes_1h, 14)
+        rsi = self._rsi(closes_1h, 14)
         price = closes_1h[-1]
 
         # Score directionnel 1h [-1, +1]
@@ -187,7 +187,9 @@ class MarketStateEngine:
         rsi_signal = (rsi - 50) / 50.0
 
         # Pente récente (10 dernières bougies)
-        slope = (closes_1h[-1] - closes_1h[-10]) / closes_1h[-10] if closes_1h[-10] else 0.0
+        slope = (
+            (closes_1h[-1] - closes_1h[-10]) / closes_1h[-10] if closes_1h[-10] else 0.0
+        )
 
         score_1h = ema_signal * 0.5 + rsi_signal * 0.3 + slope * 0.2
 
@@ -236,9 +238,9 @@ class MarketStateEngine:
         if abs(funding_rate) > 0.001:
             confidence += 0.2
             if funding_rate > 0.003:
-                score -= 0.4    # longs surchauffés → pression vendeuse latente
+                score -= 0.4  # longs surchauffés → pression vendeuse latente
             elif funding_rate < -0.003:
-                score += 0.4    # shorts surchauffés → squeeze potentiel
+                score += 0.4  # shorts surchauffés → squeeze potentiel
             elif funding_rate > 0.001:
                 score -= 0.2
             else:
@@ -337,7 +339,7 @@ class MarketStateEngine:
         if len(closes) < period + 1:
             return 50.0
         deltas = [closes[i] - closes[i - 1] for i in range(1, len(closes))]
-        gains  = [max(d, 0) for d in deltas[-period:]]
+        gains = [max(d, 0) for d in deltas[-period:]]
         losses = [abs(min(d, 0)) for d in deltas[-period:]]
         avg_gain = sum(gains) / period
         avg_loss = sum(losses) / period
@@ -350,7 +352,11 @@ class MarketStateEngine:
         if len(closes) < period + 1:
             return 0.01
         trs = [
-            max(highs[i] - lows[i], abs(highs[i] - closes[i - 1]), abs(lows[i] - closes[i - 1]))
+            max(
+                highs[i] - lows[i],
+                abs(highs[i] - closes[i - 1]),
+                abs(lows[i] - closes[i - 1]),
+            )
             for i in range(1, len(closes))
         ]
         atr = sum(trs[-period:]) / period

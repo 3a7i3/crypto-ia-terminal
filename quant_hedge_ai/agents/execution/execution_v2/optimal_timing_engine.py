@@ -7,15 +7,17 @@ Détermine le meilleur moment pour exécuter un ordre en surveillant :
 - la volatilité (éviter les pics)
 - les patterns temporels (liquidité par heure)
 """
+
 from __future__ import annotations
 
-import logging
 import time
 from collections import defaultdict, deque
 from dataclasses import dataclass
 from typing import Any
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
+
+_log = get_logger("quant_hedge_ai.agents.execution.execution_v2.optimal_timing_engine")
 
 
 @dataclass
@@ -24,9 +26,9 @@ class TimingSignal:
     side: str
     timestamp: float
 
-    execute_now: bool = False           # True = conditions favorables maintenant
-    confidence: float = 0.5            # [0,1]
-    wait_seconds: float = 0.0          # attente recommandée si execute_now=False
+    execute_now: bool = False  # True = conditions favorables maintenant
+    confidence: float = 0.5  # [0,1]
+    wait_seconds: float = 0.0  # attente recommandée si execute_now=False
     reason: str = ""
 
     # Conditions évaluées
@@ -35,7 +37,7 @@ class TimingSignal:
     volatility_ok: bool = True
     liquidity_period_ok: bool = True
 
-    score: float = 0.0                  # [-1,+1] : +1 = conditions parfaites
+    score: float = 0.0  # [-1,+1] : +1 = conditions parfaites
 
     def to_dict(self) -> dict[str, Any]:
         return {k: v for k, v in self.__dict__.items()}
@@ -47,12 +49,16 @@ class OptimalTimingEngine:
     Maintient un historique de spread/imbalance pour détecter les améliorations.
     """
 
-    MAX_WAIT_SECONDS = 120.0        # attente max avant exécution forcée
-    SPREAD_IMPROVEMENT_THRESHOLD = 0.8  # attendre que le spread revienne à 80% du min récent
+    MAX_WAIT_SECONDS = 120.0  # attente max avant exécution forcée
+    SPREAD_IMPROVEMENT_THRESHOLD = (
+        0.8  # attendre que le spread revienne à 80% du min récent
+    )
 
     def __init__(self) -> None:
         self._spread_history: dict[str, deque] = defaultdict(lambda: deque(maxlen=30))
-        self._imbalance_history: dict[str, deque] = defaultdict(lambda: deque(maxlen=30))
+        self._imbalance_history: dict[str, deque] = defaultdict(
+            lambda: deque(maxlen=30)
+        )
         self._wait_start: dict[str, float] = {}
 
     def evaluate(
@@ -101,14 +107,21 @@ class OptimalTimingEngine:
         sig.volatility_ok = atr_pct < 0.03
         sig.liquidity_period_ok = self._check_liquidity_period()
 
-        conditions_met = sum([sig.spread_ok, sig.imbalance_favorable, sig.volatility_ok, sig.liquidity_period_ok])
+        conditions_met = sum(
+            [
+                sig.spread_ok,
+                sig.imbalance_favorable,
+                sig.volatility_ok,
+                sig.liquidity_period_ok,
+            ]
+        )
 
         # Score global
         sig.score = (
-            (1.0 if sig.spread_ok else -0.3) +
-            (0.5 if sig.imbalance_favorable else -0.2) +
-            (0.3 if sig.volatility_ok else -0.3) +
-            (0.2 if sig.liquidity_period_ok else 0.0)
+            (1.0 if sig.spread_ok else -0.3)
+            + (0.5 if sig.imbalance_favorable else -0.2)
+            + (0.3 if sig.volatility_ok else -0.3)
+            + (0.2 if sig.liquidity_period_ok else 0.0)
         ) / 2.0
         sig.score = max(-1.0, min(1.0, sig.score))
 
@@ -142,9 +155,9 @@ class OptimalTimingEngine:
 
     def _check_imbalance(self, side: str, imbalance: float) -> bool:
         if side == "buy":
-            return imbalance >= -0.1    # pas de forte pression vente
+            return imbalance >= -0.1  # pas de forte pression vente
         else:
-            return imbalance <= 0.1     # pas de forte pression achat
+            return imbalance <= 0.1  # pas de forte pression achat
 
     def _check_liquidity_period(self) -> bool:
         hour = time.gmtime().tm_hour

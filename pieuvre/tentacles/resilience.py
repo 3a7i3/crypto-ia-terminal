@@ -13,16 +13,15 @@ from __future__ import annotations
 
 import importlib
 import json
-import logging
 import os
 import sqlite3
 from pathlib import Path
 
+from observability.json_logger import get_logger
 from pieuvre.incidents.models import Finding, Severity
 from pieuvre.tentacles.base import BaseTentacle
 
-logger = logging.getLogger(__name__)
-
+_log = get_logger("pieuvre.tentacles.resilience")
 _CRITICAL_MODULES = [
     ("quant_hedge_ai.ai_evolution.evolution_engine", "EvolutionEngine"),
     ("quant_hedge_ai.ai_evolution.strategy_memory", "StrategyMemoryStore"),

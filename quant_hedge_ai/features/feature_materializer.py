@@ -5,13 +5,15 @@ Orchestre le calcul complet des features depuis les données brutes :
 OHLCV → features techniques + microstructure + dérivés + on-chain.
 Utilise le FeatureStore pour le cache et la détection de recalcul.
 """
+
 from __future__ import annotations
 
-import logging
 import math
 from typing import Any
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
+
+_log = get_logger("quant_hedge_ai.features.feature_materializer")
 
 
 class FeatureMaterializer:
@@ -46,7 +48,7 @@ class FeatureMaterializer:
         if not force and not self._store.needs_recompute(symbol, timeframe, candles):
             cached = self._store.get(symbol, timeframe)
             if cached:
-                logger.debug("[Materializer] %s/%s — cache hit", symbol, timeframe)
+                _log.debug("[Materializer] %s/%s — cache hit", symbol, timeframe)
                 return cached.features
 
         features: dict[str, float] = {}
@@ -57,7 +59,7 @@ class FeatureMaterializer:
                 eng_features = self._engineer.extract_features(candles)
                 features.update(eng_features)
             except Exception as exc:
-                logger.warning("[Materializer] FeatureEngineer error: %s", exc)
+                _log.warning("[Materializer] FeatureEngineer error: %s", exc)
 
         # 2. Features techniques directes si pas d'engineer
         if not features and candles and len(candles) >= 20:
@@ -136,7 +138,8 @@ class FeatureMaterializer:
             "funding_velocity": snap.funding_velocity,
             "oi_delta_1h": snap.open_interest_delta_1h,
             "liquidation_risk": snap.liquidation_risk_score,
-            "exchange_netflow": (snap.exchange_outflow_usd - snap.exchange_inflow_usd) / 1e6,
+            "exchange_netflow": (snap.exchange_outflow_usd - snap.exchange_inflow_usd)
+            / 1e6,
             "whale_score": snap.whale_accumulation_score,
             "regime_bull_prob": snap.regime_bull_prob,
             "regime_bear_prob": snap.regime_bear_prob,
@@ -176,6 +179,10 @@ class FeatureMaterializer:
             return 0.0
         trs = []
         for i in range(1, len(highs)):
-            tr = max(highs[i] - lows[i], abs(highs[i] - closes[i - 1]), abs(lows[i] - closes[i - 1]))
+            tr = max(
+                highs[i] - lows[i],
+                abs(highs[i] - closes[i - 1]),
+                abs(lows[i] - closes[i - 1]),
+            )
             trs.append(tr)
         return sum(trs[-period:]) / period

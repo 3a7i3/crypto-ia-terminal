@@ -21,9 +21,7 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import threading
-import time
 import uuid
 from datetime import datetime, timezone
 from logging.handlers import RotatingFileHandler
@@ -178,20 +176,43 @@ class StructuredLogger:
         }
         logger.log(level, msg, extra=extra)
 
-    def debug(self, event: str, msg: str = "", **ctx) -> None:
-        self._log(logging.DEBUG, msg or event, event=event, context=ctx)
+    @staticmethod
+    def _fmt(event: str, args: tuple) -> str:
+        """Format legacy %-style calls: _log.info("msg: %s", val) → "msg: val"."""
+        if not args:
+            return event
+        try:
+            return event % args
+        except (TypeError, ValueError):
+            return f"{event} {args}"
 
-    def info(self, event: str, msg: str = "", **ctx) -> None:
-        self._log(logging.INFO, msg or event, event=event, context=ctx)
+    def debug(self, event: str, *args, msg: str = "", **ctx) -> None:
+        self._log(
+            logging.DEBUG, self._fmt(msg or event, args), event=event, context=ctx
+        )
 
-    def warning(self, event: str, msg: str = "", **ctx) -> None:
-        self._log(logging.WARNING, msg or event, event=event, context=ctx)
+    def info(self, event: str, *args, msg: str = "", **ctx) -> None:
+        self._log(logging.INFO, self._fmt(msg or event, args), event=event, context=ctx)
 
-    def error(self, event: str, msg: str = "", **ctx) -> None:
-        self._log(logging.ERROR, msg or event, event=event, context=ctx)
+    def warning(self, event: str, *args, msg: str = "", **ctx) -> None:
+        self._log(
+            logging.WARNING, self._fmt(msg or event, args), event=event, context=ctx
+        )
 
-    def critical(self, event: str, msg: str = "", **ctx) -> None:
-        self._log(logging.CRITICAL, msg or event, event=event, context=ctx)
+    def error(self, event: str, *args, msg: str = "", **ctx) -> None:
+        self._log(
+            logging.ERROR, self._fmt(msg or event, args), event=event, context=ctx
+        )
+
+    def critical(self, event: str, *args, msg: str = "", **ctx) -> None:
+        self._log(
+            logging.CRITICAL, self._fmt(msg or event, args), event=event, context=ctx
+        )
+
+    def exception(self, event: str, *args, msg: str = "", **ctx) -> None:
+        self._log(
+            logging.ERROR, self._fmt(msg or event, args), event=event, context=ctx
+        )
 
     # Category shortcuts
     def trade(self, event: str, **ctx) -> None:

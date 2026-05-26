@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import json
-import logging
 from dataclasses import dataclass
 from pathlib import Path
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
+
+_log = get_logger("quant_hedge_ai.ai_evolution.strategy_memory")
 
 
 @dataclass
@@ -59,12 +60,15 @@ class StrategyMemoryStore:
         regimes = payload.setdefault("regimes", {})
         bucket = regimes.get(regime, [])
         regimes[regime] = [
-            row for row in bucket
+            row
+            for row in bucket
             if row.get("strategy", {}).get("name", "") != strategy_name
         ]
 
         self._write(payload)
-        logger.info("[StrategyMemory] Blacklisté %s pour régime %s", strategy_name, regime)
+        _log.info(
+            "[StrategyMemory] Blacklisté %s pour régime %s", strategy_name, regime
+        )
 
     def is_blacklisted(self, strategy_name: str, regime: str) -> bool:
         """Retourne True si la stratégie est bannie pour ce régime."""
@@ -83,7 +87,8 @@ class StrategyMemoryStore:
             b["strategy"] for b in blacklist if b.get("regime") == regime
         }
         bucket = [
-            row for row in bucket
+            row
+            for row in bucket
             if row.get("strategy", {}).get("name", "") not in blacklisted_names
         ]
 

@@ -13,13 +13,14 @@ from __future__ import annotations
 
 import contextlib
 import json
-import logging
 import sqlite3
 import threading
 import time
 from pathlib import Path
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
+
+_log = get_logger("trade_logger")
 
 _CREATE_TABLE = """
 CREATE TABLE IF NOT EXISTS trades (
@@ -108,7 +109,7 @@ class TradeLogger:
                         row,
                     )
         except Exception as exc:
-            logger.error("[TradeLogger] Failed to log trade: %s", exc)
+            _log.error("TRADE_LOG_FAILED", error=str(exc))
 
     def log_rejected(self, symbol: str, action: str, size: float, reason: str) -> None:
         """Log an order that was rejected before reaching the exchange."""
@@ -137,11 +138,22 @@ class TradeLogger:
                        LIMIT ?""",
                     (n,),
                 ).fetchall()
-            cols = ["ts", "symbol", "action", "size", "price", "notional",
-                    "pnl", "mode", "status", "order_id", "error"]
+            cols = [
+                "ts",
+                "symbol",
+                "action",
+                "size",
+                "price",
+                "notional",
+                "pnl",
+                "mode",
+                "status",
+                "order_id",
+                "error",
+            ]
             return [dict(zip(cols, r)) for r in rows]
         except Exception as exc:
-            logger.error("[TradeLogger] Failed to read trades: %s", exc)
+            _log.error("TRADE_READ_FAILED", error=str(exc))
             return []
 
     def session_pnl(self, since_ts: float | None = None) -> float:
@@ -156,7 +168,7 @@ class TradeLogger:
                 ).fetchone()
             return float(row[0]) if row else 0.0
         except Exception as exc:
-            logger.error("[TradeLogger] Failed to query session PnL: %s", exc)
+            _log.error("SESSION_PNL_FAILED", error=str(exc))
             return 0.0
 
     def stats(self) -> dict:
@@ -180,5 +192,5 @@ class TradeLogger:
                 "rejected": rejected or 0,
             }
         except Exception as exc:
-            logger.error("[TradeLogger] Failed to compute stats: %s", exc)
+            _log.error("TRADE_STATS_FAILED", error=str(exc))
             return {}

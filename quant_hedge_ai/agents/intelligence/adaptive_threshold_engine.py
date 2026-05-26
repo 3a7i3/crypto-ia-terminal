@@ -20,11 +20,11 @@ Usage dans advisor_loop.py :
 
 from __future__ import annotations
 
-import logging
 from dataclasses import dataclass
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
 
+_log = get_logger("quant_hedge_ai.agents.intelligence.adaptive_threshold_engine")
 # Ajustement par régime (terme P)
 _REGIME_ADJ: dict[str, int] = {
     "sideways": -4,
@@ -114,7 +114,7 @@ class AdaptiveThresholdEngine:
         new_delta = round(s.current_delta + delta_change)
 
         if new_delta != s.current_delta:
-            logger.debug(
+            _log.debug(
                 "[ATE] Cycle %d | régime=%s | raw=%+d | integral=%.2f"
                 " | delta %+d → %+d",
                 s.cycle,
@@ -140,4 +140,4 @@ class AdaptiveThresholdEngine:
     def reset(self) -> None:
         """Réinitialisation complète — ex: après changement de régime brutal."""
         self._state = ATEState()
-        logger.info("[ATE] État réinitialisé")
+        _log.info("[ATE] État réinitialisé")

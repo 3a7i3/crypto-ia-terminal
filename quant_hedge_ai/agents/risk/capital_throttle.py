@@ -8,10 +8,11 @@ capital_throttle.py — Throttle progressif taille des positions selon le drawdo
 
 from __future__ import annotations
 
-import logging
 import os
 
-log = logging.getLogger("capital_throttle")
+from observability.json_logger import get_logger
+
+_log = get_logger("capital_throttle")
 
 
 class CapitalThrottle:
@@ -68,13 +69,13 @@ class CapitalThrottle:
         self._throttle_active = self._factor < 1.0
 
         if self._throttle_active and not was_active:
-            log.warning(
+            _log.warning(
                 "[CapitalThrottle] Activé — dd=%.1f%% → factor=%.2f",
                 dd * 100,
                 self._factor,
             )
         elif not self._throttle_active and was_active:
-            log.info("[CapitalThrottle] Désactivé — capital revenu à la normale")
+            _log.info("[CapitalThrottle] Désactivé — capital revenu à la normale")
 
         return self._factor
 

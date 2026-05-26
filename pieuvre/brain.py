@@ -23,11 +23,11 @@ et augmente la fréquence des scans.
 from __future__ import annotations
 
 import asyncio
-import logging
 import time
 from enum import Enum
 from pathlib import Path
 
+from observability.json_logger import get_logger
 from pieuvre.incidents.models import (
     _SEV_ORDER,
     Finding,
@@ -45,7 +45,7 @@ from pieuvre.tentacles.resilience import ResilienceTentacle
 from pieuvre.tentacles.securite import SecuriteTentacle
 from pieuvre.tentacles.surveillance import SurveillanceTentacle
 
-logger = logging.getLogger(__name__)
+_log = get_logger("pieuvre.brain")
 
 
 def _bus_emit(event) -> None:
@@ -117,7 +117,7 @@ class PieuvreGigante:
         for t in self.tentacles:
             t.load_immunities(known_immunities)
 
-        logger.info(
+        _log.info(
             "Pieuvre initialisée — force=%.3f, génération=%d, incidents passés=%d, immunités=%d",
             self.force,
             self.generation,
@@ -143,7 +143,7 @@ class PieuvreGigante:
         finally:
             self._running = False
             self.state = BrainState.DORMANT
-            logger.info("Pieuvre endormie après %d cycles.", self._cycle_count)
+            _log.info("Pieuvre endormie après %d cycles.", self._cycle_count)
 
     def stop(self) -> None:
         self._running = False
@@ -163,7 +163,7 @@ class PieuvreGigante:
                 self.state = BrainState.REGROWTH
             else:
                 bar = self._guerison.render_recovery_bar()
-                logger.info("[RECOVERY] %s", bar)
+                _log.info("[RECOVERY] %s", bar)
                 await asyncio.sleep(_RECOVERY_CHECK_INTERVAL)
 
         elif self.state == BrainState.REGROWTH:
@@ -172,7 +172,7 @@ class PieuvreGigante:
     # ── Cycles d'état ─────────────────────────────────────────────────────────
 
     async def _active_cycle(self) -> None:
-        logger.info(
+        _log.info(
             "[ACTIF] Cycle %d | force=%.3f | génération=%d | incidents=%d",
             self._cycle_count,
             self.force,
@@ -198,7 +198,7 @@ class PieuvreGigante:
             return
 
         inc = self._active_incident
-        logger.warning(
+        _log.warning(
             "[ALERTE] %s | sévérité=%s | module=%s",
             inc.message[:80],
             inc.severity.value,
@@ -250,7 +250,7 @@ class PieuvreGigante:
         )
         self._active_incident = inc
         self.state = BrainState.ALERT
-        logger.error(
+        _log.error(
             "[PIEUVRE] Incident déclenché — %s:%d — %s",
             worst.file,
             worst.line,
@@ -292,7 +292,7 @@ class PieuvreGigante:
                 for t in self.tentacles:
                     t.add_immunity(pattern)
 
-            logger.info(
+            _log.info(
                 "[REGROWTH] Incident %s résolu. Force: %.3f → %.3f (+%.3f) | "
                 "Immunités injectées: %s",
                 inc.id,
@@ -361,12 +361,12 @@ class PieuvreGigante:
         all_findings: list[Finding] = []
         for tentacle, result in zip(active, results):
             if isinstance(result, Exception):
-                logger.warning("Tentacule %s erreur: %s", tentacle.name, result)
+                _log.warning("Tentacule %s erreur: %s", tentacle.name, result)
             elif isinstance(result, list):
                 tentacle.last_findings = result
                 all_findings.extend(result)
                 if result:
-                    logger.debug(
+                    _log.debug(
                         "%s %s: %d finding(s)",
                         tentacle.emoji,
                         tentacle.name,

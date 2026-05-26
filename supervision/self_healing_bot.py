@@ -19,14 +19,14 @@ Usage:
 from __future__ import annotations
 
 import enum
-import logging
 import threading
 import time
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
 
+_log = get_logger("supervision.self_healing_bot")
 _DEFAULT_CHECK_INTERVAL = 15.0  # secondes
 _DEFAULT_MAX_RESTARTS = 5  # par fenêtre de 10 minutes
 
@@ -132,7 +132,7 @@ class SelfHealingBot:
             check_interval_s=check_interval_s,
             max_restarts_per_window=max_restarts,
         )
-        logger.info("[SelfHealing] Composant enregistré: %s", name)
+        _log.info("[SelfHealing] Composant enregistré: %s", name)
 
     def register_simple(
         self, name: str, health_fn: Callable[[], bool], restart_fn: Callable[[], None]
@@ -148,14 +148,14 @@ class SelfHealingBot:
             target=self._watch_loop, daemon=True, name="SelfHealingBot"
         )
         self._thread.start()
-        logger.info(
+        _log.info(
             "[SelfHealing] Démarré — %d composant(s) surveillé(s)",
             len(self._components),
         )
 
     def stop(self) -> None:
         self._running = False
-        logger.info("[SelfHealing] Arrêté")
+        _log.info("[SelfHealing] Arrêté")
 
     def force_check(self, name: str | None = None) -> dict[str, bool]:
         """Vérifie immédiatement la santé (utile pour les tests)."""
@@ -204,9 +204,7 @@ class SelfHealingBot:
             if now < comp.backoff_until:
                 return False  # encore en cooldown, on ne touche à rien
             # Tentative de récupération périodique
-            logger.info(
-                "[SelfHealing] %s — sonde périodique (état DISABLED)", comp.name
-            )
+            _log.info("[SelfHealing] %s — sonde périodique (état DISABLED)", comp.name)
 
         # DEGRADED : backoff exponentiel entre chaque sonde
         elif comp.state == ComponentState.DEGRADED:
@@ -221,12 +219,12 @@ class SelfHealingBot:
             # repr() inclut le nom de la classe de l'exception + message,
             # ce qui évite les messages vides ("health_check_failed: ").
             comp.last_error = repr(exc)
-            # logger.exception() écrit la stacktrace complète → enfin visible.
-            logger.exception("[SelfHealing] %s — exception dans health_fn", comp.name)
+            # _log.exception() écrit la stacktrace complète → enfin visible.
+            _log.exception("[SelfHealing] %s — exception dans health_fn", comp.name)
 
         if healthy:
             if not comp.is_healthy or comp.state != ComponentState.HEALTHY:
-                logger.info(
+                _log.info(
                     "[SelfHealing] %s — RÉCUPÉRÉ (était %s)",
                     comp.name,
                     comp.state.value,
@@ -250,7 +248,7 @@ class SelfHealingBot:
         # Composant malade
         comp.is_healthy = False
         comp.consecutive_failures += 1
-        logger.warning(
+        _log.warning(
             "[SelfHealing] %s — DÉFAILLANT (échec #%d) erreur: %s",
             comp.name,
             comp.consecutive_failures,
@@ -290,7 +288,7 @@ class SelfHealingBot:
                 # Première fois → DEGRADED
                 comp.state = ComponentState.DEGRADED
                 comp.backoff_until = time.time() + comp.backoff_delay_s
-                logger.error(
+                _log.error(
                     "[SelfHealing] %s → DEGRADED — backoff %.0fs "
                     "(restarts=%d/%d erreur=%s)",
                     comp.name,
@@ -312,7 +310,7 @@ class SelfHealingBot:
                     # Passage en DISABLED : sonde périodique uniquement
                     comp.state = ComponentState.DISABLED
                     comp.backoff_until = time.time() + _DISABLED_PROBE_S
-                    logger.error(
+                    _log.error(
                         "[SelfHealing] %s → DISABLED — "
                         "sonde périodique toutes les %.0fs. "
                         "Intervention requise si le problème persiste.",
@@ -335,7 +333,7 @@ class SelfHealingBot:
                             pass
                     self._emit_critical_alert(comp)
                 else:
-                    logger.warning(
+                    _log.warning(
                         "[SelfHealing] %s — DEGRADED, prochaine sonde dans %.0fs",
                         comp.name,
                         comp.backoff_delay_s,
@@ -347,7 +345,7 @@ class SelfHealingBot:
         return False
 
     def _restart(self, comp: ComponentHealth) -> None:
-        logger.warning(
+        _log.warning(
             "[SelfHealing] %s — Tentative de restart #%d",
             comp.name,
             comp.restart_count + 1,
@@ -359,10 +357,10 @@ class SelfHealingBot:
             self._log_event(
                 comp.name, "restarted", extra={"attempt": comp.restart_count}
             )
-            logger.info("[SelfHealing] %s — Restart effectué", comp.name)
+            _log.info("[SelfHealing] %s — Restart effectué", comp.name)
         except Exception as exc:
             comp.last_error = f"restart_failed: {exc}"
-            logger.error("[SelfHealing] %s — Echec du restart: %s", comp.name, exc)
+            _log.error("[SelfHealing] %s — Echec du restart: %s", comp.name, exc)
             self._log_event(comp.name, "restart_failed", extra={"error": str(exc)})
 
     def _log_event(self, name: str, event: str, extra: dict | None = None) -> None:
@@ -457,7 +455,7 @@ def _start_advisor_process() -> tuple[subprocess.Popen, "Any"]:
         cwd=str(Path(__file__).parent.parent),
     )
     _PID_FILE.write_text(str(proc.pid))
-    logger.info("[ProcessWrap] Démarré PID %d", proc.pid)
+    _log.info("[ProcessWrap] Démarré PID %d", proc.pid)
     return proc, log_out
 
 
@@ -477,7 +475,7 @@ class AdvisorProcessWrapper:
         import os
 
         os.makedirs("logs", exist_ok=True)
-        logger.info("[ProcessWrap] Mode wrapper démarré")
+        _log.info("[ProcessWrap] Mode wrapper démarré")
         _tg("Self-Healing Wrapper actif — surveillance advisor_loop.py")
 
         self._proc, self._log_out = _start_advisor_process()
@@ -488,14 +486,14 @@ class AdvisorProcessWrapper:
                 time.sleep(self._interval)
                 self._tick()
             except KeyboardInterrupt:
-                logger.info("[ProcessWrap] Arrêt — kill process fils")
+                _log.info("[ProcessWrap] Arrêt — kill process fils")
                 if self._proc:
                     self._proc.terminate()
                 if self._log_out:
                     self._log_out.close()
                 break
             except Exception as exc:
-                logger.error("[ProcessWrap] Erreur: %s", exc)
+                _log.error("[ProcessWrap] Erreur: %s", exc)
 
     def _tick(self) -> None:
         if self._proc is None:
@@ -504,13 +502,13 @@ class AdvisorProcessWrapper:
 
         ret = self._proc.poll()
         if ret is not None:
-            logger.error("[ProcessWrap] Process mort (code %d)", ret)
+            _log.error("[ProcessWrap] Process mort (code %d)", ret)
             self._restart(f"process terminé (code {ret})")
             return
 
         lag = _log_lag()
         if lag > _FREEZE_TIMEOUT:
-            logger.error("[ProcessWrap] Boucle figée (%.0fs) — kill", lag)
+            _log.error("[ProcessWrap] Boucle figée (%.0fs) — kill", lag)
             self._proc.terminate()
             time.sleep(3)
             self._restart(f"boucle figée ({lag:.0f}s sans log)")
@@ -519,7 +517,7 @@ class AdvisorProcessWrapper:
         now = time.time()
         self._restarts = [t for t in self._restarts if now - t < 3600]
         if len(self._restarts) >= _MAX_RESTARTS:
-            logger.critical("[ProcessWrap] MAX_RESTARTS atteint — arrêt du wrapper")
+            _log.critical("[ProcessWrap] MAX_RESTARTS atteint — arrêt du wrapper")
             _tg(
                 f"CRITIQUE — Self-Heal MAX_RESTARTS atteint.\n"
                 f"Raison: {reason}\nIntervention requise."
@@ -531,7 +529,7 @@ class AdvisorProcessWrapper:
             try:
                 self._log_out.close()
             except Exception as _e:
-                logger.debug("[ProcessWrap] Fermeture log_out: %s", _e)
+                _log.debug("[ProcessWrap] Fermeture log_out: %s", _e)
         self._proc, self._log_out = _start_advisor_process()
         self._restarts.append(now)
         _tg(f"Self-Heal: redémarré (PID {self._proc.pid})")

@@ -22,15 +22,15 @@ Corrections proposées (pas appliquées auto):
 from __future__ import annotations
 
 import ast
-import logging
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from observability.json_logger import get_logger
 from pieuvre.incidents.models import Finding, Severity
 from pieuvre.tentacles.base import BaseTentacle
 
-logger = logging.getLogger(__name__)
+_log = get_logger("pieuvre.tentacles.evolution")
 
 
 @dataclass
@@ -127,7 +127,7 @@ class EvolutionTentacle(BaseTentacle):
         if scores:
             avg = sum(s.score for s in scores) / len(scores)
             weak = sum(1 for s in scores if s.score < self.WEAK_MODULE_THRESHOLD)
-            logger.info(
+            _log.info(
                 "[EVOLUTION] Score moyen: %.0f/100 — %d/%d modules faibles — %d corrections auto",
                 avg,
                 weak,
@@ -194,10 +194,10 @@ class EvolutionTentacle(BaseTentacle):
             new_source = re.sub(r"(\s+)except\s*:", r"\1except Exception:", source)
             if new_source != source:
                 path.write_text(new_source, encoding="utf-8")
-                logger.info("[EVOLUTION] Auto-fix bare_except dans %s", path.name)
+                _log.info("[EVOLUTION] Auto-fix bare_except dans %s", path.name)
                 return True
         except Exception as exc:
-            logger.warning("Auto-fix échoué pour %s: %s", path.name, exc)
+            _log.warning("Auto-fix échoué pour %s: %s", path.name, exc)
         return False
 
     # ── Rapport ───────────────────────────────────────────────────────────────

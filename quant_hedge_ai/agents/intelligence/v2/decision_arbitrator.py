@@ -5,40 +5,42 @@ Remplace le système de vetos dispersés par un cerveau de décision centralisé
 Au lieu de N systèmes qui bloquent indépendamment, calcule un score de consensus
 pondéré et prend UNE décision finale avec justification.
 """
+
 from __future__ import annotations
 
-import logging
 import time
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
+
+_log = get_logger("quant_hedge_ai.agents.intelligence.v2.decision_arbitrator")
 
 
 class ArbitrationDecision(str, Enum):
-    EXECUTE = "execute"             # consensus fort → exécuter
+    EXECUTE = "execute"  # consensus fort → exécuter
     EXECUTE_REDUCED = "execute_reduced"  # consensus modéré → taille réduite
-    WAIT = "wait"                   # signal trop faible → attendre
-    REJECT = "reject"               # consensus négatif → rejeter
-    EMERGENCY_EXIT = "emergency_exit"   # danger détecté → sortir immédiatement
+    WAIT = "wait"  # signal trop faible → attendre
+    REJECT = "reject"  # consensus négatif → rejeter
+    EMERGENCY_EXIT = "emergency_exit"  # danger détecté → sortir immédiatement
 
 
 @dataclass
 class AgentVote:
     agent_name: str
-    score: float            # [-1, +1] : -1=fort rejet, +1=fort accord
-    weight: float = 1.0     # importance de cet agent
+    score: float  # [-1, +1] : -1=fort rejet, +1=fort accord
+    weight: float = 1.0  # importance de cet agent
     reasoning: str = ""
-    veto: bool = False      # veto absolu (override tout consensus)
+    veto: bool = False  # veto absolu (override tout consensus)
 
 
 @dataclass
 class ArbitrationResult:
     decision: ArbitrationDecision
-    consensus_score: float      # [-1, +1] score final pondéré
-    confidence: float           # [0, 1] confiance dans la décision
-    size_multiplier: float      # [0, 1] multiplicateur de taille
+    consensus_score: float  # [-1, +1] score final pondéré
+    confidence: float  # [0, 1] confiance dans la décision
+    size_multiplier: float  # [0, 1] multiplicateur de taille
     votes: list[AgentVote] = field(default_factory=list)
     veto_agents: list[str] = field(default_factory=list)
     reasoning: str = ""
@@ -76,26 +78,30 @@ class DecisionArbitrator:
 
     # Poids par défaut des agents
     DEFAULT_WEIGHTS = {
-        "global_risk_gate": 2.0,        # critique — veto possible
+        "global_risk_gate": 2.0,  # critique — veto possible
         "conviction_engine": 1.8,
         "portfolio_brain": 1.8,
         "meta_strategy": 1.5,
-        "microstructure": 1.5,          # nouveau V2
-        "hmm_regime": 1.4,              # nouveau V2
-        "onchain_sentiment": 1.2,       # nouveau V2
+        "microstructure": 1.5,  # nouveau V2
+        "hmm_regime": 1.4,  # nouveau V2
+        "onchain_sentiment": 1.2,  # nouveau V2
         "no_trade_layer": 1.3,
         "self_awareness": 1.0,
         "mistake_memory": 1.0,
-        "executive_override": 2.5,      # poids maximal
+        "executive_override": 2.5,  # poids maximal
         "threat_radar": 1.3,
     }
 
     def __init__(self, weights: dict[str, float] | None = None) -> None:
         self._weights = {**self.DEFAULT_WEIGHTS, **(weights or {})}
         self._history: list[ArbitrationResult] = []
-        self._agent_credibility: dict[str, float] = {}  # ajusté par les résultats passés
+        self._agent_credibility: dict[str, float] = (
+            {}
+        )  # ajusté par les résultats passés
 
-    def arbitrate(self, votes: list[AgentVote], context: dict[str, Any] | None = None) -> ArbitrationResult:
+    def arbitrate(
+        self, votes: list[AgentVote], context: dict[str, Any] | None = None
+    ) -> ArbitrationResult:
         """
         Arbitre entre tous les votes et retourne une décision finale.
         """
@@ -121,7 +127,7 @@ class DecisionArbitrator:
                 reasoning=f"VETO par: {', '.join(veto_agents)}",
             )
             self._history.append(result)
-            logger.warning("[Arbitrator] VETO: %s", veto_agents)
+            _log.warning("[Arbitrator] VETO: %s", veto_agents)
             return result
 
         # Emergency (score < seuil d'urgence)
@@ -155,7 +161,7 @@ class DecisionArbitrator:
         # Confiance = cohérence entre les votes (variance faible = confiance élevée)
         scores = [v.score for v in votes]
         variance = sum((s - consensus) ** 2 for s in scores) / len(scores)
-        confidence = max(0.1, 1.0 - variance ** 0.5)
+        confidence = max(0.1, 1.0 - variance**0.5)
 
         # Décision
         decision, size_mult = self._map_decision(consensus, confidence, context)
@@ -188,8 +194,7 @@ class DecisionArbitrator:
 
     def credibility_report(self) -> dict[str, float]:
         return {
-            agent: self._agent_credibility.get(agent, 1.0)
-            for agent in self._weights
+            agent: self._agent_credibility.get(agent, 1.0) for agent in self._weights
         }
 
     def recent_decisions(self, n: int = 10) -> list[dict]:

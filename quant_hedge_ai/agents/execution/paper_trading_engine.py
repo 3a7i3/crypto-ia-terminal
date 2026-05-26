@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import json
-import logging
 import time
 from pathlib import Path
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
 
+_log = get_logger("quant_hedge_ai.agents.execution.paper_trading_engine")
 _STATE_FILE = Path("databases/paper_trading/state.json")
 
 
@@ -134,7 +134,9 @@ class PaperTradingEngine:
             self.trade_history = state.get("trade_history", [])
             self.equity_curve = state.get("equity_curve", [])
         except (json.JSONDecodeError, KeyError) as exc:
-            logger.warning("[PaperTradingEngine] Etat corrompu ou incomplet — reset: %s", exc)
+            _log.warning(
+                "[PaperTradingEngine] Etat corrompu ou incomplet — reset: %s", exc
+            )
 
     def reset(self) -> None:
         self.balance = self._initial_balance

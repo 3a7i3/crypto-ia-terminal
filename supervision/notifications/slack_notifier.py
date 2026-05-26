@@ -4,9 +4,9 @@ slack_notifier.py — Envoi de notifications via Slack webhook.
 
 from __future__ import annotations
 
-import logging
+from observability.json_logger import get_logger
 
-logger = logging.getLogger("SlackNotifier")
+_log = get_logger("SlackNotifier")
 
 
 class SlackNotifier:
@@ -27,8 +27,8 @@ class SlackNotifier:
             with urllib.request.urlopen(req, timeout=5) as resp:
                 ok = resp.status == 200
             if not ok:
-                logger.warning("Slack webhook a retourné un statut non-200")
+                _log.warning("Slack webhook a retourné un statut non-200")
             return ok
         except Exception as exc:
-            logger.error("Erreur SlackNotifier: %s", exc)
+            _log.error("Erreur SlackNotifier: %s", exc)
             return False

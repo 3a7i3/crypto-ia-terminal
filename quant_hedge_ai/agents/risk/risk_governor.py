@@ -9,13 +9,14 @@ Inclut VolatilityEmergencyMode (ATR > 3× médiane → suspension trades).
 
 from __future__ import annotations
 
-import logging
 import os
 from collections import deque
 from dataclasses import dataclass
 from enum import Enum
 
-log = logging.getLogger("risk_governor")
+from observability.json_logger import get_logger
+
+_log = get_logger("risk_governor")
 
 
 class RiskState(Enum):
@@ -143,7 +144,7 @@ class RiskGovernor:
                 drawdown_pct, consecutive_losses, atr_current, regime
             )
 
-        log.debug(
+        _log.debug(
             "[RiskGovernor] cycle=%d state=%s dd=%.2f%% consec=%d vol_em=%s",
             cycle,
             self._state.value,
@@ -212,7 +213,7 @@ class RiskGovernor:
         ratio = self._vol_ratio(atr_current)
         if ratio >= self.VOL_EMERGENCY:
             if not self._vol_emergency:
-                log.warning(
+                _log.warning(
                     "[RiskGovernor] VOLATILITY EMERGENCY — ATR ratio=%.1f × médiane",
                     ratio,
                 )
@@ -221,13 +222,15 @@ class RiskGovernor:
         elif self._vol_emergency:
             self._vol_emergency_cooldown -= 1
             if self._vol_emergency_cooldown < 0:
-                log.info("[RiskGovernor] Volatilité revenue sous seuil — urgence levée")
+                _log.info(
+                    "[RiskGovernor] Volatilité revenue sous seuil — urgence levée"
+                )
                 self._vol_emergency = False
 
     def _transition_to(self, new_state: RiskState) -> None:
         if new_state == self._state:
             return
-        log.warning(
+        _log.warning(
             "[RiskGovernor] TRANSITION %s → %s (cycle %d, état depuis %d cycles)",
             self._state.value,
             new_state.value,

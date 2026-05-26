@@ -29,12 +29,12 @@ portfolio_brain protège le portefeuille (exposition, corrélation, concentratio
 
 from __future__ import annotations
 
-import logging
 import os
 from dataclasses import dataclass, field
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
 
+_log = get_logger("quant_hedge_ai.agents.risk.portfolio_brain")
 # ── Corrélations crypto historiques (approximations) ─────────────────────────
 # Mis à jour dynamiquement si données disponibles, sinon valeurs par défaut
 _DEFAULT_CORRELATIONS = {
@@ -247,7 +247,7 @@ class PortfolioBrain:
         )
 
         if warnings:
-            logger.info(
+            _log.info(
                 "[PortfolioBrain] Warnings: %s | factor=%.2f",
                 " | ".join(warnings),
                 final_factor,
@@ -542,7 +542,7 @@ class PortfolioBrain:
         packet.metadata["pb_warnings"] = warnings
 
         if warnings:
-            logger.info(
+            _log.info(
                 "[PortfolioBrain] %s | warnings: %s | factor=%.2f",
                 symbol,
                 " | ".join(warnings),

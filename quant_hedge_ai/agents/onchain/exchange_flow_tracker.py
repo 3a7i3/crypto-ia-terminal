@@ -4,15 +4,17 @@ exchange_flow_tracker.py — Exchange Inflow/Outflow Real-Time Tracker
 Surveille les flux nets vers/depuis les exchanges centralisés.
 Signal critique : inflow massif = pression vente imminente.
 """
+
 from __future__ import annotations
 
-import logging
 import time
 from collections import defaultdict, deque
 from dataclasses import dataclass
 from typing import Any
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
+
+_log = get_logger("quant_hedge_ai.agents.onchain.exchange_flow_tracker")
 
 
 @dataclass
@@ -23,22 +25,22 @@ class FlowReport:
     # Flux absolus (USD)
     inflow_1h: float = 0.0
     outflow_1h: float = 0.0
-    net_flow_1h: float = 0.0            # positif = accumulation (sortie > entrée)
+    net_flow_1h: float = 0.0  # positif = accumulation (sortie > entrée)
 
     # Variation
-    inflow_change_pct: float = 0.0      # vs moyenne 24h
+    inflow_change_pct: float = 0.0  # vs moyenne 24h
     outflow_change_pct: float = 0.0
 
     # Alertes
-    inflow_spike: bool = False          # inflow > 2x moyenne = sell pressure imminent
-    outflow_spike: bool = False         # outflow > 2x moyenne = accumulation forte
-    net_flow_extreme: bool = False      # déséquilibre extrême
+    inflow_spike: bool = False  # inflow > 2x moyenne = sell pressure imminent
+    outflow_spike: bool = False  # outflow > 2x moyenne = accumulation forte
+    net_flow_extreme: bool = False  # déséquilibre extrême
 
     # Score de pression vente [0,1]
     sell_pressure_score: float = 0.0
 
     # Signal directionnel
-    flow_signal: str = "neutral"        # "buy", "sell", "neutral"
+    flow_signal: str = "neutral"  # "buy", "sell", "neutral"
 
     def to_dict(self) -> dict[str, Any]:
         return {k: v for k, v in self.__dict__.items()}
@@ -50,12 +52,16 @@ class ExchangeFlowTracker:
     Fonctionne avec les données de BlockchainIngester.
     """
 
-    SPIKE_MULTIPLIER = 2.0      # seuil pour détecter un spike
-    WINDOW_SIZE = 24            # fenêtre historique (24 snapshots = 24h si 1 snapshot/h)
+    SPIKE_MULTIPLIER = 2.0  # seuil pour détecter un spike
+    WINDOW_SIZE = 24  # fenêtre historique (24 snapshots = 24h si 1 snapshot/h)
 
     def __init__(self) -> None:
-        self._inflow_history: dict[str, deque] = defaultdict(lambda: deque(maxlen=self.WINDOW_SIZE))
-        self._outflow_history: dict[str, deque] = defaultdict(lambda: deque(maxlen=self.WINDOW_SIZE))
+        self._inflow_history: dict[str, deque] = defaultdict(
+            lambda: deque(maxlen=self.WINDOW_SIZE)
+        )
+        self._outflow_history: dict[str, deque] = defaultdict(
+            lambda: deque(maxlen=self.WINDOW_SIZE)
+        )
         self._last_reports: dict[str, FlowReport] = {}
 
     def update(self, symbol: str, inflow_usd: float, outflow_usd: float) -> FlowReport:
@@ -97,9 +103,17 @@ class ExchangeFlowTracker:
         self._last_reports[symbol] = report
 
         if report.inflow_spike:
-            logger.warning("[FlowTracker] %s — INFLOW SPIKE: %.0f USD (sell pressure)", symbol, inflow_usd)
+            _log.warning(
+                "[FlowTracker] %s — INFLOW SPIKE: %.0f USD (sell pressure)",
+                symbol,
+                inflow_usd,
+            )
         if report.outflow_spike:
-            logger.info("[FlowTracker] %s — OUTFLOW SPIKE: %.0f USD (accumulation)", symbol, outflow_usd)
+            _log.info(
+                "[FlowTracker] %s — OUTFLOW SPIKE: %.0f USD (accumulation)",
+                symbol,
+                outflow_usd,
+            )
 
         return report
 

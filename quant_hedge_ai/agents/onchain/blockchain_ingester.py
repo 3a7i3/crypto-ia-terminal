@@ -8,14 +8,16 @@ Sources supportées :
   - Coinglass (liquidations, OI)
   - Fallback synthétique si APIs indisponibles
 """
+
 from __future__ import annotations
 
-import logging
 import time
 from dataclasses import dataclass, field
 from typing import Any
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
+
+_log = get_logger("quant_hedge_ai.agents.onchain.blockchain_ingester")
 
 
 @dataclass
@@ -26,27 +28,27 @@ class OnChainData:
     # Exchange flows
     exchange_inflow_usd: float = 0.0
     exchange_outflow_usd: float = 0.0
-    net_flow_usd: float = 0.0           # outflow - inflow : positif = accumulation
+    net_flow_usd: float = 0.0  # outflow - inflow : positif = accumulation
 
     # Whale activity
-    large_tx_count: int = 0             # transactions >100k USD dernière heure
+    large_tx_count: int = 0  # transactions >100k USD dernière heure
     whale_inflow_usd: float = 0.0
     whale_outflow_usd: float = 0.0
 
     # Supply metrics
     supply_in_profit_pct: float = 0.5
     active_addresses_24h: int = 0
-    dormancy_flow: float = 0.0          # coins anciens qui bougent = distribution
+    dormancy_flow: float = 0.0  # coins anciens qui bougent = distribution
 
     # Stablecoins
     stablecoin_inflow_usd: float = 0.0  # stablecoins entrant en exchange = risk-on
 
     # Sentiment on-chain
-    net_sentiment: float = 0.0          # [-1,+1] synthèse on-chain
+    net_sentiment: float = 0.0  # [-1,+1] synthèse on-chain
 
     # Qualité
     source: str = "synthetic"
-    confidence: float = 0.5             # [0,1]
+    confidence: float = 0.5  # [0,1]
 
     def is_bullish(self) -> bool:
         return self.net_flow_usd > 0 and self.stablecoin_inflow_usd > 0
@@ -63,7 +65,7 @@ class BlockchainIngester:
     """
 
     # Seuils de fraîcheur (secondes)
-    CACHE_TTL = 3600    # 1h pour les données on-chain (changent lentement)
+    CACHE_TTL = 3600  # 1h pour les données on-chain (changent lentement)
 
     def __init__(self, api_keys: dict[str, str] | None = None) -> None:
         self._api_keys = api_keys or {}
@@ -111,18 +113,26 @@ class BlockchainIngester:
         """Fetch CryptoQuant exchange flow data."""
         try:
             import requests
+
             key = self._api_keys["cryptoquant"]
             base = asset.lower()
             url = f"https://api.cryptoquant.com/v1/{base}/exchange-flows/inflow"
-            resp = requests.get(url, headers={"Authorization": f"Bearer {key}"}, timeout=5)
+            resp = requests.get(
+                url, headers={"Authorization": f"Bearer {key}"}, timeout=5
+            )
             if resp.status_code == 200:
                 raw = resp.json()
                 inflow = float(raw.get("result", {}).get("value", 0))
                 outflow_resp = requests.get(
                     f"https://api.cryptoquant.com/v1/{base}/exchange-flows/outflow",
-                    headers={"Authorization": f"Bearer {key}"}, timeout=5
+                    headers={"Authorization": f"Bearer {key}"},
+                    timeout=5,
                 )
-                outflow = float(outflow_resp.json().get("result", {}).get("value", 0)) if outflow_resp.ok else 0.0
+                outflow = (
+                    float(outflow_resp.json().get("result", {}).get("value", 0))
+                    if outflow_resp.ok
+                    else 0.0
+                )
                 return OnChainData(
                     symbol=symbol,
                     exchange_inflow_usd=inflow * 1e3,
@@ -132,13 +142,14 @@ class BlockchainIngester:
                     confidence=0.9,
                 )
         except Exception as exc:
-            logger.debug("[BlockchainIngester] CryptoQuant error: %s", exc)
+            _log.debug("[BlockchainIngester] CryptoQuant error: %s", exc)
         return None
 
     def _fetch_glassnode(self, symbol: str, asset: str) -> OnChainData | None:
         """Fetch Glassnode supply metrics."""
         try:
             import requests
+
             key = self._api_keys["glassnode"]
             ticker = asset.lower()
             url = f"https://api.glassnode.com/v1/metrics/supply/profit_relative"
@@ -153,7 +164,7 @@ class BlockchainIngester:
                     confidence=0.8,
                 )
         except Exception as exc:
-            logger.debug("[BlockchainIngester] Glassnode error: %s", exc)
+            _log.debug("[BlockchainIngester] Glassnode error: %s", exc)
         return None
 
     def _synthetic_data(self, symbol: str) -> OnChainData:

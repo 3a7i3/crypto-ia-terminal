@@ -27,7 +27,6 @@ Usage :
 
 from __future__ import annotations
 
-import logging
 import os
 import threading
 import time
@@ -35,7 +34,9 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
+
+_log = get_logger("quant_hedge_ai.agents.execution.position_manager")
 
 
 class PositionSide(str, Enum):
@@ -262,7 +263,7 @@ class PositionManager:
             target=self._watch_loop, daemon=True, name="PositionManager"
         )
         self._thread.start()
-        logger.info(
+        _log.info(
             "[PositionManager] Démarré (paper=%s, interval=%ds)",
             self._paper,
             self._interval,
@@ -270,7 +271,7 @@ class PositionManager:
 
     def stop(self) -> None:
         self._running = False
-        logger.info("[PositionManager] Arrêté")
+        _log.info("[PositionManager] Arrêté")
 
     def on_close(self, fn) -> None:
         """Enregistre un callback appelé à chaque fermeture de position."""
@@ -283,7 +284,7 @@ class PositionManager:
         with self._lock:
             self._positions[key] = pos
         if not silent:
-            logger.info("[PositionManager] Position ajoutée: %s", pos.summary())
+            _log.info("[PositionManager] Position ajoutée: %s", pos.summary())
 
     def get_open(self) -> list[Position]:
         with self._lock:
@@ -377,7 +378,7 @@ class PositionManager:
             try:
                 self._tick()
             except Exception as exc:
-                logger.error("[PositionManager] Erreur tick: %s", exc)
+                _log.error("[PositionManager] Erreur tick: %s", exc)
             time.sleep(self._interval)
 
     def _tick(self) -> None:
@@ -418,7 +419,7 @@ class PositionManager:
             ticker = self._exchange.fetch_ticker(ccxt_symbol)
             return float(ticker["last"])
         except Exception as exc:
-            logger.warning("[PositionManager] fetch_price %s: %s", symbol, exc)
+            _log.warning("[PositionManager] fetch_price %s: %s", symbol, exc)
             return None
 
     # ── Logique TP/SL/Trailing ─────────────────────────────────────────────────
@@ -445,7 +446,7 @@ class PositionManager:
         if pos.side == PositionSide.LONG:
             new_sl = pos.highest_price * (1 - pos.trailing_pct)
             if new_sl > pos.sl_price:
-                logger.debug(
+                _log.debug(
                     "[PositionManager] Trailing SL LONG %s: %.2f → %.2f",
                     pos.symbol,
                     pos.sl_price,
@@ -457,7 +458,7 @@ class PositionManager:
         else:
             new_sl = pos.lowest_price * (1 + pos.trailing_pct)
             if new_sl < pos.sl_price:
-                logger.debug(
+                _log.debug(
                     "[PositionManager] Trailing SL SHORT %s: %.2f → %.2f",
                     pos.symbol,
                     pos.sl_price,
@@ -472,7 +473,7 @@ class PositionManager:
             return
         if pos.pnl_pct >= pos.partial_close_trigger_pct:
             close_qty = pos.qty * pos.partial_close_pct
-            logger.info(
+            _log.info(
                 "[PositionManager] Partial close %s: %.4f (%.0f%%) PnL=%.2f$",
                 pos.symbol,
                 close_qty,
@@ -491,7 +492,7 @@ class PositionManager:
                     1.001 if pos.side == PositionSide.LONG else 0.999
                 )
                 pos.break_even_done = True
-                logger.info(
+                _log.info(
                     "[PositionManager] Partial stop reduction %s: SL → entry %.2f",
                     pos.symbol,
                     pos.entry_price,
@@ -501,7 +502,7 @@ class PositionManager:
         if pos.break_even_done or pos.closed:
             return
         if pos.pnl_pct >= pos.break_even_trigger_pct:
-            logger.info(
+            _log.info(
                 "[PositionManager] Break even %s: SL déplacé à entry %.2f",
                 pos.symbol,
                 pos.entry_price,
@@ -516,7 +517,7 @@ class PositionManager:
         dist = pos.liquidation_distance_pct()
         # Alerte Telegram si dist < 15%
         if 0.08 < dist < 0.15:
-            logger.warning(
+            _log.warning(
                 "[PositionManager] ALERTE LIQUIDATION %s — dist=%.1f%%",
                 pos.symbol,
                 dist * 100,
@@ -533,7 +534,7 @@ class PositionManager:
                 pass
         # Fermeture d'urgence si dist < seuil defense
         if dist < pos.liq_defense_pct:
-            logger.critical(
+            _log.critical(
                 "[PositionManager] LIQUIDATION DEFENSE %s dist=%.1f%%",
                 pos.symbol,
                 dist * 100,
@@ -548,7 +549,7 @@ class PositionManager:
         # Lu dynamiquement depuis l'env pour permettre l'override sans restart
         max_age = float(os.getenv("PM_MAX_AGE_MIN", str(pos.max_age_minutes)))
         if age >= max_age:
-            logger.info(
+            _log.info(
                 "[PositionManager] TIME STOP %s âge=%.0fmin max=%.0fmin PnL=%.2f$",
                 pos.symbol,
                 age,
@@ -585,7 +586,7 @@ class PositionManager:
     def _close_position(self, pos: Position, reason: CloseReason) -> None:
         if pos.closed:
             return
-        logger.info(
+        _log.info(
             "[PositionManager] Fermeture %s — raison=%s PnL=%.2f$ (%.2f%%)",
             pos.symbol,
             reason.value,
@@ -612,7 +613,7 @@ class PositionManager:
         qty = qty_override or pos.qty
         side = "sell" if pos.side == PositionSide.LONG else "buy"
         if self._paper or self._exchange is None:
-            logger.info(
+            _log.info(
                 "[PositionManager][PAPER] close %s %s qty=%.4f reason=%s",
                 side,
                 pos.symbol,
@@ -625,9 +626,9 @@ class PositionManager:
             order = self._exchange.create_order(
                 ccxt_symbol, "market", side, qty, params={"reduceOnly": True}
             )
-            logger.info("[PositionManager] Ordre close envoyé id=%s", order.get("id"))
+            _log.info("[PositionManager] Ordre close envoyé id=%s", order.get("id"))
         except Exception as exc:
-            logger.error("[PositionManager] Echec close order %s: %s", pos.symbol, exc)
+            _log.error("[PositionManager] Echec close order %s: %s", pos.symbol, exc)
 
     @staticmethod
     def _to_ccxt_symbol(symbol: str) -> str:
@@ -657,7 +658,7 @@ class PositionManager:
             for lg in longs:
                 for s in shorts:
                     hedges.append((lg, s))
-                    logger.warning(
+                    _log.warning(
                         "[PositionManager] Hedge détecté: %s LONG + SHORT", sym
                     )
         return hedges

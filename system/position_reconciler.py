@@ -15,18 +15,18 @@ Usage :
     rec = PositionReconciler(exchange_futures, pos_manager)
     report = rec.reconcile()
     if report.has_drift:
-        log.critical("[RECONCILE] %s", report.summary())
+        _log.critical("[RECONCILE] %s", report.summary())
 """
 
 from __future__ import annotations
 
-import logging
 import time
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
-log = logging.getLogger(__name__)
+from observability.json_logger import get_logger
 
+_log = get_logger("system.position_reconciler")
 _PRICE_DRIFT_PCT_ALERT = 0.02  # alerte si écart prix > 2%
 _MIN_RECONCILE_INTERVAL = 3600  # 1h entre chaque réconciliation complète
 
@@ -116,7 +116,7 @@ class PositionReconciler:
         except Exception as e:
             report.exchange_reachable = False
             report.error = f"exchange.fetch_positions failed: {e}"
-            log.warning("[Reconciler] %s", report.error)
+            _log.warning("[Reconciler] %s", report.error)
             return report
 
         # ── 2. Positions internes ──────────────────────────────────────────────
@@ -132,7 +132,7 @@ class PositionReconciler:
                     internal_pos[sym] = pos
         except Exception as e:
             report.error = f"pos_manager.get_open_positions failed: {e}"
-            log.warning("[Reconciler] %s", report.error)
+            _log.warning("[Reconciler] %s", report.error)
 
         report.exchange_positions = len(exchange_pos)
         report.internal_positions = len(internal_pos)
@@ -141,7 +141,7 @@ class PositionReconciler:
         for sym, pos in internal_pos.items():
             if sym not in exchange_pos:
                 report.ghost_positions.append(sym)
-                log.warning(
+                _log.warning(
                     "[Reconciler] GHOST position: %s (interne mais absente exchange)",
                     sym,
                 )
@@ -150,7 +150,7 @@ class PositionReconciler:
         for sym in exchange_pos:
             if sym not in internal_pos:
                 report.orphan_positions.append(sym)
-                log.warning(
+                _log.warning(
                     "[Reconciler] ORPHAN position: %s (exchange mais absente interne)",
                     sym,
                 )
@@ -174,9 +174,9 @@ class PositionReconciler:
                     )
 
         if report.has_drift:
-            log.warning("[Reconciler] DRIFT DETECTED: %s", report.summary())
+            _log.warning("[Reconciler] DRIFT DETECTED: %s", report.summary())
         else:
-            log.info(
+            _log.info(
                 "[Reconciler] CLEAN — %d exchange / %d internal",
                 report.exchange_positions,
                 report.internal_positions,

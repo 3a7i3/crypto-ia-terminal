@@ -93,10 +93,11 @@ class TestOrderDeduplicator:
 
     # ── logging ───────────────────────────────────────────────────────────────
 
-    def test_duplicate_logs_warning(self, caplog):
-        import logging
+    def test_duplicate_logs_warning(self, monkeypatch):
+        import quant_hedge_ai.agents.execution.order_deduplicator as mod
 
+        logged = []
+        monkeypatch.setattr(mod._log, "warning", lambda *a, **kw: logged.append(str(a)))
         self.d.register("BTC/USDT", "BUY", 1.0)
-        with caplog.at_level(logging.WARNING):
-            self.d.is_duplicate("BTC/USDT", "BUY", 1.0)
-        assert "Duplicate" in caplog.text or "duplicate" in caplog.text
+        self.d.is_duplicate("BTC/USDT", "BUY", 1.0)
+        assert any("Duplicate" in s or "duplicate" in s for s in logged)

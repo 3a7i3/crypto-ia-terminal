@@ -19,12 +19,12 @@ Si l'historique est insuffisant, le moteur bascule en mode conservateur.
 
 from __future__ import annotations
 
-import logging
 import os
 from dataclasses import dataclass, field
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
 
+_log = get_logger("quant_hedge_ai.agents.risk.capital_allocation_engine")
 # ── Caps par régime ────────────────────────────────────────────────────────────
 _REGIME_CAPS: dict[str, float] = {
     "bull_trend": 1.00,  # plein capital autorisé
@@ -240,7 +240,7 @@ class CapitalAllocationEngine:
                 f" ev={ev_score:.4f} vol={volatility:.3f}"
             )
 
-        logger.debug(
+        _log.debug(
             "[CAE] size=%.2f lev=%.1f kelly=%.4f ev=%.5f vol=%.3f regime=%s conv=%.2f",
             size,
             adjusted_leverage,
