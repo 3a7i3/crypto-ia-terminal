@@ -65,6 +65,29 @@ class TestRiskGovernorTransitions:
         assert gov.state == RiskState.RISK_OFF
         assert gov.allow_new_trades is False
 
+    def test_risk_off_does_not_recover_on_missing_atr(self):
+        """ATR absent ne doit pas compter comme volatilité revenue au calme."""
+        gov = self._gov()
+        gov.RISK_OFF_SAFE_CYCLES = 10
+        gov.update(cycle=1, drawdown_pct=0.04, consecutive_losses=0)
+        gov.update(cycle=2, drawdown_pct=0.07, consecutive_losses=0)
+        snap = gov.update(cycle=3, drawdown_pct=0.0, consecutive_losses=0)
+        assert snap.state == "risk_off"
+
+    def test_aggressive_requires_known_calm_volatility(self):
+        """Sans ATR connu, PnL positif seul ne suffit pas pour AGGRESSIVE."""
+        gov = self._gov()
+        gov.AGGRESSIVE_PNL_CYCLES = 2
+        for cycle in range(1, 5):
+            snap = gov.update(
+                cycle=cycle,
+                drawdown_pct=0.0,
+                consecutive_losses=0,
+                cycle_pnl_pct=0.01,
+                regime="bull_trend",
+            )
+        assert snap.state == "normal"
+
     def test_hysteresis_min_cycles(self):
         """Pas de transition avant MIN_CYCLES cycles dans l'état."""
         gov = RiskGovernor()
@@ -172,6 +195,7 @@ class TestCircuitBreaker:
         cb = ComponentCircuitBreaker("test_comp", fallback=None)
         for _ in range(5):
             cb.call(self._failing_fn)
+            cb._backoff_until = 0.0
         assert cb.state == CBState.DEGRADED
 
     def test_disabled_after_10_failures(self):
@@ -195,9 +219,21 @@ class TestCircuitBreaker:
         cb.call(self._failing_fn)
         assert cb.state == CBState.UNSTABLE
         # Il faut autant de succès que de failures pour revenir à 0
+        cb._backoff_until = 0.0
         cb.call(self._ok_fn)
+        cb._backoff_until = 0.0
         cb.call(self._ok_fn)
         assert cb.state == CBState.HEALTHY
+
+    def test_unstable_backoff_returns_fallback_without_retry(self):
+        """UNSTABLE respecte le backoff au lieu de rappeler la fonction."""
+        cb = ComponentCircuitBreaker("test_comp", fallback="fb")
+        cb.call(self._failing_fn)
+        cb.call(self._failing_fn)
+        assert cb.state == CBState.UNSTABLE
+        result = cb.call(self._ok_fn)
+        assert result == "fb"
+        assert cb.state == CBState.UNSTABLE
 
     def test_fallback_returned_in_degraded(self):
         """Fallback retourné en état DEGRADED (sans tentative recovery)."""

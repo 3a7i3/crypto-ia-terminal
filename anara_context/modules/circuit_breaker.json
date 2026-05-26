@@ -1,0 +1,65 @@
+{
+  "module_id": "circuit_breaker",
+  "class_name": "ComponentCircuitBreaker",
+  "file_path": "supervision/circuit_breaker_robust.py",
+  "display_name": "Circuit Breaker",
+  "layer": "risk",
+  "dashboard_tab": "Risque",
+
+  "role_fr": "Circuit-breaker par composant à 4 états (P7). Tolérance à la panne : composant dégradé remplacé par stub, pas de retry infini. Backoff exponentiel + recovery périodique.",
+  "role_en": "Per-component 4-state circuit breaker (P7). Fault tolerance: degraded component replaced by stub, no infinite retry. Exponential backoff + periodic recovery.",
+
+  "states": [
+    {
+      "state_id": "healthy",
+      "color": "#22c55e",
+      "description": "Fonctionnement normal",
+      "trigger": "état initial / recovery réussie"
+    },
+    {
+      "state_id": "unstable",
+      "color": "#f59e0b",
+      "description": "2e échec consécutif, backoff 30s, tentative de recovery",
+      "trigger": "failures >= 2"
+    },
+    {
+      "state_id": "degraded",
+      "color": "#ef4444",
+      "description": "5 échecs, composant suspendu, stub actif, alerte, recovery toutes 300s",
+      "trigger": "failures >= 5"
+    },
+    {
+      "state_id": "disabled",
+      "color": "#7f1d1d",
+      "description": "10 échecs, arrêt complet, escalation, recovery toutes 1800s",
+      "trigger": "failures >= 10"
+    }
+  ],
+
+  "backoff_schedule_seconds": [30, 60, 120, 300, 600],
+
+  "recovery": {
+    "degraded_interval_s": 300,
+    "disabled_interval_s": 1800,
+    "success_decrements_failures": true,
+    "returns_healthy_at_zero_failures": true
+  },
+
+  "registry": {
+    "class": "CircuitBreakerRegistry",
+    "singleton": "get_cb_registry()",
+    "methods": ["get(name, fallback)", "snapshot_all()", "any_degraded()"]
+  },
+
+  "key_metrics": [
+    { "metric_id": "state",               "label": "État CB",            "type": "enum" },
+    { "metric_id": "failures",            "label": "Échecs",             "type": "int" },
+    { "metric_id": "backoff_remaining_s", "label": "Backoff Restant (s)","type": "float" }
+  ],
+
+  "integration": {
+    "upstream": [],
+    "downstream": ["advisor_loop", "safety_auditor"],
+    "note": "Utilisé pour protéger les appels critiques (exchange, risk_gate). En DEGRADED, retourne fallback sans appeler la fonction. Logging via logger.exception (stacktrace complète)."
+  }
+}

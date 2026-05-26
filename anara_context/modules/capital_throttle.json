@@ -1,0 +1,41 @@
+{
+  "module_id": "capital_throttle",
+  "class_name": "CapitalThrottle",
+  "file_path": "quant_hedge_ai/agents/risk/capital_throttle.py",
+  "display_name": "Throttle Capital",
+  "layer": "risk",
+  "dashboard_tab": "Risque",
+
+  "role_fr": "Réduit progressivement la taille des positions en fonction du drawdown total (P7). Réduction linéaire de 10% par palier de 1% de drawdown au-delà de 5%. Arrêt complet à 10%. Récupération en rampe sur 5 cycles minimum.",
+  "role_en": "Progressively reduces position sizing based on total drawdown (P7). Linear 10% reduction per 1% drawdown above 5%. Full stop at 10%. Recovery via smooth ramp over 5+ cycles.",
+
+  "throttle_logic": {
+    "below_soft_dd":  "factor = 1.0 (aucune réduction)",
+    "soft_to_hard_dd": "factor = max(MIN_OPERATIONAL, 1 - (dd-5%) × 10/1%)",
+    "at_hard_dd":     "factor = 0.0 (arrêt complet, allow_trades=False)",
+    "ramp_down":      "dégradation immédiate (pas de lissage)",
+    "ramp_up":        "récupération de RAMP_RATE (20%) par cycle"
+  },
+
+  "key_metrics": [
+    { "metric_id": "factor",          "label": "Facteur Throttle",    "type": "float",  "range": [0.0, 1.0] },
+    { "metric_id": "drawdown_pct",    "label": "Drawdown %",          "type": "float" },
+    { "metric_id": "peak_capital",    "label": "Capital Peak",        "type": "float" },
+    { "metric_id": "throttle_active", "label": "Throttle Actif",      "type": "bool" },
+    { "metric_id": "allow_trades",    "label": "Trades Autorisés",    "type": "bool" }
+  ],
+
+  "env_vars": [
+    { "name": "CT_SOFT_DD",       "default": "0.05",  "description": "Drawdown % déclenchant la réduction (défaut 5%)" },
+    { "name": "CT_HARD_DD",       "default": "0.10",  "description": "Drawdown % déclenchant l'arrêt complet (défaut 10%)" },
+    { "name": "CT_REDUCTION",     "default": "0.10",  "description": "Réduction par palier de 1% de drawdown (défaut 10%)" },
+    { "name": "CT_RAMP_RATE",     "default": "0.20",  "description": "Vitesse de récupération par cycle (défaut 20%)" },
+    { "name": "CT_MIN_OPERATIONAL","default": "0.10", "description": "Plancher opérationnel minimum (défaut 10%)" }
+  ],
+
+  "integration": {
+    "upstream": ["portfolio_brain"],
+    "downstream": ["risk_governor", "advisor_loop"],
+    "note": "factor × RiskGovernor.size_multiplier = effective_size_multiplier appliqué à effective_size"
+  }
+}

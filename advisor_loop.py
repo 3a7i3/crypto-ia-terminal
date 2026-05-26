@@ -100,7 +100,7 @@ try:
     from errors.error_bus import ErrorCategory, ErrorSeverity, error_bus
     from observability.heartbeat_system import heartbeat_system
     from observability.metrics_bus import metrics_bus
-    from system.module_registry import ModulePriority, module_registry
+    from system.module_registry import ModulePriority, ModuleStatus, module_registry
 
     _OBS_AVAILABLE = True
 except Exception:
@@ -413,6 +413,9 @@ def analyze_symbol(
     runtime: AdvisorRuntime | None = None,
     sl_factor_override: float | None = None,
     tp_factor_override: float | None = None,
+    # ── Sweep detection (optionnel) ─────────────────────────────────────
+    sweep_detector: Any = None,
+    sweep_outcome_tracker: Any = None,
 ) -> AnalysisResult:
     _trace_id = new_trace_id()
     set_trace_id(_trace_id)
@@ -523,6 +526,33 @@ def analyze_symbol(
             except Exception as _exc_v2:
                 log.debug("[V2/RegimePredictor] %s skip: %s", symbol, _exc_v2)
 
+    # ── Sweep Detector — perception de liquidité (après régime, avant signal) ──
+    sweep_events: list = []
+    if sweep_detector and candles_1h:
+        try:
+            atr_val = float(features.get("atr", features.get("atr_value", 0.0)))
+            sweep_events = sweep_detector.detect(
+                symbol=symbol,
+                candles=candles_1h,
+                atr=atr_val,
+                regime=regime,
+                timeframe="1h",
+            )
+            if sweep_events:
+                best = sweep_events[0]
+                # Expose aux features ML
+                features["sweep_strength"] = best.sweep_strength
+                features["sweep_direction"] = 1.0 if best.direction == "long" else -1.0
+                features["sweep_volume_ratio"] = best.volume_ratio
+                features["sweep_confidence"] = best.confidence
+                # Suivi de l'outcome si tracker branché
+                if sweep_outcome_tracker:
+                    current_price = float(candles_1h[-1].get("close", 0))
+                    for evt in sweep_events:
+                        sweep_outcome_tracker.register(evt, current_price, regime)
+        except Exception as _exc_sweep:
+            log.debug("[SweepDetector] %s skip: %s", symbol, _exc_sweep)
+
     # MetaLearner — recommandation exit selon régime + volatilité
     ml_decision = None
     if meta_learner:
@@ -623,6 +653,28 @@ def analyze_symbol(
                 memory_sharpe,
                 personality_name=personality.name if personality else "unknown",
             )
+        # Enrichissement sweep — après conviction, avant risk gate
+        if _dp and sweep_events:
+            try:
+                from core.decision_packet import ReasoningCategory, ReasoningSeverity
+
+                for evt in sweep_events:
+                    impact = evt.sweep_strength * 0.15  # +0 à +15 pts de confiance
+                    _dp.add_reasoning(
+                        actor="sweep_detector",
+                        message=(
+                            f"[SWEEP/{evt.sweep_type.upper()}] {evt.direction.upper()} "
+                            f"strength={evt.sweep_strength:.0f} "
+                            f"vol×{evt.volume_ratio:.1f} "
+                            f"wick×{evt.wick_ratio:.1f}"
+                        ),
+                        confidence_impact=impact,
+                        category=ReasoningCategory.SIGNAL_QUALITY,
+                        severity=ReasoningSeverity.INFO,
+                    )
+                    _dp.metadata["sweep_event"] = evt.to_dict()
+            except Exception as _sweep_dp_exc:
+                log.debug("[SweepDetector/DP] enrich: %s", _sweep_dp_exc)
     except Exception as _dp_exc:
         log.debug("[DecisionPacket] init/enrich: %s", _dp_exc)
         _dp = None
@@ -2543,6 +2595,7 @@ def main(
         os.getenv("REGIME_STABILITY_WINDOW", "3")
     )  # cycles à confirmer
     _last_mismatch_cycle: int = 0  # cooldown REGIME_MISMATCH
+    _atr_last: float = 0.0  # P7 — ATR ratio moyen du cycle précédent → RiskGovernor
 
     # P7 — Risk Governor + Capital Throttle + Exposure Manager
     try:
@@ -2566,8 +2619,54 @@ def main(
         _capital_throttle = None
         _dyn_exposure = None
 
+    _safety_auditor: Any = None
+    if _OBS_AVAILABLE:
+        try:
+            from system.safety_auditor import SystemSafetyAuditor as _SafetyAuditorCls
+
+            module_registry.register(
+                "global_risk_gate",
+                priority=ModulePriority.CRITICAL,
+                heartbeat_timeout_sec=max(interval * 2, 120),
+                health_fn=lambda: gate is not None,
+            )
+            module_registry.register(
+                "execution_engine",
+                priority=ModulePriority.CRITICAL,
+                heartbeat_timeout_sec=max(interval * 2, 120),
+                health_fn=lambda: exec_engine is not None,
+            )
+            module_registry.register(
+                "risk_governor",
+                priority=ModulePriority.CRITICAL,
+                heartbeat_timeout_sec=max(interval * 2, 120),
+                health_fn=lambda: _risk_governor is not None,
+            )
+            if _risk_governor is None:
+                module_registry.set_status(
+                    "risk_governor",
+                    ModuleStatus.UNHEALTHY,
+                    "P7 component unavailable",
+                )
+            _safety_auditor = _SafetyAuditorCls(
+                required_modules={
+                    "global_risk_gate",
+                    "execution_engine",
+                    "risk_governor",
+                },
+                critical_modules={
+                    "global_risk_gate",
+                    "execution_engine",
+                    "risk_governor",
+                },
+            )
+            log.info("[P7] SystemSafetyAuditor initialisé")
+        except Exception as _safety_boot_exc:
+            log.warning("[P7] SystemSafetyAuditor indisponible: %s", _safety_boot_exc)
+
     # P7 — Circuit breakers
     global _cb_gate, _cb_mistake_memory
+    _cb_registry_adapter: Any = None
     if _CB_AVAILABLE:
         _cb_gate = _CBClass(
             "global_risk_gate",
@@ -2579,6 +2678,16 @@ def main(
             ),
         )
         _cb_mistake_memory = _CBClass("mistake_memory", fallback=None)
+
+        class _AdvisorCircuitBreakers:
+            def snapshot_all(self) -> list[dict]:
+                return [
+                    cb.snapshot()
+                    for cb in (_cb_gate, _cb_mistake_memory)
+                    if cb is not None
+                ]
+
+        _cb_registry_adapter = _AdvisorCircuitBreakers()
         log.info("[P7] CircuitBreakers initialisés: gate + mistake_memory")
 
     # S3 — Telegram alerts + shadow refusals tracker
@@ -2851,12 +2960,7 @@ def main(
                             _capital_throttle.drawdown_pct if _capital_throttle else 0.0
                         ),
                         consecutive_losses=_consecutive_losses.get("value", 0),
-                        atr_current=float(
-                            # ATR moyen du dernier cycle (stocké dans _atr_last)
-                            getattr(main, "_atr_last", 0.0)
-                            if False
-                            else 0.0
-                        ),
+                        atr_current=_atr_last,
                         cycle_pnl_pct=float(
                             (_pm_fb or {}).get("last_pnl_pct", 0.0)
                             if "_pm_fb" in dir()
@@ -2880,6 +2984,35 @@ def main(
                         )
                 except Exception as _rg_exc:
                     log.debug("[P7/RiskGov] Erreur: %s", _rg_exc)
+
+            _safety_verdict = None
+            if _safety_auditor is not None:
+                try:
+                    module_registry.heartbeat("global_risk_gate")
+                    module_registry.heartbeat("execution_engine")
+                    if _risk_governor is not None:
+                        module_registry.heartbeat("risk_governor")
+                    else:
+                        module_registry.set_status(
+                            "risk_governor",
+                            ModuleStatus.UNHEALTHY,
+                            "P7 component unavailable",
+                        )
+                    _safety_verdict = _safety_auditor.inspect(
+                        circuit_breaker_registry=_cb_registry_adapter
+                    )
+                    if _safety_verdict.block_new_trades:
+                        _issues = "; ".join(
+                            f"{i.module}:{i.severity}:{i.reason}"
+                            for i in _safety_verdict.issues[:3]
+                        )
+                        log.critical(
+                            "[Safety] mode=%s block_new_trades=True | %s",
+                            _safety_verdict.mode.value,
+                            _issues,
+                        )
+                except Exception as _safety_exc:
+                    log.warning("[Safety] audit impossible: %s", _safety_exc)
 
             results: list[AnalysisResult] = []
             for sym in symbols:
@@ -2972,6 +3105,23 @@ def main(
                             sym,
                             r["futures_result"]["reason"],
                         )
+
+                if (
+                    _safety_verdict is not None
+                    and _safety_verdict.block_new_trades
+                    and r["signal"].signal != "HOLD"
+                ):
+                    if not r.get("futures_result"):
+                        r["futures_result"] = {
+                            "mode": "safety_auditor_blocked",
+                            "reason": _safety_verdict.mode.value,
+                        }
+                    r["trade_allowed"] = False
+                    log.info(
+                        "[Safety] Trade bloqué %s — verdict=%s",
+                        sym,
+                        _safety_verdict.mode.value,
+                    )
 
                 # ── PROTECTIONS OBLIGATOIRES POUR MODE TEST ───────────────────────────────────
                 # Vérification AVANT exécution
@@ -3330,6 +3480,17 @@ def main(
                     )
 
             # ── Post-cycle: régime dominant + métriques d'activité ───────────
+            # P7 — ATR ratio moyen pour le prochain cycle (utilisé par RiskGovernor)
+            if results:
+                _atrs = [
+                    float(r.get("features", {}).get("atr_ratio", 0.0))
+                    for r in results
+                    if r.get("features")
+                ]
+                _valid_atrs = [a for a in _atrs if a > 0]
+                if _valid_atrs:
+                    _atr_last = sum(_valid_atrs) / len(_valid_atrs)
+
             # Régime : mise à jour seulement si N cycles consécutifs identiques
             # (évite l'oscillation TREND→SIDEWAYS→TREND en 15 min).
             if results:

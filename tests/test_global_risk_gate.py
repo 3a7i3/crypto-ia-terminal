@@ -6,6 +6,13 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from core.decision_packet import (
+    ConvictionLevel,
+    DecisionPacket,
+    DecisionSide,
+    DecisionState,
+    MarketRegime,
+)
 from quant_hedge_ai.agents.risk.global_risk_gate import GateResult, GlobalRiskGate
 from quant_hedge_ai.agents.risk.session_guard import SessionGuard
 
@@ -182,6 +189,28 @@ class TestRegimeCondition:
         r = gate.check(_signal(regime="flash_crash"))
         assert r.conditions["regime_allowed"] is False
         assert any("regime_blacklisted" in f for f in r.failed)
+
+    def test_legacy_check_blacklist_accepts_packet_regime_name(self):
+        gate = GlobalRiskGate(blacklisted_regimes={"TREND_BULL"})
+        r = gate.check(_signal(regime="bull_trend"))
+        assert r.conditions["regime_allowed"] is False
+        assert any("regime_blacklisted" in f for f in r.failed)
+
+    def test_packet_check_blacklist_accepts_legacy_regime_name(self):
+        gate = GlobalRiskGate(blacklisted_regimes={"flash_crash"})
+        packet = DecisionPacket(
+            symbol="BTCUSDT",
+            side=DecisionSide.LONG,
+            confidence=90.0,
+            regime=MarketRegime.VOLATILE,
+            conviction=ConvictionLevel.HIGH,
+            lifecycle_state=DecisionState.CONTEXT_ENRICHED,
+            metadata={"mtf_confirmed": True},
+        )
+        r = gate.check_packet(packet)
+        assert r.conditions["regime_allowed"] is False
+        assert any("regime_blacklisted" in f for f in r.failed)
+        assert packet.lifecycle_state == DecisionState.REJECTED
 
     def test_blacklist_regime_method(self, gate):
         gate.blacklist_regime("high_volatility_regime")

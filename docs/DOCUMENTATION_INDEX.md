@@ -97,6 +97,21 @@ You have created a complete autonomous quant trading research system. This guide
 
 ---
 
+### Safety **MODULE_SAFETY_INVENTORY.md**
+**Status**: NEW
+**Length**: 20 minutes read
+**Purpose**: Practical map of modules, benefits, vulnerabilities, and controls before P7.
+
+**Contains**:
+- What has already been delivered
+- Problems fixed during the 2026-05-26 safety pass
+- Module-by-module risk inventory
+- How to use `SystemSafetyAuditor`
+
+**Action**: Read before changing P7 risk governance or advisor loop wiring.
+
+---
+
 ### 6️⃣ **RAPPORT_GLOBAL_V9.md**
 **Status**: EXISTING (from previous session)  
 **Length**: 1+ hour read  
@@ -165,7 +180,8 @@ You have created a complete autonomous quant trading research system. This guide
 → **CONFIG_REFERENCE_V91.md** (Section: Configuration Examples #1)
 
 #### ✅ Make it safer?
-→ **CONFIG_REFERENCE_V91.md** (Section: Configuration Examples #5)
+→ **MODULE_SAFETY_INVENTORY.md** (modules, vulnerabilities, controls) and
+**CONFIG_REFERENCE_V91.md** (Section: Configuration Examples #5)
 
 #### ✅ Get better strategies?
 → **CONFIG_REFERENCE_V91.md** (Section: Configuration Examples #4)

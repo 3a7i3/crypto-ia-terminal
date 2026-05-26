@@ -41,6 +41,49 @@ _GATE_CSV_FIELDS = [
     "failed",
 ]
 
+_CANONICAL_REGIMES = {
+    "TREND_BULL",
+    "TREND_BEAR",
+    "RANGE",
+    "VOLATILE",
+    "UNKNOWN",
+}
+_REGIME_ALIASES = {
+    "bull": "TREND_BULL",
+    "bullish": "TREND_BULL",
+    "bull_trend": "TREND_BULL",
+    "trend_bull": "TREND_BULL",
+    "bear": "TREND_BEAR",
+    "bearish": "TREND_BEAR",
+    "bear_trend": "TREND_BEAR",
+    "trend_bear": "TREND_BEAR",
+    "sideways": "RANGE",
+    "range": "RANGE",
+    "choppy": "RANGE",
+    "volatile": "VOLATILE",
+    "high_vol": "VOLATILE",
+    "high_volatility": "VOLATILE",
+    "high_volatility_regime": "VOLATILE",
+    "flash_crash": "VOLATILE",
+    "unknown": "UNKNOWN",
+}
+
+
+def _normalize_regime(regime: object) -> str:
+    """
+    Normalize legacy detector names and DecisionPacket enum values.
+
+    This prevents a blacklist configured as ``flash_crash`` from being bypassed
+    by a packet carrying ``VOLATILE`` (and the reverse).
+    """
+    raw = str(regime or "unknown").strip()
+    if not raw:
+        raw = "unknown"
+    upper = raw.upper()
+    if upper in _CANONICAL_REGIMES:
+        return upper
+    return _REGIME_ALIASES.get(raw.lower(), raw.lower())
+
 
 def _gate_csv_log(
     symbol: str,
@@ -148,9 +191,9 @@ class GlobalRiskGate:
         self._drawdown_guard = drawdown_guard
         self.min_signal_score = min_signal_score  # base statique (env var)
         self.require_confirmed = require_confirmed
-        self.blacklisted_regimes: set[str] = (blacklisted_regimes or set()) | {
-            "unknown"
-        }
+        self.blacklisted_regimes: set[str] = set()
+        for regime in (blacklisted_regimes or set()) | {"unknown"}:
+            self.blacklist_regime(regime)
         self.max_portfolio_drawdown = max_portfolio_drawdown
         self._safe_mode = safe_mode
         # Calibration adaptative
@@ -221,10 +264,11 @@ class GlobalRiskGate:
 
         # ⑤ Régime non blacklisté
         regime = getattr(signal_result, "regime", "unknown")
-        c5 = regime not in self.blacklisted_regimes
+        regime_key = _normalize_regime(regime)
+        c5 = regime_key not in self.blacklisted_regimes
         conditions["regime_allowed"] = c5
         if not c5:
-            failed.append(f"regime_blacklisted ({regime})")
+            failed.append(f"regime_blacklisted ({regime}->{regime_key})")
 
         allowed = len(failed) == 0
         result = GateResult(
@@ -378,13 +422,14 @@ class GlobalRiskGate:
 
         # ⑤ Régime non blacklisté (MarketRegime.value dans le monde packet)
         regime_value = packet.regime.value  # ex. "TREND_BULL"
-        c5 = regime_value not in self.blacklisted_regimes
+        regime_key = _normalize_regime(regime_value)
+        c5 = regime_key not in self.blacklisted_regimes
         conditions["regime_allowed"] = c5
         if not c5:
-            failed.append(f"regime_blacklisted ({regime_value})")
+            failed.append(f"regime_blacklisted ({regime_value}->{regime_key})")
             packet.add_reasoning(
                 actor,
-                f"Régime {regime_value} blacklisté",
+                f"Régime {regime_value} blacklisté ({regime_key})",
                 confidence_impact=-25.0,
                 category=ReasoningCategory.RISK_GOVERNANCE,
             )
@@ -518,10 +563,10 @@ class GlobalRiskGate:
         )
 
     def blacklist_regime(self, regime: str) -> None:
-        self.blacklisted_regimes.add(regime)
+        self.blacklisted_regimes.add(_normalize_regime(regime))
 
     def unblacklist_regime(self, regime: str) -> None:
-        self.blacklisted_regimes.discard(regime)
+        self.blacklisted_regimes.discard(_normalize_regime(regime))
 
     # ── Checks internes ───────────────────────────────────────────────────────
 

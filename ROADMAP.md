@@ -1,7 +1,7 @@
 # ROADMAP — Crypto AI Terminal
 
 > Dernière mise à jour : 2026-05-20
-> Statut global : **P6 FERMÉ** → P7 Autonomous Regulation à démarrer
+> Statut global : **P6 FERMÉ** → **P7 Autonomous Regulation en cours**
 
 ---
 
@@ -106,9 +106,15 @@ meta_strategy_engine.select(signals, threshold=effective_threshold, atr_pct=atr)
 
 **Objectif** : couche de protection autonome — états de risque, modes dégradés, survie du système.
 
+**Etat 2026-05-26** : composants principaux implémentés
+(`RiskGovernor`, `CapitalThrottle`, `DynamicExposureManager`,
+`ComponentCircuitBreaker`) et filet `SystemSafetyAuditor` ajouté puis câblé
+dans `advisor_loop.py`. La validation pytest locale est bloquée par
+l'environnement Python (`BUG-007`).
+
 ### Composants
 
-**1. RiskGovernor — machine à états**
+**1. RiskGovernor — machine à états** — implémenté
 ```
 NORMAL     → activité standard, threshold adaptatif actif
 DEFENSIVE  → size 50%, SL élargi, pas de trades en HIGH_VOL
@@ -123,11 +129,11 @@ AGGRESSIVE → size 120%, threshold -2, trends forts confirmés uniquement
 - `NORMAL → AGGRESSIVE` : trend fort + vol stable + 10 cycles PnL+
 - Délai minimum entre transitions : 5 cycles
 
-**2. Dynamic Exposure Manager**
+**2. Dynamic Exposure Manager** — implémenté
 - Exposition max par trade selon état (100% / 50% / 0% / 25% / 120%)
 - `exposure_used` tracker — plafond exposition totale par état
 
-**3. Circuit Breaker — robuste**
+**3. Circuit Breaker — robuste** — implémenté
 ```
 HEALTHY  → normal
 UNSTABLE → 2 échecs, backoff 30s
@@ -137,21 +143,23 @@ DISABLED → 10 échecs, arrêt total, escalation
 - Backoff exponentiel : 30s, 60s, 120s, 300s, 600s
 - Recovery périodique : 300s en DEGRADED, 1800s en DISABLED
 
-**4. Capital Throttle**
+**4. Capital Throttle** — implémenté
 - DD > 5% : réduction linéaire size (-10% par palier de 1% DD)
 - DD > 10% : RISK_OFF forcé
 - Retour progressif : 5 cycles minimum
 
-**5. Volatility Emergency Mode**
+**5. Volatility Emergency Mode** — implémenté
 - Vol > 3× ATR médian 50 cycles → suspension immédiate trades
 - Positions protégées par SL large (3× ATR)
 - Durée minimale : 5 cycles après retour sous seuil
 
 ### Critères de succès P7
-- [ ] Passage DEFENSIVE dans les 3 cycles après DD > 3%
-- [ ] Aucun trade en RISK_OFF
-- [ ] Circuit breaker DEGRADED après 5 échecs
-- [ ] Capital throttle proportionnel au drawdown
+- [x] Passage DEFENSIVE dans les 3 cycles après DD > 3% — couvert par `tests/test_p7_validation.py`
+- [x] Aucun trade en RISK_OFF — couvert par `RiskGovernor.allow_new_trades`
+- [x] Circuit breaker DEGRADED après 5 échecs — couvert par `ComponentCircuitBreaker`
+- [x] Capital throttle proportionnel au drawdown — couvert par `CapitalThrottle`
+- [x] Brancher `SystemSafetyAuditor` dans `advisor_loop.py`
+- [ ] Relancer la validation locale après restauration Python/.venv
 
 ---
 

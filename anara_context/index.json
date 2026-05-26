@@ -28,7 +28,11 @@
         "portfolio_brain",
         "order_sizer",
         "session_guard",
-        "executive_override"
+        "executive_override",
+        "risk_governor",
+        "capital_throttle",
+        "exposure_manager",
+        "circuit_breaker"
       ]
     },
     {

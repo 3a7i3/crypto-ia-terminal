@@ -61,10 +61,9 @@ class ComponentCircuitBreaker:
                 return self._try_recovery(fn, *args, **kwargs)
             return self._fallback
 
-        # Backoff: DEGRADED/DISABLED only — HEALTHY/UNSTABLE accumulent librement
+        # UNSTABLE backoff: avoid hammering a failing dependency before it cools.
         if self._state == CBState.UNSTABLE and time.time() < self._backoff_until:
-            # En UNSTABLE on laisse passer mais on attend le backoff
-            pass
+            return self._fallback
 
         try:
             result = fn(*args, **kwargs)
@@ -133,7 +132,8 @@ class ComponentCircuitBreaker:
             if current_state == CBState.DEGRADED
             else _RECOVERY_DISABLED
         )
-        return (time.time() - self._last_recovery_ts) >= interval
+        anchor = max(self._last_recovery_ts, self._last_failure_ts)
+        return (time.time() - anchor) >= interval
 
     def _try_recovery(self, fn: Callable, *args: Any, **kwargs: Any) -> Any:
         self._last_recovery_ts = time.time()
