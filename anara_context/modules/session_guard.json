@@ -1,0 +1,39 @@
+{
+  "module_id": "session_guard",
+  "class_name": "SessionGuard",
+  "file_path": "quant_hedge_ai/agents/risk/session_guard.py",
+  "display_name": "Session Guard",
+  "layer": "risk",
+  "dashboard_tab": "Risque",
+
+  "role_fr": "Contrôles de risque au niveau de la session de trading. Applique des limites dures : drawdown session max, perte session max, pertes consécutives max, taille d'ordre max. Lève une exception si une limite est franchie.",
+  "role_en": "Session-level risk controls for live trading. Enforces hard limits: max session drawdown, max session loss, max consecutive losses, max order size. Raises exception when any limit is breached.",
+
+  "limits": [
+    { "limit": "max_session_drawdown_pct", "default": "5.0",    "description": "Drawdown max de la session (%) → halt" },
+    { "limit": "max_session_loss_pct",     "default": "3.0",    "description": "Perte max de la session (%) → halt" },
+    { "limit": "max_consecutive_losses",   "default": "3",      "description": "Pertes consécutives max → halt" },
+    { "limit": "max_order_size_usd",       "default": "10000",  "description": "Taille max d'un ordre en USD" }
+  ],
+
+  "state_fields": {
+    "session_active":     "bool — session en cours",
+    "session_pnl":        "float — PnL de la session courante ($)",
+    "session_drawdown":   "float — drawdown courant (%)",
+    "consecutive_losses": "int — pertes consécutives",
+    "halted":             "bool — session stoppée",
+    "halt_reason":        "string — raison du halt"
+  },
+
+  "key_metrics": [
+    { "metric_id": "session_pnl",        "label": "PnL session",       "type": "usd" },
+    { "metric_id": "session_drawdown",   "label": "Drawdown session",  "type": "percent" },
+    { "metric_id": "consecutive_losses", "label": "Pertes consec.",    "type": "int" },
+    { "metric_id": "halted",             "label": "Session stoppée",   "type": "bool_fr" }
+  ],
+
+  "exceptions": [
+    { "name": "SessionHaltedError", "trigger": "Limite de risque dépassée" },
+    { "name": "OrderTooLargeError", "trigger": "Ordre > max_order_size_usd" }
+  ]
+}

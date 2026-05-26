@@ -1,0 +1,38 @@
+{
+  "module_id": "ai_advisor",
+  "class_name": "AIAdvisor",
+  "file_path": "quant_hedge_ai/agents/intelligence/ai_advisor.py",
+  "display_name": "AI Advisor",
+  "layer": "intelligence",
+  "dashboard_tab": "Intelligence",
+
+  "role_fr": "Génère une explication textuelle française pour chaque signal actionnable. Utilise LM Studio en local si disponible (score >= seuil), sinon analyse déterministe basée sur les composants.",
+  "role_en": "Generates French text explanation for each actionable signal. Uses LM Studio locally when available (score >= threshold), otherwise deterministic component-based analysis.",
+
+  "lm_studio_integration": {
+    "endpoint": "http://localhost:1234",
+    "fallback": "analyse_deterministe",
+    "condition": "score >= LM_STUDIO_MIN_SCORE"
+  },
+
+  "advice_fields": {
+    "symbol":     "Symbole analysé",
+    "signal":     "Direction du signal : BUY | SELL | HOLD",
+    "score":      "Score composite 0-100",
+    "text":       "Explication textuelle générée",
+    "source":     "lm_studio | deterministic",
+    "regime":     "Régime détecté",
+    "confidence": "Niveau de confiance"
+  },
+
+  "key_metrics": [
+    { "metric_id": "lm_studio_active", "label": "LM Studio",      "type": "bool_fr" },
+    { "metric_id": "source",           "label": "Source analyse",  "type": "str" },
+    { "metric_id": "advice_generated", "label": "Conseils générés","type": "int" }
+  ],
+
+  "env_vars": [
+    { "var": "LM_STUDIO_MAX_TOKENS", "default": "160", "description": "Longueur max de la réponse LM Studio" },
+    { "var": "LM_STUDIO_MIN_SCORE",  "default": "70",  "description": "Score min pour appeler LM Studio" }
+  ]
+}

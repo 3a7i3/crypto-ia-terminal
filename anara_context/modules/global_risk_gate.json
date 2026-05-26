@@ -4,7 +4,7 @@
   "file_path": "quant_hedge_ai/agents/risk/global_risk_gate.py",
   "display_name": "Portail de Risque Global",
   "layer": "risk",
-  "dashboard_tab": "Risk",
+  "dashboard_tab": "Risque",
 
   "role_fr": "Checklist pré-trade en 5 conditions. C'est ICI et UNIQUEMENT ICI que packet.reject() est appelé en flux normal. Souveraineté absolue sur les décisions de blocage.",
   "role_en": "5-condition pre-trade checklist. This is the ONLY place where packet.reject() is called in the normal flow. Has absolute sovereignty over blocking decisions.",
@@ -46,8 +46,8 @@
   ],
 
   "gate_outcomes": [
-    { "outcome": "GATE PASS", "color": "green", "description": "Toutes conditions OK — ordre autorisé" },
-    { "outcome": "GATE BLOCK", "color": "red",   "description": "Au moins une condition échouée — ordre bloqué" }
+    { "outcome": "GATE PASS",  "color": "#22c55e", "description": "Toutes conditions OK — ordre autorisé" },
+    { "outcome": "GATE BLOCK", "color": "#ef4444", "description": "Au moins une condition échouée — ordre bloqué" }
   ],
 
   "key_metrics": [
@@ -82,7 +82,10 @@
     { "from": "CONTEXT_ENRICHED", "to": "REJECTED",       "condition": "side=FLAT (HOLD)" }
   ],
 
-  "env_vars": [
-    { "var": "SIGNAL_MIN_SCORE", "default": "70", "description": "Score signal minimum pour passer le gate" }
-  ]
+  "constructor_defaults": {
+    "min_signal_score":       70,
+    "max_portfolio_drawdown": 0.10,
+    "require_confirmed":      true,
+    "blacklisted_regimes":    "set vide (ex: flash_crash)"
+  }
 }

@@ -32,11 +32,11 @@
       "type": "enum",
       "values": ["MINIMAL", "LOW", "MEDIUM", "HIGH", "EXCEPTIONAL"],
       "dashboard_color_map": {
-        "MINIMAL": "red",
-        "LOW": "orange",
-        "MEDIUM": "yellow",
-        "HIGH": "green",
-        "EXCEPTIONAL": "purple"
+        "MINIMAL":    "#ef4444",
+        "LOW":        "#f97316",
+        "MEDIUM":     "#f59e0b",
+        "HIGH":       "#22c55e",
+        "EXCEPTIONAL":"#a855f7"
       }
     },
     { "metric_id": "conviction_score", "label": "Score Conviction", "type": "float_0_100" },

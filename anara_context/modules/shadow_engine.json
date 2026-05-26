@@ -1,0 +1,52 @@
+{
+  "module_id": "shadow_engine",
+  "class_name": "ShadowExecutionEngine",
+  "file_path": "quant_hedge_ai/agents/execution/shadow_engine.py",
+  "display_name": "Shadow Engine",
+  "layer": "execution",
+  "dashboard_tab": "Exécution",
+
+  "role_fr": "Mode shadow : génère et log les vrais ordres avec vrai sizing, mais ne les envoie JAMAIS à l'exchange. Mesure slippage simulé, latence signal→ordre, comparaison prix théorique vs prix réel.",
+  "role_en": "Shadow mode: generates and logs real orders with real sizing, but NEVER sends them to the exchange. Measures simulated slippage, signal→order latency, theoretical vs actual price comparison.",
+
+  "shadow_trade_fields": {
+    "id":                   "Identifiant unique du shadow trade",
+    "symbol":               "Symbole tradé",
+    "action":               "BUY | SELL",
+    "signal_score":         "Score du signal",
+    "signal_price":         "Prix au moment du signal",
+    "theoretical_price":    "Prix qu'on aurait payé",
+    "simulated_fill_price": "Prix avec slippage simulé",
+    "size":                 "Taille en unités",
+    "notional":             "Valeur notionnelle en USD",
+    "slippage_pct":         "Slippage simulé (%)",
+    "signal_to_order_ms":   "Latence signal→ordre (ms)",
+    "regime":               "Régime au moment du signal",
+    "gate_conditions":      "Résultats des gates (dict bool)"
+  },
+
+  "storage": {
+    "file": "databases/shadow_execution/shadow_log.jsonl",
+    "format": "JSONL — une ligne par shadow trade"
+  },
+
+  "slippage_model": {
+    "description": "Slippage simulé par régime de marché (% du prix)",
+    "by_regime": {
+      "bull_trend":             0.05,
+      "bear_trend":             0.08,
+      "sideways":               0.04,
+      "high_volatility_regime": 0.25,
+      "flash_crash":            1.20,
+      "unknown":                0.10
+    },
+    "default_base_slippage_pct": 0.08
+  },
+
+  "key_metrics": [
+    { "metric_id": "shadow_trades_total", "label": "Shadow trades",    "type": "int" },
+    { "metric_id": "avg_slippage_pct",    "label": "Slippage moyen",   "type": "percent" },
+    { "metric_id": "max_slippage_pct",    "label": "Slippage max",     "type": "percent" },
+    { "metric_id": "avg_latency_ms",      "label": "Latence moy (ms)", "type": "int" }
+  ]
+}

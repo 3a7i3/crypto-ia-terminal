@@ -1,0 +1,53 @@
+{
+  "module_id": "position_manager",
+  "class_name": "PositionManager",
+  "file_path": "quant_hedge_ai/agents/execution/position_manager.py",
+  "display_name": "Position Manager",
+  "layer": "execution",
+  "dashboard_tab": "Exécution",
+
+  "role_fr": "Suivi des positions ouvertes sur Futures Demo/Live. Gère les sorties intelligentes : TP/SL adaptatif ATR, trailing stop, break-even automatique, partial TP, time stop, aging management, protection liquidation.",
+  "role_en": "Tracks open positions on Futures Demo/Live. Manages intelligent exits: adaptive ATR TP/SL, trailing stop, automatic break-even, partial TP, time stop, aging management, liquidation protection.",
+
+  "exit_strategies": [
+    { "strategy": "tp_dynamique",        "description": "TP adaptatif ATR × multiplicateur" },
+    { "strategy": "sl_adaptatif",        "description": "SL adaptatif ATR / volatilité réalisée" },
+    { "strategy": "trailing_stop",       "description": "Déclenché seulement après +break_even" },
+    { "strategy": "break_even_auto",     "description": "Déplace le SL au break-even automatiquement" },
+    { "strategy": "partial_tp",          "description": "Ferme X% de la position à Y% de profit" },
+    { "strategy": "time_stop",           "description": "Ferme si stagnation > N minutes" },
+    { "strategy": "position_aging",      "description": "Dégrade le TP si trade trop vieux" },
+    { "strategy": "liquidation_defense", "description": "Fermeture urgence si distance liquidation < seuil" }
+  ],
+
+  "position_sides": ["LONG", "SHORT"],
+
+  "close_reasons": [
+    { "reason": "take_profit",   "color": "#22c55e" },
+    { "reason": "stop_loss",     "color": "#ef4444" },
+    { "reason": "trailing_stop", "color": "#f59e0b" },
+    { "reason": "partial_close", "color": "#3b82f6" },
+    { "reason": "time_stop",     "color": "#6b7280" },
+    { "reason": "liquidation_defense", "color": "#7f1d1d" }
+  ],
+
+  "key_metrics": [
+    { "metric_id": "open_positions",  "label": "Positions ouvertes", "type": "int" },
+    { "metric_id": "unrealized_pnl",  "label": "PnL latent",         "type": "usd" },
+    { "metric_id": "positions_today", "label": "Positions auj.",      "type": "int" },
+    { "metric_id": "avg_duration_min","label": "Durée moy (min)",    "type": "float" }
+  ],
+
+  "env_vars": [
+    { "var": "PM_TP_ATR_MULT",      "default": "2.5",  "description": "Multiplicateur ATR pour le TP dynamique" },
+    { "var": "PM_SL_ATR_MULT",      "default": "1.5",  "description": "Multiplicateur ATR pour le SL adaptatif" },
+    { "var": "PM_TP_PCT",           "default": "0.04", "description": "TP fixe (%) si ATR non disponible" },
+    { "var": "PM_BE_TRIGGER",       "default": "0.015","description": "Profit (%) déclenchant le break-even auto" },
+    { "var": "PM_TRAILING_PCT",     "default": "0.015","description": "Distance trailing stop (%) après break-even" },
+    { "var": "PM_PARTIAL_PCT",      "default": "0.5",  "description": "Part de la position fermée en partial TP" },
+    { "var": "PM_AGING_START",      "default": "60",   "description": "Âge (minutes) à partir duquel le TP se dégrade" },
+    { "var": "PM_AGING_DECAY",      "default": "1",    "description": "Décroissance TP par minute après aging_start (%)" },
+    { "var": "PM_LIQ_DEFENSE_PCT",  "default": "0.08", "description": "Distance liquidation (%) → fermeture urgence" },
+    { "var": "PM_CHECK_INTERVAL",   "default": "10",   "description": "Intervalle de vérification des positions (secondes)" }
+  ]
+}

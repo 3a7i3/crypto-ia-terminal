@@ -1,23 +1,23 @@
 {
   "_comment": "Index des modules pour Anara — système de génération automatique de textes dashboard",
-  "_version": "1.0",
-  "_updated": "2026-05-11",
+  "_version": "1.2",
+  "_updated": "2026-05-23",
   "layers": [
     {
       "layer_id": "signal",
       "display_name": "Signal Layer",
-      "modules": ["live_signal_engine", "feature_engineer", "market_scanner"]
+      "modules": ["market_scanner", "feature_engineer", "live_signal_engine"]
     },
     {
       "layer_id": "intelligence",
       "display_name": "Intelligence Layer",
       "modules": [
-        "conviction_engine",
+        "regime_detector",
         "no_trade_layer",
+        "conviction_engine",
         "self_awareness_engine",
-        "threat_radar",
         "ai_advisor",
-        "regime_detector"
+        "threat_radar"
       ]
     },
     {

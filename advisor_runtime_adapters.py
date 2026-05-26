@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Callable
 
 
@@ -42,9 +42,9 @@ class AdvisorRuntime:
     FeatureEngineer: Any
     AdvancedRegimeDetector: Any
     ConfidenceExplainer: Any
-    AdaptiveThresholdEngine: Any
-    RegimeTransitionSmoother: Any
-    RegimeStateTracker: Any
+    AdaptiveThresholdEngine: Any = field(default=None)
+    RegimeTransitionSmoother: Any = field(default=None)
+    RegimeStateTracker: Any = field(default=None)
 
 
 def load_advisor_runtime() -> AdvisorRuntime:

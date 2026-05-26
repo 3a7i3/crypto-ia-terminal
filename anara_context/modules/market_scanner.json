@@ -1,0 +1,49 @@
+{
+  "module_id": "market_scanner",
+  "class_name": "MarketScanner",
+  "file_path": "quant_hedge_ai/agents/market/market_scanner.py",
+  "display_name": "Market Scanner",
+  "layer": "signal",
+  "dashboard_tab": "Signal",
+
+  "role_fr": "Récupère les données OHLCV des exchanges (Binance, MEXC, Hyperliquid). Cache en mémoire TTL configurable. Fournit les bougies brutes à FeatureEngineer.",
+  "role_en": "Fetches OHLCV data from exchanges (Binance, MEXC, Hyperliquid). In-memory TTL cache. Provides raw candles to FeatureEngineer.",
+
+  "symbols_default": ["BTC/USDT", "ETH/USDT", "SOL/USDT", "BNB/USDT", "ARB/USDT"],
+
+  "key_metrics": [
+    { "metric_id": "symbols_scanned",  "label": "Symboles scannés", "type": "int" },
+    { "metric_id": "cache_hit_rate",   "label": "Cache hit %",      "type": "percent" },
+    { "metric_id": "latency_ms",       "label": "Latence ms",       "type": "int" },
+    { "metric_id": "last_refresh",     "label": "Dernier refresh",  "type": "timestamp" }
+  ],
+
+  "env_vars": [
+    { "var": "MARKET_SCANNER_EXCHANGE",         "default": "binance", "description": "Exchange CCXT utilisé pour la récupération OHLCV" },
+    { "var": "MARKET_SCANNER_TIMEFRAME",        "default": "1h",      "description": "Timeframe OHLCV principal" },
+    { "var": "MARKET_SCANNER_LIMIT",            "default": "200",     "description": "Nombre de bougies historiques chargées" },
+    { "var": "MARKET_SCANNER_CACHE_TTL",        "default": "60",      "description": "TTL cache mémoire en secondes" },
+    { "var": "MARKET_SCANNER_FRESHNESS_SECONDS","default": "3600",    "description": "Délai max avant bougie considérée périmée (défaut=max(timeframe,1h))" },
+    { "var": "MARKET_SCANNER_ALLOW_STALE_CACHE","default": "true",    "description": "Autoriser le retour de cache périmé si l'exchange est indisponible" },
+    { "var": "MARKET_SCANNER_SYNTHETIC",        "default": "false",   "description": "Forcer le mode synthétique (données générées, pas d'exchange)" },
+    { "var": "MARKET_SCANNER_TESTNET",          "default": "",        "description": "Forcer testnet pour ce scanner (prioritaire sur BINANCE_TESTNET)" },
+    { "var": "MARKET_SCANNER_MAX_RETRIES",      "default": "3",       "description": "Tentatives max en cas d'erreur exchange" },
+    { "var": "MARKET_SCANNER_RETRY_BASE_DELAY", "default": "1.0",     "description": "Délai de base (secondes) entre retries (backoff exponentiel)" },
+    { "var": "MARKET_SCANNER_RETRY_MAX_DELAY",  "default": "20.0",    "description": "Délai max entre retries" },
+    { "var": "MARKET_SCANNER_CB_RECOVERY",      "default": "60",      "description": "Temps (secondes) avant que le circuit breaker se réinitialise" },
+    { "var": "MARKET_SCANNER_SESSION_TTL_S",    "default": "14400",   "description": "TTL session CCXT partagée (4h)" },
+    { "var": "MARKET_SCANNER_SESSION_MAX_ERRORS","default": "5",      "description": "Erreurs max avant invalidation de session" },
+    { "var": "MARKET_SCANNER_POOL_SIZE",        "default": "8",       "description": "Taille du pool de connexions exchange" },
+    { "var": "MARKET_SCANNER_PRELOAD_MARKETS",  "default": "false",   "description": "Précharger les marchés exchange au démarrage" },
+    { "var": "MARKET_SCANNER_PRELOAD_WAIT_MS",  "default": "250",     "description": "Attente (ms) pour le préchargement des marchés" },
+    { "var": "MARKET_SCANNER_ADJUST_TIME",      "default": "false",   "description": "Ajuster la différence horaire avec l'exchange (Binance)" },
+    { "var": "MARKET_SCANNER_TRACE_TIMINGS",    "default": "false",   "description": "Activer le traçage des timings internes" },
+    { "var": "MARKET_SCANNER_PROFILE",          "default": "false",   "description": "Active le profiling CCXT détaillé" },
+    { "var": "CRYPTO_SYMBOLS",                  "default": "BTC/USDT,ETH/USDT,SOL/USDT", "description": "Symboles à scanner (utilisé par le scheduler)" }
+  ],
+
+  "circuit_breaker": {
+    "enabled": true,
+    "description": "Coupe le scanner si N erreurs consécutives d'exchange. Réessaie après backoff."
+  }
+}

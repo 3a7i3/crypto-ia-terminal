@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 import logging
-from types import SimpleNamespace
 import time
+from types import SimpleNamespace
 
 import advisor_loop
 from advisor_runtime_adapters import AdvisorRuntime
@@ -49,7 +48,13 @@ class _ExchangeMonitor:
         return True
 
     def snapshot(self) -> dict[str, object]:
-        return {"healthy": True, "last_latency_ms": 0.0, "uptime_pct": 100.0, "consecutive_failures": 0, "last_error": ""}
+        return {
+            "healthy": True,
+            "last_latency_ms": 0.0,
+            "uptime_pct": 100.0,
+            "consecutive_failures": 0,
+            "last_error": "",
+        }
 
 
 class _Healer:
@@ -98,7 +103,13 @@ class _PositionManager:
         return []
 
     def stats(self) -> dict[str, float]:
-        return {"open_count": 0, "closed_count": 0, "total_pnl_usd": 0.0, "win_rate": 0.0, "open_pnl_usd": 0.0}
+        return {
+            "open_count": 0,
+            "closed_count": 0,
+            "total_pnl_usd": 0.0,
+            "win_rate": 0.0,
+            "open_pnl_usd": 0.0,
+        }
 
     def snapshot(self) -> list[dict[str, object]]:
         return []
@@ -168,6 +179,9 @@ class _MetaLearner:
 
 
 class _MetaStrategyEngine:
+    def __init__(self, **kwargs) -> None:
+        pass
+
     def current_personality(self):
         return None
 
@@ -225,6 +239,9 @@ def _runtime() -> AdvisorRuntime:
         FeatureEngineer=_Stub,
         AdvancedRegimeDetector=_Stub,
         ConfidenceExplainer=_Stub,
+        AdaptiveThresholdEngine=_Stub,
+        RegimeTransitionSmoother=_Stub,
+        RegimeStateTracker=_Stub,
     )
 
 
@@ -247,7 +264,9 @@ def test_main_runs_single_cycle_in_observation_mode(monkeypatch):
     def _fake_analyze_symbol(*args, **kwargs):
         return {
             "symbol": "BTC/USDT",
-            "signal": SimpleNamespace(actionable=False, signal="HOLD", score=40, timestamp=time.time()),
+            "signal": SimpleNamespace(
+                actionable=False, signal="HOLD", score=40, timestamp=time.time()
+            ),
             "gate": SimpleNamespace(allowed=False),
             "features": {},
             "allocation": None,
@@ -276,7 +295,9 @@ def test_main_opens_real_position_path_and_updates_tracker(monkeypatch):
         def has_futures_demo(self) -> bool:
             return True
 
-        def create_futures_order(self, symbol: str, side: str, size: float) -> dict[str, object]:
+        def create_futures_order(
+            self, symbol: str, side: str, size: float
+        ) -> dict[str, object]:
             return {
                 "mode": "futures_demo",
                 "id": "demo-order-1",
@@ -310,7 +331,9 @@ def test_main_opens_real_position_path_and_updates_tracker(monkeypatch):
             return SimpleNamespace(
                 order_id=str(fut.get("id", "demo-order-1")),
                 symbol=sym,
-                side=SimpleNamespace(value="long" if str(signal).upper() == "BUY" else "short"),
+                side=SimpleNamespace(
+                    value="long" if str(signal).upper() == "BUY" else "short"
+                ),
                 entry_price=float(fut.get("price", 100.0)),
                 current_price=float(fut.get("price", 100.0)),
                 size_usd=float(effective_size),
@@ -326,14 +349,18 @@ def test_main_opens_real_position_path_and_updates_tracker(monkeypatch):
             )
 
     runtime = _runtime()
-    runtime = AdvisorRuntime(**{
-        **runtime.__dict__,
-        "ExecutionEngine": _LiveExecutionEngine,
-        "PositionManager": _LivePositionManager,
-        "Position": _PositionFactory,
-        "tracker_open_position": lambda **kwargs: tracker_open_calls.append(kwargs),
-        "tracker_run_cycle": lambda *args, **kwargs: refresh_calls.append(dict(kwargs)),
-    })
+    runtime = AdvisorRuntime(
+        **{
+            **runtime.__dict__,
+            "ExecutionEngine": _LiveExecutionEngine,
+            "PositionManager": _LivePositionManager,
+            "Position": _PositionFactory,
+            "tracker_open_position": lambda **kwargs: tracker_open_calls.append(kwargs),
+            "tracker_run_cycle": lambda *args, **kwargs: refresh_calls.append(
+                dict(kwargs)
+            ),
+        }
+    )
 
     _force_live_mode(monkeypatch)
     monkeypatch.setattr(advisor_loop, "NOTIFY_EVERY", 99)
@@ -343,7 +370,9 @@ def test_main_opens_real_position_path_and_updates_tracker(monkeypatch):
         "analyze_symbol",
         lambda *args, **kwargs: {
             "symbol": "BTC/USDT",
-            "signal": SimpleNamespace(actionable=True, signal="BUY", score=82, timestamp=time.time()),
+            "signal": SimpleNamespace(
+                actionable=True, signal="BUY", score=82, timestamp=time.time()
+            ),
             "gate": SimpleNamespace(allowed=True),
             "features": {"atr": 1.2, "atr_ratio": 0.03},
             "allocation": None,
@@ -380,7 +409,9 @@ def test_main_opens_position_when_paper_execution_is_used(monkeypatch):
         def has_futures_demo(self) -> bool:
             return False
 
-        def create_order(self, symbol: str, side: str, size: float) -> dict[str, object]:
+        def create_order(
+            self, symbol: str, side: str, size: float
+        ) -> dict[str, object]:
             order_calls.append((symbol, side, size))
             return {
                 "mode": "paper",
@@ -411,11 +442,16 @@ def test_main_opens_position_when_paper_execution_is_used(monkeypatch):
             regime="unknown",
         ):
             entry_price = float(fut.get("price", 0.0))
-            qty = float(fut.get("amount", 0.0) or (effective_size / entry_price if entry_price else 0.0))
+            qty = float(
+                fut.get("amount", 0.0)
+                or (effective_size / entry_price if entry_price else 0.0)
+            )
             return SimpleNamespace(
                 order_id=str(fut.get("id", "paper-order-1")),
                 symbol=sym,
-                side=SimpleNamespace(value="long" if str(signal).upper() == "BUY" else "short"),
+                side=SimpleNamespace(
+                    value="long" if str(signal).upper() == "BUY" else "short"
+                ),
                 entry_price=entry_price,
                 current_price=entry_price,
                 size_usd=float(effective_size),
@@ -431,13 +467,15 @@ def test_main_opens_position_when_paper_execution_is_used(monkeypatch):
             )
 
     runtime = _runtime()
-    runtime = AdvisorRuntime(**{
-        **runtime.__dict__,
-        "ExecutionEngine": _PaperExecutionEngine,
-        "PositionManager": _LivePositionManager,
-        "Position": _PositionFactory,
-        "tracker_open_position": lambda **kwargs: tracker_open_calls.append(kwargs),
-    })
+    runtime = AdvisorRuntime(
+        **{
+            **runtime.__dict__,
+            "ExecutionEngine": _PaperExecutionEngine,
+            "PositionManager": _LivePositionManager,
+            "Position": _PositionFactory,
+            "tracker_open_position": lambda **kwargs: tracker_open_calls.append(kwargs),
+        }
+    )
 
     _force_live_mode(monkeypatch)
     monkeypatch.setattr(advisor_loop, "NOTIFY_EVERY", 99)
@@ -447,7 +485,9 @@ def test_main_opens_position_when_paper_execution_is_used(monkeypatch):
         "analyze_symbol",
         lambda *args, **kwargs: {
             "symbol": "BTC/USDT",
-            "signal": SimpleNamespace(actionable=True, signal="BUY", score=82, timestamp=time.time()),
+            "signal": SimpleNamespace(
+                actionable=True, signal="BUY", score=82, timestamp=time.time()
+            ),
             "gate": SimpleNamespace(allowed=True),
             "features": {"atr": 1.2, "atr_ratio": 0.03},
             "allocation": None,
@@ -482,11 +522,15 @@ def test_main_refreshes_tracker_pipeline_on_position_close(monkeypatch):
             _CapturingPositionManager.last_instance = self
 
     runtime = _runtime()
-    runtime = AdvisorRuntime(**{
-        **runtime.__dict__,
-        "PositionManager": _CapturingPositionManager,
-        "tracker_run_cycle": lambda *args, **kwargs: refresh_calls.append(dict(kwargs)),
-    })
+    runtime = AdvisorRuntime(
+        **{
+            **runtime.__dict__,
+            "PositionManager": _CapturingPositionManager,
+            "tracker_run_cycle": lambda *args, **kwargs: refresh_calls.append(
+                dict(kwargs)
+            ),
+        }
+    )
 
     _force_observation_mode(monkeypatch)
     monkeypatch.setattr(advisor_loop, "NOTIFY_EVERY", 99)
@@ -496,7 +540,9 @@ def test_main_refreshes_tracker_pipeline_on_position_close(monkeypatch):
         "analyze_symbol",
         lambda *args, **kwargs: {
             "symbol": "BTC/USDT",
-            "signal": SimpleNamespace(actionable=False, signal="HOLD", score=40, timestamp=time.time()),
+            "signal": SimpleNamespace(
+                actionable=False, signal="HOLD", score=40, timestamp=time.time()
+            ),
             "gate": SimpleNamespace(allowed=False),
             "features": {},
             "allocation": None,
@@ -553,7 +599,9 @@ def test_main_uses_configured_1h_scanner_limit(monkeypatch):
         "analyze_symbol",
         lambda *args, **kwargs: {
             "symbol": "BTC/USDT",
-            "signal": SimpleNamespace(actionable=False, signal="HOLD", score=40, timestamp=time.time()),
+            "signal": SimpleNamespace(
+                actionable=False, signal="HOLD", score=40, timestamp=time.time()
+            ),
             "gate": SimpleNamespace(allowed=False),
             "features": {},
             "allocation": None,
@@ -592,7 +640,9 @@ def test_main_prewarms_one_hour_scanners(monkeypatch):
         "analyze_symbol",
         lambda *args, **kwargs: {
             "symbol": "BTC/USDT",
-            "signal": SimpleNamespace(actionable=False, signal="HOLD", score=40, timestamp=time.time()),
+            "signal": SimpleNamespace(
+                actionable=False, signal="HOLD", score=40, timestamp=time.time()
+            ),
             "gate": SimpleNamespace(allowed=False),
             "features": {},
             "allocation": None,
@@ -620,7 +670,9 @@ def test_main_skips_live_execution_bootstrap_in_observation_mode(monkeypatch):
             return cls()
 
     runtime = _runtime()
-    runtime = AdvisorRuntime(**{**runtime.__dict__, "ExecutionEngine": _ExecEngineNoLive})
+    runtime = AdvisorRuntime(
+        **{**runtime.__dict__, "ExecutionEngine": _ExecEngineNoLive}
+    )
 
     _force_observation_mode(monkeypatch)
     monkeypatch.setattr(advisor_loop, "ADVISOR_LIVE_EXECUTION_BOOTSTRAP", False)
@@ -631,7 +683,9 @@ def test_main_skips_live_execution_bootstrap_in_observation_mode(monkeypatch):
         "analyze_symbol",
         lambda *args, **kwargs: {
             "symbol": "BTC/USDT",
-            "signal": SimpleNamespace(actionable=False, signal="HOLD", score=40, timestamp=time.time()),
+            "signal": SimpleNamespace(
+                actionable=False, signal="HOLD", score=40, timestamp=time.time()
+            ),
             "gate": SimpleNamespace(allowed=False),
             "features": {},
             "allocation": None,
@@ -654,7 +708,9 @@ def test_main_skips_background_position_watch_in_observation_mode(monkeypatch):
             events.append("start")
 
     runtime = _runtime()
-    runtime = AdvisorRuntime(**{**runtime.__dict__, "PositionManager": _SilentPositionManager})
+    runtime = AdvisorRuntime(
+        **{**runtime.__dict__, "PositionManager": _SilentPositionManager}
+    )
 
     _force_observation_mode(monkeypatch)
     monkeypatch.setattr(advisor_loop, "ADVISOR_BACKGROUND_POSITION_WATCH", False)
@@ -666,7 +722,9 @@ def test_main_skips_background_position_watch_in_observation_mode(monkeypatch):
         "analyze_symbol",
         lambda *args, **kwargs: {
             "symbol": "BTC/USDT",
-            "signal": SimpleNamespace(actionable=False, signal="HOLD", score=40, timestamp=time.time()),
+            "signal": SimpleNamespace(
+                actionable=False, signal="HOLD", score=40, timestamp=time.time()
+            ),
             "gate": SimpleNamespace(allowed=False),
             "features": {},
             "allocation": None,
@@ -697,12 +755,14 @@ def test_main_defers_optional_intel_in_observation_hold_cycle(monkeypatch):
             events.append("chief")
 
     runtime = _runtime()
-    runtime = AdvisorRuntime(**{
-        **runtime.__dict__,
-        "MistakeMemory": _DeferredMistakeMemory,
-        "RegretEngine": _DeferredRegretEngine,
-        "ChiefOfficer": _DeferredChiefOfficer,
-    })
+    runtime = AdvisorRuntime(
+        **{
+            **runtime.__dict__,
+            "MistakeMemory": _DeferredMistakeMemory,
+            "RegretEngine": _DeferredRegretEngine,
+            "ChiefOfficer": _DeferredChiefOfficer,
+        }
+    )
 
     _force_observation_mode(monkeypatch)
     monkeypatch.setattr(advisor_loop, "ADVISOR_DEFER_OPTIONAL_INTEL", True)
@@ -715,7 +775,9 @@ def test_main_defers_optional_intel_in_observation_hold_cycle(monkeypatch):
         "analyze_symbol",
         lambda *args, **kwargs: {
             "symbol": "BTC/USDT",
-            "signal": SimpleNamespace(actionable=False, signal="HOLD", score=40, timestamp=time.time()),
+            "signal": SimpleNamespace(
+                actionable=False, signal="HOLD", score=40, timestamp=time.time()
+            ),
             "gate": SimpleNamespace(allowed=False),
             "features": {},
             "allocation": None,
@@ -744,7 +806,9 @@ def test_main_reports_bootstrap_detail(monkeypatch, caplog):
         "analyze_symbol",
         lambda *args, **kwargs: {
             "symbol": "BTC/USDT",
-            "signal": SimpleNamespace(actionable=False, signal="HOLD", score=40, timestamp=time.time()),
+            "signal": SimpleNamespace(
+                actionable=False, signal="HOLD", score=40, timestamp=time.time()
+            ),
             "gate": SimpleNamespace(allowed=False),
             "features": {},
             "allocation": None,
@@ -757,7 +821,10 @@ def test_main_reports_bootstrap_detail(monkeypatch, caplog):
     with caplog.at_level(logging.INFO, logger="advisor_loop"):
         advisor_loop.main(["BTC/USDT"], interval=0, max_cycles=1, runtime=runtime)
 
-    assert any(record.message.startswith("[Timing] Bootstrap detail:") for record in caplog.records)
+    assert any(
+        record.message.startswith("[Timing] Bootstrap detail:")
+        for record in caplog.records
+    )
 
 
 def test_main_defers_post_cycle_services_for_single_observation_cycle(monkeypatch):
@@ -772,11 +839,13 @@ def test_main_defers_post_cycle_services_for_single_observation_cycle(monkeypatc
             events.append("healer_start")
 
     runtime = _runtime()
-    runtime = AdvisorRuntime(**{
-        **runtime.__dict__,
-        "ExchangeMonitor": _DeferredExchangeMonitor,
-        "SelfHealingBot": _DeferredHealer,
-    })
+    runtime = AdvisorRuntime(
+        **{
+            **runtime.__dict__,
+            "ExchangeMonitor": _DeferredExchangeMonitor,
+            "SelfHealingBot": _DeferredHealer,
+        }
+    )
 
     _force_observation_mode(monkeypatch)
     monkeypatch.setattr(advisor_loop, "ADVISOR_DEFER_POST_CYCLE_SERVICES", True)
@@ -790,7 +859,9 @@ def test_main_defers_post_cycle_services_for_single_observation_cycle(monkeypatc
         "analyze_symbol",
         lambda *args, **kwargs: {
             "symbol": "BTC/USDT",
-            "signal": SimpleNamespace(actionable=False, signal="HOLD", score=40, timestamp=time.time()),
+            "signal": SimpleNamespace(
+                actionable=False, signal="HOLD", score=40, timestamp=time.time()
+            ),
             "gate": SimpleNamespace(allowed=False),
             "features": {},
             "allocation": None,
@@ -814,10 +885,12 @@ def test_main_starts_kill_switch_after_first_cycle_when_deferred(monkeypatch):
             events.append("kill_switch_start")
 
     runtime = _runtime()
-    runtime = AdvisorRuntime(**{
-        **runtime.__dict__,
-        "TelegramKillSwitch": _DeferredKillSwitch,
-    })
+    runtime = AdvisorRuntime(
+        **{
+            **runtime.__dict__,
+            "TelegramKillSwitch": _DeferredKillSwitch,
+        }
+    )
 
     _force_observation_mode(monkeypatch)
     monkeypatch.setattr(advisor_loop, "ADVISOR_DEFER_POST_CYCLE_SERVICES", True)
@@ -832,7 +905,9 @@ def test_main_starts_kill_switch_after_first_cycle_when_deferred(monkeypatch):
         events.append(f"analyze_{analyze_calls['count']}")
         return {
             "symbol": "BTC/USDT",
-            "signal": SimpleNamespace(actionable=False, signal="HOLD", score=40, timestamp=time.time()),
+            "signal": SimpleNamespace(
+                actionable=False, signal="HOLD", score=40, timestamp=time.time()
+            ),
             "gate": SimpleNamespace(allowed=False),
             "features": {},
             "allocation": None,
@@ -881,15 +956,17 @@ def test_main_startup_light_overrides_heavy_observation_flags(monkeypatch):
             events.append("healer_start")
 
     runtime = _runtime()
-    runtime = AdvisorRuntime(**{
-        **runtime.__dict__,
-        "ExecutionEngine": _ExecEngineNoLive,
-        "PositionManager": _SilentPositionManager,
-        "MistakeMemory": _DeferredMistakeMemory,
-        "RegretEngine": _DeferredRegretEngine,
-        "ExchangeMonitor": _DeferredExchangeMonitor,
-        "SelfHealingBot": _DeferredHealer,
-    })
+    runtime = AdvisorRuntime(
+        **{
+            **runtime.__dict__,
+            "ExecutionEngine": _ExecEngineNoLive,
+            "PositionManager": _SilentPositionManager,
+            "MistakeMemory": _DeferredMistakeMemory,
+            "RegretEngine": _DeferredRegretEngine,
+            "ExchangeMonitor": _DeferredExchangeMonitor,
+            "SelfHealingBot": _DeferredHealer,
+        }
+    )
 
     _force_observation_mode(monkeypatch)
     monkeypatch.setattr(advisor_loop, "ADVISOR_STARTUP_LIGHT", True)
@@ -907,7 +984,9 @@ def test_main_startup_light_overrides_heavy_observation_flags(monkeypatch):
         "analyze_symbol",
         lambda *args, **kwargs: {
             "symbol": "BTC/USDT",
-            "signal": SimpleNamespace(actionable=False, signal="HOLD", score=40, timestamp=time.time()),
+            "signal": SimpleNamespace(
+                actionable=False, signal="HOLD", score=40, timestamp=time.time()
+            ),
             "gate": SimpleNamespace(allowed=False),
             "features": {},
             "allocation": None,
@@ -940,7 +1019,9 @@ def test_main_throttles_threat_radar_by_cycle(monkeypatch):
         threat_radar_by_cycle.append(kwargs.get("threat_radar"))
         return {
             "symbol": "BTC/USDT",
-            "signal": SimpleNamespace(actionable=False, signal="HOLD", score=40, timestamp=time.time()),
+            "signal": SimpleNamespace(
+                actionable=False, signal="HOLD", score=40, timestamp=time.time()
+            ),
             "gate": SimpleNamespace(allowed=False),
             "features": {},
             "allocation": None,
@@ -978,7 +1059,9 @@ def test_main_sheds_optional_work_after_over_budget_cycle(monkeypatch):
         time.sleep(0.01)
         return {
             "symbol": "BTC/USDT",
-            "signal": SimpleNamespace(actionable=False, signal="HOLD", score=40, timestamp=time.time()),
+            "signal": SimpleNamespace(
+                actionable=False, signal="HOLD", score=40, timestamp=time.time()
+            ),
             "gate": SimpleNamespace(allowed=False),
             "features": {},
             "allocation": None,

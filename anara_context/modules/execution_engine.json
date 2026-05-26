@@ -4,7 +4,7 @@
   "file_path": "quant_hedge_ai/agents/execution/execution_engine.py",
   "display_name": "Moteur d'Exécution",
   "layer": "execution",
-  "dashboard_tab": "Execution",
+  "dashboard_tab": "Exécution",
 
   "role_fr": "Passerelle multi-exchange pour le placement d'ordres. Gère les modes paper/testnet/live automatiquement selon les clés API.",
   "role_en": "Multi-exchange order placement gateway. Auto-detects paper/testnet/live mode from API keys.",
@@ -48,10 +48,10 @@
       "type": "enum",
       "values": ["paper", "testnet", "live", "futures_demo"],
       "dashboard_color_map": {
-        "paper": "gray",
-        "testnet": "blue",
-        "live": "green",
-        "futures_demo": "purple"
+        "paper":        "#6b7280",
+        "testnet":      "#3b82f6",
+        "live":         "#22c55e",
+        "futures_demo": "#a855f7"
       }
     },
     {

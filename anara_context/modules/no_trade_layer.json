@@ -1,0 +1,53 @@
+{
+  "module_id": "no_trade_layer",
+  "class_name": "NoTradeIntelligence",
+  "file_path": "quant_hedge_ai/agents/intelligence/no_trade_layer.py",
+  "display_name": "No-Trade Layer",
+  "layer": "intelligence",
+  "dashboard_tab": "Intelligence",
+
+  "role_fr": "Couche de refus intelligent. Donne au bot la capacité de dire NON avant toute décision d'ordre. 5 composantes de rejet : qualité marché, anti-FOMO, disqualificateur de signal, pause tactique, scoring de rejet.",
+  "role_en": "Intelligent rejection layer. Gives the bot the ability to say NO before any order decision. 5 rejection components: market quality, anti-FOMO, signal disqualifier, tactical pause, rejection scoring.",
+
+  "verdict_fields": {
+    "allowed":          "bool — trade autorisé ou non",
+    "rejection_score":  "float [0-100] — plus c'est haut, plus le rejet est fort",
+    "reason":           "string — raison principale du rejet",
+    "category":         "enum — market_quality | fomo | signal | tactical_pause | ok"
+  },
+
+  "rejection_categories": [
+    { "category": "market_quality", "description": "Volume trop faible, spread trop large, données insuffisantes" },
+    { "category": "fomo",           "description": "Move déjà fait — entrée trop tardive" },
+    { "category": "signal",         "description": "Signal structurellement invalide (MTF divergent)" },
+    { "category": "tactical_pause", "description": "Contexte global dégradé — toute activité bloquée" },
+    { "category": "ok",             "description": "Aucun critère de rejet déclenché" }
+  ],
+
+  "key_metrics": [
+    { "metric_id": "rejection_score", "label": "Score rejet",  "type": "float" },
+    { "metric_id": "allowed",         "label": "Autorisé",     "type": "bool" },
+    { "metric_id": "category",        "label": "Catégorie",    "type": "enum",
+      "values": ["market_quality", "fomo", "signal", "tactical_pause", "ok"],
+      "dashboard_color_map": { "ok": "#22c55e", "market_quality": "#f59e0b", "fomo": "#f97316", "signal": "#ef4444", "tactical_pause": "#a855f7" }
+    }
+  ],
+
+  "env_vars": [
+    { "var": "NTL_MIN_VOLUME_RATIO",  "default": "0.3",   "description": "Volume récent / avg minimum" },
+    { "var": "NTL_MAX_SPREAD_PCT",    "default": "0.005", "description": "Spread max autorisé (0.5%)" },
+    { "var": "NTL_MIN_CANDLES",       "default": "50",    "description": "Bougies minimum valides" },
+    { "var": "NTL_CHOP_THRESHOLD",    "default": "0.6",   "description": "Seuil de chop (ADX)" },
+    { "var": "NTL_MAX_MOVE_PCT",      "default": "0.03",  "description": "Move déjà fait max avant rejet FOMO (3%)" },
+    { "var": "NTL_FOMO_WINDOW",       "default": "3",     "description": "Fenêtre FOMO en nombre de bougies" },
+    { "var": "NTL_MAX_ATR_MULT",      "default": "2.5",   "description": "Prix déjà à N×ATR du low = FOMO" },
+    { "var": "NTL_MIN_SCORE",         "default": "65",    "description": "Score signal minimum accepté" },
+    { "var": "NTL_MAX_SIGNAL_AGE",    "default": "300",   "description": "Âge max signal en secondes avant expiration" },
+    { "var": "NTL_CONTRADICTION",     "default": "0.4",   "description": "Taux contradiction MTF max accepté (40%)" },
+    { "var": "NTL_W_MARKET",          "default": "35",    "description": "Poids composante qualité marché dans le score rejet" },
+    { "var": "NTL_W_FOMO",            "default": "25",    "description": "Poids composante anti-FOMO" },
+    { "var": "NTL_W_SIGNAL",          "default": "25",    "description": "Poids composante qualité signal" },
+    { "var": "NTL_W_TACTICAL",        "default": "15",    "description": "Poids composante pause tactique" },
+    { "var": "NTL_REJECT_THRESHOLD",  "default": "50",    "description": "Score rejet ≥ seuil = trade bloqué" }
+  ]
+}

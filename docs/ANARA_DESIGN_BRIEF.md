@@ -1,6 +1,7 @@
 # DESIGN BRIEF — Crypto AI Terminal Dashboards
 > Document de référence pour Anara — audit complet UI/UX
-> Généré le : 2026-05-15
+> Généré le : 2026-05-15 | Mis à jour : 2026-05-18
+> Version schéma Anara : 1.1 (25 modules, 6 layers)
 
 ---
 
@@ -109,10 +110,10 @@ Hyperliquid #a855f7
 
 ---
 
-### 3.1 DASHBOARD HUB — `localhost:8500`
+### 3.1 COCKPIT UNIFIÉ — `localhost:8500`
 
-**Fichier :** `dashboard_hub.py`
-**Titre page :** "Crypto AI — Dashboard Hub" (icon 🎛️)
+**Fichier :** `dashboard_unified.py` _(dashboard_hub.py non créé — remplacé)_
+**Titre page :** "Crypto AI Terminal" (icon 🎛️)
 **Layout :** `wide`, sidebar collapsed
 
 #### Structure actuelle
@@ -668,7 +669,7 @@ Couleurs autorités :
 
 | Dashboard | URL locale | Fichier |
 |-----------|------------|---------|
-| Hub (lanceur) | `http://localhost:8500` | `dashboard_hub.py` |
+| Cockpit unifié | `http://localhost:8500` | `dashboard_unified.py` |
 | Live | `http://localhost:8501` | `dashboard_live.py` |
 | Master | `http://localhost:8502` | `dashboard_master.py` |
 | Decision Trace | `http://localhost:8503` | `dashboard_decision_trace.py` |

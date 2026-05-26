@@ -1,0 +1,58 @@
+{
+  "module_id": "feature_engineer",
+  "class_name": "FeatureEngineer",
+  "file_path": "quant_hedge_ai/agents/intelligence/feature_engineer.py",
+  "display_name": "Feature Engineer",
+  "layer": "signal",
+  "dashboard_tab": "Signal",
+
+  "role_fr": "Calcule les indicateurs techniques (RSI, MACD, EMA, ATR, Bollinger Bands) à partir des bougies OHLCV. Alimente LiveSignalEngine avec des features normalisées.",
+  "role_en": "Computes technical indicators (RSI, MACD, EMA, ATR, Bollinger Bands) from OHLCV candles. Feeds LiveSignalEngine with normalized features.",
+
+  "indicator_periods": {
+    "rsi":       14,
+    "atr":       14,
+    "ema_fast":  20,
+    "ema_slow":  50,
+    "macd_fast": 12,
+    "macd_slow": 26,
+    "macd_sig":  9,
+    "bb_period": 20,
+    "bb_std":    2,
+    "vwap_window": 50
+  },
+
+  "computed_features": [
+    { "feature": "rsi",            "description": "RSI 14 périodes [0-100]" },
+    { "feature": "macd",           "description": "MACD ligne principale (12-26)" },
+    { "feature": "macd_signal",    "description": "MACD ligne signal (9)" },
+    { "feature": "macd_hist",      "description": "Histogramme MACD" },
+    { "feature": "ema_20",         "description": "EMA 20 périodes" },
+    { "feature": "ema_50",         "description": "EMA 50 périodes" },
+    { "feature": "ema_cross",      "description": "Distance prix / EMA20 (normalisée)" },
+    { "feature": "atr",            "description": "ATR 14 périodes (valeur absolue)" },
+    { "feature": "atr_ratio",      "description": "ATR normalisé / prix courant" },
+    { "feature": "bb_pct",         "description": "Position dans les Bollinger Bands [0-1]" },
+    { "feature": "bb_upper",       "description": "Bande de Bollinger haute" },
+    { "feature": "bb_lower",       "description": "Bande de Bollinger basse" },
+    { "feature": "vwap",           "description": "VWAP approché (50 dernières bougies)" },
+    { "feature": "vwap_dist",      "description": "Distance prix / VWAP (normalisée)" },
+    { "feature": "momentum",       "description": "Momentum prix : (close[-1] - close[0]) / close[0]" },
+    { "feature": "realized_vol",   "description": "Volatilité réalisée (stdev des retours)" },
+    { "feature": "volume_ratio",   "description": "Volume récent / volume moyen" },
+    { "feature": "trend_strength", "description": "% de bougies alignées avec la direction" },
+    { "feature": "support",        "description": "Support simplifié (plus bas 20 bougies)" },
+    { "feature": "resistance",     "description": "Résistance simplifiée (plus haut 20 bougies)" }
+  ],
+
+  "key_metrics": [
+    { "metric_id": "rsi",        "label": "RSI",        "type": "float_0_100", "display": "{value:.0f}" },
+    { "metric_id": "atr_ratio",  "label": "ATR%",       "type": "percent",     "display": "{value:.2%}" },
+    { "metric_id": "bb_pct",     "label": "BB%",        "type": "float_0_1",   "display": "{value:.2f}" },
+    { "metric_id": "volume_ratio","label": "Vol Ratio", "type": "float_0_1",   "display": "{value:.2f}" }
+  ],
+
+  "env_vars": [
+    { "var": "FEATURE_ENGINEER_MIN_CANDLES", "default": "20", "description": "Nombre minimum de bougies requis" }
+  ]
+}

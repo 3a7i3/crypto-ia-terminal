@@ -4,7 +4,7 @@
   "file_path": "quant_hedge_ai/agents/risk/portfolio_brain.py",
   "display_name": "Cerveau Portefeuille",
   "layer": "risk",
-  "dashboard_tab": "Risk",
+  "dashboard_tab": "Risque",
 
   "role_fr": "Pense portefeuille, pas trade isolé. 8 checks en temps réel pour protéger l'allocation globale du capital. Produit la transition RISK_EVALUATED → APPROVED.",
   "role_en": "Thinks portfolio, not isolated trade. 8 real-time checks to protect global capital allocation. Produces RISK_EVALUATED → APPROVED transition.",

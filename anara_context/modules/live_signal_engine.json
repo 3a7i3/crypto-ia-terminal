@@ -37,11 +37,11 @@
 
   "key_metrics": [
     { "metric_id": "score",     "label": "Score Signal",  "type": "int_0_100",
-      "dashboard_color_map": { "0-39": "red", "40-69": "orange", "70-89": "yellow", "90-100": "green" }
+      "dashboard_color_map": { "0-39": "#ef4444", "40-69": "#f97316", "70-89": "#eab308", "90-100": "#22c55e" }
     },
     { "metric_id": "signal",    "label": "Direction",     "type": "enum",
       "values": ["BUY", "SELL", "HOLD"],
-      "dashboard_color_map": { "BUY": "green", "SELL": "red", "HOLD": "gray" }
+      "dashboard_color_map": { "BUY": "#22c55e", "SELL": "#ef4444", "HOLD": "#6b7280" }
     },
     { "metric_id": "regime",    "label": "Régime",        "type": "str" },
     { "metric_id": "confirmed", "label": "MTF Confirmé",  "type": "bool" },
@@ -50,7 +50,9 @@
   ],
 
   "env_vars": [
-    { "var": "SIGNAL_MIN_SCORE", "default": "70", "description": "Seuil minimum pour qu'un signal soit actionnable" }
+    { "var": "SIGNAL_MIN_SCORE",     "default": "70",  "description": "Seuil minimum score signal (plancher absolu, GlobalRiskGate applique ce seuil)" },
+    { "var": "LSE_MTF_MIN_STRENGTH", "default": "0.5", "description": "Force minimale requise pour validation MTF [0-1]" },
+    { "var": "LSE_MTF_MIN_AGREE",    "default": "2",   "description": "Nombre minimum de timeframes alignés pour confirmation" }
   ],
 
   "packet_api": {

@@ -1,0 +1,50 @@
+{
+  "module_id": "regime_detector",
+  "class_name": "AdvancedRegimeDetector",
+  "file_path": "quant_hedge_ai/agents/intelligence/regime_detector.py",
+  "display_name": "Regime Detector",
+  "layer": "intelligence",
+  "dashboard_tab": "Intelligence",
+
+  "role_fr": "Classifie le régime de marché courant à partir des features calculées. Oriente la sélection des personnalités stratégiques dans le Meta-Strategy Engine.",
+  "role_en": "Classifies current market regime from computed features. Drives strategy personality selection in the Meta-Strategy Engine.",
+
+  "regimes": [
+    { "id": "bull_trend",             "display": "Tendance haussière", "color": "#22c55e", "strategy": "momentum_following" },
+    { "id": "bear_trend",             "display": "Tendance baissière", "color": "#ef4444", "strategy": "short_strategies" },
+    { "id": "sideways",               "display": "Range / Latéral",    "color": "#6b7280", "strategy": "mean_reversion" },
+    { "id": "high_volatility_regime", "display": "Haute volatilité",   "color": "#f59e0b", "strategy": "volatility_harvesting" },
+    { "id": "flash_crash",            "display": "Krach éclair",       "color": "#7f1d1d", "strategy": "volatility_harvesting" }
+  ],
+
+  "classification_rules": [
+    { "condition": "vol > 0.20",                          "result": "flash_crash" },
+    { "condition": "vol > 0.15",                          "result": "high_volatility_regime" },
+    { "condition": "momentum > 0.03 AND trend > 0.7",    "result": "bull_trend" },
+    { "condition": "momentum < -0.03 AND trend < 0.3",   "result": "bear_trend" },
+    { "condition": "abs(momentum) < 0.01 AND vol < 0.05","result": "sideways" }
+  ],
+
+  "thresholds": {
+    "flash_crash_vol":     0.20,
+    "high_vol_regime_vol": 0.15,
+    "bull_momentum":       0.03,
+    "bull_trend_strength": 0.70,
+    "bear_momentum":      -0.03,
+    "bear_trend_strength": 0.30,
+    "sideways_momentum":   0.01,
+    "sideways_vol":        0.05
+  },
+
+  "state_fields": {
+    "regime":             "str — régime courant détecté",
+    "regime_confidence":  "float — confiance de la classification [0-1]",
+    "suggested_strategy": "str — type de stratégie recommandé"
+  },
+
+  "key_metrics": [
+    { "metric_id": "regime",              "label": "Régime",     "type": "str", "dashboard_color_map": {"bull_trend":"#22c55e","bear_trend":"#ef4444","sideways":"#6b7280","high_volatility_regime":"#f59e0b","flash_crash":"#7f1d1d"} },
+    { "metric_id": "regime_confidence",   "label": "Confiance",  "type": "percent" },
+    { "metric_id": "suggested_strategy",  "label": "Stratégie",  "type": "str" }
+  ]
+}

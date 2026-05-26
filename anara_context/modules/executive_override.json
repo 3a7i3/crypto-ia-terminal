@@ -1,0 +1,52 @@
+{
+  "module_id": "executive_override",
+  "class_name": "ExecutiveOverride",
+  "file_path": "quant_hedge_ai/agents/risk/executive_override.py",
+  "display_name": "Executive Override",
+  "layer": "risk",
+  "dashboard_tab": "Risque",
+
+  "role_fr": "Commandement suprême — domine toutes les autres couches. Même un signal parfait (score 95, conviction EXCEPTIONAL) peut être stoppé si les conditions macro de risque sont violées. 5 niveaux d'override, auto-recovery.",
+  "role_en": "Supreme command — overrides all other layers. Even a perfect signal (score 95, EXCEPTIONAL conviction) can be blocked when macro risk conditions are violated. 5 override levels, auto-recovery.",
+
+  "override_levels": [
+    { "level": 0, "name": "CLEAR",   "color": "#22c55e", "size_factor": 1.0,  "description": "Tout OK — trading normal autorisé" },
+    { "level": 1, "name": "REDUCE",  "color": "#84cc16", "size_factor": 0.5,  "description": "Taille réduite 50% — signal de prudence" },
+    { "level": 2, "name": "CAREFUL", "color": "#f59e0b", "size_factor": 0.25, "description": "Taille réduite 25% — régime de surveillance" },
+    { "level": 3, "name": "MINIMAL", "color": "#f97316", "size_factor": 0.1,  "description": "Taille minimum ($30-$55) — mode survie" },
+    { "level": 4, "name": "VETO",    "color": "#ef4444", "size_factor": 0.0,  "description": "Aucun nouveau trade — préservation capital" }
+  ],
+
+  "transitions": [
+    { "from": "CLEAR",   "to": "REDUCE",  "condition": "drawdown > 3% OU loss_streak >= 3" },
+    { "from": "REDUCE",  "to": "CAREFUL", "condition": "drawdown > 5% OU loss_streak >= 5" },
+    { "from": "CAREFUL", "to": "MINIMAL", "condition": "drawdown > 7% OU daily_loss > 5%" },
+    { "from": "MINIMAL", "to": "VETO",    "condition": "drawdown > 10% OU daily_loss > 8%" },
+    { "from": "VETO",    "to": "MINIMAL", "condition": "drawdown < 5% ET daily_loss < 3% (auto-recovery)" }
+  ],
+
+  "key_metrics": [
+    { "metric_id": "override_level", "label": "Niveau override", "type": "str",
+      "dashboard_color_map": {"CLEAR":"#22c55e","REDUCE":"#84cc16","CAREFUL":"#f59e0b","MINIMAL":"#f97316","VETO":"#ef4444"} },
+    { "metric_id": "size_factor",    "label": "Facteur taille",  "type": "float_0_1", "display": "×{value:.2f}" },
+    { "metric_id": "drawdown",       "label": "Drawdown",        "type": "percent" },
+    { "metric_id": "daily_loss",     "label": "Perte jour",      "type": "percent" },
+    { "metric_id": "loss_streak",    "label": "Pertes consec.",  "type": "int" }
+  ],
+
+  "env_vars": [
+    { "var": "EO_DAILY_REDUCE",   "default": "0.02",  "description": "Perte journalière (%) → REDUCE" },
+    { "var": "EO_DAILY_CAREFUL",  "default": "0.03",  "description": "Perte journalière (%) → CAREFUL" },
+    { "var": "EO_DAILY_MINIMAL",  "default": "0.05",  "description": "Perte journalière (%) → MINIMAL" },
+    { "var": "EO_DAILY_VETO",     "default": "0.08",  "description": "Perte journalière (%) → VETO" },
+    { "var": "EO_DD_CAREFUL",     "default": "0.05",  "description": "Drawdown (%) → CAREFUL" },
+    { "var": "EO_DD_RECOVERY",    "default": "0.04",  "description": "Drawdown (%) → retour à MINIMAL (auto-recovery)" },
+    { "var": "EO_OPEN_PNL_VETO",  "default": "-0.12", "description": "PnL ouvert (%) → VETO immédiat" },
+    { "var": "EO_STREAK_CAREFUL", "default": "5",     "description": "Pertes consécutives → CAREFUL" },
+    { "var": "EO_STREAK_MINIMAL", "default": "7",     "description": "Pertes consécutives → MINIMAL" },
+    { "var": "EO_STREAK_VETO",    "default": "10",    "description": "Pertes consécutives → VETO" }
+  ],
+
+  "sovereignty": "veto_authority",
+  "sovereignty_color": "#ff0033"
+}

@@ -210,7 +210,8 @@ class TestTokenBucket:
         assert ok
 
     def test_thread_safe(self):
-        bucket = TokenBucket(capacity=10.0, refill_rate=100.0)
+        # refill_rate=1.0 : at most 0.001 tokens refilled during the ~1ms test run
+        bucket = TokenBucket(capacity=10.0, refill_rate=1.0)
         results = []
         lock = threading.Lock()
 

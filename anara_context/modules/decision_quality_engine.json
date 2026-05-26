@@ -1,0 +1,39 @@
+{
+  "module_id": "decision_quality_engine",
+  "class_name": "DecisionQualityEngine",
+  "file_path": "quant_hedge_ai/agents/intelligence/decision_quality_engine.py",
+  "display_name": "Decision Quality Engine",
+  "layer": "learning",
+  "dashboard_tab": "Apprentissage",
+
+  "role_fr": "Note la QUALITÉ de la décision indépendamment du résultat financier. 5 critères de discipline. Croise qualité × résultat pour classifier chaque trade sans biaiser l'apprentissage.",
+  "role_en": "Rates decision QUALITY independently from financial outcome. 5 discipline criteria. Cross-references quality × result to classify each trade without biasing learning.",
+
+  "quality_criteria": [
+    { "criterion": "process_respect",   "weight_pct": 20, "description": "La hiérarchie de décision a-t-elle été respectée ?" },
+    { "criterion": "context_quality",   "weight_pct": 20, "description": "Les données contextuelles étaient-elles fiables ?" },
+    { "criterion": "regime_coherence",  "weight_pct": 25, "description": "La stratégie correspondait-elle au régime ?" },
+    { "criterion": "conviction_level",  "weight_pct": 20, "description": "La conviction était-elle suffisante ?" },
+    { "criterion": "discipline_score",  "weight_pct": 15, "description": "Le bot a-t-il respecté ses propres règles ?" }
+  ],
+
+  "decision_classes": [
+    { "class": "VALIDATED", "color": "#22c55e", "description": "Bonne décision + bon résultat → apprendre" },
+    { "class": "UNLUCKY",   "color": "#f59e0b", "description": "Bonne décision + mauvais résultat → ne pas pénaliser" },
+    { "class": "LUCKY",     "color": "#84cc16", "description": "Mauvaise décision + bon résultat → ne pas renforcer" },
+    { "class": "MISTAKE",   "color": "#ef4444", "description": "Mauvaise décision + mauvais résultat → corriger" },
+    { "class": "PENDING",   "color": "#6b7280", "description": "Résultat non encore connu" }
+  ],
+
+  "storage": {
+    "file": "databases/decision_quality.jsonl",
+    "env_var": "DQE_DB"
+  },
+
+  "key_metrics": [
+    { "metric_id": "validated_pct", "label": "VALIDATED %", "type": "percent", "color": "#22c55e" },
+    { "metric_id": "mistake_pct",   "label": "MISTAKE %",   "type": "percent", "color": "#ef4444" },
+    { "metric_id": "lucky_pct",     "label": "LUCKY %",     "type": "percent", "color": "#84cc16" },
+    { "metric_id": "unlucky_pct",   "label": "UNLUCKY %",   "type": "percent", "color": "#f59e0b" }
+  ]
+}

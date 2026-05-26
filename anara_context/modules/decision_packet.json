@@ -4,20 +4,20 @@
   "file_path": "core/decision_packet.py",
   "display_name": "Contrat de Décision",
   "layer": "infrastructure",
-  "dashboard_tab": "Decisions",
+  "dashboard_tab": "Infrastructure",
 
   "role_fr": "Contrat central qui traverse toutes les couches décisionnelles. Chaque agent enrichit le packet sans le détruire. L'historique des transitions constitue un dataset ML natif.",
   "role_en": "Central contract traversing all decision layers. Each agent enriches the packet without destroying it. State transition history forms a native ML dataset.",
 
   "lifecycle_states": [
-    { "state": "CREATED",            "color": "gray",   "description": "Packet créé par LSE" },
-    { "state": "CONTEXT_ENRICHED",   "color": "blue",   "description": "Enrichi par conviction_engine" },
-    { "state": "RISK_EVALUATED",     "color": "yellow", "description": "Validé par global_risk_gate" },
-    { "state": "APPROVED",           "color": "teal",   "description": "Approuvé par portfolio_brain" },
-    { "state": "EXECUTION_PENDING",  "color": "orange", "description": "Dimensionné par order_sizer" },
-    { "state": "EXECUTED",           "color": "green",  "description": "Ordre passé avec succès" },
-    { "state": "REJECTED",           "color": "red",    "description": "Rejeté par risk_gate ou portfolio_brain" },
-    { "state": "EXPIRED",            "color": "brown",  "description": "Signal expiré sans exécution" }
+    { "state": "CREATED",            "color": "#6b7280", "description": "Packet créé par LSE" },
+    { "state": "CONTEXT_ENRICHED",   "color": "#3b82f6", "description": "Enrichi par conviction_engine" },
+    { "state": "RISK_EVALUATED",     "color": "#f59e0b", "description": "Validé par global_risk_gate" },
+    { "state": "APPROVED",           "color": "#14b8a6", "description": "Approuvé par portfolio_brain" },
+    { "state": "EXECUTION_PENDING",  "color": "#f97316", "description": "Dimensionné par order_sizer" },
+    { "state": "EXECUTED",           "color": "#22c55e", "description": "Ordre passé avec succès" },
+    { "state": "REJECTED",           "color": "#ef4444", "description": "Rejeté par risk_gate ou portfolio_brain" },
+    { "state": "EXPIRED",            "color": "#9ca3af", "description": "Signal expiré sans exécution" }
   ],
 
   "conviction_levels": [
@@ -59,6 +59,21 @@
     "global_risk_gate  : seul autorisé à reject() en flux normal",
     "portfolio_brain   : peut reject() sur dépassement portefeuille",
     "order_sizer       : lit advisory sans gouvernance propre"
+  ],
+
+  "key_metrics": [
+    { "metric_id": "packet_state",       "label": "État packet",      "type": "enum",
+      "values": ["CREATED","CONTEXT_ENRICHED","RISK_EVALUATED","APPROVED","EXECUTION_PENDING","EXECUTED","REJECTED","EXPIRED"],
+      "dashboard_color_map": {
+        "CREATED":"#6b7280","CONTEXT_ENRICHED":"#3b82f6","RISK_EVALUATED":"#f59e0b",
+        "APPROVED":"#14b8a6","EXECUTION_PENDING":"#f97316",
+        "EXECUTED":"#22c55e","REJECTED":"#ef4444","EXPIRED":"#9ca3af"
+      }
+    },
+    { "metric_id": "packets_created",    "label": "Packets créés",    "type": "int" },
+    { "metric_id": "packets_rejected",   "label": "Packets rejetés",  "type": "int" },
+    { "metric_id": "packets_executed",   "label": "Packets exécutés", "type": "int" },
+    { "metric_id": "rejection_rate",     "label": "Taux rejet",       "type": "percent" }
   ],
 
   "ml_dataset_note": "state_history + reasoning par packet = dataset d'apprentissage natif. Chaque packet rejeté est un exemple négatif labelisé avec cause."

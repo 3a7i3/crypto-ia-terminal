@@ -4,7 +4,7 @@
   "file_path": "quant_hedge_ai/agents/intelligence/mistake_memory.py",
   "display_name": "Mémoire des Erreurs",
   "layer": "learning",
-  "dashboard_tab": "Learning",
+  "dashboard_tab": "Apprentissage",
 
   "role_fr": "Apprend automatiquement des erreurs de trading. Détecte les patterns de pertes et génère des règles auto-correctrices pour éviter de répéter les mêmes erreurs.",
   "role_en": "Automatically learns from trading mistakes. Detects loss patterns and generates self-correcting rules to avoid repeating the same errors.",

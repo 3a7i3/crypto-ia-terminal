@@ -1,0 +1,41 @@
+{
+  "module_id": "trade_postmortem",
+  "class_name": "TradePostmortem",
+  "file_path": "quant_hedge_ai/agents/execution/trade_postmortem.py",
+  "display_name": "Trade Postmortem",
+  "layer": "execution",
+  "dashboard_tab": "Exécution",
+
+  "role_fr": "Analyse chaque trade fermé : PnL réalisé vs attendu, qualité du signal d'entrée, écart Sharpe mémorisé vs réel. Blackliste les combinaisons stratégie+régime perdantes. Alimente StrategyMemoryStore.",
+  "role_en": "Analyzes each closed trade: realized vs expected PnL, entry signal quality, memorized vs real Sharpe divergence. Blacklists losing strategy+regime combinations. Feeds StrategyMemoryStore.",
+
+  "trade_record_fields": {
+    "symbol":                 "Symbole tradé",
+    "action":                 "BUY | SELL",
+    "entry_price":            "Prix d'entrée",
+    "exit_price":             "Prix de sortie",
+    "size":                   "Taille en unités",
+    "regime":                 "Régime au moment de l'entrée",
+    "strategy_name":          "Nom de la stratégie utilisée",
+    "entry_score":            "Score signal d'entrée (0-100)",
+    "entry_signal_confirmed": "bool — confirmation MTF",
+    "entry_strength":         "Force du signal [0.0, 1.0]",
+    "pnl":                    "PnL calculé (calculé automatiquement)"
+  },
+
+  "outputs": [
+    { "output": "blacklist_entry", "condition": "N pertes consécutives >= MIN_TRADES_FOR_BLACKLIST", "action": "Blackliste stratégie+régime" },
+    { "output": "memory_update",  "condition": "Toujours",                                           "action": "Mise à jour StrategyMemoryStore" }
+  ],
+
+  "key_metrics": [
+    { "metric_id": "trades_analyzed",  "label": "Trades analysés",   "type": "int" },
+    { "metric_id": "blacklisted_combos","label": "Combos blacklistés","type": "int" },
+    { "metric_id": "avg_pnl_pct",      "label": "PnL moyen (%)",     "type": "percent" }
+  ],
+
+  "env_vars": [
+    { "var": "LOSS_THRESHOLD_PCT",        "default": "-2.0", "description": "PnL % en-dessous duquel c'est une perte" },
+    { "var": "MIN_TRADES_FOR_BLACKLIST",  "default": "3",    "description": "N pertes consécutives pour blacklister" }
+  ]
+}

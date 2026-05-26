@@ -4,7 +4,7 @@
   "file_path": "quant_hedge_ai/agents/intelligence/black_box.py",
   "display_name": "Boîte Noire",
   "layer": "learning",
-  "dashboard_tab": "Audit",
+  "dashboard_tab": "Apprentissage",
 
   "role_fr": "Enregistre chaque décision du système dans un fichier JSONL immuable. Piste d'audit complète : signaux, rejets, ordres, performances.",
   "role_en": "Records every system decision into an immutable JSONL file. Complete audit trail: signals, rejections, orders, performance.",

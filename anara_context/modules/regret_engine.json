@@ -1,0 +1,48 @@
+{
+  "module_id": "regret_engine",
+  "class_name": "RegretEngine",
+  "file_path": "quant_hedge_ai/agents/intelligence/regret_engine.py",
+  "display_name": "Regret Engine",
+  "layer": "learning",
+  "dashboard_tab": "Apprentissage",
+
+  "role_fr": "Apprend des trades NON-PRIS. Enregistre le contexte de chaque refus (score >= seuil), compare N cycles plus tard avec le prix réel. Accumule les regrets pour auto-calibrer les seuils des modules de refus.",
+  "role_en": "Learns from trades NOT taken. Records context of each refusal (score >= threshold), compares N cycles later with actual price. Accumulates regrets to auto-calibrate rejection module thresholds.",
+
+  "regret_logic": {
+    "trigger":     "TRADE_REFUSED ou HOLD avec score >= seuil",
+    "evaluation":  "N cycles plus tard (REGRET_DELAY_CYCLES)",
+    "regret":      "Prix a évolué dans la direction du signal refusé",
+    "good_refuse": "Direction inverse — bon refus",
+    "effect":      "Module qui refuse trop → seuil descend. Module qui refuse bien → seuil monte."
+  },
+
+  "regret_record_fields": {
+    "symbol":          "Symbole concerné",
+    "signal":          "BUY | SELL",
+    "score":           "Score au moment du refus",
+    "regime":          "Régime au moment du refus",
+    "refused_by":      "Module qui a refusé",
+    "price_at_refuse": "Prix au moment du refus",
+    "price_N_cycles":  "Prix N cycles plus tard",
+    "move_pct":        "Mouvement de prix (%)",
+    "is_regret":       "bool — mouvement dans la bonne direction"
+  },
+
+  "storage": {
+    "file": "databases/regret_analysis.jsonl",
+    "env_var": "REGRET_DB"
+  },
+
+  "key_metrics": [
+    { "metric_id": "total_regrets",   "label": "Regrets total",      "type": "int" },
+    { "metric_id": "regret_rate",     "label": "Taux regret",        "type": "percent" },
+    { "metric_id": "avg_missed_move", "label": "Move manqué moyen",  "type": "percent" },
+    { "metric_id": "top_refuser",     "label": "Module le + bloquant","type": "str" }
+  ],
+
+  "env_vars": [
+    { "var": "REGRET_DELAY_CYCLES", "default": "4",     "description": "Évaluer N cycles après le refus" },
+    { "var": "REGRET_MIN_MOVE",     "default": "0.015", "description": "Mouvement minimum pour qualifier un regret" }
+  ]
+}

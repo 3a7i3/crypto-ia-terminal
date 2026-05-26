@@ -4,7 +4,7 @@
   "file_path": "quant_hedge_ai/agents/risk/order_sizer.py",
   "display_name": "Calculateur de Taille",
   "layer": "risk",
-  "dashboard_tab": "Risk",
+  "dashboard_tab": "Risque",
 
   "role_fr": "Calcule la taille optimale d'une position selon la formule Kelly modifiée, ajustée par la volatilité, le drawdown et la conviction.",
   "role_en": "Computes optimal position size using a modified Kelly formula, adjusted for volatility, drawdown, and conviction.",

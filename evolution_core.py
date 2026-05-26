@@ -467,7 +467,7 @@ def save_simulation_summary(summary_dict, filename):
     import os
     import pickle
 
-    sim_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sim_summaries")
+    sim_dir = os.path.join(os.getcwd(), "sim_summaries")
     os.makedirs(sim_dir, exist_ok=True)
     if filename.endswith(".pkl"):
         with open(os.path.join(sim_dir, filename), "wb") as f:

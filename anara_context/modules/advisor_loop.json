@@ -4,7 +4,7 @@
   "file_path": "advisor_loop.py",
   "display_name": "Boucle Principale",
   "layer": "infrastructure",
-  "dashboard_tab": "System",
+  "dashboard_tab": "Infrastructure",
 
   "role_fr": "Orchestrateur principal du système. Exécute en boucle les cycles signal → conviction → risk → exécution. Coordonne tous les agents décisionnels.",
   "role_en": "Main system orchestrator. Runs continuous cycles of signal → conviction → risk → execution. Coordinates all decision agents.",
@@ -27,7 +27,7 @@
     { "metric_id": "status",            "label": "Statut",            "type": "enum",
       "values": ["running", "paused", "halted", "error"],
       "dashboard_color_map": {
-        "running": "green", "paused": "yellow", "halted": "orange", "error": "red"
+        "running": "#22c55e", "paused": "#f59e0b", "halted": "#f97316", "error": "#ef4444"
       }
     }
   ],

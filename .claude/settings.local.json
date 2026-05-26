@@ -4,7 +4,9 @@
       "Bash(python -m pytest tests/ --cov=evolution_core --cov=supervision.alert_manager --cov=supervision.bot_doctor --cov=dashboard.alert_dashboard --cov=core.quant.logging_alerts --cov=quant_hedge_ai.strategy_lab.feature_cache --cov-report=term-missing -q --no-header)",
       "Bash(.venv/Scripts/python.exe)",
       "Bash(python -m py_compile dashboard_live.py)",
-      "Bash(python -m py_compile advisor_loop.py)"
+      "Bash(python -m py_compile advisor_loop.py)",
+      "Bash(ssh -i __TRACKED_VAR__/.ssh/gcp_key -o StrictHostKeyChecking=no mathieuhasard111@34.171.188.99 'cd /home/mathieuhasard111/crypto_ai_terminal && source .venv/bin/activate && python3 /tmp/tp.py 2>&1 | head -20; echo END')",
+      "Bash(ssh -i __TRACKED_VAR__/.ssh/gcp_key -o StrictHostKeyChecking=no mathieuhasard111@34.171.188.99 'cd /home/mathieuhasard111/crypto_ai_terminal && source .venv/bin/activate && nohup python advisor_loop.py >> logs/advisor.log 2>&1 & echo PID=$!')"
     ]
   }
 }

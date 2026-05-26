@@ -1,8 +1,8 @@
 {
   "_readme": "Schéma de contrat entre Anara et le projet crypto_ai_terminal. Anara lit ce fichier + les modules/ pour générer les descriptions et labels du dashboard.",
-  "_version": "1.0",
+  "_version": "1.2",
   "_project": "crypto_ai_terminal",
-  "_updated": "2026-05-11",
+  "_updated": "2026-05-23",
 
   "generation_rules": {
     "language": "fr",
@@ -18,35 +18,35 @@
       {
         "tab_id": "signal",
         "label": "Signal",
-        "modules": ["live_signal_engine", "feature_engineer", "market_scanner"],
+        "modules": ["market_scanner", "feature_engineer", "live_signal_engine"],
         "primary_metric": "score",
         "description": "Analyse de marché et génération de signaux de trading"
       },
       {
         "tab_id": "intelligence",
         "label": "Intelligence",
-        "modules": ["conviction_engine", "no_trade_layer", "ai_advisor", "threat_radar"],
+        "modules": ["regime_detector", "no_trade_layer", "conviction_engine", "ai_advisor", "threat_radar", "self_awareness_engine"],
         "primary_metric": "conviction_level",
         "description": "Évaluation de la conviction et filtrage intelligent des signaux"
       },
       {
         "tab_id": "risk",
         "label": "Risque",
-        "modules": ["global_risk_gate", "portfolio_brain", "order_sizer", "session_guard"],
+        "modules": ["global_risk_gate", "portfolio_brain", "order_sizer", "session_guard", "executive_override"],
         "primary_metric": "gate_result",
         "description": "Gouvernance du risque — checklist pré-trade et sizing"
       },
       {
         "tab_id": "execution",
         "label": "Exécution",
-        "modules": ["execution_engine", "position_manager", "shadow_engine"],
+        "modules": ["execution_engine", "position_manager", "shadow_engine", "trade_postmortem"],
         "primary_metric": "order_mode",
         "description": "Placement d'ordres et gestion des positions ouvertes"
       },
       {
         "tab_id": "learning",
         "label": "Apprentissage",
-        "modules": ["mistake_memory", "decision_quality_engine", "black_box", "regret_engine"],
+        "modules": ["mistake_memory", "decision_quality_engine", "regret_engine", "black_box"],
         "primary_metric": "mistake_rate",
         "description": "Analyse post-mortem et apprentissage automatique des erreurs"
       },
@@ -70,16 +70,24 @@
     "hold":           "#6b7280",
     "paper":          "#9ca3af",
     "testnet":        "#3b82f6",
-    "live":           "#22c55e"
+    "live":           "#22c55e",
+    "accent":         "#00e0ff"
   },
 
   "metric_display_templates": {
     "percent":    "{value:.1f}%",
     "usd":        "${value:,.2f}",
+    "float":      "{value:.2f}",
     "float_0_1":  "{value:.3f}",
     "float_0_100":"{value:.0f}/100",
     "int":        "{value:,}",
+    "int_0_100":  "{value:,}",
+    "str":        "{value}",
+    "enum":       "{value}",
+    "bool":       { "true": "True", "false": "False" },
     "bool_fr":    { "true": "Oui", "false": "Non" },
+    "dict_bool":  "keys: {keys}",
+    "list_str":   "{value}",
     "timestamp":  "HH:MM:SS"
   },
 
@@ -91,16 +99,30 @@
   ],
 
   "modules_index": {
-    "execution_engine":     "modules/execution_engine.json",
-    "conviction_engine":    "modules/conviction_engine.json",
-    "global_risk_gate":     "modules/global_risk_gate.json",
-    "portfolio_brain":      "modules/portfolio_brain.json",
-    "order_sizer":          "modules/order_sizer.json",
-    "live_signal_engine":   "modules/live_signal_engine.json",
-    "exchange_factory":     "modules/exchange_factory.json",
-    "decision_packet":      "modules/decision_packet.json",
-    "black_box":            "modules/black_box.json",
-    "mistake_memory":       "modules/mistake_memory.json",
-    "advisor_loop":         "modules/advisor_loop.json"
+    "market_scanner":         "modules/market_scanner.json",
+    "feature_engineer":       "modules/feature_engineer.json",
+    "live_signal_engine":     "modules/live_signal_engine.json",
+    "regime_detector":        "modules/regime_detector.json",
+    "no_trade_layer":         "modules/no_trade_layer.json",
+    "conviction_engine":      "modules/conviction_engine.json",
+    "self_awareness_engine":  "modules/self_awareness_engine.json",
+    "ai_advisor":             "modules/ai_advisor.json",
+    "threat_radar":           "modules/threat_radar.json",
+    "decision_quality_engine":"modules/decision_quality_engine.json",
+    "regret_engine":          "modules/regret_engine.json",
+    "global_risk_gate":       "modules/global_risk_gate.json",
+    "portfolio_brain":        "modules/portfolio_brain.json",
+    "order_sizer":            "modules/order_sizer.json",
+    "session_guard":          "modules/session_guard.json",
+    "executive_override":     "modules/executive_override.json",
+    "execution_engine":       "modules/execution_engine.json",
+    "position_manager":       "modules/position_manager.json",
+    "shadow_engine":          "modules/shadow_engine.json",
+    "trade_postmortem":       "modules/trade_postmortem.json",
+    "mistake_memory":         "modules/mistake_memory.json",
+    "black_box":              "modules/black_box.json",
+    "exchange_factory":       "modules/exchange_factory.json",
+    "decision_packet":        "modules/decision_packet.json",
+    "advisor_loop":           "modules/advisor_loop.json"
   }
 }

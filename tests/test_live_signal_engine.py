@@ -2,22 +2,26 @@
 
 from __future__ import annotations
 
-import os
 import pytest
-from unittest.mock import MagicMock, patch
 
 from quant_hedge_ai.agents.execution.live_signal_engine import (
     LiveSignalEngine,
     SignalResult,
-    _DEFAULT_MIN_SCORE,
 )
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 
+
 def _candles(n: int = 30, close: float = 100.0) -> list[dict]:
     """Génère n candles minimalistes."""
     return [
-        {"open": close, "high": close + 1, "low": close - 1, "close": close, "volume": 1000.0}
+        {
+            "open": close,
+            "high": close + 1,
+            "low": close - 1,
+            "close": close,
+            "volume": 1000.0,
+        }
         for _ in range(n)
     ]
 
@@ -27,15 +31,29 @@ def _bull_candles(n: int = 30) -> list[dict]:
     candles = []
     price = 50.0
     for i in range(n):
-        candles.append({"open": price, "high": price + 0.1, "low": price - 2.0, "close": price - 1.5, "volume": 1000.0})
+        candles.append(
+            {
+                "open": price,
+                "high": price + 0.1,
+                "low": price - 2.0,
+                "close": price - 1.5,
+                "volume": 1000.0,
+            }
+        )
         price = max(10.0, price - 1.5)
     return candles
 
 
 @pytest.fixture
 def engine():
-    return LiveSignalEngine(strategy={"entry_indicator": "RSI", "period": 14,
-                                       "entry_threshold": 30, "exit_threshold": 70})
+    return LiveSignalEngine(
+        strategy={
+            "entry_indicator": "RSI",
+            "period": 14,
+            "entry_threshold": 30,
+            "exit_threshold": 70,
+        }
+    )
 
 
 @pytest.fixture
@@ -57,6 +75,7 @@ def mtf_bull():
 
 # ── Tests SignalResult ─────────────────────────────────────────────────────────
 
+
 class TestSignalResult:
     def test_actionable_true_above_min(self):
         r = SignalResult(symbol="BTC", score=75, signal="BUY")
@@ -66,15 +85,25 @@ class TestSignalResult:
         r = SignalResult(symbol="BTC", score=80, signal="HOLD")
         assert r.actionable is False
 
-    def test_actionable_false_low_score(self):
+    def test_actionable_buy_is_true_regardless_of_score(self):
+        # actionable indicates signal direction only; score filtering is the gate's role
         r = SignalResult(symbol="BTC", score=50, signal="BUY")
-        assert r.actionable is False
+        assert r.actionable is True
 
     def test_as_dict_keys(self):
         r = SignalResult(symbol="ETH", score=60, signal="SELL")
         d = r.as_dict()
-        for key in ("symbol", "score", "signal", "regime", "confirmed", "strength",
-                    "actionable", "components", "timestamp"):
+        for key in (
+            "symbol",
+            "score",
+            "signal",
+            "regime",
+            "confirmed",
+            "strength",
+            "actionable",
+            "components",
+            "timestamp",
+        ):
             assert key in d
 
     def test_actionable_sell_above_min(self):
@@ -83,6 +112,7 @@ class TestSignalResult:
 
 
 # ── Tests evaluate ────────────────────────────────────────────────────────────
+
 
 class TestEvaluate:
     def test_returns_signal_result(self, engine, mtf_flat):
@@ -124,7 +154,11 @@ class TestEvaluate:
         assert result.components["memory"] == 20.0
 
     def test_features_bull_trend_boosts_score(self, engine, mtf_flat):
-        features_bull = {"momentum": 0.08, "realized_volatility": 0.02, "trend_strength": 0.9}
+        features_bull = {
+            "momentum": 0.08,
+            "realized_volatility": 0.02,
+            "trend_strength": 0.9,
+        }
         features_unknown = {}
         r_bull = engine.evaluate("BTC", mtf_flat, features=features_bull)
         r_unk = engine.evaluate("BTC", mtf_flat, features=features_unknown)
@@ -142,9 +176,14 @@ class TestEvaluate:
 
 # ── Tests blacklist ───────────────────────────────────────────────────────────
 
+
 class TestBlacklist:
     def test_blacklisted_regime_caps_score(self, engine, mtf_flat):
-        features = {"momentum": 0.08, "realized_volatility": 0.02, "trend_strength": 0.9}
+        features = {
+            "momentum": 0.08,
+            "realized_volatility": 0.02,
+            "trend_strength": 0.9,
+        }
         # Sans blacklist
         r1 = engine.evaluate("BTC", mtf_flat, features=features)
         # Avec blacklist du régime bull_trend
@@ -155,19 +194,28 @@ class TestBlacklist:
     def test_unblacklist_removes_cap(self, engine, mtf_flat):
         engine.blacklist_regime("bull_trend")
         engine.unblacklist_regime("bull_trend")
-        features = {"momentum": 0.08, "realized_volatility": 0.02, "trend_strength": 0.9}
+        features = {
+            "momentum": 0.08,
+            "realized_volatility": 0.02,
+            "trend_strength": 0.9,
+        }
         r = engine.evaluate("BTC", mtf_flat, features=features)
         # Score pas cappé (peut dépasser 30)
         assert "regime_blacklist_veto" not in r.components
 
     def test_blacklist_component_recorded(self, engine, mtf_flat):
         engine.blacklist_regime("bull_trend")
-        features = {"momentum": 0.08, "realized_volatility": 0.02, "trend_strength": 0.9}
+        features = {
+            "momentum": 0.08,
+            "realized_volatility": 0.02,
+            "trend_strength": 0.9,
+        }
         r = engine.evaluate("BTC", mtf_flat, features=features)
         assert "regime_blacklist_veto" in r.components
 
 
 # ── Tests evaluate_batch ──────────────────────────────────────────────────────
+
 
 class TestEvaluateBatch:
     def test_returns_list(self, engine, mtf_flat):
@@ -197,6 +245,7 @@ class TestEvaluateBatch:
 
 # ── Tests top_opportunities ───────────────────────────────────────────────────
 
+
 class TestTopOpportunities:
     def test_no_results_returns_empty(self, engine):
         assert engine.top_opportunities() == []
@@ -219,10 +268,17 @@ class TestTopOpportunities:
 
 # ── Tests qualité données réelle ─────────────────────────────────────────────
 
+
 class TestDataQuality:
     def test_valid_candles_score_near_max(self, engine):
         good = [
-            {"open": 100.0, "high": 101.0, "low": 99.0, "close": 100.5, "volume": 1000.0}
+            {
+                "open": 100.0,
+                "high": 101.0,
+                "low": 99.0,
+                "close": 100.5,
+                "volume": 1000.0,
+            }
             for _ in range(20)
         ]
         mtf = {"1h": good, "4h": good}
@@ -252,11 +308,14 @@ class TestDataQuality:
 
 # ── Tests env var ────────────────────────────────────────────────────────────
 
+
 class TestEnvVar:
     def test_default_min_score_from_env(self, monkeypatch):
         monkeypatch.setenv("SIGNAL_MIN_SCORE", "85")
         import importlib
+
         import quant_hedge_ai.agents.execution.live_signal_engine as mod
+
         importlib.reload(mod)
         assert mod._DEFAULT_MIN_SCORE == 85
 

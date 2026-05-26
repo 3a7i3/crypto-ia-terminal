@@ -1,0 +1,39 @@
+{
+  "module_id": "threat_radar",
+  "class_name": "ThreatRadar",
+  "file_path": "quant_hedge_ai/agents/intelligence/threat_radar.py",
+  "display_name": "Threat Radar",
+  "layer": "intelligence",
+  "dashboard_tab": "Intelligence",
+
+  "role_fr": "12e couche décisionnelle. Surveille l'environnement macro externe : funding rates anormaux, clusters de liquidations, volatilité implicite, dominance BTC, spread spot/futures, déconnexion corrélation.",
+  "role_en": "12th decision layer. Monitors external macro environment: abnormal funding rates, liquidation clusters, implied volatility, BTC dominance, spot/futures spread, correlation disconnect.",
+
+  "threat_sources": [
+    { "source": "funding_rate",     "description": "Taux de financement perpetuel anormal" },
+    { "source": "liquidation_cluster","description": "Clusters de liquidations (OI + prix)" },
+    { "source": "implied_vol",      "description": "ATR multi-symboles élevé" },
+    { "source": "btc_dominance",    "description": "Divergence dominance BTC" },
+    { "source": "spot_futures_spread","description": "Spread spot/futures anormal" },
+    { "source": "correlation_break","description": "Symboles divergent de BTC" }
+  ],
+
+  "threat_levels": [
+    { "level": "NONE",     "color": "#22c55e", "description": "Environnement sain" },
+    { "level": "LOW",      "color": "#84cc16", "description": "Signal faible, surveillance" },
+    { "level": "MEDIUM",   "color": "#f59e0b", "description": "Menace confirmée, réduction taille" },
+    { "level": "HIGH",     "color": "#ef4444", "description": "Menace forte, safe mode" },
+    { "level": "CRITICAL", "color": "#7f1d1d", "description": "Urgence — halt ou sortie" }
+  ],
+
+  "key_metrics": [
+    { "metric_id": "threat_level",    "label": "Niveau menace",   "type": "str",       "dashboard_color_map": {"NONE":"#22c55e","LOW":"#84cc16","MEDIUM":"#f59e0b","HIGH":"#ef4444","CRITICAL":"#7f1d1d"} },
+    { "metric_id": "active_threats",  "label": "Menaces actives", "type": "int" },
+    { "metric_id": "funding_rate",    "label": "Funding rate",    "type": "float" },
+    { "metric_id": "btc_dominance",   "label": "BTC dominance",   "type": "percent" }
+  ],
+
+  "env_vars": [
+    { "var": "RADAR_VETO_LEVEL", "default": "CRITICAL", "description": "Niveau de menace déclenchant un veto total (NONE|LOW|MEDIUM|HIGH|CRITICAL)" }
+  ]
+}

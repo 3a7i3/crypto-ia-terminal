@@ -1,0 +1,53 @@
+{
+  "module_id": "self_awareness_engine",
+  "class_name": "SelfAwarenessEngine",
+  "file_path": "quant_hedge_ai/agents/intelligence/self_awareness_engine.py",
+  "display_name": "Self-Awareness Engine",
+  "layer": "intelligence",
+  "dashboard_tab": "Intelligence",
+
+  "role_fr": "Surveille 4 dimensions de dérive en continu. Déclenche automatiquement des mesures de protection selon le niveau de danger détecté (0→4).",
+  "role_en": "Monitors 4 drift dimensions continuously. Automatically triggers protective measures based on detected danger level (0→4).",
+
+  "drift_dimensions": [
+    { "dimension": "performance",  "description": "Winrate / Sharpe récent vs baseline historique" },
+    { "dimension": "behavioral",   "description": "Overtrading, revenge trading, hors-personnalité" },
+    { "dimension": "market",       "description": "Stratégie dans le mauvais régime de marché" },
+    { "dimension": "infrastructure","description": "Latence, slippage, exchange lag anormal" }
+  ],
+
+  "danger_levels": [
+    { "level": 0, "name": "OK",       "color": "#22c55e", "action": "Rien — trading normal" },
+    { "level": 1, "name": "CAUTION",  "color": "#84cc16", "action": "Taille réduite ×0.5" },
+    { "level": 2, "name": "WARNING",  "color": "#f59e0b", "action": "Safe mode — alertes suspendues" },
+    { "level": 3, "name": "DANGER",   "color": "#ef4444", "action": "Halt temporaire (N minutes)" },
+    { "level": 4, "name": "CRITICAL", "color": "#7f1d1d", "action": "Kill switch + Telegram critique" }
+  ],
+
+  "state_fields": {
+    "level":         "DangerLevel — niveau courant (0-4)",
+    "active_drifts": "liste de dérives actives détectées",
+    "size_factor":   "float — multiplicateur taille [0.0, 1.0]",
+    "halt_until":    "timestamp — blocage actif jusqu'à",
+    "safe_mode":     "bool — mode sécurisé actif"
+  },
+
+  "key_metrics": [
+    { "metric_id": "level",       "label": "Niveau dérive", "type": "int",      "dashboard_color_map": {"0":"#22c55e","1":"#84cc16","2":"#f59e0b","3":"#ef4444","4":"#7f1d1d"} },
+    { "metric_id": "size_factor", "label": "Facteur taille","type": "float_0_1","display": "×{value:.2f}" },
+    { "metric_id": "safe_mode",   "label": "Safe Mode",     "type": "bool_fr" }
+  ],
+
+  "env_vars": [
+    { "var": "SA_RECENT_WINDOW",   "default": "10",   "description": "Fenêtre récente pour calcul winrate/Sharpe (cycles)" },
+    { "var": "SA_BASELINE_WINDOW", "default": "50",   "description": "Fenêtre baseline historique (cycles)" },
+    { "var": "SA_WR_DROP_CAUTION", "default": "0.15", "description": "Chute winrate → niveau CAUTION" },
+    { "var": "SA_WR_DROP_WARNING", "default": "0.25", "description": "Chute winrate → niveau WARNING" },
+    { "var": "SA_SHARPE_DROP",     "default": "0.5",  "description": "Chute Sharpe → déclenche dérive performance" },
+    { "var": "SA_DD_ACCEL",        "default": "0.03", "description": "Accélération drawdown → dérive performance" },
+    { "var": "SA_REVENGE_LOSSES",  "default": "2",    "description": "Pertes consécutives → dérive comportementale" },
+    { "var": "SA_FREEZE_HALTS",    "default": "3",    "description": "Nb halts récents → niveau CRITICAL" },
+    { "var": "SA_HALT_MINUTES",    "default": "30",   "description": "Durée du halt temporaire (minutes)" },
+    { "var": "SA_LATENCY_CRIT",    "default": "2000", "description": "Latence exchange (ms) → dérive infrastructure" }
+  ]
+}
