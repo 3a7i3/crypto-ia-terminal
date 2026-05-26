@@ -5,11 +5,14 @@ One global instance — all modules read from it, never write to it directly.
 
 from __future__ import annotations
 
+import logging
 import threading
 import time
 from dataclasses import dataclass, field
 from enum import Enum, auto
 from typing import Callable, List, Optional
+
+logger = logging.getLogger("system.state_manager")
 
 
 class SystemState(Enum):
@@ -177,7 +180,11 @@ class StateManager:
             try:
                 cb(old, new, reason)
             except Exception:
-                pass  # listeners must never crash the state machine
+                logger.exception(
+                    "State transition listener failed for %s -> %s",
+                    old.name,
+                    new.name,
+                )
 
     # ------------------------------------------------------------------
     # Diagnostics

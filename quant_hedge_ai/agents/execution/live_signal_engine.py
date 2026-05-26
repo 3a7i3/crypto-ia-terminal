@@ -173,7 +173,11 @@ class LiveSignalEngine:
                 if result.actionable:
                     _metrics_bus.increment("live_signal_engine", "actionable_signals")
             except Exception:
-                pass
+                logger.exception(
+                    "[LSE] Metrics emission failed for %s (score=%d)",
+                    symbol,
+                    score,
+                )
         return result
 
     def evaluate_batch(
@@ -211,7 +215,10 @@ class LiveSignalEngine:
                             context={"symbol": symbol},
                         )
                     except Exception:
-                        pass
+                        logger.exception(
+                            "[LSE] Error bus emission failed for %s after evaluation error",
+                            symbol,
+                        )
         results.sort(key=lambda r: r.score, reverse=True)
         return results
 

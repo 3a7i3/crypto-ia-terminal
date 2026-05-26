@@ -25,6 +25,7 @@ Usage:
 
 from __future__ import annotations
 
+import logging
 import threading
 import time
 import traceback
@@ -33,6 +34,8 @@ from typing import Any, Callable, Dict, List, Optional
 
 from observability.metrics_bus import metrics_bus
 from system.module_registry import ModuleStatus, module_registry
+
+logger = logging.getLogger("health.health_registry")
 
 
 @dataclass
@@ -204,7 +207,7 @@ class HealthRegistry:
             try:
                 self.check_all()
             except Exception:
-                pass
+                logger.exception("Health registry polling loop failed")
             time.sleep(self.POLL_INTERVAL_SEC)
 
     # ------------------------------------------------------------------

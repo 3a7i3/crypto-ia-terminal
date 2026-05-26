@@ -143,11 +143,15 @@ class ExecutionEngine:
         closed = set()
         for ex in (self._exchange, self._exchange_futures):
             if ex is not None and id(ex) not in closed:
+                closed.add(id(ex))
                 try:
                     ex.close()
-                    closed.add(id(ex))
-                except Exception as _exc:
-                    logger.debug("[ExecutionEngine] close() ignoré: %s", _exc)
+                except Exception as exc:
+                    logger.warning(
+                        "[ExecutionEngine] close() failed during reconnect for %s: %s",
+                        type(ex).__name__,
+                        exc,
+                    )
         self._exchange = None
         self._exchange_futures = None
         try:
@@ -394,7 +398,11 @@ class ExecutionEngine:
                 try:
                     self._exchange_futures.set_leverage(leverage, ccxt_symbol)
                 except Exception:
-                    pass
+                    logger.exception(
+                        "[ExecutionEngine] set_leverage failed for %s (lev x%d)",
+                        ccxt_symbol,
+                        leverage,
+                    )
 
             ticker = self._with_retry(self._exchange_futures.fetch_ticker, ccxt_symbol)
             price = float(ticker["last"])
@@ -408,6 +416,10 @@ class ExecutionEngine:
                     "min"
                 ) or 0.001
             except Exception:
+                logger.exception(
+                    "[ExecutionEngine] Futures market metadata unavailable for %s; using default sizing",
+                    ccxt_symbol,
+                )
                 amt_precision = 0.001
                 min_qty = 0.001
 
@@ -471,6 +483,10 @@ class ExecutionEngine:
                 )
                 amt_precision = mkt.get("precision", {}).get("amount") or 1e-5
             except Exception:
+                logger.exception(
+                    "[ExecutionEngine] Live market metadata unavailable for %s; using default sizing",
+                    ccxt_symbol,
+                )
                 min_notional = 5.0
                 amt_precision = 1e-5
 

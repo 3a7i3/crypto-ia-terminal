@@ -5,11 +5,14 @@ Each module registers itself, publishes heartbeats, and exposes a health snapsho
 
 from __future__ import annotations
 
+import logging
 import threading
 import time
 from dataclasses import dataclass, field
 from enum import Enum, auto
 from typing import Any, Callable, Dict, List, Optional
+
+logger = logging.getLogger("system.module_registry")
 
 
 class ModuleStatus(Enum):
@@ -233,7 +236,11 @@ class ModuleRegistry:
             try:
                 cb(m.name, new_status)
             except Exception:
-                pass
+                logger.exception(
+                    "Module status listener failed for %s -> %s",
+                    m.name,
+                    new_status.name,
+                )
 
     # ------------------------------------------------------------------
     # Snapshot
