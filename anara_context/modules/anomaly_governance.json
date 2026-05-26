@@ -1,0 +1,38 @@
+{
+  "module_id": "anomaly_governance",
+  "path": "quant_hedge_ai/agents/risk/anomaly_governance.py",
+  "layer": "risk",
+  "status": "production",
+  "phase": "P9",
+  "description": "Détecte et gère les anomalies comportementales système. 4 types : TRADE_SPIKE, SCORE_DROP, THRESHOLD_DRIFT, RG_BURST. Réaction : snapshot → suspension composant → cooldown → reprise progressive.",
+  "class": "AnomalyGovernance",
+  "public_api": {
+    "detect": "detect(cycle, trades_this_cycle, avg_score, threshold_used, rg_state, snapshot) → List[AnomalyRecord]",
+    "is_suspended": "is_suspended(component, cycle) → bool",
+    "governance_entropy": "governance_entropy() → float [0,1] — Shannon entropy sur types d'anomalies",
+    "crisis_memory": "crisis_memory() → List[AnomalyRecord]",
+    "summary": "summary() → dict"
+  },
+  "anomaly_types": {
+    "TRADE_SPIKE": "trades > 10× moyenne → suspend execution",
+    "SCORE_DROP": "score chute 20+ pts → suspend scoring",
+    "THRESHOLD_DRIFT": "threshold dérive > 5pts en 10c → suspend adaptive_threshold",
+    "RG_BURST": "RiskGovernor change > 3× en 10c → suspend risk_governor"
+  },
+  "properties": {
+    "governance_cooldown": "N cycles entre deux interventions du même type",
+    "governance_entropy": "0=rigide (1 seul type), 1=diversité saine",
+    "crisis_memory": "N dernières crises en mémoire"
+  },
+  "env_vars": {
+    "P9_GOV_COOLDOWN": "15",
+    "P9_GOV_CRISIS_MEMORY": "50",
+    "P9_TRADE_SPIKE_MULT": "10.0",
+    "P9_SCORE_DROP_PTS": "20.0",
+    "P9_THRESHOLD_DRIFT_PTS": "5.0",
+    "P9_RG_BURST_COUNT": "3",
+    "P9_SUSPENSION_CYCLES": "10"
+  },
+  "dependencies": ["observability.json_logger"],
+  "used_by": ["advisor_loop"]
+}

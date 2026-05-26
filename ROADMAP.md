@@ -1,7 +1,7 @@
 # ROADMAP — Crypto AI Terminal
 
 > Dernière mise à jour : 2026-05-26
-> Statut global : **P8 FERMÉ** → **P9 Meta Governance en cours**
+> Statut global : **P9 FERMÉ** → **P10 Evolutionary Architecture**
 
 ---
 
@@ -253,10 +253,12 @@ SweepDetector + SweepOutcomeTracker (signal layer) intégrés dans le même cycl
 - Exposition nette > 80% → réduction forcée
 
 ### Critères de succès P9
-- [ ] Dérive simulée détectée (threshold poussé à 80 pendant 30 cycles)
-- [ ] Suspension avant 3 pertes consécutives sur dérive
-- [ ] Sharpe glissant calculé en temps réel
-- [ ] 0 faux positif sur 100 cycles en régime stable
+- [x] Dérive simulée détectée (threshold poussé à 80 pendant 30 cycles)
+- [x] Suspension avant 3 pertes consécutives sur dérive
+- [x] Sharpe glissant calculé en temps réel
+- [x] 0 faux positif sur 100 cycles en régime stable
+
+**P9 FERMÉ 2026-05-26** — 6 modules livrés, 64/64 tests, câblage advisor_loop.py, anara_context v1.5 (52 modules).
 
 ---
 

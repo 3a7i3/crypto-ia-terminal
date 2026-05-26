@@ -2754,6 +2754,43 @@ def main(
     except Exception as _sweep_boot_exc:
         log.warning("[Sweep] Composants indisponibles: %s", _sweep_boot_exc)
 
+    # P9 — Meta Governance
+    _health_monitor: Any = None
+    _drift_detector: Any = None
+    _self_monitoring: Any = None
+    _anomaly_gov: Any = None
+    _perf_supervisor: Any = None
+    _portfolio_intel: Any = None
+    try:
+        from quant_hedge_ai.agents.intelligence.behavioral_drift_detector import (
+            BehavioralDriftDetector as _BDDCls,
+        )
+        from quant_hedge_ai.agents.intelligence.performance_supervisor import (
+            PerformanceSupervisor as _PSCls,
+        )
+        from quant_hedge_ai.agents.intelligence.self_monitoring_loop import (
+            SelfMonitoringLoop as _SMLCls,
+        )
+        from quant_hedge_ai.agents.risk.anomaly_governance import (
+            AnomalyGovernance as _AGCls,
+        )
+        from quant_hedge_ai.agents.risk.portfolio_intelligence import (
+            PortfolioIntelligence as _PICls,
+        )
+        from quant_hedge_ai.agents.risk.system_health_monitor import (
+            SystemHealthMonitor as _SHMCls,
+        )
+
+        _health_monitor = _SHMCls()
+        _drift_detector = _BDDCls()
+        _self_monitoring = _SMLCls()
+        _anomaly_gov = _AGCls()
+        _perf_supervisor = _PSCls()
+        _portfolio_intel = _PICls()
+        log.info("[P9] Meta Governance initialisée (6 composants)")
+    except Exception as _p9_boot_exc:
+        log.warning("[P9] Composants indisponibles: %s", _p9_boot_exc)
+
     # S3 — Telegram alerts + shadow refusals tracker
     global _telegram_alert, _shadow_s3
     if _S3_TELEGRAM_AVAILABLE:
@@ -3741,6 +3778,93 @@ def main(
                         _telegram_behavior(f"📊 {_bh_line}")
                 except Exception:
                     pass
+
+            # ── P9 — Meta Governance (tick par cycle) ────────────────────────
+            try:
+                if _health_monitor is not None:
+                    _health_monitor.tick_cycle()
+
+                if _drift_detector is not None and results:
+                    _avg_score_p9 = sum(
+                        r["signal"].score for r in results if r.get("signal")
+                    ) / max(len(results), 1)
+                    _trades_p9 = sum(
+                        1
+                        for r in results
+                        if r.get("futures_result") is not None
+                        and r["futures_result"].get("mode")
+                        not in (
+                            None,
+                            "futures_failed",
+                            "live_failed",
+                            "risk_governor_blocked",
+                        )
+                    )
+                    _eff_thr = gate.min_signal_score + getattr(gate, "_regret_delta", 0)
+                    for _r in results:
+                        _sig = _r.get("signal")
+                        if _sig:
+                            _drift_detector.record(
+                                cycle=cycle,
+                                threshold_used=float(_eff_thr),
+                                score=float(_sig.score),
+                                signal_generated=_sig.actionable,
+                                refused=not _r.get("trade_allowed", True),
+                                regime=_adaptive_regime,
+                            )
+                    _drift_report = _drift_detector.check(regime=_adaptive_regime)
+                    if _drift_report.drifting:
+                        log.warning(
+                            "[P9/Drift] Dérive cycle=%d métriques=%s confiance=%.2f",
+                            cycle,
+                            _drift_report.drifting_metrics,
+                            _drift_report.meta_confidence,
+                        )
+
+                    if _anomaly_gov is not None:
+                        _anomalies = _anomaly_gov.detect(
+                            cycle=cycle,
+                            trades_this_cycle=_trades_p9,
+                            avg_score=_avg_score_p9,
+                            threshold_used=float(_eff_thr),
+                            rg_state=(
+                                _rg_state_str if "_rg_state_str" in dir() else "NORMAL"
+                            ),
+                        )
+                        for _an in _anomalies:
+                            log.warning(
+                                "[P9/Gov] %s : %s",
+                                _an.anomaly_type.value,
+                                _an.description,
+                            )
+
+                if _self_monitoring is not None:
+                    _meta_snap = _self_monitoring.tick(
+                        cycle=cycle,
+                        health_monitor=_health_monitor,
+                        drift_detector=_drift_detector,
+                        rg_state=(
+                            _rg_state_str if "_rg_state_str" in dir() else "NORMAL"
+                        ),
+                    )
+                    if _meta_snap.level2_alert and cycle % 5 == 0:
+                        log.critical(
+                            "[P9/Meta] ALERTE NIVEAU 2 score=%.2f",
+                            _meta_snap.meta_health_score,
+                        )
+
+                if cycle % 20 == 0 and _perf_supervisor is not None:
+                    _perf_snap = _perf_supervisor.snapshot(cycle=cycle)
+                    if _perf_snap.alerts:
+                        for _pa in _perf_snap.alerts:
+                            log.warning("[P9/Perf] %s", _pa)
+
+                if cycle % 10 == 0 and _portfolio_intel is not None:
+                    _port_alerts = _portfolio_intel.get_alerts()
+                    for _pal in _port_alerts:
+                        log.warning("[P9/Port] %s", _pal)
+            except Exception as _p9_cyc_exc:
+                log.debug("[P9] Erreur cycle: %s", _p9_cyc_exc)
 
             # ── Rapport timing bootstrap vs cycle 1 ──────────────────────────
             if cycle == 1:

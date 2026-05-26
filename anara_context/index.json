@@ -1,6 +1,6 @@
 {
   "_comment": "Index des modules pour Anara — système de génération automatique de textes dashboard",
-  "_version": "1.4",
+  "_version": "1.5",
   "_updated": "2026-05-26",
   "layers": [
     {
@@ -24,6 +24,9 @@
         "threat_radar",
         "activity_tracker",
         "behavioral_stability_monitor",
+        "behavioral_drift_detector",
+        "self_monitoring_loop",
+        "performance_supervisor",
         "proactive_alerts",
         "confidence_explainer",
         "chief_officer",
@@ -45,7 +48,10 @@
         "risk_governor",
         "capital_throttle",
         "exposure_manager",
-        "circuit_breaker"
+        "circuit_breaker",
+        "system_health_monitor",
+        "anomaly_governance",
+        "portfolio_intelligence"
       ]
     },
     {

@@ -1,0 +1,27 @@
+{
+  "module_id": "portfolio_intelligence",
+  "path": "quant_hedge_ai/agents/risk/portfolio_intelligence.py",
+  "layer": "risk",
+  "status": "production",
+  "phase": "P9",
+  "description": "Surveille la concentration et l'exposition nette du portefeuille. Alertes WARNING à 60% et CRITICAL à 80% de concentration par exchange/stratégie. Exposition nette > 80% → WARNING.",
+  "class": "PortfolioIntelligence",
+  "public_api": {
+    "record_position": "record_position(symbol, exchange, strategy, side, size_usd) — enregistre/met à jour position",
+    "close_position": "close_position(symbol) → bool",
+    "concentration_by_exchange": "concentration_by_exchange() → Dict[str, float]",
+    "concentration_by_strategy": "concentration_by_strategy() → Dict[str, float]",
+    "net_exposure": "net_exposure() → float [-1, 1] — (longs-shorts)/total",
+    "get_alerts": "get_alerts() → List[str]",
+    "summary": "summary() → dict"
+  },
+  "dataclasses": ["Position"],
+  "env_vars": {
+    "P9_CONC_WARN": "0.60 — concentration > 60% → WARNING",
+    "P9_CONC_CRIT": "0.80 — concentration > 80% → CRITICAL (réduction forcée suggérée)",
+    "P9_EXPO_WARN": "0.80 — exposition nette > 80% → WARNING"
+  },
+  "notes": "Positions indexées par symbol. update = re-record_position. net_exposure=0 si total=0.",
+  "dependencies": ["observability.json_logger"],
+  "used_by": ["advisor_loop"]
+}
