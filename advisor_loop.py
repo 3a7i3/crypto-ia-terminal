@@ -28,6 +28,7 @@ from types import SimpleNamespace
 from typing import Any, cast
 
 from advisor_runtime_adapters import AdvisorRuntime, load_advisor_runtime
+from observability.json_logger import new_trace_id, set_trace_id
 
 # IMPORTANT : créer logs/ avant FileHandler
 os.makedirs("logs", exist_ok=True)
@@ -413,6 +414,9 @@ def analyze_symbol(
     sl_factor_override: float | None = None,
     tp_factor_override: float | None = None,
 ) -> AnalysisResult:
+    _trace_id = new_trace_id()
+    set_trace_id(_trace_id)
+
     runtime = runtime or load_advisor_runtime()
     MultiTimeframeScanner = runtime.MultiTimeframeScanner
     FeatureEngineer = runtime.FeatureEngineer
@@ -1258,6 +1262,7 @@ def analyze_symbol(
         "n_1d": len(mtf_candles.get("1d", [])),
         "signal_to_execute": signal_to_execute,
         "decision_packet": _dp,
+        "trace_id": _trace_id,
     }
 
 
@@ -2928,6 +2933,14 @@ def main(
                     tp_factor_override=_smoothed_tp,
                 )
                 results.append(r)
+                log.debug(
+                    "[trace] %s cycle=%d trace_id=%s signal=%s score=%s",
+                    sym,
+                    cycle,
+                    r.get("trace_id", ""),
+                    r["signal"].signal,
+                    r["signal"].score,
+                )
                 # ── Exécution réelle/paper ─────────────────────────────────────
                 r["futures_result"] = None
                 # Taille effective : depuis CAE si disponible, sinon order_size global
@@ -3208,10 +3221,11 @@ def main(
                             fut_id = str(fut.get("id", ""))
                             r["futures_result"] = fut
                             log.info(
-                                "[FLOW] %s EXECUTION → %s $%.2f",
+                                "[FLOW] %s EXECUTION → %s $%.2f trace_id=%s",
                                 sym,
                                 exec_label,
                                 effective_size,
+                                r.get("trace_id", ""),
                             )
                             log.info(
                                 "[%s] %s %s $%.2f → mode=%s id=%s",
