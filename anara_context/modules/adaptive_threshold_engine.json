@@ -1,0 +1,35 @@
+{
+  "module_id": "adaptive_threshold_engine",
+  "class_name": "AdaptiveThresholdEngine",
+  "file_path": "quant_hedge_ai/agents/intelligence/adaptive_threshold_engine.py",
+  "display_name": "Adaptive Threshold Engine",
+  "layer": "intelligence",
+  "dashboard_tab": "Risk",
+
+  "role_fr": "Contrôle PID du seuil de score minimum (P6). Calcule un delta d'ajustement via 3 termes : P=ajustement régime immédiat, I=EWMA des deltas passés (decay=0.85, borné ±5), D=damping ±1/cycle. Boucle fermée : RegretEngine → ATE → GlobalRiskGate.set_adaptive_delta().",
+  "role_en": "PID control of minimum score threshold (P6). Computes adjustment delta via 3 terms: P=immediate regime adjustment, I=EWMA of past deltas (decay=0.85, capped ±5), D=damping ±1/cycle. Closed loop: RegretEngine → ATE → GlobalRiskGate.set_adaptive_delta().",
+
+  "pid_mapping": {
+    "P": "regime_adjustment (SIDEWAYS=-4, TREND=+2, HIGH_VOL=+3, CHOPPY=-2)",
+    "I": "EWMA regret_delta decay=0.85 clamp[-5,+5]",
+    "D": "damping max ±1/cycle (anti-oscillation)"
+  },
+
+  "key_metrics": [
+    { "metric_id": "current_delta",  "label": "Delta seuil actuel",  "type": "int" },
+    { "metric_id": "integral_term",  "label": "Terme I (EWMA)",      "type": "float" },
+    { "metric_id": "cycle_count",    "label": "Cycles ATE",          "type": "int" }
+  ],
+
+  "env_vars": [
+    { "name": "ATE_EWMA_DECAY",    "default": "0.85", "description": "Decay EWMA terme I" },
+    { "name": "ATE_DAMPING_MAX",   "default": "1",    "description": "Max variation delta/cycle (terme D)" },
+    { "name": "ATE_INTEGRAL_MAX",  "default": "5",    "description": "Borne max terme I (anti-windup)" }
+  ],
+
+  "integration": {
+    "upstream": ["regret_engine", "market_regime_classifier"],
+    "downstream": ["global_risk_gate"],
+    "note": "update(regime, regret_delta) appelé chaque cycle. Output delta transmis à GlobalRiskGate.set_adaptive_delta()."
+  }
+}

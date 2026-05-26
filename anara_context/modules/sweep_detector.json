@@ -1,0 +1,44 @@
+{
+  "module_id": "sweep_detector",
+  "class_name": "SweepDetector",
+  "file_path": "quant_hedge_ai/agents/intelligence/sweep_detector.py",
+  "display_name": "Sweep Detector",
+  "layer": "signal",
+  "dashboard_tab": "Signals",
+
+  "role_fr": "Détection de sweeps de liquidité sur OHLCV+volume (pas d'orderbook requis). Deux types : LIQUIDATION SWEEP (wick brutal + reclaim) et ABSORPTION SWEEP (gros volume + faible déplacement). Produit une liste de SweepEvent triés par sweep_strength DESC. Ne génère jamais BUY/SELL — alimente conviction_engine et DecisionPacket.",
+  "role_en": "Detects liquidity sweeps on OHLCV+volume (no orderbook required). Two types: LIQUIDATION SWEEP (brutal wick + reclaim) and ABSORPTION SWEEP (high volume + low price movement). Produces a list of SweepEvent sorted by sweep_strength DESC. Never emits BUY/SELL — feeds conviction_engine and DecisionPacket.",
+
+  "sweep_types": [
+    {
+      "type": "liquidation",
+      "signal": "Manipulation, piège, absorption",
+      "conditions": ["low < recent_min", "wick/body > threshold", "close > recent_min (reclaim)", "volume > avg * ratio"]
+    },
+    {
+      "type": "absorption",
+      "signal": "Gros acteur absorbant offre/demande",
+      "conditions": ["volume > avg * absorb_ratio", "|close-open| / atr < body_atr_ratio"]
+    }
+  ],
+
+  "key_metrics": [
+    { "metric_id": "sweeps_detected_count", "label": "Sweeps détectés (session)", "type": "int" },
+    { "metric_id": "last_sweep_strength",   "label": "Force dernier sweep",       "type": "float" },
+    { "metric_id": "last_sweep_direction",  "label": "Direction dernier sweep",   "type": "str" }
+  ],
+
+  "env_vars": [
+    { "name": "SWEEP_N_CANDLES",     "default": "10",  "description": "Fenêtre historique pour calcul recent_low/high" },
+    { "name": "SWEEP_WICK_BODY",     "default": "2.0", "description": "Ratio wick/corps minimum pour sweep liquidation" },
+    { "name": "SWEEP_VOL_RATIO",     "default": "1.5", "description": "Multiplicateur volume minimum pour sweep liquidation" },
+    { "name": "SWEEP_ABSORB_VOL",    "default": "2.0", "description": "Multiplicateur volume minimum pour absorption" },
+    { "name": "SWEEP_ABSORB_BODY",   "default": "0.3", "description": "Ratio corps/ATR max pour absorption" }
+  ],
+
+  "integration": {
+    "upstream": [],
+    "downstream": ["conviction_engine", "sweep_outcome_tracker"],
+    "note": "detect() appelé à chaque nouvelle bougie. SweepEvents transmis à conviction_engine pour scoring et à sweep_outcome_tracker pour mesure d'edge."
+  }
+}

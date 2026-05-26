@@ -1,0 +1,25 @@
+{
+  "module_id": "system_invariants",
+  "class_name": "SystemInvariants",
+  "file_path": "quant_hedge_ai/agents/intelligence/system_invariants.py",
+  "display_name": "System Invariants",
+  "layer": "infrastructure",
+  "dashboard_tab": "System",
+
+  "role_fr": "Définit et vérifie les invariants structurels du système. Contrats implicites sur les interfaces entre modules (types de retour, valeurs admissibles, préconditions). Utilisé en mode assertion en développement et en mode log-only en production.",
+  "role_en": "Defines and verifies structural invariants of the system. Implicit contracts on module interfaces (return types, allowed values, preconditions). Used in assertion mode during development and log-only mode in production.",
+
+  "key_metrics": [
+    { "metric_id": "invariant_violations", "label": "Violations invariants", "type": "int" }
+  ],
+
+  "env_vars": [
+    { "name": "INVARIANTS_STRICT", "default": "false", "description": "Si true, lève AssertionError au lieu de logger" }
+  ],
+
+  "integration": {
+    "upstream": [],
+    "downstream": [],
+    "note": "Utilitaire statique — check() appelable depuis n'importe quel module. Pas de dépendances runtime."
+  }
+}

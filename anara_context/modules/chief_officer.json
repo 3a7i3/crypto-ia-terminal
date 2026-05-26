@@ -1,0 +1,24 @@
+{
+  "module_id": "chief_officer",
+  "class_name": "ChiefOfficer",
+  "file_path": "quant_hedge_ai/agents/intelligence/chief_officer.py",
+  "display_name": "Chief Officer",
+  "layer": "intelligence",
+  "dashboard_tab": "AI",
+
+  "role_fr": "Copilote IA de haut niveau. Agrège les signaux de toutes les couches (risk, intelligence, learning) pour produire une vue synthétique de l'état du système. Génère des recommandations textuelles pour l'opérateur humain.",
+  "role_en": "High-level AI co-pilot. Aggregates signals from all layers (risk, intelligence, learning) to produce a synthetic view of system state. Generates textual recommendations for the human operator.",
+
+  "key_metrics": [
+    { "metric_id": "system_health_score", "label": "Score santé système", "type": "float" },
+    { "metric_id": "last_recommendation", "label": "Dernière recommandation", "type": "str" }
+  ],
+
+  "env_vars": [],
+
+  "integration": {
+    "upstream": ["risk_governor", "self_awareness_engine", "activity_tracker"],
+    "downstream": [],
+    "note": "synthesize() appelé périodiquement (ex. toutes les 10 cycles) pour rapport opérateur."
+  }
+}

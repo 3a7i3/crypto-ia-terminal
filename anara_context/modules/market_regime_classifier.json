@@ -1,0 +1,36 @@
+{
+  "module_id": "market_regime_classifier",
+  "class_name": "MarketRegimeClassifier",
+  "file_path": "quant_hedge_ai/agents/intelligence/market_regime_classifier.py",
+  "display_name": "Market Regime Classifier",
+  "layer": "intelligence",
+  "dashboard_tab": "Regime",
+
+  "role_fr": "Classifieur de régime adaptatif (P6). Traduit le régime brut en RegimePacket enrichi (confidence, duration_cycles, entropy, in_transition). Supporte deux formats en entrée : détecteur legacy (sideways/bull_trend) et format enum RANGE/TREND_BULL. Hystérésis configurable, stability N cycles requis avant confirmation.",
+  "role_en": "Adaptive regime classifier (P6). Translates raw regime into enriched RegimePacket (confidence, duration_cycles, entropy, in_transition). Supports two input formats: legacy detector (sideways/bull_trend) and enum RANGE/TREND_BULL. Configurable hysteresis, N stability cycles required before confirmation.",
+
+  "outputs": {
+    "class": "RegimePacket",
+    "fields": ["regime", "confidence", "duration_cycles", "transition_from", "entropy", "in_transition"]
+  },
+
+  "consumers": ["global_risk_gate", "meta_strategy_engine", "regret_engine", "adaptive_threshold_engine"],
+
+  "key_metrics": [
+    { "metric_id": "current_regime",     "label": "Régime actuel",     "type": "str" },
+    { "metric_id": "regime_confidence",  "label": "Confiance régime",  "type": "float" },
+    { "metric_id": "regime_duration",    "label": "Durée régime (cycles)", "type": "int" },
+    { "metric_id": "in_transition",      "label": "En transition",     "type": "bool" }
+  ],
+
+  "env_vars": [
+    { "name": "REGIME_STABILITY",        "default": "3",  "description": "Cycles consécutifs requis pour confirmer un changement de régime" },
+    { "name": "REGIME_CONF_DECAY",       "default": "0.95", "description": "Decay confiance par cycle sans confirmation" }
+  ],
+
+  "integration": {
+    "upstream": ["regime_detector"],
+    "downstream": ["adaptive_threshold_engine", "meta_strategy_engine", "global_risk_gate"],
+    "note": "classify() appelé chaque cycle dans advisor_loop. Retourne RegimePacket consommé par ATE et MetaStrategyEngine."
+  }
+}
