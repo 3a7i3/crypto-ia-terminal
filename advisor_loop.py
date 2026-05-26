@@ -2690,6 +2690,50 @@ def main(
         _cb_registry_adapter = _AdvisorCircuitBreakers()
         log.info("[P7] CircuitBreakers initialisés: gate + mistake_memory")
 
+    # P8 — Strategy Allocator + Probation + Confidence + Correlation
+    _strategy_allocator: Any = None
+    _probation_system: Any = None
+    _confidence_scorers: dict = {}
+    _correlation_monitor: Any = None
+    _p8_pers_map: dict = {}
+    try:
+        from quant_hedge_ai.agents.intelligence.confidence_scorer import (
+            StrategyConfidenceScorer as _SCSCls,
+        )
+        from quant_hedge_ai.agents.intelligence.correlation_monitor import (
+            CorrelationMonitor as _CMCls,
+        )
+        from quant_hedge_ai.agents.intelligence.strategy_allocator import (
+            PERSONALITY_TO_STRATEGY as _P8PM,
+        )
+        from quant_hedge_ai.agents.intelligence.strategy_allocator import (
+            STRATEGY_IDS as _P8_STRAT_IDS,
+        )
+        from quant_hedge_ai.agents.intelligence.strategy_allocator import (
+            StrategyAllocator as _SACls,
+        )
+        from quant_hedge_ai.agents.intelligence.strategy_probation import (
+            StrategyProbationSystem as _SPSCls,
+        )
+
+        _p8_pers_map = _P8PM
+        _probation_system = _SPSCls()
+        for _p8_sid in _P8_STRAT_IDS:
+            _probation_system.register(_p8_sid)
+            _confidence_scorers[_p8_sid] = _SCSCls(strategy_id=_p8_sid)
+        _correlation_monitor = _CMCls()
+        _strategy_allocator = _SACls(
+            probation_system=_probation_system,
+            confidence_scorers=_confidence_scorers,
+            correlation_monitor=_correlation_monitor,
+        )
+        log.info(
+            "[P8] StrategyAllocator + ProbationSystem initialisés (%d stratégies)",
+            len(_P8_STRAT_IDS),
+        )
+    except Exception as _p8_boot_exc:
+        log.warning("[P8] Composants indisponibles: %s", _p8_boot_exc)
+
     # S3 — Telegram alerts + shadow refusals tracker
     global _telegram_alert, _shadow_s3
     if _S3_TELEGRAM_AVAILABLE:
@@ -3014,6 +3058,28 @@ def main(
                 except Exception as _safety_exc:
                     log.warning("[Safety] audit impossible: %s", _safety_exc)
 
+            # P8 — Allocation pré-cycle (une fois par cycle, avant la boucle symboles)
+            _p8_alloc = None
+            if _strategy_allocator is not None:
+                try:
+                    _rg_state_str = (
+                        (_rg_snapshot.state if _rg_snapshot else "normal")
+                    ).upper()
+                    _p8_alloc = _strategy_allocator.allocate(
+                        cycle=cycle,
+                        regime=_adaptive_regime,
+                        risk_state=_rg_state_str,
+                        capital_total=real_capital,
+                        exposure_factor=(
+                            _rg_snapshot.size_multiplier if _rg_snapshot else 1.0
+                        ),
+                    )
+                    _probation_system.tick_cycle(cycle, regime=_adaptive_regime)
+                    for _p8_scorer in _confidence_scorers.values():
+                        _p8_scorer.tick_cycle()
+                except Exception as _p8_cyc_exc:
+                    log.debug("[P8/Allocator] Erreur cycle: %s", _p8_cyc_exc)
+
             results: list[AnalysisResult] = []
             for sym in symbols:
                 r = analyze_symbol(
@@ -3105,6 +3171,19 @@ def main(
                             sym,
                             r["futures_result"]["reason"],
                         )
+
+                # ── P8 — Cap effective_size au budget de la stratégie ────────
+                if _p8_alloc is not None:
+                    try:
+                        _p8_pers = r.get("personality")
+                        _p8_sid = _p8_pers_map.get(
+                            _p8_pers.name if _p8_pers else "", "mean_reversion"
+                        )
+                        _p8_cap = _p8_alloc.capital_for(_p8_sid)
+                        if _p8_cap > 0 and effective_size > _p8_cap:
+                            effective_size = _p8_cap
+                    except Exception as _p8_apply_exc:
+                        log.debug("[P8/Apply] Erreur: %s", _p8_apply_exc)
 
                 if (
                     _safety_verdict is not None

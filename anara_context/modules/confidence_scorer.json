@@ -1,0 +1,43 @@
+{
+  "module_id": "confidence_scorer",
+  "class_name": "StrategyConfidenceScorer",
+  "file_path": "quant_hedge_ai/agents/intelligence/confidence_scorer.py",
+  "display_name": "Score de Confiance Stratégie",
+  "layer": "intelligence",
+  "dashboard_tab": "Allocation",
+
+  "role_fr": "Calcule et maintient le score de confiance par stratégie (P8). Formule composite avec decay adaptatif, asymétrie monte/descend, et mémoire contextuelle régime. Une instance par stratégie.",
+  "role_en": "Computes and maintains confidence score per strategy (P8). Composite formula with adaptive decay, asymmetric up/down dynamics, and regime contextual memory. One instance per strategy.",
+
+  "formula": {
+    "description": "confidence = winrate × 0.4 + sharpe_norm × 0.3 + regime_consistency × 0.3",
+    "clamp": "[0.10, 0.92] — doute résiduel permanent",
+    "asymmetry": "Hausse : blend 30% du delta | Baisse : immédiate",
+    "decay": "0.95 ^ (1 / expected_trades_per_cycle) par cycle sans trade",
+    "regime_consistency": "0.5 × |corr(wins, régime dominant)| + 0.5 × winrate_max_par_régime",
+    "sample_penalty": "-0.10 si fenêtre incomplète (< 20 trades)"
+  },
+
+  "key_metrics": [
+    { "metric_id": "confidence",         "label": "Confiance",          "type": "float", "range": [0.10, 0.92] },
+    { "metric_id": "sample_size",        "label": "Taille échantillon", "type": "int" },
+    { "metric_id": "win_rate",           "label": "Win Rate récent",    "type": "percent" },
+    { "metric_id": "avg_sharpe",         "label": "Sharpe récent",      "type": "float" },
+    { "metric_id": "cycles_since_trade", "label": "Cycles sans trade",  "type": "int" }
+  ],
+
+  "env_vars": [
+    { "name": "P8_CONF_MIN",              "default": "0.10", "description": "Borne inférieure de confiance (doute permanent)" },
+    { "name": "P8_CONF_MAX",              "default": "0.92", "description": "Borne supérieure de confiance (certitude jamais totale)" },
+    { "name": "P8_CONF_WINDOW",           "default": "20",   "description": "Fenêtre glissante (nombre de trades)" },
+    { "name": "P8_CONF_DECAY",            "default": "0.95", "description": "Decay base par cycle sans trade (pour expected_tpc=1)" },
+    { "name": "P8_CONF_RAMP_UP",          "default": "0.30", "description": "Facteur de blend pour la hausse (asymétrie)" },
+    { "name": "P8_CONF_UNCERTAINTY_PENALTY","default": "0.10","description": "Pénalité d'incertitude si échantillon incomplet" }
+  ],
+
+  "integration": {
+    "upstream": [],
+    "downstream": ["strategy_allocator", "correlation_monitor"],
+    "note": "tick_cycle() appelé chaque cycle. record_trade() à chaque fermeture de position. snapshot() exposé sur le dashboard."
+  }
+}

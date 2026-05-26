@@ -1,0 +1,58 @@
+{
+  "module_id": "strategy_allocator",
+  "class_name": "StrategyAllocator",
+  "file_path": "quant_hedge_ai/agents/intelligence/strategy_allocator.py",
+  "display_name": "Allocateur de Stratégies",
+  "layer": "intelligence",
+  "dashboard_tab": "Allocation",
+
+  "role_fr": "Orchestre l'allocation dynamique du capital entre 5 stratégies selon le régime (P8). Matrice 5×5 contextuelle, rampe de transition asymétrique, contrainte d'entropie anti-monoculture, shock absorber global, audit trail complet.",
+  "role_en": "Orchestrates dynamic capital allocation across 5 strategies by regime (P8). Contextual 5×5 matrix, asymmetric transition ramp, entropy constraint against monoculture, global shock absorber, full audit trail.",
+
+  "strategies": ["mean_reversion", "breakout", "scalp", "momentum", "grid"],
+
+  "allocation_matrix": {
+    "SIDEWAYS":   {"mean_reversion": 0.45, "breakout": 0.10, "scalp": 0.30, "momentum": 0.05, "grid": 0.10},
+    "TREND_BULL": {"mean_reversion": 0.10, "breakout": 0.40, "scalp": 0.05, "momentum": 0.35, "grid": 0.10},
+    "TREND_BEAR": {"mean_reversion": 0.15, "breakout": 0.20, "scalp": 0.10, "momentum": 0.40, "grid": 0.15},
+    "HIGH_VOL":   {"mean_reversion": 0.10, "breakout": 0.10, "scalp": 0.40, "momentum": 0.10, "grid": 0.30},
+    "CHOPPY":     {"mean_reversion": 0.30, "breakout": 0.10, "scalp": 0.25, "momentum": 0.10, "grid": 0.25},
+    "UNKNOWN":    {"mean_reversion": 0.20, "breakout": 0.20, "scalp": 0.20, "momentum": 0.20, "grid": 0.20}
+  },
+
+  "weighting_rules": {
+    "ramp_up_max_per_cycle": 0.03,
+    "ramp_down_max_per_cycle": 0.08,
+    "floor_weight": 0.05,
+    "ceiling_weight": 0.60,
+    "min_entropy": 0.60,
+    "shock_absorber_max_delta": 0.25,
+    "asymmetry_note": "Monte 2.6× plus lentement que descend — prévient l'euphorie algorithmique"
+  },
+
+  "key_metrics": [
+    { "metric_id": "weights",       "label": "Poids par stratégie",  "type": "dict_float" },
+    { "metric_id": "entropy",       "label": "Entropie allocation",  "type": "float", "range": [0.0, 1.0] },
+    { "metric_id": "regime",        "label": "Régime courant",       "type": "string" },
+    { "metric_id": "capital_usd",   "label": "Capital USD/stratégie","type": "dict_float" }
+  ],
+
+  "env_vars": [
+    { "name": "P8_RAMP_UP_MAX",     "default": "0.03",  "description": "Hausse max du poids par cycle (lente)" },
+    { "name": "P8_RAMP_DOWN_MAX",   "default": "0.08",  "description": "Baisse max du poids par cycle (rapide)" },
+    { "name": "P8_FLOOR_WEIGHT",    "default": "0.05",  "description": "Poids plancher par stratégie active" },
+    { "name": "P8_CEILING_WEIGHT",  "default": "0.60",  "description": "Poids plafond — anti-domination" },
+    { "name": "P8_MIN_ENTROPY",     "default": "0.60",  "description": "Entropie minimale avant redistribution forcée" },
+    { "name": "P8_SHOCK_MAX_DELTA", "default": "0.25",  "description": "Delta total max de l'allocation par cycle" },
+    { "name": "P8_PERF_W_SHORT",    "default": "0.50",  "description": "Poids performance fenêtre courte (20 cycles)" },
+    { "name": "P8_PERF_W_MED",      "default": "0.30",  "description": "Poids performance fenêtre moyenne (50 cycles)" },
+    { "name": "P8_PERF_W_FULL",     "default": "0.20",  "description": "Poids performance historique complet" },
+    { "name": "ALLOCATOR_DB",       "default": "databases/strategy_allocator.json", "description": "Chemin du fichier de persistance de l'allocateur" }
+  ],
+
+  "integration": {
+    "upstream": ["risk_governor", "strategy_probation", "confidence_scorer", "correlation_monitor"],
+    "downstream": ["advisor_loop"],
+    "note": "allocate() appelé une fois par cycle avant la boucle symboles. capital_for(strategy_id) consulté par advisor_loop pour capper effective_size."
+  }
+}
