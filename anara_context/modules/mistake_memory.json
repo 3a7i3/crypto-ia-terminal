@@ -32,5 +32,13 @@
   ],
 
   "post_mortem_categories": ["VALIDATED", "LUCKY", "UNLUCKY", "MISTAKE"],
-  "dashboard_tab_note": "Données visibles dans l'onglet Post-Mortem (Tab 3) du dashboard"
+  "dashboard_tab_note": "Données visibles dans l'onglet Post-Mortem (Tab 3) du dashboard",
+
+  "env_vars": [
+    { "var": "MISTAKE_DB",          "default": "databases/mistake_memory.jsonl", "description": "Chemin du fichier de stockage de la mémoire des erreurs" },
+    { "var": "MM_MAX_DB",           "default": "1000",                           "description": "Nombre maximum d'entrées conservées en mémoire" },
+    { "var": "MM_MIN_LOSS_PCT",     "default": "-0.003",                         "description": "Perte minimale (%) pour qualifier une entrée comme erreur" },
+    { "var": "MM_REPEAT_THRESHOLD", "default": "2",                              "description": "Nombre de répétitions d'un pattern avant génération d'une règle auto" },
+    { "var": "MM_RULE_EXPIRY_DAYS", "default": "30",                             "description": "Durée de vie des règles auto-générées (jours)" }
+  ]
 }
