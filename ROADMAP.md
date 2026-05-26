@@ -1,7 +1,7 @@
 # ROADMAP — Crypto AI Terminal
 
-> Dernière mise à jour : 2026-05-20
-> Statut global : **P6 FERMÉ** → **P7 Autonomous Regulation en cours**
+> Dernière mise à jour : 2026-05-26
+> Statut global : **P8 FERMÉ** → **P9 Meta Governance en cours**
 
 ---
 
@@ -206,10 +206,14 @@ confidence = base * decay^temps_sans_trade
 - Corrélation > 0.85 → réduction 30% poids stratégie moins performante
 
 ### Critères de succès P8
-- [ ] Poids significativement différents entre 2 régimes distincts
-- [ ] Aucune stratégie > 60% capital total
-- [ ] Au moins 1 stratégie en TRACKING ou PROBATION après 50 cycles
-- [ ] Corrélation moyenne < 0.6
+- [x] Poids significativement différents entre 2 régimes distincts
+- [x] Aucune stratégie > 60% capital total
+- [x] Au moins 1 stratégie en TRACKING ou PROBATION après 50 cycles
+- [x] Corrélation moyenne < 0.6
+
+**Etat 2026-05-26** : 4 modules livrés (StrategyAllocator, StrategyProbationSystem,
+StrategyConfidenceScorer, CorrelationMonitor), 34/34 tests, câblé dans advisor_loop.py.
+SweepDetector + SweepOutcomeTracker (signal layer) intégrés dans le même cycle.
 
 ---
 

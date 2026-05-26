@@ -530,6 +530,9 @@ def analyze_symbol(
     sweep_events: list = []
     if sweep_detector and candles_1h:
         try:
+            _sweep_close = float(candles_1h[-1].get("close", 0))
+            if sweep_outcome_tracker and _sweep_close > 0:
+                sweep_outcome_tracker.tick(symbol, _sweep_close)
             atr_val = float(features.get("atr", features.get("atr_value", 0.0)))
             sweep_events = sweep_detector.detect(
                 symbol=symbol,
@@ -2734,6 +2737,23 @@ def main(
     except Exception as _p8_boot_exc:
         log.warning("[P8] Composants indisponibles: %s", _p8_boot_exc)
 
+    # Sweep Detection — perception de liquidité (SweepDetector + SweepOutcomeTracker)
+    _sweep_detector: Any = None
+    _sweep_outcome_tracker: Any = None
+    try:
+        from quant_hedge_ai.agents.intelligence.sweep_detector import (
+            SweepDetector as _SDCls,
+        )
+        from quant_hedge_ai.agents.intelligence.sweep_outcome_tracker import (
+            SweepOutcomeTracker as _SOTCls,
+        )
+
+        _sweep_detector = _SDCls()
+        _sweep_outcome_tracker = _SOTCls()
+        log.info("[Sweep] SweepDetector + SweepOutcomeTracker initialisés")
+    except Exception as _sweep_boot_exc:
+        log.warning("[Sweep] Composants indisponibles: %s", _sweep_boot_exc)
+
     # S3 — Telegram alerts + shadow refusals tracker
     global _telegram_alert, _shadow_s3
     if _S3_TELEGRAM_AVAILABLE:
@@ -3130,6 +3150,8 @@ def main(
                     runtime=runtime,
                     sl_factor_override=_smoothed_sl,
                     tp_factor_override=_smoothed_tp,
+                    sweep_detector=_sweep_detector,
+                    sweep_outcome_tracker=_sweep_outcome_tracker,
                 )
                 results.append(r)
                 log.debug(
