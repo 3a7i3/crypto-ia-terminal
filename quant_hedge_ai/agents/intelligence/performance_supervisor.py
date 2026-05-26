@@ -224,6 +224,7 @@ class PerformanceSupervisor:
             "trade_count": snap.trade_count,
             "sharpe_20": snap.sharpe_20,
             "sharpe_50": snap.sharpe_50,
+            "sharpe_100": snap.sharpe_100,
             "profit_factor": snap.profit_factor,
             "max_drawdown": snap.max_drawdown,
             "shadow_deviation_sigma": snap.shadow_deviation_sigma,

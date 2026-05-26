@@ -4266,6 +4266,27 @@ def main(
                         for r in results
                     ],
                 }
+
+                # ── P9 Meta Governance snapshot ───────────────────────────────
+                try:
+                    _p9_block: dict = {}
+                    if _self_monitoring is not None:
+                        _p9_block["meta"] = _self_monitoring.summary()
+                    if _health_monitor is not None:
+                        _p9_block["health"] = _health_monitor.summary()
+                    if _drift_detector is not None:
+                        _p9_block["drift"] = _drift_detector.summary()
+                    if _anomaly_gov is not None:
+                        _p9_block["governance"] = _anomaly_gov.summary()
+                    if _perf_supervisor is not None:
+                        _p9_block["performance"] = _perf_supervisor.summary()
+                    if _portfolio_intel is not None:
+                        _p9_block["portfolio"] = _portfolio_intel.summary()
+                    if _p9_block:
+                        _snap_data["p9"] = _p9_block
+                except Exception as _p9_snap_exc:
+                    log.debug("[P9] snapshot partiel: %s", _p9_snap_exc)
+
                 _write_snap(_snap_data, _Path("databases/live_snapshot.json"))
 
                 # ── JSONL persistence — une ligne par cycle ──────────────────

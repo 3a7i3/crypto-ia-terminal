@@ -239,3 +239,23 @@ class BehavioralDriftDetector:
                 self._cooldown_cycles - (self._cycle_count - self._last_alert_cycle),
             ),
         }
+
+    def summary(self) -> dict:
+        report = self._last_report
+        return {
+            "drifting": report.drifting if report else False,
+            "drift_dimensions": (report.drifting_metrics if report else []),
+            "drift_score": (
+                round(
+                    (
+                        max(m.sigma_distance for m in report.metrics)
+                        if report and report.metrics
+                        else 0.0
+                    ),
+                    3,
+                )
+            ),
+            "alert_frequency": round(self.alert_frequency, 3),
+            "total_alerts": self._alert_count,
+            "meta_confidence": round(self._meta_confidence(), 3),
+        }
