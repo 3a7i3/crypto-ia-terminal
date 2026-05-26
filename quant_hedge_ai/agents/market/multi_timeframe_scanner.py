@@ -8,15 +8,14 @@ Conçu pour être utilisé en complément du scan principal (1h déjà en cache)
 
 from __future__ import annotations
 
-import logging
 import os
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+from observability.json_logger import get_logger
 from quant_hedge_ai.agents.market.market_scanner import MarketScanner
 
-logger = logging.getLogger(__name__)
-
+_log = get_logger("quant_hedge_ai.agents.market.multi_timeframe_scanner")
 # Timeframes disponibles par ordre croissant
 HIGHER_TFS: list[str] = ["1m", "15m", "4h", "1d"]
 
@@ -84,9 +83,9 @@ class MultiTimeframeScanner:
         Retourne : {symbol: {timeframe: [candles]}}
         """
         if abs(cycle - self._last_scan_cycle) < self._refresh_every and self._cache:
-            logger.debug("[MTF] Cache hit (cycle=%d)", cycle)
+            _log.debug("[MTF] Cache hit (cycle=%d)", cycle)
             if self._trace_timings:
-                logger.info("[MTFTiming] cache hit au cycle %d", cycle)
+                _log.info("[MTFTiming] cache hit au cycle %d", cycle)
             return self._cache
 
         started_at = time.perf_counter()
@@ -103,7 +102,7 @@ class MultiTimeframeScanner:
                 try:
                     market = future.result()
                 except Exception as exc:
-                    logger.warning("[MTF] %s scan échoué: %s", tf, exc)
+                    _log.warning("[MTF] %s scan échoué: %s", tf, exc)
                     market = {"history": {}, "candles": {}}
 
                 for sym in self.symbols:
@@ -113,7 +112,7 @@ class MultiTimeframeScanner:
                         or []
                     )
                     result[sym][tf] = candles
-                    logger.info(
+                    _log.info(
                         "[MTF] %s/%s — %d bougies (source=%s)",
                         sym,
                         tf,
@@ -124,7 +123,7 @@ class MultiTimeframeScanner:
         self._cache = result
         self._last_scan_cycle = cycle
         if self._trace_timings:
-            logger.info(
+            _log.info(
                 "[MTFTiming] scan total cycle=%d en %.3fs pour %d TF(s)",
                 cycle,
                 time.perf_counter() - started_at,

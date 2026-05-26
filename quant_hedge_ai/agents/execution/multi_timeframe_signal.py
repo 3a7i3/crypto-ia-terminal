@@ -16,12 +16,10 @@ Usage :
 
 from __future__ import annotations
 
-import logging
-
+from observability.json_logger import get_logger
 from quant_hedge_ai.agents.execution.signal_engine import compute_signal
 
-logger = logging.getLogger(__name__)
-
+_log = get_logger("quant_hedge_ai.agents.execution.multi_timeframe_signal")
 # Poids par timeframe — les TF longs ont plus d'autorité
 _TF_WEIGHTS: dict[str, float] = {
     "1d": 3.0,
@@ -77,7 +75,7 @@ class MultiTimeframeSignal:
         for tf, candles in mtf_candles.items():
             sig = compute_signal(strategy, candles)
             alignment[tf] = sig
-            logger.debug("[MTF] %s → %s", tf, sig)
+            _log.debug("[MTF] %s → %s", tf, sig)
 
         # ② Vote pondéré
         buy_w = sum(
@@ -109,7 +107,7 @@ class MultiTimeframeSignal:
             f"poids={strength:.0%} | "
             + " | ".join(f"{tf}={s}" for tf, s in sorted(alignment.items()))
         )
-        logger.info("[MTF] %s", detail)
+        _log.info("[MTF] %s", detail)
 
         signal = candidate if confirmed else "HOLD"
         return self._result(signal, confirmed, round(strength, 3), alignment, detail)

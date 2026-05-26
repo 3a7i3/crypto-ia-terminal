@@ -212,15 +212,20 @@ class TestValidateBatch:
         results = v.validate_batch(strategies, candles, verbose=False)
         assert len(results) == 2
 
-    def test_batch_verbose_logs(self, caplog):
-        import logging
+    def test_batch_verbose_logs(self, monkeypatch):
+        import quant_hedge_ai.agents.quant.walk_forward as mod
 
+        logged = []
+
+        def _capture(event, *args, **kw):
+            logged.append(event % args if args else event)
+
+        monkeypatch.setattr(mod._log, "info", _capture)
         v = WalkForwardValidator()
         candles = _make_candles(200)
         strategies = [STRATEGY_EMA] * 10
-        with caplog.at_level(logging.INFO):
-            v.validate_batch(strategies, candles, verbose=True)
-        assert "10/10" in caplog.text
+        v.validate_batch(strategies, candles, verbose=True)
+        assert any("10/10" in s for s in logged)
 
     def test_summary_empty_returns_empty_dict(self):
         assert WalkForwardValidator.summary([]) == {}

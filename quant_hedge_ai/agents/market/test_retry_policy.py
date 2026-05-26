@@ -142,12 +142,14 @@ class TestCircuitBreaker:
         # 2 nouveaux échecs seulement → doit rester fermé (seuil=3)
         assert cb.is_closed
 
-    def test_label_in_logs(self, caplog):
-        import logging
+    def test_label_in_logs(self, monkeypatch):
+        import quant_hedge_ai.agents.market.retry_policy as mod
 
+        logged = []
+        monkeypatch.setattr(mod._log, "warning", lambda *a, **kw: logged.append(str(a)))
+        monkeypatch.setattr(mod._log, "error", lambda *a, **kw: logged.append(str(a)))
         cb = CircuitBreaker(
             failure_threshold=1, recovery_timeout=9999, label="MyService"
         )
-        with caplog.at_level(logging.WARNING):
-            cb.call(lambda: (_ for _ in ()).throw(RuntimeError("boom")))
-        assert "MyService" in caplog.text
+        cb.call(lambda: (_ for _ in ()).throw(RuntimeError("boom")))
+        assert any("MyService" in s for s in logged)

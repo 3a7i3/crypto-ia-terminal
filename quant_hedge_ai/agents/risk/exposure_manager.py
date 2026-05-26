@@ -7,13 +7,12 @@ Empêche le dépassement via exposure_used tracker.
 
 from __future__ import annotations
 
-import logging
 import os
 
+from observability.json_logger import get_logger
 from quant_hedge_ai.agents.risk.risk_governor import RiskState
 
-log = logging.getLogger("exposure_manager")
-
+_log = get_logger("exposure_manager")
 # Plafond d'exposition totale (% du capital) par état
 _MAX_TOTAL_EXPOSURE: dict[RiskState, float] = {
     RiskState.NORMAL: float(os.getenv("EM_MAX_NORMAL", "0.20")),

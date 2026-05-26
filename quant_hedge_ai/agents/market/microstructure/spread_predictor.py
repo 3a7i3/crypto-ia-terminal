@@ -4,15 +4,17 @@ spread_predictor.py — Bid-Ask Spread Prediction
 Prédit l'évolution du spread bid-ask à court terme (prochains cycles)
 en utilisant un modèle de régression léger entraîné en ligne.
 """
+
 from __future__ import annotations
 
-import logging
 import time
 from collections import defaultdict, deque
 
 import numpy as np
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
+
+_log = get_logger("quant_hedge_ai.agents.market.microstructure.spread_predictor")
 
 
 class SpreadPredictor:
@@ -22,12 +24,12 @@ class SpreadPredictor:
     capturer les tendances de spread en temps réel.
     """
 
-    WINDOW = 30         # taille de la fenêtre d'historique
-    MIN_SAMPLES = 10    # minimum pour faire une prédiction
+    WINDOW = 30  # taille de la fenêtre d'historique
+    MIN_SAMPLES = 10  # minimum pour faire une prédiction
 
     def __init__(self) -> None:
         self._history: dict[str, deque] = defaultdict(lambda: deque(maxlen=self.WINDOW))
-        self._models: dict[str, dict] = {}      # {symbol: {slope, intercept, last_fit}}
+        self._models: dict[str, dict] = {}  # {symbol: {slope, intercept, last_fit}}
 
     def record(self, symbol: str, spread_bps: float) -> None:
         """Enregistre un spread observé."""
@@ -72,7 +74,7 @@ class SpreadPredictor:
             return predicted
 
         except Exception as exc:
-            logger.debug("[SpreadPredictor] fit error for %s: %s", symbol, exc)
+            _log.debug("[SpreadPredictor] fit error for %s: %s", symbol, exc)
             return spreads[-1]
 
     def is_widening(self, symbol: str) -> bool:

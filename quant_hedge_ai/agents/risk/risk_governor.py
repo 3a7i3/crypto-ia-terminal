@@ -9,13 +9,14 @@ Inclut VolatilityEmergencyMode (ATR > 3× médiane → suspension trades).
 
 from __future__ import annotations
 
-import logging
 import os
 from collections import deque
 from dataclasses import dataclass
 from enum import Enum
 
-log = logging.getLogger("risk_governor")
+from observability.json_logger import get_logger
+
+_log = get_logger("risk_governor")
 
 
 class RiskState(Enum):
@@ -143,7 +144,7 @@ class RiskGovernor:
                 drawdown_pct, consecutive_losses, atr_current, regime
             )
 
-        log.debug(
+        _log.debug(
             "[RiskGovernor] cycle=%d state=%s dd=%.2f%% consec=%d vol_em=%s",
             cycle,
             self._state.value,
@@ -208,11 +209,14 @@ class RiskGovernor:
             return 0.0
         return atr_current / med
 
+    def _vol_is_known(self, atr_current: float) -> bool:
+        return atr_current > 0 and self._atr_median() > 0
+
     def _update_vol_emergency(self, atr_current: float) -> None:
         ratio = self._vol_ratio(atr_current)
         if ratio >= self.VOL_EMERGENCY:
             if not self._vol_emergency:
-                log.warning(
+                _log.warning(
                     "[RiskGovernor] VOLATILITY EMERGENCY — ATR ratio=%.1f × médiane",
                     ratio,
                 )
@@ -221,13 +225,15 @@ class RiskGovernor:
         elif self._vol_emergency:
             self._vol_emergency_cooldown -= 1
             if self._vol_emergency_cooldown < 0:
-                log.info("[RiskGovernor] Volatilité revenue sous seuil — urgence levée")
+                _log.info(
+                    "[RiskGovernor] Volatilité revenue sous seuil — urgence levée"
+                )
                 self._vol_emergency = False
 
     def _transition_to(self, new_state: RiskState) -> None:
         if new_state == self._state:
             return
-        log.warning(
+        _log.warning(
             "[RiskGovernor] TRANSITION %s → %s (cycle %d, état depuis %d cycles)",
             self._state.value,
             new_state.value,
@@ -245,15 +251,18 @@ class RiskGovernor:
         atr_current: float,
         regime: str,
     ) -> None:
+        vol_known = self._vol_is_known(atr_current)
         vol_ratio = self._vol_ratio(atr_current)
+        vol_hot = vol_known and vol_ratio > self.VOL_DEFENSIVE
+        vol_calm = vol_known and vol_ratio < self.VOL_DEFENSIVE
         s = self._state
 
         if s == RiskState.NORMAL:
-            if drawdown_pct > self.DD_DEFENSIVE or vol_ratio > self.VOL_DEFENSIVE:
+            if drawdown_pct > self.DD_DEFENSIVE or vol_hot:
                 self._transition_to(RiskState.DEFENSIVE)
             elif (
                 regime in ("bull_trend", "bear_trend")
-                and vol_ratio < self.VOL_DEFENSIVE
+                and vol_calm
                 and self._positive_pnl_cycles >= self.AGGRESSIVE_PNL_CYCLES
             ):
                 self._transition_to(RiskState.AGGRESSIVE)
@@ -261,17 +270,13 @@ class RiskGovernor:
         elif s == RiskState.DEFENSIVE:
             if drawdown_pct > self.DD_RISK_OFF or consecutive_losses >= 3:
                 self._transition_to(RiskState.RISK_OFF)
-            elif (
-                drawdown_pct <= self.DD_DEFENSIVE * 0.5
-                and vol_ratio < self.VOL_DEFENSIVE
+            elif drawdown_pct <= self.DD_DEFENSIVE * 0.5 and (
+                not vol_known or vol_calm
             ):
                 self._transition_to(RiskState.NORMAL)
 
         elif s == RiskState.RISK_OFF:
-            if (
-                self._loss_free_cycles >= self.RISK_OFF_SAFE_CYCLES
-                or vol_ratio < self.VOL_DEFENSIVE
-            ):
+            if self._loss_free_cycles >= self.RISK_OFF_SAFE_CYCLES or vol_calm:
                 self._transition_to(RiskState.RECOVERY)
 
         elif s == RiskState.RECOVERY:
@@ -284,7 +289,7 @@ class RiskGovernor:
                 self._transition_to(RiskState.RISK_OFF)
 
         elif s == RiskState.AGGRESSIVE:
-            if drawdown_pct > self.DD_DEFENSIVE or vol_ratio > self.VOL_DEFENSIVE:
+            if drawdown_pct > self.DD_DEFENSIVE or vol_hot:
                 self._transition_to(RiskState.DEFENSIVE)
             elif regime not in ("bull_trend", "bear_trend"):
                 self._transition_to(RiskState.NORMAL)

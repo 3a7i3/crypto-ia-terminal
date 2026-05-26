@@ -12,12 +12,12 @@ Usage :
 from __future__ import annotations
 
 import json
-import logging
 from pathlib import Path
 from typing import Any
 
-log = logging.getLogger(__name__)
+from observability.json_logger import get_logger
 
+_log = get_logger("quant_hedge_ai.dashboard.live_snapshot")
 _SNAPSHOT_PATH = Path("databases/live_snapshot.json")
 
 
@@ -35,7 +35,7 @@ def write_snapshot(data: dict[str, Any], path: Path = _SNAPSHOT_PATH) -> None:
         )
         tmp.replace(path)
     except Exception as exc:
-        log.warning("[LiveSnapshot] Écriture échouée: %s", exc)
+        _log.warning("[LiveSnapshot] Écriture échouée: %s", exc)
 
 
 def read_snapshot(path: Path = _SNAPSHOT_PATH) -> dict[str, Any] | None:

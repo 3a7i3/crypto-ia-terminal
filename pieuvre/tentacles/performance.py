@@ -11,16 +11,15 @@ Surveille:
 from __future__ import annotations
 
 import importlib
-import logging
 import time
 from collections import deque
 from pathlib import Path
 
+from observability.json_logger import get_logger
 from pieuvre.incidents.models import Finding, Severity
 from pieuvre.tentacles.base import BaseTentacle
 
-logger = logging.getLogger(__name__)
-
+_log = get_logger("pieuvre.tentacles.performance")
 _RAM_LEAK_WINDOW = 5  # scans consécutifs pour déclarer une fuite
 _RAM_LEAK_GROWTH_MB = 50.0  # croissance totale sur la fenêtre pour alerter
 _IMPORT_SLOW_SECONDS = 2.0  # seuil d'import trop lent
@@ -88,7 +87,7 @@ class PerformanceTentacle(BaseTentacle):
         except ImportError:
             pass
         except Exception as exc:
-            logger.debug("check_ram_leak: %s", exc)
+            _log.debug("check_ram_leak: %s", exc)
         return findings
 
     def _check_json_state_growth(self) -> list[Finding]:

@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
-import logging
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
+
+_log = get_logger("quant_hedge_ai.dashboard.system_health")
 
 
 @dataclass

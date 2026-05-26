@@ -1,0 +1,35 @@
+{
+  "module_id": "meta_strategy_engine",
+  "class_name": "MetaStrategyEngine",
+  "file_path": "quant_hedge_ai/agents/intelligence/meta_strategy_engine.py",
+  "display_name": "Meta-Strategy Engine",
+  "layer": "intelligence",
+  "dashboard_tab": "Strategy",
+
+  "role_fr": "Traduit le régime de marché en personnalité de trading active (5 profils). Chaque personnalité fixe order_size_factor, tp_pct, sl_pct, trailing_pct, min_score, max_positions. Ne génère pas de signaux — pilote les paramètres des signaux existants.",
+  "role_en": "Translates market regime into an active trading personality (5 profiles). Each personality sets order_size_factor, tp_pct, sl_pct, trailing_pct, min_score, max_positions. Does not generate signals — drives parameters of existing signals.",
+
+  "personalities": [
+    { "name": "momentum_following",  "regime": "bull_trend",          "size_factor": 1.2 },
+    { "name": "defensive_short",     "regime": "bear_trend",          "size_factor": 0.5 },
+    { "name": "mean_reversion",      "regime": "sideways",            "size_factor": 0.8 },
+    { "name": "scalping_mode",       "regime": "high_volatility",     "size_factor": 0.4 },
+    { "name": "capital_protection",  "regime": "flash_crash",         "size_factor": 0.0 }
+  ],
+
+  "key_metrics": [
+    { "metric_id": "current_personality", "label": "Personnalité active", "type": "str" },
+    { "metric_id": "regime_at_select",    "label": "Régime à la sélection", "type": "str" },
+    { "metric_id": "switches_count",      "label": "Changements personnalité", "type": "int" }
+  ],
+
+  "env_vars": [
+    { "name": "META_STRATEGY_MEMORY_WINDOW", "default": "50", "description": "Fenêtre mémoire Sharpe pour sélection personnalité" }
+  ],
+
+  "integration": {
+    "upstream": ["regime_detector", "market_regime_classifier"],
+    "downstream": ["conviction_engine", "no_trade_layer", "strategy_allocator"],
+    "note": "select() appelé chaque cycle dans advisor_loop. Retourne TradingPersonality consommé par le gate de décision."
+  }
+}

@@ -15,15 +15,16 @@ Pipeline:
 
 from __future__ import annotations
 
-import logging
 from dataclasses import dataclass, field
+
+from observability.json_logger import get_logger
 
 from .anomaly_detector import AnomalyDetector, AnomalyReport
 from .social_scanner import SocialReport, SocialScanner
 from .token_scanner import TokenInfo, TokenScanner
 from .whale_tracker import WhaleReport, WhaleTracker
 
-logger = logging.getLogger(__name__)
+_log = get_logger("quant_hedge_ai.market_radar.radar_core")
 
 
 @dataclass
@@ -173,7 +174,7 @@ class MarketRadar:
             cycle=self._cycle,
         )
 
-        logger.info(
+        _log.info(
             "MarketRadar sweep #%d: %d opportunities (scanned=%d, filtered=%d, risk=%s)",
             self._cycle,
             len(opportunities),

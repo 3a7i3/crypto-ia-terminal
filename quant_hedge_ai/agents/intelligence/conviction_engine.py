@@ -33,13 +33,14 @@ NOTE ARCHITECTURALE : les deux enums devraient fusionner dans core/ à terme.
 
 from __future__ import annotations
 
-import logging
 import os
 from dataclasses import dataclass
 from enum import Enum
 from typing import Optional
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
+
+_log = get_logger("quant_hedge_ai.agents.intelligence.conviction_engine")
 
 
 class ConvictionLevel(str, Enum):
@@ -204,7 +205,7 @@ class ConvictionEngine:
             notes=notes,
         )
 
-        logger.info(
+        _log.info(
             "[Conviction] %s | dims=%s",
             result.summary(),
             {k: f"{v:.0f}" for k, v in dims.items()},
@@ -442,7 +443,7 @@ class ConvictionEngine:
             f"Conviction {local_level.value} score={composite:.0f}/100",
         )
 
-        logger.info(
+        _log.info(
             "[Conviction] %s | %s | dims=%s",
             packet.symbol,
             f"[{local_level.value.upper()}] conviction={composite:.0f}/100"

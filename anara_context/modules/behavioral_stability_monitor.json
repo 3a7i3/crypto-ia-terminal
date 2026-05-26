@@ -1,0 +1,26 @@
+{
+  "module_id": "behavioral_stability_monitor",
+  "class_name": "BehavioralStabilityMonitor",
+  "file_path": "quant_hedge_ai/agents/intelligence/behavioral_stability_monitor.py",
+  "display_name": "Behavioral Stability Monitor",
+  "layer": "intelligence",
+  "dashboard_tab": "Monitoring",
+
+  "role_fr": "Détecte la dérive comportementale du système de décision. Surveille si les distributions de décisions (BUY/SELL/HOLD) dévient significativement de la baseline historique. Émet une alerte BEHAVIORAL_DRIFT si l'écart dépasse le seuil configuré.",
+  "role_en": "Detects behavioral drift of the decision system. Monitors whether decision distributions (BUY/SELL/HOLD) deviate significantly from historical baseline. Emits BEHAVIORAL_DRIFT alert if deviation exceeds configured threshold.",
+
+  "key_metrics": [
+    { "metric_id": "drift_score",      "label": "Score dérive",          "type": "float" },
+    { "metric_id": "drift_detected",   "label": "Dérive détectée",       "type": "bool" }
+  ],
+
+  "env_vars": [
+    { "name": "BEHAVIORAL_DRIFT_THRESHOLD", "default": "0.30", "description": "Seuil écart distribution pour alerte dérive" }
+  ],
+
+  "integration": {
+    "upstream": [],
+    "downstream": ["risk_governor"],
+    "note": "record() appelé à chaque décision. check_drift() consulté périodiquement."
+  }
+}

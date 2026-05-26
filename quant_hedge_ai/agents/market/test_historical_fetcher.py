@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import time
 import unittest
-from unittest.mock import MagicMock, patch, call
-
+from unittest.mock import MagicMock, call, patch
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
-def _make_raw_candles(n: int, start_ms: int = 1_700_000_000_000, step_ms: int = 3_600_000) -> list:
+
+def _make_raw_candles(
+    n: int, start_ms: int = 1_700_000_000_000, step_ms: int = 3_600_000
+) -> list:
     """Génère n bougies OHLCV au format ccxt [[ts, o, h, l, c, v], ...]."""
     candles = []
     for i in range(n):
@@ -32,21 +34,27 @@ def _mock_exchange(raw_pages: list[list]) -> MagicMock:
 
 # ── Suite 1 : _get_exchange ───────────────────────────────────────────────────
 
+
 class TestGetExchange(unittest.TestCase):
 
     def test_returns_none_when_ccxt_missing(self):
-        from quant_hedge_ai.agents.market.historical_fetcher import HistoricalDataFetcher
+        from quant_hedge_ai.agents.market.historical_fetcher import (
+            HistoricalDataFetcher,
+        )
+
         fetcher = HistoricalDataFetcher()
+        # sys.modules[name]=None causes `import name` to raise ImportError (Python spec)
         with patch.dict("sys.modules", {"ccxt": None}):
             fetcher._exchange = None
-            # Si ccxt absent, _get_exchange doit retourner None sans lever
-            with patch("builtins.__import__", side_effect=ImportError("no ccxt")):
-                result = fetcher._get_exchange()
+            result = fetcher._get_exchange()
         self.assertIsNone(result)
 
     def test_cached_after_first_call(self):
         """_get_exchange ne réinitialise pas si déjà initialisé."""
-        from quant_hedge_ai.agents.market.historical_fetcher import HistoricalDataFetcher
+        from quant_hedge_ai.agents.market.historical_fetcher import (
+            HistoricalDataFetcher,
+        )
+
         fetcher = HistoricalDataFetcher()
         sentinel = MagicMock()
         fetcher._exchange = sentinel
@@ -56,10 +64,15 @@ class TestGetExchange(unittest.TestCase):
 
 # ── Suite 2 : fetch — cas nominaux ───────────────────────────────────────────
 
+
 class TestFetchNominal(unittest.TestCase):
 
     def setUp(self):
-        from quant_hedge_ai.agents.market.historical_fetcher import HistoricalDataFetcher, _PAGE_SIZE
+        from quant_hedge_ai.agents.market.historical_fetcher import (
+            _PAGE_SIZE,
+            HistoricalDataFetcher,
+        )
+
         self.fetcher = HistoricalDataFetcher()
         self.PAGE_SIZE = _PAGE_SIZE
 
@@ -70,7 +83,9 @@ class TestFetchNominal(unittest.TestCase):
         """Une seule page < PAGE_SIZE → retourne toutes les bougies, tri croissant."""
         raw = _make_raw_candles(10)
         self._install_exchange([raw, []])
-        result = self.fetcher.fetch("BTC/USDT", timeframe="1h", years=0.01, progress=False)
+        result = self.fetcher.fetch(
+            "BTC/USDT", timeframe="1h", years=0.01, progress=False
+        )
         self.assertEqual(len(result), 10)
         # Trié croissant
         timestamps = [c["timestamp"] for c in result]
@@ -80,10 +95,21 @@ class TestFetchNominal(unittest.TestCase):
         """Chaque bougie a les champs attendus avec les bons types."""
         raw = _make_raw_candles(3)
         self._install_exchange([raw, []])
-        result = self.fetcher.fetch("ETH/USDT", timeframe="1h", years=0.001, progress=False)
+        result = self.fetcher.fetch(
+            "ETH/USDT", timeframe="1h", years=0.001, progress=False
+        )
         self.assertGreater(len(result), 0)
         c = result[0]
-        for field in ("symbol", "timestamp", "open", "high", "low", "close", "volume", "source"):
+        for field in (
+            "symbol",
+            "timestamp",
+            "open",
+            "high",
+            "low",
+            "close",
+            "volume",
+            "source",
+        ):
             self.assertIn(field, c, f"Champ manquant: {field}")
         self.assertEqual(c["symbol"], "ETH/USDT")
         self.assertEqual(c["source"], "ccxt_live")
@@ -92,7 +118,9 @@ class TestFetchNominal(unittest.TestCase):
     def test_empty_first_page_returns_empty_list(self):
         """Si la première page est vide, retourne []."""
         self._install_exchange([[]])
-        result = self.fetcher.fetch("BTC/USDT", timeframe="1h", years=0.01, progress=False)
+        result = self.fetcher.fetch(
+            "BTC/USDT", timeframe="1h", years=0.01, progress=False
+        )
         self.assertEqual(result, [])
 
     def test_exchange_none_returns_empty_list(self):
@@ -107,7 +135,9 @@ class TestFetchNominal(unittest.TestCase):
         future_ts = int(time.time() * 1000) + 10_000_000  # +2.7h dans le futur
         raw = _make_raw_candles(5, start_ms=future_ts)
         self._install_exchange([raw])
-        result = self.fetcher.fetch("BTC/USDT", timeframe="1h", years=0.001, progress=False)
+        result = self.fetcher.fetch(
+            "BTC/USDT", timeframe="1h", years=0.001, progress=False
+        )
         # Doit s'arrêter sans boucle infinie
         self.assertIsInstance(result, list)
 
@@ -115,7 +145,9 @@ class TestFetchNominal(unittest.TestCase):
         """Arrête quand la page retournée a moins de PAGE_SIZE éléments (dernière page)."""
         raw = _make_raw_candles(5)  # < PAGE_SIZE(500) → dernière page
         self._install_exchange([raw])
-        result = self.fetcher.fetch("BTC/USDT", timeframe="1h", years=0.001, progress=False)
+        result = self.fetcher.fetch(
+            "BTC/USDT", timeframe="1h", years=0.001, progress=False
+        )
         self.assertEqual(len(result), 5)
         # fetch_ohlcv n'a été appelé qu'une fois (pas de 2e page)
         self.assertEqual(self.fetcher._exchange.fetch_ohlcv.call_count, 1)
@@ -123,34 +155,46 @@ class TestFetchNominal(unittest.TestCase):
 
 # ── Suite 3 : fetch — pagination ─────────────────────────────────────────────
 
+
 class TestFetchPagination(unittest.TestCase):
 
     def setUp(self):
-        from quant_hedge_ai.agents.market.historical_fetcher import HistoricalDataFetcher, _PAGE_SIZE
+        from quant_hedge_ai.agents.market.historical_fetcher import (
+            _PAGE_SIZE,
+            HistoricalDataFetcher,
+        )
+
         self.fetcher = HistoricalDataFetcher()
         self.PAGE_SIZE = _PAGE_SIZE
 
     def test_two_pages_concatenated(self):
         """Deux pages complètes → bougies concaténées et triées."""
         page1 = _make_raw_candles(self.PAGE_SIZE, start_ms=1_700_000_000_000)
-        page2 = _make_raw_candles(10, start_ms=1_700_000_000_000 + self.PAGE_SIZE * 3_600_000)
+        page2 = _make_raw_candles(
+            10, start_ms=1_700_000_000_000 + self.PAGE_SIZE * 3_600_000
+        )
         self.fetcher._exchange = _mock_exchange([page1, page2, []])
         self.fetcher._exchange.rateLimit = 0
 
         with patch("time.sleep"):  # évite d'attendre le rate limit
-            result = self.fetcher.fetch("BTC/USDT", timeframe="1h", years=5.0, progress=False)
+            result = self.fetcher.fetch(
+                "BTC/USDT", timeframe="1h", years=5.0, progress=False
+            )
 
         self.assertEqual(len(result), self.PAGE_SIZE + 10)
 
     def test_since_advances_between_pages(self):
         """Le since_ms avance de last_ts+1 à chaque page."""
         page1 = _make_raw_candles(self.PAGE_SIZE, start_ms=1_000_000_000_000)
-        page2 = _make_raw_candles(3, start_ms=1_000_000_000_000 + self.PAGE_SIZE * 3_600_000)
+        page2 = _make_raw_candles(
+            3, start_ms=1_000_000_000_000 + self.PAGE_SIZE * 3_600_000
+        )
 
         captured_since = []
         original_retry = None
 
         import quant_hedge_ai.agents.market.historical_fetcher as hf_module
+
         original_retry = hf_module.retry_with_backoff
 
         def capturing_retry(fn, **kwargs):
@@ -161,7 +205,9 @@ class TestFetchPagination(unittest.TestCase):
         self.fetcher._exchange.rateLimit = 0
 
         with patch("time.sleep"):
-            result = self.fetcher.fetch("BTC/USDT", timeframe="1h", years=5.0, progress=False)
+            result = self.fetcher.fetch(
+                "BTC/USDT", timeframe="1h", years=5.0, progress=False
+            )
 
         # Page2 a 3 éléments < PAGE_SIZE → arrêt immédiat après page2 (2 appels au total)
         self.assertEqual(self.fetcher._exchange.fetch_ohlcv.call_count, 2)
@@ -170,10 +216,14 @@ class TestFetchPagination(unittest.TestCase):
 
 # ── Suite 4 : fetch — déduplication ──────────────────────────────────────────
 
+
 class TestFetchDeduplication(unittest.TestCase):
 
     def setUp(self):
-        from quant_hedge_ai.agents.market.historical_fetcher import HistoricalDataFetcher
+        from quant_hedge_ai.agents.market.historical_fetcher import (
+            HistoricalDataFetcher,
+        )
+
         self.fetcher = HistoricalDataFetcher()
 
     def test_duplicate_timestamps_removed(self):
@@ -185,14 +235,19 @@ class TestFetchDeduplication(unittest.TestCase):
         combined = raw + duplicates  # 7 éléments, 5 uniques
 
         self.fetcher._exchange = _mock_exchange([combined, []])
-        result = self.fetcher.fetch("BTC/USDT", timeframe="1h", years=0.001, progress=False)
+        result = self.fetcher.fetch(
+            "BTC/USDT", timeframe="1h", years=0.001, progress=False
+        )
 
         timestamps = [c["timestamp"] for c in result]
-        self.assertEqual(len(timestamps), len(set(timestamps)), "Doublons détectés après fetch")
+        self.assertEqual(
+            len(timestamps), len(set(timestamps)), "Doublons détectés après fetch"
+        )
 
     def test_overlapping_pages_deduped(self):
         """Pages qui se chevauchent (dernier élément page1 = premier élément page2)."""
         from quant_hedge_ai.agents.market.historical_fetcher import _PAGE_SIZE
+
         page1 = _make_raw_candles(_PAGE_SIZE, start_ms=1_000_000_000_000)
         # Page2 commence au même timestamp que le dernier de page1
         overlap_start = page1[-1][0]
@@ -202,7 +257,9 @@ class TestFetchDeduplication(unittest.TestCase):
         self.fetcher._exchange.rateLimit = 0
 
         with patch("time.sleep"):
-            result = self.fetcher.fetch("BTC/USDT", timeframe="1h", years=5.0, progress=False)
+            result = self.fetcher.fetch(
+                "BTC/USDT", timeframe="1h", years=5.0, progress=False
+            )
 
         timestamps = [c["timestamp"] for c in result]
         self.assertEqual(len(timestamps), len(set(timestamps)))
@@ -212,17 +269,23 @@ class TestFetchDeduplication(unittest.TestCase):
         raw = _make_raw_candles(10)
         shuffled = list(reversed(raw))  # inversé
         self.fetcher._exchange = _mock_exchange([shuffled, []])
-        result = self.fetcher.fetch("BTC/USDT", timeframe="1h", years=0.001, progress=False)
+        result = self.fetcher.fetch(
+            "BTC/USDT", timeframe="1h", years=0.001, progress=False
+        )
         timestamps = [c["timestamp"] for c in result]
         self.assertEqual(timestamps, sorted(timestamps))
 
 
 # ── Suite 5 : fetch — retry et erreurs réseau ─────────────────────────────────
 
+
 class TestFetchRetry(unittest.TestCase):
 
     def setUp(self):
-        from quant_hedge_ai.agents.market.historical_fetcher import HistoricalDataFetcher
+        from quant_hedge_ai.agents.market.historical_fetcher import (
+            HistoricalDataFetcher,
+        )
+
         self.fetcher = HistoricalDataFetcher()
 
     def test_retry_on_network_error_then_success(self):
@@ -242,7 +305,9 @@ class TestFetchRetry(unittest.TestCase):
         self.fetcher._exchange = ex
 
         with patch("time.sleep"):
-            result = self.fetcher.fetch("BTC/USDT", timeframe="1h", years=0.001, progress=False)
+            result = self.fetcher.fetch(
+                "BTC/USDT", timeframe="1h", years=0.001, progress=False
+            )
 
         self.assertEqual(len(result), 5)
 
@@ -254,7 +319,9 @@ class TestFetchRetry(unittest.TestCase):
         self.fetcher._exchange = ex
 
         with patch("time.sleep"):
-            result = self.fetcher.fetch("BTC/USDT", timeframe="1h", years=0.001, progress=False)
+            result = self.fetcher.fetch(
+                "BTC/USDT", timeframe="1h", years=0.001, progress=False
+            )
 
         self.assertEqual(result, [])
 
@@ -267,23 +334,31 @@ class TestFetchRetry(unittest.TestCase):
         self.fetcher._exchange = ex
 
         with patch.object(hf_module, "retry_with_backoff", return_value=None):
-            result = self.fetcher.fetch("BTC/USDT", timeframe="1h", years=0.001, progress=False)
+            result = self.fetcher.fetch(
+                "BTC/USDT", timeframe="1h", years=0.001, progress=False
+            )
 
         self.assertEqual(result, [])
 
 
 # ── Suite 6 : fetch — timeframes ─────────────────────────────────────────────
 
+
 class TestFetchTimeframes(unittest.TestCase):
 
     def setUp(self):
-        from quant_hedge_ai.agents.market.historical_fetcher import HistoricalDataFetcher
+        from quant_hedge_ai.agents.market.historical_fetcher import (
+            HistoricalDataFetcher,
+        )
+
         self.fetcher = HistoricalDataFetcher()
 
     def _simple_fetch(self, timeframe: str) -> list:
         raw = _make_raw_candles(3)
         self.fetcher._exchange = _mock_exchange([raw, []])
-        return self.fetcher.fetch("BTC/USDT", timeframe=timeframe, years=0.001, progress=False)
+        return self.fetcher.fetch(
+            "BTC/USDT", timeframe=timeframe, years=0.001, progress=False
+        )
 
     def test_timeframe_1m(self):
         self.assertEqual(len(self._simple_fetch("1m")), 3)
@@ -298,16 +373,22 @@ class TestFetchTimeframes(unittest.TestCase):
         """Timeframe inconnu utilise 3600s par défaut — ne lève pas."""
         raw = _make_raw_candles(2)
         self.fetcher._exchange = _mock_exchange([raw, []])
-        result = self.fetcher.fetch("BTC/USDT", timeframe="99x", years=0.001, progress=False)
+        result = self.fetcher.fetch(
+            "BTC/USDT", timeframe="99x", years=0.001, progress=False
+        )
         self.assertIsInstance(result, list)
 
 
 # ── Suite 7 : fetch_and_save ──────────────────────────────────────────────────
 
+
 class TestFetchAndSave(unittest.TestCase):
 
     def setUp(self):
-        from quant_hedge_ai.agents.market.historical_fetcher import HistoricalDataFetcher
+        from quant_hedge_ai.agents.market.historical_fetcher import (
+            HistoricalDataFetcher,
+        )
+
         self.fetcher = HistoricalDataFetcher()
 
     def test_empty_fetch_returns_zero_saved(self):
@@ -319,8 +400,13 @@ class TestFetchAndSave(unittest.TestCase):
                 "quant_hedge_ai.agents.market.historical_fetcher.HistoricalDataFetcher.fetch_and_save",
                 wraps=self.fetcher.fetch_and_save,
             ):
-                with patch("quant_hedge_ai.strategy_lab.market_db.MarketDatabase", return_value=mock_db):
-                    result = self.fetcher.fetch_and_save(["BTC/USDT"], db_path=":memory:")
+                with patch(
+                    "quant_hedge_ai.strategy_lab.market_db.MarketDatabase",
+                    return_value=mock_db,
+                ):
+                    result = self.fetcher.fetch_and_save(
+                        ["BTC/USDT"], db_path=":memory:"
+                    )
 
         self.assertEqual(result.get("BTC/USDT", 0), 0)
 
@@ -335,8 +421,12 @@ class TestFetchAndSave(unittest.TestCase):
                 {
                     "symbol": "BTC/USDT",
                     "timestamp": f"2024-01-01T{i:02d}:00:00+00:00",
-                    "open": 40000.0, "high": 40100.0, "low": 39900.0,
-                    "close": 40050.0, "volume": 100.0, "source": "ccxt_live",
+                    "open": 40000.0,
+                    "high": 40100.0,
+                    "low": 39900.0,
+                    "close": 40050.0,
+                    "volume": 100.0,
+                    "source": "ccxt_live",
                 }
                 for i in range(5)
             ],
@@ -344,8 +434,12 @@ class TestFetchAndSave(unittest.TestCase):
                 {
                     "symbol": "ETH/USDT",
                     "timestamp": f"2024-01-01T{i:02d}:00:00+00:00",
-                    "open": 2000.0, "high": 2010.0, "low": 1990.0,
-                    "close": 2005.0, "volume": 50.0, "source": "ccxt_live",
+                    "open": 2000.0,
+                    "high": 2010.0,
+                    "low": 1990.0,
+                    "close": 2005.0,
+                    "volume": 50.0,
+                    "source": "ccxt_live",
                 }
                 for i in range(3)
             ],
@@ -361,7 +455,10 @@ class TestFetchAndSave(unittest.TestCase):
         mock_db.save_snapshot.return_value = 5
 
         with patch.object(self.fetcher, "fetch", side_effect=fake_fetch):
-            with patch("quant_hedge_ai.strategy_lab.market_db.MarketDatabase", return_value=mock_db):
+            with patch(
+                "quant_hedge_ai.strategy_lab.market_db.MarketDatabase",
+                return_value=mock_db,
+            ):
                 result = self.fetcher.fetch_and_save(
                     ["BTC/USDT", "ETH/USDT"], db_path=":memory:"
                 )
@@ -373,11 +470,15 @@ class TestFetchAndSave(unittest.TestCase):
 
 # ── Suite 8 : validation intégration (sans réseau) ───────────────────────────
 
+
 class TestFetchValidation(unittest.TestCase):
     """Vérifie que validate_candles est bien appelé sur chaque page."""
 
     def setUp(self):
-        from quant_hedge_ai.agents.market.historical_fetcher import HistoricalDataFetcher
+        from quant_hedge_ai.agents.market.historical_fetcher import (
+            HistoricalDataFetcher,
+        )
+
         self.fetcher = HistoricalDataFetcher()
 
     def test_corrupted_candles_filtered(self):
@@ -388,7 +489,9 @@ class TestFetchValidation(unittest.TestCase):
         raw = raw_good + raw_bad
 
         self.fetcher._exchange = _mock_exchange([raw, []])
-        result = self.fetcher.fetch("BTC/USDT", timeframe="1h", years=0.001, progress=False)
+        result = self.fetcher.fetch(
+            "BTC/USDT", timeframe="1h", years=0.001, progress=False
+        )
 
         # La bougie corrompue doit être absente
         closes = [c["close"] for c in result]
@@ -397,11 +500,13 @@ class TestFetchValidation(unittest.TestCase):
 
     def test_validate_candles_called_per_page(self):
         """validate_candles est appelé pour chaque page (pas une seule fois à la fin)."""
-        from quant_hedge_ai.agents.market.historical_fetcher import _PAGE_SIZE
         import quant_hedge_ai.agents.market.historical_fetcher as hf_module
+        from quant_hedge_ai.agents.market.historical_fetcher import _PAGE_SIZE
 
         page1 = _make_raw_candles(_PAGE_SIZE)
-        page2 = _make_raw_candles(5, start_ms=1_700_000_000_000 + _PAGE_SIZE * 3_600_000)
+        page2 = _make_raw_candles(
+            5, start_ms=1_700_000_000_000 + _PAGE_SIZE * 3_600_000
+        )
 
         self.fetcher._exchange = _mock_exchange([page1, page2, []])
         self.fetcher._exchange.rateLimit = 0
@@ -415,9 +520,13 @@ class TestFetchValidation(unittest.TestCase):
 
         with patch.object(hf_module, "validate_candles", side_effect=counting_validate):
             with patch("time.sleep"):
-                self.fetcher.fetch("BTC/USDT", timeframe="1h", years=5.0, progress=False)
+                self.fetcher.fetch(
+                    "BTC/USDT", timeframe="1h", years=5.0, progress=False
+                )
 
-        self.assertGreaterEqual(call_count["n"], 2, "validate_candles doit être appelé par page")
+        self.assertGreaterEqual(
+            call_count["n"], 2, "validate_candles doit être appelé par page"
+        )
 
 
 if __name__ == "__main__":

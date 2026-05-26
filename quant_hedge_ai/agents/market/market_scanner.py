@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 import os
 import random
 import threading
@@ -8,14 +7,14 @@ import time
 from datetime import datetime, timezone
 from typing import Any
 
+from observability.json_logger import get_logger
 from quant_hedge_ai.agents.market.ohlcv_validator import (
     is_series_fresh,
     validate_candles,
 )
 from quant_hedge_ai.agents.market.retry_policy import CircuitBreaker, retry_with_backoff
 
-logger = logging.getLogger(__name__)
-
+_log = get_logger("quant_hedge_ai.agents.market.market_scanner")
 _CCXT_SYMBOL_MAP: dict[str, str] = {
     "BTCUSDT": "BTC/USDT",
     "ETHUSDT": "ETH/USDT",
@@ -53,7 +52,7 @@ def _get_int_env(key: str, default: int) -> int:
     try:
         return int(raw)
     except ValueError:
-        logger.warning(
+        _log.warning(
             "[MarketScanner] %s='%s' invalide — utilisation du défaut %d",
             key,
             raw,
@@ -266,7 +265,7 @@ class MarketScanner:
                 try:
                     old.close()
                 except Exception as _close_err:
-                    logger.debug(
+                    _log.debug(
                         "[MarketScanner] exchange.close() failed: %s", _close_err
                     )
             cls._exchange_created_at.pop(key, None)
@@ -278,7 +277,7 @@ class MarketScanner:
             # and invalidation is called only after that lock is released.
             cls._exchange_markets_ready.pop(key, None)
             cls._exchange_market_preload_started.discard(key)
-        logger.info(
+        _log.info(
             "[MarketScanner] Session invalidée (raison=%s key=%s) — recréation au prochain fetch",
             reason,
             key,
@@ -301,7 +300,7 @@ class MarketScanner:
         ttl_s = float(os.getenv("MARKET_SCANNER_SESSION_TTL_S", str(4 * 3600)))
         created_at = self.__class__._exchange_created_at.get(key)
         if created_at is not None and time.monotonic() - created_at > ttl_s:
-            logger.info(
+            _log.info(
                 "[MarketScanner] Session TTL dépassé (%.1fh) — invalidation",
                 ttl_s / 3600,
             )
@@ -329,7 +328,7 @@ class MarketScanner:
             markets_ready.set()
 
         if self._trace_timings:
-            logger.info(
+            _log.info(
                 "[MarketScannerTiming] %s/%s load_markets %s en %.3fs",
                 self._exchange_id,
                 self._timeframe,
@@ -350,11 +349,11 @@ class MarketScanner:
         def _preload_markets_bg() -> None:
             try:
                 self._ensure_markets_loaded(exchange, key, source="background")
-                logger.info("[MarketScanner] load_markets() precharge en background")
+                _log.info("[MarketScanner] load_markets() precharge en background")
             except Exception as exc:
                 with self._exchange_pool_lock:
                     self._exchange_market_preload_started.discard(key)
-                logger.debug("[MarketScanner] load_markets() background: %s", exc)
+                _log.debug("[MarketScanner] load_markets() background: %s", exc)
 
         threading.Thread(
             target=_preload_markets_bg,
@@ -415,7 +414,7 @@ class MarketScanner:
                         created_exchange = True
                         if key[1]:
                             shared_exchange.set_sandbox_mode(True)
-                            logger.info(
+                            _log.info(
                                 "[MarketScanner] Mode TESTNET — donnees publiques"
                             )
                         self._exchange_pool[key] = shared_exchange
@@ -433,20 +432,20 @@ class MarketScanner:
                     _t_create_ms = (time.perf_counter() - started_at) * 1000
                     if self._profile:
                         self._profile_data["exchange_create_ms"].append(_t_create_ms)
-                        logger.info(
+                        _log.info(
                             "[MarketScannerProfile] exchange.__init__()=%.1fms pool_lock_wait=%.1fms",
                             _t_create_ms,
                             _pool_lock_wait,
                         )
                 if self._trace_timings and created_exchange and started_at is not None:
-                    logger.info(
+                    _log.info(
                         "[MarketScannerTiming] %s/%s exchange initialisé en %.3fs",
                         self._exchange_id,
                         self._timeframe,
                         time.perf_counter() - started_at,
                     )
                 elif self._trace_timings:
-                    logger.info(
+                    _log.info(
                         "[MarketScannerTiming] %s/%s exchange partagé réutilisé",
                         self._exchange_id,
                         self._timeframe,
@@ -458,7 +457,7 @@ class MarketScanner:
                 ):
                     self._start_markets_preload(self._exchange, key)
             except Exception as exc:
-                logger.warning(
+                _log.warning(
                     "Impossible d'initialiser CCXT (%s): %s", self._exchange_id, exc
                 )
 
@@ -477,7 +476,7 @@ class MarketScanner:
     def _fetch_series(self, symbol: str, limit: int | None = None) -> list[dict] | None:
         """Fetch OHLCV avec retry exponentiel et circuit breaker."""
         if self._circuit.is_open:
-            logger.debug("[MarketScanner] Circuit ouvert — skip fetch %s", symbol)
+            _log.debug("[MarketScanner] Circuit ouvert — skip fetch %s", symbol)
             return None
 
         exchange = self._get_exchange()
@@ -504,7 +503,7 @@ class MarketScanner:
                 try:
                     self._ensure_markets_loaded(exchange, key, source="inline")
                 except Exception as exc:
-                    logger.debug("[MarketScanner] load_markets() inline: %s", exc)
+                    _log.debug("[MarketScanner] load_markets() inline: %s", exc)
 
         def _do_fetch() -> list[dict]:
             started_at = time.perf_counter()
@@ -519,7 +518,7 @@ class MarketScanner:
             if self._profile:
                 self._profile_data["exchange_call_lock_wait_ms"].append(_lock_wait_ms)
                 self._profile_data["fetch_ohlcv_http_ms"].append(_http_ms)
-                logger.info(
+                _log.info(
                     "[MarketScannerProfile] %s lock_wait=%.1fms http=%.1fms total=%.1fms",
                     symbol,
                     _lock_wait_ms,
@@ -527,7 +526,7 @@ class MarketScanner:
                     (time.perf_counter() - started_at) * 1000,
                 )
             if self._trace_timings:
-                logger.info(
+                _log.info(
                     "[MarketScannerTiming] %s/%s fetch_ohlcv en %.3fs (limit=%d)",
                     symbol,
                     self._timeframe,
@@ -584,7 +583,7 @@ class MarketScanner:
                     if current >= max_errors:
                         should_invalidate = True
                 if should_invalidate:
-                    logger.warning(
+                    _log.warning(
                         "[MarketScanner] %d erreurs transport consécutives (%s) — session invalidée",
                         current,
                         type(_exc).__name__,
@@ -595,7 +594,7 @@ class MarketScanner:
                     self._exchange = None
                     self._exchange_gen = -1
                 else:
-                    logger.debug(
+                    _log.debug(
                         "[MarketScanner] Erreur transport %d/%d: %s",
                         current,
                         max_errors,
@@ -623,7 +622,7 @@ class MarketScanner:
                 time.perf_counter() - _t_val
             ) * 1000
         if not clean:
-            logger.warning(
+            _log.warning(
                 "[MarketScanner] %s : 0 bougies valides après validation", symbol
             )
             return None
@@ -707,7 +706,7 @@ class MarketScanner:
             "pct_parse_validate": round(parse_mean / max(total_est, 0.001) * 100, 1),
         }
         if self._profile:
-            logger.info(
+            _log.info(
                 "[MarketScannerProfile] Résumé — cold_cost≈%.1fms "
                 "(http=%.0f%% lock=%.0f%% create=%.0f%% parse=%.0f%%)",
                 total_est,
@@ -768,7 +767,7 @@ class MarketScanner:
                 series = self._history[symbol]
                 self._stats["cached"] += 1
                 source_label = "stale_cache"
-                logger.debug(
+                _log.debug(
                     "[MarketScanner] %s/%s → stale cache réutilisé (age fetch %.1fs)",
                     symbol,
                     self._timeframe,
@@ -796,14 +795,14 @@ class MarketScanner:
             if series is None:
                 series = _synthetic_series(symbol, self._limit)
                 self._stats["synthetic"] += 1
-                logger.debug("[MarketScanner] %s → données synthétiques", symbol)
+                _log.debug("[MarketScanner] %s → données synthétiques", symbol)
                 source_label = "synthetic"
 
             self._history[symbol] = series
             history[symbol] = series
             snapshots.append(series[-1])
             if self._trace_timings:
-                logger.info(
+                _log.info(
                     "[MarketScannerTiming] %s/%s source=%s candles=%d",
                     symbol,
                     self._timeframe,
@@ -813,7 +812,7 @@ class MarketScanner:
 
         sources = {c["source"] for c in snapshots}
         quality = self.data_quality()
-        logger.info(
+        _log.info(
             "[MarketScanner] %d symboles | source(s): %s | " "real=%.0f%% | circuit=%s",
             len(snapshots),
             sources,
@@ -821,7 +820,7 @@ class MarketScanner:
             quality["circuit_state"],
         )
         if self._trace_timings:
-            logger.info(
+            _log.info(
                 "[MarketScannerTiming] scan %s total en %.3fs pour %d symbole(s)",
                 self._timeframe,
                 time.perf_counter() - scan_started_at,

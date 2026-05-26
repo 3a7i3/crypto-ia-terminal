@@ -1,0 +1,28 @@
+{
+  "module_id": "performance_supervisor",
+  "path": "quant_hedge_ai/agents/intelligence/performance_supervisor.py",
+  "layer": "intelligence",
+  "status": "production",
+  "phase": "P9",
+  "description": "Calcule en temps réel les métriques de performance de trading. Sharpe glissant 20/50/100 trades, Profit Factor, Max Drawdown, comparaison réel vs Shadow Engine. Alerte si dégradation.",
+  "class": "PerformanceSupervisor",
+  "public_api": {
+    "record_trade": "record_trade(pnl_pct, shadow_pnl_pct) — enregistre résultat trade",
+    "sharpe": "sharpe(window=20) → float — Sharpe annualisé glissant",
+    "profit_factor": "profit_factor(window=100) → float — gains/pertes",
+    "max_drawdown": "max_drawdown(window=100) → float — drawdown maximal",
+    "compare_shadow": "compare_shadow(window=50) → float — écart réel/shadow en sigma",
+    "snapshot": "snapshot(cycle) → PerformanceSnapshot",
+    "summary": "summary() → dict"
+  },
+  "dataclasses": ["TradeRecord", "PerformanceSnapshot"],
+  "env_vars": {
+    "P9_SHARPE_WARN": "0.5 — Sharpe < seuil → WARNING",
+    "P9_PF_WARN": "1.0 — ProfitFactor < seuil → WARNING",
+    "P9_DD_WARN": "0.15 — MaxDrawdown > 15% → WARNING",
+    "P9_SHADOW_SIGMA": "2.0 — écart shadow > 2σ → alerte désalignement"
+  },
+  "notes": "Sharpe annualisé hypothèse 252j, 1 trade/jour. std=0 → Sharpe=0.",
+  "dependencies": ["observability.json_logger"],
+  "used_by": ["advisor_loop"]
+}

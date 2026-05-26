@@ -15,14 +15,14 @@
 - Couverture de code automatisée (Codecov, Coveralls), CI multi-plateforme
 
 **Rapports :**
-- [Rapport final d’audit](RAPPORT_FINAL_AUDIT.md)
-- [Rapport global de tests](all_tests_report.md)
+- [Rapport final d’audit](docs/audit/RAPPORT_FINAL_AUDIT.md)
+- [Rapport global de tests](docs/audit/all_tests_report.md)
 
 # 🚀 Onboarding rapide
 
 Pour démarrer sur n'importe quel poste (Windows, Linux, Mac), suivez le guide :
 
-- [ONBOARDING_QUICK_START.md](ONBOARDING_QUICK_START.md)
+- [ONBOARDING_QUICK_START.md](docs/onboarding/ONBOARDING_QUICK_START.md)
 
 Vous y trouverez :
 - Installation automatique (Windows/Linux/Mac)
@@ -73,8 +73,8 @@ For a professional onboarding, usage examples, and a step-by-step action plan, s
 
 
 <!-- Badges -->
-![Docs](https://github.com/<OWNER>/<REPO>/actions/workflows/sphinx.yml/badge.svg)
-![GitHub Pages](https://img.shields.io/github/deployments/<OWNER>/<REPO>/github-pages)
+![Docs](https://github.com/0xl1v/crypto-ai-terminal/actions/workflows/sphinx.yml/badge.svg)
+![GitHub Pages](https://img.shields.io/github/deployments/0xl1v/crypto-ai-terminal/github-pages)
 
 ```{dropdown} 🚀 Crypto AI Terminal
 **Version**: V9.1 Laboratoire Quant Autonome  
@@ -104,7 +104,7 @@ Ce script :
 - Génère 300 stratégies, backteste, classe par Sharpe, alloue via Kelly
 - Détecte les baleines, affiche un dashboard professionnel
 
-→ Voir [QUICK_START_V91.md](QUICK_START_V91.md) ou [DEMARRAGE_RAPIDE_FR.md](DEMARRAGE_RAPIDE_FR.md)
+→ Voir [QUICK_START_V91.md](docs/QUICK_START_V91.md) ou [DEMARRAGE_RAPIDE_FR.md](docs/DEMARRAGE_RAPIDE_FR.md)
 ```
 
 ```{dropdown} Fonctionnalités principales
@@ -131,7 +131,7 @@ Ce script :
          ```
       - Ouvrir `.env` et renseigner vos clés/API (toutes les variables sont commentées et documentées)
       - **Sécurité** : Ne jamais commiter vos secrets/API keys dans le code
-      - **Référence complète** : [CONFIG_REFERENCE_V91.md](CONFIG_REFERENCE_V91.md)
+      - **Référence complète** : [CONFIG_REFERENCE_V91.md](docs/CONFIG_REFERENCE_V91.md)
       - **Exemple de variables** :
          | Variable                | Par défaut      | Description                                 |
          |------------------------|-----------------|---------------------------------------------|
@@ -140,7 +140,7 @@ Ce script :
          | ALERT_SYMBOL           | BTC/USDT        | Symbole surveillé par l'alerte              |
          | ALERT_TIMEFRAME        | 1h              | Timeframe de l'alerte                       |
          | ALERT_POLL_SECONDS     | 45              | Fréquence de scan (secondes)                |
-         | ...                    | ...             | Voir `.env.example` et [CONFIG_REFERENCE_V91.md](CONFIG_REFERENCE_V91.md) |
+         | ...                    | ...             | Voir `.env.example` et [CONFIG_REFERENCE_V91.md](docs/CONFIG_REFERENCE_V91.md) |
       - **Vidéo d'installation** : [À compléter : insérer lien YouTube ici]
 
 ---
@@ -166,18 +166,19 @@ Ce script :
 ## Tests
 - Pytest et unittest supportés
 - Couverture complète (voir [run_all_tests.py](run_all_tests.py))
-- Checklist QA : [VALIDATION_CHECKLIST.md](VALIDATION_CHECKLIST.md)
+- Checklist QA : [VALIDATION_CHECKLIST.md](docs/VALIDATION_CHECKLIST.md)
 
 ---
 
 ## Documentation avancée
-- [QUICK_START_V91.md](QUICK_START_V91.md) – Guide d’installation rapide
-- [DEMARRAGE_RAPIDE_FR.md](DEMARRAGE_RAPIDE_FR.md) – Guide utilisateur
-- [DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md) – Sommaire de la doc
-- [CONFIG_REFERENCE_V91.md](CONFIG_REFERENCE_V91.md) – Paramétrage système
-- [VALIDATION_CHECKLIST.md](VALIDATION_CHECKLIST.md) – Checklist QA
-- [PROJECT_COMPLETION_SUMMARY.md](PROJECT_COMPLETION_SUMMARY.md) – Statistiques
-- [ROADMAP_V9_V10_V11.md](ROADMAP_V9_V10_V11.md) – Feuille de route
+- [QUICK_START_V91.md](docs/QUICK_START_V91.md) – Guide d’installation rapide
+- [DEMARRAGE_RAPIDE_FR.md](docs/DEMARRAGE_RAPIDE_FR.md) – Guide utilisateur
+- [DOCUMENTATION_INDEX.md](docs/DOCUMENTATION_INDEX.md) – Sommaire de la doc
+- [MODULE_SAFETY_INVENTORY.md](docs/MODULE_SAFETY_INVENTORY.md) – Inventaire modules, risques et controles P7
+- [CONFIG_REFERENCE_V91.md](docs/CONFIG_REFERENCE_V91.md) – Paramétrage système
+- [VALIDATION_CHECKLIST.md](docs/VALIDATION_CHECKLIST.md) – Checklist QA
+- [PROJECT_COMPLETION_SUMMARY.md](docs/PROJECT_COMPLETION_SUMMARY.md) – Statistiques
+- [ROADMAP_V9_V10_V11.md](docs/ROADMAP_V9_V10_V11.md) – Feuille de route
 
 ---
 
@@ -193,7 +194,7 @@ Ce script :
 
 ## Contribuer
 - Fork, branche dédiée, pull request
-- Respecter la structure et conventions (voir [CONFIG_REFERENCE_V91.md](CONFIG_REFERENCE_V91.md))
+- Respecter la structure et conventions (voir [CONFIG_REFERENCE_V91.md](docs/CONFIG_REFERENCE_V91.md))
 - Ajouter des tests pour toute nouvelle fonctionnalité
 
 ---
@@ -316,14 +317,14 @@ python -m unittest discover -s tests
 ## 📞 Support & Questions
 
 - **Support** : ia.strategy.support@gmail.com
-- **FAQ** : [DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md)
-- **Problèmes d’installation** : [QUICK_START_V91.md](QUICK_START_V91.md)
-- **Validation** : [VALIDATION_CHECKLIST.md](VALIDATION_CHECKLIST.md)
+- **FAQ** : [DOCUMENTATION_INDEX.md](docs/DOCUMENTATION_INDEX.md)
+- **Problèmes d’installation** : [QUICK_START_V91.md](docs/QUICK_START_V91.md)
+- **Validation** : [VALIDATION_CHECKLIST.md](docs/VALIDATION_CHECKLIST.md)
 
 ---
 
 **Projet principal** : V9.1 Laboratoire Quant Autonome
-**Prochaine étape** : [QUICK_START_V91.md](QUICK_START_V91.md) 🚀
+**Prochaine étape** : [QUICK_START_V91.md](docs/QUICK_START_V91.md) 🚀
 
 ### ⭐ V9.1 - Autonomous Quant Lab (USE THIS)
 **Location**: `quant-hedge-ai/`  
@@ -425,13 +426,13 @@ Get-Content databases\strategy_scoreboard.json | ConvertFrom-Json | Select-Objec
 ## 🚀 Getting Started
 
 ### Beginners (1 hour)
-1. Read: [QUICK_START_V91.md](QUICK_START_V91.md) or [🇫🇷 FR](DEMARRAGE_RAPIDE_FR.md)
+1. Read: [QUICK_START_V91.md](docs/QUICK_START_V91.md) or [🇫🇷 FR](docs/DEMARRAGE_RAPIDE_FR.md)
 2. Run: `cd quant-hedge-ai && python main_v91.py`
 3. Understand: Control Center output
 
 ### Advanced (3+ hours)
-1. Read: [V91_COMPLETE_SUMMARY.md](V91_COMPLETE_SUMMARY.md)
-2. Read: [ROADMAP_V9_V10_V11.md](ROADMAP_V9_V10_V11.md)
+1. Read: [V91_COMPLETE_SUMMARY.md](docs/v91/V91_COMPLETE_SUMMARY.md)
+2. Read: [ROADMAP_V9_V10_V11.md](docs/ROADMAP_V9_V10_V11.md)
 3. Plan: V10 implementation
 
 ---
@@ -443,7 +444,7 @@ Get-Content databases\strategy_scoreboard.json | ConvertFrom-Json | Select-Objec
 - **V10+** (Future): ⏳ Real money trading, multi-exchange, on-chain data
 
 **Timeline to V10**: 4-6 weeks  
-**Plan**: [V10_IMPLEMENTATION_ROADMAP.md](V10_IMPLEMENTATION_ROADMAP.md)
+**Plan**: [V10_IMPLEMENTATION_ROADMAP.md](docs/v91/V10_IMPLEMENTATION_ROADMAP.md)
 
 ---
 
@@ -451,11 +452,11 @@ Get-Content databases\strategy_scoreboard.json | ConvertFrom-Json | Select-Objec
 ## 📞 Need Help or Support?
 
 - **Contact support/FAQ**: ia.strategy.support@gmail.com
-- **Quick questions**: [DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md)
-- **Setup issues**: [QUICK_START_V91.md](QUICK_START_V91.md) → Troubleshooting
-- **Configuration**: [CONFIG_REFERENCE_V91.md](CONFIG_REFERENCE_V91.md)
-- **Validation**: [VALIDATION_CHECKLIST.md](VALIDATION_CHECKLIST.md)
-- **En français**: [DEMARRAGE_RAPIDE_FR.md](DEMARRAGE_RAPIDE_FR.md)
+- **Quick questions**: [DOCUMENTATION_INDEX.md](docs/DOCUMENTATION_INDEX.md)
+- **Setup issues**: [QUICK_START_V91.md](docs/QUICK_START_V91.md) → Troubleshooting
+- **Configuration**: [CONFIG_REFERENCE_V91.md](docs/CONFIG_REFERENCE_V91.md)
+- **Validation**: [VALIDATION_CHECKLIST.md](docs/VALIDATION_CHECKLIST.md)
+- **En français**: [DEMARRAGE_RAPIDE_FR.md](docs/DEMARRAGE_RAPIDE_FR.md)
 
 ---
 
@@ -540,9 +541,9 @@ python orchestrate_ecosystem.py
 - **Optimisation** : Choix des paramètres, objectif, export des résultats AutoML
 - **Export** : CSV, JSON, images, logs archivés automatiquement
 
-→ Voir aussi : [QUICK_START_V91.md](QUICK_START_V91.md), [DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md)
+→ Voir aussi : [QUICK_START_V91.md](docs/QUICK_START_V91.md), [DOCUMENTATION_INDEX.md](docs/DOCUMENTATION_INDEX.md)
 
 ---
 
 **Main Project**: V9.1 Autonomous Quant Lab  
-**Your Next Step**: [QUICK_START_V91.md](QUICK_START_V91.md) 🚀
+**Your Next Step**: [QUICK_START_V91.md](docs/QUICK_START_V91.md) 🚀

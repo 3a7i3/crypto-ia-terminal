@@ -1,0 +1,30 @@
+{
+  "module_id": "behavioral_drift_detector",
+  "path": "quant_hedge_ai/agents/intelligence/behavioral_drift_detector.py",
+  "layer": "intelligence",
+  "status": "production",
+  "phase": "P9",
+  "description": "Détecte statistiquement quand le système dévie de son comportement attendu. 4 métriques : threshold_avg, activity_rate, score_mean, refusal_rate. Dérive = métrique > 2σ baseline. Régimes HIGH_VOL/CHOPPY tolèrent 1.5× plus.",
+  "class": "BehavioralDriftDetector",
+  "public_api": {
+    "record": "record(cycle, threshold_used, score, signal_generated, refused, regime) — enregistre un cycle",
+    "check": "check(regime) → DriftReport — vérifie dérive statistique",
+    "alert_frequency": "property → alertes/10 cycles",
+    "alert_count": "property → int",
+    "snapshot": "snapshot() → dict"
+  },
+  "dataclasses": ["DriftMetric", "DriftReport"],
+  "properties": {
+    "meta_confidence": "[0.1, 1.0] — fiabilité du détecteur selon taille fenêtre",
+    "governance_cooldown": "N cycles silence après alerte"
+  },
+  "env_vars": {
+    "P9_DRIFT_WINDOW": "50 — taille fenêtre baseline",
+    "P9_DRIFT_SIGMA": "2.0 — seuil sigma pour dérive",
+    "P9_DRIFT_COOLDOWN": "10 — cycles silence post-alerte",
+    "P9_DRIFT_MIN_WINDOW": "20 — fenêtre minimum confiance > 0.1"
+  },
+  "loose_regimes": ["HIGH_VOL", "CHOPPY", "high_volatility_regime", "choppy"],
+  "dependencies": ["observability.json_logger"],
+  "used_by": ["self_monitoring_loop", "advisor_loop"]
+}

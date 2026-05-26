@@ -17,13 +17,13 @@ Migration DecisionPacket :
 
 from __future__ import annotations
 
-import logging
 import os
 import time
 from dataclasses import dataclass, field
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
 
+_log = get_logger("quant_hedge_ai.agents.execution.live_signal_engine")
 # Mapping régimes LSE → MarketRegime (déclaré ici pour éviter import circulaire)
 _REGIME_MAP: dict[str, str] = {
     "bull_trend": "TREND_BULL",
@@ -142,7 +142,7 @@ class LiveSignalEngine:
         if regime in self.regime_blacklist:
             score = min(score, 30)
             components["regime_blacklist_veto"] = -1.0
-            logger.debug(
+            _log.debug(
                 "[LSE] %s — régime blacklisté (%s), score plafonné à 30", symbol, regime
             )
 
@@ -156,7 +156,7 @@ class LiveSignalEngine:
             components=components,
         )
         self._last_results[symbol] = result
-        logger.info(
+        _log.info(
             "[LSE] %s → score=%d signal=%s régime=%s actionable=%s",
             symbol,
             score,
@@ -201,7 +201,7 @@ class LiveSignalEngine:
                 )
                 results.append(r)
             except Exception as exc:
-                logger.warning("[LSE] Erreur %s: %s", symbol, exc)
+                _log.warning("[LSE] Erreur %s: %s", symbol, exc)
                 if _OBS_AVAILABLE:
                     try:
                         _error_bus.emit(
@@ -222,7 +222,7 @@ class LiveSignalEngine:
 
     def blacklist_regime(self, regime: str) -> None:
         self.regime_blacklist.add(regime)
-        logger.info("[LSE] Régime blacklisté: %s", regime)
+        _log.info("[LSE] Régime blacklisté: %s", regime)
 
     def unblacklist_regime(self, regime: str) -> None:
         self.regime_blacklist.discard(regime)
@@ -280,9 +280,9 @@ class LiveSignalEngine:
                 sell_score += 1.0
             total_w += 1.0
         except ImportError as _ie:
-            logger.warning("[LSE] MultiTimeframeSignal indisponible: %s", _ie)
+            _log.warning("[LSE] MultiTimeframeSignal indisponible: %s", _ie)
         except Exception as _exc:
-            logger.warning("[LSE] MultiTimeframeSignal erreur: %s", _exc)
+            _log.warning("[LSE] MultiTimeframeSignal erreur: %s", _exc)
 
         if total_w == 0:
             components["mtf"] = 0.0
@@ -310,7 +310,7 @@ class LiveSignalEngine:
             score = 20.0 + strength * 20.0  # 20-40 pts si confirmé
 
         signal = candidate if confirmed else "HOLD"
-        logger.debug(
+        _log.debug(
             "[LSE] MTF: %s strength=%.2f n_agree=%d tfs=%s",
             signal,
             strength,
@@ -334,7 +334,7 @@ class LiveSignalEngine:
         # RSI — clamp 0-100 (valeurs hors bornes = artefact de calcul)
         rsi = float(feat.get("rsi", 50.0))
         if rsi < 0.0 or rsi > 100.0:
-            logger.warning("[LSE] RSI hors bornes (%.2f) — clamp 0-100", rsi)
+            _log.warning("[LSE] RSI hors bornes (%.2f) — clamp 0-100", rsi)
             rsi = max(0.0, min(100.0, rsi))
         if rsi < 35:
             buy_votes += 2  # sur-vendu = fort signal BUY
@@ -395,10 +395,10 @@ class LiveSignalEngine:
             det = AdvancedRegimeDetector()
             regime = det.classify(features)
         except ImportError as _ie:
-            logger.warning("[LSE] AdvancedRegimeDetector indisponible: %s", _ie)
+            _log.warning("[LSE] AdvancedRegimeDetector indisponible: %s", _ie)
             regime = "unknown"
         except Exception as _exc:
-            logger.warning("[LSE] RegimeDetector erreur: %s", _exc)
+            _log.warning("[LSE] RegimeDetector erreur: %s", _exc)
             regime = "unknown"
 
         # Bonus selon régime favorable à un signal directionnel
@@ -439,7 +439,7 @@ class LiveSignalEngine:
             ratio = (total_score / total_weight) if total_weight > 0 else 0.5
             score = ratio * 15.0
         except Exception as exc:
-            logger.debug("[LSE] Qualité données error: %s", exc)
+            _log.debug("[LSE] Qualité données error: %s", exc)
             score = 7.5  # score neutre si validator indisponible
 
         components["data_quality"] = round(score, 2)

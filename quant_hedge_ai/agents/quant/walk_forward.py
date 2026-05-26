@@ -19,10 +19,11 @@ Usage :
 
 from __future__ import annotations
 
-import logging
 from dataclasses import dataclass, field
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
+
+_log = get_logger("quant_hedge_ai.agents.quant.walk_forward")
 
 
 @dataclass
@@ -176,7 +177,7 @@ class WalkForwardValidator:
             verdict = "OVERFIT"
 
         if reasons:
-            logger.debug(
+            _log.debug(
                 "[WalkForward] %s score=%.2f — %s",
                 verdict,
                 score,
@@ -197,9 +198,10 @@ class WalkForwardValidator:
             r = self.validate(strategy, candles)
             results.append(r)
             if verbose and (i + 1) % 10 == 0:
-                logger.info(
+                _log.info(
                     "[WalkForward] %d/%d stratégies validées",
-                    i + 1, len(strategies),
+                    i + 1,
+                    len(strategies),
                 )
         return results
 

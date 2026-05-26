@@ -27,16 +27,15 @@ from __future__ import annotations
 
 import asyncio
 import json
-import logging
 import threading
 from collections import defaultdict, deque
 from pathlib import Path
 from typing import Callable, Coroutine, TypeVar
 
 from event_bus.events import BaseEvent
+from observability.json_logger import get_logger
 
-logger = logging.getLogger(__name__)
-
+_log = get_logger("event_bus.bus")
 E = TypeVar("E", bound=BaseEvent)
 
 _REPLAY_BUFFER_SIZE = 2000
@@ -82,7 +81,7 @@ class EventBus:
         """Active la persistance JSONL (une ligne JSON par événement)."""
         self._audit_path = Path(path)
         self._audit_path.parent.mkdir(parents=True, exist_ok=True)
-        logger.info("EventBus: audit activé → %s", self._audit_path)
+        _log.info("EventBus: audit activé → %s", self._audit_path)
 
     # ── Abonnements ───────────────────────────────────────────────────────────
 
@@ -92,7 +91,7 @@ class EventBus:
             handlers = self._sync_handlers[event_type]
             if handler not in handlers:
                 handlers.append(handler)
-                logger.debug(
+                _log.debug(
                     "EventBus.subscribe: %s → %s",
                     event_type.__name__,
                     getattr(handler, "__name__", repr(handler)),
@@ -155,7 +154,7 @@ class EventBus:
             try:
                 handler(event)
             except Exception as exc:
-                logger.error(
+                _log.error(
                     "EventBus handler %s a crashé sur %s: %s",
                     getattr(handler, "__name__", "?"),
                     event_type.__name__,
@@ -177,7 +176,7 @@ class EventBus:
         # Dead letter: personne n'écoutait
         if not sync_h and not async_h and not wildcards and not async_wildcards:
             self._dead_letters.append(event)
-            logger.debug("EventBus dead letter: %s", event_type.__name__)
+            _log.debug("EventBus dead letter: %s", event_type.__name__)
 
         # Audit JSONL
         if self._audit_path:
@@ -203,7 +202,7 @@ class EventBus:
             try:
                 handler(event)
             except Exception as exc:
-                logger.error("EventBus sync handler: %s", exc)
+                _log.error("EventBus sync handler: %s", exc)
 
         coros = [_safe_async_call(h, event) for h in async_h + async_wildcards]
         if coros:
@@ -258,7 +257,7 @@ class EventBus:
             with open(self._audit_path, "a", encoding="utf-8") as f:  # type: ignore[arg-type]
                 f.write(line)
         except Exception as exc:
-            logger.debug("EventBus audit write failed: %s", exc)
+            _log.debug("EventBus audit write failed: %s", exc)
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -268,7 +267,7 @@ async def _safe_async_call(handler: Callable, event: BaseEvent) -> None:
     try:
         await handler(event)
     except Exception as exc:
-        logger.error(
+        _log.error(
             "EventBus async handler %s a crashé: %s",
             getattr(handler, "__name__", "?"),
             exc,

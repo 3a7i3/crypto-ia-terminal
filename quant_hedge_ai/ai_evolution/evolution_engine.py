@@ -16,16 +16,16 @@ Usage:
 
 from __future__ import annotations
 
-import logging
 from dataclasses import dataclass, field
 from typing import Any
 
+from observability.json_logger import get_logger
 from quant_hedge_ai.agents.quant.backtest_lab import BacktestLab
 from quant_hedge_ai.agents.strategy.genetic_optimizer import GeneticOptimizer
 from quant_hedge_ai.agents.strategy.strategy_generator import StrategyGenerator
 from quant_hedge_ai.ai_evolution.strategy_memory import StrategyMemoryStore
 
-logger = logging.getLogger(__name__)
+_log = get_logger("quant_hedge_ai.ai_evolution.evolution_engine")
 
 
 @dataclass
@@ -167,13 +167,13 @@ class EvolutionEngine:
             report.saved_to_memory = saved
         else:
             if doctor_health < 50.0:
-                logger.warning(
+                _log.warning(
                     "Evolution cycle %d: doctor health %.0f < 50, skipping memory save",
                     cycle,
                     doctor_health,
                 )
 
-        logger.info(
+        _log.info(
             "Evolution cycle %d gen %d: %d candidates, best_sharpe=%.4f, saved=%d",
             cycle,
             self._generation_counter,

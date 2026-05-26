@@ -28,6 +28,7 @@ from types import SimpleNamespace
 from typing import Any, cast
 
 from advisor_runtime_adapters import AdvisorRuntime, load_advisor_runtime
+from observability.json_logger import new_trace_id, set_trace_id
 
 # IMPORTANT : créer logs/ avant FileHandler
 os.makedirs("logs", exist_ok=True)
@@ -99,7 +100,7 @@ try:
     from errors.error_bus import ErrorCategory, ErrorSeverity, error_bus
     from observability.heartbeat_system import heartbeat_system
     from observability.metrics_bus import metrics_bus
-    from system.module_registry import ModulePriority, module_registry
+    from system.module_registry import ModulePriority, ModuleStatus, module_registry
 
     _OBS_AVAILABLE = True
 except Exception:
@@ -412,7 +413,13 @@ def analyze_symbol(
     runtime: AdvisorRuntime | None = None,
     sl_factor_override: float | None = None,
     tp_factor_override: float | None = None,
+    # ── Sweep detection (optionnel) ─────────────────────────────────────
+    sweep_detector: Any = None,
+    sweep_outcome_tracker: Any = None,
 ) -> AnalysisResult:
+    _trace_id = new_trace_id()
+    set_trace_id(_trace_id)
+
     runtime = runtime or load_advisor_runtime()
     MultiTimeframeScanner = runtime.MultiTimeframeScanner
     FeatureEngineer = runtime.FeatureEngineer
@@ -519,6 +526,36 @@ def analyze_symbol(
             except Exception as _exc_v2:
                 log.debug("[V2/RegimePredictor] %s skip: %s", symbol, _exc_v2)
 
+    # ── Sweep Detector — perception de liquidité (après régime, avant signal) ──
+    sweep_events: list = []
+    if sweep_detector and candles_1h:
+        try:
+            _sweep_close = float(candles_1h[-1].get("close", 0))
+            if sweep_outcome_tracker and _sweep_close > 0:
+                sweep_outcome_tracker.tick(symbol, _sweep_close)
+            atr_val = float(features.get("atr", features.get("atr_value", 0.0)))
+            sweep_events = sweep_detector.detect(
+                symbol=symbol,
+                candles=candles_1h,
+                atr=atr_val,
+                regime=regime,
+                timeframe="1h",
+            )
+            if sweep_events:
+                best = sweep_events[0]
+                # Expose aux features ML
+                features["sweep_strength"] = best.sweep_strength
+                features["sweep_direction"] = 1.0 if best.direction == "long" else -1.0
+                features["sweep_volume_ratio"] = best.volume_ratio
+                features["sweep_confidence"] = best.confidence
+                # Suivi de l'outcome si tracker branché
+                if sweep_outcome_tracker:
+                    current_price = float(candles_1h[-1].get("close", 0))
+                    for evt in sweep_events:
+                        sweep_outcome_tracker.register(evt, current_price, regime)
+        except Exception as _exc_sweep:
+            log.debug("[SweepDetector] %s skip: %s", symbol, _exc_sweep)
+
     # MetaLearner — recommandation exit selon régime + volatilité
     ml_decision = None
     if meta_learner:
@@ -619,6 +656,28 @@ def analyze_symbol(
                 memory_sharpe,
                 personality_name=personality.name if personality else "unknown",
             )
+        # Enrichissement sweep — après conviction, avant risk gate
+        if _dp and sweep_events:
+            try:
+                from core.decision_packet import ReasoningCategory, ReasoningSeverity
+
+                for evt in sweep_events:
+                    impact = evt.sweep_strength * 0.15  # +0 à +15 pts de confiance
+                    _dp.add_reasoning(
+                        actor="sweep_detector",
+                        message=(
+                            f"[SWEEP/{evt.sweep_type.upper()}] {evt.direction.upper()} "
+                            f"strength={evt.sweep_strength:.0f} "
+                            f"vol×{evt.volume_ratio:.1f} "
+                            f"wick×{evt.wick_ratio:.1f}"
+                        ),
+                        confidence_impact=impact,
+                        category=ReasoningCategory.SIGNAL_QUALITY,
+                        severity=ReasoningSeverity.INFO,
+                    )
+                    _dp.metadata["sweep_event"] = evt.to_dict()
+            except Exception as _sweep_dp_exc:
+                log.debug("[SweepDetector/DP] enrich: %s", _sweep_dp_exc)
     except Exception as _dp_exc:
         log.debug("[DecisionPacket] init/enrich: %s", _dp_exc)
         _dp = None
@@ -1258,6 +1317,7 @@ def analyze_symbol(
         "n_1d": len(mtf_candles.get("1d", [])),
         "signal_to_execute": signal_to_execute,
         "decision_packet": _dp,
+        "trace_id": _trace_id,
     }
 
 
@@ -2459,6 +2519,14 @@ def main(
                 black_box.record_position_closed(pos, reason)
             except Exception:
                 pass
+            # P9 — PerformanceSupervisor + PortfolioIntelligence
+            try:
+                if _perf_supervisor is not None:
+                    _perf_supervisor.record_trade(pnl_pct=pos.pnl_pct)
+                if _portfolio_intel is not None:
+                    _portfolio_intel.close_position(pos.symbol)
+            except Exception:
+                pass
             # MetaLearner — accumule PnL par régime, apprend tous les 5 trades
             try:
                 buf = _meta_pnl_buffer.setdefault(pos_regime, [])
@@ -2538,6 +2606,7 @@ def main(
         os.getenv("REGIME_STABILITY_WINDOW", "3")
     )  # cycles à confirmer
     _last_mismatch_cycle: int = 0  # cooldown REGIME_MISMATCH
+    _atr_last: float = 0.0  # P7 — ATR ratio moyen du cycle précédent → RiskGovernor
 
     # P7 — Risk Governor + Capital Throttle + Exposure Manager
     try:
@@ -2561,8 +2630,54 @@ def main(
         _capital_throttle = None
         _dyn_exposure = None
 
+    _safety_auditor: Any = None
+    if _OBS_AVAILABLE:
+        try:
+            from system.safety_auditor import SystemSafetyAuditor as _SafetyAuditorCls
+
+            module_registry.register(
+                "global_risk_gate",
+                priority=ModulePriority.CRITICAL,
+                heartbeat_timeout_sec=max(interval * 2, 120),
+                health_fn=lambda: gate is not None,
+            )
+            module_registry.register(
+                "execution_engine",
+                priority=ModulePriority.CRITICAL,
+                heartbeat_timeout_sec=max(interval * 2, 120),
+                health_fn=lambda: exec_engine is not None,
+            )
+            module_registry.register(
+                "risk_governor",
+                priority=ModulePriority.CRITICAL,
+                heartbeat_timeout_sec=max(interval * 2, 120),
+                health_fn=lambda: _risk_governor is not None,
+            )
+            if _risk_governor is None:
+                module_registry.set_status(
+                    "risk_governor",
+                    ModuleStatus.UNHEALTHY,
+                    "P7 component unavailable",
+                )
+            _safety_auditor = _SafetyAuditorCls(
+                required_modules={
+                    "global_risk_gate",
+                    "execution_engine",
+                    "risk_governor",
+                },
+                critical_modules={
+                    "global_risk_gate",
+                    "execution_engine",
+                    "risk_governor",
+                },
+            )
+            log.info("[P7] SystemSafetyAuditor initialisé")
+        except Exception as _safety_boot_exc:
+            log.warning("[P7] SystemSafetyAuditor indisponible: %s", _safety_boot_exc)
+
     # P7 — Circuit breakers
     global _cb_gate, _cb_mistake_memory
+    _cb_registry_adapter: Any = None
     if _CB_AVAILABLE:
         _cb_gate = _CBClass(
             "global_risk_gate",
@@ -2574,7 +2689,115 @@ def main(
             ),
         )
         _cb_mistake_memory = _CBClass("mistake_memory", fallback=None)
+
+        class _AdvisorCircuitBreakers:
+            def snapshot_all(self) -> list[dict]:
+                return [
+                    cb.snapshot()
+                    for cb in (_cb_gate, _cb_mistake_memory)
+                    if cb is not None
+                ]
+
+        _cb_registry_adapter = _AdvisorCircuitBreakers()
         log.info("[P7] CircuitBreakers initialisés: gate + mistake_memory")
+
+    # P8 — Strategy Allocator + Probation + Confidence + Correlation
+    _strategy_allocator: Any = None
+    _probation_system: Any = None
+    _confidence_scorers: dict = {}
+    _correlation_monitor: Any = None
+    _p8_pers_map: dict = {}
+    try:
+        from quant_hedge_ai.agents.intelligence.confidence_scorer import (
+            StrategyConfidenceScorer as _SCSCls,
+        )
+        from quant_hedge_ai.agents.intelligence.correlation_monitor import (
+            CorrelationMonitor as _CMCls,
+        )
+        from quant_hedge_ai.agents.intelligence.strategy_allocator import (
+            PERSONALITY_TO_STRATEGY as _P8PM,
+        )
+        from quant_hedge_ai.agents.intelligence.strategy_allocator import (
+            STRATEGY_IDS as _P8_STRAT_IDS,
+        )
+        from quant_hedge_ai.agents.intelligence.strategy_allocator import (
+            StrategyAllocator as _SACls,
+        )
+        from quant_hedge_ai.agents.intelligence.strategy_probation import (
+            StrategyProbationSystem as _SPSCls,
+        )
+
+        _p8_pers_map = _P8PM
+        _probation_system = _SPSCls()
+        for _p8_sid in _P8_STRAT_IDS:
+            _probation_system.register(_p8_sid)
+            _confidence_scorers[_p8_sid] = _SCSCls(strategy_id=_p8_sid)
+        _correlation_monitor = _CMCls()
+        _strategy_allocator = _SACls(
+            probation_system=_probation_system,
+            confidence_scorers=_confidence_scorers,
+            correlation_monitor=_correlation_monitor,
+        )
+        log.info(
+            "[P8] StrategyAllocator + ProbationSystem initialisés (%d stratégies)",
+            len(_P8_STRAT_IDS),
+        )
+    except Exception as _p8_boot_exc:
+        log.warning("[P8] Composants indisponibles: %s", _p8_boot_exc)
+
+    # Sweep Detection — perception de liquidité (SweepDetector + SweepOutcomeTracker)
+    _sweep_detector: Any = None
+    _sweep_outcome_tracker: Any = None
+    try:
+        from quant_hedge_ai.agents.intelligence.sweep_detector import (
+            SweepDetector as _SDCls,
+        )
+        from quant_hedge_ai.agents.intelligence.sweep_outcome_tracker import (
+            SweepOutcomeTracker as _SOTCls,
+        )
+
+        _sweep_detector = _SDCls()
+        _sweep_outcome_tracker = _SOTCls()
+        log.info("[Sweep] SweepDetector + SweepOutcomeTracker initialisés")
+    except Exception as _sweep_boot_exc:
+        log.warning("[Sweep] Composants indisponibles: %s", _sweep_boot_exc)
+
+    # P9 — Meta Governance
+    _health_monitor: Any = None
+    _drift_detector: Any = None
+    _self_monitoring: Any = None
+    _anomaly_gov: Any = None
+    _perf_supervisor: Any = None
+    _portfolio_intel: Any = None
+    try:
+        from quant_hedge_ai.agents.intelligence.behavioral_drift_detector import (
+            BehavioralDriftDetector as _BDDCls,
+        )
+        from quant_hedge_ai.agents.intelligence.performance_supervisor import (
+            PerformanceSupervisor as _PSCls,
+        )
+        from quant_hedge_ai.agents.intelligence.self_monitoring_loop import (
+            SelfMonitoringLoop as _SMLCls,
+        )
+        from quant_hedge_ai.agents.risk.anomaly_governance import (
+            AnomalyGovernance as _AGCls,
+        )
+        from quant_hedge_ai.agents.risk.portfolio_intelligence import (
+            PortfolioIntelligence as _PICls,
+        )
+        from quant_hedge_ai.agents.risk.system_health_monitor import (
+            SystemHealthMonitor as _SHMCls,
+        )
+
+        _health_monitor = _SHMCls()
+        _drift_detector = _BDDCls()
+        _self_monitoring = _SMLCls()
+        _anomaly_gov = _AGCls()
+        _perf_supervisor = _PSCls()
+        _portfolio_intel = _PICls()
+        log.info("[P9] Meta Governance initialisée (6 composants)")
+    except Exception as _p9_boot_exc:
+        log.warning("[P9] Composants indisponibles: %s", _p9_boot_exc)
 
     # S3 — Telegram alerts + shadow refusals tracker
     global _telegram_alert, _shadow_s3
@@ -2846,15 +3069,10 @@ def main(
                             _capital_throttle.drawdown_pct if _capital_throttle else 0.0
                         ),
                         consecutive_losses=_consecutive_losses.get("value", 0),
-                        atr_current=float(
-                            # ATR moyen du dernier cycle (stocké dans _atr_last)
-                            getattr(main, "_atr_last", 0.0)
-                            if False
-                            else 0.0
-                        ),
+                        atr_current=_atr_last,
                         cycle_pnl_pct=float(
                             (_pm_fb or {}).get("last_pnl_pct", 0.0)
-                            if "_pm_fb" in dir()
+                            if "_pm_fb" in locals()
                             else 0.0
                         ),
                         regime=_adaptive_regime,
@@ -2875,6 +3093,57 @@ def main(
                         )
                 except Exception as _rg_exc:
                     log.debug("[P7/RiskGov] Erreur: %s", _rg_exc)
+
+            _safety_verdict = None
+            if _safety_auditor is not None:
+                try:
+                    module_registry.heartbeat("global_risk_gate")
+                    module_registry.heartbeat("execution_engine")
+                    if _risk_governor is not None:
+                        module_registry.heartbeat("risk_governor")
+                    else:
+                        module_registry.set_status(
+                            "risk_governor",
+                            ModuleStatus.UNHEALTHY,
+                            "P7 component unavailable",
+                        )
+                    _safety_verdict = _safety_auditor.inspect(
+                        circuit_breaker_registry=_cb_registry_adapter
+                    )
+                    if _safety_verdict.block_new_trades:
+                        _issues = "; ".join(
+                            f"{i.module}:{i.severity}:{i.reason}"
+                            for i in _safety_verdict.issues[:3]
+                        )
+                        log.critical(
+                            "[Safety] mode=%s block_new_trades=True | %s",
+                            _safety_verdict.mode.value,
+                            _issues,
+                        )
+                except Exception as _safety_exc:
+                    log.warning("[Safety] audit impossible: %s", _safety_exc)
+
+            # P8 — Allocation pré-cycle (une fois par cycle, avant la boucle symboles)
+            _p8_alloc = None
+            if _strategy_allocator is not None:
+                try:
+                    _rg_state_str = (
+                        (_rg_snapshot.state if _rg_snapshot else "normal")
+                    ).upper()
+                    _p8_alloc = _strategy_allocator.allocate(
+                        cycle=cycle,
+                        regime=_adaptive_regime,
+                        risk_state=_rg_state_str,
+                        capital_total=real_capital,
+                        exposure_factor=(
+                            _rg_snapshot.size_multiplier if _rg_snapshot else 1.0
+                        ),
+                    )
+                    _probation_system.tick_cycle(cycle, regime=_adaptive_regime)
+                    for _p8_scorer in _confidence_scorers.values():
+                        _p8_scorer.tick_cycle()
+                except Exception as _p8_cyc_exc:
+                    log.debug("[P8/Allocator] Erreur cycle: %s", _p8_cyc_exc)
 
             results: list[AnalysisResult] = []
             for sym in symbols:
@@ -2926,8 +3195,18 @@ def main(
                     runtime=runtime,
                     sl_factor_override=_smoothed_sl,
                     tp_factor_override=_smoothed_tp,
+                    sweep_detector=_sweep_detector,
+                    sweep_outcome_tracker=_sweep_outcome_tracker,
                 )
                 results.append(r)
+                log.debug(
+                    "[trace] %s cycle=%d trace_id=%s signal=%s score=%s",
+                    sym,
+                    cycle,
+                    r.get("trace_id", ""),
+                    r["signal"].signal,
+                    r["signal"].score,
+                )
                 # ── Exécution réelle/paper ─────────────────────────────────────
                 r["futures_result"] = None
                 # Taille effective : depuis CAE si disponible, sinon order_size global
@@ -2941,7 +3220,7 @@ def main(
                 # ── P7 — Appliquer RiskGovernor + CapitalThrottle ────────────
                 if _rg_snapshot is not None:
                     _rg_size_mul = _rg_snapshot.size_multiplier * (
-                        _ct_factor if "_ct_factor" in dir() else 1.0
+                        _ct_factor if "_ct_factor" in locals() else 1.0
                     )
                     effective_size = effective_size * _rg_size_mul
                     if (
@@ -2959,6 +3238,36 @@ def main(
                             sym,
                             r["futures_result"]["reason"],
                         )
+
+                # ── P8 — Cap effective_size au budget de la stratégie ────────
+                if _p8_alloc is not None:
+                    try:
+                        _p8_pers = r.get("personality")
+                        _p8_sid = _p8_pers_map.get(
+                            _p8_pers.name if _p8_pers else "", "mean_reversion"
+                        )
+                        _p8_cap = _p8_alloc.capital_for(_p8_sid)
+                        if _p8_cap > 0 and effective_size > _p8_cap:
+                            effective_size = _p8_cap
+                    except Exception as _p8_apply_exc:
+                        log.debug("[P8/Apply] Erreur: %s", _p8_apply_exc)
+
+                if (
+                    _safety_verdict is not None
+                    and _safety_verdict.block_new_trades
+                    and r["signal"].signal != "HOLD"
+                ):
+                    if not r.get("futures_result"):
+                        r["futures_result"] = {
+                            "mode": "safety_auditor_blocked",
+                            "reason": _safety_verdict.mode.value,
+                        }
+                    r["trade_allowed"] = False
+                    log.info(
+                        "[Safety] Trade bloqué %s — verdict=%s",
+                        sym,
+                        _safety_verdict.mode.value,
+                    )
 
                 # ── PROTECTIONS OBLIGATOIRES POUR MODE TEST ───────────────────────────────────
                 # Vérification AVANT exécution
@@ -3010,6 +3319,23 @@ def main(
                     r.get("signal_to_execute") is not None
                     and r.get("signal_to_execute") != r["signal"].signal
                 )
+
+                # P9 — AnomalyGovernance : suspension composant exécution
+                if (
+                    _anomaly_gov is not None
+                    and _anomaly_gov.is_suspended("execution", cycle)
+                    and r["signal"].signal != "HOLD"
+                ):
+                    r["futures_result"] = {
+                        "mode": "anomaly_governance_suspended",
+                        "reason": "execution suspendu par AnomalyGovernance P9",
+                    }
+                    r["trade_allowed"] = False
+                    log.warning(
+                        "[P9/Gov] Execution SUSPENDUE cycle=%d sym=%s",
+                        cycle,
+                        sym,
+                    )
 
                 if (
                     (r["signal"].actionable or gate_override_active)
@@ -3208,10 +3534,11 @@ def main(
                             fut_id = str(fut.get("id", ""))
                             r["futures_result"] = fut
                             log.info(
-                                "[FLOW] %s EXECUTION → %s $%.2f",
+                                "[FLOW] %s EXECUTION → %s $%.2f trace_id=%s",
                                 sym,
                                 exec_label,
                                 effective_size,
+                                r.get("trace_id", ""),
                             )
                             log.info(
                                 "[%s] %s %s $%.2f → mode=%s id=%s",
@@ -3249,6 +3576,20 @@ def main(
                                 # ── PROTECTIONS: Enregistre le trade pour tracking ──
                                 last_trade_signal[sym] = signal_action
                                 trades_this_hour[sym].append(current_time)
+                                # P9 — PortfolioIntelligence : position ouverte
+                                try:
+                                    if _portfolio_intel is not None:
+                                        _portfolio_intel.record_position(
+                                            symbol=sym,
+                                            exchange=os.getenv(
+                                                "ACTIVE_EXCHANGE", "unknown"
+                                            ),
+                                            strategy=r.get("personality", "unknown"),
+                                            side=signal_action.lower(),
+                                            size_usd=float(effective_size),
+                                        )
+                                except Exception:
+                                    pass
                             elif fut_mode in {"futures_failed", "live_failed"}:
                                 _consecutive_losses["value"] += 1
                     except Exception as _fe:
@@ -3316,6 +3657,17 @@ def main(
                     )
 
             # ── Post-cycle: régime dominant + métriques d'activité ───────────
+            # P7 — ATR ratio moyen pour le prochain cycle (utilisé par RiskGovernor)
+            if results:
+                _atrs = [
+                    float(r.get("features", {}).get("atr_ratio", 0.0))
+                    for r in results
+                    if r.get("features")
+                ]
+                _valid_atrs = [a for a in _atrs if a > 0]
+                if _valid_atrs:
+                    _atr_last = sum(_valid_atrs) / len(_valid_atrs)
+
             # Régime : mise à jour seulement si N cycles consécutifs identiques
             # (évite l'oscillation TREND→SIDEWAYS→TREND en 15 min).
             if results:
@@ -3465,6 +3817,113 @@ def main(
                         _telegram_behavior(f"📊 {_bh_line}")
                 except Exception:
                     pass
+
+            # ── P9 — Meta Governance (tick par cycle) ────────────────────────
+            try:
+                if _health_monitor is not None:
+                    _health_monitor.tick_cycle()
+
+                if _drift_detector is not None and results:
+                    _avg_score_p9 = sum(
+                        r["signal"].score for r in results if r.get("signal")
+                    ) / max(len(results), 1)
+                    _trades_p9 = sum(
+                        1
+                        for r in results
+                        if r.get("futures_result") is not None
+                        and r["futures_result"].get("mode")
+                        not in (
+                            None,
+                            "futures_failed",
+                            "live_failed",
+                            "risk_governor_blocked",
+                        )
+                    )
+                    _eff_thr = gate.min_signal_score + getattr(gate, "_regret_delta", 0)
+                    for _r in results:
+                        _sig = _r.get("signal")
+                        if _sig:
+                            _drift_detector.record(
+                                cycle=cycle,
+                                threshold_used=float(_eff_thr),
+                                score=float(_sig.score),
+                                signal_generated=_sig.actionable,
+                                refused=not _r.get("trade_allowed", True),
+                                regime=_adaptive_regime,
+                            )
+                    _drift_report = _drift_detector.check(regime=_adaptive_regime)
+                    if _drift_report.drifting:
+                        log.warning(
+                            "[P9/Drift] Dérive cycle=%d métriques=%s confiance=%.2f",
+                            cycle,
+                            _drift_report.drifting_metrics,
+                            _drift_report.meta_confidence,
+                        )
+
+                    if _anomaly_gov is not None:
+                        _anomalies = _anomaly_gov.detect(
+                            cycle=cycle,
+                            trades_this_cycle=_trades_p9,
+                            avg_score=_avg_score_p9,
+                            threshold_used=float(_eff_thr),
+                            rg_state=(
+                                _rg_state_str
+                                if "_rg_state_str" in locals()
+                                else "NORMAL"
+                            ),
+                        )
+                        for _an in _anomalies:
+                            log.warning(
+                                "[P9/Gov] %s : %s",
+                                _an.anomaly_type.value,
+                                _an.description,
+                            )
+
+                if _self_monitoring is not None:
+                    _meta_snap = _self_monitoring.tick(
+                        cycle=cycle,
+                        health_monitor=_health_monitor,
+                        drift_detector=_drift_detector,
+                        rg_state=(
+                            _rg_state_str if "_rg_state_str" in locals() else "NORMAL"
+                        ),
+                    )
+                    if _meta_snap.level2_alert and cycle % 5 == 0:
+                        log.critical(
+                            "[P9/Meta] ALERTE NIVEAU 2 score=%.2f",
+                            _meta_snap.meta_health_score,
+                        )
+
+                if cycle % 20 == 0 and _perf_supervisor is not None:
+                    _perf_snap = _perf_supervisor.snapshot(cycle=cycle)
+                    if _perf_snap.alerts:
+                        for _pa in _perf_snap.alerts:
+                            log.warning("[P9/Perf] %s", _pa)
+
+                if cycle % 10 == 0 and _portfolio_intel is not None:
+                    # Sync positions ouvertes depuis pos_manager
+                    _open_pos = pos_manager.get_open()
+                    _tracked = set(_portfolio_intel.position_symbols())
+                    _active = {p.symbol for p in _open_pos}
+                    for _sym_gone in _tracked - _active:
+                        _portfolio_intel.close_position(_sym_gone)
+                    for _p in _open_pos:
+                        _portfolio_intel.record_position(
+                            symbol=_p.symbol,
+                            exchange=os.getenv("ACTIVE_EXCHANGE", "unknown"),
+                            strategy=getattr(_p, "subaccount", "unknown"),
+                            side=(
+                                _p.side.value
+                                if hasattr(_p.side, "value")
+                                else str(_p.side)
+                            ),
+                            size_usd=float(_p.size_usd),
+                        )
+                    _port_alerts = _portfolio_intel.get_alerts()
+                    for _pal in _port_alerts:
+                        log.warning("[P9/Port] %s", _pal)
+            except Exception as _p9_cyc_exc:
+                log.warning("[P9] Erreur inattendue cycle=%d: %s", cycle, _p9_cyc_exc)
 
             # ── Rapport timing bootstrap vs cycle 1 ──────────────────────────
             if cycle == 1:

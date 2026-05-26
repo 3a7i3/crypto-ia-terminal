@@ -34,15 +34,15 @@ Stocke dans : databases/regret_analysis.jsonl
 from __future__ import annotations
 
 import json
-import logging
 import os
 import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Optional
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
 
+_log = get_logger("quant_hedge_ai.agents.intelligence.regret_engine")
 _DB_PATH = os.getenv("REGRET_DB", "databases/regret_analysis.jsonl")
 _CHECK_DELAY = int(os.getenv("REGRET_DELAY_CYCLES", "4"))  # evaluer N cycles plus tard
 _MIN_MOVE_PCT = float(
@@ -155,7 +155,7 @@ class RegretEngine:
             current_cycle=cycle,
         )
         self._candidates.append(candidate)
-        logger.debug(
+        _log.debug(
             "[RegretEngine] Candidat enregistre: %s %s score=%d | refus: %s",
             symbol,
             signal,
@@ -195,7 +195,7 @@ class RegretEngine:
                 self._save_record(record)
                 if record.regret_type == "MISSED_WIN":
                     new_regrets.append(record)
-                    logger.info(
+                    _log.info(
                         "[RegretEngine] REGRET: %s %s | "
                         "signal=%.2f eval=%.2f move=%.2f%% | refuse: %s",
                         c.symbol,
@@ -375,7 +375,7 @@ class RegretEngine:
         smoothed = round(self._ewma_delta)
 
         if raw_delta != smoothed:
-            logger.debug(
+            _log.debug(
                 "[RegretEngine] EWMA delta: raw=%+d → smoothed=%+d (ewma=%.3f α=%.2f)",
                 raw_delta,
                 smoothed,
@@ -414,11 +414,11 @@ class RegretEngine:
                         pass
             self._records = self._records[-_MAX_DB:]
         except Exception as exc:
-            logger.warning("[RegretEngine] Chargement: %s", exc)
+            _log.warning("[RegretEngine] Chargement: %s", exc)
 
     def _save_record(self, record: RegretRecord) -> None:
         try:
             with open(self._db_path, "a", encoding="utf-8") as f:
                 f.write(json.dumps(asdict(record), default=str) + "\n")
         except Exception as exc:
-            logger.warning("[RegretEngine] Sauvegarde: %s", exc)
+            _log.warning("[RegretEngine] Sauvegarde: %s", exc)

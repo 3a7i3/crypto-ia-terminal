@@ -19,7 +19,6 @@ Usage:
 from __future__ import annotations
 
 import json
-import logging
 import threading
 import time
 import urllib.parse
@@ -27,16 +26,17 @@ import urllib.request
 from enum import Enum
 from typing import Callable
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
 
+_log = get_logger("supervision.kill_switch")
 _COMMANDS = {"/STOP_ALL", "/CLOSE_ALL", "/SAFE_MODE", "/RESUME", "/STATUS"}
 
 
 class BotMode(str, Enum):
     LIVE = "live"
-    SAFE_MODE = "safe_mode"    # advisor only, pas d'exécution
-    STOPPED = "stopped"        # halte complète
-    CLOSING = "closing"        # fermeture en cours
+    SAFE_MODE = "safe_mode"  # advisor only, pas d'exécution
+    STOPPED = "stopped"  # halte complète
+    CLOSING = "closing"  # fermeture en cours
 
 
 class TelegramKillSwitch:
@@ -76,11 +76,14 @@ class TelegramKillSwitch:
             target=self._poll_loop, daemon=True, name="TelegramKillSwitch"
         )
         self._thread.start()
-        logger.info("[KillSwitch] Polling Telegram démarré (interval=%.1fs)", self._poll_interval)
+        _log.info(
+            "[KillSwitch] Polling Telegram démarré (interval=%.1fs)",
+            self._poll_interval,
+        )
 
     def stop(self) -> None:
         self._running = False
-        logger.info("[KillSwitch] Polling arrêté")
+        _log.info("[KillSwitch] Polling arrêté")
 
     def register(self, command: str, callback: Callable) -> None:
         """Enregistre un callback pour une commande (ex. '/STOP_ALL')."""
@@ -101,7 +104,7 @@ class TelegramKillSwitch:
                 for upd in updates:
                     self._handle_update(upd)
             except Exception as exc:
-                logger.warning("[KillSwitch] Erreur polling: %s", exc)
+                _log.warning("[KillSwitch] Erreur polling: %s", exc)
             time.sleep(self._poll_interval)
 
     def _get_updates(self) -> list[dict]:
@@ -129,16 +132,16 @@ class TelegramKillSwitch:
         if text not in _COMMANDS:
             return
 
-        logger.warning("[KillSwitch] Commande reçue: %s", text)
+        _log.warning("[KillSwitch] Commande reçue: %s", text)
         self._dispatch(text)
 
     def _dispatch(self, command: str) -> None:
         handlers = {
-            "/STOP_ALL":  self._cmd_stop_all,
+            "/STOP_ALL": self._cmd_stop_all,
             "/CLOSE_ALL": self._cmd_close_all,
             "/SAFE_MODE": self._cmd_safe_mode,
-            "/RESUME":    self._cmd_resume,
-            "/STATUS":    self._cmd_status,
+            "/RESUME": self._cmd_resume,
+            "/STATUS": self._cmd_status,
         }
         handler = handlers.get(command)
         if handler:
@@ -147,14 +150,16 @@ class TelegramKillSwitch:
             try:
                 self._callbacks[command]()
             except Exception as exc:
-                logger.error("[KillSwitch] Callback error pour %s: %s", command, exc)
+                _log.error("[KillSwitch] Callback error pour %s: %s", command, exc)
 
     # ── Commandes ──────────────────────────────────────────────────────────────
 
     def _cmd_stop_all(self) -> None:
         self.mode = BotMode.STOPPED
-        msg = "🛑 STOP_ALL — Exécution complète stoppée. Plus aucun ordre ne sera envoyé."
-        logger.critical("[KillSwitch] %s", msg)
+        msg = (
+            "🛑 STOP_ALL — Exécution complète stoppée. Plus aucun ordre ne sera envoyé."
+        )
+        _log.critical("[KillSwitch] %s", msg)
         self._send(msg)
         self._emit_halt("STOP_ALL")
 
@@ -162,20 +167,20 @@ class TelegramKillSwitch:
         self.mode = BotMode.CLOSING
         closed = self._close_all_positions()
         msg = f"⚠️ CLOSE_ALL — {closed} position(s) fermée(s). Mode: CLOSING."
-        logger.critical("[KillSwitch] %s", msg)
+        _log.critical("[KillSwitch] %s", msg)
         self._send(msg)
         self.mode = BotMode.STOPPED
 
     def _cmd_safe_mode(self) -> None:
         self.mode = BotMode.SAFE_MODE
         msg = "🟡 SAFE_MODE — Advisor only. Signaux calculés mais aucun ordre exécuté."
-        logger.warning("[KillSwitch] %s", msg)
+        _log.warning("[KillSwitch] %s", msg)
         self._send(msg)
 
     def _cmd_resume(self) -> None:
         self.mode = BotMode.LIVE
         msg = "🟢 RESUME — Exécution normale reprise."
-        logger.info("[KillSwitch] %s", msg)
+        _log.info("[KillSwitch] %s", msg)
         self._send(msg)
 
     def _cmd_status(self) -> None:
@@ -207,21 +212,23 @@ class TelegramKillSwitch:
                     )
                     closed += 1
                 except Exception as exc:
-                    logger.error("[KillSwitch] Erreur fermeture %s: %s", symbol, exc)
+                    _log.error("[KillSwitch] Erreur fermeture %s: %s", symbol, exc)
         return closed
 
     def _send(self, text: str) -> None:
         try:
             from supervision.notifications.telegram_notifier import TelegramNotifier
+
             notifier = TelegramNotifier(self.bot_token, self.chat_id)
             notifier.notify(text)
         except Exception as exc:
-            logger.warning("[KillSwitch] Send error: %s", exc)
+            _log.warning("[KillSwitch] Send error: %s", exc)
 
     def _emit_halt(self, reason: str) -> None:
         try:
             from event_bus.bus import EventBus
             from event_bus.events import SessionHaltEvent
+
             EventBus.get().emit(
                 SessionHaltEvent(
                     reason=reason,

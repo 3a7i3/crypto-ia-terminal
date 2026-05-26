@@ -1,0 +1,28 @@
+{
+  "module_id": "activity_tracker",
+  "class_name": "ActivityTracker",
+  "file_path": "quant_hedge_ai/agents/intelligence/activity_tracker.py",
+  "display_name": "Activity Tracker",
+  "layer": "intelligence",
+  "dashboard_tab": "Monitoring",
+
+  "role_fr": "Mesure si le système utilise son capital ou le laisse dormir. Calcule inactivity_ratio, refusal_accuracy, execution_ratio, cycles_since_last_trade. Déclenche REGIME_MISMATCH si inactivity_ratio > 0.85 pendant 20+ cycles ET RegretEngine signale des opportunités manquées.",
+  "role_en": "Measures whether the system uses its capital or leaves it idle. Computes inactivity_ratio, refusal_accuracy, execution_ratio, cycles_since_last_trade. Triggers REGIME_MISMATCH if inactivity_ratio > 0.85 for 20+ cycles AND RegretEngine signals missed opportunities.",
+
+  "key_metrics": [
+    { "metric_id": "inactivity_ratio",        "label": "Ratio inactivité",       "type": "float" },
+    { "metric_id": "refusal_accuracy",        "label": "Précision refus",        "type": "float" },
+    { "metric_id": "execution_ratio",         "label": "Ratio exécution",        "type": "float" },
+    { "metric_id": "cycles_since_last_trade", "label": "Cycles sans trade",      "type": "int" }
+  ],
+
+  "env_vars": [
+    { "name": "INACTIVITY_WARN_RATIO", "default": "0.85", "description": "Seuil ratio inactivité pour alerte REGIME_MISMATCH" }
+  ],
+
+  "integration": {
+    "upstream": [],
+    "downstream": ["regret_engine"],
+    "note": "record_cycle() appelé chaque cycle dans advisor_loop. summary()/report() utilisés pour Telegram et logs structurés."
+  }
+}

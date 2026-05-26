@@ -1,0 +1,27 @@
+{
+  "module_id": "weekly_report",
+  "class_name": "WeeklyReportGenerator",
+  "file_path": "quant_hedge_ai/agents/intelligence/weekly_report.py",
+  "display_name": "Weekly Report Generator",
+  "layer": "learning",
+  "dashboard_tab": "Learning",
+
+  "role_fr": "Génère un rapport hebdomadaire synthétique : PnL, win rate, drawdown max, régimes actifs, erreurs récurrentes (MistakeMemory), regrets (RegretEngine), top/flop stratégies. Envoyé via Telegram ou sauvegardé en JSON.",
+  "role_en": "Generates a synthetic weekly report: PnL, win rate, max drawdown, active regimes, recurring errors (MistakeMemory), regrets (RegretEngine), top/flop strategies. Sent via Telegram or saved as JSON.",
+
+  "key_metrics": [
+    { "metric_id": "weekly_pnl_pct",   "label": "PnL semaine (%)",    "type": "float" },
+    { "metric_id": "weekly_win_rate",  "label": "Win rate semaine",   "type": "float" },
+    { "metric_id": "report_generated", "label": "Rapport généré",     "type": "bool" }
+  ],
+
+  "env_vars": [
+    { "name": "WEEKLY_REPORT_OUTPUT", "default": "json", "description": "Format de sortie : json ou telegram" }
+  ],
+
+  "integration": {
+    "upstream": ["mistake_memory", "regret_engine", "decision_quality_engine", "strategy_allocator"],
+    "downstream": [],
+    "note": "generate() déclenché par scheduler hebdomadaire ou manuellement."
+  }
+}

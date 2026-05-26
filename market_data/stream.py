@@ -21,7 +21,6 @@ Usage live (async) :
 from __future__ import annotations
 
 import asyncio
-import logging
 from typing import AsyncGenerator, Callable, Optional
 
 from market_data.connectors.base import BaseConnector
@@ -31,8 +30,9 @@ from market_data.models import (
     NormalizedOrderBook,
     NormalizedTrade,
 )
+from observability.json_logger import get_logger
 
-log = logging.getLogger(__name__)
+_log = get_logger("market_data.stream")
 
 
 class MultiExchangeStream:
@@ -54,7 +54,7 @@ class MultiExchangeStream:
 
     def add_connector(self, connector: BaseConnector) -> "MultiExchangeStream":
         self._connectors.append(connector)
-        log.info("MultiExchangeStream: added connector %s", connector.exchange_name)
+        _log.info("MultiExchangeStream: added connector %s", connector.exchange_name)
         return self
 
     def on(self, event_type: str) -> Callable:
@@ -78,7 +78,7 @@ class MultiExchangeStream:
                 trades = conn.fetch_trades(symbol, limit)
                 events.extend(MarketEvent.from_trade(t) for t in trades)
             except Exception as exc:
-                log.warning("[%s] fetch_trades failed: %s", conn.exchange_name, exc)
+                _log.warning("[%s] fetch_trades failed: %s", conn.exchange_name, exc)
         return sorted(events, key=lambda e: e.timestamp_ms)
 
     def fetch_orderbooks(self, symbol: str, depth: int = 20) -> list[MarketEvent]:
@@ -89,7 +89,7 @@ class MultiExchangeStream:
                 book = conn.fetch_orderbook(symbol, depth)
                 events.append(MarketEvent.from_orderbook(book))
             except Exception as exc:
-                log.warning("[%s] fetch_orderbook failed: %s", conn.exchange_name, exc)
+                _log.warning("[%s] fetch_orderbook failed: %s", conn.exchange_name, exc)
         return events
 
     def fetch_candles(
@@ -105,7 +105,7 @@ class MultiExchangeStream:
                 candles = conn.fetch_candles(symbol, timeframe, limit)
                 events.extend(MarketEvent.from_candle(c) for c in candles)
             except Exception as exc:
-                log.warning("[%s] fetch_candles failed: %s", conn.exchange_name, exc)
+                _log.warning("[%s] fetch_candles failed: %s", conn.exchange_name, exc)
         return sorted(events, key=lambda e: e.timestamp_ms)
 
     def fetch_all(
@@ -146,14 +146,14 @@ class MultiExchangeStream:
                 async for trade in conn.stream_trades(symbol):
                     await queue.put(MarketEvent.from_trade(trade))
             except Exception as exc:
-                log.warning("[%s] stream_trades error: %s", conn.exchange_name, exc)
+                _log.warning("[%s] stream_trades error: %s", conn.exchange_name, exc)
 
         async def _feed_orderbook(conn: BaseConnector) -> None:
             try:
                 async for book in conn.stream_orderbook(symbol):
                     await queue.put(MarketEvent.from_orderbook(book))
             except Exception as exc:
-                log.warning("[%s] stream_orderbook error: %s", conn.exchange_name, exc)
+                _log.warning("[%s] stream_orderbook error: %s", conn.exchange_name, exc)
 
         tasks = []
         for conn in self._connectors:
@@ -170,7 +170,7 @@ class MultiExchangeStream:
                     try:
                         handler(event)
                     except Exception as exc:
-                        log.warning("Handler error for %s: %s", event.event_type, exc)
+                        _log.warning("Handler error for %s: %s", event.event_type, exc)
                 yield event
         finally:
             for t in tasks:

@@ -1,0 +1,58 @@
+{
+  "module_id": "correlation_monitor",
+  "class_name": "CorrelationMonitor",
+  "file_path": "quant_hedge_ai/agents/intelligence/correlation_monitor.py",
+  "display_name": "Moniteur de Corrélation",
+  "layer": "intelligence",
+  "dashboard_tab": "Allocation",
+
+  "role_fr": "Surveille la corrélation multi-dimensionnelle entre stratégies (P8). Détecte redondance et annulation mutuelle. Seuils ajustés par régime. Lead-lag detection via cross-corrélation ±5 cycles. Alerte de fusion si corrélation > seuil sur 3 régimes distincts.",
+  "role_en": "Monitors multi-dimensional correlation between strategies (P8). Detects redundancy and mutual cancellation. Regime-adjusted thresholds. Lead-lag detection via cross-correlation ±5 cycles. Fusion alert if correlation > threshold across 3 distinct regimes.",
+
+  "dimensions": [
+    { "dim": "pnl",      "weight": 0.4, "description": "Corrélation des résultats (PnL %)" },
+    { "dim": "signal",   "weight": 0.3, "description": "Corrélation des signaux BUY/SELL (±1)" },
+    { "dim": "drawdown", "weight": 0.3, "description": "Corrélation des drawdowns" }
+  ],
+
+  "thresholds_by_regime": {
+    "SIDEWAYS":   { "warn": 0.65, "action": 0.80 },
+    "TREND_BULL": { "warn": 0.70, "action": 0.85 },
+    "TREND_BEAR": { "warn": 0.70, "action": 0.85 },
+    "HIGH_VOL":   { "warn": 0.80, "action": 0.90 },
+    "CHOPPY":     { "warn": 0.65, "action": 0.80 },
+    "UNKNOWN":    { "warn": 0.60, "action": 0.75 }
+  },
+
+  "penalty_model": {
+    "formula": "penalty = clamp((composite - warn) / (action - warn), 0, 1) × 0.30",
+    "progressive": true,
+    "negative_corr_threshold": -0.70,
+    "negative_corr_penalty": 0.20,
+    "note": "Pénalité appliquée à la stratégie la moins performante (score composite le plus bas)"
+  },
+
+  "fusion_alert": {
+    "trigger": "composite_corr > action_threshold sur 3 régimes distincts",
+    "action": "log WARNING + émission alerte redondance structurelle",
+    "auto_action": "aucune — intervention humaine requise"
+  },
+
+  "key_metrics": [
+    { "metric_id": "strategies_tracked",  "label": "Stratégies suivies",  "type": "int" },
+    { "metric_id": "fusion_alerts_count", "label": "Alertes fusion",      "type": "int" },
+    { "metric_id": "max_composite_corr",  "label": "Corrélation max",     "type": "float" }
+  ],
+
+  "env_vars": [
+    { "name": "P8_CORR_WINDOW",          "default": "20", "description": "Fenêtre glissante pour le calcul de corrélation (trades)" },
+    { "name": "P8_CORR_LAG",             "default": "5",  "description": "Décalage max pour la détection lead-lag (cycles)" },
+    { "name": "P8_CORR_FUSION_REGIMES",  "default": "3",  "description": "Nombre de régimes distincts pour déclencher alerte fusion" }
+  ],
+
+  "integration": {
+    "upstream": [],
+    "downstream": ["strategy_allocator"],
+    "note": "get_weight_penalties() appelé par StrategyAllocator chaque cycle. record() appelé à chaque signal généré par une stratégie."
+  }
+}

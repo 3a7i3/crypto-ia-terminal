@@ -6,16 +6,16 @@ validates each step, and transitions system state accordingly.
 
 from __future__ import annotations
 
-import logging
 import time
 from typing import Callable, Dict, List, Optional
 
+from observability.json_logger import get_logger
 from system.dependency_manager import dependency_manager
 from system.module_registry import ModulePriority, ModuleStatus, module_registry
 from system.runtime_controller import ModuleStartError, runtime_controller
 from system.state_manager import SystemState, state_manager
 
-logger = logging.getLogger("system.startup_sequence")
+_log = get_logger("system.startup_sequence")
 
 
 class StepResult:
@@ -67,13 +67,13 @@ class StartupSequence:
         Execute full startup sequence.
         Returns True if all critical modules started successfully.
         """
-        logger.info("=" * 60)
-        logger.info("[StartupSequence] Beginning system boot")
-        logger.info("=" * 60)
+        _log.info("=" * 60)
+        _log.info("[StartupSequence] Beginning system boot")
+        _log.info("=" * 60)
 
         # Must already be in BOOTING state
         if state_manager.state != SystemState.BOOTING:
-            logger.error(
+            _log.error(
                 f"[StartupSequence] Cannot boot from state {state_manager.state.name}"
             )
             return False
@@ -81,18 +81,18 @@ class StartupSequence:
         self._run_hooks(self._pre_hooks, "pre-boot")
 
         order = dependency_manager.startup_order()
-        logger.info(f"[StartupSequence] Startup order ({len(order)} modules): {order}")
+        _log.info(f"[StartupSequence] Startup order ({len(order)} modules): {order}")
 
         failed_critical = False
         for module_name in order:
             info = module_registry.get(module_name)
             if info is None:
-                logger.debug(
+                _log.debug(
                     f"[StartupSequence] Skipping unregistered module: {module_name}"
                 )
                 continue
             if info.status == ModuleStatus.DISABLED:
-                logger.warning(
+                _log.warning(
                     f"[StartupSequence] Skipping disabled module: {module_name}"
                 )
                 continue
@@ -101,20 +101,20 @@ class StartupSequence:
             self._results.append(result)
 
             if not result.success and info.priority == ModulePriority.CRITICAL:
-                logger.critical(
+                _log.critical(
                     f"[StartupSequence] Critical module failed to start: {module_name}"
                 )
                 failed_critical = True
                 break
 
         if failed_critical:
-            logger.critical("[StartupSequence] Boot ABORTED — critical module failure")
+            _log.critical("[StartupSequence] Boot ABORTED — critical module failure")
             state_manager.force_panic("boot failed: critical module could not start")
             return False
 
         # Transition to SYNCING (connecting to exchanges)
         state_manager.transition(SystemState.SYNCING, "boot sequence complete")
-        logger.info("[StartupSequence] All modules started — transitioning to SYNCING")
+        _log.info("[StartupSequence] All modules started — transitioning to SYNCING")
 
         self._run_hooks(self._post_hooks, "post-boot")
         self._print_summary()
@@ -122,16 +122,16 @@ class StartupSequence:
 
     def _start_one(self, name: str, priority: ModulePriority) -> StepResult:
         tag = f"[{priority.name}]"
-        logger.info(f"[StartupSequence] {tag} Starting: {name}")
+        _log.info(f"[StartupSequence] {tag} Starting: {name}")
         t0 = time.time()
         try:
             runtime_controller.start_module(name)
             duration = time.time() - t0
-            logger.info(f"[StartupSequence] {tag} OK: {name} ({duration:.2f}s)")
+            _log.info(f"[StartupSequence] {tag} OK: {name} ({duration:.2f}s)")
             return StepResult(name, True, duration)
         except ModuleStartError as e:
             duration = time.time() - t0
-            logger.error(
+            _log.error(
                 f"[StartupSequence] {tag} FAILED: {name} — {e} ({duration:.2f}s)"
             )
             return StepResult(name, False, duration, str(e))
@@ -141,7 +141,7 @@ class StartupSequence:
             try:
                 fn()
             except Exception as e:
-                logger.warning(f"[StartupSequence] {label} hook error: {e}")
+                _log.warning(f"[StartupSequence] {label} hook error: {e}")
 
     # ------------------------------------------------------------------
     # Diagnostics
@@ -151,14 +151,14 @@ class StartupSequence:
         ok = [r for r in self._results if r.success]
         fail = [r for r in self._results if not r.success]
         total_time = sum(r.duration_sec for r in self._results)
-        logger.info("-" * 60)
-        logger.info(
+        _log.info("-" * 60)
+        _log.info(
             f"[StartupSequence] Boot summary: {len(ok)} OK / {len(fail)} FAILED / {total_time:.2f}s total"
         )
         if fail:
             for r in fail:
-                logger.warning(f"  FAILED: {r.module} — {r.error}")
-        logger.info("-" * 60)
+                _log.warning(f"  FAILED: {r.module} — {r.error}")
+        _log.info("-" * 60)
 
     def results(self) -> List[StepResult]:
         return list(self._results)

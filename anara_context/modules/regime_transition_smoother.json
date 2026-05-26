@@ -1,0 +1,27 @@
+{
+  "module_id": "regime_transition_smoother",
+  "class_name": "RegimeTransitionSmoother",
+  "file_path": "quant_hedge_ai/agents/intelligence/regime_transition_smoother.py",
+  "display_name": "Regime Transition Smoother",
+  "layer": "intelligence",
+  "dashboard_tab": "Regime",
+
+  "role_fr": "Lissage linéaire des paramètres lors d'un changement de régime (P6). Rampe sur 3-5 cycles : param(t) = old + (new - old) * min(t/ramp_duration, 1). Rampe suspendue si nouveau changement survient pendant la transition.",
+  "role_en": "Linear smoothing of parameters during a regime change (P6). Ramp over 3-5 cycles: param(t) = old + (new - old) * min(t/ramp_duration, 1). Ramp suspended if another regime change occurs during transition.",
+
+  "key_metrics": [
+    { "metric_id": "in_ramp",          "label": "Rampe active",          "type": "bool" },
+    { "metric_id": "ramp_progress",    "label": "Progression rampe",     "type": "float" },
+    { "metric_id": "ramp_duration",    "label": "Durée rampe (cycles)",  "type": "int" }
+  ],
+
+  "env_vars": [
+    { "name": "REGIME_RAMP_CYCLES", "default": "4", "description": "Durée de la rampe de transition (cycles)" }
+  ],
+
+  "integration": {
+    "upstream": ["market_regime_classifier"],
+    "downstream": ["meta_strategy_engine", "global_risk_gate"],
+    "note": "smooth() appelé chaque cycle après classify(). Retourne les paramètres interpolés."
+  }
+}

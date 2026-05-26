@@ -7,14 +7,14 @@ concentrates in a sector.
 
 from __future__ import annotations
 
-import logging
 import re
 from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import Any
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
 
+_log = get_logger("quant_hedge_ai._legacy.archived_modules.liquidity_map.flow_analyzer")
 # Sector classification for common tokens
 _SECTOR_MAP: dict[str, str] = {
     "BTCUSDT": "BTC",
@@ -335,7 +335,7 @@ class LiquidityFlowMap:
         if len(self._history) > 200:
             self._history = self._history[-100:]
 
-        logger.info(
+        _log.info(
             "FlowMap cycle %d: %d sectors, top=%s(%.0f), concentration=%.3f",
             cycle,
             len(flows),

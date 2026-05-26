@@ -6,11 +6,12 @@ pattern recognition and accumulation/distribution tracking.
 
 from __future__ import annotations
 
-import logging
 import random
 from dataclasses import dataclass, field
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
+
+_log = get_logger("quant_hedge_ai.market_radar.whale_tracker")
 
 
 @dataclass
@@ -69,7 +70,7 @@ class WhaleTracker:
             self._history = self._history[-5_000:]
 
         report = self._build_report(activities)
-        logger.info(
+        _log.info(
             "WhaleTracker: %d activities, flow=%s, accum=%s",
             len(activities),
             report.smart_money_flow,

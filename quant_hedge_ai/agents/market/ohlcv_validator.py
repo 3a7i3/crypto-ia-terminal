@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-import logging
 import math
 from dataclasses import dataclass, field
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
 
+_log = get_logger("quant_hedge_ai.agents.market.ohlcv_validator")
 _PRICE_FIELDS = ("open", "high", "low", "close")
 _MAX_PRICE_RATIO = 10.0  # high/low > 10x → spike suspect
 
@@ -28,14 +28,21 @@ class ValidationReport:
     def log(self, symbol: str = "") -> None:
         prefix = f"[{symbol}] " if symbol else ""
         if self.dropped:
-            logger.warning(
+            _log.warning(
                 "%sOHLCV validation: %d/%d bougies valides, %d rejetées — %s",
-                prefix, self.valid, self.total, self.dropped, self.reasons,
+                prefix,
+                self.valid,
+                self.total,
+                self.dropped,
+                self.reasons,
             )
         else:
-            logger.debug(
+            _log.debug(
                 "%sOHLCV validation: %d/%d OK (source: %s)",
-                prefix, self.valid, self.total, self.source_counts,
+                prefix,
+                self.valid,
+                self.total,
+                self.source_counts,
             )
 
 
@@ -115,6 +122,7 @@ def is_series_fresh(candles: list[dict], max_age_seconds: float = 3600.0) -> boo
         return False
     try:
         from datetime import datetime, timezone
+
         last_ts = candles[-1].get("timestamp", "")
         if not last_ts:
             return True

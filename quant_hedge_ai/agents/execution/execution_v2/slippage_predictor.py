@@ -5,28 +5,30 @@ Prédit le slippage d'exécution attendu avant de passer un ordre,
 en fonction de la taille, la liquidité, le spread et la volatilité.
 Modèle : régression linéaire en ligne (OLS), entraîné sur l'historique réel.
 """
+
 from __future__ import annotations
 
-import logging
 import time
 from collections import defaultdict, deque
 from dataclasses import dataclass
 
 import numpy as np
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
+
+_log = get_logger("quant_hedge_ai.agents.execution.execution_v2.slippage_predictor")
 
 
 @dataclass
 class SlippageEstimate:
     symbol: str
-    side: str                   # "buy" / "sell"
+    side: str  # "buy" / "sell"
     order_size_usd: float
-    predicted_slippage_bps: float   # slippage prédit en bps
-    predicted_slippage_pct: float   # en %
-    confidence: float               # [0,1]
-    cost_usd: float                 # coût estimé en USD
-    is_acceptable: bool             # True si < seuil max
+    predicted_slippage_bps: float  # slippage prédit en bps
+    predicted_slippage_pct: float  # en %
+    confidence: float  # [0,1]
+    cost_usd: float  # coût estimé en USD
+    is_acceptable: bool  # True si < seuil max
     max_allowed_bps: float = 30.0
 
 
@@ -54,7 +56,7 @@ class SlippagePredictor:
         self._training_data: deque = deque(maxlen=self.MAX_HISTORY)
         self._model_coefficients: np.ndarray | None = None
         self._last_fit: float = 0.0
-        self._fit_interval: float = 300.0    # refitter toutes les 5min
+        self._fit_interval: float = 300.0  # refitter toutes les 5min
 
     def predict(
         self,
@@ -71,13 +73,18 @@ class SlippagePredictor:
             order_size_usd, spread_bps, ob_imbalance, atr_pct, liquidity_depth_usd, side
         )
 
-        if self._model_coefficients is not None and len(self._training_data) >= self.MIN_SAMPLES_FOR_MODEL:
+        if (
+            self._model_coefficients is not None
+            and len(self._training_data) >= self.MIN_SAMPLES_FOR_MODEL
+        ):
             predicted_bps = float(np.dot(features, self._model_coefficients))
             predicted_bps = max(0.1, predicted_bps)
             confidence = min(len(self._training_data) / 200.0, 0.95)
         else:
             # Heuristique avant d'avoir assez de données
-            predicted_bps = self._heuristic_slippage(order_size_usd, spread_bps, liquidity_depth_usd)
+            predicted_bps = self._heuristic_slippage(
+                order_size_usd, spread_bps, liquidity_depth_usd
+            )
             confidence = 0.3
 
         predicted_pct = predicted_bps / 10000.0
@@ -112,7 +119,10 @@ class SlippagePredictor:
         self._training_data.append((features, actual_slippage_bps))
 
         now = time.time()
-        if now - self._last_fit > self._fit_interval and len(self._training_data) >= self.MIN_SAMPLES_FOR_MODEL:
+        if (
+            now - self._last_fit > self._fit_interval
+            and len(self._training_data) >= self.MIN_SAMPLES_FOR_MODEL
+        ):
             self._fit_model()
             self._last_fit = now
 
@@ -125,9 +135,9 @@ class SlippagePredictor:
             # OLS: β = (X'X)^-1 X'y
             coef, *_ = np.linalg.lstsq(X, y, rcond=None)
             self._model_coefficients = coef
-            logger.debug("[SlippagePredictor] Modèle refitté sur %d samples", len(data))
+            _log.debug("[SlippagePredictor] Modèle refitté sur %d samples", len(data))
         except Exception as exc:
-            logger.warning("[SlippagePredictor] Fit error: %s", exc)
+            _log.warning("[SlippagePredictor] Fit error: %s", exc)
 
     def _build_features(
         self,
@@ -142,16 +152,18 @@ class SlippagePredictor:
         size_ratio = order_size_usd / max(liquidity_depth_usd, 1.0)
         side_sign = 1.0 if side == "buy" else -1.0
         hour = time.localtime().tm_hour
-        liquidity_period = abs(hour - 14) / 14.0   # 0=peak NY hours, 1=off hours
+        liquidity_period = abs(hour - 14) / 14.0  # 0=peak NY hours, 1=off hours
 
-        return np.array([
-            size_ratio,
-            spread_bps / 100.0,
-            ob_imbalance * side_sign,
-            atr_pct * 100.0,
-            liquidity_period,
-            1.0,    # biais
-        ])
+        return np.array(
+            [
+                size_ratio,
+                spread_bps / 100.0,
+                ob_imbalance * side_sign,
+                atr_pct * 100.0,
+                liquidity_period,
+                1.0,  # biais
+            ]
+        )
 
     def _heuristic_slippage(
         self,

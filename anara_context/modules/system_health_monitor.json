@@ -1,0 +1,32 @@
+{
+  "module_id": "system_health_monitor",
+  "path": "quant_hedge_ai/agents/risk/system_health_monitor.py",
+  "layer": "risk",
+  "status": "production",
+  "phase": "P9",
+  "description": "Surveille la santé opérationnelle de chaque composant en temps réel. Collecte latence, erreurs, retries, état circuit-breaker. Statuts GREEN/YELLOW/RED avec escalade automatique YELLOW→RED après N cycles.",
+  "class": "SystemHealthMonitor",
+  "public_api": {
+    "record": "record(name, latency_ms, error, retries, cb_state) — enregistre un appel composant",
+    "tick_cycle": "tick_cycle() → List[str] — incrémente yellow_cycles, escalade YELLOW→RED si nécessaire",
+    "get_status": "get_status(name) → Optional[ComponentHealth]",
+    "get_dashboard": "get_dashboard() → Dict[str, ComponentHealth]",
+    "overall_health": "overall_health() → ComponentStatus",
+    "summary": "summary() → dict"
+  },
+  "dataclasses": ["ComponentHealth", "HealthEvent"],
+  "enums": ["ComponentStatus (GREEN/YELLOW/RED)"],
+  "env_vars": {
+    "P9_LATENCY_WARN_MS": "500 — seuil WARNING latence",
+    "P9_LATENCY_CRIT_MS": "2000 — seuil CRITICAL latence",
+    "P9_ERROR_RATE_WARN": "0.05 — 5% erreurs → YELLOW",
+    "P9_ERROR_RATE_CRIT": "0.20 — 20% erreurs → RED",
+    "P9_YELLOW_ESCALATION_CYCLES": "20 — YELLOW x20 cycles → RED"
+  },
+  "cb_states": {
+    "CRITICAL": ["DEGRADED", "DISABLED"],
+    "WARN": ["UNSTABLE"]
+  },
+  "dependencies": ["observability.json_logger"],
+  "used_by": ["self_monitoring_loop", "advisor_loop"]
+}

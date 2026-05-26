@@ -1,23 +1,39 @@
 {
   "_comment": "Index des modules pour Anara — système de génération automatique de textes dashboard",
-  "_version": "1.2",
-  "_updated": "2026-05-23",
+  "_version": "1.5",
+  "_updated": "2026-05-26",
   "layers": [
     {
       "layer_id": "signal",
       "display_name": "Signal Layer",
-      "modules": ["market_scanner", "feature_engineer", "live_signal_engine"]
+      "modules": ["market_scanner", "feature_engineer", "live_signal_engine", "sweep_detector"]
     },
     {
       "layer_id": "intelligence",
       "display_name": "Intelligence Layer",
       "modules": [
         "regime_detector",
+        "market_regime_classifier",
+        "adaptive_threshold_engine",
+        "regime_transition_smoother",
+        "meta_strategy_engine",
         "no_trade_layer",
         "conviction_engine",
         "self_awareness_engine",
         "ai_advisor",
-        "threat_radar"
+        "threat_radar",
+        "activity_tracker",
+        "behavioral_stability_monitor",
+        "behavioral_drift_detector",
+        "self_monitoring_loop",
+        "performance_supervisor",
+        "proactive_alerts",
+        "confidence_explainer",
+        "chief_officer",
+        "strategy_allocator",
+        "strategy_probation",
+        "confidence_scorer",
+        "correlation_monitor"
       ]
     },
     {
@@ -28,7 +44,14 @@
         "portfolio_brain",
         "order_sizer",
         "session_guard",
-        "executive_override"
+        "executive_override",
+        "risk_governor",
+        "capital_throttle",
+        "exposure_manager",
+        "circuit_breaker",
+        "system_health_monitor",
+        "anomaly_governance",
+        "portfolio_intelligence"
       ]
     },
     {
@@ -48,7 +71,9 @@
         "mistake_memory",
         "decision_quality_engine",
         "regret_engine",
-        "black_box"
+        "black_box",
+        "weekly_report",
+        "sweep_outcome_tracker"
       ]
     },
     {
@@ -57,7 +82,8 @@
       "modules": [
         "exchange_factory",
         "decision_packet",
-        "advisor_loop"
+        "advisor_loop",
+        "system_invariants"
       ]
     }
   ]

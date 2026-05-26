@@ -18,7 +18,6 @@ Usage :
 
 from __future__ import annotations
 
-import logging
 import os
 import smtplib
 import threading
@@ -30,8 +29,9 @@ from typing import Callable
 
 import requests
 
-log = logging.getLogger("exchange_monitor")
+from observability.json_logger import get_logger
 
+_log = get_logger("exchange_monitor")
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT = os.getenv("TELEGRAM_CHAT_ID", "")
 
@@ -116,7 +116,7 @@ class ExchangeMonitor:
         self._running = True
         self._thread = threading.Thread(target=self._monitor_loop, daemon=True)
         self._thread.start()
-        log.info("[ExchangeMonitor] Démarré (interval: %ds)", CHECK_INTERVAL)
+        _log.info("[ExchangeMonitor] Démarré (interval: %ds)", CHECK_INTERVAL)
 
     def stop(self) -> None:
         self._running = False
@@ -197,7 +197,7 @@ class ExchangeMonitor:
             if r.status_code == 200:
                 with self._lock:
                     self._health.record_success(latency_ms)
-                log.debug("[ExchangeMonitor] OK — %.0fms", latency_ms)
+                _log.debug("[ExchangeMonitor] OK — %.0fms", latency_ms)
 
                 # Récupération après panne
                 if self._was_offline:
@@ -207,14 +207,14 @@ class ExchangeMonitor:
                     self._was_offline = False
                     self._alerted_warn = False
                     self._alerted_critical = False
-                    log.info("[ExchangeMonitor] Exchange rétabli")
+                    _log.info("[ExchangeMonitor] Exchange rétabli")
                     if _notify:
                         self._send_telegram("Exchange RETABLI — connexion OK")
                     if self._on_recovered:
                         try:
                             self._on_recovered()
                         except Exception as exc:
-                            log.error("[ExchangeMonitor] Callback recovered: %s", exc)
+                            _log.error("[ExchangeMonitor] Callback recovered: %s", exc)
             else:
                 raise RuntimeError(f"HTTP {r.status_code}")
 
@@ -224,14 +224,14 @@ class ExchangeMonitor:
                 self._health.record_failure(err)
                 failures = self._health.consecutive_failures
 
-            log.warning("[ExchangeMonitor] Echec ping #%d: %s", failures, err)
+            _log.warning("[ExchangeMonitor] Echec ping #%d: %s", failures, err)
             self._was_offline = True
             self._handle_failure(failures, err)
 
     def _handle_failure(self, failures: int, error: str) -> None:
         if failures >= WARN_AFTER and not self._alerted_warn:
             self._alerted_warn = True
-            log.error("[ExchangeMonitor] Exchange HORS LIGNE (%d checks)", failures)
+            _log.error("[ExchangeMonitor] Exchange HORS LIGNE (%d checks)", failures)
             self._send_telegram(
                 f"ALERTE — Exchange HORS LIGNE\n"
                 f"Echecs consecutifs: {failures}\n"
@@ -242,11 +242,11 @@ class ExchangeMonitor:
                 try:
                     self._on_offline()
                 except Exception as exc:
-                    log.error("[ExchangeMonitor] Callback offline: %s", exc)
+                    _log.error("[ExchangeMonitor] Callback offline: %s", exc)
 
         if failures >= CRITICAL_AFTER and not self._alerted_critical:
             self._alerted_critical = True
-            log.critical("[ExchangeMonitor] Exchange CRITIQUE — %d echecs", failures)
+            _log.critical("[ExchangeMonitor] Exchange CRITIQUE — %d echecs", failures)
             self._send_email(
                 subject="[URGENT] Crypto AI — Exchange hors ligne",
                 body=(
@@ -274,12 +274,12 @@ class ExchangeMonitor:
                 timeout=10,
             )
         except Exception as exc:
-            log.debug("[ExchangeMonitor] Telegram erreur: %s", exc)
+            _log.debug("[ExchangeMonitor] Telegram erreur: %s", exc)
 
     def _send_email(self, subject: str, body: str) -> None:
-        log.info("[ExchangeMonitor] Mail: %s", subject)
+        _log.info("[ExchangeMonitor] Mail: %s", subject)
         if not SMTP_USER or not SMTP_PASS:
-            log.warning("[ExchangeMonitor] Mail non configuré — fallback Telegram")
+            _log.warning("[ExchangeMonitor] Mail non configuré — fallback Telegram")
             self._send_telegram(f"RAPPORT (mail non dispo): {subject}\n{body[:400]}")
             return
         try:
@@ -293,7 +293,7 @@ class ExchangeMonitor:
                 smtp.starttls()
                 smtp.login(SMTP_USER, SMTP_PASS)
                 smtp.sendmail(SMTP_USER, EMAIL_TO, msg.as_string())
-            log.info("[ExchangeMonitor] Mail envoyé → %s", EMAIL_TO)
+            _log.info("[ExchangeMonitor] Mail envoyé → %s", EMAIL_TO)
         except Exception as exc:
-            log.error("[ExchangeMonitor] Echec mail: %s", exc)
+            _log.error("[ExchangeMonitor] Echec mail: %s", exc)
             self._send_telegram(f"URGENT (mail échoué): {subject}\n{body[:300]}")

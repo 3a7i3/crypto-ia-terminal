@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-import logging
 import random
 from dataclasses import dataclass, field
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
+
+_log = get_logger("quant_hedge_ai.market_radar.social_scanner")
 
 
 @dataclass
@@ -65,7 +66,7 @@ class SocialScanner:
         report = self._build_report(all_signals)
         self._update_history(all_signals)
 
-        logger.info(
+        _log.info(
             "SocialScanner: %d signals, trending=%s, sentiment=%.2f",
             len(all_signals),
             report.trending_tokens,

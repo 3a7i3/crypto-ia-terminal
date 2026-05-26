@@ -10,15 +10,15 @@ Rôle:
 
 from __future__ import annotations
 
-import logging
 from collections import Counter
 from pathlib import Path
 
+from observability.json_logger import get_logger
 from pieuvre.incidents.models import Finding, IncidentType, Severity
 from pieuvre.incidents.store import IncidentStore
 from pieuvre.tentacles.base import BaseTentacle
 
-logger = logging.getLogger(__name__)
+_log = get_logger("pieuvre.tentacles.memoire")
 
 
 class MemoireTentacle(BaseTentacle):

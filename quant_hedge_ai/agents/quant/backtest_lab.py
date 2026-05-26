@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-import logging
 import math
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
 
-
+_log = get_logger("quant_hedge_ai.agents.quant.backtest_lab")
 # ── Indicateurs techniques (stdlib + math, pas de dépendance externe) ──────────
 
 
@@ -191,7 +190,7 @@ class BacktestLab:
         volumes = [float(c.get("volume", 1.0)) for c in data]
 
         if len(closes) < self.MIN_BARS:
-            logger.warning("[BacktestLab] Série trop courte (%d barres)", len(closes))
+            _log.warning("[BacktestLab] Série trop courte (%d barres)", len(closes))
             return self._empty_result(strategy)
 
         sigs = _signals(strategy, closes, highs, lows, volumes)

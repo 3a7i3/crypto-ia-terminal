@@ -11,10 +11,11 @@ This guards against:
 
 from __future__ import annotations
 
-import logging
 import time
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
+
+_log = get_logger("quant_hedge_ai.agents.execution.order_deduplicator")
 
 
 class OrderDeduplicator:
@@ -34,9 +35,12 @@ class OrderDeduplicator:
         last = self._recent.get(key, 0.0)
         duplicate = (time.time() - last) < self._window
         if duplicate:
-            logger.warning(
+            _log.warning(
                 "[Dedup] Duplicate order blocked: %s %s %.4f (last accepted %.1fs ago)",
-                action, symbol, size, time.time() - last,
+                action,
+                symbol,
+                size,
+                time.time() - last,
             )
         return duplicate
 

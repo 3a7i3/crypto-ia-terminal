@@ -190,9 +190,14 @@ utilise `check_packet()`, le check passe silencieusement (aucun match).
 **Conséquence :** Régimes supposés blacklistés non filtrés dans le flux packet.
 Risque de trade en régime interdit sans alerte.
 
-**Action à terme :** Migrer `blacklisted_regimes` vers `Set[MarketRegime]`.
-`check()` devrait mapper les strings LSE vers `MarketRegime` avant comparaison.
-Un seul format de régime dans tout le système (voir D2, D9).
+**[CORRIGÉ 2026-05-26]** `GlobalRiskGate` normalise maintenant les régimes
+legacy (`"flash_crash"`, `"bull_trend"`, `"sideways"`) et packet
+(`"VOLATILE"`, `"TREND_BULL"`, `"RANGE"`) avant de comparer la blacklist.
+Le correctif couvre `check()`, `check_packet()`, `blacklist_regime()` et
+`unblacklist_regime()`.
+
+**Action à terme :** Conserver la normalisation tant que le système accepte
+les deux APIs, puis migrer progressivement vers un seul contrat de régime.
 
 ---
 

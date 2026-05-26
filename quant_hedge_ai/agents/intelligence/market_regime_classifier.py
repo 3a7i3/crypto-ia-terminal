@@ -21,15 +21,14 @@ Supporte les deux formats de régime :
 
 from __future__ import annotations
 
-import logging
 import os
 from collections import deque
 from dataclasses import dataclass
 from typing import Deque
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
 
-
+_log = get_logger("quant_hedge_ai.agents.intelligence.market_regime_classifier")
 # ── RegimePacket — sortie enrichie du classifieur ────────────────────────────
 
 
@@ -112,7 +111,7 @@ class RegimeStateTracker:
             self._confidence = 0.5  # reset à la transition
             self._in_transition = True
             changed = True
-            logger.info(
+            _log.info(
                 "[RegimeStateTracker] Transition confirmée: %s → %s",
                 self._prev_stable,
                 self._stable_regime,
@@ -336,7 +335,7 @@ class MarketRegimeClassifier:
         """Retourne la configuration pour le régime donné (les deux formats)."""
         cfg = _REGIME_CONFIGS.get(regime)
         if cfg is None:
-            logger.debug(
+            _log.debug(
                 "[RegimeClassifier] Régime inconnu: %r → config par défaut", regime
             )
             return _DEFAULT_CONFIG
@@ -368,7 +367,7 @@ class MarketRegimeClassifier:
         """Log la configuration active pour le régime."""
         cfg = self.get_config(regime)
         effective = self.effective_min_score(regime, delta)
-        logger.info(
+        _log.info(
             "[RegimeClassifier] %s → min_score=%d (base=%d delta=%d) "
             "SL×%.1f TP×%.1f size×%.1f trail=%s confirm=%s",
             regime,

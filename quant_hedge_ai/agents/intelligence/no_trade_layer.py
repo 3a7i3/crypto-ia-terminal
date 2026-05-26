@@ -17,22 +17,23 @@ Retourne :
 
 from __future__ import annotations
 
-import logging
 import os
 import time
 from dataclasses import dataclass
 from typing import Optional
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
+
+_log = get_logger("quant_hedge_ai.agents.intelligence.no_trade_layer")
 
 
 @dataclass
 class NoTradeVerdict:
-    allowed:          bool
-    rejection_score:  float    # [0, 100] — plus c'est haut, plus le rejet est fort
-    reason:           str
-    category:         str      # "market_quality" | "fomo" | "signal" | "tactical_pause" | "ok"
-    details:          list     = None
+    allowed: bool
+    rejection_score: float  # [0, 100] — plus c'est haut, plus le rejet est fort
+    reason: str
+    category: str  # "market_quality" | "fomo" | "signal" | "tactical_pause" | "ok"
+    details: list = None
 
     def __post_init__(self):
         if self.details is None:
@@ -53,45 +54,57 @@ class NoTradeIntelligence:
     # ── Seuils ────────────────────────────────────────────────────────────────
 
     # Market quality
-    MIN_VOLUME_RATIO    = float(os.getenv("NTL_MIN_VOLUME_RATIO",  "0.3")) # vol récent / avg
-    MAX_SPREAD_PCT      = float(os.getenv("NTL_MAX_SPREAD_PCT",    "0.005"))# 0.5%
-    MIN_CANDLES         = int(os.getenv("NTL_MIN_CANDLES",         "50"))  # min bougies valides
-    CHOP_THRESHOLD      = float(os.getenv("NTL_CHOP_THRESHOLD",    "0.6")) # ADX chop si < 20 pts score
+    MIN_VOLUME_RATIO = float(
+        os.getenv("NTL_MIN_VOLUME_RATIO", "0.3")
+    )  # vol récent / avg
+    MAX_SPREAD_PCT = float(os.getenv("NTL_MAX_SPREAD_PCT", "0.005"))  # 0.5%
+    MIN_CANDLES = int(os.getenv("NTL_MIN_CANDLES", "50"))  # min bougies valides
+    CHOP_THRESHOLD = float(
+        os.getenv("NTL_CHOP_THRESHOLD", "0.6")
+    )  # ADX chop si < 20 pts score
 
     # Anti-FOMO
-    MAX_MOVE_PCT        = float(os.getenv("NTL_MAX_MOVE_PCT",      "0.03")) # move déjà fait > 3%
-    FOMO_WINDOW_CANDLES = int(os.getenv("NTL_FOMO_WINDOW",         "3"))    # sur les N dernières bougies
-    MAX_ATR_MULTIPLIER  = float(os.getenv("NTL_MAX_ATR_MULT",      "2.5"))  # prix déjà à 2.5× ATR du low
+    MAX_MOVE_PCT = float(os.getenv("NTL_MAX_MOVE_PCT", "0.03"))  # move déjà fait > 3%
+    FOMO_WINDOW_CANDLES = int(
+        os.getenv("NTL_FOMO_WINDOW", "3")
+    )  # sur les N dernières bougies
+    MAX_ATR_MULTIPLIER = float(
+        os.getenv("NTL_MAX_ATR_MULT", "2.5")
+    )  # prix déjà à 2.5× ATR du low
 
     # Signal quality
-    MIN_SCORE           = int(os.getenv("NTL_MIN_SCORE",           "65"))
-    MAX_AGE_SECONDS     = float(os.getenv("NTL_MAX_SIGNAL_AGE",    "300"))  # signal > 5min = expiré
-    CONTRADICTION_SCORE = float(os.getenv("NTL_CONTRADICTION",     "0.4"))  # MTF contradiction > 40%
+    MIN_SCORE = int(os.getenv("NTL_MIN_SCORE", "65"))
+    MAX_AGE_SECONDS = float(
+        os.getenv("NTL_MAX_SIGNAL_AGE", "300")
+    )  # signal > 5min = expiré
+    CONTRADICTION_SCORE = float(
+        os.getenv("NTL_CONTRADICTION", "0.4")
+    )  # MTF contradiction > 40%
 
     # Rejection scoring weights
-    W_MARKET   = float(os.getenv("NTL_W_MARKET",   "35"))
-    W_FOMO     = float(os.getenv("NTL_W_FOMO",     "25"))
-    W_SIGNAL   = float(os.getenv("NTL_W_SIGNAL",   "25"))
+    W_MARKET = float(os.getenv("NTL_W_MARKET", "35"))
+    W_FOMO = float(os.getenv("NTL_W_FOMO", "25"))
+    W_SIGNAL = float(os.getenv("NTL_W_SIGNAL", "25"))
     W_TACTICAL = float(os.getenv("NTL_W_TACTICAL", "15"))
 
     REJECT_THRESHOLD = float(os.getenv("NTL_REJECT_THRESHOLD", "50"))
 
     def __init__(self) -> None:
-        self._tactical_pause_until: float       = 0.0
-        self._tactical_pause_reason: str        = ""
-        self._rejection_log: list[dict]         = []
+        self._tactical_pause_until: float = 0.0
+        self._tactical_pause_reason: str = ""
+        self._rejection_log: list[dict] = []
         self._stats = {"checked": 0, "rejected": 0, "by_category": {}}
 
     # ── API principale ────────────────────────────────────────────────────────
 
     def check(
         self,
-        signal,                         # SignalResult
-        candles:        list,           # bougies 1h
-        features:       dict,
-        regime:         str,
-        signal_age_s:   float   = 0.0,
-        personality_name: str   = "unknown",
+        signal,  # SignalResult
+        candles: list,  # bougies 1h
+        features: dict,
+        regime: str,
+        signal_age_s: float = 0.0,
+        personality_name: str = "unknown",
     ) -> NoTradeVerdict:
         """
         Vérifie si le trade est acceptable.
@@ -99,7 +112,7 @@ class NoTradeIntelligence:
         """
         self._stats["checked"] += 1
         details = []
-        scores  = {}
+        scores = {}
 
         # ── 1. Tactical pause ─────────────────────────────────────────────────
         if self._tactical_pause_until > time.time():
@@ -121,15 +134,17 @@ class NoTradeIntelligence:
         details += fomo_issues
 
         # ── 4. Signal quality ─────────────────────────────────────────────────
-        sig_score, sig_issues = self._check_signal_quality(signal, signal_age_s, regime, personality_name)
+        sig_score, sig_issues = self._check_signal_quality(
+            signal, signal_age_s, regime, personality_name
+        )
         scores["signal"] = sig_score
         details += sig_issues
 
         # ── Score de rejet composite ──────────────────────────────────────────
         rejection = (
-            scores["market"]  * self.W_MARKET   / 100 +
-            scores["fomo"]    * self.W_FOMO     / 100 +
-            scores["signal"]  * self.W_SIGNAL   / 100
+            scores["market"] * self.W_MARKET / 100
+            + scores["fomo"] * self.W_FOMO / 100
+            + scores["signal"] * self.W_SIGNAL / 100
         )
 
         if rejection >= self.REJECT_THRESHOLD:
@@ -150,25 +165,29 @@ class NoTradeIntelligence:
             details=details,
         )
 
-    def engage_tactical_pause(self, reason: str, duration_minutes: float = 60.0) -> None:
+    def engage_tactical_pause(
+        self, reason: str, duration_minutes: float = 60.0
+    ) -> None:
         """Bloque tout trading pour une durée donnée."""
-        self._tactical_pause_until  = time.time() + duration_minutes * 60
+        self._tactical_pause_until = time.time() + duration_minutes * 60
         self._tactical_pause_reason = reason
-        logger.warning("[NoTrade] Pause tactique %dmin — %s", int(duration_minutes), reason)
+        _log.warning(
+            "[NoTrade] Pause tactique %dmin — %s", int(duration_minutes), reason
+        )
 
     def lift_tactical_pause(self) -> None:
         self._tactical_pause_until = 0.0
-        logger.info("[NoTrade] Pause tactique levée")
+        _log.info("[NoTrade] Pause tactique levée")
 
     def stats(self) -> dict:
-        total    = self._stats["checked"]
+        total = self._stats["checked"]
         rejected = self._stats["rejected"]
         return {
-            "checked":       total,
-            "rejected":      rejected,
+            "checked": total,
+            "rejected": rejected,
             "rejection_rate": round(rejected / total, 3) if total else 0.0,
-            "by_category":   self._stats["by_category"],
-            "recent":        self._rejection_log[-10:],
+            "by_category": self._stats["by_category"],
+            "recent": self._rejection_log[-10:],
         }
 
     # ── Vérifications ─────────────────────────────────────────────────────────
@@ -177,11 +196,13 @@ class NoTradeIntelligence:
         self, candles: list, features: dict
     ) -> tuple[float, list[str]]:
         """Score de rejet [0-100] pour qualité du marché."""
-        score  = 0.0
+        score = 0.0
         issues = []
 
         if not candles or len(candles) < self.MIN_CANDLES:
-            issues.append(f"Données insuffisantes ({len(candles) if candles else 0} bougies)")
+            issues.append(
+                f"Données insuffisantes ({len(candles) if candles else 0} bougies)"
+            )
             return 80.0, issues
 
         # Volume anormalement bas
@@ -213,15 +234,15 @@ class NoTradeIntelligence:
         self, candles: list, features: dict, signal
     ) -> tuple[float, list[str]]:
         """Score de rejet [0-100] pour FOMO / entrée tardive."""
-        score  = 0.0
+        score = 0.0
         issues = []
 
         if not candles or len(candles) < self.FOMO_WINDOW_CANDLES + 2:
             return 0.0, issues
 
         closes = [float(c.get("close", 0)) for c in candles]
-        recent = closes[-self.FOMO_WINDOW_CANDLES:]
-        ref    = closes[-(self.FOMO_WINDOW_CANDLES + 1)]
+        recent = closes[-self.FOMO_WINDOW_CANDLES :]
+        ref = closes[-(self.FOMO_WINDOW_CANDLES + 1)]
 
         if ref <= 0:
             return 0.0, issues
@@ -240,11 +261,13 @@ class NoTradeIntelligence:
         atr = float(features.get("atr", 0.0))
         if atr > 0:
             price = closes[-1]
-            ma    = sum(closes[-20:]) / 20
-            dist  = abs(price - ma) / atr
+            ma = sum(closes[-20:]) / 20
+            dist = abs(price - ma) / atr
             if dist >= self.MAX_ATR_MULTIPLIER:
                 score += 35
-                issues.append(f"Prix à {dist:.1f}× ATR de la moyenne — extension excessive")
+                issues.append(
+                    f"Prix à {dist:.1f}× ATR de la moyenne — extension excessive"
+                )
 
         return min(100.0, score), issues
 
@@ -252,14 +275,16 @@ class NoTradeIntelligence:
         self, signal, age_s: float, regime: str, personality_name: str
     ) -> tuple[float, list[str]]:
         """Score de rejet [0-100] pour qualité du signal."""
-        score  = 0.0
+        score = 0.0
         issues = []
 
         # Score signal trop bas
         sig_score = getattr(signal, "score", 0)
         if sig_score < self.MIN_SCORE:
             score += 45
-            issues.append(f"Score signal faible: {sig_score}/100 (min {self.MIN_SCORE})")
+            issues.append(
+                f"Score signal faible: {sig_score}/100 (min {self.MIN_SCORE})"
+            )
 
         # Signal expiré
         if age_s > self.MAX_AGE_SECONDS:
@@ -283,20 +308,25 @@ class NoTradeIntelligence:
     # ── Interne ───────────────────────────────────────────────────────────────
 
     def _reject(
-        self, category: str, reason: str,
-        rejection_score: float, details: list = None
+        self, category: str, reason: str, rejection_score: float, details: list = None
     ) -> NoTradeVerdict:
         self._stats["rejected"] += 1
         self._stats["by_category"][category] = (
             self._stats["by_category"].get(category, 0) + 1
         )
-        self._rejection_log.append({
-            "ts": time.time(), "category": category,
-            "reason": reason, "score": rejection_score,
-        })
+        self._rejection_log.append(
+            {
+                "ts": time.time(),
+                "category": category,
+                "reason": reason,
+                "score": rejection_score,
+            }
+        )
         if len(self._rejection_log) > 200:
             self._rejection_log = self._rejection_log[-200:]
-        logger.info("[NoTrade] REJET (%s) score=%.0f — %s", category, rejection_score, reason)
+        _log.info(
+            "[NoTrade] REJET (%s) score=%.0f — %s", category, rejection_score, reason
+        )
         return NoTradeVerdict(
             allowed=False,
             rejection_score=rejection_score,

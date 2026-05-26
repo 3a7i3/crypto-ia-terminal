@@ -1,14 +1,13 @@
 from __future__ import annotations
 
-import logging
 from pathlib import Path
 from typing import Any
 
+from observability.json_logger import get_logger
 from tracker_system.config.settings import TRADES_LOG_FILE
 from tracker_system.storage.loader import load_jsonl
 
-logger = logging.getLogger(__name__)
-
+_log = get_logger("tracker_system.core.boot_validator")
 REQUIRED_ENTRY_FIELDS: tuple[str, ...] = (
     "type",
     "symbol",
@@ -91,7 +90,7 @@ def validate_log_file(
         if strict:
             raise SchemaValidationError(msg)
 
-        logger.warning(msg)
+        _log.warning(msg)
 
     result = {
         "total": len(events),
@@ -101,14 +100,14 @@ def validate_log_file(
     }
 
     if errors:
-        logger.warning(
+        _log.warning(
             "[boot_validator] %d/%d events invalides dans %s",
             len(errors),
             len(events),
             log_file,
         )
     else:
-        logger.info(
+        _log.info(
             "[boot_validator] Schéma OK — %d events validés dans %s",
             len(events),
             log_file,

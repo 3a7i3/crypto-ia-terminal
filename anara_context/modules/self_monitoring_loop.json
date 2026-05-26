@@ -1,0 +1,27 @@
+{
+  "module_id": "self_monitoring_loop",
+  "path": "quant_hedge_ai/agents/intelligence/self_monitoring_loop.py",
+  "layer": "intelligence",
+  "status": "production",
+  "phase": "P9",
+  "description": "Le système surveille sa propre surveillance. Agrège SystemHealthMonitor + BehavioralDriftDetector en un meta_health_score global. Déclenche alerte niveau 2 si score < seuil ou BDD instable.",
+  "class": "SelfMonitoringLoop",
+  "public_api": {
+    "tick": "tick(cycle, health_monitor, drift_detector, rg_state) → MetaHealthSnapshot",
+    "level2_alert_count": "property → int",
+    "last_snapshot": "last_snapshot() → Optional[MetaHealthSnapshot]",
+    "summary": "summary() → dict"
+  },
+  "formula": "meta_health_score = 0.4 × component_health_score + 0.4 × drift_absence_score + 0.2 × transition_stability",
+  "dataclasses": ["MetaHealthSnapshot"],
+  "alerts": {
+    "level2": "meta_health_score < P9_META_HEALTH_ALERT ou BDD instable"
+  },
+  "env_vars": {
+    "P9_META_HEALTH_ALERT": "0.60 — seuil alerte niveau 2",
+    "P9_BDD_FREQ_THRESHOLD": "1.0 — alertes/10c → BDD suractive",
+    "P9_BDD_UNSTABLE_CYCLES": "3 — cycles consécutifs suractive → BDD instable"
+  },
+  "dependencies": ["system_health_monitor", "behavioral_drift_detector", "observability.json_logger"],
+  "used_by": ["advisor_loop"]
+}

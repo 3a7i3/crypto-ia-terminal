@@ -26,10 +26,11 @@ Usage in main_v91.py:
 from __future__ import annotations
 
 import contextlib
-import logging
 import time
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
+
+_log = get_logger("supervision.ops_watchdog")
 
 
 class OpsWatchdog:
@@ -47,6 +48,7 @@ class OpsWatchdog:
     def from_env(cls) -> "OpsWatchdog":
         """Build with OpsNotifier auto-loaded from environment variables."""
         from supervision.notifications.ops_notifier import OpsNotifier
+
         notifier = OpsNotifier.from_env()
         return cls(notifier=notifier)
 
@@ -67,7 +69,7 @@ class OpsWatchdog:
         except KeyboardInterrupt:
             raise
         except Exception as exc:
-            logger.error("[OpsWatchdog] Unhandled exception in %s: %s", context, exc)
+            _log.error("[OpsWatchdog] Unhandled exception in %s: %s", context, exc)
             if self._notifier:
                 self._notifier.crash(context, exc)
             raise
@@ -126,9 +128,11 @@ class OpsWatchdog:
         """
         age = time.time() - last_data_ts
         if age > threshold_seconds:
-            logger.warning(
+            _log.warning(
                 "[OpsWatchdog] %s data stale: %.0fs old (threshold %.0fs)",
-                symbol, age, threshold_seconds,
+                symbol,
+                age,
+                threshold_seconds,
             )
             if self._notifier:
                 self._notifier.ws_disconnect(symbol, age)
@@ -158,7 +162,9 @@ class OpsWatchdog:
 
     # ── Startup / shutdown ────────────────────────────────────────────────────
 
-    def notify_startup(self, mode: str = "paper", symbols: list[str] | None = None) -> None:
+    def notify_startup(
+        self, mode: str = "paper", symbols: list[str] | None = None
+    ) -> None:
         """Send a startup notification. Call once when the bot starts."""
         sym_str = ", ".join(symbols) if symbols else "?"
         msg = f"[START] Bot started\nMode: {mode}\nSymbols: {sym_str}"

@@ -6,9 +6,9 @@ Remplace le RegimeDetector déterministe par un HMM probabiliste qui :
 - Maintient une matrice de transition apprise
 - Permet la prédiction de changement de régime
 """
+
 from __future__ import annotations
 
-import logging
 import pickle
 from dataclasses import dataclass
 from pathlib import Path
@@ -16,8 +16,9 @@ from typing import Any
 
 import numpy as np
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
 
+_log = get_logger("quant_hedge_ai.agents.intelligence.v2.hmm_regime_engine")
 _MODEL_PATH = Path("databases/hmm_regime_model.pkl")
 
 
@@ -31,7 +32,9 @@ class RegimeProbabilities:
     # Méta
     dominant: str = "chop"
     confidence: float = 0.25
-    entropy: float = 1.0        # entropie de Shannon [0, log2(4)] : 0=certitude, 2=incertitude totale
+    entropy: float = (
+        1.0  # entropie de Shannon [0, log2(4)] : 0=certitude, 2=incertitude totale
+    )
     timestamp: float = 0.0
 
     def to_dict(self) -> dict[str, float]:
@@ -56,7 +59,9 @@ class RegimeProbabilities:
             self.bear /= total
             self.chop /= total
             self.high_vol /= total
-        self.dominant = max(["bull", "bear", "chop", "high_vol"], key=lambda r: getattr(self, r))
+        self.dominant = max(
+            ["bull", "bear", "chop", "high_vol"], key=lambda r: getattr(self, r)
+        )
         self.confidence = getattr(self, self.dominant)
         probs = [self.bull, self.bear, self.chop, self.high_vol]
         self.entropy = -sum(p * np.log2(p + 1e-10) for p in probs)
@@ -102,10 +107,14 @@ class HMMRegimeEngine:
             probs = self._hmm_predict(obs)
 
         # Tenter un entraînement incrémental
-        if len(self._training_buffer) >= self.MIN_SAMPLES_TRAIN and len(self._training_buffer) % 20 == 0:
+        if (
+            len(self._training_buffer) >= self.MIN_SAMPLES_TRAIN
+            and len(self._training_buffer) % 20 == 0
+        ):
             self._fit()
 
         import time
+
         probs.timestamp = time.time()
         self._last_probs[symbol] = probs
         return probs
@@ -125,6 +134,7 @@ class HMMRegimeEngine:
     def _fit(self) -> None:
         try:
             from hmmlearn.hmm import GaussianHMM
+
             X = np.array(self._training_buffer)
             lengths = [len(X)]
             model = GaussianHMM(
@@ -137,9 +147,9 @@ class HMMRegimeEngine:
             self._model = model
             self._is_fitted = True
             self._save_model()
-            logger.debug("[HMMRegime] Modèle entraîné sur %d samples", len(X))
+            _log.debug("[HMMRegime] Modèle entraîné sur %d samples", len(X))
         except Exception as exc:
-            logger.warning("[HMMRegime] Fit error: %s", exc)
+            _log.warning("[HMMRegime] Fit error: %s", exc)
 
     def _hmm_predict(self, obs: list[float]) -> RegimeProbabilities:
         """Décode les probabilités d'état pour l'observation actuelle."""
@@ -150,7 +160,11 @@ class HMMRegimeEngine:
             probs_array = posteriors[0]
 
             # Mapper les états HMM → régimes nommés (par variance apprise)
-            state_vars = np.diag(self._model.covars_[..., 0].mean(axis=-1)) if hasattr(self._model, 'covars_') else np.arange(self.N_STATES)
+            state_vars = (
+                np.diag(self._model.covars_[..., 0].mean(axis=-1))
+                if hasattr(self._model, "covars_")
+                else np.arange(self.N_STATES)
+            )
             ordered_states = np.argsort(state_vars)
 
             # Heuristique : état low-var → chop, high-var → high_vol
@@ -169,7 +183,7 @@ class HMMRegimeEngine:
             result.normalize()
             return result
         except Exception as exc:
-            logger.debug("[HMMRegime] predict error: %s", exc)
+            _log.debug("[HMMRegime] predict error: %s", exc)
             return self._heuristic_regime({})
 
     def _heuristic_regime(self, features: dict[str, float]) -> RegimeProbabilities:
@@ -207,7 +221,14 @@ class HMMRegimeEngine:
 
     def _extract_obs(self, features: dict[str, float]) -> list[float]:
         """Extrait les features d'observation pour le HMM."""
-        keys = ["rsi_14", "atr_pct", "ema_cross", "volume_ratio", "ob_imbalance", "funding_rate"]
+        keys = [
+            "rsi_14",
+            "atr_pct",
+            "ema_cross",
+            "volume_ratio",
+            "ob_imbalance",
+            "funding_rate",
+        ]
         return [float(features.get(k, 0.0)) for k in keys]
 
     def _save_model(self) -> None:
@@ -216,7 +237,7 @@ class HMMRegimeEngine:
             with _MODEL_PATH.open("wb") as f:
                 pickle.dump(self._model, f)
         except Exception as exc:
-            logger.debug("[HMMRegime] save error: %s", exc)
+            _log.debug("[HMMRegime] save error: %s", exc)
 
     def _load_model(self) -> None:
         try:
@@ -224,6 +245,6 @@ class HMMRegimeEngine:
                 with _MODEL_PATH.open("rb") as f:
                     self._model = pickle.load(f)
                     self._is_fitted = True
-                logger.info("[HMMRegime] Modèle chargé depuis %s", _MODEL_PATH)
+                _log.info("[HMMRegime] Modèle chargé depuis %s", _MODEL_PATH)
         except Exception as exc:
-            logger.debug("[HMMRegime] load error: %s", exc)
+            _log.debug("[HMMRegime] load error: %s", exc)

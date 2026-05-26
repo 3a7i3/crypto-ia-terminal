@@ -22,12 +22,13 @@ Ou en serveur bloquant :
 
 from __future__ import annotations
 
-import logging
 import math
 import threading
 from typing import Any
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
+
+_log = get_logger("quant_hedge_ai.agents.risk.risk_dashboard_api")
 
 
 def _make_app(paper_engine, shadow_engine=None):
@@ -98,12 +99,8 @@ def _make_app(paper_engine, shadow_engine=None):
         return {
             "max_adverse_excursion": round(min(maes, default=0.0), 4),
             "max_favorable_excursion": round(max(mfes, default=0.0), 4),
-            "avg_adverse_excursion": round(
-                sum(maes) / len(maes) if maes else 0.0, 4
-            ),
-            "avg_favorable_excursion": round(
-                sum(mfes) / len(mfes) if mfes else 0.0, 4
-            ),
+            "avg_adverse_excursion": round(sum(maes) / len(maes) if maes else 0.0, 4),
+            "avg_favorable_excursion": round(sum(mfes) / len(mfes) if mfes else 0.0, 4),
         }
 
     # ── Endpoints ──────────────────────────────────────────────────────────────
@@ -153,11 +150,7 @@ def _make_app(paper_engine, shadow_engine=None):
 
     @app.get("/exposure")
     def exposure() -> dict:
-        positions = {
-            k: round(v, 6)
-            for k, v in paper_engine.positions.items()
-            if v > 0
-        }
+        positions = {k: round(v, 6) for k, v in paper_engine.positions.items() if v > 0}
         return {
             "n_open_positions": len(positions),
             "positions": positions,
@@ -197,22 +190,26 @@ class RiskDashboardAPI:
             import uvicorn
         except ImportError:
             raise ImportError("uvicorn requis : pip install uvicorn")
-        logger.info("[RiskDashboard] Démarrage sur http://%s:%d", host, port)
+        _log.info("[RiskDashboard] Démarrage sur http://%s:%d", host, port)
         uvicorn.run(self.app, host=host, port=port, log_level="warning")
 
     def run_background(self, host: str = "127.0.0.1", port: int = 8765) -> None:
         def _target():
             try:
                 import uvicorn
+
                 uvicorn.run(
-                    self.app, host=host, port=port,
-                    log_level="warning", access_log=False
+                    self.app,
+                    host=host,
+                    port=port,
+                    log_level="warning",
+                    access_log=False,
                 )
             except Exception as exc:
-                logger.error("[RiskDashboard] Erreur serveur: %s", exc)
+                _log.error("[RiskDashboard] Erreur serveur: %s", exc)
 
         self._server_thread = threading.Thread(
             target=_target, daemon=True, name="RiskDashboard"
         )
         self._server_thread.start()
-        logger.info("[RiskDashboard] Background démarré sur http://%s:%d", host, port)
+        _log.info("[RiskDashboard] Background démarré sur http://%s:%d", host, port)

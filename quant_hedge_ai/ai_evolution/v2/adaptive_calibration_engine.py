@@ -5,17 +5,18 @@ Ajuste automatiquement les paramètres du système en fonction des
 performances récentes : seuils de conviction, poids d'arbitration,
 seuils de régime, taille des positions.
 """
+
 from __future__ import annotations
 
 import json
-import logging
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
 
+_log = get_logger("quant_hedge_ai.ai_evolution.v2.adaptive_calibration_engine")
 _CALIBRATION_PATH = Path("databases/calibration_state.json")
 
 
@@ -64,8 +65,8 @@ class AdaptiveCalibrationEngine:
     """
 
     # Fréquence de calibration
-    MIN_INTERVAL_SECONDS = 3600    # toutes les heures au minimum
-    MIN_TRADES_FOR_CALIB = 10      # minimum de trades avant calibration
+    MIN_INTERVAL_SECONDS = 3600  # toutes les heures au minimum
+    MIN_TRADES_FOR_CALIB = 10  # minimum de trades avant calibration
 
     def __init__(self) -> None:
         self._state = self._load_state()
@@ -93,7 +94,11 @@ class AdaptiveCalibrationEngine:
         if n_recent_trades < self.MIN_TRADES_FOR_CALIB:
             return self._state
 
-        logger.info("[Calibration] Calibration #%d démarrée (WR=%.0f%%)", self._state.calibration_count + 1, recent_win_rate * 100)
+        _log.info(
+            "[Calibration] Calibration #%d démarrée (WR=%.0f%%)",
+            self._state.calibration_count + 1,
+            recent_win_rate * 100,
+        )
 
         # Ajustement global basé sur le win rate
         self._adjust_global_thresholds(recent_win_rate, recent_avg_pnl)
@@ -111,8 +116,11 @@ class AdaptiveCalibrationEngine:
         self._last_calib_time = now
         self._save_state()
 
-        logger.info("[Calibration] Nouvelle conviction_min=%.2f, size_scale_chop=%.2f",
-                    self._state.conviction_min_threshold, self._state.size_scale_chop)
+        _log.info(
+            "[Calibration] Nouvelle conviction_min=%.2f, size_scale_chop=%.2f",
+            self._state.conviction_min_threshold,
+            self._state.size_scale_chop,
+        )
         return self._state
 
     def get_size_scale(self, regime: str) -> float:
@@ -136,12 +144,20 @@ class AdaptiveCalibrationEngine:
     def _adjust_global_thresholds(self, win_rate: float, avg_pnl: float) -> None:
         if win_rate < 0.40:
             # Mauvaise période → plus conservateur
-            self._state.conviction_min_threshold = min(self._state.conviction_min_threshold + 0.03, 0.65)
-            self._state.arbitration_execute_threshold = min(self._state.arbitration_execute_threshold + 0.03, 0.55)
+            self._state.conviction_min_threshold = min(
+                self._state.conviction_min_threshold + 0.03, 0.65
+            )
+            self._state.arbitration_execute_threshold = min(
+                self._state.arbitration_execute_threshold + 0.03, 0.55
+            )
         elif win_rate > 0.60 and avg_pnl > 0.005:
             # Bonne période → légèrement plus agressif
-            self._state.conviction_min_threshold = max(self._state.conviction_min_threshold - 0.01, 0.30)
-            self._state.arbitration_execute_threshold = max(self._state.arbitration_execute_threshold - 0.01, 0.25)
+            self._state.conviction_min_threshold = max(
+                self._state.conviction_min_threshold - 0.01, 0.30
+            )
+            self._state.arbitration_execute_threshold = max(
+                self._state.arbitration_execute_threshold - 0.01, 0.25
+            )
 
     def _adjust_regime_sizes(self, regime_win_rates: dict[str, float]) -> None:
         for regime, wr in regime_win_rates.items():
@@ -154,7 +170,7 @@ class AdaptiveCalibrationEngine:
 
     def _emergency_conservative_mode(self) -> None:
         """Mode ultra-conservateur en cas d'alerte critique."""
-        logger.warning("[Calibration] MODE CONSERVATEUR D'URGENCE activé")
+        _log.warning("[Calibration] MODE CONSERVATEUR D'URGENCE activé")
         self._state.conviction_min_threshold = 0.65
         self._state.arbitration_execute_threshold = 0.50
         self._state.size_scale_bull = 0.5
@@ -168,7 +184,7 @@ class AdaptiveCalibrationEngine:
             with _CALIBRATION_PATH.open("w", encoding="utf-8") as f:
                 json.dump(self._state.to_dict(), f, indent=2)
         except Exception as exc:
-            logger.debug("[Calibration] save error: %s", exc)
+            _log.debug("[Calibration] save error: %s", exc)
 
     def _load_state(self) -> CalibrationState:
         try:
@@ -179,8 +195,8 @@ class AdaptiveCalibrationEngine:
                 for k, v in data.items():
                     if hasattr(state, k):
                         setattr(state, k, v)
-                logger.info("[Calibration] État chargé depuis disque")
+                _log.info("[Calibration] État chargé depuis disque")
                 return state
         except Exception as exc:
-            logger.debug("[Calibration] load error: %s", exc)
+            _log.debug("[Calibration] load error: %s", exc)
         return CalibrationState()

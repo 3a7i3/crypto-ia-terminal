@@ -1,0 +1,23 @@
+{
+  "module_id": "confidence_explainer",
+  "class_name": "ConfidenceExplainer",
+  "file_path": "quant_hedge_ai/agents/intelligence/confidence_explainer.py",
+  "display_name": "Confidence Explainer",
+  "layer": "intelligence",
+  "dashboard_tab": "AI",
+
+  "role_fr": "Explainabilité des scores de confiance. Décompose un score composite en contributions individuelles (signal, régime, conviction, risk). Produit un texte lisible pour l'opérateur humain et les logs structurés.",
+  "role_en": "Explainability of confidence scores. Decomposes a composite score into individual contributions (signal, regime, conviction, risk). Produces human-readable text for the operator and structured logs.",
+
+  "key_metrics": [
+    { "metric_id": "last_explanation", "label": "Dernière explication", "type": "str" }
+  ],
+
+  "env_vars": [],
+
+  "integration": {
+    "upstream": ["conviction_engine", "confidence_scorer"],
+    "downstream": [],
+    "note": "explain() appelé à chaque signal produit pour journaliser la décomposition du score."
+  }
+}

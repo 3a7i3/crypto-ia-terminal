@@ -28,7 +28,6 @@ from __future__ import annotations
 
 import contextlib
 import json
-import logging
 import statistics
 import time
 from collections import deque
@@ -36,16 +35,17 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Generator
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
 
+_log = get_logger("quant_hedge_ai.agents.execution.latency_monitor")
 _LOG_PATH = Path("databases/latency/latency_log.jsonl")
 _WINDOW = 500  # taille du ring buffer pour chaque métrique
 
 
 @dataclass
 class LatencyEvent:
-    event_type: str       # signal_to_order | order_to_fill | reject | timeout | ws_desync
-    value_ms: float       # latence en ms (ou 0 pour reject/timeout sans durée)
+    event_type: str  # signal_to_order | order_to_fill | reject | timeout | ws_desync
+    value_ms: float  # latence en ms (ou 0 pour reject/timeout sans durée)
     metadata: dict = field(default_factory=dict)
     timestamp: float = field(default_factory=time.time)
 
@@ -94,7 +94,9 @@ class ExecutionLatencyMonitor:
         elapsed_ms = (time.perf_counter() - t0) * 1000.0
         self.record_latency(phase, elapsed_ms, metadata=meta)
 
-    def record_latency(self, phase: str, ms: float, metadata: dict | None = None) -> None:
+    def record_latency(
+        self, phase: str, ms: float, metadata: dict | None = None
+    ) -> None:
         metadata = metadata or {}
         event = LatencyEvent(event_type=phase, value_ms=ms, metadata=metadata)
 
@@ -106,9 +108,11 @@ class ExecutionLatencyMonitor:
             self._total_fills += 1
 
         if ms > self._alert_threshold_ms:
-            logger.warning(
+            _log.warning(
                 "[LatencyMonitor] ⚠️ %s LENT: %.1fms (seuil=%.0fms)",
-                phase, ms, self._alert_threshold_ms,
+                phase,
+                ms,
+                self._alert_threshold_ms,
             )
 
         self._persist_event(event)
@@ -121,29 +125,21 @@ class ExecutionLatencyMonitor:
     def record_reject(self, order_id: str, reason: str = "") -> None:
         entry = {"order_id": order_id, "reason": reason, "ts": time.time()}
         self._rejects.append(entry)
-        logger.warning("[LatencyMonitor] REJECT order=%s raison=%s", order_id, reason)
-        self._persist_event(
-            LatencyEvent("reject", 0.0, metadata=entry)
-        )
+        _log.warning("[LatencyMonitor] REJECT order=%s raison=%s", order_id, reason)
+        self._persist_event(LatencyEvent("reject", 0.0, metadata=entry))
 
     def record_timeout(self, endpoint: str = "", extra: str = "") -> None:
         entry = {"endpoint": endpoint, "extra": extra, "ts": time.time()}
         self._timeouts.append(entry)
-        logger.warning("[LatencyMonitor] TIMEOUT endpoint=%s", endpoint)
-        self._persist_event(
-            LatencyEvent("timeout", 0.0, metadata=entry)
-        )
+        _log.warning("[LatencyMonitor] TIMEOUT endpoint=%s", endpoint)
+        self._persist_event(LatencyEvent("timeout", 0.0, metadata=entry))
 
     def record_ws_desync(self, symbol: str = "", lag_ms: float = 0.0) -> None:
         entry = {"symbol": symbol, "lag_ms": lag_ms, "ts": time.time()}
         self._ws_desyncs.append(entry)
         if lag_ms > 500:
-            logger.warning(
-                "[LatencyMonitor] WS DESYNC %s lag=%.0fms", symbol, lag_ms
-            )
-        self._persist_event(
-            LatencyEvent("ws_desync", lag_ms, metadata=entry)
-        )
+            _log.warning("[LatencyMonitor] WS DESYNC %s lag=%.0fms", symbol, lag_ms)
+        self._persist_event(LatencyEvent("ws_desync", lag_ms, metadata=entry))
 
     # ── Rapport ────────────────────────────────────────────────────────────────
 
@@ -202,4 +198,4 @@ class ExecutionLatencyMonitor:
             with self._log_path.open("a", encoding="utf-8") as fh:
                 fh.write(json.dumps(event.as_dict()) + "\n")
         except Exception as exc:
-            logger.debug("[LatencyMonitor] Persist error: %s", exc)
+            _log.debug("[LatencyMonitor] Persist error: %s", exc)

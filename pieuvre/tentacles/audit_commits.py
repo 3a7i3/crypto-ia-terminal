@@ -11,16 +11,15 @@ Détecte:
 
 from __future__ import annotations
 
-import logging
 import re
 import subprocess
 from pathlib import Path
 
+from observability.json_logger import get_logger
 from pieuvre.incidents.models import Finding, IncidentType, Severity
 from pieuvre.tentacles.base import BaseTentacle
 
-logger = logging.getLogger(__name__)
-
+_log = get_logger("pieuvre.tentacles.audit_commits")
 _SECURITY_KEYWORDS = re.compile(
     r"(?i)\b(vuln|exploit|cve|injection|xss|csrf|hack|breach|leak|exposed|"
     r"secret|password|credential|token.*expose|hotfix.*critical|emergency|"
@@ -75,7 +74,7 @@ class AuditCommitsTentacle(BaseTentacle):
 
         self.last_findings = findings
         if findings:
-            logger.warning(
+            _log.warning(
                 "[AUDIT_COMMITS] %d anomalies sur %d commits",
                 len(findings),
                 len(commits),
@@ -95,7 +94,7 @@ class AuditCommitsTentacle(BaseTentacle):
             )
             return result.stdout
         except Exception as exc:
-            logger.debug("git %s: %s", " ".join(args), exc)
+            _log.debug("git %s: %s", " ".join(args), exc)
             return ""
 
     def _get_commits(self) -> list[dict]:

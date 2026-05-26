@@ -11,25 +11,26 @@ Pour chaque trade fermé, attribue la performance aux :
 - risk (sizing trop grand/petit)
 - marché (événement imprévisible)
 """
+
 from __future__ import annotations
 
 import json
-import logging
 import time
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
 from typing import Any
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
 
+_log = get_logger("quant_hedge_ai.ai_evolution.v2.unified_learning_layer")
 _LEARNING_LOG = Path("databases/unified_learning.jsonl")
 
 
 class LearningCategory(str, Enum):
-    VALIDATED = "validated"         # bon signal, bon exécution, bon résultat
-    UNLUCKY = "unlucky"             # bon signal, mauvais résultat (marché)
-    LUCKY = "lucky"                 # mauvais signal, bon résultat (chance)
+    VALIDATED = "validated"  # bon signal, bon exécution, bon résultat
+    UNLUCKY = "unlucky"  # bon signal, mauvais résultat (marché)
+    LUCKY = "lucky"  # mauvais signal, bon résultat (chance)
     MISTAKE_SIGNAL = "mistake_signal"
     MISTAKE_REGIME = "mistake_regime"
     MISTAKE_EXECUTION = "mistake_execution"
@@ -59,7 +60,9 @@ class LearningEvent:
 
     # Attribution
     category: LearningCategory = LearningCategory.VALIDATED
-    attribution: dict[str, float] = field(default_factory=dict)   # composante → part de la perf
+    attribution: dict[str, float] = field(
+        default_factory=dict
+    )  # composante → part de la perf
     lessons: list[str] = field(default_factory=list)
 
     def was_profitable(self) -> bool:
@@ -125,10 +128,18 @@ class UnifiedLearningLayer:
         self._update_feature_importance(event)
         self._persist(event)
 
-        if event.category in (LearningCategory.MISTAKE_SIGNAL, LearningCategory.MISTAKE_REGIME):
+        if event.category in (
+            LearningCategory.MISTAKE_SIGNAL,
+            LearningCategory.MISTAKE_REGIME,
+        ):
             self._generate_rule(event)
 
-        logger.info("[Learning] Trade %s clôturé → %s (PnL: %.2f%%)", trade_id, event.category.value, pnl_pct * 100)
+        _log.info(
+            "[Learning] Trade %s clôturé → %s (PnL: %.2f%%)",
+            trade_id,
+            event.category.value,
+            pnl_pct * 100,
+        )
         return event
 
     def regime_win_rate(self, regime: str) -> float | None:
@@ -148,7 +159,9 @@ class UnifiedLearningLayer:
         return [r for r in self._rules if r.get("active", True)]
 
     def feature_importance_report(self) -> dict[str, float]:
-        return dict(sorted(self._feature_importance.items(), key=lambda x: x[1], reverse=True))
+        return dict(
+            sorted(self._feature_importance.items(), key=lambda x: x[1], reverse=True)
+        )
 
     def recent_events(self, n: int = 20) -> list[dict]:
         return [e.to_dict() for e in self._events[-n:]]
@@ -192,7 +205,9 @@ class UnifiedLearningLayer:
         # Exécution : slippage excès
         slip_excess = event.actual_slippage_bps - event.expected_slippage_bps
         if slip_excess > 5:
-            attribution["execution"] = min(-slip_excess / 10000 / abs(pnl), 0.5) if pnl < 0 else 0.0
+            attribution["execution"] = (
+                min(-slip_excess / 10000 / abs(pnl), 0.5) if pnl < 0 else 0.0
+            )
         # Signal : conviction vs résultat
         attribution["signal"] = event.conviction_at_entry * (1 if pnl > 0 else -1) * 0.4
         # Régime : match régime vs résultat
@@ -209,13 +224,21 @@ class UnifiedLearningLayer:
             feat = event.features_at_entry
             rsi = feat.get("rsi_14", 50)
             if rsi > 75:
-                lessons.append(f"Éviter long avec RSI>{rsi:.0f} en régime {event.regime_at_entry}")
+                lessons.append(
+                    f"Éviter long avec RSI>{rsi:.0f} en régime {event.regime_at_entry}"
+                )
             if rsi < 25:
-                lessons.append(f"Éviter short avec RSI<{rsi:.0f} en régime {event.regime_at_entry}")
+                lessons.append(
+                    f"Éviter short avec RSI<{rsi:.0f} en régime {event.regime_at_entry}"
+                )
         if event.category == LearningCategory.MISTAKE_REGIME:
-            lessons.append(f"Régime '{event.regime_at_entry}' mal classifié — réviser HMM")
+            lessons.append(
+                f"Régime '{event.regime_at_entry}' mal classifié — réviser HMM"
+            )
         if event.category == LearningCategory.MISTAKE_EXECUTION:
-            lessons.append(f"Slippage excessif: {event.actual_slippage_bps:.1f}bps > attendu {event.expected_slippage_bps:.1f}bps")
+            lessons.append(
+                f"Slippage excessif: {event.actual_slippage_bps:.1f}bps > attendu {event.expected_slippage_bps:.1f}bps"
+            )
         return lessons
 
     def _generate_rule(self, event: LearningEvent) -> None:
@@ -226,7 +249,11 @@ class UnifiedLearningLayer:
             "category": event.category.value,
             "regime": event.regime_at_entry,
             "side": event.side,
-            "features": {k: v for k, v in feat.items() if k in ("rsi_14", "atr_pct", "ob_imbalance")},
+            "features": {
+                k: v
+                for k, v in feat.items()
+                if k in ("rsi_14", "atr_pct", "ob_imbalance")
+            },
             "lesson": event.lessons[0] if event.lessons else "",
             "active": True,
             "created_at": time.time(),
@@ -234,7 +261,9 @@ class UnifiedLearningLayer:
         self._rules.append(rule)
 
     def _update_regime_stats(self, event: LearningEvent) -> None:
-        self._regime_performance.setdefault(event.regime_at_entry, []).append(event.pnl_pct)
+        self._regime_performance.setdefault(event.regime_at_entry, []).append(
+            event.pnl_pct
+        )
 
     def _update_feature_importance(self, event: LearningEvent) -> None:
         for feat, val in event.features_at_entry.items():
@@ -250,4 +279,4 @@ class UnifiedLearningLayer:
             with _LEARNING_LOG.open("a", encoding="utf-8") as f:
                 f.write(json.dumps(event.to_dict()) + "\n")
         except Exception as exc:
-            logger.debug("[Learning] persist error: %s", exc)
+            _log.debug("[Learning] persist error: %s", exc)

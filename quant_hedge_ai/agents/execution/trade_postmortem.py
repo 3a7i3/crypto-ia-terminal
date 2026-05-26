@@ -13,15 +13,15 @@ Résultats :
 
 from __future__ import annotations
 
-import logging
 import time
 from dataclasses import dataclass, field
 from typing import Any
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
 
-_LOSS_THRESHOLD_PCT: float = -2.0   # PnL % en-dessous duquel c'est une perte
-_MIN_TRADES_FOR_BLACKLIST: int = 3   # N pertes consécutives pour blacklister
+_log = get_logger("quant_hedge_ai.agents.execution.trade_postmortem")
+_LOSS_THRESHOLD_PCT: float = -2.0  # PnL % en-dessous duquel c'est une perte
+_MIN_TRADES_FOR_BLACKLIST: int = 3  # N pertes consécutives pour blacklister
 
 
 @dataclass
@@ -29,7 +29,7 @@ class TradeRecord:
     """Représente un trade fermé avec son contexte d'entrée."""
 
     symbol: str
-    action: str                  # BUY | SELL
+    action: str  # BUY | SELL
     entry_price: float
     exit_price: float
     size: float
@@ -82,7 +82,7 @@ class PostmortemReport:
     """Résultat d'une analyse post-trade."""
 
     trade: TradeRecord
-    verdict: str                         # "win" | "loss" | "neutral"
+    verdict: str  # "win" | "loss" | "neutral"
     root_cause: list[str] = field(default_factory=list)
     recommendations: list[str] = field(default_factory=list)
     blacklisted: bool = False
@@ -112,7 +112,9 @@ class TradePostMortem:
     def __init__(self, memory_store=None, signal_engine=None) -> None:
         self._memory = memory_store
         self._signal_engine = signal_engine
-        self._loss_streaks: dict[str, int] = {}   # key: strategy+regime → count pertes consécutives
+        self._loss_streaks: dict[str, int] = (
+            {}
+        )  # key: strategy+regime → count pertes consécutives
         self._all_reports: list[PostmortemReport] = []
 
     # ── API principale ─────────────────────────────────────────────────────────
@@ -131,7 +133,9 @@ class TradePostMortem:
 
         if verdict == "loss":
             blacklist_key = f"{trade.strategy_name}::{trade.regime}"
-            self._loss_streaks[blacklist_key] = self._loss_streaks.get(blacklist_key, 0) + 1
+            self._loss_streaks[blacklist_key] = (
+                self._loss_streaks.get(blacklist_key, 0) + 1
+            )
 
             if self._loss_streaks[blacklist_key] >= _MIN_TRADES_FOR_BLACKLIST:
                 blacklisted = self._apply_blacklist(trade.strategy_name, trade.regime)
@@ -153,9 +157,14 @@ class TradePostMortem:
         self._all_reports.append(report)
         self._emit_event(report)
 
-        logger.info(
+        _log.info(
             "[Postmortem] %s %s → %s | PnL=%.2f%% | causes=%s | blacklisted=%s",
-            trade.symbol, trade.action, verdict, trade.pnl_pct, causes, blacklisted,
+            trade.symbol,
+            trade.action,
+            verdict,
+            trade.pnl_pct,
+            causes,
+            blacklisted,
         )
         return report
 
@@ -184,7 +193,9 @@ class TradePostMortem:
 
     def strategy_stats(self, strategy_name: str) -> dict:
         """Statistiques d'une stratégie sur tous les régimes."""
-        relevant = [r for r in self._all_reports if r.trade.strategy_name == strategy_name]
+        relevant = [
+            r for r in self._all_reports if r.trade.strategy_name == strategy_name
+        ]
         if not relevant:
             return {"strategy": strategy_name, "n_trades": 0}
 
@@ -220,7 +231,9 @@ class TradePostMortem:
             "win_rate": round(wins / len(self._all_reports), 3),
             "avg_pnl_pct": round(sum(pnls) / len(pnls), 3),
             "total_blacklists": blacklisted,
-            "active_loss_streaks": {k: v for k, v in self._loss_streaks.items() if v > 0},
+            "active_loss_streaks": {
+                k: v for k, v in self._loss_streaks.items() if v > 0
+            },
         }
 
     # ── Logique interne ───────────────────────────────────────────────────────
@@ -285,19 +298,22 @@ class TradePostMortem:
             if self._signal_engine is not None:
                 self._signal_engine.blacklist_regime(regime)
 
-            logger.warning(
+            _log.warning(
                 "[Postmortem] BLACKLIST %s pour régime %s (%d pertes consécutives)",
-                strategy_name, regime, _MIN_TRADES_FOR_BLACKLIST,
+                strategy_name,
+                regime,
+                _MIN_TRADES_FOR_BLACKLIST,
             )
             return True
         except Exception as exc:
-            logger.error("[Postmortem] Erreur blacklist: %s", exc)
+            _log.error("[Postmortem] Erreur blacklist: %s", exc)
             return False
 
     def _emit_event(self, report: PostmortemReport) -> None:
         try:
             from event_bus.bus import EventBus
             from event_bus.events import DrawdownAlertEvent
+
             if report.blacklisted:
                 EventBus.get().emit(
                     DrawdownAlertEvent(
@@ -313,7 +329,8 @@ class TradePostMortem:
 
     def _best_regime_for(self, strategy_name: str) -> str:
         relevant = [
-            r for r in self._all_reports
+            r
+            for r in self._all_reports
             if r.trade.strategy_name == strategy_name and r.verdict == "win"
         ]
         if not relevant:
@@ -325,7 +342,8 @@ class TradePostMortem:
 
     def _worst_regime_for(self, strategy_name: str) -> str:
         relevant = [
-            r for r in self._all_reports
+            r
+            for r in self._all_reports
             if r.trade.strategy_name == strategy_name and r.verdict == "loss"
         ]
         if not relevant:

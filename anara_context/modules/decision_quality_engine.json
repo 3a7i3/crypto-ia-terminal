@@ -35,5 +35,10 @@
     { "metric_id": "mistake_pct",   "label": "MISTAKE %",   "type": "percent", "color": "#ef4444" },
     { "metric_id": "lucky_pct",     "label": "LUCKY %",     "type": "percent", "color": "#84cc16" },
     { "metric_id": "unlucky_pct",   "label": "UNLUCKY %",   "type": "percent", "color": "#f59e0b" }
+  ],
+
+  "env_vars": [
+    { "var": "DQE_DB",                "default": "databases/decision_quality.jsonl", "description": "Chemin du fichier de stockage des qualités de décision" },
+    { "var": "DQE_QUALITY_THRESHOLD", "default": "60",                               "description": "Score qualité minimum (0-100) pour considérer une décision comme bonne" }
   ]
 }

@@ -36,5 +36,20 @@
     "Tout rejet visible dans le dashboard avec raison détaillée",
     "duration_ms cognitif enregistré par cycle",
     "Chaque décision tracée dans black_box.jsonl"
+  ],
+
+  "env_vars": [
+    { "var": "ACTIVE_EXCHANGE",                    "default": "",       "description": "Exchange actif : binance | mexc | hyperliquid (vide = auto-détection)" },
+    { "var": "ADVISOR_CYCLE_BUDGET_SECONDS",        "default": "0",      "description": "Budget max par cycle en secondes (0 = illimité)" },
+    { "var": "ADVISOR_MTF_REFRESH_EVERY",           "default": "12",     "description": "Rafraîchir les données MTF tous les N cycles" },
+    { "var": "ADVISOR_NOTIFY_EVERY",                "default": "3",      "description": "Fréquence des notifications dashboard (cycles)" },
+    { "var": "ADVISOR_LOAD_SHED_CYCLES",            "default": "1",      "description": "Nombre de cycles à passer en load-shedding" },
+    { "var": "ADVISOR_DEFER_OPTIONAL_INTEL",        "default": "true",   "description": "Différer les couches intelligence optionnelles (ThreatRadar, RegretEngine)" },
+    { "var": "ADVISOR_DEFER_POST_CYCLE_SERVICES",   "default": "true",   "description": "Différer les services post-cycle (PostMortem, BlackBox flush)" },
+    { "var": "ADVISOR_1H_LIMIT",                    "default": "96",     "description": "Limite de bougies 1H récupérées par cycle" },
+    { "var": "ADVISOR_LIVE_EXECUTION_BOOTSTRAP",    "default": "false",  "description": "Activer le bootstrap exécution live au démarrage" },
+    { "var": "ADVISOR_PERSISTENT_WARMUP",           "default": "false",  "description": "Maintenir le warmup persistant entre cycles" },
+    { "var": "ADVISOR_PREWARM_MTF",                 "default": "false",  "description": "Pré-chauffer les données MTF au démarrage" },
+    { "var": "ADVISOR_BACKGROUND_POSITION_WATCH",   "default": "false",  "description": "Activer la surveillance des positions en arrière-plan" }
   ]
 }

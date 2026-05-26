@@ -41,15 +41,15 @@ Types d'erreurs détectées :
 from __future__ import annotations
 
 import json
-import logging
 import os
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
 
+_log = get_logger("quant_hedge_ai.agents.intelligence.mistake_memory")
 _DB_PATH = os.getenv("MISTAKE_DB", "databases/mistake_memory.jsonl")
 
 
@@ -210,7 +210,7 @@ class MistakeMemory:
             if rule.matches(context):
                 rule.trigger_count += 1
                 similar = self._count_similar(rule.error_type, regime, signal)
-                logger.info(
+                _log.info(
                     "[MistakeMemory] BLOQUÉ rule=%s reason=%s (triggers=%d similar=%d)",
                     rule.rule_id,
                     rule.explanation,
@@ -308,7 +308,7 @@ class MistakeMemory:
                 if rule:
                     record["rule_generated"] = rule.rule_id
                     self._rules.append(rule)
-                    logger.warning(
+                    _log.warning(
                         "[MistakeMemory] NOUVELLE RÈGLE générée: %s | %s",
                         rule.rule_id,
                         rule.describe(),
@@ -319,7 +319,7 @@ class MistakeMemory:
         self._save(record)
 
         if error_type not in (ErrorType.GOOD_TRADE, ErrorType.UNLUCKY):
-            logger.info(
+            _log.info(
                 "[MistakeMemory] Erreur enregistrée: %s | %s → pnl=%.2f%%",
                 error_type,
                 explanation,
@@ -569,7 +569,7 @@ class MistakeMemory:
                     try:
                         records.append(json.loads(line))
                     except json.JSONDecodeError as exc:
-                        logger.warning(
+                        _log.warning(
                             "[MistakeMemory] Ligne ignorée (JSON invalide): %s", exc
                         )
         return records[-self.MAX_MISTAKES_DB :]
@@ -579,7 +579,7 @@ class MistakeMemory:
             with open(self._db_path, "a", encoding="utf-8") as f:
                 f.write(json.dumps(record, default=str) + "\n")
         except Exception as exc:
-            logger.warning("[MistakeMemory] Sauvegarde échouée: %s", exc)
+            _log.warning("[MistakeMemory] Sauvegarde échouée: %s", exc)
 
     def _trim(self) -> None:
         if len(self._mistakes) > self.MAX_MISTAKES_DB:
@@ -616,7 +616,7 @@ class MistakeMemory:
                     if rule:
                         self._rules.append(rule)
         if self._rules:
-            logger.info(
+            _log.info(
                 "[MistakeMemory] %d règles reconstruites depuis l'historique",
                 len(self._rules),
             )

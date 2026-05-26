@@ -23,6 +23,10 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional, Set
 
+from observability.json_logger import get_logger
+
+_log = get_logger("decision_packet")
+
 # ---------------------------------------------------------------------------
 # Enums — seules valeurs légales dans le système
 # ---------------------------------------------------------------------------
@@ -418,6 +422,17 @@ class DecisionPacket:
         )
         self.state_history.append(transition)
         self.lifecycle_state = new_state
+        _log.decision(
+            "PACKET_TRANSITION",
+            packet_id=self.packet_id,
+            symbol=self.symbol,
+            from_state=current.value,
+            to_state=new_state.value,
+            actor=actor,
+            reason=reason,
+            confidence=self.confidence,
+            duration_ms=duration_ms,
+        )
 
     # ---------------------------------------------------------------------------
     # Méthodes d'enrichissement — appelées par chaque couche

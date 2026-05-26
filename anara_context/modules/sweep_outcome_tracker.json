@@ -1,0 +1,31 @@
+{
+  "module_id": "sweep_outcome_tracker",
+  "class_name": "SweepOutcomeTracker",
+  "file_path": "quant_hedge_ai/agents/intelligence/sweep_outcome_tracker.py",
+  "display_name": "Sweep Outcome Tracker",
+  "layer": "learning",
+  "dashboard_tab": "Learning",
+
+  "role_fr": "Mesure l'edge réel des sweeps détectés. Enregistre chaque SweepEvent avec prix d'entrée, puis N bougies plus tard mesure l'outcome (continuation/reversal, RR, drawdown max). edge_stats() retourne métriques agrégées par sweep_type × direction × régime. Sans mesure → croyance en patterns faux. Avec mesure → edge validé empiriquement.",
+  "role_en": "Measures the real edge of detected sweeps. Records each SweepEvent with entry price, then N candles later measures the outcome (continuation/reversal, RR, max drawdown). edge_stats() returns aggregated metrics by sweep_type × direction × regime. Without measurement → belief in false patterns. With measurement → empirically validated edge.",
+
+  "storage": "SQLite (sweep_outcomes table)",
+
+  "key_metrics": [
+    { "metric_id": "sweeps_resolved",  "label": "Sweeps résolus",       "type": "int" },
+    { "metric_id": "sweep_win_rate",   "label": "Win rate sweeps",       "type": "float" },
+    { "metric_id": "sweep_avg_rr",     "label": "RR moyen sweeps",       "type": "float" },
+    { "metric_id": "best_regime",      "label": "Régime le plus fertile", "type": "str" }
+  ],
+
+  "env_vars": [
+    { "name": "SWEEP_OUTCOME_HORIZON",  "default": "5",  "description": "Nombre de bougies pour mesurer l'outcome après un sweep" },
+    { "name": "SWEEP_OUTCOME_DB",       "default": "databases/sweep_outcomes.db", "description": "Chemin base SQLite outcomes" }
+  ],
+
+  "integration": {
+    "upstream": ["sweep_detector"],
+    "downstream": [],
+    "note": "register() appelé à chaque SweepEvent. tick() appelé chaque cycle pour résoudre les sweeps en cours. edge_stats() consulté périodiquement pour valider l'edge."
+  }
+}

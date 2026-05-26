@@ -4,11 +4,12 @@ telegram_notifier.py — Envoi de notifications via l'API Telegram Bot.
 
 from __future__ import annotations
 
-import logging
 import urllib.parse
 import urllib.request
 
-logger = logging.getLogger("TelegramNotifier")
+from observability.json_logger import get_logger
+
+_log = get_logger("TelegramNotifier")
 
 
 class TelegramNotifier:
@@ -32,5 +33,5 @@ class TelegramNotifier:
             with urllib.request.urlopen(req, timeout=5) as resp:
                 return resp.status == 200
         except Exception as exc:
-            logger.error("Erreur TelegramNotifier: %s", exc)
+            _log.error("Erreur TelegramNotifier: %s", exc)
             return False

@@ -4,7 +4,6 @@ Contient la logique évolutionnaire (Genome, mutation, crossover, fitness, extin
 """
 
 import json
-import logging
 import os
 import random
 import uuid
@@ -14,7 +13,9 @@ from typing import Any
 
 import numpy as np
 
-logger = logging.getLogger("evolution_core")
+from observability.json_logger import get_logger
+
+_log = get_logger("evolution_core")
 
 
 class GenomeSerializer:
@@ -129,12 +130,12 @@ def evolve_world(
     # --- Sélection élitiste configurable ---
     N_ELITE = max(1, int(len(pop) * elite_ratio))
     survivors = pop[:N_ELITE]
-    logger.info("evolve_world: sélection élitiste %d/%d", N_ELITE, len(pop))
+    _log.info("evolve_world: sélection élitiste %d/%d", N_ELITE, len(pop))
     survivors = apply_extinction(survivors)
-    logger.info("evolve_world: après extinction %d survivants", len(survivors))
+    _log.info("evolve_world: après extinction %d survivants", len(survivors))
     if not survivors:
         survivors = pop[: min(3, len(pop))]
-        logger.warning("evolve_world: extinction totale, conservation des 3 meilleurs")
+        _log.warning("evolve_world: extinction totale, conservation des 3 meilleurs")
 
     # --- Mutation adaptative ---
     alert_stagnation = False
@@ -145,7 +146,7 @@ def evolve_world(
         if all(
             abs(f - best_fitness) < 1e-6 for f in fitness_history[-stagnation_patience:]
         ):
-            logger.warning(
+            _log.warning(
                 "evolve_world: stagnation sur %d générations — extinction dynamique",
                 stagnation_patience,
             )
@@ -166,11 +167,11 @@ def evolve_world(
             )
         # Surperformance : record battu
         if pop[0].fitness > best_fitness:
-            logger.info("evolve_world: nouveau record de fitness %.4f", pop[0].fitness)
+            _log.info("evolve_world: nouveau record de fitness %.4f", pop[0].fitness)
             alert_surperformance = True
     else:
         mutation_rate = mutation_base
-    logger.debug("evolve_world: mutation adaptative taux=%.3f", mutation_rate)
+    _log.debug("evolve_world: mutation adaptative taux=%.3f", mutation_rate)
 
     new_pop = survivors.copy()
     while len(new_pop) < len(pop) - 2:
@@ -178,7 +179,7 @@ def evolve_world(
             p1 = p2 = random.choice(pop)
         else:
             p1, p2 = select_parents(survivors)
-        logger.debug("evolve_world: croisement %s x %s", p1.id, p2.id)
+        _log.debug("evolve_world: croisement %s x %s", p1.id, p2.id)
         child = crossover(p1, p2)
         child = mutate(child, mutation_rate=float(mutation_rate), intensity=0.2)
         if current_env == "trend":
@@ -196,17 +197,17 @@ def evolve_world(
             g.fitness = float(score_env_range(g))
         elif current_env == "crash":
             g.fitness = float(score_env_crash(g))
-        logger.debug("evolve_world: nouvel individu aléatoire %s", g.id)
+        _log.debug("evolve_world: nouvel individu aléatoire %s", g.id)
         new_pop.append(g)
-    logger.info("evolve_world: nouvelle population %d individus", len(new_pop))
+    _log.info("evolve_world: nouvelle population %d individus", len(new_pop))
     # --- Sauvegarde automatique de la population ---
     try:
         GenomeSerializer.save_population(new_pop, f"checkpoints/pop_{current_env}.json")
-        logger.info(
+        _log.info(
             "evolve_world: population sauvegardée checkpoints/pop_%s.json", current_env
         )
     except Exception as e:
-        logger.error("evolve_world: erreur sauvegarde: %s", e)
+        _log.error("evolve_world: erreur sauvegarde: %s", e)
     return new_pop, current_env
 
 
@@ -395,7 +396,7 @@ def _compute_evolution_params(
         if all(
             abs(f - best_fitness) < 1e-6 for f in fitness_history[-stagnation_patience:]
         ):
-            logger.warning(
+            _log.warning(
                 "stagnation sur %d générations — extinction dynamique",
                 stagnation_patience,
             )
@@ -414,12 +415,12 @@ def _compute_evolution_params(
                 )
             )
         if population[0].fitness > best_fitness:
-            logger.info("nouveau record de fitness %.4f", population[0].fitness)
+            _log.info("nouveau record de fitness %.4f", population[0].fitness)
             alert_surperformance = True
     else:
         mutation_rate = mutation_base
 
-    logger.debug("mutation adaptative taux=%.3f", mutation_rate)
+    _log.debug("mutation adaptative taux=%.3f", mutation_rate)
     return (
         survivors,
         n_elite,
@@ -443,7 +444,7 @@ def evolve(
     survivors, n_elite, mutation_rate, *_ = _compute_evolution_params(
         population, elite_ratio, mutation_base, stagnation_patience, fitness_history
     )
-    logger.info("evolve: sélection élitiste %d/%d", n_elite, len(population))
+    _log.info("evolve: sélection élitiste %d/%d", n_elite, len(population))
 
     new_population = list(survivors)
     while len(new_population) < len(population):
@@ -456,7 +457,7 @@ def evolve(
         child = mutate(child, mutation_rate=mutation_rate, intensity=0.2)
         evaluate_fitness(child)
         new_population.append(child)
-    logger.info("evolve: nouvelle population %d individus", len(new_population))
+    _log.info("evolve: nouvelle population %d individus", len(new_population))
     return new_population
 
 
@@ -501,22 +502,22 @@ def enrich_evolve(
     ) = _compute_evolution_params(
         population, elite_ratio, mutation_base, stagnation_patience, fitness_history
     )
-    logger.info("enrich_evolve: sélection élitiste %d/%d", n_elite, len(population))
+    _log.info("enrich_evolve: sélection élitiste %d/%d", n_elite, len(population))
 
     new_population = [s for s in survivors]
     while len(new_population) < len(population):
         p1, p2 = random.choice(survivors), random.choice(survivors)
-        logger.debug("enrich_evolve: croisement %s x %s", p1.id, p2.id)
+        _log.debug("enrich_evolve: croisement %s x %s", p1.id, p2.id)
         child = mutate(crossover(p1, p2), mutation_rate=mutation_rate)
         evaluate_fitness(child)
         new_population.append(child)
-    logger.info("enrich_evolve: nouvelle population %d individus", len(new_population))
+    _log.info("enrich_evolve: nouvelle population %d individus", len(new_population))
 
     try:
         GenomeSerializer.save_population(new_population, "checkpoints/pop_last.json")
-        logger.info("enrich_evolve: population sauvegardée checkpoints/pop_last.json")
+        _log.info("enrich_evolve: population sauvegardée checkpoints/pop_last.json")
     except Exception as e:
-        logger.error("enrich_evolve: erreur sauvegarde: %s", e)
+        _log.error("enrich_evolve: erreur sauvegarde: %s", e)
 
     stats = {
         "best_fitness": float(new_population[0].fitness),

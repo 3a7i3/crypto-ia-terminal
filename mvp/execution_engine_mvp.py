@@ -12,21 +12,23 @@ Objectif : transformer une bonne décision en exécution propre.
 
 Tout est synchrone et simple. Pas de complexité inutile.
 """
+
 from __future__ import annotations
 
-import logging
 import time
 from dataclasses import dataclass, field
 from typing import Any
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
+
+_log = get_logger("mvp.execution_engine_mvp")
 
 
 @dataclass
 class ExecutionResult:
     symbol: str
     direction: str
-    status: str             # "executed" | "rejected" | "partial"
+    status: str  # "executed" | "rejected" | "partial"
     executed_size_usd: float = 0.0
     entry_price: float = 0.0
     stop_loss_price: float = 0.0
@@ -39,9 +41,13 @@ class ExecutionResult:
 
     @property
     def risk_reward(self) -> float:
-        if self.entry_price == 0 or self.stop_loss_price == 0 or self.take_profit_price == 0:
+        if (
+            self.entry_price == 0
+            or self.stop_loss_price == 0
+            or self.take_profit_price == 0
+        ):
             return 0.0
-        risk  = abs(self.entry_price - self.stop_loss_price)
+        risk = abs(self.entry_price - self.stop_loss_price)
         reward = abs(self.take_profit_price - self.entry_price)
         return reward / risk if risk > 0 else 0.0
 
@@ -67,7 +73,7 @@ class ExecutionEngineMVP:
     Ces valeurs sont les défauts conservateurs. Configurables.
     """
 
-    MAX_SPREAD_BPS = 25.0       # refuse si spread > 25bps
+    MAX_SPREAD_BPS = 25.0  # refuse si spread > 25bps
     MIN_LIQUIDITY_USD = 20_000  # refuse si depth < 20k USD
     SL_ATR_MULT = 1.5
     TP_ATR_MULT = 2.5
@@ -102,18 +108,26 @@ class ExecutionEngineMVP:
         Retourne un ExecutionResult avec tous les détails.
         """
         # ── 1. Liquidity check ─────────────────────────────────────────────
-        liq_ok, liq_reason = self._check_liquidity(spread_bps, liquidity_depth_usd, size_usd)
+        liq_ok, liq_reason = self._check_liquidity(
+            spread_bps, liquidity_depth_usd, size_usd
+        )
         if not liq_ok:
-            return ExecutionResult(symbol, direction, "rejected", reason=f"LIQUIDITY: {liq_reason}")
+            return ExecutionResult(
+                symbol, direction, "rejected", reason=f"LIQUIDITY: {liq_reason}"
+            )
 
         # ── 2. Prix d'entrée (live ou paper) ──────────────────────────────
         entry_price = self._get_entry_price(symbol, direction, current_price)
         if entry_price <= 0:
-            return ExecutionResult(symbol, direction, "rejected", reason="Prix indisponible")
+            return ExecutionResult(
+                symbol, direction, "rejected", reason="Prix indisponible"
+            )
 
         # ── 3. Fee calculation ─────────────────────────────────────────────
-        fee_usd = size_usd * self._taker_fee   # on suppose taker par défaut
-        slippage_bps = self._estimate_slippage(size_usd, spread_bps, liquidity_depth_usd)
+        fee_usd = size_usd * self._taker_fee  # on suppose taker par défaut
+        slippage_bps = self._estimate_slippage(
+            size_usd, spread_bps, liquidity_depth_usd
+        )
         slippage_cost = size_usd * slippage_bps / 10000.0
         net_cost = fee_usd + slippage_cost
 
@@ -133,13 +147,13 @@ class ExecutionEngineMVP:
             result = self._execute_single(symbol, direction, size_usd, entry_price)
 
         if result.status == "executed":
-            result.stop_loss_price    = round(sl_price, 8)
-            result.take_profit_price  = round(tp_price, 8)
+            result.stop_loss_price = round(sl_price, 8)
+            result.take_profit_price = round(tp_price, 8)
             result.estimated_slippage_bps = slippage_bps
-            result.total_fee_usd      = round(fee_usd + slippage_cost, 4)
-            result.net_cost_usd       = round(net_cost, 4)
+            result.total_fee_usd = round(fee_usd + slippage_cost, 4)
+            result.net_cost_usd = round(net_cost, 4)
             self._executed.append(result)
-            logger.info("[ExecMVP] %s", result.summary())
+            _log.info("[ExecMVP] %s", result.summary())
 
         return result
 
@@ -197,31 +211,49 @@ class ExecutionEngineMVP:
         except Exception:
             return fallback
 
-    def _estimate_slippage(self, size_usd: float, spread_bps: float, depth_usd: float) -> float:
+    def _estimate_slippage(
+        self, size_usd: float, spread_bps: float, depth_usd: float
+    ) -> float:
         base = spread_bps * 0.5
         impact = (size_usd / max(depth_usd, 1.0)) * 100
         return min(base + impact, 50.0)
 
-    def _execute_single(self, symbol: str, direction: str, size_usd: float, price: float) -> ExecutionResult:
+    def _execute_single(
+        self, symbol: str, direction: str, size_usd: float, price: float
+    ) -> ExecutionResult:
         if self._paper:
-            return ExecutionResult(symbol, direction, "executed",
-                                   executed_size_usd=size_usd, entry_price=price,
-                                   reason="paper_trade")
+            return ExecutionResult(
+                symbol,
+                direction,
+                "executed",
+                executed_size_usd=size_usd,
+                entry_price=price,
+                reason="paper_trade",
+            )
         try:
             side = "buy" if direction == "long" else "sell"
-            qty  = size_usd / price
+            qty = size_usd / price
             order = self._exchange.create_market_order(symbol, side, qty)
             actual_price = float(order.get("average", order.get("price", price)))
-            return ExecutionResult(symbol, direction, "executed",
-                                   executed_size_usd=size_usd,
-                                   entry_price=actual_price,
-                                   reason=f"order_id={order.get('id','?')}")
+            return ExecutionResult(
+                symbol,
+                direction,
+                "executed",
+                executed_size_usd=size_usd,
+                entry_price=actual_price,
+                reason=f"order_id={order.get('id','?')}",
+            )
         except Exception as exc:
-            logger.error("[ExecMVP] Order failed: %s", exc)
+            _log.error("[ExecMVP] Order failed: %s", exc)
             return ExecutionResult(symbol, direction, "rejected", reason=str(exc))
 
     def _execute_twap(
-        self, symbol: str, direction: str, size_usd: float, price: float, n_chunks: int = 3
+        self,
+        symbol: str,
+        direction: str,
+        size_usd: float,
+        price: float,
+        n_chunks: int = 3,
     ) -> ExecutionResult:
         """TWAP léger : divise en n chunks avec délai de 10s entre chaque."""
         chunk = size_usd / n_chunks
@@ -237,8 +269,14 @@ class ExecutionEngineMVP:
                 time.sleep(10)
 
         if total_executed > 0:
-            return ExecutionResult(symbol, direction, "executed",
-                                   executed_size_usd=total_executed,
-                                   entry_price=avg_price,
-                                   reason=f"TWAP {n_chunks} chunks")
-        return ExecutionResult(symbol, direction, "rejected", reason="TWAP: tous les chunks ont échoué")
+            return ExecutionResult(
+                symbol,
+                direction,
+                "executed",
+                executed_size_usd=total_executed,
+                entry_price=avg_price,
+                reason=f"TWAP {n_chunks} chunks",
+            )
+        return ExecutionResult(
+            symbol, direction, "rejected", reason="TWAP: tous les chunks ont échoué"
+        )

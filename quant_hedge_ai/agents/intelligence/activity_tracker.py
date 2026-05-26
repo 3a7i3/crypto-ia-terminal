@@ -18,19 +18,19 @@ Usage dans advisor_loop :
         signal_executed=True if new_order else False,
     )
     # Périodiquement (ex. toutes les 12 cycles) :
-    logger.info(tracker.summary())
+    _log.info(tracker.summary())
     # Pour Telegram :
     report = tracker.report()
 """
 
 from __future__ import annotations
 
-import logging
 import time
 from dataclasses import dataclass
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
 
+_log = get_logger("quant_hedge_ai.agents.intelligence.activity_tracker")
 _INACTIVITY_WARN_THRESHOLD = float(
     __import__("os").getenv("INACTIVITY_WARN_RATIO", "0.85")
 )  # alerte si > 85% des cycles sans position
@@ -118,7 +118,7 @@ class ActivityTracker:
         if self._inactivity_streak > 0 and self._inactivity_streak % 20 == 0:
             metrics = self.metrics()
             if metrics.is_overfiltered():
-                logger.warning(
+                _log.warning(
                     "[ActivityTracker] CAPITAL INACTIF depuis %d cycles "
                     "(inactivité=%.0f%%, refusés=%d) — sur-filtrage probable",
                     self._inactivity_streak,

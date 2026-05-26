@@ -25,11 +25,12 @@ Usage :
 
 from __future__ import annotations
 
-import logging
 import os
 from dataclasses import dataclass
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
+
+_log = get_logger("quant_hedge_ai.agents.intelligence.regime_transition_smoother")
 
 
 @dataclass
@@ -86,7 +87,7 @@ class RegimeTransitionSmoother:
 
         if new_regime != self._current:
             if s.active:
-                logger.debug(
+                _log.debug(
                     "[RegimeSmoother] Transition interrompue (%s → %s) —"
                     " nouvelle cible: %s",
                     s.from_regime,
@@ -99,7 +100,7 @@ class RegimeTransitionSmoother:
             s.progress = 0.0
             s.active = True
             s.duration = self._ramp
-            logger.info(
+            _log.info(
                 "[RegimeSmoother] %s → %s (rampe %d cycles)",
                 s.from_regime,
                 new_regime,
@@ -112,7 +113,7 @@ class RegimeTransitionSmoother:
             s.progress = min(s.elapsed / s.duration, 1.0)
             if s.progress >= 1.0:
                 s.active = False
-                logger.debug("[RegimeSmoother] Rampe terminée → %s", self._current)
+                _log.debug("[RegimeSmoother] Rampe terminée → %s", self._current)
 
     def smooth_float(self, old_val: float, new_val: float) -> float:
         """Interpole une valeur flottante selon la progression de la rampe."""

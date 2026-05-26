@@ -1,0 +1,84 @@
+{
+  "module_id": "strategy_probation",
+  "class_name": "StrategyProbationSystem",
+  "file_path": "quant_hedge_ai/agents/intelligence/strategy_probation.py",
+  "display_name": "Probation des Stratégies",
+  "layer": "intelligence",
+  "dashboard_tab": "Allocation",
+
+  "role_fr": "Gère le cycle de vie formel des stratégies (P8). Remplace le blacklist binaire par une maturation statistique progressive. Mémoire cumulative des suspensions — les seuils de réhabilitation augmentent à chaque rechute.",
+  "role_en": "Manages the formal strategy lifecycle (P8). Replaces binary blacklisting with progressive statistical maturation. Cumulative suspension memory — rehab thresholds increase with each relapse.",
+
+  "lifecycle": [
+    {
+      "status": "TRACKING",
+      "color": "#6b7280",
+      "capital_factor": 0.0,
+      "description": "Observation pure — signaux générés mais aucun capital réel",
+      "trigger": "Toute nouvelle stratégie"
+    },
+    {
+      "status": "PROBATION",
+      "color": "#f59e0b",
+      "capital_factor": 0.25,
+      "description": "25% du capital alloué — évaluation sur 20 trades minimum",
+      "trigger": "5 trades shadow OU 50 cycles en TRACKING"
+    },
+    {
+      "status": "ACTIVE",
+      "color": "#22c55e",
+      "capital_factor": "rampe 30→50→75→100% sur 5/10/20/∞ cycles",
+      "description": "Capital plein via allocateur — graduation en 4 phases",
+      "trigger": "winrate ≥ 35% ET sharpe ≥ 0.30 après 20 trades"
+    },
+    {
+      "status": "PROBATION_EXTENDED",
+      "color": "#ef4444",
+      "capital_factor": 0.10,
+      "description": "10% du capital — 10 trades supplémentaires",
+      "trigger": "winrate 20-35% après évaluation initiale"
+    },
+    {
+      "status": "SUSPENDED",
+      "color": "#7f1d1d",
+      "capital_factor": 0.0,
+      "description": "Capital gelé — réévaluation tous les 100 cycles ou au changement de régime",
+      "trigger": "winrate < 10% après probation étendue"
+    },
+    {
+      "status": "RETIRED",
+      "color": "#000000",
+      "capital_factor": 0.0,
+      "description": "Arrêt permanent — 5 suspensions cumulées",
+      "trigger": "suspension_count ≥ 5"
+    }
+  ],
+
+  "key_metrics": [
+    { "metric_id": "status",           "label": "Statut",             "type": "enum" },
+    { "metric_id": "capital_factor",   "label": "Facteur capital",    "type": "float", "range": [0.0, 1.0] },
+    { "metric_id": "win_rate",         "label": "Win Rate",           "type": "percent" },
+    { "metric_id": "suspension_count", "label": "Suspensions cumulées","type": "int" },
+    { "metric_id": "graduation_phase", "label": "Phase graduation",   "type": "int" }
+  ],
+
+  "env_vars": [
+    { "name": "P8_TRACKING_MAX_CYCLES",  "default": "50",    "description": "Cycles max en TRACKING avant passage PROBATION" },
+    { "name": "P8_TRACKING_MIN_TRADES",  "default": "5",     "description": "Trades shadow suffisants pour passer PROBATION" },
+    { "name": "P8_PROBATION_EVAL_TRADES","default": "20",    "description": "Trades réels requis pour l'évaluation PROBATION" },
+    { "name": "P8_ACTIVE_WINRATE_MIN",   "default": "0.35",  "description": "Win rate minimum pour passer ACTIVE" },
+    { "name": "P8_ACTIVE_SHARPE_MIN",    "default": "0.30",  "description": "Sharpe minimum pour passer ACTIVE" },
+    { "name": "P8_EXTENDED_WINRATE_MIN", "default": "0.20",  "description": "Win rate minimum pour éviter SUSPENDED direct" },
+    { "name": "P8_SUSPEND_WINRATE_MAX",  "default": "0.10",  "description": "Win rate déclenchant SUSPENDED" },
+    { "name": "P8_EXTENDED_EXTRA_TRADES","default": "10",    "description": "Trades supplémentaires en PROBATION_EXTENDED" },
+    { "name": "P8_SUSPEND_REEVAL_CYCLES","default": "100",   "description": "Cycles entre deux réévaluations d'une stratégie SUSPENDED" },
+    { "name": "P8_RETIRE_SUSPENSIONS",   "default": "5",     "description": "Nombre de suspensions avant RETIRED définitif" },
+    { "name": "PROBATION_DB",            "default": "databases/strategy_probation.json", "description": "Chemin du fichier de persistance de la probation" }
+  ],
+
+  "integration": {
+    "upstream": [],
+    "downstream": ["strategy_allocator"],
+    "note": "capital_factor() consulté par StrategyAllocator à chaque cycle. tick_cycle() appelé une fois par cycle. record_trade() appelé à chaque fermeture de position."
+  }
+}

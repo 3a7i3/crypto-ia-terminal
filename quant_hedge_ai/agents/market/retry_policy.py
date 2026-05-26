@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-import logging
 import random
 import time
 from typing import Callable, TypeVar
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
 
+_log = get_logger("quant_hedge_ai.agents.market.retry_policy")
 T = TypeVar("T")
 
 
@@ -35,14 +35,23 @@ def retry_with_backoff(
             return fn()
         except Exception as exc:
             if attempt == max_retries:
-                logger.error("%séchec définitif après %d tentatives: %s", prefix, max_retries + 1, exc)
+                _log.error(
+                    "%séchec définitif après %d tentatives: %s",
+                    prefix,
+                    max_retries + 1,
+                    exc,
+                )
                 return None
-            delay = min(base_delay * (2 ** attempt), max_delay)
+            delay = min(base_delay * (2**attempt), max_delay)
             if jitter:
                 delay *= random.uniform(0.6, 1.4)
-            logger.warning(
+            _log.warning(
                 "%stentative %d/%d échouée (%s) — retry dans %.1fs",
-                prefix, attempt + 1, max_retries, exc, delay,
+                prefix,
+                attempt + 1,
+                max_retries,
+                exc,
+                delay,
             )
             time.sleep(delay)
     return None
@@ -88,7 +97,7 @@ class CircuitBreaker:
             if time.time() - self._opened_at >= self.recovery_timeout:
                 self._state = self.HALF_OPEN
                 self._half_open_attempted = False
-                logger.info("[CircuitBreaker:%s] → HALF_OPEN (test autorisé)", self.label)
+                _log.info("[CircuitBreaker:%s] → HALF_OPEN (test autorisé)", self.label)
         return self._state
 
     @property
@@ -102,7 +111,7 @@ class CircuitBreaker:
     def call(self, fn: Callable[[], T]) -> T | None:
         current = self.state
         if current == self.OPEN:
-            logger.debug("[CircuitBreaker:%s] OUVERT — appel bloqué", self.label)
+            _log.debug("[CircuitBreaker:%s] OUVERT — appel bloqué", self.label)
             return None
         if current == self.HALF_OPEN and self._half_open_attempted:
             return None
@@ -120,22 +129,27 @@ class CircuitBreaker:
 
     def _on_success(self) -> None:
         if self._state != self.CLOSED:
-            logger.info("[CircuitBreaker:%s] → CLOSED (récupéré)", self.label)
+            _log.info("[CircuitBreaker:%s] → CLOSED (récupéré)", self.label)
         self._failures = 0
         self._state = self.CLOSED
 
     def _on_failure(self, exc: Exception) -> None:
         self._failures += 1
-        logger.warning(
+        _log.warning(
             "[CircuitBreaker:%s] échec #%d/%d: %s",
-            self.label, self._failures, self.failure_threshold, exc,
+            self.label,
+            self._failures,
+            self.failure_threshold,
+            exc,
         )
         if self._failures >= self.failure_threshold:
             self._state = self.OPEN
             self._opened_at = time.time()
-            logger.error(
+            _log.error(
                 "[CircuitBreaker:%s] → OPEN (%d échecs consécutifs, recovery dans %.0fs)",
-                self.label, self._failures, self.recovery_timeout,
+                self.label,
+                self._failures,
+                self.recovery_timeout,
             )
 
     def reset(self) -> None:

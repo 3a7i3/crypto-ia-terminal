@@ -18,18 +18,18 @@ Usage:
 
 from __future__ import annotations
 
-import logging
 import time
 from dataclasses import dataclass, field
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
 
-
+_log = get_logger("quant_hedge_ai.agents.risk.session_guard")
 # ── Exceptions ─────────────────────────────────────────────────────────────────
 
 
 class SessionHaltedError(RuntimeError):
     """Raised when the session is halted due to a risk limit breach."""
+
     def __init__(self, reason: str) -> None:
         super().__init__(f"Trading session halted: {reason}")
         self.reason = reason
@@ -37,10 +37,9 @@ class SessionHaltedError(RuntimeError):
 
 class OrderTooLargeError(ValueError):
     """Raised when a single order exceeds the maximum size limit."""
+
     def __init__(self, size_usd: float, limit_usd: float) -> None:
-        super().__init__(
-            f"Order size ${size_usd:,.2f} exceeds limit ${limit_usd:,.2f}"
-        )
+        super().__init__(f"Order size ${size_usd:,.2f} exceeds limit ${limit_usd:,.2f}")
         self.size_usd = size_usd
         self.limit_usd = limit_usd
 
@@ -119,7 +118,7 @@ class SessionGuard:
             peak_equity=equity,
             current_equity=equity,
         )
-        logger.info("[SessionGuard] Session started — equity=%.2f", equity)
+        _log.info("[SessionGuard] Session started — equity=%.2f", equity)
 
     # ── Per-order check ────────────────────────────────────────────────────────
 
@@ -132,9 +131,12 @@ class SessionGuard:
             raise SessionHaltedError(self._state.halt_reason)
 
         if size_usd > self._max_order_usd:
-            logger.warning(
+            _log.warning(
                 "[SessionGuard] Order too large: %s %s $%.2f > limit $%.2f",
-                action, symbol, size_usd, self._max_order_usd,
+                action,
+                symbol,
+                size_usd,
+                self._max_order_usd,
             )
             raise OrderTooLargeError(size_usd, self._max_order_usd)
 
@@ -163,8 +165,9 @@ class SessionGuard:
     def reset(self) -> None:
         """Clear the halt flag (operator override, use with caution)."""
         if self._state.halted:
-            logger.warning(
-                "[SessionGuard] Halt manually cleared (was: %s)", self._state.halt_reason
+            _log.warning(
+                "[SessionGuard] Halt manually cleared (was: %s)",
+                self._state.halt_reason,
             )
         self._state.halted = False
         self._state.halt_reason = ""
@@ -191,13 +194,9 @@ class SessionGuard:
             return
 
         if s.drawdown >= self._max_dd:
-            self._halt(
-                f"session_drawdown {s.drawdown:.1%} >= limit {self._max_dd:.1%}"
-            )
+            self._halt(f"session_drawdown {s.drawdown:.1%} >= limit {self._max_dd:.1%}")
         elif s.loss_pct >= self._max_loss:
-            self._halt(
-                f"session_loss {s.loss_pct:.1%} >= limit {self._max_loss:.1%}"
-            )
+            self._halt(f"session_loss {s.loss_pct:.1%} >= limit {self._max_loss:.1%}")
         elif s.consecutive_losses >= self._max_consec:
             self._halt(
                 f"{s.consecutive_losses} consecutive losses >= limit {self._max_consec}"
@@ -209,4 +208,4 @@ class SessionGuard:
         s.halt_reason = reason
         s.halt_time = time.time()
         s.events.append(f"HALT: {reason}")
-        logger.error("[SessionGuard] TRADING HALTED — %s", reason)
+        _log.error("[SessionGuard] TRADING HALTED — %s", reason)

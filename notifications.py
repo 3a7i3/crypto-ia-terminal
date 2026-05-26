@@ -14,14 +14,13 @@ Fournit :
 
 from __future__ import annotations
 
-import logging
 import os
 import smtplib
 from email.mime.text import MIMEText
 
-logger = logging.getLogger("notifications")
+from observability.json_logger import get_logger
 
-
+_log = get_logger("notifications")
 # ── Canaux sync ────────────────────────────────────────────────────────────────
 
 
@@ -40,7 +39,7 @@ def send_email(
     smtp_user = smtp_user or os.getenv("EMAIL_FROM_ADDR", "")
     smtp_pass = smtp_pass or os.getenv("EMAIL_SMTP_PASS", "")
     if not all([to_email, smtp_server, smtp_user, smtp_pass]):
-        logger.warning("[Email] Configuration incomplète — envoi ignoré")
+        _log.warning("[Email] Configuration incomplète — envoi ignoré")
         return
     msg = MIMEText(body)
     msg["Subject"] = subject
@@ -49,14 +48,14 @@ def send_email(
     with smtplib.SMTP_SSL(smtp_server, int(smtp_port)) as server:
         server.login(smtp_user, smtp_pass)
         server.sendmail(smtp_user, [to_email], msg.as_string())
-    logger.info("[Email] Envoyé à %s", to_email)
+    _log.info("[Email] Envoyé à %s", to_email)
 
 
 def send_slack(message: str, webhook_url: str | None = None) -> None:
     """Envoi Slack via webhook. URL lue depuis .env si absente."""
     webhook_url = webhook_url or os.getenv("SLACK_WEBHOOK_URL", "")
     if not webhook_url:
-        logger.warning("[Slack] SLACK_WEBHOOK_URL absent — envoi ignoré")
+        _log.warning("[Slack] SLACK_WEBHOOK_URL absent — envoi ignoré")
         return
     try:
         import json
@@ -68,9 +67,9 @@ def send_slack(message: str, webhook_url: str | None = None) -> None:
         )
         with urllib.request.urlopen(req, timeout=5) as resp:
             if resp.status != 200:
-                logger.warning("[Slack] Statut non-200: %s", resp.status)
+                _log.warning("[Slack] Statut non-200: %s", resp.status)
     except Exception as exc:
-        logger.error("[Slack] Erreur: %s", exc)
+        _log.error("[Slack] Erreur: %s", exc)
 
 
 # ── MultiNotifier global ───────────────────────────────────────────────────────
@@ -86,9 +85,9 @@ def _build_notifier():
     chat = os.getenv("TELEGRAM_CHAT_ID", "").strip()
     if token and chat:
         notifiers.append(TelegramNotifier(token, chat))
-        logger.info("[Notifications] Telegram activé (chat=%s)", chat)
+        _log.info("[Notifications] Telegram activé (chat=%s)", chat)
     else:
-        logger.info(
+        _log.info(
             "[Notifications] Telegram désactivé — définir TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID dans .env"
         )
 
@@ -97,7 +96,7 @@ def _build_notifier():
         from supervision.notifications.slack_notifier import SlackNotifier
 
         notifiers.append(SlackNotifier(slack_url))
-        logger.info("[Notifications] Slack activé")
+        _log.info("[Notifications] Slack activé")
 
     return MultiNotifier(notifiers)
 
@@ -124,8 +123,7 @@ class TelegramBotAdapter:
         chat = os.getenv("TELEGRAM_CHAT_ID", "").strip()
         self._active = bool(token and chat)
         if self._active:
-            from supervision.notifications.telegram_notifier import \
-                TelegramNotifier
+            from supervision.notifications.telegram_notifier import TelegramNotifier
 
             self._notifier = TelegramNotifier(token, chat)
 
@@ -139,7 +137,7 @@ class TelegramBotAdapter:
         try:
             self._notifier.notify(text)
         except Exception as exc:
-            logger.error("[TelegramBotAdapter] Erreur: %s", exc)
+            _log.error("[TelegramBotAdapter] Erreur: %s", exc)
 
 
 def build_telegram_bot() -> TelegramBotAdapter | None:

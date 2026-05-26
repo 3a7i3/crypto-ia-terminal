@@ -1,0 +1,106 @@
+{
+  "module_id": "risk_governor",
+  "class_name": "RiskGovernor",
+  "file_path": "quant_hedge_ai/agents/risk/risk_governor.py",
+  "display_name": "Gouverneur de Risque",
+  "layer": "risk",
+  "dashboard_tab": "Risque",
+
+  "role_fr": "Machine à états de risque globale (P7). Pilote le comportement systémique : taille des positions, seuil de signal, autorisation de trade. Inclut VolatilityEmergencyMode.",
+  "role_en": "Global risk state machine (P7). Drives system-wide behaviour: position sizing, signal threshold delta, trade authorization. Includes VolatilityEmergencyMode.",
+
+  "states": [
+    {
+      "state_id": "normal",
+      "color": "#22c55e",
+      "size_multiplier": 1.0,
+      "threshold_delta": 0,
+      "allow_new_trades": true,
+      "description": "Activité standard, threshold adaptatif actif"
+    },
+    {
+      "state_id": "defensive",
+      "color": "#f59e0b",
+      "size_multiplier": 0.5,
+      "threshold_delta": 0,
+      "allow_new_trades": true,
+      "description": "Réduction de size 50%, SL élargi, pas de nouveaux trades en HIGH_VOL"
+    },
+    {
+      "state_id": "risk_off",
+      "color": "#ef4444",
+      "size_multiplier": 0.0,
+      "threshold_delta": 15,
+      "allow_new_trades": false,
+      "description": "Aucun nouveau trade, liquidation progressive des positions"
+    },
+    {
+      "state_id": "recovery",
+      "color": "#a78bfa",
+      "size_multiplier": 0.25,
+      "threshold_delta": 3,
+      "allow_new_trades": true,
+      "description": "Size réduite 25%, threshold +3, trades haute conviction seulement"
+    },
+    {
+      "state_id": "aggressive",
+      "color": "#3b82f6",
+      "size_multiplier": 1.2,
+      "threshold_delta": -2,
+      "allow_new_trades": true,
+      "description": "Size augmentée 120%, threshold -2, réservé aux trends forts confirmés"
+    }
+  ],
+
+  "transitions": [
+    { "from": "normal",    "to": "defensive",  "condition": "drawdown > 3% OU volatilité > 2× ATR médian" },
+    { "from": "defensive", "to": "risk_off",   "condition": "drawdown > 6% OU 3 pertes consécutives" },
+    { "from": "risk_off",  "to": "recovery",   "condition": "10 cycles sans perte OU volatilité revenue sous seuil" },
+    { "from": "recovery",  "to": "normal",     "condition": "20 cycles stables OU PnL positif sur 15 cycles" },
+    { "from": "normal",    "to": "aggressive", "condition": "trend fort + vol stable + 10 cycles PnL positif" },
+    { "from": "aggressive","to": "defensive",  "condition": "drawdown > 3% OU vol > 2× ATR médian" },
+    { "from": "aggressive","to": "normal",     "condition": "régime non trend (bull/bear)" },
+    { "from": "recovery",  "to": "risk_off",   "condition": "rechute drawdown > 6% OU 3 pertes consécutives" },
+    { "from": "defensive", "to": "normal",     "condition": "drawdown revenu sous 1.5% ET vol calme" }
+  ],
+
+  "hysteresis_min_cycles": 5,
+
+  "vol_emergency_mode": {
+    "trigger": "ATR ratio courant > 3× médiane 50 cycles",
+    "effect": "suspension immédiate nouveaux trades (allow_new_trades=False)",
+    "cooldown_cycles": 5,
+    "description": "Mémoire du danger — reste actif N cycles après retour sous seuil"
+  },
+
+  "key_metrics": [
+    { "metric_id": "state",             "label": "État Risque",         "type": "enum" },
+    { "metric_id": "size_multiplier",   "label": "Multiplicateur Size", "type": "float" },
+    { "metric_id": "threshold_delta",   "label": "Delta Threshold",     "type": "int" },
+    { "metric_id": "allow_new_trades",  "label": "Trades Autorisés",    "type": "bool" },
+    { "metric_id": "drawdown_pct",      "label": "Drawdown %",          "type": "float" },
+    { "metric_id": "vol_emergency",     "label": "Urgence Volatilité",  "type": "bool" },
+    { "metric_id": "cycles_in_state",   "label": "Cycles dans État",    "type": "int" },
+    { "metric_id": "consecutive_losses","label": "Pertes Consécutives", "type": "int" }
+  ],
+
+  "env_vars": [
+    { "name": "RG_DD_DEFENSIVE",           "default": "0.03",  "description": "Drawdown % déclenchant DEFENSIVE (défaut 3%)" },
+    { "name": "RG_DD_RISK_OFF",            "default": "0.06",  "description": "Drawdown % déclenchant RISK_OFF (défaut 6%)" },
+    { "name": "RG_VOL_DEFENSIVE",          "default": "2.0",   "description": "ATR ratio déclenchant DEFENSIVE (2× médiane)" },
+    { "name": "RG_VOL_EMERGENCY",          "default": "3.0",   "description": "ATR ratio déclenchant urgence volatilité (3× médiane)" },
+    { "name": "RG_MIN_CYCLES",             "default": "5",     "description": "Hystérésis : cycles minimum entre deux transitions" },
+    { "name": "RG_RECOVERY_STABLE",        "default": "20",    "description": "Cycles stables pour sortir de RECOVERY" },
+    { "name": "RG_RECOVERY_PNL_CYCLES",    "default": "15",    "description": "Cycles PnL positif pour sortir de RECOVERY" },
+    { "name": "RG_RISK_OFF_SAFE_CYCLES",   "default": "10",    "description": "Cycles sans perte pour sortir de RISK_OFF" },
+    { "name": "RG_AGGRESSIVE_PNL_CYCLES",  "default": "10",    "description": "Cycles PnL positif requis pour entrer en AGGRESSIVE" },
+    { "name": "RG_VOL_EMERGENCY_COOLDOWN", "default": "5",     "description": "Cycles de cooldown après fin urgence volatilité" }
+  ],
+
+  "integration": {
+    "upstream": ["capital_throttle", "feature_engineer"],
+    "downstream": ["global_risk_gate"],
+    "advisor_loop_hook": "set_governor_delta(snapshot.threshold_delta) appelé sur GlobalRiskGate chaque cycle",
+    "atr_source": "_atr_last — ATR ratio moyen du cycle précédent (calculé post-résultats)"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "module_id": "proactive_alerts",
+  "class_name": "ProactiveAlerts",
+  "file_path": "quant_hedge_ai/agents/intelligence/proactive_alerts.py",
+  "display_name": "Proactive Alerts",
+  "layer": "intelligence",
+  "dashboard_tab": "Monitoring",
+
+  "role_fr": "Génère des alertes proactives avant que les problèmes deviennent critiques. Surveille drawdown tendanciel, inactivité prolongée, dérive de régime, saturation des positions. Envoie alertes Telegram ou logs structurés avant le déclenchement des circuit-breakers.",
+  "role_en": "Generates proactive alerts before problems become critical. Monitors trending drawdown, prolonged inactivity, regime drift, position saturation. Sends Telegram alerts or structured logs before circuit-breakers trigger.",
+
+  "key_metrics": [
+    { "metric_id": "alerts_sent_count", "label": "Alertes envoyées", "type": "int" },
+    { "metric_id": "last_alert_type",   "label": "Dernière alerte",  "type": "str" }
+  ],
+
+  "env_vars": [
+    { "name": "PROACTIVE_ALERT_CHANNEL", "default": "log", "description": "Canal de sortie alertes : log, telegram, both" }
+  ],
+
+  "integration": {
+    "upstream": ["activity_tracker", "risk_governor", "behavioral_stability_monitor"],
+    "downstream": [],
+    "note": "check() appelé chaque cycle après les modules de monitoring."
+  }
+}

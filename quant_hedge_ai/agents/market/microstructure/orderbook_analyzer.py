@@ -7,15 +7,17 @@ Analyse l'order book en temps réel pour détecter :
 - Spoofing probable (ordres fantômes)
 - Pression agressive (taker flow)
 """
+
 from __future__ import annotations
 
-import logging
 import time
 from collections import deque
 from dataclasses import dataclass, field
 from typing import Any
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
+
+_log = get_logger("quant_hedge_ai.agents.market.microstructure.orderbook_analyzer")
 
 
 @dataclass
@@ -24,20 +26,20 @@ class OrderBookSignal:
     timestamp: float
 
     # Imbalance
-    imbalance: float = 0.0              # [-1, +1] : -1 forte pression sell, +1 forte pression buy
-    imbalance_slope: float = 0.0        # variation d'imbalance sur les 5 dernières snapshots
+    imbalance: float = 0.0  # [-1, +1] : -1 forte pression sell, +1 forte pression buy
+    imbalance_slope: float = 0.0  # variation d'imbalance sur les 5 dernières snapshots
 
     # Liquidité
     bid_depth_usd: float = 0.0
     ask_depth_usd: float = 0.0
-    liquidity_ratio: float = 1.0        # bid_depth / ask_depth
+    liquidity_ratio: float = 1.0  # bid_depth / ask_depth
 
     # Murs
-    nearest_bid_wall_pct: float = 0.0   # distance % au prochain mur bid
-    nearest_ask_wall_pct: float = 0.0   # distance % au prochain mur ask
+    nearest_bid_wall_pct: float = 0.0  # distance % au prochain mur bid
+    nearest_ask_wall_pct: float = 0.0  # distance % au prochain mur ask
 
     # Spoofing
-    spoofing_score: float = 0.0         # [0,1] probabilité de spoofing
+    spoofing_score: float = 0.0  # [0,1] probabilité de spoofing
 
     # Spread
     spread_bps: float = 0.0
@@ -56,8 +58,10 @@ class OrderBookAnalyzer:
     Maintient un historique court pour calculer les slopes et détecter spoofing.
     """
 
-    WALL_MULTIPLIER = 5.0       # un niveau est un "mur" si volume > 5x la moyenne
-    SPOOF_DISAPPEAR_RATIO = 0.7 # un ordre "fantôme" si 70% de son volume disparaît en <2s
+    WALL_MULTIPLIER = 5.0  # un niveau est un "mur" si volume > 5x la moyenne
+    SPOOF_DISAPPEAR_RATIO = (
+        0.7  # un ordre "fantôme" si 70% de son volume disparaît en <2s
+    )
 
     def __init__(self, history_size: int = 20) -> None:
         self._history: dict[str, deque] = {}  # symbol → deque[OrderBookSignal]
@@ -88,8 +92,12 @@ class OrderBookAnalyzer:
         sig.bid_depth_usd = sum(float(b[0]) * float(b[1]) for b in bids[:20])
         sig.ask_depth_usd = sum(float(a[0]) * float(a[1]) for a in asks[:20])
         total = sig.bid_depth_usd + sig.ask_depth_usd
-        sig.imbalance = (sig.bid_depth_usd - sig.ask_depth_usd) / total if total else 0.0
-        sig.liquidity_ratio = sig.bid_depth_usd / sig.ask_depth_usd if sig.ask_depth_usd else 1.0
+        sig.imbalance = (
+            (sig.bid_depth_usd - sig.ask_depth_usd) / total if total else 0.0
+        )
+        sig.liquidity_ratio = (
+            sig.bid_depth_usd / sig.ask_depth_usd if sig.ask_depth_usd else 1.0
+        )
 
         # Murs de liquidité
         bid_wall = self._find_wall(bids, mid, side="bid")

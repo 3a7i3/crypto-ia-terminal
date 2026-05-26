@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
-import logging
 import os
 import random
 from dataclasses import dataclass, field
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
+
+_log = get_logger("quant_hedge_ai.market_radar.token_scanner")
 
 
 @dataclass
@@ -63,7 +64,7 @@ class TokenScanner:
         for platform in self.platforms:
             tokens = self._scan_platform(platform)
             all_tokens.extend(tokens)
-        logger.info(
+        _log.info(
             "TokenScanner: found %d raw tokens across %d platforms",
             len(all_tokens),
             len(self.platforms),
@@ -79,7 +80,7 @@ class TokenScanner:
             and t.volume_24h_usd >= self.min_volume_usd
             and t.age_seconds <= self.max_token_age_s
         ]
-        logger.info(
+        _log.info(
             "TokenScanner: %d tokens passed filters (from %d)",
             len(filtered),
             len(tokens),
@@ -183,7 +184,7 @@ class TokenScanner:
 
     def _scan_platform_live(self, platform: str) -> list[TokenInfo]:
         """Placeholder for real API integration. Falls back to simulation."""
-        logger.warning(
+        _log.warning(
             "Live scanning for %s not yet implemented — using simulation", platform
         )
         return self._scan_platform_simulated(platform)

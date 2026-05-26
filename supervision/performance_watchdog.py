@@ -26,7 +26,6 @@ Usage :
 
 from __future__ import annotations
 
-import logging
 import os
 import smtplib
 import time
@@ -39,28 +38,29 @@ from typing import Generator
 
 import requests
 
-log = logging.getLogger("performance_watchdog")
+from observability.json_logger import get_logger
 
+_log = get_logger("performance_watchdog")
 # ── Seuils de latence (secondes) ──────────────────────────────────────────────
 THRESHOLDS: dict[str, dict[str, float]] = {
-    "scan_1h":  {"warn": 8.0,  "degraded": 15.0},
+    "scan_1h": {"warn": 8.0, "degraded": 15.0},
     "scan_mtf": {"warn": 10.0, "degraded": 20.0},
-    "features": {"warn": 1.0,  "degraded": 3.0},
-    "signal":   {"warn": 2.0,  "degraded": 5.0},
-    "risk":     {"warn": 1.0,  "degraded": 3.0},
-    "advisor":  {"warn": 10.0, "degraded": 20.0},
-    "cycle":    {"warn": 30.0, "degraded": 60.0},
+    "features": {"warn": 1.0, "degraded": 3.0},
+    "signal": {"warn": 2.0, "degraded": 5.0},
+    "risk": {"warn": 1.0, "degraded": 3.0},
+    "advisor": {"warn": 10.0, "degraded": 20.0},
+    "cycle": {"warn": 30.0, "degraded": 60.0},
 }
 
 # ── Config mail ───────────────────────────────────────────────────────────────
-SMTP_SERVER  = os.getenv("EMAIL_SMTP_SERVER",  "smtp.gmail.com")
-SMTP_PORT    = int(os.getenv("EMAIL_SMTP_PORT", "587"))
-SMTP_USER    = os.getenv("EMAIL_FROM_ADDR",    "")
-SMTP_PASS    = os.getenv("EMAIL_SMTP_PASS",    "")
-EMAIL_TO     = os.getenv("EMAIL_TO_ADDR",      "ia.strategy.support@gmail.com")
+SMTP_SERVER = os.getenv("EMAIL_SMTP_SERVER", "smtp.gmail.com")
+SMTP_PORT = int(os.getenv("EMAIL_SMTP_PORT", "587"))
+SMTP_USER = os.getenv("EMAIL_FROM_ADDR", "")
+SMTP_PASS = os.getenv("EMAIL_SMTP_PASS", "")
+EMAIL_TO = os.getenv("EMAIL_TO_ADDR", "ia.strategy.support@gmail.com")
 
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
-TELEGRAM_CHAT  = os.getenv("TELEGRAM_CHAT_ID",   "")
+TELEGRAM_CHAT = os.getenv("TELEGRAM_CHAT_ID", "")
 
 # Historique de latences (fenêtre glissante 20 cycles)
 _HISTORY_SIZE = 20
@@ -70,10 +70,10 @@ _HISTORY_SIZE = 20
 class ComponentStatus:
     name: str
     last_latency: float = 0.0
-    avg_latency: float  = 0.0
-    status: str         = "ok"       # ok | warn | degraded | offline
-    heal_count: int     = 0
-    history: deque      = field(default_factory=lambda: deque(maxlen=_HISTORY_SIZE))
+    avg_latency: float = 0.0
+    status: str = "ok"  # ok | warn | degraded | offline
+    heal_count: int = 0
+    history: deque = field(default_factory=lambda: deque(maxlen=_HISTORY_SIZE))
 
     def record(self, latency: float, warn: float, degraded: float) -> str:
         self.last_latency = latency
@@ -97,7 +97,7 @@ class PerformanceWatchdog:
         }
         self._cycle_start: float = 0.0
         self._pending_auth: list[dict] = []  # actions en attente d'autorisation
-        self._lm_degraded: bool = False      # LM Studio déjà signalé comme dégradé
+        self._lm_degraded: bool = False  # LM Studio déjà signalé comme dégradé
 
     # ── Mesure de latence ─────────────────────────────────────────────────────
 
@@ -127,11 +127,19 @@ class PerformanceWatchdog:
             latency, thresh["warn"], thresh["degraded"]
         )
         if status == "degraded":
-            log.warning("[WD] %s DEGRADE — %.1fs (seuil: %.1fs)",
-                        component, latency, thresh["degraded"])
+            _log.warning(
+                "[WD] %s DEGRADE — %.1fs (seuil: %.1fs)",
+                component,
+                latency,
+                thresh["degraded"],
+            )
         elif status == "warn":
-            log.info("[WD] %s lent — %.1fs (seuil warn: %.1fs)",
-                     component, latency, thresh["warn"])
+            _log.info(
+                "[WD] %s lent — %.1fs (seuil warn: %.1fs)",
+                component,
+                latency,
+                thresh["warn"],
+            )
 
     # ── Vérification globale à la fin de chaque cycle ─────────────────────────
 
@@ -141,7 +149,12 @@ class PerformanceWatchdog:
             return
 
         names = ", ".join(c.name for c in degraded)
-        log.warning("[WD] Cycle %d — %d composant(s) dégradé(s): %s", cycle, len(degraded), names)
+        _log.warning(
+            "[WD] Cycle %d — %d composant(s) dégradé(s): %s",
+            cycle,
+            len(degraded),
+            names,
+        )
 
         # Telegram pour dégradation
         self._telegram(
@@ -169,6 +182,7 @@ class PerformanceWatchdog:
         """Si l'advisor est lent → vérifier LM Studio et basculer si nécessaire."""
         try:
             from lm_studio.client import list_loaded_models
+
             loaded = list_loaded_models()
         except Exception:
             loaded = []
@@ -179,7 +193,9 @@ class PerformanceWatchdog:
             # Aucun modèle chargé → basculer en déterministe silencieusement
             if not self._lm_degraded:
                 self._lm_degraded = True
-                log.warning("[WD] LM Studio: aucun modèle chargé — bascule déterministe")
+                _log.warning(
+                    "[WD] LM Studio: aucun modèle chargé — bascule déterministe"
+                )
                 self._send_report(
                     subject="[Crypto AI] LM Studio hors ligne — action requise",
                     body=(
@@ -223,7 +239,11 @@ class PerformanceWatchdog:
                     f"Réponds à ce mail avec 'OUI' pour autoriser, 'NON' pour ignorer."
                 ),
                 require_auth=True,
-                action={"type": "env_set", "key": "MARKET_SCANNER_CACHE_TTL", "value": "120"},
+                action={
+                    "type": "env_set",
+                    "key": "MARKET_SCANNER_CACHE_TTL",
+                    "value": "120",
+                },
             )
 
     # ── Notifications ─────────────────────────────────────────────────────────
@@ -238,19 +258,26 @@ class PerformanceWatchdog:
                 timeout=10,
             )
         except Exception as exc:
-            log.debug("[WD] Telegram erreur: %s", exc)
+            _log.debug("[WD] Telegram erreur: %s", exc)
 
-    def _send_report(self, subject: str, body: str, require_auth: bool = False,
-                     action: dict | None = None) -> None:
+    def _send_report(
+        self,
+        subject: str,
+        body: str,
+        require_auth: bool = False,
+        action: dict | None = None,
+    ) -> None:
         """Envoie un mail de rapport. Si require_auth=True, stocke l'action en attente."""
         if require_auth and action:
             self._pending_auth.append(action)
             body += f"\n\nID action en attente: {len(self._pending_auth)}"
 
-        log.info("[WD] Rapport mail: %s", subject)
+        _log.info("[WD] Rapport mail: %s", subject)
 
         if not SMTP_USER or not SMTP_PASS:
-            log.warning("[WD] Mail non configuré (EMAIL_FROM_ADDR/EMAIL_SMTP_PASS manquants)")
+            _log.warning(
+                "[WD] Mail non configuré (EMAIL_FROM_ADDR/EMAIL_SMTP_PASS manquants)"
+            )
             # Fallback Telegram si mail non configuré
             self._telegram(f"RAPPORT: {subject}\n\n{body[:400]}")
             return
@@ -258,8 +285,8 @@ class PerformanceWatchdog:
         try:
             msg = MIMEMultipart("alternative")
             msg["Subject"] = subject
-            msg["From"]    = SMTP_USER
-            msg["To"]      = EMAIL_TO
+            msg["From"] = SMTP_USER
+            msg["To"] = EMAIL_TO
             msg.attach(MIMEText(body, "plain", "utf-8"))
 
             with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as smtp:
@@ -267,9 +294,9 @@ class PerformanceWatchdog:
                 smtp.starttls()
                 smtp.login(SMTP_USER, SMTP_PASS)
                 smtp.sendmail(SMTP_USER, EMAIL_TO, msg.as_string())
-            log.info("[WD] Mail envoyé: %s → %s", subject, EMAIL_TO)
+            _log.info("[WD] Mail envoyé: %s → %s", subject, EMAIL_TO)
         except Exception as exc:
-            log.error("[WD] Echec envoi mail: %s", exc)
+            _log.error("[WD] Echec envoi mail: %s", exc)
             self._telegram(f"RAPPORT (mail échoué): {subject}\n{body[:300]}")
 
     # ── Rapport de santé ──────────────────────────────────────────────────────
@@ -278,10 +305,10 @@ class PerformanceWatchdog:
         """Retourne un snapshot de l'état de tous les composants."""
         return {
             name: {
-                "status":       c.status,
-                "last":         round(c.last_latency, 2),
-                "avg":          round(c.avg_latency, 2),
-                "heal_count":   c.heal_count,
+                "status": c.status,
+                "last": round(c.last_latency, 2),
+                "avg": round(c.avg_latency, 2),
+                "heal_count": c.heal_count,
             }
             for name, c in self._components.items()
         }

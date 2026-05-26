@@ -1,0 +1,39 @@
+{
+  "module_id": "exposure_manager",
+  "class_name": "DynamicExposureManager",
+  "file_path": "quant_hedge_ai/agents/risk/exposure_manager.py",
+  "display_name": "Gestionnaire Exposition Dynamique",
+  "layer": "risk",
+  "dashboard_tab": "Risque",
+
+  "role_fr": "Borne l'exposition totale au capital selon l'état RiskGovernor (P7). Empêche le dépassement via exposure_used tracker. Zéro exposition autorisée en RISK_OFF.",
+  "role_en": "Caps total capital exposure based on RiskGovernor state (P7). Prevents overexposure via exposure_used tracker. Zero exposure allowed in RISK_OFF.",
+
+  "max_total_exposure_by_state": {
+    "NORMAL":    "20% du capital (env EM_MAX_NORMAL)",
+    "DEFENSIVE": "10% du capital (env EM_MAX_DEFENSIVE)",
+    "RISK_OFF":  "0% — aucune exposition autorisée",
+    "RECOVERY":  "5% du capital (env EM_MAX_RECOVERY)",
+    "AGGRESSIVE":"30% du capital (env EM_MAX_AGGRESSIVE)"
+  },
+
+  "key_metrics": [
+    { "metric_id": "exposure_used_usd", "label": "Exposition USD",    "type": "float" },
+    { "metric_id": "exposure_used_pct", "label": "Exposition %",      "type": "float" },
+    { "metric_id": "max_total_usd",     "label": "Plafond USD",       "type": "float" },
+    { "metric_id": "headroom_usd",      "label": "Marge Disponible",  "type": "float" }
+  ],
+
+  "env_vars": [
+    { "name": "EM_MAX_NORMAL",     "default": "0.20", "description": "Exposition max en NORMAL (20% capital)" },
+    { "name": "EM_MAX_DEFENSIVE",  "default": "0.10", "description": "Exposition max en DEFENSIVE (10% capital)" },
+    { "name": "EM_MAX_RECOVERY",   "default": "0.05", "description": "Exposition max en RECOVERY (5% capital)" },
+    { "name": "EM_MAX_AGGRESSIVE", "default": "0.30", "description": "Exposition max en AGGRESSIVE (30% capital)" }
+  ],
+
+  "integration": {
+    "upstream": ["risk_governor"],
+    "downstream": ["advisor_loop"],
+    "note": "record_open/record_close maintenus manuellement. sync_from_positions() resynchronise depuis PositionManager."
+  }
+}

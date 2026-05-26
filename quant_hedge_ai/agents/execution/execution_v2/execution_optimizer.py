@@ -7,23 +7,25 @@ Détermine la meilleure stratégie d'exécution pour un ordre :
 - TWAP (découpage temporel)
 - Liquidity-split (découpage en taille)
 """
+
 from __future__ import annotations
 
-import logging
 import math
 import time
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
-logger = logging.getLogger(__name__)
+from observability.json_logger import get_logger
+
+_log = get_logger("quant_hedge_ai.agents.execution.execution_v2.execution_optimizer")
 
 
 class ExecutionStrategy(str, Enum):
-    TAKER_IMMEDIATE = "taker_immediate"     # ordre market immédiat
-    MAKER_LIMIT = "maker_limit"             # limit au bid/ask
-    TWAP = "twap"                           # découpage temporel
-    LIQUIDITY_SPLIT = "liquidity_split"     # découpage en taille
+    TAKER_IMMEDIATE = "taker_immediate"  # ordre market immédiat
+    MAKER_LIMIT = "maker_limit"  # limit au bid/ask
+    TWAP = "twap"  # découpage temporel
+    LIQUIDITY_SPLIT = "liquidity_split"  # découpage en taille
 
 
 @dataclass
@@ -43,7 +45,7 @@ class ExecutionPlan:
     chunks: list[ExecutionChunk] = field(default_factory=list)
     estimated_slippage_bps: float = 0.0
     estimated_cost_usd: float = 0.0
-    urgency_score: float = 0.5              # [0,1] : 1 = exécuter maintenant
+    urgency_score: float = 0.5  # [0,1] : 1 = exécuter maintenant
     notes: str = ""
 
     def total_chunks(self) -> int:
@@ -75,8 +77,8 @@ class ExecutionOptimizer:
     - taille relative à la liquidité
     """
 
-    TWAP_MAX_SIZE_USD = 50_000      # seuil pour déclencher TWAP
-    SPLIT_RATIO = 0.03              # ne pas dépasser 3% de la liquidité en 1 ordre
+    TWAP_MAX_SIZE_USD = 50_000  # seuil pour déclencher TWAP
+    SPLIT_RATIO = 0.03  # ne pas dépasser 3% de la liquidité en 1 ordre
 
     def __init__(self, slippage_predictor=None) -> None:
         self._slippage_predictor = slippage_predictor
@@ -98,16 +100,26 @@ class ExecutionOptimizer:
         slippage_bps = spread_bps * 0.5
         if self._slippage_predictor:
             est = self._slippage_predictor.predict(
-                symbol, side, size_usd, spread_bps, ob_imbalance, atr_pct, liquidity_depth_usd
+                symbol,
+                side,
+                size_usd,
+                spread_bps,
+                ob_imbalance,
+                atr_pct,
+                liquidity_depth_usd,
             )
             slippage_bps = est.predicted_slippage_bps
 
         # Choix de stratégie
         size_ratio = size_usd / max(liquidity_depth_usd, 1.0)
-        strategy = self._choose_strategy(signal_urgency, spread_bps, size_usd, size_ratio, atr_pct)
+        strategy = self._choose_strategy(
+            signal_urgency, spread_bps, size_usd, size_ratio, atr_pct
+        )
 
         # Construction des chunks
-        chunks = self._build_chunks(strategy, size_usd, liquidity_depth_usd, signal_urgency)
+        chunks = self._build_chunks(
+            strategy, size_usd, liquidity_depth_usd, signal_urgency
+        )
 
         plan = ExecutionPlan(
             symbol=symbol,
@@ -162,17 +174,23 @@ class ExecutionOptimizer:
         urgency: float,
     ) -> list[ExecutionChunk]:
         if strategy == ExecutionStrategy.TAKER_IMMEDIATE:
-            return [ExecutionChunk(size_usd=size_usd, delay_seconds=0, strategy=strategy)]
+            return [
+                ExecutionChunk(size_usd=size_usd, delay_seconds=0, strategy=strategy)
+            ]
 
         if strategy == ExecutionStrategy.MAKER_LIMIT:
-            return [ExecutionChunk(size_usd=size_usd, delay_seconds=0, strategy=strategy)]
+            return [
+                ExecutionChunk(size_usd=size_usd, delay_seconds=0, strategy=strategy)
+            ]
 
         if strategy == ExecutionStrategy.TWAP:
             n_chunks = min(max(2, math.ceil(size_usd / 10_000)), 10)
             chunk_size = size_usd / n_chunks
             interval = max(30.0, (1.0 - urgency) * 300.0)
             return [
-                ExecutionChunk(size_usd=chunk_size, delay_seconds=i * interval, strategy=strategy)
+                ExecutionChunk(
+                    size_usd=chunk_size, delay_seconds=i * interval, strategy=strategy
+                )
                 for i in range(n_chunks)
             ]
 
@@ -181,13 +199,27 @@ class ExecutionOptimizer:
             n_chunks = max(2, math.ceil(size_usd / max_chunk))
             chunk_size = size_usd / n_chunks
             return [
-                ExecutionChunk(size_usd=chunk_size, delay_seconds=i * 5.0, strategy=strategy)
+                ExecutionChunk(
+                    size_usd=chunk_size, delay_seconds=i * 5.0, strategy=strategy
+                )
                 for i in range(n_chunks)
             ]
 
-        return [ExecutionChunk(size_usd=size_usd, delay_seconds=0, strategy=ExecutionStrategy.TAKER_IMMEDIATE)]
+        return [
+            ExecutionChunk(
+                size_usd=size_usd,
+                delay_seconds=0,
+                strategy=ExecutionStrategy.TAKER_IMMEDIATE,
+            )
+        ]
 
-    def _explain(self, strategy: ExecutionStrategy, spread_bps: float, size_ratio: float, urgency: float) -> str:
+    def _explain(
+        self,
+        strategy: ExecutionStrategy,
+        spread_bps: float,
+        size_ratio: float,
+        urgency: float,
+    ) -> str:
         if strategy == ExecutionStrategy.TWAP:
             return f"TWAP: ordre trop grand ({size_ratio:.1%} liquidité), découpé dans le temps"
         if strategy == ExecutionStrategy.MAKER_LIMIT:
