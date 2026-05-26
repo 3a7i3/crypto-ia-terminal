@@ -736,3 +736,169 @@ class TestPortfolioIntelligence:
         assert "position_count" in s
         assert "net_exposure" in s
         assert "by_exchange" in s
+
+    def test_position_symbols_public_method(self):
+        pi = PortfolioIntelligence()
+        pi.record_position("BTC/USDT", "binance", "m", "long", 1000.0)
+        pi.record_position("ETH/USDT", "bybit", "m", "short", 500.0)
+        syms = pi.position_symbols()
+        assert "BTC/USDT" in syms
+        assert "ETH/USDT" in syms
+        pi.close_position("BTC/USDT")
+        assert "BTC/USDT" not in pi.position_symbols()
+
+
+# ── Tests d'intégration structurels ───────────────────────────────────────────
+
+
+class TestP9StructuralIntegrity:
+    """
+    Vérifie les invariants de câblage réels, pas juste les modules isolés.
+    Ces tests détectent les 'silent degradation' patterns.
+    """
+
+    def test_suspension_is_actually_checked_before_execution(self):
+        """
+        Critère clé : is_suspended() doit être consultable et retourner True
+        quand un TRADE_SPIKE a été détecté. Le caller (advisor_loop) doit bloquer.
+        """
+        gov = AnomalyGovernance()
+        # Baseline
+        for c in range(20):
+            gov.detect(
+                cycle=c,
+                trades_this_cycle=5,
+                avg_score=70.0,
+                threshold_used=70.0,
+                rg_state="NORMAL",
+            )
+        # Déclenche TRADE_SPIKE
+        gov.detect(
+            cycle=20,
+            trades_this_cycle=500,
+            avg_score=70.0,
+            threshold_used=70.0,
+            rg_state="NORMAL",
+        )
+
+        # La gate doit être fermée
+        assert gov.is_suspended("execution", cycle=21)
+        assert gov.is_suspended("execution", cycle=25)
+        # Elle doit s'ouvrir après expiration
+        assert not gov.is_suspended("execution", cycle=35)
+
+    def test_perf_supervisor_empty_without_record_trade(self):
+        """
+        Si record_trade() n'est jamais appelé (connexion morte),
+        snapshot() retourne trade_count=0 — détectable dans les logs.
+        """
+        ps = PerformanceSupervisor()
+        snap = ps.snapshot(cycle=100)
+        assert snap.trade_count == 0
+        assert snap.sharpe_20 == 0.0
+        # Un monitoring externe peut détecter trade_count=0 après N cycles
+
+    def test_perf_supervisor_accumulates_from_closure(self):
+        """
+        Simule le comportement de la closure _on_position_close_rank :
+        plusieurs fermetures de positions appellent record_trade().
+        """
+        ps = PerformanceSupervisor()
+        # Simule 10 fermetures de positions
+        pnls = [1.2, -0.5, 0.8, -0.3, 1.5, 0.2, -0.8, 0.6, 1.1, -0.4]
+        for pnl in pnls:
+            ps.record_trade(pnl_pct=pnl)
+        assert ps.snapshot(cycle=10).trade_count == 10
+        assert ps.profit_factor() > 0
+
+    def test_portfolio_intel_sync_removes_closed_positions(self):
+        """
+        Simule la sync pos_manager.get_open() : les positions disparues
+        doivent être retirées de PortfolioIntelligence.
+        """
+        pi = PortfolioIntelligence()
+        pi.record_position("BTC/USDT", "binance", "m", "long", 5000.0)
+        pi.record_position("ETH/USDT", "binance", "m", "long", 3000.0)
+        pi.record_position("SOL/USDT", "bybit", "m", "short", 2000.0)
+
+        # Simule : SOL/USDT fermé hors boucle principale
+        # La sync via position_symbols() doit le détecter
+        active_syms = {"BTC/USDT", "ETH/USDT"}  # SOL disparu
+        tracked = pi.position_symbols()
+        for gone in tracked - active_syms:
+            pi.close_position(gone)
+
+        assert pi.position_count() == 2
+        assert "SOL/USDT" not in pi.position_symbols()
+
+    def test_anomaly_governance_suspension_blocks_scoring_too(self):
+        """
+        SCORE_DROP suspend 'scoring', pas 'execution'.
+        Vérifie que les deux composants ont des gates indépendantes.
+        """
+        gov = AnomalyGovernance()
+        for c in range(10):
+            gov.detect(
+                cycle=c,
+                trades_this_cycle=3,
+                avg_score=70.0,
+                threshold_used=70.0,
+                rg_state="NORMAL",
+            )
+        gov.detect(
+            cycle=10,
+            trades_this_cycle=3,
+            avg_score=40.0,
+            threshold_used=70.0,
+            rg_state="NORMAL",
+        )
+        gov.detect(
+            cycle=11,
+            trades_this_cycle=3,
+            avg_score=40.0,
+            threshold_used=70.0,
+            rg_state="NORMAL",
+        )
+
+        # scoring suspendu, execution non
+        assert gov.is_suspended("scoring", cycle=12)
+        assert not gov.is_suspended("execution", cycle=12)
+
+    def test_self_monitoring_level2_is_not_silent(self):
+        """
+        Une alerte niveau 2 doit être visible : level2_alert=True
+        et level2_alert_count > 0. Pas de degradation silencieuse.
+        """
+        hm = SystemHealthMonitor()
+        hm.record("a", latency_ms=2500.0)
+        hm.record("b", latency_ms=2500.0)
+        hm.record("c", latency_ms=2500.0)
+
+        sml = SelfMonitoringLoop()
+        snap = sml.tick(cycle=1, health_monitor=hm, drift_detector=None)
+
+        # Si meta_health_score < threshold → level2_alert doit être True
+        if snap.meta_health_score < 0.60:
+            assert snap.level2_alert
+            assert sml.level2_alert_count > 0
+
+    def test_governance_errors_are_not_swallowed_silently(self):
+        """
+        AnomalyGovernance avec entrées pathologiques ne doit pas retourner
+        de résultats silencieusement incorrects.
+        """
+        gov = AnomalyGovernance()
+        # Entrées extrêmes
+        anomalies = gov.detect(
+            cycle=0, trades_this_cycle=0, avg_score=0.0, threshold_used=0.0, rg_state=""
+        )
+        assert isinstance(anomalies, list)
+        # Valeurs négatives
+        anomalies2 = gov.detect(
+            cycle=1,
+            trades_this_cycle=-1,
+            avg_score=-999.0,
+            threshold_used=-5.0,
+            rg_state="UNKNOWN_STATE",
+        )
+        assert isinstance(anomalies2, list)

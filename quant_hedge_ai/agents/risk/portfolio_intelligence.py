@@ -180,6 +180,10 @@ class PortfolioIntelligence:
 
     # ── Consultation ─────────────────────────────────────────────────────────
 
+    def position_symbols(self) -> set:
+        """Retourne l'ensemble des symboles actuellement trackés."""
+        return set(self._positions.keys())
+
     def position_count(self) -> int:
         return len(self._positions)
 

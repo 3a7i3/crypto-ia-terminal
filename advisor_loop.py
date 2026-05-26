@@ -3072,7 +3072,7 @@ def main(
                         atr_current=_atr_last,
                         cycle_pnl_pct=float(
                             (_pm_fb or {}).get("last_pnl_pct", 0.0)
-                            if "_pm_fb" in dir()
+                            if "_pm_fb" in locals()
                             else 0.0
                         ),
                         regime=_adaptive_regime,
@@ -3220,7 +3220,7 @@ def main(
                 # ── P7 — Appliquer RiskGovernor + CapitalThrottle ────────────
                 if _rg_snapshot is not None:
                     _rg_size_mul = _rg_snapshot.size_multiplier * (
-                        _ct_factor if "_ct_factor" in dir() else 1.0
+                        _ct_factor if "_ct_factor" in locals() else 1.0
                     )
                     effective_size = effective_size * _rg_size_mul
                     if (
@@ -3319,6 +3319,23 @@ def main(
                     r.get("signal_to_execute") is not None
                     and r.get("signal_to_execute") != r["signal"].signal
                 )
+
+                # P9 — AnomalyGovernance : suspension composant exécution
+                if (
+                    _anomaly_gov is not None
+                    and _anomaly_gov.is_suspended("execution", cycle)
+                    and r["signal"].signal != "HOLD"
+                ):
+                    r["futures_result"] = {
+                        "mode": "anomaly_governance_suspended",
+                        "reason": "execution suspendu par AnomalyGovernance P9",
+                    }
+                    r["trade_allowed"] = False
+                    log.warning(
+                        "[P9/Gov] Execution SUSPENDUE cycle=%d sym=%s",
+                        cycle,
+                        sym,
+                    )
 
                 if (
                     (r["signal"].actionable or gate_override_active)
@@ -3850,7 +3867,9 @@ def main(
                             avg_score=_avg_score_p9,
                             threshold_used=float(_eff_thr),
                             rg_state=(
-                                _rg_state_str if "_rg_state_str" in dir() else "NORMAL"
+                                _rg_state_str
+                                if "_rg_state_str" in locals()
+                                else "NORMAL"
                             ),
                         )
                         for _an in _anomalies:
@@ -3866,7 +3885,7 @@ def main(
                         health_monitor=_health_monitor,
                         drift_detector=_drift_detector,
                         rg_state=(
-                            _rg_state_str if "_rg_state_str" in dir() else "NORMAL"
+                            _rg_state_str if "_rg_state_str" in locals() else "NORMAL"
                         ),
                     )
                     if _meta_snap.level2_alert and cycle % 5 == 0:
@@ -3884,9 +3903,7 @@ def main(
                 if cycle % 10 == 0 and _portfolio_intel is not None:
                     # Sync positions ouvertes depuis pos_manager
                     _open_pos = pos_manager.get_open()
-                    _tracked = {
-                        sym_key for sym_key in list(_portfolio_intel._positions.keys())
-                    }
+                    _tracked = set(_portfolio_intel.position_symbols())
                     _active = {p.symbol for p in _open_pos}
                     for _sym_gone in _tracked - _active:
                         _portfolio_intel.close_position(_sym_gone)
@@ -3906,7 +3923,7 @@ def main(
                     for _pal in _port_alerts:
                         log.warning("[P9/Port] %s", _pal)
             except Exception as _p9_cyc_exc:
-                log.debug("[P9] Erreur cycle: %s", _p9_cyc_exc)
+                log.warning("[P9] Erreur inattendue cycle=%d: %s", cycle, _p9_cyc_exc)
 
             # ── Rapport timing bootstrap vs cycle 1 ──────────────────────────
             if cycle == 1:
