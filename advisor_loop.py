@@ -2519,6 +2519,14 @@ def main(
                 black_box.record_position_closed(pos, reason)
             except Exception:
                 pass
+            # P9 — PerformanceSupervisor + PortfolioIntelligence
+            try:
+                if _perf_supervisor is not None:
+                    _perf_supervisor.record_trade(pnl_pct=pos.pnl_pct)
+                if _portfolio_intel is not None:
+                    _portfolio_intel.close_position(pos.symbol)
+            except Exception:
+                pass
             # MetaLearner — accumule PnL par régime, apprend tous les 5 trades
             try:
                 buf = _meta_pnl_buffer.setdefault(pos_regime, [])
@@ -3551,6 +3559,20 @@ def main(
                                 # ── PROTECTIONS: Enregistre le trade pour tracking ──
                                 last_trade_signal[sym] = signal_action
                                 trades_this_hour[sym].append(current_time)
+                                # P9 — PortfolioIntelligence : position ouverte
+                                try:
+                                    if _portfolio_intel is not None:
+                                        _portfolio_intel.record_position(
+                                            symbol=sym,
+                                            exchange=os.getenv(
+                                                "ACTIVE_EXCHANGE", "unknown"
+                                            ),
+                                            strategy=r.get("personality", "unknown"),
+                                            side=signal_action.lower(),
+                                            size_usd=float(effective_size),
+                                        )
+                                except Exception:
+                                    pass
                             elif fut_mode in {"futures_failed", "live_failed"}:
                                 _consecutive_losses["value"] += 1
                     except Exception as _fe:
@@ -3860,6 +3882,26 @@ def main(
                             log.warning("[P9/Perf] %s", _pa)
 
                 if cycle % 10 == 0 and _portfolio_intel is not None:
+                    # Sync positions ouvertes depuis pos_manager
+                    _open_pos = pos_manager.get_open()
+                    _tracked = {
+                        sym_key for sym_key in list(_portfolio_intel._positions.keys())
+                    }
+                    _active = {p.symbol for p in _open_pos}
+                    for _sym_gone in _tracked - _active:
+                        _portfolio_intel.close_position(_sym_gone)
+                    for _p in _open_pos:
+                        _portfolio_intel.record_position(
+                            symbol=_p.symbol,
+                            exchange=os.getenv("ACTIVE_EXCHANGE", "unknown"),
+                            strategy=getattr(_p, "subaccount", "unknown"),
+                            side=(
+                                _p.side.value
+                                if hasattr(_p.side, "value")
+                                else str(_p.side)
+                            ),
+                            size_usd=float(_p.size_usd),
+                        )
                     _port_alerts = _portfolio_intel.get_alerts()
                     for _pal in _port_alerts:
                         log.warning("[P9/Port] %s", _pal)
