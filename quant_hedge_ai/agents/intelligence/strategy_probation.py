@@ -316,9 +316,51 @@ class StrategyProbationSystem:
                     else:
                         events.append(f"{r.strategy_id}: SUSPENDED (rééval maintenu)")
 
+        # Shadow track permanent : garantit au moins une stratégie en TRACKING
+        shadow_evts = self._ensure_shadow_track(cycle)
+        events.extend(shadow_evts)
+
         if events:
             self._save()
         return events
+
+    def _ensure_shadow_track(self, cycle: int) -> list[str]:
+        """
+        Si aucune stratégie n'est en TRACKING, réactive la SUSPENDED la plus ancienne
+        en mode shadow pour l'exploration permanente.
+        Budget shadow = max(2%, 50% × (1 - proportion_ACTIVE)).
+        """
+        tracking = [
+            r for r in self._records.values() if r.status == StrategyStatus.TRACKING
+        ]
+        if tracking:
+            return []
+
+        # Cherche la meilleure candidate : SUSPENDED non-RETIRED avec la rééval
+        # la plus ancienne (priorité à celles qui n'ont pas été évaluées récemment)
+        suspended = sorted(
+            [r for r in self._records.values() if r.status == StrategyStatus.SUSPENDED],
+            key=lambda r: r.last_reeval_cycle,
+        )
+        if not suspended:
+            return []
+
+        candidate = suspended[0]
+        # Réinitialiser les compteurs shadow sans toucher aux compteurs réels
+        candidate.shadow_trades = 0
+        candidate.shadow_wins = 0
+        candidate.cycles_in_status = 0
+        self._transition(
+            candidate,
+            StrategyStatus.TRACKING,
+            "shadow_track_permanent: exploration forcée (aucun slot TRACKING)",
+        )
+        _log.info(
+            "[Probation] Shadow track permanent → %s (cycle=%d)",
+            candidate.strategy_id,
+            cycle,
+        )
+        return [f"{candidate.strategy_id}: SUSPENDED→TRACKING (shadow permanent)"]
 
     def override_status(
         self,

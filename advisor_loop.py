@@ -1318,6 +1318,7 @@ def analyze_symbol(
         "signal_to_execute": signal_to_execute,
         "decision_packet": _dp,
         "trace_id": _trace_id,
+        "transition_forecast": transition_forecast,
     }
 
 
@@ -2745,6 +2746,18 @@ def main(
     except Exception as _p8_boot_exc:
         log.warning("[P8] Composants indisponibles: %s", _p8_boot_exc)
 
+    # P8 — Forbidden Patterns Registry (mémoire collective inter-stratégies)
+    _forbidden_patterns_registry: Any = None
+    try:
+        from quant_hedge_ai.agents.intelligence.forbidden_patterns_registry import (
+            ForbiddenPatternsRegistry as _FPRCls,
+        )
+
+        _forbidden_patterns_registry = _FPRCls()
+        log.info("[P8] ForbiddenPatternsRegistry initialisé")
+    except Exception as _fpr_boot_exc:
+        log.warning("[P8/FPR] Indisponible: %s", _fpr_boot_exc)
+
     # Sweep Detection — perception de liquidité (SweepDetector + SweepOutcomeTracker)
     _sweep_detector: Any = None
     _sweep_outcome_tracker: Any = None
@@ -2861,6 +2874,8 @@ def main(
     except Exception as _obs_boot_exc:
         log.debug("[Observability] init boot échoué: %s", _obs_boot_exc)
         _position_reconciler = None
+
+    _p8_transition_cache: tuple | None = None  # (next_regime, prob) du cycle précédent
 
     while True:
         cycle += 1
@@ -3138,6 +3153,7 @@ def main(
                         exposure_factor=(
                             _rg_snapshot.size_multiplier if _rg_snapshot else 1.0
                         ),
+                        transition_forecast=_p8_transition_cache,
                     )
                     _probation_system.tick_cycle(cycle, regime=_adaptive_regime)
                     for _p8_scorer in _confidence_scorers.values():
@@ -3240,15 +3256,17 @@ def main(
                         )
 
                 # ── P8 — Cap effective_size au budget de la stratégie ────────
+                _p8_sid_cur = "mean_reversion"
+                _p8_cap_cur = 0.0
                 if _p8_alloc is not None:
                     try:
                         _p8_pers = r.get("personality")
-                        _p8_sid = _p8_pers_map.get(
+                        _p8_sid_cur = _p8_pers_map.get(
                             _p8_pers.name if _p8_pers else "", "mean_reversion"
                         )
-                        _p8_cap = _p8_alloc.capital_for(_p8_sid)
-                        if _p8_cap > 0 and effective_size > _p8_cap:
-                            effective_size = _p8_cap
+                        _p8_cap_cur = _p8_alloc.capital_for(_p8_sid_cur)
+                        if _p8_cap_cur > 0 and effective_size > _p8_cap_cur:
+                            effective_size = _p8_cap_cur
                     except Exception as _p8_apply_exc:
                         log.debug("[P8/Apply] Erreur: %s", _p8_apply_exc)
 
@@ -3576,6 +3594,23 @@ def main(
                                 # ── PROTECTIONS: Enregistre le trade pour tracking ──
                                 last_trade_signal[sym] = signal_action
                                 trades_this_hour[sym].append(current_time)
+                                # P8 — Energy budget + capital efficiency
+                                if _strategy_allocator is not None:
+                                    try:
+                                        _strategy_allocator.record_trade_executed(
+                                            _p8_sid_cur
+                                        )
+                                        _strategy_allocator.record_capital_used(
+                                            _p8_sid_cur,
+                                            (
+                                                _p8_cap_cur
+                                                if _p8_cap_cur > 0
+                                                else effective_size
+                                            ),
+                                            effective_size,
+                                        )
+                                    except Exception:
+                                        pass
                                 # P9 — PortfolioIntelligence : position ouverte
                                 try:
                                     if _portfolio_intel is not None:
@@ -3657,6 +3692,13 @@ def main(
                     )
 
             # ── Post-cycle: régime dominant + métriques d'activité ───────────
+            # P8 — Mettre à jour le cache de transition pour le prochain cycle
+            for _r in results:
+                _tf = _r.get("transition_forecast")
+                if _tf is not None and hasattr(_tf, "most_likely_next"):
+                    _p8_transition_cache = (_tf.most_likely_next, _tf.next_prob)
+                    break
+
             # P7 — ATR ratio moyen pour le prochain cycle (utilisé par RiskGovernor)
             if results:
                 _atrs = [
