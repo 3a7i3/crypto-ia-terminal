@@ -1964,6 +1964,9 @@ def main(
 
         def _get_signals_for_bot():
             try:
+                _r = results  # noqa: F821 — closure, défini plus loin dans le cycle
+                if not _r:
+                    return {}
                 return {
                     r["symbol"]: {
                         "score": getattr(r.get("signal"), "score", 0),
@@ -1971,55 +1974,58 @@ def main(
                         "actionable": getattr(r.get("signal"), "actionable", False),
                         "regime": r.get("regime", ""),
                     }
-                    for r in (results if "results" in dir() and results else [])
+                    for r in _r
+                }
+            except Exception:
+                return {}
+
+        def _get_positions_for_bot():
+            try:
+                return pos_manager.snapshot()  # noqa: F821
+            except Exception:
+                return []
+
+        def _get_eo_for_bot():
+            try:
+                return executive_override.metrics_snapshot()  # noqa: F821
+            except Exception:
+                return None
+
+        def _get_gate_for_bot():
+            try:
+                snap = gate._last_snapshot  # noqa: F821
+                return vars(snap) if snap is not None else None
+            except Exception:
+                return None
+
+        def _get_blackbox_for_bot(n: int):
+            try:
+                return black_box.query(limit=n)  # noqa: F821
+            except Exception:
+                return []
+
+        def _get_regime_for_bot():
+            try:
+                return {
+                    s: {"regime": _adaptive_regime, "score": 0}
+                    for s in symbols  # noqa: F821
                 }
             except Exception:
                 return {}
 
         _pb_provider = _CDP(
             get_kpis=lambda: _p10_kpi.snapshot() if _p10_kpi else None,
-            get_balances=lambda: {
-                "spot": real_capital,
-                "futures": futures_bal if "futures_bal" in dir() else 0.0,
-            },
-            # snapshot() retourne TP/SL/age_min/volatility/size_usd
-            get_positions=lambda: (
-                pos_manager.snapshot()
-                if "pos_manager" in dir() and pos_manager is not None
-                else []
-            ),
+            get_balances=lambda: {"spot": real_capital, "futures": 0.0},
+            get_positions=_get_positions_for_bot,
             get_phase=lambda: _P10_PHASE,
             get_throttle=lambda: _p10_throttle,
-            get_regime=lambda: (
-                {
-                    s: {"regime": _adaptive_regime, "score": 0}
-                    for s in (symbols if "symbols" in dir() else [])
-                }
-            ),
+            get_regime=_get_regime_for_bot,
             get_signals=_get_signals_for_bot,
-            get_risk=lambda: (
-                executive_override.metrics_snapshot()
-                if "executive_override" in dir()
-                else {}
-            ),
+            get_risk=_get_eo_for_bot,
             get_health=lambda: {"advisor_loop": True},
-            get_eo=lambda: (
-                executive_override.metrics_snapshot()
-                if "executive_override" in dir()
-                else None
-            ),
-            get_gate=lambda: (
-                vars(gate._last_snapshot)
-                if "gate" in dir()
-                and gate is not None
-                and getattr(gate, "_last_snapshot", None) is not None
-                else None
-            ),
-            get_blackbox=lambda n: (
-                black_box.query(limit=n)
-                if "black_box" in dir() and black_box is not None
-                else []
-            ),
+            get_eo=_get_eo_for_bot,
+            get_gate=_get_gate_for_bot,
+            get_blackbox=_get_blackbox_for_bot,
             get_trades=_get_trades_for_bot,
             set_param=_set_param_live,
         )
