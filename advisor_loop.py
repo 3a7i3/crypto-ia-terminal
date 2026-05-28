@@ -1908,6 +1908,138 @@ def main(
         _order_validator = _rate_limiter = _exec_sim = None
 
     max_order = float(os.getenv("EXEC_MAX_ORDER_USD", "50"))
+
+    # ── P10-F — Capital Throttle + Emergency Stop + KPI Tracker ──────────────
+    _P10_PHASE = os.getenv("P10_PHASE", "F-01")
+    _p10_throttle = None
+    _p10_emergency = None
+    _p10_kpi = None
+    try:
+        from capital_deployment.capital_throttle import (
+            CapitalThrottle as _P10ThrottleCls,
+        )
+        from capital_deployment.emergency_stop_manager import (
+            EmergencyStopManager as _P10EmgCls,
+        )
+        from capital_deployment.phase_kpi_tracker import PhaseKPITracker as _P10KPICls
+
+        _p10_throttle = _P10ThrottleCls(total_capital=real_capital, phase=_P10_PHASE)
+        _p10_emergency = _P10EmgCls(
+            phase=_P10_PHASE,
+            halt_fn=lambda reason: _halt_requested.__setitem__("value", True),
+        )
+        _p10_kpi = _P10KPICls(phase=_P10_PHASE, initial_capital=real_capital)
+        max_order = min(max_order, _p10_throttle.throttled_size(max_order))
+        log.info(
+            "[P10-F] Phase=%s | capital alloué=%.2f | max_order=%.2f",
+            _P10_PHASE,
+            _p10_throttle.allocated_capital,
+            max_order,
+        )
+    except Exception as _p10_init_exc:
+        log.warning("[P10-F] Non disponible: %s", _p10_init_exc)
+    # ─────────────────────────────────────────────────────────────────────────
+
+    # ── P10-F Command Center Bot (lecture + écriture depuis Telegram) ────────
+    _portfolio_bot = None
+    _chart_server = None
+    try:
+        from capital_deployment.command_center_bot import CommandCenterBot
+        from capital_deployment.command_center_bot import CommandDataProvider as _CDP
+
+        def _set_param_live(name: str, value: str) -> bool:
+            os.environ[name] = value
+            if name == "EXEC_MAX_ORDER_USD":
+                nonlocal max_order
+                max_order = float(value)
+            return True
+
+        def _get_trades_for_bot():
+            try:
+                from paper_trading.recorder import get_recorder as _gr
+
+                return _gr().get_trades()
+            except Exception:
+                return []
+
+        def _get_signals_for_bot():
+            try:
+                return {
+                    r["symbol"]: {
+                        "score": getattr(r.get("signal"), "score", 0),
+                        "action": getattr(r.get("signal"), "signal", "?"),
+                        "actionable": getattr(r.get("signal"), "actionable", False),
+                        "regime": r.get("regime", ""),
+                    }
+                    for r in (results if "results" in dir() and results else [])
+                }
+            except Exception:
+                return {}
+
+        _pb_provider = _CDP(
+            get_kpis=lambda: _p10_kpi.snapshot() if _p10_kpi else None,
+            get_balances=lambda: {
+                "spot": real_capital,
+                "futures": futures_bal if "futures_bal" in dir() else 0.0,
+            },
+            # snapshot() retourne TP/SL/age_min/volatility/size_usd
+            get_positions=lambda: (
+                pos_manager.snapshot()
+                if "pos_manager" in dir() and pos_manager is not None
+                else []
+            ),
+            get_phase=lambda: _P10_PHASE,
+            get_throttle=lambda: _p10_throttle,
+            get_regime=lambda: (
+                {
+                    s: {"regime": _adaptive_regime, "score": 0}
+                    for s in (symbols if "symbols" in dir() else [])
+                }
+            ),
+            get_signals=_get_signals_for_bot,
+            get_risk=lambda: (
+                executive_override.metrics_snapshot()
+                if "executive_override" in dir()
+                else {}
+            ),
+            get_health=lambda: {"advisor_loop": True},
+            get_eo=lambda: (
+                executive_override.metrics_snapshot()
+                if "executive_override" in dir()
+                else None
+            ),
+            get_gate=lambda: (
+                vars(gate._last_snapshot)
+                if "gate" in dir()
+                and gate is not None
+                and getattr(gate, "_last_snapshot", None) is not None
+                else None
+            ),
+            get_blackbox=lambda n: (
+                black_box.query(limit=n)
+                if "black_box" in dir() and black_box is not None
+                else []
+            ),
+            get_trades=_get_trades_for_bot,
+            set_param=_set_param_live,
+        )
+        _portfolio_bot = CommandCenterBot.from_env(_pb_provider)
+        _portfolio_bot.start()
+    except Exception as _pb_exc:
+        log.warning("[CommandCenter] Non disponible: %s", _pb_exc)
+
+    # ── Chart Server (dashboard web temps réel) ───────────────────────────────
+    try:
+        from capital_deployment.chart_server import ChartServer as _CS
+
+        _chart_server = _CS.from_env(
+            _pb_provider if "_pb_provider" in dir() else type("_", (), {})()
+        )
+        _chart_server.start()
+    except Exception as _cs_exc:
+        log.warning("[ChartServer] Non disponible: %s", _cs_exc)
+    # ─────────────────────────────────────────────────────────────────────────
+
     order_size = min(
         max_order, real_capital * float(os.getenv("V9_MAX_POSITION_WEIGHT", "0.05"))
     )
@@ -2196,6 +2328,31 @@ def main(
                 )
             except Exception as _rec_exc:
                 log.debug("[PaperRecorder] open échoué: %s", _rec_exc)
+            # ── CommandCenter — push position ouverte ──────────────────────────
+            try:
+                if _portfolio_bot is not None:
+                    _entry_px = float(getattr(pos, "entry_price", 0.0))
+                    _tp_px = float(getattr(pos, "tp_price", 0.0))
+                    _sl_px = float(getattr(pos, "sl_price", 0.0))
+                    _trail_pct = float(getattr(pos, "trailing_pct", 0.0))
+                    _vol = float(getattr(pos, "volatility", 0.0))
+                    _regime = result_row.get("regime", "?")
+                    _score = getattr(result_row.get("signal"), "score", 0)
+                    _tp_s = f"${_tp_px:.4g}" if _tp_px else "N/A"
+                    _sl_s = f"${_sl_px:.4g}" if _sl_px else "N/A"
+                    _tr_s = f" trail {_trail_pct:.1%}" if _trail_pct else ""
+                    _vol_s = f"{_vol:.3f}" if _vol else "N/A"
+                    _portfolio_bot.send(
+                        f"ENTREE {action.upper()} — {symbol}\n"
+                        f"━━━━━━━━━━━━━━━━━━━━━\n"
+                        f"Entry:  ${_entry_px:.4g}\n"
+                        f"TP:     {_tp_s}  SL: {_sl_s}{_tr_s}\n"
+                        f"Vol:    ${float(effective_size):.2f}  |  Volatilite: {_vol_s}\n"
+                        f"Score:  {_score}  |  Regime: {_regime}\n"
+                        f"Compte: {getattr(pos, 'subaccount', '?')}"
+                    )
+            except Exception:
+                pass
             _consecutive_losses["value"] = 0
             return True
         except Exception as pos_exc:
@@ -2251,13 +2408,26 @@ def main(
             log.debug("[PaperRecorder] close échoué: %s", _rec_exc)
 
         sign = "+" if pos.pnl_usd >= 0 else ""
-        _telegram(
-            f"POSITION FERMEE — {reason.value.upper()}\n"
-            f"{pos.side.value.upper()} {pos.symbol}\n"
-            f"Entry: ${pos.entry_price:.2f} | Exit: ${pos.current_price:.2f}\n"
-            f"PnL: {sign}${pos.pnl_usd:.2f} ({sign}{pos.pnl_pct:.2%})\n"
-            f"Subcompte: {pos.subaccount}"
+        _age_min = (time.time() - float(getattr(pos, "opened_at", time.time()))) / 60
+        _age_s = (
+            f"{int(_age_min // 60)}h{int(_age_min % 60):02d}m"
+            if _age_min >= 60
+            else f"{int(_age_min)}m{int((_age_min % 1) * 60):02d}s"
         )
+        _close_msg = (
+            f"SORTIE {pos.side.value.upper()} — {pos.symbol}\n"
+            f"━━━━━━━━━━━━━━━━━━━━━\n"
+            f"Entry:  ${pos.entry_price:.4g}  →  Exit: ${pos.current_price:.4g}\n"
+            f"PnL:    {sign}${pos.pnl_usd:.2f}  ({sign}{pos.pnl_pct:.2%})\n"
+            f"Raison: {reason.value.upper()}  |  Duree: {_age_s}\n"
+            f"Compte: {pos.subaccount}"
+        )
+        _telegram(_close_msg)
+        if _portfolio_bot is not None:
+            try:
+                _portfolio_bot.send(_close_msg)
+            except Exception:
+                pass
 
     pos_manager.on_close(_on_position_close)
 
@@ -2430,6 +2600,16 @@ def main(
         kill_switch.stop()
         exchange_monitor.stop()
         healer.stop()
+        if _portfolio_bot is not None:
+            try:
+                _portfolio_bot.stop()
+            except Exception:
+                pass
+        if _chart_server is not None:
+            try:
+                _chart_server.stop()
+            except Exception:
+                pass
         if prewarm_executor is not None:
             prewarm_executor.shutdown(wait=False, cancel_futures=False)
         pos_manager.stop()
@@ -2904,6 +3084,37 @@ def main(
             log.info("[main] Kill switch levé — reprise boucle")
             _telegram("Kill Switch leve — reprise du cycle normal.")
             continue
+
+        # ── P10-F Emergency Stop check ─────────────────────────────────────────
+        if _p10_emergency is not None:
+            try:
+                _p10_metrics = {
+                    "current_drawdown": (
+                        _capital_throttle.drawdown_pct
+                        if "_capital_throttle" in dir()
+                        and _capital_throttle is not None
+                        else 0.0
+                    ),
+                    "consecutive_tech_errors": (
+                        _consecutive_losses.get("value", 0)
+                        if "_consecutive_losses" in dir()
+                        else 0
+                    ),
+                    "blackbox_inaccessible_cycles": 0,
+                    "killswitch_triggered": kill_switch.is_halted(),
+                    "invalid_signature_detected": False,
+                    "api_key_compromised": False,
+                    "exchange_down_s": 0.0,
+                    "new_anomaly_suspensions": 0,
+                }
+                _p10_trigger = _p10_emergency.check(_p10_metrics)
+                if _p10_trigger and not _halt_requested["value"]:
+                    log.critical("[P10-F] Emergency stop: %s", _p10_trigger.details)
+                    _telegram(
+                        f"P10-F EMERGENCY STOP\nCritère: {_p10_trigger.criteria.value}\n{_p10_trigger.details}"
+                    )
+            except Exception as _p10_chk_exc:
+                log.debug("[P10-F] Emergency check error: %s", _p10_chk_exc)
 
         # ── Safe mode check ────────────────────────────────────────────────────
         if kill_switch.is_safe_mode():
@@ -3683,7 +3894,10 @@ def main(
                         r["signal"].score,
                         r["signal"].signal,
                     )
-                    _telegram(_build_alert(r, cycle))
+                    _alert_msg = _build_alert(r, cycle)
+                    _telegram(_alert_msg)
+                    # Signals → canal ops uniquement (TELEGRAM_CHAT_ID)
+                    # Le portfolio bot ne reçoit que les events position (open/close)
                 elif r["signal"].actionable and kill_switch.is_safe_mode():
                     log.info(
                         "SIGNAL ACTIONABLE (safe mode — non envoye): %s score=%d",
