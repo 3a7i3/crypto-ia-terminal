@@ -1425,11 +1425,19 @@ def _build_alert(r: AnalysisResult, cycle: int) -> str:
             f"Niveau confiance: {ex.confidence_level}",
         ]
         if ex.penalties:
-            pen_str = " | ".join(
-                p[0].encode("ascii", errors="replace").decode("ascii")
-                for p in ex.penalties[:2]
-            )
-            lines.append(f"Alertes: {pen_str}")
+            _score_penalty_keywords = ("seuil", "score", "threshold")
+            _filtered_penalties = [
+                p
+                for p in ex.penalties
+                if not g.allowed
+                or not any(kw in p[0].lower() for kw in _score_penalty_keywords)
+            ]
+            if _filtered_penalties:
+                pen_str = " | ".join(
+                    p[0].encode("ascii", errors="replace").decode("ascii")
+                    for p in _filtered_penalties[:2]
+                )
+                lines.append(f"Alertes: {pen_str}")
         if ex.bonuses:
             bon_str = " | ".join(
                 b[0].encode("ascii", errors="replace").decode("ascii")
@@ -3059,6 +3067,19 @@ def main(
         log.debug("[Observability] init boot échoué: %s", _obs_boot_exc)
         _position_reconciler = None
 
+    # ── State Integrity Audit — truth arbitration layer ───────────────────────
+    _integrity_audit: Any = None
+    try:
+        from system.state_integrity import StateIntegrityAudit as _SIACls
+
+        _integrity_audit = _SIACls()
+        log.info(
+            "[Integrity] StateIntegrityAudit initialisé (every=%d cycles)",
+            _integrity_audit._every,
+        )
+    except Exception as _sia_exc:
+        log.warning("[Integrity] StateIntegrityAudit indisponible: %s", _sia_exc)
+
     _p8_transition_cache: tuple | None = None  # (next_regime, prob) du cycle précédent
 
     while True:
@@ -3516,8 +3537,16 @@ def main(
                             f"cooldown_loss({time_since_loss:.0f}s)"
                         )
 
-                # #2 Pas de re-entry même direction
-                if sym in last_trade_signal:
+                # #2 Pas de re-entry même direction (seulement si position ouverte)
+                _has_open_pos = (
+                    any(
+                        getattr(p, "symbol", None) == sym
+                        for p in pos_manager.get_open_positions()
+                    )
+                    if hasattr(pos_manager, "get_open_positions")
+                    else False
+                )
+                if sym in last_trade_signal and _has_open_pos:
                     if last_trade_signal[sym] == current_signal:
                         protection_blocks.append(f"same_direction({current_signal})")
 
@@ -4349,7 +4378,8 @@ def main(
                     msg += (
                         f"\n\nPORTFOLIO BRAIN:"
                         f"\n  Exposition: {_to_float(pb_health.get('total_exposure_pct', 0)):.1f}%"
-                        f" | Libre: ${_to_float(pb_health.get('free_capital', 0)):.0f}"
+                        f" | Déployable: ${_to_float(pb_health.get('free_capital', 0)):.0f}"
+                        f" (/{_to_float(pb_health.get('capital', 0)):.0f}$)"
                         f"\n  Positions: {pb_health.get('n_positions', 0)}"
                         f" | Corr risk: {_to_float(pb_health.get('correlation_risk', 0)):.1f}%"
                         f"\n  PnL ouvert: {_to_float(pb_health.get('open_pnl_usd', 0)):+.2f}$"
@@ -4436,7 +4466,7 @@ def main(
                 for _r in results:
                     _sig = _r["signal"]
                     _regime_tally[_sig.regime] = _regime_tally.get(_sig.regime, 0) + 1
-                    if _sig.actionable:
+                    if _sig.actionable and _r["gate"].allowed:
                         _n_actionable += 1
                     if _r.get("trade_allowed"):
                         _n_traded += 1
@@ -4615,6 +4645,40 @@ def main(
                                 )
                 except Exception as _rec_exc:
                     log.debug("[Reconciler] erreur non-bloquante: %s", _rec_exc)
+
+                # ── State Integrity Audit (tous les N cycles) ─────────────────
+                try:
+                    if _integrity_audit is not None and _integrity_audit.should_run(
+                        cycle
+                    ):
+                        _ir = _integrity_audit.run(
+                            cycle=cycle,
+                            real_capital=real_capital,
+                            last_trade_signal=last_trade_signal,
+                            last_loss_time=last_loss_time,
+                            trades_this_hour=trades_this_hour,
+                            pos_manager=pos_manager,
+                            portfolio_brain=portfolio_brain,
+                        )
+                        if not _ir.is_clean:
+                            _sev = _ir.severity.name
+                            if not _ir.is_safe:
+                                log.error(
+                                    "[INTEGRITY] UNSAFE score=%d — %s",
+                                    _ir.score,
+                                    _ir.summary_line(),
+                                )
+                                _telegram(
+                                    f"[INTEGRITE] score={_ir.score}/100 | {_sev}\n"
+                                    + _integrity_audit.telegram_summary(_ir)
+                                )
+                            else:
+                                log.warning(
+                                    "[INTEGRITY] %s",
+                                    _ir.summary_line(),
+                                )
+                except Exception as _ia_exc:
+                    log.debug("[Integrity] audit échoué (non-bloquant): %s", _ia_exc)
 
             except Exception as _snap_exc:
                 log.debug("[LiveSnapshot] Erreur: %s", _snap_exc)

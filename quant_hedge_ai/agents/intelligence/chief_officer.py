@@ -449,6 +449,13 @@ class ChiefOfficer:
             )
         if eo_level == "REDUCE":
             return f"Pression detectable. Taille x50%. Eviter les entrees marginales."
+        if aw_level == "WARNING":
+            dd_aw = aw.get("drawdown_pct", 0)
+            return (
+                f"Derive detectee (niveau WARNING"
+                + (f", DD={dd_aw:.1f}%" if dd_aw else "")
+                + "). Taille x75%. Surveiller evolution."
+            )
         if aw_level in ("DANGER", "CRITICAL"):
             return (
                 "Derive comportementale critique. Reduire taille et surveiller regime."

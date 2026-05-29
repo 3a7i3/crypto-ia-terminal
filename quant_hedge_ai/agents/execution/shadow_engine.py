@@ -179,6 +179,8 @@ class ShadowExecutionEngine:
         )
 
         self._trades.append(trade)
+        if len(self._trades) > 500:
+            self._trades = self._trades[-500:]
         self._persist(trade)
 
         _log.info(trade.summary())
