@@ -963,9 +963,7 @@ def analyze_symbol(
     arbitration_result = None
     if v2_arbitrator and signal.actionable:
         try:
-            from quant_hedge_ai.agents.intelligence.v2.decision_arbitrator import (
-                AgentVote,
-            )
+            from quant_hedge_ai.agents.intelligence.decision_arbitrator import AgentVote
 
             arb_votes = [
                 AgentVote(
@@ -1091,7 +1089,7 @@ def analyze_symbol(
 
     # V2 arbitration : si disponible, son verdict remplace la logique dispersée
     if arbitration_result is not None:
-        from quant_hedge_ai.agents.intelligence.v2.decision_arbitrator import (
+        from quant_hedge_ai.agents.intelligence.decision_arbitrator import (
             ArbitrationDecision,
         )
 
@@ -3902,8 +3900,6 @@ def main(
                     )
                     _alert_msg = _build_alert(r, cycle)
                     _telegram(_alert_msg)
-                    # Signals → canal ops uniquement (TELEGRAM_CHAT_ID)
-                    # Le portfolio bot ne reçoit que les events position (open/close)
                 elif r["signal"].actionable and kill_switch.is_safe_mode():
                     log.info(
                         "SIGNAL ACTIONABLE (safe mode — non envoye): %s score=%d",
@@ -4407,6 +4403,11 @@ def main(
                                 f"sharpe={_to_float(s.get('avg_sharpe', 0.0)):.2f}"
                             )
                     _telegram(msg)
+                    if _portfolio_bot is not None and cycle % 12 == 0:
+                        try:
+                            _portfolio_bot.send(msg)
+                        except Exception:
+                            pass
                     log.info(
                         "[RAPPORT] Telegram envoye — cycle %d (%d symboles)",
                         cycle,

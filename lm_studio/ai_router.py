@@ -5,6 +5,8 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 
+import httpx
+
 from lm_studio import client
 
 Fallback = Callable[[str], str]
@@ -41,13 +43,18 @@ class AIRouter:
             return self._ask_fallback(prompt)
 
         if mode == "lm_studio" or client.is_available():
-            return client.chat(
-                prompt,
-                system=system,
-                model=model,
-                temperature=temperature,
-                max_tokens=max_tokens,
-            )
+            try:
+                return client.chat(
+                    prompt,
+                    system=system,
+                    model=model,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                )
+            except httpx.HTTPError:
+                if mode == "lm_studio":
+                    raise
+                return self._ask_fallback(prompt)
 
         return self._ask_fallback(prompt)
 

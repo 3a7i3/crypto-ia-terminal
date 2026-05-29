@@ -1,0 +1,13 @@
+/* Cybertechnique Certification Layer — CSS Support */
+/* Injecté par Custom CSS and JS Loader */
+
+/* Empêche le watermark de déborder de l'éditeur */
+.monaco-editor .overflow-guard {
+    overflow: hidden !important;
+}
+
+/* Le watermark lui-même (positionné par overlay.js) */
+.cybertech-watermark {
+    font-feature-settings: "kern" 1;
+    -webkit-font-smoothing: antialiased;
+}

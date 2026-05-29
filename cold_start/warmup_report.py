@@ -21,6 +21,7 @@ from pathlib import Path
 from typing import Optional
 
 from cold_start.warmup_metrics import WarmupMetrics
+from cold_start.warmup_signer import sign_report, verify_report
 from cold_start.warmup_state_machine import WarmupState
 from observability.json_logger import get_logger
 
@@ -132,20 +133,56 @@ class WarmupReport:
             "scenario_id": self.scenario_id,
         }
 
+    def to_signed_dict(self) -> dict:
+        """Retourne le rapport avec signature HMAC (champ 'hmac_signature')."""
+        return sign_report(self.to_dict())
+
+    def is_signature_valid(self, signed_dict: dict) -> bool:
+        """Vérifie l'intégrité d'un rapport signé."""
+        return verify_report(signed_dict)
+
     def save(self) -> Path:
-        """Persiste le rapport sur disque. Retourne le chemin."""
+        """Persiste le rapport signé sur disque. Retourne le chemin."""
         _REPORT_DIR.mkdir(parents=True, exist_ok=True)
         ts = int(self.started_at)
         path = _REPORT_DIR / f"report_{ts}_{self.session_id[:8]}.json"
         try:
+            signed = self.to_signed_dict()
             path.write_text(
-                json.dumps(self.to_dict(), indent=2, ensure_ascii=False),
+                json.dumps(signed, indent=2, ensure_ascii=False),
                 encoding="utf-8",
             )
-            _log.info("[WarmupReport] sauvegardé: %s", path)
+            _log.info("[WarmupReport] sauvegardé (signé): %s", path)
         except Exception as exc:
             _log.warning("[WarmupReport] sauvegarde échouée: %s", exc)
         return path
+
+    def archive_to_black_box(
+        self, black_box_path: str = "databases/black_box.jsonl"
+    ) -> None:
+        """Archive le verdict de warmup dans la BlackBox (append-only)."""
+        bb = Path(black_box_path)
+        try:
+            bb.parent.mkdir(parents=True, exist_ok=True)
+            entry = {
+                "event": "WARMUP_COMPLETE",
+                "session_id": self.session_id,
+                "scenario_id": self.scenario_id,
+                "final_state": self.final_state.name,
+                "succeeded": self.succeeded,
+                "duration_s": round(self.duration_s, 1),
+                "warmup_score": (
+                    round(self.final_metrics.warmup_score, 4)
+                    if self.final_metrics
+                    else None
+                ),
+                "failure_reason": self.failure_reason,
+                "ts": round(time.time(), 3),
+            }
+            with open(bb, "a", encoding="utf-8") as f:
+                f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+        except Exception as exc:
+            _log.warning("[WarmupReport] archivage BlackBox échoué: %s", exc)
 
     def print_summary(self) -> str:
         """Résumé humain lisible."""

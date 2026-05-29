@@ -1,7 +1,13 @@
 # Arborescence du projet
 
+> Note 2026-05-28 : cette arborescence est un instantané lisible du dépôt.
+> Phase 1 Gel Architectural : mvp/, _legacy/, v2/ archivés dans _ARCHIVE_2026/.
+> Pour la description simple des modules, leurs avantages et leurs points de
+> vulnérabilité, voir `docs/MODULE_SAFETY_INVENTORY.md`.
+
 ```
 crypto_ai_terminal/
+|-- _ARCHIVE_2026/          ← archivé Phase 1 (mvp/, _legacy/, _sim_full.py)
 |-- ai_autonomous_loop/
 |   |-- __init__.py
 |   L-- feedback_dashboard.py
@@ -56,15 +62,6 @@ crypto_ai_terminal/
 |   |-- learner.py
 |   |-- memory.py
 |   L-- similarity.py
-|-- mvp/
-|   |-- __init__.py
-|   |-- execution_engine_mvp.py
-|   |-- market_state_engine.py
-|   |-- mvp_orchestrator.py
-|   |-- post_trade_learning.py
-|   |-- risk_engine_mvp.py
-|   |-- signal_engine_mvp.py
-|   L-- trade_logger.py
 |-- pieuvre/
 |   |-- dashboard/
 |   |   |-- __init__.py
@@ -86,53 +83,9 @@ crypto_ai_terminal/
 |   |   L-- surveillance.py
 |   |-- __init__.py
 |   L-- brain.py
-|-- quant-hedge-ai/
-|   |-- example_orchestrator_integration.py
-|   |-- main_v91.py
-|   |-- test_env_parsing_v91.py
-|   L-- test_research_strategy_agent_skip.py
 |-- quant_hedge_ai/
-|   |-- _legacy/
-|   |   |-- archived_modules/
-|   |   |   |-- intelligence/
-|   |   |   |   |-- __init__.py
-|   |   |   |   L-- regime_detector.py
-|   |   |   |-- liquidity_map/
-|   |   |   |   |-- __init__.py
-|   |   |   |   L-- flow_analyzer.py
-|   |   |   |-- market_radar/
-|   |   |   |   |-- __init__.py
-|   |   |   |   |-- anomaly_detector.py
-|   |   |   |   |-- radar_core.py
-|   |   |   |   |-- social_scanner.py
-|   |   |   |   |-- token_scanner.py
-|   |   |   |   L-- whale_tracker.py
-|   |   |   |-- massive_backtest_engine/
-|   |   |   |   |-- batch_manager.py
-|   |   |   |   |-- cache_manager.py
-|   |   |   |   |-- engine.py
-|   |   |   |   |-- parallel_executor.py
-|   |   |   |   |-- ranking.py
-|   |   |   |   L-- results_collector.py
-|   |   |   L-- research/
-|   |   |       |-- __init__.py
-|   |   |       |-- feature_engineer.py
-|   |   |       |-- model_builder.py
-|   |   |       |-- paper_analyzer.py
-|   |   |       L-- strategy_researcher.py
-|   |   |-- orphan_tests/
-|   |   |   |-- test_flow_analyzer.py
-|   |   |   |-- test_liquidity_flow_map.py
-|   |   |   |-- test_liquidity_flow_map_multiword.py
-|   |   |   L-- test_market_radar.py
-|   |   L-- __init__.py
 |   |-- agents/
 |   |   |-- execution/
-|   |   |   |-- execution_v2/
-|   |   |   |   |-- __init__.py
-|   |   |   |   |-- execution_optimizer.py
-|   |   |   |   |-- optimal_timing_engine.py
-|   |   |   |   L-- slippage_predictor.py
 |   |   |   |-- __init__.py
 |   |   |   |-- arbitrage_agent.py
 |   |   |   |-- execution_engine.py
@@ -153,13 +106,11 @@ crypto_ai_terminal/
 |   |   |   |-- test_trade_logger.py
 |   |   |   |-- trade_logger.py
 |   |   |   |-- trade_postmortem.py
+|   |   |   |-- execution_optimizer.py
+|   |   |   |-- optimal_timing_engine.py
+|   |   |   |-- slippage_predictor.py
 |   |   |   L-- trade_replay.py
 |   |   |-- intelligence/
-|   |   |   |-- v2/
-|   |   |   |   |-- __init__.py
-|   |   |   |   |-- decision_arbitrator.py
-|   |   |   |   |-- hmm_regime_engine.py
-|   |   |   |   L-- regime_transition_predictor.py
 |   |   |   |-- __init__.py
 |   |   |   |-- ai_advisor.py
 |   |   |   |-- black_box.py
@@ -177,6 +128,9 @@ crypto_ai_terminal/
 |   |   |   |-- self_awareness_engine.py
 |   |   |   |-- test_regime_detector.py
 |   |   |   |-- threat_radar.py
+|   |   |   |-- decision_arbitrator.py
+|   |   |   |-- hmm_regime_engine.py
+|   |   |   |-- regime_transition_predictor.py
 |   |   |   L-- weekly_report.py
 |   |   |-- market/
 |   |   |   |-- microstructure/
@@ -247,15 +201,13 @@ crypto_ai_terminal/
 |   |   |   L-- __init__.py
 |   |   L-- __init__.py
 |   |-- ai_evolution/
-|   |   |-- v2/
-|   |   |   |-- __init__.py
-|   |   |   |-- adaptive_calibration_engine.py
-|   |   |   |-- model_degradation_monitor.py
-|   |   |   L-- unified_learning_layer.py
 |   |   |-- __init__.py
+|   |   |-- adaptive_calibration_engine.py
 |   |   |-- evolution_engine.py
+|   |   |-- model_degradation_monitor.py
 |   |   |-- strategy_memory.py
-|   |   L-- strategy_ranker.py
+|   |   |-- strategy_ranker.py
+|   |   L-- unified_learning_layer.py
 |   |-- dashboard/
 |   |   |-- __init__.py
 |   |   |-- agent_monitor.py

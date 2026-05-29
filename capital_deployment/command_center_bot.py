@@ -1080,7 +1080,7 @@ class CommandCenterBot:
         self._report_s = report_interval_h * 3600.0
         self._running = False
         self._offset = 0
-        self._last_report = 0.0
+        self._last_report = time.time()  # évite envoi immédiat au démarrage
 
         # Confirmation pending : {description, action_fn, expires}
         self._pending: Optional[dict] = None
@@ -1090,7 +1090,12 @@ class CommandCenterBot:
     def from_env(cls, provider: CommandDataProvider) -> "CommandCenterBot":
         token = os.getenv("P10_PORTFOLIO_BOT_TOKEN", "")
         chat_id = os.getenv("P10_PORTFOLIO_CHAT_ID", os.getenv("TELEGRAM_CHAT_ID", ""))
-        rep_h = float(os.getenv("P10_PORTFOLIO_REPORT_H", "1.0"))
+        rep_mins = float(os.getenv("P10_PORTFOLIO_REPORT_MINS", "0"))
+        rep_h = (
+            rep_mins / 60.0
+            if rep_mins > 0
+            else float(os.getenv("P10_PORTFOLIO_REPORT_H", "1.0"))
+        )
         return cls(
             token=token, chat_id=chat_id, provider=provider, report_interval_h=rep_h
         )
@@ -1111,18 +1116,28 @@ class CommandCenterBot:
             target=self._report_loop, daemon=True, name="CmdBot-Report"
         ).start()
         _log.info(
-            "[CommandCenter] Demarre — rapport toutes les %.1fh", self._report_s / 3600
+            "[CommandCenter] Demarre — rapport toutes les %.0fmin", self._report_s / 60
         )
         from datetime import datetime, timezone
 
-        self.send(
-            f"*Mon Portefeuille — connecte*\n"
-            f"{datetime.now(timezone.utc).strftime('%d/%m/%Y %H:%M UTC')}\n"
-            f"{_SEP}\n"
-            f"Signaux, positions et clotures en direct.\n"
-            f"Rapport auto toutes les {self._report_s/3600:.0f}h\n"
-            f"Tape /help pour les commandes."
-        )
+        _stamp_file = Path(".portfolio_bot_started")
+        _now = time.time()
+        _last_start = float(_stamp_file.read_text()) if _stamp_file.exists() else 0.0
+        if _now - _last_start > 300:  # message "connecte" max 1 fois / 5 min
+            _stamp_file.write_text(str(_now))
+            rep_label = (
+                f"{self._report_s/60:.0f}min"
+                if self._report_s < 3600
+                else f"{self._report_s/3600:.0f}h"
+            )
+            self.send(
+                f"*Mon Portefeuille — connecte*\n"
+                f"{datetime.now(timezone.utc).strftime('%d/%m/%Y %H:%M UTC')}\n"
+                f"{_SEP}\n"
+                f"Signaux, positions et clotures en direct.\n"
+                f"Rapport auto toutes les {rep_label}\n"
+                f"Tape /help pour les commandes."
+            )
 
     def stop(self) -> None:
         self._running = False

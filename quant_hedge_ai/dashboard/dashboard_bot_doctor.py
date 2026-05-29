@@ -1,3 +1,0 @@
-"""Dashboard Bot Doctor — displays risk diagnostics, corrections and health scores."""
-
-# ...existing code from bot_doctor_panel.py ...

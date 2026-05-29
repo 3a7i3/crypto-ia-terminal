@@ -1,3 +1,0 @@
-"""Dashboard Control Center - Comprehensive monitoring dashboard."""
-
-# ...existing code from control_center.py ...

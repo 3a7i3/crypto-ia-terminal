@@ -357,6 +357,10 @@ class DecisionPacket:
     # Exemple : {"exchange": "binance", "latency_ms": 182}
     metadata: Dict[str, Any] = field(default_factory=dict)
 
+    # --- Signature Ed25519 (C-02) — posée par seal() après état final -----
+    ed25519_signature: str = field(default="")
+    signed_at: float = field(default=0.0)
+
     # ---------------------------------------------------------------------------
     # Machine d'état — seul point de mutation d'état autorisé
     # ---------------------------------------------------------------------------
@@ -492,6 +496,36 @@ class DecisionPacket:
         self.transition_to(DecisionState.REJECTED, actor, reason)
 
     # ---------------------------------------------------------------------------
+    # Signature Ed25519 (C-02)
+    # ---------------------------------------------------------------------------
+
+    def seal(self, signer) -> None:
+        """
+        Signe le packet avec Ed25519 via le signer fourni.
+        Appelé après la transition vers l'état final (EXECUTED, REJECTED, VETOED…).
+        Le signer doit implémenter sign(dict) -> dict (duck typing, pas d'import).
+        """
+        canonical = self.to_dict()
+        canonical.pop("ed25519_signature", None)
+        canonical.pop("signed_at", None)
+        signed = signer.sign(canonical)
+        self.ed25519_signature = signed["ed25519_signature"]
+        self.signed_at = signed["signed_at"]
+
+    def is_sealed(self) -> bool:
+        """Vrai si le packet a été signé."""
+        return bool(self.ed25519_signature)
+
+    def verify_signature(self, signer) -> bool:
+        """
+        Vérifie la signature Ed25519.
+        Retourne False si absent, invalide, ou contenu modifié.
+        """
+        if not self.is_sealed():
+            return False
+        return signer.verify(self.to_dict())
+
+    # ---------------------------------------------------------------------------
     # Guards
     # ---------------------------------------------------------------------------
 
@@ -539,6 +573,8 @@ class DecisionPacket:
             "reasoning": [r.to_dict() for r in self.reasoning],
             "features": self.features,
             "metadata": self.metadata,
+            "ed25519_signature": self.ed25519_signature,
+            "signed_at": self.signed_at,
         }
 
     @classmethod
@@ -577,6 +613,8 @@ class DecisionPacket:
             reasoning=[ReasoningEntry.from_dict(r) for r in d.get("reasoning", [])],
             features=dict(d.get("features", {})),
             metadata=dict(d.get("metadata", {})),
+            ed25519_signature=d.get("ed25519_signature", ""),
+            signed_at=float(d.get("signed_at", 0.0)),
         )
         return p
 

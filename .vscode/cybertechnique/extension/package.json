@@ -1,0 +1,25 @@
+{
+  "name": "cybertechnique-certification",
+  "displayName": "Cybertechnique Certification Layer",
+  "description": "Visual classification system — crypto_ai_terminal sovereign modules",
+  "version": "1.0.0",
+  "publisher": "cybertechnique",
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": ["Other"],
+  "activationEvents": ["onStartupFinished"],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "cybertechnique.reloadRegistry",
+        "title": "Cybertechnique: Reload Registry"
+      },
+      {
+        "command": "cybertechnique.showLevel",
+        "title": "Cybertechnique: Show Module Level"
+      }
+    ]
+  }
+}

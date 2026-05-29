@@ -1,0 +1,73 @@
+{
+  "levels": {
+    "NUCLEAR": {
+      "label": "☢ NUCLEAR",
+      "rulerColor": "#FF0040",
+      "accentColor": "#FF4060",
+      "bgColor": "rgba(255, 0, 50, 0.045)",
+      "mutation_policy": "DENY",
+      "warn_on_open": true,
+      "warn_message": "Module NUCLEAR — Toute modification peut détruire le système."
+    },
+    "IMMUTABLE": {
+      "label": "🔒 IMMUTABLE",
+      "rulerColor": "#E07000",
+      "accentColor": "#FF8C00",
+      "bgColor": "rgba(200, 90, 0, 0.04)",
+      "mutation_policy": "REQUIRE_OVERRIDE",
+      "warn_on_open": true,
+      "warn_message": "Module IMMUTABLE — Override requis avant modification."
+    },
+    "LIVE_CORE": {
+      "label": "⚡ LIVE_CORE",
+      "rulerColor": "#007A7A",
+      "accentColor": "#00BBCC",
+      "bgColor": "rgba(0, 160, 180, 0.035)",
+      "mutation_policy": "WARN",
+      "warn_on_open": false
+    },
+    "CRITICAL": {
+      "label": "⚠ CRITICAL",
+      "rulerColor": "#CC3300",
+      "accentColor": "#FF5533",
+      "bgColor": "rgba(200, 60, 0, 0.035)",
+      "mutation_policy": "LOG",
+      "warn_on_open": false
+    },
+    "SEALED": {
+      "label": "🛡 SEALED",
+      "rulerColor": "#7B3D9E",
+      "accentColor": "#A060CC",
+      "bgColor": "rgba(120, 60, 160, 0.035)",
+      "mutation_policy": "LOG",
+      "warn_on_open": false
+    },
+    "CERTIFIED": {
+      "label": "✔ CERTIFIED",
+      "rulerColor": "#1E8449",
+      "accentColor": "#27AE60",
+      "bgColor": "rgba(30, 130, 70, 0.035)",
+      "mutation_policy": "ALLOW",
+      "warn_on_open": false
+    }
+  },
+  "modules": {
+    "supervision/kill_switch.py": "NUCLEAR",
+    "quant_hedge_ai/agents/intelligence/black_box.py": "NUCLEAR",
+    "quant_hedge_ai/agents/risk/anomaly_governance.py": "NUCLEAR",
+
+    "quant_hedge_ai/agents/risk/portfolio_brain.py": "IMMUTABLE",
+    "quant_hedge_ai/agents/risk/order_sizer.py": "IMMUTABLE",
+    "bootstrap_integration.py": "IMMUTABLE",
+
+    "advisor_loop.py": "LIVE_CORE",
+    "cold_start/warmup_state_machine.py": "LIVE_CORE",
+    "circuit_breaker.py": "LIVE_CORE",
+    "startup_cache.py": "LIVE_CORE",
+
+    "quant_hedge_ai/agents/risk/drawdown_guard.py": "CRITICAL",
+    "quant_hedge_ai/agents/risk/risk_monitor.py": "CRITICAL",
+    "quant_hedge_ai/engine/decision_engine.py": "CRITICAL",
+    "quant_hedge_ai/agents/portfolio/__init__.py": "CRITICAL"
+  }
+}

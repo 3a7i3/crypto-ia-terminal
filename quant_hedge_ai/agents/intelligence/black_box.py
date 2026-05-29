@@ -34,6 +34,18 @@ _log = get_logger("quant_hedge_ai.agents.intelligence.black_box")
 _BB_PATH = os.getenv("BB_PATH", "databases/black_box.jsonl")
 _BB_MAX_SIZE = int(os.getenv("BB_MAX", "5000"))  # max entrées en mémoire
 
+# Chiffrement AES-256-GCM des entrées (C-01) — singleton lazy
+_bb_enc = None
+
+
+def _get_enc():
+    global _bb_enc
+    if _bb_enc is None:
+        from crypto.blackbox_encryption import BlackBoxEncryption
+
+        _bb_enc = BlackBoxEncryption()
+    return _bb_enc
+
 
 class DecisionType(str, Enum):
     TRADE_EXECUTED = "TRADE_EXECUTED"
@@ -116,15 +128,25 @@ class BlackBox:
         self._loaded = True
         if not self._path.exists():
             return
+        enc = _get_enc()
         try:
             with open(self._path, encoding="utf-8") as f:
                 for line in f:
                     line = line.strip()
-                    if line:
+                    if not line:
+                        continue
+                    try:
+                        data = enc.decrypt_line(line)
+                    except Exception:
+                        # Fallback migration : entrée en clair (fichier pré-C-01)
                         try:
-                            self._entries.append(BlackBoxEntry(**json.loads(line)))
+                            data = json.loads(line)
                         except Exception:
-                            pass
+                            continue
+                    try:
+                        self._entries.append(BlackBoxEntry(**data))
+                    except Exception:
+                        pass
             self._entries = self._entries[-_BB_MAX_SIZE:]
         except Exception as exc:
             _log.warning("[BlackBox] Chargement partiel: %s", exc)
@@ -472,8 +494,10 @@ class BlackBox:
         if len(self._entries) > _BB_MAX_SIZE:
             self._entries = self._entries[-_BB_MAX_SIZE:]
         try:
+            enc = _get_enc()
+            line = enc.encrypt_line(asdict(entry)) + "\n"
             with open(self._path, "a", encoding="utf-8") as f:
-                f.write(json.dumps(asdict(entry), default=str) + "\n")
+                f.write(line)
         except Exception as exc:
             _log.warning("[BlackBox] Sauvegarde échouée: %s", exc)
         _log.debug(

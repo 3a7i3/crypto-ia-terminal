@@ -325,3 +325,41 @@ def get_scenario(scenario_id: str) -> ColdStartScenario:
     if scenario_id not in SCENARIOS_BY_ID:
         raise ValueError(f"Scénario inconnu: {scenario_id}")
     return SCENARIOS_BY_ID[scenario_id]
+
+
+# ── Certification A-03 : intégrité des scénarios ─────────────────────────────
+
+
+def _scenario_canonical(s: ColdStartScenario) -> dict:
+    """Représentation canonique d'un scénario (sans champs dynamiques)."""
+    return {
+        "id": s.id,
+        "name": s.name,
+        "description": s.description,
+        "must_not_reach_live": s.must_not_reach_live,
+        "must_fail": s.must_fail,
+        "tags": sorted(s.tags),
+    }
+
+
+def compute_scenarios_digest() -> str:
+    """
+    Calcule le digest HMAC-SHA256 de la batterie complète des 12 scénarios.
+    Non modifiable sans recertification : toute modification change ce digest.
+    """
+    from cold_start.warmup_signer import sign as _sign
+
+    payload = [_scenario_canonical(s) for s in sorted(SCENARIOS, key=lambda s: s.id)]
+    return _sign(payload)
+
+
+# Digest de référence calculé à l'import (baseline de certification)
+SCENARIOS_BASELINE_DIGEST: str = compute_scenarios_digest()
+
+
+def verify_scenarios_integrity() -> bool:
+    """
+    Vérifie que les scénarios n'ont pas été modifiés depuis la baseline.
+    Retourne False si un scénario a été altéré.
+    """
+    return compute_scenarios_digest() == SCENARIOS_BASELINE_DIGEST

@@ -17,14 +17,26 @@ warmup_state_machine.py — Machine d'état du démarrage à froid (P10)
 
 from __future__ import annotations
 
+import json
+import os
 import time
 from dataclasses import dataclass, field
 from enum import Enum, auto
+from pathlib import Path
 from typing import Optional
 
+from cold_start.warmup_signer import sign_state, verify_state
 from observability.json_logger import get_logger
 
 _log = get_logger("cold_start.warmup_state_machine")
+
+_STATE_PERSIST_PATH = Path(
+    os.getenv("P10_STATE_PERSIST_PATH", "cache/startup/warmup_state.json")
+)
+# Nombre max de cycles consécutifs dans le même état sans progression → boucle
+_MAX_STUCK_CYCLES = int(os.getenv("P10_MAX_STUCK_CYCLES", "3"))
+# Durée (s) sans transition → alerte stuck
+_STUCK_ALERT_S = float(os.getenv("P10_STUCK_ALERT_S", "300.0"))  # 5 min
 
 
 class WarmupState(Enum):
@@ -111,6 +123,9 @@ class WarmupStateMachine:
         self._state = WarmupState.BOOTING
         self._history: list[StateRecord] = [StateRecord(state=WarmupState.BOOTING)]
         self._consecutive_failures: int = 0
+        self._stuck_cycles: int = 0  # cycles sans transition dans l'état courant
+        self._stuck_alerted: bool = False  # alerte 5 min déjà émise
+        self._persist()
         _log.info("[WarmupSM] initialisé — état=%s", self._state.name)
 
     # ── Propriétés ────────────────────────────────────────────────────────────
@@ -144,6 +159,7 @@ class WarmupStateMachine:
         """
         Tente de progresser à l'état suivant si confidence >= min requis.
         Si timeout dépassé, marque FAILED.
+        Détecte les boucles (> _MAX_STUCK_CYCLES sans progression).
         Retourne le nouvel état.
         """
         if self._state in (WarmupState.LIVE_READY, WarmupState.FAILED):
@@ -154,10 +170,18 @@ class WarmupStateMachine:
                 f"timeout ({self.time_in_state():.0f}s > {self.current_timeout:.0f}s)"
             )
 
-        if confidence >= self.min_confidence:
-            return self._advance(confidence)
+        # Détection boucle : trop de cycles sans progression
+        if confidence < self.min_confidence:
+            self._stuck_cycles += 1
+            self._check_stuck_alert()
+            if self._stuck_cycles > _MAX_STUCK_CYCLES * 10:
+                # Protection maximale : 30+ cycles bloqués = boucle infinie
+                return self._fail(
+                    f"boucle détectée: {self._stuck_cycles} cycles en {self._state.name}"
+                )
+            return self._state
 
-        return self._state
+        return self._advance(confidence)
 
     def force_fail(self, reason: str) -> WarmupState:
         """Force la transition vers FAILED depuis n'importe quel état."""
@@ -169,6 +193,9 @@ class WarmupStateMachine:
         self._state = WarmupState.BOOTING
         self._history.append(StateRecord(state=WarmupState.BOOTING))
         self._consecutive_failures = 0
+        self._stuck_cycles = 0
+        self._stuck_alerted = False
+        self._persist()
 
     # ── Internals ────────────────────────────────────────────────────────────
 
@@ -180,8 +207,11 @@ class WarmupStateMachine:
         next_state = _STATE_SEQUENCE[idx + 1]
         self._exit_current(confidence)
         self._state = next_state
+        self._stuck_cycles = 0
+        self._stuck_alerted = False
         self._history.append(StateRecord(state=next_state))
         self._consecutive_failures = 0
+        self._persist()
         _log.info(
             "[WarmupSM] %s → %s (conf=%.2f)",
             _STATE_SEQUENCE[idx].name,
@@ -197,6 +227,7 @@ class WarmupStateMachine:
         self._history.append(
             StateRecord(state=WarmupState.FAILED, failure_reason=reason)
         )
+        self._persist()
         _log.error(
             "[WarmupSM] FAILED — %s (consec=%d)", reason, self._consecutive_failures
         )
@@ -209,7 +240,60 @@ class WarmupStateMachine:
             rec.confidence_at_exit = confidence
             rec.failure_reason = failure_reason
 
+    def _persist(self) -> None:
+        """Persiste l'état courant dans un fichier signé HMAC."""
+        try:
+            _STATE_PERSIST_PATH.parent.mkdir(parents=True, exist_ok=True)
+            record = sign_state(
+                self._state.name,
+                extra={"consecutive_failures": self._consecutive_failures},
+            )
+            _STATE_PERSIST_PATH.write_text(
+                json.dumps(record, ensure_ascii=False), encoding="utf-8"
+            )
+        except Exception as exc:
+            _log.debug("[WarmupSM] persistance état échouée: %s", exc)
+
+    def _check_stuck_alert(self) -> None:
+        """Émet une alerte si l'état courant dure plus de _STUCK_ALERT_S secondes."""
+        if self._stuck_alerted:
+            return
+        elapsed = self.time_in_state()
+        if elapsed >= _STUCK_ALERT_S:
+            _log.warning(
+                "[WarmupSM] ALERTE BLOCAGE — état=%s depuis %.0fs (seuil %.0fs)",
+                self._state.name,
+                elapsed,
+                _STUCK_ALERT_S,
+            )
+            self._stuck_alerted = True
+
     # ── Snapshot ─────────────────────────────────────────────────────────────
+
+    @property
+    def is_stuck(self) -> bool:
+        """True si l'état courant dure plus de _STUCK_ALERT_S secondes."""
+        return (
+            self._state not in (WarmupState.LIVE_READY, WarmupState.FAILED)
+            and self.time_in_state() >= _STUCK_ALERT_S
+        )
+
+    def load_persisted_state(self) -> Optional[str]:
+        """
+        Charge l'état persisté depuis le fichier signé.
+        Retourne le nom de l'état si la signature est valide, None sinon.
+        """
+        try:
+            if not _STATE_PERSIST_PATH.exists():
+                return None
+            record = json.loads(_STATE_PERSIST_PATH.read_text(encoding="utf-8"))
+            if not verify_state(record):
+                _log.warning("[WarmupSM] état persisté invalide (signature corrompue)")
+                return None
+            return record.get("state")
+        except Exception as exc:
+            _log.debug("[WarmupSM] chargement état persisté: %s", exc)
+            return None
 
     def snapshot(self) -> dict:
         return {
@@ -218,5 +302,7 @@ class WarmupStateMachine:
             "timeout_s": self.current_timeout,
             "min_confidence": self.min_confidence,
             "consecutive_failures": self._consecutive_failures,
+            "stuck_cycles": self._stuck_cycles,
+            "is_stuck": self.is_stuck,
             "history": [r.to_dict() for r in self._history[-5:]],
         }

@@ -29,9 +29,11 @@ import time
 import uuid
 from typing import Optional
 
+from cold_start.bypass_detector import revoke_live_ready_token, write_live_ready_token
 from cold_start.warmup_invariants import WarmupInvariants
 from cold_start.warmup_metrics import MetricsHistory, WarmupMetrics
 from cold_start.warmup_report import WarmupReport
+from cold_start.warmup_signer import WarmupSigner
 from cold_start.warmup_state_machine import WarmupState, WarmupStateMachine
 from observability.json_logger import get_logger
 
@@ -43,6 +45,8 @@ _SHADOW_VALIDATION_CYCLES = int(os.getenv("P10_SHADOW_MIN_CYCLES", "10"))
 _DWE_MIN_COVERAGE = float(os.getenv("P10_DWE_MIN_COVERAGE", "0.40"))
 # Ticks 0% données consécutifs avant d'échouer (évite d'attendre le timeout)
 _MAX_ZERO_DATA_TICKS = int(os.getenv("P10_MAX_ZERO_DATA_TICKS", "10"))
+# Durée maximale globale avant alerte (30 min)
+_WARMUP_MAX_DURATION_S = float(os.getenv("P10_WARMUP_MAX_DURATION_S", "1800.0"))
 
 
 def _compute_state_confidence(
@@ -112,6 +116,7 @@ class ColdStartManager:
         self._machine = WarmupStateMachine()
         self._invariants = WarmupInvariants()
         self._history = MetricsHistory(window=5)
+        self._signer = WarmupSigner()
         self._session_id = str(uuid.uuid4())[:8]
         self._report = WarmupReport(
             session_id=self._session_id,
@@ -121,6 +126,8 @@ class ColdStartManager:
         self._shadow_cycles: int = 0
         self._zero_data_ticks: int = 0
         self._prev_state: WarmupState = WarmupState.BOOTING
+        self._started_at: float = time.time()
+        self._duration_alerted: bool = False
         _log.info("[ColdStart] session=%s démarré", self._session_id)
 
     # ── Interface principale ─────────────────────────────────────────────────
@@ -134,6 +141,9 @@ class ColdStartManager:
         """
         if self._machine.state in (WarmupState.LIVE_READY, WarmupState.FAILED):
             return self._machine.state
+
+        # 0. Alerte durée globale > 30 min
+        self._check_duration_alert()
 
         # 1. Construire les métriques depuis le snapshot
         metrics = self._build_metrics(system_snapshot)
@@ -243,14 +253,30 @@ class ColdStartManager:
 
     # ── Internals ────────────────────────────────────────────────────────────
 
+    @staticmethod
+    def _safe_int(v, default: int = 0) -> int:
+        try:
+            return int(v)
+        except (TypeError, ValueError):
+            return default
+
+    @staticmethod
+    def _safe_float(v, default: float = 0.0) -> float:
+        try:
+            return float(v)
+        except (TypeError, ValueError):
+            return default
+
     def _build_metrics(self, snap: dict) -> WarmupMetrics:
         """Construit un WarmupMetrics depuis le snapshot brut."""
+        si = self._safe_int
+        sf = self._safe_float
         m = WarmupMetrics()
-        m.symbols_ready = int(snap.get("symbols_ready", 0))
-        m.symbols_total = max(1, int(snap.get("symbols_total", 100)))
-        m.avg_feature_confidence = float(snap.get("avg_feature_confidence", 0.0))
-        m.regime_stability = float(snap.get("regime_stability", 0.0))
-        m.dwe_sample_coverage = float(snap.get("dwe_sample_coverage", 0.0))
+        m.symbols_ready = si(snap.get("symbols_ready", 0))
+        m.symbols_total = max(1, si(snap.get("symbols_total", 100), default=100))
+        m.avg_feature_confidence = sf(snap.get("avg_feature_confidence", 0.0))
+        m.regime_stability = sf(snap.get("regime_stability", 0.0))
+        m.dwe_sample_coverage = sf(snap.get("dwe_sample_coverage", 0.0))
         m.risk_sync = bool(snap.get("risk_sync", False))
         m.hard_limits_ok = bool(snap.get("hard_limits_ok", True))
         m.probation_consistent = bool(snap.get("probation_consistent", True))
@@ -260,9 +286,22 @@ class ColdStartManager:
         )
         m.shadow_cycles_completed = self._shadow_cycles
         m.open_positions_unknown = bool(snap.get("open_positions_unknown", False))
-        m.anomaly_count = int(snap.get("anomaly_count", 0))
+        m.anomaly_count = si(snap.get("anomaly_count", 0))
         m.ts = time.time()
         return m
+
+    def _check_duration_alert(self) -> None:
+        """Émet une alerte si le warmup total dépasse _WARMUP_MAX_DURATION_S (30 min)."""
+        if self._duration_alerted:
+            return
+        elapsed = time.time() - self._started_at
+        if elapsed >= _WARMUP_MAX_DURATION_S:
+            _log.warning(
+                "[ColdStart] ALERTE DURÉE — warmup dure %.0f min (seuil %.0f min)",
+                elapsed / 60,
+                _WARMUP_MAX_DURATION_S / 60,
+            )
+            self._duration_alerted = True
 
     def _finalize(
         self,
@@ -282,3 +321,18 @@ class ColdStartManager:
             self._report.save()
         except Exception as exc:
             _log.debug("[ColdStart] sauvegarde rapport: %s", exc)
+        try:
+            self._report.archive_to_black_box()
+        except Exception as exc:
+            _log.debug("[ColdStart] archivage BlackBox: %s", exc)
+        # Émettre le token LIVE_READY (ou révoquer si FAILED)
+        if state == WarmupState.LIVE_READY:
+            try:
+                write_live_ready_token(
+                    session_id=self._session_id,
+                    warmup_score=metrics.warmup_score if metrics else 0.0,
+                )
+            except Exception as exc:
+                _log.warning("[ColdStart] écriture token LIVE_READY: %s", exc)
+        elif state == WarmupState.FAILED:
+            revoke_live_ready_token()

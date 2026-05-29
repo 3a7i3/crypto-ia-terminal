@@ -44,7 +44,14 @@ InvariantFn = Callable[[dict], InvariantResult]
 
 def inv_capital_not_negative(snapshot: dict) -> InvariantResult:
     """Le capital total ne peut pas être négatif."""
-    capital = float(snapshot.get("capital_total", 0.0))
+    try:
+        capital = float(snapshot.get("capital_total", 0.0))
+    except (TypeError, ValueError):
+        return InvariantResult(
+            name="capital_not_negative",
+            passed=False,
+            reason="capital_total non-numérique",
+        )
     return InvariantResult(
         name="capital_not_negative",
         passed=capital >= 0.0,
@@ -185,15 +192,70 @@ def inv_weights_sum_to_one(snapshot: dict) -> InvariantResult:
     )
 
 
+def inv_black_box_writable(snapshot: dict) -> InvariantResult:
+    """La BlackBox est accessible en écriture. [CRITIQUE] — zéro traçabilité sans elle."""
+    bb_path = Path(os.getenv("BLACK_BOX_PATH", "databases/black_box.jsonl"))
+    try:
+        bb_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(bb_path, "a", encoding="utf-8"):
+            pass
+        return InvariantResult(name="black_box_writable", passed=True)
+    except Exception as exc:
+        return InvariantResult(
+            name="black_box_writable",
+            passed=False,
+            reason=f"BlackBox inaccessible: {exc}",
+            critical=True,
+        )
+
+
+def inv_lm_studio_or_fallback_ready(snapshot: dict) -> InvariantResult:
+    """LM Studio répond OU les règles de fallback sont chargées. [WARN]"""
+    lm_ok = snapshot.get("lm_studio_available", True)
+    fallback_ok = snapshot.get("fallback_rules_loaded", True)
+    ok = lm_ok or fallback_ok
+    return InvariantResult(
+        name="lm_studio_or_fallback_ready",
+        passed=ok,
+        reason="" if ok else "LM Studio hors ligne ET fallback absent",
+        critical=False,
+    )
+
+
+def inv_decision_queue_empty(snapshot: dict) -> InvariantResult:
+    """Aucune décision en attente au démarrage. [WARN] — peut arriver après crash."""
+    pending = int(snapshot.get("pending_decisions", 0))
+    return InvariantResult(
+        name="decision_queue_empty",
+        passed=pending == 0,
+        reason="" if pending == 0 else f"{pending} décision(s) en attente",
+        critical=False,
+    )
+
+
+def inv_agents_initialized(snapshot: dict) -> InvariantResult:
+    """Tous les agents critiques sont initialisés avant le premier tick."""
+    ok = snapshot.get("agents_initialized", True)
+    return InvariantResult(
+        name="agents_initialized",
+        passed=ok,
+        reason="" if ok else "agents critiques non initialisés",
+        critical=True,
+    )
+
+
 # ── Registre par état ─────────────────────────────────────────────────────────
 
 # Invariants vérifiés à chaque état (progressivement plus stricts)
 _INVARIANTS_BY_STATE: dict[str, list[InvariantFn]] = {
     "BOOTING": [
+        inv_agents_initialized,  # agents critiques prêts avant tout
         inv_capital_not_negative,
         inv_risk_governor_initialized,
         inv_portfolio_snapshot_readable,
         inv_no_unknown_positions,  # positions inconnues = danger immédiat
+        inv_black_box_writable,  # traçabilité obligatoire dès BOOTING
+        inv_lm_studio_or_fallback_ready,
     ],
     "FETCHING_MARKET_DATA": [
         inv_capital_not_negative,
@@ -201,6 +263,7 @@ _INVARIANTS_BY_STATE: dict[str, list[InvariantFn]] = {
         inv_risk_governor_initialized,
         inv_portfolio_snapshot_readable,
         inv_no_unknown_positions,
+        inv_decision_queue_empty,
     ],
     "BUILDING_FEATURES": [
         inv_capital_not_negative,
@@ -221,6 +284,7 @@ _INVARIANTS_BY_STATE: dict[str, list[InvariantFn]] = {
         inv_no_nan_capital_allocation,
         inv_weights_sum_to_one,
         inv_regime_not_stale,
+        inv_black_box_writable,
     ],
     "SHADOW_MODE": [
         inv_capital_not_negative,
@@ -229,6 +293,7 @@ _INVARIANTS_BY_STATE: dict[str, list[InvariantFn]] = {
         inv_no_nan_capital_allocation,
         inv_weights_sum_to_one,
         inv_kill_switch_not_active,
+        inv_black_box_writable,
     ],
     "LIVE_READY": [
         inv_capital_not_negative,
@@ -237,6 +302,7 @@ _INVARIANTS_BY_STATE: dict[str, list[InvariantFn]] = {
         inv_no_nan_capital_allocation,
         inv_weights_sum_to_one,
         inv_kill_switch_not_active,
+        inv_black_box_writable,
     ],
 }
 
