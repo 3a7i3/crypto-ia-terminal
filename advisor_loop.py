@@ -1547,6 +1547,7 @@ def main(
     interval: int = 300,
     max_cycles: int | None = None,
     runtime: AdvisorRuntime | None = None,
+    _sleep=time.sleep,
 ) -> None:
     runtime = runtime or load_advisor_runtime()
 
@@ -1829,7 +1830,8 @@ def main(
         try:
             import requests as _r
 
-            r = _r.get("http://localhost:1234/v1/models", timeout=3)
+            lm_url = os.environ.get("LM_STUDIO_URL", "http://localhost:1234")
+            r = _r.get(f"{lm_url}/v1/models", timeout=0.5)
             return r.status_code == 200
         except Exception:
             return True  # LM Studio optionnel — pas de restart si absent
@@ -4788,7 +4790,7 @@ def main(
             _start_healer()
 
         log.info("Prochain cycle dans %ds...", interval)
-        time.sleep(interval)
+        _sleep(interval)
 
     if not _clean_exit:
         log.critical("[main] Sortie anormale — sys.exit(1)")

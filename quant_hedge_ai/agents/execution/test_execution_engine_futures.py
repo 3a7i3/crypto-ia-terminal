@@ -22,7 +22,7 @@ def eng(tmp_path, monkeypatch):
     monkeypatch.setenv("EXEC_FUTURES_MAX_ORDER_USD", "200")
     from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
 
-    e = ExecutionEngine(live=False)
+    e = ExecutionEngine(live=False, _sleep=lambda _: None)
     e.start_session(equity=10_000.0)
     return e
 
@@ -219,7 +219,7 @@ class TestFetchAvailableCapital:
         monkeypatch.setenv("V9_INITIAL_CAPITAL", "888")
         from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
 
-        e = ExecutionEngine(live=False)
+        e = ExecutionEngine(live=False, _sleep=lambda _: None)
         mock_ex = MagicMock()
         mock_ex.fetch_balance.side_effect = Exception("network error")
         e._exchange = mock_ex

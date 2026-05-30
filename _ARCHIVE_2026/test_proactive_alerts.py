@@ -3,22 +3,29 @@
 from __future__ import annotations
 
 import time
-import pytest
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from quant_hedge_ai.agents.intelligence.proactive_alerts import (
-    ProactiveAlerts,
-    AlertRecord,
-    _COOLDOWN_SIGNAL,
     _COOLDOWN_REGIME,
     _COOLDOWN_RISK,
+    _COOLDOWN_SIGNAL,
+    AlertRecord,
+    ProactiveAlerts,
 )
-
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
-def _signal(actionable: bool = True, score: int = 80, signal: str = "BUY",
-            regime: str = "bull_trend", symbol: str = "BTCUSDT", strength: float = 0.75):
+
+def _signal(
+    actionable: bool = True,
+    score: int = 80,
+    signal: str = "BUY",
+    regime: str = "bull_trend",
+    symbol: str = "BTCUSDT",
+    strength: float = 0.75,
+):
     s = MagicMock()
     s.actionable = actionable
     s.score = score
@@ -29,7 +36,9 @@ def _signal(actionable: bool = True, score: int = 80, signal: str = "BUY",
     return s
 
 
-def _gate_result(allowed: bool = False, failed: list | None = None, warnings: list | None = None):
+def _gate_result(
+    allowed: bool = False, failed: list | None = None, warnings: list | None = None
+):
     g = MagicMock()
     g.allowed = allowed
     g.failed = failed or ["signal_score (60<70)"]
@@ -60,6 +69,7 @@ def alerts_with_notifier():
 
 # ── Tests constructeur / from_env ─────────────────────────────────────────────
 
+
 class TestInit:
     def test_no_notifier_not_enabled(self, alerts):
         assert alerts.enabled is False
@@ -83,6 +93,7 @@ class TestInit:
 
 
 # ── Tests alerte 1 : signal_opportunity ──────────────────────────────────────
+
 
 class TestSignalOpportunity:
     def test_actionable_signal_sends(self, alerts):
@@ -143,6 +154,7 @@ class TestSignalOpportunity:
 
 # ── Tests alerte 2 : regime_change ───────────────────────────────────────────
 
+
 class TestRegimeChange:
     def test_regime_change_sends(self, alerts):
         result = alerts.on_regime_change("BTCUSDT", "sideways", "bull_trend")
@@ -178,6 +190,7 @@ class TestRegimeChange:
 
 
 # ── Tests alerte 3 : risk_gate_blocked ───────────────────────────────────────
+
 
 class TestRiskGateBlocked:
     def test_blocked_gate_sends(self, alerts):
@@ -219,6 +232,7 @@ class TestRiskGateBlocked:
 
 # ── Tests rapport hebdomadaire ────────────────────────────────────────────────
 
+
 class TestWeeklyReport:
     def test_weekly_report_sends(self, alerts):
         report = MagicMock()
@@ -238,10 +252,11 @@ class TestWeeklyReport:
         report.text_summary = "A" * 5000
         alerts_with_notifier.on_weekly_report(report)
         msg = alerts_with_notifier._notifier.info.call_args[0][0]
-        assert len(msg) <= 4100   # troncature à 4000 + "[...]"
+        assert len(msg) <= 4100  # troncature à 4000 + "[...]"
 
 
 # ── Tests stats et utilitaires ────────────────────────────────────────────────
+
 
 class TestStatsAndUtils:
     def test_stats_by_type(self, alerts):
@@ -266,6 +281,7 @@ class TestStatsAndUtils:
 
 
 # ── Tests EventBus ────────────────────────────────────────────────────────────
+
 
 class TestEventBus:
     def test_risk_block_emits_security_event(self, alerts):

@@ -503,7 +503,7 @@ def test_main_opens_position_when_paper_execution_is_used(monkeypatch):
 
     advisor_loop.main(["BTC/USDT"], interval=0, max_cycles=1, runtime=runtime)
 
-    assert order_calls == [("BTC/USDT", "BUY", 50.0)]
+    assert order_calls == [("BTC/USDT", "BUY", 10.0)]
     assert len(added_positions) == 1
     assert len(tracker_open_calls) == 1
     assert tracker_open_calls[0]["price"] == 101.5

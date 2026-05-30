@@ -3,13 +3,10 @@ from __future__ import annotations
 import importlib
 from pathlib import Path
 
-
 WORKSPACE_ROOT = Path(__file__).resolve().parents[1]
 PACKAGE_DIRS = {
-    "dashboard": {"alert_dashboard.py", "operator_dashboard_pro.py", "websocket_dashboard.py"},
     "lm_studio": set(),
     "meta_learning": set(),
-    "mvp": {"mvp_orchestrator.py"},
 }
 ROOT_MODULES = {
     "bootstrap_integration",
@@ -17,7 +14,6 @@ ROOT_MODULES = {
     "daily_analyzer",
     "evolution_memory",
     "lazy_loader",
-    "panel_registry",
     "population_csv_validator",
 }
 

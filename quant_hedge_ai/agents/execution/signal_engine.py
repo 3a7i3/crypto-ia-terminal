@@ -41,7 +41,7 @@ def compute_signal(strategy: dict, candles: list[dict]) -> str:
                 return "SELL"
 
         elif indicator == "EMA":
-            ema = _ema(closes, period)
+            ema = _ema(closes, period)[-1]
             if closes[-1] > ema * (1 + entry_thr / 1000):
                 return "BUY"
             if closes[-1] < ema * (1 - exit_thr / 1000):

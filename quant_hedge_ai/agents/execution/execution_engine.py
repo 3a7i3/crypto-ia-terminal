@@ -40,8 +40,9 @@ class ExecutionEngine:
       3. TradeLogger        — log SQLite de tous les ordres (audit)
     """
 
-    def __init__(self, live: bool = False) -> None:
+    def __init__(self, live: bool = False, _sleep=time.sleep) -> None:
         self._size_factor: float = 1.0
+        self._sleep = _sleep
         self._live = live
         self._position_manager = None
         self._exchange = None
@@ -191,7 +192,7 @@ class ExecutionEngine:
                     delay,
                     exc,
                 )
-                time.sleep(delay)
+                self._sleep(delay)
         _log.warning(
             "[ExecutionEngine] 3 échecs consécutifs — reconnexion avant dernier essai"
         )

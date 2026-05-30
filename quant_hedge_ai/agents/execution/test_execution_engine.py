@@ -124,7 +124,7 @@ class TestLiveFallback:
         monkeypatch.setenv("EXEC_MAX_ORDER_USD", "10000")
         from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
 
-        e = ExecutionEngine(live=False)
+        e = ExecutionEngine(live=False, _sleep=lambda _: None)
         e._live = True
         mock_exchange = MagicMock()
         self._setup_mock_exchange(mock_exchange)

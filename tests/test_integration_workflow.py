@@ -2,16 +2,16 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pandas as pd
 import pytest
 
-pytest.importorskip("matplotlib")
 
-from run_strategy_factory import Genome, create_population, mutate, score_env_trend
-
-
-def test_full_workflow_generates_expected_dataframe_and_plot(monkeypatch, tmp_path) -> None:
+def test_full_workflow_generates_expected_dataframe_and_plot(
+    monkeypatch, tmp_path
+) -> None:
+    pytest.importorskip("matplotlib")
+    pd = pytest.importorskip("pandas")
     import run_strategy_factory
+    from run_strategy_factory import Genome, create_population, mutate, score_env_trend
 
     pop = create_population(10)
     assert len(pop) == 10

@@ -632,11 +632,14 @@ class TestTamperEvidentLog:
         assert l2.verify_all()
 
     def test_10k_entries_under_1s(self, tmp_path):
-        from crypto.tamper_evident_logs import TamperEvidentLog
+        from crypto.tamper_evident_logs import BufferedTamperEvidentLog
 
-        # Construit 10k entrées en mémoire (sans I/O disque pour la vitesse)
+        # Utilise BufferedTamperEvidentLog pour isoler les I/O disque du test
+        # de performance de verify_all() (objectif : HMAC batch < 1s)
         p = tmp_path / "perf.jsonl"
-        tl = TamperEvidentLog(master_secret=b"perf_key", log_path=p)
+        tl = BufferedTamperEvidentLog(
+            master_secret=b"perf_key", log_path=p, flush_every_n_entries=10_001
+        )
         for i in range(10_000):
             tl.write("INFO", f"msg {i}", {"i": i})
         t0 = time.perf_counter()
@@ -651,6 +654,116 @@ class TestTamperEvidentLog:
         assert tlog.last_hmac() == _GENESIS_HMAC
         e = tlog.write("INFO", "x")
         assert tlog.last_hmac() == e.hmac
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# §7b — BufferedTamperEvidentLog
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+class TestBufferedTamperEvidentLog:
+    @pytest.fixture
+    def blog(self, tmp_path):
+        from crypto.tamper_evident_logs import BufferedTamperEvidentLog
+
+        return BufferedTamperEvidentLog(
+            master_secret=b"buf_key",
+            log_path=tmp_path / "buffered.jsonl",
+            flush_every_n_entries=100,
+        )
+
+    def test_write_and_verify_all_correct(self, blog):
+        for i in range(50):
+            blog.write("INFO", f"msg {i}")
+        blog.flush()
+        assert blog.verify_all()
+
+    def test_chain_integrity_preserved(self, blog):
+        e0 = blog.write("INFO", "a")
+        e1 = blog.write("TRADE", "b")
+        assert e1.prev_hmac == e0.hmac
+
+    def test_auto_flush_at_threshold(self, blog, tmp_path):
+        p = tmp_path / "buffered.jsonl"
+        for i in range(100):
+            blog.write("INFO", f"{i}")
+        # 100 entrées = seuil atteint → flush automatique
+        assert p.stat().st_size > 0, "Flush automatique n'a pas écrit sur disque"
+
+    def test_shutdown_flushes_remaining(self, tmp_path):
+        from crypto.tamper_evident_logs import BufferedTamperEvidentLog
+
+        p = tmp_path / "shutdown.jsonl"
+        log = BufferedTamperEvidentLog(
+            master_secret=b"k", log_path=p, flush_every_n_entries=1000
+        )
+        for i in range(10):
+            log.write("INFO", f"pre-shutdown {i}")
+        assert not p.exists() or p.stat().st_size == 0, "Pas encore flushé"
+        log.shutdown()
+        assert (
+            p.exists() and p.stat().st_size > 0
+        ), "shutdown() doit flusher les entrées restantes"
+
+    def test_persistence_after_shutdown(self, tmp_path):
+        from crypto.tamper_evident_logs import (
+            BufferedTamperEvidentLog,
+            TamperEvidentLog,
+        )
+
+        p = tmp_path / "persist.jsonl"
+        log = BufferedTamperEvidentLog(
+            master_secret=b"k", log_path=p, flush_every_n_entries=1000
+        )
+        for i in range(5):
+            log.write("INFO", f"entry {i}")
+        log.shutdown()
+
+        reloaded = TamperEvidentLog(master_secret=b"k", log_path=p)
+        assert len(reloaded) == 5
+        assert reloaded.verify_all()
+
+    def test_10k_writes_under_2s(self, tmp_path):
+        """10k writes bufferisés doivent être ~50× plus rapides que non bufferisés."""
+        from crypto.tamper_evident_logs import BufferedTamperEvidentLog
+
+        p = tmp_path / "speed.jsonl"
+        log = BufferedTamperEvidentLog(
+            master_secret=b"k", log_path=p, flush_every_n_entries=100
+        )
+        t0 = time.perf_counter()
+        for i in range(10_000):
+            log.write("INFO", f"msg {i}", {"i": i})
+        log.shutdown()
+        elapsed = time.perf_counter() - t0
+        assert elapsed < 2.0, f"10k writes bufferisés trop lents: {elapsed:.2f}s"
+
+    def test_flush_explicit(self, blog, tmp_path):
+        p = tmp_path / "buffered.jsonl"
+        blog.write("INFO", "entry1")
+        assert (
+            not p.exists() or p.stat().st_size == 0
+        ), "Pas encore flushé avant appel explicite"
+        blog.flush()
+        assert p.exists() and p.stat().st_size > 0, "flush() doit écrire sur disque"
+
+    def test_verify_all_after_reload(self, tmp_path):
+        from crypto.tamper_evident_logs import (
+            BufferedTamperEvidentLog,
+            TamperEvidentLog,
+        )
+
+        p = tmp_path / "reload.jsonl"
+        log = BufferedTamperEvidentLog(
+            master_secret=b"k2", log_path=p, flush_every_n_entries=10
+        )
+        for i in range(25):
+            log.write("TRADE", f"trade {i}")
+        log.shutdown()
+
+        reloaded = TamperEvidentLog(master_secret=b"k2", log_path=p)
+        assert len(reloaded) == 25
+        assert reloaded.verify_all()
 
 
 # ─────────────────────────────────────────────────────────────────────────────

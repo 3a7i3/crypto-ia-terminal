@@ -1,1 +1,1 @@
-{"state": "LIVE_READY", "ts": 1779970410.989, "extra": {"consecutive_failures": 0}, "signature": "3a23adbf102f20e9d546de85b168dbcc633770550f4e3d575dad22b5fb20f761"}
+{"state": "FAILED", "ts": 1780109233.271, "extra": {"consecutive_failures": 1}, "signature": "579e371d52cb805a2590b01d44eb2e85ba32b0f0b94b3ec0a0b4ef758746cfab"}
