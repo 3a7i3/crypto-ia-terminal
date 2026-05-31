@@ -8,8 +8,8 @@ echo "[1/3] Arrêt process existant..."
 pkill -f advisor_loop.py 2>/dev/null && echo "  Arrêté" || echo "  Pas de process"
 sleep 3
 
-echo "[2/3] Démarrage advisor_loop.py..."
-nohup .venv/bin/python3 advisor_loop.py >> logs/advisor.log 2>&1 &
+echo "[2/3] Démarrage core/advisor_loop.py..."
+nohup .venv/bin/python3 core/advisor_loop.py >> logs/advisor.log 2>&1 &
 BGPID=$!
 echo "  PID=$BGPID"
 sleep 12
