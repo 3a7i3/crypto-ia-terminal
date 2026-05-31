@@ -3456,6 +3456,9 @@ def main(
                     log.debug("[P8/Allocator] Erreur cycle: %s", _p8_cyc_exc)
 
             results: list[AnalysisResult] = []
+            _cycle_exec_failed = (
+                False  # une seule incrémentation par cycle, pas par symbole
+            )
             for sym in symbols:
                 r = analyze_symbol(
                     sym,
@@ -3954,11 +3957,11 @@ def main(
                                     pass
                             elif fut_mode in {"futures_failed", "live_failed"}:
                                 _consecutive_losses["value"] += 1
-                                _consecutive_exec_errors["value"] += 1
+                                _cycle_exec_failed = True
                     except Exception as _fe:
                         log.error("[EXECUTION] Erreur ordre %s: %s", sym, _fe)
                         _consecutive_losses["value"] += 1
-                        _consecutive_exec_errors["value"] += 1
+                        _cycle_exec_failed = True
 
                 # Black Box — enregistre chaque décision
                 try:
@@ -4020,6 +4023,10 @@ def main(
                         sym,
                         r["signal"].score,
                     )
+
+            # Incrémentation unique exec_errors par cycle (pas par symbole)
+            if _cycle_exec_failed:
+                _consecutive_exec_errors["value"] += 1
 
             # ── Post-cycle: régime dominant + métriques d'activité ───────────
             # P8 — Mettre à jour le cache de transition pour le prochain cycle
