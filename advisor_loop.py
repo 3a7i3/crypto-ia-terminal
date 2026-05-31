@@ -2768,7 +2768,8 @@ def main(
 
     pos_manager.on_close(_on_position_close_rank)
 
-    _consecutive_losses = {"value": 0}  # compteur partagé entre cycles
+    _consecutive_losses = {"value": 0}  # pertes trading consécutives (meta strategy)
+    _consecutive_exec_errors = {"value": 0}  # échecs d'exécution techniques (P10-F)
 
     # ── PROTECTIONS OBLIGATOIRES POUR MODE TEST ───────────────────────────────────
     # #1 Cooldown après perte (5 min)
@@ -2791,6 +2792,36 @@ def main(
     consecutive_errors = 0
     _clean_exit = False
     shed_optional_until_cycle = 0
+
+    # ── P12-B MetricsCollector + AlertEngine — source de données burn-in ─────
+    _metrics_collector: Any = None
+    _alert_engine_p12: Any = None
+    _health_scorer_p12: Any = None
+    try:
+        from pathlib import Path as _MCPath
+
+        from observability.alerting import AlertEngine as _AECls
+        from observability.health_score import HealthScore as _HSCls
+        from observability.metrics_collector import MetricsCollector as _MCCls
+
+        _metrics_collector = _MCCls(
+            capital_fn=lambda: real_capital,
+            positions_fn=lambda: (
+                len(pos_manager.get_open_positions())
+                if hasattr(pos_manager, "get_open_positions")
+                else 0
+            ),
+            initial_capital=real_capital,
+        )
+        _metrics_collector.set_boot_gate_cleared(True)
+        _alert_engine_p12 = _AECls(
+            alert_path=_MCPath("cache/startup/alerts.jsonl"),
+            persist=True,
+        )
+        _health_scorer_p12 = _HSCls()
+        log.info("[P12-B] MetricsCollector + AlertEngine initialises")
+    except Exception as _mc_init_exc:
+        log.debug("[P12-B] MetricsCollector non disponible: %s", _mc_init_exc)
     # ── Boucle de rétroaction adaptative ──────────────────────────────────────
     # _adaptive_regime : régime stable (confirmé sur N cycles consécutifs)
     # _regime_votes    : fenêtre glissante des N dernières observations
@@ -3110,6 +3141,11 @@ def main(
                     break
             log.info("[main] Kill switch levé — reprise boucle")
             _telegram("Kill Switch leve — reprise du cycle normal.")
+            # Réinitialise l'état d'urgence P10-F après intervention opérateur
+            if _p10_emergency is not None:
+                _p10_emergency.reset()
+            if "_consecutive_exec_errors" in dir():
+                _consecutive_exec_errors["value"] = 0
             continue
 
         # ── P10-F Emergency Stop check ─────────────────────────────────────────
@@ -3123,8 +3159,8 @@ def main(
                         else 0.0
                     ),
                     "consecutive_tech_errors": (
-                        _consecutive_losses.get("value", 0)
-                        if "_consecutive_losses" in dir()
+                        _consecutive_exec_errors.get("value", 0)
+                        if "_consecutive_exec_errors" in dir()
                         else 0
                     ),
                     "blackbox_inaccessible_cycles": 0,
@@ -3134,8 +3170,9 @@ def main(
                     "exchange_down_s": 0.0,
                     "new_anomaly_suspensions": 0,
                 }
+                _p10_was_active = _p10_emergency.is_emergency_active()
                 _p10_trigger = _p10_emergency.check(_p10_metrics)
-                if _p10_trigger and not _halt_requested["value"]:
+                if _p10_trigger and not _p10_was_active:
                     log.critical("[P10-F] Emergency stop: %s", _p10_trigger.details)
                     _telegram(
                         f"P10-F EMERGENCY STOP\nCritère: {_p10_trigger.criteria.value}\n{_p10_trigger.details}"
@@ -3821,6 +3858,7 @@ def main(
                                 effective_size,
                             )
                             if _pos_registered:
+                                _consecutive_exec_errors["value"] = 0
                                 log.info(
                                     "[FLOW] %s POSITION → registered mode=%s",
                                     sym,
@@ -3873,9 +3911,11 @@ def main(
                                     pass
                             elif fut_mode in {"futures_failed", "live_failed"}:
                                 _consecutive_losses["value"] += 1
+                                _consecutive_exec_errors["value"] += 1
                     except Exception as _fe:
                         log.error("[EXECUTION] Erreur ordre %s: %s", sym, _fe)
                         _consecutive_losses["value"] += 1
+                        _consecutive_exec_errors["value"] += 1
 
                 # Black Box — enregistre chaque décision
                 try:
@@ -4293,6 +4333,20 @@ def main(
                 pass
 
             consecutive_errors = 0
+
+            # ── P12-B flush MetricsCollector → cache/startup/metrics.jsonl ────
+            if _metrics_collector is not None:
+                try:
+                    _mc_snap = _metrics_collector.snapshot()
+                    if _health_scorer_p12 is not None:
+                        _mc_snap.health_score = _health_scorer_p12.compute(_mc_snap)
+                    _metrics_collector.flush_to_jsonl(
+                        _MCPath("cache/startup/metrics.jsonl")
+                    )
+                    if _alert_engine_p12 is not None:
+                        _alert_engine_p12.check(_mc_snap)
+                except Exception as _mc_flush_exc:
+                    log.debug("[P12-B] flush error: %s", _mc_flush_exc)
 
             # Rapport périodique toutes les N cycles
             if cycle % NOTIFY_EVERY == 0:
@@ -4761,6 +4815,11 @@ def main(
                         },
                     )
                     module_registry.report_error("advisor_loop", str(exc))
+                except Exception:
+                    pass
+            if _metrics_collector is not None:
+                try:
+                    _metrics_collector.record_exception(exc)
                 except Exception:
                     pass
             if consecutive_errors >= 5:
