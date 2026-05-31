@@ -350,6 +350,23 @@ def _send_email(subject: str, body: str) -> None:
         log.warning("[Email] Échec : %s", exc)
 
 
+def _write_behavioral_event(event_type: str, data: dict) -> None:
+    """Persiste un événement comportemental dans cache/startup/behavioral_events.jsonl."""
+    import json as _json
+    import time as _time
+
+    try:
+        record = {"ts": _time.time(), "event": event_type, **data}
+        path = "cache/startup/behavioral_events.jsonl"
+        import os as _os
+
+        _os.makedirs("cache/startup", exist_ok=True)
+        with open(path, "a", encoding="utf-8") as _f:
+            _f.write(_json.dumps(record, ensure_ascii=False) + "\n")
+    except Exception:
+        pass
+
+
 def _telegram_behavior(text: str) -> None:
     """Canal comportemental — [BEHAVIOR], transitions, REGIME_MISMATCH, BSM."""
     chat = TELEGRAM_BEHAVIOR_CHAT or TELEGRAM_CHAT  # fallback canal principal
@@ -3861,6 +3878,24 @@ def main(
                             )
                             if _pos_registered:
                                 _consecutive_exec_errors["value"] = 0
+                                if _stalled_alerted:
+                                    _at_res = (
+                                        _activity_tracker.metrics()
+                                        if _activity_tracker
+                                        else None
+                                    )
+                                    _write_behavioral_event(
+                                        "TRADING_RESUMED",
+                                        {
+                                            "cycle": cycle,
+                                            "after_cycles": (
+                                                _at_res.cycles_since_last_trade
+                                                if _at_res
+                                                else 0
+                                            ),
+                                            "symbol": sym,
+                                        },
+                                    )
                                 _stalled_alerted = False
                                 if _ate is not None:
                                     try:
@@ -4094,6 +4129,16 @@ def main(
                             _stall_b,
                         )
                         _telegram_behavior(_stall_msg)
+                        _write_behavioral_event(
+                            "TRADING_STALLED",
+                            {
+                                "cycle": cycle,
+                                "cycles_stalled": _stall_diag.cycles_stalled,
+                                "label": _stall_diag.label(),
+                                "confidence": _stall_diag.confidence,
+                                "top_blockers": dict(_stall_diag.top_blockers),
+                            },
+                        )
                     # P6 — REGIME_MISMATCH: capital gelé → baisser threshold (désactivé en safe mode)
                     _mismatch_cooldown = int(
                         os.getenv("REGIME_MISMATCH_COOLDOWN", "15")
@@ -4129,11 +4174,25 @@ def main(
                                             " consecutifs sans trade",
                                             _inef_snap["consecutive_mismatch"],
                                         )
-                                        _telegram_behavior(
+                                        _inef_msg = (
                                             f"ADAPTATION_INEFFECTIVE"
                                             f" — threshold reduit {_inef_snap['consecutive_mismatch']}x"
                                             f" sans effet observable\n"
                                             f"→ recalibration PID | delta courant={_inef_snap['current_delta']:+d}"
+                                        )
+                                        _telegram_behavior(_inef_msg)
+                                        _write_behavioral_event(
+                                            "ADAPTATION_INEFFECTIVE",
+                                            {
+                                                "cycle": cycle,
+                                                "consecutive_mismatch": _inef_snap[
+                                                    "consecutive_mismatch"
+                                                ],
+                                                "current_delta": _inef_snap[
+                                                    "current_delta"
+                                                ],
+                                                "integral": _inef_snap["integral"],
+                                            },
                                         )
                                         _ate.reset()  # recalibrer le PID
                                 except Exception:
