@@ -20,6 +20,7 @@ log = logging.getLogger("warm_boot")
 @dataclass
 class BootPhase:
     """Étape de bootstrap avec timing"""
+
     name: str
     phase_num: int
     start_time: float = 0.0
@@ -71,7 +72,8 @@ class WarmBootManager:
         phase = BootPhase(name="LoadConfigCache", phase_num=2)
         phase.start_time = time.time()
         try:
-            from startup_cache import get_startup_cache
+            from infra.startup_cache import get_startup_cache
+
             cache = get_startup_cache()
             config = cache.load_config(max_age_seconds=7200)  # 2h
             if config:
@@ -96,7 +98,10 @@ class WarmBootManager:
         phase.start_time = time.time()
         try:
             import requests
-            url = f"http://{os.getenv('LM_STUDIO_HOST', '127.0.0.1')}:{os.getenv('LM_STUDIO_PORT', '1234')}/v1/models"
+
+            host = os.getenv("LM_STUDIO_HOST", "127.0.0.1")
+            port = os.getenv("LM_STUDIO_PORT", "1234")
+            url = f"http://{host}:{port}/v1/models"
             resp = requests.get(url, timeout=2)
             if resp.status_code == 200:
                 models = resp.json().get("data", [])
@@ -122,13 +127,15 @@ class WarmBootManager:
         phase = BootPhase(name="LoadRuntimeState", phase_num=4)
         phase.start_time = time.time()
         try:
-            from startup_cache import get_startup_cache
+            from infra.startup_cache import get_startup_cache
+
             cache = get_startup_cache()
             state = cache.load_runtime_state(max_age_seconds=600)  # 10 min
             if state:
                 self.results["runtime_state"] = state
                 self.results["resume_from_checkpoint"] = True
-                log.info(f"✓ Runtime state restored (iteration: {state.get('iteration', 'N/A')})")
+                it = state.get("iteration", "N/A")
+                log.info(f"✓ Runtime state restored (iteration: {it})")
                 phase.success = True
             else:
                 log.debug("Runtime state cache miss")
@@ -145,7 +152,8 @@ class WarmBootManager:
         phase = BootPhase(name="LoadEvolutionMemory", phase_num=5)
         phase.start_time = time.time()
         try:
-            from startup_cache import get_startup_cache
+            from infra.startup_cache import get_startup_cache
+
             cache = get_startup_cache()
             memory = cache.load_memory_snapshot()
             if memory:
@@ -268,8 +276,7 @@ async def warm_boot_async() -> Dict[str, Any]:
 
 if __name__ == "__main__":
     logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s %(levelname)-8s %(name)s - %(message)s"
+        level=logging.INFO, format="%(asctime)s %(levelname)-8s %(name)s - %(message)s"
     )
     mgr = WarmBootManager()
     results = mgr.boot_parallel()

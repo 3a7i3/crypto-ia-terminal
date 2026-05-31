@@ -8,15 +8,15 @@ import logging
 import sys
 import time
 from pathlib import Path
+from signal.evolution.evolution_memory import get_evolution_memory_db
 from typing import Any, Dict, Optional
 
 # Import des composants
-from warm_boot import WarmBootManager
-from startup_cache import get_startup_cache
-from lazy_loader import get_lazy_loader
-from circuit_breaker import enable_circuit_breaker
-from daily_analyzer import get_daily_analyzer, SystemSnapshot
-from evolution_memory import get_evolution_memory_db
+from core.warm_boot import WarmBootManager
+from infra.lazy_loader import get_lazy_loader
+from infra.monitoring.daily_analyzer import SystemSnapshot, get_daily_analyzer
+from infra.startup_cache import get_startup_cache
+from risk.circuit_breaker import enable_circuit_breaker
 
 try:
     import psutil
@@ -82,7 +82,9 @@ class SystemBootstrap:
         log.info("\n[PHASE 2] Activating circuit breaker...")
 
         def on_critical():
-            log.critical("🛑 CIRCUIT BREAKER: System in critical state - pausing operations")
+            log.critical(
+                "🛑 CIRCUIT BREAKER: System in critical state - pausing operations"
+            )
             if self.analyzer:
                 snapshot = SystemSnapshot(
                     timestamp=time.time(),
@@ -149,6 +151,7 @@ class SystemBootstrap:
         # Enregistre snapshot initial
         try:
             import psutil
+
             process = psutil.Process()
             snapshot = SystemSnapshot(
                 timestamp=time.time(),
@@ -207,6 +210,7 @@ class SystemBootstrap:
         """Retourne rapport santé système actuel"""
         try:
             import psutil
+
             process = psutil.Process()
 
             return {
@@ -235,16 +239,16 @@ def bootstrap_system(enable_monitoring: bool = True) -> SystemBootstrap:
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description="System bootstrap with integrated startup")
+    parser = argparse.ArgumentParser(
+        description="System bootstrap with integrated startup"
+    )
     parser.add_argument(
-        "--no-monitoring",
-        action="store_true",
-        help="Disable daily monitoring"
+        "--no-monitoring", action="store_true", help="Disable daily monitoring"
     )
     parser.add_argument(
         "--health-check",
         action="store_true",
-        help="Print health status after bootstrap"
+        help="Print health status after bootstrap",
     )
     args = parser.parse_args()
 
