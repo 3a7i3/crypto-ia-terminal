@@ -9,7 +9,8 @@ pkill -f advisor_loop.py 2>/dev/null && echo "  Arrêté" || echo "  Pas de proc
 sleep 3
 
 echo "[2/3] Démarrage core/advisor_loop.py..."
-nohup .venv/bin/python3 core/advisor_loop.py >> logs/advisor.log 2>&1 &
+nohup env PYTHONPATH="$HOME/crypto_ai_terminal" \
+    .venv/bin/python3 core/advisor_loop.py >> logs/advisor.log 2>&1 &
 BGPID=$!
 echo "  PID=$BGPID"
 sleep 12
