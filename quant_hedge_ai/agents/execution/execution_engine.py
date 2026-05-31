@@ -72,7 +72,7 @@ class ExecutionEngine:
     def _init_exchange(self):
         """Initialise le client Spot via ExchangeFactory (multi-exchange)."""
         try:
-            from exchange_factory import ExchangeFactory, detect_mode
+            from infra.exchange_factory import ExchangeFactory, detect_mode
 
             exchange = ExchangeFactory.create()
             if exchange is None:
@@ -205,7 +205,7 @@ class ExecutionEngine:
     @classmethod
     def from_env(cls) -> "ExecutionEngine":
         """Retourne un moteur live si des clés API sont présentes pour l'exchange actif, sinon paper."""
-        from exchange_factory import ExchangeFactory
+        from infra.exchange_factory import ExchangeFactory
 
         info = ExchangeFactory.info()
         live = info["has_api_key"] and info["mode"] != "paper"
