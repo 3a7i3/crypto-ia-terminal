@@ -28,6 +28,7 @@ from types import SimpleNamespace
 from typing import Any, cast
 
 from advisor_runtime_adapters import AdvisorRuntime, load_advisor_runtime
+
 from observability.json_logger import new_trace_id, set_trace_id
 
 # IMPORTANT : créer logs/ avant FileHandler
