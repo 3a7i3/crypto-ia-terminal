@@ -49,6 +49,7 @@ class ATEState:
     integral: float = 0.0  # terme I (EWMA borné)
     current_delta: int = 0  # delta appliqué au dernier cycle
     last_raw_regret: int = 0
+    consecutive_mismatch: int = 0  # cycles de réduction sans trade (méta-boucle)
 
 
 class AdaptiveThresholdEngine:
@@ -135,7 +136,28 @@ class AdaptiveThresholdEngine:
             "integral": round(s.integral, 3),
             "current_delta": s.current_delta,
             "last_raw_regret": s.last_raw_regret,
+            "consecutive_mismatch": s.consecutive_mismatch,
+            "adaptation_ineffective": self.is_adaptation_ineffective(),
         }
+
+    def record_mismatch(self, had_trade: bool) -> None:
+        """
+        Méta-boucle : suit si les réductions de threshold produisent des trades.
+
+        Appelé après chaque cycle REGIME_MISMATCH (had_trade=False) ou après un
+        trade réussi (had_trade=True). Permet de détecter l'adaptation inefficace.
+        """
+        if had_trade:
+            self._state.consecutive_mismatch = 0
+        else:
+            self._state.consecutive_mismatch += 1
+
+    def is_adaptation_ineffective(self, threshold: int = 5) -> bool:
+        """
+        True si le PID réduit le threshold depuis N cycles sans déclencher de trade.
+        Signale que la boucle de rétroaction est cassée (action sans effet mesurable).
+        """
+        return self._state.consecutive_mismatch >= threshold
 
     def reset(self) -> None:
         """Réinitialisation complète — ex: après changement de régime brutal."""

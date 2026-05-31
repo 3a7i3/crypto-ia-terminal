@@ -8,6 +8,8 @@ Métriques produites :
   - refusal_accuracy       : part des refus qui étaient justifiés
   - execution_ratio        : signaux exécutés / (exécutés + refusés)
   - cycles_since_last_trade: cycles écoulés depuis le dernier trade
+  - stalled                : True si cycles_since_last_trade >= STALLED_THRESHOLD
+  - stall_confidence       : 0.0 = pas de signal à bloquer, 1.0 = bloque activement
 
 Usage dans advisor_loop :
     tracker = ActivityTracker()
@@ -17,6 +19,7 @@ Usage dans advisor_loop :
         signal_refused=gate_result.allowed is False and score >= min_score,
         signal_executed=True if new_order else False,
     )
+    tracker.record_blockers("meta, portfolio")   # raisons du refus ce cycle
     # Périodiquement (ex. toutes les 12 cycles) :
     _log.info(tracker.summary())
     # Pour Telegram :
@@ -25,15 +28,19 @@ Usage dans advisor_loop :
 
 from __future__ import annotations
 
+import os
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from observability.json_logger import get_logger
 
 _log = get_logger("quant_hedge_ai.agents.intelligence.activity_tracker")
 _INACTIVITY_WARN_THRESHOLD = float(
-    __import__("os").getenv("INACTIVITY_WARN_RATIO", "0.85")
+    os.getenv("INACTIVITY_WARN_RATIO", "0.85")
 )  # alerte si > 85% des cycles sans position
+_STALLED_THRESHOLD = int(
+    os.getenv("TRADING_STALLED_CYCLES", "50")
+)  # cycles sans trade → TRADING_STALLED
 
 
 @dataclass
@@ -63,6 +70,25 @@ class ActivityMetrics:
         )
 
 
+@dataclass
+class StalledDiagnosis:
+    """Diagnostic TRADING_STALLED : paralysie vs prudence."""
+
+    is_stalled: bool
+    cycles_stalled: int  # == cycles_since_last_trade quand stalled
+    confidence: float  # 0.0 = pas de signal bloqué, 1.0 = bloque activement
+    top_blockers: list[tuple[str, int]] = field(default_factory=list)
+
+    def label(self) -> str:
+        if not self.is_stalled:
+            return "active"
+        if self.confidence >= 0.6:
+            return "paralysed"  # système bloque activement de bons signaux
+        if self.confidence >= 0.2:
+            return "stalled"  # quelques signaux bloqués
+        return "waiting"  # simple attente de signal
+
+
 class ActivityTracker:
     """
     Trace l'activité du capital cycle par cycle.
@@ -79,6 +105,12 @@ class ActivityTracker:
         self._cycles_since_last_trade: int = 0
         self._last_trade_cycle: int = 0
         self._inactivity_streak: int = 0  # cycles consécutifs sans position
+        # TRADING_STALLED tracking
+        self._refused_at_last_trade: int = 0  # _refused snapshot au dernier trade
+        self._blocker_counts: dict[str, int] = (
+            {}
+        )  # distribution cumulative des blockers
+        self._blocker_counts_stalled: dict[str, int] = {}  # reset à chaque trade
 
     # ── Alimentation par cycle ────────────────────────────────────────────────
 
@@ -111,6 +143,8 @@ class ActivityTracker:
             self._executed += 1
             self._last_trade_cycle = self._total_cycles
             self._inactivity_streak = 0
+            self._refused_at_last_trade = self._refused
+            self._blocker_counts_stalled.clear()
 
         self._cycles_since_last_trade = self._total_cycles - self._last_trade_cycle
 
@@ -126,7 +160,37 @@ class ActivityTracker:
                     self._refused,
                 )
 
+    def record_blockers(self, blockers: str) -> None:
+        """Enregistre les raisons de refus du cycle courant (ex: 'meta, portfolio')."""
+        for b in blockers.split(","):
+            b = b.strip()
+            if not b:
+                continue
+            self._blocker_counts[b] = self._blocker_counts.get(b, 0) + 1
+            self._blocker_counts_stalled[b] = self._blocker_counts_stalled.get(b, 0) + 1
+
     # ── Métriques ─────────────────────────────────────────────────────────────
+
+    def is_stalled(self) -> bool:
+        """True si le capital est gelé depuis plus de STALLED_THRESHOLD cycles."""
+        return self._cycles_since_last_trade >= _STALLED_THRESHOLD
+
+    def stalled_diagnosis(self) -> StalledDiagnosis:
+        """Diagnostic complet de l'état TRADING_STALLED."""
+        stalled = self.is_stalled()
+        # Confidence : ratio de refus depuis le dernier trade
+        refused_since = self._refused - self._refused_at_last_trade
+        cycles = max(self._cycles_since_last_trade, 1)
+        # Normalisation : 1 refus / cycle → confiance max (clampé à 1.0)
+        confidence = min(1.0, refused_since / cycles)
+        # Top blockers depuis le dernier trade
+        top = sorted(self._blocker_counts_stalled.items(), key=lambda x: -x[1])[:4]
+        return StalledDiagnosis(
+            is_stalled=stalled,
+            cycles_stalled=self._cycles_since_last_trade,
+            confidence=round(confidence, 2),
+            top_blockers=top,
+        )
 
     def metrics(self) -> ActivityMetrics:
         total = max(self._total_cycles, 1)
@@ -154,6 +218,7 @@ class ActivityTracker:
         """Dict JSON-sérialisable pour dashboard / Telegram."""
         m = self.metrics()
         alert = m.is_overfiltered()
+        diag = self.stalled_diagnosis()
         return {
             "total_cycles": m.total_cycles,
             "inactivity_ratio": m.inactivity_ratio,
@@ -164,6 +229,12 @@ class ActivityTracker:
             "uptime_seconds": m.uptime_seconds,
             "alert_overfiltered": alert,
             "summary": m.summary_line(),
+            # TRADING_STALLED
+            "stalled": diag.is_stalled,
+            "stalled_since": diag.cycles_stalled,
+            "stall_confidence": diag.confidence,
+            "stall_label": diag.label(),
+            "top_blockers": [{"name": k, "count": v} for k, v in diag.top_blockers],
         }
 
     def reset(self) -> None:

@@ -2833,6 +2833,7 @@ def main(
         os.getenv("REGIME_STABILITY_WINDOW", "3")
     )  # cycles à confirmer
     _last_mismatch_cycle: int = 0  # cooldown REGIME_MISMATCH
+    _stalled_alerted: bool = False  # alerte TRADING_STALLED déjà envoyée
     _atr_last: float = 0.0  # P7 — ATR ratio moyen du cycle précédent → RiskGovernor
 
     # P7 — Risk Governor + Capital Throttle + Exposure Manager
@@ -3860,6 +3861,12 @@ def main(
                             )
                             if _pos_registered:
                                 _consecutive_exec_errors["value"] = 0
+                                _stalled_alerted = False
+                                if _ate is not None:
+                                    try:
+                                        _ate.record_mismatch(had_trade=True)
+                                    except Exception:
+                                        pass
                                 log.info(
                                     "[FLOW] %s POSITION → registered mode=%s",
                                     sym,
@@ -4056,8 +4063,37 @@ def main(
                         signal_refused=_any_refused,
                         signal_executed=_any_executed,
                     )
+                    # Alimenter la distribution des blockers
+                    _cycle_blockers = ", ".join(
+                        r.get("blockers", "") for r in results if r.get("blockers")
+                    )
+                    if _cycle_blockers:
+                        _activity_tracker.record_blockers(_cycle_blockers)
                     if cycle % 12 == 0:
                         log.info(_activity_tracker.summary())
+                    # Alerte immédiate TRADING_STALLED (une fois par épisode)
+                    if _activity_tracker.is_stalled() and not _stalled_alerted:
+                        _stalled_alerted = True
+                        _stall_diag = _activity_tracker.stalled_diagnosis()
+                        _stall_b = (
+                            " | ".join(
+                                f"{k}:{v}" for k, v in _stall_diag.top_blockers[:3]
+                            )
+                            or "aucun signal refuse"
+                        )
+                        _stall_msg = (
+                            f"TRADING_STALLED [{_stall_diag.label().upper()}]"
+                            f" — {_stall_diag.cycles_stalled} cycles sans trade"
+                            f" (confiance={_stall_diag.confidence:.0%})\n"
+                            f"Blockers: {_stall_b}"
+                        )
+                        log.warning(
+                            "[STALLED] %d cycles sans trade | confiance=%.0f%% | %s",
+                            _stall_diag.cycles_stalled,
+                            _stall_diag.confidence * 100,
+                            _stall_b,
+                        )
+                        _telegram_behavior(_stall_msg)
                     # P6 — REGIME_MISMATCH: capital gelé → baisser threshold (désactivé en safe mode)
                     _mismatch_cooldown = int(
                         os.getenv("REGIME_MISMATCH_COOLDOWN", "15")
@@ -4082,8 +4118,28 @@ def main(
                                     _stability_monitor.on_mismatch()
                                 except Exception:
                                     pass
+                            # Méta-boucle : ATE suit l'inefficacité de l'adaptation
+                            if _ate is not None:
+                                try:
+                                    _ate.record_mismatch(had_trade=False)
+                                    if _ate.is_adaptation_ineffective():
+                                        _inef_snap = _ate.snapshot()
+                                        log.warning(
+                                            "[ATE] ADAPTATION_INEFFECTIVE — %d mismatches"
+                                            " consecutifs sans trade",
+                                            _inef_snap["consecutive_mismatch"],
+                                        )
+                                        _telegram_behavior(
+                                            f"ADAPTATION_INEFFECTIVE"
+                                            f" — threshold reduit {_inef_snap['consecutive_mismatch']}x"
+                                            f" sans effet observable\n"
+                                            f"→ recalibration PID | delta courant={_inef_snap['current_delta']:+d}"
+                                        )
+                                        _ate.reset()  # recalibrer le PID
+                                except Exception:
+                                    pass
                             _mm_msg = (
-                                f"⚙️ REGIME_MISMATCH — {_at.cycles_since_last_trade} cycles sans trade"
+                                f"REGIME_MISMATCH — {_at.cycles_since_last_trade} cycles sans trade"
                                 f" ({_at.inactivity_ratio:.0%} inactif)\n"
                                 f"→ threshold -1 | reset classifieur"
                             )

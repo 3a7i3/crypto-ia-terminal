@@ -392,11 +392,26 @@ class ChiefOfficer:
             exec_ratio = activity.get("execution_ratio", 1.0)
             since = activity.get("cycles_since_last_trade", 0)
             alert = activity.get("alert_overfiltered", False)
-            prefix = "ALERTE " if alert else ""
+            stalled = activity.get("stalled", False)
+            prefix = "ALERTE " if (alert or stalled) else ""
             lines.append(
                 f"{prefix}CAPITAL: activite={1 - inactivity:.0%} | "
                 f"exec={exec_ratio:.0%} | sans trade depuis {since} cycles"
             )
+            if stalled:
+                conf = activity.get("stall_confidence", 0.0)
+                label = activity.get("stall_label", "stalled")
+                top_b = activity.get("top_blockers", [])
+                b_str = (
+                    " | ".join(f"{b['name']}:{b['count']}" for b in top_b[:3])
+                    if top_b
+                    else "aucun signal refuse"
+                )
+                lines.append(
+                    f"  TRADING_STALLED [{label.upper()}] — {since} cycles"
+                    f" (confiance={conf:.0%})"
+                )
+                lines.append(f"  Blockers cumules: {b_str}")
             lines.append("")
 
         # Stabilite comportementale
@@ -480,6 +495,25 @@ class ChiefOfficer:
                 "RegretEngine sur-corrige — verifier qualite des trades refuses."
             )
         activity = ctx.get("activity", {})
+        if activity.get("stalled"):
+            since = activity.get(
+                "stalled_since", activity.get("cycles_since_last_trade", 0)
+            )
+            conf = activity.get("stall_confidence", 0.0)
+            label = activity.get("stall_label", "stalled")
+            top_b = activity.get("top_blockers", [])
+            b_str = " | ".join(b["name"] for b in top_b[:2]) if top_b else "inconnu"
+            if label == "paralysed":
+                return (
+                    f"ALERTE_TRADING: systeme paralyse depuis {since} cycles"
+                    f" (confiance={conf:.0%}). Blockers actifs: {b_str}."
+                    " Revoir seuils meta-strategy et conviction."
+                )
+            return (
+                f"ALERTE_TRADING: capital gele depuis {since} cycles"
+                f" (confiance={conf:.0%}). Blockers: {b_str}."
+                " Verifier si le marche justifie cette inactivite."
+            )
         if (
             activity.get("alert_overfiltered")
             and activity.get("cycles_since_last_trade", 0) >= 20
