@@ -138,3 +138,31 @@ def test_update_capital_changes_limits():
     # Avec un grand capital, le même trade devrait être plus facilement autorisé
     if not v_small.allowed:
         assert v_big.allowed is True
+
+
+# ── Invariant hedge interdit ──────────────────────────────────────────────────
+
+
+def test_long_blocked_when_short_exists_on_same_symbol():
+    brain = _brain(capital=1000.0)
+    existing = [_pos("XRP/USDT", 55.0, side="short")]
+    verdict = brain.check_new_trade("XRP/USDT", "BUY", 55.0, "sideways", existing)
+    assert verdict.allowed is False
+    assert "SHORT" in verdict.reason
+    assert "XRP/USDT" in verdict.reason
+
+
+def test_short_blocked_when_long_exists_on_same_symbol():
+    brain = _brain(capital=1000.0)
+    existing = [_pos("XRP/USDT", 55.0, side="long")]
+    verdict = brain.check_new_trade("XRP/USDT", "SELL", 55.0, "sideways", existing)
+    assert verdict.allowed is False
+    assert "LONG" in verdict.reason
+    assert "XRP/USDT" in verdict.reason
+
+
+def test_opposite_on_different_symbol_is_allowed():
+    brain = _brain(capital=1000.0)
+    existing = [_pos("SOL/USDT", 55.0, side="short")]
+    verdict = brain.check_new_trade("XRP/USDT", "BUY", 55.0, "sideways", existing)
+    assert verdict.allowed is True

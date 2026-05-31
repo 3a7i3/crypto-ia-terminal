@@ -1746,6 +1746,7 @@ def main(
     # Kill switch — état partagé entre thread Telegram et boucle principale
     _halt_requested = {"value": False}
     _awareness_ref: dict = {"engine": None}  # rempli après création awareness_engine
+    _op_state_ref: list = [None]  # rempli après init OperationalState (P10-F)
 
     def _on_stop_all():
         _halt_requested["value"] = True
@@ -1756,9 +1757,13 @@ def main(
         log.critical("[main] CLOSE_ALL recu — la boucle va s'arreter au prochain cycle")
 
     def _on_resume():
+        _halt_requested["value"] = False
         if _awareness_ref["engine"] is not None:
             _awareness_ref["engine"].reset()
             log.info("[main] /RESUME — SelfAwareness reset (retour a OK)")
+        if _op_state_ref[0] is not None:
+            _op_state_ref[0].reset()
+            log.info("[main] /RESUME — OperationalState reset → RUNNING")
 
     kill_switch = _profile_bootstrap_step(
         "kill_switch",
@@ -1964,6 +1969,40 @@ def main(
         )
     except Exception as _p10_init_exc:
         log.warning("[P10-F] Non disponible: %s", _p10_init_exc)
+
+    # ── P10-F OperationalState (RUNNING / DEGRADED / HALTED) ─────────────────
+    _op_state = None
+    try:
+        from capital_deployment.operational_state import OperationalState as _OpStateCls
+
+        def _on_op_degraded(reason: str) -> None:
+            log.warning("[P10-F] DEGRADED: %s", reason)
+            _telegram(
+                f"Mode DEGRADED — exchange instable\n{reason}\n"
+                f"Trading continue. Envoyez /RESUME si intervention requise."
+            )
+
+        def _on_op_halted(reason: str) -> None:
+            log.critical("[P10-F] HALTED: %s", reason)
+            _halt_requested["value"] = True
+            _telegram(
+                f"P10-F HALTED — intervention requise\n{reason}\n"
+                f"Envoyez /RESUME pour reprendre."
+            )
+
+        def _on_op_recovered() -> None:
+            log.info("[P10-F] Exchange stabilise — retour RUNNING")
+            _telegram("Exchange stabilise — retour mode RUNNING.")
+
+        _op_state = _OpStateCls(
+            on_degraded=_on_op_degraded,
+            on_halted=_on_op_halted,
+            on_recovered=_on_op_recovered,
+        )
+        _op_state_ref[0] = _op_state
+        log.info("[P10-F] OperationalState initialise (RUNNING)")
+    except Exception as _op_init_exc:
+        log.warning("[P10-F] OperationalState non disponible: %s", _op_init_exc)
     # ─────────────────────────────────────────────────────────────────────────
 
     # ── P10-F Command Center Bot (lecture + écriture depuis Telegram) ────────
@@ -3153,11 +3192,9 @@ def main(
                 "Boucle suspendue par Kill Switch. Envoyer /RESUME pour reprendre."
             )
             # Attendre que l'opérateur envoie /RESUME
+            # _halt_requested est cleared par _on_resume (callback /RESUME Telegram)
             while kill_switch.is_halted() or _halt_requested["value"]:
                 time.sleep(5)
-                if not kill_switch.is_halted():
-                    _halt_requested["value"] = False
-                    break
             log.info("[main] Kill switch levé — reprise boucle")
             _telegram("Kill Switch leve — reprise du cycle normal.")
             # Réinitialise l'état d'urgence P10-F après intervention opérateur
@@ -3177,11 +3214,7 @@ def main(
                         and _capital_throttle is not None
                         else 0.0
                     ),
-                    "consecutive_tech_errors": (
-                        _consecutive_exec_errors.get("value", 0)
-                        if "_consecutive_exec_errors" in dir()
-                        else 0
-                    ),
+                    "consecutive_tech_errors": 0,  # géré par OperationalState
                     "blackbox_inaccessible_cycles": 0,
                     "killswitch_triggered": kill_switch.is_halted(),
                     "invalid_signature_detected": False,
@@ -4027,6 +4060,10 @@ def main(
             # Incrémentation unique exec_errors par cycle (pas par symbole)
             if _cycle_exec_failed:
                 _consecutive_exec_errors["value"] += 1
+                if _op_state is not None:
+                    _op_state.record_error()
+            elif _op_state is not None:
+                _op_state.record_success()
 
             # ── Post-cycle: régime dominant + métriques d'activité ───────────
             # P8 — Mettre à jour le cache de transition pour le prochain cycle

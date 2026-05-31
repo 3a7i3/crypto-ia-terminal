@@ -204,7 +204,25 @@ class PortfolioBrain:
                 metrics=snap.__dict__,
             )
 
-        # ── 7. Direction dominante ────────────────────────────────────────────
+        # ── 7. Position opposée sur même symbole ─────────────────────────────
+        is_long = action.upper() == "BUY"
+        opp_side = "short" if is_long else "long"
+        for p in open_positions:
+            if (
+                getattr(p, "symbol", None) == symbol
+                and getattr(p, "side", None) is not None
+                and p.side.value == opp_side
+            ):
+                return PortfolioVerdict(
+                    allowed=False,
+                    reason=f"Position {opp_side.upper()} existante sur {symbol} — hedge interdit",
+                    size_factor=0.0,
+                    capital_available=0.0,
+                    warnings=warnings,
+                    metrics=snap.__dict__,
+                )
+
+        # ── 8. Direction dominante ────────────────────────────────────────────
         longs = sum(
             1
             for p in open_positions
@@ -215,7 +233,6 @@ class PortfolioBrain:
             for p in open_positions
             if getattr(p, "side", None) and p.side.value == "short"
         )
-        is_long = action.upper() == "BUY"
         if is_long and longs >= self.MAX_SAME_DIRECTION:
             f = 0.5
             factors.append(f)
@@ -225,7 +242,7 @@ class PortfolioBrain:
             factors.append(f)
             warnings.append(f"Direction short sur-représentée: {shorts} positions")
 
-        # ── 8. Fragmentation ──────────────────────────────────────────────────
+        # ── 9. Fragmentation ──────────────────────────────────────────────────
         if size_usd < self.MIN_FRAGMENTATION_USD:
             return PortfolioVerdict(
                 allowed=False,
@@ -472,7 +489,33 @@ class PortfolioBrain:
                 metrics=snap.__dict__,
             )
 
-        # ── 7. Direction dominante ────────────────────────────────────────
+        # ── 7. Position opposée sur même symbole ─────────────────────────────
+        opp_side = "short" if is_long else "long"
+        for p in open_positions:
+            if (
+                getattr(p, "symbol", None) == symbol
+                and getattr(p, "side", None) is not None
+                and p.side.value == opp_side
+            ):
+                reason = f"Position {opp_side.upper()} existante sur {symbol} — hedge interdit"
+                packet.add_reasoning(
+                    actor,
+                    reason,
+                    confidence_impact=-50.0,
+                    category=ReasoningCategory.PORTFOLIO_RISK_BUDGET,
+                    severity=ReasoningSeverity.CRITICAL,
+                )
+                packet.reject(actor, reason)
+                return PortfolioVerdict(
+                    allowed=False,
+                    reason=reason,
+                    size_factor=0.0,
+                    capital_available=0.0,
+                    warnings=warnings,
+                    metrics=snap.__dict__,
+                )
+
+        # ── 8. Direction dominante ────────────────────────────────────────
         longs = sum(
             1
             for p in open_positions
@@ -508,7 +551,7 @@ class PortfolioBrain:
                 severity=ReasoningSeverity.WARNING,
             )
 
-        # ── 8. Fragmentation ──────────────────────────────────────────────
+        # ── 9. Fragmentation ──────────────────────────────────────────────
         if size_usd < self.MIN_FRAGMENTATION_USD:
             reason = f"Taille ${size_usd:.0f} trop petite (min ${self.MIN_FRAGMENTATION_USD:.0f})"
             packet.add_reasoning(
