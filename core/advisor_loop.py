@@ -5022,6 +5022,42 @@ if __name__ == "__main__":
         _env_symbols.split() if _env_symbols.strip() else SYMBOLS_DEFAULT
     )
 
+    # ── MarketUniverseRanker — sélection dynamique des symboles ──────────────
+    if os.getenv("RANKER_ENABLED", "false").lower() == "true":
+        try:
+            from infra.live_exchange_reader import LiveExchangeReader
+            from tools.market_universe_ranker import (
+                BATCH_1,
+                BATCH_2,
+                MarketUniverseRanker,
+            )
+
+            _ranker_exchange = os.getenv("RANKER_EXCHANGE", "kraken")
+            _ranker_top_n = int(os.getenv("RANKER_TOP_N", "6"))
+            _ranker_reader = LiveExchangeReader(exchange_id=_ranker_exchange)
+            _ping = _ranker_reader.ping()
+            if _ping.get("status") == "OK":
+                _ranker = MarketUniverseRanker(reader=_ranker_reader)
+                _ranked = _ranker.rank(BATCH_1 + BATCH_2, top_n=_ranker_top_n)
+                _ranked_syms = [e.symbol for e in _ranked if e.score > 0]
+                if _ranked_syms:
+                    log.info(
+                        "[Ranker] Top %d symboles: %s",
+                        len(_ranked_syms),
+                        ", ".join(_ranked_syms),
+                    )
+                    _symbols_from_env = _ranked_syms
+                else:
+                    log.warning("[Ranker] Aucun symbole valide — fallback défaut")
+            else:
+                log.warning(
+                    "[Ranker] Exchange %s indisponible — fallback défaut",
+                    _ranker_exchange,
+                )
+        except Exception as _ranker_exc:
+            log.warning("[Ranker] Erreur démarrage: %s — fallback défaut", _ranker_exc)
+    # ─────────────────────────────────────────────────────────────────────────
+
     parser = argparse.ArgumentParser(description="Advisor loop multi-symboles")
     parser.add_argument("--interval", type=int, default=300)
     parser.add_argument("--symbols", nargs="+", default=_symbols_from_env)
