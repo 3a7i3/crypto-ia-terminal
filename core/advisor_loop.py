@@ -31,6 +31,17 @@ from advisor_runtime_adapters import AdvisorRuntime, load_advisor_runtime
 
 from observability.json_logger import new_trace_id, set_trace_id
 
+try:
+    from risk.risk_limits import HardLimitBreached, check_hard_limits
+except ImportError:
+
+    class HardLimitBreached(Exception):  # type: ignore[no-redef]
+        pass
+
+    def check_hard_limits(**kwargs) -> None:  # type: ignore[misc]
+        pass
+
+
 # IMPORTANT : créer logs/ avant FileHandler
 os.makedirs("logs", exist_ok=True)
 
@@ -3710,11 +3721,6 @@ def main(
 
                         # 0. Hard limits — filet de sécurité absolu (P5.4)
                         try:
-                            from risk.risk_limits import (
-                                HardLimitBreached,
-                                check_hard_limits,
-                            )
-
                             _open_count = (
                                 len(pos_manager.get_open_positions())
                                 if hasattr(pos_manager, "get_open_positions")
