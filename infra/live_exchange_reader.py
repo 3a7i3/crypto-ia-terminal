@@ -75,11 +75,11 @@ class OrderBook:
 
     @property
     def depth_bid_usd(self) -> float:
-        return sum(p * q for p, q in self.bids[:10])
+        return sum(float(e[0]) * float(e[1]) for e in self.bids[:10])
 
     @property
     def depth_ask_usd(self) -> float:
-        return sum(p * q for p, q in self.asks[:10])
+        return sum(float(e[0]) * float(e[1]) for e in self.asks[:10])
 
 
 class LiveExchangeReader:
