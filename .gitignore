@@ -56,6 +56,11 @@ databases/
 *.swp
 *.bak
 
+# Ignore runtime / generated artifacts
+cache/
+PROJET_MINIATURE.md
+PROJET_MINIATURE_FULL.md
+
 # Ignore frontend build artifacts
 node_modules/
 frontend/node_modules/
