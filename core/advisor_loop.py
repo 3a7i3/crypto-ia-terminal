@@ -3710,7 +3710,10 @@ def main(
 
                         # 0. Hard limits — filet de sécurité absolu (P5.4)
                         try:
-                            from risk_limits import HardLimitBreached, check_hard_limits
+                            from risk.risk_limits import (
+                                HardLimitBreached,
+                                check_hard_limits,
+                            )
 
                             _open_count = (
                                 len(pos_manager.get_open_positions())
