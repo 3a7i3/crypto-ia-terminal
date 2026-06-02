@@ -847,9 +847,10 @@ def analyze_symbol(
                 log.info("[MistakeMemory] Trade bloqué: %s", mm_check.reason)
 
     # ── Portfolio Brain — risque portefeuille global ──────────────────────────
-    # La taille effective inclut le facteur conviction AVANT le check portfolio
-    # pour que portfolio_brain évalue la taille réellement exécutée.
-    _pb_size = order_size_usd * (conviction.size_factor if conviction else 1.0)
+    # Portfolio check sur la taille meta-ajustée (sans conviction) pour être cohérent
+    # avec l'exécution réelle (effective_size ligne ~3571 n'applique pas conviction).
+    # Conviction réduit la taille uniquement dans shadow_execute (eff_size ligne ~1247).
+    _pb_size = order_size_usd
     pb_verdict = None
     if portfolio_brain and signal.actionable:
         with watchdog.measure("portfolio_brain"):
@@ -2790,6 +2791,29 @@ def main(
                     _portfolio_intel.close_position(pos.symbol)
             except Exception:
                 pass
+            # P10-F — KPI Tracker (Win Rate / Sharpe / Max DD)
+            try:
+                if _p10_kpi is not None:
+                    from capital_deployment.phase_kpi_tracker import TradeRecord as _TR
+
+                    _p10_kpi.record_trade(
+                        _TR(
+                            ts=time.time(),
+                            pnl=getattr(pos, "pnl_usd", pos.pnl_pct * pos.size_usd),
+                            symbol=pos.symbol,
+                            side=(
+                                "buy"
+                                if getattr(pos, "side", None)
+                                and pos.side.value == "long"
+                                else "sell"
+                            ),
+                            entry_price=pos.entry_price,
+                            exit_price=getattr(pos, "current_price", 0.0),
+                            signed=True,
+                        )
+                    )
+            except Exception:
+                pass
             # MetaLearner — accumule PnL par régime, apprend tous les 5 trades
             try:
                 buf = _meta_pnl_buffer.setdefault(pos_regime, [])
@@ -4288,7 +4312,12 @@ def main(
                     )
                     # V2 — scores acceptés (signaux ayant passé le gate)
                     for _r in results:
-                        if _r.get("trade_allowed") and _r.get("signal") is not None:
+                        _gate_r = _r.get("gate")
+                        if (
+                            _gate_r is not None
+                            and getattr(_gate_r, "allowed", False)
+                            and _r.get("signal") is not None
+                        ):
                             try:
                                 _stability_monitor.on_score_accepted(
                                     int(_r["signal"].score)
