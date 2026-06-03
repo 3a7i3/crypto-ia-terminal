@@ -1578,22 +1578,23 @@ def analyze_symbol(
                 if shadow_trade:
                     log.info("[SHADOW] %s", shadow_trade.summary())
 
-                # VirtualPortfolio — ouvrir position simulée si $100 actif
+                # MexcSimulator — ordre MARKET simulé sur compte miroir MEXC
                 if _virtual_portfolio is not None and prix > 0:
                     _tp = personality.tp_pct if personality else 0.04
                     _sl = personality.sl_pct if personality else 0.02
                     _vp_side = (
-                        signal.signal.lower() if hasattr(signal, "signal") else "buy"
+                        signal.signal.upper() if hasattr(signal, "signal") else "BUY"
                     )
                     _vp_persona = personality.name if personality else "unknown"
-                    _virtual_portfolio.open_position(
+                    _virtual_portfolio.place_market_order(
                         symbol=signal.symbol,
                         side=_vp_side,
-                        price=prix,
+                        qty_usd=0.0,  # auto: 15% du capital
                         tp_pct=_tp,
                         sl_pct=_sl,
                         score=int(signal.score) if hasattr(signal, "score") else 0,
                         personality=_vp_persona,
+                        current_price=float(prix),
                     )
 
     persona_name = personality.name if personality else "N/A"
@@ -3558,24 +3559,22 @@ def main(
         _shadow_s3 = _ShadowTrackerCls()
         log.info("[S3] ShadowTracker initialisé")
 
-    # VirtualPortfolio — portefeuille $100 simulation (actif si V9_ADVISOR_ONLY=true)
+    # MexcSimulator — compte miroir MEXC (actif si V9_ADVISOR_ONLY=true)
     if advisor_only:
         try:
             from infra.mexc_reader import MexcReader as _MexcReaderCls
-            from paper_trading.virtual_portfolio import VirtualPortfolio as _VPCls
+            from paper_trading.mexc_simulator import MexcSimulator as _SimCls
 
-            _vp_capital = float(os.getenv("VIRTUAL_CAPITAL_USD", "100"))
-            _mexc_reader_vp = _MexcReaderCls()
+            _mexc_reader_sim = _MexcReaderCls()
             _vp_tg_fn = _telegram_alert.info if _telegram_alert else None
-            _virtual_portfolio = _VPCls(
-                mexc_reader=_mexc_reader_vp,
+            _virtual_portfolio = _SimCls(
+                mexc_reader=_mexc_reader_sim,
                 telegram_fn=_vp_tg_fn,
-                initial_capital=_vp_capital,
             )
             _virtual_portfolio.start()
-            log.info("[VP] Portefeuille virtuel $%.0f initialise", _vp_capital)
+            log.info("[SIM] MexcSimulator initialise")
         except Exception as _vp_exc:
-            log.warning("[VP] Non disponible: %s", _vp_exc)
+            log.warning("[SIM] Non disponible: %s", _vp_exc)
 
     # P6 — Adaptive Core
     _ate: Any = _profile_bootstrap_step(
