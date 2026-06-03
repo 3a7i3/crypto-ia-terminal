@@ -3566,9 +3566,10 @@ def main(
 
             _vp_capital = float(os.getenv("VIRTUAL_CAPITAL_USD", "100"))
             _mexc_reader_vp = _MexcReaderCls()
+            _vp_tg_fn = _telegram_alert.info if _telegram_alert else None
             _virtual_portfolio = _VPCls(
                 mexc_reader=_mexc_reader_vp,
-                telegram_fn=_telegram_alert.send if _telegram_alert else None,
+                telegram_fn=_vp_tg_fn,
                 initial_capital=_vp_capital,
             )
             _virtual_portfolio.start()
