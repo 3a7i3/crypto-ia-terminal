@@ -230,11 +230,14 @@ class MexcSimulator:
 
         _log.info("[SIM] Démarré — capital=$%.2f", capital)
         self._notify(
-            f"[MEXC SIMULATION] Compte miroir actif\n"
-            f"Capital : ${capital:.2f} USDT (solde reel MEXC)\n"
-            f"Ordres  : MARKET | LIMIT | STOP_LIMIT\n"
-            f"Donnees : MEXC temps reel\n"
-            f"Mode    : SIMULATION - aucun ordre reel"
+            f"MEXC SIM — Compte actif\n"
+            f"━━━━━━━━━━━━━━━━━━━━━\n"
+            f"Capital   : ${capital:.2f} USDT\n"
+            f"Source    : Solde reel MEXC\n"
+            f"Ordres    : MARKET | LIMIT | STOP_LIMIT\n"
+            f"Donnees   : MEXC temps reel\n"
+            f"Mode      : SIMULATION — aucun ordre reel\n"
+            f"Objectif  : 7 jours validation burn-in"
         )
 
     def _read_mexc_balance(self) -> float:
@@ -418,20 +421,20 @@ class MexcSimulator:
 
         wins = sum(1 for p in self._closed if p.pnl_usd >= 0)
         total = len(self._closed)
-        wr = f"{wins/total*100:.0f}%" if total else "N/A"
+        wr = f"{wins/total*100:.0f}%" if total else "—"
+        arrow = "BUY" if order.side == OrderSide.BUY else "SELL"
         self._notify(
-            f"[MEXC SIM] ORDRE {order.side.value} EXECUTE\n"
-            f"  Symbole   : {order.symbol}\n"
-            f"  Type      : MARKET\n"
-            f"  Prix fill : ${fill:.5f}\n"
-            f"  Slippage  : {_SLIPPAGE*100:.2f}%\n"
-            f"  Taille    : ${size:.2f} USDT\n"
-            f"  Fee       : ${fee:.4f}\n"
-            f"  TP        : ${tp:.5f} (+{order.tp_pct:.1%})\n"
-            f"  SL        : ${sl:.5f} (-{order.sl_pct:.1%})\n"
-            f"  Score     : {order.score}/100 | {order.personality}\n"
-            f"  Capital   : ${self._capital:.2f} USDT\n"
-            f"  Win Rate  : {wr} ({total} trades)"
+            f"MEXC SIM — ORDRE {arrow}\n"
+            f"━━━━━━━━━━━━━━━━━━━━━\n"
+            f"Symbole  : {order.symbol}\n"
+            f"Prix     : ${fill:.4g}\n"
+            f"Taille   : ${size:.2f} USDT\n"
+            f"TP       : ${tp:.4g}  (+{order.tp_pct:.1%})\n"
+            f"SL       : ${sl:.4g}  (-{order.sl_pct:.1%})\n"
+            f"Score    : {order.score}/100 | {order.personality}\n"
+            f"Fee      : ${fee:.3f}\n"
+            f"Capital  : ${self._capital:.2f} USDT\n"
+            f"WR       : {wr}  ({total} trades fermes)"
         )
         _log.info(
             "[SIM] FILL %s %s fill=%.5f size=$%.2f TP=%.5f SL=%.5f",
@@ -545,20 +548,22 @@ class MexcSimulator:
         global_pnl = (
             (self._capital - self._initial_capital) / self._initial_capital * 100
         )
-
-        self._notify(
-            f"[MEXC SIM] POSITION FERMEE — {reason}\n"
-            f"  Symbole : {symbol}\n"
-            f"  Side    : {pos.side.value}\n"
-            f"  Entry   : ${pos.entry_price:.5f}\n"
-            f"  Exit    : ${fill:.5f}\n"
-            f"  P&L     : {sign}${pnl_usd:.4f} ({sign}{pnl_pct:.2f}%)\n"
-            f"  Capital : ${self._capital:.2f} USDT\n"
-            f"  Global  : {global_pnl:+.2f}% depuis debut\n"
-            f"  Record  : W={wins} L={losses} "
-            f"WR={wins/(wins+losses)*100:.0f}%"
+        wr_str = (
+            f"{wins/(wins+losses)*100:.0f}% (W={wins} L={losses})"
             if (wins + losses) > 0
-            else ""
+            else "—"
+        )
+        icon = "TP atteint" if reason == "TP" else "SL touche"
+        self._notify(
+            f"MEXC SIM — {icon}\n"
+            f"━━━━━━━━━━━━━━━━━━━━━\n"
+            f"Symbole  : {symbol}  {pos.side.value}\n"
+            f"Entry    : ${pos.entry_price:.4g}\n"
+            f"Exit     : ${fill:.4g}\n"
+            f"P&L      : {sign}${pnl_usd:.4f}  ({sign}{pnl_pct:.2f}%)\n"
+            f"Capital  : ${self._capital:.2f} USDT\n"
+            f"Global   : {global_pnl:+.2f}%\n"
+            f"Win Rate : {wr_str}"
         )
         _log.info(
             "[SIM] CLOSE %s %s exit=%.5f pnl=%+.4f$ (%+.2f%%) %s",
@@ -590,25 +595,26 @@ class MexcSimulator:
         days = self._perf.days_running()
 
         lines = [
-            "[MEXC SIM] RAPPORT DE PERFORMANCE",
-            f"  Duree       : {days:.1f} jour(s)",
-            f"  Capital ini : ${self._initial_capital:.2f} USDT",
-            f"  Capital act : ${self._capital:.2f} USDT",
-            f"  P&L total   : {pnl_pct:+.2f}% (${total_pnl:+.4f})",
-            f"  Sharpe      : {sharpe:.2f}",
-            f"  Max DD      : {dd:.2f}%",
-            f"  Trades      : {n_closed} fermes | {n_open} ouverts",
-            f"  Win Rate    : {wr:.1f}% (W={wins} L={n_closed-wins})",
+            "MEXC SIM — Rapport performance",
+            "━━━━━━━━━━━━━━━━━━━━━",
+            f"Duree    : J{days:.1f} / 7",
+            f"Capital  : ${self._initial_capital:.2f} -> ${self._capital:.2f} USDT",
+            f"P&L      : {pnl_pct:+.2f}%  (${total_pnl:+.4f})",
+            f"Sharpe   : {sharpe:.2f}",
+            f"Max DD   : {dd:.2f}%",
+            f"Trades   : {n_closed} fermes | {n_open} ouverts",
+            f"Win Rate : {wr:.0f}%  (W={wins} L={n_closed-wins})",
         ]
         if self._positions:
-            lines.append("  Positions ouvertes :")
+            lines.append("Positions actives :")
             for sym, p in self._positions.items():
                 price = self._fetch_price(sym)
                 live = p.live_pnl_pct(price) if price > 0 else 0.0
+                sign = "+" if live >= 0 else ""
                 lines.append(
-                    f"    {sym} {p.side.value} "
-                    f"entry=${p.entry_price:.4f} "
-                    f"live={live:+.2f}%"
+                    f"  {sym} {p.side.value}"
+                    f" entry=${p.entry_price:.4g}"
+                    f" live={sign}{live:.2f}%"
                 )
         return "\n".join(lines)
 
