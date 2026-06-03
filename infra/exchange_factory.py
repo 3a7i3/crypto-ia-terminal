@@ -81,6 +81,16 @@ _EXCHANGE_OPTIONS: dict[str, dict[str, Any]] = {
             "defaultType": "spot",
         }
     },
+    "mexc": {
+        "options": {
+            "defaultType": "spot",
+        }
+    },
+    "mexc_futures": {
+        "options": {
+            "defaultType": "swap",
+        }
+    },
 }
 
 
