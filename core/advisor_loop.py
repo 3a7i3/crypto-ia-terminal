@@ -263,6 +263,7 @@ except Exception:
 
 _telegram_alert: Any = None
 _shadow_s3: Any = None
+_virtual_portfolio: Any = None
 
 SYMBOLS_DEFAULT = [
     # Core majors — leaders structurels, capturent le régime global
@@ -1576,6 +1577,24 @@ def analyze_symbol(
                 )
                 if shadow_trade:
                     log.info("[SHADOW] %s", shadow_trade.summary())
+
+                # VirtualPortfolio — ouvrir position simulée si $100 actif
+                if _virtual_portfolio is not None and prix > 0:
+                    _tp = personality.tp_pct if personality else 0.04
+                    _sl = personality.sl_pct if personality else 0.02
+                    _vp_side = (
+                        signal.signal.lower() if hasattr(signal, "signal") else "buy"
+                    )
+                    _vp_persona = personality.name if personality else "unknown"
+                    _virtual_portfolio.open_position(
+                        symbol=signal.symbol,
+                        side=_vp_side,
+                        price=prix,
+                        tp_pct=_tp,
+                        sl_pct=_sl,
+                        score=int(signal.score) if hasattr(signal, "score") else 0,
+                        personality=_vp_persona,
+                    )
 
     persona_name = personality.name if personality else "N/A"
     conv_str = (
@@ -3531,13 +3550,32 @@ def main(
         log.warning("[P9] Composants indisponibles: %s", _p9_boot_exc)
 
     # S3 — Telegram alerts + shadow refusals tracker
-    global _telegram_alert, _shadow_s3
+    global _telegram_alert, _shadow_s3, _virtual_portfolio
     if _S3_TELEGRAM_AVAILABLE:
         _telegram_alert = _TelegramAlertCls()
         log.info("[S3] TelegramAlert initialisé")
     if _S3_SHADOW_AVAILABLE:
         _shadow_s3 = _ShadowTrackerCls()
         log.info("[S3] ShadowTracker initialisé")
+
+    # VirtualPortfolio — portefeuille $100 simulation (actif si V9_ADVISOR_ONLY=true)
+    _virtual_portfolio: Any = None
+    if advisor_only:
+        try:
+            from infra.mexc_reader import MexcReader as _MexcReaderCls
+            from paper_trading.virtual_portfolio import VirtualPortfolio as _VPCls
+
+            _vp_capital = float(os.getenv("VIRTUAL_CAPITAL_USD", "100"))
+            _mexc_reader_vp = _MexcReaderCls()
+            _virtual_portfolio = _VPCls(
+                mexc_reader=_mexc_reader_vp,
+                telegram_fn=_telegram_alert.send if _telegram_alert else None,
+                initial_capital=_vp_capital,
+            )
+            _virtual_portfolio.start()
+            log.info("[VP] Portefeuille virtuel $%.0f initialise", _vp_capital)
+        except Exception as _vp_exc:
+            log.warning("[VP] Non disponible: %s", _vp_exc)
 
     # P6 — Adaptive Core
     _ate: Any = _profile_bootstrap_step(
