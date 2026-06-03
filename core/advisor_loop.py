@@ -3559,7 +3559,6 @@ def main(
         log.info("[S3] ShadowTracker initialisé")
 
     # VirtualPortfolio — portefeuille $100 simulation (actif si V9_ADVISOR_ONLY=true)
-    _virtual_portfolio: Any = None
     if advisor_only:
         try:
             from infra.mexc_reader import MexcReader as _MexcReaderCls
