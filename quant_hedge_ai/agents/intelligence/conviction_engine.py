@@ -278,11 +278,13 @@ class ConvictionEngine:
           - features["mtf_strength"]  → bonus force signal
           - regime           → adéquation régime (dim 3)
 
-        Écrit dans le packet :
+                Écrit dans le packet :
           - conviction       (core.ConvictionLevel)
           - reasoning entries pour chaque dimension significative
-          - metadata["conviction_size_factor"]
-            (advisory, lecture seule pour order_sizer)
+                    - features["conviction_size_factor"]
+                        (advisory, lecture seule pour order_sizer)
+                    - metadata["conviction_size_factor"]
+                        (legacy mirror, compat descendante)
           - metadata["conviction_dimensions"]  (détail des 5 scores)
 
         RÈGLE ABSOLUE : jamais de reject() ni veto_by() ici.
@@ -430,6 +432,7 @@ class ConvictionEngine:
 
         # size_factor : opinion advisory, décision finale dans order_sizer
         size_factor = _SIZE_FACTORS[local_level]
+        packet.features["conviction_size_factor"] = float(size_factor)
         packet.metadata["conviction_size_factor"] = size_factor
         packet.metadata["conviction_score"] = round(composite, 1)
         packet.metadata["conviction_level_local"] = local_level.value

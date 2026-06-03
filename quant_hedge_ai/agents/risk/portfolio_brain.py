@@ -299,10 +299,11 @@ class PortfolioBrain:
         SOUVERAINETÉ : produit la transition RISK_EVALUATED → APPROVED,
         ou appelle packet.reject() si le portefeuille ne peut absorber la position.
 
-        Écrit dans packet.features :
-          pb_exposure_pct, pb_symbol_pct, pb_corr_risk, pb_leverage_weighted
-        Écrit dans packet.metadata :
-          pb_size_factor, pb_capital_available, pb_warnings
+                Écrit dans packet.features :
+                    pb_exposure_pct, pb_symbol_pct, pb_corr_risk, pb_leverage_weighted,
+                    pb_size_factor, pb_capital_available
+                Écrit dans packet.metadata :
+                    pb_warnings
 
         Args:
             packet          : DecisionPacket en état RISK_EVALUATED
@@ -580,8 +581,8 @@ class PortfolioBrain:
             0.0, self._capital * self.MAX_TOTAL_EXPOSURE_PCT - snap.total_exposure_usd
         )
 
-        packet.metadata["pb_size_factor"] = round(final_factor, 3)
-        packet.metadata["pb_capital_available"] = round(capital_avail, 2)
+        packet.features["pb_size_factor"] = round(final_factor, 3)
+        packet.features["pb_capital_available"] = round(capital_avail, 2)
         packet.metadata["pb_warnings"] = warnings
 
         if warnings:

@@ -5,6 +5,10 @@ Lance avec :  streamlit run tune.py
 
 Modifie databases/runtime_config.json que advisor_loop.py recharge
 automatiquement à chaque cycle — aucun redémarrage nécessaire.
+
+GOUVERNANCE : GATE_MIN_SCORE_OVERRIDE et FORCE_TEST_EXECUTION sont
+des variables de gouvernance verrouillées. Elles ne peuvent pas être
+modifiées via ce panneau. Un redémarrage du processus est requis.
 """
 
 from __future__ import annotations
@@ -35,8 +39,6 @@ h1, h2, h3 { color: #00e0ff; }
 CONFIG_PATH = Path("databases/runtime_config.json")
 
 DEFAULTS = {
-    "GATE_MIN_SCORE_OVERRIDE": 0,
-    "FORCE_TEST_EXECUTION": False,
     "EXEC_MAX_ORDER_USD": 50,
     "SIGNAL_MIN_SCORE": 70,
     "EO_DD_VETO": 0.10,
@@ -82,28 +84,16 @@ if snap_path.exists():
         pass
 
 st.divider()
-
-# ── Contrôles ─────────────────────────────────────────────────────────────────
-st.subheader("Mode test")
-
-col_a, col_b = st.columns(2)
-with col_a:
-    force_test = st.toggle(
-        "FORCE_TEST_EXECUTION",
-        value=bool(cfg["FORCE_TEST_EXECUTION"]),
-        help="Bypass toutes les couches de décision — envoie des ordres même avec signal faible.",
-    )
-with col_b:
-    gate_override = st.slider(
-        "GATE_MIN_SCORE_OVERRIDE",
-        min_value=0,
-        max_value=100,
-        value=int(cfg["GATE_MIN_SCORE_OVERRIDE"]),
-        step=5,
-        help="Score minimum pour forcer un trade (0 = désactivé). Actif seulement si FORCE_TEST_EXECUTION=true.",
-    )
+st.info(
+    "**Variables de gouvernance verrouillées** — `GATE_MIN_SCORE_OVERRIDE` et "
+    "`FORCE_TEST_EXECUTION` ne sont pas reconfigurables à chaud. "
+    "Elles nécessitent un redémarrage du processus et ne doivent jamais être "
+    "activées en production.",
+    icon="🔒",
+)
 
 st.divider()
+# ── Contrôles ─────────────────────────────────────────────────────────────────
 st.subheader("Sizing & signal")
 
 col_c, col_d = st.columns(2)
@@ -165,8 +155,6 @@ st.divider()
 
 # ── Sauvegarde ────────────────────────────────────────────────────────────────
 new_cfg = {
-    "GATE_MIN_SCORE_OVERRIDE": gate_override,
-    "FORCE_TEST_EXECUTION": force_test,
     "EXEC_MAX_ORDER_USD": max_order,
     "SIGNAL_MIN_SCORE": signal_min,
     "EO_DD_VETO": round(eo_veto / 100, 3),

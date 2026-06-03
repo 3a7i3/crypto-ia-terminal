@@ -4,6 +4,13 @@ Tests pour PortfolioBrain.check_new_trade() — exposition, concentration, régi
 
 from __future__ import annotations
 
+from core.decision_packet import (
+    ConvictionLevel,
+    DecisionPacket,
+    DecisionSide,
+    DecisionState,
+    MarketRegime,
+)
 from quant_hedge_ai.agents.execution.position_manager import Position, PositionSide
 from quant_hedge_ai.agents.risk.portfolio_brain import PortfolioBrain, PortfolioVerdict
 
@@ -166,3 +173,24 @@ def test_opposite_on_different_symbol_is_allowed():
     existing = [_pos("SOL/USDT", 55.0, side="short")]
     verdict = brain.check_new_trade("XRP/USDT", "BUY", 55.0, "sideways", existing)
     assert verdict.allowed is True
+
+
+def test_approve_packet_writes_size_factors_to_features_only():
+    brain = _brain(capital=10_000.0)
+    packet = DecisionPacket(
+        symbol="BTC/USDT",
+        side=DecisionSide.LONG,
+        confidence=82.0,
+        regime=MarketRegime.TREND_BULL,
+        conviction=ConvictionLevel.HIGH,
+        lifecycle_state=DecisionState.RISK_EVALUATED,
+        metadata={"mtf_confirmed": True},
+    )
+
+    verdict = brain.approve_packet(packet, open_positions=[], order_size_usd=100.0)
+
+    assert verdict.allowed is True
+    assert "pb_size_factor" in packet.features
+    assert "pb_capital_available" in packet.features
+    assert "pb_warnings" in packet.metadata
+    assert "pb_size_factor" not in packet.metadata

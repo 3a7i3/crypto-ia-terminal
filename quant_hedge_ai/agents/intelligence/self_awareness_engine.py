@@ -110,6 +110,9 @@ class SelfAwarenessEngine:
 
     # Halt
     HALT_DURATION_L3 = float(os.getenv("SA_HALT_MINUTES", "30"))  # minutes niveau 3
+    CRITICAL_HALT_SECONDS = float(
+        os.getenv("SA_CRITICAL_HALT_SECONDS", "86400")
+    )  # 24h par défaut
     # Après N halts DANGER sans aucun trade → rétrogradation automatique WARNING
     FREEZE_OVERRIDE_HALTS = int(os.getenv("SA_FREEZE_HALTS", "3"))
 
@@ -253,6 +256,39 @@ class SelfAwarenessEngine:
         _log.info("[SelfAwareness] Reset manuel — retour à OK")
         self._state = AwarenessState()
         self._log_event("manual_reset", {})
+
+    def operator_resume(self, full_reset: bool = False) -> None:
+        """
+        Reprise explicite après /RESUME opérateur.
+
+        - full_reset=True  : reset complet (historique conservé, état remis à OK)
+        - full_reset=False : lève uniquement le halt et rétrograde en WARNING
+                             pour repartir en mode prudent.
+        """
+        if full_reset:
+            self.reset()
+            self._log_event("operator_resume", {"mode": "full_reset"})
+            return
+
+        was_halted = self._state.halt_until > time.time()
+        self._state.halt_until = 0.0
+        if self._state.level >= DangerLevel.DANGER:
+            self._state.level = DangerLevel.WARNING
+            self._state.size_factor = 0.25
+            self._state.safe_mode = True
+        self._halts_without_trade = 0
+        self._log_event(
+            "operator_resume",
+            {
+                "mode": "controlled",
+                "was_halted": was_halted,
+                "new_level": self._state.level.name,
+            },
+        )
+        _log.warning(
+            "[SelfAwareness] RESUME opérateur — halt levé, niveau=%s",
+            self._state.level.name,
+        )
 
     def state(self) -> AwarenessState:
         return self._state
@@ -569,8 +605,11 @@ class SelfAwarenessEngine:
         elif level == DangerLevel.CRITICAL:
             self._state.size_factor = 0.0
             self._state.safe_mode = True
-            self._state.halt_until = time.time() + 86400  # 24h
-            _log.critical("[SelfAwareness] CRITICAL — kill switch déclenché")
+            self._state.halt_until = time.time() + self.CRITICAL_HALT_SECONDS
+            _log.critical(
+                "[SelfAwareness] CRITICAL — kill switch déclenché (halt %.0fs)",
+                self.CRITICAL_HALT_SECONDS,
+            )
             self._send_telegram_critical(drifts)
 
     def _send_telegram_critical(self, drifts: list[DriftSignal]) -> None:

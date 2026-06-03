@@ -17,6 +17,8 @@ Règles invariantes :
 
 from __future__ import annotations
 
+import hashlib
+import json
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -142,6 +144,26 @@ class DecisionState(str, Enum):
     VETOED = "VETOED"
 
 
+class PacketEventCategory(str, Enum):
+    """
+    Catégorie sémantique d'un DecisionPacket (DPSS).
+
+    Sépare trois espaces décisionnels pour éviter la contamination des métriques :
+
+        TRADE      = décision de trading (signal → pipeline → exécution ou rejet)
+        GOVERNANCE = rejet pur d'autorité sans signal de trading (G1-blocked, ATC)
+        SYSTEM     = événement non-décisionnel (exception ENL, erreur système)
+
+    Par défaut : TRADE (backward-compatible).
+    Les métriques et dashboards DOIVENT filtrer sur event_category == TRADE
+    pour ne pas diluer les KPIs décisionnels.
+    """
+
+    TRADE = "TRADE"
+    GOVERNANCE = "GOVERNANCE"
+    SYSTEM = "SYSTEM"
+
+
 # États terminaux exceptionnels — mort prématurée du packet.
 # Accessibles depuis n'importe quel état non-terminal : veto, expiry, panne,
 # annulation peuvent survenir à tout moment dans le lifecycle.
@@ -182,6 +204,39 @@ VALID_TRANSITIONS: Dict[DecisionState, List[DecisionState]] = {
 }
 del _DS
 
+# STI — contraintes croisées : catégorie sémantique × état du cycle de vie.
+# Un état listé ici est STRUCTURELLEMENT INTERDIT pour la catégorie donnée,
+# quelle que soit la validité graphique. Appliqué dans transition_to() (Garde 3).
+#
+# TRADE   : aucune restriction supplémentaire (cycle de vie complet autorisé).
+# SYSTEM  : événements d'infrastructure (exceptions, ENL) — ne peuvent jamais
+#           atteindre les états d'exécution ou d'approbation du capital.
+# GOVERNANCE : décisions d'autorité pure — ne peuvent pas recevoir d'approbation
+#              de trading ni accéder au pipeline d'exécution.
+CATEGORY_BLOCKED_STATES: dict["PacketEventCategory", frozenset["DecisionState"]] = {
+    PacketEventCategory.SYSTEM: frozenset(
+        {
+            DecisionState.APPROVED,
+            DecisionState.EXECUTION_PENDING,
+            DecisionState.EXECUTED,
+            DecisionState.MONITORED,
+            DecisionState.CLOSED,
+            DecisionState.POSTMORTEM_ANALYZED,
+        }
+    ),
+    PacketEventCategory.GOVERNANCE: frozenset(
+        {
+            DecisionState.APPROVED,
+            DecisionState.EXECUTION_PENDING,
+            DecisionState.EXECUTED,
+            DecisionState.MONITORED,
+            DecisionState.CLOSED,
+            DecisionState.POSTMORTEM_ANALYZED,
+        }
+    ),
+    # PacketEventCategory.TRADE : aucune entrée → pas de restriction
+}
+
 
 # ---------------------------------------------------------------------------
 # Structures immuables (slots=True pour performance et sécurité)
@@ -197,6 +252,8 @@ class StateTransition:
     duration_ms       : temps passé dans from_state avant cette transition
     confidence_before : confiance du packet au moment de quitter from_state
     confidence_after  : confiance après la transition (post add_reasoning)
+    previous_hash     : SHA-256 de la transition précédente (chaîne de hachage)
+    current_hash      : SHA-256 de cette transition (inclut previous_hash)
     """
 
     from_state: str
@@ -207,6 +264,35 @@ class StateTransition:
     duration_ms: int = 0
     confidence_before: float = 0.0
     confidence_after: float = 0.0
+    previous_hash: str = ""
+    current_hash: str = ""
+
+    @staticmethod
+    def compute_hash(
+        from_state: str,
+        to_state: str,
+        timestamp_iso: str,
+        actor: str,
+        reason: str,
+        previous_hash: str,
+    ) -> str:
+        """
+        SHA-256 déterministe de cette transition.
+        Tout changement de contenu ou de chaîne produit un hash différent.
+        """
+        canonical = json.dumps(
+            {
+                "from_state": from_state,
+                "to_state": to_state,
+                "timestamp": timestamp_iso,
+                "actor": actor,
+                "reason": reason,
+                "previous_hash": previous_hash,
+            },
+            sort_keys=True,
+            ensure_ascii=True,
+        )
+        return hashlib.sha256(canonical.encode()).hexdigest()
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -218,6 +304,8 @@ class StateTransition:
             "duration_ms": self.duration_ms,
             "confidence_before": self.confidence_before,
             "confidence_after": self.confidence_after,
+            "previous_hash": self.previous_hash,
+            "current_hash": self.current_hash,
         }
 
     @classmethod
@@ -231,6 +319,8 @@ class StateTransition:
             duration_ms=int(d.get("duration_ms", 0)),
             confidence_before=float(d.get("confidence_before", 0.0)),
             confidence_after=float(d.get("confidence_after", 0.0)),
+            previous_hash=d.get("previous_hash", ""),
+            current_hash=d.get("current_hash", ""),
         )
 
 
@@ -316,9 +406,16 @@ class DecisionPacket:
     symbol: str = ""
     timeframe: str = "1h"
 
+    # --- Catégorie sémantique (DPSS) ----------------------------------------
+    # Défaut TRADE pour backward-compat. Mettre SYSTEM pour les records ENL-2,
+    # GOVERNANCE pour les rejects d'autorité hors signal.
+    event_category: PacketEventCategory = PacketEventCategory.TRADE
+
     # --- Signal de base ---------------------------------------------------
     side: DecisionSide = DecisionSide.FLAT
-    confidence: float = 0.0  # 0–100, modifié via add_reasoning()
+    confidence: float = 0.0  # 0–100, compat: reflète adjusted_confidence
+    confidence_raw: Optional[float] = None  # score brut LSE, immuable
+    adjusted_confidence: Optional[float] = None  # score pipeline après reasoning
     expected_value: float = 0.0  # ratio risque/rendement attendu
 
     # --- Contexte de marché -----------------------------------------------
@@ -365,6 +462,14 @@ class DecisionPacket:
     # Machine d'état — seul point de mutation d'état autorisé
     # ---------------------------------------------------------------------------
 
+    def __post_init__(self) -> None:
+        base = max(0.0, min(100.0, float(self.confidence)))
+        if self.confidence_raw is None:
+            self.confidence_raw = base
+        if self.adjusted_confidence is None:
+            self.adjusted_confidence = base
+        self.confidence = max(0.0, min(100.0, float(self.adjusted_confidence)))
+
     def transition_to(
         self,
         new_state: DecisionState,
@@ -390,18 +495,52 @@ class DecisionPacket:
                 f"Demandé par {actor} vers {new_state.value}."
             )
 
-        # Garde 2 : transition non-terminale hors graphe.
-        # Seuls les terminaux exceptionnels contournent le graphe — pas
-        # POSTMORTEM_ANALYZED qui doit passer par CLOSED comme tout autre état.
-        if new_state not in EXCEPTIONAL_TERMINAL_STATES:
-            allowed = VALID_TRANSITIONS.get(current, [])
-            if new_state not in allowed:
+        # Garde 2 : transition hors graphe canonique.
+        # S4 — consulte lifecycle.ALLOWED_TRANSITIONS comme source unique de vérité.
+        # Le graphe complet encode explicitement nominal + terminaux exceptionnels.
+        try:
+            from core.lifecycle import is_transition_allowed as _ita
+            from core.lifecycle import successors as _succs
+
+            _use_lifecycle = True
+        except ImportError:
+            _use_lifecycle = False
+
+        if _use_lifecycle:
+            if not _ita(current, new_state):
+                _allowed_set = _succs(current)
                 raise RuntimeError(
                     f"Transition invalide : {current.value} → {new_state.value} "
-                    f"hors du graphe. Autorisées depuis {current.value} : "
-                    f"{[s.value for s in allowed]}. "
+                    f"hors du graphe (lifecycle.ALLOWED_TRANSITIONS). "
+                    f"Autorisées depuis {current.value} : "
+                    f"{sorted(s.value for s in _allowed_set)}. "
                     f"Demandé par {actor}."
                 )
+        else:
+            # Fallback : logique locale si lifecycle.py non importable (bootstrap)
+            if new_state not in EXCEPTIONAL_TERMINAL_STATES:
+                allowed = VALID_TRANSITIONS.get(current, [])
+                if new_state not in allowed:
+                    raise RuntimeError(
+                        f"Transition invalide : {current.value} → {new_state.value} "
+                        f"hors du graphe. Autorisées depuis {current.value} : "
+                        f"{[s.value for s in allowed]}. "
+                        f"Demandé par {actor}."
+                    )
+
+        # Garde 3 — STI : contraintes croisées catégorie × état (DPSS × lifecycle).
+        # Un packet SYSTEM ou GOVERNANCE est structurellement incompatible
+        # avec les états d'exécution — même si le graphe le permettrait.
+        _sti_blocked = CATEGORY_BLOCKED_STATES.get(self.event_category, frozenset())
+        if new_state in _sti_blocked:
+            raise RuntimeError(
+                f"STI violation : packet {self.packet_id!r} "
+                f"({self.event_category.value}) ne peut pas transitionner "
+                f"vers {new_state.value}. "
+                f"Catégorie {self.event_category.value} est structurellement "
+                f"incompatible avec les états d'exécution/approbation. "
+                f"Demandé par {actor!r}."
+            )
 
         now = datetime.utcnow()
         duration_ms = (
@@ -414,6 +553,18 @@ class DecisionPacket:
         confidence_before = (
             self.state_history[-1].confidence_after if self.state_history else 0.0
         )
+        # Programme B — Hash chain : chaque transition est liée à la précédente.
+        # previous_hash = hash de la transition n-1, ou "" pour la première.
+        _prev_hash = self.state_history[-1].current_hash if self.state_history else ""
+        _now_iso = now.isoformat()
+        _cur_hash = StateTransition.compute_hash(
+            from_state=current.value,
+            to_state=new_state.value,
+            timestamp_iso=_now_iso,
+            actor=actor,
+            reason=reason,
+            previous_hash=_prev_hash,
+        )
         transition = StateTransition(
             from_state=current.value,
             to_state=new_state.value,
@@ -423,6 +574,8 @@ class DecisionPacket:
             duration_ms=duration_ms,
             confidence_before=confidence_before,
             confidence_after=self.confidence,
+            previous_hash=_prev_hash,
+            current_hash=_cur_hash,
         )
         self.state_history.append(transition)
         self.lifecycle_state = new_state
@@ -437,6 +590,30 @@ class DecisionPacket:
             confidence=self.confidence,
             duration_ms=duration_ms,
         )
+        # S1 — Métriques constitutionnelles : chaque transition est comptabilisée.
+        # Pas de dépendance dure — metrics_bus optionnel (pas disponible en test minimal).
+        try:
+            from observability.metrics_bus import (
+                metrics_bus as _mb,  # type: ignore[attr-defined]
+            )
+
+            _mb.increment("decision_packet", f"transition.{new_state.value.lower()}")
+            _mb.increment("decision_packet", "transitions_total")
+            if new_state.value in (
+                "REJECTED",
+                "VETOED",
+                "FAILED",
+                "CANCELLED",
+                "EXPIRED",
+            ):
+                _mb.increment("decision_packet", f"terminal.{new_state.value.lower()}")
+                _mb.increment("decision_packet", f"rejected_by.{actor.lower()[:32]}")
+            if duration_ms > 0:
+                _mb.record(
+                    "decision_packet", "transition_duration_ms", float(duration_ms)
+                )
+        except Exception:
+            pass
 
     # ---------------------------------------------------------------------------
     # Méthodes d'enrichissement — appelées par chaque couche
@@ -472,8 +649,16 @@ class DecisionPacket:
                 severity=severity,
             )
         )
+        if self.adjusted_confidence is None:
+            self.adjusted_confidence = max(0.0, min(100.0, float(self.confidence)))
+        if self.confidence_raw is None:
+            self.confidence_raw = max(0.0, min(100.0, float(self.confidence)))
         if confidence_impact != 0.0:
-            self.confidence = max(0.0, min(100.0, self.confidence + confidence_impact))
+            self.adjusted_confidence = max(
+                0.0,
+                min(100.0, float(self.adjusted_confidence) + confidence_impact),
+            )
+        self.confidence = float(self.adjusted_confidence)
 
     def veto_by(self, actor: str, reason: str) -> None:
         """Pose un veto. Transition vers VETOED immédiate."""
@@ -540,6 +725,39 @@ class DecisionPacket:
     def is_terminal(self) -> bool:
         return self.lifecycle_state in TERMINAL_STATES
 
+    def verify_chain(self) -> bool:
+        """
+        Programme B — Vérifie l'intégrité de la chaîne de hachage des transitions.
+
+        Chaque transition doit :
+          1. avoir un current_hash non vide
+          2. référencer le current_hash de la transition précédente via previous_hash
+          3. avoir un current_hash recalculable à partir de son contenu
+
+        Retourne True si la chaîne est intègre, False si toute altération est détectée.
+        """
+        if not self.state_history:
+            return True  # Pas de transitions : chaîne triviale
+
+        expected_prev = ""
+        for t in self.state_history:
+            if not t.current_hash:
+                return False  # Transition sans hash → non signée
+            if t.previous_hash != expected_prev:
+                return False  # Rupture de chaîne
+            recomputed = StateTransition.compute_hash(
+                from_state=t.from_state,
+                to_state=t.to_state,
+                timestamp_iso=t.timestamp.isoformat(),
+                actor=t.actor,
+                reason=t.reason,
+                previous_hash=t.previous_hash,
+            )
+            if recomputed != t.current_hash:
+                return False  # Contenu modifié post-hachage
+            expected_prev = t.current_hash
+        return True
+
     # ---------------------------------------------------------------------------
     # Sérialisation — logs, SQLite, replay, dashboard, event_bus, websocket
     # ---------------------------------------------------------------------------
@@ -554,8 +772,11 @@ class DecisionPacket:
             "context_id": self.context_id,
             "symbol": self.symbol,
             "timeframe": self.timeframe,
+            "event_category": self.event_category.value,
             "side": self.side.value,
             "confidence": self.confidence,
+            "confidence_raw": self.confidence_raw,
+            "adjusted_confidence": self.adjusted_confidence,
             "expected_value": self.expected_value,
             "regime": self.regime.value,
             "entry_price": self.entry_price,
@@ -592,8 +813,19 @@ class DecisionPacket:
             context_id=d.get("context_id"),
             symbol=d.get("symbol", ""),
             timeframe=d.get("timeframe", "1h"),
+            event_category=PacketEventCategory(d.get("event_category", "TRADE")),
             side=DecisionSide(d.get("side", "FLAT")),
             confidence=float(d.get("confidence", 0.0)),
+            confidence_raw=(
+                float(d["confidence_raw"])
+                if d.get("confidence_raw") is not None
+                else None
+            ),
+            adjusted_confidence=(
+                float(d["adjusted_confidence"])
+                if d.get("adjusted_confidence") is not None
+                else None
+            ),
             expected_value=float(d.get("expected_value", 0.0)),
             regime=MarketRegime(d.get("regime", "UNKNOWN")),
             entry_price=d.get("entry_price"),

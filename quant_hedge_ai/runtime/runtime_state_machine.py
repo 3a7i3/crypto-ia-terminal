@@ -80,6 +80,7 @@ class RuntimeStateMachine:
         self._recovery_started: float = 0.0
         self._callbacks: list[Callable[[SystemState, SystemState], None]] = []
         self._fault_counts: dict[str, int] = {}
+        self._safe_mode_requests: dict[str, dict[str, object]] = {}
 
         self._thr_degraded = degraded_threshold
         self._thr_critical = critical_threshold
@@ -124,6 +125,12 @@ class RuntimeStateMachine:
         """Enregistre un callback appelé à chaque transition (old_state, new_state)."""
         self._callbacks.append(fn)
 
+    @property
+    def safe_mode_requests(self) -> dict[str, dict[str, object]]:
+        """Requêtes SAFE_MODE actives par source (copie immuable)."""
+        with self._lock:
+            return {k: dict(v) for k, v in self._safe_mode_requests.items()}
+
     # ── API publique ───────────────────────────────────────────────────────────
 
     def report_error(self, fault_type: str = "generic") -> SystemState:
@@ -159,6 +166,8 @@ class RuntimeStateMachine:
                     self._recovery_started = now
 
             elif self._state == SystemState.SAFE_MODE:
+                if self._safe_mode_requests:
+                    return self._state
                 # SAFE_MODE exige le double du silence standard
                 if len(self._errors) == 0 and silence >= self._silence_s * 2:
                     self._set_state(SystemState.RECOVERY, now)
@@ -168,9 +177,54 @@ class RuntimeStateMachine:
 
     def force_safe_mode(self, reason: str = "manual") -> None:
         """Override manuel → SAFE_MODE immédiat."""
+        self.request_safe_mode(source="manual", reason=reason)
+
+    def request_safe_mode(self, source: str, reason: str = "") -> SystemState:
+        """
+        Demande SAFE_MODE depuis une source nommée.
+
+        Tant qu'au moins une source reste active, SAFE_MODE est maintenu.
+        """
+        source_key = (source or "unknown").strip().lower() or "unknown"
         with self._lock:
-            _log.critical("[RSM] SAFE_MODE forcé — %s", reason)
-            self._set_state(SystemState.SAFE_MODE, self._clock())
+            now = self._clock()
+            self._safe_mode_requests[source_key] = {
+                "source": source_key,
+                "reason": reason,
+                "since": now,
+            }
+            _log.critical("[RSM] SAFE_MODE request — %s (%s)", source_key, reason)
+            self._set_state(SystemState.SAFE_MODE, now)
+            return self._state
+
+    def clear_safe_mode_request(self, source: str) -> SystemState:
+        """
+        Retire une demande SAFE_MODE d'une source.
+
+        Si aucune source ne reste active, passe en RECOVERY.
+        """
+        source_key = (source or "unknown").strip().lower() or "unknown"
+        with self._lock:
+            now = self._clock()
+            self._safe_mode_requests.pop(source_key, None)
+            if not self._safe_mode_requests and self._state == SystemState.SAFE_MODE:
+                self._errors.clear()
+                self._last_error_ts = 0.0
+                self._set_state(SystemState.RECOVERY, now)
+                self._recovery_started = now
+            return self._state
+
+    def clear_all_safe_mode_requests(self) -> SystemState:
+        """Retire toutes les demandes SAFE_MODE actives et passe en RECOVERY."""
+        with self._lock:
+            now = self._clock()
+            self._safe_mode_requests.clear()
+            if self._state == SystemState.SAFE_MODE:
+                self._errors.clear()
+                self._last_error_ts = 0.0
+                self._set_state(SystemState.RECOVERY, now)
+                self._recovery_started = now
+            return self._state
 
     def force_recovery(self) -> None:
         """Override manuel → RECOVERY immédiat (suppose incidents résolus)."""
@@ -201,6 +255,7 @@ class RuntimeStateMachine:
                 "size_factor": _POLICIES[self._state][2],
                 "error_count_window": len(self._errors),
                 "fault_counts": dict(self._fault_counts),
+                "safe_mode_sources": sorted(self._safe_mode_requests.keys()),
                 "last_error_ago_s": (
                     round(now - self._last_error_ts, 1) if self._last_error_ts else None
                 ),
@@ -215,6 +270,11 @@ class RuntimeStateMachine:
 
     def _evaluate_degradation(self, now: float) -> None:
         """Calcule la transition montante (vers plus dégradé). Appelé sous lock."""
+        if self._safe_mode_requests:
+            if self._state != SystemState.SAFE_MODE:
+                self._set_state(SystemState.SAFE_MODE, now)
+            return
+
         count = len(self._errors)
 
         if count >= self._thr_safe:

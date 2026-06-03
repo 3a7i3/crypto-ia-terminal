@@ -2,13 +2,21 @@
 
 from __future__ import annotations
 
-import pytest
 from unittest.mock import MagicMock
 
+import pytest
+
+from core.decision_packet import (
+    ConvictionLevel,
+    DecisionPacket,
+    DecisionSide,
+    DecisionState,
+    MarketRegime,
+)
 from quant_hedge_ai.agents.risk.order_sizer import OrderSizer, SizeResult
 
-
 # ── Fixture ───────────────────────────────────────────────────────────────────
+
 
 @pytest.fixture
 def sizer():
@@ -28,13 +36,23 @@ def _signal(score: int = 75):
 
 # ── Tests SizeResult ──────────────────────────────────────────────────────────
 
+
 class TestSizeResult:
     def test_as_dict_keys(self, sizer):
-        r = sizer.compute(capital=10_000.0, win_rate=0.6,
-                          avg_win_pct=3.0, avg_loss_pct=2.0)
+        r = sizer.compute(
+            capital=10_000.0, win_rate=0.6, avg_win_pct=3.0, avg_loss_pct=2.0
+        )
         d = r.as_dict()
-        for k in ("size_usd", "size_base", "kelly_fraction", "volatility_factor",
-                  "drawdown_factor", "final_fraction", "capped", "notes"):
+        for k in (
+            "size_usd",
+            "size_base",
+            "kelly_fraction",
+            "volatility_factor",
+            "drawdown_factor",
+            "final_fraction",
+            "capped",
+            "notes",
+        ):
             assert k in d
 
     def test_notes_not_empty(self, sizer):
@@ -43,6 +61,7 @@ class TestSizeResult:
 
 
 # ── Tests calcul Kelly ────────────────────────────────────────────────────────
+
 
 class TestKelly:
     def test_positive_kelly_when_win_rate_high(self, sizer):
@@ -68,6 +87,7 @@ class TestKelly:
 
 # ── Tests facteur volatilité ──────────────────────────────────────────────────
 
+
 class TestVolatilityFactor:
     def test_equal_vol_gives_one(self, sizer):
         assert sizer._volatility_factor(0.02) == pytest.approx(1.0)
@@ -87,6 +107,7 @@ class TestVolatilityFactor:
 
 # ── Tests facteur drawdown ────────────────────────────────────────────────────
 
+
 class TestDrawdownFactor:
     def test_zero_drawdown_gives_one(self, sizer):
         assert sizer._drawdown_factor(0.0) == pytest.approx(1.0)
@@ -102,6 +123,7 @@ class TestDrawdownFactor:
 
     def test_drawdown_guard_integrated(self):
         from quant_hedge_ai.agents.risk.drawdown_guard import DrawdownGuard
+
         dg = DrawdownGuard()
         sizer = OrderSizer(drawdown_guard=dg)
         factor = sizer._drawdown_factor(0.2)
@@ -109,6 +131,7 @@ class TestDrawdownFactor:
 
 
 # ── Tests compute ─────────────────────────────────────────────────────────────
+
 
 class TestCompute:
     def test_returns_size_result(self, sizer):
@@ -148,7 +171,7 @@ class TestCompute:
         assert r_high.size_usd <= r_low.size_usd
 
     def test_high_vol_reduces_size(self, sizer):
-        r_low_vol  = sizer.compute(10_000.0, 0.6, 3.0, 2.0, realized_volatility=0.02)
+        r_low_vol = sizer.compute(10_000.0, 0.6, 3.0, 2.0, realized_volatility=0.02)
         r_high_vol = sizer.compute(10_000.0, 0.6, 3.0, 2.0, realized_volatility=0.10)
         assert r_high_vol.size_usd <= r_low_vol.size_usd
 
@@ -168,23 +191,29 @@ class TestCompute:
 
 # ── Tests compute_from_signal ─────────────────────────────────────────────────
 
+
 class TestComputeFromSignal:
     def test_returns_size_result(self, sizer):
         s = _signal(score=75)
         r = sizer.compute_from_signal(
-            signal_result=s, capital=10_000.0,
-            win_rate=0.6, avg_win_pct=3.0, avg_loss_pct=2.0,
+            signal_result=s,
+            capital=10_000.0,
+            win_rate=0.6,
+            avg_win_pct=3.0,
+            avg_loss_pct=2.0,
         )
         assert isinstance(r, SizeResult)
 
     def test_features_volatility_used(self, sizer):
         s = _signal(score=75)
-        features_low  = {"realized_volatility": 0.01}
+        features_low = {"realized_volatility": 0.01}
         features_high = {"realized_volatility": 0.10}
-        r_low  = sizer.compute_from_signal(s, 10_000.0, 0.6, 3.0, 2.0,
-                                            features=features_low)
-        r_high = sizer.compute_from_signal(s, 10_000.0, 0.6, 3.0, 2.0,
-                                            features=features_high)
+        r_low = sizer.compute_from_signal(
+            s, 10_000.0, 0.6, 3.0, 2.0, features=features_low
+        )
+        r_high = sizer.compute_from_signal(
+            s, 10_000.0, 0.6, 3.0, 2.0, features=features_high
+        )
         assert r_high.size_usd <= r_low.size_usd
 
     def test_no_features_uses_default_vol(self, sizer):
@@ -194,6 +223,7 @@ class TestComputeFromSignal:
 
 
 # ── Tests paramètres de construction ─────────────────────────────────────────
+
 
 class TestConstructor:
     def test_kelly_fraction_clamped_max(self):
@@ -211,3 +241,31 @@ class TestConstructor:
     def test_max_size_at_least_min(self):
         sizer = OrderSizer(min_size_usd=500.0, max_size_usd=100.0)
         assert sizer.max_size_usd >= sizer.min_size_usd
+
+
+class TestDecisionPacketSizing:
+    def test_size_packet_prefers_features_over_metadata(self, sizer):
+        packet = DecisionPacket(
+            symbol="BTC/USDT",
+            side=DecisionSide.LONG,
+            confidence=60.0,
+            adjusted_confidence=90.0,
+            regime=MarketRegime.TREND_BULL,
+            conviction=ConvictionLevel.HIGH,
+            lifecycle_state=DecisionState.APPROVED,
+            features={
+                "realized_volatility": 0.02,
+                "conviction_size_factor": 0.5,
+                "pb_size_factor": 0.5,
+            },
+            metadata={
+                "conviction_size_factor": 0.1,
+                "pb_size_factor": 0.1,
+            },
+        )
+
+        sizer.size_packet(packet, capital=10_000.0, price=50_000.0)
+
+        size_usd = float(packet.features["os_size_usd"])
+        assert size_usd >= sizer.min_size_usd
+        assert packet.lifecycle_state == DecisionState.EXECUTION_PENDING

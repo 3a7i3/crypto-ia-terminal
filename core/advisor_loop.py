@@ -20,6 +20,7 @@ import logging
 import os
 import smtplib
 import sys
+import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 from email.mime.text import MIMEText
@@ -28,6 +29,31 @@ from types import SimpleNamespace
 from typing import Any, cast
 
 from advisor_runtime_adapters import AdvisorRuntime, load_advisor_runtime
+
+from quant_hedge_ai.runtime.runtime_state_machine import (
+    RuntimeStateMachine,
+    SystemState,
+)
+
+try:
+    from core.authority import get_authority as _get_authority
+    from core.authority import init_authority as _init_authority
+
+    _AUTHORITY_AVAILABLE = True
+except ImportError:
+    _AUTHORITY_AVAILABLE = False
+
+    def _get_authority() -> None:  # type: ignore[misc]
+        # ATC: get_authority() must never return None.
+        # Import failure = authority absent = execution impossible.
+        raise RuntimeError(
+            "core.authority indisponible (ImportError) — "
+            "exécution sans gouvernance interdite (ATC)"
+        )
+
+    def _init_authority(rsm: Any) -> None:  # type: ignore[misc]
+        pass
+
 
 from observability.json_logger import new_trace_id, set_trace_id
 
@@ -78,6 +104,77 @@ def _get_regret_counts(regret_engine: Any) -> tuple[int, int]:
     records = cast(list[Any], getattr(regret_engine, "_records", []))
     candidates = cast(list[Any], getattr(regret_engine, "_candidates", []))
     return len(records), len(candidates)
+
+
+def _decision_packet_allows_execution(packet: Any) -> tuple[bool, str]:
+    """
+    G8 guard slice: prevent execution when DecisionPacket is already terminal.
+
+    Returns:
+        (allowed, state_name)
+    """
+    if packet is None:
+        return True, ""
+
+    try:
+        _is_terminal = bool(packet.is_terminal())
+    except Exception:
+        return False, "UNKNOWN"
+
+    if not _is_terminal:
+        return True, ""
+
+    _state = getattr(packet, "lifecycle_state", "UNKNOWN")
+    _state_name = getattr(_state, "value", str(_state))
+    return False, str(_state_name)
+
+
+def _decision_packet_disagrees(
+    legacy_trade_allowed: bool,
+    packet: Any,
+) -> tuple[bool, bool, str]:
+    """
+    G8-B instrumentation helper.
+
+    Returns:
+        (disagrees, packet_allows, packet_state)
+    """
+    _packet_allows, _packet_state = _decision_packet_allows_execution(packet)
+    return (legacy_trade_allowed != _packet_allows), _packet_allows, _packet_state
+
+
+def _decision_packet_disagreement_type(
+    legacy_trade_allowed: bool,
+    packet_allows: bool,
+) -> str:
+    """
+    Classify disagreement direction.
+
+    TYPE_A: legacy=True, packet=False  (safety critical)
+    TYPE_B: legacy=False, packet=True  (opportunity/coherence gap)
+    NONE  : no disagreement
+    """
+    if legacy_trade_allowed and not packet_allows:
+        return "TYPE_A"
+    if (not legacy_trade_allowed) and packet_allows:
+        return "TYPE_B"
+    return "NONE"
+
+
+def _metric_key_fragment(value: Any, default: str = "unknown") -> str:
+    """Normalize dynamic labels into metric-safe key fragments."""
+    text = str(value or "").strip().lower()
+    if not text:
+        return default
+    cleaned = "".join(ch if ch.isalnum() else "_" for ch in text)
+    normalized = "_".join(part for part in cleaned.split("_") if part)
+    return normalized or default
+
+
+def _safe_ratio(numerator: int, denominator: int) -> float:
+    if denominator <= 0:
+        return 0.0
+    return float(numerator) / float(denominator)
 
 
 load_dotenv(override=True)
@@ -449,6 +546,134 @@ def analyze_symbol(
     _trace_id = new_trace_id()
     set_trace_id(_trace_id)
 
+    # G1 — fail-fast governance: RuntimeAuthority must block the pipeline at entry.
+    # If authority says NO, we return an immediate non-actionable decision and
+    # skip all downstream work (scans, features, conviction, portfolio, execution).
+    try:
+        _auth = _get_authority()  # ATC: never None — raises RuntimeError if absent
+        if not _auth.can_trade():
+            _rsm_state = _auth.rsm_state()
+            log.warning(
+                "[AUTHORITY] %s short-circuit — RSM:%s",
+                symbol,
+                _rsm_state,
+            )
+            _signal_blocked = SimpleNamespace(
+                signal="HOLD",
+                score=0,
+                actionable=False,
+                confirmed=False,
+                strength=0.0,
+                components={},
+                regime="unknown",
+                timestamp=time.time(),
+                side="hold",
+            )
+            _gate_blocked = SimpleNamespace(
+                allowed=False,
+                failed=[f"authority:{_rsm_state}"],
+            )
+            _advice_blocked = SimpleNamespace(
+                risk_level="critical",
+                confidence="low",
+                text=f"RuntimeAuthority blocked trading (state={_rsm_state})",
+            )
+            return {
+                "symbol": symbol,
+                "prix": 0.0,
+                "signal": _signal_blocked,
+                "gate": _gate_blocked,
+                "advice": _advice_blocked,
+                "explanation": None,
+                "shadow": None,
+                "personality": None,
+                "meta_allowed": False,
+                "meta_reason": "AUTHORITY_BLOCKED",
+                "conviction": None,
+                "no_trade_verdict": None,
+                "awareness_state": None,
+                "pb_verdict": None,
+                "allocation": None,
+                "mm_check": None,
+                "eo_verdict": None,
+                "dq_record": None,
+                "trade_allowed": False,
+                "blockers": "authority",
+                "order_size": 0.0,
+                "regime": "unknown",
+                "features": {},
+                "radar_report": None,
+                "ml_decision": None,
+                "n_1h": 0,
+                "n_4h": 0,
+                "n_1d": 0,
+                "signal_to_execute": "HOLD",
+                "decision_packet": None,
+                "trace_id": _trace_id,
+                "transition_forecast": None,
+            }
+    except RuntimeError:
+        # GovernanceKernel non initialisé — autorité indisponible.
+        # Principe : autorité absente = pas de décision. Fail-closed.
+        # En production, init_authority(rsm) est appelé avant le premier cycle.
+        # En test, appeler init_authority() explicitement ou utiliser reset_authority().
+        log.critical(
+            "[AUTHORITY] %s — GovernanceKernel non initialisé. "
+            "Pipeline bloqué : autorité indisponible = aucune décision.",
+            symbol,
+        )
+        _signal_no_auth = SimpleNamespace(
+            signal="HOLD",
+            score=0,
+            actionable=False,
+            confirmed=False,
+            strength=0.0,
+            components={},
+            regime="unknown",
+            timestamp=time.time(),
+            side="hold",
+        )
+        return {
+            "symbol": symbol,
+            "prix": 0.0,
+            "signal": _signal_no_auth,
+            "gate": SimpleNamespace(
+                allowed=False, failed=["authority:kernel_uninitialized"]
+            ),
+            "advice": SimpleNamespace(
+                risk_level="critical",
+                confidence="low",
+                text="GovernanceKernel non initialisé — pipeline bloqué",
+            ),
+            "explanation": None,
+            "shadow": None,
+            "personality": None,
+            "meta_allowed": False,
+            "meta_reason": "AUTHORITY_UNINITIALIZED",
+            "conviction": None,
+            "no_trade_verdict": None,
+            "awareness_state": None,
+            "pb_verdict": None,
+            "allocation": None,
+            "mm_check": None,
+            "eo_verdict": None,
+            "dq_record": None,
+            "trade_allowed": False,
+            "blockers": "authority:kernel_uninitialized",
+            "order_size": 0.0,
+            "regime": "unknown",
+            "features": {},
+            "radar_report": None,
+            "ml_decision": None,
+            "n_1h": 0,
+            "n_4h": 0,
+            "n_1d": 0,
+            "signal_to_execute": "HOLD",
+            "decision_packet": None,
+            "trace_id": _trace_id,
+            "transition_forecast": None,
+        }
+
     runtime = runtime or load_advisor_runtime()
     MultiTimeframeScanner = runtime.MultiTimeframeScanner
     FeatureEngineer = runtime.FeatureEngineer
@@ -678,6 +903,8 @@ def analyze_symbol(
         )
 
         _dp = _to_decision_packet(signal, cycle_id=str(cycle))
+        if _dp:
+            _dp.metadata["trace_id"] = _trace_id  # I-16: trace_id obligatoire
         if conviction_engine and _dp:
             conviction_engine.enrich_packet(
                 _dp,
@@ -1078,15 +1305,60 @@ def analyze_symbol(
         except Exception as _exc_v2:
             log.debug("[V2/Timing] skip: %s", _exc_v2)
 
-    # Décision finale d'autorisation
+    # Décision finale d'autorisation — I-14 : fail-closed
+    # Règle : agent=None → non configuré (intentionnel → pass)
+    #         agent configuré + résultat None → exception capturée → BLOQUÉ
+    # Un agent qui plante ne produit jamais un BUY.
     _awareness_ok = awareness_engine is None or awareness_engine.is_safe_to_trade()
-    _conviction_ok = conviction is None or not conviction.blocks_trade()
-    _notrade_ok = no_trade_verdict is None or bool(no_trade_verdict)
-    _pb_ok = pb_verdict is None or pb_verdict.allowed
-    _cae_ok = allocation is None or bool(allocation)
-    _mm_ok = mm_check is None or bool(mm_check)
-    _eo_ok = eo_verdict is None or bool(eo_verdict)
-    _radar_ok = radar_report is None or radar_report.trade_allowed
+    _conviction_ok = conviction_engine is None or (
+        conviction is not None and not conviction.blocks_trade()
+    )
+    _notrade_ok = (
+        no_trade_layer is None
+        or not signal.actionable
+        or (no_trade_verdict is not None and bool(no_trade_verdict))
+    )
+    _pb_ok = (
+        portfolio_brain is None
+        or not signal.actionable
+        or (pb_verdict is not None and pb_verdict.allowed)
+    )
+    _cae_ok = (
+        capital_engine is None
+        or not signal.actionable
+        or (
+            pb_verdict is not None and not pb_verdict.allowed
+        )  # pb bloqué → cae skipped
+        or (allocation is not None and bool(allocation))
+    )
+    _mm_ok = (
+        mistake_memory is None
+        or not signal.actionable
+        or (mm_check is not None and bool(mm_check))
+    )
+    _eo_ok = (
+        executive_override is None
+        or not signal.actionable
+        or (eo_verdict is not None and bool(eo_verdict))
+    )
+    _radar_ok = (
+        threat_radar is None
+        or not candles_1h
+        or (radar_report is not None and radar_report.trade_allowed)
+    )
+
+    # ── G1: Governance authority — la RSM est le gouverneur ─────────────────
+    # _authority_ok n'est PAS bypassé par FORCE_TEST_EXECUTION.
+    # C'est le seul check qui ne peut pas être outrepassé par une variable d'env.
+    _authority_ok = True
+    try:
+        _auth = _get_authority()  # ATC: never None
+        _authority_ok = _auth.can_trade()
+        if not _authority_ok:
+            log.warning("[AUTHORITY] %s bloqué — RSM:%s", symbol, _auth.rsm_state())
+    except RuntimeError:
+        # ATC: RuntimeError = autorité absente = pas de décision (fail-closed).
+        _authority_ok = False
 
     # ── FORCE_TEST_EXECUTION — bypass all checks except gate/signal ──
     force_test_execution = os.getenv("FORCE_TEST_EXECUTION", "false").lower() == "true"
@@ -1132,7 +1404,8 @@ def analyze_symbol(
     else:
         _arb_ok = True
     trade_allowed = (
-        meta_allowed
+        _authority_ok
+        and meta_allowed
         and gate_result.allowed
         and _awareness_ok
         and _conviction_ok
@@ -1149,6 +1422,7 @@ def analyze_symbol(
             filter(
                 None,
                 [
+                    "authority" if not _authority_ok else "",
                     "meta" if not meta_allowed else "",
                     "gate" if not gate_result.allowed else "",
                     "awareness" if not _awareness_ok else "",
@@ -1175,6 +1449,26 @@ def analyze_symbol(
             _alloc_str,
             f" [{_flow_blockers}]" if _flow_blockers else "",
         )
+
+    # ── G8-D — Synchronisation DecisionPacket ↔ décision pipeline ───────────────
+    # Si le pipeline refuse (trade_allowed=False) et que le packet est encore
+    # actionable, le rejeter explicitement. Cela élimine les divergences TYPE-B
+    # (legacy=False, packet=True) avant le retour de analyze_symbol(), garantissant
+    # que le packet reflète fidèlement le verdict complet du pipeline.
+    # Invariant : après cette ligne, tout packet non-terminal EST la décision.
+    if not trade_allowed and _dp and not _dp.is_terminal():
+        try:
+            _g8d_blockers = (
+                _flow_blockers  # défini uniquement si signal.actionable
+                if signal.actionable
+                else "signal_non_actionable"
+            )
+            _dp.reject(
+                "pipeline_g8d",
+                f"trade_allowed=False [{_g8d_blockers or 'unknown'}]",
+            )
+        except Exception:
+            pass
 
     # ── Regret Engine — enregistre les refus potentiellement rentables ─────────
     if regret_engine and signal.actionable and not trade_allowed:
@@ -1240,21 +1534,48 @@ def analyze_symbol(
         )
 
     # Shadow execution — simule l'ordre sans l'envoyer
+    # G0 — Un trade sans trace_id valide ne s'exécute pas.
+    # _dp doit exister et porter trace_id dans ses metadata.
+    # Sans trace_id : aucune reconstruction de cycle possible, packet rejeté.
     shadow_trade = None
     if signal.actionable and trade_allowed:
-        with watchdog.measure("shadow"):
-            eff_size = order_size_usd
-            if conviction:
-                eff_size = order_size_usd * conviction.size_factor
-            if awareness_engine:
-                eff_size *= awareness_engine.effective_size_factor()
-            shadow_trade = shadow.shadow_execute(
-                signal,
-                live_price=prix,
-                capital=max(1.0, eff_size),
+        # G8-C (étape 1) — packet.is_actionable() comme garde secondaire.
+        # Si _dp existe et est terminal (REJECTED, VETOED…), shadow est bloqué.
+        # Ceci avance la migration : DecisionPacket co-souverain avant le legacy boolean.
+        _dp_actionable = _dp.is_actionable() if _dp else True
+        _shadow_trace_ok = bool(_dp and _dp.metadata.get("trace_id"))
+        if not _dp_actionable:
+            log.warning(
+                "[G8-C] %s — shadow bloqué : packet non-actionable (state=%s)",
+                symbol,
+                getattr(getattr(_dp, "lifecycle_state", None), "value", "?"),
             )
-            if shadow_trade:
-                log.info("[SHADOW] %s", shadow_trade.summary())
+        elif not _shadow_trace_ok:
+            log.error(
+                "[G0] %s — shadow bloqué : DP absent ou trace_id manquant"
+                " (cycle_trace_id=%s)",
+                symbol,
+                _trace_id,
+            )
+            if _dp and not _dp.is_terminal():
+                try:
+                    _dp.reject("governance_g0", "missing_trace_id")
+                except Exception:
+                    pass
+        else:
+            with watchdog.measure("shadow"):
+                eff_size = order_size_usd
+                if conviction:
+                    eff_size = order_size_usd * conviction.size_factor
+                if awareness_engine:
+                    eff_size *= awareness_engine.effective_size_factor()
+                shadow_trade = shadow.shadow_execute(
+                    signal,
+                    live_price=prix,
+                    capital=max(1.0, eff_size),
+                )
+                if shadow_trade:
+                    log.info("[SHADOW] %s", shadow_trade.summary())
 
     persona_name = personality.name if personality else "N/A"
     conv_str = (
@@ -1296,23 +1617,30 @@ def analyze_symbol(
     # Rotation quotidienne : DP_LOG_PATH explicite → utilisé tel quel (compat).
     # Sinon : DP_LOG_DIR/decision_packets_YYYY-MM-DD.jsonl (UTC).
     if _dp and _dp.lifecycle_state.value != "CREATED":
-        try:
-            import json as _json
-            from datetime import datetime as _dt
-            from pathlib import Path as _Path
+        # I-16 — trace_id obligatoire avant toute persistance
+        if not _dp.metadata.get("trace_id"):
+            log.warning(
+                "[GOVERNANCE/I-16] %s — DP sans trace_id, packet invalide (non persisté)",
+                symbol,
+            )
+        else:
+            try:
+                import json as _json
+                from datetime import datetime as _dt
+                from pathlib import Path as _Path
 
-            _explicit = os.getenv("DP_LOG_PATH")
-            if _explicit:
-                _dp_path = _Path(_explicit)
-            else:
-                _log_dir = _Path(os.getenv("DP_LOG_DIR", "databases"))
-                _date = _dt.utcnow().strftime("%Y-%m-%d")
-                _dp_path = _log_dir / f"decision_packets_{_date}.jsonl"
-            _dp_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(_dp_path, "a", encoding="utf-8") as _f:
-                _f.write(_json.dumps(_dp.to_dict(), ensure_ascii=False) + "\n")
-        except Exception as _dp_exc:
-            log.debug("[DecisionPacket] log: %s", _dp_exc)
+                _explicit = os.getenv("DP_LOG_PATH")
+                if _explicit:
+                    _dp_path = _Path(_explicit)
+                else:
+                    _log_dir = _Path(os.getenv("DP_LOG_DIR", "databases"))
+                    _date = _dt.utcnow().strftime("%Y-%m-%d")
+                    _dp_path = _log_dir / f"decision_packets_{_date}.jsonl"
+                _dp_path.parent.mkdir(parents=True, exist_ok=True)
+                with open(_dp_path, "a", encoding="utf-8") as _f:
+                    _f.write(_json.dumps(_dp.to_dict(), ensure_ascii=False) + "\n")
+            except Exception as _dp_exc:
+                log.debug("[DecisionPacket] log: %s", _dp_exc)
 
     return {
         "symbol": symbol,
@@ -1755,33 +2083,84 @@ def main(
             prewarm_executor.shutdown(wait=False, cancel_futures=True)
             prewarm_executor = None
 
-    # Kill switch — état partagé entre thread Telegram et boucle principale
-    _halt_requested = {"value": False}
+    # Kill switch — état partagé entre thread Telegram et boucle principale.
+    # threading.Event : thread-safe sans dépendance au GIL, sémantique claire.
+    # set()     → arrêt demandé
+    # clear()   → reprise autorisée
+    # is_set()  → vérification état
+    _halt_requested = threading.Event()
     _awareness_ref: dict = {"engine": None}  # rempli après création awareness_engine
     _op_state_ref: list = [None]  # rempli après init OperationalState (P10-F)
+    _black_box_ref: dict = {"instance": None}
+    runtime_authority = RuntimeStateMachine()
+    if _AUTHORITY_AVAILABLE:
+        _init_authority(runtime_authority)
+        log.info(
+            "[main] GovernanceKernel initialisé — RSM state=%s",
+            runtime_authority.state.value,
+        )
+        # I-1: P6_SAFE_MODE propagated to RSM immediately after authority init.
+        # This ensures can_trade()=False before any cycle starts, so the G1
+        # pre-compute gate in analyze_symbol() blocks all computation.
+        if P6_SAFE_MODE:
+            runtime_authority.request_safe_mode(
+                "p6_safe_mode",
+                "P6_SAFE_MODE env flag — computation sealed at entry (I-1)",
+            )
+            log.warning(
+                "[G1/I-1] P6_SAFE_MODE → RSM verrouillé (SAFE_MODE) — "
+                "pipeline bloqué pre-compute"
+            )
+
+    def _runtime_safe_mode_active() -> bool:
+        return runtime_authority.state == SystemState.SAFE_MODE
 
     def _on_stop_all():
-        _halt_requested["value"] = True
+        _halt_requested.set()
+        runtime_authority.request_safe_mode("kill_switch_stop_all", "STOP_ALL telegram")
         log.critical("[main] STOP_ALL recu — la boucle va s'arreter au prochain cycle")
 
     def _on_close_all():
-        _halt_requested["value"] = True
+        _halt_requested.set()
+        runtime_authority.request_safe_mode(
+            "kill_switch_close_all", "CLOSE_ALL telegram"
+        )
         log.critical("[main] CLOSE_ALL recu — la boucle va s'arreter au prochain cycle")
 
+    def _on_safe_mode():
+        runtime_authority.request_safe_mode(
+            "kill_switch_safe_mode", "SAFE_MODE telegram"
+        )
+        log.warning("[main] SAFE_MODE recu — autorité runtime en SAFE_MODE")
+
     def _on_resume():
-        _halt_requested["value"] = False
+        _halt_requested.clear()
+        runtime_authority.clear_all_safe_mode_requests()
         if _awareness_ref["engine"] is not None:
-            _awareness_ref["engine"].reset()
-            log.info("[main] /RESUME — SelfAwareness reset (retour a OK)")
+            if hasattr(_awareness_ref["engine"], "operator_resume"):
+                _awareness_ref["engine"].operator_resume(full_reset=False)
+                log.info("[main] /RESUME — SelfAwareness operator_resume")
+            else:
+                _awareness_ref["engine"].reset()
+                log.info("[main] /RESUME — SelfAwareness reset (retour a OK)")
         if _op_state_ref[0] is not None:
             _op_state_ref[0].reset()
             log.info("[main] /RESUME — OperationalState reset → RUNNING")
+        if _black_box_ref["instance"] is not None:
+            try:
+                _black_box_ref["instance"].record_system_event(
+                    "OPERATOR_RESUME",
+                    "Resume manuel via Telegram /RESUME",
+                )
+            except Exception as _bb_exc:
+                log.debug("[main] BlackBox OPERATOR_RESUME non journalise: %s", _bb_exc)
 
     kill_switch = _profile_bootstrap_step(
         "kill_switch",
         lambda: runtime.TelegramKillSwitch(
             on_stop_all=_on_stop_all,
             on_close_all=_on_close_all,
+            on_safe_mode=_on_safe_mode,
             on_resume=_on_resume,
         ),
     )
@@ -1969,7 +2348,7 @@ def main(
         _p10_throttle = _P10ThrottleCls(total_capital=real_capital, phase=_P10_PHASE)
         _p10_emergency = _P10EmgCls(
             phase=_P10_PHASE,
-            halt_fn=lambda reason: _halt_requested.__setitem__("value", True),
+            halt_fn=lambda reason: _halt_requested.set(),
         )
         _p10_kpi = _P10KPICls(phase=_P10_PHASE, initial_capital=real_capital)
         max_order = min(max_order, _p10_throttle.throttled_size(max_order))
@@ -1996,7 +2375,7 @@ def main(
 
         def _on_op_halted(reason: str) -> None:
             log.critical("[P10-F] HALTED: %s", reason)
-            _halt_requested["value"] = True
+            _halt_requested.set()
             _telegram(
                 f"P10-F HALTED — intervention requise\n{reason}\n"
                 f"Envoyez /RESUME pour reprendre."
@@ -2515,8 +2894,9 @@ def main(
     pos_manager.on_close(_on_position_close)
 
     if P6_SAFE_MODE:
-        log.warning(
-            "[P6] SAFE MODE ACTIF — boucles adaptatives désactivées (threshold fixe)"
+        log.info(
+            "[P6] SAFE MODE — RSM scellé au démarrage, "
+            "boucles adaptatives désactivées (threshold fixe)"
         )
     else:
         log.info("[P6] Mode adaptatif — ATE + RegimeSmoother + REGIME_MISMATCH actifs")
@@ -2556,6 +2936,14 @@ def main(
 
     # Self-Awareness Engine — détection dérive comportementale/perf/infra
     def _on_awareness_change(state: Any) -> None:
+        if state.level >= runtime.DangerLevel.WARNING:
+            runtime_authority.request_safe_mode(
+                "self_awareness",
+                f"level={state.level.name}",
+            )
+        else:
+            runtime_authority.clear_safe_mode_request("self_awareness")
+
         if state.level >= runtime.DangerLevel.WARNING:
             drifts_msg = " | ".join(d.message for d in state.active_drifts[:3])
             _telegram(
@@ -2636,6 +3024,7 @@ def main(
 
     # Black Box Recorder — boite noire indestructible
     black_box = _profile_bootstrap_step("black_box", runtime.BlackBox)
+    _black_box_ref["instance"] = black_box
     black_box.record_system_event(
         "DEMARRAGE", f"capital={real_capital:.0f} mode={trading_mode}"
     )
@@ -2949,6 +3338,17 @@ def main(
         _capital_throttle = None
         _dyn_exposure = None
 
+    # S2 — GovernanceAuditor : observateur constitutionnel permanent.
+    # Indépendant de _OBS_AVAILABLE — fonctionne même sans stack observabilité complète.
+    _gov_auditor: Any = None
+    try:
+        from governance.auditor import GovernanceAuditor as _GovAuditorCls
+
+        _gov_auditor = _GovAuditorCls()
+        log.info("[GovernanceAuditor] Initialisé — observateur constitutionnel actif")
+    except Exception as _ga_exc:
+        log.warning("[GovernanceAuditor] Indisponible: %s", _ga_exc)
+
     _safety_auditor: Any = None
     if _OBS_AVAILABLE:
         try:
@@ -3221,15 +3621,16 @@ def main(
                 pass
 
         # ── Kill switch check ──────────────────────────────────────────────────
-        if kill_switch.is_halted() or _halt_requested["value"]:
+        if kill_switch.is_halted() or _halt_requested.is_set():
             log.critical("[main] Kill switch actif — boucle suspendue")
             _telegram(
                 "Boucle suspendue par Kill Switch. Envoyer /RESUME pour reprendre."
             )
-            # Attendre que l'opérateur envoie /RESUME
-            # _halt_requested est cleared par _on_resume (callback /RESUME Telegram)
-            while kill_switch.is_halted() or _halt_requested["value"]:
-                time.sleep(5)
+            # Attendre que l'opérateur envoie /RESUME.
+            # _halt_requested.clear() est appelé dans _on_resume.
+            # Intervalle 0.5s pour une reprise quasi-immédiate après /RESUME.
+            while kill_switch.is_halted() or _halt_requested.is_set():
+                time.sleep(0.5)
             log.info("[main] Kill switch levé — reprise boucle")
             _telegram("Kill Switch leve — reprise du cycle normal.")
             # Réinitialise l'état d'urgence P10-F après intervention opérateur
@@ -3268,7 +3669,7 @@ def main(
                 log.debug("[P10-F] Emergency check error: %s", _p10_chk_exc)
 
         # ── Safe mode check ────────────────────────────────────────────────────
-        if kill_switch.is_safe_mode():
+        if _runtime_safe_mode_active():
             log.warning("[main] Cycle %d — SAFE MODE actif (observation seule)", cycle)
 
         log.info("--- Cycle %d ---", cycle)
@@ -3322,6 +3723,31 @@ def main(
                 pass
 
             # ── Runtime config — rechargement à chaud chaque cycle ────────────
+            # GOUVERNANCE : GATE_MIN_SCORE_OVERRIDE et FORCE_TEST_EXECUTION sont
+            # des variables de gouvernance — elles ne peuvent jamais être rechargées
+            # depuis un fichier JSON externe sans redémarrage du processus.
+            # Modifier ces valeurs à chaud contourne G4 (gate) et I-14 (fail-closed).
+            # Elles sont lues à chaque appel à analyze_symbol() via os.getenv(),
+            # donc un rechargement ici serait immédiatement effectif sur le prochain cycle.
+            _GOVERNANCE_KEYS: frozenset[str] = frozenset(
+                {
+                    "GATE_MIN_SCORE_OVERRIDE",
+                    "FORCE_TEST_EXECUTION",
+                }
+            )
+            # Variables reconfigurables à chaud (sans impact sur la gouvernance).
+            # Note : SIGNAL_MIN_SCORE, EO_DD_*, EXCHANGE_HEARTBEAT_S sont lus à
+            # l'initialisation uniquement — la mise à jour os.environ est une mise
+            # à jour morte jusqu'au prochain redémarrage.
+            _RUNTIME_KEYS: frozenset[str] = frozenset(
+                {
+                    "EXEC_MAX_ORDER_USD",
+                    "SIGNAL_MIN_SCORE",
+                    "EO_DD_VETO",
+                    "EO_DD_RECOVERY",
+                    "EXCHANGE_HEARTBEAT_S",
+                }
+            )
             try:
                 import json as _rtjson
                 from pathlib import Path as _rtPath
@@ -3329,17 +3755,16 @@ def main(
                 _rt_path = _rtPath("databases/runtime_config.json")
                 if _rt_path.exists():
                     _rt = _rtjson.loads(_rt_path.read_text(encoding="utf-8"))
-                    _RT_KEYS = {
-                        "GATE_MIN_SCORE_OVERRIDE",
-                        "FORCE_TEST_EXECUTION",
-                        "EXEC_MAX_ORDER_USD",
-                        "SIGNAL_MIN_SCORE",
-                        "EO_DD_VETO",
-                        "EO_DD_RECOVERY",
-                        "EXCHANGE_HEARTBEAT_S",
-                    }
                     for _k, _v in _rt.items():
-                        if _k in _RT_KEYS:
+                        if _k in _GOVERNANCE_KEYS:
+                            log.critical(
+                                "[RuntimeConfig] REFUSÉ — tentative d'override clé "
+                                "de gouvernance via runtime_config.json: %s=%s. "
+                                "Modification requiert redémarrage du processus.",
+                                _k,
+                                _v,
+                            )
+                        elif _k in _RUNTIME_KEYS:
                             os.environ[_k] = (
                                 str(_v).lower() if isinstance(_v, bool) else str(_v)
                             )
@@ -3524,6 +3949,10 @@ def main(
                     log.debug("[P8/Allocator] Erreur cycle: %s", _p8_cyc_exc)
 
             results: list[AnalysisResult] = []
+            _dp_compared_count = 0
+            _dp_disagreement_count = 0
+            _dp_type_a_count = 0
+            _dp_type_b_count = 0
             _cycle_exec_failed = (
                 False  # une seule incrémentation par cycle, pas par symbole
             )
@@ -3588,6 +4017,28 @@ def main(
                     r["signal"].signal,
                     r["signal"].score,
                 )
+                # S2 — GovernanceAuditor : audit constitutionnel après chaque analyse.
+                # L'auditeur est indépendant : ses anomalies n'affectent pas r["trade_allowed"].
+                # Il observe, log, et alerte — il ne décide pas.
+                if _gov_auditor is not None:
+                    try:
+                        _gov_anomalies = _gov_auditor.audit_cycle(
+                            result=r,
+                            rsm_state=runtime_authority.state,
+                            cycle=cycle,
+                        )
+                        if _gov_anomalies:
+                            log.warning(
+                                "[GovernanceAuditor] %d anomalie(s) cycle=%d sym=%s "
+                                "health=%.0f",
+                                len(_gov_anomalies),
+                                cycle,
+                                sym,
+                                _gov_auditor.health_trend(),
+                            )
+                    except Exception as _ga_exc:
+                        log.debug("[GovernanceAuditor] erreur: %s", _ga_exc)
+
                 # ── Exécution réelle/paper ─────────────────────────────────────
                 r["futures_result"] = None
                 # Taille effective : depuis CAE si disponible, sinon order_size global
@@ -3728,11 +4179,105 @@ def main(
                         sym,
                     )
 
+                # G8 — DecisionPacket guard: terminal packet cannot be executed,
+                # even if legacy booleans still evaluate to trade_allowed=True.
+                _legacy_trade_allowed = bool(r.get("trade_allowed", r["gate"].allowed))
+                _dp_packet = r.get("decision_packet")
+                if _dp_packet is not None:
+                    _dp_compared_count += 1
+                _dp_disagrees, _dp_exec_ok, _dp_state = _decision_packet_disagrees(
+                    _legacy_trade_allowed,
+                    _dp_packet,
+                )
+                _dp_kind = _decision_packet_disagreement_type(
+                    _legacy_trade_allowed,
+                    _dp_exec_ok,
+                )
+
+                if _dp_disagrees:
+                    _dp_disagreement_count += 1
+                    if _dp_kind == "TYPE_A":
+                        _dp_type_a_count += 1
+                    elif _dp_kind == "TYPE_B":
+                        _dp_type_b_count += 1
+                    if _OBS_AVAILABLE:
+                        try:
+                            _dp_state_key = _metric_key_fragment(
+                                _dp_state or "NON_TERMINAL"
+                            )
+                            _dp_regime_key = _metric_key_fragment(
+                                r.get("regime", "unknown")
+                            )
+                            metrics_bus.increment(
+                                "advisor_loop", "decision_packet_disagreement_total"
+                            )
+                            metrics_bus.increment(
+                                "advisor_loop",
+                                f"decision_packet_disagreement_by_state.{_dp_state_key}",
+                            )
+                            metrics_bus.increment(
+                                "advisor_loop",
+                                f"decision_packet_disagreement_by_regime.{_dp_regime_key}",
+                            )
+                            if _dp_kind != "NONE":
+                                _dp_kind_key = _metric_key_fragment(_dp_kind)
+                                metrics_bus.increment(
+                                    "advisor_loop",
+                                    f"decision_packet_disagreement_type.{_dp_kind_key}",
+                                )
+                        except Exception:
+                            pass
+                    log.error(
+                        "[G8] divergence",
+                        extra={
+                            "trace_id": r.get("trace_id", ""),
+                            "symbol": sym,
+                            "legacy": _legacy_trade_allowed,
+                            "packet": _dp_exec_ok,
+                            "packet_state": _dp_state or "NON_TERMINAL",
+                            "disagreement_type": _dp_kind,
+                            "cycle": cycle,
+                        },
+                    )
+
+                if not _dp_exec_ok:
+                    if not r.get("futures_result"):
+                        r["futures_result"] = {
+                            "mode": "decision_packet_blocked",
+                            "reason": f"terminal_state={_dp_state}",
+                        }
+                    r["trade_allowed"] = False
+                    if r["signal"].actionable:
+                        _existing = r.get("blockers", "")
+                        _dp_block = f"decision_packet({_dp_state})"
+                        r["blockers"] = (
+                            (_existing + ", " + _dp_block) if _existing else _dp_block
+                        )
+                    log.warning(
+                        "[G8] %s execution blocked by DecisionPacket state=%s",
+                        sym,
+                        _dp_state,
+                    )
+
+                # G8-D/E — Le DecisionPacket est la source unique d'autorisation.
+                # G8-E : si _dp est None (création du packet échouée), l'exécution
+                # est bloquée. Un système gouverné ne peut pas exécuter sans packet.
+                # Principe : DecisionPacket absent = autorité absente = pas d'ordre.
+                _dp_r = r.get("decision_packet")
+                if _dp_r is None:
+                    _effective_trade_allowed = False
+                    log.warning(
+                        "[G8-E] %s — execution bloquée : DecisionPacket absent "
+                        "(création échouée ou pipeline non initialisé).",
+                        sym,
+                    )
+                else:
+                    _effective_trade_allowed = _dp_r.is_actionable()
                 if (
                     (r["signal"].actionable or gate_override_active)
-                    and r.get("trade_allowed", r["gate"].allowed)
+                    and _effective_trade_allowed
                     and not advisor_only
-                    and not kill_switch.is_safe_mode()
+                    and not _runtime_safe_mode_active()
                     and not protection_blocks  # ← CRITICAL: skip si protections activées
                 ):
                     try:
@@ -4074,7 +4619,7 @@ def main(
                         pass
 
                 # Alerte immédiate si signal actionable (sauf si safe mode)
-                if r["signal"].actionable and not kill_switch.is_safe_mode():
+                if r["signal"].actionable and not _runtime_safe_mode_active():
                     log.info(
                         "SIGNAL ACTIONABLE: %s score=%d %s",
                         sym,
@@ -4083,12 +4628,35 @@ def main(
                     )
                     _alert_msg = _build_alert(r, cycle)
                     _telegram(_alert_msg)
-                elif r["signal"].actionable and kill_switch.is_safe_mode():
+                elif r["signal"].actionable and _runtime_safe_mode_active():
                     log.info(
                         "SIGNAL ACTIONABLE (safe mode — non envoye): %s score=%d",
                         sym,
                         r["signal"].score,
                     )
+
+            # G8-B — cycle-level disagreement telemetry for migration readiness.
+            if _OBS_AVAILABLE and _dp_compared_count > 0:
+                try:
+                    metrics_bus.increment(
+                        "advisor_loop",
+                        "decision_packet_compared_total",
+                        _dp_compared_count,
+                    )
+                    _dp_rate = _safe_ratio(_dp_disagreement_count, _dp_compared_count)
+                    _dp_type_a_rate = _safe_ratio(_dp_type_a_count, _dp_compared_count)
+                    _dp_type_b_rate = _safe_ratio(_dp_type_b_count, _dp_compared_count)
+                    metrics_bus.gauge(
+                        "advisor_loop", "decision_packet_disagreement_rate", _dp_rate
+                    )
+                    metrics_bus.gauge(
+                        "advisor_loop", "decision_packet_type_a_rate", _dp_type_a_rate
+                    )
+                    metrics_bus.gauge(
+                        "advisor_loop", "decision_packet_type_b_rate", _dp_type_b_rate
+                    )
+                except Exception:
+                    pass
 
             # Incrémentation unique exec_errors par cycle (pas par symbole)
             if _cycle_exec_failed:
@@ -4552,7 +5120,7 @@ def main(
                     _eff_score = gate._effective_min_score(_adaptive_regime)
                     msg = _build_summary(results, cycle, min_score=_eff_score)
                     # Indiquer safe mode dans le rapport
-                    if kill_switch.is_safe_mode():
+                    if _runtime_safe_mode_active():
                         msg += "\n\n[SAFE MODE] Alertes actions suspendues."
                     # Etat exchange monitor
                     ex = _stats_dict(exchange_monitor.snapshot())
@@ -4765,7 +5333,7 @@ def main(
                     "ts": time.time(),
                     "cycle": cycle,
                     "capital": real_capital,
-                    "safe_mode": kill_switch.is_safe_mode(),
+                    "safe_mode": _runtime_safe_mode_active(),
                     "cycle_duration_ms": _cycle_elapsed_ms,
                     "n_symbols": len(results),
                     "n_actionable": _n_actionable,
@@ -4995,6 +5563,41 @@ def main(
         except Exception as exc:
             consecutive_errors += 1
             log.error("Erreur cycle %d: %s", cycle, exc, exc_info=True)
+            # G3 — Toute exception non récupérée dans un cycle doit notifier le RSM.
+            # Cela permet à RuntimeStateMachine de dégrader l'état système
+            # (NORMAL → DEGRADED → CRITICAL → SAFE_MODE) si les erreurs persistent.
+            try:
+                runtime_authority.report_error("cycle_exception")
+            except Exception:
+                pass
+            # ENL-2 trace record : persist un DP minimal pour que le cycle
+            # échoué reste visible dans l'audit trail (gap ENL-2 fermé).
+            try:
+                from pathlib import Path as _Path
+
+                from core.decision_packet import DecisionPacket as _DP
+                from core.decision_packet import PacketEventCategory as _PEC
+                from observability.json_logger import new_trace_id as _new_tid
+
+                # DPSS: SYSTEM category isolates ENL records from trading metrics.
+                _enl_dp = _DP(symbol="CYCLE_EXCEPTION", event_category=_PEC.SYSTEM)
+                _enl_dp.reject("enl2_g3", f"{type(exc).__name__}:{exc!s:.120}")
+                _enl_dp.metadata["cycle"] = cycle
+                _enl_dp.metadata["trace_id"] = _new_tid()
+                _enl_log = _Path(os.getenv("DP_LOG_DIR", "databases"))
+                _enl_log.mkdir(parents=True, exist_ok=True)
+                from datetime import datetime as _dt
+
+                _enl_file = (
+                    _enl_log
+                    / f"decision_packets_{_dt.utcnow().strftime('%Y-%m-%d')}.jsonl"
+                )
+                import json as _json
+
+                with open(_enl_file, "a", encoding="utf-8") as _f:
+                    _f.write(_json.dumps(_enl_dp.to_dict(), ensure_ascii=False) + "\n")
+            except Exception:
+                pass
             if _OBS_AVAILABLE:
                 try:
                     sev = (

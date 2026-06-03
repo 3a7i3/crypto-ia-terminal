@@ -207,6 +207,30 @@ class TestRecovery:
         assert sm.error_count == 0
 
 
+class TestSafeModeRequests:
+    def test_named_request_enters_safe_mode(self):
+        sm, _ = _sm()
+        sm.request_safe_mode("kill_switch", "manual stop")
+        assert sm.state == SystemState.SAFE_MODE
+        assert "kill_switch" in sm.safe_mode_requests
+
+    def test_safe_mode_kept_while_one_source_remains(self):
+        sm, _ = _sm()
+        sm.request_safe_mode("kill_switch", "manual stop")
+        sm.request_safe_mode("self_awareness", "critical drift")
+        sm.clear_safe_mode_request("kill_switch")
+        assert sm.state == SystemState.SAFE_MODE
+        assert "self_awareness" in sm.safe_mode_requests
+
+    def test_clear_all_requests_moves_to_recovery(self):
+        sm, _ = _sm()
+        sm.request_safe_mode("kill_switch", "manual stop")
+        sm.request_safe_mode("self_awareness", "critical drift")
+        sm.clear_all_safe_mode_requests()
+        assert sm.state == SystemState.RECOVERY
+        assert sm.safe_mode_requests == {}
+
+
 # ── Callbacks ──────────────────────────────────────────────────────────────────
 
 

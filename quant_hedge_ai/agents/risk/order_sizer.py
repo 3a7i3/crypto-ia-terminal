@@ -227,11 +227,13 @@ class OrderSizer:
         """
         Calcule la taille et produit la transition APPROVED → EXECUTION_PENDING.
 
-        Lit en advisory depuis le packet :
-          - metadata["conviction_size_factor"]  → multiplicateur conviction
-          - metadata["pb_size_factor"]           → multiplicateur portefeuille
+                Lit en advisory depuis le packet :
+                    - features["conviction_size_factor"]   → multiplicateur conviction
+                        (fallback metadata pour compat)
+                    - features["pb_size_factor"]           → multiplicateur portefeuille
+                        (fallback metadata pour compat)
           - features["realized_volatility"]      → volatilité réalisée
-          - confidence                            → signal_score proxy
+                    - adjusted_confidence                   → signal_score proxy
 
         Écrit dans le packet :
           - allocation_pct                (fraction du capital allouée)
@@ -255,9 +257,21 @@ class OrderSizer:
                 "realized_volatility", packet.features.get("atr_ratio", 0.02)
             )
         )
-        conv_factor = float(packet.metadata.get("conviction_size_factor", 1.0))
-        pb_factor = float(packet.metadata.get("pb_size_factor", 1.0))
-        signal_score = int(packet.confidence)
+        conv_factor = float(
+            packet.features.get(
+                "conviction_size_factor",
+                packet.metadata.get("conviction_size_factor", 1.0),
+            )
+        )
+        pb_factor = float(
+            packet.features.get(
+                "pb_size_factor",
+                packet.metadata.get("pb_size_factor", 1.0),
+            )
+        )
+        signal_score = int(
+            round(float(getattr(packet, "adjusted_confidence", packet.confidence)))
+        )
 
         result = self.compute(
             capital=capital,
@@ -269,6 +283,20 @@ class OrderSizer:
             price=price,
             signal_score=signal_score,
         )
+
+        # G5 — Kelly nul ou négatif signifie "ne pas trader" (expectancy négative).
+        # min_size_usd ne doit pas contourner cette décision : on rejette le packet
+        # avant d'atteindre EXECUTION_PENDING.
+        if result.kelly_fraction <= 0.0:
+            packet.add_reasoning(
+                actor,
+                f"Kelly={result.kelly_fraction:.4f} ≤ 0 — expectancy négative ou nulle",
+                confidence_impact=-50.0,
+                category=ReasoningCategory.SIZING,
+                severity=ReasoningSeverity.WARNING,
+            )
+            packet.reject(actor, "kelly_zero_negative_expectancy")
+            return result
 
         # Appliquer les facteurs advisory
         final_size = result.size_usd * conv_factor * pb_factor

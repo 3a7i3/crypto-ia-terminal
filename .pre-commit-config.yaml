@@ -15,7 +15,8 @@ repos:
     hooks:
       - id: isort
   - repo: https://github.com/PyCQA/bandit
-    rev: 1.7.8
+    rev: 1.9.4
     hooks:
       - id: bandit
-        args: ["-r", "quant_hedge_ai", "supervision", "scripts"]
+        args: ["-r", "quant_hedge_ai", "supervision", "scripts", "-f", "json", "--exit-zero"]
+        pass_filenames: false

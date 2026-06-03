@@ -11,9 +11,11 @@ Checklist avant tout ordre live :
 Si au moins une condition échoue → ordre BLOQUÉ + raison détaillée.
 
 Migration DecisionPacket :
-  - GlobalRiskGate.check_packet() — API souveraine sur DecisionPacket.
-    C'est ICI et UNIQUEMENT ICI que packet.reject() est appelé en flux normal.
-    Chaque rejet est tracé dans state_history + reasoning du packet.
+    - GlobalRiskGate.check_packet() — API souveraine sur DecisionPacket.
+        C'est ici que le rejet de gouvernance risque est appliqué.
+        Des couches aval (ex: portfolio_brain) peuvent aussi rejeter selon
+        leurs propres invariants métier.
+        Chaque rejet est tracé dans state_history + reasoning du packet.
   - check() classique préservé pour compatibilité ascendante.
 
 Souveraineté : le risk_gate lit les opinions advisory (lse_actionable,
@@ -297,8 +299,9 @@ class GlobalRiskGate:
         """
         Vérification pré-trade depuis un DecisionPacket.
 
-        SOUVERAINETÉ : c'est ici et uniquement ici que packet.reject() est
-        appelé en flux normal. Chaque rejet est tracé dans state_history.
+        SOUVERAINETÉ : c'est ici que le rejet de gouvernance risque est appliqué.
+        D'autres couches aval (ex: portfolio_brain) peuvent rejeter pour leurs
+        propres invariants. Chaque rejet est tracé dans state_history.
 
         Lit en advisory (sans en être gouverné) :
           - packet.metadata["lse_actionable"]         → recommandation LSE
@@ -383,7 +386,7 @@ class GlobalRiskGate:
             )
 
         # ③ Score suffisant — seuil régime-aware + delta RegretEngine
-        score = packet.confidence
+        score = float(getattr(packet, "adjusted_confidence", packet.confidence))
         regime_str = packet.regime.value  # ex. "RANGE", "TREND_BULL"
         effective_min = self._effective_min_score(regime_str)
         c3 = score >= effective_min

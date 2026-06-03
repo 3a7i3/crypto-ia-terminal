@@ -148,9 +148,9 @@ Chaque invariant a: ID · condition · module responsable · mécanisme · nivea
 | **Condition** | Chaque cycle `advisor_loop` a un `trace_id` unique non-vide |
 | **Module** | `advisor_loop.py:420` + `observability/json_logger.py` |
 | **Mécanisme** | `new_trace_id()` appelé en tête de cycle, propagé dans tous les logs |
-| **Enforcement** | **LOGGED** (pas de rejet si absent) |
+| **Enforcement** | **HARD** — l'absence de `trace_id` invalide la décision (voir I-16) |
 | **Log** | `[trace] symbol=... trace_id=...` |
-| **Test** | `test_invariants.py::test_i11_trace_id_generated_unique` |
+| **Test** | `test_invariants.py::test_i11_trace_id_generated_unique`, `tests/governance/test_constitution_i16.py` |
 
 ---
 
@@ -164,6 +164,58 @@ Chaque invariant a: ID · condition · module responsable · mécanisme · nivea
 | **Enforcement** | **HARD** |
 | **Log** | `[ExecutionEngine] Order rejected by SessionGuard: OrderTooLargeError` |
 | **Test** | `test_invariants.py::test_i12_oversized_order_rejected` |
+
+---
+
+## I-14 — Agent Failure Safety : exception → REJECTED, jamais BUY
+
+| Champ | Valeur |
+|-------|--------|
+| **Condition** | Toute exception non récupérée provenant d'un agent décisionnel doit produire `trade_allowed = False`. Une exception ne peut jamais augmenter la probabilité d'exécution d'un trade. |
+| **Module** | `core/advisor_loop.py:analyze_symbol()` — tous les agents de décision |
+| **Mécanisme** | **Cible G3 :** exception agent → résultat de rejet canonique (`_<agent>_ok = False`). **Actuel (gap) :** exception → `None` → fail-open (`_<agent>_ok = True`) |
+| **Enforcement** | **HARD** (cible G3) — **ABSENT** actuellement : gap critique documenté |
+| **Log** | `[GOVERNANCE/I-14] agent={name} exception={type} → REJECTED` |
+| **Test** | `tests/governance/test_constitution_i14.py` |
+
+---
+
+## I-15 — Governance Authority : can_trade=False interdit tout ordre
+
+| Champ | Valeur |
+|-------|--------|
+| **Condition** | Si `RuntimeAuthority.can_trade == False`, alors aucun ordre ne peut être soumis, aucun `DecisionPacket` `EXECUTED` ne peut être produit, aucun bypass local n'est autorisé. |
+| **Module** | `core/authority.py` (G1) + `core/advisor_loop.py:analyze_symbol()` |
+| **Mécanisme** | Guard en tête de `analyze_symbol()` via `get_authority().can_trade()` — **non bypassable** par `FORCE_TEST_EXECUTION` |
+| **Enforcement** | **HARD** — RSM states OK ; câblage pipeline G1 |
+| **Log** | `[GOVERNANCE/I-15] can_trade=False state={state} symbol={sym} → REJECTED` |
+| **Test** | `tests/governance/test_constitution_i15.py` |
+
+---
+
+## I-16 — Traceability Integrity : trace_id obligatoire
+
+| Champ | Valeur |
+|-------|--------|
+| **Condition** | Toute décision doit posséder un `trace_id` valide (UUID4, non-vide). L'absence de `trace_id` invalide la décision. |
+| **Module** | `observability/json_logger.py` + `core/advisor_loop.py:analyze_symbol()` |
+| **Mécanisme** | `new_trace_id()` obligatoire en tête de chaque cycle ; tout `DecisionPacket` sans `trace_id` dans `metadata` est `REJECTED` avant toute transition |
+| **Enforcement** | **HARD** — infrastructure OK (I-11 upgradé) ; validation pipeline G1 |
+| **Log** | `[GOVERNANCE/I-16] trace_id absent → REJECTED` |
+| **Test** | `tests/governance/test_constitution_i16.py` |
+
+---
+
+## I-13 — Souveraineté de blocage + autorité SAFE_MODE unique
+
+| Champ | Valeur |
+|-------|--------|
+| **Condition** | Seuls `GlobalRiskGate`, `PortfolioBrain`, `ExecutiveOverride` peuvent bloquer une décision ; le SAFE_MODE runtime est centralisé par `RuntimeStateMachine` |
+| **Module** | `quant_hedge_ai/agents/risk/global_risk_gate.py`, `quant_hedge_ai/agents/risk/portfolio_brain.py`, `quant_hedge_ai/agents/risk/executive_override.py`, `quant_hedge_ai/runtime/runtime_state_machine.py`, `core/advisor_loop.py` |
+| **Mécanisme** | Rejets explicites par composants autorisés ; toutes les demandes SAFE_MODE passent par `request_safe_mode(source, reason)` et la reprise par `clear_*` |
+| **Enforcement** | **HARD** |
+| **Log** | `[RSM] SAFE_MODE request — <source> (...)`, événement Black Box `OPERATOR_RESUME` |
+| **Test** | `tests/chaos/test_chaos_runtime_state.py::TestSafeModeRequests` |
 
 ---
 
@@ -181,7 +233,11 @@ Chaque invariant a: ID · condition · module responsable · mécanisme · nivea
 | I-08 | VETO = terminal | HARD | DecisionArbitrator |
 | I-09 | Size dans [min,max] | SOFT | OrderSizer |
 | I-10 | DrawdownGuard factor ≥ 0.1 | SOFT | DrawdownGuard |
-| I-11 | trace_id présent par cycle | LOGGED | advisor_loop |
+| I-11 | trace_id présent par cycle | HARD (voir I-16) | advisor_loop |
 | I-12 | Order > MAX = REJECT | HARD | SessionGuard |
+| I-13 | Blockers autorisés + SAFE_MODE centralisé | HARD | RSM + risk layers |
+| I-14 | Exception agent → REJECTED (fail-closed) | **ABSENT** → HARD cible G3 | advisor_loop |
+| I-15 | can_trade=False → aucun ordre possible | HARD (pipeline G1) | core/authority.py |
+| I-16 | trace_id obligatoire par décision | HARD (validation G1) | advisor_loop |
 
-**Résumé:** 6 HARD · 5 SOFT · 1 LOGGED
+**Résumé:** 9 HARD · 5 SOFT · 1 ABSENT/gap-G3 (I-14)
