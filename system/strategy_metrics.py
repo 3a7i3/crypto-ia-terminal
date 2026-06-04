@@ -138,8 +138,11 @@ class StrategyAnalyzer:
         if trades[0].ts > 0 and trades[-1].ts > trades[0].ts:
             days = (trades[-1].ts - trades[0].ts) / 86_400
             total_ret = 1.0 + m.total_return_pct / 100.0
-            if total_ret > 0 and days > 0:
-                m.cagr = (total_ret ** (365.0 / days) - 1) * 100
+            if total_ret > 0 and days >= 1.0:
+                try:
+                    m.cagr = (total_ret ** (365.0 / days) - 1) * 100
+                except (OverflowError, ZeroDivisionError):
+                    pass
 
         # Equity curve
         if equity_curve is None:

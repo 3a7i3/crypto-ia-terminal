@@ -40,6 +40,20 @@ from typing import Optional
 _DEFAULT_PATH = os.getenv("PAPER_TRADE_LOG", "databases/paper_trades.jsonl")
 
 
+def _score_to_bin(score: int) -> str:
+    if score < 50:
+        return "<50"
+    if score < 55:
+        return "50-54"
+    if score < 60:
+        return "55-59"
+    if score < 65:
+        return "60-64"
+    if score < 70:
+        return "65-69"
+    return "70+"
+
+
 @dataclass
 class TradeEvent:
     event: str  # "OPEN" | "CLOSE"
@@ -54,6 +68,7 @@ class TradeEvent:
     # OPEN uniquement
     regime: str = "unknown"
     score: int = 0
+    score_bin: str = ""
     order_id: str = ""
     # CLOSE uniquement
     exit_price: Optional[float] = None
@@ -128,6 +143,7 @@ class PaperTradeRecorder:
             mode=mode,
             regime=regime,
             score=score,
+            score_bin=_score_to_bin(score),
             order_id=order_id,
         )
         self._append(evt)

@@ -44,6 +44,9 @@ if hasattr(sys.stderr, "reconfigure"):
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_PROJECT_ROOT))
 
+from system.alpha_kill_switch import AlphaKillSwitch  # noqa: E402
+from system.burnin_analytics import BurnInAnalytics  # noqa: E402
+
 # -- Chemins (overridables via variables d'environnement) ----------------
 METRICS_PATH = Path(os.getenv("P12_METRICS_PATH", "cache/startup/metrics.jsonl"))
 ALERTS_PATH = Path(os.getenv("P12_ALERT_PATH", "cache/startup/alerts.jsonl"))
@@ -318,6 +321,11 @@ def _build_p13_table(
 
     # -- Métriques stratégie ---------------------------------------------------
     strat = _compute_trading_metrics(trades)
+    burnin_analytics = BurnInAnalytics().build_report(
+        trades,
+        generated_at=_NOW_UTC,
+        window_hours=window_s / 3600.0,
+    )
 
     # -- Verdict P13 -----------------------------------------------------------
     failures: list[str] = []
@@ -362,6 +370,9 @@ def _build_p13_table(
     # Métriques comportementales (informatives — pas de pass/fail pour l'instant)
     behavioral = _compute_behavioral_metrics(behavior_events or [])
 
+    # Alpha Kill Switch (observatoire — ne bloque rien automatiquement)
+    alpha_kill = AlphaKillSwitch().evaluate(trades)
+
     return {
         "label": label,
         "generated": _NOW_UTC.isoformat(),
@@ -370,6 +381,8 @@ def _build_p13_table(
         "n_alerts": n_alerts,
         "n_critical_alerts": n_critical,
         "behavioral": behavioral,
+        "burnin_analytics": burnin_analytics,
+        "alpha_kill": alpha_kill.as_dict(),
         # Tableau P13
         "p13_table": {
             "uptime_pct": {
@@ -440,6 +453,114 @@ def _color_value(value, target_str: str) -> str:
     if value is None:
         return f"{_YELLOW}N/A{_RESET}"
     return str(value)
+
+
+def _print_score_calibration(burnin: dict) -> None:
+    """Affiche l'histogramme score -> performance (calibration audit)."""
+    histogram = burnin.get("score_histogram", [])
+    if not histogram or not any(r["trades"] > 0 for r in histogram):
+        return
+
+    total_trades = burnin.get("trades", 0)
+    target = 100
+    filled = min(total_trades, target) * 20 // target
+
+    floor = burnin.get("recommended_score_floor")
+    confidence = burnin.get("score_floor_confidence", "INSUFFICIENT_DATA")
+
+    print(f"{_BOLD}{_CYAN}{'-'*64}{_RESET}")
+    print(f"{_BOLD}  CALIBRATION AUDIT — Score -> Performance{_RESET}")
+    print(
+        f"  Trades collectes : {total_trades} / {target} cible"
+        f"  {'#' * filled}{'.' * (20 - filled)}"
+        f"  ({total_trades / target * 100:.0f}%)"
+    )
+    if floor is not None:
+        floor_col = (
+            _GREEN
+            if confidence == "HIGH"
+            else (_YELLOW if confidence == "MEDIUM" else _RED)
+        )
+        print(
+            f"  Score floor recommande : {floor_col}{floor}{_RESET}"
+            f"  (confiance: {floor_col}{confidence}{_RESET})"
+        )
+    else:
+        print(
+            f"  Score floor recommande : {_YELLOW}N/A — donnees insuffisantes{_RESET}"
+        )
+    print(f"{_BOLD}{_CYAN}{'-'*64}{_RESET}")
+    print(
+        f"  {'Score':<10} {'N':>5} {'WR%':>7} {'Expect':>9}"
+        f" {'PF':>7} {'Sharpe':>7}  Alpha"
+    )
+    print(f"  {'-'*8} {'-'*5} {'-'*7} {'-'*9} {'-'*7} {'-'*7}  {'-'*14}")
+
+    for row in histogram:
+        if row["trades"] == 0:
+            continue
+        wr = row["win_rate"]
+        exp = row["expectancy"]
+        pf = row["profit_factor"]
+        sharpe = row.get("sharpe", 0.0)
+        alpha_class = row.get("alpha_class", "insufficient_data")
+
+        if alpha_class == "positive":
+            verdict = f"{_GREEN}POSITIVE{_RESET}"
+        elif alpha_class == "neutral":
+            verdict = f"{_YELLOW}NEUTRE{_RESET}"
+        elif alpha_class == "negative":
+            verdict = f"{_RED}NEGATIVE{_RESET}"
+        else:
+            verdict = f"{_YELLOW}insuf.{_RESET}"
+
+        print(
+            f"  {row['range']:<10} {row['trades']:>5} {wr:>7.1f}"
+            f" {exp:>9.3f} {pf:>7.3f} {sharpe:>7.3f}  {verdict}"
+        )
+
+    print(f"{_BOLD}{_CYAN}{'-'*64}{_RESET}")
+    print()
+
+
+def _print_symbol_breakdown(burnin: dict) -> None:
+    """Affiche l'expectancy par symbole — detecte les actifs drag."""
+    rows = burnin.get("symbol_breakdown", [])
+    if not rows or not any(r["trades"] > 0 for r in rows):
+        return
+
+    print(f"{_BOLD}{_CYAN}{'-'*64}{_RESET}")
+    print(f"{_BOLD}  BREAKDOWN PAR SYMBOLE{_RESET}")
+    print(f"{_BOLD}{_CYAN}{'-'*64}{_RESET}")
+    print(f"  {'Symbole':<14} {'N':>5} {'WR%':>7} {'Expect':>9} {'PF':>7}  Signal")
+    print(f"  {'-'*12} {'-'*5} {'-'*7} {'-'*9} {'-'*7}  {'-'*10}")
+
+    for row in rows:
+        if row["trades"] == 0:
+            continue
+        exp = row["expectancy"]
+        wr = row["win_rate"]
+        pf = row["profit_factor"]
+
+        if exp > 0.2:
+            signal = f"{_GREEN}FORT+{_RESET}"
+        elif exp > 0.05:
+            signal = f"{_GREEN}+{_RESET}"
+        elif exp > -0.05:
+            signal = f"{_YELLOW}~{_RESET}"
+        elif exp > -0.2:
+            signal = f"{_RED}-{_RESET}"
+        else:
+            signal = f"{_RED}DRAG{_RESET}"
+
+        sym = row["symbol"][:14]
+        print(
+            f"  {sym:<14} {row['trades']:>5} {wr:>7.1f}"
+            f" {exp:>9.3f} {pf:>7.3f}  {signal}"
+        )
+
+    print(f"{_BOLD}{_CYAN}{'-'*64}{_RESET}")
+    print()
 
 
 def _print_p13_table(report: dict) -> None:
@@ -535,12 +656,92 @@ def _print_p13_table(report: dict) -> None:
     print(f"{_BOLD}{_CYAN}{'-'*64}{_RESET}")
     print()
 
+    # Calibration + symboles (toujours affichés dans un rapport complet)
+    burnin = report.get("burnin_analytics", {})
+    _print_score_calibration(burnin)
+    _print_symbol_breakdown(burnin)
+
+    # Alpha Kill Switch
+    ak = report.get("alpha_kill", {})
+    if ak.get("triggered"):
+        print(f"{_BOLD}{_CYAN}{'-'*64}{_RESET}")
+        print(f"{_BOLD}{_RED}  ALPHA KILL SWITCH — ALERTE{_RESET}")
+        print(f"{_BOLD}{_CYAN}{'-'*64}{_RESET}")
+        for reason in ak.get("reasons", []):
+            print(f"  {_RED}!{_RESET} {reason}")
+        print()
+        print(f"  Actions suggérées :")
+        for action in ak.get("suggested_actions", []):
+            print(f"  {_YELLOW}→{_RESET} {action}")
+        print(f"{_BOLD}{_CYAN}{'-'*64}{_RESET}")
+        print()
+
 
 # ── Telegram ──────────────────────────────────────────────────────────────────
 
 
+def _alpha_digest_lines(burnin: dict) -> list[str]:
+    """Section alpha pour le digest Telegram — indépendante du tableau P13."""
+    lines: list[str] = []
+    total = burnin.get("trades", 0)
+    if total == 0:
+        return ["_Aucun trade fermé sur la période_"]
+
+    target = 100
+    pct = round(min(total, target) / target * 100)
+    wr = burnin.get("win_rate", 0.0)
+    pf = burnin.get("profit_factor", 0.0)
+    sh = burnin.get("sharpe", 0.0)
+    dd = burnin.get("max_drawdown", 0.0)
+
+    lines += [
+        f"• Trades : *{total}* / {target} cible ({pct}%)",
+        f"• Win Rate : {wr:.1f}%",
+        f"• Profit Factor : {pf:.3f}",
+        f"• Sharpe : {sh:.3f}",
+        f"• Max Drawdown : {dd:.2f}%",
+    ]
+
+    # Meilleur / pire bin (parmi ceux avec au moins 1 trade)
+    histogram = [r for r in burnin.get("score_histogram", []) if r["trades"] > 0]
+    if histogram:
+        best_bin = max(histogram, key=lambda r: r["expectancy"])
+        worst_bin = min(histogram, key=lambda r: r["expectancy"])
+        lines += [
+            "",
+            f"📈 Meilleur bin : *{best_bin['range']}*"
+            f" (E: {best_bin['expectancy']:+.3f}, WR: {best_bin['win_rate']:.0f}%,"
+            f" N: {best_bin['trades']})",
+            f"📉 Pire bin : *{worst_bin['range']}*"
+            f" (E: {worst_bin['expectancy']:+.3f}, WR: {worst_bin['win_rate']:.0f}%,"
+            f" N: {worst_bin['trades']})",
+        ]
+
+    # Meilleur / pire symbole
+    sym_rows = [r for r in burnin.get("symbol_breakdown", []) if r["trades"] > 0]
+    if sym_rows:
+        best_sym = sym_rows[0]  # déjà trié expectancy desc
+        worst_sym = sym_rows[-1]
+        lines += [
+            f"🟢 Meilleur symbole : *{best_sym['symbol']}*"
+            f" (E: {best_sym['expectancy']:+.3f}, N: {best_sym['trades']})",
+            f"🔴 Pire symbole : *{worst_sym['symbol']}*"
+            f" (E: {worst_sym['expectancy']:+.3f}, N: {worst_sym['trades']})",
+        ]
+
+    # Recommandation score floor
+    floor = burnin.get("recommended_score_floor")
+    conf = burnin.get("score_floor_confidence", "INSUFFICIENT_DATA")
+    if floor is not None:
+        lines.append(f"🎯 Score floor recommandé : *{floor}* (confiance: {conf})")
+    else:
+        lines.append(f"🎯 Score floor recommandé : N/A (données insuffisantes)")
+
+    return lines
+
+
 def _send_telegram(report: dict) -> None:
-    """Envoie un résumé du rapport P13 via Telegram."""
+    """Envoie le digest burn-in (gouvernance + alpha) via Telegram."""
     try:
         import requests
         from dotenv import load_dotenv
@@ -559,6 +760,7 @@ def _send_telegram(report: dict) -> None:
         table = report["p13_table"]
         passed = report["burn_in_passed"]
         verdict = "✅ PASS" if passed else "❌ FAIL"
+        label = report.get("label", "")
 
         def _fmt(key: str) -> str:
             v = table.get(key, {}).get("value")
@@ -566,46 +768,49 @@ def _send_telegram(report: dict) -> None:
                 "N/A" if v is None else (f"{v:.2f}" if isinstance(v, float) else str(v))
             )
 
+        # ── Section gouvernance ──────────────────────────────────────────────
         lines = [
-            f"🔥 *Burn-In Report — {report['label']}*",
+            f"🔥 *Burn-In — {label}*",
             f"Verdict : *{verdict}*",
             "",
+            "*━━ Gouvernance ━━*",
             f"• Uptime : {_fmt('uptime_pct')}%",
             f"• Exceptions : {_fmt('exceptions')}",
             f"• Reconcile failures : {_fmt('reconciliation_failures')}",
-            f"• Max drawdown : {_fmt('max_drawdown_pct')}%",
+            f"• Max drawdown sys : {_fmt('max_drawdown_pct')}%",
             f"• Health min : {_fmt('health_score_min')}",
-            f"• Sharpe : {_fmt('sharpe_ratio')}",
-            f"• Sortino : {_fmt('sortino_ratio')}",
-            f"• Profit Factor : {_fmt('profit_factor')}",
-            f"• Strategy Score : {_fmt('strategy_score')} ({_fmt('strategy_grade')})",
-            f"• Trades : {_fmt('total_trades')}",
         ]
         if report["failure_reasons"]:
-            lines.append("")
-            lines.append("*Échecs :*")
+            lines.append("*Échecs P13 :*")
             for r in report["failure_reasons"]:
                 lines.append(f"  ✗ {r}")
+
         beh = report.get("behavioral", {})
         if (
             beh.get("stalled_episodes", 0) > 0
             or beh.get("adaptation_ineffective_count", 0) > 0
         ):
-            lines.append("")
-            lines.append("*Comportement interne :*")
             n_st = beh.get("stalled_episodes", 0)
             n_pa = beh.get("paralysed_episodes", 0)
-            lines.append(f"• Stalled: {n_st} episodes (dont {n_pa} PARALYSED)")
-            avg_d = beh.get("avg_stall_duration_cycles")
-            if avg_d:
-                lines.append(f"• Durée moy stall: {avg_d} cycles")
             n_inef = beh.get("adaptation_ineffective_count", 0)
-            lines.append(f"• Adaptation inefficace: {n_inef}x")
-            if beh.get("top_blockers"):
-                blk_str = " | ".join(
-                    f"{b['name']}:{b['count']}" for b in beh["top_blockers"][:3]
-                )
-                lines.append(f"• Top blockers: {blk_str}")
+            lines.append(
+                f"• Stalled: {n_st} ep (dont {n_pa} PARALYSED)" f" | Inef: {n_inef}x"
+            )
+
+        # ── Section alpha ────────────────────────────────────────────────────
+        burnin = report.get("burnin_analytics", {})
+        if burnin:
+            lines += ["", "*━━ Alpha ━━*"]
+            lines += _alpha_digest_lines(burnin)
+
+        # ── Alpha Kill Switch ────────────────────────────────────────────────
+        ak = report.get("alpha_kill", {})
+        if ak.get("triggered"):
+            lines += ["", "*🚨 ALPHA KILL SWITCH*"]
+            for reason in ak.get("reasons", []):
+                lines.append(f"  ✗ {reason}")
+            for action in ak.get("suggested_actions", []):
+                lines.append(f"  → `{action}`")
 
         text = "\n".join(lines)
         resp = requests.post(
@@ -645,7 +850,55 @@ def _save_report(report: dict, mode: str) -> Path:
         with open(p13_out, "w", encoding="utf-8") as f:
             json.dump(report, f, indent=2, ensure_ascii=False)
 
+    burnin_analytics = report.get("burnin_analytics", {})
+
+    burnin_out = REPORTS_DIR / "burnin_report.json"
+    with open(burnin_out, "w", encoding="utf-8") as f:
+        json.dump(burnin_analytics, f, indent=2, ensure_ascii=False)
+
+    _save_calibration_report(burnin_analytics, REPORTS_DIR)
+    _save_equity_curve(burnin_analytics, REPORTS_DIR)
+
     return out
+
+
+def _save_equity_curve(burnin: dict, reports_dir: Path) -> None:
+    """Sauvegarde burnin_equity_curve.json — courbe de capital trade par trade."""
+    curve = burnin.get("equity_curve", [])
+    out = reports_dir / "burnin_equity_curve.json"
+    with open(out, "w", encoding="utf-8") as f:
+        json.dump(
+            {"generated_at": burnin.get("generated_at", ""), "curve": curve},
+            f,
+            indent=2,
+            ensure_ascii=False,
+        )
+
+
+def _save_calibration_report(burnin: dict, reports_dir: Path) -> None:
+    """Produit calibration_report.json : score bins + EV curve + recommandation."""
+    total = burnin.get("trades", 0)
+    target = 100
+
+    calibration = {
+        "generated_at": burnin.get("generated_at", _NOW_UTC.isoformat()),
+        "window_hours": burnin.get("window_hours"),
+        "total_trades": total,
+        "target_trades": target,
+        "coverage_pct": round(min(total, target) / target * 100, 1),
+        "bins": burnin.get("score_histogram", []),
+        "expected_value_curve": burnin.get("expected_value_curve", []),
+        "recommended_score_floor": burnin.get("recommended_score_floor"),
+        "score_floor_confidence": burnin.get(
+            "score_floor_confidence", "INSUFFICIENT_DATA"
+        ),
+        "symbol_breakdown": burnin.get("symbol_breakdown", []),
+        "symbol_bin_matrix": burnin.get("symbol_bin_matrix", {}),
+        "alpha_drift": burnin.get("alpha_drift", {}),
+    }
+    out = reports_dir / "calibration_report.json"
+    with open(out, "w", encoding="utf-8") as f:
+        json.dump(calibration, f, indent=2, ensure_ascii=False)
 
 
 # ── Snapshot horaire ──────────────────────────────────────────────────────────
@@ -714,6 +967,29 @@ def _run_report(hours: float, send_telegram: bool) -> None:
 # ── Point d'entrée ────────────────────────────────────────────────────────────
 
 
+def _run_calibrate(hours: float) -> None:
+    """Mode dédié calibration : score histogram + symbol breakdown uniquement."""
+    since_ts = time.time() - hours * 3600
+    trades = _load_complete_trades(TRADES_PATH, since_ts)
+    print(f"[INFO] {len(trades)} trades sur {hours:.0f}h")
+
+    if not trades:
+        print("[WARN] Aucun trade — impossible de calculer la calibration.")
+        return
+
+    burnin = BurnInAnalytics().build_report(
+        trades,
+        generated_at=_NOW_UTC,
+        window_hours=hours,
+    )
+    _print_score_calibration(burnin)
+    _print_symbol_breakdown(burnin)
+
+    REPORTS_DIR.mkdir(parents=True, exist_ok=True)
+    _save_calibration_report(burnin, REPORTS_DIR)
+    print(f"[OK] calibration_report.json -> {REPORTS_DIR / 'calibration_report.json'}")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Collecteur de métriques burn-in VPS")
     group = parser.add_mutually_exclusive_group()
@@ -724,6 +1000,11 @@ def main() -> None:
         "--report",
         action="store_true",
         help="Rapport complet avec tableau P13 (défaut)",
+    )
+    group.add_argument(
+        "--calibrate",
+        action="store_true",
+        help="Audit calibration seul : score histogram + symboles",
     )
     parser.add_argument(
         "--hours",
@@ -738,6 +1019,8 @@ def main() -> None:
 
     if args.snapshot:
         _run_snapshot(hours=args.hours)
+    elif args.calibrate:
+        _run_calibrate(hours=args.hours)
     else:
         _run_report(hours=args.hours, send_telegram=args.telegram)
 
