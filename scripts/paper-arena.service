@@ -1,0 +1,19 @@
+[Unit]
+Description=Paper Arena V1 — ETH 4h RSI 15/85
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=mathieuhasard111
+WorkingDirectory=/home/mathieuhasard111/crypto_ai_terminal
+EnvironmentFile=/home/mathieuhasard111/crypto_ai_terminal/.env
+Environment=PYTHONPATH=/home/mathieuhasard111/crypto_ai_terminal
+ExecStart=/home/mathieuhasard111/crypto_ai_terminal/.venv/bin/python3 src/paper/paper_runner.py
+Restart=always
+RestartSec=10
+StandardOutput=append:/home/mathieuhasard111/crypto_ai_terminal/logs/paper_arena.log
+StandardError=append:/home/mathieuhasard111/crypto_ai_terminal/logs/paper_arena.log
+
+[Install]
+WantedBy=multi-user.target
