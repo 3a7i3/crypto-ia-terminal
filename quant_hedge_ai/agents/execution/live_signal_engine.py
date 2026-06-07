@@ -310,11 +310,18 @@ class LiveSignalEngine:
             score = 20.0 + strength * 20.0  # 20-40 pts si confirmé
 
         signal = candidate if confirmed else "HOLD"
-        _log.debug(
-            "[LSE] MTF: %s strength=%.2f n_agree=%d tfs=%s",
-            signal,
+        _log.info(
+            "[LSE][MTF-DIAG] candidate=%s strength=%.3f n_agree=%d confirmed=%s "
+            "buy=%.2f sell=%.2f total_w=%.2f min_str=%.2f score=%.2f | tfs=%s",
+            candidate,
             strength,
             n_agree,
+            confirmed,
+            buy_score,
+            sell_score,
+            total_w,
+            min_strength,
+            score,
             tf_signals,
         )
 

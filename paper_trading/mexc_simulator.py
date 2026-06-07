@@ -101,6 +101,8 @@ class MexcPosition:
     pnl_usd: float = 0.0
     pnl_pct: float = 0.0
     close_reason: str = ""
+    mae_pct: float = 0.0
+    mfe_pct: float = 0.0
 
     @property
     def is_open(self) -> bool:
@@ -458,10 +460,24 @@ class MexcSimulator:
                 tick += 1
                 if tick % 60 == 0:  # rapport toutes les heures (60 × 60s)
                     self._send_report()
-                self._perf.record_equity(self._capital)
+                self._perf.record_equity(self._total_equity())
             except Exception as exc:
                 _log.error("[SIM] Erreur surveillance: %s", exc)
             time.sleep(_MONITOR_INTERVAL)
+
+    def _total_equity(self) -> float:
+        """Capital libre + valeur mark-to-market des positions ouvertes."""
+        with self._lock:
+            open_pos = dict(self._positions)
+        equity = self._capital
+        for sym, p in open_pos.items():
+            price = self._fetch_price(sym)
+            if price > 0:
+                live_pct = p.live_pnl_pct(price) / 100.0
+                equity += p.qty_usd * (1.0 + live_pct)
+            else:
+                equity += p.qty_usd  # valeur d'entrée si prix indisponible
+        return equity
 
     def _fetch_price(self, symbol: str) -> float:
         if self._mexc is None:
@@ -483,6 +499,9 @@ class MexcSimulator:
                 pos = self._positions.get(sym)
             if pos is None:
                 continue
+            live = pos.live_pnl_pct(price)
+            pos.mae_pct = min(pos.mae_pct, live)
+            pos.mfe_pct = max(pos.mfe_pct, live)
             if pos.hits_tp(price):
                 self._close_position(sym, price, "TP")
             elif pos.hits_sl(price):
@@ -554,6 +573,11 @@ class MexcSimulator:
             else "—"
         )
         icon = "TP atteint" if reason == "TP" else "SL touche"
+        sl_efficiency = (
+            f"{pos.mae_pct / pos.sl_pct_used * 100:.0f}%"
+            if hasattr(pos, "sl_pct_used") and pos.sl_pct_used
+            else "—"
+        )
         self._notify(
             f"MEXC SIM — {icon}\n"
             f"━━━━━━━━━━━━━━━━━━━━━\n"
@@ -561,6 +585,8 @@ class MexcSimulator:
             f"Entry    : ${pos.entry_price:.4g}\n"
             f"Exit     : ${fill:.4g}\n"
             f"P&L      : {sign}${pnl_usd:.4f}  ({sign}{pnl_pct:.2f}%)\n"
+            f"MAE      : {pos.mae_pct:+.2f}%  (pire retour subi)\n"
+            f"MFE      : {pos.mfe_pct:+.2f}%  (meilleur gain non realise)\n"
             f"Capital  : ${self._capital:.2f} USDT\n"
             f"Global   : {global_pnl:+.2f}%\n"
             f"Win Rate : {wr_str}"
@@ -584,12 +610,36 @@ class MexcSimulator:
         with self._lock:
             n_open = len(self._positions)
             closed = list(self._closed)
+            open_pos = dict(self._positions)
 
         n_closed = len(closed)
         wins = sum(1 for p in closed if p.pnl_usd >= 0)
         wr = wins / n_closed * 100 if n_closed else 0.0
-        total_pnl = sum(p.pnl_usd for p in closed)
-        pnl_pct = self._perf.pnl_pct(self._initial_capital)
+        realized_pnl = sum(p.pnl_usd for p in closed)
+
+        # Unrealized P&L sur positions ouvertes (mark-to-market)
+        unrealized_pnl = 0.0
+        live_lines = []
+        for sym, p in open_pos.items():
+            price = self._fetch_price(sym)
+            live = p.live_pnl_pct(price) if price > 0 else 0.0
+            if price > 0:
+                unrealized_pnl += p.qty_usd * live / 100.0
+            sign = "+" if live >= 0 else ""
+            live_lines.append(
+                f"  {sym} {p.side.value}"
+                f" entry=${p.entry_price:.4g}"
+                f" live={sign}{live:.2f}%"
+            )
+
+        # Equity totale = cash libre + capital déployé + PnL latent
+        deployed = sum(p.qty_usd for p in open_pos.values())
+        total_equity = self._capital + deployed + unrealized_pnl
+        pnl_pct = (
+            (total_equity - self._initial_capital) / self._initial_capital * 100
+            if self._initial_capital > 0
+            else 0.0
+        )
         sharpe = self._perf.sharpe()
         dd = self._perf.max_drawdown_pct()
         days = self._perf.days_running()
@@ -598,24 +648,17 @@ class MexcSimulator:
             "MEXC SIM — Rapport performance",
             "━━━━━━━━━━━━━━━━━━━━━",
             f"Duree    : J{days:.1f} / 7",
-            f"Capital  : ${self._initial_capital:.2f} -> ${self._capital:.2f} USDT",
-            f"P&L      : {pnl_pct:+.2f}%  (${total_pnl:+.4f})",
+            f"Capital  : ${self._initial_capital:.2f} -> ${total_equity:.2f} USDT",
+            f"P&L      : {pnl_pct:+.2f}%"
+            f"  (R:{realized_pnl:+.4f}$ U:{unrealized_pnl:+.4f}$)",
             f"Sharpe   : {sharpe:.2f}",
             f"Max DD   : {dd:.2f}%",
             f"Trades   : {n_closed} fermes | {n_open} ouverts",
             f"Win Rate : {wr:.0f}%  (W={wins} L={n_closed-wins})",
         ]
-        if self._positions:
+        if live_lines:
             lines.append("Positions actives :")
-            for sym, p in self._positions.items():
-                price = self._fetch_price(sym)
-                live = p.live_pnl_pct(price) if price > 0 else 0.0
-                sign = "+" if live >= 0 else ""
-                lines.append(
-                    f"  {sym} {p.side.value}"
-                    f" entry=${p.entry_price:.4g}"
-                    f" live={sign}{live:.2f}%"
-                )
+            lines.extend(live_lines)
         return "\n".join(lines)
 
     # ── Helpers ───────────────────────────────────────────────────────────────
