@@ -226,11 +226,17 @@ class MexcSimulator:
         self._initial_capital = capital
         self._perf.record_equity(capital)
 
+        restored = self._restore_positions()
+
         self._running = True
         t = threading.Thread(target=self._monitor_loop, daemon=True, name="MEXC-SIM")
         t.start()
 
-        _log.info("[SIM] Démarré — capital=$%.2f", capital)
+        _log.info(
+            "[SIM] Démarré — capital=$%.2f (positions restaurées: %d)",
+            capital,
+            restored,
+        )
         self._notify(
             f"MEXC SIM — Compte actif\n"
             f"━━━━━━━━━━━━━━━━━━━━━\n"
@@ -264,6 +270,80 @@ class MexcSimulator:
 
     def stop(self) -> None:
         self._running = False
+
+    def _restore_positions(self) -> int:
+        """Restaure les positions OPEN sans CLOSE depuis paper_trades.jsonl."""
+        try:
+            from paper_trading.recorder import get_recorder
+
+            trades = get_recorder().trades()
+        except Exception as exc:
+            _log.warning("[SIM] Restore impossible — recorder: %s", exc)
+            return 0
+
+        restored = 0
+        for trade in trades:
+            if not trade.is_open:
+                continue
+            if trade.symbol in self._positions:
+                continue
+            if trade.entry_price <= 0:
+                _log.warning(
+                    "[SIM] Restore skipped %s — entry_price invalide",
+                    trade.symbol,
+                )
+                continue
+            if self._capital < trade.size_usd * 1.01:
+                _log.warning(
+                    "[SIM] Restore skipped %s — capital insuffisant "
+                    "(dispo=$%.2f requis=$%.2f)",
+                    trade.symbol,
+                    self._capital,
+                    trade.size_usd,
+                )
+                continue
+
+            side = (
+                OrderSide.BUY
+                if trade.side.upper() in ("BUY", "LONG")
+                else OrderSide.SELL
+            )
+            entry = trade.entry_price
+            tp_pct, sl_pct = 0.04, 0.02
+            if side == OrderSide.BUY:
+                tp = entry * (1 + tp_pct)
+                sl = entry * (1 - sl_pct)
+            else:
+                tp = entry * (1 - tp_pct)
+                sl = entry * (1 + sl_pct)
+
+            pos = MexcPosition(
+                pos_id=trade.trade_id,
+                symbol=trade.symbol,
+                side=side,
+                qty_usd=trade.size_usd,
+                entry_price=entry,
+                tp_price=tp,
+                sl_price=sl,
+                fee_entry_usd=0.0,
+                score=trade.score,
+                personality="restored",
+                opened_ts=trade.opened_at or time.time(),
+            )
+            self._positions[trade.symbol] = pos
+            self._capital -= trade.size_usd
+            restored += 1
+            _log.info(
+                "[SIM] RESTORE %s %s entry=%.5f size=$%.2f TP=%.5f SL=%.5f",
+                side.value,
+                trade.symbol,
+                entry,
+                trade.size_usd,
+                tp,
+                sl,
+            )
+
+        return restored
 
     # ── Passage d'ordres ──────────────────────────────────────────────────────
 
@@ -421,6 +501,21 @@ class MexcSimulator:
             order.fill_ts = time.time()
             order.status = OrderStatus.FILLED
 
+        try:
+            from paper_trading.recorder import get_recorder
+
+            get_recorder().record_open(
+                trade_id=pos.pos_id,
+                symbol=pos.symbol,
+                side=pos.side.value.lower(),
+                price=pos.entry_price,
+                size_usd=pos.qty_usd,
+                score=pos.score,
+                mode="futures_demo",
+            )
+        except Exception as exc:
+            _log.warning("[SIM] record_open échoué: %s", exc)
+
         wins = sum(1 for p in self._closed if p.pnl_usd >= 0)
         total = len(self._closed)
         wr = f"{wins/total*100:.0f}%" if total else "—"
@@ -560,6 +655,26 @@ class MexcSimulator:
         with self._lock:
             self._capital += pos.qty_usd + pnl_usd
             self._closed.append(pos)
+
+        try:
+            from paper_trading.recorder import get_recorder
+
+            get_recorder().record_close(
+                trade_id=pos.pos_id,
+                exit_price=fill,
+                pnl_usd=pnl_usd,
+                pnl_pct=pnl_pct / 100.0,
+                reason=reason,
+                opened_at=pos.opened_ts,
+                symbol=pos.symbol,
+                side=pos.side.value.lower(),
+                size_usd=pos.qty_usd,
+                mode="futures_demo",
+                mae_pct=pos.mae_pct,
+                mfe_pct=pos.mfe_pct,
+            )
+        except Exception as exc:
+            _log.warning("[SIM] record_close échoué: %s", exc)
 
         wins = sum(1 for p in self._closed if p.pnl_usd >= 0)
         losses = len(self._closed) - wins
