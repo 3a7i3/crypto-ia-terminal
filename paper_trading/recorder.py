@@ -10,21 +10,22 @@ Chaque trade = 2 événements :
 
 Un trade complet = 1 OPEN + 1 CLOSE liés par trade_id.
 
+Schema v1 : champs de base (entry, exit, regime, score).
+Schema v2 : + MarketContext (27 features) + DecisionContext (conviction, personality...).
+
 Usage :
-    from paper_trading.recorder import PaperTradeRecorder
+    from paper_trading.recorder import PaperTradeRecorder, MarketContext, DecisionContext
     r = PaperTradeRecorder()
 
-    # À l'ouverture :
-    r.record_open(trade_id="abc", symbol="BTC/USDT", side="buy",
-                  price=65000.0, size_usd=55.0, regime="bull_trend", score=82)
+    ctx = MarketContext.from_features(features_dict)
+    dec = DecisionContext(score=82.0, conviction_level="HIGH", regime="bull_trend")
 
-    # À la fermeture :
+    r.record_open(trade_id="abc", symbol="BTC/USDT", side="buy",
+                  price=65000.0, size_usd=55.0, regime="bull_trend", score=82,
+                  market_context=ctx, decision_context=dec)
+
     r.record_close(trade_id="abc", exit_price=66200.0,
                    pnl_usd=1.03, pnl_pct=0.0187, reason="take_profit")
-
-    # État complet :
-    r.summary()   # -> dict avec stats agrégées
-    r.trades()    # -> list de trades complets (OPEN matchés avec CLOSE)
 """
 
 from __future__ import annotations
@@ -38,6 +39,8 @@ from pathlib import Path
 from typing import Optional
 
 _DEFAULT_PATH = os.getenv("PAPER_TRADE_LOG", "databases/paper_trades.jsonl")
+
+SCHEMA_VERSION = 2
 
 
 def _score_to_bin(score: int) -> str:
@@ -54,6 +57,117 @@ def _score_to_bin(score: int) -> str:
     return "70+"
 
 
+# ── Structures de contexte (schema v2) ───────────────────────────────────────
+
+
+@dataclass(frozen=True)
+class MarketContext:
+    """Snapshot immuable de l'état technique du marché au moment de l'entrée.
+
+    Alimenté via from_features(result_row["features"]).
+    Seules les variables validées sont persistées — le schéma reste stable
+    même si FeatureEngineer évolue.
+    """
+
+    momentum: Optional[float] = None
+    realized_volatility: Optional[float] = None
+    trend_strength: Optional[float] = None
+    avg_volume: Optional[float] = None
+    volume_ratio: Optional[float] = None
+    atr: Optional[float] = None
+    atr_ratio: Optional[float] = None
+    rsi: Optional[float] = None
+    rsi_oversold: Optional[bool] = None
+    rsi_overbought: Optional[bool] = None
+    ema20: Optional[float] = None
+    ema50: Optional[float] = None
+    ema_cross: Optional[float] = None  # distance signée prix/EMA20 (float, pas bool)
+    ema_bullish: Optional[bool] = None
+    macd_line: Optional[float] = None
+    macd_signal: Optional[float] = None
+    macd_hist: Optional[float] = None
+    macd_bullish: Optional[bool] = None
+    bb_pct: Optional[float] = None  # position dans la bande (0=bas, 1=haut)
+    bb_squeeze: Optional[bool] = None
+    vwap_dist: Optional[float] = None
+    range_pos: Optional[float] = None  # position dans le range 20 bougies
+    ob_imbalance: Optional[float] = None  # V2 microstructure
+    funding_rate: Optional[float] = None  # V2 on-chain
+    micro_spread_bps: Optional[float] = None  # V2 microstructure
+
+    @classmethod
+    def from_features(cls, features: dict) -> "MarketContext":
+        """Construit un MarketContext depuis le dict FeatureEngineer.
+
+        Les clés inconnues sont ignorées. Les clés manquantes deviennent None.
+        """
+
+        def _f(key: str) -> Optional[float]:
+            v = features.get(key)
+            return float(v) if v is not None else None
+
+        def _b(key: str) -> Optional[bool]:
+            v = features.get(key)
+            return bool(v) if v is not None else None
+
+        return cls(
+            momentum=_f("momentum"),
+            realized_volatility=_f("realized_volatility"),
+            trend_strength=_f("trend_strength"),
+            avg_volume=_f("avg_volume"),
+            volume_ratio=_f("volume_ratio"),
+            atr=_f("atr"),
+            atr_ratio=_f("atr_ratio"),
+            rsi=_f("rsi"),
+            rsi_oversold=_b("rsi_oversold"),
+            rsi_overbought=_b("rsi_overbought"),
+            ema20=_f("ema20"),
+            ema50=_f("ema50"),
+            ema_cross=_f("ema_cross"),
+            ema_bullish=_b("ema_bullish"),
+            macd_line=_f("macd_line"),
+            macd_signal=_f("macd_signal"),
+            macd_hist=_f("macd_hist"),
+            macd_bullish=_b("macd_bullish"),
+            bb_pct=_f("bb_pct"),
+            bb_squeeze=_b("bb_squeeze"),
+            vwap_dist=_f("vwap_dist"),
+            range_pos=_f("range_pos"),
+            ob_imbalance=_f("ob_imbalance"),
+            funding_rate=_f("funding_rate"),
+            micro_spread_bps=_f("micro_spread_bps"),
+        )
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "MarketContext":
+        valid = set(cls.__dataclass_fields__)
+        return cls(**{k: v for k, v in d.items() if k in valid})
+
+
+@dataclass(frozen=True)
+class DecisionContext:
+    """Snapshot de l'état du moteur de décision au moment de l'entrée.
+
+    Sépare la conviction (catégorie + valeur continue) pour permettre
+    des analyses statistiques sur les deux dimensions.
+    """
+
+    score: Optional[float] = None
+    conviction_level: Optional[str] = None  # "NONE"|"LOW"|"MEDIUM"|"HIGH"|"EXTREME"
+    conviction_value: Optional[float] = None  # score continu si disponible
+    personality: Optional[str] = None
+    regime: Optional[str] = None
+    transition_forecast: Optional[str] = None  # most_likely_next regime
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "DecisionContext":
+        valid = set(cls.__dataclass_fields__)
+        return cls(**{k: v for k, v in d.items() if k in valid})
+
+
+# ── Événements JSONL ─────────────────────────────────────────────────────────
+
+
 @dataclass
 class TradeEvent:
     event: str  # "OPEN" | "CLOSE"
@@ -65,6 +179,7 @@ class TradeEvent:
     price: float
     size_usd: float
     mode: str  # "futures_demo" | "paper" | "live"
+    schema_version: int = 1  # 2 depuis cette release
     # OPEN uniquement
     regime: str = "unknown"
     score: int = 0
@@ -76,6 +191,11 @@ class TradeEvent:
     pnl_pct: Optional[float] = None
     reason: str = ""
     duration_s: Optional[float] = None
+    mae_pct: Optional[float] = None
+    mfe_pct: Optional[float] = None
+    # Schema v2
+    market_context: Optional[MarketContext] = None
+    decision_context: Optional[DecisionContext] = None
 
 
 @dataclass
@@ -92,6 +212,7 @@ class CompleteTrade:
     opened_at: float
     opened_iso: str
     order_id: str
+    schema_version: int = 1
     # Exit (None si encore ouvert)
     exit_price: Optional[float] = None
     pnl_usd: Optional[float] = None
@@ -102,6 +223,14 @@ class CompleteTrade:
     duration_s: Optional[float] = None
     is_open: bool = True
     is_win: Optional[bool] = None
+    mae_pct: Optional[float] = None
+    mfe_pct: Optional[float] = None
+    # Schema v2
+    market_context: Optional[MarketContext] = None
+    decision_context: Optional[DecisionContext] = None
+
+
+# ── Recorder ─────────────────────────────────────────────────────────────────
 
 
 class PaperTradeRecorder:
@@ -110,6 +239,8 @@ class PaperTradeRecorder:
 
     Thread-safe par file-lock léger (atomic write).
     Compatible VPS : un seul fichier JSONL, lisible à distance.
+    Rétrocompatible : les lignes schema_version=1 (sans market/decision context)
+    sont lues sans erreur, les nouveaux champs valent None.
     """
 
     def __init__(self, log_path: str = _DEFAULT_PATH) -> None:
@@ -129,6 +260,8 @@ class PaperTradeRecorder:
         score: int = 0,
         order_id: str = "",
         mode: str = "futures_demo",
+        market_context: Optional[MarketContext] = None,
+        decision_context: Optional[DecisionContext] = None,
     ) -> None:
         now = time.time()
         evt = TradeEvent(
@@ -141,10 +274,13 @@ class PaperTradeRecorder:
             price=price,
             size_usd=size_usd,
             mode=mode,
+            schema_version=SCHEMA_VERSION,
             regime=regime,
             score=score,
             score_bin=_score_to_bin(score),
             order_id=order_id,
+            market_context=market_context,
+            decision_context=decision_context,
         )
         self._append(evt)
 
@@ -160,6 +296,8 @@ class PaperTradeRecorder:
         side: str = "",
         size_usd: float = 0.0,
         mode: str = "futures_demo",
+        mae_pct: Optional[float] = None,
+        mfe_pct: Optional[float] = None,
     ) -> None:
         now = time.time()
         duration = (now - opened_at) if opened_at else None
@@ -173,11 +311,14 @@ class PaperTradeRecorder:
             price=exit_price,
             size_usd=size_usd,
             mode=mode,
+            schema_version=SCHEMA_VERSION,
             exit_price=exit_price,
             pnl_usd=round(pnl_usd, 4),
             pnl_pct=round(pnl_pct, 6),
             reason=reason,
             duration_s=round(duration, 1) if duration else None,
+            mae_pct=mae_pct,
+            mfe_pct=mfe_pct,
         )
         self._append(evt)
 
@@ -195,15 +336,20 @@ class PaperTradeRecorder:
                     continue
                 try:
                     d = json.loads(line)
-                    results.append(
-                        TradeEvent(
-                            **{
-                                k: v
-                                for k, v in d.items()
-                                if k in TradeEvent.__dataclass_fields__
-                            }
-                        )
+                    mc_raw = d.pop("market_context", None)
+                    dc_raw = d.pop("decision_context", None)
+                    evt = TradeEvent(
+                        **{
+                            k: v
+                            for k, v in d.items()
+                            if k in TradeEvent.__dataclass_fields__
+                        }
                     )
+                    if mc_raw and isinstance(mc_raw, dict):
+                        evt.market_context = MarketContext.from_dict(mc_raw)
+                    if dc_raw and isinstance(dc_raw, dict):
+                        evt.decision_context = DecisionContext.from_dict(dc_raw)
+                    results.append(evt)
                 except Exception:
                     pass
         return results
@@ -240,6 +386,9 @@ class PaperTradeRecorder:
                 opened_at=op.ts,
                 opened_iso=op.ts_iso,
                 order_id=op.order_id,
+                schema_version=op.schema_version,
+                market_context=op.market_context,
+                decision_context=op.decision_context,
             )
             if cl:
                 ct.exit_price = cl.exit_price
@@ -251,6 +400,8 @@ class PaperTradeRecorder:
                 ct.duration_s = cl.duration_s
                 ct.is_open = False
                 ct.is_win = (cl.pnl_usd or 0) > 0
+                ct.mae_pct = cl.mae_pct
+                ct.mfe_pct = cl.mfe_pct
             result.append(ct)
 
         # CLOSE orphelins (sans OPEN correspondant — cas VPS décalé)
@@ -277,6 +428,8 @@ class PaperTradeRecorder:
                     duration_s=cl.duration_s,
                     is_open=False,
                     is_win=(cl.pnl_usd or 0) > 0,
+                    mae_pct=cl.mae_pct,
+                    mfe_pct=cl.mfe_pct,
                 )
                 result.append(ct)
 

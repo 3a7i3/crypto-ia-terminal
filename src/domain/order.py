@@ -1,0 +1,11 @@
+import uuid
+from dataclasses import dataclass, field
+
+
+@dataclass
+class Order:
+    symbol: str
+    side: str  # "buy" or "sell"
+    size: float
+    id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    metadata: dict = field(default_factory=dict)

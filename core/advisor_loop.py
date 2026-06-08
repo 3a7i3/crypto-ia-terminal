@@ -1927,17 +1927,22 @@ def _build_guide() -> str:
 # ── Boucle principale ─────────────────────────────────────────────────────────
 
 
-_LOCK_FILE = os.getenv("ADVISOR_LOCK_FILE", "/tmp/crypto-advisor.lock")
+_LOCK_FILE = os.getenv("ADVISOR_LOCK_FILE", "logs/advisor.lock")
 _lock_fh = None
 
 
 def _acquire_instance_lock() -> None:
     """Verrou exclusif — une seule instance autorisée. Exit(1) si doublon détecté."""
     global _lock_fh
+    os.makedirs(os.path.dirname(os.path.abspath(_LOCK_FILE)), exist_ok=True)
     try:
         import fcntl
 
-        fh = open(_LOCK_FILE, "a+")
+        # r+ si le fichier existe (pour lire le PID en cas d'échec), w+ sinon
+        try:
+            fh = open(_LOCK_FILE, "r+")
+        except FileNotFoundError:
+            fh = open(_LOCK_FILE, "w+")
         try:
             fcntl.flock(fh, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:
@@ -1952,7 +1957,7 @@ def _acquire_instance_lock() -> None:
             sys.exit(1)
         fh.seek(0)
         fh.truncate()
-        fh.write(str(os.getpid()))
+        fh.write(str(os.getpid()) + "\n")
         fh.flush()
         _lock_fh = fh
     except ImportError:
