@@ -16,6 +16,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import atexit
 import logging
 import os
 import smtplib
@@ -1926,6 +1927,74 @@ def _build_guide() -> str:
 # ── Boucle principale ─────────────────────────────────────────────────────────
 
 
+_LOCK_FILE = os.getenv("ADVISOR_LOCK_FILE", "/tmp/crypto-advisor.lock")
+_lock_fh = None
+
+
+def _acquire_instance_lock() -> None:
+    """Verrou exclusif — une seule instance autorisée. Exit(1) si doublon détecté."""
+    global _lock_fh
+    try:
+        import fcntl
+
+        fh = open(_LOCK_FILE, "a+")
+        try:
+            fcntl.flock(fh, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            fh.seek(0)
+            existing_pid = fh.read().strip() or "inconnu"
+            fh.close()
+            print(
+                f"[FATAL] Instance déjà active (PID {existing_pid}). "
+                "Double exécution interdite — invariant d'unicité. Arrêt.",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+        fh.seek(0)
+        fh.truncate()
+        fh.write(str(os.getpid()))
+        fh.flush()
+        _lock_fh = fh
+    except ImportError:
+        # Windows : fcntl absent — vérification PID manuelle
+        if os.path.exists(_LOCK_FILE):
+            try:
+                with open(_LOCK_FILE) as f:
+                    pid = int(f.read().strip())
+                os.kill(pid, 0)
+                print(
+                    f"[FATAL] Instance déjà active (PID {pid}). "
+                    "Double exécution interdite — invariant d'unicité. Arrêt.",
+                    file=sys.stderr,
+                )
+                sys.exit(1)
+            except (ValueError, ProcessLookupError, PermissionError):
+                pass  # fichier périmé, on continue
+        with open(_LOCK_FILE, "w") as f:
+            f.write(str(os.getpid()))
+    atexit.register(_release_instance_lock)
+
+
+def _release_instance_lock() -> None:
+    global _lock_fh
+    if _lock_fh is not None:
+        try:
+            import fcntl
+
+            fcntl.flock(_lock_fh, fcntl.LOCK_UN)
+        except Exception:
+            pass
+        try:
+            _lock_fh.close()
+        except Exception:
+            pass
+        _lock_fh = None
+    try:
+        os.unlink(_LOCK_FILE)
+    except FileNotFoundError:
+        pass
+
+
 def main(
     symbols: list[str],
     interval: int = 300,
@@ -1933,6 +2002,8 @@ def main(
     runtime: AdvisorRuntime | None = None,
     _sleep=time.sleep,
 ) -> None:
+    _acquire_instance_lock()
+
     runtime = runtime or load_advisor_runtime()
 
     os.makedirs("logs", exist_ok=True)
@@ -2800,8 +2871,12 @@ def main(
                 )
             # ── PaperTradeRecorder — source de vérité entry ───────────────────
             try:
+                from paper_trading.recorder import DecisionContext as _DecisionContext
+                from paper_trading.recorder import MarketContext as _MarketContext
                 from paper_trading.recorder import get_recorder as _get_recorder
 
+                _conviction = result_row.get("conviction")
+                _tf = result_row.get("transition_forecast")
                 _get_recorder().record_open(
                     trade_id=str(getattr(pos, "order_id", "") or id(pos)),
                     symbol=symbol,
@@ -2816,6 +2891,27 @@ def main(
                     score=int(_to_float(getattr(result_row.get("signal"), "score", 0))),
                     order_id=str(getattr(pos, "order_id", "")),
                     mode=str(order_result.get("mode", "futures_demo")),
+                    market_context=_MarketContext.from_features(
+                        result_row.get("features") or {}
+                    ),
+                    decision_context=_DecisionContext(
+                        score=float(getattr(result_row.get("signal"), "score", 0) or 0),
+                        conviction_level=getattr(
+                            getattr(_conviction, "level", None), "value", None
+                        ),
+                        conviction_value=(
+                            float(getattr(_conviction, "value", None) or 0)
+                            if _conviction
+                            else None
+                        ),
+                        personality=(str(result_row.get("personality") or "") or None),
+                        regime=result_row.get("regime", "unknown"),
+                        transition_forecast=(
+                            str(getattr(_tf, "most_likely_next", "") or "") or None
+                            if _tf
+                            else None
+                        ),
+                    ),
                 )
             except Exception as _rec_exc:
                 log.debug("[PaperRecorder] open échoué: %s", _rec_exc)
@@ -2881,6 +2977,8 @@ def main(
         try:
             from paper_trading.recorder import get_recorder as _get_recorder
 
+            _mae = getattr(pos, "mae_pct", None)
+            _mfe = getattr(pos, "mfe_pct", None)
             _get_recorder().record_close(
                 trade_id=str(getattr(pos, "order_id", "") or id(pos)),
                 exit_price=float(getattr(pos, "current_price", 0.0) or pos.entry_price),
@@ -2894,6 +2992,8 @@ def main(
                 ),
                 size_usd=float(getattr(pos, "size_usd", 0.0) or 0.0),
                 mode=str(getattr(pos, "mode", "futures_demo")),
+                mae_pct=float(_mae) if _mae is not None else None,
+                mfe_pct=float(_mfe) if _mfe is not None else None,
             )
         except Exception as _rec_exc:
             log.debug("[PaperRecorder] close échoué: %s", _rec_exc)
