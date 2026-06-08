@@ -222,5 +222,44 @@ Après merge :
 
 ---
 
+---
+
+## 8. MÉTRIQUES DE DETTE ARCHITECTURE
+
+Au-delà des KPI §1, ces métriques rendent la dette visible session par session.
+
+| Métrique | Baseline | Objectif | Comment mesurer |
+|---------|--------:|--------:|----------------|
+| Dossiers racine | 89 | <40 | `ls -d */ \| wc -l` |
+| Doublons fonctionnels | 7 | 0 | `docs/DUPLICATION_AUDIT.md` |
+| Imports circulaires | ? | 0 | `python -m pydeps src/` |
+| Imports vers shims DEPRECATED | 0 | 0 | `tests/test_architecture.py::TestArchitectureMetrics` |
+| Dépendances transversales inter-BC | ? | 0 | `tests/test_architecture.py::TestBoundedContextRules` |
+| Modules sans fiche de responsabilité | 89 | 0 | Remplir grille §13 TO-BE |
+| Violations frontières DDD | ? | 0 | `pytest tests/test_architecture.py -v` |
+| Temps de compréhension d'un module inconnu | >30min | <10min | Auto-évaluation sur échantillon |
+
+**Règle de session :** Mesurer les métriques en début et fin de session. Une session qui dégrade une métrique sans en améliorer une autre est une session de régression.
+
+---
+
+## 9. ARCHITECTURE DECISION RECORDS (ADR)
+
+Chaque décision architecturale majeure est documentée dans `docs/adr/`.
+Format : `NNNN-titre-kebab-case.md` (template : `docs/adr/0000-template.md`).
+
+| ADR | Décision | Statut |
+|-----|---------|--------|
+| [0001](adr/0001-architecture-v2-4-couches.md) | Architecture V2 : 4 couches + 9 Bounded Contexts | Accepté |
+| [0002](adr/0002-src-ssot-domain-objects.md) | src/domain/ comme SSoT des objets métier | Accepté |
+
+**Quand créer un ADR :**
+- Fusion de deux modules (ex: 3 runtimes → 1)
+- Suppression d'un mécanisme existant (ex: kill_switch legacy)
+- Changement de frontière entre Bounded Contexts
+- Décision qui implique un compromis explicite (performance vs maintenabilité)
+
+---
+
 > **Ce document est le plan de vol de la Phase 0C.**
 > Il est mis à jour après chaque PR. Il ne remplace pas ARCHITECTURE_V2_TO_BE.md (la constitution) — il en est l'outil d'exécution.
