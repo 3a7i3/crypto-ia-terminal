@@ -8,8 +8,9 @@ import logging
 import sys
 import time
 from pathlib import Path
-from signal.evolution.evolution_memory import get_evolution_memory_db
 from typing import Any, Dict, Optional
+
+from evolution_memory import get_evolution_memory_db
 
 # Import des composants
 from core.warm_boot import WarmBootManager
