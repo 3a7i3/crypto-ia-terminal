@@ -1776,20 +1776,22 @@ def _build_alert(r: AnalysisResult, cycle: int) -> str:
     """Message d'alerte immédiate — signal actionable détecté."""
     s = r["signal"]
     g = r["gate"]
-    a = r["advice"]
+    a = r.get("advice")
     sh = r.get("shadow")
     ex = r.get("explanation")
-    icon = _SIGNAL_ICON.get(s.signal, "?")
-    regime = _REGIME_FR.get(s.regime, s.regime)
-    comps = s.components
+    _sig = getattr(s, "signal", "?")
+    icon = _SIGNAL_ICON.get(_sig, "?")
+    _s_regime = getattr(s, "regime", "unknown")
+    regime = _REGIME_FR.get(_s_regime, _s_regime)
+    comps = getattr(s, "components", {})
 
     lines = [
         f"SIGNAL ACTIONABLE — Cycle {cycle}",
         "",
-        f"{icon} {r['symbol']} | ${r['prix']:.2f}",
-        f"Score: {s.score}/100 | {s.signal}",
-        f"Regime: {regime} | Confirme: {s.confirmed}",
-        f"Force: {s.strength:.0%}",
+        f"{icon} {r['symbol']} | ${r.get('prix', 0.0):.2f}",
+        f"Score: {getattr(s, 'score', 0)}/100 | {_sig}",
+        f"Regime: {regime} | Confirme: {getattr(s, 'confirmed', False)}",
+        f"Force: {getattr(s, 'strength', 0.0):.0%}",
         "",
         "Scores detail:",
         f"  MTF:     {comps.get('mtf',0):.1f}/40",
@@ -1798,7 +1800,7 @@ def _build_alert(r: AnalysisResult, cycle: int) -> str:
         f"  Memoire: {comps.get('memory',0):.1f}/20",
         "",
         f"Gate: {'PRET A TRADER' if g.allowed else 'BLOQUE — ' + ' | '.join(g.failed)}",
-        f"Risque: {a.risk_level} | Confiance: {a.confidence}",
+        f"Risque: {a.risk_level if a else '?'} | Confiance: {a.confidence if a else '?'}",
     ]
 
     # Explication du score si disponible

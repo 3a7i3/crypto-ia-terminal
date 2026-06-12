@@ -5,7 +5,15 @@ import time
 from types import SimpleNamespace
 
 import advisor_loop
+import pytest
 from advisor_runtime_adapters import AdvisorRuntime
+
+
+@pytest.fixture(autouse=True)
+def _bypass_instance_lock(monkeypatch):
+    """Les smoke tests exercent main() sans avoir besoin du verrou d'instance."""
+    monkeypatch.setattr(advisor_loop, "_acquire_instance_lock", lambda: None)
+    monkeypatch.setattr(advisor_loop, "_release_instance_lock", lambda: None)
 
 
 class _Stub:
@@ -371,7 +379,14 @@ def test_main_opens_real_position_path_and_updates_tracker(monkeypatch):
         lambda *args, **kwargs: {
             "symbol": "BTC/USDT",
             "signal": SimpleNamespace(
-                actionable=True, signal="BUY", score=82, timestamp=time.time()
+                actionable=True,
+                signal="BUY",
+                score=82,
+                timestamp=time.time(),
+                regime="bull_trend",
+                confirmed=True,
+                strength=0.8,
+                components={},
             ),
             "gate": SimpleNamespace(allowed=True),
             "features": {"atr": 1.2, "atr_ratio": 0.03},
@@ -382,6 +397,7 @@ def test_main_opens_real_position_path_and_updates_tracker(monkeypatch):
             "regime": "bullish",
             "personality": None,
             "conviction": None,
+            "decision_packet": SimpleNamespace(is_actionable=lambda: True),
         },
     )
 
@@ -486,7 +502,14 @@ def test_main_opens_position_when_paper_execution_is_used(monkeypatch):
         lambda *args, **kwargs: {
             "symbol": "BTC/USDT",
             "signal": SimpleNamespace(
-                actionable=True, signal="BUY", score=82, timestamp=time.time()
+                actionable=True,
+                signal="BUY",
+                score=82,
+                timestamp=time.time(),
+                regime="bull_trend",
+                confirmed=True,
+                strength=0.8,
+                components={},
             ),
             "gate": SimpleNamespace(allowed=True),
             "features": {"atr": 1.2, "atr_ratio": 0.03},
@@ -498,6 +521,7 @@ def test_main_opens_position_when_paper_execution_is_used(monkeypatch):
             "personality": None,
             "conviction": None,
             "prix": 101.5,
+            "decision_packet": SimpleNamespace(is_actionable=lambda: True),
         },
     )
 
