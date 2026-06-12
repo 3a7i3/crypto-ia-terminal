@@ -1961,20 +1961,35 @@ def _acquire_instance_lock() -> None:
         fh.flush()
         _lock_fh = fh
     except ImportError:
-        # Windows : fcntl absent — vérification PID manuelle
+        # Windows : fcntl absent — vérification PID via psutil (fiable sur Windows)
         if os.path.exists(_LOCK_FILE):
             try:
                 with open(_LOCK_FILE) as f:
                     pid = int(f.read().strip())
-                os.kill(pid, 0)
-                print(
-                    f"[FATAL] Instance déjà active (PID {pid}). "
-                    "Double exécution interdite — invariant d'unicité. Arrêt.",
-                    file=sys.stderr,
-                )
-                sys.exit(1)
-            except (ValueError, ProcessLookupError, PermissionError):
-                pass  # fichier périmé, on continue
+                try:
+                    import psutil
+
+                    alive = psutil.pid_exists(pid)
+                except ImportError:
+                    # psutil absent : os.kill(pid, 0) échoue sur Windows même si vivant
+                    # On tente quand même — au pire on laisse passer (cas dégradé)
+                    try:
+                        os.kill(pid, 0)
+                        alive = True
+                    except ProcessLookupError:
+                        alive = False
+                    except PermissionError:
+                        # Sur Windows, PermissionError = process EXISTE (on n'a pas le droit)
+                        alive = True
+                if alive:
+                    print(
+                        f"[FATAL] Instance déjà active (PID {pid}). "
+                        "Double exécution interdite — invariant d'unicité. Arrêt.",
+                        file=sys.stderr,
+                    )
+                    sys.exit(1)
+            except ValueError:
+                pass  # fichier corrompu, on continue
         with open(_LOCK_FILE, "w") as f:
             f.write(str(os.getpid()))
     atexit.register(_release_instance_lock)
@@ -3117,6 +3132,53 @@ def main(
         lambda: runtime.CapitalAllocationEngine(total_capital=real_capital),
     )
 
+    # ── System Controller — méta-régulateur post-trade ────────────────────────
+    # Complète le Decision Layer : trade_gate gère le signal (pre-trade),
+    # system_controller gère l'état du système (post-trade).
+    # Règle stricte : appelé uniquement après fermeture d'un trade,
+    # jamais pendant un cycle d'analyse. Séparation micro/macro.
+    _sc_state: dict = {
+        "risk_factor": 1.0,  # REDUCE_RISK réduit, RESUME reset à 1.0
+        "tp_factor": 1.0,  # ADJUST_TP amplifie, borné [0.8, 1.5]
+        "sl_factor": 1.0,  # ADJUST_SL réduit, borné [0.7, 1.3]
+        "trade_count": 0,
+        "cooldowns": {},  # action_type → last_fired_timestamp
+    }
+    _SC_MIN_TRADES = 5  # pas de décision avant N trades fermés
+    _SC_MIN_CONFIDENCE = 0.65  # décisions incertaines ignorées
+    _SC_COOLDOWNS: dict[str, float] = {
+        "STOP_TRADING": 3600.0,
+        "REDUCE_RISK": 1800.0,
+        "ADJUST_TP": 900.0,
+        "ADJUST_SL": 900.0,
+        "RESUME_TRADING": 600.0,
+        "APPLY_META": 300.0,
+    }
+
+    try:
+        from tracker_system.autonomous.auto_decision_engine import (
+            AutoDecisionOrchestrator as _ADO,
+        )
+
+        _system_controller = _ADO(
+            initial_config={
+                "trading_enabled": True,
+                "tp": float(os.getenv("DEFAULT_TP_PCT", "0.04")),
+                "sl": float(os.getenv("DEFAULT_SL_PCT", "0.02")),
+                "position_size": 1.0,
+            },
+            limits={
+                "max_tp_increase": 0.5,
+                "max_sl_decrease": 0.3,
+                "max_position_reduction": 0.75,
+            },
+            log_file="logs/system_controller_decisions.jsonl",
+        )
+        log.info("[SystemController] AutoDecisionOrchestrator initialisé")
+    except Exception as _sc_init_exc:
+        _system_controller = None
+        log.warning("[SystemController] init échoué (non bloquant): %s", _sc_init_exc)
+
     mistake_memory: Any = None
 
     def _get_mistake_memory() -> Any:
@@ -3219,6 +3281,98 @@ def main(
         if prewarm_executor is not None:
             prewarm_executor.shutdown(wait=False, cancel_futures=False)
         pos_manager.stop()
+
+    def _sc_run_cycle(pos: Any, pm_stats: dict) -> None:
+        """Exécute un cycle system_controller post-trade avec guards anti-bruit.
+
+        Guards actifs :
+        - min_trades : silence les N premiers trades (données insuffisantes)
+        - min_confidence : ignore les décisions incertaines
+        - cooldown par type d'action : évite le spam paramétrique
+        - bounds sur les facteurs : protège contre la dérive runaway
+        """
+        if _system_controller is None:
+            return
+        _sc_state["trade_count"] += 1
+        if _sc_state["trade_count"] < _SC_MIN_TRADES:
+            return
+        now = time.time()
+        _mfe = float(getattr(pos, "mfe_pct", 0.0) or 0.0)
+        _pnl = float(getattr(pos, "pnl_pct", 0.0) or 0.0)
+        metrics = {
+            "efficiency": (_pnl / _mfe) if _mfe > 0.001 else 0.5,
+            "mae_pct": float(getattr(pos, "mae_pct", 0.0) or 0.0),
+        }
+        risk_state = {
+            "drawdown": max(
+                0.0,
+                -_to_float(pm_stats.get("total_pnl_usd", 0.0)) / max(1.0, real_capital),
+            ),
+            "loss_streak": _consecutive_losses["value"],
+        }
+        meta_suggestion = None
+        try:
+            if hasattr(meta_learner, "suggest"):
+                meta_suggestion = meta_learner.suggest()
+        except Exception:
+            pass
+
+        _, decision, _ = _system_controller.run_decision_cycle(
+            metrics=metrics,
+            risk_state=risk_state,
+            meta_suggestion=meta_suggestion,
+        )
+
+        if decision.action == "NO_ACTION" or decision.confidence < _SC_MIN_CONFIDENCE:
+            return
+
+        cooldown = _SC_COOLDOWNS.get(decision.action, 600.0)
+        if now - _sc_state["cooldowns"].get(decision.action, 0.0) < cooldown:
+            log.debug(
+                "[SystemController] %s en cooldown (%.0fs restants)",
+                decision.action,
+                cooldown - (now - _sc_state["cooldowns"].get(decision.action, 0.0)),
+            )
+            return
+
+        _sc_state["cooldowns"][decision.action] = now
+        log.info(
+            "[SystemController] %s — %s (conf=%.0f%%)",
+            decision.action,
+            decision.reason,
+            decision.confidence * 100,
+        )
+
+        if decision.action == "REDUCE_RISK":
+            factor = decision.params.get("position_size_factor", 0.5)
+            _sc_state["risk_factor"] = max(0.25, _sc_state["risk_factor"] * factor)
+            _telegram(
+                f"[AUTO] REDUCE_RISK ×{factor:.0%}"
+                f" → taille effective={_sc_state['risk_factor']:.0%}\n"
+                f"{decision.reason}"
+            )
+
+        elif decision.action == "RESUME_TRADING":
+            _sc_state["risk_factor"] = 1.0
+            log.info("[SystemController] RESUME — risk_factor reset 1.0")
+
+        elif decision.action == "ADJUST_TP":
+            factor = decision.params.get("tp_factor", 1.15)
+            _sc_state["tp_factor"] = min(1.5, max(0.8, _sc_state["tp_factor"] * factor))
+            log.info(
+                "[SystemController] ADJUST_TP → tp_factor=%.3f", _sc_state["tp_factor"]
+            )
+
+        elif decision.action == "ADJUST_SL":
+            factor = decision.params.get("sl_factor", 0.85)
+            _sc_state["sl_factor"] = min(1.3, max(0.7, _sc_state["sl_factor"] * factor))
+            log.info(
+                "[SystemController] ADJUST_SL → sl_factor=%.3f", _sc_state["sl_factor"]
+            )
+
+        # STOP_TRADING et APPLY_META sont gérés directement par ActionExecutor
+        # dans run_decision_cycle : state_machine.transition("HALTED") pour STOP,
+        # mutation de config pour APPLY_META.
 
     # Callback PositionManager → enregistre le résultat dans le ranker
     def _on_position_close_rank(pos: Any, reason: Any) -> None:
@@ -3377,6 +3531,12 @@ def main(
                     buf.clear()
             except Exception as _mle:
                 log.debug("[MetaLearner] learn échoué: %s", _mle)
+
+            # ── System Controller — méta-régulateur post-trade ────────────────
+            try:
+                _sc_run_cycle(pos, _stats_dict(pos_manager.stats()))
+            except Exception as _sc_exc:
+                log.debug("[SystemController] cycle échoué: %s", _sc_exc)
 
         except Exception as _re:
             log.debug("[Feedback] record échoué: %s", _re)
@@ -4118,7 +4278,7 @@ def main(
                     watchdog,
                     memory,
                     cycle,
-                    order_size_usd=order_size,
+                    order_size_usd=order_size * _sc_state["risk_factor"],
                     meta_engine=meta_engine,
                     ranker=ranker,
                     open_positions=pos_manager.get_open(),
@@ -4154,8 +4314,16 @@ def main(
                     ),
                     meta_learner=meta_learner,
                     runtime=runtime,
-                    sl_factor_override=_smoothed_sl,
-                    tp_factor_override=_smoothed_tp,
+                    sl_factor_override=(
+                        (_smoothed_sl or 1.0) * _sc_state["sl_factor"]
+                        if _sc_state["sl_factor"] != 1.0 or _smoothed_sl is not None
+                        else None
+                    ),
+                    tp_factor_override=(
+                        (_smoothed_tp or 1.0) * _sc_state["tp_factor"]
+                        if _sc_state["tp_factor"] != 1.0 or _smoothed_tp is not None
+                        else None
+                    ),
                     sweep_detector=_sweep_detector,
                     sweep_outcome_tracker=_sweep_outcome_tracker,
                 )

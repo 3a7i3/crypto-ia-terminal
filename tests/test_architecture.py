@@ -129,7 +129,6 @@ class TestSrcInternalConsistency:
     LEGACY_ROOTS = [
         "quant_hedge_ai",
         "tracker_system",
-        "crypto_quant_v16",
         "terminal_core",
         "ai_autonomous_loop",
     ]

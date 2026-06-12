@@ -1,0 +1,166 @@
+# MODULES REGISTRY — crypto_ai_terminal
+# Mis à jour : 2026-06-11
+# Règle : tout nouveau module doit être enregistré ici avant merge.
+#
+# Statuts possibles :
+#   ACTIVE      — module en production, ne pas toucher sans refonte dédiée
+#   DORMANT     — code fonctionnel mais non appelé en production ; planifier migration
+#   STUB        — interface de compatibilité maintenue pour les tests ; supprimer après migration des imports
+#   DEPRECATED  — remplacement canonique disponible ; migration en cours
+#   DEAD        — confirmé zéro import / zéro test / zéro CI ; supprimable immédiatement
+#   DELETED     — supprimé à la phase indiquée ; entrée conservée comme historique
+
+modules:
+
+  # ───────── SUPPRIMÉS (P0.1 — 2026-06-11) ─────────────────────────────────
+
+  - path: strategy_factory/
+    status: DELETED
+    deleted_at: "P0.1 — 2026-06-11"
+    reason: "Stubs internes sans imports externes ; doublonne quant_hedge_ai/strategy_factory/"
+    canonical_module: quant_hedge_ai/strategy_factory/
+    tests: 0
+    risk_level: LOW
+
+  - path: signal/strategies/run_strategy_factory_large.py
+    status: DELETED
+    deleted_at: "P0.1 — 2026-06-11"
+    reason: "Prototype non finalisé (données factices) ; dépendait uniquement de strategy_factory/ root supprimé ; 0 appel CI/runtime ; fonctionnalité perdue = aucune"
+    canonical_module: null
+    tests: 0
+    risk_level: LOW
+
+  - path: crypto_quant_v16/
+    status: DELETED
+    deleted_at: "P0.1 — 2026-06-11"
+    reason: "UI standalone non intégrée au système ; 0 import, 0 test"
+    canonical_module: null
+    tests: 0
+    risk_level: LOW
+
+  # ───────── STUBS — migration planifiée P1 ─────────────────────────────────
+
+  - path: src/engine/execution_router.py
+    status: STUB
+    owner: null
+    canonical_module: quant_hedge_ai/agents/execution/execution_engine.py
+    replacement: quant_hedge_ai/agents/execution/execution_engine.py
+    planned_removal: P1
+    tests: 8
+    risk_level: HIGH
+    migration_phase: P1
+    notes: "11 lignes ; 8 tests l'importent ; interfaces différentes — migration requise avant suppression"
+
+  - path: src/events/event_bus.py
+    status: STUB
+    owner: null
+    canonical_module: event_bus/bus.py
+    replacement: event_bus/bus.py
+    planned_removal: P1
+    tests: 3
+    risk_level: MEDIUM
+    migration_phase: P1
+    notes: "21 lignes ; interfaces différentes (sync vs async+singleton) ; migrer tests vers event_bus/bus.py"
+
+  - path: src/risk/kill_switch.py
+    status: STUB
+    owner: null
+    canonical_module: supervision/killswitch_hardened.py
+    replacement: supervision/killswitch_hardened.py
+    planned_removal: P1
+    tests: 9
+    risk_level: HIGH
+    migration_phase: P1
+    notes: "9 lignes ; 9 tests l'importent ; killswitch_hardened est thread-safe avec Telegram — interfaces différentes"
+
+  # ───────── DORMANTS — consolidation planifiée P1 ──────────────────────────
+
+  - path: meta_learning/decision_engine.py
+    status: DORMANT
+    owner: null
+    canonical_module: quant_hedge_ai/engine/decision_engine.py
+    replacement: quant_hedge_ai/engine/decision_engine.py
+    planned_removal: P1
+    tests: 0
+    risk_level: MEDIUM
+    migration_phase: P1
+    notes: "89 lignes ; importé dans 3 scripts non-pytest (scripts/) ; fusionner dans canonique"
+
+  # ───────── ACTIFS — ne pas modifier avant refonte dédiée ──────────────────
+
+  - path: tracker_system/autonomous/auto_decision_engine.py
+    status: ACTIVE
+    owner: null
+    canonical_module: null
+    replacement: null
+    planned_removal: null
+    tests: 2
+    risk_level: HIGH
+    migration_phase: null
+    notes: "435 lignes ; 2 tests pytest dédiés ; pas de doublon canonique — candidat à l'intégration, étude fonctionnelle requise avant toute décision"
+
+  - path: core/advisor_loop.py
+    status: ACTIVE
+    owner: null
+    canonical_module: null
+    replacement: "5 modules (P2) : market_observer + telegram_reporter + system_watchdog + state_tracker + main_loop"
+    planned_removal: null
+    tests: null
+    risk_level: CRITICAL
+    migration_phase: P2
+    notes: "5 872 lignes — MONOLITHE CRITIQUE ; threading + signaux + Telegram + watchdog dans 1 fichier ; SPOF architectural"
+
+  - path: quant_hedge_ai/engine/decision_engine.py
+    status: ACTIVE
+    owner: null
+    canonical_module: self
+    replacement: null
+    planned_removal: null
+    tests: null
+    risk_level: MEDIUM
+    migration_phase: null
+    notes: "Canonique Decision Engine — absorber meta_learning/decision_engine.py en P1"
+
+  - path: event_bus/bus.py
+    status: ACTIVE
+    owner: null
+    canonical_module: self
+    replacement: null
+    planned_removal: null
+    tests: null
+    risk_level: HIGH
+    migration_phase: null
+    notes: "Canonique EventBus — thread-safe, async, replay, stats"
+
+  - path: supervision/killswitch_hardened.py
+    status: ACTIVE
+    owner: null
+    canonical_module: self
+    replacement: null
+    planned_removal: null
+    tests: null
+    risk_level: HIGH
+    migration_phase: null
+    notes: "Canonique KillSwitch — thread-safe, Telegram, state persistence, acknowledgement"
+
+  - path: quant_hedge_ai/agents/execution/execution_engine.py
+    status: ACTIVE
+    owner: null
+    canonical_module: self
+    replacement: null
+    planned_removal: null
+    tests: null
+    risk_level: HIGH
+    migration_phase: null
+    notes: "Canonique ExecutionEngine"
+
+  - path: quant_hedge_ai/strategy_factory/
+    status: ACTIVE
+    owner: null
+    canonical_module: self
+    replacement: null
+    planned_removal: null
+    tests: null
+    risk_level: MEDIUM
+    migration_phase: null
+    notes: "Canonique StrategyFactory — importé dans 7 fichiers production"

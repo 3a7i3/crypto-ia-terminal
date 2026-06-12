@@ -55,7 +55,7 @@ PRODUCTION_MODULES = [
     "observability.metrics_bus",
     "errors.error_bus",
     "core.decision_packet",
-    "risk_limits",
+    "risk.risk_limits",
     "exchange_constraints.binance_rules",
     "exchange_constraints.order_validator",
     "exchange_constraints.rate_limiter",

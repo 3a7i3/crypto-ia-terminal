@@ -567,7 +567,18 @@ class MistakeMemory:
                 line = line.strip()
                 if line:
                     try:
-                        records.append(json.loads(line))
+                        r = json.loads(line)
+                        # Sanitize: pnl_pct must be a fraction (|val| <= 1.0 normally).
+                        # Values outside [-2, 2] were stored as percentages by mistake.
+                        pnl = r.get("pnl_pct", 0.0)
+                        if isinstance(pnl, (int, float)) and abs(pnl) > 2.0:
+                            r["pnl_pct"] = pnl / 100.0
+                            _log.debug(
+                                "[MistakeMemory] pnl_pct sanitisé: %.4f -> %.6f",
+                                pnl,
+                                r["pnl_pct"],
+                            )
+                        records.append(r)
                     except json.JSONDecodeError as exc:
                         _log.warning(
                             "[MistakeMemory] Ligne ignorée (JSON invalide): %s", exc

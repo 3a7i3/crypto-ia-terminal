@@ -164,7 +164,7 @@ def test_runtime_package_has_init(pkg):
 # Test 5 — Modules orphelins catégorie A n'importent pas les modules runtime
 # ---------------------------------------------------------------------------
 
-ORPHAN_A_MODULES = ["S2", "S3", "crypto_quant_v16", "mvp"]
+ORPHAN_A_MODULES = ["S2", "S3", "mvp"]
 
 
 @pytest.mark.parametrize("orphan", ORPHAN_A_MODULES)

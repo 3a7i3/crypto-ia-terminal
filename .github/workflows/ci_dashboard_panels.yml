@@ -7,7 +7,6 @@ on:
       - '**dashboard/alert_dashboard.py'
       - '**supervision/botdoctor_dashboard.py'
       - '**evolution_dashboard.py'
-      - '**crypto_quant_v16/ui/quant_dashboard.py'
       - '**quant_hedge_ai/dashboard/quant_terminal_v12.py'
       - '**ai_autonomous_loop/feedback_dashboard.py'
       - '**panel_ci_report.py'
