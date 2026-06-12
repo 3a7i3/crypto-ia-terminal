@@ -143,7 +143,7 @@ def test_optional_module_importable(module):
 
 def test_R3_decision_arbitrator_is_optional_in_advisor_loop():
     """R3 qualifié : DecisionArbitrator utilisé optionnellement (v2_arbitrator: Any = None)."""
-    src = (ROOT / "advisor_loop.py").read_text(encoding="utf-8", errors="ignore")
+    src = (ROOT / "core/advisor_loop.py").read_text(encoding="utf-8", errors="ignore")
     # Doit être présent (il est utilisé)
     assert (
         "decision_arbitrator" in src or "DecisionArbitrator" in src
@@ -161,7 +161,7 @@ def test_R3_decision_arbitrator_is_optional_in_advisor_loop():
 
 def test_R4_market_regime_detector_not_in_production_runtime():
     """R4 qualifié : market.regime_detector ne doit pas être dans la chaîne production."""
-    for runtime_file in ["advisor_loop.py", "advisor_runtime_adapters.py"]:
+    for runtime_file in ["core/advisor_loop.py", "core/advisor_runtime_adapters.py"]:
         src = (ROOT / runtime_file).read_text(encoding="utf-8", errors="ignore")
         assert "agents.market.regime_detector" not in src, (
             f"R4 REGRESSION: market.regime_detector dans {runtime_file} — "

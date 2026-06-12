@@ -30,12 +30,22 @@ def get_local_imports(filepath: Path) -> list[str]:
         if isinstance(node, ast.Import):
             for alias in node.names:
                 mod = alias.name.split(".")[0]
-                if (ROOT / mod).exists() or (ROOT / (mod + ".py")).exists():
+                if (
+                    (ROOT / mod).exists()
+                    or (ROOT / (mod + ".py")).exists()
+                    or (ROOT / "core" / mod).exists()
+                    or (ROOT / "core" / (mod + ".py")).exists()
+                ):
                     imports.append(mod)
         elif isinstance(node, ast.ImportFrom):
             if node.module:
                 mod = node.module.split(".")[0]
-                if (ROOT / mod).exists() or (ROOT / (mod + ".py")).exists():
+                if (
+                    (ROOT / mod).exists()
+                    or (ROOT / (mod + ".py")).exists()
+                    or (ROOT / "core" / mod).exists()
+                    or (ROOT / "core" / (mod + ".py")).exists()
+                ):
                     imports.append(mod)
     return list(set(imports))
 
@@ -50,10 +60,10 @@ def module_exists(path: str) -> bool:
 # ---------------------------------------------------------------------------
 
 EXPECTED_ENTRYPOINTS = [
-    "advisor_loop.py",
+    "core/advisor_loop.py",
     "capital_deployment/command_center_bot.py",
     "cold_start/cold_start_manager.py",
-    "main.py",
+    "core/main.py",
 ]
 
 
@@ -67,13 +77,13 @@ def test_entrypoint_exists(entrypoint):
 # ---------------------------------------------------------------------------
 
 CRITICAL_RUNTIME_MODULES = [
-    "advisor_runtime_adapters.py",
+    "core/advisor_runtime_adapters.py",
     "core/decision_packet.py",
     "errors/error_bus.py",
     "observability/json_logger.py",
     "observability/heartbeat_system.py",
     "observability/metrics_bus.py",
-    "risk_limits.py",
+    "risk/risk_limits.py",
     "exchange_constraints/binance_rules.py",
     "exchange_constraints/order_validator.py",
     "exchange_constraints/rate_limiter.py",
@@ -121,7 +131,7 @@ EXPECTED_DIRECT_IMPORTS = {
     "observability",
     "paper_trading",
     "quant_hedge_ai",
-    "risk_limits",
+    "risk",
     "scripts",
     "supervision",
     "system",
@@ -129,8 +139,8 @@ EXPECTED_DIRECT_IMPORTS = {
 
 
 def test_advisor_loop_direct_imports():
-    al = ROOT / "advisor_loop.py"
-    assert al.exists(), "advisor_loop.py absent"
+    al = ROOT / "core/advisor_loop.py"
+    assert al.exists(), "core/advisor_loop.py absent"
     actual = set(get_local_imports(al))
     missing = EXPECTED_DIRECT_IMPORTS - actual
     assert not missing, f"Imports disparus de advisor_loop: {missing}"
@@ -217,21 +227,21 @@ def test_package_file_count_minimum(pkg, min_files):
 
 
 def test_advisor_loop_parseable():
-    al = ROOT / "advisor_loop.py"
+    al = ROOT / "core/advisor_loop.py"
     src = al.read_text(encoding="utf-8", errors="ignore")
     try:
         ast.parse(src)
     except SyntaxError as e:
-        pytest.fail(f"advisor_loop.py a une SyntaxError: {e}")
+        pytest.fail(f"core/advisor_loop.py a une SyntaxError: {e}")
 
 
 def test_advisor_runtime_adapters_parseable():
-    f = ROOT / "advisor_runtime_adapters.py"
+    f = ROOT / "core/advisor_runtime_adapters.py"
     src = f.read_text(encoding="utf-8", errors="ignore")
     try:
         ast.parse(src)
     except SyntaxError as e:
-        pytest.fail(f"advisor_runtime_adapters.py a une SyntaxError: {e}")
+        pytest.fail(f"core/advisor_runtime_adapters.py a une SyntaxError: {e}")
 
 
 # ---------------------------------------------------------------------------
@@ -241,7 +251,7 @@ def test_advisor_runtime_adapters_parseable():
 
 def test_R1_mvp_not_imported_by_runtime():
     """R1 — mvp/ confirmé non importé par le runtime principal."""
-    for entry in ["advisor_loop.py", "advisor_runtime_adapters.py"]:
+    for entry in ["core/advisor_loop.py", "core/advisor_runtime_adapters.py"]:
         fp = ROOT / entry
         if fp.exists():
             src = fp.read_text(encoding="utf-8", errors="ignore")
@@ -267,7 +277,7 @@ def test_R3_single_regime_detector_in_runtime():
 
 def test_R4_main_v91_not_imported_by_production_runtime():
     """R4 — main_v91.py est un orphelin actif, pas dans la chaîne production."""
-    for entry in ["advisor_loop.py", "advisor_runtime_adapters.py"]:
+    for entry in ["core/advisor_loop.py", "core/advisor_runtime_adapters.py"]:
         fp = ROOT / entry
         if fp.exists():
             src = fp.read_text(encoding="utf-8", errors="ignore")
@@ -301,7 +311,7 @@ def test_duplication_position_manager_both_exist():
 def test_three_entrypoints_are_distinct():
     """Les 3 entrypoints identifiés existent mais sont clairement séparés."""
     entrypoints = {
-        "advisor_loop.py": "production",
+        "core/advisor_loop.py": "production",
         "quant_hedge_ai/main_v91.py": "lab/orphan",
         "quant_hedge_ai/main_system.py": "obsolete",
     }
@@ -309,5 +319,5 @@ def test_three_entrypoints_are_distinct():
     # advisor_loop doit toujours exister
     names = [e for e, _ in existing]
     assert (
-        "advisor_loop.py" in names
-    ), "advisor_loop.py manquant — entrypoint production absent"
+        "core/advisor_loop.py" in names
+    ), "core/advisor_loop.py manquant — entrypoint production absent"
