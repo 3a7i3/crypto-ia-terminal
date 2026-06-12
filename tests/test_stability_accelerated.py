@@ -189,7 +189,7 @@ class TestLogRotation:
 
     def test_no_plain_filehandler_in_advisor_loop(self):
         """Vérifie qu'advisor_loop.py n'utilise plus FileHandler simple."""
-        advisor_src = Path(__file__).parent.parent / "advisor_loop.py"
+        advisor_src = Path(__file__).parent.parent / "core/advisor_loop.py"
         content = advisor_src.read_text(encoding="utf-8")
         assert "logging.FileHandler(" not in content, (
             "advisor_loop.py utilise encore logging.FileHandler"
@@ -216,18 +216,19 @@ class TestWatchdogDetection:
             encoding="utf-8",
         )
 
-        with patch("watchdog_vps.SNAPSHOT_PATH", snapshot), patch(
-            "watchdog_vps.TIMEOUT", 300
+        _mod = "infra.monitoring.watchdog_vps"
+        with patch(f"{_mod}.SNAPSHOT_PATH", snapshot), patch(
+            f"{_mod}.TIMEOUT", 300
         ), patch("time.time", side_effect=clock.now):
-            from watchdog_vps import _check_snapshot
+            from infra.monitoring.watchdog_vps import _check_snapshot
 
             ok, msg, age = _check_snapshot()
             assert ok, f"Snapshot frais devrait être OK: {msg}"
 
         # Avancer de 10 minutes → snapshot stale
         clock.tick(2)  # +10 min
-        with patch("watchdog_vps.SNAPSHOT_PATH", snapshot), patch(
-            "watchdog_vps.TIMEOUT", 300
+        with patch(f"{_mod}.SNAPSHOT_PATH", snapshot), patch(
+            f"{_mod}.TIMEOUT", 300
         ), patch("time.time", side_effect=clock.now):
             ok, msg, age = _check_snapshot()
             assert not ok, "Snapshot stale devrait être détecté comme DOWN"
@@ -235,8 +236,9 @@ class TestWatchdogDetection:
 
     def test_missing_snapshot_detected(self, tmp_path):
         missing = tmp_path / "nonexistent.json"
-        with patch("watchdog_vps.SNAPSHOT_PATH", missing):
-            from watchdog_vps import _check_snapshot
+        _mod = "infra.monitoring.watchdog_vps"
+        with patch(f"{_mod}.SNAPSHOT_PATH", missing):
+            from infra.monitoring.watchdog_vps import _check_snapshot
 
             ok, msg, age = _check_snapshot()
             assert not ok
