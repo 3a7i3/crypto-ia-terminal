@@ -9,12 +9,10 @@ PACKAGE_DIRS = {
     "meta_learning": set(),
 }
 ROOT_MODULES = {
-    "bootstrap_integration",
-    "circuit_breaker",
+    "risk.circuit_breaker",
     "daily_analyzer",
-    "evolution_memory",
     "lazy_loader",
-    "population_csv_validator",
+    "scripts.population_csv_validator",
 }
 
 
