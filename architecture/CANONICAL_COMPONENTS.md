@@ -1,5 +1,5 @@
 # CANONICAL COMPONENTS — crypto_ai_terminal
-**Établi : 2026-06-11 | Phase P1**
+**Établi : 2026-06-11 | Mis à jour : 2026-06-12 | Phase P1**
 
 ## Règle d'architecture
 
@@ -7,6 +7,24 @@
 
 Toute nouvelle implémentation d'une responsabilité listée ici constitue une violation d'architecture.
 Toute revue de code doit vérifier qu'aucune implémentation concurrente n'est introduite.
+
+---
+
+## Tableau de progression P1
+
+| Verticale | Canonique défini | Runtime câblé | Tests intégration | Legacy supprimé |
+|---|---|---|---|---|
+| Decision Layer | ✅ | ✅ câblé | ✅ 18 tests (DL-01→DL-05) | ⏳ renommage différé |
+| Event Bus | ✅ | ⏳ | ⏳ | ⏳ migrer stubs |
+| Execution Engine | ✅ | ✅ | ⏳ | ⏳ archiver src/stub |
+| Kill Switch | ✅ | ✅ | ⏳ | ⏳ migrer stubs |
+| Regime Detector | ✅ | ✅ | ✅ (bug bear corrigé) | ⏳ archiver src/analytics |
+| Feature Pipeline | ✅ | ✅ | ⏳ | — |
+| Configuration | ❌ à créer | ❌ | ❌ | — |
+
+> **Règle d'avancement** : une verticale est ✅ "Runtime câblé" uniquement quand un test d'intégration prouve que l'action arrive effectivement jusqu'au système (pas seulement que le module s'instancie).
+>
+> **Renames différés** jusqu'à ce que "Tests intégration" soit ✅.
 
 ---
 
