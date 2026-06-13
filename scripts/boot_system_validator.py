@@ -99,12 +99,23 @@ class BootValidator:
         for key, label in required:
             value = os.getenv(key, "")
             ok = bool(value) and value not in ("REMPLACE_PAR_CLE_LIVE", "")
-            self.results.append(CheckResult(f"env.{key}", ok, f"{label} = {'[SET]' if ok else '[MANQUANT]'}"))
+            self.results.append(
+                CheckResult(
+                    f"env.{key}", ok, f"{label} = {'[SET]' if ok else '[MANQUANT]'}"
+                )
+            )
             self._print_result(f"  {label}", ok)
 
         for key, label in optional:
             value = os.getenv(key, "")
-            self.results.append(CheckResult(f"env_opt.{key}", True, f"{label} = {value or '[default]'}", warn=not bool(value)))
+            self.results.append(
+                CheckResult(
+                    f"env_opt.{key}",
+                    True,
+                    f"{label} = {value or '[default]'}",
+                    warn=not bool(value),
+                )
+            )
         print()
 
     def _check_dirs(self) -> None:
@@ -144,34 +155,134 @@ class BootValidator:
     def _check_imports(self) -> None:
         print(_bold("[ 3 ] Imports modules"))
         modules = [
-            ("ExecutionEngine", "quant_hedge_ai.agents.execution.execution_engine", "ExecutionEngine"),
-            ("PositionManager", "quant_hedge_ai.agents.execution.position_manager", "PositionManager"),
-            ("LiveSignalEngine", "quant_hedge_ai.agents.execution.live_signal_engine", "LiveSignalEngine"),
-            ("ShadowEngine", "quant_hedge_ai.agents.execution.shadow_engine", "ShadowExecutionEngine"),
-            ("MarketScanner", "quant_hedge_ai.agents.market.market_scanner", "MarketScanner"),
-            ("MultiTimeframeScanner", "quant_hedge_ai.agents.market.multi_timeframe_scanner", "MultiTimeframeScanner"),
-            ("FeatureEngineer", "quant_hedge_ai.agents.intelligence.feature_engineer", "FeatureEngineer"),
-            ("RegimeDetector", "quant_hedge_ai.agents.intelligence.regime_detector", "AdvancedRegimeDetector"),
-            ("GlobalRiskGate", "quant_hedge_ai.agents.risk.global_risk_gate", "GlobalRiskGate"),
-            ("PortfolioBrain", "quant_hedge_ai.agents.risk.portfolio_brain", "PortfolioBrain"),
-            ("CapitalAllocationEngine", "quant_hedge_ai.agents.risk.capital_allocation_engine", "CapitalAllocationEngine"),
-            ("ExecutiveOverride", "quant_hedge_ai.agents.risk.executive_override", "ExecutiveOverride"),
-            ("MetaStrategyEngine", "quant_hedge_ai.agents.intelligence.meta_strategy_engine", "MetaStrategyEngine"),
-            ("ConvictionEngine", "quant_hedge_ai.agents.intelligence.conviction_engine", "ConvictionEngine"),
-            ("NoTradeIntelligence", "quant_hedge_ai.agents.intelligence.no_trade_layer", "NoTradeIntelligence"),
-            ("SelfAwarenessEngine", "quant_hedge_ai.agents.intelligence.self_awareness_engine", "SelfAwarenessEngine"),
-            ("MistakeMemory", "quant_hedge_ai.agents.intelligence.mistake_memory", "MistakeMemory"),
+            (
+                "ExecutionEngine",
+                "quant_hedge_ai.agents.execution.execution_engine",
+                "ExecutionEngine",
+            ),
+            (
+                "PositionManager",
+                "quant_hedge_ai.agents.execution.position_manager",
+                "PositionManager",
+            ),
+            (
+                "LiveSignalEngine",
+                "quant_hedge_ai.agents.execution.live_signal_engine",
+                "LiveSignalEngine",
+            ),
+            (
+                "ShadowEngine",
+                "quant_hedge_ai.agents.execution.shadow_engine",
+                "ShadowExecutionEngine",
+            ),
+            (
+                "MarketScanner",
+                "quant_hedge_ai.agents.market.market_scanner",
+                "MarketScanner",
+            ),
+            (
+                "MultiTimeframeScanner",
+                "quant_hedge_ai.agents.market.multi_timeframe_scanner",
+                "MultiTimeframeScanner",
+            ),
+            (
+                "FeatureEngineer",
+                "quant_hedge_ai.agents.intelligence.feature_engineer",
+                "FeatureEngineer",
+            ),
+            (
+                "RegimeDetector",
+                "quant_hedge_ai.agents.intelligence.regime_detector",
+                "AdvancedRegimeDetector",
+            ),
+            (
+                "GlobalRiskGate",
+                "quant_hedge_ai.agents.risk.global_risk_gate",
+                "GlobalRiskGate",
+            ),
+            (
+                "PortfolioBrain",
+                "quant_hedge_ai.agents.risk.portfolio_brain",
+                "PortfolioBrain",
+            ),
+            (
+                "CapitalAllocationEngine",
+                "quant_hedge_ai.agents.risk.capital_allocation_engine",
+                "CapitalAllocationEngine",
+            ),
+            (
+                "ExecutiveOverride",
+                "quant_hedge_ai.agents.risk.executive_override",
+                "ExecutiveOverride",
+            ),
+            (
+                "MetaStrategyEngine",
+                "quant_hedge_ai.agents.intelligence.meta_strategy_engine",
+                "MetaStrategyEngine",
+            ),
+            (
+                "ConvictionEngine",
+                "quant_hedge_ai.agents.intelligence.conviction_engine",
+                "ConvictionEngine",
+            ),
+            (
+                "NoTradeIntelligence",
+                "quant_hedge_ai.agents.intelligence.no_trade_layer",
+                "NoTradeIntelligence",
+            ),
+            (
+                "SelfAwarenessEngine",
+                "quant_hedge_ai.agents.intelligence.self_awareness_engine",
+                "SelfAwarenessEngine",
+            ),
+            (
+                "MistakeMemory",
+                "quant_hedge_ai.agents.intelligence.mistake_memory",
+                "MistakeMemory",
+            ),
             ("BlackBox", "quant_hedge_ai.agents.intelligence.black_box", "BlackBox"),
-            ("RegretEngine", "quant_hedge_ai.agents.intelligence.regret_engine", "RegretEngine"),
-            ("ChiefOfficer", "quant_hedge_ai.agents.intelligence.chief_officer", "ChiefOfficer"),
-            ("ThreatRadar", "quant_hedge_ai.agents.intelligence.threat_radar", "ThreatRadar"),
-            ("DecisionQualityEngine", "quant_hedge_ai.agents.intelligence.decision_quality_engine", "DecisionQualityEngine"),
-            ("StrategyRanker", "quant_hedge_ai.ai_evolution.strategy_ranker", "StrategyRanker"),
-            ("StrategyMemory", "quant_hedge_ai.ai_evolution.strategy_memory", "StrategyMemoryStore"),
-            ("TelegramKillSwitch", "supervision.telegram_kill_switch", "TelegramKillSwitch"),
+            (
+                "RegretEngine",
+                "quant_hedge_ai.agents.intelligence.regret_engine",
+                "RegretEngine",
+            ),
+            (
+                "ChiefOfficer",
+                "quant_hedge_ai.agents.intelligence.chief_officer",
+                "ChiefOfficer",
+            ),
+            (
+                "ThreatRadar",
+                "quant_hedge_ai.agents.intelligence.threat_radar",
+                "ThreatRadar",
+            ),
+            (
+                "DecisionQualityEngine",
+                "quant_hedge_ai.agents.intelligence.decision_quality_engine",
+                "DecisionQualityEngine",
+            ),
+            (
+                "StrategyRanker",
+                "quant_hedge_ai.ai_evolution.strategy_ranker",
+                "StrategyRanker",
+            ),
+            (
+                "StrategyMemory",
+                "quant_hedge_ai.ai_evolution.strategy_memory",
+                "StrategyMemoryStore",
+            ),
+            (
+                "KillSwitchHardened",
+                "supervision.killswitch_hardened",
+                "KillSwitchHardened",
+            ),
             ("ExchangeMonitor", "supervision.exchange_monitor", "ExchangeMonitor"),
             ("SelfHealingBot", "supervision.self_healing_bot", "SelfHealingBot"),
-            ("PerformanceWatchdog", "supervision.performance_watchdog", "PerformanceWatchdog"),
+            (
+                "PerformanceWatchdog",
+                "supervision.performance_watchdog",
+                "PerformanceWatchdog",
+            ),
         ]
         for label, module_name, class_name in modules:
             try:
@@ -188,22 +299,150 @@ class BootValidator:
     def _check_instantiation(self) -> None:
         print(_bold("[ 4 ] Instanciation des modules clés"))
         checks = [
-            ("FeatureEngineer", self._try(lambda: __import__("quant_hedge_ai.agents.intelligence.feature_engineer", fromlist=["FeatureEngineer"]).FeatureEngineer())),
-            ("GlobalRiskGate", self._try(lambda: __import__("quant_hedge_ai.agents.risk.global_risk_gate", fromlist=["GlobalRiskGate"]).GlobalRiskGate())),
-            ("PortfolioBrain", self._try(lambda: __import__("quant_hedge_ai.agents.risk.portfolio_brain", fromlist=["PortfolioBrain"]).PortfolioBrain(total_capital=1000))),
-            ("CapitalAllocationEngine", self._try(lambda: __import__("quant_hedge_ai.agents.risk.capital_allocation_engine", fromlist=["CapitalAllocationEngine"]).CapitalAllocationEngine(total_capital=1000))),
-            ("ExecutiveOverride", self._try(lambda: __import__("quant_hedge_ai.agents.risk.executive_override", fromlist=["ExecutiveOverride"]).ExecutiveOverride(total_capital=1000))),
-            ("ConvictionEngine", self._try(lambda: __import__("quant_hedge_ai.agents.intelligence.conviction_engine", fromlist=["ConvictionEngine"]).ConvictionEngine())),
-            ("MetaStrategyEngine", self._try(lambda: __import__("quant_hedge_ai.agents.intelligence.meta_strategy_engine", fromlist=["MetaStrategyEngine"]).MetaStrategyEngine())),
-            ("SelfAwarenessEngine", self._try(lambda: __import__("quant_hedge_ai.agents.intelligence.self_awareness_engine", fromlist=["SelfAwarenessEngine"]).SelfAwarenessEngine())),
-            ("NoTradeIntelligence", self._try(lambda: __import__("quant_hedge_ai.agents.intelligence.no_trade_layer", fromlist=["NoTradeIntelligence"]).NoTradeIntelligence())),
-            ("MistakeMemory", self._try(lambda: __import__("quant_hedge_ai.agents.intelligence.mistake_memory", fromlist=["MistakeMemory"]).MistakeMemory())),
-            ("BlackBox", self._try(lambda: __import__("quant_hedge_ai.agents.intelligence.black_box", fromlist=["BlackBox"]).BlackBox())),
-            ("RegretEngine", self._try(lambda: __import__("quant_hedge_ai.agents.intelligence.regret_engine", fromlist=["RegretEngine"]).RegretEngine())),
-            ("ChiefOfficer", self._try(lambda: __import__("quant_hedge_ai.agents.intelligence.chief_officer", fromlist=["ChiefOfficer"]).ChiefOfficer())),
-            ("ThreatRadar", self._try(lambda: __import__("quant_hedge_ai.agents.intelligence.threat_radar", fromlist=["ThreatRadar"]).ThreatRadar())),
-            ("StrategyRanker", self._try(lambda: __import__("quant_hedge_ai.ai_evolution.strategy_ranker", fromlist=["StrategyRanker"]).StrategyRanker())),
-            ("LiveSignalEngine", self._try(lambda: __import__("quant_hedge_ai.agents.execution.live_signal_engine", fromlist=["LiveSignalEngine"]).LiveSignalEngine())),
+            (
+                "FeatureEngineer",
+                self._try(
+                    lambda: __import__(
+                        "quant_hedge_ai.agents.intelligence.feature_engineer",
+                        fromlist=["FeatureEngineer"],
+                    ).FeatureEngineer()
+                ),
+            ),
+            (
+                "GlobalRiskGate",
+                self._try(
+                    lambda: __import__(
+                        "quant_hedge_ai.agents.risk.global_risk_gate",
+                        fromlist=["GlobalRiskGate"],
+                    ).GlobalRiskGate()
+                ),
+            ),
+            (
+                "PortfolioBrain",
+                self._try(
+                    lambda: __import__(
+                        "quant_hedge_ai.agents.risk.portfolio_brain",
+                        fromlist=["PortfolioBrain"],
+                    ).PortfolioBrain(total_capital=1000)
+                ),
+            ),
+            (
+                "CapitalAllocationEngine",
+                self._try(
+                    lambda: __import__(
+                        "quant_hedge_ai.agents.risk.capital_allocation_engine",
+                        fromlist=["CapitalAllocationEngine"],
+                    ).CapitalAllocationEngine(total_capital=1000)
+                ),
+            ),
+            (
+                "ExecutiveOverride",
+                self._try(
+                    lambda: __import__(
+                        "quant_hedge_ai.agents.risk.executive_override",
+                        fromlist=["ExecutiveOverride"],
+                    ).ExecutiveOverride(total_capital=1000)
+                ),
+            ),
+            (
+                "ConvictionEngine",
+                self._try(
+                    lambda: __import__(
+                        "quant_hedge_ai.agents.intelligence.conviction_engine",
+                        fromlist=["ConvictionEngine"],
+                    ).ConvictionEngine()
+                ),
+            ),
+            (
+                "MetaStrategyEngine",
+                self._try(
+                    lambda: __import__(
+                        "quant_hedge_ai.agents.intelligence.meta_strategy_engine",
+                        fromlist=["MetaStrategyEngine"],
+                    ).MetaStrategyEngine()
+                ),
+            ),
+            (
+                "SelfAwarenessEngine",
+                self._try(
+                    lambda: __import__(
+                        "quant_hedge_ai.agents.intelligence.self_awareness_engine",
+                        fromlist=["SelfAwarenessEngine"],
+                    ).SelfAwarenessEngine()
+                ),
+            ),
+            (
+                "NoTradeIntelligence",
+                self._try(
+                    lambda: __import__(
+                        "quant_hedge_ai.agents.intelligence.no_trade_layer",
+                        fromlist=["NoTradeIntelligence"],
+                    ).NoTradeIntelligence()
+                ),
+            ),
+            (
+                "MistakeMemory",
+                self._try(
+                    lambda: __import__(
+                        "quant_hedge_ai.agents.intelligence.mistake_memory",
+                        fromlist=["MistakeMemory"],
+                    ).MistakeMemory()
+                ),
+            ),
+            (
+                "BlackBox",
+                self._try(
+                    lambda: __import__(
+                        "quant_hedge_ai.agents.intelligence.black_box",
+                        fromlist=["BlackBox"],
+                    ).BlackBox()
+                ),
+            ),
+            (
+                "RegretEngine",
+                self._try(
+                    lambda: __import__(
+                        "quant_hedge_ai.agents.intelligence.regret_engine",
+                        fromlist=["RegretEngine"],
+                    ).RegretEngine()
+                ),
+            ),
+            (
+                "ChiefOfficer",
+                self._try(
+                    lambda: __import__(
+                        "quant_hedge_ai.agents.intelligence.chief_officer",
+                        fromlist=["ChiefOfficer"],
+                    ).ChiefOfficer()
+                ),
+            ),
+            (
+                "ThreatRadar",
+                self._try(
+                    lambda: __import__(
+                        "quant_hedge_ai.agents.intelligence.threat_radar",
+                        fromlist=["ThreatRadar"],
+                    ).ThreatRadar()
+                ),
+            ),
+            (
+                "StrategyRanker",
+                self._try(
+                    lambda: __import__(
+                        "quant_hedge_ai.ai_evolution.strategy_ranker",
+                        fromlist=["StrategyRanker"],
+                    ).StrategyRanker()
+                ),
+            ),
+            (
+                "LiveSignalEngine",
+                self._try(
+                    lambda: __import__(
+                        "quant_hedge_ai.agents.execution.live_signal_engine",
+                        fromlist=["LiveSignalEngine"],
+                    ).LiveSignalEngine()
+                ),
+            ),
         ]
         for label, (ok, error) in checks:
             self.results.append(CheckResult(f"init.{label}", ok, error))
@@ -213,20 +452,34 @@ class BootValidator:
     def _check_decision_chain(self) -> None:
         print(_bold("[ 5 ] Chaîne de décision complète (données synthétiques)"))
         try:
-            from quant_hedge_ai.agents.execution.live_signal_engine import LiveSignalEngine
-            from quant_hedge_ai.agents.intelligence.conviction_engine import ConvictionEngine
-            from quant_hedge_ai.agents.intelligence.feature_engineer import FeatureEngineer
-            from quant_hedge_ai.agents.intelligence.meta_strategy_engine import MetaStrategyEngine
+            import random
+
+            from quant_hedge_ai.agents.execution.live_signal_engine import (
+                LiveSignalEngine,
+            )
+            from quant_hedge_ai.agents.intelligence.conviction_engine import (
+                ConvictionEngine,
+            )
+            from quant_hedge_ai.agents.intelligence.feature_engineer import (
+                FeatureEngineer,
+            )
+            from quant_hedge_ai.agents.intelligence.meta_strategy_engine import (
+                MetaStrategyEngine,
+            )
             from quant_hedge_ai.agents.intelligence.mistake_memory import MistakeMemory
-            from quant_hedge_ai.agents.intelligence.no_trade_layer import NoTradeIntelligence
-            from quant_hedge_ai.agents.intelligence.self_awareness_engine import SelfAwarenessEngine
+            from quant_hedge_ai.agents.intelligence.no_trade_layer import (
+                NoTradeIntelligence,
+            )
+            from quant_hedge_ai.agents.intelligence.self_awareness_engine import (
+                SelfAwarenessEngine,
+            )
             from quant_hedge_ai.agents.intelligence.threat_radar import ThreatRadar
-            from quant_hedge_ai.agents.risk.capital_allocation_engine import CapitalAllocationEngine
+            from quant_hedge_ai.agents.risk.capital_allocation_engine import (
+                CapitalAllocationEngine,
+            )
             from quant_hedge_ai.agents.risk.executive_override import ExecutiveOverride
             from quant_hedge_ai.agents.risk.global_risk_gate import GlobalRiskGate
             from quant_hedge_ai.agents.risk.portfolio_brain import PortfolioBrain
-
-            import random
 
             random.seed(42)
             base = 77000.0
@@ -246,49 +499,108 @@ class BootValidator:
             features = FeatureEngineer().extract_features(candles)
             assert "rsi" in features
             assert "atr" in features
-            self._print_result("  Features (25 indicateurs)", True, f"RSI={features['rsi']:.1f} ATR={features['atr']:.0f}")
+            self._print_result(
+                "  Features (25 indicateurs)",
+                True,
+                f"RSI={features['rsi']:.1f} ATR={features['atr']:.0f}",
+            )
 
-            signal = LiveSignalEngine().evaluate("BTC/USDT", {"1h": candles}, features=features)
+            signal = LiveSignalEngine().evaluate(
+                "BTC/USDT", {"1h": candles}, features=features
+            )
             assert signal.score >= 0
-            self._print_result("  LiveSignalEngine", True, f"score={signal.score} signal={signal.signal}")
+            self._print_result(
+                "  LiveSignalEngine",
+                True,
+                f"score={signal.score} signal={signal.signal}",
+            )
 
             gate = GlobalRiskGate().check(signal)
             self._print_result("  GlobalRiskGate", True, f"allowed={gate.allowed}")
 
             meta = MetaStrategyEngine()
-            personality = meta.select("bull_trend", features, memory_sharpe=1.5, consecutive_losses=0, open_positions=0)
+            personality = meta.select(
+                "bull_trend",
+                features,
+                memory_sharpe=1.5,
+                consecutive_losses=0,
+                open_positions=0,
+            )
             assert personality is not None
-            self._print_result("  MetaStrategyEngine", True, f"personality={personality.name}")
+            self._print_result(
+                "  MetaStrategyEngine", True, f"personality={personality.name}"
+            )
 
-            conviction = ConvictionEngine().evaluate(signal, features, candles, "bull_trend", 1.5)
-            self._print_result("  ConvictionEngine", True, f"level={conviction.level.value} score={conviction.score:.0f}")
+            conviction = ConvictionEngine().evaluate(
+                signal, features, candles, "bull_trend", 1.5
+            )
+            self._print_result(
+                "  ConvictionEngine",
+                True,
+                f"level={conviction.level.value} score={conviction.score:.0f}",
+            )
 
-            no_trade = NoTradeIntelligence().check(signal, candles, features, "bull_trend")
-            self._print_result("  NoTradeIntelligence", True, f"allowed={bool(no_trade)}")
+            no_trade = NoTradeIntelligence().check(
+                signal, candles, features, "bull_trend"
+            )
+            self._print_result(
+                "  NoTradeIntelligence", True, f"allowed={bool(no_trade)}"
+            )
 
             awareness = SelfAwarenessEngine().evaluate()
-            self._print_result("  SelfAwarenessEngine", True, f"level={awareness.level.name}")
+            self._print_result(
+                "  SelfAwarenessEngine", True, f"level={awareness.level.name}"
+            )
 
             mistake_memory = MistakeMemory()
-            mistake_check = mistake_memory.check_before_trade("BTC/USDT", "BUY", signal.score, "bull_trend", features)
-            self._print_result("  MistakeMemory", True, f"blocked={mistake_check.blocked}")
+            mistake_check = mistake_memory.check_before_trade(
+                "BTC/USDT", "BUY", signal.score, "bull_trend", features
+            )
+            self._print_result(
+                "  MistakeMemory", True, f"blocked={mistake_check.blocked}"
+            )
 
             portfolio = PortfolioBrain(total_capital=1000)
-            portfolio_verdict = portfolio.check_new_trade("BTC/USDT", "BUY", 55.0, "bull_trend", [])
-            self._print_result("  PortfolioBrain", True, f"allowed={portfolio_verdict.allowed} factor={portfolio_verdict.size_factor}")
+            portfolio_verdict = portfolio.check_new_trade(
+                "BTC/USDT", "BUY", 55.0, "bull_trend", []
+            )
+            self._print_result(
+                "  PortfolioBrain",
+                True,
+                f"allowed={portfolio_verdict.allowed} factor={portfolio_verdict.size_factor}",
+            )
 
             capital_engine = CapitalAllocationEngine(total_capital=1000)
-            allocation = capital_engine.allocate(55.0, win_rate=0.55, avg_win_pct=0.04, avg_loss_pct=0.02, regime="bull_trend", conviction_factor=conviction.size_factor)
-            self._print_result("  CapitalAllocationEngine", True, f"size=${allocation.size_usd:.0f} kelly={allocation.kelly_fraction:.4f}")
+            allocation = capital_engine.allocate(
+                55.0,
+                win_rate=0.55,
+                avg_win_pct=0.04,
+                avg_loss_pct=0.02,
+                regime="bull_trend",
+                conviction_factor=conviction.size_factor,
+            )
+            self._print_result(
+                "  CapitalAllocationEngine",
+                True,
+                f"size=${allocation.size_usd:.0f} kelly={allocation.kelly_fraction:.4f}",
+            )
 
             executive_override = ExecutiveOverride(total_capital=1000)
             override_verdict = executive_override.check_trade(allocation.size_usd)
-            self._print_result("  ExecutiveOverride", True, f"level={override_verdict.level.name} allowed={override_verdict.allowed}")
+            self._print_result(
+                "  ExecutiveOverride",
+                True,
+                f"level={override_verdict.level.name} allowed={override_verdict.allowed}",
+            )
 
             radar = ThreatRadar()
             radar.feed_candles("BTC/USDT", candles)
             radar_report = radar.scan_sync(["BTC/USDT"])
-            self._print_result("  ThreatRadar", True, f"menaces={len(radar_report.threats)} niveau={radar_report.max_level.value} trade_ok={radar_report.trade_allowed}")
+            self._print_result(
+                "  ThreatRadar",
+                True,
+                f"menaces={len(radar_report.threats)} niveau={radar_report.max_level.value} trade_ok={radar_report.trade_allowed}",
+            )
 
             all_ok = (
                 gate.allowed
@@ -299,8 +611,17 @@ class BootValidator:
                 and override_verdict.allowed
                 and radar_report.trade_allowed
             )
-            self.results.append(CheckResult("chain.complete", True, f"12 couches OK | trade={'AUTORISE' if all_ok else 'BLOQUE'}"))
-            self._print_result(f"  CHAINE COMPLETE — trade {'AUTORISE' if all_ok else 'BLOQUE (normal si conditions)'}", True)
+            self.results.append(
+                CheckResult(
+                    "chain.complete",
+                    True,
+                    f"12 couches OK | trade={'AUTORISE' if all_ok else 'BLOQUE'}",
+                )
+            )
+            self._print_result(
+                f"  CHAINE COMPLETE — trade {'AUTORISE' if all_ok else 'BLOQUE (normal si conditions)'}",
+                True,
+            )
         except Exception:
             traceback_line = traceback.format_exc().strip().split("\n")[-1]
             self.results.append(CheckResult("chain.complete", False, traceback_line))
@@ -315,14 +636,29 @@ class BootValidator:
             engine = ExecutionEngine.from_env()
             ok_futures = engine.has_futures_demo()
             self._print_result("  has_futures_demo", ok_futures)
-            self.results.append(CheckResult("exchange.futures", ok_futures, "Futures Demo accessible" if ok_futures else "NON disponible"))
+            self.results.append(
+                CheckResult(
+                    "exchange.futures",
+                    ok_futures,
+                    "Futures Demo accessible" if ok_futures else "NON disponible",
+                )
+            )
 
             if ok_futures:
                 balance = engine.fetch_futures_balance()
                 capital = engine.fetch_available_capital()
                 balance_ok = balance > 0 or capital > 0
-                self._print_result(f"  Balance futures: ${balance:.0f} USDT | Spot: ${capital:.0f}", balance_ok)
-                self.results.append(CheckResult("exchange.balance", balance_ok, f"Futures=${balance:.0f} Spot=${capital:.0f}"))
+                self._print_result(
+                    f"  Balance futures: ${balance:.0f} USDT | Spot: ${capital:.0f}",
+                    balance_ok,
+                )
+                self.results.append(
+                    CheckResult(
+                        "exchange.balance",
+                        balance_ok,
+                        f"Futures=${balance:.0f} Spot=${capital:.0f}",
+                    )
+                )
         except Exception as exc:
             short = str(exc)[:100]
             self.results.append(CheckResult("exchange.connect", False, short))
@@ -351,7 +687,9 @@ class BootValidator:
             for result in failed:
                 print(f"  {_red('FAIL')} {result.name}: {result.detail}")
             print()
-            print(_bold(_red("  VERDICT : SYSTEME NON PRET — corriger avant de lancer")))
+            print(
+                _bold(_red("  VERDICT : SYSTEME NON PRET — corriger avant de lancer"))
+            )
         else:
             print(_bold(_green("  VERDICT : SYSTEME PRET — tous les checks passent")))
             advisor_only = os.getenv("V9_ADVISOR_ONLY", "true").lower()
@@ -372,14 +710,20 @@ class BootValidator:
     @staticmethod
     def _print_result(label: str, ok: bool, detail: str = "") -> None:
         icon = _green("PASS") if ok else _red("FAIL")
-        suffix = f"  {_yellow(detail)}" if detail and not ok else (f"  {detail}" if detail else "")
+        suffix = (
+            f"  {_yellow(detail)}"
+            if detail and not ok
+            else (f"  {detail}" if detail else "")
+        )
         print(f"  [{icon}] {label}{suffix}")
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Boot System Validator")
     parser.add_argument("--fast", action="store_true", help="Skip exchange live check")
-    parser.add_argument("--fix", action="store_true", help="Auto-créer les dossiers manquants")
+    parser.add_argument(
+        "--fix", action="store_true", help="Auto-créer les dossiers manquants"
+    )
     args = parser.parse_args()
 
     validator = BootValidator(fast=args.fast, fix=args.fix)

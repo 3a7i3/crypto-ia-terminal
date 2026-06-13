@@ -1,10 +1,8 @@
-import pytest
-
-from src.events.event_bus import EventBus
+from src.events.event_bus import SimEventBus
 
 
 def test_subscribe_and_emit():
-    bus = EventBus()
+    bus = SimEventBus()
     received = []
     bus.subscribe("TRADE_CLOSED", received.append)
     bus.emit({"type": "TRADE_CLOSED", "symbol": "BTC", "pnl": 10.0})
@@ -13,7 +11,7 @@ def test_subscribe_and_emit():
 
 
 def test_multiple_subscribers_same_event():
-    bus = EventBus()
+    bus = SimEventBus()
     log1, log2 = [], []
     bus.subscribe("TRADE_OPENED", log1.append)
     bus.subscribe("TRADE_OPENED", log2.append)
@@ -23,12 +21,12 @@ def test_multiple_subscribers_same_event():
 
 
 def test_emit_unknown_event_does_not_crash():
-    bus = EventBus()
-    bus.emit({"type": "UNKNOWN_EVENT", "data": 42})  # must not raise
+    bus = SimEventBus()
+    bus.emit({"type": "UNKNOWN_EVENT", "data": 42})
 
 
 def test_unsubscribe():
-    bus = EventBus()
+    bus = SimEventBus()
     log = []
     bus.subscribe("EV", log.append)
     bus.unsubscribe("EV", log.append)
@@ -37,7 +35,7 @@ def test_unsubscribe():
 
 
 def test_clear():
-    bus = EventBus()
+    bus = SimEventBus()
     log = []
     bus.subscribe("EV", log.append)
     bus.clear()
@@ -46,7 +44,7 @@ def test_clear():
 
 
 def test_event_isolation_by_type():
-    bus = EventBus()
+    bus = SimEventBus()
     opened, closed = [], []
     bus.subscribe("TRADE_OPENED", opened.append)
     bus.subscribe("TRADE_CLOSED", closed.append)

@@ -21,7 +21,7 @@ from src.backtest.mexc_feed import fetch_mexc_candles, mexc_feed
 from src.backtest.walk_forward import sliding_windows
 from src.engine.execution_router import ExecutionRouter
 from src.engine.virtual_exchange import VirtualExchange
-from src.events.event_bus import EventBus
+from src.events.event_bus import SimEventBus
 from src.execution.enl import ENLConfig, NoisyExchange
 from src.journal.trade_logger import TradeLogger
 from src.portfolio.portfolio_state import PortfolioState
@@ -59,7 +59,7 @@ class SimBot:
     ):
         self._balance = initial_balance
         self._kill_switch = KillSwitch()
-        self._bus = EventBus()
+        self._bus = SimEventBus()
         self._logger = TradeLogger()
         self._bus.subscribe("TRADE_OPENED", self._logger.on_trade_opened)
         self._bus.subscribe("TRADE_CLOSED", self._logger.on_trade_closed)

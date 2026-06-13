@@ -28,169 +28,233 @@ from dataclasses import dataclass, field
 from typing import Any, Callable
 
 # Force mode observation seule pour éviter tout appel réseau dans les constructeurs
-os.environ.setdefault("V9_ADVISOR_ONLY",       "true")
+os.environ.setdefault("V9_ADVISOR_ONLY", "true")
 os.environ.setdefault("MARKET_SCANNER_SYNTHETIC", "true")
-os.environ.setdefault("BINANCE_TESTNET",        "false")
-os.environ.setdefault("LM_STUDIO_AVAILABLE",    "false")
-os.environ.setdefault("TELEGRAM_BOT_TOKEN",     "")
-os.environ.setdefault("TELEGRAM_CHAT_ID",       "")
+os.environ.setdefault("BINANCE_TESTNET", "false")
+os.environ.setdefault("LM_STUDIO_AVAILABLE", "false")
+os.environ.setdefault("TELEGRAM_BOT_TOKEN", "")
+os.environ.setdefault("TELEGRAM_CHAT_ID", "")
 
 
 # ── Registre des constructeurs à profiler ─────────────────────────────────────
 
+
 @dataclass
 class ModuleSpec:
-    label: str                        # nom affiché
-    module_path: str                  # chemin d'import
-    class_name: str                   # nom de la classe
+    label: str  # nom affiché
+    module_path: str  # chemin d'import
+    class_name: str  # nom de la classe
     kwargs: dict = field(default_factory=dict)  # kwargs du constructeur
-    io_hint: str = ""                 # description de l'I/O attendue
-    has_bg_thread: bool = False       # lance-t-il un thread au __init__ ?
-    skip_start: bool = True           # ne pas appeler .start() sur le résultat
+    io_hint: str = ""  # description de l'I/O attendue
+    has_bg_thread: bool = False  # lance-t-il un thread au __init__ ?
+    skip_start: bool = True  # ne pas appeler .start() sur le résultat
 
 
 _SPECS: list[ModuleSpec] = [
     # ── Surveillance / infrastructure ─────────────────────────────────────────
-    ModuleSpec("TelegramKillSwitch",
-               "supervision.telegram_kill_switch", "TelegramKillSwitch",
-               io_hint="(aucun I/O)", has_bg_thread=True),
-
-    ModuleSpec("ExchangeMonitor",
-               "supervision.exchange_monitor", "ExchangeMonitor",
-               io_hint="(aucun I/O)", has_bg_thread=True),
-
-    ModuleSpec("SelfHealingBot",
-               "supervision.self_healing_bot", "SelfHealingBot",
-               kwargs={"global_check_interval_s": 10.0},
-               io_hint="(aucun I/O)", has_bg_thread=True),
-
+    ModuleSpec(
+        "KillSwitchHardened",
+        "supervision.killswitch_hardened",
+        "KillSwitchHardened",
+        io_hint="(aucun I/O)",
+        has_bg_thread=True,
+    ),
+    ModuleSpec(
+        "ExchangeMonitor",
+        "supervision.exchange_monitor",
+        "ExchangeMonitor",
+        io_hint="(aucun I/O)",
+        has_bg_thread=True,
+    ),
+    ModuleSpec(
+        "SelfHealingBot",
+        "supervision.self_healing_bot",
+        "SelfHealingBot",
+        kwargs={"global_check_interval_s": 10.0},
+        io_hint="(aucun I/O)",
+        has_bg_thread=True,
+    ),
     # ── Scanners (pur Python) ─────────────────────────────────────────────────
-    ModuleSpec("MarketScanner(BTC/USDT)",
-               "quant_hedge_ai.agents.market.market_scanner", "MarketScanner",
-               kwargs={"symbols": ["BTC/USDT"], "timeframe": "1h", "limit": 96},
-               io_hint="(aucun I/O — exchange créé au 1er scan)"),
-
-    ModuleSpec("MultiTimeframeScanner",
-               "quant_hedge_ai.agents.market.multi_timeframe_scanner", "MultiTimeframeScanner",
-               kwargs={"symbols": ["BTC/USDT"]},
-               io_hint="(aucun I/O)"),
-
+    ModuleSpec(
+        "MarketScanner(BTC/USDT)",
+        "quant_hedge_ai.agents.market.market_scanner",
+        "MarketScanner",
+        kwargs={"symbols": ["BTC/USDT"], "timeframe": "1h", "limit": 96},
+        io_hint="(aucun I/O — exchange créé au 1er scan)",
+    ),
+    ModuleSpec(
+        "MultiTimeframeScanner",
+        "quant_hedge_ai.agents.market.multi_timeframe_scanner",
+        "MultiTimeframeScanner",
+        kwargs={"symbols": ["BTC/USDT"]},
+        io_hint="(aucun I/O)",
+    ),
     # ── Moteurs de signal ─────────────────────────────────────────────────────
-    ModuleSpec("GlobalRiskGate",
-               "quant_hedge_ai.agents.risk.global_risk_gate", "GlobalRiskGate",
-               io_hint="(aucun I/O)"),
-
-    ModuleSpec("LiveSignalEngine",
-               "quant_hedge_ai.agents.execution.live_signal_engine", "LiveSignalEngine",
-               io_hint="(aucun I/O)"),
-
-    ModuleSpec("AIAdvisor",
-               "quant_hedge_ai.agents.intelligence.ai_advisor", "AIAdvisor",
-               io_hint="(aucun I/O)"),
-
-    ModuleSpec("ShadowExecutionEngine",
-               "quant_hedge_ai.agents.execution.shadow_engine", "ShadowExecutionEngine",
-               kwargs={"risk_gate": None},
-               io_hint="(aucun I/O)"),
-
-    ModuleSpec("PerformanceWatchdog",
-               "supervision.performance_watchdog", "PerformanceWatchdog",
-               io_hint="(aucun I/O)"),
-
-    ModuleSpec("StrategyMemoryStore",
-               "quant_hedge_ai.ai_evolution.strategy_memory", "StrategyMemoryStore",
-               io_hint="(possible lecture JSON)"),
-
+    ModuleSpec(
+        "GlobalRiskGate",
+        "quant_hedge_ai.agents.risk.global_risk_gate",
+        "GlobalRiskGate",
+        io_hint="(aucun I/O)",
+    ),
+    ModuleSpec(
+        "LiveSignalEngine",
+        "quant_hedge_ai.agents.execution.live_signal_engine",
+        "LiveSignalEngine",
+        io_hint="(aucun I/O)",
+    ),
+    ModuleSpec(
+        "AIAdvisor",
+        "quant_hedge_ai.agents.intelligence.ai_advisor",
+        "AIAdvisor",
+        io_hint="(aucun I/O)",
+    ),
+    ModuleSpec(
+        "ShadowExecutionEngine",
+        "quant_hedge_ai.agents.execution.shadow_engine",
+        "ShadowExecutionEngine",
+        kwargs={"risk_gate": None},
+        io_hint="(aucun I/O)",
+    ),
+    ModuleSpec(
+        "PerformanceWatchdog",
+        "supervision.performance_watchdog",
+        "PerformanceWatchdog",
+        io_hint="(aucun I/O)",
+    ),
+    ModuleSpec(
+        "StrategyMemoryStore",
+        "quant_hedge_ai.ai_evolution.strategy_memory",
+        "StrategyMemoryStore",
+        io_hint="(possible lecture JSON)",
+    ),
     # ── Intelligence ──────────────────────────────────────────────────────────
-    ModuleSpec("MetaStrategyEngine",
-               "quant_hedge_ai.agents.intelligence.meta_strategy_engine", "MetaStrategyEngine",
-               io_hint="(aucun I/O)"),
-
-    ModuleSpec("StrategyRanker",
-               "quant_hedge_ai.ai_evolution.strategy_ranker", "StrategyRanker",
-               io_hint="(possible lecture JSON/pickle)"),
-
-    ModuleSpec("SelfAwarenessEngine",
-               "quant_hedge_ai.agents.intelligence.self_awareness_engine", "SelfAwarenessEngine",
-               io_hint="(aucun I/O)"),
-
-    ModuleSpec("NoTradeIntelligence",
-               "quant_hedge_ai.agents.intelligence.no_trade_layer", "NoTradeIntelligence",
-               io_hint="(aucun I/O)"),
-
-    ModuleSpec("ConvictionEngine",
-               "quant_hedge_ai.agents.intelligence.conviction_engine", "ConvictionEngine",
-               io_hint="(aucun I/O)"),
-
-    ModuleSpec("DecisionQualityEngine",
-               "quant_hedge_ai.agents.intelligence.decision_quality_engine", "DecisionQualityEngine",
-               io_hint="(aucun I/O)"),
-
-    ModuleSpec("PortfolioBrain",
-               "quant_hedge_ai.agents.risk.portfolio_brain", "PortfolioBrain",
-               kwargs={"total_capital": 1000.0},
-               io_hint="(aucun I/O)"),
-
-    ModuleSpec("CapitalAllocationEngine",
-               "quant_hedge_ai.agents.risk.capital_allocation_engine", "CapitalAllocationEngine",
-               kwargs={"total_capital": 1000.0},
-               io_hint="(aucun I/O)"),
-
-    ModuleSpec("ExecutiveOverride",
-               "quant_hedge_ai.agents.risk.executive_override", "ExecutiveOverride",
-               kwargs={"total_capital": 1000.0},
-               io_hint="(aucun I/O)"),
-
-    ModuleSpec("BlackBox",
-               "quant_hedge_ai.agents.intelligence.black_box", "BlackBox",
-               io_hint="(possible lecture JSONL)"),
-
-    ModuleSpec("ChiefOfficer",
-               "quant_hedge_ai.agents.intelligence.chief_officer", "ChiefOfficer",
-               io_hint="(aucun I/O)"),
-
+    ModuleSpec(
+        "MetaStrategyEngine",
+        "quant_hedge_ai.agents.intelligence.meta_strategy_engine",
+        "MetaStrategyEngine",
+        io_hint="(aucun I/O)",
+    ),
+    ModuleSpec(
+        "StrategyRanker",
+        "quant_hedge_ai.ai_evolution.strategy_ranker",
+        "StrategyRanker",
+        io_hint="(possible lecture JSON/pickle)",
+    ),
+    ModuleSpec(
+        "SelfAwarenessEngine",
+        "quant_hedge_ai.agents.intelligence.self_awareness_engine",
+        "SelfAwarenessEngine",
+        io_hint="(aucun I/O)",
+    ),
+    ModuleSpec(
+        "NoTradeIntelligence",
+        "quant_hedge_ai.agents.intelligence.no_trade_layer",
+        "NoTradeIntelligence",
+        io_hint="(aucun I/O)",
+    ),
+    ModuleSpec(
+        "ConvictionEngine",
+        "quant_hedge_ai.agents.intelligence.conviction_engine",
+        "ConvictionEngine",
+        io_hint="(aucun I/O)",
+    ),
+    ModuleSpec(
+        "DecisionQualityEngine",
+        "quant_hedge_ai.agents.intelligence.decision_quality_engine",
+        "DecisionQualityEngine",
+        io_hint="(aucun I/O)",
+    ),
+    ModuleSpec(
+        "PortfolioBrain",
+        "quant_hedge_ai.agents.risk.portfolio_brain",
+        "PortfolioBrain",
+        kwargs={"total_capital": 1000.0},
+        io_hint="(aucun I/O)",
+    ),
+    ModuleSpec(
+        "CapitalAllocationEngine",
+        "quant_hedge_ai.agents.risk.capital_allocation_engine",
+        "CapitalAllocationEngine",
+        kwargs={"total_capital": 1000.0},
+        io_hint="(aucun I/O)",
+    ),
+    ModuleSpec(
+        "ExecutiveOverride",
+        "quant_hedge_ai.agents.risk.executive_override",
+        "ExecutiveOverride",
+        kwargs={"total_capital": 1000.0},
+        io_hint="(aucun I/O)",
+    ),
+    ModuleSpec(
+        "BlackBox",
+        "quant_hedge_ai.agents.intelligence.black_box",
+        "BlackBox",
+        io_hint="(possible lecture JSONL)",
+    ),
+    ModuleSpec(
+        "ChiefOfficer",
+        "quant_hedge_ai.agents.intelligence.chief_officer",
+        "ChiefOfficer",
+        io_hint="(aucun I/O)",
+    ),
     # ── Modules avec I/O disque — candidats lazy-load ──────────────────────────
-    ModuleSpec("MistakeMemory",
-               "quant_hedge_ai.agents.intelligence.mistake_memory", "MistakeMemory",
-               io_hint="** lecture JSONL (mistake_memory.jsonl)"),
-
-    ModuleSpec("RegretEngine",
-               "quant_hedge_ai.agents.intelligence.regret_engine", "RegretEngine",
-               io_hint="** lecture JSONL (regret_analysis.jsonl)"),
-
-    ModuleSpec("ThreatRadar",
-               "quant_hedge_ai.agents.intelligence.threat_radar", "ThreatRadar",
-               io_hint="(aucun I/O — pure in-memory)"),
-
+    ModuleSpec(
+        "MistakeMemory",
+        "quant_hedge_ai.agents.intelligence.mistake_memory",
+        "MistakeMemory",
+        io_hint="** lecture JSONL (mistake_memory.jsonl)",
+    ),
+    ModuleSpec(
+        "RegretEngine",
+        "quant_hedge_ai.agents.intelligence.regret_engine",
+        "RegretEngine",
+        io_hint="** lecture JSONL (regret_analysis.jsonl)",
+    ),
+    ModuleSpec(
+        "ThreatRadar",
+        "quant_hedge_ai.agents.intelligence.threat_radar",
+        "ThreatRadar",
+        io_hint="(aucun I/O — pure in-memory)",
+    ),
     # ── MetaLearner (JSON via MetaMemory) ─────────────────────────────────────
-    ModuleSpec("MetaLearner",
-               "tracker_system.meta_learner", "MetaLearner",
-               io_hint="** lecture JSON (meta_memory.json)"),
-
-    ModuleSpec("FeatureEngineer",
-               "quant_hedge_ai.agents.intelligence.feature_engineer", "FeatureEngineer",
-               io_hint="(aucun I/O)"),
-
-    ModuleSpec("AdvancedRegimeDetector",
-               "quant_hedge_ai.agents.intelligence.regime_detector", "AdvancedRegimeDetector",
-               io_hint="(aucun I/O)"),
-
-    ModuleSpec("ConfidenceExplainer",
-               "quant_hedge_ai.agents.intelligence.confidence_explainer", "ConfidenceExplainer",
-               io_hint="(aucun I/O)"),
+    ModuleSpec(
+        "MetaLearner",
+        "tracker_system.meta_learner",
+        "MetaLearner",
+        io_hint="** lecture JSON (meta_memory.json)",
+    ),
+    ModuleSpec(
+        "FeatureEngineer",
+        "quant_hedge_ai.agents.intelligence.feature_engineer",
+        "FeatureEngineer",
+        io_hint="(aucun I/O)",
+    ),
+    ModuleSpec(
+        "AdvancedRegimeDetector",
+        "quant_hedge_ai.agents.intelligence.regime_detector",
+        "AdvancedRegimeDetector",
+        io_hint="(aucun I/O)",
+    ),
+    ModuleSpec(
+        "ConfidenceExplainer",
+        "quant_hedge_ai.agents.intelligence.confidence_explainer",
+        "ConfidenceExplainer",
+        io_hint="(aucun I/O)",
+    ),
 ]
 
 
 # ── Mesure ────────────────────────────────────────────────────────────────────
 
+
 @dataclass
 class Measurement:
-    label:      str
-    import_ms:  float       # coût import module (1ère fois)
-    init_ms:    float       # coût __init__
-    total_ms:   float       # import + init
-    error:      str = ""
-    io_hint:    str = ""
+    label: str
+    import_ms: float  # coût import module (1ère fois)
+    init_ms: float  # coût __init__
+    total_ms: float  # import + init
+    error: str = ""
+    io_hint: str = ""
     has_bg_thread: bool = False
 
 
@@ -241,7 +305,9 @@ def run_benchmark(n_passes: int = 3) -> list[list[Measurement]]:
     for pass_idx in range(n_passes):
         print(f"  Passe {pass_idx + 1}/{n_passes}...", end=" ", flush=True)
         t0 = time.perf_counter()
-        measures = [_measure_one(spec, force_reimport=(pass_idx == 0)) for spec in _SPECS]
+        measures = [
+            _measure_one(spec, force_reimport=(pass_idx == 0)) for spec in _SPECS
+        ]
         elapsed = time.perf_counter() - t0
         print(f"done en {elapsed:.1f}s")
         all_passes.append(measures)
@@ -253,12 +319,13 @@ def _agg(values: list[float]) -> dict:
         return {"mean": 0.0, "min": 0.0, "max": 0.0}
     return {
         "mean": sum(values) / len(values),
-        "min":  min(values),
-        "max":  max(values),
+        "min": min(values),
+        "max": max(values),
     }
 
 
 # ── Rapport ───────────────────────────────────────────────────────────────────
+
 
 def print_report(all_passes: list[list[Measurement]]) -> None:
     n = len(all_passes)
@@ -274,7 +341,9 @@ def print_report(all_passes: list[list[Measurement]]) -> None:
             by_label.setdefault(m.label, []).append(m)
 
     # ── Tableau principal
-    print(f"\n  {'Constructeur':<30} {'init ms':>8} {'min':>6} {'max':>6} {'import':>8}  {'I/O'}")
+    print(
+        f"\n  {'Constructeur':<30} {'init ms':>8} {'min':>6} {'max':>6} {'import':>8}  {'I/O'}"
+    )
     print("  " + "-" * 76)
 
     total_init = 0.0
@@ -285,8 +354,8 @@ def print_report(all_passes: list[list[Measurement]]) -> None:
         if not measures:
             continue
 
-        inits  = [m.init_ms for m in measures if not m.error]
-        imps   = [m.import_ms for m in measures if not m.error]
+        inits = [m.init_ms for m in measures if not m.error]
+        imps = [m.import_ms for m in measures if not m.error]
         errors = [m.error for m in measures if m.error]
 
         if errors:
@@ -294,7 +363,7 @@ def print_report(all_passes: list[list[Measurement]]) -> None:
             continue
 
         agg_init = _agg(inits)
-        agg_imp  = _agg(imps)
+        agg_imp = _agg(imps)
         mean_init = agg_init["mean"]
         total_init += mean_init
 
@@ -348,18 +417,28 @@ def print_report(all_passes: list[list[Measurement]]) -> None:
     print(f"\n  CONCLUSIONS")
     print(f"    ThreatRadar : pure in-memory, cost ~0ms — pas de lazy-load utile")
     print(f"    MetaLearner : lit meta_memory.json — lazy-load utile si fichier grand")
-    print(f"    MistakeMemory / RegretEngine : JSONL disk — lazy-load actif via ADVISOR_DEFER_OPTIONAL_INTEL=true")
+    print(
+        f"    MistakeMemory / RegretEngine : JSONL disk — lazy-load actif via ADVISOR_DEFER_OPTIONAL_INTEL=true"
+    )
     print(f"    Total init   : {total_init:.0f}ms sequentiel")
-    print(f"    Warmup 1h    : ~3700ms reseau — demarre deja en paralele → couvrent le boot")
-    print(f"    Gain reorder : deplacer scanners+warmup avant kill_switch → +~15-20ms de parallelisme")
+    print(
+        f"    Warmup 1h    : ~3700ms reseau — demarre deja en paralele → couvrent le boot"
+    )
+    print(
+        f"    Gain reorder : deplacer scanners+warmup avant kill_switch → +~15-20ms de parallelisme"
+    )
     print()
     print("=" * 88)
     print()
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Bench constructeurs boot advisor_loop")
-    parser.add_argument("--passes", type=int, default=3, help="Nombre de passes de mesure")
+    parser = argparse.ArgumentParser(
+        description="Bench constructeurs boot advisor_loop"
+    )
+    parser.add_argument(
+        "--passes", type=int, default=3, help="Nombre de passes de mesure"
+    )
     args = parser.parse_args()
 
     print(f"\nBench constructeurs ({len(_SPECS)} modules, {args.passes} passes)...")

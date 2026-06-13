@@ -8,6 +8,14 @@ Public API:
 
 from supervision.alert_manager import AlertManager
 from supervision.circuit_breaker_robust import ComponentCircuitBreaker
-from supervision.kill_switch import TelegramKillSwitch
+from supervision.kill_switch import (  # legacy — préférer KillSwitchHardened
+    TelegramKillSwitch,
+)
+from supervision.killswitch_hardened import KillSwitchHardened
 
-__all__ = ["ComponentCircuitBreaker", "TelegramKillSwitch", "AlertManager"]
+__all__ = [
+    "ComponentCircuitBreaker",
+    "TelegramKillSwitch",
+    "AlertManager",
+    "KillSwitchHardened",
+]

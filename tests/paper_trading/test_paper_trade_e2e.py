@@ -271,8 +271,10 @@ class TestPaperTradeCompleteLifecycle:
         assert closed.pnl_usd > 0
 
         close_notif = notifications[0]
-        assert "FERMEE" in close_notif
-        assert "TP" in close_notif
+        assert (
+            "TP" in close_notif
+        )  # "FERMEE" supprimé du format de notification (→ "TP atteint")
+        assert "BTC/USDT" in close_notif
 
         # Rapport de performance cohérent
         report = sim.performance_report()

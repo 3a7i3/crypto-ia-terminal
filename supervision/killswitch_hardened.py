@@ -164,6 +164,10 @@ class KillSwitchHardened:
         with self._lock:
             return self._state.safe_mode
 
+    def is_execution_allowed(self) -> bool:
+        """Compatibilité API legacy — False si halted ou safe_mode."""
+        return not self.is_halted() and not self.is_safe_mode()
+
     def halt_reason(self) -> str:
         with self._lock:
             return self._state.halt_reason

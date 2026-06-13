@@ -1,5 +1,5 @@
 # CANONICAL COMPONENTS — crypto_ai_terminal
-**Établi : 2026-06-11 | Mis à jour : 2026-06-12 | Phase P1**
+**Établi : 2026-06-11 | Mis à jour : 2026-06-12 | Phase P1 — VERROUILLÉ**
 
 ## Règle d'architecture
 
@@ -10,36 +10,77 @@ Toute revue de code doit vérifier qu'aucune implémentation concurrente n'est i
 
 ---
 
-## Tableau de progression P1
+## Pipeline d'exécution canonique
 
-| Verticale | Canonique défini | Runtime câblé | Tests intégration | Legacy supprimé |
-|---|---|---|---|---|
-| Decision Layer | ✅ | ✅ câblé | ✅ 18 tests (DL-01→DL-05) | ⏳ renommage différé |
-| Event Bus | ✅ | ⏳ | ⏳ | ⏳ migrer stubs |
-| Execution Engine | ✅ | ✅ | ⏳ | ⏳ archiver src/stub |
-| Kill Switch | ✅ | ✅ | ⏳ | ⏳ migrer stubs |
-| Regime Detector | ✅ | ✅ | ✅ (bug bear corrigé) | ⏳ archiver src/analytics |
-| Feature Pipeline | ✅ | ✅ | ⏳ | — |
-| Configuration | ❌ à créer | ❌ | ❌ | — |
+```
+──────────────────────────── RUNTIME LIVE ──────────────────────────────
 
-> **Règle d'avancement** : une verticale est ✅ "Runtime câblé" uniquement quand un test d'intégration prouve que l'action arrive effectivement jusqu'au système (pas seulement que le module s'instancie).
->
-> **Renames différés** jusqu'à ce que "Tests intégration" soit ✅.
+Signal d'entrée (prix, volume, indicateurs)
+        │
+        ▼
+AdvancedRegimeDetector          quant_hedge_ai/agents/intelligence/regime_detector.py
+        │ régime (bull/bear/sideways/high_vol/flash_crash)
+        ▼
+DecisionEngine + Decision Layer quant_hedge_ai/engine/decision_engine.py
+        │ TradeGateDecision (STOP_TRADING / ALLOW / REDUCE_RISK)
+        ▼
+GlobalRiskGate (5 vérifications) quant_hedge_ai/agents/risk/global_risk_gate.py
+        │ allowed=True requis
+        ▼
+KillSwitchHardened              supervision/killswitch_hardened.py
+        │ is_halted()=False requis, état persistant
+        ▼
+ExecutionEngine                 quant_hedge_ai/agents/execution/execution_engine.py
+        │ SessionGuard + OrderDeduplicator + OrderValidator
+        ▼
+CCXT (live) / paper mode
+        │
+        ▼
+Runtime EventBus (singleton)    event_bus/bus.py
+        │ OrderFilledEvent, PositionOpenedEvent, ...
+
+──────────────────────────── SIMULATION ────────────────────────────────
+
+BacktestEngine / SimBot
+        │
+        ▼
+VirtualExchange                 src/engine/virtual_exchange.py
+        │
+        ▼
+SimEventBus (instance locale)   src/events/event_bus.py
+        │ TRADE_OPENED, TRADE_CLOSED (dict-based, isolation par run)
+```
+
+---
+
+## Tableau de progression P1 — ÉTAT FINAL
+
+| Verticale        | Canonique défini | Runtime câblé | Tests intégration  | Dette P2               |
+|------------------|:----------------:|:-------------:|:------------------:|------------------------|
+| Decision Layer   | ✅               | ✅            | ✅ 18 tests DL-01→05 | Renommage `trade_gate.py` |
+| Event Bus        | ✅               | ✅            | ✅ garde-fou CI     | —                       |
+| Execution Engine | ✅               | ✅            | ✅ risk gate vérifié | `ExecutionEngineProtocol` |
+| Kill Switch      | ✅               | ✅            | ✅ 7 tests restart  | `KillSwitchAuthority`   |
+| Regime Detector  | ✅               | ✅            | ✅ (bug bear corrigé) | Shim à supprimer       |
 
 ---
 
 ## Table des composants canoniques
 
-| Responsabilité | Implémentation canonique | Chemin | Statut | Migration P1 |
-|---|---|---|---|---|
-| Event Bus | `EventBus` | `event_bus/bus.py` | ✅ Canonique | Migrer 3 stubs de test |
-| Kill Switch | `KillSwitchHardened` | `supervision/killswitch_hardened.py` | ✅ Canonique | Migrer 9 stubs de test |
-| Runtime State | `RuntimeStateMachine` | `system/state_machine.py` | ✅ Canonique | — |
-| Execution Engine | `ExecutionEngine` | `quant_hedge_ai/agents/execution/execution_engine.py` | ✅ Canonique | Archiver stub src/ |
-| Regime Detector | `AdvancedRegimeDetector` | `quant_hedge_ai/agents/intelligence/regime_detector.py` | ✅ Canonique | Archiver src/analytics/regime_detector.py |
-| Feature Pipeline | `FeatureMaterializer` + `FeatureStore` | `quant_hedge_ai/features/` | ✅ Canonique | — |
-| Decision Engine | `DecisionEngine` | `quant_hedge_ai/engine/decision_engine.py` | ⚠️ Canonique (à enrichir) | Étude auto_decision_engine |
-| Configuration | — | à créer : `config/settings.py` (Pydantic) | ❌ À créer | Unifier 4 sources |
+| Responsabilité       | Implémentation canonique    | Chemin                                                     | Statut P1      |
+|----------------------|-----------------------------|------------------------------------------------------------|----------------|
+| Runtime Event Bus    | `EventBus`                  | `event_bus/bus.py`                                         | ✅ Verrouillé   |
+| Simulation Event Bus | `SimEventBus`               | `src/events/event_bus.py`                                  | ✅ Verrouillé   |
+| Kill Switch          | `KillSwitchHardened`        | `supervision/killswitch_hardened.py`                       | ✅ Verrouillé   |
+| Execution Engine     | `ExecutionEngine`           | `quant_hedge_ai/agents/execution/execution_engine.py`      | ✅ Verrouillé   |
+| Paper Mode (runtime) | `PaperTradingEngine`        | `quant_hedge_ai/agents/execution/paper_trading_engine.py`  | ✅ Verrouillé   |
+| Burn-in Simulation   | `BurninSimulationEngine`    | `paper_trading/engine.py`                                  | ✅ Verrouillé   |
+| Regime Detector      | `AdvancedRegimeDetector`    | `quant_hedge_ai/agents/intelligence/regime_detector.py`    | ✅ Verrouillé   |
+| Decision Engine      | `DecisionEngine`            | `quant_hedge_ai/engine/decision_engine.py`                 | ✅ Verrouillé   |
+| Feature Pipeline     | `FeatureMaterializer`       | `quant_hedge_ai/features/`                                 | ✅ Verrouillé   |
+| Runtime State        | `RuntimeStateMachine`       | `system/state_machine.py`                                  | ✅ Canonique    |
+| Global Risk Gate     | `GlobalRiskGate`            | `quant_hedge_ai/agents/risk/global_risk_gate.py`           | ✅ Canonique    |
+| Configuration        | —                           | À créer : `config/settings.py`                             | ❌ P2           |
 
 ---
 
@@ -49,178 +90,99 @@ Toute revue de code doit vérifier qu'aucune implémentation concurrente n'est i
 
 ### Event Bus
 
-**Canonique :** `event_bus/bus.py`
-- Thread-safe, singleton, support async, replay, stats
-- 100+ lignes, production-ready
+**Décision architecturale (2026-06-12) :** deux bus légitimes, scopes distincts.
 
-**Stubs de compatibilité à migrer (P1) :**
-- `src/events/event_bus.py` — 21 lignes, importé par 3 tests et `src/telegram/sim_bot.py`
-- Interface différente (sync simple vs async+singleton) — migration requise avant suppression
+| Bus | Implémentation | Cycle de vie | API événements | Garde-fou |
+|---|---|---|---|---|
+| Runtime | `event_bus/bus.py::EventBus` | Singleton process | `BaseEvent` typé | — |
+| Simulation | `src/events/event_bus.py::SimEventBus` | Instance par run | `dict {"type": ...}` | `test_structural_sim_bus.py` |
 
-**Complémentaire (conserver) :**
-- aucun
+**Invariant garanti par CI :**
+> `SimEventBus` n'est jamais importé dans `quant_hedge_ai/`, `supervision/`, `pieuvre/`, `infra/`, `core/`, `event_bus/`.
 
-**Critères d'acceptation P1 :**
-```
-✓ 1 seule implémentation de production
-✓ 0 wrapper legacy avec interface différente
-✓ 0 import legacy dans les tests
-```
+**Composants legacy supprimés / clarifiés :**
+- `supervision/telegram_kill_switch.py` → remplacé par `KillSwitchHardened` dans le runtime
+
+**Dette P2 :** aucune (séparation fondée, pas cosmétique).
 
 ---
 
 ### Kill Switch
 
-**Canonique :** `supervision/killswitch_hardened.py`
-- Thread-safe, Telegram, state persistence, acknowledgement
-- 150+ lignes, production-ready
+**Décision architecturale (2026-06-12) :** `KillSwitchHardened` est l'implémentation canonique du runtime.
 
-**Stubs de compatibilité à migrer (P1) :**
-- `src/risk/kill_switch.py` — 9 lignes, importé par 9 tests, `src/analytics/edge_scorer.py`, `src/telegram/sim_bot.py`, `src/agent/codex_agent.py`
-- Interfaces différentes (stub vs hardened) — migration requise avant suppression
+**Propriétés vérifiées par tests :**
 
-**Complémentaire (conserver) :**
-- `supervision/telegram_kill_switch.py` — Variante Telegram (rôle différent)
+| Invariant | Test | Statut |
+|---|---|---|
+| KS-01 Persistance restart | `test_killswitch_restart_persistence.py` | ✅ |
+| KS-02 Autorité unique | imports vérifiés | ✅ |
+| KS-03 Compatibilité API | `is_execution_allowed()` ajouté | ✅ |
+| KS-04 Cycle STOP→HALT→RESUME | test intégration | ✅ |
 
-**Critères d'acceptation P1 :**
-```
-✓ 1 seul moteur de sécurité
-✓ 1 seule interface publique (KillSwitchHardened)
-✓ 0 import du stub dans le code production
-```
+**Points d'entrée runtime (après promotion) :**
+- `core/advisor_runtime_adapters.py` → `KillSwitchHardened as TelegramKillSwitch`
+- `quant_hedge_ai/main_v91.py` → `KillSwitchHardened()`
+
+**Composants legacy conservés (simulation/test) :**
+- `src/risk/kill_switch.py` — stub minimal pour les tests de simulation (`src/`)
+- `supervision/kill_switch.py` — variante legacy, non importée par le runtime
+- `supervision/telegram_kill_switch.py` — non importée par le runtime (remplacée)
+
+**Dette P2 — KS-P2-01 :**
+> Introduire un `KillSwitchAuthority` qui centralise les 5 sources de blocage
+> (KillSwitch, RuntimeStateMachine, SelfAwarenessEngine, ExecutiveOverride, GlobalRiskGate)
+> et expose la liste des bloqueurs actifs. Améliore la lisibilité opérationnelle,
+> n'est pas une condition de sécurité.
 
 ---
 
 ### Execution Engine
 
-**Canonique :** `quant_hedge_ai/agents/execution/execution_engine.py`
-- 555 lignes, multi-mode (paper/live/testnet/futures), safety layer complète
-- `OrderDeduplicator`, `SessionGuard`, `TradeLogger`
-- Point d'entrée unique depuis `main_v91` et `advisor_loop`
+**Canonique :** `quant_hedge_ai/agents/execution/execution_engine.py::ExecutionEngine`
 
-**Stubs à archiver (P1) :**
-- `src/engine/execution_router.py` — 11 lignes, jamais utilisé en production, 8 tests en dépendent
+**Clarification (2026-06-12) :**
 
-**Complémentaire (conserver, rôle distinct) :**
-- `paper_trading/` — 2 677 lignes, simulateur avec friction réaliste (slippage, latence, fees). Utilisé pour E2E testing et sandbox, PAS dans le runtime principal. Relation : route alternative de test, non chemin d'exécution.
+| Composant | Fichier | Scope | Statut |
+|---|---|---|---|
+| `ExecutionEngine` | `quant_hedge_ai/agents/execution/execution_engine.py` | Runtime live/paper | ✅ Canonique |
+| `PaperTradingEngine` | `quant_hedge_ai/agents/execution/paper_trading_engine.py` | Mode paper boucle principale | ✅ Canonique |
+| `BurninSimulationEngine` | `paper_trading/engine.py` | Burn-in P5, observation | ✅ Distinct (renommé) |
 
-**Critères d'acceptation P1 :**
+**Risk gate non contournable (vérifié) :**
 ```
-✓ 1 seule API d'exécution pour le runtime
-✓ 1 seul routeur (paper/live/testnet auto-détectés)
-✓ 0 stub execution_router en production
+SessionGuard → OrderDeduplicator → OrderValidator → OrderRateLimiter
 ```
+Toutes lèvent une exception si elles échouent. Aucun ordre possible sans passer la chaîne.
+
+**Dette P2 — EXE-P2-01 :**
+> Introduire `ExecutionEngineProtocol` (ABC/Protocol) quand plusieurs
+> implémentations devront être substituables (live, paper, replay).
+> Aujourd'hui duck-typed — acceptable tant qu'une seule implémentation existe.
 
 ---
 
 ### Regime Detector
 
-**Canonique :** `quant_hedge_ai/agents/intelligence/regime_detector.py`
-- `AdvancedRegimeDetector` — 5 régimes (bull_trend, bear_trend, sideways, high_volatility, flash_crash)
-- 51 lignes, importé par 15+ fichiers via un shim de rétro-compatibilité
+**Canonique :** `quant_hedge_ai/agents/intelligence/regime_detector.py::AdvancedRegimeDetector`
+- 5 régimes : `bull_trend`, `bear_trend`, `sideways`, `high_volatility`, `flash_crash`
+- Bug `bear_trend` corrigé (logique inversée)
 
-**Shim à conserver (puis supprimer) :**
-- `quant_hedge_ai/agents/market/regime_detector.py` — 9 lignes, re-exporte `AdvancedRegimeDetector as RegimeDetector`. Conserver pendant la migration, supprimer après passage complet aux imports directs.
+**Shim de rétro-compatibilité (à supprimer P2) :**
+- `quant_hedge_ai/agents/market/regime_detector.py` — 9 lignes, re-exporte `AdvancedRegimeDetector as RegimeDetector`
 
-**Legacy à archiver (P1) :**
-- `src/analytics/regime_detector.py` — 86 lignes, 3 régimes seulement, 0 import production
-
-**Critères d'acceptation P1 :**
-```
-✓ 1 seule implémentation : AdvancedRegimeDetector
-✓ 0 implémentation alternative active
-✓ Shim supprimé après migration des imports directs
-```
+**Legacy archivé :**
+- `src/analytics/regime_detector.py` — 3 régimes, 0 import production
 
 ---
 
-### Feature Pipeline
+### Decision Layer
 
-**Canonique (trading runtime) :** `quant_hedge_ai/features/`
-- `FeatureMaterializer` (188L) + `FeatureStore` (199L) + `FeatureValidator` (107L)
-- V2 architecture, versioning, TTL cache, drift detection
-- Utilisé dans `advisor_loop` via Signal Engine
+**Canonique :** `quant_hedge_ai/engine/decision_engine.py::DecisionEngine`
 
-**Complémentaire (conserver, rôle distinct) :**
-- `src/analytics/` — Alpha research, validation post-trade (AlphaPipeline, BootstrapStability, EdgeScorer). Route analysis, pas trading live. Les deux doivent coexister avec des responsabilités claires.
+**18 tests d'intégration (DL-01→DL-05) :** vérifient que `STOP_TRADING` se propage à la `state_machine`, que la réduction de risque influence la taille des ordres, que le garde-fou 5 trades est respecté, et que le câblage `advisor_loop` est opérationnel.
 
-**Clarification de rôle obligatoire (P1) :**
-```
-quant_hedge_ai/features/   →  features en temps réel pour le runtime
-src/analytics/             →  analyse post-trade et validation alpha
-```
-Ces deux packages ne sont PAS en concurrence : ils ont des responsabilités différentes.
-
-**Critères d'acceptation P1 :**
-```
-✓ 1 seul pipeline pour le feature vector live
-✓ Rôles documentés (runtime vs research)
-✓ 0 confusion entre les deux pipelines
-```
-
----
-
-### Decision Engine
-
-**Canonique actuel :** `quant_hedge_ai/engine/decision_engine.py`
-- 80 lignes, `DecisionEngine` + `StrategyRanker`
-- Intégré dans `main_v91` et `main_system` — c'est le point d'entrée runtime
-
-**Candidat à l'intégration (étude requise) :**
-- `tracker_system/autonomous/auto_decision_engine.py` — 435 lignes, `AutoDecisionOrchestrator`, système complet avec guards, audit trail, state machine. 2 tests dédiés. **N'est PAS dans le runtime principal** — fonctionne en parallèle. Peut devenir la prochaine version du canonique ou un mode avancé.
-
-**Action P1 :**
-Étude fonctionnelle requise avant toute décision :
-1. Quelles responsabilités d'`auto_decision_engine` ne sont pas couvertes par le canonique ?
-2. Peut-il devenir l'implémentation de référence après enrichissement du canonique ?
-3. Ou ses responsabilités doivent-elles être absorbées par d'autres couches (Risk, Governance) ?
-
-**Critères d'acceptation P1 :**
-```
-✓ Étude fonctionnelle auto_decision_engine documentée
-✓ Décision d'intégration ou d'archivage prise et justifiée
-✓ 1 seul point d'entrée décisionnel dans le runtime
-```
-
----
-
-### Configuration
-
-**Canonique :** inexistant — **À créer en P1**
-
-**4 sources actuelles à unifier :**
-- `.env` — variables d'environnement
-- `runtime_config.json` — configuration runtime
-- `runtime_config.py` — configuration Python
-- `telegram_config.json` — configuration Telegram
-
-**Cible :** `config/settings.py` avec Pydantic `BaseSettings`
-- Lecture des variables d'environnement en priorité
-- Valeurs par défaut documentées
-- Validation au démarrage (fail-fast)
-- Une seule source de vérité importée partout
-
-**Critères d'acceptation P1 :**
-```
-✓ 1 seul objet settings importé depuis config/settings.py
-✓ 0 json runtime en doublon
-✓ 0 fichier .py de configuration parallèle
-✓ Validation Pydantic au démarrage
-```
-
----
-
-## Composants sans doublon (ne pas toucher)
-
-| Composant | Chemin | Note |
-|---|---|---|
-| Portfolio Brain | `quant_hedge_ai/agents/risk/portfolio_brain.py` | Monolithe (740L), à splitter en P2 |
-| Market Scanner | `quant_hedge_ai/agents/market/market_scanner.py` | Monolithe (829L), à splitter en P2 |
-| Global Risk Gate | `quant_hedge_ai/agents/risk/global_risk_gate.py` | Canonique unique |
-| Governance | `governance/` | Canonique unique |
-| Audit Trail | `governance/audit_trail.py` | Canonique unique |
-| Error Bus | `errors/error_bus.py` | Canonique unique |
-| Heartbeat | `observability/heartbeat_system.py` | Canonique unique |
+**Dette cosmétique (non bloquante) :** renommage `decision_engine.py` → `trade_gate.py` différé à P2.
 
 ---
 
@@ -229,8 +191,34 @@ Ces deux packages ne sont PAS en concurrence : ils ont des responsabilités diff
 Avant de créer une nouvelle implémentation d'une responsabilité existante :
 
 1. Vérifier si la responsabilité est déjà couverte dans ce document.
-2. Si oui : utiliser le canonique ou créer un plugin/stratégie.
-3. Si non : ajouter l'entrée dans ce document AVANT d'écrire le code.
+2. Si oui : utiliser le canonique ou créer un plugin/stratégies.
+3. Si non : ajouter l'entrée dans ce document **avant** d'écrire le code.
 4. Enregistrer le module dans `architecture/modules_registry.yaml`.
 
 **Un composant non enregistré = dette technique par défaut.**
+
+---
+
+## Composants sans doublon (ne pas modifier sans revue)
+
+| Composant | Chemin | Note |
+|---|---|---|
+| Portfolio Brain | `quant_hedge_ai/agents/risk/portfolio_brain.py` | Monolithe 740L, à splitter P2 |
+| Market Scanner | `quant_hedge_ai/agents/market/market_scanner.py` | Monolithe 829L, à splitter P2 |
+| Global Risk Gate | `quant_hedge_ai/agents/risk/global_risk_gate.py` | Canonique unique |
+| Governance | `governance/` | Canonique unique |
+| Audit Trail | `governance/audit_trail.py` | Canonique unique |
+| Error Bus | `errors/error_bus.py` | Canonique unique |
+| Heartbeat | `observability/heartbeat_system.py` | Canonique unique |
+
+---
+
+## Backlog P2
+
+| Référence | Description | Déclencheur |
+|---|---|---|
+| EXE-P2-01 | `ExecutionEngineProtocol` (ABC) | Quand ≥2 implémentations substituables |
+| KS-P2-01 | `KillSwitchAuthority` centralisant les 5 sources de blocage | Avant P3 live |
+| RD-P2-01 | Supprimer le shim `agents/market/regime_detector.py` | Après migration imports directs |
+| DL-P2-01 | Renommer `decision_engine.py` → `trade_gate.py` | Après stabilisation P2 |
+| CFG-P2-01 | Créer `config/settings.py` (Pydantic BaseSettings) | Avant live réel |

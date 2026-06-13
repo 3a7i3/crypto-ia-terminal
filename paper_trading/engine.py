@@ -1,19 +1,23 @@
 """
-paper_trading/engine.py — Moteur d'exécution paper avec friction réaliste.
+paper_trading/engine.py — Moteur de simulation burn-in avec friction réaliste.
 
-PaperTradingEngine reçoit les signaux de l'advisor et :
+BurninSimulationEngine reçoit les signaux de l'advisor et :
   1. Simule le fill entry via ExecutionSimulator (slippage + latence + fees)
   2. Ouvre un PaperTrade dans le ledger
   3. À la clôture : simule le fill exit et calcule le P&L net
   4. Logge chaque trade en JSONL pour audit
 
+Scope : infrastructure d'observation burn-in (P5). Ne pas confondre avec
+PaperTradingEngine de quant_hedge_ai/agents/execution/ qui est le moteur
+paper mode du runtime live.
+
 Fidélité cible : 95%+ vs exécution réelle (grâce au simulateur calibré Binance).
 
 Usage :
-    from paper_trading.engine import PaperTradingEngine
+    from paper_trading.engine import BurninSimulationEngine
     from execution_simulator.config import binance_usdt_futures_simulator
 
-    engine = PaperTradingEngine(
+    engine = BurninSimulationEngine(
         simulator=binance_usdt_futures_simulator(),
         initial_capital=10_000.0,
         log_path="logs/paper_trading.jsonl",
@@ -39,9 +43,12 @@ from execution_simulator.simulator import ExecutionSimulator
 from paper_trading.ledger import PaperLedger, PaperTrade
 
 
-class PaperTradingEngine:
+class BurninSimulationEngine:
     """
-    Moteur paper trading avec simulation d'exécution réaliste.
+    Moteur de simulation burn-in avec friction d'exécution réaliste.
+
+    Réservé à l'infrastructure d'observation P5. Runtime live → voir
+    quant_hedge_ai/agents/execution/paper_trading_engine.py.
 
     simulator       : ExecutionSimulator calibré (ex: binance_usdt_futures_simulator())
     initial_capital : capital de départ en USD

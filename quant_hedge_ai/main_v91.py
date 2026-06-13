@@ -79,6 +79,8 @@ except ModuleNotFoundError:
 
 # ── Imports métier ────────────────────────────────────────────────────────────
 
+from stream_bus import StreamBus
+
 from quant_hedge_ai.advisor_only_mode import AdvisorOnlyMode
 from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
 from quant_hedge_ai.agents.execution.latency_monitor import ExecutionLatencyMonitor
@@ -134,8 +136,7 @@ from quant_hedge_ai.runtime_config import (
 )
 from quant_hedge_ai.strategy_factory import StrategyFactory
 from quant_hedge_ai.strategy_lab.market_db import MarketDatabase
-from stream_bus import StreamBus
-from supervision.kill_switch import TelegramKillSwitch
+from supervision.killswitch_hardened import KillSwitchHardened
 from supervision.ops_watchdog import OpsWatchdog
 from supervision.self_healing_bot import (
     SelfHealingBot,
@@ -252,15 +253,11 @@ def run_v91_system(
     # #3 — Telegram Kill Switch (démarré si token configuré)
     _tg_token = os.getenv("TELEGRAM_BOT_TOKEN", "")
     _tg_chat_id = os.getenv("TELEGRAM_CHAT_ID", "")
-    kill_switch: TelegramKillSwitch | None = None
+    kill_switch: KillSwitchHardened | None = None
     if _tg_token and _tg_chat_id:
-        kill_switch = TelegramKillSwitch(
-            bot_token=_tg_token,
-            chat_id=_tg_chat_id,
-            poll_interval_s=float(os.getenv("KILL_SWITCH_POLL_S", "3")),
-        )
+        kill_switch = KillSwitchHardened()
         kill_switch.start()
-        _log.info("[Main] TelegramKillSwitch actif")
+        _log.info("[Main] KillSwitchHardened actif")
 
     # =========================================================================
     # MARCHÉ & INTELLIGENCE
@@ -583,9 +580,8 @@ def run_v91_system(
 
         # Kill switch check (#3)
         if kill_switch is not None and not kill_switch.is_execution_allowed():
-            _log.warning(
-                "[Cycle %d] KillSwitch actif — mode %s", cycle, kill_switch.mode
-            )
+            mode = "halted" if kill_switch.is_halted() else "safe_mode"
+            _log.warning("[Cycle %d] KillSwitch actif — mode %s", cycle, mode)
             time.sleep(max(0, cfg.sleep_seconds))
             if cfg.max_cycles > 0 and cycle >= cfg.max_cycles:
                 break

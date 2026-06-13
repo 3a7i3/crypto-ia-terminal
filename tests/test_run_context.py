@@ -5,7 +5,7 @@ from src.backtest.engine import BacktestEngine
 from src.domain.order import Order
 from src.engine.execution_router import ExecutionRouter
 from src.engine.virtual_exchange import VirtualExchange
-from src.events.event_bus import EventBus
+from src.events.event_bus import SimEventBus
 from src.journal.trade_logger import TradeLogger
 from src.portfolio.portfolio_state import PortfolioState
 from src.risk.kill_switch import KillSwitch
@@ -13,7 +13,7 @@ from src.runtime.run_context import RunContext
 
 
 def make_observed_stack(balance=10000.0):
-    bus = EventBus()
+    bus = SimEventBus()
     logger = TradeLogger()
     bus.subscribe("TRADE_OPENED", logger.on_trade_opened)
     bus.subscribe("TRADE_CLOSED", logger.on_trade_closed)

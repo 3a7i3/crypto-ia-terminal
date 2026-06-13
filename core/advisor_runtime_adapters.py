@@ -102,9 +102,9 @@ def load_advisor_runtime() -> AdvisorRuntime:
     from quant_hedge_ai.ai_evolution.strategy_memory import StrategyMemoryStore
     from quant_hedge_ai.ai_evolution.strategy_ranker import StrategyRanker
     from supervision.exchange_monitor import ExchangeMonitor
+    from supervision.killswitch_hardened import KillSwitchHardened as TelegramKillSwitch
     from supervision.performance_watchdog import PerformanceWatchdog
     from supervision.self_healing_bot import SelfHealingBot
-    from supervision.telegram_kill_switch import TelegramKillSwitch
     from tracker_system.core.trade_tracker import (
         finalize_position as tracker_finalize_position,
     )

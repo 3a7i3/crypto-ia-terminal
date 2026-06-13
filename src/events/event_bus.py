@@ -1,7 +1,20 @@
+"""
+SimEventBus — bus d'événements local pour le stack backtest/simulation.
+
+Cycle de vie : instancié par run, jamais partagé entre runs.
+Ne pas utiliser dans le runtime live — voir event_bus/bus.py (singleton thread-safe).
+"""
+
 from typing import Callable
 
 
-class EventBus:
+class SimEventBus:
+    """Bus d'événements local, dict-based, pour le backtest et la simulation CMVK.
+
+    Isolation garantie : chaque instance est indépendante.
+    Événements transmis comme dicts : {"type": "TRADE_OPENED", ...}
+    """
+
     def __init__(self):
         self._subscribers: dict[str, list[Callable]] = {}
 
