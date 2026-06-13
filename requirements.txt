@@ -7,3 +7,4 @@ psutil
 streamlit
 plotly
 python-dotenv
+pydantic-settings>=2.14

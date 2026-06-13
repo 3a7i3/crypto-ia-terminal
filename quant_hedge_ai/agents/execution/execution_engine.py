@@ -63,7 +63,7 @@ class ExecutionEngine:
             max_session_drawdown=float(os.getenv("EXEC_MAX_DD", "0.05")),
             max_session_loss=float(os.getenv("EXEC_MAX_LOSS", "0.03")),
             max_consecutive_losses=int(os.getenv("EXEC_MAX_CONSEC_LOSSES", "3")),
-            max_order_size_usd=float(os.getenv("EXEC_MAX_ORDER_USD", "10000")),
+            max_order_size_usd=float(os.getenv("EXEC_MAX_ORDER_USD", "50")),
         )
         self._logger = TradeLogger(
             db_path=os.getenv("EXEC_TRADE_LOG", "databases/trade_log.sqlite")
