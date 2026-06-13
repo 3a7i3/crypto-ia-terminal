@@ -96,6 +96,29 @@ def _test_close() -> dict:
     }
 
 
+def _restore_artifact(trade_id: str = "90072B8C-A") -> dict:
+    """MexcSimulator restore artifact — real price but instant close, no context."""
+    return {
+        "event": "CLOSE",
+        "trade_id": trade_id,
+        "ts": 1780537845.0,
+        "ts_iso": "2026-06-04T01:50:45Z",
+        "symbol": "BTC/USDT",
+        "side": "buy",
+        "price": 104103.97,
+        "size_usd": 15.0,
+        "mode": "paper",
+        "regime": "unknown",
+        "score": 0,
+        "order_id": "",
+        "exit_price": 104103.97,
+        "pnl_usd": 0.5778,
+        "pnl_pct": 0.040519,
+        "reason": "TP",
+        "duration_s": 0.0,
+    }
+
+
 # ── BCV3-01 : sans données → NO_GO ────────────────────────────────────────────
 
 
@@ -170,6 +193,17 @@ def test_test_trades_filtered_out(tmp_path):
     assert len(real) == 0, "Test fixtures avec price=101 doivent être filtrées"
 
 
+def test_restore_artifacts_filtered_out(tmp_path):
+    trades_jsonl = tmp_path / "trades.jsonl"
+    _write_trades_jsonl(
+        trades_jsonl, [_restore_artifact(), _restore_artifact("C8A8A638-2")]
+    )
+    real = _load_real_trades(trades_jsonl)
+    assert (
+        len(real) == 0
+    ), "Restore artifacts (duration_s=0, score=0, regime=unknown) doivent être filtrés"
+
+
 # ── BCV3-04 : trades réels comptés ────────────────────────────────────────────
 
 
@@ -179,7 +213,8 @@ def test_real_trades_counted(tmp_path):
         _real_close("t1", 0.02),  # win
         _real_close("t2", -0.01),  # loss
         _real_close("t3", 0.03),  # win
-        _test_close(),  # test — filtered
+        _test_close(),  # test fixture — filtered (price=101)
+        _restore_artifact(),  # restore artifact — filtered (duration=0)
     ]
     _write_trades_jsonl(trades_jsonl, events)
 

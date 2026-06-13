@@ -2138,6 +2138,11 @@ def main(
     _t_warmup_start: float | None = None
     _t_warmup_end: float | None = None
     advisor_only = os.getenv("V9_ADVISOR_ONLY", "true").lower() == "true"
+    _paper_trading_enabled = os.getenv("PAPER_TRADING_ENABLED", "false").lower() in {
+        "true",
+        "1",
+        "yes",
+    }
     startup_light = advisor_only and ADVISOR_STARTUP_LIGHT
     prewarm_1h_enabled = ADVISOR_PREWARM_1H
     prewarm_mtf_enabled = ADVISOR_PREWARM_MTF and not startup_light
@@ -3835,8 +3840,9 @@ def main(
         _shadow_s3 = _ShadowTrackerCls()
         log.info("[S3] ShadowTracker initialisé")
 
-    # MexcSimulator — compte miroir MEXC (actif si V9_ADVISOR_ONLY=true)
-    if advisor_only:
+    # MexcSimulator — actif si advisor-only OU si PAPER_TRADING_ENABLED=true.
+    # Fonctionne en miroir indépendant du live : capital propre $10-100, pas de gate portefeuille.
+    if advisor_only or _paper_trading_enabled:
         try:
             from infra.mexc_reader import MexcReader as _MexcReaderCls
             from paper_trading.mexc_simulator import MexcSimulator as _SimCls

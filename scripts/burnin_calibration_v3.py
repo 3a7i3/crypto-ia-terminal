@@ -202,7 +202,15 @@ def _load_gate_funnel(path: Path) -> GateFunnel:
 
 
 def _load_real_trades(path: Path) -> list[dict]:
-    """Load closed trades from paper_trades.jsonl, filtering out test fixtures."""
+    """Load closed trades from paper_trades.jsonl, filtering out test fixtures and restore artifacts.
+
+    Two categories excluded:
+      1. Test fixtures: price < 500 AND score == 0 (synthetic data, old unit tests).
+      2. Restore artifacts: duration_s == 0.0 AND score == 0 AND regime == "unknown"
+         — MexcSimulator._restore_positions() bug: open positions were re-closed
+         instantly on restart before the fix (session 2026-06-07). These have
+         real BTC prices but no pipeline context and zero hold time.
+    """
     if not path.exists():
         return []
 
@@ -222,11 +230,20 @@ def _load_real_trades(path: Path) -> list[dict]:
             continue
         if record.get("event") != "CLOSE":
             continue
-        # Filter out test fixtures: real BTC trades have price >> 500
+
         price = _safe_float(record.get("price", 0) or record.get("exit_price", 0))
         score = _safe_float(record.get("score", 0))
+        regime = record.get("regime", "unknown")
+        duration = _safe_float(record.get("duration_s", -1))
+
+        # Test fixtures: synthetic price, no pipeline score
         if price < _REAL_TRADE_PRICE_FLOOR and score == 0:
             continue
+
+        # Restore artifacts: instant close, no pipeline context
+        if duration == 0.0 and score == 0 and regime == "unknown":
+            continue
+
         closes.append(record)
 
     return closes
@@ -411,8 +428,14 @@ def _assess(report: BurnInV3Report) -> tuple[str, list[str], list[str]]:
         if t.profit_factor < 1.0 and t.profit_factor > 0:
             warnings.append(f"Profit factor < 1.0 ({t.profit_factor})")
 
-    if s.warmup_state not in {"OK", "READY", "COMPLETE", "UNKNOWN"}:
+    if s.warmup_state not in {"OK", "READY", "COMPLETE", "UNKNOWN", "FAILED"}:
         warnings.append(f"Warmup state: {s.warmup_state}")
+    elif s.warmup_state == "FAILED":
+        # warmup_state.json is written by ColdStartManager (runtime/advisor_main.py).
+        # The active process (advisor_loop.py) never reads it — FAILED is cosmetic.
+        warnings.append(
+            "Warmup state FAILED (stale P10-B artifact — advisor_loop.py non affecte)"
+        )
 
     if blockers:
         verdict = "NO_GO"
