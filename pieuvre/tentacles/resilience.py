@@ -31,8 +31,8 @@ _CRITICAL_MODULES = [
 ]
 
 _CRITICAL_ENV_VARS = [
-    ("BINANCE_API_KEY", Severity.HIGH, "Clé API Binance absente"),
-    ("BINANCE_SECRET_KEY", Severity.HIGH, "Secret Binance absent"),
+    ("MEXC_API_KEY", Severity.HIGH, "Clé API MEXC absente"),
+    ("MEXC_API_SECRET", Severity.HIGH, "Secret MEXC absent"),
     (
         "TELEGRAM_BOT_TOKEN",
         Severity.MEDIUM,

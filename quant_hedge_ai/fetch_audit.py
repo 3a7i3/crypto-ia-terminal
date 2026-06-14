@@ -21,12 +21,12 @@ import argparse
 import socket
 import ssl
 import statistics
-import sys
 import time
 from contextlib import contextmanager
-from typing import Generator
+from typing import Any, Generator
 
 # ── Timer utilitaire ──────────────────────────────────────────────────────────
+
 
 @contextmanager
 def _timer(label: str) -> Generator[dict, None, None]:
@@ -39,6 +39,7 @@ def _timer(label: str) -> Generator[dict, None, None]:
 
 # ── Phase 1 : DNS ─────────────────────────────────────────────────────────────
 
+
 def audit_dns(host: str, n: int = 3) -> dict:
     times = []
     for _ in range(n):
@@ -47,17 +48,24 @@ def audit_dns(host: str, n: int = 3) -> dict:
             socket.getaddrinfo(host, 443, socket.AF_INET, socket.SOCK_STREAM)
             times.append(time.perf_counter() - t0)
         except Exception as exc:
-            return {"host": host, "error": str(exc), "times_ms": [], "avg_ms": 0.0, "note": "DNS inaccessible"}
+            return {
+                "host": host,
+                "error": str(exc),
+                "times_ms": [],
+                "avg_ms": 0.0,
+                "note": "DNS inaccessible",
+            }
     return {
         "host": host,
         "times_ms": [round(t * 1000, 1) for t in times],
-        "avg_ms":   round(statistics.mean(times) * 1000, 1),
-        "min_ms":   round(min(times) * 1000, 1),
+        "avg_ms": round(statistics.mean(times) * 1000, 1),
+        "min_ms": round(min(times) * 1000, 1),
         "note": "Cache systeme actif apres le 1er appel (voir min vs avg)",
     }
 
 
 # ── Phase 2 : TCP + TLS handshake ─────────────────────────────────────────────
+
 
 def audit_tcp_tls(host: str, port: int = 443, n: int = 3) -> dict:
     ctx = ssl.create_default_context()
@@ -73,12 +81,13 @@ def audit_tcp_tls(host: str, port: int = 443, n: int = 3) -> dict:
     return {
         "host": host,
         "times_ms": [round(t * 1000, 1) for t in times],
-        "avg_ms":   round(statistics.mean(times) * 1000, 1),
+        "avg_ms": round(statistics.mean(times) * 1000, 1),
         "note": "TCP SYN + 3-way + TLS 1.3 handshake. Inclut RTT serveur.",
     }
 
 
 # ── Phase 3 : CCXT init (creation exchange + load_markets) ───────────────────
+
 
 def audit_ccxt_init(testnet: bool = False) -> dict:
     try:
@@ -87,13 +96,14 @@ def audit_ccxt_init(testnet: bool = False) -> dict:
         return {"error": "ccxt non installe", "init_ms": 0.0, "load_markets_ms": 0.0}
 
     t_obj = time.perf_counter()
-    exchange = ccxt.binance({
-        "apiKey":  "",
-        "secret":  "",
-        "options": {"defaultType": "spot"},
-        "enableRateLimit": True,
-        "adjustForTimeDifference": True,
-    })
+    exchange = ccxt.mexc(
+        {
+            "apiKey": "",
+            "secret": "",
+            "options": {"defaultType": "spot"},
+            "enableRateLimit": True,
+        }
+    )
     if testnet:
         exchange.set_sandbox_mode(True)
     init_ms = (time.perf_counter() - t_obj) * 1000
@@ -111,17 +121,20 @@ def audit_ccxt_init(testnet: bool = False) -> dict:
         markets_error = str(exc)
 
     return {
-        "testnet":        testnet,
-        "init_ms":        round(init_ms, 1),
+        "testnet": testnet,
+        "init_ms": round(init_ms, 1),
         "load_markets_ms": round(markets_ms, 1),
-        "n_markets":      n_markets,
-        "markets_error":  markets_error,
-        "note": ("load_markets() recupere ~2000 paires — c'est la source principale du delai initial "
-                 "si CCXT n'a pas de cache local."),
+        "n_markets": n_markets,
+        "markets_error": markets_error,
+        "note": (
+            "load_markets() recupere ~2000 paires — c'est la source principale du delai initial "  # noqa: E501
+            "si CCXT n'a pas de cache local."
+        ),
     }
 
 
 # ── Phase 4 : Premier fetch_ohlcv (froid) ────────────────────────────────────
+
 
 def audit_fetch_ohlcv(
     exchange: Any,
@@ -144,19 +157,20 @@ def audit_fetch_ohlcv(
             warm_times.append((time.perf_counter() - t0) * 1000)
 
         return {
-            "symbol":       symbol,
-            "limit":        limit,
+            "symbol": symbol,
+            "limit": limit,
             "cold_fetch_ms": round(cold_ms, 1),
-            "warm_avg_ms":  round(statistics.mean(warm_times), 1),
-            "warm_min_ms":  round(min(warm_times), 1),
-            "speedup_x":    round(cold_ms / max(statistics.mean(warm_times), 0.1), 2),
-            "note": "Froid = nouvelle connexion TCP. Chaud = keep-alive HTTP/1.1 réutilisé.",
+            "warm_avg_ms": round(statistics.mean(warm_times), 1),
+            "warm_min_ms": round(min(warm_times), 1),
+            "speedup_x": round(cold_ms / max(statistics.mean(warm_times), 0.1), 2),
+            "note": "Froid = nouvelle connexion TCP. Chaud = keep-alive HTTP/1.1 réutilisé.",  # noqa: E501
         }
     except Exception as exc:
         return {"error": str(exc), "cold_fetch_ms": 0.0, "warm_avg_ms": 0.0}
 
 
 # ── Phase 5 : Latence CCXT rate limiter ──────────────────────────────────────
+
 
 def audit_rate_limiter(testnet: bool = False) -> dict:
     """
@@ -169,25 +183,26 @@ def audit_rate_limiter(testnet: bool = False) -> dict:
     except ImportError:
         return {"error": "ccxt non installe"}
 
-    exchange = ccxt.binance({"enableRateLimit": True})
+    exchange = ccxt.mexc({"enableRateLimit": True})
     if testnet:
         exchange.set_sandbox_mode(True)
 
     rate_limit_ms = getattr(exchange, "rateLimit", 0)
     return {
-        "testnet":            testnet,
+        "testnet": testnet,
         "ccxt_rate_limit_ms": rate_limit_ms,
         "note": (
-            f"CCXT ajoute un sleep de {rate_limit_ms}ms entre les appels si enableRateLimit=True. "
-            "Ce sleep ne s'applique QUE si l'intervalle depuis le dernier appel est < rateLimit."
+            f"CCXT ajoute un sleep de {rate_limit_ms}ms entre les appels si enableRateLimit=True. "  # noqa: E501
+            "Ce sleep ne s'applique QUE si l'intervalle depuis le dernier appel est < rateLimit."  # noqa: E501
         ),
     }
 
 
 # ── Rapport global ─────────────────────────────────────────────────────────────
 
+
 def print_audit(testnet: bool = False) -> None:
-    host_main    = "api.binance.com"
+    host_main = "api.binance.com"
     host_testnet = "testnet.binance.vision"
 
     print()
@@ -198,7 +213,7 @@ def print_audit(testnet: bool = False) -> None:
 
     # ── DNS
     print("\n[1] DNS — resolution de hostname")
-    for h in ([host_testnet] if testnet else [host_main]):
+    for h in [host_testnet] if testnet else [host_main]:
         r = audit_dns(h)
         if "error" in r:
             print(f"  {h:40s} ERREUR: {r['error']}")
@@ -223,11 +238,17 @@ def print_audit(testnet: bool = False) -> None:
     if "error" in r3:
         print(f"  ERREUR: {r3['error']}")
     else:
-        print(f"  Exchange.__init__()  : {r3['init_ms']:.1f} ms  (lecture config Python)")
+        print(
+            f"  Exchange.__init__()  : {r3['init_ms']:.1f} ms  (lecture config Python)"
+        )
         if r3.get("markets_error"):
-            print(f"  load_markets()       : {r3['load_markets_ms']:.1f} ms  (ERREUR: {r3['markets_error']})")
+            print(
+                f"  load_markets()       : {r3['load_markets_ms']:.1f} ms  (ERREUR: {r3['markets_error']})"  # noqa: E501
+            )
         else:
-            print(f"  load_markets()       : {r3['load_markets_ms']:.1f} ms  ({r3['n_markets']} paires chargees)")
+            print(
+                f"  load_markets()       : {r3['load_markets_ms']:.1f} ms  ({r3['n_markets']} paires chargees)"  # noqa: E501
+            )
         print(f"    -> {r3['note']}")
 
     # ── Rate limiter
@@ -241,6 +262,7 @@ def print_audit(testnet: bool = False) -> None:
     print("\n[5] fetch_ohlcv BTC/USDT 1h limit=96 (froid + chaud)")
     try:
         import ccxt
+
         ex = ccxt.binance({"enableRateLimit": True, "adjustForTimeDifference": True})
         if testnet:
             ex.set_sandbox_mode(True)
@@ -291,6 +313,8 @@ def print_audit(testnet: bool = False) -> None:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Audit latence fetch Binance")
-    parser.add_argument("--testnet", action="store_true", help="Tester testnet.binance.vision")
+    parser.add_argument(
+        "--testnet", action="store_true", help="Tester testnet.binance.vision"
+    )
     args = parser.parse_args()
     print_audit(testnet=args.testnet)

@@ -1,13 +1,13 @@
 import ccxt
-import hvplot.pandas
+import hvplot.pandas  # noqa: F401
 import pandas as pd
 import panel as pn
 import ta
 
 pn.extension()
 
-# connexion Binance
-exchange = ccxt.binance()
+# connexion MEXC
+exchange = ccxt.mexc()
 
 symbol = "BTC/USDT"
 timeframe = "1m"

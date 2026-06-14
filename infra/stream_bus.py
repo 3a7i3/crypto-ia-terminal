@@ -94,7 +94,7 @@ class StreamBus:
     def __init__(
         self,
         symbols: list[str],
-        exchange_id: str = "binance",
+        exchange_id: str = "mexc",
         exchange_config: dict = None,
         whale_threshold_usd: float = 500_000,
         queue_maxsize: int = 5000,
@@ -108,20 +108,16 @@ class StreamBus:
 
         if exchange_config is None:
             exchange_config = {"enableRateLimit": True}
-            api_key = os.getenv("BINANCE_API_KEY")
-            api_secret = os.getenv("BINANCE_API_SECRET")
+            prefix = self.exchange_id.upper()
+            api_key = os.getenv(f"{prefix}_API_KEY")
+            api_secret = os.getenv(f"{prefix}_API_SECRET")
             if api_key and api_secret:
                 exchange_config["apiKey"] = api_key
                 exchange_config["secret"] = api_secret
-                if os.getenv("BINANCE_TESTNET", "false").lower() == "true":
-                    exchange_config["options"] = {"defaultType": "spot"}
-                    exchange_config["urls"] = {
-                        "api": {
-                            "public": "https://testnet.binance.vision/api",
-                            "private": "https://testnet.binance.vision/api",
-                        }
-                    }
-                _log.info("StreamBus: clés API Binance chargées depuis l'environnement")
+                _log.info(
+                    "StreamBus: clés API %s chargées depuis l'environnement",
+                    self.exchange_id,
+                )
         self.exchange_config = exchange_config
         self.whale_threshold_usd = whale_threshold_usd
         self.queue_maxsize = queue_maxsize

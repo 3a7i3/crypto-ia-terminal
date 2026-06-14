@@ -96,7 +96,7 @@ class LiveExchangeReader:
         api_secret: Optional[str] = None,
     ) -> None:
         self._exchange_id = (
-            exchange_id or os.getenv("LIVE_READER_EXCHANGE", "binance")
+            exchange_id or os.getenv("LIVE_READER_EXCHANGE", "mexc")
         ).lower()
         self._api_key = api_key or os.getenv("LIVE_READER_API_KEY", "")
         self._api_secret = api_secret or os.getenv("LIVE_READER_API_SECRET", "")

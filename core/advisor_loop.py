@@ -341,7 +341,7 @@ ADVISOR_SESSION_PRIMER = os.getenv("ADVISOR_SESSION_PRIMER", "true").lower() == 
 
 def _session_primer_config() -> JSONDict:
     _futures_exchanges = {"krakenfutures", "binanceusdm", "bybit", "okx"}
-    _exch = os.getenv("EXCHANGE_ID", "binance").lower()
+    _exch = os.getenv("EXCHANGE_ID", "mexc").lower()
     _default_type = "swap" if _exch in _futures_exchanges else "spot"
     return {
         "enableRateLimit": True,
@@ -2075,7 +2075,7 @@ def main(
     _primer_executor: ThreadPoolExecutor | None = None
     if ADVISOR_SESSION_PRIMER:
         _exchange_id = os.getenv(
-            "MARKET_SCANNER_EXCHANGE", os.getenv("EXCHANGE_ID", "binance")
+            "MARKET_SCANNER_EXCHANGE", os.getenv("EXCHANGE_ID", "mexc")
         )
         # MARKET_SCANNER_TESTNET prioritaire — OHLCV publics = vrai exchange
         _scanner_testnet_env = os.getenv("MARKET_SCANNER_TESTNET", "").lower()

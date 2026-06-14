@@ -159,13 +159,8 @@ class ExchangeMonitor:
                 ping_url = MONITOR_URL_OVERRIDE
             else:
                 # Ping l'exchange actif (configurable via EXCHANGE_ID)
-                exchange_id = os.getenv("EXCHANGE_ID", "binance").lower()
-                testnet = (
-                    os.getenv(
-                        "EXCHANGE_TESTNET", os.getenv("BINANCE_TESTNET", "false")
-                    ).lower()
-                    == "true"
-                )
+                exchange_id = os.getenv("EXCHANGE_ID", "mexc").lower()
+                testnet = os.getenv("EXCHANGE_TESTNET", "false").lower() == "true"
                 ping_urls = {
                     "gateio": (
                         "https://fx-api-testnet.gateio.ws/api/v4/futures/usdt/contracts"

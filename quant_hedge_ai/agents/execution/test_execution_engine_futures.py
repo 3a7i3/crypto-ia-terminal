@@ -47,7 +47,7 @@ class TestFuturesUnavailable:
     def test_no_exchange_returns_unavailable(self, eng):
         result = eng.create_futures_order("BTC/USDT", "BUY", 60.0)
         assert result["mode"] == "futures_unavailable"
-        assert "BINANCE_FUTURES_DEMO_KEY" in result["error"]
+        assert "MEXC_API_KEY" in result["error"]
 
     def test_unavailable_contains_symbol(self, eng):
         result = eng.create_futures_order("ETH/USDT", "BUY", 60.0)

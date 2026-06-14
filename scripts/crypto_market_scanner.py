@@ -1,12 +1,12 @@
 import ccxt
-import hvplot.pandas
+import hvplot.pandas  # noqa: F401
 import pandas as pd
 import panel as pn
 import ta
 
 pn.extension()
 
-exchange = ccxt.binance()
+exchange = ccxt.mexc()
 
 # cryptos à scanner
 symbols = [

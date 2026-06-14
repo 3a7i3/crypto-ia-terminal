@@ -148,9 +148,7 @@ class MarketScanner:
         retry_max_delay: float | None = None,
     ) -> None:
         self.symbols = symbols or ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT"]
-        self._exchange_id = exchange_id or os.getenv(
-            "MARKET_SCANNER_EXCHANGE", "binance"
-        )
+        self._exchange_id = exchange_id or os.getenv("MARKET_SCANNER_EXCHANGE", "mexc")
         self._timeframe = timeframe or os.getenv("MARKET_SCANNER_TIMEFRAME", "1h")
         self._limit = limit or _get_int_env("MARKET_SCANNER_LIMIT", 200)
         self._max_retries = (

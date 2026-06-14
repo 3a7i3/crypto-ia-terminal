@@ -19,8 +19,8 @@ ROOT = Path(__file__).parent.parent.parent
 
 # Injecter env mocks pour import sans exchange réel
 _MOCK_ENV = {
-    "BINANCE_API_KEY": "mock_key_test",
-    "BINANCE_SECRET": "mock_secret_test",
+    "MEXC_API_KEY": "mock_key_test",
+    "MEXC_API_SECRET": "mock_secret_test",
     "TELEGRAM_TOKEN": "mock_token_test",
     "TELEGRAM_CHAT_ID": "0",
     "PAPER_TRADING": "true",

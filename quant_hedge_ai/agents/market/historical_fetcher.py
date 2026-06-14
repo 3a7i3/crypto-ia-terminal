@@ -54,7 +54,7 @@ class HistoricalDataFetcher:
             exchange_id
             or os.getenv("EXCHANGE_ID")
             or os.getenv("ACTIVE_EXCHANGE")
-            or "binance"
+            or "mexc"
         )
         self._exchange = None
 
@@ -76,8 +76,9 @@ class HistoricalDataFetcher:
                 if os.getenv("GATEIO_TESTNET", "false").lower() == "true":
                     config["options"] = {"defaultType": "swap"}
             else:
-                api_key = os.getenv("BINANCE_API_KEY")
-                api_secret = os.getenv("BINANCE_API_SECRET")
+                prefix = eid.upper()
+                api_key = os.getenv(f"{prefix}_API_KEY")
+                api_secret = os.getenv(f"{prefix}_API_SECRET")
                 if api_key and api_secret:
                     config["apiKey"] = api_key
                     config["secret"] = api_secret

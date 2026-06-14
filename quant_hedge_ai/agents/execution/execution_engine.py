@@ -48,7 +48,7 @@ class ExecutionEngine:
         self._exchange = None
         self._exchange_futures = None  # futures demo séparé
         self._mode = "paper"
-        _exch_id = os.getenv("EXCHANGE_ID", "binance").lower()
+        _exch_id = os.getenv("EXCHANGE_ID", "mexc").lower()
         _futures_exchanges = {"krakenfutures", "binanceusdm"}
         self._quote_asset = "USD" if _exch_id in _futures_exchanges else "USDT"
         if live:
@@ -92,7 +92,7 @@ class ExecutionEngine:
         """
         Initialise le client Futures Demo.
         - krakenfutures testnet : réutilise self._exchange (même exchange)
-        - Binance futures demo  : BINANCE_FUTURES_DEMO_KEY requis (legacy)
+        - MEXC : paper trading géré par MexcSimulator — pas de connexion CCXT futures
         """
         exch_id = os.getenv("EXCHANGE_ID", "").lower()
 
@@ -103,33 +103,10 @@ class ExecutionEngine:
             )
             return self._exchange
 
-        # Binance futures demo (legacy)
-        try:
-            import ccxt
-
-            key = os.getenv("BINANCE_FUTURES_DEMO_KEY", "")
-            secret = os.getenv("BINANCE_FUTURES_DEMO_SECRET", "")
-            if not key or not secret:
-                _log.debug("[ExecutionEngine] Pas de clés futures demo — ignoré")
-                return None
-            ex = ccxt.binanceusdm(
-                {
-                    "apiKey": key,
-                    "secret": secret,
-                    "enableRateLimit": True,
-                    "options": {"adjustForTimeDifference": True},
-                }
-            )
-            ex.enable_demo_trading(True)
-            bal = ex.fetch_balance()
-            usdt = bal.get("total", {}).get("USDT", 0)
-            _log.info(
-                "[ExecutionEngine] Futures Demo Binance connecté — USDT: %.2f", usdt
-            )
-            return ex
-        except Exception as exc:
-            _log.warning("[ExecutionEngine] Futures demo non disponible: %s", exc)
-            return None
+        _log.debug(
+            "[ExecutionEngine] Futures demo via MexcSimulator — aucune connexion CCXT directe"
+        )
+        return None
 
     def reconnect(self) -> bool:
         """
@@ -378,7 +355,7 @@ class ExecutionEngine:
             return {
                 "symbol": symbol,
                 "mode": "futures_unavailable",
-                "error": "Futures demo non configuré — vérifier EXCHANGE_ID et BINANCE_FUTURES_DEMO_KEY dans .env",
+                "error": "Futures demo non configuré — paper trading via MexcSimulator (vérifier MEXC_API_KEY dans .env)",
             }
 
         side = "buy" if action.upper() == "BUY" else "sell"

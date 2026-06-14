@@ -83,8 +83,8 @@ PRESET_SUBACCOUNTS = {
         sl_pct=0.02,
         trailing_pct=0.015,
         max_order_usd=float(os.getenv("SUB_BTC_MAX_ORDER", "50")),
-        api_key=os.getenv("BINANCE_FUTURES_DEMO_KEY", ""),
-        api_secret=os.getenv("BINANCE_FUTURES_DEMO_SECRET", ""),
+        api_key=os.getenv("MEXC_API_KEY", ""),
+        api_secret=os.getenv("MEXC_API_SECRET", ""),
     ),
     "eth_volatility": SubaccountConfig(
         name="eth_volatility",
@@ -98,8 +98,8 @@ PRESET_SUBACCOUNTS = {
         trailing_pct=0.02,
         max_order_usd=float(os.getenv("SUB_ETH_MAX_ORDER", "55")),
         max_dd=0.04,
-        api_key=os.getenv("BINANCE_FUTURES_DEMO_KEY", ""),
-        api_secret=os.getenv("BINANCE_FUTURES_DEMO_SECRET", ""),
+        api_key=os.getenv("MEXC_API_KEY", ""),
+        api_secret=os.getenv("MEXC_API_SECRET", ""),
     ),
     "sol_experimental": SubaccountConfig(
         name="sol_experimental",
@@ -112,8 +112,8 @@ PRESET_SUBACCOUNTS = {
         sl_pct=0.03,
         max_order_usd=float(os.getenv("SUB_SOL_MAX_ORDER", "55")),
         max_dd=0.05,
-        api_key=os.getenv("BINANCE_FUTURES_DEMO_KEY", ""),
-        api_secret=os.getenv("BINANCE_FUTURES_DEMO_SECRET", ""),
+        api_key=os.getenv("MEXC_API_KEY", ""),
+        api_secret=os.getenv("MEXC_API_SECRET", ""),
     ),
     "shadow_validation": SubaccountConfig(
         name="shadow_validation",
@@ -136,8 +136,8 @@ PRESET_SUBACCOUNTS = {
         sl_pct=0.02,
         max_order_usd=float(os.getenv("SUB_GENETIC_MAX_ORDER", "55")),
         active=False,  # désactivé jusqu'à validation backtest
-        api_key=os.getenv("BINANCE_FUTURES_DEMO_KEY", ""),
-        api_secret=os.getenv("BINANCE_FUTURES_DEMO_SECRET", ""),
+        api_key=os.getenv("MEXC_API_KEY", ""),
+        api_secret=os.getenv("MEXC_API_SECRET", ""),
     ),
 }
 
@@ -192,15 +192,14 @@ class SubaccountUnit:
         try:
             import ccxt
 
-            ex = ccxt.binanceusdm(
+            ex = ccxt.mexc(
                 {
                     "apiKey": self.cfg.api_key,
                     "secret": self.cfg.api_secret,
                     "enableRateLimit": True,
-                    "options": {"adjustForTimeDifference": True},
+                    "options": {"defaultType": "swap"},
                 }
             )
-            ex.enable_demo_trading(True)
             return ex
         except Exception as exc:
             _log.warning(
@@ -212,14 +211,13 @@ class SubaccountUnit:
         try:
             import ccxt
 
-            ex = ccxt.binance(
+            ex = ccxt.mexc(
                 {
                     "apiKey": self.cfg.api_key,
                     "secret": self.cfg.api_secret,
                     "enableRateLimit": True,
                 }
             )
-            ex.set_sandbox_mode(True)
             return ex
         except Exception as exc:
             _log.warning("[SubaccountUnit] %s init spot échoué: %s", self.cfg.name, exc)

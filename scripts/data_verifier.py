@@ -36,8 +36,8 @@ os.makedirs("logs", exist_ok=True)
 # Force UTF-8 sur stdout/stderr (Windows cp1252 par defaut)
 if hasattr(sys.stdout, "reconfigure"):
     try:
-        sys.stdout.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[union-attr]
-        sys.stderr.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[union-attr]
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[union-attr]  # noqa: E501
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[union-attr]  # noqa: E501
     except Exception as _enc_err:
         pass  # non-bloquant — le logging ci-dessous utilisera l'encodage par défaut
         # Note: log non disponible ici (initialisé après), on ignore silencieusement
@@ -100,7 +100,7 @@ def verify_exchange_connection() -> dict:
     Test 2 : balance authentifiee (avec cles API si disponibles).
     """
     result: dict[str, Any] = {
-        "exchange": "binance",
+        "exchange": "mexc",
         "mode": "unknown",
         "testnet": False,
         "has_key": False,
@@ -112,14 +112,10 @@ def verify_exchange_connection() -> dict:
         import ccxt  # type: ignore[import]
 
         scanner_testnet_env = os.getenv("MARKET_SCANNER_TESTNET", "").lower()
-        binance_testnet = os.getenv("BINANCE_TESTNET", "false").lower() == "true"
 
-        # Test 1 : ping public via vrai Binance (OHLCV feed)
+        # Test 1 : ping public via MEXC (OHLCV feed)
         t0 = time.perf_counter()
-        ex_public = ccxt.binance({"enableRateLimit": True})
-        # Si MARKET_SCANNER_TESTNET=true, on utilise le testnet pour les data aussi
-        if scanner_testnet_env == "true":
-            ex_public.set_sandbox_mode(True)
+        ex_public = ccxt.mexc({"enableRateLimit": True})
         ticker = ex_public.fetch_ticker("BTC/USDT")
         latency_public = int((time.perf_counter() - t0) * 1000)
         last_price = float(ticker.get("last") or 0)
@@ -128,39 +124,33 @@ def verify_exchange_connection() -> dict:
         result["latency_ms"] = latency_public
         result["last_btc_price"] = last_price
         result["data_source"] = (
-            "testnet" if scanner_testnet_env == "true" else "real_binance"
+            "testnet" if scanner_testnet_env == "true" else "real_mexc"
         )
 
-        # Test 2 : balance authentifiee (spot testnet si BINANCE_TESTNET=true)
-        api_key = os.getenv("BINANCE_API_KEY")
-        api_secret = os.getenv("BINANCE_API_SECRET")
+        # Test 2 : balance authentifiee
+        api_key = os.getenv("MEXC_API_KEY")
+        api_secret = os.getenv("MEXC_API_SECRET")
         has_key = bool(api_key and api_secret)
         result["has_key"] = has_key
-        result["testnet"] = binance_testnet
 
         if has_key:
             try:
                 t1 = time.perf_counter()
-                ex_auth = ccxt.binance(
+                ex_auth = ccxt.mexc(
                     {
                         "apiKey": api_key,
                         "secret": api_secret,
                         "enableRateLimit": True,
                     }
                 )
-                if binance_testnet:
-                    ex_auth.set_sandbox_mode(True)
-                    result["mode"] = "spot_testnet"
-                else:
-                    result["mode"] = "spot_live"
-
+                result["mode"] = "spot_live"
                 bal = ex_auth.fetch_balance()
                 usdt = float(bal.get("free", {}).get("USDT", 0.0))
                 result["balance_usdt"] = usdt
                 result["auth_latency_ms"] = int((time.perf_counter() - t1) * 1000)
             except Exception as auth_exc:
                 result["auth_error"] = str(auth_exc)[:120]
-                result["mode"] = "spot_testnet" if binance_testnet else "spot_live"
+                result["mode"] = "spot_live"
         else:
             result["mode"] = "paper"
 
@@ -228,15 +218,13 @@ def fetch_ohlcv(symbol: str, timeframe: str = "1h", limit: int = 100) -> dict:
         # Deduction source depuis stats scanner
         scanner_stats = getattr(scanner, "_stats", {})
         if scanner_stats.get("real", 0) > 0:
-            source = "binance_live"
+            source = "live"
         elif scanner_stats.get("synthetic", 0) > 0 or synth_count > 0:
             source = "synthetic"
         else:
             # Heuristique : si les bougies n'ont pas le champ "source" = synthetic
             first_src = candles[0].get("source", "") if candles else ""
-            source = (
-                "binance_live" if first_src not in ("synthetic", "") else "synthetic"
-            )
+            source = "live" if first_src not in ("synthetic", "") else "synthetic"
 
         last_candle = candles[-1]
         last_close = float(last_candle.get("close", 0))
@@ -579,8 +567,8 @@ def _print_ohlcv(rep: dict) -> None:
         return
 
     # Source réelle ou synthétique
-    if source == "binance_live":
-        src_label = _ok(f"Données réelles Binance  ({real}/{total} bougies)")
+    if source == "live":
+        src_label = _ok(f"Données réelles MEXC  ({real}/{total} bougies)")
     elif source == "synthetic":
         src_label = _warn(
             f"DONNÉES SYNTHÉTIQUES ({synth}/{total}) — exchange inaccessible ?"
@@ -643,7 +631,7 @@ def _print_indicators(ind: dict) -> None:
         bullish = features.get("macd_bullish", float(macd_hist) >= 0)
         tag = " (haussier)" if bullish else " (baissier)"
         print(
-            f"    MACD hist  : {_c(f'{sign}{float(macd_hist):.6f}', color)}{_c(tag, color)}"
+            f"    MACD hist  : {_c(f'{sign}{float(macd_hist):.6f}', color)}{_c(tag, color)}"  # noqa: E501
         )
 
     if bb_pct is not None:
@@ -729,7 +717,7 @@ def _print_telegram(tg: dict) -> None:
     _section("L9 — OutputRelay : Telegram")
     if not tg.get("configured"):
         print(
-            f"  {_err('Non configuré')} — vérifier .env (TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID)"
+            f"  {_err('Non configuré')} — vérifier .env (TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID)"  # noqa: E501
         )
         return
 
@@ -839,7 +827,7 @@ def run_verification(
                     sig.get("signal", ""), "❓"
                 )
                 sig_parts.append(
-                    f"{sig['symbol']}: {sig.get('signal', '?')} score={sig.get('score', 0)}"
+                    f"{sig['symbol']}: {sig.get('signal', '?')} score={sig.get('score', 0)}"  # noqa: E501
                 )
         msg = (
             f"[Data Verifier] [{datetime.now().strftime('%H:%M:%S')}]\n"
@@ -952,7 +940,7 @@ def main() -> None:
     if args.continuous > 0:
         print(
             _c(
-                f"Mode continu - rafraichissement toutes les {args.continuous}s (Ctrl+C pour arreter)",
+                f"Mode continu - rafraichissement toutes les {args.continuous}s (Ctrl+C pour arreter)",  # noqa: E501
                 "yellow",
             )
         )

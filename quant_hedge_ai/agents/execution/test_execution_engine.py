@@ -25,9 +25,9 @@ def eng(tmp_path, monkeypatch):
 class TestFromEnv:
     def test_from_env_paper_when_no_keys(self, tmp_path, monkeypatch):
         monkeypatch.setenv("EXEC_TRADE_LOG", str(tmp_path / "t.sqlite"))
-        monkeypatch.setenv("EXCHANGE_ID", "binance")  # isolate from .env
-        monkeypatch.delenv("BINANCE_API_KEY", raising=False)
-        monkeypatch.delenv("BINANCE_API_SECRET", raising=False)
+        monkeypatch.setenv("EXCHANGE_ID", "mexc")  # isolate from .env
+        monkeypatch.delenv("MEXC_API_KEY", raising=False)
+        monkeypatch.delenv("MEXC_API_SECRET", raising=False)
         from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
 
         e = ExecutionEngine.from_env()
@@ -35,8 +35,8 @@ class TestFromEnv:
 
     def test_from_env_attempts_live_when_keys_present(self, tmp_path, monkeypatch):
         monkeypatch.setenv("EXEC_TRADE_LOG", str(tmp_path / "t.sqlite"))
-        monkeypatch.setenv("BINANCE_API_KEY", "fake_key")
-        monkeypatch.setenv("BINANCE_API_SECRET", "fake_secret")
+        monkeypatch.setenv("MEXC_API_KEY", "fake_key")
+        monkeypatch.setenv("MEXC_API_SECRET", "fake_secret")
         from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
 
         e = ExecutionEngine.from_env()
@@ -99,8 +99,8 @@ class TestPaperMode:
 class TestLiveFallback:
     def test_init_exchange_falls_back_when_ccxt_missing(self, tmp_path, monkeypatch):
         monkeypatch.setenv("EXEC_TRADE_LOG", str(tmp_path / "t.sqlite"))
-        monkeypatch.setenv("BINANCE_API_KEY", "k")
-        monkeypatch.setenv("BINANCE_API_SECRET", "s")
+        monkeypatch.setenv("MEXC_API_KEY", "k")
+        monkeypatch.setenv("MEXC_API_SECRET", "s")
         with patch.dict("sys.modules", {"ccxt": None}):
             from quant_hedge_ai.agents.execution import execution_engine as mod
 

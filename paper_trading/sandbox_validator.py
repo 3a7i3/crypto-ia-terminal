@@ -55,14 +55,14 @@ def validate_sandbox(strict: bool = True) -> dict:
     )
 
     # 3. Clés API ne doivent pas être les placeholders
-    api_key = os.getenv("BINANCE_API_KEY", "")
+    api_key = os.getenv("MEXC_API_KEY", "")
     key_ok = bool(api_key) and "YOUR_" not in api_key and len(api_key) > 10
-    results["BINANCE_API_KEY"] = (
+    results["MEXC_API_KEY"] = (
         key_ok,
         (
-            "✅ clé API configurée"
+            "✅ clé API MEXC configurée"
             if key_ok
-            else "⚠️  Clé API testnet manquante ou placeholder"
+            else "⚠️  Clé API MEXC manquante ou placeholder"
         ),
     )
 

@@ -83,8 +83,8 @@ class BootValidator:
     def _check_env(self) -> None:
         print(_bold("[ 1 ] Variables .env"))
         required = [
-            ("BINANCE_FUTURES_DEMO_KEY", "Clé Futures Demo"),
-            ("BINANCE_FUTURES_DEMO_SECRET", "Secret Futures Demo"),
+            ("MEXC_API_KEY", "Clé API MEXC"),
+            ("MEXC_API_SECRET", "Secret API MEXC"),
             ("TELEGRAM_BOT_TOKEN", "Token Telegram"),
             ("TELEGRAM_CHAT_ID", "Chat ID Telegram"),
         ]

@@ -49,7 +49,7 @@ class ExchangeSettings(BaseSettings):
 
     model_config = SettingsConfigDict(env_file=_ENV_FILE, extra="ignore")
 
-    exchange_id: str = "binance"
+    exchange_id: str = "mexc"
     exchange_testnet: bool = False
     exchange_heartbeat_s: int = 15
 

@@ -50,7 +50,7 @@ def _clean_env(monkeypatch, *keys: str) -> None:
 def test_exchange_defaults(monkeypatch):
     _clean_env(monkeypatch, "EXCHANGE_ID", "EXCHANGE_TESTNET", "EXCHANGE_HEARTBEAT_S")
     s = ExchangeSettings(_env_file=None)
-    assert s.exchange_id == "binance"
+    assert s.exchange_id == "mexc"
     assert s.exchange_testnet is False
     assert s.exchange_heartbeat_s == 15
 

@@ -2,27 +2,20 @@
 exchange_factory.py — Fabrique d'exchange générique multi-plateforme.
 =====================================================================
 Crée un exchange CCXT à partir des variables d'environnement.
-Supporte Binance, Bybit, OKX, Kraken et tout exchange CCXT.
+Exchange actif : MEXC (configurable via EXCHANGE_ID).
 
 Convention de variables d'environnement :
-    EXCHANGE_ID          — identifiant CCXT (défaut: binance)
+    EXCHANGE_ID          — identifiant CCXT (défaut: mexc)
     EXCHANGE_TESTNET     — true/false (défaut: false)
-                           Alias supporté : BINANCE_TESTNET (rétrocompat)
 
     Clés API par exchange (remplacer {EXCHANGE} par l'ID en majuscule) :
-    {EXCHANGE}_API_KEY   — ex. BINANCE_API_KEY, BYBIT_API_KEY, OKX_API_KEY
+    {EXCHANGE}_API_KEY   — ex. MEXC_API_KEY, BYBIT_API_KEY, OKX_API_KEY
     {EXCHANGE}_API_SECRET
 
-    Clés spéciales Binance (rétrocompatibilité) :
-    BINANCE_API_KEY / BINANCE_API_SECRET         — spot testnet
-    BINANCE_LIVE_API_KEY / BINANCE_LIVE_API_SECRET — live
-    BINANCE_FUTURES_DEMO_KEY / BINANCE_FUTURES_DEMO_SECRET
-
 Modes détectés :
-    live          — clés live + EXCHANGE_TESTNET=false
+    live          — clés + EXCHANGE_TESTNET=false
     testnet       — clés + EXCHANGE_TESTNET=true
-    futures_demo  — Binance uniquement (BINANCE_FUTURES_DEMO_KEY)
-    paper         — aucune clé (simulation locale)
+    paper         — aucune clé (simulation via MexcSimulator)
 
 Usage :
     from exchange_factory import ExchangeFactory
@@ -42,7 +35,7 @@ logger = logging.getLogger(__name__)
 
 # ── Constantes par défaut ──────────────────────────────────────────────────────
 
-_DEFAULT_EXCHANGE = "binance"
+_DEFAULT_EXCHANGE = "mexc"
 _CONNECTION_TIMEOUT = 10  # secondes
 
 # Options CCXT communes à tous les exchanges
@@ -121,14 +114,6 @@ def _api_credentials(exchange: str) -> tuple[Optional[str], Optional[str]]:
     return key or None, secret or None
 
 
-def _futures_demo_credentials() -> tuple[Optional[str], Optional[str]]:
-    """Binance uniquement — futures demo."""
-    return (
-        os.getenv("BINANCE_FUTURES_DEMO_KEY") or None,
-        os.getenv("BINANCE_FUTURES_DEMO_SECRET") or None,
-    )
-
-
 # ── Détection de mode ──────────────────────────────────────────────────────────
 
 
@@ -136,28 +121,13 @@ def detect_mode(exchange: Optional[str] = None) -> str:
     """
     Détecte le mode de trading selon les variables d'environnement.
 
-    Retourne : "live" | "testnet" | "futures_demo" | "paper"
+    Retourne : "live" | "testnet" | "paper"
     """
     exch = (exchange or _exchange_id()).lower()
     testnet = _is_testnet()
     key, secret = _api_credentials(exch)
     has_keys = bool(key and secret)
 
-    # Futures demo Binance uniquement
-    if exch == "binance":
-        demo_key, demo_secret = _futures_demo_credentials()
-        has_live_keys = bool(
-            os.getenv("BINANCE_LIVE_API_KEY") and os.getenv("BINANCE_LIVE_API_SECRET")
-        )
-        if has_live_keys and not testnet:
-            return "live"
-        if demo_key and demo_secret:
-            return "futures_demo"
-        if has_keys and testnet:
-            return "testnet"
-        return "paper"
-
-    # Exchange générique
     if has_keys and not testnet:
         return "live"
     if has_keys and testnet:
@@ -234,36 +204,21 @@ class ExchangeFactory:
                     config[k] = v
 
         # Sélection classe CCXT
-        if exch_id == "binance" and mode == "futures_demo":
-            exch_cls = getattr(ccxt, "binanceusdm", None)
-            if exch_cls is None:
-                logger.error("[ExchangeFactory] binanceusdm non disponible")
-                return None
-        else:
-            exch_cls = getattr(ccxt, exch_id, None)
-            if exch_cls is None:
-                logger.error(
-                    "[ExchangeFactory] Exchange '%s' non reconnu par CCXT. "
-                    "Exchanges disponibles: %s",
-                    exch_id,
-                    ", ".join(list(ccxt.exchanges)[:10]) + "...",
-                )
-                return None
+        exch_cls = getattr(ccxt, exch_id, None)
+        if exch_cls is None:
+            logger.error(
+                "[ExchangeFactory] Exchange '%s' non reconnu par CCXT. "
+                "Exchanges disponibles: %s",
+                exch_id,
+                ", ".join(list(ccxt.exchanges)[:10]) + "...",
+            )
+            return None
 
         exchange = exch_cls(config)
 
         # Activation testnet/sandbox
         if use_testnet or mode == "testnet":
             ExchangeFactory._enable_testnet(exchange, exch_id)
-
-        # Activation futures demo Binance
-        if exch_id == "binance" and mode == "futures_demo":
-            try:
-                exchange.enable_demo_trading(True)
-            except AttributeError:
-                logger.warning(
-                    "[ExchangeFactory] enable_demo_trading non supporté — futures demo peut ne pas fonctionner"
-                )
 
         logger.info(
             "[ExchangeFactory] Exchange créé — id=%s mode=%s testnet=%s clés=%s",
@@ -280,22 +235,6 @@ class ExchangeFactory:
     ) -> tuple[Optional[str], Optional[str]]:
         """Résout les clés API depuis l'environnement selon le mode."""
         prefix = exch_id.upper()
-
-        if exch_id == "binance":
-            if mode == "live":
-                return (
-                    os.getenv("BINANCE_LIVE_API_KEY"),
-                    os.getenv("BINANCE_LIVE_API_SECRET"),
-                )
-            if mode == "futures_demo":
-                return (
-                    os.getenv("BINANCE_FUTURES_DEMO_KEY"),
-                    os.getenv("BINANCE_FUTURES_DEMO_SECRET"),
-                )
-            # testnet ou paper
-            return os.getenv("BINANCE_API_KEY"), os.getenv("BINANCE_API_SECRET")
-
-        # Exchange générique
         key = os.getenv(f"{prefix}_API_KEY") or os.getenv(f"{prefix}_LIVE_API_KEY")
         secret = os.getenv(f"{prefix}_API_SECRET") or os.getenv(
             f"{prefix}_LIVE_API_SECRET"
@@ -423,8 +362,7 @@ class ExchangeFactory:
                     "EXCHANGE_ID", f"(non défini, défaut: {_DEFAULT_EXCHANGE})"
                 ),
                 "EXCHANGE_TESTNET": os.getenv(
-                    "EXCHANGE_TESTNET",
-                    f"(non défini, alias: BINANCE_TESTNET={os.getenv('BINANCE_TESTNET', 'false')})",
+                    "EXCHANGE_TESTNET", "(non défini, défaut: false)"
                 ),
             },
         }

@@ -30,7 +30,7 @@ from typing import Any, Callable
 # Force mode observation seule pour éviter tout appel réseau dans les constructeurs
 os.environ.setdefault("V9_ADVISOR_ONLY", "true")
 os.environ.setdefault("MARKET_SCANNER_SYNTHETIC", "true")
-os.environ.setdefault("BINANCE_TESTNET", "false")
+os.environ.setdefault("EXCHANGE_TESTNET", "false")
 os.environ.setdefault("LM_STUDIO_AVAILABLE", "false")
 os.environ.setdefault("TELEGRAM_BOT_TOKEN", "")
 os.environ.setdefault("TELEGRAM_CHAT_ID", "")

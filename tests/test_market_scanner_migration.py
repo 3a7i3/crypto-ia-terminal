@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
+import sys
 import threading
 import time
 from datetime import datetime, timezone
-
-import sys
 from types import SimpleNamespace
 
 from quant_hedge_ai.agents.market import market_scanner as market_scanner_module
@@ -69,7 +68,7 @@ def test_market_scanner_falls_back_to_synthetic_when_fetch_fails(monkeypatch):
 
 def test_market_scanners_share_exchange_instance(monkeypatch):
     monkeypatch.setenv("MARKET_SCANNER_SYNTHETIC", "false")
-    monkeypatch.setenv("BINANCE_TESTNET", "false")
+    monkeypatch.setenv("EXCHANGE_TESTNET", "false")
 
     MarketScanner._exchange_pool.clear()
     MarketScanner._exchange_call_locks.clear()
@@ -86,7 +85,7 @@ def test_market_scanners_share_exchange_instance(monkeypatch):
         def fetch_ohlcv(self, symbol, timeframe, limit):
             return [[1_700_000_000_000, 1.0, 2.0, 0.5, 1.5, 10.0] for _ in range(limit)]
 
-    fake_ccxt = SimpleNamespace(binance=lambda config: _FakeExchange(config))
+    fake_ccxt = SimpleNamespace(mexc=lambda config: _FakeExchange(config))
     monkeypatch.setitem(sys.modules, "ccxt", fake_ccxt)
 
     scanner_4h = MarketScanner(symbols=["BTC/USDT"], timeframe="4h", limit=2)
@@ -101,7 +100,7 @@ def test_market_scanners_share_exchange_instance(monkeypatch):
 
 def test_market_scanner_refreshes_one_hour_history_incrementally(monkeypatch):
     monkeypatch.setenv("MARKET_SCANNER_SYNTHETIC", "false")
-    monkeypatch.setenv("BINANCE_TESTNET", "false")
+    monkeypatch.setenv("EXCHANGE_TESTNET", "false")
 
     MarketScanner._exchange_pool.clear()
     MarketScanner._exchange_call_locks.clear()
@@ -123,14 +122,16 @@ def test_market_scanner_refreshes_one_hour_history_incrementally(monkeypatch):
                 [int(now.timestamp() * 1000), 110.0, 121.0, 109.0, 120.0, 12.0],
             ]
 
-    fake_ccxt = SimpleNamespace(binance=lambda config: _FakeExchange(config))
+    fake_ccxt = SimpleNamespace(mexc=lambda config: _FakeExchange(config))
     monkeypatch.setitem(sys.modules, "ccxt", fake_ccxt)
 
     scanner = MarketScanner(symbols=["BTC/USDT"], timeframe="1h", limit=4)
     scanner._history["BTC/USDT"] = [
         {
             "symbol": "BTC/USDT",
-            "timestamp": datetime.fromtimestamp(now.timestamp() - 3 * 3600, tz=timezone.utc).isoformat(),
+            "timestamp": datetime.fromtimestamp(
+                now.timestamp() - 3 * 3600, tz=timezone.utc
+            ).isoformat(),
             "open": 90.0,
             "high": 95.0,
             "low": 89.0,
@@ -140,7 +141,9 @@ def test_market_scanner_refreshes_one_hour_history_incrementally(monkeypatch):
         },
         {
             "symbol": "BTC/USDT",
-            "timestamp": datetime.fromtimestamp(now.timestamp() - 2 * 3600, tz=timezone.utc).isoformat(),
+            "timestamp": datetime.fromtimestamp(
+                now.timestamp() - 2 * 3600, tz=timezone.utc
+            ).isoformat(),
             "open": 94.0,
             "high": 100.0,
             "low": 93.0,
@@ -150,7 +153,9 @@ def test_market_scanner_refreshes_one_hour_history_incrementally(monkeypatch):
         },
         {
             "symbol": "BTC/USDT",
-            "timestamp": datetime.fromtimestamp(now.timestamp() - 3600, tz=timezone.utc).isoformat(),
+            "timestamp": datetime.fromtimestamp(
+                now.timestamp() - 3600, tz=timezone.utc
+            ).isoformat(),
             "open": 99.0,
             "high": 104.0,
             "low": 98.0,
@@ -182,7 +187,7 @@ def test_market_scanner_refreshes_one_hour_history_incrementally(monkeypatch):
 def test_market_scanner_preloads_markets_once_per_shared_exchange(monkeypatch):
     monkeypatch.setenv("MARKET_SCANNER_SYNTHETIC", "false")
     monkeypatch.setenv("MARKET_SCANNER_PRELOAD_MARKETS", "true")
-    monkeypatch.setenv("BINANCE_TESTNET", "false")
+    monkeypatch.setenv("EXCHANGE_TESTNET", "false")
 
     MarketScanner._exchange_pool.clear()
     MarketScanner._exchange_call_locks.clear()
@@ -206,7 +211,7 @@ def test_market_scanner_preloads_markets_once_per_shared_exchange(monkeypatch):
         def fetch_ohlcv(self, symbol, timeframe, limit):
             return [[1_700_000_000_000, 1.0, 2.0, 0.5, 1.5, 10.0] for _ in range(limit)]
 
-    fake_ccxt = SimpleNamespace(binance=lambda config: _FakeExchange(config))
+    fake_ccxt = SimpleNamespace(mexc=lambda config: _FakeExchange(config))
     monkeypatch.setitem(sys.modules, "ccxt", fake_ccxt)
 
     scanner_1h = MarketScanner(symbols=["BTC/USDT"], timeframe="1h", limit=2)

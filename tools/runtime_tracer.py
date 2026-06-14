@@ -20,8 +20,8 @@ ROOT = Path(__file__).parent.parent
 
 # Injecter des env vars factices pour éviter les crash exchange
 _MOCK_ENV = {
-    "BINANCE_API_KEY": "mock_key_tracer",
-    "BINANCE_SECRET": "mock_secret_tracer",
+    "MEXC_API_KEY": "mock_key_tracer",
+    "MEXC_API_SECRET": "mock_secret_tracer",
     "TELEGRAM_TOKEN": "mock_token_tracer",
     "TELEGRAM_CHAT_ID": "0",
     "PAPER_TRADING": "true",
