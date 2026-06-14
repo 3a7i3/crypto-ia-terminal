@@ -225,11 +225,11 @@ class ExecutionEngine:
           Cela evite de fabriquer un faux drawdown quand fetch_balance plante
           temporairement (cf bug DD=89.9% / ExecutiveOverride VETO).
         """
-        if self._mode == "paper":
-            sim_cap = float(os.getenv("MEXC_SIM_CAPITAL", "0"))
-            if sim_cap > 0:
-                return sim_cap
-            return float(os.getenv("V9_INITIAL_CAPITAL", "1000"))
+        # MEXC_SIM_CAPITAL = override explicite pour paper trading (priorité maximale).
+        # Utilisé car le solde réel du compte MEXC test (~$7) fausserait le P10 throttle.
+        sim_cap = float(os.getenv("MEXC_SIM_CAPITAL", "0"))
+        if sim_cap > 0:
+            return sim_cap
         if self._exchange is not None:
             try:
                 bal = self._with_retry(self._exchange.fetch_balance)
