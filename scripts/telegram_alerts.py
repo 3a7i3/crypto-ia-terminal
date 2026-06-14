@@ -38,12 +38,27 @@ _DEDUP_WINDOW_S = 300  # 5 minutes
 
 
 def _load_config() -> tuple[str, str]:
-    """Retourne (bot_token, chat_id) depuis config JSON ou env vars."""
+    """Retourne (bot_token, chat_id) depuis config JSON ou env vars.
+
+    Le JSON est ignoré si enabled=false ou si les valeurs sont des placeholders.
+    Priorité : JSON (si enabled+valeurs réelles) → env vars.
+    """
     p = Path(_CONFIG_PATH)
     if p.exists():
         try:
             cfg = json.loads(p.read_text(encoding="utf-8"))
-            return cfg.get("bot_token", ""), cfg.get("chat_id", "")
+            token = cfg.get("bot_token", "")
+            chat_id = cfg.get("chat_id", "")
+            enabled = cfg.get("enabled", True)
+            # Ignore placeholders ou JSON désactivé
+            if (
+                enabled
+                and token
+                and chat_id
+                and "VOTRE" not in token
+                and "VOTRE" not in chat_id
+            ):
+                return token, chat_id
         except Exception:
             pass
     return (
