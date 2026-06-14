@@ -202,12 +202,12 @@ def audit_rate_limiter(testnet: bool = False) -> dict:
 
 
 def print_audit(testnet: bool = False) -> None:
-    host_main = "api.binance.com"
-    host_testnet = "testnet.binance.vision"
+    host_main = "api.mexc.com"
+    host_testnet = "api.mexc.com"  # MEXC n'a pas de testnet public distinct
 
     print()
     print("=" * 66)
-    print("  AUDIT LATENCE FETCH 1H BINANCE A FROID")
+    print("  AUDIT LATENCE FETCH 1H MEXC A FROID")
     print(f"  Mode: {'TESTNET' if testnet else 'MAINNET'}")
     print("=" * 66)
 
@@ -263,9 +263,7 @@ def print_audit(testnet: bool = False) -> None:
     try:
         import ccxt
 
-        ex = ccxt.binance({"enableRateLimit": True, "adjustForTimeDifference": True})
-        if testnet:
-            ex.set_sandbox_mode(True)
+        ex = ccxt.mexc({"enableRateLimit": True})
         ex.load_markets()  # charge une fois, comme MarketScanner le fait
         r5 = audit_fetch_ohlcv(ex, limit=96)
         if "error" in r5:
@@ -286,19 +284,16 @@ def print_audit(testnet: bool = False) -> None:
     print("-" * 66)
     print("  Phase              | Estimation  | Source")
     print("  -------------------|-------------|--------------------------------")
-    print("  DNS (1er appel)    |  50-300 ms  | Cache OS vide, TTL CDN Binance")
+    print("  DNS (1er appel)    |  50-300 ms  | Cache OS vide, TTL CDN MEXC")
     print("  TCP + TLS (froid)  | 150-400 ms  | RTT CDN + TLS 1.3 handshake")
     print("  CCXT init()        |   2-10 ms   | Lecture config Python (rapide)")
     print("  load_markets()     | 800-1500 ms | GET /api/v3/exchangeInfo (2000 paires)")
-    print("  adjustForTimeDiff  | 200-600 ms  | GET /api/v3/time (sync horloge)")
     print("  CCXT rate limiter  |    50 ms    | Sleep interne si enableRateLimit=True")
     print("  fetch_ohlcv (froid)| 400-900 ms  | Requete HTTP + parse JSON 96 bougies")
     print("  -------------------|-------------|--------------------------------")
-    print("  TOTAL estime       | 1.7-3.8 s   | Correspond au 3.7-3.9s observe")
+    print("  TOTAL estime       | 1.5-3.2 s   | Correspond au delai observe a froid")
     print()
     print("  Facteurs aggravants :")
-    print("  - Testnet (testnet.binance.vision) : RTT +100-300ms vs mainnet CDN")
-    print("  - adjustForTimeDifference=True     : appel supplementaire GET /time")
     print("  - enableRateLimit=True             : +50ms fixe meme au 1er appel")
     print("  - Pas de pool DNS (win32)          : getaddrinfo bloquant a froid")
     print()
@@ -312,9 +307,7 @@ def print_audit(testnet: bool = False) -> None:
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Audit latence fetch Binance")
-    parser.add_argument(
-        "--testnet", action="store_true", help="Tester testnet.binance.vision"
-    )
+    parser = argparse.ArgumentParser(description="Audit latence fetch MEXC")
+    parser.add_argument("--testnet", action="store_true", help="Mode testnet")
     args = parser.parse_args()
     print_audit(testnet=args.testnet)

@@ -4,6 +4,8 @@ from execution_simulator.config import (
     binance_spot_simulator,
     binance_usdt_futures_simulator,
     conservative_simulator,
+    mexc_futures_simulator,
+    mexc_spot_simulator,
 )
 from execution_simulator.models import MarketSnapshot, OrderIntent, SimulatedFill
 from execution_simulator.simulator import ExecutionSimulator, FeeModel
@@ -14,6 +16,8 @@ __all__ = [
     "SimulatedFill",
     "ExecutionSimulator",
     "FeeModel",
+    "mexc_futures_simulator",
+    "mexc_spot_simulator",
     "binance_usdt_futures_simulator",
     "binance_spot_simulator",
     "conservative_simulator",

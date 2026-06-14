@@ -298,6 +298,8 @@ class PaperTradeRecorder:
         mode: str = "futures_demo",
         mae_pct: Optional[float] = None,
         mfe_pct: Optional[float] = None,
+        score: int = 0,
+        regime: str = "unknown",
     ) -> None:
         now = time.time()
         duration = (now - opened_at) if opened_at else None
@@ -312,6 +314,9 @@ class PaperTradeRecorder:
             size_usd=size_usd,
             mode=mode,
             schema_version=SCHEMA_VERSION,
+            score=score,
+            score_bin=_score_to_bin(score),
+            regime=regime,
             exit_price=exit_price,
             pnl_usd=round(pnl_usd, 4),
             pnl_pct=round(pnl_pct, 6),

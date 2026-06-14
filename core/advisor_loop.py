@@ -223,9 +223,7 @@ try:
     import exchange_constraints.binance_rules as _binance_rules_mod
     from exchange_constraints.order_validator import OrderValidator as _OrderValidator
     from exchange_constraints.rate_limiter import OrderRateLimiter as _OrderRateLimiter
-    from execution_simulator.config import (
-        binance_usdt_futures_simulator as _binance_sim_factory,
-    )
+    from execution_simulator.config import mexc_futures_simulator as _mexc_sim_factory
     from execution_simulator.models import MarketSnapshot as _MarketSnapshot
     from execution_simulator.models import OrderIntent as _OrderIntent
 
@@ -1601,6 +1599,7 @@ def analyze_symbol(
             sl_pct=_sl,
             score=int(signal.score) if hasattr(signal, "score") else 0,
             personality=_vp_persona,
+            regime=getattr(signal, "regime", "unknown"),
             current_price=float(prix),
         )
 
@@ -2436,19 +2435,12 @@ def main(
     # Lire le capital réel disponible (balance USDT testnet ou .env fallback)
     real_capital = exec_engine.fetch_available_capital()
 
-    # P2: Refresh exchange rules from live API + init execution pipeline
+    # P2: Init execution pipeline (snapshot statique — pas de refresh réseau)
     if _EXEC_CONSTRAINTS_AVAILABLE:
-        try:
-            _binance_rules_mod.refresh_from_exchange()
-            log.info("[P2] Règles exchange rafraîchies depuis l'API Binance live")
-        except Exception as _ref_exc:
-            log.warning(
-                "[P2] refresh_from_exchange() échoué (snapshot statique utilisé): %s",
-                _ref_exc,
-            )
+        _binance_rules_mod.refresh_from_exchange()  # no-op en mode MEXC
         _order_validator = _OrderValidator()
         _rate_limiter = _OrderRateLimiter()
-        _exec_sim = _binance_sim_factory()
+        _exec_sim = _mexc_sim_factory()
         os.makedirs("logs/execution_audit", exist_ok=True)
     else:
         _order_validator = _rate_limiter = _exec_sim = None
@@ -4646,21 +4638,11 @@ def main(
                             pass  # hard limits non disponibles — non bloquant
 
                         # A. OrderValidator — validate + adjust qty before exchange
-                        # Only apply Binance rules when actually on a Binance exchange
-                        _is_binance_exchange = (
-                            "binance" in os.getenv("ACTIVE_EXCHANGE", "").lower()
-                        )
-                        if (
-                            _EXEC_CONSTRAINTS_AVAILABLE
-                            and _order_validator is not None
-                            and _is_binance_exchange
-                        ):
+                        if _EXEC_CONSTRAINTS_AVAILABLE and _order_validator is not None:
                             try:
                                 _sym_clean = sym.replace("/", "")
-                                _sym_info = (
-                                    _binance_rules_mod.BINANCE_FUTURES_SYMBOLS.get(
-                                        _sym_clean
-                                    )
+                                _sym_info = _binance_rules_mod.FUTURES_SYMBOLS.get(
+                                    _sym_clean
                                 )
                                 if _sym_info is not None and _ref_price > 0:
                                     _qty_base = effective_size / _ref_price

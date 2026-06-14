@@ -185,7 +185,7 @@ class ExchangeMonitor:
                         else "https://futures.kraken.com/derivatives/api/v3/instruments"
                     ),
                 }
-                ping_url = ping_urls.get(exchange_id, ping_urls["binance"])
+                ping_url = ping_urls.get(exchange_id, ping_urls["mexc"])
             r = requests.get(ping_url, timeout=15)
             latency_ms = (time.time() - t0) * 1000
 

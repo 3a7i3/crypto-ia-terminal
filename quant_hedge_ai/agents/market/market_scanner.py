@@ -220,7 +220,7 @@ class MarketScanner:
         if scanner_testnet in ("true", "false"):
             use_testnet = scanner_testnet == "true"
         else:
-            use_testnet = os.getenv("BINANCE_TESTNET", "false").lower() == "true"
+            use_testnet = os.getenv("EXCHANGE_TESTNET", "false").lower() == "true"
         return (self._exchange_id, use_testnet)
 
     @classmethod

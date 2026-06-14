@@ -7,10 +7,10 @@ Composants :
 
 Usage :
     from paper_trading.engine import BurninSimulationEngine
-    from execution_simulator.config import binance_usdt_futures_simulator
+    from execution_simulator.config import mexc_futures_simulator
 
     engine = BurninSimulationEngine(
-        simulator=binance_usdt_futures_simulator(),
+        simulator=mexc_futures_simulator(),
         initial_capital=10_000.0,
     )
     engine.on_signal("BTCUSDT", "buy", price=65_000.0, size_usd=500.0)

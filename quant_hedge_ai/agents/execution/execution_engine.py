@@ -325,7 +325,7 @@ class ExecutionEngine:
 
     def _to_futures_symbol(self, symbol: str) -> str:
         """Convertit un symbole spot vers le format perp de l'exchange actif."""
-        exch_id = os.getenv("EXCHANGE_ID", "binance").lower()
+        exch_id = os.getenv("EXCHANGE_ID", "mexc").lower()
         if ":" in symbol:
             return symbol
         base = symbol.split("/")[0] if "/" in symbol else symbol[:3]
@@ -336,7 +336,7 @@ class ExecutionEngine:
                 return f"{base}/USD:{base}"
             return f"{base}/USD:USD"
         else:
-            # Binance USDM perp: BTC/USDT → BTC/USDT:USDT
+            # MEXC/generic perp: BTC/USDT → BTC/USDT:USDT
             quote = symbol.split("/")[1] if "/" in symbol else "USDT"
             return f"{base}/{quote}:{quote}"
 

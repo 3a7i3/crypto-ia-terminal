@@ -3,14 +3,14 @@ execution_simulator/config.py — Presets de simulateurs preconfigures.
 
 Fonctions factory qui retournent un ExecutionSimulator pret a l'emploi.
 
-binance_usdt_futures_simulator(seed) : preset Binance USDT-M Perp
+mexc_futures_simulator(seed) : preset MEXC Futures/Perp
   - SqrtSlippage  (Almgren-Chriss, eta=0.1, noise=0.5 bps)
   - LatencyModel  (base=50ms, jitter=20ms)
   - DynamicSpread (base=0.5 bps, vol-sensitive)
   - LiquidityBasedFill (max 5% ADV, decay exp)
-  - FeeModel      (taker=4 bps, maker=2 bps — Binance VIP0)
+  - FeeModel      (taker=4 bps, maker=2 bps)
 
-binance_spot_simulator(seed) : preset Binance Spot
+mexc_spot_simulator(seed) : preset MEXC Spot
   - Memes modeles mais fees differentes (taker=10 bps, maker=10 bps standard)
   - Spread legerement plus large
 
@@ -19,6 +19,8 @@ conservative_simulator(seed) : preset pessimiste pour stress-test
   - Latence elevee (base=200ms)
   - Spread 3 bps
   - Fill partiel agressif (max 2% ADV)
+
+Alias de compatibilite : binance_usdt_futures_simulator, binance_spot_simulator.
 """
 
 from __future__ import annotations
@@ -30,8 +32,8 @@ from execution_simulator.slippage import FixedSlippage, SqrtSlippage
 from execution_simulator.spread import DynamicSpread, FixedSpread
 
 
-def binance_usdt_futures_simulator(seed: int | None = None) -> ExecutionSimulator:
-    """Preset Binance USDT-M Perpetual Futures — parametres calibres sur donnees reelles."""
+def mexc_futures_simulator(seed: int | None = None) -> ExecutionSimulator:
+    """Preset MEXC Futures/Perp — parametres calibres sur donnees reelles."""
     return ExecutionSimulator(
         fill_simulator=LiquidityBasedFill(
             max_participation=0.05,
@@ -63,8 +65,8 @@ def binance_usdt_futures_simulator(seed: int | None = None) -> ExecutionSimulato
     )
 
 
-def binance_spot_simulator(seed: int | None = None) -> ExecutionSimulator:
-    """Preset Binance Spot — frais standard, spread un peu plus large."""
+def mexc_spot_simulator(seed: int | None = None) -> ExecutionSimulator:
+    """Preset MEXC Spot — frais standard, spread un peu plus large."""
     return ExecutionSimulator(
         fill_simulator=LiquidityBasedFill(
             max_participation=0.03,
@@ -120,3 +122,8 @@ def conservative_simulator(seed: int | None = None) -> ExecutionSimulator:
         ),
         seed=seed,
     )
+
+
+# Aliases de compatibilite ascendante
+binance_usdt_futures_simulator = mexc_futures_simulator
+binance_spot_simulator = mexc_spot_simulator

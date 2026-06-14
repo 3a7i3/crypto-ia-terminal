@@ -11,14 +11,14 @@ Scope : infrastructure d'observation burn-in (P5). Ne pas confondre avec
 PaperTradingEngine de quant_hedge_ai/agents/execution/ qui est le moteur
 paper mode du runtime live.
 
-Fidélité cible : 95%+ vs exécution réelle (grâce au simulateur calibré Binance).
+Fidélité cible : 95%+ vs exécution réelle (grâce au simulateur calibré MEXC).
 
 Usage :
     from paper_trading.engine import BurninSimulationEngine
-    from execution_simulator.config import binance_usdt_futures_simulator
+    from execution_simulator.config import mexc_futures_simulator
 
     engine = BurninSimulationEngine(
-        simulator=binance_usdt_futures_simulator(),
+        simulator=mexc_futures_simulator(),
         initial_capital=10_000.0,
         log_path="logs/paper_trading.jsonl",
     )
@@ -50,7 +50,7 @@ class BurninSimulationEngine:
     Réservé à l'infrastructure d'observation P5. Runtime live → voir
     quant_hedge_ai/agents/execution/paper_trading_engine.py.
 
-    simulator       : ExecutionSimulator calibré (ex: binance_usdt_futures_simulator())
+    simulator       : ExecutionSimulator calibré (ex: mexc_futures_simulator())
     initial_capital : capital de départ en USD
     log_path        : chemin vers le fichier JSONL d'audit (None = pas de log)
     volume_24h      : volume journalier estimé pour le simulateur (USD)

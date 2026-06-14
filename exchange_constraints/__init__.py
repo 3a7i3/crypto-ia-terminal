@@ -1,7 +1,8 @@
-"""exchange_constraints — Contraintes et regles d'exchange (Binance USDT-M Futures)."""
+"""exchange_constraints — Contraintes et regles d'exchange (futures generiques)."""
 
 from exchange_constraints.binance_rules import (
     BINANCE_FUTURES_SYMBOLS,
+    FUTURES_SYMBOLS,
     get_symbol_info,
     refresh_from_exchange,
 )
@@ -29,6 +30,7 @@ __all__ = [
     "apply_price_filter",
     "apply_min_notional",
     "check_percent_price",
+    "FUTURES_SYMBOLS",
     "BINANCE_FUTURES_SYMBOLS",
     "get_symbol_info",
     "refresh_from_exchange",

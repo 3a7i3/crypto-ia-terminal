@@ -9,7 +9,7 @@ MultiExchangeStream :
 
 Usage snapshot (sync) :
     stream = MultiExchangeStream()
-    stream.add_connector(BinanceFuturesConnector())
+    stream.add_connector(MEXCFuturesConnector())
     stream.add_connector(HyperliquidConnector())
     events = stream.fetch_all("BTCUSDT", event_types=["trade", "orderbook"])
 

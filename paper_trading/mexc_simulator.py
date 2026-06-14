@@ -81,6 +81,7 @@ class MexcOrder:
     sl_pct: float = 0.02
     score: int = 0
     personality: str = "unknown"
+    regime: str = "unknown"
 
 
 @dataclass
@@ -95,6 +96,7 @@ class MexcPosition:
     fee_entry_usd: float
     score: int
     personality: str
+    regime: str = "unknown"
     opened_ts: float = field(default_factory=time.time)
     exit_price: float = 0.0
     closed_ts: float = 0.0
@@ -357,6 +359,7 @@ class MexcSimulator:
         score: int = 0,
         personality: str = "unknown",
         current_price: float = 0.0,
+        regime: str = "unknown",
     ) -> Optional[MexcOrder]:
         """Ordre MARKET : exécution immédiate au prix courant + slippage."""
         order = MexcOrder(
@@ -369,6 +372,7 @@ class MexcSimulator:
             sl_pct=sl_pct,
             score=score,
             personality=personality,
+            regime=regime,
         )
         if current_price <= 0:
             current_price = self._fetch_price(symbol)
@@ -495,6 +499,7 @@ class MexcSimulator:
                 fee_entry_usd=fee,
                 score=order.score,
                 personality=order.personality,
+                regime=order.regime,
             )
             self._positions[order.symbol] = pos
             order.fill_price = fill
@@ -511,6 +516,7 @@ class MexcSimulator:
                 price=pos.entry_price,
                 size_usd=pos.qty_usd,
                 score=pos.score,
+                regime=pos.regime,
                 mode="futures_demo",
             )
         except Exception as exc:
@@ -672,6 +678,8 @@ class MexcSimulator:
                 mode="futures_demo",
                 mae_pct=pos.mae_pct,
                 mfe_pct=pos.mfe_pct,
+                score=pos.score,
+                regime=pos.regime,
             )
         except Exception as exc:
             _log.warning("[SIM] record_close échoué: %s", exc)

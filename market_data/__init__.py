@@ -1,14 +1,10 @@
 """
 market_data — Ingestion multi-exchange, modeles normalises, metriques microstructure.
 
-Sources : Binance USDT-M Futures, Hyperliquid Perps, MEXC Futures.
+Sources : Hyperliquid Perps, MEXC Futures.
 """
 
-from market_data.connectors import (
-    BinanceFuturesConnector,
-    HyperliquidConnector,
-    MEXCFuturesConnector,
-)
+from market_data.connectors import HyperliquidConnector, MEXCFuturesConnector
 from market_data.models import (
     MarketEvent,
     NormalizedCandle,
@@ -29,7 +25,6 @@ __all__ = [
     "ReplayEngine",
     "FlowSnapshot",
     "ReplayStats",
-    "BinanceFuturesConnector",
     "HyperliquidConnector",
     "MEXCFuturesConnector",
 ]
