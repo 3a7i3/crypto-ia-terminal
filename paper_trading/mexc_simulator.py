@@ -749,10 +749,15 @@ class MexcSimulator:
             if price > 0:
                 unrealized_pnl += p.qty_usd * live / 100.0
             sign = "+" if live >= 0 else ""
+            from datetime import datetime, timezone
+
+            opened_dt = datetime.fromtimestamp(p.opened_ts, tz=timezone.utc)
+            opened_str = opened_dt.strftime("%d/%m %H:%M")
             live_lines.append(
                 f"  {sym} {p.side.value}"
                 f" entry=${p.entry_price:.4g}"
                 f" live={sign}{live:.2f}%"
+                f" ouvert={opened_str}"
             )
 
         # Equity totale = cash libre + capital déployé + PnL latent
