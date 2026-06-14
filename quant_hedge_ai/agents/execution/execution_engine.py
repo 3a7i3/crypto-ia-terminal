@@ -217,12 +217,19 @@ class ExecutionEngine:
         """
         Retourne le capital USDT libre sur le compte (live/testnet).
 
-        - Au premier appel : si l'exchange echoue, fallback sur V9_INITIAL_CAPITAL.
-        - Aux appels suivants : si l'exchange echoue (ex : timestamp drift Binance),
-          on retourne la DERNIERE valeur connue plutot que le fallback fixe.
+        En mode paper : retourne MEXC_SIM_CAPITAL (capital simulé), pas le solde
+        réel du compte MEXC (~$7 sur un compte test) qui fausserait le P10 throttle.
+
+        - Au premier appel live/testnet : si l'exchange echoue, fallback V9_INITIAL_CAPITAL.
+        - Aux appels suivants : si l'exchange echoue, retourne la DERNIERE valeur connue.
           Cela evite de fabriquer un faux drawdown quand fetch_balance plante
           temporairement (cf bug DD=89.9% / ExecutiveOverride VETO).
         """
+        if self._mode == "paper":
+            sim_cap = float(os.getenv("MEXC_SIM_CAPITAL", "0"))
+            if sim_cap > 0:
+                return sim_cap
+            return float(os.getenv("V9_INITIAL_CAPITAL", "1000"))
         if self._exchange is not None:
             try:
                 bal = self._with_retry(self._exchange.fetch_balance)
