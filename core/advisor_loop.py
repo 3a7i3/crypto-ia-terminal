@@ -532,12 +532,15 @@ def _telegram_behavior(text: str) -> None:
 def _send_intel(text: str) -> None:
     """Bot Intelligence — résumé 6h en langage naturel (ChiefOfficer briefing).
 
-    Utilise INTEL_BOT_TOKEN + INTEL_BOT_CHAT_ID.
-    Fallback vers le canal principal si non configuré.
+    Utilise exclusivement INTEL_BOT_TOKEN + INTEL_BOT_CHAT_ID (@rapport_automatique_bot).
+    Si non configuré : silencieux (pas de fallback vers @QuantCrpto_bot).
     """
-    token = INTEL_TOKEN or TELEGRAM_TOKEN
-    chat = INTEL_CHAT or TELEGRAM_CHAT
+    token = INTEL_TOKEN
+    chat = INTEL_CHAT
     if not token or not chat:
+        log.debug(
+            "[Intel] INTEL_BOT_TOKEN/INTEL_BOT_CHAT_ID non configurés — briefing ignoré"
+        )
         return
     try:
         r = requests.post(

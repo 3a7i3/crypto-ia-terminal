@@ -140,10 +140,11 @@ def build_briefing(ctx: dict, cycle: int) -> str:
 
 
 def send_to_intel(text: str) -> bool:
-    token = _INTEL_TOKEN or _MAIN_TOKEN
-    chat = _INTEL_CHAT or _MAIN_CHAT
+    token = _INTEL_TOKEN
+    chat = _INTEL_CHAT
     if not token or not chat:
         print("[ERREUR] INTEL_BOT_TOKEN / INTEL_BOT_CHAT_ID non configurés dans .env")
+        print("         Ajouter ces vars dans le .env du VPS puis relancer.")
         return False
     try:
         r = requests.post(
@@ -193,8 +194,7 @@ def main() -> int:
         return 0
 
     if send_to_intel(full_msg):
-        dest = "Intel bot" if _INTEL_TOKEN else "bot principal (fallback)"
-        print(f"[OK] Envoyé → {dest}")
+        print("[OK] Envoyé → @rapport_automatique_bot")
     else:
         return 1
     return 0
