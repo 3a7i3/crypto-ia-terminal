@@ -279,3 +279,151 @@ class TestPaperTradeCompleteLifecycle:
         # Rapport de performance cohérent
         report = sim.performance_report()
         assert "W=1" in report
+
+
+class TestMexcSimulatorRestoreGuard:
+    """Garantit qu'aucune position ancienne ne ressuscite au redémarrage."""
+
+    def _make_sim(self):
+        from paper_trading.mexc_simulator import MexcSimulator
+
+        sim = MexcSimulator(mexc_reader=None, telegram_fn=lambda _: None)
+        sim._capital = 100.0
+        sim._initial_capital = 100.0
+        sim._running = True
+        return sim
+
+    def _open_trade_in_recorder(
+        self, recorder, trade_id, symbol, age_s, entry=100_000.0
+    ):
+        """Écrit un OPEN dans le recorder avec un timestamp passé."""
+        import time
+
+        opened_at = time.time() - age_s
+        recorder._path.parent.mkdir(parents=True, exist_ok=True)
+        import json
+
+        line = (
+            json.dumps(
+                {
+                    "event": "OPEN",
+                    "trade_id": trade_id,
+                    "ts": opened_at,
+                    "ts_iso": "",
+                    "symbol": symbol,
+                    "side": "buy",
+                    "price": entry,
+                    "size_usd": 10.0,
+                    "mode": "futures_demo",
+                    "schema_version": 2,
+                    "regime": "bull_trend",
+                    "score": 75,
+                    "score_bin": "70+",
+                    "order_id": "",
+                }
+            )
+            + "\n"
+        )
+        with recorder._path.open("a", encoding="utf-8") as f:
+            f.write(line)
+
+    def test_stale_position_is_expired_not_restored(self, tmp_path):
+        """Position trop ancienne → archivée dans ledger, pas restaurée."""
+        import unittest.mock as mock
+
+        from paper_trading import mexc_simulator
+        from paper_trading.recorder import PaperTradeRecorder
+
+        log_file = tmp_path / "paper_trades.jsonl"
+        recorder = PaperTradeRecorder(log_path=str(log_file))
+
+        # Position ouverte il y a 5h (> limite 4h)
+        self._open_trade_in_recorder(recorder, "STALE-001", "BTC/USDT", age_s=5 * 3600)
+
+        sim = self._make_sim()
+
+        original_max_age = mexc_simulator._RESTORE_MAX_AGE_S
+        try:
+            mexc_simulator._RESTORE_MAX_AGE_S = 4 * 3600
+
+            with mock.patch(
+                "paper_trading.recorder.get_recorder", return_value=recorder
+            ):
+                restored = sim._restore_positions()
+        finally:
+            mexc_simulator._RESTORE_MAX_AGE_S = original_max_age
+
+        # Pas restaurée en mémoire
+        assert restored == 0
+        assert "BTC/USDT" not in sim._positions
+
+        # CLOSE d'expiry écrit dans le ledger
+        trades = recorder.trades()
+        stale = [t for t in trades if t.trade_id == "STALE-001"]
+        assert len(stale) == 1
+        assert stale[0].exit_reason == "expired_on_restore"
+        assert not stale[0].is_open
+
+    def test_fresh_position_is_restored(self, tmp_path):
+        """Position < SIM_RESTORE_MAX_AGE_H → restaurée normalement en mémoire."""
+        import unittest.mock as mock
+
+        from paper_trading import mexc_simulator
+        from paper_trading.recorder import PaperTradeRecorder
+
+        log_file = tmp_path / "paper_trades.jsonl"
+        recorder = PaperTradeRecorder(log_path=str(log_file))
+
+        # Position ouverte il y a 30 minutes (< limite 4h)
+        self._open_trade_in_recorder(recorder, "FRESH-001", "ETH/USDT", age_s=30 * 60)
+
+        sim = self._make_sim()
+
+        original_max_age = mexc_simulator._RESTORE_MAX_AGE_S
+        try:
+            mexc_simulator._RESTORE_MAX_AGE_S = 4 * 3600
+
+            with mock.patch(
+                "paper_trading.recorder.get_recorder", return_value=recorder
+            ):
+                restored = sim._restore_positions()
+        finally:
+            mexc_simulator._RESTORE_MAX_AGE_S = original_max_age
+
+        assert restored == 1
+        assert "ETH/USDT" in sim._positions
+        # Aucun CLOSE écrit — trade vivant
+        trades = recorder.trades()
+        fresh = [t for t in trades if t.trade_id == "FRESH-001"]
+        assert len(fresh) == 1
+        assert fresh[0].is_open
+
+    def test_expired_position_not_restored_on_second_restart(self, tmp_path):
+        """Un trade expiré au 1er restart a un CLOSE — le 2e restart l'ignore."""
+        import unittest.mock as mock
+
+        from paper_trading import mexc_simulator
+        from paper_trading.recorder import PaperTradeRecorder
+
+        log_file = tmp_path / "paper_trades.jsonl"
+        recorder = PaperTradeRecorder(log_path=str(log_file))
+
+        self._open_trade_in_recorder(recorder, "OLD-001", "SOL/USDT", age_s=10 * 3600)
+
+        original_max_age = mexc_simulator._RESTORE_MAX_AGE_S
+        try:
+            mexc_simulator._RESTORE_MAX_AGE_S = 4 * 3600
+
+            with mock.patch(
+                "paper_trading.recorder.get_recorder", return_value=recorder
+            ):
+                sim1 = self._make_sim()
+                sim1._restore_positions()  # 1er restart : expire le trade
+
+                sim2 = self._make_sim()
+                restored = sim2._restore_positions()  # 2e restart
+        finally:
+            mexc_simulator._RESTORE_MAX_AGE_S = original_max_age
+
+        assert restored == 0
+        assert "SOL/USDT" not in sim2._positions

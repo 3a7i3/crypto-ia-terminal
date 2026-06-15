@@ -1,7 +1,7 @@
 # ROADMAP — Crypto AI Terminal
 
-> Dernière mise à jour : 2026-05-26
-> Statut global : **P9 FERMÉ** → **P10 Evolutionary Architecture**
+> Dernière mise à jour : 2026-06-14
+> Statut global : **P10 FERMÉ** → **Phase burn-in paper trading (MEXC)**
 
 ---
 
@@ -17,294 +17,143 @@
 7. MÉTA-GOUVERNANCE     → surveillance des couches, détection de dérive
 ```
 
-Chaque phase ferme une boucle avant d'en ouvrir une nouvelle.
+---
+
+## RÉCAP P1-P13 (état 2026-06-14)
+
+| Phase | Livré | Statut | Date |
+|-------|-------|--------|------|
+| P1 | Foundation : LiveSignalEngine, MarketScanner, ExchangeMonitor, Telegram | ✅ FERMÉ | 2026-04 |
+| P2 | Operational : data pipeline, rate limiter, simulator, audit | ✅ FERMÉ | 2026-05-13 |
+| P3 | Decision Intelligence : SelfAwareness, NoTrade, Conviction, DecisionQuality | ✅ FERMÉ | 2026-05 |
+| P4 | Portfolio Brain : 8 checks, Kelly+EV+Vol sizing, GlobalRiskGate | ✅ FERMÉ | 2026-05 |
+| P5 | Paper Trading : engine, ledger, shadow log, 30+ trades validés | ✅ FERMÉ | 2026-05-19 |
+| P6 | Adaptive Core : RegimeClassifier v2, AdaptiveThreshold PID, RegretLoop, ATR SL | ✅ FERMÉ | 2026-05 |
+| P7 | Autonomous Regulation : RiskGovernor, CapitalThrottle, CircuitBreaker | ✅ FERMÉ | 2026-05 |
+| P8 | Dynamic Intelligence : StrategyAllocator, ProbationSystem, CorrelationMonitor | ✅ FERMÉ | 2026-05 |
+| P9 | Meta Governance : HealthMonitor, BehavioralDrift, AnomalyGovernance — 64/64 tests | ✅ FERMÉ | 2026-05-26 |
+| P10-A | Cold Start Protocol : 9 modules, 112 tests, HMAC signing, 3 régimes | ✅ FERMÉ | 2026-05 |
+| P10-F | Architecture 3 états RUNNING/DEGRADED/HALTED, SystemController câblé | ✅ FERMÉ | 2026-06-12 |
+| P11-B | Restart Safety : 38 tests crash/restart zero-drift, WarmupSM, PositionReconciler | ✅ FERMÉ | 2026-05 |
+| CFG-P2-01 | config/settings.py Pydantic BaseSettings SSoT — 21 tests | ✅ LIVRÉ | 2026-06-13 |
+| Gouvernance | G0→G8-E certifiés, hash chain, GovernanceAuditor S1/S2/S3 | ✅ FERMÉ | 2026-06 |
+| MEXC-only | Consolidation exchange : Binance archivé, 28 fichiers, 1816/1816 tests | ✅ LIVRÉ | 2026-06-13 |
+
+12 couches décisionnelles actives. VPS GCP 34.171.188.99 — systemd crypto-advisor RUNNING.
 
 ---
 
-## RÉCAP P1-P5 (validé)
+## État actuel — Burn-in paper trading (ALPHA_DISCOVERY_100)
 
-| Phase | Livré | Date |
-|-------|-------|------|
-| P1 | Foundation : LiveSignalEngine, MarketScanner, ExchangeMonitor, Telegram | 2026-04 |
-| P2 | Operational : data pipeline, rate limiter, simulator, audit — gelé | 2026-05-13 |
-| P3 | Decision Intelligence : SelfAwareness, NoTrade, Conviction, DecisionQuality | 2026-05 |
-| P4 | Portfolio Brain : 8 checks, Kelly+EV+Vol sizing, GlobalRiskGate | 2026-05 |
-| P5 | Paper Trading : engine, ledger, shadow log, 30+ trades validés | 2026-05-19 |
-| Fix | VPS auto-deploy, Kraken testnet, TIME_STOP, TP/SL dynamique, reconciler | 2026-05-19 |
+**Règle souveraine** : GEL TOTAL architecture tant que < 100 trades paper fermés ET C5==False.
+Aucun tuning de GATE_MIN_SCORE_OVERRIDE, PB_MIN_POSITION_USD, ni de paramètre de trading.
 
-12 couches décisionnelles actives, 11 dashboards Streamlit, auto-deploy git→VPS.
+### Baseline BurnIn V3 (2026-06-12)
 
----
+| KPI | Valeur |
+|-----|--------|
+| Signaux évalués | 2332 sur 447h |
+| Pass rate gate | 51.2% (≈2.7 signaux/h autorisés) |
+| Rejets RiskGate | 1138 |
+| Trades paper fermés | **0** (bloqueur : `PAPER_TRADING_ENABLED` absent .env VPS) |
 
-## P6 — Adaptive Core
-
-**Objectif** : fermer la première boucle de rétroaction (regret → threshold) et stabiliser le comportement en régime variable.
-
-### Composants
-
-**1. Market Regime Classifier v2 — avec hystérésis**
-- États : `TREND_BULL`, `TREND_BEAR`, `SIDEWAYS`, `HIGH_VOL`, `CHOPPY`, `UNKNOWN`
-- Transition validée après N cycles consécutifs (N=3-6 selon TF)
-- Confirmation orthogonale : 2 familles indépendantes requises
-  - Structure de tendance (ADX, EMA slope, MACD)
-  - Structure de volatilité (ATR, Bollinger width)
-  - Structure d'épuisement (RSI MTF, distance VWAP, volume exhaustion)
-- Sortie : `RegimePacket(regime, confidence, duration_cycles, transition_from)`
-
-**2. Adaptive Threshold Engine — contrôle PID**
-```
-adaptive_threshold = base_threshold(70)
-                   + regime_adjustment(regime)
-                   + EWMA(regret_delta, decay=0.85)
-                   + damping_term(max ±1/cycle)
-```
-- `regime_adjustment` : SIDEWAYS → -4, TREND → +2, HIGH_VOL → +3, CHOPPY → -2
-- PID : P=réaction immédiate, I=EWMA erreurs passées, D=damping anti-oscillation
-
-**3. Regret Feedback Loop — fermée et décisionnelle**
-- `RegretEngine.get_threshold_delta` : -2, -1, 0, +1
-- Activation : `missed_wins > good_refusals * 1.2` ET `avg_regret > 0.6`
-- Anti-oscillation : delta ne change pas de signe plus d'1 fois / 3 cycles
-- Boucle complète : `RegretEngine → GlobalRiskGate.apply_regret_delta → scoring → exécution → mesure → cycle suivant`
-
-**4. ATR Adaptive Stop-Loss**
-- `sl_pct = max(atr_pct * sl_factor, min_sl=0.008)`
-- `sl_factor` par régime : SIDEWAYS=1.5, TREND=2.0, HIGH_VOL=2.5
-- `tp_pct = sl_pct * risk_reward_min(2.0)`
-- Fallback SL fixe si `atr_pct` absent
-
-**5. Regime Transition Smoother**
-- Rampe linéaire sur 3-5 cycles lors d'un changement de régime
-- `param(t) = old + (new - old) * min(t / ramp_duration, 1)`
-- Rampe suspendue si nouveau changement pendant la transition
-
-**6. Activity Tracker — version décisionnelle**
-- Si `inactivity_ratio > 0.85` pendant 20+ cycles ET RegretEngine signale des opportunités :
-  - Déclencher `REGIME_MISMATCH`
-  - Forcer recalcul du classifieur
-  - Réduire threshold d'un cran supplémentaire
-
-### Câblage advisor_loop.py (~15 lignes)
-```python
-activity_tracker.log_cycle(...)
-regime = classifier.classify(market_data)
-delta = regret_engine.get_threshold_delta(regime)
-gate.apply_regret_delta(delta)
-effective_threshold = gate.get_effective_min_score(regime)
-meta_strategy_engine.select(signals, threshold=effective_threshold, atr_pct=atr)
-```
-
-### Critères de succès P6
-- [x] NEAR à 69/100 passe le gate en régime SIDEWAYS (REGIME_SIDEWAYS_MIN_SCORE=40)
-- [x] Regret élevé → ATE delta [-5,0] progressif (≤1pt/cycle) + REGIME_MISMATCH -1 / 15 cycles si gelé >30 cycles
-- [x] Aucune oscillation threshold > 3 points entre 2 cycles consécutifs (damping_max=1.0/cycle)
-- [x] Transitions de régime confirmées après 3 cycles consécutifs identiques (_REGIME_STABILITY=3)
+**Bloqueur immédiat** : déployer commit `bcd841b` sur VPS + ajouter `PAPER_TRADING_ENABLED=true` dans `.env`.
+ETA 100 trades : ~37h après activation.
 
 ---
 
-## P7 — Autonomous Regulation (RiskGovernor)
+## Migration Architecture V2 (P1 canonique)
 
-**Objectif** : couche de protection autonome — états de risque, modes dégradés, survie du système.
+Objectif : réduire de 89 dossiers → <40, pipeline dict-free, SSoT par verticale.
 
-**Etat 2026-05-26** : composants principaux implémentés
-(`RiskGovernor`, `CapitalThrottle`, `DynamicExposureManager`,
-`ComponentCircuitBreaker`) et filet `SystemSafetyAuditor` ajouté puis câblé
-dans `advisor_loop.py`. La validation pytest locale est bloquée par
-l'environnement Python (`BUG-007`).
+| Verticale | Canonique | Runtime câblé | Tests intégration | Legacy |
+|-----------|-----------|---------------|-------------------|--------|
+| Decision Layer | ✅ | ✅ | ✅ 18 tests (DL-01→DL-05) | ⏳ renommage différé |
+| Event Bus | ✅ | ⏳ | ⏳ | ⏳ |
+| Execution Engine | ✅ | ✅ | ⏳ | ⏳ |
+| Kill Switch | ✅ | ✅ | ⏳ | ⏳ |
+| Regime Detector | ✅ | ✅ | ✅ | ⏳ |
 
-### Composants
-
-**1. RiskGovernor — machine à états** — implémenté
-```
-NORMAL     → activité standard, threshold adaptatif actif
-DEFENSIVE  → size 50%, SL élargi, pas de trades en HIGH_VOL
-RISK_OFF   → pas de nouveaux trades, liquidation progressive
-RECOVERY   → size 25%, threshold +3, haute conviction seulement
-AGGRESSIVE → size 120%, threshold -2, trends forts confirmés uniquement
-```
-- `NORMAL → DEFENSIVE` : drawdown > 3% sur 10 cycles OU vol > 2× ATR médian
-- `DEFENSIVE → RISK_OFF` : drawdown > 6% OU 3 pertes consécutives
-- `RISK_OFF → RECOVERY` : 10 cycles sans perte OU vol revenue sous seuil
-- `RECOVERY → NORMAL` : 20 cycles stables OU PnL+ sur 15 cycles
-- `NORMAL → AGGRESSIVE` : trend fort + vol stable + 10 cycles PnL+
-- Délai minimum entre transitions : 5 cycles
-
-**2. Dynamic Exposure Manager** — implémenté
-- Exposition max par trade selon état (100% / 50% / 0% / 25% / 120%)
-- `exposure_used` tracker — plafond exposition totale par état
-
-**3. Circuit Breaker — robuste** — implémenté
-```
-HEALTHY  → normal
-UNSTABLE → 2 échecs, backoff 30s
-DEGRADED → 5 échecs, suspension composant, stub par défaut
-DISABLED → 10 échecs, arrêt total, escalation
-```
-- Backoff exponentiel : 30s, 60s, 120s, 300s, 600s
-- Recovery périodique : 300s en DEGRADED, 1800s en DISABLED
-
-**4. Capital Throttle** — implémenté
-- DD > 5% : réduction linéaire size (-10% par palier de 1% DD)
-- DD > 10% : RISK_OFF forcé
-- Retour progressif : 5 cycles minimum
-
-**5. Volatility Emergency Mode** — implémenté
-- Vol > 3× ATR médian 50 cycles → suspension immédiate trades
-- Positions protégées par SL large (3× ATR)
-- Durée minimale : 5 cycles après retour sous seuil
-
-### Critères de succès P7
-- [x] Passage DEFENSIVE dans les 3 cycles après DD > 3% — couvert par `tests/test_p7_validation.py`
-- [x] Aucun trade en RISK_OFF — couvert par `RiskGovernor.allow_new_trades`
-- [x] Circuit breaker DEGRADED après 5 échecs — couvert par `ComponentCircuitBreaker`
-- [x] Capital throttle proportionnel au drawdown — couvert par `CapitalThrottle`
-- [x] Brancher `SystemSafetyAuditor` dans `advisor_loop.py`
-- [ ] Relancer la validation locale après restauration Python/.venv
+Prochaine verticale : **Event Bus** (`src/events/event_bus.py` → `event_bus/bus.py`).
 
 ---
 
-## P8 — Dynamic Intelligence (Strategy Allocator)
+## Dettes techniques actives
 
-**Objectif** : allocation dynamique des stratégies, contextuelle et apprenante.
+### CFG-P2 — Migration config SSoT (non bloquant burn-in)
 
-### Composants
+| ID | Description | Statut |
+|----|-------------|--------|
+| CFG-P2-02 | Câbler execution_engine.py → ExecutionSettings | ⏳ |
+| CFG-P2-03 | Câbler global_risk_gate.py → RiskSettings | ⏳ |
+| CFG-P2-04 | Câbler advisor_loop.py → TelegramSettings.enabled | ⏳ |
+| CFG-P2-05 | Supprimer config/telegram_config.json (obsolète) | ⏳ |
+| CFG-P2-06 | Migrer quant_hedge_ai/runtime_config.py → PortfolioSettings | ⏳ |
 
-**1. Strategy Allocator — matrice contextuelle**
-```
-                    MEAN_REV  BREAKOUT  SCALP  MOMENTUM  GRID
-SIDEWAYS             0.45      0.10     0.30    0.05     0.10
-TREND_BULL           0.10      0.40     0.05    0.35     0.10
-TREND_BEAR           0.15      0.20     0.10    0.40     0.15
-HIGH_VOL             0.10      0.10     0.40    0.10     0.30
-CHOPPY               0.30      0.10     0.25    0.10     0.25
-```
-- Poids normalisés, évolués par feedback de performance
+### Architecture V2 P1 — Tests intégration restants
 
-**2. Confidence Scoring avec mémoire**
-```
-confidence = base * decay^temps_sans_trade
-           + winrate_recent * 0.4
-           + sharpe_recent * 0.3
-           + regime_consistency * 0.3
-```
-- Fenêtre glissante 20 trades
-- `decay_factor` = 0.95 par cycle sans trade
-
-**3. Strategy Probation System**
-- `TRACKING` → `PROBATION` (25% capital, après 5 trades)
-- `PROBATION` → `ACTIVE` (WR > 35% ET Sharpe > 0.3, après 20 trades)
-- `PROBATION` → `PROBATION_EXTENDED` → `SUSPENDED`
-- Réévaluation suspendue : tous les 100 cycles ou changement régime majeur
-
-**4. Dynamic Weighting Engine**
-- Ajustement chaque fin de cycle, proportionnel à performance relative
-- `momentum_term` : max ±0.05 par cycle
-- `diversification_penalty` si poids > 0.6
-
-**5. Correlation Monitor**
-- Corrélation signaux > 0.7 → avertissement
-- Corrélation > 0.85 → réduction 30% poids stratégie moins performante
-
-### Critères de succès P8
-- [x] Poids significativement différents entre 2 régimes distincts
-- [x] Aucune stratégie > 60% capital total
-- [x] Au moins 1 stratégie en TRACKING ou PROBATION après 50 cycles
-- [x] Corrélation moyenne < 0.6
-
-**Etat 2026-05-26** : 4 modules livrés (StrategyAllocator, StrategyProbationSystem,
-StrategyConfidenceScorer, CorrelationMonitor), 34/34 tests, câblé dans advisor_loop.py.
-SweepDetector + SweepOutcomeTracker (signal layer) intégrés dans le même cycle.
+- Event Bus : runtime câblage + tests intégration
+- Execution Engine : tests intégration
+- Kill Switch : tests intégration
+- Decision Layer : renommages legacy différés
 
 ---
 
-## P9 — Meta Governance
+## Gate live trading — Ce qui manque
 
-**Objectif** : supervision globale, détection de dérives comportementales, ajustement haut niveau.
+Le système est architecturalement validé. La progression vers le trading réel suit 3 phases disciplinées.
 
-### Composants
+### Phase 1 — API réelles en lecture seule (prochaine étape)
 
-**1. System Health Monitor**
-- Métriques : latence composants, taux d'erreur, CPU/RAM, retry count, état circuit breaker
-- Dashboard `health_dashboard` : GREEN / YELLOW / RED par composant
-- Alerte YELLOW > 20 cycles → escalation, RED → immédiat
+**Pré-requis à valider avant Phase 1 :**
 
-**2. Behavioral Drift Detector**
-- Métriques surveillées : threshold moyen, taux d'activité, distribution scores, taux refus
-- Dérive = écart > 2 écarts-types sur fenêtre historique
-- Action : alerte + suggestion recalibration + option reset partiel
+- [ ] `PAPER_TRADING_ENABLED=true` déployé sur VPS + commit `bcd841b`
+- [ ] 100 trades paper fermés accumulés (ETA ~37h après activation)
+- [ ] C5 == True (Profit Factor > 1.0 sur la fenêtre burn-in)
+- [ ] BURNIN_CALIBRATION_V3 exécuté : score floor optimal, symbol whitelist, PF/expectancy par régime
+- [ ] Zéro position contradictoire observée sur 7+ jours de run stable
 
-**3. Self-Monitoring Loop**
-- Le Behavioral Drift Detector est lui-même surveillé
-- `meta_health_score` agrège : santé composants + absence dérive + stabilité transitions
-- Si score < 0.6 → alerte niveau 2
+**Action Phase 1 :**
+- Connexion MEXC API réelle en lecture seule (sans permission trading)
+- Validation : carnet, positions, portefeuille, marchés — infra sur données réelles
 
-**4. Anomaly Governance**
-- Anomalies : +10× trades soudain, score moyen -20 pts, threshold +5 pts / 10 cycles, transitions RiskGovernor > 3 / 10 cycles
-- Réaction : log snapshot → suspension temporaire → reset paramètres → reprise progressive
+### Phase 2 — Spot réel petit capital (50-100 USD)
 
-**5. Performance Supervisor**
-- Sharpe glissant (20/50/100 trades), Profit Factor, Max Drawdown
-- Comparaison réel vs Shadow Engine
-- Écart > 2σ → alerte dérive d'exécution
+**Pré-requis supplémentaires :**
+- [ ] Phase 1 stable ≥ 7 jours sans interruption non planifiée
+- [ ] PortfolioBrain validé sur données live (pas seulement paper)
+- [ ] P10-F RUNNING stable (pas de basculement DEGRADED fréquent)
+- [ ] RegretEngine données réelles : missed_win_rate et patterns confirmés
+- [ ] CFG-P2 dettes comblées (config SSoT sur tous les modules runtime)
+- [ ] Architecture V2 migration complète (Event Bus + tests intégration)
 
-**6. Portfolio Intelligence**
-- Concentration : corrélation paires, concentration exchange/stratégie, exposition nette
-- Si facteur > 60% → alerte + rééquilibrage auto
-- Exposition nette > 80% → réduction forcée
+**Symboles Phase 2 :** BTC/USDT, ETH/USDT, SOL/USDT, XRP/USDT — sans levier.
 
-### Critères de succès P9
-- [x] Dérive simulée détectée (threshold poussé à 80 pendant 30 cycles)
-- [x] Suspension avant 3 pertes consécutives sur dérive
-- [x] Sharpe glissant calculé en temps réel
-- [x] 0 faux positif sur 100 cycles en régime stable
+### Phase 3 — Futures réels (horizon lointain)
 
-**P9 FERMÉ 2026-05-26** — 6 modules livrés, 64/64 tests, câblage advisor_loop.py, anara_context v1.5 (52 modules).
+- Seulement après Phase 2 stable plusieurs semaines
+- Levier fixe faible (×2 ou ×3) — jamais dynamique au départ
+- Ne pas discuter avant Phase 2 validée
 
 ---
 
-## P10+ — Evolutionary Architecture (vision)
+## Priorités immédiates (ordre)
 
-- Auto-optimisation hyperparamètres : boucle externe teste variations, conserve les meilleures
-- Génération de stratégies : exploration combinaisons indicateurs → conservation par régime
-- Mémoire épisodique : configurations gagnantes rejouées sur contextes similaires
-- Apprentissage par renforcement : politique allocation apprise par RL, récompense = Sharpe glissant
-
----
-
-## Synthèse cybernétique par phase
-
-| Concept | P6 | P7 | P8 | P9 |
-|---------|----|----|----|----|
-| Feedback loop | regret → threshold | état → exposition | performance → poids | santé → alerte |
-| Hystérésis | transitions régime | transitions état | changements poids | déclenchement anomalies |
-| PID control | threshold adaptatif | capital throttle | momentum weighting | dérive → correction |
-| State machine | régimes de marché | RiskGovernor | probation status | health status |
-| Signal damping | rampe de transition | backoff exponentiel | plafond ±0.05/cycle | suspension progressive |
-| Mémoire | EWMA regret | historique drawdown | fenêtre 20 trades | historique dérive |
-| Anti-oscillation | delta signe bloqué | délai 5 cycles min | diversification penalty | meta_health_score |
+1. **Déployer VPS** : `git reset --hard origin/main` + ajouter `PAPER_TRADING_ENABLED=true` + `MARKET_SCANNER_EXCHANGE=mexc` dans `.env`
+2. **Surveiller** : atteindre 100 trades paper fermés, vérifier C5
+3. **Exécuter BURNIN_CALIBRATION_V3** (`scripts/burnin_calibration_v3.py`) après 100 trades
+4. **CFG-P2-02→06** : câbler modules runtime sur config SSoT
+5. **Event Bus** : migration + tests intégration (prochaine verticale P1)
 
 ---
 
-## Anti-patterns à surveiller
+## Invariants permanents
 
-- **P6** : threshold oscillant → damping + hystérésis
-- **P7** : RiskGovernor trop instable → délai minimum 5 cycles entre transitions
-- **P8** : une stratégie capte tout le capital → diversification_penalty à 60%
-- **P9** : meta-gouvernance génère plus d'alertes que le système → meta_health_score
-
----
-
-## État des modules P6 (existants à câbler)
-
-| Module | Fichier | Statut |
-|--------|---------|--------|
-| RegimeDetector | `quant_hedge_ai/intelligence/regime_detector.py` | Existant — v1 |
-| RegretEngine | `anara_context/modules/regret_engine.json` + impl | Existant |
-| GlobalRiskGate | `quant_hedge_ai/risk/global_risk_gate.py` | Existant |
-| MetaStrategyEngine | `tracker_system/meta_strategy_engine.py` | Existant |
-| ActivityTracker | à localiser | À vérifier |
-| RegimeTransitionSmoother | non trouvé | À créer |
-| AdaptiveThresholdEngine | non trouvé | À créer |
+- Permissions Spot et Futures séparées sur l'exchange
+- Ne jamais activer permission "Retrait" pour un bot
+- Levier dynamique interdit avant Phase 3 et validation complète
+- Aucun tuning paramètre trading avant 100 trades ET C5==True
+- GEL architecture pendant burn-in
 
 ---
 
@@ -312,7 +161,9 @@ SweepDetector + SweepOutcomeTracker (signal layer) intégrés dans le même cycl
 
 | Fichier | Rôle |
 |---------|------|
-| `ROADMAP.md` | Vision globale |
-| `advisor_loop.py` | Point d'entrée principal |
-| `test_boot_system.py` | Validation 63/63 |
+| `ROADMAP.md` | Vision globale et état |
+| `core/advisor_loop.py` | Point d'entrée principal |
+| `tests/root/test_boot_system.py` | Validation boot (122/122) |
+| `scripts/burnin_calibration_v3.py` | Calibration post-100 trades |
+| `CANONICAL_COMPONENTS.md` | Tableau migration V2 |
 | `scripts/deploy_vps.sh` | Auto-deploy git → VPS |

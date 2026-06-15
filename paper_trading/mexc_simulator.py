@@ -41,6 +41,8 @@ _SLIPPAGE = float(os.getenv("MEXC_SIM_SLIP", "0.0005"))
 _MONITOR_INTERVAL = 60  # secondes
 _POSITION_SIZE_PCT = 0.15  # 15% du capital disponible par position
 _MAX_POSITION_USD = 25.0  # plafond par position
+# Âge max d'une position restaurable — au-delà elle est expirée et archivée
+_RESTORE_MAX_AGE_S = float(os.getenv("SIM_RESTORE_MAX_AGE_H", "4")) * 3600
 
 
 class OrderType(str, Enum):
@@ -274,19 +276,61 @@ class MexcSimulator:
         self._running = False
 
     def _restore_positions(self) -> int:
-        """Restaure les positions OPEN sans CLOSE depuis paper_trades.jsonl."""
+        """Restaure les positions OPEN sans CLOSE depuis paper_trades.jsonl.
+
+        Les positions trop anciennes (> SIM_RESTORE_MAX_AGE_H) sont expirées :
+        un événement CLOSE est écrit dans le ledger avec reason='expired_on_restore'
+        pour qu'elles ne soient plus jamais restaurées.
+        """
         try:
             from paper_trading.recorder import get_recorder
 
-            trades = get_recorder().trades()
+            recorder = get_recorder()
+            trades = recorder.trades()
         except Exception as exc:
             _log.warning("[SIM] Restore impossible — recorder: %s", exc)
             return 0
 
+        now = time.time()
         restored = 0
+        expired = 0
+
         for trade in trades:
             if not trade.is_open:
                 continue
+
+            # Expirer les positions trop anciennes — les archiver dans le ledger
+            age_s = now - (trade.opened_at or now)
+            if age_s > _RESTORE_MAX_AGE_S:
+                _log.warning(
+                    "[SIM] Position %s (%s) expirée — âge=%.1fh > %.1fh — archivée",
+                    trade.symbol,
+                    trade.trade_id,
+                    age_s / 3600,
+                    _RESTORE_MAX_AGE_S / 3600,
+                )
+                try:
+                    recorder.record_close(
+                        trade_id=trade.trade_id,
+                        exit_price=trade.entry_price,
+                        pnl_usd=0.0,
+                        pnl_pct=0.0,
+                        reason="expired_on_restore",
+                        opened_at=trade.opened_at,
+                        symbol=trade.symbol,
+                        side=trade.side or "",
+                        size_usd=trade.size_usd,
+                        mode=trade.mode or "futures_demo",
+                        score=trade.score or 0,
+                        regime=trade.regime or "unknown",
+                    )
+                except Exception as exc:
+                    _log.warning(
+                        "[SIM] Archivage expiry échoué %s: %s", trade.trade_id, exc
+                    )
+                expired += 1
+                continue
+
             if trade.symbol in self._positions:
                 continue
             if trade.entry_price <= 0:
@@ -330,7 +374,7 @@ class MexcSimulator:
                 fee_entry_usd=0.0,
                 score=trade.score,
                 personality="restored",
-                opened_ts=trade.opened_at or time.time(),
+                opened_ts=trade.opened_at or now,
             )
             self._positions[trade.symbol] = pos
             self._capital -= trade.size_usd
@@ -344,6 +388,9 @@ class MexcSimulator:
                 tp,
                 sl,
             )
+
+        if expired:
+            _log.info("[SIM] %d position(s) expirée(s) archivées au restore", expired)
 
         return restored
 

@@ -10,23 +10,32 @@ Deux niveaux de diagnostic :
     warning   — anomalie douce, la donnée est suspecte mais utilisable
 
 Usage :
-    from paper_trading.dataset_validator import DatasetValidator, validate_log
+    from paper_trading.dataset_validator import DatasetValidator, validate_log, validate_corpus
 
     # Valider un seul événement à l'écriture
     result = DatasetValidator().validate_event(event)
     if not result.valid:
         log.warning("Dataset integrity: %s", result.violations)
 
-    # Audit complet du JSONL
+    # Audit complet du JSONL (événements individuels)
     result = validate_log()
     result.report()
+
+    # Certification corpus complète (paires, stats population, burn-in eligibility)
+    report = validate_corpus()
+    print(report.report())
+    if report.burnin_eligible:
+        run_burnin()
 """
 
 from __future__ import annotations
 
+import json
 import math
 import os
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from pathlib import Path
 
 from paper_trading.recorder import (
     DecisionContext,
@@ -287,3 +296,250 @@ def validate_log(log_path: str = _DEFAULT_PATH) -> ValidationResult:
             valid=True, warnings=["Aucun événement dans le fichier"]
         )
     return DatasetValidator().validate_batch(events)
+
+
+# ── Validation corpus (population) ───────────────────────────────────────────
+
+# Seuil à partir duquel un win_rate=1.0 est une violation (impossible statistiquement)
+_WR_SAMPLE_THRESHOLD = 20
+
+
+@dataclass
+class CorpusReport:
+    """Résultat de la certification du corpus de trades."""
+
+    # Métriques brutes
+    total_events: int = 0
+    open_count: int = 0
+    close_count: int = 0
+    paired_trades: int = 0
+    orphaned_opens: int = 0  # OPEN sans CLOSE correspondant
+    orphaned_closes: int = 0  # CLOSE sans OPEN correspondant
+    duplicate_trade_ids: int = 0
+    expired_on_restore: int = 0  # clôturés via guard restauration
+
+    # Statistiques population
+    win_count: int = 0
+    loss_count: int = 0
+    tp_count: int = 0
+    sl_count: int = 0
+    win_rate: float = 0.0
+    tp_rate: float = 0.0
+    mean_duration_s: float = 0.0
+
+    # Résultat certification
+    integrity_pct: float = 0.0  # paired / (orphaned_opens + paired) * 100
+    burnin_eligible: bool = False
+    violations: list = field(default_factory=list)
+    warnings: list = field(default_factory=list)
+    certified_at: str = ""
+
+    def report(self) -> str:
+        status = "CERTIFIÉ" if self.burnin_eligible else "NON CERTIFIÉ"
+        lines = [
+            f"Trade Dataset Certification — {status}",
+            f"{'─' * 45}",
+            f"Événements total  : {self.total_events}",
+            f"OPEN              : {self.open_count}",
+            f"CLOSE             : {self.close_count}",
+            f"Trades appariés   : {self.paired_trades}",
+            f"Orphelins OPEN    : {self.orphaned_opens}",
+            f"Orphelins CLOSE   : {self.orphaned_closes}",
+            f"IDs dupliqués     : {self.duplicate_trade_ids}",
+            f"Expirés restore   : {self.expired_on_restore}",
+            f"{'─' * 45}",
+            f"Win rate          : {self.win_rate:.1%}  (W={self.win_count} L={self.loss_count})",
+            f"TP rate           : {self.tp_rate:.1%}  (TP={self.tp_count} SL={self.sl_count})",
+            f"Durée moyenne     : {self.mean_duration_s:.0f}s",
+            f"Intégrité         : {self.integrity_pct:.1f}%",
+            f"{'─' * 45}",
+            f"Burn-in eligible  : {'OUI' if self.burnin_eligible else 'NON'}",
+        ]
+        if self.violations:
+            lines.append(f"Violations ({len(self.violations)}):")
+            for v in self.violations:
+                lines.append(f"  ✗ {v}")
+        if self.warnings:
+            lines.append(f"Warnings ({len(self.warnings)}):")
+            for w in self.warnings:
+                lines.append(f"  ⚠ {w}")
+        if self.burnin_eligible and not self.warnings and not self.violations:
+            lines.append("  ✓ Tous les invariants respectés")
+        if self.certified_at:
+            lines.append(f"Certifié le       : {self.certified_at}")
+        return "\n".join(lines)
+
+    def to_metadata(self) -> dict:
+        """Format JSON pour paper_trades.metadata.json."""
+        return {
+            "schema_version": 1,
+            "certified_at": self.certified_at,
+            "burnin_eligible": self.burnin_eligible,
+            "integrity_pct": round(self.integrity_pct, 2),
+            "stats": {
+                "total_events": self.total_events,
+                "paired_trades": self.paired_trades,
+                "orphaned_opens": self.orphaned_opens,
+                "orphaned_closes": self.orphaned_closes,
+                "duplicate_trade_ids": self.duplicate_trade_ids,
+                "expired_on_restore": self.expired_on_restore,
+                "win_rate": round(self.win_rate, 4),
+                "tp_rate": round(self.tp_rate, 4),
+                "mean_duration_s": round(self.mean_duration_s, 1),
+            },
+            "violations": self.violations,
+            "warnings": self.warnings,
+        }
+
+
+def validate_corpus(log_path: str = _DEFAULT_PATH) -> CorpusReport:
+    """
+    Certification corpus : paires OPEN/CLOSE, doublons, statistiques population.
+
+    Vérifie les invariants impossibles à détecter événement par événement :
+      - Toute OPEN a exactement un CLOSE correspondant
+      - Aucun trade_id dupliqué
+      - Cohérence chronologique (open_ts < close_ts)
+      - Win rate < 1.0 avec N suffisant (100% = données corrompues)
+      - Au moins un SL déclenché dans la population
+    """
+    recorder = PaperTradeRecorder(log_path)
+    events = recorder.events()
+    report = CorpusReport(
+        total_events=len(events),
+        certified_at=datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+    )
+
+    if not events:
+        report.warnings.append("Dataset vide — aucun trade à certifier")
+        report.burnin_eligible = False
+        return report
+
+    # ── Comptage brut ────────────────────────────────────────────────────────
+    opens: dict[str, object] = {}
+    closes: dict[str, object] = {}
+    seen_ids: set = set()
+
+    for evt in events:
+        if evt.event == "OPEN":
+            report.open_count += 1
+            if evt.trade_id in seen_ids:
+                report.duplicate_trade_ids += 1
+            else:
+                seen_ids.add(evt.trade_id)
+                opens[evt.trade_id] = evt
+        elif evt.event == "CLOSE":
+            report.close_count += 1
+            closes[evt.trade_id] = evt
+
+    # ── Paires & orphelins ───────────────────────────────────────────────────
+    paired_ids = set(opens.keys()) & set(closes.keys())
+    report.paired_trades = len(paired_ids)
+    report.orphaned_opens = len(set(opens.keys()) - set(closes.keys()))
+    report.orphaned_closes = len(set(closes.keys()) - set(opens.keys()))
+
+    # ── Statistiques population (trades appariés uniquement) ─────────────────
+    durations = []
+    for tid in paired_ids:
+        cl = closes[tid]
+        op = opens[tid]
+
+        reason = getattr(cl, "reason", "") or ""
+        pnl = getattr(cl, "pnl_usd", 0.0) or 0.0
+        dur = getattr(cl, "duration_s", None)
+
+        if reason.lower() == "expired_on_restore":
+            report.expired_on_restore += 1
+            continue  # exclus des stats de trading
+
+        if pnl > 0:
+            report.win_count += 1
+        else:
+            report.loss_count += 1
+
+        if "tp" in reason.lower():
+            report.tp_count += 1
+        elif "sl" in reason.lower():
+            report.sl_count += 1
+
+        # Cohérence chronologique
+        open_ts = getattr(op, "ts", 0.0) or 0.0
+        close_ts = getattr(cl, "ts", 0.0) or 0.0
+        if open_ts > 0 and close_ts > 0 and close_ts < open_ts:
+            report.violations.append(
+                f"[{tid}] close_ts ({close_ts:.0f}) < open_ts ({open_ts:.0f})"
+            )
+
+        if dur is not None and dur >= 0:
+            durations.append(dur)
+
+    tradable = report.win_count + report.loss_count
+    if tradable > 0:
+        report.win_rate = report.win_count / tradable
+        report.tp_rate = report.tp_count / tradable if tradable else 0.0
+    if durations:
+        report.mean_duration_s = sum(durations) / len(durations)
+
+    # ── Intégrité globale ────────────────────────────────────────────────────
+    total_opens = report.orphaned_opens + report.paired_trades
+    report.integrity_pct = (
+        report.paired_trades / total_opens * 100.0 if total_opens > 0 else 100.0
+    )
+
+    # ── Invariants corpus ────────────────────────────────────────────────────
+    if report.duplicate_trade_ids > 0:
+        report.violations.append(
+            f"{report.duplicate_trade_ids} trade_id(s) dupliqué(s)"
+        )
+
+    if report.orphaned_opens > 0:
+        report.violations.append(
+            f"{report.orphaned_opens} OPEN sans CLOSE (positions fantômes)"
+        )
+
+    if report.orphaned_closes > 0:
+        report.warnings.append(
+            f"{report.orphaned_closes} CLOSE sans OPEN (VPS décalé ou restore partiel)"
+        )
+
+    if tradable >= _WR_SAMPLE_THRESHOLD and report.win_rate == 1.0:
+        report.violations.append(
+            f"win_rate=100% sur {tradable} trades — statistiquement impossible, "
+            "données probablement corrompues (bug restore ?)"
+        )
+
+    if tradable >= _WR_SAMPLE_THRESHOLD and report.sl_count == 0:
+        report.violations.append(
+            f"Zéro SL déclenché sur {tradable} trades — indicateur de corruption "
+            "(TP hardcodé ou restore immédiat)"
+        )
+
+    if report.expired_on_restore > 0:
+        rate = report.expired_on_restore / max(1, report.paired_trades) * 100
+        report.warnings.append(
+            f"{report.expired_on_restore} trade(s) expiré(s) au restore "
+            f"({rate:.0f}% du corpus) — exclus des stats"
+        )
+
+    if tradable > 0 and report.mean_duration_s < 10:
+        report.warnings.append(
+            f"Durée moyenne={report.mean_duration_s:.1f}s — trades très courts, "
+            "probable fermeture immédiate post-restore"
+        )
+
+    # ── Décision burn-in ─────────────────────────────────────────────────────
+    report.burnin_eligible = len(report.violations) == 0
+
+    return report
+
+
+def write_metadata(
+    report: CorpusReport,
+    metadata_path: str = "databases/paper_trades.metadata.json",
+) -> None:
+    """Écrit la certification dans databases/paper_trades.metadata.json."""
+    p = Path(metadata_path)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    with p.open("w", encoding="utf-8") as f:
+        json.dump(report.to_metadata(), f, indent=2, ensure_ascii=False)
+        f.write("\n")

@@ -18,9 +18,12 @@ import time
 import pytest
 
 from paper_trading.dataset_validator import (
+    CorpusReport,
     DatasetValidator,
     ValidationResult,
+    validate_corpus,
     validate_log,
+    write_metadata,
 )
 from paper_trading.recorder import DecisionContext, MarketContext, TradeEvent
 
@@ -396,3 +399,183 @@ def test_validate_log_valid_file(tmp_path):
     )
     r = validate_log(log)
     assert r.valid, r.report()
+
+
+# ── validate_corpus — certification niveau population ─────────────────────────
+
+
+def _write_paired_trade(
+    rec,
+    trade_id: str,
+    symbol: str = "BTC/USDT",
+    pnl: float = 0.5,
+    reason: str = "tp",
+    open_ts_offset: float = -300.0,
+    sl: bool = False,
+) -> None:
+    """Écrit un OPEN+CLOSE complet dans le recorder."""
+    now = time.time()
+    open_ts = now + open_ts_offset
+    rec.record_open(
+        trade_id, symbol, "buy", 65000.0, 10.0, regime="bull_trend", score=75
+    )
+    actual_reason = "sl" if sl else reason
+    actual_pnl = -0.3 if sl else pnl
+    rec.record_close(
+        trade_id,
+        exit_price=65650.0 if not sl else 63700.0,
+        pnl_usd=actual_pnl,
+        pnl_pct=actual_pnl / 100.0,
+        reason=actual_reason,
+        opened_at=open_ts,
+        symbol=symbol,
+        side="buy",
+        size_usd=10.0,
+    )
+
+
+class TestValidateCorpusClean:
+    """Dataset propre → certifié."""
+
+    def test_clean_dataset_is_eligible(self, tmp_path):
+        from paper_trading.recorder import PaperTradeRecorder
+
+        rec = PaperTradeRecorder(str(tmp_path / "pt.jsonl"))
+        # 5 TP + 2 SL = dataset réaliste
+        for i in range(5):
+            _write_paired_trade(rec, f"T-{i}", pnl=0.5, reason="tp")
+        for i in range(2):
+            _write_paired_trade(rec, f"S-{i}", pnl=-0.3, reason="sl", sl=True)
+
+        r = validate_corpus(str(tmp_path / "pt.jsonl"))
+        assert r.burnin_eligible, r.report()
+        assert r.paired_trades == 7
+        assert r.orphaned_opens == 0
+        assert r.orphaned_closes == 0
+        assert r.violations == []
+
+    def test_win_rate_and_tp_rate_computed(self, tmp_path):
+        from paper_trading.recorder import PaperTradeRecorder
+
+        rec = PaperTradeRecorder(str(tmp_path / "pt.jsonl"))
+        _write_paired_trade(rec, "W1", pnl=1.0, reason="tp")
+        _write_paired_trade(rec, "L1", pnl=-0.5, reason="sl", sl=True)
+
+        r = validate_corpus(str(tmp_path / "pt.jsonl"))
+        assert r.win_rate == pytest.approx(0.5)
+        assert r.tp_count == 1
+        assert r.sl_count == 1
+
+
+class TestValidateCorpusViolations:
+    """Violations → non certifié."""
+
+    def test_orphaned_open_is_violation(self, tmp_path):
+        from paper_trading.recorder import PaperTradeRecorder
+
+        rec = PaperTradeRecorder(str(tmp_path / "pt.jsonl"))
+        _write_paired_trade(rec, "GOOD", pnl=0.5, reason="tp")
+        _write_paired_trade(rec, "GOOD2", pnl=-0.2, reason="sl", sl=True)
+        # OPEN sans CLOSE
+        rec.record_open("ORPHAN", "ETH/USDT", "buy", 3100.0, 10.0)
+
+        r = validate_corpus(str(tmp_path / "pt.jsonl"))
+        assert not r.burnin_eligible
+        assert r.orphaned_opens == 1
+        assert any("fantôme" in v for v in r.violations)
+
+    def test_100pct_winrate_with_large_n_is_violation(self, tmp_path):
+        from paper_trading.recorder import PaperTradeRecorder
+
+        rec = PaperTradeRecorder(str(tmp_path / "pt.jsonl"))
+        for i in range(25):  # > seuil _WR_SAMPLE_THRESHOLD=20
+            _write_paired_trade(rec, f"T{i}", pnl=0.5, reason="tp")
+
+        r = validate_corpus(str(tmp_path / "pt.jsonl"))
+        assert not r.burnin_eligible
+        assert r.win_rate == 1.0
+        assert any("100%" in v for v in r.violations)
+
+    def test_zero_sl_with_large_n_is_violation(self, tmp_path):
+        from paper_trading.recorder import PaperTradeRecorder
+
+        rec = PaperTradeRecorder(str(tmp_path / "pt.jsonl"))
+        for i in range(25):
+            _write_paired_trade(rec, f"T{i}", pnl=0.5, reason="tp")
+
+        r = validate_corpus(str(tmp_path / "pt.jsonl"))
+        assert any("SL" in v for v in r.violations)
+
+    def test_duplicate_trade_ids_are_violation(self, tmp_path):
+        import json
+
+        from paper_trading.recorder import PaperTradeRecorder
+
+        log = str(tmp_path / "pt.jsonl")
+        rec = PaperTradeRecorder(log)
+        _write_paired_trade(rec, "DUP", pnl=0.5, reason="tp")
+        _write_paired_trade(rec, "DUP", pnl=-0.3, reason="sl", sl=True)  # même ID
+
+        r = validate_corpus(log)
+        assert not r.burnin_eligible
+        assert r.duplicate_trade_ids >= 1
+
+    def test_empty_dataset_not_eligible(self, tmp_path):
+        log = str(tmp_path / "empty.jsonl")
+        open(log, "w").close()
+
+        r = validate_corpus(log)
+        assert not r.burnin_eligible
+
+
+class TestValidateCorpusExpired:
+    """Trades expired_on_restore → exclus des stats, signalés en warning."""
+
+    def test_expired_trades_excluded_from_stats(self, tmp_path):
+        from paper_trading.recorder import PaperTradeRecorder
+
+        rec = PaperTradeRecorder(str(tmp_path / "pt.jsonl"))
+        # 3 vrais trades (TP + SL)
+        _write_paired_trade(rec, "R1", pnl=0.5, reason="tp")
+        _write_paired_trade(rec, "R2", pnl=0.4, reason="tp")
+        _write_paired_trade(rec, "R3", pnl=-0.3, reason="sl", sl=True)
+        # 1 trade expiré au restore (ne doit pas compter dans win_rate)
+        rec.record_open("EXP1", "BTC/USDT", "buy", 60000.0, 10.0)
+        rec.record_close(
+            "EXP1",
+            exit_price=60000.0,
+            pnl_usd=0.0,
+            pnl_pct=0.0,
+            reason="expired_on_restore",
+            symbol="BTC/USDT",
+        )
+
+        r = validate_corpus(str(tmp_path / "pt.jsonl"))
+        assert r.expired_on_restore == 1
+        assert r.win_count + r.loss_count == 3  # expiré exclu
+        assert any("expiré" in w for w in r.warnings)
+
+
+class TestWriteMetadata:
+    """write_metadata produit un JSON valide et lisible."""
+
+    def test_write_metadata_creates_file(self, tmp_path):
+        from paper_trading.recorder import PaperTradeRecorder
+
+        rec = PaperTradeRecorder(str(tmp_path / "pt.jsonl"))
+        _write_paired_trade(rec, "M1", pnl=0.5, reason="tp")
+        _write_paired_trade(rec, "M2", pnl=-0.3, reason="sl", sl=True)
+
+        r = validate_corpus(str(tmp_path / "pt.jsonl"))
+        meta_path = str(tmp_path / "meta.json")
+        write_metadata(r, meta_path)
+
+        import json
+
+        with open(meta_path) as f:
+            meta = json.load(f)
+
+        assert "burnin_eligible" in meta
+        assert "certified_at" in meta
+        assert "stats" in meta
+        assert meta["stats"]["paired_trades"] == 2
