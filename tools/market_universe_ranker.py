@@ -34,9 +34,53 @@ _WEIGHTS = {
     "reliability": 0.05,
 }
 
-# Premier batch recommandé
+# ── Batches de candidats pré-sélectionnés par tier de qualité ────────────────
+# Tier 1 — Core majors : leaders structurels, volume > $1B/jour
 BATCH_1 = ["BTC/USDT", "ETH/USDT", "SOL/USDT", "XRP/USDT", "BNB/USDT", "DOGE/USDT"]
-BATCH_2 = ["LINK/USDT", "AVAX/USDT", "SUI/USDT", "HYPE/USDT"]
+# Tier 2 — L1/L2 infrastructure : volume $50M-$500M/jour
+BATCH_2 = ["AVAX/USDT", "SUI/USDT", "NEAR/USDT", "APT/USDT", "ARB/USDT", "OP/USDT"]
+# Tier 3 — DeFi / protocoles : volume $10M-$100M/jour
+BATCH_3 = [
+    "LINK/USDT",
+    "AAVE/USDT",
+    "UNI/USDT",
+    "INJ/USDT",
+    "LDO/USDT",
+    "PENDLE/USDT",
+    "ENA/USDT",
+    "JUP/USDT",
+    "ATOM/USDT",
+    "DOT/USDT",
+]
+# Tier 4 — IA / narratives + meme haute liquidité
+BATCH_4 = [
+    "TAO/USDT",
+    "FET/USDT",
+    "RENDER/USDT",
+    "WLD/USDT",
+    "PEPE/USDT",
+    "WIF/USDT",
+    "BONK/USDT",
+    "FLOKI/USDT",
+    "SHIB/USDT",
+    "HYPE/USDT",
+]
+# Tier 5 — Extension / diversification / stress tests
+BATCH_5 = [
+    "TIA/USDT",
+    "PYTH/USDT",
+    "JTO/USDT",
+    "EIGEN/USDT",
+    "ONDO/USDT",
+    "STX/USDT",
+    "HBAR/USDT",
+    "TON/USDT",
+    "LTC/USDT",
+    "BCH/USDT",
+]
+
+# Univers complet pré-curé (50 paires) — utilisé comme fallback si exchange indisponible
+CANDIDATES_ALL = BATCH_1 + BATCH_2 + BATCH_3 + BATCH_4 + BATCH_5
 
 
 @dataclass
@@ -66,6 +110,40 @@ class MarketUniverseRanker:
 
     def __init__(self, reader=None) -> None:
         self._reader = reader  # LiveExchangeReader, injecté ou None
+
+    # ── Découverte dynamique ──────────────────────────────────────────────────
+
+    @classmethod
+    def discover_and_rank(
+        cls,
+        exchange_id: str = "mexc",
+        top_n: int = 50,
+        min_vol_usd: float = 5_000_000,
+        reader=None,
+    ) -> list["RankEntry"]:
+        """
+        Découvre dynamiquement les paires perp via PerpUniverseBuilder,
+        puis les re-score avec le scoring composite MarketUniverseRanker.
+
+        Workflow : PerpUniverseBuilder.discover() → filtre vol/spread →
+                   MarketUniverseRanker.rank() → score 6 critères → top_n
+
+        Fallback sur CANDIDATES_ALL si l'exchange est indisponible.
+        """
+        try:
+            from tools.perp_universe_builder import PerpUniverseBuilder
+
+            builder = PerpUniverseBuilder(exchange_id=exchange_id)
+            builder.MIN_VOL_USD = min_vol_usd
+            raw_symbols = builder.symbols(top_n=top_n * 3)  # marge pour le re-ranking
+        except Exception:
+            raw_symbols = CANDIDATES_ALL
+
+        if not raw_symbols:
+            raw_symbols = CANDIDATES_ALL
+
+        ranker = cls(reader=reader)
+        return ranker.rank(raw_symbols, top_n=top_n)
 
     # ── API principale ────────────────────────────────────────────────────────
 
@@ -241,8 +319,13 @@ if __name__ == "__main__":
     parser.add_argument(
         "--symbols",
         nargs="*",
-        default=BATCH_1 + BATCH_2,
-        help="Symboles à évaluer",
+        default=CANDIDATES_ALL,
+        help="Symboles à évaluer (défaut: 50 candidats pré-sélectionnés)",
+    )
+    parser.add_argument(
+        "--discover",
+        action="store_true",
+        help="Découverte dynamique via PerpUniverseBuilder (requiert exchange live)",
     )
     parser.add_argument("--top", type=int, default=None, help="Afficher N premiers")
     parser.add_argument(
@@ -266,6 +349,16 @@ if __name__ == "__main__":
         except Exception as e:
             print(f"[WARN] Exchange indisponible ({e}) — scoring heuristique")
 
-    ranker = MarketUniverseRanker(reader=reader)
-    results = ranker.rank(args.symbols, top_n=args.top)
-    ranker.print_report(results)
+    if args.discover:
+        print("[Ranker] Mode découverte dynamique — PerpUniverseBuilder...")
+        results = MarketUniverseRanker.discover_and_rank(
+            exchange_id=args.exchange or "mexc",
+            top_n=args.top or 50,
+            reader=reader,
+        )
+    else:
+        ranker = MarketUniverseRanker(reader=reader)
+        results = ranker.rank(args.symbols, top_n=args.top)
+
+    ranker_inst = MarketUniverseRanker(reader=reader)
+    ranker_inst.print_report(results)

@@ -265,35 +265,72 @@ _shadow_s3: Any = None
 _virtual_portfolio: Any = None
 
 SYMBOLS_DEFAULT = [
-    # Core majors — leaders structurels, capturent le régime global
+    # ── Tier 1 — Core majors : leaders structurels, vol > $1B/j (8) ──────────
     "BTC/USDT",
     "ETH/USDT",
     "SOL/USDT",
     "BNB/USDT",
-    # High-beta momentum — impulsions, liquidations, flow émotionnel
+    "XRP/USDT",
+    "ADA/USDT",
     "DOGE/USDT",
+    "TON/USDT",
+    # ── Tier 2 — L1 / Layer 2 : infrastructure, vol $50M-$500M/j (12) ────────
+    "AVAX/USDT",
+    "SUI/USDT",
+    "NEAR/USDT",
+    "APT/USDT",
+    "ARB/USDT",
+    "OP/USDT",
+    "ATOM/USDT",
+    "DOT/USDT",
+    "HBAR/USDT",
+    "FTM/USDT",
+    "SEI/USDT",
+    "STX/USDT",
+    # ── Tier 3 — DeFi / protocoles : vol $10M-$100M/j (10) ───────────────────
+    "LINK/USDT",
+    "AAVE/USDT",
+    "UNI/USDT",
+    "INJ/USDT",
+    "LDO/USDT",
+    "PENDLE/USDT",
+    "ENA/USDT",
+    "JUP/USDT",
+    "EIGEN/USDT",
+    "ONDO/USDT",
+    # ── Tier 4 — IA / narratives (8) ──────────────────────────────────────────
+    "TAO/USDT",
+    "FET/USDT",
+    "RENDER/USDT",
+    "WLD/USDT",
+    "PYTH/USDT",
+    "JTO/USDT",
+    "W/USDT",
+    "STRK/USDT",
+    # ── Tier 5 — Meme / high-beta momentum (8) ────────────────────────────────
     "PEPE/USDT",
     "WIF/USDT",
     "BONK/USDT",
-    # Infrastructure / IA / narratives — souvent décorrélés de BTC
-    "LINK/USDT",
-    "NEAR/USDT",
-    "TAO/USDT",
-    "FET/USDT",
-    # Market structure / DeFi — réactions macro différentes
-    "XRP/USDT",
-    "ADA/USDT",
-    "AVAX/USDT",
-    "AAVE/USDT",
-    # Stress / volatility — tests slippage et robustesse
+    "FLOKI/USDT",
+    "SHIB/USDT",
+    "NEIRO/USDT",
+    "MEME/USDT",
+    "HYPE/USDT",
+    # ── Tier 6 — Stress / diversification classique (4) ──────────────────────
     "LTC/USDT",
     "BCH/USDT",
-    "SUI/USDT",
-    "INJ/USDT",
+    "TIA/USDT",
+    "IMX/USDT",
 ]
+# Total : 50 paires — univers perp candidat complet
+# Pour découverte dynamique : RANKER_ENABLED=true + RANKER_TOP_N=20 (ou N souhaité)
+# Pour scan ponctuel     : python scripts/perp_universe_scan.py --top 100
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT = os.getenv("TELEGRAM_CHAT_ID", "")
 TELEGRAM_BEHAVIOR_CHAT = os.getenv("TELEGRAM_BEHAVIOR_CHAT_ID", "")
+INTEL_TOKEN = os.getenv("INTEL_BOT_TOKEN", "")
+INTEL_CHAT = os.getenv("INTEL_BOT_CHAT_ID", "")
+INTEL_INTERVAL_S = int(os.getenv("INTEL_REPORT_EVERY_H", "6")) * 3600
 NOTIFY_EVERY = int(os.getenv("ADVISOR_NOTIFY_EVERY", "3"))
 MTF_REFRESH_EVERY = int(os.getenv("ADVISOR_MTF_REFRESH_EVERY", "12"))
 ADVISOR_1H_LIMIT = int(os.getenv("ADVISOR_1H_LIMIT", "96"))
@@ -490,6 +527,28 @@ def _telegram_behavior(text: str) -> None:
             log.warning("Telegram behavior erreur: %s", r.text)
     except Exception as exc:
         log.warning("Telegram behavior indisponible: %s", exc)
+
+
+def _send_intel(text: str) -> None:
+    """Bot Intelligence — résumé 6h en langage naturel (ChiefOfficer briefing).
+
+    Utilise INTEL_BOT_TOKEN + INTEL_BOT_CHAT_ID.
+    Fallback vers le canal principal si non configuré.
+    """
+    token = INTEL_TOKEN or TELEGRAM_TOKEN
+    chat = INTEL_CHAT or TELEGRAM_CHAT
+    if not token or not chat:
+        return
+    try:
+        r = requests.post(
+            f"https://api.telegram.org/bot{token}/sendMessage",
+            json={"chat_id": chat, "text": text},
+            timeout=10,
+        )
+        if r.status_code != 200:
+            log.warning("[Intel] Telegram erreur: %s", r.text)
+    except Exception as exc:
+        log.warning("[Intel] Telegram indisponible: %s", exc)
 
 
 # ── Analyse d'un symbole ──────────────────────────────────────────────────────
@@ -1731,43 +1790,109 @@ def _score_label(score: int) -> str:
     return "TRES FAIBLE"
 
 
+def _score_bar(score: int, width: int = 5) -> str:
+    """Barre de score visuelle : score 80 → '████░'"""
+    filled = round(score / 100 * width)
+    return "█" * filled + "░" * (width - filled)
+
+
+_REGIME_SHORT = {
+    "bull_trend": "bull",
+    "bear_trend": "bear",
+    "sideways": "range",
+    "high_volatility_regime": "volat",
+    "flash_crash": "KRACH",
+    "unknown": "?",
+}
+
+
 def _build_summary(
     results: list[AnalysisResult], cycle: int, min_score: int = 70
 ) -> str:
-    """Message de rapport périodique — toutes les N cycles."""
-    lines = [f"Crypto AI Terminal — Rapport cycle {cycle}", ""]
+    """Rapport compact multi-niveaux — lisible pour 100+ paires sous Telegram."""
+    import datetime as _dt
 
-    for r in results:
-        s = r["signal"]
-        g = r["gate"]
-        a = r["advice"]
-        icon = _SIGNAL_ICON.get(s.signal, "?")
-        regime = _REGIME_FR.get(s.regime, s.regime)
-        label = _score_label(s.score)
-        gate_s = "PRET" if g.allowed else "BLOQUE"
-        comps = s.components
+    ts = _dt.datetime.now(_dt.timezone.utc).strftime("%d %b %H:%M")
+    n_total = len(results)
 
-        persona = r.get("personality")
-        p_name = persona.name if persona else "N/A"
-        p_factor = f"x{persona.order_size_factor:.1f}" if persona else ""
-        lines += [
-            f"{icon} {r['symbol']} | ${r['prix']}",
-            f"   Score: {s.score}/100 ({label}) | {s.signal}",
-            f"   Regime: {regime} | Perso: {p_name} {p_factor}",
-            f"   MTF: {comps.get('mtf',0):.0f}/40 | "
-            f"Regime: {comps.get('regime',0):.0f}/25 | "
-            f"Data: {comps.get('data_quality',0):.0f}/15 | "
-            f"Mem: {comps.get('memory',0):.0f}/20",
-            f"   Gate: {gate_s} | Risque: {a.risk_level} | Confiance: {a.confidence}",
-            "",
-        ]
+    # Tri par score décroissant
+    sorted_r = sorted(results, key=lambda r: r["signal"].score, reverse=True)
 
-    if os.getenv("V9_ADVISOR_ONLY", "true").lower() == "true":
-        lines.append("Mode observation — aucun ordre place")
+    actionnables = [r for r in sorted_r if r["signal"].score >= min_score]
+    surveillance = [r for r in sorted_r if 50 <= r["signal"].score < min_score]
+    faibles = [r for r in sorted_r if r["signal"].score < 50]
+
+    # Régime dominant (le plus fréquent parmi les actionnables, sinon global)
+    pool = actionnables or sorted_r
+    regimes = [r["signal"].regime for r in pool]
+    dominant_regime = max(set(regimes), key=regimes.count) if regimes else "unknown"
+    regime_label = _REGIME_FR.get(dominant_regime, dominant_regime)
+
+    lines = [
+        f"@QuantCrpto — Cycle {cycle} | {ts} UTC",
+        f"{n_total} paires | {regime_label} | Seuil {min_score}",
+        "",
+    ]
+
+    # ── Section 1 : Actionnables ──────────────────────────────────────────────
+    if actionnables:
+        lines.append(f"ACTIONNABLES ({len(actionnables)})")
+        for r in actionnables:
+            s = r["signal"]
+            g = r["gate"]
+            a = r["advice"]
+            icon = _SIGNAL_ICON.get(s.signal, "?")
+            reg = _REGIME_SHORT.get(s.regime, s.regime[:5])
+            bar = _score_bar(s.score)
+            gate = "OK" if g.allowed else "BLQ"
+            sym = r["symbol"].replace("/USDT", "").ljust(6)
+            lines.append(
+                f"  {icon} {sym} {s.score:>3}  {bar}  {reg:<5}  {gate}"
+                f"  {a.risk_level if a else '?'}"
+            )
+        lines.append("")
     else:
+        # Pas d'actionnable : top 5 pour ne pas avoir un message vide
+        lines.append(f"Aucun signal >= {min_score} — Top 5")
+        for r in sorted_r[:5]:
+            s = r["signal"]
+            icon = _SIGNAL_ICON.get(s.signal, "?")
+            sym = r["symbol"].replace("/USDT", "").ljust(6)
+            bar = _score_bar(s.score)
+            lines.append(f"  {icon} {sym} {s.score:>3}  {bar}")
+        lines.append("")
+
+    # ── Section 2 : Surveillance (score 50 à seuil-1) ────────────────────────
+    if surveillance:
+        lines.append(f"SURVEILLANCE ({len(surveillance)} | 50-{min_score - 1})")
+        # 4 symboles par ligne pour rester compact
+        row: list[str] = []
+        for r in surveillance:
+            s = r["signal"]
+            icon = _SIGNAL_ICON.get(s.signal, "?")
+            sym = r["symbol"].replace("/USDT", "")
+            row.append(f"{icon}{sym} {s.score}")
+            if len(row) == 4:
+                lines.append("  " + "  ".join(row))
+                row = []
+        if row:
+            lines.append("  " + "  ".join(row))
+        lines.append("")
+
+    # ── Section 3 : Faibles (score < 50) — compteur seul ─────────────────────
+    if faibles:
+        scores_faibles = [r["signal"].score for r in faibles]
+        avg_f = sum(scores_faibles) // len(scores_faibles)
         lines.append(
-            f"TRADING ACTIF — ordres Futures Demo executes sur signaux >= {min_score}"
+            f"FAIBLES ({len(faibles)} | moy {avg_f}) — observation silencieuse"
         )
+        lines.append("")
+
+    # ── Footer ────────────────────────────────────────────────────────────────
+    advisor_only = os.getenv("V9_ADVISOR_ONLY", "true").lower() == "true"
+    mode = "Observation" if advisor_only else f"PAPER TRADING actif (>= {min_score})"
+    lines.append(f"Mode: {mode}")
+
     return "\n".join(lines)
 
 
@@ -1926,6 +2051,65 @@ def _build_guide() -> str:
 
 
 # ── Boucle principale ─────────────────────────────────────────────────────────
+
+
+def _gate_paper_dataset() -> None:
+    """Abort startup if config is broken or the paper trade dataset contains violations.
+
+    Checks in order:
+      1. PAPER_TRADE_LOG path is writable (ledger access)
+      2. No integrity violations in the dataset (duplicates, phantom trades…)
+    Empty dataset (clean slate) is allowed — burn-in is just starting.
+    """
+    log_path = os.getenv("PAPER_TRADE_LOG", "databases/paper_trades.jsonl")
+
+    # Ledger write access — fail fast before loading ccxt or the exchange
+    try:
+        import pathlib as _pathlib
+
+        _p = _pathlib.Path(log_path)
+        _p.parent.mkdir(parents=True, exist_ok=True)
+        _probe = _p.parent / ".gate_probe"
+        _probe.write_text("ok")
+        _probe.unlink()
+    except OSError as exc:
+        log.critical(
+            "[DatasetGate] Ledger inaccessible en écriture (%s): %s — démarrage annulé.",
+            log_path,
+            exc,
+        )
+        sys.exit(1)
+
+    try:
+        from paper_trading.dataset_validator import validate_corpus
+    except ImportError:
+        log.warning(
+            "[DatasetGate] dataset_validator non disponible — vérification ignorée"
+        )
+        return
+
+    log_path = os.getenv("PAPER_TRADE_LOG", "databases/paper_trades.jsonl")
+    report = validate_corpus(log_path=log_path)
+
+    if report.total_events == 0:
+        log.info("[DatasetGate] Dataset vide — burn-in repart de zéro. OK.")
+        return
+
+    if report.violations:
+        for v in report.violations:
+            log.critical("[DatasetGate] VIOLATION: %s", v)
+        log.critical(
+            "[DatasetGate] Dataset INVALIDE (%d violations) — démarrage annulé. "
+            "Archivez le dataset corrompu avant de relancer.",
+            len(report.violations),
+        )
+        sys.exit(1)
+
+    log.info(
+        "[DatasetGate] Dataset certifié — %d trades, burn-in eligible=%s",
+        report.paired_trades,
+        report.burnin_eligible,
+    )
 
 
 _LOCK_FILE = os.getenv("ADVISOR_LOCK_FILE", "logs/advisor.lock")
@@ -2108,6 +2292,40 @@ def main(
             log.warning("[SessionPrimer] Impossible de lancer: %s", _pe)
             _primer_future = None
 
+    # ── PerpUniverseService — boot : charge fichier + démarre thread refresh ──
+    # Le service tourne en daemon thread : rafraîchit l'univers toutes les
+    # UNIVERSE_REFRESH_H heures (défaut: 6h) et expose les nouveaux symboles
+    # via drain_new_symbols() — injectés dynamiquement dans le cycle principal.
+    _universe_service: Any = None
+    try:
+        from core.perp_universe_service import PerpUniverseService as _PerpUS
+
+        _universe_service = _PerpUS()
+        _universe_service.start()
+        _universe_initial = _universe_service.initial_symbols()
+        if _universe_initial:
+            _existing_syms = set(symbols)
+            _to_merge = [s for s in _universe_initial if s not in _existing_syms]
+            if _to_merge:
+                symbols = list(symbols) + _to_merge
+                log.info(
+                    "[Universe] +%d symboles chargés depuis univers persisté (total: %d)",
+                    len(_to_merge),
+                    len(symbols),
+                )
+            # Drain initial — tous déjà dans symbols, pas besoin de ré-injecter
+            _universe_service.drain_new_symbols()
+        else:
+            log.info(
+                "[Universe] Pas de fichier persisté — premier scan en background"
+                " (univers: %d sym défaut)",
+                len(symbols),
+            )
+    except Exception as _ue:
+        log.warning("[Universe] Service non disponible: %s", _ue)
+        _universe_service = None
+    # ─────────────────────────────────────────────────────────────────────────
+
     # ── Warmup anticipé — AVANT tous les services non-critiques ───────────────
     # Les scanners ne dépendent que de runtime.MarketScanner (pur Python).
     # On les crée ici et on lance immédiatement les futures 1h en background
@@ -2142,6 +2360,8 @@ def main(
         "1",
         "yes",
     }
+    if _paper_trading_enabled:
+        _gate_paper_dataset()
     startup_light = advisor_only and ADVISOR_STARTUP_LIGHT
     prewarm_1h_enabled = ADVISOR_PREWARM_1H
     prewarm_mtf_enabled = ADVISOR_PREWARM_MTF and not startup_light
@@ -3566,6 +3786,7 @@ def main(
     consecutive_errors = 0
     _clean_exit = False
     shed_optional_until_cycle = 0
+    _last_intel_ts = 0.0  # timestamp du dernier briefing intel (bot 6h)
 
     # ── P12-B MetricsCollector + AlertEngine — source de données burn-in ─────
     _metrics_collector: Any = None
@@ -4022,6 +4243,30 @@ def main(
 
             # Maintenance ranker — oublie les stratégies stales
             ranker.auto_demote()
+
+            # ── Universe sync — injection automatique de nouveaux symboles ────
+            # Vérifie toutes les sync_every cycles si le service a découvert
+            # de nouvelles paires. Crée les scanners manquants à la volée.
+            if _universe_service and cycle % _universe_service.sync_every == 0:
+                try:
+                    _new_universe_syms = _universe_service.drain_new_symbols()
+                    for _ns in _new_universe_syms:
+                        if _ns not in scanners["1h"]:
+                            scanners["1h"][_ns] = runtime.MarketScanner(
+                                symbols=[_ns], timeframe="1h", limit=ADVISOR_1H_LIMIT
+                            )
+                            scanners["mtf"][_ns] = runtime.MultiTimeframeScanner(
+                                symbols=[_ns], refresh_every=MTF_REFRESH_EVERY
+                            )
+                            symbols.append(_ns)
+                            log.info(
+                                "[Universe] +%s injecté dans le scan (total: %d sym)",
+                                _ns,
+                                len(symbols),
+                            )
+                except Exception as _use:
+                    log.debug("[Universe] Sync erreur cycle %d: %s", cycle, _use)
+            # ─────────────────────────────────────────────────────────────────
 
             # Mise à jour du capital réel en début de cycle (balance live)
             try:
@@ -5516,25 +5761,36 @@ def main(
                         f"\n  PnL ouvert: {_to_float(pb_health.get('open_pnl_usd', 0)):+.2f}$"
                     )
 
-                    # AI Chief Officer — briefing de synthese
-                    awareness_current = (
-                        awareness_engine.evaluate() if awareness_engine else None
-                    )
-                    coo_brief = _get_chief_officer().briefing(
-                        cycle=cycle,
-                        symbols=symbols,
-                        results=results,
-                        pos_manager=pos_manager,
-                        awareness_state=awareness_current,
-                        override=executive_override,
-                        regret_engine=regret_engine,
-                        mistake_memory=mistake_memory,
-                        ranker=ranker,
-                        meta_engine=meta_engine,
-                        black_box=black_box,
-                        activity_tracker=_activity_tracker,
-                        stability_monitor=_stability_monitor,
-                    )
+                    # AI Chief Officer — briefing 6h vers bot Intelligence
+                    _now = time.time()
+                    if _now - _last_intel_ts >= INTEL_INTERVAL_S:
+                        _last_intel_ts = _now
+                        try:
+                            awareness_current = (
+                                awareness_engine.evaluate()
+                                if awareness_engine
+                                else None
+                            )
+                            coo_brief = _get_chief_officer().briefing(
+                                cycle=cycle,
+                                symbols=symbols,
+                                results=results,
+                                pos_manager=pos_manager,
+                                awareness_state=awareness_current,
+                                override=executive_override,
+                                regret_engine=regret_engine,
+                                mistake_memory=mistake_memory,
+                                ranker=ranker,
+                                meta_engine=meta_engine,
+                                black_box=black_box,
+                                activity_tracker=_activity_tracker,
+                                stability_monitor=_stability_monitor,
+                                force=True,
+                            )
+                            if coo_brief:
+                                _send_intel(coo_brief)
+                        except Exception as _coo_exc:
+                            log.debug("[Intel] briefing error: %s", _coo_exc)
 
                     # Alertes probation stratégies (une seule fois par seuil)
                     try:
@@ -5542,8 +5798,6 @@ def main(
                             _telegram(f"PROBATION STRATEGIE\n{_prob_msg}")
                     except Exception:
                         pass
-                    if coo_brief:
-                        _telegram(coo_brief)
 
                     # Meta-Strategy + Ranker — personnalité active + top stratégies
                     current_personality = meta_engine.current_personality()
@@ -5977,23 +6231,25 @@ if __name__ == "__main__":
         try:
             from infra.live_exchange_reader import LiveExchangeReader
             from tools.market_universe_ranker import (
-                BATCH_1,
-                BATCH_2,
+                CANDIDATES_ALL,
                 MarketUniverseRanker,
             )
 
-            _ranker_exchange = os.getenv("RANKER_EXCHANGE", "kraken")
-            _ranker_top_n = int(os.getenv("RANKER_TOP_N", "6"))
+            _ranker_exchange = os.getenv("RANKER_EXCHANGE", "mexc")
+            # Top N après ranking — défaut 20 pour couvrir suffisamment de paires
+            _ranker_top_n = int(os.getenv("RANKER_TOP_N", "20"))
             _ranker_reader = LiveExchangeReader(exchange_id=_ranker_exchange)
             _ping = _ranker_reader.ping()
             if _ping.get("status") == "OK":
                 _ranker = MarketUniverseRanker(reader=_ranker_reader)
-                _ranked = _ranker.rank(BATCH_1 + BATCH_2, top_n=_ranker_top_n)
+                # Rank sur l'univers complet de 50 candidats
+                _ranked = _ranker.rank(CANDIDATES_ALL, top_n=_ranker_top_n)
                 _ranked_syms = [e.symbol for e in _ranked if e.score > 0]
                 if _ranked_syms:
                     log.info(
-                        "[Ranker] Top %d symboles: %s",
+                        "[Ranker] Top %d symboles (sur %d candidats): %s",
                         len(_ranked_syms),
+                        len(CANDIDATES_ALL),
                         ", ".join(_ranked_syms),
                     )
                     _symbols_from_env = _ranked_syms
