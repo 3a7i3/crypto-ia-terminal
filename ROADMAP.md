@@ -1,7 +1,7 @@
 # ROADMAP — Crypto AI Terminal
 
-> Dernière mise à jour : 2026-06-14
-> Statut global : **P10 FERMÉ** → **Phase burn-in paper trading (MEXC)**
+> Dernière mise à jour : 2026-06-15
+> Statut global : **P10 FERMÉ** → **Burn-in paper trading actif (MEXC, VPS déployé)**
 
 ---
 
@@ -38,8 +38,10 @@
 | CFG-P2-01 | config/settings.py Pydantic BaseSettings SSoT — 21 tests | ✅ LIVRÉ | 2026-06-13 |
 | Gouvernance | G0→G8-E certifiés, hash chain, GovernanceAuditor S1/S2/S3 | ✅ FERMÉ | 2026-06 |
 | MEXC-only | Consolidation exchange : Binance archivé, 28 fichiers, 1816/1816 tests | ✅ LIVRÉ | 2026-06-13 |
+| Telegram 3-bots | portfolio_bot PnL simplifié, QuantCrpto_bot 3-niveaux 100+ paires, Intel bot 6h NL | ✅ LIVRÉ | 2026-06-15 |
+| Infra observabilité | dataset_integrity_gate, runtime_validator 8 checks, prelive_gate 6 gates | ✅ LIVRÉ | 2026-06-15 |
 
-12 couches décisionnelles actives. VPS GCP 34.171.188.99 — systemd crypto-advisor RUNNING.
+12 couches décisionnelles actives. VPS GCP 34.171.188.99 — systemd crypto-advisor PID 49742 RUNNING (2026-06-15).
 
 ---
 
@@ -57,8 +59,8 @@ Aucun tuning de GATE_MIN_SCORE_OVERRIDE, PB_MIN_POSITION_USD, ni de paramètre d
 | Rejets RiskGate | 1138 |
 | Trades paper fermés | **0** (bloqueur : `PAPER_TRADING_ENABLED` absent .env VPS) |
 
-**Bloqueur immédiat** : déployer commit `bcd841b` sur VPS + ajouter `PAPER_TRADING_ENABLED=true` dans `.env`.
-ETA 100 trades : ~37h après activation.
+**Bloqueur levé (2026-06-15)** : commit `b249857` déployé, VPS actif PID 49742, paper trading en cours.
+ETA 100 trades : ~37h après activation (2.7 signaux/h autorisés, position SOL/USDT ouverte).
 
 ---
 
@@ -105,13 +107,16 @@ Le système est architecturalement validé. La progression vers le trading réel
 
 ### Phase 1 — API réelles en lecture seule (prochaine étape)
 
+**Validation** : `python scripts/prelive_gate.py` — 6 gates (A→F). Verdict GO requis.
+
 **Pré-requis à valider avant Phase 1 :**
 
-- [ ] `PAPER_TRADING_ENABLED=true` déployé sur VPS + commit `bcd841b`
-- [ ] 100 trades paper fermés accumulés (ETA ~37h après activation)
-- [ ] C5 == True (Profit Factor > 1.0 sur la fenêtre burn-in)
+- [x] `PAPER_TRADING_ENABLED=true` déployé sur VPS (2026-06-15)
+- [ ] 100 trades paper fermés accumulés (ETA ~37h depuis 2026-06-15)
+- [ ] C5 == True (PF > 1.5, Sharpe > 1.0, WR > 45%, MaxDD < 10%)
 - [ ] BURNIN_CALIBRATION_V3 exécuté : score floor optimal, symbol whitelist, PF/expectancy par régime
-- [ ] Zéro position contradictoire observée sur 7+ jours de run stable
+- [ ] prelive_gate.py → verdict GO (6/6 gates)
+- [ ] Zéro FATAL et zéro invariant violation sur la période burn-in
 
 **Action Phase 1 :**
 - Connexion MEXC API réelle en lecture seule (sans permission trading)
@@ -139,11 +144,27 @@ Le système est architecturalement validé. La progression vers le trading réel
 
 ## Priorités immédiates (ordre)
 
-1. **Déployer VPS** : `git reset --hard origin/main` + ajouter `PAPER_TRADING_ENABLED=true` + `MARKET_SCANNER_EXCHANGE=mexc` dans `.env`
-2. **Surveiller** : atteindre 100 trades paper fermés, vérifier C5
-3. **Exécuter BURNIN_CALIBRATION_V3** (`scripts/burnin_calibration_v3.py`) après 100 trades
-4. **CFG-P2-02→06** : câbler modules runtime sur config SSoT
+1. **Surveiller burn-in** : atteindre 100 trades paper fermés, vérifier C5 (PF>1.5, Sharpe>1.0)
+2. **Exécuter BURNIN_CALIBRATION_V3** (`scripts/burnin_calibration_v3.py`) dès 100 trades
+3. **Lancer prelive_gate.py** : `python scripts/prelive_gate.py` — 6 gates GO requis pour Phase 2
+4. **CFG-P2-02→06** : câbler modules runtime sur config SSoT (non bloquant burn-in)
 5. **Event Bus** : migration + tests intégration (prochaine verticale P1)
+
+### Commandes de suivi quotidien
+
+```bash
+# Vérifier état VPS
+ssh -i ~/.ssh/gcp_key mathieuhasard111@34.171.188.99 "journalctl -u crypto-advisor -n 20 --no-pager"
+
+# Certification pré-démarrage
+python scripts/runtime_validator.py
+
+# Gate pré-live (post-100 trades)
+python scripts/prelive_gate.py
+
+# Validation dataset
+python scripts/validate_trade_dataset.py
+```
 
 ---
 
@@ -165,5 +186,7 @@ Le système est architecturalement validé. La progression vers le trading réel
 | `core/advisor_loop.py` | Point d'entrée principal |
 | `tests/root/test_boot_system.py` | Validation boot (122/122) |
 | `scripts/burnin_calibration_v3.py` | Calibration post-100 trades |
+| `scripts/prelive_gate.py` | Gate validation 6 conditions pré-live |
+| `scripts/runtime_validator.py` | Certification pré-démarrage 8 checks |
 | `CANONICAL_COMPONENTS.md` | Tableau migration V2 |
 | `scripts/deploy_vps.sh` | Auto-deploy git → VPS |
