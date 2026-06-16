@@ -182,6 +182,7 @@ class SystemStateMachine:
         if (
             n_signals > 0
             and n_orders == 0
+            and open_positions == 0  # positions ouvertes = système actif, pas en stall
             and last_order_iso
             and self._state["state"] == "NORMAL"
         ):

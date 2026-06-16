@@ -6096,10 +6096,17 @@ def main(
 
                     _ex_ok = bool(exchange_monitor.snapshot().get("uptime_pct", 0) > 0)
                     _open_cnt = (
-                        len(pos_manager.get_open_positions())
-                        if hasattr(pos_manager, "get_open_positions")
+                        len(pos_manager.get_open())
+                        if hasattr(pos_manager, "get_open")
                         else 0
                     )
+                    # Fallback : MexcSimulator peut avoir des positions que
+                    # pos_manager ne connaît pas (ex: restaurées au boot)
+                    if _open_cnt == 0 and _virtual_portfolio is not None:
+                        try:
+                            _open_cnt = len(_virtual_portfolio._positions)
+                        except Exception:
+                            pass
                     _sm_alerts = _get_sm().update_heartbeat(
                         n_signals=_n_actionable,
                         n_orders=_n_traded,
