@@ -2107,6 +2107,25 @@ def _gate_paper_dataset() -> None:
         return
 
     if report.violations:
+        only_orphan_opens = all("OPEN sans CLOSE" in v for v in report.violations)
+        if only_orphan_opens:
+            log.warning(
+                "[DatasetGate] %d violation(s) OPEN orphelin(es) détectée(s) — "
+                "probable crash précédent (le simulateur ne persiste pas les "
+                "positions en mémoire au redémarrage). Auto-remédiation : "
+                "retrait des OPEN sans CLOSE, trades appariés préservés.",
+                len(report.violations),
+            )
+            if _remediate_orphan_opens(log_path):
+                report = validate_corpus(log_path=log_path)
+                if not report.violations:
+                    log.info(
+                        "[DatasetGate] Auto-remédiation réussie — %d trades "
+                        "préservés, dataset propre.",
+                        report.paired_trades,
+                    )
+                    return
+
         for v in report.violations:
             log.critical("[DatasetGate] VIOLATION: %s", v)
         log.critical(
@@ -2121,6 +2140,54 @@ def _gate_paper_dataset() -> None:
         report.paired_trades,
         report.burnin_eligible,
     )
+
+
+def _remediate_orphan_opens(log_path: str) -> bool:
+    """
+    Retire les OPEN sans CLOSE correspondant (positions fantômes laissées par
+    un crash précédent). Préserve tous les trades appariés (OPEN+CLOSE) et
+    tous les CLOSE. Sauvegarde l'original avant modification.
+
+    Retourne True si la remédiation a réussi (fichier réécrit sans erreur).
+    """
+    try:
+        import json as _gate_json
+        import shutil
+
+        events = []
+        with open(log_path, encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line:
+                    events.append(_gate_json.loads(line))
+
+        closes = {e["trade_id"] for e in events if e.get("event") == "CLOSE"}
+        kept = [
+            e
+            for e in events
+            if e.get("event") == "CLOSE"
+            or (e.get("event") == "OPEN" and e.get("trade_id") in closes)
+        ]
+        kept.sort(key=lambda e: e.get("ts", 0))
+
+        backup_path = f"{log_path}.bak_{time.strftime('%Y%m%d_%H%M%S')}"
+        shutil.copy2(log_path, backup_path)
+
+        with open(log_path, "w", encoding="utf-8") as f:
+            for e in kept:
+                f.write(_gate_json.dumps(e) + "\n")
+
+        log.info(
+            "[DatasetGate] Remédiation : %d événements avant, %d après "
+            "(sauvegarde: %s)",
+            len(events),
+            len(kept),
+            backup_path,
+        )
+        return True
+    except Exception as exc:
+        log.error("[DatasetGate] Remédiation échouée: %s", exc)
+        return False
 
 
 _LOCK_FILE = os.getenv("ADVISOR_LOCK_FILE", "logs/advisor.lock")
