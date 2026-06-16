@@ -3478,6 +3478,16 @@ def main(
             )
         return chief_officer
 
+    intel_reporter: Any = None
+
+    def _get_intel_reporter() -> Any:
+        nonlocal intel_reporter
+        if intel_reporter is None:
+            intel_reporter = _profile_bootstrap_step(
+                "intel_reporter", runtime.SystemIntelReporter
+            )
+        return intel_reporter
+
     threat_radar = _profile_bootstrap_step("threat_radar", runtime.ThreatRadar)
     log.info("[ThreatRadar] initialise")
 
@@ -5764,7 +5774,7 @@ def main(
                         f"\n  PnL ouvert: {_to_float(pb_health.get('open_pnl_usd', 0)):+.2f}$"
                     )
 
-                    # AI Chief Officer — briefing 6h vers bot Intelligence
+                    # SystemIntelReporter — diagnostic complet 6h vers bot Intelligence
                     _now = time.time()
                     if _now - _last_intel_ts >= INTEL_INTERVAL_S:
                         _last_intel_ts = _now
@@ -5774,24 +5784,36 @@ def main(
                                 if awareness_engine
                                 else None
                             )
-                            coo_brief = _get_chief_officer().briefing(
+                            _dataset_report = None
+                            try:
+                                from paper_trading.dataset_validator import (
+                                    validate_corpus as _validate_corpus,
+                                )
+
+                                _dataset_report = _validate_corpus(
+                                    log_path=os.getenv(
+                                        "PAPER_TRADE_LOG",
+                                        "databases/paper_trades.jsonl",
+                                    )
+                                )
+                            except Exception:
+                                pass
+
+                            intel_text = _get_intel_reporter().build_report(
                                 cycle=cycle,
-                                symbols=symbols,
                                 results=results,
                                 pos_manager=pos_manager,
                                 awareness_state=awareness_current,
                                 override=executive_override,
                                 regret_engine=regret_engine,
                                 mistake_memory=mistake_memory,
-                                ranker=ranker,
-                                meta_engine=meta_engine,
                                 black_box=black_box,
                                 activity_tracker=_activity_tracker,
                                 stability_monitor=_stability_monitor,
-                                force=True,
+                                dataset_report=_dataset_report,
                             )
-                            if coo_brief:
-                                _send_intel(coo_brief)
+                            if intel_text:
+                                _send_intel(intel_text)
                         except Exception as _coo_exc:
                             log.debug("[Intel] briefing error: %s", _coo_exc)
 

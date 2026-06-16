@@ -45,6 +45,7 @@ class AdvisorRuntime:
     AdaptiveThresholdEngine: Any = field(default=None)
     RegimeTransitionSmoother: Any = field(default=None)
     RegimeStateTracker: Any = field(default=None)
+    SystemIntelReporter: Any = field(default=None)
 
 
 def load_advisor_runtime() -> AdvisorRuntime:
@@ -87,6 +88,9 @@ def load_advisor_runtime() -> AdvisorRuntime:
     from quant_hedge_ai.agents.intelligence.self_awareness_engine import (
         DangerLevel,
         SelfAwarenessEngine,
+    )
+    from quant_hedge_ai.agents.intelligence.system_intel_reporter import (
+        SystemIntelReporter,
     )
     from quant_hedge_ai.agents.intelligence.threat_radar import ThreatRadar
     from quant_hedge_ai.agents.market.market_scanner import MarketScanner
@@ -144,6 +148,7 @@ def load_advisor_runtime() -> AdvisorRuntime:
         BlackBox=BlackBox,
         RegretEngine=RegretEngine,
         ChiefOfficer=ChiefOfficer,
+        SystemIntelReporter=SystemIntelReporter,
         ThreatRadar=ThreatRadar,
         MetaLearner=MetaLearner,
         FeatureEngineer=FeatureEngineer,
