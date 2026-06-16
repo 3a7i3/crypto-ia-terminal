@@ -340,82 +340,54 @@ class SystemIntelReporter:
     # ── Rendu texte ───────────────────────────────────────────────────────────
 
     def _render(self, ctx: dict, cycle: int) -> str:
-        lines = [f"DIAGNOSTIC SYSTÈME — Cycle {cycle}", ""]
-
+        """
+        Rapport volontairement condensé : les chiffres bruts (WR/PF/Sharpe/MaxDD,
+        détail par symbole) sont déjà disponibles via @mon_portfolio_bot
+        (/portfolio, /validate). Ce rapport se concentre sur ce que les autres
+        bots ne disent pas : pourquoi le système agit ainsi, ce qui a changé,
+        et la recommandation — pas une redite des stats.
+        """
         elapsed = ctx["elapsed_h"]
-        period = f"{elapsed:.1f}h" if elapsed > 0 else "première exécution"
-        lines.append(f"Période couverte : {period}")
-        lines.append("")
+        period = f"{elapsed:.1f}h" if elapsed > 0 else "1er rapport"
+        lines = [f"DIAGNOSTIC SYSTÈME — Cycle {cycle} ({period})", ""]
 
-        # 1. Santé système
+        # 1. Santé système — une ligne, uniquement si anomalie
         dataset = ctx["dataset"]
-        if dataset:
-            status = "OK" if dataset.get("violations", 0) == 0 else "DEGRADE"
-            lines.append(
-                f"SANTÉ SYSTÈME : {status} | "
-                f"intégrité dataset={dataset.get('integrity_pct', 100):.0f}% | "
-                f"violations={dataset.get('violations', 0)}"
-            )
         stab = ctx["stability"]
-        if stab:
-            state = stab.get("state", "stable")
-            lines.append(
-                f"  Stabilité comportementale : {state} | "
-                f"flips régime={stab.get('regime_flips_10c', 0)}/10c"
-            )
-        lines.append("")
+        anomalies = []
+        if dataset and dataset.get("violations", 0) > 0:
+            anomalies.append(f"{dataset['violations']} violation(s) dataset")
+        if stab and stab.get("state", "stable") != "stable":
+            anomalies.append(f"comportement {stab['state']}")
+        lines.append(
+            "SANTÉ : OK"
+            if not anomalies
+            else f"SANTÉ : ALERTE — {' | '.join(anomalies)}"
+        )
 
-        # 2. Activité trading — depuis dernier rapport + cumulé
+        # 2. Activité depuis dernier rapport — pas de cumulé (déjà sur /validate)
         kpis = ctx["kpis"]
+        sign = "+" if ctx["pnl_since"] >= 0 else ""
         lines.append(
-            f"ACTIVITÉ TRADING : {ctx['n_since']} trade(s) depuis le dernier rapport "
-            f"| {kpis['n']} au total"
+            f"DEPUIS DERNIER RAPPORT : {ctx['n_since']} trade(s) clôturé(s) "
+            f"({sign}{ctx['pnl_since']:.2f}$) | total cumulé {kpis['n']} trades"
         )
-        if kpis["n"] > 0:
-            lines.append(
-                f"  Cumulé : WR={kpis['win_rate']:.0f}% | PF={kpis['pf']:.2f} | "
-                f"Sharpe={kpis['sharpe']:.2f} | MaxDD={kpis['max_dd']:.1f}%"
-            )
         lines.append("")
 
-        # 3. P&L
-        sign_total = "+" if kpis["total_pnl"] >= 0 else ""
-        sign_since = "+" if ctx["pnl_since"] >= 0 else ""
-        lines.append(
-            f"P&L : {sign_total}{kpis['total_pnl']:.2f}$ total "
-            f"({sign_since}{ctx['pnl_since']:.2f}$ depuis dernier rapport)"
-        )
-        pos_stats = ctx["pos_manager_stats"]
-        if pos_stats:
-            lines.append(
-                f"  Positions ouvertes : {pos_stats.get('open_count', 0)} | "
-                f"PnL latent : {pos_stats.get('open_pnl_usd', 0):+.2f}$"
-            )
-        by_symbol = kpis.get("by_symbol", {})
-        if by_symbol:
-            top = sorted(by_symbol.items(), key=lambda x: x[1]["pnl"], reverse=True)[:5]
-            for sym, d in top:
-                lines.append(f"    {sym}: {d['n']}T {d['pnl']:+.2f}$")
-        lines.append("")
-
-        # 4. Perception marché — régimes actuels + funnel décisionnel
-        regimes_now = ctx["regimes_now"]
-        if regimes_now:
-            reg_str = " | ".join(f"{s}:{r}" for s, r in list(regimes_now.items())[:8])
-            lines.append(f"PERCEPTION MARCHÉ : {reg_str}")
+        # 3. Perception marché — narration groupée par régime, pas une liste brute
+        narrative = self._market_narrative(ctx["regimes_now"])
+        if narrative:
+            lines.append(f"MARCHÉ : {narrative}")
         funnel = ctx["decision_funnel"]
         if funnel.get("total_evaluated", 0) > 0:
             lines.append(
-                f"  Funnel décisionnel : {funnel['total_evaluated']} signaux évalués | "
-                f"{funnel['above_50']} score>=50 | "
-                f"{funnel['allowed']} autorisés | {funnel['blocked']} bloqués"
+                f"  → {funnel['allowed']}/{funnel['total_evaluated']} signaux "
+                f"autorisés, {funnel['blocked']} bloqués par les gates de risque"
             )
         lines.append("")
 
-        # 5. Ce qui a changé
-        changes = []
-        if ctx["regime_changes"]:
-            changes.extend(ctx["regime_changes"][:3])
+        # 4. Ce qui a changé — uniquement si quelque chose a changé
+        changes = list(ctx["regime_changes"][:3])
         aw = ctx["awareness"]
         if aw.get("level", "OK") != "OK":
             changes.append(f"Self-Awareness → {aw['level']}")
@@ -423,16 +395,35 @@ class SystemIntelReporter:
         if ov.get("level", "CLEAR") != "CLEAR":
             changes.append(f"Executive Override → {ov['level']}")
         if changes:
-            lines.append("CE QUI A CHANGÉ :")
-            for c in changes:
-                lines.append(f"  - {c}")
+            lines.append("CHANGEMENTS : " + " | ".join(changes))
             lines.append("")
 
-        # 6. Recommandation
-        lines.append("RECOMMANDATION :")
-        lines.append(f"  {self._recommend(ctx)}")
+        # 5. Recommandation — toujours présente, c'est l'essentiel du message
+        lines.append(f"RECOMMANDATION : {self._recommend(ctx)}")
 
         return "\n".join(lines)
+
+    def _market_narrative(self, regimes_now: dict) -> str:
+        """Regroupe les régimes par catégorie plutôt que de lister chaque paire."""
+        if not regimes_now:
+            return ""
+        groups: dict[str, list[str]] = {}
+        for sym, regime in regimes_now.items():
+            groups.setdefault(regime, []).append(sym.replace("/USDT", ""))
+
+        labels = {
+            "bull_trend": "tendance haussière",
+            "bear_trend": "tendance baissière",
+            "sideways": "range/consolidation",
+            "breakout": "cassure en cours",
+            "unknown": "régime indéterminé",
+        }
+        parts = []
+        for regime, syms in sorted(groups.items(), key=lambda x: -len(x[1])):
+            label = labels.get(regime, regime)
+            names = ", ".join(syms[:4]) + ("..." if len(syms) > 4 else "")
+            parts.append(f"{len(syms)} en {label} ({names})")
+        return " | ".join(parts)
 
     def _recommend(self, ctx: dict) -> str:
         dataset = ctx["dataset"]
