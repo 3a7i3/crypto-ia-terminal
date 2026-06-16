@@ -300,8 +300,16 @@ class SystemIntelReporter:
     def _dataset_ctx(self, dataset_report: Any) -> dict:
         if not dataset_report:
             return {}
+        violations = getattr(dataset_report, "violations", []) or []
+        # "OPEN sans CLOSE" est ambigu pendant que le système tourne : une
+        # position actuellement ouverte (légitime) produit la même signature
+        # qu'une vraie position fantôme abandonnée. Le gate de démarrage gère
+        # déjà la vraie détection/remédiation — ici on ne remonte que les
+        # violations qui ne peuvent PAS être expliquées par une position en
+        # cours (doublons, NaN, schéma...).
+        real_violations = [v for v in violations if "OPEN sans CLOSE" not in v]
         return {
-            "violations": len(getattr(dataset_report, "violations", []) or []),
+            "violations": len(real_violations),
             "burnin_eligible": getattr(dataset_report, "burnin_eligible", False),
             "integrity_pct": getattr(dataset_report, "integrity_pct", 0.0),
         }
