@@ -1103,6 +1103,12 @@ class CommandCenterBot:
     # ── Démarrage / arrêt ────────────────────────────────────────────────────
 
     def start(self) -> None:
+        if "PYTEST_CURRENT_TEST" in os.environ:
+            _log.warning(
+                "[CommandCenter] Exécution sous pytest détectée — bot désactivé "
+                "(évite l'envoi de messages réels avec données de test)"
+            )
+            return
         if not self._token:
             _log.warning(
                 "[CommandCenter] P10_PORTFOLIO_BOT_TOKEN manquant — bot desactive"
@@ -1145,6 +1151,8 @@ class CommandCenterBot:
     # ── Envoi ────────────────────────────────────────────────────────────────
 
     def send(self, text: str) -> bool:
+        if "PYTEST_CURRENT_TEST" in os.environ:
+            return False
         if not self._token or not self._chat_id:
             return False
         try:

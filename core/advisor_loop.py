@@ -458,6 +458,8 @@ def _prime_exchange_session(
 
 
 def _telegram(text: str) -> None:
+    if "PYTEST_CURRENT_TEST" in os.environ:
+        return
     if not TELEGRAM_TOKEN or not TELEGRAM_CHAT:
         return
     try:
@@ -474,6 +476,8 @@ def _telegram(text: str) -> None:
 
 def _send_email(subject: str, body: str) -> None:
     """Envoie un email de notification via SMTP (config .env)."""
+    if "PYTEST_CURRENT_TEST" in os.environ:
+        return
     smtp_server = os.getenv("EMAIL_SMTP_SERVER", "")
     smtp_port = int(os.getenv("EMAIL_SMTP_PORT", "587"))
     from_addr = os.getenv("EMAIL_FROM_ADDR", "")
@@ -514,6 +518,8 @@ def _write_behavioral_event(event_type: str, data: dict) -> None:
 
 def _telegram_behavior(text: str) -> None:
     """Canal comportemental — [BEHAVIOR], transitions, REGIME_MISMATCH, BSM."""
+    if "PYTEST_CURRENT_TEST" in os.environ:
+        return
     chat = TELEGRAM_BEHAVIOR_CHAT or TELEGRAM_CHAT  # fallback canal principal
     if not TELEGRAM_TOKEN or not chat:
         return
@@ -535,6 +541,8 @@ def _send_intel(text: str) -> None:
     Utilise exclusivement INTEL_BOT_TOKEN + INTEL_BOT_CHAT_ID (@rapport_automatique_bot).
     Si non configuré : silencieux (pas de fallback vers @QuantCrpto_bot).
     """
+    if "PYTEST_CURRENT_TEST" in os.environ:
+        return
     token = INTEL_TOKEN
     chat = INTEL_CHAT
     if not token or not chat:

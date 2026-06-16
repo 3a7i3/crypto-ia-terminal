@@ -154,6 +154,8 @@ class TelegramAlert:
     ) -> None:
         if not self._enabled:
             return
+        if "PYTEST_CURRENT_TEST" in os.environ:
+            return
 
         key = dedup_key or hashlib.md5(text.encode()).hexdigest()[:16]
 
