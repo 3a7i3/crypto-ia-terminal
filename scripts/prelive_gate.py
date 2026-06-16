@@ -50,7 +50,6 @@ _MIN_SHARPE = float(os.getenv("PRELIVE_MIN_SHARPE", "1.0"))
 _MIN_WR = float(os.getenv("PRELIVE_MIN_WR", "45.0"))
 _MAX_DD = float(os.getenv("PRELIVE_MAX_DD", "10.0"))
 _MAX_ORDER_P2 = float(os.getenv("PRELIVE_MAX_ORDER_USD", "50.0"))
-_INITIAL_CAPITAL = float(os.getenv("VIRTUAL_CAPITAL_USD", "100"))
 
 # ── Couleurs ──────────────────────────────────────────────────────────────────
 
@@ -102,7 +101,9 @@ def _compute_metrics(closes: list[dict]) -> dict:
     wins = [p for p in pnls if p > 0]
     losses = [p for p in pnls if p < 0]
 
-    equity = [_INITIAL_CAPITAL]
+    from infra.wallet_sync import get_wallet_sync
+
+    equity = [get_wallet_sync().initial_capital()]
     for p in pnls:
         equity.append(equity[-1] + p)
     peak, max_dd = equity[0], 0.0

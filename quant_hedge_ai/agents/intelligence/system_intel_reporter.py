@@ -36,7 +36,6 @@ _SNAPSHOT_PATH = Path(
     os.getenv("INTEL_SNAPSHOT_PATH", "cache/intel_reports/last_snapshot.json")
 )
 _TRADES_LOG = Path(os.getenv("PAPER_TRADE_LOG", "databases/paper_trades.jsonl"))
-_INITIAL_CAPITAL = float(os.getenv("VIRTUAL_CAPITAL_USD", "100"))
 _LM_SYSTEM_PROMPT = (
     "Tu es le module de diagnostic d'un systeme de trading crypto algorithmique. "
     "Tu expliques comment LE SYSTEME fonctionne et percoit le marche, "
@@ -108,7 +107,9 @@ def _compute_kpis(closes: list[dict]) -> dict:
     losses = [p for p in pnls if p < 0]
     total_pnl = sum(pnls)
 
-    equity = [_INITIAL_CAPITAL]
+    from infra.wallet_sync import get_wallet_sync
+
+    equity = [get_wallet_sync().initial_capital()]
     for p in pnls:
         equity.append(equity[-1] + p)
     peak, max_dd = equity[0], 0.0

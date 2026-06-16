@@ -5823,7 +5823,9 @@ def main(
                             if intel_text:
                                 _send_intel(intel_text)
                         except Exception as _coo_exc:
-                            log.debug("[Intel] briefing error: %s", _coo_exc)
+                            log.warning(
+                                "[Intel] briefing error: %s", _coo_exc, exc_info=True
+                            )
 
                     # Alertes probation stratégies (une seule fois par seuil)
                     try:

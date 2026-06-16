@@ -215,36 +215,22 @@ class ExecutionEngine:
 
     def fetch_available_capital(self) -> float:
         """
-        Retourne le capital USDT libre sur le compte (live/testnet).
+        Retourne le capital USDT libre — source unique via WalletSync.
 
-        En mode paper : retourne MEXC_SIM_CAPITAL (capital simulé), pas le solde
-        réel du compte MEXC (~$7 sur un compte test) qui fausserait le P10 throttle.
+        En mode paper : WALLET_PAPER_CAPITAL + somme cumulative des pnl_usd
+        du ledger (databases/paper_trades.jsonl) — identique à ce qu'affichent
+        /portfolio, le bot Intel et prelive_gate.py. Plus de divergence entre
+        modules (avant : MEXC_SIM_CAPITAL / V9_INITIAL_CAPITAL / VIRTUAL_CAPITAL_USD
+        coexistaient sans jamais être synchronisés).
 
-        - Au premier appel live/testnet : si l'exchange echoue, fallback V9_INITIAL_CAPITAL.
-        - Aux appels suivants : si l'exchange echoue, retourne la DERNIERE valeur connue.
-          Cela evite de fabriquer un faux drawdown quand fetch_balance plante
-          temporairement (cf bug DD=89.9% / ExecutiveOverride VETO).
+        En mode live/testnet : solde réel via l'exchange configuré, caché et
+        avec fallback sur la dernière valeur connue si l'API échoue (évite de
+        fabriquer un faux drawdown — cf bug DD=89.9% / ExecutiveOverride VETO).
         """
-        # MEXC_SIM_CAPITAL = override explicite pour paper trading (priorité maximale).
-        # Utilisé car le solde réel du compte MEXC test (~$7) fausserait le P10 throttle.
-        sim_cap = float(os.getenv("MEXC_SIM_CAPITAL", "0"))
-        if sim_cap > 0:
-            return sim_cap
-        if self._exchange is not None:
-            try:
-                bal = self._with_retry(self._exchange.fetch_balance)
-                usdt = float(bal.get("free", {}).get(self._quote_asset, 0.0))
-                if usdt > 0:
-                    self._last_known_capital = usdt
-                    return usdt
-            except Exception as exc:
-                _log.warning(
-                    "[ExecutionEngine] fetch_balance erreur après retry: %s", exc
-                )
-        last = getattr(self, "_last_known_capital", 0.0)
-        if last > 0:
-            return last
-        return float(os.getenv("V9_INITIAL_CAPITAL", "1000"))
+        from infra.wallet_sync import get_wallet_sync
+
+        wallet = get_wallet_sync(exchange=self._exchange, mode=self._mode)
+        return wallet.get_balance()
 
     def detect_quote_asset(self, symbol: str) -> str:
         """Détecte la devise de quote d'une paire (ex: BTC/USDT → USDT)."""

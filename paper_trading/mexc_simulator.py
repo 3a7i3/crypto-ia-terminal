@@ -216,15 +216,22 @@ class MexcSimulator:
     # ── Démarrage ─────────────────────────────────────────────────────────────
 
     def start(self) -> None:
-        capital = self._read_mexc_balance()
-        forced = os.getenv("MEXC_SIM_CAPITAL", "")
-        if forced:
-            capital = float(forced)
-            _log.info("[SIM] Capital forcé via env: $%.2f", capital)
+        from infra.wallet_sync import get_wallet_sync
 
-        if capital <= 0:
-            _log.warning("[SIM] Solde MEXC non lisible — utilise $10 par défaut")
-            capital = 10.0
+        wallet = get_wallet_sync()
+        if wallet.mode == "paper":
+            # Source unique — identique à /portfolio, bot Intel, prelive_gate.
+            capital = wallet.get_balance()
+            _log.info("[SIM] Capital via WalletSync (paper): $%.2f", capital)
+        else:
+            capital = self._read_mexc_balance()
+            forced = os.getenv("MEXC_SIM_CAPITAL", "")
+            if forced:
+                capital = float(forced)
+                _log.info("[SIM] Capital forcé via env: $%.2f", capital)
+            if capital <= 0:
+                _log.warning("[SIM] Solde MEXC non lisible — fallback WalletSync")
+                capital = wallet.get_balance()
 
         self._capital = capital
         self._initial_capital = capital

@@ -46,8 +46,14 @@ _RETRY_DELAY = 3.0
 _MAX_MSG = 4000
 
 _TRADES_LOG = Path(os.getenv("PAPER_TRADE_LOG", "databases/paper_trades.jsonl"))
-_INITIAL_CAPITAL = float(os.getenv("VIRTUAL_CAPITAL_USD", "100"))
 _BURNIN_TARGET = 100
+
+
+def _initial_capital() -> float:
+    """Capital de départ — source unique via WalletSync (cf infra/wallet_sync.py)."""
+    from infra.wallet_sync import get_wallet_sync
+
+    return get_wallet_sync().initial_capital()
 
 
 # ── Lecture des données ────────────────────────────────────────────────────────
@@ -86,7 +92,8 @@ def _compute(closes: list[dict]) -> dict:
     win_rate = len(wins) / n * 100 if n else 0
 
     # Courbe equity + Max DD
-    equity = [_INITIAL_CAPITAL]
+    initial_capital = _initial_capital()
+    equity = [initial_capital]
     for p in pnls:
         equity.append(equity[-1] + p)
 
@@ -101,7 +108,7 @@ def _compute(closes: list[dict]) -> dict:
                 max_dd_pct = dd
 
     capital_now = equity[-1]
-    roi_pct = (capital_now - _INITIAL_CAPITAL) / _INITIAL_CAPITAL * 100
+    roi_pct = (capital_now - initial_capital) / initial_capital * 100
 
     # Profit factor
     gross_win = sum(wins)
