@@ -331,6 +331,10 @@ TELEGRAM_BEHAVIOR_CHAT = os.getenv("TELEGRAM_BEHAVIOR_CHAT_ID", "")
 INTEL_TOKEN = os.getenv("INTEL_BOT_TOKEN", "")
 INTEL_CHAT = os.getenv("INTEL_BOT_CHAT_ID", "")
 INTEL_INTERVAL_S = int(os.getenv("INTEL_REPORT_EVERY_H", "6")) * 3600
+# Bot compte réel — STANDBY jusqu'à activation du trading live sur l'API
+REAL_BOT_TOKEN = os.getenv("REAL_ACCOUNT_BOT_TOKEN", "")
+REAL_BOT_CHAT = os.getenv("REAL_ACCOUNT_CHAT_ID", "")
+REAL_BOT_REPORT_EVERY = int(os.getenv("REAL_BOT_REPORT_EVERY", "12"))  # cycles
 NOTIFY_EVERY = int(os.getenv("ADVISOR_NOTIFY_EVERY", "3"))
 MTF_REFRESH_EVERY = int(os.getenv("ADVISOR_MTF_REFRESH_EVERY", "12"))
 ADVISOR_1H_LIMIT = int(os.getenv("ADVISOR_1H_LIMIT", "96"))
@@ -533,6 +537,28 @@ def _telegram_behavior(text: str) -> None:
             log.warning("Telegram behavior erreur: %s", r.text)
     except Exception as exc:
         log.warning("Telegram behavior indisponible: %s", exc)
+
+
+def _telegram_real(text: str) -> None:
+    """Bot compte réel — solde API, STANDBY/LIVE, statut périodique.
+
+    Canal séparé du bot paper (@QuantCrpto_bot). En standby tant que
+    PAPER_TRADING_ENABLED=true. Passe en LIVE quand trading API activé.
+    """
+    if "PYTEST_CURRENT_TEST" in os.environ:
+        return
+    if not REAL_BOT_TOKEN or not REAL_BOT_CHAT:
+        return
+    try:
+        r = requests.post(
+            f"https://api.telegram.org/bot{REAL_BOT_TOKEN}/sendMessage",
+            json={"chat_id": REAL_BOT_CHAT, "text": text, "parse_mode": "HTML"},
+            timeout=10,
+        )
+        if r.status_code != 200:
+            log.debug("[RealBot] Telegram erreur: %s", r.text)
+    except Exception as exc:
+        log.debug("[RealBot] Indisponible: %s", exc)
 
 
 def _send_intel(text: str) -> None:
@@ -2742,10 +2768,30 @@ def main(
     from infra.wallet_sync import bootstrap_capital_x as _bootstrap_x
 
     _capital_x = _bootstrap_x(getattr(exec_engine, "_exchange", None))
+    _paper_mode = os.getenv("PAPER_TRADING_ENABLED", "true").lower() == "true"
+    _paper_capital = float(os.getenv("WALLET_PAPER_CAPITAL", "1000"))
     if _capital_x is not None:
         log.info(
             "[WalletSync] Portefeuille unique X = $%.2f USDT (depuis API)", _capital_x
         )
+        # Notification bot compte réel — STANDBY ou LIVE selon mode
+        if _paper_mode:
+            _telegram_real(
+                "🔴 <b>STANDBY — Compte Réel</b>\n"
+                "━━━━━━━━━━━━━━━━━━━━━━\n"
+                f"💰 Solde API MEXC : <b>${_capital_x:.4f} USDT</b>\n"
+                f"📊 Mode actif : <b>PAPER</b> (${_paper_capital:.0f} USDT virtuel)\n"
+                f"🔒 Aucun ordre réel — simulation uniquement\n"
+                "━━━━━━━━━━━━━━━━━━━━━━\n"
+                "⏳ Active le trading sur l'API pour passer en LIVE"
+            )
+        else:
+            _telegram_real(
+                "🟢 <b>LIVE — Compte Réel</b>\n"
+                "━━━━━━━━━━━━━━━━━━━━━━\n"
+                f"💰 Capital X : <b>${_capital_x:.4f} USDT</b>\n"
+                "⚡ Trading live actif sur MEXC"
+            )
     else:
         _exch_obj = getattr(exec_engine, "_exchange", None)
         if _exch_obj is not None:
@@ -2761,6 +2807,11 @@ def main(
                 )
             except Exception:
                 pass
+            _telegram_real(
+                "⚠️ <b>COMPTE RÉEL — X = NULL</b>\n"
+                "Solde API = 0 USDT\n"
+                "Ajoutez des fonds ou vérifiez la clé API."
+            )
         else:
             log.info(
                 "[WalletSync] Aucune clé API détectée — X=%s (paper fallback WALLET_PAPER_CAPITAL)",
@@ -5992,6 +6043,36 @@ def main(
                             _portfolio_bot.send(msg)
                         except Exception:
                             pass
+
+                    # ── Rapport périodique bot compte réel ───────────────────
+                    if cycle % REAL_BOT_REPORT_EVERY == 0:
+                        try:
+                            _rx = _capital_x if "_capital_x" in dir() else None
+                            _rm = (
+                                os.getenv("PAPER_TRADING_ENABLED", "true").lower()
+                                == "true"
+                            )
+                            _rpc = float(os.getenv("WALLET_PAPER_CAPITAL", "1000"))
+                            _rmode = "PAPER (standby)" if _rm else "🟢 LIVE"
+                            _pm_snap = _stats_dict(pos_manager.stats())
+                            _rpnl = _to_float(_pm_snap.get("total_pnl_usd", 0))
+                            _ropen = _pm_snap.get("open_count", 0)
+                            _rx_line = f"${_rx:.4f} USDT" if _rx else "N/A"
+                            _real_status = (
+                                f"📊 <b>Statut Compte Réel — Cycle #{cycle}</b>\n"
+                                "━━━━━━━━━━━━━━━━━━━━━━\n"
+                                f"💰 Solde API : <b>{_rx_line}</b>\n"
+                                f"⚙️ Mode : <b>{_rmode}</b>\n"
+                                f"📈 Capital paper : <b>${_rpc:.0f} USDT</b>\n"
+                                f"🔢 Paires analysées : <b>{len(results)}</b>\n"
+                                f"📂 Positions ouvertes : <b>{_ropen}</b>\n"
+                                f"💹 PnL paper réalisé : <b>{_rpnl:+.2f}$</b>"
+                            )
+                            _telegram_real(_real_status)
+                        except Exception as _rbe:
+                            log.debug("[RealBot] rapport erreur: %s", _rbe)
+                    # ─────────────────────────────────────────────────────────
+
                     log.info(
                         "[RAPPORT] Telegram envoye — cycle %d (%d symboles)",
                         cycle,
