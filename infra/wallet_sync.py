@@ -150,7 +150,10 @@ class WalletSync:
             return None
 
     def _base_capital(self) -> float:
-        """Capital de base : X si bootstrappé, sinon WALLET_PAPER_CAPITAL."""
+        """Capital de base : en paper = capital fictif WALLET_PAPER_CAPITAL (indépendant
+        du solde réel API). En live/testnet = X (solde API réel)."""
+        if self._mode == "paper":
+            return _PAPER_CAPITAL
         return self._x if self._x is not None else _PAPER_CAPITAL
 
     def get_balance(self, force_refresh: bool = False) -> float:
