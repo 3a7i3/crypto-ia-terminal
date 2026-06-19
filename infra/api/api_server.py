@@ -334,7 +334,7 @@ def get_trades() -> dict:
                 "tp_price": p.get("take_profit"),
                 "regime": map_regime(p.get("regime", "")),
                 "conviction": map_conviction(p.get("conviction_level", "")),
-                "subaccount": p.get("subaccount", "main"),
+                "subaccount": "main",
                 "opened_at": (p.get("opened_at") or p.get("logged_at") or "")[:16],
                 "pnl_series": [0, p.get("pnl_usd", 0)],
             }

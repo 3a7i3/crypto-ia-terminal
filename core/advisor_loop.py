@@ -815,6 +815,14 @@ def analyze_symbol(
                 }
             )
 
+        # ── Stabilité OHLCV — injectée dans features pour le ConvictionEngine ──
+        # Lue depuis last_stability (cache mis à jour par scan() ci-dessus).
+        # Zéro appel réseau supplémentaire.
+        _stab = scanners["1h"][symbol].last_stability.get(symbol, {})
+        if _stab:
+            features["stability_regime"] = _stab.get("regime", "unknown")
+            features["stability_score"] = float(_stab.get("score", 50))
+
         try:
             regime_detector = AdvancedRegimeDetector()
             regime = regime_detector.classify(features) if features else "unknown"
@@ -1186,11 +1194,7 @@ def analyze_symbol(
             # Récupère les stats depuis le ranker si disponible
             cae_stats: JSONDict = {}
             if ranker:
-                strategy_key = (
-                    "btc_momentum"
-                    if "BTC" in symbol
-                    else ("eth_volatility" if "ETH" in symbol else "sol_experimental")
-                )
+                strategy_key = symbol.replace("/", "_").lower()
                 cae_stats = capital_engine.stats_from_ranker(
                     ranker, strategy_key, regime
                 )
@@ -2730,8 +2734,48 @@ def main(
         has_futures = exec_engine.has_futures_demo()
         futures_bal = exec_engine.fetch_futures_balance() if has_futures else 0.0
 
+    # ── Portefeuille totalitaire unique : bootstrap X depuis l'API ────────────
+    # X = solde spot/futures USDT du compte API connecté.
+    # Si aucune clé API ou solde=0 → X=null → alerte + mode paper fallback.
+    # Tous les modules partagent ce seul X via WalletSync singleton.
+    from infra.wallet_sync import MIN_CAPITAL_X
+    from infra.wallet_sync import bootstrap_capital_x as _bootstrap_x
+
+    _capital_x = _bootstrap_x(getattr(exec_engine, "_exchange", None))
+    if _capital_x is not None:
+        log.info(
+            "[WalletSync] Portefeuille unique X = $%.2f USDT (depuis API)", _capital_x
+        )
+    else:
+        _exch_obj = getattr(exec_engine, "_exchange", None)
+        if _exch_obj is not None:
+            log.error(
+                "[WalletSync] Solde API = 0 USDT — X=null. Ajoutez des fonds "
+                "ou vérifiez les permissions de la clé API."
+            )
+            try:
+                _telegram(
+                    "⚠️ PORTEFEUILLE X = NULL\n"
+                    "Solde API = 0 USDT — impossible de trader.\n"
+                    "Ajoutez des fonds sur votre compte ou vérifiez la clé API."
+                )
+            except Exception:
+                pass
+        else:
+            log.info(
+                "[WalletSync] Aucune clé API détectée — X=%s (paper fallback WALLET_PAPER_CAPITAL)",
+                os.getenv("WALLET_PAPER_CAPITAL", "100"),
+            )
+
     # Lire le capital réel disponible (balance USDT testnet ou .env fallback)
+    # Après bootstrap, WalletSync retourne X si défini, sinon WALLET_PAPER_CAPITAL.
     real_capital = exec_engine.fetch_available_capital()
+    if real_capital < MIN_CAPITAL_X:
+        log.warning(
+            "[WalletSync] Capital = $%.4f < $%.1f — système en mode dégradé",
+            real_capital,
+            MIN_CAPITAL_X,
+        )
 
     # P2: Init execution pipeline (snapshot statique — pas de refresh réseau)
     if _EXEC_CONSTRAINTS_AVAILABLE:
@@ -2934,10 +2978,16 @@ def main(
 
     log.info("Mode: %s", trading_mode)
 
+    _x_status = (
+        f"X=${_capital_x:.2f} USDT (API)"
+        if _capital_x is not None
+        else "X=null (paper fallback)"
+    )
     _telegram(
         f"Crypto AI Terminal demarre\n"
         f"Symboles: {', '.join(symbols)}\n"
         f"Intervalle: {interval}s | Rapport: toutes les {interval * NOTIFY_EVERY // 60} min\n"
+        f"Portefeuille unique: {_x_status}\n"
         f"Capital: ${real_capital:.0f} | Ordre max: ${order_size:.0f}\n"
         f"Mode: {trading_mode}\n"
         f"Kill Switch: actif | Exchange Monitor: actif\n"
@@ -2947,20 +2997,13 @@ def main(
 
     _telegram(_build_guide())
 
-    # SubaccountManager — désactivé en observation (évite les trades démo fantômes)
+    # SubaccountManager — supprimé. Portefeuille totalitaire unique X.
+    # Un seul solde, une seule source de vérité : WalletSync.get_balance().
     sub_manager = None
-    if not advisor_only:
-        try:
-            from quant_hedge_ai.agents.execution.subaccount_manager import (
-                SubaccountManager,
-            )
-
-            sub_manager = SubaccountManager.from_env()
-            log.info("[SubaccountManager] Initialisé")
-        except Exception as _sm_exc:
-            log.warning("[SubaccountManager] Non disponible: %s", _sm_exc)
-    else:
-        log.info("[SubaccountManager] Désactivé en mode observation")
+    log.info(
+        "[Portefeuille] Unique — X=$%.2f USDT (SubaccountManager désactivé définitivement)",
+        real_capital,
+    )
 
     # Position Manager — surveille les positions ouvertes (TP/SL/trailing)
     pos_manager = _profile_bootstrap_step(
@@ -2999,7 +3042,7 @@ def main(
                     getattr(pos, "current_price", pos.entry_price) or pos.entry_price
                 ),
             ],
-            "subaccount": getattr(pos, "subaccount", "default"),
+            "subaccount": "main",
             "leverage": int(getattr(pos, "leverage", 1)),
             "qty": float(getattr(pos, "qty", 0.0)),
             "tp_pct": float(getattr(pos, "tp_pct", 0.0)),
@@ -3094,11 +3137,8 @@ def main(
         pos.signal_age_sec = time.time() - result_row["signal"].timestamp
         raw_features = result_row.get("features")
         pos.entry_features = raw_features if isinstance(raw_features, dict) else {}
-        pos.subaccount = (
-            "btc_momentum"
-            if "BTC" in symbol
-            else ("eth_volatility" if "ETH" in symbol else "sol_experimental")
-        )
+        pos.regime = result_row.get("regime", "unknown")
+        pos.subaccount = "main"
         return pos
 
     def _register_position_from_execution(
@@ -3126,19 +3166,6 @@ def main(
                 effective_size,
             )
             pos_manager.add_position(pos)
-            # ── Sync vers SubaccountManager pour dashboard ──────────────────
-            if sub_manager:
-                try:
-                    subaccount_name = getattr(pos, "subaccount", "default")
-                    unit = sub_manager.get(subaccount_name)
-                    if unit and unit.position_manager:
-                        unit.position_manager.add_position(pos, silent=True)
-                        log.debug(
-                            "[SubaccountManager SYNC] Position enregistrée dans %s",
-                            subaccount_name,
-                        )
-                except Exception as _sync_exc:
-                    log.debug("[SubaccountManager SYNC] Failed: %s", _sync_exc)
             try:
                 import json as _json
                 import os as _os
@@ -3252,8 +3279,7 @@ def main(
                         f"Entry:  ${_entry_px:.4g}\n"
                         f"TP:     {_tp_s}  SL: {_sl_s}{_tr_s}\n"
                         f"Vol:    ${float(effective_size):.2f}  |  Volatilite: {_vol_s}\n"
-                        f"Score:  {_score}  |  Regime: {_regime}\n"
-                        f"Compte: {getattr(pos, 'subaccount', '?')}"
+                        f"Score:  {_score}  |  Regime: {_regime}"
                     )
             except Exception:
                 pass
@@ -3264,19 +3290,6 @@ def main(
             return False
 
     def _on_position_close(pos: Any, reason: Any) -> None:
-        # ── Sync fermeture vers SubaccountManager ──────────────────────────
-        if sub_manager:
-            try:
-                subaccount_name = getattr(pos, "subaccount", "default")
-                unit = sub_manager.get(subaccount_name)
-                if unit and unit.position_manager:
-                    unit.position_manager.close_position(pos.symbol, reason)
-                    log.debug(
-                        "[SubaccountManager SYNC] Position fermée dans %s",
-                        subaccount_name,
-                    )
-            except Exception as _sync_exc:
-                log.debug("[SubaccountManager SYNC close] Failed: %s", _sync_exc)
         try:
             tracker_finalize_position(
                 str(getattr(pos, "order_id", "")),
@@ -3687,7 +3700,7 @@ def main(
             pos_regime = getattr(pos, "regime", "unknown")
             # Ranker
             ranker.record_trade(
-                strategy_name=pos.subaccount,
+                strategy_name=pos.symbol,
                 regime=pos_regime,
                 pnl_pct=pos.pnl_pct,
                 sharpe=(
@@ -3700,14 +3713,14 @@ def main(
             # Meta-strategy
             meta_engine.record_trade_result(
                 regime=pos_regime,
-                personality=pos.subaccount,
+                personality=pos.symbol,
                 pnl_pct=pos.pnl_pct,
             )
             # Self-Awareness — nourrit le détecteur de dérive
             awareness_engine.record_trade(
                 pnl_pct=pos.pnl_pct,
                 regime=pos_regime,
-                personality=pos.subaccount,
+                personality=pos.symbol,
                 order_size=pos.size_usd,
             )
             # Decision Quality — ferme la décision associée
@@ -3731,7 +3744,15 @@ def main(
                     signal_age_sec=getattr(pos, "signal_age_sec", 0.0),
                     consecutive_losses=_consecutive_losses["value"],
                     exit_reason=getattr(pos, "close_reason", ""),
-                    personality=getattr(pos, "subaccount", ""),
+                    personality=getattr(pos, "symbol", ""),
+                    entry_price=getattr(pos, "entry_price", 0.0),
+                    exit_price=getattr(pos, "current_price", 0.0),
+                    opened_at=getattr(pos, "opened_at", 0.0),
+                    tp_pct=getattr(pos, "tp_pct", 0.0),
+                    sl_pct=getattr(pos, "sl_pct", 0.0),
+                    tp_price=getattr(pos, "tp_price", 0.0),
+                    sl_price=getattr(pos, "sl_price", 0.0),
+                    atr_entry=getattr(pos, "atr", 0.0),
                 )
             except Exception as _me:
                 log.debug("[MistakeMemory] record échoué: %s", _me)
@@ -4600,7 +4621,53 @@ def main(
             _cycle_exec_failed = (
                 False  # une seule incrémentation par cycle, pas par symbole
             )
-            for sym in symbols:
+            # Parallel OHLCV pre-scan — remplit le cache pour tous les symboles
+            # avant la boucle séquentielle de décision/exécution.
+            _prescan_workers = min(
+                len(symbols), int(os.getenv("ADVISOR_PRESCAN_WORKERS", "20"))
+            )
+            with ThreadPoolExecutor(
+                max_workers=_prescan_workers, thread_name_prefix="prescan"
+            ) as _prescan_pool:
+                _prescan_futures = {
+                    _prescan_pool.submit(scanners["1h"][s].scan): s for s in symbols
+                }
+                for _pf, _ps in _prescan_futures.items():
+                    try:
+                        _pf.result(
+                            timeout=float(os.getenv("ADVISOR_PRESCAN_TIMEOUT", "8"))
+                        )
+                    except Exception as _pfe:
+                        log.debug("[prescan] %s ignoré: %s", _ps, _pfe)
+
+            # Tri des symboles par score de stabilité/tradabilité (score DESC, tier ASC).
+            # Les symboles les plus "propres" à trader sont analysés en premier dans le cycle.
+            try:
+                from quant_hedge_ai.agents.market.symbol_stability import (
+                    sort_by_tradability,
+                )
+
+                _stab_map = {}
+                for _s in symbols:
+                    try:
+                        _stab_map.update(scanners["1h"][_s].last_stability)
+                    except Exception:
+                        pass
+                symbols_ordered = sort_by_tradability(symbols, _stab_map)
+                if symbols_ordered:
+                    log.debug(
+                        "[Stability] Top 3 tradables: %s",
+                        ", ".join(
+                            f"{s}={_stab_map[s]['score']:.0f}({_stab_map[s]['regime']})"
+                            for s in symbols_ordered[:3]
+                            if s in _stab_map
+                        ),
+                    )
+            except Exception as _sort_exc:
+                symbols_ordered = symbols
+                log.debug("[Stability] tri ignoré: %s", _sort_exc)
+
+            for sym in symbols_ordered:
                 r = analyze_symbol(
                     sym,
                     scanners,
@@ -5648,7 +5715,7 @@ def main(
                         _portfolio_intel.record_position(
                             symbol=_p.symbol,
                             exchange=os.getenv("ACTIVE_EXCHANGE", "unknown"),
-                            strategy=getattr(_p, "subaccount", "unknown"),
+                            strategy=getattr(_p, "symbol", "unknown"),
                             side=(
                                 _p.side.value
                                 if hasattr(_p.side, "value")
@@ -6336,6 +6403,12 @@ if __name__ == "__main__":
     )
 
     # ── MarketUniverseRanker — sélection dynamique des symboles ──────────────
+    # Pipeline 2 étapes :
+    #   1. PerpUniverseBuilder.discover() — 1 seul appel fetch_tickers() sur MEXC
+    #      → filtre volume+spread+volatilité → top 80 candidats USDT+USDC
+    #   2. MarketUniverseRanker.rank() — scoring 6 critères (vol/liquidity/spread/
+    #      volatilité/corrélation/fiabilité) → top RANKER_TOP_N (défaut 50)
+    # Fallback : CANDIDATES_ALL (50 statiques) si MEXC indisponible.
     if os.getenv("RANKER_ENABLED", "false").lower() == "true":
         try:
             from infra.live_exchange_reader import LiveExchangeReader
@@ -6343,34 +6416,64 @@ if __name__ == "__main__":
                 CANDIDATES_ALL,
                 MarketUniverseRanker,
             )
+            from tools.perp_universe_builder import PerpUniverseBuilder
 
             _ranker_exchange = os.getenv("RANKER_EXCHANGE", "mexc")
-            # Top N après ranking — défaut 20 pour couvrir suffisamment de paires
-            _ranker_top_n = int(os.getenv("RANKER_TOP_N", "20"))
+            _ranker_top_n = int(os.getenv("RANKER_TOP_N", "50"))
+            _ranker_min_vol = float(os.getenv("RANKER_MIN_VOL_USD", "500000"))
             _ranker_reader = LiveExchangeReader(exchange_id=_ranker_exchange)
             _ping = _ranker_reader.ping()
+
             if _ping.get("status") == "OK":
-                _ranker = MarketUniverseRanker(reader=_ranker_reader)
-                # Rank sur l'univers complet de 50 candidats
-                _ranked = _ranker.rank(CANDIDATES_ALL, top_n=_ranker_top_n)
+                # Étape 1 — Scan MEXC complet (1 appel batch, USDT+USDC)
+                _candidates_syms: list[str] = CANDIDATES_ALL
+                try:
+                    _builder = PerpUniverseBuilder(exchange_id=_ranker_exchange)
+                    _discovered = _builder.discover(
+                        top_n=80,
+                        min_vol_usd=_ranker_min_vol,
+                    )
+                    if _discovered:
+                        _candidates_syms = [c.symbol for c in _discovered]
+                        log.info(
+                            "[Ranker] PerpBuilder: %d paires MEXC qualifiées "
+                            "(vol>$%.0fk, spread<%.1f%%)",
+                            len(_candidates_syms),
+                            _ranker_min_vol / 1000,
+                            float(os.getenv("PERP_BUILDER_MAX_SPREAD_PCT", "0.50")),
+                        )
+                except Exception as _be:
+                    log.warning(
+                        "[Ranker] PerpBuilder indisponible (%s) — 50 candidats statiques",
+                        _be,
+                    )
+
+                # Étape 2 — Scoring 6 critères → top N
+                _ranker_inst = MarketUniverseRanker(reader=_ranker_reader)
+                _ranked = _ranker_inst.rank(_candidates_syms, top_n=_ranker_top_n)
                 _ranked_syms = [e.symbol for e in _ranked if e.score > 0]
                 if _ranked_syms:
                     log.info(
-                        "[Ranker] Top %d symboles (sur %d candidats): %s",
+                        "[Ranker] Top %d selectionnes (sur %d candidats MEXC): %s%s",
                         len(_ranked_syms),
-                        len(CANDIDATES_ALL),
-                        ", ".join(_ranked_syms),
+                        len(_candidates_syms),
+                        ", ".join(_ranked_syms[:15]),
+                        "..." if len(_ranked_syms) > 15 else "",
                     )
                     _symbols_from_env = _ranked_syms
                 else:
-                    log.warning("[Ranker] Aucun symbole valide — fallback défaut")
+                    log.warning(
+                        "[Ranker] Aucun symbole valide — fallback SYMBOLS_DEFAULT"
+                    )
             else:
                 log.warning(
-                    "[Ranker] Exchange %s indisponible — fallback défaut",
+                    "[Ranker] Exchange %s inaccessible (ping KO) — fallback SYMBOLS_DEFAULT",
                     _ranker_exchange,
                 )
         except Exception as _ranker_exc:
-            log.warning("[Ranker] Erreur démarrage: %s — fallback défaut", _ranker_exc)
+            log.warning(
+                "[Ranker] Erreur demarrage: %s — fallback SYMBOLS_DEFAULT", _ranker_exc
+            )
     # ─────────────────────────────────────────────────────────────────────────
 
     parser = argparse.ArgumentParser(description="Advisor loop multi-symboles")

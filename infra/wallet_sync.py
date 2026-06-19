@@ -1,6 +1,11 @@
 """
 infra/wallet_sync.py — Source unique de vérité pour le solde du portefeuille.
 
+Portefeuille totalitaire unique : un seul X pour tout le système.
+X = solde réel du compte API connecté (spot/futures USDT libre).
+Si aucune clé API : X = WALLET_PAPER_CAPITAL (env var, défaut 100).
+Si X < 1.0 USDT : X = null → le système ne peut pas trader.
+
 Avant ce module, 4 chiffres de capital coexistaient sans jamais être synchronisés :
   - V9_INITIAL_CAPITAL      ($1000) — fallback exec_engine.fetch_available_capital()
   - MexcSimulator           ($10)   — fallback hardcodé interne au simulateur
@@ -10,7 +15,7 @@ Avant ce module, 4 chiffres de capital coexistaient sans jamais être synchronis
 Résultat : chaque bot/module affichait un solde différent pour le même système.
 
 Avec WalletSync, un seul chemin :
-  - Mode paper  → WALLET_PAPER_CAPITAL (un seul env var) + somme cumulative des
+  - Mode paper  → X (solde API ou WALLET_PAPER_CAPITAL) + somme cumulative des
                   pnl_usd du ledger (databases/paper_trades.jsonl) — solde qui
                   évolue avec chaque trade fermé, identique pour tous les
                   consommateurs (sizing, simulateur, bots Telegram, gates).
@@ -27,15 +32,21 @@ lire indépendamment MEXC_SIM_CAPITAL / V9_INITIAL_CAPITAL / VIRTUAL_CAPITAL_USD
 from __future__ import annotations
 
 import json
+import logging
 import os
 import threading
 import time
 from pathlib import Path
 from typing import Any, Optional
 
+_log = logging.getLogger(__name__)
+
 _TRADES_LOG = Path(os.getenv("PAPER_TRADE_LOG", "databases/paper_trades.jsonl"))
 _PAPER_CAPITAL = float(os.getenv("WALLET_PAPER_CAPITAL", "100"))
 _CACHE_TTL_S = float(os.getenv("WALLET_CACHE_TTL_S", "30"))
+
+# Seuil minimal pour qu'un solde soit considéré comme valide (X >= MIN_CAPITAL_X)
+MIN_CAPITAL_X = 1.0
 
 
 def _read_ledger_pnl() -> float:
@@ -58,11 +69,16 @@ def _read_ledger_pnl() -> float:
 
 class WalletSync:
     """
-    Source unique de solde — un seul point de vérité pour tout le système.
+    Source unique de solde — portefeuille totalitaire unique (X) pour tout le système.
+
+    X = solde réel API (spot + futures USDT) récupéré au démarrage via bootstrap().
+    Si bootstrap() réussit : X remplace WALLET_PAPER_CAPITAL comme base de capital.
+    Si bootstrap() échoue (pas de clé API, solde=0) : X=None → dégradé.
 
     Usage :
-        wallet = WalletSync(exchange=ccxt_exchange, mode="paper")
-        balance = wallet.get_balance()
+        wallet = get_wallet_sync()
+        x = wallet.bootstrap(exchange)   # au démarrage uniquement
+        balance = wallet.get_balance()   # X + PnL cumulé (paper) ou API live
     """
 
     def __init__(
@@ -77,22 +93,75 @@ class WalletSync:
         self._lock = threading.Lock()
         self._last_value: Optional[float] = None
         self._last_fetch_ts: float = 0.0
+        self._x: Optional[float] = (
+            None  # Capital X — source unique, initialisé via bootstrap()
+        )
 
     @property
     def mode(self) -> str:
         return self._mode
 
+    @property
+    def capital_x(self) -> Optional[float]:
+        """Capital X actuellement en usage (None = non initialisé ou solde invalide)."""
+        return self._x
+
+    def set_x(self, x: float) -> None:
+        """
+        Définit le capital X — unique source de capital pour tout le système.
+        Appeler via bootstrap() au démarrage, pas directement.
+        """
+        if x < MIN_CAPITAL_X:
+            raise ValueError(
+                f"Capital X={x:.2f} invalide — doit être >= {MIN_CAPITAL_X} USDT"
+            )
+        self._x = float(x)
+        self._last_value = self._x  # fallback live aussi
+
+    def bootstrap(self, exchange: Any = None) -> Optional[float]:
+        """
+        Récupère le solde réel (spot USDT libre) depuis l'API au démarrage.
+
+        Retourne X si X >= MIN_CAPITAL_X, sinon None.
+        En cas de succès, X devient la base de capital pour tout le système.
+        En cas d'échec (pas d'exchange, erreur API, solde=0) : retourne None.
+        Le système continue en mode dégradé (WALLET_PAPER_CAPITAL comme fallback).
+        """
+        exch = exchange or self._exchange
+        if exch is None:
+            _log.info("[WalletSync] bootstrap: pas d'exchange — X=null (mode paper)")
+            return None
+        try:
+            bal = exch.fetch_balance()
+            free = bal.get("free", {}) or {}
+            usdt = float(free.get(self._quote_asset, 0.0) or 0.0)
+            if usdt >= MIN_CAPITAL_X:
+                self.set_x(usdt)
+                _log.info("[WalletSync] bootstrap: X=%.2f USDT (depuis API)", usdt)
+                return usdt
+            _log.warning(
+                "[WalletSync] bootstrap: solde API = %.4f USDT < %.1f — X=null",
+                usdt,
+                MIN_CAPITAL_X,
+            )
+            return None
+        except Exception as exc:
+            _log.warning("[WalletSync] bootstrap: erreur API (%s) — X=null", exc)
+            return None
+
+    def _base_capital(self) -> float:
+        """Capital de base : X si bootstrappé, sinon WALLET_PAPER_CAPITAL."""
+        return self._x if self._x is not None else _PAPER_CAPITAL
+
     def get_balance(self, force_refresh: bool = False) -> float:
         """
-        Retourne le solde actuel — paper (ledger) ou live/testnet (API réelle).
+        Retourne le solde actuel — paper (X + PnL ledger) ou live/testnet (API réelle).
 
-        Mode paper : toujours recalculé depuis le ledger (pas de cache,
-        coût négligeable, garantit la fraîcheur après chaque trade fermé).
-        Mode live/testnet : caché sur WALLET_CACHE_TTL_S secondes, fallback
-        sur la dernière valeur connue si l'exchange échoue.
+        Mode paper : X (ou WALLET_PAPER_CAPITAL si X non initialisé) + cumul PnL ledger.
+        Mode live/testnet : balance API cachée sur WALLET_CACHE_TTL_S, fallback X.
         """
         if self._mode == "paper":
-            return _PAPER_CAPITAL + _read_ledger_pnl()
+            return self._base_capital() + _read_ledger_pnl()
 
         with self._lock:
             now = time.time()
@@ -121,11 +190,11 @@ class WalletSync:
     def _fallback(self) -> float:
         if self._last_value is not None:
             return self._last_value
-        return _PAPER_CAPITAL
+        return self._base_capital()
 
     def initial_capital(self) -> float:
         """Capital de départ — utilisé pour calculer ROI%/drawdown%."""
-        return _PAPER_CAPITAL
+        return self._base_capital()
 
 
 _singleton: Optional[WalletSync] = None
@@ -150,6 +219,17 @@ def get_wallet_sync(exchange: Any = None, mode: Optional[str] = None) -> WalletS
         elif exchange is not None and _singleton._exchange is None:
             _singleton._exchange = exchange
         return _singleton
+
+
+def bootstrap_capital_x(exchange: Any = None) -> Optional[float]:
+    """
+    Bootstrap le capital X du singleton depuis l'API au démarrage.
+
+    À appeler une seule fois, juste après la création de l'exchange.
+    Retourne X (float >= 1.0) si succès, None si solde invalide/absent.
+    """
+    wallet = get_wallet_sync(exchange=exchange)
+    return wallet.bootstrap(exchange)
 
 
 def reset_wallet_sync() -> None:

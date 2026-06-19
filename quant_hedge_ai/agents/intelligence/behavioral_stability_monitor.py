@@ -21,7 +21,7 @@ Usage :
     bsm.record_cycle(
         regime="sideways",
         threshold=66,
-        strategy_name="sol_experimental",
+        strategy_name="SOL/USDT",
         trade_executed=True,
     )
     report = bsm.report()

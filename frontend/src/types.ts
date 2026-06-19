@@ -52,7 +52,6 @@ export interface OpenPosition {
   tp_price?:     number;
   regime:        MarketRegime;
   conviction:    ConvictionLevel;
-  subaccount:    string;
   opened_at:     string;
   pnl_series:    number[];
 }

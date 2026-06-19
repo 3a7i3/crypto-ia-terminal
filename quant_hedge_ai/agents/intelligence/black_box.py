@@ -348,7 +348,7 @@ class BlackBox:
             ),
             score=getattr(pos, "signal_score", 0),
             regime=getattr(pos, "regime", "unknown"),
-            personality=getattr(pos, "subaccount", "?"),
+            personality=getattr(pos, "symbol", "main"),
             price=getattr(pos, "current_price", 0.0),
             reason=f"Fermé: {reason.value if hasattr(reason, 'value') else reason}",
             pnl_pct=getattr(pos, "pnl_pct", 0.0),

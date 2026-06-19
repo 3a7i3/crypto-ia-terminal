@@ -88,7 +88,6 @@ export interface ApiOpenPosition {
   tp_price?:     number;
   regime:        string;
   conviction:    string;
-  subaccount:    string;
   opened_at:     string;
   pnl_series:    number[];
 }

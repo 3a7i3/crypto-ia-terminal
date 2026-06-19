@@ -18,11 +18,12 @@ def test_market_scanner_synthetic_scan_returns_snapshot_and_history(monkeypatch)
     scanner = MarketScanner(symbols=["BTCUSDT", "ETHUSDT"], limit=5)
     result = scanner.scan()
 
-    assert set(result) == {"candles", "history"}
+    assert {"candles", "history", "stability"}.issubset(set(result))
     assert [c["symbol"] for c in result["candles"]] == ["BTCUSDT", "ETHUSDT"]
     assert set(result["history"]) == {"BTCUSDT", "ETHUSDT"}
     assert all(len(series) == 5 for series in result["history"].values())
     assert all(candle["source"] == "synthetic" for candle in result["candles"])
+    assert set(result["stability"]) == {"BTCUSDT", "ETHUSDT"}
 
 
 def test_market_scanner_uses_fresh_cache_before_refetch(monkeypatch):
@@ -71,7 +72,7 @@ def test_market_scanners_share_exchange_instance(monkeypatch):
     monkeypatch.setenv("EXCHANGE_TESTNET", "false")
 
     MarketScanner._exchange_pool.clear()
-    MarketScanner._exchange_call_locks.clear()
+    MarketScanner._exchange_call_semaphores.clear()
     MarketScanner._exchange_markets_ready.clear()
     MarketScanner._exchange_market_preload_started.clear()
 
@@ -103,7 +104,7 @@ def test_market_scanner_refreshes_one_hour_history_incrementally(monkeypatch):
     monkeypatch.setenv("EXCHANGE_TESTNET", "false")
 
     MarketScanner._exchange_pool.clear()
-    MarketScanner._exchange_call_locks.clear()
+    MarketScanner._exchange_call_semaphores.clear()
     MarketScanner._exchange_markets_ready.clear()
     MarketScanner._exchange_market_preload_started.clear()
 
@@ -190,7 +191,7 @@ def test_market_scanner_preloads_markets_once_per_shared_exchange(monkeypatch):
     monkeypatch.setenv("EXCHANGE_TESTNET", "false")
 
     MarketScanner._exchange_pool.clear()
-    MarketScanner._exchange_call_locks.clear()
+    MarketScanner._exchange_call_semaphores.clear()
     MarketScanner._exchange_markets_ready.clear()
     MarketScanner._exchange_market_preload_started.clear()
 

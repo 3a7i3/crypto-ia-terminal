@@ -67,7 +67,7 @@ class Position:
     qty: float  # quantité base (ex: BTC)
     leverage: int = 1
     order_id: str = ""
-    subaccount: str = "default"
+    subaccount: str = "main"
 
     # Paramètres TP/SL de base
     tp_pct: float = 0.04

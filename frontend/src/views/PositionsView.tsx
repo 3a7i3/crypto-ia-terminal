@@ -29,7 +29,6 @@ function mapOpen(p: ApiOpenPosition): OpenPosition {
     tp_price:      p.tp_price,
     regime:        p.regime as MarketRegime,
     conviction:    p.conviction as ConvictionLevel,
-    subaccount:    p.subaccount,
     opened_at:     p.opened_at,
     pnl_series:    p.pnl_series,
   };

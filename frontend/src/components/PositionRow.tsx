@@ -50,9 +50,6 @@ export const OpenPositionRow: React.FC<{ pos: OpenPosition }> = ({ pos }) => {
           {pos.symbol.replace("/USDT", "")}
           <span className="font-normal text-[10px]" style={{ color: "var(--text-muted)" }}>/USDT</span>
         </span>
-        <div className="text-[10px]" style={{ color: "var(--text-muted)" }}>
-          {pos.subaccount}
-        </div>
       </Cell>
 
       {/* Side */}

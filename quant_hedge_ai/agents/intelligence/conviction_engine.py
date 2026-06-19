@@ -194,6 +194,24 @@ class ConvictionEngine:
         if sig_action == "HOLD":
             composite = min(composite, 35.0)
 
+        # ── Ajustement stabilité OHLCV ─────────────────────────────────────────
+        # Lit features["stability_regime"] injecté par analyze_symbol après scan().
+        # Amplifie la conviction si le marché est propre (trending/directional),
+        # pénalise si le marché est bruyant (noisy/flat) ou si la personnalité
+        # ne correspond pas au régime (momentum dans ranging, etc.).
+        _stab_regime = features.get("stability_regime", "unknown")
+        _stab_score = float(features.get("stability_score", 50))
+        _stab_adj = self._stability_adjustment(
+            _stab_regime, _stab_score, sig_action, personality_name
+        )
+        if _stab_adj != 0:
+            composite = max(0.0, min(100.0, composite + _stab_adj))
+            if _stab_adj > 0:
+                notes.append(f"Marché {_stab_regime} → +{_stab_adj:.0f}pts conviction")
+            else:
+                notes.append(f"Marché {_stab_regime} → {_stab_adj:.0f}pts conviction")
+            dims["stability"] = _stab_adj
+
         level = _score_to_level(composite)
         size_factor = _SIZE_FACTORS[level]
 
@@ -233,6 +251,48 @@ class ConvictionEngine:
             ("unknown", "SELL"): 45,
         }
         return float(matrix.get((regime, action.upper()), 50))
+
+    @staticmethod
+    def _stability_adjustment(
+        stability_regime: str,
+        stability_score: float,
+        action: str,
+        personality_name: str = "unknown",
+    ) -> float:
+        """
+        Ajustement du composite basé sur la structure OHLCV du symbole.
+
+        Règles :
+            noisy       → -20 pts  (bruit structural — pousse vers MINIMAL)
+            flat        → -15 pts  (aucune opportunité de momentum)
+            trending    → +8/+3 pts selon adéquation personnalité (momentum = fort fit)
+            ranging     → +5 pts si mean-reversion, -8 pts si momentum (mauvais fit)
+            directional → +3 pts  (bougies propres, setup lisible)
+            unknown     →   0 pts  (neutre)
+        """
+        action = action.upper()
+        p = personality_name.lower()
+
+        if stability_regime == "noisy":
+            return -20.0
+
+        if stability_regime == "flat":
+            return -15.0
+
+        if stability_regime == "trending":
+            is_trend = any(x in p for x in ("momentum", "breakout", "trend"))
+            return 8.0 if is_trend else 3.0
+
+        if stability_regime == "ranging":
+            is_reversal = any(
+                x in p for x in ("mean_reversion", "range", "scalp", "grid")
+            )
+            return 5.0 if is_reversal else -8.0
+
+        if stability_regime == "directional":
+            return 3.0 if action in ("BUY", "SELL") else 0.0
+
+        return 0.0
 
     @staticmethod
     def _data_quality_score(candles: list, features: dict) -> float:
@@ -425,6 +485,24 @@ class ConvictionEngine:
                 confidence_impact=0.0,
                 category=ReasoningCategory.SIGNAL_QUALITY,
             )
+
+        # ── Ajustement stabilité OHLCV ─────────────────────────────────────
+        _stab_regime = features.get("stability_regime", "unknown")
+        _stab_score = float(features.get("stability_score", 50))
+        _stab_adj = self._stability_adjustment(
+            _stab_regime, _stab_score, sig_action, personality_name
+        )
+        if _stab_adj != 0:
+            composite = max(0.0, min(100.0, composite + _stab_adj))
+            _impact = round(_stab_adj, 1)
+            packet.add_reasoning(
+                actor,
+                f"Marché {_stab_regime} → "
+                f"{'+' if _stab_adj > 0 else ''}{_impact:.0f}pts conviction",
+                confidence_impact=_stab_adj,
+                category=ReasoningCategory.TREND_ALIGNMENT,
+            )
+            dims["stability"] = _stab_adj
 
         # ── Mapping local ConvictionLevel → core ConvictionLevel ──────────
         local_level = _score_to_level(composite)

@@ -589,7 +589,7 @@ def test_main_refreshes_tracker_pipeline_on_position_close(monkeypatch):
         entry_price=100.0,
         pnl_usd=1.0,
         pnl_pct=0.01,
-        subaccount="btc_momentum",
+        subaccount="main",
         opened_at=time.time() - 60,
         side=SimpleNamespace(value="long"),
         size_usd=10.0,
@@ -678,7 +678,8 @@ def test_main_prewarms_one_hour_scanners(monkeypatch):
 
     advisor_loop.main(["BTC/USDT"], interval=0, max_cycles=1, runtime=runtime)
 
-    assert scan_calls == ["1h"]
+    # prewarm boot + parallel pre-scan par cycle = au moins 2 appels 1h
+    assert scan_calls.count("1h") >= 2
 
 
 def test_main_skips_live_execution_bootstrap_in_observation_mode(monkeypatch):
@@ -917,6 +918,7 @@ def test_main_starts_kill_switch_after_first_cycle_when_deferred(monkeypatch):
     )
 
     _force_observation_mode(monkeypatch)
+    monkeypatch.setenv("UNIVERSE_ENABLED", "false")
     monkeypatch.setattr(advisor_loop, "ADVISOR_DEFER_POST_CYCLE_SERVICES", True)
     monkeypatch.setattr(advisor_loop, "ADVISOR_PREWARM_1H", False)
     monkeypatch.setattr(advisor_loop, "ADVISOR_BACKGROUND_POSITION_WATCH", False)
@@ -1030,6 +1032,7 @@ def test_main_throttles_threat_radar_by_cycle(monkeypatch):
     runtime = _runtime()
 
     _force_observation_mode(monkeypatch)
+    monkeypatch.setenv("UNIVERSE_ENABLED", "false")
     monkeypatch.setattr(advisor_loop, "ADVISOR_STARTUP_LIGHT", False)
     monkeypatch.setattr(advisor_loop, "ADVISOR_PREWARM_1H", False)
     monkeypatch.setattr(advisor_loop, "ADVISOR_BACKGROUND_POSITION_WATCH", False)
@@ -1067,6 +1070,9 @@ def test_main_sheds_optional_work_after_over_budget_cycle(monkeypatch):
     runtime = _runtime()
 
     _force_observation_mode(monkeypatch)
+    monkeypatch.setenv(
+        "UNIVERSE_ENABLED", "false"
+    )  # évite injection symboles MEXC depuis perp_universe.json
     monkeypatch.setattr(advisor_loop, "ADVISOR_STARTUP_LIGHT", False)
     monkeypatch.setattr(advisor_loop, "ADVISOR_PREWARM_1H", False)
     monkeypatch.setattr(advisor_loop, "ADVISOR_BACKGROUND_POSITION_WATCH", False)

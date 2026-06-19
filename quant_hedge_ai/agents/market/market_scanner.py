@@ -13,6 +13,10 @@ from quant_hedge_ai.agents.market.ohlcv_validator import (
     validate_candles,
 )
 from quant_hedge_ai.agents.market.retry_policy import CircuitBreaker, retry_with_backoff
+from quant_hedge_ai.agents.market.symbol_stability import (
+    SymbolStability,
+    compute_stability,
+)
 
 _log = get_logger("quant_hedge_ai.agents.market.market_scanner")
 _CCXT_SYMBOL_MAP: dict[str, str] = {
@@ -30,12 +34,62 @@ _CCXT_SYMBOL_MAP: dict[str, str] = {
 }
 
 _SYNTHETIC_SEED: dict[str, float] = {
+    # Tier 1 — Core majors
     "BTC/USDT": 65_000,
     "ETH/USDT": 3_100,
     "SOL/USDT": 170,
     "BNB/USDT": 580,
-    "ARB/USDT": 1.2,
+    "XRP/USDT": 0.55,
+    "ADA/USDT": 0.45,
     "DOGE/USDT": 0.15,
+    "TON/USDT": 7.0,
+    # Tier 2 — L1/L2 infrastructure
+    "AVAX/USDT": 38.0,
+    "SUI/USDT": 1.5,
+    "NEAR/USDT": 7.0,
+    "APT/USDT": 10.0,
+    "ARB/USDT": 1.2,
+    "OP/USDT": 2.5,
+    "ATOM/USDT": 9.0,
+    "DOT/USDT": 7.5,
+    "HBAR/USDT": 0.09,
+    "FTM/USDT": 0.60,
+    "SEI/USDT": 0.55,
+    "STX/USDT": 2.5,
+    # Tier 3 — DeFi / protocoles
+    "LINK/USDT": 15.0,
+    "AAVE/USDT": 100.0,
+    "UNI/USDT": 10.0,
+    "INJ/USDT": 25.0,
+    "LDO/USDT": 2.5,
+    "PENDLE/USDT": 5.0,
+    "ENA/USDT": 0.90,
+    "JUP/USDT": 1.0,
+    "EIGEN/USDT": 3.5,
+    "ONDO/USDT": 1.5,
+    # Tier 4 — IA / narratives
+    "TAO/USDT": 400.0,
+    "FET/USDT": 2.3,
+    "RENDER/USDT": 8.0,
+    "WLD/USDT": 5.0,
+    "PYTH/USDT": 0.45,
+    "JTO/USDT": 3.0,
+    "W/USDT": 0.45,
+    "STRK/USDT": 1.2,
+    # Tier 5 — Meme / high-beta
+    "PEPE/USDT": 0.000012,
+    "WIF/USDT": 2.5,
+    "BONK/USDT": 0.000025,
+    "FLOKI/USDT": 0.00019,
+    "SHIB/USDT": 0.000026,
+    "NEIRO/USDT": 0.001,
+    "MEME/USDT": 0.033,
+    "HYPE/USDT": 15.0,
+    # Tier 6 — Stress / diversification
+    "LTC/USDT": 85.0,
+    "BCH/USDT": 480.0,
+    "TIA/USDT": 11.0,
+    "IMX/USDT": 2.0,
 }
 
 # TTL du cache en mémoire : pas de re-fetch si données < N secondes
@@ -128,7 +182,9 @@ class MarketScanner:
 
     _exchange_pool: dict[tuple[str, bool], Any] = {}
     _exchange_pool_lock = threading.Lock()
-    _exchange_call_locks: dict[tuple[str, bool], threading.Lock] = {}
+    # Semaphore(N) remplace Lock : permet N fetches HTTP concurrents par exchange
+    # (N = MARKET_SCANNER_POOL_SIZE, défaut 8) au lieu de sérialiser tous les appels.
+    _exchange_call_semaphores: dict[tuple[str, bool], threading.Semaphore] = {}
     _exchange_markets_ready: dict[tuple[str, bool], threading.Event] = {}
     _exchange_market_preload_started: set[tuple[str, bool]] = set()
     # Session aging — monotonic timestamp of creation and consecutive transport-error counter.
@@ -212,6 +268,9 @@ class MarketScanner:
         # Métriques de qualité des données
         self._stats: dict[str, int] = {"real": 0, "synthetic": 0, "cached": 0}
 
+        # Dernier scoring de stabilité calculé dans scan() — accès externe via last_stability
+        self._last_stability: dict[str, SymbolStability] = {}
+
     def _exchange_key(self) -> tuple[str, bool]:
         # MARKET_SCANNER_TESTNET prioritaire sur BINANCE_TESTNET.
         # Les données OHLCV sont publiques — utiliser le vrai exchange par défaut
@@ -224,13 +283,14 @@ class MarketScanner:
         return (self._exchange_id, use_testnet)
 
     @classmethod
-    def _get_exchange_call_lock(cls, key: tuple[str, bool]) -> threading.Lock:
+    def _get_exchange_call_semaphore(cls, key: tuple[str, bool]) -> threading.Semaphore:
         with cls._exchange_pool_lock:
-            lock = cls._exchange_call_locks.get(key)
-            if lock is None:
-                lock = threading.Lock()
-                cls._exchange_call_locks[key] = lock
-            return lock
+            sem = cls._exchange_call_semaphores.get(key)
+            if sem is None:
+                n = _get_int_env("MARKET_SCANNER_POOL_SIZE", 8)
+                sem = threading.Semaphore(n)
+                cls._exchange_call_semaphores[key] = sem
+            return sem
 
     @classmethod
     def _get_exchange_markets_ready(cls, key: tuple[str, bool]) -> threading.Event:
@@ -271,8 +331,10 @@ class MarketScanner:
             cls._exchange_generation[key] = cls._exchange_generation.get(key, 0) + 1
             # Replace the Event so any new waiters block on a fresh one;
             # the old event is garbage-collected — no lingering waiters because
-            # _ensure_markets_loaded holds exchange_call_lock while it waits,
-            # and invalidation is called only after that lock is released.
+            # _ensure_markets_loaded holds a semaphore slot while it waits,
+            # and invalidation is called only after that slot is released.
+            # Semaphores (_exchange_call_semaphores) survive session invalidation
+            # intentionally — they control concurrency, not session state.
             cls._exchange_markets_ready.pop(key, None)
             cls._exchange_market_preload_started.discard(key)
         _log.info(
@@ -318,8 +380,10 @@ class MarketScanner:
             return
 
         started_at = time.perf_counter()
-        exchange_lock = self._get_exchange_call_lock(key)
-        with exchange_lock:
+        # _exchange_pool_lock fournit l'exclusion mutuelle nécessaire pour garantir
+        # que load_markets() n'est appelé qu'une seule fois (pas le semaphore de fetch
+        # qui autorise N appels concurrents).
+        with self.__class__._exchange_pool_lock:
             if markets_ready.is_set():
                 return
             exchange.load_markets()
@@ -419,7 +483,12 @@ class MarketScanner:
                         # Record TTL baseline and ensure generation entry exists.
                         self.__class__._exchange_created_at[key] = time.monotonic()
                         self.__class__._exchange_generation.setdefault(key, 0)
-                    self._exchange_call_locks.setdefault(key, threading.Lock())
+                    self._exchange_call_semaphores.setdefault(
+                        key,
+                        threading.Semaphore(
+                            _get_int_env("MARKET_SCANNER_POOL_SIZE", 8)
+                        ),
+                    )
                     self._exchange_markets_ready.setdefault(key, threading.Event())
                     self._exchange = shared_exchange
                     # Capture generation inside the lock so we see the same value
@@ -483,7 +552,7 @@ class MarketScanner:
 
         key = self._exchange_key()
         ccxt_sym = _CCXT_SYMBOL_MAP.get(symbol, symbol)
-        exchange_lock = self._get_exchange_call_lock(key)
+        exchange_sem = self._get_exchange_call_semaphore(key)
         markets_ready = self._get_exchange_markets_ready(key)
         fetch_limit = limit or self._limit
 
@@ -506,7 +575,7 @@ class MarketScanner:
         def _do_fetch() -> list[dict]:
             started_at = time.perf_counter()
             _t_lock_start = time.perf_counter()
-            with exchange_lock:
+            with exchange_sem:
                 _lock_wait_ms = (time.perf_counter() - _t_lock_start) * 1000
                 _t_http_start = time.perf_counter()
                 ohlcvs = exchange.fetch_ohlcv(
@@ -658,6 +727,11 @@ class MarketScanner:
         """Retourne la série historique en cache pour un symbole."""
         return self._history.get(symbol, [])
 
+    @property
+    def last_stability(self) -> dict[str, SymbolStability]:
+        """Dernier scoring de stabilité calculé lors du scan() précédent."""
+        return self._last_stability
+
     def reset_profile(self) -> None:
         """Réinitialise les données de profiling (avant une nouvelle mesure)."""
         for key in self._profile_data:
@@ -808,10 +882,24 @@ class MarketScanner:
                     len(series),
                 )
 
+        # ── Scoring de stabilité ───────────────────────────────────────────────
+        # Calculé sur l'historique en cache (rapide — pure maths, pas de réseau).
+        # Les données synthétiques produisent un score mais le régime est "flat"
+        # par nature (random walk sans tendance).
+        stability: dict[str, SymbolStability] = {}
+        for symbol in self.symbols:
+            try:
+                stability[symbol] = compute_stability(
+                    self._history.get(symbol, []), symbol=symbol
+                )
+            except Exception:
+                pass
+        self._last_stability = stability
+
         sources = {c["source"] for c in snapshots}
         quality = self.data_quality()
         _log.info(
-            "[MarketScanner] %d symboles | source(s): %s | " "real=%.0f%% | circuit=%s",
+            "[MarketScanner] %d symboles | source(s): %s | real=%.0f%% | circuit=%s",
             len(snapshots),
             sources,
             quality["real_ratio"] * 100,
@@ -824,4 +912,4 @@ class MarketScanner:
                 time.perf_counter() - scan_started_at,
                 len(self.symbols),
             )
-        return {"candles": snapshots, "history": history}
+        return {"candles": snapshots, "history": history, "stability": stability}

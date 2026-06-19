@@ -240,6 +240,14 @@ class MistakeMemory:
         consecutive_losses: int = 0,
         exit_reason: str = "",
         personality: str = "",
+        entry_price: float = 0.0,
+        exit_price: float = 0.0,
+        opened_at: float = 0.0,
+        tp_pct: float = 0.0,
+        sl_pct: float = 0.0,
+        tp_price: float = 0.0,
+        sl_price: float = 0.0,
+        atr_entry: float = 0.0,
     ) -> Optional[dict]:
         """
         Enregistre le résultat d'un trade et analyse s'il était une erreur.
@@ -260,8 +268,9 @@ class MistakeMemory:
             personality=personality,
         )
 
+        _closed_at = time.time()
         record = {
-            "ts": time.time(),
+            "ts": _closed_at,
             "order_id": order_id,
             "symbol": symbol,
             "signal": signal,
@@ -273,6 +282,18 @@ class MistakeMemory:
             "personality": personality,
             "error_type": error_type,
             "explanation": explanation,
+            "trade": {
+                "entry_price": round(entry_price, 8) if entry_price else None,
+                "exit_price": round(exit_price, 8) if exit_price else None,
+                "opened_at": opened_at if opened_at else None,
+                "closed_at": _closed_at,
+                "duration_s": round(_closed_at - opened_at, 1) if opened_at else None,
+                "tp_pct": round(tp_pct, 6) if tp_pct else None,
+                "sl_pct": round(sl_pct, 6) if sl_pct else None,
+                "tp_price": round(tp_price, 8) if tp_price else None,
+                "sl_price": round(sl_price, 8) if sl_price else None,
+                "atr_entry": round(atr_entry, 8) if atr_entry else None,
+            },
             "context": {
                 k: context_features.get(k)
                 for k in (

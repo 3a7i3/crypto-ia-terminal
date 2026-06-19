@@ -155,7 +155,7 @@ class PerpUniverseBuilder:
             low = float(raw.get("low") or 0.0)
 
             details = {
-                "vol_score": round(self._score_vol(vol), 1),
+                "volume_score": round(self._score_vol(vol), 1),
                 "spread_score": round(self._score_spread(spread), 1),
                 "volatility_score": round(self._score_volatility(high, low, last), 1),
                 "reliability_score": round(self._score_reliability(raw), 1),
