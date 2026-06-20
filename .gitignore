@@ -58,6 +58,8 @@ databases/
 
 # Ignore runtime / generated artifacts
 cache/
+*.pkl
+.portfolio_bot_started
 PROJET_MINIATURE.md
 PROJET_MINIATURE_FULL.md
 
