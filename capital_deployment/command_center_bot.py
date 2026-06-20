@@ -1366,11 +1366,14 @@ class CommandCenterBot:
         )
 
     def _queue_set(self, param: str, value: str) -> None:
-        current = _get_env(param)
+        old_value = _get_env(param)  # capturer avant confirmation
+        command_str = f"/set {param} {value}"
         live_tag = " [live]" if param in _LIVE_PARAMS else " [redemarrage requis]"
         self._queue_action(
-            description=f"{param}: `{current}` → `{value}`{live_tag}",
-            action=lambda: self._apply_set(param, value),
+            description=f"{param}: `{old_value}` → `{value}`{live_tag}",
+            action=lambda: self._apply_set(
+                param, value, old_value=old_value, command=command_str
+            ),
         )
 
     def _do_confirm(self) -> str:
@@ -1430,12 +1433,30 @@ class CommandCenterBot:
 
     # ── Application des changements ───────────────────────────────────────────
 
-    def _apply_set(self, param: str, value: str) -> str:
-        # 1. Ecrire dans .env
+    def _apply_set(
+        self,
+        param: str,
+        value: str,
+        old_value: str = "",
+        command: str = "",
+    ) -> str:
+        from config.parameter_audit import record_parameter_change
+
+        # 1. Audit append-only (avant écriture pour capturer l'ancien état)
+        change_id = record_parameter_change(
+            parameter=param,
+            old_value=old_value,
+            new_value=value,
+            source="telegram",
+            command=command or f"/set {param} {value}",
+            operator=self._chat_id,
+        )
+
+        # 2. Ecrire dans .env
         written = _write_env(param, value)
         os.environ[param] = value  # mise a jour process courant aussi
 
-        # 2. Appliquer live si possible
+        # 3. Appliquer live si possible
         live_ok = False
         if param in _LIVE_PARAMS and self._provider.set_param:
             try:
@@ -1447,8 +1468,15 @@ class CommandCenterBot:
         live_tag = (
             " + applique live" if live_ok else " (redemarrage pour effet complet)"
         )
-        _log.info("[CommandCenter] SET %s=%s — %s%s", param, value, env_tag, live_tag)
-        return f"{env_tag}{live_tag}"
+        _log.info(
+            "[CommandCenter] SET %s=%s — %s%s [%s]",
+            param,
+            value,
+            env_tag,
+            live_tag,
+            change_id,
+        )
+        return f"{env_tag}{live_tag}\n`{change_id}`"
 
     # ── Rapport automatique ───────────────────────────────────────────────────
 

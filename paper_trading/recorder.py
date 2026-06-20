@@ -40,7 +40,7 @@ from typing import Optional
 
 _DEFAULT_PATH = os.getenv("PAPER_TRADE_LOG", "databases/paper_trades.jsonl")
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 
 def _score_to_bin(score: int) -> str:
@@ -196,6 +196,8 @@ class TradeEvent:
     # Schema v2
     market_context: Optional[MarketContext] = None
     decision_context: Optional[DecisionContext] = None
+    # Schema v3
+    runtime_config_version: str = ""
 
 
 @dataclass
@@ -228,6 +230,8 @@ class CompleteTrade:
     # Schema v2
     market_context: Optional[MarketContext] = None
     decision_context: Optional[DecisionContext] = None
+    # Schema v3
+    runtime_config_version: str = ""
 
 
 # ── Recorder ─────────────────────────────────────────────────────────────────
@@ -263,6 +267,8 @@ class PaperTradeRecorder:
         market_context: Optional[MarketContext] = None,
         decision_context: Optional[DecisionContext] = None,
     ) -> None:
+        from config.parameter_audit import current_config_version
+
         now = time.time()
         evt = TradeEvent(
             event="OPEN",
@@ -281,6 +287,7 @@ class PaperTradeRecorder:
             order_id=order_id,
             market_context=market_context,
             decision_context=decision_context,
+            runtime_config_version=current_config_version(),
         )
         self._append(evt)
 

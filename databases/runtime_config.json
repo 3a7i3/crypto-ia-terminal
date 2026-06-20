@@ -5,5 +5,6 @@
   "SIGNAL_MIN_SCORE": 70,
   "EO_DD_VETO": 0.10,
   "EO_DD_RECOVERY": 0.04,
-  "EXCHANGE_HEARTBEAT_S": 15
+  "EXCHANGE_HEARTBEAT_S": 15,
+  "_config_version": "CFG-INITIAL"
 }
