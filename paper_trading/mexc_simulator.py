@@ -40,7 +40,12 @@ _TAKER_FEE = float(os.getenv("MEXC_SIM_FEE", "0.001"))
 _SLIPPAGE = float(os.getenv("MEXC_SIM_SLIP", "0.0005"))
 _MONITOR_INTERVAL = 60  # secondes
 _POSITION_SIZE_PCT = 0.15  # 15% du capital disponible par position
-_MAX_POSITION_USD = 25.0  # plafond par position
+_MAX_POSITION_USD = float(
+    os.getenv("MEXC_SIM_MAX_POSITION_USD", "25.0")
+)  # plafond par position
+# Écart max toléré entre le prix OHLCV passé par l'appelant et le ticker live MEXC.
+# Au-delà → ordre rejeté (prix OHLCV stale/corrompu sur token exotique MEXC).
+_MAX_OHLCV_TICKER_DEV = float(os.getenv("MEXC_SIM_MAX_PRICE_DEV", "0.20"))
 # Âge max d'une position restaurable — au-delà elle est expirée et archivée
 _RESTORE_MAX_AGE_S = float(os.getenv("SIM_RESTORE_MAX_AGE_H", "4")) * 3600
 
@@ -430,10 +435,34 @@ class MexcSimulator:
         )
         if current_price <= 0:
             current_price = self._fetch_price(symbol)
-        if current_price <= 0:
-            order.status = OrderStatus.REJECTED
-            self._notify(f"[SIM] ORDRE REJETE — {symbol}: prix indisponible")
-            return order
+            if current_price <= 0:
+                order.status = OrderStatus.REJECTED
+                self._notify(f"[SIM] ORDRE REJETE — {symbol}: prix indisponible")
+                return order
+        else:
+            # Valider prix OHLCV vs ticker live — évite entrées stale/corrompues
+            # (ex: STAR/USDT OHLCV=$852 vs ticker=$0.17 → SL à -99%).
+            _live = self._fetch_price(symbol)
+            if _live > 0:
+                _dev = abs(current_price - _live) / current_price
+                if _dev > _MAX_OHLCV_TICKER_DEV:
+                    order.status = OrderStatus.REJECTED
+                    _log.warning(
+                        "[SIM] REJETE %s — écart prix OHLCV/ticker %.0f%% "
+                        "(OHLCV=%.5f ticker=%.5f) > seuil %.0f%%",
+                        symbol,
+                        _dev * 100,
+                        current_price,
+                        _live,
+                        _MAX_OHLCV_TICKER_DEV * 100,
+                    )
+                    self._notify(
+                        f"[SIM] REJETE {symbol} — prix OHLCV stale\n"
+                        f"OHLCV: ${current_price:.4g} | Ticker: ${_live:.4g} "
+                        f"| Ecart: {_dev:.0%}"
+                    )
+                    return order
+                current_price = _live
 
         return self._fill_market(order, current_price)
 

@@ -185,45 +185,58 @@ class TestFetchAvailableCapital:
         monkeypatch.setenv("EXCHANGE_ID", "binance")
 
     def test_fallback_when_no_exchange(self, tmp_path, monkeypatch):
+        # fetch_available_capital() délègue à WalletSync (WALLET_PAPER_CAPITAL).
+        # V9_INITIAL_CAPITAL est obsolète depuis la migration WalletSync.
         monkeypatch.setenv("EXEC_TRADE_LOG", str(tmp_path / "t.sqlite"))
-        monkeypatch.setenv("V9_INITIAL_CAPITAL", "2500")
+        import infra.wallet_sync as _ws
+
+        _ws.reset_wallet_sync()
+        monkeypatch.setattr(_ws, "_PAPER_CAPITAL", 2500.0)
         from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
 
         e = ExecutionEngine(live=False)
         assert e.fetch_available_capital() == 2500.0
+        _ws.reset_wallet_sync()
 
     def test_live_exchange_returns_usdt_balance(self, tmp_path, monkeypatch):
+        # En mode paper (live=False), WalletSync retourne le capital paper
+        # (WALLET_PAPER_CAPITAL) — l'exchange n'est pas interrogé en paper mode.
         monkeypatch.setenv("EXEC_TRADE_LOG", str(tmp_path / "t.sqlite"))
-        monkeypatch.setenv("V9_INITIAL_CAPITAL", "1000")
+        import infra.wallet_sync as _ws
+
+        _ws.reset_wallet_sync()
+        monkeypatch.setattr(_ws, "_PAPER_CAPITAL", 4200.0)
         from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
 
         e = ExecutionEngine(live=False)
-        mock_ex = MagicMock()
-        mock_ex.fetch_balance.return_value = {"free": {"USDT": 4200.0}}
-        e._exchange = mock_ex
         assert e.fetch_available_capital() == 4200.0
+        _ws.reset_wallet_sync()
 
     def test_zero_usdt_balance_falls_back(self, tmp_path, monkeypatch):
+        # Quand l'exchange retourne 0 (mode paper), WalletSync utilise _PAPER_CAPITAL.
         monkeypatch.setenv("EXEC_TRADE_LOG", str(tmp_path / "t.sqlite"))
-        monkeypatch.setenv("V9_INITIAL_CAPITAL", "999")
+        import infra.wallet_sync as _ws
+
+        _ws.reset_wallet_sync()
+        monkeypatch.setattr(_ws, "_PAPER_CAPITAL", 999.0)
         from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
 
         e = ExecutionEngine(live=False)
-        mock_ex = MagicMock()
-        mock_ex.fetch_balance.return_value = {"free": {"USDT": 0.0}}
-        e._exchange = mock_ex
         assert e.fetch_available_capital() == 999.0
+        _ws.reset_wallet_sync()
 
     def test_exchange_error_falls_back(self, tmp_path, monkeypatch):
+        # En cas d'erreur API (mode paper), WalletSync retourne _PAPER_CAPITAL.
         monkeypatch.setenv("EXEC_TRADE_LOG", str(tmp_path / "t.sqlite"))
-        monkeypatch.setenv("V9_INITIAL_CAPITAL", "888")
+        import infra.wallet_sync as _ws
+
+        _ws.reset_wallet_sync()
+        monkeypatch.setattr(_ws, "_PAPER_CAPITAL", 888.0)
         from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
 
         e = ExecutionEngine(live=False, _sleep=lambda _: None)
-        mock_ex = MagicMock()
-        mock_ex.fetch_balance.side_effect = Exception("network error")
-        e._exchange = mock_ex
         assert e.fetch_available_capital() == 888.0
+        _ws.reset_wallet_sync()
 
 
 # ── Suite 8 : detect_quote_asset ──────────────────────────────────────────────
