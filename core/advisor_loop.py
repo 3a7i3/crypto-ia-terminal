@@ -2318,6 +2318,36 @@ def _release_instance_lock() -> None:
         pass
 
 
+_CRITICAL_DEPS = [
+    ("pydantic_settings", "pydantic-settings", True),  # silent data loss si absent
+    ("httpx", "httpx", False),  # LM Studio — fallback explicite
+]
+
+
+def _check_critical_deps() -> None:
+    """Fail-fast si un module critique est absent. Mieux vaut arrêter que tourner silencieusement dégradé."""
+    missing_fatal = []
+    for mod, pkg, is_fatal in _CRITICAL_DEPS:
+        try:
+            __import__(mod)
+        except ImportError:
+            if is_fatal:
+                missing_fatal.append(pkg)
+            else:
+                log.warning(
+                    "[DepsCheck] Module optionnel absent: %s (pip install %s) — fallback actif",
+                    mod,
+                    pkg,
+                )
+    if missing_fatal:
+        msg = (
+            f"[FATAL] Modules critiques manquants: {missing_fatal}. "
+            "Exécuter: pip install -r requirements.txt"
+        )
+        log.critical(msg)
+        raise SystemExit(msg)
+
+
 def main(
     symbols: list[str],
     interval: int = 300,
@@ -2326,6 +2356,7 @@ def main(
     _sleep=time.sleep,
 ) -> None:
     _acquire_instance_lock()
+    _check_critical_deps()
 
     runtime = runtime or load_advisor_runtime()
 
