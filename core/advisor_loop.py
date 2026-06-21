@@ -788,6 +788,16 @@ def analyze_symbol(
             ),
         )
 
+    # Bloc synthétique : si le scanner a dû générer des données synthétiques
+    # (API OHLCV échouée), on traite cela comme "pas de données" pour éviter
+    # qu'une position s'ouvre à un prix fictif (seed=$1000 par défaut).
+    if candles_1h and candles_1h[-1].get("source") == "synthetic":
+        log.warning(
+            "[DataQuality] %s — données synthétiques (fetch OHLCV échoué) → analyse bloquée",
+            symbol,
+        )
+        candles_1h = []
+
     # Scan MTF (4h + 1d)
     with watchdog.measure(f"scan_mtf_{symbol}"):
         mtf_data = scanners["mtf"][symbol].scan(cycle=cycle)
@@ -5049,6 +5059,8 @@ def main(
                     and not advisor_only
                     and not _runtime_safe_mode_active()
                     and not protection_blocks  # ← CRITICAL: skip si protections activées
+                    and float(r.get("prix", 0.0))
+                    > 0  # prix=0 → données absentes ou synthétiques
                 ):
                     try:
                         # Use signal_to_execute if available (test mode override), else original signal

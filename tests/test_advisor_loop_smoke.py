@@ -378,6 +378,7 @@ def test_main_opens_real_position_path_and_updates_tracker(monkeypatch):
         "analyze_symbol",
         lambda *args, **kwargs: {
             "symbol": "BTC/USDT",
+            "prix": 100.0,
             "signal": SimpleNamespace(
                 actionable=True,
                 signal="BUY",

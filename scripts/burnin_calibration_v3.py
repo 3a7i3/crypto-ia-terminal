@@ -264,11 +264,12 @@ def _compute_trade_stats(trades: list[dict]) -> TradeStats:
     total_loss = abs(sum(p for p in pnl_usds if p < 0))
     pf = round(total_gain / total_loss, 2) if total_loss > 0 else float("inf")
 
-    # Equity curve for max drawdown
+    # Equity curve for max drawdown — additive USD (not compounded %)
+    # Using pnl_usd avoids distortion from impossible pnl_pct values (>100%).
     capital = 1000.0
     equity = [capital]
-    for p in pnl_pcts:
-        equity.append(equity[-1] * (1 + p))
+    for p_usd in pnl_usds:
+        equity.append(equity[-1] + p_usd)
     peak = equity[0]
     max_dd = 0.0
     for e in equity:
