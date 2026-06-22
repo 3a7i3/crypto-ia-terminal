@@ -427,3 +427,121 @@ class TestMexcSimulatorRestoreGuard:
 
         assert restored == 0
         assert "SOL/USDT" not in sim2._positions
+
+
+class TestMexcSimulatorPositionTimeout:
+    """Garantit que les positions trop anciennes sont auto-fermées."""
+
+    def _make_sim(self):
+        from paper_trading.mexc_simulator import MexcSimulator
+
+        sim = MexcSimulator(mexc_reader=None, telegram_fn=lambda _: None)
+        sim._capital = 200.0
+        sim._initial_capital = 200.0
+        sim._running = True
+        return sim
+
+    def test_position_auto_closed_after_timeout(self):
+        """Position ouverte depuis > MAX_AGE → TIMEOUT → fermée par _check_positions."""
+        import time
+        from unittest.mock import MagicMock
+
+        from paper_trading import mexc_simulator
+        from paper_trading.mexc_simulator import MexcPosition, MexcSimulator, OrderSide
+
+        notifications = []
+        mock_reader = MagicMock()
+        mock_reader.spot.fetch_ticker.return_value = {"last": 100.0}
+
+        sim = MexcSimulator(
+            mexc_reader=mock_reader, telegram_fn=lambda m: notifications.append(m)
+        )
+        sim._capital = 200.0
+        sim._initial_capital = 200.0
+        sim._running = True
+
+        original_max_age = mexc_simulator._MAX_POSITION_AGE_H
+        try:
+            mexc_simulator._MAX_POSITION_AGE_H = 0.001  # 3.6 secondes
+
+            # Position ancienne injectée directement (skip _fill_market)
+            old_ts = time.time() - 60  # 60s dans le passé > max_age de 3.6s
+            pos = MexcPosition(
+                pos_id="TEST-TIMEOUT-01",
+                symbol="ETH/USDT",
+                side=OrderSide.BUY,
+                qty_usd=10.0,
+                entry_price=100.0,
+                tp_price=104.0,
+                sl_price=98.0,
+                fee_entry_usd=0.01,
+                score=70,
+                personality="mean_reversion",
+                regime="sideways",
+                opened_ts=old_ts,
+            )
+            sim._positions["ETH/USDT"] = pos
+            sim._capital -= pos.qty_usd
+
+            sim._check_positions()
+        finally:
+            mexc_simulator._MAX_POSITION_AGE_H = original_max_age
+
+        assert "ETH/USDT" not in sim._positions, "Position doit être fermée par TIMEOUT"
+        assert len(sim._closed) == 1
+        assert sim._closed[0].close_reason == "TIMEOUT"
+
+    def test_position_not_closed_before_timeout(self):
+        """Position récente (< MAX_AGE) reste ouverte si TP/SL non atteints."""
+        import time
+        from unittest.mock import MagicMock
+
+        from paper_trading import mexc_simulator
+        from paper_trading.mexc_simulator import MexcPosition, MexcSimulator, OrderSide
+
+        mock_reader = MagicMock()
+        mock_reader.spot.fetch_ticker.return_value = {"last": 101.0}  # entre SL et TP
+
+        sim = MexcSimulator(mexc_reader=mock_reader, telegram_fn=lambda _: None)
+        sim._capital = 200.0
+        sim._initial_capital = 200.0
+        sim._running = True
+
+        original_max_age = mexc_simulator._MAX_POSITION_AGE_H
+        try:
+            mexc_simulator._MAX_POSITION_AGE_H = 8.0  # 8 heures
+
+            pos = MexcPosition(
+                pos_id="TEST-FRESH-01",
+                symbol="BTC/USDT",
+                side=OrderSide.BUY,
+                qty_usd=10.0,
+                entry_price=100.0,
+                tp_price=104.0,
+                sl_price=98.0,
+                fee_entry_usd=0.01,
+                score=70,
+                personality="mean_reversion",
+                regime="sideways",
+                opened_ts=time.time(),  # position fraîche
+            )
+            sim._positions["BTC/USDT"] = pos
+
+            sim._check_positions()
+        finally:
+            mexc_simulator._MAX_POSITION_AGE_H = original_max_age
+
+        assert (
+            "BTC/USDT" in sim._positions
+        ), "Position récente ne doit pas être fermée par timeout"
+        assert len(sim._closed) == 0
+
+    def test_paper_mode_uses_paper_capital_not_throttle(self):
+        """PAPER_SIM_ORDER_USD doit être > $5 pour passer PortfolioBrain."""
+        import os
+
+        val = float(os.getenv("PAPER_SIM_ORDER_USD", "25.0"))
+        assert (
+            val > 5.0
+        ), "PAPER_SIM_ORDER_USD doit être > $5 pour passer PortfolioBrain"
+        assert val <= 100.0, "PAPER_SIM_ORDER_USD doit rester raisonnable (≤ $100)"

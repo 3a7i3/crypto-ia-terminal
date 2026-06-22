@@ -48,6 +48,8 @@ _MAX_POSITION_USD = float(
 _MAX_OHLCV_TICKER_DEV = float(os.getenv("MEXC_SIM_MAX_PRICE_DEV", "0.20"))
 # Âge max d'une position restaurable — au-delà elle est expirée et archivée
 _RESTORE_MAX_AGE_S = float(os.getenv("SIM_RESTORE_MAX_AGE_H", "4")) * 3600
+# Durée max avant fermeture forcée (évite les positions bloquées indéfiniment)
+_MAX_POSITION_AGE_H = float(os.getenv("MEXC_SIM_MAX_AGE_H", "8.0"))
 
 
 class OrderType(str, Enum):
@@ -682,6 +684,16 @@ class MexcSimulator:
             with self._lock:
                 pos = self._positions.get(sym)
             if pos is None:
+                continue
+            age_h = (time.time() - pos.opened_ts) / 3600
+            if age_h >= _MAX_POSITION_AGE_H:
+                _log.info(
+                    "[SIM] TIMEOUT %s — ouverte depuis %.1fh (max %.1fh)",
+                    sym,
+                    age_h,
+                    _MAX_POSITION_AGE_H,
+                )
+                self._close_position(sym, price, "TIMEOUT")
                 continue
             live = pos.live_pnl_pct(price)
             pos.mae_pct = min(pos.mae_pct, live)

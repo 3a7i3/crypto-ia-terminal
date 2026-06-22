@@ -2901,13 +2901,26 @@ def main(
             halt_fn=lambda reason: _halt_requested.set(),
         )
         _p10_kpi = _P10KPICls(phase=_P10_PHASE, initial_capital=real_capital)
-        max_order = min(max_order, _p10_throttle.throttled_size(max_order))
-        log.info(
-            "[P10-F] Phase=%s | capital alloué=%.2f | max_order=%.2f",
-            _P10_PHASE,
-            _p10_throttle.allocated_capital,
-            max_order,
-        )
+        if advisor_only:
+            # Paper mode : capital paper indépendant du capital réel throttlé.
+            # Le CapitalThrottle (basé sur $real_capital live) ne s'applique pas.
+            # Invariant : paper_order_usd n'affecte jamais la taille des ordres live.
+            _paper_order_usd = float(os.getenv("PAPER_SIM_ORDER_USD", "25.0"))
+            max_order = min(max_order, _paper_order_usd)
+            log.info(
+                "[SIZING] Paper mode | order_usd=%.2f (PAPER_SIM_ORDER_USD) | "
+                "live capital=%.2f (CapitalThrottle ignoré)",
+                _paper_order_usd,
+                _p10_throttle.allocated_capital,
+            )
+        else:
+            max_order = min(max_order, _p10_throttle.throttled_size(max_order))
+            log.info(
+                "[P10-F] Phase=%s | capital alloué=%.2f | max_order=%.2f",
+                _P10_PHASE,
+                _p10_throttle.allocated_capital,
+                max_order,
+            )
     except Exception as _p10_init_exc:
         log.warning("[P10-F] Non disponible: %s", _p10_init_exc)
 
