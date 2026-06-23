@@ -7,6 +7,7 @@ Usage:
     python scripts/burnin_v2_report.py --jsonl path/to/paper_trades.jsonl
     python scripts/burnin_v2_report.py --min-trades 50
 """
+
 from __future__ import annotations
 
 import argparse
@@ -178,6 +179,42 @@ def report(trades: list[dict], min_trades: int) -> None:
         r_pnl = sum(ps)
         pf_str = f"{r_pf:.2f}" if r_pf != float("inf") else "inf"
         print(f"  {key:<30} {len(ps):>4} {r_wr:>6.1f}%" f" {pf_str:>7} {r_pnl:>+8.2f}$")
+
+    # --- MFE / MAE (qualité du signal) ---
+    mfes_all = [t.get("mfe_pct") or 0.0 for t in trades]
+    maes_all = [t.get("mae_pct") or 0.0 for t in trades]
+    sl_t = [t for t in trades if (t.get("reason") or "") == "SL"]
+    tp_t = [t for t in trades if (t.get("reason") or "") == "TP"]
+    tout_t = [t for t in trades if (t.get("reason") or "") == "TIMEOUT"]
+
+    avg_mfe = sum(mfes_all) / len(mfes_all) if mfes_all else 0.0
+    avg_mae = sum(maes_all) / len(maes_all) if maes_all else 0.0
+    print(f"\n  --- MFE / MAE (qualité du signal) ---")
+    print(f"  Global     N={n:>3}  avg MFE: {avg_mfe:+.2f}%  avg MAE: {avg_mae:+.2f}%")
+
+    if sl_t:
+        sl_mfes = [t.get("mfe_pct") or 0.0 for t in sl_t]
+        avg_sl_mfe = sum(sl_mfes) / len(sl_mfes)
+        p1 = sum(1 for m in sl_mfes if m > 1.0) / len(sl_mfes) * 100
+        p2 = sum(1 for m in sl_mfes if m > 2.0) / len(sl_mfes) * 100
+        p3 = sum(1 for m in sl_mfes if m > 3.0) / len(sl_mfes) * 100
+        print(
+            f"  Trades SL  N={len(sl_t):>3}  avg MFE: {avg_sl_mfe:+.2f}%"
+            f"  (>1%:{p1:.0f}%  >2%:{p2:.0f}%  >3%:{p3:.0f}%)"
+        )
+
+    if tp_t:
+        tp_maes = [t.get("mae_pct") or 0.0 for t in tp_t]
+        avg_tp_mae = sum(tp_maes) / len(tp_maes)
+        print(f"  Trades TP  N={len(tp_t):>3}  avg MAE: {avg_tp_mae:+.2f}%")
+
+    if tout_t:
+        t_mfes = [t.get("mfe_pct") or 0.0 for t in tout_t]
+        t_maes = [t.get("mae_pct") or 0.0 for t in tout_t]
+        print(
+            f"  TIMEOUT    N={len(tout_t):>3}  avg MFE: {sum(t_mfes)/len(t_mfes):+.2f}%"
+            f"  avg MAE: {sum(t_maes)/len(t_maes):+.2f}%"
+        )
 
     # --- Raisons de fermeture ---
     by_reason: dict[str, int] = defaultdict(int)
