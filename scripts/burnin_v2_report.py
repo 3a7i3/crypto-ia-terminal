@@ -216,6 +216,22 @@ def report(trades: list[dict], min_trades: int) -> None:
             f"  avg MAE: {sum(t_maes)/len(t_maes):+.2f}%"
         )
 
+    # --- MFE par régime (signal utile par contexte de marché) ---
+    mfe_by_regime: dict[str, list[float]] = defaultdict(list)
+    for t in trades:
+        reg = t.get("regime") or "unknown"
+        mfe_by_regime[reg].append(t.get("mfe_pct") or 0.0)
+
+    print(f"\n  --- MFE par régime (signal utile) ---")
+    print(f"  {'Régime':<25} {'N':>4} {'avg MFE':>9} {'>1%':>5} {'>2%':>5}")
+    print(f"  {'-'*52}")
+    for reg in sorted(mfe_by_regime, key=lambda r: -len(mfe_by_regime[r])):
+        ms = mfe_by_regime[reg]
+        avg = sum(ms) / len(ms)
+        a1 = sum(1 for m in ms if m > 1.0) / len(ms) * 100
+        a2 = sum(1 for m in ms if m > 2.0) / len(ms) * 100
+        print(f"  {reg:<25} {len(ms):>4} {avg:>+8.2f}%" f" {a1:>4.0f}% {a2:>4.0f}%")
+
     # --- Raisons de fermeture ---
     by_reason: dict[str, int] = defaultdict(int)
     for t in trades:
