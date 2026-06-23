@@ -139,6 +139,53 @@ def report(trades: list[dict], min_trades: int) -> None:
         pf_str = f"{s_pf:.2f}" if s_pf != float("inf") else "∞"
         print(f"  {sbin:<12} {len(ps):>4} {s_wr:>6.1f}% {pf_str:>7} {s_pnl:>+8.2f}$")
 
+    # --- Par side (BUY / SELL) ---
+    by_side: dict[str, list[float]] = defaultdict(list)
+    for t in trades:
+        side = (t.get("side") or "?").upper()
+        by_side[side].append(t.get("pnl_usd") or 0.0)
+
+    print(f"\n  --- Par side ---")
+    print(f"  {'Side':<8} {'N':>4} {'WR':>7} {'PF':>7} {'Exp USD':>10} {'PnL':>9}")
+    print(f"  {'-'*48}")
+    for side in sorted(by_side):
+        ps = by_side[side]
+        s_wr = sum(1 for p in ps if p > 0) / len(ps) * 100
+        s_pf = profit_factor(ps)
+        s_pnl = sum(ps)
+        s_exp = s_pnl / len(ps)
+        pf_str = f"{s_pf:.2f}" if s_pf != float("inf") else "inf"
+        print(
+            f"  {side:<8} {len(ps):>4} {s_wr:>6.1f}%"
+            f" {pf_str:>7} {s_exp:>+9.4f}$ {s_pnl:>+8.2f}$"
+        )
+
+    # --- Par régime x side ---
+    by_rx: dict[str, list[float]] = defaultdict(list)
+    for t in trades:
+        regime = t.get("regime") or "unknown"
+        side = (t.get("side") or "?").upper()
+        key = f"{regime}+{side}"
+        by_rx[key].append(t.get("pnl_usd") or 0.0)
+
+    print(f"\n  --- Par regime x side ---")
+    print(f"  {'Régime+Side':<30} {'N':>4} {'WR':>7} {'PF':>7} {'PnL':>9}")
+    print(f"  {'-'*60}")
+    for key in sorted(by_rx, key=lambda k: (-len(by_rx[k]), k)):
+        ps = by_rx[key]
+        r_wr = sum(1 for p in ps if p > 0) / len(ps) * 100
+        r_pf = profit_factor(ps)
+        r_pnl = sum(ps)
+        pf_str = f"{r_pf:.2f}" if r_pf != float("inf") else "inf"
+        print(f"  {key:<30} {len(ps):>4} {r_wr:>6.1f}%" f" {pf_str:>7} {r_pnl:>+8.2f}$")
+
+    # --- Raisons de fermeture ---
+    by_reason: dict[str, int] = defaultdict(int)
+    for t in trades:
+        by_reason[t.get("reason") or "?"] += 1
+    reasons_str = "  ".join(f"{r}={n}" for r, n in sorted(by_reason.items()))
+    print(f"\n  Fermetures : {reasons_str}")
+
     # --- Verdict ---
     print(f"\n  --- Verdict ---")
     go = pf > 1.20 and exp_usd > 0 and mdd < 0.15
