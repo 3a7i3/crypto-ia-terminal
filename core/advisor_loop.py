@@ -1687,15 +1687,21 @@ def analyze_symbol(
                 if shadow_trade:
                     log.info("[SHADOW] %s", shadow_trade.summary())
 
-    # MexcSimulator — observe tous les signaux gate+conviction confirmés.
-    # Indépendant de trade_allowed : le simulateur a son propre capital ($10-100).
-    # Ne requiert pas que le PortfolioBrain valide la taille réelle.
+    # MexcSimulator — respecte la politique MetaStrategy (personality).
+    # Indépendant de PortfolioBrain : le simulateur a son propre capital ($10-100).
+    # Corrige deux bypasses :
+    #   1. flash_crash / capital_protection : meta_allowed=False bloque ici
+    #   2. max_positions : on lit l'état réel de _virtual_portfolio._positions
+    _vp_n_open = len(_virtual_portfolio._positions) if _virtual_portfolio else 0
+    _vp_max_pos = personality.max_positions if personality else 5
     if (
         _virtual_portfolio is not None
         and signal.actionable
         and gate_result.allowed
+        and meta_allowed
         and _conviction_ok
         and prix > 0
+        and _vp_n_open < _vp_max_pos
     ):
         _tp = personality.tp_pct if personality else 0.04
         _sl = personality.sl_pct if personality else 0.02
