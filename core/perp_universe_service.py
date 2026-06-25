@@ -25,6 +25,7 @@ Variables d'env (toutes optionnelles — valeurs par défaut raisonnables) :
     UNIVERSE_EXCHANGE         mexc
     UNIVERSE_STORAGE          databases/perp_universe.json
     UNIVERSE_MIN_CHANGE_N     3      (min nouvelles paires pour notif log)
+    SYMBOL_BLACKLIST          ""     (comma-sep extras, e.g. ASTEROID/USDT,STAR/USDT)
 """
 
 from __future__ import annotations
@@ -38,6 +39,16 @@ import time
 from typing import Callable, Optional
 
 _log = logging.getLogger("core.perp_universe_service")
+
+# Tokens confirmés rug pull / délistés ayant produit MAE≈-99.9% en paper trading.
+# Liste étendue via SYMBOL_BLACKLIST env var.
+_HARDCODED_BLACKLIST: frozenset[str] = frozenset(
+    {
+        "ASTEROID/USDT",
+        "STAR/USDT",
+        "UPC/USDT",
+    }
+)
 
 _UNIVERSE_STORAGE_DEFAULT = os.path.join(
     os.path.dirname(__file__), "..", "databases", "perp_universe.json"
@@ -85,6 +96,16 @@ class PerpUniverseService:
         self._min_change_n: int = int(os.getenv("UNIVERSE_MIN_CHANGE_N", "3"))
 
         self._on_update = on_update
+
+        # Blacklist : tokens rug pull / délistés à exclure définitivement
+        extra = [
+            s.strip().upper()
+            for s in os.getenv("SYMBOL_BLACKLIST", "").split(",")
+            if s.strip()
+        ]
+        self._blacklist: frozenset[str] = _HARDCODED_BLACKLIST | frozenset(extra)
+        if extra:
+            _log.info("[Universe] Blacklist étendue: %s", ", ".join(sorted(extra)))
 
         # State protégé par lock
         self._lock = threading.Lock()
@@ -193,6 +214,12 @@ class PerpUniverseService:
             builder._allowed_quotes = set(self._quotes)
 
             candidates = builder.discover(top_n=self._top_n)
+            candidates = [
+                c
+                for c in candidates
+                if c.symbol.upper() not in self._blacklist
+                and f"{c.symbol.split('/')[0].upper()}/USDT" not in self._blacklist
+            ]
             new_universe = [c.symbol for c in candidates]
 
             elapsed_ms = (time.perf_counter() - t0) * 1000
@@ -242,6 +269,24 @@ class PerpUniverseService:
             except Exception as exc:
                 _log.debug("[Universe] Callback on_update erreur: %s", exc)
 
+    def _filter_blacklist(self, symbols: list[str]) -> list[str]:
+        """Retire les tokens de la blacklist (match exact ou base sans quote)."""
+        out = []
+        removed = []
+        for s in symbols:
+            base = s.split("/")[0].upper()
+            if s.upper() in self._blacklist or f"{base}/USDT" in self._blacklist:
+                removed.append(s)
+            else:
+                out.append(s)
+        if removed:
+            _log.warning(
+                "[Universe] Blacklist — %d token(s) exclus: %s",
+                len(removed),
+                ", ".join(removed),
+            )
+        return out
+
     # ── Persistance ───────────────────────────────────────────────────────────
 
     def _load_from_disk(self) -> None:
@@ -251,7 +296,7 @@ class PerpUniverseService:
         try:
             with open(path, encoding="utf-8") as f:
                 data = json.load(f)
-            syms = data.get("symbols", [])
+            syms = self._filter_blacklist(data.get("symbols", []))
             if syms:
                 with self._lock:
                     self._current_symbols = list(syms)
