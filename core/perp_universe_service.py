@@ -44,9 +44,21 @@ _log = logging.getLogger("core.perp_universe_service")
 # Liste étendue via SYMBOL_BLACKLIST env var.
 _HARDCODED_BLACKLIST: frozenset[str] = frozenset(
     {
+        # Rug pulls / délistings confirmés — MAE≈-100%
         "ASTEROID/USDT",
+        "RAIN/USDT",
         "STAR/USDT",
         "UPC/USDT",
+        "EUR/USDT",
+        # XMR délisté MEXC 2024 (pression réglementaire)
+        "XMR/USDT",
+        # Token MEXC natif — crash ponctuel MAE=-99.8%
+        "MX/USDT",
+        # Gold synthétique PAXG — MAE=-334%, $232 de pertes
+        "GOLD(PAXG)/USDT",
+        # Microcaps extrêmes — SL avalé sans résistance
+        "BTW/USDT",
+        "ARX/USDT",
     }
 )
 

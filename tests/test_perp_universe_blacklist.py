@@ -34,9 +34,19 @@ class _patch_env:
 
 class TestHardcodedBlacklist:
     def test_hardcoded_tokens_present(self):
-        assert "ASTEROID/USDT" in _HARDCODED_BLACKLIST
-        assert "STAR/USDT" in _HARDCODED_BLACKLIST
-        assert "UPC/USDT" in _HARDCODED_BLACKLIST
+        for sym in (
+            "ASTEROID/USDT",
+            "RAIN/USDT",
+            "STAR/USDT",
+            "UPC/USDT",
+            "EUR/USDT",
+            "XMR/USDT",
+            "MX/USDT",
+            "GOLD(PAXG)/USDT",
+            "BTW/USDT",
+            "ARX/USDT",
+        ):
+            assert sym in _HARDCODED_BLACKLIST, f"{sym} manquant"
 
     def test_service_inherits_hardcoded(self):
         svc = _svc()
