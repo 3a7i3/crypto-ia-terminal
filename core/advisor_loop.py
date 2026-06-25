@@ -1084,8 +1084,13 @@ def analyze_symbol(
     # ── TEST MODE — réduire seuil de score pour forcer des trades faibles ──
     min_score_override = float(os.getenv("GATE_MIN_SCORE_OVERRIDE", "0"))
     signal_to_execute = signal.signal  # Default: use original signal
-    if min_score_override > 0 and signal.score >= min_score_override:
+    if (
+        min_score_override > 0
+        and signal.score >= min_score_override
+        and getattr(signal, "regime", "unknown") != "flash_crash"
+    ):
         # Override gate pour mode test — permet de trader avec score < 70
+        # flash_crash=999 est inviolable même avec override
         gate_result.allowed = True
         # Force BUY signal pour tester (pas HOLD)
         if signal.signal == "HOLD":
