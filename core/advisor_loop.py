@@ -6600,6 +6600,26 @@ if __name__ == "__main__":
                 _ranker_inst = MarketUniverseRanker(reader=_ranker_reader)
                 _ranked = _ranker_inst.rank(_candidates_syms, top_n=_ranker_top_n)
                 _ranked_syms = [e.symbol for e in _ranked if e.score > 0]
+                _ranker_bl = frozenset(
+                    s.strip().upper()
+                    for s in os.getenv("SYMBOL_BLACKLIST", "").split(",")
+                    if s.strip()
+                )
+                if _ranker_bl:
+                    _before = len(_ranked_syms)
+                    _ranked_syms = [
+                        s for s in _ranked_syms if s.upper() not in _ranker_bl
+                    ]
+                    if len(_ranked_syms) < _before:
+                        log.info(
+                            "[Ranker] Blacklist: %d symbole(s) exclus: %s",
+                            _before - len(_ranked_syms),
+                            ", ".join(
+                                s
+                                for s in [e.symbol for e in _ranked if e.score > 0]
+                                if s.upper() in _ranker_bl
+                            ),
+                        )
                 if _ranked_syms:
                     log.info(
                         "[Ranker] Top %d selectionnes (sur %d candidats MEXC): %s%s",
