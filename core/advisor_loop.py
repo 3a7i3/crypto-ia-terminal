@@ -2252,23 +2252,44 @@ def _acquire_instance_lock() -> None:
     try:
         import fcntl
 
-        # r+ si le fichier existe (pour lire le PID en cas d'échec), w+ sinon
-        try:
-            fh = open(_LOCK_FILE, "r+")
-        except FileNotFoundError:
-            fh = open(_LOCK_FILE, "w+")
-        try:
-            fcntl.flock(fh, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except BlockingIOError:
-            fh.seek(0)
-            existing_pid = fh.read().strip() or "inconnu"
-            fh.close()
-            print(
-                f"[FATAL] Instance déjà active (PID {existing_pid}). "
-                "Double exécution interdite — invariant d'unicité. Arrêt.",
-                file=sys.stderr,
-            )
-            sys.exit(1)
+        for _attempt in range(2):  # 1 tentative + 1 retry après nettoyage lock périmé
+            # r+ si le fichier existe (pour lire le PID en cas d'échec), w+ sinon
+            try:
+                fh = open(_LOCK_FILE, "r+")
+            except FileNotFoundError:
+                fh = open(_LOCK_FILE, "w+")
+            # FD_CLOEXEC : empêche les child processes d'hériter ce fd (flock hérité)
+            fcntl.fcntl(fh.fileno(), fcntl.F_SETFD, fcntl.FD_CLOEXEC)
+            try:
+                fcntl.flock(fh, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                break  # Verrou acquis — sortir de la boucle
+            except BlockingIOError:
+                fh.seek(0)
+                existing_pid = fh.read().strip() or "inconnu"
+                fh.close()
+                # Lock périmé ? Si le PID est mort, on nettoie et on réessaie une fois
+                if _attempt == 0 and existing_pid.isdigit():
+                    try:
+                        os.kill(int(existing_pid), 0)
+                    except ProcessLookupError:
+                        # PID mort : verrou périmé — supprimer et recommencer
+                        log.warning(
+                            "[Lock] Verrou périmé détecté (PID %s mort) — nettoyage",
+                            existing_pid,
+                        )
+                        try:
+                            os.unlink(_LOCK_FILE)
+                        except FileNotFoundError:
+                            pass
+                        continue
+                    except PermissionError:
+                        pass  # PID vivant (permission refusée = process existe)
+                print(
+                    f"[FATAL] Instance déjà active (PID {existing_pid}). "
+                    "Double exécution interdite — invariant d'unicité. Arrêt.",
+                    file=sys.stderr,
+                )
+                sys.exit(1)
         fh.seek(0)
         fh.truncate()
         fh.write(str(os.getpid()) + "\n")
