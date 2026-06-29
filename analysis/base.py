@@ -211,6 +211,137 @@ def full_metrics(pnls: list[float]) -> dict:
     }
 
 
+# ── Analyses avancées ────────────────────────────────────────────────────────
+
+
+def bootstrap_confidence_interval(
+    pnls: list[float],
+    metric_fn=None,
+    n_bootstrap: int = 1000,
+    ci: float = 0.95,
+) -> tuple[float, float] | None:
+    """Bootstrap CI sur une métrique (défaut: expectancy).
+
+    Tire n_bootstrap échantillons avec remise, calcule la métrique sur chacun,
+    retourne l'intervalle [alpha/2, 1-alpha/2] des percentiles.
+    """
+    import random
+
+    if len(pnls) < 10:
+        return None
+    if metric_fn is None:
+        metric_fn = expectancy
+
+    n = len(pnls)
+    stats: list[float] = []
+    for _ in range(n_bootstrap):
+        sample = [pnls[random.randrange(n)] for _ in range(n)]
+        val = metric_fn(sample)
+        if val is not None and not math.isinf(val):
+            stats.append(val)
+
+    if len(stats) < 10:
+        return None
+    stats.sort()
+    alpha = 1 - ci
+    lo_idx = int(len(stats) * alpha / 2)
+    hi_idx = int(len(stats) * (1 - alpha / 2))
+    return (round(stats[lo_idx], 4), round(stats[min(hi_idx, len(stats) - 1)], 4))
+
+
+def monte_carlo_max_drawdown(
+    pnls: list[float],
+    n_sim: int = 1000,
+    ci: float = 0.95,
+) -> dict | None:
+    """Monte-Carlo sur séquences de trades : distribution du drawdown maximal.
+
+    Permute l'ordre des trades n_sim fois et calcule le MaxDD à chaque fois.
+    Retourne mean, p95, p99 — donne la robustesse du DD au-delà de l'ordre observé.
+    """
+    import random
+
+    if len(pnls) < 10:
+        return None
+
+    dds: list[float] = []
+    for _ in range(n_sim):
+        shuffled = list(pnls)
+        random.shuffle(shuffled)
+        dds.append(max_drawdown(shuffled))
+
+    dds.sort()
+    n = len(dds)
+    return {
+        "mean_dd": round(sum(dds) / n, 4),
+        "p95_dd": round(dds[int(n * 0.95)], 4),
+        "p99_dd": round(dds[int(n * 0.99)], 4),
+        "observed_dd": max_drawdown(pnls),
+        "n_sim": n_sim,
+    }
+
+
+def rolling_profit_factor(pnls: list[float], window: int = 20) -> list[float | None]:
+    """PF glissant sur une fenêtre de `window` trades.
+
+    Utile pour détecter une dérive progressive de la performance.
+    Retourne une liste de longueur len(pnls), None pour les fenêtres incomplètes.
+    """
+    result: list[float | None] = [None] * len(pnls)
+    for i in range(window - 1, len(pnls)):
+        window_pnls = pnls[i - window + 1 : i + 1]
+        result[i] = profit_factor(window_pnls)
+    return result
+
+
+def concept_drift_detected(
+    pnls: list[float],
+    window: int = 20,
+    min_n: int = 40,
+    threshold_ratio: float = 0.7,
+) -> dict:
+    """Détection de dérive (concept drift) : compare PF récent vs historique.
+
+    Si PF_recent / PF_historique < threshold_ratio → drift probable.
+    Retourne un dict avec verdict et métriques.
+    """
+    if len(pnls) < min_n:
+        return {
+            "drift": None,
+            "reason": f"N={len(pnls)} < {min_n} requis",
+            "pf_historical": None,
+            "pf_recent": None,
+        }
+
+    historical = pnls[:-window]
+    recent = pnls[-window:]
+    pf_h = profit_factor(historical)
+    pf_r = profit_factor(recent)
+
+    if not isinstance(pf_h, float) or not isinstance(pf_r, float):
+        return {
+            "drift": None,
+            "reason": "PF non calculable (toutes pertes ou tous gains)",
+            "pf_historical": pf_h,
+            "pf_recent": pf_r,
+        }
+
+    ratio = pf_r / pf_h if pf_h > 0 else 0.0
+    drift = ratio < threshold_ratio
+
+    return {
+        "drift": drift,
+        "ratio": round(ratio, 3),
+        "pf_historical": pf_h,
+        "pf_recent": pf_r,
+        "threshold": threshold_ratio,
+        "reason": (
+            f"PF récent ({pf_r}) / PF historique ({pf_h}) = {ratio:.2f} "
+            f"{'< ' if drift else '>= '}{threshold_ratio}"
+        ),
+    }
+
+
 # ── Chargement trades depuis JSONL ────────────────────────────────────────────
 
 

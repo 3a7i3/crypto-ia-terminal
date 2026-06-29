@@ -26,7 +26,7 @@ from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 
-JSONL = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("databases/paper_trades.jsonl")
+DEFAULT_JSONL = Path("databases/paper_trades.jsonl")
 
 CLEAN_DATA_SINCE = datetime(2026, 6, 25, tzinfo=timezone.utc)  # données propres depuis
 
@@ -57,9 +57,10 @@ def _is_nan_or_inf(val) -> bool:
         return False
 
 
-def main(strict: bool = False) -> int:
-    if not JSONL.exists():
-        print(f"ERREUR: fichier introuvable: {JSONL}")
+def main(jsonl_path: str | None = None, strict: bool = False) -> int:
+    jsonl = Path(jsonl_path) if jsonl_path else DEFAULT_JSONL
+    if not jsonl.exists():
+        print(f"ERREUR: fichier introuvable: {jsonl}")
         return 2
 
     # ── Lecture ───────────────────────────────────────────────────────────────
@@ -68,7 +69,7 @@ def main(strict: bool = False) -> int:
     raw_events: list[dict] = []
     parse_errors = 0
 
-    with JSONL.open(encoding="utf-8") as f:
+    with jsonl.open(encoding="utf-8") as f:
         for lineno, line in enumerate(f, 1):
             line = line.strip()
             if not line:
@@ -212,7 +213,7 @@ def main(strict: bool = False) -> int:
 
     # ── Output ────────────────────────────────────────────────────────────────
     print(f"\n{'='*W}")
-    print(f"  DATA QUALITY AUDIT — {JSONL.name}")
+    print(f"  DATA QUALITY AUDIT — {jsonl.name}")
     print(f"{'='*W}")
     print(f"  Trades fermés    : {n_closed}")
     print(f"  Positions ouvertes: {n_open}")
@@ -246,7 +247,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Audit qualité données paper trades")
     parser.add_argument("jsonl", nargs="?", help="Chemin vers paper_trades.jsonl")
     parser.add_argument("--strict", action="store_true", help="Warnings = erreurs")
-    # argv[1] déjà consommé par JSONL en haut
     args = parser.parse_args()
-    result = main(strict=args.strict)
+    result = main(jsonl_path=args.jsonl, strict=args.strict)
     sys.exit(result)

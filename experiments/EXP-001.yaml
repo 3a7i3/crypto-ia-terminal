@@ -1,0 +1,64 @@
+# experiments/EXP-001.yaml
+# Registre versionnée de l'expérience initiale de burn-in.
+# Convention : un fichier par expérience, jamais modifié rétroactivement.
+
+id: EXP-001
+title: "Burn-in initial — baseline paper trading post-nettoyage"
+status: IN_PROGRESS  # IN_PROGRESS | COMPLETED | ABANDONED
+
+context:
+  date_start: "2026-06-25"
+  date_end: null  # à remplir quand N >= 100
+  commit_start: "ff49c2a"  # blacklist tokens toxiques
+  commit_end: null
+  branch: main
+
+objective: >
+  Établir une baseline statistique fiable sur N >= 100 trades propres
+  en paper trading MEXC Futures, après invalidation de toutes les données
+  antérieures (tokens toxiques, bypass meta_allowed, burn-in v1 invalide).
+  Objectif : décider go/no-go pour passage en capital réel phase A ($50).
+
+configuration:
+  exchange: MEXC
+  mode: paper_trading
+  capital_virtual_usd: 692.70
+  capital_real_usd: 6.81  # wallet réel au moment du démarrage
+  pb_min_position_usd: 3
+  symbol_blacklist:
+    - USDC/USDT
+    - USDE/USDT
+    # 10 tokens toxiques hardcodés dans PerpUniverseService
+  regimes_actifs:
+    - sideways
+    - bull_trend
+    - bear_trend
+  pid_vps: 1005477  # PID service au démarrage propre
+
+hypotheses_testées:
+  - H1  # BUY sideways → expectancy négative ?
+  - H2  # SELL bear → expectancy positive ?
+  - H3  # Score >= 75 → meilleure expectancy ?
+  - H4  # ATR% >= 1.5 → meilleur PF ?
+
+go_no_go_criteria:
+  n_min: 100
+  profit_factor: ">= 1.4"
+  expectancy: "> 0 $/trade"
+  max_drawdown: "< 10% du capital virtuel"
+  sharpe: "> 0.5"
+  health_check: "exit 0"
+  data_quality: "exit 0"
+  hypotheses: "H1+H2 concluantes (Confirmed ou Rejected)"
+
+progress:
+  n_trades_propres: 0   # à mettre à jour manuellement ou via regime_audit.py
+  last_updated: "2026-06-25"
+  notes:
+    - "2026-06-25: Démarrage propre. PID 1005477. Stablecoins exclus. PB_MIN=3."
+    - "2026-06-25: 3 premiers trades: EVAA/USDT BUY, TRUMP/USDT SELL, SOL/USDT SELL."
+    - "2026-06-29: Framework Phase 0+1+2 déployé (health_check, data_quality, analysis/)."
+
+résultat: null  # à remplir à la clôture
+
+conclusion: null  # GO / NO-GO + justification statistique

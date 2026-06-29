@@ -122,14 +122,16 @@ def check_stale_lock() -> None:
                 f"Process PID {pid} déjà actif — double démarrage interdit. "
                 "Arrêter l'instance existante avant de relancer."
             )
-        except ProcessLookupError:
-            _warn(f"Lock périmé (PID {pid} mort) — auto-nettoyage au démarrage")
-            print(f"  ⚠️  Lock périmé PID {pid} — auto-nettoyage prévu")
         except PermissionError:
+            # PID vivant mais accès restreint (Linux) → bloquer
             _fail(
                 f"Process PID {pid} actif (accès restreint) — "
                 "vérifier manuellement avant de continuer"
             )
+        except OSError:
+            # ProcessLookupError (Linux) ou WinError 87 (Windows) → PID mort
+            _warn(f"Lock périmé (PID {pid} mort) — auto-nettoyage au démarrage")
+            print(f"  ⚠️  Lock périmé PID {pid} — auto-nettoyage prévu")
     except OSError as e:
         _warn(f"Lecture lock: {e}")
 
@@ -162,6 +164,11 @@ def check_data_quality() -> None:
 
 # ── Runner ────────────────────────────────────────────────────────────────────
 def main() -> int:
+    global _ok
+    _ok = True
+    _warnings.clear()
+    _errors.clear()
+
     print(f"\n{'='*W}")
     print("  PREFLIGHT CHECK — crypto-advisor")
     print(f"{'='*W}")

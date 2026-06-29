@@ -187,17 +187,18 @@ def main(as_json: bool = False) -> int:
                 )
                 exit_code = max(exit_code, 1)
 
-        except ProcessLookupError:
-            results["process"] = {
-                "ok": False,
-                "error": f"PID {pid} mort (lock périmé)",
-            }
-            exit_code = 2
         except PermissionError:
             results["process"] = {
                 "ok": True,
                 "note": f"PID {pid} vivant (accès restreint)",
             }
+        except OSError:
+            # ProcessLookupError (Linux) ou WinError 87 (Windows) → PID mort
+            results["process"] = {
+                "ok": False,
+                "error": f"PID {pid} mort (lock périmé)",
+            }
+            exit_code = 2
 
     # ── Log activity check ────────────────────────────────────────────────────
     log_info = _check_log_activity()
