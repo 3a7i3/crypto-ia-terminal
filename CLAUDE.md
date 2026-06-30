@@ -95,6 +95,16 @@ PMI = (L1 + L2 + L3 + L4 + L5 + L6 + L7) / 700
 Baseline : 2026-06-30. Le PMI progresse avec les gates franchies,
 jamais avec le nombre de lignes de code ajoutées.
 
+### Double lecture PMI
+
+| Score | Signification | Baseline |
+|---|---|---|
+| **Capability Score** | Ce que le système peut faire | 181/700 = 26% |
+| **Evidence Score** | Ce qui est démontré par les données | 0/700 = 0% |
+
+**Evidence Score = 0** signifie : aucune donnée certifiée, aucune hypothèse conclue.
+L'architecture est mature. Les preuves restent à construire.
+
 ---
 
 ## Verrous Go/No-Go EXP-001 (en plus des métriques financières)
