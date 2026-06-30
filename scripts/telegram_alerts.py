@@ -144,6 +144,15 @@ class TelegramAlert:
     def info(self, message: str) -> None:
         self._send(f"ℹ️ {message}")
 
+    def decision_report(self, text: str) -> None:
+        """
+        Envoie un rapport de décision enrichi (produit par DecisionExplainer).
+
+        Pas de dédup : chaque signal est unique par définition.
+        Force=True pour bypasser le filtre 5 min.
+        """
+        self._send(text, force=True)
+
     # ── Envoi async avec dédoublonnage ────────────────────────────────────────
 
     def _send(
