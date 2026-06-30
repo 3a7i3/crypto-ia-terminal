@@ -73,26 +73,27 @@ visualisation des hypothèses/datasets/expériences, qualité statistique, repro
 
 ---
 
-## Research Maturity Index (RMI)
+## Project Maturity Index (PMI)
 
-Indicateur de progression du projet. Calculé manuellement à chaque session.
+Indicateur composite en 7 niveaux. Référence normative : `docs/blueprint_v2.md`.
 
-| Composante              | Score actuel | Cible |
-|-------------------------|-------------|-------|
-| Architecture            | 100         | 100   |
-| Observability           | 100         | 100   |
-| Data Governance         | 100         | 100   |
-| Scientific Governance   | 100         | 100   |
-| Dataset Certification   | 0           | 100   |
-| Data Quality (S1)       | 0           | 100   |
-| Hypothesis Coverage     | 30          | 100   |
-| Statistical Power       | 0           | 100   |
-| Experiment Coverage     | 20          | 100   |
-| Automation              | 30          | 100   |
-| **RMI**                 | **48/100**  | 90    |
+```
+PMI = (L1 + L2 + L3 + L4 + L5 + L6 + L7) / 700
+```
 
-Le RMI progresse avec les données accumulées, pas avec le code ajouté.
-Prochaine mise à jour : quand N≥50 trades certifiés (Dataset Certification active).
+| Niveau | Nom | Score | Gate |
+|--------|-----|-------|------|
+| L1 | Engineering | 100/100 | FRANCHIE ✅ |
+| L2 | Scientific Validation | 35/100 | gate S1→S5 (N>=100) |
+| L3 | Scientific Governance | 10/100 | gate L2 |
+| L4 | Research Lab | 0/100 | gate L2 + N>=500 |
+| L5 | Digital Twin | 0/100 | gate L4 |
+| L6 | Live Operations | 36/100 | gate L2 → Phase A |
+| L7 | Meta Intelligence | 0/100 | gate L6 Phase C |
+| **PMI** | | **181/700 = 26%** | |
+
+Baseline : 2026-06-30. Le PMI progresse avec les gates franchies,
+jamais avec le nombre de lignes de code ajoutées.
 
 ---
 
