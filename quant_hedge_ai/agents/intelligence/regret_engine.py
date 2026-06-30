@@ -323,19 +323,80 @@ class RegretEngine:
         ewma_alpha: float = 0.3,
     ) -> int:
         """
-        Retourne un ajustement de seuil basé sur le bilan regrets/refus.
+        [ADR-0007 — PASSIVITÉ] Retourne TOUJOURS 0.
 
-        L'appelant (advisor_loop) applique ce delta progressivement via
-        GlobalRiskGate.apply_regret_delta().
+        Cette méthode calculait un delta de seuil appliqué automatiquement en production
+        via GlobalRiskGate.apply_regret_delta(). Ce comportement a été gelé (ADR-0007) :
+        toute auto-calibration active viole le principe de passivité des observateurs.
 
-        Retourne:
-          -2 : sur-filtrage fort (régime sideways + regret élevé)
-          -1 : sur-filtrage modéré
-           0 : calibration correcte
-          +1 : filtrage trop laxiste (on laisse passer de mauvais trades)
+        Le calcul est conservé dans calibration_recommendation() pour la Phase 4 (ACE).
+        L'application d'un delta requiert une validation humaine explicite via .env ou
+        config/settings.py — jamais automatiquement.
 
-        Ne retourne jamais ±2 deux cycles de suite pour éviter l'oscillation.
+        Pour obtenir la recommandation (lecture seule) :
+            hint = regret_engine.calibration_recommendation(regime, winrate)
         """
+        from config.feature_flags import FEATURE_AUTO_CALIBRATION
+
+        if FEATURE_AUTO_CALIBRATION:
+            # Mode legacy — déconseillé, activé uniquement si explicitement demandé
+            return self._compute_threshold_delta(
+                current_regime, winrate_executed, min_samples, ewma_alpha
+            )
+        # Mode passif (défaut) : zéro modification automatique des seuils
+        return 0
+
+    def calibration_recommendation(
+        self,
+        current_regime: str = "",
+        winrate_executed: float = 0.5,
+        min_samples: int = 5,
+        ewma_alpha: float = 0.3,
+    ) -> dict:
+        """
+        [Phase 4 — ACE] Recommandation de calibration (lecture seule).
+
+        Retourne un dict: delta recommande, confiance, justification.
+        NE MODIFIE JAMAIS de parametre — l'operateur decide de l'appliquer ou non.
+
+        Returns:
+            {
+                "delta": int (-2 / -1 / 0 / +1),
+                "confidence": float (0-1),
+                "reason": str,
+                "n_samples": int,
+                "regime": str,
+            }
+        """
+        delta = self._compute_threshold_delta(
+            current_regime, winrate_executed, min_samples, ewma_alpha
+        )
+        stats = self.stats()
+        n = stats["total_evaluated"]
+        confidence = min(1.0, n / 50) if n >= min_samples else 0.0
+        reason_map = {
+            -2: f"Sur-filtrage fort en {current_regime} "
+            f"(MISSED_WIN={stats.get('missed_wins', 0)})",
+            -1: "Sur-filtrage modéré",
+            0: "Calibration correcte",
+            1: "Filtrage insuffisant (trop de bons refus manqués)",
+        }
+        return {
+            "delta": delta,
+            "confidence": round(confidence, 3),
+            "reason": reason_map.get(delta, "?"),
+            "n_samples": n,
+            "regime": current_regime,
+        }
+
+    def _compute_threshold_delta(
+        self,
+        current_regime: str,
+        winrate_executed: float,
+        min_samples: int,
+        ewma_alpha: float,
+    ) -> int:
+        """Calcul du delta - logique preservee pour calibration_recommendation()."""
         stats = self.stats()
         if stats["total_evaluated"] < min_samples:
             return 0
@@ -347,10 +408,8 @@ class RegretEngine:
         if total == 0:
             return 0
 
-        refusal_accuracy = good / total  # part de bons refus
+        refusal_accuracy = good / total
 
-        # ── Calcul du delta brut ──────────────────────────────────────────────
-        # Sur-filtrage : plus de MISSED_WIN que de GOOD_REFUSAL + regret élevé
         if missed > good and avg_r > 0.6:
             if winrate_executed <= refusal_accuracy and current_regime in (
                 "sideways",
@@ -366,9 +425,6 @@ class RegretEngine:
         else:
             raw_delta = 0
 
-        # ── EWMA : lissage exponentiel — mémoire décroissante ────────────────
-        # Anciens contextes de regret s'atténuent naturellement.
-        # ewma = α × raw + (1−α) × ewma_prev  →  converge vers 0 si raw=0.
         self._ewma_delta = (
             ewma_alpha * raw_delta + (1.0 - ewma_alpha) * self._ewma_delta
         )
