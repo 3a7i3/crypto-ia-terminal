@@ -3693,6 +3693,67 @@ def main(
     if not (advisor_only and defer_optional_intel):
         _get_regret_engine()
 
+    # ── Observabilité P0-P3 — Decision Event Bus + observers ─────────────────
+    # Chargement conditionnel : aucun crash si les modules sont absents.
+    _decision_event_bus: Any = None
+    _obs_rejection_store: Any = None
+    _obs_regret_scheduler: Any = None
+    try:
+        from config.feature_flags import (
+            FEATURE_DECISION_EXPLAINER,
+            FEATURE_EVENT_BUS,
+            FEATURE_REGRET_SCHEDULER,
+            FEATURE_REJECTION_STORE,
+        )
+
+        if FEATURE_EVENT_BUS:
+            from observability.decision_event_bus import get_bus as _get_obs_bus
+
+            _decision_event_bus = _get_obs_bus()
+
+            # Listener P1 — Telegram enrichi
+            if FEATURE_DECISION_EXPLAINER:
+                from observability.decision_explainer import explain as _obs_explain
+
+                def _telegram_explainer_listener(obs: Any) -> None:  # type: ignore[misc]
+                    try:
+                        msg = _obs_explain(obs, obs.cycle)
+                        _telegram.decision_report(msg)
+                    except Exception as _e:
+                        log.debug("[OBS/Telegram] explainer: %s", _e)
+
+                _decision_event_bus.subscribe(_telegram_explainer_listener)
+                log.info("[OBS] Listener Telegram enrichi abonné")
+
+            # Listener P2 — Rejection Store
+            if FEATURE_REJECTION_STORE:
+                from observability.rejection_store import (
+                    RejectionStore as _RejectionStore,
+                )
+
+                _obs_rejection_store = _RejectionStore()
+                _decision_event_bus.subscribe(_obs_rejection_store.on_observation)
+                log.info("[OBS] Listener RejectionStore abonné")
+
+            # Listener P3 — Regret Scheduler multi-horizon
+            if FEATURE_REGRET_SCHEDULER:
+                from observability.regret_scheduler import (
+                    RegretScheduler as _RegretScheduler,
+                )
+
+                _obs_regret_scheduler = _RegretScheduler()
+                _obs_regret_scheduler.start()
+                _decision_event_bus.subscribe(_obs_regret_scheduler.on_observation)
+                log.info("[OBS] Listener RegretScheduler abonné (7 horizons)")
+
+    except Exception as _obs_init_exc:
+        log.warning(
+            "[OBS] Init observabilité échouée (non bloquant): %s", _obs_init_exc
+        )
+        _decision_event_bus = None
+        _obs_rejection_store = None
+        _obs_regret_scheduler = None
+
     chief_officer: Any = None
 
     def _get_chief_officer() -> Any:
@@ -5474,8 +5535,28 @@ def main(
                         r["signal"].score,
                         r["signal"].signal,
                     )
-                    _alert_msg = _build_alert(r, cycle)
-                    _telegram(_alert_msg)
+                    # ── P0-P3 : Event Bus — observateurs découplés ────────────
+                    _obs_published = False
+                    if _decision_event_bus is not None:
+                        try:
+                            from observability.decision_observation import (
+                                build_from_result as _build_obs,
+                            )
+
+                            _obs = _build_obs(r, cycle=cycle, engine_version="v9")
+                            _decision_event_bus.publish(_obs)
+                            # Alimenter le cache de prix du RegretScheduler
+                            if _obs_regret_scheduler is not None:
+                                _obs_regret_scheduler.update_price_cache(
+                                    {sym: float(r.get("prix", 0.0))}
+                                )
+                            _obs_published = True
+                        except Exception as _obs_exc:
+                            log.debug("[OBS] publish: %s", _obs_exc)
+                    # Fallback legacy : si bus inactif ou erreur, envoyer le message simple
+                    if not _obs_published:
+                        _alert_msg = _build_alert(r, cycle)
+                        _telegram(_alert_msg)
                 elif r["signal"].actionable and _runtime_safe_mode_active():
                     log.info(
                         "SIGNAL ACTIONABLE (safe mode — non envoye): %s score=%d",
@@ -5929,6 +6010,12 @@ def main(
             try:
                 if regret_engine is not None:
                     current_prices = {r["symbol"]: r.get("prix", 0.0) for r in results}
+                    # Alimenter aussi le RegretScheduler multi-horizon (P3)
+                    if _obs_regret_scheduler is not None:
+                        try:
+                            _obs_regret_scheduler.update_price_cache(current_prices)
+                        except Exception:
+                            pass
                     new_regrets = regret_engine.evaluate_pending(current_prices, cycle)
                     for reg in new_regrets:
                         _telegram(
