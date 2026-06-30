@@ -18,6 +18,20 @@ Aucune exception sans ADR signé par l'opérateur.
 
 ---
 
+## Scientific Debt Rule — Gel architectural
+
+> Aucune nouvelle fonctionnalité ne peut être développée tant qu'elle crée davantage
+> de variables expérimentales qu'elle n'en élimine. Toute nouvelle fonctionnalité doit
+> être justifiée par une hypothèse scientifique existante ou par un besoin de validation,
+> jamais par une intuition ou une opportunité technique.
+
+**Conséquence directe :** Phase II = zéro nouvelles couches, zéro nouveaux indicateurs,
+zéro nouvelles stratégies. Seuls les outils de mesure, d'audit et de certification
+sont autorisés. Toute demande de nouvelle fonctionnalité doit pointer vers une hypothèse
+H1-H6 existante qui la justifie.
+
+---
+
 ## Règle du statisticien — Validation empirique obligatoire
 
 > Aucun paramètre du moteur de trading ne peut être modifié sur la base d'une intuition,
