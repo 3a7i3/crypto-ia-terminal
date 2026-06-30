@@ -98,6 +98,23 @@ go_no_go_criteria:
   hypotheses: "H1+H2+H3 concluantes (Confirmed ou Rejected) avec evidence_level >= Moderate"
   dataset_certification: "CERTIFIED ou PASS (§3 data_governance_spec_v1.md)"
 
+  # ── Verrou 1 : zéro Inconclusive sur hypothèses critiques ayant atteint N ──────
+  # Si H_i.status == Inconclusive ET H_i.n_at_eval >= H_i.min_n_required → BLOQUANT.
+  # Un résultat Inconclusive à N suffisant signifie que l'hypothèse est mal formulée
+  # ou que le signal n'existe pas — décision impossible.
+  no_inconclusive_at_n: true
+  critical_hypotheses: [H1, H2, H3]  # les seules bloquantes pour EXP-001
+
+  # ── Verrou 2 : zéro contradiction entre hypothèses critiques ─────────────────
+  # Exemple interdit : H1 Confirmed (score négatif en sideways) ET H3 Rejected
+  # (score sans valeur prédictive) → contradiction structurelle qui invalide
+  # toute recommandation sur le seuil de score.
+  # Les paires conflictuelles doivent être résolues avant passage réel.
+  no_hypothesis_conflicts: true
+  known_conflict_pairs:
+    - [H1, H3]  # si H3 Rejected : le score n'est pas prédictif → H1 doit être réévalué
+    - [H2, H3]  # même logique sur SELL bear
+
 progress:
   n_trades_propres: 0   # à mettre à jour via regime_audit.py
   last_updated: "2026-06-30"

@@ -43,10 +43,48 @@ Tant que ces seuils ne sont pas atteints : **ACE interdit, zéro modification de
 
 ---
 
-## Phase actuelle : Validation Scientifique (gel fonctionnel)
+## Phase actuelle : Validation Scientifique (gel fonctionnel étendu)
 
-Le développement fonctionnel est **gelé**. La valeur du projet vient désormais
-de la qualité des données accumulées et de la rigueur de leur exploitation.
+Le développement fonctionnel est **gelé**. Sont désormais **interdits** :
 
-Seuls les dashboards de monitoring et les rapports de qualité de données sont autorisés.
-Aucune nouvelle couche décisionnelle, aucun nouveau seuil, aucune optimisation.
+- Nouvelles couches IA ou décisionnelles
+- Nouveaux indicateurs techniques
+- Nouvelles stratégies ou personnalités
+- Nouvelles règles de décision ou de filtrage
+- Toute modification des seuils existants
+
+**Autorisés exclusivement :**
+outils de mesure, outils d'audit, tableaux de bord scientifiques,
+visualisation des hypothèses/datasets/expériences, qualité statistique, reproductibilité.
+
+---
+
+## Research Maturity Index (RMI)
+
+Indicateur de progression du projet. Calculé manuellement à chaque session.
+
+| Composante              | Score actuel | Cible |
+|-------------------------|-------------|-------|
+| Architecture            | 100         | 100   |
+| Observability           | 100         | 100   |
+| Data Governance         | 100         | 100   |
+| Scientific Governance   | 100         | 100   |
+| Dataset Certification   | 0           | 100   |
+| Data Quality (S1)       | 0           | 100   |
+| Hypothesis Coverage     | 30          | 100   |
+| Statistical Power       | 0           | 100   |
+| Experiment Coverage     | 20          | 100   |
+| Automation              | 30          | 100   |
+| **RMI**                 | **48/100**  | 90    |
+
+Le RMI progresse avec les données accumulées, pas avec le code ajouté.
+Prochaine mise à jour : quand N≥50 trades certifiés (Dataset Certification active).
+
+---
+
+## Verrous Go/No-Go EXP-001 (en plus des métriques financières)
+
+1. **Zéro Inconclusive critique** : si H1, H2 ou H3 est `Inconclusive` avec
+   `n_at_eval >= min_n_required` → passage réel interdit.
+2. **Zéro contradiction** : conflits H1↔H3 et H2↔H3 doivent être résolus
+   (voir `experiments/EXP-001.yaml § known_conflict_pairs`).
