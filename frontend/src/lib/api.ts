@@ -112,3 +112,35 @@ export interface TradesResponse {
   closed: ApiClosedPosition[];
   open:   ApiOpenPosition[];
 }
+
+export interface ApiGate {
+  id:       string;
+  label:    string;
+  required: number;
+  current:  number;
+  status:   "LOCKED" | "IN_PROGRESS" | "PASSED";
+}
+
+export interface ScientificResponse {
+  experiment: {
+    id:             string;
+    title:          string;
+    status:         string;
+    objective:      string;
+    dataset_uuid:   string;
+    date_start:     string;
+    date_end:       string | null;
+    engine_version: string;
+    hypotheses:     string[];
+  };
+  progress: {
+    n_closed:      number;
+    n_required:    number;
+    n_calibration: number;
+    wr:            number;
+    pf:            number;
+    pnl_paper:     number;
+  };
+  gates:      ApiGate[];
+  hypotheses: unknown[];
+}

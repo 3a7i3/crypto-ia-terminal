@@ -25,6 +25,7 @@ AUDIT = BASE / "logs" / "execution_audit" / "audit.jsonl"
 MISTAKE_MEMORY = BASE / "databases" / "mistake_memory.jsonl"
 STRATEGY_RANKING = BASE / "databases" / "strategy_ranking.json"
 MULTI_EXCHANGE = BASE / "databases" / "multi_exchange_snapshot.json"
+EXP_001 = BASE / "experiments" / "EXP-001.yaml"
 
 app = FastAPI(title="CryptoAI API", version="1.0")
 app.add_middleware(
@@ -344,6 +345,133 @@ def get_trades() -> dict:
 
 
 # ── /api/health ───────────────────────────────────────────────────────────────
+
+
+# ── /api/scientific — tableau de bord EXP-001 (read-only) ───────────────────
+
+
+def _parse_yaml(path: Path) -> dict:
+    if not path.exists():
+        return {}
+    try:
+        import yaml  # PyYAML optional; endpoint degrades gracefully if absent
+
+        return yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    except ImportError:
+        return {}
+    except Exception:
+        return {}
+
+
+def _gate_status(current: int, required: int) -> str:
+    if current >= required:
+        return "PASSED"
+    if current > 0:
+        return "IN_PROGRESS"
+    return "LOCKED"
+
+
+@app.get("/api/scientific")
+def get_scientific() -> dict:
+    exp = _parse_yaml(EXP_001)
+
+    # Progress — same source and logic as /api/trades
+    records = read_jsonl(TRADES, max_lines=500)
+    exits = [r for r in records if r.get("type") == "exit"]
+    n_closed = len(exits)
+    wins = [t for t in exits if t.get("win", t.get("pnl_usd", 0) > 0)]
+    losers = [t for t in exits if not t.get("win", t.get("pnl_usd", 0) > 0)]
+    wr = round(len(wins) / n_closed * 100, 1) if n_closed else 0.0
+    gross_profit = sum(t.get("pnl_usd", 0) for t in wins)
+    gross_loss = abs(sum(t.get("pnl_usd", 0) for t in losers))
+    pf = (
+        round(gross_profit / gross_loss, 3)
+        if gross_loss > 0
+        else (999.0 if gross_profit > 0 else 0.0)
+    )
+    pnl_paper = round(sum(t.get("pnl_usd", 0) for t in exits), 4)
+
+    manifest = exp.get("dataset_manifest") or {}
+    ctx = exp.get("context") or {}
+
+    experiment = {
+        "id": exp.get("id", "EXP-001"),
+        "title": exp.get("title", ""),
+        "status": exp.get("status", ""),
+        "objective": (exp.get("objective") or "").strip(),
+        "dataset_uuid": manifest.get("uuid", ""),
+        "date_start": ctx.get("date_start", ""),
+        "date_end": ctx.get("date_end"),
+        "engine_version": ctx.get("engine_version", ""),
+        "hypotheses": [str(h) for h in (exp.get("hypotheses_testées") or [])],
+    }
+
+    # Seuils Règle du statisticien (CLAUDE.md)
+    gates = [
+        {
+            "id": "n_dip_gate",
+            "label": "Gate analyse DIP (N≥50)",
+            "required": 50,
+            "current": n_closed,
+            "status": _gate_status(n_closed, 50),
+        },
+        {
+            "id": "n_total",
+            "label": "Trades totaux",
+            "required": 500,
+            "current": n_closed,
+            "status": _gate_status(n_closed, 500),
+        },
+        {
+            "id": "n_winners",
+            "label": "Winners",
+            "required": 150,
+            "current": len(wins),
+            "status": _gate_status(len(wins), 150),
+        },
+        {
+            "id": "n_losers",
+            "label": "Losers",
+            "required": 150,
+            "current": len(losers),
+            "status": _gate_status(len(losers), 150),
+        },
+        {
+            "id": "n_market_regime",
+            "label": "Par régime de marché",
+            "required": 50,
+            "current": 0,
+            "status": "LOCKED",
+        },
+        {
+            "id": "n_blocking_layer",
+            "label": "Par couche bloqueuse",
+            "required": 30,
+            "current": 0,
+            "status": "LOCKED",
+        },
+        {
+            "id": "cri",
+            "label": "CRI ≥ 90/100",
+            "required": 90,
+            "current": 0,
+            "status": "LOCKED",
+        },
+    ]
+
+    return {
+        "experiment": experiment,
+        "progress": {
+            "n_closed": n_closed,
+            "n_required": 50,
+            "n_calibration": 500,
+            "wr": wr,
+            "pf": pf,
+            "pnl_paper": pnl_paper,
+        },
+        "gates": gates,
+        "hypotheses": [],
+    }
 
 
 @app.get("/api/health")

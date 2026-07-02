@@ -7,18 +7,20 @@ import { GlobalView }     from "./views/GlobalView";
 import { MarketLiveView } from "./views/MarketLiveView";
 import { DecisionView }   from "./views/DecisionView";
 import { PositionsView }  from "./views/PositionsView";
-import { ScoresView }     from "./views/ScoresView";
+import { ScoresView }      from "./views/ScoresView";
+import { ScientificView }  from "./views/ScientificView";
 
 // ── Types d'onglets ───────────────────────────────────────────────────────────
 
-type Tab = "global" | "market" | "decisions" | "positions" | "scores";
+type Tab = "global" | "market" | "decisions" | "positions" | "scores" | "scientific";
 
 const TABS: { id: Tab; label: string; glyph: string }[] = [
-  { id: "global",    label: "Global",    glyph: "◉" },
-  { id: "market",    label: "Marché",    glyph: "↗" },
-  { id: "decisions", label: "Décisions", glyph: "≡" },
-  { id: "positions", label: "Positions", glyph: "▣" },
-  { id: "scores",    label: "Scores",    glyph: "◈" },
+  { id: "global",     label: "Global",     glyph: "◉" },
+  { id: "market",     label: "Marché",     glyph: "↗" },
+  { id: "decisions",  label: "Décisions",  glyph: "≡" },
+  { id: "positions",  label: "Positions",  glyph: "▣" },
+  { id: "scores",     label: "Scores",     glyph: "◈" },
+  { id: "scientific", label: "Scientific", glyph: "⚗" },
 ];
 
 // ── Header ────────────────────────────────────────────────────────────────────
@@ -97,10 +99,12 @@ const App: React.FC = () => {
       <Header mode={mode} lastUpdate={lastUpdate} activeTab={tab} onTabChange={setTab} />
 
       <main className="px-4 py-4">
-        {tab === "global"    && <GlobalView />}
-        {tab === "market"    && <MarketLiveView />}
-        {tab === "decisions" && <DecisionView />}
-        {tab === "positions" && <PositionsView />}
+        {tab === "global"      && <GlobalView />}
+        {tab === "market"      && <MarketLiveView />}
+        {tab === "decisions"   && <DecisionView />}
+        {tab === "positions"   && <PositionsView />}
+        {tab === "scores"      && <ScoresView />}
+        {tab === "scientific"  && <ScientificView />}
       </main>
     </div>
   );
