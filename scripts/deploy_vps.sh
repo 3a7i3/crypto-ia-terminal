@@ -64,7 +64,16 @@ CHANGED_FILES=$(git diff-tree --no-commit-id -r --name-only --diff-filter=AMR HE
 # Ajouter aussi les fichiers non-commités (untracked nouveaux connus)
 STAGED_NEW=$(git diff --cached --name-only --diff-filter=A 2>/dev/null || true)
 
-ALL_FILES=$(printf "%s\n%s" "$CHANGED_FILES" "$STAGED_NEW" | sort -u | grep -v '^$' || true)
+# ── Exclusion — jamais déployer de données runtime/état sur le VPS ───────────
+# Quelques fichiers sous databases/ restent trackés par git (ajoutés avant
+# la règle .gitignore) : un commit qui les touche (même accidentellement,
+# ex. git add -A) écraserait sinon l'état runtime du VPS — y compris des
+# paramètres de risque live (runtime_config.json) — sans jamais toucher
+# advisor_loop.py. Le gel scientifique doit rester intact même via ce tuyau.
+EXCLUDE_PATTERN='^(databases/|cache/|logs/|tests/|docs/)'
+
+ALL_FILES=$(printf "%s\n%s" "$CHANGED_FILES" "$STAGED_NEW" \
+    | sort -u | grep -v '^$' | grep -vE "$EXCLUDE_PATTERN" || true)
 
 if [[ -z "$ALL_FILES" ]]; then
     log "SKIP — Aucun fichier modifié dans le dernier commit"
