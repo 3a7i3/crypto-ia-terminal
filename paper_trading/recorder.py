@@ -247,8 +247,12 @@ class PaperTradeRecorder:
     sont lues sans erreur, les nouveaux champs valent None.
     """
 
-    def __init__(self, log_path: str = _DEFAULT_PATH) -> None:
-        self._path = Path(log_path)
+    def __init__(self, log_path: Optional[str] = None) -> None:
+        # Lu à l'appel (pas au chargement du module) pour que
+        # monkeypatch.setenv("PAPER_TRADE_LOG", ...) fonctionne réellement
+        # dans les tests — un défaut lié à l'import ne réagit jamais à un
+        # changement d'env var fait après coup.
+        self._path = Path(log_path or os.getenv("PAPER_TRADE_LOG", _DEFAULT_PATH))
         self._path.parent.mkdir(parents=True, exist_ok=True)
 
     # ── Écriture ─────────────────────────────────────────────────────────────

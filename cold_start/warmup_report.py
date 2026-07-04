@@ -27,8 +27,6 @@ from observability.json_logger import get_logger
 
 _log = get_logger("cold_start.warmup_report")
 
-_REPORT_DIR = Path(os.getenv("COLD_START_REPORT_DIR", "databases/cold_start_reports"))
-
 
 @dataclass
 class WarmupReport:
@@ -142,10 +140,19 @@ class WarmupReport:
         return verify_report(signed_dict)
 
     def save(self) -> Path:
-        """Persiste le rapport signé sur disque. Retourne le chemin."""
-        _REPORT_DIR.mkdir(parents=True, exist_ok=True)
+        """Persiste le rapport signé sur disque. Retourne le chemin.
+
+        Le répertoire est résolu à l'appel (pas au chargement du module)
+        via COLD_START_REPORT_DIR, pour que monkeypatch.setenv fonctionne
+        réellement dans les tests — un défaut lié à l'import ne réagit
+        jamais à un changement d'env var fait après coup.
+        """
+        report_dir = Path(
+            os.getenv("COLD_START_REPORT_DIR", "databases/cold_start_reports")
+        )
+        report_dir.mkdir(parents=True, exist_ok=True)
         ts = int(self.started_at)
-        path = _REPORT_DIR / f"report_{ts}_{self.session_id[:8]}.json"
+        path = report_dir / f"report_{ts}_{self.session_id[:8]}.json"
         try:
             signed = self.to_signed_dict()
             path.write_text(
@@ -157,11 +164,17 @@ class WarmupReport:
             _log.warning("[WarmupReport] sauvegarde échouée: %s", exc)
         return path
 
-    def archive_to_black_box(
-        self, black_box_path: str = "databases/black_box.jsonl"
-    ) -> None:
-        """Archive le verdict de warmup dans la BlackBox (append-only)."""
-        bb = Path(black_box_path)
+    def archive_to_black_box(self, black_box_path: Optional[str] = None) -> None:
+        """Archive le verdict de warmup dans la BlackBox (append-only).
+
+        Le chemin est résolu à l'appel (pas au chargement du module) via
+        BLACK_BOX_PATH, pour que monkeypatch.setenv fonctionne réellement
+        dans les tests — un défaut lié à l'import ne réagit jamais à un
+        changement d'env var fait après coup.
+        """
+        bb = Path(
+            black_box_path or os.getenv("BLACK_BOX_PATH", "databases/black_box.jsonl")
+        )
         try:
             bb.parent.mkdir(parents=True, exist_ok=True)
             entry = {

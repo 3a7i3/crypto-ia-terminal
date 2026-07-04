@@ -132,7 +132,7 @@ class TestAdaptiveThresholdEngine:
             f"{delta_sideways} vs {delta_trend}"
         )
 
-    def test_neutral_winrate_keeps_delta_zero(self):
+    def test_neutral_winrate_keeps_delta_zero(self, tmp_path):
         """ATE avec winrate neutre (0.5) ne doit pas lever le threshold."""
         from quant_hedge_ai.agents.intelligence.adaptive_threshold_engine import (
             AdaptiveThresholdEngine,
@@ -140,7 +140,7 @@ class TestAdaptiveThresholdEngine:
         from quant_hedge_ai.agents.intelligence.regret_engine import RegretEngine
 
         ate = AdaptiveThresholdEngine()
-        re = RegretEngine()
+        re = RegretEngine(db_path=str(tmp_path / "regret_test.jsonl"))
 
         # Simuler winrate=0.5 (neutre, <5 trades fermés)
         for _ in range(6):
@@ -161,10 +161,10 @@ class TestAdaptiveThresholdEngine:
 class TestRegretFeedbackLoop:
     """Vérifie la boucle complète RegretEngine → delta."""
 
-    def test_many_missed_wins_returns_negative_delta(self):
+    def test_many_missed_wins_returns_negative_delta(self, tmp_path):
         from quant_hedge_ai.agents.intelligence.regret_engine import RegretEngine
 
-        re = RegretEngine()
+        re = RegretEngine(db_path=str(tmp_path / "regret_test.jsonl"))
 
         # Simuler beaucoup de signaux manqués avec regret élevé
         for i in range(10):
@@ -185,10 +185,10 @@ class TestRegretFeedbackLoop:
             delta <= 0
         ), f"Beaucoup de signaux manqués → delta devrait être ≤0, got {delta}"
 
-    def test_good_refusals_returns_positive_or_zero(self):
+    def test_good_refusals_returns_positive_or_zero(self, tmp_path):
         from quant_hedge_ai.agents.intelligence.regret_engine import RegretEngine
 
-        re = RegretEngine()
+        re = RegretEngine(db_path=str(tmp_path / "regret_test.jsonl"))
 
         # Simuler refus corrects (prix n'a pas bougé)
         for i in range(10):
@@ -208,11 +208,11 @@ class TestRegretFeedbackLoop:
             delta >= 0
         ), f"Bons refus → delta devrait être ≥0 (resserrement), got {delta}"
 
-    def test_anti_oscillation_sign_change_limited(self):
+    def test_anti_oscillation_sign_change_limited(self, tmp_path):
         """Le delta ne peut pas changer de signe plus d'une fois toutes les 3 appels."""
         from quant_hedge_ai.agents.intelligence.regret_engine import RegretEngine
 
-        re = RegretEngine()
+        re = RegretEngine(db_path=str(tmp_path / "regret_test.jsonl"))
 
         # Alterner les conditions pour provoquer des oscillations
         deltas = []
@@ -391,7 +391,7 @@ class TestP6ClosedLoop:
 
     CYCLES = 100
 
-    def test_threshold_oscillation_bounded(self):
+    def test_threshold_oscillation_bounded(self, tmp_path):
         """Critère officiel : oscillation threshold ≤ 3 points entre cycles."""
         from quant_hedge_ai.agents.intelligence.adaptive_threshold_engine import (
             AdaptiveThresholdEngine,
@@ -399,7 +399,7 @@ class TestP6ClosedLoop:
         from quant_hedge_ai.agents.intelligence.regret_engine import RegretEngine
 
         ate = AdaptiveThresholdEngine(damping_max=1.0, integral_clamp=(-5, 5))
-        re = RegretEngine()
+        re = RegretEngine(db_path=str(tmp_path / "regret_test.jsonl"))
         base_threshold = 70
 
         prev_effective = base_threshold
@@ -420,7 +420,7 @@ class TestP6ClosedLoop:
             max_oscillation <= 3
         ), f"Oscillation max {max_oscillation} > 3 points — PID mal calibré"
 
-    def test_regret_loop_reduces_refusals(self):
+    def test_regret_loop_reduces_refusals(self, tmp_path):
         """Critère officiel : boucle regret réduit les refus de 50% sur 100 cycles."""
         from quant_hedge_ai.agents.intelligence.adaptive_threshold_engine import (
             AdaptiveThresholdEngine,
@@ -430,7 +430,7 @@ class TestP6ClosedLoop:
 
         gate = GlobalRiskGate(min_signal_score=70)
         ate = AdaptiveThresholdEngine()
-        re = RegretEngine()
+        re = RegretEngine(db_path=str(tmp_path / "regret_test.jsonl"))
 
         refused_first_half = 0
         refused_second_half = 0
