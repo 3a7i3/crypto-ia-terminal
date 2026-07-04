@@ -1,36 +1,56 @@
 """
 conftest.py (root) — fixtures partagées pour toute la suite de tests.
 
-Isolation recorder:
-  Chaque test obtient un PaperTradeRecorder pointant vers un fichier
-  temporaire (tmp_path). Cela évite que les tests écrivent dans
-  databases/paper_trades.jsonl (le journal de production).
+Règle DS-001 (ADR-0008) : tout chemin configurable doit être résolu à
+l'exécution, jamais comme défaut de signature ni constante de module figée
+à l'import. Trois couches complémentaires de défense en profondeur :
 
-Isolation black box:
-  Chaque test qui archive un WarmupReport (ColdStartManager._finalize)
-  écrit vers un fichier temporaire au lieu de databases/black_box.jsonl
-  (le journal tamper-evident de production).
-
-Scientific Data Guard:
-  Aucun test ne doit modifier databases/ ou cache/ (données scientifiques
-  de production — burn-in, regret, décisions, snapshots). Ce garde-fou
-  calcule un hash SHA256 de chaque fichier avant et après la session
-  pytest complète et fait échouer la session si un seul octet a changé,
-  qu'un fichier a été ajouté ou supprimé. C'est ce mécanisme, pas une
-  isolation au cas par cas, qui aurait détecté immédiatement la
-  contamination de regret_analysis.jsonl et black_box.jsonl.
+1. Env vars au NIVEAU MODULE (juste en dessous) — posées AVANT tout import
+   de module de test, donc avant que pytest ne collecte les fichiers de
+   test. Nécessaire pour les constantes qui se figent à l'IMPORT (pas
+   seulement à l'exécution d'une fixture, ce qui serait trop tard) :
+   OBS_LOG_ROOT, REJECTION_STORE_DIR, COLD_START_REPORT_DIR,
+   BLACK_BOX_PATH. Chemins ABSOLUS obligatoires : un thread d'arrière-plan
+   peut flusher après restauration du CWD par le teardown d'une fixture.
+2. Fixtures autouse patchant les attributs de module / défauts de
+   signature non injectables (isolation recorder, black box, cold-start,
+   gate CSV, exec trade log).
+3. Scientific Data Guard (SHA256, fin de fichier) : filet de sécurité final
+   — fait échouer toute session pytest si databases/ ou cache/ a changé,
+   peu importe la cause.
 """
 
 from __future__ import annotations
 
 import hashlib
+import os
 import sys
+import tempfile
 from pathlib import Path
 
 import pytest
 
 _REPO_ROOT = Path(__file__).parent
 _SCIENTIFIC_DATA_ROOTS = [_REPO_ROOT / "databases", _REPO_ROOT / "cache"]
+
+# ── DS-001 — env vars au niveau module (avant toute collection pytest) ────────
+# Posées ici (pas dans une fixture) pour atteindre les constantes de module
+# figées à l'import de modules importés pendant la collection des tests
+# (ex: observability/json_logger.py::LOG_ROOT, rejection_store.py::_DEFAULT_DIR).
+# setdefault() : ne écrase pas une valeur déjà positionnée par l'environnement
+# d'exécution (CI, VPS...).
+os.environ.setdefault("OBS_LOG_ROOT", tempfile.mkdtemp(prefix="pytest_obs_logs_"))
+
+_pytest_data_dir = tempfile.mkdtemp(prefix="pytest_data_")
+os.environ.setdefault(
+    "REJECTION_STORE_DIR", os.path.join(_pytest_data_dir, "rejections")
+)
+os.environ.setdefault(
+    "COLD_START_REPORT_DIR", os.path.join(_pytest_data_dir, "cold_start_reports")
+)
+os.environ.setdefault(
+    "BLACK_BOX_PATH", os.path.join(_pytest_data_dir, "black_box.jsonl")
+)
 
 
 @pytest.fixture(autouse=True)
@@ -51,27 +71,64 @@ def _isolate_paper_recorder(monkeypatch, tmp_path):
 
 
 @pytest.fixture(autouse=True)
-def _isolate_black_box(monkeypatch, tmp_path):
-    """Redirect WarmupReport/WarmupStateMachine archival to tmp_path.
+def _isolate_exec_trade_log(monkeypatch, tmp_path):
+    """Redirige le journal SQLite du moteur d'exécution vers tmp_path.
 
-    Prevents test runs (ColdStartManager, WarmupReport, WarmupStateMachine)
-    from polluting databases/black_box.jsonl, databases/cold_start_reports/
-    and cache/startup/warmup_state.json. Applied automatically to every test.
+    ExecutionEngine.__init__ lit EXEC_TRADE_LOG à l'appel (conforme DS-001),
+    mais des tests instanciant le moteur sans poser la variable écrivaient
+    des trades de test dans databases/trade_log.sqlite (prouvé
+    empiriquement, Sprint S4-B). Chemin absolu (tmp_path) requis.
+    Applied automatically to every test in the project.
+    """
+    monkeypatch.setenv("EXEC_TRADE_LOG", str(tmp_path / "trade_log_test.sqlite"))
+    yield
 
-    Note: warmup_state_machine._STATE_PERSIST_PATH is a plain module-level
-    Path (not a function default), so it must be overridden via
-    monkeypatch.setattr on the module object — monkeypatch.setenv alone
-    would not work here either, since the Path is already resolved once at
-    import time either way.
+
+@pytest.fixture(autouse=True)
+def _isolate_cold_start_persistence(monkeypatch, tmp_path):
+    """Redirect P10 cold-start persistence to per-test temp files.
+
+    Prevents test runs from polluting:
+      - databases/black_box.jsonl        (WarmupReport.archive_to_black_box)
+      - databases/cold_start_reports/    (WarmupReport.save)
+      - cache/startup/warmup_state.json  (WarmupStateMachine._persist, appelé
+        dès __init__ et à chaque transition — instancier ColdStartManager
+        suffit à écrire sur disque)
+      - cache/startup/live_ready.token   (bypass_detector.write_live_ready_token,
+        appelé par ColdStartManager en atteignant LIVE_READY)
+
+    black_box/cold_start_reports lisent leur env var À L'APPEL (corrigé,
+    Sprint S3/S4) — un simple monkeypatch.setenv suffit. warmup_state_machine
+    et bypass_detector figent leur chemin en constante de module à l'import
+    (DS-001 variante 2) — l'attribut de module doit être patché directement.
+    Applied automatically to every test in the project.
     """
     monkeypatch.setenv("BLACK_BOX_PATH", str(tmp_path / "black_box_test.jsonl"))
     monkeypatch.setenv("COLD_START_REPORT_DIR", str(tmp_path / "cold_start_reports"))
 
+    import cold_start.bypass_detector as _bpd
     import cold_start.warmup_state_machine as _wsm
 
     monkeypatch.setattr(
         _wsm, "_STATE_PERSIST_PATH", tmp_path / "warmup_state_test.json"
     )
+    monkeypatch.setattr(_bpd, "_TOKEN_PATH", tmp_path / "live_ready_test.token")
+
+
+@pytest.fixture(autouse=True)
+def _isolate_perp_universe(monkeypatch, tmp_path):
+    """Redirect PerpUniverseService's storage file to a per-test temp file.
+
+    PerpUniverseService.__init__ already reads UNIVERSE_STORAGE at call
+    time (DS-001 compliant, no code fix needed) — it simply had no test
+    isolation at all yet. Découvert empiriquement (find -newer) lors de
+    l'intégration Sprint S4 : databases/perp_universe.json était modifié
+    par tests/test_advisor_loop_smoke.py malgré monkeypatch.chdir, car son
+    défaut (_UNIVERSE_STORAGE_DEFAULT) est ancré via os.path.dirname(__file__)
+    — immune au chdir (DS-001 variante 3).
+    Applied automatically to every test in the project.
+    """
+    monkeypatch.setenv("UNIVERSE_STORAGE", str(tmp_path / "perp_universe_test.json"))
 
 
 @pytest.fixture(autouse=True)
@@ -147,7 +204,7 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
         "=" * 78,
         "SCIENTIFIC DATA GUARD — databases/ ou cache/ modifié pendant les tests.",
         "Un test écrit dans un fichier de production (chemin par défaut non",
-        "isolé). Voir conftest.py § Isolation recorder / Isolation black box",
+        "isolé). Voir conftest.py § docstring module (règle DS-001, ADR-0008)",
         "pour le motif de correction (lire le chemin depuis l'env var À L'APPEL,",
         "jamais comme valeur par défaut de signature évaluée à l'import).",
         "=" * 78,

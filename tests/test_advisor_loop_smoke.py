@@ -10,6 +10,21 @@ from advisor_runtime_adapters import AdvisorRuntime
 
 
 @pytest.fixture(autouse=True)
+def _isolate_smoke_writes(monkeypatch, tmp_path):
+    """Exécute chaque smoke test depuis un CWD temporaire.
+
+    advisor_loop.main() écrit dans ~17 fichiers via des chemins RELATIFS
+    (databases/live_snapshot.json, databases/cycle_data.jsonl,
+    databases/rejections/, logs/, cache/startup/, tracker_system/logs/...).
+    Vérifié empiriquement (S4-A) : 100 % des écritures sont relatives au CWD
+    — aucun ancrage Path(__file__)/PROJECT_ROOT/abspath figé.
+    Rediriger le CWD vers tmp_path isole donc TOUTES ces écritures
+    sans modifier advisor_loop.py (gelé — phase de validation scientifique).
+    """
+    monkeypatch.chdir(tmp_path)
+
+
+@pytest.fixture(autouse=True)
 def _bypass_instance_lock(monkeypatch):
     """Les smoke tests exercent main() sans avoir besoin du verrou d'instance."""
     monkeypatch.setattr(advisor_loop, "_acquire_instance_lock", lambda: None)
