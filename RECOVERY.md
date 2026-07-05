@@ -176,3 +176,28 @@ nohup .venv/bin/python3 core/advisor_loop.py < /dev/null >> logs/advisor.log 2>&
   réconciliation, où `sudo systemctl restart crypto_watchdog.service` (ou
   équivalent) doit être une étape explicite et coordonnée, pas un effet de
   bord du déploiement.
+
+## 5. Incident corrigé — faux tag d'audit `deploy-20260704-1837`
+
+Le déploiement du correctif watchdog (2026-07-04, 18:37 UTC) a affiché
+`Transfert OK` et créé/poussé le tag `deploy-20260704-1837` alors que
+**2 des 5 fichiers (`watchdog_vps.py`, `scripts/vps_restart.sh`) n'avaient
+en réalité pas été transférés** — `scp` a retourné un code de sortie 0 sans
+avoir réellement écrit sur le disque distant (cause probable : aléa réseau/
+multiplexage SSH, non élucidé précisément). Détecté par vérification
+manuelle du contenu déployé (mtime + `grep`), pas par `deploy_vps.sh`
+lui-même.
+
+**Correctifs appliqués** :
+- `scripts/deploy_vps.sh` vérifie désormais chaque fichier par SHA256
+  (local vs distant) après le transfert — le tag n'est créé que si 100%
+  des fichiers sont confirmés identiques. Un nouveau déploiement a été
+  relancé et vérifié manuellement : les 5 fichiers sont bien présents et
+  corrects (tag `deploy-20260704-2002`, désormais fiable puisque vérifié
+  indépendamment de la nouvelle logique qu'il valide).
+- Le tag `deploy-20260704-1837` a été **supprimé** (local + `origin`) —
+  il attestait un transfert partiel, il ne doit pas rester dans l'historique
+  comme preuve d'un déploiement complet qu'il n'a pas été. Cette note
+  documente la suppression : rien n'est réécrit en silence.
+- Le tag `deploy-20260704-2002` reste l'unique preuve valable du
+  déploiement du correctif watchdog de cette date.

@@ -16,11 +16,15 @@
 #   2. Affiche la liste EXACTE des fichiers à transférer, demande une
 #      confirmation interactive y/N (sautée avec --yes).
 #   3. Transfère par SSH — sauté avec --dry-run.
-#   4. UNIQUEMENT si le transfert réussit (jamais avant, jamais si --dry-run) :
-#      crée un tag git annoté deploy-YYYYMMDD-HHMM (SHA du commit + liste des
-#      fichiers dans le message) et le pousse. Le tag EST le journal d'audit
-#      des déploiements — auditable comme le reste du projet.
-#   5. Redémarre le service UNIQUEMENT si VPS_RESTART_CMD est défini ET
+#   4. Vérifie CHAQUE fichier par SHA256 (local vs distant) — un scp qui
+#      retourne exit 0 sans avoir réellement écrit n'est plus une preuve
+#      suffisante (incident 2026-07-04, tag deploy-20260704-1837 corrigé).
+#   5. UNIQUEMENT si la vérification est à 100% (jamais avant, jamais si
+#      --dry-run) : crée un tag git annoté deploy-YYYYMMDD-HHMM (SHA du
+#      commit + liste des fichiers dans le message) et le pousse. Le tag
+#      EST le journal d'audit des déploiements — auditable comme le reste
+#      du projet.
+#   6. Redémarre le service UNIQUEMENT si VPS_RESTART_CMD est défini ET
 #      --restart est passé explicitement (double opt-in, jamais implicite).
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -232,6 +236,29 @@ if [[ $_transfer_ok -eq 0 ]]; then
     exit 1
 fi
 log "Transfert OK"
+
+# ── Vérification post-transfert — SHA256 local vs distant ────────────────────
+# Incident 2026-07-04 : scp a retourné succès (exit 0) alors que 2 fichiers
+# sur 5 n'avaient pas réellement été transférés (mtime distant inchangé) —
+# et un tag d'audit avait été créé sur la foi de ce faux succès. "scp exit 0"
+# ne suffit plus comme preuve : on vérifie le contenu réellement présent sur
+# le VPS, fichier par fichier, avant de créer le moindre tag.
+_verify_ok=1
+while IFS= read -r _file; do
+    [[ -z "$_file" ]] && continue
+    _local_sha=$(sha256sum "$_file" | awk '{print $1}')
+    _remote_sha=$(ssh $SSH_OPTS "$VPS_USER@$VPS_HOST" "sha256sum '$VPS_PATH/$_file' 2>/dev/null" | awk '{print $1}')
+    if [[ -z "$_remote_sha" || "$_local_sha" != "$_remote_sha" ]]; then
+        log "ERREUR — vérification SHA256 échouée pour : $_file (local=$_local_sha distant=${_remote_sha:-absent})"
+        _verify_ok=0
+    fi
+done <<<"$ALL_FILES"
+
+if [[ $_verify_ok -eq 0 ]]; then
+    log "ERREUR — vérification post-transfert échouée — PAS de tag créé"
+    exit 1
+fi
+log "Vérification SHA256 OK — $FILE_COUNT fichier(s) confirmés identiques sur le VPS"
 
 # ── Tag d'audit — créé UNIQUEMENT après un transfert réussi ──────────────────
 # Un tag ne doit jamais pointer vers un déploiement raté.
