@@ -5,7 +5,10 @@ cd ~/crypto_ai_terminal
 mkdir -p logs
 
 echo "[1/3] Arrêt process existant..."
-pkill -f advisor_loop.py 2>/dev/null && echo "  Arrêté" || echo "  Pas de process"
+# DS-002 (incident 2026-07-04) : motif ancré — jamais de sous-chaîne.
+# "advisor_loop.py" sans ancrage tuerait aussi le bot passif racine
+# (advisor_loop.py, géré séparément par systemd crypto_advisor.service).
+pkill -f 'core/advisor_loop\.py$' 2>/dev/null && echo "  Arrêté" || echo "  Pas de process"
 sleep 3
 
 echo "[2/3] Démarrage core/advisor_loop.py..."
