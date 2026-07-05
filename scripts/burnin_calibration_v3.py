@@ -257,8 +257,13 @@ def _compute_trade_stats(trades: list[dict]) -> TradeStats:
     pnl_usds = [_safe_float(t.get("pnl_usd", 0)) for t in trades]
     durations = [_safe_float(t.get("duration_s", 0)) for t in trades]
 
-    wins = [p for p in pnl_pcts if p > 0]
-    losses = [p for p in pnl_pcts if p <= 0]
+    # Win/loss classifie sur pnl_usd (net de frais + slippage), pas pnl_pct
+    # (brut, mouvement de prix seul). Un trade gross-positif peut etre
+    # net-negatif une fois les couts d'execution deduits (cf. mexc_simulator
+    # ._close_position : pnl_usd = qty_usd*gross_pct - fee - fee_entry).
+    # Meme convention que MexcSimulator._close_position (win = pnl_usd >= 0).
+    wins = [u for u in pnl_usds if u >= 0]
+    losses = [u for u in pnl_usds if u < 0]
 
     total_gain = sum(p for p in pnl_usds if p > 0)
     total_loss = abs(sum(p for p in pnl_usds if p < 0))

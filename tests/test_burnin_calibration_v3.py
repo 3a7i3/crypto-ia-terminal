@@ -229,6 +229,30 @@ def test_real_trades_counted(tmp_path):
     assert stats.profit_factor > 1.0
 
 
+# ── BCV3-04b : win/loss net (pnl_usd), pas brut (pnl_pct) ────────────────────
+
+
+def test_win_loss_uses_net_pnl_not_gross_pct(tmp_path):
+    """Un trade gross-positif (pnl_pct>0) mais net-negatif (pnl_usd<0, une
+    fois frais+slippage deduits) doit compter comme une perte — meme
+    convention que MexcSimulator._close_position (win = pnl_usd >= 0)."""
+    trades_jsonl = tmp_path / "trades.jsonl"
+    gross_win_net_loss = _real_close("t1", 0.0005)  # gross positif...
+    gross_win_net_loss["pnl_usd"] = -0.02  # ...mais net negatif (frais > gain)
+    events = [
+        gross_win_net_loss,
+        _real_close("t2", 0.02),  # gross et net positifs
+    ]
+    _write_trades_jsonl(trades_jsonl, events)
+
+    real = _load_real_trades(trades_jsonl)
+    stats = _compute_trade_stats(real)
+
+    assert stats.wins == 1
+    assert stats.losses == 1
+    assert stats.win_rate_pct == 50.0
+
+
 # ── BCV3-05 : KillSwitch halted → bloqueur ────────────────────────────────────
 
 
