@@ -201,3 +201,80 @@ lui-même.
   documente la suppression : rien n'est réécrit en silence.
 - Le tag `deploy-20260704-2002` reste l'unique preuve valable du
   déploiement du correctif watchdog de cette date.
+
+## 6. Réconciliation exécutée — 2026-07-05, état final
+
+La manœuvre décrite en creux dans ce document a été exécutée dans la nuit
+du 2026-07-05, avec un incident en cours de route qui a validé — de la
+pire façon possible mais sans dommage — exactement le risque que ce
+document existait pour prévenir.
+
+**Ce qui s'est passé pendant la manœuvre** : le premier geste (`kill -TERM`
+sur le PID du watchdog, 429) a immédiatement tué le moteur réel (PID
+1456244) en cascade — son cgroup était historiquement partagé avec
+`crypto_watchdog.service` (`KillMode=control-group` par défaut de systemd),
+un fait documenté § 2 mais dont l'implication précise (un `kill` sur le
+watchdog balaie tout son cgroup) n'avait pas été anticipée avant l'action.
+Détecté à la vérification de sortie de l'étape 1, jamais avant — leçon
+gravée : **toujours `cat /proc/<PID>/cgroup` pour chaque processus avant
+le moindre kill.** Aucune position perdue (`Pos: 0` confirmé dans
+`paper_trades.jsonl` — les OPEN sans CLOSE correspondant — au moment exact
+de l'arrêt), et **le correctif watchdog déployé plus tôt le 2026-07-04 a
+fonctionné correctement en conditions réelles** : le process respawné par
+`Restart=always` a détecté le moteur mort et déclenché le mode ALERTE
+SEULE (`ENGINE_DEAD_NO_AUTO_RESTART`, `supervision/watchdog_audit.jsonl`)
+au lieu de relancer le mauvais service.
+
+**État final** :
+- Moteur sur `main@8ad76e4`, unit `crypto-advisor.service`, cgroup dédié
+  `/system.slice/crypto-advisor.service` (confirmé — plus aucun partage
+  de cgroup possible).
+- Watchdog : nouvelle unit dédiée `crypto-watchdog.service` (tiret, cgroup
+  propre `/system.slice/crypto-watchdog.service`), code du 2026-07-04
+  (ciblage ancré, mode armé — `RESTART_DISABLED_UNTIL_RECONCILIATION=0`
+  dans `.env` VPS).
+- Trois unités historiques (`crypto_advisor.service`, `crypto_watchdog.service`,
+  `watchdog_crypto.service` — trois noms pour deux rôles) archivées dans
+  `~/legacy-units-20260705/` sur le VPS, retirées de `/etc/systemd/system/`
+  (`systemctl mask` a échoué à deux reprises sur ce systemd 249 pour des
+  fichiers non-symlink — l'archivage résout le même besoin sans lutter
+  contre l'outil : `systemctl status` répond désormais "could not be found").
+- État hybride pré-réconciliation (`feat/stack-unification` + stash bloqué
+  + les deux commits uniques `342c618`/`cf4d857`) intégralement préservé
+  sur la branche `rescue/stack-unif-remains` (commit `eaf3834`, poussée sur
+  `origin` — clé SSH dédiée du VPS reconfigurée à cette occasion,
+  `core.sshCommand` scopé au dépôt ; le remote HTTPS avec jeton placeholder
+  `TON_TOKEN_ICI` n'avait jamais fonctionné). Décision sur le frontend React
+  (`ScientificView`/`ScoresView`) reportée à froid, contre `sdos_terminal/`.
+- Marqueur de provenance scientifique écrit en JSONL append (`databases/black_box.jsonl`
+  et `logs/decisions/2026-07-05.jsonl`) : `decision_type: RESTART`, SHA
+  avant/après (`782688a` → `8ad76e4`), cause de l'arrêt (non propre, cgroup),
+  0 position perdue, et les 3 premiers trades post-réconciliation
+  (XRP/BNB/BTC, 04:19:43–04:20:00 UTC) comme borne de reprise du dataset.
+- Sauvegarde complète pré-manœuvre : `~/pre-reconciliation-20260705.tar.gz`
+  (databases/, cache/, .env, lock), SHA256 noté ; forensique de l'arrêt
+  dans `~/engine-death-forensics-20260705.txt` ; stash rescue dans
+  `~/stash-rescue.patch`.
+
+**Deux découvertes de fond, au-delà de l'incident du soir** :
+
+1. **`databases/live_snapshot.json` (`Pos:` affiché dans les rapports
+   Telegram et le heartbeat ALIVE) ne reflète PAS l'exposition réelle en
+   paper trading** — il suit un système de tracking (`pos_manager`)
+   différent et non synchronisé avec celui de `MexcSimulator`
+   (`paper_trading/mexc_simulator.py`), qui écrit les positions réellement
+   ouvertes dans `paper_trades.jsonl`. Le F1 de cette nuit (vérifier
+   `Pos: 0` avant la fenêtre de maintenance) était juste sur le fond —
+   confirmé a posteriori par dépouillement de `paper_trades.jsonl` — mais
+   sa méthode était défaillante : le snapshot peut afficher `0` avec des
+   positions réellement ouvertes. **Toute vérification future d'exposition
+   doit se faire sur `paper_trades.jsonl` (OPEN sans CLOSE correspondant),
+   jamais sur `live_snapshot.json`.** Ticket bloquant pour Sprint C : une
+   page Overview qui afficherait le `Pos:` du snapshot mentirait
+   structurellement sur l'exposition réelle.
+2. **Symétrie avec la leçon du bot passif** (§ 1 — un heartbeat qui ne
+   prouvait pas l'identité du process vivant) : deux signaux d'observabilité
+   distincts, découverts la même semaine, qui ne mesurent pas ce qu'on
+   croyait. Leçon à graver dans l'ADR de débrief de cette réconciliation :
+   *un indicateur n'a de valeur que si on sait exactement quel système il
+   observe.*
