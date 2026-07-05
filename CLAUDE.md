@@ -113,3 +113,36 @@ L'architecture est mature. Les preuves restent à construire.
    `n_at_eval >= min_n_required` → passage réel interdit.
 2. **Zéro contradiction** : conflits H1↔H3 et H2↔H3 doivent être résolus
    (voir `experiments/EXP-001.yaml § known_conflict_pairs`).
+
+---
+
+## Déploiement VPS — geste délibéré (2026-07-04)
+
+Le hook `.git/hooks/post-commit` qui déployait automatiquement chaque commit
+vers le VPS a été **aboli** (renommé `post-commit.disabled`, réversible mais
+non réactivé). Un commit sur `main` ne déploie plus jamais rien tout seul —
+conforme au gel scientifique, un déploiement doit rester un acte conscient.
+
+**Nouveau geste** :
+
+```
+bash scripts/deploy_vps.sh --confirm            # avec confirmation interactive
+bash scripts/deploy_vps.sh --confirm --yes       # usage scripté, sans prompt
+bash scripts/deploy_vps.sh --confirm --dry-run   # simulation, aucun transfert réel
+bash scripts/deploy_vps.sh --confirm --restart   # + redémarrage du service (double opt-in)
+```
+
+Sans `--confirm` : affiche l'usage, exit 1. Aucune exécution implicite.
+
+Le script conserve le filtre d'exclusion (`databases/|cache/|logs/|tests/|docs/`)
+qui empêche d'écraser l'état runtime du VPS (dont `runtime_config.json`,
+paramètres de risque live) via un commit accidentel.
+
+Après un déploiement réussi (jamais avant, jamais en `--dry-run`), un tag
+git annoté `deploy-YYYYMMDD-HHMM` est créé et poussé — SHA du commit + liste
+des fichiers transférés dans le message. **Ce tag est le journal d'audit des
+déploiements**, `git tag -l "deploy-*"` en donne l'historique complet.
+
+Le redémarrage du service (`pkill` + relance `advisor_loop.py`) reste un
+double opt-in : `VPS_RESTART_CMD` défini dans `.env` ET `--restart` passé
+explicitement. Jamais implicite, même avec un fichier critique déployé.
