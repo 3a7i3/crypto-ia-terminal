@@ -1,0 +1,175 @@
+{
+  "label": "report_2026-06-04_168h",
+  "generated": "2026-06-04T01:53:34.911298+00:00",
+  "window_s": 604800.0,
+  "n_snapshots": 603,
+  "n_alerts": 0,
+  "n_critical_alerts": 0,
+  "behavioral": {
+    "stalled_episodes": 3,
+    "paralysed_episodes": 2,
+    "stalled_only_episodes": 0,
+    "waiting_episodes": 1,
+    "avg_stall_duration_cycles": 64.0,
+    "adaptation_ineffective_count": 3,
+    "adaptation_ineffective_mismatch_avg": 5.0,
+    "top_blockers": [
+      {
+        "name": "portfolio",
+        "count": 234
+      },
+      {
+        "name": "gate",
+        "count": 92
+      }
+    ],
+    "resumed_count": 1
+  },
+  "burnin_analytics": {
+    "generated_at": "2026-06-04T01:53:34.911298+00:00",
+    "window_hours": 168.0,
+    "trades": 18,
+    "wins": 7,
+    "losses": 11,
+    "win_rate": 38.89,
+    "profit_factor": 0.3104,
+    "expectancy": -0.508,
+    "max_drawdown": 0.0588,
+    "sharpe": -6.1081,
+    "score_histogram": [
+      {
+        "range": "50-54",
+        "trades": 0,
+        "wins": 0,
+        "losses": 0,
+        "win_rate": 0.0,
+        "profit_factor": 0.0,
+        "expectancy": 0.0
+      },
+      {
+        "range": "55-59",
+        "trades": 2,
+        "wins": 2,
+        "losses": 0,
+        "win_rate": 100.0,
+        "profit_factor": 0.0,
+        "expectancy": 0.6775
+      },
+      {
+        "range": "60-64",
+        "trades": 10,
+        "wins": 2,
+        "losses": 8,
+        "win_rate": 20.0,
+        "profit_factor": 0.1545,
+        "expectancy": -0.4349
+      },
+      {
+        "range": "65-69",
+        "trades": 6,
+        "wins": 3,
+        "losses": 3,
+        "win_rate": 50.0,
+        "profit_factor": 0.2423,
+        "expectancy": -1.0249
+      },
+      {
+        "range": "70+",
+        "trades": 0,
+        "wins": 0,
+        "losses": 0,
+        "win_rate": 0.0,
+        "profit_factor": 0.0,
+        "expectancy": 0.0
+      }
+    ],
+    "tp_sl_breakdown": {
+      "tp_closes": 5,
+      "sl_closes": 5,
+      "other_closes": 8,
+      "raw": {
+        "stop_loss": 5,
+        "time_stop": 8,
+        "take_profit": 5
+      }
+    }
+  },
+  "p13_table": {
+    "uptime_pct": {
+      "value": 85.76,
+      "target": ">=99.0%"
+    },
+    "exceptions": {
+      "value": 0,
+      "target": "<=5/j"
+    },
+    "invariant_violations": {
+      "value": 0,
+      "target": "=0"
+    },
+    "audit_corruption": {
+      "value": 0,
+      "target": "=0"
+    },
+    "reconciliation_failures": {
+      "value": 0,
+      "target": "=0"
+    },
+    "max_drawdown_pct": {
+      "value": 0.1,
+      "target": "<=15.0%"
+    },
+    "health_score_min": {
+      "value": 100.0,
+      "target": ">=75"
+    },
+    "health_score_mean": {
+      "value": 100.0,
+      "target": ">=80"
+    },
+    "memory_mb_max": {
+      "value": 0.0,
+      "target": "<=800 MB"
+    },
+    "sharpe_ratio": {
+      "value": -6.108,
+      "target": ">=1.0"
+    },
+    "sortino_ratio": {
+      "value": -4.332,
+      "target": ">=1.5"
+    },
+    "profit_factor": {
+      "value": 0.31,
+      "target": ">=1.3"
+    },
+    "strategy_score": {
+      "value": 15.0,
+      "target": ">=60.0"
+    },
+    "strategy_grade": {
+      "value": "F",
+      "target": ">=B"
+    },
+    "total_trades": {
+      "value": 18,
+      "target": ">=10"
+    },
+    "win_rate": {
+      "value": 38.9,
+      "target": "informative"
+    },
+    "burn_in_passed": {
+      "value": false,
+      "target": "OUI"
+    }
+  },
+  "failure_reasons": [
+    "uptime_pct: 85.76 < 99.0",
+    "sharpe_ratio: -6.108 < 1.0",
+    "sortino_ratio: -4.332 < 1.5",
+    "profit_factor: 0.31 < 1.3",
+    "strategy_score: 15.0 < 60.0"
+  ],
+  "burn_in_passed": false
+}

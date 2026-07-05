@@ -1,0 +1,140 @@
+# experiments/EXP-001.yaml
+# Registre versionné de l'expérience initiale de burn-in.
+# Convention : un fichier par expérience, jamais modifié rétroactivement après clôture.
+# Référence normative : docs/data_governance_spec_v1.md
+
+id: EXP-001
+title: "Burn-in initial — baseline paper trading post-nettoyage"
+status: IN_PROGRESS  # IN_PROGRESS | COMPLETED | ABANDONED
+
+context:
+  date_start: "2026-06-25"
+  date_end: null  # à remplir quand N >= 100 et go/no-go décidé
+  commit_start: "ff49c2a"  # blacklist tokens toxiques
+  commit_end: null
+  branch: main
+  engine_version: "v9"
+
+objective: >
+  Établir une baseline statistique fiable sur N >= 100 trades propres
+  en paper trading MEXC Futures, après invalidation de toutes les données
+  antérieures (tokens toxiques, bypass meta_allowed, burn-in v1 invalide).
+  Objectif : décider go/no-go pour passage en capital réel phase A ($50).
+
+# ── Dataset Manifest (conforme §4 data_governance_spec_v1.md) ─────────────────
+dataset_manifest:
+  uuid: "fb61deac-43e3-40a3-b7d9-5c075cdff24c"   # généré 2026-06-30
+  name: "Burn-in 2026-Q3"
+
+  # Traçabilité technique
+  engine_version: "v9"
+  git_commit: "6d250b7"           # commit CLAUDE.md + observabilité complète P0-P3
+  git_branch: "main"
+  observability_version: 2        # P0-P3 actifs depuis 2026-06-30
+  config_hash: "E0D02B1C317F"     # SHA-256[:12] paramètres clés (MEXC/paper/PB_MIN=3/score=66)
+  feature_flags_hash: "0D38360E7901"  # snapshot: BUS+EXPLAINER+STORE+SCHEDULER=true, ACE=false
+  schema_version: 1               # version DecisionObservation
+
+  # Contexte marché
+  exchange: "MEXC"
+  mode: "paper_trading"
+  trading_universe_size: null     # à renseigner depuis LiveExchangeReader
+  symbol_blacklist:
+    - USDC/USDT
+    - USDE/USDT
+    # + 10 tokens toxiques hardcodés dans PerpUniverseService
+
+  # Dates
+  date_opened: "2026-06-25T00:00:00Z"
+  date_closed: null               # null si toujours actif
+
+  # Certification (renseignée par S1 quand disponible)
+  certified: false
+  certification_id: null          # CERT-2026-Q3-001 après passage S1
+  certification_date: null
+
+  # Filiation
+  parent_dataset_uuid: null       # premier dataset propre — pas de parent
+  # Note : données antérieures au 2026-06-25 sont invalides (voir memory ALPHA_DISCOVERY_100)
+
+  # Replay
+  replay_supported: true
+  replay_instructions: >
+    Démarrer advisor_loop.py avec git checkout ff49c2a, même .env (PB_MIN=3, blacklist
+    stablecoins), feature flags par défaut (FEATURE_AUTO_CALIBRATION=false).
+    Les DecisionObservations sont persistées dans databases/rejections/ et databases/regret/.
+
+configuration:
+  exchange: MEXC
+  mode: paper_trading
+  capital_virtual_usd: 692.70
+  capital_real_usd: 6.81  # wallet réel au moment du démarrage
+  pb_min_position_usd: 3
+  score_threshold: 66
+  symbol_blacklist:
+    - USDC/USDT
+    - USDE/USDT
+    # 10 tokens toxiques hardcodés dans PerpUniverseService
+  regimes_actifs:
+    - sideways
+    - bull_trend
+    - bear_trend
+  pid_vps: 1005477  # PID service au démarrage propre
+
+hypotheses_testées:
+  - H1  # BUY sideways → expectancy négative ?
+  - H2  # SELL bear → expectancy positive ?
+  - H3  # Score >= 75 → meilleure expectancy ?
+  - H4  # ATR% >= 1.5 → meilleur PF ?
+
+go_no_go_criteria:
+  n_min: 100
+  profit_factor: ">= 1.4"
+  expectancy: "> 0 $/trade"
+  max_drawdown: "< 10% du capital virtuel"
+  sharpe: "> 0.5"
+  health_check: "exit 0"
+  data_quality: "exit 0"
+  hypotheses: "H1+H2+H3 concluantes (Confirmed ou Rejected) avec evidence_level >= Moderate"
+  dataset_certification: "CERTIFIED ou PASS (§3 data_governance_spec_v1.md)"
+
+<<<<<<< Updated upstream
+  no_inconclusive_at_n: true
+  critical_hypotheses: [H1, H2, H3]
+
+  no_hypothesis_conflicts: true
+  known_conflict_pairs:
+    - [H1, H3]
+    - [H2, H3]
+=======
+  # ── Verrou 1 : zéro Inconclusive sur hypothèses critiques ayant atteint N ──────
+  # Si H_i.status == Inconclusive ET H_i.n_at_eval >= H_i.min_n_required → BLOQUANT.
+  # Un résultat Inconclusive à N suffisant signifie que l'hypothèse est mal formulée
+  # ou que le signal n'existe pas — décision impossible.
+  no_inconclusive_at_n: true
+  critical_hypotheses: [H1, H2, H3]  # les seules bloquantes pour EXP-001
+
+  # ── Verrou 2 : zéro contradiction entre hypothèses critiques ─────────────────
+  # Exemple interdit : H1 Confirmed (score négatif en sideways) ET H3 Rejected
+  # (score sans valeur prédictive) → contradiction structurelle qui invalide
+  # toute recommandation sur le seuil de score.
+  # Les paires conflictuelles doivent être résolues avant passage réel.
+  no_hypothesis_conflicts: true
+  known_conflict_pairs:
+    - [H1, H3]  # si H3 Rejected : le score n'est pas prédictif → H1 doit être réévalué
+    - [H2, H3]  # même logique sur SELL bear
+>>>>>>> Stashed changes
+
+progress:
+  n_trades_propres: 0   # à mettre à jour via regime_audit.py
+  last_updated: "2026-06-30"
+  notes:
+    - "2026-06-25: Démarrage propre. PID 1005477. Stablecoins exclus. PB_MIN=3."
+    - "2026-06-25: 3 premiers trades: EVAA/USDT BUY, TRUMP/USDT SELL, SOL/USDT SELL."
+    - "2026-06-29: Framework Phase 0+1+2 déployé (health_check, data_quality, analysis/)."
+    - "2026-06-30: Observabilité P0-P3 livrée (86 tests). DecisionEventBus actif. observability_version=2."
+    - "2026-06-30: Data Governance Spec v1.0 publiée. Dataset Manifest créé. dataset_uuid=fb61deac."
+
+résultat: null  # à remplir à la clôture
+
+conclusion: null  # GO / NO-GO + justification statistique + evidence_level atteint

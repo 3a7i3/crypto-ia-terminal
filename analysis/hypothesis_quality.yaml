@@ -1,0 +1,110 @@
+# analysis/hypothesis_quality.yaml
+# Axe 1 — Meta Science : mesure la qualité des hypothèses elles-mêmes.
+#
+# Principe : une hypothèse peut être vraie pendant 3 mois, puis devenir fausse
+# lorsque le marché change. Ce registre trace l'évolution des conclusions dans
+# le temps, à travers plusieurs datasets et campagnes d'expériences.
+#
+# Mise à jour : après chaque clôture d'expérience référençant l'hypothèse.
+# Ne jamais modifier les entrées passées (Scientific Immutability Rule).
+# Référence normative : docs/data_governance_spec_v1.md §5 (Scientific Lineage)
+#
+# Stabilité  : ratio confirmations / total évaluations
+# Reproductibilité : ratio évaluations ayant abouti au même résultat que la précédente
+# Temporal Drift : indique si les conclusions changent avec le temps (marché instable)
+
+schema_version: "1.0"
+last_updated: "2026-06-30"
+
+hypothesis_quality:
+
+  - hypothesis_id: H1
+    hypothesis_version_latest: "H1-v1.0"
+    description_short: "BUY sideways → expectancy négative"
+
+    # Historique des évaluations (une entrée par expérience close)
+    # Format : {experiment_id, dataset_uuid, date, n, status, evidence_level}
+    evaluation_history: []   # à remplir après chaque clôture d'EXP-xxx
+
+    # Métriques de qualité — calculées après ≥ 2 évaluations
+    times_evaluated: 0
+    times_confirmed: 0
+    times_rejected: 0
+    times_inconclusive: 0
+    stability_score: null         # confirmations / (confirmations + rejections), null si < 2 évaluations
+    reproducibility_score: null   # ratio évaluations consécutives au même résultat
+    temporal_drift_detected: null # true si le résultat a changé entre deux campagnes
+    scientific_confidence: null   # Low | Medium | High | VeryHigh (calculé sur stability + reproductibility)
+
+    # Régimes dans lesquels l'hypothèse a été testée
+    regimes_tested: []
+
+    # Indicateur de robustesse multi-régime
+    regime_specificity: null      # "universal" | "regime_dependent" | "unknown"
+
+    notes: []
+
+  - hypothesis_id: H2
+    hypothesis_version_latest: "H2-v1.0"
+    description_short: "SELL bear → expectancy positive"
+    evaluation_history: []
+    times_evaluated: 0
+    times_confirmed: 0
+    times_rejected: 0
+    times_inconclusive: 0
+    stability_score: null
+    reproducibility_score: null
+    temporal_drift_detected: null
+    scientific_confidence: null
+    regimes_tested: []
+    regime_specificity: null
+    notes: []
+
+  - hypothesis_id: H3
+    hypothesis_version_latest: "H3-v1.0"
+    description_short: "Score >= 75 → expectancy supérieure (score prédictif)"
+    evaluation_history: []
+    times_evaluated: 0
+    times_confirmed: 0
+    times_rejected: 0
+    times_inconclusive: 0
+    stability_score: null
+    reproducibility_score: null
+    temporal_drift_detected: null
+    scientific_confidence: null
+    regimes_tested: []
+    regime_specificity: null
+    notes: []
+
+  - hypothesis_id: H4
+    hypothesis_version_latest: "H4-v1.0"
+    description_short: "ATR% >= 1.5 → meilleur Profit Factor"
+    evaluation_history: []
+    times_evaluated: 0
+    times_confirmed: 0
+    times_rejected: 0
+    times_inconclusive: 0
+    stability_score: null
+    reproducibility_score: null
+    temporal_drift_detected: null
+    scientific_confidence: null
+    regimes_tested: []
+    regime_specificity: null
+    notes: []
+
+# ── Calcul des scores (référence pour l'implémentation future) ─────────────────
+#
+# stability_score = confirmed / (confirmed + rejected)
+#   ex: 7 confirmed + 1 rejected → 7/8 = 0.875
+#
+# reproducibility_score = pairs_same_result / (total_pairs)
+#   ex: 3 évaluations : C→C→R → 1 pair same / 2 pairs = 0.50
+#
+# scientific_confidence :
+#   VeryHigh : stability >= 0.90 AND reproducibility >= 0.90 AND times_evaluated >= 3
+#   High     : stability >= 0.75 AND reproducibility >= 0.75 AND times_evaluated >= 2
+#   Medium   : stability >= 0.60 OR  reproducibility >= 0.60
+#   Low      : sinon
+#
+# temporal_drift_detected = true si le résultat a changé entre deux campagnes successives
+#   (indique une dépendance au régime de marché ou une instabilité structurelle)

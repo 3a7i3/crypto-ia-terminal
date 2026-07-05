@@ -1,0 +1,69 @@
+{
+  "generated_at": "2026-06-04T01:53:34.911298+00:00",
+  "window_hours": 168.0,
+  "trades": 18,
+  "wins": 7,
+  "losses": 11,
+  "win_rate": 38.89,
+  "profit_factor": 0.3104,
+  "expectancy": -0.508,
+  "max_drawdown": 0.0588,
+  "sharpe": -6.1081,
+  "score_histogram": [
+    {
+      "range": "50-54",
+      "trades": 0,
+      "wins": 0,
+      "losses": 0,
+      "win_rate": 0.0,
+      "profit_factor": 0.0,
+      "expectancy": 0.0
+    },
+    {
+      "range": "55-59",
+      "trades": 2,
+      "wins": 2,
+      "losses": 0,
+      "win_rate": 100.0,
+      "profit_factor": 0.0,
+      "expectancy": 0.6775
+    },
+    {
+      "range": "60-64",
+      "trades": 10,
+      "wins": 2,
+      "losses": 8,
+      "win_rate": 20.0,
+      "profit_factor": 0.1545,
+      "expectancy": -0.4349
+    },
+    {
+      "range": "65-69",
+      "trades": 6,
+      "wins": 3,
+      "losses": 3,
+      "win_rate": 50.0,
+      "profit_factor": 0.2423,
+      "expectancy": -1.0249
+    },
+    {
+      "range": "70+",
+      "trades": 0,
+      "wins": 0,
+      "losses": 0,
+      "win_rate": 0.0,
+      "profit_factor": 0.0,
+      "expectancy": 0.0
+    }
+  ],
+  "tp_sl_breakdown": {
+    "tp_closes": 5,
+    "sl_closes": 5,
+    "other_closes": 8,
+    "raw": {
+      "stop_loss": 5,
+      "time_stop": 8,
+      "take_profit": 5
+    }
+  }
+}

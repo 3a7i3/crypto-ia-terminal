@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import threading
 import uuid
 from datetime import datetime, timezone
@@ -32,7 +33,11 @@ from typing import Any, Dict, Optional
 # Directory layout
 # ------------------------------------------------------------------
 
-LOG_ROOT = Path(__file__).resolve().parent.parent / "logs"
+# DS-001: surchargeable via env (posée par conftest.py avant tout import
+# de module de test) — sinon comportement inchangé, ancré au repo.
+LOG_ROOT = Path(
+    os.environ.get("OBS_LOG_ROOT") or Path(__file__).resolve().parent.parent / "logs"
+)
 _CATEGORIES = (
     "runtime",
     "trading",

@@ -1,0 +1,167 @@
+# analysis/hypothesis_registry.yaml
+# Registre officiel des hypothèses scientifiques du système.
+#
+# Référence normative : docs/data_governance_spec_v1.md
+# Chaque hypothèse est un test falsifiable avec critères clairs.
+# Mise à jour après chaque run de analysis/regime_audit.py.
+#
+# Statuts    : Pending | Confirmed | Rejected | Inconclusive
+# Evidence   : Weak | Moderate | Strong | VeryStrong (voir §6 data_governance_spec_v1.md)
+# Règle      : Ne pas modifier les paramètres avant N >= 50 sur H1/H2, N >= 40 sur H3/H4.
+# Immuabilité: Un résultat lié à un dataset_uuid certifié ne peut être modifié.
+
+schema_version: "1.1"   # ajout evidence_level, dataset_uuid, hypothesis_version
+
+hypotheses:
+
+  - id: H1
+    hypothesis_version: "H1-v1.0"
+    description: >
+      BUY en régime sideways a une expectancy négative.
+      Si confirmée : désactiver BUY en sideways ou relever le seuil de score minimum.
+    metric: expectancy_usd
+    condition: expectancy_usd < 0
+    statistical_test: binomial_p_value
+    threshold_p_value: 0.05
+    min_n_required: 30
+    status: Pending
+    evidence_level: null          # Weak | Moderate | Strong | VeryStrong
+    implications:
+      confirmed: Filtrer ou désactiver BUY sideways — mode défaillance structurel identifié
+      rejected: Signal BUY en sideways est valide — continuer à monitorer
+    last_evaluated: null
+    n_at_eval: 0
+    dataset_uuid: null            # UUID du CertifiedDataset ayant servi à l'évaluation
+    dataset_certification_id: null
+    experiment_id: "EXP-001"
+    result_summary: null
+
+  - id: H2
+    hypothesis_version: "H2-v1.0"
+    description: >
+      SELL en bear_trend a une expectancy positive.
+      Si rejetée : le régime bear n'est pas exploitable en SELL — revoir personnalité defensive_short.
+    metric: expectancy_usd
+    condition: expectancy_usd > 0
+    statistical_test: binomial_p_value
+    threshold_p_value: 0.05
+    min_n_required: 30
+    status: Pending
+    evidence_level: null
+    implications:
+      confirmed: defensive_short validée — conserver et calibrer taille de position
+      rejected: Régime bear non exploitable — augmenter seuil score ou désactiver
+    last_evaluated: null
+    n_at_eval: 0
+    dataset_uuid: null
+    dataset_certification_id: null
+    experiment_id: "EXP-001"
+    result_summary: null
+
+  - id: H3
+    hypothesis_version: "H3-v1.0"
+    description: >
+      Les trades avec score >= 75 ont une expectancy significativement supérieure
+      aux trades avec score < 75.
+      Si confirmée : le scoring a une valeur prédictive réelle.
+    metric: expectancy_usd
+    condition: expectancy_high_score > expectancy_low_score AND cohens_d > 0.2
+    statistical_test: cohens_d
+    threshold_effect_size: 0.2
+    min_n_required: 40  # par groupe (20 high + 20 low minimum)
+    status: Pending
+    evidence_level: null
+    implications:
+      confirmed: Le score est prédictif — relever seuil minimum d'entrée à 75+
+      rejected: Le score n'a pas de valeur marginale — revoir les composantes du scoring
+    last_evaluated: null
+    n_at_eval: 0
+    dataset_uuid: null
+    dataset_certification_id: null
+    experiment_id: "EXP-001"
+    result_summary: null
+
+  - id: H4
+    hypothesis_version: "H4-v1.0"
+    description: >
+      Les trades avec ATR% >= 1.5 ont un Profit Factor supérieur
+      aux trades avec ATR% < 1.5.
+      Si confirmée : ajouter un filtre ATR minimum avant chaque entrée.
+    metric: profit_factor
+    condition: pf_high_atr > pf_low_atr AND cohens_d > 0.2
+    statistical_test: cohens_d
+    threshold_effect_size: 0.2
+    min_n_required: 40  # avec atr_pct non-null
+    status: Pending
+    evidence_level: null
+    implications:
+      confirmed: Filtrer ATR < 1.5% à l'entrée — améliore la sélectivité
+      rejected: ATR n'est pas discriminant — explorer d'autres filtres de volatilité
+    last_evaluated: null
+    n_at_eval: 0
+    dataset_uuid: null
+    dataset_certification_id: null
+    experiment_id: "EXP-001"
+    result_summary: null
+
+# ── Hypothèses futures (à activer quand N suffisant) ──────────────────────────
+
+  - id: H5
+    hypothesis_version: "H5-v1.0"
+    description: >
+      [FUTURE N>=100] Les trades en momentum fort (bull_trend + score>=80)
+      ont un MFE/MAE ratio > 2.0 (ratio favorable excursion).
+    metric: mfe_mae_ratio
+    condition: mean_mfe_mae > 2.0
+    statistical_test: t_test
+    min_n_required: 50
+    status: Pending
+    evidence_level: null
+    last_evaluated: null
+    n_at_eval: 0
+    dataset_uuid: null
+    dataset_certification_id: null
+    experiment_id: "EXP-001"
+    result_summary: null
+
+  - id: H6
+    hypothesis_version: "H6-v1.0"
+    description: >
+      [FUTURE N>=100] Le taux de stop-loss (SL hits) est corrélé avec
+      la durée de trade : les trades > 4h ont un SL rate > 60%.
+    metric: sl_rate_by_duration
+    condition: sl_rate_long_duration > 0.60
+    statistical_test: chi_squared
+    min_n_required: 50
+    status: Pending
+    evidence_level: null
+    last_evaluated: null
+    n_at_eval: 0
+    dataset_uuid: null
+    dataset_certification_id: null
+    experiment_id: "EXP-001"
+    result_summary: null
+
+# ── Go/No-Go final (N>=100) ───────────────────────────────────────────────────
+
+go_no_go_criteria:
+  required_n: 100
+  dataset_certification_required: true   # dataset doit être CERTIFIED ou PASS (§3 data_governance_spec_v1)
+  metrics:
+    - name: profit_factor
+      threshold: ">= 1.4"
+    - name: expectancy_usd
+      threshold: "> 0"
+    - name: max_drawdown_pct_capital
+      threshold: "< 10%"
+    - name: sharpe_ratio
+      threshold: "> 0.5"
+    - name: health_check
+      threshold: "exit_code == 0"
+    - name: data_quality
+      threshold: "exit_code == 0"
+    - name: h1_h2_h3
+      threshold: "toutes Confirmed ou Rejected (pas Pending)"
+    - name: evidence_level
+      threshold: "Moderate minimum sur H1+H2+H3 (Weak insuffisant pour décision capitale)"
+  decision: "Toutes conditions requises pour passer en capital réel phase A ($50)"

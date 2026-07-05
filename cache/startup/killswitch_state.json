@@ -1,0 +1,16 @@
+{
+  "halted": false,
+  "safe_mode": false,
+  "halt_reason": "",
+  "halt_time": 0.0,
+  "safe_mode_time": 0.0,
+  "commands_log": [
+    {
+      "cmd": "/RESUME",
+      "time": 1781577845.9916415
+    }
+  ],
+  "pending_command": "",
+  "pending_command_ts": 0.0,
+  "version": 1
+}

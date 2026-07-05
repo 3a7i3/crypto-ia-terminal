@@ -1,0 +1,64 @@
+{
+  "generated_at": "2026-06-25T02:33:01Z",
+  "burn_in_window_h": 736.6,
+  "gate": {
+    "total": 146387,
+    "allowed": 49052,
+    "rejected": 97335,
+    "window_h": 736.6,
+    "score_avg": 54.1,
+    "score_min": 35,
+    "score_max": 86,
+    "score_bins": {
+      "<50": 35738,
+      "50-59": 34002,
+      "60-69": 25878,
+      "70-79": 2743,
+      "80+": 334
+    },
+    "top_regimes": {
+      "sideways": 85630,
+      "RANGE": 40306,
+      "high_volatility_regime": 4930,
+      "bear_trend": 4079,
+      "VOLATILE": 3804
+    },
+    "top_rejection_reasons": {
+      "signal_score": 97335
+    },
+    "last_24h": 17099,
+    "signals_per_hour": 198.7,
+    "allowed_per_hour": 66.6
+  },
+  "trades": {
+    "count": 452,
+    "wins": 129,
+    "losses": 323,
+    "win_rate_pct": 28.5,
+    "profit_factor": 0.45,
+    "expectancy_pct": -2.9049,
+    "max_drawdown_pct": 32.21,
+    "sharpe": -1.44,
+    "avg_duration_h": 17.49,
+    "avg_pnl_usd": -0.6847,
+    "total_pnl_usd": -309.48
+  },
+  "system": {
+    "killswitch_halted": false,
+    "killswitch_safe_mode": false,
+    "v9_advisor_only": false,
+    "paper_trading_enabled": true,
+    "exec_bootstrap": false,
+    "warmup_state": "UNKNOWN"
+  },
+  "go_no_go": "NO_GO",
+  "blockers": [
+    "Max drawdown 32.21% > 25% seuil P13"
+  ],
+  "warnings": [
+    "Win rate bas (28.5%)",
+    "Profit factor < 1.0 (0.45)"
+  ],
+  "target_trades": 100,
+  "coverage_pct": 452.0
+}

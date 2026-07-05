@@ -1,0 +1,175 @@
+{
+  "generated_at": "2026-06-04T03:50:01.512484+00:00",
+  "window_hours": 168.0,
+  "total_trades": 18,
+  "target_trades": 100,
+  "coverage_pct": 18.0,
+  "bins": [
+    {
+      "range": "50-54",
+      "score_floor": 50,
+      "trades": 0,
+      "wins": 0,
+      "losses": 0,
+      "win_rate": 0.0,
+      "profit_factor": 0.0,
+      "expectancy": 0.0,
+      "sharpe": 0.0,
+      "alpha_class": "insufficient_data"
+    },
+    {
+      "range": "55-59",
+      "score_floor": 55,
+      "trades": 2,
+      "wins": 2,
+      "losses": 0,
+      "win_rate": 100.0,
+      "profit_factor": 0.0,
+      "expectancy": 0.6775,
+      "sharpe": 3.5831,
+      "alpha_class": "insufficient_data"
+    },
+    {
+      "range": "60-64",
+      "score_floor": 60,
+      "trades": 10,
+      "wins": 2,
+      "losses": 8,
+      "win_rate": 20.0,
+      "profit_factor": 0.1545,
+      "expectancy": -0.4349,
+      "sharpe": -0.4689,
+      "alpha_class": "negative"
+    },
+    {
+      "range": "65-69",
+      "score_floor": 65,
+      "trades": 6,
+      "wins": 3,
+      "losses": 3,
+      "win_rate": 50.0,
+      "profit_factor": 0.2423,
+      "expectancy": -1.0249,
+      "sharpe": -0.5497,
+      "alpha_class": "insufficient_data"
+    },
+    {
+      "range": "70+",
+      "score_floor": 70,
+      "trades": 0,
+      "wins": 0,
+      "losses": 0,
+      "win_rate": 0.0,
+      "profit_factor": 0.0,
+      "expectancy": 0.0,
+      "sharpe": 0.0,
+      "alpha_class": "insufficient_data"
+    }
+  ],
+  "expected_value_curve": [
+    {
+      "score_floor": 55,
+      "range": "55-59",
+      "expectancy": 0.6775,
+      "alpha_class": "insufficient_data"
+    },
+    {
+      "score_floor": 60,
+      "range": "60-64",
+      "expectancy": -0.4349,
+      "alpha_class": "negative"
+    },
+    {
+      "score_floor": 65,
+      "range": "65-69",
+      "expectancy": -1.0249,
+      "alpha_class": "insufficient_data"
+    }
+  ],
+  "recommended_score_floor": null,
+  "score_floor_confidence": "INSUFFICIENT_DATA",
+  "symbol_breakdown": [
+    {
+      "symbol": "SOL/USDT",
+      "trades": 9,
+      "wins": 5,
+      "losses": 4,
+      "win_rate": 55.56,
+      "profit_factor": 2.9344,
+      "expectancy": 0.215,
+      "sharpe": 0.3783,
+      "alpha_class": "insufficient_data"
+    },
+    {
+      "symbol": "XRP/USDT",
+      "trades": 9,
+      "wins": 2,
+      "losses": 7,
+      "win_rate": 22.22,
+      "profit_factor": 0.0963,
+      "expectancy": -1.231,
+      "sharpe": -0.8291,
+      "alpha_class": "insufficient_data"
+    }
+  ],
+  "symbol_bin_matrix": {
+    "SOL/USDT": {
+      "55-59": {
+        "trades": 1,
+        "win_rate": 100.0,
+        "expectancy": 0.8112,
+        "profit_factor": 0.0
+      },
+      "60-64": {
+        "trades": 5,
+        "win_rate": 20.0,
+        "expectancy": -0.1685,
+        "profit_factor": 0.1577
+      },
+      "65-69": {
+        "trades": 3,
+        "win_rate": 100.0,
+        "expectancy": 0.6555,
+        "profit_factor": 0.0
+      }
+    },
+    "XRP/USDT": {
+      "55-59": {
+        "trades": 1,
+        "win_rate": 100.0,
+        "expectancy": 0.5438,
+        "profit_factor": 0.0
+      },
+      "60-64": {
+        "trades": 5,
+        "win_rate": 20.0,
+        "expectancy": -0.7013,
+        "profit_factor": 0.1537
+      },
+      "65-69": {
+        "trades": 3,
+        "win_rate": 0.0,
+        "expectancy": -2.7053,
+        "profit_factor": 0.0
+      }
+    }
+  },
+  "alpha_drift": {
+    "XRP/USDT": {
+      "2026-W22": {
+        "trades": 9,
+        "win_rate": 22.22,
+        "expectancy": -1.231,
+        "profit_factor": 0.0963
+      }
+    },
+    "SOL/USDT": {
+      "2026-W22": {
+        "trades": 9,
+        "win_rate": 55.56,
+        "expectancy": 0.215,
+        "profit_factor": 2.9344
+      }
+    }
+  }
+}

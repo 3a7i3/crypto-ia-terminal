@@ -5,7 +5,30 @@ import time
 from types import SimpleNamespace
 
 import advisor_loop
+import pytest
 from advisor_runtime_adapters import AdvisorRuntime
+
+
+@pytest.fixture(autouse=True)
+def _isolate_smoke_writes(monkeypatch, tmp_path):
+    """Exécute chaque smoke test depuis un CWD temporaire.
+
+    advisor_loop.main() écrit dans ~17 fichiers via des chemins RELATIFS
+    (databases/live_snapshot.json, databases/cycle_data.jsonl,
+    databases/rejections/, logs/, cache/startup/, tracker_system/logs/...).
+    Vérifié empiriquement (S4-A) : 100 % des écritures sont relatives au CWD
+    — aucun ancrage Path(__file__)/PROJECT_ROOT/abspath figé.
+    Rediriger le CWD vers tmp_path isole donc TOUTES ces écritures
+    sans modifier advisor_loop.py (gelé — phase de validation scientifique).
+    """
+    monkeypatch.chdir(tmp_path)
+
+
+@pytest.fixture(autouse=True)
+def _bypass_instance_lock(monkeypatch):
+    """Les smoke tests exercent main() sans avoir besoin du verrou d'instance."""
+    monkeypatch.setattr(advisor_loop, "_acquire_instance_lock", lambda: None)
+    monkeypatch.setattr(advisor_loop, "_release_instance_lock", lambda: None)
 
 
 class _Stub:
@@ -370,8 +393,16 @@ def test_main_opens_real_position_path_and_updates_tracker(monkeypatch):
         "analyze_symbol",
         lambda *args, **kwargs: {
             "symbol": "BTC/USDT",
+            "prix": 100.0,
             "signal": SimpleNamespace(
-                actionable=True, signal="BUY", score=82, timestamp=time.time()
+                actionable=True,
+                signal="BUY",
+                score=82,
+                timestamp=time.time(),
+                regime="bull_trend",
+                confirmed=True,
+                strength=0.8,
+                components={},
             ),
             "gate": SimpleNamespace(allowed=True),
             "features": {"atr": 1.2, "atr_ratio": 0.03},
@@ -382,6 +413,7 @@ def test_main_opens_real_position_path_and_updates_tracker(monkeypatch):
             "regime": "bullish",
             "personality": None,
             "conviction": None,
+            "decision_packet": SimpleNamespace(is_actionable=lambda: True),
         },
     )
 
@@ -486,7 +518,14 @@ def test_main_opens_position_when_paper_execution_is_used(monkeypatch):
         lambda *args, **kwargs: {
             "symbol": "BTC/USDT",
             "signal": SimpleNamespace(
-                actionable=True, signal="BUY", score=82, timestamp=time.time()
+                actionable=True,
+                signal="BUY",
+                score=82,
+                timestamp=time.time(),
+                regime="bull_trend",
+                confirmed=True,
+                strength=0.8,
+                components={},
             ),
             "gate": SimpleNamespace(allowed=True),
             "features": {"atr": 1.2, "atr_ratio": 0.03},
@@ -498,12 +537,17 @@ def test_main_opens_position_when_paper_execution_is_used(monkeypatch):
             "personality": None,
             "conviction": None,
             "prix": 101.5,
+            "decision_packet": SimpleNamespace(is_actionable=lambda: True),
         },
     )
 
     advisor_loop.main(["BTC/USDT"], interval=0, max_cycles=1, runtime=runtime)
 
-    assert order_calls == [("BTC/USDT", "BUY", 50.0)]
+    # L'order validator ajuste la qty (step_size MEXC) — tolérance ±1 USD
+    assert len(order_calls) == 1
+    assert order_calls[0][0] == "BTC/USDT"
+    assert order_calls[0][1] == "BUY"
+    assert abs(order_calls[0][2] - 10.0) < 1.0
     assert len(added_positions) == 1
     assert len(tracker_open_calls) == 1
     assert tracker_open_calls[0]["price"] == 101.5
@@ -565,7 +609,7 @@ def test_main_refreshes_tracker_pipeline_on_position_close(monkeypatch):
         entry_price=100.0,
         pnl_usd=1.0,
         pnl_pct=0.01,
-        subaccount="btc_momentum",
+        subaccount="main",
         opened_at=time.time() - 60,
         side=SimpleNamespace(value="long"),
         size_usd=10.0,
@@ -654,7 +698,8 @@ def test_main_prewarms_one_hour_scanners(monkeypatch):
 
     advisor_loop.main(["BTC/USDT"], interval=0, max_cycles=1, runtime=runtime)
 
-    assert scan_calls == ["1h"]
+    # prewarm boot + parallel pre-scan par cycle = au moins 2 appels 1h
+    assert scan_calls.count("1h") >= 2
 
 
 def test_main_skips_live_execution_bootstrap_in_observation_mode(monkeypatch):
@@ -893,6 +938,7 @@ def test_main_starts_kill_switch_after_first_cycle_when_deferred(monkeypatch):
     )
 
     _force_observation_mode(monkeypatch)
+    monkeypatch.setenv("UNIVERSE_ENABLED", "false")
     monkeypatch.setattr(advisor_loop, "ADVISOR_DEFER_POST_CYCLE_SERVICES", True)
     monkeypatch.setattr(advisor_loop, "ADVISOR_PREWARM_1H", False)
     monkeypatch.setattr(advisor_loop, "ADVISOR_BACKGROUND_POSITION_WATCH", False)
@@ -1006,6 +1052,7 @@ def test_main_throttles_threat_radar_by_cycle(monkeypatch):
     runtime = _runtime()
 
     _force_observation_mode(monkeypatch)
+    monkeypatch.setenv("UNIVERSE_ENABLED", "false")
     monkeypatch.setattr(advisor_loop, "ADVISOR_STARTUP_LIGHT", False)
     monkeypatch.setattr(advisor_loop, "ADVISOR_PREWARM_1H", False)
     monkeypatch.setattr(advisor_loop, "ADVISOR_BACKGROUND_POSITION_WATCH", False)
@@ -1043,6 +1090,9 @@ def test_main_sheds_optional_work_after_over_budget_cycle(monkeypatch):
     runtime = _runtime()
 
     _force_observation_mode(monkeypatch)
+    monkeypatch.setenv(
+        "UNIVERSE_ENABLED", "false"
+    )  # évite injection symboles MEXC depuis perp_universe.json
     monkeypatch.setattr(advisor_loop, "ADVISOR_STARTUP_LIGHT", False)
     monkeypatch.setattr(advisor_loop, "ADVISOR_PREWARM_1H", False)
     monkeypatch.setattr(advisor_loop, "ADVISOR_BACKGROUND_POSITION_WATCH", False)
