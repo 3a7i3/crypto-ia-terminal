@@ -197,7 +197,8 @@ def get_snapshot() -> dict:
         "open_positions": int(portfolio.get("open_positions", 0) or 0),
         "win_rate_7d": 0.0,
         "mode": "paper",
-        "last_updated": meta.get("timestamp_utc") or datetime.now(timezone.utc).isoformat(),
+        "last_updated": meta.get("timestamp_utc")
+        or datetime.now(timezone.utc).isoformat(),
         "cycle": int(meta.get("cycle", 0) or 0),
         "safe_mode": decision.get("state") != "ACTIVE",
         "n_symbols": n_signals,
@@ -356,6 +357,22 @@ def get_trades() -> dict:
 @app.get("/api/health")
 def health() -> dict:
     return {"status": "ok", "ts": time.time()}
+
+
+# ── /api/system_snapshot — snapshot unifié OBS-001 ───────────────────────────
+
+
+@app.get("/api/system_snapshot")
+def get_system_snapshot() -> dict:
+    """Return the raw SystemSnapshot dict embedded in live_snapshot.json (OBS-002)."""
+    snap = read_json(SNAPSHOT)
+    system_snapshot = snap.get("system_snapshot") if isinstance(snap, dict) else None
+    if not system_snapshot:
+        return {
+            "error": "No system_snapshot available",
+            "ts": datetime.now(timezone.utc).isoformat(),
+        }
+    return system_snapshot
 
 
 # ── /api/raw/* — fichiers bruts pour vps_data_sync.py (PC local) ─────────────
