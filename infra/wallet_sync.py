@@ -15,10 +15,10 @@ Avant ce module, 4 chiffres de capital coexistaient sans jamais être synchronis
 Résultat : chaque bot/module affichait un solde différent pour le même système.
 
 Avec WalletSync, un seul chemin :
-  - Mode paper  → X (solde API ou WALLET_PAPER_CAPITAL) + somme cumulative des
-                  pnl_usd du ledger (databases/paper_trades.jsonl) — solde qui
-                  évolue avec chaque trade fermé, identique pour tous les
-                  consommateurs (sizing, simulateur, bots Telegram, gates).
+  -   Mode paper  → WALLET_PAPER_CAPITAL + PnL de session (delta du ledger depuis
+                    le démarrage du process). Le capital local est donc indépendant
+                    du solde API et redémarre proprement à chaque lancement.
+                    Le solde API reste lisible séparément pour les bots dédiés.
   - Mode live/testnet → solde réel récupéré via l'API de l'exchange configuré
                   par l'utilisateur (MEXC par défaut), avec cache TTL et
                   fallback sur la dernière valeur connue si l'API échoue
@@ -96,6 +96,9 @@ class WalletSync:
         self._x: Optional[float] = (
             None  # Capital X — source unique, initialisé via bootstrap()
         )
+        # Baseline sessionnelle: en mode paper, le PnL pré-existant dans le ledger
+        # n'est pas repris. Le capital local redémarre à WALLET_PAPER_CAPITAL.
+        self._paper_session_pnl0 = _read_ledger_pnl()
 
     @property
     def mode(self) -> str:
@@ -158,13 +161,15 @@ class WalletSync:
 
     def get_balance(self, force_refresh: bool = False) -> float:
         """
-        Retourne le solde actuel — paper (X + PnL ledger) ou live/testnet (API réelle).
+        Retourne le solde actuel — paper (capital local de session) ou live/testnet (API réelle).
 
-        Mode paper : X (ou WALLET_PAPER_CAPITAL si X non initialisé) + cumul PnL ledger.
+        Mode paper : WALLET_PAPER_CAPITAL + delta PnL ledger depuis le démarrage.
         Mode live/testnet : balance API cachée sur WALLET_CACHE_TTL_S, fallback X.
         """
         if self._mode == "paper":
-            return self._base_capital() + _read_ledger_pnl()
+            return self._base_capital() + (
+                _read_ledger_pnl() - self._paper_session_pnl0
+            )
 
         with self._lock:
             now = time.time()

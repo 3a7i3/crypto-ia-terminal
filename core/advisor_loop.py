@@ -6135,8 +6135,8 @@ def main(
                     msg += (
                         f"\n\nPORTFOLIO BRAIN:"
                         f"\n  Exposition: {_to_float(pb_health.get('total_exposure_pct', 0)):.1f}%"
-                        f" | Déployable: ${_to_float(pb_health.get('free_capital', 0)):.0f}"
-                        f" (/{_to_float(pb_health.get('capital', 0)):.0f}$)"
+                        f" | Déployable: ${_to_float(pb_health.get('free_capital', 0)):.2f}"
+                        f" (/{_to_float(pb_health.get('capital', 0)):.2f}$)"
                         f"\n  Positions: {pb_health.get('n_positions', 0)}"
                         f" | Corr risk: {_to_float(pb_health.get('correlation_risk', 0)):.1f}%"
                         f"\n  PnL ouvert: {_to_float(pb_health.get('open_pnl_usd', 0)):+.2f}$"
@@ -6222,26 +6222,58 @@ def main(
                     # ── Rapport périodique bot compte réel ───────────────────
                     if cycle % REAL_BOT_REPORT_EVERY == 0:
                         try:
+                            _ex = getattr(exec_engine, "_exchange", None)
                             _rx = _capital_x if "_capital_x" in dir() else None
+                            _asset_lines: list[str] = []
+                            if _ex is not None:
+                                try:
+                                    _bal = _ex.fetch_balance()
+                                    _free = _bal.get("free", {}) or {}
+                                    _total = _bal.get("total", {}) or {}
+                                    _rx = float(
+                                        _free.get("USDT")
+                                        or _total.get("USDT")
+                                        or (_rx or 0.0)
+                                    )
+                                    _assets = [
+                                        (str(_sym), float(_qty))
+                                        for _sym, _qty in _total.items()
+                                        if _sym not in {"USDT", "USD", "info"}
+                                        and _qty is not None
+                                        and float(_qty) > 0
+                                    ]
+                                    _assets.sort(key=lambda _it: _it[1], reverse=True)
+                                    _asset_lines = [
+                                        f"{_sym}:{_qty:.6g}" for _sym, _qty in _assets[:6]
+                                    ]
+                                except Exception as _exb:
+                                    log.debug("[RealBot] fetch_balance erreur: %s", _exb)
                             _rm = (
                                 os.getenv("PAPER_TRADING_ENABLED", "true").lower()
                                 == "true"
                             )
-                            _rpc = float(os.getenv("WALLET_PAPER_CAPITAL", "1000"))
+                            _rpc0 = float(os.getenv("WALLET_PAPER_CAPITAL", "1000"))
+                            _rpc = real_capital
                             _rmode = "PAPER (standby)" if _rm else "🟢 LIVE"
                             _pm_snap = _stats_dict(pos_manager.stats())
                             _rpnl = _to_float(_pm_snap.get("total_pnl_usd", 0))
                             _ropen = _pm_snap.get("open_count", 0)
                             _rx_line = f"${_rx:.4f} USDT" if _rx else "N/A"
+                            _assets_txt = (
+                                "\n💼 Actifs API : <b>" + " | ".join(_asset_lines) + "</b>"
+                                if _asset_lines
+                                else ""
+                            )
                             _real_status = (
                                 f"📊 <b>Statut Compte Réel — Cycle #{cycle}</b>\n"
                                 "━━━━━━━━━━━━━━━━━━━━━━\n"
                                 f"💰 Solde API : <b>{_rx_line}</b>\n"
                                 f"⚙️ Mode : <b>{_rmode}</b>\n"
-                                f"📈 Capital paper : <b>${_rpc:.0f} USDT</b>\n"
+                                f"📈 Capital local : <b>${_rpc:.2f} USDT</b> (base ${_rpc0:.0f})\n"
                                 f"🔢 Paires analysées : <b>{len(results)}</b>\n"
                                 f"📂 Positions ouvertes : <b>{_ropen}</b>\n"
                                 f"💹 PnL paper réalisé : <b>{_rpnl:+.2f}$</b>"
+                                f"{_assets_txt}"
                             )
                             _telegram_real(_real_status)
                         except Exception as _rbe:
@@ -6529,7 +6561,7 @@ def main(
                 _hb_msg = (
                     f"[ALIVE] Cycle {cycle}\n"
                     f"Regime: {_hb_regime} | State: {_hb_state}\n"
-                    f"Capital: ${_hb_capital:,.0f} | Pos: {_hb_pos}\n"
+                    f"Capital local: ${_hb_capital:,.2f} | Pos: {_hb_pos}\n"
                     f"RAM: {_ram_mb}MB"
                 )
                 _telegram(_hb_msg)

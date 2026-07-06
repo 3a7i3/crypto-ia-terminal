@@ -5,10 +5,13 @@
 
 ## Mission
 
-Construire une plateforme quantitative dont chaque décision de trading,
-chaque évolution du moteur et chaque changement de configuration sont
-justifiés par des données certifiées, des expériences reproductibles
-et une gouvernance explicite.
+Construire un **Scientific Decision Operating System (SDOS)** : une plateforme
+scientifique d'analyse décisionnelle dont chaque décision de trading, chaque
+évolution du moteur et chaque changement de configuration sont justifiés par des
+données certifiées, des expériences reproductibles et une gouvernance explicite.
+
+Le trading est le premier cas d'usage. L'identité durable du projet est la
+production de connaissances fiables sur un système de décision.
 
 ---
 
@@ -48,6 +51,7 @@ Si la réponse est ambiguë, la réponse est non.
 
 ## Ce que ce projet n'est pas
 
+- Un simple bot de trading dont l'identité se limite à l'exécution
 - Un système d'optimisation continue sans validation scientifique
 - Une infrastructure de machine learning auto-apprenante sans supervision
 - Un outil pour maximiser le nombre de trades ou la fréquence d'activité

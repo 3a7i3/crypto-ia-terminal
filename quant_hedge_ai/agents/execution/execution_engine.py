@@ -229,7 +229,16 @@ class ExecutionEngine:
         """
         from infra.wallet_sync import get_wallet_sync
 
-        wallet = get_wallet_sync(exchange=self._exchange, mode=self._mode)
+        # En PAPER_TRADING_ENABLED=true, la machine doit utiliser son capital local
+        # (WALLET_PAPER_CAPITAL + PnL session) et non le solde API.
+        paper_trading_enabled = os.getenv("PAPER_TRADING_ENABLED", "true").lower() in {
+            "1",
+            "true",
+            "yes",
+            "on",
+        }
+        wallet_mode = "paper" if paper_trading_enabled else self._mode
+        wallet = get_wallet_sync(exchange=self._exchange, mode=wallet_mode)
         return wallet.get_balance()
 
     def detect_quote_asset(self, symbol: str) -> str:
