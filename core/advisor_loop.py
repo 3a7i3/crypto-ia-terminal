@@ -24,6 +24,7 @@ import sys
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime, timezone
 from email.mime.text import MIMEText
 from logging.handlers import RotatingFileHandler
 from types import SimpleNamespace
@@ -74,6 +75,31 @@ os.makedirs("logs", exist_ok=True)
 
 import requests
 from dotenv import load_dotenv
+from observability.system_snapshot import (
+    AIDecisionSnapshot,
+    APIAccountSnapshot,
+    BlockStatsAccumulator,
+    DecisionTraceNode,
+    DecisionState,
+    HealthSnapshot,
+    InMemorySnapshotProvider,
+    MarketSnapshot,
+    PipelineStage,
+    PipelineStageStatus,
+    PortfolioSnapshot,
+    ReasonCode,
+    build_system_snapshot,
+)
+from observability.system_snapshot_event_bus import get_snapshot_bus
+from observability.system_snapshot_renderers import (
+    render_ai_decision_block,
+    render_block_stats_block,
+    render_health_block,
+    render_heartbeat,
+    render_pipeline_block,
+    render_quant_overview_block,
+    render_real_account_block,
+)
 
 JSONDict = dict[str, Any]
 Candle = dict[str, Any]
@@ -178,10 +204,6 @@ def _safe_ratio(numerator: int, denominator: int) -> float:
     return float(numerator) / float(denominator)
 
 
-def _health_icon(ok: bool) -> str:
-    return "✔" if ok else "✘"
-
-
 def _brain_score(results: list[Any]) -> tuple[int, str]:
     if not results:
         return 0, "░" * 10
@@ -194,16 +216,25 @@ def _brain_score(results: list[Any]) -> tuple[int, str]:
     return avg, ("█" * filled) + ("░" * (10 - filled))
 
 
-def _decision_engine_summary(results: list[Any]) -> tuple[str, str]:
+def _decision_diagnostics(
+    results: list[Any], min_required_score: float
+) -> tuple[DecisionState, ReasonCode, str, str, dict[str, int], str, float]:
     n_actionable = 0
     n_tradable = 0
     blocked: dict[str, int] = {}
+    highest_symbol = ""
+    highest_score = 0.0
 
     def _bump(key: str) -> None:
         blocked[key] = blocked.get(key, 0) + 1
 
     for r in results:
         sig = r.get("signal")
+        symbol = str(r.get("symbol", ""))
+        score = _to_float(getattr(sig, "score", 0), 0.0)
+        if score > highest_score:
+            highest_score = score
+            highest_symbol = symbol
         actionable = bool(getattr(sig, "actionable", False))
         gate_allowed = bool(getattr(r.get("gate"), "allowed", False))
         if actionable:
@@ -218,24 +249,81 @@ def _decision_engine_summary(results: list[Any]) -> tuple[str, str]:
             elif not bool(getattr(r.get("no_trade_verdict"), "allow", True)):
                 _bump("no_trade_layer")
             elif not bool(getattr(r.get("pb_verdict"), "allow", True)):
-                _bump("portfolio_brain")
+                _bump("portfolio")
             elif not bool(getattr(r.get("eo_verdict"), "allow", True)):
-                _bump("capital_protection")
+                _bump("risk")
             elif not bool(getattr(r.get("awareness_state"), "ok", True)):
-                _bump("awareness")
+                _bump("cooldown")
             elif r.get("radar_report") and not bool(
                 getattr(r.get("radar_report"), "safe", True)
             ):
-                _bump("threat_radar")
+                _bump("exchange")
             else:
                 _bump("other")
 
     if n_tradable > 0:
-        return "ACTIVE", f"{n_tradable} setup(s) tradable"
+        return (
+            DecisionState.ACTIVE,
+            ReasonCode.NONE,
+            f"{n_tradable} setup(s) tradable",
+            "ExecutionEngine",
+            blocked,
+            highest_symbol,
+            highest_score,
+        )
     if n_actionable > 0:
         top_reason = max(blocked.items(), key=lambda x: x[1])[0] if blocked else "other"
-        return "BLOCKED", f"{top_reason} ({blocked.get(top_reason, 0)}/{n_actionable})"
-    return "WAIT", "No setup exceeds confidence threshold"
+        reason_code = {
+            "gate": ReasonCode.CONFIDENCE_TOO_LOW,
+            "meta_strategy": ReasonCode.CONFIDENCE_TOO_LOW,
+            "no_trade_layer": ReasonCode.COOLDOWN_ACTIVE,
+            "portfolio": ReasonCode.EXPOSURE_LIMIT,
+            "risk": ReasonCode.RISK_EXCEEDED,
+            "cooldown": ReasonCode.COOLDOWN_ACTIVE,
+            "exchange": ReasonCode.EXCHANGE_UNAVAILABLE,
+        }.get(top_reason, ReasonCode.RISK_EXCEEDED)
+        module = {
+            "gate": "RiskManager",
+            "meta_strategy": "MetaStrategy",
+            "no_trade_layer": "NoTradeLayer",
+            "portfolio": "PortfolioBrain",
+            "risk": "ExecutiveOverride",
+            "cooldown": "Awareness",
+            "exchange": "ExchangeMonitor",
+        }.get(top_reason, "RiskManager")
+        return (
+            DecisionState.BLOCKED,
+            reason_code,
+            f"{top_reason} ({blocked.get(top_reason, 0)}/{n_actionable})",
+            module,
+            blocked,
+            highest_symbol,
+            highest_score,
+        )
+    if highest_score >= min_required_score:
+        return (
+            DecisionState.WAIT,
+            ReasonCode.COOLDOWN_ACTIVE,
+            "Setup found but waiting for pipeline confirmation",
+            "DecisionPipeline",
+            blocked,
+            highest_symbol,
+            highest_score,
+        )
+    return (
+        DecisionState.WAIT,
+        ReasonCode.CONFIDENCE_TOO_LOW,
+        "No setup exceeds confidence threshold",
+        "SignalScoring",
+        blocked,
+        highest_symbol,
+        highest_score,
+    )
+
+
+def _decision_engine_summary(results: list[Any]) -> tuple[str, str]:
+    state, _, reason_text, _, _, _, _ = _decision_diagnostics(results, min_required_score=66)
+    return state.value, reason_text
 
 
 load_dotenv(override=True)
@@ -3814,6 +3902,11 @@ def main(
         _obs_rejection_store = None
         _obs_regret_scheduler = None
 
+    # ── OBS-001 — SystemSnapshot provider + event bus ─────────────────────────
+    _snapshot_provider = InMemorySnapshotProvider()
+    _snapshot_block_stats = BlockStatsAccumulator()
+    _snapshot_bus = get_snapshot_bus()
+
     chief_officer: Any = None
 
     def _get_chief_officer() -> Any:
@@ -6126,6 +6219,45 @@ def main(
                     _strategy_ok = (
                         awareness_engine is None or awareness_engine.is_safe_to_trade()
                     )
+                    _ex = getattr(exec_engine, "_exchange", None)
+                    _api_equity = _to_float(_capital_x if "_capital_x" in dir() else 0.0, 0.0)
+                    _api_free_usdt = 0.0
+                    _api_pos_count = 0
+                    _api_assets: tuple[tuple[str, float], ...] = ()
+                    if _ex is not None:
+                        try:
+                            _bal = _ex.fetch_balance()
+                            _free = _bal.get("free", {}) or {}
+                            _total = _bal.get("total", {}) or {}
+                            _api_free_usdt = _to_float(
+                                _free.get("USDT") or _free.get("USD") or 0.0, 0.0
+                            )
+                            _api_equity = _to_float(
+                                _free.get("USDT")
+                                or _total.get("USDT")
+                                or _api_equity,
+                                _api_equity,
+                            )
+                            _assets = [
+                                (str(_sym), float(_qty))
+                                for _sym, _qty in _total.items()
+                                if _sym not in {"USDT", "USD", "info"}
+                                and _qty is not None
+                                and float(_qty) > 0
+                            ]
+                            _assets.sort(key=lambda _it: _it[1], reverse=True)
+                            _api_assets = tuple(_assets[:6])
+                            try:
+                                _raw_pos = _ex.fetch_positions()
+                                _api_pos_count = sum(
+                                    1
+                                    for _p in _raw_pos
+                                    if _to_float(_p.get("contracts", 0), 0.0) != 0
+                                )
+                            except Exception:
+                                _api_pos_count = 0
+                        except Exception as _exb:
+                            log.debug("[RealBot] fetch_balance erreur: %s", _exb)
                     if not ex.get("healthy", True):
                         msg += (
                             f"\n\nEXCHANGE HORS LIGNE — {ex.get('consecutive_failures', 0)} echecs\n"
@@ -6133,22 +6265,119 @@ def main(
                         )
                     else:
                         msg += f"\n\nExchange: OK ({_to_float(ex.get('last_latency_ms', 0)):.0f}ms | uptime {_to_float(ex.get('uptime_pct', 0)):.1f}%)"
-                    msg += (
-                        "\n\nHEALTH:"
-                        f"\n  API {_health_icon(_api_ok)}  DB {_health_icon(_db_ok)}  TG {_health_icon(_tg_ok)}"
-                        f"\n  Market {_health_icon(_market_ok)}  Strategy {_health_icon(_strategy_ok)}"
+                    _decision_state, _reason_code, _decision_reason, _blocking_module, _block_cycle, _top_symbol, _top_score = _decision_diagnostics(
+                        results, min_required_score=_eff_score
+                    )
+                    _brain_pct, _brain_bar = _brain_score(results)
+                    _decision_id = f"{cycle}{int(time.time()) % 10000:04d}"
+
+                    pm_stats = _stats_dict(pos_manager.stats())
+                    pb_health = _stats_dict(
+                        portfolio_brain.portfolio_health(pos_manager.get_open())
+                    )
+                    _open_positions = pos_manager.get_open()
+                    _deployed_notional = sum(
+                        _to_float(getattr(_p, "size_usd", 0.0), 0.0)
+                        for _p in _open_positions
+                    )
+                    _paper_equity = _to_float(pb_health.get("capital", real_capital), 0.0)
+                    _paper_cash = max(0.0, _paper_equity - _deployed_notional)
+
+                    _watchdog_components = _stats_dict(getattr(watchdog, "_components", {}))
+                    def _stage(name: str, status: PipelineStageStatus, msg_txt: str) -> PipelineStage:
+                        _comp = _watchdog_components.get(name)
+                        _dur = _to_float(getattr(_comp, "last_latency", 0.0), 0.0) * 1000
+                        return PipelineStage(
+                            name=name,
+                            status=status,
+                            duration_ms=round(_dur, 1),
+                            message=msg_txt,
+                        )
+
+                    _pipeline = (
+                        _stage("Scanner", PipelineStageStatus.OK if _market_ok else PipelineStageStatus.FAILED, f"{len(results)}/{len(symbols)}"),
+                        _stage("Feature Engine", PipelineStageStatus.OK, "features_ready"),
+                        _stage("AI Scoring", PipelineStageStatus.OK, "scores_computed"),
+                        _stage("Portfolio Brain", PipelineStageStatus.OK, "constraints_checked"),
+                        _stage("Risk Manager", PipelineStageStatus.OK if _reason_code in {ReasonCode.NONE, ReasonCode.CONFIDENCE_TOO_LOW} else PipelineStageStatus.FAILED, _reason_code.value),
+                        _stage("Execution", PipelineStageStatus.READY if _decision_state is DecisionState.ACTIVE else PipelineStageStatus.WAIT, _decision_state.value),
+                        _stage("Exchange", PipelineStageStatus.READY if _api_ok else PipelineStageStatus.FAILED, f"lat={_to_float(ex.get('last_latency_ms', 0)):.0f}ms"),
+                        _stage("Telegram", PipelineStageStatus.OK if _tg_ok else PipelineStageStatus.FAILED, "main_channel"),
                     )
 
-                    _decision_state, _decision_reason = _decision_engine_summary(results)
-                    _brain_pct, _brain_bar = _brain_score(results)
-                    msg += (
-                        "\n\nAI DECISION:"
-                        f"\n  Decision Engine: {_decision_state}"
-                        f"\n  Reason: {_decision_reason}"
-                        f"\n  Brain Score: {_brain_bar} {_brain_pct}%"
+                    _block_stats = _snapshot_block_stats.update(_block_cycle)
+                    _snapshot = build_system_snapshot(
+                        cycle=cycle,
+                        engine_version=os.getenv("ENGINE_VERSION", "v9.1"),
+                        health=HealthSnapshot(
+                            api=_api_ok,
+                            database=_db_ok,
+                            telegram=_tg_ok,
+                            market=_market_ok,
+                            strategy=_strategy_ok,
+                        ),
+                        portfolio=PortfolioSnapshot(
+                            paper_equity=round(_paper_equity, 2),
+                            paper_cash=round(_paper_cash, 2),
+                            free_cash=round(_to_float(pb_health.get("free_capital", 0), 0.0), 2),
+                            portfolio_exposure_pct=round(_to_float(pb_health.get("total_exposure_pct", 0), 0.0), 1),
+                            open_pnl_usd=round(_to_float(pb_health.get("open_pnl_usd", 0), 0.0), 2),
+                            open_positions=int(pb_health.get("n_positions", 0) or 0),
+                            correlation_risk_pct=round(_to_float(pb_health.get("correlation_risk", 0), 0.0), 1),
+                        ),
+                        ai_decision=AIDecisionSnapshot(
+                            decision_id=_decision_id,
+                            state=_decision_state,
+                            reason_code=_reason_code,
+                            reason_text=_decision_reason,
+                            blocking_module=_blocking_module,
+                            confidence_pct=_brain_pct,
+                            highest_candidate_symbol=_top_symbol,
+                            highest_candidate_score=round(_top_score, 2),
+                            required_score=round(_eff_score, 2),
+                            next_evaluation_sec=int(interval),
+                            brain_score_pct=_brain_pct,
+                        ),
+                        market=MarketSnapshot(
+                            regime=_adaptive_regime or "unknown",
+                            exchange_latency_ms=round(_to_float(ex.get("last_latency_ms", 0), 0.0), 1),
+                            exchange_uptime_pct=round(_to_float(ex.get("uptime_pct", 0), 0.0), 2),
+                        ),
+                        pipeline=_pipeline,
+                        api_account=APIAccountSnapshot(
+                            api_equity_usdt=round(_api_equity, 6),
+                            api_free_cash_usdt=round(_api_free_usdt, 6),
+                            api_positions=int(_api_pos_count),
+                            api_assets=tuple((sym, round(qty, 8)) for sym, qty in _api_assets),
+                        ),
+                        block_stats=_block_stats,
+                        decision_trace=(
+                            DecisionTraceNode(
+                                node="Signal Generator",
+                                ts_utc=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                                duration_ms=0.0,
+                                decision="SCORED",
+                                reason_code=ReasonCode.NONE,
+                                score=round(_top_score, 2),
+                            ),
+                            DecisionTraceNode(
+                                node="Execution",
+                                ts_utc=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                                duration_ms=0.0,
+                                decision=_decision_state.value,
+                                reason_code=_reason_code,
+                                score=round(_top_score, 2),
+                            ),
+                        ),
                     )
+                    _snapshot_provider.set_latest(_snapshot)
+                    _snapshot_bus.publish(_snapshot)
+
+                    msg += "\n\n" + render_health_block(_snapshot)
+                    msg += "\n\n" + render_ai_decision_block(_snapshot)
+                    msg += "\n\n" + render_pipeline_block(_snapshot)
+                    msg += "\n\n" + render_block_stats_block(_snapshot)
                     # Stats positions ouvertes
-                    pm_stats = _stats_dict(pos_manager.stats())
                     if (
                         pm_stats.get("open_count", 0) > 0
                         or pm_stats.get("closed_count", 0) > 0
@@ -6210,26 +6439,7 @@ def main(
                             msg += f"\n  REGLE: {rule}"
 
                     # Portfolio Brain — santé globale du portefeuille
-                    pb_health = _stats_dict(
-                        portfolio_brain.portfolio_health(pos_manager.get_open())
-                    )
-                    _open_positions = pos_manager.get_open()
-                    _deployed_notional = sum(
-                        _to_float(getattr(_p, "size_usd", 0.0), 0.0)
-                        for _p in _open_positions
-                    )
-                    _paper_equity = _to_float(pb_health.get("capital", real_capital), 0.0)
-                    _paper_cash = max(0.0, _paper_equity - _deployed_notional)
-                    msg += (
-                        f"\n\nPORTFOLIO BRAIN:"
-                        f"\n  Paper Equity: ${_paper_equity:.2f}"
-                        f" | Paper Cash: ${_paper_cash:.2f}"
-                        f"\n  Portfolio Exposure: {_to_float(pb_health.get('total_exposure_pct', 0)):.1f}%"
-                        f" | Free Cash: ${_to_float(pb_health.get('free_capital', 0)):.2f}"
-                        f"\n  Positions: {pb_health.get('n_positions', 0)}"
-                        f" | Corr risk: {_to_float(pb_health.get('correlation_risk', 0)):.1f}%"
-                        f"\n  PnL ouvert: {_to_float(pb_health.get('open_pnl_usd', 0)):+.2f}$"
-                    )
+                    msg += "\n\n" + render_quant_overview_block(_snapshot)
 
                     # SystemIntelReporter — diagnostic complet 6h vers bot Intelligence
                     _now = time.time()
@@ -6321,82 +6531,12 @@ def main(
                     # ── Rapport périodique bot compte réel ───────────────────
                     if cycle % REAL_BOT_REPORT_EVERY == 0:
                         try:
-                            _ex = getattr(exec_engine, "_exchange", None)
-                            _rx = _capital_x if "_capital_x" in dir() else None
-                            _api_free_usdt = None
-                            _api_pos_count: str | int = "N/A"
-                            _asset_lines: list[str] = []
-                            if _ex is not None:
-                                try:
-                                    _bal = _ex.fetch_balance()
-                                    _free = _bal.get("free", {}) or {}
-                                    _total = _bal.get("total", {}) or {}
-                                    _api_free_usdt = float(
-                                        _free.get("USDT")
-                                        or _free.get("USD")
-                                        or 0.0
-                                    )
-                                    _rx = float(
-                                        _free.get("USDT")
-                                        or _total.get("USDT")
-                                        or (_rx or 0.0)
-                                    )
-                                    _assets = [
-                                        (str(_sym), float(_qty))
-                                        for _sym, _qty in _total.items()
-                                        if _sym not in {"USDT", "USD", "info"}
-                                        and _qty is not None
-                                        and float(_qty) > 0
-                                    ]
-                                    _assets.sort(key=lambda _it: _it[1], reverse=True)
-                                    _asset_lines = [
-                                        f"{_sym}:{_qty:.6g}" for _sym, _qty in _assets[:6]
-                                    ]
-                                    try:
-                                        _raw_pos = _ex.fetch_positions()
-                                        _api_pos_count = sum(
-                                            1
-                                            for _p in _raw_pos
-                                            if _to_float(_p.get("contracts", 0), 0.0) != 0
-                                        )
-                                    except Exception:
-                                        _api_pos_count = "N/A"
-                                except Exception as _exb:
-                                    log.debug("[RealBot] fetch_balance erreur: %s", _exb)
                             _rm = (
                                 os.getenv("PAPER_TRADING_ENABLED", "true").lower()
                                 == "true"
                             )
-                            _rpc0 = float(os.getenv("WALLET_PAPER_CAPITAL", "1000"))
-                            _rpc = real_capital
                             _rmode = "PAPER (standby)" if _rm else "🟢 LIVE"
-                            _pm_snap = _stats_dict(pos_manager.stats())
-                            _rpnl = _to_float(_pm_snap.get("total_pnl_usd", 0))
-                            _ropen = _pm_snap.get("open_count", 0)
-                            _rx_line = f"${_rx:.4f} USDT" if _rx else "N/A"
-                            _api_free_line = (
-                                f"${_api_free_usdt:.4f} USDT"
-                                if _api_free_usdt is not None
-                                else "N/A"
-                            )
-                            _assets_txt = (
-                                "\n💼 Actifs API : <b>" + " | ".join(_asset_lines) + "</b>"
-                                if _asset_lines
-                                else ""
-                            )
-                            _real_status = (
-                                f"📊 <b>Statut Compte Réel — Cycle #{cycle}</b>\n"
-                                "━━━━━━━━━━━━━━━━━━━━━━\n"
-                                f"💰 API Equity : <b>{_rx_line}</b>\n"
-                                f"💵 API Free Cash : <b>{_api_free_line}</b>\n"
-                                f"📂 API Positions : <b>{_api_pos_count}</b>\n"
-                                f"⚙️ Mode : <b>{_rmode}</b>\n"
-                                f"📈 Paper Equity (machine) : <b>${_rpc:.2f} USDT</b> (base ${_rpc0:.0f})\n"
-                                f"🔢 Paires analysées : <b>{len(results)}</b>\n"
-                                f"🧠 Positions machine ouvertes : <b>{_ropen}</b>\n"
-                                f"💹 PnL paper réalisé : <b>{_rpnl:+.2f}$</b>"
-                                f"{_assets_txt}"
-                            )
+                            _real_status = render_real_account_block(_snapshot, _rmode)
                             _telegram_real(_real_status)
                         except Exception as _rbe:
                             log.debug("[RealBot] rapport erreur: %s", _rbe)
@@ -6523,6 +6663,9 @@ def main(
                         for r in results
                     ],
                 }
+                _snap_latest = _snapshot_provider.get_latest()
+                if _snap_latest is not None:
+                    _snap_data["system_snapshot"] = _snap_latest.to_dict()
 
                 # ── P9 Meta Governance snapshot ───────────────────────────────
                 try:
@@ -6667,41 +6810,71 @@ def main(
                     _ram_mb = _res.getrusage(_res.RUSAGE_SELF).ru_maxrss // 1024
                 except Exception:
                     _ram_mb = 0
-                _hb_regime = _adaptive_regime or "?"
-                _hb_state = "OK"
-                if awareness_engine is not None:
-                    try:
-                        _hb_state = awareness_engine.evaluate().level.name
-                    except Exception:
-                        pass
-                _hb_capital = real_capital
-                _hb_open = (
-                    pos_manager.get_open_positions()
-                    if hasattr(pos_manager, "get_open_positions")
-                    else []
-                )
-                _hb_pos = len(_hb_open)
-                _hb_deployed = sum(
-                    _to_float(getattr(_p, "size_usd", 0.0), 0.0) for _p in _hb_open
-                )
-                _hb_cash = max(0.0, _hb_capital - _hb_deployed)
-                _hb_decision, _hb_reason = _decision_engine_summary(results)
-                _hb_brain_pct, _hb_brain_bar = _brain_score(results)
-                _hb_ex = _stats_dict(exchange_monitor.snapshot())
-                _hb_health = (
-                    f"API {_health_icon(bool(_hb_ex.get('healthy', True)))} | "
-                    f"DB {_health_icon(os.path.isdir('databases'))} | "
-                    f"TG {_health_icon(bool(TELEGRAM_TOKEN and TELEGRAM_CHAT))}"
-                )
-                _hb_msg = (
-                    f"[ALIVE] Cycle {cycle}\n"
-                    f"Regime: {_hb_regime} | State: {_hb_state}\n"
-                    f"Paper Equity: ${_hb_capital:,.2f} | Paper Cash: ${_hb_cash:,.2f} | Pos: {_hb_pos}\n"
-                    f"Decision Engine: {_hb_decision} | {_hb_reason}\n"
-                    f"Brain Score: {_hb_brain_bar} {_hb_brain_pct}%\n"
-                    f"Health: {_hb_health}\n"
-                    f"RAM: {_ram_mb}MB"
-                )
+                _hb_snapshot = _snapshot_provider.get_latest()
+                if _hb_snapshot is None:
+                    _hb_decision_state, _hb_reason_code, _hb_reason_text, _hb_blocking, _hb_block_cycle, _hb_symbol, _hb_score = _decision_diagnostics(
+                        results, min_required_score=66
+                    )
+                    _hb_brain_pct, _ = _brain_score(results)
+                    _hb_ex = _stats_dict(exchange_monitor.snapshot())
+                    _hb_pb = _stats_dict(portfolio_brain.portfolio_health(pos_manager.get_open()))
+                    _hb_block_stats = _snapshot_block_stats.update(_hb_block_cycle)
+                    _hb_snapshot = build_system_snapshot(
+                        cycle=cycle,
+                        engine_version=os.getenv("ENGINE_VERSION", "v9.1"),
+                        health=HealthSnapshot(
+                            api=bool(_hb_ex.get("healthy", True)),
+                            database=os.path.isdir("databases"),
+                            telegram=bool(TELEGRAM_TOKEN and TELEGRAM_CHAT),
+                            market=len(results) > 0,
+                            strategy=(awareness_engine is None or awareness_engine.is_safe_to_trade()),
+                        ),
+                        portfolio=PortfolioSnapshot(
+                            paper_equity=round(_to_float(_hb_pb.get("capital", real_capital), 0.0), 2),
+                            paper_cash=round(
+                                max(
+                                    0.0,
+                                    _to_float(_hb_pb.get("capital", real_capital), 0.0)
+                                    - sum(_to_float(getattr(p, "size_usd", 0.0), 0.0) for p in pos_manager.get_open()),
+                                ),
+                                2,
+                            ),
+                            free_cash=round(_to_float(_hb_pb.get("free_capital", 0), 0.0), 2),
+                            portfolio_exposure_pct=round(_to_float(_hb_pb.get("total_exposure_pct", 0), 0.0), 1),
+                            open_pnl_usd=round(_to_float(_hb_pb.get("open_pnl_usd", 0), 0.0), 2),
+                            open_positions=int(_hb_pb.get("n_positions", 0) or 0),
+                            correlation_risk_pct=round(_to_float(_hb_pb.get("correlation_risk", 0), 0.0), 1),
+                        ),
+                        ai_decision=AIDecisionSnapshot(
+                            decision_id=f"{cycle}{int(time.time()) % 10000:04d}",
+                            state=_hb_decision_state,
+                            reason_code=_hb_reason_code,
+                            reason_text=_hb_reason_text,
+                            blocking_module=_hb_blocking,
+                            confidence_pct=_hb_brain_pct,
+                            highest_candidate_symbol=_hb_symbol,
+                            highest_candidate_score=round(_hb_score, 2),
+                            required_score=66,
+                            next_evaluation_sec=int(interval),
+                            brain_score_pct=_hb_brain_pct,
+                        ),
+                        market=MarketSnapshot(
+                            regime=_adaptive_regime or "unknown",
+                            exchange_latency_ms=round(_to_float(_hb_ex.get("last_latency_ms", 0), 0.0), 1),
+                            exchange_uptime_pct=round(_to_float(_hb_ex.get("uptime_pct", 0), 0.0), 2),
+                        ),
+                        pipeline=(),
+                        api_account=APIAccountSnapshot(
+                            api_equity_usdt=0.0,
+                            api_free_cash_usdt=0.0,
+                            api_positions=0,
+                            api_assets=(),
+                        ),
+                        block_stats=_hb_block_stats,
+                    )
+                    _snapshot_provider.set_latest(_hb_snapshot)
+                    _snapshot_bus.publish(_hb_snapshot)
+                _hb_msg = render_heartbeat(_hb_snapshot, _ram_mb)
                 _telegram(_hb_msg)
                 log.info("[Heartbeat] %s", _hb_msg.replace("\n", " | "))
 
