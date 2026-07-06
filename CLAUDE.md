@@ -55,6 +55,16 @@ H1-H6 existante qui la justifie.
 
 Tant que ces seuils ne sont pas atteints : **ACE interdit, zéro modification de seuil**.
 
+**Borne canonique du dataset propre — `CLEAN_DATA_SINCE = 2026-06-25`.**
+Toute donnée antérieure à cette date (`paper_trades.jsonl`, `regret_analysis.jsonl`)
+est invalide pour le calcul de N et de tout seuil ci-dessus — référence
+`commit_start: ff49c2a` (blacklist tokens toxiques, `experiments/EXP-001.yaml`),
+appliquée par `scripts/data_quality.py`. Cette borne **remplace** une consigne
+antérieure du 2026-06-21 (`6ce7fc2`, correctif anti-synthétique) sans la
+contredire : le 25/06 exclut strictement un sur-ensemble de ce que le 21/06
+excluait déjà — adopter la borne la plus récente et la plus large satisfait
+les deux exigences simultanément. Décidé le 2026-07-05, voir ADR-0011.
+
 ---
 
 ## Phase actuelle : Validation Scientifique (gel fonctionnel étendu)
@@ -73,12 +83,15 @@ visualisation des hypothèses/datasets/expériences, qualité statistique, repro
 
 ---
 
-## Project Maturity Index (PMI)
+## Project Maturity Index (PMI) et SDOS
 
-Indicateur composite en 7 niveaux. Référence normative : `docs/blueprint_v2.md`.
+Indicateur composite en 7 niveaux, complété par la couche L3.5 du
+Scientific Decision Operating System (SDOS). Référence normative :
+`docs/blueprint_v2.md`.
 
 ```
 PMI = (L1 + L2 + L3 + L4 + L5 + L6 + L7) / 700
+SDOS Capability = (L1 + L2 + L3 + L3.5 + L4 + L5 + L6 + L7) / 800
 ```
 
 | Niveau | Nom | Score | Gate |
@@ -86,21 +99,24 @@ PMI = (L1 + L2 + L3 + L4 + L5 + L6 + L7) / 700
 | L1 | Engineering | 100/100 | FRANCHIE ✅ |
 | L2 | Scientific Validation | 35/100 | gate S1→S5 (N>=100) |
 | L3 | Scientific Governance | 10/100 | gate L2 |
-| L4 | Research Lab | 0/100 | gate L2 + N>=500 |
+| L3.5 | Scientific Intelligence Layer | 0/100 | gate L3 + Observer Certification |
+| L4 | Research Lab | 0/100 | gate L3.5 + N>=500 |
 | L5 | Digital Twin | 0/100 | gate L4 |
 | L6 | Live Operations | 36/100 | gate L2 → Phase A |
-| L7 | Meta Intelligence | 0/100 | gate L6 Phase C |
-| **PMI** | | **181/700 = 26%** | |
+| L7 | Scientific Intelligence Core | 0/100 | gate L6 Phase C |
+| **PMI-7** | | **181/700 = 26%** | |
+| **SDOS** | | **181/800 = 22.6%** | |
 
-Baseline : 2026-06-30. Le PMI progresse avec les gates franchies,
-jamais avec le nombre de lignes de code ajoutées.
+Baseline PMI-7 : 2026-06-30. Baseline SDOS : 2026-07-01.
+Les scores progressent avec les gates franchies, jamais avec le nombre de
+lignes de code ajoutées.
 
 ### Double lecture PMI
 
 | Score | Signification | Baseline |
 |---|---|---|
-| **Capability Score** | Ce que le système peut faire | 181/700 = 26% |
-| **Evidence Score** | Ce qui est démontré par les données | 0/700 = 0% |
+| **Capability Score** | Ce que le système peut faire | PMI-7 181/700 = 26% ; SDOS 181/800 = 22.6% |
+| **Evidence Score** | Ce qui est démontré par les données | 0/700 = 0% ; SDOS 0/800 = 0% |
 
 **Evidence Score = 0** signifie : aucune donnée certifiée, aucune hypothèse conclue.
 L'architecture est mature. Les preuves restent à construire.
