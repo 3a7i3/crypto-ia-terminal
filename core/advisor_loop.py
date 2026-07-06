@@ -178,6 +178,66 @@ def _safe_ratio(numerator: int, denominator: int) -> float:
     return float(numerator) / float(denominator)
 
 
+def _health_icon(ok: bool) -> str:
+    return "✔" if ok else "✘"
+
+
+def _brain_score(results: list[Any]) -> tuple[int, str]:
+    if not results:
+        return 0, "░" * 10
+    raw_scores = [
+        max(0, min(100, int(_to_float(getattr(r.get("signal"), "score", 0), 0))))
+        for r in results
+    ]
+    avg = int(round(sum(raw_scores) / max(1, len(raw_scores))))
+    filled = max(0, min(10, int(round(avg / 10))))
+    return avg, ("█" * filled) + ("░" * (10 - filled))
+
+
+def _decision_engine_summary(results: list[Any]) -> tuple[str, str]:
+    n_actionable = 0
+    n_tradable = 0
+    blocked: dict[str, int] = {}
+
+    def _bump(key: str) -> None:
+        blocked[key] = blocked.get(key, 0) + 1
+
+    for r in results:
+        sig = r.get("signal")
+        actionable = bool(getattr(sig, "actionable", False))
+        gate_allowed = bool(getattr(r.get("gate"), "allowed", False))
+        if actionable:
+            n_actionable += 1
+        if bool(r.get("trade_allowed")):
+            n_tradable += 1
+        if actionable and not bool(r.get("trade_allowed")):
+            if not gate_allowed:
+                _bump("gate")
+            elif not bool(r.get("meta_allowed", True)):
+                _bump("meta_strategy")
+            elif not bool(getattr(r.get("no_trade_verdict"), "allow", True)):
+                _bump("no_trade_layer")
+            elif not bool(getattr(r.get("pb_verdict"), "allow", True)):
+                _bump("portfolio_brain")
+            elif not bool(getattr(r.get("eo_verdict"), "allow", True)):
+                _bump("capital_protection")
+            elif not bool(getattr(r.get("awareness_state"), "ok", True)):
+                _bump("awareness")
+            elif r.get("radar_report") and not bool(
+                getattr(r.get("radar_report"), "safe", True)
+            ):
+                _bump("threat_radar")
+            else:
+                _bump("other")
+
+    if n_tradable > 0:
+        return "ACTIVE", f"{n_tradable} setup(s) tradable"
+    if n_actionable > 0:
+        top_reason = max(blocked.items(), key=lambda x: x[1])[0] if blocked else "other"
+        return "BLOCKED", f"{top_reason} ({blocked.get(top_reason, 0)}/{n_actionable})"
+    return "WAIT", "No setup exceeds confidence threshold"
+
+
 load_dotenv(override=True)
 
 P6_SAFE_MODE: bool = os.environ.get("P6_SAFE_MODE", "false").lower() in (
@@ -6059,6 +6119,13 @@ def main(
                         msg += "\n\n[SAFE MODE] Alertes actions suspendues."
                     # Etat exchange monitor
                     ex = _stats_dict(exchange_monitor.snapshot())
+                    _api_ok = bool(ex.get("healthy", True))
+                    _db_ok = os.path.isdir("databases")
+                    _tg_ok = bool(TELEGRAM_TOKEN and TELEGRAM_CHAT)
+                    _market_ok = len(results) > 0
+                    _strategy_ok = (
+                        awareness_engine is None or awareness_engine.is_safe_to_trade()
+                    )
                     if not ex.get("healthy", True):
                         msg += (
                             f"\n\nEXCHANGE HORS LIGNE — {ex.get('consecutive_failures', 0)} echecs\n"
@@ -6066,6 +6133,20 @@ def main(
                         )
                     else:
                         msg += f"\n\nExchange: OK ({_to_float(ex.get('last_latency_ms', 0)):.0f}ms | uptime {_to_float(ex.get('uptime_pct', 0)):.1f}%)"
+                    msg += (
+                        "\n\nHEALTH:"
+                        f"\n  API {_health_icon(_api_ok)}  DB {_health_icon(_db_ok)}  TG {_health_icon(_tg_ok)}"
+                        f"\n  Market {_health_icon(_market_ok)}  Strategy {_health_icon(_strategy_ok)}"
+                    )
+
+                    _decision_state, _decision_reason = _decision_engine_summary(results)
+                    _brain_pct, _brain_bar = _brain_score(results)
+                    msg += (
+                        "\n\nAI DECISION:"
+                        f"\n  Decision Engine: {_decision_state}"
+                        f"\n  Reason: {_decision_reason}"
+                        f"\n  Brain Score: {_brain_bar} {_brain_pct}%"
+                    )
                     # Stats positions ouvertes
                     pm_stats = _stats_dict(pos_manager.stats())
                     if (
@@ -6132,11 +6213,19 @@ def main(
                     pb_health = _stats_dict(
                         portfolio_brain.portfolio_health(pos_manager.get_open())
                     )
+                    _open_positions = pos_manager.get_open()
+                    _deployed_notional = sum(
+                        _to_float(getattr(_p, "size_usd", 0.0), 0.0)
+                        for _p in _open_positions
+                    )
+                    _paper_equity = _to_float(pb_health.get("capital", real_capital), 0.0)
+                    _paper_cash = max(0.0, _paper_equity - _deployed_notional)
                     msg += (
                         f"\n\nPORTFOLIO BRAIN:"
-                        f"\n  Exposition: {_to_float(pb_health.get('total_exposure_pct', 0)):.1f}%"
-                        f" | Déployable: ${_to_float(pb_health.get('free_capital', 0)):.2f}"
-                        f" (/{_to_float(pb_health.get('capital', 0)):.2f}$)"
+                        f"\n  Paper Equity: ${_paper_equity:.2f}"
+                        f" | Paper Cash: ${_paper_cash:.2f}"
+                        f"\n  Portfolio Exposure: {_to_float(pb_health.get('total_exposure_pct', 0)):.1f}%"
+                        f" | Free Cash: ${_to_float(pb_health.get('free_capital', 0)):.2f}"
                         f"\n  Positions: {pb_health.get('n_positions', 0)}"
                         f" | Corr risk: {_to_float(pb_health.get('correlation_risk', 0)):.1f}%"
                         f"\n  PnL ouvert: {_to_float(pb_health.get('open_pnl_usd', 0)):+.2f}$"
@@ -6198,10 +6287,20 @@ def main(
                     current_personality = meta_engine.current_personality()
                     if current_personality is not None:
                         p = current_personality
+                        _conf = max(0, min(100, int(round(_to_float(p.order_size_factor, 0) * 100))))
+                        if p.order_size_factor <= 0.0:
+                            _risk_profile = "Capital Protection"
+                        elif p.order_size_factor <= 0.5:
+                            _risk_profile = "Conservative"
+                        elif p.order_size_factor <= 0.9:
+                            _risk_profile = "Moderate"
+                        else:
+                            _risk_profile = "Aggressive"
                         msg += (
                             f"\n\nMETA-STRATEGY: {p.name}"
                             f"\n  Taille: x{p.order_size_factor:.1f} | "
                             f"TP:{p.tp_pct:.1%} SL:{p.sl_pct:.1%}"
+                            f"\n  Confidence: {_conf}% | Risk Profile: {_risk_profile}"
                         )
                     top3 = cast(list[JSONDict], ranker.leaderboard(3))
                     if top3:
@@ -6224,12 +6323,19 @@ def main(
                         try:
                             _ex = getattr(exec_engine, "_exchange", None)
                             _rx = _capital_x if "_capital_x" in dir() else None
+                            _api_free_usdt = None
+                            _api_pos_count: str | int = "N/A"
                             _asset_lines: list[str] = []
                             if _ex is not None:
                                 try:
                                     _bal = _ex.fetch_balance()
                                     _free = _bal.get("free", {}) or {}
                                     _total = _bal.get("total", {}) or {}
+                                    _api_free_usdt = float(
+                                        _free.get("USDT")
+                                        or _free.get("USD")
+                                        or 0.0
+                                    )
                                     _rx = float(
                                         _free.get("USDT")
                                         or _total.get("USDT")
@@ -6246,6 +6352,15 @@ def main(
                                     _asset_lines = [
                                         f"{_sym}:{_qty:.6g}" for _sym, _qty in _assets[:6]
                                     ]
+                                    try:
+                                        _raw_pos = _ex.fetch_positions()
+                                        _api_pos_count = sum(
+                                            1
+                                            for _p in _raw_pos
+                                            if _to_float(_p.get("contracts", 0), 0.0) != 0
+                                        )
+                                    except Exception:
+                                        _api_pos_count = "N/A"
                                 except Exception as _exb:
                                     log.debug("[RealBot] fetch_balance erreur: %s", _exb)
                             _rm = (
@@ -6259,6 +6374,11 @@ def main(
                             _rpnl = _to_float(_pm_snap.get("total_pnl_usd", 0))
                             _ropen = _pm_snap.get("open_count", 0)
                             _rx_line = f"${_rx:.4f} USDT" if _rx else "N/A"
+                            _api_free_line = (
+                                f"${_api_free_usdt:.4f} USDT"
+                                if _api_free_usdt is not None
+                                else "N/A"
+                            )
                             _assets_txt = (
                                 "\n💼 Actifs API : <b>" + " | ".join(_asset_lines) + "</b>"
                                 if _asset_lines
@@ -6267,11 +6387,13 @@ def main(
                             _real_status = (
                                 f"📊 <b>Statut Compte Réel — Cycle #{cycle}</b>\n"
                                 "━━━━━━━━━━━━━━━━━━━━━━\n"
-                                f"💰 Solde API : <b>{_rx_line}</b>\n"
+                                f"💰 API Equity : <b>{_rx_line}</b>\n"
+                                f"💵 API Free Cash : <b>{_api_free_line}</b>\n"
+                                f"📂 API Positions : <b>{_api_pos_count}</b>\n"
                                 f"⚙️ Mode : <b>{_rmode}</b>\n"
-                                f"📈 Capital local : <b>${_rpc:.2f} USDT</b> (base ${_rpc0:.0f})\n"
+                                f"📈 Paper Equity (machine) : <b>${_rpc:.2f} USDT</b> (base ${_rpc0:.0f})\n"
                                 f"🔢 Paires analysées : <b>{len(results)}</b>\n"
-                                f"📂 Positions ouvertes : <b>{_ropen}</b>\n"
+                                f"🧠 Positions machine ouvertes : <b>{_ropen}</b>\n"
                                 f"💹 PnL paper réalisé : <b>{_rpnl:+.2f}$</b>"
                                 f"{_assets_txt}"
                             )
@@ -6553,15 +6675,31 @@ def main(
                     except Exception:
                         pass
                 _hb_capital = real_capital
-                _hb_pos = (
-                    len(pos_manager.get_open_positions())
+                _hb_open = (
+                    pos_manager.get_open_positions()
                     if hasattr(pos_manager, "get_open_positions")
-                    else 0
+                    else []
+                )
+                _hb_pos = len(_hb_open)
+                _hb_deployed = sum(
+                    _to_float(getattr(_p, "size_usd", 0.0), 0.0) for _p in _hb_open
+                )
+                _hb_cash = max(0.0, _hb_capital - _hb_deployed)
+                _hb_decision, _hb_reason = _decision_engine_summary(results)
+                _hb_brain_pct, _hb_brain_bar = _brain_score(results)
+                _hb_ex = _stats_dict(exchange_monitor.snapshot())
+                _hb_health = (
+                    f"API {_health_icon(bool(_hb_ex.get('healthy', True)))} | "
+                    f"DB {_health_icon(os.path.isdir('databases'))} | "
+                    f"TG {_health_icon(bool(TELEGRAM_TOKEN and TELEGRAM_CHAT))}"
                 )
                 _hb_msg = (
                     f"[ALIVE] Cycle {cycle}\n"
                     f"Regime: {_hb_regime} | State: {_hb_state}\n"
-                    f"Capital local: ${_hb_capital:,.2f} | Pos: {_hb_pos}\n"
+                    f"Paper Equity: ${_hb_capital:,.2f} | Paper Cash: ${_hb_cash:,.2f} | Pos: {_hb_pos}\n"
+                    f"Decision Engine: {_hb_decision} | {_hb_reason}\n"
+                    f"Brain Score: {_hb_brain_bar} {_hb_brain_pct}%\n"
+                    f"Health: {_hb_health}\n"
                     f"RAM: {_ram_mb}MB"
                 )
                 _telegram(_hb_msg)
