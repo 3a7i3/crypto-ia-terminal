@@ -1,34 +1,43 @@
-"""Pipeline API — loads PipelineSnapshot from live_snapshot.json."""
+"""Pipeline API — snapshot-only mapping from SystemSnapshot."""
 from __future__ import annotations
 
-import json
 from datetime import datetime, timezone
-from pathlib import Path
 
 from visualization.api.models import PipelineSnapshot
-
-_ROOT = Path(__file__).resolve().parents[2]
-_LIVE_SNAPSHOT = _ROOT / "databases" / "live_snapshot.json"
+from visualization.api.system_snapshot_source import (
+    load_system_snapshot_dict,
+    load_system_snapshot_meta,
+    parse_iso_dt,
+)
 
 
 def load_pipeline_snapshot() -> PipelineSnapshot:
-    if not _LIVE_SNAPSHOT.exists():
-        return PipelineSnapshot(
-            ts=datetime.now(timezone.utc),
-            n_signals=0, n_traded=0, n_refused=0,
-            refusal_breakdown={}, regime_distribution={},
-            capital_usd=1000.0, cycle=0,
-        )
+    snap = load_system_snapshot_dict()
+    meta = load_system_snapshot_meta()
+    ts = parse_iso_dt(meta.get("timestamp_utc")) or datetime.now(timezone.utc)
 
-    raw = json.loads(_LIVE_SNAPSHOT.read_text(encoding="utf-8"))
+    block_stats = snap.get("block_stats", {})
+    cycle_counts = {
+        str(k): int(v) for k, v in dict(block_stats.get("current_cycle", [])).items()
+    }
+    n_refused = sum(cycle_counts.values())
+
+    decision = snap.get("ai_decision", {})
+    n_traded = 1 if decision.get("state") == "ACTIVE" else 0
+    n_signals = n_refused + n_traded
+
+    market = snap.get("market", {})
+    regime = str(market.get("regime", "unknown") or "unknown")
+    regime_distribution = {regime: n_signals} if n_signals > 0 else {}
+    portfolio = snap.get("portfolio", {})
 
     return PipelineSnapshot(
-        ts=datetime.now(timezone.utc),
-        n_signals=raw.get("n_symbols", 0),
-        n_traded=raw.get("n_traded", 0),
-        n_refused=raw.get("n_refused", 0),
-        refusal_breakdown=raw.get("refusal_breakdown", {}),
-        regime_distribution=raw.get("regime_distribution", {}),
-        capital_usd=raw.get("capital", 1000.0),
-        cycle=raw.get("cycle", 0),
+        ts=ts,
+        n_signals=n_signals,
+        n_traded=n_traded,
+        n_refused=n_refused,
+        refusal_breakdown=cycle_counts,
+        regime_distribution=regime_distribution,
+        capital_usd=float(portfolio.get("paper_equity", 0.0) or 0.0),
+        cycle=int(meta.get("cycle", 0) or 0),
     )
