@@ -75,19 +75,15 @@ def _save_snapshot(snap: _Snapshot) -> None:
 
 
 def _read_closes() -> list[dict]:
-    if not _TRADES_LOG.exists():
-        return []
-    closes = []
+    """CLOSE events filtrés par CLEAN_DATA_SINCE (ADR-0011) — même filtre que
+    le CRI (tools/cri_calculator.py), pour que ce rapport et le calcul de
+    calibration-readiness comptent le même N."""
     try:
-        for line in _TRADES_LOG.read_text(encoding="utf-8").splitlines():
-            line = line.strip()
-            if line:
-                ev = json.loads(line)
-                if ev.get("event") == "CLOSE":
-                    closes.append(ev)
+        from tools.cri_calculator import load_clean_trades
+
+        return load_clean_trades(_TRADES_LOG)
     except Exception:
-        pass
-    return closes
+        return []
 
 
 def _compute_kpis(closes: list[dict]) -> dict:
@@ -379,7 +375,8 @@ class SystemIntelReporter:
         sign = "+" if ctx["pnl_since"] >= 0 else ""
         lines.append(
             f"DEPUIS DERNIER RAPPORT : {ctx['n_since']} trade(s) clôturé(s) "
-            f"({sign}{ctx['pnl_since']:.2f}$) | total cumulé {kpis['n']} trades"
+            f"({sign}{ctx['pnl_since']:.2f}$) | N canonique (post-2026-06-25) "
+            f"{kpis['n']} trades"
         )
         lines.append("")
 
@@ -465,14 +462,14 @@ class SystemIntelReporter:
 
         if kpis["n"] >= 100:
             return (
-                f"Seuil 100 trades atteint ({kpis['n']}). "
+                f"Seuil 100 trades canoniques atteint ({kpis['n']}, post-2026-06-25). "
                 "Lancer scripts/burnin_calibration_v3.py puis scripts/prelive_gate.py."
             )
 
         remaining = 100 - kpis["n"]
         return (
-            f"Burn-in en cours — {remaining} trade(s) restant(s) avant calibration. "
-            "Système stable."
+            f"Burn-in en cours — {remaining} trade(s) canonique(s) restant(s) avant "
+            "calibration. Système stable."
         )
 
     # ── LM Studio (optionnel, narration enrichie) ────────────────────────────
