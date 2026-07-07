@@ -323,6 +323,9 @@ def _decision_diagnostics(
 
 
 def _decision_engine_summary(results: list[Any]) -> tuple[str, str]:
+    """Utilitaire testable générique (seuil 66 par défaut, indépendant du seuil
+    effectif ATE/RECOVERY). Non utilisé sur le chemin live — voir les appels de
+    _decision_diagnostics() dans main() qui, eux, passent le seuil effectif réel."""
     state, _, reason_text, _, _, _, _ = _decision_diagnostics(
         results, min_required_score=66
     )
@@ -6907,6 +6910,10 @@ def main(
                     _ram_mb = 0
                 _hb_snapshot = _snapshot_provider.get_latest()
                 if _hb_snapshot is None:
+                    # Même seuil effectif que le rapport périodique (ATE/RECOVERY
+                    # inclus) — jamais la constante générique 66 utilisée par
+                    # _decision_engine_summary() en dehors du chemin live.
+                    _hb_eff_score = gate._effective_min_score(_adaptive_regime)
                     (
                         _hb_decision_state,
                         _hb_reason_code,
@@ -6915,7 +6922,7 @@ def main(
                         _hb_block_cycle,
                         _hb_symbol,
                         _hb_score,
-                    ) = _decision_diagnostics(results, min_required_score=66)
+                    ) = _decision_diagnostics(results, min_required_score=_hb_eff_score)
                     _hb_brain_pct, _ = _brain_score(results)
                     _hb_ex = _stats_dict(exchange_monitor.snapshot())
                     _hb_pb = _stats_dict(
@@ -6976,7 +6983,7 @@ def main(
                             confidence_pct=_hb_brain_pct,
                             highest_candidate_symbol=_hb_symbol,
                             highest_candidate_score=round(_hb_score, 2),
-                            required_score=66,
+                            required_score=round(_hb_eff_score, 2),
                             next_evaluation_sec=int(interval),
                             brain_score_pct=_hb_brain_pct,
                         ),
