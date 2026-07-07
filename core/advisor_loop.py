@@ -3081,7 +3081,9 @@ def main(
         )
         from capital_deployment.phase_kpi_tracker import PhaseKPITracker as _P10KPICls
 
-        _p10_throttle = _P10ThrottleCls(total_capital=real_capital, phase=_P10_PHASE)
+        # ADR-0011: base épinglée pour stationnarité du sizing pendant la validation.
+        # Revoir à la phase calibration si un sizing proportionnel à l'equity est validé.
+        _p10_throttle = _P10ThrottleCls(total_capital=_paper_capital, phase=_P10_PHASE)
         _p10_emergency = _P10EmgCls(
             phase=_P10_PHASE,
             halt_fn=lambda reason: _halt_requested.set(),
