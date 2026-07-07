@@ -15,6 +15,9 @@ Ces règles s'appliquent à toutes les sessions, sans exception.
 
 **Conséquence directe :** `FEATURE_AUTO_CALIBRATION=false` est le défaut permanent.
 Aucune exception sans ADR signé par l'opérateur.
+Base de sizing épinglée à `WALLET_PAPER_CAPITAL` jusqu'aux gates de calibration ;
+tout sizing dépendant de l'equity est une décision de calibration explicite,
+jamais un effet de redémarrage.
 
 ---
 
