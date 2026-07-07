@@ -10,9 +10,14 @@
 #   bash scripts/deploy_vps.sh --confirm [--yes] [--dry-run] [--restart]
 #
 # Fonctionnement :
-#   1. Lit les fichiers modifiés/ajoutés depuis git (dernier commit), applique
-#      le filtre d'exclusion (databases/cache/logs/tests/docs — jamais de
-#      données runtime/état sur le VPS, cf. ADR runtime_config.json).
+#   1. Lit les fichiers modifiés/ajoutés depuis le dernier tag deploy-*
+#      jusqu'à HEAD (tous les commits accumulés depuis le dernier
+#      déploiement réel — pas seulement le dernier commit, cf. incident
+#      2026-07-07 : 5 commits accumulés, seul le dernier aurait été vu).
+#      Sans tag deploy-* existant (premier déploiement) : dernier commit
+#      seul, comportement historique. Applique le filtre d'exclusion
+#      (databases/cache/logs/tests/docs — jamais de données runtime/état
+#      sur le VPS, cf. ADR runtime_config.json).
 #   2. Affiche la liste EXACTE des fichiers à transférer, demande une
 #      confirmation interactive y/N (sautée avec --yes).
 #   3. Transfère par SSH — sauté avec --dry-run.
@@ -145,11 +150,20 @@ fi
 
 SSH_OPTS="-i $VPS_KEY -p $VPS_PORT -o BatchMode=yes -o StrictHostKeyChecking=no -o ConnectTimeout=15 -o ServerAliveInterval=5 -o ServerAliveCountMax=6"
 
-# ── Collecter les fichiers modifiés dans le dernier commit ───────────────────
+# ── Collecter les fichiers modifiés depuis le dernier déploiement ────────────
 cd "$ROOT_DIR"
 
-# Fichiers du dernier commit (A=ajouté, M=modifié, R=renommé)
-CHANGED_FILES=$(git diff-tree --no-commit-id -r --name-only --diff-filter=AMR HEAD 2>/dev/null)
+# Base = dernier tag deploy-* (tous les commits accumulés depuis le dernier
+# déploiement réel). Fallback sur le dernier commit seul si aucun tag deploy-*
+# n'existe encore (premier déploiement du dépôt).
+LAST_DEPLOY_TAG=$(git tag -l "deploy-*" --sort=-creatordate | head -1)
+if [[ -n "$LAST_DEPLOY_TAG" ]]; then
+    log "Base de comparaison : tag $LAST_DEPLOY_TAG"
+    CHANGED_FILES=$(git diff --name-only --diff-filter=AMR "$LAST_DEPLOY_TAG" HEAD 2>/dev/null)
+else
+    log "Aucun tag deploy-* trouvé — base de comparaison : dernier commit seul"
+    CHANGED_FILES=$(git diff-tree --no-commit-id -r --name-only --diff-filter=AMR HEAD 2>/dev/null)
+fi
 
 # Ajouter aussi les fichiers non-commités (untracked nouveaux connus)
 STAGED_NEW=$(git diff --cached --name-only --diff-filter=A 2>/dev/null || true)
