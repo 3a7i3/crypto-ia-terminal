@@ -1,0 +1,3 @@
+# scope: runtime_config.json + .env non secret + feature flags
+# command (example): sha256sum runtime_config.json env_non_secret.snapshot feature_flags.snapshot
+TO_BE_COMPUTED

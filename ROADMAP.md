@@ -5,6 +5,22 @@
 
 ---
 
+## Validation Campaign active — VC-2026-07-06-BURNIN-01
+
+- Manifeste de campagne créé : `validation/campaigns/VC-2026-07-06-BURNIN-01/manifest.yaml`
+- Marqueur restart créé : `validation/campaigns/VC-2026-07-06-BURNIN-01/restart_marker.md`
+- Gabarit observations 30 trades créé : `validation/campaigns/VC-2026-07-06-BURNIN-01/observations.csv`
+- Gabarit métriques P7 créé : `validation/campaigns/VC-2026-07-06-BURNIN-01/metrics.json`
+- Rapport de clôture (template) créé : `validation/campaigns/VC-2026-07-06-BURNIN-01/final_report.md`
+
+Règle de gouvernance (comparabilité) :
+
+> Aucune campagne ne peut être comparée quantitativement à une autre si le
+> `Protocol Version` ou le `Configuration Hash` diffère, sauf justification
+> explicite dans le rapport.
+
+---
+
 ## Architecture cible — 7 couches cybernétiques
 
 ```

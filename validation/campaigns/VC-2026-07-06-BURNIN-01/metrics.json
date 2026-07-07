@@ -1,0 +1,20 @@
+{
+  "campaign_id": "VC-2026-07-06-BURNIN-01",
+  "protocol_version": "VP-1.0",
+  "git_sha": "7537d00",
+  "dataset_uuid": "5b584286-d869-4e4e-b4f6-42990ff80911",
+  "n_trades": 30,
+  "p7_intervention_rate": null,
+  "average_size_drift": null,
+  "requested_final_mismatch_count": null,
+  "final_size_usd": {
+    "min": null,
+    "max": null,
+    "mean": null
+  },
+  "risk_governor_multiplier_distribution": {},
+  "capital_throttle_factor_distribution": {},
+  "p7_modified_size_count": null,
+  "max_abs_size_drift": null,
+  "decision": "TO_FILL"
+}

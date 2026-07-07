@@ -1,0 +1,19 @@
+validation_campaign: VC-2026-07-06-BURNIN-01
+protocol_version: VP-1.0
+git_sha: 7537d00
+dataset_uuid: 5b584286-d869-4e4e-b4f6-42990ff80911
+adr:
+  - ADR-0011
+configuration_hash:
+  algorithm: sha256
+  value: TO_BE_COMPUTED
+  scope: runtime_config.json + .env non secret + feature flags
+operator: TO_FILL
+validation_mode:
+  capital_throttle_pinned: true
+  wallet_ledger_continuous: true
+  p7_enabled: true
+  p7_frozen: false
+start_time: TO_FILL
+end_time: TO_FILL
+status: in_progress
