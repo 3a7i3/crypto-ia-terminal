@@ -329,6 +329,78 @@ def test_main_pins_p10_throttle_base_to_wallet_paper_capital(monkeypatch):
     assert captured["phase"] == "F-01"
 
 
+def test_main_keeps_first_order_size_at_10_usd_with_adjusted_equity(monkeypatch):
+    runtime = _runtime()
+    order_calls: list[tuple[str, str, float]] = []
+
+    class _ExecutionEngineAdjustedCapital(_ExecutionEngine):
+        @classmethod
+        def from_env(cls) -> "_ExecutionEngineAdjustedCapital":
+            return cls()
+
+        def fetch_available_capital(self) -> float:
+            return 689.0
+
+        def has_futures_demo(self) -> bool:
+            return False
+
+        def create_order(
+            self, symbol: str, side: str, size: float
+        ) -> dict[str, object]:
+            order_calls.append((symbol, side, size))
+            return {
+                "mode": "paper",
+                "id": "paper-order-1",
+                "symbol": symbol,
+                "action": side,
+                "size": size,
+                "price": 100.0,
+            }
+
+    runtime = AdvisorRuntime(**{**runtime.__dict__, "ExecutionEngine": _ExecutionEngineAdjustedCapital})
+
+    _force_live_mode(monkeypatch)
+    monkeypatch.setenv("WALLET_PAPER_CAPITAL", "1000")
+    monkeypatch.setattr(advisor_loop, "_EXEC_CONSTRAINTS_AVAILABLE", False)
+    monkeypatch.setattr(advisor_loop, "NOTIFY_EVERY", 99)
+    monkeypatch.setattr(advisor_loop, "_telegram", lambda text: None)
+    monkeypatch.setattr(
+        advisor_loop,
+        "analyze_symbol",
+        lambda *args, **kwargs: {
+            "symbol": "BTC/USDT",
+            "signal": SimpleNamespace(
+                actionable=True,
+                signal="BUY",
+                score=82,
+                timestamp=time.time(),
+                regime="bull_trend",
+                confirmed=True,
+                strength=0.8,
+                components={},
+            ),
+            "gate": SimpleNamespace(allowed=True),
+            "features": {"atr": 1.2, "atr_ratio": 0.03},
+            "allocation": None,
+            "trade_allowed": True,
+            "ml_decision": {"tp": 0.03, "sl": 0.01, "trail_pct": 0.005},
+            "futures_result": None,
+            "regime": "bullish",
+            "personality": None,
+            "conviction": None,
+            "prix": 100.0,
+            "decision_packet": SimpleNamespace(is_actionable=lambda: True),
+        },
+    )
+
+    advisor_loop.main(["BTC/USDT"], interval=0, max_cycles=1, runtime=runtime)
+
+    assert len(order_calls) == 1
+    assert order_calls[0][0] == "BTC/USDT"
+    assert order_calls[0][1] == "BUY"
+    assert order_calls[0][2] == 10.0
+
+
 def test_main_runs_single_cycle_in_observation_mode(monkeypatch):
     runtime = _runtime()
     calls: list[str] = []

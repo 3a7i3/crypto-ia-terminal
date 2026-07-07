@@ -3081,8 +3081,9 @@ def main(
         )
         from capital_deployment.phase_kpi_tracker import PhaseKPITracker as _P10KPICls
 
-        # ADR-0011: base épinglée pour stationnarité du sizing pendant la validation.
-        # Revoir à la phase calibration si un sizing proportionnel à l'equity est validé.
+        # ADR-0011: During validation, sizing is intentionally invariant to preserve
+        # stationarity of the experimental process. Equity-based sizing becomes
+        # permissible only after calibration gates are satisfied.
         _p10_throttle = _P10ThrottleCls(total_capital=_paper_capital, phase=_P10_PHASE)
         _p10_emergency = _P10EmgCls(
             phase=_P10_PHASE,
@@ -3091,7 +3092,7 @@ def main(
         _p10_kpi = _P10KPICls(phase=_P10_PHASE, initial_capital=real_capital)
         if advisor_only:
             # Paper mode : capital paper indépendant du capital réel throttlé.
-            # Le CapitalThrottle (basé sur $real_capital live) ne s'applique pas.
+            # Le CapitalThrottle (basé sur WALLET_PAPER_CAPITAL en validation) ne s'applique pas.
             # Invariant : paper_order_usd n'affecte jamais la taille des ordres live.
             _paper_order_usd = float(os.getenv("PAPER_SIM_ORDER_USD", "25.0"))
             max_order = min(max_order, _paper_order_usd)
