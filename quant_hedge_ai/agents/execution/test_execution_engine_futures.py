@@ -238,6 +238,39 @@ class TestFetchAvailableCapital:
         assert e.fetch_available_capital() == 888.0
         _ws.reset_wallet_sync()
 
+    def test_paper_trading_enabled_forces_local_capital(self, tmp_path, monkeypatch):
+        monkeypatch.setenv("EXEC_TRADE_LOG", str(tmp_path / "t.sqlite"))
+        monkeypatch.setenv("PAPER_TRADING_ENABLED", "true")
+        import infra.wallet_sync as _ws
+
+        _ws.reset_wallet_sync()
+        monkeypatch.setattr(_ws, "_PAPER_CAPITAL", 1337.0)
+        from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
+
+        e = ExecutionEngine(live=False)
+        e._mode = "live"
+        assert e.fetch_available_capital() == 1337.0
+        _ws.reset_wallet_sync()
+
+    def test_paper_trading_disabled_uses_exchange_balance(self, tmp_path, monkeypatch):
+        monkeypatch.setenv("EXEC_TRADE_LOG", str(tmp_path / "t.sqlite"))
+        monkeypatch.setenv("PAPER_TRADING_ENABLED", "false")
+        import infra.wallet_sync as _ws
+
+        class _FakeExchange:
+            def fetch_balance(self):
+                return {"free": {"USDT": 321.5}}
+
+        _ws.reset_wallet_sync()
+        monkeypatch.setattr(_ws, "_PAPER_CAPITAL", 7777.0)
+        from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
+
+        e = ExecutionEngine(live=False)
+        e._mode = "live"
+        e._exchange = _FakeExchange()
+        assert e.fetch_available_capital() == 321.5
+        _ws.reset_wallet_sync()
+
 
 # ── Suite 8 : detect_quote_asset ──────────────────────────────────────────────
 

@@ -143,68 +143,76 @@ def build_modules() -> list[dict]:
     return result
 
 
+def _pairs_to_dict(raw: object) -> dict[str, int]:
+    if isinstance(raw, dict):
+        return {str(k): int(v) for k, v in raw.items()}
+    if isinstance(raw, list):
+        out: dict[str, int] = {}
+        for item in raw:
+            if isinstance(item, (list, tuple)) and len(item) == 2:
+                out[str(item[0])] = int(item[1])
+        return out
+    return {}
+
+
+def _build_system_modules(system_snapshot: dict) -> list[dict]:
+    health = system_snapshot.get("health", {})
+    mapping = [
+        ("API", bool(health.get("api", False))),
+        ("Database", bool(health.get("database", False))),
+        ("Telegram", bool(health.get("telegram", False))),
+        ("MarketData", bool(health.get("market", False))),
+        ("Strategy", bool(health.get("strategy", False))),
+    ]
+    return [
+        {"name": name, "status": ("ok" if ok else "offline"), "last_tick_ms": 0}
+        for name, ok in mapping
+    ]
+
+
 # ── /api/snapshot ─────────────────────────────────────────────────────────────
 
 
 @app.get("/api/snapshot")
 def get_snapshot() -> dict:
     snap = read_json(SNAPSHOT)
-    trades = read_jsonl(TRADES, max_lines=500)
+    system_snapshot = snap.get("system_snapshot", {}) if isinstance(snap, dict) else {}
 
-    exits = [t for t in trades if t.get("type") == "exit"]
+    meta = system_snapshot.get("meta", {})
+    portfolio = system_snapshot.get("portfolio", {})
+    market = system_snapshot.get("market", {})
+    decision = system_snapshot.get("ai_decision", {})
+    block_stats = system_snapshot.get("block_stats", {})
 
-    # PnL du jour UTC
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    day_exits = [t for t in exits if str(t.get("logged_at", "")).startswith(today)]
-    daily_pnl = round(sum(t.get("pnl_usd", 0) for t in day_exits), 4)
-
-    # Win rate sur les 100 derniers trades
-    last100 = exits[-100:]
-    wins = sum(1 for t in last100 if t.get("win"))
-    win_rate = round(wins / len(last100) * 100, 1) if last100 else 0.0
-
-    # Symboles avec champs normalisés
-    symbols = []
-    for s in snap.get("symbols", []):
-        symbols.append(
-            {
-                "symbol": s.get("symbol", ""),
-                "prix": s.get("prix", 0),
-                "score": s.get("score", 0),
-                "regime": map_regime(s.get("regime", "")),
-                "signal_kind": map_signal(s),
-                "gate_allowed": s.get("gate_allowed", False),
-                "actionable": s.get("actionable", False),
-                "conviction": map_conviction(s.get("conviction_level", "")),
-                "indicators": {
-                    "rsi": s.get("rsi"),
-                    "bb_pct": s.get("bb_pct"),
-                    "atr": s.get("atr_ratio"),
-                    "macd_bull": s.get("macd_bullish", False),
-                    "ema_bull": s.get("ema_bullish", False),
-                    "squeeze": s.get("bb_squeeze", False),
-                },
-            }
-        )
+    refusal_breakdown = _pairs_to_dict(block_stats.get("current_cycle", []))
+    n_refused = sum(refusal_breakdown.values())
+    n_traded = 1 if decision.get("state") == "ACTIVE" else 0
+    n_signals = n_refused + n_traded
+    regime = str(market.get("regime", "unknown") or "unknown")
+    regime_distribution = {regime: n_signals} if n_signals > 0 else {}
 
     return {
-        "capital_usd": snap.get("capital", 0),
-        "daily_pnl": daily_pnl,
-        "open_positions": len(snap.get("positions", [])),
-        "win_rate_7d": win_rate,
-        "mode": "testnet",
-        "last_updated": datetime.now(timezone.utc).isoformat(),
-        "cycle": snap.get("cycle", 0),
-        "safe_mode": snap.get("safe_mode", False),
-        "n_symbols": snap.get("n_symbols", 0),
-        "n_actionable": snap.get("n_actionable", 0),
+        "capital_usd": float(portfolio.get("paper_equity", 0.0) or 0.0),
+        "daily_pnl": 0.0,
+        "open_positions": int(portfolio.get("open_positions", 0) or 0),
+        "win_rate_7d": 0.0,
+        "mode": "paper",
+        "last_updated": meta.get("timestamp_utc")
+        or datetime.now(timezone.utc).isoformat(),
+        "cycle": int(meta.get("cycle", 0) or 0),
+        "safe_mode": decision.get("state") != "ACTIVE",
+        "n_symbols": n_signals,
+        "n_actionable": n_traded,
         "cycle_duration_ms": snap.get("cycle_duration_ms", 0),
-        "refusal_breakdown": snap.get("refusal_breakdown", {}),
-        "regime_distribution": snap.get("regime_distribution", {}),
-        "exchange": snap.get("exchange", {}),
-        "symbols": symbols,
-        "positions": snap.get("positions", []),
-        "modules": build_modules(),
+        "refusal_breakdown": refusal_breakdown,
+        "regime_distribution": regime_distribution,
+        "exchange": {
+            "latency_ms": float(market.get("exchange_latency_ms", 0.0) or 0.0),
+            "uptime_pct": float(market.get("exchange_uptime_pct", 0.0) or 0.0),
+        },
+        "symbols": [],
+        "positions": [],
+        "modules": _build_system_modules(system_snapshot),
     }
 
 
@@ -349,6 +357,22 @@ def get_trades() -> dict:
 @app.get("/api/health")
 def health() -> dict:
     return {"status": "ok", "ts": time.time()}
+
+
+# ── /api/system_snapshot — snapshot unifié OBS-001 ───────────────────────────
+
+
+@app.get("/api/system_snapshot")
+def get_system_snapshot() -> dict:
+    """Return the raw SystemSnapshot dict embedded in live_snapshot.json (OBS-002)."""
+    snap = read_json(SNAPSHOT)
+    system_snapshot = snap.get("system_snapshot") if isinstance(snap, dict) else None
+    if not system_snapshot:
+        return {
+            "error": "No system_snapshot available",
+            "ts": datetime.now(timezone.utc).isoformat(),
+        }
+    return system_snapshot
 
 
 # ── /api/raw/* — fichiers bruts pour vps_data_sync.py (PC local) ─────────────
