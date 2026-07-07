@@ -276,6 +276,59 @@ def _force_live_mode(monkeypatch) -> None:
     monkeypatch.setenv("V9_ADVISOR_ONLY", "false")
 
 
+def test_main_pins_p10_throttle_base_to_wallet_paper_capital(monkeypatch):
+    runtime = _runtime()
+    captured: dict[str, float] = {}
+
+    class _ExecutionEngineAdjustedCapital(_ExecutionEngine):
+        @classmethod
+        def from_env(cls) -> "_ExecutionEngineAdjustedCapital":
+            return cls()
+
+        def fetch_available_capital(self) -> float:
+            return 689.0
+
+    class _CapturingThrottle:
+        def __init__(self, total_capital: float, phase: str = "F-01") -> None:
+            captured["total_capital"] = total_capital
+            captured["phase"] = phase
+            self.allocated_capital = total_capital * 0.01
+
+        def throttled_size(self, requested: float) -> float:
+            return min(requested, self.allocated_capital)
+
+    runtime = AdvisorRuntime(**{**runtime.__dict__, "ExecutionEngine": _ExecutionEngineAdjustedCapital})
+
+    from capital_deployment import capital_throttle as _capital_throttle_mod
+
+    _force_observation_mode(monkeypatch)
+    monkeypatch.setenv("WALLET_PAPER_CAPITAL", "1000")
+    monkeypatch.setattr(_capital_throttle_mod, "CapitalThrottle", _CapturingThrottle)
+    monkeypatch.setattr(advisor_loop, "NOTIFY_EVERY", 99)
+    monkeypatch.setattr(advisor_loop, "_telegram", lambda text: None)
+    monkeypatch.setattr(
+        advisor_loop,
+        "analyze_symbol",
+        lambda *args, **kwargs: {
+            "symbol": "BTC/USDT",
+            "signal": SimpleNamespace(
+                actionable=False, signal="HOLD", score=40, timestamp=time.time()
+            ),
+            "gate": SimpleNamespace(allowed=False),
+            "features": {},
+            "allocation": None,
+            "trade_allowed": False,
+            "ml_decision": {},
+            "futures_result": None,
+        },
+    )
+
+    advisor_loop.main(["BTC/USDT"], interval=0, max_cycles=1, runtime=runtime)
+
+    assert captured["total_capital"] == 1000.0
+    assert captured["phase"] == "F-01"
+
+
 def test_main_runs_single_cycle_in_observation_mode(monkeypatch):
     runtime = _runtime()
     calls: list[str] = []
