@@ -15,10 +15,13 @@ Avant ce module, 4 chiffres de capital coexistaient sans jamais être synchronis
 Résultat : chaque bot/module affichait un solde différent pour le même système.
 
 Avec WalletSync, un seul chemin :
-  -   Mode paper  → WALLET_PAPER_CAPITAL + PnL de session (delta du ledger depuis
-                    le démarrage du process). Le capital local est donc indépendant
-                    du solde API et redémarre proprement à chaque lancement.
-                    Le solde API reste lisible séparément pour les bots dédiés.
+  - Mode paper  → WALLET_PAPER_CAPITAL + cumul PnL du ledger depuis l'origine
+                  (grand livre continu, jamais réinitialisé — c'est la mesure
+                  du drawdown réel et l'entrée du sizing). Un redémarrage du
+                  process ne change JAMAIS cette valeur, le ledger persistant
+                  sur disque en est l'unique source. Pour un compteur "depuis
+                  ce redémarrage" (affichage uniquement, jamais le sizing),
+                  voir session_pnl_since_restart().
   - Mode live/testnet → solde réel récupéré via l'API de l'exchange configuré
                   par l'utilisateur (MEXC par défaut), avec cache TTL et
                   fallback sur la dernière valeur connue si l'API échoue
@@ -96,8 +99,9 @@ class WalletSync:
         self._x: Optional[float] = (
             None  # Capital X — source unique, initialisé via bootstrap()
         )
-        # Baseline sessionnelle: en mode paper, le PnL pré-existant dans le ledger
-        # n'est pas repris. Le capital local redémarre à WALLET_PAPER_CAPITAL.
+        # Baseline sessionnelle — uniquement pour session_pnl_since_restart()
+        # (affichage). Ne doit JAMAIS être soustraite dans get_balance()/sizing :
+        # cf incident revue 2026-07 (discontinuité de capital à chaque restart).
         self._paper_session_pnl0 = _read_ledger_pnl()
 
     @property
@@ -161,15 +165,16 @@ class WalletSync:
 
     def get_balance(self, force_refresh: bool = False) -> float:
         """
-        Retourne le solde actuel — paper (capital local de session) ou live/testnet (API réelle).
+        Retourne le solde actuel — paper (grand livre continu) ou live/testnet (API).
 
-        Mode paper : WALLET_PAPER_CAPITAL + delta PnL ledger depuis le démarrage.
+        Mode paper : WALLET_PAPER_CAPITAL + cumul PnL du ledger depuis l'origine —
+        continu à travers les redémarrages (jamais de baseline soustraite ici).
+        C'est la valeur utilisée pour le sizing (Kelly/EV/CapitalThrottle) : un
+        redémarrage ne doit jamais produire de discontinuité de capital.
         Mode live/testnet : balance API cachée sur WALLET_CACHE_TTL_S, fallback X.
         """
         if self._mode == "paper":
-            return self._base_capital() + (
-                _read_ledger_pnl() - self._paper_session_pnl0
-            )
+            return self._base_capital() + _read_ledger_pnl()
 
         with self._lock:
             now = time.time()
@@ -203,6 +208,16 @@ class WalletSync:
     def initial_capital(self) -> float:
         """Capital de départ — utilisé pour calculer ROI%/drawdown%."""
         return self._base_capital()
+
+    def session_pnl_since_restart(self) -> float:
+        """PnL réalisé depuis le démarrage de CE process — affichage uniquement.
+
+        Contrairement à get_balance() (grand livre continu, jamais réinitialisé),
+        cette valeur repart de zéro à chaque redémarrage par construction. Ne
+        jamais l'utiliser pour le sizing ou tout calcul de risque — uniquement
+        pour un compteur de confort côté Telegram ("PnL depuis redémarrage").
+        """
+        return _read_ledger_pnl() - self._paper_session_pnl0
 
 
 _singleton: Optional[WalletSync] = None

@@ -1,6 +1,10 @@
 from __future__ import annotations
 
-from observability.system_snapshot import PipelineStageStatus, SystemSnapshot, reason_label
+from observability.system_snapshot import (
+    PipelineStageStatus,
+    SystemSnapshot,
+    reason_label,
+)
 
 
 def _icon(ok: bool) -> str:
@@ -51,8 +55,9 @@ def render_health_block(snapshot: SystemSnapshot) -> str:
 def render_pipeline_block(snapshot: SystemSnapshot) -> str:
     lines = ["PIPELINE:"]
     for s in snapshot.pipeline:
+        status_txt = _pipeline_status_text(s.status)
         lines.append(
-            f"  {s.name:<18} {_pipeline_status_text(s.status):<7} {s.duration_ms:>6.1f}ms  {s.message}"
+            f"  {s.name:<18} {status_txt:<7} {s.duration_ms:>6.1f}ms  {s.message}"
         )
     return "\n".join(lines)
 
@@ -78,7 +83,8 @@ def render_quant_overview_block(snapshot: SystemSnapshot) -> str:
     return (
         "PORTFOLIO BRAIN:\n"
         f"  Paper Equity: ${p.paper_equity:.2f} | Paper Cash: ${p.paper_cash:.2f}\n"
-        f"  Portfolio Exposure: {p.portfolio_exposure_pct:.1f}% | Free Cash: ${p.free_cash:.2f}\n"
+        f"  Portfolio Exposure: {p.portfolio_exposure_pct:.1f}% | "
+        f"Free Cash: ${p.free_cash:.2f}\n"
         f"  Positions: {p.open_positions} | Corr risk: {p.correlation_risk_pct:.1f}%\n"
         f"  Open PnL: {p.open_pnl_usd:+.2f}$"
     )
@@ -86,7 +92,9 @@ def render_quant_overview_block(snapshot: SystemSnapshot) -> str:
 
 def render_real_account_block(snapshot: SystemSnapshot, mode_label: str) -> str:
     a = snapshot.api_account
+    p = snapshot.portfolio
     assets = " | ".join(f"{sym}:{qty:.6g}" for sym, qty in a.api_assets) or "N/A"
+    sign = "+" if p.session_pnl_usd >= 0 else ""
     return (
         f"📊 <b>Statut Compte Réel — Cycle #{snapshot.meta.cycle}</b>\n"
         "━━━━━━━━━━━━━━━━━━━━━━\n"
@@ -94,7 +102,8 @@ def render_real_account_block(snapshot: SystemSnapshot, mode_label: str) -> str:
         f"💵 API Free Cash : <b>${a.api_free_cash_usdt:.4f} USDT</b>\n"
         f"📂 API Positions : <b>{a.api_positions}</b>\n"
         f"⚙️ Mode : <b>{mode_label}</b>\n"
-        f"📈 Paper Equity (machine) : <b>${snapshot.portfolio.paper_equity:.2f} USDT</b>\n"
+        f"📈 Paper Equity (machine) : <b>${p.paper_equity:.2f} USDT</b>\n"
+        f"🔄 PnL depuis ce redémarrage : <b>{sign}{p.session_pnl_usd:.2f}$</b>\n"
         f"💼 API Assets : <b>{assets}</b>"
     )
 
@@ -105,7 +114,8 @@ def render_heartbeat(snapshot: SystemSnapshot, ram_mb: int) -> str:
         f"[ALIVE] Cycle {snapshot.meta.cycle}\n"
         f"Regime: {snapshot.market.regime} | Decision: {d.state.value}\n"
         f"Paper Equity: ${snapshot.portfolio.paper_equity:,.2f} | "
-        f"Paper Cash: ${snapshot.portfolio.paper_cash:,.2f} | Pos: {snapshot.portfolio.open_positions}\n"
+        f"Paper Cash: ${snapshot.portfolio.paper_cash:,.2f} | "
+        f"Pos: {snapshot.portfolio.open_positions}\n"
         f"Reason: {d.reason_code.value} {d.reason_text}\n"
         f"Brain Score: {d.brain_score_pct}%\n"
         f"RAM: {ram_mb}MB"

@@ -61,6 +61,10 @@ class PortfolioSnapshot:
     open_pnl_usd: float
     open_positions: int
     correlation_risk_pct: float
+    # Affichage uniquement (WalletSync.session_pnl_since_restart()) — repart de
+    # zéro à chaque redémarrage par construction, contrairement à paper_equity
+    # (grand livre continu). Ne jamais utiliser pour le sizing/risque.
+    session_pnl_usd: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -153,6 +157,7 @@ class SystemSnapshot:
                 "open_pnl_usd": self.portfolio.open_pnl_usd,
                 "open_positions": self.portfolio.open_positions,
                 "correlation_risk_pct": self.portfolio.correlation_risk_pct,
+                "session_pnl_usd": self.portfolio.session_pnl_usd,
             },
             "ai_decision": {
                 "decision_id": self.ai_decision.decision_id,
@@ -276,7 +281,9 @@ class InMemorySnapshotProvider:
 
 
 class BlockStatsAccumulator:
-    def __init__(self, lifetime_path: str = "databases/block_stats_lifetime.json") -> None:
+    def __init__(
+        self, lifetime_path: str = "databases/block_stats_lifetime.json"
+    ) -> None:
         self._lock = threading.Lock()
         self._session: dict[str, int] = {}
         self._lifetime: dict[str, int] = {}
@@ -312,7 +319,9 @@ class BlockStatsAccumulator:
                 self._lifetime[k] = self._lifetime.get(k, 0) + int(v)
             self._save_lifetime()
             return BlockStatsSnapshot(
-                current_cycle=tuple(sorted((k, int(v)) for k, v in current_cycle.items())),
+                current_cycle=tuple(
+                    sorted((k, int(v)) for k, v in current_cycle.items())
+                ),
                 session=tuple(sorted((k, int(v)) for k, v in self._session.items())),
                 lifetime=tuple(sorted((k, int(v)) for k, v in self._lifetime.items())),
             )
