@@ -4,7 +4,7 @@
 > Document permanent — mis à jour à chaque évolution certifiée du DIP.
 > Ce n'est pas un document de conception. C'est la référence opérationnelle.
 >
-> Baseline : 2026-06-30 | Modules : D01–D14 | Tests : 136 | PMI : 181/700
+> Baseline : 2026-06-30 | Modules : D01–D14 | Tests : 136 | PMI-7 : 181/700 | SDOS : 181/800
 
 ---
 
@@ -19,6 +19,7 @@
 7. [Certification et évolution](#7-certification-et-évolution)
 8. [Connexion production](#8-connexion-production)
 9. [DIP Capability Matrix](#9-dip-capability-matrix)
+10. [SDOS et Scientific Intelligence](#10-sdos-et-scientific-intelligence)
 
 ---
 
@@ -68,6 +69,21 @@ dip/cli.py                            ← Interface opérateur
 | D12 | Alert Engine            | `modules/decision_alert.py`      | 5 règles (R01–R05), cooldown 5 min, sévérité HIGH/CRITICAL |
 | D13 | Export Engine           | `modules/decision_export.py`     | Export JSON / CSV / Markdown |
 | D14 | Audit Trail             | `modules/audit_trail.py`         | Journal append-only SHA-256, hash-chain |
+
+### Couche L3.5 — Scientific Intelligence Layer
+
+Les modules D01-D14 restent des outils d'observation et d'investigation. Le
+niveau L3.5 définit le langage scientifique qui transforme leurs sorties en
+connaissance structurée : Decision → RootCause → Hypothesis → Dataset → Evidence
+→ Confidence → ScientificConclusion → RecommendedExperiment.
+
+Références :
+- `docs/adr/0008-scientific-intelligence-layer.md`
+- `docs/dip/SCIENTIFIC_INTELLIGENCE_LAYER.md`
+- `docs/blueprint_v2.md`
+
+L3.5 n'ajoute aucun handler au bus et ne modifie jamais le moteur. C'est une
+couche passive de compréhension.
 
 ### Stockage
 
@@ -458,6 +474,51 @@ Gate certification : N ≥ 500 décisions (cohérent règle statisticien CLAUDE.
 
 ---
 
+## 10. SDOS et Scientific Intelligence
+
+Le DIP est désormais positionné comme le socle d'un **Scientific Decision
+Operating System (SDOS)**. Le moteur de trading reste le premier cas d'usage, mais
+l'objectif architectural plus durable est de produire des connaissances fiables
+sur un système de décision.
+
+### Question cible
+
+Avant L3.5, le DIP répond principalement :
+
+> Pourquoi cette décision a-t-elle été refusée ?
+
+Avec L3.5, le SDOS doit pouvoir répondre :
+
+> Que savons-nous réellement du comportement du moteur ?
+
+### Moteurs L3.5
+
+| ID | Moteur | Réponse attendue |
+|----|--------|------------------|
+| SI-01 | Decision Knowledge Graph | Quelle connaissance relie cette décision à une hypothèse ? |
+| SI-02 | Causal Memory | Quels motifs causaux reviennent dans le temps ? |
+| SI-03 | Evidence Engine | L'evidence s'accumule-t-elle, se contredit-elle ou s'affaiblit-elle ? |
+| SI-04 | Scientific Timeline | Comment la connaissance a-t-elle évolué ? |
+| SI-05 | Contradiction Detector | Deux conclusions confirmées sont-elles compatibles ? |
+| SI-06 | Knowledge Confidence | Peut-on faire confiance à la connaissance produite ? |
+| SI-07 | Scientific Drift | Une conclusion confirmée vieillit-elle avec le marché ? |
+| SI-08 | Decision DNA | Quelles familles de décisions apparaissent ? |
+
+### Distinction OCS / Knowledge Confidence
+
+| Score | Question |
+|-------|----------|
+| Observer Confidence Score (OCS) | Peut-on faire confiance à l'observateur ? |
+| Knowledge Confidence | Peut-on faire confiance à la connaissance produite ? |
+
+### Règle opérationnelle
+
+Tant que `SI-G1` n'est pas franchie (Observer Certification Level 3 + dataset
+CERTIFIED/PASS), L3.5 reste une architecture cible et ne produit aucune conclusion
+scientifique utilisable dans un Go/No-Go.
+
+---
+
 ## Annexe A — Rollback complet du DIP
 
 Le DIP est conçu pour être supprimable sans impact sur le moteur.
@@ -487,5 +548,5 @@ Ces règles ne peuvent pas être overridées :
 
 ---
 
-*Dernière mise à jour : 2026-06-30*
+*Dernière mise à jour : 2026-07-01*
 *Prochain révision attendue : après première activation FEATURE_DIP=true sur VPS*

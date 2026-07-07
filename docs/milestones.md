@@ -72,6 +72,49 @@ outils de mesure S1→S5, tableaux de bord d'observation, rapport scientifique.
 
 ---
 
+## M1.1 — SDOS Architecture Rebaseline
+
+| Champ | Valeur |
+|---|---|
+| **Date** | 2026-07-01 |
+| **Nom** | SDOS Architecture Rebaseline |
+| **Blueprint** | V2.2 |
+| **Mission Statement** | V1.0 + SDOS |
+| **ADR** | ADR-0008 |
+| **Status** | ARCHITECTURE ONLY |
+| **Next Objective** | Observer Certification puis dataset certification |
+
+### Changement acté
+
+Le projet est repositionné comme **Scientific Decision Operating System (SDOS)**.
+Le trading reste le premier cas d'usage, mais l'identité durable devient la
+production de connaissances fiables sur un moteur de décision.
+
+### Ajout architectural
+
+| Niveau | Nom | Score |
+|---|---|---|
+| L3.5 | Scientific Intelligence Layer | 0 / 100 |
+| L7 | Scientific Intelligence Core | 0 / 100 |
+
+### Métriques rebaselinées
+
+| Métrique | Valeur |
+|---|---|
+| PMI-7 Capability Score | 181 / 700 = 26% |
+| SDOS Capability Score | 181 / 800 = 22.6% |
+| Evidence Score | 0 / 800 = 0% |
+| Changement runtime | Aucun |
+| Changement moteur | Aucun |
+
+### Raison scientifique
+
+Ce jalon ne livre pas une nouvelle fonctionnalité. Il fixe le langage de
+connaissance qui permettra de relier Decision, RootCause, Hypothesis, Dataset,
+Evidence, Confidence, ScientificConclusion et RecommendedExperiment.
+
+---
+
 ## Jalons futurs prévus (non datés)
 
 | Jalon | Condition | Description |
@@ -81,4 +124,5 @@ outils de mesure S1→S5, tableaux de bord d'observation, rapport scientifique.
 | M4 | gate S5 | Go/No-Go EXP-001 — décision capital réel |
 | M5 | ADG-02 + 30j live | Phase A capital réel validée |
 | M6 | ADG-03 | Scientific Governance complète (G-01→G-10) |
+| M6.5 | ADG-03.5 | Scientific Intelligence Layer — première Knowledge Release |
 | M7 | ADG-07 | Live Operations Phase C — capital total |

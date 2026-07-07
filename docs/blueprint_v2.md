@@ -1,30 +1,37 @@
 # Blueprint V2 — crypto_ai_terminal
-# Architecture institutionnelle en 7 niveaux
+# Architecture institutionnelle en 7 niveaux + couche L3.5
 #
 # Référence normative pour toutes les sessions.
 # Mis à jour à chaque franchissement de jalon.
-# Version : 2.1   Date : 2026-06-30
+# Version : 2.2   Date : 2026-07-01
 
 ---
 
 ## Vue d'ensemble
 
 ```
-L7 ── Meta Intelligence        [0/100]  ← auto-évolution longue durée
-L6 ── Live Operations          [36/100] ← paper trading + monitoring
-L5 ── Digital Twin             [0/100]  ← simulation shadow complète
-L4 ── Research Lab             [0/100]  ← hypothèses auto-générées
-L3 ── Scientific Governance    [10/100] ← audit, traçabilité, reproductibilité
-L2 ── Scientific Validation    [35/100] ← preuve statistique de l'edge
-L1 ── Engineering              [100/100]← infrastructure ✅
+L7   ── Scientific Intelligence Core  [0/100]  ← connaissance scientifique long terme
+L6   ── Live Operations               [36/100] ← paper trading + monitoring
+L5   ── Digital Twin                  [0/100]  ← simulation shadow complète
+L4   ── Research Lab                  [0/100]  ← hypothèses auto-générées
+L3.5 ── Scientific Intelligence Layer [0/100]  ← langage scientifique du DIP
+L3   ── Scientific Governance         [10/100] ← audit, traçabilité, reproductibilité
+L2   ── Scientific Validation         [35/100] ← preuve statistique de l'edge
+L1   ── Engineering                   [100/100]← infrastructure ✅
 
-PMI Capability Score = 181 / 700 = 26%  [baseline 2026-06-30]
-PMI Evidence Score   =   0 / 700 =  0%  [aucune donnée certifiée]
+PMI-7 Capability Score  = 181 / 700 = 26%    [baseline 2026-06-30]
+PMI-7 Evidence Score    =   0 / 700 =  0%    [aucune donnée certifiée]
+SDOS Capability Score   = 181 / 800 = 22.6%  [inclut L3.5, baseline 2026-07-01]
 ```
 
 **Règle de progression :** un niveau ne démarre pleinement que quand le niveau inférieur
 atteint sa gate ADG. Les niveaux ne sont pas strictement séquentiels — L3 peut avancer
 pendant L2 — mais ADG-02 bloque toute opération L4+ et bloque le capital réel.
+
+**Règle SDOS :** L3.5 ne compte pas comme capacité runtime. Il formalise le langage
+scientifique qui transforme les observations DIP en connaissance : Decision →
+RootCause → Hypothesis → Dataset → Evidence → Confidence → ScientificConclusion →
+RecommendedExperiment.
 
 ---
 
@@ -178,6 +185,51 @@ Contrat de sortie L3 : G-01→G-10 opérationnels + au moins une Release scienti
 
 ---
 
+## Niveau 3.5 — Scientific Intelligence Layer  [CIBLE — 0/100]
+
+### Mission
+Transformer les observations et artefacts certifiés du DIP en connaissance
+scientifique structurée. L3.5 ne crée pas de nouvelles fonctionnalités de
+trading : il crée le langage qui relie décisions, causes, hypothèses, datasets,
+evidence, confiance, conclusions et expériences recommandées.
+
+Référence normative : `docs/dip/SCIENTIFIC_INTELLIGENCE_LAYER.md`.
+ADR fondatrice : `docs/adr/0008-scientific-intelligence-layer.md`.
+
+### Maturité L3.5
+
+```
+Maturity 0 : Spécification publiée (ADR-0008 + spec L3.5)
+     ↓
+Maturity 1 : Sources fiables (Observer Certification Level 3 + dataset CERTIFIED/PASS)
+     ↓
+Maturity 2 : Decision Knowledge Graph initial (SI-01)
+     ↓
+Maturity 3 : Evidence Engine + Contradiction Detector opérationnels (SI-03 + SI-05)
+     ↓
+Maturity 4 : Première Knowledge Release validée par l'opérateur
+```
+
+### 8 moteurs SI (vision — passifs)
+
+| ID | Moteur | Fonction |
+|---|---|---|
+| SI-01 | Decision Knowledge Graph | Relie Decision, RootCause, Hypothesis, Dataset, Evidence, Confidence, Conclusion, Experiment |
+| SI-02 | Causal Memory | Accumule les motifs causaux récurrents et leur valeur empirique |
+| SI-03 | Evidence Engine | Suit confirmations, contradictions, invalidations et niveaux d'evidence |
+| SI-04 | Scientific Timeline | Visualise l'évolution temporelle de la connaissance |
+| SI-05 | Contradiction Detector | Détecte les hypothèses incompatibles ou bloquantes |
+| SI-06 | Knowledge Confidence | Mesure la confiance dans la connaissance produite |
+| SI-07 | Scientific Drift | Détecte le vieillissement ou la dégradation d'une conclusion |
+| SI-08 | Decision DNA | Encode les décisions en séquences comparables |
+
+### Gate ADG-03.5
+Contrat d'entrée L3.5 : ADG-03 FRANCHIE + Observer Certification Level 3.
+Contrat de sortie L3.5 : SI-01→SI-08 spécifiés, SI-01/SI-03/SI-05 opérationnels,
+première Knowledge Release append-only validée par l'opérateur.
+
+---
+
 ## Niveau 4 — Research Lab  [NON DÉMARRÉ — 0/100]
 
 ### Mission
@@ -199,7 +251,7 @@ Maturity 4 : Première hypothèse auto-générée confirmée (evidence_level >= 
 ```
 
 ### Prérequis stricts
-- Gate ADG-03 FRANCHIE
+- Gate ADG-03.5 FRANCHIE
 - N >= 500 trades certifiés (backtesting significatif)
 - hypothesis_quality.yaml : >= 2 évaluations par hypothèse principale
 
@@ -213,7 +265,7 @@ research/alpha_decay_tracker.py   — mesure la durée de vie des hypothèses co
 ```
 
 ### Gate ADG-04
-Contrat d'entrée L4 : ADG-03 FRANCHIE + N >= 500 trades certifiés.
+Contrat d'entrée L4 : ADG-03.5 FRANCHIE + N >= 500 trades certifiés.
 Contrat de sortie L4 : Backtests + Walk Forward conformes + hypothèse auto-générée validée.
 
 ---
@@ -311,33 +363,55 @@ Contrat d'entrée Phase B→C : 90 jours Phase B + DD < 5% + performance stable.
 
 ---
 
-## Niveau 7 — Meta Intelligence  [VISION — 0/100]
+## Niveau 7 — Scientific Intelligence Core  [VISION — 0/100]
 
 ### Mission
-Le système apprend de ses propres décisions sur le long terme : patterns d'erreurs,
-régimes non capturés, hypothèses auto-invalidées, recommandations à l'opérateur.
+Produire des connaissances fiables sur le comportement du moteur de décision,
+les maintenir dans le temps, détecter leur vieillissement, proposer des
+expériences et signaler les contradictions scientifiques.
+
+Le trading reste un cas d'usage. Le coeur L7 vise une plateforme scientifique
+d'analyse décisionnelle réutilisable.
 
 ### Maturité L7
 
 ```
-Maturity 0 : Aucune intelligence méta
+Maturity 0 : Aucun core scientifique intégré
      ↓
-Maturity 1 : Knowledge Graph opérationnel (Axe 3)
+Maturity 1 : Scientific Knowledge Graph opérationnel
      ↓
-Maturity 2 : MistakeMemory v3 — patterns structurels identifiés
+Maturity 2 : Evidence Engine + Scientific Memory + Drift actifs
      ↓
-Maturity 3 : Recommandations validées par l'opérateur
+Maturity 3 : Research Planner + Experiment Generator validés par l'opérateur
      ↓
-Maturity 4 : Première recommandation appliquée en production
+Maturity 4 : Première release scientifique multi-dataset validée
 ```
 
 ### Prérequis stricts
 - Gates ADG-05 + ADG-07 FRANCHIES
 - N >= 2000 trades certifiés en live
 
+### Composition cible
+
+```
+Scientific Intelligence Core =
+  Knowledge Graph
+  + Evidence Engine
+  + Scientific Memory
+  + Research Planner
+  + Experiment Generator
+  + Contradiction Detector
+  + Knowledge Confidence
+  + Scientific Drift
+  + Observer Certification
+  + Dataset Certification
+  + Hypothesis Engine
+```
+
 ### Invariant L7
 `FEATURE_AUTO_CALIBRATION=true` n'est autorisé qu'ici, avec ADR signé par l'opérateur.
-C'est le seul contexte où l'engine peut recevoir une influence externe automatisée.
+C'est le seul contexte où l'engine peut recevoir une influence externe automatisée,
+et seulement après validation opérateur explicite.
 
 ---
 
@@ -350,8 +424,9 @@ Chaque transition entre niveaux est contrôlée par un contrat formel ADG.
 |---|---|---|---|
 | ADG-01 | Engineering → Validation | Infrastructure trading minimale | Tests verts + ADR-0007 + observabilité câblée |
 | ADG-02 | Validation → Governance | EXP-001 manifeste signé | Dataset certifié + CRI >= 90 + Evidence >= Strong + Go opérateur |
-| ADG-03 | Governance → Research Lab | ADG-02 verte | G-01→G-10 + Release scientifique validée |
-| ADG-04 | Research → Digital Twin | ADG-03 + N >= 500 | Backtests + Walk Forward conformes |
+| ADG-03 | Governance → Scientific Intelligence | ADG-02 verte | G-01→G-10 + Release scientifique validée |
+| ADG-03.5 | Scientific Intelligence → Research Lab | ADG-03 + Observer Certification Level 3 | SI-01/SI-03/SI-05 opérationnels + Knowledge Release validée |
+| ADG-04 | Research → Digital Twin | ADG-03.5 + N >= 500 | Backtests + Walk Forward conformes |
 | ADG-05 | Twin → Live ops réelles | ADG-04 | Shadow trading ± 5% sur 30j |
 | ADG-06 | Live Phase A → B | ADG-02 + Go opérateur | 30j live + PF >= 1.3 + capital protégé |
 | ADG-07 | Live Phase B → C | ADG-06 | 90j + DD < 5% + performance stable plusieurs mois |
@@ -368,18 +443,20 @@ Le PMI se lit sur deux axes indépendants :
 
 | Score | Signification | Baseline 2026-06-30 |
 |---|---|---|
-| **Capability Score** | Ce que le système est capable de faire | 181 / 700 = 26% |
-| **Evidence Score** | Ce qui a été démontré par les données | 0 / 700 = 0% |
+| **PMI-7 Capability Score** | Ce que le système est capable de faire dans l'ancien référentiel 7 niveaux | 181 / 700 = 26% |
+| **PMI-7 Evidence Score** | Ce qui a été démontré par les données | 0 / 700 = 0% |
+| **SDOS Capability Score** | Même lecture, mais avec L3.5 ajouté au dénominateur | 181 / 800 = 22.6% |
 
 ```
 Capability Score = (L1_cap + L2_cap + L3_cap + L4_cap + L5_cap + L6_cap + L7_cap) / 700
 Evidence Score   = (L1_ev  + L2_ev  + L3_ev  + L4_ev  + L5_ev  + L6_ev  + L7_ev)  / 700
+SDOS Capability  = (L1_cap + L2_cap + L3_cap + L3_5_cap + L4_cap + L5_cap + L6_cap + L7_cap) / 800
 ```
 
 **Capability** progresse en livrant des outils, des gates, des modules.
 **Evidence** progresse uniquement quand des données certifiées confirment ou infirment une hypothèse.
 
-Aujourd'hui : Capability = 26%, Evidence = 0%.
+Aujourd'hui : PMI-7 Capability = 26%, SDOS Capability = 22.6%, Evidence = 0%.
 Le projet avance sur les deux axes en parallèle mais de manière indépendante.
 L'architecture mature peut coexister avec zéro preuve scientifique — c'est l'état actuel.
 
@@ -388,11 +465,13 @@ L'architecture mature peut coexister avec zéro preuve scientifique — c'est l'
 | Date | Cap | Ev | Notes |
 |------|-----|-----|-------|
 | 2026-06-30 | 181/700 | 0/700 | Baseline — architecture complète, aucune donnée certifiée |
+| 2026-07-01 | 181/800 | 0/800 | Rebaseline SDOS — ajout L3.5, aucune régression de capacité |
 
 ### Règle de mise à jour
 Le PMI Capability se met à jour à chaque franchissement de gate.
 Le PMI Evidence se met à jour à chaque certification de dataset (N >= seuil) ou conclusion d'hypothèse.
-**Les deux scores avancent avec les données et les gates, jamais avec le code ajouté.**
+Le SDOS Capability inclut L3.5 et se met à jour avec les gates SI.
+**Les scores avancent avec les données et les gates, jamais avec le code ajouté seul.**
 
 ---
 
@@ -416,14 +495,17 @@ Gate S5 (N=100)  : go_no_go.py → GO ou NO-GO
 Livrables à créer : `tools/statistical_readiness.py`, `tools/cri_calculator.py`,
 `analysis/hypothesis_tester.py`, `tools/go_no_go.py`.
 
-### H2 — 3 à 9 mois : Scientific Governance + Research Lab
+### H2 — 3 à 9 mois : Scientific Governance + Scientific Intelligence
 
-**Objectif :** franchir ADG-03. Gouvernance scientifique opérationnelle.
+**Objectif :** franchir ADG-03 puis ADG-03.5. Gouvernance scientifique opérationnelle,
+puis première couche de connaissance scientifique.
 
 ```
 G-01→G-10        : governance/science/ (post ADG-02)
                    → L3 Maturity 3 → 4
-Research Lab     : backtester + Monte Carlo (post ADG-03, N >= 500)
+SI-01/SI-03/SI-05: Knowledge Graph + Evidence + Contradictions (post ADG-03)
+                   → L3.5 Maturity 2 → 4
+Research Lab     : backtester + Monte Carlo (post ADG-03.5, N >= 500)
                    → L4 Maturity 1 → 2
 Live Phase A     : $50 capital réel (post ADG-02)
                    → L6 Maturity 2
@@ -438,7 +520,7 @@ Digital Twin     : shadow mode + A/B testing (post ADG-04)
                    → L5 Maturity 3 → 4
 Live Phase B+C   : capital total (post ADG-06 → ADG-07)
                    → L6 Maturity 4
-Meta Intelligence: Knowledge Graph + MistakeMemory v3 (post ADG-07)
+Scientific Core  : Knowledge Graph + Evidence Engine + Scientific Memory (post ADG-07)
                    → L7 Maturity 1 → 2
 ```
 
@@ -457,9 +539,13 @@ Meta Intelligence: Knowledge Graph + MistakeMemory v3 (post ADG-07)
 4. **Evidence-first** : aucun paramètre modifié sans p-value + n + effect size documentés.
 
 5. **Séquentialité des ADG** : L4/L5/L7 ne démarrent pas avant ADG-02 verte.
+   L4 nécessite désormais ADG-03.5.
 
 6. **FEATURE_AUTO_CALIBRATION=false** : défaut permanent. Seul L7 peut l'activer,
    avec ADR signé par l'opérateur.
 
 7. **Cohérence Mission** : toute nouvelle idée est évaluée d'abord contre
    `docs/mission_statement.md`, pas contre sa faisabilité technique.
+
+8. **Knowledge Confidence distinct de l'OCS** : l'OCS mesure la confiance dans
+   l'observateur ; L3.5 mesure la confiance dans la connaissance produite.
