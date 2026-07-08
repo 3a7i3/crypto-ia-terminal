@@ -332,6 +332,60 @@ def _decision_engine_summary(results: list[Any]) -> tuple[str, str]:
     return state.value, reason_text
 
 
+def _display_position_summary(
+    virtual_portfolio: Any, pb_health: dict
+) -> tuple[int, float]:
+    """Positions ouvertes + PnL latent pour l'AFFICHAGE (SystemSnapshot) uniquement.
+
+    pos_manager (via portfolio_brain.portfolio_health()) reste la source des
+    contraintes de décision (exposition, corrélation) — jamais modifié ici,
+    corriger son entrée changerait le comportement de décision en pleine
+    validation scientifique. Ce bug est documenté, gelé, à corriger à la
+    calibration (même statut que le trou ExecutionEngine.live, cf CLAUDE.md).
+
+    L'affichage, lui, doit dire la vérité : MexcSimulator est la source qui
+    exécute réellement les positions en paper trading (cf RECOVERY.md §
+    "Pos: 0 menteur", 2026-07-05) — quand disponible, il prime sur pos_manager
+    pour ce qui est montré à l'opérateur.
+    """
+    if virtual_portfolio is not None:
+        try:
+            summary = virtual_portfolio.get_open_positions_summary()
+            return summary.n_open, summary.unrealized_pnl_usd
+        except Exception:
+            pass
+    return (
+        int(pb_health.get("n_positions", 0) or 0),
+        _to_float(pb_health.get("open_pnl_usd", 0), 0.0),
+    )
+
+
+def _kpi_snapshot_with_canonical_n(kpi_tracker: Any) -> Any:
+    """Snapshot KPI pour l'affichage (CommandCenterBot), total_trades corrigé.
+
+    PhaseKPITracker.record_trade() est alimenté par la fermeture de position
+    côté pos_manager — jamais atteint pour les trades exécutés par
+    MexcSimulator (même divergence que P2, RECOVERY.md "Pos: 0 menteur") :
+    "Trades: 0" perpétuel. Win rate/Sharpe/max drawdown restent gelés tels
+    quels (le tracker n'a jamais reçu de données à calculer dessus — pas un
+    bug d'affichage, rien à corriger côté chemin de décision) ; seul le
+    compte de trades affiché est corrigé sur le N canonique du dataset
+    (tools.cri_calculator.load_clean_trades, ADR-0011).
+    """
+    if kpi_tracker is None:
+        return None
+    from dataclasses import replace
+
+    from tools.cri_calculator import load_clean_trades
+
+    snap = kpi_tracker.snapshot()
+    try:
+        canonical_n = len(load_clean_trades())
+    except Exception:
+        return snap
+    return replace(snap, total_trades=canonical_n)
+
+
 load_dotenv(override=True)
 
 P6_SAFE_MODE: bool = os.environ.get("P6_SAFE_MODE", "false").lower() in (
@@ -2397,11 +2451,25 @@ def _remediate_orphan_opens(log_path: str) -> bool:
 
 _LOCK_FILE = os.getenv("ADVISOR_LOCK_FILE", "logs/advisor.lock")
 _lock_fh = None
+# Renseignés par _acquire_instance_lock() — consommés par le marqueur BOOT
+# (aucun redémarrage anonyme : cf. incident 2026-07-07, 3 arrêts sans auteur identifié).
+_boot_lock_preexisted = False
+_boot_previous_pid: str = ""
+
+
+def _boot_cause_text(lock_preexisted: bool, previous_pid: str) -> str:
+    """Cause apparente du boot, dérivée de l'état du verrou d'instance."""
+    if lock_preexisted:
+        return (
+            f"verrou précédent non nettoyé (PID {previous_pid or 'inconnu'} — "
+            "arrêt non-propre, crash ou signal non intercepté)"
+        )
+    return "verrou absent au démarrage (arrêt propre du process précédent, ou premier démarrage)"
 
 
 def _acquire_instance_lock() -> None:
     """Verrou exclusif — une seule instance autorisée. Exit(1) si doublon détecté."""
-    global _lock_fh
+    global _lock_fh, _boot_lock_preexisted, _boot_previous_pid
     os.makedirs(os.path.dirname(os.path.abspath(_LOCK_FILE)), exist_ok=True)
     try:
         import fcntl
@@ -2410,6 +2478,12 @@ def _acquire_instance_lock() -> None:
             # r+ si le fichier existe (pour lire le PID en cas d'échec), w+ sinon
             try:
                 fh = open(_LOCK_FILE, "r+")
+                # Fichier déjà présent = l'ancien process n'a pas nettoyé son verrou
+                # à la sortie (atexit non exécuté — arrêt non-propre). Capturé pour
+                # le marqueur BOOT, avant d'écraser le contenu plus bas.
+                _boot_lock_preexisted = True
+                _boot_previous_pid = fh.read().strip()
+                fh.seek(0)
             except FileNotFoundError:
                 fh = open(_LOCK_FILE, "w+")
             # FD_CLOEXEC : empêche les child processes d'hériter ce fd (flock hérité)
@@ -2454,7 +2528,10 @@ def _acquire_instance_lock() -> None:
         if os.path.exists(_LOCK_FILE):
             try:
                 with open(_LOCK_FILE) as f:
-                    pid = int(f.read().strip())
+                    _raw_pid = f.read().strip()
+                _boot_lock_preexisted = True
+                _boot_previous_pid = _raw_pid
+                pid = int(_raw_pid)
                 try:
                     import psutil
 
@@ -2993,6 +3070,7 @@ def main(
     # Tous les modules partagent ce seul X via WalletSync singleton.
     from infra.wallet_sync import MIN_CAPITAL_X
     from infra.wallet_sync import bootstrap_capital_x as _bootstrap_x
+    from infra.wallet_sync import get_wallet_sync as _get_wallet_sync_boot
 
     _capital_x = _bootstrap_x(getattr(exec_engine, "_exchange", None))
     _paper_mode = os.getenv("PAPER_TRADING_ENABLED", "true").lower() == "true"
@@ -3003,12 +3081,17 @@ def main(
         )
         # Notification bot compte réel — STANDBY ou LIVE selon mode
         if _paper_mode:
+            # Format aligné sur le rapport périodique (compte 2 = grand livre
+            # continu, session PnL = affichage seul) — cf ADR-0011 wallet_sync.
+            _boot_wallet = _get_wallet_sync_boot()
             _telegram_real(
                 "🔴 <b>STANDBY — Compte Réel</b>\n"
                 "━━━━━━━━━━━━━━━━━━━━━━\n"
                 f"💰 Solde API MEXC : <b>${_capital_x:.4f} USDT</b>\n"
-                f"📊 Mode actif : <b>PAPER</b> (${_paper_capital:.0f} USDT virtuel)\n"
-                f"🔒 Aucun ordre réel — simulation uniquement\n"
+                f"📈 Paper Equity (machine) : <b>${_boot_wallet.get_balance():.2f} USDT</b>\n"
+                f"🔄 PnL depuis ce redémarrage : "
+                f"<b>{_boot_wallet.session_pnl_since_restart():+.2f}$</b>\n"
+                f"🔒 Aucun ordre réel — simulation uniquement (compte 2)\n"
                 "━━━━━━━━━━━━━━━━━━━━━━\n"
                 "⏳ Active le trading sur l'API pour passer en LIVE"
             )
@@ -3221,7 +3304,7 @@ def main(
                 return {}
 
         _pb_provider = _CDP(
-            get_kpis=lambda: _p10_kpi.snapshot() if _p10_kpi else None,
+            get_kpis=lambda: _kpi_snapshot_with_canonical_n(_p10_kpi),
             get_balances=lambda: {"spot": real_capital, "futures": 0.0},
             get_positions=_get_positions_for_bot,
             get_phase=lambda: _P10_PHASE,
@@ -3826,6 +3909,13 @@ def main(
     _black_box_ref["instance"] = black_box
     black_box.record_system_event(
         "DEMARRAGE", f"capital={real_capital:.0f} mode={trading_mode}"
+    )
+    # Marqueur BOOT automatique — plus jamais de redémarrage anonyme (cf. incident
+    # 2026-07-07 : 3 arrêts sans auteur identifié entre 04:00 et 04:08 UTC).
+    black_box.record_system_event(
+        "BOOT",
+        f"pid={os.getpid()} invocation_id={os.getenv('INVOCATION_ID', 'absent')} "
+        f"cause={_boot_cause_text(_boot_lock_preexisted, _boot_previous_pid)}",
     )
 
     regret_engine: Any = None
@@ -6292,6 +6382,9 @@ def main(
                     pb_health = _stats_dict(
                         portfolio_brain.portfolio_health(pos_manager.get_open())
                     )
+                    _display_open_positions, _display_open_pnl_usd = (
+                        _display_position_summary(_virtual_portfolio, pb_health)
+                    )
                     _open_positions = pos_manager.get_open()
                     _deployed_notional = sum(
                         _to_float(getattr(_p, "size_usd", 0.0), 0.0)
@@ -6399,10 +6492,8 @@ def main(
                                 _to_float(pb_health.get("total_exposure_pct", 0), 0.0),
                                 1,
                             ),
-                            open_pnl_usd=round(
-                                _to_float(pb_health.get("open_pnl_usd", 0), 0.0), 2
-                            ),
-                            open_positions=int(pb_health.get("n_positions", 0) or 0),
+                            open_pnl_usd=round(_display_open_pnl_usd, 2),
+                            open_positions=_display_open_positions,
                             correlation_risk_pct=round(
                                 _to_float(pb_health.get("correlation_risk", 0), 0.0), 1
                             ),
@@ -6622,11 +6713,9 @@ def main(
                                 f"sharpe={_to_float(s.get('avg_sharpe', 0.0)):.2f}"
                             )
                     _telegram(msg)
-                    if _portfolio_bot is not None and cycle % 12 == 0:
-                        try:
-                            _portfolio_bot.send(msg)
-                        except Exception:
-                            pass
+                    # Duplication vers Mon Portefeuille Bot supprimée (P3, 2026-07)
+                    # — CommandCenterBot garde son propre rapport (_fmt_rapport),
+                    # plus de copie du rapport de cycle principal.
 
                     # ── Rapport périodique bot compte réel ───────────────────
                     if cycle % REAL_BOT_REPORT_EVERY == 0:
@@ -6930,6 +7019,9 @@ def main(
                     _hb_pb = _stats_dict(
                         portfolio_brain.portfolio_health(pos_manager.get_open())
                     )
+                    _hb_display_open_positions, _hb_display_open_pnl_usd = (
+                        _display_position_summary(_virtual_portfolio, _hb_pb)
+                    )
                     _hb_block_stats = _snapshot_block_stats.update(_hb_block_cycle)
                     _hb_snapshot = build_system_snapshot(
                         cycle=cycle,
@@ -6965,10 +7057,8 @@ def main(
                             portfolio_exposure_pct=round(
                                 _to_float(_hb_pb.get("total_exposure_pct", 0), 0.0), 1
                             ),
-                            open_pnl_usd=round(
-                                _to_float(_hb_pb.get("open_pnl_usd", 0), 0.0), 2
-                            ),
-                            open_positions=int(_hb_pb.get("n_positions", 0) or 0),
+                            open_pnl_usd=round(_hb_display_open_pnl_usd, 2),
+                            open_positions=_hb_display_open_positions,
                             correlation_risk_pct=round(
                                 _to_float(_hb_pb.get("correlation_risk", 0), 0.0), 1
                             ),

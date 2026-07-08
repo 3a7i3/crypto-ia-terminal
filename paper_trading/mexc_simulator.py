@@ -141,6 +141,30 @@ class MexcPosition:
         )
 
 
+@dataclass
+class OpenPositionSummary:
+    symbol: str
+    side: str
+    entry_price: float
+    live_pnl_pct: float
+    opened_ts: float
+
+
+@dataclass
+class OpenPositionsSummary:
+    """Instantané structuré des positions réellement ouvertes dans le simulateur.
+
+    Source de vérité pour l'affichage (SystemSnapshot) — cf RECOVERY.md
+    "Pos: 0 menteur" (2026-07-05) : pos_manager peut diverger de ce que le
+    simulateur tient réellement. N'alimente jamais portfolio_brain (contraintes
+    de décision) — affichage uniquement.
+    """
+
+    n_open: int
+    unrealized_pnl_usd: float
+    positions: list[OpenPositionSummary] = field(default_factory=list)
+
+
 # ── Tracker de performance ────────────────────────────────────────────────────
 
 
@@ -819,6 +843,40 @@ class MexcSimulator:
             reason,
         )
 
+    # ── Positions ouvertes — source de vérité structurée ─────────────────────
+
+    def get_open_positions_summary(self) -> OpenPositionsSummary:
+        """Positions réellement ouvertes, mark-to-market — pour l'affichage.
+
+        Seule source fiable des positions en paper trading (cf RECOVERY.md
+        "Pos: 0 menteur") : pos_manager peut diverger sans jamais l'exécuter
+        réellement. N'alimente jamais portfolio_brain — affichage seulement.
+        """
+        with self._lock:
+            open_pos = dict(self._positions)
+
+        unrealized_pnl = 0.0
+        positions: list[OpenPositionSummary] = []
+        for sym, p in open_pos.items():
+            price = self._fetch_price(sym)
+            live = p.live_pnl_pct(price) if price > 0 else 0.0
+            if price > 0:
+                unrealized_pnl += p.qty_usd * live / 100.0
+            positions.append(
+                OpenPositionSummary(
+                    symbol=sym,
+                    side=p.side.value,
+                    entry_price=p.entry_price,
+                    live_pnl_pct=round(live, 4),
+                    opened_ts=p.opened_ts,
+                )
+            )
+        return OpenPositionsSummary(
+            n_open=len(open_pos),
+            unrealized_pnl_usd=round(unrealized_pnl, 6),
+            positions=positions,
+        )
+
     # ── Rapport de performance ────────────────────────────────────────────────
 
     def _send_report(self) -> None:
@@ -826,7 +884,6 @@ class MexcSimulator:
 
     def performance_report(self) -> str:
         with self._lock:
-            n_open = len(self._positions)
             closed = list(self._closed)
             open_pos = dict(self._positions)
 
@@ -835,23 +892,20 @@ class MexcSimulator:
         wr = wins / n_closed * 100 if n_closed else 0.0
         realized_pnl = sum(p.pnl_usd for p in closed)
 
-        # Unrealized P&L sur positions ouvertes (mark-to-market)
-        unrealized_pnl = 0.0
-        live_lines = []
-        for sym, p in open_pos.items():
-            price = self._fetch_price(sym)
-            live = p.live_pnl_pct(price) if price > 0 else 0.0
-            if price > 0:
-                unrealized_pnl += p.qty_usd * live / 100.0
-            sign = "+" if live >= 0 else ""
-            from datetime import datetime, timezone
+        vp_summary = self.get_open_positions_summary()
+        n_open = vp_summary.n_open
+        unrealized_pnl = vp_summary.unrealized_pnl_usd
+        from datetime import datetime, timezone
 
-            opened_dt = datetime.fromtimestamp(p.opened_ts, tz=timezone.utc)
+        live_lines = []
+        for pos in vp_summary.positions:
+            sign = "+" if pos.live_pnl_pct >= 0 else ""
+            opened_dt = datetime.fromtimestamp(pos.opened_ts, tz=timezone.utc)
             opened_str = opened_dt.strftime("%d/%m %H:%M")
             live_lines.append(
-                f"  {sym} {p.side.value}"
-                f" entry=${p.entry_price:.4g}"
-                f" live={sign}{live:.2f}%"
+                f"  {pos.symbol} {pos.side}"
+                f" entry=${pos.entry_price:.4g}"
+                f" live={sign}{pos.live_pnl_pct:.2f}%"
                 f" ouvert={opened_str}"
             )
 

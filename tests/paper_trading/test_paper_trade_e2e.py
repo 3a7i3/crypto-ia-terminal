@@ -545,3 +545,149 @@ class TestMexcSimulatorPositionTimeout:
             val > 5.0
         ), "PAPER_SIM_ORDER_USD doit être > $5 pour passer PortfolioBrain"
         assert val <= 100.0, "PAPER_SIM_ORDER_USD doit rester raisonnable (≤ $100)"
+
+
+class TestMexcSimulatorOpenPositionsSummary:
+    """get_open_positions_summary() — source de vérité structurée pour l'affichage.
+
+    Régression : PortfolioSnapshot lisait pos_manager, qui peut diverger du
+    simulateur réel (RECOVERY.md "Pos: 0 menteur", 2026-07-05). Ces tests
+    verrouillent que le nouvel accesseur compte et calcule le PnL latent
+    correctement à partir de ce que le simulateur tient réellement.
+    """
+
+    def _make_sim(self, mock_reader=None):
+        from paper_trading.mexc_simulator import MexcSimulator
+
+        sim = MexcSimulator(mexc_reader=mock_reader, telegram_fn=lambda _: None)
+        sim._capital = 100.0
+        sim._initial_capital = 100.0
+        sim._running = True
+        return sim
+
+    def test_no_open_positions_returns_zero(self):
+        sim = self._make_sim()
+        summary = sim.get_open_positions_summary()
+        assert summary.n_open == 0
+        assert summary.unrealized_pnl_usd == 0.0
+        assert summary.positions == []
+
+    def test_counts_open_positions_regardless_of_pos_manager(self):
+        """Le compte vient de sim._positions, jamais de pos_manager (non
+        référencé ici)."""
+        from unittest.mock import MagicMock
+
+        from paper_trading.mexc_simulator import MexcPosition, OrderSide
+
+        mock_reader = MagicMock()
+        mock_reader.spot.fetch_ticker.return_value = {"last": 100.0}
+        sim = self._make_sim(mock_reader)
+
+        for i, sym in enumerate(["BTC/USDT", "ETH/USDT"]):
+            sim._positions[sym] = MexcPosition(
+                pos_id=f"POS-{i}",
+                symbol=sym,
+                side=OrderSide.BUY,
+                qty_usd=10.0,
+                entry_price=100.0,
+                tp_price=104.0,
+                sl_price=98.0,
+                fee_entry_usd=0.01,
+                score=70,
+                personality="mean_reversion",
+            )
+
+        summary = sim.get_open_positions_summary()
+        assert summary.n_open == 2
+        assert {p.symbol for p in summary.positions} == {"BTC/USDT", "ETH/USDT"}
+
+    def test_unrealized_pnl_matches_live_price_movement(self):
+        from unittest.mock import MagicMock
+
+        from paper_trading.mexc_simulator import MexcPosition, OrderSide
+
+        mock_reader = MagicMock()
+        mock_reader.spot.fetch_ticker.return_value = {"last": 110.0}  # +10%
+        sim = self._make_sim(mock_reader)
+        sim._positions["BTC/USDT"] = MexcPosition(
+            pos_id="POS-PNL",
+            symbol="BTC/USDT",
+            side=OrderSide.BUY,
+            qty_usd=10.0,
+            entry_price=100.0,
+            tp_price=200.0,  # loin — pas de fermeture auto ici, lecture seule
+            sl_price=50.0,
+            fee_entry_usd=0.01,
+            score=70,
+            personality="mean_reversion",
+        )
+
+        summary = sim.get_open_positions_summary()
+        assert summary.n_open == 1
+        assert summary.positions[0].live_pnl_pct == pytest.approx(10.0, abs=0.01)
+        # qty_usd(10) * live_pnl_pct(10%) / 100 = 1.0
+        assert summary.unrealized_pnl_usd == pytest.approx(1.0, abs=0.01)
+
+    def test_performance_report_and_summary_agree_on_open_count(self):
+        """La chaîne Telegram et l'accesseur structuré ne doivent jamais diverger
+        (même calcul, extrait en une seule fonction — cf refactor P2)."""
+        from unittest.mock import MagicMock
+
+        from paper_trading.mexc_simulator import MexcPosition, OrderSide
+
+        mock_reader = MagicMock()
+        mock_reader.spot.fetch_ticker.return_value = {"last": 105.0}
+        sim = self._make_sim(mock_reader)
+        sim._positions["SOL/USDT"] = MexcPosition(
+            pos_id="POS-AGREE",
+            symbol="SOL/USDT",
+            side=OrderSide.BUY,
+            qty_usd=10.0,
+            entry_price=100.0,
+            tp_price=200.0,
+            sl_price=50.0,
+            fee_entry_usd=0.01,
+            score=70,
+            personality="mean_reversion",
+        )
+
+        summary = sim.get_open_positions_summary()
+        report = sim.performance_report()
+        assert f"{summary.n_open} ouverts" in report
+
+    def test_ticker_failure_degrades_to_zero_pnl_not_a_crash(self):
+        """Exchange lent/symbole délisté → fetch_ticker échoue. La position
+        doit rester visible (PnL live=0.0), jamais faire échouer le snapshot
+        entier — un garde-fou explicitement demandé avant déploiement."""
+        from unittest.mock import MagicMock
+
+        from paper_trading.mexc_simulator import MexcPosition, OrderSide
+
+        mock_reader = MagicMock()
+        mock_reader.spot.fetch_ticker.side_effect = Exception(
+            "exchange timeout / symbole délisté"
+        )
+        sim = self._make_sim(mock_reader)
+        sim._positions["DELISTED/USDT"] = MexcPosition(
+            pos_id="POS-FAIL",
+            symbol="DELISTED/USDT",
+            side=OrderSide.BUY,
+            qty_usd=10.0,
+            entry_price=1.0,
+            tp_price=2.0,
+            sl_price=0.5,
+            fee_entry_usd=0.01,
+            score=70,
+            personality="mean_reversion",
+        )
+
+        summary = sim.get_open_positions_summary()  # ne doit pas lever
+
+        assert summary.n_open == 1
+        assert summary.positions[0].symbol == "DELISTED/USDT"
+        assert summary.positions[0].live_pnl_pct == 0.0
+        assert summary.unrealized_pnl_usd == 0.0  # jamais corrompu par l'échec
+
+        # performance_report() non plus ne doit pas lever
+        report = sim.performance_report()
+        assert "DELISTED/USDT" in report
