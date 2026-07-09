@@ -181,11 +181,24 @@ class ExecutionEngine:
 
     @classmethod
     def from_env(cls) -> "ExecutionEngine":
-        """Retourne un moteur live si des clés API sont présentes pour l'exchange actif, sinon paper."""
+        """Retourne un moteur live si des clés API sont présentes pour l'exchange
+        actif ET que LIVE_TRADING_CONFIRMED=true, sinon paper.
+
+        LIVE_TRADING_CONFIRMED — 2e ligne de défense (SEC-01, 2026-07-08) : la
+        seule présence de clés API ne suffit plus à armer l'exécution réelle.
+        Variable absente par défaut partout — à poser uniquement lors d'une
+        activation volontaire du trading réel (procédure checklist dédiée),
+        jamais comme effet de bord d'une config existante.
+        """
         from infra.exchange_factory import ExchangeFactory
 
         info = ExchangeFactory.info()
-        live = info["has_api_key"] and info["mode"] != "paper"
+        live_trading_confirmed = os.getenv(
+            "LIVE_TRADING_CONFIRMED", "false"
+        ).lower() in {"1", "true", "yes", "on"}
+        live = (
+            info["has_api_key"] and info["mode"] != "paper" and live_trading_confirmed
+        )
         return cls(live=live)
 
     def has_futures_demo(self) -> bool:
@@ -427,11 +440,40 @@ class ExecutionEngine:
 
     # ── Live order placement ───────────────────────────────────────────────────
 
+    @staticmethod
+    def _paper_trading_enabled() -> bool:
+        """Lu à l'appel, jamais mis en cache (DS-001, ADR-0008) — permet de
+        désarmer l'exécution réelle sans redémarrage."""
+        return os.getenv("PAPER_TRADING_ENABLED", "true").lower() in {
+            "1",
+            "true",
+            "yes",
+            "on",
+        }
+
     def _place_live_order(self, symbol: str, action: str, size: float) -> dict:
         """
         Passe un ordre market réel via ccxt.
         size = montant en USD à dépenser (BUY) ou valeur USD à vendre (SELL).
         """
+        if self._paper_trading_enabled():
+            # SEC-01 (2026-07-08) — gate d'exécution réelle, plus un flag
+            # narratif. Neutralité stricte : même forme de retour que le
+            # rejet MEXC 700007 (mode="live_failed"), avant tout appel
+            # réseau — mêmes compteurs d'erreurs et mode DEGRADED en aval.
+            _log.warning(
+                "[ExecutionEngine] Ordre live bloqué par PAPER_TRADING_ENABLED — %s %s",
+                action,
+                symbol,
+            )
+            return {
+                "symbol": symbol,
+                "action": action,
+                "size": round(size, 4),
+                "mode": "live_failed",
+                "error": "blocked_by_paper_gate",
+            }
+
         side = "buy" if action.upper() == "BUY" else "sell"
         ccxt_symbol = symbol.replace("USDT", "/USDT") if "/" not in symbol else symbol
         try:

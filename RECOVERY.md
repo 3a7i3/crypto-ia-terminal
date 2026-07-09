@@ -141,6 +141,17 @@ dépendances), fallback manuel documenté dans l'unité elle-même :
 nohup .venv/bin/python3 core/advisor_loop.py < /dev/null >> logs/advisor.log 2>&1 &
 ```
 
+**Note (2026-07-08) :** `logs/advisor.log` n'est alimenté QUE par ce fallback
+manuel. Sous `crypto-advisor.service` (cas normal), systemd capture
+stdout/stderr via journald — le fichier reste à 0 octet même moteur vivant et
+sain, ce n'est PAS un signe de panne. Pour consulter les logs en
+fonctionnement normal :
+
+```bash
+sudo journalctl -u crypto-advisor.service --no-pager -n 100
+sudo journalctl -u crypto-advisor.service --since "10 min ago" --no-pager
+```
+
 ### 3.5 Vérifier la reprise
 
 - **`pgrep -af 'core/advisor_loop\.py$'` — LA vérification qui compte.**
@@ -150,7 +161,11 @@ nohup .venv/bin/python3 core/advisor_loop.py < /dev/null >> logs/advisor.log 2>&
   seul signal qui distingue vraiment les deux.
 - `ls -l logs/advisor.lock` — repris par le nouveau PID (comparer avec
   `cat /proc/<PID>/status | grep Pid`, ou simplement `lsof logs/advisor.lock`).
-- `curl -m 5 http://127.0.0.1:8080/` répond (health check interne du moteur).
+- ~~`curl -m 5 http://127.0.0.1:8080/`~~ — **obsolète, retiré 2026-07-08** :
+  aucun endpoint HTTP de ce type n'existe dans `core/advisor_loop.py` (vérifié
+  par grep sur tout le repo). Remplacé par les deux items déjà présents
+  ci-dessus (pgrep ancré) et ci-dessous (mtime snapshot) — suffisants et déjà
+  utilisés en pratique lors de la reprise du 2026-07-08.
 - `stat -c %y databases/live_snapshot.json` — timestamp récent, en
   complément du pgrep ci-dessus, jamais à sa place.
 - Message Telegram de démarrage reçu (canal `TELEGRAM_CHAT_ID`).
