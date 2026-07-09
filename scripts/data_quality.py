@@ -29,6 +29,7 @@ from pathlib import Path
 DEFAULT_JSONL = Path("databases/paper_trades.jsonl")
 
 CLEAN_DATA_SINCE = datetime(2026, 6, 25, tzinfo=timezone.utc)  # données propres depuis
+CLEAN_DATA_SINCE_V2 = CLEAN_DATA_SINCE  # alias canonique (remplace V1=2026-06-21, ADR-0011)
 
 REQUIRED_OPEN_FIELDS = {"trade_id", "symbol", "side", "entry_price"}
 REQUIRED_CLOSE_FIELDS = {"trade_id", "symbol", "pnl_usd", "pnl_pct"}
