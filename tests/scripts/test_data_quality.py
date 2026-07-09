@@ -21,7 +21,7 @@ import json
 # Rend les scripts/ importables
 from pathlib import Path
 
-from scripts.data_quality import main
+from scripts.data_quality import CLEAN_DATA_SINCE, CLEAN_DATA_SINCE_V2, main
 
 
 def _write_jsonl(path: Path, events: list[dict]) -> None:
@@ -199,3 +199,16 @@ def test_multiple_clean_trades(tmp_path: Path) -> None:
         events += [op, cl]
     _write_jsonl(p, events)
     assert main(jsonl_path=str(p)) == 0
+
+
+# ── 13. CLEAN_DATA_SINCE_V2 est exporté et égal à CLEAN_DATA_SINCE ────────────
+
+
+def test_clean_data_since_v2_exported() -> None:
+    """CLEAN_DATA_SINCE_V2 must be importable and equal to CLEAN_DATA_SINCE.
+
+    Root cause of the crash-loop (ADR-0011): deployed code imported
+    CLEAN_DATA_SINCE_V2 from an old data_quality.py that did not export it,
+    causing an ImportError and a systemd restart loop.
+    """
+    assert CLEAN_DATA_SINCE_V2 == CLEAN_DATA_SINCE
