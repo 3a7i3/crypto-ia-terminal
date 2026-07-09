@@ -58,22 +58,27 @@ H1-H6 existante qui la justifie.
 
 Tant que ces seuils ne sont pas atteints : **ACE interdit, zéro modification de seuil**.
 
-**Borne canonique du dataset propre — `CLEAN_DATA_SINCE_V2 = 2026-07-09T01:16:00Z`.**
+**Borne canonique du dataset propre — `CLEAN_DATA_SINCE_V3 = 2026-07-09T07:45:00Z`.**
 Toute donnée antérieure à ce timestamp (`paper_trades.jsonl`, `regret_analysis.jsonl`)
 est invalide pour le calcul de N et de tout seuil ci-dessus — appliquée par
 `scripts/data_quality.py` (source unique) et importée par
 `tools/cri_calculator.py::load_clean_trades()`, jamais copiée localement.
-Cette borne **remplace** `CLEAN_DATA_SINCE` v1 (`2026-06-25`, ADR-0011) sans
-la contredire : v2 exclut strictement un sur-ensemble de ce que v1 excluait
-déjà — adopter la borne la plus récente et la plus large satisfait les deux
-exigences simultanément. Décidé le 2026-07-09, voir **ADR-0012** :
-correction du gate d'exécution réelle (SEC-01) ayant révélé que
-`consecutive_losses` confondait échecs d'exécution technique et vraies
-pertes de trade, contaminant 5 mécanismes de décision (RiskGovernor,
-MetaStrategyEngine, ExecutiveOverride, check_hard_limits, MistakeMemory —
-jamais atteint en pratique) sur 47 % de la fenêtre v1. v1 reste documentée
-pour l'audit qualité de données (`scripts/data_quality.py`, tokens
-toxiques/bypass `meta_allowed` — un problème différent).
+Cette borne **remplace** v1 (`2026-06-25`, ADR-0011) et v2
+(`2026-07-09T01:16:00Z`, ADR-0012) sans les contredire : chaque version
+exclut strictement un sur-ensemble de la précédente — adopter la borne la
+plus récente et la plus large satisfait toutes les exigences simultanément.
+Historique : v2 marquait le restart censé activer le gate d'exécution réelle
+SEC-01 (correction de `consecutive_losses` qui confondait échecs d'exécution
+technique et vraies pertes, contaminant 5 mécanismes de décision — voir
+ADR-0012) ; mais le déploiement du 2026-07-08 était **silencieusement
+partiel** (bug `ssh` sans `-n` dans `deploy_vps.sh`, tags d'audit
+`deploy-20260707-0806` → `deploy-20260708-1831` créés sur de faux succès) :
+`execution_engine.py` n'a jamais atteint le VPS et SEC-01 était inactif dans
+la fenêtre v2 (ordre réel encore tenté le 2026-07-09 06:28 UTC). v3 = borne
+postérieure au restart de rattrapage qui charge réellement SEC-01 — voir
+**addendum ADR-0012**. v1 reste documentée pour l'audit qualité de données
+(`scripts/data_quality.py`, tokens toxiques/bypass `meta_allowed` — un
+problème différent).
 
 ---
 

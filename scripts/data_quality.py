@@ -37,11 +37,23 @@ CLEAN_DATA_SINCE = datetime(2026, 6, 25, tzinfo=timezone.utc)  # données propre
 # point, le compteur consecutive_losses confondait échecs d'exécution
 # techniques (rejets MEXC 700007) et vraies pertes de trade, contaminant
 # RiskGovernor/MetaStrategyEngine/ExecutiveOverride/check_hard_limits (5e
-# consommateur, MistakeMemory, jamais atteint — voir ADR-0012). C'est la
-# borne ACTIVE pour le calcul CRI/N canonique (tools/cri_calculator.py) —
+# consommateur, MistakeMemory, jamais atteint — voir ADR-0012).
+# PRÉMISSE CASSÉE (addendum ADR-0012, 2026-07-09) : le déploiement du
+# 2026-07-08 était silencieusement partiel (bug ssh-sans--n de deploy_vps.sh,
+# tags deploy-20260707-0806 → deploy-20260708-1831 créés sur de faux succès) —
+# execution_engine.py n'a jamais atteint le VPS, SEC-01 n'était PAS actif dans
+# la fenêtre v2 (ordre réel encore tenté le 2026-07-09 06:28 UTC, MEXC 700007).
+# v2 reste définie pour l'audit historique mais n'est plus la borne active.
+CLEAN_DATA_SINCE_V2 = datetime(2026, 7, 9, 1, 16, 0, tzinfo=timezone.utc)
+
+# CLEAN_DATA_SINCE_V3 — borne ACTIVE pour le calcul CRI/N canonique
+# (tools/cri_calculator.py). Épinglée AVANT le restart de rattrapage (règle du
+# statisticien), après vérification SHA256 exhaustive du VPS : le restart qui
+# charge réellement execution_engine.py avec SEC-01 doit être TERMINÉ avant
+# cette borne — tout événement ≥ v3 provient du générateur nominal.
 # CLEAN_DATA_SINCE (v1) reste inchangée pour l'audit de qualité de données
 # ci-dessus, qui concerne un problème différent.
-CLEAN_DATA_SINCE_V2 = datetime(2026, 7, 9, 1, 16, 0, tzinfo=timezone.utc)
+CLEAN_DATA_SINCE_V3 = datetime(2026, 7, 9, 7, 45, 0, tzinfo=timezone.utc)
 
 REQUIRED_OPEN_FIELDS = {"trade_id", "symbol", "side", "entry_price"}
 REQUIRED_CLOSE_FIELDS = {"trade_id", "symbol", "pnl_usd", "pnl_pct"}

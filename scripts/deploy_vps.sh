@@ -46,7 +46,7 @@ log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" | tee -a "$LOG_FILE"; }
 
 usage() {
     cat <<'USAGE'
-Usage: bash scripts/deploy_vps.sh --confirm [--yes] [--dry-run] [--restart core|advisor]
+Usage: bash scripts/deploy_vps.sh --confirm [--yes] [--dry-run] [--base <ref>] [--restart core|advisor]
 
 Deploiement DELIBERE vers le VPS. Le hook post-commit automatique a ete
 aboli (voir .git/hooks/post-commit.disabled) — un commit ne deploie plus
@@ -56,6 +56,13 @@ jamais rien tout seul.
   --yes             Saute la confirmation interactive y/N (usage scripte).
   --dry-run         Simule tout (resolution des fichiers, affichage, tag)
                     SANS transfert SSH ni tag git reel.
+  --base <ref>      Force la base de comparaison (tag/SHA) au lieu du
+                    dernier tag deploy-*. Necessaire quand un tag d'audit
+                    a ete cree sur un faux succes (incident 2026-07-08 :
+                    tags deploy-20260707-0806 a deploy-20260708-1831
+                    crees alors que la majorite des fichiers n'avaient
+                    jamais ete transferes) — permet de redeployer depuis
+                    le dernier deploiement reellement integre.
   --restart <cible> Autorise le redemarrage du service — en plus de
                     VPS_RESTART_CMD qui doit AUSSI etre defini. Cible
                     OBLIGATOIRE et exacte :
@@ -80,11 +87,21 @@ YES=0
 DRY_RUN=0
 RESTART=0
 RESTART_TARGET=""
+BASE_REF=""
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --confirm) CONFIRM=1; shift ;;
         --yes) YES=1; shift ;;
         --dry-run) DRY_RUN=1; shift ;;
+        --base)
+            BASE_REF="${2:-}"
+            if [[ -z "$BASE_REF" ]]; then
+                echo "ERREUR — --base exige une référence git (tag ou SHA)" >&2
+                usage
+                exit 1
+            fi
+            shift 2
+            ;;
         --restart)
             RESTART=1
             RESTART_TARGET="${2:-}"
@@ -155,10 +172,19 @@ cd "$ROOT_DIR"
 
 # Base = dernier tag deploy-* (tous les commits accumulés depuis le dernier
 # déploiement réel). Fallback sur le dernier commit seul si aucun tag deploy-*
-# n'existe encore (premier déploiement du dépôt).
-LAST_DEPLOY_TAG=$(git tag -l "deploy-*" --sort=-creatordate | head -1)
+# n'existe encore (premier déploiement du dépôt). --base <ref> force une
+# autre base (rattrapage après un tag créé sur un faux succès).
+if [[ -n "$BASE_REF" ]]; then
+    if ! git rev-parse --verify --quiet "$BASE_REF^{commit}" >/dev/null; then
+        log "ERREUR — référence --base introuvable : $BASE_REF"
+        exit 1
+    fi
+    LAST_DEPLOY_TAG="$BASE_REF"
+else
+    LAST_DEPLOY_TAG=$(git tag -l "deploy-*" --sort=-creatordate | head -1)
+fi
 if [[ -n "$LAST_DEPLOY_TAG" ]]; then
-    log "Base de comparaison : tag $LAST_DEPLOY_TAG"
+    log "Base de comparaison : $LAST_DEPLOY_TAG${BASE_REF:+ (forcée par --base)}"
     CHANGED_FILES=$(git diff --name-only --diff-filter=AMR "$LAST_DEPLOY_TAG" HEAD 2>/dev/null)
 else
     log "Aucun tag deploy-* trouvé — base de comparaison : dernier commit seul"
@@ -231,25 +257,41 @@ if ! ssh $SSH_OPTS "$VPS_USER@$VPS_HOST" "echo ping" &>/dev/null; then
 fi
 
 # ── Transférer via scp (robuste sur Windows/UTF-8) ───────────────────────────
+# Incident 2026-07-08 (tags deploy-20260707-0806 / deploy-20260708-1831) :
+# ssh SANS -n à l'intérieur d'une boucle `while read` avale le stdin de la
+# boucle — c'est-à-dire la liste des fichiers restants. Le premier `mkdir -p`
+# distant mangeait tout ce qui suivait : la boucle se terminait "proprement"
+# après 4 fichiers sur 9 (resp. ~25 sur 75), _transfer_ok restait à 1, et la
+# vérification SHA256 — même bug — ne contrôlait que le premier fichier avant
+# d'annoncer "N fichier(s) confirmés". D'où : ssh -n / scp </dev/null
+# OBLIGATOIRES dans ces boucles, plus un comptage explicite des itérations
+# comparé à FILE_COUNT (garde structurelle : une boucle affamée ne peut plus
+# passer pour un succès).
 SCP_OPTS="-i $VPS_KEY -P $VPS_PORT -o BatchMode=yes -o StrictHostKeyChecking=no -o ConnectTimeout=15"
 _transfer_ok=1
+_transfer_count=0
 while IFS= read -r _file; do
     [[ -z "$_file" ]] && continue
     _dir="$(dirname "$_file")"
     if [[ "$_dir" != "." ]]; then
-        ssh $SSH_OPTS "$VPS_USER@$VPS_HOST" "mkdir -p '$VPS_PATH/$_dir'" 2>/dev/null
+        ssh -n $SSH_OPTS "$VPS_USER@$VPS_HOST" "mkdir -p '$VPS_PATH/$_dir'" 2>/dev/null
     fi
-    if ! scp $SCP_OPTS "$_file" "$VPS_USER@$VPS_HOST:$VPS_PATH/$_file" 2>/dev/null; then
+    if ! scp $SCP_OPTS "$_file" "$VPS_USER@$VPS_HOST:$VPS_PATH/$_file" </dev/null 2>/dev/null; then
         log "ERREUR — scp échoué pour : $_file"
         _transfer_ok=0
     fi
+    _transfer_count=$((_transfer_count + 1))
 done <<<"$ALL_FILES"
 
+if [[ $_transfer_count -ne $FILE_COUNT ]]; then
+    log "ERREUR — boucle de transfert incomplète : $_transfer_count/$FILE_COUNT fichiers traités — PAS de tag créé"
+    exit 1
+fi
 if [[ $_transfer_ok -eq 0 ]]; then
     log "ERREUR — un ou plusieurs fichiers non transférés — PAS de tag créé"
     exit 1
 fi
-log "Transfert OK"
+log "Transfert OK ($_transfer_count/$FILE_COUNT fichiers traités)"
 
 # ── Vérification post-transfert — SHA256 local vs distant ────────────────────
 # Incident 2026-07-04 : scp a retourné succès (exit 0) alors que 2 fichiers
@@ -257,22 +299,32 @@ log "Transfert OK"
 # et un tag d'audit avait été créé sur la foi de ce faux succès. "scp exit 0"
 # ne suffit plus comme preuve : on vérifie le contenu réellement présent sur
 # le VPS, fichier par fichier, avant de créer le moindre tag.
+# Même exigence que la boucle de transfert : ssh -n (incident 2026-07-08,
+# le premier ssh avalait les N-1 lignes suivantes de la liste) + comptage
+# explicite des fichiers réellement vérifiés — le message de succès affiche
+# le compteur constaté, jamais le FILE_COUNT théorique.
 _verify_ok=1
+_verify_count=0
 while IFS= read -r _file; do
     [[ -z "$_file" ]] && continue
     _local_sha=$(sha256sum "$_file" | awk '{print $1}')
-    _remote_sha=$(ssh $SSH_OPTS "$VPS_USER@$VPS_HOST" "sha256sum '$VPS_PATH/$_file' 2>/dev/null" | awk '{print $1}')
+    _remote_sha=$(ssh -n $SSH_OPTS "$VPS_USER@$VPS_HOST" "sha256sum '$VPS_PATH/$_file' 2>/dev/null" | awk '{print $1}')
     if [[ -z "$_remote_sha" || "$_local_sha" != "$_remote_sha" ]]; then
         log "ERREUR — vérification SHA256 échouée pour : $_file (local=$_local_sha distant=${_remote_sha:-absent})"
         _verify_ok=0
     fi
+    _verify_count=$((_verify_count + 1))
 done <<<"$ALL_FILES"
 
+if [[ $_verify_count -ne $FILE_COUNT ]]; then
+    log "ERREUR — boucle de vérification incomplète : $_verify_count/$FILE_COUNT fichiers contrôlés — PAS de tag créé"
+    exit 1
+fi
 if [[ $_verify_ok -eq 0 ]]; then
     log "ERREUR — vérification post-transfert échouée — PAS de tag créé"
     exit 1
 fi
-log "Vérification SHA256 OK — $FILE_COUNT fichier(s) confirmés identiques sur le VPS"
+log "Vérification SHA256 OK — $_verify_count/$FILE_COUNT fichier(s) confirmés identiques sur le VPS"
 
 # ── Tag d'audit — créé UNIQUEMENT après un transfert réussi ──────────────────
 # Un tag ne doit jamais pointer vers un déploiement raté.

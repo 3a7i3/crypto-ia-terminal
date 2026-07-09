@@ -164,3 +164,57 @@ se rejouer silencieusement dans une métrique de décision.
 - CAL-003 est un ticket de calibration (hors gel tant que non validé
   statistiquement, cf. Règle du statisticien, CLAUDE.md) — pas une
   autorisation de modifier `_consecutive_losses` sans nouvel examen.
+
+---
+
+## Addendum 2026-07-09 — Prémisse de la borne v2 cassée ; `CLEAN_DATA_SINCE_V3`
+
+**Constat (vérifié de première main, lecture seule sur le VPS).** Le
+déploiement du 2026-07-08 censé activer SEC-01 était **silencieusement
+partiel** : `scripts/deploy_vps.sh` appelait `ssh` sans `-n` à l'intérieur de
+ses boucles `while read` — le premier `mkdir -p` distant avalait le stdin de
+la boucle, c'est-à-dire la liste des fichiers restants. La boucle de
+vérification SHA256 avait le même défaut et ne contrôlait que le premier
+fichier avant d'annoncer « N fichier(s) confirmés » (preuve interne :
+`logs/deploy_vps.log` montre 75 « vérifications » en 1 seconde le
+2026-07-07, physiquement impossible).
+
+**Étendue.** Vérification SHA256 exhaustive des 80 fichiers couverts par les
+tags `deploy-20260707-0806`, `deploy-20260708-0327`, `deploy-20260708-1831` :
+**55 fichiers faux sur le VPS** (52 mismatch + 3 absents), dont
+`quant_hedge_ai/agents/execution/execution_engine.py` — le porteur unique du
+gate SEC-01 (`from_env()`/`LIVE_TRADING_CONFIRMED` + gate par ordre
+`blocked_by_paper_gate`). Conséquence : **SEC-01 n'a jamais été actif** dans
+la fenêtre v2. Ordre réel encore tenté le 2026-07-09 06:28 UTC
+(`SELL TRUMP/USDT $30.00 → mode=live_failed`, MEXC 700007) ;
+`blocked_by_paper_gate` : 0 occurrence dans `logs/advisor.log`. La
+contamination `consecutive_losses` décrite par le présent ADR a donc
+continué à l'intérieur de la fenêtre v2.
+
+**Décisions (opérateur, 2026-07-09) :**
+
+1. **`CLEAN_DATA_SINCE_V3 = 2026-07-09T07:45:00Z`** devient la borne active
+   du dataset canonique (CRI/N). Épinglée dans `scripts/data_quality.py`
+   AVANT le restart de rattrapage (règle du statisticien) ; le restart doit
+   être terminé avant cette borne, de sorte que tout événement ≥ v3 provienne
+   du générateur SEC-01. v2 reste définie (audit historique), v1 inchangée
+   (audit tokens toxiques/bypass — problème distinct).
+2. **Rattrapage** : redéploiement intégral des 80 fichiers depuis
+   `deploy-20260705-1915` (dernier déploiement intègre) avec le script
+   corrigé, puis restart `core/advisor_loop.py` (procédure DS-002, motif
+   ancré).
+3. **Les 3 tags d'audit mensongers sont conservés** (journal immuable) —
+   le présent addendum documente qu'ils décrivent des déploiements partiels
+   (respectivement ~25/75, 1–2/2, 4/9 fichiers réellement transférés). Le
+   tag de rattrapage fait foi.
+4. **Correctif `deploy_vps.sh`** : `ssh -n` / `scp </dev/null` dans les
+   boucles, comptage explicite des itérations comparé à `FILE_COUNT` (une
+   boucle affamée ne peut plus passer pour un succès — le message de succès
+   affiche le compteur constaté, jamais le théorique), option `--base <ref>`
+   pour redéployer depuis une base antérieure à un tag falsifié.
+
+**Leçon.** Un succès rapporté doit être dérivé de ce qui a été *constaté*,
+jamais de ce qui était *prévu* : afficher `FILE_COUNT` théorique dans le
+message de vérification a masqué deux boucles affamées pendant trois
+déploiements. Même classe d'erreur que l'incident scp exit-0 du 2026-07-04 —
+la preuve doit remonter du système observé, pas du plan.

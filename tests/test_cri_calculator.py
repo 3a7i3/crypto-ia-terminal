@@ -10,7 +10,7 @@ from __future__ import annotations
 import json
 
 from tools.cri_calculator import (
-    CLEAN_DATA_SINCE_V2,
+    CLEAN_DATA_SINCE_V3,
     balance_score,
     compute_cri,
     coverage_score,
@@ -20,8 +20,8 @@ from tools.cri_calculator import (
     n_score,
 )
 
-_AFTER = CLEAN_DATA_SINCE_V2.timestamp() + 3600  # 1h après la borne
-_BEFORE = CLEAN_DATA_SINCE_V2.timestamp() - 3600  # 1h avant la borne
+_AFTER = CLEAN_DATA_SINCE_V3.timestamp() + 3600  # 1h après la borne
+_BEFORE = CLEAN_DATA_SINCE_V3.timestamp() - 3600  # 1h avant la borne
 
 
 def _close(ts: float, pnl_usd: float, score: float, regime: str = "sideways") -> dict:
@@ -222,7 +222,7 @@ class TestComputeCriIntegration:
             "drift": 25.0,
             "balance": 25.0,
         }
-        assert result["clean_data_since"] == CLEAN_DATA_SINCE_V2.isoformat()
+        assert result["clean_data_since"] == CLEAN_DATA_SINCE_V3.isoformat()
 
     def test_weights_sum_to_100(self):
         from tools.cri_calculator import WEIGHTS

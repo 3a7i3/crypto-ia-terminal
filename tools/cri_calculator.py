@@ -10,10 +10,11 @@ Poids : w1=w2=w3=w4=25 (égalité faute de justification empirique d'en
 privilégier un — voir ADR-0011). Gate : CRI >= 90/100 (CLAUDE.md).
 
 Lecture seule sur databases/paper_trades.jsonl et databases/regret_analysis.jsonl,
-filtrés par CLEAN_DATA_SINCE_V2 (ADR-0012, 2026-07-09 — restart SEC-01,
-remplace v1/2026-06-25 par inclusion stricte : la contamination
-consecutive_losses touchait aussi les trades post-06-25). Borne importée
-depuis scripts/data_quality.py — source unique, plus de copie locale
+filtrés par CLEAN_DATA_SINCE_V3 (addendum ADR-0012, 2026-07-09 — restart
+SEC-01 réellement effectif ; v2/01:16Z reposait sur un déploiement
+silencieusement partiel, SEC-01 jamais chargé — voir addendum). Remplace
+v1/2026-06-25 et v2 par inclusion stricte. Borne importée depuis
+scripts/data_quality.py — source unique, plus de copie locale
 (dette notée en T2, soldée avec ADR-0012).
 
 Usage : python3 tools/cri_calculator.py [--trades PATH] [--regrets PATH]
@@ -34,7 +35,7 @@ from typing import Optional
 # en invocation directe (même convention que scripts/prelive_gate.py).
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from scripts.data_quality import CLEAN_DATA_SINCE_V2  # noqa: E402
+from scripts.data_quality import CLEAN_DATA_SINCE_V3  # noqa: E402
 
 N_TARGET = 500
 BALANCE_TARGET = 150
@@ -87,24 +88,24 @@ def _event_ts(record: dict) -> Optional[datetime]:
 
 
 def load_clean_trades(path: Path = DEFAULT_TRADES_PATH) -> list[dict]:
-    """CLOSE events, filtrés par CLEAN_DATA_SINCE_V2 (ADR-0012)."""
+    """CLOSE events, filtrés par CLEAN_DATA_SINCE_V3 (addendum ADR-0012)."""
     trades = []
     for d in _read_jsonl(path):
         if d.get("event") != "CLOSE":
             continue
         ts = _event_ts(d)
-        if ts is None or ts < CLEAN_DATA_SINCE_V2:
+        if ts is None or ts < CLEAN_DATA_SINCE_V3:
             continue
         trades.append(d)
     return trades
 
 
 def load_clean_regrets(path: Path = DEFAULT_REGRET_PATH) -> list[dict]:
-    """Regrets filtrés par CLEAN_DATA_SINCE_V2 (ADR-0012)."""
+    """Regrets filtrés par CLEAN_DATA_SINCE_V3 (addendum ADR-0012)."""
     regrets = []
     for d in _read_jsonl(path):
         ts = _event_ts(d)
-        if ts is None or ts < CLEAN_DATA_SINCE_V2:
+        if ts is None or ts < CLEAN_DATA_SINCE_V3:
             continue
         regrets.append(d)
     return regrets
@@ -217,7 +218,7 @@ def compute_cri(
         "gate_ready": cri >= 90.0,
         "n_clean": len(trades),
         "n_regrets_clean": len(regrets),
-        "clean_data_since": CLEAN_DATA_SINCE_V2.isoformat(),
+        "clean_data_since": CLEAN_DATA_SINCE_V3.isoformat(),
         "sub_scores": {k: round(v, 2) for k, v in scores.items()},
         "weights": WEIGHTS,
     }
