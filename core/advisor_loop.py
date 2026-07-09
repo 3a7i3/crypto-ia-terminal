@@ -3917,6 +3917,21 @@ def main(
         f"pid={os.getpid()} invocation_id={os.getenv('INVOCATION_ID', 'absent')} "
         f"cause={_boot_cause_text(_boot_lock_preexisted, _boot_previous_pid)}",
     )
+    # Marqueur EPOCH — ADR-0012 (SEC-01, 2026-07-09). Réaffirmé à chaque boot
+    # (fait constant, pas un événement ponctuel) : la contamination
+    # consecutive_losses (5 consommateurs : RiskGovernor, MetaStrategyEngine,
+    # ExecutiveOverride, check_hard_limits, MistakeMemory jamais atteint) est
+    # close depuis le gate SEC-01 (PAPER_TRADING_ENABLED + LIVE_TRADING_CONFIRMED).
+    # 47% de la fenetre CLEAN_DATA_SINCE v1 etait contaminee (27.9% par le bruit
+    # seul), >=278 MISSED_WIN concernes (plancher). Generateur nominal depuis
+    # CLEAN_DATA_SINCE_V2 — voir ADR-0012, scripts/data_quality.py.
+    from scripts.data_quality import CLEAN_DATA_SINCE_V2 as _epoch_v2
+
+    black_box.record_system_event(
+        "EPOCH",
+        f"SEC-01 actif depuis {_epoch_v2.isoformat()} (ADR-0012) — fin de la "
+        f"contamination consecutive_losses (5 consommateurs). Generateur nominal.",
+    )
 
     regret_engine: Any = None
 

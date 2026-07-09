@@ -58,15 +58,22 @@ H1-H6 existante qui la justifie.
 
 Tant que ces seuils ne sont pas atteints : **ACE interdit, zéro modification de seuil**.
 
-**Borne canonique du dataset propre — `CLEAN_DATA_SINCE = 2026-06-25`.**
-Toute donnée antérieure à cette date (`paper_trades.jsonl`, `regret_analysis.jsonl`)
-est invalide pour le calcul de N et de tout seuil ci-dessus — référence
-`commit_start: ff49c2a` (blacklist tokens toxiques, `experiments/EXP-001.yaml`),
-appliquée par `scripts/data_quality.py`. Cette borne **remplace** une consigne
-antérieure du 2026-06-21 (`6ce7fc2`, correctif anti-synthétique) sans la
-contredire : le 25/06 exclut strictement un sur-ensemble de ce que le 21/06
-excluait déjà — adopter la borne la plus récente et la plus large satisfait
-les deux exigences simultanément. Décidé le 2026-07-05, voir ADR-0011.
+**Borne canonique du dataset propre — `CLEAN_DATA_SINCE_V2 = 2026-07-09T01:16:00Z`.**
+Toute donnée antérieure à ce timestamp (`paper_trades.jsonl`, `regret_analysis.jsonl`)
+est invalide pour le calcul de N et de tout seuil ci-dessus — appliquée par
+`scripts/data_quality.py` (source unique) et importée par
+`tools/cri_calculator.py::load_clean_trades()`, jamais copiée localement.
+Cette borne **remplace** `CLEAN_DATA_SINCE` v1 (`2026-06-25`, ADR-0011) sans
+la contredire : v2 exclut strictement un sur-ensemble de ce que v1 excluait
+déjà — adopter la borne la plus récente et la plus large satisfait les deux
+exigences simultanément. Décidé le 2026-07-09, voir **ADR-0012** :
+correction du gate d'exécution réelle (SEC-01) ayant révélé que
+`consecutive_losses` confondait échecs d'exécution technique et vraies
+pertes de trade, contaminant 5 mécanismes de décision (RiskGovernor,
+MetaStrategyEngine, ExecutiveOverride, check_hard_limits, MistakeMemory —
+jamais atteint en pratique) sur 47 % de la fenêtre v1. v1 reste documentée
+pour l'audit qualité de données (`scripts/data_quality.py`, tokens
+toxiques/bypass `meta_allowed` — un problème différent).
 
 ---
 
