@@ -199,6 +199,14 @@ continué à l'intérieur de la fenêtre v2.
    être terminé avant cette borne, de sorte que tout événement ≥ v3 provienne
    du générateur SEC-01. v2 reste définie (audit historique), v1 inchangée
    (audit tokens toxiques/bypass — problème distinct).
+   **Répartition de la décision** : le principe (v3 = restart de rattrapage,
+   épinglée avant restart, fenêtre v2 déclassée) avait le GO explicite de
+   l'opérateur, sélectionné parmi les options soumises. La valeur précise
+   `07:45:00Z` était une délégation résiduelle à l'agent (heure courante au
+   moment du commit + marge opérationnelle), non vue par l'opérateur avant
+   commit — validée a posteriori le 2026-07-09, sans rollback (un rollback
+   pour ré-épingler une v4 plus tard n'exclurait que des données déjà
+   propres depuis 07:37:54, coût scientifique net négatif).
 2. **Rattrapage** : redéploiement intégral des 80 fichiers depuis
    `deploy-20260705-1915` (dernier déploiement intègre) avec le script
    corrigé, puis restart `core/advisor_loop.py` (procédure DS-002, motif
