@@ -328,11 +328,17 @@ class SelfAwarenessEngine:
 
     def _check_performance_drift(self) -> list[DriftSignal]:
         signals = []
+        # Garde ADR-0013 : même seuil que _check_market_mismatch (ligne ~469)
+        # — sans elle, drawdown_acceleration (ci-dessous) n'était protégé par
+        # aucune garde de taille d'échantillon alors que win_rate/sharpe en
+        # avaient une de fait via le fallback baseline==recent. Un WARNING
+        # pouvait se déclencher sur aussi peu que 3 trades (incident 2026-07-10,
+        # SAFE_MODE sur N=5).
+        if len(self._trades) < self.RECENT_WINDOW:
+            return signals
+
         recent = list(self._trades)[-self.RECENT_WINDOW :]
         baseline = list(self._trades)[: -self.RECENT_WINDOW] or list(self._trades)
-
-        if len(recent) < 3 or len(baseline) < 3:
-            return signals
 
         wr_recent = self._winrate(recent)
         wr_baseline = self._winrate(baseline)

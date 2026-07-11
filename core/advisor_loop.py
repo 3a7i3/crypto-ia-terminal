@@ -7134,6 +7134,18 @@ def main(
                     shed_optional_until_cycle,
                 )
 
+            # ADR-0013 — symétrique de report_error("cycle_exception") (except
+            # ci-dessous) : sans ce report_ok(), RECOVERY (et DEGRADED/CRITICAL)
+            # ne peuvent jamais graduer automatiquement, report_ok() étant sinon
+            # inappelé en production (incident SAFE_MODE 2026-07-10/11). No-op
+            # garanti si une requête SAFE_MODE reste active (runtime_state_machine
+            # ligne 169-170) ; ne vide jamais les compteurs d'erreur (pas de risque
+            # de masquer une dégradation en cours).
+            try:
+                runtime_authority.report_ok()
+            except Exception:
+                pass
+
         except KeyboardInterrupt:
             log.info("Arret manuel.")
             _stop_runtime_services()
