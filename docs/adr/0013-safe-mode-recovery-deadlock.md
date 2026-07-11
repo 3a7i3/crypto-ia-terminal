@@ -207,14 +207,23 @@ rien (`runtime_state_machine.py:168-174` — `SAFE_MODE` exige le double du
 silence standard **et** l'absence de requêtes actives ; ce chemin existe
 déjà et n'est pas modifié par cette décision).
 
-### 3. `deploy_vps.sh --restart` doit appeler `systemctl restart`
+### 3. `deploy_vps.sh --restart core` doit appeler `systemctl restart`
 
-Remplacer le bloc `pkill` + `nohup` (lignes 362-368 du script) par
-`ssh ... "sudo systemctl restart crypto-<cible>.service"` sur les unités
-réconciliées depuis ADR-0010, avec la même vérification `pgrep` ancrée en
-sortie. Élimine la course avec `Restart=on-failure` et garde le process
-dans son cgroup managé dans tous les cas, pas seulement quand l'opérateur
-pense à taper la commande systemd à la main.
+Remplacer le bloc `pkill` + `nohup` par
+`ssh ... "sudo systemctl restart crypto-advisor.service"` (avec la même
+vérification `pgrep` ancrée en sortie) pour la cible `core`, qui tourne
+sous cette unité réconciliée depuis ADR-0010. Élimine la course avec
+`Restart=on-failure` et garde le process dans son cgroup managé dans tous
+les cas, pas seulement quand l'opérateur pense à taper la commande
+systemd à la main.
+
+**Précision d'implémentation (vérifiée sur le VPS, 2026-07-11,
+`systemctl list-units --all --type=service`)** : seule la cible `core`
+possède une unité systemd (`crypto-advisor.service`). La cible `advisor`
+(bot d'observation passif racine) n'en a aucune — elle reste donc sur le
+mécanisme `pkill` + `nohup` existant jusqu'à ce qu'elle soit elle-même
+productionisée sous systemd, ce qui est hors périmètre de cet ADR (le bot
+passif n'est pas le composant concerné par l'incident).
 
 ## Alternatives rejetées
 

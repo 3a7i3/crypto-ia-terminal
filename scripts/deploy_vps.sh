@@ -343,15 +343,34 @@ log "Tag d'audit créé et poussé : $TAG_NAME"
 # Correctif : cible exacte obligatoire (--restart core|advisor), motif de
 # recherche ancré (jamais de sous-chaîne), et refus si le fichier cible est
 # absent du disque VPS plutôt qu'un échec silencieux.
+#
+# ADR-0013 (2026-07-11) : "core" tourne sous crypto-advisor.service depuis
+# la réconciliation systemd (ADR-0010, cgroup dédié, Restart=on-failure).
+# Le pkill+nohup ci-dessous, gardé jusque-là pour TOUTES les cibles, risquait
+# de faire courir la relance manuelle contre le propre redémarrage
+# automatique de systemd — le survivant de la course sortait du cgroup
+# managé (constaté lors du redémarrage du 2026-07-11, contourné à la main
+# par "sudo systemctl restart crypto-advisor.service" en direct sur le VPS).
+# "core" passe donc par systemctl. "advisor" (bot passif racine) n'a pas
+# d'unité systemd (vérifié via systemctl list-units le 2026-07-11) — reste
+# sur pkill+nohup jusqu'à ce qu'il soit lui aussi productionisé sous systemd.
 if [[ $RESTART -eq 1 ]]; then
     if [[ $RESTART_DISABLED_UNTIL_RECONCILIATION -eq 1 ]]; then
         log "SKIP restart — désactivé jusqu'à réconciliation des branches (voir RECOVERY.md)"
     elif [[ -z "$VPS_RESTART_CMD" ]]; then
         log "SKIP restart — --restart passé mais VPS_RESTART_CMD non défini dans .env"
     else
+        _systemd_unit=""
         case "$RESTART_TARGET" in
-            core) _target_path="core/advisor_loop.py"; _pgrep_pattern='core/advisor_loop\.py$' ;;
-            advisor) _target_path="advisor_loop.py"; _pgrep_pattern='[[:space:]]advisor_loop\.py$' ;;
+            core)
+                _target_path="core/advisor_loop.py"
+                _pgrep_pattern='core/advisor_loop\.py$'
+                _systemd_unit="crypto-advisor.service"
+                ;;
+            advisor)
+                _target_path="advisor_loop.py"
+                _pgrep_pattern='[[:space:]]advisor_loop\.py$'
+                ;;
         esac
 
         if ! ssh $SSH_OPTS "$VPS_USER@$VPS_HOST" "test -f '$VPS_PATH/$_target_path'"; then
@@ -359,13 +378,23 @@ if [[ $RESTART -eq 1 ]]; then
             exit 1
         fi
 
-        log "Redémarrage de $_target_path (--restart $RESTART_TARGET + VPS_RESTART_CMD définis)..."
-        # shellcheck disable=SC2029
-        ssh $SSH_OPTS "$VPS_USER@$VPS_HOST" \
-            "cd '$VPS_PATH' && { pkill -f '$_pgrep_pattern' 2>/dev/null; sleep 3; true; } && export P6_SAFE_MODE=${P6_SAFE_MODE:-false} && nohup .venv/bin/python3 '$_target_path' < /dev/null >> logs/advisor.log 2>&1 & sleep 18 && pgrep -f '$_pgrep_pattern' > /dev/null && echo RUNNING" \
-            | grep -q RUNNING \
-            && log "Service redémarré (PID OK)" \
-            || log "AVERTISSEMENT — PID non détecté après redémarrage"
+        if [[ -n "$_systemd_unit" ]]; then
+            log "Redémarrage de $_target_path via systemctl ($_systemd_unit)..."
+            # shellcheck disable=SC2029
+            ssh $SSH_OPTS "$VPS_USER@$VPS_HOST" \
+                "sudo systemctl restart '$_systemd_unit' && sleep 18 && pgrep -f '$_pgrep_pattern' > /dev/null && echo RUNNING" \
+                | grep -q RUNNING \
+                && log "Service redémarré (PID OK, $_systemd_unit)" \
+                || log "AVERTISSEMENT — PID non détecté après redémarrage ($_systemd_unit)"
+        else
+            log "Redémarrage de $_target_path (--restart $RESTART_TARGET + VPS_RESTART_CMD définis)..."
+            # shellcheck disable=SC2029
+            ssh $SSH_OPTS "$VPS_USER@$VPS_HOST" \
+                "cd '$VPS_PATH' && { pkill -f '$_pgrep_pattern' 2>/dev/null; sleep 3; true; } && export P6_SAFE_MODE=${P6_SAFE_MODE:-false} && nohup .venv/bin/python3 '$_target_path' < /dev/null >> logs/advisor.log 2>&1 & sleep 18 && pgrep -f '$_pgrep_pattern' > /dev/null && echo RUNNING" \
+                | grep -q RUNNING \
+                && log "Service redémarré (PID OK)" \
+                || log "AVERTISSEMENT — PID non détecté après redémarrage"
+        fi
     fi
 elif [[ -n "$VPS_RESTART_CMD" ]]; then
     log "SKIP restart — --restart non passé (VPS_RESTART_CMD défini mais redémarrage jamais implicite)"
