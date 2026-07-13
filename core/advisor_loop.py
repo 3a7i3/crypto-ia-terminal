@@ -360,17 +360,111 @@ def _display_position_summary(
     )
 
 
+def _positions_for_display(virtual_portfolio: Any, pos_manager: Any) -> list[JSONDict]:
+    """Positions ouvertes pour les panneaux Telegram (CommandCenterBot).
+
+    Même principe que _display_position_summary : MexcSimulator est la source
+    qui exécute réellement les positions en paper trading — quand il est
+    disponible, c'est lui qu'on montre. Régression du 2026-07-12 21:00 UTC :
+    le rapport programmé affichait "POSITIONS 0 ouverte" (pos_manager vide)
+    alors que le ledger MexcSim portait 3 positions ouvertes (BTC/BNB/ETH).
+    pos_manager reste le fallback hors paper. Affichage uniquement — ne
+    nourrit jamais les contraintes de décision (ADR-0007).
+    """
+    if virtual_portfolio is not None:
+        try:
+            summary = virtual_portfolio.get_open_positions_summary()
+            now = time.time()
+            return [
+                {
+                    "symbol": p.symbol,
+                    "side": p.side,
+                    "entry": p.entry_price,
+                    "current": p.current_price,
+                    "pnl_usd": p.live_pnl_usd,
+                    "unrealized_pnl": p.live_pnl_usd,
+                    "pnl_pct": p.live_pnl_pct,
+                    "tp": p.tp_price,
+                    "sl": p.sl_price,
+                    "size_usd": p.qty_usd,
+                    "age_min": max(0.0, (now - p.opened_ts) / 60.0),
+                }
+                for p in summary.positions
+            ]
+        except Exception:
+            pass
+    try:
+        return _snapshot_list(pos_manager.snapshot())
+    except Exception:
+        return []
+
+
+def _replay_base_capital() -> float:
+    """Base de capital pour rejouer le dataset canonique (drawdown/sharpe).
+
+    Les trades du dataset sont exécutés et dimensionnés par MexcSimulator sur
+    le wallet paper (WALLET_PAPER_CAPITAL, ~ centaines de $) — pas sur les
+    $10 alloués Phase F-01 ni sur le solde API réel. Utiliser une autre base
+    fabriquerait un drawdown fantaisiste (cf confusion des 3 échelles de
+    capital, réconciliation 2026-07-12).
+    """
+    base = _to_float(getattr(_virtual_portfolio, "_initial_capital", 0.0), 0.0)
+    if base > 0:
+        return base
+    try:
+        from infra.wallet_sync import get_wallet_sync
+
+        base = _to_float(get_wallet_sync().get_balance(), 0.0)
+    except Exception:
+        base = 0.0
+    # Dernier recours — même défaut que PhaseKPITracker.__init__
+    return base if base > 0 else 100.0
+
+
+def _replay_clean_trades_kpis(clean_trades: list[dict], base_capital: float) -> Any:
+    """Rejoue le dataset canonique dans un PhaseKPITracker jetable.
+
+    Mêmes formules que le tracker live (win rate pnl>0, Sharpe annualisé sur
+    rendements journaliers, max DD fraction du pic d'equity) — seule la
+    source de données change : les CLOSE MexcSim filtrés CLEAN_DATA_SINCE_V3
+    au lieu d'un flux pos_manager qui ne reçoit jamais rien. Zéro nouvelle
+    métrique (gel scientifique) ; instance jetable, jamais partagée.
+    """
+    from capital_deployment.phase_kpi_tracker import PhaseKPITracker, TradeRecord
+
+    events = sorted(clean_trades, key=lambda d: _to_float(d.get("ts", 0.0), 0.0))
+    first_ts = _to_float(events[0].get("ts", 0.0), 0.0) or time.time()
+    tracker = PhaseKPITracker(
+        phase="F-01", initial_capital=base_capital, started_at=first_ts
+    )
+    for evt in events:
+        tracker.record_trade(
+            TradeRecord(
+                ts=_to_float(evt.get("ts", 0.0), 0.0),
+                pnl=_to_float(evt.get("pnl_usd", 0.0), 0.0),
+                symbol=str(evt.get("symbol", "?")),
+                side=str(evt.get("side", "?")),
+                entry_price=0.0,
+                exit_price=_to_float(evt.get("exit_price", 0.0), 0.0),
+                signed=True,
+            )
+        )
+    return tracker.snapshot()
+
+
 def _kpi_snapshot_with_canonical_n(kpi_tracker: Any) -> Any:
-    """Snapshot KPI pour l'affichage (CommandCenterBot), total_trades corrigé.
+    """Snapshot KPI pour l'affichage (CommandCenterBot), recalé sur le dataset.
 
     PhaseKPITracker.record_trade() est alimenté par la fermeture de position
     côté pos_manager — jamais atteint pour les trades exécutés par
-    MexcSimulator (même divergence que P2, RECOVERY.md "Pos: 0 menteur") :
-    "Trades: 0" perpétuel. Win rate/Sharpe/max drawdown restent gelés tels
-    quels (le tracker n'a jamais reçu de données à calculer dessus — pas un
-    bug d'affichage, rien à corriger côté chemin de décision) ; seul le
-    compte de trades affiché est corrigé sur le N canonique du dataset
-    (tools.cri_calculator.load_clean_trades, ADR-0011).
+    MexcSimulator (même divergence que P2, RECOVERY.md "Pos: 0 menteur").
+    Sans correction, le panneau affichait "Trades: 27 | Win Rate: 0%" —
+    mensonge constaté en réconciliation 2026-07-12 (réalité : 9W/18L = 33%).
+    Ici, total_trades / win_rate / sharpe / max_drawdown / current_drawdown
+    sont recalculés en rejouant le dataset canonique (load_clean_trades,
+    borne CLEAN_DATA_SINCE_V3) dans les formules du tracker. phase /
+    days_elapsed / unsigned_decisions restent ceux du tracker réel.
+    Affichage uniquement — le tracker live n'est jamais modifié.
     """
     if kpi_tracker is None:
         return None
@@ -380,10 +474,23 @@ def _kpi_snapshot_with_canonical_n(kpi_tracker: Any) -> Any:
 
     snap = kpi_tracker.snapshot()
     try:
-        canonical_n = len(load_clean_trades())
+        clean = load_clean_trades()
     except Exception:
         return snap
-    return replace(snap, total_trades=canonical_n)
+    if not clean:
+        return replace(snap, total_trades=0)
+    try:
+        replayed = _replay_clean_trades_kpis(clean, _replay_base_capital())
+    except Exception:
+        return replace(snap, total_trades=len(clean))
+    return replace(
+        snap,
+        total_trades=len(clean),
+        win_rate=replayed.win_rate,
+        sharpe=replayed.sharpe,
+        max_drawdown=replayed.max_drawdown,
+        current_drawdown=replayed.current_drawdown,
+    )
 
 
 load_dotenv(override=True)
@@ -3270,10 +3377,9 @@ def main(
                 return {}
 
         def _get_positions_for_bot():
-            try:
-                return pos_manager.snapshot()  # noqa: F821
-            except Exception:
-                return []
+            # MexcSim d'abord (vrai ledger paper), pos_manager en fallback —
+            # régression "POSITIONS 0 ouverte" du rapport 21:00, 2026-07-12.
+            return _positions_for_display(_virtual_portfolio, pos_manager)  # noqa: F821
 
         def _get_eo_for_bot():
             try:

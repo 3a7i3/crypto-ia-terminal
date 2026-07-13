@@ -148,6 +148,13 @@ class OpenPositionSummary:
     entry_price: float
     live_pnl_pct: float
     opened_ts: float
+    # Champs d'affichage additionnels (panneaux Telegram) — défauts à 0.0
+    # pour ne pas casser les constructions existantes. Affichage uniquement.
+    current_price: float = 0.0
+    live_pnl_usd: float = 0.0
+    qty_usd: float = 0.0
+    tp_price: float = 0.0
+    sl_price: float = 0.0
 
 
 @dataclass
@@ -860,8 +867,9 @@ class MexcSimulator:
         for sym, p in open_pos.items():
             price = self._fetch_price(sym)
             live = p.live_pnl_pct(price) if price > 0 else 0.0
+            live_usd = p.qty_usd * live / 100.0 if price > 0 else 0.0
             if price > 0:
-                unrealized_pnl += p.qty_usd * live / 100.0
+                unrealized_pnl += live_usd
             positions.append(
                 OpenPositionSummary(
                     symbol=sym,
@@ -869,6 +877,11 @@ class MexcSimulator:
                     entry_price=p.entry_price,
                     live_pnl_pct=round(live, 4),
                     opened_ts=p.opened_ts,
+                    current_price=price,
+                    live_pnl_usd=round(live_usd, 6),
+                    qty_usd=p.qty_usd,
+                    tp_price=p.tp_price,
+                    sl_price=p.sl_price,
                 )
             )
         return OpenPositionsSummary(

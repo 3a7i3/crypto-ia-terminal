@@ -42,6 +42,17 @@ _LM_SYSTEM_PROMPT = (
     "pas une analyse de marche generique. Style factuel, sans markdown."
 )
 
+# Borne canonique du dataset propre — source unique scripts/data_quality.py
+# (CLEAN_DATA_SINCE_V3, addendum ADR-0012). Label dérivé dynamiquement : le
+# texte "post-2026-06-25" codé en dur était périmé (réconciliation 2026-07-12)
+# alors que le calcul de N utilisait déjà la borne v3.
+try:
+    from scripts.data_quality import CLEAN_DATA_SINCE_V3 as _CLEAN_SINCE
+
+    _CLEAN_SINCE_LABEL = _CLEAN_SINCE.strftime("%Y-%m-%d")
+except Exception:  # pragma: no cover — import direct hors racine repo
+    _CLEAN_SINCE_LABEL = "borne canonique"
+
 
 @dataclass
 class _Snapshot:
@@ -375,8 +386,8 @@ class SystemIntelReporter:
         sign = "+" if ctx["pnl_since"] >= 0 else ""
         lines.append(
             f"DEPUIS DERNIER RAPPORT : {ctx['n_since']} trade(s) clôturé(s) "
-            f"({sign}{ctx['pnl_since']:.2f}$) | N canonique (post-2026-06-25) "
-            f"{kpis['n']} trades"
+            f"({sign}{ctx['pnl_since']:.2f}$) | "
+            f"N canonique (post-{_CLEAN_SINCE_LABEL}) {kpis['n']} trades"
         )
         lines.append("")
 
@@ -462,7 +473,8 @@ class SystemIntelReporter:
 
         if kpis["n"] >= 100:
             return (
-                f"Seuil 100 trades canoniques atteint ({kpis['n']}, post-2026-06-25). "
+                f"Seuil 100 trades canoniques atteint "
+                f"({kpis['n']}, post-{_CLEAN_SINCE_LABEL}). "
                 "Lancer scripts/burnin_calibration_v3.py puis scripts/prelive_gate.py."
             )
 
