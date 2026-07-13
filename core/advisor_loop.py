@@ -493,6 +493,53 @@ def _kpi_snapshot_with_canonical_n(kpi_tracker: Any) -> Any:
     )
 
 
+def _top_strategies_for_display(ranker: Any) -> list[JSONDict]:
+    """TOP STRATEGIES pour le panneau Telegram, wr/sharpe recalculés à l'affichage.
+
+    Même divergence pos_manager/MexcSim que _kpi_snapshot_with_canonical_n :
+    ranker.record_trade() n'est jamais atteint pour les trades MexcSim, donc
+    le leaderboard persisté montre "wr=0% sharpe=0.00" à côté d'un composite
+    non nul (figé depuis la dernière alimentation réelle). Rang/nom/régime/
+    composite viennent tels quels de ranker.leaderboard() — jamais touché,
+    c'est aussi ce que lit size_factor() pour le sizing en direct. Seuls
+    win_rate/avg_sharpe affichés sont recalculés sur le dataset canonique
+    (load_clean_trades, borne V3), filtré par symbole+régime, avec la même
+    formule que StrategyScore : win_rate = wins/trades, avg_sharpe = moyenne
+    de 1.0 si gagnant sinon 0.0 (quant_hedge_ai/ai_evolution/strategy_ranker.py
+    — pseudo-métrique déjà existante dans le code, identique au win_rate par
+    construction ; pas une vraie volatilité ajustée, on ne fait que la
+    reproduire fidèlement). Affichage uniquement — ranker.leaderboard()/
+    record_trade() et leur état persisté (databases/strategy_ranking.json)
+    restent inchangés.
+    """
+    top = ranker.leaderboard(3) if ranker is not None else []
+    if not top:
+        return cast(list[JSONDict], top)
+    try:
+        from tools.cri_calculator import load_clean_trades
+
+        clean = load_clean_trades()
+    except Exception:
+        return cast(list[JSONDict], top)
+    out: list[JSONDict] = []
+    for entry in top:
+        row = dict(entry)
+        matches = [
+            t
+            for t in clean
+            if t.get("symbol") == entry.get("name")
+            and t.get("regime") == entry.get("regime")
+        ]
+        if matches:
+            wr = sum(
+                1 for t in matches if _to_float(t.get("pnl_usd", 0.0), 0.0) > 0
+            ) / len(matches)
+            row["win_rate"] = wr
+            row["avg_sharpe"] = wr
+        out.append(row)
+    return cast(list[JSONDict], out)
+
+
 load_dotenv(override=True)
 
 P6_SAFE_MODE: bool = os.environ.get("P6_SAFE_MODE", "false").lower() in (
@@ -6826,7 +6873,7 @@ def main(
                             f"TP:{p.tp_pct:.1%} SL:{p.sl_pct:.1%}"
                             f"\n  Confidence: {_conf}% | Risk Profile: {_risk_profile}"
                         )
-                    top3 = cast(list[JSONDict], ranker.leaderboard(3))
+                    top3 = _top_strategies_for_display(ranker)
                     if top3:
                         msg += "\n\nTOP STRATEGIES:"
                         for i, s in enumerate(top3, 1):

@@ -130,12 +130,15 @@ def test_kpi_snapshot_returns_none_when_no_tracker():
     assert advisor_loop._kpi_snapshot_with_canonical_n(None) is None
 
 
-def _clean_close(ts: float, pnl_usd: float) -> dict:
+def _clean_close(
+    ts: float, pnl_usd: float, symbol: str = "BTC/USDT", regime: str = "sideways"
+) -> dict:
     return {
         "event": "CLOSE",
         "ts": ts,
         "pnl_usd": pnl_usd,
-        "symbol": "BTC/USDT",
+        "symbol": symbol,
+        "regime": regime,
         "side": "buy",
         "exit_price": 100.0,
     }
@@ -261,3 +264,83 @@ def test_positions_for_display_falls_back_on_sim_error():
     rows = advisor_loop._positions_for_display(_BrokenVirtualPortfolio(), pm)
 
     assert rows == [{"symbol": "BTC/USDT"}]
+
+
+class _FakeRanker:
+    def __init__(self, entries: list[dict]):
+        self._entries = entries
+
+    def leaderboard(self, n: int = 20) -> list[dict]:
+        return self._entries[:n]
+
+
+def test_top_strategies_recomputes_wr_sharpe_from_canonical_dataset(monkeypatch):
+    """Régression 'TOP STRATEGIES ... wr=0% sharpe=0.00' malgré un composite
+    non nul (réconciliation 2026-07-13) : ranker.record_trade() n'est jamais
+    atteint (même divergence pos_manager/MexcSim), le leaderboard persiste
+    des wr/sharpe figés à 0 pour une entrée pourtant classée. name/regime/
+    composite doivent rester ceux du ranker ; wr/sharpe recalculés sur le
+    dataset canonique filtré symbole+régime."""
+    import tools.cri_calculator as cri_calculator
+
+    ranker = _FakeRanker(
+        [
+            {
+                "name": "BTC/USDC",
+                "regime": "bull_trend",
+                "composite": 58.0,
+                "win_rate": 0.0,
+                "avg_sharpe": 0.0,
+            }
+        ]
+    )
+    base_ts = 1_783_000_000.0
+    trades = [
+        _clean_close(
+            base_ts + i * 60.0,
+            1.0 if i < 3 else -1.0,
+            symbol="BTC/USDC",
+            regime="bull_trend",
+        )
+        for i in range(4)
+    ]
+    monkeypatch.setattr(cri_calculator, "load_clean_trades", lambda: trades)
+
+    rows = advisor_loop._top_strategies_for_display(ranker)
+
+    assert rows[0]["name"] == "BTC/USDC"  # identité/rang du ranker inchangés
+    assert rows[0]["composite"] == 58.0  # score du ranker inchangé
+    assert rows[0]["win_rate"] == 0.75  # 3W/4L recalculé, pas les 0.0 figés
+    assert rows[0]["avg_sharpe"] == 0.75  # même pseudo-formule que StrategyScore
+
+
+def test_top_strategies_keeps_stale_values_when_no_matching_trades(monkeypatch):
+    """Aucun trade canonique pour ce symbole/régime : garder tel quel plutôt
+    qu'inventer un 0/0 différent de ce que le ranker affichait déjà."""
+    import tools.cri_calculator as cri_calculator
+
+    ranker = _FakeRanker(
+        [
+            {
+                "name": "TRUMP/USDT",
+                "regime": "sideways",
+                "composite": 46.0,
+                "win_rate": 0.2,
+                "avg_sharpe": 0.2,
+            }
+        ]
+    )
+    monkeypatch.setattr(cri_calculator, "load_clean_trades", lambda: [])
+
+    rows = advisor_loop._top_strategies_for_display(ranker)
+
+    assert rows[0]["win_rate"] == 0.2
+    assert rows[0]["avg_sharpe"] == 0.2
+
+
+def test_top_strategies_empty_leaderboard():
+    assert advisor_loop._top_strategies_for_display(_FakeRanker([])) == []
+
+
+def test_top_strategies_none_ranker():
+    assert advisor_loop._top_strategies_for_display(None) == []
