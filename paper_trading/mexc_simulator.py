@@ -257,19 +257,23 @@ class MexcSimulator:
         from infra.wallet_sync import get_wallet_sync
 
         wallet = get_wallet_sync()
+        capital_source = "Solde reel MEXC"
         if wallet.mode == "paper":
             # Source unique — identique à /portfolio, bot Intel, prelive_gate.
             capital = wallet.get_balance()
+            capital_source = "WalletSync (paper)"
             _log.info("[SIM] Capital via WalletSync (paper): $%.2f", capital)
         else:
             capital = self._read_mexc_balance()
             forced = os.getenv("MEXC_SIM_CAPITAL", "")
             if forced:
                 capital = float(forced)
+                capital_source = "Forcé via env (MEXC_SIM_CAPITAL)"
                 _log.info("[SIM] Capital forcé via env: $%.2f", capital)
             if capital <= 0:
                 _log.warning("[SIM] Solde MEXC non lisible — fallback WalletSync")
                 capital = wallet.get_balance()
+                capital_source = "WalletSync (fallback, solde MEXC illisible)"
 
         self._capital = capital
         self._initial_capital = capital
@@ -290,7 +294,7 @@ class MexcSimulator:
             f"MEXC SIM — Compte actif\n"
             f"━━━━━━━━━━━━━━━━━━━━━\n"
             f"Capital   : ${capital:.2f} USDT\n"
-            f"Source    : Solde reel MEXC\n"
+            f"Source    : {capital_source}\n"
             f"Ordres    : MARKET | LIMIT | STOP_LIMIT\n"
             f"Donnees   : MEXC temps reel\n"
             f"Mode      : SIMULATION — aucun ordre reel\n"
