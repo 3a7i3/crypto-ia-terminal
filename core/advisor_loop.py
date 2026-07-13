@@ -2524,9 +2524,12 @@ def _gate_paper_dataset() -> None:
         if only_orphan_opens:
             log.warning(
                 "[DatasetGate] %d violation(s) OPEN orphelin(es) détectée(s) — "
-                "probable crash précédent (le simulateur ne persiste pas les "
-                "positions en mémoire au redémarrage). Auto-remédiation : "
-                "retrait des OPEN sans CLOSE, trades appariés préservés.",
+                "probable crash précédent. Auto-remédiation : retrait des OPEN "
+                "sans CLOSE trop anciennes pour être restaurées ; les plus "
+                "récentes (< fenêtre de restauration MexcSimulator) sont "
+                "laissées telles quelles — MexcSimulator.start(), appelé juste "
+                "après ce gate, les reprend en position live ou les archive "
+                "lui-même.",
                 len(report.violations),
             )
             if _remediate_orphan_opens(log_path):
@@ -2536,6 +2539,14 @@ def _gate_paper_dataset() -> None:
                         "[DatasetGate] Auto-remédiation réussie — %d trades "
                         "préservés, dataset propre.",
                         report.paired_trades,
+                    )
+                    return
+                if all("OPEN sans CLOSE" in v for v in report.violations):
+                    log.info(
+                        "[DatasetGate] %d OPEN orpheline(s) restante(s), toutes "
+                        "dans la fenêtre de restauration — laissées à "
+                        "MexcSimulator, démarrage autorisé.",
+                        len(report.violations),
                     )
                     return
 
@@ -2557,16 +2568,33 @@ def _gate_paper_dataset() -> None:
 
 def _remediate_orphan_opens(log_path: str) -> bool:
     """
-    Retire les OPEN sans CLOSE correspondant (positions fantômes laissées par
-    un crash précédent). Préserve tous les trades appariés (OPEN+CLOSE) et
-    tous les CLOSE. Sauvegarde l'original avant modification.
+    Retire les OPEN sans CLOSE correspondant devenues trop anciennes pour
+    être restaurées par MexcSimulator (positions fantômes laissées par un
+    crash ancien). Préserve tous les trades appariés (OPEN+CLOSE), tous les
+    CLOSE, et les OPEN orphelines encore dans la fenêtre de restauration de
+    MexcSimulator (SIM_RESTORE_MAX_AGE_H, mexc_simulator._RESTORE_MAX_AGE_S,
+    4h par défaut) — celles-ci seront reprises en position live ou archivées
+    par MexcSimulator.start(), appelé juste après ce gate. Sauvegarde
+    l'original avant toute modification.
 
-    Retourne True si la remédiation a réussi (fichier réécrit sans erreur).
+    Avant ce correctif, ce gate supprimait TOUTE OPEN orpheline sans
+    condition d'âge, avant même que MexcSimulator ait pu la restaurer —
+    conflit constaté en direct le 2026-07-13 18:00:02 UTC (réconciliation
+    Telegram) : une position ouverte quelques minutes avant un restart était
+    effacée du ledger, alors que _restore_positions() l'aurait normalement
+    reprise.
+
+    Retourne True si la remédiation a réussi (fichier réécrit sans erreur,
+    ou rien à réécrire car aucune OPEN n'est assez ancienne pour être
+    supprimée).
     """
     try:
         import json as _gate_json
         import shutil
 
+        from paper_trading.mexc_simulator import _RESTORE_MAX_AGE_S
+
+        now = time.time()
         events = []
         with open(log_path, encoding="utf-8") as f:
             for line in f:
@@ -2575,11 +2603,27 @@ def _remediate_orphan_opens(log_path: str) -> bool:
                     events.append(_gate_json.loads(line))
 
         closes = {e["trade_id"] for e in events if e.get("event") == "CLOSE"}
+        stale_open_ids = {
+            e["trade_id"]
+            for e in events
+            if e.get("event") == "OPEN"
+            and e.get("trade_id") not in closes
+            and (now - _to_float(e.get("ts", 0.0), 0.0)) > _RESTORE_MAX_AGE_S
+        }
+        if not stale_open_ids:
+            log.info(
+                "[DatasetGate] OPEN orpheline(s) toutes dans la fenêtre de "
+                "restauration (< %.1fh) — laissées à MexcSimulator, aucune "
+                "suppression.",
+                _RESTORE_MAX_AGE_S / 3600,
+            )
+            return True
+
         kept = [
             e
             for e in events
             if e.get("event") == "CLOSE"
-            or (e.get("event") == "OPEN" and e.get("trade_id") in closes)
+            or (e.get("event") == "OPEN" and e.get("trade_id") not in stale_open_ids)
         ]
         kept.sort(key=lambda e: e.get("ts", 0))
 
@@ -2591,10 +2635,12 @@ def _remediate_orphan_opens(log_path: str) -> bool:
                 f.write(_gate_json.dumps(e) + "\n")
 
         log.info(
-            "[DatasetGate] Remédiation : %d événements avant, %d après "
-            "(sauvegarde: %s)",
+            "[DatasetGate] Remédiation : %d événements avant, %d après — "
+            "%d OPEN stale (>%.1fh) supprimée(s) (sauvegarde: %s)",
             len(events),
             len(kept),
+            len(stale_open_ids),
+            _RESTORE_MAX_AGE_S / 3600,
             backup_path,
         )
         return True
