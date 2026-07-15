@@ -31,6 +31,10 @@ def render_ai_decision_block(snapshot: SystemSnapshot) -> str:
             f" ({d.highest_candidate_score:.0f}/100)"
             f"\n  Required: {d.required_score:.0f}/100"
         )
+        # Vérité du gate : seuil par régime sur score packet — peut refuser
+        # un candidat pourtant affiché au-dessus de required_score.
+        if d.gate_reason:
+            hi += f"\n  Gate: {d.gate_reason}"
     return (
         "AI DECISION:\n"
         f"  Decision ID: #{d.decision_id}\n"

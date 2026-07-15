@@ -941,7 +941,7 @@ class MexcSimulator:
         lines = [
             "MEXC SIM — Rapport performance",
             "━━━━━━━━━━━━━━━━━━━━━",
-            f"Duree    : J{days:.1f} / 7",
+            f"Duree    : J{days:.1f} / 7 (session depuis restart)",
             f"Capital  : ${self._initial_capital:.2f} -> ${total_equity:.2f} USDT",
             f"P&L      : {pnl_pct:+.2f}%"
             f"  (R:{realized_pnl:+.4f}$ U:{unrealized_pnl:+.4f}$)",

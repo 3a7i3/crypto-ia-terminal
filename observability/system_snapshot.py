@@ -80,6 +80,12 @@ class AIDecisionSnapshot:
     required_score: float
     next_evaluation_sec: int
     brain_score_pct: int
+    # Raison brute du gate pour le meilleur candidat ("signal_score (66<72)").
+    # required_score est le seuil du cycle — le gate applique un seuil PAR
+    # RÉGIME sur le score packet : sans ce champ, un candidat affiché
+    # au-dessus du seuil peut être refusé sans explication visible
+    # (constat 2026-07-14 : ETH 70 affiché avec "Required: 66", refusé 66<72).
+    gate_reason: str = ""
 
 
 @dataclass(frozen=True)
@@ -171,6 +177,7 @@ class SystemSnapshot:
                 "required_score": self.ai_decision.required_score,
                 "next_evaluation_sec": self.ai_decision.next_evaluation_sec,
                 "brain_score_pct": self.ai_decision.brain_score_pct,
+                "gate_reason": self.ai_decision.gate_reason,
             },
             "market": {
                 "regime": self.market.regime,

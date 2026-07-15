@@ -322,6 +322,50 @@ def _decision_diagnostics(
     )
 
 
+def _top_candidate_gate_reason(results: list[Any]) -> str:
+    """Raison brute du gate pour le meilleur candidat — AFFICHAGE uniquement.
+
+    Le panneau AI DECISION affiche "Required: <seuil du cycle>" alors que le
+    gate applique un seuil PAR RÉGIME (bull_trend=72, high_vol=68…) comparé
+    au score packet — un ETH affiché 70/66 a été refusé 26h durant sans que
+    l'opérateur puisse voir le vrai verdict (constat 2026-07-14, zéro trade
+    depuis le restart du 13/07). Ici on remonte la raison telle que le gate
+    l'a formulée ("signal_score (66<72)"), sans la réinterpréter.
+    """
+    top: Any = None
+    top_score = -1.0
+    for r in results:
+        score = _to_float(getattr(r.get("signal"), "score", 0), 0.0)
+        if score > top_score:
+            top_score = score
+            top = r
+    if top is None:
+        return ""
+    gate = top.get("gate")
+    if gate is None or bool(getattr(gate, "allowed", False)):
+        return ""
+    failed = getattr(gate, "failed", None)
+    if failed:
+        return ", ".join(str(f) for f in failed)
+    return str(getattr(gate, "reason", "") or "")
+
+
+def _universe_pinned_symbols() -> list[str]:
+    """Univers épinglé pendant le burn-in (ADR-0015) — liste fixe, décision opérateur.
+
+    Constat 2026-07-13/14 : le restart a fait tourner l'univers (ranker au
+    boot + PerpUniverseService en continu), sortant les paires qui
+    produisaient les candidats au-dessus des seuils de régime — burn-in
+    suspendu de fait (N figé 26h+) sans qu'aucune décision explicite n'ait
+    été prise. La composition de l'univers est une variable expérimentale :
+    pendant le burn-in elle est fixée par UNIVERSE_PINNED_SYMBOLS
+    (liste séparée par espaces, même convention que V9_SYMBOLS), jamais par
+    un effet de redémarrage. Vide = comportement historique (ranker actif).
+    """
+    raw = os.getenv("UNIVERSE_PINNED_SYMBOLS", "").strip()
+    return raw.split() if raw else []
+
+
 def _decision_engine_summary(results: list[Any]) -> tuple[str, str]:
     """Utilitaire testable générique (seuil 66 par défaut, indépendant du seuil
     effectif ATE/RECOVERY). Non utilisé sur le chemin live — voir les appels de
@@ -2908,34 +2952,44 @@ def main(
     # Le service tourne en daemon thread : rafraîchit l'univers toutes les
     # UNIVERSE_REFRESH_H heures (défaut: 6h) et expose les nouveaux symboles
     # via drain_new_symbols() — injectés dynamiquement dans le cycle principal.
+    # ADR-0015 : univers épinglé pendant le burn-in → service non démarré,
+    # aucune injection dynamique (la sync par cycle est gardée par
+    # `_universe_service is not None`).
     _universe_service: Any = None
-    try:
-        from core.perp_universe_service import PerpUniverseService as _PerpUS
+    if _universe_pinned_symbols():
+        log.info(
+            "[Universe] ÉPINGLÉ (ADR-0015) — PerpUniverseService non démarré, "
+            "univers fixe de %d symboles",
+            len(symbols),
+        )
+    else:
+        try:
+            from core.perp_universe_service import PerpUniverseService as _PerpUS
 
-        _universe_service = _PerpUS()
-        _universe_service.start()
-        _universe_initial = _universe_service.initial_symbols()
-        if _universe_initial:
-            _existing_syms = set(symbols)
-            _to_merge = [s for s in _universe_initial if s not in _existing_syms]
-            if _to_merge:
-                symbols = list(symbols) + _to_merge
+            _universe_service = _PerpUS()
+            _universe_service.start()
+            _universe_initial = _universe_service.initial_symbols()
+            if _universe_initial:
+                _existing_syms = set(symbols)
+                _to_merge = [s for s in _universe_initial if s not in _existing_syms]
+                if _to_merge:
+                    symbols = list(symbols) + _to_merge
+                    log.info(
+                        "[Universe] +%d symboles chargés depuis univers persisté (total: %d)",
+                        len(_to_merge),
+                        len(symbols),
+                    )
+                # Drain initial — tous déjà dans symbols, pas besoin de ré-injecter
+                _universe_service.drain_new_symbols()
+            else:
                 log.info(
-                    "[Universe] +%d symboles chargés depuis univers persisté (total: %d)",
-                    len(_to_merge),
+                    "[Universe] Pas de fichier persisté — premier scan en background"
+                    " (univers: %d sym défaut)",
                     len(symbols),
                 )
-            # Drain initial — tous déjà dans symbols, pas besoin de ré-injecter
-            _universe_service.drain_new_symbols()
-        else:
-            log.info(
-                "[Universe] Pas de fichier persisté — premier scan en background"
-                " (univers: %d sym défaut)",
-                len(symbols),
-            )
-    except Exception as _ue:
-        log.warning("[Universe] Service non disponible: %s", _ue)
-        _universe_service = None
+        except Exception as _ue:
+            log.warning("[Universe] Service non disponible: %s", _ue)
+            _universe_service = None
     # ─────────────────────────────────────────────────────────────────────────
 
     # ── Warmup anticipé — AVANT tous les services non-critiques ───────────────
@@ -6729,6 +6783,7 @@ def main(
                             required_score=round(_eff_score, 2),
                             next_evaluation_sec=int(interval),
                             brain_score_pct=_brain_pct,
+                            gate_reason=_top_candidate_gate_reason(results),
                         ),
                         market=MarketSnapshot(
                             regime=_adaptive_regime or "unknown",
@@ -7454,6 +7509,20 @@ if __name__ == "__main__":
         _env_symbols.split() if _env_symbols.strip() else SYMBOLS_DEFAULT
     )
 
+    # ── ADR-0015 — univers épinglé pendant le burn-in ─────────────────────────
+    # UNIVERSE_PINNED_SYMBOLS non vide = liste fixe décidée par l'opérateur :
+    # le ranker et la découverte dynamique sont ignorés. La rotation d'univers
+    # au restart est une variable expérimentale — elle avait suspendu le
+    # burn-in de fait (13-14/07 : 26h+ sans trade, N figé à 36).
+    _universe_pin = _universe_pinned_symbols()
+    if _universe_pin:
+        _symbols_from_env = _universe_pin
+        log.info(
+            "[Universe] ÉPINGLÉ (ADR-0015): %d symboles fixes — "
+            "ranker et découverte dynamique ignorés",
+            len(_universe_pin),
+        )
+
     # ── MarketUniverseRanker — sélection dynamique des symboles ──────────────
     # Pipeline 2 étapes :
     #   1. PerpUniverseBuilder.discover() — 1 seul appel fetch_tickers() sur MEXC
@@ -7461,7 +7530,7 @@ if __name__ == "__main__":
     #   2. MarketUniverseRanker.rank() — scoring 6 critères (vol/liquidity/spread/
     #      volatilité/corrélation/fiabilité) → top RANKER_TOP_N (défaut 50)
     # Fallback : CANDIDATES_ALL (50 statiques) si MEXC indisponible.
-    if os.getenv("RANKER_ENABLED", "false").lower() == "true":
+    if not _universe_pin and os.getenv("RANKER_ENABLED", "false").lower() == "true":
         try:
             from infra.live_exchange_reader import LiveExchangeReader
             from tools.market_universe_ranker import (

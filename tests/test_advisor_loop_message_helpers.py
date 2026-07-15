@@ -266,6 +266,59 @@ def test_positions_for_display_falls_back_on_sim_error():
     assert rows == [{"symbol": "BTC/USDT"}]
 
 
+def _gate_result(*, score: int, allowed: bool, failed: list[str] | None = None):
+    return {
+        "signal": SimpleNamespace(score=score, actionable=True),
+        "gate": SimpleNamespace(allowed=allowed, failed=failed or []),
+    }
+
+
+def test_top_candidate_gate_reason_surfaces_failed_conditions():
+    """Régression 2026-07-14 : ETH affiché 70/100 avec 'Required: 66' était
+    refusé par le gate à 66<72 (seuil par régime sur score packet) — la
+    vraie comparaison doit remonter dans le panneau AI DECISION."""
+    results = [
+        _gate_result(score=55, allowed=False, failed=["signal_score (55<66)"]),
+        _gate_result(score=70, allowed=False, failed=["signal_score (66<72)"]),
+    ]
+
+    assert advisor_loop._top_candidate_gate_reason(results) == "signal_score (66<72)"
+
+
+def test_top_candidate_gate_reason_empty_when_gate_allows():
+    results = [_gate_result(score=70, allowed=True)]
+
+    assert advisor_loop._top_candidate_gate_reason(results) == ""
+
+
+def test_top_candidate_gate_reason_empty_without_results():
+    assert advisor_loop._top_candidate_gate_reason([]) == ""
+
+
+def test_universe_pinned_symbols_empty_by_default(monkeypatch):
+    monkeypatch.delenv("UNIVERSE_PINNED_SYMBOLS", raising=False)
+
+    assert advisor_loop._universe_pinned_symbols() == []
+
+
+def test_universe_pinned_symbols_parses_space_separated_list(monkeypatch):
+    """ADR-0015 : univers épinglé pendant le burn-in — même convention
+    que V9_SYMBOLS (liste séparée par espaces)."""
+    monkeypatch.setenv("UNIVERSE_PINNED_SYMBOLS", "  ANSEM/USDT PARK/USDT  ETH/USDT ")
+
+    assert advisor_loop._universe_pinned_symbols() == [
+        "ANSEM/USDT",
+        "PARK/USDT",
+        "ETH/USDT",
+    ]
+
+
+def test_universe_pinned_symbols_blank_means_disabled(monkeypatch):
+    monkeypatch.setenv("UNIVERSE_PINNED_SYMBOLS", "   ")
+
+    assert advisor_loop._universe_pinned_symbols() == []
+
+
 class _FakeRanker:
     def __init__(self, entries: list[dict]):
         self._entries = entries

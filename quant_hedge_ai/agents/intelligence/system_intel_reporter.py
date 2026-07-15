@@ -159,6 +159,29 @@ def _compute_kpis(closes: list[dict]) -> dict:
     }
 
 
+def _stall_anomaly(trade_stall_h: float, n_total: int) -> Optional[str]:
+    """Alerte famine de trading — moteur actif mais plus aucun trade.
+
+    Constat 2026-07-14 : 26h sans aucun trade (restart 13/07 = rotation
+    d'univers, plus aucun candidat ne franchissait son seuil de régime) et
+    aucun panneau ne le signalait — l'opérateur a dû le déduire de N figé.
+    Observateur passif : signale, ne modifie jamais rien (ADR-0007).
+    Seuil : INTEL_TRADE_STALL_ALERT_H (défaut 12h), 0 = désactivé.
+    """
+    try:
+        threshold_h = float(os.getenv("INTEL_TRADE_STALL_ALERT_H", "12"))
+    except ValueError:
+        threshold_h = 12.0
+    if threshold_h <= 0 or n_total <= 0:
+        return None
+    if trade_stall_h < threshold_h:
+        return None
+    return (
+        f"aucun trade clôturé depuis {trade_stall_h:.0f}h "
+        f"(moteur actif, N figé à {n_total})"
+    )
+
+
 class SystemIntelReporter:
     """
     Diagnostic complet du système — destiné exclusivement au bot Intelligence.
@@ -206,6 +229,8 @@ class SystemIntelReporter:
         kpis = _compute_kpis(closes)
         n_since = max(0, kpis["n"] - prev.n_closed)
         pnl_since = kpis["total_pnl"] - prev.pnl_total
+        last_close_ts = max((float(c.get("ts", 0) or 0) for c in closes), default=0.0)
+        trade_stall_h = (now - last_close_ts) / 3600 if last_close_ts else 0.0
 
         regimes_now = self._current_regimes(results)
         regime_changes = [
@@ -220,6 +245,7 @@ class SystemIntelReporter:
             "kpis": kpis,
             "n_since": n_since,
             "pnl_since": pnl_since,
+            "trade_stall_h": trade_stall_h,
             "regimes_now": regimes_now,
             "regime_changes": regime_changes,
             "pos_manager_stats": self._pos_stats(pos_manager),
@@ -375,6 +401,9 @@ class SystemIntelReporter:
             anomalies.append(f"{dataset['violations']} violation(s) dataset")
         if stab and stab.get("state", "stable") != "stable":
             anomalies.append(f"comportement {stab['state']}")
+        stall = _stall_anomaly(ctx.get("trade_stall_h", 0.0), ctx["kpis"].get("n", 0))
+        if stall:
+            anomalies.append(stall)
         lines.append(
             "SANTÉ : OK"
             if not anomalies
@@ -469,6 +498,14 @@ class SystemIntelReporter:
             return (
                 "Aucun trade fermé encore — burn-in en phase d'accumulation, "
                 "rien à signaler."
+            )
+
+        if _stall_anomaly(ctx.get("trade_stall_h", 0.0), kpis["n"]):
+            return (
+                "Trading à l'arrêt : aucun candidat ne franchit son seuil de "
+                "régime depuis le dernier trade (cf ligne Gate du panneau AI "
+                "DECISION). Burn-in suspendu — décision opérateur requise "
+                "(univers/seuils), aucun ajustement automatique ne sera fait."
             )
 
         if kpis["n"] >= 100:
