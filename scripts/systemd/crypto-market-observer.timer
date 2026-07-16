@@ -1,0 +1,12 @@
+# ADR-0016 — déclenche le pouls du marché toutes les 15 minutes.
+[Unit]
+Description=Timer 15 min - pouls marche MEXC complet (ADR-0016)
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=15min
+AccuracySec=1min
+Persistent=false
+
+[Install]
+WantedBy=timers.target
