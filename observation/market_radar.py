@@ -38,11 +38,16 @@ import math
 import os
 import re
 import statistics
+import sys
 import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from observation.market_observer import day_file, obs_dir, read_day
+# Racine du repo sur sys.path — permet `python observation/market_radar.py`
+# en invocation directe (même convention que tools/cri_calculator.py).
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from observation.market_observer import day_file, obs_dir, read_day  # noqa: E402
 
 # Références de scoring — alignées sur PerpUniverseBuilder (pas de nouveau
 # barème, seulement la même grille appliquée au store d'observation).
