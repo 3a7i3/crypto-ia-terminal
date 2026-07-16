@@ -1,0 +1,12 @@
+# ADR-0016 phase R2 — évaluation à horizons chaque jour à 06:15 UTC
+# (15 min après le radar R1 pour lire la shortlist fraîche).
+[Unit]
+Description=Timer quotidien - R2 horizons shortlist (ADR-0016)
+
+[Timer]
+OnCalendar=*-*-* 06:15:00 UTC
+AccuracySec=5min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

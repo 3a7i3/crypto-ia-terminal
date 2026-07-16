@@ -1,0 +1,18 @@
+# ADR-0016 phase R2 — évaluation à horizons de la shortlist radar.
+# Oneshot déclenché par crypto-market-horizons.timer (06:15 UTC, après le
+# radar de 06:00). Strictement passif, zéro appel API (relit le pouls).
+# Installation (VPS, geste opérateur) :
+#   sudo cp scripts/systemd/crypto-market-horizons.{service,timer} /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now crypto-market-horizons.timer
+[Unit]
+Description=Crypto AI Terminal - R2 horizons shortlist radar (ADR-0016, passif)
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=mathieuhasard111
+WorkingDirectory=/home/mathieuhasard111/crypto_ai_terminal
+ExecStart=/home/mathieuhasard111/crypto_ai_terminal/.venv/bin/python observation/horizon_evaluator.py --run
+Nice=10
+TimeoutStartSec=300
