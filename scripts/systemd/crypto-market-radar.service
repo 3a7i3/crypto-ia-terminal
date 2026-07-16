@@ -1,0 +1,19 @@
+# ADR-0016 phase R1 — radar de marché global : shortlist quotidienne passive
+# calculée sur la fenêtre 24h du pouls. Oneshot déclenché par le timer.
+# Installation (VPS, geste opérateur) :
+#   sudo cp scripts/systemd/crypto-market-radar.{service,timer} /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now crypto-market-radar.timer
+[Unit]
+Description=Crypto AI Terminal - radar marche global R1 (ADR-0016, passif)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=mathieuhasard111
+WorkingDirectory=/home/mathieuhasard111/crypto_ai_terminal
+EnvironmentFile=-/home/mathieuhasard111/crypto_ai_terminal/.env
+ExecStart=/home/mathieuhasard111/crypto_ai_terminal/.venv/bin/python observation/market_radar.py --run
+Nice=10
+TimeoutStartSec=300

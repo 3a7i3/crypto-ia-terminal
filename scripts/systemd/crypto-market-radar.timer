@@ -1,0 +1,12 @@
+# ADR-0016 phase R1 — shortlist radar recalculée chaque jour à 06:00 UTC
+# (fenêtre 24h de pouls complète).
+[Unit]
+Description=Timer quotidien - radar marche global R1 (ADR-0016)
+
+[Timer]
+OnCalendar=*-*-* 06:00:00 UTC
+AccuracySec=5min
+Persistent=true
+
+[Install]
+WantedBy=timers.target
