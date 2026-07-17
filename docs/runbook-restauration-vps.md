@@ -69,6 +69,33 @@ sudo systemctl enable --now crypto-market-horizons.timer
 4. `python observation/market_observer.py --summary` : le pouls reprend.
 5. `python tools/throughput_probe.py --days 7` : lecture normale.
 
+## Bascule ancienne → nouvelle instance (planifiée J-5 avant l'échéance GCP)
+
+Fenêtre décidée par l'opérateur (2026-07-18) : bascule autour du
+**31/07-01/08** (échéance essai ≈ 05/08). Ordre STRICT — jamais deux
+moteurs en parallèle :
+
+1. **J-5, préparation (sans toucher à l'ancienne)** : instance neuve créée
+   par l'opérateur (voir § Restauration : specs, clé SSH) → Claude Code
+   exécute les étapes 1-5 du runbook sur la neuve (code + venv + unités),
+   **SANS démarrer aucun service** (`enable` sans `--now` interdit ici :
+   ne pas enable du tout).
+2. **Répétition générale** : restaurer une sauvegarde fraîche sur la
+   neuve, lancer les vérifications 3-5 (cri_calculator, pouls --summary,
+   throughput_probe) — moteur toujours éteint. Toute anomalie se règle
+   ici, pendant que l'ancienne trade normalement.
+3. **Jour J** : (a) `sudo systemctl stop crypto-advisor crypto-watchdog`
+   + stop des 3 timers sur l'ANCIENNE ; (b) sauvegarde finale (tar) et
+   transfert direct ancienne→neuve (delta de quelques heures) ;
+   (c) extraction sur la neuve ; (d) démarrage des services sur la neuve
+   (ordre du § Restauration) ; (e) vérifications post-restauration ;
+   (f) `.env` local : nouveau `VPS_HOST` ; whitelist IP MEXC si active.
+4. **J+1** : re-vérifier N/CRI identiques + premier rapport Telegram
+   cohérent, PUIS seulement éteindre/supprimer l'ancienne instance
+   (les données y restent ~30 j après fin d'essai de toute façon).
+
+Interruption de trading attendue : < 30 minutes (étape 3).
+
 ## Pièges connus
 
 - **Ne pas** lancer deux moteurs en parallèle (ancienne + nouvelle instance) :
