@@ -1,0 +1,31 @@
+# Copie de reference de l'unite VPS (moteur reel) - capturee le 2026-07-16
+# pour le runbook de restauration (docs/runbook-restauration-vps.md).
+[Unit]
+Description=Crypto AI Terminal — Advisor Loop
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=120
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=mathieuhasard111
+WorkingDirectory=/home/mathieuhasard111/crypto_ai_terminal
+EnvironmentFile=-/home/mathieuhasard111/crypto_ai_terminal/.env
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONIOENCODING=utf-8
+Environment=TZ=UTC
+Environment=PYTHONPATH=/home/mathieuhasard111/crypto_ai_terminal:/home/mathieuhasard111/crypto_ai_terminal/core
+Environment=DP_LOG_DIR=/home/mathieuhasard111/crypto_ai_terminal/databases
+ExecStart=/home/mathieuhasard111/crypto_ai_terminal/.venv/bin/python core/advisor_loop.py
+Restart=on-failure
+RestartSec=10s
+TimeoutStopSec=30
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=crypto_advisor
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

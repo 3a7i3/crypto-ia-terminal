@@ -2303,9 +2303,12 @@ def _build_summary(
     ]
 
     # ── Section 1 : Actionnables ──────────────────────────────────────────────
+    # ADR-0017 T5 : plafonds d'affichage — au-delà, compteur seul. Le résumé
+    # reste lisible aux paliers 100-1000 paires (anti-spam opérateur).
+    _max_actionnables = 10
     if actionnables:
         lines.append(f"ACTIONNABLES ({len(actionnables)})")
-        for r in actionnables:
+        for r in actionnables[:_max_actionnables]:
             s = r["signal"]
             g = r["gate"]
             a = r["advice"]
@@ -2317,6 +2320,10 @@ def _build_summary(
             lines.append(
                 f"  {icon} {sym} {s.score:>3}  {bar}  {reg:<5}  {gate}"
                 f"  {a.risk_level if a else '?'}"
+            )
+        if len(actionnables) > _max_actionnables:
+            lines.append(
+                f"  … +{len(actionnables) - _max_actionnables} autres >= {min_score}"
             )
         lines.append("")
     else:
@@ -2331,11 +2338,12 @@ def _build_summary(
         lines.append("")
 
     # ── Section 2 : Surveillance (score 50 à seuil-1) ────────────────────────
+    _max_surveillance = 16  # ADR-0017 T5 — 4 lignes de 4, puis compteur
     if surveillance:
         lines.append(f"SURVEILLANCE ({len(surveillance)} | 50-{min_score - 1})")
         # 4 symboles par ligne pour rester compact
         row: list[str] = []
-        for r in surveillance:
+        for r in surveillance[:_max_surveillance]:
             s = r["signal"]
             icon = _SIGNAL_ICON.get(s.signal, "?")
             sym = r["symbol"].replace("/USDT", "")
@@ -2345,6 +2353,8 @@ def _build_summary(
                 row = []
         if row:
             lines.append("  " + "  ".join(row))
+        if len(surveillance) > _max_surveillance:
+            lines.append(f"  … +{len(surveillance) - _max_surveillance} autres")
         lines.append("")
 
     # ── Section 3 : Faibles (score < 50) — compteur seul ─────────────────────

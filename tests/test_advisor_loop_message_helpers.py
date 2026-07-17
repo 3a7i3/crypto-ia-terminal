@@ -319,6 +319,37 @@ def test_universe_pinned_symbols_blank_means_disabled(monkeypatch):
     assert advisor_loop._universe_pinned_symbols() == []
 
 
+def _summary_result(i: int, score: int):
+    return {
+        "symbol": f"S{i}/USDT",
+        "signal": SimpleNamespace(
+            score=score, signal="BUY", regime="sideways", actionable=score >= 66
+        ),
+        "gate": SimpleNamespace(allowed=False),
+        "advice": SimpleNamespace(risk_level="high"),
+    }
+
+
+def test_build_summary_caps_lists_at_palier_scale():
+    """ADR-0017 T5 : à 150 paires, le résumé @QuantCrpto plafonne les listes
+    (10 actionnables + 16 surveillance) et affiche des compteurs — jamais
+    une ligne par symbole."""
+    results = [_summary_result(i, 70) for i in range(40)]  # 40 actionnables
+    results += [_summary_result(100 + i, 55) for i in range(60)]  # 60 surveillance
+    results += [_summary_result(200 + i, 30) for i in range(50)]  # 50 faibles
+
+    text = advisor_loop._build_summary(results, cycle=1, min_score=66)
+
+    assert "ACTIONNABLES (40)" in text
+    assert "… +30 autres >= 66" in text
+    assert "SURVEILLANCE (60 | 50-65)" in text
+    assert "… +44 autres" in text
+    assert "FAIBLES (50" in text  # déjà un compteur seul
+    # le message reste borné : jamais 150 lignes de symboles
+    assert text.count("/USDT") == 0  # les symboles sont affichés sans suffixe
+    assert len(text.splitlines()) < 40
+
+
 class _FakeRanker:
     def __init__(self, entries: list[dict]):
         self._entries = entries

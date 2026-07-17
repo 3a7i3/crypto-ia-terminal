@@ -239,6 +239,41 @@ def _kpi_line(label: str, val_str: str, bar: str, target_str: str, status: str) 
     return f"{label:<9} {bar}  {val_str:<7} cible {target_str:<6} {status}"
 
 
+# ADR-0017 T5 (anti-spam opérateur) : au-delà de ce nombre de paires, les
+# panneaux SIGNAUX passent en agrégats — compteurs par régime + top par
+# score — jamais une ligne par symbole. Dimensionné pour rester lisible
+# jusqu'aux paliers 500-1000 de l'univers tradé.
+_SIGNALS_DETAIL_MAX = 30
+
+
+def _signal_row(sym: str, s: dict) -> str:
+    return (
+        f"  {sym}  {s.get('score', 0)}/100  "
+        f"{s.get('action', s.get('signal', '?'))}  {s.get('regime', '')}"
+    )
+
+
+def _signals_lines(items: list, top: int = 10) -> list[str]:
+    """Signaux → lignes Telegram, agrégées au-delà de _SIGNALS_DETAIL_MAX."""
+    rows = [(sym, s) for sym, s in items if isinstance(s, dict)]
+    if len(rows) <= _SIGNALS_DETAIL_MAX:
+        return [_signal_row(sym, s) for sym, s in rows]
+    by_regime: dict[str, int] = {}
+    for _sym, s in rows:
+        regime = str(s.get("regime", "?") or "?")
+        by_regime[regime] = by_regime.get(regime, 0) + 1
+    regimes_txt = " | ".join(
+        f"{r}: {n}" for r, n in sorted(by_regime.items(), key=lambda x: -x[1])
+    )
+    top_rows = sorted(
+        rows, key=lambda kv: float(kv[1].get("score", 0) or 0), reverse=True
+    )[:top]
+    lines = [f"  {len(rows)} paires | {regimes_txt}", f"  Top {len(top_rows)}:"]
+    lines += [_signal_row(sym, s) for sym, s in top_rows]
+    lines.append(f"  … +{len(rows) - len(top_rows)} autres (détail hors Telegram)")
+    return lines
+
+
 def _fmt_status(p: CommandDataProvider) -> str:
     from datetime import datetime, timezone
 
@@ -519,7 +554,12 @@ def _fmt_signals(p: CommandDataProvider) -> str:
     if not sigs:
         return "_Signaux non disponibles_"
     lines = ["*SIGNAUX ACTUELS*", _SEP]
-    items = sigs.items() if isinstance(sigs, dict) else list(enumerate(sigs))
+    items = list(sigs.items()) if isinstance(sigs, dict) else list(enumerate(sigs))
+    dict_items = [(sym, s) for sym, s in items if isinstance(s, dict)]
+    if len(dict_items) > _SIGNALS_DETAIL_MAX:
+        # ADR-0017 T5 — agrégats au-delà du seuil, jamais 1 ligne/symbole
+        lines += _signals_lines(dict_items)
+        return "\n".join(lines)
     for sym, s in items:
         if isinstance(s, dict):
             score = float(s.get("score", s.get("confidence", 0)))
@@ -964,13 +1004,8 @@ def _fmt_rapport(p: CommandDataProvider) -> str:
 
     if sigs:
         lines += ["", "*SIGNAUX*"]
-        items = sigs.items() if isinstance(sigs, dict) else []
-        for sym, s in items:
-            if isinstance(s, dict):
-                score = s.get("score", 0)
-                action = s.get("action", s.get("signal", "?"))
-                regime = s.get("regime", "")
-                lines.append(f"  {sym}  {score}/100  {action}  {regime}")
+        items = list(sigs.items()) if isinstance(sigs, dict) else []
+        lines += _signals_lines(items)
 
     if trades:
         from datetime import datetime as _dt
