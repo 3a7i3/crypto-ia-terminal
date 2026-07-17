@@ -37,8 +37,11 @@ sudo apt update && sudo apt install -y python3.11 python3.11-venv git
 git clone https://github.com/3a7i3/crypto-ia-terminal.git ~/crypto_ai_terminal
 cd ~/crypto_ai_terminal
 
-# 3. Environnement Python
-python3.11 -m venv .venv && .venv/bin/pip install -r requirements.txt
+# 3. Environnement Python — utiliser l'inventaire GELÉ de production
+#    (requirements.txt avait dérivé : ccxt manquant, découvert lors de la
+#    préparation du 2026-07-18) :
+python3.11 -m venv .venv
+.venv/bin/pip install -r requirements-vps-frozen-20260718.txt
 
 # 4. Données + secrets (depuis la sauvegarde rapatriée sur la nouvelle machine)
 tar xzf vps_science_backup_YYYYMMDD.tar.gz -C ~/crypto_ai_terminal

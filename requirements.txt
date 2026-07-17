@@ -8,3 +8,8 @@ streamlit
 plotly
 python-dotenv
 pydantic-settings>=2.14
+
+# Dérive corrigée 2026-07-18 (préparation migration) : ccxt était installé à la
+# main sur le VPS mais absent d ici — le runbook échouait sur machine neuve.
+# Inventaire exact de production : requirements-vps-frozen-20260718.txt
+ccxt>=4.5
