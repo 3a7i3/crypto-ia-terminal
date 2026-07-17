@@ -3002,6 +3002,26 @@ def main(
             _universe_service = None
     # ─────────────────────────────────────────────────────────────────────────
 
+    # ── ADR-0017 paliers 2-3 — ordonnanceur rotation top-K (flag, défaut OFF) ─
+    # Change l'ORDONNANCEMENT du scan, jamais l'analyse : chaque paire
+    # sélectionnée passe le pipeline de décision complet. Défaut désactivé =
+    # comportement historique strictement identique.
+    _topk_scheduler: Any = None
+    try:
+        from core.topk_scheduler import scheduler_from_env as _topk_from_env
+
+        _topk_scheduler = _topk_from_env(list(symbols))
+        if _topk_scheduler is not None:
+            log.info(
+                "[TopK] ACTIVÉ — K=%d par cycle sur univers de %d "
+                "(positions > chaudes pouls > round-robin borné)",
+                _topk_scheduler.k,
+                len(symbols),
+            )
+    except Exception as _tk_exc:
+        log.warning("[TopK] indisponible (%s) — scan complet", _tk_exc)
+        _topk_scheduler = None
+
     # ── Warmup anticipé — AVANT tous les services non-critiques ───────────────
     # Les scanners ne dépendent que de runtime.MarketScanner (pur Python).
     # On les crée ici et on lance immédiatement les futures 1h en background
@@ -5353,16 +5373,47 @@ def main(
             _cycle_exec_failed = (
                 False  # une seule incrémentation par cycle, pas par symbole
             )
-            # Parallel OHLCV pre-scan — remplit le cache pour tous les symboles
-            # avant la boucle séquentielle de décision/exécution.
+            # ── TopK (ADR-0017) — sélection des symboles du cycle ─────────────
+            # Flag OFF (_topk_scheduler=None) → _cycle_symbols == symbols :
+            # comportement historique inchangé.
+            _cycle_symbols = symbols
+            if _topk_scheduler is not None:
+                try:
+                    _tk_open: set[str] = set()
+                    if _virtual_portfolio is not None:
+                        _tk_open = {
+                            p.symbol
+                            for p in _virtual_portfolio.get_open_positions_summary().positions
+                        }
+                    from core.topk_scheduler import hot_symbols_from_latest
+
+                    _tk_hot = hot_symbols_from_latest(
+                        list(symbols), max(5, _topk_scheduler.k // 3)
+                    )
+                    _cycle_symbols = _topk_scheduler.select(_tk_open, _tk_hot)
+                    log.info(
+                        "[TopK] cycle %d : %d/%d symboles (%d position(s), %d chaude(s))",
+                        cycle,
+                        len(_cycle_symbols),
+                        len(symbols),
+                        len(_tk_open),
+                        len(_tk_hot),
+                    )
+                except Exception as _tk_cycle_exc:
+                    _cycle_symbols = symbols
+                    log.debug("[TopK] fallback univers complet: %s", _tk_cycle_exc)
+
+            # Parallel OHLCV pre-scan — remplit le cache pour les symboles du
+            # cycle avant la boucle séquentielle de décision/exécution.
             _prescan_workers = min(
-                len(symbols), int(os.getenv("ADVISOR_PRESCAN_WORKERS", "20"))
+                len(_cycle_symbols), int(os.getenv("ADVISOR_PRESCAN_WORKERS", "20"))
             )
             with ThreadPoolExecutor(
                 max_workers=_prescan_workers, thread_name_prefix="prescan"
             ) as _prescan_pool:
                 _prescan_futures = {
-                    _prescan_pool.submit(scanners["1h"][s].scan): s for s in symbols
+                    _prescan_pool.submit(scanners["1h"][s].scan): s
+                    for s in _cycle_symbols
                 }
                 for _pf, _ps in _prescan_futures.items():
                     try:
@@ -5380,12 +5431,12 @@ def main(
                 )
 
                 _stab_map = {}
-                for _s in symbols:
+                for _s in _cycle_symbols:
                     try:
                         _stab_map.update(scanners["1h"][_s].last_stability)
                     except Exception:
                         pass
-                symbols_ordered = sort_by_tradability(symbols, _stab_map)
+                symbols_ordered = sort_by_tradability(_cycle_symbols, _stab_map)
                 if symbols_ordered:
                     log.debug(
                         "[Stability] Top 3 tradables: %s",
@@ -5396,7 +5447,7 @@ def main(
                         ),
                     )
             except Exception as _sort_exc:
-                symbols_ordered = symbols
+                symbols_ordered = _cycle_symbols
                 log.debug("[Stability] tri ignoré: %s", _sort_exc)
 
             for sym in symbols_ordered:

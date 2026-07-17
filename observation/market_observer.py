@@ -191,6 +191,8 @@ def snapshot_once(directory: Path | None = None) -> dict:
 
     path = day_file(directory, now)
     written = append_records(path, records) if records else 0
+    if records:
+        write_latest_tick(directory, now, records)
     pruned = prune_old_files(directory, retention, now)
     return {
         "counts": counts,
@@ -200,6 +202,28 @@ def snapshot_once(directory: Path | None = None) -> dict:
         "file": str(path),
         "pruned": pruned,
     }
+
+
+def write_latest_tick(directory: Path, now: float, records: list[dict]) -> None:
+    """Sidecar compact du DERNIER tick — lu par l'ordonnanceur top-K du
+    moteur (core/topk_scheduler.py, ADR-0017 paliers 2-3) pour désigner les
+    paires « chaudes » à analyser en priorité. Écriture atomique
+    (tmp + replace) : jamais de lecture déchirée côté moteur. Le pouls
+    reste passif : il DÉSIGNE des candidats à analyser, il n'autorise rien."""
+    payload = {
+        "ts": round(now, 1),
+        "pairs": {
+            r["sym"]: {"chg": r.get("chg"), "mkt": r.get("mkt")}
+            for r in records
+            if r.get("mkt") == "spot"
+        },
+    }
+    tmp = directory / "latest_tick.json.tmp"
+    tmp.write_text(
+        json.dumps(payload, ensure_ascii=False, separators=(",", ":")),
+        encoding="utf-8",
+    )
+    os.replace(tmp, directory / "latest_tick.json")
 
 
 # ── Résumé lecture (audit rapide) ──────────────────────────────────────────────

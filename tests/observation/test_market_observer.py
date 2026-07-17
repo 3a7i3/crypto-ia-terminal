@@ -125,6 +125,10 @@ def test_snapshot_once_writes_all_markets(tmp_path, monkeypatch):
     assert summary["bytes_written"] > 0
     records = read_day(day_file(tmp_path, time.time()))
     assert {r["mkt"] for r in records} == {"spot", "swap"}
+    # Sidecar top-K (ADR-0017) : dernier tick spot, écrit atomiquement
+    latest = json.loads((tmp_path / "latest_tick.json").read_text(encoding="utf-8"))
+    assert "BTC/USDT" in latest["pairs"]
+    assert "BTC/USDT:USDT" not in latest["pairs"]  # spot uniquement
 
 
 def test_summarize_day_reads_back(tmp_path):
