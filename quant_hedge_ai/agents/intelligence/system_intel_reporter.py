@@ -47,7 +47,7 @@ _LM_SYSTEM_PROMPT = (
 # texte "post-2026-06-25" codé en dur était périmé (réconciliation 2026-07-12)
 # alors que le calcul de N utilisait déjà la borne v3.
 try:
-    from scripts.data_quality import CLEAN_DATA_SINCE_V3 as _CLEAN_SINCE
+    from scripts.data_quality import CLEAN_DATA_SINCE_ACTIVE as _CLEAN_SINCE
 
     _CLEAN_SINCE_LABEL = _CLEAN_SINCE.strftime("%Y-%m-%d")
 except Exception:  # pragma: no cover — import direct hors racine repo

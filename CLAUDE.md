@@ -58,13 +58,18 @@ H1-H6 existante qui la justifie.
 
 Tant que ces seuils ne sont pas atteints : **ACE interdit, zéro modification de seuil**.
 
-**Borne canonique du dataset propre — `CLEAN_DATA_SINCE_V3 = 2026-07-09T07:45:00Z`.**
+**Borne canonique du dataset propre — `CLEAN_DATA_SINCE_V4 = 2026-07-17T01:30:00Z`**
+(époque palier 1, ADR-0017 : univers tradé élargi à 135 paires épinglées —
+l'univers est une variable expérimentale, changer d'univers = changer
+d'époque ; V3 = époque 28 paires, N=49, archivée et comparable en interne).
 Toute donnée antérieure à ce timestamp (`paper_trades.jsonl`, `regret_analysis.jsonl`)
 est invalide pour le calcul de N et de tout seuil ci-dessus — appliquée par
-`scripts/data_quality.py` (source unique) et importée par
-`tools/cri_calculator.py::load_clean_trades()`, jamais copiée localement.
-Cette borne **remplace** v1 (`2026-06-25`, ADR-0011) et v2
-(`2026-07-09T01:16:00Z`, ADR-0012) sans les contredire : chaque version
+`scripts/data_quality.py` (source unique, alias `CLEAN_DATA_SINCE_ACTIVE`
+à importer partout) et par `tools/cri_calculator.py::load_clean_trades()`,
+jamais copiée localement.
+Cette borne **remplace** v1 (`2026-06-25`, ADR-0011), v2
+(`2026-07-09T01:16:00Z`, ADR-0012) et v3 (`2026-07-09T07:45:00Z`,
+addendum ADR-0012) sans les contredire : chaque version
 exclut strictement un sur-ensemble de la précédente — adopter la borne la
 plus récente et la plus large satisfait toutes les exigences simultanément.
 Historique : v2 marquait le restart censé activer le gate d'exécution réelle

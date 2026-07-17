@@ -157,7 +157,7 @@ def load_trades_window(db_dir: Path, since_ts: float) -> dict:
 
 
 def canonical_n(db_dir: Path) -> int:
-    """N canonique (borne CLEAN_DATA_SINCE_V3) — même source que le CRI."""
+    """N canonique (borne CLEAN_DATA_SINCE_ACTIVE) — même source que le CRI."""
     try:
         from tools.cri_calculator import load_clean_trades
 

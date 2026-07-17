@@ -67,6 +67,36 @@
 - **Réversibilité** : revenir à la liste 28 paires ADR-0015 + re-borner —
   documenté par révision d'ADR.
 
+## Révision 2026-07-17 — ACTIVATION du palier 1 (époque V4)
+
+**Décision opérateur (Mathieu, 2026-07-16)** : « si on peut déjà passer à
+1000 paires faisons-le […] le burn-in est toujours en cours mais il ne vaut
+plus grand-chose […] le burn-in pourrait reprendre plus tard ». L'opérateur
+**déroge explicitement à T1 (5 j de R2) et T2 (churn)** — dérogation assumée
+et documentée ici : R2 continue de mesurer quotidiennement, toute anomalie
+de qualité sera visible dans les rapports des prochains jours.
+
+État des déclencheurs au moment de l'activation :
+- T1 : DÉROGÉ (1 j de données R2 — 277 opportunités/jour au top 100)
+- T2 : DÉROGÉ (1 seule shortlist produite)
+- T3 : ✅ provisoire (277 opp/j >> 5× le débit V3 de ~5-6 trades/j)
+- T4 : ✅ mesuré (1,10 s/paire fetch ; 135 paires ≈ 149 s de fetch,
+  cycle complet attendu 4-7 min — le moteur dort `interval` APRÈS chaque
+  cycle, un cycle long ne casse rien, la cadence d'évaluation ralentit)
+- T5 : ✅ livré (panneaux agrégés, commit `3a5a05a`)
+- T6 : ✅ le présent texte + liste figée ci-dessous
+
+**Borne d'époque** : `CLEAN_DATA_SINCE_V4 = 2026-07-17T01:30:00Z`
+(scripts/data_quality.py, alias `CLEAN_DATA_SINCE_ACTIVE`).
+Époque V3 archivée : 28 paires, N=49, dernier trade 2026-07-16T17:32:56Z.
+
+**Palier 1 — liste figée (135 paires, toutes vérifiées présentes sur le
+spot MEXC via le pouls ; 44 entrées de la shortlist sans équivalent spot
+attendront le chantier scanner/perp)** : les 28 paires ADR-0015 +
+compléments shortlist R1 du 2026-07-16 par score composite décroissant —
+liste exacte dans `UNIVERSE_PINNED_SYMBOLS` (.env VPS) et reproduite dans
+le commit d'activation.
+
 ## Liens
 
 - ADR-0011/0012 (précédents de bornes d'époque V1→V3)

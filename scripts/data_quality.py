@@ -55,6 +55,20 @@ CLEAN_DATA_SINCE_V2 = datetime(2026, 7, 9, 1, 16, 0, tzinfo=timezone.utc)
 # ci-dessus, qui concerne un problème différent.
 CLEAN_DATA_SINCE_V3 = datetime(2026, 7, 9, 7, 45, 0, tzinfo=timezone.utc)
 
+# CLEAN_DATA_SINCE_V4 — époque du palier 1 (ADR-0017, décision opérateur
+# 2026-07-16 : « le burn-in pourrait reprendre plus tard », compteur remis à
+# zéro au moment de l'élargissement). Timestamp posé au restart qui active
+# l'univers tradé épinglé de 135 paires (UNIVERSE_PINNED_SYMBOLS, liste dans
+# ADR-0017). Les données V3 (28 paires, N=49) restent archivées et
+# comparables entre elles — jamais mélangées avec V4 : l'univers est une
+# variable expérimentale, changer d'univers = changer d'époque.
+CLEAN_DATA_SINCE_V4 = datetime(2026, 7, 17, 1, 30, 0, tzinfo=timezone.utc)
+
+# Borne ACTIVE — importer CET alias partout (cri_calculator, reporter, …) :
+# les changements d'époque futurs (paliers 500/1000, ADR-0017) ne devront
+# modifier que cette ligne.
+CLEAN_DATA_SINCE_ACTIVE = CLEAN_DATA_SINCE_V4
+
 REQUIRED_OPEN_FIELDS = {"trade_id", "symbol", "side", "entry_price"}
 REQUIRED_CLOSE_FIELDS = {"trade_id", "symbol", "pnl_usd", "pnl_pct"}
 

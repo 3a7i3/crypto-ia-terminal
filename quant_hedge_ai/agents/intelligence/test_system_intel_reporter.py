@@ -1,4 +1,4 @@
-"""Tests SystemIntelReporter — filtre CLEAN_DATA_SINCE_V3 (ADR-0011).
+"""Tests SystemIntelReporter — filtre CLEAN_DATA_SINCE_ACTIVE (ADR-0011).
 
 Cas synthétiques uniquement (comme tests/test_cri_calculator.py) : vérifie
 que le rapport Intel compte le même N canonique que le CRI, et ne recommande
@@ -10,10 +10,10 @@ from __future__ import annotations
 import json
 
 import quant_hedge_ai.agents.intelligence.system_intel_reporter as sir
-from tools.cri_calculator import CLEAN_DATA_SINCE_V3
+from tools.cri_calculator import CLEAN_DATA_SINCE_ACTIVE
 
-_AFTER = CLEAN_DATA_SINCE_V3.timestamp() + 3600  # 1h après la borne
-_BEFORE = CLEAN_DATA_SINCE_V3.timestamp() - 3600  # 1h avant la borne
+_AFTER = CLEAN_DATA_SINCE_ACTIVE.timestamp() + 3600  # 1h après la borne
+_BEFORE = CLEAN_DATA_SINCE_ACTIVE.timestamp() - 3600  # 1h avant la borne
 
 
 def _close(ts: float, pnl_usd: float = 1.0) -> dict:
