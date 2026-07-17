@@ -1,7 +1,47 @@
 # ROADMAP — Crypto AI Terminal
 
-> Dernière mise à jour : 2026-06-15
-> Statut global : **P10 FERMÉ** → **Burn-in paper trading actif (MEXC, VPS déployé)**
+> Dernière mise à jour : 2026-07-17
+> Statut global : **Époque V4 active** — burn-in paper sur univers épinglé
+> de **135 paires** (ADR-0017, N compte depuis `2026-07-17T01:30Z`) +
+> **couche d'observation marché complet MEXC** (ADR-0016 : ~3224 paires
+> spot+perp toutes les 15 min, radar quotidien, horizons R2).
+
+---
+
+## État courant — Époque V4 (2026-07-17)
+
+**Ce qui tourne en production (VPS GCP, systemd) :**
+
+| Composant | Cadence | Rôle |
+|---|---|---|
+| `crypto-advisor` (moteur) | cycle ~5,5 min | trade paper 135 paires épinglées, seuils par régime inchangés |
+| `crypto-watchdog` | continu | surveillance moteur (alerte seule) |
+| `crypto-market-observer` | 15 min | pouls tickers spot+perp complet → `databases/observation/` |
+| `crypto-market-radar` (R1) | 06:00 UTC | shortlist top 200 liquide/tradable |
+| `crypto-market-horizons` (R2) | 06:15 UTC | qualité 15m/1h/4h par palier (top 50/100/200) |
+
+**Jalons récents** : ADR-0015 (univers épinglé), ADR-0016 (observation
+totale, phases R1+R2), ADR-0017 (époque V4 + paliers, palier 1 = 135
+paires activé le 17/07, V3 archivée à N=49), sonde de débit
+(`tools/throughput_probe.py`), sonde de charge (`tools/scan_load_probe.py`,
+1,10 s/paire mesuré), panneaux Telegram agrégés, runbook de restauration
+(`docs/runbook-restauration-vps.md`) + sauvegarde données 16 Mo hors VPS.
+
+**Prochaines étapes (ordre décidé par l'opérateur 2026-07-17) :**
+
+1. **Chantier scanner rotation top-K** (`docs/design/scanner-500-paires.md`,
+   étage B) — condition d'accès aux paliers 500 puis 1000 paires
+   (aujourd'hui : 18 min/cycle à 1000, mesuré). Livraison derrière flag
+   `SCANNER_TOPK_ENABLED` + test d'équivalence sur l'univers courant.
+2. **Migration d'instance** (Mathieu) : Hetzner CPX31 ou équivalent
+   (4 vCPU / 8 Go / 80 Go, Ubuntu 22.04+) → restauration par le runbook.
+   Fallback impératif : bascule facturation GCP avant ~2026-08-05
+   (fin de l'essai = arrêt de la VM par Google).
+3. **Suivi époque V4** : WR/PF/N sur le grand univers (rapports quotidiens
+   R1/R2 + throughput_probe) ; paliers 500/1000 par révision ADR-0017 une
+   fois le top-K livré.
+4. **ADR-0014** (proposé, en attente) : brancher ranker/meta-strategy sur
+   les données MexcSim — décision opérateur séparée.
 
 ---
 
