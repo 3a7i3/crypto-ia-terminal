@@ -378,6 +378,33 @@ def _paper_equity_display() -> float | None:
         return None
 
 
+_real_accounts_obs = None
+
+
+def _real_accounts_snapshots():
+    """Soldes des comptes API réels (« compte n°1 ») — affichage uniquement.
+
+    Observation passive (ADR-0007) : lecture seule des comptes configurés
+    via {EXCHANGE}_API_KEY/_API_SECRET, cache TTL 15 min, jamais utilisée
+    pour le sizing. Vide tant qu'aucun exchange n'a ses clés en .env.
+    """
+    global _real_accounts_obs
+    try:
+        from observability.real_accounts import (
+            RealAccountsObserver,
+            configured_exchanges,
+        )
+
+        if not configured_exchanges():
+            return ()
+        if _real_accounts_obs is None:
+            _real_accounts_obs = RealAccountsObserver()
+        return _real_accounts_obs.snapshot()
+    except Exception as exc:
+        log.debug("[Compte1] observation indisponible: %s", exc)
+        return ()
+
+
 def _universe_pinned_symbols() -> list[str]:
     """Univers épinglé pendant le burn-in (ADR-0015) — liste fixe, décision opérateur.
 
@@ -6988,6 +7015,14 @@ def main(
                     # Portfolio Brain — santé globale du portefeuille
                     msg += "\n\n" + render_quant_overview_block(_snapshot)
 
+                    # Compte n°1 — soldes réels multi-exchange (lecture seule,
+                    # même modèle que le compte n°2 : affichage, jamais sizing)
+                    _c1_snaps = _real_accounts_snapshots()
+                    if _c1_snaps:
+                        from observability.real_accounts import render_compte1_block
+
+                        msg += "\n\n" + render_compte1_block(_c1_snaps)
+
                     # SystemIntelReporter — diagnostic complet 6h vers bot Intelligence
                     _now = time.time()
                     if _now - _last_intel_ts >= INTEL_INTERVAL_S:
@@ -7087,6 +7122,16 @@ def main(
                             )
                             _rmode = "PAPER (standby)" if _rm else "🟢 LIVE"
                             _real_status = render_real_account_block(_snapshot, _rmode)
+                            # Détail par actif des comptes API réels (compte n°1)
+                            _c1_detail = _real_accounts_snapshots()
+                            if _c1_detail:
+                                from observability.real_accounts import (
+                                    render_real_accounts_detail,
+                                )
+
+                                _real_status += "\n\n" + render_real_accounts_detail(
+                                    _c1_detail, cycle
+                                )
                             _telegram_real(_real_status)
                         except Exception as _rbe:
                             log.debug("[RealBot] rapport erreur: %s", _rbe)
