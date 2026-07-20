@@ -7,13 +7,13 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-User=mathieuhasard111
-WorkingDirectory=/home/mathieuhasard111/crypto_ai_terminal
-EnvironmentFile=-/home/mathieuhasard111/crypto_ai_terminal/.env
+User=mathieu
+WorkingDirectory=/home/mathieu/crypto_ai_terminal
+EnvironmentFile=-/home/mathieu/crypto_ai_terminal/.env
 Environment=PYTHONUNBUFFERED=1
 Environment=PYTHONIOENCODING=utf-8
 Environment=TZ=UTC
-ExecStart=/home/mathieuhasard111/crypto_ai_terminal/.venv/bin/python3 watchdog_vps.py
+ExecStart=/home/mathieu/crypto_ai_terminal/.venv/bin/python3 watchdog_vps.py
 Restart=on-failure
 RestartSec=15s
 TimeoutStopSec=30

@@ -11,8 +11,9 @@ After=network-online.target
 
 [Service]
 Type=oneshot
-User=mathieuhasard111
-WorkingDirectory=/home/mathieuhasard111/crypto_ai_terminal
-ExecStart=/home/mathieuhasard111/crypto_ai_terminal/.venv/bin/python observation/horizon_evaluator.py --run
+User=mathieu
+WorkingDirectory=/home/mathieu/crypto_ai_terminal
+EnvironmentFile=-/home/mathieu/crypto_ai_terminal/.env
+ExecStart=/home/mathieu/crypto_ai_terminal/.venv/bin/python observation/horizon_evaluator.py --run
 Nice=10
 TimeoutStartSec=300

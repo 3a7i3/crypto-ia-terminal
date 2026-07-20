@@ -261,6 +261,12 @@ def render_report(payload: dict) -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
+    try:  # .env pour les exécutions directes (les unités systemd le chargent déjà)
+        from dotenv import load_dotenv
+
+        load_dotenv(".env")
+    except Exception:
+        pass
     parser = argparse.ArgumentParser(
         description="R2 — évaluation à horizons de la shortlist radar (passif)"
     )
