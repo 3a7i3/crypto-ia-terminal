@@ -42,6 +42,35 @@ from pathlib import Path
 MARKET_TYPES = ("spot", "swap")
 
 
+def obs_exchanges() -> list[str]:
+    """Exchanges observés (OBS_EXCHANGES, séparés par des virgules).
+
+    Extension multi-exchange (2026-07-19, demande opérateur) : chaque
+    enregistrement porte son champ "ex" — les sources ne sont JAMAIS
+    fusionnées (leçon des « prix doubles » de l'époque Binance+MEXC).
+    """
+    raw = os.getenv("OBS_EXCHANGES", "mexc")
+    return [e.strip().lower() for e in raw.split(",") if e.strip()]
+
+
+def primary_exchange() -> str:
+    """Exchange PRIMAIRE — le seul que lisent radar/horizons/rejeu/top-K.
+
+    L'univers tradé est MEXC : tout consommateur existant reste verrouillé
+    dessus. Les autres sources ne servent qu'aux lectures croisées futures
+    (validation de volumes, divergences), toujours groupées par "ex"."""
+    return os.getenv("OBS_PRIMARY_EXCHANGE", "mexc").lower()
+
+
+def is_primary_record(record: dict) -> bool:
+    """Un record appartient-il à l'exchange primaire ?
+
+    Les records historiques (avant multi-exchange) n'ont pas de champ
+    "ex" — ils sont MEXC par construction, donc primaires."""
+    ex = record.get("ex")
+    return ex is None or ex == primary_exchange()
+
+
 def _f(value, default: float = 0.0) -> float:
     try:
         v = float(value)
@@ -61,8 +90,14 @@ def free_disk_gb(path: Path) -> float:
     return shutil.disk_usage(probe).free / 1e9
 
 
-def build_record(ts: float, symbol: str, market: str, raw: dict) -> dict | None:
-    """Ticker ccxt → enregistrement compact. None si le ticker est inutilisable."""
+def build_record(
+    ts: float, symbol: str, market: str, raw: dict, ex: str | None = None
+) -> dict | None:
+    """Ticker ccxt → enregistrement compact. None si le ticker est inutilisable.
+
+    `ex` = exchange source ; absent/None = MEXC (records historiques).
+    La clé logique d'un enregistrement est (ex, sym, mkt) — jamais (sym)
+    seul : deux exchanges ne partagent jamais une ligne."""
     last = _f(raw.get("last"))
     if last <= 0:
         return None
@@ -72,7 +107,7 @@ def build_record(ts: float, symbol: str, market: str, raw: dict) -> dict | None:
     qv = _f(raw.get("quoteVolume"))
     if qv <= 0:
         qv = _f(raw.get("baseVolume")) * last
-    return {
+    rec = {
         "ts": round(ts, 1),
         "sym": symbol,
         "mkt": market,
@@ -83,6 +118,9 @@ def build_record(ts: float, symbol: str, market: str, raw: dict) -> dict | None:
         "qv": round(qv, 2),
         "chg": round(_f(raw.get("percentage")), 4),
     }
+    if ex is not None:
+        rec["ex"] = ex
+    return rec
 
 
 def day_file(directory: Path, ts: float) -> Path:
@@ -148,10 +186,10 @@ def prune_old_files(directory: Path, retention_days: int, now: float) -> list[st
 # ── Collecte (seule partie réseau — API publique, aucune clé) ─────────────────
 
 
-def _make_client(market_type: str):
+def _make_client(market_type: str, exchange_id: str | None = None):
     import ccxt  # import local — les tests n'en ont pas besoin
 
-    exchange_id = os.getenv("OBS_EXCHANGE", "mexc")
+    exchange_id = exchange_id or os.getenv("OBS_EXCHANGE", "mexc")
     klass = getattr(ccxt, exchange_id)
     return klass({"enableRateLimit": True, "options": {"defaultType": market_type}})
 
@@ -178,16 +216,23 @@ def snapshot_once(directory: Path | None = None) -> dict:
 
     records: list[dict] = []
     counts: dict[str, int] = {}
-    for market in MARKET_TYPES:
-        client = _make_client(market)
-        tickers = client.fetch_tickers()
-        n = 0
-        for sym, raw in tickers.items():
-            rec = build_record(now, sym, market, raw or {})
-            if rec is not None:
-                records.append(rec)
-                n += 1
-        counts[market] = n
+    for ex in obs_exchanges():
+        for market in MARKET_TYPES:
+            # Un échec (ex, marché) n'annule jamais le tick des autres
+            # sources — ex : kucoin n'a pas de swap sous cet id ccxt.
+            try:
+                client = _make_client(market, exchange_id=ex)
+                tickers = client.fetch_tickers()
+            except Exception:
+                counts[f"{ex}:{market}"] = -1  # source en échec, visible
+                continue
+            n = 0
+            for sym, raw in tickers.items():
+                rec = build_record(now, sym, market, raw or {}, ex=ex)
+                if rec is not None:
+                    records.append(rec)
+                    n += 1
+            counts[f"{ex}:{market}"] = n
 
     path = day_file(directory, now)
     written = append_records(path, records) if records else 0
@@ -212,10 +257,12 @@ def write_latest_tick(directory: Path, now: float, records: list[dict]) -> None:
     reste passif : il DÉSIGNE des candidats à analyser, il n'autorise rien."""
     payload = {
         "ts": round(now, 1),
+        # PRIMAIRE uniquement (verrou anti-prix-doubles) : le top-K du
+        # moteur ne doit jamais voir deux sources pour un même symbole.
         "pairs": {
             r["sym"]: {"chg": r.get("chg"), "mkt": r.get("mkt")}
             for r in records
-            if r.get("mkt") == "spot"
+            if r.get("mkt") == "spot" and is_primary_record(r)
         },
     }
     tmp = directory / "latest_tick.json.tmp"
@@ -237,9 +284,12 @@ def summarize_day(directory: Path, day: str) -> str:
     ticks = sorted({r["ts"] for r in records})
     by_mkt: dict[str, set] = {}
     for r in records:
-        by_mkt.setdefault(r.get("mkt", "?"), set()).add(r.get("sym"))
+        key = f"{r.get('ex', 'mexc')}:{r.get('mkt', '?')}"
+        by_mkt.setdefault(key, set()).add(r.get("sym"))
+    # Top movers sur le PRIMAIRE uniquement — sinon chaque pump apparaît
+    # en double/triple (une fois par exchange).
     top = sorted(
-        (r for r in records if r["ts"] == ticks[-1]),
+        (r for r in records if r["ts"] == ticks[-1] and is_primary_record(r)),
         key=lambda r: abs(_f(r.get("chg"))),
         reverse=True,
     )[:5]

@@ -157,8 +157,16 @@ def load_v4_trades(trades_path: Path) -> list[dict]:
 def load_paths(
     symbols: set[str], t_min: float, t_max: float
 ) -> dict[str, list[tuple[float, float]]]:
-    """Séries (ts, last) spot par symbole depuis les fichiers du pouls."""
-    from observation.market_observer import day_file, obs_dir, read_day
+    """Séries (ts, last) spot par symbole depuis les fichiers du pouls.
+
+    Exchange PRIMAIRE uniquement (verrou anti-prix-doubles) : le rejeu doit
+    suivre les prix du marché où le trade a réellement eu lieu (MEXC)."""
+    from observation.market_observer import (
+        day_file,
+        is_primary_record,
+        obs_dir,
+        read_day,
+    )
 
     directory = obs_dir()
     series: dict[str, dict[float, float]] = {s: {} for s in symbols}
@@ -166,7 +174,7 @@ def load_paths(
     while day <= t_max + 86400.0:
         for r in read_day(day_file(directory, day)):
             sym = r.get("sym")
-            if sym in series and r.get("mkt") == "spot":
+            if sym in series and r.get("mkt") == "spot" and is_primary_record(r):
                 ts, last = _f(r.get("ts")), _f(r.get("last"))
                 if t_min - 900 <= ts <= t_max and last > 0:
                     series[sym][ts] = last

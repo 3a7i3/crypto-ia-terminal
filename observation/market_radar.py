@@ -233,9 +233,14 @@ def run_radar(directory: Path | None = None, now: float | None = None) -> dict:
     since = now - 24 * 3600.0
 
     records: list[dict] = []
+    from observation.market_observer import is_primary_record
+
     for offset in (86400.0, 0.0):  # fichier d'hier puis d'aujourd'hui
         for r in read_day(day_file(directory, now - offset)):
-            if _f(r.get("ts")) >= since:
+            # Verrou anti-prix-doubles : la shortlist ne lit QUE l'exchange
+            # primaire (MEXC) — les autres sources sont réservées aux
+            # lectures croisées explicites, groupées par "ex".
+            if _f(r.get("ts")) >= since and is_primary_record(r):
                 records.append(r)
 
     aggregated = aggregate_pairs(records)

@@ -65,11 +65,16 @@ def _min_move_pct() -> float:
 def series_by_symbol(
     records: list[dict], wanted: set[str]
 ) -> dict[str, list[tuple[float, float]]]:
-    """Records du pouls → {sym: [(ts, last)] trié, dédupliqué par ts}."""
+    """Records du pouls → {sym: [(ts, last)] trié, dédupliqué par ts}.
+
+    Verrou anti-prix-doubles : exchange PRIMAIRE uniquement — mélanger les
+    sources écraserait des prix différents sous un même timestamp."""
+    from observation.market_observer import is_primary_record
+
     raw: dict[str, dict[float, float]] = {}
     for r in records:
         sym = str(r.get("sym", ""))
-        if sym not in wanted:
+        if sym not in wanted or not is_primary_record(r):
             continue
         ts, last = _f(r.get("ts")), _f(r.get("last"))
         if ts > 0 and last > 0:

@@ -184,6 +184,11 @@ class CommandDataProvider:
     # Lecture
     get_kpis: Optional[Callable[[], Any]] = None
     get_balances: Optional[Callable[[], Any]] = None
+    # Equity du wallet virtuel MexcSim (« compte n°2 ») — demande opérateur
+    # 2026-07-19 : le panneau affichait en permanence les 10.00 USD alloués
+    # Phase F-01 (CapitalThrottle), illisible face aux ~677 USD du wallet
+    # paper qui trade réellement. Affichage uniquement.
+    get_paper_equity: Optional[Callable[[], Any]] = None
     get_positions: Optional[Callable[[], Any]] = None
     get_phase: Optional[Callable[[], Any]] = None
     get_throttle: Optional[Callable[[], Any]] = None
@@ -274,6 +279,37 @@ def _signals_lines(items: list, top: int = 10) -> list[str]:
     return lines
 
 
+def _capital_lines(p: CommandDataProvider, thr) -> list[str]:
+    """Ligne capital des rapports — wallet virtuel (compte n°2) en tête.
+
+    Demande opérateur 2026-07-19 : « le capital affiché doit être celui du
+    compte numéro 2 (le virtuel) » — les 10.00 USD alloués F-01 restent
+    mentionnés (c'est la progression vers le réel) mais ne sont plus la
+    ligne principale.
+    """
+    paper_eq = None
+    if p.get_paper_equity:
+        try:
+            paper_eq = float(p.get_paper_equity() or 0) or None
+        except Exception:
+            paper_eq = None
+    out: list[str] = []
+    suffix = ""
+    if thr:
+        el = thr.allocation().days_elapsed()
+        mn = thr.allocation().min_duration_days
+        suffix = f" — Jour {el:.1f} / {mn}"
+        if paper_eq is not None:
+            out.append(f"Wallet virtuel *{paper_eq:.2f} USD*{suffix}")
+            out.append(f"Alloc F-01: {thr.allocated_capital:.2f} USD")
+            return out
+        out.append(f"Capital *{thr.allocated_capital:.2f} USD*{suffix}")
+        return out
+    if paper_eq is not None:
+        out.append(f"Wallet virtuel *{paper_eq:.2f} USD*")
+    return out
+
+
 def _fmt_status(p: CommandDataProvider) -> str:
     from datetime import datetime, timezone
 
@@ -282,11 +318,7 @@ def _fmt_status(p: CommandDataProvider) -> str:
     kpis = p.get_kpis() if p.get_kpis else None
     now = datetime.now(timezone.utc).strftime("%H:%M UTC")
     lines = [f"*PORTEFEUILLE — {now}*", f"Phase *{phase}*"]
-    if thr:
-        a = thr.allocated_capital
-        el = thr.allocation().days_elapsed()
-        mn = thr.allocation().min_duration_days
-        lines.append(f"Capital *{a:.2f} USD* — Jour {el:.1f} / {mn}")
+    lines += _capital_lines(p, thr)
     if kpis:
         from capital_deployment.phase_kpi_tracker import PHASE_CRITERIA
 
@@ -946,11 +978,7 @@ def _fmt_rapport(p: CommandDataProvider) -> str:
     trades = (p.get_trades() if p.get_trades else None) or []
 
     lines = [f"*RAPPORT — {now}*", f"Phase *{phase}*"]
-    if thr:
-        a = thr.allocated_capital
-        el = thr.allocation().days_elapsed()
-        mn = thr.allocation().min_duration_days
-        lines.append(f"Capital *{a:.2f} USD* — Jour {el:.1f} / {mn}")
+    lines += _capital_lines(p, thr)
 
     if kpis:
         from capital_deployment.phase_kpi_tracker import PHASE_CRITERIA

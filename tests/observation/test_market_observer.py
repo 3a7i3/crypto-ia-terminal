@@ -117,18 +117,71 @@ def test_snapshot_once_writes_all_markets(tmp_path, monkeypatch):
             return {"BTC/USDT:USDT": {"last": 100.5, "quoteVolume": 2e6}}
 
     monkeypatch.setattr(mo, "free_disk_gb", lambda _p: 50.0)
-    monkeypatch.setattr(mo, "_make_client", lambda market: _FakeClient(market))
+    monkeypatch.setattr(
+        mo, "_make_client", lambda market, exchange_id=None: _FakeClient(market)
+    )
 
     summary = mo.snapshot_once(tmp_path)
 
-    assert summary["counts"] == {"spot": 1, "swap": 1}
+    assert summary["counts"] == {"mexc:spot": 1, "mexc:swap": 1}
     assert summary["bytes_written"] > 0
     records = read_day(day_file(tmp_path, time.time()))
     assert {r["mkt"] for r in records} == {"spot", "swap"}
+    assert {r.get("ex") for r in records} == {"mexc"}
     # Sidecar top-K (ADR-0017) : dernier tick spot, écrit atomiquement
     latest = json.loads((tmp_path / "latest_tick.json").read_text(encoding="utf-8"))
     assert "BTC/USDT" in latest["pairs"]
     assert "BTC/USDT:USDT" not in latest["pairs"]  # spot uniquement
+
+
+def test_snapshot_multi_exchange_separated_and_failsafe(tmp_path, monkeypatch):
+    """Multi-exchange (2026-07-19) : sources SÉPARÉES par le champ "ex"
+    (jamais fusionnées — leçon des prix doubles), une source en échec
+    n'annule pas le tick des autres, et le sidecar top-K ne voit que le
+    primaire."""
+    import observation.market_observer as mo
+
+    class _FakeClient:
+        def __init__(self, ex, market):
+            self._ex, self._market = ex, market
+
+        def fetch_tickers(self):
+            if self._ex == "gate":
+                raise RuntimeError("source en panne")
+            if self._market == "swap":
+                return {}
+            price = 100.0 if self._ex == "mexc" else 100.7  # prix différents
+            return {"BTC/USDT": {"last": price, "quoteVolume": 1e6, "percentage": 1.0}}
+
+    monkeypatch.setenv("OBS_EXCHANGES", "mexc,binance,gate")
+    monkeypatch.setattr(mo, "free_disk_gb", lambda _p: 50.0)
+    monkeypatch.setattr(
+        mo,
+        "_make_client",
+        lambda market, exchange_id=None: _FakeClient(exchange_id, market),
+    )
+
+    summary = mo.snapshot_once(tmp_path)
+
+    assert summary["counts"]["mexc:spot"] == 1
+    assert summary["counts"]["binance:spot"] == 1
+    assert summary["counts"]["gate:spot"] == -1  # échec visible, tick préservé
+    records = read_day(day_file(tmp_path, time.time()))
+    btc = [r for r in records if r["sym"] == "BTC/USDT"]
+    assert len(btc) == 2  # une ligne PAR exchange — jamais fusionnées
+    assert {r["ex"] for r in btc} == {"mexc", "binance"}
+    # Le sidecar top-K ne voit QUE le primaire (verrou anti-prix-doubles)
+    latest = json.loads((tmp_path / "latest_tick.json").read_text(encoding="utf-8"))
+    assert len(latest["pairs"]) == 1
+
+
+def test_is_primary_record_semantics(monkeypatch):
+    import observation.market_observer as mo
+
+    monkeypatch.delenv("OBS_PRIMARY_EXCHANGE", raising=False)
+    assert mo.is_primary_record({"sym": "X"}) is True  # historique = MEXC
+    assert mo.is_primary_record({"ex": "mexc"}) is True
+    assert mo.is_primary_record({"ex": "binance"}) is False
 
 
 def test_summarize_day_reads_back(tmp_path):

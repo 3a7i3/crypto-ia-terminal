@@ -350,6 +350,34 @@ def _top_candidate_gate_reason(results: list[Any]) -> str:
     return str(getattr(gate, "reason", "") or "")
 
 
+def _paper_equity_display() -> float | None:
+    """Equity du wallet virtuel MexcSim (« compte n°2 ») pour les panneaux.
+
+    Demande opérateur 2026-07-19 : le bot affichait en permanence les
+    10.00 USD alloués Phase F-01 au lieu du wallet paper qui trade
+    réellement (~677 USD). Base = grand livre WalletSync (continu à travers
+    les redémarrages) + PnL latent MexcSim quand disponible. Affichage
+    uniquement — jamais utilisé pour le sizing (ADR-0011).
+    """
+    try:
+        from infra.wallet_sync import get_wallet_sync
+
+        equity = _to_float(get_wallet_sync().get_balance(), 0.0)
+        if equity <= 0:
+            return None
+        if _virtual_portfolio is not None:
+            try:
+                equity += _to_float(
+                    _virtual_portfolio.get_open_positions_summary().unrealized_pnl_usd,
+                    0.0,
+                )
+            except Exception:
+                pass
+        return round(equity, 2)
+    except Exception:
+        return None
+
+
 def _universe_pinned_symbols() -> list[str]:
     """Univers épinglé pendant le burn-in (ADR-0015) — liste fixe, décision opérateur.
 
@@ -3589,6 +3617,7 @@ def main(
         _pb_provider = _CDP(
             get_kpis=lambda: _kpi_snapshot_with_canonical_n(_p10_kpi),
             get_balances=lambda: {"spot": real_capital, "futures": 0.0},
+            get_paper_equity=_paper_equity_display,
             get_positions=_get_positions_for_bot,
             get_phase=lambda: _P10_PHASE,
             get_throttle=lambda: _p10_throttle,
