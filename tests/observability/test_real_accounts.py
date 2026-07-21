@@ -11,6 +11,7 @@ import pytest
 
 from observability.real_accounts import (
     RealAccountsObserver,
+    aggregate,
     configured_exchanges,
     render_compte1_block,
     render_real_accounts_detail,
@@ -141,6 +142,34 @@ def test_render_detail_html_escape_et_poussiere(env_two_accounts, monkeypatch):
     assert "+ 1 actif(s)" in detail  # PEPE agrégé en poussière
     assert "<b>hack</b>" not in detail  # HTML de l'erreur échappé
     assert "&lt;b&gt;hack&lt;/b&gt;" in detail
+
+
+def test_aggregate_multi_exchange(env_two_accounts):
+    fakes = {
+        "mexc": FakeClient(
+            balance={"total": {"USDT": 7.0, "BTC": 0.001}, "free": {"USDT": 7.0}},
+            tickers={"BTC/USDT": 290.0},
+        ),
+        "binance": FakeClient(
+            balance={"total": {"USDT": 0.9}, "free": {"USDT": 0.9}},
+        ),
+    }
+    obs = RealAccountsObserver(ttl_s=0, client_factory=lambda ex: fakes[ex])
+    equity, free, assets = aggregate(obs.snapshot())
+
+    assert equity == 7.29 + 0.9  # 7.0 + 0.29 (BTC) + 0.9
+    assert free == 7.9  # stables libres MEXC + Binance
+    # Actifs tagués par exchange, triés par valeur décroissante.
+    assert assets[0] == ("USDT@mexc", 7.0)
+    assert ("BTC@mexc", 0.001) in assets
+
+
+def test_aggregate_aucun_compte_lisible():
+    from observability.real_accounts import RealAccountSnapshot
+
+    snaps = (RealAccountSnapshot(exchange="mexc", ok=False, ts_utc="", error="boom"),)
+    assert aggregate(snaps) is None
+    assert aggregate(()) is None
 
 
 def _raise_html():

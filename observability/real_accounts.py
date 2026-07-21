@@ -190,6 +190,32 @@ class RealAccountsObserver:
         return None
 
 
+def aggregate(
+    snaps: tuple[RealAccountSnapshot, ...],
+) -> tuple[float, float, tuple[tuple[str, float], ...]] | None:
+    """Agrège les comptes n°1 pour l'entête « Statut Compte Réel ».
+
+    Retourne ``(equity_usd, free_usd, assets)`` où ``assets`` = top 6
+    ``(symbole@exchange, quantité)`` triés par valeur USD ; ``None`` si aucun
+    compte n'est lisible. ``free_usd`` = somme des soldes libres des stables.
+    Affichage uniquement — jamais utilisé pour le sizing (ADR-0007, la base
+    de sizing reste ``real_capital`` / ``WALLET_PAPER_CAPITAL``).
+    """
+    ok = [s for s in snaps if s.ok]
+    if not ok:
+        return None
+    equity = round(sum(s.total_usd or 0.0 for s in ok), 2)
+    free = round(
+        sum(a.free for s in ok for a in s.assets if a.asset in STABLE_ASSETS), 2
+    )
+    combined = [
+        (f"{a.asset}@{s.exchange}", a.total, a.usd_value) for s in ok for a in s.assets
+    ]
+    combined.sort(key=lambda it: (it[2] is None, -(it[2] or 0.0), it[0]))
+    assets = tuple((sym, qty) for sym, qty, _ in combined[:6])
+    return equity, free, assets
+
+
 # ── Rendus ────────────────────────────────────────────────────────────────
 
 

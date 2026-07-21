@@ -6746,6 +6746,22 @@ def main(
                                 _api_pos_count = 0
                         except Exception as _exb:
                             log.debug("[RealBot] fetch_balance erreur: %s", _exb)
+                    # Compte n°1 — en observation (aucun exchange d'exécution),
+                    # l'entête « Statut Compte Réel » reflète les soldes réels
+                    # multi-exchange observés au lieu de $0. Affichage
+                    # uniquement, jamais le sizing (ADR-0007 ; real_capital
+                    # reste la base épinglée WALLET_PAPER_CAPITAL).
+                    if _ex is None:
+                        try:
+                            from observability.real_accounts import (
+                                aggregate as _c1_aggregate,
+                            )
+
+                            _agg = _c1_aggregate(_real_accounts_snapshots())
+                            if _agg is not None:
+                                _api_equity, _api_free_usdt, _api_assets = _agg
+                        except Exception as _c1e:
+                            log.debug("[Compte1] agregat entete indispo: %s", _c1e)
                     if not ex.get("healthy", True):
                         msg += (
                             f"\n\nEXCHANGE HORS LIGNE — {ex.get('consecutive_failures', 0)} echecs\n"
