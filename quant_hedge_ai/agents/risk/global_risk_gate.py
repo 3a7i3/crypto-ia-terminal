@@ -43,6 +43,23 @@ _GATE_CSV_FIELDS = [
     "failed",
 ]
 
+# Anti-bruit journal (2026-07-21 : ~43 000 WARNING/24 h, 1 par symbole bloqué
+# par cycle). Un refus ROUTINIER se logge en DEBUG — sa visibilité est déjà
+# garantie par les canaux structurés (BLOCK STATS, gate_rejections.csv,
+# rejection_store, DecisionPacket). Les VRAIES alertes (ex : drawdown proche
+# du seuil) restent en WARNING mais dédupliquées : un même message au plus
+# une fois par fenêtre, sinon il se répète par symbole × cycle.
+_WARN_THROTTLE_S = float(os.getenv("GATE_WARN_THROTTLE_S", "300"))
+_last_warn_ts: dict[str, float] = {}
+
+
+def _warn_throttled(msg: str) -> None:
+    now = time.time()
+    if now - _last_warn_ts.get(msg, 0.0) >= _WARN_THROTTLE_S:
+        _last_warn_ts[msg] = now
+        _log.warning("[GlobalRiskGate] %s", msg)
+
+
 _CANONICAL_REGIMES = {
     "TREND_BULL",
     "TREND_BEAR",
@@ -277,11 +294,11 @@ class GlobalRiskGate:
             allowed=allowed, conditions=conditions, failed=failed, warnings=warnings
         )
 
-        log_fn = _log.info if allowed else _log.warning
+        log_fn = _log.info if allowed else _log.debug
         log_fn("[GlobalRiskGate] %s", result.summary())
         if warnings:
             for w in warnings:
-                _log.warning("[GlobalRiskGate] ⚠️  %s", w)
+                _warn_throttled(f"⚠️  {w}")
 
         symbol = getattr(signal_result, "symbol", "unknown")
         _gate_csv_log(symbol, regime_str, score, effective_min, allowed, failed)
@@ -448,10 +465,10 @@ class GlobalRiskGate:
             allowed=allowed, conditions=conditions, failed=failed, warnings=warnings
         )
 
-        log_fn = _log.info if allowed else _log.warning
+        log_fn = _log.info if allowed else _log.debug
         log_fn("[GlobalRiskGate] %s | %s", packet.symbol, result.summary())
         for w in warnings:
-            _log.warning("[GlobalRiskGate] %s", w)
+            _warn_throttled(w)
 
         _gate_csv_log(packet.symbol, regime_str, score, effective_min, allowed, failed)
 

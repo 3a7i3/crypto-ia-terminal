@@ -283,3 +283,45 @@ class TestEventBus:
         with patch("event_bus.bus.EventBus.get", side_effect=RuntimeError("bus error")):
             r = gate.check(_signal(score=40))
             assert isinstance(r, GateResult)
+
+
+# ── Tests anti-bruit journal (2026-07-21 : ~43k WARNING/24h) ─────────────────
+
+
+class TestLogNoise:
+    def test_refus_routinier_en_debug_pas_warning(self, gate):
+        """Un refus ordinaire ne pollue plus le journal en WARNING —
+        sa visibilité passe par BLOCK STATS / gate_csv / rejection_store."""
+        import quant_hedge_ai.agents.risk.global_risk_gate as grg
+
+        with patch.object(grg, "_log") as log:
+            gate.check(_signal(score=40))  # refus routinier
+        assert log.debug.called
+        assert not log.warning.called
+
+    def test_pass_reste_en_info(self, gate):
+        import quant_hedge_ai.agents.risk.global_risk_gate as grg
+
+        with patch.object(grg, "_log") as log:
+            gate.check(_signal())
+        assert log.info.called
+
+    def test_warn_throttled_deduplique(self):
+        import quant_hedge_ai.agents.risk.global_risk_gate as grg
+
+        grg._last_warn_ts.clear()
+        with patch.object(grg, "_log") as log:
+            grg._warn_throttled("drawdown proche")
+            grg._warn_throttled("drawdown proche")  # même msg → supprimé
+            grg._warn_throttled("autre alerte")  # msg différent → émis
+        assert log.warning.call_count == 2
+
+    def test_warn_throttled_reemet_apres_fenetre(self):
+        import quant_hedge_ai.agents.risk.global_risk_gate as grg
+
+        grg._last_warn_ts.clear()
+        with patch.object(grg, "_log") as log:
+            grg._warn_throttled("alerte")
+            grg._last_warn_ts["alerte"] -= grg._WARN_THROTTLE_S + 1
+            grg._warn_throttled("alerte")  # fenêtre expirée → réémis
+        assert log.warning.call_count == 2
