@@ -34,7 +34,7 @@ import json
 import os
 import threading
 import time
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, fields
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -249,6 +249,12 @@ class RegretScheduler:
         self._thread: Optional[threading.Thread] = None
         self._running = False
         self._eval_count = 0
+        # Spool : la file des candidats survit aux restarts (2026-07-21 :
+        # file en mémoire seule → chaque restart coûtait jusqu'à ~24 h de
+        # couverture regret). Rechargée ici, réécrite au plus 1×/poll.
+        self._spool_path = self._dir / "pending_spool.json"
+        self._dirty = False
+        self._load_spool()
 
     # ── Lifecycle ─────────────────────────────────────────────────────────────
 
@@ -270,6 +276,7 @@ class RegretScheduler:
         self._running = False
         if self._thread:
             self._thread.join(timeout=5.0)
+        self._save_spool()
 
     # ── Listener DecisionEventBus ─────────────────────────────────────────────
 
@@ -301,6 +308,7 @@ class RegretScheduler:
 
         with self._lock:
             self._candidates[obs.observation_id] = candidate
+            self._dirty = True
             _log.debug(
                 "[RegretScheduler] Candidat: %s %s score=%.0f blocker=%s",
                 obs.symbol,
@@ -348,14 +356,32 @@ class RegretScheduler:
 
             # Évalue les horizons dont la deadline est passée
             newly_evaluated: list[str] = []
+            dropped: list[str] = []
             for horizon, deadline in list(candidate.pending_horizons.items()):
-                if now >= deadline:
-                    result = _compute_horizon(candidate, horizon, price_now)
-                    candidate.results[horizon] = result.to_dict()
-                    newly_evaluated.append(horizon)
+                if now < deadline:
+                    continue
+                # Validité : un horizon trop en retard (restart, prix absent)
+                # est ABANDONNÉ — l'évaluer avec un prix hors-fenêtre
+                # fausserait la mesure.
+                if now - deadline > max(600.0, 0.5 * _HORIZONS[horizon]):
+                    dropped.append(horizon)
+                    continue
+                result = _compute_horizon(candidate, horizon, price_now)
+                candidate.results[horizon] = result.to_dict()
+                newly_evaluated.append(horizon)
+
+            for h in dropped:
+                del candidate.pending_horizons[h]
+                self._dirty = True
+                _log.debug(
+                    "[RegretScheduler] %s +%s abandonné (hors tolérance)",
+                    candidate.symbol,
+                    h,
+                )
 
             for h in newly_evaluated:
                 del candidate.pending_horizons[h]
+                self._dirty = True
                 self._eval_count += 1
                 _log.debug(
                     "[RegretScheduler] %s %s +%s → %s (%.2f%%)",
@@ -366,10 +392,13 @@ class RegretScheduler:
                     candidate.results[h]["return_pct"] * 100,
                 )
 
-            # Si tous les horizons sont évalués → persister et marquer complet
-            if not candidate.pending_horizons and candidate.results:
-                candidate.complete = True
-                self._persist(candidate)
+            # Si tous les horizons sont traités → persister (si résultats)
+            # et retirer ; un candidat sans aucun résultat (tout abandonné
+            # après un long arrêt) est simplement retiré, jamais persisté.
+            if not candidate.pending_horizons:
+                if candidate.results:
+                    candidate.complete = True
+                    self._persist(candidate)
                 completed.append(candidate.observation_id)
 
         # Supprimer les candidats complets
@@ -377,6 +406,48 @@ class RegretScheduler:
             with self._lock:
                 for obs_id in completed:
                     self._candidates.pop(obs_id, None)
+                self._dirty = True
+
+        if self._dirty:
+            self._save_spool()
+
+    # ── Spool (persistance de la file — survit aux restarts) ────────────────
+
+    def _save_spool(self) -> None:
+        """Écrit la file des candidats incomplets (atomique tmp+replace)."""
+        try:
+            with self._lock:
+                payload = [
+                    asdict(c) for c in self._candidates.values() if not c.complete
+                ]
+                self._dirty = False
+            tmp = self._spool_path.with_suffix(".json.tmp")
+            tmp.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+            os.replace(tmp, self._spool_path)
+        except Exception as exc:
+            _log.warning("[RegretScheduler] spool non écrit: %s", exc)
+
+    def _load_spool(self) -> None:
+        """Recharge la file persistée au boot (corruption = ignorée, jamais fatale)."""
+        if not self._spool_path.exists():
+            return
+        try:
+            raw = json.loads(self._spool_path.read_text(encoding="utf-8"))
+            known = {f.name for f in fields(RegretCandidate)}
+            restored = 0
+            with self._lock:
+                for d in raw:
+                    if not isinstance(d, dict) or d.get("complete"):
+                        continue
+                    cand = RegretCandidate(**{k: v for k, v in d.items() if k in known})
+                    self._candidates.setdefault(cand.observation_id, cand)
+                    restored += 1
+            if restored:
+                _log.info(
+                    "[RegretScheduler] %d candidat(s) restauré(s) du spool", restored
+                )
+        except Exception as exc:
+            _log.warning("[RegretScheduler] spool illisible (ignoré): %s", exc)
 
     def _persist(self, candidate: RegretCandidate) -> None:
         """Persiste le rapport complet d'un candidat évalué."""
