@@ -100,8 +100,16 @@ def load_clean_trades(path: Path = DEFAULT_TRADES_PATH) -> list[dict]:
     return trades
 
 
-def load_clean_regrets(path: Path = DEFAULT_REGRET_PATH) -> list[dict]:
-    """Regrets filtrés par CLEAN_DATA_SINCE_ACTIVE (addendum ADR-0012)."""
+def load_clean_regrets(path: Optional[Path] = None) -> list[dict]:
+    """Regrets filtrés par CLEAN_DATA_SINCE_ACTIVE.
+
+    `path=None` → SOURCE CANONIQUE (MC-001 / ADR-0018 : regret-v2 via
+    tools.regret_repository, jamais un chemin en dur). Un chemin explicite lit
+    un fichier plat historique (compat tests / override d'audit)."""
+    if path is None:
+        from tools.regret_repository import read_canonical_regrets
+
+        return read_canonical_regrets(since=CLEAN_DATA_SINCE_ACTIVE)
     regrets = []
     for d in _read_jsonl(path):
         ts = _event_ts(d)
@@ -194,7 +202,7 @@ def balance_score(trades: list[dict]) -> float:
 
 def compute_cri(
     trades_path: Path = DEFAULT_TRADES_PATH,
-    regret_path: Path = DEFAULT_REGRET_PATH,
+    regret_path: Optional[Path] = None,
 ) -> dict:
     trades = load_clean_trades(trades_path)
     regrets = load_clean_regrets(regret_path)
@@ -213,7 +221,7 @@ def compute_cri(
         + WEIGHTS["balance"] * scores["balance_score"]
     ) / 100.0
 
-    return {
+    result = {
         "cri": round(cri, 2),
         "gate_ready": cri >= 90.0,
         "n_clean": len(trades),
@@ -223,14 +231,43 @@ def compute_cri(
         "weights": WEIGHTS,
     }
 
+    # MC-001 : traçabilité + validité. La source canonique doit être FRAÎCHE ;
+    # sinon le CRI est partiellement censuré (leçon rupture 2026-07-10).
+    if regret_path is None:
+        from tools.regret_repository import freshness
+
+        f = freshness()
+        result["regret_source"] = "canonical:" + f["dataset_version"]
+        result["canonical_horizon"] = f["canonical_horizon"]
+        result["regret_last_write"] = f["last_write_utc"]
+        result["regret_fresh"] = f["fresh"]
+        result["validity"] = "OK" if f["fresh"] else "PARTIAL"
+        if not f["fresh"]:
+            result["warnings"] = [
+                "DATASET REGRET PÉRIMÉ (dernier écrit "
+                f"{f['last_write_utc']}) — CRI PARTIELLEMENT CENSURÉ, "
+                "ne pas comparer dans le temps"
+            ]
+    else:
+        result["regret_source"] = "explicit_path"
+        result["validity"] = "OK"
+    return result
+
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--trades", type=Path, default=DEFAULT_TRADES_PATH)
-    parser.add_argument("--regrets", type=Path, default=DEFAULT_REGRET_PATH)
+    parser.add_argument(
+        "--regrets",
+        type=Path,
+        default=None,
+        help="chemin explicite (défaut : source canonique MC-001)",
+    )
     args = parser.parse_args()
 
     result = compute_cri(args.trades, args.regrets)
+    if result.get("validity") == "PARTIAL":
+        print("⚠️  VALIDITÉ PARTIELLE :", result["warnings"][0], file=sys.stderr)
     print(json.dumps(result, indent=2, ensure_ascii=False))
     return 0
 
