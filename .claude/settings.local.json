@@ -6,7 +6,9 @@
       "Bash(python -m py_compile dashboard_live.py)",
       "Bash(python -m py_compile advisor_loop.py)",
       "Bash(ssh -i __TRACKED_VAR__/.ssh/gcp_key -o StrictHostKeyChecking=no mathieuhasard111@34.171.188.99 'cd /home/mathieuhasard111/crypto_ai_terminal && source .venv/bin/activate && python3 /tmp/tp.py 2>&1 | head -20; echo END')",
-      "Bash(ssh -i __TRACKED_VAR__/.ssh/gcp_key -o StrictHostKeyChecking=no mathieuhasard111@34.171.188.99 'cd /home/mathieuhasard111/crypto_ai_terminal && source .venv/bin/activate && nohup python advisor_loop.py >> logs/advisor.log 2>&1 & echo PID=$!')"
+      "Bash(ssh -i __TRACKED_VAR__/.ssh/gcp_key -o StrictHostKeyChecking=no mathieuhasard111@34.171.188.99 'cd /home/mathieuhasard111/crypto_ai_terminal && source .venv/bin/activate && nohup python advisor_loop.py >> logs/advisor.log 2>&1 & echo PID=$!')",
+      "Bash(xargs git tag -v)",
+      "Bash(xargs -I{} git show {} --no-patch)"
     ]
   }
 }
