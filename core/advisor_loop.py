@@ -90,6 +90,7 @@ from observability.system_snapshot import (
     PortfolioSnapshot,
     ReasonCode,
     build_system_snapshot,
+    compute_display_portfolio_metrics,
 )
 from observability.system_snapshot_event_bus import get_snapshot_bus
 from observability.system_snapshot_renderers import (
@@ -429,6 +430,49 @@ def _display_position_summary(
     return (
         int(pb_health.get("n_positions", 0) or 0),
         _to_float(pb_health.get("open_pnl_usd", 0), 0.0),
+    )
+
+
+def _display_portfolio_metrics(
+    virtual_portfolio: Any, pb_health: dict, paper_equity: float
+) -> tuple[float, float, float]:
+    """Exposition, paper_cash et free_cash AFFICHÉS. Retourne (expo_pct, cash, free).
+
+    OBS-002. Même principe que `_display_position_summary` juste au-dessus, étendu
+    aux métriques de capital : le compte de positions et l'exposition affichés
+    doivent venir du MÊME store, sinon le panneau se contredit lui-même
+    ("Positions: 3" avec "Exposure: 0.0%", constat du 2026-07-24).
+
+    `_virtual_portfolio` (MexcSimulator) est la source qui exécute réellement les
+    positions en paper ; quand il est disponible, il prime pour l'AFFICHAGE.
+    Fallback intégral sur `pb_health` hors paper — comportement inchangé.
+
+    NE TOUCHE PAS LA DÉCISION : `pos_manager` reste l'entrée de
+    `portfolio_health()` et donc des cinq contrôles de `check_new_trade`.
+    L'exposition-gate demeure aveugle en paper — bug gelé, corrigé par PORT-002
+    (GATED, reset d'époque). C'est le risque R1, documenté par OBS-004.
+    """
+    if virtual_portfolio is not None:
+        try:
+            summary = virtual_portfolio.get_open_positions_summary()
+            metrics = compute_display_portfolio_metrics(
+                capital=paper_equity,
+                positions_qty_usd=[
+                    _to_float(getattr(p, "qty_usd", 0.0), 0.0)
+                    for p in summary.positions
+                ],
+            )
+            return (
+                metrics.portfolio_exposure_pct,
+                metrics.paper_cash,
+                metrics.free_cash,
+            )
+        except Exception:
+            pass
+    return (
+        round(_to_float(pb_health.get("total_exposure_pct", 0), 0.0), 1),
+        round(max(0.0, paper_equity), 2),
+        round(_to_float(pb_health.get("free_capital", 0), 0.0), 2),
     )
 
 
@@ -6745,15 +6789,20 @@ def main(
                     _display_open_positions, _display_open_pnl_usd = (
                         _display_position_summary(_virtual_portfolio, pb_health)
                     )
-                    _open_positions = pos_manager.get_open()
-                    _deployed_notional = sum(
-                        _to_float(getattr(_p, "size_usd", 0.0), 0.0)
-                        for _p in _open_positions
-                    )
                     _paper_equity = _to_float(
                         pb_health.get("capital", real_capital), 0.0
                     )
-                    _paper_cash = max(0.0, _paper_equity - _deployed_notional)
+                    # OBS-002 — exposition/cash AFFICHÉS dérivés du même store que
+                    # le compte de positions (_virtual_portfolio), au lieu de
+                    # pos_manager (vide en paper). La DÉCISION reste inchangée :
+                    # portfolio_health() lit toujours pos_manager ci-dessus.
+                    (
+                        _display_exposure_pct,
+                        _paper_cash,
+                        _display_free_cash,
+                    ) = _display_portfolio_metrics(
+                        _virtual_portfolio, pb_health, _paper_equity
+                    )
 
                     _watchdog_components = _stats_dict(
                         getattr(watchdog, "_components", {})
@@ -6845,13 +6894,8 @@ def main(
                         portfolio=PortfolioSnapshot(
                             paper_equity=round(_paper_equity, 2),
                             paper_cash=round(_paper_cash, 2),
-                            free_cash=round(
-                                _to_float(pb_health.get("free_capital", 0), 0.0), 2
-                            ),
-                            portfolio_exposure_pct=round(
-                                _to_float(pb_health.get("total_exposure_pct", 0), 0.0),
-                                1,
-                            ),
+                            free_cash=round(_display_free_cash, 2),
+                            portfolio_exposure_pct=round(_display_exposure_pct, 1),
                             open_pnl_usd=round(_display_open_pnl_usd, 2),
                             open_positions=_display_open_positions,
                             correlation_risk_pct=round(
