@@ -123,6 +123,51 @@ un moteur stable mais un moteur ajusté en cours de route.
 
 ---
 
+## INV-HEALTH-001 — La santé de la suite est un état de référence, pas un caveat
+
+**Énoncé.** Chaque ticket déclare la **santé de la suite** sur laquelle il s'appuie, et le nombre
+d'erreurs de collecte **attendu**. L'écart entre observé et attendu est un verdict binaire.
+
+| Observé vs attendu | Verdict |
+|---|---|
+| `observé == expected` | **PASS** — dette connue, inchangée |
+| `observé > expected` | **FAIL** — le ticket a introduit une dette. Annuler. |
+| `observé < expected` | **La dette a diminué.** Mettre à jour `health_baseline` dans le manifeste. |
+
+**Raison d'être.** La suite du dépôt ne s'exécute pas avec `pytest tests/ -q` : la collecte est
+interrompue par un `ImportError` préexistant. Traiter cela comme un « caveat » le rend invisible et
+non comparable. Le transformer en **nombre attendu** en fait un invariant mesurable : une dette connue
+cesse d'être une excuse et devient une borne.
+
+**État de référence** (mesuré au commit `8cb42fb`, avant tout travail sur `tests/`) :
+
+```
+Commande officielle :
+    python -m pytest tests/ -q --continue-on-collection-errors
+
+suite_state                : DEGRADED
+expected_collection_errors : 1
+known_error                : tests/test_full_integration.py:13
+                             ModuleNotFoundError: tracker_system.exchange.binance_client
+```
+
+**Test de violation.**
+```bash
+python -m pytest tests/ -q --continue-on-collection-errors 2>&1 | grep -c "^ERROR "
+```
+Résultat ≠ `expected_collection_errors` du manifeste ⇒ traiter selon le tableau ci-dessus.
+
+**Ce que cet invariant interdit explicitement.** Réparer `test_full_integration.py` pendant la campagne.
+Ce ticket échoue à **INV-ROI-001** : il n'améliore ni le débit de trades, ni la validité de la mesure
+de N, et ne débloque aucun ticket. C'est une **dette de maintenance, pas un ticket de campagne** —
+à traiter hors gel, jamais pendant.
+
+**Conséquence d'une violation.** Une erreur de collecte supplémentaire masque potentiellement des
+dizaines de tests jamais exécutés. Le « vert » de la suite deviendrait un vert par absence, pas par
+succès — exactement le type de mensonge d'instrument que tout ce chantier corrige.
+
+---
+
 ## INV-TRACE-001 — Le diff est exactement le contrat, rien de plus
 
 **Énoncé.** L'ensemble des fichiers modifiés par un ticket doit être **exactement égal** à la liste

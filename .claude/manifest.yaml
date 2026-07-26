@@ -54,6 +54,38 @@ invariants:
     violation: "Toucher une constante de seuil (portfolio_brain.py:88-109)"
 
 # -----------------------------------------------------------------------------
+# HEALTH BASELINE — etat de reference REPRODUCTIBLE de la suite de tests
+#
+# La suite ne s'execute pas avec `pytest tests/ -q` : la collecte est interrompue
+# par une erreur d'import PREEXISTANTE. Ce n'est pas un caveat, c'est un etat de
+# reference mesure, versionne, et opposable.
+#
+# expected_collection_errors est un INVARIANT :
+#     observe == expected  -> PASS
+#     observe >  expected  -> FAIL   (nouvelle dette introduite par le ticket)
+#     observe <  expected  -> la dette a diminue : mettre a jour ce bloc
+# -----------------------------------------------------------------------------
+health_baseline:
+  suite_state: DEGRADED
+  command: "python -m pytest tests/ -q --continue-on-collection-errors"
+  measured_at_commit: "8cb42fb"
+  expected_collection_errors: 1
+  known_errors:
+    - file: "tests/test_full_integration.py"
+      line: 13
+      reason: "ModuleNotFoundError: No module named 'tracker_system.exchange.binance_client'"
+      preexisting: true
+      ticket: null      # aucun ticket de campagne ne le corrige : INV-ROI-001 le refuse
+      note: >
+        Dette de maintenance, hors campagne. Ne rapproche ni du burn-in ni de la
+        validite de la mesure de N. A traiter hors gel, jamais pendant.
+  collected: null       # renseigne par la premiere mesure complete
+  passed: null
+  failed: null
+  skipped: null
+  duration_s: null
+
+# -----------------------------------------------------------------------------
 # GATING
 # -----------------------------------------------------------------------------
 gating:
