@@ -123,6 +123,59 @@ un moteur stable mais un moteur ajusté en cours de route.
 
 ---
 
+## INV-ROI-001 — Tout ticket doit servir la campagne en cours
+
+**Énoncé.** Chaque ticket doit répondre **OUI** à :
+
+> **« Ce ticket rapproche-t-il le projet de l'accumulation de N, ou rend-il la mesure de N valide ? »**
+
+Si **NON** → le ticket est **différé**, **gated**, ou **supprimé**. Pas « fait quand même parce qu'il
+est utile un jour ».
+
+**Raison d'être.** Les invariants INV-1 à INV-4 empêchent de *casser* la campagne. Celui-ci empêche
+de la *diluer*. Sous un gel dont l'unique objectif est d'atteindre N ≥ 100 puis N ≥ 500, toute
+construction dont le retour arrive après la campagne consomme le temps de la campagne sans la servir.
+
+**Les deux réponses qui valent OUI — ne pas les confondre.**
+
+| Voie | Question | Exemple |
+|---|---|---|
+| **Débit** | Accélère l'accumulation de trades ? | Corriger une famine de trading |
+| **Validité** | Rend la mesure de N digne de confiance ? | `OBS-002` : le panneau cesse de mentir |
+
+La seconde voie est la moins intuitive et la plus importante : **N = 100 trades mesurés par un
+instrument faux ne vaut rien.** Réparer l'instrument sert la campagne même sans accélérer un seul trade.
+
+**Test de violation.** Question posée à voix haute avant d'ouvrir un fichier. Réponse consignée dans
+le rapport de fin de ticket. Une réponse du type « ça améliore la maintenance future », « ce sera utile
+plus tard », « c'est plus propre » est un **NON déguisé**.
+
+**Précédent documenté — `render_docs.py` (2026-07-26).** Générateur de vues construit pendant le gel.
+Débit : non. Validité de la mesure : non. Il améliore la maintenance documentaire, dont le retour
+arrive **après** la campagne. **INV-ROI-001 l'aurait différé.** Il est conservé, gelé en l'état, et
+sert de cas de référence : l'argument « ça réduit la maintenance » est précisément la forme que prend
+la violation.
+
+**Application au chantier SSoT lui-même** — l'invariant doit passer son propre test :
+
+| Phase | Débit | Validité | Verdict |
+|---|---|---|---|
+| PHASE_01 (observabilité) | non | **oui** | OUI — le panneau cesse de mentir |
+| PHASE_03 (REST) | non | **oui** | OUI — le dashboard cesse de publier `0` |
+| PHASE_00 (gouvernance) | non | indirect | OUI **conditionnel** — précondition de PHASE_01, jamais une fin |
+| PHASE_02 / PHASE_04 (gated) | non | oui, mais **coûte N → 0** | Arbitrage `D-1`, décidé sur le chiffre de `PORT-001` |
+| `render_docs.py` | non | non | **NON** — précédent ci-dessus |
+
+**Conséquence d'une violation.** Aucune donnée n'est corrompue : c'est du temps de campagne dépensé
+hors campagne. Le coût est invisible sur le moment et ne se voit qu'à la fin — c'est ce qui rend cet
+invariant nécessaire.
+
+> **Limite assumée.** INV-ROI-001 n'est pas mécaniquement vérifiable, contrairement à INV-1 → INV-4.
+> Il repose sur une réponse honnête à une question. Sa seule force est d'obliger à la formuler
+> **avant** d'écrire, et à la consigner. C'est peu, et c'est mieux que rien.
+
+---
+
 ## Application
 
 **Avant chaque commit**, exécuter les quatre tests de violation ci-dessus sur le diff **stagé**.
