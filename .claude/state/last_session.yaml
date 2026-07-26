@@ -1,4 +1,6 @@
 # GENERATED — ne pas editer a la main. Source : .claude/manifest.yaml
-generated: 2026-07-26 00:56 UTC
-session: null
-note: Aucune session enregistree. Renseigner state.last_session.
+date: '2026-07-26'
+ticket: GOV-002
+commit: 5a5116f
+outcome: TERMINE
+next: GOV-004

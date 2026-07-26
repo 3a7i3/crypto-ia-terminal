@@ -162,14 +162,38 @@ tickets:
     title: "Registre des invariants INV-1 -> INV-4 opposable"
     phase: PHASE_00
     priority: P0
-    status: PRET
+    status: TERMINE
     gated: false
     risk: Faible
     estimate: "2-4 h"
     depends_on: []
     unblocks: []
-    files: [".claude/ ou docs/"]
+    files: [".claude/INVARIANTS.md"]
     commit: "docs(gov): registre des invariants INV-1..INV-4"
+    proof:
+      commit: ["5a5116f"]
+      files: [".claude/INVARIANTS.md"]
+      completed_at: "2026-07-26"
+      reviewer: "Claude Opus 4.8"
+      tests: []          # ticket documentaire : aucun test de code produit
+      adr: []            # ADR-0019 est le livrable de GOV-001, pas de celui-ci
+      pr: []
+      invariants:
+        - "INV-1 : git diff --cached | grep observability.*check_new_trade -> vide"
+        - "INV-2 : git diff --cached --name-only | grep (portfolio_brain|data_quality) -> vide"
+        - "INV-3 : git diff --cached --name-only | grep (databases/|paper_trades) -> vide"
+        - "INV-4 : git diff --cached -- portfolio_brain.py | grep MAX_ -> vide"
+      baseline: >
+        NON RELEVEE — suite pytest complete non executee (cout eleve, ~1122 modules).
+        Justification : le diff ne contient AUCUN fichier .py de production, aucun
+        test, aucune configuration. Verifie par
+        `git diff --cached --name-only | grep '\.py$' | grep -v '^\.claude/tools/'` -> vide.
+        La suite ne peut donc pas etre affectee. A relever avant OBS-001, qui touche tests/.
+      after: "NON RELEVEE — meme justification"
+      caveat: >
+        Le commit porte aussi l'infrastructure de pilotage (manifest, generateur,
+        phases, prompts), au-dela du perimetre strict de GOV-002. Atomicite
+        partiellement violee : constate et assume, non masque.
 
   - id: GOV-003
     title: "Journal des decisions du chantier (DEC-xxx)"
@@ -685,9 +709,14 @@ state:
   current_checkpoint: L0
   current_phase: PHASE_00
   current_ticket: null
-  next_ticket: GOV-002
+  next_ticket: GOV-004
   first_code_ticket: OBS-001
-  last_session: null
+  last_session:
+    date: "2026-07-26"
+    ticket: GOV-002
+    commit: "5a5116f"
+    outcome: TERMINE
+    next: GOV-004
   epoch:
     active: V4
     boundary: "2026-07-17T01:30:00Z"

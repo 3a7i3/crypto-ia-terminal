@@ -37,7 +37,7 @@
 | Palier | Nom | Atteint | Tickets requis termines |
 |---|---|---|---|
 | **L0** | Socle documentaire | OUI | 0/0 |
-| **L1** | Gouvernance etablie | non | 0/5 |
+| **L1** | Gouvernance etablie | non | 1/5 |
 | **L2** | Observabilite honnete | non | 0/8 |
 | **L3** | Decision d'epoque prise | non | 0/1 |
 | **L4** | SSoT restaure | non | 0/18 |

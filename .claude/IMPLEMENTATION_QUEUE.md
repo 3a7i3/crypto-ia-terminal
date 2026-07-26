@@ -2,7 +2,7 @@
 
 # IMPLEMENTATION_QUEUE — Backlog priorise
 
-> Genere le 2026-07-26 00:56 UTC depuis `.claude/manifest.yaml`.
+> Genere le 2026-07-26 00:58 UTC depuis `.claude/manifest.yaml`.
 
 ## Regle d'execution
 
@@ -12,21 +12,20 @@
 4. Tester, commiter, mettre a jour le **manifeste**, relancer le generateur.
 5. **S'ARRETER.** Jamais d'enchainement automatique.
 
-> **PROCHAIN TICKET : `GOV-002` — Registre des invariants INV-1 -> INV-4 opposable**
+> **PROCHAIN TICKET : `GOV-004` — Gabarit de rapport de fin de ticket**
 
-## FILE : PRET — 7 tickets demarrables maintenant
+## FILE : PRET — 6 tickets demarrables maintenant
 
 *(Sur 15 tickets non gated : les autres attendent une dependance.)*
 
 | # | ID | Titre | Phase | Prio | Est. | Prompt |
 |---|---|---|---|---|---|---|
-| 1 | `GOV-002` | Registre des invariants INV-1 -> INV-4 opposable | PHASE_00 | P0 | 2-4 h | `PROMPT_GOV_002.md` |
-| 2 | `GOV-004` | Gabarit de rapport de fin de ticket | PHASE_00 | P0 | 2 h | `PROMPT_GOV_004.md` |
-| 3 | `PORT-001` | Mesure d'impact hors ligne du gate aveugle (PASSIF) | PHASE_04_GATED | P0 | 1-2 j | `PROMPT_PORT_001.md` |
-| 4 | `GOV-001` | ADR-0019 : exposition d'affichage vs exposition-gate | PHASE_00 | P1 | 3-5 h | `PROMPT_GOV_001.md` |
-| 5 | `GOV-003` | Journal des decisions du chantier (DEC-xxx) | PHASE_00 | P1 | 2 h | `PROMPT_GOV_003.md` |
-| 6 | `GOV-005` | Checklist de deploiement VPS et verification | PHASE_00 | P1 | 2-3 h | `PROMPT_GOV_005.md` |
-| 7 | `REST-002` | Supprimer la recopie total_pnl_usd = open_pnl_usd | PHASE_03 | P1 | 1-2 h | `PROMPT_REST_002.md` |
+| 1 | `GOV-004` | Gabarit de rapport de fin de ticket | PHASE_00 | P0 | 2 h | `PROMPT_GOV_004.md` |
+| 2 | `PORT-001` | Mesure d'impact hors ligne du gate aveugle (PASSIF) | PHASE_04_GATED | P0 | 1-2 j | `PROMPT_PORT_001.md` |
+| 3 | `GOV-001` | ADR-0019 : exposition d'affichage vs exposition-gate | PHASE_00 | P1 | 3-5 h | `PROMPT_GOV_001.md` |
+| 4 | `GOV-003` | Journal des decisions du chantier (DEC-xxx) | PHASE_00 | P1 | 2 h | `PROMPT_GOV_003.md` |
+| 5 | `GOV-005` | Checklist de deploiement VPS et verification | PHASE_00 | P1 | 2-3 h | `PROMPT_GOV_005.md` |
+| 6 | `REST-002` | Supprimer la recopie total_pnl_usd = open_pnl_usd | PHASE_03 | P1 | 1-2 h | `PROMPT_REST_002.md` |
 
 ## FILE : BLOQUE — 27 tickets
 
@@ -71,6 +70,8 @@
 
 *(vide)*
 
-## FILE : TERMINE — 0 tickets
+## FILE : TERMINE — 1 tickets
 
-*(vide)*
+| ID | Titre | Commit |
+|---|---|---|
+| `GOV-002` | Registre des invariants INV-1 -> INV-4 opposable | `—` |

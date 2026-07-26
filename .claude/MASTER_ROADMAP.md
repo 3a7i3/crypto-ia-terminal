@@ -280,7 +280,7 @@ Déblocage : franchissement de la **PORTE D'EPOQUE** (4 préconditions cumulativ
 
 <!-- GENERATED:avancement -->
 ### PHASE_00 — Gouvernance
-[ ] GOV-001 · [ ] GOV-002 · [ ] GOV-003 · [ ] GOV-004 · [ ] GOV-005
+[ ] GOV-001 · [x] GOV-002 · [ ] GOV-003 · [ ] GOV-004 · [ ] GOV-005
 
 ### PHASE_01 — Observabilite (architecture A)
 [ ] OBS-001 · [ ] OBS-002 · [ ] OBS-003 · [ ] OBS-004 · [ ] OBS-005

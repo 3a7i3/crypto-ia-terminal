@@ -1,12 +1,12 @@
 # GENERATED — ne pas editer a la main. Source : .claude/manifest.yaml
-generated: 2026-07-26 00:56 UTC
+generated: 2026-07-26 00:58 UTC
 checkpoint: L0
 phase: PHASE_00
 tickets_total: 34
-pret: 7
+pret: 6
 bloque: 27
 en_cours: 0
-termine: 0
+termine: 1
 epoch:
   active: V4
   boundary: '2026-07-17T01:30:00Z'

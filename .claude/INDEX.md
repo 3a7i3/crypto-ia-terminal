@@ -2,14 +2,14 @@
 
 # INDEX — Tous les tickets du chantier
 
-> Genere le 2026-07-26 00:56 UTC depuis `.claude/manifest.yaml`.
+> Genere le 2026-07-26 00:58 UTC depuis `.claude/manifest.yaml`.
 > Pour modifier un statut : editer le manifeste, puis relancer
 > `python .claude/tools/render_docs.py`.
 
-**34 tickets** · PRET **7** · BLOQUE **27** · EN COURS **0** · TERMINE **0**
+**34 tickets** · PRET **6** · BLOQUE **27** · EN COURS **0** · TERMINE **1**
 
 > **Deux comptages distincts, a ne pas confondre :**
-> **7 tickets PRET** = demarrables *maintenant*
+> **6 tickets PRET** = demarrables *maintenant*
 > (dependances satisfaites).
 > **15 tickets NON GATED** = executables sous le gel *a terme* ;
 > certains attendent
@@ -22,7 +22,7 @@
 | ID | Titre | Prio | Statut | Bloque par | Prompt | Est. | Risque |
 |---|---|---|---|---|---|---|---|
 | `GOV-001` | ADR-0019 : exposition d'affichage vs exposition-gate | P1 | **PRET** | — | `PROMPT_GOV_001.md` | 3-5 h | Faible |
-| `GOV-002` | Registre des invariants INV-1 -> INV-4 opposable | P0 | **PRET** | — | `PROMPT_GOV_002.md` | 2-4 h | Faible |
+| `GOV-002` | Registre des invariants INV-1 -> INV-4 opposable | P0 | **TERMINE** | — | `PROMPT_GOV_002.md` | 2-4 h | Faible |
 | `GOV-003` | Journal des decisions du chantier (DEC-xxx) | P1 | **PRET** | — | `PROMPT_GOV_003.md` | 2 h | Faible |
 | `GOV-004` | Gabarit de rapport de fin de ticket | P0 | **PRET** | — | `PROMPT_GOV_004.md` | 2 h | Faible |
 | `GOV-005` | Checklist de deploiement VPS et verification | P1 | **PRET** | — | `PROMPT_GOV_005.md` | 2-3 h | Faible |

@@ -1,6 +1,6 @@
 # GENERATED — ne pas editer a la main. Source : .claude/manifest.yaml
-generated: 2026-07-26 00:56 UTC
+generated: 2026-07-26 00:58 UTC
 ticket: null
-next: GOV-002
-next_title: Registre des invariants INV-1 -> INV-4 opposable
-prompt: prompts/PROMPT_GOV_002.md
+next: GOV-004
+next_title: Gabarit de rapport de fin de ticket
+prompt: prompts/PROMPT_GOV_004.md
