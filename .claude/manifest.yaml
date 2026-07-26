@@ -90,6 +90,11 @@ health_baseline:
     - "tests/paper_trading/test_paper_trade_e2e.py::TestPaperTradeCompleteLifecycle::test_mexc_simulator_market_order_complete"
     - "tests/scripts/test_sqlite_contamination_cleanup.py::test_cleanup_confirm_deletes_and_reaudits"
     - "tests/test_dataset_validator.py::test_validate_log_valid_file"
+  collection_errors: 1
+  # Regle de derive appliquee par le validateur (voir render_docs.py::check_health) :
+  #   collection_errors > expected_collection_errors -> FAIL
+  #   failed           > expected_failures           -> FAIL
+  #   failed           < expected_failures           -> AMELIORATION a signaler
   known_failures_note: >
     Les 3 echecs sont PREEXISTANTS, mesures au commit 8cb42fb avant toute
     modification de tests/. Le troisieme est revelateur : DatasetValidator
@@ -740,6 +745,44 @@ checkpoints:
       - "Ecart de verdicts journalise et chiffre"
       - "Borne CLEAN_DATA_SINCE_V5 posee, epoque V4 archivee"
       - "Deploiement verifie : SHA VPS = SHA local, service actif"
+
+# -----------------------------------------------------------------------------
+# DETTE DE MAINTENANCE — HORS CAMPAGNE
+#
+# Anomalies reelles, constatees et tracables, qui NE SONT PAS des tickets de
+# campagne : elles echouent au test INV-ROI-001 (ni debit de trades, ni validite
+# de la mesure de N, ne debloquent aucun ticket).
+#
+# Elles figurent ici pour NE PAS disparaitre dans la liste des known_failures.
+# A traiter hors gel, jamais pendant.
+# -----------------------------------------------------------------------------
+deferred_maintenance:
+  - id: MAINT-DATA-001
+    title: "Synchroniser DatasetValidator avec schema_version=3"
+    status: DIFFERE
+    reason: "INV-ROI-001 — hors chemin critique du burn-in"
+    evidence: "tests/test_dataset_validator.py::test_validate_log_valid_file"
+    detail: >
+      Le systeme produit schema_version=3 alors que DatasetValidator n'accepte
+      que [1, 2]. Violations observees : [t1/OPEN] et [t1/CLOSE]
+      "schema_version=3 inconnu (attendu: [1, 2])".
+      Incoherence REELLE du pipeline scientifique : le validateur de dataset ne
+      reconnait pas la version de schema que le systeme ecrit. Sans impact sur
+      le burn-in tant que le validateur n'est pas un gate de production.
+    discovered_at: "2026-07-26"
+    discovered_by: "baseline globale, commit 8cb42fb"
+
+  - id: MAINT-TEST-001
+    title: "Reparer l'import de tests/test_full_integration.py"
+    status: DIFFERE
+    reason: "INV-ROI-001 — ne debloque aucun ticket de campagne"
+    evidence: "tests/test_full_integration.py:13"
+    detail: >
+      ModuleNotFoundError: No module named 'tracker_system.exchange.binance_client'.
+      Interrompt la collecte de `pytest tests/ -q`, d'ou la commande officielle
+      avec --continue-on-collection-errors. Masque un nombre inconnu de tests.
+    discovered_at: "2026-07-26"
+    discovered_by: "baseline globale, commit 8cb42fb"
 
 # -----------------------------------------------------------------------------
 # DECISIONS EN ATTENTE
