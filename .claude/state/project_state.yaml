@@ -1,0 +1,21 @@
+# GENERATED — ne pas editer a la main. Source : .claude/manifest.yaml
+generated: 2026-07-26 01:05 UTC
+checkpoint: L0
+phase: PHASE_00
+tickets_total: 34
+pret: 6
+bloque: 26
+en_cours: 0
+termine: 2
+epoch:
+  active: V4
+  boundary: '2026-07-17T01:30:00Z'
+  n_current: 32
+  n_required_for_gate: 100
+gate_open: false
+decisions_en_attente:
+- D-1
+- D-2
+- D-3
+- D-4
+- D-5

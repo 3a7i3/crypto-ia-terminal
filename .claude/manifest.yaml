@@ -1,0 +1,799 @@
+# =============================================================================
+# manifest.yaml — SOURCE DE VERITE UNIQUE du chantier de remediation SSoT
+# =============================================================================
+#
+# Ce fichier est la SEULE chose qu'on edite a la main.
+# INDEX.md, IMPLEMENTATION_QUEUE.md et les blocs d'etat de MASTER_ROADMAP.md /
+# CHECKPOINTS.md en sont des VUES GENEREES :
+#
+#     python .claude/tools/render_docs.py
+#
+# Ne jamais editer a la main un fichier portant le marqueur GENERATED.
+# En cas de divergence, la hierarchie de verite est :
+#     git log  >  manifest.yaml  >  documents generes
+#
+# =============================================================================
+
+meta:
+  version: "1.0"
+  updated: "2026-07-24"
+  authority: "operateur (Mathieu)"
+  renderer: ".claude/tools/render_docs.py"
+
+project:
+  name: crypto_ai_terminal
+  chantier: "Remediation de la dette Single Source of Truth"
+  problem: >
+    Le panneau Telegram affiche simultanement "Positions: 3" et
+    "Portfolio Exposure: 0.0%". Audit SSoT : 0 PASS / 1 WARNING / 8 FAIL.
+  root_cause: >
+    core/advisor_loop.py:6786 passe pos_manager.get_open() a portfolio_health(),
+    or pos_manager est vide en mode paper : les positions vivent dans
+    _virtual_portfolio (MexcSimulator). portfolio_brain.py:668-687 itere une
+    liste vide => exposition 0.
+  proof: "free_cash = 674.47 x 0.40 - 0 = 269.79 $, exactement la valeur affichee"
+  hidden_consequence: >
+    Les cinq controles de check_new_trade (portfolio_brain.py:121-190) s'executent
+    sur un portefeuille percu comme vide : le gate est trop permissif.
+
+# -----------------------------------------------------------------------------
+# INVARIANTS — non negociables
+# -----------------------------------------------------------------------------
+invariants:
+  - id: INV-1
+    statement: "Passivite absolue des observers (ADR-0007)"
+    violation: "Un composant d'observabilite influence une decision en temps reel"
+  - id: INV-2
+    statement: "Aucun reset de N sans ADR d'epoque signe par l'operateur"
+    violation: "Modifier ce que le moteur REGARDE"
+  - id: INV-3
+    statement: "paper_trades.jsonl ecrit uniquement par mexc_simulator.py et recorder.py"
+    violation: "Ecrire ou reecrire l'historique"
+  - id: INV-4
+    statement: "Aucun seuil modifie avant N >= 500 et CRI >= 90"
+    violation: "Toucher une constante de seuil (portfolio_brain.py:88-109)"
+
+# -----------------------------------------------------------------------------
+# HEALTH BASELINE — etat de reference REPRODUCTIBLE de la suite de tests
+#
+# La suite ne s'execute pas avec `pytest tests/ -q` : la collecte est interrompue
+# par une erreur d'import PREEXISTANTE. Ce n'est pas un caveat, c'est un etat de
+# reference mesure, versionne, et opposable.
+#
+# expected_collection_errors est un INVARIANT :
+#     observe == expected  -> PASS
+#     observe >  expected  -> FAIL   (nouvelle dette introduite par le ticket)
+#     observe <  expected  -> la dette a diminue : mettre a jour ce bloc
+# -----------------------------------------------------------------------------
+health_baseline:
+  suite_state: DEGRADED
+  command: "python -m pytest tests/ -q --continue-on-collection-errors"
+  measured_at_commit: "8cb42fb"
+  expected_collection_errors: 1
+  known_errors:
+    - file: "tests/test_full_integration.py"
+      line: 13
+      reason: "ModuleNotFoundError: No module named 'tracker_system.exchange.binance_client'"
+      preexisting: true
+      ticket: null      # aucun ticket de campagne ne le corrige : INV-ROI-001 le refuse
+      note: >
+        Dette de maintenance, hors campagne. Ne rapproche ni du burn-in ni de la
+        validite de la mesure de N. A traiter hors gel, jamais pendant.
+  collected: 3829
+  passed: 3805
+  failed: 3
+  skipped: 20
+  xfailed: 2
+  duration_s: 334
+  expected_failures: 3
+  known_failures:
+    - "tests/paper_trading/test_paper_trade_e2e.py::TestPaperTradeCompleteLifecycle::test_mexc_simulator_market_order_complete"
+    - "tests/scripts/test_sqlite_contamination_cleanup.py::test_cleanup_confirm_deletes_and_reaudits"
+    - "tests/test_dataset_validator.py::test_validate_log_valid_file"
+  known_failures_note: >
+    Les 3 echecs sont PREEXISTANTS, mesures au commit 8cb42fb avant toute
+    modification de tests/. Le troisieme est revelateur : DatasetValidator
+    refuse schema_version=3 (attendu [1, 2]) — incoherence de version de schema
+    dans le dataset, a instruire hors campagne (INV-ROI-001).
+    Meme regle que les erreurs de collecte : observe > expected -> FAIL.
+
+# -----------------------------------------------------------------------------
+# GATING
+# -----------------------------------------------------------------------------
+gating:
+  rule: >
+    Ce changement modifie-t-il ce que le moteur REGARDE, ou seulement ce qu'il MONTRE ?
+    MONTRE => executable, N inchange. REGARDE => GATED, reset d'epoque, ADR signe.
+  default_on_doubt: GATED
+  sensitive_symbols:
+    - PositionManager
+    - check_new_trade
+    - sizing
+    - risk
+    - PortfolioBrain (en entree de decision)
+    - seuils par regime
+    - CLEAN_DATA_SINCE_*
+  epoch_gate_preconditions:
+    - id: P1
+      text: "Checkpoint L2 du projet franchi"
+      met: false
+    - id: P2
+      text: "N >= 100 atteint sur l'epoque V4 (CLEAN_DATA_SINCE_V4 = 2026-07-17T01:30:00Z)"
+      met: false
+    - id: P3
+      text: "Rapport PORT-001 produit et lu par l'operateur"
+      met: false
+    - id: P4
+      text: "ADR d'epoque redige et signe par l'operateur"
+      met: false
+
+# -----------------------------------------------------------------------------
+# PHASES
+# -----------------------------------------------------------------------------
+phases:
+  - id: PHASE_00
+    title: "Gouvernance"
+    doc: "phases/PHASE_00.md"
+    gated: false
+    estimate: "2-4 j"
+    prefix: GOV
+  - id: PHASE_01
+    title: "Observabilite (architecture A)"
+    doc: "phases/PHASE_01.md"
+    gated: false
+    estimate: "2-3 j"
+    prefix: OBS
+  - id: PHASE_02_GATED
+    title: "SSoT : store canonique et unification"
+    doc: "phases/PHASE_02_GATED.md"
+    gated: true
+    estimate: "2-3 sem"
+    prefix: SSOT
+  - id: PHASE_03
+    title: "REST / Dashboard"
+    doc: "phases/PHASE_03.md"
+    gated: false
+    estimate: "1-2 j"
+    prefix: REST
+  - id: PHASE_04_GATED
+    title: "Portefeuille / Risque"
+    doc: "phases/PHASE_04_GATED.md"
+    gated: true
+    estimate: "7-11 j"
+    prefix: PORT
+
+# -----------------------------------------------------------------------------
+# TICKETS
+#
+# status : seuls TERMINE et EN_COURS sont des FAITS declares ici.
+#          PRET et BLOQUE sont DERIVES (dependances + gating) par le generateur.
+#
+# proof  : OBLIGATOIRE des qu'un ticket passe a TERMINE.
+#          Un ticket n'est pas "termine parce qu'on le dit" : il est termine
+#          parce qu'il est TRACABLE jusqu'aux elements qui le demontrent.
+#          Schema :
+#            proof:
+#              commit:       [sha, ...]             # commit atomique du ticket
+#              files:        [chemin, ...]          # livrables reels = CONTRAT (INV-TRACE-001)
+#              tests:        [nom_du_test, ...]     # tests qui prouvent le resultat
+#              pr:           [numero, ...]          # PR si applicable
+#              adr:          [ADR-00XX, ...]        # ADR produits ou invoques
+#              invariants:   [INV-x, ...]           # invariants verifies ET la commande utilisee
+#              baseline:                            # mesure OBJECTIVE, pas une phrase
+#                commit: <sha>
+#                duration: <s>
+#                collected: <n>
+#                passed: <n>
+#                failed: <n>
+#                skipped: <n>
+#              after:        <meme structure que baseline>
+#              duration:     "<duree reelle du ticket>"
+#              rollback:     "<commande exacte + effet>"
+#              next_ticket_ready: <ID>  |  false
+#              reason:       "<si next_ticket_ready = false>"
+#              reviewer:     nom
+#              completed_at: "YYYY-MM-DD"
+#              caveat:       "<ecart assume, jamais masque>"
+#          Un TERMINE sans proof est une affirmation non etayee : le generateur
+#          doit le refuser (voir validate()).
+# -----------------------------------------------------------------------------
+tickets:
+
+  # --- PHASE_00 -------------------------------------------------------------
+  - id: GOV-001
+    title: "ADR-0019 : exposition d'affichage vs exposition-gate"
+    phase: PHASE_00
+    priority: P1
+    status: PRET
+    gated: false
+    risk: Faible
+    estimate: "3-5 h"
+    depends_on: []
+    unblocks: [REST-001]
+    files: ["docs/adr/"]
+    commit: "docs(adr): ADR-00XX exposition d'affichage vs exposition-gate"
+
+  - id: GOV-002
+    title: "Registre des invariants INV-1 -> INV-4 opposable"
+    phase: PHASE_00
+    priority: P0
+    status: TERMINE
+    gated: false
+    risk: Faible
+    estimate: "2-4 h"
+    depends_on: []
+    unblocks: []
+    files: [".claude/INVARIANTS.md"]
+    commit: "docs(gov): registre des invariants INV-1..INV-4"
+    proof:
+      commit: ["5a5116f"]
+      files: [".claude/INVARIANTS.md"]
+      completed_at: "2026-07-26"
+      reviewer: "Claude Opus 4.8"
+      tests: []          # ticket documentaire : aucun test de code produit
+      adr: []            # ADR-0019 est le livrable de GOV-001, pas de celui-ci
+      pr: []
+      invariants:
+        - "INV-1 : git diff --cached | grep observability.*check_new_trade -> vide"
+        - "INV-2 : git diff --cached --name-only | grep (portfolio_brain|data_quality) -> vide"
+        - "INV-3 : git diff --cached --name-only | grep (databases/|paper_trades) -> vide"
+        - "INV-4 : git diff --cached -- portfolio_brain.py | grep MAX_ -> vide"
+      baseline: >
+        NON RELEVEE — suite pytest complete non executee (cout eleve, ~1122 modules).
+        Justification : le diff ne contient AUCUN fichier .py de production, aucun
+        test, aucune configuration. Verifie par
+        `git diff --cached --name-only | grep '\.py$' | grep -v '^\.claude/tools/'` -> vide.
+        La suite ne peut donc pas etre affectee. A relever avant OBS-001, qui touche tests/.
+      after: "NON RELEVEE — meme justification"
+      caveat: >
+        Le commit porte aussi l'infrastructure de pilotage (manifest, generateur,
+        phases, prompts), au-dela du perimetre strict de GOV-002. Atomicite
+        partiellement violee : constate et assume, non masque.
+
+  - id: GOV-003
+    title: "Journal des decisions du chantier (DEC-xxx)"
+    phase: PHASE_00
+    priority: P1
+    status: PRET
+    gated: false
+    risk: Faible
+    estimate: "2 h"
+    depends_on: []
+    unblocks: []
+    files: [".claude/ ou docs/"]
+    commit: "docs(gov): journal des decisions du chantier"
+
+  - id: GOV-004
+    title: "Gabarit de rapport de fin de ticket"
+    phase: PHASE_00
+    priority: P0
+    status: TERMINE
+    gated: false
+    risk: Faible
+    estimate: "2 h"
+    depends_on: []
+    unblocks: [OBS-001]
+    files: [".claude/REPORT_TEMPLATE.md", ".claude/INVARIANTS.md"]
+    commit: "docs(gov): gabarit de rapport de fin de ticket"
+    proof:
+      commit: ["66709a1"]
+      files: [".claude/REPORT_TEMPLATE.md", ".claude/INVARIANTS.md"]
+      completed_at: "2026-07-26"
+      reviewer: "Claude Opus 4.8"
+      tests: []
+      adr: []
+      pr: []
+      invariants:
+        - "INV-1..INV-4 : 4 controles du registre -> 4 sorties vides"
+        - "INV-ROI-001 : OUI conditionnel, voie validite — precondition declaree d'OBS-001"
+      baseline: >
+        NON RELEVEE — diff = 2 fichiers .md, aucun .py. Verifie :
+        `git diff --cached --name-only | grep '\.py$'` -> vide.
+      after: "NON RELEVEE — meme justification"
+      caveat: >
+        Atomicite RESPECTEE : 2 fichiers, perimetre strict du ticket
+        (contrairement a GOV-002). INV-ROI-001 ajoute a INVARIANTS.md dans le
+        meme commit : hors perimetre nominal de GOV-004, mais demande explicite
+        de l'operateur et indissociable du gabarit qui l'invoque.
+
+  - id: GOV-005
+    title: "Checklist de deploiement VPS et verification"
+    phase: PHASE_00
+    priority: P1
+    status: PRET
+    gated: false
+    risk: Faible
+    estimate: "2-3 h"
+    depends_on: []
+    unblocks: []
+    files: [".claude/ ou docs/"]
+    commit: "docs(gov): checklist de deploiement et verification VPS"
+
+  # --- PHASE_01 -------------------------------------------------------------
+  - id: OBS-001
+    title: "Tests rouges + garde verte INV-2"
+    phase: PHASE_01
+    priority: P0
+    status: PRET
+    gated: false
+    risk: Faible
+    estimate: "3-5 h"
+    depends_on: [GOV-004]
+    unblocks: [OBS-002]
+    files: ["tests/"]
+    commit: "test(observability): figer le bug exposition d'affichage + garde INV-2"
+    note: "PREMIER TICKET TOUCHANT DU CODE"
+
+  - id: OBS-002
+    title: "Builder CYCLE : exposition/paper_cash/free_cash depuis _virtual_portfolio"
+    phase: PHASE_01
+    priority: P0
+    status: PRET
+    gated: false
+    risk: Eleve
+    estimate: "4-8 h"
+    depends_on: [OBS-001]
+    unblocks: [OBS-003, OBS-004, OBS-005]
+    files: ["core/advisor_loop.py"]
+    commit: "fix(observability): exposition d'affichage derivee du store reel"
+
+  - id: OBS-003
+    title: "Builder HEARTBEAT : parite stricte avec OBS-002"
+    phase: PHASE_01
+    priority: P1
+    status: PRET
+    gated: false
+    risk: Moyen
+    estimate: "2-3 h"
+    depends_on: [OBS-002]
+    unblocks: []
+    files: ["core/advisor_loop.py"]
+    commit: "fix(observability): parite heartbeat avec le builder cycle"
+
+  - id: OBS-004
+    title: "Documenter affichage != gate (risque R1)"
+    phase: PHASE_01
+    priority: P1
+    status: PRET
+    gated: false
+    risk: Faible
+    estimate: "1-2 h"
+    depends_on: [OBS-002]
+    unblocks: []
+    files: ["core/advisor_loop.py", "quant_hedge_ai/agents/risk/portfolio_brain.py"]
+    commit: "docs(observability): distinguer exposition d'affichage et exposition-gate"
+
+  - id: OBS-005
+    title: "Coherence d'affichage integrity_snapshot.py (OPTIONNEL)"
+    phase: PHASE_01
+    priority: P3
+    status: PRET
+    gated: false
+    risk: Moyen
+    estimate: "2-4 h"
+    depends_on: [OBS-002]
+    unblocks: []
+    files: ["system/integrity_snapshot.py"]
+    commit: "fix(observability): integrity_snapshot aligne sur la source d'affichage"
+    note: "Retenu ou ecarte par la decision D-4"
+
+  # --- PHASE_03 -------------------------------------------------------------
+  - id: REST-001
+    title: "ADR de source unique pour les metriques API"
+    phase: PHASE_03
+    priority: P1
+    status: PRET
+    gated: false
+    risk: Faible
+    estimate: "2-4 h"
+    depends_on: [GOV-001]
+    unblocks: [REST-003]
+    files: ["docs/adr/"]
+    commit: "docs(adr): source unique des metriques publiees par l'API"
+
+  - id: REST-002
+    title: "Supprimer la recopie total_pnl_usd = open_pnl_usd"
+    phase: PHASE_03
+    priority: P1
+    status: PRET
+    gated: false
+    risk: Moyen
+    estimate: "1-2 h"
+    depends_on: []
+    unblocks: [REST-004]
+    files: ["visualization/api/portfolio_api.py"]
+    commit: "fix(api): total_pnl_usd cesse de recopier le PnL ouvert"
+
+  - id: REST-003
+    title: "Remplacer les 8 litteraux figes de portfolio_api.py:22-29"
+    phase: PHASE_03
+    priority: P2
+    status: PRET
+    gated: false
+    risk: Moyen
+    estimate: "3-5 h"
+    depends_on: [REST-001]
+    unblocks: [REST-004]
+    files: ["visualization/api/portfolio_api.py", "visualization/api/models.py"]
+    commit: "fix(api): publier les metriques reelles au lieu de litteraux figes"
+
+  - id: REST-004
+    title: "Tests de garde REST"
+    phase: PHASE_03
+    priority: P2
+    status: PRET
+    gated: false
+    risk: Faible
+    estimate: "2-3 h"
+    depends_on: [REST-002, REST-003]
+    unblocks: []
+    files: ["tests/visualization/"]
+    commit: "test(api): gardes contre le retour des metriques figees"
+
+  # --- PHASE_04_GATED -------------------------------------------------------
+  - id: PORT-001
+    title: "Mesure d'impact hors ligne du gate aveugle (PASSIF)"
+    phase: PHASE_04_GATED
+    priority: P0
+    status: PRET
+    gated: false
+    risk: Faible
+    estimate: "1-2 j"
+    depends_on: []
+    unblocks: [PORT-002]
+    files: ["analysis/ ou research/"]
+    commit: "feat(analysis): mesure d'impact hors ligne du gate aveugle"
+    note: "EXCEPTION DOCUMENTEE : passif, dans une phase gated. Ne reset pas N."
+
+  - id: PORT-002
+    title: "Brancher portfolio_health sur le store canonique"
+    phase: PHASE_04_GATED
+    priority: P1
+    status: BLOQUE
+    gated: true
+    risk: CRITIQUE
+    estimate: "1-2 j"
+    depends_on: [SSOT-007, PORT-001]
+    unblocks: [PORT-003, PORT-004, PORT-005, PORT-006]
+    files: ["core/advisor_loop.py", "quant_hedge_ai/agents/risk/portfolio_brain.py"]
+    note: "POINT DE NON-RETOUR SCIENTIFIQUE"
+
+  - id: PORT-003
+    title: "Correlation et levier sur positions reelles"
+    phase: PHASE_04_GATED
+    priority: P2
+    status: BLOQUE
+    gated: true
+    risk: CRITIQUE
+    estimate: "1 j"
+    depends_on: [PORT-002]
+    unblocks: []
+    files: ["quant_hedge_ai/agents/risk/portfolio_brain.py"]
+
+  - id: PORT-004
+    title: "Arbitrage des deux PortfolioBrain"
+    phase: PHASE_04_GATED
+    priority: P2
+    status: BLOQUE
+    gated: true
+    risk: CRITIQUE
+    estimate: "1-2 j"
+    depends_on: [PORT-002]
+    unblocks: []
+    files: ["quant_hedge_ai/agents/risk/portfolio_brain.py", "quant_hedge_ai/agents/portfolio/__init__.py"]
+    conflict_with: SSOT-010
+    note: "CHEVAUCHEMENT avec SSOT-010 — decision D-2 requise, n'en garder qu'un"
+
+  - id: PORT-005
+    title: "PaperTrade -> TradeOpened / TradeClosed"
+    phase: PHASE_04_GATED
+    priority: P3
+    status: BLOQUE
+    gated: true
+    risk: CRITIQUE
+    estimate: "2-3 j"
+    depends_on: [PORT-002]
+    unblocks: []
+    files: ["paper_trading/ledger.py", "paper_trading/mexc_simulator.py"]
+
+  - id: PORT-006
+    title: "Borne d'epoque V5 + deploiement + verification"
+    phase: PHASE_04_GATED
+    priority: P1
+    status: BLOQUE
+    gated: true
+    risk: CRITIQUE
+    estimate: "0.5 j"
+    depends_on: [PORT-002]
+    unblocks: []
+    files: ["scripts/data_quality.py", "CLAUDE.md", "docs/adr/"]
+    note: "EXECUTE EFFECTIVEMENT LE RESET D'EPOQUE"
+
+  # --- PHASE_02_GATED -------------------------------------------------------
+  - id: SSOT-001
+    title: "Contrat du store de positions canonique (sans cablage)"
+    phase: PHASE_02_GATED
+    priority: P1
+    status: BLOQUE
+    gated: true
+    risk: CRITIQUE
+    estimate: "A CONFIRMER"
+    depends_on: []
+    unblocks: [SSOT-002, SSOT-003]
+    files: ["A CONFIRMER AU DEMARRAGE DU TICKET"]
+
+  - id: SSOT-002
+    title: "Adaptateur de lecture MexcSimulator -> store canonique"
+    phase: PHASE_02_GATED
+    priority: P1
+    status: BLOQUE
+    gated: true
+    risk: CRITIQUE
+    estimate: "A CONFIRMER"
+    depends_on: [SSOT-001]
+    unblocks: [SSOT-004]
+    files: ["paper_trading/mexc_simulator.py"]
+
+  - id: SSOT-003
+    title: "Adaptateurs PositionManager et PaperLedger -> store canonique"
+    phase: PHASE_02_GATED
+    priority: P1
+    status: BLOQUE
+    gated: true
+    risk: CRITIQUE
+    estimate: "A CONFIRMER"
+    depends_on: [SSOT-001]
+    unblocks: [SSOT-004]
+    files: ["paper_trading/ledger.py"]
+
+  - id: SSOT-004
+    title: "Resolveur de store + feature-flag (defaut false, non cable)"
+    phase: PHASE_02_GATED
+    priority: P1
+    status: BLOQUE
+    gated: true
+    risk: CRITIQUE
+    estimate: "A CONFIRMER"
+    depends_on: [SSOT-002, SSOT-003]
+    unblocks: [SSOT-005]
+    files: ["config/feature_flags.py"]
+
+  - id: SSOT-005
+    title: "Harnais de comparaison passif (dry-run, mesure d'ecart)"
+    phase: PHASE_02_GATED
+    priority: P1
+    status: BLOQUE
+    gated: true
+    risk: CRITIQUE
+    estimate: "A CONFIRMER"
+    depends_on: [SSOT-004]
+    unblocks: [SSOT-006]
+    files: ["A CONFIRMER AU DEMARRAGE DU TICKET"]
+
+  - id: SSOT-006
+    title: "Cablage AFFICHAGE sur le store canonique + activation du dry-run"
+    phase: PHASE_02_GATED
+    priority: P1
+    status: BLOQUE
+    gated: true
+    risk: CRITIQUE
+    estimate: "A CONFIRMER"
+    depends_on: [SSOT-005]
+    unblocks: [SSOT-007]
+    files: ["core/advisor_loop.py"]
+
+  - id: SSOT-007
+    title: "Cablage DECISION : portfolio_health lit le store resolu"
+    phase: PHASE_02_GATED
+    priority: P1
+    status: BLOQUE
+    gated: true
+    risk: CRITIQUE
+    estimate: "A CONFIRMER"
+    depends_on: [SSOT-006]
+    unblocks: [SSOT-008, PORT-002]
+    files: ["core/advisor_loop.py", "quant_hedge_ai/agents/risk/portfolio_brain.py"]
+
+  - id: SSOT-008
+    title: "PortfolioSnapshot canonique unique + alias de compatibilite"
+    phase: PHASE_02_GATED
+    priority: P2
+    status: BLOQUE
+    gated: true
+    risk: CRITIQUE
+    estimate: "A CONFIRMER"
+    depends_on: [SSOT-007]
+    unblocks: [SSOT-009, SSOT-010, SSOT-011, SSOT-012]
+    files: ["observability/system_snapshot.py", "visualization/api/models.py"]
+
+  - id: SSOT-009
+    title: "Migration du consommateur REST vers le PortfolioSnapshot canonique"
+    phase: PHASE_02_GATED
+    priority: P2
+    status: BLOQUE
+    gated: true
+    risk: CRITIQUE
+    estimate: "A CONFIRMER"
+    depends_on: [SSOT-008]
+    unblocks: []
+    files: ["visualization/api/portfolio_api.py"]
+
+  - id: SSOT-010
+    title: "Arbitrage des deux PortfolioBrain"
+    phase: PHASE_02_GATED
+    priority: P2
+    status: BLOQUE
+    gated: true
+    risk: CRITIQUE
+    estimate: "A CONFIRMER"
+    depends_on: [SSOT-008]
+    unblocks: []
+    files: ["quant_hedge_ai/agents/risk/portfolio_brain.py", "quant_hedge_ai/agents/portfolio/__init__.py"]
+    conflict_with: PORT-004
+    note: "CHEVAUCHEMENT avec PORT-004 — decision D-2 requise"
+
+  - id: SSOT-011
+    title: "Unification des deux SystemSnapshot"
+    phase: PHASE_02_GATED
+    priority: P2
+    status: BLOQUE
+    gated: true
+    risk: CRITIQUE
+    estimate: "A CONFIRMER"
+    depends_on: [SSOT-008]
+    unblocks: []
+    files: ["observability/system_snapshot.py", "infra/monitoring/daily_analyzer.py"]
+
+  - id: SSOT-012
+    title: "Couche de metriques canonique : capital, equity, cash"
+    phase: PHASE_02_GATED
+    priority: P2
+    status: BLOQUE
+    gated: true
+    risk: CRITIQUE
+    estimate: "A CONFIRMER"
+    depends_on: [SSOT-008]
+    unblocks: [SSOT-013, SSOT-014]
+    files: ["A CONFIRMER AU DEMARRAGE DU TICKET"]
+
+  - id: SSOT-013
+    title: "Couche de metriques canonique : PnL ouvert et PnL ferme"
+    phase: PHASE_02_GATED
+    priority: P2
+    status: BLOQUE
+    gated: true
+    risk: CRITIQUE
+    estimate: "A CONFIRMER"
+    depends_on: [SSOT-012]
+    unblocks: []
+    files: ["A CONFIRMER AU DEMARRAGE DU TICKET"]
+
+  - id: SSOT-014
+    title: "Couche de metriques canonique : win_rate et drawdown"
+    phase: PHASE_02_GATED
+    priority: P2
+    status: BLOQUE
+    gated: true
+    risk: CRITIQUE
+    estimate: "A CONFIRMER"
+    depends_on: [SSOT-012]
+    unblocks: []
+    files: ["A CONFIRMER AU DEMARRAGE DU TICKET"]
+
+# -----------------------------------------------------------------------------
+# CHECKPOINTS
+# -----------------------------------------------------------------------------
+checkpoints:
+  - id: L0
+    name: "Socle documentaire"
+    reversible: true
+    reached: true
+    requires_tickets: []
+    authority: "aucune"
+    exit_criteria:
+      - "Diagnostic valide et ecrit"
+      - "Regles ecrites"
+      - "Roadmap et backlog generes"
+      - "Prompts des tickets non gated rediges"
+  - id: L1
+    name: "Gouvernance etablie"
+    reversible: true
+    reached: false
+    requires_tickets: [GOV-001, GOV-002, GOV-003, GOV-004, GOV-005]
+    authority: "session Claude ; D-3 = operateur"
+    exit_criteria:
+      - "Chaque invariant possede un test de violation executable"
+      - "Checklist de deploiement operationnelle"
+  - id: L2
+    name: "Observabilite honnete"
+    reversible: true
+    reached: false
+    requires_tickets: [OBS-001, OBS-002, OBS-003, OBS-004, REST-001, REST-002, REST-003, REST-004]
+    authority: "session Claude"
+    exit_criteria:
+      - "Exposition affichee > 0 avec positions ouvertes"
+      - "paper_cash et free_cash coherents"
+      - "Verdict de check_new_trade strictement inchange"
+      - "git diff sur portfolio_brain.py:88-109 vide"
+  - id: L3
+    name: "Decision d'epoque prise"
+    reversible: false
+    reached: false
+    requires_tickets: [PORT-001]
+    authority: "operateur seul"
+    exit_criteria:
+      - "Rapport PORT-001 avec 5 metriques chiffrees + auto-validation du harnais"
+      - "Decision D-1 tranchee et inscrite au journal"
+      - "Decision D-2 tranchee"
+      - "ADR d'epoque signe"
+  - id: L4
+    name: "SSoT restaure"
+    reversible: false
+    reached: false
+    requires_tickets: [SSOT-001, SSOT-002, SSOT-003, SSOT-004, SSOT-005, SSOT-006, SSOT-007,
+                       SSOT-008, SSOT-009, SSOT-010, SSOT-011, SSOT-012, SSOT-013, SSOT-014,
+                       PORT-002, PORT-003, PORT-005, PORT-006]
+    authority: "operateur (bascule, deploiement) ; session Claude (implementation)"
+    exit_criteria:
+      - "Exposition affichee = exposition gate"
+      - "Aucun seuil modifie"
+      - "Ecart de verdicts journalise et chiffre"
+      - "Borne CLEAN_DATA_SINCE_V5 posee, epoque V4 archivee"
+      - "Deploiement verifie : SHA VPS = SHA local, service actif"
+
+# -----------------------------------------------------------------------------
+# DECISIONS EN ATTENTE
+# -----------------------------------------------------------------------------
+decisions:
+  - id: D-1
+    question: "Autoriser ou non le reset d'epoque V4 -> V5"
+    authority: operateur
+    status: EN_ATTENTE
+    blocks: [PHASE_02_GATED, PHASE_04_GATED]
+    prerequisite: "Lecture du rapport PORT-001"
+    irreversible: true
+  - id: D-2
+    question: "Arbitrer le chevauchement SSOT-010 / PORT-004"
+    authority: operateur
+    status: EN_ATTENTE
+    blocks: [SSOT-010, PORT-004]
+    irreversible: false
+  - id: D-3
+    question: "Accepter ADR-0019 (GOV-001)"
+    authority: operateur
+    status: EN_ATTENTE
+    blocks: []
+    irreversible: false
+  - id: D-4
+    question: "Retenir ou ecarter OBS-005 (optionnel)"
+    authority: operateur
+    status: EN_ATTENTE
+    blocks: []
+    irreversible: false
+  - id: D-5
+    question: "Fenetre d'arret du moteur pour PORT-006"
+    authority: operateur
+    status: EN_ATTENTE
+    blocks: [PORT-006]
+    irreversible: false
+
+# -----------------------------------------------------------------------------
+# ETAT COURANT
+# -----------------------------------------------------------------------------
+state:
+  current_checkpoint: L0
+  current_phase: PHASE_00
+  current_ticket: null
+  next_ticket: OBS-001
+  first_code_ticket: OBS-001
+  last_session:
+    date: "2026-07-26"
+    ticket: GOV-004
+    commit: "66709a1"
+    outcome: TERMINE
+    next: OBS-001
+  epoch:
+    active: V4
+    boundary: "2026-07-17T01:30:00Z"
+    n_current: 32
+    n_required_for_gate: 100

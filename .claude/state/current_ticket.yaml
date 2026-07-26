@@ -1,0 +1,6 @@
+# GENERATED — ne pas editer a la main. Source : .claude/manifest.yaml
+generated: 2026-07-26 01:05 UTC
+ticket: null
+next: OBS-001
+next_title: Tests rouges + garde verte INV-2
+prompt: prompts/PROMPT_OBS_001.md
