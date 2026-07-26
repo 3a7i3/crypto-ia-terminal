@@ -760,6 +760,8 @@ deferred_maintenance:
   - id: MAINT-DATA-001
     title: "Synchroniser DatasetValidator avec schema_version=3"
     status: DIFFERE
+    priority: P2
+    burnin_impact: "aucun"
     reason: "INV-ROI-001 — hors chemin critique du burn-in"
     evidence: "tests/test_dataset_validator.py::test_validate_log_valid_file"
     detail: >
@@ -775,6 +777,11 @@ deferred_maintenance:
   - id: MAINT-TEST-001
     title: "Reparer l'import de tests/test_full_integration.py"
     status: DIFFERE
+    priority: P1
+    burnin_impact: >
+      moyen — limite la capacite a ecrire de nouveaux tests unitaires autour du
+      moteur principal, donc la validite future de la mesure. Plus urgent que
+      MAINT-DATA-001 pour cette raison, bien que les deux restent hors campagne.
     reason: "INV-ROI-001 — ne debloque aucun ticket de campagne"
     evidence: "tests/test_full_integration.py:13"
     detail: >
