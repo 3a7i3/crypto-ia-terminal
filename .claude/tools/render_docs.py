@@ -175,6 +175,27 @@ def validate(m: dict, st: dict[str, str]) -> list[str]:
                     f"non termines : {missing}"
                 )
 
+    # Sante de la suite : les compteurs figes doivent etre coherents entre eux
+    hb = m.get("health_baseline") or {}
+    if hb:
+        if hb.get("collection_errors") != hb.get("expected_collection_errors"):
+            errs.append(
+                "health_baseline : collection_errors "
+                f"({hb.get('collection_errors')}) != expected_collection_errors "
+                f"({hb.get('expected_collection_errors')})"
+            )
+        if hb.get("failed") != hb.get("expected_failures"):
+            errs.append(
+                f"health_baseline : failed ({hb.get('failed')}) != "
+                f"expected_failures ({hb.get('expected_failures')})"
+            )
+        kf = hb.get("known_failures") or []
+        if len(kf) != (hb.get("expected_failures") or 0):
+            errs.append(
+                f"health_baseline : {len(kf)} known_failures listes pour "
+                f"expected_failures={hb.get('expected_failures')}"
+            )
+
     # Cycle de dependances
     graph = {t["id"]: list(t.get("depends_on") or []) for t in m["tickets"]}
     state: dict[str, int] = {}
