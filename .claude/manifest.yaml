@@ -129,16 +129,27 @@ phases:
 #          parce qu'il est TRACABLE jusqu'aux elements qui le demontrent.
 #          Schema :
 #            proof:
-#              tests:        [nom_du_test, ...]     # tests qui prouvent le resultat
 #              commit:       [sha, ...]             # commit atomique du ticket
+#              files:        [chemin, ...]          # livrables reels = CONTRAT (INV-TRACE-001)
+#              tests:        [nom_du_test, ...]     # tests qui prouvent le resultat
 #              pr:           [numero, ...]          # PR si applicable
 #              adr:          [ADR-00XX, ...]        # ADR produits ou invoques
-#              files:        [chemin, ...]          # livrables reels
-#              invariants:   [INV-x, ...]           # invariants verifies et par quel controle
-#              baseline:     "resultat pytest avant"
-#              after:        "resultat pytest apres"
+#              invariants:   [INV-x, ...]           # invariants verifies ET la commande utilisee
+#              baseline:                            # mesure OBJECTIVE, pas une phrase
+#                commit: <sha>
+#                duration: <s>
+#                collected: <n>
+#                passed: <n>
+#                failed: <n>
+#                skipped: <n>
+#              after:        <meme structure que baseline>
+#              duration:     "<duree reelle du ticket>"
+#              rollback:     "<commande exacte + effet>"
+#              next_ticket_ready: <ID>  |  false
+#              reason:       "<si next_ticket_ready = false>"
 #              reviewer:     nom
 #              completed_at: "YYYY-MM-DD"
+#              caveat:       "<ecart assume, jamais masque>"
 #          Un TERMINE sans proof est une affirmation non etayee : le generateur
 #          doit le refuser (voir validate()).
 # -----------------------------------------------------------------------------

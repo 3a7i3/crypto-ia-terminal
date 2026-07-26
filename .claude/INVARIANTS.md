@@ -123,6 +123,37 @@ un moteur stable mais un moteur ajusté en cours de route.
 
 ---
 
+## INV-TRACE-001 — Le diff est exactement le contrat, rien de plus
+
+**Énoncé.** L'ensemble des fichiers modifiés par un ticket doit être **exactement égal** à la liste
+annoncée dans son contrat d'exécution. Ni plus, ni moins.
+
+**Raison d'être.** Empêcher le « au passage j'ai corrigé… », qui produit trois effets tous nuisibles :
+un diff non revertable proprement, une régression attribuée au mauvais ticket, et une revue qui ne
+peut plus se fier au périmètre annoncé.
+
+**Test de violation.**
+```bash
+diff <(git diff --cached --name-only | sort) <(printf '%s\n' "${CONTRACT_FILES[@]}" | sort)
+```
+Sortie non vide = **FAIL**. Le ticket ne se commite pas tant que les deux ensembles ne coïncident pas.
+
+Variante minimale, sans variable de contrat :
+```bash
+git diff --cached --name-only            # a comparer a l'oeil avec la section FICHIERS du prompt
+```
+
+**Conséquence d'une violation.** Deux issues, jamais une troisième : soit on **retire** du staging ce
+qui déborde (`git restore --staged <fichier>`), soit on **révise le contrat explicitement** et on le
+consigne. Jamais « c'était petit, je l'ai laissé ».
+
+**Précédent documenté — `GOV-002` (2026-07-26).** Le commit annonçait un registre d'invariants et a
+emporté 43 fichiers d'infrastructure. **Atomicité violée.** L'écart a été consigné dans `proof.caveat`
+au lieu d'être masqué, mais l'invariant n'existait pas encore pour l'empêcher. `GOV-004`, exécuté
+ensuite, a tenu 2 fichiers — périmètre strict. C'est le comportement attendu.
+
+---
+
 ## INV-ROI-001 — Tout ticket doit servir la campagne en cours
 
 **Énoncé.** Chaque ticket doit répondre **OUI** à :
