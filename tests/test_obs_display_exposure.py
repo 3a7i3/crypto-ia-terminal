@@ -163,3 +163,81 @@ def test_decision_verdict_unchanged_guard():
     # La preuve numerique du diagnostic, figee comme reference.
     assert health["free_capital"] == pytest.approx(OBSERVED_FREE_CASH_BLIND, abs=0.01)
     assert health["capital"] == pytest.approx(OBSERVED_CAPITAL, abs=0.01)
+
+
+# ------------------------------------------------- CONSERVATION (extraction)
+
+
+class _Pos:
+    """Position minimale, telle que PortfolioBrain._snapshot la lit."""
+
+    def __init__(self, size_usd, symbol="BTC/USDT", regime="sideways", closed=False):
+        self.size_usd = size_usd
+        self.symbol = symbol
+        self.regime = regime
+        self.pnl_usd = 0.0
+        self.closed = closed
+        self.leverage = 1
+
+
+@pytest.mark.parametrize(
+    "capital,positions",
+    [
+        (674.47, []),  # aucune position
+        (674.47, [_Pos(135.0)]),  # une position
+        (674.47, [_Pos(135.0), _Pos(90.0), _Pos(45.5)]),  # plusieurs
+        (674.47, [_Pos(135.0), _Pos(200.0, closed=True)]),  # une fermee, ignoree
+        (0.0, [_Pos(135.0)]),  # capital nul
+        (674.47, [_Pos(674.47)]),  # position de taille maximale
+        (674.47, [_Pos(500.0), _Pos(400.0)]),  # sur-exposition (> capital)
+    ],
+)
+def test_extraction_conserves_legacy_values(capital, positions):
+    """CONSERVATION — le helper extrait doit reproduire l'ancien calcul.
+
+    Ne verifie PAS que le nouveau calcul est juste (les tests ci-dessus le font)
+    mais qu'aucune regression n'a ete introduite en extrayant la logique :
+    a source de donnees IDENTIQUE, le helper doit rendre exactement ce que
+    rendait portfolio_health() (chemin d'affichage historique).
+    """
+    from quant_hedge_ai.agents.risk.portfolio_brain import PortfolioBrain
+
+    compute = _import_display_metrics()
+
+    # Chemin HISTORIQUE : portfolio_health lit la liste complete de positions.
+    brain = PortfolioBrain(total_capital=capital)
+    legacy = brain.portfolio_health(positions)
+
+    # Chemin NOUVEAU : le helper recoit les tailles des positions OUVERTES.
+    open_sizes = [p.size_usd for p in positions if not p.closed]
+    new = compute(
+        capital=capital,
+        positions_qty_usd=open_sizes,
+        max_exposure_pct=PortfolioBrain.MAX_TOTAL_EXPOSURE_PCT,
+    )
+
+    assert new.portfolio_exposure_pct == pytest.approx(
+        legacy["total_exposure_pct"], abs=0.05
+    ), "l'exposition affichee diverge de l'ancien calcul"
+    assert new.free_cash == pytest.approx(
+        legacy["free_capital"], abs=0.01
+    ), "le capital libre diverge de l'ancien calcul"
+
+
+def test_extraction_conserves_paper_cash_formula():
+    """CONSERVATION — paper_cash reprend max(0, capital - deploye).
+
+    Formule historique : advisor_loop.py, _paper_cash = max(0, _paper_equity
+    - _deployed_notional), ou _deployed_notional = somme des size_usd.
+    """
+    compute = _import_display_metrics()
+    for capital, sizes in [
+        (674.47, []),
+        (674.47, [135.0]),
+        (674.47, [135.0, 90.0, 45.5]),
+        (0.0, [135.0]),
+        (674.47, [500.0, 400.0]),  # deploye > capital -> borne a 0
+    ]:
+        legacy_paper_cash = max(0.0, capital - sum(sizes))
+        new = compute(capital=capital, positions_qty_usd=sizes)
+        assert new.paper_cash == pytest.approx(legacy_paper_cash, abs=0.01)
