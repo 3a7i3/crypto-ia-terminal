@@ -792,6 +792,99 @@ deferred_maintenance:
     discovered_by: "baseline globale, commit 8cb42fb"
 
 # -----------------------------------------------------------------------------
+# DETTE EPISTEMIQUE RESIDUELLE — les INCONNUES comme objets gouvernes
+#
+# Ne pas confondre avec deferred_maintenance (des anomalies CONNUES qu'on
+# choisit de ne pas corriger). Ici : ce qu'on NE SAIT PAS, et qui pourrait
+# invalider une conclusion.
+#
+# Une inconnue mentionnee dans un texte n'est pas gouvernee. Une inconnue avec
+# un id, une dette, une decision bloquee et un moyen de l'observer, l'est.
+#
+# Chaque entree repond a quatre questions :
+#   what_is_missing : ce qui manque
+#   why_it_matters  : pourquoi c'est important
+#   blocks          : quelle decision elle bloque
+#   how_to_observe  : comment lever l'inconnue
+# -----------------------------------------------------------------------------
+residual_epistemic_debt:
+
+  - id: UNK-001
+    what_is_missing: >
+      Le correctif OBS-002 n'a jamais ete observe sur le panneau REEL en
+      production. Tout ce qui est verifie l'est en test unitaire.
+    why_it_matters: >
+      Le ticket existe pour que l'operateur voie des chiffres justes. Des tests
+      verts ne demontrent pas que le panneau affiche effectivement une
+      exposition non nulle : advisor_loop n'est pas importable, donc le chemin
+      complet builder -> renderer -> Telegram n'est couvert par aucun test.
+    blocks: "cloture reelle de OBS-002 (au-dela du merge)"
+    how_to_observe: >
+      Apres deploiement, lire un cycle du panneau avec des positions ouvertes et
+      verifier exposition > 0 et coherente avec la somme des qty_usd.
+    debt: majeure
+    status: NON_OBSERVE
+
+  - id: UNK-002
+    what_is_missing: >
+      La conservation de l'extraction n'est verifiee que sur 7 scenarios
+      enumeres (0/1/n positions, position fermee, capital nul, taille maximale,
+      sur-exposition).
+    why_it_matters: >
+      Un scenario non couvert ou compute_display_portfolio_metrics diverge de
+      portfolio_health reintroduirait silencieusement une incoherence
+      d'affichage — le defaut meme que ce ticket corrige.
+    blocks: "rien — informe le niveau de confiance, pas une decision"
+    how_to_observe: >
+      Test base sur des proprietes (hypothesis) generant des jeux de positions
+      aleatoires et comparant les deux implementations.
+    debt: mineure
+    status: NON_OBSERVE
+
+  - id: UNK-003
+    what_is_missing: >
+      La cause exacte de la non-detection historique du bug. Il est etabli que
+      advisor_loop n'est pas importable ; il n'est PAS etabli que ce soit la
+      seule raison.
+    why_it_matters: >
+      Si d'autres facteurs sont en cause (absence de test d'integration sur le
+      panneau, faible visibilite de l'incoherence), corriger l'importabilite
+      seule ne previendrait pas la reapparition de defauts du meme type.
+    blocks: "aucune decision de campagne"
+    how_to_observe: >
+      Inventaire des tests existants couvrant le panneau et de leur portee reelle.
+    debt: mineure
+    status: NON_OBSERVE
+
+  - id: UNK-004
+    what_is_missing: >
+      L'ampleur de l'ecart entre l'exposition affichee (corrigee) et
+      l'exposition-gate (toujours aveugle) — combien de trades le gate a
+      autorises qu'il aurait refuses.
+    why_it_matters: >
+      C'est le chiffre qui fonde la decision D-1 (reset d'epoque V4 -> V5),
+      irreversible. Decider sans lui serait decider a l'aveugle.
+    blocks: "D-1 — autorisation du reset d'epoque, donc PHASE_02 et PHASE_04"
+    how_to_observe: "ticket PORT-001 (mesure d'impact hors ligne, passif)"
+    debt: critique
+    status: NON_OBSERVE
+
+  - id: UNK-005
+    what_is_missing: >
+      Le nombre de tests masques par l'erreur de collecte de
+      tests/test_full_integration.py.
+    why_it_matters: >
+      La baseline globale (3809 passed) exclut un nombre inconnu de tests. Le
+      "vert" de la suite est donc un vert partiel, dont la part manquante n'est
+      pas quantifiee.
+    blocks: "aucune decision de campagne (INV-ROI-001)"
+    how_to_observe: >
+      Reparer l'import (MAINT-TEST-001, P1) et comparer le nombre de tests
+      collectes avant/apres.
+    debt: moyenne
+    status: NON_OBSERVE
+
+# -----------------------------------------------------------------------------
 # DECISIONS EN ATTENTE
 # -----------------------------------------------------------------------------
 decisions:
