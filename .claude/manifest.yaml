@@ -79,11 +79,23 @@ health_baseline:
       note: >
         Dette de maintenance, hors campagne. Ne rapproche ni du burn-in ni de la
         validite de la mesure de N. A traiter hors gel, jamais pendant.
-  collected: null       # renseigne par la premiere mesure complete
-  passed: null
-  failed: null
-  skipped: null
-  duration_s: null
+  collected: 3829
+  passed: 3805
+  failed: 3
+  skipped: 20
+  xfailed: 2
+  duration_s: 334
+  expected_failures: 3
+  known_failures:
+    - "tests/paper_trading/test_paper_trade_e2e.py::TestPaperTradeCompleteLifecycle::test_mexc_simulator_market_order_complete"
+    - "tests/scripts/test_sqlite_contamination_cleanup.py::test_cleanup_confirm_deletes_and_reaudits"
+    - "tests/test_dataset_validator.py::test_validate_log_valid_file"
+  known_failures_note: >
+    Les 3 echecs sont PREEXISTANTS, mesures au commit 8cb42fb avant toute
+    modification de tests/. Le troisieme est revelateur : DatasetValidator
+    refuse schema_version=3 (attendu [1, 2]) — incoherence de version de schema
+    dans le dataset, a instruire hors campagne (INV-ROI-001).
+    Meme regle que les erreurs de collecte : observe > expected -> FAIL.
 
 # -----------------------------------------------------------------------------
 # GATING
