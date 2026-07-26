@@ -2,11 +2,11 @@
 
 # INDEX — Tous les tickets du chantier
 
-> Genere le 2026-07-26 00:58 UTC depuis `.claude/manifest.yaml`.
+> Genere le 2026-07-26 01:05 UTC depuis `.claude/manifest.yaml`.
 > Pour modifier un statut : editer le manifeste, puis relancer
 > `python .claude/tools/render_docs.py`.
 
-**34 tickets** · PRET **6** · BLOQUE **27** · EN COURS **0** · TERMINE **1**
+**34 tickets** · PRET **6** · BLOQUE **26** · EN COURS **0** · TERMINE **2**
 
 > **Deux comptages distincts, a ne pas confondre :**
 > **6 tickets PRET** = demarrables *maintenant*
@@ -24,14 +24,14 @@
 | `GOV-001` | ADR-0019 : exposition d'affichage vs exposition-gate | P1 | **PRET** | — | `PROMPT_GOV_001.md` | 3-5 h | Faible |
 | `GOV-002` | Registre des invariants INV-1 -> INV-4 opposable | P0 | **TERMINE** | — | `PROMPT_GOV_002.md` | 2-4 h | Faible |
 | `GOV-003` | Journal des decisions du chantier (DEC-xxx) | P1 | **PRET** | — | `PROMPT_GOV_003.md` | 2 h | Faible |
-| `GOV-004` | Gabarit de rapport de fin de ticket | P0 | **PRET** | — | `PROMPT_GOV_004.md` | 2 h | Faible |
+| `GOV-004` | Gabarit de rapport de fin de ticket | P0 | **TERMINE** | — | `PROMPT_GOV_004.md` | 2 h | Faible |
 | `GOV-005` | Checklist de deploiement VPS et verification | P1 | **PRET** | — | `PROMPT_GOV_005.md` | 2-3 h | Faible |
 
 ## PHASE_01 — Observabilite (architecture A)
 
 | ID | Titre | Prio | Statut | Bloque par | Prompt | Est. | Risque |
 |---|---|---|---|---|---|---|---|
-| `OBS-001` | Tests rouges + garde verte INV-2 | P0 | **BLOQUE** | GOV-004 | `PROMPT_OBS_001.md` | 3-5 h | Faible |
+| `OBS-001` | Tests rouges + garde verte INV-2 | P0 | **PRET** | — | `PROMPT_OBS_001.md` | 3-5 h | Faible |
 | `OBS-002` | Builder CYCLE : exposition/paper_cash/free_cash depuis _virtual_portfolio | P0 | **BLOQUE** | OBS-001 | `PROMPT_OBS_002.md` | 4-8 h | Eleve |
 | `OBS-003` | Builder HEARTBEAT : parite stricte avec OBS-002 | P1 | **BLOQUE** | OBS-002 | `PROMPT_OBS_003.md` | 2-3 h | Moyen |
 | `OBS-004` | Documenter affichage != gate (risque R1) | P1 | **BLOQUE** | OBS-002 | `PROMPT_OBS_004.md` | 1-2 h | Faible |

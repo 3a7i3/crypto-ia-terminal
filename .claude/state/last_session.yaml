@@ -1,6 +1,6 @@
 # GENERATED — ne pas editer a la main. Source : .claude/manifest.yaml
 date: '2026-07-26'
-ticket: GOV-002
-commit: 5a5116f
+ticket: GOV-004
+commit: 66709a1
 outcome: TERMINE
-next: GOV-004
+next: OBS-001

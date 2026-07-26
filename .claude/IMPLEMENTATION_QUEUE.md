@@ -2,7 +2,7 @@
 
 # IMPLEMENTATION_QUEUE — Backlog priorise
 
-> Genere le 2026-07-26 00:58 UTC depuis `.claude/manifest.yaml`.
+> Genere le 2026-07-26 01:05 UTC depuis `.claude/manifest.yaml`.
 
 ## Regle d'execution
 
@@ -12,7 +12,7 @@
 4. Tester, commiter, mettre a jour le **manifeste**, relancer le generateur.
 5. **S'ARRETER.** Jamais d'enchainement automatique.
 
-> **PROCHAIN TICKET : `GOV-004` — Gabarit de rapport de fin de ticket**
+> **PROCHAIN TICKET : `OBS-001` — Tests rouges + garde verte INV-2**
 
 ## FILE : PRET — 6 tickets demarrables maintenant
 
@@ -20,18 +20,17 @@
 
 | # | ID | Titre | Phase | Prio | Est. | Prompt |
 |---|---|---|---|---|---|---|
-| 1 | `GOV-004` | Gabarit de rapport de fin de ticket | PHASE_00 | P0 | 2 h | `PROMPT_GOV_004.md` |
+| 1 | `OBS-001` | Tests rouges + garde verte INV-2 | PHASE_01 | P0 | 3-5 h | `PROMPT_OBS_001.md` |
 | 2 | `PORT-001` | Mesure d'impact hors ligne du gate aveugle (PASSIF) | PHASE_04_GATED | P0 | 1-2 j | `PROMPT_PORT_001.md` |
 | 3 | `GOV-001` | ADR-0019 : exposition d'affichage vs exposition-gate | PHASE_00 | P1 | 3-5 h | `PROMPT_GOV_001.md` |
 | 4 | `GOV-003` | Journal des decisions du chantier (DEC-xxx) | PHASE_00 | P1 | 2 h | `PROMPT_GOV_003.md` |
 | 5 | `GOV-005` | Checklist de deploiement VPS et verification | PHASE_00 | P1 | 2-3 h | `PROMPT_GOV_005.md` |
 | 6 | `REST-002` | Supprimer la recopie total_pnl_usd = open_pnl_usd | PHASE_03 | P1 | 1-2 h | `PROMPT_REST_002.md` |
 
-## FILE : BLOQUE — 27 tickets
+## FILE : BLOQUE — 26 tickets
 
 | ID | Titre | Bloque par | Risque |
 |---|---|---|---|
-| `OBS-001` | Tests rouges + garde verte INV-2 | GOV-004 | Faible |
 | `OBS-002` | Builder CYCLE : exposition/paper_cash/free_cash depuis _virtual_portfolio | OBS-001 | Eleve |
 | `OBS-003` | Builder HEARTBEAT : parite stricte avec OBS-002 | OBS-002 | Moyen |
 | `OBS-004` | Documenter affichage != gate (risque R1) | OBS-002 | Faible |
@@ -70,8 +69,9 @@
 
 *(vide)*
 
-## FILE : TERMINE — 1 tickets
+## FILE : TERMINE — 2 tickets
 
 | ID | Titre | Commit |
 |---|---|---|
 | `GOV-002` | Registre des invariants INV-1 -> INV-4 opposable | `—` |
+| `GOV-004` | Gabarit de rapport de fin de ticket | `—` |
