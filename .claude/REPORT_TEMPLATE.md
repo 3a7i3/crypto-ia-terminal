@@ -72,6 +72,19 @@ RAPPORT <TICKET-ID> — <titre>            <date>
 - <perimetre volontairement laisse de cote, et pourquoi>
 - <ce qui n'a PAS ete verifie, et pourquoi>
 
+## DETTE EPISTEMIQUE RESIDUELLE      (CHAPITRE OBLIGATOIRE)
+UNK-xxx  <ce qui manque>
+  Pourquoi c'est important : <consequence si l'inconnue se revele defavorable>
+  Bloque                   : <quelle decision, ou "aucune">
+  Comment l'observer       : <l'action concrete qui leverait l'inconnue>
+  Dette                    : critique | majeure | moyenne | mineure | nulle
+                             (RELATIVE a la decision bloquee)
+  Statut                   : NON_OBSERVE | LEVEE
+
+A reporter dans manifest.yaml -> residual_epistemic_debt.
+Un rapport dont ce chapitre est VIDE doit le justifier explicitement :
+"aucune inconnue residuelle" est une affirmation forte, rarement vraie.
+
 ## PROOF (a recopier dans manifest.yaml)
 commit / files / tests / invariants / baseline / after / completed_at / caveat
 ```

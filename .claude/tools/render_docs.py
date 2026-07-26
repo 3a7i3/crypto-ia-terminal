@@ -196,6 +196,23 @@ def validate(m: dict, st: dict[str, str]) -> list[str]:
                 f"expected_failures={hb.get('expected_failures')}"
             )
 
+    # Dette epistemique residuelle : une inconnue non gouvernee n'est pas une
+    # inconnue tracee. Les quatre champs sont obligatoires.
+    for u in m.get("residual_epistemic_debt") or []:
+        for req in (
+            "what_is_missing",
+            "why_it_matters",
+            "blocks",
+            "how_to_observe",
+            "debt",
+            "status",
+        ):
+            if not u.get(req):
+                errs.append(
+                    f"{u.get('id', '?')} : dette epistemique incomplete, "
+                    f"champ '{req}' manquant"
+                )
+
     # Cycle de dependances
     graph = {t["id"]: list(t.get("depends_on") or []) for t in m["tickets"]}
     state: dict[str, int] = {}
