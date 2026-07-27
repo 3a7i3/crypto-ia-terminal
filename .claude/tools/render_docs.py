@@ -226,6 +226,34 @@ def validate(m: dict, st: dict[str, str]) -> list[str]:
             )
         if u.get("debt") and u["debt"] not in DEBTS:
             errs.append(f"{uid} : debt '{u['debt']}' hors echelle normative")
+        # Cycle de vie : chaque genre a ses statuts admis.
+        allowed = (
+            {"NON_OBSERVABLE", "OBSERVABLE"}
+            if u.get("kind") == "BLIND_SPOT"
+            else {"NON_OBSERVE", "OBSERVE"}
+        )
+        if u.get("status") and u["status"] not in allowed:
+            errs.append(
+                f"{uid} : status '{u['status']}' incompatible avec "
+                f"kind={u.get('kind')} (attendu {sorted(allowed)})"
+            )
+        # Un angle mort devenu OBSERVABLE n'est plus un angle mort : l'instrument
+        # existe, l'observation reste a produire. Il doit etre reclasse UNKNOWN.
+        if u.get("kind") == "BLIND_SPOT" and u.get("status") == "OBSERVABLE":
+            errs.append(
+                f"{uid} : BLIND_SPOT/OBSERVABLE — l'instrument existe, "
+                "reclasser en UNKNOWN/NON_OBSERVE (l'observation reste a produire)"
+            )
+        # Une dette critique affirme qu'une decision IRREVERSIBLE est bloquee :
+        # cette affirmation exige sa propre justification et son falsificateur.
+        if u.get("debt") == "critique":
+            cj = u.get("critical_justification") or {}
+            for req in ("decision", "why_irreversible", "falsifier"):
+                if not cj.get(req):
+                    errs.append(
+                        f"{uid} : dette CRITIQUE non demontree, "
+                        f"critical_justification.{req} manquant"
+                    )
         # Un angle mort sans instrument declare n'est pas gouverne : on sait
         # qu'on ne peut pas observer, mais pas ce qu'il faudrait construire.
         if u.get("kind") == "BLIND_SPOT" and not u.get("instrument_required"):

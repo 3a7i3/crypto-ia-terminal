@@ -822,10 +822,37 @@ deferred_maintenance:
 #   moyenne  : reduit significativement la confiance sans bloquer la decision
 #   mineure  : affecte seulement la precision ou la comprehension
 #
+# CYCLE DE VIE — construire l'instrument NE RESOUT PAS l'angle mort.
+# Cela cree seulement la POSSIBILITE d'observer. L'etat intermediaire est
+# explicite pour empecher le glissement "j'ai construit le test" -> "je sais".
+#
+#   BLIND_SPOT / NON_OBSERVABLE
+#         | construire l'instrument
+#         v
+#   BLIND_SPOT / OBSERVABLE        <- l'instrument existe, RIEN n'est encore observe
+#         | reclassement (l'angle mort a disparu, l'inconnue demeure)
+#         v
+#   UNKNOWN / NON_OBSERVE
+#         | produire l'observation
+#         v
+#   UNKNOWN / OBSERVE              = LEVEE
+#
+# status admis : BLIND_SPOT -> NON_OBSERVABLE | OBSERVABLE
+#                UNKNOWN    -> NON_OBSERVE    | OBSERVE
+#
+# DETTE CRITIQUE : doit etre DEMONTREE, jamais declaree. Une dette critique
+# affirme qu'une decision IRREVERSIBLE est bloquee ; cette irreversibilite
+# exige sa propre justification et son propre falsificateur.
+#   critical_justification:
+#     decision: <id>
+#     why_irreversible: <...>
+#     falsifier: "montrer que la decision est reversible"
+#
 # Chaque entree repond a :
 #   kind                : UNKNOWN | BLIND_SPOT
 #   what_is_missing / why_it_matters / blocks / how_to_observe / debt / status
 #   instrument_required : (BLIND_SPOT uniquement) l'instrument a construire
+#   critical_justification : (debt critique uniquement)
 # -----------------------------------------------------------------------------
 residual_epistemic_debt:
 
@@ -853,7 +880,7 @@ residual_epistemic_debt:
       NON PLANIFIE - echoue a INV-ROI-001 en l'etat. A reconsiderer si un
       defaut d'affichage se reproduit.
     debt: majeure
-    status: NON_OBSERVE
+    status: NON_OBSERVABLE
 
   - id: UNK-002
     kind: UNKNOWN
@@ -905,6 +932,19 @@ residual_epistemic_debt:
       toujours ouverte (harnais non auto-valide, etat non reconstituable,
       chiffre non concluant).
     debt: critique
+    critical_justification:
+      decision: "D-1 — autorisation du reset d'epoque V4 -> V5"
+      why_irreversible: >
+        Le reset pose une nouvelle borne CLEAN_DATA_SINCE et remet N a zero.
+        git revert restaure le CODE, jamais la MESURE : les decisions prises
+        sous le nouveau comportement appartiennent deja a la nouvelle epoque.
+        Revenir en arriere ne restaurerait pas N ; cela creerait une TROISIEME
+        epoque hybride, pire que les deux. Precedents V1->V4 : aucune epoque
+        close n'a jamais ete rouverte.
+      falsifier: >
+        Montrer que D-1 est reversible — c'est-a-dire exhiber une procedure
+        qui restaure N et la borne V4 apres bascule, sans creer d'epoque
+        hybride. Aucune n'est connue a ce jour.
     status: NON_OBSERVE
 
   - id: UNK-005
@@ -925,7 +965,7 @@ residual_epistemic_debt:
       collectes avant/apres. C'est la reparation elle-meme qui produit
       l'observation - d'ou le classement BLIND_SPOT.
     debt: moyenne
-    status: NON_OBSERVE
+    status: NON_OBSERVABLE
 
 # -----------------------------------------------------------------------------
 # DECISIONS EN ATTENTE
