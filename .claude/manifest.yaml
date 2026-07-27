@@ -801,31 +801,62 @@ deferred_maintenance:
 # Une inconnue mentionnee dans un texte n'est pas gouvernee. Une inconnue avec
 # un id, une dette, une decision bloquee et un moyen de l'observer, l'est.
 #
-# Chaque entree repond a quatre questions :
-#   what_is_missing : ce qui manque
-#   why_it_matters  : pourquoi c'est important
-#   blocks          : quelle decision elle bloque
-#   how_to_observe  : comment lever l'inconnue
+# TROIS NOTIONS DISTINCTES, a ne jamais confondre :
+#
+#   UNKNOWN     - une observation MANQUE, mais elle est en principe observable
+#                 avec l'instrumentation existante. Action : aller observer.
+#
+#   BLIND_SPOT  - l'observation est ACTUELLEMENT IMPOSSIBLE : aucun instrument
+#                 ne la produit. Action : construire l'instrument D'ABORD.
+#                 Le cout et la nature de l'action sont differents.
+#
+#   dette       - l'EFFET de cette absence sur une DECISION donnee. Ce n'est
+#                 pas une propriete de l'inconnue, mais de la RELATION entre
+#                 l'inconnue et la decision. Une meme inconnue peut etre
+#                 critique pour une decision et nulle pour une autre.
+#
+# NIVEAUX DE DETTE - definitions NORMATIVES, pas intuitives :
+#   critique : empeche une decision IRREVERSIBLE
+#   majeure  : empeche la validation d'un objectif de campagne,
+#              mais pas une decision reversible
+#   moyenne  : reduit significativement la confiance sans bloquer la decision
+#   mineure  : affecte seulement la precision ou la comprehension
+#
+# Chaque entree repond a :
+#   kind                : UNKNOWN | BLIND_SPOT
+#   what_is_missing / why_it_matters / blocks / how_to_observe / debt / status
+#   instrument_required : (BLIND_SPOT uniquement) l'instrument a construire
 # -----------------------------------------------------------------------------
 residual_epistemic_debt:
 
   - id: UNK-001
+    kind: BLIND_SPOT
     what_is_missing: >
-      Le correctif OBS-002 n'a jamais ete observe sur le panneau REEL en
-      production. Tout ce qui est verifie l'est en test unitaire.
+      RUPTURE DE CHAINE D'OBSERVATION : le pipeline builder -> renderer ->
+      Telegram n'a JAMAIS ete observe dans son integralite, par aucun test.
+      Ce n'est pas une observation qu'on a omis de faire : c'est une
+      observation qu'AUCUN instrument existant ne peut produire, puisque
+      core/advisor_loop.py n'est pas importable (import plat ligne 33).
     why_it_matters: >
       Le ticket existe pour que l'operateur voie des chiffres justes. Des tests
       verts ne demontrent pas que le panneau affiche effectivement une
       exposition non nulle : advisor_loop n'est pas importable, donc le chemin
       complet builder -> renderer -> Telegram n'est couvert par aucun test.
-    blocks: "cloture reelle de OBS-002 (au-dela du merge)"
+    blocks: "cloture reelle de OBS-002, OBS-003, OBS-005 (au-dela du merge)"
     how_to_observe: >
-      Apres deploiement, lire un cycle du panneau avec des positions ouvertes et
-      verifier exposition > 0 et coherente avec la somme des qty_usd.
+      Impossible en l'etat. Deux voies : (a) observation manuelle apres
+      deploiement - ponctuelle, non reproductible, ne ferme PAS l'angle mort ;
+      (b) construire l'instrument (voir instrument_required).
+    instrument_required: >
+      Un test d'integration couvrant builder -> renderer, ce qui suppose de
+      rendre core/advisor_loop.py importable ou d'en extraire le builder.
+      NON PLANIFIE - echoue a INV-ROI-001 en l'etat. A reconsiderer si un
+      defaut d'affichage se reproduit.
     debt: majeure
     status: NON_OBSERVE
 
   - id: UNK-002
+    kind: UNKNOWN
     what_is_missing: >
       La conservation de l'extraction n'est verifiee que sur 7 scenarios
       enumeres (0/1/n positions, position fermee, capital nul, taille maximale,
@@ -842,6 +873,7 @@ residual_epistemic_debt:
     status: NON_OBSERVE
 
   - id: UNK-003
+    kind: UNKNOWN
     what_is_missing: >
       La cause exacte de la non-detection historique du bug. Il est etabli que
       advisor_loop n'est pas importable ; il n'est PAS etabli que ce soit la
@@ -857,6 +889,7 @@ residual_epistemic_debt:
     status: NON_OBSERVE
 
   - id: UNK-004
+    kind: UNKNOWN
     what_is_missing: >
       L'ampleur de l'ecart entre l'exposition affichee (corrigee) et
       l'exposition-gate (toujours aveugle) — combien de trades le gate a
@@ -865,11 +898,17 @@ residual_epistemic_debt:
       C'est le chiffre qui fonde la decision D-1 (reset d'epoque V4 -> V5),
       irreversible. Decider sans lui serait decider a l'aveugle.
     blocks: "D-1 — autorisation du reset d'epoque, donc PHASE_02 et PHASE_04"
-    how_to_observe: "ticket PORT-001 (mesure d'impact hors ligne, passif)"
+    how_to_observe: >
+      Ticket PORT-001. PRECISION : PORT-001 n'est pas "ce qui leve UNK-004",
+      c'est ce qui est CONCU pour produire les observations susceptibles de la
+      reduire ou de la lever. Falsificateur : PORT-001 execute et UNK-004
+      toujours ouverte (harnais non auto-valide, etat non reconstituable,
+      chiffre non concluant).
     debt: critique
     status: NON_OBSERVE
 
   - id: UNK-005
+    kind: BLIND_SPOT
     what_is_missing: >
       Le nombre de tests masques par l'erreur de collecte de
       tests/test_full_integration.py.
@@ -879,8 +918,12 @@ residual_epistemic_debt:
       pas quantifiee.
     blocks: "aucune decision de campagne (INV-ROI-001)"
     how_to_observe: >
-      Reparer l'import (MAINT-TEST-001, P1) et comparer le nombre de tests
-      collectes avant/apres.
+      Impossible en l'etat : tant que la collecte echoue, le nombre de tests
+      masques n'est produit par aucun instrument.
+    instrument_required: >
+      Reparer l'import (MAINT-TEST-001, P1), puis comparer le nombre de tests
+      collectes avant/apres. C'est la reparation elle-meme qui produit
+      l'observation - d'ou le classement BLIND_SPOT.
     debt: moyenne
     status: NON_OBSERVE
 
