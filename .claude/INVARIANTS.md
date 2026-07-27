@@ -10,6 +10,17 @@
 
 Version 1.0 — 2026-07-24 · Cité par tous les tickets du chantier.
 
+> **Principe fondateur.**
+> Un protocole d'audit n'est complet que s'il gouverne **trois** niveaux, et non un seul :
+> les **conclusions**, les **observations** qui les soutiennent, et les **instruments** qui rendent
+> ces observations possibles.
+>
+> Gouverner les conclusions seules produit de la prudence rhétorique.
+> Y ajouter les observations produit de la traçabilité.
+> Y ajouter les instruments produit la capacité de savoir **ce qu'on ne peut pas encore savoir** —
+> c'est la distinction `UNKNOWN` / `BLIND_SPOT`, et c'est ce qui empêche de confondre
+> « je n'ai pas observé » avec « je ne peux pas observer ».
+
 ---
 
 ## INV-1 — Passivité absolue des observers
@@ -168,6 +179,42 @@ succès — exactement le type de mensonge d'instrument que tout ce chantier cor
 
 ---
 
+## INV-RESTORE-001 — Aucune expérimentation destructive sans point de restauration
+
+**Énoncé.** Toute expérimentation susceptible de détruire un état de travail doit être **précédée**
+d'un point de restauration **vérifiable**.
+
+| Accepté | Non accepté |
+|---|---|
+| `git commit` | la confiance dans le working tree |
+| `git stash` **dont l'existence est vérifiée** (`git stash list`) | une sauvegarde supposée faite |
+| une branche | « je m'en souviendrai » |
+
+**Raison d'être.** Deux pertes de travail dans la même session, par le même mécanisme :
+1. une sauvegarde `cp … || cp …` partie dans `/tmp`, laissant le manifeste corrompu après un test ;
+2. un `git checkout .claude/manifest.yaml` de restauration lancé contre du travail **non commité**,
+   écrasant une heure de classification.
+
+Deux occurrences du même défaut ne sont plus un accident : c'est une propriété du processus.
+La vigilance individuelle a échoué deux fois ; la règle la remplace.
+
+**Test de violation.** Avant toute injection de faute, toute restauration ou tout test destructif :
+```bash
+git status --short      # doit etre vide, OU
+git stash list          # doit montrer l'entree attendue, OU
+git branch --show-current  # doit etre une branche de travail dediee
+```
+État de travail non sauvegardé + expérimentation destructive = **violation**.
+
+**Corollaire — vérifier dans le commit, pas dans le working tree.** Après restauration, contrôler
+avec `git show HEAD:<fichier>` et non par lecture du fichier : le working tree peut avoir été
+écrasé sans que rien ne le signale.
+
+**Conséquence d'une violation.** Perte de travail non versionné, silencieuse. Aucun mécanisme ne
+la signale — c'est ce qui la rend dangereuse.
+
+---
+
 ## INV-TRACE-001 — Le diff est exactement le contrat, rien de plus
 
 **Énoncé.** L'ensemble des fichiers modifiés par un ticket doit être **exactement égal** à la liste
@@ -262,6 +309,27 @@ Une seule sortie non vide ⇒ **ne pas commiter**, et appliquer `EXECUTION_FLOW.
 **Dans le rapport de fin de ticket** (gabarit `GOV-004`), la section « Invariants vérifiés » nomme
 les invariants contrôlés **et la commande utilisée**. Écrire « invariants respectés » sans citer le
 contrôle n'est pas une vérification : c'est une affirmation.
+
+---
+
+## Surface de garantie du validateur
+
+`.claude/tools/render_docs.py` contrôle le manifeste. Ce qu'il **garantit** et ce qu'il ne garantit
+**pas** doit être connu, sinon on lui délègue une confiance qu'il ne porte pas.
+
+| ✓ Garantit | ✗ Ne garantit **pas** |
+|---|---|
+| conformité du **schéma** | la **vérité** d'un énoncé |
+| présence des **champs obligatoires** | la **causalité** affirmée |
+| **valeurs normatives** (`kind`, `debt`, statuts du cycle de vie) | la **suffisance** des observations |
+| intégrité **structurelle** du graphe (dépendances, cycles) | la **cohérence sémantique** des champs |
+| `TERMINE` sans `proof` → refusé | qu'un `proof` soit *convaincant* |
+| `BLIND_SPOT` sans `instrument_required` → refusé | que l'instrument décrit soit *le bon* |
+| dérive des compteurs de santé | que la baseline soit *représentative* |
+
+**Conséquence pratique.** Un `how_to_observe` vague, un niveau de dette mal choisi, une
+justification creuse **passent** le validateur. Il déplace le contrôle de la vigilance vers le
+mécanisme pour tout ce qui est structurel — et **seulement** pour cela. Le reste reste humain.
 
 ---
 
