@@ -989,6 +989,104 @@ residual_epistemic_debt:
     status: NON_OBSERVE
 
 # -----------------------------------------------------------------------------
+# EXTENSIONS PROPOSEES DU PROTOCOLE — NON IMPLEMENTEES, DELIBEREMENT
+#
+# Quatre lacunes conceptuelles identifiees pour v4.0. AUCUNE n'est implementee :
+# les construire maintenant violerait INV-ROI-001 (motivees par une idee, pas
+# par une observation) et la regle de formation d'INV-RESTORE-001 (une regle
+# ecrite sans incident constate est de la superstition).
+#
+# Le protocole leur est applique : chacune est classee selon qu'elle repose sur
+# une OBSERVATION reelle ou sur une HYPOTHESE theorique. Cette distinction
+# decide de leur priorite.
+# -----------------------------------------------------------------------------
+proposed_extensions:
+
+  - id: EXT-004
+    title: "Couche TEMPORALITE : valid_from / valid_until / TTL / evenement invalidant"
+    epistemic_status: OBSERVATION
+    evidence: >
+      INSTANCE CONSTATEE dans cette session meme : la health_baseline a ete
+      mesuree au commit 8cb42fb, puis utilisee pour juger les commits e83266b
+      et suivants. Entre les deux, le code avait change. J'ai traite une
+      observation PERIMEE comme courante, et aucune regle du protocole ne l'a
+      signale. Le protocole suppose implicitement qu'une observation reste
+      valide pendant toute la chaine.
+    why_it_matters: >
+      Une observation expiree n'est pas FAUSSE, elle est EXPIREE — etat
+      different, traitement different. Sur un carnet d'ordres a TTL 30 s, la
+      distinction decide de la validite d'une decision.
+    priority: P1
+    reason_priority: "seule des quatre a reposer sur une observation, pas une hypothese"
+    status: PROPOSEE
+
+  - id: EXT-002
+    title: "Tracabilite des transformations (TR-id, version, auteur, audits impactes)"
+    epistemic_status: OBSERVATION_PARTIELLE
+    evidence: >
+      render_docs.py EST une transformation (manifest -> vues). Son historique
+      existe via git, mais aucune vue generee ne declare PAR QUELLE VERSION du
+      generateur elle a ete produite. Un changement du generateur invaliderait
+      silencieusement les vues anterieures. Constate, non encore survenu.
+    why_it_matters: >
+      Une transformation modifiee six mois plus tard invalide potentiellement
+      des audits passes, sans que rien ne l'indique.
+    priority: P2
+    status: PROPOSEE
+
+  - id: EXT-001
+    title: "Composition des transformations : preconditions informationnelles"
+    epistemic_status: HYPOTHESE
+    evidence: >
+      AUCUNE instance constatee. Le raisonnement est solide (T2 exigeant une
+      distribution que T1 a detruite = incoherence detectable), mais aucune
+      chaine reelle de ce depot n'a encore produit ce defaut.
+    why_it_matters: >
+      Trois transformations enchainees ne sont pas trois transformations
+      independantes : chacune modifie les hypotheses disponibles, l'information
+      restante et les falsificateurs encore possibles.
+    priority: P3
+    reason_priority: "theorique — a valider par la campagne avant implementation"
+    status: PROPOSEE
+
+  - id: EXT-003
+    title: "Classes d'equivalence : lossless / lossy / approximation / projection / agregation"
+    epistemic_status: HYPOTHESE
+    evidence: >
+      AUCUNE instance constatee. Le protocole exige deja information_loss et
+      reversibility par transformation ; une taxonomie ajouterait de la
+      normalisation, pas une capacite nouvelle. Risque de sur-ingenierie.
+    why_it_matters: >
+      Permettrait un raisonnement automatique sur la perte attendue plutot
+      qu'une declaration au cas par cas.
+    priority: P3
+    reason_priority: "recouvre partiellement des champs existants — valeur marginale a prouver"
+    status: PROPOSEE
+
+# -----------------------------------------------------------------------------
+# CAMPAGNE DE VALIDATION EMPIRIQUE DU PROTOCOLE
+#
+# Le prochain gain ne vient pas de V5, mais de l'EPREUVE de v4.0.
+# Aucune extension n'est implementee avant que la campagne ne montre un besoin.
+# -----------------------------------------------------------------------------
+protocol_validation_campaign:
+  status: NON_DEMARREE
+  objective: >
+    Appliquer v4.0 a 10-20 audits reels de nature differente (code,
+    architecture, securite, donnees, documentation) et observer OU le protocole
+    echoue, plutot que d'imaginer ce qui lui manque.
+  what_to_record:
+    - "endroits ou l'auditeur HESITE sur la categorie a appliquer"
+    - "regles CONTOURNEES ou ignorees en pratique"
+    - "rapports DIVERGENTS produits a partir des memes faits"
+    - "temps passe a remplir le protocole vs temps passe a auditer"
+  success_criterion: >
+    V5 n'est justifiee que par les problemes OBSERVES pendant la campagne.
+    Une extension sans instance constatee reste PROPOSEE.
+  blocks: "toute version v5.x"
+  linked_unknown: UNK-006
+
+# -----------------------------------------------------------------------------
 # DECISIONS EN ATTENTE
 # -----------------------------------------------------------------------------
 decisions:
