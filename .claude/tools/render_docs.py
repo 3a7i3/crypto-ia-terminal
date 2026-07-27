@@ -196,10 +196,19 @@ def validate(m: dict, st: dict[str, str]) -> list[str]:
                 f"expected_failures={hb.get('expected_failures')}"
             )
 
-    # Dette epistemique residuelle : une inconnue non gouvernee n'est pas une
-    # inconnue tracee. Les quatre champs sont obligatoires.
+    # Dette epistemique residuelle.
+    #
+    # PORTEE DE CE CONTROLE : completude STRUCTURELLE uniquement.
+    # Il garantit que chaque inconnue porte les champs requis et un genre
+    # valide. Il ne garantit PAS la qualite SEMANTIQUE du contenu : un
+    # how_to_observe vague ou un niveau de dette mal choisi passent le
+    # validateur. NON OBSERVE : la coherence semantique des champs.
+    KINDS = {"UNKNOWN", "BLIND_SPOT"}
+    DEBTS = {"critique", "majeure", "moyenne", "mineure", "nulle"}
     for u in m.get("residual_epistemic_debt") or []:
+        uid = u.get("id", "?")
         for req in (
+            "kind",
             "what_is_missing",
             "why_it_matters",
             "blocks",
@@ -209,9 +218,21 @@ def validate(m: dict, st: dict[str, str]) -> list[str]:
         ):
             if not u.get(req):
                 errs.append(
-                    f"{u.get('id', '?')} : dette epistemique incomplete, "
-                    f"champ '{req}' manquant"
+                    f"{uid} : dette epistemique incomplete, champ '{req}' manquant"
                 )
+        if u.get("kind") and u["kind"] not in KINDS:
+            errs.append(
+                f"{uid} : kind '{u['kind']}' invalide (attendu {sorted(KINDS)})"
+            )
+        if u.get("debt") and u["debt"] not in DEBTS:
+            errs.append(f"{uid} : debt '{u['debt']}' hors echelle normative")
+        # Un angle mort sans instrument declare n'est pas gouverne : on sait
+        # qu'on ne peut pas observer, mais pas ce qu'il faudrait construire.
+        if u.get("kind") == "BLIND_SPOT" and not u.get("instrument_required"):
+            errs.append(
+                f"{uid} : BLIND_SPOT sans 'instrument_required' — "
+                "l'angle mort n'est pas gouverne"
+            )
 
     # Cycle de dependances
     graph = {t["id"]: list(t.get("depends_on") or []) for t in m["tickets"]}
