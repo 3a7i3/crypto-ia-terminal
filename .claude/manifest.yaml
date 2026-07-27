@@ -967,10 +967,57 @@ residual_epistemic_debt:
     debt: moyenne
     status: NON_OBSERVABLE
 
+  - id: UNK-006
+    kind: UNKNOWN
+    what_is_missing: >
+      Le protocole n'a JAMAIS ete confronte a un audit volontairement trompeur.
+      On ignore sa resistance a la manipulation : un rapport peut-il etre
+      formellement conforme a v4.0 et rester faux ?
+    why_it_matters: >
+      Different de "jamais utilise". Ici c'est la confiance accordee au
+      PROTOCOLE LUI-MEME qui est en jeu. Un protocole qui valide un audit
+      trompeur donne une garantie qu'il ne porte pas — exactement le defaut
+      qu'il existe pour empecher. La reponse est vraisemblablement OUI (la
+      surface de garantie, section 18, admet deja que la coherence semantique
+      n'est pas verifiee), mais l'AMPLEUR n'est pas mesuree.
+    blocks: "la confiance accordee au protocole lui-meme"
+    how_to_observe: >
+      Red-team : produire deliberement un audit formellement conforme mais
+      dont les conclusions sont fausses, puis mesurer combien de regles le
+      detectent et lesquelles sont contournees sans effort.
+    debt: majeure
+    status: NON_OBSERVE
+
 # -----------------------------------------------------------------------------
 # DECISIONS EN ATTENTE
 # -----------------------------------------------------------------------------
 decisions:
+  - id: DEC-PROTO-001
+    question: "Echelle de dette : reconcilier trois echelles divergentes"
+    authority: "mainteneur documentaire"
+    status: PRISE
+    date: "2026-07-27"
+    alternatives_considered:
+      - "conserver deux echelles distinctes (doc vs implementation)"
+      - "supprimer 'nulle' (aligner sur la specification operateur)"
+      - "supprimer 'moyenne' (aligner sur le document canonique)"
+      - "UNION des deux — RETENUE"
+    justification: >
+      Supprimer un niveau aurait invalide des classifications existantes :
+      'nulle' est utilise pour qualifier une dette relative a une decision non
+      concernee ; 'moyenne' est utilise par UNK-005. L'union preserve les deux
+      usages sans reclassement retroactif.
+    consequences: >
+      Cinq niveaux au lieu de quatre. Risque : 'nulle' et 'mineure' peuvent
+      etre difficiles a distinguer en pratique.
+    reversibility: >
+      REVERSIBLE. Supprimer un niveau exige de reclasser les entrees
+      concernees — coute quelques minutes, aucune donnee perdue.
+    falsifier: >
+      Un cas ou 'nulle' et 'mineure' ne se distinguent pas, montrant que
+      l'union a cree un niveau inutile.
+    irreversible: false
+
   - id: D-1
     question: "Autoriser ou non le reset d'epoque V4 -> V5"
     authority: operateur

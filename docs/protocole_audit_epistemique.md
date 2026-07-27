@@ -1,6 +1,6 @@
 # Protocole d'audit épistémique
 
-- **Version** : 3.1
+- **Version** : 4.0
 - **Statut** : Draft
 - **Auteur** : Mathieu (opérateur du projet), en co-conception assistée
 - **Date** : 2026-07-24
@@ -339,7 +339,13 @@ critical_justification:
   decision:         <id de la decision bloquee>
   why_irreversible: <pourquoi un revert NE SUFFIT PAS>
   falsifier:        "montrer que la decision est reversible"
+  max_acceptable_cost: <effort au-dela duquel on renonce a lever la dette>
 ```
+
+`max_acceptable_cost` est **obligatoire**. Une dette critique peut coûter une heure ou dix-huit mois ;
+sans ce champ, le protocole sait qu'une décision est bloquée mais ne sait pas **arbitrer** entre
+lever la dette et renoncer à la décision. Au-delà de ce coût, la décision elle-même doit être
+reconsidérée.
 
 Une dette critique sans ces trois champs est **refusée**. La gravité elle-même reste auditée.
 
@@ -379,6 +385,11 @@ forme qu'un score de capacité Goodharté) :
 complétude · couverture · qualité des observations · **couverture de la question**.
 Une dette **critique** interdit toute note supérieure à **C**, quel que soit le reste.
 Jamais un gate, jamais une autorisation de décision.
+
+> **Deux rapports de même note ne sont pas comparables s'ils répondent à des questions
+> différentes.** L'indice mesure la qualité d'un processus, jamais l'importance de ce qu'il
+> examine. Un `A` sur une question triviale vaut moins qu'un `C` sur une question décisive.
+> Tout classement entre rapports est donc un **abus d'usage**.
 
 > Domaine : rapports comportant plusieurs inférences.
 > Mode d'échec : optimiser l'indice (empiler des observations triviales « complètes ») au
@@ -479,15 +490,18 @@ affirmation forte, rarement vraie.
 Ce que le protocole — et son validateur — garantit, et ce qu'il ne garantit **pas**. Sans cette
 frontière, on lui délègue une confiance qu'il ne porte pas.
 
-| ✓ Garanti | ✗ Non garanti |
-|---|---|
-| **classification** (Observation / Inférence / Hypothèse / Décision) | la **vérité** d'un énoncé |
-| **traçabilité** (supports, dépendances) | l'**absence d'erreur** |
-| **complétude structurelle** (champs obligatoires, valeurs normatives) | la **cohérence sémantique** des champs |
-| **graphe** de dépendances (cycles, références) | la **qualité** des observations |
-| **maillon faible** appliqué mécaniquement | la **qualité** du `how_to_observe` |
-| `TERMINE` sans preuve → refusé | qu'une preuve soit *convaincante* |
-| `BLIND_SPOT` sans instrument → refusé | que l'instrument décrit soit *le bon* |
+| ✓ Garanti | ✗ Non garanti | **Comment augmenter cette garantie** |
+|---|---|---|
+| **classification** | la **vérité** d'un énoncé | confrontation à une source indépendante |
+| **traçabilité** (supports, dépendances) | l'**absence d'erreur** | relecture adversariale ; audit croisé |
+| **complétude structurelle** | la **cohérence sémantique** des champs | lint sémantique ; revue humaine |
+| **graphe** (cycles, références) | la **qualité** des observations | exiger source + couverture + représentativité |
+| **maillon faible** mécanique | la **qualité** du `how_to_observe` | bibliothèque d'exemples ; revue par un pair |
+| `TERMINE` sans preuve → refusé | qu'une preuve soit *convaincante* | red-team sur les preuves |
+| `BLIND_SPOT` sans instrument → refusé | que l'instrument soit *le bon* | valider l'instrument indépendamment |
+
+La troisième colonne rend le protocole **évolutif** et non seulement descriptif : chaque non-garantie
+nomme le chemin qui la réduirait.
 
 **Conséquence.** Le protocole déplace le contrôle de la vigilance vers le mécanisme **pour tout ce
 qui est structurel — et seulement pour cela**. Le jugement reste humain là où il compte.
@@ -510,12 +524,80 @@ Quatre règles nées d'échecs constatés, non d'anticipations théoriques. Chac
 
 ---
 
-## 20. Historique des versions
+## 20. La couche TRANSFORMATION *(v4.0)*
+
+Le protocole gouvernait les **conclusions**, les **observations** et les **instruments**.
+Il ne gouvernait pas ce qui se passe **entre** une observation et une décision.
+
+```
+Observation ──► nettoyage ──► agregation ──► normalisation ──► metrique ──► Decision
+                    ▲             ▲               ▲              ▲
+                    └─────────────┴───────────────┴──────────────┘
+                       CINQ transformations, jusqu'ici INVISIBLES
+```
+
+L'histoire des erreurs scientifiques est faite de transformations qui **changent le sens** des
+données sans que rien ne le signale : un filtre qui écarte les valeurs « aberrantes » et supprime
+précisément le phénomène étudié, une moyenne qui masque une bimodalité, une normalisation qui
+détruit l'unité dans laquelle la décision se prend.
+
+Une transformation n'est ni une observation (elle ne constate rien) ni une inférence (elle ne
+déduit rien) : **c'est une opération qui altère ce sur quoi tout le reste repose.**
+
+### Champs d'une transformation
+
+```
+TRANSFORMATION  T#
+  operation              : ce que fait l'etape, en une phrase
+  input / output         : ce qui entre, ce qui sort (avec leurs unites)
+  information_loss       : ce qui devient IRRECUPERABLE apres cette etape
+  assumptions_introduced : ce que l'etape SUPPOSE vrai sans le verifier
+  reversibility          : reversible | partiellement | irreversible
+  falsifier              : quelle observation montrerait que la transformation
+                           trahit ses entrees
+```
+
+### Règles
+
+1. **Toute chaîne observation → décision déclare ses transformations.** Une chaîne qui n'en déclare
+   aucune affirme implicitement que la donnée n'a pas été touchée — affirmation forte, rarement vraie.
+2. **Le maillon faible traverse les transformations.** Une transformation `irreversible` ou porteuse
+   d'`assumptions_introduced` non vérifiées **plafonne** la confiance de tout ce qui est en aval,
+   au même titre qu'une observation à couverture partielle (§ 3).
+3. **Une perte d'information est un `UNKNOWN` par construction.** Ce qui est détruit à l'étape *k*
+   n'est plus observable en aval : si la décision en dépend, c'est un `BLIND_SPOT` (§ 16), et
+   l'instrument requis est *conserver la donnée avant transformation*.
+4. **Les hypothèses introduites sont des Hypothèses au sens du § 2.3** — avec source de plausibilité
+   et falsificateur expérimental. Une transformation en introduit souvent plus que son auteur ne croit.
+
+### Exemple
+
+```
+TRANSFORMATION  T2
+  operation   : agregation des PnL par trade en un PnL total
+  input       : liste de PnL par trade (USD)   output : PnL total (USD)
+  information_loss       : la DISTRIBUTION. Apres T2, impossible de distinguer
+                           "10 petits gains" de "1 gros gain et 9 pertes"
+  assumptions_introduced : que la somme est la statistique pertinente pour la
+                           decision — faux si la decision porte sur le risque
+  reversibility          : irreversible (la somme ne se decompose pas)
+  falsifier              : exhiber deux distributions de meme somme menant a des
+                           decisions opposees
+```
+
+> Domaine : toute chaîne où une observation ne sert pas directement de support, mais transite.
+> Mode d'échec : déclarer les transformations triviales et manquer celle qui change le sens.
+> Falsificateur : une décision invalidée par une transformation non déclarée en amont.
+
+---
+
+## 21. Historique des versions
 
 | Version | Date | Nouveaux concepts |
 |---|---|---|
 | **v1.0** | 2026-07-23 | quatre catégories (Observation/Inférence/Hypothèse/Décision) ; maillon faible ; portée ; source/couverture ; double falsificateur ; double filtre lexical ; proportionnalité |
 | **v2.0** | 2026-07-23 | composition/fermeture (DAG) ; graphe de dépendances + défaiteurs ; rétracter ≠ nier ; voir/croire/vouloir (guillotine de Hume) ; révisabilité mécanique |
+| **v4.0** | 2026-07-27 | couche **TRANSFORMATION** : les operations entre observation et decision deviennent gouvernees (perte d'information, hypotheses introduites, reversibilite, falsificateur) ; surface de garantie evolutive (3e colonne) ; `max_acceptable_cost` sur dette critique ; non-comparabilite des indices |
 | **v3.1** | 2026-07-27 | trois niveaux gouvernés (conclusions/observations/instruments) ; `UNKNOWN` vs `BLIND_SPOT` + cycle de vie interdisant le saut direct ; échelle de dette **normative** réconciliée (5 niveaux définis) ; dette critique **démontrable** ; chapitre obligatoire de dette résiduelle ; surface de garantie ; 4 invariants opérationnels ; indice plafonné par la pire dette |
 | **v3.0** | 2026-07-24 | représentativité (échantillon/population, `NON ÉVALUABLE`, biais directionnels) ; plafond « état mutable » ; dette épistémique relative à une décision ; indice de robustesse méthodologique (3 garde-fous) ; principe de symétrie (parité d'effort de recherche) |
 
@@ -524,7 +606,7 @@ les nouveaux champs (§ 2.1) et sections (§ 12–§ 15) s'ajoutent sans casser 
 
 ---
 
-## 21. Pourquoi cette évolution existe (auto-audit de l'évolution)
+## 22. Pourquoi cette évolution existe (auto-audit de l'évolution)
 
 Le protocole s'applique à sa propre évolution. v2 **garantissait la qualité des affirmations**
 mais pas celle des **observations** elles-mêmes : une observation exacte pouvait être peu
