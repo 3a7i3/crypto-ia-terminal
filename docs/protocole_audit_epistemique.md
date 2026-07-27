@@ -1,6 +1,6 @@
 # Protocole d'audit épistémique
 
-- **Version** : 3.0
+- **Version** : 3.1
 - **Statut** : Draft
 - **Auteur** : Mathieu (opérateur du projet), en co-conception assistée
 - **Date** : 2026-07-24
@@ -43,6 +43,20 @@ Les trois verbes que le protocole rend **non-interchangeables** :
 « J'ai vu X, donc Y est vrai, donc il faut Z » devient impossible à écrire d'un trait.
 Le protocole force : *j'ai vu X ; je crois que cela implique Y (portée…) ; si mon objectif
 est G, alors je recommande Z.*
+
+**Les trois niveaux gouvernés (v3.1).**
+
+> Un protocole d'audit n'est complet que s'il gouverne **les conclusions**, **les observations qui
+> les soutiennent**, et **les instruments qui rendent ces observations possibles**.
+
+| Niveau | Objet | Ce que produit son absence |
+|---|---|---|
+| 1 | les **conclusions** | de la prudence rhétorique, sans traçabilité |
+| 2 | les **observations** | de la traçabilité, mais aveugle à ses propres angles morts |
+| 3 | les **instruments** | — |
+
+Le niveau 3 est ce qui permet de distinguer « je n'ai pas observé » de « je ne **peux pas** observer »
+(§ 16). Sans lui, un angle mort se lit comme une simple négligence.
 
 **Critère de validité (formulation forte) :**
 > Un audit est valide lorsqu'un lecteur peut supprimer n'importe quelle observation,
@@ -280,9 +294,13 @@ La représentativité en découle :
 - population **inconnue** → **NON ÉVALUABLE**. Écrire « faible » sans dénominateur est
   lui-même un surclaim.
 
-**Biais** : chaque biais nommé indique sa **direction** — *gonfle l'inférence* ou *réduit
-l'inférence*. Jamais « biais possibles » sans direction (une liste sans direction est
-infalsifiable). Une représentativité insuffisante plafonne la confiance aval (§ 3).
+**Biais** : chaque biais nommé indique sa **direction**, parmi **trois** valeurs seulement —
+*gonfle l'inférence* · *réduit l'inférence* · *effet inconnu*. Jamais « biais possibles » sans
+direction : une liste sans direction est infalsifiable.
+
+`effet inconnu` est une valeur **légitime et informative** : elle dit qu'un biais est identifié
+mais que son sens ne l'est pas. C'est différent de ne pas l'avoir nommé — et cela plafonne
+l'inférence au même titre qu'une couverture partielle. Une représentativité insuffisante plafonne la confiance aval (§ 3).
 
 > Domaine : toute observation servant de support à une inférence porteuse.
 > Mode d'échec : exiger un dénominateur là où la population est légitimement inconnue —
@@ -297,7 +315,35 @@ infalsifiable). Une représentativité insuffisante plafonne la confiance aval (
 Un `NON OBSERVÉ` n'a **pas de gravité absolue** ; sa gravité dépend de **la décision
 concernée**. Une même inconnue peut être critique pour une décision et nulle pour une autre.
 
-Échelle : **Critique / Majeure / Mineure / Nulle**. Format :
+**Échelle NORMATIVE (v3.1)** — définitions, non plus simples étiquettes. Trois échelles
+divergentes coexistaient (ce document : sans « moyenne » ; le manifeste d'implémentation : avec).
+Réconciliation retenue — **cinq niveaux définis** :
+
+| Niveau | Définition normative |
+|---|---|
+| **critique** | empêche une décision **irréversible** |
+| **majeure** | empêche la validation d'un objectif de campagne, mais pas une décision réversible |
+| **moyenne** | réduit significativement la confiance **sans** bloquer la décision |
+| **mineure** | affecte seulement la précision ou la compréhension |
+| **nulle** | sans effet sur la décision considérée |
+
+Toute autre valeur est **invalide**. Sans ces définitions, deux personnes classent selon leur
+intuition et l'échelle ne mesure rien.
+
+**Dette critique — DÉMONTRABLE, jamais déclarée (v3.1).** Affirmer « critique » affirme qu'une
+décision **irréversible** est bloquée. Cette irréversibilité exige sa propre justification :
+
+```
+debt: critique
+critical_justification:
+  decision:         <id de la decision bloquee>
+  why_irreversible: <pourquoi un revert NE SUFFIT PAS>
+  falsifier:        "montrer que la decision est reversible"
+```
+
+Une dette critique sans ces trois champs est **refusée**. La gravité elle-même reste auditée.
+
+Format d'usage :
 ```
 NON OBSERVÉ : <inconnu>
   Dette   : critique POUR <décision A> | majeure POUR <décision B> | nulle POUR <décision C>
@@ -329,6 +375,11 @@ forme qu'un score de capacité Goodharté) :
 - **C — Jamais un critère de GO** : l'indice **informe**, il n'**autorise** aucune décision.
   Une décision découle des observations, pas de l'indice.
 
+**Contraintes renforcées (v3.1)** — l'indice doit intégrer la **qualité**, pas seulement le nombre :
+complétude · couverture · qualité des observations · **couverture de la question**.
+Une dette **critique** interdit toute note supérieure à **C**, quel que soit le reste.
+Jamais un gate, jamais une autorisation de décision.
+
 > Domaine : rapports comportant plusieurs inférences.
 > Mode d'échec : optimiser l'indice (empiler des observations triviales « complètes ») au
 > lieu de l'épistémique — loi de Goodhart.
@@ -359,12 +410,113 @@ Deux précisions :
 
 ---
 
-## 16. Historique des versions
+## 16. UNKNOWN vs BLIND_SPOT — l'inconnue et l'angle mort *(v3.1)*
+
+Deux absences d'observation, **deux actions différentes**. Les confondre conduit à chercher une
+observation que rien ne peut produire.
+
+| | **UNKNOWN** | **BLIND_SPOT** |
+|---|---|---|
+| Définition | l'observation **manque**, mais elle est observable avec l'instrumentation existante | l'observation est **impossible** : aucun instrument ne la produit |
+| Action | **aller observer** | **construire l'instrument** |
+| Champ requis en plus | — | `instrument_required` |
+
+### Cycle de vie — construire l'instrument ne produit **jamais** une observation
+
+```
+BLIND_SPOT / NON_OBSERVABLE
+      │  construire l'instrument
+      ▼
+BLIND_SPOT / OBSERVABLE          ← l'instrument existe, RIEN n'est encore observe
+      │  reclassement OBLIGATOIRE
+      ▼
+UNKNOWN / NON_OBSERVE
+      │  produire l'observation
+      ▼
+UNKNOWN / OBSERVE                = levee
+```
+
+**Le saut direct `BLIND_SPOT → OBSERVE` est INTERDIT.** Construire un instrument crée la
+*possibilité* d'observer, jamais l'observation. L'état intermédiaire `OBSERVABLE` existe pour
+rendre ce glissement causal impossible à écrire.
+
+Statuts admis : `BLIND_SPOT` → `NON_OBSERVABLE | OBSERVABLE` · `UNKNOWN` → `NON_OBSERVE | OBSERVE`.
+Tout autre couple est invalide.
+
+> Domaine : toute absence d'observation portant sur une affirmation porteuse.
+> Mode d'échec : classer en `UNKNOWN` ce qui est un angle mort — on cherche alors indéfiniment
+> une observation qu'aucun instrument ne peut produire.
+> Falsificateur : un `BLIND_SPOT` dont l'observation s'avère produite par un instrument existant.
+
+---
+
+## 17. Chapitre obligatoire — Dette épistémique résiduelle *(v3.1)*
+
+Tout rapport porte ce chapitre. Une inconnue mentionnée dans un texte n'est **pas gouvernée** ;
+une inconnue avec un identifiant, un genre, une dette, une décision bloquée et un moyen de
+l'observer, l'est.
+
+```
+UNK-xxx
+  kind                : UNKNOWN | BLIND_SPOT
+  description         : ce qui manque
+  status              : (selon le kind, cf. § 16)
+  decision_blocked    : quelle decision, ou "aucune"
+  how_to_observe      : l'action concrete qui leverait l'inconnue
+  debt                : critique | majeure | moyenne | mineure | nulle
+  reason              : pourquoi ce niveau de dette
+  instrument_required : OBLIGATOIRE si kind = BLIND_SPOT
+  critical_justification : OBLIGATOIRE si debt = critique (cf. § 13)
+```
+
+Un chapitre **vide** doit être justifié explicitement : « aucune inconnue résiduelle » est une
+affirmation forte, rarement vraie.
+
+---
+
+## 18. Surface de garantie *(v3.1)*
+
+Ce que le protocole — et son validateur — garantit, et ce qu'il ne garantit **pas**. Sans cette
+frontière, on lui délègue une confiance qu'il ne porte pas.
+
+| ✓ Garanti | ✗ Non garanti |
+|---|---|
+| **classification** (Observation / Inférence / Hypothèse / Décision) | la **vérité** d'un énoncé |
+| **traçabilité** (supports, dépendances) | l'**absence d'erreur** |
+| **complétude structurelle** (champs obligatoires, valeurs normatives) | la **cohérence sémantique** des champs |
+| **graphe** de dépendances (cycles, références) | la **qualité** des observations |
+| **maillon faible** appliqué mécaniquement | la **qualité** du `how_to_observe` |
+| `TERMINE` sans preuve → refusé | qu'une preuve soit *convaincante* |
+| `BLIND_SPOT` sans instrument → refusé | que l'instrument décrit soit *le bon* |
+
+**Conséquence.** Le protocole déplace le contrôle de la vigilance vers le mécanisme **pour tout ce
+qui est structurel — et seulement pour cela**. Le jugement reste humain là où il compte.
+
+---
+
+## 19. Invariants opérationnels *(v3.1)*
+
+Quatre règles nées d'échecs constatés, non d'anticipations théoriques. Chacune porte son précédent.
+
+| ID | Règle | Précédent |
+|---|---|---|
+| **INV-ROI-001** | Tout travail doit rapprocher de l'objectif de campagne **ou** rendre sa mesure valide. Sinon : différé. | un outil de maintenance construit pendant un gel, dont le retour arrivait après la campagne |
+| **INV-TRACE-001** | Le diff doit égaler **exactement** le contrat annoncé. | un ticket annonçant 1 fichier en ayant emporté 43 |
+| **INV-HEALTH-001** | La santé de la suite de tests est un **état de référence mesuré**, pas un caveat. `observé > attendu` → FAIL. | une suite dont la collecte échouait, rendant tout « vert » non comparable |
+| **INV-RESTORE-001** | Toute expérimentation destructive exige un point de restauration **vérifiable** (commit, stash vérifié, branche). La confiance dans le working tree n'est pas acceptée. | **deux** pertes de travail par le même mécanisme dans une même session |
+
+> `INV-RESTORE-001` illustre la règle de formation : **une occurrence est un accident, deux sont une
+> propriété du processus.** Une règle écrite après un incident unique est de la superstition.
+
+---
+
+## 20. Historique des versions
 
 | Version | Date | Nouveaux concepts |
 |---|---|---|
 | **v1.0** | 2026-07-23 | quatre catégories (Observation/Inférence/Hypothèse/Décision) ; maillon faible ; portée ; source/couverture ; double falsificateur ; double filtre lexical ; proportionnalité |
 | **v2.0** | 2026-07-23 | composition/fermeture (DAG) ; graphe de dépendances + défaiteurs ; rétracter ≠ nier ; voir/croire/vouloir (guillotine de Hume) ; révisabilité mécanique |
+| **v3.1** | 2026-07-27 | trois niveaux gouvernés (conclusions/observations/instruments) ; `UNKNOWN` vs `BLIND_SPOT` + cycle de vie interdisant le saut direct ; échelle de dette **normative** réconciliée (5 niveaux définis) ; dette critique **démontrable** ; chapitre obligatoire de dette résiduelle ; surface de garantie ; 4 invariants opérationnels ; indice plafonné par la pire dette |
 | **v3.0** | 2026-07-24 | représentativité (échantillon/population, `NON ÉVALUABLE`, biais directionnels) ; plafond « état mutable » ; dette épistémique relative à une décision ; indice de robustesse méthodologique (3 garde-fous) ; principe de symétrie (parité d'effort de recherche) |
 
 Compatibilité : v3 est **additive**. Aucune section v1/v2 n'a été supprimée ni renommée ;
@@ -372,7 +524,7 @@ les nouveaux champs (§ 2.1) et sections (§ 12–§ 15) s'ajoutent sans casser 
 
 ---
 
-## 17. Pourquoi cette évolution existe (auto-audit de l'évolution)
+## 21. Pourquoi cette évolution existe (auto-audit de l'évolution)
 
 Le protocole s'applique à sa propre évolution. v2 **garantissait la qualité des affirmations**
 mais pas celle des **observations** elles-mêmes : une observation exacte pouvait être peu
