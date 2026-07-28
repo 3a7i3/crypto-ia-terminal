@@ -46,6 +46,12 @@ from paper_trading.recorder import (
 
 _DEFAULT_PATH = os.getenv("PAPER_TRADE_LOG", "databases/paper_trades.jsonl")
 
+# Au-delà de cet âge, un OPEN sans CLOSE n'est plus une position en cours mais
+# une perte de traçabilité. Aligné sur le timeout du simulateur, qui clôture
+# toute position à MEXC_SIM_MAX_AGE_H (8 h) : la marge absorbe la période du
+# balayage `_check_positions`, qui ne clôture pas à la seconde près.
+_MAX_OPEN_AGE_H = float(os.getenv("MEXC_SIM_MAX_AGE_H", "8.0")) * 1.5
+
 _VALID_SCHEMA_VERSIONS = frozenset({1, 2})
 _VALID_CONVICTION_LEVELS = frozenset({"NONE", "LOW", "MEDIUM", "HIGH", "EXTREME"})
 
@@ -313,7 +319,8 @@ class CorpusReport:
     open_count: int = 0
     close_count: int = 0
     paired_trades: int = 0
-    orphaned_opens: int = 0  # OPEN sans CLOSE correspondant
+    orphaned_opens: int = 0  # OPEN sans CLOSE, au-delà du délai de clôture
+    open_in_flight: int = 0  # OPEN sans CLOSE, encore dans sa fenêtre de vie
     orphaned_closes: int = 0  # CLOSE sans OPEN correspondant
     duplicate_trade_ids: int = 0
     expired_on_restore: int = 0  # clôturés via guard restauration
@@ -344,6 +351,7 @@ class CorpusReport:
             f"CLOSE             : {self.close_count}",
             f"Trades appariés   : {self.paired_trades}",
             f"Orphelins OPEN    : {self.orphaned_opens}",
+            f"Positions en cours: {self.open_in_flight}",
             f"Orphelins CLOSE   : {self.orphaned_closes}",
             f"IDs dupliqués     : {self.duplicate_trade_ids}",
             f"Expirés restore   : {self.expired_on_restore}",
@@ -380,6 +388,7 @@ class CorpusReport:
                 "total_events": self.total_events,
                 "paired_trades": self.paired_trades,
                 "orphaned_opens": self.orphaned_opens,
+                "open_in_flight": self.open_in_flight,
                 "orphaned_closes": self.orphaned_closes,
                 "duplicate_trade_ids": self.duplicate_trade_ids,
                 "expired_on_restore": self.expired_on_restore,
@@ -433,10 +442,40 @@ def validate_corpus(log_path: str = _DEFAULT_PATH) -> CorpusReport:
             closes[evt.trade_id] = evt
 
     # ── Paires & orphelins ───────────────────────────────────────────────────
+    #
+    # Une position ouverte n'est pas une position perdue. Le corpus est lu
+    # pendant que le système tourne : à tout instant, quelques positions sont
+    # légitimement OPEN sans CLOSE — elles seront clôturées au plus tard par le
+    # timeout du simulateur (MEXC_SIM_MAX_AGE_H, 8 h par défaut).
+    #
+    # Avant le 2026-07-28, tout OPEN non apparié comptait comme « position
+    # fantôme » : la gate C du prelive ne pouvait donc JAMAIS passer tant que
+    # le bot tournait. Constaté ce jour-là — les deux « fantômes » signalés
+    # étaient WIF/USDT (ouvert 00:26, clôturé sur TIMEOUT à 08:26, soit 8.0 h
+    # exactement) et SHIB/USDT, encore en cours. Aucun des deux n'était perdu.
+    #
+    # La référence temporelle est le dernier événement DU CORPUS, pas l'heure
+    # de l'audit : un dataset archivé doit se juger à sa propre horloge, sinon
+    # le même fichier devient « non certifié » par le seul passage du temps.
     paired_ids = set(opens.keys()) & set(closes.keys())
     report.paired_trades = len(paired_ids)
-    report.orphaned_opens = len(set(opens.keys()) - set(closes.keys()))
     report.orphaned_closes = len(set(closes.keys()) - set(opens.keys()))
+
+    unpaired_open_ids = set(opens.keys()) - set(closes.keys())
+    corpus_now = max(
+        (
+            getattr(e, "ts", 0.0) or 0.0
+            for e in list(opens.values()) + list(closes.values())
+        ),
+        default=0.0,
+    )
+    for tid in unpaired_open_ids:
+        open_ts = getattr(opens[tid], "ts", 0.0) or 0.0
+        age_h = (corpus_now - open_ts) / 3600.0 if open_ts > 0 else float("inf")
+        if age_h <= _MAX_OPEN_AGE_H:
+            report.open_in_flight += 1
+        else:
+            report.orphaned_opens += 1
 
     # ── Statistiques population (trades appariés uniquement) ─────────────────
     durations = []
@@ -494,7 +533,14 @@ def validate_corpus(log_path: str = _DEFAULT_PATH) -> CorpusReport:
 
     if report.orphaned_opens > 0:
         report.violations.append(
-            f"{report.orphaned_opens} OPEN sans CLOSE (positions fantômes)"
+            f"{report.orphaned_opens} OPEN sans CLOSE au-delà de "
+            f"{_MAX_OPEN_AGE_H:.0f}h (positions fantômes)"
+        )
+
+    if report.open_in_flight > 0:
+        report.warnings.append(
+            f"{report.open_in_flight} position(s) encore ouverte(s) dans la "
+            f"fenêtre de {_MAX_OPEN_AGE_H:.0f}h — état normal, non bloquant"
         )
 
     if report.orphaned_closes > 0:

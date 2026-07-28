@@ -27,6 +27,14 @@ from scripts.burnin_calibration_v3 import (
     _preflight_check,
     build_report,
 )
+from scripts.data_quality import CLEAN_DATA_SINCE_ACTIVE
+
+# Les fixtures sont ancrées sur la borne d'époque et non sur des timestamps
+# figés : depuis l'alignement du 2026-07-28 (INV-DATASET-001), _load_real_trades
+# délègue au loader canonique, qui écarte tout ce qui précède la borne. Des
+# dates en dur rendraient la suite verte ou rouge selon l'époque courante.
+_AFTER = CLEAN_DATA_SINCE_ACTIVE.timestamp() + 3600  # 1h après la borne
+_BEFORE = CLEAN_DATA_SINCE_ACTIVE.timestamp() - 3600  # 1h avant la borne
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -53,12 +61,14 @@ def _write_trades_jsonl(path: Path, events: list[dict]) -> None:
             fh.write(json.dumps(ev) + "\n")
 
 
-def _real_close(trade_id: str, pnl_pct: float, score: int = 75) -> dict:
+def _real_close(
+    trade_id: str, pnl_pct: float, score: int = 75, ts: float = _AFTER
+) -> dict:
     return {
         "event": "CLOSE",
         "trade_id": trade_id,
-        "ts": 1781000000.0,
-        "ts_iso": "2026-06-11T10:00:00Z",
+        "ts": ts,
+        "ts_iso": "2026-07-17T02:30:00Z",
         "symbol": "BTC/USDT",
         "side": "long",
         "price": 98000.0,  # real price >> 500
@@ -76,11 +86,15 @@ def _real_close(trade_id: str, pnl_pct: float, score: int = 75) -> dict:
 
 
 def _test_close() -> dict:
-    """Fixture-like test data with price=101 (will be filtered out)."""
+    """Fixture-like test data with price=101 (will be filtered out).
+
+    Datée APRÈS la borne : sans cela, elle serait écartée par le filtre
+    temporel et le test ne prouverait plus rien sur le filtre de qualité.
+    """
     return {
         "event": "CLOSE",
         "trade_id": "pos-1",
-        "ts": 1779526693.0,
+        "ts": _AFTER,
         "symbol": "BTC/USDT",
         "side": "long",
         "price": 101.0,
@@ -97,12 +111,15 @@ def _test_close() -> dict:
 
 
 def _restore_artifact(trade_id: str = "90072B8C-A") -> dict:
-    """MexcSimulator restore artifact — real price but instant close, no context."""
+    """MexcSimulator restore artifact — real price but instant close, no context.
+
+    Datée APRÈS la borne, pour la même raison que `_test_close`.
+    """
     return {
         "event": "CLOSE",
         "trade_id": trade_id,
-        "ts": 1780537845.0,
-        "ts_iso": "2026-06-04T01:50:45Z",
+        "ts": _AFTER,
+        "ts_iso": "2026-07-17T02:30:00Z",
         "symbol": "BTC/USDT",
         "side": "buy",
         "price": 104103.97,

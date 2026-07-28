@@ -32,17 +32,29 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Optional
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from tools.cri_calculator import (  # noqa: E402
+    default_trades_path,
+    load_clean_trades,
+    trades_provenance,
+)
+
 # ── Paths ─────────────────────────────────────────────────────────────────────
 
 _DEFAULT_GATE_CSV = Path("databases/gate_rejections.csv")
-_DEFAULT_TRADES_JSONL = Path(
-    os.getenv("PAPER_TRADE_LOG", "databases/paper_trades.jsonl")
-)
 _DEFAULT_KS_STATE = Path("cache/startup/killswitch_state.json")
 _DEFAULT_OUTPUT = Path("cache/burn_in_reports/burnin_v3.json")
 
-# Real trades have BTC price >> 1000. Test fixtures use price 101-102.
-_REAL_TRADE_PRICE_FLOOR = 500.0
+
+def _initial_capital() -> float:
+    """Base de capital pour le drawdown — même source que prelive_gate."""
+    try:
+        from infra.wallet_sync import get_wallet_sync
+
+        return float(get_wallet_sync().initial_capital())
+    except Exception:
+        return float(os.getenv("WALLET_PAPER_CAPITAL", "1000") or 1000.0)
 
 
 # ── Data classes ──────────────────────────────────────────────────────────────
@@ -106,6 +118,9 @@ class BurnInV3Report:
     warnings: list = field(default_factory=list)
     target_trades: int = 100
     coverage_pct: float = 0.0
+    # Population effectivement mesurée — INV-DATASET-001 : un rapport ne cite
+    # jamais un N sans que sa population soit reconstituable.
+    dataset_provenance: dict = field(default_factory=dict)
 
 
 # ── Loaders ───────────────────────────────────────────────────────────────────
@@ -202,51 +217,16 @@ def _load_gate_funnel(path: Path) -> GateFunnel:
 
 
 def _load_real_trades(path: Path) -> list[dict]:
-    """Load closed trades from paper_trades.jsonl, filtering out test fixtures and restore artifacts.
+    """Dataset canonique — délègue au loader unique (INV-DATASET-001).
 
-    Two categories excluded:
-      1. Test fixtures: price < 500 AND score == 0 (synthetic data, old unit tests).
-      2. Restore artifacts: duration_s == 0.0 AND score == 0 AND regime == "unknown"
-         — MexcSimulator._restore_positions() bug: open positions were re-closed
-         instantly on restart before the fix (session 2026-06-07). These have
-         real BTC prices but no pipeline context and zero hold time.
+    Ce script reconstruisait sa propre population : CLOSE + exclusion des
+    fixtures et des artefacts de restauration, mais SANS la borne d'époque
+    `CLEAN_DATA_SINCE_ACTIVE`. Il mesurait donc 631 trades étalés sur quatre
+    époques là où la référence canonique en compte 106 (audit du 2026-07-28).
+    Les deux filtres de qualité qui n'existaient qu'ici ont été absorbés par
+    `load_clean_trades()` ; aucun n'est perdu.
     """
-    if not path.exists():
-        return []
-
-    try:
-        lines = path.read_text(encoding="utf-8").splitlines()
-    except Exception:
-        return []
-
-    closes = []
-    for line in lines:
-        line = line.strip()
-        if not line:
-            continue
-        try:
-            record = json.loads(line)
-        except json.JSONDecodeError:
-            continue
-        if record.get("event") != "CLOSE":
-            continue
-
-        price = _safe_float(record.get("price", 0) or record.get("exit_price", 0))
-        score = _safe_float(record.get("score", 0))
-        regime = record.get("regime", "unknown")
-        duration = _safe_float(record.get("duration_s", -1))
-
-        # Test fixtures: synthetic price, no pipeline score
-        if price < _REAL_TRADE_PRICE_FLOOR and score == 0:
-            continue
-
-        # Restore artifacts: instant close, no pipeline context
-        if duration == 0.0 and score == 0 and regime == "unknown":
-            continue
-
-        closes.append(record)
-
-    return closes
+    return load_clean_trades(path)
 
 
 def _compute_trade_stats(trades: list[dict]) -> TradeStats:
@@ -271,8 +251,11 @@ def _compute_trade_stats(trades: list[dict]) -> TradeStats:
 
     # Equity curve for max drawdown — additive USD (not compounded %)
     # Using pnl_usd avoids distortion from impossible pnl_pct values (>100%).
-    capital = 1000.0
-    equity = [capital]
+    # Base de capital lue via wallet_sync (WALLET_PAPER_CAPITAL, ADR-0007) et
+    # non plus codée en dur à 1000 : prelive_gate utilisait déjà cette source,
+    # les deux scripts auraient divergé silencieusement au premier changement
+    # de capital (INV-DATASET-001).
+    equity = [_initial_capital()]
     for p_usd in pnl_usds:
         equity.append(equity[-1] + p_usd)
     peak = equity[0]
@@ -458,12 +441,13 @@ def _assess(report: BurnInV3Report) -> tuple[str, list[str], list[str]]:
 
 def build_report(
     gate_path: Path = _DEFAULT_GATE_CSV,
-    trades_path: Path = _DEFAULT_TRADES_JSONL,
+    trades_path: Optional[Path] = None,
     ks_path: Path = _DEFAULT_KS_STATE,
     target_trades: int = 100,
 ) -> BurnInV3Report:
+    resolved_trades = default_trades_path() if trades_path is None else trades_path
     gate = _load_gate_funnel(gate_path)
-    real_trades = _load_real_trades(trades_path)
+    real_trades = _load_real_trades(resolved_trades)
     trade_stats = _compute_trade_stats(real_trades)
     system = _load_system_state(ks_path)
 
@@ -477,6 +461,7 @@ def build_report(
         system=system,
         target_trades=target_trades,
         coverage_pct=round(100.0 * trade_stats.count / target_trades, 1),
+        dataset_provenance=trades_provenance(resolved_trades),
     )
 
     verdict, blockers, warnings = _assess(report)
@@ -602,7 +587,7 @@ def main() -> int:
         "--quiet", action="store_true", help="JSON output only, no table"
     )
     parser.add_argument("--gate-csv", type=Path, default=_DEFAULT_GATE_CSV)
-    parser.add_argument("--trades-jsonl", type=Path, default=_DEFAULT_TRADES_JSONL)
+    parser.add_argument("--trades-jsonl", type=Path, default=None)
     parser.add_argument("--ks-state", type=Path, default=_DEFAULT_KS_STATE)
     parser.add_argument("--target-trades", type=int, default=100)
     args = parser.parse_args()

@@ -25,6 +25,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 import sys
 from collections import defaultdict
 from datetime import datetime, timezone
@@ -48,6 +49,28 @@ SCORE_BIN_LABELS = ["<50", "50-59", "60-69", "70-79", "80+"]
 
 DEFAULT_TRADES_PATH = Path("databases/paper_trades.jsonl")
 DEFAULT_REGRET_PATH = Path("databases/regret_analysis.jsonl")
+
+# ── Filtres de qualité absorbés depuis scripts/burnin_calibration_v3.py ───────
+# (INV-DATASET-001, 2026-07-28 : ce module est le loader unique des paper
+# trades. Ces deux filtres n'existaient que dans burnin_calibration_v3 ; les
+# rapatrier ici évite qu'un outil voie une population que l'autre ignore.)
+#
+# Mesure d'impact au moment de l'absorption, sur le corpus VPS du 2026-07-28
+# (649 CLOSE, dont 106 post-borne V4) :
+#   - fixtures de test  : 18 exclusions sur le corpus entier, 0 post-borne V4
+#   - restore artifacts :  0 exclusion  sur le corpus entier, 0 post-borne V4
+# Les deux filtres sont donc un NO-OP sur le dataset canonique actuel : leur
+# ajout ne déplace ni N ni le CRI. Ils restent en défense en profondeur pour
+# les époques antérieures et pour tout outil lisant hors borne.
+
+# Trades réels : prix BTC >> 1000. Les fixtures des anciens tests unitaires
+# utilisaient un prix 101-102 sans score de pipeline.
+_REAL_TRADE_PRICE_FLOOR = 500.0
+
+# Artefacts de restauration : MexcSimulator._restore_positions() reclôturait
+# instantanément les positions ouvertes au redémarrage, avant le correctif de
+# la session 2026-06-07. Prix réel, mais durée nulle et aucun contexte pipeline.
+_RESTORE_ARTIFACT_REGIME = "unknown"
 
 
 def _score_bin(score: float) -> str:
@@ -87,17 +110,92 @@ def _event_ts(record: dict) -> Optional[datetime]:
         return None
 
 
-def load_clean_trades(path: Path = DEFAULT_TRADES_PATH) -> list[dict]:
-    """CLOSE events, filtrés par CLEAN_DATA_SINCE_ACTIVE (addendum ADR-0012)."""
-    trades = []
-    for d in _read_jsonl(path):
-        if d.get("event") != "CLOSE":
-            continue
-        ts = _event_ts(d)
-        if ts is None or ts < CLEAN_DATA_SINCE_ACTIVE:
-            continue
-        trades.append(d)
-    return trades
+def _safe_float(value: object, default: float = 0.0) -> float:
+    try:
+        return float(value)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return default
+
+
+def default_trades_path() -> Path:
+    """Chemin canonique du journal de paper trades.
+
+    Résolu ici et nulle part ailleurs : `PAPER_TRADE_LOG` était lu
+    indépendamment par burnin_calibration_v3 et prelive_gate, tandis que ce
+    module utilisait un chemin en dur — trois résolutions pour une seule
+    source de vérité (INV-DATASET-001).
+    """
+    return Path(os.getenv("PAPER_TRADE_LOG", str(DEFAULT_TRADES_PATH)))
+
+
+def _exclusion_reason(record: dict) -> Optional[str]:
+    """Motif d'exclusion d'un événement CLOSE, ou None s'il est canonique."""
+    ts = _event_ts(record)
+    if ts is None:
+        return "ts_absent_ou_illisible"
+    if ts < CLEAN_DATA_SINCE_ACTIVE:
+        return "anterieur_borne_canonique"
+
+    price = _safe_float(record.get("price")) or _safe_float(record.get("exit_price"))
+    score = _safe_float(record.get("score"))
+    if price < _REAL_TRADE_PRICE_FLOOR and score == 0:
+        return "fixture_de_test"
+
+    duration = _safe_float(record.get("duration_s"), default=-1.0)
+    regime = record.get("regime") or _RESTORE_ARTIFACT_REGIME
+    if duration == 0.0 and score == 0 and regime == _RESTORE_ARTIFACT_REGIME:
+        return "artefact_de_restauration"
+
+    return None
+
+
+def load_clean_trades(path: Optional[Path] = None) -> list[dict]:
+    """Dataset canonique des paper trades — LOADER UNIQUE (INV-DATASET-001).
+
+    Filtres appliqués, dans l'ordre :
+      1. `event == "CLOSE"`
+      2. horodatage >= `CLEAN_DATA_SINCE_ACTIVE` (borne d'époque, ADR-0017)
+      3. hors fixtures de test (prix < 500 ET score == 0)
+      4. hors artefacts de restauration (durée == 0 ET score == 0 ET régime inconnu)
+
+    `path=None` → `default_trades_path()`. Aucun appelant ne doit reconstruire
+    ces filtres : tout KPI calculé sur une autre population que celle-ci est,
+    par construction, incomparable aux autres outils du dépôt.
+    """
+    target = default_trades_path() if path is None else path
+    return [
+        d
+        for d in _read_jsonl(target)
+        if d.get("event") == "CLOSE" and _exclusion_reason(d) is None
+    ]
+
+
+def trades_provenance(path: Optional[Path] = None) -> dict:
+    """Provenance du dataset chargé — à joindre à toute décision (INV-DATASET-001).
+
+    Rend explicite CE QUI a été lu et CE QUI a été écarté, pour qu'un rapport
+    ne puisse pas citer un N sans que sa population soit reconstituable.
+    """
+    target = default_trades_path() if path is None else path
+    closes = [d for d in _read_jsonl(target) if d.get("event") == "CLOSE"]
+
+    excluded: dict[str, int] = {}
+    kept = 0
+    for record in closes:
+        reason = _exclusion_reason(record)
+        if reason is None:
+            kept += 1
+        else:
+            excluded[reason] = excluded.get(reason, 0) + 1
+
+    return {
+        "loader": "tools.cri_calculator.load_clean_trades",
+        "source_path": str(target),
+        "clean_data_since": CLEAN_DATA_SINCE_ACTIVE.isoformat(),
+        "close_events_total": len(closes),
+        "n_canonical": kept,
+        "excluded_by_reason": excluded,
+    }
 
 
 def load_clean_regrets(path: Optional[Path] = None) -> list[dict]:
@@ -201,7 +299,7 @@ def balance_score(trades: list[dict]) -> float:
 
 
 def compute_cri(
-    trades_path: Path = DEFAULT_TRADES_PATH,
+    trades_path: Optional[Path] = None,
     regret_path: Optional[Path] = None,
 ) -> dict:
     trades = load_clean_trades(trades_path)
@@ -256,16 +354,28 @@ def compute_cri(
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--trades", type=Path, default=DEFAULT_TRADES_PATH)
+    parser.add_argument(
+        "--trades",
+        type=Path,
+        default=None,
+        help="chemin explicite (défaut : PAPER_TRADE_LOG, sinon databases/)",
+    )
     parser.add_argument(
         "--regrets",
         type=Path,
         default=None,
         help="chemin explicite (défaut : source canonique MC-001)",
     )
+    parser.add_argument(
+        "--provenance",
+        action="store_true",
+        help="joindre la provenance du dataset au rapport (INV-DATASET-001)",
+    )
     args = parser.parse_args()
 
     result = compute_cri(args.trades, args.regrets)
+    if args.provenance:
+        result["trades_provenance"] = trades_provenance(args.trades)
     if result.get("validity") == "PARTIAL":
         print("⚠️  VALIDITÉ PARTIELLE :", result["warnings"][0], file=sys.stderr)
     print(json.dumps(result, indent=2, ensure_ascii=False))

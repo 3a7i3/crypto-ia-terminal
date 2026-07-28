@@ -34,13 +34,28 @@ import os
 import sys
 import time
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
+from typing import Optional
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from dotenv import load_dotenv  # noqa: E402
 
+from tools.cri_calculator import (  # noqa: E402
+    default_trades_path,
+    load_clean_trades,
+    trades_provenance,
+)
+
 load_dotenv()
+
+# Le rapport contient des flèches et des coches : sur une console Windows en
+# cp1252, `print` lève UnicodeEncodeError et le script meurt APRÈS avoir tout
+# calculé. Le verdict ne doit pas dépendre de la page de code du terminal.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
 # ── Seuils ────────────────────────────────────────────────────────────────────
 
@@ -50,6 +65,10 @@ _MIN_SHARPE = float(os.getenv("PRELIVE_MIN_SHARPE", "1.0"))
 _MIN_WR = float(os.getenv("PRELIVE_MIN_WR", "45.0"))
 _MAX_DD = float(os.getenv("PRELIVE_MAX_DD", "10.0"))
 _MAX_ORDER_P2 = float(os.getenv("PRELIVE_MAX_ORDER_USD", "50.0"))
+
+# Durée de validité du rapport de burn-in consommé par la gate D. Le dataset
+# grossit en continu ; au-delà, le rapport décrit un système qui n'existe plus.
+_BURNIN_MAX_AGE_H = float(os.getenv("PRELIVE_BURNIN_MAX_AGE_H", "24.0"))
 
 # ── Couleurs ──────────────────────────────────────────────────────────────────
 
@@ -76,21 +95,28 @@ class GateResult:
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 
-def _read_closes() -> list[dict]:
-    log_path = Path(os.getenv("PAPER_TRADE_LOG", "databases/paper_trades.jsonl"))
-    if not log_path.exists():
-        return []
-    closes = []
+def _report_age_hours(generated_at: object) -> Optional[float]:
+    """Âge d'un rapport en heures, ou None si l'horodatage est absent/illisible."""
+    if not isinstance(generated_at, str) or not generated_at:
+        return None
     try:
-        for line in log_path.read_text(encoding="utf-8").splitlines():
-            line = line.strip()
-            if line:
-                ev = json.loads(line)
-                if ev.get("event") == "CLOSE":
-                    closes.append(ev)
-    except Exception:
-        pass
-    return closes
+        stamp = datetime.fromisoformat(generated_at.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if stamp.tzinfo is None:
+        stamp = stamp.replace(tzinfo=timezone.utc)
+    return (datetime.now(timezone.utc) - stamp).total_seconds() / 3600.0
+
+
+def _read_closes() -> list[dict]:
+    """Dataset canonique — délègue au loader unique (INV-DATASET-001).
+
+    Ce script lisait TOUS les CLOSE du journal, sans borne d'époque ni filtre
+    de qualité : 649 trades étalés sur quatre époques là où la référence
+    canonique en compte 106 (audit du 2026-07-28). La gate A comptait donc un
+    volume que la gate de calibration n'aurait jamais reconnu.
+    """
+    return load_clean_trades()
 
 
 def _compute_metrics(closes: list[dict]) -> dict:
@@ -192,8 +218,7 @@ def gate_c_dataset() -> GateResult:
             "C. Dataset", STATUS_WARN, "dataset_validator non disponible — skip"
         )
 
-    log_path = os.getenv("PAPER_TRADE_LOG", "databases/paper_trades.jsonl")
-    report = validate_corpus(log_path=log_path)
+    report = validate_corpus(log_path=str(default_trades_path()))
 
     if report.total_events == 0:
         return GateResult(
@@ -209,7 +234,15 @@ def gate_c_dataset() -> GateResult:
         )
 
     eligible = report.burnin_eligible
-    detail = f"{report.paired_trades} trades appariés, burnin_eligible={eligible}"
+    # Cette gate contrôle l'INTÉGRITÉ STRUCTURELLE du journal (appariement,
+    # doublons, schéma) et porte donc sur le corpus entier, hors borne d'époque
+    # — un corpus corrompu avant la borne reste un défaut de qualité. La
+    # population est nommée pour qu'on ne confonde pas ce total avec le N
+    # canonique de la gate A (INV-DATASET-001).
+    detail = (
+        f"{report.paired_trades} paires sur corpus complet (hors borne), "
+        f"{report.open_in_flight} en cours, burnin_eligible={eligible}"
+    )
     if not eligible:
         return GateResult(
             "C. Dataset", STATUS_NOGO, detail + " — N insuffisant pour C5"
@@ -231,18 +264,59 @@ def gate_d_calibration() -> GateResult:
         )
     try:
         data = json.loads(found.read_text(encoding="utf-8"))
-        passed = data.get("burnin_passed", data.get("pass", False))
-        n_trades = data.get("n_trades", data.get("real_trades", {}).get("count", "?"))
-        floor = data.get("recommended_score_floor", data.get("score_floor", "?"))
-        if not passed:
-            reason = data.get("fail_reason", "voir rapport")
+
+        # Le producteur (burnin_calibration_v3.py) écrit `go_no_go`. Cette gate
+        # lisait `burnin_passed` / `pass`, deux clés qu'aucune version du
+        # rapport n'a jamais produites : le `.get()` retombait sur False et la
+        # gate rendait NO-GO par construction, quelles que soient les données
+        # (constaté le 2026-07-28). Contrat producteur/consommateur réaligné.
+        verdict = data.get("go_no_go", data.get("burnin_passed", data.get("pass")))
+
+        # Fraîcheur — le rapport lu portait `generated_at=2026-07-05` et
+        # `count=0` : une observation périmée de 23 jours consommée comme
+        # courante, sans qu'aucune règle ne le signale. Une observation
+        # expirée n'est pas fausse, elle est EXPIRÉE (cf. EXT-004).
+        age_h = _report_age_hours(data.get("generated_at"))
+        if age_h is None:
             return GateResult(
-                "D. Calibration", STATUS_NOGO, f"BurnIn V3 NO-GO — {reason}"
+                "D. Calibration",
+                STATUS_NOGO,
+                f"Rapport sans horodatage ({found.name}) — fraîcheur invérifiable",
+            )
+        if age_h > _BURNIN_MAX_AGE_H:
+            return GateResult(
+                "D. Calibration",
+                STATUS_NOGO,
+                f"Rapport EXPIRÉ ({age_h:.1f}h > {_BURNIN_MAX_AGE_H}h) — relancer "
+                "burnin_calibration_v3.py",
+            )
+
+        # Cohérence de population (INV-DATASET-001) : un verdict de calibration
+        # calculé sur une autre population que celle de la gate A n'est pas
+        # comparable — la décision est plafonnée, pas accordée.
+        n_report = (data.get("dataset_provenance") or {}).get("n_canonical")
+        if n_report is None:
+            n_report = (data.get("trades") or {}).get("count")
+        n_gate = len(_read_closes())
+        if n_report != n_gate:
+            return GateResult(
+                "D. Calibration",
+                STATUS_NOGO,
+                f"Populations divergentes — burn-in N={n_report}, gate A N={n_gate} "
+                "(INV-DATASET-001)",
+            )
+
+        if verdict != "GO":
+            # DEGRADED n'a pas de bloqueur : ses motifs sont dans `warnings`.
+            motifs = data.get("blockers") or data.get("warnings") or []
+            reason = "; ".join(motifs) if motifs else "voir rapport"
+            return GateResult(
+                "D. Calibration", STATUS_NOGO, f"BurnIn V3 {verdict} — {reason}"
             )
         return GateResult(
             "D. Calibration",
             STATUS_GO,
-            f"BurnIn V3 PASS — {n_trades} trades, score_floor={floor}",
+            f"BurnIn V3 GO — {n_report} trades canoniques, rapport de {age_h:.1f}h",
         )
     except Exception as exc:
         return GateResult(
@@ -384,6 +458,8 @@ def json_report(results: list[GateResult], passed: bool) -> dict:
         "gates": [
             {"name": r.name, "status": r.status, "detail": r.detail} for r in results
         ],
+        # INV-DATASET-001 : le verdict est indissociable de la population lue.
+        "dataset_provenance": trades_provenance(),
     }
 
 

@@ -470,18 +470,56 @@ class TestValidateCorpusClean:
 class TestValidateCorpusViolations:
     """Violations → non certifié."""
 
-    def test_orphaned_open_is_violation(self, tmp_path):
+    def test_open_still_within_its_window_is_not_a_violation(self, tmp_path):
+        """Une position ouverte n'est pas une position perdue.
+
+        Le corpus est lu pendant que le système tourne : quelques positions
+        sont toujours OPEN sans CLOSE. Avant le 2026-07-28 elles comptaient
+        comme « fantômes » et la gate C ne pouvait jamais passer (constaté sur
+        WIF/USDT, clôturé sur TIMEOUT à 8.0h, signalé fantôme entre-temps).
+        """
         from paper_trading.recorder import PaperTradeRecorder
 
-        rec = PaperTradeRecorder(str(tmp_path / "pt.jsonl"))
+        path = tmp_path / "pt.jsonl"
+        rec = PaperTradeRecorder(str(path))
         _write_paired_trade(rec, "GOOD", pnl=0.5, reason="tp")
         _write_paired_trade(rec, "GOOD2", pnl=-0.2, reason="sl", sl=True)
-        # OPEN sans CLOSE
+        rec.record_open("IN_FLIGHT", "ETH/USDT", "buy", 3100.0, 10.0)
+
+        r = validate_corpus(str(path))
+        assert r.open_in_flight == 1
+        assert r.orphaned_opens == 0
+        assert not any("fantôme" in v for v in r.violations)
+        assert any("encore ouverte" in w for w in r.warnings)
+
+    def test_open_beyond_the_close_window_is_a_violation(self, tmp_path):
+        """Au-delà du timeout, un OPEN sans CLOSE est une perte de traçabilité."""
+        import json as _json
+
+        from paper_trading.dataset_validator import _MAX_OPEN_AGE_H
+        from paper_trading.recorder import PaperTradeRecorder
+
+        path = tmp_path / "pt.jsonl"
+        rec = PaperTradeRecorder(str(path))
+        _write_paired_trade(rec, "GOOD", pnl=0.5, reason="tp")
+        _write_paired_trade(rec, "GOOD2", pnl=-0.2, reason="sl", sl=True)
         rec.record_open("ORPHAN", "ETH/USDT", "buy", 3100.0, 10.0)
 
-        r = validate_corpus(str(tmp_path / "pt.jsonl"))
-        assert not r.burnin_eligible
+        # Recule l'ouverture bien au-delà de la fenêtre de clôture.
+        lines = []
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            event = _json.loads(line)
+            if event.get("trade_id") == "ORPHAN":
+                event["ts"] = event["ts"] - (_MAX_OPEN_AGE_H + 1) * 3600
+            lines.append(_json.dumps(event))
+        path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+        r = validate_corpus(str(path))
         assert r.orphaned_opens == 1
+        assert r.open_in_flight == 0
+        assert not r.burnin_eligible
         assert any("fantôme" in v for v in r.violations)
 
     def test_100pct_winrate_with_large_n_is_violation(self, tmp_path):
