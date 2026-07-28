@@ -52,6 +52,34 @@ invariants:
   - id: INV-4
     statement: "Aucun seuil modifie avant N >= 500 et CRI >= 90"
     violation: "Toucher une constante de seuil (portfolio_brain.py:88-109)"
+  - id: INV-DATASET-001
+    statement: >
+      Toute decision utilisant les paper trades documente explicitement le
+      loader qui a produit sa population. Un seul loader canonique :
+      tools/cri_calculator.py::load_clean_trades. Si deux outils calculent le
+      meme KPI a partir de populations differentes, la decision est PLAFONNEE
+      — elle ne peut pas etre accordee, seulement refusee ou suspendue.
+    violation: >
+      Reconstruire un filtre de dataset hors du loader canonique ; citer un N
+      sans provenance ; comparer deux KPI issus de populations differentes.
+    formed_from: >
+      INCIDENT CONSTATE le 2026-07-28, au franchissement du gate N>=100. Trois
+      outils lisaient trois populations du meme fichier : cri_calculator 106
+      CLOSE (borne d'epoque appliquee), burnin_calibration_v3 631 (filtres
+      qualite, pas de borne), prelive_gate 649 (aucun filtre). Le verdict en
+      dependait : burn-in rendait NO_GO sur 631 a cause d'un drawdown de
+      33.55 % herite des epoques mortes, et DEGRADED (0.86 %) sur les 106
+      canoniques. Regle ecrite APRES l'incident, jamais avant.
+    enforced_by:
+      - "tests/test_dataset_loader_alignment.py (ALIGN-01..07, 10 tests)"
+      - "tools/cri_calculator.py::trades_provenance — population reconstituable"
+      - "prelive_gate.gate_d_calibration — refuse une population divergente"
+    scope_note: >
+      Les filtres de qualite qui n'existaient que dans burnin_calibration_v3
+      (fixtures de test, artefacts de restauration) ont ete absorbes par le
+      loader canonique. Impact mesure a l'absorption sur le corpus du
+      2026-07-28 : 0 exclusion post-borne V4, CRI inchange a 43.27. Aucune
+      information perdue par l'unification.
 
 # -----------------------------------------------------------------------------
 # HEALTH BASELINE — etat de reference REPRODUCTIBLE de la suite de tests
@@ -1019,6 +1047,18 @@ proposed_extensions:
     priority: P1
     reason_priority: "seule des quatre a reposer sur une observation, pas une hypothese"
     status: PROPOSEE
+    second_instance: >
+      AUDIT-EMP-001 (2026-07-28) : gate_d_calibration consommait un rapport de
+      burn-in vieux de 559.8 h (genere le 2026-07-05, count=0) comme s'il
+      decrivait l'etat courant. Aucune regle ne l'a signale. Deuxieme instance
+      constatee, sur un objet different de la premiere (artefact JSON produit
+      par un autre outil, et non mesure en memoire).
+    mitigation_locale: >
+      Un controle de fraicheur ponctuel a ete pose SUR CE SEUL artefact
+      (PRELIVE_BURNIN_MAX_AGE_H, defaut 24 h), motive par l'instance constatee.
+      Ce n'est PAS l'implementation de la couche generique : aucune declaration
+      valid_from/valid_until/TTL n'est exigee ailleurs. L'extension reste
+      PROPOSEE ; deux instances ne font pas encore une regle transversale.
 
   - id: EXT-002
     title: "Tracabilite des transformations (TR-id, version, auteur, audits impactes)"
@@ -1036,11 +1076,20 @@ proposed_extensions:
 
   - id: EXT-001
     title: "Composition des transformations : preconditions informationnelles"
-    epistemic_status: HYPOTHESE
+    epistemic_status: OBSERVATION_PARTIELLE
+    status_changed: >
+      2026-07-28, AUDIT-EMP-001 : passe d'HYPOTHESE a OBSERVATION_PARTIELLE.
+      La chaine paper_trades.jsonl -> burnin_v3.json -> gate_d_calibration est
+      une composition reelle de ce depot ou l'etage aval exigeait deux
+      preconditions informationnelles que l'etage amont ne declarait pas :
+      meme population canonique, et fraicheur. Les deux etaient violees
+      simultanement et silencieusement. Ce n'est pas encore le cas theorique
+      "T1 detruit la distribution que T2 exige", mais c'en est la meme famille.
     evidence: >
-      AUCUNE instance constatee. Le raisonnement est solide (T2 exigeant une
-      distribution que T1 a detruite = incoherence detectable), mais aucune
-      chaine reelle de ce depot n'a encore produit ce defaut.
+      Instance partielle constatee (ci-dessus). Le cas general — une
+      transformation declarant ses preconditions informationnelles de maniere
+      verifiable — reste non observe : la correction posee est specifique a
+      cette chaine, pas generique.
     why_it_matters: >
       Trois transformations enchainees ne sont pas trois transformations
       independantes : chacune modifie les hypotheses disponibles, l'information
@@ -1070,7 +1119,10 @@ proposed_extensions:
 # Aucune extension n'est implementee avant que la campagne ne montre un besoin.
 # -----------------------------------------------------------------------------
 protocol_validation_campaign:
-  status: NON_DEMARREE
+  status: EN_COURS
+  started: "2026-07-28"
+  audits_completed: 1
+  audits_target: "10-20"
   objective: >
     Appliquer v4.0 a 10-20 audits reels de nature differente (code,
     architecture, securite, donnees, documentation) et observer OU le protocole
@@ -1086,10 +1138,121 @@ protocol_validation_campaign:
   blocks: "toute version v5.x"
   linked_unknown: UNK-006
 
+  audits:
+    - id: AUDIT-EMP-001
+      date: "2026-07-28"
+      nature: DONNEES
+      trigger: >
+        Franchissement du gate N>=100 (epoque V4). Le rapport Telegram annonce
+        un N canonique correct (105) PUIS recommande deux scripts qui ne lisent
+        pas la population canonique — incoherence interne au meme rapport.
+      scope: >
+        tools/cri_calculator.py, scripts/burnin_calibration_v3.py,
+        scripts/prelive_gate.py, sur snapshot VPS du 2026-07-28 07:21 UTC.
+
+      observations:
+        - "O1 cri_calculator applique CLEAN_DATA_SINCE_ACTIVE : N=106."
+        - "O2 burnin_calibration_v3 lit 631 CLOSE (filtres qualite, aucune borne)."
+        - "O3 prelive_gate lit 649 CLOSE (aucun filtre)."
+        - "O4 Les deux scripts concluaient NO-GO avant alignement."
+        - "O5 gate_d_calibration lit la cle `burnin_passed`, qu'aucun producteur n'ecrit."
+        - "O6 Le rapport consomme par gate D datait du 2026-07-05 (n=0), age 559.8 h."
+        - "O7 Trois definitions du Sharpe et deux bases de capital coexistaient."
+
+      falsifier_tested: >
+        POSE PAR L'OPERATEUR AVANT L'EXPERIENCE : si, apres alignement, les
+        scripts rendent encore NO_GO avec des metriques coherentes, la
+        conclusion etait robuste malgre une mauvaise source ; si le verdict
+        change, le desalignement avait un impact decisionnel.
+      falsifier_outcome: MIXTE
+      falsifier_detail: >
+        burnin_calibration_v3 : NO_GO -> DEGRADED. Le seul bloqueur etait un
+        drawdown de 33.55 % entierement herite des epoques mortes ; sur les 106
+        canoniques il tombe a 0.86 %. Verdict NON ROBUSTE, impact decisionnel
+        avere. prelive_gate : NO-GO -> NO-GO, porte par PF/Sharpe/WR qui
+        echouent dans les deux populations. Verdict ROBUSTE. La distinction
+        validite-de-la-methode / validite-de-la-conclusion etait donc
+        necessaire : elle se resout differemment pour chacun des deux outils.
+
+      what_the_protocol_caught: >
+        La separation observation / inference a directement produit le
+        falsificateur. La formulation initiale de l'auditeur — "le verdict
+        NO-GO reste juste, mais par accident" — a ete rejetee par l'operateur
+        comme depassant les observations. L'experience a montre qu'elle etait
+        en outre FAUSSE pour burn-in : le verdict n'etait pas juste. Une
+        inference non marquee comme telle a failli etre archivee comme un fait.
+
+      what_the_protocol_missed:
+        - >
+          TEMPORALITE (EXT-004) : rien dans le protocole n'a signale qu'un
+          rapport de 559.8 h etait consomme comme courant. DEUXIEME instance
+          constatee, apres celle de health_baseline. L'extension quitte le
+          statut d'hypothese pour celui de defaut recurrent.
+        - >
+          TRACABILITE (EXT-002) : gate D consommait un artefact d'un autre
+          outil sans verifier ni la version du producteur, ni le schema, ni la
+          population. La cle lue (`burnin_passed`) n'a jamais existe cote
+          producteur — contrat rompu, silencieux, non date.
+        - >
+          COMPOSITION (EXT-001) : passait d'HYPOTHESE a OBSERVATION_PARTIELLE.
+          La chaine paper_trades -> burnin_v3.json -> gate D est exactement une
+          composition de transformations ou l'etage 2 exige une precondition
+          (meme population, rapport frais) que l'etage 1 ne declare pas.
+
+      cost: >
+        Temps de protocole (categoriser, poser le falsificateur, ecrire cette
+        fiche) sensiblement inferieur au temps d'audit (rapatriement, mesure,
+        refactor, tests). Le protocole n'a pas ete contourne ; aucune regle n'a
+        ete ignoree.
+
+      outcome:
+        - "INV-DATASET-001 forme a partir de cet incident (jamais avant)."
+        - "Loader unique : burnin et prelive delèguent a load_clean_trades."
+        - "10 tests d'alignement (ALIGN-01..07) verrouillent l'invariant."
+        - "gate D : lit go_no_go, refuse un rapport expire ou d'une autre population."
+        - "Reste ouvert : 2 positions OPEN sans CLOSE (gate C)."
+
 # -----------------------------------------------------------------------------
 # DECISIONS EN ATTENTE
 # -----------------------------------------------------------------------------
 decisions:
+  - id: DEC-SHARPE-001
+    question: >
+      Quelle definition du Sharpe la gate B du prelive doit-elle comparer a son
+      seuil de 1.0 ? Trois formules coexistent dans le depot pour le meme nom.
+    authority: "OPERATEUR — deplace de facto un seuil, ADR requis (CLAUDE.md)"
+    status: EN_ATTENTE
+    raised: "2026-07-28"
+    raised_by: "AUDIT-EMP-001"
+    measured_on: "dataset canonique V4, N=106, snapshot VPS 2026-07-28"
+    observations:
+      - "burnin_calibration_v3 : mean/std * sqrt(252) sur pnl_pct = -1.789 (aucun seuil)"
+      - "prelive_gate gate B    : mean/std sur pnl_pct           = -0.113 (seuil > 1.0)"
+      - "audit                  : mean/std * sqrt(n) sur pnl_usd = -1.571 (t de Student)"
+      - "Les variances de burnin et prelive divisent par n, non par n-1 (estimateur biaise)."
+    why_it_matters: >
+      Avec la formule de la gate B, franchir 1.0 exigerait un rendement moyen de
+      4.76 % PAR TRADE a volatilite constante. Le seuil 1.0 a manifestement ete
+      pense pour un Sharpe annualise. La gate B est donc structurellement
+      infranchissable sur son critere Sharpe — troisieme defaut de cette famille
+      apres la gate D (cablee sur NO-GO) et la gate C (infranchissable tant que
+      le bot tourne), toutes deux corrigees le 2026-07-28.
+    why_not_decided_now: >
+      Choisir une formule ne touche aucune constante, mais change ce que le
+      seuil 1.0 MESURE — donc deplace le seuil en pratique. Interdit sous gel
+      sans ADR signe (CLAUDE.md, phase de validation scientifique). L'auditeur
+      a mesure et expose l'incoherence ; il ne la tranche pas.
+    alternatives_considered:
+      - "annualiser partout (sqrt(252)) et conserver le seuil 1.0"
+      - "conserver le Sharpe par trade et abaisser le seuil a une valeur atteignable"
+      - "remplacer le critere Sharpe par le t de Student et raisonner en significativite"
+    blocked_by: "aucune decision de seuil avant N >= 500 et CRI >= 90 (INV-4)"
+    note_statistique: >
+      Les deux t mesures (-1.571 sur pnl_usd net, -1.155 sur pnl_pct brut) sont
+      non significatifs. La conclusion ne depend pas du choix : a N=106, absence
+      de preuve suffisante que l'esperance est positive — et non preuve qu'elle
+      est negative.
+
   - id: DEC-PROTO-001
     question: "Echelle de dette : reconcilier trois echelles divergentes"
     authority: "mainteneur documentaire"
