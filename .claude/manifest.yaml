@@ -96,7 +96,23 @@ invariants:
 health_baseline:
   suite_state: DEGRADED
   command: "python -m pytest tests/ -q --continue-on-collection-errors"
-  measured_at_commit: "8cb42fb"
+  measured_at_commit: "da794a5"
+  # Rafraichie le 2026-07-28 apres AUDIT-EMP-001 : +11 tests (10 d alignement
+  # ALIGN-01..07, 1 net sur le validateur). Les 3 known_failures et l unique
+  # erreur de collecte sont INCHANGES — aucune dette nouvelle, aucune soldee.
+  #
+  # PIEGE CONSTATE lors de cette mesure : un premier passage lance avec
+  # PYTHONIOENCODING=utf-8 a donne 3 echecs dont un HORS baseline
+  # (test_monitoring_profiler, mojibake sur la sortie d un subprocess) tandis
+  # que test_sqlite_contamination_cleanup passait. Le COMPTE etait conforme, la
+  # COMPOSITION non : un echec en avait masque un autre. La regle de derive
+  # ci-dessous compare des nombres — elle ne detecte pas une substitution.
+  # Toujours relancer avec la commande `command:` exacte, sans variable
+  # d environnement ajoutee, et comparer les NOMS.
+  previous_baseline:
+    measured_at_commit: "8cb42fb"
+    collected: 3829
+    passed: 3805
   expected_collection_errors: 1
   known_errors:
     - file: "tests/test_full_integration.py"
@@ -107,12 +123,12 @@ health_baseline:
       note: >
         Dette de maintenance, hors campagne. Ne rapproche ni du burn-in ni de la
         validite de la mesure de N. A traiter hors gel, jamais pendant.
-  collected: 3829
-  passed: 3805
+  collected: 3840
+  passed: 3816
   failed: 3
   skipped: 20
   xfailed: 2
-  duration_s: 334
+  duration_s: 355
   expected_failures: 3
   known_failures:
     - "tests/paper_trading/test_paper_trade_e2e.py::TestPaperTradeCompleteLifecycle::test_mexc_simulator_market_order_complete"
