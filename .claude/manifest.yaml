@@ -81,6 +81,62 @@ invariants:
       2026-07-28 : 0 exclusion post-borne V4, CRI inchange a 43.27. Aucune
       information perdue par l'unification.
 
+  - id: INV-METRIC-001
+    statement: >
+      Un KPI porte le nom de sa FORMULE, et cette formule est ecrite une seule
+      fois dans le depot (system/performance_metrics.py). Un rapport qui cite
+      un KPI nomme cite aussi la variante utilisee. Changer la variante lue par
+      une gate DEPLACE son seuil : c'est une decision d'operateur, pas un
+      nettoyage de code.
+    violation: >
+      Reecrire une formule de KPI hors de system/performance_metrics.py ;
+      publier un "Sharpe" sans nommer sa variante ; changer la variante lue par
+      une gate sans ADR signe.
+    formed_from: >
+      INCIDENT CONSTATE le 2026-07-28 (AUDIT-EMP-001), quantifie le 2026-07-29
+      (AUDIT-EMP-002) : quatre formules coexistaient sous le mot "Sharpe" et
+      deux conventions sous "win rate". Sur la MEME population canonique
+      (N=121) elles rendaient -0.1015 (gate B), -1.61 (burn-in), -1.574 (t de
+      Student sur pnl_usd) et -1.112 (t sur pnl_pct). Regle ecrite APRES la
+      mesure, jamais avant.
+    enforced_by:
+      - "tests/test_performance_metrics.py (METRIC-01..06, 22 tests)"
+      - "METRIC-02 verrouille bit-a-bit les formules historiques des 2 gates"
+      - "SHARPE_VARIANTS : les 4 variantes nommees, exposees cote a cote"
+    scope_note: >
+      Le refactor du 2026-07-29 ne tranche AUCUNE des quatre definitions :
+      burnin conserve annualized_252_ddof0, la gate B conserve per_trade_ddof0.
+      Valeurs identiques avant/apres, verifiees sur le dataset canonique.
+      DEC-SHARPE-001 reste EN_ATTENTE.
+
+  - id: INV-FRICTION-001
+    statement: >
+      Tout modele dont l'edge BRUT moyen par trade est inferieur a son cout de
+      friction total est condamne a une esperance negative, quel que soit le
+      money management. La comparaison est independante de l'architecture : ni
+      la taille de position, ni le sizing Kelly, ni le nombre de positions
+      simultanees, ni la courbe d'equity n'y entrent.
+    violation: >
+      Justifier une optimisation de sizing, de portefeuille ou de sortie alors
+      que marge = edge_brut - friction <= 0 ; presenter une amelioration de PnL
+      obtenue par changement de taille comme une amelioration d'edge.
+    formed_from: >
+      MESURE du 2026-07-29 sur le dataset canonique V4 (N=121, taille fixe a
+      10.00 USD sur les 121 trades) : friction = 0.1942 % par trade, reconstruite
+      par difference (size x pnl_pct - pnl_usd) sans lire aucune config de frais ;
+      edge brut moyen = -0.4671 % ; marge = -0.6613 %. Verdict
+      PLANCHER_NON_FRANCHI. Le plancher d'edge est donc de 0.1942 % et le systeme
+      est 0.66 point en dessous.
+    enforced_by:
+      - "system/performance_metrics.py::friction_floor"
+      - "tests/test_performance_metrics.py METRIC-05/06 (dont le test d'independance a la taille)"
+      - "tools/score_calibration_audit.py — rapporte le plancher en tete de rapport"
+    scope_note: >
+      L'invariant ne dit pas OU chercher l'edge. Il dit que seuls deux leviers
+      peuvent franchir le plancher : l'entree (edge brut) ou le cout d'execution.
+      Toute autre optimisation est, sous plancher non franchi, arithmetiquement
+      inoperante.
+
 # -----------------------------------------------------------------------------
 # HEALTH BASELINE — etat de reference REPRODUCTIBLE de la suite de tests
 #
@@ -1137,7 +1193,7 @@ proposed_extensions:
 protocol_validation_campaign:
   status: EN_COURS
   started: "2026-07-28"
-  audits_completed: 1
+  audits_completed: 2
   audits_target: "10-20"
   objective: >
     Appliquer v4.0 a 10-20 audits reels de nature differente (code,
@@ -1228,6 +1284,121 @@ protocol_validation_campaign:
         - "gate D : lit go_no_go, refuse un rapport expire ou d'une autre population."
         - "Reste ouvert : 2 positions OPEN sans CLOSE (gate C)."
 
+    - id: AUDIT-EMP-002
+      date: "2026-07-29"
+      nature: DONNEES
+      trigger: >
+        Une premiere lecture du lien score-PnL (Pearson r ~ 0.003, N=109) avait
+        ete formulee comme "le score n'informe pas". L'operateur a objecte que
+        le score est une fonction de CLASSEMENT et que Pearson n'est pas le test
+        adapte : monotonicite, AUC, Spearman, IC par quantile.
+      scope: >
+        Snapshot VPS du 2026-07-29 22:11 UTC rapatrie en lecture seule :
+        databases/paper_trades.jsonl (664 CLOSE, 121 canoniques V4) et
+        databases/regret/*.jsonl (21346 observations, 18716 post-borne V4).
+        Outils : system/performance_metrics.py, tools/score_calibration_audit.py.
+
+      observations:
+        - "O1 taille de position = 10.00 USD sur 121/121 trades canoniques."
+        - >
+          O2 friction = 0.1942 % par trade, reconstruite par difference
+          (size x pnl_pct - pnl_usd), sans lire aucune config de frais. Edge
+          brut = -0.4671 %. Marge = -0.6613 %. PLANCHER_NON_FRANCHI.
+        - >
+          O3 score des trades executes : bande [64, 77], sigma=2.76, 12 valeurs
+          distinctes, 45 % de la masse sur la seule valeur 72 — soit 13 % de
+          l'echelle nominale 0-100.
+        - >
+          O4 resolution de l'instrument a N=121 (alpha=0.05, puissance=0.80) :
+          |rho| minimal detectable = 0.252. Mesure : rho=-0.018 (p=0.847 par
+          permutation, 20000 tirages), AUC=0.531 [IC95 0.422 ; 0.640].
+        - >
+          O5 population observee (regret v2, N=18716, bande [65, 85]) : rho croit
+          de facon monotone avec l'horizon — 0.0155 (5m), 0.0172 (1h), 0.0724
+          (4h), 0.1542 (12h), 0.1604 (24h) ; AUC de 0.520 a 0.602 ; rendement
+          signe moyen de +0.0008 % a +1.1142 %.
+        - >
+          O6 robustesse a 24h : rho=+0.198 (bear_trend, n=13148), +0.214
+          (bull_trend), +0.177 (high_volatility), et -0.054 (sideways, n=812).
+          Apres demoyennage jour+symbole rho=+0.083 (52 % conserve). Bootstrap
+          par blocs de JOURS : IC95 [+0.025 ; +0.304] sur 11 jours seulement.
+        - >
+          O7 sorties des 121 trades : TIMEOUT 62, SL 51, TP 8. Duree moyenne de
+          detention 5.92 h.
+        - >
+          O8 DEFAUT LATENT : _PAPER_CAPITAL est fige a l'import de
+          infra.wallet_sync avec un defaut de 100 alors que .env porte 1000. Sur
+          un harnais ou wallet_sync est importe avant load_dotenv, le drawdown
+          passe de 0.95 % a 9.42 % face au seuil de gate de 10 %. NON reproduit
+          via les CLI (les deux scripts chargent .env avant) : latent, non actif.
+        - >
+          O9 burnin_calibration_v3 lance en local rend NO_GO sur un blocker
+          d'INSTRUMENT (gate_rejections.csv absent hors VPS), non sur une
+          metrique de performance. Le verdict local n'est pas comparable au
+          verdict VPS.
+
+      falsifier_tested: >
+        POSE AVANT LA MESURE : si le score n'ordonne rien a aucun horizon, ou si
+        l'ordonnancement observe ne survit pas au demoyennage jour+symbole,
+        l'hypothese "le score contient une information exploitable" est refutee
+        pour l'epoque V4.
+      falsifier_outcome: MIXTE
+      falsifier_detail: >
+        NON REFUTE aux horizons longs : rho=+0.16 a 24h, conserve a +0.083 apres
+        demoyennage jour+symbole, IC95 par blocs de jours hors de 0. REFUTE aux
+        horizons courts : rho ~ 0.017 a 1h et en dessous, indistinguable du
+        bruit une fois la dependance des observations prise en compte. REFUTE en
+        regime sideways (rho=-0.054, AUC=0.481). Sur la population EXECUTEE, la
+        question n'a pas pu etre posee : instrument insuffisant (O3, O4).
+
+      inference_not_observation: >
+        HYPOTHESE H-HORIZON, marquee comme telle : l'horizon d'information du
+        score (12-24 h) excede l'horizon de detention realise (5.92 h moyenne,
+        TIMEOUT a 8 h, 51 sorties sur 121 par SL). Si elle est vraie, la
+        politique de sortie tronque le signal avant qu'il ne se materialise, et
+        l'edge brut negatif mesure en O2 est compatible avec une entree
+        informative. Cette phrase est une inference : aucune observation ci-dessus
+        ne l'etablit. Falsifiable — voir DEC-HORIZON-001.
+
+      what_the_protocol_caught: >
+        La distinction "absence de signal" / "absence de mesure" a change la
+        conclusion. La formulation initiale — Pearson ~ 0 donc le score
+        n'informe pas — portait sur une population ou 45 % des observations
+        partagent un seul score et dont la resolution est de 0.252 : aucun
+        effet plausible n'y etait detectable. Un verdict
+        INSTRUMENT_INSUFFISANT distinct a ete ajoute a l'outil pour que cette
+        confusion ne soit plus possible par construction.
+
+      what_the_protocol_missed:
+        - >
+          PUISSANCE : aucune regle du protocole n'exigeait de verifier la
+          puissance AVANT de lire un p. L'ordre inverse — lire p>0.05 comme une
+          absence d'effet — etait la faute par defaut. Garde ajoutee au niveau
+          de l'outil (_verdict teste l'instrument d'abord, verrouille par
+          SCORE-05). PREMIERE instance constatee : candidate a une extension v5.
+        - >
+          N EFFECTIF : les observations de regret se recouvrent (memes symboles,
+          fenetres glissantes toutes les 15 min). Le p asymptotique a 24h vaut
+          2e-109 et serait rapporte tel quel ; le bootstrap par blocs de jours
+          rend un IC95 de [+0.025 ; +0.304] sur 11 jours. Aucune regle
+          n'obligeait a declarer la dependance des observations. DEUXIEME
+          instance de la meme famille (apres TEMPORALITE) : le protocole
+          gouverne la provenance des donnees, pas leur independance.
+
+      cost: >
+        Cout de mesure dominant (rapatriement, 2 modules, 46 tests, 3 min 51 s
+        d'execution du rapport complet). Cout de protocole marginal. Aucune
+        regle contournee.
+
+      outcome:
+        - "INV-METRIC-001 et INV-FRICTION-001 formes a partir de ces mesures."
+        - "system/performance_metrics.py : 4 variantes de Sharpe nommees, 1 seul lieu."
+        - "burnin et prelive deleguent leurs formules — valeurs identiques verifiees."
+        - "tools/score_calibration_audit.py : 3 verdicts distincts, robustesse integree."
+        - "46 tests ajoutes (METRIC-01..06, SCORE-01..09)."
+        - "DEC-HORIZON-001 ouverte. DEC-SHARPE-001 reste EN_ATTENTE."
+        - "Reste ouvert : O8 (defaut latent wallet_sync), O9 (verdict local non comparable)."
+
 # -----------------------------------------------------------------------------
 # DECISIONS EN ATTENTE
 # -----------------------------------------------------------------------------
@@ -1268,6 +1439,47 @@ decisions:
       non significatifs. La conclusion ne depend pas du choix : a N=106, absence
       de preuve suffisante que l'esperance est positive — et non preuve qu'elle
       est negative.
+
+  - id: DEC-HORIZON-001
+    question: >
+      L'horizon de detention doit-il etre aligne sur l'horizon d'information du
+      score (12-24 h) plutot que sur le TIMEOUT de 8 h et le SL actuels ?
+    authority: "OPERATEUR — modifie une regle de sortie, donc un seuil. ADR requis."
+    status: EN_ATTENTE
+    raised: "2026-07-29"
+    raised_by: "AUDIT-EMP-002"
+    measured_on: "regret v2 N=18716 + trades canoniques N=121, snapshot VPS 2026-07-29"
+    observations:
+      - "rho(score, rendement) : 0.017 a 1h, 0.072 a 4h, 0.154 a 12h, 0.160 a 24h"
+      - "duree de detention realisee : 5.92 h en moyenne ; TIMEOUT 62/121, SL 51/121"
+      - "edge brut realise -0.4671 % contre friction 0.1942 % (INV-FRICTION-001)"
+      - "rho a 24h absent en regime sideways (-0.054), ou le marche passe l'essentiel du temps"
+    why_it_matters: >
+      Si H-HORIZON est vraie, le systeme paie une friction de 0.1942 % pour
+      capter un signal qu'il coupe avant maturation, et aucune optimisation de
+      sizing ni de score ne peut compenser. Si elle est fausse, allonger la
+      detention augmentera l'exposition sans gain d'esperance.
+    why_not_decided_now: >
+      Toucher TIMEOUT ou SL est une modification de seuil : interdite avant
+      N >= 500 et CRI >= 90 (INV-4), et hors autorite de l'auditeur. Surtout,
+      l'hypothese n'est pas encore testee : elle est deduite de deux populations
+      DIFFERENTES (candidats bloques d'un cote, trades executes de l'autre), ce
+      qui est un rapprochement, pas une mesure.
+    alternatives_considered:
+      - "ne rien changer et laisser le burn-in accumuler jusqu'a N >= 500"
+      - >
+        RETENUE COMME EXPERIENCE, PAS COMME DECISION : rejouer les 121 trades
+        executes contre le rendement a 12h et 24h de la MEME paire au MEME
+        instant, pour mesurer sur une population unique si la detention longue
+        aurait change le signe de l'esperance. Aucune modification du moteur ;
+        outil de mesure, donc autorise sous gel.
+      - "aligner TIMEOUT sur 24h — interdit sans ADR et sans l'experience ci-dessus"
+    blocked_by: "INV-4 (N >= 500, CRI >= 90) + experience de rejeu non encore faite"
+    note_statistique: >
+      L'IC95 par blocs de jours sur rho a 24h est [+0.025 ; +0.304] avec 11 jours
+      seulement. Le signe est etabli, la TAILLE de l'effet ne l'est pas. Une
+      decision de sortie calibree sur rho=0.16 supposerait une precision que la
+      mesure n'a pas.
 
   - id: DEC-PROTO-001
     question: "Echelle de dette : reconcilier trois echelles divergentes"

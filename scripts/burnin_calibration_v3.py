@@ -34,6 +34,13 @@ from typing import Optional
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from system.performance_metrics import (  # noqa: E402
+    expectancy,
+    max_drawdown_additive,
+    profit_factor,
+    sharpe_annualized,
+    win_rate,
+)
 from tools.cri_calculator import (  # noqa: E402
     default_trades_path,
     load_clean_trades,
@@ -237,6 +244,13 @@ def _compute_trade_stats(trades: list[dict]) -> TradeStats:
     pnl_usds = [_safe_float(t.get("pnl_usd", 0)) for t in trades]
     durations = [_safe_float(t.get("duration_s", 0)) for t in trades]
 
+    # Toutes les formules ci-dessous vivent desormais dans
+    # system/performance_metrics.py (INV-METRIC-001) : elles etaient reecrites
+    # ici ET dans prelive_gate, avec deux conventions de win-rate et deux
+    # definitions du Sharpe sous le meme nom (AUDIT-EMP-001). Les variantes
+    # choisies ici reproduisent a l'identique le comportement anterieur — un
+    # changement de formule deplacerait un seuil, ce qui exige un ADR.
+
     # Win/loss classifie sur pnl_usd (net de frais + slippage), pas pnl_pct
     # (brut, mouvement de prix seul). Un trade gross-positif peut etre
     # net-negatif une fois les couts d'execution deduits (cf. mexc_simulator
@@ -245,45 +259,34 @@ def _compute_trade_stats(trades: list[dict]) -> TradeStats:
     wins = [u for u in pnl_usds if u >= 0]
     losses = [u for u in pnl_usds if u < 0]
 
-    total_gain = sum(p for p in pnl_usds if p > 0)
-    total_loss = abs(sum(p for p in pnl_usds if p < 0))
-    pf = round(total_gain / total_loss, 2) if total_loss > 0 else float("inf")
+    # SEUL ecart assume avec la formule anterieure : si TOUS les pnl valent 0
+    # (aucun gain, aucune perte), l'ancienne rendait +inf — "infiniment
+    # profitable" pour un systeme qui n'a rien gagne. La bibliotheque rend 0.0.
+    # Cas absent du dataset canonique (0 trade a pnl_usd == 0 sur 121).
+    pf_raw = profit_factor(pnl_usds)
+    pf = round(pf_raw, 2) if math.isfinite(pf_raw) else float("inf")
 
-    # Equity curve for max drawdown — additive USD (not compounded %)
-    # Using pnl_usd avoids distortion from impossible pnl_pct values (>100%).
-    # Base de capital lue via wallet_sync (WALLET_PAPER_CAPITAL, ADR-0007) et
-    # non plus codée en dur à 1000 : prelive_gate utilisait déjà cette source,
-    # les deux scripts auraient divergé silencieusement au premier changement
-    # de capital (INV-DATASET-001).
-    equity = [_initial_capital()]
-    for p_usd in pnl_usds:
-        equity.append(equity[-1] + p_usd)
-    peak = equity[0]
-    max_dd = 0.0
-    for e in equity:
-        if e > peak:
-            peak = e
-        dd = (peak - e) / peak if peak > 0 else 0
-        if dd > max_dd:
-            max_dd = dd
+    # Drawdown sur equity additive en USD (pas de composition : pnl_pct porte
+    # des valeurs aberrantes > 100 %). Base de capital lue via wallet_sync
+    # (WALLET_PAPER_CAPITAL, ADR-0007) et non plus codee en dur a 1000 :
+    # prelive_gate utilisait deja cette source, les deux scripts auraient
+    # diverge silencieusement au premier changement de capital
+    # (INV-DATASET-001).
+    max_dd = max_drawdown_additive(pnl_usds, _initial_capital())
 
-    # Sharpe (daily, approximated from pnl_pct)
+    # Sharpe annualise x sqrt(252) sur pnl_pct, ddof=0 — variante historique de
+    # ce script. Voir DEC-SHARPE-001 : le choix de variante reste ouvert.
     sharpe = 0.0
     if len(pnl_pcts) >= 2:
-        mean_r = sum(pnl_pcts) / len(pnl_pcts)
-        variance = sum((r - mean_r) ** 2 for r in pnl_pcts) / len(pnl_pcts)
-        std_r = math.sqrt(variance) if variance > 0 else 0
-        sharpe = round(mean_r / std_r * math.sqrt(252), 2) if std_r > 0 else 0.0
+        sharpe = round(sharpe_annualized(pnl_pcts, ddof=0), 2)
 
     return TradeStats(
         count=len(trades),
         wins=len(wins),
         losses=len(losses),
-        win_rate_pct=round(100.0 * len(wins) / len(pnl_pcts), 1),
+        win_rate_pct=round(100.0 * win_rate(pnl_usds, zero_is_win=True), 1),
         profit_factor=pf,
-        expectancy_pct=(
-            round(sum(pnl_pcts) / len(pnl_pcts) * 100, 4) if pnl_pcts else 0.0
-        ),
+        expectancy_pct=round(expectancy(pnl_pcts) * 100, 4) if pnl_pcts else 0.0,
         max_drawdown_pct=round(max_dd * 100, 2),
         sharpe=sharpe,
         avg_duration_h=(

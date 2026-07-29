@@ -29,7 +29,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import math
 import os
 import sys
 import time
@@ -42,6 +41,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from dotenv import load_dotenv  # noqa: E402
 
+from system.performance_metrics import (  # noqa: E402
+    max_drawdown_additive,
+    profit_factor,
+    sharpe_per_trade,
+    win_rate,
+)
 from tools.cri_calculator import (  # noqa: E402
     default_trades_path,
     load_clean_trades,
@@ -122,41 +127,28 @@ def _read_closes() -> list[dict]:
 def _compute_metrics(closes: list[dict]) -> dict:
     if not closes:
         return {}
+    # Formules deleguees a system/performance_metrics.py (INV-METRIC-001) :
+    # elles etaient dupliquees dans burnin_calibration_v3, avec une convention
+    # de win-rate et une definition du Sharpe differentes sous le meme nom
+    # (AUDIT-EMP-001). Les variantes retenues ici reproduisent a l'identique le
+    # comportement anterieur de la gate B — changer de variante deplacerait le
+    # seuil 1.0, ce qui exige un ADR (DEC-SHARPE-001).
     n = len(closes)
     pnls = [float(c.get("pnl_usd", 0) or 0) for c in closes]
-    wins = [p for p in pnls if p > 0]
-    losses = [p for p in pnls if p < 0]
+    pcts = [float(c.get("pnl_pct", 0) or 0) for c in closes]
 
     from infra.wallet_sync import get_wallet_sync
 
-    equity = [get_wallet_sync().initial_capital()]
-    for p in pnls:
-        equity.append(equity[-1] + p)
-    peak, max_dd = equity[0], 0.0
-    for e in equity:
-        if e > peak:
-            peak = e
-        if peak > 0:
-            dd = (peak - e) / peak * 100
-            if dd > max_dd:
-                max_dd = dd
-
-    gross_win = sum(wins)
-    gross_loss = abs(sum(losses)) if losses else 0
-    pf = gross_win / gross_loss if gross_loss > 0 else float("inf")
-
-    pcts = [float(c.get("pnl_pct", 0) or 0) for c in closes]
-    mean_p = sum(pcts) / n if n else 0
-    var_p = sum((p - mean_p) ** 2 for p in pcts) / n if n > 1 else 0
-    std_p = math.sqrt(var_p) if var_p > 0 else 0
-    sharpe = mean_p / std_p if std_p > 0 else 0.0
-
     return {
         "n": n,
-        "win_rate": len(wins) / n * 100,
-        "pf": pf,
-        "sharpe": sharpe,
-        "max_dd": max_dd,
+        "win_rate": win_rate(pnls, zero_is_win=False) * 100,
+        "pf": profit_factor(pnls),
+        # Sharpe PAR TRADE, non annualise — compare a un seuil de 1.0 qui
+        # exigerait ~4.8 % de rendement moyen par trade. Mesure exposee dans
+        # DEC-SHARPE-001, non tranchee ici.
+        "sharpe": sharpe_per_trade(pcts, ddof=0) if n > 1 else 0.0,
+        "max_dd": max_drawdown_additive(pnls, get_wallet_sync().initial_capital())
+        * 100,
     }
 
 
