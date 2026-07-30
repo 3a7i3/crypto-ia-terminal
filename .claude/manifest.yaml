@@ -382,7 +382,7 @@ invariants:
 health_baseline:
   suite_state: DEGRADED
   command: "python -m pytest tests/ -q --continue-on-collection-errors"
-  measured_at_commit: "PENDING"
+  measured_at_commit: "6c551ff"
   # Rafraichie le 2026-07-30, cycle de vie des regles (EFF-09..11) : +9 tests.
   # collected 4025 -> 4034, passed 4001 -> 4010, soit exactement +9. Les 3
   # known_failures et l unique erreur de collecte sont INCHANGES.
