@@ -23,6 +23,21 @@ Invariants verrouillés ici :
   CHAIN-04 artefact périmé -> FRAICHEUR rompue
   CHAIN-05 clé consommée absente de l'artefact -> CONTRAT rompu (défaut gate D)
   CHAIN-06 la chaîne vaut son maillon faible, et les chaînes réelles sont valides
+  PROV-06  attach_proof est un aller-retour vérifiable ; l'empreinte exclut la preuve
+  PROV-07  un artefact sans preuve est NON PROUVÉ, jamais « invalide »
+  PROV-08  l'adoption est une couverture de première classe (0 % -> AUCUNE)
+  PROV-09  falsification du corps ET changement de version de l'outil détectés
+  CHAIN-07 contrôle PREUVE : ok / NON_PROUVE / ROMPU, trois cas distincts
+  CHAIN-08 la boucle complète est démontrée sur le PREMIER producteur adopté
+  CHAIN-09 deux plafonds publiés séparément + adoption sur artefacts présents
+  PROV-10  output_sha256 absent ne certifie plus le corps (défaut CRITIQUE)
+  PROV-11  bloc proof forgé minimal = NON PROUVÉ (défaut MAJEUR)
+  PROV-12  substitution d'artefact détectée par expected_artifact
+  PROV-13  chemins d'entrée relatifs résolus contre le dépôt, pas le cwd
+  PROV-14  outil introuvable != outil altéré ; tool_path prime sur le nom
+  CHAIN-10 la portée d'une preuve sur un JSONL est déclarée
+  PROV-15  un denominateur minuscule ne donne pas un plafond eleve ;
+           proof_adoption ignore les artefacts absents
 """
 
 from __future__ import annotations
@@ -35,12 +50,19 @@ from system.provenance import (
     CEILING_LOW,
     CEILING_MEDIUM,
     CEILING_NONE,
+    MIN_TOTAL_FOR_HIGH_CEILING,
+    PROOF_KEY,
     PROVENANCE_SCHEMA_VERSION,
+    REQUIRED_PROOF_FIELDS,
     Coverage,
     InputRef,
+    artifact_has_proof,
+    attach_proof,
     build_provenance,
+    proof_adoption,
     sha256_file,
     sha256_json,
+    verify_artifact,
     verify_provenance,
     weakest_ceiling,
 )
@@ -49,10 +71,12 @@ from tools.chain_audit import (
     CHECK_CONTRACT,
     CHECK_FRESHNESS,
     CHECK_POPULATION,
+    CHECK_PROOF,
     CHECK_PROVENANCE,
     STATUS_ABSENT,
     STATUS_BROKEN,
     STATUS_OK,
+    STATUS_UNPROVEN,
     Edge,
     audit_edge,
     build_report,
@@ -117,17 +141,40 @@ def test_prov03_date_absente_est_signalee():
     assert any("generated_at absent" in i for i in issues)
 
 
-def test_prov03_entree_modifiee_est_detectee(tmp_path):
-    data = tmp_path / "entree.jsonl"
-    data.write_text('{"a": 1}\n', encoding="utf-8")
+def _stamp_complet(tmp_path, **extra) -> dict:
+    """Bloc de provenance avec tous les champs désormais OBLIGATOIRES.
+
+    Depuis la correction du 2026-07-30, l'absence de `tool_sha256`, `inputs` ou
+    `output_sha256` est elle-même un écart : ces tests doivent donc partir d'un
+    bloc complet pour isoler le défaut qu'ils visent.
+    """
+    tool = tmp_path / "outil_ref.py"
+    if not tool.exists():
+        tool.write_text("x = 1\n", encoding="utf-8")
     stamp = {
         "schema_version": PROVENANCE_SCHEMA_VERSION,
         "generated_at": "2026-07-29T00:00:00Z",
-        "inputs": [{"path": str(data), "sha256": sha256_file(data)}],
+        "tool": "outil_ref.py",
+        "tool_path": "outil_ref.py",
+        "tool_sha256": sha256_file(tool),
+        "inputs": [],
     }
-    assert verify_provenance(stamp) == []
+    stamp.update(extra)
+    return stamp
+
+
+def test_prov03_entree_modifiee_est_detectee(tmp_path):
+    data = tmp_path / "entree.jsonl"
+    data.write_text('{"a": 1}\n', encoding="utf-8")
+    stamp = _stamp_complet(
+        tmp_path, inputs=[{"path": str(data), "sha256": sha256_file(data)}]
+    )
+    assert verify_provenance(stamp, repo_root=tmp_path) == []
     data.write_text('{"a": 2}\n', encoding="utf-8")
-    assert any("modifiée depuis la production" in i for i in verify_provenance(stamp))
+    assert any(
+        "modifiée depuis la production" in i
+        for i in verify_provenance(stamp, repo_root=tmp_path)
+    )
 
 
 def test_prov03_entree_disparue_est_detectee(tmp_path):
@@ -139,17 +186,14 @@ def test_prov03_entree_disparue_est_detectee(tmp_path):
     assert any("disparue" in i for i in verify_provenance(stamp))
 
 
-def test_prov03_corps_edite_apres_production_est_detecte():
+def test_prov03_corps_edite_apres_production_est_detecte(tmp_path):
     body = {"go_no_go": "NO_GO", "n": 121}
-    stamp = {
-        "schema_version": PROVENANCE_SCHEMA_VERSION,
-        "generated_at": "2026-07-29T00:00:00Z",
-        "output_sha256": sha256_json(body),
-    }
-    assert verify_provenance(stamp, body=body) == []
+    stamp = _stamp_complet(tmp_path, output_sha256=sha256_json(body))
+    assert verify_provenance(stamp, body=body, repo_root=tmp_path) == []
     falsifie = {"go_no_go": "GO", "n": 121}
     assert any(
-        "modifié après production" in i for i in verify_provenance(stamp, body=falsifie)
+        "modifié après production" in i
+        for i in verify_provenance(stamp, body=falsifie, repo_root=tmp_path)
     )
 
 
@@ -328,3 +372,361 @@ def test_chain06_terminaison_non_persistee_est_signalee():
     cri = next(c for c in report.chains if c.name == "CHAIN-CRI")
     assert any("TERMINAISON NON PERSISTÉE" in r for r in cri.remarks)
     assert cri.confidence_ceiling != CEILING_FULL
+
+
+# ── PROV-06..09 : le bloc de preuve et son constructeur unique ────────────────
+
+
+def test_prov06_attach_proof_est_un_aller_retour_verifiable(tmp_path):
+    """Le producteur écrit, le consommateur relit : la boucle doit fermer."""
+    tool = tmp_path / "producteur.py"
+    tool.write_text("x = 1\n", encoding="utf-8")
+    body = {"go_no_go": "NO_GO", "n": 121}
+    artefact = attach_proof(body, tool_path=tool, population={"n_canonical": 121})
+    assert artifact_has_proof(artefact)
+    assert verify_artifact(artefact, repo_root=tmp_path) == []
+
+
+def test_prov06_l_empreinte_de_sortie_exclut_le_bloc_de_preuve(tmp_path):
+    """Sinon ajouter la preuve changerait l'empreinte de ce qu'elle prouve.
+
+    Propriété non négociable : le bloc doit pouvoir être retiré pour recalculer
+    l'empreinte. Un artefact auto-référentiel serait invérifiable.
+    """
+    tool = tmp_path / "producteur.py"
+    tool.write_text("x = 1\n", encoding="utf-8")
+    body = {"a": 1, "b": [2, 3]}
+    artefact = attach_proof(body, tool_path=tool)
+    corps = {k: v for k, v in artefact.items() if k != PROOF_KEY}
+    assert artefact[PROOF_KEY]["output_sha256"] == sha256_json(corps)
+
+
+def test_prov06_reattacher_une_preuve_est_idempotent(tmp_path):
+    """Une preuve déjà présente est ignorée pour le calcul, jamais empilée."""
+    tool = tmp_path / "producteur.py"
+    tool.write_text("x = 1\n", encoding="utf-8")
+    once = attach_proof({"a": 1}, tool_path=tool, generated_at="2026-07-30T00:00:00Z")
+    twice = attach_proof(once, tool_path=tool, generated_at="2026-07-30T00:00:00Z")
+    assert once[PROOF_KEY]["output_sha256"] == twice[PROOF_KEY]["output_sha256"]
+    assert verify_artifact(twice, repo_root=tmp_path) == []
+
+
+def test_prov07_un_artefact_sans_preuve_est_non_prouve_pas_invalide():
+    """« Je ne peux pas vérifier » n'est pas « la vérification échoue ».
+
+    Confondre les deux ferait apparaître tout le dépôt comme rompu le jour où le
+    contrôle a été ajouté, ce qui serait faux.
+    """
+    issues = verify_artifact({"go_no_go": "GO", "generated_at": "2026-07-30T00:00:00Z"})
+    assert len(issues) == 1
+    assert "NON PROUVÉ" in issues[0]
+    assert "adoption" in issues[0]
+
+
+def test_prov08_l_adoption_est_une_couverture_de_premiere_classe(tmp_path):
+    tool = tmp_path / "p.py"
+    tool.write_text("x = 1\n", encoding="utf-8")
+    prouve = attach_proof({"a": 1}, tool_path=tool)
+    cov = proof_adoption([prouve, {"a": 2}, {"a": 3}])
+    assert cov.measured == 1 and cov.total == 3
+    assert cov.confidence_ceiling == CEILING_MEDIUM
+    assert "plafond de confiance" in cov.sentence()
+
+
+def test_prov08_adoption_nulle_plafonne_a_aucune():
+    """0 % d'adoption : un protocole parfait non utilisé équivaut à son absence."""
+    assert proof_adoption([{"a": 1}, {"b": 2}]).confidence_ceiling == CEILING_NONE
+
+
+def test_prov09_falsification_du_corps_detectee_par_verify_artifact(tmp_path):
+    tool = tmp_path / "p.py"
+    tool.write_text("x = 1\n", encoding="utf-8")
+    artefact = attach_proof({"go_no_go": "NO_GO"}, tool_path=tool)
+    falsifie = dict(artefact)
+    falsifie["go_no_go"] = "GO"
+    ecarts = verify_artifact(falsifie, repo_root=tmp_path)
+    assert any("modifié après production" in e for e in ecarts)
+
+
+def test_prov09_changement_de_version_de_l_outil_detecte(tmp_path):
+    tool = tmp_path / "p.py"
+    tool.write_text("version = 1\n", encoding="utf-8")
+    artefact = attach_proof({"a": 1}, tool_path=tool)
+    tool.write_text("version = 2\n", encoding="utf-8")
+    ecarts = verify_artifact(artefact, repo_root=tmp_path)
+    assert any("autre version du script" in e for e in ecarts)
+
+
+# ── CHAIN-07..09 : contrôle PREUVE et double plafond ─────────────────────────
+
+
+def test_chain07_artefact_prouve_passe_le_controle_preuve(tmp_path):
+    tool = tmp_path / "producteur.py"
+    tool.write_text("x = 1\n", encoding="utf-8")
+    body = {
+        "verdict": "GO",
+        "generated_at": "2999-01-01T00:00:00Z",
+        "dataset_provenance": {"n_canonical": 1},
+    }
+    artefact = attach_proof(body, tool_path=tool, repo_root=tmp_path, artifact="a.json")
+    (tmp_path / "a.json").write_text(json.dumps(artefact), encoding="utf-8")
+    consumer = tmp_path / "consommateur.py"
+    consumer.write_text("pop = d['dataset_provenance']\n", encoding="utf-8")
+    report = audit_edge(_edge("a.json", consumer="consommateur.py"), tmp_path)
+    assert _status(report, CHECK_PROOF) == STATUS_OK
+    assert report.proven is True
+    assert report.confidence_ceiling == CEILING_FULL
+
+
+def test_chain07_artefact_sans_preuve_est_non_prouve_et_plafonne_a_elevee(tmp_path):
+    """Tous les autres contrôles passent : seule la preuve manque.
+
+    Le plafond doit alors valoir ELEVEE — ni COMPLETE (rien ne garantit que le
+    fichier n'a pas été édité), ni FAIBLE (aucun contrôle n'échoue).
+    """
+    (tmp_path / "a.json").write_text(
+        json.dumps(
+            {
+                "verdict": "GO",
+                "generated_at": "2999-01-01T00:00:00Z",
+                "dataset_provenance": {"n_canonical": 1},
+            }
+        ),
+        encoding="utf-8",
+    )
+    consumer = tmp_path / "consommateur.py"
+    consumer.write_text("pop = d['dataset_provenance']\n", encoding="utf-8")
+    report = audit_edge(
+        _edge("a.json", consumer="consommateur.py", keys_consumed=()), tmp_path
+    )
+    assert _status(report, CHECK_PROOF) == STATUS_UNPROVEN
+    assert report.broken == []
+    assert report.confidence_ceiling == CEILING_HIGH
+
+
+def test_chain07_artefact_edite_a_la_main_est_rompu(tmp_path):
+    tool = tmp_path / "producteur.py"
+    tool.write_text("x = 1\n", encoding="utf-8")
+    artefact = attach_proof(
+        {"verdict": "NO-GO", "generated_at": "2999-01-01T00:00:00Z"}, tool_path=tool
+    )
+    artefact["verdict"] = "GO"  # édition manuelle après production
+    (tmp_path / "a.json").write_text(json.dumps(artefact), encoding="utf-8")
+    report = audit_edge(_edge("a.json", keys_consumed=()), tmp_path)
+    assert _status(report, CHECK_PROOF) == STATUS_BROKEN
+    assert CHECK_PROOF in report.broken
+
+
+def test_chain08_la_boucle_complete_est_demontree_sur_le_premier_producteur():
+    """producteur → proof → persisté → verify_provenance → chain_audit.
+
+    Précédent complet exigé avant généralisation (directive de l'opérateur du
+    2026-07-30). Si l'artefact n'a pas été régénéré sur cette machine, le test
+    ne conclut pas — il ne prétend pas mesurer ce qui n'existe pas.
+    """
+    report = build_report()
+    chain = next(c for c in report.chains if c.name == "CHAIN-BURNIN-PRELIVE")
+    edge = chain.edges[0]
+    if not edge.exists:
+        return
+    assert edge.proven is True, "burnin_v3.json ne porte plus de bloc de preuve"
+    assert _status(edge, CHECK_PROOF) == STATUS_OK
+    assert edge.broken == []
+
+
+def test_chain09_les_deux_plafonds_et_l_adoption_sont_publies():
+    report = build_report()
+    assert set(report.ceilings) == {
+        "coverage_ceiling",
+        "adoption_ceiling",
+        "weakest_link_ceiling",
+        "final",
+        "binding_reason",
+    }
+    assert report.adoption["total"] >= 0
+    assert report.confidence_ceiling == report.ceilings["final"]
+
+
+def test_chain09_l_adoption_ne_compte_que_les_artefacts_presents():
+    """Un artefact absent n'est pas « non adopté » : il n'y a rien à prouver."""
+    report = build_report()
+    present = sum(1 for c in report.chains for e in c.edges if e.exists)
+    assert report.adoption["total"] == present
+
+
+# ── PROV-10..14 : non-régression des défauts trouvés par attaque adversariale ─
+#
+# Chaque test ci-dessous correspond à un défaut DÉMONTRÉ par un agent attaquant
+# le 2026-07-30, puis corrigé. Ils sont écrits ici pour que la correction ne
+# puisse pas être défaite en silence.
+
+
+def test_prov10_output_sha256_absent_ne_certifie_plus_le_corps(tmp_path):
+    """Défaut CRITIQUE : le corps n'était PAS vérifié et l'artefact passait « ok ».
+
+    `if body is not None and stamp.get("output_sha256")` sautait silencieusement
+    le contrôle quand l'empreinte manquait. chain_audit annonçait alors « corps
+    inchangé » et un plafond COMPLETE. Une empreinte manquante n'est pas une
+    empreinte satisfaite.
+    """
+    tool = tmp_path / "p.py"
+    tool.write_text("x = 1\n", encoding="utf-8")
+    stamp = {
+        "schema_version": PROVENANCE_SCHEMA_VERSION,
+        "generated_at": "2026-07-30T00:00:00Z",
+        "tool": "p.py",
+        "tool_sha256": sha256_file(tool),
+        "tool_path": "p.py",
+        "inputs": [],
+    }
+    ecarts = verify_provenance(stamp, body={"go_no_go": "GO"}, repo_root=tmp_path)
+    assert any("output_sha256 absent" in e for e in ecarts)
+    assert any("N'EST PAS vérifié" in e for e in ecarts)
+
+
+def test_prov11_bloc_proof_forge_minimal_est_non_prouve():
+    """Défaut MAJEUR : {schema_version, generated_at} obtenait PREUVE=ok.
+
+    L'axe ADOPTION se gagnait donc sans aucune empreinte — exactement l'inverse
+    de ce que l'axe est censé mesurer.
+    """
+    forge = {
+        "go_no_go": "GO",
+        PROOF_KEY: {"schema_version": 1, "generated_at": "2026-07-30T00:00:00Z"},
+    }
+    assert artifact_has_proof(forge) is False
+    ecarts = verify_artifact(forge)
+    assert len(ecarts) == 1
+    assert "incomplet" in ecarts[0]
+    assert "tool_sha256" in ecarts[0] and "output_sha256" in ecarts[0]
+
+
+def test_prov11_tous_les_champs_requis_sont_exiges():
+    complet = {
+        "schema_version": 1,
+        "generated_at": "x",
+        "tool_sha256": "abc",
+        "output_sha256": "def",
+    }
+    assert artifact_has_proof({PROOF_KEY: complet})
+    for champ in REQUIRED_PROOF_FIELDS:
+        ampute = {k: v for k, v in complet.items() if k != champ}
+        assert artifact_has_proof({PROOF_KEY: ampute}) is False, champ
+
+
+def test_prov12_substitution_d_artefact_detectee(tmp_path):
+    """Deux artefacts cohérents étaient interchangeables sans qu'on le voie."""
+    tool = tmp_path / "p.py"
+    tool.write_text("x = 1\n", encoding="utf-8")
+    art = attach_proof(
+        {"a": 1}, tool_path=tool, repo_root=tmp_path, artifact="cache/vrai.json"
+    )
+    assert (
+        verify_artifact(art, repo_root=tmp_path, expected_artifact="cache/vrai.json")
+        == []
+    )
+    ecarts = verify_artifact(
+        art, repo_root=tmp_path, expected_artifact="cache/autre.json"
+    )
+    assert any("substitué ou déplacé" in e for e in ecarts)
+
+
+def test_prov12_preuve_sans_identite_est_signalee(tmp_path):
+    tool = tmp_path / "p.py"
+    tool.write_text("x = 1\n", encoding="utf-8")
+    art = attach_proof({"a": 1}, tool_path=tool, repo_root=tmp_path)  # artifact=None
+    ecarts = verify_artifact(art, repo_root=tmp_path, expected_artifact="cache/x.json")
+    assert any("ne nomme pas l'artefact" in e for e in ecarts)
+
+
+def test_prov13_chemin_d_entree_relatif_resolu_contre_le_depot(tmp_path):
+    """Le verdict ne doit PAS dépendre du répertoire d'invocation."""
+    data = tmp_path / "databases"
+    data.mkdir()
+    entree = data / "e.jsonl"
+    entree.write_text('{"a": 1}\n', encoding="utf-8")
+    tool = tmp_path / "p.py"
+    tool.write_text("x = 1\n", encoding="utf-8")
+    stamp = {
+        "schema_version": PROVENANCE_SCHEMA_VERSION,
+        "generated_at": "2026-07-30T00:00:00Z",
+        "tool": "p.py",
+        "tool_path": "p.py",
+        "tool_sha256": sha256_file(tool),
+        "inputs": [{"path": "databases/e.jsonl", "sha256": sha256_file(entree)}],
+        "output_sha256": None,
+    }
+    assert verify_provenance(stamp, repo_root=tmp_path) == []
+
+
+def test_prov14_outil_introuvable_n_est_pas_une_alteration(tmp_path):
+    """Un producteur honnête vivant ailleurs était classé « rompu ».
+
+    Le message doit distinguer « je ne peux pas recalculer » de « l'empreinte
+    diffère » : la première n'accuse personne.
+    """
+    stamp = {
+        "schema_version": PROVENANCE_SCHEMA_VERSION,
+        "generated_at": "2026-07-30T00:00:00Z",
+        "tool": "vit_ailleurs.py",
+        "tool_path": "recherche/vit_ailleurs.py",
+        "tool_sha256": "abc123",
+        "inputs": [],
+        "output_sha256": "def456",
+    }
+    ecarts = verify_provenance(stamp, repo_root=tmp_path)
+    assert any("INTROUVABLE" in e for e in ecarts)
+    assert any("n'est PAS la preuve d'une altération" in e for e in ecarts)
+    assert not any("autre version du script" in e for e in ecarts)
+
+
+def test_prov14_tool_path_est_prioritaire_sur_la_recherche_par_nom(tmp_path):
+    """Le chemin déclaré évite de hacher un homonyme dans tools/ ou scripts/."""
+    ailleurs = tmp_path / "recherche"
+    ailleurs.mkdir()
+    vrai = ailleurs / "outil.py"
+    vrai.write_text("vrai = True\n", encoding="utf-8")
+    piege = tmp_path / "scripts"
+    piege.mkdir()
+    (piege / "outil.py").write_text("homonyme = True\n", encoding="utf-8")
+    art = attach_proof({"a": 1}, tool_path=vrai, repo_root=tmp_path)
+    assert art[PROOF_KEY]["tool_path"] == "recherche/outil.py"
+    assert verify_artifact(art, repo_root=tmp_path) == []
+
+
+def test_chain10_portee_jsonl_est_declaree(tmp_path):
+    """Sur un journal en append, PREUVE ne couvre que la dernière ligne."""
+    tool = tmp_path / "p.py"
+    tool.write_text("x = 1\n", encoding="utf-8")
+    art = attach_proof(
+        {"verdict": "GO", "generated_at": "2999-01-01T00:00:00Z"},
+        tool_path=tool,
+        repo_root=tmp_path,
+        artifact="a.jsonl",
+    )
+    (tmp_path / "a.jsonl").write_text(
+        '{"vieux": 1}\n' + json.dumps(art) + "\n", encoding="utf-8"
+    )
+    report = audit_edge(_edge("a.jsonl", keys_consumed=()), tmp_path)
+    assert "dernière ligne seulement" in _detail(report, CHECK_PROOF)
+
+
+def test_prov15_un_denominateur_minuscule_ne_donne_pas_un_plafond_eleve():
+    """Défaut MINEUR : « 1/1 = 100 % » annonçait un plafond COMPLETE.
+
+    Un ratio calculé sur un seul élément est bruyant : aucune couverture sous
+    MIN_TOTAL_FOR_HIGH_CEILING éléments ne peut valoir mieux que MOYENNE.
+    """
+    assert Coverage(1, 1).confidence_ceiling == CEILING_MEDIUM
+    assert Coverage(4, 4).confidence_ceiling == CEILING_MEDIUM
+    assert Coverage(5, 5).confidence_ceiling == CEILING_FULL
+    assert MIN_TOTAL_FOR_HIGH_CEILING == 5
+
+
+def test_prov15_proof_adoption_ignore_les_artefacts_absents(tmp_path):
+    """Un artefact absent n'est pas « non adopté » : il n'y a rien à prouver."""
+    tool = tmp_path / "p.py"
+    tool.write_text("x = 1\n", encoding="utf-8")
+    prouve = attach_proof({"a": 1}, tool_path=tool, repo_root=tmp_path)
+    cov = proof_adoption([prouve, None, None])
+    assert cov.total == 1 and cov.measured == 1

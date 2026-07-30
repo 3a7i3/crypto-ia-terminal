@@ -238,6 +238,69 @@ invariants:
       parametre du moteur : elle borne un niveau de langage dans un rapport.
       Un plafond n'est pas une mesure de qualite — c'est un maximum.
 
+  - id: INV-PROOF-001
+    statement: >
+      Un bloc de preuve (`proof`) est construit par UN SEUL constructeur :
+      system/provenance.py::create_proof, via son point d'entree attach_proof.
+      Aucun producteur ne fabrique ce dictionnaire a la main, et l'empreinte de
+      sortie exclut toujours le bloc lui-meme (sinon l'artefact serait
+      auto-referentiel, donc inverifiable).
+    violation: >
+      Ecrire `payload["proof"] = {...}` ou dupliquer la logique d'empreinte hors
+      de system/provenance.py ; calculer output_sha256 sur un corps incluant la
+      preuve.
+    formed_from: >
+      EXTRAPOLATION ASSUMEE, et enoncee comme telle. La derive de blocs `proof`
+      n'a JAMAIS ete observee : il n'en existait aucun avant le 2026-07-30. Ce
+      qui est demontre, c'est la propriete de CLASSE dont ce cas releve : dans ce
+      depot, la meme structure dupliquee a derive DEUX fois — trois loaders de
+      dataset rendant trois populations (INV-DATASET-001) et quatre formules sous
+      le nom "Sharpe" (INV-METRIC-001). L'invariant applique une propriete
+      etablie a une structure neuve ; il n'est pas tire d'un incident sur cette
+      structure.
+    enforced_by:
+      - "tools/experiment_quality_audit.py — critere ADOPTION, contre-motif _RE_PROOF_MANUAL"
+      - "tests/test_experiment_quality_audit.py QUAL-12 (bloc fabrique a la main = FAIL)"
+      - "tests/test_provenance_and_chain.py PROV-06 (l'empreinte exclut la preuve, idempotence)"
+    scope_note: >
+      Le controle est LEXICAL : un producteur qui mentionne attach_proof dans un
+      commentaire sans l'appeler passe. Meme famille de limite que POLARITE et
+      MENTION-vs-USAGE, deja documentee sur cet outil. L'invariant reste utile
+      parce que le contournement demande une intention, pas une distraction.
+
+  - id: INV-ADOPTION-001
+    statement: >
+      Tout mecanisme defini par le protocole publie son TAUX D'ADOPTION reel.
+      Un mecanisme parfait avec 0 % d'adoption equivaut a son absence. ADOPTION
+      est un cinquieme axe INDEPENDANT des quatre autres (population, puissance,
+      transformation, independance) : la propagation ne l'atteint pas, car
+      "ce producteur passe-t-il par l'API ?" reste une question sensee meme si sa
+      population est mauvaise.
+    violation: >
+      Introduire un mecanisme (primitive, champ obligatoire, convention de
+      declaration) sans mesure de sa diffusion ; presenter un mecanisme comme
+      "en place" alors que son adoption est nulle.
+    formed_from: >
+      DEUX instances MESUREES le 2026-07-30. (1) Bloc de preuve : 0 artefact sur
+      2 avant ce jour — la primitive existait, personne ne l'appelait. (2) Couche
+      TRANSFORMATION du protocole v4.0 (2026-07-27) : les champs
+      `information_loss` et `assumptions_introduced` n'apparaissent que dans
+      docs/protocole_audit_epistemique.md et .claude/manifest.yaml — ZERO
+      declaration dans le code, trois jours apres l'introduction de la couche.
+      Deux mecanismes, deux adoptions nulles, aucune regle ne l'ayant signale.
+    enforced_by:
+      - "system/provenance.py::proof_adoption (couverture de premiere classe)"
+      - "tools/experiment_quality_audit.py — critere ADOPTION + denominateur liant"
+      - "tools/chain_audit.py — adoption mesuree au niveau ARTEFACT"
+      - "tests QUAL-12, PROV-08 (0 % -> plafond AUCUNE)"
+    scope_note: >
+      Deux mesures d'adoption coexistent et peuvent diverger : au niveau du CODE
+      (le producteur a-t-il l'intention de prouver) et au niveau de l'ARTEFACT
+      (le fichier sur le disque est-il prouve). Un producteur corrige dont
+      l'artefact n'a pas ete regenere passe l'une et echoue l'autre. Les deux
+      sont publiees separement, jamais moyennees.
+      Etat au 2026-07-30 : 1/3 au niveau code, 1/1 au niveau artefact present.
+
   # PAS d'invariant de chaine (INV-CHAIN-*) : la regle de formation du protocole
   # l'interdit. Une seule instance est constatee a ce jour — la gate D
   # (AUDIT-EMP-001). Une occurrence est un accident. tools/chain_audit.py existe
@@ -259,7 +322,13 @@ invariants:
 health_baseline:
   suite_state: DEGRADED
   command: "python -m pytest tests/ -q --continue-on-collection-errors"
-  measured_at_commit: "c1fcd42"
+  measured_at_commit: "PENDING"
+  # Rafraichie le 2026-07-30 apres AUDIT-EMP-005 : +44 tests (PROV-10..15,
+  # CHAIN-10, QUAL-12..14) — dont 30 tests de NON-REGRESSION issus de defauts
+  # demontres par verification adversariale. collected 3952 -> 3996, passed
+  # 3928 -> 3972, soit exactement +44. Les 3 known_failures et l unique erreur
+  # de collecte sont INCHANGES, NOMS verifies un par un.
+  #
   # Rafraichie le 2026-07-30 apres AUDIT-EMP-004 : +33 tests (PROV-01..05,
   # CHAIN-01..06, QUAL-09..11). collected 3919 -> 3952, passed 3895 -> 3928,
   # soit exactement +33. Les 3 known_failures et l unique erreur de collecte
@@ -288,9 +357,9 @@ health_baseline:
   # Toujours relancer avec la commande `command:` exacte, sans variable
   # d environnement ajoutee, et comparer les NOMS.
   previous_baseline:
-    measured_at_commit: "0bc4012"
-    collected: 3919
-    passed: 3895
+    measured_at_commit: "c1fcd42"
+    collected: 3952
+    passed: 3928
   expected_collection_errors: 1
   known_errors:
     - file: "tests/test_full_integration.py"
@@ -301,12 +370,12 @@ health_baseline:
       note: >
         Dette de maintenance, hors campagne. Ne rapproche ni du burn-in ni de la
         validite de la mesure de N. A traiter hors gel, jamais pendant.
-  collected: 3952
-  passed: 3928
+  collected: 3996
+  passed: 3972
   failed: 3
   skipped: 20
   xfailed: 2
-  duration_s: 810
+  duration_s: 684
   expected_failures: 3
   known_failures:
     - "tests/paper_trading/test_paper_trade_e2e.py::TestPaperTradeCompleteLifecycle::test_mexc_simulator_market_order_complete"
@@ -1315,7 +1384,7 @@ proposed_extensions:
 protocol_validation_campaign:
   status: EN_COURS
   started: "2026-07-28"
-  audits_completed: 4
+  audits_completed: 5
   audits_target: "10-20"
   objective: >
     Appliquer v4.0 a 10-20 audits reels de nature differente (code,
@@ -1387,6 +1456,30 @@ protocol_validation_campaign:
         ecrit. AUCUN producteur du depot n'ecrit encore de bloc `proof` : la
         primitive existe, son adoption reste a faire.
       invariant: INV-COVERAGE-001
+
+    - id: AUDIT-ADOPTION-001
+      question: >
+        les mecanismes definis par le protocole sont-ils reellement UTILISES ?
+      instrument: >
+        tools/experiment_quality_audit.py (critere ADOPTION, niveau CODE) +
+        tools/chain_audit.py (controle PREUVE, niveau ARTEFACT) +
+        system/provenance.py::proof_adoption
+      measured: >
+        2026-07-30, bloc de preuve : 1/3 producteurs au niveau code (33 %),
+        1/1 artefact present au niveau disque (100 %).
+        Couche TRANSFORMATION v4.0 : 0 declaration dans le code (0 %).
+      status: AXE_PERMANENT
+      remaining: >
+        Deux producteurs restent non adoptes (paper_trading/dataset_validator.py,
+        scripts/shadow_execution.py) — volontairement, la directive etant
+        d'etablir UN precedent complet avant de generaliser. La couche
+        TRANSFORMATION du protocole reste a 0 % et n'a aucun instrument
+        d'adoption : ses champs sont declaratifs, non greppables de facon fiable.
+        SURTOUT : ADOPTION ne mesure PAS l'EFFICACITE. Le 2026-07-30 l'axe
+        annoncait 1/1 = 100 % sur un mecanisme qui, a cet instant, certifiait des
+        artefacts sans verifier leur corps (AUDIT-EMP-005, O5). Un taux
+        d'adoption eleve d'un mecanisme casse est PIRE qu'une adoption nulle.
+      invariant: INV-ADOPTION-001
 
     - id: AUDIT-INDEPENDENCE-001
       question: "toute statistique publie-t-elle son unite d'echantillonnage ?"
@@ -1790,6 +1883,115 @@ protocol_validation_campaign:
         - >
           Reste ouvert : adoption des blocs de preuve (0/2 artefacts), terminaison
           non persistee des 4 chaines, 7 defaillances POPULATION et 5 POWER.
+
+    - id: AUDIT-EMP-005
+      date: "2026-07-30"
+      nature: METHODOLOGIE
+      trigger: >
+        Directive de l'operateur : etablir UN precedent complet avant de
+        generaliser — un seul producteur (burnin_calibration_v3), puis verifier
+        toute la boucle producteur -> proof -> persiste -> verify -> chain_audit.
+        Plus quatre demandes : tracabilite structuree de la propagation
+        (invalidated_by), deux plafonds distincts, ADOPTION comme cinquieme axe
+        permanent, et un CONSTRUCTEUR UNIQUE de bloc de preuve.
+      scope: >
+        system/provenance.py (create_proof/attach_proof/verify_artifact/
+        artifact_has_proof/proof_adoption/CeilingBreakdown),
+        scripts/burnin_calibration_v3.py (premier producteur adopte),
+        tools/chain_audit.py (controle PREUVE), tools/experiment_quality_audit.py
+        (5e critere ADOPTION, propagation tracee, 3 plafonds).
+
+      observations:
+        - >
+          O1 BOUCLE COMPLETE demontree sur un cas reel : burnin ecrit son bloc via
+          attach_proof, relit le FICHIER depuis le disque et le verifie ;
+          chain_audit rend PREUVE=ok sur l'artefact reel. Les 5 controles de
+          CHAIN-BURNIN-PRELIVE passent.
+        - >
+          O2 NON-REGRESSION verifiee par execution : prelive_gate lit toujours
+          l'artefact enrichi (gate D rend son verdict de burn-in, pas une erreur
+          de lecture). L'ajout du bloc est bien ADDITIF.
+        - >
+          O3 ADOPTION mesuree sur DEUX niveaux qui divergent : 1/3 au niveau du
+          CODE (producteurs appelant l'API), 1/1 au niveau de l'ARTEFACT present.
+          Les deux sont publiees separement, jamais moyennees.
+        - >
+          O4 VERIFICATION ADVERSARIALE (5 lentilles d'attaque lancees en
+          parallele). La campagne a ete INTERROMPUE avant ses etapes de
+          refutation et de critique de completude : les constats ci-dessous
+          proviennent du journal des 4 lentilles ayant abouti, et n'ont PAS ete
+          soumis a des sceptiques independants.
+        - >
+          O5 DEFAUT CRITIQUE trouve et corrige : `output_sha256` absent ou nul
+          faisait sauter SILENCIEUSEMENT le controle du corps, et chain_audit
+          certifiait quand meme « corps inchange » avec un plafond COMPLETE.
+        - >
+          O6 DEFAUT MAJEUR trouve et corrige : un bloc `proof` forge a la main,
+          reduit a {schema_version, generated_at}, obtenait PREUVE=ok,
+          proven=True et un plafond COMPLETE. L'axe ADOPTION se gagnait donc
+          SANS AUCUNE EMPREINTE.
+        - >
+          O7 DEUX DEFAUTS MAJEURS sur l'axe ADOPTION lui-meme : une simple
+          MENTION de attach_proof (docstring, commentaire, ou phrase qui NIE
+          l'usage) suffisait a obtenir PASS ; et la branche d'echec « bloc
+          fabrique a la main » etait masquee par toute mention de l'API.
+        - >
+          O8 Huit defauts mineurs corriges : denominateur minuscule donnant un
+          plafond eleve (1/1 = 100 %), compteur incoherent (measured > total)
+          rendant le plafond MAXIMUM, propagation NON idempotente detruisant
+          original_reason, plafond NON monotone (declarer moins donnait un
+          meilleur plafond), instrument absent du disque compte comme « sans
+          defaillance », auto-verification tautologique et sautee en --quiet,
+          chemins d'entree resolus contre le cwd, portee d'une preuve sur JSONL
+          non declaree.
+
+      falsifier_tested: >
+        POSE AVANT LA MESURE : si la verification adversariale ne trouve aucun
+        defaut demontre, elle ne mesure rien et son cout n'est pas justifie.
+      falsifier_outcome: NON_REFUTE
+      falsifier_detail: >
+        1 critique, 3 majeurs et 8 mineurs corriges, tous accompagnes d'une
+        reproduction executee par leur auteur. La livraison initiale aurait donc
+        publie un mecanisme de preuve capable de CERTIFIER un contenu qu'il ne
+        verifiait pas — exactement l'inverse de son objet.
+
+      what_the_protocol_caught: >
+        La discipline « verifier avant de corriger » a de nouveau paye : la
+        premiere lentille a demontre que le mecanisme livre la veille au soir
+        certifiait des artefacts non verifies. Sans passe adversariale, le defaut
+        aurait ete decouvert par un consommateur, c'est-a-dire trop tard.
+
+      what_the_protocol_missed:
+        - >
+          ADOPTION n'est pas EFFICACITE (nouvelle famille). L'axe mesurait
+          « 1/1 = 100 % d'artefacts prouves » sur un mecanisme qui, a ce
+          moment-la, ne prouvait rien. Un taux d'adoption eleve d'un mecanisme
+          casse est PIRE qu'une adoption nulle : il produit une fausse assurance.
+          Aucune regle n'exige aujourd'hui de valider qu'un mecanisme FONCTIONNE
+          avant de mesurer sa diffusion.
+        - >
+          AUTO-VERIFICATION : le producteur verifiait l'objet qu'il venait de
+          construire EN MEMOIRE — tautologique. Corrige (relecture du fichier),
+          mais rien dans le protocole n'interdisait la tautologie.
+        - >
+          La campagne adversariale a ete interrompue : aucune etape de refutation
+          n'a valide les constats, et l'auteur des corrections est aussi celui qui
+          juge de leur suffisance. Dette epistemique assumee.
+
+      cost: >
+        Une passe adversariale interrompue, 12 defauts corriges, 30 tests de
+        non-regression. Aucune ligne du moteur de trading modifiee.
+
+      outcome:
+        - "INV-PROOF-001 (constructeur unique) et INV-ADOPTION-001 formes."
+        - "Protocole v4.3 : § 23 ADOPTION + § 23.1 deux (puis trois) plafonds."
+        - "AUDIT-ADOPTION-001 enregistre comme axe PERMANENT."
+        - "Boucle de preuve demontree de bout en bout sur 1 producteur sur 3."
+        - >
+          Reste ouvert : ADOPTION vs EFFICACITE non instrumente ; 2 producteurs
+          non adoptes (choix delibere) ; terminaison non persistee des 4 chaines,
+          donc « quelle preuve soutenait cette decision ? » reste sans reponse
+          automatique.
 
 # -----------------------------------------------------------------------------
 # DECISIONS EN ATTENTE

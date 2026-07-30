@@ -66,11 +66,15 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from system.provenance import (  # noqa: E402
     CEILING_FULL,
+    CEILING_HIGH,
     CEILING_LOW,
     CEILING_MEDIUM,
     CEILING_NONE,
+    CeilingBreakdown,
     Coverage,
+    artifact_has_proof,
     sha256_file,
+    verify_artifact,
     weakest_ceiling,
 )
 
@@ -84,10 +88,22 @@ CHECK_POPULATION = "POPULATION"
 CHECK_FRESHNESS = "FRAICHEUR"
 CHECK_CONTRACT = "CONTRAT"
 
+#: Cinquieme controle (2026-07-30) : l'artefact porte-t-il une PREUVE verifiable,
+#: et cette preuve concorde-t-elle ? Distinct de PROVENANCE, qui ne demande
+#: qu'une date. Un artefact date mais non prouve peut avoir ete edite a la main
+#: sans qu'aucun controle ne le voie.
+CHECK_PROOF = "PREUVE"
+
 STATUS_OK = "ok"
 STATUS_BROKEN = "ROMPU"
 STATUS_ABSENT = "ABSENT"
 STATUS_NA = "-"
+
+#: Ni ok, ni rompu : l'artefact ne porte PAS de preuve, donc rien ne peut etre
+#: verifie. Distinguer ce cas d'une rupture est essentiel — sinon la totalite du
+#: depot apparaitrait "rompue" le jour ou le controle a ete ajoute, ce qui est
+#: faux : ces artefacts n'etaient simplement pas encore prouvables.
+STATUS_UNPROVEN = "NON_PROUVE"
 
 #: Clés qui, dans ce dépôt, portent une provenance de dataset. Déclarées ici et
 #: nulle part ailleurs : un producteur qui inventerait un troisième nom serait
@@ -221,6 +237,7 @@ class EdgeReport:
     sha256: Optional[str]
     age_hours: Optional[float]
     checks: list[EdgeCheck] = field(default_factory=list)
+    proven: bool = False
 
     @property
     def broken(self) -> list[str]:
@@ -228,10 +245,19 @@ class EdgeReport:
 
     @property
     def confidence_ceiling(self) -> str:
+        """Plafond de l'arête — la preuve absente n'est pas une rupture.
+
+        Un artefact non prouvé plafonne à ELEVEE et non à COMPLETE : rien ne le
+        contredit, mais rien ne garantit qu'il n'a pas été édité. Distinguer ce
+        cas d'une rupture évite de mettre au même niveau « je ne peux pas
+        vérifier » et « la vérification échoue ».
+        """
         if not self.exists:
             return CEILING_NONE
         if self.broken:
             return CEILING_LOW
+        if not self.proven:
+            return CEILING_HIGH
         return CEILING_FULL
 
 
@@ -253,6 +279,8 @@ class ChainAuditReport:
     generated_at: str
     chains: list[ChainReport]
     coverage: dict
+    adoption: dict
+    ceilings: dict
     confidence_ceiling: str
 
 
@@ -316,7 +344,12 @@ def audit_edge(edge: Edge, root: Path = REPO_ROOT) -> EdgeReport:
                 "artefact absent ou illisible — la chaîne est interrompue ici",
             )
         )
-        for check in (CHECK_POPULATION, CHECK_FRESHNESS, CHECK_CONTRACT):
+        for check in (
+            CHECK_POPULATION,
+            CHECK_FRESHNESS,
+            CHECK_CONTRACT,
+            CHECK_PROOF,
+        ):
             report.checks.append(
                 EdgeCheck(check, STATUS_ABSENT, "sans objet : artefact indisponible")
             )
@@ -433,6 +466,41 @@ def audit_edge(edge: Edge, root: Path = REPO_ROOT) -> EdgeReport:
                     f"{len(edge.keys_consumed)} clé(s) présente(s) dans l'artefact",
                 )
             )
+
+    # --- PREUVE : bloc `proof` présent, COMPLET et concordant (axe ADOPTION) ---
+    #
+    # Portée assumée sur un JSONL : seule la DERNIÈRE ligne est vérifiée (un
+    # journal en append n'a pas d'empreinte globale). Le dire ici évite de lire
+    # « PREUVE ok » comme une garantie sur le fichier entier.
+    portee = " [dernière ligne seulement]" if path.suffix == ".jsonl" else ""
+    if not artifact_has_proof(payload):
+        report.checks.append(
+            EdgeCheck(
+                CHECK_PROOF,
+                STATUS_UNPROVEN,
+                "bloc `proof` absent ou incomplet : l'artefact peut avoir été édité "
+                "à la main sans qu'aucun contrôle ne le voie (adoption manquante)"
+                + portee,
+            )
+        )
+    else:
+        issues = verify_artifact(
+            payload, repo_root=root, expected_artifact=edge.artifact
+        )
+        if issues:
+            report.checks.append(
+                EdgeCheck(CHECK_PROOF, STATUS_BROKEN, " ; ".join(issues) + portee)
+            )
+        else:
+            report.checks.append(
+                EdgeCheck(
+                    CHECK_PROOF,
+                    STATUS_OK,
+                    "empreintes concordantes : outil, entrée(s), corps et identité "
+                    "de l'artefact inchangés depuis la production" + portee,
+                )
+            )
+    report.proven = artifact_has_proof(payload)
     return report
 
 
@@ -469,20 +537,37 @@ def audit_chain(chain: Chain, root: Path = REPO_ROOT) -> ChainReport:
 
 def build_report(root: Path = REPO_ROOT) -> ChainAuditReport:
     chains = [audit_chain(c, root) for c in CHAINS]
-    total_edges = sum(len(c.edges) for c in chains)
-    intact = sum(1 for c in chains for e in c.edges if e.exists and not e.broken)
+    all_edges = [e for c in chains for e in c.edges]
     coverage = Coverage(
-        measured=intact,
-        total=total_edges,
+        measured=sum(1 for e in all_edges if e.exists and not e.broken),
+        total=len(all_edges),
         subject="aretes d'artefact intactes",
+    )
+    # ADOPTION mesuree sur les artefacts REELLEMENT presents : compter comme
+    # "non adopte" un artefact absent du disque melangerait deux manques
+    # differents (rien a prouver vs preuve non ecrite).
+    present = [e for e in all_edges if e.exists]
+    adoption = Coverage(
+        measured=sum(1 for e in present if e.proven),
+        total=len(present),
+        subject="artefacts presents portant une preuve verifiable",
+    )
+    # Les DEUX plafonds sont rendus separement : ils n'appellent pas la meme
+    # action. Couverture basse -> mesurer plus. Maillon faible bas -> corriger.
+    breakdown = CeilingBreakdown(
+        coverage_ceiling=coverage.confidence_ceiling,
+        adoption_ceiling=adoption.confidence_ceiling,
+        weakest_link_ceiling=weakest_ceiling(
+            [c.confidence_ceiling for c in chains] or [CEILING_FULL]
+        ),
     )
     return ChainAuditReport(
         generated_at=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         chains=chains,
         coverage=coverage.to_dict(),
-        confidence_ceiling=weakest_ceiling(
-            [coverage.confidence_ceiling] + [c.confidence_ceiling for c in chains]
-        ),
+        adoption=adoption.to_dict(),
+        ceilings=breakdown.to_dict(),
+        confidence_ceiling=breakdown.final,
     )
 
 
@@ -526,12 +611,22 @@ def render_text(report: ChainAuditReport) -> str:
     add("  COUVERTURE NORMATIVE")
     add("-" * 78)
     cov = report.coverage
+    ado = report.adoption
     add(
-        f"    arêtes d'artefact intactes : {cov['measured']}/{cov['total']}"
+        f"    arêtes d'artefact intactes  : {cov['measured']}/{cov['total']}"
         f" ({cov['ratio']:.2%})"
     )
-    add(f"    plafond de couverture      : {cov['confidence_ceiling']}")
-    add(f"    PLAFOND DE LA CHAÎNE       : {report.confidence_ceiling}")
+    add(
+        f"    artefacts avec preuve       : {ado['measured']}/{ado['total']}"
+        f" ({ado['ratio']:.2%})   [axe ADOPTION]"
+    )
+    add("")
+    add("    TROIS plafonds, trois actions différentes :")
+    add(f"      plafond de COUVERTURE     : {report.ceilings['coverage_ceiling']}")
+    add(f"      plafond d'ADOPTION        : {report.ceilings.get('adoption_ceiling')}")
+    add(f"      plafond de MAILLON FAIBLE : {report.ceilings['weakest_link_ceiling']}")
+    add(f"      PLAFOND FINAL             : {report.ceilings['final']}")
+    add(f"      → {report.ceilings['binding_reason']}")
     add("")
     add("    Une chaîne vaut son maillon faible. Aucune conclusion prise au bout")
     add("    d'une chaîne ne peut être plus assurée que ce plafond.")

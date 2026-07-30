@@ -7,7 +7,7 @@ de mesure** : une population non déclarée, une formule anonyme, une puissance
 jamais publiée, une hypothèse d'indépendance jamais énoncée. Aucun test unitaire
 ne pouvait les voir, parce qu'aucun code n'était faux.
 
-Cet outil audite les **instruments de mesure** du dépôt selon quatre critères,
+Cet outil audite les **instruments de mesure** du dépôt selon cinq critères,
 chacun issu d'un incident CONSTATÉ — jamais d'un principe général :
 
 | Critère        | Question                              | Incident d'origine  |
@@ -16,6 +16,18 @@ chacun issu d'un incident CONSTATÉ — jamais d'un principe général :
 | POWER          | effet minimal détectable publié ?      | AUDIT-EMP-002      |
 | TRANSFORMATION | artefact daté et situé ?               | AUDIT-EMP-001 gate D |
 | INDEPENDENCE   | unité d'échantillonnage déclarée ?     | AUDIT-EMP-002 O6   |
+| ADOPTION       | l'API de preuve est-elle utilisée ?    | AUDIT-EMP-004 O7   |
+
+**ADOPTION est le cinquième axe, et il est indépendant des quatre autres.** Un
+protocole parfait avec 0 % d'adoption équivaut à son absence — c'est le seul
+critère qui mesure l'écart entre ce qui est *défini* et ce qui est *utilisé*, et
+c'est pourquoi la propagation ne l'atteint pas : « ce producteur passe-t-il par
+l'API ? » reste une question sensée même si sa population est mauvaise.
+
+Deux mesures d'adoption coexistent, et elles peuvent diverger : ici au niveau du
+**code** (le producteur a-t-il l'intention de prouver), dans `chain_audit` au
+niveau de l'**artefact** (le fichier sur le disque est-il prouvé). Un producteur
+corrigé dont l'artefact n'a pas été régénéré passe l'un et échoue l'autre.
 
 Surface de garantie — À LIRE AVANT D'UTILISER LE VERDICT
 --------------------------------------------------------
@@ -81,6 +93,7 @@ from system.provenance import (  # noqa: E402
     CEILING_LOW,
     CEILING_MEDIUM,
     CEILING_NONE,
+    CeilingBreakdown,
     Coverage,
     weakest_ceiling,
 )
@@ -241,9 +254,13 @@ _RE_ARTIFACT = re.compile(
     r"json\.dump\(|write_text\(|\.to_json\(|\.to_csv\(|csv\.writer|"
     r"open\([^)]*['\"][wa]",
 )
+#: Motifs RESSERRÉS (2026-07-30, attaque adversariale) : le mot nu « provenance »
+#: ou « generated » suffisait à valider TRANSFORMATION — importer l'API de preuve
+#: achetait donc mécaniquement le tampon. Seules des CLÉS d'artefact comptent
+#: désormais, pas des mots de vocabulaire.
 _RE_ARTIFACT_STAMP = re.compile(
-    r"generated_at|generated|clean_data_since|provenance|n_canonical|"
-    r"schema_version|measured_at",
+    r"generated_at|clean_data_since|n_canonical|dataset_provenance|"
+    r"trades_provenance|schema_version|measured_at|attach_proof\(",
 )
 #: Insensible à la casse : ces déclarations sont des phrases de documentation
 #: française, et « Unité d'échantillonnage » en début de ligne est la même
@@ -256,7 +273,29 @@ _RE_SAMPLING_UNIT = re.compile(
     re.IGNORECASE,
 )
 
-CRITERIA = ["POPULATION", "POWER", "TRANSFORMATION", "INDEPENDENCE"]
+#: Le producteur APPELLE-t-il le constructeur unique ? La parenthèse ouvrante est
+#: exigée : sans elle, une simple MENTION en docstring — voire une phrase qui NIE
+#: l'usage — suffisait à obtenir ADOPTION=PASS. Troisième instance de la famille
+#: MENTION-vs-USAGE, démontrée par attaque adversariale le 2026-07-30.
+_RE_PROOF_API = re.compile(r"attach_proof\(|create_proof\(")
+
+#: Contre-motif : fabriquer un bloc `proof` sans passer par l'API. Évalué AVANT
+#: l'API : un fichier qui fait les deux fabrique quand même à la main, et
+#: l'ancienne priorité (API d'abord) masquait exactement la dérive cherchée.
+_RE_PROOF_MANUAL = re.compile(r"['\"]proof['\"]\s*:|\[['\"]proof['\"]\]\s*=")
+
+CRITERIA = ["POPULATION", "POWER", "TRANSFORMATION", "INDEPENDENCE", "ADOPTION"]
+
+#: Chaque critere porte l'identifiant de son axe de campagne. C'est ce qui rend
+#: la propagation TRACABLE : `invalidated_by = "AUDIT-POPULATION-001"` est une
+#: arete de graphe, la ou un message en texte libre n'etait qu'une phrase.
+AXIS_OF_CRITERION = {
+    "POPULATION": "AUDIT-POPULATION-001",
+    "POWER": "AUDIT-POWER-001",
+    "TRANSFORMATION": "AUDIT-TRANSFORMATION-001",
+    "INDEPENDENCE": "AUDIT-INDEPENDENCE-001",
+    "ADOPTION": "AUDIT-ADOPTION-001",
+}
 
 STATUS_PASS = "PASS"
 STATUS_FAIL = "FAIL"
@@ -277,6 +316,9 @@ STATUS_INVALID = "INVALIDE"
 #: les autres de leur référent. Un artefact non horodaté (TRANSFORMATION=FAIL)
 #: n'invalide pas la puissance de l'analyse qui l'a produit ; il invalide ce que
 #: son CONSOMMATEUR en fera — et cela relève de l'audit de chaîne, pas d'ici.
+#: ADOPTION n'est PAS invalidé par POPULATION : « ce producteur passe-t-il par
+#: l'API de preuve ? » reste une question sensée même si sa population est
+#: mauvaise. Cinquième axe, indépendant des quatre autres par construction.
 PROPAGATION = {"POPULATION": ["POWER", "TRANSFORMATION", "INDEPENDENCE"]}
 
 
@@ -289,6 +331,16 @@ class Check:
     status: str
     binds_because: str = ""
     evidence: list[str] = field(default_factory=list)
+    #: Identifiant de l'axe qui a invalidé ce critère — arête de graphe, pas
+    #: message. `None` si le critère a été évalué sur ses propres mérites.
+    invalidated_by: Optional[str] = None
+    #: Statut ORIGINAL avant invalidation — sans lui, un vrai PASS et un vrai
+    #: FAIL devenaient indiscernables dans la table (defaut demontre le 2026-07-30).
+    original_status: Optional[str] = None
+    #: Raison ORIGINALE, conservée intacte quand la propagation prend le dessus.
+    #: Rétracter n'est pas nier : le constat initial reste lisible et réutilisable
+    #: si l'amont est corrigé.
+    original_reason: Optional[str] = None
 
 
 @dataclass
@@ -317,7 +369,15 @@ class InstrumentReport:
         """
         if self.role != ROLE_INSTRUMENT:
             return CEILING_FULL
-        if self.invalidated:
+        if not self.exists:
+            # Un instrument absent du disque n'est pas « sans defaillance » :
+            # supprimer un fichier ne doit jamais ameliorer un score.
+            return CEILING_NONE
+        # POPULATION=FAIL plafonne a AUCUNE meme si aucun critere aval ne LIE :
+        # sans cela, un instrument qui declare MOINS obtenait un meilleur
+        # plafond pour le meme defaut racine — plafond non monotone, defaut
+        # demontre par attaque adversariale le 2026-07-30.
+        if "POPULATION" in self.failures or self.invalidated:
             return CEILING_NONE
         if self.failures:
             return CEILING_LOW
@@ -337,6 +397,8 @@ class QualityReport:
     missing_from_disk: list[str]
     totals: dict = field(default_factory=dict)
     coverage: dict = field(default_factory=dict)
+    adoption: dict = field(default_factory=dict)
+    ceilings: dict = field(default_factory=dict)
     confidence_ceiling: str = CEILING_NONE
 
 
@@ -486,6 +548,50 @@ def audit_source(path: str, role: str, note: str, source: str) -> InstrumentRepo
                 dispersion,
             )
         )
+
+    # --- ADOPTION : le producteur d'artefact utilise-t-il l'API de preuve ? ---
+    #
+    # Cinquième axe, indépendant des quatre autres : un protocole parfait avec
+    # 0 % d'adoption équivaut à son absence. Mesuré ici au niveau du CODE (le
+    # producteur a-t-il l'intention de prouver) ; l'audit de chaîne le mesure au
+    # niveau de l'ARTEFACT (le fichier sur le disque est-il prouvé). Les deux
+    # peuvent diverger : un producteur correct dont l'artefact n'a jamais été
+    # régénéré laisse un fichier non prouvé.
+    if not artifact:
+        report.checks.append(
+            Check("ADOPTION", STATUS_NA, "n'écrit aucun artefact à prouver")
+        )
+    elif _RE_PROOF_MANUAL.search(source):
+        # Testé AVANT l'API : faire les deux, c'est fabriquer à la main.
+        report.checks.append(
+            Check(
+                "ADOPTION",
+                STATUS_FAIL,
+                "fabrique un bloc `proof` SANS passer par attach_proof/create_proof "
+                "— c'est exactement la dérive constatée deux fois (3 loaders de "
+                "dataset, 4 formules de Sharpe)",
+                _matches(_RE_PROOF_MANUAL, source),
+            )
+        )
+    elif _RE_PROOF_API.search(source):
+        report.checks.append(
+            Check(
+                "ADOPTION",
+                STATUS_PASS,
+                "appelle le constructeur unique de preuve",
+                _matches(_RE_PROOF_API, source),
+            )
+        )
+    else:
+        report.checks.append(
+            Check(
+                "ADOPTION",
+                STATUS_FAIL,
+                "écrit un artefact sans bloc de preuve : un consommateur ne peut "
+                "pas détecter une édition manuelle du fichier",
+                artifact,
+            )
+        )
     return _propagate(report)
 
 
@@ -497,22 +603,31 @@ def _propagate(report: InstrumentReport) -> InstrumentReport:
     population dont on vient de dire qu'elle n'est pas la bonne. Le statut devient
     `INVALIDE` : ni réussi, ni raté — sans objet.
 
-    La propagation ne DÉTRUIT jamais le constat d'origine : `evidence` et
-    `binds_because` du critère aval sont conservés, préfixés de la raison de
-    l'invalidation. Rétracter n'est pas nier (§ 2 du protocole).
+    Le constat d'origine est conservé DANS SES PROPRES CHAMPS : `original_status`
+    et `original_reason`, plus l'`evidence` qui n'est jamais touchée. Rétracter
+    n'est pas nier (§ 2) — et un vrai PASS reste distinguable d'un vrai FAIL même
+    après invalidation, ce que la première version rendait impossible.
+
+    **Idempotente** : un second appel ne réécrit rien. La version initiale
+    écrasait `original_reason` avec le message d'invalidation, détruisant
+    exactement ce qu'elle prétendait préserver (défaut démontré le 2026-07-30).
     """
     by_criterion = {c.criterion: c for c in report.checks}
     for root_criterion, downstream in PROPAGATION.items():
         root_check = by_criterion.get(root_criterion)
         if root_check is None or root_check.status != STATUS_FAIL:
             continue
+        axis = AXIS_OF_CRITERION[root_criterion]
         for name in downstream:
             check = by_criterion.get(name)
-            if check is None or check.status == STATUS_NA:
+            if check is None or check.status in (STATUS_NA, STATUS_INVALID):
                 continue
+            check.original_status = check.status
+            check.original_reason = check.binds_because
+            check.invalidated_by = axis
             check.binds_because = (
-                f"INVALIDE par propagation depuis {root_criterion}=FAIL — "
-                f"constat initial conservé : {check.binds_because}"
+                f"invalidé par {axis} ({root_criterion}=FAIL) ; constat initial "
+                f"« {check.original_status} » conservé dans original_reason"
             )
             check.status = STATUS_INVALID
     return report
@@ -575,11 +690,42 @@ def build_report(root: Path = REPO_ROOT) -> QualityReport:
     # le total déclaré. Un dépôt dont 3 instruments sur 19 passent les quatre
     # critères ne peut pas prétendre à une confiance élevée dans ses conclusions,
     # et le plafond le dit sans que le lecteur ait à faire la division.
-    clean = [i for i in only_instruments if not i.failures and not i.invalidated]
+    clean = [
+        i for i in only_instruments if i.exists and not i.failures and not i.invalidated
+    ]
     coverage = Coverage(
         measured=len(clean),
         total=len(only_instruments),
         subject="instruments sans defaillance ni invalidation",
+    )
+
+    # ADOPTION au niveau du CODE : parmi les producteurs d'artefact, combien
+    # passent par le constructeur unique. Denominateur = ceux pour qui la
+    # question se pose (critere liant), jamais l'ensemble du registre.
+    binding_adoption = [
+        i
+        for i in only_instruments
+        for c in i.checks
+        if c.criterion == "ADOPTION" and c.status != STATUS_NA
+    ]
+    adopted = [
+        i
+        for i in binding_adoption
+        for c in i.checks
+        if c.criterion == "ADOPTION" and c.status == STATUS_PASS
+    ]
+    adoption = Coverage(
+        measured=len(adopted),
+        total=len(binding_adoption),
+        subject="producteurs d'artefact passant par l'API de preuve",
+    )
+
+    breakdown = CeilingBreakdown(
+        coverage_ceiling=coverage.confidence_ceiling,
+        adoption_ceiling=adoption.confidence_ceiling,
+        weakest_link_ceiling=weakest_ceiling(
+            [i.confidence_ceiling for i in only_instruments] or [CEILING_FULL]
+        ),
     )
 
     return QualityReport(
@@ -591,10 +737,9 @@ def build_report(root: Path = REPO_ROOT) -> QualityReport:
         missing_from_disk=missing,
         totals=totals,
         coverage=coverage.to_dict(),
-        confidence_ceiling=weakest_ceiling(
-            [coverage.confidence_ceiling]
-            + [i.confidence_ceiling for i in only_instruments]
-        ),
+        adoption=adoption.to_dict(),
+        ceilings=breakdown.to_dict(),
+        confidence_ceiling=breakdown.final,
     )
 
 
@@ -620,7 +765,7 @@ def render_text(report: QualityReport) -> str:
     add("-" * 78)
     add("  INSTRUMENTS      (INV = invalide par propagation, pas evalue)")
     add("-" * 78)
-    add("    fichier                              POP  PWR  TRA  IND   plafond")
+    add("    fichier                                POP  PWR  TRA  IND  ADO  plafond")
     for inst in report.instruments:
         if inst.role != ROLE_INSTRUMENT:
             continue
@@ -637,7 +782,7 @@ def render_text(report: QualityReport) -> str:
                     STATUS_INVALID: "INV ",
                 }[status]
             )
-        add(f"    {inst.path:<36} {' '.join(cells)}  {inst.confidence_ceiling}")
+        add(f"    {inst.path:<38}{' '.join(cells)} {inst.confidence_ceiling}")
     add("")
 
     add("-" * 78)
@@ -655,16 +800,25 @@ def render_text(report: QualityReport) -> str:
     add("  COUVERTURE NORMATIVE")
     add("-" * 78)
     cov = report.coverage
+    ado = report.adoption
     add(
         f"    instruments sans défaillance ni invalidation : "
         f"{cov['measured']}/{cov['total']} ({cov['ratio']:.2%})"
     )
-    add("    plafond de couverture             : " f"{cov['confidence_ceiling']}")
-    add("    PLAFOND DE CONFIANCE DU RAPPORT  : " f"{report.confidence_ceiling}")
+    add(
+        f"    producteurs passant par l'API de preuve      : "
+        f"{ado['measured']}/{ado['total']} ({ado['ratio']:.2%})   [axe ADOPTION]"
+    )
     add("")
-    add("    Le plafond est le MAILLON FAIBLE de la couverture et de tous les")
-    add("    instruments. Une conclusion plus affirmative que ce plafond contredit")
-    add("    les données de ce rapport — ce n'est pas au lecteur de faire le calcul.")
+    add("    TROIS plafonds, trois actions différentes :")
+    add(f"      plafond de COUVERTURE     : {report.ceilings['coverage_ceiling']}")
+    add(f"      plafond d'ADOPTION        : {report.ceilings.get('adoption_ceiling')}")
+    add(f"      plafond de MAILLON FAIBLE : {report.ceilings['weakest_link_ceiling']}")
+    add(f"      PLAFOND FINAL             : {report.ceilings['final']}")
+    add(f"      → {report.ceilings['binding_reason']}")
+    add("")
+    add("    Une conclusion plus affirmative que le plafond final contredit les")
+    add("    données de ce rapport — ce n'est pas au lecteur de faire le calcul.")
     add("")
 
     add("-" * 78)

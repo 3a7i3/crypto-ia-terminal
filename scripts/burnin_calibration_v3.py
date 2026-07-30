@@ -41,6 +41,12 @@ from system.performance_metrics import (  # noqa: E402
     sharpe_annualized,
     win_rate,
 )
+from system.provenance import (  # noqa: E402
+    InputRef,
+    attach_proof,
+    sha256_file,
+    verify_artifact,
+)
 from tools.cri_calculator import (  # noqa: E402
     default_trades_path,
     load_clean_trades,
@@ -618,9 +624,68 @@ def main() -> int:
 
     output_path = args.output or _DEFAULT_OUTPUT
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text(json.dumps(asdict(report), indent=2), encoding="utf-8")
+
+    # Bloc de preuve — PREMIER producteur du depot a en ecrire un (AUDIT-EMP-004
+    # mesurait une adoption de 0 %). Passe par attach_proof et JAMAIS par une
+    # construction manuelle du dict : le depot a deja vu deux fois la meme
+    # structure dupliquee deriver (3 loaders, 4 Sharpe). L'ajout est ADDITIF —
+    # gate D lit go_no_go, generated_at et dataset_provenance, inchanges.
+    repo_root = Path(__file__).resolve().parents[1]
+    resolved_trades = args.trades_jsonl or default_trades_path()
+    # Chemin d'entree RELATIF au depot quand c'est possible : une preuve qui
+    # epingle un chemin absolu hors du depot n'est verifiable que sur la machine
+    # qui l'a produite (defaut trouve par verification adversariale, 2026-07-30).
+    try:
+        input_path = str(
+            Path(resolved_trades).resolve().relative_to(repo_root).as_posix()
+        )
+    except (ValueError, OSError):
+        input_path = str(resolved_trades)
+    body = asdict(report)
+    payload = attach_proof(
+        body,
+        tool_path=Path(__file__).resolve(),
+        repo_root=repo_root,
+        artifact=str(Path(output_path).as_posix()),
+        inputs=[
+            InputRef(
+                path=input_path,
+                sha256=sha256_file(resolved_trades),
+                n_records=report.trades.count,
+            )
+        ],
+        population=report.dataset_provenance,
+        notes=(
+            "burn-in v3 ; population canonique via load_clean_trades "
+            "(INV-DATASET-001) ; unite d'echantillonnage : le trade"
+        ),
+        generated_at=report.generated_at,
+    )
+    output_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+    # La preuve n'a de valeur que si quelqu'un la verifie, et verifier l'objet
+    # qu'on vient de construire en memoire est tautologique : on relit le
+    # FICHIER depuis le disque. Fait dans tous les cas — l'ancienne version
+    # sautait la verification avec --quiet, c'est-a-dire dans le mode utilise
+    # par l'automatisation (defaut demontre par attaque adversariale 2026-07-30).
+    relu = json.loads(output_path.read_text(encoding="utf-8"))
+    issues = verify_artifact(
+        relu,
+        repo_root=repo_root,
+        expected_artifact=str(Path(output_path).as_posix()),
+    )
     if not args.quiet:
         print(f"  Report saved -> {output_path}")
+        if issues:
+            print("  PREUVE : ecarts detectes")
+            for issue in issues:
+                print(f"    - {issue}")
+        else:
+            print("  Preuve verifiee (fichier relu) -> outil, entree, corps, identite")
+    elif issues:
+        # Meme silencieux, un ecart de preuve doit sortir : c'est le seul
+        # signal qui distingue un artefact utilisable d'un artefact suspect.
+        print("PREUVE : " + " ; ".join(issues))
 
     return 0 if report.go_no_go in {"GO", "IN_PROGRESS"} else 1
 

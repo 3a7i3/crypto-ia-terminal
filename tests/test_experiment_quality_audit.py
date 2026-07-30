@@ -17,12 +17,18 @@ Invariants verrouillés ici :
   QUAL-09  PROPAGATION : POPULATION=FAIL invalide l'aval, sans effacer le constat
   QUAL-10  COUVERTURE : le plafond de confiance est mécanique, pas une remarque
   QUAL-11  imprimer du JSON n'est PAS écrire un artefact (faux positif corrigé)
+  QUAL-12  ADOPTION : cinquième axe, indépendant, avec constructeur unique
+  QUAL-13  deux plafonds distincts (couverture vs maillon faible) + raison
+  QUAL-14  non-regression du second lot d'attaques : mention != appel,
+           fabrication manuelle prioritaire, propagation idempotente,
+           statut d'origine lisible, plafond monotone, absent != propre
 """
 
 from __future__ import annotations
 
 from system.provenance import CEILING_LOW, CEILING_NONE, weakest_ceiling
 from tools.experiment_quality_audit import (
+    AXIS_OF_CRITERION,
     CRITERIA,
     REGISTRY,
     ROLE_AFFICHAGE,
@@ -31,6 +37,8 @@ from tools.experiment_quality_audit import (
     STATUS_INVALID,
     STATUS_NA,
     STATUS_PASS,
+    InstrumentReport,
+    _propagate,
     audit_source,
     build_report,
     find_undeclared_readers,
@@ -240,18 +248,37 @@ def test_qual09_population_fail_invalide_l_aval():
     assert report.invalidated == ["POWER", "INDEPENDENCE"]
 
 
-def test_qual09_la_propagation_conserve_le_constat_initial():
-    """Rétracter n'est pas nier (§ 2 du protocole) : la raison d'origine reste."""
+def test_qual09_la_propagation_est_une_arete_de_graphe_pas_un_message():
+    """`invalidated_by` porte l'ID de l'axe — traçable, pas du texte libre.
+
+    Rétracter n'est pas nier (§ 2 du protocole) : la raison d'origine survit
+    dans `original_reason` et redeviendrait exploitable si l'amont était corrigé.
+    """
     source = (
         'PATH = "databases/paper_trades.jsonl"\n'
         "rho_min = min_detectable_rho(n)\n"
         'verdict = "GO"\n'
     )
     report = audit_source("faux/i.py", ROLE_INSTRUMENT, "", source)
-    raison = _reason(report, "POWER")
-    assert raison.startswith("INVALIDE par propagation depuis POPULATION=FAIL")
-    assert "constat initial conservé" in raison
-    assert "effet minimal détectable" in raison
+    check = next(c for c in report.checks if c.criterion == "POWER")
+    assert check.status == STATUS_INVALID
+    assert check.invalidated_by == "AUDIT-POPULATION-001"
+    assert check.original_reason is not None
+    assert "effet minimal détectable" in check.original_reason
+
+
+def test_qual09_un_critere_evalue_sur_ses_merites_n_a_pas_d_arete():
+    source = 'verdict = "NO_GO"\n'
+    report = audit_source("faux/i.py", ROLE_INSTRUMENT, "", source)
+    for check in report.checks:
+        assert check.invalidated_by is None
+        assert check.original_reason is None
+
+
+def test_qual09_chaque_critere_porte_un_axe_de_campagne():
+    """Sans identifiant d'axe, une propagation n'est pas reconstituable."""
+    assert set(AXIS_OF_CRITERION) == set(CRITERIA)
+    assert all(v.startswith("AUDIT-") for v in AXIS_OF_CRITERION.values())
 
 
 def test_qual09_un_critere_non_liant_n_est_jamais_invalide():
@@ -334,3 +361,216 @@ def test_qual11_ecrire_un_fichier_est_un_artefact():
     ):
         report = audit_source("faux/i.py", ROLE_INSTRUMENT, "", source)
         assert _status(report, "TRANSFORMATION") in {STATUS_FAIL, STATUS_PASS}
+
+
+# ── QUAL-12 : ADOPTION, cinquième axe ─────────────────────────────────────────
+
+
+def test_qual12_producteur_passant_par_l_api_de_preuve():
+    source = 'payload = attach_proof(body, tool_path=p)\nPath("c.json").write_text(x)\n'
+    report = audit_source("faux/i.py", ROLE_INSTRUMENT, "", source)
+    assert _status(report, "ADOPTION") == STATUS_PASS
+
+
+def test_qual12_bloc_proof_fabrique_a_la_main_echoue():
+    """C'est exactement la dérive constatée 2 fois : 3 loaders, 4 Sharpe.
+
+    Un second constructeur de la même structure dérive toujours — la seule
+    protection est qu'il n'en existe qu'un, et que tout contournement se voie.
+    """
+    source = 'body["proof"] = {"schema_version": 1}\nPath("c.json").write_text(x)\n'
+    report = audit_source("faux/i.py", ROLE_INSTRUMENT, "", source)
+    assert _status(report, "ADOPTION") == STATUS_FAIL
+    assert "SANS passer par attach_proof" in _reason(report, "ADOPTION")
+
+
+def test_qual12_artefact_sans_preuve_echoue():
+    source = 'json.dump({"generated_at": now}, f)\n'
+    report = audit_source("faux/i.py", ROLE_INSTRUMENT, "", source)
+    assert _status(report, "ADOPTION") == STATUS_FAIL
+
+
+def test_qual12_sans_artefact_l_adoption_ne_lie_pas():
+    source = "print(json.dumps(result))\n"
+    report = audit_source("faux/i.py", ROLE_INSTRUMENT, "", source)
+    assert _status(report, "ADOPTION") == STATUS_NA
+
+
+def test_qual12_adoption_n_est_pas_invalidee_par_population():
+    """Cinquième axe INDÉPENDANT : la question reste sensée population invalide.
+
+    « Ce producteur passe-t-il par l'API de preuve ? » ne dépend pas de la
+    justesse de sa population — contrairement à sa puissance ou à son
+    indépendance, qui perdent leur référent.
+    """
+    source = (
+        'PATH = "databases/paper_trades.jsonl"\n'
+        'json.dump({"generated_at": now}, f)\n'
+    )
+    report = audit_source("faux/i.py", ROLE_INSTRUMENT, "", source)
+    assert _status(report, "POPULATION") == STATUS_FAIL
+    assert _status(report, "TRANSFORMATION") == STATUS_INVALID
+    assert _status(report, "ADOPTION") == STATUS_FAIL  # pas INVALIDE
+
+
+def test_qual12_burnin_est_le_premier_producteur_adopte():
+    """Précédent complet exigé avant généralisation (directive de l'opérateur).
+
+    Si ce test tombe, c'est que le premier producteur a cessé de passer par
+    l'API — vérifier avant de neutraliser.
+    """
+    report = build_report()
+    burnin = next(
+        i for i in report.instruments if i.path == "scripts/burnin_calibration_v3.py"
+    )
+    adoption = next(c for c in burnin.checks if c.criterion == "ADOPTION")
+    assert adoption.status == STATUS_PASS
+
+
+# ── QUAL-13 : les deux plafonds ───────────────────────────────────────────────
+
+
+def test_qual13_deux_plafonds_distincts_sont_rendus():
+    """Couverture et maillon faible n'appellent pas la même action."""
+    report = build_report()
+    assert set(report.ceilings) == {
+        "coverage_ceiling",
+        "adoption_ceiling",
+        "weakest_link_ceiling",
+        "final",
+        "binding_reason",
+    }
+    assert report.confidence_ceiling == report.ceilings["final"]
+
+
+def test_qual13_le_plafond_final_est_le_plus_contraignant_des_deux():
+    report = build_report()
+    assert report.ceilings["final"] == weakest_ceiling(
+        [
+            report.ceilings["coverage_ceiling"],
+            report.ceilings["adoption_ceiling"],
+            report.ceilings["weakest_link_ceiling"],
+        ]
+    )
+
+
+def test_qual13_la_raison_dit_quelle_action_mener():
+    report = build_report()
+    raison = report.ceilings["binding_reason"]
+    assert ("MAILLON FAIBLE" in raison) or ("COUVERTURE" in raison)
+
+
+def test_qual13_l_adoption_a_son_propre_denominateur():
+    """Dénominateur = producteurs pour qui la question se pose, pas le registre."""
+    report = build_report()
+    assert report.adoption["total"] <= report.n_instruments
+    assert report.adoption["measured"] <= report.adoption["total"]
+
+
+# ── QUAL-14 : non-régression du second lot d'attaques adversariales ───────────
+
+
+def test_qual14_une_mention_de_l_api_ne_vaut_pas_un_appel():
+    """Défaut MAJEUR : une docstring — voire une NÉGATION — donnait ADOPTION=PASS.
+
+    Troisième instance de la famille MENTION-vs-USAGE sur cet outil. La
+    parenthèse ouvrante est désormais exigée.
+    """
+    for source in (
+        '"""Ce module n\'utilise PAS attach_proof."""\nPath("c.json").write_text(x)\n',
+        '# TODO: passer par attach_proof un jour\nPath("c.json").write_text(x)\n',
+    ):
+        report = audit_source("faux/i.py", ROLE_INSTRUMENT, "", source)
+        assert _status(report, "ADOPTION") == STATUS_FAIL, source
+
+
+def test_qual14_fabriquer_a_la_main_gagne_sur_la_mention_de_l_api():
+    """Défaut MAJEUR : la branche FAIL était masquée par tout appel à l'API.
+
+    Un fichier qui appelle l'API ET fabrique un bloc à la main fabrique quand
+    même à la main — c'est exactement la dérive que le critère cherche.
+    """
+    source = (
+        "payload = attach_proof(body, tool_path=p)\n"
+        'payload["proof"] = {"schema_version": 1}\n'
+        'Path("c.json").write_text(x)\n'
+    )
+    report = audit_source("faux/i.py", ROLE_INSTRUMENT, "", source)
+    assert _status(report, "ADOPTION") == STATUS_FAIL
+    assert "SANS passer par" in _reason(report, "ADOPTION")
+
+
+def test_qual14_le_mot_provenance_seul_n_achete_plus_le_tampon():
+    """Défaut MINEUR : importer l'API de preuve validait TRANSFORMATION."""
+    source = "from system.provenance import sha256_file\njson.dump(d, f)\n"
+    report = audit_source("faux/i.py", ROLE_INSTRUMENT, "", source)
+    assert _status(report, "TRANSFORMATION") == STATUS_FAIL
+
+
+def test_qual14_propagation_idempotente():
+    """Défaut MINEUR : le second appel DÉTRUISAIT original_reason."""
+    source = (
+        'PATH = "databases/paper_trades.jsonl"\n'
+        "rho = min_detectable_rho(n)\n"
+        'verdict = "GO"\n'
+    )
+    report = audit_source("faux/i.py", ROLE_INSTRUMENT, "", source)
+    check = next(c for c in report.checks if c.criterion == "POWER")
+    premier = (check.status, check.original_status, check.original_reason)
+    _propagate(report)
+    assert (check.status, check.original_status, check.original_reason) == premier
+    assert "effet minimal détectable" in check.original_reason
+
+
+def test_qual14_le_statut_d_origine_reste_lisible():
+    """Un vrai PASS et un vrai FAIL doivent rester distinguables après invalidation."""
+    passant = audit_source(
+        "faux/a.py",
+        ROLE_INSTRUMENT,
+        "",
+        'PATH = "databases/paper_trades.jsonl"\n'
+        "rho = min_detectable_rho(n)\n"
+        'verdict = "GO"\n',
+    )
+    echouant = audit_source(
+        "faux/b.py",
+        ROLE_INSTRUMENT,
+        "",
+        'PATH = "databases/paper_trades.jsonl"\n'
+        'verdict = "GO"\n'
+        "sharpe = m / stdev(r)\n",
+    )
+    a = next(c for c in passant.checks if c.criterion == "POWER")
+    b = next(c for c in echouant.checks if c.criterion == "POWER")
+    assert a.status == b.status == STATUS_INVALID
+    assert a.original_status == STATUS_PASS
+    assert b.original_status == STATUS_FAIL
+
+
+def test_qual14_plafond_monotone_sur_population_fail():
+    """Défaut MINEUR : déclarer MOINS donnait un MEILLEUR plafond.
+
+    Deux instruments, même défaut racine (POPULATION=FAIL) : celui qui ne
+    déclarait aucun critère aval obtenait FAIBLE, l'autre AUCUNE.
+    """
+    bavard = audit_source(
+        "faux/a.py",
+        ROLE_INSTRUMENT,
+        "",
+        'PATH = "databases/paper_trades.jsonl"\n'
+        'verdict = "GO"\n'
+        "rho = min_detectable_rho(n)\n",
+    )
+    muet = audit_source(
+        "faux/b.py", ROLE_INSTRUMENT, "", 'PATH = "databases/paper_trades.jsonl"\n'
+    )
+    assert bavard.confidence_ceiling == muet.confidence_ceiling == CEILING_NONE
+
+
+def test_qual14_un_instrument_absent_ne_compte_pas_comme_propre():
+    """Défaut MINEUR : supprimer un fichier améliorait le score de couverture."""
+    absent = InstrumentReport(
+        path="faux/disparu.py", role=ROLE_INSTRUMENT, note="", exists=False, lines=0
+    )
+    assert absent.failures == []
+    assert absent.confidence_ceiling == CEILING_NONE

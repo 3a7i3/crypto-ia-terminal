@@ -1,6 +1,6 @@
 # Protocole d'audit épistémique
 
-- **Version** : 4.2
+- **Version** : 4.3
 - **Statut** : Draft
 - **Auteur** : Mathieu (opérateur du projet), en co-conception assistée
 - **Date** : 2026-07-24
@@ -739,6 +739,7 @@ gagne pas la vérité, on gagne la possibilité de la contester.
 |---|---|---|
 | **v1.0** | 2026-07-23 | quatre catégories (Observation/Inférence/Hypothèse/Décision) ; maillon faible ; portée ; source/couverture ; double falsificateur ; double filtre lexical ; proportionnalité |
 | **v2.0** | 2026-07-23 | composition/fermeture (DAG) ; graphe de dépendances + défaiteurs ; rétracter ≠ nier ; voir/croire/vouloir (guillotine de Hume) ; révisabilité mécanique |
+| **v4.3** | 2026-07-30 | § 23 **ADOPTION**, quatrieme question et cinquieme axe : peut-on croire que le protocole a ete APPLIQUE ? **INV-ADOPTION-001** (tout mecanisme publie son taux d'adoption ; 0 % equivaut a l'absence), forme sur deux adoptions nulles mesurees (bloc de preuve 0/2, couche TRANSFORMATION 0 declaration) ; § 23.1 **deux plafonds** distincts (couverture vs maillon faible) avec l'action que chacun implique ; **INV-PROOF-001** : constructeur unique du bloc de preuve, extrapolation assumee d'une propriete de classe deja demontree deux fois |
 | **v4.2** | 2026-07-30 | § 20.2 **principe général** : une transformation non déclarée détruit la garantie sans détruire la donnée (agrégation, filtrage, sélection, réduction, projection, visualisation, résumé par LLM) ; **champs de preuve** d'une transformation (empreintes entrée/outil/sortie + population + date) — la déclaration devient contestable ; **INV-COVERAGE-001** (§ 19) : toute couverture publiée porte son plafond de confiance mécanique ; propagation du maillon faible **entre critères d'audit**, pas seulement entre observations |
 | **v4.1** | 2026-07-29 | type de transformation **PROJECTION entre populations** (§ 20.1) : conclure sur A en mesurant B est une *hypothèse de transport*, plafonnée à `HYPOTHESE`, dont le falsificateur est toujours disponible ; **INV-POWER-001** (§ 19) : la puissance se lit avant la significativité, et un seuil de volume n'est pas une puissance ; règle de formation étendue — *N instances mesurées en une passe* valent *deux occurrences séparées dans le temps* |
 | **v4.0** | 2026-07-27 | couche **TRANSFORMATION** : les operations entre observation et decision deviennent gouvernees (perte d'information, hypotheses introduites, reversibilite, falsificateur) ; surface de garantie evolutive (3e colonne) ; `max_acceptable_cost` sur dette critique ; non-comparabilite des indices |
@@ -764,3 +765,64 @@ est plus riche **et** plus exposée à la critique, ce qui est la propriété re
 des cinq ajouts alourdit un audit sans réduire les surclaims, la règle de proportionnalité
 (§ 6) impose de le retirer : le protocole reste, jusque dans son évolution, soumis à
 lui-même.
+
+---
+
+## 23. ADOPTION — la quatrième question *(v4.3)*
+
+Au début de cette campagne, le protocole répondait à une seule question : **peut-on croire cette
+conclusion ?** Il en répond aujourd'hui à quatre, et la dernière n'existait pas il y a trois jours.
+
+| # | Question | Ce qui y répond |
+|---|---|---|
+| 1 | Peut-on croire la **donnée** ? | population, provenance, borne d'époque |
+| 2 | Peut-on croire l'**instrument** ? | puissance, résolution, unité d'échantillonnage |
+| 3 | Peut-on croire la **transformation** ? | § 20, empreintes, projection déclarée |
+| 4 | Peut-on croire que le **protocole a été appliqué** ? | **adoption** |
+
+Les trois premières portent sur un objet de la chaîne de mesure. La quatrième porte sur le
+protocole lui-même, et c'est ce qui la rend structurellement différente : elle mesure l'écart entre
+ce qui est **défini** et ce qui est **utilisé**.
+
+**INV-ADOPTION-001.** *Tout mécanisme défini par le protocole publie son taux d'adoption réel.*
+Un mécanisme parfait avec 0 % d'adoption équivaut à son absence.
+
+Précédent (deux instances mesurées le 2026-07-30, pas une anticipation) : le bloc de preuve
+existait depuis la veille et **aucun** artefact ne le portait ; la couche TRANSFORMATION introduite
+en v4.0 n'avait **aucune** déclaration dans le code trois jours après son écriture — ses champs
+n'apparaissaient que dans ce document et dans le manifeste. Deux mécanismes, deux adoptions nulles,
+et aucune règle ne l'avait signalé.
+
+> **Risque de gouvernance que cet axe surveille** : multiplier les mécanismes plus vite que leur
+> adoption. Un protocole qui grossit sans se diffuser produit exactement l'inverse de son but — il
+> donne l'impression que les garanties existent, parce qu'elles sont *écrites*.
+
+**Corollaire d'indépendance.** ADOPTION n'est jamais invalidé par la propagation (§ 3 généralisée
+aux audits). « Ce producteur passe-t-il par l'API ? » reste une question sensée même si sa
+population est mauvaise, alors que « quelle est sa puissance ? » ne l'est plus. C'est ce qui en fait
+un cinquième axe et non une cinquième conséquence.
+
+**Deux mesures d'adoption, jamais moyennées** : au niveau du **code** (le producteur a-t-il
+l'intention de prouver) et au niveau de l'**artefact** (le fichier sur le disque est-il prouvé).
+Elles divergent dès qu'un producteur corrigé n'a pas régénéré sa sortie — et cette divergence est
+une information, pas un bruit.
+
+### 23.1 Deux plafonds, deux actions *(v4.3)*
+
+Un plafond de confiance unique cache l'information la plus utile : **que faire**.
+
+| Plafond | Question | Action si c'est lui qui contraint |
+|---|---|---|
+| **couverture** | combien ai-je mesuré ? | **mesurer plus** — ce qui est mesuré est sain |
+| **maillon faible** | quel est mon pire élément ? | **corriger** — mesurer plus n'aidera pas |
+
+Le plafond final est le plus contraignant des deux (§ 3), mais il doit être publié **avec** les deux
+composantes et avec la raison qui désigne le contraignant. Exemple réel du 2026-07-30 : couverture
+MOYENNE, maillon faible AUCUNE, final AUCUNE — *contraint par le maillon faible, mesurer plus
+n'aidera pas*. Sans la décomposition, un lecteur diligent aurait pu conclure qu'il fallait étendre
+la couverture, c'est-à-dire exactement la mauvaise action.
+
+> Domaine : tout rapport qui agrège plusieurs contrôles hétérogènes.
+> Mode d'échec : publier une adoption élevée sur un dénominateur choisi après coup.
+> Falsificateur : un mécanisme à 100 % d'adoption dont les défauts qu'il devait prévenir
+> continuent d'apparaître — l'adoption serait alors mesurée sur la forme et non sur l'usage.
