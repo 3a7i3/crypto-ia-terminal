@@ -1,5 +1,5 @@
 # GENERATED — ne pas editer a la main. Source : .claude/manifest.yaml
-generated: 2026-07-29 23:27 UTC
+generated: 2026-07-30 00:13 UTC
 checkpoint: L0
 phase: PHASE_00
 tickets_total: 34
@@ -15,6 +15,7 @@ epoch:
 gate_open: false
 decisions_en_attente:
 - DEC-SHARPE-001
+- DEC-INIT-001
 - DEC-HORIZON-001
 - D-1
 - D-2

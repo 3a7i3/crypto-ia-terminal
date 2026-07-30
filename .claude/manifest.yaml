@@ -137,6 +137,76 @@ invariants:
       Toute autre optimisation est, sous plancher non franchi, arithmetiquement
       inoperante.
 
+  - id: INV-POWER-001
+    statement: >
+      Toute conclusion d'ABSENCE d'effet est PLAFONNEE tant que l'effet minimal
+      detectable n'est pas publie. La puissance se lit AVANT la significativite :
+      un p > 0.05 obtenu par un instrument incapable de voir l'effet cherche
+      n'est pas une information sur le systeme, c'est une information sur
+      l'instrument. Une exigence de VOLUME (N >= 500) ne vaut pas une puissance.
+    violation: >
+      Ecrire "pas d'effet", "pas d'edge", "non significatif donc nul" sans
+      publier l'effet minimal detectable ; presenter un seuil de N comme une
+      garantie de detection ; comparer une statistique a un seuil sans dire ce
+      que l'instrument pourrait voir.
+    formed_from: >
+      MESURE du 2026-07-29, sur inventaire complet et non sur un incident isole.
+      Instance declenchante : Pearson r ~ 0.003 sur N=109 lu comme "le score
+      n'informe pas", alors que 45 % des observations partageaient un seul score,
+      la bande utile couvrait 13 % de l'echelle et |rho| minimal detectable
+      valait 0.252 — aucun effet plausible n'y etait visible. Puis
+      tools/experiment_quality_audit.py a inventorie 19 instruments : SEPT
+      concluent sans publier d'effet minimal detectable, dont
+      tools/cri_calculator.py qui publie quatre exigences de VOLUME (N_TARGET,
+      MIN_CELL_OBSERVATIONS, MIN_PSI_SAMPLE, balance) et aucune puissance. La
+      regle de formation du protocole est donc satisfaite : sept instances
+      mesurees dans une passe, pas une anecdote.
+    enforced_by:
+      - "tools/experiment_quality_audit.py — critere POWER, preuve citable a la ligne"
+      - "tests/test_experiment_quality_audit.py QUAL-05 (dont volume != puissance)"
+      - "tools/score_calibration_audit.py::min_detectable_rho + verdict INSTRUMENT_INSUFFISANT"
+      - "tests/test_score_calibration_audit.py SCORE-05 : puissance testee AVANT significativite"
+    scope_note: >
+      Un verdict DETERMINISTE (comparaison exacte, aucun echantillon) ne lie pas
+      cet invariant, a condition de le declarer. tools/init_order_audit.py le
+      declare : "unite d'echantillonnage : aucune". La declaration est
+      falsifiable — un verdict declare deterministe qui repose en fait sur un
+      echantillon est une fausse declaration.
+
+  - id: INV-INIT-001
+    statement: >
+      Categorie INIT-ORDER, distincte du dataset et des KPI. L'ordre est
+      .env -> load_dotenv() -> imports dependants. Toute constante de CAPITAL,
+      de RISQUE ou d'EXECUTION lue a la racine d'un module doit etre prouvee
+      non dependante de l'ordre d'import, ou declaree comme l'etant.
+    violation: >
+      Ajouter une constante de module lue via os.getenv qui gouverne le capital,
+      le risque ou l'execution, sans differentiel empirique ; conclure sur un KPI
+      dependant d'une telle constante sans verifier l'ordre d'initialisation.
+    formed_from: >
+      MESURE du 2026-07-29 (tools/init_order_audit.py). Inventaire statique :
+      234 constantes lues a l'import via os.getenv, dans 74 fichiers, dont 15
+      classees CAPITAL / RISQUE / EXECUTION (_PAPER_CAPITAL, _MAX_TOTAL_EXPOSURE
+      par etat de risque, _SIZE_FACTORS de conviction, _MAX_ORDER_P2,
+      MAX_DRAWDOWN_HARD, _MAX_POSITION_USD, _SLIPPAGE...). Le motif est donc une
+      PROPRIETE du processus, pas un accident. Materialisation PROUVEE une fois,
+      par differentiel en sous-processus : infra/wallet_sync.py:48
+      _PAPER_CAPITAL = 100.0 sans .env, 1000.0 avec — drawdown des 121 trades
+      canoniques a 9.42 % ou 0.95 % selon l'ordre, face au seuil de gate de 10 %.
+    enforced_by:
+      - "tools/init_order_audit.py (inventaire AST + differentiel en sous-processus)"
+      - "tests/test_init_order_audit.py INIT-01..06 (13 tests)"
+      - "INIT-05 : egalite sans variable definie = NON_CONTRAINT, jamais STABLE"
+    scope_note: >
+      DETTE EPISTEMIQUE RESIDUELLE ASSUMEE : 3 constantes sur 234 sont mesurees
+      empiriquement (registre RUNTIME_REGISTRY). Les 231 autres ne sont
+      qu'inventoriees. Un module qui demarre une boucle ou ouvre un socket a
+      l'import ne peut pas etre sonde sans effet de bord — c'est la raison du
+      registre explicite, et la raison pour laquelle cet invariant ne peut PAS
+      etre declare verifie sur l'ensemble du depot.
+      L'outil ne corrige rien : rendre une constante paresseuse deplacerait un
+      KPI face a un seuil de gate (DEC-INIT-001).
+
 # -----------------------------------------------------------------------------
 # HEALTH BASELINE — etat de reference REPRODUCTIBLE de la suite de tests
 #
@@ -152,11 +222,15 @@ invariants:
 health_baseline:
   suite_state: DEGRADED
   command: "python -m pytest tests/ -q --continue-on-collection-errors"
-  measured_at_commit: "88bd4e2"
+  measured_at_commit: "PENDING"
+  # Rafraichie le 2026-07-29 apres AUDIT-EMP-003 : +33 tests (QUAL-01..08 et
+  # INIT-01..06). collected 3886 -> 3919, passed 3862 -> 3895, soit exactement
+  # +33. Les 3 known_failures et l unique erreur de collecte sont INCHANGES,
+  # NOMS verifies un par un.
+  #
   # Rafraichie le 2026-07-29 apres AUDIT-EMP-002 : +46 tests (METRIC-01..06 et
   # SCORE-01..09). collected 3840 -> 3886, passed 3816 -> 3862, soit exactement
-  # +46 : les 3 known_failures et l unique erreur de collecte sont INCHANGES,
-  # NOMS verifies un par un. Aucune dette nouvelle, aucune soldee.
+  # +46 : les 3 known_failures et l unique erreur de collecte etaient INCHANGES.
   # Duree 336 s (355 s au releve precedent) : variance de machine, pas un signal.
   #
   # Rafraichie le 2026-07-28 apres AUDIT-EMP-001 : +11 tests (10 d alignement
@@ -172,9 +246,9 @@ health_baseline:
   # Toujours relancer avec la commande `command:` exacte, sans variable
   # d environnement ajoutee, et comparer les NOMS.
   previous_baseline:
-    measured_at_commit: "da794a5"
-    collected: 3840
-    passed: 3816
+    measured_at_commit: "88bd4e2"
+    collected: 3886
+    passed: 3862
   expected_collection_errors: 1
   known_errors:
     - file: "tests/test_full_integration.py"
@@ -185,12 +259,12 @@ health_baseline:
       note: >
         Dette de maintenance, hors campagne. Ne rapproche ni du burn-in ni de la
         validite de la mesure de N. A traiter hors gel, jamais pendant.
-  collected: 3886
-  passed: 3862
+  collected: 3919
+  passed: 3895
   failed: 3
   skipped: 20
   xfailed: 2
-  duration_s: 336
+  duration_s: 708
   expected_failures: 3
   known_failures:
     - "tests/paper_trading/test_paper_trade_e2e.py::TestPaperTradeCompleteLifecycle::test_mexc_simulator_market_order_complete"
@@ -1199,7 +1273,7 @@ proposed_extensions:
 protocol_validation_campaign:
   status: EN_COURS
   started: "2026-07-28"
-  audits_completed: 2
+  audits_completed: 3
   audits_target: "10-20"
   objective: >
     Appliquer v4.0 a 10-20 audits reels de nature differente (code,
@@ -1215,6 +1289,63 @@ protocol_validation_campaign:
     Une extension sans instance constatee reste PROPOSEE.
   blocks: "toute version v5.x"
   linked_unknown: UNK-006
+
+  # ---------------------------------------------------------------------------
+  # AXES DE QUALITE DES EXPERIENCES (proposes par l'operateur le 2026-07-29)
+  #
+  # Le protocole v4 sert desormais a auditer les EXPERIENCES STATISTIQUES et pas
+  # seulement le code. Les quatre axes ci-dessous ont ete mesures en une passe
+  # par AUDIT-EMP-003 ; la mesure automatique ne vaut PAS verification humaine.
+  # ---------------------------------------------------------------------------
+  experiment_quality_axes:
+    - id: AUDIT-POWER-001
+      question: "toute analyse publie-t-elle son effet minimal detectable ?"
+      instrument: "tools/experiment_quality_audit.py — critere POWER"
+      measured: "2026-07-29 : 3 PASS / 7 FAIL / 9 non liant sur 19 instruments"
+      status: MESURE_AUTOMATIQUE_FAITE
+      remaining: >
+        7 instruments a instruire un par un. Une puissance publiee n'est pas une
+        puissance CORRECTE : l'outil ne verifie que la declaration.
+      invariant: INV-POWER-001
+
+    - id: AUDIT-POPULATION-001
+      question: "toute comparaison dit-elle si les deux populations sont identiques ?"
+      instrument: "tools/experiment_quality_audit.py — critere POPULATION"
+      measured: "2026-07-29 : 9 PASS / 7 FAIL / 3 non liant"
+      status: MESURE_AUTOMATIQUE_FAITE
+      remaining: >
+        Le critere verifie l'usage du loader canonique, PAS la declaration d'une
+        comparaison entre deux populations differentes. Ce second cas releve du
+        type de transformation PROJECTION (protocole v4.1 § 20.1) et n'a AUCUN
+        detecteur automatique : premiere instance gouvernee a la main
+        (DEC-HORIZON-001).
+      invariant: INV-DATASET-001
+
+    - id: AUDIT-TRANSFORMATION-001
+      question: "toute agregation documente-t-elle sa perte d'information ?"
+      instrument: "tools/experiment_quality_audit.py — critere TRANSFORMATION"
+      measured: "2026-07-29 : 8 PASS / 4 FAIL / 7 non liant"
+      status: MESURE_AUTOMATIQUE_PARTIELLE
+      remaining: >
+        L'outil ne verifie que la presence d'une DATE et d'un marqueur de
+        POPULATION sur l'artefact produit — proxy du defaut de la gate D. La
+        perte d'information au sens du § 20 (une moyenne qui masque une
+        bimodalite) n'est pas detectable par balayage lexical. Axe le moins
+        couvert des quatre.
+      invariant: null
+
+    - id: AUDIT-INDEPENDENCE-001
+      question: "toute statistique publie-t-elle son unite d'echantillonnage ?"
+      instrument: "tools/experiment_quality_audit.py — critere INDEPENDENCE"
+      measured: "2026-07-29 : 6 PASS / 0 FAIL / 13 non liant"
+      status: MESURE_AUTOMATIQUE_FAITE
+      remaining: >
+        0 FAIL n'est PAS un bon resultat : le critere ne lie que 6 instruments
+        sur 19, les autres ne calculant aucune statistique de dispersion. La
+        vraie question — les observations sont-elles independantes ? — a ete
+        tranchee a la main une seule fois (bootstrap par blocs de jours,
+        AUDIT-EMP-002 O6) et reste non outillee.
+      invariant: null
 
   audits:
     - id: AUDIT-EMP-001
@@ -1405,6 +1536,107 @@ protocol_validation_campaign:
         - "DEC-HORIZON-001 ouverte. DEC-SHARPE-001 reste EN_ATTENTE."
         - "Reste ouvert : O8 (defaut latent wallet_sync), O9 (verdict local non comparable)."
 
+    - id: AUDIT-EMP-003
+      date: "2026-07-29"
+      nature: METHODOLOGIE
+      trigger: >
+        Constat de l'operateur : les deux incidents les plus couteux de la
+        campagne (AUDIT-EMP-001 et -002) n'etaient pas des erreurs
+        d'algorithme mais des erreurs de METHODOLOGIE DE MESURE. Aucun test
+        unitaire ne pouvait les voir : aucun code n'etait faux. D'ou la
+        proposition d'auditer les EXPERIENCES et non plus seulement le code.
+      scope: >
+        Depot entier. Deux instruments construits pour cet audit :
+        tools/experiment_quality_audit.py (registre de 32 fichiers, 19
+        instruments, 4 criteres) et tools/init_order_audit.py (inventaire AST +
+        differentiel en sous-processus).
+
+      observations:
+        - >
+          O1 POPULATION : 9 instruments accedent a la population par un chemin
+          canonique, SEPT la lisent directement (paper_trading/dataset_validator,
+          audit_r2, burnin_v2_report, counterfactual_replay, shadow_execution,
+          toxicity_report, validate_trade_dataset). INV-DATASET-001 n'etait donc
+          applique qu'aux trois outils touches le 2026-07-28.
+        - >
+          O2 POWER : SEPT instruments concluent sans publier d'effet minimal
+          detectable, dont cri_calculator (publie 4 exigences de VOLUME et
+          aucune puissance) et les deux scripts de gate. TROIS en publient un.
+        - >
+          O3 TRANSFORMATION : QUATRE instruments ecrivent un artefact sans date
+          ni marqueur de population (exit_audit, exit_replay, shadow_execution,
+          validate_trade_dataset) — meme forme que le defaut de la gate D.
+        - >
+          O4 INDEPENDENCE : apres declaration, 6 PASS et 0 FAIL, mais 13 N/A —
+          la plupart des instruments ne calculent aucune statistique de
+          dispersion, le critere ne les lie donc pas. Ce n'est pas un bon score,
+          c'est un critere peu liant sur ce depot.
+        - >
+          O5 INIT-ORDER : 234 constantes lues a l'import via os.getenv dans 74
+          fichiers ; 15 classees CAPITAL / RISQUE / EXECUTION. Differentiel en
+          sous-processus sur 3 d'entre elles : wallet_sync._PAPER_CAPITAL
+          DEPENDANT_DE_L_ORDRE (100.0 vs 1000.0), black_box._BB_MAX_SIZE STABLE
+          (variable definie, valeur egale au defaut),
+          system_state_bus._MAX_QUEUE_SIZE NON_CONTRAINT (variable absente de
+          l'env : l'egalite ne prouve rien, le motif reste latent).
+        - >
+          O6 L'outil de qualite s'est audite lui-meme et a produit un FAUX
+          POSITIF : la phrase "aucun intervalle de confiance n'aurait de sens
+          ici" a ete comptee comme une statistique de dispersion. Les motifs
+          ignorent la POLARITE. Limite documentee dans la surface de garantie.
+
+      falsifier_tested: >
+        POSE AVANT LA MESURE : si les quatre criteres rendent PASS partout, ils
+        ne mesurent rien et doivent etre retires (regle de proportionnalite, § 6
+        du protocole). Si un critere rend FAIL partout, il est mal calibre.
+      falsifier_outcome: NON_REFUTE
+      falsifier_detail: >
+        Trois criteres discriminent (POPULATION 9/7, POWER 3/7, TRANSFORMATION
+        8/4). Le quatrieme, INDEPENDENCE, ne lie que 6 instruments sur 19 : il
+        n'est pas mal calibre mais il est peu liant, et son 0 FAIL ne doit pas
+        etre lu comme une qualite du depot.
+
+      what_the_protocol_caught: >
+        La regle de formation ("une occurrence est un accident, deux sont une
+        propriete du processus") a change la forme des deux invariants. Ecrire
+        INV-POWER-001 sur la seule lecture de Pearson aurait ete de la
+        superstition ; l'inventaire en a produit sept instances. De meme,
+        INV-INIT-001 n'a PAS ete ecrit sur le seul cas wallet_sync : c'est
+        l'inventaire de 234 constantes, dont 15 critiques, qui etablit la
+        propriete. La materialisation, elle, reste prouvee une seule fois.
+
+      what_the_protocol_missed:
+        - >
+          POLARITE (nouvelle famille) : un instrument de detection lexicale
+          confond une affirmation et sa negation. Constate sur cet outil meme
+          (O6). Le protocole exige des declarations mais ne dit rien de leur
+          verification automatique — et une declaration verifiee par mot-cle est
+          verifiable par contournement.
+        - >
+          COUVERTURE DE L'INSTRUMENT : INV-INIT-001 est enonce sur 234
+          constantes et mesure sur 3. Rien dans le protocole n'obligeait a
+          publier ce ratio a cote de l'invariant. Il est desormais dans son
+          scope_note, mais c'est une decision d'auteur, pas une regle.
+
+      cost: >
+        Deux instruments, 33 tests, une passe d'audit de quelques secondes.
+        Aucune ligne du moteur de trading modifiee. Les resultats sont
+        actionnables immediatement (7 + 7 + 4 defaillances nommees, avec
+        numero de ligne).
+
+      outcome:
+        - "INV-POWER-001 et INV-INIT-001 formes a partir de ces inventaires."
+        - "DEC-INIT-001 ouverte (rendre une constante paresseuse deplace un KPI)."
+        - "Protocole v4.1 : type de transformation PROJECTION entre populations."
+        - "33 tests ajoutes (QUAL-01..08, INIT-01..06)."
+        - >
+          Reste ouvert : 18 defaillances nommees (7 POPULATION, 7 POWER, 4
+          TRANSFORMATION) non corrigees — chacune est un ticket potentiel, aucune
+          n'est urgente au sens de la campagne (INV-ROI-001 s'applique).
+        - >
+          Reste ouvert : 231 constantes d'INIT-ORDER inventoriees mais non
+          mesurees empiriquement.
+
 # -----------------------------------------------------------------------------
 # DECISIONS EN ATTENTE
 # -----------------------------------------------------------------------------
@@ -1445,6 +1677,45 @@ decisions:
       non significatifs. La conclusion ne depend pas du choix : a N=106, absence
       de preuve suffisante que l'esperance est positive — et non preuve qu'elle
       est negative.
+
+  - id: DEC-INIT-001
+    question: >
+      Faut-il rendre paresseuses les constantes de module lues via os.getenv qui
+      gouvernent le capital, le risque et l'execution (15 constantes) ?
+    authority: "OPERATEUR — deplace un KPI face a un seuil de gate. ADR requis."
+    status: EN_ATTENTE
+    raised: "2026-07-29"
+    raised_by: "AUDIT-EMP-003"
+    measured_on: "depot entier, tools/init_order_audit.py, 2026-07-29"
+    observations:
+      - "234 constantes lues a l'import dans 74 fichiers ; 15 CAPITAL/RISQUE/EXECUTION"
+      - "wallet_sync._PAPER_CAPITAL : 100.0 sans .env, 1000.0 avec (PROUVE)"
+      - "drawdown des 121 canoniques : 9.42 % avec base 100, 0.95 % avec base 1000"
+      - "seuil de la gate B : MaxDD < 10 % — les deux valeurs se placent de part et d'autre"
+      - "3 constantes sur 234 mesurees empiriquement ; 231 seulement inventoriees"
+    why_it_matters: >
+      Un verdict de gate qui depend de l'ordre d'import n'est pas reproductible.
+      Mais le correctif n'est pas neutre : lire le capital au moment de l'appel
+      ferait passer le drawdown mesure de 9.42 % a 0.95 % dans le scenario
+      constate, soit une amelioration apparente de KPI produite par un
+      changement d'implementation — exactement ce que le gel interdit sans ADR.
+    why_not_decided_now: >
+      Deux raisons distinctes. (1) AUTORITE : deplacer un KPI face a un seuil est
+      une decision d'operateur (INV-4). (2) INFORMATION : la materialisation est
+      prouvee sur 1 constante sur 234 ; decider pour les 15 critiques sur cette
+      base serait generaliser au-dela de la mesure.
+    alternatives_considered:
+      - "ne rien changer et documenter la dependance (etat actuel)"
+      - >
+        etendre d'abord RUNTIME_REGISTRY aux 15 constantes critiques dont
+        l'import est sans effet de bord, puis decider sur mesure complete —
+        RETENUE COMME PROCHAINE ETAPE DE MESURE, pas comme decision
+      - "rendre les 15 paresseuses d'un coup — refuse : deplace des KPI en masse"
+      - >
+        garantir l'ordre au demarrage (load_dotenv avant tout import applicatif)
+        plutot que changer les constantes : ne deplace aucun KPI en regime normal
+        mais reste une modification d'amorcage, donc a instruire
+    blocked_by: "INV-4 + couverture de mesure insuffisante (3/234)"
 
   - id: DEC-HORIZON-001
     question: >

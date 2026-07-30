@@ -1,6 +1,6 @@
 # Protocole d'audit épistémique
 
-- **Version** : 4.0
+- **Version** : 4.1
 - **Statut** : Draft
 - **Auteur** : Mathieu (opérateur du projet), en co-conception assistée
 - **Date** : 2026-07-24
@@ -518,9 +518,21 @@ Quatre règles nées d'échecs constatés, non d'anticipations théoriques. Chac
 | **INV-TRACE-001** | Le diff doit égaler **exactement** le contrat annoncé. | un ticket annonçant 1 fichier en ayant emporté 43 |
 | **INV-HEALTH-001** | La santé de la suite de tests est un **état de référence mesuré**, pas un caveat. `observé > attendu` → FAIL. | une suite dont la collecte échouait, rendant tout « vert » non comparable |
 | **INV-RESTORE-001** | Toute expérimentation destructive exige un point de restauration **vérifiable** (commit, stash vérifié, branche). La confiance dans le working tree n'est pas acceptée. | **deux** pertes de travail par le même mécanisme dans une même session |
+| **INV-POWER-001** *(v4.1)* | Toute conclusion d'**absence** d'effet est plafonnée tant que l'**effet minimal détectable** n'est pas publié. La puissance se lit **avant** la significativité. Une exigence de **volume** ne vaut pas une puissance. | **sept** instruments d'un même dépôt concluant sans publier ce qu'ils pouvaient détecter — dont un indice de préparation bâti sur quatre seuils de volume et aucune puissance |
 
 > `INV-RESTORE-001` illustre la règle de formation : **une occurrence est un accident, deux sont une
 > propriété du processus.** Une règle écrite après un incident unique est de la superstition.
+>
+> `INV-POWER-001` a été formé selon la même règle, mais par **inventaire** plutôt que par
+> répétition temporelle : l'instance déclenchante était unique (un coefficient de corrélation nul
+> lu comme une absence d'effet, sur un échantillon dont 45 % des observations partageaient une
+> seule valeur et dont la résolution était de 0.25) ; c'est le balayage des dix-neuf instruments
+> du dépôt qui a établi la propriété. **Sept instances mesurées en une passe valent deux
+> occurrences séparées dans le temps** — et coûtent une journée de moins à constater.
+>
+> Corollaire lexical : « non significatif » et « pas d'effet » ne sont pas synonymes. Le premier
+> est un résultat de test, le second une affirmation sur le monde. Le double filtre lexical (§ 7)
+> doit refuser le second quand la puissance n'est pas publiée.
 
 ---
 
@@ -589,6 +601,82 @@ TRANSFORMATION  T2
 > Mode d'échec : déclarer les transformations triviales et manquer celle qui change le sens.
 > Falsificateur : une décision invalidée par une transformation non déclarée en amont.
 
+### 20.1 Type de transformation : PROJECTION entre populations *(v4.1)*
+
+Les cinq transformations du § 20 (nettoyage, agrégation, normalisation, métrique, filtrage)
+opèrent **à l'intérieur** d'une population. Il en existe une sixième, plus discrète, qui opère
+**entre deux populations** : conclure sur A en s'appuyant sur ce qu'on a mesuré sur B.
+
+```
+Observation A                        Observation B
+     │                                    │
+     ▼                                    ▼
+candidats non exécutés                trades exécutés
+rendement à 24 h                      PnL réalisé sur ~6 h
+     │                                    │
+     └──────────────► PROJECTION ◄────────┘
+                          │
+                    ═════════════
+                    RAPPROCHEMENT
+                    ═════════════
+                          │
+                          ✗  ne devient PAS une preuve causale
+```
+
+Une projection n'est ni une observation (rien n'a été constaté sur la population cible) ni une
+inférence ordinaire (le pas logique n'est pas déductif) : **c'est une hypothèse de transport**.
+Elle introduit toujours au moins une supposition supplémentaire — que les deux populations sont
+comparables sur la dimension qui porte la conclusion — et cette supposition est presque toujours
+tacite.
+
+```
+TRANSFORMATION  P#   (type : PROJECTION)
+  operation              : conclure sur la population CIBLE a partir de la population SOURCE
+  source / cible         : les deux populations, avec leurs criteres de selection
+  selection_difference   : ce qui distingue les deux ECHANTILLONNAGES, pas les deux mesures
+  assumptions_introduced : "transportable sur la dimension X" — a enoncer, jamais a supposer
+  information_loss       : aucune donnee n'est detruite ; c'est la GARANTIE qui est perdue
+  reversibility          : sans objet — une projection ne se defait pas, elle se teste
+  falsifier              : une mesure sur la population CIBLE elle-meme, meme petite
+```
+
+**Règles.**
+
+1. **Une projection plafonne la conclusion au niveau `HYPOTHESE`**, quel que soit le volume de la
+   population source. Dix-huit mille observations sur B ne produisent pas une observation sur A.
+2. **La différence de sélection doit être écrite**, pas la différence de mesure. « Candidats
+   bloqués » vs « trades exécutés » n'est pas une nuance de protocole : c'est deux populations
+   choisies par des mécanismes différents, dont l'un est précisément le mécanisme étudié.
+3. **Le falsificateur d'une projection est toujours disponible** : mesurer la cible. S'il n'est pas
+   exécuté, la raison doit être écrite (coût, gel, autorité) — jamais implicite.
+4. **Une projection non déclarée est le mode d'échec le plus coûteux du § 20**, parce qu'elle ne
+   modifie aucune donnée : rien dans le pipeline ne la signale, et le lecteur voit deux mesures
+   solides encadrant une conclusion qui n'appartient à aucune des deux.
+
+**Exemple (précédent réel, 2026-07-29).**
+
+```
+TRANSFORMATION  P1   (type : PROJECTION)
+  operation   : conclure que la politique de sortie tronque le signal d'entree
+  source      : 18 716 candidats BLOQUES, rendement signe a 24 h, hors frais
+  cible       : 121 trades EXECUTES, PnL realise, duree moyenne 5.92 h
+  selection_difference   : la source est selectionnee par le blocage (meta/gate),
+                           la cible par le passage des gates — le mecanisme de
+                           selection EST l'objet de l'etude
+  assumptions_introduced : que le rendement forward d'un candidat bloque est
+                           transportable au trade execute correspondant
+  falsifier              : rejouer les 121 executes contre le rendement a 24 h de
+                           la MEME paire au MEME instant (population unique)
+  statut                 : HYPOTHESE. Falsificateur disponible, NON execute
+                           (gel scientifique + autorite operateur)
+```
+
+> Domaine : tout audit disposant de deux jeux de données pour une seule question.
+> Mode d'échec : présenter un rapprochement quantifié comme une mesure, parce que les deux
+> observations qui l'encadrent sont, elles, rigoureuses.
+> Falsificateur de la règle elle-même : une projection dont le transport serait démontré par
+> construction (échantillonnage aléatoire commun) — auquel cas ce n'en est plus une.
+
 ---
 
 ## 21. Historique des versions
@@ -597,6 +685,7 @@ TRANSFORMATION  T2
 |---|---|---|
 | **v1.0** | 2026-07-23 | quatre catégories (Observation/Inférence/Hypothèse/Décision) ; maillon faible ; portée ; source/couverture ; double falsificateur ; double filtre lexical ; proportionnalité |
 | **v2.0** | 2026-07-23 | composition/fermeture (DAG) ; graphe de dépendances + défaiteurs ; rétracter ≠ nier ; voir/croire/vouloir (guillotine de Hume) ; révisabilité mécanique |
+| **v4.1** | 2026-07-29 | type de transformation **PROJECTION entre populations** (§ 20.1) : conclure sur A en mesurant B est une *hypothèse de transport*, plafonnée à `HYPOTHESE`, dont le falsificateur est toujours disponible ; **INV-POWER-001** (§ 19) : la puissance se lit avant la significativité, et un seuil de volume n'est pas une puissance ; règle de formation étendue — *N instances mesurées en une passe* valent *deux occurrences séparées dans le temps* |
 | **v4.0** | 2026-07-27 | couche **TRANSFORMATION** : les operations entre observation et decision deviennent gouvernees (perte d'information, hypotheses introduites, reversibilite, falsificateur) ; surface de garantie evolutive (3e colonne) ; `max_acceptable_cost` sur dette critique ; non-comparabilite des indices |
 | **v3.1** | 2026-07-27 | trois niveaux gouvernés (conclusions/observations/instruments) ; `UNKNOWN` vs `BLIND_SPOT` + cycle de vie interdisant le saut direct ; échelle de dette **normative** réconciliée (5 niveaux définis) ; dette critique **démontrable** ; chapitre obligatoire de dette résiduelle ; surface de garantie ; 4 invariants opérationnels ; indice plafonné par la pire dette |
 | **v3.0** | 2026-07-24 | représentativité (échantillon/population, `NON ÉVALUABLE`, biais directionnels) ; plafond « état mutable » ; dette épistémique relative à une décision ; indice de robustesse méthodologique (3 garde-fous) ; principe de symétrie (parité d'effort de recherche) |
