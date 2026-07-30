@@ -32,14 +32,27 @@ Surface de garantie
 | ✓ Mesure | ✗ Ne mesure **pas** |
 |---|---|
 | ce qu'une règle a détecté, tel que consigné | si le registre est sincère ou complet |
-| le coût en faux positifs consignés | les faux NÉGATIFS — ce qu'aucune règle n'a vu |
+| le coût en faux positifs consignés | les faux NÉGATIFS — non estimés à ce jour |
+| l'effort ORDINAL et sa base déclarée | le temps réel passé, jamais chronométré |
+| les décisions réellement changées | la valeur de ces décisions |
 | si une règle a déjà eu l'occasion de mordre | si une règle non liée est inutile |
 | l'absence d'une règle au registre | si un compte a été gonflé par optimisme |
 
-**Le trou principal est déclaré : les faux négatifs sont invisibles.** Un défaut
-qu'aucune règle n'a cherché ne laisse aucune trace dans ce registre. La seule
-parade connue est la campagne adversariale — qui a effectivement produit 12
-défauts qu'aucune règle n'avait vus.
+**Le trou principal est déclaré : les faux négatifs sont NON ESTIMÉS.** Un
+défaut qu'aucune règle n'a cherché ne laisse aucune trace dans ce registre. Non
+estimé n'est pas inobservable : plusieurs méthodes pourraient en borner le taux —
+injections contrôlées de défauts connus, jeux de cas synthétiques, audits
+indépendants ciblés, campagne adversariale. Une seule a produit quelque chose à
+ce jour (12 défauts qu'aucune règle n'avait vus) ; aucune n'est instrumentée.
+L'espace des méthodes reste **ouvert**, et le fermer prématurément serait la
+faute que ce protocole cherche à empêcher.
+
+**Dimension économique (INV-ROI-001).** Compter les détections ne suffit pas :
+deux règles à deux détections ne se valent pas si l'une a évité une erreur
+mineure et l'autre une décision qui aurait contaminé une campagne. Le registre
+porte donc aussi `decisions_changed`, `effort` (ordinal, base mesurable
+déclarée) et `severity_avoided`. Aucun ratio n'est calculé : diviser deux
+ordinaux ne produit pas un nombre, seulement l'apparence d'un.
 
 **Population consommée : aucune.** Cet outil lit le manifeste et le code, jamais
 un dataset de trades. Verdicts **déterministes** : aucune inférence statistique,
@@ -82,6 +95,17 @@ VERDICT_NON_DETECTING = "NON_DETECTRICE"
 VERDICT_NEVER_BOUND = "JAMAIS_LIEE"
 
 
+#: Echelle ORDINALE d'effort, du moins cher au plus cher. Aucun temps n'a ete
+#: chronometre : publier des heures serait inventer un chiffre. La BASE de chaque
+#: classement est en revanche mesurable (outils construits, tests ecrits).
+EFFORT_ORDER = ["NUL", "FAIBLE", "MOYEN", "ELEVE"]
+
+#: Gravite de ce qui a ete EVITE, pas de ce qui a ete trouve. Deux regles a deux
+#: detections ne se valent pas si l'une a evite une erreur mineure et l'autre une
+#: decision qui aurait contamine une campagne entiere.
+SEVERITY_ORDER = ["NULLE", "MINEURE", "MAJEURE", "CRITIQUE"]
+
+
 @dataclass
 class RuleEfficacy:
     id: str
@@ -91,8 +115,38 @@ class RuleEfficacy:
     prevented: int
     never_bound: bool
     verdict: str
+    decisions_changed: int = 0
+    effort: str = "?"
+    severity_avoided: str = "NULLE"
+    economics: str = ""
     note: str = ""
     detections: list[str] = field(default_factory=list)
+
+    @property
+    def yield_reading(self) -> str:
+        """Lecture ECONOMIQUE — INV-ROI-001. Jamais un score, toujours une phrase.
+
+        Un ratio « detections / effort » serait un faux chiffre : l'effort est
+        ordinal, la gravite aussi, et diviser deux ordinaux ne produit rien. On
+        rend donc un classement en clair, dont chaque terme renvoie a une
+        observation consignee.
+        """
+        cher = self.effort in ("ELEVE", "MOYEN")
+        grave = self.severity_avoided in ("MAJEURE", "CRITIQUE")
+        if self.decisions_changed > 0 and self.effort in ("NUL", "FAIBLE"):
+            return "RENDEMENT ELEVE — cout faible, decision(s) changee(s)"
+        if self.decisions_changed > 0:
+            return "JUSTIFIEE — cout reel, mais a change une decision"
+        if grave and cher:
+            return "COUTEUSE MAIS COUVRANTE — rien change, gravite evitee elevee"
+        if cher and self.detected == 0:
+            return "A INSTRUIRE — cout engage, aucun resultat a ce jour"
+        if cher and self.detected > 0:
+            # Distinction qui manquait : une regle chere QUI TROUVE mais dont
+            # rien n'a decoule n'est pas « a laisser courir ». Elle est en
+            # attente de son premier effet.
+            return "TROUVE SANS EFFET — cout reel, aucune decision changee"
+        return "COUT FAIBLE — a laisser courir"
 
 
 @dataclass
@@ -110,6 +164,8 @@ class EfficacyReport:
     generated_at: str
     measured_at: str
     caveat: str
+    effort_caveat: str
+    severity_scale: str
     rules: list[RuleEfficacy]
     axes: list[AxisEfficacy]
     unregistered_rules: list[str]
@@ -164,6 +220,10 @@ def build_report(manifest_path: Path = MANIFEST) -> EfficacyReport:
                 prevented=int(entry.get("prevented") or 0),
                 never_bound=never,
                 verdict=_verdict(detected, fp, never),
+                decisions_changed=int(entry.get("decisions_changed") or 0),
+                effort=str(entry.get("effort") or "?"),
+                severity_avoided=str(entry.get("severity_avoided") or "NULLE"),
+                economics=(entry.get("economics") or "").strip(),
                 note=(entry.get("note") or "").strip(),
                 detections=list(entry.get("detections") or []),
             )
@@ -195,6 +255,15 @@ def build_report(manifest_path: Path = MANIFEST) -> EfficacyReport:
     totals = {
         "rules": len(rules),
         "detections": sum(r.detected for r in rules),
+        "decisions_changed": sum(r.decisions_changed for r in rules),
+        "rules_changing_a_decision": sum(1 for r in rules if r.decisions_changed),
+        "costly_without_result": sum(
+            1
+            for r in rules
+            if r.effort in ("MOYEN", "ELEVE")
+            and r.detected == 0
+            and r.decisions_changed == 0
+        ),
         "false_positives": sum(r.false_positives for r in rules),
         "prevented": sum(r.prevented for r in rules),
         VERDICT_PRODUCTIVE: sum(1 for r in rules if r.verdict == VERDICT_PRODUCTIVE),
@@ -227,6 +296,8 @@ def build_report(manifest_path: Path = MANIFEST) -> EfficacyReport:
         generated_at=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         measured_at=str(ledger.get("measured_at") or "inconnu"),
         caveat=(ledger.get("caveat") or "").strip(),
+        effort_caveat=(ledger.get("effort_caveat") or "").strip(),
+        severity_scale=(ledger.get("severity_scale") or "").strip(),
         rules=rules,
         axes=axes,
         unregistered_rules=manquantes,
@@ -256,19 +327,32 @@ def render_text(report: EfficacyReport) -> str:
     add("-" * 78)
     add("  RÈGLES")
     add("-" * 78)
-    add("    règle                 détect.  FP  prév.  verdict")
-    for rule in sorted(report.rules, key=lambda r: (-r.detected, r.id)):
+    add("    règle                 détect.  FP  déc.  effort  gravité   verdict")
+    for rule in sorted(
+        report.rules, key=lambda r: (-r.decisions_changed, -r.detected, r.id)
+    ):
         add(
             f"    {rule.id:<20} {rule.detected:>6}  {rule.false_positives:>3}"
-            f"  {rule.prevented:>4}   {rule.verdict}"
+            f"  {rule.decisions_changed:>4}  {rule.effort:<6}  "
+            f"{rule.severity_avoided:<8}  {rule.verdict}"
         )
     add("")
+    if report.effort_caveat:
+        for phrase in report.effort_caveat.split(". "):
+            if phrase.strip():
+                add("    " + " ".join(phrase.split())[:200])
+        add("")
 
     add("-" * 78)
     add("  SYNTHÈSE")
     add("-" * 78)
     t = report.totals
     add(f"    détections réelles          {t['detections']}")
+    add(
+        f"    DÉCISIONS changées          {t['decisions_changed']}"
+        f"  (par {t['rules_changing_a_decision']} règles)"
+    )
+    add(f"    coûteuses sans résultat     {t['costly_without_result']}")
     add(f"    faux positifs consignés     {t['false_positives']}")
     add(f"    familles de FP empêchées    {t['prevented']}")
     add("")
@@ -288,6 +372,30 @@ def render_text(report: EfficacyReport) -> str:
             f"    {axis.id:<26} {axis.binding:>6} {axis.passed:>3} {axis.failed:>5}"
             f"   {marque}"
         )
+    add("")
+
+    add("-" * 78)
+    add("  LECTURE ÉCONOMIQUE — INV-ROI-001")
+    add("-" * 78)
+    add("    Deux règles à deux détections ne se valent pas : ce qui compte est")
+    add("    ce qu'elles ont COÛTÉ et ce qu'elles ont ÉVITÉ.")
+    add("")
+    for rule in sorted(
+        report.rules,
+        key=lambda r: (
+            -r.decisions_changed,
+            -(
+                SEVERITY_ORDER.index(r.severity_avoided)
+                if r.severity_avoided in SEVERITY_ORDER
+                else 0
+            ),
+        ),
+    ):
+        if rule.effort == "NUL" and rule.decisions_changed == 0:
+            continue
+        add(f"    {rule.id:<20} {rule.yield_reading}")
+        if rule.economics:
+            add("        " + " ".join(rule.economics.split())[:160])
     add("")
 
     candidats = [r for r in report.rules if r.verdict != VERDICT_PRODUCTIVE]
@@ -323,8 +431,12 @@ def render_text(report: EfficacyReport) -> str:
     add(f"    PLAFOND FINAL               {report.confidence_ceiling}")
     add(f"    → {report.ceilings['binding_reason']}")
     add("")
-    add("    Ce que ce rapport NE mesure PAS : les faux NÉGATIFS. Un défaut")
-    add("    qu'aucune règle n'a cherché ne laisse aucune trace ici.")
+    add("    Ce que ce rapport ne mesure pas : les faux NÉGATIFS. Un défaut")
+    add("    qu'aucune règle n'a cherché ne laisse aucune trace ici. Ils sont")
+    add("    NON ESTIMÉS — pas inobservables. Plusieurs méthodes pourraient en")
+    add("    borner le taux : injections contrôlées, jeux de cas synthétiques,")
+    add("    audits indépendants ciblés, campagne adversariale. Aucune n'est")
+    add("    instrumentée à ce jour ; l'espace des méthodes reste ouvert.")
     add("=" * 78)
     return "\n".join(lines)
 

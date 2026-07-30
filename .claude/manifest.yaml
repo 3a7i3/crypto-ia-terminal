@@ -382,7 +382,11 @@ invariants:
 health_baseline:
   suite_state: DEGRADED
   command: "python -m pytest tests/ -q --continue-on-collection-errors"
-  measured_at_commit: "a366cbf"
+  measured_at_commit: "PENDING"
+  # Rafraichie le 2026-07-30, dimension economique du registre (EFF-07/08) :
+  # +6 tests. collected 4019 -> 4025, passed 3995 -> 4001, soit exactement +6.
+  # Les 3 known_failures et l unique erreur de collecte sont INCHANGES.
+  #
   # Rafraichie le 2026-07-30 apres le GEL du protocole (v4.5) : +10 tests
   # (EFF-01..06). collected 4009 -> 4019, passed 3985 -> 3995, soit exactement
   # +10. Les 3 known_failures et l unique erreur de collecte sont INCHANGES.
@@ -426,9 +430,9 @@ health_baseline:
   # Toujours relancer avec la commande `command:` exacte, sans variable
   # d environnement ajoutee, et comparer les NOMS.
   previous_baseline:
-    measured_at_commit: "4232b11"
-    collected: 4009
-    passed: 3985
+    measured_at_commit: "a366cbf"
+    collected: 4019
+    passed: 3995
   expected_collection_errors: 1
   known_errors:
     - file: "tests/test_full_integration.py"
@@ -439,12 +443,12 @@ health_baseline:
       note: >
         Dette de maintenance, hors campagne. Ne rapproche ni du burn-in ni de la
         validite de la mesure de N. A traiter hors gel, jamais pendant.
-  collected: 4019
-  passed: 3995
+  collected: 4025
+  passed: 4001
   failed: 3
   skipped: 20
   xfailed: 2
-  duration_s: 346
+  duration_s: 674
   expected_failures: 3
   known_failures:
     - "tests/paper_trading/test_paper_trade_e2e.py::TestPaperTradeCompleteLifecycle::test_mexc_simulator_market_order_complete"
@@ -1477,6 +1481,25 @@ protocol_validation_campaign:
     laissent passer. Premier releve (tools/protocol_efficacy_audit.py) : 6 regles
     PRODUCTIVES sur 14, 4 jamais liees, 4 liantes sans aucune detection, et 3 axes
     sur 6 ne rendent JAMAIS FAIL.
+  critere_de_sortie: >
+    NI UNE DATE, NI UN NOMBRE D'ITERATIONS. Le gel se leve quand le registre
+    d'efficacite porte assez d'observations pour fonder un retrait sur des
+    donnees. Trois conditions : (1) les 4 regles JAMAIS_LIEE ont rencontre ou non
+    leur cas, et on sait dire lequel ; (2) les 3 axes qui ne rendent jamais FAIL
+    ont produit un FAIL ou ont ete eprouves la ou ils auraient du en produire ;
+    (3) au moins une methode d'estimation des faux negatifs a ete essayee.
+    INDICATEUR DE MATURITE : si la campagne conduit principalement a RETIRER,
+    SIMPLIFIER ou FUSIONNER des regles plutot qu'a en ajouter, le protocole aura
+    atteint une maturite reelle. Si elle produit surtout de nouveaux axes, la
+    complexite croit encore.
+  faux_negatifs: >
+    NON ESTIMES, et non inobservables — formulation corrigee le 2026-07-30.
+    Quatre methodes possibles, aucune instrumentee : injection controlee de
+    defauts connus, jeux de cas synthetiques par axe, audit independant cible,
+    campagne adversariale. Seule la derniere a produit quelque chose (12 defauts
+    en une passe) ; une instance ne departage pas quatre methodes. Statut
+    UNKNOWN, pas BLIND_SPOT : l'instrument n'existe pas encore, rien ne montre
+    qu'il ne peut pas exister.
   regle_orthogonalite: >
     Tout nouvel axe doit exhiber un DEFAUT REEL qu'aucun axe existant ne capture
     ni ne classe correctement. Sans ce cas concret, l'axe decrit une deuxieme fois
@@ -2399,10 +2422,28 @@ protocol_efficacy:
     seul auditeur, sur un seul depot. Aucune regle n'a encore ete eprouvee par un
     tiers ni sur un autre projet. Les compteurs ci-dessous mesurent une activite,
     pas une valeur intrinseque.
+  effort_caveat: >
+    `effort` est une ECHELLE ORDINALE, pas une duree. Aucun temps n'a ete
+    chronometre pendant la campagne ; publier des heures serait inventer un
+    chiffre. La base declaree (`effort_basis`) est en revanche MESURABLE :
+    nombre d'outils construits, de tests ecrits, de fichiers refactores. Deux
+    regles de meme `effort` peuvent avoir coute des temps reels tres differents.
+  severity_scale: >
+    CRITIQUE : aurait produit une fausse garantie generale.
+    MAJEURE  : aurait fausse ou bloque une decision reelle.
+    MINEURE  : defaut reel sans consequence decisionnelle constatee.
+    NULLE    : aucune consequence identifiee a ce jour.
 
   rules:
     - id: INV-1
       title: "Passivite absolue des observers (ADR-0007)"
+      decisions_changed: 0
+      effort: NUL
+      effort_basis: >
+        regle heritee d'ADR-0007, aucun outil construit pendant la campagne
+      severity_avoided: NULLE
+      economics: >
+        cout nul cette campagne ; protege un etat rarement rencontre
       detected: 0
       false_positives: 0
       never_bound: true
@@ -2412,6 +2453,13 @@ protocol_efficacy:
 
     - id: INV-2
       title: "Aucun reset de N sans ADR d'epoque"
+      decisions_changed: 0
+      effort: NUL
+      effort_basis: >
+        regle heritee, aucun outil construit
+      severity_avoided: NULLE
+      economics: >
+        cout nul ; le jour ou elle mordra, elle evitera la perte du burn-in
       detected: 0
       false_positives: 0
       never_bound: true
@@ -2419,6 +2467,13 @@ protocol_efficacy:
 
     - id: INV-3
       title: "paper_trades.jsonl : ecrivains uniques"
+      decisions_changed: 0
+      effort: NUL
+      effort_basis: >
+        regle heritee, aucun outil construit
+      severity_avoided: NULLE
+      economics: >
+        cout nul ; protege l'immuabilite du dataset
       detected: 0
       false_positives: 0
       never_bound: true
@@ -2426,6 +2481,13 @@ protocol_efficacy:
 
     - id: INV-4
       title: "Aucun seuil modifie avant N >= 500 et CRI >= 90"
+      decisions_changed: 3
+      effort: NUL
+      effort_basis: >
+        regle heritee de CLAUDE.md, aucun outil construit
+      severity_avoided: MAJEURE
+      economics: >
+        MEILLEUR RAPPORT de la campagne : cout nul, 3 decisions bloquees (DEC-SHARPE-001, DEC-HORIZON-001, DEC-INIT-001) dont deux auraient deplace un seuil sur un echantillon 5x trop petit
       detected: 0
       false_positives: 0
       never_bound: false
@@ -2436,6 +2498,13 @@ protocol_efficacy:
 
     - id: INV-DATASET-001
       title: "Loader unique, population declaree"
+      decisions_changed: 1
+      effort: ELEVE
+      effort_basis: >
+        1 loader unifie + 3 outils realignes + 10 tests ALIGN
+      severity_avoided: MAJEURE
+      economics: >
+        cout eleve, mais SEUL impact decisionnel prouve : verdict burn-in NO_GO -> DEGRADED, sur un drawdown de 33.55 % herite d'epoques mortes
       detected: 2
       false_positives: 1
       never_bound: false
@@ -2448,6 +2517,13 @@ protocol_efficacy:
 
     - id: INV-METRIC-001
       title: "Un KPI porte le nom de sa formule"
+      decisions_changed: 1
+      effort: MOYEN
+      effort_basis: >
+        1 bibliotheque (380 l.) + 2 refactors + 22 tests METRIC
+      severity_avoided: MAJEURE
+      economics: >
+        a revele qu'un seuil de gate etait structurellement infranchissable (gate B, Sharpe > 1.0) — DEC-SHARPE-001 ouverte
       detected: 1
       false_positives: 0
       never_bound: false
@@ -2459,6 +2535,13 @@ protocol_efficacy:
 
     - id: INV-FRICTION-001
       title: "Plancher d'edge"
+      decisions_changed: 1
+      effort: FAIBLE
+      effort_basis: >
+        1 fonction + 4 tests, mesuree par difference sans config
+      severity_avoided: MAJEURE
+      economics: >
+        MEILLEUR RENDEMENT construit : quelques lignes, et une classe entiere d'optimisations (sizing, portefeuille) devient injustifiable tant que l'edge brut ne couvre pas 0.194 %
       detected: 0
       false_positives: 0
       never_bound: false
@@ -2470,6 +2553,13 @@ protocol_efficacy:
 
     - id: INV-POWER-001
       title: "Puissance avant significativite"
+      decisions_changed: 1
+      effort: ELEVE
+      effort_basis: >
+        1 outil d'audit de score (1200 l.) + 1 outil de qualite + 24 tests
+      severity_avoided: MAJEURE
+      economics: >
+        a change une conclusion : « le score n'informe pas » est devenu « la question n'est pas posable sur cette population »
       detected: 8
       false_positives: 1
       never_bound: false
@@ -2482,6 +2572,13 @@ protocol_efficacy:
 
     - id: INV-INIT-001
       title: "INIT-ORDER : la configuration precede les imports"
+      decisions_changed: 0
+      effort: MOYEN
+      effort_basis: >
+        1 outil (AST + differentiel en sous-processus) + 13 tests
+      severity_avoided: MINEURE
+      economics: >
+        1 materialisation prouvee, 0 decision changee. Le defaut est LATENT : il n'a jamais fausse un verdict en conditions reelles
       detected: 1
       false_positives: 0
       never_bound: false
@@ -2494,6 +2591,13 @@ protocol_efficacy:
 
     - id: INV-COVERAGE-001
       title: "Toute couverture porte son plafond"
+      decisions_changed: 0
+      effort: FAIBLE
+      effort_basis: >
+        1 dataclass + grille de seuils + 6 tests
+      severity_avoided: MINEURE
+      economics: >
+        0 detection, 0 decision changee. Effet d'EXPRESSION : borne ce qu'un rapport a le droit d'affirmer. Valeur reelle mais non mesuree ici
       detected: 0
       false_positives: 0
       never_bound: false
@@ -2505,6 +2609,13 @@ protocol_efficacy:
 
     - id: INV-PROOF-001
       title: "Constructeur unique du bloc de preuve"
+      decisions_changed: 0
+      effort: MOYEN
+      effort_basis: >
+        1 constructeur + point d'instrumentation + 8 tests
+      severity_avoided: NULLE
+      economics: >
+        0 detection, 0 decision, cout moyen. La regle la plus chere par unite de resultat a ce jour — extrapolation assumee, en attente de son cas
       detected: 0
       false_positives: 0
       never_bound: true
@@ -2515,6 +2626,13 @@ protocol_efficacy:
 
     - id: INV-ADOPTION-001
       title: "Tout mecanisme publie son taux d'adoption"
+      decisions_changed: 0
+      effort: MOYEN
+      effort_basis: >
+        2 mesures d'adoption (code + artefact) + 9 tests
+      severity_avoided: MINEURE
+      economics: >
+        a revele que 2 mecanismes ecrits n'etaient utilises par personne ; aucune decision n'en a encore decoule
       detected: 2
       false_positives: 0
       never_bound: false
@@ -2525,6 +2643,13 @@ protocol_efficacy:
 
     - id: INV-LEXICAL-001
       title: "Un usage ne se conclut pas d'une presence lexicale"
+      decisions_changed: 0
+      effort: FAIBLE
+      effort_basis: >
+        1 fonction AST (30 l.) + 3 tests
+      severity_avoided: MINEURE
+      economics: >
+        supprime 3 familles de faux positifs pour 30 lignes. Rendement eleve en COUT EVITE, nul en detection
       detected: 0
       false_positives: 0
       prevented: 3
@@ -2539,6 +2664,13 @@ protocol_efficacy:
 
     - id: INV-VALIDITY-001
       title: "Auto-test a cas negatifs ; garantie derivee invalide sans lui"
+      decisions_changed: 0
+      effort: MOYEN
+      effort_basis: >
+        1 auto-test 9 cas + modelisation de dependance + 6 tests
+      severity_avoided: CRITIQUE
+      economics: >
+        gravite evitee CRITIQUE : sans elle, 4 indicateurs verts auraient continue de reposer sur un mecanisme qui ne verifiait rien. Mais les 2 defauts ont ete trouves par l'attaque, pas par la regle
       detected: 2
       false_positives: 0
       never_bound: false

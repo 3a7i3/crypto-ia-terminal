@@ -1011,11 +1011,58 @@ inconfortable et doit le rester :
 | règles jamais liées | 4 |
 | règles liantes n'ayant jamais rien détecté | 4 |
 | axes ne rendant **jamais** FAIL | 3 sur 6 |
-| faux **négatifs** mesurés | **aucun — non mesurable** |
+| décisions réellement changées | 7, par 5 règles |
+| faux **négatifs** | **non estimés** — voir § 25.5 |
 
 Un axe qui ne rend jamais FAIL ne sépare rien : il ne distingue pas un dépôt sain
 d'un critère qui ne mord pas. Ces trois-là sont les premiers candidats au retrait
 si la campagne empirique ne leur fait rien trouver.
+
+### 25.5 Les faux négatifs sont non estimés, pas inobservables
+
+Formulation corrigée le 2026-07-30. Écrire « inobservables » fermait
+prématurément l'espace des méthodes — exactement la faute que ce protocole
+cherche à empêcher ailleurs.
+
+Ce qui est vrai : **aucun instrument ne les estime aujourd'hui.** Un défaut
+qu'aucune règle n'a cherché ne laisse aucune trace dans le registre d'efficacité.
+
+Ce qui est faux : qu'il n'existe aucun moyen d'en approcher le taux. Au moins
+quatre pistes n'ont pas été essayées, et aucune n'est exclue :
+
+| Méthode | Ce qu'elle bornerait | Coût pressenti |
+|---|---|---|
+| **injection contrôlée** de défauts connus dans un dépôt de test | taux de détection sur une famille choisie | faible, mais ne borne que les familles injectées |
+| **jeux de cas synthétiques** couvrant chaque axe | sensibilité de chaque règle prise isolément | moyen ; risque de tester ce qu'on a déjà en tête |
+| **audit indépendant ciblé** par un tiers | angles morts propres à l'auteur | élevé ; le seul à sortir du point de vue de l'auteur |
+| **campagne adversariale** | défauts qu'aucune règle ne cherche | mesuré : 12 défauts en une passe |
+
+Seule la dernière a produit quelque chose à ce jour. C'est un argument pour la
+garder, **pas** pour déclarer les trois autres inutiles : une seule instance ne
+départage pas quatre méthodes.
+
+`UNKNOWN`, pas `BLIND_SPOT` (§ 16) : l'instrument requis n'existe pas encore,
+mais rien ne montre qu'il ne peut pas exister.
+
+### 25.6 Critère de sortie du gel
+
+**Ni une date, ni un nombre d'itérations.** Le gel se lève quand le registre
+d'efficacité porte assez d'observations pour que les décisions de retrait ou de
+conservation soient fondées sur des données plutôt que sur des impressions.
+
+Concrètement, trois conditions — aucune n'est une échéance :
+
+1. les quatre règles `JAMAIS_LIÉE` ont **rencontré ou non** leur cas, et on sait
+   dire lequel ;
+2. les trois axes qui ne rendent jamais FAIL ont soit produit un FAIL, soit été
+   éprouvés sur un dépôt où ils auraient dû en produire un ;
+3. au moins une méthode d'estimation des faux négatifs (§ 25.5) a été essayée.
+
+**Indicateur de maturité, à surveiller pendant la campagne :** si elle conduit
+principalement à **retirer, simplifier ou fusionner** des règles plutôt qu'à en
+ajouter, le protocole aura atteint une maturité réelle. Si elle produit surtout
+de nouveaux axes, c'est le signe que la complexité croît encore — et que ce qui
+est mesuré n'est pas ce qui manque.
 
 > Domaine : tout protocole méthodologique qui grossit plus vite qu'il n'est éprouvé.
 > Mode d'échec : mesurer l'activité d'une règle (combien de fois elle s'exécute)

@@ -13,11 +13,15 @@ Invariants verrouillés ici :
   EFF-04  un axe qui ne rend jamais FAIL est marqué NON discriminant
   EFF-05  le registre réel couvre toutes les règles déclarées du manifeste
   EFF-06  le caveat et la limite « faux négatifs » sont publiés, pas implicites
+  EFF-07  dimension économique : décisions changées, effort ordinal, gravité
+  EFF-08  faux négatifs NON ESTIMÉS — l'espace des méthodes reste ouvert
 """
 
 from __future__ import annotations
 
 from tools.protocol_efficacy_audit import (
+    EFFORT_ORDER,
+    SEVERITY_ORDER,
     VERDICT_COSTLY,
     VERDICT_NEVER_BOUND,
     VERDICT_NON_DETECTING,
@@ -127,3 +131,86 @@ def test_eff06_la_limite_des_faux_negatifs_est_dans_le_rapport():
 def test_eff06_le_cli_repond_et_n_echoue_pas_par_defaut():
     """Observer n'est pas décider : un mauvais score ne bloque personne."""
     assert main(["--json"]) == 0
+
+
+# ── EFF-07 : dimension économique (INV-ROI-001) ──────────────────────────────
+
+
+def test_eff07_le_registre_porte_une_dimension_economique():
+    """Compter les détections ne suffit pas : deux règles à deux détections ne
+    se valent pas si l'une a évité une erreur mineure et l'autre une décision
+    contaminant une campagne."""
+    report = build_report()
+    for rule in report.rules:
+        assert rule.effort in EFFORT_ORDER, rule.id
+        assert rule.severity_avoided in SEVERITY_ORDER, rule.id
+    assert report.totals["decisions_changed"] >= 1
+    assert report.totals["rules_changing_a_decision"] >= 1
+
+
+def test_eff07_aucun_ratio_n_est_calcule():
+    """Diviser deux ordinaux ne produit pas un nombre, seulement l'apparence.
+
+    La lecture économique est une PHRASE dont chaque terme renvoie à une
+    observation consignée — jamais un score.
+    """
+    from tools.protocol_efficacy_audit import RuleEfficacy
+
+    for cas, attendu in (
+        ((1, "NUL", "MAJEURE", 0), "RENDEMENT ELEVE"),
+        ((1, "ELEVE", "MAJEURE", 2), "JUSTIFIEE"),
+        ((0, "MOYEN", "CRITIQUE", 2), "COUTEUSE MAIS COUVRANTE"),
+        ((0, "MOYEN", "NULLE", 0), "A INSTRUIRE"),
+        ((0, "MOYEN", "MINEURE", 2), "TROUVE SANS EFFET"),
+        ((0, "FAIBLE", "MINEURE", 0), "COUT FAIBLE"),
+    ):
+        dec, effort, gravite, detect = cas
+        regle = RuleEfficacy(
+            id="X",
+            title="",
+            detected=detect,
+            false_positives=0,
+            prevented=0,
+            never_bound=False,
+            verdict="",
+            decisions_changed=dec,
+            effort=effort,
+            severity_avoided=gravite,
+        )
+        assert regle.yield_reading.startswith(attendu), (cas, regle.yield_reading)
+
+
+def test_eff07_une_regle_chere_qui_trouve_sans_effet_est_distinguee():
+    """Elle n'est pas « à laisser courir » : elle attend son premier effet."""
+    report = build_report()
+    lectures = {r.id: r.yield_reading for r in report.rules}
+    assert lectures["INV-INIT-001"].startswith("TROUVE SANS EFFET")
+    assert lectures["INV-PROOF-001"].startswith("A INSTRUIRE")
+
+
+def test_eff07_l_effort_est_declare_ordinal_et_sa_base_mesurable():
+    """Publier des heures non chronométrées serait inventer un chiffre."""
+    report = build_report()
+    assert "ORDINALE" in report.effort_caveat
+    assert "chronometre" in report.effort_caveat
+    assert "MESURABLE" in report.effort_caveat
+
+
+# ── EFF-08 : faux négatifs — non estimés, pas inobservables ──────────────────
+
+
+def test_eff08_les_faux_negatifs_sont_dits_NON_ESTIMES():
+    """Écrire « inobservables » fermerait l'espace des méthodes.
+
+    Correction du 2026-07-30 : quatre pistes existent, aucune n'est exclue.
+    """
+    texte = render_text(build_report())
+    assert "NON ESTIMÉS" in texte
+    assert "pas inobservables" in texte or "non estimés" in texte.lower()
+    for methode in ("injections contrôlées", "synthétiques", "indépendants"):
+        assert methode in texte, methode
+
+
+def test_eff08_l_espace_des_methodes_est_declare_ouvert():
+    texte = render_text(build_report())
+    assert "reste ouvert" in texte
