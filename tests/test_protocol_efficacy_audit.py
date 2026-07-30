@@ -15,12 +15,18 @@ Invariants verrouillés ici :
   EFF-06  le caveat et la limite « faux négatifs » sont publiés, pas implicites
   EFF-07  dimension économique : décisions changées, effort ordinal, gravité
   EFF-08  faux négatifs NON ESTIMÉS — l'espace des méthodes reste ouvert
+  EFF-09  cycle de vie : INACTIVE / EPROUVEE / ASSURANCE, justification exigée
+  EFF-10  retrait : les TROIS conditions, jamais l'absence de déclenchement seule
+  EFF-11  garde-fou anti-optimisation : l'élagage sans détection est signalé
 """
 
 from __future__ import annotations
 
 from tools.protocol_efficacy_audit import (
     EFFORT_ORDER,
+    LIFECYCLE_INACTIVE,
+    LIFECYCLE_INSURANCE,
+    LIFECYCLES,
     SEVERITY_ORDER,
     VERDICT_COSTLY,
     VERDICT_NEVER_BOUND,
@@ -214,3 +220,132 @@ def test_eff08_les_faux_negatifs_sont_dits_NON_ESTIMES():
 def test_eff08_l_espace_des_methodes_est_declare_ouvert():
     texte = render_text(build_report())
     assert "reste ouvert" in texte
+
+
+# ── EFF-09 : cycle de vie — valeur historique != valeur optionnelle ──────────
+
+
+def test_eff09_trois_situations_et_non_deux():
+    """Une règle inactive n'est pas forcément inutile : elle peut être un
+    garde-fou dont la conséquence d'absence serait grave."""
+    report = build_report()
+    cycles = {r.lifecycle for r in report.rules}
+    assert cycles <= set(LIFECYCLES)
+    assert LIFECYCLE_INSURANCE in cycles
+    assert report.totals[LIFECYCLE_INSURANCE] >= 1
+
+
+def test_eff09_une_assurance_sans_justification_n_en_est_pas_une():
+    """Sans cette exigence, toute règle inactive se déclarerait « assurance »
+    et le registre cesserait de trier quoi que ce soit."""
+    from tools.protocol_efficacy_audit import RuleEfficacy
+
+    def _regle(cycle, justif=""):
+        return RuleEfficacy(
+            id="X",
+            title="",
+            detected=0,
+            false_positives=0,
+            prevented=0,
+            never_bound=True,
+            verdict="",
+            lifecycle=cycle,
+            assurance_justification=justif,
+        )
+
+    assert _regle(LIFECYCLE_INSURANCE, "conséquence irréversible").lifecycle_valid
+    assert not _regle(LIFECYCLE_INSURANCE).lifecycle_valid
+    assert _regle(LIFECYCLE_INACTIVE).lifecycle_valid
+
+
+def test_eff09_les_assurances_reelles_sont_toutes_justifiees():
+    report = build_report()
+    for rule in report.rules:
+        assert rule.lifecycle_valid, rule.id
+    assert report.totals["lifecycle_invalid"] == 0
+
+
+# ── EFF-10 : retrait — les trois conditions, jamais une seule ────────────────
+
+
+def test_eff10_aucune_regle_n_est_eligible_au_retrait_aujourd_hui():
+    """Les conditions (2) et (3) n'ont pas été éprouvées : aucune injection
+    contrôlée n'a été tentée, aucune analyse de risque écrite.
+
+    Le résultat correct est donc ZÉRO éligible — et non « toutes les règles
+    jamais liées ». Naître d'une extrapolation n'est pas un argument contre une
+    règle : c'est un argument pour l'éprouver.
+    """
+    report = build_report()
+    assert report.totals["retirement_eligible"] == 0
+    assert all(not r.retirement_eligible for r in report.rules)
+
+
+def test_eff10_la_regle_de_retrait_est_publiee():
+    report = build_report()
+    assert "TROIS conditions" in report.retirement_rule
+    assert "extrapolation" in report.retirement_rule
+    texte = render_text(report)
+    assert "les TROIS conditions, jamais une seule" in texte
+
+
+# ── EFF-11 : garde-fou anti-optimisation ─────────────────────────────────────
+
+
+def test_eff11_le_registre_se_declare_descriptif_et_non_cible():
+    report = build_report()
+    assert "DESCRIPTIF" in report.anti_optimisation
+    assert "pas une cible" in report.anti_optimisation or "n'est pas un objectif" in (
+        report.anti_optimisation
+    )
+    assert "GARDE-FOU ANTI-OPTIMISATION" in render_text(report)
+
+
+def test_eff11_un_elagage_sans_nouvelle_detection_est_signale():
+    """Supprimer des règles ferait monter le taux de « productives » sans
+    améliorer la qualité des audits — c'est la dérive de Goodhart."""
+    from tools.protocol_efficacy_audit import RuleEfficacy, _pruning_alert
+
+    regles = [
+        RuleEfficacy(
+            id=f"R{i}",
+            title="",
+            detected=1,
+            false_positives=0,
+            prevented=0,
+            never_bound=False,
+            verdict="",
+        )
+        for i in range(3)
+    ]
+    ledger = {"previous_measurement": {"rules": 10, "detections": 5}}
+    alerte = _pruning_alert(ledger, regles)
+    assert "ÉLAGAGE SUSPECT" in alerte
+    assert "10" in alerte and "3" in alerte
+
+
+def test_eff11_pas_d_alerte_quand_le_registre_grandit_ou_detecte_plus():
+    from tools.protocol_efficacy_audit import RuleEfficacy, _pruning_alert
+
+    regles = [
+        RuleEfficacy(
+            id=f"R{i}",
+            title="",
+            detected=3,
+            false_positives=0,
+            prevented=0,
+            never_bound=False,
+            verdict="",
+        )
+        for i in range(9)
+    ]
+    assert (
+        _pruning_alert({"previous_measurement": {"rules": 10, "detections": 5}}, regles)
+        == ""
+    )
+    assert _pruning_alert({}, regles) == ""
+
+
+def test_eff11_aucune_alerte_sur_le_releve_reel():
+    """Le relevé courant n'a retiré aucune règle."""
+    assert build_report().pruning_alert == ""

@@ -382,7 +382,11 @@ invariants:
 health_baseline:
   suite_state: DEGRADED
   command: "python -m pytest tests/ -q --continue-on-collection-errors"
-  measured_at_commit: "84595f7"
+  measured_at_commit: "PENDING"
+  # Rafraichie le 2026-07-30, cycle de vie des regles (EFF-09..11) : +9 tests.
+  # collected 4025 -> 4034, passed 4001 -> 4010, soit exactement +9. Les 3
+  # known_failures et l unique erreur de collecte sont INCHANGES.
+  #
   # Rafraichie le 2026-07-30, dimension economique du registre (EFF-07/08) :
   # +6 tests. collected 4019 -> 4025, passed 3995 -> 4001, soit exactement +6.
   # Les 3 known_failures et l unique erreur de collecte sont INCHANGES.
@@ -430,9 +434,9 @@ health_baseline:
   # Toujours relancer avec la commande `command:` exacte, sans variable
   # d environnement ajoutee, et comparer les NOMS.
   previous_baseline:
-    measured_at_commit: "a366cbf"
-    collected: 4019
-    passed: 3995
+    measured_at_commit: "84595f7"
+    collected: 4025
+    passed: 4001
   expected_collection_errors: 1
   known_errors:
     - file: "tests/test_full_integration.py"
@@ -443,12 +447,12 @@ health_baseline:
       note: >
         Dette de maintenance, hors campagne. Ne rapproche ni du burn-in ni de la
         validite de la mesure de N. A traiter hors gel, jamais pendant.
-  collected: 4025
-  passed: 4001
+  collected: 4034
+  passed: 4010
   failed: 3
   skipped: 20
   xfailed: 2
-  duration_s: 674
+  duration_s: 676
   expected_failures: 3
   known_failures:
     - "tests/paper_trading/test_paper_trade_e2e.py::TestPaperTradeCompleteLifecycle::test_mexc_simulator_market_order_complete"
@@ -2428,6 +2432,37 @@ protocol_efficacy:
     chiffre. La base declaree (`effort_basis`) est en revanche MESURABLE :
     nombre d'outils construits, de tests ecrits, de fichiers refactores. Deux
     regles de meme `effort` peuvent avoir coute des temps reels tres differents.
+  lifecycle_scale: >
+    INACTIVE  : aucun cas rencontre a ce jour, aucune justification de maintien
+                au-dela de son cout (nul ou faible).
+    EPROUVEE  : au moins un cas reel rencontre.
+    ASSURANCE : aucun cas rencontre, MAIS la consequence d'une absence de
+                protection est jugee assez grave pour justifier le maintien.
+                EXCEPTIONNELLE et exigeant une justification ECRITE — sans quoi
+                toute regle inactive se declarerait « assurance » et le registre
+                cesserait de trier quoi que ce soit.
+  retirement_rule: >
+    Une regle n'est ELIGIBLE AU RETRAIT que si les TROIS conditions sont reunies :
+    (1) aucun cas reel rencontre pendant la campagne ; (2) aucune injection
+    controlee ne montre qu'elle protege un scenario plausible ; (3) aucune analyse
+    de risque ne justifie son maintien comme garde-fou. L'absence de declenchement
+    seule ne suffit JAMAIS. Naitre d'une extrapolation n'est pas non plus un
+    argument contre une regle : c'est un argument pour l'eprouver.
+  anti_optimisation: >
+    GARDE-FOU. Ce registre est DESCRIPTIF, il n'est pas un objectif. Supprimer les
+    regles peu sollicitees ferait monter le pourcentage de regles « productives »
+    sans ameliorer d'un iota la qualite des audits — c'est exactement la derive
+    que le protocole reproche ailleurs aux indicateurs (mesurer l'activite et la
+    lire comme de la valeur). Le taux de regles productives n'est donc PAS une
+    cible, et une baisse du nombre de regles sans nouvelles detections est
+    signalee comme un elagage suspect, jamais comme un progres.
+  previous_measurement:
+    measured_at: "2026-07-30"
+    rules: 14
+    detections: 16
+    note: >
+      Point de comparaison pour le detecteur d'elagage. A mettre a jour lors du
+      prochain releve, jamais retroactivement.
   severity_scale: >
     CRITIQUE : aurait produit une fausse garantie generale.
     MAJEURE  : aurait fausse ou bloque une decision reelle.
@@ -2437,6 +2472,9 @@ protocol_efficacy:
   rules:
     - id: INV-1
       title: "Passivite absolue des observers (ADR-0007)"
+      lifecycle: ASSURANCE
+      assurance_justification: >
+        Un observer qui influence la chose observee CONTAMINE toutes les donnees produites depuis la violation, sans qu'aucun test ne le signale. La campagne de validation entiere serait invalidee retroactivement. Consequence irreversible : le cout du maintien est nul, celui de l'absence est la perte du seul actif du projet.
       decisions_changed: 0
       effort: NUL
       effort_basis: >
@@ -2453,6 +2491,9 @@ protocol_efficacy:
 
     - id: INV-2
       title: "Aucun reset de N sans ADR d'epoque"
+      lifecycle: ASSURANCE
+      assurance_justification: >
+        Le rollback de code existe ; le ROLLBACK D'EPOQUE N'EXISTE PAS. Un reset de N non declare detruit definitivement la comparabilite du burn-in. Aucune correction posterieure ne peut reconstituer la population perdue.
       decisions_changed: 0
       effort: NUL
       effort_basis: >
@@ -2467,6 +2508,9 @@ protocol_efficacy:
 
     - id: INV-3
       title: "paper_trades.jsonl : ecrivains uniques"
+      lifecycle: ASSURANCE
+      assurance_justification: >
+        Un journal de trades reecrit est indetectable apres coup : les octets sont coherents, la population ne l'est plus. La garantie disparait sans que la donnee disparaisse (protocole § 20.2).
       decisions_changed: 0
       effort: NUL
       effort_basis: >
@@ -2481,6 +2525,7 @@ protocol_efficacy:
 
     - id: INV-4
       title: "Aucun seuil modifie avant N >= 500 et CRI >= 90"
+      lifecycle: EPROUVEE
       decisions_changed: 3
       effort: NUL
       effort_basis: >
@@ -2498,6 +2543,7 @@ protocol_efficacy:
 
     - id: INV-DATASET-001
       title: "Loader unique, population declaree"
+      lifecycle: EPROUVEE
       decisions_changed: 1
       effort: ELEVE
       effort_basis: >
@@ -2517,6 +2563,7 @@ protocol_efficacy:
 
     - id: INV-METRIC-001
       title: "Un KPI porte le nom de sa formule"
+      lifecycle: EPROUVEE
       decisions_changed: 1
       effort: MOYEN
       effort_basis: >
@@ -2535,6 +2582,7 @@ protocol_efficacy:
 
     - id: INV-FRICTION-001
       title: "Plancher d'edge"
+      lifecycle: EPROUVEE
       decisions_changed: 1
       effort: FAIBLE
       effort_basis: >
@@ -2553,6 +2601,7 @@ protocol_efficacy:
 
     - id: INV-POWER-001
       title: "Puissance avant significativite"
+      lifecycle: EPROUVEE
       decisions_changed: 1
       effort: ELEVE
       effort_basis: >
@@ -2572,6 +2621,7 @@ protocol_efficacy:
 
     - id: INV-INIT-001
       title: "INIT-ORDER : la configuration precede les imports"
+      lifecycle: EPROUVEE
       decisions_changed: 0
       effort: MOYEN
       effort_basis: >
@@ -2591,6 +2641,7 @@ protocol_efficacy:
 
     - id: INV-COVERAGE-001
       title: "Toute couverture porte son plafond"
+      lifecycle: EPROUVEE
       decisions_changed: 0
       effort: FAIBLE
       effort_basis: >
@@ -2609,6 +2660,7 @@ protocol_efficacy:
 
     - id: INV-PROOF-001
       title: "Constructeur unique du bloc de preuve"
+      lifecycle: INACTIVE
       decisions_changed: 0
       effort: MOYEN
       effort_basis: >
@@ -2626,6 +2678,7 @@ protocol_efficacy:
 
     - id: INV-ADOPTION-001
       title: "Tout mecanisme publie son taux d'adoption"
+      lifecycle: EPROUVEE
       decisions_changed: 0
       effort: MOYEN
       effort_basis: >
@@ -2643,6 +2696,7 @@ protocol_efficacy:
 
     - id: INV-LEXICAL-001
       title: "Un usage ne se conclut pas d'une presence lexicale"
+      lifecycle: EPROUVEE
       decisions_changed: 0
       effort: FAIBLE
       effort_basis: >
@@ -2664,6 +2718,7 @@ protocol_efficacy:
 
     - id: INV-VALIDITY-001
       title: "Auto-test a cas negatifs ; garantie derivee invalide sans lui"
+      lifecycle: EPROUVEE
       decisions_changed: 0
       effort: MOYEN
       effort_basis: >

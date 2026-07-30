@@ -10,8 +10,22 @@ règle ajouter ? » mais :
 
 Cet outil ne juge pas la beauté d'une règle. Il additionne ce qu'elle a détecté,
 ce qu'elle a coûté en faux positifs, et si elle a seulement eu l'occasion de se
-déclencher. Une règle élégante qui n'a jamais rien trouvé est un **candidat au
-retrait**, pas une réussite.
+déclencher.
+
+**Il ne mesure qu'une valeur HISTORIQUE, jamais une valeur OPTIONNELLE.** Une
+règle peut rester inactive très longtemps puis empêcher un incident majeur une
+seule fois — c'est le cas classique du garde-fou de sûreté. La retirer parce
+qu'elle n'a jamais servi confondrait « inutile » et « pas encore rencontré ».
+D'où trois situations et non deux : `INACTIVE`, `EPROUVEE`, `ASSURANCE` (aucun
+cas rencontré, mais conséquence d'une absence de protection assez grave pour
+justifier le maintien — exceptionnelle, et exigeant une justification écrite).
+
+**Ce registre est DESCRIPTIF, il n'est pas une cible.** Supprimer les règles peu
+sollicitées ferait monter le pourcentage de « productives » sans améliorer d'un
+iota la qualité des audits : mesurer l'activité et la lire comme de la valeur est
+précisément la dérive que ce protocole reproche ailleurs aux indicateurs. Une
+baisse du nombre de règles sans nouvelle détection est signalée comme un
+**élagage suspect**, jamais comme un progrès.
 
 Quatre verdicts, et un seul est positif
 ---------------------------------------
@@ -36,6 +50,7 @@ Surface de garantie
 | l'effort ORDINAL et sa base déclarée | le temps réel passé, jamais chronométré |
 | les décisions réellement changées | la valeur de ces décisions |
 | si une règle a déjà eu l'occasion de mordre | si une règle non liée est inutile |
+| l'éligibilité au retrait (3 conditions) | la valeur d'assurance d'un garde-fou |
 | l'absence d'une règle au registre | si un compte a été gonflé par optimisme |
 
 **Le trou principal est déclaré : les faux négatifs sont NON ESTIMÉS.** Un
@@ -105,6 +120,19 @@ EFFORT_ORDER = ["NUL", "FAIBLE", "MOYEN", "ELEVE"]
 #: decision qui aurait contamine une campagne entiere.
 SEVERITY_ORDER = ["NULLE", "MINEURE", "MAJEURE", "CRITIQUE"]
 
+#: CYCLE DE VIE — le registre mesure une valeur HISTORIQUE, jamais une valeur
+#: OPTIONNELLE. Une règle peut rester inactive longtemps puis empêcher un
+#: incident majeur une seule fois : c'est le cas classique du garde-fou de
+#: sûreté. Trois situations, et non deux.
+LIFECYCLE_INACTIVE = "INACTIVE"
+LIFECYCLE_TESTED = "EPROUVEE"
+LIFECYCLE_INSURANCE = "ASSURANCE"
+
+#: `ASSURANCE` doit rester EXCEPTIONNELLE et porter une justification écrite :
+#: sans cette exigence, toute règle inactive se déclarerait « assurance » et le
+#: registre cesserait de trier quoi que ce soit.
+LIFECYCLES = (LIFECYCLE_INACTIVE, LIFECYCLE_TESTED, LIFECYCLE_INSURANCE)
+
 
 @dataclass
 class RuleEfficacy:
@@ -119,8 +147,38 @@ class RuleEfficacy:
     effort: str = "?"
     severity_avoided: str = "NULLE"
     economics: str = ""
+    lifecycle: str = LIFECYCLE_INACTIVE
+    assurance_justification: str = ""
     note: str = ""
     detections: list[str] = field(default_factory=list)
+
+    @property
+    def lifecycle_valid(self) -> bool:
+        """Une ASSURANCE sans justification écrite n'est pas une assurance."""
+        if self.lifecycle == LIFECYCLE_INSURANCE:
+            return bool(self.assurance_justification.strip())
+        return self.lifecycle in LIFECYCLES
+
+    @property
+    def retirement_eligible(self) -> bool:
+        """Éligible au retrait — les TROIS conditions, jamais une seule.
+
+        (1) aucun cas réel rencontré ; (2) aucune injection contrôlée ne montre
+        qu'elle protège un scénario plausible ; (3) aucune analyse de risque ne
+        justifie son maintien comme garde-fou.
+
+        L'absence de déclenchement seule ne suffit JAMAIS — et naître d'une
+        extrapolation n'est pas un argument contre une règle : c'est un argument
+        pour l'éprouver. Les conditions (2) et (3) ne sont pas mesurables
+        aujourd'hui : aucune injection n'a été tentée, aucune analyse de risque
+        n'a été écrite. Cette propriété rend donc `False` pour toutes les règles,
+        et c'est le résultat correct : personne n'est éligible tant que les deux
+        épreuves manquantes n'ont pas eu lieu.
+        """
+        aucun_cas = self.lifecycle == LIFECYCLE_INACTIVE and self.detected == 0
+        injection_tentee = False  # aucune méthode d'injection instrumentée
+        analyse_de_risque = self.lifecycle == LIFECYCLE_INSURANCE
+        return aucun_cas and injection_tentee and not analyse_de_risque
 
     @property
     def yield_reading(self) -> str:
@@ -166,6 +224,10 @@ class EfficacyReport:
     caveat: str
     effort_caveat: str
     severity_scale: str
+    lifecycle_scale: str
+    retirement_rule: str
+    anti_optimisation: str
+    pruning_alert: str
     rules: list[RuleEfficacy]
     axes: list[AxisEfficacy]
     unregistered_rules: list[str]
@@ -189,6 +251,34 @@ def _verdict(detected: int, false_positives: int, never_bound: bool) -> str:
     if false_positives >= detected:
         return VERDICT_COSTLY
     return VERDICT_PRODUCTIVE
+
+
+def _pruning_alert(ledger: dict, rules: list) -> str:
+    """Détecteur d'ÉLAGAGE — garde-fou anti-Goodhart.
+
+    Ce registre est DESCRIPTIF. Supprimer les règles peu sollicitées ferait
+    monter le pourcentage de règles « productives » sans améliorer d'un iota la
+    qualité des audits : c'est exactement la dérive que le protocole reproche
+    ailleurs aux indicateurs — mesurer l'activité et la lire comme de la valeur.
+
+    Une baisse du nombre de règles SANS nouvelles détections est donc signalée
+    comme suspecte, jamais comme un progrès.
+    """
+    precedent = ledger.get("previous_measurement") or {}
+    avant_regles = int(precedent.get("rules") or 0)
+    avant_detections = int(precedent.get("detections") or 0)
+    if not avant_regles:
+        return ""
+    maintenant_regles = len(rules)
+    maintenant_detections = sum(r.detected for r in rules)
+    if maintenant_regles < avant_regles and maintenant_detections <= avant_detections:
+        return (
+            f"ÉLAGAGE SUSPECT : {avant_regles} règles -> {maintenant_regles}, "
+            f"sans nouvelle détection ({avant_detections} -> "
+            f"{maintenant_detections}). Le taux de règles productives monte "
+            f"mécaniquement ; la qualité des audits, elle, n'a pas bougé."
+        )
+    return ""
 
 
 def load_manifest(path: Path = MANIFEST) -> dict:
@@ -224,6 +314,10 @@ def build_report(manifest_path: Path = MANIFEST) -> EfficacyReport:
                 effort=str(entry.get("effort") or "?"),
                 severity_avoided=str(entry.get("severity_avoided") or "NULLE"),
                 economics=(entry.get("economics") or "").strip(),
+                lifecycle=str(entry.get("lifecycle") or LIFECYCLE_INACTIVE),
+                assurance_justification=(
+                    entry.get("assurance_justification") or ""
+                ).strip(),
                 note=(entry.get("note") or "").strip(),
                 detections=list(entry.get("detections") or []),
             )
@@ -254,6 +348,13 @@ def build_report(manifest_path: Path = MANIFEST) -> EfficacyReport:
 
     totals = {
         "rules": len(rules),
+        LIFECYCLE_INACTIVE: sum(1 for r in rules if r.lifecycle == LIFECYCLE_INACTIVE),
+        LIFECYCLE_TESTED: sum(1 for r in rules if r.lifecycle == LIFECYCLE_TESTED),
+        LIFECYCLE_INSURANCE: sum(
+            1 for r in rules if r.lifecycle == LIFECYCLE_INSURANCE
+        ),
+        "lifecycle_invalid": sum(1 for r in rules if not r.lifecycle_valid),
+        "retirement_eligible": sum(1 for r in rules if r.retirement_eligible),
         "detections": sum(r.detected for r in rules),
         "decisions_changed": sum(r.decisions_changed for r in rules),
         "rules_changing_a_decision": sum(1 for r in rules if r.decisions_changed),
@@ -298,6 +399,10 @@ def build_report(manifest_path: Path = MANIFEST) -> EfficacyReport:
         caveat=(ledger.get("caveat") or "").strip(),
         effort_caveat=(ledger.get("effort_caveat") or "").strip(),
         severity_scale=(ledger.get("severity_scale") or "").strip(),
+        lifecycle_scale=(ledger.get("lifecycle_scale") or "").strip(),
+        retirement_rule=(ledger.get("retirement_rule") or "").strip(),
+        anti_optimisation=(ledger.get("anti_optimisation") or "").strip(),
+        pruning_alert=_pruning_alert(ledger, rules),
         rules=rules,
         axes=axes,
         unregistered_rules=manquantes,
@@ -327,14 +432,14 @@ def render_text(report: EfficacyReport) -> str:
     add("-" * 78)
     add("  RÈGLES")
     add("-" * 78)
-    add("    règle                 détect.  FP  déc.  effort  gravité   verdict")
+    add("    règle                 détect.  déc.  effort  gravité   cycle      verdict")
     for rule in sorted(
         report.rules, key=lambda r: (-r.decisions_changed, -r.detected, r.id)
     ):
         add(
-            f"    {rule.id:<20} {rule.detected:>6}  {rule.false_positives:>3}"
-            f"  {rule.decisions_changed:>4}  {rule.effort:<6}  "
-            f"{rule.severity_avoided:<8}  {rule.verdict}"
+            f"    {rule.id:<20} {rule.detected:>6}  {rule.decisions_changed:>4}"
+            f"  {rule.effort:<6}  {rule.severity_avoided:<8}  "
+            f"{rule.lifecycle:<9}  {rule.verdict}"
         )
     add("")
     if report.effort_caveat:
@@ -353,6 +458,13 @@ def render_text(report: EfficacyReport) -> str:
         f"  (par {t['rules_changing_a_decision']} règles)"
     )
     add(f"    coûteuses sans résultat     {t['costly_without_result']}")
+    add("")
+    add(f"    ÉPROUVÉES (≥ 1 cas réel)    {t[LIFECYCLE_TESTED]}")
+    add(f"    ASSURANCE (justifiée)       {t[LIFECYCLE_INSURANCE]}")
+    add(f"    INACTIVES                   {t[LIFECYCLE_INACTIVE]}")
+    add(f"    éligibles au RETRAIT        {t['retirement_eligible']}")
+    if t["lifecycle_invalid"]:
+        add(f"    ⚠ ASSURANCE sans justification : {t['lifecycle_invalid']}")
     add(f"    faux positifs consignés     {t['false_positives']}")
     add(f"    familles de FP empêchées    {t['prevented']}")
     add("")
@@ -373,6 +485,33 @@ def render_text(report: EfficacyReport) -> str:
             f"   {marque}"
         )
     add("")
+
+    if report.pruning_alert:
+        add("-" * 78)
+        add("  ⚠ " + report.pruning_alert)
+        add("-" * 78)
+        add("")
+
+    add("-" * 78)
+    add("  CYCLE DE VIE — valeur historique ≠ valeur optionnelle")
+    add("-" * 78)
+    add("    Une règle peut rester inactive longtemps puis empêcher un incident")
+    add("    majeur une seule fois. Retirer un garde-fou parce qu'il n'a jamais")
+    add("    servi confond « inutile » et « pas encore rencontré ».")
+    add("")
+    for rule in report.rules:
+        if rule.lifecycle == LIFECYCLE_TESTED:
+            continue
+        add(f"    [{rule.lifecycle}] {rule.id}")
+        if rule.assurance_justification:
+            add("        " + " ".join(rule.assurance_justification.split())[:150])
+    add("")
+    if report.retirement_rule:
+        add("    RETRAIT — les TROIS conditions, jamais une seule :")
+        for phrase in report.retirement_rule.split(";"):
+            if phrase.strip():
+                add("      " + " ".join(phrase.split())[:170])
+        add("")
 
     add("-" * 78)
     add("  LECTURE ÉCONOMIQUE — INV-ROI-001")
@@ -431,6 +570,12 @@ def render_text(report: EfficacyReport) -> str:
     add(f"    PLAFOND FINAL               {report.confidence_ceiling}")
     add(f"    → {report.ceilings['binding_reason']}")
     add("")
+    if report.anti_optimisation:
+        add("    GARDE-FOU ANTI-OPTIMISATION :")
+        for phrase in report.anti_optimisation.split(". "):
+            if phrase.strip():
+                add("      " + " ".join(phrase.split())[:180])
+        add("")
     add("    Ce que ce rapport ne mesure pas : les faux NÉGATIFS. Un défaut")
     add("    qu'aucune règle n'a cherché ne laisse aucune trace ici. Ils sont")
     add("    NON ESTIMÉS — pas inobservables. Plusieurs méthodes pourraient en")

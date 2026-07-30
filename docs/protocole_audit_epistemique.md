@@ -1064,6 +1064,46 @@ ajouter, le protocole aura atteint une maturité réelle. Si elle produit surtou
 de nouveaux axes, c'est le signe que la complexité croît encore — et que ce qui
 est mesuré n'est pas ce qui manque.
 
+### 25.7 Cycle de vie d'une règle, et ce qu'un registre d'efficacité ne doit pas devenir
+
+Le § 25.4 mesure la valeur **historique** d'une règle. Il ne mesure pas sa valeur
+**optionnelle**. Une règle peut rester inactive très longtemps puis empêcher un
+incident majeur une seule fois : c'est le cas ordinaire du garde-fou de sûreté.
+
+D'où **trois** situations, et non deux :
+
+| Situation | Sens | Exigence |
+|---|---|---|
+| `INACTIVE` | aucun cas rencontré à ce jour | — |
+| `EPROUVEE` | au moins un cas réel rencontré | — |
+| `ASSURANCE` | aucun cas rencontré, mais la conséquence d'une absence de protection est jugée assez grave pour justifier le maintien | **justification écrite obligatoire** |
+
+`ASSURANCE` doit rester **exceptionnelle**. Sans l'exigence de justification,
+toute règle inactive se déclarerait assurance et le registre cesserait de trier
+quoi que ce soit. Trois règles la portent aujourd'hui — INV-1, INV-2, INV-3 — et
+leur point commun est l'**irréversibilité** : un observer qui contamine les
+données, une époque perdue, un journal réécrit ne se réparent pas après coup.
+
+**Condition de retrait — les trois, jamais une seule :**
+
+1. aucun cas réel rencontré pendant la campagne ;
+2. aucune **injection contrôlée** ne montre qu'elle protège un scénario plausible ;
+3. aucune **analyse de risque** ne justifie son maintien comme garde-fou.
+
+Naître d'une extrapolation n'est pas un argument contre une règle : c'est un
+argument pour l'**éprouver**. Conséquence immédiate et mesurée : *zéro* règle est
+éligible au retrait aujourd'hui, y compris `INV-PROOF-001` — les conditions 2 et
+3 n'ont jamais été testées.
+
+> **Garde-fou anti-optimisation.** Le protocole mesure désormais sa propre
+> efficacité. Il ne doit pas se mettre à optimiser cet indicateur : supprimer les
+> règles peu sollicitées ferait monter le pourcentage de « productives » sans
+> améliorer d'un iota la qualité des audits. C'est exactement la dérive que le
+> protocole reproche ailleurs aux indicateurs — mesurer l'activité et la lire
+> comme de la valeur. Le registre est **descriptif**, pas une cible ; une baisse
+> du nombre de règles sans nouvelle détection est signalée comme un **élagage
+> suspect**, jamais comme un progrès.
+
 > Domaine : tout protocole méthodologique qui grossit plus vite qu'il n'est éprouvé.
 > Mode d'échec : mesurer l'activité d'une règle (combien de fois elle s'exécute)
 > et la lire comme son utilité (combien de fois elle a évité une erreur).
