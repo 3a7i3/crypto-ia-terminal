@@ -259,7 +259,7 @@ invariants:
 health_baseline:
   suite_state: DEGRADED
   command: "python -m pytest tests/ -q --continue-on-collection-errors"
-  measured_at_commit: "PENDING"
+  measured_at_commit: "c1fcd42"
   # Rafraichie le 2026-07-30 apres AUDIT-EMP-004 : +33 tests (PROV-01..05,
   # CHAIN-01..06, QUAL-09..11). collected 3919 -> 3952, passed 3895 -> 3928,
   # soit exactement +33. Les 3 known_failures et l unique erreur de collecte
