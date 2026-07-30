@@ -2,7 +2,7 @@
 
 # IMPLEMENTATION_QUEUE — Backlog priorise
 
-> Genere le 2026-07-30 21:23 UTC depuis `.claude/manifest.yaml`.
+> Genere le 2026-07-30 21:24 UTC depuis `.claude/manifest.yaml`.
 
 ## Regle d'execution
 

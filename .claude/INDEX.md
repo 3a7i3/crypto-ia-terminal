@@ -2,7 +2,7 @@
 
 # INDEX — Tous les tickets du chantier
 
-> Genere le 2026-07-30 21:23 UTC depuis `.claude/manifest.yaml`.
+> Genere le 2026-07-30 21:24 UTC depuis `.claude/manifest.yaml`.
 > Pour modifier un statut : editer le manifeste, puis relancer
 > `python .claude/tools/render_docs.py`.
 
