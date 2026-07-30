@@ -322,7 +322,7 @@ invariants:
 health_baseline:
   suite_state: DEGRADED
   command: "python -m pytest tests/ -q --continue-on-collection-errors"
-  measured_at_commit: "PENDING"
+  measured_at_commit: "fc7fcf6"
   # Rafraichie le 2026-07-30 apres AUDIT-EMP-005 : +44 tests (PROV-10..15,
   # CHAIN-10, QUAL-12..14) — dont 30 tests de NON-REGRESSION issus de defauts
   # demontres par verification adversariale. collected 3952 -> 3996, passed
