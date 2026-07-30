@@ -133,6 +133,33 @@ LIFECYCLE_INSURANCE = "ASSURANCE"
 #: registre cesserait de trier quoi que ce soit.
 LIFECYCLES = (LIFECYCLE_INACTIVE, LIFECYCLE_TESTED, LIFECYCLE_INSURANCE)
 
+#: SOURCE DE LEGITIMITE — les trois statuts ne sont pas seulement statistiques,
+#: ce sont des statuts de GOUVERNANCE : ils repondent a « pourquoi cette regle
+#: existe-t-elle encore ? ». Deux formes de justification tres differentes ne
+#: doivent pas etre confondues.
+LEGITIMACY_OBSERVED = "OBSERVATION_REELLE"
+LEGITIMACY_RISK = "ANALYSE_DE_RISQUE"
+LEGITIMACY_NONE = "AUCUNE"
+
+#: Correspondance EXIGEE. Une ASSURANCE dont la legitimite serait une observation
+#: reelle est en fait une EPROUVEE ; une ASSURANCE sans analyse citable n'est
+#: qu'une INACTIVE qui se protege.
+LEGITIMACY_OF_LIFECYCLE = {
+    LIFECYCLE_TESTED: LEGITIMACY_OBSERVED,
+    LIFECYCLE_INSURANCE: LEGITIMACY_RISK,
+    LIFECYCLE_INACTIVE: LEGITIMACY_NONE,
+}
+
+#: Justifications RECEVABLES d'un retrait. Une diminution du nombre de regles
+#: n'est pas suspecte en soi : c'est le resultat ATTENDU d'une campagne arrivee a
+#: maturite. Ce qui est suspect, c'est une diminution SANS justification observee.
+REMOVAL_KINDS = (
+    "FUSION",
+    "GENERALISATION",
+    "INVALIDATION_EXPERIMENTALE",
+    "RISQUE_DISPARU",
+)
+
 
 @dataclass
 class RuleEfficacy:
@@ -149,15 +176,29 @@ class RuleEfficacy:
     economics: str = ""
     lifecycle: str = LIFECYCLE_INACTIVE
     assurance_justification: str = ""
+    legitimacy_source: str = LEGITIMACY_NONE
+    legitimacy_basis: str = ""
     note: str = ""
     detections: list[str] = field(default_factory=list)
 
     @property
     def lifecycle_valid(self) -> bool:
-        """Une ASSURANCE sans justification écrite n'est pas une assurance."""
+        """Statut cohérent avec sa SOURCE DE LÉGITIMITÉ, et justifié si assurance.
+
+        Trois statuts de gouvernance, trois sources distinctes : une observation
+        réelle, une analyse de risque documentée, ou rien. Les confondre
+        permettrait à une règle sans fondement de se déclarer garde-fou.
+        """
+        if self.lifecycle not in LIFECYCLES:
+            return False
+        attendu = LEGITIMACY_OF_LIFECYCLE.get(self.lifecycle)
+        if self.legitimacy_source != attendu:
+            return False
         if self.lifecycle == LIFECYCLE_INSURANCE:
-            return bool(self.assurance_justification.strip())
-        return self.lifecycle in LIFECYCLES
+            return bool(self.assurance_justification.strip()) and bool(
+                self.legitimacy_basis.strip()
+            )
+        return True
 
     @property
     def retirement_eligible(self) -> bool:
@@ -254,31 +295,51 @@ def _verdict(detected: int, false_positives: int, never_bound: bool) -> str:
 
 
 def _pruning_alert(ledger: dict, rules: list) -> str:
-    """Détecteur d'ÉLAGAGE — garde-fou anti-Goodhart.
+    """Détecteur d'ÉLAGAGE — garde-fou anti-Goodhart, version raffinée.
 
-    Ce registre est DESCRIPTIF. Supprimer les règles peu sollicitées ferait
-    monter le pourcentage de règles « productives » sans améliorer d'un iota la
-    qualité des audits : c'est exactement la dérive que le protocole reproche
-    ailleurs aux indicateurs — mesurer l'activité et la lire comme de la valeur.
+    **Une diminution n'est PAS suspecte en soi.** Elle est même le résultat
+    ATTENDU d'une campagne empirique arrivée à maturité : le critère de sortie
+    du gel prévoit explicitement que le protocole puisse être simplifié. Signaler
+    « diminution = suspect » contredirait ce critère.
 
-    Une baisse du nombre de règles SANS nouvelles détections est donc signalée
-    comme suspecte, jamais comme un progrès.
+    Ce qui est suspect est une diminution **sans justification observée**. Quatre
+    justifications sont recevables (`REMOVAL_KINDS`), chacune exigeant sa preuve.
+    Un retrait déclaré avec une justification valide n'est pas une alerte : c'est
+    la campagne qui fait son travail.
     """
     precedent = ledger.get("previous_measurement") or {}
-    avant_regles = int(precedent.get("rules") or 0)
-    avant_detections = int(precedent.get("detections") or 0)
-    if not avant_regles:
+    avant_ids = set(precedent.get("rule_ids") or [])
+    if not avant_ids:
         return ""
-    maintenant_regles = len(rules)
-    maintenant_detections = sum(r.detected for r in rules)
-    if maintenant_regles < avant_regles and maintenant_detections <= avant_detections:
-        return (
-            f"ÉLAGAGE SUSPECT : {avant_regles} règles -> {maintenant_regles}, "
-            f"sans nouvelle détection ({avant_detections} -> "
-            f"{maintenant_detections}). Le taux de règles productives monte "
-            f"mécaniquement ; la qualité des audits, elle, n'a pas bougé."
-        )
-    return ""
+    presentes = {r.id for r in rules}
+    retirees = avant_ids - presentes
+    if not retirees:
+        return ""
+
+    declares = {}
+    for entry in ledger.get("removals") or []:
+        if isinstance(entry, dict) and entry.get("id"):
+            declares[entry["id"]] = entry
+
+    injustifies = []
+    for rid in sorted(retirees):
+        entree = declares.get(rid)
+        if entree is None:
+            injustifies.append(f"{rid} (aucun retrait déclaré)")
+        elif entree.get("kind") not in REMOVAL_KINDS:
+            injustifies.append(f"{rid} (motif « {entree.get('kind')} » non recevable)")
+        elif not str(entree.get("evidence") or "").strip():
+            injustifies.append(f"{rid} (motif recevable, mais AUCUNE preuve citée)")
+
+    if not injustifies:
+        return ""
+    return (
+        f"ÉLAGAGE SUSPECT : {len(retirees)} règle(s) retirée(s), dont "
+        f"{len(injustifies)} sans justification observée — "
+        + " ; ".join(injustifies)
+        + ". Le taux de règles productives monte mécaniquement ; la qualité des "
+        "audits, elle, n'a pas bougé."
+    )
 
 
 def load_manifest(path: Path = MANIFEST) -> dict:
@@ -318,6 +379,10 @@ def build_report(manifest_path: Path = MANIFEST) -> EfficacyReport:
                 assurance_justification=(
                     entry.get("assurance_justification") or ""
                 ).strip(),
+                legitimacy_source=str(
+                    entry.get("legitimacy_source") or LEGITIMACY_NONE
+                ),
+                legitimacy_basis=(entry.get("legitimacy_basis") or "").strip(),
                 note=(entry.get("note") or "").strip(),
                 detections=list(entry.get("detections") or []),
             )
@@ -502,7 +567,9 @@ def render_text(report: EfficacyReport) -> str:
     for rule in report.rules:
         if rule.lifecycle == LIFECYCLE_TESTED:
             continue
-        add(f"    [{rule.lifecycle}] {rule.id}")
+        add(f"    [{rule.lifecycle}] {rule.id}  ← {rule.legitimacy_source}")
+        if rule.legitimacy_basis:
+            add("        base : " + " ".join(rule.legitimacy_basis.split())[:150])
         if rule.assurance_justification:
             add("        " + " ".join(rule.assurance_justification.split())[:150])
     add("")

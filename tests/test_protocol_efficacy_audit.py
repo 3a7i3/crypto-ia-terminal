@@ -18,15 +18,22 @@ Invariants verrouillés ici :
   EFF-09  cycle de vie : INACTIVE / EPROUVEE / ASSURANCE, justification exigée
   EFF-10  retrait : les TROIS conditions, jamais l'absence de déclenchement seule
   EFF-11  garde-fou anti-optimisation : l'élagage sans détection est signalé
+  EFF-12  source de légitimité : observation / analyse de risque / aucune
+  EFF-13  élagage : une diminution JUSTIFIÉE n'est pas une alerte
+  EFF-14  hiérarchie d'autorité documentaire déclarée, ordonnée, limitée
 """
 
 from __future__ import annotations
 
 from tools.protocol_efficacy_audit import (
     EFFORT_ORDER,
+    LEGITIMACY_OBSERVED,
+    LEGITIMACY_OF_LIFECYCLE,
+    LEGITIMACY_RISK,
     LIFECYCLE_INACTIVE,
     LIFECYCLE_INSURANCE,
     LIFECYCLES,
+    REMOVAL_KINDS,
     SEVERITY_ORDER,
     VERDICT_COSTLY,
     VERDICT_NEVER_BOUND,
@@ -237,10 +244,14 @@ def test_eff09_trois_situations_et_non_deux():
 
 def test_eff09_une_assurance_sans_justification_n_en_est_pas_une():
     """Sans cette exigence, toute règle inactive se déclarerait « assurance »
-    et le registre cesserait de trier quoi que ce soit."""
+    et le registre cesserait de trier quoi que ce soit.
+
+    Depuis EFF-12, la validité exige AUSSI que la source de légitimité
+    corresponde au statut — les deux conditions sont cumulatives.
+    """
     from tools.protocol_efficacy_audit import RuleEfficacy
 
-    def _regle(cycle, justif=""):
+    def _regle(cycle, justif="", source=None, base=""):
         return RuleEfficacy(
             id="X",
             title="",
@@ -251,10 +262,16 @@ def test_eff09_une_assurance_sans_justification_n_en_est_pas_une():
             verdict="",
             lifecycle=cycle,
             assurance_justification=justif,
+            legitimacy_source=(
+                source if source is not None else LEGITIMACY_OF_LIFECYCLE[cycle]
+            ),
+            legitimacy_basis=base,
         )
 
-    assert _regle(LIFECYCLE_INSURANCE, "conséquence irréversible").lifecycle_valid
-    assert not _regle(LIFECYCLE_INSURANCE).lifecycle_valid
+    assert _regle(
+        LIFECYCLE_INSURANCE, "conséquence irréversible", base="ADR-0007"
+    ).lifecycle_valid
+    assert not _regle(LIFECYCLE_INSURANCE, base="ADR-0007").lifecycle_valid
     assert _regle(LIFECYCLE_INACTIVE).lifecycle_valid
 
 
@@ -301,9 +318,14 @@ def test_eff11_le_registre_se_declare_descriptif_et_non_cible():
     assert "GARDE-FOU ANTI-OPTIMISATION" in render_text(report)
 
 
-def test_eff11_un_elagage_sans_nouvelle_detection_est_signale():
+def test_eff11_un_elagage_sans_justification_est_signale():
     """Supprimer des règles ferait monter le taux de « productives » sans
-    améliorer la qualité des audits — c'est la dérive de Goodhart."""
+    améliorer la qualité des audits — c'est la dérive de Goodhart.
+
+    Depuis EFF-13, le détecteur compare des IDENTITÉS de règles et non des
+    comptes : c'est ce qui permet de distinguer un retrait justifié d'un
+    élagage. Un comptage seul ne pouvait pas faire cette différence.
+    """
     from tools.protocol_efficacy_audit import RuleEfficacy, _pruning_alert
 
     regles = [
@@ -318,10 +340,10 @@ def test_eff11_un_elagage_sans_nouvelle_detection_est_signale():
         )
         for i in range(3)
     ]
-    ledger = {"previous_measurement": {"rules": 10, "detections": 5}}
+    ledger = {"previous_measurement": {"rule_ids": [f"R{i}" for i in range(10)]}}
     alerte = _pruning_alert(ledger, regles)
     assert "ÉLAGAGE SUSPECT" in alerte
-    assert "10" in alerte and "3" in alerte
+    assert "R9" in alerte
 
 
 def test_eff11_pas_d_alerte_quand_le_registre_grandit_ou_detecte_plus():
@@ -349,3 +371,177 @@ def test_eff11_pas_d_alerte_quand_le_registre_grandit_ou_detecte_plus():
 def test_eff11_aucune_alerte_sur_le_releve_reel():
     """Le relevé courant n'a retiré aucune règle."""
     assert build_report().pruning_alert == ""
+
+
+# ── EFF-12 : source de légitimité — statut de gouvernance, pas statistique ───
+
+
+def test_eff12_chaque_statut_a_sa_source_de_legitimite():
+    """ÉPROUVÉE ← observation ; ASSURANCE ← analyse de risque ; INACTIVE ← rien.
+
+    Confondre les deux formes de justification permettrait à une règle sans
+    fondement de se déclarer garde-fou.
+    """
+    report = build_report()
+    for rule in report.rules:
+        attendu = LEGITIMACY_OF_LIFECYCLE[rule.lifecycle]
+        assert rule.legitimacy_source == attendu, rule.id
+
+
+def test_eff12_une_assurance_exige_une_base_citable():
+    from tools.protocol_efficacy_audit import RuleEfficacy
+
+    def _regle(**kw):
+        base = dict(
+            id="X",
+            title="",
+            detected=0,
+            false_positives=0,
+            prevented=0,
+            never_bound=True,
+            verdict="",
+            lifecycle=LIFECYCLE_INSURANCE,
+            legitimacy_source=LEGITIMACY_RISK,
+            assurance_justification="conséquence irréversible",
+            legitimacy_basis="ADR-0007",
+        )
+        base.update(kw)
+        return RuleEfficacy(**base)
+
+    assert _regle().lifecycle_valid
+    assert not _regle(legitimacy_basis="").lifecycle_valid
+    assert not _regle(assurance_justification="").lifecycle_valid
+    # une « assurance » adossée à une observation est en fait une ÉPROUVÉE
+    assert not _regle(legitimacy_source=LEGITIMACY_OBSERVED).lifecycle_valid
+
+
+def test_eff12_la_limite_qualitative_des_analyses_est_declaree():
+    """Les trois analyses nomment une conséquence, elles n'estiment aucune
+    probabilité. Suffisant à coût nul, insuffisant pour arbitrer."""
+    import yaml
+
+    from tools.protocol_efficacy_audit import MANIFEST
+
+    ledger = yaml.safe_load(MANIFEST.read_text(encoding="utf-8"))["protocol_efficacy"]
+    assert "QUALITATIVES" in ledger["legitimacy_limit"]
+    assert "probabilite" in ledger["legitimacy_limit"]
+
+
+# ── EFF-13 : élagage — diminution SANS justification observée ────────────────
+
+
+def test_eff13_un_retrait_justifie_n_est_pas_une_alerte():
+    """Une diminution est le résultat ATTENDU d'une campagne mature.
+
+    Signaler « diminution = suspect » contredirait le critère de sortie du gel.
+    """
+    from tools.protocol_efficacy_audit import RuleEfficacy, _pruning_alert
+
+    restantes = [
+        RuleEfficacy(
+            id="INV-A",
+            title="",
+            detected=1,
+            false_positives=0,
+            prevented=0,
+            never_bound=False,
+            verdict="",
+        )
+    ]
+    ledger = {
+        "previous_measurement": {"rule_ids": ["INV-A", "INV-B"]},
+        "removals": [
+            {
+                "id": "INV-B",
+                "kind": "FUSION",
+                "evidence": "démonstration d'équivalence avec INV-A, AUDIT-EMP-00X",
+            }
+        ],
+    }
+    assert _pruning_alert(ledger, restantes) == ""
+
+
+def test_eff13_un_retrait_sans_motif_est_signale():
+    from tools.protocol_efficacy_audit import RuleEfficacy, _pruning_alert
+
+    restantes = [
+        RuleEfficacy(
+            id="INV-A",
+            title="",
+            detected=1,
+            false_positives=0,
+            prevented=0,
+            never_bound=False,
+            verdict="",
+        )
+    ]
+    ledger = {"previous_measurement": {"rule_ids": ["INV-A", "INV-B"]}}
+    alerte = _pruning_alert(ledger, restantes)
+    assert "ÉLAGAGE SUSPECT" in alerte
+    assert "INV-B" in alerte
+
+
+def test_eff13_un_motif_hors_taxonomie_ou_sans_preuve_est_signale():
+    from tools.protocol_efficacy_audit import RuleEfficacy, _pruning_alert
+
+    restantes = [
+        RuleEfficacy(
+            id="INV-A",
+            title="",
+            detected=1,
+            false_positives=0,
+            prevented=0,
+            never_bound=False,
+            verdict="",
+        )
+    ]
+    base = {"previous_measurement": {"rule_ids": ["INV-A", "INV-B"]}}
+
+    hors_taxo = dict(
+        base, removals=[{"id": "INV-B", "kind": "PARCE_QUE", "evidence": "x"}]
+    )
+    assert "non recevable" in _pruning_alert(hors_taxo, restantes)
+
+    sans_preuve = dict(
+        base, removals=[{"id": "INV-B", "kind": "FUSION", "evidence": ""}]
+    )
+    assert "AUCUNE preuve" in _pruning_alert(sans_preuve, restantes)
+
+
+def test_eff13_les_quatre_motifs_recevables_sont_declares():
+    assert set(REMOVAL_KINDS) == {
+        "FUSION",
+        "GENERALISATION",
+        "INVALIDATION_EXPERIMENTALE",
+        "RISQUE_DISPARU",
+    }
+
+
+# ── EFF-14 : hiérarchie d'autorité documentaire ─────────────────────────────
+
+
+def test_eff14_la_hierarchie_est_declaree_et_ordonnee():
+    """L'ordre exact importe moins que le fait qu'il soit explicite."""
+    import yaml
+
+    from tools.protocol_efficacy_audit import MANIFEST
+
+    data = yaml.safe_load(MANIFEST.read_text(encoding="utf-8"))
+    hierarchie = data["authority_hierarchy"]
+    rangs = [e["rank"] for e in hierarchie["order"]]
+    assert rangs == sorted(rangs)
+    assert len(set(rangs)) == len(rangs), "deux sources au même rang"
+    for entree in hierarchie["order"]:
+        assert entree.get("scope") and entree.get("why"), entree["source"]
+
+
+def test_eff14_le_departage_et_la_limite_sont_ecrits():
+    import yaml
+
+    from tools.protocol_efficacy_audit import MANIFEST
+
+    h = yaml.safe_load(MANIFEST.read_text(encoding="utf-8"))["authority_hierarchy"]
+    assert "plus RECENT" in h["tie_break"]
+    assert "dette" in h["tie_break"]
+    assert "DECLARATIVE" in h["limite"]
+    assert "n'est pas instrumentee" in h["limite"]

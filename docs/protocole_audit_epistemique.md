@@ -1110,3 +1110,54 @@ argument pour l'**éprouver**. Conséquence immédiate et mesurée : *zéro* rè
 > Falsificateur : une règle classée `JAMAIS_LIEE` qui, retirée, laisse passer un
 > défaut réel — elle prouverait que l'absence de déclenchement était l'effet, et
 > non l'inutilité.
+
+---
+
+## 26. Hiérarchie d'autorité documentaire *(v4.5)*
+
+Six registres coexistent et sont cohérents **individuellement** : décisions
+gouvernées, manifeste opérationnel, protocole canonique, rapports de campagne,
+registre d'efficacité, audits exploratoires. La question qui se pose en
+vieillissant n'est plus « que dit chacun ? » mais :
+
+> **Lequel l'emporte quand ils divergent ?**
+
+Ce n'est pas théorique. Dans les systèmes de gouvernance qui vieillissent, la
+majorité des incohérences vient moins des règles elles-mêmes que de la
+coexistence de plusieurs documents normatifs **partiellement désynchronisés**.
+
+| Rang | Source | Portée | Ce qui fonde son autorité |
+|---|---|---|---|
+| 1 | **décision gouvernée** (ADR signé, `DEC-*` PRISE) | le cas précis tranché, et lui seul | signature de l'opérateur |
+| 2 | **manifeste opérationnel** | invariants, tickets, campagne, état | source unique des vues générées |
+| 3 | **protocole canonique** | méthode de raisonnement | gouverne *comment* on conclut, pas *ce qui* est décidé |
+| 4 | **rapports de campagne** | observations, mesures | produisent des faits, ne norment rien |
+| 5 | **audits exploratoires**, campagnes adversariales | hypothèses, défauts candidats | valeur de découverte élevée, autorité nulle |
+
+Trois conséquences qui ne vont pas de soi :
+
+1. **Un protocole plus récent qu'une décision ne l'abroge pas.** Il décrit comment
+   on aurait dû y arriver, pas ce qui a été décidé.
+2. **Une recommandation de campagne n'est jamais normative directement.** Elle le
+   devient en passant par une décision (rang 1) ou par le manifeste (rang 2).
+3. **Un défaut trouvé par attaque adversariale doit être confirmé** avant d'être
+   inscrit plus haut — quelle que soit sa qualité de démonstration.
+
+**Départage à rang égal** : le plus récent l'emporte, et la divergence est
+consignée comme une dette à solder — pas résolue en silence.
+
+> **Règle de désynchronisation.** Un document de rang supérieur n'a pas besoin
+> d'être mis à jour pour l'emporter. Mais la contradiction doit être **écrite**
+> quelque part : une hiérarchie qui sert à ignorer un désaccord sans le nommer
+> reproduit exactement le problème qu'elle prétend résoudre.
+
+**Limite déclarée.** Cette hiérarchie est **déclarative**. Aucun outil ne vérifie
+qu'un document de rang 3 ne contredit pas un document de rang 1 : la détection
+d'incohérence inter-documents n'est pas instrumentée. `UNKNOWN`, pas
+`BLIND_SPOT` — rien ne montre qu'un tel instrument est impossible.
+
+> Domaine : tout corpus normatif réparti sur plusieurs documents vivants.
+> Mode d'échec : déclarer la hiérarchie et continuer à trancher au cas par cas
+> selon le document qu'on a sous la main.
+> Falsificateur : deux décisions prises la même semaine sur le même sujet, avec
+> des conclusions opposées, chacune adossée à un document différent.

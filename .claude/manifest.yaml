@@ -382,7 +382,11 @@ invariants:
 health_baseline:
   suite_state: DEGRADED
   command: "python -m pytest tests/ -q --continue-on-collection-errors"
-  measured_at_commit: "6c551ff"
+  measured_at_commit: "PENDING"
+  # Rafraichie le 2026-07-30, legitimite + hierarchie d autorite (EFF-12..14) :
+  # +9 tests. collected 4034 -> 4043, passed 4010 -> 4019, soit exactement +9.
+  # Les 3 known_failures et l unique erreur de collecte sont INCHANGES.
+  #
   # Rafraichie le 2026-07-30, cycle de vie des regles (EFF-09..11) : +9 tests.
   # collected 4025 -> 4034, passed 4001 -> 4010, soit exactement +9. Les 3
   # known_failures et l unique erreur de collecte sont INCHANGES.
@@ -434,9 +438,9 @@ health_baseline:
   # Toujours relancer avec la commande `command:` exacte, sans variable
   # d environnement ajoutee, et comparer les NOMS.
   previous_baseline:
-    measured_at_commit: "84595f7"
-    collected: 4025
-    passed: 4001
+    measured_at_commit: "6c551ff"
+    collected: 4034
+    passed: 4010
   expected_collection_errors: 1
   known_errors:
     - file: "tests/test_full_integration.py"
@@ -447,12 +451,12 @@ health_baseline:
       note: >
         Dette de maintenance, hors campagne. Ne rapproche ni du burn-in ni de la
         validite de la mesure de N. A traiter hors gel, jamais pendant.
-  collected: 4034
-  passed: 4010
+  collected: 4043
+  passed: 4019
   failed: 3
   skipped: 20
   xfailed: 2
-  duration_s: 676
+  duration_s: 528
   expected_failures: 3
   known_failures:
     - "tests/paper_trading/test_paper_trade_e2e.py::TestPaperTradeCompleteLifecycle::test_mexc_simulator_market_order_complete"
@@ -2441,6 +2445,36 @@ protocol_efficacy:
                 EXCEPTIONNELLE et exigeant une justification ECRITE — sans quoi
                 toute regle inactive se declarerait « assurance » et le registre
                 cesserait de trier quoi que ce soit.
+  legitimacy_scale: >
+    OBSERVATION_REELLE : la regle tient sa legitimite d'un cas CONSTATE.
+    ANALYSE_DE_RISQUE  : aucun cas constate, mais une analyse DOCUMENTEE etablit
+                         la gravite de l'absence de protection. La reference doit
+                         etre citable (ADR, section de protocole, regle signee).
+    AUCUNE             : ni l'une, ni l'autre. Statut honnete, pas une faute —
+                         mais qui interdit de se declarer ASSURANCE.
+    Correspondance EXIGEE : EPROUVEE -> OBSERVATION_REELLE ;
+    ASSURANCE -> ANALYSE_DE_RISQUE ; INACTIVE -> AUCUNE. Une ASSURANCE dont la
+    legitimite serait « observation reelle » serait en realite une EPROUVEE ; une
+    ASSURANCE sans analyse citable n'est qu'une INACTIVE qui se protege.
+  legitimacy_limit: >
+    Les trois analyses de risque du registre sont QUALITATIVES : elles nomment une
+    consequence et son irreversibilite, elles n'estiment aucune probabilite
+    d'occurrence. C'est suffisant pour justifier un maintien a cout nul ; ce ne le
+    serait pas pour arbitrer entre deux protections concurrentes et couteuses.
+  removals: []
+  removal_kinds: >
+    Une DIMINUTION du nombre de regles n'est pas suspecte en soi : elle est le
+    resultat ATTENDU d'une campagne empirique arrivee a maturite. Ce qui est
+    suspect, c'est une diminution SANS JUSTIFICATION OBSERVEE. Quatre
+    justifications sont recevables, chacune exigeant sa preuve :
+      FUSION                   deux regles rendues equivalentes par une
+                               demonstration, non par une impression
+      GENERALISATION           remplacee par une regle plus generale qui couvre
+                               strictement son domaine
+      INVALIDATION_EXPERIMENTALE  une experience montre qu'elle ne protege rien
+      RISQUE_DISPARU           le risque n'existe plus apres un changement
+                               d'architecture, avec la preuve du changement
+    Tout retrait hors de ces quatre categories, ou sans preuve, reste signale.
   retirement_rule: >
     Une regle n'est ELIGIBLE AU RETRAIT que si les TROIS conditions sont reunies :
     (1) aucun cas reel rencontre pendant la campagne ; (2) aucune injection
@@ -2460,6 +2494,21 @@ protocol_efficacy:
     measured_at: "2026-07-30"
     rules: 14
     detections: 16
+    rule_ids:
+      - INV-1
+      - INV-2
+      - INV-3
+      - INV-4
+      - INV-DATASET-001
+      - INV-METRIC-001
+      - INV-FRICTION-001
+      - INV-POWER-001
+      - INV-INIT-001
+      - INV-COVERAGE-001
+      - INV-PROOF-001
+      - INV-ADOPTION-001
+      - INV-LEXICAL-001
+      - INV-VALIDITY-001
     note: >
       Point de comparaison pour le detecteur d'elagage. A mettre a jour lors du
       prochain releve, jamais retroactivement.
@@ -2472,6 +2521,9 @@ protocol_efficacy:
   rules:
     - id: INV-1
       title: "Passivite absolue des observers (ADR-0007)"
+      legitimacy_source: ANALYSE_DE_RISQUE
+      legitimacy_basis: >
+        ADR-0007 signe par l'operateur : un observer qui influence la chose observee cesse d'etre une mesure et devient une variable experimentale non controlee. Consequence declaree IRREVERSIBLE. Analyse qualitative, non quantifiee — aucune probabilite d'occurrence n'a ete estimee.
       lifecycle: ASSURANCE
       assurance_justification: >
         Un observer qui influence la chose observee CONTAMINE toutes les donnees produites depuis la violation, sans qu'aucun test ne le signale. La campagne de validation entiere serait invalidee retroactivement. Consequence irreversible : le cout du maintien est nul, celui de l'absence est la perte du seul actif du projet.
@@ -2491,6 +2543,9 @@ protocol_efficacy:
 
     - id: INV-2
       title: "Aucun reset de N sans ADR d'epoque"
+      legitimacy_source: ANALYSE_DE_RISQUE
+      legitimacy_basis: >
+        CLAUDE.md, regle d'epoque + ADR-0017. Le rollback de code existe, le rollback d'epoque n'existe pas : la perte est totale et definitive. Analyse qualitative, non quantifiee.
       lifecycle: ASSURANCE
       assurance_justification: >
         Le rollback de code existe ; le ROLLBACK D'EPOQUE N'EXISTE PAS. Un reset de N non declare detruit definitivement la comparabilite du burn-in. Aucune correction posterieure ne peut reconstituer la population perdue.
@@ -2508,6 +2563,9 @@ protocol_efficacy:
 
     - id: INV-3
       title: "paper_trades.jsonl : ecrivains uniques"
+      legitimacy_source: ANALYSE_DE_RISQUE
+      legitimacy_basis: >
+        Protocole § 20.2 : une reecriture de journal detruit la garantie sans detruire la donnee, donc sans laisser de trace detectable. Analyse qualitative, non quantifiee.
       lifecycle: ASSURANCE
       assurance_justification: >
         Un journal de trades reecrit est indetectable apres coup : les octets sont coherents, la population ne l'est plus. La garantie disparait sans que la donnee disparaisse (protocole § 20.2).
@@ -2525,6 +2583,9 @@ protocol_efficacy:
 
     - id: INV-4
       title: "Aucun seuil modifie avant N >= 500 et CRI >= 90"
+      legitimacy_source: OBSERVATION_REELLE
+      legitimacy_basis: >
+        3 decisions bloquees, tracees en DEC-*
       lifecycle: EPROUVEE
       decisions_changed: 3
       effort: NUL
@@ -2543,6 +2604,9 @@ protocol_efficacy:
 
     - id: INV-DATASET-001
       title: "Loader unique, population declaree"
+      legitimacy_source: OBSERVATION_REELLE
+      legitimacy_basis: >
+        AUDIT-EMP-001, AUDIT-EMP-003
       lifecycle: EPROUVEE
       decisions_changed: 1
       effort: ELEVE
@@ -2563,6 +2627,9 @@ protocol_efficacy:
 
     - id: INV-METRIC-001
       title: "Un KPI porte le nom de sa formule"
+      legitimacy_source: OBSERVATION_REELLE
+      legitimacy_basis: >
+        AUDIT-EMP-002
       lifecycle: EPROUVEE
       decisions_changed: 1
       effort: MOYEN
@@ -2582,6 +2649,9 @@ protocol_efficacy:
 
     - id: INV-FRICTION-001
       title: "Plancher d'edge"
+      legitimacy_source: OBSERVATION_REELLE
+      legitimacy_basis: >
+        mesure du plancher 0.194 % vs edge brut -0.467 % (AUDIT-EMP-002)
       lifecycle: EPROUVEE
       decisions_changed: 1
       effort: FAIBLE
@@ -2601,6 +2671,9 @@ protocol_efficacy:
 
     - id: INV-POWER-001
       title: "Puissance avant significativite"
+      legitimacy_source: OBSERVATION_REELLE
+      legitimacy_basis: >
+        AUDIT-EMP-002, AUDIT-EMP-003
       lifecycle: EPROUVEE
       decisions_changed: 1
       effort: ELEVE
@@ -2621,6 +2694,9 @@ protocol_efficacy:
 
     - id: INV-INIT-001
       title: "INIT-ORDER : la configuration precede les imports"
+      legitimacy_source: OBSERVATION_REELLE
+      legitimacy_basis: >
+        AUDIT-EMP-003, differentiel wallet_sync
       lifecycle: EPROUVEE
       decisions_changed: 0
       effort: MOYEN
@@ -2641,6 +2717,9 @@ protocol_efficacy:
 
     - id: INV-COVERAGE-001
       title: "Toute couverture porte son plafond"
+      legitimacy_source: OBSERVATION_REELLE
+      legitimacy_basis: >
+        2 couvertures preexistantes publiees sans plafond (CRI, burn-in)
       lifecycle: EPROUVEE
       decisions_changed: 0
       effort: FAIBLE
@@ -2660,6 +2739,9 @@ protocol_efficacy:
 
     - id: INV-PROOF-001
       title: "Constructeur unique du bloc de preuve"
+      legitimacy_source: AUCUNE
+      legitimacy_basis: >
+        extrapolation d'une propriete de classe demontree ailleurs (3 loaders, 4 Sharpe). Ni observation sur cette structure, ni analyse de risque ecrite. C'est la definition meme d'INACTIVE.
       lifecycle: INACTIVE
       decisions_changed: 0
       effort: MOYEN
@@ -2678,6 +2760,9 @@ protocol_efficacy:
 
     - id: INV-ADOPTION-001
       title: "Tout mecanisme publie son taux d'adoption"
+      legitimacy_source: OBSERVATION_REELLE
+      legitimacy_basis: >
+        AUDIT-EMP-004, 2 adoptions nulles
       lifecycle: EPROUVEE
       decisions_changed: 0
       effort: MOYEN
@@ -2696,6 +2781,9 @@ protocol_efficacy:
 
     - id: INV-LEXICAL-001
       title: "Un usage ne se conclut pas d'une presence lexicale"
+      legitimacy_source: OBSERVATION_REELLE
+      legitimacy_basis: >
+        3 faux positifs constates
       lifecycle: EPROUVEE
       decisions_changed: 0
       effort: FAIBLE
@@ -2718,6 +2806,9 @@ protocol_efficacy:
 
     - id: INV-VALIDITY-001
       title: "Auto-test a cas negatifs ; garantie derivee invalide sans lui"
+      legitimacy_source: OBSERVATION_REELLE
+      legitimacy_basis: >
+        AUDIT-EMP-005, 2 defauts
       lifecycle: EPROUVEE
       decisions_changed: 0
       effort: MOYEN
@@ -2777,6 +2868,66 @@ protocol_efficacy:
       note: >
         Couverture 1 mecanisme sur 20. L'axe existe, sa portee reelle est
         minuscule et doit etre citee avec lui.
+
+# -----------------------------------------------------------------------------
+# HIERARCHIE D'AUTORITE DOCUMENTAIRE
+#
+# Six registres coexistent et sont coherents INDIVIDUELLEMENT. La question qui
+# se pose en vieillissant n'est plus « que dit chacun ? » mais « lequel l'emporte
+# quand ils divergent ? ». Dans les systemes de gouvernance qui vieillissent, la
+# majorite des incoherences vient moins des regles que de la coexistence de
+# plusieurs documents normatifs partiellement desynchronises.
+#
+# L'ordre exact importe moins que le fait qu'il soit EXPLICITE.
+# -----------------------------------------------------------------------------
+authority_hierarchy:
+  declared: "2026-07-30"
+  order:
+    - rank: 1
+      source: "Decision gouvernee (ADR signe, DEC-* PRISE)"
+      scope: "le cas precis qu'elle tranche, et lui seul"
+      why: >
+        Une decision signee par l'operateur porte une autorite que personne
+        d'autre ne detient. Sa portee est en revanche STRICTE : elle ne tranche
+        que son cas, jamais par extension.
+    - rank: 2
+      source: ".claude/manifest.yaml (manifeste operationnel)"
+      scope: "invariants, tickets, campagne, etat courant"
+      why: >
+        Source unique des vues generees (INDEX, QUEUE, state/). Ce qui y est
+        ecrit gouverne l'execution quotidienne.
+    - rank: 3
+      source: "docs/protocole_audit_epistemique.md (protocole canonique)"
+      scope: "methode d'audit, categories, invariants methodologiques"
+      why: >
+        Gouverne la maniere de raisonner, pas l'etat du projet. Un protocole plus
+        recent qu'une decision ne l'abroge pas : il decrit comment on aurait du
+        y arriver, pas ce qui a ete decide.
+    - rank: 4
+      source: "rapports de campagne (AUDIT-EMP-*, registre d'efficacite)"
+      scope: "observations et mesures"
+      why: >
+        Ils PRODUISENT des faits, ils ne NORMENT rien. Une recommandation de
+        campagne devient normative en passant par une decision (rang 1) ou par
+        le manifeste (rang 2), jamais directement.
+    - rank: 5
+      source: "audits exploratoires, campagnes adversariales, sorties d'outils"
+      scope: "hypotheses, defauts candidats"
+      why: >
+        Valeur de decouverte elevee, autorite normative nulle. Un defaut trouve
+        par attaque adversariale doit etre CONFIRME puis inscrit plus haut.
+  tie_break: >
+    A rang egal, le plus RECENT l'emporte, et la divergence doit etre consignee
+    comme une dette a solder — pas resolue en silence.
+  regle_de_desynchronisation: >
+    Un document de rang N qui contredit un document de rang inferieur n'a PAS
+    besoin d'etre mis a jour pour l'emporter. En revanche, la contradiction doit
+    etre ECRITE quelque part : une hierarchie qui sert a ignorer un desaccord
+    sans le nommer reproduit exactement le probleme qu'elle pretend resoudre.
+  limite: >
+    Cette hierarchie est DECLARATIVE. Aucun outil ne verifie aujourd'hui qu'un
+    document de rang 3 ne contredit pas un document de rang 1 : la detection
+    d'incoherence inter-documents n'est pas instrumentee. Statut UNKNOWN.
 
 # -----------------------------------------------------------------------------
 # ETAT COURANT
