@@ -20,6 +20,16 @@ qui affirme plus que son plafond est en contradiction avec ses propres données.
 Ce module ne lit aucune configuration et ne décide rien. Il ne sait pas ce qui
 est « assez couvert » — il applique une grille écrite ici, discutable, et la
 rend visible.
+
+**Limite de `self_test()`, à garder explicite.** L'auto-test prouve une
+COHÉRENCE INTERNE, pas une validité externe. `create_proof`, `verify_provenance`
+et `self_test` partagent le même modèle de preuve : si ce modèle est
+conceptuellement faux, les trois échouent ensemble — et l'auto-test passe. Ce
+qu'il élimine réellement, c'est la RÉGRESSION logicielle : un composant qui
+cesse de faire ce que les deux autres supposent. Ce qu'il ne peut pas éliminer,
+c'est une erreur partagée par les trois. La seule parade connue reste extérieure :
+une attaque adversariale, qui a effectivement trouvé deux défauts que ce module
+ne pouvait pas voir seul (2026-07-30).
 """
 
 from __future__ import annotations

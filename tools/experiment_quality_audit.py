@@ -179,6 +179,10 @@ REGISTRY: dict[str, tuple[str, str]] = {
         ROLE_INSTRUMENT,
         "INIT-ORDER, verdicts déterministes",
     ),
+    "tools/protocol_efficacy_audit.py": (
+        ROLE_INSTRUMENT,
+        "efficacite mesuree du protocole, verdicts deterministes",
+    ),
     "tools/chain_audit.py": (
         ROLE_INSTRUMENT,
         "chaîne artefact → décision, verdicts déterministes",

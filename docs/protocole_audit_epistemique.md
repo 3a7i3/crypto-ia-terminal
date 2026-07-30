@@ -1,6 +1,6 @@
 # Protocole d'audit épistémique
 
-- **Version** : 4.4
+- **Version** : 4.5 — GEL avant campagne empirique
 - **Statut** : Draft
 - **Auteur** : Mathieu (opérateur du projet), en co-conception assistée
 - **Date** : 2026-07-24
@@ -739,6 +739,7 @@ gagne pas la vérité, on gagne la possibilité de la contester.
 |---|---|---|
 | **v1.0** | 2026-07-23 | quatre catégories (Observation/Inférence/Hypothèse/Décision) ; maillon faible ; portée ; source/couverture ; double falsificateur ; double filtre lexical ; proportionnalité |
 | **v2.0** | 2026-07-23 | composition/fermeture (DAG) ; graphe de dépendances + défaiteurs ; rétracter ≠ nier ; voir/croire/vouloir (guillotine de Hume) ; révisabilité mécanique |
+| **v4.5** | 2026-07-30 | § 25 **EPREUVE ET GEL**. N'ajoute aucun mecanisme : une regle qui RESTREINT la croissance (§ 25.1, orthogonalite des axes — tout nouvel axe doit exhiber un defaut reel qu'aucun axe existant ne capture), une limite qui REDUIT une garantie affichee (§ 25.2, un auto-test prouve la coherence interne, jamais la validite externe), une famille explicitement NON promue en axe (§ 25.3, PERTINENCE — zero instance observee), et le gel (§ 25.4 : aucune v5 avant mesure de l'efficacite reelle des regles). Premier releve : 6 regles productives sur 14, 3 axes sur 6 ne rendent jamais FAIL, faux negatifs non mesurables |
 | **v4.4** | 2026-07-30 | § 24 **VALIDITE** — cinquieme question : le mecanisme qui applique le protocole FONCTIONNE-t-il ? **INV-VALIDITY-001** (auto-test a cas negatifs obligatoire ; garantie derivee INVALIDE tant qu'il n'est pas passe ; VALIDITE evaluee AVANT adoption) ; § 24.1 la **dependance entre garanties doit etre modelisee** — sinon une racine cassee se presente comme quatre coches concordantes ; § 24.2 **INV-LEXICAL-001** : un usage ne se conclut jamais d'une presence lexicale, trois instances ; § 24.3 la **decision devient un artefact de premiere classe**, persistee, prouvee, epinglant ses entrees |
 | **v4.3** | 2026-07-30 | § 23 **ADOPTION**, quatrieme question et cinquieme axe : peut-on croire que le protocole a ete APPLIQUE ? **INV-ADOPTION-001** (tout mecanisme publie son taux d'adoption ; 0 % equivaut a l'absence), forme sur deux adoptions nulles mesurees (bloc de preuve 0/2, couche TRANSFORMATION 0 declaration) ; § 23.1 **deux plafonds** distincts (couverture vs maillon faible) avec l'action que chacun implique ; **INV-PROOF-001** : constructeur unique du bloc de preuve, extrapolation assumee d'une propriete de classe deja demontree deux fois |
 | **v4.2** | 2026-07-30 | § 20.2 **principe général** : une transformation non déclarée détruit la garantie sans détruire la donnée (agrégation, filtrage, sélection, réduction, projection, visualisation, résumé par LLM) ; **champs de preuve** d'une transformation (empreintes entrée/outil/sortie + population + date) — la déclaration devient contestable ; **INV-COVERAGE-001** (§ 19) : toute couverture publiée porte son plafond de confiance mécanique ; propagation du maillon faible **entre critères d'audit**, pas seulement entre observations |
@@ -915,3 +916,110 @@ lui, la décision du 28 serait déjà écrasée par celle du 29.
 > Domaine : tout système où plusieurs garanties dérivent d'un composant commun.
 > Mode d'échec : un auto-test complaisant, composé de cas que le mécanisme passe par construction.
 > Falsificateur : casser délibérément le mécanisme ; si l'auto-test passe encore, il ne teste rien.
+
+---
+
+## 25. Épreuve — et gel du protocole *(v4.5)*
+
+Le protocole est passé de 17 à 25 sections en une semaine. Chaque ajout se
+justifiait isolément par un incident constaté ; leur somme crée le risque inverse
+de celui du départ : **que le protocole devienne plus complexe que les phénomènes
+qu'il gouverne**.
+
+Cette section n'ajoute donc aucun mécanisme. Elle en ajoute une règle qui en
+**restreint** la croissance, une limite qui **réduit** une garantie affichée, et
+une famille explicitement **non promue** en axe.
+
+### 25.1 Règle d'orthogonalité des axes
+
+> **Tout nouvel axe doit démontrer qu'il capture une famille de défaillances
+> qu'aucun axe existant ne pouvait exprimer.**
+
+La démonstration exige un **cas concret** : un défaut réel que les axes en place
+laissent passer ou classent mal. Sans lui, l'axe proposé décrit une deuxième fois
+un phénomène déjà couvert, et le protocole grossit sans gagner de pouvoir de
+détection.
+
+Précédent d'application (2026-07-30) : `output_sha256` absent n'était ni un
+problème de population, ni de puissance, ni de transformation, ni d'adoption —
+un mécanisme adopté, exécuté et traçable ne détectait rien. VALIDITY a été créé
+sur ce cas, pas sur une intuition de complétude.
+
+Contre-exemple (même jour) : « la pertinence de la question » n'a pas été promue
+en axe, faute d'instance observée — voir § 25.3.
+
+### 25.2 Ce qu'un auto-test ne prouve pas
+
+`INV-VALIDITY-001` exige un auto-test à cas négatifs. C'est une avancée, et sa
+portée doit être écrite avec elle :
+
+> Un auto-test prouve une **cohérence interne**, jamais une **validité externe**.
+
+```
+create_proof  ──┐
+verify_provenance ├── même modèle de preuve
+self_test     ──┘        │
+                         └─► une erreur PARTAGÉE par les trois passe inaperçue
+```
+
+Ce que l'auto-test élimine réellement : la **régression** — un composant qui
+cesse de faire ce que les autres supposent. Ce qu'il ne peut pas éliminer : une
+erreur conceptuelle commune. La seule parade connue est **extérieure au
+système** : une attaque adversariale, qui a effectivement trouvé deux défauts que
+l'auto-test n'aurait jamais vus, puisqu'il aurait été écrit avec le même angle
+mort.
+
+### 25.3 PERTINENCE — famille candidate, PAS un axe
+
+Tous les instruments construits répondent à *« peut-on faire confiance à ce
+résultat ? »*. Une question de niveau supérieur reste sans instrument :
+
+> **Fallait-il mesurer cela ?**
+
+Un outil peut être traçable, reproductible, statistiquement puissant, valide et
+adopté à 100 % — et répondre à une question qui n'est pas celle du problème réel.
+Ce n'est ni POPULATION, ni POWER, ni TRANSFORMATION, ni INDEPENDENCE, ni
+VALIDITY, ni ADOPTION : cela relève du **choix de la question scientifique**.
+
+**Statut : famille CANDIDATE.** Conformément au § 25.1 et à la règle de formation
+(§ 19), elle n'est pas promue en axe : *zéro instance constatée et documentée*.
+Ce qui la ferait promouvoir : un cas réel où un instrument irréprochable sur les
+six axes a produit un travail sans valeur parce que la question était mal posée.
+
+Note d'honnêteté : le projet a probablement déjà croisé cette famille sans
+l'instruire — l'audit du score a mesuré une corrélation là où la question utile
+portait sur l'horizon. Ce précédent est **cité mais non compté** : il a été
+reconstruit après coup, et une instance reconstruite n'est pas une instance
+observée.
+
+### 25.4 Gel : aucune v5 avant l'épreuve
+
+> **Le facteur limitant n'est plus la conception du protocole, mais son épreuve
+> sur le terrain.**
+
+Aucune version majeure ne sera ouverte avant d'avoir mesuré, sur des audits
+réels : quelles règles détectent effectivement des défauts, lesquelles ne
+produisent jamais d'information, quels faux positifs elles coûtent, et — le plus
+difficile — quels faux **négatifs** elles laissent passer.
+
+Le premier relevé (`tools/protocol_efficacy_audit.py`, 2026-07-30) est
+inconfortable et doit le rester :
+
+| Constat | Valeur |
+|---|---|
+| règles PRODUCTIVES (≥ 1 détection réelle) | 6 sur 14 |
+| règles jamais liées | 4 |
+| règles liantes n'ayant jamais rien détecté | 4 |
+| axes ne rendant **jamais** FAIL | 3 sur 6 |
+| faux **négatifs** mesurés | **aucun — non mesurable** |
+
+Un axe qui ne rend jamais FAIL ne sépare rien : il ne distingue pas un dépôt sain
+d'un critère qui ne mord pas. Ces trois-là sont les premiers candidats au retrait
+si la campagne empirique ne leur fait rien trouver.
+
+> Domaine : tout protocole méthodologique qui grossit plus vite qu'il n'est éprouvé.
+> Mode d'échec : mesurer l'activité d'une règle (combien de fois elle s'exécute)
+> et la lire comme son utilité (combien de fois elle a évité une erreur).
+> Falsificateur : une règle classée `JAMAIS_LIEE` qui, retirée, laisse passer un
+> défaut réel — elle prouverait que l'absence de déclenchement était l'effet, et
+> non l'inutilité.

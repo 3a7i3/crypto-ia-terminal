@@ -382,7 +382,11 @@ invariants:
 health_baseline:
   suite_state: DEGRADED
   command: "python -m pytest tests/ -q --continue-on-collection-errors"
-  measured_at_commit: "4232b11"
+  measured_at_commit: "PENDING"
+  # Rafraichie le 2026-07-30 apres le GEL du protocole (v4.5) : +10 tests
+  # (EFF-01..06). collected 4009 -> 4019, passed 3985 -> 3995, soit exactement
+  # +10. Les 3 known_failures et l unique erreur de collecte sont INCHANGES.
+  #
   # Rafraichie le 2026-07-30 apres AUDIT-EMP-006 : +13 tests (PROV-16..18,
   # CHAIN-11, QUAL-15..16). collected 3996 -> 4009, passed 3972 -> 3985, soit
   # exactement +13. Les 3 known_failures et l unique erreur de collecte sont
@@ -422,9 +426,9 @@ health_baseline:
   # Toujours relancer avec la commande `command:` exacte, sans variable
   # d environnement ajoutee, et comparer les NOMS.
   previous_baseline:
-    measured_at_commit: "fc7fcf6"
-    collected: 3996
-    passed: 3972
+    measured_at_commit: "4232b11"
+    collected: 4009
+    passed: 3985
   expected_collection_errors: 1
   known_errors:
     - file: "tests/test_full_integration.py"
@@ -435,12 +439,12 @@ health_baseline:
       note: >
         Dette de maintenance, hors campagne. Ne rapproche ni du burn-in ni de la
         validite de la mesure de N. A traiter hors gel, jamais pendant.
-  collected: 4009
-  passed: 3985
+  collected: 4019
+  passed: 3995
   failed: 3
   skipped: 20
   xfailed: 2
-  duration_s: 629
+  duration_s: 346
   expected_failures: 3
   known_failures:
     - "tests/paper_trading/test_paper_trade_e2e.py::TestPaperTradeCompleteLifecycle::test_mexc_simulator_market_order_complete"
@@ -1464,6 +1468,30 @@ protocol_validation_campaign:
     V5 n'est justifiee que par les problemes OBSERVES pendant la campagne.
     Une extension sans instance constatee reste PROPOSEE.
   blocks: "toute version v5.x"
+  freeze: >
+    GEL DECIDE le 2026-07-30 (protocole § 25.4). Le protocole est passe de 17 a
+    25 sections en une semaine ; le facteur limitant n'est plus sa conception mais
+    son EPREUVE. Aucune version majeure avant d'avoir mesure, sur des audits
+    reels : quelles regles detectent, lesquelles ne produisent jamais
+    d'information, quels faux positifs elles coutent, et quels faux NEGATIFS elles
+    laissent passer. Premier releve (tools/protocol_efficacy_audit.py) : 6 regles
+    PRODUCTIVES sur 14, 4 jamais liees, 4 liantes sans aucune detection, et 3 axes
+    sur 6 ne rendent JAMAIS FAIL.
+  regle_orthogonalite: >
+    Tout nouvel axe doit exhiber un DEFAUT REEL qu'aucun axe existant ne capture
+    ni ne classe correctement. Sans ce cas concret, l'axe decrit une deuxieme fois
+    un phenomene deja couvert. Applique le 2026-07-30 : VALIDITY promu sur le cas
+    `output_sha256` absent ; PERTINENCE NON promu, faute d'instance observee.
+  famille_candidate:
+    id: PERTINENCE
+    question: "fallait-il mesurer cela ?"
+    status: CANDIDATE_SANS_INSTANCE
+    note: >
+      Un instrument peut etre tracable, reproductible, puissant, valide et adopte
+      a 100 % tout en repondant a une question qui n'est pas celle du probleme
+      reel. Ne releve d'aucun des six axes. Zero instance CONSTATEE : le cas de
+      l'audit du score (correlation mesuree la ou la question portait sur
+      l'horizon) est cite mais NON compte, ayant ete reconstruit apres coup.
   linked_unknown: UNK-006
 
   # ---------------------------------------------------------------------------
@@ -2343,6 +2371,225 @@ decisions:
     status: EN_ATTENTE
     blocks: [PORT-006]
     irreversible: false
+
+# -----------------------------------------------------------------------------
+# REGISTRE D'EFFICACITE DU PROTOCOLE
+#
+# Le facteur limitant n'est plus la CONCEPTION du protocole mais son EPREUVE.
+# Ce registre note, regle par regle, ce qu'elle a REELLEMENT detecte — et ce
+# qu'elle a coute en faux positifs. Une regle elegante qui n'a jamais rien
+# trouve est un candidat au retrait, pas une reussite.
+#
+# Rempli A LA MAIN, a partir des fiches d'audit AUDIT-EMP-001..006. Lu par
+# tools/protocol_efficacy_audit.py, qui ne fait AUCUNE analyse de prose : il
+# additionne ces entrees structurees et confronte le registre a la liste reelle
+# des invariants (une regle absente du registre est signalee).
+#
+# Conventions :
+#   detected        defaillance REELLE trouvee grace a cette regle (audit + fait)
+#   false_positives cas ou la regle a accuse a tort (compte, meme corrige)
+#   prevented       familles de faux positifs que la regle EMPECHE desormais
+#   never_bound     la regle n'a jamais eu l'occasion de se declencher
+# -----------------------------------------------------------------------------
+protocol_efficacy:
+  measured_at: "2026-07-30"
+  source: "fiches AUDIT-EMP-001 a AUDIT-EMP-006"
+  caveat: >
+    Toutes les detections proviennent de SIX audits menes sur DIX jours, par un
+    seul auditeur, sur un seul depot. Aucune regle n'a encore ete eprouvee par un
+    tiers ni sur un autre projet. Les compteurs ci-dessous mesurent une activite,
+    pas une valeur intrinseque.
+
+  rules:
+    - id: INV-1
+      title: "Passivite absolue des observers (ADR-0007)"
+      detected: 0
+      false_positives: 0
+      never_bound: true
+      note: >
+        Aucune violation constatee en 10 jours. Regle de conception, pas de
+        detection : son role est d'interdire, et l'interdit a tenu.
+
+    - id: INV-2
+      title: "Aucun reset de N sans ADR d'epoque"
+      detected: 0
+      false_positives: 0
+      never_bound: true
+      note: "Aucun changement d'epoque durant la campagne. Non eprouvee."
+
+    - id: INV-3
+      title: "paper_trades.jsonl : ecrivains uniques"
+      detected: 0
+      false_positives: 0
+      never_bound: true
+      note: "Aucune tentative d'ecriture hors producteurs declares."
+
+    - id: INV-4
+      title: "Aucun seuil modifie avant N >= 500 et CRI >= 90"
+      detected: 0
+      false_positives: 0
+      never_bound: false
+      note: >
+        A BLOQUE trois decisions (DEC-SHARPE-001, DEC-HORIZON-001, DEC-INIT-001)
+        qui auraient deplace un seuil. Zero defaillance detectee, mais un effet
+        de gouvernance mesurable : la regle a change ce qui a ete fait.
+
+    - id: INV-DATASET-001
+      title: "Loader unique, population declaree"
+      detected: 2
+      false_positives: 1
+      never_bound: false
+      detections:
+        - "AUDIT-EMP-001 : 3 loaders, 3 populations (106 / 631 / 649) ; verdict burn-in NO_GO -> DEGRADED"
+        - "AUDIT-EMP-003 : 7 instruments sur 19 lisaient le journal hors loader canonique"
+      false_positive_cases:
+        - "AUDIT-EMP-004 : chain_audit accuse de lire le journal qu'il ne fait que NOMMER (mention vs usage)"
+      note: "Regle la plus productive de la campagne, et la seule a impact decisionnel prouve."
+
+    - id: INV-METRIC-001
+      title: "Un KPI porte le nom de sa formule"
+      detected: 1
+      false_positives: 0
+      never_bound: false
+      detections:
+        - "AUDIT-EMP-002 : 4 definitions du Sharpe rendant -0.10 / -1.61 / -1.57 / -1.11 sur la MEME population"
+      note: >
+        Une seule detection, mais elle a revele qu'un seuil de gate etait
+        structurellement infranchissable (DEC-SHARPE-001).
+
+    - id: INV-FRICTION-001
+      title: "Plancher d'edge"
+      detected: 0
+      false_positives: 0
+      never_bound: false
+      note: >
+        AUCUNE defaillance detectee — ce n'est pas un detecteur. La regle a
+        PLAFONNE une classe entiere d'optimisations : sous plancher non franchi,
+        aucun travail de sizing ou de portefeuille n'est justifiable. Effet reel,
+        categorie differente.
+
+    - id: INV-POWER-001
+      title: "Puissance avant significativite"
+      detected: 8
+      false_positives: 1
+      never_bound: false
+      detections:
+        - "AUDIT-EMP-002 : un Pearson nul lu comme une absence d'effet, sur un instrument de resolution 0.252"
+        - "AUDIT-EMP-003 : 7 instruments concluent sans publier d'effet minimal detectable, dont le CRI"
+      false_positive_cases:
+        - "AUDIT-EMP-003 : init_order_audit accuse alors que ses verdicts sont DETERMINISTES (leve par declaration)"
+      note: "Deuxieme regle la plus productive."
+
+    - id: INV-INIT-001
+      title: "INIT-ORDER : la configuration precede les imports"
+      detected: 1
+      false_positives: 0
+      never_bound: false
+      detections:
+        - "AUDIT-EMP-003 : wallet_sync._PAPER_CAPITAL, 100 vs 1000 selon l'ordre d'import, face a un seuil de gate a 10 %"
+      note: >
+        1 materialisation prouvee sur 234 constantes inventoriees. Couverture
+        de mesure 3/234 — la regle est enoncee bien plus largement qu'elle n'est
+        verifiee.
+
+    - id: INV-COVERAGE-001
+      title: "Toute couverture porte son plafond"
+      detected: 0
+      false_positives: 0
+      never_bound: false
+      note: >
+        N'a detecte AUCUNE defaillance ; c'est elle qui a ete corrigee (plafond
+        eleve sur denominateur de 1, compteur incoherent accepte). Regle
+        d'expression, pas de detection : elle change ce qu'un rapport a le droit
+        d'affirmer.
+
+    - id: INV-PROOF-001
+      title: "Constructeur unique du bloc de preuve"
+      detected: 0
+      false_positives: 0
+      never_bound: true
+      note: >
+        Extrapolation assumee : aucune derive de bloc `proof` n'a jamais ete
+        observee. La regle attend son premier cas — candidate au retrait si elle
+        n'en rencontre aucun.
+
+    - id: INV-ADOPTION-001
+      title: "Tout mecanisme publie son taux d'adoption"
+      detected: 2
+      false_positives: 0
+      never_bound: false
+      detections:
+        - "AUDIT-EMP-004 : bloc de preuve, 0 artefact sur 2"
+        - "AUDIT-EMP-004 : couche TRANSFORMATION v4.0, 0 declaration dans le code 3 jours apres son ecriture"
+      note: "A revele que deux mecanismes ecrits n'etaient utilises par personne."
+
+    - id: INV-LEXICAL-001
+      title: "Un usage ne se conclut pas d'une presence lexicale"
+      detected: 0
+      false_positives: 0
+      prevented: 3
+      never_bound: false
+      prevented_cases:
+        - "motif json.dump capturant json.dumps (3 instruments accuses a tort)"
+        - "chemin de dataset NOMME compte comme une LECTURE"
+        - "attach_proof mentionne en docstring compte comme un appel"
+      note: >
+        Ne detecte rien : elle EMPECHE. Trois familles de faux positifs
+        supprimees a la racine par changement d'instrument (AST).
+
+    - id: INV-VALIDITY-001
+      title: "Auto-test a cas negatifs ; garantie derivee invalide sans lui"
+      detected: 2
+      false_positives: 0
+      never_bound: false
+      detections:
+        - "AUDIT-EMP-005 : output_sha256 absent -> corps non verifie mais certifie inchange"
+        - "AUDIT-EMP-005 : bloc de preuve forge minimal accepte comme valide"
+      note: >
+        NUANCE IMPORTANTE : ces deux defauts ont ete trouves par la campagne
+        ADVERSARIALE, pas par la regle. La regle les VERROUILLE desormais. Lui
+        attribuer la detection serait une surattribution — comptes ici comme
+        detections de la regle telle qu'elle existe maintenant, mais l'origine
+        est ecrite.
+
+  axes:
+    - id: AUDIT-POPULATION-001
+      binding: 17
+      pass: 10
+      fail: 7
+      note: "Critere le plus liant et le plus discriminant."
+    - id: AUDIT-POWER-001
+      binding: 11
+      pass: 4
+      fail: 5
+      note: "Discriminant. 2 invalides par propagation."
+    - id: AUDIT-TRANSFORMATION-001
+      binding: 4
+      pass: 2
+      fail: 0
+      note: >
+        Peu liant apres correction du faux positif json.dumps : 16 instruments
+        sur 20 n'ecrivent aucun artefact. Candidat a la reformulation.
+    - id: AUDIT-INDEPENDENCE-001
+      binding: 7
+      pass: 7
+      fail: 0
+      note: >
+        ZERO defaillance en deux jours, sur 7 instruments lies. Soit le depot est
+        sain sur cet axe, soit le critere ne mord pas. Non tranche — premier
+        candidat au retrait si la campagne empirique ne lui fait rien trouver.
+    - id: AUDIT-ADOPTION-001
+      binding: 4
+      pass: 2
+      fail: 2
+      note: "Jeune (1 jour). A deja fait passer l'adoption de 0 % a 2/3."
+    - id: AUDIT-VALIDITY-001
+      binding: 1
+      pass: 1
+      fail: 0
+      note: >
+        Couverture 1 mecanisme sur 20. L'axe existe, sa portee reelle est
+        minuscule et doit etre citee avec lui.
 
 # -----------------------------------------------------------------------------
 # ETAT COURANT
