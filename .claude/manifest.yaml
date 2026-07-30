@@ -382,7 +382,7 @@ invariants:
 health_baseline:
   suite_state: DEGRADED
   command: "python -m pytest tests/ -q --continue-on-collection-errors"
-  measured_at_commit: "PENDING"
+  measured_at_commit: "84595f7"
   # Rafraichie le 2026-07-30, dimension economique du registre (EFF-07/08) :
   # +6 tests. collected 4019 -> 4025, passed 3995 -> 4001, soit exactement +6.
   # Les 3 known_failures et l unique erreur de collecte sont INCHANGES.
