@@ -1,6 +1,6 @@
 # Protocole d'audit épistémique
 
-- **Version** : 4.1
+- **Version** : 4.2
 - **Statut** : Draft
 - **Auteur** : Mathieu (opérateur du projet), en co-conception assistée
 - **Date** : 2026-07-24
@@ -518,6 +518,7 @@ Quatre règles nées d'échecs constatés, non d'anticipations théoriques. Chac
 | **INV-TRACE-001** | Le diff doit égaler **exactement** le contrat annoncé. | un ticket annonçant 1 fichier en ayant emporté 43 |
 | **INV-HEALTH-001** | La santé de la suite de tests est un **état de référence mesuré**, pas un caveat. `observé > attendu` → FAIL. | une suite dont la collecte échouait, rendant tout « vert » non comparable |
 | **INV-RESTORE-001** | Toute expérimentation destructive exige un point de restauration **vérifiable** (commit, stash vérifié, branche). La confiance dans le working tree n'est pas acceptée. | **deux** pertes de travail par le même mécanisme dans une même session |
+| **INV-COVERAGE-001** *(v4.2)* | Toute **couverture** publiée porte son **plafond de confiance** mécanique. Un rapport plus affirmatif que son plafond contredit ses propres données. | deux couvertures déjà présentes dans le dépôt (composante `coverage` du CRI, `coverage_pct` du burn-in) citées comme des scores, sans qu'aucune conséquence n'en soit tirée ; puis un « 3 mesurées sur 234 » relégué en note de bas de page |
 | **INV-POWER-001** *(v4.1)* | Toute conclusion d'**absence** d'effet est plafonnée tant que l'**effet minimal détectable** n'est pas publié. La puissance se lit **avant** la significativité. Une exigence de **volume** ne vaut pas une puissance. | **sept** instruments d'un même dépôt concluant sans publier ce qu'ils pouvaient détecter — dont un indice de préparation bâti sur quatre seuils de volume et aucune puissance |
 
 > `INV-RESTORE-001` illustre la règle de formation : **une occurrence est un accident, deux sont une
@@ -677,6 +678,59 @@ TRANSFORMATION  P1   (type : PROJECTION)
 > Falsificateur de la règle elle-même : une projection dont le transport serait démontré par
 > construction (échantillonnage aléatoire commun) — auquel cas ce n'en est plus une.
 
+### 20.2 Le principe général : la garantie se détruit sans la donnée *(v4.2)*
+
+Le § 20.1 est un cas particulier d'un énoncé plus large, et c'est probablement l'idée la plus
+généralisable de ce protocole :
+
+> **Une transformation non déclarée détruit la garantie attachée à une donnée sans détruire la
+> donnée.**
+
+C'est ce qui rend cette famille d'erreurs si difficile à voir : il n'y a **rien à constater**. Le
+fichier est là, les nombres sont exacts, les tests passent. Ce qui a disparu est la chaîne qui
+rendait ces nombres interprétables — la population dont ils viennent, la date à laquelle ils
+valaient, l'unité dans laquelle ils se lisent, la question à laquelle ils répondaient.
+
+Le principe ne dépend ni de ce dépôt ni du trading. Il vaut pour :
+
+| Opération | Donnée conservée | Garantie détruite |
+|---|---|---|
+| agrégation | la somme, la moyenne | la distribution, donc le risque |
+| filtrage | les lignes restantes | la représentativité de l'échantillon |
+| sélection | les cas retenus | l'absence de biais de sélection |
+| réduction dimensionnelle | les axes principaux | l'interprétabilité des axes d'origine |
+| projection entre populations | les deux mesures | la validité du transport de l'une à l'autre |
+| visualisation | la forme visible | l'échelle, l'incertitude, les cas écartés |
+| résumé par un LLM | les phrases produites | la traçabilité vers la source, et ce qui a été omis |
+
+Dans chaque ligne, un lecteur de bonne foi voit une donnée correcte et en tire une conclusion que
+la donnée ne porte plus. **La garantie ne laisse pas de trou en partant** : c'est pourquoi elle doit
+être déclarée en amont, jamais reconstituée en aval.
+
+Conséquence opérationnelle : la déclaration ne suffit pas longtemps. Une transformation déclarée
+reste une phrase ; une transformation **prouvée** porte des empreintes vérifiables.
+
+```
+TRANSFORMATION  T#   (champs de preuve, v4.2 — facultatifs mais recommandes)
+  proof.input_sha256      : empreinte de chaque entree AU MOMENT de la lecture
+  proof.tool_sha256       : empreinte du script qui a produit la sortie
+  proof.output_sha256     : empreinte du corps produit, hors bloc de provenance
+  proof.population        : loader, N, borne d'epoque
+  proof.generated_at      : date de production, pour la fraicheur
+```
+
+Ce que ces empreintes prouvent : l'**identité des octets** et l'identité du producteur. Ce qu'elles
+ne prouvent pas : la **justesse de l'opération**. Une transformation fausse, reproductible et
+parfaitement tracée reste fausse — la preuve déplace la charge, elle ne l'annule pas. C'est le même
+saut que « les tests passent » → « voici l'observation qui montre que les tests passent » : on ne
+gagne pas la vérité, on gagne la possibilité de la contester.
+
+> Domaine : toute chaîne où un artefact est relu par un autre outil que celui qui l'a produit.
+> Mode d'échec : produire des empreintes que personne ne vérifie — la preuve devient décorative.
+> Falsificateur : un artefact dont les empreintes concordent et dont la conclusion est fausse ;
+> il montrerait que le contrôle porte sur la forme et jamais sur le fond, ce qui est **attendu** et
+> doit rester écrit.
+
 ---
 
 ## 21. Historique des versions
@@ -685,6 +739,7 @@ TRANSFORMATION  P1   (type : PROJECTION)
 |---|---|---|
 | **v1.0** | 2026-07-23 | quatre catégories (Observation/Inférence/Hypothèse/Décision) ; maillon faible ; portée ; source/couverture ; double falsificateur ; double filtre lexical ; proportionnalité |
 | **v2.0** | 2026-07-23 | composition/fermeture (DAG) ; graphe de dépendances + défaiteurs ; rétracter ≠ nier ; voir/croire/vouloir (guillotine de Hume) ; révisabilité mécanique |
+| **v4.2** | 2026-07-30 | § 20.2 **principe général** : une transformation non déclarée détruit la garantie sans détruire la donnée (agrégation, filtrage, sélection, réduction, projection, visualisation, résumé par LLM) ; **champs de preuve** d'une transformation (empreintes entrée/outil/sortie + population + date) — la déclaration devient contestable ; **INV-COVERAGE-001** (§ 19) : toute couverture publiée porte son plafond de confiance mécanique ; propagation du maillon faible **entre critères d'audit**, pas seulement entre observations |
 | **v4.1** | 2026-07-29 | type de transformation **PROJECTION entre populations** (§ 20.1) : conclure sur A en mesurant B est une *hypothèse de transport*, plafonnée à `HYPOTHESE`, dont le falsificateur est toujours disponible ; **INV-POWER-001** (§ 19) : la puissance se lit avant la significativité, et un seuil de volume n'est pas une puissance ; règle de formation étendue — *N instances mesurées en une passe* valent *deux occurrences séparées dans le temps* |
 | **v4.0** | 2026-07-27 | couche **TRANSFORMATION** : les operations entre observation et decision deviennent gouvernees (perte d'information, hypotheses introduites, reversibilite, falsificateur) ; surface de garantie evolutive (3e colonne) ; `max_acceptable_cost` sur dette critique ; non-comparabilite des indices |
 | **v3.1** | 2026-07-27 | trois niveaux gouvernés (conclusions/observations/instruments) ; `UNKNOWN` vs `BLIND_SPOT` + cycle de vie interdisant le saut direct ; échelle de dette **normative** réconciliée (5 niveaux définis) ; dette critique **démontrable** ; chapitre obligatoire de dette résiduelle ; surface de garantie ; 4 invariants opérationnels ; indice plafonné par la pire dette |

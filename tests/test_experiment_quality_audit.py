@@ -14,16 +14,21 @@ Invariants verrouillés ici :
   QUAL-06  TRANSFORMATION : artefact sans date ni population = FAIL
   QUAL-07  INDEPENDENCE : dispersion sans unité d'échantillonnage = FAIL
   QUAL-08  l'outil s'applique à lui-même et passe les quatre critères
+  QUAL-09  PROPAGATION : POPULATION=FAIL invalide l'aval, sans effacer le constat
+  QUAL-10  COUVERTURE : le plafond de confiance est mécanique, pas une remarque
+  QUAL-11  imprimer du JSON n'est PAS écrire un artefact (faux positif corrigé)
 """
 
 from __future__ import annotations
 
+from system.provenance import CEILING_LOW, CEILING_NONE, weakest_ceiling
 from tools.experiment_quality_audit import (
     CRITERIA,
     REGISTRY,
     ROLE_AFFICHAGE,
     ROLE_INSTRUMENT,
     STATUS_FAIL,
+    STATUS_INVALID,
     STATUS_NA,
     STATUS_PASS,
     audit_source,
@@ -211,3 +216,121 @@ def test_qual08_le_registre_declare_au_moins_un_moteur_et_un_producteur():
 
 def test_qual08_le_json_est_serialisable_et_le_cli_repond():
     assert main(["--json"]) == 0
+
+
+# ── QUAL-09 : propagation du maillon faible ENTRE critères ────────────────────
+
+
+def test_qual09_population_fail_invalide_l_aval():
+    """Une puissance calculée sur une population contaminée est SANS OBJET.
+
+    Ni réussie, ni ratée : `POPULATION: FAIL` + `POWER: ok` laisserait croire que
+    le test de puissance renseigne sur quelque chose.
+    """
+    source = (
+        'PATH = "databases/paper_trades.jsonl"\n'
+        "rho_min = min_detectable_rho(n)\n"
+        'verdict = "NO_GO"\n'
+        "sharpe = m / stdev(r)  # unité d'échantillonnage : le trade\n"
+    )
+    report = audit_source("faux/i.py", ROLE_INSTRUMENT, "", source)
+    assert _status(report, "POPULATION") == STATUS_FAIL
+    assert _status(report, "POWER") == STATUS_INVALID
+    assert _status(report, "INDEPENDENCE") == STATUS_INVALID
+    assert report.invalidated == ["POWER", "INDEPENDENCE"]
+
+
+def test_qual09_la_propagation_conserve_le_constat_initial():
+    """Rétracter n'est pas nier (§ 2 du protocole) : la raison d'origine reste."""
+    source = (
+        'PATH = "databases/paper_trades.jsonl"\n'
+        "rho_min = min_detectable_rho(n)\n"
+        'verdict = "GO"\n'
+    )
+    report = audit_source("faux/i.py", ROLE_INSTRUMENT, "", source)
+    raison = _reason(report, "POWER")
+    assert raison.startswith("INVALIDE par propagation depuis POPULATION=FAIL")
+    assert "constat initial conservé" in raison
+    assert "effet minimal détectable" in raison
+
+
+def test_qual09_un_critere_non_liant_n_est_jamais_invalide():
+    """N/A veut dire « la question ne se pose pas » — la propagation n'y change rien."""
+    source = 'PATH = "databases/paper_trades.jsonl"\nx = 1\n'
+    report = audit_source("faux/i.py", ROLE_INSTRUMENT, "", source)
+    assert _status(report, "POPULATION") == STATUS_FAIL
+    assert _status(report, "POWER") == STATUS_NA
+    assert report.invalidated == []
+
+
+def test_qual09_le_plafond_distingue_invalidation_et_echec():
+    invalide = audit_source(
+        "faux/a.py",
+        ROLE_INSTRUMENT,
+        "",
+        'PATH = "databases/paper_trades.jsonl"\n'
+        'verdict = "GO"\n'
+        "rho = min_detectable_rho(n)\n",
+    )
+    echec = audit_source("faux/b.py", ROLE_INSTRUMENT, "", 'verdict = "GO"\n')
+    assert invalide.confidence_ceiling == CEILING_NONE
+    assert echec.confidence_ceiling == CEILING_LOW
+
+
+# ── QUAL-10 : couverture normative ────────────────────────────────────────────
+
+
+def test_qual10_la_couverture_est_un_objet_pas_une_remarque():
+    report = build_report()
+    cov = report.coverage
+    assert cov["total"] == report.n_instruments
+    assert 0 <= cov["ratio"] <= 1
+    assert (
+        cov["measured"]
+        + len(
+            [
+                i
+                for i in report.instruments
+                if i.role == ROLE_INSTRUMENT and (i.failures or i.invalidated)
+            ]
+        )
+        == cov["total"]
+    )
+
+
+def test_qual10_le_plafond_du_rapport_est_le_maillon_faible():
+    report = build_report()
+    attendu = weakest_ceiling(
+        [report.coverage["confidence_ceiling"]]
+        + [
+            i.confidence_ceiling
+            for i in report.instruments
+            if i.role == ROLE_INSTRUMENT
+        ]
+    )
+    assert report.confidence_ceiling == attendu
+
+
+# ── QUAL-11 : précision du critère TRANSFORMATION ─────────────────────────────
+
+
+def test_qual11_imprimer_du_json_n_est_pas_ecrire_un_artefact():
+    """FAUX POSITIF CORRIGÉ : `json.dumps` dans un print ne persiste rien.
+
+    Trois instruments sur quatre signalés en TRANSFORMATION n'écrivaient aucun
+    fichier — ils imprimaient sur la sortie standard. La famille « à traiter en
+    priorité » était surévaluée de 300 %.
+    """
+    source = "print(json.dumps(result, indent=1))\n"
+    report = audit_source("faux/i.py", ROLE_INSTRUMENT, "", source)
+    assert _status(report, "TRANSFORMATION") == STATUS_NA
+
+
+def test_qual11_ecrire_un_fichier_est_un_artefact():
+    for source in (
+        'json.dump(payload, open("cache/r.json", "w"))\n',
+        'Path("cache/r.json").write_text(txt)\n',
+        'with open("databases/x.jsonl", "a") as f:\n    f.write(line)\n',
+    ):
+        report = audit_source("faux/i.py", ROLE_INSTRUMENT, "", source)
+        assert _status(report, "TRANSFORMATION") in {STATUS_FAIL, STATUS_PASS}

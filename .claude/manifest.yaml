@@ -207,6 +207,43 @@ invariants:
       L'outil ne corrige rien : rendre une constante paresseuse deplacerait un
       KPI face a un seuil de gate (DEC-INIT-001).
 
+  - id: INV-COVERAGE-001
+    statement: >
+      Toute COUVERTURE publiee porte son PLAFOND DE CONFIANCE mecanique
+      (system/provenance.py::Coverage). Un rapport plus affirmatif que son
+      plafond contredit ses propres donnees. Le plafond d'un ensemble est le
+      MAILLON FAIBLE de ses composants — la propagation vaut aussi entre criteres
+      d'audit, pas seulement entre observations.
+    violation: >
+      Publier un ratio de couverture sans plafond ; ecrire "verifie" alors que le
+      plafond est FAIBLE ; afficher un critere PASS alors qu'un critere amont dont
+      il depend est FAIL (il doit devenir INVALIDE, pas rester PASS).
+    formed_from: >
+      DEUX instances PREEXISTANTES constatees le 2026-07-30 : la composante
+      `coverage` du CRI (32.0/100) et `coverage_pct` du rapport de burn-in etaient
+      publiees comme des scores, sans qu'aucune consequence n'en soit tiree sur le
+      niveau de langage admissible. Une troisieme instance a ete produite la
+      veille par l'auditeur lui-meme : "3 constantes mesurees sur 234" releguee en
+      note de bas de page d'INV-INIT-001. Le lecteur devait faire la division et
+      en deduire seul les consequences.
+    enforced_by:
+      - "system/provenance.py::Coverage.confidence_ceiling (grille exposee, discutable)"
+      - "system/provenance.py::weakest_ceiling (maillon faible)"
+      - "tools/experiment_quality_audit.py — statut INVALIDE par propagation + plafond du rapport"
+      - "tools/chain_audit.py — plafond par chaine et plafond global"
+      - "tests/test_provenance_and_chain.py PROV-04/05, tests QUAL-09/10 (propagation)"
+    scope_note: >
+      La grille de seuils (10 % / 50 % / 90 %) est arbitraire et ECRITE dans le
+      module pour rester critiquable d'un coup d'oeil. Elle ne gouverne AUCUN
+      parametre du moteur : elle borne un niveau de langage dans un rapport.
+      Un plafond n'est pas une mesure de qualite — c'est un maximum.
+
+  # PAS d'invariant de chaine (INV-CHAIN-*) : la regle de formation du protocole
+  # l'interdit. Une seule instance est constatee a ce jour — la gate D
+  # (AUDIT-EMP-001). Une occurrence est un accident. tools/chain_audit.py existe
+  # comme INSTRUMENT et documente les quatre controles ; si une deuxieme rupture
+  # d'arete est constatee, l'invariant sera ecrit a ce moment-la, et pas avant.
+
 # -----------------------------------------------------------------------------
 # HEALTH BASELINE — etat de reference REPRODUCTIBLE de la suite de tests
 #
@@ -222,7 +259,12 @@ invariants:
 health_baseline:
   suite_state: DEGRADED
   command: "python -m pytest tests/ -q --continue-on-collection-errors"
-  measured_at_commit: "0bc4012"
+  measured_at_commit: "PENDING"
+  # Rafraichie le 2026-07-30 apres AUDIT-EMP-004 : +33 tests (PROV-01..05,
+  # CHAIN-01..06, QUAL-09..11). collected 3919 -> 3952, passed 3895 -> 3928,
+  # soit exactement +33. Les 3 known_failures et l unique erreur de collecte
+  # sont INCHANGES, NOMS verifies un par un.
+  #
   # Rafraichie le 2026-07-29 apres AUDIT-EMP-003 : +33 tests (QUAL-01..08 et
   # INIT-01..06). collected 3886 -> 3919, passed 3862 -> 3895, soit exactement
   # +33. Les 3 known_failures et l unique erreur de collecte sont INCHANGES,
@@ -246,9 +288,9 @@ health_baseline:
   # Toujours relancer avec la commande `command:` exacte, sans variable
   # d environnement ajoutee, et comparer les NOMS.
   previous_baseline:
-    measured_at_commit: "88bd4e2"
-    collected: 3886
-    passed: 3862
+    measured_at_commit: "0bc4012"
+    collected: 3919
+    passed: 3895
   expected_collection_errors: 1
   known_errors:
     - file: "tests/test_full_integration.py"
@@ -259,12 +301,12 @@ health_baseline:
       note: >
         Dette de maintenance, hors campagne. Ne rapproche ni du burn-in ni de la
         validite de la mesure de N. A traiter hors gel, jamais pendant.
-  collected: 3919
-  passed: 3895
+  collected: 3952
+  passed: 3928
   failed: 3
   skipped: 20
   xfailed: 2
-  duration_s: 708
+  duration_s: 810
   expected_failures: 3
   known_failures:
     - "tests/paper_trading/test_paper_trade_e2e.py::TestPaperTradeCompleteLifecycle::test_mexc_simulator_market_order_complete"
@@ -1273,7 +1315,7 @@ proposed_extensions:
 protocol_validation_campaign:
   status: EN_COURS
   started: "2026-07-28"
-  audits_completed: 3
+  audits_completed: 4
   audits_target: "10-20"
   objective: >
     Appliquer v4.0 a 10-20 audits reels de nature differente (code,
@@ -1323,16 +1365,28 @@ protocol_validation_campaign:
 
     - id: AUDIT-TRANSFORMATION-001
       question: "toute agregation documente-t-elle sa perte d'information ?"
-      instrument: "tools/experiment_quality_audit.py — critere TRANSFORMATION"
-      measured: "2026-07-29 : 8 PASS / 4 FAIL / 7 non liant"
-      status: MESURE_AUTOMATIQUE_PARTIELLE
+      instrument: >
+        tools/experiment_quality_audit.py (critere TRANSFORMATION, precision
+        corrigee) + tools/chain_audit.py (4 controles par arete) +
+        system/provenance.py (empreintes verifiables)
+      measured: >
+        2026-07-29 : 8 PASS / 4 FAIL — mesure INVALIDEE le 2026-07-30.
+        2026-07-30 apres correction : 1 PASS / 0 FAIL / 2 INVALIDE / 17 non liant.
+        Chaine : 1 arete d'artefact sur 2 intacte (l'autre absente en local).
+      status: TRAITE_PARTIELLEMENT
+      correction: >
+        Les 4 FAIL du 2026-07-29 etaient 3 FAUX POSITIFS et 1 propagation. Le
+        motif `json\\.dump` sans parenthese capturait `json.dumps` : exit_audit,
+        exit_replay et validate_trade_dataset n'ecrivent AUCUN fichier, ils
+        impriment sur stdout. La famille designee prioritaire etait surevaluee
+        de 300 %. Verifier avant de corriger a economise trois chantiers inutiles.
       remaining: >
-        L'outil ne verifie que la presence d'une DATE et d'un marqueur de
-        POPULATION sur l'artefact produit — proxy du defaut de la gate D. La
-        perte d'information au sens du § 20 (une moyenne qui masque une
-        bimodalite) n'est pas detectable par balayage lexical. Axe le moins
-        couvert des quatre.
-      invariant: null
+        La perte d'information au sens du § 20 (une moyenne qui masque une
+        bimodalite) n'est toujours pas detectable par balayage lexical — seul le
+        couple date + population l'est, plus les empreintes si le producteur les
+        ecrit. AUCUN producteur du depot n'ecrit encore de bloc `proof` : la
+        primitive existe, son adoption reste a faire.
+      invariant: INV-COVERAGE-001
 
     - id: AUDIT-INDEPENDENCE-001
       question: "toute statistique publie-t-elle son unite d'echantillonnage ?"
@@ -1636,6 +1690,106 @@ protocol_validation_campaign:
         - >
           Reste ouvert : 231 constantes d'INIT-ORDER inventoriees mais non
           mesurees empiriquement.
+
+    - id: AUDIT-EMP-004
+      date: "2026-07-30"
+      nature: METHODOLOGIE
+      trigger: >
+        Constat de l'operateur : les quatre axes de qualite etaient audites comme
+        INDEPENDANTS alors qu'ils se propagent (une puissance calculee sur une
+        population contaminee n'est pas "correcte", elle est sans objet) ; la
+        couverture restait une remarque ; les outils forment desormais un graphe
+        d'artefacts qu'aucun audit ne parcourait ; et les transformations
+        n'etaient que DECLAREES, jamais prouvees.
+      scope: >
+        tools/experiment_quality_audit.py (propagation + couverture + precision),
+        system/provenance.py (nouveau), tools/chain_audit.py (nouveau).
+        Priorite d'instruction fixee par l'operateur : TRANSFORMATION d'abord,
+        puis chaine, puis couverture normative.
+
+      observations:
+        - >
+          O1 FAUX POSITIFS : les 4 defaillances TRANSFORMATION du 2026-07-29
+          etaient 3 faux positifs + 1 propagation. Le motif `json\\.dump` sans
+          parenthese capturait `json.dumps` ; exit_audit, exit_replay et
+          validate_trade_dataset impriment sur stdout et n'ecrivent aucun fichier.
+          Apres correction : TRANSFORMATION = 1 PASS / 0 FAIL / 2 INVALIDE.
+        - >
+          O2 TROISIEME faux positif de la meme famille : les motifs ne
+          distinguent pas la MENTION de l'USAGE. chain_audit nomme
+          paper_trades.jsonl dans une declaration de chaine sans l'ouvrir, et
+          POPULATION l'accusait de lire le journal hors loader canonique.
+        - >
+          O3 PROPAGATION : 2 instruments passent de POWER=FAIL a POWER=INVALIDE
+          et 2 de TRANSFORMATION=FAIL a INVALIDE, une fois POPULATION=FAIL
+          propage. Le constat initial est conserve dans la raison (retracter
+          n'est pas nier).
+        - >
+          O4 COUVERTURE : 8 instruments sur 20 sans defaillance ni invalidation
+          (40 %, plafond MOYENNE), mais plafond global du rapport = AUCUNE, tire
+          par les instruments dont un critere est INVALIDE. Le maillon faible
+          rend le chiffre de 40 % non citable seul.
+        - >
+          O5 CHAINE : CHAIN-BURNIN-PRELIVE, la chaine de l'incident du
+          2026-07-28, est desormais INTACTE sur les quatre controles verifies de
+          bout en bout sur l'artefact reel (provenance datee, population declaree
+          ET lue, 2.2 h < 24 h, 3 cles consommees presentes). Premiere
+          verification end-to-end de ces correctifs.
+        - >
+          O6 Les quatre chaines declarees ont une TERMINAISON NON PERSISTEE :
+          verdicts prelive, CRI, audit de score — tous rendus sur stdout ou
+          Telegram. Aucune decision du depot n'est aujourd'hui rejouable a partir
+          de sa seule trace.
+        - >
+          O7 Aucun producteur du depot n'ecrit de bloc de preuve (empreintes
+          entree/outil/sortie). La primitive existe (system/provenance.py), son
+          adoption est nulle : 0 artefact sur 2.
+
+      falsifier_tested: >
+        POSE AVANT LA MESURE : si la propagation ne change aucun statut, elle est
+        de la decoration et doit etre retiree (regle de proportionnalite). Si la
+        correction du motif d'artefact ne change aucun verdict, le faux positif
+        etait theorique.
+      falsifier_outcome: NON_REFUTE
+      falsifier_detail: >
+        La propagation modifie 4 statuts et fait tomber le plafond global de
+        MOYENNE a AUCUNE. La correction du motif fait passer TRANSFORMATION de
+        4 FAIL a 0 FAIL : la priorite n°1 fixee par l'operateur portait, pour
+        l'essentiel, sur des defaillances inexistantes.
+
+      what_the_protocol_caught: >
+        L'ordre "verifier avant de corriger" a economise trois chantiers. La
+        consigne etait de traiter TRANSFORMATION en priorite parce que c'est la
+        seule famille ayant produit un diagnostic errone ; c'est vrai
+        historiquement (gate D) et faux pour les 4 instruments designes. Les deux
+        propositions ne se contredisent pas — elles portent sur des objets
+        differents, et seule la mesure permettait de le voir.
+
+      what_the_protocol_missed:
+        - >
+          MENTION vs USAGE (nouvelle famille, apres POLARITE) : un detecteur
+          lexical ne distingue pas nommer une chose de s'en servir. Deux
+          instances en deux jours, sur le meme instrument. La levee par
+          declaration explicite fonctionne mais reste contournable par quiconque
+          connait le mot-cle : ce n'est pas une verification, c'est une
+          convention.
+        - >
+          ADOPTION : le protocole peut exiger une declaration ; rien ne mesure sa
+          DIFFUSION. La primitive de preuve a une adoption de 0 %, et aucune
+          regle ne l'aurait signale sans qu'un humain y pense.
+
+      cost: >
+        Un module de primitives, un outil de chaine, 53 tests, trois faux
+        positifs corriges. Aucune ligne du moteur de trading modifiee.
+
+      outcome:
+        - "INV-COVERAGE-001 forme a partir de 2 instances preexistantes + 1 propre."
+        - "Protocole v4.2 : § 20.2 principe general + champs de preuve."
+        - "AUCUN invariant de chaine : une seule instance, la regle de formation l'interdit."
+        - "53 tests ajoutes (PROV-01..05, CHAIN-01..06, QUAL-09..11)."
+        - >
+          Reste ouvert : adoption des blocs de preuve (0/2 artefacts), terminaison
+          non persistee des 4 chaines, 7 defaillances POPULATION et 5 POWER.
 
 # -----------------------------------------------------------------------------
 # DECISIONS EN ATTENTE

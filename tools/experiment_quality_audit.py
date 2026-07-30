@@ -39,6 +39,14 @@ l'unité d'échantillonnage, ce qui est le comportement souhaité ; mais la limi
 est réelle et doit être connue : ces motifs détectent des mots, pas des
 intentions.
 
+Seconde limite de la même famille (2026-07-29) : les motifs ne distinguent pas
+la **mention** de l'**usage**. `tools/chain_audit.py` nomme
+`databases/paper_trades.jsonl` dans la déclaration d'une chaîne sans jamais
+l'ouvrir ; le critère POPULATION l'accusait de lire le journal hors loader
+canonique. Là encore la levée passe par une déclaration explicite
+(« Population consommée : aucune »), et là encore une déclaration vérifiée par
+mot-clé reste contournable par quiconque connaît le mot.
+
 Autrement dit : il transforme une hypothèse implicite en **précondition
 explicite**, et rien de plus. Un instrument qui déclare tout et se trompe
 partout passe cet audit. C'est assumé — l'alternative serait de prétendre
@@ -65,6 +73,17 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional, Sequence
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from system.provenance import (  # noqa: E402
+    CEILING_FULL,
+    CEILING_LOW,
+    CEILING_MEDIUM,
+    CEILING_NONE,
+    Coverage,
+    weakest_ceiling,
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -145,6 +164,14 @@ REGISTRY: dict[str, tuple[str, str]] = {
         ROLE_INSTRUMENT,
         "INIT-ORDER, verdicts déterministes",
     ),
+    "tools/chain_audit.py": (
+        ROLE_INSTRUMENT,
+        "chaîne artefact → décision, verdicts déterministes",
+    ),
+    "system/provenance.py": (
+        ROLE_LOADER,
+        "preuve de transformation + couverture normative",
+    ),
 }
 
 #: Répertoires balayés par le détecteur de dérive.
@@ -168,9 +195,15 @@ _RE_DISPERSION = re.compile(
     r"\bstdev\b|\bpstdev\b|\bstd\b|variance|sharpe|Sharpe|spearman|pearson|"
     r"p_value|t_statistic|\bt_stat|correl|z_score|confidence|intervalle",
 )
+#: Deux façons de satisfaire POPULATION : passer par un chemin canonique, OU
+#: déclarer explicitement qu'aucune population de trades n'est consommée. La
+#: seconde existe parce que les motifs ne distinguent pas la MENTION de l'USAGE :
+#: `tools/chain_audit.py` nomme `databases/paper_trades.jsonl` dans la
+#: déclaration d'une chaîne sans jamais l'ouvrir. Troisième faux positif de la
+#: même famille après la polarité — voir la limite documentée plus haut.
 _RE_POPULATION_OK = re.compile(
     r"load_clean_trades|trades_provenance|RegretRepository|regret_repository|"
-    r"CLEAN_DATA_SINCE",
+    r"CLEAN_DATA_SINCE|Population consommée : aucune",
 )
 _RE_POPULATION_BAD = re.compile(
     r"paper_trades\.jsonl|PAPER_TRADE_LOG",
@@ -195,8 +228,18 @@ _RE_SAMPLE_SIZE = re.compile(
     r"N_TARGET|BURNIN_N|_BURNIN_N|min_n_required|MIN_N|n_required|MIN_CELL|"
     r"MIN_PSI_SAMPLE|min_trades|N >= |n >= ",
 )
+#: Artefact = contenu PERSISTÉ, susceptible d'être relu plus tard par un autre
+#: outil. Écrire du JSON sur la sortie standard n'en est pas un : personne ne
+#: peut le consommer six jours plus tard en croyant qu'il est frais, ce qui est
+#: exactement le défaut de la gate D que ce critère cherche.
+#:
+#: FAUX POSITIF CORRIGÉ (2026-07-29) : le motif `json\.dump` sans parenthèse
+#: capturait aussi `json.dumps(...)`. Trois instruments sur quatre signalés en
+#: TRANSFORMATION n'écrivaient rien — ils imprimaient. Le critère accusait à
+#: tort, et la famille "à traiter en priorité" était surévaluée de 300 %.
 _RE_ARTIFACT = re.compile(
-    r"json\.dump|write_text\(|\.to_json|open\([^)]*['\"]w",
+    r"json\.dump\(|write_text\(|\.to_json\(|\.to_csv\(|csv\.writer|"
+    r"open\([^)]*['\"][wa]",
 )
 _RE_ARTIFACT_STAMP = re.compile(
     r"generated_at|generated|clean_data_since|provenance|n_canonical|"
@@ -218,6 +261,23 @@ CRITERIA = ["POPULATION", "POWER", "TRANSFORMATION", "INDEPENDENCE"]
 STATUS_PASS = "PASS"
 STATUS_FAIL = "FAIL"
 STATUS_NA = "N/A"
+
+#: Statut PROPAGÉ : le critère n'a pas été évalué sur ses propres mérites, il est
+#: invalidé par l'échec d'un critère amont. Distinct de FAIL (l'instrument a
+#: manqué quelque chose) et de N/A (la question ne se pose pas).
+STATUS_INVALID = "INVALIDE"
+
+#: Propagation du maillon faible ENTRE critères (§ 3 du protocole, généralisé aux
+#: audits eux-mêmes). Les quatre familles ne sont pas indépendantes : une
+#: puissance calculée sur une population contaminée n'est pas « correcte », elle
+#: est sans objet. Une transformation exacte appliquée à une donnée invalide
+#: produit un résultat invalide avec une traçabilité impeccable.
+#:
+#: POPULATION est la seule racine : c'est la seule dimension dont l'échec prive
+#: les autres de leur référent. Un artefact non horodaté (TRANSFORMATION=FAIL)
+#: n'invalide pas la puissance de l'analyse qui l'a produit ; il invalide ce que
+#: son CONSOMMATEUR en fera — et cela relève de l'audit de chaîne, pas d'ici.
+PROPAGATION = {"POPULATION": ["POWER", "TRANSFORMATION", "INDEPENDENCE"]}
 
 
 # ── Structures ────────────────────────────────────────────────────────────────
@@ -244,6 +304,28 @@ class InstrumentReport:
     def failures(self) -> list[str]:
         return [c.criterion for c in self.checks if c.status == STATUS_FAIL]
 
+    @property
+    def invalidated(self) -> list[str]:
+        return [c.criterion for c in self.checks if c.status == STATUS_INVALID]
+
+    @property
+    def confidence_ceiling(self) -> str:
+        """Plafond de confiance de CET instrument, mécaniquement.
+
+        Un critère invalidé par propagation plafonne plus bas qu'un simple
+        échec : dans le premier cas on ne sait même pas ce qu'on mesurait.
+        """
+        if self.role != ROLE_INSTRUMENT:
+            return CEILING_FULL
+        if self.invalidated:
+            return CEILING_NONE
+        if self.failures:
+            return CEILING_LOW
+        binding = [c for c in self.checks if c.status != STATUS_NA]
+        if not binding:
+            return CEILING_MEDIUM
+        return CEILING_FULL
+
 
 @dataclass
 class QualityReport:
@@ -254,6 +336,8 @@ class QualityReport:
     undeclared_readers: list[str]
     missing_from_disk: list[str]
     totals: dict = field(default_factory=dict)
+    coverage: dict = field(default_factory=dict)
+    confidence_ceiling: str = CEILING_NONE
 
 
 # ── Inspection ────────────────────────────────────────────────────────────────
@@ -402,6 +486,35 @@ def audit_source(path: str, role: str, note: str, source: str) -> InstrumentRepo
                 dispersion,
             )
         )
+    return _propagate(report)
+
+
+def _propagate(report: InstrumentReport) -> InstrumentReport:
+    """Applique le maillon faible ENTRE critères — POPULATION contamine l'aval.
+
+    Un rapport qui affiche `POPULATION: FAIL` et `POWER: ok` laisse croire que le
+    test de puissance renseigne sur quelque chose. Il renseigne sur une
+    population dont on vient de dire qu'elle n'est pas la bonne. Le statut devient
+    `INVALIDE` : ni réussi, ni raté — sans objet.
+
+    La propagation ne DÉTRUIT jamais le constat d'origine : `evidence` et
+    `binds_because` du critère aval sont conservés, préfixés de la raison de
+    l'invalidation. Rétracter n'est pas nier (§ 2 du protocole).
+    """
+    by_criterion = {c.criterion: c for c in report.checks}
+    for root_criterion, downstream in PROPAGATION.items():
+        root_check = by_criterion.get(root_criterion)
+        if root_check is None or root_check.status != STATUS_FAIL:
+            continue
+        for name in downstream:
+            check = by_criterion.get(name)
+            if check is None or check.status == STATUS_NA:
+                continue
+            check.binds_because = (
+                f"INVALIDE par propagation depuis {root_criterion}=FAIL — "
+                f"constat initial conservé : {check.binds_because}"
+            )
+            check.status = STATUS_INVALID
     return report
 
 
@@ -446,12 +559,28 @@ def build_report(root: Path = REPO_ROOT) -> QualityReport:
     only_instruments = [i for i in instruments if i.role == ROLE_INSTRUMENT]
     totals: dict[str, dict[str, int]] = {}
     for criterion in CRITERIA:
-        counts = {STATUS_PASS: 0, STATUS_FAIL: 0, STATUS_NA: 0}
+        counts = {
+            STATUS_PASS: 0,
+            STATUS_FAIL: 0,
+            STATUS_NA: 0,
+            STATUS_INVALID: 0,
+        }
         for inst in only_instruments:
             for check in inst.checks:
                 if check.criterion == criterion:
                     counts[check.status] += 1
         totals[criterion] = counts
+
+    # Couverture normative : combien d'instruments sont AUDITÉS SANS RÉSERVE, sur
+    # le total déclaré. Un dépôt dont 3 instruments sur 19 passent les quatre
+    # critères ne peut pas prétendre à une confiance élevée dans ses conclusions,
+    # et le plafond le dit sans que le lecteur ait à faire la division.
+    clean = [i for i in only_instruments if not i.failures and not i.invalidated]
+    coverage = Coverage(
+        measured=len(clean),
+        total=len(only_instruments),
+        subject="instruments sans defaillance ni invalidation",
+    )
 
     return QualityReport(
         generated_at=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -461,6 +590,11 @@ def build_report(root: Path = REPO_ROOT) -> QualityReport:
         undeclared_readers=find_undeclared_readers(root),
         missing_from_disk=missing,
         totals=totals,
+        coverage=coverage.to_dict(),
+        confidence_ceiling=weakest_ceiling(
+            [coverage.confidence_ceiling]
+            + [i.confidence_ceiling for i in only_instruments]
+        ),
     )
 
 
@@ -484,9 +618,9 @@ def render_text(report: QualityReport) -> str:
     add("")
 
     add("-" * 78)
-    add("  INSTRUMENTS")
+    add("  INSTRUMENTS      (INV = invalide par propagation, pas evalue)")
     add("-" * 78)
-    add("    fichier                                    POP  PWR  TRA  IND")
+    add("    fichier                              POP  PWR  TRA  IND   plafond")
     for inst in report.instruments:
         if inst.role != ROLE_INSTRUMENT:
             continue
@@ -496,10 +630,14 @@ def render_text(report: QualityReport) -> str:
                 (c.status for c in inst.checks if c.criterion == criterion), "?"
             )
             cells.append(
-                {STATUS_PASS: " ok ", STATUS_FAIL: "FAIL", STATUS_NA: " -  "}[status]
+                {
+                    STATUS_PASS: " ok ",
+                    STATUS_FAIL: "FAIL",
+                    STATUS_NA: " -  ",
+                    STATUS_INVALID: "INV ",
+                }[status]
             )
-        marker = "" if not inst.exists else ""
-        add(f"    {inst.path:<42} {' '.join(cells)}{marker}")
+        add(f"    {inst.path:<36} {' '.join(cells)}  {inst.confidence_ceiling}")
     add("")
 
     add("-" * 78)
@@ -509,8 +647,24 @@ def render_text(report: QualityReport) -> str:
         t = report.totals[criterion]
         add(
             f"    {criterion:<16} ok={t[STATUS_PASS]:>3}   FAIL={t[STATUS_FAIL]:>3}   "
-            f"non liant={t[STATUS_NA]:>3}"
+            f"INVALIDE={t[STATUS_INVALID]:>3}   non liant={t[STATUS_NA]:>3}"
         )
+    add("")
+
+    add("-" * 78)
+    add("  COUVERTURE NORMATIVE")
+    add("-" * 78)
+    cov = report.coverage
+    add(
+        f"    instruments sans défaillance ni invalidation : "
+        f"{cov['measured']}/{cov['total']} ({cov['ratio']:.2%})"
+    )
+    add("    plafond de couverture             : " f"{cov['confidence_ceiling']}")
+    add("    PLAFOND DE CONFIANCE DU RAPPORT  : " f"{report.confidence_ceiling}")
+    add("")
+    add("    Le plafond est le MAILLON FAIBLE de la couverture et de tous les")
+    add("    instruments. Une conclusion plus affirmative que ce plafond contredit")
+    add("    les données de ce rapport — ce n'est pas au lecteur de faire le calcul.")
     add("")
 
     add("-" * 78)
