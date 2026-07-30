@@ -22,6 +22,8 @@ Invariants verrouillés ici :
   QUAL-14  non-regression du second lot d'attaques : mention != appel,
            fabrication manuelle prioritaire, propagation idempotente,
            statut d'origine lisible, plafond monotone, absent != propre
+  QUAL-15  INV-LEXICAL-001 : un USAGE se prouve par AST, jamais par motif
+  QUAL-16  VALIDITE : un mecanisme casse invalide l'axe ADOPTION
 """
 
 from __future__ import annotations
@@ -41,6 +43,7 @@ from tools.experiment_quality_audit import (
     _propagate,
     audit_source,
     build_report,
+    calls_function,
     find_undeclared_readers,
     main,
 )
@@ -574,3 +577,75 @@ def test_qual14_un_instrument_absent_ne_compte_pas_comme_propre():
     )
     assert absent.failures == []
     assert absent.confidence_ceiling == CEILING_NONE
+
+
+# ── QUAL-15 : INV-LEXICAL-001 — usage ≠ mention ──────────────────────────────
+
+
+def test_qual15_l_usage_est_detecte_par_analyse_syntaxique():
+    """Trois occurrences de la même faute ont suffi : on change d'instrument.
+
+    `json.dump` vs `json.dumps`, nom de fichier vs ouverture réelle,
+    `attach_proof` mentionné vs appelé. Un arbre syntaxique distingue un appel
+    d'un mot ; une expression régulière, jamais.
+    """
+    assert calls_function("x = attach_proof(a, b)\n", ["attach_proof"])
+    assert calls_function("m = mod.create_proof(a)\n", ["create_proof"])
+    assert not calls_function('"""ne pas utiliser attach_proof"""\n', ["attach_proof"])
+    assert not calls_function("# attach_proof un jour\n", ["attach_proof"])
+    assert not calls_function("nom = 'attach_proof'\n", ["attach_proof"])
+
+
+def test_qual15_le_repli_textuel_se_declare(tmp_path):
+    """Un fichier non analysable retombe sur le texte — et le DIT."""
+    trouves = calls_function("def (:\n attach_proof\n", ["attach_proof"])
+    assert trouves
+    assert "repli textuel" in trouves[0]
+
+
+def test_qual15_adoption_utilise_l_ast_pas_le_motif():
+    source = '"""Ce module n\'appelle pas attach_proof."""\njson.dump(d, f)\n'
+    report = audit_source("faux/i.py", ROLE_INSTRUMENT, "", source)
+    assert _status(report, "ADOPTION") == STATUS_FAIL
+
+
+# ── QUAL-16 : VALIDITE, sixième famille ──────────────────────────────────────
+
+
+def test_qual16_le_rapport_publie_la_validite_du_mecanisme():
+    report = build_report()
+    assert set(report.validity) >= {"status", "cases_total", "cases_passed", "failures"}
+
+
+def test_qual16_un_mecanisme_casse_invalide_l_axe_adoption():
+    """Mesurer la diffusion d'un outil cassé produit une fausse assurance.
+
+    Pire qu'une adoption nulle : c'est une adoption qui rassure à tort.
+    """
+    import system.provenance as prov
+    import tools.experiment_quality_audit as Q
+
+    originale = prov.verify_provenance
+    try:
+        prov.verify_provenance = lambda *a, **k: []
+        report = Q.build_report()
+        assert report.validity["status"] != "VALIDE"
+        adoptions = [
+            c
+            for i in report.instruments
+            for c in i.checks
+            if c.criterion == "ADOPTION" and c.status == STATUS_INVALID
+        ]
+        assert adoptions
+        assert all(c.invalidated_by == Q.AXIS_VALIDITY for c in adoptions)
+        assert report.confidence_ceiling == CEILING_NONE
+    finally:
+        prov.verify_provenance = originale
+
+
+def test_qual16_prelive_est_le_second_producteur_adopte():
+    """Le précédent complet établi, l'extension au producteur suivant est faite."""
+    report = build_report()
+    prelive = next(i for i in report.instruments if i.path == "scripts/prelive_gate.py")
+    adoption = next(c for c in prelive.checks if c.criterion == "ADOPTION")
+    assert adoption.status == STATUS_PASS

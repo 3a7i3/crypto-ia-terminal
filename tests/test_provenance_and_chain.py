@@ -38,11 +38,16 @@ Invariants verrouillés ici :
   CHAIN-10 la portée d'une preuve sur un JSONL est déclarée
   PROV-15  un denominateur minuscule ne donne pas un plafond eleve ;
            proof_adoption ignore les artefacts absents
+  PROV-16  VALIDITE : le mecanisme passe son auto-test, cas negatifs inclus
+  PROV-17  point unique d'instrumentation ; identifiant de preuve deterministe
+  PROV-18  la dependance create_proof -> chain_audit est EXPLICITE
+  CHAIN-11 la decision prelive est un artefact prouve qui epingle ses entrees
 """
 
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 from system.provenance import (
     CEILING_FULL,
@@ -50,16 +55,19 @@ from system.provenance import (
     CEILING_LOW,
     CEILING_MEDIUM,
     CEILING_NONE,
+    MIN_COMPATIBLE_PROOF_VERSION,
     MIN_TOTAL_FOR_HIGH_CEILING,
     PROOF_KEY,
     PROVENANCE_SCHEMA_VERSION,
     REQUIRED_PROOF_FIELDS,
+    VALIDITY_BROKEN,
     Coverage,
     InputRef,
     artifact_has_proof,
     attach_proof,
     build_provenance,
     proof_adoption,
+    self_test,
     sha256_file,
     sha256_json,
     verify_artifact,
@@ -730,3 +738,129 @@ def test_prov15_proof_adoption_ignore_les_artefacts_absents(tmp_path):
     prouve = attach_proof({"a": 1}, tool_path=tool, repo_root=tmp_path)
     cov = proof_adoption([prouve, None, None])
     assert cov.total == 1 and cov.measured == 1
+
+
+# ── PROV-16..18 : VALIDITE du mecanisme et point unique d'instrumentation ─────
+
+
+def test_prov16_le_mecanisme_passe_son_propre_auto_test():
+    """SIXIÈME famille : le mécanisme détecte-t-il ce qu'il prétend détecter ?
+
+    Un mécanisme peut être adopté, exécuté et parfaitement traçable tout en
+    étant incapable de rien détecter. C'est ce qui s'est produit le 2026-07-30 :
+    l'axe ADOPTION annonçait 1/1 = 100 % sur un `verify_provenance` qui sautait
+    silencieusement le contrôle du corps.
+    """
+    rapport = self_test()
+    assert rapport.valid, f"cas en échec : {rapport.failures}"
+    assert rapport.cases_passed == rapport.cases_total
+    assert rapport.cases_total >= 8
+
+
+def test_prov16_l_auto_test_contient_des_cas_NEGATIFS():
+    """Un auto-test sans cas négatif validerait un mécanisme qui ne détecte rien.
+
+    Vérifié par construction : on casse `verify_provenance` et l'auto-test doit
+    tomber. Sinon il ne teste que sa propre complaisance.
+    """
+    import system.provenance as prov
+
+    originale = prov.verify_provenance
+    try:
+        prov.verify_provenance = lambda *a, **k: []  # ne détecte plus rien
+        rapport = prov.self_test()
+        assert not rapport.valid
+        assert rapport.failures
+    finally:
+        prov.verify_provenance = originale
+    assert prov.self_test().valid
+
+
+def test_prov17_le_point_unique_instrumente_toutes_les_preuves(tmp_path):
+    """Champs ajoutés dans create_proof et NULLE PART ailleurs.
+
+    Une évolution du format ne devra donc jamais toucher un producteur — c'est
+    l'avantage que `load_clean_trades()` avait apporté aux datasets.
+    """
+    tool = tmp_path / "p.py"
+    tool.write_text("x = 1\n", encoding="utf-8")
+    art = attach_proof({"a": 1}, tool_path=tool, repo_root=tmp_path)
+    proof = art[PROOF_KEY]
+    for champ in ("proof_id", "min_compatible_version", "tool_path", "artifact"):
+        assert champ in proof, champ
+    assert proof["min_compatible_version"] == MIN_COMPATIBLE_PROOF_VERSION
+
+
+def test_prov17_l_identifiant_de_preuve_est_deterministe(tmp_path):
+    """Pas un UUID aléatoire : deux exécutions identiques, même identifiant.
+
+    Sinon la reproductibilité serait invérifiable.
+    """
+    tool = tmp_path / "p.py"
+    tool.write_text("x = 1\n", encoding="utf-8")
+    kw = dict(tool_path=tool, repo_root=tmp_path, generated_at="2026-07-30T00:00:00Z")
+    a = attach_proof({"a": 1}, **kw)
+    b = attach_proof({"a": 1}, **kw)
+    c = attach_proof({"a": 2}, **kw)
+    assert a[PROOF_KEY]["proof_id"] == b[PROOF_KEY]["proof_id"]
+    assert a[PROOF_KEY]["proof_id"] != c[PROOF_KEY]["proof_id"]
+
+
+def test_prov18_la_dependance_est_explicite_dans_l_audit_de_chaine():
+    """create_proof -> verify_provenance -> chain_audit -> adoption.
+
+    Si le constructeur unique échoue son auto-test, aucune garantie qui en
+    dérive ne doit apparaître verte. Sans cette dépendance modélisée, quatre
+    indicateurs indépendants pouvaient toutes reposer sur un mécanisme cassé.
+    """
+    import system.provenance as prov
+    import tools.chain_audit as chain
+
+    originale = prov.verify_provenance
+    try:
+        prov.verify_provenance = lambda *a, **k: []
+        rapport = chain.build_report()
+        assert rapport.validity["status"] == VALIDITY_BROKEN
+        assert rapport.confidence_ceiling == CEILING_NONE
+        statuts = {
+            c.status
+            for ch in rapport.chains
+            for e in ch.edges
+            for c in e.checks
+            if c.check == CHECK_PROOF
+        }
+        assert chain.STATUS_MECHANISM_INVALID in statuts
+    finally:
+        prov.verify_provenance = originale
+
+
+# ── CHAIN-11 : la DECISION est un artefact de premiere classe ─────────────────
+
+
+def test_chain11_la_decision_prelive_est_un_artefact_prouve():
+    """« Quelle preuve soutenait cette décision ? » devient répondable.
+
+    La chaîne se terminait sur stdout : son verdict disparaissait. Il est
+    désormais persisté, prouvé, et sa preuve ÉPINGLE l'empreinte du rapport de
+    burn-in qui l'a soutenu.
+    """
+    report = build_report()
+    chaine = next(c for c in report.chains if c.name == "CHAIN-BURNIN-PRELIVE")
+    assert chaine.terminal_persisted is True
+    decision = [e for e in chaine.edges if "decisions" in e.artifact]
+    assert len(decision) == 1
+    if not decision[0].exists:
+        return
+    assert decision[0].proven is True
+    assert decision[0].broken == []
+
+
+def test_chain11_la_preuve_de_la_decision_epingle_ses_entrees():
+    """Une décision archivée reste reliée à l'état exact de ses données."""
+    chemin = Path("cache/decisions/prelive_gate.json")
+    if not chemin.exists():
+        return
+    artefact = json.loads(chemin.read_text(encoding="utf-8"))
+    entrees = {i["path"] for i in artefact[PROOF_KEY]["inputs"]}
+    assert any("burnin_v3.json" in e for e in entrees)
+    assert artefact[PROOF_KEY]["artifact"] == "cache/decisions/prelive_gate.json"

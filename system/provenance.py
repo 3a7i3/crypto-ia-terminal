@@ -57,6 +57,11 @@ __all__ = [
     "CeilingBreakdown",
     "REQUIRED_PROOF_FIELDS",
     "MIN_TOTAL_FOR_HIGH_CEILING",
+    "MIN_COMPATIBLE_PROOF_VERSION",
+    "ValidityReport",
+    "self_test",
+    "VALIDITY_OK",
+    "VALIDITY_BROKEN",
     "REPO_ROOT",
 ]
 
@@ -567,7 +572,31 @@ def create_proof(
     payload["artifact"] = artifact
     if body is not None:
         payload["output_sha256"] = sha256_json(body)
+
+    # POINT UNIQUE D'INSTRUMENTATION. Tout ce qui suit est ajouté ici et nulle
+    # part ailleurs : une évolution du format ne touchera jamais un producteur.
+    # C'est l'avantage que `load_clean_trades()` avait apporté aux datasets.
+    payload["min_compatible_version"] = MIN_COMPATIBLE_PROOF_VERSION
+    payload["proof_id"] = _proof_id(payload)
     return payload
+
+
+def _proof_id(payload: Mapping) -> str:
+    """Identifiant DÉTERMINISTE d'une preuve — dérivé de son contenu.
+
+    Pas un UUID aléatoire : deux exécutions identiques doivent produire le même
+    identifiant, sinon la reproductibilité serait invérifiable. Calculé sur les
+    champs qui définissent la transformation, jamais sur la preuve entière (qui
+    contiendrait alors son propre identifiant).
+    """
+    graine = {
+        "tool_sha256": payload.get("tool_sha256"),
+        "output_sha256": payload.get("output_sha256"),
+        "inputs": payload.get("inputs"),
+        "artifact": payload.get("artifact"),
+        "generated_at": payload.get("generated_at"),
+    }
+    return sha256_json(graine)[:32]
 
 
 def attach_proof(
@@ -692,4 +721,180 @@ def proof_adoption(payloads: Iterable[object], *, subject: str = "") -> Coverage
         measured=sum(1 for p in items if artifact_has_proof(p)),
         total=len(items),
         subject=subject or "artefacts portant un bloc de preuve",
+    )
+
+
+# ── VALIDITÉ DU MÉCANISME — sixième famille ───────────────────────────────────
+#
+# Un mécanisme peut être ADOPTÉ, EXÉCUTÉ et parfaitement TRAÇABLE tout en étant
+# incapable de détecter ce qu'il prétend détecter. Ce n'est ni un problème
+# d'adoption, ni de transformation : c'est la VALIDITÉ de l'instrument.
+#
+# Précédent (2026-07-30) : `output_sha256` absent faisait sauter le contrôle du
+# corps, et l'axe ADOPTION annonçait « 1/1 = 100 % » sur un mécanisme qui ne
+# vérifiait rien. Quatre indicateurs verts, une garantie nulle.
+#
+# D'où l'auto-test ci-dessous : le mécanisme doit prouver qu'il DÉTECTE des
+# altérations connues. Tant qu'il ne l'a pas prouvé, toute garantie qui en
+# dérive est INVALIDE — pas « verte », pas « rouge » : invalide.
+
+#: Version minimale de schéma qu'un consommateur doit savoir lire.
+MIN_COMPATIBLE_PROOF_VERSION = 1
+
+VALIDITY_OK = "VALIDE"
+VALIDITY_BROKEN = "MECANISME_INVALIDE"
+
+
+@dataclass(frozen=True)
+class ValidityReport:
+    """Le mécanisme de preuve détecte-t-il ce qu'il prétend détecter ?"""
+
+    status: str
+    cases_total: int
+    cases_passed: int
+    failures: list[str] = field(default_factory=list)
+
+    @property
+    def valid(self) -> bool:
+        return self.status == VALIDITY_OK
+
+    def to_dict(self) -> dict:
+        return {
+            "status": self.status,
+            "cases_total": self.cases_total,
+            "cases_passed": self.cases_passed,
+            "failures": self.failures,
+        }
+
+
+def self_test(repo_root: Optional[Path] = None) -> ValidityReport:
+    """Auto-test du mécanisme de preuve — cas POSITIFS **et** NÉGATIFS.
+
+    Un mécanisme qui ne rend jamais d'écart passerait tous les cas positifs. La
+    validité exige donc surtout des cas négatifs : des artefacts DONT ON SAIT
+    qu'ils sont altérés, et que le mécanisme doit refuser.
+
+    Exécuté en mémoire, sans toucher au disque du dépôt : cet auto-test doit
+    pouvoir tourner avant toute lecture d'artefact réel.
+    """
+    import tempfile
+
+    failures: list[str] = []
+    total = 0
+    passed = 0
+
+    with tempfile.TemporaryDirectory() as tmp:
+        racine = Path(tmp)
+        outil = racine / "producteur_de_test.py"
+        outil.write_text("VERSION = 1\n", encoding="utf-8")
+        entree = racine / "entree.jsonl"
+        entree.write_text('{"a": 1}\n', encoding="utf-8")
+
+        corps = {"verdict": "NO_GO", "n": 121}
+        sain = attach_proof(
+            corps,
+            tool_path=outil,
+            inputs=[InputRef("entree.jsonl", sha256_file(entree), n_records=1)],
+            population={"n_canonical": 121},
+            repo_root=racine,
+            artifact="sortie.json",
+        )
+
+        def _cas(nom: str, condition: bool) -> None:
+            nonlocal total, passed
+            total += 1
+            if condition:
+                passed += 1
+            else:
+                failures.append(nom)
+
+        # POSITIF — un artefact intact doit passer.
+        _cas(
+            "artefact intact accepté",
+            verify_artifact(sain, repo_root=racine, expected_artifact="sortie.json")
+            == [],
+        )
+
+        # NÉGATIF — corps édité après production.
+        falsifie = dict(sain)
+        falsifie["verdict"] = "GO"
+        _cas(
+            "corps falsifié DÉTECTÉ",
+            any(
+                "modifié après production" in e
+                for e in verify_artifact(falsifie, repo_root=racine)
+            ),
+        )
+
+        # NÉGATIF — empreinte de sortie retirée (le défaut CRITIQUE du 2026-07-30).
+        sans_empreinte = dict(sain)
+        sans_empreinte[PROOF_KEY] = {
+            k: v for k, v in sain[PROOF_KEY].items() if k != "output_sha256"
+        }
+        _cas(
+            "empreinte de sortie manquante DÉTECTÉE",
+            verify_artifact(sans_empreinte, repo_root=racine) != [],
+        )
+        _cas(
+            "artefact sans empreinte compté comme NON adopté",
+            artifact_has_proof(sans_empreinte) is False,
+        )
+
+        # NÉGATIF — bloc forgé minimal (le défaut MAJEUR du 2026-07-30).
+        forge = {"verdict": "GO", PROOF_KEY: {"schema_version": 1, "generated_at": "x"}}
+        _cas("bloc forgé minimal REFUSÉ", artifact_has_proof(forge) is False)
+
+        # NÉGATIF — entrée modifiée depuis la production.
+        entree.write_text('{"a": 2}\n', encoding="utf-8")
+        _cas(
+            "entrée modifiée DÉTECTÉE",
+            any(
+                "modifiée depuis la production" in e
+                for e in verify_artifact(sain, repo_root=racine)
+            ),
+        )
+        entree.write_text('{"a": 1}\n', encoding="utf-8")
+
+        # NÉGATIF — outil modifié depuis la production.
+        outil.write_text("VERSION = 2\n", encoding="utf-8")
+        _cas(
+            "outil modifié DÉTECTÉ",
+            any(
+                "autre version du script" in e
+                for e in verify_artifact(sain, repo_root=racine)
+            ),
+        )
+        outil.write_text("VERSION = 1\n", encoding="utf-8")
+
+        # NÉGATIF — artefact substitué.
+        _cas(
+            "substitution d'artefact DÉTECTÉE",
+            any(
+                "substitué ou déplacé" in e
+                for e in verify_artifact(
+                    sain, repo_root=racine, expected_artifact="autre.json"
+                )
+            ),
+        )
+
+        # POSITIF — déterminisme : deux constructions identiques, même identifiant.
+        rejoue = attach_proof(
+            corps,
+            tool_path=outil,
+            inputs=[InputRef("entree.jsonl", sha256_file(entree), n_records=1)],
+            population={"n_canonical": 121},
+            repo_root=racine,
+            artifact="sortie.json",
+            generated_at=sain[PROOF_KEY]["generated_at"],
+        )
+        _cas(
+            "identifiant de preuve déterministe",
+            rejoue[PROOF_KEY]["proof_id"] == sain[PROOF_KEY]["proof_id"],
+        )
+
+    return ValidityReport(
+        status=VALIDITY_OK if not failures else VALIDITY_BROKEN,
+        cases_total=total,
+        cases_passed=passed,
+        failures=failures,
     )

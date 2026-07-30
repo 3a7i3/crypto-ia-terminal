@@ -73,6 +73,7 @@ from system.provenance import (  # noqa: E402
     CeilingBreakdown,
     Coverage,
     artifact_has_proof,
+    self_test,
     sha256_file,
     verify_artifact,
     weakest_ceiling,
@@ -104,6 +105,12 @@ STATUS_NA = "-"
 #: depot apparaitrait "rompue" le jour ou le controle a ete ajoute, ce qui est
 #: faux : ces artefacts n'etaient simplement pas encore prouvables.
 STATUS_UNPROVEN = "NON_PROUVE"
+
+#: Le MECANISME de preuve a echoue son auto-test : aucun verdict PREUVE n'est
+#: interpretable, quel que soit l'artefact. Dependance explicite —
+#: create_proof -> verify_provenance -> chain_audit -> adoption. Sans ce statut,
+#: quatre indicateurs verts pouvaient reposer sur un constructeur casse.
+STATUS_MECHANISM_INVALID = "MECANISME_INVALIDE"
 
 #: Clés qui, dans ce dépôt, portent une provenance de dataset. Déclarées ici et
 #: nulle part ailleurs : un producteur qui inventerait un troisième nom serait
@@ -154,8 +161,9 @@ CHAINS: tuple[Chain, ...] = (
             "scripts/burnin_calibration_v3.py",
             "cache/burn_in_reports/burnin_v3.json",
             "scripts/prelive_gate.py::gate_d_calibration",
+            "cache/decisions/prelive_gate.json",
         ),
-        decision="verdict prelive GO / NO-GO",
+        decision="verdict prelive GO / NO-GO — DESORMAIS PERSISTE ET PROUVE",
         edges=(
             Edge(
                 artifact="cache/burn_in_reports/burnin_v3.json",
@@ -165,8 +173,20 @@ CHAINS: tuple[Chain, ...] = (
                 max_age_hours=24.0,
                 unit_note="max_drawdown_pct en POURCENT, expectancy_pct en POURCENT",
             ),
+            # La DECISION est un artefact comme un autre : meme provenance, meme
+            # preuve, memes controles. Sa preuve epingle l'empreinte du rapport
+            # de burn-in — relire la decision, c'est retrouver l'etat exact des
+            # donnees qui la soutenaient.
+            Edge(
+                artifact="cache/decisions/prelive_gate.json",
+                producer="scripts/prelive_gate.py",
+                consumer="(lecteur humain ou audit ulterieur)",
+                keys_consumed=("verdict", "gates", "thresholds", "dataset_provenance"),
+                max_age_hours=None,
+                unit_note="verdict GO / NO-GO ; seuils en unites natives",
+            ),
         ),
-        terminal_persisted=False,
+        terminal_persisted=True,
         note=(
             "chaîne de l'incident AUDIT-EMP-001 — la seule à avoir "
             "produit un verdict faux"
@@ -254,6 +274,8 @@ class EdgeReport:
         """
         if not self.exists:
             return CEILING_NONE
+        if any(c.status == STATUS_MECHANISM_INVALID for c in self.checks):
+            return CEILING_NONE
         if self.broken:
             return CEILING_LOW
         if not self.proven:
@@ -277,6 +299,7 @@ class ChainReport:
 @dataclass
 class ChainAuditReport:
     generated_at: str
+    validity: dict
     chains: list[ChainReport]
     coverage: dict
     adoption: dict
@@ -325,7 +348,9 @@ def _load_artifact(path: Path) -> Optional[object]:
         return None
 
 
-def audit_edge(edge: Edge, root: Path = REPO_ROOT) -> EdgeReport:
+def audit_edge(
+    edge: Edge, root: Path = REPO_ROOT, *, mechanism_valid: bool = True
+) -> EdgeReport:
     path = root / edge.artifact
     payload = _load_artifact(path)
     report = EdgeReport(
@@ -473,6 +498,17 @@ def audit_edge(edge: Edge, root: Path = REPO_ROOT) -> EdgeReport:
     # journal en append n'a pas d'empreinte globale). Le dire ici évite de lire
     # « PREUVE ok » comme une garantie sur le fichier entier.
     portee = " [dernière ligne seulement]" if path.suffix == ".jsonl" else ""
+    if not mechanism_valid:
+        report.checks.append(
+            EdgeCheck(
+                CHECK_PROOF,
+                STATUS_MECHANISM_INVALID,
+                "le mécanisme de preuve a ÉCHOUÉ son auto-test : ce contrôle ne "
+                "peut rien affirmer, ni dans un sens ni dans l'autre",
+            )
+        )
+        report.proven = False
+        return report
     if not artifact_has_proof(payload):
         report.checks.append(
             EdgeCheck(
@@ -504,8 +540,10 @@ def audit_edge(edge: Edge, root: Path = REPO_ROOT) -> EdgeReport:
     return report
 
 
-def audit_chain(chain: Chain, root: Path = REPO_ROOT) -> ChainReport:
-    edges = [audit_edge(e, root) for e in chain.edges]
+def audit_chain(
+    chain: Chain, root: Path = REPO_ROOT, *, mechanism_valid: bool = True
+) -> ChainReport:
+    edges = [audit_edge(e, root, mechanism_valid=mechanism_valid) for e in chain.edges]
     remarks: list[str] = []
     ceilings = [e.confidence_ceiling for e in edges]
 
@@ -536,7 +574,13 @@ def audit_chain(chain: Chain, root: Path = REPO_ROOT) -> ChainReport:
 
 
 def build_report(root: Path = REPO_ROOT) -> ChainAuditReport:
-    chains = [audit_chain(c, root) for c in CHAINS]
+    # VALIDITE D'ABORD. La dependance create_proof -> verify_provenance ->
+    # chain_audit -> adoption est desormais EXPLICITE : si le constructeur unique
+    # echoue son auto-test, aucune garantie qui en derive n'est publiee comme
+    # verte. Un tableau de bord tout coche sur un mecanisme casse est le pire des
+    # resultats possibles (AUDIT-EMP-005).
+    validity = self_test(root)
+    chains = [audit_chain(c, root, mechanism_valid=validity.valid) for c in CHAINS]
     all_edges = [e for c in chains for e in c.edges]
     coverage = Coverage(
         measured=sum(1 for e in all_edges if e.exists and not e.broken),
@@ -561,8 +605,16 @@ def build_report(root: Path = REPO_ROOT) -> ChainAuditReport:
             [c.confidence_ceiling for c in chains] or [CEILING_FULL]
         ),
     )
+    if not validity.valid:
+        breakdown = CeilingBreakdown(
+            coverage_ceiling=CEILING_NONE,
+            adoption_ceiling=CEILING_NONE,
+            weakest_link_ceiling=CEILING_NONE,
+        )
+
     return ChainAuditReport(
         generated_at=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        validity=validity.to_dict(),
         chains=chains,
         coverage=coverage.to_dict(),
         adoption=adoption.to_dict(),
@@ -581,6 +633,16 @@ def render_text(report: ChainAuditReport) -> str:
     add("  CHAIN AUDIT — la garantie survit-elle jusqu'à la décision ?")
     add("=" * 78)
     add(f"  Généré : {report.generated_at}")
+    v = report.validity
+    add(
+        f"  VALIDITÉ DU MÉCANISME : {v['status']} "
+        f"({v['cases_passed']}/{v['cases_total']} cas d'auto-test)"
+    )
+    if v["failures"]:
+        for echec in v["failures"]:
+            add(f"    ✗ {echec}")
+        add("  → Tous les contrôles PREUVE sont INVALIDES : le mécanisme ne")
+        add("    détecte pas ce qu'il prétend détecter. Aucune coche verte.")
     add("")
     for chain in report.chains:
         add("-" * 78)

@@ -47,6 +47,12 @@ from system.performance_metrics import (  # noqa: E402
     sharpe_per_trade,
     win_rate,
 )
+from system.provenance import (  # noqa: E402
+    InputRef,
+    attach_proof,
+    sha256_file,
+    verify_artifact,
+)
 from tools.cri_calculator import (  # noqa: E402
     default_trades_path,
     load_clean_trades,
@@ -70,6 +76,20 @@ _MIN_SHARPE = float(os.getenv("PRELIVE_MIN_SHARPE", "1.0"))
 _MIN_WR = float(os.getenv("PRELIVE_MIN_WR", "45.0"))
 _MAX_DD = float(os.getenv("PRELIVE_MAX_DD", "10.0"))
 _MAX_ORDER_P2 = float(os.getenv("PRELIVE_MAX_ORDER_USD", "50.0"))
+
+# ── Persistance de la DECISION ────────────────────────────────────────────────
+#
+# Une decision non persistee n'est pas re-auditable : la chaine etait correcte,
+# mais sa sortie disparaissait. « Quelle preuve soutenait cette decision du
+# 28 juillet ? » n'avait aucune reponse automatique.
+#
+# Le verdict devient donc un ARTEFACT DE PREMIERE CLASSE, avec le meme niveau de
+# provenance et de preuve que les mesures qui l'ont produit — et sa preuve
+# EPINGLE les empreintes de ses entrees, dont le rapport de burn-in. Relire la
+# decision, c'est donc retrouver l'etat exact des donnees qui la soutenaient.
+_DECISION_LATEST = Path("cache/decisions/prelive_gate.json")
+_DECISION_JOURNAL = Path("cache/decisions/journal.jsonl")
+_BURNIN_ARTIFACT = Path("cache/burn_in_reports/burnin_v3.json")
 
 # Durée de validité du rapport de burn-in consommé par la gate D. Le dataset
 # grossit en continu ; au-delà, le rapport décrit un système qui n'existe plus.
@@ -458,10 +478,59 @@ def json_report(results: list[GateResult], passed: bool) -> dict:
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 
+def persist_decision(results: list[GateResult], passed: bool) -> dict:
+    """Ecrit la DECISION comme artefact prouve, et l'ajoute au journal.
+
+    Deux ecritures volontairement distinctes :
+      - `prelive_gate.json` : le dernier verdict, lu par qui veut l'etat courant ;
+      - `journal.jsonl`     : l'HISTORIQUE, en append seul. Sans lui, « la
+        decision du 28 juillet » serait deja ecrasee par celle du 29.
+
+    La preuve epingle les empreintes des entrees (rapport de burn-in, journal de
+    trades) : une decision archivee reste donc reliee a l'etat exact des donnees
+    qui la soutenaient, et toute alteration ulterieure de ces entrees devient
+    visible a la relecture.
+    """
+    root = Path(__file__).resolve().parents[1]
+    corps = json_report(results, passed)
+    trades = default_trades_path()
+    entrees = [
+        InputRef(
+            path=str(_BURNIN_ARTIFACT.as_posix()),
+            sha256=sha256_file(root / _BURNIN_ARTIFACT),
+        ),
+        InputRef(path=str(trades), sha256=sha256_file(Path(trades))),
+    ]
+    artefact = attach_proof(
+        corps,
+        tool_path=Path(__file__).resolve(),
+        repo_root=root,
+        artifact=str(_DECISION_LATEST.as_posix()),
+        inputs=entrees,
+        population=corps.get("dataset_provenance", {}),
+        notes=(
+            "decision prelive ; entrees epinglees par empreinte ; "
+            "unite d'echantillonnage : la decision"
+        ),
+    )
+    _DECISION_LATEST.parent.mkdir(parents=True, exist_ok=True)
+    _DECISION_LATEST.write_text(
+        json.dumps(artefact, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
+    with open(_DECISION_JOURNAL, "a", encoding="utf-8") as journal:
+        journal.write(json.dumps(artefact, ensure_ascii=False) + "\n")
+    return artefact
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Gate de validation pré-live")
     parser.add_argument("--json", dest="json_output", action="store_true")
     parser.add_argument("--strict", action="store_true", help="Warn = NO-GO")
+    parser.add_argument(
+        "--no-persist",
+        action="store_true",
+        help="ne pas archiver la decision (par defaut, elle est persistee et prouvee)",
+    )
     args = parser.parse_args()
 
     results, passed = run_all(strict=args.strict)
@@ -470,6 +539,24 @@ def main() -> int:
         print(json.dumps(json_report(results, passed), indent=2, ensure_ascii=False))
     else:
         print_report(results, passed)
+
+    if not args.no_persist:
+        artefact = persist_decision(results, passed)
+        ecarts = verify_artifact(
+            json.loads(_DECISION_LATEST.read_text(encoding="utf-8")),
+            repo_root=Path(__file__).resolve().parents[1],
+            expected_artifact=str(_DECISION_LATEST.as_posix()),
+        )
+        if not args.json_output:
+            proof_id = artefact["proof"]["proof_id"]
+            print(f"  Decision archivee -> {_DECISION_LATEST}  (preuve {proof_id})")
+            print(f"  Journal            -> {_DECISION_JOURNAL}")
+            if ecarts:
+                print("  PREUVE : ecarts detectes")
+                for ecart in ecarts:
+                    print(f"    - {ecart}")
+        elif ecarts:
+            print("PREUVE : " + " ; ".join(ecarts))
 
     return 0 if passed else 1
 

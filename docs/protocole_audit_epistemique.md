@@ -1,6 +1,6 @@
 # Protocole d'audit épistémique
 
-- **Version** : 4.3
+- **Version** : 4.4
 - **Statut** : Draft
 - **Auteur** : Mathieu (opérateur du projet), en co-conception assistée
 - **Date** : 2026-07-24
@@ -739,6 +739,7 @@ gagne pas la vérité, on gagne la possibilité de la contester.
 |---|---|---|
 | **v1.0** | 2026-07-23 | quatre catégories (Observation/Inférence/Hypothèse/Décision) ; maillon faible ; portée ; source/couverture ; double falsificateur ; double filtre lexical ; proportionnalité |
 | **v2.0** | 2026-07-23 | composition/fermeture (DAG) ; graphe de dépendances + défaiteurs ; rétracter ≠ nier ; voir/croire/vouloir (guillotine de Hume) ; révisabilité mécanique |
+| **v4.4** | 2026-07-30 | § 24 **VALIDITE** — cinquieme question : le mecanisme qui applique le protocole FONCTIONNE-t-il ? **INV-VALIDITY-001** (auto-test a cas negatifs obligatoire ; garantie derivee INVALIDE tant qu'il n'est pas passe ; VALIDITE evaluee AVANT adoption) ; § 24.1 la **dependance entre garanties doit etre modelisee** — sinon une racine cassee se presente comme quatre coches concordantes ; § 24.2 **INV-LEXICAL-001** : un usage ne se conclut jamais d'une presence lexicale, trois instances ; § 24.3 la **decision devient un artefact de premiere classe**, persistee, prouvee, epinglant ses entrees |
 | **v4.3** | 2026-07-30 | § 23 **ADOPTION**, quatrieme question et cinquieme axe : peut-on croire que le protocole a ete APPLIQUE ? **INV-ADOPTION-001** (tout mecanisme publie son taux d'adoption ; 0 % equivaut a l'absence), forme sur deux adoptions nulles mesurees (bloc de preuve 0/2, couche TRANSFORMATION 0 declaration) ; § 23.1 **deux plafonds** distincts (couverture vs maillon faible) avec l'action que chacun implique ; **INV-PROOF-001** : constructeur unique du bloc de preuve, extrapolation assumee d'une propriete de classe deja demontree deux fois |
 | **v4.2** | 2026-07-30 | § 20.2 **principe général** : une transformation non déclarée détruit la garantie sans détruire la donnée (agrégation, filtrage, sélection, réduction, projection, visualisation, résumé par LLM) ; **champs de preuve** d'une transformation (empreintes entrée/outil/sortie + population + date) — la déclaration devient contestable ; **INV-COVERAGE-001** (§ 19) : toute couverture publiée porte son plafond de confiance mécanique ; propagation du maillon faible **entre critères d'audit**, pas seulement entre observations |
 | **v4.1** | 2026-07-29 | type de transformation **PROJECTION entre populations** (§ 20.1) : conclure sur A en mesurant B est une *hypothèse de transport*, plafonnée à `HYPOTHESE`, dont le falsificateur est toujours disponible ; **INV-POWER-001** (§ 19) : la puissance se lit avant la significativité, et un seuil de volume n'est pas une puissance ; règle de formation étendue — *N instances mesurées en une passe* valent *deux occurrences séparées dans le temps* |
@@ -826,3 +827,91 @@ la couverture, c'est-à-dire exactement la mauvaise action.
 > Mode d'échec : publier une adoption élevée sur un dénominateur choisi après coup.
 > Falsificateur : un mécanisme à 100 % d'adoption dont les défauts qu'il devait prévenir
 > continuent d'apparaître — l'adoption serait alors mesurée sur la forme et non sur l'usage.
+
+---
+
+## 24. VALIDITÉ — le mécanisme mesure-t-il ce qu'il affirme mesurer ? *(v4.4)*
+
+Le § 23 ajoutait une quatrième question : *le protocole a-t-il été appliqué ?* Une cinquième lui
+manquait, et elle est plus dérangeante :
+
+> **Le mécanisme qui applique le protocole fonctionne-t-il ?**
+
+Un mécanisme peut être **adopté**, **exécuté**, **parfaitement traçable** — et incapable de détecter
+ce qu'il prétend détecter. Ce n'est ni un problème de population, ni de puissance, ni de
+transformation, ni d'adoption. C'est un problème de **validité de l'instrument**.
+
+**Précédent (2026-07-30, trouvé par attaque adversariale).** Le mécanisme de preuve venait d'être
+livré. `output_sha256` absent faisait sauter *silencieusement* le contrôle du corps, et l'audit de
+chaîne certifiait « corps inchangé » avec un plafond COMPLETE ; un bloc forgé réduit à deux champs
+obtenait `PREUVE = ok`. Pendant ce temps, l'axe ADOPTION annonçait **1/1 = 100 %**.
+
+```
+Coverage   ✓          ┐
+Adoption   ✓          │  quatre coches vertes
+Proof      ✓          │  une garantie nulle
+Chain      ✓          ┘
+```
+
+**INV-VALIDITY-001.** *Tout mécanisme de garantie publie le résultat d'un auto-test comportant des
+cas NÉGATIFS, et toute garantie qui en dérive est INVALIDE tant que cet auto-test n'est pas passé.*
+
+Un auto-test uniquement composé de cas positifs valide un mécanisme qui ne détecte rien : il faut
+des artefacts **dont on sait qu'ils sont altérés** et que le mécanisme doit refuser. Le test du test
+est simple : casser volontairement le mécanisme doit faire **tomber** son auto-test.
+
+### 24.1 La dépendance doit être modélisée, pas supposée
+
+Plusieurs indicateurs peuvent afficher un statut positif alors qu'ils reposent tous sur le même
+composant :
+
+```
+create_proof
+      ↓
+verify_provenance
+      ↓
+chain_audit
+      ↓
+adoption
+```
+
+Tant que cette dépendance n'est pas **écrite**, une défaillance de la racine se présente comme
+quatre garanties indépendantes et concordantes — la pire configuration possible, parce que la
+concordance est lue comme une corroboration (§ 4, *illusion de convergence*). Modélisée, la même
+défaillance rend un seul verdict : `MÉCANISME_INVALIDE`, et **aucune** coche verte.
+
+**Ordre d'évaluation normatif : VALIDITÉ avant ADOPTION.** Un taux d'adoption élevé d'un mécanisme
+cassé est *pire* qu'une adoption nulle.
+
+### 24.2 Usage ≠ mention *(INV-LEXICAL-001)*
+
+> **Aucun audit ne peut conclure à un USAGE sur la seule présence d'un identifiant lexical.**
+
+Trois occurrences de la même faute, sur le même outil, en deux jours : `json.dump` capturant
+`json.dumps` ; un chemin de dataset *nommé* dans une déclaration compté comme une *lecture* ;
+`attach_proof` mentionné dans une docstring — y compris dans une phrase qui **nie** l'usage —
+comptant comme un appel.
+
+La parade n'est pas un motif plus fin, c'est de **changer d'instrument** : un arbre syntaxique
+distingue un appel d'un mot, une expression régulière jamais. Les critères qui cherchent une
+*déclaration* (unité d'échantillonnage, population consommée) restent lexicaux à dessein — ils
+mesurent une intention écrite, pas un comportement.
+
+### 24.3 La décision devient un artefact de première classe *(v4.4)*
+
+Dernier maillon : une chaîne pouvait être entièrement correcte et **perdre sa sortie**. « Quelle
+preuve soutenait cette décision du 28 juillet ? » n'avait aucune réponse automatique — le verdict
+partait sur la sortie standard.
+
+```
+Décision ──► artefact persisté ──► preuve ──► vérification
+```
+
+La preuve d'une décision **épingle les empreintes de ses entrées**. Relire une décision archivée,
+c'est donc retrouver l'état exact des données qui la soutenaient — et toute altération ultérieure
+de ces entrées devient visible à la relecture. Un journal en append conserve l'historique : sans
+lui, la décision du 28 serait déjà écrasée par celle du 29.
+
+> Domaine : tout système où plusieurs garanties dérivent d'un composant commun.
+> Mode d'échec : un auto-test complaisant, composé de cas que le mécanisme passe par construction.
+> Falsificateur : casser délibérément le mécanisme ; si l'auto-test passe encore, il ne teste rien.

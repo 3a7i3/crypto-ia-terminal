@@ -78,6 +78,7 @@ Usage :
 from __future__ import annotations
 
 import argparse
+import ast
 import json
 import re
 import sys
@@ -95,6 +96,7 @@ from system.provenance import (  # noqa: E402
     CEILING_NONE,
     CeilingBreakdown,
     Coverage,
+    self_test,
     weakest_ceiling,
 )
 
@@ -273,6 +275,51 @@ _RE_SAMPLING_UNIT = re.compile(
     re.IGNORECASE,
 )
 
+#: Noms de l'API de preuve, cherches par ANALYSE SYNTAXIQUE et non par motif.
+_PROOF_API_NAMES = ("attach_proof", "create_proof")
+
+
+def calls_function(source: str, names: Sequence[str]) -> list[str]:
+    """Appels REELS a l'une des fonctions nommees — AST, jamais motif textuel.
+
+    **INV-LEXICAL-001.** Aucun audit ne peut conclure a un USAGE sur la seule
+    presence d'un identifiant lexical. Trois instances de la meme faute ont ete
+    constatees sur cet outil en deux jours :
+
+      1. le motif « json.dump » capturait `json.dumps` — trois instruments
+         accuses a tort d'ecrire un artefact alors qu'ils imprimaient ;
+      2. `paper_trades.jsonl` nomme dans une declaration de chaine comptait comme
+         une LECTURE du journal (2026-07-29) ;
+      3. `attach_proof` mentionne dans une docstring — voire dans une phrase
+         qui NIE l'usage — donnait ADOPTION=PASS (2026-07-30).
+
+    Trois occurrences ne sont plus un accident : c'est une propriete des
+    heuristiques lexicales. La parade n'est pas un motif plus fin, c'est de
+    changer d'instrument quand la question porte sur un USAGE. Un arbre
+    syntaxique distingue un appel d'un mot ; une expression reguliere, jamais.
+
+    Retombe sur une detection textuelle uniquement si le fichier ne parse pas —
+    et le dit alors dans la preuve rendue.
+    """
+    try:
+        tree = ast.parse(source)
+    except (SyntaxError, ValueError):
+        return [
+            f"?: [fichier non analysable — repli textuel] {n}"
+            for n in names
+            if n in source
+        ]
+    trouves: list[str] = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        func = node.func
+        nom = getattr(func, "id", None) or getattr(func, "attr", None)
+        if nom in names:
+            trouves.append(f"{node.lineno}: appel a {nom}()")
+    return trouves
+
+
 #: Le producteur APPELLE-t-il le constructeur unique ? La parenthèse ouvrante est
 #: exigée : sans elle, une simple MENTION en docstring — voire une phrase qui NIE
 #: l'usage — suffisait à obtenir ADOPTION=PASS. Troisième instance de la famille
@@ -305,6 +352,13 @@ STATUS_NA = "N/A"
 #: invalidé par l'échec d'un critère amont. Distinct de FAIL (l'instrument a
 #: manqué quelque chose) et de N/A (la question ne se pose pas).
 STATUS_INVALID = "INVALIDE"
+
+#: SIXIEME FAMILLE — VALIDITE. Un mecanisme peut etre adopte, execute et
+#: parfaitement tracable tout en etant incapable de detecter ce qu'il pretend
+#: detecter. Quand l'auto-test du mecanisme de preuve echoue, ADOPTION cesse
+#: d'etre interpretable : mesurer la diffusion d'un outil casse produit une
+#: fausse assurance, pire qu'une adoption nulle (AUDIT-EMP-005).
+AXIS_VALIDITY = "AUDIT-VALIDITY-001"
 
 #: Propagation du maillon faible ENTRE critères (§ 3 du protocole, généralisé aux
 #: audits eux-mêmes). Les quatre familles ne sont pas indépendantes : une
@@ -390,6 +444,7 @@ class InstrumentReport:
 @dataclass
 class QualityReport:
     generated_at: str
+    validity: dict
     n_registered: int
     n_instruments: int
     instruments: list[InstrumentReport]
@@ -557,6 +612,7 @@ def audit_source(path: str, role: str, note: str, source: str) -> InstrumentRepo
     # niveau de l'ARTEFACT (le fichier sur le disque est-il prouvé). Les deux
     # peuvent diverger : un producteur correct dont l'artefact n'a jamais été
     # régénéré laisse un fichier non prouvé.
+    appels_preuve = calls_function(source, _PROOF_API_NAMES)
     if not artifact:
         report.checks.append(
             Check("ADOPTION", STATUS_NA, "n'écrit aucun artefact à prouver")
@@ -573,13 +629,14 @@ def audit_source(path: str, role: str, note: str, source: str) -> InstrumentRepo
                 _matches(_RE_PROOF_MANUAL, source),
             )
         )
-    elif _RE_PROOF_API.search(source):
+    elif appels_preuve:
         report.checks.append(
             Check(
                 "ADOPTION",
                 STATUS_PASS,
-                "appelle le constructeur unique de preuve",
-                _matches(_RE_PROOF_API, source),
+                "APPELLE le constructeur unique de preuve (vérifié par analyse "
+                "syntaxique, pas par motif — INV-LEXICAL-001)",
+                appels_preuve,
             )
         )
     else:
@@ -658,6 +715,10 @@ def find_undeclared_readers(root: Path = REPO_ROOT) -> list[str]:
 
 
 def build_report(root: Path = REPO_ROOT) -> QualityReport:
+    # VALIDITE D'ABORD (sixieme famille). La dependance est explicite :
+    # create_proof -> verify_provenance -> ADOPTION. Si le constructeur unique
+    # echoue son auto-test, l'axe ADOPTION ne mesure plus rien d'interpretable.
+    validity = self_test(root)
     instruments: list[InstrumentReport] = []
     missing: list[str] = []
     for rel, (role, note) in sorted(REGISTRY.items()):
@@ -669,7 +730,20 @@ def build_report(root: Path = REPO_ROOT) -> QualityReport:
             )
             continue
         source = path.read_text(encoding="utf-8", errors="replace")
-        instruments.append(audit_source(rel, role, note, source))
+        rapport = audit_source(rel, role, note, source)
+        if not validity.valid:
+            for check in rapport.checks:
+                if check.criterion == "ADOPTION" and check.status != STATUS_NA:
+                    check.original_status = check.status
+                    check.original_reason = check.binds_because
+                    check.invalidated_by = AXIS_VALIDITY
+                    check.binds_because = (
+                        f"invalidé par {AXIS_VALIDITY} : le mécanisme de preuve "
+                        f"a échoué son auto-test, mesurer son adoption n'a plus "
+                        f"de sens"
+                    )
+                    check.status = STATUS_INVALID
+        instruments.append(rapport)
 
     only_instruments = [i for i in instruments if i.role == ROLE_INSTRUMENT]
     totals: dict[str, dict[str, int]] = {}
@@ -728,8 +802,16 @@ def build_report(root: Path = REPO_ROOT) -> QualityReport:
         ),
     )
 
+    if not validity.valid:
+        breakdown = CeilingBreakdown(
+            coverage_ceiling=CEILING_NONE,
+            adoption_ceiling=CEILING_NONE,
+            weakest_link_ceiling=CEILING_NONE,
+        )
+
     return QualityReport(
         generated_at=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        validity=validity.to_dict(),
         n_registered=len(REGISTRY),
         n_instruments=len(only_instruments),
         instruments=instruments,
@@ -757,6 +839,16 @@ def render_text(report: QualityReport) -> str:
         f"  Registre   : {report.n_registered} fichiers, "
         f"{report.n_instruments} instruments"
     )
+    v = report.validity
+    add(
+        f"  VALIDITÉ DU MÉCANISME DE PREUVE : {v['status']} "
+        f"({v['cases_passed']}/{v['cases_total']} cas)"
+    )
+    if v["failures"]:
+        for echec in v["failures"]:
+            add(f"    ✗ {echec}")
+        add("  → l'axe ADOPTION est INVALIDÉ : mesurer la diffusion d'un")
+        add("    mécanisme cassé produit une fausse assurance.")
     add("")
     add("  Cet outil détecte l'ABSENCE DE DÉCLARATION, jamais l'inexactitude.")
     add("  Un instrument qui déclare tout et se trompe partout passe cet audit.")

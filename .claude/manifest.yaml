@@ -301,6 +301,66 @@ invariants:
       sont publiees separement, jamais moyennees.
       Etat au 2026-07-30 : 1/3 au niveau code, 1/1 au niveau artefact present.
 
+  - id: INV-LEXICAL-001
+    statement: >
+      Aucun audit ne peut conclure a un USAGE sur la seule presence d'un
+      identifiant lexical. Une question qui porte sur un usage (ce fichier
+      APPELLE-t-il X ? LIT-il Y ?) se tranche par analyse syntaxique ; un motif
+      textuel ne repond qu'a « le mot est-il present ».
+    violation: >
+      Ecrire un critere d'audit qui conclut PASS/FAIL sur un usage a partir d'une
+      expression reguliere ; presenter une correspondance de motif comme une
+      preuve de relation semantique.
+    formed_from: >
+      TROIS instances de la meme faute, sur le meme outil, en deux jours :
+      (1) le motif « json.dump » capturait `json.dumps` — trois instruments
+      accuses a tort d'ecrire un artefact alors qu'ils imprimaient (2026-07-29) ;
+      (2) `databases/paper_trades.jsonl` nomme dans une declaration de chaine
+      compte comme une LECTURE du journal (2026-07-29) ; (3) `attach_proof`
+      mentionne dans une docstring — voire dans une phrase qui NIE l'usage —
+      donnait ADOPTION=PASS (2026-07-30, trouve par attaque adversariale).
+      Trois occurrences ne sont plus un accident : c'est une propriete des
+      heuristiques lexicales.
+    enforced_by:
+      - "tools/experiment_quality_audit.py::calls_function (AST, pas motif)"
+      - "tests/test_experiment_quality_audit.py QUAL-15"
+      - "repli textuel autorise si le fichier ne parse pas — mais DECLARE dans la preuve"
+    scope_note: >
+      La parade n'est pas un motif plus fin : c'est de CHANGER D'INSTRUMENT quand
+      la question porte sur un usage. Les criteres qui cherchent une DECLARATION
+      (unite d'echantillonnage, population consommee) restent lexicaux a dessein :
+      ils mesurent une intention ecrite, pas un comportement.
+
+  - id: INV-VALIDITY-001
+    statement: >
+      SIXIEME famille. Un mecanisme peut etre ADOPTE, EXECUTE et parfaitement
+      TRACABLE tout en etant incapable de detecter ce qu'il pretend detecter.
+      Tout mecanisme de garantie publie donc le resultat d'un AUTO-TEST comportant
+      des cas NEGATIFS, et toute garantie qui en derive est INVALIDE tant que cet
+      auto-test n'est pas passe. La dependance est modelisee explicitement :
+      create_proof -> verify_provenance -> chain_audit -> adoption.
+    violation: >
+      Publier un indicateur vert derive d'un mecanisme dont la validite n'est pas
+      etablie ; ecrire un auto-test compose uniquement de cas positifs ; mesurer
+      l'adoption d'un mecanisme sans avoir montre qu'il fonctionne.
+    formed_from: >
+      DEUX defauts constates le 2026-07-30, dans le meme mecanisme et dans la
+      meme passe adversariale — ce qui est plus faible que deux occurrences
+      separees dans le temps, et l'invariant le dit : (1) `output_sha256` absent
+      faisait sauter silencieusement le controle du corps, et chain_audit
+      certifiait « corps inchange » ; (2) un bloc de preuve forge minimal
+      obtenait PREUVE=ok. Pendant ce temps l'axe ADOPTION annoncait
+      « 1/1 = 100 % ». Quatre indicateurs verts, une garantie nulle.
+    enforced_by:
+      - "system/provenance.py::self_test — 9 cas dont 7 NEGATIFS"
+      - "tools/chain_audit.py — statut MECANISME_INVALIDE, plafond AUCUNE"
+      - "tools/experiment_quality_audit.py — ADOPTION invalide par AUDIT-VALIDITY-001"
+      - "tests PROV-16/18, QUAL-16 (dont : casser verify_provenance FAIT tomber l'auto-test)"
+    scope_note: >
+      Un taux d'adoption eleve d'un mecanisme casse est PIRE qu'une adoption
+      nulle : il produit une fausse assurance. C'est la raison pour laquelle
+      VALIDITY precede ADOPTION dans l'ordre d'evaluation, et non l'inverse.
+
   # PAS d'invariant de chaine (INV-CHAIN-*) : la regle de formation du protocole
   # l'interdit. Une seule instance est constatee a ce jour — la gate D
   # (AUDIT-EMP-001). Une occurrence est un accident. tools/chain_audit.py existe
@@ -322,7 +382,12 @@ invariants:
 health_baseline:
   suite_state: DEGRADED
   command: "python -m pytest tests/ -q --continue-on-collection-errors"
-  measured_at_commit: "fc7fcf6"
+  measured_at_commit: "PENDING"
+  # Rafraichie le 2026-07-30 apres AUDIT-EMP-006 : +13 tests (PROV-16..18,
+  # CHAIN-11, QUAL-15..16). collected 3996 -> 4009, passed 3972 -> 3985, soit
+  # exactement +13. Les 3 known_failures et l unique erreur de collecte sont
+  # INCHANGES, NOMS verifies un par un.
+  #
   # Rafraichie le 2026-07-30 apres AUDIT-EMP-005 : +44 tests (PROV-10..15,
   # CHAIN-10, QUAL-12..14) — dont 30 tests de NON-REGRESSION issus de defauts
   # demontres par verification adversariale. collected 3952 -> 3996, passed
@@ -357,9 +422,9 @@ health_baseline:
   # Toujours relancer avec la commande `command:` exacte, sans variable
   # d environnement ajoutee, et comparer les NOMS.
   previous_baseline:
-    measured_at_commit: "c1fcd42"
-    collected: 3952
-    passed: 3928
+    measured_at_commit: "fc7fcf6"
+    collected: 3996
+    passed: 3972
   expected_collection_errors: 1
   known_errors:
     - file: "tests/test_full_integration.py"
@@ -370,12 +435,12 @@ health_baseline:
       note: >
         Dette de maintenance, hors campagne. Ne rapproche ni du burn-in ni de la
         validite de la mesure de N. A traiter hors gel, jamais pendant.
-  collected: 3996
-  passed: 3972
+  collected: 4009
+  passed: 3985
   failed: 3
   skipped: 20
   xfailed: 2
-  duration_s: 684
+  duration_s: 629
   expected_failures: 3
   known_failures:
     - "tests/paper_trading/test_paper_trade_e2e.py::TestPaperTradeCompleteLifecycle::test_mexc_simulator_market_order_complete"
@@ -1384,7 +1449,7 @@ proposed_extensions:
 protocol_validation_campaign:
   status: EN_COURS
   started: "2026-07-28"
-  audits_completed: 5
+  audits_completed: 6
   audits_target: "10-20"
   objective: >
     Appliquer v4.0 a 10-20 audits reels de nature differente (code,
@@ -1456,6 +1521,19 @@ protocol_validation_campaign:
         ecrit. AUCUN producteur du depot n'ecrit encore de bloc `proof` : la
         primitive existe, son adoption reste a faire.
       invariant: INV-COVERAGE-001
+
+    - id: AUDIT-VALIDITY-001
+      question: >
+        le mecanisme mesure-t-il reellement ce qu'il affirme mesurer ?
+      instrument: "system/provenance.py::self_test (9 cas, dont 7 NEGATIFS)"
+      measured: "2026-07-30 : VALIDE, 9/9 cas"
+      status: AXE_PERMANENT
+      remaining: >
+        Un seul mecanisme est auto-teste : celui de la preuve. Les autres
+        instruments du depot (CRI, burn-in, prelive, score) n'ont AUCUN cas
+        negatif qui montrerait qu'ils detectent ce qu'ils pretendent detecter.
+        Couverture de l'axe : 1 mecanisme sur 20 instruments.
+      invariant: INV-VALIDITY-001
 
     - id: AUDIT-ADOPTION-001
       question: >
@@ -1992,6 +2070,100 @@ protocol_validation_campaign:
           non adoptes (choix delibere) ; terminaison non persistee des 4 chaines,
           donc « quelle preuve soutenait cette decision ? » reste sans reponse
           automatique.
+        - "SOLDE le 2026-07-30 par AUDIT-EMP-006 : les trois points ci-dessus."
+
+    - id: AUDIT-EMP-006
+      date: "2026-07-30"
+      nature: METHODOLOGIE
+      trigger: >
+        Constat de l'operateur apres AUDIT-EMP-005 : (a) la campagne adversariale
+        n'est plus un test mais un INSTRUMENT DE DECOUVERTE ; (b) le defaut
+        « ADOPTION sur mecanisme casse » n'appartient a aucun des cinq axes — c'est
+        une SIXIEME famille, la VALIDITE ; (c) « mention vs usage » compte trois
+        occurrences et merite une regle transversale ; (d) le constructeur unique
+        ouvre un point d'instrumentation ; (e) la persistance des decisions reste
+        le maillon manquant ; (f) plusieurs indicateurs verts peuvent reposer sur
+        un composant commun casse — dependance a modeliser explicitement.
+      scope: >
+        system/provenance.py (self_test, proof_id, min_compatible_version),
+        tools/chain_audit.py (statut MECANISME_INVALIDE, arete de decision),
+        tools/experiment_quality_audit.py (calls_function par AST, axe VALIDITY),
+        scripts/prelive_gate.py (decision persistee et prouvee).
+
+      observations:
+        - >
+          O1 VALIDITE instrumentee : auto-test de 9 cas dont SEPT NEGATIFS
+          (corps falsifie, empreinte retiree, bloc forge, entree modifiee, outil
+          modifie, artefact substitue). Resultat au 2026-07-30 : VALIDE 9/9.
+        - >
+          O2 Le test du test est execute : neutraliser verify_provenance FAIT
+          tomber l'auto-test (PROV-16). Un auto-test complaisant serait passe.
+        - >
+          O3 DEPENDANCE MODELISEE : un mecanisme invalide rend desormais
+          MECANISME_INVALIDE sur tous les controles PREUVE, invalide l'axe
+          ADOPTION, et force les trois plafonds a AUCUNE. Verifie par injection
+          (PROV-18, QUAL-16).
+        - >
+          O4 INV-LEXICAL-001 : la detection d'usage passe de l'expression
+          reguliere a l'ARBRE SYNTAXIQUE. Une mention en docstring, un
+          commentaire ou une chaine de caracteres ne comptent plus comme un
+          appel ; repli textuel autorise si le fichier ne parse pas, mais DECLARE.
+        - >
+          O5 DECISION PERSISTEE : scripts/prelive_gate.py ecrit
+          cache/decisions/prelive_gate.json + un journal en append. La preuve de
+          la decision EPINGLE l'empreinte du rapport de burn-in qui l'a soutenue.
+          CHAIN-BURNIN-PRELIVE a desormais une terminaison persistee et un plafond
+          COMPLETE.
+        - >
+          O6 ADOPTION passe de 1/3 a 2/3 au niveau code (burnin + prelive) et
+          2/2 au niveau artefact present. Le precedent complet exige par
+          l'operateur a bien precede l'extension.
+        - >
+          O7 POINT UNIQUE D'INSTRUMENTATION : `proof_id` deterministe et
+          `min_compatible_version` ajoutes dans create_proof et NULLE PART
+          ailleurs. Une evolution du format ne touchera aucun producteur.
+
+      falsifier_tested: >
+        POSE AVANT LA MESURE : si neutraliser verify_provenance ne fait pas
+        tomber l'auto-test, celui-ci ne teste que sa propre complaisance et
+        l'invariant VALIDITY est decoratif.
+      falsifier_outcome: NON_REFUTE
+      falsifier_detail: >
+        L'injection fait tomber l'auto-test, fait apparaitre MECANISME_INVALIDE
+        sur les aretes, invalide l'axe ADOPTION et ramene le plafond a AUCUNE.
+        Les quatre consequences sont verifiees par test.
+
+      what_the_protocol_caught: >
+        L'ordre d'evaluation. VALIDITE est desormais evaluee AVANT adoption, et
+        non l'inverse : mesurer la diffusion d'un mecanisme dont on n'a pas
+        montre qu'il fonctionne produit une fausse assurance. Sans cet ordre, le
+        rapport du 2026-07-30 aurait continue d'afficher 1/1 = 100 %.
+
+      what_the_protocol_missed:
+        - >
+          COUVERTURE DE L'AXE VALIDITY : un seul mecanisme est auto-teste, celui
+          de la preuve. Les 20 instruments du depot n'ont AUCUN cas negatif qui
+          montrerait qu'ils detectent ce qu'ils pretendent detecter. L'axe est
+          cree avec une couverture de 1/20 — et le dit.
+        - >
+          La campagne adversariale n'a PAS de statut d'instrument : pas de
+          couverture declaree, pas de puissance, pas de limites ecrites. Elle
+          produit pourtant des observations (12 defauts en une passe). Demande
+          explicite de l'operateur, non traitee dans cette passe.
+
+      cost: >
+        Un auto-test, un detecteur syntaxique, une persistance de decision,
+        27 tests. Aucune ligne du moteur de trading modifiee.
+
+      outcome:
+        - "INV-VALIDITY-001 et INV-LEXICAL-001 formes."
+        - "AUDIT-VALIDITY-001 enregistre comme axe PERMANENT (couverture 1/20)."
+        - "Protocole v4.4 : § 24 VALIDITE, § 24.1 dependance modelisee, § 24.2 usage != mention, § 24.3 decision de premiere classe."
+        - "La question « quelle preuve soutenait cette decision ? » a une reponse automatique."
+        - >
+          Reste ouvert : statut d'instrument pour la campagne adversariale ;
+          couverture de l'axe VALIDITY (1 mecanisme sur 20) ; 3 chaines sur 4
+          restent a terminaison non persistee.
 
 # -----------------------------------------------------------------------------
 # DECISIONS EN ATTENTE
