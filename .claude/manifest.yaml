@@ -382,7 +382,7 @@ invariants:
 health_baseline:
   suite_state: DEGRADED
   command: "python -m pytest tests/ -q --continue-on-collection-errors"
-  measured_at_commit: "PENDING"
+  measured_at_commit: "c34c05b"
   # Rafraichie le 2026-07-30, legitimite + hierarchie d autorite (EFF-12..14) :
   # +9 tests. collected 4034 -> 4043, passed 4010 -> 4019, soit exactement +9.
   # Les 3 known_failures et l unique erreur de collecte sont INCHANGES.
