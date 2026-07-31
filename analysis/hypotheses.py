@@ -325,11 +325,14 @@ def print_hypotheses_report(results: list[HypothesisResult]) -> None:
 if __name__ == "__main__":
     import sys
 
-    from analysis.base import load_trades
+    # Population canonique obligatoire : un verdict d'hypothèse calculé sur
+    # une autre population que load_clean_trades est incomparable au reste du
+    # dépôt (INV-DATASET-001).
+    from analysis.base import load_canonical_trades
 
     path = sys.argv[1] if len(sys.argv) > 1 else None
     try:
-        trades = load_trades(path)
+        trades = load_canonical_trades(path)
         results = run_all_hypotheses(trades)
         print_hypotheses_report(results)
     except FileNotFoundError as e:

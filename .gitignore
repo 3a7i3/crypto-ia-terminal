@@ -63,6 +63,10 @@ cache/
 PROJET_MINIATURE.md
 PROJET_MINIATURE_FULL.md
 
+# Exports du corpus VPS (archives lourdes, jamais versionnées — le dépôt
+# n'est pas un magasin de données ; databases/ est déjà exclu plus haut).
+backups/
+
 # Ignore frontend build artifacts
 node_modules/
 frontend/node_modules/

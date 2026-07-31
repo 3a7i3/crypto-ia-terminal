@@ -29,8 +29,18 @@ hypotheses:
     implications:
       confirmed: Filtrer ou désactiver BUY sideways — mode défaillance structurel identifié
       rejected: Signal BUY en sideways est valide — continuer à monitorer
-    last_evaluated: null
-    n_at_eval: 0
+    last_evaluated: "2026-07-31"   # tentative d'évaluation : N conditionnel insuffisant
+    n_at_eval: 11                  # BUY x sideways dans la population canonique V4
+    blocked_by: >
+      N conditionnel, pas N global. La population canonique compte 139 trades
+      mais seulement 11 en BUY x sideways (minimum requis 30). Le moteur trade
+      massivement bull_trend/BUY (89/139 = 64 %) : au rythme observé, H1 reste
+      hors de portée longtemps. OBSERVÉ à titre non testé (le régime sideways
+      TOUS sens confondus, n=30) : PF 0.234, WR 0.20, E -0.119 $/trade — le
+      pire régime du dataset. Ne PAS élargir H1 à « sideways tous sens » pour
+      atteindre le N : ce serait redéfinir l'hypothèse après avoir vu les
+      données. Une hypothèse distincte, pré-enregistrée avant évaluation, est
+      la seule voie propre.
     dataset_uuid: null            # UUID du CertifiedDataset ayant servi à l'évaluation
     dataset_certification_id: null
     experiment_id: "EXP-001"
@@ -51,8 +61,13 @@ hypotheses:
     implications:
       confirmed: defensive_short validée — conserver et calibrer taille de position
       rejected: Régime bear non exploitable — augmenter seuil score ou désactiver
-    last_evaluated: null
-    n_at_eval: 0
+    last_evaluated: "2026-07-31"   # tentative d'évaluation : N conditionnel insuffisant
+    n_at_eval: 13                  # SELL x bear_trend dans la population canonique V4
+    blocked_by: >
+      N conditionnel 13 sur 30 requis. OBSERVÉ à titre non testé : PF 1.005,
+      WR 0.462, E +0.0004 $/trade — le seul régime non perdant du dataset,
+      mais à N=13 cet écart est indiscernable de zéro. Aucune lecture
+      directionnelle n'est permise avant N=30.
     dataset_uuid: null
     dataset_certification_id: null
     experiment_id: "EXP-001"
@@ -69,17 +84,36 @@ hypotheses:
     statistical_test: cohens_d
     threshold_effect_size: 0.2
     min_n_required: 40  # par groupe (20 high + 20 low minimum)
-    status: Pending
-    evidence_level: null
+    status: Rejected
+    evidence_level: null   # non attribuable — voir evidence_level_note
+    evidence_level_note: >
+      Le barème §6 de data_governance_spec_v1.md exige une p-value (< 0.10 pour
+      Weak). Le test pré-enregistré de H3 est `cohens_d`, qui n'en produit pas :
+      aucun niveau du barème n'est attribuable en l'état. Incohérence entre la
+      pré-enregistration de H3 et la grille Evidence Levels, à trancher par
+      décision d'opérateur — ne PAS la résoudre en changeant le test a
+      posteriori (ce serait du p-hacking sur une hypothèse déjà évaluée).
     implications:
       confirmed: Le score est prédictif — relever seuil minimum d'entrée à 75+
       rejected: Le score n'a pas de valeur marginale — revoir les composantes du scoring
-    last_evaluated: null
-    n_at_eval: 0
-    dataset_uuid: null
+    last_evaluated: "2026-07-31"
+    n_at_eval: 139
+    dataset_uuid: null              # aucun CertifiedDataset — résultat révisable
     dataset_certification_id: null
     experiment_id: "EXP-001"
-    result_summary: null
+    result_summary: >
+      REJETÉE sur son critère pré-enregistré, dont les DEUX branches échouent.
+      Population canonique V4 (borne 2026-07-17T01:30:00Z), N=139 : groupe
+      score>=75 n=30, groupe score<75 n=109 (les deux au-dessus du minimum de
+      20 par groupe). OBSERVÉ : E[score>=75] = -0.090 $/trade contre
+      E[score<75] = -0.048 $/trade — le sens est inverse à celui prédit ;
+      Cohen's d = -0.097, sous le seuil pré-enregistré de 0.2 en valeur
+      absolue. INFÉRENCE (probable, plafonnée) : le score tel que composé
+      aujourd'hui ne discrimine pas l'expectancy ; |d| < 0.2 interdit de
+      conclure à une inversion réelle — l'écart observé est compatible avec
+      du bruit. LIMITE : les deux groupes sont perdants (PF global 0.68), le
+      test porte donc sur la discrimination du score, PAS sur la rentabilité.
+      Reproductible par `python analysis/regime_audit.py`.
 
   - id: H4
     hypothesis_version: "H4-v1.0"
@@ -97,8 +131,16 @@ hypotheses:
     implications:
       confirmed: Filtrer ATR < 1.5% à l'entrée — améliore la sélectivité
       rejected: ATR n'est pas discriminant — explorer d'autres filtres de volatilité
-    last_evaluated: null
-    n_at_eval: 0
+    last_evaluated: "2026-07-31"   # tentative d'évaluation : donnée inexistante
+    n_at_eval: 0                   # trades avec atr_pct non-null
+    blocked_by: >
+      NON évaluable par ABSENCE DE DONNÉE, pas par N insuffisant — distinction
+      décisive. Le champ `atr_pct` n'est écrit par aucun producteur du dépôt :
+      zéro occurrence sur 684 OPEN et 682 CLOSE du corpus VPS du 2026-07-31.
+      Attendre n'y changera jamais rien. Débloquer H4 exige que le recorder
+      journalise `atr_pct` à l'OPEN, puis d'attendre 40 nouveaux trades —
+      soit un ajout de télémétrie (champ additif, aucune entrée du moteur
+      modifiée), à instruire séparément.
     dataset_uuid: null
     dataset_certification_id: null
     experiment_id: "EXP-001"

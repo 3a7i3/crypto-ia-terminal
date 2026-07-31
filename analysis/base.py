@@ -345,8 +345,100 @@ def concept_drift_detected(
 # ── Chargement trades depuis JSONL ────────────────────────────────────────────
 
 
+def load_canonical_trades(jsonl_path: str | None = None) -> list[Trade]:
+    """Trades canoniques d'époque — population déléguée au loader unique.
+
+    INV-DATASET-001 : la population EST ``tools.cri_calculator.load_clean_trades``
+    (événements CLOSE, borne ``CLEAN_DATA_SINCE_ACTIVE``, hors fixtures et
+    artefacts de restauration). Cette fonction ne filtre RIEN : elle se contente
+    d'enrichir chaque CLOSE canonique avec les champs que seul son OPEN porte
+    (``entry_price``, ``opened_at``), puis de le projeter en ``Trade``.
+
+    Distinction volontaire avec :func:`load_trades`, qui lit le fichier brut
+    sans borne d'époque et reste utilisé par les outils historiques : tout KPI
+    calculé sur une autre population que celle-ci est incomparable aux autres
+    outils du dépôt.
+
+    ``atr_pct`` et ``volume_usd`` restent ``None`` : ces champs ne sont écrits
+    par aucun producteur du dépôt (vérifié sur le corpus VPS du 2026-07-31,
+    682 CLOSE / 684 OPEN, zéro occurrence). H4 est donc non évaluable par
+    absence de donnée, pas par N insuffisant.
+    """
+    import json
+    from pathlib import Path
+
+    from tools.cri_calculator import default_trades_path, load_clean_trades
+
+    target = Path(jsonl_path) if jsonl_path else default_trades_path()
+    # Échouer bruyamment : `load_clean_trades` rend [] sur fichier absent, ce
+    # qui ferait rapporter « N=0 » — indiscernable d'un dataset réellement
+    # vide. C'est le mode de panne muet que ce correctif élimine ailleurs ;
+    # il ne doit pas être réintroduit ici.
+    if not target.exists():
+        raise FileNotFoundError(f"Fichier introuvable: {target}")
+    closes = load_clean_trades(target)
+
+    # Index des OPEN du MÊME fichier — enrichissement seul, jamais un filtre :
+    # un CLOSE canonique dont l'OPEN manque reste dans la population.
+    opens: dict[str, dict] = {}
+    if target.exists():
+        with target.open(encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    ev = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if ev.get("event") == "OPEN":
+                    opens[ev.get("trade_id", "")] = ev
+
+    trades: list[Trade] = []
+    for cl in closes:
+        tid = cl.get("trade_id", "")
+        op = opens.get(tid, {})
+        try:
+            pnl_usd = float(cl.get("pnl_usd") or 0)
+            pnl_pct = float(cl.get("pnl_pct") or 0)
+        except (TypeError, ValueError):
+            continue
+        mae, mfe = cl.get("mae_pct"), cl.get("mfe_pct")
+        atr = op.get("atr_pct", cl.get("atr_pct"))
+        vol = op.get("volume_usd", cl.get("volume_usd"))
+        # `ts` est le nom réellement écrit par le recorder ; `timestamp` est
+        # accepté en repli pour les schémas antérieurs.
+        opened_raw = op.get("ts") or op.get("timestamp") or cl.get("ts")
+        trades.append(
+            Trade(
+                trade_id=tid,
+                symbol=cl.get("symbol") or op.get("symbol", "?"),
+                side=(cl.get("side") or op.get("side") or "?").upper(),
+                regime=cl.get("regime") or op.get("regime") or "unknown",
+                score=int(cl.get("score") or op.get("score") or 0),
+                entry_price=float(op.get("entry_price") or op.get("price") or 0),
+                pnl_usd=pnl_usd,
+                pnl_pct=pnl_pct,
+                mae_pct=float(mae) if mae is not None else None,
+                mfe_pct=float(mfe) if mfe is not None else None,
+                duration_s=float(cl.get("duration_s") or 0),
+                exit_reason=cl.get("reason") or "?",
+                opened_at=float(opened_raw) if opened_raw else None,
+                atr_pct=float(atr) if atr is not None else None,
+                volume_usd=float(vol) if vol is not None else None,
+            )
+        )
+    return trades
+
+
 def load_trades(jsonl_path: str | None = None) -> list[Trade]:
-    """Charge les trades fermés depuis paper_trades.jsonl."""
+    """Charge les trades fermés depuis paper_trades.jsonl.
+
+    ATTENTION — population NON bornée à l'époque canonique : cette fonction
+    lit le fichier brut, toutes époques confondues. Pour tout calcul de KPI,
+    de N ou de test d'hypothèse, utiliser :func:`load_canonical_trades`
+    (INV-DATASET-001).
+    """
     import json
     from pathlib import Path
 

@@ -25,15 +25,21 @@ from pathlib import Path
 # Rendre analysis/ importable depuis la racine du projet
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from analysis.base import Trade, full_metrics, load_trades
+from analysis.base import Trade, full_metrics, load_canonical_trades
 from analysis.hypotheses import print_hypotheses_report, run_all_hypotheses
 
 W = 68
 
-CLEAN_SINCE = datetime(2026, 6, 25, tzinfo=timezone.utc)
-
 
 def _filter_by_date(trades: list[Trade], since: datetime | None) -> list[Trade]:
+    """Restriction SUPPLÉMENTAIRE à l'intérieur de la population canonique.
+
+    ``since=None`` (défaut) → aucune restriction : la borne d'époque est déjà
+    appliquée en amont par ``load_canonical_trades`` (INV-DATASET-001). Ce
+    filtre ne sert qu'à zoomer sur une sous-fenêtre pour inspection ; il ne
+    peut qu'ôter des trades, jamais en rajouter, et un ``--since`` antérieur
+    à la borne canonique est donc sans effet.
+    """
     if since is None:
         return trades
     result = []
@@ -114,27 +120,59 @@ def _symbol_breakdown(trades: list[Trade]) -> None:
         print(f"  {sym:<20} {n:>4} {pnl:>+9.2f}$  {pf_str}")
 
 
+def _force_utf8_stdout() -> None:
+    """Rend le rapport imprimable sur une console Windows cp1252.
+
+    Le rapport contient des filets Unicode et des symboles de verdict ; sans
+    cela, `print` lève UnicodeEncodeError et l'outil meurt APRÈS avoir affiché
+    l'entête — ce qui donne l'illusion d'un dataset vide plutôt que d'un
+    défaut d'affichage.
+    """
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None:
+            try:
+                reconfigure(encoding="utf-8", errors="replace")
+            except (ValueError, OSError):  # flux redirigé ou déjà fermé
+                pass
+
+
 def main(jsonl_path: str | None = None, since: datetime | None = None) -> int:
+    from tools.cri_calculator import trades_provenance
+
+    _force_utf8_stdout()
+
     try:
-        all_trades = load_trades(jsonl_path)
+        all_trades = load_canonical_trades(jsonl_path)
     except FileNotFoundError as e:
         print(f"ERREUR: {e}")
         return 1
 
-    # Filtre par date (défaut = données propres depuis 2026-06-25)
-    effective_since = since or CLEAN_SINCE
-    trades = _filter_by_date(all_trades, effective_since)
+    trades = _filter_by_date(all_trades, since)
+
+    from pathlib import Path as _P
+
+    prov = trades_provenance(_P(jsonl_path) if jsonl_path else None)
 
     print(f"\n{'='*W}")
     print("  REGIME AUDIT FRAMEWORK")
     print(f"{'='*W}")
-    print(f"  Trades total       : {len(all_trades)}")
-    print(f"  Trades propres     : {len(trades)} (depuis {effective_since.date()})")
+    # Provenance jointe au rapport : un N ne peut pas être cité sans que sa
+    # population soit reconstituable (INV-DATASET-001).
+    print(f"  Loader             : {prov['loader']}")
+    print(f"  Source             : {prov['source_path']}")
+    print(f"  Borne d'époque     : {prov['clean_data_since']}")
+    print(f"  CLOSE lus          : {prov['close_events_total']}")
+    print(f"  N canonique        : {prov['n_canonical']}")
+    for reason, count in sorted(prov["excluded_by_reason"].items()):
+        print(f"    écartés [{reason}] : {count}")
+    if since is not None:
+        print(f"  Sous-fenêtre       : {len(trades)} (depuis {since.date()})")
     print(f"  Symboles actifs    : {len({t.symbol for t in trades})}")
     print(f"  Régimes couverts   : {sorted({t.regime for t in trades})}")
 
     if len(trades) < 10:
-        print(f"\n  ⏳ Données insuffisantes — relancer à N≥50")
+        print("\n  [ATTENTE] Données insuffisantes — relancer à N>=50")
         print(f"{'='*W}\n")
         return 0
 
