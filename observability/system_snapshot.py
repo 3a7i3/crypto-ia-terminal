@@ -105,10 +105,51 @@ class PipelineStage:
 
 @dataclass(frozen=True)
 class APIAccountSnapshot:
+    """Compte RÉEL (API) — ne contient jamais de grandeur du moteur paper.
+
+    Les champs ajoutés (ADR-0019, ticket T1) rendent explicite ce qui était
+    tu : la provenance du chiffre, la part non valorisée, et le fait que le
+    portefeuille futures ne soit pas collecté. Tous ont un défaut, aucun
+    appelant existant n'est cassé.
+    """
+
     api_equity_usdt: float
     api_free_cash_usdt: float
     api_positions: int
     api_assets: tuple[tuple[str, float], ...] = field(default_factory=tuple)
+
+    # ── Provenance ────────────────────────────────────────────────────────
+    # « API Equity » avait deux sources possibles sans que l'affichage le
+    # dise (advisor_loop.py:6717 exchange d'exécution, :6754 agrégat compte
+    # n°1). Le lecteur doit savoir laquelle il regarde.
+    source: str = "inconnue"  # exchange_execution | compte1_agrege | non_collecte
+    ts_utc: str = ""  # dernière synchronisation réelle
+
+    # ── Décomposition ─────────────────────────────────────────────────────
+    # None ≠ 0. None = « non collecté », 0.0 = « collecté et nul ». Le
+    # portefeuille futures est aujourd'hui None : sa lecture est autorisée
+    # par les clés (sonde 2026-07-31) mais pas encore implémentée (T2).
+    spot_usd: float | None = None
+    futures_usd: float | None = None
+    futures_unrealized_usd: float | None = None
+    futures_margin_used_usd: float | None = None
+
+    # ── Complétude ────────────────────────────────────────────────────────
+    # `api_equity_usdt` exclut les actifs sans prix : c'est une BORNE
+    # INFÉRIEURE. Sans ces compteurs, le panneau affiche un total amputé
+    # sans le dire.
+    unpriced_count: int = 0
+    assets_total: int = 0  # nombre réel d'actifs, avant toute troncature
+
+    @property
+    def equity_is_lower_bound(self) -> bool:
+        """Vrai si des actifs détenus ne sont pas comptés dans l'equity."""
+        return self.unpriced_count > 0
+
+    @property
+    def collected(self) -> bool:
+        """Faux pour les snapshots de remplissage (heartbeat à zéro)."""
+        return self.source != "non_collecte"
 
 
 @dataclass(frozen=True)

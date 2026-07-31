@@ -94,21 +94,96 @@ def render_quant_overview_block(snapshot: SystemSnapshot) -> str:
     )
 
 
+_SOURCE_LABELS = {
+    "exchange_execution": "API exchange d'exécution (fetch_balance)",
+    "compte1_agrege": "API comptes réels agrégés (spot)",
+    "non_collecte": "NON COLLECTÉ",
+    "inconnue": "provenance non déclarée",
+}
+
+
 def render_real_account_block(snapshot: SystemSnapshot, mode_label: str) -> str:
+    """🟢 COMPTE RÉEL — exclusivement des grandeurs lues sur l'API.
+
+    ADR-0019 / T1. Ce bloc ne contient AUCUNE grandeur du moteur paper : le
+    mélange des deux dans un même bloc, sans marquage de source, est ce qui
+    a produit la croyance « le bot perd réellement 330 $ ». Le paper vit
+    désormais dans :func:`render_paper_engine_block`.
+    """
     a = snapshot.api_account
+    src = _SOURCE_LABELS.get(a.source, a.source)
+
+    if not a.collected:
+        return (
+            f"🟢 <b>COMPTE RÉEL — Cycle #{snapshot.meta.cycle}</b>\n"
+            "━━━━━━━━━━━━━━━━━━━━━━\n"
+            "⚠️ <b>Non collecté sur ce cycle</b> — aucun chiffre affiché "
+            "plutôt qu'un zéro trompeur."
+        )
+
+    lines = [
+        f"🟢 <b>COMPTE RÉEL — Cycle #{snapshot.meta.cycle}</b>",
+        "━━━━━━━━━━━━━━━━━━━━━━",
+        f"<i>source : {src}</i>",
+    ]
+
+    # Spot / Futures séparés. None = non collecté, et on le DIT.
+    if a.spot_usd is not None:
+        lines.append(f"💰 Spot : <b>${a.spot_usd:.4f} USDT</b>")
+    if a.futures_usd is None:
+        lines.append("📈 Futures : <b>non collecté</b> <i>(ADR-0019 T2)</i>")
+    else:
+        lines.append(f"📈 Futures : <b>${a.futures_usd:.4f} USDT</b>")
+        if a.futures_margin_used_usd is not None:
+            lines.append(f"   Marge utilisée : ${a.futures_margin_used_usd:.4f}")
+        if a.futures_unrealized_usd is not None:
+            _s = "+" if a.futures_unrealized_usd >= 0 else ""
+            lines.append(f"   PnL latent : {_s}{a.futures_unrealized_usd:.4f} USDT")
+
+    # L'equity exclut les actifs sans prix : le nommer, jamais le taire.
+    borne = " <i>(borne inférieure)</i>" if a.equity_is_lower_bound else ""
+    lines.append(f"💵 Equity : <b>${a.api_equity_usdt:.4f} USDT</b>{borne}")
+    lines.append(f"💵 Free Cash : <b>${a.api_free_cash_usdt:.4f} USDT</b>")
+    lines.append(f"📂 Positions ouvertes : <b>{a.api_positions}</b>")
+
+    if a.unpriced_count:
+        lines.append(
+            f"❓ Actifs sans prix : <b>{a.unpriced_count}</b> "
+            "<i>(exclus de l'equity)</i>"
+        )
+
+    # Plus de troncature muette : on dit combien on montre sur combien.
+    if a.api_assets:
+        shown = len(a.api_assets)
+        total = a.assets_total or shown
+        suffix = f" <i>({shown} sur {total})</i>" if total > shown else ""
+        assets = " | ".join(f"{sym}:{qty:.6g}" for sym, qty in a.api_assets)
+        lines.append(f"💼 Actifs : <b>{assets}</b>{suffix}")
+
+    lines.append(f"⚙️ Mode : <b>{mode_label}</b>")
+    if a.ts_utc:
+        lines.append(f"🕐 Dernière synchronisation : <b>{a.ts_utc}</b>")
+    return "\n".join(lines)
+
+
+def render_paper_engine_block(snapshot: SystemSnapshot) -> str:
+    """🔵 PAPER ENGINE — exclusivement des grandeurs du moteur simulé.
+
+    Aucun chiffre de ce bloc ne provient d'un exchange. Chaque ligne porte sa
+    fenêtre : l'equity paper somme le ledger TOUTES ÉPOQUES confondues
+    (`infra/wallet_sync.py:55-70`, sans borne), alors que les KPI sont bornés
+    à l'époque canonique V4. Les afficher côte à côte sans le dire
+    remplacerait une confusion réel/paper par une confusion d'époque.
+    """
     p = snapshot.portfolio
-    assets = " | ".join(f"{sym}:{qty:.6g}" for sym, qty in a.api_assets) or "N/A"
     sign = "+" if p.session_pnl_usd >= 0 else ""
     return (
-        f"📊 <b>Statut Compte Réel — Cycle #{snapshot.meta.cycle}</b>\n"
+        f"🔵 <b>PAPER ENGINE (simulation) — Cycle #{snapshot.meta.cycle}</b>\n"
         "━━━━━━━━━━━━━━━━━━━━━━\n"
-        f"💰 API Equity : <b>${a.api_equity_usdt:.4f} USDT</b>\n"
-        f"💵 API Free Cash : <b>${a.api_free_cash_usdt:.4f} USDT</b>\n"
-        f"📂 API Positions : <b>{a.api_positions}</b>\n"
-        f"⚙️ Mode : <b>{mode_label}</b>\n"
-        f"📈 Paper Equity (machine) : <b>${p.paper_equity:.2f} USDT</b>\n"
-        f"🔄 PnL depuis ce redémarrage : <b>{sign}{p.session_pnl_usd:.2f}$</b>\n"
-        f"💼 API Assets : <b>{assets}</b>"
+        "<i>source : moteur interne — aucun exchange</i>\n"
+        f"📈 Paper Equity : <b>${p.paper_equity:.2f} USDT</b> "
+        "<i>(ledger, toutes époques)</i>\n"
+        f"🔄 PnL depuis ce redémarrage : <b>{sign}{p.session_pnl_usd:.2f}$</b>"
     )
 
 

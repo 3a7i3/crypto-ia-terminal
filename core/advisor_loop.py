@@ -97,6 +97,7 @@ from observability.system_snapshot_renderers import (
     render_block_stats_block,
     render_health_block,
     render_heartbeat,
+    render_paper_engine_block,
     render_pipeline_block,
     render_quant_overview_block,
     render_real_account_block,
@@ -6714,6 +6715,11 @@ def main(
                     _api_free_usdt = 0.0
                     _api_pos_count = 0
                     _api_assets: tuple[tuple[str, float], ...] = ()
+                    # ADR-0019 T1 — complétude : ce que l'equity NE compte pas.
+                    _c1_ts_utc = ""
+                    _c1_spot_usd: float | None = None
+                    _c1_unpriced = 0
+                    _c1_assets_total = 0
                     if _ex is not None:
                         try:
                             _bal = _ex.fetch_balance()
@@ -6757,9 +6763,19 @@ def main(
                                 aggregate as _c1_aggregate,
                             )
 
-                            _agg = _c1_aggregate(_real_accounts_snapshots())
+                            _c1_snaps_hdr = _real_accounts_snapshots()
+                            _agg = _c1_aggregate(_c1_snaps_hdr)
                             if _agg is not None:
                                 _api_equity, _api_free_usdt, _api_assets = _agg
+                                # ADR-0019 T1 — l'equity agrégée est SPOT seul
+                                # et exclut les actifs sans prix : le dire.
+                                _ok_snaps = [s for s in _c1_snaps_hdr if s.ok]
+                                _c1_spot_usd = _api_equity
+                                _c1_unpriced = sum(s.unpriced for s in _ok_snaps)
+                                _c1_assets_total = sum(len(s.assets) for s in _ok_snaps)
+                                _c1_ts_utc = max(
+                                    (s.ts_utc for s in _ok_snaps), default=""
+                                )
                         except Exception as _c1e:
                             log.debug("[Compte1] agregat entete indispo: %s", _c1e)
                     if not ex.get("healthy", True):
@@ -6935,6 +6951,17 @@ def main(
                             api_assets=tuple(
                                 (sym, round(qty, 8)) for sym, qty in _api_assets
                             ),
+                            # ADR-0019 T1 — déclarer la provenance : ce bloc a
+                            # deux sources possibles et l'affichage se taisait.
+                            source=(
+                                "exchange_execution"
+                                if _ex is not None
+                                else "compte1_agrege"
+                            ),
+                            ts_utc=_c1_ts_utc,
+                            spot_usd=_c1_spot_usd,
+                            unpriced_count=_c1_unpriced,
+                            assets_total=_c1_assets_total,
                         ),
                         block_stats=_block_stats,
                         decision_trace=(
@@ -7137,7 +7164,14 @@ def main(
                                 == "true"
                             )
                             _rmode = "PAPER (standby)" if _rm else "🟢 LIVE"
-                            _real_status = render_real_account_block(_snapshot, _rmode)
+                            # ADR-0019 T1 — deux blocs distincts, jamais fusionnés :
+                            # le réel ne contient que de l'API, le paper que du
+                            # moteur. Chacun déclare sa source.
+                            _real_status = (
+                                render_real_account_block(_snapshot, _rmode)
+                                + "\n\n"
+                                + render_paper_engine_block(_snapshot)
+                            )
                             # Détail par actif des comptes API réels (compte n°1)
                             _c1_detail = _real_accounts_snapshots()
                             if _c1_detail:
@@ -7516,6 +7550,11 @@ def main(
                             api_free_cash_usdt=0.0,
                             api_positions=0,
                             api_assets=(),
+                            # ADR-0019 T1 — remplissage du heartbeat : ces zéros
+                            # ne sont PAS une mesure. Sans ce marqueur, un
+                            # détecteur d'anomalie brancé sur le snapshot verrait
+                            # l'equity tomber à 0 à chaque heartbeat.
+                            source="non_collecte",
                         ),
                         block_stats=_hb_block_stats,
                     )
