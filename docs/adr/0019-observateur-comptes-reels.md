@@ -1,6 +1,8 @@
 # ADR-0019 — Observateur des comptes réels (clés privées, lecture seule)
 
-- **Statut** : **Proposé — v2**, amendé sur demande de l'opérateur (2026-07-31)
+- **Statut** : **Accepté (Phase A)** — décision opérateur Mathieu, 2026-07-31
+  (« je Valide l'ADR »). Transcription en session ; la Phase B reste
+  **non autorisée** et exigera un ADR distinct.
 - **Date** : 2026-07-31
 - **Auteur / signataire** : Mathieu (non signé à ce jour)
 - **Rédaction** : Claude Code. Conformément à `.claude/GOVERNANCE.md` §8.2/§8.3,
@@ -577,9 +579,10 @@ fichier écrit, aucune clé touchée. Livrable même si l'ADR est refusé.
 ## Signature — Phase A uniquement
 
 ```
-Statut : Proposé (v2)
-Décision de l'opérateur : ____________________  (Accepté / Refusé / Amendé)
-Date : ____________________
+Statut : ACCEPTÉ — Phase A
+Décision de l'opérateur : Accepté (Mathieu, « je Valide l'ADR »)
+Date : 2026-07-31
+Portée : Phase A uniquement. Phase B NON autorisée.
 ```
 
 Cette signature n'autorise que la **Phase A**. La Phase B (détection, alertes,
