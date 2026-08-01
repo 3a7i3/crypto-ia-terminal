@@ -3,10 +3,14 @@
 Fonction pure ``(clients) -> enregistrement`` : aucun état partagé, aucun
 cache, aucun client construit tant qu'un client est injecté.
 
-Deux sources, **isolées** : `spot.fetch_balance` et `swap.fetch_balance`.
-L'échec de l'une est visible sur sa propre ligne et ne casse jamais la
-lecture de l'autre (règle héritée d'OBS_EXCHANGES). Spot et futures ne
-partagent jamais une ligne.
+Trois sources, **isolées** : `spot.fetch_balance`, `swap.fetch_balance` et
+`spot.fetch_tickers`. L'échec de l'une est visible sur sa propre ligne et ne
+casse jamais la lecture des autres (règle héritée d'OBS_EXCHANGES). Spot et
+futures ne partagent jamais une ligne.
+
+`fetch_tickers` en **un seul appel** remplace jusqu'à 60 `fetch_ticker`
+unitaires et supprime la raison d'être du plafond `_MAX_PRICED_ASSETS`
+(`observability/real_accounts.py:36`) : coût en baisse, couverture en hausse.
 
 **Honnêteté de l'equity** : `equity_total_usd` est une **borne inférieure**
 dès qu'un actif n'est pas valorisable ou qu'une source manque.
@@ -59,15 +63,17 @@ class AccountRecord:
 def collect_account(
     spot_client: Any, swap_client: Any, exchange: str = "mexc"
 ) -> AccountRecord:
-    """Lit les soldes spot et futures, la marge, et agrège l'equity."""
+    """Lit soldes spot, soldes futures et marge, valorise en un `fetch_tickers`."""
     ok: list[str] = []
     failed: list[tuple[str, str]] = []
 
     spot_raw = _read(spot_client, "fetch_balance", "spot.fetch_balance", ok, failed)
     swap_raw = _read(swap_client, "fetch_balance", "swap.fetch_balance", ok, failed)
+    tickers = _read(spot_client, "fetch_tickers", "spot.fetch_tickers", ok, failed)
+    prices = _usd_prices(tickers)
 
-    spot_assets = _wallet_assets(spot_raw, "spot")
-    futures_assets = _wallet_assets(swap_raw, "futures")
+    spot_assets = _wallet_assets(spot_raw, "spot", prices)
+    futures_assets = _wallet_assets(swap_raw, "futures", prices)
     unpriced = tuple(
         a.asset for a in (*spot_assets, *futures_assets) if a.usd_value is None
     )
@@ -83,8 +89,8 @@ def collect_account(
         equity_spot_usd=equity_spot,
         equity_futures_usd=equity_futures,
         equity_total_usd=round(equity_spot + equity_futures, 8),
-        margin_used_usd=_sum_field(futures_assets, "used"),
-        margin_free_usd=_sum_field(futures_assets, "free"),
+        margin_used_usd=_sum_field(futures_assets, prices, "used"),
+        margin_free_usd=_sum_field(futures_assets, prices, "free"),
         unpriced=unpriced,
         assets_total=len(spot_assets) + len(futures_assets),
         equity_is_lower_bound=bool(unpriced) or bool(failed),
@@ -116,7 +122,32 @@ def _read(
     return result
 
 
-def _wallet_assets(balance: Any, wallet: str) -> tuple[AssetBalance, ...]:
+def _usd_prices(tickers: Any) -> dict[str, float]:
+    """Prix USD par actif, depuis un unique `fetch_tickers`.
+
+    Seuls les marchés cotés en USDT/USDC/USD sont retenus ; le suffixe
+    `:USDT` des symboles de contrats ccxt est toléré.
+    """
+    prices: dict[str, float] = {}
+    if not isinstance(tickers, dict):
+        return prices
+    for symbol, raw in tickers.items():
+        if not isinstance(symbol, str) or "/" not in symbol:
+            continue
+        base, _, quote = symbol.partition("/")
+        if quote.split(":")[0] not in ("USDT", "USDC", "USD"):
+            continue
+        last = None
+        if isinstance(raw, dict):
+            last = safe_float(raw.get("last")) or safe_float(raw.get("close"))
+        if last and base not in prices:
+            prices[base] = last
+    return prices
+
+
+def _wallet_assets(
+    balance: Any, wallet: str, prices: dict[str, float]
+) -> tuple[AssetBalance, ...]:
     """Soldes non nuls d'un portefeuille, valorisés puis triés par valeur."""
     if not isinstance(balance, dict):
         return ()
@@ -137,27 +168,32 @@ def _wallet_assets(balance: Any, wallet: str) -> tuple[AssetBalance, ...]:
                 total=total,
                 free=safe_float(frees.get(asset)) or 0.0,
                 used=safe_float(useds.get(asset)) or 0.0,
-                usd_value=_usd_value(str(asset), total),
+                usd_value=_usd_value(str(asset), total, prices),
             )
         )
     assets.sort(key=lambda a: (a.usd_value is None, -(a.usd_value or 0.0), a.asset))
     return tuple(assets)
 
 
-def _usd_value(asset: str, qty: float) -> float | None:
-    """Stables valorisées 1:1 ; tout le reste exige un prix (voir valorisation)."""
-    return round(qty, 8) if asset in STABLE_ASSETS else None
+def _usd_value(asset: str, qty: float, prices: dict[str, float]) -> float | None:
+    """Stables valorisées 1:1 ; tout le reste exige un prix issu de `fetch_tickers`."""
+    if asset in STABLE_ASSETS:
+        return round(qty, 8)
+    price = prices.get(asset)
+    return round(qty * price, 8) if price else None
 
 
 def _sum_usd(assets: tuple[AssetBalance, ...]) -> float:
     return round(sum(a.usd_value for a in assets if a.usd_value is not None), 8)
 
 
-def _sum_field(assets: tuple[AssetBalance, ...], attr: str) -> float:
+def _sum_field(
+    assets: tuple[AssetBalance, ...], prices: dict[str, float], attr: str
+) -> float:
     """Somme USD d'un champ (free/used) — actifs non valorisables exclus."""
     total = 0.0
     for asset in assets:
-        value = _usd_value(asset.asset, getattr(asset, attr))
+        value = _usd_value(asset.asset, getattr(asset, attr), prices)
         if value is not None:
             total += value
     return round(total, 8)

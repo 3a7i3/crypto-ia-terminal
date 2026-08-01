@@ -60,9 +60,9 @@ def test_soldes_spot_et_futures_ne_partagent_jamais_une_ligne():
     assert {a.asset for a in rec.spot_assets} == {"USDT", "DOGE"}
     assert all(a.wallet == "spot" for a in rec.spot_assets)
     assert [a.wallet for a in rec.futures_assets] == ["futures"]
-    assert rec.equity_spot_usd == 4.0  # DOGE non valorisable sans prix
+    assert rec.equity_spot_usd == 14.0  # 4 USDT + 100 DOGE * 0.10
     assert rec.equity_futures_usd == 6.0
-    assert rec.equity_total_usd == 10.0
+    assert rec.equity_total_usd == 20.0
 
 
 def test_marge_utilisee_et_libre_lues_sur_le_wallet_futures():
@@ -71,22 +71,52 @@ def test_marge_utilisee_et_libre_lues_sur_le_wallet_futures():
     assert rec.margin_free_usd == 2.0
 
 
+def test_valorisation_par_un_seul_fetch_tickers():
+    spot, swap = _spot(), _swap()
+    rec = collect_account(spot, swap)
+
+    assert spot.calls.count("fetch_tickers") == 1
+    assert "fetch_ticker" not in spot.calls  # plus d'appel unitaire par actif
+    assert {a.asset: a.usd_value for a in rec.spot_assets}["DOGE"] == 10.0
+
+
 def test_actif_sans_prix_exclu_du_total_et_equity_dite_borne_inferieure():
-    rec = collect_account(_spot(), _swap())
+    spot = _spot()
+    spot.balance["total"]["XYZ"] = 5.0  # aucun marché dans fetch_tickers
+    rec = collect_account(spot, _swap())
 
     by_asset = {a.asset: a for a in rec.spot_assets}
-    assert by_asset["DOGE"].usd_value is None
-    assert rec.unpriced == ("DOGE",)
+    assert by_asset["XYZ"].usd_value is None
+    assert rec.equity_spot_usd == 14.0  # XYZ n'entre pas dans le total
+    assert rec.unpriced == ("XYZ",)
     assert rec.equity_is_lower_bound is True
-    assert rec.assets_total == 3  # aucune troncature : tout est rendu
+    assert rec.assets_total == 4  # aucune troncature : tout est rendu
 
 
 def test_equity_exacte_quand_tout_est_valorise():
-    spot = FakeClient(balance={"total": {"USDT": 4.0}, "free": {"USDT": 4.0}})
-    rec = collect_account(spot, _swap())
+    rec = collect_account(_spot(), _swap())
     assert rec.unpriced == ()
     assert rec.equity_is_lower_bound is False
-    assert rec.equity_total_usd == 10.0
+    assert rec.equity_total_usd == 20.0
+
+
+def test_panne_des_tickers_naffecte_pas_les_stables():
+    spot = _spot(fail={"fetch_tickers": RuntimeError("rate limit")})
+    rec = collect_account(spot, _swap())
+
+    by_asset = {a.asset: a for a in rec.spot_assets}
+    assert by_asset["USDT"].usd_value == 4.0  # stable valorisée sans ticker
+    assert by_asset["DOGE"].usd_value is None
+    assert rec.unpriced == ("DOGE",)
+    assert ("spot.fetch_tickers", "RuntimeError: rate limit") in rec.sources_failed
+
+
+def test_ticker_de_contrat_suffixe_accepte():
+    spot = _spot()
+    spot.balance["total"]["SOL"] = 2.0
+    spot.tickers["SOL/USDT:USDT"] = {"last": 100.0}
+    rec = collect_account(spot, _swap())
+    assert {a.asset: a.usd_value for a in rec.spot_assets}["SOL"] == 200.0
 
 
 def test_aucune_troncature_le_top_6_est_supprime():
@@ -120,7 +150,7 @@ def test_echec_dauthentification_type_et_visible():
 def test_client_absent_ne_leve_pas():
     rec = collect_account(None, None)
     assert rec.equity_total_usd == 0.0
-    assert len(rec.sources_failed) == 2
+    assert len(rec.sources_failed) == 3
     assert rec.sources_ok == ()
 
 
