@@ -8,9 +8,8 @@ On **n'apparie donc jamais des ordres** pour reconstruire un trade : ce serait
 plus fragile, dépendrait du mapping `side` et n'apporterait rien
 (ADR-0019 §TradeCollector, amendement v2).
 
-Le `TradeRecord` est conçu pour porter **aussi** l'historique paper, seul le
-champ `source` les distinguant : c'est ce qui rendra les deux comparables
-sans jamais les confondre.
+Réel et paper portent le **même `TradeRecord`**, seul le champ `source` les
+distingue — c'est ce qui les rend comparables sans jamais les confondre.
 
 **Limite assumée, jamais masquée** : l'historique **SPOT** ne peut pas être
 exhaustif. `spot.fetch_my_trades` sans symbole lève `ArgumentsRequired`,
@@ -27,10 +26,13 @@ Aucune alerte, aucun verdict (OBS-I).
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Iterable
 
 from ._common import SCHEMA_VERSION, iso_from_ms, safe_float, source_error, utc_now_iso
 from ._semantics import classify_origin, direction_of_side, map_contract_side
+
+# Sens du journal paper (`paper_trading/recorder.py`) → direction commune.
+_PAPER_SIDES = {"buy": "long", "long": "long", "sell": "short", "short": "short"}
 
 
 @dataclass(frozen=True)
@@ -108,6 +110,32 @@ def collect_real_trades(
     return TradeHistory(**base, trades=trades)
 
 
+def collect_paper_trades(
+    records: Iterable[dict], exchange: str = "paper"
+) -> TradeHistory:
+    """Historique paper au même schéma — fonction **pure**, aucune lecture disque.
+
+    L'appelant fournit les enregistrements déjà chargés (un trade paper = un
+    `OPEN` + un `CLOSE` liés par `trade_id`, `paper_trading/recorder.py`). Ce
+    module ne connaît aucun chemin et n'en résout aucun : le dataset canonique
+    reste la responsabilité de son loader unique (INV-DATASET-001).
+    """
+    events = [r for r in records if isinstance(r, dict)]
+    opens = {r.get("trade_id"): r for r in events if r.get("event") == "OPEN"}
+    trades = tuple(
+        _from_paper_close(r, opens.get(r.get("trade_id")), exchange)
+        for r in events
+        if r.get("event") == "CLOSE"
+    )
+    return TradeHistory(
+        schema_version=SCHEMA_VERSION,
+        ts_utc=utc_now_iso(),
+        source="paper",
+        exchange=exchange,
+        trades=trades,
+    )
+
+
 # ── interne ─────────────────────────────────────────────────────────────────
 
 
@@ -140,4 +168,34 @@ def _from_position_history(raw: dict, exchange: str, origin: str) -> TradeRecord
         liquidation_price=safe_float(info.get("liquidatePrice")),
         position_id=str(info.get("positionId")) if info.get("positionId") else None,
         origin=origin,
+    )
+
+
+def _from_paper_close(close: dict, open_evt: dict | None, exchange: str) -> TradeRecord:
+    entry = safe_float(open_evt.get("price")) if isinstance(open_evt, dict) else None
+    size_usd = safe_float(close.get("size_usd"))
+    ts = safe_float(close.get("ts"))
+    return TradeRecord(
+        schema_version=SCHEMA_VERSION,
+        event_id=None,  # ticket T3
+        source="paper",
+        timestamp_ms=ts * 1000.0 if ts else None,
+        ts_utc=close.get("ts_iso") or iso_from_ms(ts * 1000.0 if ts else None),
+        exchange=exchange,
+        symbol=str(close.get("symbol") or ""),
+        direction=_PAPER_SIDES.get(str(close.get("side") or "").lower(), "unknown"),
+        entry=entry,
+        exit=safe_float(close.get("exit_price")) or safe_float(close.get("price")),
+        # Quantité DÉRIVÉE : taille en USD et prix d'entrée sont tous deux
+        # enregistrés — c'est une division, pas une inférence.
+        qty=(size_usd / entry) if (size_usd and entry) else None,
+        fee=None,  # non enregistré côté paper — jamais un 0 implicite
+        funding_fee=None,
+        profit=safe_float(close.get("pnl_usd")),
+        roi=safe_float(close.get("pnl_pct")),
+        duration_s=safe_float(close.get("duration_s")),
+        leverage=None,
+        liquidation_price=None,
+        position_id=str(close.get("trade_id")) if close.get("trade_id") else None,
+        origin="paper_bot",
     )
