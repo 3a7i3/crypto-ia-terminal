@@ -250,7 +250,13 @@ if [[ -d "$UNITS_SRC" ]]; then
         log "  déployé : $(basename "$f")"
     done
     run sudo systemctl daemon-reload
-    ok "Unités copiées et daemon-reload effectué"
+    # Ne jamais annoncer comme fait ce qui n'a été que simulé : en --check,
+    # `run` n'exécute rien, donc le message doit le dire.
+    if [[ "$MODE" == "run" ]]; then
+        ok "Unités copiées et daemon-reload effectué"
+    else
+        log "[check] les unités seraient copiées puis daemon-reload"
+    fi
     warn "Les unités ne sont PAS démarrées par ce script."
     log "     Rien ne doit tourner avant que les données et le .env soient en"
     log "     place : un moteur qui démarre sans son état écrirait par-dessus."
