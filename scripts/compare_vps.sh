@@ -35,9 +35,17 @@ ECARTS_TOLERES=0
 # Interroge une machine. Toute erreur devient une chaîne visible plutôt qu'un
 # silence : une dimension illisible ne doit jamais passer pour identique.
 interroge() {
-    local hote="$1" cmd="$2" out
-    out="$(ssh $SSH_OPTS "$hote" "cd $RACINE 2>/dev/null; $cmd" 2>/dev/null)" \
-        || { echo "<INJOIGNABLE>"; return; }
+    local hote="$1" cmd="$2" out rc
+    out="$(ssh $SSH_OPTS "$hote" "cd $RACINE 2>/dev/null; $cmd" 2>/dev/null)"
+    rc=$?
+    # Un code de retour non nul ne signifie PAS toujours « injoignable » :
+    # `grep -c` sort en 1 quand il compte 0 occurrences, ce qui est une
+    # réponse valide. Ne traiter comme injoignable qu'une sortie VIDE avec
+    # un code non nul — sinon on masque un vrai « 0 » derrière une erreur.
+    if [[ $rc -ne 0 && -z "$out" ]]; then
+        echo "<INJOIGNABLE>"
+        return
+    fi
     [[ -z "$out" ]] && echo "<VIDE>" || echo "$out"
 }
 
@@ -78,8 +86,11 @@ compare "étanchéité du venv"        ".venv/bin/python -c \"import sys;print('
 
 echo
 echo "── PROJET ───────────────────────────────────────────────────────────────"
-compare "commit git HEAD"           "git rev-parse HEAD"
-compare "branche courante"          "git branch --show-current"
+# Tolérés : une machine reconstruite depuis une archive n'a pas de dépôt git.
+# C'est un choix (le dépôt du VPS avait divergé de la production sans que rien
+# ne l'enregistre) et non un défaut. L'empreinte du code, elle, reste critique.
+compare "commit git HEAD"           "git rev-parse HEAD" tolere
+compare "branche courante"          "git branch --show-current" tolere
 compare "empreinte du code Python"  "find . -name '*.py' -not -path './.venv/*' -not -path '*/__pycache__/*' -type f -exec sha256sum {} + | sort -k2 | sha256sum | cut -d' ' -f1"
 compare "nb de fichiers .py"        "find . -name '*.py' -not -path './.venv/*' -not -path '*/__pycache__/*' | wc -l"
 
@@ -96,9 +107,33 @@ compare "taille databases/"         "du -sm databases/ | cut -f1" tolere
 echo
 echo "── CONFIGURATION ────────────────────────────────────────────────────────"
 # Noms de variables uniquement — aucune valeur n'est lue ni comparée.
-compare "noms de variables .env"    "grep -oE '^[A-Z_][A-Z0-9_]*' .env | sort -u | sha256sum | cut -d' ' -f1"
-compare "nombre de variables .env"  "grep -cE '^[A-Z_][A-Z0-9_]*=' .env"
-compare "doublons dans .env"        "grep -oE '^[A-Z_][A-Z0-9_]*' .env | sort | uniq -d | tr '\n' ','"
+# Ces trois lignes sont TOLÉRÉES : une migration est l'occasion de nettoyer le
+# .env (doublons, lignes orphelines). Une différence ici peut être une
+# amélioration délibérée — le script ne peut pas en juger, l'opérateur si.
+# Ce qui reste CRITIQUE est plus bas : aucune variable ne doit avoir DISPARU.
+compare "noms de variables .env"    "grep -oE '^[A-Z_][A-Z0-9_]*' .env | sort -u | sha256sum | cut -d' ' -f1" tolere
+compare "nombre de variables .env"  "grep -cE '^[A-Z_][A-Z0-9_]*=' .env" tolere
+compare "doublons dans .env"        "grep -oE '^[A-Z_][A-Z0-9_]*' .env | sort | uniq -d | tr '\n' ','" tolere
+
+# CRITIQUE, lui : liste des variables présentes chez l'ancien et ABSENTES chez
+# le nouveau. Un nettoyage retire des doublons ; il ne doit jamais retirer une
+# variable que le moteur lit. Vide des deux côtés = aucune perte.
+_manquantes() {
+    local a b
+    a="$(interroge "$ANCIEN" "grep -oE '^[A-Z_][A-Z0-9_]*' .env | sort -u")"
+    b="$(interroge "$NOUVEAU" "grep -oE '^[A-Z_][A-Z0-9_]*' .env | sort -u")"
+    comm -23 <(echo "$a") <(echo "$b") | tr '\n' ' '
+}
+_perdues="$(_manquantes)"
+if [[ -z "${_perdues// }" ]]; then
+    printf '  %sIDENTIQUE%s  %-38s %s\n' "$VERT" "$RAZ" \
+        "variables perdues au nettoyage" "aucune"
+else
+    printf '  %sDIFFERENT%s  %-38s\n' "$ROUGE" "$RAZ" \
+        "VARIABLES PERDUES au nettoyage"
+    printf '      %s\n' "$_perdues"
+    ECARTS_CRITIQUES=$((ECARTS_CRITIQUES + 1))
+fi
 
 echo
 echo "── SERVICES ─────────────────────────────────────────────────────────────"
