@@ -68,6 +68,74 @@ class PortfolioSnapshot:
 
 
 @dataclass(frozen=True)
+class DisplayPortfolioMetrics:
+    """Metriques de portefeuille pour l'AFFICHAGE uniquement.
+
+    Voir compute_display_portfolio_metrics ci-dessous.
+    """
+
+    portfolio_exposure_pct: float
+    paper_cash: float
+    free_cash: float
+    deployed_usd: float
+
+
+def compute_display_portfolio_metrics(
+    *,
+    capital: float,
+    positions_qty_usd: Any,
+    max_exposure_pct: float = 0.40,
+) -> DisplayPortfolioMetrics:
+    """Exposition, cash et capital libre AFFICHES, derives des positions reelles.
+
+    OBS-002. Fonction pure : aucun effet de bord, aucune lecture d'etat global.
+
+    POURQUOI ELLE EXISTE
+    --------------------
+    Le panneau affichait simultanement "Positions: 3" et "Exposure: 0.0%",
+    parce que les deux valeurs venaient de deux stores differents :
+    le COMPTE de positions de `_virtual_portfolio` (MexcSimulator), et
+    l'EXPOSITION de `pos_manager.get_open()` — vide en mode paper —
+    passe a `portfolio_health()` (core/advisor_loop.py:6785-6787).
+
+    Cette fonction calcule les metriques d'AFFICHAGE a partir des positions
+    reellement ouvertes, pour que le panneau soit auto-coherent.
+
+    CE QU'ELLE N'EST PAS
+    -------------------
+    Ce n'est PAS l'exposition utilisee par le gate de decision. `check_new_trade`
+    continue de lire `pos_manager` via `portfolio_health()` — bug documente et
+    GELE (voir docstring core/advisor_loop.py:437-448 et ADR-0007). Le corriger
+    changerait le comportement du moteur, imposerait une nouvelle epoque et
+    remettrait N a zero : c'est le ticket PORT-002, gated.
+
+    Consequence assumee : apres OBS-002, l'exposition AFFICHEE peut differer de
+    l'exposition vue par le GATE. C'est le risque R1, documente par OBS-004.
+
+    Les formules reprennent exactement celles de
+    quant_hedge_ai/agents/risk/portfolio_brain.py (`_snapshot` :668-687 et
+    `portfolio_health` :645-664), sans modifier aucun seuil (INV-4).
+
+    Args:
+        capital: capital de reference (equity paper).
+        positions_qty_usd: iterable des tailles de position en USD.
+        max_exposure_pct: plafond d'exposition, defaut 0.40
+            (= PortfolioBrain.MAX_TOTAL_EXPOSURE_PCT, portfolio_brain.py:88).
+            Passe en argument, jamais lu depuis le moteur : cette fonction ne
+            depend d'aucun composant de decision.
+    """
+    deployed = float(sum(float(q or 0.0) for q in (positions_qty_usd or ())))
+    cap = float(capital or 0.0)
+    exposure_pct = round(deployed / cap * 100.0, 1) if cap > 0 else 0.0
+    return DisplayPortfolioMetrics(
+        portfolio_exposure_pct=exposure_pct,
+        paper_cash=round(max(0.0, cap - deployed), 2),
+        free_cash=round(max(0.0, cap * max_exposure_pct - deployed), 2),
+        deployed_usd=round(deployed, 2),
+    )
+
+
+@dataclass(frozen=True)
 class AIDecisionSnapshot:
     decision_id: str
     state: DecisionState
