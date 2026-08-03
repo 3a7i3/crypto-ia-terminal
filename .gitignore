@@ -49,6 +49,15 @@ archives/
 databases/
 *.jsonl
 
+# EXCEPTION — le ledger scientifique (couche L1) DOIT être versionné.
+# KNOWLEDGE_MODEL §3.1 : c'est la seule chose non reconstructible du système ;
+# la connaissance, les verdicts et le graphe se redérivent, un événement perdu
+# est perdu. La règle *.jsoni ci-dessus l'excluait silencieusement — les
+# 7 premières observations n'ont jamais été commitées.
+# PM-7 exige à terme une réplication hors dépôt ; tant qu'elle n'existe pas,
+# git est la seule réplication disponible, et un ledger non répliqué est pire.
+!knowledge/*.jsonl
+
 # Ignore temporary files
 *.tmp
 *.temp

@@ -15,7 +15,8 @@ import re
 from dataclasses import dataclass, field
 from typing import Any
 
-from scios.objects.base import ObjectError, ScientificObject
+from scios.objects.base import ObjectError, ScientificObject, schema_at_least
+from scios.objects.identity import IdentityError, parse
 
 # Marqueurs causaux : leur présence signale une inférence déguisée en
 # observation. Détection lexicale volontairement grossière — elle ne prouve
@@ -56,6 +57,7 @@ class Observation(ScientificObject):
     metrics: dict[str, Any] = field(default_factory=dict)
     n: int | None = None
     source_events: tuple[str, ...] = ()
+    source_artifacts: tuple[str, ...] = ()
     allow_causal_terms: bool = False
 
     def __post_init__(self) -> None:
@@ -64,6 +66,27 @@ class Observation(ScientificObject):
             raise ObjectError("statement obligatoire")
         if self.n is not None and self.n < 0:
             raise ObjectError("n ne peut pas être négatif")
+        # `source_events` référence des OBJETS du ledger, jamais des chemins.
+        # Un fichier, un outil ou un rapport est une source d'ARTEFACT : la
+        # distinction est ce qui rend la chaîne de provenance parcourable
+        # jusqu'à l'atome (contrat C-02).
+        #
+        # Règle introduite en schéma 1.1.0. Les enregistrements antérieurs
+        # restent lisibles tels quels : durcir une règle ne réécrit pas le
+        # passé (voir base.SCHEMA_VERSION).
+        if schema_at_least(self.schema_version, "1.1.0"):
+            for ref in self.source_events:
+                try:
+                    kind = parse(ref).kind
+                except IdentityError:
+                    kind = None
+                if kind != "Event":
+                    detail = f" ({kind})" if kind else " (identifiant malformé)"
+                    raise ObjectError(
+                        f"source_events n'accepte que des identifiants Event, "
+                        f"reçu {ref!r}{detail} — pour un fichier, un outil ou un "
+                        "rapport, utiliser source_artifacts"
+                    )
         if not self.allow_causal_terms:
             found = self._causal_markers(self.statement)
             if found:
@@ -87,6 +110,7 @@ class Observation(ScientificObject):
             "metrics": self.metrics,
             "n": self.n,
             "source_events": list(self.source_events),
+            "source_artifacts": list(self.source_artifacts),
         }
         if self.allow_causal_terms:
             out["allow_causal_terms"] = True
@@ -102,12 +126,13 @@ class Observation(ScientificObject):
             provenance=Provenance.from_dict(data["provenance"]),
             epoch_id=data.get("epoch_id"),
             version=data.get("version", 1),
-            schema_version=data.get("schema_version", "1.0.0"),
+            schema_version=data.get("schema_version", "1.0.0"),  # legacy par défaut
             supersedes=data.get("supersedes"),
             superseded_by=data.get("superseded_by"),
             statement=data["statement"],
             metrics=data.get("metrics", {}),
             n=data.get("n"),
             source_events=tuple(data.get("source_events", ())),
+            source_artifacts=tuple(data.get("source_artifacts", ())),
             allow_causal_terms=data.get("allow_causal_terms", False),
         )

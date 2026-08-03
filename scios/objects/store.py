@@ -15,7 +15,7 @@ import threading
 from pathlib import Path
 from typing import Any, Iterator
 
-from scios.objects.base import ObjectError, ScientificObject, utc_now
+from scios.objects.base import ObjectError, ScientificObject, fingerprint_dict, utc_now
 from scios.objects.identity import IdRegistry
 from scios.objects.observation import Observation
 from scios.objects.provenance import Provenance
@@ -153,7 +153,7 @@ class ObjectStore:
                 problems.append(f"ligne {line_no}: objet invalide — {exc}")
                 continue
             expected = rec.get("_fingerprint")
-            if expected and obj.fingerprint() != expected:
+            if expected and fingerprint_dict(rec) != expected:
                 problems.append(
                     f"ligne {line_no}: empreinte incohérente pour {obj.id} — "
                     "contenu altéré après écriture"

@@ -21,7 +21,30 @@ from typing import Any, ClassVar
 from scios.objects.identity import parse
 from scios.objects.provenance import Provenance
 
-SCHEMA_VERSION = "1.0.0"
+SCHEMA_VERSION = "1.1.0"
+
+# Historique des schémas — un enregistrement se relit sous la version sous
+# laquelle il a été écrit, jamais sous la version courante.
+#
+#   1.0.0  socle initial ; `source_events` acceptait n'importe quelle chaîne.
+#   1.1.0  `source_events` n'accepte plus que des identifiants Event ; les
+#          références de fichier ou d'outil passent par `source_artifacts`.
+#
+# Durcir une règle ne doit jamais rendre le passé illisible : un journal
+# append-only ne se réécrit pas. Les contrôles introduits par une version ne
+# s'appliquent donc qu'aux enregistrements écrits sous cette version ou après.
+
+
+def schema_at_least(version: str, floor: str) -> bool:
+    """Compare deux versions de schéma en ordre naturel (major.minor.patch)."""
+
+    def parts(v: str) -> tuple[int, ...]:
+        try:
+            return tuple(int(x) for x in v.split("."))
+        except ValueError:
+            return (0,)
+
+    return parts(version) >= parts(floor)
 
 
 class ObjectError(ValueError):
@@ -32,9 +55,90 @@ def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
+def canonical_dumps(data: dict[str, Any]) -> str:
+    """Sérialisation canonique unique du paquet — clés triées, séparateurs fixes.
+
+    Invariant `Single Fingerprint Canonicalization Spec` : aucun autre endroit
+    du code ne définit sa propre règle de hachage.
+    """
+    return json.dumps(data, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+
+
+def fingerprint_dict(data: dict[str, Any]) -> str:
+    """Empreinte d'un enregistrement, calculée sur les DONNÉES ÉCRITES.
+
+    Volontairement `dict -> str`, et non `objet -> str` : une empreinte doit
+    attester des octets journalisés, jamais de ce que le code courant
+    reconstruirait. Sans cela, ajouter un champ à la sérialisation invaliderait
+    rétroactivement tout le journal — défaut constaté et corrigé lors de
+    l'introduction de `source_artifacts` en schéma 1.1.0.
+
+    Les clés de métadonnées de journalisation (préfixe `_`) sont exclues :
+    elles décrivent l'écriture, pas l'objet.
+    """
+    return hashlib.sha256(
+        canonical_dumps(
+            {k: v for k, v in data.items() if not k.startswith("_")}
+        ).encode("utf-8")
+    ).hexdigest()
+
+
 @dataclass(frozen=True)
-class ScientificObject:
-    """Base de tous les objets du modèle.
+class Recorded:
+    """Socle de tout ce qui est enregistré : identité, provenance, empreinte.
+
+    **Ne porte aucune machinerie de succession.** C'est délibéré : un `Event`
+    (couche L1) a pour cycle de vie `RECORDED` -> jamais autre chose. Lui donner
+    `supersedes` reviendrait à admettre qu'il puisse être révisé, ce que le
+    modèle gelé interdit. La succession appartient à `ScientificObject` (L2+).
+    """
+
+    KIND: ClassVar[str] = "Recorded"
+
+    id: str
+    created_at: str
+    provenance: Provenance
+    epoch_id: str | None = None
+    schema_version: str = SCHEMA_VERSION
+
+    def __post_init__(self) -> None:
+        parsed = parse(self.id)
+        if parsed.kind != self.KIND:
+            raise ObjectError(
+                f"préfixe {self.id!r} incompatible avec le type {self.KIND!r}"
+            )
+
+    # ── sérialisation ────────────────────────────────────────────────────────
+
+    def payload(self) -> dict[str, Any]:
+        """Champs propres au type concret. Redéfini par les sous-classes."""
+        return {}
+
+    def header(self) -> dict[str, Any]:
+        return {
+            "kind": self.KIND,
+            "id": self.id,
+            "schema_version": self.schema_version,
+            "created_at": self.created_at,
+            "epoch_id": self.epoch_id,
+            "provenance": self.provenance.to_dict(),
+        }
+
+    def to_dict(self) -> dict[str, Any]:
+        out = self.header()
+        out.update(self.payload())
+        return out
+
+    def canonical_json(self) -> str:
+        return canonical_dumps(self.to_dict())
+
+    def fingerprint(self) -> str:
+        return fingerprint_dict(self.to_dict())
+
+
+@dataclass(frozen=True)
+class ScientificObject(Recorded):
+    """Objet des couches L2 et au-dessus — révisable par succession.
 
     `version` s'incrémente par succession, jamais par mutation : produire une
     v2 crée un nouvel objet portant `supersedes` vers la v1, et la v1 reçoit à
@@ -43,21 +147,12 @@ class ScientificObject:
 
     KIND: ClassVar[str] = "ScientificObject"
 
-    id: str
-    created_at: str
-    provenance: Provenance
-    epoch_id: str | None = None
     version: int = 1
-    schema_version: str = SCHEMA_VERSION
     supersedes: str | None = None
     superseded_by: str | None = None
 
     def __post_init__(self) -> None:
-        parsed = parse(self.id)
-        if parsed.kind != self.KIND:
-            raise ObjectError(
-                f"préfixe {self.id!r} incompatible avec le type {self.KIND!r}"
-            )
+        super().__post_init__()
         if self.version < 1:
             raise ObjectError("version doit être >= 1")
         if self.supersedes is not None:
@@ -67,40 +162,16 @@ class ScientificObject:
         if self.supersedes == self.id or self.superseded_by == self.id:
             raise ObjectError("un objet ne peut pas se succéder à lui-même (G-05)")
 
-    # ── sérialisation ────────────────────────────────────────────────────────
-
-    def payload(self) -> dict[str, Any]:
-        """Champs propres au type concret. Redéfini par les sous-classes."""
-        return {}
-
-    def to_dict(self) -> dict[str, Any]:
-        out: dict[str, Any] = {
-            "kind": self.KIND,
-            "id": self.id,
-            "schema_version": self.schema_version,
-            "version": self.version,
-            "created_at": self.created_at,
-            "epoch_id": self.epoch_id,
-            "supersedes": self.supersedes,
-            "superseded_by": self.superseded_by,
-            "provenance": self.provenance.to_dict(),
-        }
-        out.update(self.payload())
-        return out
-
-    def canonical_json(self) -> str:
-        """Représentation canonique — clés triées, UTF-8, séparateurs fixes.
-
-        Spécification unique de canonicalisation pour tout le paquet : les
-        contrôles d'empreinte du SSC s'y adossent au lieu d'en définir chacun
-        une (invariant `Single Fingerprint Canonicalization Spec`).
-        """
-        return json.dumps(
-            self.to_dict(), sort_keys=True, ensure_ascii=False, separators=(",", ":")
+    def header(self) -> dict[str, Any]:
+        out = super().header()
+        out.update(
+            {
+                "version": self.version,
+                "supersedes": self.supersedes,
+                "superseded_by": self.superseded_by,
+            }
         )
-
-    def fingerprint(self) -> str:
-        return hashlib.sha256(self.canonical_json().encode("utf-8")).hexdigest()
+        return out
 
     # ── succession ───────────────────────────────────────────────────────────
 

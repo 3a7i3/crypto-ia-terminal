@@ -21,6 +21,9 @@ ID_PATTERN = re.compile(r"^(?P<type>[A-Z]{2,4})-(?P<year>\d{4})-(?P<seq>\d{3,})$
 # Préfixes canoniques. Fermé volontairement : un objet hors de cette liste
 # n'appartient pas au modèle gelé et doit passer par un ADR (FOUNDATION_FREEZE §6.1).
 PREFIXES: dict[str, str] = {
+    # L1 — le ledger. Seul objet non reconstructible du système.
+    "Event": "EVT",
+    # L2 et au-dessus — dérivables.
     "Observation": "OBS",
     "Question": "QST",
     "Hypothesis": "HYP",
@@ -131,6 +134,37 @@ class IdRegistry:
                 fh.write(json.dumps({"id": identifier, "kind": kind}) + "\n")
             self._register(identifier)
             return identifier
+
+    def allocate_many(self, kind: str, year: int, count: int) -> list[str]:
+        """Alloue `count` identifiants consécutifs en une seule écriture.
+
+        Même sémantique qu'`allocate`, sans rouvrir le journal à chaque unité :
+        l'ingestion d'un ledger de plusieurs milliers d'événements ne doit pas
+        coûter autant d'ouvertures de fichier.
+        """
+        if kind not in PREFIXES:
+            raise IdentityError(
+                f"type hors du modèle gelé: {kind!r}. "
+                "Ajouter un type exige un ADR (FOUNDATION_FREEZE §6.1)."
+            )
+        if count < 0:
+            raise IdentityError("count ne peut pas être négatif")
+        with self._lock:
+            key = (kind, year)
+            start = self._max_seq.get(key, 0) + 1
+            ids = [
+                f"{PREFIXES[kind]}-{year}-{n:03d}" for n in range(start, start + count)
+            ]
+            collision = next((i for i in ids if i in self._allocated), None)
+            if collision is not None:  # défense: ne doit jamais arriver
+                raise IdentityError(f"collision d'identifiant: {collision}")
+            self._path.parent.mkdir(parents=True, exist_ok=True)
+            with self._path.open("a", encoding="utf-8") as fh:
+                for identifier in ids:
+                    fh.write(json.dumps({"id": identifier, "kind": kind}) + "\n")
+            for identifier in ids:
+                self._register(identifier)
+            return ids
 
     def reserve(self, identifier: str) -> str:
         """Journalise un identifiant imposé de l'extérieur (import, migration).

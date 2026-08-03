@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Assemble le registre d'invariants du SSC depuis la sortie du workflow."""
+
 import json
 import re
 from collections import Counter
