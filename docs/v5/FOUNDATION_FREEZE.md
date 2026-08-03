@@ -3,7 +3,9 @@
 **Version du gel** : `V5-FOUNDATION-1.0`
 **Date de scellement** : 2026-08-02
 **Base git au moment de la mesure** : `348e83d` (2026-08-01)
-**Statut** : ⚠ **PRÉPARÉ, NON SCELLÉ** — voir §1
+**Statut** : ✅ **SCELLÉ** — jalon `V5-FOUNDATION-FROZEN` posé le 2026-08-02
+**Commit de gel** : `119ba89cd77700f04b9a2ac77fc3b62a8c9ec3b4`
+**Branche** : `phase-a/v5-foundation` — **non poussée**
 
 > Ce document n'est pas un document d'architecture. C'est un **registre de gel** :
 > il enregistre ce qui est figé, sous quelle empreinte, et comment l'amender.
@@ -11,30 +13,42 @@
 
 ---
 
-## 1. Avertissement — le gel ne peut pas encore être scellé
+## 1. Scellement — procédure exécutée
 
-**Aucun des artefacts listés ci-dessous n'est suivi par git.** `git ls-files`
-retourne 2 fichiers sur les 19 concernés ; les 17 autres sont non suivis, ainsi
-que les 5 instruments de mesure et les 4 artefacts de données.
+Au moment de la rédaction initiale de ce document, **aucun artefact de la
+Phase A n'était suivi par git** : `git ls-files` retournait 2 fichiers sur 19.
+Un jalon posé sur `348e83d` aurait gelé un état ne contenant aucun des travaux —
+un tag vrai côté git et faux côté science, la classe exacte du défaut mesuré le
+2026-07-09 (trois tags d'audit annotés créés sur de faux succès).
 
-Conséquence directe : un jalon `V5-FOUNDATION-FROZEN` posé sur `348e83d`
-**gèlerait un état qui ne contient aucun des travaux de la Phase A**. Le tag
-serait vrai sur le plan git et faux sur le plan scientifique — exactement la
-classe de défaut mesurée le 2026-07-09 (trois tags d'audit annotés créés sur de
-faux succès).
+La séquence a donc été exécutée dans cet ordre :
 
-**Séquence correcte, dans cet ordre :**
-
-1. Commiter les artefacts listés au §3 ;
-2. Vérifier que les empreintes du §3 correspondent au contenu commité ;
-3. Poser le jalon annoté `V5-FOUNDATION-FROZEN` sur ce commit ;
-4. Ce document passe de `PRÉPARÉ` à `SCELLÉ`, avec le SHA inscrit ci-dessous.
+| # | Étape | Résultat |
+|---|---|---|
+| 1 | Branche `phase-a/v5-foundation` créée depuis `348e83d` | ✅ |
+| 2 | 30 fichiers commités (19 artefacts gelés + `FOUNDATION_FREEZE.md` + 5 instruments + 4 données + `setup.cfg`) | ✅ `119ba89` |
+| 3 | Contrôles pre-commit — black, flake8, isort, bandit | ✅ tous verts |
+| 4 | **Vérification des 19 empreintes sha256 du §3** | ✅ **19 conformes, 0 écart** |
+| 5 | Jalon annoté `V5-FOUNDATION-FROZEN` posé sur `119ba89` | ✅ |
+| 6 | SHA inscrit dans ce document | ✅ *(présent commit)* |
 
 ```
-SHA du commit de gel : ____________  (à renseigner à l'étape 3)
+Commit de gel : 119ba89cd77700f04b9a2ac77fc3b62a8c9ec3b4
+Jalon         : V5-FOUNDATION-FROZEN (annoté, empreintes incluses dans le message)
+Branche       : phase-a/v5-foundation
+Push          : NON EFFECTUÉ — décision opérateur
 ```
 
-Aucune de ces étapes n'est faite. Le commit et le tag relèvent de l'opérateur.
+**Note d'intégrité.** Le commit `119ba89` ne peut pas contenir son propre SHA :
+celui-ci est inscrit par le présent commit, postérieur. Le jalon annoté fait foi
+— il porte les 19 empreintes dans son message, ce qui rend le gel vérifiable
+indépendamment de ce document.
+
+Vérification à tout moment :
+
+```bash
+git show V5-FOUNDATION-FROZEN
+```
 
 ---
 
