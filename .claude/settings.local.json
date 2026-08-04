@@ -9,7 +9,9 @@
       "Bash(ssh -i __TRACKED_VAR__/.ssh/gcp_key -o StrictHostKeyChecking=no mathieuhasard111@34.171.188.99 'cd /home/mathieuhasard111/crypto_ai_terminal && source .venv/bin/activate && nohup python advisor_loop.py >> logs/advisor.log 2>&1 & echo PID=$!')",
       "Bash(xargs git tag -v)",
       "Bash(xargs -I{} git show {} --no-patch)",
-      "Bash(python tools/experiment_quality_audit.py)"
+      "Bash(python tools/experiment_quality_audit.py)",
+      "Bash(git push *)",
+      "Bash(timeout 30 ssh -T -o BatchMode=yes -o StrictHostKeyChecking=no -o ConnectTimeout=20 git@github.com)"
     ]
   }
 }
