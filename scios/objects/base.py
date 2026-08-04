@@ -21,7 +21,7 @@ from typing import Any, ClassVar
 from scios.objects.identity import parse
 from scios.objects.provenance import Provenance
 
-SCHEMA_VERSION = "1.1.0"
+SCHEMA_VERSION = "1.2.0"
 
 # Historique des schémas — un enregistrement se relit sous la version sous
 # laquelle il a été écrit, jamais sous la version courante.

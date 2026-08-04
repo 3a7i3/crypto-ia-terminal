@@ -55,6 +55,14 @@ RULESETS: dict[str, str] = {
         "`source_artifacts`. L'empreinte porte désormais sur l'enregistrement "
         "écrit et non sur l'objet reconstruit."
     ),
+    "1.2.0": (
+        "Le lien Event -> Observation devient exécutable. Une observation "
+        "dérivée porte `source_selector` (comment re-choisir le même ensemble "
+        "d'événements), `source_event_count` et `source_event_digest` — la "
+        "provenance reste vérifiable à coût constant quel que soit le volume "
+        "du ledger, là où l'inscription des identifiants un à un ne passe pas "
+        "l'échelle."
+    ),
 }
 
 

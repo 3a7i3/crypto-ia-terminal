@@ -58,6 +58,13 @@ class Observation(ScientificObject):
     n: int | None = None
     source_events: tuple[str, ...] = ()
     source_artifacts: tuple[str, ...] = ()
+    # Provenance d'une observation DERIVEE d'un grand nombre d'evenements :
+    # inscrire les identifiants un a un couterait plus cher que le fait. Le
+    # selecteur dit comment re-choisir exactement le meme ensemble, l'empreinte
+    # atteste qu'il n'a pas change. Verification totale, cout constant.
+    source_selector: dict[str, Any] = field(default_factory=dict)
+    source_event_count: int | None = None
+    source_event_digest: str | None = None
     allow_causal_terms: bool = False
 
     def __post_init__(self) -> None:
@@ -111,6 +118,9 @@ class Observation(ScientificObject):
             "n": self.n,
             "source_events": list(self.source_events),
             "source_artifacts": list(self.source_artifacts),
+            "source_selector": self.source_selector,
+            "source_event_count": self.source_event_count,
+            "source_event_digest": self.source_event_digest,
         }
         if self.allow_causal_terms:
             out["allow_causal_terms"] = True
@@ -134,5 +144,8 @@ class Observation(ScientificObject):
             n=data.get("n"),
             source_events=tuple(data.get("source_events", ())),
             source_artifacts=tuple(data.get("source_artifacts", ())),
+            source_selector=data.get("source_selector", {}),
+            source_event_count=data.get("source_event_count"),
+            source_event_digest=data.get("source_event_digest"),
             allow_causal_terms=data.get("allow_causal_terms", False),
         )

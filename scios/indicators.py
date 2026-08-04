@@ -51,6 +51,7 @@ class LabIndicators:
     ratios: dict[str, float | None] = field(default_factory=dict)
     integrity: dict[str, Any] = field(default_factory=dict)
     coverage: dict[str, Any] = field(default_factory=dict)
+    velocity: dict[str, dict[str, int]] = field(default_factory=dict)
     absent: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
@@ -59,6 +60,7 @@ class LabIndicators:
             "compression_ratios": self.ratios,
             "integrity": self.integrity,
             "coverage": self.coverage,
+            "velocity": self.velocity,
             "absent_objects": self.absent,
         }
 
@@ -80,6 +82,18 @@ class LabIndicators:
         lines.append("Provenance et intégrité")
         for label, value in self.integrity.items():
             lines.append(f"  {label:<28} {value}")
+        lines.append("")
+        lines.append("Vélocité de connaissance (par mois)")
+        if len(self.velocity) < 2:
+            lines.append(
+                "  SÉRIE TROP COURTE — un laboratoire se juge sur sa tendance, "
+                "pas sur un point"
+            )
+        for periode in sorted(self.velocity):
+            detail = "  ".join(
+                f"{k[:3]} {v:>5}" for k, v in sorted(self.velocity[periode].items())
+            )
+            lines.append(f"  {periode}   {detail}")
         lines.append("")
         lines.append("Couverture de la boucle scientifique")
         for label, value in self.coverage.items():
@@ -116,7 +130,17 @@ def compute(root: Path) -> LabIndicators:
     ledger_problems = ledger.verify()
     store_problems = store.verify()
 
-    with_events = sum(1 for o in current.values() if getattr(o, "source_events", ()))
+    # Une observation est tracée si elle cite ses événements explicitement OU
+    # si elle porte un sélecteur reproductible : les deux formes descendent
+    # jusqu'à l'atome, la seconde à coût constant.
+    with_events = sum(
+        1
+        for o in current.values()
+        if getattr(o, "source_events", ()) or getattr(o, "source_selector", None)
+    )
+    reproducible = sum(
+        1 for o in current.values() if getattr(o, "source_selector", None)
+    )
     observations = counts.get("Observation", 0)
 
     actors = Counter(o.provenance.actor_id for o in current.values())
@@ -132,6 +156,9 @@ def compute(root: Path) -> LabIndicators:
         "observations tracées": (
             f"{with_events}/{observations}" if observations else "sans objet"
         ),
+        "dont reproductibles": (
+            f"{reproducible}/{observations}" if observations else "sans objet"
+        ),
         "hypothèses ouvertes": counts.get("Hypothesis", 0),
         "verdicts émis": counts.get("Verdict", 0),
         "rejeux exécutés": 0,
@@ -145,5 +172,33 @@ def compute(root: Path) -> LabIndicators:
         ratios=ratios,
         integrity=integrity,
         coverage=coverage,
+        velocity=_velocity(ledger, current),
         absent=absent,
     )
+
+
+def _velocity(ledger: EventLedger, current: dict) -> dict[str, dict[str, int]]:
+    """Production par mois et par type — série temporelle, jamais un score.
+
+    Un laboratoire peut mourir sans que le trading se degrade : 100 000
+    evenements et zero observation decrivent un systeme qui enregistre sans
+    apprendre. Seule la serie le montre ; un instantane ne le peut pas.
+
+    Les evenements sont dates par leur instant d'occurrence (`ts_utc`), les
+    objets derives par leur instant de creation : c'est le delai entre les deux
+    qui mesure la reactivite du laboratoire.
+    """
+    series: dict[str, dict[str, int]] = {}
+
+    def bump(moment: str, kind: str) -> None:
+        periode = (moment or "")[:7]
+        if len(periode) == 7:
+            series.setdefault(periode, {})[kind] = (
+                series.setdefault(periode, {}).get(kind, 0) + 1
+            )
+
+    for evt in ledger.read_all():
+        bump(evt.ts_utc, "Event")
+    for obj in current.values():
+        bump(obj.created_at, obj.KIND)
+    return series

@@ -1,6 +1,6 @@
 {
   "manifest_version": "1.0.0",
-  "created_at": "2026-08-04T00:45:32+00:00",
+  "created_at": "2026-08-04T01:17:44+00:00",
   "files": {
     "events.jsonl": {
       "present": true,
@@ -10,20 +10,20 @@
     },
     "objects.jsonl": {
       "present": true,
-      "sha256": "c1d340fd8458c152f0d1ed3faf41448d1bf2683ffa6554b0caf7947e64b81e1a",
-      "bytes": 7927,
-      "lines": 7
+      "sha256": "86653c19a66f00067263db721863b751ff5f863a2b3059e9a14bcd3fb4b4455b",
+      "bytes": 12955,
+      "lines": 11
     },
     "identity.jsonl": {
       "present": true,
-      "sha256": "f8948e774c24f2f16fbfe6549c07732d78761439692acd197ee7d24a01756ccf",
-      "bytes": 59012,
-      "lines": 1428
+      "sha256": "045c18dbefb2e7c306bfb673288d22aed682812bb606d4a5f6160059b0e717a7",
+      "bytes": 59200,
+      "lines": 1432
     }
   },
   "counts": {
-    "Observation": 7,
+    "Observation": 11,
     "Event": 1421
   },
-  "manifest_fingerprint": "74e17154c31850d60ce531501faa20e7a1259b47ae22e8a6160cd1b37e39cca2"
+  "manifest_fingerprint": "718c63031e8d13a831f262a45ba8e603a18629daf7d094472462bead9bbbf8c5"
 }
