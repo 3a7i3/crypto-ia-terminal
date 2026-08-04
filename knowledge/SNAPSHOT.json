@@ -1,0 +1,29 @@
+{
+  "manifest_version": "1.0.0",
+  "created_at": "2026-08-04T00:45:32+00:00",
+  "files": {
+    "events.jsonl": {
+      "present": true,
+      "sha256": "bee19da1ceace76fece91d44f153afe68998fdb1dabc4243d9164ad9837c81b2",
+      "bytes": 2161522,
+      "lines": 1421
+    },
+    "objects.jsonl": {
+      "present": true,
+      "sha256": "c1d340fd8458c152f0d1ed3faf41448d1bf2683ffa6554b0caf7947e64b81e1a",
+      "bytes": 7927,
+      "lines": 7
+    },
+    "identity.jsonl": {
+      "present": true,
+      "sha256": "f8948e774c24f2f16fbfe6549c07732d78761439692acd197ee7d24a01756ccf",
+      "bytes": 59012,
+      "lines": 1428
+    }
+  },
+  "counts": {
+    "Observation": 7,
+    "Event": 1421
+  },
+  "manifest_fingerprint": "74e17154c31850d60ce531501faa20e7a1259b47ae22e8a6160cd1b37e39cca2"
+}
