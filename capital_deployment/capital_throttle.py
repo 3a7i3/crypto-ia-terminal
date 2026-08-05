@@ -10,13 +10,77 @@ F-02: 5%, F-03: 25%, F-04: 50%, F-05: 100%.
 
 from __future__ import annotations
 
+import json
+import os
 import time
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from pathlib import Path
 from typing import Optional
 
 from observability.json_logger import get_logger
 
 _log = get_logger("capital_deployment.capital_throttle")
+
+# ── Horloge de phase persistante ──────────────────────────────────────────────
+# `started_at` valait `time.time()` a chaque construction, sans persistance :
+# le compteur repartait donc a zero a CHAQUE demarrage du processus. Le critere
+# `min_duration_days` (7 j pour F-01) n'etait alors satisfiable que si le moteur
+# tournait 7 jours consecutifs sans un seul redemarrage — deploiement, migration
+# ou crash inclus. Mesure du 2026-08-05 : le bot affichait « Jour 3.2 / 7 »
+# alors que le PROCESSUS avait exactement 3 jours d'uptime. Le compteur mesurait
+# l'age du processus, pas celui de la phase.
+_PHASE_CLOCK_PATH = Path(os.getenv("PHASE_CLOCK_PATH", "databases/phase_clock.json"))
+
+
+def _load_phase_start(phase: str) -> Optional[float]:
+    """Debut persiste de `phase`, ou None.
+
+    Retourne None si le fichier decrit une AUTRE phase : un changement de phase
+    doit legitimement repartir de zero. Toute anomalie de lecture retourne None
+    plutot que de lever — une horloge d'observation ne doit jamais empecher le
+    moteur de demarrer.
+    """
+    try:
+        data = json.loads(_PHASE_CLOCK_PATH.read_text(encoding="utf-8"))
+        if data.get("phase") != phase:
+            return None
+        started = float(data["started_at"])
+        if started <= 0 or started > time.time() + 3600:
+            # Horodatage absurde ou dans le futur (derive d'horloge) : on refuse
+            # plutot que de produire un `days_elapsed` negatif.
+            _log.warning(
+                "[PhaseClock] started_at invalide (%s) — reinitialisation", started
+            )
+            return None
+        return started
+    except FileNotFoundError:
+        return None
+    except Exception as exc:
+        _log.warning("[PhaseClock] lecture impossible (%s) — reinitialisation", exc)
+        return None
+
+
+def _save_phase_start(phase: str, started_at: float) -> None:
+    """Persiste le debut de phase. N'echoue jamais bruyamment."""
+    try:
+        _PHASE_CLOCK_PATH.parent.mkdir(parents=True, exist_ok=True)
+        _PHASE_CLOCK_PATH.write_text(
+            json.dumps(
+                {
+                    "phase": phase,
+                    "started_at": started_at,
+                    "started_at_iso": datetime.fromtimestamp(
+                        started_at, timezone.utc
+                    ).isoformat(),
+                },
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
+    except Exception as exc:
+        _log.warning("[PhaseClock] ecriture impossible: %s", exc)
+
 
 PHASE_CONFIGS: dict[str, dict] = {
     "F-01": {"capital_pct": 0.01, "max_capital_eur": 100.0, "min_duration_days": 7},
@@ -85,13 +149,36 @@ class CapitalThrottle:
         if cap is not None:
             raw = min(raw, cap)
 
+        # Horloge de phase. Priorite :
+        #   1. `started_at` explicite — l'appelant fait autorite (tests, rejeu) ;
+        #   2. valeur persistee pour CETTE phase — survit au redemarrage ;
+        #   3. maintenant — premier demarrage, ou changement de phase.
+        # `allocated_capital` ne depend PAS de `started_at` : cette persistance
+        # ne peut modifier aucun sizing, seulement la mesure du temps ecoule.
+        if started_at is None:
+            started_at = _load_phase_start(phase)
+            if started_at is None:
+                started_at = time.time()
+                _log.info(
+                    "[PhaseClock] %s — nouvelle horloge demarree a %s",
+                    phase,
+                    datetime.fromtimestamp(started_at, timezone.utc).isoformat(),
+                )
+            else:
+                _log.info(
+                    "[PhaseClock] %s — horloge restauree, %.2f j ecoules",
+                    phase,
+                    (time.time() - started_at) / 86400.0,
+                )
+        _save_phase_start(phase, started_at)
+
         self._allocation = PhaseAllocation(
             phase=phase,
             total_capital=total_capital,
             allocated_capital=raw,
             capital_pct=cfg["capital_pct"],
             min_duration_days=cfg["min_duration_days"],
-            started_at=started_at or time.time(),
+            started_at=started_at,
         )
 
     @property
