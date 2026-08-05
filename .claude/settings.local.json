@@ -11,7 +11,10 @@
       "Bash(xargs -I{} git show {} --no-patch)",
       "Bash(python tools/experiment_quality_audit.py)",
       "Bash(git push *)",
-      "Bash(timeout 30 ssh -T -o BatchMode=yes -o StrictHostKeyChecking=no -o ConnectTimeout=20 git@github.com)"
+      "Bash(timeout 30 ssh -T -o BatchMode=yes -o StrictHostKeyChecking=no -o ConnectTimeout=20 git@github.com)",
+      "Bash(exit 1)",
+      "Bash(sed -i 's/^import importlib$//' tests/test_telegram_no_silent_fallback.py)",
+      "Bash(timeout 400 python -m pytest -q tests/test_telegram_no_silent_fallback.py)"
     ]
   }
 }
