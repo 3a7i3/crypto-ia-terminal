@@ -982,6 +982,39 @@ def _write_behavioral_event(event_type: str, data: dict) -> None:
         pass
 
 
+def _format_regime_digest(events: list) -> str:
+    """Message unique resumant N transitions de regime. Fonction pure.
+
+    Une transition isolee reste un evenement lisible. Une rafale n'en est pas
+    une : le 30/07, six bascules bear<->side en trois heures ont produit six
+    messages qui, pris un par un, ne disaient pas ce qu'ils signifiaient
+    ensemble — un detecteur de regime qui bat de l'aile. Le compte et la duree
+    sont le signal ; les emettre separement le detruit.
+
+    `events` : liste de (timestamp, regime_avant, regime_apres), chronologique.
+    """
+    if not events:
+        return ""
+    if len(events) == 1:
+        _ts, avant, apres = events[0]
+        return f"🔄 TRANSITION RÉGIME — {avant} → {apres}"
+
+    duree_min = max(0.0, (events[-1][0] - events[0][0]) / 60.0)
+    duree = f"{duree_min / 60:.1f} h" if duree_min >= 90 else f"{duree_min:.0f} min"
+    # Chaine complete si courte, sinon extremites — le compte reste explicite.
+    chaine = " → ".join([events[0][1]] + [e[2] for e in events])
+    if len(chaine) > 120:
+        chaine = f"{events[0][1]} … {events[-1][2]}"
+    paires = {tuple(sorted((e[1], e[2]))) for e in events}
+    alternance = " ⇄ ".join(sorted(next(iter(paires)))) if len(paires) == 1 else ""
+    lignes = [f"🔄 RÉGIME INSTABLE — {len(events)} transitions en {duree}"]
+    if alternance:
+        lignes.append(f"{alternance} (aller-retour)")
+    lignes.append(chaine)
+    lignes.append(f"→ état final : {events[-1][2]}")
+    return "\n".join(lignes)
+
+
 def _telegram_behavior(text: str) -> None:
     """Canal comportemental — [BEHAVIOR], transitions, REGIME_MISMATCH, BSM."""
     if "PYTEST_CURRENT_TEST" in os.environ:
@@ -4742,6 +4775,12 @@ def main(
     # _activity_tracker: métriques d'inactivité du capital
     _adaptive_regime: str = "unknown"
     _regime_votes: list = []  # dernières N observations de régime
+    # Agrégation des transitions — une rafale doit produire UN message, pas N.
+    # Le premier événement après une période calme part immédiatement ; les
+    # suivants s'accumulent et sortent en digest après le délai de garde.
+    _regime_trans_buffer: list = []  # (ts, régime_avant, régime_après)
+    _regime_trans_last_msg: float = 0.0
+    _REGIME_DIGEST_S = float(os.getenv("REGIME_TRANSITION_DIGEST_S", "3600"))
     _REGIME_STABILITY = int(
         os.getenv("REGIME_STABILITY_WINDOW", "3")
     )  # cycles à confirmer
@@ -6290,11 +6329,22 @@ def main(
                         _new_regime,
                         _REGIME_STABILITY,
                     )
-                    _telegram_behavior(
-                        f"🔄 TRANSITION RÉGIME — {_adaptive_regime} → {_new_regime}\n"
-                        f"Confirmée sur {_REGIME_STABILITY} cycles consécutifs"
+                    _regime_trans_buffer.append(
+                        (time.time(), _adaptive_regime, _new_regime)
                     )
                     _adaptive_regime = _new_regime
+            # Vidange du tampon — évaluée à CHAQUE cycle, pas seulement lors
+            # d'une transition : sinon un événement isolé resterait bloqué dans
+            # le tampon jusqu'à la transition suivante, qui peut ne jamais venir.
+            if _regime_trans_buffer:
+                _now_tr = time.time()
+                if _now_tr - _regime_trans_last_msg >= _REGIME_DIGEST_S:
+                    try:
+                        _telegram_behavior(_format_regime_digest(_regime_trans_buffer))
+                    except Exception:
+                        pass
+                    _regime_trans_last_msg = _now_tr
+                    _regime_trans_buffer = []
             if _activity_tracker is not None:
                 try:
                     _open_pos_count = len(pos_manager.get_open())
