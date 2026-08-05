@@ -75,7 +75,15 @@ class MarketContext:
     avg_volume: Optional[float] = None
     volume_ratio: Optional[float] = None
     atr: Optional[float] = None
-    atr_ratio: Optional[float] = None
+    atr_ratio: Optional[float] = None  # ATR / prix — un RATIO (0.015 = 1,5 %)
+    # ATR en POURCENTAGE (1.5 = 1,5 %), dérivé de `atr_ratio` × 100.
+    # C'est l'échelle qu'attend H4 : `h4_atr_filter(..., atr_threshold=1.5)`
+    # compare `atr_pct >= 1.5`. Mapper `atr_ratio` sur ce champ sans conversion
+    # viderait le groupe « ATR haut » et rendrait H4 non concluante en silence.
+    # ATTENTION : le nom `atr_pct` désigne un RATIO ailleurs dans le dépôt
+    # (execution_optimizer.py:159, optimal_timing_engine.py:107, comparés à
+    # 0.015 et 0.03). Ce champ-ci suit la convention de l'analyse, pas la leur.
+    atr_pct: Optional[float] = None
     rsi: Optional[float] = None
     rsi_oversold: Optional[bool] = None
     rsi_overbought: Optional[bool] = None
@@ -110,6 +118,11 @@ class MarketContext:
             v = features.get(key)
             return bool(v) if v is not None else None
 
+        # `atr_pct` est dérivé, jamais lu depuis `features` : la clé y porterait
+        # la convention « ratio » des modules d'exécution (cf. champ ci-dessus).
+        _ratio = _f("atr_ratio")
+        _atr_pct = None if _ratio is None else round(_ratio * 100.0, 6)
+
         return cls(
             momentum=_f("momentum"),
             realized_volatility=_f("realized_volatility"),
@@ -117,7 +130,8 @@ class MarketContext:
             avg_volume=_f("avg_volume"),
             volume_ratio=_f("volume_ratio"),
             atr=_f("atr"),
-            atr_ratio=_f("atr_ratio"),
+            atr_ratio=_ratio,
+            atr_pct=_atr_pct,
             rsi=_f("rsi"),
             rsi_oversold=_b("rsi_oversold"),
             rsi_overbought=_b("rsi_overbought"),

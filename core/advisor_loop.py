@@ -2184,6 +2184,7 @@ def analyze_symbol(
             personality=_vp_persona,
             regime=getattr(signal, "regime", "unknown"),
             current_price=float(prix),
+            features=features,
         )
 
     persona_name = personality.name if personality else "N/A"

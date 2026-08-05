@@ -91,6 +91,10 @@ class MexcOrder:
     score: int = 0
     personality: str = "unknown"
     regime: str = "unknown"
+    # Features du cycle de décision — transportées jusqu'au recorder, jamais
+    # lues par le simulateur. Sans elles, `market_context` reste null dans le
+    # dataset : mesuré à 0 champ rempli sur 332 enregistrements de l'époque V4.
+    features: dict = field(default_factory=dict)
 
 
 @dataclass
@@ -114,6 +118,7 @@ class MexcPosition:
     close_reason: str = ""
     mae_pct: float = 0.0
     mfe_pct: float = 0.0
+    features: dict = field(default_factory=dict)  # cf. MexcOrder.features
 
     @property
     def is_open(self) -> bool:
@@ -456,8 +461,13 @@ class MexcSimulator:
         personality: str = "unknown",
         current_price: float = 0.0,
         regime: str = "unknown",
+        features: Optional[dict] = None,
     ) -> Optional[MexcOrder]:
-        """Ordre MARKET : exécution immédiate au prix courant + slippage."""
+        """Ordre MARKET : exécution immédiate au prix courant + slippage.
+
+        `features` est purement descriptif : transporté jusqu'au recorder pour
+        peupler `market_context`, jamais lu par la logique d'exécution.
+        """
         order = MexcOrder(
             order_id=str(uuid.uuid4())[:10].upper(),
             symbol=symbol,
@@ -469,6 +479,7 @@ class MexcSimulator:
             score=score,
             personality=personality,
             regime=regime,
+            features=dict(features or {}),
         )
         if current_price <= 0:
             current_price = self._fetch_price(symbol)
@@ -620,6 +631,7 @@ class MexcSimulator:
                 score=order.score,
                 personality=order.personality,
                 regime=order.regime,
+                features=order.features,
             )
             self._positions[order.symbol] = pos
             order.fill_price = fill
@@ -627,6 +639,7 @@ class MexcSimulator:
             order.status = OrderStatus.FILLED
 
         try:
+            from paper_trading.recorder import MarketContext as _MarketContext
             from paper_trading.recorder import get_recorder
 
             get_recorder().record_open(
@@ -638,6 +651,9 @@ class MexcSimulator:
                 score=pos.score,
                 regime=pos.regime,
                 mode="futures_demo",
+                market_context=(
+                    _MarketContext.from_features(pos.features) if pos.features else None
+                ),
             )
         except Exception as exc:
             _log.warning("[SIM] record_open échoué: %s", exc)

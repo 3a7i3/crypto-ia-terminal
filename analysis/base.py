@@ -345,6 +345,33 @@ def concept_drift_detected(
 # ── Chargement trades depuis JSONL ────────────────────────────────────────────
 
 
+def _atr_pct_of(op: dict, cl: dict) -> float | None:
+    """ATR en POURCENTAGE (1.5 = 1,5 %) — l'échelle qu'attend H4.
+
+    Ordre de recherche :
+      1. `market_context.atr_pct` — écrit par le recorder, déjà en pourcentage ;
+      2. `market_context.atr_ratio` × 100 — repli pour les enregistrements
+         antérieurs au champ `atr_pct` ;
+      3. `atr_pct` à la racine — schémas historiques.
+
+    Pourquoi la conversion. `atr_ratio` vaut `ATR / prix` : un ratio (0.015 pour
+    1,5 %). `h4_atr_filter` compare `atr_pct >= 1.5`. Lire le ratio sans ×100
+    laisserait le groupe « ATR haut » vide et rendrait H4 non concluante en
+    silence — c'est-à-dire indiscernable d'un manque de données.
+    """
+    for src in (op, cl):
+        mc = src.get("market_context")
+        if isinstance(mc, dict):
+            v = mc.get("atr_pct")
+            if v is not None:
+                return float(v)
+            r = mc.get("atr_ratio")
+            if r is not None:
+                return float(r) * 100.0
+    v = op.get("atr_pct", cl.get("atr_pct"))
+    return float(v) if v is not None else None
+
+
 def load_canonical_trades(jsonl_path: str | None = None) -> list[Trade]:
     """Trades canoniques d'époque — population déléguée au loader unique.
 
@@ -404,7 +431,7 @@ def load_canonical_trades(jsonl_path: str | None = None) -> list[Trade]:
         except (TypeError, ValueError):
             continue
         mae, mfe = cl.get("mae_pct"), cl.get("mfe_pct")
-        atr = op.get("atr_pct", cl.get("atr_pct"))
+        atr = _atr_pct_of(op, cl)
         vol = op.get("volume_usd", cl.get("volume_usd"))
         # `ts` est le nom réellement écrit par le recorder ; `timestamp` est
         # accepté en repli pour les schémas antérieurs.
@@ -488,7 +515,7 @@ def load_trades(jsonl_path: str | None = None) -> list[Trade]:
                 duration_s=float(cl.get("duration_s") or 0),
                 exit_reason=cl.get("reason") or "?",
                 opened_at=float(op.get("timestamp") or 0) or None,
-                atr_pct=float(op.get("atr_pct") or 0) or None,
+                atr_pct=_atr_pct_of(op, cl),
                 volume_usd=float(op.get("volume_usd") or 0) or None,
             )
         )
