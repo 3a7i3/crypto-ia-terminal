@@ -34,6 +34,7 @@ import math
 import time
 from collections import Counter, deque
 from enum import Enum
+from typing import Optional
 
 from observability.json_logger import get_logger
 from quant_hedge_ai.agents.intelligence.system_invariants import (
@@ -47,6 +48,13 @@ from quant_hedge_ai.agents.intelligence.system_invariants import (
 )
 
 _log = get_logger("quant_hedge_ai.agents.intelligence.behavioral_stability_monitor")
+
+# Fenetre du rapport [BEHAVIOR] — DOIT egaler sa periode d'emission
+# (`cycle % 50` dans advisor_loop), sinon le rapport decrit une fraction de la
+# periode qu'il pretend couvrir. Volontairement distincte de REGIME_FLIP_WINDOW,
+# qui porte l'invariant MAX_REGIME_FLIPS_10C et ne doit pas bouger pour une
+# raison d'affichage.
+BEHAVIOR_REPORT_WINDOW: int = 50
 
 
 class BehavioralState(str, Enum):
@@ -90,6 +98,15 @@ class BehavioralStabilityMonitor:
         self._accepted_scores: deque[int] = deque(maxlen=100)
         self._mismatch_count: int = 0
 
+        # V4 — Fenetres dediees au rapport [BEHAVIOR], distinctes de celles des
+        # invariants. REGIME_FLIP_WINDOW (10 cycles) porte MAX_REGIME_FLIPS_10C :
+        # l'elargir redefinirait un seuil de gouvernance. Le rapport, lui, est
+        # emis tous les BEHAVIOR_REPORT_WINDOW cycles et doit couvrir exactement
+        # la periode qu'il pretend decrire — sinon il rapporte 50 min d'histoire
+        # toutes les 4 h et se tait sur 80 % du temps.
+        self._regimes_report: deque[str] = deque(maxlen=BEHAVIOR_REPORT_WINDOW)
+        self._thresholds_report: deque[int] = deque(maxlen=BEHAVIOR_REPORT_WINDOW)
+
     # ── Enregistrement ────────────────────────────────────────────────────────
 
     def record_cycle(
@@ -98,6 +115,7 @@ class BehavioralStabilityMonitor:
         threshold: int,
         strategy_name: str = "",
         trade_executed: bool = False,
+        cumul_delta: Optional[int] = None,
     ) -> None:
         """
         Appele a chaque cycle principal.
@@ -107,12 +125,20 @@ class BehavioralStabilityMonitor:
             threshold       : seuil effectif utilise ce cycle
             strategy_name   : strategie qui a trade (vide si pas de trade)
             trade_executed  : True si un trade a ete execute
+            cumul_delta     : derive ADAPTATIVE du seuil (regret + governor).
+                              C'est ce que MAX_CUMULATIVE_DELTA=8 borne — les
+                              deltas vivent dans [-5,+5] et [-10,+20], pas a
+                              l'echelle d'un score absolu.
+                              Si omis, repli sur `threshold - baseline`, valide
+                              seulement quand les deux sont sur la meme echelle.
         """
         self._total_cycles += 1
         self._last_ts = time.time()
 
         self._regimes.append(regime)
         self._thresholds.append(threshold)
+        self._regimes_report.append(regime)
+        self._thresholds_report.append(threshold)
 
         if trade_executed and strategy_name:
             self._strategies.append(strategy_name)
@@ -124,7 +150,9 @@ class BehavioralStabilityMonitor:
         self._last_flip_count = self._compute_flip_count()
         self._last_threshold_var = self._compute_threshold_variance()
         self._last_entropy = self._compute_entropy()
-        self._last_cumul_delta = threshold - self._baseline
+        self._last_cumul_delta = (
+            cumul_delta if cumul_delta is not None else threshold - self._baseline
+        )
         self._last_state = self._compute_state()
 
     # ── Consultation ─────────────────────────────────────────────────────────
@@ -320,11 +348,23 @@ class BehavioralStabilityMonitor:
 
         Appeler toutes les N cycles pour tracer la stabilité à long terme.
         """
-        thresholds = list(self._thresholds)
+        # Fenetre du rapport, pas celle des invariants (cf. BEHAVIOR_REPORT_WINDOW).
+        thresholds = list(self._thresholds_report)
         avg_thr = round(sum(thresholds) / len(thresholds)) if thresholds else 0
-        std_thr = round(math.sqrt(self._last_threshold_var), 1)
+        # Ecart-type recalcule sur la fenetre du rapport. `_last_threshold_var`
+        # portait sur 20 cycles et valait 0.0 en permanence tant que le seuil
+        # rapporte etait une constante — un indicateur qui ne peut pas varier
+        # rassure a tort.
+        if len(thresholds) >= 2:
+            _moy = sum(thresholds) / len(thresholds)
+            _var = sum((t - _moy) ** 2 for t in thresholds) / (len(thresholds) - 1)
+            std_thr = round(math.sqrt(_var), 1)
+        else:
+            std_thr = 0.0
+        thr_min = min(thresholds) if thresholds else 0
+        thr_max = max(thresholds) if thresholds else 0
 
-        regimes = list(self._regimes)
+        regimes = list(self._regimes_report)
         if regimes:
             counts = Counter(regimes)
             total = len(regimes)
@@ -342,11 +382,22 @@ class BehavioralStabilityMonitor:
         scores = list(self._accepted_scores)
         avg_score = round(sum(scores) / len(scores)) if scores else 0
 
-        thr_flips = self._compute_threshold_flip_count()
+        # Flips du SEUIL REEL, pas du delta ATE. `_compute_threshold_flip_count`
+        # lit `_delta_window`, alimente par la sortie du PID — or
+        # `get_threshold_delta()` retourne 0 en dur tant que
+        # FEATURE_AUTO_CALIBRATION=false : ce compteur ne pouvait
+        # structurellement jamais valoir autre chose que 0.
+        thr_flips = 0
+        for i in range(2, len(thresholds)):
+            d1 = thresholds[i - 1] - thresholds[i - 2]
+            d2 = thresholds[i] - thresholds[i - 1]
+            if d1 and d2 and d1 * d2 < 0:
+                thr_flips += 1
 
         return (
-            f"[BEHAVIOR] avg_thr={avg_thr} std={std_thr} flips={thr_flips} "
-            f"| {regime_dist} | trans={transitions} "
+            f"[BEHAVIOR] thr={thr_min}-{thr_max} avg={avg_thr} std={std_thr} "
+            f"flips={thr_flips} | {regime_dist} | trans={transitions} "
             f"| avg_score={avg_score} mismatch={self._mismatch_count} "
-            f"| state={self._last_state.value} osc={self.oscillation_score}"
+            f"| state={self._last_state.value} osc={self.oscillation_score} "
+            f"| n={len(thresholds)}c"
         )

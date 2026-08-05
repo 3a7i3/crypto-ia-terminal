@@ -6431,9 +6431,27 @@ def main(
 
             if _stability_monitor is not None:
                 try:
-                    _eff_threshold = gate.min_signal_score + getattr(
-                        gate, "_regret_delta", 0
-                    )
+                    # Seuil REELLEMENT applique, via la methode qui fait autorite.
+                    # L'ancienne somme `min_signal_score + _regret_delta` ignorait
+                    # la base par regime (60-72), le delta governor, la rampe de
+                    # transition et le plancher absolu : elle rapportait la valeur
+                    # brute de SIGNAL_MIN_SCORE, constante, pendant que le seuil
+                    # effectif oscillait entre 64 et 66 dans la meme journee.
+                    _cumul_delta = None
+                    try:
+                        _eff_threshold = int(
+                            gate._effective_min_score(_adaptive_regime)
+                        )
+                        # Derive ADAPTATIVE seule — c'est elle que borne
+                        # MAX_CUMULATIVE_DELTA, pas l'ecart a SIGNAL_MIN_SCORE.
+                        _bd = gate.explain_threshold(_adaptive_regime, _eff_threshold)
+                        _cumul_delta = int(_bd["regret_delta"]) + int(
+                            _bd["governor_delta"]
+                        )
+                    except Exception:
+                        _eff_threshold = gate.min_signal_score + getattr(
+                            gate, "_regret_delta", 0
+                        )
                     _traded_sym = next(
                         (
                             r.get("symbol", "")
@@ -6449,6 +6467,7 @@ def main(
                         threshold=_eff_threshold,
                         strategy_name=_traded_sym,
                         trade_executed=bool(_traded_sym),
+                        cumul_delta=_cumul_delta,
                     )
                     # V2 — scores acceptés (signaux ayant passé le gate)
                     for _r in results:
