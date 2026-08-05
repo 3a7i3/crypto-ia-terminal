@@ -790,6 +790,27 @@ SYMBOLS_DEFAULT = [
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT = os.getenv("TELEGRAM_CHAT_ID", "")
 TELEGRAM_BEHAVIOR_CHAT = os.getenv("TELEGRAM_BEHAVIOR_CHAT_ID", "")
+
+# ── Contrat de canal @QuantCrpto_bot ─────────────────────────────────────────
+# docs/TELEGRAM_CHANNEL_CONTRACTS.md § 5 — « Market Intelligence Engine ».
+# Ce canal repond a UNE question : « que raconte le marche ? ».
+#
+# Les blocs interdits par le contrat restent CALCULES — le snapshot est publie
+# sur `_snapshot_bus` et consomme ailleurs (dashboard, SystemIntelReporter) —
+# seule leur CONCATENATION dans le message Telegram est supprimee. Couper les
+# calculs casserait des consommateurs qui n'ont rien a voir avec Telegram.
+#
+# Mettre a "false" restaure l'ancien panneau complet, sans redeploiement.
+QUANTCRYPTO_MARKET_ONLY = os.getenv("QUANTCRYPTO_MARKET_ONLY", "true").lower() in (
+    "1",
+    "true",
+    "yes",
+)
+
+# Periode d'emission du panneau marche, en cycles. Le contrat plafonne ce canal
+# a 1 message / 30 min ; a 300 s par cycle, cela fait 6 cycles. L'ancien panneau
+# partait a CHAQUE cycle, soit 288 messages/jour pour un plafond de 48.
+QUANTCRYPTO_EVERY_N_CYCLES = max(1, int(os.getenv("QUANTCRYPTO_EVERY_N_CYCLES", "6")))
 INTEL_TOKEN = os.getenv("INTEL_BOT_TOKEN", "")
 INTEL_CHAT = os.getenv("INTEL_BOT_CHAT_ID", "")
 INTEL_INTERVAL_S = int(os.getenv("INTEL_REPORT_EVERY_H", "6")) * 3600
@@ -7080,12 +7101,17 @@ def main(
                     _snapshot_provider.set_latest(_snapshot)
                     _snapshot_bus.publish(_snapshot)
 
-                    msg += "\n\n" + render_health_block(_snapshot)
-                    msg += "\n\n" + render_ai_decision_block(_snapshot)
-                    msg += "\n\n" + render_pipeline_block(_snapshot)
-                    msg += "\n\n" + render_block_stats_block(_snapshot)
+                    # Sante, decision IA, pipeline, stats de blocage : etat de la
+                    # MACHINE, pas du marche → @rapport_automatique_bot (contrat § 2).
+                    if not QUANTCRYPTO_MARKET_ONLY:
+                        msg += "\n\n" + render_health_block(_snapshot)
+                        msg += "\n\n" + render_ai_decision_block(_snapshot)
+                        msg += "\n\n" + render_pipeline_block(_snapshot)
+                        msg += "\n\n" + render_block_stats_block(_snapshot)
                     # Stats positions ouvertes
-                    if (
+                    # Positions et PnL : etat du CAPITAL → @PaperArena_bot
+                    # (contrat § 3). Doublon mesure avec @mon_portfolio_bot.
+                    if not QUANTCRYPTO_MARKET_ONLY and (
                         pm_stats.get("open_count", 0) > 0
                         or pm_stats.get("closed_count", 0) > 0
                     ):
@@ -7106,8 +7132,13 @@ def main(
                             )
 
                     # Ajouter stats shadow si des trades ont été simulés
+                    # Slippage et latence simules : metriques d'EXECUTION, pas de
+                    # marche → hors contrat § 5.
                     shadow_stats = _stats_dict(shadow.stats())
-                    if shadow_stats.get("n_trades", 0) > 0:
+                    if (
+                        not QUANTCRYPTO_MARKET_ONLY
+                        and shadow_stats.get("n_trades", 0) > 0
+                    ):
                         msg += (
                             f"\n\nSHADOW STATS ({shadow_stats.get('n_trades', 0)} trades simules):\n"
                             f"  Slippage moy: {_to_float(shadow_stats.get('avg_slippage_pct', 0)):.3f}%\n"
@@ -7118,7 +7149,11 @@ def main(
                     # Executive Override — état du commandement
                     eo_snap = _stats_dict(executive_override.metrics_snapshot())
                     eo_lvl = eo_snap.get("level", "CLEAR")
-                    if eo_lvl != "CLEAR":
+                    # Commandement / override : etat de GOUVERNANCE du risque, pas
+                    # de marche → hors contrat § 5.
+                    if QUANTCRYPTO_MARKET_ONLY:
+                        pass
+                    elif eo_lvl != "CLEAR":
                         msg += (
                             f"\n\nCOMMANDEMENT OVERRIDE: {eo_lvl}"
                             f"\n  DD: -{_to_float(eo_snap.get('drawdown_pct', 0)):.1f}%"
@@ -7132,7 +7167,8 @@ def main(
                     # Mistake Memory — dernières erreurs + règles actives
                     mm = _get_mistake_memory()
                     mm_stats = _stats_dict(mm.stats())
-                    if mm_stats.get("total", 0) > 0:
+                    # Memoire d'erreurs : apprentissage MACHINE → hors contrat § 5.
+                    if not QUANTCRYPTO_MARKET_ONLY and mm_stats.get("total", 0) > 0:
                         last_errors = cast(list[str], mm.explain_last_mistakes(3))
                         rules = cast(list[str], mm.active_rules_summary())
                         msg += (
@@ -7145,8 +7181,10 @@ def main(
                         for rule in rules[:3]:
                             msg += f"\n  REGLE: {rule}"
 
-                    # Portfolio Brain — santé globale du portefeuille
-                    msg += "\n\n" + render_quant_overview_block(_snapshot)
+                    # Portfolio Brain — equity, cash, exposition.
+                    # Etat du CAPITAL → @PaperArena_bot (contrat § 3).
+                    if not QUANTCRYPTO_MARKET_ONLY:
+                        msg += "\n\n" + render_quant_overview_block(_snapshot)
 
                     # Compte n°1 — soldes réels multi-exchange (lecture seule,
                     # même modèle que le compte n°2 : affichage, jamais sizing)
@@ -7154,7 +7192,9 @@ def main(
                     if _c1_snaps:
                         from observability.real_accounts import render_compte1_block
 
-                        msg += "\n\n" + render_compte1_block(_c1_snaps)
+                        # Soldes reels exchange → bot compte reel (contrat § 7).
+                        if not QUANTCRYPTO_MARKET_ONLY:
+                            msg += "\n\n" + render_compte1_block(_c1_snaps)
 
                     # SystemIntelReporter — diagnostic complet 6h vers bot Intelligence
                     _now = time.time()
@@ -7233,7 +7273,9 @@ def main(
                             f"\n  Confidence: {_conf}% | Risk Profile: {_risk_profile}"
                         )
                     top3 = _top_strategies_for_display(ranker)
-                    if top3:
+                    # win_rate / sharpe par strategie : KPI de PERFORMANCE
+                    # → @PaperArena_bot (contrat § 3), pas intelligence marche.
+                    if not QUANTCRYPTO_MARKET_ONLY and top3:
                         msg += "\n\nTOP STRATEGIES:"
                         for i, s in enumerate(top3, 1):
                             msg += (
@@ -7241,7 +7283,13 @@ def main(
                                 f"score={_to_float(s.get('composite', 0)):.0f} wr={_to_float(s.get('win_rate', 0.0)):.0%} "
                                 f"sharpe={_to_float(s.get('avg_sharpe', 0.0)):.2f}"
                             )
-                    _telegram(msg)
+                    # Plafond de frequence du contrat § 5 : 1 message / 30 min.
+                    # A 300 s par cycle, cela fait 1 cycle sur 6. L'ancien panneau
+                    # partait a chaque cycle — 288 messages/jour pour un plafond
+                    # de 48. Les ALERTES ne passent pas par ici : elles ont leurs
+                    # propres appels a `_telegram()` et restent immediates.
+                    if cycle % QUANTCRYPTO_EVERY_N_CYCLES == 0:
+                        _telegram(msg)
                     # Duplication vers Mon Portefeuille Bot supprimée (P3, 2026-07)
                     # — CommandCenterBot garde son propre rapport (_fmt_rapport),
                     # plus de copie du rapport de cycle principal.
