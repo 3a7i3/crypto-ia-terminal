@@ -3689,9 +3689,35 @@ def main(
                 return []
 
         def _get_regime_for_bot():
+            """Regime PAR SYMBOLE, depuis le cycle courant.
+
+            L'implementation precedente renvoyait
+            `{s: {"regime": _adaptive_regime, "score": 0} for s in symbols}` :
+            le regime GLOBAL repete a l'identique sur les 135 paires, et un
+            score code en dur a zero. D'ou l'affichage « unknown 0% » sur toute
+            la liste, alors que /signals — qui lit `results` — montrait au meme
+            instant « sideways: 110 | bear_trend: 16 ».
+
+            La donnee par symbole existe deja dans `results` ; c'est la meme
+            source que `_get_signals_for_bot`.
+            """
             try:
+                _r = results  # noqa: F821 — closure, defini plus loin dans le cycle
+                if _r:
+                    return {
+                        r["symbol"]: {
+                            "regime": r.get("regime") or "unknown",
+                            "score": _to_float(
+                                getattr(r.get("signal"), "score", 0) or 0
+                            ),
+                        }
+                        for r in _r
+                        if r.get("symbol")
+                    }
+                # Avant le premier cycle : pas de donnee par symbole. On rend le
+                # regime global plutot qu'une liste vide, mais SANS score fictif.
                 return {
-                    s: {"regime": _adaptive_regime, "score": 0}
+                    s: {"regime": _adaptive_regime, "score": None}  # noqa: F821
                     for s in symbols  # noqa: F821
                 }
             except Exception:

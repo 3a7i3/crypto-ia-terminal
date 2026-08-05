@@ -565,19 +565,51 @@ def _fmt_phase(p: CommandDataProvider) -> str:
     return "\n".join(lines)
 
 
+_REGIME_DETAIL_MAX = 8  # paires citees par regime — au-dela, un compteur
+
+
 def _fmt_regime(p: CommandDataProvider) -> str:
+    """Repartition des regimes, agregee.
+
+    L'ancienne version listait les 135 paires une par une — un mur de texte
+    illisible sur telephone, ou l'information « 110 paires en sideways » etait
+    noyee dans 135 lignes identiques. On agrege par regime, du plus frequent au
+    moins frequent, avec un echantillon de paires.
+
+    Les scores absents (`None`) ne sont pas affiches comme `0%` : un score
+    inconnu et un score nul sont deux etats differents, et les confondre est
+    precisement ce qui rendait l'ancien affichage trompeur.
+    """
     reg = p.get_regime() if p.get_regime else None
-    if not reg:
+    if not reg or not isinstance(reg, dict):
         return "_Regime non disponible_"
-    lines = ["*REGIMES MARCHE*", _SEP]
-    for sym, r in reg.items() if isinstance(reg, dict) else []:
+
+    par_regime: dict[str, list[tuple[str, object]]] = {}
+    for sym, r in reg.items():
         if isinstance(r, dict):
-            name = r.get("regime", r.get("name", str(r)))
-            score = r.get("score", r.get("confidence", ""))
-            sc_s = f"  {score:.0f}%" if isinstance(score, (int, float)) else ""
-            lines.append(f"{sym:<15}  {name}{sc_s}")
+            nom = r.get("regime") or r.get("name") or "unknown"
+            score = r.get("score", r.get("confidence"))
         else:
-            lines.append(f"{sym}: {r}")
+            nom, score = str(r), None
+        par_regime.setdefault(str(nom), []).append((sym, score))
+
+    total = sum(len(v) for v in par_regime.values())
+    lines = [f"*REGIMES MARCHE*  {total} paires", _SEP]
+
+    for nom, paires in sorted(par_regime.items(), key=lambda kv: -len(kv[1])):
+        pct = 100.0 * len(paires) / total if total else 0.0
+        lines.append(f"*{nom}* — {len(paires)} ({pct:.0f}%)")
+        # Les scores les plus eleves d'abord : ce sont les paires qui comptent.
+        notables = sorted(
+            paires,
+            key=lambda sp: (sp[1] if isinstance(sp[1], (int, float)) else -1),
+            reverse=True,
+        )[:_REGIME_DETAIL_MAX]
+        for sym, score in notables:
+            sc = f"  {score:.0f}" if isinstance(score, (int, float)) else ""
+            lines.append(f"  {sym:<16}{sc}")
+        if len(paires) > _REGIME_DETAIL_MAX:
+            lines.append(f"  … +{len(paires) - _REGIME_DETAIL_MAX} autres")
     return "\n".join(lines)
 
 
