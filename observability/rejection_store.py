@@ -88,6 +88,19 @@ class RejectionRecord:
 
     # ── Détail par couche (raisons textuelles) ────────────────────────────────
     gate_failed: List[str] = field(default_factory=list)
+    # Termes ayant produit le seuil applique a ce refus (source, base regime,
+    # regret_delta, governor_delta, transition, plancher, effectif).
+    #
+    # Sans ce champ, le seuil n'est reconstructible qu'en parsant la chaine
+    # "signal_score (55<64)" de `gate_failed` — ce qui ne donne QUE la somme, et
+    # seulement sur les refus ou le score est la condition qui echoue.
+    #
+    # NOTE DE CONCEPTION. `RejectionRecord` est une PROJECTION de
+    # `DecisionObservation`, pas la meme classe : le fichier de refus est
+    # serialise depuis cet objet-ci (`asdict`), jamais depuis l'observation.
+    # Ajouter un champ a l'observation sans l'ajouter ici ne produit rien —
+    # erreur commise le 2026-08-05 et rattrapee par la verification post-redemarrage.
+    threshold_breakdown: Dict[str, Any] = field(default_factory=dict)
     notrade_reason: Optional[str] = None
     notrade_rejection_score: float = 0.0
     portfolio_reason: Optional[str] = None
@@ -165,6 +178,7 @@ def _from_observation(obs: Any) -> RejectionRecord:
         blocker_count=len(obs.all_blockers),
         human_verdict=obs.human_verdict,
         gate_failed=list(obs.gate_failed),
+        threshold_breakdown=dict(getattr(obs, "threshold_breakdown", None) or {}),
         notrade_reason=obs.notrade_reason,
         notrade_rejection_score=obs.notrade_rejection_score,
         portfolio_reason=obs.portfolio_reason,
