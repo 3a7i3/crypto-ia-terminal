@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import time
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
@@ -167,6 +167,15 @@ class DecisionObservation:
     state_history: List[Dict[str, Any]]
     reasoning: List[Dict[str, Any]]
 
+    # ── Attribution du seuil de score (défaut = {} : champ additif) ───────────
+    # Termes ayant produit le seuil que ce cycle a appliqué : `source`,
+    # `base_min_signal_score`, `regret_delta`, `governor_delta`,
+    # `transition_threshold`, `absolute_floor`, `effective`.
+    # Sans ce champ, le seuil n'est reconstructible qu'indirectement, via la
+    # chaîne "signal_score (55<64)" de `gate_failed` — donc uniquement sur les
+    # refus, et jamais sur les trades acceptés.
+    threshold_breakdown: Dict[str, Any] = field(default_factory=dict)
+
     def to_dict(self) -> Dict[str, Any]:
         """Sérialisation JSON-safe — utilisé par RejectionStore et RegretScheduler."""
         return {
@@ -232,6 +241,7 @@ class DecisionObservation:
             "features": self.features,
             "state_history": self.state_history,
             "reasoning": self.reasoning,
+            "threshold_breakdown": self.threshold_breakdown,
         }
 
 
@@ -317,6 +327,11 @@ def build_from_result(
     gate_allowed = bool(gate.allowed) if gate and hasattr(gate, "allowed") else True
     gate_failed: List[str] = (
         list(gate.failed) if gate and hasattr(gate, "failed") else []
+    )
+    # Additif : un GateResult antérieur à ce champ, ou un court-circuit avant le
+    # test de score, donne {} — jamais une exception.
+    threshold_breakdown: Dict[str, Any] = dict(
+        getattr(gate, "threshold_breakdown", None) or {}
     )
 
     # ── Self-Awareness ────────────────────────────────────────────────────────
@@ -456,6 +471,7 @@ def build_from_result(
         personality_min_score=pers_min_score,
         gate_allowed=gate_allowed,
         gate_failed=gate_failed,
+        threshold_breakdown=threshold_breakdown,
         awareness_ok=awareness_ok,
         awareness_level=aw_level_name,
         conviction_ok=conv_ok,

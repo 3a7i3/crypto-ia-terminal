@@ -162,6 +162,9 @@ class GateResult:
     conditions: dict[str, bool] = field(default_factory=dict)
     failed: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
+    # Termes ayant produit le seuil de score — purement descriptif, ne participe
+    # à aucune décision. Vide si le gate a court-circuité avant le test ③.
+    threshold_breakdown: dict = field(default_factory=dict)
 
     def as_dict(self) -> dict:
         return {
@@ -169,6 +172,7 @@ class GateResult:
             "conditions": self.conditions,
             "failed": self.failed,
             "warnings": self.warnings,
+            "threshold_breakdown": self.threshold_breakdown,
         }
 
     def summary(self) -> str:
@@ -291,7 +295,11 @@ class GlobalRiskGate:
 
         allowed = len(failed) == 0
         result = GateResult(
-            allowed=allowed, conditions=conditions, failed=failed, warnings=warnings
+            allowed=allowed,
+            conditions=conditions,
+            failed=failed,
+            warnings=warnings,
+            threshold_breakdown=self.explain_threshold(regime_str, effective_min),
         )
 
         log_fn = _log.info if allowed else _log.debug
@@ -462,7 +470,11 @@ class GlobalRiskGate:
 
         allowed = len(failed) == 0
         result = GateResult(
-            allowed=allowed, conditions=conditions, failed=failed, warnings=warnings
+            allowed=allowed,
+            conditions=conditions,
+            failed=failed,
+            warnings=warnings,
+            threshold_breakdown=self.explain_threshold(regime_str, effective_min),
         )
 
         log_fn = _log.info if allowed else _log.debug
@@ -581,6 +593,44 @@ class GlobalRiskGate:
         return max(
             self.min_signal_score + self._regret_delta + self._governor_delta, 55
         )
+
+    def explain_threshold(self, regime: str, effective: int) -> dict:
+        """Termes ayant produit `effective` — lecture seule, aucun effet de bord.
+
+        **Ce n'est pas une somme.** `_effective_min_score` applique une priorité :
+        `transition_threshold` est un *override* qui court-circuite les autres
+        termes ; le classifier de régime, lui, n'est pas garanti additif. Le
+        champ `source` dit laquelle des trois branches a produit la valeur.
+
+        On enregistre donc les ENTRÉES observées et la SORTIE constatée, sans
+        prétendre à une relation arithmétique que le code ne garantit pas. Un
+        consommateur qui veut vérifier l'additivité peut le faire depuis ces
+        champs ; il ne doit pas la supposer.
+
+        Ne recalcule rien : `effective` est la valeur déjà retournée par
+        `_effective_min_score`, passée par l'appelant. Appeler le classifier une
+        seconde fois rejouerait son journalisation de changement de régime.
+        """
+        if self._transition_threshold is not None:
+            source = "transition"
+        elif _regime_clf is not None:
+            source = "classifier"
+        else:
+            source = "fallback"
+        return {
+            "source": source,
+            "regime": str(regime),
+            "base_min_signal_score": int(self.min_signal_score),
+            "regret_delta": int(self._regret_delta),
+            "governor_delta": int(self._governor_delta),
+            "transition_threshold": (
+                None
+                if self._transition_threshold is None
+                else int(self._transition_threshold)
+            ),
+            "absolute_floor": int(self._absolute_floor),
+            "effective": int(effective),
+        }
 
     def blacklist_regime(self, regime: str) -> None:
         self.blacklisted_regimes.add(_normalize_regime(regime))
