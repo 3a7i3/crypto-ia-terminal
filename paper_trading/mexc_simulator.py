@@ -22,6 +22,7 @@ import threading
 import time
 import uuid
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Callable, Optional
 
@@ -95,6 +96,56 @@ class MexcOrder:
     # lues par le simulateur. Sans elles, `market_context` reste null dans le
     # dataset : mesuré à 0 champ rempli sur 332 enregistrements de l'époque V4.
     features: dict = field(default_factory=dict)
+
+
+def _fmt_duree(secondes: float) -> str:
+    """Duree lisible : `2h05m` au-dela d'une heure, `07m42s` en deca."""
+    s = max(0.0, float(secondes))
+    if s >= 3600:
+        return f"{int(s // 3600)}h{int((s % 3600) // 60):02d}m"
+    return f"{int(s // 60):02d}m{int(s % 60):02d}s"
+
+
+def format_entree(
+    symbol: str, side: str, prix: float, taille_usd: float, mode: str, ts: float
+) -> str:
+    """Ligne de journal a l'ouverture. Fonction pure — testable hors runtime."""
+    horo = datetime.fromtimestamp(ts, timezone.utc).strftime("%d %b %H:%M:%S UTC")
+    return (
+        f"ENTRÉE {side.upper()} — {symbol}\n"
+        f"{horo}\n"
+        f"Prix:   ${prix:.6g}\n"
+        f"Taille: ${taille_usd:.2f}\n"
+        f"Compte: {mode}"
+    )
+
+
+def format_sortie(
+    symbol: str,
+    side: str,
+    entree: float,
+    sortie: float,
+    pnl_usd: float,
+    pnl_pct: float,
+    motif: str,
+    duree_s: float,
+    mode: str,
+    ts: float,
+) -> str:
+    """Ligne de journal a la fermeture. Fonction pure — testable hors runtime.
+
+    `pnl_pct` est attendu en POURCENTAGE (1.31 = +1,31 %), pas en ratio.
+    """
+    horo = datetime.fromtimestamp(ts, timezone.utc).strftime("%d %b %H:%M:%S UTC")
+    signe = "+" if pnl_usd >= 0 else "-"
+    return (
+        f"SORTIE {side.upper()} — {symbol}\n"
+        f"{horo}\n"
+        f"Entrée: ${entree:.6g} → Sortie: ${sortie:.6g}\n"
+        f"PnL:    {signe}${abs(pnl_usd):.2f} ({signe}{abs(pnl_pct):.2f}%)\n"
+        f"Durée:  {_fmt_duree(duree_s)} | Motif: {motif}\n"
+        f"Compte: {mode}"
+    )
 
 
 @dataclass
@@ -244,9 +295,15 @@ class MexcSimulator:
         self,
         mexc_reader=None,
         telegram_fn: Optional[Callable[[str], None]] = None,
+        trade_journal_fn: Optional[Callable[[str], None]] = None,
     ) -> None:
         self._mexc = mexc_reader
         self._telegram = telegram_fn
+        # Canal DEDIE aux evenements de trade, distinct de `telegram_fn` qui
+        # porte le bavardage operationnel du simulateur ("[SIM] REJETE ...").
+        # Un journal de trades ne doit contenir que des trades : c'est ce qui le
+        # rend consommable tel quel par un panneau d'affichage.
+        self._trade_journal = trade_journal_fn
         self._capital: float = 0.0
         self._initial_capital: float = 0.0
         self._positions: dict[str, MexcPosition] = {}
@@ -655,6 +712,16 @@ class MexcSimulator:
                     _MarketContext.from_features(pos.features) if pos.features else None
                 ),
             )
+            self._journal(
+                format_entree(
+                    symbol=pos.symbol,
+                    side=pos.side.value,
+                    prix=pos.entry_price,
+                    taille_usd=pos.qty_usd,
+                    mode="futures_demo",
+                    ts=pos.opened_ts,
+                )
+            )
         except Exception as exc:
             _log.warning("[SIM] record_open échoué: %s", exc)
 
@@ -827,6 +894,20 @@ class MexcSimulator:
                 score=pos.score,
                 regime=pos.regime,
             )
+            self._journal(
+                format_sortie(
+                    symbol=pos.symbol,
+                    side=pos.side.value,
+                    entree=pos.entry_price,
+                    sortie=fill,
+                    pnl_usd=pnl_usd,
+                    pnl_pct=pnl_pct,
+                    motif=str(reason),
+                    duree_s=pos.closed_ts - pos.opened_ts,
+                    mode="futures_demo",
+                    ts=pos.closed_ts,
+                )
+            )
         except Exception as exc:
             _log.warning("[SIM] record_close échoué: %s", exc)
 
@@ -972,6 +1053,15 @@ class MexcSimulator:
         return "\n".join(lines)
 
     # ── Helpers ───────────────────────────────────────────────────────────────
+
+    def _journal(self, text: str) -> None:
+        """Emet un evenement de trade. Ne doit jamais faire echouer un trade."""
+        if not self._trade_journal:
+            return
+        try:
+            self._trade_journal(text)
+        except Exception as exc:  # pragma: no cover - defense
+            _log.warning("[SIM] journal de trade echec: %s", exc)
 
     def _notify(self, text: str) -> None:
         _log.info("[SIM] %s", text[:100])

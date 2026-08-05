@@ -5023,6 +5023,26 @@ def main(
             _virtual_portfolio = _SimCls(
                 mexc_reader=_mexc_reader_sim,
                 telegram_fn=_vp_tg_fn,
+                # ── Journal des trades : DELIBEREMENT NON CABLE ──────────────
+                # `trade_journal_fn` n'est pas fourni : le simulateur n'emettra
+                # aucun evenement de trade vers Telegram.
+                #
+                # Ce n'est PAS un oubli. Le contrat de canal
+                # (docs/TELEGRAM_CHANNEL_CONTRACTS.md § 3) attribue
+                # TRADE_OPENED / TRADE_CLOSED a @PaperArena_bot, qui n'a
+                # aujourd'hui ni token ni chat_id. Aucun autre canal ne peut les
+                # recevoir sans violer son propre contrat. Gel decide par
+                # l'operateur le 2026-08-05, en attente de la creation du bot.
+                #
+                # Pour degeler : passer `trade_journal_fn=<emetteur PaperArena>`.
+                # Le formateur (`format_entree` / `format_sortie`) et le garde-fou
+                # `_journal()` sont deja ecrits, testes et independants du canal
+                # (tests/test_telegram_trade_journal.py) — une seule ligne suffit.
+                #
+                # Cette dormance est declaree ici ET dans le contrat parce qu'un
+                # chemin ecrit et non execute qui n'est PAS documente devient un
+                # piege : ce depot en compte deja quatre (modules v2_*, seal(),
+                # market_context, message SORTIE sur pos_manager.on_close).
             )
             _virtual_portfolio.start()
             log.info("[SIM] MexcSimulator initialise")
