@@ -1143,7 +1143,18 @@ class CommandCenterBot:
     @classmethod
     def from_env(cls, provider: CommandDataProvider) -> "CommandCenterBot":
         token = os.getenv("P10_PORTFOLIO_BOT_TOKEN", "")
-        chat_id = os.getenv("P10_PORTFOLIO_CHAT_ID", os.getenv("TELEGRAM_CHAT_ID", ""))
+        # AUCUN REPLI vers TELEGRAM_CHAT_ID. L'implementation precedente faisait
+        # `os.getenv("P10_PORTFOLIO_CHAT_ID", os.getenv("TELEGRAM_CHAT_ID", ""))` :
+        # un chat_id manquant deversait le tableau de bord portefeuille dans le
+        # canal principal, sans aucun signal. Un contrat de canal ne tient pas
+        # sous un repli muet (docs/TELEGRAM_CHANNEL_CONTRACTS.md § 9).
+        chat_id = os.getenv("P10_PORTFOLIO_CHAT_ID", "")
+        if token and not chat_id:
+            _log.warning(
+                "[CommandCenter] P10_PORTFOLIO_CHAT_ID non configure — bot "
+                "DESACTIVE. Aucun repli vers TELEGRAM_CHAT_ID : melanger deux "
+                "canaux serait pire que n'en avoir qu'un."
+            )
         # Contrat § 4 : plafond de 2 messages / jour, soit 12 h. L'ancien defaut
         # d'une heure produisait 24 messages/jour — douze fois le plafond, pour
         # un canal dont la mission est « un coup d'oeil », pas un flux.

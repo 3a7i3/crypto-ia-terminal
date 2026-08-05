@@ -790,6 +790,9 @@ SYMBOLS_DEFAULT = [
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT = os.getenv("TELEGRAM_CHAT_ID", "")
 TELEGRAM_BEHAVIOR_CHAT = os.getenv("TELEGRAM_BEHAVIOR_CHAT_ID", "")
+# Avertissement emis une seule fois si le canal comportement n'est pas
+# configure — un log par cycle noierait le signal qu'il porte.
+_BEHAVIOR_CHAT_WARNED = False
 
 # ── Contrat de canal @QuantCrpto_bot ─────────────────────────────────────────
 # docs/TELEGRAM_CHANNEL_CONTRACTS.md § 5 — « Market Intelligence Engine ».
@@ -1037,11 +1040,31 @@ def _format_regime_digest(events: list) -> str:
 
 
 def _telegram_behavior(text: str) -> None:
-    """Canal comportemental — [BEHAVIOR], transitions, REGIME_MISMATCH, BSM."""
+    """Canal comportemental — [BEHAVIOR], transitions, REGIME_MISMATCH, BSM.
+
+    AUCUN REPLI vers le canal principal. L'implementation precedente faisait
+    `chat = TELEGRAM_BEHAVIOR_CHAT or TELEGRAM_CHAT` : un `chat_id` vide
+    deversait silencieusement le canal comportement dans @QuantCrpto_bot, sans
+    le moindre signal. Un contrat de canal ne tient pas sous un repli muet — il
+    suffit d'une variable d'environnement oubliee pour que deux responsabilites
+    fusionnent a l'insu de tout le monde (docs/TELEGRAM_CHANNEL_CONTRACTS.md § 9).
+
+    Non configure = silencieux ET signale une fois. C'est la discipline que
+    `_send_intel` applique deja : « Si non configure : silencieux (pas de
+    fallback vers @QuantCrpto_bot) ».
+    """
     if "PYTEST_CURRENT_TEST" in os.environ:
         return
-    chat = TELEGRAM_BEHAVIOR_CHAT or TELEGRAM_CHAT  # fallback canal principal
+    chat = TELEGRAM_BEHAVIOR_CHAT
     if not TELEGRAM_TOKEN or not chat:
+        global _BEHAVIOR_CHAT_WARNED
+        if not _BEHAVIOR_CHAT_WARNED:
+            _BEHAVIOR_CHAT_WARNED = True
+            log.warning(
+                "[Behavior] TELEGRAM_BEHAVIOR_CHAT_ID non configure — canal "
+                "comportement DESACTIVE. Aucun repli vers le canal principal : "
+                "melanger deux canaux serait pire que n'en avoir qu'un."
+            )
         return
     try:
         r = requests.post(
