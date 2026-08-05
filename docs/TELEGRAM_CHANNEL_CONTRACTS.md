@@ -211,32 +211,36 @@ cycles = 1 h (`advisor_loop.py:799`) — **déjà conforme**.
 
 ## 8. Ce que le contrat laisse en suspens
 
-**Les événements de trade sont GELÉS — décision opérateur du 2026-08-05.**
+**Les événements de trade sont DÉGELÉS — @PaperArena_bot créé le 2026-08-05.**
 
-Le contrat les attribue à ②, qui n'existe pas. Trois issues étaient ouvertes :
-créer @PaperArena_bot, les confier temporairement à ③ en acceptant qu'il viole
-son plafond, ou geler. **Le gel a été retenu**, dans l'attente de la création du
-bot par l'opérateur.
-
-État exact du code, à jour :
+Le gel décidé plus tôt ce jour est levé : le canal existe, le journal y est câblé.
 
 | élément | fichier | état |
 |---|---|---|
 | `format_entree` / `format_sortie` | `paper_trading/mexc_simulator.py` | écrits, testés |
-| `MexcSimulator._journal()` | idem | écrit, absorbe toute exception |
-| paramètre `trade_journal_fn` | idem | présent, **non fourni** |
-| câblage dans `advisor_loop` | `core/advisor_loop.py` | **retiré volontairement** |
+| `MexcSimulator._journal()` | idem | absorbe toute exception |
+| émetteur `_telegram_paper_arena` | `core/advisor_loop.py` | dédié, **sans repli** |
+| câblage `trade_journal_fn` | idem | **actif** |
 | tests | `tests/test_telegram_trade_journal.py` | 12, verts |
 
-**Dégeler tient en une ligne** : passer `trade_journal_fn=<émetteur PaperArena>`
-à la construction du simulateur.
+Variables attendues, à renseigner par l'opérateur — jamais par un agent :
 
-> **Pourquoi cette dormance est déclarée deux fois** — ici et en commentaire au
-> site de construction. Un chemin écrit et non exécuté qui n'est *pas* documenté
-> devient un piège : ce dépôt en compte déjà quatre (modules `v2_*`, `seal()`,
-> `market_context`, message `SORTIE` sur `pos_manager.on_close`). Chacun a coûté
-> une investigation pour être retrouvé. Un cinquième, créé sciemment et laissé
-> muet, serait une faute — pas une dette.
+```
+PAPER_ARENA_BOT_TOKEN=...
+PAPER_ARENA_CHAT_ID=...
+```
+
+Tant qu'elles manquent, le journal est **silencieux et le signale une fois**.
+Aucun repli : déverser des trades dans le canal marché serait exactement la
+confusion que ces contrats existent pour empêcher.
+
+> **Le motif qu'il fallait éviter.** Pendant sa dormance, ce journal a été
+> déclaré deux fois — ici et au site de construction. Un chemin écrit et non
+> exécuté qui n'est *pas* documenté devient un piège : ce dépôt en comptait
+> cinq (modules `v2_*`, `seal()`, `market_context`, message `SORTIE` sur
+> `pos_manager.on_close`, projection `RejectionRecord`). Chacun a coûté une
+> investigation. Celui-ci n'en a coûté aucune, parce qu'il annonçait sa propre
+> dormance.
 
 **Anomalie mesurée, indépendante du contrat.** Aucun événement de trade
 n'atteint Telegram aujourd'hui : le message `SORTIE` existe

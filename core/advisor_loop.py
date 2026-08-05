@@ -816,6 +816,13 @@ QUANTCRYPTO_MARKET_ONLY = os.getenv("QUANTCRYPTO_MARKET_ONLY", "true").lower() i
 QUANTCRYPTO_EVERY_N_CYCLES = max(1, int(os.getenv("QUANTCRYPTO_EVERY_N_CYCLES", "6")))
 INTEL_TOKEN = os.getenv("INTEL_BOT_TOKEN", "")
 INTEL_CHAT = os.getenv("INTEL_BOT_CHAT_ID", "")
+
+# @PaperArena_bot — journal des trades (docs/TELEGRAM_CHANNEL_CONTRACTS.md § 3).
+# Canal DEDIE : un journal de trades ne doit contenir que des trades, c'est ce
+# qui le rend consommable tel quel par un panneau d'application.
+PAPER_ARENA_TOKEN = os.getenv("PAPER_ARENA_BOT_TOKEN", "")
+PAPER_ARENA_CHAT = os.getenv("PAPER_ARENA_CHAT_ID", "")
+_PAPER_ARENA_WARNED = False
 INTEL_INTERVAL_S = int(os.getenv("INTEL_REPORT_EVERY_H", "6")) * 3600
 # Bot compte réel — STANDBY jusqu'à activation du trading live sur l'API
 REAL_BOT_TOKEN = os.getenv("REAL_ACCOUNT_BOT_TOKEN", "")
@@ -1098,6 +1105,42 @@ def _telegram_real(text: str) -> None:
             log.debug("[RealBot] Telegram erreur: %s", r.text)
     except Exception as exc:
         log.debug("[RealBot] Indisponible: %s", exc)
+
+
+def _telegram_paper_arena(text: str) -> None:
+    """@PaperArena_bot — journal des trades (contrat § 3).
+
+    Reçoit UNIQUEMENT `TRADE_OPENED` / `TRADE_CLOSED` : entrée, sortie, PnL,
+    durée, motif, compte. Aucun signal, aucun régime, aucune santé — c'est ce
+    qui permettra à un panneau d'application de le consommer sans filtrer.
+
+    AUCUN REPLI vers un autre canal, comme `_send_intel` et
+    `_telegram_behavior` : non configuré = silencieux ET signalé une fois.
+    Déverser des trades dans le canal marché serait précisément la confusion
+    que les contrats de canal existent pour empêcher.
+    """
+    if "PYTEST_CURRENT_TEST" in os.environ:
+        return
+    if not PAPER_ARENA_TOKEN or not PAPER_ARENA_CHAT:
+        global _PAPER_ARENA_WARNED
+        if not _PAPER_ARENA_WARNED:
+            _PAPER_ARENA_WARNED = True
+            log.warning(
+                "[PaperArena] PAPER_ARENA_BOT_TOKEN / PAPER_ARENA_CHAT_ID non "
+                "configures — journal des trades DESACTIVE. Aucun repli : les "
+                "evenements de trade n'ont pas d'autre canal legitime."
+            )
+        return
+    try:
+        r = requests.post(
+            f"https://api.telegram.org/bot{PAPER_ARENA_TOKEN}/sendMessage",
+            json={"chat_id": PAPER_ARENA_CHAT, "text": text},
+            timeout=10,
+        )
+        if r.status_code != 200:
+            log.warning("[PaperArena] erreur Telegram: %s", r.text)
+    except Exception as exc:
+        log.debug("[PaperArena] envoi echoue: %s", exc)
 
 
 def _send_intel(text: str) -> None:
@@ -5093,26 +5136,11 @@ def main(
             _virtual_portfolio = _SimCls(
                 mexc_reader=_mexc_reader_sim,
                 telegram_fn=_vp_tg_fn,
-                # ── Journal des trades : DELIBEREMENT NON CABLE ──────────────
-                # `trade_journal_fn` n'est pas fourni : le simulateur n'emettra
-                # aucun evenement de trade vers Telegram.
-                #
-                # Ce n'est PAS un oubli. Le contrat de canal
-                # (docs/TELEGRAM_CHANNEL_CONTRACTS.md § 3) attribue
-                # TRADE_OPENED / TRADE_CLOSED a @PaperArena_bot, qui n'a
-                # aujourd'hui ni token ni chat_id. Aucun autre canal ne peut les
-                # recevoir sans violer son propre contrat. Gel decide par
-                # l'operateur le 2026-08-05, en attente de la creation du bot.
-                #
-                # Pour degeler : passer `trade_journal_fn=<emetteur PaperArena>`.
-                # Le formateur (`format_entree` / `format_sortie`) et le garde-fou
-                # `_journal()` sont deja ecrits, testes et independants du canal
-                # (tests/test_telegram_trade_journal.py) — une seule ligne suffit.
-                #
-                # Cette dormance est declaree ici ET dans le contrat parce qu'un
-                # chemin ecrit et non execute qui n'est PAS documente devient un
-                # piege : ce depot en compte deja quatre (modules v2_*, seal(),
-                # market_context, message SORTIE sur pos_manager.on_close).
+                # Journal des trades → @PaperArena_bot (contrat § 3). Degele le
+                # 2026-08-05 apres creation du canal. Emetteur dedie, sans repli :
+                # si PAPER_ARENA_BOT_TOKEN / PAPER_ARENA_CHAT_ID manquent, rien
+                # n'est emis et un avertissement est journalise une fois.
+                trade_journal_fn=_telegram_paper_arena,
             )
             _virtual_portfolio.start()
             log.info("[SIM] MexcSimulator initialise")
