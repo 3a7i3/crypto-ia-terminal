@@ -499,6 +499,32 @@ def _positions_for_display(virtual_portfolio: Any, pos_manager: Any) -> list[JSO
         return []
 
 
+def _open_pnl_pct_for_override(
+    virtual_portfolio: Any, pos_manager: Any, real_capital: float
+) -> float:
+    """PnL latent normalise pour ExecutiveOverride.
+
+    Source prioritaire: ledger paper MexcSimulator (positions executees en
+    simulation). Fallback: stats pos_manager hors paper.
+    """
+    open_pnl_usd = 0.0
+    if virtual_portfolio is not None:
+        try:
+            open_pnl_usd = _to_float(
+                virtual_portfolio.get_open_positions_summary().unrealized_pnl_usd,
+                0.0,
+            )
+        except Exception:
+            open_pnl_usd = 0.0
+    if open_pnl_usd == 0.0:
+        try:
+            pm_stats_live = _stats_dict(pos_manager.stats())
+            open_pnl_usd = _to_float(pm_stats_live.get("open_pnl_usd", 0.0), 0.0)
+        except Exception:
+            open_pnl_usd = 0.0
+    return open_pnl_usd / max(1.0, _to_float(real_capital, 1.0))
+
+
 def _replay_base_capital() -> float:
     """Base de capital pour rejouer le dataset canonique (drawdown/sharpe).
 
@@ -4725,8 +4751,8 @@ def main(
             # Alimenter l'Override avec les métriques de session
             try:
                 pm_stats_live = _stats_dict(pos_manager.stats())
-                open_pnl_pct = _to_float(pm_stats_live.get("open_pnl_usd", 0.0)) / max(
-                    1.0, real_capital
+                open_pnl_pct = _open_pnl_pct_for_override(
+                    _virtual_portfolio, pos_manager, real_capital
                 )
                 executive_override.update(
                     loss_streak=_consecutive_losses["value"],
@@ -6859,7 +6885,12 @@ def main(
 
             # Executive Override — mise à jour capital live
             try:
-                executive_override.update(capital_current=real_capital)
+                executive_override.update(
+                    capital_current=real_capital,
+                    open_pnl_pct=_open_pnl_pct_for_override(
+                        _virtual_portfolio, pos_manager, real_capital
+                    ),
+                )
             except Exception:
                 pass
 
