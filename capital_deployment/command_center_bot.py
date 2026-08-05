@@ -998,89 +998,48 @@ def _fmt_logs(n: int = 20) -> str:
 
 
 def _fmt_rapport(p: CommandDataProvider) -> str:
-    """Rapport complet envoyé automatiquement toutes les N heures."""
+    """Digest humain — « en un coup d'œil, où j'en suis ? ».
+
+    Contrat docs/TELEGRAM_CHANNEL_CONTRACTS.md § 4 : ce canal ne calcule rien,
+    il résume. Cinq informations, pas une de plus — capital, PnL ouvert, nombre
+    de positions, niveau de risque, phase.
+
+    Retiré de ce rapport, par propriétaire contractuel :
+      PERFORMANCE (WR / Sharpe / DD)  -> @PaperArena_bot (§ 3)
+      détail des positions            -> @PaperArena_bot (§ 3)
+      SIGNAUX                         -> @QuantCrypto_bot (§ 5)
+      DERNIERS TRADES                 -> @PaperArena_bot (§ 3)
+
+    Les COMMANDES ne sont pas touchées : /kpis, /positions, /signals restent
+    disponibles à la demande. Le contrat régit ce qui est POUSSÉ, pas ce qui est
+    demandé — un rapport non sollicité doit tenir sur un écran, une réponse à
+    une question peut être détaillée.
+    """
     from datetime import datetime, timezone
 
     now = datetime.now(timezone.utc).strftime("%d/%m %H:%M UTC")
     phase = p.get_phase() if p.get_phase else "?"
     thr = p.get_throttle() if p.get_throttle else None
-    kpis = p.get_kpis() if p.get_kpis else None
     pos = (p.get_positions() if p.get_positions else None) or []
-    sigs = (p.get_signals() if p.get_signals else None) or {}
-    trades = (p.get_trades() if p.get_trades else None) or []
+    risk = (p.get_risk() if p.get_risk else None) or {}
 
-    lines = [f"*RAPPORT — {now}*", f"Phase *{phase}*"]
+    lines = [f"*PORTEFEUILLE — {now}*", f"Phase *{phase}*"]
     lines += _capital_lines(p, thr)
 
-    if kpis:
-        from capital_deployment.phase_kpi_tracker import PHASE_CRITERIA
-
-        c = PHASE_CRITERIA.get(phase, {})
-        wr_t = c.get("min_win_rate", 0.45)
-        sh_t = c.get("min_sharpe", 1.0)
-        dd_t = c.get("max_drawdown", 0.02)
-        lines += [
-            "",
-            "*PERFORMANCE*",
-            _kpi_line(
-                "Win Rate",
-                f"{kpis.win_rate:.0%}",
-                _bar(kpis.win_rate, wr_t),
-                f">{wr_t:.0%}",
-                _chk(kpis.win_rate, wr_t),
-            ),
-            _kpi_line(
-                "Sharpe",
-                f"{kpis.sharpe:.2f}",
-                _bar(kpis.sharpe, sh_t),
-                f">{sh_t:.1f}",
-                _chk(kpis.sharpe, sh_t),
-            ),
-            _kpi_line(
-                "Max DD",
-                f"{kpis.max_drawdown:.1%}",
-                _bar(kpis.max_drawdown, dd_t, low_good=True),
-                f"<{dd_t:.0%}",
-                _chk(kpis.max_drawdown, dd_t, low_good=True),
-            ),
-            f"Trades: {kpis.total_trades}  DD: {kpis.current_drawdown:.1%}",
-        ]
+    # PnL des positions ouvertes. Champ affiché seulement s'il existe : un PnL
+    # inconnu et un PnL nul sont deux états différents, et les confondre est ce
+    # qui rendait `/regime` et le panneau comportement trompeurs.
+    open_pnl = risk.get("open_pnl_pct")
+    if isinstance(open_pnl, (int, float)):
+        sg = "+" if open_pnl >= 0 else ""
+        lines.append(f"PnL ouvert  *{sg}{open_pnl:.2f} %*")
 
     n_pos = len(pos)
-    lines += ["", f"*POSITIONS  {n_pos} ouverte{'s' if n_pos != 1 else ''}*"]
-    if pos:
-        for position in pos:
-            try:
-                sym = position.get("symbol", "?")
-                side = position.get("side", "?").upper()
-                pnl = float(position.get("unrealized_pnl", position.get("pnl", 0)))
-                pct = float(position.get("pnl_pct", 0))
-                sg = "+" if pnl >= 0 else ""
-                lines.append(f"  {sym} {side}  {sg}${pnl:.2f} ({sg}{pct:.1f}%)")
-            except Exception:
-                pass
-    else:
-        lines.append("  Aucune position")
+    lines.append(f"Positions   *{n_pos}*")
 
-    if sigs:
-        lines += ["", "*SIGNAUX*"]
-        items = list(sigs.items()) if isinstance(sigs, dict) else []
-        lines += _signals_lines(items)
-
-    if trades:
-        from datetime import datetime as _dt
-
-        lines += ["", "*DERNIERS TRADES*"]
-        for t in reversed(trades[-3:]):
-            try:
-                sym = t.get("symbol", "?")
-                pnl = float(t.get("pnl", 0))
-                sg = "+" if pnl >= 0 else ""
-                ts_ = t.get("ts", 0)
-                dt_ = _dt.fromtimestamp(ts_).strftime("%m-%d %H:%M") if ts_ else "?"
-                lines.append(f"  {dt_}  {sym}  {sg}${pnl:.2f}")
-            except Exception:
-                pass
+    niveau = risk.get("level")
+    if niveau:
+        lines.append(f"Risque      *{niveau}*")
 
     return "\n".join(lines)
 
@@ -1185,11 +1144,14 @@ class CommandCenterBot:
     def from_env(cls, provider: CommandDataProvider) -> "CommandCenterBot":
         token = os.getenv("P10_PORTFOLIO_BOT_TOKEN", "")
         chat_id = os.getenv("P10_PORTFOLIO_CHAT_ID", os.getenv("TELEGRAM_CHAT_ID", ""))
+        # Contrat § 4 : plafond de 2 messages / jour, soit 12 h. L'ancien defaut
+        # d'une heure produisait 24 messages/jour — douze fois le plafond, pour
+        # un canal dont la mission est « un coup d'oeil », pas un flux.
         rep_mins = float(os.getenv("P10_PORTFOLIO_REPORT_MINS", "0"))
         rep_h = (
             rep_mins / 60.0
             if rep_mins > 0
-            else float(os.getenv("P10_PORTFOLIO_REPORT_H", "1.0"))
+            else float(os.getenv("P10_PORTFOLIO_REPORT_H", "12.0"))
         )
         return cls(
             token=token, chat_id=chat_id, provider=provider, report_interval_h=rep_h
