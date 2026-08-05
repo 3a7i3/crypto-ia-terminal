@@ -53,6 +53,13 @@ try:
 except Exception:  # pragma: no cover — import direct hors racine repo
     _CLEAN_SINCE_LABEL = "borne canonique"
 
+# Bornes de la « règle du statisticien » (CLAUDE.md) : les trois doivent être
+# franchies avant toute calibration. Un taux ne suffit pas à savoir où l'on en
+# est — il faut les comptes bruts de gagnants ET de perdants.
+_GATE_N = 500
+_GATE_WINS = 150
+_GATE_LOSSES = 150
+
 
 @dataclass
 class _Snapshot:
@@ -150,6 +157,11 @@ def _compute_kpis(closes: list[dict]) -> dict:
 
     return {
         "n": n,
+        # Comptes bruts : la regle du statisticien borne le gate sur 150 gagnants
+        # ET 150 perdants, pas sur un taux. Un win_rate ne permet pas de savoir
+        # si les deux bornes sont franchies.
+        "n_wins": len(wins),
+        "n_losses": len(losses),
         "win_rate": len(wins) / n * 100,
         "pf": pf,
         "sharpe": sharpe,
@@ -244,9 +256,15 @@ class SystemIntelReporter:
             "elapsed_h": elapsed_h,
             "kpis": kpis,
             "n_since": n_since,
+            # Conserve pour la continuite du snapshot (`prev.pnl_total`), plus
+            # affiche : le PnL est un KPI de performance -> @PaperArena (§ 3).
             "pnl_since": pnl_since,
             "trade_stall_h": trade_stall_h,
             "regimes_now": regimes_now,
+            # Calcules mais plus affiches : transitions de regime -> canal
+            # comportement (§ 6, digest agrege) ; entonnoir de decision ->
+            # canal marche (§ 5). Conserves pour ne pas casser un consommateur
+            # de `ctx` hors de ce module.
             "regime_changes": regime_changes,
             "pos_manager_stats": self._pos_stats(pos_manager),
             "awareness": self._awareness_ctx(awareness_state),
@@ -410,30 +428,27 @@ class SystemIntelReporter:
             else f"SANTÉ : ALERTE — {' | '.join(anomalies)}"
         )
 
-        # 2. Activité depuis dernier rapport — pas de cumulé (déjà sur /validate)
+        # 2. Gouvernance scientifique — progression vers les bornes du gate.
+        # Le PnL et le win_rate sont des KPI de PERFORMANCE : ils appartiennent
+        # a @PaperArena_bot (contrat § 3). Ici on ne dit que l'avancement de la
+        # PREUVE : combien de trades, de gagnants et de perdants manquent encore.
         kpis = ctx["kpis"]
-        sign = "+" if ctx["pnl_since"] >= 0 else ""
+        lines.append(f"DEPUIS DERNIER RAPPORT : {ctx['n_since']} trade(s) clôturé(s)")
         lines.append(
-            f"DEPUIS DERNIER RAPPORT : {ctx['n_since']} trade(s) clôturé(s) "
-            f"({sign}{ctx['pnl_since']:.2f}$) | "
-            f"N canonique (post-{_CLEAN_SINCE_LABEL}) {kpis['n']} trades"
+            f"N canonique (post-{_CLEAN_SINCE_LABEL}) : {kpis['n']}/{_GATE_N} "
+            f"| gagnants {kpis.get('n_wins', 0)}/{_GATE_WINS} "
+            f"| perdants {kpis.get('n_losses', 0)}/{_GATE_LOSSES}"
         )
+        manque = self._gate_blocker(kpis)
+        if manque:
+            lines.append(f"  → contrainte bloquante : {manque}")
         lines.append("")
 
-        # 3. Perception marché — narration groupée par régime, pas une liste brute
-        narrative = self._market_narrative(ctx["regimes_now"])
-        if narrative:
-            lines.append(f"MARCHÉ : {narrative}")
-        funnel = ctx["decision_funnel"]
-        if funnel.get("total_evaluated", 0) > 0:
-            lines.append(
-                f"  → {funnel['allowed']}/{funnel['total_evaluated']} signaux "
-                f"autorisés, {funnel['blocked']} bloqués par les gates de risque"
-            )
-        lines.append("")
-
-        # 4. Ce qui a changé — uniquement si quelque chose a changé
-        changes = list(ctx["regime_changes"][:3])
+        # 3. Ce qui a changé — uniquement si quelque chose a changé.
+        # Les transitions de régime sont retirées : elles appartiennent au canal
+        # marché (contrat § 5) et au canal comportement (§ 6), qui les émet déjà
+        # en digest agrégé. Ne restent ici que les états de la MACHINE.
+        changes: list[str] = []
         aw = ctx["awareness"]
         if aw.get("level", "OK") != "OK":
             changes.append(f"Self-Awareness → {aw['level']}")
@@ -449,27 +464,24 @@ class SystemIntelReporter:
 
         return "\n".join(lines)
 
-    def _market_narrative(self, regimes_now: dict) -> str:
-        """Regroupe les régimes par catégorie plutôt que de lister chaque paire."""
-        if not regimes_now:
-            return ""
-        groups: dict[str, list[str]] = {}
-        for sym, regime in regimes_now.items():
-            groups.setdefault(regime, []).append(sym.replace("/USDT", ""))
+    def _gate_blocker(self, kpis: dict) -> str:
+        """Borne du gate la plus eloignee, ou "" si les trois sont franchies.
 
-        labels = {
-            "bull_trend": "tendance haussière",
-            "bear_trend": "tendance baissière",
-            "sideways": "range/consolidation",
-            "breakout": "cassure en cours",
-            "unknown": "régime indéterminé",
+        La regle du statisticien (CLAUDE.md) exige 500 trades, 150 gagnants ET
+        150 perdants. Annoncer la seule contrainte bloquante evite de laisser
+        croire qu'un compteur proche du but suffit : c'est le plus en retard qui
+        commande la date.
+        """
+        restes = {
+            "trades": _GATE_N - int(kpis.get("n", 0)),
+            "gagnants": _GATE_WINS - int(kpis.get("n_wins", 0)),
+            "perdants": _GATE_LOSSES - int(kpis.get("n_losses", 0)),
         }
-        parts = []
-        for regime, syms in sorted(groups.items(), key=lambda x: -len(x[1])):
-            label = labels.get(regime, regime)
-            names = ", ".join(syms[:4]) + ("..." if len(syms) > 4 else "")
-            parts.append(f"{len(syms)} en {label} ({names})")
-        return " | ".join(parts)
+        restants = {k: v for k, v in restes.items() if v > 0}
+        if not restants:
+            return ""
+        pire = max(restants.items(), key=lambda kv: kv[1])
+        return f"{pire[1]} {pire[0]} manquants"
 
     def _recommend(self, ctx: dict) -> str:
         dataset = ctx["dataset"]
