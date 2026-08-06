@@ -38,6 +38,7 @@ def _event(
     score: int = 75,
     market_context: MarketContext | None = None,
     decision_context: DecisionContext | None = None,
+    runtime_config_version: str = "cfg-test-v1",
 ) -> TradeEvent:
     mc = market_context if market_context is not None else _valid_mc()
     dc = decision_context if decision_context is not None else _valid_dc()
@@ -56,6 +57,7 @@ def _event(
         score=score,
         market_context=mc if event == "OPEN" else None,
         decision_context=dc if event == "OPEN" else None,
+        runtime_config_version=runtime_config_version,
     )
 
 
@@ -117,6 +119,40 @@ def test_valid_schema_v2():
     r = _validator.validate_event(_event(schema_version=2))
     assert r.valid
     assert not r.violations
+
+
+def test_valid_schema_v3():
+    # Version reellement ecrite par le recorder (SCHEMA_VERSION = 3).
+    r = _validator.validate_event(_event(schema_version=3))
+    assert r.valid
+    assert not r.violations
+
+
+def test_schema_version_set_suit_le_recorder():
+    # Garde-fou contre la derive qui laissait gate_c_dataset en NO-GO
+    # permanent : le validateur doit accepter la version que le recorder ecrit.
+    from paper_trading.recorder import SCHEMA_VERSION
+
+    r = _validator.validate_event(_event(schema_version=SCHEMA_VERSION))
+    assert r.valid, (
+        f"le validateur rejette schema_version={SCHEMA_VERSION}, "
+        "valeur ecrite par paper_trading.recorder"
+    )
+
+
+def test_v3_open_sans_runtime_config_version():
+    evt = _event(schema_version=3, runtime_config_version="")
+    r = _validator.validate_event(evt)
+    assert not r.valid
+    assert any("runtime_config_version absent" in v for v in r.violations)
+
+
+def test_v3_close_tolere_runtime_config_version_absent():
+    # record_close n'ecrit pas ce champ : l'exiger sur les CLOSE
+    # invaliderait tout le corpus.
+    evt = _event(event="CLOSE", schema_version=3, runtime_config_version="")
+    r = _validator.validate_event(evt)
+    assert not any("runtime_config_version" in v for v in r.violations)
 
 
 def test_invalid_schema_version():

@@ -52,7 +52,12 @@ _DEFAULT_PATH = os.getenv("PAPER_TRADE_LOG", "databases/paper_trades.jsonl")
 # balayage `_check_positions`, qui ne clôture pas à la seconde près.
 _MAX_OPEN_AGE_H = float(os.getenv("MEXC_SIM_MAX_AGE_H", "8.0")) * 1.5
 
-_VALID_SCHEMA_VERSIONS = frozenset({1, 2})
+# Doit suivre paper_trading.recorder.SCHEMA_VERSION : le recorder ecrit
+# schema_version=3 sur chaque OPEN et CLOSE depuis l'introduction de
+# runtime_config_version. Tant que 3 manquait ici, chaque evenement du corpus
+# produisait une violation et gate_c_dataset (scripts/prelive_gate.py) restait
+# en NO-GO permanent — pour un defaut du validateur, pas des donnees.
+_VALID_SCHEMA_VERSIONS = frozenset({1, 2, 3})
 _VALID_CONVICTION_LEVELS = frozenset({"NONE", "LOW", "MEDIUM", "HIGH", "EXTREME"})
 
 # Bornes de plausibilité pour les variables de marché
@@ -147,6 +152,7 @@ class DatasetValidator:
 
         _check_schema_version(event, violations)
         _check_v2_completeness(event, violations)
+        _check_v3_completeness(event, violations)
         _check_core_fields(event, violations)
 
         if event.market_context is not None:
@@ -193,6 +199,18 @@ def _check_v2_completeness(evt: TradeEvent, violations: list[str]) -> None:
             violations.append("schema_version=2 mais market_context absent")
         if evt.decision_context is None:
             violations.append("schema_version=2 mais decision_context absent")
+
+
+def _check_v3_completeness(evt: TradeEvent, violations: list[str]) -> None:
+    # Calque _check_v2_completeness : restreint aux OPEN, car seul record_open
+    # renseigne runtime_config_version (recorder.py:294). record_close ecrit
+    # schema_version=3 sans ce champ — exiger sa presence sur les CLOSE
+    # invaliderait tout le corpus.
+    if evt.schema_version >= 3 and evt.event == "OPEN":
+        if not evt.runtime_config_version:
+            violations.append(
+                "schema_version=3 mais runtime_config_version absent"
+            )
 
 
 def _check_core_fields(evt: TradeEvent, violations: list[str]) -> None:
