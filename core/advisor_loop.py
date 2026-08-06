@@ -2510,9 +2510,13 @@ def _build_summary(
     dominant_regime = max(set(regimes), key=regimes.count) if regimes else "unknown"
     regime_label = _REGIME_FR.get(dominant_regime, dominant_regime)
 
+    # « Seuil {min_score} » retire le 2026-08-06 : le seuil effectif appartient
+    # au canal ⑤ Behavior (« seuil effectif, deltas, oscillation »), qui l'emet
+    # deja avec sa dispersion — thr=66-72 std=2.0. Le donner ici sans son
+    # amplitude laissait croire a une barre fixe alors qu'elle oscille.
     lines = [
         f"@QuantCrpto — Cycle {cycle} | {ts} UTC",
-        f"{n_total} paires | {regime_label} | Seuil {min_score}",
+        f"{n_total} paires | {regime_label}",
         "",
     ]
 
@@ -7023,13 +7027,21 @@ def main(
                                 )
                         except Exception as _c1e:
                             log.debug("[Compte1] agregat entete indispo: %s", _c1e)
+                    # La ligne nominale « Exchange: OK (…ms | uptime …%) » est
+                    # retiree le 2026-08-06 : une metrique de sante infra
+                    # appartient au canal ① (contrat § 5, evenements interdits
+                    # sur ④). ① la porte deja dans son briefing.
+                    #
+                    # L'alerte HORS LIGNE reste ici, volontairement : c'est un
+                    # evenement urgent, et ① n'emet que toutes les 6 h. La
+                    # deplacer sans lui donner d'abord un chemin urgent
+                    # retarderait une panne d'exchange de six heures — on ne
+                    # troque pas une impurete de contrat contre un risque reel.
                     if not ex.get("healthy", True):
                         msg += (
                             f"\n\nEXCHANGE HORS LIGNE — {ex.get('consecutive_failures', 0)} echecs\n"
                             f"Derniere erreur: {ex.get('last_error', '?')}"
                         )
-                    else:
-                        msg += f"\n\nExchange: OK ({_to_float(ex.get('last_latency_ms', 0)):.0f}ms | uptime {_to_float(ex.get('uptime_pct', 0)):.1f}%)"
                     (
                         _decision_state,
                         _reason_code,
@@ -7832,8 +7844,18 @@ def main(
                     )
                     _snapshot_provider.set_latest(_hb_snapshot)
                     _snapshot_bus.publish(_hb_snapshot)
+                # Le heartbeat n'est PLUS emis vers Telegram (2026-08-06).
+                # Mesure : 23 messages en 6 h, ~92/jour, pour dire « je suis
+                # vivant ». Et il melangeait trois proprietaires dans un seul
+                # message — equity et positions (② PaperArena), RAM (① sante),
+                # regime et decision (④) : l'un des huit conflits listes dans
+                # TELEGRAM_CHANNEL_CONTRACTS.md § 1.
+                #
+                # Rien n'est perdu : chaque ligne a deja son canal, la fonction
+                # « le moteur est vivant » est le metier de
+                # crypto-watchdog.service, et le snapshot reste publie sur le
+                # bus + journalise ci-dessous pour les consommateurs internes.
                 _hb_msg = render_heartbeat(_hb_snapshot, _ram_mb)
-                _telegram(_hb_msg)
                 log.info("[Heartbeat] %s", _hb_msg.replace("\n", " | "))
 
             cycle_elapsed = time.perf_counter() - _t_cycle_start

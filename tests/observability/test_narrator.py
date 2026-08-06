@@ -136,23 +136,78 @@ class TestLaRoutineNeSortJamaisALUnite:
     def test_les_suivants_partent_dans_l_agregat(self):
         premier = classify(_ev("TRADE_REFUSED", refused_by=["risk_gate"]))
         second = classify(
-            _ev("TRADE_REFUSED", refused_by=["risk_gate"]), deja_vu={premier.cle}
+            _ev("TRADE_REFUSED", refused_by=["risk_gate"]), deja_vu=premier.cles
         )
 
         assert second.registre == ROUTINE
-        assert second.cle == premier.cle
+        assert second.cles == premier.cles
 
     def test_une_autre_couche_est_un_autre_premier_blocage(self):
         a = classify(_ev("TRADE_REFUSED", refused_by=["risk_gate"]))
         b = classify(_ev("TRADE_REFUSED", refused_by=["portfolio_brain"]))
 
-        assert a.cle != b.cle
+        assert a.cles != b.cles
         assert (
             classify(
-                _ev("TRADE_REFUSED", refused_by=["portfolio_brain"]), deja_vu={a.cle}
+                _ev("TRADE_REFUSED", refused_by=["portfolio_brain"]), deja_vu=a.cles
             ).registre
             == DIRECT
         )
+
+
+class TestUneCoucheNeSAnnonceQuUneFoisParJour:
+    """Regression 2026-08-06, trouvee en service reel.
+
+    Apres « gate » seule puis « meta » seule, un refus cumulant les deux se
+    presentait en TROISIEME « premier blocage du jour » — un message qui
+    n'apprenait rien. La cle portait sur la COMBINAISON de couches ; elle
+    porte desormais sur chaque couche.
+    """
+
+    def test_une_combinaison_deja_vue_ne_se_raconte_pas(self):
+        vues = set()
+        for couches in (["gate"], ["meta"]):
+            vues.update(classify(_ev("TRADE_REFUSED", refused_by=couches)).cles)
+
+        cumul = classify(
+            _ev("TRADE_REFUSED", refused_by=["gate", "meta"]), deja_vu=vues
+        )
+
+        assert cumul.registre == ROUTINE
+
+    def test_seule_la_couche_nouvelle_est_annoncee(self):
+        vues = set(classify(_ev("TRADE_REFUSED", refused_by=["gate"])).cles)
+
+        cumul = classify(
+            _ev("TRADE_REFUSED", refused_by=["gate", "conviction"]), deja_vu=vues
+        )
+
+        assert cumul.registre == DIRECT
+        titre = cumul.texte.splitlines()[0]
+        assert "conviction" in titre
+        assert "gate" not in titre, "gate a deja ete annoncee, elle n'est plus nouvelle"
+
+    def test_le_detail_complet_reste_dans_le_corps(self):
+        vues = set(classify(_ev("TRADE_REFUSED", refused_by=["gate"])).cles)
+
+        cumul = classify(
+            _ev(
+                "TRADE_REFUSED",
+                refused_by=["gate", "conviction"],
+                reason="Refus: gate + conviction",
+            ),
+            deja_vu=vues,
+        )
+
+        assert "gate" in cumul.texte, "le motif complet ne doit rien perdre"
+
+    def test_un_cumul_entierement_neuf_annonce_les_deux(self):
+        n = classify(_ev("TRADE_REFUSED", refused_by=["gate", "meta"]))
+
+        assert n.registre == DIRECT
+        titre = n.texte.splitlines()[0]
+        assert "gate" in titre and "meta" in titre
+        assert len(n.cles) == 2
 
     @pytest.mark.parametrize(
         "brut,attendu",
@@ -199,17 +254,17 @@ class TestLaRoutineNeSortJamaisALUnite:
         a = classify(_ev("TRADE_REFUSED", refused_by=["gate: signal_score (57<66)"]))
         b = classify(
             _ev("TRADE_REFUSED", refused_by=["gate: signal_score (64<72)"]),
-            deja_vu={a.cle},
+            deja_vu=a.cles,
         )
 
-        assert a.cle == b.cle
+        assert a.cles == b.cles
         assert b.registre == ROUTINE
 
     def test_la_cle_change_de_jour(self):
         veille = classify(_ev("TRADE_REFUSED", ts=TS - 86400, refused_by=["risk_gate"]))
         aujourdhui = classify(_ev("TRADE_REFUSED", refused_by=["risk_gate"]))
 
-        assert veille.cle != aujourdhui.cle
+        assert veille.cles != aujourdhui.cles
 
 
 # ── Propriete 4 : une donnee absente n'est jamais un zero ────────────────────

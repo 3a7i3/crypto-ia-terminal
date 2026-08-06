@@ -63,8 +63,7 @@ class Narrateur:
                 self.agregat.observer(entree)
                 continue
 
-            if verdict.cle:
-                self._deja_vu.add(verdict.cle)
+            self._deja_vu.update(verdict.cles)
 
             quand = _ts(entree, maintenant)
             emission = self.budget.offrir(verdict.texte, quand, verdict.urgent)

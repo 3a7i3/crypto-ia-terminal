@@ -79,7 +79,7 @@ class Narration:
     registre: str
     texte: str = ""
     urgent: bool = False
-    cle: str = ""
+    cles: tuple = ()
     motif_ignore: str = ""
 
 
@@ -203,11 +203,17 @@ def _rendu_systeme(entry: dict) -> str:
     return "\n".join(lignes)
 
 
-def _rendu_premier_blocage(entry: dict) -> str:
-    couches = _couches(entry)
+def _rendu_premier_blocage(entry: dict, nouvelles: list[str]) -> str:
+    """Le titre porte les couches NOUVELLES, le corps garde le detail complet.
+
+    Mesure du 2026-08-06 en service reel : un refus cumulant `gate` et `meta`
+    arrivait apres que chacune ait deja ete annoncee seule, et se presentait
+    quand meme en « premier blocage » — un troisieme message qui n'apprenait
+    rien. Le titre dit donc ce qui est reellement nouveau.
+    """
     titre = "PREMIER BLOCAGE DU JOUR"
-    if couches:
-        titre += f" — {', '.join(couches)}"
+    if nouvelles:
+        titre += f" — {', '.join(nouvelles)}"
     lignes = _entete(entry, titre)
     sym = _txt(entry, "symbol")
     sig = _txt(entry, "signal")
@@ -216,7 +222,18 @@ def _rendu_premier_blocage(entry: dict) -> str:
     if isinstance(score, (int, float)) and not isinstance(score, bool):
         detail = f"{detail} score {int(score)}".strip()
     lignes += _ligne("", detail)
-    lignes += _ligne("Motif :", _txt(entry, "reason"))
+
+    # Le detail COMPLET des couches, avec leurs parametres. `reason` ne porte
+    # que la premiere couche (mesure du 2026-08-06) : afficher « meta » en
+    # titre et « gate: signal_score (66<68) » en motif faisait un message qui
+    # se contredisait lui-meme.
+    complet = _couches(entry)
+    lignes += _ligne("Couches :", ", ".join(complet))
+
+    motif = _txt(entry, "reason")
+    noyau = motif[len("Refus:") :].strip() if motif.startswith("Refus:") else motif
+    if noyau and noyau not in ", ".join(complet):
+        lignes += _ligne("Motif :", motif)
     return "\n".join(lignes)
 
 
@@ -266,10 +283,20 @@ def classify(entry: dict, deja_vu: Iterable[str] = ()) -> Narration:
             # n'apprend rien et consomme une place du plafond. Ils sont
             # comptes dans l'agregat, jamais racontes a l'unite.
             return Narration(ROUTINE)
-        cle = f"blocage:{_jour(entry.get('ts'))}:{'+'.join(sorted(couches))}"
-        if cle in set(deja_vu):
-            return Narration(ROUTINE, cle=cle)
-        return Narration(DIRECT, _rendu_premier_blocage(entry), cle=cle)
+
+        # Une cle PAR COUCHE, pas une cle par combinaison. Mesure du
+        # 2026-08-06 en service reel : apres « gate » seule et « meta » seule,
+        # un refus cumulant les deux se presentait en troisieme « premier
+        # blocage » — meme faute de granularite que les valeurs de seuil, une
+        # couche plus haut. Chaque couche ne s'annonce qu'une fois par jour,
+        # quelles que soient ses compagnes.
+        jour = _jour(entry.get("ts"))
+        vues = set(deja_vu)
+        cles = tuple(f"blocage:{jour}:{c}" for c in couches)
+        nouvelles = [c for c, k in zip(couches, cles) if k not in vues]
+        if not nouvelles:
+            return Narration(ROUTINE, cles=cles)
+        return Narration(DIRECT, _rendu_premier_blocage(entry, nouvelles), cles=cles)
 
     # HOLD et tout type inconnu : la routine. Un type qu'on ne connait pas ne
     # devient jamais une alerte par defaut.
