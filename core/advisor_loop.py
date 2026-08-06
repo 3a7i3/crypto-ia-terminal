@@ -3031,6 +3031,45 @@ def _acquire_instance_lock() -> None:
         with open(_LOCK_FILE, "w") as f:
             f.write(str(os.getpid()))
     atexit.register(_release_instance_lock)
+    _install_stop_handlers()
+
+
+def _install_stop_handlers() -> None:
+    """SIGTERM / SIGINT → sortie propre, pour qu'`atexit` libère le verrou.
+
+    `atexit` ne s'exécute **pas** quand le process est tué par un signal :
+    l'action par défaut de SIGTERM termine immédiatement. Or systemd envoie
+    SIGTERM à chaque `systemctl stop|restart`. Le verrou survivait donc à tous
+    les redémarrages, et chaque boot annonçait « verrou précédent non nettoyé
+    — arrêt non-propre, crash ou signal non intercepté ». Le message était
+    exact et la cause banale : personne n'interceptait le signal.
+
+    Conséquence mesurée le 2026-08-06 (quatre redémarrages, quatre fois le
+    même message) : un vrai crash devenait indiscernable d'un arrêt normal.
+    Le marqueur de démarrage le plus utile ne distinguait plus rien.
+
+    `signal` est importé sous alias : le nom est massivement utilisé comme
+    variable locale dans ce module (`signal.signal`, l'objet de trading).
+    """
+    import signal as _signal
+
+    def _arret_propre(signum, _frame):
+        try:
+            nom = _signal.Signals(signum).name
+        except ValueError:
+            nom = str(signum)
+        log.info("[Lock] %s recu — arret propre, liberation du verrou", nom)
+        # SystemExit derive de BaseException : les `except Exception` du
+        # moteur ne l'avaleront pas, et `atexit` s'executera.
+        sys.exit(0)
+
+    for _sig in (_signal.SIGTERM, _signal.SIGINT):
+        try:
+            _signal.signal(_sig, _arret_propre)
+        except (ValueError, OSError, AttributeError):
+            # Hors thread principal, ou signal absent de la plateforme : on
+            # continue sans. Mieux vaut un verrou sale qu'un refus de demarrer.
+            log.debug("[Lock] gestionnaire %s non installable", _sig)
 
 
 def _release_instance_lock() -> None:
