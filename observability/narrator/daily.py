@@ -162,7 +162,23 @@ class Quotidien:
 
         lignes += self._mouvements(j, ref)
         lignes += self._avertissement_fenetre(j, v, comparable)
+        lignes += self._chronique()
         return "\n".join(lignes)
+
+    @staticmethod
+    def _chronique() -> list[str]:
+        """Fenetre d'observation du burn-in, relayee depuis la chronique.
+
+        Le Narrateur ne la calcule pas — `tools/burnin_chronicle.py` la
+        produit et un timer la rafraichit. Seule la FENETRE est relayee : N
+        canonique et la projection vers 500 appartiennent a ①.
+        """
+        try:
+            from observability.narrator.chronicle import lignes as _chronique_lignes
+
+            return _chronique_lignes()
+        except Exception:
+            return []
 
     # ── Garde-fous ───────────────────────────────────────────────────────────
 

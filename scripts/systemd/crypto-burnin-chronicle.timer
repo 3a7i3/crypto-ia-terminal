@@ -1,0 +1,18 @@
+# Declenche la chronique du burn-in une fois par jour.
+#
+# 23:40 UTC, soit vingt minutes AVANT minuit : le Narrateur emet son
+# recapitulatif quotidien au passage de minuit UTC et relaie le dernier
+# releve. Le produire apres aurait fait raconter la veille avec un releve
+# vieux d'un jour.
+[Unit]
+Description=Declencheur quotidien de la chronique du burn-in
+
+[Timer]
+OnCalendar=*-*-* 23:40:00 UTC
+# Rattrape le releve si la machine etait eteinte a l'heure dite.
+Persistent=true
+# Evite que plusieurs machines tapent la meme seconde.
+RandomizedDelaySec=120
+
+[Install]
+WantedBy=timers.target

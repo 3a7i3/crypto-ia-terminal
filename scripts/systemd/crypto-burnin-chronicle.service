@@ -1,0 +1,38 @@
+# Chronique du burn-in — releve quotidien du temps reellement observe.
+#
+# Oneshot declenche par crypto-burnin-chronicle.timer. Audit PASSIF : lit
+# databases/rejections/ (326 624 lignes, ~30 s) et ajoute UNE ligne a
+# databases/burnin_chronicle.jsonl. Ne touche a rien d'autre.
+#
+# Le Narrateur (@Telemetrie_IA_bot) relaie ensuite le dernier releve dans son
+# recapitulatif quotidien — il ne recalcule jamais lui-meme.
+#
+# Installation (VPS, geste operateur) :
+#   sudo cp scripts/systemd/crypto-burnin-chronicle.{service,timer} /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now crypto-burnin-chronicle.timer
+[Unit]
+Description=Chronique du burn-in - releve du temps observe (passif)
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=mathieu
+WorkingDirectory=/home/mathieu/crypto_ai_terminal
+EnvironmentFile=-/home/mathieu/crypto_ai_terminal/.env
+Environment=PYTHONPATH=/home/mathieu/crypto_ai_terminal
+Environment=PYTHONIOENCODING=utf-8
+Environment=TZ=UTC
+ExecStart=/home/mathieu/crypto_ai_terminal/.venv/bin/python tools/burnin_chronicle.py
+
+# Un audit ne dispute jamais le CPU ni le disque au moteur qu'il observe.
+Nice=15
+IOSchedulingClass=idle
+TimeoutStartSec=600
+
+NoNewPrivileges=true
+PrivateTmp=true
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=burnin_chronicle
