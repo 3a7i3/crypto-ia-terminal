@@ -13,3 +13,8 @@ pydantic-settings>=2.14
 # main sur le VPS mais absent d ici — le runbook échouait sur machine neuve.
 # Inventaire exact de production : requirements-vps-frozen-20260718.txt
 ccxt>=4.5
+
+# Requis par quant_hedge_ai/strategy_lab/parallel_engine.py : etait present
+# dans requirements-vps.txt mais absent d'ici, donc absent de la CI —
+# la collecte pytest de test_parallel_engine.py echouait sur ModuleNotFoundError.
+joblib>=1.3.0
