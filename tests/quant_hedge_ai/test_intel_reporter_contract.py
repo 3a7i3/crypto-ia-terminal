@@ -137,6 +137,88 @@ class TestGouvernance:
         assert "contrainte bloquante" not in out
 
 
+def _reco(**over):
+    for line in _render(**over).splitlines():
+        if line.startswith("RECOMMANDATION"):
+            return line
+    return ""
+
+
+_GATE_OUVERT = {
+    "n": 600,
+    "n_wins": 200,
+    "n_losses": 200,
+    "win_rate": 50.0,
+    "pf": 1.2,
+    "sharpe": 1.1,
+    "max_dd": 0.01,
+    "total_pnl": 5.0,
+    "by_symbol": {},
+}
+
+
+class TestLaRecommandationNeContreditPasLaContrainte:
+    """Regression 2026-08-06 : le briefing se contredisait en trois lignes.
+
+    Il affichait « contrainte bloquante : 300 trades manquants » puis
+    « RECOMMANDATION : Seuil 100 trades canoniques atteint. Lancer
+    scripts/burnin_calibration_v3.py ». Le 100 etait un seuil en dur herite
+    de l'epoque ou la gate valait 100 trades (franchie le 2026-07-28) ; il
+    conseillait donc l'acte que la regle du statisticien interdit tant que
+    les trois bornes ne sont pas franchies.
+    """
+
+    def test_pas_de_calibration_conseillee_sous_contrainte(self):
+        out = _render()
+
+        assert "contrainte bloquante" in out
+        assert "burnin_calibration_v3" not in out, (
+            "conseiller la calibration alors qu'une borne bloque est "
+            "exactement la contradiction corrigee"
+        )
+
+    def test_la_recommandation_reprend_la_borne_bloquante(self):
+        reco = _reco()
+
+        assert "310 trades manquants" in reco
+        assert "Burn-in en cours" in reco
+
+    def test_le_seuil_100_obsolete_ne_declenche_plus(self):
+        """N=200 depasse l'ancien seuil mais reste tres loin du vrai gate."""
+        reco = _reco(
+            kpis={
+                "n": 200,
+                "n_wins": 76,
+                "n_losses": 121,
+                "win_rate": 38.0,
+                "pf": 0.7,
+                "sharpe": -3.0,
+                "max_dd": 0.015,
+                "total_pnl": -9.0,
+                "by_symbol": {},
+            }
+        )
+
+        assert "burnin_calibration_v3" not in reco
+        assert "300 trades manquants" in reco
+
+    def test_aucun_seuil_ne_doit_etre_modifie_est_dit(self):
+        assert "Aucun seuil ne doit être modifié" in _reco()
+
+    def test_calibration_conseillee_quand_les_trois_bornes_tombent(self):
+        reco = _reco(kpis=_GATE_OUVERT)
+
+        assert "burnin_calibration_v3.py" in reco
+        assert "prelive_gate.py" in reco
+
+    def test_le_franchissement_du_comptage_n_ouvre_pas_l_ace(self):
+        """Compter n'est pas conclure : CRI et regret restent exiges."""
+        reco = _reco(kpis=_GATE_OUVERT)
+
+        assert "CRI" in reco
+        assert "Bornes de comptage franchies" in reco
+
+
 class TestSanteResteAnomalieSeulement:
     def test_silencieux_quand_tout_va_bien(self):
         assert "SANTÉ : OK" in _render()

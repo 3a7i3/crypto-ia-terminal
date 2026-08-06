@@ -3828,9 +3828,28 @@ def main(
 
         _pb_provider = _CDP(
             get_kpis=lambda: _kpi_snapshot_with_canonical_n(_p10_kpi),
-            get_balances=lambda: {"spot": real_capital, "futures": 0.0},
+            # Etiquetage 2026-08-06. Deux corrections de nom, zero nouvelle
+            # source :
+            #  - "spot" designait du capital simule en mode paper — c'est le
+            #    wallet unique de MexcSim, pas un compte spot d'exchange.
+            #  - "futures" valait 0.0 EN DUR, jamais mesure, alors que le
+            #    journal PaperArena etiquette ses trades "futures_demo" : le
+            #    panneau annoncait un solde futures nul pendant que le canal
+            #    annoncait des trades futures. Un solde non mesure n'est pas
+            #    un solde nul — la ligne disparait au lieu de mentir.
+            #    exec_engine.fetch_futures_balance() existe pour la cabler le
+            #    jour ou le compte reel entre en service (ADR-0019).
+            get_balances=lambda: (
+                {"wallet simulé": real_capital}
+                if _paper_mode
+                else {"spot": real_capital}
+            ),
             get_paper_equity=_paper_equity_display,
             get_open_pnl=_open_pnl_for_display,
+            # Nomme le registre de get_balances : en mode paper,
+            # fetch_available_capital() retourne WALLET_PAPER_CAPITAL + PnL
+            # cumule du ledger, pas un solde d'exchange (execution_engine.py:233).
+            get_capital_ledger=lambda: "papier" if _paper_mode else "réel",
             get_positions=_get_positions_for_bot,
             get_phase=lambda: _P10_PHASE,
             get_throttle=lambda: _p10_throttle,

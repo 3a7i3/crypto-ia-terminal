@@ -520,17 +520,28 @@ class SystemIntelReporter:
                 "(univers/seuils), aucun ajustement automatique ne sera fait."
             )
 
-        if kpis["n"] >= 100:
+        # La recommandation lit les MÊMES bornes que la ligne « contrainte
+        # bloquante » affichée plus haut. Elle était figée sur `n >= 100`,
+        # seuil hérité de l'époque où la gate valait 100 trades (franchie le
+        # 2026-07-28) : le message annonçait « 300 trades manquants » puis
+        # conseillait trois lignes plus bas de lancer la calibration —
+        # c'est-à-dire l'acte que la règle du statisticien (CLAUDE.md)
+        # interdit tant que les trois bornes ne sont pas franchies.
+        manque = self._gate_blocker(kpis)
+        if manque:
             return (
-                f"Seuil 100 trades canoniques atteint "
-                f"({kpis['n']}, post-{_CLEAN_SINCE_LABEL}). "
-                "Lancer scripts/burnin_calibration_v3.py puis scripts/prelive_gate.py."
+                f"Burn-in en cours — {manque} avant toute calibration "
+                f"(règle du statisticien : {_GATE_N} trades, {_GATE_WINS} "
+                f"gagnants, {_GATE_LOSSES} perdants). Aucun seuil ne doit être "
+                "modifié d'ici là. Système stable."
             )
 
-        remaining = 100 - kpis["n"]
         return (
-            f"Burn-in en cours — {remaining} trade(s) canonique(s) restant(s) avant "
-            "calibration. Système stable."
+            f"Bornes de comptage franchies ({kpis['n']} trades, "
+            f"{kpis.get('n_wins', 0)} gagnants, {kpis.get('n_losses', 0)} "
+            f"perdants, post-{_CLEAN_SINCE_LABEL}). Lancer "
+            "scripts/burnin_calibration_v3.py puis scripts/prelive_gate.py. "
+            "CRI ≥ 90 et les bornes de regret restent requis avant toute ACE."
         )
 
     # ── LM Studio (optionnel, narration enrichie) ────────────────────────────

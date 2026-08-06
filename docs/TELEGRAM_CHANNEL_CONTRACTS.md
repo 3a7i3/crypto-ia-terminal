@@ -42,7 +42,7 @@ n'y figure pas est hors contrat.
 | Gouvernance scientifique (N canonique, gates) | ① rapport_automatique | ① |
 | Equity / cash simulé | ② PaperArena | ④ **et** ⑤ **et** `[ALIVE]` |
 | Positions ouvertes | ② PaperArena | ④ **et** ⑤ |
-| Événements de trade (entrée/sortie) | ② PaperArena | **aucun** — cf. § 8 |
+| Événements de trade (entrée/sortie) | ② PaperArena | ② — **conforme** depuis le 2026-08-05 |
 | KPI simulation (WR, PF, DD, Sharpe) | ② PaperArena | ① **et** ⑤ |
 | Vue humaine agrégée | ③ mon_portfolio | ⑤ |
 | Univers, régimes, tendance | ④ QuantCrypto | ① **et** ④ **et** ⑤ |
@@ -51,7 +51,10 @@ n'y figure pas est hors contrat.
 | Seuil effectif, deltas, oscillation | ⑤ Behavior | ⑤ |
 | Soldes réels exchange | ⑥ compte réel | ④ **et** ⑥ |
 
-Douze lignes, **huit en conflit**. C'est la mesure du désordre actuel.
+Douze lignes, **huit en conflit** de propriété — inchangé. La neuvième
+anomalie était d'une autre nature : une donnée sans **aucun** émetteur
+légitime (les événements de trade). Celle-là est refermée depuis le
+2026-08-05 ; les huit conflits, eux, restent entiers.
 
 ---
 
@@ -102,11 +105,19 @@ réveil). `SIMULATION_KPI` = bas.
 (~10/jour mesurés) et c'est le seul canal où le temps réel a un sens.
 Snapshots : 1 / heure.
 
-> **⚠ Précondition bloquante.** Ce canal **n'existe pas** : ni token ni
-> `chat_id` dans `.env`, présent uniquement dans `.env.example`. Le contrat est
-> écrit, il n'est pas applicable. Créer le bot passe par BotFather — action
-> opérateur. Tant qu'il manque, `TRADE_OPENED`/`TRADE_CLOSED` n'ont **aucune
-> destination légitime** (cf. § 8).
+> **✅ Précondition levée le 2026-08-05.** Ce canal **existe** :
+> `PAPER_ARENA_BOT_TOKEN` et `PAPER_ARENA_CHAT_ID` sont renseignés dans le
+> `.env` du VPS par l'opérateur, et **chargés dans le processus moteur**
+> (vérifié dans `/proc/<PID>/environ`, pas seulement dans le fichier).
+> Validé côté Telegram sans rien émettre : `getMe` → `@PaperArena_bot`,
+> `getChat` → `ok`. `TRADE_OPENED`/`TRADE_CLOSED` ont désormais leur
+> destination légitime — premiers événements reçus le 2026-08-05 à 22:30 UTC
+> (`SORTIE SELL — APT/USDT`).
+>
+> L'émetteur reste **sans repli** : si les deux variables disparaissent, rien
+> n'est émis et un avertissement est journalisé une fois
+> (`core/advisor_loop.py:1124`). Ce comportement est le contrat, pas une
+> limitation — voir § 8.
 
 ---
 
@@ -223,14 +234,15 @@ Le gel décidé plus tôt ce jour est levé : le canal existe, le journal y est 
 | câblage `trade_journal_fn` | idem | **actif** |
 | tests | `tests/test_telegram_trade_journal.py` | 12, verts |
 
-Variables attendues, à renseigner par l'opérateur — jamais par un agent :
+Variables requises, renseignées par l'opérateur — jamais par un agent :
 
 ```
 PAPER_ARENA_BOT_TOKEN=...
 PAPER_ARENA_CHAT_ID=...
 ```
 
-Tant qu'elles manquent, le journal est **silencieux et le signale une fois**.
+**Renseignées et vérifiées le 2026-08-05** (cf. § 3). Si elles venaient à
+manquer, le journal redeviendrait **silencieux et le signalerait une fois**.
 Aucun repli : déverser des trades dans le canal marché serait exactement la
 confusion que ces contrats existent pour empêcher.
 

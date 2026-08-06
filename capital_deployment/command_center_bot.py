@@ -195,6 +195,11 @@ class CommandDataProvider:
     # d'ExecutiveOverride et vient de pos_manager. None = inconnu.
     # -> dict {pnl_usd, pnl_pct, engaged_usd} | None
     get_open_pnl: Optional[Callable[[], Any]] = None
+    # Registre auquel appartiennent les montants de get_balances : "papier"
+    # ou "reel". None ou vide = inconnu, et un registre inconnu ne se devine
+    # pas — les libelles restent alors neutres plutot que d'affirmer.
+    # -> str | None
+    get_capital_ledger: Optional[Callable[[], Any]] = None
     get_positions: Optional[Callable[[], Any]] = None
     get_phase: Optional[Callable[[], Any]] = None
     get_throttle: Optional[Callable[[], Any]] = None
@@ -285,13 +290,34 @@ def _signals_lines(items: list, top: int = 10) -> list[str]:
     return lines
 
 
-def _capital_lines(p: CommandDataProvider, thr) -> list[str]:
-    """Ligne capital des rapports — wallet virtuel (compte n°2) en tête.
+def _ledger_label(p: CommandDataProvider) -> str:
+    """Nom du registre des montants — jamais deviné.
+
+    Retourne "" si le fournisseur ne le dit pas. Un registre inconnu laisse
+    les libellés neutres : nommer au hasard serait exactement le défaut que
+    cet étiquetage corrige.
+    """
+    if not p.get_capital_ledger:
+        return ""
+    try:
+        return str(p.get_capital_ledger() or "").strip()
+    except Exception:
+        return ""
+
+
+def _capital_lines(p: CommandDataProvider, thr, phase: str = "") -> list[str]:
+    """Ligne capital des rapports — compte papier en tête.
 
     Demande opérateur 2026-07-19 : « le capital affiché doit être celui du
-    compte numéro 2 (le virtuel) » — les 10.00 USD alloués F-01 restent
-    mentionnés (c'est la progression vers le réel) mais ne sont plus la
-    ligne principale.
+    compte numéro 2 (le virtuel) » — l'enveloppe allouée à la phase reste
+    mentionnée (c'est la progression vers le réel) mais n'est plus la ligne
+    principale.
+
+    Étiquetage 2026-08-06 : chaque montant nomme le registre dont il vient.
+    « Wallet virtuel » et « Alloc F-01 » ne disaient pas que le premier est
+    de l'argent simulé et le second une enveloppe de capital réel — deux
+    mondes sur deux lignes voisines. Le numéro de phase était écrit en dur :
+    le panneau affichait « Alloc F-01 » même une fois passé en F-02.
     """
     paper_eq = None
     if p.get_paper_equity:
@@ -300,19 +326,19 @@ def _capital_lines(p: CommandDataProvider, thr) -> list[str]:
         except Exception:
             paper_eq = None
     out: list[str] = []
-    suffix = ""
+    env_label = f"Enveloppe réelle {phase}" if phase else "Enveloppe réelle"
     if thr:
         el = thr.allocation().days_elapsed()
         mn = thr.allocation().min_duration_days
         suffix = f" — Jour {el:.1f} / {mn}"
         if paper_eq is not None:
-            out.append(f"Wallet virtuel *{paper_eq:.2f} USD*{suffix}")
-            out.append(f"Alloc F-01: {thr.allocated_capital:.2f} USD")
+            out.append(f"Compte papier *{paper_eq:.2f} USD*{suffix}")
+            out.append(f"{env_label}: {thr.allocated_capital:.2f} USD")
             return out
-        out.append(f"Capital *{thr.allocated_capital:.2f} USD*{suffix}")
+        out.append(f"{env_label} *{thr.allocated_capital:.2f} USD*{suffix}")
         return out
     if paper_eq is not None:
-        out.append(f"Wallet virtuel *{paper_eq:.2f} USD*")
+        out.append(f"Compte papier *{paper_eq:.2f} USD*")
     return out
 
 
@@ -324,7 +350,7 @@ def _fmt_status(p: CommandDataProvider) -> str:
     kpis = p.get_kpis() if p.get_kpis else None
     now = datetime.now(timezone.utc).strftime("%H:%M UTC")
     lines = [f"*PORTEFEUILLE — {now}*", f"Phase *{phase}*"]
-    lines += _capital_lines(p, thr)
+    lines += _capital_lines(p, thr, phase)
     if kpis:
         from capital_deployment.phase_kpi_tracker import PHASE_CRITERIA
 
@@ -424,7 +450,11 @@ def _fmt_balance(p: CommandDataProvider) -> str:
     bal = p.get_balances() if p.get_balances else None
     if not bal:
         return "_Soldes non disponibles_"
-    lines = ["*SOLDES*", _SEP]
+    # Le registre est nomme dans le titre : en paper, get_balances renvoie du
+    # capital simule sous la cle "spot", qui est un nom de compte d'exchange
+    # reel. Le montant etait juste, l'etiquette laissait croire a de l'argent.
+    ledger = _ledger_label(p)
+    lines = [f"*SOLDES — compte {ledger}*" if ledger else "*SOLDES*", _SEP]
     total = 0.0
     for acc, amt in bal.items():
         try:
@@ -433,7 +463,8 @@ def _fmt_balance(p: CommandDataProvider) -> str:
             lines.append(f"{acc.capitalize():<14}  {v:>9.2f} USD")
         except Exception:
             pass
-    lines += [_SEP, f"{'Total':<14}  *{total:>9.2f} USD*"]
+    total_label = f"Total {ledger}" if ledger else "Total"
+    lines += [_SEP, f"{total_label:<14}  *{total:>9.2f} USD*"]
     return "\n".join(lines)
 
 
@@ -497,8 +528,12 @@ def _fmt_pnl(p: CommandDataProvider) -> str:
             f"DD courant:    {kpis.current_drawdown:.2%}",
         ]
     if bal:
+        # « Capital total » etait faux deux fois : ni total (le PnL latent en
+        # est absent), ni reel (c'est le capital simule en mode paper).
         total = sum(float(v or 0) for v in bal.values())
-        lines.append(f"Capital total: *{total:.2f} USD*")
+        ledger = _ledger_label(p)
+        label = f"Capital {ledger}" if ledger else "Capital"
+        lines.append(f"{label}: *{total:.2f} USD*")
     if not kpis and not bal:
         lines.append("_Donnees non disponibles_")
     return "\n".join(lines)
@@ -1030,7 +1065,7 @@ def _fmt_rapport(p: CommandDataProvider) -> str:
     risk = (p.get_risk() if p.get_risk else None) or {}
 
     lines = [f"*PORTEFEUILLE — {now}*", f"Phase *{phase}*"]
-    lines += _capital_lines(p, thr)
+    lines += _capital_lines(p, thr, phase)
 
     # PnL des positions ouvertes, lu sur le ledger qui les porte — la même
     # source que la ligne Positions juste dessous. risk["open_pnl_pct"] vient
