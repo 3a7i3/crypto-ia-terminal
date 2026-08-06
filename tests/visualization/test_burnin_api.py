@@ -95,12 +95,54 @@ def test_load_burnin_snapshot_exposes_thresholds_and_counts(tmp_path, monkeypatc
     assert snap.per_regime_min == PER_REGIME_MIN == 50
     assert snap.per_layer_min == PER_LAYER_MIN == 30
     assert snap.cri_min == CRI_MIN == 90
-    assert snap.cri is None  # jamais calculé tant que cri_calculator.py n'existe pas
+    # Le dataset de trades canonique est absent de tmp_path : le CRI reste None
+    # (non mesuré), jamais 0.0 — cf. tests/visualization/test_cri_api.py.
+    assert snap.cri is None
     assert snap.go_no_go == "NO_GO"
     assert snap.blockers == ["11 trades reels < 30 minimum statistique"]
     assert snap.warnings == ["Warmup state FAILED"]
     assert snap.win_rate_pct == 54.5
     assert snap.profit_factor == 46.22
+
+
+def test_cri_is_sourced_from_the_canonical_calculator(tmp_path, monkeypatch):
+    """Le CRI n'est pas recalculé ici : il vient de tools/cri_calculator.py.
+
+    Vérifie le câblage réel (pas un mock) — un trade propre suffit pour que
+    l'index devienne un nombre au lieu de rester None.
+    """
+    from scripts.data_quality import CLEAN_DATA_SINCE_ACTIVE
+
+    burnin_path = tmp_path / "burnin_v3.json"
+    regret_path = tmp_path / "regret_analysis.jsonl"
+    trades_path = tmp_path / "paper_trades.jsonl"
+    _write_burnin_v3(burnin_path)
+    _write_regret_db(regret_path, missed=1, good=1)
+    trades_path.write_text(
+        json.dumps(
+            {
+                "event": "CLOSE",
+                "ts": (CLEAN_DATA_SINCE_ACTIVE.timestamp() + 3600),
+                "pnl_usd": 5.0,
+                "score": 70.0,
+                "price": 30000.0,
+                "duration_s": 3600,
+                "regime": "bull_trend",
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    snap = load_burnin_snapshot(
+        burnin_path=burnin_path,
+        regret_db_path=regret_path,
+        trades_path=trades_path,
+    )
+
+    assert snap.cri is not None
+    assert 0.0 <= snap.cri <= 100.0
+    assert snap.cri < snap.cri_min  # N=1 ne franchit aucune gate
 
 
 def test_load_burnin_snapshot_clamps_infinite_profit_factor(tmp_path, monkeypatch):

@@ -172,8 +172,10 @@ class DatasetsSnapshot:
 @dataclass
 class BurnInSnapshot:
     """Burn-in progress vs the statistician thresholds (CLAUDE.md — Règle du
-    statisticien). CRI is intentionally left unset: tools/cri_calculator.py
-    does not exist yet (docs/blueprint_v2.md gate S3, not reached)."""
+    statisticien). `cri` is sourced from tools/cri_calculator.py via
+    visualization.api.cri_api; it stays None when that computation is
+    unavailable (missing dataset), never silently zero — a missing CRI and a
+    CRI of 0 are different scientific statements."""
 
     ts: datetime
     generated_at: Optional[datetime]
@@ -203,6 +205,69 @@ class BurnInSnapshot:
     go_no_go: str
     blockers: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
+
+
+@dataclass
+class CriSnapshot:
+    """Calibration Readiness Index — read-only projection of
+    tools/cri_calculator.py::compute_cri() plus the dataset provenance that
+    makes its N reconstructible (INV-DATASET-001).
+
+    `cri is None` means the index could not be computed (dataset absent or
+    calculator error, see `error`) — it never degrades to 0.0, which would
+    read as "computed and terrible" instead of "not measured".
+    """
+
+    ts: datetime
+
+    cri: Optional[float]
+    cri_min: int
+    gate_ready: bool
+
+    n_clean: int
+    n_regrets_clean: int
+    clean_data_since: str
+
+    sub_scores: dict[str, float] = field(default_factory=dict)
+    weights: dict[str, float] = field(default_factory=dict)
+
+    # MC-001 traceability — a stale regret source censors the index
+    validity: str = "UNKNOWN"  # "OK" | "PARTIAL" | "UNAVAILABLE"
+    regret_source: Optional[str] = None
+    regret_fresh: Optional[bool] = None
+    regret_last_write: Optional[str] = None
+
+    provenance: dict = field(default_factory=dict)
+    warnings: list[str] = field(default_factory=list)
+    error: Optional[str] = None
+
+
+@dataclass
+class LogLine:
+    """One parsed line of a runtime log tail."""
+
+    raw: str
+    level: str  # "ERROR" | "WARNING" | "INFO" | "OTHER"
+
+
+@dataclass
+class LogTailSnapshot:
+    """Bounded, redacted tail of a runtime log file — observability only.
+
+    Secrets are stripped by logs_api before the lines leave the process: a log
+    tail is forwarded to a chat client, so an accidentally logged token would
+    otherwise leave the host.
+    """
+
+    ts: datetime
+    source_path: str
+    exists: bool
+    n_returned: int
+    n_scanned: int
+    level_filter: str
+    lines: list[LogLine] = field(default_factory=list)
+    n_redacted: int = 0
+    error: Optional[str] = None
 
 
 @dataclass

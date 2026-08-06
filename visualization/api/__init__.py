@@ -1,17 +1,22 @@
 """SDOS Data API — read-only snapshots. No client touches the databases directly."""
 
 from visualization.api.burnin_api import load_burnin_snapshot
+from visualization.api.cri_api import load_cri_snapshot
 from visualization.api.datasets_api import load_datasets_snapshot
 from visualization.api.decision_api import (
     load_decision_packet,
     load_rejections_snapshot,
 )
 from visualization.api.health_api import load_health_snapshot
+from visualization.api.logs_api import load_log_tail
 from visualization.api.models import (
     BurnInSnapshot,
+    CriSnapshot,
     DatasetCertification,
     DatasetsSnapshot,
     HealthSnapshot,
+    LogLine,
+    LogTailSnapshot,
     PipelineSnapshot,
     PortfolioSnapshot,
     RegimeSnapshot,
@@ -38,6 +43,9 @@ __all__ = [
     "DatasetCertification",
     "DatasetsSnapshot",
     "BurnInSnapshot",
+    "CriSnapshot",
+    "LogLine",
+    "LogTailSnapshot",
     "RegretInvestigationSnapshot",
     "DecisionTrace",
     "RejectionsSnapshot",
@@ -51,4 +59,6 @@ __all__ = [
     "load_decision_packet",
     "load_burnin_snapshot",
     "load_regret_investigation",
+    "load_cri_snapshot",
+    "load_log_tail",
 ]

@@ -1,8 +1,10 @@
 """Burn-in API — assembles BurnInSnapshot from burnin_v3.json + RegretEngine.
 
 Exposes progress against the statistician thresholds (CLAUDE.md — Règle du
-statisticien) without computing any new derived score. CRI stays unset until
-tools/cri_calculator.py exists (docs/blueprint_v2.md gate S3 — not yet built).
+statisticien) without computing any new derived score. The CRI is not computed
+here either: it is read from visualization.api.cri_api, which delegates to
+tools/cri_calculator.py (single source of truth for the formula and for the
+canonical clean-data bound). It stays None when that dataset is unavailable.
 
 Read-only: RegretEngine is instantiated only to call .stats() on records
 already persisted to disk (ADR-0007 — passivité).
@@ -81,9 +83,28 @@ def _regret_stats(regret_db_path: Path) -> dict:
         return {"missed_wins": 0, "good_refusals": 0}
 
 
+def _cri_value(
+    trades_path: Optional[Path],
+    regret_path: Optional[Path],
+) -> Optional[float]:
+    """Read the CRI from the canonical calculator, or None if unmeasurable.
+
+    `regret_path` is forwarded as given (None stays None) so the default path
+    keeps compute_cri's canonical MC-001 freshness check instead of being
+    treated as an explicitly supplied path.
+    """
+    try:
+        from visualization.api.cri_api import load_cri_snapshot
+
+        return load_cri_snapshot(trades_path=trades_path, regret_path=regret_path).cri
+    except Exception:
+        return None
+
+
 def load_burnin_snapshot(
     burnin_path: Optional[Path] = None,
     regret_db_path: Optional[Path] = None,
+    trades_path: Optional[Path] = None,
 ) -> BurnInSnapshot:
     """Load and compute BurnInSnapshot from the two canonical sources."""
     burnin = _load_json(burnin_path or _BURNIN_V3)
@@ -112,7 +133,7 @@ def load_burnin_snapshot(
         profit_factor=_finite(trades.get("profit_factor", 0.0)),
         expectancy_pct=_finite(trades.get("expectancy_pct", 0.0)),
         coverage_pct=_finite(burnin.get("coverage_pct", 0.0)),
-        cri=None,
+        cri=_cri_value(trades_path, regret_db_path),
         cri_min=CRI_MIN,
         calibration_locked=calibration_locked,
         go_no_go=burnin.get("go_no_go", "UNKNOWN"),
