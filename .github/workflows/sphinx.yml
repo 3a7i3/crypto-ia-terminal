@@ -35,9 +35,15 @@ jobs:
       - name: Build Sphinx HTML
         run: |
           sphinx-build -b html docs docs/_build/html
+      # linkcheck est un builder integre a Sphinx : aucun paquet a installer.
+      # Le « pip install sphinx-linkcheck » precedent echouait systematiquement,
+      # ce paquet n'existant pas sur PyPI.
+      # continue-on-error : un lien externe mort ne doit pas bloquer la
+      # publication de la documentation — le resultat reste consultable dans
+      # les logs du job.
       - name: Check for broken links
+        continue-on-error: true
         run: |
-          pip install sphinx-linkcheck
           sphinx-build -b linkcheck docs docs/_build/linkcheck
       - name: Notify Discord (optionnel)
         if: always()
