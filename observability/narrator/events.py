@@ -159,7 +159,9 @@ def _ligne(label: str, valeur: str) -> list[str]:
     manquant) : une donnee absente ne se rend jamais comme un zero ou un
     tiret. Elle disparait.
     """
-    return [f"{label} {valeur}"] if valeur else []
+    if not valeur:
+        return []
+    return [f"{label} {valeur}" if label else valeur]
 
 
 def _entete(entry: dict, titre: str) -> list[str]:
