@@ -189,6 +189,12 @@ class CommandDataProvider:
     # Phase F-01 (CapitalThrottle), illisible face aux ~677 USD du wallet
     # paper qui trade réellement. Affichage uniquement.
     get_paper_equity: Optional[Callable[[], Any]] = None
+    # PnL latent des positions ouvertes, lu sur le ledger qui les porte
+    # (MexcSim) — même source que get_positions. Distinct de
+    # get_risk()["open_pnl_pct"], qui est la métrique de décision
+    # d'ExecutiveOverride et vient de pos_manager. None = inconnu.
+    # -> dict {pnl_usd, pnl_pct, engaged_usd} | None
+    get_open_pnl: Optional[Callable[[], Any]] = None
     get_positions: Optional[Callable[[], Any]] = None
     get_phase: Optional[Callable[[], Any]] = None
     get_throttle: Optional[Callable[[], Any]] = None
@@ -1026,13 +1032,20 @@ def _fmt_rapport(p: CommandDataProvider) -> str:
     lines = [f"*PORTEFEUILLE — {now}*", f"Phase *{phase}*"]
     lines += _capital_lines(p, thr)
 
-    # PnL des positions ouvertes. Champ affiché seulement s'il existe : un PnL
-    # inconnu et un PnL nul sont deux états différents, et les confondre est ce
-    # qui rendait `/regime` et le panneau comportement trompeurs.
-    open_pnl = risk.get("open_pnl_pct")
-    if isinstance(open_pnl, (int, float)):
-        sg = "+" if open_pnl >= 0 else ""
-        lines.append(f"PnL ouvert  *{sg}{open_pnl:.2f} %*")
+    # PnL des positions ouvertes, lu sur le ledger qui les porte — la même
+    # source que la ligne Positions juste dessous. risk["open_pnl_pct"] vient
+    # d'ExecutiveOverride, alimenté par pos_manager : vide en paper, il
+    # affichait "+0.00 %" en permanence sous 3 positions vivantes dont le
+    # wallet montrait pourtant le PnL latent bouger (2026-08-05).
+    # Champ affiché seulement s'il existe : un PnL inconnu et un PnL nul sont
+    # deux états différents, et les confondre est ce qui rendait `/regime` et
+    # le panneau comportement trompeurs.
+    op = (p.get_open_pnl() if p.get_open_pnl else None) or {}
+    pnl_usd = op.get("pnl_usd")
+    pnl_pct = op.get("pnl_pct")
+    if isinstance(pnl_usd, (int, float)) and isinstance(pnl_pct, (int, float)):
+        sg = "+" if pnl_usd >= 0 else ""
+        lines.append(f"PnL ouvert  *{sg}{pnl_usd:.2f} USD*  ({sg}{pnl_pct:.2f} %)")
 
     n_pos = len(pos)
     lines.append(f"Positions   *{n_pos}*")

@@ -379,6 +379,43 @@ def _paper_equity_display() -> float | None:
         return None
 
 
+def _open_pnl_for_display() -> JSONDict | None:
+    """PnL latent des positions ouvertes, pour les panneaux Telegram.
+
+    Même source que _positions_for_display : le ledger MexcSim, seul à porter
+    les positions en paper trading. Le champ open_pnl_pct d'ExecutiveOverride
+    vient de pos_manager — jamais alimenté en paper, donc nul en permanence —
+    et reste la métrique de DÉCISION : il n'est pas touché ici (ADR-0007).
+
+    Retourne None quand le PnL est inconnu : simulateur absent, aucune
+    position, ou prix manquant sur au moins une position.
+    get_open_positions_summary remplace un prix indisponible par 0.0
+    (mexc_simulator.py:970) ; agréger ce 0 fabriquerait un zéro mesuré à
+    partir d'une ignorance. Un PnL inconnu et un PnL nul sont deux états
+    différents. Affichage uniquement — ne nourrit aucune décision.
+    """
+    if _virtual_portfolio is None:
+        return None
+    try:
+        summary = _virtual_portfolio.get_open_positions_summary()
+    except Exception:
+        return None
+    positions = list(getattr(summary, "positions", None) or [])
+    if not positions:
+        return None
+    if any(_to_float(getattr(p, "current_price", 0.0), 0.0) <= 0 for p in positions):
+        return None
+    engaged = sum(_to_float(getattr(p, "qty_usd", 0.0), 0.0) for p in positions)
+    if engaged <= 0:
+        return None
+    pnl_usd = _to_float(getattr(summary, "unrealized_pnl_usd", 0.0), 0.0)
+    return {
+        "pnl_usd": round(pnl_usd, 2),
+        "pnl_pct": round(pnl_usd / engaged * 100.0, 2),
+        "engaged_usd": round(engaged, 2),
+    }
+
+
 _real_accounts_obs = None
 
 
@@ -3793,6 +3830,7 @@ def main(
             get_kpis=lambda: _kpi_snapshot_with_canonical_n(_p10_kpi),
             get_balances=lambda: {"spot": real_capital, "futures": 0.0},
             get_paper_equity=_paper_equity_display,
+            get_open_pnl=_open_pnl_for_display,
             get_positions=_get_positions_for_bot,
             get_phase=lambda: _P10_PHASE,
             get_throttle=lambda: _p10_throttle,

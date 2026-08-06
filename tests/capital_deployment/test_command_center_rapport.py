@@ -56,6 +56,11 @@ def _kpis():
 def _provider_complet(**over):
     base = dict(
         get_paper_equity=lambda: 673.48,
+        get_open_pnl=lambda: {
+            "pnl_usd": -0.42,
+            "pnl_pct": -1.40,
+            "engaged_usd": 30.0,
+        },
         get_positions=lambda: [{"symbol": "MYX/USDT"}, {"symbol": "ZRO/USDT"}],
         get_phase=lambda: "F-01",
         get_throttle=lambda: _Throttle(),
@@ -103,18 +108,48 @@ class TestCeQuiAppartientAuxAutresCanaux:
 
 class TestUneDonneeAbsenteNestPasUnZero:
     def test_pnl_inconnu_n_est_pas_affiche(self):
-        out = _fmt_rapport(_provider_complet(get_risk=lambda: {"level": "CLEAR"}))
+        out = _fmt_rapport(_provider_complet(get_open_pnl=lambda: None))
         assert "PnL ouvert" not in out
 
     def test_pnl_reellement_nul_est_affiche(self):
         out = _fmt_rapport(
-            _provider_complet(get_risk=lambda: {"level": "CLEAR", "open_pnl_pct": 0.0})
+            _provider_complet(
+                get_open_pnl=lambda: {
+                    "pnl_usd": 0.0,
+                    "pnl_pct": 0.0,
+                    "engaged_usd": 30.0,
+                }
+            )
         )
         assert "PnL ouvert" in out and "0.00" in out
 
     def test_niveau_de_risque_absent_n_invente_rien(self):
         out = _fmt_rapport(_provider_complet(get_risk=lambda: {}))
         assert "Risque" not in out
+
+
+class TestLePnLVientDuLedgerQuiPorteLesPositions:
+    """Regression 2026-08-05 : "PnL ouvert +0.00 %" sous 3 positions vivantes.
+
+    Le rapport lisait ExecutiveOverride.open_pnl_pct, alimenté par pos_manager,
+    jamais rempli en paper trading. La ligne Positions venait deja de MexcSim :
+    deux registres differents sur deux lignes voisines, sans etiquette.
+    """
+
+    def test_le_rapport_n_utilise_plus_executive_override(self):
+        out = _fmt_rapport(
+            _provider_complet(
+                get_open_pnl=lambda: None,
+                get_risk=lambda: {"level": "CLEAR", "open_pnl_pct": 99.99},
+            )
+        )
+        assert "99.99" not in out, "le PnL du rapport ne vient plus de get_risk"
+        assert "PnL ouvert" not in out
+
+    def test_le_montant_en_usd_leve_l_ambiguite_du_denominateur(self):
+        out = _fmt_rapport(_provider_complet())
+        assert "-0.42 USD" in out
+        assert "-1.40 %" in out
 
 
 class TestLesCommandesRestentDetaillees:
