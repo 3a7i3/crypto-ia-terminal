@@ -41,6 +41,116 @@ def sent(monkeypatch):
     return {"messages": messages, "photos": photos}
 
 
+# ── Telegram API contract ─────────────────────────────────────────────────────
+
+
+class _FakeResponse:
+    def __init__(self, payload):
+        self._payload = payload
+
+    def json(self):
+        return self._payload
+
+
+def test_long_poll_http_timeout_exceeds_telegram_timeout(monkeypatch):
+    """The HTTP read timeout must outlast the long poll it is waiting on.
+
+    Telegram holds the getUpdates connection for the full `timeout` window when
+    no update is pending. A client timeout below it aborts every idle poll and
+    reports normal behaviour as a failure.
+    """
+    seen = {}
+
+    def fake_post(url, timeout, **kwargs):
+        seen["http_timeout"] = timeout
+        seen["poll_timeout"] = kwargs["json"]["timeout"]
+        return _FakeResponse({"ok": True, "result": []})
+
+    monkeypatch.setattr(bot.requests, "post", fake_post)
+    bot.get_updates(offset=1)
+
+    assert (
+        seen["http_timeout"] > seen["poll_timeout"]
+    ), "HTTP timeout must exceed the long-poll window"
+
+
+def test_rate_limit_429_is_retried_once_after_retry_after(monkeypatch):
+    calls = []
+    slept = []
+
+    def fake_post(url, timeout, **kwargs):
+        calls.append(url)
+        if len(calls) == 1:
+            return _FakeResponse(
+                {"ok": False, "error_code": 429, "parameters": {"retry_after": 3}}
+            )
+        return _FakeResponse({"ok": True, "result": "sent"})
+
+    monkeypatch.setattr(bot.requests, "post", fake_post)
+    monkeypatch.setattr(bot.time, "sleep", lambda s: slept.append(s))
+
+    out = bot.send_message("1", "hello")
+
+    assert slept == [3.0]
+    assert len(calls) == 2
+    assert out["ok"] is True
+
+
+def test_retry_after_is_capped(monkeypatch):
+    """A huge retry_after must not park the poll loop."""
+    slept = []
+    monkeypatch.setattr(
+        bot.requests,
+        "post",
+        lambda url, timeout, **kw: _FakeResponse(
+            {"ok": False, "error_code": 429, "parameters": {"retry_after": 9999}}
+        ),
+    )
+    monkeypatch.setattr(bot.time, "sleep", lambda s: slept.append(s))
+
+    bot.send_message("1", "hello")
+
+    assert slept == [float(bot._MAX_RETRY_AFTER_S)]
+
+
+def test_429_retries_at_most_once(monkeypatch):
+    """A persistent 429 must not recurse indefinitely."""
+    calls = []
+    monkeypatch.setattr(
+        bot.requests,
+        "post",
+        lambda url, timeout, **kw: calls.append(1)
+        or _FakeResponse(
+            {"ok": False, "error_code": 429, "parameters": {"retry_after": 1}}
+        ),
+    )
+    monkeypatch.setattr(bot.time, "sleep", lambda s: None)
+
+    bot.send_message("1", "hello")
+
+    assert len(calls) == 2
+
+
+def test_api_rejection_is_logged_not_swallowed(monkeypatch, caplog):
+    """A 400 'can't parse entities' must not vanish silently."""
+    monkeypatch.setattr(
+        bot.requests,
+        "post",
+        lambda url, timeout, **kw: _FakeResponse(
+            {
+                "ok": False,
+                "error_code": 400,
+                "description": "Bad Request: can't parse entities",
+            }
+        ),
+    )
+
+    with caplog.at_level("ERROR"):
+        bot.send_message("1", "<b>unbalanced")
+
+    assert "can't parse entities" in caplog.text
+
+
 # ── Authorization ─────────────────────────────────────────────────────────────
 
 

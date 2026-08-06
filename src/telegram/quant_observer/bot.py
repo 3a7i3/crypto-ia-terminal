@@ -70,13 +70,52 @@ def is_authorized(chat_id: str) -> bool:
 # ── Telegram helpers ──────────────────────────────────────────────────────────
 
 
-def _post(method: str, **kwargs) -> dict:
+# Long-poll duration asked of Telegram in getUpdates. The HTTP read timeout must
+# stay strictly above it: Telegram legitimately holds the connection open for the
+# full window when no update is pending, so a shorter client timeout aborts every
+# idle poll and logs a failure for normal behaviour.
+LONG_POLL_S = 20
+_HTTP_TIMEOUT_S = 15
+_LONG_POLL_HTTP_TIMEOUT_S = LONG_POLL_S + 10
+
+# 429 is a documented flood-control response carrying parameters.retry_after.
+# One bounded retry is enough for a read-only observer; capped so a large
+# retry_after can never park the poll loop.
+_MAX_RETRY_AFTER_S = 30
+
+
+def _post(
+    method: str,
+    timeout: float = _HTTP_TIMEOUT_S,
+    _retried: bool = False,
+    **kwargs,
+) -> dict:
     try:
-        r = requests.post(f"{_API_BASE}/{method}", timeout=15, **kwargs)
-        return r.json()
+        r = requests.post(f"{_API_BASE}/{method}", timeout=timeout, **kwargs)
+        data = r.json()
     except Exception as e:
         logger.error("Telegram %s failed: %s", method, e)
         return {}
+
+    if isinstance(data, dict) and not data.get("ok", True):
+        retry_after = (data.get("parameters") or {}).get("retry_after")
+        if data.get("error_code") == 429 and retry_after and not _retried:
+            wait = min(float(retry_after), _MAX_RETRY_AFTER_S)
+            logger.warning(
+                "Telegram %s rate-limited (429) — retrying once in %.0fs", method, wait
+            )
+            time.sleep(wait)
+            return _post(method, timeout=timeout, _retried=True, **kwargs)
+        # Surface the failure. Without this a 400 "can't parse entities" — a
+        # malformed HTML payload — would vanish silently and the operator would
+        # simply never receive the answer.
+        logger.error(
+            "Telegram %s rejected: %s %s",
+            method,
+            data.get("error_code"),
+            data.get("description"),
+        )
+    return data
 
 
 def send_photo(chat_id: str, png_bytes: bytes, caption: str = "") -> dict:
@@ -106,7 +145,11 @@ def edit_message(chat_id: str, message_id: str, text: str) -> dict:
 
 
 def get_updates(offset: int = 0) -> list[dict]:
-    data = _post("getUpdates", json={"timeout": 20, "offset": offset})
+    data = _post(
+        "getUpdates",
+        timeout=_LONG_POLL_HTTP_TIMEOUT_S,
+        json={"timeout": LONG_POLL_S, "offset": offset},
+    )
     return data.get("result", [])
 
 
