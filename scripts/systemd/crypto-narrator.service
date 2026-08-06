@@ -1,0 +1,58 @@
+# Telemetrie — le Narrateur (docs/CONTRAT_SUPERVISEUR.md).
+#
+# Observateur PASSIF, processus separe du moteur (ADR-0007). Il lit la boite
+# noire et raconte la vie decisionnelle interne vers @Telemetrie_bot.
+#
+# La passivite n'est pas qu'une promesse de code : `ReadOnlyPaths` la rend
+# MATERIELLE. Meme un bug, meme une modification future du module, ne peuvent
+# pas ecrire dans databases/ — le noyau refuse. C'est la seule forme de
+# garantie qui survit a une relecture distraite.
+#
+# Installation (VPS, geste operateur) :
+#   sudo cp scripts/systemd/crypto-narrator.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now crypto-narrator.service
+#
+# Verifier :
+#   systemctl status crypto-narrator.service
+#   journalctl -u crypto-narrator.service -f
+[Unit]
+Description=Telemetrie - Narrateur (observation passive, hors moteur)
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=120
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=mathieu
+WorkingDirectory=/home/mathieu/crypto_ai_terminal
+EnvironmentFile=-/home/mathieu/crypto_ai_terminal/.env
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONIOENCODING=utf-8
+Environment=TZ=UTC
+Environment=PYTHONPATH=/home/mathieu/crypto_ai_terminal
+ExecStart=/home/mathieu/crypto_ai_terminal/.venv/bin/python -m observability.narrator.runner
+Restart=on-failure
+RestartSec=15s
+TimeoutStopSec=20
+
+# Un observateur ne doit jamais disputer le CPU au moteur qu'il observe.
+Nice=10
+IOSchedulingClass=idle
+
+# Passivite imposee par le noyau, pas seulement par le code.
+ReadOnlyPaths=/home/mathieu/crypto_ai_terminal/databases
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=crypto_narrator
+
+[Install]
+WantedBy=multi-user.target
