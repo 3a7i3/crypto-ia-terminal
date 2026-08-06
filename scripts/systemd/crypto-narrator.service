@@ -1,7 +1,9 @@
 # Telemetrie — le Narrateur (docs/CONTRAT_SUPERVISEUR.md).
 #
 # Observateur PASSIF, processus separe du moteur (ADR-0007). Il lit la boite
-# noire et raconte la vie decisionnelle interne vers @Telemetrie_bot.
+# noire et raconte la vie decisionnelle interne vers @Telemetrie_IA_bot
+# (le canal est defini par NARRATOR_BOT_TOKEN / NARRATOR_CHAT_ID dans .env —
+# le nom d'utilisateur n'apparait nulle part dans le code).
 #
 # La passivite n'est pas qu'une promesse de code : `ReadOnlyPaths` la rend
 # MATERIELLE. Meme un bug, meme une modification future du module, ne peuvent
