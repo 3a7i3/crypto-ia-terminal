@@ -19,6 +19,7 @@ from datetime import datetime, timezone
 from typing import Iterable
 
 from observability.narrator.budget import Budget, Emission
+from observability.narrator.daily import Quotidien, jour_de
 from observability.narrator.digest import Agregat
 from observability.narrator.events import IGNORE, ROUTINE, classify
 
@@ -30,9 +31,11 @@ _INTERVALLE_LECTURE_S = 20.0
 class Narrateur:
     budget: Budget = field(default_factory=Budget)
     agregat: Agregat = field(default_factory=Agregat)
+    quotidien: Quotidien = field(default_factory=Quotidien)
     periode_agregat_s: float = PERIODE_AGREGAT_S
 
     _prochain_agregat: float = 0.0
+    _jour_courant: str = ""
     _deja_vu: set = field(default_factory=set, repr=False)
 
     # ── Coeur ────────────────────────────────────────────────────────────────
@@ -49,6 +52,13 @@ class Narrateur:
 
             if verdict.registre == IGNORE:
                 continue
+
+            # Le quotidien compte TOUT ce que le narrateur possede — direct
+            # comme routine. L'agregat horaire, lui, ne porte que la routine :
+            # un evenement deja raconte a l'unite n'a pas a etre recompte dans
+            # le resume de l'heure.
+            self.quotidien.observer(entree)
+
             if verdict.registre == ROUTINE:
                 self.agregat.observer(entree)
                 continue
@@ -66,8 +76,21 @@ class Narrateur:
                 # disparaitrait des deux comptages a la fois.
                 self.agregat.observer(entree)
 
+        sorties += self._recapitulatif(maintenant)
         sorties += self._echeance(maintenant)
         return sorties
+
+    def _recapitulatif(self, maintenant: float) -> list[Emission]:
+        """Emet le recap de la journee ecoulee, au passage de minuit UTC."""
+        jour = jour_de(maintenant)
+        if not self._jour_courant:
+            self._jour_courant = jour
+            return []
+        if jour == self._jour_courant:
+            return []
+        fini, self._jour_courant = self._jour_courant, jour
+        texte = self.quotidien.rendre(fini)
+        return [Emission(texte)] if texte else []
 
     def _echeance(self, maintenant: float) -> list[Emission]:
         if maintenant < self._prochain_agregat:

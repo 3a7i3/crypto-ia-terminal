@@ -8,6 +8,7 @@ n'ecrit dans aucun etat runtime, et ne peut influencer aucune decision.
 """
 
 from observability.narrator.budget import Budget, Emission
+from observability.narrator.daily import Journee, Quotidien
 from observability.narrator.digest import Agregat
 from observability.narrator.events import DIRECT, IGNORE, ROUTINE, Narration, classify
 from observability.narrator.reader import BoiteNoire
@@ -18,6 +19,8 @@ __all__ = [
     "Budget",
     "Emission",
     "Agregat",
+    "Quotidien",
+    "Journee",
     "Narration",
     "Narrateur",
     "BoiteNoire",
