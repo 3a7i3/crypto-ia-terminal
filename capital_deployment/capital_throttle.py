@@ -29,6 +29,25 @@ PHASE_CONFIGS: dict[str, dict] = {
 PHASE_ORDER = ["F-01", "F-02", "F-03", "F-04", "F-05"]
 
 
+def _default_started_at() -> float:
+    """Départ de phase = horloge de burn-in partagée, persistante.
+
+    Avant (2026-08-07), le défaut était `time.time()` : le « Jour X / 7 »
+    affiché par le bot Mon Portefeuille repartait de zéro à chaque
+    redémarrage, rendant `min_duration_days` inatteignable si le service
+    redémarrait plus souvent que la durée exigée. L'horloge est désormais
+    ancrée sur l'époque du dataset (system/burnin_clock.py) — elle ne
+    repart que sur un changement d'époque explicite.
+    """
+    try:
+        from system.burnin_clock import burnin_start
+
+        return burnin_start()
+    except Exception as exc:  # horloge indisponible → comportement historique
+        _log.warning("[Throttle] burnin_clock indisponible (%s) — départ = now", exc)
+        return time.time()
+
+
 @dataclass
 class PhaseAllocation:
     phase: str
@@ -91,7 +110,7 @@ class CapitalThrottle:
             allocated_capital=raw,
             capital_pct=cfg["capital_pct"],
             min_duration_days=cfg["min_duration_days"],
-            started_at=started_at or time.time(),
+            started_at=started_at or _default_started_at(),
         )
 
     @property

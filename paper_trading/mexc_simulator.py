@@ -172,6 +172,34 @@ class OpenPositionsSummary:
     positions: list[OpenPositionSummary] = field(default_factory=list)
 
 
+# ── Horloge de burn-in (source unique, partagée avec Mon Portefeuille) ────────
+
+
+def _burnin_line(width: int = 9) -> str:
+    """Ligne « Burn-in » des rapports — horloge partagée, jamais locale.
+
+    Ce panneau affichait « Duree : J0.8 / 7 (session depuis restart) », calculé
+    depuis le démarrage du process : le burn-in *recommençait* à chaque
+    redémarrage au lieu de continuer (constat opérateur 2026-08-07). Le
+    compteur local a été supprimé ; la durée vient désormais de
+    `system.burnin_clock`, la même horloge que le « Jour X / 7 » du bot Mon
+    Portefeuille. Horloge indisponible → aucune ligne, plutôt qu'un chiffre
+    faux.
+    """
+    try:
+        from capital_deployment.capital_throttle import PHASE_CONFIGS
+        from system.burnin_clock import days_elapsed
+
+        min_days = PHASE_CONFIGS.get(os.getenv("P10_PHASE", "F-01"), {}).get(
+            "min_duration_days", 7
+        )
+        label = f"{'Burn-in':<{width}}"
+        return f"{label}: J{days_elapsed():.1f} / {min_days} (horloge partagee)"
+    except Exception as exc:
+        _log.warning("[SIM] burnin_clock indisponible: %s", exc)
+        return ""
+
+
 # ── Tracker de performance ────────────────────────────────────────────────────
 
 
@@ -182,7 +210,6 @@ class PerformanceTracker:
         self._daily_returns: list[float] = []
         self._equity_curve: list[float] = []
         self._peak: float = 0.0
-        self._start_ts: float = time.time()
 
     def record_equity(self, equity: float) -> None:
         if self._equity_curve:
@@ -219,9 +246,6 @@ class PerformanceTracker:
         if std == 0:
             return 0.0
         return (mean - risk_free) / std * math.sqrt(252)
-
-    def days_running(self) -> float:
-        return (time.time() - self._start_ts) / 86400.0
 
 
 # ── Simulateur principal ──────────────────────────────────────────────────────
@@ -290,6 +314,7 @@ class MexcSimulator:
             capital,
             restored,
         )
+        burnin = _burnin_line(width=10)
         self._notify(
             f"MEXC SIM — Compte actif\n"
             f"━━━━━━━━━━━━━━━━━━━━━\n"
@@ -298,7 +323,9 @@ class MexcSimulator:
             f"Ordres    : MARKET | LIMIT | STOP_LIMIT\n"
             f"Donnees   : MEXC temps reel\n"
             f"Mode      : SIMULATION — aucun ordre reel\n"
-            f"Objectif  : 7 jours validation burn-in"
+            # Le redémarrage ne remet pas le burn-in à zéro : la ligne montre
+            # l'avancement réel de l'époque, pas un « objectif » qui repart.
+            + (burnin if burnin else "Burn-in   : horloge indisponible")
         )
 
     def _read_mexc_balance(self) -> float:
@@ -936,12 +963,15 @@ class MexcSimulator:
         )
         sharpe = self._perf.sharpe()
         dd = self._perf.max_drawdown_pct()
-        days = self._perf.days_running()
 
         lines = [
             "MEXC SIM — Rapport performance",
             "━━━━━━━━━━━━━━━━━━━━━",
-            f"Duree    : J{days:.1f} / 7 (session depuis restart)",
+        ]
+        burnin = _burnin_line()
+        if burnin:
+            lines.append(burnin)
+        lines += [
             f"Capital  : ${self._initial_capital:.2f} -> ${total_equity:.2f} USDT",
             f"P&L      : {pnl_pct:+.2f}%"
             f"  (R:{realized_pnl:+.4f}$ U:{unrealized_pnl:+.4f}$)",
