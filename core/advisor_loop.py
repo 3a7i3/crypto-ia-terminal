@@ -3510,7 +3510,14 @@ def main(
             phase=_P10_PHASE,
             halt_fn=lambda reason: _halt_requested.set(),
         )
-        _p10_kpi = _P10KPICls(phase=_P10_PHASE, initial_capital=real_capital)
+        # started_at = horloge de burn-in partagée (system/burnin_clock.py) :
+        # sans elle, `days_elapsed` du panneau /kpis repartait de zéro à chaque
+        # redémarrage, en désaccord avec le « Jour X / 7 » de /status.
+        _p10_kpi = _P10KPICls(
+            phase=_P10_PHASE,
+            initial_capital=real_capital,
+            started_at=_p10_throttle.allocation().started_at,
+        )
         if advisor_only:
             # Paper mode : capital paper indépendant du capital réel throttlé.
             # Le CapitalThrottle (basé sur $real_capital live) ne s'applique pas.
