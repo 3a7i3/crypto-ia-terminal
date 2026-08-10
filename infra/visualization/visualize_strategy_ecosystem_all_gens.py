@@ -6,11 +6,11 @@ import os
 def missing_module_message():
     missing = []
     try:
-        import pandas
+        import pandas  # noqa: F401 — sonde de disponibilite, l'import EST le test
     except ImportError:
         missing.append("pandas")
     try:
-        import plotly
+        import plotly  # noqa: F401 — sonde de disponibilite, l'import EST le test
     except ImportError:
         missing.append("plotly")
     if missing:
