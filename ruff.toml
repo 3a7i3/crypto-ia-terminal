@@ -22,7 +22,12 @@
 #      docs/notebook_enrichissements.ipynb contient par ailleurs une
 #      erreur de syntaxe qui merite un traitement propre, pas un ignore.
 #
-# A garder synchronise avec setup.cfg tant que les deux outils coexistent.
+# Les deux outils coexistent bel et bien : .pre-commit-config.yaml fait
+# tourner flake8 7.0.0, qui lit setup.cfg, tandis que la CI fait tourner
+# ruff, qui lit ce fichier. setup.cfg reste donc actif en local et n'est
+# pas a supprimer. Toute evolution de l'un doit etre reportee dans
+# l'autre, sous peine de voir un commit passer en pre-commit et echouer
+# en CI, ou l'inverse.
 
 line-length = 88
 exclude = [".venv", "__pycache__", "_ARCHIVE_2026", "*.ipynb"]
