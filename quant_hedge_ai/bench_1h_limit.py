@@ -18,7 +18,6 @@ import os
 import random
 import statistics
 import time
-from typing import Any
 
 # Désactive les logs trop verbeux pendant le bench
 os.environ.setdefault("MARKET_SCANNER_SYNTHETIC", "true")

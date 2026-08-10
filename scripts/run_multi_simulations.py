@@ -3,7 +3,6 @@ Module : run_multi_simulations.py
 Automatise le lancement de plusieurs simulations évolutionnaires et sauvegarde un résumé pour chaque run.
 """
 
-import os
 import random
 
 from evolution_core import create_population, evolve, save_simulation_summary

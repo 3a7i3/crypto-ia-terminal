@@ -2,7 +2,6 @@
 # Nécessite : pip install playwright pytest-playwright
 # Usage : python scripts/generate_panel_screenshots.py
 
-import os
 import subprocess
 import time
 from pathlib import Path

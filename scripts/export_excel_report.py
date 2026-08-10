@@ -5,7 +5,6 @@ Exporte les résultats multi-simulations dans un fichier Excel multi-feuilles.
 
 import os
 
-import numpy as np
 import pandas as pd
 from pandas import ExcelWriter
 

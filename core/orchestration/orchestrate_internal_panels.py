@@ -1,6 +1,4 @@
 import os
-import subprocess
-import sys
 
 # Liste des panels et chemins associés
 PANELS = [

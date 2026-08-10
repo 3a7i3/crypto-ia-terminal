@@ -5,7 +5,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
 
-from tracker_system.core.trade_logger import log_entry, log_exit
+from tracker_system.core.trade_logger import log_exit
 import tracker_system.tracker as legacy_dashboard
 
 

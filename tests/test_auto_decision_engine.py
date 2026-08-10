@@ -14,7 +14,6 @@ from tracker_system.autonomous.auto_decision_engine import (
     AutoDecisionEngine,
     RiskGuard,
     ActionExecutor,
-    DecisionLogger,
     AutoDecisionOrchestrator
 )
 

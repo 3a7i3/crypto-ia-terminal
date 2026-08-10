@@ -5,7 +5,6 @@ entry → update → exit → logs propres
 """
 
 import sys
-import json
 import time
 from pathlib import Path
 

@@ -8,12 +8,9 @@ import json
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from datetime import datetime, timezone
-import time
 
 from tracker_system.core.trade_tracker import (
     open_position,
-    close_position,
     update_positions,
 )
 from tracker_system.engine.composite_exit_engine import CompositeExitEngine
