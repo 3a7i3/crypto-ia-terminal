@@ -3882,7 +3882,6 @@ def main(
             )
             pos_manager.add_position(pos)
             try:
-                import json as _json
                 import os as _os
 
                 _snap_path: str = _os.path.join("databases", "positions_snapshot.json")
@@ -7589,7 +7588,6 @@ def main(
                     _enl_log
                     / f"decision_packets_{_dt.utcnow().strftime('%Y-%m-%d')}.jsonl"
                 )
-                import json as _json
 
                 with open(_enl_file, "a", encoding="utf-8") as _f:
                     _f.write(_json.dumps(_enl_dp.to_dict(), ensure_ascii=False) + "\n")
