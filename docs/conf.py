@@ -16,7 +16,9 @@ author = "Crypto AI Team"
 release = "9.1"
 
 extensions = [
-    "myst_parser",
+    # myst_nb charge deja myst_parser : le declarer en plus fait passer
+    # setup_sphinx() deux fois et casse le build (ValueError sur
+    # SphinxUnreferencedFootnotesDetector deja retire).
     "myst_nb",
     "sphinx.ext.autodoc",
     "sphinx.ext.napoleon",
