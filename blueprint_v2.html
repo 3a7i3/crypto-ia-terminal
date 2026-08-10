@@ -1,0 +1,1118 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="./">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="genindex.html"><link rel="search" title="Search" href="search.html">
+        <link rel="prefetch" href="_static/../assets/logo_ai_quant.png" as="image">
+        <link rel="prefetch" href="_static/../assets/logo_ai_quant.png" as="image">
+
+    <link rel="shortcut icon" href="_static/favicon.ico"><!-- Generated with Sphinx 9.0.4 and Furo 2025.12.19 -->
+        <title>Blueprint V2 — crypto_ai_terminal - Crypto AI Terminal 9.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=1b9cecba" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="index.html"><div class="brand">Crypto AI Terminal 9.1 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="index.html">
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="_static/../assets/logo_ai_quant.png" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="_static/../assets/logo_ai_quant.png" alt="Dark Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/blob/main/docs/blueprint_v2.md?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/edit/main/docs/blueprint_v2.md" rel="edit" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="blueprint-v2-crypto-ai-terminal">
+<h1>Blueprint V2 — crypto_ai_terminal<a class="headerlink" href="#blueprint-v2-crypto-ai-terminal" title="Link to this heading">¶</a></h1>
+</section>
+<section id="architecture-institutionnelle-en-7-niveaux-couche-l3-5">
+<h1>Architecture institutionnelle en 7 niveaux + couche L3.5<a class="headerlink" href="#architecture-institutionnelle-en-7-niveaux-couche-l3-5" title="Link to this heading">¶</a></h1>
+</section>
+<section id="id1">
+<h1><a class="headerlink" href="#id1" title="Link to this heading">¶</a></h1>
+</section>
+<section id="reference-normative-pour-toutes-les-sessions">
+<h1>Référence normative pour toutes les sessions.<a class="headerlink" href="#reference-normative-pour-toutes-les-sessions" title="Link to this heading">¶</a></h1>
+</section>
+<section id="mis-a-jour-a-chaque-franchissement-de-jalon">
+<h1>Mis à jour à chaque franchissement de jalon.<a class="headerlink" href="#mis-a-jour-a-chaque-franchissement-de-jalon" title="Link to this heading">¶</a></h1>
+</section>
+<section id="version-2-2-date-2026-07-01">
+<h1>Version : 2.2   Date : 2026-07-01<a class="headerlink" href="#version-2-2-date-2026-07-01" title="Link to this heading">¶</a></h1>
+<hr class="docutils" />
+<section id="vue-densemble">
+<h2>Vue d’ensemble<a class="headerlink" href="#vue-densemble" title="Link to this heading">¶</a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>L7   ── Scientific Intelligence Core  [0/100]  ← connaissance scientifique long terme
+L6   ── Live Operations               [36/100] ← paper trading + monitoring
+L5   ── Digital Twin                  [0/100]  ← simulation shadow complète
+L4   ── Research Lab                  [0/100]  ← hypothèses auto-générées
+L3.5 ── Scientific Intelligence Layer [0/100]  ← langage scientifique du DIP
+L3   ── Scientific Governance         [10/100] ← audit, traçabilité, reproductibilité
+L2   ── Scientific Validation         [35/100] ← preuve statistique de l&#39;edge
+L1   ── Engineering                   [100/100]← infrastructure ✅
+
+PMI-7 Capability Score  = 181 / 700 = 26%    [baseline 2026-06-30]
+PMI-7 Evidence Score    =   0 / 700 =  0%    [aucune donnée certifiée]
+SDOS Capability Score   = 181 / 800 = 22.6%  [inclut L3.5, baseline 2026-07-01]
+</pre></div>
+</div>
+<p><strong>Règle de progression :</strong> un niveau ne démarre pleinement que quand le niveau inférieur
+atteint sa gate ADG. Les niveaux ne sont pas strictement séquentiels — L3 peut avancer
+pendant L2 — mais ADG-02 bloque toute opération L4+ et bloque le capital réel.</p>
+<p><strong>Règle SDOS :</strong> L3.5 ne compte pas comme capacité runtime. Il formalise le langage
+scientifique qui transforme les observations DIP en connaissance : Decision →
+RootCause → Hypothesis → Dataset → Evidence → Confidence → ScientificConclusion →
+RecommendedExperiment.</p>
+</section>
+<hr class="docutils" />
+<section id="niveau-1-engineering-complete-100-100">
+<h2>Niveau 1 — Engineering  [COMPLÉTÉ — 100/100]<a class="headerlink" href="#niveau-1-engineering-complete-100-100" title="Link to this heading">¶</a></h2>
+<section id="mission">
+<h3>Mission<a class="headerlink" href="#mission" title="Link to this heading">¶</a></h3>
+<p>Construire l’infrastructure de trading déterministe, testable, observable.</p>
+</section>
+<section id="composants-livres">
+<h3>Composants livrés<a class="headerlink" href="#composants-livres" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Module</p></th>
+<th class="head"><p>Fichier</p></th>
+<th class="head"><p>Garantie</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>DecisionEngine v9</p></td>
+<td><p>core/advisor_loop.py</p></td>
+<td><p>12 couches, PacketDecision souverain</p></td>
+</tr>
+<tr class="row-odd"><td><p>EventBus</p></td>
+<td><p>observability/decision_event_bus.py</p></td>
+<td><p>pub/sub non-bloquant, ThreadPoolExecutor</p></td>
+</tr>
+<tr class="row-even"><td><p>DecisionObservation</p></td>
+<td><p>observability/decision_observation.py</p></td>
+<td><p>frozen dataclass, 40+ champs</p></td>
+</tr>
+<tr class="row-odd"><td><p>RejectionStore</p></td>
+<td><p>observability/rejection_store.py</p></td>
+<td><p>JSONL atomic flush+fsync</p></td>
+</tr>
+<tr class="row-even"><td><p>RegretScheduler</p></td>
+<td><p>observability/regret_scheduler.py</p></td>
+<td><p>7 horizons (5m→24h), daemon</p></td>
+</tr>
+<tr class="row-odd"><td><p>DecisionExplainer</p></td>
+<td><p>observability/decision_explainer.py</p></td>
+<td><p>rapport lisible ≤ 4000 chars</p></td>
+</tr>
+<tr class="row-even"><td><p>Feature Flags</p></td>
+<td><p>config/feature_flags.py</p></td>
+<td><p>FEATURE_AUTO_CALIBRATION=false permanent</p></td>
+</tr>
+<tr class="row-odd"><td><p>Formal Governance</p></td>
+<td><p>governance/</p></td>
+<td><p>EIC_v2, ATC, DPSS, SEP, STI — 388 tests</p></td>
+</tr>
+<tr class="row-even"><td><p>Data Gov Spec</p></td>
+<td><p>docs/data_governance_spec_v1.md</p></td>
+<td><p>24 DG-xxx, 4 niveaux certification</p></td>
+</tr>
+<tr class="row-odd"><td><p>Dataset Certifier</p></td>
+<td><p>tools/dataset_certifier.py</p></td>
+<td><p>CLI, DG-001→DG-024, 32 tests</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="gate-adg-01-franchie">
+<h3>Gate ADG-01 : FRANCHIE ✅<a class="headerlink" href="#gate-adg-01-franchie" title="Link to this heading">¶</a></h3>
+<p>Contrat d’entrée L1 : infrastructure de trading minimale existante.
+Contrat de sortie L1 : tous les tests verts + ADR-0007 approuvée + observabilité câblée.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="niveau-2-scientific-validation-en-cours-35-100">
+<h2>Niveau 2 — Scientific Validation  [EN COURS — 35/100]<a class="headerlink" href="#niveau-2-scientific-validation-en-cours-35-100" title="Link to this heading">¶</a></h2>
+<section id="id2">
+<h3>Mission<a class="headerlink" href="#id2" title="Link to this heading">¶</a></h3>
+<p>Prouver que le DecisionEngine a une edge statistiquement significative sur les
+hypothèses H1-H4, avec données certifiées, avant tout passage en capital réel.</p>
+</section>
+<section id="maturite-l2">
+<h3>Maturité L2<a class="headerlink" href="#maturite-l2" title="Link to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Maturity 0 : Aucun dataset (situation actuelle — N = 0 certifié)
+     ↓
+Maturity 1 : Dataset certifié — gate S1 (N &gt;= 30, CERT-2026-Q3-001 non null)
+     ↓
+Maturity 2 : Hypothèses évaluées — gate S4 (N &gt;= 100, p-value calculée pour H1+H2+H3)
+     ↓
+Maturity 3 : Evidence Strong — (H1+H2+H3 Confirmed/Rejected, evidence_level &gt;= Strong)
+     ↓
+Maturity 4 : Validation complète — gate S5 (Go/No-Go positif opérateur)
+</pre></div>
+</div>
+</section>
+<section id="sous-phases">
+<h3>Sous-phases<a class="headerlink" href="#sous-phases" title="Link to this heading">¶</a></h3>
+<section id="s1-certification-du-dataset-outil-livre-donnees-en-attente">
+<h4>S1 — Certification du Dataset (outil livré, données en attente)<a class="headerlink" href="#s1-certification-du-dataset-outil-livre-donnees-en-attente" title="Link to this heading">¶</a></h4>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Outil    : tools/dataset_certifier.py
+Input    : databases/rejections/ + EXP-001.yaml manifest
+Output   : CERT-2026-Q3-001 (niveau CERTIFIED ou PASS)
+Gate S1  : certification_id non null dans EXP-001.yaml
+Statut   : outil 100% livré — N trades = 0 (en cours d&#39;accumulation)
+</pre></div>
+</div>
+</section>
+<section id="s2-statistical-readiness">
+<h4>S2 — Statistical Readiness<a class="headerlink" href="#s2-statistical-readiness" title="Link to this heading">¶</a></h4>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Outil    : tools/statistical_readiness.py  [À CRÉER — gate S1]
+Checks   :
+  □ N totaux &gt;= 100 (gate EXP-001)
+  □ Distribution BUY/SELL/HOLD équilibrée (tolérance 80/10/10)
+  □ Couverture régimes (sideways / bull / bear : N &gt;= 30 chacun)
+  □ Absence de data drift (test Kolmogorov-Smirnov sur features ts &gt; 50%)
+  □ Couverture temporelle (&gt;= 7 jours calendaires)
+Gate S2  : statistical_readiness.py exit 0
+</pre></div>
+</div>
+</section>
+<section id="s3-calibration-readiness-index-cri">
+<h4>S3 — Calibration Readiness Index (CRI)<a class="headerlink" href="#s3-calibration-readiness-index-cri" title="Link to this heading">¶</a></h4>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Outil    : tools/cri_calculator.py  [À CRÉER — gate S2]
+Formule  : CRI = (w1*N_score + w2*coverage_score + w3*drift_score + w4*balance_score) / 100
+Gate S3  : CRI &gt;= 90/100
+</pre></div>
+</div>
+</section>
+<section id="s4-hypothesis-testing">
+<h4>S4 — Hypothesis Testing<a class="headerlink" href="#s4-hypothesis-testing" title="Link to this heading">¶</a></h4>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Outil    : analysis/hypothesis_tester.py  [À CRÉER — gate S3]
+Tests    :
+  H1 (BUY sideways → expectancy négative) : t-test unilatéral, p &lt; 0.05
+  H2 (SELL bear → expectancy positive)    : t-test unilatéral, p &lt; 0.05
+  H3 (Score &gt;= 75 → meilleure expectancy) : Mann-Whitney U, p &lt; 0.05
+  H4 (ATR% &gt;= 1.5 → meilleur PF)         : Wilcoxon signed-rank, p &lt; 0.05
+Output   : hypothesis_registry.yaml §status + evidence_level mis à jour
+Gate S4  : zéro Inconclusive H1+H2+H3 quand N &gt;= min_n_required
+           zéro conflit H1↔H3 et H2↔H3
+</pre></div>
+</div>
+</section>
+<section id="s5-go-no-go-decision">
+<h4>S5 — Go/No-Go Decision<a class="headerlink" href="#s5-go-no-go-decision" title="Link to this heading">¶</a></h4>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Outil    : tools/go_no_go.py  [À CRÉER — gate S4]
+Métriques financières : PF &gt;= 1.4, Expectancy &gt; 0, DD &lt; 10%, Sharpe &gt; 0.5
+Métriques scientifiques : CRI &gt;= 90, certification CERTIFIED/PASS,
+                          evidence_level &gt;= Moderate pour H1+H2+H3
+Sortie   : rapport GO (→ L6 capital réel Phase A $50) ou NO-GO
+</pre></div>
+</div>
+</section>
+</section>
+<section id="ce-qui-ne-doit-pas-etre-cree-pendant-l2">
+<h3>Ce qui ne doit PAS être créé pendant L2<a class="headerlink" href="#ce-qui-ne-doit-pas-etre-cree-pendant-l2" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Nouveaux indicateurs techniques</p></li>
+<li><p>Nouvelles couches décisionnelles ou stratégies</p></li>
+<li><p>Toute modification de seuil existant</p></li>
+<li><p>ACE (Auto-Calibration Engine) — interdit jusqu’à CRI &gt;= 90</p></li>
+</ul>
+</section>
+<section id="gate-adg-02">
+<h3>Gate ADG-02<a class="headerlink" href="#gate-adg-02" title="Link to this heading">¶</a></h3>
+<p>Contrat d’entrée L2 : ADG-01 FRANCHIE + EXP-001.yaml manifeste signé.
+Contrat de sortie L2 : Dataset certifié + CRI &gt;= 90 + Evidence &gt;= Strong sur H1+H2+H3 + Go opérateur.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="niveau-3-scientific-governance-embryonnaire-10-100">
+<h2>Niveau 3 — Scientific Governance  [EMBRYONNAIRE — 10/100]<a class="headerlink" href="#niveau-3-scientific-governance-embryonnaire-10-100" title="Link to this heading">¶</a></h2>
+<section id="id3">
+<h3>Mission<a class="headerlink" href="#id3" title="Link to this heading">¶</a></h3>
+<p>Infrastructure institutionnelle pour gérer la connaissance scientifique accumulée :
+traçabilité, reproductibilité, audit, détection des dérives, rapport de maturité.</p>
+</section>
+<section id="maturite-l3">
+<h3>Maturité L3<a class="headerlink" href="#maturite-l3" title="Link to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Maturity 0 : Gouvernance logicielle uniquement (governance/ existant — couches EIC/ATC)
+     ↓
+Maturity 1 : G-01 + G-02 opérationnels (DataQualityMonitor + StatPower)
+     ↓
+Maturity 2 : G-01→G-05 opérationnels (monitoring + lineage + drift)
+     ↓
+Maturity 3 : G-01→G-10 opérationnels (audit complet automatisé)
+     ↓
+Maturity 4 : Premier ScientificAuditReport généré et validé par l&#39;opérateur
+</pre></div>
+</div>
+</section>
+<section id="g-modules-vision-a-creer-post-gate-adg-02">
+<h3>10 G-modules (vision — à créer post-gate ADG-02)<a class="headerlink" href="#g-modules-vision-a-creer-post-gate-adg-02" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>ID</p></th>
+<th class="head"><p>Module</p></th>
+<th class="head"><p>Fichier cible</p></th>
+<th class="head"><p>Fonction</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>G-01</p></td>
+<td><p>DataQualityMonitor</p></td>
+<td><p>governance/science/dq_monitor.py</p></td>
+<td><p>Surveille les métriques DG-xxx en temps réel</p></td>
+</tr>
+<tr class="row-odd"><td><p>G-02</p></td>
+<td><p>StatPowerCalculator</p></td>
+<td><p>governance/science/stat_power.py</p></td>
+<td><p>Calcule la puissance statistique atteinte</p></td>
+</tr>
+<tr class="row-even"><td><p>G-03</p></td>
+<td><p>HypothesisConflictDetector</p></td>
+<td><p>governance/science/conflict_detector.py</p></td>
+<td><p>Détecte H_i↔H_j contradictoires</p></td>
+</tr>
+<tr class="row-odd"><td><p>G-04</p></td>
+<td><p>EvidenceLevelTracker</p></td>
+<td><p>governance/science/evidence_tracker.py</p></td>
+<td><p>Trace l’évolution des evidence_level</p></td>
+</tr>
+<tr class="row-even"><td><p>G-05</p></td>
+<td><p>ExperimentLineageVerifier</p></td>
+<td><p>governance/science/lineage_verifier.py</p></td>
+<td><p>Vérifie la filiation des datasets</p></td>
+</tr>
+<tr class="row-odd"><td><p>G-06</p></td>
+<td><p>DatasetDriftDetector</p></td>
+<td><p>governance/science/drift_detector.py</p></td>
+<td><p>Détecte le drift entre datasets successifs</p></td>
+</tr>
+<tr class="row-even"><td><p>G-07</p></td>
+<td><p>CRICalculator</p></td>
+<td><p>governance/science/cri_calculator.py</p></td>
+<td><p>CRI automatisé à chaque N%50</p></td>
+</tr>
+<tr class="row-odd"><td><p>G-08</p></td>
+<td><p>ScientificAuditReport</p></td>
+<td><p>governance/science/audit_report.py</p></td>
+<td><p>Rapport Markdown complet à la demande</p></td>
+</tr>
+<tr class="row-even"><td><p>G-09</p></td>
+<td><p>GoNoGoEngine</p></td>
+<td><p>governance/science/go_no_go_engine.py</p></td>
+<td><p>Moteur décisionnel automatique (recommande)</p></td>
+</tr>
+<tr class="row-odd"><td><p>G-10</p></td>
+<td><p>PMIUpdater</p></td>
+<td><p>governance/science/pmi_updater.py</p></td>
+<td><p>Met à jour le PMI et CLAUDE.md</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="gate-adg-03">
+<h3>Gate ADG-03<a class="headerlink" href="#gate-adg-03" title="Link to this heading">¶</a></h3>
+<p>Contrat d’entrée L3 : ADG-02 FRANCHIE.
+Contrat de sortie L3 : G-01→G-10 opérationnels + au moins une Release scientifique validée.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="niveau-3-5-scientific-intelligence-layer-cible-0-100">
+<h2>Niveau 3.5 — Scientific Intelligence Layer  [CIBLE — 0/100]<a class="headerlink" href="#niveau-3-5-scientific-intelligence-layer-cible-0-100" title="Link to this heading">¶</a></h2>
+<section id="id4">
+<h3>Mission<a class="headerlink" href="#id4" title="Link to this heading">¶</a></h3>
+<p>Transformer les observations et artefacts certifiés du DIP en connaissance
+scientifique structurée. L3.5 ne crée pas de nouvelles fonctionnalités de
+trading : il crée le langage qui relie décisions, causes, hypothèses, datasets,
+evidence, confiance, conclusions et expériences recommandées.</p>
+<p>Référence normative : <code class="docutils literal notranslate"><span class="pre">docs/dip/SCIENTIFIC_INTELLIGENCE_LAYER.md</span></code>.
+ADR fondatrice : <code class="docutils literal notranslate"><span class="pre">docs/adr/0008-scientific-intelligence-layer.md</span></code>.</p>
+</section>
+<section id="maturite-l3-5">
+<h3>Maturité L3.5<a class="headerlink" href="#maturite-l3-5" title="Link to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Maturity 0 : Spécification publiée (ADR-0008 + spec L3.5)
+     ↓
+Maturity 1 : Sources fiables (Observer Certification Level 3 + dataset CERTIFIED/PASS)
+     ↓
+Maturity 2 : Decision Knowledge Graph initial (SI-01)
+     ↓
+Maturity 3 : Evidence Engine + Contradiction Detector opérationnels (SI-03 + SI-05)
+     ↓
+Maturity 4 : Première Knowledge Release validée par l&#39;opérateur
+</pre></div>
+</div>
+</section>
+<section id="moteurs-si-vision-passifs">
+<h3>8 moteurs SI (vision — passifs)<a class="headerlink" href="#moteurs-si-vision-passifs" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>ID</p></th>
+<th class="head"><p>Moteur</p></th>
+<th class="head"><p>Fonction</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>SI-01</p></td>
+<td><p>Decision Knowledge Graph</p></td>
+<td><p>Relie Decision, RootCause, Hypothesis, Dataset, Evidence, Confidence, Conclusion, Experiment</p></td>
+</tr>
+<tr class="row-odd"><td><p>SI-02</p></td>
+<td><p>Causal Memory</p></td>
+<td><p>Accumule les motifs causaux récurrents et leur valeur empirique</p></td>
+</tr>
+<tr class="row-even"><td><p>SI-03</p></td>
+<td><p>Evidence Engine</p></td>
+<td><p>Suit confirmations, contradictions, invalidations et niveaux d’evidence</p></td>
+</tr>
+<tr class="row-odd"><td><p>SI-04</p></td>
+<td><p>Scientific Timeline</p></td>
+<td><p>Visualise l’évolution temporelle de la connaissance</p></td>
+</tr>
+<tr class="row-even"><td><p>SI-05</p></td>
+<td><p>Contradiction Detector</p></td>
+<td><p>Détecte les hypothèses incompatibles ou bloquantes</p></td>
+</tr>
+<tr class="row-odd"><td><p>SI-06</p></td>
+<td><p>Knowledge Confidence</p></td>
+<td><p>Mesure la confiance dans la connaissance produite</p></td>
+</tr>
+<tr class="row-even"><td><p>SI-07</p></td>
+<td><p>Scientific Drift</p></td>
+<td><p>Détecte le vieillissement ou la dégradation d’une conclusion</p></td>
+</tr>
+<tr class="row-odd"><td><p>SI-08</p></td>
+<td><p>Decision DNA</p></td>
+<td><p>Encode les décisions en séquences comparables</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="gate-adg-03-5">
+<h3>Gate ADG-03.5<a class="headerlink" href="#gate-adg-03-5" title="Link to this heading">¶</a></h3>
+<p>Contrat d’entrée L3.5 : ADG-03 FRANCHIE + Observer Certification Level 3.
+Contrat de sortie L3.5 : SI-01→SI-08 spécifiés, SI-01/SI-03/SI-05 opérationnels,
+première Knowledge Release append-only validée par l’opérateur.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="niveau-4-research-lab-non-demarre-0-100">
+<h2>Niveau 4 — Research Lab  [NON DÉMARRÉ — 0/100]<a class="headerlink" href="#niveau-4-research-lab-non-demarre-0-100" title="Link to this heading">¶</a></h2>
+<section id="id5">
+<h3>Mission<a class="headerlink" href="#id5" title="Link to this heading">¶</a></h3>
+<p>Laboratoire quantitatif avec génération automatique d’hypothèses, backtesting
+sur données historiques certifiées, simulation Monte Carlo.</p>
+</section>
+<section id="maturite-l4">
+<h3>Maturité L4<a class="headerlink" href="#maturite-l4" title="Link to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Maturity 0 : Aucun outil de recherche
+     ↓
+Maturity 1 : Backtester opérationnel sur datasets certifiés
+     ↓
+Maturity 2 : Monte Carlo + Walk Forward validation conformes
+     ↓
+Maturity 3 : Génération automatique d&#39;hypothèses testables
+     ↓
+Maturity 4 : Première hypothèse auto-générée confirmée (evidence_level &gt;= Moderate)
+</pre></div>
+</div>
+</section>
+<section id="prerequis-stricts">
+<h3>Prérequis stricts<a class="headerlink" href="#prerequis-stricts" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Gate ADG-03.5 FRANCHIE</p></li>
+<li><p>N &gt;= 500 trades certifiés (backtesting significatif)</p></li>
+<li><p>hypothesis_quality.yaml : &gt;= 2 évaluations par hypothèse principale</p></li>
+</ul>
+</section>
+<section id="modules-prevus">
+<h3>Modules prévus<a class="headerlink" href="#modules-prevus" title="Link to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>research/hypothesis_generator.py  — propose H_new basées sur les résidus d&#39;erreur
+research/backtester.py            — backtesting sur datasets certifiés (jamais live)
+research/monte_carlo.py           — simulation distribution des outcomes
+research/regime_lab.py            — Axe 2 : taxonomie hiérarchique des régimes
+research/alpha_decay_tracker.py   — mesure la durée de vie des hypothèses confirmées
+</pre></div>
+</div>
+</section>
+<section id="gate-adg-04">
+<h3>Gate ADG-04<a class="headerlink" href="#gate-adg-04" title="Link to this heading">¶</a></h3>
+<p>Contrat d’entrée L4 : ADG-03.5 FRANCHIE + N &gt;= 500 trades certifiés.
+Contrat de sortie L4 : Backtests + Walk Forward conformes + hypothèse auto-générée validée.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="niveau-5-digital-twin-non-demarre-0-100">
+<h2>Niveau 5 — Digital Twin  [NON DÉMARRÉ — 0/100]<a class="headerlink" href="#niveau-5-digital-twin-non-demarre-0-100" title="Link to this heading">¶</a></h2>
+<section id="id6">
+<h3>Mission<a class="headerlink" href="#id6" title="Link to this heading">¶</a></h3>
+<p>Jumeau numérique complet du système : replay temps réel, shadow mode,
+A/B testing de configurations, stress testing sur scénarios extrêmes.</p>
+</section>
+<section id="maturite-l5">
+<h3>Maturité L5<a class="headerlink" href="#maturite-l5" title="Link to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Maturity 0 : Aucune simulation
+     ↓
+Maturity 1 : Replay déterministe sur datasets certifiés
+     ↓
+Maturity 2 : Twin exécuté en parallèle du live (shadow passif)
+     ↓
+Maturity 3 : A/B testing de configurations sur historique certifié
+     ↓
+Maturity 4 : Twin reproduit les métriques live à ± 5% sur 30 jours
+</pre></div>
+</div>
+</section>
+<section id="id7">
+<h3>Prérequis stricts<a class="headerlink" href="#id7" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Gate ADG-04 FRANCHIE</p></li>
+<li><p>Modèle de marché calibré (N &gt;= 1000 trades certifiés)</p></li>
+</ul>
+</section>
+<section id="architecture-cible">
+<h3>Architecture cible<a class="headerlink" href="#architecture-cible" title="Link to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>digital_twin/
+  ├── market_simulator.py      — simulation OHLCV avec régime injecté
+  ├── twin_engine.py           — clone du DecisionEngine (version gelée)
+  ├── shadow_runner.py         — exécution parallèle twin vs live (passive)
+  ├── ab_tester.py             — compare config A vs B sur historique certifié
+  └── stress_tester.py         — scénarios extrêmes (krach, flash crash)
+</pre></div>
+</div>
+<p><strong>Invariant ADR-0007 étendu :</strong> le Digital Twin ne peut jamais interagir avec l’engine live.
+Il est observateur passif sur le DecisionEventBus.</p>
+</section>
+<section id="gate-adg-05">
+<h3>Gate ADG-05<a class="headerlink" href="#gate-adg-05" title="Link to this heading">¶</a></h3>
+<p>Contrat d’entrée L5 : ADG-04 FRANCHIE.
+Contrat de sortie L5 : Shadow Trading validé — twin à ± 5% sur 30 jours consécutifs.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="niveau-6-live-operations-partiel-36-100">
+<h2>Niveau 6 — Live Operations  [PARTIEL — 36/100]<a class="headerlink" href="#niveau-6-live-operations-partiel-36-100" title="Link to this heading">¶</a></h2>
+<section id="id8">
+<h3>Mission<a class="headerlink" href="#id8" title="Link to this heading">¶</a></h3>
+<p>Trading réel progressif avec monitoring temps réel, alertes, failsafe, et
+progression contrôlée du capital déployé.</p>
+</section>
+<section id="maturite-l6">
+<h3>Maturité L6<a class="headerlink" href="#maturite-l6" title="Link to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Maturity 0 : Paper trading uniquement
+     ↓ [actuel]
+Maturity 1 : Monitoring complet (Dashboard + Alerting opérationnels)
+     ↓ [gate ADG-02]
+Maturity 2 : Phase A — $50 capital réel (Go/No-Go positif)
+     ↓ [30j Phase A + PF &gt;= 1.3]
+Maturity 3 : Phase B — $200 capital réel
+     ↓ [90j Phase B + DD &lt; 5%]
+Maturity 4 : Phase C — capital total
+</pre></div>
+</div>
+</section>
+<section id="composants-actifs-36-100">
+<h3>Composants actifs (36/100)<a class="headerlink" href="#composants-actifs-36-100" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Composant</p></th>
+<th class="head"><p>Statut</p></th>
+<th class="head"><p>Fichier</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>MEXC paper trading</p></td>
+<td><p>ACTIF</p></td>
+<td><p>core/advisor_loop.py</p></td>
+</tr>
+<tr class="row-odd"><td><p>Telegram alertes</p></td>
+<td><p>ACTIF</p></td>
+<td><p>scripts/telegram_alerts.py</p></td>
+</tr>
+<tr class="row-even"><td><p>DecisionExplainer → Telegram</p></td>
+<td><p>ACTIF</p></td>
+<td><p>observability/decision_explainer.py</p></td>
+</tr>
+<tr class="row-odd"><td><p>RejectionStore</p></td>
+<td><p>ACTIF</p></td>
+<td><p>observability/rejection_store.py</p></td>
+</tr>
+<tr class="row-even"><td><p>RegretScheduler (7 horizons)</p></td>
+<td><p>ACTIF</p></td>
+<td><p>observability/regret_scheduler.py</p></td>
+</tr>
+<tr class="row-odd"><td><p>VPS watchdog</p></td>
+<td><p>ACTIF</p></td>
+<td><p>watchdog_vps.py</p></td>
+</tr>
+<tr class="row-even"><td><p>Health check</p></td>
+<td><p>ACTIF</p></td>
+<td><p>analysis/health_check.py</p></td>
+</tr>
+<tr class="row-odd"><td><p>Data quality</p></td>
+<td><p>ACTIF</p></td>
+<td><p>analysis/data_quality.py</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="composants-manquants-pour-maturity-4">
+<h3>Composants manquants pour Maturity 4<a class="headerlink" href="#composants-manquants-pour-maturity-4" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Composant</p></th>
+<th class="head"><p>Prérequis</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>LiveMonitorDashboard</p></td>
+<td><p>gate S1</p></td>
+</tr>
+<tr class="row-odd"><td><p>AlertingEngine (drawdown/stall)</p></td>
+<td><p>gate S1</p></td>
+</tr>
+<tr class="row-even"><td><p>Capital réel Phase A</p></td>
+<td><p>gate ADG-02</p></td>
+</tr>
+<tr class="row-odd"><td><p>PositionReconciler live</p></td>
+<td><p>gate ADG-02</p></td>
+</tr>
+<tr class="row-even"><td><p>Levier dynamique</p></td>
+<td><p>gate ADG-04 (interdit avant)</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="gate-adg-06">
+<h3>Gate ADG-06<a class="headerlink" href="#gate-adg-06" title="Link to this heading">¶</a></h3>
+<p>Contrat d’entrée L6 Phase A : ADG-02 FRANCHIE + Go opérateur.
+Contrat de sortie Phase A→B : 30 jours live + PF &gt;= 1.3 + capital protégé.</p>
+</section>
+<section id="gate-adg-07">
+<h3>Gate ADG-07<a class="headerlink" href="#gate-adg-07" title="Link to this heading">¶</a></h3>
+<p>Contrat d’entrée Phase B→C : 90 jours Phase B + DD &lt; 5% + performance stable.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="niveau-7-scientific-intelligence-core-vision-0-100">
+<h2>Niveau 7 — Scientific Intelligence Core  [VISION — 0/100]<a class="headerlink" href="#niveau-7-scientific-intelligence-core-vision-0-100" title="Link to this heading">¶</a></h2>
+<section id="id9">
+<h3>Mission<a class="headerlink" href="#id9" title="Link to this heading">¶</a></h3>
+<p>Produire des connaissances fiables sur le comportement du moteur de décision,
+les maintenir dans le temps, détecter leur vieillissement, proposer des
+expériences et signaler les contradictions scientifiques.</p>
+<p>Le trading reste un cas d’usage. Le coeur L7 vise une plateforme scientifique
+d’analyse décisionnelle réutilisable.</p>
+</section>
+<section id="maturite-l7">
+<h3>Maturité L7<a class="headerlink" href="#maturite-l7" title="Link to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Maturity 0 : Aucun core scientifique intégré
+     ↓
+Maturity 1 : Scientific Knowledge Graph opérationnel
+     ↓
+Maturity 2 : Evidence Engine + Scientific Memory + Drift actifs
+     ↓
+Maturity 3 : Research Planner + Experiment Generator validés par l&#39;opérateur
+     ↓
+Maturity 4 : Première release scientifique multi-dataset validée
+</pre></div>
+</div>
+</section>
+<section id="id10">
+<h3>Prérequis stricts<a class="headerlink" href="#id10" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Gates ADG-05 + ADG-07 FRANCHIES</p></li>
+<li><p>N &gt;= 2000 trades certifiés en live</p></li>
+</ul>
+</section>
+<section id="composition-cible">
+<h3>Composition cible<a class="headerlink" href="#composition-cible" title="Link to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Scientific</span> <span class="n">Intelligence</span> <span class="n">Core</span> <span class="o">=</span>
+  <span class="n">Knowledge</span> <span class="n">Graph</span>
+  <span class="o">+</span> <span class="n">Evidence</span> <span class="n">Engine</span>
+  <span class="o">+</span> <span class="n">Scientific</span> <span class="n">Memory</span>
+  <span class="o">+</span> <span class="n">Research</span> <span class="n">Planner</span>
+  <span class="o">+</span> <span class="n">Experiment</span> <span class="n">Generator</span>
+  <span class="o">+</span> <span class="n">Contradiction</span> <span class="n">Detector</span>
+  <span class="o">+</span> <span class="n">Knowledge</span> <span class="n">Confidence</span>
+  <span class="o">+</span> <span class="n">Scientific</span> <span class="n">Drift</span>
+  <span class="o">+</span> <span class="n">Observer</span> <span class="n">Certification</span>
+  <span class="o">+</span> <span class="n">Dataset</span> <span class="n">Certification</span>
+  <span class="o">+</span> <span class="n">Hypothesis</span> <span class="n">Engine</span>
+</pre></div>
+</div>
+</section>
+<section id="invariant-l7">
+<h3>Invariant L7<a class="headerlink" href="#invariant-l7" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">FEATURE_AUTO_CALIBRATION=true</span></code> n’est autorisé qu’ici, avec ADR signé par l’opérateur.
+C’est le seul contexte où l’engine peut recevoir une influence externe automatisée,
+et seulement après validation opérateur explicite.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="architecture-decision-gates-adg">
+<h2>Architecture Decision Gates (ADG)<a class="headerlink" href="#architecture-decision-gates-adg" title="Link to this heading">¶</a></h2>
+<p>Chaque transition entre niveaux est contrôlée par un contrat formel ADG.
+<strong>Aucune progression sans gate verte.</strong></p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Gate</p></th>
+<th class="head"><p>Transition</p></th>
+<th class="head"><p>Contrat d’entrée</p></th>
+<th class="head"><p>Contrat de sortie</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>ADG-01</p></td>
+<td><p>Engineering → Validation</p></td>
+<td><p>Infrastructure trading minimale</p></td>
+<td><p>Tests verts + ADR-0007 + observabilité câblée</p></td>
+</tr>
+<tr class="row-odd"><td><p>ADG-02</p></td>
+<td><p>Validation → Governance</p></td>
+<td><p>EXP-001 manifeste signé</p></td>
+<td><p>Dataset certifié + CRI &gt;= 90 + Evidence &gt;= Strong + Go opérateur</p></td>
+</tr>
+<tr class="row-even"><td><p>ADG-03</p></td>
+<td><p>Governance → Scientific Intelligence</p></td>
+<td><p>ADG-02 verte</p></td>
+<td><p>G-01→G-10 + Release scientifique validée</p></td>
+</tr>
+<tr class="row-odd"><td><p>ADG-03.5</p></td>
+<td><p>Scientific Intelligence → Research Lab</p></td>
+<td><p>ADG-03 + Observer Certification Level 3</p></td>
+<td><p>SI-01/SI-03/SI-05 opérationnels + Knowledge Release validée</p></td>
+</tr>
+<tr class="row-even"><td><p>ADG-04</p></td>
+<td><p>Research → Digital Twin</p></td>
+<td><p>ADG-03.5 + N &gt;= 500</p></td>
+<td><p>Backtests + Walk Forward conformes</p></td>
+</tr>
+<tr class="row-odd"><td><p>ADG-05</p></td>
+<td><p>Twin → Live ops réelles</p></td>
+<td><p>ADG-04</p></td>
+<td><p>Shadow trading ± 5% sur 30j</p></td>
+</tr>
+<tr class="row-even"><td><p>ADG-06</p></td>
+<td><p>Live Phase A → B</p></td>
+<td><p>ADG-02 + Go opérateur</p></td>
+<td><p>30j live + PF &gt;= 1.3 + capital protégé</p></td>
+</tr>
+<tr class="row-odd"><td><p>ADG-07</p></td>
+<td><p>Live Phase B → C</p></td>
+<td><p>ADG-06</p></td>
+<td><p>90j + DD &lt; 5% + performance stable plusieurs mois</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><strong>ADG-01 est la seule gate franchie.</strong> ADG-02 est le blocant actuel.</p>
+</section>
+<hr class="docutils" />
+<section id="pmi-project-maturity-index">
+<h2>PMI — Project Maturity Index<a class="headerlink" href="#pmi-project-maturity-index" title="Link to this heading">¶</a></h2>
+<section id="double-lecture">
+<h3>Double lecture<a class="headerlink" href="#double-lecture" title="Link to this heading">¶</a></h3>
+<p>Le PMI se lit sur deux axes indépendants :</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Score</p></th>
+<th class="head"><p>Signification</p></th>
+<th class="head"><p>Baseline 2026-06-30</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong>PMI-7 Capability Score</strong></p></td>
+<td><p>Ce que le système est capable de faire dans l’ancien référentiel 7 niveaux</p></td>
+<td><p>181 / 700 = 26%</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>PMI-7 Evidence Score</strong></p></td>
+<td><p>Ce qui a été démontré par les données</p></td>
+<td><p>0 / 700 = 0%</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>SDOS Capability Score</strong></p></td>
+<td><p>Même lecture, mais avec L3.5 ajouté au dénominateur</p></td>
+<td><p>181 / 800 = 22.6%</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Capability</span> <span class="n">Score</span> <span class="o">=</span> <span class="p">(</span><span class="n">L1_cap</span> <span class="o">+</span> <span class="n">L2_cap</span> <span class="o">+</span> <span class="n">L3_cap</span> <span class="o">+</span> <span class="n">L4_cap</span> <span class="o">+</span> <span class="n">L5_cap</span> <span class="o">+</span> <span class="n">L6_cap</span> <span class="o">+</span> <span class="n">L7_cap</span><span class="p">)</span> <span class="o">/</span> <span class="mi">700</span>
+<span class="n">Evidence</span> <span class="n">Score</span>   <span class="o">=</span> <span class="p">(</span><span class="n">L1_ev</span>  <span class="o">+</span> <span class="n">L2_ev</span>  <span class="o">+</span> <span class="n">L3_ev</span>  <span class="o">+</span> <span class="n">L4_ev</span>  <span class="o">+</span> <span class="n">L5_ev</span>  <span class="o">+</span> <span class="n">L6_ev</span>  <span class="o">+</span> <span class="n">L7_ev</span><span class="p">)</span>  <span class="o">/</span> <span class="mi">700</span>
+<span class="n">SDOS</span> <span class="n">Capability</span>  <span class="o">=</span> <span class="p">(</span><span class="n">L1_cap</span> <span class="o">+</span> <span class="n">L2_cap</span> <span class="o">+</span> <span class="n">L3_cap</span> <span class="o">+</span> <span class="n">L3_5_cap</span> <span class="o">+</span> <span class="n">L4_cap</span> <span class="o">+</span> <span class="n">L5_cap</span> <span class="o">+</span> <span class="n">L6_cap</span> <span class="o">+</span> <span class="n">L7_cap</span><span class="p">)</span> <span class="o">/</span> <span class="mi">800</span>
+</pre></div>
+</div>
+<p><strong>Capability</strong> progresse en livrant des outils, des gates, des modules.
+<strong>Evidence</strong> progresse uniquement quand des données certifiées confirment ou infirment une hypothèse.</p>
+<p>Aujourd’hui : PMI-7 Capability = 26%, SDOS Capability = 22.6%, Evidence = 0%.
+Le projet avance sur les deux axes en parallèle mais de manière indépendante.
+L’architecture mature peut coexister avec zéro preuve scientifique — c’est l’état actuel.</p>
+</section>
+<section id="historique">
+<h3>Historique<a class="headerlink" href="#historique" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Date</p></th>
+<th class="head"><p>Cap</p></th>
+<th class="head"><p>Ev</p></th>
+<th class="head"><p>Notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>2026-06-30</p></td>
+<td><p>181/700</p></td>
+<td><p>0/700</p></td>
+<td><p>Baseline — architecture complète, aucune donnée certifiée</p></td>
+</tr>
+<tr class="row-odd"><td><p>2026-07-01</p></td>
+<td><p>181/800</p></td>
+<td><p>0/800</p></td>
+<td><p>Rebaseline SDOS — ajout L3.5, aucune régression de capacité</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="regle-de-mise-a-jour">
+<h3>Règle de mise à jour<a class="headerlink" href="#regle-de-mise-a-jour" title="Link to this heading">¶</a></h3>
+<p>Le PMI Capability se met à jour à chaque franchissement de gate.
+Le PMI Evidence se met à jour à chaque certification de dataset (N &gt;= seuil) ou conclusion d’hypothèse.
+Le SDOS Capability inclut L3.5 et se met à jour avec les gates SI.
+<strong>Les scores avancent avec les données et les gates, jamais avec le code ajouté seul.</strong></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="roadmap-horizons">
+<h2>Roadmap Horizons<a class="headerlink" href="#roadmap-horizons" title="Link to this heading">¶</a></h2>
+<section id="h1-0-a-3-mois-validation-scientifique">
+<h3>H1 — 0 à 3 mois : Validation Scientifique<a class="headerlink" href="#h1-0-a-3-mois-validation-scientifique" title="Link to this heading">¶</a></h3>
+<p><strong>Objectif :</strong> franchir ADG-02. Accumuler les données. Prouver l’edge.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Maintenant       : accumulation passive (VPS actif, paper MEXC)
+Gate S1 (N=30)   : dataset_certifier.py → CERT-2026-Q3-001
+                   → L2 Maturity 0 → 1
+Gate S2 (N=50)   : statistical_readiness.py exit 0
+Gate S3 (N=100)  : cri_calculator.py → CRI &gt;= 90
+Gate S4 (N=100)  : hypothesis_tester.py → H1+H2+H3 concluantes
+Gate S5 (N=100)  : go_no_go.py → GO ou NO-GO
+                   → L2 Maturity 4
+</pre></div>
+</div>
+<p>Livrables à créer : <code class="docutils literal notranslate"><span class="pre">tools/statistical_readiness.py</span></code>, <code class="docutils literal notranslate"><span class="pre">tools/cri_calculator.py</span></code>,
+<code class="docutils literal notranslate"><span class="pre">analysis/hypothesis_tester.py</span></code>, <code class="docutils literal notranslate"><span class="pre">tools/go_no_go.py</span></code>.</p>
+</section>
+<section id="h2-3-a-9-mois-scientific-governance-scientific-intelligence">
+<h3>H2 — 3 à 9 mois : Scientific Governance + Scientific Intelligence<a class="headerlink" href="#h2-3-a-9-mois-scientific-governance-scientific-intelligence" title="Link to this heading">¶</a></h3>
+<p><strong>Objectif :</strong> franchir ADG-03 puis ADG-03.5. Gouvernance scientifique opérationnelle,
+puis première couche de connaissance scientifique.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>G-01→G-10        : governance/science/ (post ADG-02)
+                   → L3 Maturity 3 → 4
+SI-01/SI-03/SI-05: Knowledge Graph + Evidence + Contradictions (post ADG-03)
+                   → L3.5 Maturity 2 → 4
+Research Lab     : backtester + Monte Carlo (post ADG-03.5, N &gt;= 500)
+                   → L4 Maturity 1 → 2
+Live Phase A     : $50 capital réel (post ADG-02)
+                   → L6 Maturity 2
+</pre></div>
+</div>
+</section>
+<section id="h3-9-a-18-mois-production-institutionnelle">
+<h3>H3 — 9 à 18 mois : Production Institutionnelle<a class="headerlink" href="#h3-9-a-18-mois-production-institutionnelle" title="Link to this heading">¶</a></h3>
+<p><strong>Objectif :</strong> franchir ADG-05/ADG-07. Système stable en production réelle.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Digital Twin     : shadow mode + A/B testing (post ADG-04)
+                   → L5 Maturity 3 → 4
+Live Phase B+C   : capital total (post ADG-06 → ADG-07)
+                   → L6 Maturity 4
+Scientific Core  : Knowledge Graph + Evidence Engine + Scientific Memory (post ADG-07)
+                   → L7 Maturity 1 → 2
+</pre></div>
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="principes-architecturaux-invariants">
+<h2>Principes architecturaux invariants<a class="headerlink" href="#principes-architecturaux-invariants" title="Link to this heading">¶</a></h2>
+<ol class="arabic simple">
+<li><p><strong>ADR-0007 Passivité absolue</strong> : observabilité, gouvernance, lab, twin = passifs.
+L’engine de trading est le seul à décider.</p></li>
+<li><p><strong>Scientific Debt Rule</strong> : zéro feature sans hypothèse préexistante.</p></li>
+<li><p><strong>Immutabilité scientifique</strong> : dataset référencé par une expérience close = immuable.
+Les corrections créent un nouveau UUID.</p></li>
+<li><p><strong>Evidence-first</strong> : aucun paramètre modifié sans p-value + n + effect size documentés.</p></li>
+<li><p><strong>Séquentialité des ADG</strong> : L4/L5/L7 ne démarrent pas avant ADG-02 verte.
+L4 nécessite désormais ADG-03.5.</p></li>
+<li><p><strong>FEATURE_AUTO_CALIBRATION=false</strong> : défaut permanent. Seul L7 peut l’activer,
+avec ADR signé par l’opérateur.</p></li>
+<li><p><strong>Cohérence Mission</strong> : toute nouvelle idée est évaluée d’abord contre
+<code class="docutils literal notranslate"><span class="pre">docs/mission_statement.md</span></code>, pas contre sa faisabilité technique.</p></li>
+<li><p><strong>Knowledge Confidence distinct de l’OCS</strong> : l’OCS mesure la confiance dans
+l’observateur ; L3.5 mesure la confiance dans la connaissance produite.</p></li>
+</ol>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Crypto AI Terminal
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer no-toc">
+      
+      
+      
+    </aside>
+  </div>
+</div><script src="_static/documentation_options.js?v=ef6a59ae"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    </body>
+</html>

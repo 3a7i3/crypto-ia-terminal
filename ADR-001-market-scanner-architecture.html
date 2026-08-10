@@ -1,0 +1,2311 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="./">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="genindex.html"><link rel="search" title="Search" href="search.html">
+        <link rel="prefetch" href="_static/../assets/logo_ai_quant.png" as="image">
+        <link rel="prefetch" href="_static/../assets/logo_ai_quant.png" as="image">
+
+    <link rel="shortcut icon" href="_static/favicon.ico"><!-- Generated with Sphinx 9.0.4 and Furo 2025.12.19 -->
+        <title>ADR-001 — Architecture cible du Market Scanner Quant - Crypto AI Terminal 9.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=1b9cecba" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="index.html"><div class="brand">Crypto AI Terminal 9.1 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="index.html">
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="_static/../assets/logo_ai_quant.png" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="_static/../assets/logo_ai_quant.png" alt="Dark Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/blob/main/docs/ADR-001-market-scanner-architecture.md?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/edit/main/docs/ADR-001-market-scanner-architecture.md" rel="edit" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="adr-001-architecture-cible-du-market-scanner-quant">
+<h1>ADR-001 — Architecture cible du Market Scanner Quant<a class="headerlink" href="#adr-001-architecture-cible-du-market-scanner-quant" title="Link to this heading">¶</a></h1>
+<p><strong>Statut :</strong> DRAFT — en attente de validation post burn-in<br />
+<strong>Date :</strong> 2026-06-16<br />
+<strong>Auteur :</strong> Mathieu (architecture) / Claude Sonnet 4.6 (rédaction)<br />
+<strong>Contexte :</strong> Système en burn-in. Ce document est exclusivement prospectif. Aucune modification de code n’est proposée.</p>
+<hr class="docutils" />
+<section id="table-des-matieres">
+<h2>Table des matières<a class="headerlink" href="#table-des-matieres" title="Link to this heading">¶</a></h2>
+<ol class="arabic simple">
+<li><p><a class="reference internal" href="#audit-de-larchitecture-actuelle">Audit de l’architecture actuelle</a></p></li>
+<li><p><a class="reference internal" href="#limites-de-larchitecture-actuelle">Limites de l’architecture actuelle</a></p></li>
+<li><p><a class="reference internal" href="#architecture-cible">Architecture cible</a></p></li>
+<li><p><a class="reference internal" href="#pipeline-de-donnees">Pipeline de données</a></p></li>
+<li><p><a class="reference internal" href="#strategie-de-concurrence">Stratégie de concurrence</a></p></li>
+<li><p><a class="reference internal" href="#gestion-des-donnees">Gestion des données</a></p></li>
+<li><p><a class="reference internal" href="#thread-safety">Thread Safety</a></p></li>
+<li><p><a class="reference internal" href="#observabilite">Observabilité</a></p></li>
+<li><p><a class="reference internal" href="#plan-de-migration">Plan de migration</a></p></li>
+<li><p><a class="reference internal" href="#registre-des-risques">Registre des risques</a></p></li>
+<li><p><a class="reference internal" href="#decisions-darchitecture">Décisions d’architecture</a></p></li>
+<li><p><a class="reference internal" href="#recommandation-finale">Recommandation finale</a></p></li>
+</ol>
+</section>
+<hr class="docutils" />
+<section id="audit-de-larchitecture-actuelle">
+<h2>1. Audit de l’architecture actuelle<a class="headerlink" href="#audit-de-larchitecture-actuelle" title="Link to this heading">¶</a></h2>
+<section id="vue-densemble">
+<h3>1.1 Vue d’ensemble<a class="headerlink" href="#vue-densemble" title="Link to this heading">¶</a></h3>
+<p>Le système est un pipeline de trading algorithmique organisé en <strong>6 couches séquentielles</strong>, orchestrées par une boucle principale (<code class="docutils literal notranslate"><span class="pre">advisor_loop.py</span></code>) qui s’exécute toutes les <strong>300 secondes</strong> (5 minutes).</p>
+<p>Le cycle complet pour 50 symboles s’exécute en <strong>700 ms à 2 000 ms</strong>, selon l’état du cache.</p>
+</section>
+<hr class="docutils" />
+<section id="composants-et-dependances">
+<h3>1.2 Composants et dépendances<a class="headerlink" href="#composants-et-dependances" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Couche</p></th>
+<th class="head"><p>Composant</p></th>
+<th class="head"><p>Fichier</p></th>
+<th class="head"><p>Lignes</p></th>
+<th class="head"><p>Rôle</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Signal</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">MarketScanner</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">agents/market/market_scanner.py</span></code></p></td>
+<td><p>827</p></td>
+<td><p>Fetch OHLCV via REST CCXT</p></td>
+</tr>
+<tr class="row-odd"><td><p>Signal</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">MultiTimeframeScanner</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">agents/market/multi_timeframe_scanner.py</span></code></p></td>
+<td><p>146</p></td>
+<td><p>Fetch parallèle 1m/15m/4h/1d</p></td>
+</tr>
+<tr class="row-even"><td><p>Cache</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">StartupCache</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">infra/startup_cache.py</span></code></p></td>
+<td><p>172</p></td>
+<td><p>Cache bootstrap JSON/pickle</p></td>
+</tr>
+<tr class="row-odd"><td><p>Intelligence</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">LiveSignalEngine</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">agents/execution/live_signal_engine.py</span></code></p></td>
+<td><p>608</p></td>
+<td><p>Scoring MTF + régime + mémoire</p></td>
+</tr>
+<tr class="row-even"><td><p>Intelligence</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">AIAdvisor</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">agents/intelligence/ai_advisor.py</span></code></p></td>
+<td><p>~250</p></td>
+<td><p>Génération de conseil textuel</p></td>
+</tr>
+<tr class="row-odd"><td><p>Exécution</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">ExecutionEngine</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">agents/execution/execution_engine.py</span></code></p></td>
+<td><p>524</p></td>
+<td><p>Ordres CCXT + dedup + garde</p></td>
+</tr>
+<tr class="row-even"><td><p>Apprentissage</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">MistakeMemory</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">agents/intelligence/mistake_memory.py</span></code></p></td>
+<td><p>642</p></td>
+<td><p>Blocage pré-trade + analyse post-trade</p></td>
+</tr>
+<tr class="row-odd"><td><p>Orchestration</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">advisor_loop.main()</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code></p></td>
+<td><p><strong>6 381</strong></p></td>
+<td><p>Boucle principale + coordination</p></td>
+</tr>
+<tr class="row-even"><td><p>Orchestration</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">advisor_main</span></code> (P10-B)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">runtime/advisor_main.py</span></code></p></td>
+<td><p>~428</p></td>
+<td><p>Remplacement strangler (en cours)</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<hr class="docutils" />
+<section id="pipeline-complet-flux-dexecution">
+<h3>1.3 Pipeline complet (flux d’exécution)<a class="headerlink" href="#pipeline-complet-flux-dexecution" title="Link to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>DÉMARRAGE (2-3 secondes)
+├── SessionPrimer (background thread)     → création CCXT + load_markets()     ~100 ms
+├── MarketScanner init (×N symboles)      → allocations mémoire                ~200 ms
+├── PrewarmCache (ThreadPoolExecutor)     → fetch 1h en parallèle              ~1-2 s
+└── ExecutionEngine + RiskGates init                                            ~500 ms
+
+CYCLE (toutes les 300 secondes)
+├── Kill Switch check
+├── POUR CHAQUE SYMBOLE (séquentiel) :
+│   ├── [1] SCAN         — MarketScanner.scan()          → REST CCXT + cache   50-300 ms
+│   ├── [2] MTF MERGE    — MultiTimeframeScanner         → ThreadPoolExecutor  100-400 ms
+│   ├── [3] FEATURES     — calcul RSI/MACD/EMA/ATR       → CPU pur             5-15 ms
+│   ├── [4] RÉGIME       — AdvancedRegimeDetector        → CPU pur             3-8 ms
+│   ├── [5] SIGNAL       — LiveSignalEngine.evaluate()   → CPU pur             5-15 ms
+│   ├── [6] BLOCAGE      — MistakeMemory.check()         → JSONL read          1-3 ms
+│   ├── [7] CONSEIL      — AIAdvisor.generate()          → LM Studio ou règles 10-100 ms
+│   ├── [8] RISQUE       — GlobalRiskGate.validate()     → CPU pur             5-15 ms
+│   └── [9] EXÉCUTION    — ExecutionEngine.execute()     → REST CCXT           50-500 ms
+├── [10] APPRENTISSAGE   — MistakeMemory.record()        → JSONL write         1-5 ms
+├── [11] REPORTING       — Telegram                      → HTTP                 50-200 ms
+└── SLEEP (temps restant jusqu&#39;à 300 s)
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="modele-de-concurrence-actuel">
+<h3>1.4 Modèle de concurrence actuel<a class="headerlink" href="#modele-de-concurrence-actuel" title="Link to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>advisor_loop (thread principal)
+│
+├── SessionPrimer            → threading.Thread (background, cycle 1 only)
+├── PrewarmCache             → ThreadPoolExecutor (background, boot only)
+├── MultiTimeframeScanner    → ThreadPoolExecutor (FIRST_COMPLETED per TF)
+└── MarketScanner.pool       → threading.Lock (protection pool CCXT partagé)
+
+Boucle principale : BLOQUANTE-SYNCHRONE
+Fetch OHLCV : REST polling (pas de WebSocket)
+Feature calc : CPU séquentiel
+Écriture JSONL : append-only séquentiel
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="i-o-par-composant">
+<h3>1.5 I/O par composant<a class="headerlink" href="#i-o-par-composant" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Composant</p></th>
+<th class="head"><p>Type I/O</p></th>
+<th class="head"><p>Fréquence</p></th>
+<th class="head"><p>Latence estimée</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>MarketScanner</p></td>
+<td><p>HTTP REST (CCXT)</p></td>
+<td><p>Par symbole par cycle</p></td>
+<td><p>50-300 ms (cold) / 0 ms (cache)</p></td>
+</tr>
+<tr class="row-odd"><td><p>MultiTimeframeScanner</p></td>
+<td><p>HTTP REST (CCXT ×TF)</p></td>
+<td><p>Tous les 12 cycles</p></td>
+<td><p>100-400 ms</p></td>
+</tr>
+<tr class="row-even"><td><p>ExecutionEngine</p></td>
+<td><p>HTTP REST (CCXT)</p></td>
+<td><p>Sur signal actionnable</p></td>
+<td><p>50-500 ms</p></td>
+</tr>
+<tr class="row-odd"><td><p>AIAdvisor</p></td>
+<td><p>HTTP (LM Studio :1234)</p></td>
+<td><p>Sur signal ≥ 70</p></td>
+<td><p>10-100 ms</p></td>
+</tr>
+<tr class="row-even"><td><p>MistakeMemory</p></td>
+<td><p>Fichier JSONL</p></td>
+<td><p>Post-trade</p></td>
+<td><p>1-5 ms</p></td>
+</tr>
+<tr class="row-odd"><td><p>StartupCache</p></td>
+<td><p>Fichier JSON/pickle</p></td>
+<td><p>Boot + snapshots</p></td>
+<td><p>1-10 ms</p></td>
+</tr>
+<tr class="row-even"><td><p>Telegram</p></td>
+<td><p>HTTP</p></td>
+<td><p>Tous les 3 cycles</p></td>
+<td><p>50-200 ms</p></td>
+</tr>
+<tr class="row-odd"><td><p>SQLite (TradeLogger)</p></td>
+<td><p>Fichier</p></td>
+<td><p>Par ordre exécuté</p></td>
+<td><p>1-5 ms</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<hr class="docutils" />
+<section id="temps-de-cycle-mesure">
+<h3>1.6 Temps de cycle mesuré<a class="headerlink" href="#temps-de-cycle-mesure" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Phase</p></th>
+<th class="head"><p>Cycle froid (cache vide)</p></th>
+<th class="head"><p>Cycle chaud (cache actif)</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Signal (50 symboles)</p></td>
+<td><p>~500 ms</p></td>
+<td><p>~50 ms</p></td>
+</tr>
+<tr class="row-odd"><td><p>Intelligence (50 symboles)</p></td>
+<td><p>~1 000 ms</p></td>
+<td><p>~500 ms</p></td>
+</tr>
+<tr class="row-even"><td><p>Décision + Risque</p></td>
+<td><p>~60 ms</p></td>
+<td><p>~60 ms</p></td>
+</tr>
+<tr class="row-odd"><td><p>Exécution (si ordre)</p></td>
+<td><p>~100 ms</p></td>
+<td><p>~100 ms</p></td>
+</tr>
+<tr class="row-even"><td><p>Apprentissage</p></td>
+<td><p>~5 ms</p></td>
+<td><p>~5 ms</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Total</strong></p></td>
+<td><p><strong>~1 700-2 000 ms</strong></p></td>
+<td><p><strong>~700-800 ms</strong></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<hr class="docutils" />
+<section id="diagramme-de-flux-simplifie">
+<h3>1.7 Diagramme de flux simplifié<a class="headerlink" href="#diagramme-de-flux-simplifie" title="Link to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>┌────────────────────────────────────────────────────────────────────┐
+│ advisor_loop (thread principal, cycle 5 min)                       │
+│                                                                    │
+│  SYMBOLE[0] ──► SCAN ──► MTF ──► FEATURE ──► RÉGIME ──► SIGNAL  │
+│  SYMBOLE[1] ──► SCAN ──► MTF ──► FEATURE ──► RÉGIME ──► SIGNAL  │
+│  ...                                                               │
+│  SYMBOLE[N] ──► SCAN ──► MTF ──► FEATURE ──► RÉGIME ──► SIGNAL  │
+│                                                    │               │
+│                                             SÉLECTION (meilleur)  │
+│                                                    │               │
+│                                          CHECK MistakeMemory       │
+│                                                    │               │
+│                                          GlobalRiskGate            │
+│                                                    │               │
+│                                          ExecutionEngine ──► CCXT │
+│                                                    │               │
+│                                      MistakeMemory.record()        │
+│                                                    │               │
+│                                         Telegram report            │
+│                                                    │               │
+│                                           SLEEP (reste 300s)       │
+└────────────────────────────────────────────────────────────────────┘
+
+          MarketScanner pool     MultiTF ThreadPool
+          ──────────────────     ──────────────────
+          threading.Lock          ThreadPoolExecutor
+          (partagé entre         (parallèle par TF,
+           instanciations)        FIRST_COMPLETED)
+</pre></div>
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="limites-de-larchitecture-actuelle">
+<h2>2. Limites de l’architecture actuelle<a class="headerlink" href="#limites-de-larchitecture-actuelle" title="Link to this heading">¶</a></h2>
+<section id="tableau-des-limites">
+<h3>2.1 Tableau des limites<a class="headerlink" href="#tableau-des-limites" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>#</p></th>
+<th class="head"><p>Limite</p></th>
+<th class="head"><p>Domaine</p></th>
+<th class="head"><p>Sévérité</p></th>
+<th class="head"><p>Justification</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>L-01</p></td>
+<td><p>Boucle principale synchrone / séquentielle</p></td>
+<td><p>Scalabilité</p></td>
+<td><p><strong>Critique</strong></p></td>
+<td><p>Temps de scan croît linéairement avec le nombre de symboles. 200 symboles = 4× plus lent.</p></td>
+</tr>
+<tr class="row-odd"><td><p>L-02</p></td>
+<td><p>REST polling (pas de WebSocket)</p></td>
+<td><p>Latence</p></td>
+<td><p><strong>Critique</strong></p></td>
+<td><p>Chaque fetch = une connexion HTTP. Latence irréductible ~50 ms. Impossible d’atteindre &lt; 100 ms par cycle avec REST.</p></td>
+</tr>
+<tr class="row-even"><td><p>L-03</p></td>
+<td><p>Pas de cache centralisé OHLCV</p></td>
+<td><p>Architecture</p></td>
+<td><p><strong>Moyenne</strong></p></td>
+<td><p>Chaque MarketScanner a son propre cache en mémoire. Duplication des données si N instances.</p></td>
+</tr>
+<tr class="row-odd"><td><p>L-04</p></td>
+<td><p>advisor_loop.py 6 381 lignes</p></td>
+<td><p>Maintenabilité</p></td>
+<td><p><strong>Critique</strong></p></td>
+<td><p>Fichier monolithique. Toute modification est à haut risque. Refactoring actif via strangler (P10-B).</p></td>
+</tr>
+<tr class="row-even"><td><p>L-05</p></td>
+<td><p>Feature engineering séquentiel</p></td>
+<td><p>Débit</p></td>
+<td><p><strong>Moyenne</strong></p></td>
+<td><p>RSI/MACD/EMA calculés symbole par symbole. Vectorisation NumPy permettrait un gain de 5-10×.</p></td>
+</tr>
+<tr class="row-odd"><td><p>L-06</p></td>
+<td><p>MistakeMemory sans mutex</p></td>
+<td><p>Thread Safety</p></td>
+<td><p><strong>Faible</strong></p></td>
+<td><p>Latente aujourd’hui (un seul thread). Deviendra critique lors de la parallélisation.</p></td>
+</tr>
+<tr class="row-even"><td><p>L-07</p></td>
+<td><p>Pas de backpressure</p></td>
+<td><p>Résilience</p></td>
+<td><p><strong>Moyenne</strong></p></td>
+<td><p>Si CCXT ralentit (rate limit, réseau), le cycle dépasse 300 s sans signalement structuré.</p></td>
+</tr>
+<tr class="row-odd"><td><p>L-08</p></td>
+<td><p>SQLite non protégé en écriture concurrent</p></td>
+<td><p>Thread Safety</p></td>
+<td><p><strong>Faible</strong></p></td>
+<td><p>Latente. SQLite supporte les écritures séquentielles mais pas les écritures concurrentes sans WAL.</p></td>
+</tr>
+<tr class="row-even"><td><p>L-09</p></td>
+<td><p>AIAdvisor dépend de LM Studio externe</p></td>
+<td><p>Résilience</p></td>
+<td><p><strong>Faible</strong></p></td>
+<td><p>Si LM Studio est down, fallback deterministic. Latence HTTP non bornée (pas de timeout strict).</p></td>
+</tr>
+<tr class="row-odd"><td><p>L-10</p></td>
+<td><p>Pas de séparation entre processus data et processus décision</p></td>
+<td><p>Architecture</p></td>
+<td><p><strong>Moyenne</strong></p></td>
+<td><p>Un seul processus Python combine I/O réseau, CPU calcul, I/O fichier. GIL Python limite l’efficacité des threads CPU.</p></td>
+</tr>
+<tr class="row-even"><td><p>L-11</p></td>
+<td><p>Aucune file de messages entre couches</p></td>
+<td><p>Couplage</p></td>
+<td><p><strong>Moyenne</strong></p></td>
+<td><p>Les couches s’appellent directement. Pas de découplage temporel. Un composant lent bloque tout le pipeline.</p></td>
+</tr>
+<tr class="row-odd"><td><p>L-12</p></td>
+<td><p>Mémoire OHLCV non bornée explicitement</p></td>
+<td><p>Mémoire</p></td>
+<td><p><strong>Faible</strong></p></td>
+<td><p>Cache en mémoire sans limite maximale explicite. Pour 200 symboles × 4 TF × 200 candles, charge mémoire ~40-80 MB. Acceptable mais non surveillé.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="resume-des-limites-critiques">
+<h3>2.2 Résumé des limites critiques<a class="headerlink" href="#resume-des-limites-critiques" title="Link to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Critique (3) :
+  L-01 — Scalabilité : séquentiel → bloque à 50+ symboles
+  L-02 — Latence : REST polling → impossible de descendre &lt; 100 ms
+  L-04 — Maintenabilité : fichier monolithique → risque élevé de régression
+
+Moyenne (5) :
+  L-03 — Cache distribué manquant
+  L-05 — Feature engineering non vectorisé
+  L-07 — Pas de backpressure
+  L-10 — Pas de séparation des processus
+  L-11 — Couplage fort entre couches
+
+Faible (4) :
+  L-06 — Thread safety MistakeMemory
+  L-08 — SQLite concurrence
+  L-09 — LM Studio sans timeout strict
+  L-12 — Mémoire OHLCV non surveillée
+</pre></div>
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="architecture-cible">
+<h2>3. Architecture cible<a class="headerlink" href="#architecture-cible" title="Link to this heading">¶</a></h2>
+<section id="principes-directeurs">
+<h3>3.1 Principes directeurs<a class="headerlink" href="#principes-directeurs" title="Link to this heading">¶</a></h3>
+<ol class="arabic simple">
+<li><p><strong>Séparation des responsabilités</strong> — un processus, un rôle.</p></li>
+<li><p><strong>Découplage temporel</strong> — les couches communiquent via une file, pas par appel direct.</p></li>
+<li><p><strong>Dégradation gracieuse</strong> — chaque composant a un fallback défini.</p></li>
+<li><p><strong>Observabilité native</strong> — chaque composant expose des métriques sans instrumentation externe.</p></li>
+<li><p><strong>Migration progressive</strong> — chaque phase est déployable sans interrompre le système.</p></li>
+</ol>
+</section>
+<hr class="docutils" />
+<section id="vue-densemble-des-composants">
+<h3>3.2 Vue d’ensemble des composants<a class="headerlink" href="#vue-densemble-des-composants" title="Link to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>┌─────────────────────────────────────────────────────────────────────────┐
+│                        ARCHITECTURE CIBLE                               │
+│                                                                         │
+│  ┌──────────────────┐     ┌──────────────────┐                         │
+│  │  Market Data     │     │  Cache Layer      │                         │
+│  │  Layer           │────►│  (OHLCV Store)    │                         │
+│  │                  │     │                   │                         │
+│  │  WebSocket feed  │     │  TTL par TF       │                         │
+│  │  REST fallback   │     │  Validation       │                         │
+│  │  Circuit breaker │     │  Invalidation     │                         │
+│  └──────────────────┘     └────────┬──────────┘                         │
+│                                    │                                     │
+│                            ┌───────▼──────────┐                         │
+│                            │  Event Bus        │                         │
+│                            │  (OHLCV_UPDATED)  │                         │
+│                            └───────┬──────────┘                         │
+│                                    │                                     │
+│              ┌─────────────────────▼──────────────────────┐            │
+│              │           Feature &amp; Ranking Engine          │            │
+│              │                                             │            │
+│              │  Feature Extractor  │  Regime Detector      │            │
+│              │  (vectorisé NumPy)  │  (par symbole)        │            │
+│              │                     │                       │            │
+│              │      Signal Engine  │  Universe Ranker      │            │
+│              └─────────────────────┬──────────────────────┘            │
+│                                    │                                     │
+│                            ┌───────▼──────────┐                         │
+│                            │  Event Bus        │                         │
+│                            │  (SIGNAL_READY)   │                         │
+│                            └───────┬──────────┘                         │
+│                                    │                                     │
+│              ┌─────────────────────▼──────────────────────┐            │
+│              │           Decision Intelligence             │            │
+│              │                                             │            │
+│              │  MistakeMemory  │  GlobalRiskGate          │            │
+│              │  Portfolio Brain │  Order Sizer             │            │
+│              └─────────────────────┬──────────────────────┘            │
+│                                    │                                     │
+│                            ┌───────▼──────────┐                         │
+│                            │  Execution Layer  │                         │
+│                            │                   │                         │
+│                            │  ExecutionEngine  │                         │
+│                            │  OrderDedup       │                         │
+│                            │  SessionGuard     │                         │
+│                            └───────┬──────────┘                         │
+│                                    │                                     │
+│              ┌─────────────────────▼──────────────────────┐            │
+│              │           Observability Layer               │            │
+│              │                                             │            │
+│              │  MetricsCollector  │  TradeLogger (SQLite)  │            │
+│              │  Telegram Reporter │  MistakeMemory JSONL   │            │
+│              └────────────────────────────────────────────┘            │
+└─────────────────────────────────────────────────────────────────────────┘
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="description-des-composants">
+<h3>3.3 Description des composants<a class="headerlink" href="#description-des-composants" title="Link to this heading">¶</a></h3>
+<section id="market-data-layer">
+<h4>Market Data Layer<a class="headerlink" href="#market-data-layer" title="Link to this heading">¶</a></h4>
+<ul class="simple">
+<li><p><strong>Rôle :</strong> source unique de vérité pour les données OHLCV.</p></li>
+<li><p><strong>Entrées :</strong> WebSocket MEXC (primary) + REST CCXT (fallback).</p></li>
+<li><p><strong>Sorties :</strong> événements <code class="docutils literal notranslate"><span class="pre">OHLCV_UPDATED(symbol,</span> <span class="pre">timeframe,</span> <span class="pre">candles)</span></code> publiés sur l’Event Bus.</p></li>
+<li><p><strong>Responsabilités :</strong> connexion, reconnexion, validation, normalisation, backpressure.</p></li>
+<li><p><strong>Isolation :</strong> processus séparé ou <code class="docutils literal notranslate"><span class="pre">asyncio</span></code> loop dédiée.</p></li>
+</ul>
+</section>
+<section id="cache-layer-ohlcv-store">
+<h4>Cache Layer (OHLCV Store)<a class="headerlink" href="#cache-layer-ohlcv-store" title="Link to this heading">¶</a></h4>
+<ul class="simple">
+<li><p><strong>Rôle :</strong> cache centralisé et partagé pour toutes les données de marché.</p></li>
+<li><p><strong>Structure :</strong> <code class="docutils literal notranslate"><span class="pre">dict[symbol][timeframe]</span> <span class="pre">=</span> <span class="pre">(candles,</span> <span class="pre">timestamp,</span> <span class="pre">ttl)</span></code>.</p></li>
+<li><p><strong>TTL par timeframe :</strong> 1m=30s, 15m=5min, 1h=60s, 4h=10min, 1d=1h.</p></li>
+<li><p><strong>Invalidation :</strong> à la réception d’un événement <code class="docutils literal notranslate"><span class="pre">OHLCV_UPDATED</span></code>.</p></li>
+<li><p><strong>Protection :</strong> <code class="docutils literal notranslate"><span class="pre">threading.RLock</span></code> ou structure immutable (copy-on-write).</p></li>
+</ul>
+</section>
+<section id="event-bus">
+<h4>Event Bus<a class="headerlink" href="#event-bus" title="Link to this heading">¶</a></h4>
+<ul class="simple">
+<li><p><strong>Rôle :</strong> découplage temporel entre les couches.</p></li>
+<li><p><strong>Implémentation cible :</strong> <code class="docutils literal notranslate"><span class="pre">asyncio.Queue</span></code> ou <code class="docutils literal notranslate"><span class="pre">queue.Queue</span></code> (threading).</p></li>
+<li><p><strong>Topics :</strong> <code class="docutils literal notranslate"><span class="pre">OHLCV_UPDATED</span></code>, <code class="docutils literal notranslate"><span class="pre">SIGNAL_READY</span></code>, <code class="docutils literal notranslate"><span class="pre">ORDER_EXECUTED</span></code>, <code class="docutils literal notranslate"><span class="pre">TRADE_CLOSED</span></code>.</p></li>
+<li><p><strong>Backpressure :</strong> <code class="docutils literal notranslate"><span class="pre">maxsize</span></code> configuré par topic.</p></li>
+</ul>
+</section>
+<section id="feature-ranking-engine">
+<h4>Feature &amp; Ranking Engine<a class="headerlink" href="#feature-ranking-engine" title="Link to this heading">¶</a></h4>
+<ul class="simple">
+<li><p><strong>Rôle :</strong> calcul vectorisé des indicateurs + scoring de l’univers.</p></li>
+<li><p><strong>Feature Extractor :</strong> RSI/MACD/EMA/ATR/BB calculés en batch NumPy sur l’ensemble des symboles.</p></li>
+<li><p><strong>Regime Detector :</strong> classification bull/bear/sideways/volatile par symbole.</p></li>
+<li><p><strong>Signal Engine :</strong> score composite 0-100 (MTF 40 + Régime 25 + Data 15 + Mémoire 20).</p></li>
+<li><p><strong>Universe Ranker :</strong> tri des symboles par score, filtrage par régime.</p></li>
+</ul>
+</section>
+<section id="decision-intelligence">
+<h4>Decision Intelligence<a class="headerlink" href="#decision-intelligence" title="Link to this heading">¶</a></h4>
+<ul class="simple">
+<li><p><strong>Rôle :</strong> décision finale trade / no-trade.</p></li>
+<li><p><strong>Entrées :</strong> <code class="docutils literal notranslate"><span class="pre">SignalResult</span></code> du ranking engine.</p></li>
+<li><p><strong>Composants :</strong> <code class="docutils literal notranslate"><span class="pre">MistakeMemory.check()</span></code>, <code class="docutils literal notranslate"><span class="pre">GlobalRiskGate.validate()</span></code>, <code class="docutils literal notranslate"><span class="pre">PortfolioBrain.allocate()</span></code>, <code class="docutils literal notranslate"><span class="pre">OrderSizer.compute()</span></code>.</p></li>
+<li><p><strong>Invariant :</strong> ne connaît pas les détails d’exécution (prix, slippage).</p></li>
+</ul>
+</section>
+<section id="execution-layer">
+<h4>Execution Layer<a class="headerlink" href="#execution-layer" title="Link to this heading">¶</a></h4>
+<ul class="simple">
+<li><p><strong>Rôle :</strong> envoi des ordres et gestion des confirmations.</p></li>
+<li><p><strong>Composants :</strong> <code class="docutils literal notranslate"><span class="pre">ExecutionEngine</span></code>, <code class="docutils literal notranslate"><span class="pre">OrderDeduplicator</span></code>, <code class="docutils literal notranslate"><span class="pre">SessionGuard</span></code>.</p></li>
+<li><p><strong>Isolation :</strong> appels CCXT dans un <code class="docutils literal notranslate"><span class="pre">ThreadPoolExecutor</span></code> (ou <code class="docutils literal notranslate"><span class="pre">asyncio</span></code> avec ccxt.async).</p></li>
+<li><p><strong>Audit :</strong> chaque ordre enregistré en SQLite avec HMAC signature.</p></li>
+</ul>
+</section>
+<section id="observability-layer">
+<h4>Observability Layer<a class="headerlink" href="#observability-layer" title="Link to this heading">¶</a></h4>
+<ul class="simple">
+<li><p><strong>Rôle :</strong> collecte et exposition des métriques, alertes.</p></li>
+<li><p><strong>Composants :</strong> <code class="docutils literal notranslate"><span class="pre">MetricsCollector</span></code>, <code class="docutils literal notranslate"><span class="pre">TelegramReporter</span></code>, <code class="docutils literal notranslate"><span class="pre">TradeLogger</span></code>, <code class="docutils literal notranslate"><span class="pre">MistakeMemory.record()</span></code>.</p></li>
+<li><p><strong>Principe :</strong> passif — réagit aux événements, ne bloque jamais le pipeline.</p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="schema-complet-avec-flux-de-donnees">
+<h3>3.4 Schéma complet avec flux de données<a class="headerlink" href="#schema-complet-avec-flux-de-donnees" title="Link to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>MEXC WebSocket ──────────────────────────────────────────────────────┐
+                                                                      │
+REST CCXT (fallback) ─────────────────────────────────────────────┐  │
+                                                                   ▼  ▼
+                                                         ┌─────────────────┐
+                                                         │ Market Data Layer│
+                                                         │ (connexion +    │
+                                                         │  validation +   │
+                                                         │  normalisation) │
+                                                         └────────┬────────┘
+                                                                  │ OHLCV_UPDATED
+                                                         ┌────────▼────────┐
+                                                         │  Cache Layer     │
+                                                         │  (TTL par TF)   │
+                                                         └────────┬────────┘
+                                                                  │ lecture
+                                        ┌─────────────────────────▼───────────────────────┐
+                                        │           Feature &amp; Ranking Engine               │
+                                        │                                                   │
+                                        │   [vectorisé, batch sur 200 symboles]            │
+                                        │                                                   │
+                                        │   Feature Extractor ──► Regime Detector          │
+                                        │         │                     │                   │
+                                        │   Signal Engine ◄────────────┘                   │
+                                        │         │                                         │
+                                        │   Universe Ranker (Top N par score)               │
+                                        └──────────────────┬──────────────────────────────┘
+                                                           │ SIGNAL_READY (Top 3-5 symboles)
+                                        ┌──────────────────▼──────────────────────────────┐
+                                        │           Decision Intelligence                  │
+                                        │                                                   │
+                                        │   MistakeMemory.check() → BLOCKED / OK           │
+                                        │   GlobalRiskGate.validate() → REJECTED / OK      │
+                                        │   PortfolioBrain.allocate() → taille position    │
+                                        │   OrderSizer.compute() → montant USD             │
+                                        └──────────────────┬──────────────────────────────┘
+                                                           │ ORDER_DECISION
+                                        ┌──────────────────▼──────────────────────────────┐
+                                        │           Execution Layer                        │
+                                        │                                                   │
+                                        │   OrderDeduplicator → déjà envoyé ?              │
+                                        │   SessionGuard → limites session ?               │
+                                        │   ExecutionEngine → CCXT create_order()         │
+                                        └──────────────────┬──────────────────────────────┘
+                                                           │ ORDER_EXECUTED / TRADE_CLOSED
+                                        ┌──────────────────▼──────────────────────────────┐
+                                        │           Observability Layer (passif)           │
+                                        │                                                   │
+                                        │   TradeLogger → SQLite                           │
+                                        │   MistakeMemory.record() → JSONL                │
+                                        │   TelegramReporter → alerte                     │
+                                        │   MetricsCollector → compteurs cycle             │
+                                        └────────────────────────────────────────────────┘
+</pre></div>
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="pipeline-de-donnees">
+<h2>4. Pipeline de données<a class="headerlink" href="#pipeline-de-donnees" title="Link to this heading">¶</a></h2>
+<section id="flux-complet-avec-interfaces">
+<h3>4.1 Flux complet avec interfaces<a class="headerlink" href="#flux-complet-avec-interfaces" title="Link to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>[1] Market Data
+    Source : WebSocket MEXC / REST CCXT
+    Format : list[dict] OHLCV brut
+    Interface : MarketDataProvider.subscribe(symbol, timeframe) → AsyncIterator[OHLCVBatch]
+    │
+    ▼
+[2] Validation
+    Règles : timestamp cohérent, prix &gt; 0, volume &gt;= 0, pas de NaN, pas de doublon
+    Interface : validate(raw: list[dict]) → ValidationResult(valid, rejected_count, reason)
+    Sortie : list[dict] épuré
+    │
+    ▼
+[3] Normalisation
+    Règles : colonnes canoniques (open/high/low/close/volume/timestamp), unités homogènes
+    Interface : normalize(validated: list[dict]) → pd.DataFrame (colonnes fixes)
+    Sortie : DataFrame structuré
+    │
+    ▼
+[4] Cache
+    Clé : (symbol, timeframe)
+    TTL : 30s (1m), 60s (1h), 600s (4h), 3600s (1d)
+    Interface : CacheStore.put(key, df, ttl) / CacheStore.get(key) → Optional[CachedItem]
+    Invariant : lecture toujours possible (retourne None si absent, jamais d&#39;exception)
+    │
+    ▼
+[5] Feature Extraction
+    Input : dict[symbol] → DataFrame
+    Calcul : vectorisé NumPy sur l&#39;ensemble des symboles simultanément
+    Features : RSI(14), MACD(12/26/9), EMA(20/50/200), ATR(14), BB(20), volume_ratio
+    Interface : FeatureExtractor.compute(candles_dict) → dict[symbol, FeatureVector]
+    │
+    ▼
+[6] Ranking
+    Input : dict[symbol, FeatureVector]
+    Calcul : score 0-100 par symbole, tri décroissant
+    Filtre : exclure score &lt; 60, régimes blacklistés, symboles bloqués par MistakeMemory
+    Interface : Ranker.rank(features) → list[RankedSignal] (ordonnée par score desc)
+    │
+    ▼
+[7] Signal (sélection)
+    Input : list[RankedSignal]
+    Sélection : premier signal BUY/SELL non bloqué
+    Interface : SignalSelector.select(ranked) → Optional[SignalResult]
+    Sortie : SignalResult ou None (no-trade)
+    │
+    ▼
+[8] Risk
+    Input : SignalResult + état portefeuille
+    Vérifications : MistakeMemory, GlobalRiskGate, corrélation, exposition max
+    Interface : RiskLayer.validate(signal, portfolio) → RiskDecision(approved, reason)
+    │
+    ▼
+[9] Portfolio
+    Input : RiskDecision + capital disponible
+    Calcul : taille de position (Kelly / fraction fixe), montant USD
+    Interface : PortfolioBrain.allocate(decision) → OrderSpec(symbol, side, size_usd)
+    │
+    ▼
+[10] Execution
+    Input : OrderSpec
+    Action : create_order via CCXT
+    Interface : ExecutionEngine.execute(spec) → OrderResult(id, filled, price, timestamp)
+    │
+    ▼
+[11] Logging
+    Input : OrderResult + SignalResult
+    Actions : SQLite append, Telegram alert si score &gt;= 75
+    Interface : ObservabilityBus.emit(event: TradeEvent)
+    │
+    ▼
+[12] Learning
+    Input : TradeEvent (TRADE_CLOSED)
+    Actions : classification erreur, persist JSONL, génération règle si N erreurs répétées
+    Interface : MistakeMemory.record_trade_result(...)
+    Sortie : MistakeMemory.rules mis à jour (utilisés au prochain cycle étape 6)
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="interfaces-entre-composants-resume">
+<h3>4.2 Interfaces entre composants (résumé)<a class="headerlink" href="#interfaces-entre-composants-resume" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Interface</p></th>
+<th class="head"><p>Producteur</p></th>
+<th class="head"><p>Consommateur</p></th>
+<th class="head"><p>Format</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">OHLCVBatch</span></code></p></td>
+<td><p>MarketDataLayer</p></td>
+<td><p>CacheStore</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">{symbol,</span> <span class="pre">timeframe,</span> <span class="pre">candles:</span> <span class="pre">list[dict],</span> <span class="pre">received_at:</span> <span class="pre">float}</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">CachedItem</span></code></p></td>
+<td><p>CacheStore</p></td>
+<td><p>FeatureExtractor</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">{df:</span> <span class="pre">DataFrame,</span> <span class="pre">cached_at:</span> <span class="pre">float,</span> <span class="pre">ttl:</span> <span class="pre">int}</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">FeatureVector</span></code></p></td>
+<td><p>FeatureExtractor</p></td>
+<td><p>Ranker</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">{rsi,</span> <span class="pre">macd,</span> <span class="pre">ema20,</span> <span class="pre">atr,</span> <span class="pre">volume_ratio,</span> <span class="pre">regime,</span> <span class="pre">score_components}</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">RankedSignal</span></code></p></td>
+<td><p>Ranker</p></td>
+<td><p>SignalSelector</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">{symbol,</span> <span class="pre">score,</span> <span class="pre">signal,</span> <span class="pre">regime,</span> <span class="pre">strength,</span> <span class="pre">confirmed,</span> <span class="pre">features}</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">SignalResult</span></code></p></td>
+<td><p>SignalSelector</p></td>
+<td><p>RiskLayer</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">{symbol,</span> <span class="pre">score,</span> <span class="pre">signal,</span> <span class="pre">regime,</span> <span class="pre">timestamp,</span> <span class="pre">components}</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">RiskDecision</span></code></p></td>
+<td><p>RiskLayer</p></td>
+<td><p>PortfolioBrain</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">{approved:</span> <span class="pre">bool,</span> <span class="pre">reason:</span> <span class="pre">str,</span> <span class="pre">constraints:</span> <span class="pre">dict}</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">OrderSpec</span></code></p></td>
+<td><p>PortfolioBrain</p></td>
+<td><p>ExecutionEngine</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">{symbol,</span> <span class="pre">side,</span> <span class="pre">size_usd,</span> <span class="pre">max_slippage,</span> <span class="pre">time_in_force}</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">OrderResult</span></code></p></td>
+<td><p>ExecutionEngine</p></td>
+<td><p>ObservabilityBus</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">{order_id,</span> <span class="pre">filled,</span> <span class="pre">avg_price,</span> <span class="pre">fees,</span> <span class="pre">timestamp}</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">TradeEvent</span></code></p></td>
+<td><p>ObservabilityBus</p></td>
+<td><p>MistakeMemory / Logger</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">{type,</span> <span class="pre">symbol,</span> <span class="pre">pnl_pct,</span> <span class="pre">regime,</span> <span class="pre">signal,</span> <span class="pre">score,</span> <span class="pre">context}</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="strategie-de-concurrence">
+<h2>5. Stratégie de concurrence<a class="headerlink" href="#strategie-de-concurrence" title="Link to this heading">¶</a></h2>
+<section id="comparaison-des-modeles">
+<h3>5.1 Comparaison des modèles<a class="headerlink" href="#comparaison-des-modeles" title="Link to this heading">¶</a></h3>
+<section id="modele-a-sequentiel-architecture-actuelle">
+<h4>Modèle A — Séquentiel (architecture actuelle)<a class="headerlink" href="#modele-a-sequentiel-architecture-actuelle" title="Link to this heading">¶</a></h4>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">symbol</span> <span class="ow">in</span> <span class="n">symbols</span><span class="p">:</span>
+    <span class="n">candles</span> <span class="o">=</span> <span class="n">scanner</span><span class="o">.</span><span class="n">scan</span><span class="p">(</span><span class="n">symbol</span><span class="p">)</span>
+    <span class="n">signal</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">candles</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">signal</span><span class="o">.</span><span class="n">actionable</span><span class="p">:</span>
+        <span class="n">execution</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">signal</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Critère</p></th>
+<th class="head"><p>Évaluation</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Avantages</p></td>
+<td><p>Simple, débogage trivial, pas de race condition, comportement déterministe</p></td>
+</tr>
+<tr class="row-odd"><td><p>Inconvénients</p></td>
+<td><p>Temps de cycle = N × coût_symbole. 200 symboles × 100 ms = 20 s</p></td>
+</tr>
+<tr class="row-even"><td><p>Risques</p></td>
+<td><p>Inutilisable au-delà de 50 symboles avec cycle 300 s</p></td>
+</tr>
+<tr class="row-odd"><td><p>Mémoire</p></td>
+<td><p>Minimale (un contexte à la fois)</p></td>
+</tr>
+<tr class="row-even"><td><p>Complexité</p></td>
+<td><p>Très faible</p></td>
+</tr>
+<tr class="row-odd"><td><p>Maintenabilité</p></td>
+<td><p>Excellent</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Verdict</strong></p></td>
+<td><p>Acceptable pour ≤ 30 symboles. <strong>Bloquant au-delà.</strong></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<hr class="docutils" />
+<section id="modele-b-asyncio-recommande-pour-i-o">
+<h4>Modèle B — <code class="docutils literal notranslate"><span class="pre">asyncio</span></code> (recommandé pour I/O)<a class="headerlink" href="#modele-b-asyncio-recommande-pour-i-o" title="Link to this heading">¶</a></h4>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">scan_all</span><span class="p">(</span><span class="n">symbols</span><span class="p">):</span>
+    <span class="n">tasks</span> <span class="o">=</span> <span class="p">[</span><span class="n">scan_one</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">symbols</span><span class="p">]</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="o">*</span><span class="n">tasks</span><span class="p">,</span> <span class="n">return_exceptions</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">results</span>
+</pre></div>
+</div>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Critère</p></th>
+<th class="head"><p>Évaluation</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Avantages</p></td>
+<td><p>Idéal pour I/O réseau (fetch OHLCV). 200 fetches simultanés ≈ coût d’un seul. GIL non problématique pour I/O. CCXT supporte ccxt.async_support</p></td>
+</tr>
+<tr class="row-odd"><td><p>Inconvénients</p></td>
+<td><p>Feature calculation reste bloquante dans une coroutine. Nécessite refactoring de la boucle principale</p></td>
+</tr>
+<tr class="row-even"><td><p>Risques</p></td>
+<td><p>Erreurs silencieuses si exceptions mal propagées. Debugging plus difficile</p></td>
+</tr>
+<tr class="row-odd"><td><p>Mémoire</p></td>
+<td><p>200 coroutines actives : ~2-5 MB overhead (négligeable)</p></td>
+</tr>
+<tr class="row-even"><td><p>Complexité</p></td>
+<td><p>Moyenne</p></td>
+</tr>
+<tr class="row-odd"><td><p>Maintenabilité</p></td>
+<td><p>Bonne si bien structuré</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Verdict</strong></p></td>
+<td><p><strong>Recommandé pour la couche Market Data</strong> (I/O dominant). Ne pas utiliser pour le calcul de features.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<hr class="docutils" />
+<section id="modele-c-threadpoolexecutor-pour-i-o-avec-code-synchrone">
+<h4>Modèle C — <code class="docutils literal notranslate"><span class="pre">ThreadPoolExecutor</span></code> (pour I/O avec code synchrone)<a class="headerlink" href="#modele-c-threadpoolexecutor-pour-i-o-avec-code-synchrone" title="Link to this heading">¶</a></h4>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">ThreadPoolExecutor</span><span class="p">(</span><span class="n">max_workers</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span> <span class="k">as</span> <span class="n">pool</span><span class="p">:</span>
+    <span class="n">futures</span> <span class="o">=</span> <span class="p">[</span><span class="n">pool</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="n">scan_one</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">symbols</span><span class="p">]</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="p">[</span><span class="n">f</span><span class="o">.</span><span class="n">result</span><span class="p">()</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">futures</span><span class="p">]</span>
+</pre></div>
+</div>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Critère</p></th>
+<th class="head"><p>Évaluation</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Avantages</p></td>
+<td><p>Compatible avec code CCXT synchrone existant. Pas de refactoring majeur. Parallélisme réel pour les appels HTTP (I/O release GIL)</p></td>
+</tr>
+<tr class="row-odd"><td><p>Inconvénients</p></td>
+<td><p>GIL bloque pour CPU-bound. Overhead de threads (mémoire par thread ~1-8 MB). Risques de race condition sur état partagé</p></td>
+</tr>
+<tr class="row-even"><td><p>Risques</p></td>
+<td><p>Thread safety de MistakeMemory (L-06), SQLite (L-08). Pool mal configuré → épuisement de ressources</p></td>
+</tr>
+<tr class="row-odd"><td><p>Mémoire</p></td>
+<td><p>20 threads × 2 MB ≈ 40 MB overhead</p></td>
+</tr>
+<tr class="row-even"><td><p>Complexité</p></td>
+<td><p>Faible à moyenne</p></td>
+</tr>
+<tr class="row-odd"><td><p>Maintenabilité</p></td>
+<td><p>Bonne</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Verdict</strong></p></td>
+<td><p><strong>Solution de transition acceptable</strong> pendant la migration asyncio. Déjà utilisé pour MultiTimeframeScanner.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<hr class="docutils" />
+<section id="modele-d-processpoolexecutor-pour-cpu-bound">
+<h4>Modèle D — <code class="docutils literal notranslate"><span class="pre">ProcessPoolExecutor</span></code> (pour CPU-bound)<a class="headerlink" href="#modele-d-processpoolexecutor-pour-cpu-bound" title="Link to this heading">¶</a></h4>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">ProcessPoolExecutor</span><span class="p">(</span><span class="n">max_workers</span><span class="o">=</span><span class="n">cpu_count</span><span class="p">())</span> <span class="k">as</span> <span class="n">pool</span><span class="p">:</span>
+    <span class="n">features</span> <span class="o">=</span> <span class="n">pool</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">compute_features</span><span class="p">,</span> <span class="n">symbol_batches</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Critère</p></th>
+<th class="head"><p>Évaluation</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Avantages</p></td>
+<td><p>Contourne le GIL. Vrai parallélisme CPU. Idéal pour feature extraction vectorisée</p></td>
+</tr>
+<tr class="row-odd"><td><p>Inconvénients</p></td>
+<td><p>Sérialisation des données entre processus (pickle overhead). Pas adapté à I/O réseau. Complexité de gestion des erreurs inter-processus</p></td>
+</tr>
+<tr class="row-even"><td><p>Risques</p></td>
+<td><p>Overhead de sérialisation peut annuler le gain pour des calculs rapides (&lt;10 ms)</p></td>
+</tr>
+<tr class="row-odd"><td><p>Mémoire</p></td>
+<td><p>N processus × taille du processus. Potentiellement 200-500 MB pour 4-8 workers</p></td>
+</tr>
+<tr class="row-even"><td><p>Complexité</p></td>
+<td><p>Haute</p></td>
+</tr>
+<tr class="row-odd"><td><p>Maintenabilité</p></td>
+<td><p>Difficile</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Verdict</strong></p></td>
+<td><p><strong>Réservé au Feature Engine</strong> si le calcul vectorisé NumPy reste insuffisant. Non prioritaire.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<hr class="docutils" />
+<section id="modele-e-architecture-hybride-recommandation-finale">
+<h4>Modèle E — Architecture hybride (recommandation finale)<a class="headerlink" href="#modele-e-architecture-hybride-recommandation-finale" title="Link to this heading">¶</a></h4>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Processus 1 : Market Data (asyncio)
+  └─ asyncio.gather() sur 200 WebSocket / REST
+  └─ publie sur Event Bus (asyncio.Queue)
+
+Processus 2 : Feature Engine (threading + NumPy)
+  └─ ThreadPoolExecutor pour I/O Cache
+  └─ NumPy batch pour calcul features (libère GIL)
+  └─ Séquentiel pour Ranking (léger)
+
+Processus 3 : Decision + Execution (threading)
+  └─ Séquentiel pour Decision (critique, pas de concurrence)
+  └─ ThreadPoolExecutor pour ordres si multi-exchange
+
+Processus partagé : Observability (asyncio ou threading)
+  └─ Queue non-bloquante
+  └─ Writes asynchrones vers JSONL / SQLite / Telegram
+</pre></div>
+</div>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Critère</p></th>
+<th class="head"><p>Évaluation</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Avantages</p></td>
+<td><p>Chaque processus utilise le modèle optimal pour son type de travail. I/O → asyncio. CPU → NumPy batch. Décision → séquentiel (déterministe).</p></td>
+</tr>
+<tr class="row-odd"><td><p>Inconvénients</p></td>
+<td><p>Complexité de l’orchestration inter-processus. Nécessite un protocole de communication (IPC ou queue).</p></td>
+</tr>
+<tr class="row-even"><td><p>Risques</p></td>
+<td><p>Latence additionnelle de l’IPC. Cohérence des données entre processus.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Mémoire</p></td>
+<td><p>3 processus × ~50-100 MB ≈ 150-300 MB total</p></td>
+</tr>
+<tr class="row-even"><td><p>Complexité</p></td>
+<td><p>Haute</p></td>
+</tr>
+<tr class="row-odd"><td><p>Maintenabilité</p></td>
+<td><p>Bonne si les interfaces sont stables</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Verdict</strong></p></td>
+<td><p><strong>Architecture cible finale</strong>. À atteindre en Phase D/E de migration.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="recommandation">
+<h3>5.2 Recommandation<a class="headerlink" href="#recommandation" title="Link to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Phase B (10 paires)  → Modèle C (ThreadPoolExecutor pour scan)
+Phase C (30 paires)  → Modèle C + NumPy batch features
+Phase D (50 paires)  → Modèle B (asyncio pour Market Data)
+Phase E (100 paires) → Modèle E (hybride complet)
+</pre></div>
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="gestion-des-donnees">
+<h2>6. Gestion des données<a class="headerlink" href="#gestion-des-donnees" title="Link to this heading">¶</a></h2>
+<section id="cache-ohlcv">
+<h3>6.1 Cache OHLCV<a class="headerlink" href="#cache-ohlcv" title="Link to this heading">¶</a></h3>
+<section id="structure-actuelle">
+<h4>Structure actuelle<a class="headerlink" href="#structure-actuelle" title="Link to this heading">¶</a></h4>
+<ul class="simple">
+<li><p>Cache en mémoire par instance <code class="docutils literal notranslate"><span class="pre">MarketScanner</span></code> (dict privé <code class="docutils literal notranslate"><span class="pre">_history[symbol]</span></code>)</p></li>
+<li><p>TTL unique : 60 secondes</p></li>
+<li><p>Pas de limite de taille explicite</p></li>
+</ul>
+</section>
+<section id="structure-cible">
+<h4>Structure cible<a class="headerlink" href="#structure-cible" title="Link to this heading">¶</a></h4>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">OHLCVCache</span><span class="p">:</span>
+    <span class="c1"># {(symbol, timeframe): CachedItem}</span>
+    <span class="n">_store</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">tuple</span><span class="p">,</span> <span class="n">CachedItem</span><span class="p">]</span>
+
+    <span class="n">TTL</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;1m&quot;</span><span class="p">:</span>  <span class="mi">30</span><span class="p">,</span>      <span class="c1"># 30 secondes</span>
+        <span class="s2">&quot;15m&quot;</span><span class="p">:</span> <span class="mi">300</span><span class="p">,</span>     <span class="c1"># 5 minutes</span>
+        <span class="s2">&quot;1h&quot;</span><span class="p">:</span>  <span class="mi">60</span><span class="p">,</span>      <span class="c1"># 60 secondes</span>
+        <span class="s2">&quot;4h&quot;</span><span class="p">:</span>  <span class="mi">600</span><span class="p">,</span>     <span class="c1"># 10 minutes</span>
+        <span class="s2">&quot;1d&quot;</span><span class="p">:</span>  <span class="mi">3600</span><span class="p">,</span>    <span class="c1"># 1 heure</span>
+    <span class="p">}</span>
+
+    <span class="n">MAX_SYMBOLS</span> <span class="o">=</span> <span class="mi">250</span>
+    <span class="n">MAX_CANDLES_PER_SYMBOL</span> <span class="o">=</span> <span class="mi">500</span>
+</pre></div>
+</div>
+</section>
+<section id="invalidation">
+<h4>Invalidation<a class="headerlink" href="#invalidation" title="Link to this heading">¶</a></h4>
+<ul class="simple">
+<li><p><strong>Passive</strong> : à la lecture, vérifier <code class="docutils literal notranslate"><span class="pre">(now</span> <span class="pre">-</span> <span class="pre">cached_at)</span> <span class="pre">&gt;</span> <span class="pre">ttl</span></code>.</p></li>
+<li><p><strong>Active</strong> : événement <code class="docutils literal notranslate"><span class="pre">OHLCV_UPDATED</span></code> invalide immédiatement l’entrée.</p></li>
+<li><p><strong>Fallback</strong> : si la donnée est expirée ET le fetch échoue, retourner la dernière donnée connue avec <code class="docutils literal notranslate"><span class="pre">is_stale=True</span></code>.</p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="websocket">
+<h3>6.2 WebSocket<a class="headerlink" href="#websocket" title="Link to this heading">¶</a></h3>
+<section id="connexion-cible-mexc">
+<h4>Connexion cible (MEXC)<a class="headerlink" href="#connexion-cible-mexc" title="Link to this heading">¶</a></h4>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Connexion</span> <span class="n">WebSocket</span> <span class="n">MEXC</span> <span class="p">:</span> <span class="n">wss</span><span class="p">:</span><span class="o">//</span><span class="n">wbs</span><span class="o">.</span><span class="n">mexc</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">ws</span>
+<span class="n">Souscription</span> <span class="n">par</span> <span class="n">symbole</span><span class="o">+</span><span class="n">timeframe</span> <span class="p">:</span> <span class="p">{</span><span class="s2">&quot;method&quot;</span><span class="p">:</span> <span class="s2">&quot;SUBSCRIPTION&quot;</span><span class="p">,</span> <span class="s2">&quot;params&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;spot@public.kline.v3.api@BTC_USDT@Min1&quot;</span><span class="p">]}</span>
+<span class="n">Heartbeat</span> <span class="p">:</span> <span class="n">ping</span> <span class="n">toutes</span> <span class="n">les</span> <span class="mi">20</span> <span class="n">secondes</span>
+<span class="n">Reconnexion</span> <span class="p">:</span> <span class="n">exponentielle</span> <span class="p">(</span><span class="mi">1</span><span class="n">s</span><span class="p">,</span> <span class="mi">2</span><span class="n">s</span><span class="p">,</span> <span class="mi">4</span><span class="n">s</span><span class="p">,</span> <span class="mi">8</span><span class="n">s</span><span class="p">,</span> <span class="nb">max</span> <span class="mi">60</span><span class="n">s</span><span class="p">)</span> <span class="o">+</span> <span class="n">jitter</span>
+</pre></div>
+</div>
+</section>
+<section id="gestion-des-etats-de-connexion">
+<h4>Gestion des états de connexion<a class="headerlink" href="#gestion-des-etats-de-connexion" title="Link to this heading">¶</a></h4>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>DISCONNECTED → [connexion] → CONNECTING → [succès] → CONNECTED
+                                        → [échec]  → RECONNECTING (backoff)
+CONNECTED → [ping timeout] → STALE → [reconnexion] → CONNECTING
+CONNECTED → [erreur fatale] → DISCONNECTED
+</pre></div>
+</div>
+</section>
+<section id="rest-fallback">
+<h4>REST fallback<a class="headerlink" href="#rest-fallback" title="Link to this heading">¶</a></h4>
+<ul class="simple">
+<li><p>Si WebSocket STALE depuis &gt; <code class="docutils literal notranslate"><span class="pre">ws_stale_threshold</span></code> (défaut 120 s), basculer silencieusement sur REST.</p></li>
+<li><p>Ré-établir WebSocket en arrière-plan.</p></li>
+<li><p>Log métriques : <code class="docutils literal notranslate"><span class="pre">ws_reconnections_total</span></code>, <code class="docutils literal notranslate"><span class="pre">ws_stale_duration_ms</span></code>, <code class="docutils literal notranslate"><span class="pre">rest_fallback_total</span></code>.</p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="backpressure">
+<h3>6.3 Backpressure<a class="headerlink" href="#backpressure" title="Link to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Market Data Layer produit des événements OHLCV_UPDATED.
+Feature Engine consomme ces événements.
+
+Si Feature Engine est lent :
+  → Queue pleine (maxsize=100)
+  → Market Data Layer reçoit une exception QueueFull
+  → Stratégie : DROP_OLDEST (supprimer le plus ancien événement)
+  → Incrémenter compteur : events_dropped_total
+
+Seuil d&#39;alerte : events_dropped_total &gt; 10 par cycle → log WARNING
+Seuil critique : events_dropped_total &gt; 50 → log ERROR + Telegram alert
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="circuit-breaker-evolution">
+<h3>6.4 Circuit Breaker (évolution)<a class="headerlink" href="#circuit-breaker-evolution" title="Link to this heading">¶</a></h3>
+<p>Architecture actuelle : circuit breaker par composant dans <code class="docutils literal notranslate"><span class="pre">MarketScanner</span></code>.</p>
+<p>Architecture cible : circuit breaker centralisé et configurable.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>CircuitBreaker(
+    name=&quot;mexc_rest&quot;,
+    failure_threshold=3,       # N erreurs consécutives → OPEN
+    reset_timeout=60,          # secondes avant tentative HALF_OPEN
+    half_open_max_calls=1      # appels autorisés en HALF_OPEN
+)
+
+États : CLOSED (normal) → OPEN (bloqué) → HALF_OPEN (test) → CLOSED
+</pre></div>
+</div>
+<p>Un circuit breaker par composant externe : <code class="docutils literal notranslate"><span class="pre">mexc_ws</span></code>, <code class="docutils literal notranslate"><span class="pre">mexc_rest</span></code>, <code class="docutils literal notranslate"><span class="pre">lm_studio</span></code>, <code class="docutils literal notranslate"><span class="pre">telegram</span></code>.</p>
+</section>
+<hr class="docutils" />
+<section id="retry-policy-uniformisation">
+<h3>6.5 Retry Policy (uniformisation)<a class="headerlink" href="#retry-policy-uniformisation" title="Link to this heading">¶</a></h3>
+<p>Uniformiser la policy de retry à travers tous les composants :</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">RetryPolicy</span><span class="p">:</span>
+    <span class="n">max_attempts</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span>
+    <span class="n">base_delay</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span>          <span class="c1"># secondes</span>
+    <span class="n">multiplier</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span>
+    <span class="n">max_delay</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">30.0</span>
+    <span class="n">jitter</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">retryable_exceptions</span><span class="p">:</span> <span class="nb">tuple</span> <span class="o">=</span> <span class="p">(</span><span class="n">NetworkError</span><span class="p">,</span> <span class="ne">TimeoutError</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Actuellement, chaque composant définit ses propres délais. Standardiser réduit les bugs et simplifie la configuration.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="thread-safety">
+<h2>7. Thread Safety<a class="headerlink" href="#thread-safety" title="Link to this heading">¶</a></h2>
+<section id="inventaire-des-composants-necessitant-une-synchronisation">
+<h3>7.1 Inventaire des composants nécessitant une synchronisation<a class="headerlink" href="#inventaire-des-composants-necessitant-une-synchronisation" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Composant</p></th>
+<th class="head"><p>Risque</p></th>
+<th class="head"><p>Type de synchronisation</p></th>
+<th class="head"><p>Priorité</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">MarketScanner._history</span></code> (cache OHLCV)</p></td>
+<td><p>Lecture/écriture concurrente si multi-thread</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">threading.RLock</span></code></p></td>
+<td><p>Haute (lors de la parallélisation)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">MistakeMemory._save()</span></code> (JSONL write)</p></td>
+<td><p>Écriture concurrente → corruption fichier</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">threading.Lock</span></code></p></td>
+<td><p><strong>Haute (avant tout parallélisme)</strong></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">MistakeMemory._rules</span></code> (liste en mémoire)</p></td>
+<td><p>Lecture/écriture concurrente</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">threading.RLock</span></code> ou copie immutable</p></td>
+<td><p>Haute</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ExecutionEngine</span></code> (CCXT par exchange)</p></td>
+<td><p>Appels concurrents sur même exchange</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">threading.Lock</span></code> par exchange (actuel)</p></td>
+<td><p>Stable</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">OHLCVCache</span></code> (architecture cible)</p></td>
+<td><p>Lecture/écriture concurrente</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">threading.RLock</span></code> ou <code class="docutils literal notranslate"><span class="pre">asyncio.Lock</span></code></p></td>
+<td><p>Haute (nouveau composant)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">MetricsCollector</span></code> (compteurs)</p></td>
+<td><p>Incréments concurrents</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">threading.Lock</span></code> ou <code class="docutils literal notranslate"><span class="pre">collections.Counter</span></code> atomique</p></td>
+<td><p>Moyenne</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">SQLite</span> <span class="pre">TradeLogger</span></code></p></td>
+<td><p>Écritures concurrentes</p></td>
+<td><p>WAL mode + <code class="docutils literal notranslate"><span class="pre">threading.Lock</span></code></p></td>
+<td><p>Moyenne</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">StartupCache</span></code> (JSON/pickle)</p></td>
+<td><p>Écriture pendant lecture</p></td>
+<td><p>Écriture atomique (fichier temp + rename)</p></td>
+<td><p>Faible</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Event</span> <span class="pre">Bus</span> <span class="pre">(Queue)</span></code></p></td>
+<td><p>Producteur/consommateur concurrents</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">queue.Queue</span></code> (thread-safe natif)</p></td>
+<td><p>Stable</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<hr class="docutils" />
+<section id="justification-par-type-de-synchronisation">
+<h3>7.2 Justification par type de synchronisation<a class="headerlink" href="#justification-par-type-de-synchronisation" title="Link to this heading">¶</a></h3>
+<section id="threading-lock-usage-exclusif">
+<h4><code class="docutils literal notranslate"><span class="pre">threading.Lock</span></code> — usage exclusif<a class="headerlink" href="#threading-lock-usage-exclusif" title="Link to this heading">¶</a></h4>
+<p>Pour les composants où une seule opération est autorisée à la fois :</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">MistakeMemory._save()</span></code> : une seule écriture JSONL à la fois.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ExecutionEngine</span></code> par exchange : un seul ordre en cours par exchange.</p></li>
+</ul>
+</section>
+<section id="threading-rlock-reentrant">
+<h4><code class="docutils literal notranslate"><span class="pre">threading.RLock</span></code> — réentrant<a class="headerlink" href="#threading-rlock-reentrant" title="Link to this heading">¶</a></h4>
+<p>Pour les composants dont les méthodes s’appellent mutuellement :</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">OHLCVCache</span></code> : <code class="docutils literal notranslate"><span class="pre">get()</span></code> peut appeler <code class="docutils literal notranslate"><span class="pre">refresh()</span></code> qui modifie <code class="docutils literal notranslate"><span class="pre">_store</span></code>.</p></li>
+</ul>
+</section>
+<section id="ecriture-atomique-write-then-rename">
+<h4>Écriture atomique (write-then-rename)<a class="headerlink" href="#ecriture-atomique-write-then-rename" title="Link to this heading">¶</a></h4>
+<p>Pour les fichiers lus par des processus externes ou lors du redémarrage :</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">StartupCache</span></code> : écrire dans <code class="docutils literal notranslate"><span class="pre">file.tmp</span></code>, puis <code class="docutils literal notranslate"><span class="pre">os.replace(file.tmp,</span> <span class="pre">file)</span></code>.</p></li>
+<li><p>Évite les fichiers partiellement écrits lisibles lors d’un crash.</p></li>
+</ul>
+</section>
+<section id="sqlite-wal-mode">
+<h4>SQLite WAL mode<a class="headerlink" href="#sqlite-wal-mode" title="Link to this heading">¶</a></h4>
+<p>Pour <code class="docutils literal notranslate"><span class="pre">TradeLogger</span></code> lors de la migration vers écritures concurrentes :</p>
+<div class="highlight-sql notranslate"><div class="highlight"><pre><span></span><span class="n">PRAGMA</span><span class="w"> </span><span class="n">journal_mode</span><span class="o">=</span><span class="n">WAL</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>WAL permet les lectures concurrentes pendant une écriture.</p>
+</section>
+<section id="immutable-state-copy-on-write">
+<h4>Immutable state (copy-on-write)<a class="headerlink" href="#immutable-state-copy-on-write" title="Link to this heading">¶</a></h4>
+<p>Pour <code class="docutils literal notranslate"><span class="pre">MistakeMemory._rules</span></code> : les règles sont copiées à chaque lecture, modifiées atomiquement lors d’un ajout.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">new_rules</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rules</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+<span class="n">new_rules</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rule</span><span class="p">)</span>
+<span class="bp">self</span><span class="o">.</span><span class="n">_rules</span> <span class="o">=</span> <span class="n">new_rules</span>  <span class="c1"># assignment atomique en Python</span>
+</pre></div>
+</div>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="observabilite">
+<h2>8. Observabilité<a class="headerlink" href="#observabilite" title="Link to this heading">¶</a></h2>
+<section id="metriques-a-collecter">
+<h3>8.1 Métriques à collecter<a class="headerlink" href="#metriques-a-collecter" title="Link to this heading">¶</a></h3>
+<section id="metriques-de-latence-en-ms">
+<h4>Métriques de latence (en ms)<a class="headerlink" href="#metriques-de-latence-en-ms" title="Link to this heading">¶</a></h4>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Métrique</p></th>
+<th class="head"><p>Source</p></th>
+<th class="head"><p>Alerte seuil</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">scan_duration_ms</span></code></p></td>
+<td><p>MarketScanner.scan()</p></td>
+<td><p>&gt; 500 ms</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">fetch_http_ms</span></code></p></td>
+<td><p>CCXT fetch_ohlcv()</p></td>
+<td><p>&gt; 300 ms</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">feature_compute_ms</span></code></p></td>
+<td><p>FeatureExtractor</p></td>
+<td><p>&gt; 200 ms</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ranking_duration_ms</span></code></p></td>
+<td><p>Ranker</p></td>
+<td><p>&gt; 100 ms</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">signal_duration_ms</span></code></p></td>
+<td><p>LiveSignalEngine</p></td>
+<td><p>&gt; 100 ms</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">risk_check_duration_ms</span></code></p></td>
+<td><p>GlobalRiskGate</p></td>
+<td><p>&gt; 50 ms</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">execution_duration_ms</span></code></p></td>
+<td><p>ExecutionEngine</p></td>
+<td><p>&gt; 1 000 ms</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">cycle_total_ms</span></code></p></td>
+<td><p>advisor_loop</p></td>
+<td><p>&gt; 4 000 ms</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ws_reconnect_duration_ms</span></code></p></td>
+<td><p>MarketDataLayer</p></td>
+<td><p>&gt; 5 000 ms</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="metriques-de-debit-et-detat">
+<h4>Métriques de débit et d’état<a class="headerlink" href="#metriques-de-debit-et-detat" title="Link to this heading">¶</a></h4>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Métrique</p></th>
+<th class="head"><p>Source</p></th>
+<th class="head"><p>Alerte seuil</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">symbols_scanned_per_cycle</span></code></p></td>
+<td><p>advisor_loop</p></td>
+<td><p>&lt; N configuré</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">signals_generated_per_cycle</span></code></p></td>
+<td><p>LiveSignalEngine</p></td>
+<td><p>0 pendant &gt; 5 cycles</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">signals_blocked_by_mistake_memory</span></code></p></td>
+<td><p>MistakeMemory</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">signals_rejected_by_risk_gate</span></code></p></td>
+<td><p>GlobalRiskGate</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">orders_executed_per_session</span></code></p></td>
+<td><p>ExecutionEngine</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ws_reconnections_total</span></code></p></td>
+<td><p>MarketDataLayer</p></td>
+<td><p>&gt; 5/heure</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">events_dropped_total</span></code></p></td>
+<td><p>Event Bus</p></td>
+<td><p>&gt; 0</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">cache_hit_rate</span></code></p></td>
+<td><p>OHLCVCache</p></td>
+<td><p>&lt; 80%</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">circuit_breaker_open_count</span></code></p></td>
+<td><p>CircuitBreaker</p></td>
+<td><p>&gt; 0</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">mistake_memory_rules_count</span></code></p></td>
+<td><p>MistakeMemory</p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="metriques-ressources">
+<h4>Métriques ressources<a class="headerlink" href="#metriques-ressources" title="Link to this heading">¶</a></h4>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Métrique</p></th>
+<th class="head"><p>Source</p></th>
+<th class="head"><p>Alerte seuil</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">memory_rss_mb</span></code></p></td>
+<td><p>processus</p></td>
+<td><p>&gt; 500 MB</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">cpu_percent</span></code></p></td>
+<td><p>processus</p></td>
+<td><p>&gt; 80% sur 5 cycles</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">thread_count</span></code></p></td>
+<td><p>threading</p></td>
+<td><p>&gt; 50</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">open_file_handles</span></code></p></td>
+<td><p>processus</p></td>
+<td><p>&gt; 100</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="tableau-de-bord-propose-telegram-summary">
+<h3>8.2 Tableau de bord proposé (Telegram summary)<a class="headerlink" href="#tableau-de-bord-propose-telegram-summary" title="Link to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>═══════ CYCLE REPORT ═══════
+Cycle      : #342 | 14:35:02
+Duration   : 823 ms (SLO: &lt;4000 ms) ✓
+
+SCAN
+  Symbols  : 50/50 scanned
+  Cache    : 94% hit rate
+  Errors   : 0
+
+SIGNAL
+  Generated: 7 signals
+  Blocked  : 2 (MistakeMemory)
+  Rejected : 1 (RiskGate)
+  Selected : 1 → BTCUSDT BUY 72.3
+
+EXECUTION
+  Orders   : 1 executed
+  Avg fill : 67,234 USDT (+0.1% slip)
+
+RESOURCES
+  Memory   : 142 MB
+  Threads  : 12
+  WS       : CONNECTED (0 reconnects)
+
+POSITIONS
+  Open     : 2
+  PnL day  : +0.34%
+════════════════════════════
+</pre></div>
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="plan-de-migration">
+<h2>9. Plan de migration<a class="headerlink" href="#plan-de-migration" title="Link to this heading">¶</a></h2>
+<section id="principes-de-migration">
+<h3>9.1 Principes de migration<a class="headerlink" href="#principes-de-migration" title="Link to this heading">¶</a></h3>
+<ol class="arabic simple">
+<li><p><strong>Zéro interruption</strong> — chaque phase déployable sans arrêter le système.</p></li>
+<li><p><strong>Rollback en un commit</strong> — chaque phase réversible sans migration de données.</p></li>
+<li><p><strong>Critères GO/NO GO mesurables</strong> — pas de décision subjective.</p></li>
+<li><p><strong>Tests de régression obligatoires</strong> avant chaque passage de phase.</p></li>
+</ol>
+</section>
+<hr class="docutils" />
+<section id="phase-a-architecture-actuelle-reference">
+<h3>9.2 Phase A — Architecture actuelle (référence)<a class="headerlink" href="#phase-a-architecture-actuelle-reference" title="Link to this heading">¶</a></h3>
+<p><strong>Description :</strong> système actuel, 10 à 30 symboles, cycle séquentiel.</p>
+<p><strong>État :</strong> en production, burn-in en cours.</p>
+<p><strong>Critères de sortie (GO Phase B) :</strong></p>
+<ul class="simple">
+<li><p>100 trades fermés avec PF ≥ 1.0</p></li>
+<li><p>Aucun crash sur 7 jours consécutifs</p></li>
+<li><p>Temps de cycle moyen &lt; 2 000 ms pour 30 symboles</p></li>
+<li><p>MistakeMemory : 0 corruption JSONL</p></li>
+</ul>
+<p><strong>Rollback :</strong> N/A (phase de référence).</p>
+</section>
+<hr class="docutils" />
+<section id="phase-b-threadpoolexecutor-pour-le-scan-10-paires-max">
+<h3>9.3 Phase B — ThreadPoolExecutor pour le scan (10 paires max)<a class="headerlink" href="#phase-b-threadpoolexecutor-pour-le-scan-10-paires-max" title="Link to this heading">¶</a></h3>
+<p><strong>Modifications :</strong></p>
+<ol class="arabic simple">
+<li><p>Extraire la boucle de scan de <code class="docutils literal notranslate"><span class="pre">advisor_loop</span></code> dans un <code class="docutils literal notranslate"><span class="pre">ScanCoordinator</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ScanCoordinator</span></code> utilise <code class="docutils literal notranslate"><span class="pre">ThreadPoolExecutor(max_workers=10)</span></code> pour les fetches OHLCV.</p></li>
+<li><p>Ajouter <code class="docutils literal notranslate"><span class="pre">threading.Lock</span></code> sur <code class="docutils literal notranslate"><span class="pre">MistakeMemory._save()</span></code> et <code class="docutils literal notranslate"><span class="pre">_rules</span></code>.</p></li>
+<li><p>Activer WAL mode sur SQLite <code class="docutils literal notranslate"><span class="pre">trade_log.sqlite</span></code>.</p></li>
+<li><p>Ajouter <code class="docutils literal notranslate"><span class="pre">MetricsCollector</span></code> basique (compteurs temps de cycle par phase).</p></li>
+</ol>
+<p><strong>Risques :</strong></p>
+<ul class="simple">
+<li><p>Race condition sur cache OHLCV → mitigé par <code class="docutils literal notranslate"><span class="pre">threading.RLock</span></code> sur <code class="docutils literal notranslate"><span class="pre">_history</span></code>.</p></li>
+<li><p>Ordre de traitement non-déterministe → mitigé par ranking centralisé post-scan.</p></li>
+</ul>
+<p><strong>Critères GO Phase C :</strong></p>
+<ul class="simple">
+<li><p>Temps de scan 10 symboles &lt; 200 ms (vs ~500 ms séquentiel)</p></li>
+<li><p>0 corruption données (JSONL, SQLite)</p></li>
+<li><p>Tests de régression 100% verts (suite existante)</p></li>
+<li><p>5 jours sans crash</p></li>
+</ul>
+<p><strong>Rollback :</strong> supprimer <code class="docutils literal notranslate"><span class="pre">ScanCoordinator</span></code>, rétablir boucle séquentielle dans <code class="docutils literal notranslate"><span class="pre">advisor_loop</span></code>.</p>
+</section>
+<hr class="docutils" />
+<section id="phase-c-vectorisation-features-ohlcvcache-centralise-30-paires">
+<h3>9.4 Phase C — Vectorisation features + OHLCVCache centralisé (30 paires)<a class="headerlink" href="#phase-c-vectorisation-features-ohlcvcache-centralise-30-paires" title="Link to this heading">¶</a></h3>
+<p><strong>Modifications :</strong></p>
+<ol class="arabic simple">
+<li><p>Extraire <code class="docutils literal notranslate"><span class="pre">FeatureExtractor</span></code> en classe indépendante avec API batch : <code class="docutils literal notranslate"><span class="pre">compute(dict[symbol,</span> <span class="pre">DataFrame])</span> <span class="pre">→</span> <span class="pre">dict[symbol,</span> <span class="pre">FeatureVector]</span></code>.</p></li>
+<li><p>Remplacer les boucles <code class="docutils literal notranslate"><span class="pre">for</span> <span class="pre">symbol</span></code> de calcul NumPy par des opérations matricielles.</p></li>
+<li><p>Implémenter <code class="docutils literal notranslate"><span class="pre">OHLCVCache</span></code> centralisé (partagé entre <code class="docutils literal notranslate"><span class="pre">ScanCoordinator</span></code> et <code class="docutils literal notranslate"><span class="pre">MultiTimeframeScanner</span></code>).</p></li>
+<li><p>Ajouter TTL par timeframe dans le cache.</p></li>
+</ol>
+<p><strong>Risques :</strong></p>
+<ul class="simple">
+<li><p>Résultats numériques légèrement différents (floating-point) → comparer avant/après sur 50 cycles.</p></li>
+<li><p>OHLCVCache partagé → RLock obligatoire.</p></li>
+</ul>
+<p><strong>Critères GO Phase D :</strong></p>
+<ul class="simple">
+<li><p>Temps de feature extraction 30 symboles &lt; 100 ms</p></li>
+<li><p>Pas de divergence de signal vs Phase A (même symbole, même données → même score ± 0.01)</p></li>
+<li><p>10 jours sans crash</p></li>
+<li><p>Couverture de tests feature engine ≥ 95%</p></li>
+</ul>
+<p><strong>Rollback :</strong> réactiver <code class="docutils literal notranslate"><span class="pre">FeatureExtractor</span></code> ancien, supprimer cache centralisé.</p>
+</section>
+<hr class="docutils" />
+<section id="phase-d-asyncio-pour-market-data-50-paires">
+<h3>9.5 Phase D — asyncio pour Market Data (50 paires)<a class="headerlink" href="#phase-d-asyncio-pour-market-data-50-paires" title="Link to this heading">¶</a></h3>
+<p><strong>Modifications :</strong></p>
+<ol class="arabic simple">
+<li><p>Créer <code class="docutils literal notranslate"><span class="pre">MarketDataService</span></code> basé sur <code class="docutils literal notranslate"><span class="pre">asyncio</span></code> + <code class="docutils literal notranslate"><span class="pre">ccxt.async_support</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">asyncio.gather()</span></code> sur 50 fetches OHLCV simultanés.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MarketDataService</span></code> publie sur <code class="docutils literal notranslate"><span class="pre">asyncio.Queue</span></code> → <code class="docutils literal notranslate"><span class="pre">OHLCVCache</span></code>.</p></li>
+<li><p>Intégrer WebSocket MEXC (souscription <code class="docutils literal notranslate"><span class="pre">spot&#64;public.kline.v3.api</span></code>).</p></li>
+<li><p>REST reste disponible comme fallback automatique.</p></li>
+<li><p>Implémenter circuit breaker centralisé (<code class="docutils literal notranslate"><span class="pre">mexc_ws</span></code>, <code class="docutils literal notranslate"><span class="pre">mexc_rest</span></code>).</p></li>
+</ol>
+<p><strong>Risques :</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">ccxt.async_support</span></code> peut avoir un comportement différent du sync → tests d’intégration dédiés.</p></li>
+<li><p>WebSocket MEXC peut couper sur inactivité → heartbeat 20 s.</p></li>
+<li><p>Gestion des erreurs async plus complexe → chaque coroutine doit capturer ses exceptions.</p></li>
+</ul>
+<p><strong>Critères GO Phase E :</strong></p>
+<ul class="simple">
+<li><p>Temps de scan 50 symboles &lt; 500 ms (vs ~1 500 ms séquentiel)</p></li>
+<li><p>WebSocket MEXC stable sur 7 jours (&lt; 5 reconnexions/heure)</p></li>
+<li><p>REST fallback testé et validé</p></li>
+<li><p>14 jours sans crash</p></li>
+</ul>
+<p><strong>Rollback :</strong> désactiver <code class="docutils literal notranslate"><span class="pre">MarketDataService</span></code>, rétablir <code class="docutils literal notranslate"><span class="pre">MarketScanner</span></code> REST sync dans <code class="docutils literal notranslate"><span class="pre">ScanCoordinator</span></code>.</p>
+</section>
+<hr class="docutils" />
+<section id="phase-e-architecture-hybride-complete-100-paires">
+<h3>9.6 Phase E — Architecture hybride complète (100 paires)<a class="headerlink" href="#phase-e-architecture-hybride-complete-100-paires" title="Link to this heading">¶</a></h3>
+<p><strong>Modifications :</strong></p>
+<ol class="arabic simple">
+<li><p>Séparer en 3 processus distincts (<code class="docutils literal notranslate"><span class="pre">multiprocessing</span></code>) ou goroutines asyncio dédiées :</p>
+<ul class="simple">
+<li><p>Processus 1 : <code class="docutils literal notranslate"><span class="pre">MarketDataService</span></code> (asyncio)</p></li>
+<li><p>Processus 2 : <code class="docutils literal notranslate"><span class="pre">FeatureEngine</span></code> + <code class="docutils literal notranslate"><span class="pre">Ranker</span></code> (threading + NumPy)</p></li>
+<li><p>Processus 3 : <code class="docutils literal notranslate"><span class="pre">DecisionEngine</span></code> + <code class="docutils literal notranslate"><span class="pre">ExecutionEngine</span></code> (séquentiel)</p></li>
+</ul>
+</li>
+<li><p>Communication via <code class="docutils literal notranslate"><span class="pre">multiprocessing.Queue</span></code> ou socket IPC.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ObservabilityBus</span></code> centralisé (Processus 4 ou thread dédié).</p></li>
+<li><p>Dashoard métriques temps réel (Telegram structured report).</p></li>
+</ol>
+<p><strong>Risques :</strong></p>
+<ul class="simple">
+<li><p>Latence IPC inter-processus (1-5 ms additionnel) → acceptable pour cycle 300 s.</p></li>
+<li><p>Complexité de déploiement (gestion de 3 processus sur VPS) → systemd services séparés.</p></li>
+<li><p>Cohérence des données entre processus → protocole de versioning des snapshots.</p></li>
+</ul>
+<p><strong>Critères de production-grade (Phase E complète) :</strong></p>
+<ul class="simple">
+<li><p>Temps de cycle complet 100 symboles &lt; 1 000 ms</p></li>
+<li><p>Cache hit rate &gt; 90%</p></li>
+<li><p>0 corruption de données sur 30 jours</p></li>
+<li><p>30 jours sans crash non planifié</p></li>
+<li><p>WS uptime &gt; 99.5%</p></li>
+<li><p>Rollback &lt; 5 minutes en cas d’incident</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="resume-visuel">
+<h3>9.7 Résumé visuel<a class="headerlink" href="#resume-visuel" title="Link to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Phase A (actuel)    Phase B            Phase C            Phase D            Phase E
+─────────────────   ────────────────   ────────────────   ────────────────   ────────────────
+10-30 symboles      10 symboles max    30 symboles max    50 symboles max    100 symboles
+Séquentiel          ThreadPoolExecutor NumPy batch        asyncio + WS       3 processus
+REST sync           Lock MM + SQLite   OHLCVCache centralisé Circuit breakers IPC Queue
+In-memory cache     MetricsCollector   TTL par TF         REST fallback      ObservabilityBus
+~2000 ms cycle      ~800 ms cycle      ~500 ms cycle      ~300 ms cycle      &lt;200 ms cycle
+</pre></div>
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="registre-des-risques">
+<h2>10. Registre des risques<a class="headerlink" href="#registre-des-risques" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>#</p></th>
+<th class="head"><p>Risque</p></th>
+<th class="head"><p>Probabilité</p></th>
+<th class="head"><p>Impact</p></th>
+<th class="head"><p>Détectabilité</p></th>
+<th class="head"><p>Mitigation</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>R-01</p></td>
+<td><p>WebSocket MEXC coupe pendant une nuit → positions non surveillées</p></td>
+<td><p>Haute</p></td>
+<td><p>Critique</p></td>
+<td><p>Faible (silent)</p></td>
+<td><p>Heartbeat 20 s + REST fallback automatique + alerte Telegram si STALE &gt; 120 s</p></td>
+</tr>
+<tr class="row-odd"><td><p>R-02</p></td>
+<td><p>Race condition sur <code class="docutils literal notranslate"><span class="pre">MistakeMemory</span></code> lors du passage multi-thread</p></td>
+<td><p>Moyenne</p></td>
+<td><p>Haute</p></td>
+<td><p>Faible</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">threading.Lock</span></code> avant Phase B</p></td>
+</tr>
+<tr class="row-even"><td><p>R-03</p></td>
+<td><p>Surcharge mémoire avec 200 symboles × 4 TF × 500 candles</p></td>
+<td><p>Faible</p></td>
+<td><p>Moyenne</p></td>
+<td><p>Moyenne</p></td>
+<td><p>OHLCVCache avec limite MAX_SYMBOLS, monitoring RSS</p></td>
+</tr>
+<tr class="row-odd"><td><p>R-04</p></td>
+<td><p>Résultats numériques divergents après vectorisation NumPy</p></td>
+<td><p>Faible</p></td>
+<td><p>Haute</p></td>
+<td><p>Haute</p></td>
+<td><p>Comparaison before/after sur 50 cycles avant Phase C</p></td>
+</tr>
+<tr class="row-even"><td><p>R-05</p></td>
+<td><p>IPC inter-processus ajoute de la latence &gt; SLO</p></td>
+<td><p>Faible</p></td>
+<td><p>Haute</p></td>
+<td><p>Haute</p></td>
+<td><p>Benchmark IPC avant Phase E</p></td>
+</tr>
+<tr class="row-odd"><td><p>R-06</p></td>
+<td><p>MEXC modifie son API WebSocket → déconnexion permanente</p></td>
+<td><p>Faible</p></td>
+<td><p>Critique</p></td>
+<td><p>Haute</p></td>
+<td><p>Circuit breaker + REST fallback permanent</p></td>
+</tr>
+<tr class="row-even"><td><p>R-07</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">ccxt.async_support</span></code> diverge du comportement sync</p></td>
+<td><p>Faible</p></td>
+<td><p>Haute</p></td>
+<td><p>Moyenne</p></td>
+<td><p>Tests d’intégration dédiés async vs sync sur mêmes données</p></td>
+</tr>
+<tr class="row-odd"><td><p>R-08</p></td>
+<td><p>Épuisement des handles de fichiers (SQLite + JSONL + logs)</p></td>
+<td><p>Faible</p></td>
+<td><p>Haute</p></td>
+<td><p>Faible</p></td>
+<td><p>Monitoring <code class="docutils literal notranslate"><span class="pre">open_file_handles</span></code>, rotation JSONL</p></td>
+</tr>
+<tr class="row-even"><td><p>R-09</p></td>
+<td><p>Corruption SQLite pendant migration WAL</p></td>
+<td><p>Très faible</p></td>
+<td><p>Critique</p></td>
+<td><p>Faible</p></td>
+<td><p>Backup avant activation WAL, test sur copie</p></td>
+</tr>
+<tr class="row-odd"><td><p>R-10</p></td>
+<td><p>Régression signal après refactoring FeatureExtractor</p></td>
+<td><p>Moyenne</p></td>
+<td><p>Haute</p></td>
+<td><p>Haute</p></td>
+<td><p>Tests de non-régression signal (même data → même score)</p></td>
+</tr>
+<tr class="row-even"><td><p>R-11</p></td>
+<td><p>GIL Python annule le gain ThreadPoolExecutor sur CPU-bound</p></td>
+<td><p>Haute</p></td>
+<td><p>Moyenne</p></td>
+<td><p>Haute</p></td>
+<td><p>Profiler avant déploiement, basculer sur NumPy batch</p></td>
+</tr>
+<tr class="row-odd"><td><p>R-12</p></td>
+<td><p>advisor_loop.py 6 381 lignes → régression lors du refactoring</p></td>
+<td><p>Haute</p></td>
+<td><p>Haute</p></td>
+<td><p>Haute</p></td>
+<td><p>Strangler pattern P10-B déjà en cours, ne pas toucher au-delà du strangler</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<hr class="docutils" />
+<section id="decisions-darchitecture">
+<h2>11. Décisions d’architecture<a class="headerlink" href="#decisions-darchitecture" title="Link to this heading">¶</a></h2>
+<section id="da-01-rest-polling-vs-websocket-pour-la-collecte-ohlcv">
+<h3>DA-01 — REST polling vs WebSocket pour la collecte OHLCV<a class="headerlink" href="#da-01-rest-polling-vs-websocket-pour-la-collecte-ohlcv" title="Link to this heading">¶</a></h3>
+<p><strong>Contexte :</strong> Le cycle actuel est de 5 minutes. Les données nécessaires sont des chandeliers OHLCV agrégés (pas de tick data).</p>
+<p><strong>Problème :</strong> REST polling introduit une latence de 50-300 ms par appel et consomme des quotas API. WebSocket fournirait des mises à jour en temps réel mais introduit une complexité de gestion de connexion.</p>
+<p><strong>Options étudiées :</strong></p>
+<ol class="arabic simple">
+<li><p>REST exclusif (état actuel)</p></li>
+<li><p>WebSocket exclusif</p></li>
+<li><p>WebSocket primary + REST fallback</p></li>
+</ol>
+<p><strong>Décision retenue :</strong> Option 3 — WebSocket primary + REST fallback, à partir de la Phase D.</p>
+<p><strong>Justification :</strong> Pour un cycle de 5 minutes, REST est suffisant jusqu’à 30 symboles. Au-delà, WebSocket est nécessaire pour maintenir le temps de cycle &lt; 500 ms. Le fallback REST garantit la résilience sans dépendance unique.</p>
+<p><strong>Conséquences :</strong> Complexité accrue (gestion de deux sources), mais résilience améliorée. Le fallback REST existant dans <code class="docutils literal notranslate"><span class="pre">MarketScanner</span></code> constitue une base solide pour cette architecture.</p>
+</section>
+<hr class="docutils" />
+<section id="da-02-asyncio-vs-threadpoolexecutor-pour-la-concurrence-i-o">
+<h3>DA-02 — asyncio vs ThreadPoolExecutor pour la concurrence I/O<a class="headerlink" href="#da-02-asyncio-vs-threadpoolexecutor-pour-la-concurrence-i-o" title="Link to this heading">¶</a></h3>
+<p><strong>Contexte :</strong> Python 3.x avec GIL. Les appels CCXT existants sont synchrones.</p>
+<p><strong>Problème :</strong> Pour scanner 100-200 symboles en &lt; 500 ms, les appels réseau doivent être parallélisés.</p>
+<p><strong>Options étudiées :</strong></p>
+<ol class="arabic simple">
+<li><p>ThreadPoolExecutor (compatible code sync existant)</p></li>
+<li><p>asyncio + ccxt.async_support (refactoring nécessaire)</p></li>
+<li><p>ProcessPoolExecutor (contourne GIL mais overhead IPC)</p></li>
+</ol>
+<p><strong>Décision retenue :</strong> ThreadPoolExecutor en Phase B/C, migration asyncio en Phase D uniquement pour <code class="docutils literal notranslate"><span class="pre">MarketDataService</span></code>.</p>
+<p><strong>Justification :</strong> Le GIL n’est pas un problème pour l’I/O réseau (GIL est relâché pendant les syscalls). ThreadPoolExecutor préserve le code synchrone existant. asyncio est plus efficace mais nécessite un refactoring complet. La migration progressive réduit le risque de régression.</p>
+<p><strong>Conséquences :</strong> Deux modèles de concurrence coexistants en Phase D. Nécessite une interface claire entre le <code class="docutils literal notranslate"><span class="pre">MarketDataService</span></code> asyncio et le reste du pipeline synchrone.</p>
+</section>
+<hr class="docutils" />
+<section id="da-03-cache-centralise-vs-cache-distribue-par-instance">
+<h3>DA-03 — Cache centralisé vs cache distribué par instance<a class="headerlink" href="#da-03-cache-centralise-vs-cache-distribue-par-instance" title="Link to this heading">¶</a></h3>
+<p><strong>Contexte :</strong> Chaque <code class="docutils literal notranslate"><span class="pre">MarketScanner</span></code> a son propre cache en mémoire. À mesure que le nombre de symboles et de timeframes augmente, des instances multiples peuvent dupliquer les mêmes données.</p>
+<p><strong>Problème :</strong> Avec 200 symboles × 4 TF, la duplication de cache entre instances représente un gaspillage de mémoire et peut créer des incohérences si des données différentes sont utilisées par deux composants.</p>
+<p><strong>Décision retenue :</strong> <code class="docutils literal notranslate"><span class="pre">OHLCVCache</span></code> centralisé, partagé par tous les composants, en Phase C.</p>
+<p><strong>Justification :</strong> Source unique de vérité, cohérence garantie, réduction de la mémoire. Le <code class="docutils literal notranslate"><span class="pre">RLock</span></code> protège les accès concurrents.</p>
+<p><strong>Conséquences :</strong> <code class="docutils literal notranslate"><span class="pre">MarketScanner</span></code> devient un lecteur du cache, non plus propriétaire. Nécessite une interface <code class="docutils literal notranslate"><span class="pre">CacheStore</span></code> claire.</p>
+</section>
+<hr class="docutils" />
+<section id="da-04-sequentialite-de-la-couche-de-decision">
+<h3>DA-04 — Séquentialité de la couche de décision<a class="headerlink" href="#da-04-sequentialite-de-la-couche-de-decision" title="Link to this heading">¶</a></h3>
+<p><strong>Contexte :</strong> La décision de trading (MistakeMemory + RiskGate + PortfolioBrain) pourrait théoriquement être parallélisée sur plusieurs symboles.</p>
+<p><strong>Problème :</strong> La décision implique un état partagé (capital disponible, positions ouvertes, règles MistakeMemory). La paralléliser sans coordination pourrait mener à des décisions incohérentes (ex : allouer deux fois le même capital).</p>
+<p><strong>Décision retenue :</strong> La couche de décision reste <strong>strictement séquentielle</strong>, même en Phase E.</p>
+<p><strong>Justification :</strong> La cohérence du capital et des positions est non-négociable. Les gains de performance potentiels (&lt; 50 ms) ne justifient pas le risque d’incohérence. La décision ne traite que le top-N (3-5) symboles après ranking, donc la latence séquentielle est négligeable.</p>
+<p><strong>Conséquences :</strong> Aucune. La séquentialité est une propriété de sécurité, pas une contrainte de performance.</p>
+</section>
+<hr class="docutils" />
+<section id="da-05-monolithique-vs-strangler-pattern-pour-la-migration-de-advisor-loop-py">
+<h3>DA-05 — Monolithique vs strangler pattern pour la migration de advisor_loop.py<a class="headerlink" href="#da-05-monolithique-vs-strangler-pattern-pour-la-migration-de-advisor-loop-py" title="Link to this heading">¶</a></h3>
+<p><strong>Contexte :</strong> <code class="docutils literal notranslate"><span class="pre">advisor_loop.py</span></code> fait 6 381 lignes et concentre toute la logique d’orchestration.</p>
+<p><strong>Problème :</strong> Réécrire intégralement présente un risque de régression trop élevé. Modifier le fichier directement est risqué par sa taille.</p>
+<p><strong>Décision retenue :</strong> Continuer le pattern strangler (P10-B <code class="docutils literal notranslate"><span class="pre">runtime/advisor_main.py</span></code>) — extraire progressivement les composants sans modifier le core de <code class="docutils literal notranslate"><span class="pre">advisor_loop.py</span></code>.</p>
+<p><strong>Justification :</strong> Le strangler pattern permet de valider chaque extraction indépendamment. <code class="docutils literal notranslate"><span class="pre">advisor_main.py</span></code> est déjà en place comme point d’entrée alternatif. La migration est réversible à tout moment.</p>
+<p><strong>Conséquences :</strong> Coexistence temporaire de deux chemins de code. Risque de divergence entre les deux si <code class="docutils literal notranslate"><span class="pre">advisor_loop.py</span></code> évolue. Nécessite une discipline stricte : toute nouvelle fonctionnalité va dans <code class="docutils literal notranslate"><span class="pre">advisor_main.py</span></code>, pas dans <code class="docutils literal notranslate"><span class="pre">advisor_loop.py</span></code>.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="recommandation-finale">
+<h2>12. Recommandation finale<a class="headerlink" href="#recommandation-finale" title="Link to this heading">¶</a></h2>
+<section id="architecture-recommandee">
+<h3>12.1 Architecture recommandée<a class="headerlink" href="#architecture-recommandee" title="Link to this heading">¶</a></h3>
+<p>L’architecture cible est un <strong>pipeline hybride en 3 zones</strong> :</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Zone</span> <span class="n">A</span> <span class="p">:</span> <span class="n">Données</span> <span class="p">(</span><span class="n">asyncio</span> <span class="o">+</span> <span class="n">WebSocket</span><span class="p">)</span>
+<span class="n">Zone</span> <span class="n">B</span> <span class="p">:</span> <span class="n">Intelligence</span> <span class="p">(</span><span class="n">threading</span> <span class="o">+</span> <span class="n">NumPy</span> <span class="n">batch</span><span class="p">)</span>
+<span class="n">Zone</span> <span class="n">C</span> <span class="p">:</span> <span class="n">Décision</span> <span class="o">+</span> <span class="n">Exécution</span> <span class="p">(</span><span class="n">séquentiel</span><span class="p">,</span> <span class="n">synchrone</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Cette séparation correspond naturellement aux types de travail :</p>
+<ul class="simple">
+<li><p>Zone A : I/O bound → asyncio est optimal.</p></li>
+<li><p>Zone B : CPU bound → NumPy batch libère le GIL, ThreadPoolExecutor gère la coordination.</p></li>
+<li><p>Zone C : logique critique → le séquentiel garantit la cohérence.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="elements-a-conserver">
+<h3>12.2 Éléments à conserver<a class="headerlink" href="#elements-a-conserver" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Élément</p></th>
+<th class="head"><p>Raison</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">MarketScanner</span></code> (avec ses retries/circuit breaker)</p></td>
+<td><p>Fault tolerance éprouvée. À intégrer dans Zone A.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">LiveSignalEngine</span></code> (scoring 0-100)</p></td>
+<td><p>Stable, interprétable, extensible.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">MistakeMemory</span></code> (JSONL + règles auto-générées)</p></td>
+<td><p>Valeur prouvée en burn-in. Thread safety à ajouter.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">GlobalRiskGate</span></code></p></td>
+<td><p>Gardes invariants du portefeuille. Séquentiel par design.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">OrderDeduplicator</span></code> + <code class="docutils literal notranslate"><span class="pre">SessionGuard</span></code></p></td>
+<td><p>Sécurité d’exécution non-négociable.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Circuit breaker pattern</p></td>
+<td><p>À généraliser et centraliser.</p></td>
+</tr>
+<tr class="row-even"><td><p>Strangler pattern (P10-B)</p></td>
+<td><p>Continuer la migration via <code class="docutils literal notranslate"><span class="pre">advisor_main.py</span></code>.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<hr class="docutils" />
+<section id="elements-a-supprimer-remplacer">
+<h3>12.3 Éléments à supprimer / remplacer<a class="headerlink" href="#elements-a-supprimer-remplacer" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Élément</p></th>
+<th class="head"><p>Action</p></th>
+<th class="head"><p>Raison</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Boucle <code class="docutils literal notranslate"><span class="pre">for</span> <span class="pre">symbol</span></code> dans <code class="docutils literal notranslate"><span class="pre">advisor_loop</span></code></p></td>
+<td><p>Remplacer par <code class="docutils literal notranslate"><span class="pre">ScanCoordinator</span></code></p></td>
+<td><p>Scalabilité bloquée</p></td>
+</tr>
+<tr class="row-odd"><td><p>Cache privé par instance <code class="docutils literal notranslate"><span class="pre">MarketScanner._history</span></code></p></td>
+<td><p>Remplacer par <code class="docutils literal notranslate"><span class="pre">OHLCVCache</span></code> centralisé (Phase C)</p></td>
+<td><p>Duplication mémoire, incohérence potentielle</p></td>
+</tr>
+<tr class="row-even"><td><p>Feature calc boucle <code class="docutils literal notranslate"><span class="pre">for</span> <span class="pre">symbol</span></code></p></td>
+<td><p>Vectoriser NumPy batch (Phase C)</p></td>
+<td><p>Performance 5-10×</p></td>
+</tr>
+<tr class="row-odd"><td><p>Appels REST bloquants pour 50+ symboles</p></td>
+<td><p>asyncio + WebSocket (Phase D)</p></td>
+<td><p>Latence irréductible du REST polling</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<hr class="docutils" />
+<section id="priorites-post-burn-in">
+<h3>12.4 Priorités post burn-in<a class="headerlink" href="#priorites-post-burn-in" title="Link to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Priorité 1 (immédiatement après 100 trades) :
+  □ Ajouter threading.Lock sur MistakeMemory._save() et _rules
+  □ Activer WAL mode SQLite
+  □ Écriture atomique StartupCache (write-then-rename)
+  □ Ajouter MetricsCollector basique (temps de cycle par phase)
+
+Priorité 2 (Phase B, semaines 1-2) :
+  □ Extraire ScanCoordinator avec ThreadPoolExecutor
+  □ Tests de régression signal (non-divergence)
+  □ Monitoring RSS mémoire
+
+Priorité 3 (Phase C, semaines 3-6) :
+  □ FeatureExtractor vectorisé NumPy
+  □ OHLCVCache centralisé avec TTL par TF
+  □ Tableau de bord métriques Telegram
+
+Priorité 4 (Phase D, semaines 7-12) :
+  □ MarketDataService asyncio + ccxt.async_support
+  □ WebSocket MEXC + REST fallback
+  □ Circuit breaker centralisé
+
+Priorité 5 (Phase E, mois 4-6) :
+  □ Architecture 3 processus
+  □ IPC Queue
+  □ ObservabilityBus
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="dette-technique-documentee">
+<h3>12.5 Dette technique documentée<a class="headerlink" href="#dette-technique-documentee" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>#</p></th>
+<th class="head"><p>Dette</p></th>
+<th class="head"><p>Impact si non traitée</p></th>
+<th class="head"><p>Phase de traitement</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>DT-01</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">MistakeMemory</span></code> sans mutex</p></td>
+<td><p>Corruption JSONL si parallélisation</p></td>
+<td><p>Avant Phase B</p></td>
+</tr>
+<tr class="row-odd"><td><p>DT-02</p></td>
+<td><p>SQLite sans WAL</p></td>
+<td><p>Écriture concurrente bloquante</p></td>
+<td><p>Avant Phase B</p></td>
+</tr>
+<tr class="row-even"><td><p>DT-03</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">advisor_loop.py</span></code> 6 381 lignes</p></td>
+<td><p>Toute modification à haut risque</p></td>
+<td><p>Ongoing (strangler P10-B)</p></td>
+</tr>
+<tr class="row-odd"><td><p>DT-04</p></td>
+<td><p>Pas de limite explicite mémoire cache</p></td>
+<td><p>Fuite mémoire potentielle à 200 symboles</p></td>
+<td><p>Phase C</p></td>
+</tr>
+<tr class="row-even"><td><p>DT-05</p></td>
+<td><p>AIAdvisor sans timeout HTTP strict</p></td>
+<td><p>Cycle bloqué si LM Studio lent</p></td>
+<td><p>Phase B</p></td>
+</tr>
+<tr class="row-odd"><td><p>DT-06</p></td>
+<td><p>Pas de versioning des interfaces entre couches</p></td>
+<td><p>Rupture silencieuse si un composant change</p></td>
+<td><p>Phase C</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<hr class="docutils" />
+<section id="criteres-de-production-grade-pour-le-scanner">
+<h3>12.6 Critères de production-grade pour le scanner<a class="headerlink" href="#criteres-de-production-grade-pour-le-scanner" title="Link to this heading">¶</a></h3>
+<p>Le scanner sera considéré <strong>production-grade</strong> lorsque les critères suivants seront tous validés simultanément :</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Performance :
+  ✓ 100 symboles scannés en &lt; 500 ms
+  ✓ Temps de cycle total &lt; 1 000 ms
+  ✓ Cache hit rate &gt; 90%
+
+Résilience :
+  ✓ Reconnexion WebSocket automatique &lt; 5 s
+  ✓ REST fallback validé sur 7 jours consécutifs
+  ✓ Aucun crash non planifié sur 30 jours
+
+Cohérence des données :
+  ✓ 0 corruption JSONL sur 30 jours
+  ✓ 0 corruption SQLite sur 30 jours
+  ✓ Aucune divergence de signal (même data → même score)
+
+Observabilité :
+  ✓ Métriques de latence par phase disponibles
+  ✓ Alerte automatique si cycle &gt; SLO
+  ✓ Dashboard Telegram opérationnel
+
+Opérations :
+  ✓ Rollback possible &lt; 5 minutes
+  ✓ Démarrage à froid &lt; 5 secondes
+  ✓ Drain propre sur SIGTERM (positions non laissées ouvertes sans monitoring)
+</pre></div>
+</div>
+<hr class="docutils" />
+<p><em>Document généré le 2026-06-16. Révision prévue après clôture du burn-in (100 trades).</em><br />
+<em>Statut suivant : PROPOSED → à valider après Phase A.</em></p>
+</section>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Crypto AI Terminal
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">ADR-001 — Architecture cible du Market Scanner Quant</a><ul>
+<li><a class="reference internal" href="#table-des-matieres">Table des matières</a></li>
+<li><a class="reference internal" href="#audit-de-larchitecture-actuelle">1. Audit de l’architecture actuelle</a><ul>
+<li><a class="reference internal" href="#vue-densemble">1.1 Vue d’ensemble</a></li>
+<li><a class="reference internal" href="#composants-et-dependances">1.2 Composants et dépendances</a></li>
+<li><a class="reference internal" href="#pipeline-complet-flux-dexecution">1.3 Pipeline complet (flux d’exécution)</a></li>
+<li><a class="reference internal" href="#modele-de-concurrence-actuel">1.4 Modèle de concurrence actuel</a></li>
+<li><a class="reference internal" href="#i-o-par-composant">1.5 I/O par composant</a></li>
+<li><a class="reference internal" href="#temps-de-cycle-mesure">1.6 Temps de cycle mesuré</a></li>
+<li><a class="reference internal" href="#diagramme-de-flux-simplifie">1.7 Diagramme de flux simplifié</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#limites-de-larchitecture-actuelle">2. Limites de l’architecture actuelle</a><ul>
+<li><a class="reference internal" href="#tableau-des-limites">2.1 Tableau des limites</a></li>
+<li><a class="reference internal" href="#resume-des-limites-critiques">2.2 Résumé des limites critiques</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#architecture-cible">3. Architecture cible</a><ul>
+<li><a class="reference internal" href="#principes-directeurs">3.1 Principes directeurs</a></li>
+<li><a class="reference internal" href="#vue-densemble-des-composants">3.2 Vue d’ensemble des composants</a></li>
+<li><a class="reference internal" href="#description-des-composants">3.3 Description des composants</a><ul>
+<li><a class="reference internal" href="#market-data-layer">Market Data Layer</a></li>
+<li><a class="reference internal" href="#cache-layer-ohlcv-store">Cache Layer (OHLCV Store)</a></li>
+<li><a class="reference internal" href="#event-bus">Event Bus</a></li>
+<li><a class="reference internal" href="#feature-ranking-engine">Feature &amp; Ranking Engine</a></li>
+<li><a class="reference internal" href="#decision-intelligence">Decision Intelligence</a></li>
+<li><a class="reference internal" href="#execution-layer">Execution Layer</a></li>
+<li><a class="reference internal" href="#observability-layer">Observability Layer</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#schema-complet-avec-flux-de-donnees">3.4 Schéma complet avec flux de données</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#pipeline-de-donnees">4. Pipeline de données</a><ul>
+<li><a class="reference internal" href="#flux-complet-avec-interfaces">4.1 Flux complet avec interfaces</a></li>
+<li><a class="reference internal" href="#interfaces-entre-composants-resume">4.2 Interfaces entre composants (résumé)</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#strategie-de-concurrence">5. Stratégie de concurrence</a><ul>
+<li><a class="reference internal" href="#comparaison-des-modeles">5.1 Comparaison des modèles</a><ul>
+<li><a class="reference internal" href="#modele-a-sequentiel-architecture-actuelle">Modèle A — Séquentiel (architecture actuelle)</a></li>
+<li><a class="reference internal" href="#modele-b-asyncio-recommande-pour-i-o">Modèle B — <code class="docutils literal notranslate"><span class="pre">asyncio</span></code> (recommandé pour I/O)</a></li>
+<li><a class="reference internal" href="#modele-c-threadpoolexecutor-pour-i-o-avec-code-synchrone">Modèle C — <code class="docutils literal notranslate"><span class="pre">ThreadPoolExecutor</span></code> (pour I/O avec code synchrone)</a></li>
+<li><a class="reference internal" href="#modele-d-processpoolexecutor-pour-cpu-bound">Modèle D — <code class="docutils literal notranslate"><span class="pre">ProcessPoolExecutor</span></code> (pour CPU-bound)</a></li>
+<li><a class="reference internal" href="#modele-e-architecture-hybride-recommandation-finale">Modèle E — Architecture hybride (recommandation finale)</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#recommandation">5.2 Recommandation</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#gestion-des-donnees">6. Gestion des données</a><ul>
+<li><a class="reference internal" href="#cache-ohlcv">6.1 Cache OHLCV</a><ul>
+<li><a class="reference internal" href="#structure-actuelle">Structure actuelle</a></li>
+<li><a class="reference internal" href="#structure-cible">Structure cible</a></li>
+<li><a class="reference internal" href="#invalidation">Invalidation</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#websocket">6.2 WebSocket</a><ul>
+<li><a class="reference internal" href="#connexion-cible-mexc">Connexion cible (MEXC)</a></li>
+<li><a class="reference internal" href="#gestion-des-etats-de-connexion">Gestion des états de connexion</a></li>
+<li><a class="reference internal" href="#rest-fallback">REST fallback</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#backpressure">6.3 Backpressure</a></li>
+<li><a class="reference internal" href="#circuit-breaker-evolution">6.4 Circuit Breaker (évolution)</a></li>
+<li><a class="reference internal" href="#retry-policy-uniformisation">6.5 Retry Policy (uniformisation)</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#thread-safety">7. Thread Safety</a><ul>
+<li><a class="reference internal" href="#inventaire-des-composants-necessitant-une-synchronisation">7.1 Inventaire des composants nécessitant une synchronisation</a></li>
+<li><a class="reference internal" href="#justification-par-type-de-synchronisation">7.2 Justification par type de synchronisation</a><ul>
+<li><a class="reference internal" href="#threading-lock-usage-exclusif"><code class="docutils literal notranslate"><span class="pre">threading.Lock</span></code> — usage exclusif</a></li>
+<li><a class="reference internal" href="#threading-rlock-reentrant"><code class="docutils literal notranslate"><span class="pre">threading.RLock</span></code> — réentrant</a></li>
+<li><a class="reference internal" href="#ecriture-atomique-write-then-rename">Écriture atomique (write-then-rename)</a></li>
+<li><a class="reference internal" href="#sqlite-wal-mode">SQLite WAL mode</a></li>
+<li><a class="reference internal" href="#immutable-state-copy-on-write">Immutable state (copy-on-write)</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#observabilite">8. Observabilité</a><ul>
+<li><a class="reference internal" href="#metriques-a-collecter">8.1 Métriques à collecter</a><ul>
+<li><a class="reference internal" href="#metriques-de-latence-en-ms">Métriques de latence (en ms)</a></li>
+<li><a class="reference internal" href="#metriques-de-debit-et-detat">Métriques de débit et d’état</a></li>
+<li><a class="reference internal" href="#metriques-ressources">Métriques ressources</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#tableau-de-bord-propose-telegram-summary">8.2 Tableau de bord proposé (Telegram summary)</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#plan-de-migration">9. Plan de migration</a><ul>
+<li><a class="reference internal" href="#principes-de-migration">9.1 Principes de migration</a></li>
+<li><a class="reference internal" href="#phase-a-architecture-actuelle-reference">9.2 Phase A — Architecture actuelle (référence)</a></li>
+<li><a class="reference internal" href="#phase-b-threadpoolexecutor-pour-le-scan-10-paires-max">9.3 Phase B — ThreadPoolExecutor pour le scan (10 paires max)</a></li>
+<li><a class="reference internal" href="#phase-c-vectorisation-features-ohlcvcache-centralise-30-paires">9.4 Phase C — Vectorisation features + OHLCVCache centralisé (30 paires)</a></li>
+<li><a class="reference internal" href="#phase-d-asyncio-pour-market-data-50-paires">9.5 Phase D — asyncio pour Market Data (50 paires)</a></li>
+<li><a class="reference internal" href="#phase-e-architecture-hybride-complete-100-paires">9.6 Phase E — Architecture hybride complète (100 paires)</a></li>
+<li><a class="reference internal" href="#resume-visuel">9.7 Résumé visuel</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#registre-des-risques">10. Registre des risques</a></li>
+<li><a class="reference internal" href="#decisions-darchitecture">11. Décisions d’architecture</a><ul>
+<li><a class="reference internal" href="#da-01-rest-polling-vs-websocket-pour-la-collecte-ohlcv">DA-01 — REST polling vs WebSocket pour la collecte OHLCV</a></li>
+<li><a class="reference internal" href="#da-02-asyncio-vs-threadpoolexecutor-pour-la-concurrence-i-o">DA-02 — asyncio vs ThreadPoolExecutor pour la concurrence I/O</a></li>
+<li><a class="reference internal" href="#da-03-cache-centralise-vs-cache-distribue-par-instance">DA-03 — Cache centralisé vs cache distribué par instance</a></li>
+<li><a class="reference internal" href="#da-04-sequentialite-de-la-couche-de-decision">DA-04 — Séquentialité de la couche de décision</a></li>
+<li><a class="reference internal" href="#da-05-monolithique-vs-strangler-pattern-pour-la-migration-de-advisor-loop-py">DA-05 — Monolithique vs strangler pattern pour la migration de advisor_loop.py</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#recommandation-finale">12. Recommandation finale</a><ul>
+<li><a class="reference internal" href="#architecture-recommandee">12.1 Architecture recommandée</a></li>
+<li><a class="reference internal" href="#elements-a-conserver">12.2 Éléments à conserver</a></li>
+<li><a class="reference internal" href="#elements-a-supprimer-remplacer">12.3 Éléments à supprimer / remplacer</a></li>
+<li><a class="reference internal" href="#priorites-post-burn-in">12.4 Priorités post burn-in</a></li>
+<li><a class="reference internal" href="#dette-technique-documentee">12.5 Dette technique documentée</a></li>
+<li><a class="reference internal" href="#criteres-de-production-grade-pour-le-scanner">12.6 Critères de production-grade pour le scanner</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="_static/documentation_options.js?v=ef6a59ae"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    </body>
+</html>

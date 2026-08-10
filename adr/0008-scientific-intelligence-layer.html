@@ -1,0 +1,455 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html">
+        <link rel="prefetch" href="../_static/../assets/logo_ai_quant.png" as="image">
+        <link rel="prefetch" href="../_static/../assets/logo_ai_quant.png" as="image">
+
+    <link rel="shortcut icon" href="../_static/favicon.ico"><!-- Generated with Sphinx 9.0.4 and Furo 2025.12.19 -->
+        <title>ADR-0008 - Scientific Intelligence Layer et SDOS - Crypto AI Terminal 9.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=1b9cecba" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">Crypto AI Terminal 9.1 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="../_static/../assets/logo_ai_quant.png" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="../_static/../assets/logo_ai_quant.png" alt="Dark Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/blob/main/docs/adr/0008-scientific-intelligence-layer.md?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/edit/main/docs/adr/0008-scientific-intelligence-layer.md" rel="edit" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="adr-0008-scientific-intelligence-layer-et-sdos">
+<h1>ADR-0008 - Scientific Intelligence Layer et SDOS<a class="headerlink" href="#adr-0008-scientific-intelligence-layer-et-sdos" title="Link to this heading">¶</a></h1>
+<p><strong>Date :</strong> 2026-07-01
+<strong>Statut :</strong> Accepte - Decision d’architecture strategique
+<strong>Auteur :</strong> Mathieu</p>
+<hr class="docutils" />
+<section id="contexte">
+<h2>Contexte<a class="headerlink" href="#contexte" title="Link to this heading">¶</a></h2>
+<p>Le projet a depasse le cadre d’un bot de trading. Le moteur de trading reste le
+cas d’usage principal, mais les couches livrees autour du DIP produisent deja une
+plateforme d’observation, de replay, de causalite, de certification et de
+gouvernance scientifique.</p>
+<p>Le risque architectural actuel n’est plus le manque d’outils. Le risque est de
+continuer a ajouter des outils sans langage commun pour representer ce que le
+systeme sait reellement de son propre comportement.</p>
+<p>La question cible n’est donc plus seulement :</p>
+<blockquote>
+<div><p>Pourquoi ce trade a-t-il ete refuse ?</p>
+</div></blockquote>
+<p>Elle devient :</p>
+<blockquote>
+<div><p>Que savons-nous reellement du comportement du moteur de decision ?</p>
+</div></blockquote>
+</section>
+<section id="decision">
+<h2>Decision<a class="headerlink" href="#decision" title="Link to this heading">¶</a></h2>
+<p>Le projet adopte l’identite architecturale suivante :</p>
+<blockquote>
+<div><p><strong>Scientific Decision Operating System (SDOS)</strong> - une plateforme scientifique
+d’analyse decisionnelle dont le trading est le premier cas d’usage.</p>
+</div></blockquote>
+<p>Nous introduisons un niveau intermediaire :</p>
+<blockquote>
+<div><p><strong>L3.5 - Scientific Intelligence Layer</strong></p>
+</div></blockquote>
+<p>Ce niveau est situe apres la gouvernance scientifique L3 et avant le Research Lab
+L4. Il ne cree pas de nouvelle capacite decisionnelle et n’a aucun droit
+d’influence runtime sur le moteur. Il transforme les observations DIP en
+connaissance scientifique structuree.</p>
+<p>Le niveau L7 est renomme :</p>
+<blockquote>
+<div><p><strong>Scientific Intelligence Core</strong></p>
+</div></blockquote>
+<p>L7 devient l’integration mature et long terme des moteurs de connaissance,
+d’evidence, de memoire scientifique, de planification de recherche et de
+detection des contradictions.</p>
+</section>
+<section id="portee-normative">
+<h2>Portee normative<a class="headerlink" href="#portee-normative" title="Link to this heading">¶</a></h2>
+<p>L3.5 contient huit moteurs conceptuels, tous passifs :</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>ID</p></th>
+<th class="head"><p>Moteur</p></th>
+<th class="head"><p>Role</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>SI-01</p></td>
+<td><p>Decision Knowledge Graph</p></td>
+<td><p>Relie Decision, RootCause, Hypothesis, Dataset, Evidence, Confidence, Conclusion et Experiment</p></td>
+</tr>
+<tr class="row-odd"><td><p>SI-02</p></td>
+<td><p>Causal Memory</p></td>
+<td><p>Accumule les motifs causaux recurrents et leur valeur empirique</p></td>
+</tr>
+<tr class="row-even"><td><p>SI-03</p></td>
+<td><p>Evidence Engine</p></td>
+<td><p>Suit confirmations, contradictions, invalidations et niveaux d’evidence</p></td>
+</tr>
+<tr class="row-odd"><td><p>SI-04</p></td>
+<td><p>Scientific Timeline</p></td>
+<td><p>Montre l’evolution temporelle de la connaissance, pas seulement des trades</p></td>
+</tr>
+<tr class="row-even"><td><p>SI-05</p></td>
+<td><p>Contradiction Detector</p></td>
+<td><p>Detecte les hypotheses compatibles ou incompatibles entre elles</p></td>
+</tr>
+<tr class="row-odd"><td><p>SI-06</p></td>
+<td><p>Knowledge Confidence</p></td>
+<td><p>Mesure la confiance dans la connaissance produite, distincte de l’OCS</p></td>
+</tr>
+<tr class="row-even"><td><p>SI-07</p></td>
+<td><p>Scientific Drift</p></td>
+<td><p>Detecte le vieillissement ou la degradation d’une conclusion scientifique</p></td>
+</tr>
+<tr class="row-odd"><td><p>SI-08</p></td>
+<td><p>Decision DNA</p></td>
+<td><p>Encode les decisions en sequences comparables pour identifier des familles decisionnelles</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="alternatives-rejetees">
+<h2>Alternatives rejetees<a class="headerlink" href="#alternatives-rejetees" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Alternative</p></th>
+<th class="head"><p>Raison du rejet</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Garder L7 sous le nom “Meta Intelligence”</p></td>
+<td><p>Trop vague. Le projet vise une intelligence scientifique, pas une meta-couche generale</p></td>
+</tr>
+<tr class="row-odd"><td><p>Ajouter directement des modules DIP D15+</p></td>
+<td><p>Violerait l’esprit de la Scientific Debt Rule : plus d’outils avant langage commun</p></td>
+</tr>
+<tr class="row-even"><td><p>Integrer L3.5 dans L4 Research Lab</p></td>
+<td><p>L4 genere de nouvelles hypotheses ; L3.5 structure d’abord la connaissance existante</p></td>
+</tr>
+<tr class="row-odd"><td><p>Faire de L3.5 une couche active d’auto-calibration</p></td>
+<td><p>Interdit par ADR-0007 et par <code class="docutils literal notranslate"><span class="pre">FEATURE_AUTO_CALIBRATION=false</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="consequences">
+<h2>Consequences<a class="headerlink" href="#consequences" title="Link to this heading">¶</a></h2>
+<p><strong>Positives :</strong></p>
+<ul class="simple">
+<li><p>Le DIP devient le socle d’un SDOS, pas seulement un observateur de trading.</p></li>
+<li><p>Les futures analyses parleront en termes de connaissance, evidence,
+contradiction, confiance et derive scientifique.</p></li>
+<li><p>Les modules existants D01-D14 sont recontextualises sans changer leur code.</p></li>
+<li><p>Le passage vers robotique, agents IA, cybersécurité ou finance reste possible
+car le coeur devient l’analyse decisionnelle.</p></li>
+</ul>
+<p><strong>Negatives / compromis :</strong></p>
+<ul class="simple">
+<li><p>Le PMI doit distinguer le score historique en 7 niveaux du score SDOS incluant
+L3.5.</p></li>
+<li><p>Les livrables L3.5 devront resister a la tentation de devenir des features
+runtime.</p></li>
+<li><p>La mise en oeuvre devra attendre des donnees certifiees suffisantes.</p></li>
+</ul>
+<p><strong>Regles induites :</strong></p>
+<ul class="simple">
+<li><p>Toute implementation L3.5 est passive et append-only.</p></li>
+<li><p>Aucun moteur SI ne modifie un seuil, une decision, un ordre ou une configuration
+live.</p></li>
+<li><p>Toute conclusion produite par L3.5 reference un dataset certifie, une hypothese
+versionnee et un niveau d’evidence explicite.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">OCS</span></code> repond a “peut-on faire confiance a l’observateur ?”.
+<code class="docutils literal notranslate"><span class="pre">Knowledge</span> <span class="pre">Confidence</span></code> repond a “peut-on faire confiance a la connaissance produite ?”.</p></li>
+<li><p>Le document de reference technique est
+<code class="docutils literal notranslate"><span class="pre">docs/dip/SCIENTIFIC_INTELLIGENCE_LAYER.md</span></code>.</p></li>
+</ul>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Crypto AI Terminal
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">ADR-0008 - Scientific Intelligence Layer et SDOS</a><ul>
+<li><a class="reference internal" href="#contexte">Contexte</a></li>
+<li><a class="reference internal" href="#decision">Decision</a></li>
+<li><a class="reference internal" href="#portee-normative">Portee normative</a></li>
+<li><a class="reference internal" href="#alternatives-rejetees">Alternatives rejetees</a></li>
+<li><a class="reference internal" href="#consequences">Consequences</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../_static/documentation_options.js?v=ef6a59ae"></script>
+    <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/scripts/furo.js?v=46bd48cc"></script>
+    </body>
+</html>

@@ -1,0 +1,1239 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="./">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="genindex.html"><link rel="search" title="Search" href="search.html">
+        <link rel="prefetch" href="_static/../assets/logo_ai_quant.png" as="image">
+        <link rel="prefetch" href="_static/../assets/logo_ai_quant.png" as="image">
+
+    <link rel="shortcut icon" href="_static/favicon.ico"><!-- Generated with Sphinx 9.0.4 and Furo 2025.12.19 -->
+        <title>DESIGN BRIEF — Crypto AI Terminal Dashboards - Crypto AI Terminal 9.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=1b9cecba" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="index.html"><div class="brand">Crypto AI Terminal 9.1 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="index.html">
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="_static/../assets/logo_ai_quant.png" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="_static/../assets/logo_ai_quant.png" alt="Dark Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/blob/main/docs/ANARA_DESIGN_BRIEF.md?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/edit/main/docs/ANARA_DESIGN_BRIEF.md" rel="edit" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="design-brief-crypto-ai-terminal-dashboards">
+<h1>DESIGN BRIEF — Crypto AI Terminal Dashboards<a class="headerlink" href="#design-brief-crypto-ai-terminal-dashboards" title="Link to this heading">¶</a></h1>
+<blockquote>
+<div><p>Document de référence pour Anara — audit complet UI/UX
+Généré le : 2026-05-15 | Mis à jour : 2026-05-18
+Version schéma Anara : 1.1 (25 modules, 6 layers)</p>
+</div></blockquote>
+<hr class="docutils" />
+<section id="systeme-de-couleurs-global-anara-context-color-system-json">
+<h2>1. SYSTÈME DE COULEURS GLOBAL (<code class="docutils literal notranslate"><span class="pre">anara_context/color_system.json</span></code>)<a class="headerlink" href="#systeme-de-couleurs-global-anara-context-color-system-json" title="Link to this heading">¶</a></h2>
+<section id="backgrounds">
+<h3>Backgrounds<a class="headerlink" href="#backgrounds" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Token</p></th>
+<th class="head"><p>Hex</p></th>
+<th class="head"><p>Usage</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">background.dark</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">#0f172a</span></code></p></td>
+<td><p>Fond principal de l’app</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">background.card</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">#1e293b</span></code></p></td>
+<td><p>Fond des cartes, métriques</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">background.card_hover</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">#334155</span></code></p></td>
+<td><p>Hover / onglet actif</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">background.border</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">#334155</span></code></p></td>
+<td><p>Bordures, séparateurs</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="textes">
+<h3>Textes<a class="headerlink" href="#textes" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Token</p></th>
+<th class="head"><p>Hex</p></th>
+<th class="head"><p>Usage</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">text.primary</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">#f8fafc</span></code></p></td>
+<td><p>Titres, valeurs importantes</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">text.secondary</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">#94a3b8</span></code></p></td>
+<td><p>Labels, descriptions</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">text.muted</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">#475569</span></code></p></td>
+<td><p>Timestamps, infos secondaires</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="statuts">
+<h3>Statuts<a class="headerlink" href="#statuts" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Token</p></th>
+<th class="head"><p>Hex</p></th>
+<th class="head"><p>Usage</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">status.ok</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">#22c55e</span></code></p></td>
+<td><p>Succès, signal bull, win</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">status.warning</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">#f59e0b</span></code></p></td>
+<td><p>Attention, sideways, watch</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">status.error</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">#ef4444</span></code></p></td>
+<td><p>Erreur, signal bear, loss</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">status.neutral</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">#6b7280</span></code></p></td>
+<td><p>Inactif, HOLD</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">status.info</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">#3b82f6</span></code></p></td>
+<td><p>Info, testnet mode</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="couleur-daction-principale">
+<h3>Couleur d’action principale<a class="headerlink" href="#couleur-daction-principale" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Token</p></th>
+<th class="head"><p>Hex</p></th>
+<th class="head"><p>Usage</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ACCENT</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">#00e0ff</span></code></p></td>
+<td><p>Signal actionable (TRADE), onglet actif Decision Trace</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="etats-de-conviction">
+<h3>États de conviction<a class="headerlink" href="#etats-de-conviction" title="Link to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">VERY_HIGH</span>  <span class="c1">#22c55e   HIGH      #84cc16</span>
+<span class="n">MEDIUM</span>     <span class="c1">#f59e0b   LOW       #f97316</span>
+<span class="n">SKIP</span>       <span class="c1">#6b7280</span>
+</pre></div>
+</div>
+</section>
+<section id="regimes-de-marche">
+<h3>Régimes de marché<a class="headerlink" href="#regimes-de-marche" title="Link to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">TREND_BULL</span>  <span class="c1">#22c55e   TREND_BEAR  #ef4444</span>
+<span class="n">RANGE</span>       <span class="c1">#6b7280   VOLATILE    #f59e0b</span>
+<span class="n">UNKNOWN</span>     <span class="c1">#9ca3af</span>
+</pre></div>
+</div>
+</section>
+<section id="lifecycle-decisionpacket">
+<h3>Lifecycle DecisionPacket<a class="headerlink" href="#lifecycle-decisionpacket" title="Link to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">CREATED</span>              <span class="c1">#6b7280   SIGNAL_GENERATED  #6b7280</span>
+<span class="n">CONTEXT_ENRICHED</span>     <span class="c1">#3b82f6   REGIME_VALIDATED  #8b5cf6</span>
+<span class="n">RISK_EVALUATED</span>       <span class="c1">#f59e0b   APPROVED          #14b8a6</span>
+<span class="n">EXECUTION_PENDING</span>    <span class="c1">#f97316   EXECUTED          #22c55e</span>
+<span class="n">MONITORED</span>            <span class="c1">#22c55e   CLOSED            #6b7280</span>
+<span class="n">POSTMORTEM_ANALYZED</span>  <span class="c1">#6b7280   REJECTED          #ef4444</span>
+<span class="n">EXPIRED</span>              <span class="c1">#92400e   VETOED            #7f1d1d</span>
+</pre></div>
+</div>
+</section>
+<section id="post-mortem">
+<h3>Post-mortem<a class="headerlink" href="#post-mortem" title="Link to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">VALIDATED</span>  <span class="c1">#22c55e   LUCKY    #84cc16</span>
+<span class="n">UNLUCKY</span>    <span class="c1">#f59e0b   MISTAKE  #ef4444</span>
+</pre></div>
+</div>
+</section>
+<section id="exchanges-multi-exchange-dashboard">
+<h3>Exchanges (Multi-Exchange dashboard)<a class="headerlink" href="#exchanges-multi-exchange-dashboard" title="Link to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Binance</span>     <span class="c1">#f3ba2f   Bybit   #f7a600</span>
+<span class="n">OKX</span>         <span class="c1">#00d4aa   MEXC    #1d9bf0</span>
+<span class="n">Hyperliquid</span> <span class="c1">#a855f7</span>
+</pre></div>
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="typographie-et-composants-communs">
+<h2>2. TYPOGRAPHIE ET COMPOSANTS COMMUNS<a class="headerlink" href="#typographie-et-composants-communs" title="Link to this heading">¶</a></h2>
+<section id="font-sizes-utilisees">
+<h3>Font sizes utilisées<a class="headerlink" href="#font-sizes-utilisees" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Titre section : <code class="docutils literal notranslate"><span class="pre">1rem</span></code> bold <code class="docutils literal notranslate"><span class="pre">#f8fafc</span></code></p></li>
+<li><p>Description / subtitle : <code class="docutils literal notranslate"><span class="pre">0.8-0.9rem</span></code> <code class="docutils literal notranslate"><span class="pre">#94a3b8</span></code></p></li>
+<li><p>Badge signal : <code class="docutils literal notranslate"><span class="pre">0.7rem</span></code> bold monospace</p></li>
+<li><p>Chip indicateur : <code class="docutils literal notranslate"><span class="pre">0.67rem</span></code> bold monospace</p></li>
+<li><p>Port / meta info : <code class="docutils literal notranslate"><span class="pre">0.7rem</span></code> monospace <code class="docutils literal notranslate"><span class="pre">#475569</span></code></p></li>
+<li><p>Timeline entry : <code class="docutils literal notranslate"><span class="pre">0.72-0.75rem</span></code></p></li>
+<li><p>Table cells : Streamlit default</p></li>
+</ul>
+</section>
+<section id="composants-recurrents">
+<h3>Composants récurrents<a class="headerlink" href="#composants-recurrents" title="Link to this heading">¶</a></h3>
+<p><strong>Metric card</strong> (Streamlit st.metric)</p>
+<ul class="simple">
+<li><p>Background: <code class="docutils literal notranslate"><span class="pre">#1e293b</span></code> | Border: <code class="docutils literal notranslate"><span class="pre">1px</span> <span class="pre">solid</span> <span class="pre">#334155</span></code> | Radius: <code class="docutils literal notranslate"><span class="pre">8px</span></code> | Padding: <code class="docutils literal notranslate"><span class="pre">10px</span> <span class="pre">14px</span></code></p></li>
+</ul>
+<p><strong>Signal badge</strong> (inline HTML)</p>
+<ul class="simple">
+<li><p>TRADE : bg <code class="docutils literal notranslate"><span class="pre">#00e0ff</span></code>, fg <code class="docutils literal notranslate"><span class="pre">#0a0c12</span></code></p></li>
+<li><p>WATCH : bg <code class="docutils literal notranslate"><span class="pre">#f59e0b</span></code>, fg <code class="docutils literal notranslate"><span class="pre">#0a0c12</span></code></p></li>
+<li><p>HOLD  : bg <code class="docutils literal notranslate"><span class="pre">#334155</span></code>, fg <code class="docutils literal notranslate"><span class="pre">#94a3b8</span></code></p></li>
+<li><p>BLOCK : bg <code class="docutils literal notranslate"><span class="pre">#ef4444</span></code>, fg <code class="docutils literal notranslate"><span class="pre">#fff</span></code></p></li>
+</ul>
+<p><strong>Module card</strong> (grid status)</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">border-left:</span> <span class="pre">3px</span> <span class="pre">solid</span> <span class="pre">&lt;status_color&gt;</span></code> | bg <code class="docutils literal notranslate"><span class="pre">#1e293b</span></code> | radius <code class="docutils literal notranslate"><span class="pre">6px</span></code> | padding <code class="docutils literal notranslate"><span class="pre">7px</span> <span class="pre">12px</span></code></p></li>
+</ul>
+<p><strong>Verdict bar</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">border-left:</span> <span class="pre">4px</span> <span class="pre">solid</span> <span class="pre">&lt;verdict_color&gt;</span></code> | bg <code class="docutils literal notranslate"><span class="pre">#1e293b</span></code> | radius <code class="docutils literal notranslate"><span class="pre">6px</span></code> | padding <code class="docutils literal notranslate"><span class="pre">0.55rem</span> <span class="pre">1rem</span></code></p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="dashboards-inventaire-complet">
+<h2>3. DASHBOARDS — INVENTAIRE COMPLET<a class="headerlink" href="#dashboards-inventaire-complet" title="Link to this heading">¶</a></h2>
+<hr class="docutils" />
+<section id="cockpit-unifie-localhost-8500">
+<h3>3.1 COCKPIT UNIFIÉ — <code class="docutils literal notranslate"><span class="pre">localhost:8500</span></code><a class="headerlink" href="#cockpit-unifie-localhost-8500" title="Link to this heading">¶</a></h3>
+<p><strong>Fichier :</strong> <code class="docutils literal notranslate"><span class="pre">dashboard_unified.py</span></code> <em>(dashboard_hub.py non créé — remplacé)</em>
+<strong>Titre page :</strong> “Crypto AI Terminal” (icon 🎛️)
+<strong>Layout :</strong> <code class="docutils literal notranslate"><span class="pre">wide</span></code>, sidebar collapsed</p>
+<section id="structure-actuelle">
+<h4>Structure actuelle<a class="headerlink" href="#structure-actuelle" title="Link to this heading">¶</a></h4>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>[TITRE] &quot;Crypto AI — Dashboard Hub&quot;
+[subtitle] &quot;Lancez et accédez à tous les dashboards depuis un seul endroit.&quot;
+[divider]
+
+[GRILLE 2 colonnes] — 10 cartes dashboard
+  Colonne gauche  : Live, Decision Trace, Risk, Positions, Execution Health
+  Colonne droite  : Master, Command Center, Evolution, Compare Multi, Multi-Exchange
+
+  Par carte :
+    [TAG badge coloré] [Nom dashboard]
+    [Description courte]
+    [Port : fichier.py]
+    [btn Lancer/Arrêter] [btn Ouvrir] [● En cours / ○ Arrêté]
+
+[divider]
+[footer] &quot;N dashboard(s) actif(s) — Ce hub tourne sur le port 8500...&quot;
+</pre></div>
+</div>
+</section>
+<section id="couleurs-des-tags">
+<h4>Couleurs des tags<a class="headerlink" href="#couleurs-des-tags" title="Link to this heading">¶</a></h4>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Dashboard</p></th>
+<th class="head"><p>Tag</p></th>
+<th class="head"><p>Couleur</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Live Dashboard</p></td>
+<td><p>PRINCIPAL</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">#22c55e</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Master Dashboard</p></td>
+<td><p>MASTER</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">#3b82f6</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>Decision Trace</p></td>
+<td><p>DECISIONS</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">#8b5cf6</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Command Center</p></td>
+<td><p>CONTRÔLE</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">#f59e0b</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>Risk Dashboard</p></td>
+<td><p>RISQUE</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">#ef4444</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Positions</p></td>
+<td><p>POSITIONS</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">#14b8a6</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>Evolution</p></td>
+<td><p>LEARNING</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">#f97316</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Compare Multi</p></td>
+<td><p>ANALYSE</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">#6b7280</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>Execution Health</p></td>
+<td><p>EXECUTION</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">#00e0ff</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Multi-Exchange</p></td>
+<td><p>LIVE DATA</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">#a855f7</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="points-damelioration-possibles">
+<h4>Points d’amélioration possibles<a class="headerlink" href="#points-damelioration-possibles" title="Link to this heading">¶</a></h4>
+<ul class="simple">
+<li><p>Les boutons Lancer/Arrêter/Ouvrir ne sont pas alignés visuellement sous chaque carte</p></li>
+<li><p>Pas de preview / screenshot miniature par dashboard</p></li>
+<li><p>Status “En cours / Arrêté” peu visible (petit texte)</p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="master-dashboard-localhost-8502">
+<h3>3.2 MASTER DASHBOARD — <code class="docutils literal notranslate"><span class="pre">localhost:8502</span></code><a class="headerlink" href="#master-dashboard-localhost-8502" title="Link to this heading">¶</a></h3>
+<p><strong>Fichier :</strong> <code class="docutils literal notranslate"><span class="pre">dashboard_master.py</span></code>
+<strong>Titre page :</strong> “Crypto AI — Master Dashboard” (icon 🤖)
+<strong>Layout :</strong> <code class="docutils literal notranslate"><span class="pre">wide</span></code>, sidebar avec toggle “Mode compact”</p>
+<section id="id1">
+<h4>Structure actuelle<a class="headerlink" href="#id1" title="Link to this heading">¶</a></h4>
+<p><strong>Header (fixe)</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>[col 5/6] &quot;## Crypto AI — Master Dashboard&quot;
+[col 1/6] [small &quot;auto 20s&quot;] [btn ↻ Rafraîchir]
+[divider]
+</pre></div>
+</div>
+<p><strong>Onglets (4)</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>↗ Vue Globale | ● Marchés Live | ⚡ Analyse Décisions | ■ Positions
+</pre></div>
+</div>
+<hr class="docutils" />
+<p><strong>TAB 1 — Vue Globale</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>[ROW 6 métriques]
+  Capital $  |  Cycle #  |  Durée cycle ms  |  Latence exchange ms  |  Uptime %  |  Safe Mode
+
+[ROW 4 métriques]
+  Symboles analysés  |  Signaux actionnables  |  Trades exécutés  |  Refusés
+
+[caption] &quot;Dernière mise à jour : ... | Cycle #...&quot;
+[Exchange status] texte coloré inline
+
+[2 colonnes]
+  Gauche : table &quot;Couches de refus — cycle courant&quot; (Couche | Refus)
+  Droite : table &quot;Régimes détectés ce cycle&quot; (Régime | Symboles)
+
+[divider]
+[titre] &quot;Modules système&quot;
+[GRILLE 4 colonnes — 18 modules]
+  Chaque module : card avec border-left coloré + tag OK/absent/vide
+
+[divider]
+[2 colonnes]
+  Gauche : line_chart &quot;Capital (150 derniers cycles)&quot; height=175
+  Droite : line_chart &quot;Durée cycle ms&quot; height=175
+
+[si non-compact] bar_chart &quot;Refus cumulés par couche&quot; height=190
+</pre></div>
+</div>
+<hr class="docutils" />
+<p><strong>TAB 2 — Marchés Live</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>[titre] &quot;Signaux live — Cycle #...&quot;
+[dataframe] tableau principal (Symbole | State | Prix | Score | Conviction | Régime | RSI | BB% | ATR% | MACD | EMA | Squeeze | Gate | Trade)
+
+[titre] &quot;Détail par symbole&quot;
+
+[MODE COMPACT] 3 colonnes : badge state + progress bar par symbole
+
+[MODE NORMAL] Par symbole (rangée verticale) :
+  [glyph coloré] [nom symbole] [signal badge] [score /100]
+  [chips] RSI | BB% | ATR | MACD | EMA | Squeeze
+  [progress bar 0-100]
+
+[divider]
+[expander] &quot;◎ Mini graphe live — Score / PnL / Exposition&quot;
+  Radio : Score signal | PnL cumulé | Exposition
+  → line_chart height=160
+</pre></div>
+</div>
+<hr class="docutils" />
+<p><strong>TAB 3 — Analyse Décisions</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>[verdict bar] texte coloré selon état
+[caption] &quot;N décisions · K cycles · dernier cycle...&quot;
+
+[ROW 5 métriques]
+  Total décisions | HOLD (%) | Trades exécutés | Positions fermées | Refus explicites
+
+[divider]
+[bar_chart] &quot;Distribution des scores de signal&quot; height=190
+[caption] &quot;Moyenne X · Max Y · Min Z&quot;
+
+[2 colonnes]
+  Gauche : table &quot;Régimes&quot; (Régime | Count)
+  Droite : table &quot;Conviction · Personnalité&quot; (Type | Valeur | Count)
+
+[si non-compact]
+  [line_chart] &quot;Évolution du score par cycle&quot; height=210
+  [caption] seuil mental à 70
+
+[divider]
+[table] &quot;Raisons de refus — top modules&quot; (Raison | Occurrences)
+
+[si non-compact]
+  [table] &quot;Modules qui valident (passed_by)&quot; (Module | Validations)
+
+[divider]
+[titre] &quot;Cohérence Signal → Résultat (post-mortem automatique)&quot;
+
+[ROW 5 métriques]
+  Trades analysés | VALIDATED % | LUCKY % | UNLUCKY % | MISTAKE %
+
+[verdict bar] modèle cohérent / incohérent / signal utile / neutre
+
+[2 métriques]
+  Win rate score ≥ 70 | Win rate score &lt; 70
+
+[expander] &quot;Détail trade par trade&quot; → dataframe
+
+[divider]
+[table] &quot;50 dernières décisions&quot; (Heure | Symbole | Décision | Score | Régime | Conviction | Prix | Raison)
+</pre></div>
+</div>
+<hr class="docutils" />
+<p><strong>TAB 4 — Positions</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>[titre] &quot;Positions ouvertes&quot;
+[dataframe] brut des positions snapshot | ou info &quot;Aucune position ouverte&quot;
+
+[divider]
+[titre] &quot;Historique des positions fermées&quot;
+[dataframe] 100 derniers exits (Symbole | Résultat | PnL% | PnL$ | Régime | Conviction | Direction | Entrée | Sortie | Durée | Raison sortie | Paper | Date)
+
+[divider]
+[titre] &quot;Performance globale&quot;
+[ROW 6 métriques]
+  Total trades | Win Rate | PnL total | PnL moyen/trade | Meilleur trade | Pire trade
+
+[titre] &quot;PnL cumulé ($)&quot;
+[line_chart] height=175
+
+[si non-compact] table &quot;Raisons de sortie&quot; (Raison | Count)
+</pre></div>
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="risk-dashboard-localhost-8505">
+<h3>3.3 RISK DASHBOARD — <code class="docutils literal notranslate"><span class="pre">localhost:8505</span></code><a class="headerlink" href="#risk-dashboard-localhost-8505" title="Link to this heading">¶</a></h3>
+<p><strong>Fichier :</strong> <code class="docutils literal notranslate"><span class="pre">dashboard_risk.py</span></code>
+<strong>Titre page :</strong> “Crypto AI — Risk Dashboard” (icon 📊)
+<strong>Layout :</strong> <code class="docutils literal notranslate"><span class="pre">wide</span></code>, sidebar EXPANDED</p>
+<blockquote>
+<div><p>Note : ce dashboard utilise un style moins unifié que les autres — pas du color_system.json pour le fond, emojis dans titres, style Streamlit par défaut pour le fond.</p>
+</div></blockquote>
+<section id="sidebar">
+<h4>Sidebar<a class="headerlink" href="#sidebar" title="Link to this heading">¶</a></h4>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>⚙️ Paramètres
+  slider &quot;Shadow trades affichés&quot; (10-200, défaut 50)
+  slider &quot;Lignes de log&quot; (50-500, défaut 200)
+  checkbox &quot;Afficher log brut&quot;
+  [divider]
+  &quot;Commandes Telegram&quot; : /STATUS /SAFE_MODE /RESUME /STOP_ALL /CLOSE_ALL
+  [divider]
+  [btn 🔄 Actualiser maintenant]
+</pre></div>
+</div>
+</section>
+<section id="corps-vertical-pas-de-tabs">
+<h4>Corps (vertical, pas de tabs)<a class="headerlink" href="#corps-vertical-pas-de-tabs" title="Link to this heading">¶</a></h4>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>[TITRE] &quot;📊 Crypto AI Terminal — Risk Dashboard&quot;
+[caption] &quot;Actualisation automatique toutes les 15s | Mode: ADVISOR ONLY&quot;
+
+[ROW 1 — 4 métriques]
+  ✅/❌ Exchange Binance (latence ms)
+  🧪 Shadow Trades (slippage moyen)
+  📋 Ordres loggés (rejetés)
+  📈 Dernier signal (score)
+
+[divider]
+[ROW 2 — Signaux par symbole]
+  &quot;Signaux actifs par symbole&quot;
+  [N colonnes = N symboles] par symbole :
+    Nom symbole
+    Prix $...
+    Signal : BUY/SELL/HOLD coloré
+    [progress bar] Score X/100
+    caption Régime | Gate
+
+[divider]
+[ROW 3 — Graphique historique]
+  &quot;Historique des scores (derniers cycles)&quot;
+  [line_chart] pivot par symbole, index=timestamp, width=&quot;stretch&quot;
+  caption &quot;Seuils: 70+ actionable | 50-69 surveiller | &lt;50 pas d&#39;action&quot;
+
+[divider]
+[ROW 4 — Shadow trades]
+  &quot;🧪 Shadow Trades simulés&quot;
+  [dataframe] 20 derniers shadow trades
+  [3 métriques] Slippage moyen | Slippage max | Latence moyenne
+
+[divider]
+[ROW 5 — Journal ordres]
+  &quot;📋 Journal des ordres&quot;
+  [dataframe] ou info message
+
+[divider]
+[ROW 6 — Trade Replay — expander]
+  &quot;🔁 Trade Replay&quot;
+  Sous-expander 1 : &quot;Rejouer un trade par ID&quot; → text_input + btn Rejouer
+  Sous-expander 2 : &quot;Recherche dans les shadow trades&quot; → 3 selectbox + slider + btn
+
+[divider]
+[ROW 7 — Confidence Score — expander ouvert]
+  &quot;🔍 Analyse de confiance par symbole&quot;
+  selectbox symbole
+  3 métriques : Score global | Signal | Régime
+  progress bar score
+  [si shadow trade] composants MTF/Régime/Qualité/Mémoire avec progress bars
+  verdict coloré (success/warning/info)
+  [si historique] line_chart score pour ce symbole
+
+[divider]
+[ROW 8 — Monte Carlo — expander fermé]
+  &quot;🎲 Monte Carlo Stress Test&quot;
+  3 cols de paramètres : Capital, win rate, gains, pertes, chemins, trades, position%
+  checkbox &quot;Calibrer depuis shadow trades&quot;
+  [btn Lancer] → tableau scenarios + verdict + bar_chart survie
+
+[si show_raw_log]
+  &quot;📄 Log brut&quot; avec coloration ERROR/WARNING/SIGNAL ACTIONABLE
+
+[caption] &quot;Dernière actualisation: HH:MM:SS&quot;
+</pre></div>
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="decision-trace-localhost-8503">
+<h3>3.4 DECISION TRACE — <code class="docutils literal notranslate"><span class="pre">localhost:8503</span></code><a class="headerlink" href="#decision-trace-localhost-8503" title="Link to this heading">¶</a></h3>
+<p><strong>Fichier :</strong> <code class="docutils literal notranslate"><span class="pre">dashboard_decision_trace.py</span></code>
+<strong>Titre page :</strong> “Decision Trace” (icon 🧠)
+<strong>Layout :</strong> <code class="docutils literal notranslate"><span class="pre">wide</span></code>, sidebar EXPANDED</p>
+<section id="id2">
+<h4>Sidebar<a class="headerlink" href="#id2" title="Link to this heading">¶</a></h4>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">## 🧠 Decision Trace</span>
+<span class="o">---</span>
+<span class="n">checkbox</span> <span class="s2">&quot;Auto-refresh (5s)&quot;</span>
+<span class="n">selectbox</span> <span class="s2">&quot;Date (UTC)&quot;</span> <span class="p">[</span><span class="n">rotation</span> <span class="n">fichiers</span> <span class="n">datés</span><span class="p">]</span>
+<span class="n">caption</span> <span class="s2">&quot;Source : chemin/fichier&quot;</span>
+<span class="s2">&quot;N packets chargés&quot;</span>
+
+<span class="c1">### Filtres</span>
+<span class="n">selectbox</span> <span class="s2">&quot;Symbole&quot;</span> <span class="p">[</span><span class="n">Tous</span> <span class="o">+</span> <span class="n">liste</span><span class="p">]</span>
+<span class="n">selectbox</span> <span class="s2">&quot;État final&quot;</span> <span class="p">[</span><span class="n">Tous</span> <span class="o">+</span> <span class="n">liste</span><span class="p">]</span>
+<span class="s2">&quot;N packets filtrés&quot;</span>
+
+<span class="c1">### Packet sélectionné</span>
+<span class="n">selectbox</span> <span class="s2">&quot;Packet&quot;</span> <span class="p">[</span><span class="n">liste</span> <span class="n">timestamps</span> <span class="o">+</span> <span class="n">symbole</span> <span class="o">+</span> <span class="n">side</span> <span class="o">+</span> <span class="n">état</span><span class="p">]</span>
+</pre></div>
+</div>
+</section>
+<section id="corps">
+<h4>Corps<a class="headerlink" href="#corps" title="Link to this heading">¶</a></h4>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>[TITRE] &quot;# Decision Trace&quot;
+
+[ROW 5 métriques]
+  Packets | Rejetés % | Approuvés % | Exécutés | Conf. moy.
+
+[divider]
+
+[ONGLETS 5]
+  ⟶ Timeline | ~ Confidence | ≡ Reasoning | ✗ Rejets | ⊕ Sovereignty
+</pre></div>
+</div>
+<hr class="docutils" />
+<p><strong>TAB 1 — Timeline</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>[2 colonnes 1:2]
+
+Colonne gauche (méta) :
+  section-header &quot;Identité&quot;
+  Packet [id tronqué à 16 chars]
+  Symbole — side
+  Régime
+  Conviction
+  État final [badge coloré]
+  Confiance finale X/100
+
+  [si features pb_*]
+    section-header &quot;Portfolio&quot;
+    3 métriques : Exposition % | Corrélation | Concentration %
+    Metric : Size factor ×N
+
+Colonne droite (lifecycle) :
+  section-header &quot;Lifecycle&quot;
+  [liste de transitions]
+    [badge état coloré] by [acteur] — [durée] — conf X→Y (+Z)
+    ↳ [raison tronquée à 120 chars]
+    │ séparateur
+</pre></div>
+</div>
+<hr class="docutils" />
+<p><strong>TAB 2 — Confidence</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>[Plotly Figure — Bar + Line overlay]
+  Bars : impacts positifs (#22c55e) / négatifs (#ef4444) par acteur
+  Line : confiance cumulée (#00e0ff, dash=dot)
+  Background : paper=#0a0c12, plot=#0e1117
+  Axes : gridcolor=#1a1e2a, tickangle=-30
+  Légende : bg=#111420
+  Height : 380px
+
+[dataframe] table détail (Actor | Category | Severity | Impact | Message)
+</pre></div>
+</div>
+<hr class="docutils" />
+<p><strong>TAB 3 — Reasoning Feed</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>[section-header] &quot;N packets · N entrées&quot;
+
+[3 colonnes filtres]
+  multiselect &quot;Actor&quot;
+  multiselect &quot;Category&quot;
+  multiselect &quot;Severity&quot; [INFO/WARNING/CRITICAL/FATAL]
+
+[feed vertical] par entrée :
+  border-left: 3px solid &lt;severity_color&gt;
+  bg: #0e1117 | radius: 0 4px 4px 0 | padding: 4px 10px
+  [sev coloré] [acteur · catégorie] [impact coloré +X/-X]
+  [message 0.8rem #aabbcc]
+</pre></div>
+</div>
+<hr class="docutils" />
+<p><strong>TAB 4 — Rejets</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[</span><span class="n">section</span><span class="o">-</span><span class="n">header</span><span class="p">]</span> <span class="s2">&quot;Signaux rejetés — opportunités manquées potentielles&quot;</span>
+
+<span class="p">[</span><span class="n">dataframe</span><span class="p">]</span> <span class="n">height</span><span class="o">=</span><span class="mi">400</span> <span class="p">(</span><span class="n">Timestamp</span> <span class="o">|</span> <span class="n">Symbole</span> <span class="o">|</span> <span class="n">Side</span> <span class="o">|</span> <span class="n">Régime</span> <span class="o">|</span> <span class="n">Conf</span> <span class="n">finale</span> <span class="o">|</span> <span class="n">Conviction</span> <span class="o">|</span> <span class="n">Rejeté</span> <span class="n">par</span> <span class="o">|</span> <span class="n">Raison</span> <span class="o">|</span> <span class="n">État</span><span class="p">)</span>
+
+<span class="p">[</span><span class="n">si</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="n">rejet</span><span class="p">]</span>
+  <span class="p">[</span><span class="n">section</span><span class="o">-</span><span class="n">header</span><span class="p">]</span> <span class="s2">&quot;Distribution des rejets par acteur&quot;</span>
+  <span class="p">[</span><span class="n">Plotly</span> <span class="n">Bar</span><span class="p">]</span>
+    <span class="n">color</span> <span class="o">=</span> <span class="c1">#ef4444</span>
+    <span class="n">text</span> <span class="n">outside</span>
+    <span class="n">bg</span> <span class="n">paper</span><span class="o">=</span><span class="c1">#0a0c12 / plot=#0e1117</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">250</span>
+</pre></div>
+</div>
+<hr class="docutils" />
+<p><strong>TAB 5 — Sovereignty</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>[section-header] &quot;Hiérarchie institutionnelle des autorités&quot;
+
+[liste verticale — 8 agents]
+  display:flex | bg: #0e1117 | radius: 6px | border-left: 3px solid &lt;auth_color&gt;
+  [acteur monospace min-width:200px]
+  [autorité coloré min-width:220px]
+  [description]
+
+Couleurs autorités :
+  advisory_only        #4499ff
+  reject_authority     #ffcc22
+  allocation_authority #ff8800
+  sizing_authority     #ff8800
+  capital_authority    #ff4455
+  veto_authority       #ff0033
+
+[section-header] &quot;Séparations institutionnelles critiques&quot;
+[5 items] border-left:#334455 | titre #00e0ff | desc #667788
+
+[section-header] &quot;Exercice réel de souveraineté&quot;
+[dataframe] Actor | Rejets souverains
+</pre></div>
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="execution-health-localhost-8509">
+<h3>3.5 EXECUTION HEALTH — <code class="docutils literal notranslate"><span class="pre">localhost:8509</span></code><a class="headerlink" href="#execution-health-localhost-8509" title="Link to this heading">¶</a></h3>
+<p><strong>Fichier :</strong> <code class="docutils literal notranslate"><span class="pre">execution_health.py</span></code>
+<strong>Titre page :</strong> “Execution Health” (icon ⚙️)
+<strong>Layout :</strong> <code class="docutils literal notranslate"><span class="pre">wide</span></code>, sidebar collapsed</p>
+<section id="header">
+<h4>Header<a class="headerlink" href="#header" title="Link to this heading">¶</a></h4>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">&lt;</span><span class="n">h2</span><span class="o">&gt;</span> <span class="s2">&quot;⚙️ Execution Health&quot;</span>
+<span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="s2">&quot;P2 Operational — validation · rate limiter · simulation · audit&quot;</span>
+
+<span class="p">[</span><span class="n">col</span> <span class="mi">8</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span>
+  <span class="n">col</span> <span class="n">droite</span> <span class="p">:</span> <span class="n">caption</span> <span class="s2">&quot;Auto-refresh 20s&quot;</span> <span class="o">+</span> <span class="n">btn</span> <span class="s2">&quot;↻ Refresh&quot;</span>
+
+<span class="p">[</span><span class="n">divider</span><span class="p">]</span>
+</pre></div>
+</div>
+</section>
+<section id="onglets-4">
+<h4>Onglets (4)<a class="headerlink" href="#onglets-4" title="Link to this heading">¶</a></h4>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>⚡ Audit P2 Live | 📊 Trades Historiques | 🚫 Pipeline &amp; Rejections | 🛡️ Robustness GO/NO-GO
+</pre></div>
+</div>
+<hr class="docutils" />
+<p><strong>TAB 1 — Audit P2 Live</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>[si vide]
+  card centrée bg=#1e293b border=#334155 radius=8px padding=32px :
+    &quot;⏳&quot; (2rem)
+    &quot;En attente de données live&quot; (1rem)
+    explication fichier audit.jsonl
+    &quot;Lancer : python advisor_loop.py&quot;
+
+[si données]
+  [ROW 5 métriques]
+    Ordres tentés | Validés (-rejetés) | Rejection rate | Slippage moyen bps | Latence simulée ms
+
+  [texte] &quot;Fees totaux simulés : $X.XXXX USD sur N ordres&quot;
+  [divider]
+  [dataframe] 200 derniers audits (Heure UTC | Symbole | Side | Size USD | Prix | Validé ✅❌ | Slippage bps | Latence ms | Fee USD | Partial ⚠)
+
+  [si données slippage]
+    [bar_chart] &quot;Distribution slippage simulé (bps)&quot;
+</pre></div>
+</div>
+<hr class="docutils" />
+<p><strong>TAB 2 — Trades Historiques</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>[si vide] message centré
+
+[si données]
+  [ROW 5 métriques]
+    Total trades | Win Rate | PnL total | Profit Factor | Drawdown max
+
+  [divider]
+  [line_chart] &quot;PnL cumulé ($)&quot; height=200
+  [divider]
+  [2 colonnes]
+    Gauche : bar_chart &quot;PnL par régime&quot; height=200
+    Droite : table &quot;Post-mortem&quot; (Catégorie | Count | %)
+  [divider]
+  [dataframe] table trades (Symbole | Side | PnL$ | PnL% | Win | Régime | Conviction | Post-mortem | Durée min | Date | R-multiple)
+</pre></div>
+</div>
+<hr class="docutils" />
+<p><strong>TAB 3 — Pipeline &amp; Rejections</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[</span><span class="n">si</span> <span class="n">vide</span><span class="p">]</span> <span class="n">message</span>
+
+<span class="p">[</span><span class="n">si</span> <span class="n">données</span><span class="p">]</span>
+  <span class="p">[</span><span class="n">ROW</span> <span class="mi">4</span> <span class="n">métriques</span><span class="p">]</span>
+    <span class="n">Total</span> <span class="n">decisions</span> <span class="o">|</span> <span class="n">Rejected</span> <span class="o">|</span> <span class="n">Passed</span> <span class="o">|</span> <span class="n">Avg</span> <span class="n">latence</span> <span class="n">ms</span>
+
+  <span class="p">[</span><span class="n">bar_chart</span><span class="p">]</span> <span class="s2">&quot;Refus par couche&quot;</span> <span class="n">height</span><span class="o">=</span><span class="mi">200</span>
+  <span class="p">[</span><span class="n">dataframe</span><span class="p">]</span> <span class="s2">&quot;Dernières decisions&quot;</span> <span class="p">(</span><span class="n">Timestamp</span> <span class="o">|</span> <span class="n">Symbole</span> <span class="o">|</span> <span class="n">État</span> <span class="o">|</span> <span class="n">Score</span> <span class="o">|</span> <span class="n">Couche</span> <span class="n">rejet</span> <span class="o">|</span> <span class="n">Raison</span><span class="p">)</span>
+</pre></div>
+</div>
+<hr class="docutils" />
+<p><strong>TAB 4 — Robustness GO/NO-GO</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>[verdict central] GO / NO-GO avec couleur
+[ROW 5 KPIs]
+  Win Rate | Profit Factor | Drawdown | Avg Win/Loss | N trades
+
+[tableau critères]
+  Critère | Valeur | Seuil | Statut ✅❌
+</pre></div>
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="multi-exchange-localhost-8510">
+<h3>3.6 MULTI-EXCHANGE — <code class="docutils literal notranslate"><span class="pre">localhost:8510</span></code><a class="headerlink" href="#multi-exchange-localhost-8510" title="Link to this heading">¶</a></h3>
+<p><strong>Fichier :</strong> <code class="docutils literal notranslate"><span class="pre">dashboard_multi_exchange.py</span></code>
+<strong>Titre page :</strong> “Crypto AI — Multi-Exchange” (icon 🌐)
+<strong>Layout :</strong> <code class="docutils literal notranslate"><span class="pre">wide</span></code>, sidebar collapsed</p>
+<section id="id3">
+<h4>Structure actuelle<a class="headerlink" href="#id3" title="Link to this heading">¶</a></h4>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>[TITRE] &quot;🌐 Multi-Exchange — Prix Live&quot;
+[caption] &quot;Données publiques — aucune clé API requise | Refresh 30s&quot;
+
+[ROW 3 métriques]
+  Exchanges actifs (N/5) | Symboles suivis | Dernière mise à jour
+
+[divider]
+
+[PAR SYMBOLE — 4 fois]
+  ### BTC/USDT &lt;badge spread X.XXX%&gt;
+  [5 colonnes = 5 exchanges]
+    Chaque colonne :
+      [EXCHANGE nom coloré] [tag ✓ moins cher / ↑ plus cher]
+      [prix en gros]
+      [variation 24h | diff vs Binance]
+
+  [dataframe] mini (exchange | price) si ≥ 2 exchanges
+  [divider]
+
+### Spreads inter-exchange
+[dataframe] (Symbole | Prix min | Prix max | Spread % | Moins cher | Plus cher)
+
+[caption] &quot;Auto-refresh dans 30s&quot;
+</pre></div>
+</div>
+</section>
+<section id="style-specifique">
+<h4>Style spécifique<a class="headerlink" href="#style-specifique" title="Link to this heading">¶</a></h4>
+<ul class="simple">
+<li><p>Background: <code class="docutils literal notranslate"><span class="pre">#0a0c12</span></code> (plus sombre que les autres)</p></li>
+<li><p>Cards exchange : <code class="docutils literal notranslate"><span class="pre">#1e293b</span></code>, <code class="docutils literal notranslate"><span class="pre">border:</span> <span class="pre">1px</span> <span class="pre">solid</span> <span class="pre">#334155</span></code>, <code class="docutils literal notranslate"><span class="pre">radius:</span> <span class="pre">8px</span></code></p></li>
+<li><p>Font: <code class="docutils literal notranslate"><span class="pre">monospace</span> <span class="pre">0.85rem</span></code></p></li>
+<li><p>Spread badge: bg <code class="docutils literal notranslate"><span class="pre">&lt;color&gt;22</span></code> + texte coloré + radius <code class="docutils literal notranslate"><span class="pre">3px</span></code></p></li>
+</ul>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="urls-de-chaque-dashboard">
+<h2>4. URLS DE CHAQUE DASHBOARD<a class="headerlink" href="#urls-de-chaque-dashboard" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Dashboard</p></th>
+<th class="head"><p>URL locale</p></th>
+<th class="head"><p>Fichier</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Cockpit unifié</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">http://localhost:8500</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dashboard_unified.py</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Live</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">http://localhost:8501</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dashboard_live.py</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>Master</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">http://localhost:8502</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dashboard_master.py</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Decision Trace</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">http://localhost:8503</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dashboard_decision_trace.py</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>Command Center</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">http://localhost:8504</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">command_center_dashboard.py</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Risk</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">http://localhost:8505</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dashboard_risk.py</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>Positions</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">http://localhost:8506</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dashboard_positions.py</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Evolution</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">http://localhost:8507</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">evolution_dashboard.py</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>Compare Multi</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">http://localhost:8508</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dashboard_compare_multi.py</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Execution Health</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">http://localhost:8509</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">execution_health.py</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>Multi-Exchange</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">http://localhost:8510</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dashboard_multi_exchange.py</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<hr class="docutils" />
+<section id="points-damelioration-identifies">
+<h2>5. POINTS D’AMÉLIORATION IDENTIFIÉS<a class="headerlink" href="#points-damelioration-identifies" title="Link to this heading">¶</a></h2>
+<section id="incoherences-visuelles-cross-dashboards">
+<h3>Incohérences visuelles cross-dashboards<a class="headerlink" href="#incoherences-visuelles-cross-dashboards" title="Link to this heading">¶</a></h3>
+<ol class="arabic simple">
+<li><p><strong>Risk Dashboard</strong> (8505) n’utilise pas <code class="docutils literal notranslate"><span class="pre">color_system.json</span></code> — fond clair Streamlit par défaut, émojis dans titres, sidebar expanded par défaut. Doit être aligné sur le dark theme des autres.</p></li>
+<li><p><strong>Emojis dans les titres</strong> : présents sur Risk (📊🧪📋📈📄🔁🔍🎲) et Execution Health (⚙️📊🚫🛡️), absents sur Master et Decision Trace. Manque de cohérence.</p></li>
+<li><p><strong>Sidebar Risk</strong> toujours ouverte — prend de l’espace sur un écran standard.</p></li>
+</ol>
+</section>
+<section id="positionnement-graphiques">
+<h3>Positionnement graphiques<a class="headerlink" href="#positionnement-graphiques" title="Link to this heading">¶</a></h3>
+<ol class="arabic simple">
+<li><p><strong>Master Tab 1</strong> — Le “Modules système” (grille 4 colonnes de 18 modules) est placé entre les tables et les graphiques. Visuellement lourd au milieu du flux.</p></li>
+<li><p><strong>Master Tab 2</strong> — Le tableau principal + détail par symbole = duplication de l’information. Le tableau en haut liste déjà tout, puis le détail le répète en format card.</p></li>
+<li><p><strong>Risk Row 7</strong> (Confidence) — Expander ouvert par défaut + toujours en bas après Monte Carlo. Devrait être en haut ou dans une position plus accessible.</p></li>
+<li><p><strong>Multi-Exchange</strong> — Le mini dataframe sous chaque symbole (juste exchange + price) est redondant avec les cards au-dessus.</p></li>
+</ol>
+</section>
+<section id="textes-a-revoir">
+<h3>Textes à revoir<a class="headerlink" href="#textes-a-revoir" title="Link to this heading">¶</a></h3>
+<ol class="arabic simple">
+<li><p><strong>Execution Health Tab 1</strong> message vide : “En attente de données live” — texte trop long, style trop technique.</p></li>
+<li><p><strong>Decision Trace Sidebar</strong> : label “Packet sélectionné” avec selectbox de packets — timestamp brut peu lisible.</p></li>
+<li><p><strong>Risk Dashboard</strong> caption : “Mode: ADVISOR ONLY” — terme interne peu significatif pour un utilisateur.</p></li>
+<li><p><strong>Master Tab 3</strong> verdict bar — texte statique peu dynamique, pourrait afficher le score directement.</p></li>
+</ol>
+</section>
+<section id="couleurs-manquantes-sous-utilisees">
+<h3>Couleurs manquantes / sous-utilisées<a class="headerlink" href="#couleurs-manquantes-sous-utilisees" title="Link to this heading">¶</a></h3>
+<ol class="arabic simple">
+<li><p>La couleur accent <code class="docutils literal notranslate"><span class="pre">#00e0ff</span></code> est utilisée uniquement dans Master et Decision Trace. Risk utilise <code class="docutils literal notranslate"><span class="pre">green</span></code>/<code class="docutils literal notranslate"><span class="pre">red</span></code>/<code class="docutils literal notranslate"><span class="pre">gray</span></code> natifs.</p></li>
+<li><p>Les couleurs de post-mortem (<code class="docutils literal notranslate"><span class="pre">VALIDATED/LUCKY/UNLUCKY/MISTAKE</span></code>) ne sont affichées qu’en texte dans les tableaux — aucun badge visuel coloré.</p></li>
+<li><p>Les couleurs de régime (<code class="docutils literal notranslate"><span class="pre">TREND_BULL</span></code> vert, <code class="docutils literal notranslate"><span class="pre">TREND_BEAR</span></code> rouge) ne colorent que les glyphs dans Master. Dans Risk, les régimes sont affichés en texte brut.</p></li>
+</ol>
+</section>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Crypto AI Terminal
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">DESIGN BRIEF — Crypto AI Terminal Dashboards</a><ul>
+<li><a class="reference internal" href="#systeme-de-couleurs-global-anara-context-color-system-json">1. SYSTÈME DE COULEURS GLOBAL (<code class="docutils literal notranslate"><span class="pre">anara_context/color_system.json</span></code>)</a><ul>
+<li><a class="reference internal" href="#backgrounds">Backgrounds</a></li>
+<li><a class="reference internal" href="#textes">Textes</a></li>
+<li><a class="reference internal" href="#statuts">Statuts</a></li>
+<li><a class="reference internal" href="#couleur-daction-principale">Couleur d’action principale</a></li>
+<li><a class="reference internal" href="#etats-de-conviction">États de conviction</a></li>
+<li><a class="reference internal" href="#regimes-de-marche">Régimes de marché</a></li>
+<li><a class="reference internal" href="#lifecycle-decisionpacket">Lifecycle DecisionPacket</a></li>
+<li><a class="reference internal" href="#post-mortem">Post-mortem</a></li>
+<li><a class="reference internal" href="#exchanges-multi-exchange-dashboard">Exchanges (Multi-Exchange dashboard)</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#typographie-et-composants-communs">2. TYPOGRAPHIE ET COMPOSANTS COMMUNS</a><ul>
+<li><a class="reference internal" href="#font-sizes-utilisees">Font sizes utilisées</a></li>
+<li><a class="reference internal" href="#composants-recurrents">Composants récurrents</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#dashboards-inventaire-complet">3. DASHBOARDS — INVENTAIRE COMPLET</a><ul>
+<li><a class="reference internal" href="#cockpit-unifie-localhost-8500">3.1 COCKPIT UNIFIÉ — <code class="docutils literal notranslate"><span class="pre">localhost:8500</span></code></a><ul>
+<li><a class="reference internal" href="#structure-actuelle">Structure actuelle</a></li>
+<li><a class="reference internal" href="#couleurs-des-tags">Couleurs des tags</a></li>
+<li><a class="reference internal" href="#points-damelioration-possibles">Points d’amélioration possibles</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#master-dashboard-localhost-8502">3.2 MASTER DASHBOARD — <code class="docutils literal notranslate"><span class="pre">localhost:8502</span></code></a><ul>
+<li><a class="reference internal" href="#id1">Structure actuelle</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#risk-dashboard-localhost-8505">3.3 RISK DASHBOARD — <code class="docutils literal notranslate"><span class="pre">localhost:8505</span></code></a><ul>
+<li><a class="reference internal" href="#sidebar">Sidebar</a></li>
+<li><a class="reference internal" href="#corps-vertical-pas-de-tabs">Corps (vertical, pas de tabs)</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#decision-trace-localhost-8503">3.4 DECISION TRACE — <code class="docutils literal notranslate"><span class="pre">localhost:8503</span></code></a><ul>
+<li><a class="reference internal" href="#id2">Sidebar</a></li>
+<li><a class="reference internal" href="#corps">Corps</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#execution-health-localhost-8509">3.5 EXECUTION HEALTH — <code class="docutils literal notranslate"><span class="pre">localhost:8509</span></code></a><ul>
+<li><a class="reference internal" href="#header">Header</a></li>
+<li><a class="reference internal" href="#onglets-4">Onglets (4)</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#multi-exchange-localhost-8510">3.6 MULTI-EXCHANGE — <code class="docutils literal notranslate"><span class="pre">localhost:8510</span></code></a><ul>
+<li><a class="reference internal" href="#id3">Structure actuelle</a></li>
+<li><a class="reference internal" href="#style-specifique">Style spécifique</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#urls-de-chaque-dashboard">4. URLS DE CHAQUE DASHBOARD</a></li>
+<li><a class="reference internal" href="#points-damelioration-identifies">5. POINTS D’AMÉLIORATION IDENTIFIÉS</a><ul>
+<li><a class="reference internal" href="#incoherences-visuelles-cross-dashboards">Incohérences visuelles cross-dashboards</a></li>
+<li><a class="reference internal" href="#positionnement-graphiques">Positionnement graphiques</a></li>
+<li><a class="reference internal" href="#textes-a-revoir">Textes à revoir</a></li>
+<li><a class="reference internal" href="#couleurs-manquantes-sous-utilisees">Couleurs manquantes / sous-utilisées</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="_static/documentation_options.js?v=ef6a59ae"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    </body>
+</html>

@@ -1,0 +1,463 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html">
+        <link rel="prefetch" href="../_static/../assets/logo_ai_quant.png" as="image">
+        <link rel="prefetch" href="../_static/../assets/logo_ai_quant.png" as="image">
+
+    <link rel="shortcut icon" href="../_static/favicon.ico"><!-- Generated with Sphinx 9.0.4 and Furo 2025.12.19 -->
+        <title>ADR-0011 — Borne canonique du dataset propre et pré-enregistrement du CRI - Crypto AI Terminal 9.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=1b9cecba" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">Crypto AI Terminal 9.1 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="../_static/../assets/logo_ai_quant.png" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="../_static/../assets/logo_ai_quant.png" alt="Dark Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/blob/main/docs/adr/0011-clean-data-since-et-cri-preenregistrement.md?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/edit/main/docs/adr/0011-clean-data-since-et-cri-preenregistrement.md" rel="edit" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="adr-0011-borne-canonique-du-dataset-propre-et-pre-enregistrement-du-cri">
+<h1>ADR-0011 — Borne canonique du dataset propre et pré-enregistrement du CRI<a class="headerlink" href="#adr-0011-borne-canonique-du-dataset-propre-et-pre-enregistrement-du-cri" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p><strong>Statut</strong> : Accepté</p></li>
+<li><p><strong>Date</strong> : 2026-07-05</p></li>
+<li><p><strong>Contexte</strong> : Correction d’une lecture statistique erronée (N=487 contaminé
+confondu avec N=24 propre) et absence de définition opérationnelle du
+Calibration Readiness Index (CRI) malgré son seuil de gate (CLAUDE.md).</p></li>
+</ul>
+<section id="contexte">
+<h2>Contexte<a class="headerlink" href="#contexte" title="Link to this heading">¶</a></h2>
+<p>Une demande de bilan des données collectées a d’abord été répondue avec
+N=487 trades fermés (2026-06-13 → 2026-07-05), un Profit Factor de 0,459 et
+un intervalle de confiance calculé sur cet effectif. Vérification faite via
+<code class="docutils literal notranslate"><span class="pre">scripts/data_quality.py</span></code> (déjà committé sur <code class="docutils literal notranslate"><span class="pre">main</span></code>) : <strong>463 de ces 487
+trades sont antérieurs au 2026-06-25</strong>, la borne officielle de démarrage
+propre (<code class="docutils literal notranslate"><span class="pre">experiments/EXP-001.yaml</span></code>, <code class="docutils literal notranslate"><span class="pre">commit_start:</span> <span class="pre">ff49c2a</span></code> — blacklist de
+tokens toxiques). Le N réellement exploitable est <strong>24</strong>, avec un intervalle
+de confiance bien plus large (Wilson 95 % sur 7/24 ≈ [14 %, 50 %]) —
+insuffisant pour conclure à un edge négatif réel.</p>
+<p>Une mémoire de session antérieure (2026-06-21, commit <code class="docutils literal notranslate"><span class="pre">6ce7fc2</span></code>, correctif
+anti-synthétique) documentait une consigne différente : “recalculer
+uniquement sur les trades ouverts après <code class="docutils literal notranslate"><span class="pre">6ce7fc2</span></code>”, avec 20 trades
+synthétiques identifiés comme contamination du dataset pré-21/06. Les deux
+bornes (21/06 et 25/06) n’ont jamais été formellement réconciliées dans
+<code class="docutils literal notranslate"><span class="pre">CLAUDE.md</span></code>.</p>
+<p>En parallèle, <code class="docutils literal notranslate"><span class="pre">docs/blueprint_v2.md</span></code> (lignes 106-111) spécifie la formule de
+haut niveau du CRI (`CRI = (w1·N_score + w2·coverage_score + w3·drift_score</p>
+<ul class="simple">
+<li><p>w4·balance_score) / 100<code class="docutils literal notranslate"><span class="pre">,</span> <span class="pre">gate</span> </code>≥ 90/100<code class="docutils literal notranslate"><span class="pre">)</span> <span class="pre">sans</span> <span class="pre">jamais</span> <span class="pre">définir</span> <span class="pre">les</span> <span class="pre">poids</span> <span class="pre">ni</span> <span class="pre">le</span> <span class="pre">calcul</span> <span class="pre">de</span> <span class="pre">chaque</span> <span class="pre">sous-score.</span> </code>tools/cri_calculator.py` n’existe pas.</p></li>
+</ul>
+</section>
+<section id="decision">
+<h2>Décision<a class="headerlink" href="#decision" title="Link to this heading">¶</a></h2>
+<section id="borne-canonique-unique-clean-data-since-2026-06-25">
+<h3>1. Borne canonique unique : <code class="docutils literal notranslate"><span class="pre">CLEAN_DATA_SINCE</span> <span class="pre">=</span> <span class="pre">2026-06-25</span></code><a class="headerlink" href="#borne-canonique-unique-clean-data-since-2026-06-25" title="Link to this heading">¶</a></h3>
+<p>Le 25/06 (<code class="docutils literal notranslate"><span class="pre">ff49c2a</span></code>) <strong>contient strictement</strong> le 21/06 (<code class="docutils literal notranslate"><span class="pre">6ce7fc2</span></code>) : tout ce
+que la consigne du 21/06 excluait est également exclu par celle du 25/06.
+Adopter le 25/06 comme borne unique satisfait les deux exigences sans
+conflit, et correspond au code actuellement committé et actif
+(<code class="docutils literal notranslate"><span class="pre">scripts/data_quality.py</span></code>, <code class="docutils literal notranslate"><span class="pre">analysis/regime_audit.py</span></code>). La consigne du
+21/06 est remplacée, pas contredite. Ajouté dans <code class="docutils literal notranslate"><span class="pre">CLAUDE.md</span></code> § Règle du
+statisticien.</p>
+</section>
+<section id="pre-enregistrement-du-cri-definition-gelee-avant-tout-calcul-reel">
+<h3>2. Pré-enregistrement du CRI — définition gelée avant tout calcul réel<a class="headerlink" href="#pre-enregistrement-du-cri-definition-gelee-avant-tout-calcul-reel" title="Link to this heading">¶</a></h3>
+<p>Les quatre sous-scores et leurs poids sont définis et gelés <strong>avant</strong> que
+le dataset propre n’atteigne un effectif significatif (N=24 au moment de
+cet ADR) — condition nécessaire pour que la définition ne soit pas
+influencée par la valeur qu’elle produirait. Implémentation :
+<code class="docutils literal notranslate"><span class="pre">tools/cri_calculator.py</span></code>.</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Sous-score</p></th>
+<th class="head"><p>Formule</p></th>
+<th class="head"><p>Justification</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">N_score</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">min(100,</span> <span class="pre">100</span> <span class="pre">×</span> <span class="pre">N_clean</span> <span class="pre">/</span> <span class="pre">500)</span></code></p></td>
+<td><p>Progression linéaire vers le seuil de calibration, sans palier intermédiaire arbitraire</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">coverage_score</span></code></p></td>
+<td><p>% des cellules (régime observé × score_bin) avec ≥ 5 observations (trades fermés + regrets confondus)</p></td>
+<td><p>Détecte un sur-échantillonnage d’un seul régime — voir note taxonomie ci-dessous</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">drift_score</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">100</span> <span class="pre">×</span> <span class="pre">(1</span> <span class="pre">−</span> <span class="pre">PSI)</span></code>, borné [0,100] ; PSI entre 1ʳᵉ et 2ᵉ moitié du dataset propre sur la distribution des scores</p></td>
+<td><p>Calibrer sur un mélange de deux régimes temporels distincts n’a pas de sens</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">balance_score</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">100</span> <span class="pre">×</span> <span class="pre">min(winners,</span> <span class="pre">losers,</span> <span class="pre">150)</span> <span class="pre">/</span> <span class="pre">150</span></code></p></td>
+<td><p>Rend explicite le goulot actuel (7 winners au 2026-07-05)</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><strong>Pondération</strong> : <code class="docutils literal notranslate"><span class="pre">w1</span> <span class="pre">=</span> <span class="pre">w2</span> <span class="pre">=</span> <span class="pre">w3</span> <span class="pre">=</span> <span class="pre">w4</span> <span class="pre">=</span> <span class="pre">25</span></code>. Égalité choisie en l’absence de
+toute donnée justifiant de privilégier une composante — choisir des poids
+asymétriques après avoir observé les sous-scores serait exactement la
+faute que la règle du statisticien interdit. Les poids sont gelés avec la
+définition ; toute révision ultérieure doit être un nouvel ADR, jamais un
+ajustement silencieux.</p>
+<p><strong>Note sur <code class="docutils literal notranslate"><span class="pre">coverage_score</span></code></strong> : au moins trois taxonomies de régime
+coexistent dans le code (<code class="docutils literal notranslate"><span class="pre">global_risk_gate._CANONICAL_REGIMES</span></code> — majuscules,
+<code class="docutils literal notranslate"><span class="pre">TREND_BULL/TREND_BEAR/RANGE/VOLATILE/UNKNOWN</span></code> ; <code class="docutils literal notranslate"><span class="pre">tools/dataset_certifier._VALID_REGIMES</span></code>
+— minuscules, <code class="docutils literal notranslate"><span class="pre">bull_trend/bear_trend/sideways/volatile/unknown</span></code> ; et un
+régime <code class="docutils literal notranslate"><span class="pre">flash_crash</span></code> observé en production dans les rapports Telegram,
+absent des deux listes). Plutôt que choisir arbitrairement l’une de ces
+énumérations théoriques — risquant d’omettre un régime réel ou d’inclure un
+régime jamais observé — <code class="docutils literal notranslate"><span class="pre">coverage_score</span></code> construit sa grille à partir des
+<strong>régimes réellement présents dans le dataset propre</strong>, croisés avec les 5
+<code class="docutils literal notranslate"><span class="pre">score_bin</span></code> déjà établis dans <code class="docutils literal notranslate"><span class="pre">scripts/burnin_calibration_v3.py</span></code>
+(<code class="docutils literal notranslate"><span class="pre">&lt;50,</span> <span class="pre">50-59,</span> <span class="pre">60-69,</span> <span class="pre">70-79,</span> <span class="pre">80+</span></code>). Ce choix est documenté ici pour éviter
+qu’il soit relu plus tard comme une omission.</p>
+<p><strong><code class="docutils literal notranslate"><span class="pre">drift_score</span></code> à faible N</strong> : le PSI est calculé uniquement si N ≥ 10 par
+moitié (sinon <code class="docutils literal notranslate"><span class="pre">drift_score</span> <span class="pre">=</span> <span class="pre">0</span></code>, N_score étant de toute façon très bas à ce
+stade) — le PSI sur des échantillons trop petits produit des valeurs
+instables sans information réelle.</p>
+</section>
+</section>
+<section id="alternatives-rejetees">
+<h2>Alternatives rejetées<a class="headerlink" href="#alternatives-rejetees" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Alternative</p></th>
+<th class="head"><p>Raison du rejet</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Garder deux bornes distinctes (21/06 pour un usage, 25/06 pour un autre)</p></td>
+<td><p>Ambiguïté documentaire exactement de la nature qui invaliderait une calibration après coup</p></td>
+</tr>
+<tr class="row-odd"><td><p>Choisir une taxonomie de régime théorique fixe pour <code class="docutils literal notranslate"><span class="pre">coverage_score</span></code></p></td>
+<td><p>Au moins un régime réel (<code class="docutils literal notranslate"><span class="pre">flash_crash</span></code>) n’apparaît dans aucune des taxonomies théoriques trouvées — risque d’omission</p></td>
+</tr>
+<tr class="row-even"><td><p>Pondérer le CRI en fonction de l’importance perçue de chaque sous-score</p></td>
+<td><p>Introduit un jugement non justifié par des données, contraire à la règle du statisticien</p></td>
+</tr>
+<tr class="row-odd"><td><p>Attendre d’avoir plus de données avant de définir le CRI</p></td>
+<td><p>Défait l’objectif même du pré-enregistrement — la définition doit précéder le résultat</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="consequences">
+<h2>Conséquences<a class="headerlink" href="#consequences" title="Link to this heading">¶</a></h2>
+<p><strong>Positives :</strong></p>
+<ul class="simple">
+<li><p>Le CRI est calculable dès aujourd’hui (score bas, cohérent avec N=24) et
+restera calculable sans interruption jusqu’au franchissement des gates —
+pas de improvisation de définition au moment critique.</p></li>
+<li><p>La borne de dataset est désormais unique et documentée dans la
+constitution du projet, pas seulement dans le code.</p></li>
+</ul>
+<p><strong>Négatives / compromis :</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">coverage_score</span></code> fondé sur les régimes observés plutôt qu’une taxonomie
+théorique signifie qu’un régime qui n’apparaîtrait qu’une fois pourrait
+artificiellement peser sur le score — accepté comme compromis raisonnable
+face à l’absence de taxonomie de référence fiable.</p></li>
+<li><p>Le chemin <code class="docutils literal notranslate"><span class="pre">governance/science/cri_calculator.py</span></code> mentionné ailleurs dans
+<code class="docutils literal notranslate"><span class="pre">docs/blueprint_v2.md</span></code> (tableau de gouvernance, ligne G-07) diverge du
+chemin <code class="docutils literal notranslate"><span class="pre">tools/cri_calculator.py</span></code> retenu ici (spec principale du blueprint,
+lignes 106-111) — à réconcilier si besoin, non bloquant.</p></li>
+</ul>
+<p><strong>Règles induites :</strong></p>
+<ul class="simple">
+<li><p>Toute référence future à “N trades propres” ou aux seuils du tableau
+statisticien doit filtrer par <code class="docutils literal notranslate"><span class="pre">CLEAN_DATA_SINCE</span> <span class="pre">=</span> <span class="pre">2026-06-25</span></code>.</p></li>
+<li><p>Toute révision des poids ou sous-scores du CRI est un nouvel ADR, jamais
+une modification silencieuse de <code class="docutils literal notranslate"><span class="pre">tools/cri_calculator.py</span></code>.</p></li>
+</ul>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Crypto AI Terminal
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">ADR-0011 — Borne canonique du dataset propre et pré-enregistrement du CRI</a><ul>
+<li><a class="reference internal" href="#contexte">Contexte</a></li>
+<li><a class="reference internal" href="#decision">Décision</a><ul>
+<li><a class="reference internal" href="#borne-canonique-unique-clean-data-since-2026-06-25">1. Borne canonique unique : <code class="docutils literal notranslate"><span class="pre">CLEAN_DATA_SINCE</span> <span class="pre">=</span> <span class="pre">2026-06-25</span></code></a></li>
+<li><a class="reference internal" href="#pre-enregistrement-du-cri-definition-gelee-avant-tout-calcul-reel">2. Pré-enregistrement du CRI — définition gelée avant tout calcul réel</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#alternatives-rejetees">Alternatives rejetées</a></li>
+<li><a class="reference internal" href="#consequences">Conséquences</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../_static/documentation_options.js?v=ef6a59ae"></script>
+    <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/scripts/furo.js?v=46bd48cc"></script>
+    </body>
+</html>

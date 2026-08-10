@@ -1,0 +1,607 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html">
+        <link rel="prefetch" href="../_static/../assets/logo_ai_quant.png" as="image">
+        <link rel="prefetch" href="../_static/../assets/logo_ai_quant.png" as="image">
+
+    <link rel="shortcut icon" href="../_static/favicon.ico"><!-- Generated with Sphinx 9.0.4 and Furo 2025.12.19 -->
+        <title>ADR-0013 — Deux points morts dans la machine d’état runtime (SAFE_MODE / RECOVERY) - Crypto AI Terminal 9.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=1b9cecba" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">Crypto AI Terminal 9.1 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="../_static/../assets/logo_ai_quant.png" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="../_static/../assets/logo_ai_quant.png" alt="Dark Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/blob/main/docs/adr/0013-safe-mode-recovery-deadlock.md?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/edit/main/docs/adr/0013-safe-mode-recovery-deadlock.md" rel="edit" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="adr-0013-deux-points-morts-dans-la-machine-detat-runtime-safe-mode-recovery">
+<h1>ADR-0013 — Deux points morts dans la machine d’état runtime (SAFE_MODE / RECOVERY)<a class="headerlink" href="#adr-0013-deux-points-morts-dans-la-machine-detat-runtime-safe-mode-recovery" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p><strong>Statut</strong> : Accepté (validé par Mathieu, 2026-07-11)</p></li>
+<li><p><strong>Date</strong> : 2026-07-11</p></li>
+<li><p><strong>Contexte</strong> : Incident 2026-07-10/11 — <code class="docutils literal notranslate"><span class="pre">self_awareness</span></code> a placé le moteur
+en <code class="docutils literal notranslate"><span class="pre">SAFE_MODE</span></code> sur un échantillon de 5 trades post-restart, gel total
+pendant ~15h, sortie manuelle par <code class="docutils literal notranslate"><span class="pre">/RESUME</span></code> puis par redémarrage complet
+du process (<code class="docutils literal notranslate"><span class="pre">crypto-advisor.service</span></code>, 2026-07-11 05:59:13Z). Voir mémoire
+d’incident (session Claude Code, non versionnée) pour le détail
+chronologique complet.</p></li>
+</ul>
+<section id="contexte">
+<h2>Contexte<a class="headerlink" href="#contexte" title="Link to this heading">¶</a></h2>
+<section id="ce-qui-sest-passe">
+<h3>Ce qui s’est passé<a class="headerlink" href="#ce-qui-sest-passe" title="Link to this heading">¶</a></h3>
+<p>Le 2026-07-10 14:43:57 UTC, <code class="docutils literal notranslate"><span class="pre">self_awareness</span></code> (<code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/intelligence/self_awareness_engine.py</span></code>)
+a évalué un niveau <code class="docutils literal notranslate"><span class="pre">WARNING</span></code> et appelé <code class="docutils literal notranslate"><span class="pre">runtime_authority.request_safe_mode(&quot;self_awareness&quot;,</span> <span class="pre">...)</span></code>
+(<code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py:3775</span></code>), verrouillant <code class="docutils literal notranslate"><span class="pre">RuntimeStateMachine</span></code> en <code class="docutils literal notranslate"><span class="pre">SAFE_MODE</span></code>.
+Conséquence immédiate et complète : le gate G1 d’<code class="docutils literal notranslate"><span class="pre">analyze_symbol()</span></code>
+(<code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py:853-918</span></code>) court-circuite les 28 paires à chaque
+cycle, <strong>avant même l’appel au scanner de marché</strong> — <code class="docutils literal notranslate"><span class="pre">prix=0.0</span></code>,
+<code class="docutils literal notranslate"><span class="pre">n_1h=0</span></code>, <code class="docutils literal notranslate"><span class="pre">regime=&quot;unknown&quot;</span></code> sont les valeurs par défaut du stub de
+retour anticipé, pas la trace d’une panne de données. Le moteur est resté
+dans cet état ~15h au total (14:43:57Z → redémarrage 05:59:13Z le
+2026-07-11, ~183 cycles) — 150 cycles documentés au snapshot du
+diagnostic (02:58Z, cycle 519 − cycle 369) —, l’invariante
+<code class="docutils literal notranslate"><span class="pre">CAPITAL_GELE</span></code> (max=30) violée en continu.</p>
+<p>Deux points morts distincts ont été traversés, chacun nécessitant une
+intervention manuelle :</p>
+</section>
+<section id="point-mort-n1-safe-mode-ne-sauto-leve-jamais-voulu-le-defaut-est-le-declencheur">
+<h3>Point mort n°1 — <code class="docutils literal notranslate"><span class="pre">SAFE_MODE</span></code> ne s’auto-lève jamais (voulu ; le défaut est le déclencheur)<a class="headerlink" href="#point-mort-n1-safe-mode-ne-sauto-leve-jamais-voulu-le-defaut-est-le-declencheur" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">self_awareness</span></code> calcule ses dérives sur <code class="docutils literal notranslate"><span class="pre">self._trades</span></code> (une deque
+alimentée par les trades fermés). Or <code class="docutils literal notranslate"><span class="pre">SAFE_MODE</span></code> bloque justement tout
+nouveau trade — <code class="docutils literal notranslate"><span class="pre">self._trades</span></code> ne peut plus grossir, donc le niveau ne
+peut jamais redescendre sous <code class="docutils literal notranslate"><span class="pre">WARNING</span></code> tout seul. Seule sortie : une
+requête externe (<code class="docutils literal notranslate"><span class="pre">/RESUME</span></code> Telegram → <code class="docutils literal notranslate"><span class="pre">clear_all_safe_mode_requests()</span></code>,
+<code class="docutils literal notranslate"><span class="pre">runtime_state_machine.py:217-227</span></code>) ou un redémarrage du process.</p>
+<p><strong>Ce qui est un défaut ici, et ce qui ne l’est pas.</strong> La halte-jusqu’à-
+<code class="docutils literal notranslate"><span class="pre">/RESUME</span></code> est le comportement de sécurité <em>voulu</em> face à une dérive
+réelle — un <code class="docutils literal notranslate"><span class="pre">self_awareness</span></code> qui bloque tout le moteur jusqu’à
+confirmation opérateur n’est pas en soi un bug, c’est un circuit-breaker
+qui fait son travail. Le défaut isolé ici est uniquement le
+<strong>déclencheur</strong> : un <code class="docutils literal notranslate"><span class="pre">WARNING</span></code> levé sur un échantillon de 5 trades,
+insuffisant pour distinguer bruit et dérive. La décision #1 (§ Décision)
+corrige ce déclencheur ; elle ne rend pas — et ne prétend pas rendre —
+<code class="docutils literal notranslate"><span class="pre">SAFE_MODE</span></code> auto-levable face à une vraie dérive sur échantillon
+suffisant : ce serait un défaut de sécurité, pas un objectif de ce
+document.</p>
+<p><strong>Root cause précise du déclenchement initial</strong>, vérifiée ligne à ligne
+avec seulement ~5 trades en mémoire depuis le restart du 2026-07-09 :</p>
+<ul class="simple">
+<li><dl class="simple myst">
+<dt>Win rate / Sharpe (<code class="docutils literal notranslate"><span class="pre">_check_performance_drift</span></code>, <code class="docutils literal notranslate"><span class="pre">self_awareness_engine.py:329-343</span></code>)</dt><dd><p>exclus mécaniquement — <code class="docutils literal notranslate"><span class="pre">RECENT_WINDOW=10</span></code> (défaut, ligne 85) &gt; 5 trades,
+donc <code class="docutils literal notranslate"><span class="pre">baseline</span> <span class="pre">=</span> <span class="pre">list(self._trades)[:-10]</span> <span class="pre">or</span> <span class="pre">list(self._trades)</span></code>
+(ligne 332) retombe sur <code class="docutils literal notranslate"><span class="pre">baseline</span> <span class="pre">==</span> <span class="pre">recent</span></code> → <code class="docutils literal notranslate"><span class="pre">wr_drop</span> <span class="pre">=</span> <span class="pre">sh_drop</span> <span class="pre">=</span> <span class="pre">0</span></code>.</p>
+</dd>
+</dl>
+</li>
+<li><p>Market mismatch / regime instability (<code class="docutils literal notranslate"><span class="pre">_check_market_mismatch</span></code>,
+ligne 467-470) : exclus formellement par sa propre garde
+(<code class="docutils literal notranslate"><span class="pre">if</span> <span class="pre">len(self._trades)</span> <span class="pre">&lt;</span> <span class="pre">self.RECENT_WINDOW:</span> <span class="pre">return</span> <span class="pre">signals</span></code>).</p></li>
+<li><p>Infra/latence : ne produit jamais <code class="docutils literal notranslate"><span class="pre">WARNING</span></code> directement (seulement
+<code class="docutils literal notranslate"><span class="pre">CAUTION</span></code>/<code class="docutils literal notranslate"><span class="pre">DANGER</span></code>, <code class="docutils literal notranslate"><span class="pre">_check_infra_drift</span></code>, ligne 515+).</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">drawdown_acceleration</span></code></strong> (ligne 383-399) : <strong>pas protégé par la même
+garde que win rate/Sharpe</strong>. Il calcule <code class="docutils literal notranslate"><span class="pre">cumdd</span></code> sur <code class="docutils literal notranslate"><span class="pre">recent_pnls</span></code> (les
+seuls trades disponibles, ici 5) indépendamment de la taille de
+<code class="docutils literal notranslate"><span class="pre">baseline</span></code>. <code class="docutils literal notranslate"><span class="pre">DD_ACCEL_WARN=0.03</span></code> (3%, ligne 93) suffit à déclencher
+<code class="docutils literal notranslate"><span class="pre">WARNING</span></code> sur un enchaînement de pertes parmi 5 trades. C’est
+l’incohérence structurelle : la même fonction protège deux de ses
+quatre signaux par une garde de taille d’échantillon et laisse le
+troisième (<code class="docutils literal notranslate"><span class="pre">drawdown_acceleration</span></code>) sans protection équivalente.</p></li>
+<li><p>Alternative non exclue : <code class="docutils literal notranslate"><span class="pre">FREEZE_OVERRIDE_HALTS=3</span></code> (ligne 117-228,
+DANGER rétrogradé WARNING après 3 halts sans trade) — même conclusion
+quel que soit le chemin exact, le contexte de l’incident étant vide
+(<code class="docutils literal notranslate"><span class="pre">context:</span> <span class="pre">{}</span></code>, <code class="docutils literal notranslate"><span class="pre">logs/incidents/2026-07-10.jsonl</span></code>) et la dérive précise
+non journalisée (seul le message Telegram, non persisté, et la deque
+mémoire, perdue au restart, la portaient).</p></li>
+</ul>
+</section>
+<section id="point-mort-n2-recovery-nest-pas-une-vraie-sortie-non-plus">
+<h3>Point mort n°2 — <code class="docutils literal notranslate"><span class="pre">RECOVERY</span></code> n’est pas une vraie sortie non plus<a class="headerlink" href="#point-mort-n2-recovery-nest-pas-une-vraie-sortie-non-plus" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">/RESUME</span></code> (<code class="docutils literal notranslate"><span class="pre">_on_resume</span></code>, <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py:2891-2899</span></code>) appelle
+<code class="docutils literal notranslate"><span class="pre">clear_all_safe_mode_requests()</span></code>, qui fait transitionner <code class="docutils literal notranslate"><span class="pre">SAFE_MODE</span></code> vers
+<code class="docutils literal notranslate"><span class="pre">RECOVERY</span></code> — <strong>jamais directement <code class="docutils literal notranslate"><span class="pre">NORMAL</span></code></strong>
+(<code class="docutils literal notranslate"><span class="pre">runtime_state_machine.py:217-227</span></code>). Or <code class="docutils literal notranslate"><span class="pre">_POLICIES[RECOVERY]</span></code>
+(ligne 44-50) a <code class="docutils literal notranslate"><span class="pre">can_trade=False</span></code> — le gate G1 continue donc de
+court-circuiter tous les symboles exactement comme en <code class="docutils literal notranslate"><span class="pre">SAFE_MODE</span></code>, avec
+les mêmes symptômes (<code class="docutils literal notranslate"><span class="pre">CAPITAL_GELE</span></code> continue d’incrémenter).</p>
+<p>La seule transition <code class="docutils literal notranslate"><span class="pre">RECOVERY</span> <span class="pre">→</span> <span class="pre">NORMAL</span></code> est dans <code class="docutils literal notranslate"><span class="pre">report_ok()</span></code>
+(ligne 147-176), conditionnée à
+<code class="docutils literal notranslate"><span class="pre">now</span> <span class="pre">-</span> <span class="pre">self._recovery_started</span> <span class="pre">&gt;=</span> <span class="pre">self._stability_s</span></code> (60s par défaut) —
+<strong>mais <code class="docutils literal notranslate"><span class="pre">report_ok()</span></code> n’est appelé nulle part en production</strong>. Grep
+exhaustif : seuls <code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/runtime/chaos_orchestrator.py</span></code> (harnais
+de tests chaos) et les tests unitaires l’appellent. <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code>
+n’appelle que <code class="docutils literal notranslate"><span class="pre">runtime_authority.report_error(&quot;cycle_exception&quot;)</span></code>
+(ligne 7150, sur exception de cycle) ; la façade <code class="docutils literal notranslate"><span class="pre">core/authority.py</span></code>
+(<code class="docutils literal notranslate"><span class="pre">GovernanceKernel</span></code>, utilisée par le gate G1) n’expose que des lectures
+(<code class="docutils literal notranslate"><span class="pre">can_trade</span></code>, <code class="docutils literal notranslate"><span class="pre">can_fetch</span></code>, <code class="docutils literal notranslate"><span class="pre">can_place_order</span></code>, <code class="docutils literal notranslate"><span class="pre">size_factor</span></code>, <code class="docutils literal notranslate"><span class="pre">rsm_state</span></code>,
+<code class="docutils literal notranslate"><span class="pre">snapshot</span></code>). Conséquence vérifiée empiriquement le 2026-07-11 : après
+<code class="docutils literal notranslate"><span class="pre">/RESUME</span></code>, le moteur est resté en <code class="docutils literal notranslate"><span class="pre">RSM:RECOVERY</span></code> sur au moins 2 cycles
+supplémentaires (<code class="docutils literal notranslate"><span class="pre">CAPITAL_GELE</span></code> 175→176) sans aucune tendance à
+graduer — seul un redémarrage complet du process (qui réinitialise
+<code class="docutils literal notranslate"><span class="pre">RuntimeStateMachine.__init__</span></code> à <code class="docutils literal notranslate"><span class="pre">NORMAL</span></code>) a permis la reprise, vérifiée
+à 05:59:13Z (<code class="docutils literal notranslate"><span class="pre">RSM</span> <span class="pre">state=NORMAL</span></code> au boot, prix/régimes réels dès le
+premier cycle).</p>
+<p>Ce même défaut condamne symétriquement <code class="docutils literal notranslate"><span class="pre">DEGRADED</span></code>/<code class="docutils literal notranslate"><span class="pre">CRITICAL</span> <span class="pre">→</span> <span class="pre">RECOVERY</span></code>
+(ligne 163-166, même mécanisme <code class="docutils literal notranslate"><span class="pre">report_ok()</span></code>) — pas seulement
+<code class="docutils literal notranslate"><span class="pre">RECOVERY</span> <span class="pre">→</span> <span class="pre">NORMAL</span></code>. Tout état dégradé non résolu par une requête externe
+explicite est, en l’état actuel du code, un état terminal jusqu’au
+prochain redémarrage.</p>
+</section>
+<section id="defaut-annexe-trouve-en-cours-de-diagnostic-hors-decision-note-pour-memoire">
+<h3>Défaut annexe trouvé en cours de diagnostic (hors décision, noté pour mémoire)<a class="headerlink" href="#defaut-annexe-trouve-en-cours-de-diagnostic-hors-decision-note-pour-memoire" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">scripts/deploy_vps.sh</span> <span class="pre">--restart</span> <span class="pre">core|advisor</span></code> ne fait pas
+<code class="docutils literal notranslate"><span class="pre">systemctl</span> <span class="pre">restart</span></code> — il fait <code class="docutils literal notranslate"><span class="pre">pkill</span></code> ancré + relance <code class="docutils literal notranslate"><span class="pre">nohup</span></code> brute
+(légataire d’avant la réconciliation systemd du 2026-07-05, ADR-0010).
+Sur l’unité actuelle (<code class="docutils literal notranslate"><span class="pre">Restart=on-failure</span></code>,
+<code class="docutils literal notranslate"><span class="pre">/etc/systemd/system/crypto-advisor.service</span></code>), un <code class="docutils literal notranslate"><span class="pre">pkill</span></code> qui ne produit
+pas une sortie propre (code 0) risque de faire courir la relance
+<code class="docutils literal notranslate"><span class="pre">nohup</span></code> du script contre le propre redémarrage automatique de systemd —
+le survivant de la course sortirait du cgroup managé
+(<code class="docutils literal notranslate"><span class="pre">/system.slice/crypto-advisor.service</span></code>), reproduisant la classe de
+problème qu’ADR-0010 avait résolue. Le redémarrage du 2026-07-11 a
+contourné ce risque en utilisant directement
+<code class="docutils literal notranslate"><span class="pre">sudo</span> <span class="pre">systemctl</span> <span class="pre">restart</span> <span class="pre">crypto-advisor.service</span></code> sur le VPS. Correctif
+proposé en Conséquences, non urgent (pas déclenché cette fois).</p>
+</section>
+</section>
+<section id="decision">
+<h2>Décision<a class="headerlink" href="#decision" title="Link to this heading">¶</a></h2>
+<section id="etendre-la-garde-de-taille-dechantillon-a-drawdown-acceleration">
+<h3>1. Étendre la garde de taille d’échantillon à <code class="docutils literal notranslate"><span class="pre">drawdown_acceleration</span></code><a class="headerlink" href="#etendre-la-garde-de-taille-dechantillon-a-drawdown-acceleration" title="Link to this heading">¶</a></h3>
+<p>Dans <code class="docutils literal notranslate"><span class="pre">_check_performance_drift()</span></code> (<code class="docutils literal notranslate"><span class="pre">self_awareness_engine.py:329-343</span></code>),
+faire porter la garde <code class="docutils literal notranslate"><span class="pre">len(recent)</span> <span class="pre">&lt;</span> <span class="pre">3</span> <span class="pre">or</span> <span class="pre">len(baseline)</span> <span class="pre">&lt;</span> <span class="pre">3</span></code> (ligne 334)
+sur le calcul du drawdown également, <strong>et</strong> durcir la condition pour
+exiger un baseline structurellement indépendant plutôt qu’un fallback
+identique à <code class="docutils literal notranslate"><span class="pre">recent</span></code> : remplacer la garde par
+<code class="docutils literal notranslate"><span class="pre">len(self._trades)</span> <span class="pre">&lt;</span> <span class="pre">self.RECENT_WINDOW</span></code> (le même seuil, la même forme
+que la garde déjà en place dans <code class="docutils literal notranslate"><span class="pre">_check_market_mismatch</span></code>,
+ligne 469 — cohérence interne du fichier, pas un nouveau concept). Avec
+<code class="docutils literal notranslate"><span class="pre">RECENT_WINDOW=10</span></code> par défaut, aucune des quatre familles de dérive ne
+pourra plus produire de signal avant 10 trades accumulés depuis le
+dernier reset de la deque (restart ou purge explicite).</p>
+<p><strong>Neutre pour win rate/Sharpe, ne resserre que le drawdown.</strong> Remplacer
+la garde ligne 334 par <code class="docutils literal notranslate"><span class="pre">len(self._trades)</span> <span class="pre">&lt;</span> <span class="pre">RECENT_WINDOW</span></code> s’applique
+aussi aux signaux win rate/Sharpe — mais ceux-ci ne peuvent déjà produire
+un <code class="docutils literal notranslate"><span class="pre">drop≠0</span></code> en dessous de <code class="docutils literal notranslate"><span class="pre">RECENT_WINDOW</span></code> trades (le fallback
+<code class="docutils literal notranslate"><span class="pre">baseline</span> <span class="pre">==</span> <span class="pre">recent</span></code>, ligne 332, force <code class="docutils literal notranslate"><span class="pre">wr_drop</span> <span class="pre">=</span> <span class="pre">sh_drop</span> <span class="pre">=</span> <span class="pre">0</span></code> dans cette
+zone). L’unification ne change donc leur comportement en rien ; elle ne
+resserre que <code class="docutils literal notranslate"><span class="pre">drawdown_acceleration</span></code>, seul signal non protégé
+aujourd’hui.</p>
+</section>
+<section id="appeler-report-ok-une-fois-par-cycle-reussi">
+<h3>2. Appeler <code class="docutils literal notranslate"><span class="pre">report_ok()</span></code> une fois par cycle réussi<a class="headerlink" href="#appeler-report-ok-une-fois-par-cycle-reussi" title="Link to this heading">¶</a></h3>
+<p>Dans la boucle principale de <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code>, au point symétrique
+de l’appel <code class="docutils literal notranslate"><span class="pre">runtime_authority.report_error(&quot;cycle_exception&quot;)</span></code>
+(ligne 7150) — c’est-à-dire sur le chemin de sortie normal d’un cycle qui
+n’a pas levé d’exception — ajouter <code class="docutils literal notranslate"><span class="pre">runtime_authority.report_ok()</span></code>. Cela
+restaure le comportement documenté par le docstring de
+<code class="docutils literal notranslate"><span class="pre">RuntimeStateMachine</span></code> (« RECOVERY → silence confirmé, retour progressif
+vers NORMAL ») pour les quatre transitions descendantes
+(<code class="docutils literal notranslate"><span class="pre">SAFE_MODE</span></code>* → <code class="docutils literal notranslate"><span class="pre">RECOVERY</span></code> déjà géré par requête explicite ; <code class="docutils literal notranslate"><span class="pre">RECOVERY</span> <span class="pre">→</span> <span class="pre">NORMAL</span></code>, <code class="docutils literal notranslate"><span class="pre">DEGRADED/CRITICAL</span> <span class="pre">→</span> <span class="pre">RECOVERY</span></code>, et leur enchaînement complet
+vers <code class="docutils literal notranslate"><span class="pre">NORMAL</span></code>), sans changer aucun seuil ni aucune logique de décision de
+trading — c’est un appel à une méthode déjà existante et déjà testée
+(<code class="docutils literal notranslate"><span class="pre">tests/chaos/test_chaos_runtime_state.py</span></code>), jamais câblée en production.</p>
+<p><strong>Pourquoi cet appel est sûr même câblé sur chaque cycle réussi</strong> (deux
+garanties vérifiées dans le code, pas supposées) :</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">report_ok()</span></code> ne vide jamais <code class="docutils literal notranslate"><span class="pre">self._errors</span></code> — seuls <code class="docutils literal notranslate"><span class="pre">clear_*</span></code> et
+<code class="docutils literal notranslate"><span class="pre">force_recovery()</span></code> le font ; il se contente d’<code class="docutils literal notranslate"><span class="pre">_evict()</span></code> par fenêtre
+temporelle (<code class="docutils literal notranslate"><span class="pre">window_s</span></code>). L’accumulation <code class="docutils literal notranslate"><span class="pre">DEGRADED</span></code>/<code class="docutils literal notranslate"><span class="pre">CRITICAL</span></code> reste
+donc intacte même appelé à chaque cycle : aucun risque de masquer une
+dégradation en cours.</p></li>
+<li><p>Appelé pendant que <code class="docutils literal notranslate"><span class="pre">SAFE_MODE</span></code> est actif avec au moins une requête en
+cours, il court-circuite sans effet (<code class="docutils literal notranslate"><span class="pre">runtime_state_machine.py:169-170</span></code>)
+— no-op garanti. Câbler l’appel sur le chemin normal du cycle est donc
+sûr même si un cycle s’exécute pendant qu’une requête <code class="docutils literal notranslate"><span class="pre">self_awareness</span></code>
+reste active.</p></li>
+</ul>
+<p><strong>Comportement attendu après le fix, vérifiable empiriquement</strong> :
+<code class="docutils literal notranslate"><span class="pre">clear_all_safe_mode_requests()</span></code> pose <code class="docutils literal notranslate"><span class="pre">recovery_started</span> <span class="pre">=</span> <span class="pre">now</span></code> au moment
+du <code class="docutils literal notranslate"><span class="pre">/RESUME</span></code> (<code class="docutils literal notranslate"><span class="pre">runtime_state_machine.py:226</span></code>, méthode plurielle réellement
+appelée par <code class="docutils literal notranslate"><span class="pre">_on_resume()</span></code> — à ne pas confondre avec <code class="docutils literal notranslate"><span class="pre">clear_safe_mode_request()</span></code>
+singulière, ligne 213-214, qui fait la même chose mais pour une seule
+source). Comme
+<code class="docutils literal notranslate"><span class="pre">stability_s=60s</span></code> est inférieur à la cadence de cycle (300s), le
+<strong>premier</strong> <code class="docutils literal notranslate"><span class="pre">report_ok()</span></code> post-<code class="docutils literal notranslate"><span class="pre">/RESUME</span></code> (au cycle suivant) satisfait
+déjà <code class="docutils literal notranslate"><span class="pre">≥60s</span></code> → transition immédiate vers <code class="docutils literal notranslate"><span class="pre">NORMAL</span></code>. Critère de
+vérification du fix : <strong><code class="docutils literal notranslate"><span class="pre">/RESUME</span></code> suivi d’un cycle complet doit suffire à
+observer <code class="docutils literal notranslate"><span class="pre">RSM:NORMAL</span></code></strong>, sans redémarrage.</p>
+<p>Nuance de vérification, pour éviter un faux négatif au test en conditions
+réelles : <code class="docutils literal notranslate"><span class="pre">report_ok()</span></code> étant câblé en fin de cycle (symétrique de
+<code class="docutils literal notranslate"><span class="pre">report_error</span></code>), le cycle qui suit <code class="docutils literal notranslate"><span class="pre">/RESUME</span></code> démarre encore en
+<code class="docutils literal notranslate"><span class="pre">RECOVERY</span></code> — G1 court-circuite, <code class="docutils literal notranslate"><span class="pre">prix=0</span></code> — et ne gradue vers <code class="docutils literal notranslate"><span class="pre">NORMAL</span></code>
+qu’à sa fin. Les prix/régimes réels ne reviennent donc qu’au cycle
+<strong>suivant celui-là</strong>. <code class="docutils literal notranslate"><span class="pre">RSM:NORMAL</span></code> s’observe à N+1 cycle après
+<code class="docutils literal notranslate"><span class="pre">/RESUME</span></code>, la donnée réelle à N+2 — ne pas conclure à un échec du fix si
+le tout premier cycle post-<code class="docutils literal notranslate"><span class="pre">/RESUME</span></code> affiche encore des zéros.</p>
+<p>* <code class="docutils literal notranslate"><span class="pre">SAFE_MODE</span></code> reste gouverné exclusivement par requêtes explicites
+(<code class="docutils literal notranslate"><span class="pre">request_safe_mode</span></code>/<code class="docutils literal notranslate"><span class="pre">clear_safe_mode_request</span></code>), <code class="docutils literal notranslate"><span class="pre">report_ok()</span></code> n’y change
+rien (<code class="docutils literal notranslate"><span class="pre">runtime_state_machine.py:168-174</span></code> — <code class="docutils literal notranslate"><span class="pre">SAFE_MODE</span></code> exige le double du
+silence standard <strong>et</strong> l’absence de requêtes actives ; ce chemin existe
+déjà et n’est pas modifié par cette décision).</p>
+</section>
+<section id="deploy-vps-sh-restart-core-doit-appeler-systemctl-restart">
+<h3>3. <code class="docutils literal notranslate"><span class="pre">deploy_vps.sh</span> <span class="pre">--restart</span> <span class="pre">core</span></code> doit appeler <code class="docutils literal notranslate"><span class="pre">systemctl</span> <span class="pre">restart</span></code><a class="headerlink" href="#deploy-vps-sh-restart-core-doit-appeler-systemctl-restart" title="Link to this heading">¶</a></h3>
+<p>Remplacer le bloc <code class="docutils literal notranslate"><span class="pre">pkill</span></code> + <code class="docutils literal notranslate"><span class="pre">nohup</span></code> par
+<code class="docutils literal notranslate"><span class="pre">ssh</span> <span class="pre">...</span> <span class="pre">&quot;sudo</span> <span class="pre">systemctl</span> <span class="pre">restart</span> <span class="pre">crypto-advisor.service&quot;</span></code> (avec la même
+vérification <code class="docutils literal notranslate"><span class="pre">pgrep</span></code> ancrée en sortie) pour la cible <code class="docutils literal notranslate"><span class="pre">core</span></code>, qui tourne
+sous cette unité réconciliée depuis ADR-0010. Élimine la course avec
+<code class="docutils literal notranslate"><span class="pre">Restart=on-failure</span></code> et garde le process dans son cgroup managé dans tous
+les cas, pas seulement quand l’opérateur pense à taper la commande
+systemd à la main.</p>
+<p><strong>Précision d’implémentation (vérifiée sur le VPS, 2026-07-11,
+<code class="docutils literal notranslate"><span class="pre">systemctl</span> <span class="pre">list-units</span> <span class="pre">--all</span> <span class="pre">--type=service</span></code>)</strong> : seule la cible <code class="docutils literal notranslate"><span class="pre">core</span></code>
+possède une unité systemd (<code class="docutils literal notranslate"><span class="pre">crypto-advisor.service</span></code>). La cible <code class="docutils literal notranslate"><span class="pre">advisor</span></code>
+(bot d’observation passif racine) n’en a aucune — elle reste donc sur le
+mécanisme <code class="docutils literal notranslate"><span class="pre">pkill</span></code> + <code class="docutils literal notranslate"><span class="pre">nohup</span></code> existant jusqu’à ce qu’elle soit elle-même
+productionisée sous systemd, ce qui est hors périmètre de cet ADR (le bot
+passif n’est pas le composant concerné par l’incident).</p>
+</section>
+</section>
+<section id="alternatives-rejetees">
+<h2>Alternatives rejetées<a class="headerlink" href="#alternatives-rejetees" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Alternative</p></th>
+<th class="head"><p>Raison du rejet</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Relever <code class="docutils literal notranslate"><span class="pre">DD_ACCEL_WARN</span></code> (3%→X%) pour réduire la sensibilité sur petit échantillon</p></td>
+<td><p>Modification d’un seuil existant — interdite par le gel fonctionnel (Scientific Debt Rule, CLAUDE.md) sans validation statistique préalable</p></td>
+</tr>
+<tr class="row-odd"><td><p>Empêcher <code class="docutils literal notranslate"><span class="pre">self_awareness</span></code> d’appeler <code class="docutils literal notranslate"><span class="pre">request_safe_mode()</span></code> du tout</p></td>
+<td><p>Supprime un mécanisme de sécurité fonctionnel pour un usage légitime (dérive réelle sur échantillon suffisant) — le problème est la garde de taille d’échantillon manquante sur un seul signal, pas le mécanisme lui-même</p></td>
+</tr>
+<tr class="row-even"><td><p>Ajouter un <code class="docutils literal notranslate"><span class="pre">force_normal()</span></code> / override manuel pour sortir de <code class="docutils literal notranslate"><span class="pre">RECOVERY</span></code> sans toucher à <code class="docutils literal notranslate"><span class="pre">report_ok()</span></code></p></td>
+<td><p>Traite le symptôme (comment sortir de <code class="docutils literal notranslate"><span class="pre">RECOVERY</span></code> cette fois) sans corriger la cause (<code class="docutils literal notranslate"><span class="pre">DEGRADED</span></code>/<code class="docutils literal notranslate"><span class="pre">CRITICAL</span></code> resteraient des états terminaux, <code class="docutils literal notranslate"><span class="pre">report_ok()</span></code> resterait mort en production)</p></td>
+</tr>
+<tr class="row-odd"><td><p>Ne rien changer, documenter la procédure de redémarrage comme sortie normale</p></td>
+<td><p>Chaque épisode futur coûterait à nouveau un redémarrage complet pour un défaut de robustesse identifié et compris — contraire à l’esprit de L3.5 (Scientific Intelligence Layer) qui suppose une supervision qui s’auto-corrige dans ses marges définies</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="consequences">
+<h2>Conséquences<a class="headerlink" href="#consequences" title="Link to this heading">¶</a></h2>
+<p><strong>Positives :</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">self_awareness</span></code> retrouve une garde de taille d’échantillon cohérente
+sur ses quatre familles de dérive — plus de gel total déclenchable sur
+N=5.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">RECOVERY</span></code>/<code class="docutils literal notranslate"><span class="pre">DEGRADED</span></code>/<code class="docutils literal notranslate"><span class="pre">CRITICAL</span></code> redeviennent des états transitoires
+comme conçu, sans dépendre d’un redémarrage manuel pour graduer.</p></li>
+<li><p>Le correctif <code class="docutils literal notranslate"><span class="pre">deploy_vps.sh</span></code> ferme une classe de risque déjà identifiée
+et corrigée une fois côté systemd (ADR-0010) mais pas côté outillage de
+déploiement.</p></li>
+</ul>
+<p><strong>Négatives / compromis :</strong></p>
+<ul class="simple">
+<li><p>Le correctif n°1 retarde légèrement la détection de dérive réelle après
+chaque restart (10 trades au lieu de 3 minimum actuel pour <code class="docutils literal notranslate"><span class="pre">drawdown_acceleration</span></code>)
+— compromis jugé favorable : un faux positif total (gel de 15h+) coûte
+bien plus cher à l’objectif N≥100 qu’un délai de détection de quelques
+trades.</p></li>
+<li><p>Le correctif n°2 change un comportement observable (le moteur
+graduera désormais seul après un incident, sans confirmation
+opérateur). Nuance sur <code class="docutils literal notranslate"><span class="pre">stability_s=60s</span></code> : à 300s/cycle, <code class="docutils literal notranslate"><span class="pre">RECOVERY</span></code>
+dure de toute façon toujours au moins un cycle complet — on ne peut pas
+graduer plus vite que la cadence elle-même, donc “60s est-il trop
+court” n’est pas la bonne question. La vraie question, à surveiller sur
+le premier épisode réel post-fix : un cycle complet sans erreur
+suffit-il comme preuve de santé, ou faut-il en exiger plusieurs avant
+<code class="docutils literal notranslate"><span class="pre">NORMAL</span></code> ?</p></li>
+</ul>
+<p><strong>Règles induites :</strong></p>
+<ul class="simple">
+<li><p>Toute nouvelle famille de dérive ajoutée à <code class="docutils literal notranslate"><span class="pre">self_awareness_engine.py</span></code>
+doit passer par la garde <code class="docutils literal notranslate"><span class="pre">RECENT_WINDOW</span></code>-based commune, jamais un calcul
+isolé sur <code class="docutils literal notranslate"><span class="pre">recent</span></code> seul.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">report_ok()</span></code>/<code class="docutils literal notranslate"><span class="pre">report_error()</span></code> sont désormais les deux seuls points
+d’entrée attendus depuis <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code> vers
+<code class="docutils literal notranslate"><span class="pre">RuntimeStateMachine</span></code> — tout nouveau code touchant au cycle principal
+qui voudrait signaler un état de santé doit passer par l’un des deux,
+jamais manipuler <code class="docutils literal notranslate"><span class="pre">_state</span></code> ou les requêtes <code class="docutils literal notranslate"><span class="pre">SAFE_MODE</span></code> directement.</p></li>
+<li><p>Ce document et ses correctifs doivent être validés explicitement par
+Mathieu avant implémentation (règle constitutionnelle ADR-0007 —
+gouvernance et calibration ne s’auto-approuvent jamais).</p></li>
+</ul>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Crypto AI Terminal
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">ADR-0013 — Deux points morts dans la machine d’état runtime (SAFE_MODE / RECOVERY)</a><ul>
+<li><a class="reference internal" href="#contexte">Contexte</a><ul>
+<li><a class="reference internal" href="#ce-qui-sest-passe">Ce qui s’est passé</a></li>
+<li><a class="reference internal" href="#point-mort-n1-safe-mode-ne-sauto-leve-jamais-voulu-le-defaut-est-le-declencheur">Point mort n°1 — <code class="docutils literal notranslate"><span class="pre">SAFE_MODE</span></code> ne s’auto-lève jamais (voulu ; le défaut est le déclencheur)</a></li>
+<li><a class="reference internal" href="#point-mort-n2-recovery-nest-pas-une-vraie-sortie-non-plus">Point mort n°2 — <code class="docutils literal notranslate"><span class="pre">RECOVERY</span></code> n’est pas une vraie sortie non plus</a></li>
+<li><a class="reference internal" href="#defaut-annexe-trouve-en-cours-de-diagnostic-hors-decision-note-pour-memoire">Défaut annexe trouvé en cours de diagnostic (hors décision, noté pour mémoire)</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#decision">Décision</a><ul>
+<li><a class="reference internal" href="#etendre-la-garde-de-taille-dechantillon-a-drawdown-acceleration">1. Étendre la garde de taille d’échantillon à <code class="docutils literal notranslate"><span class="pre">drawdown_acceleration</span></code></a></li>
+<li><a class="reference internal" href="#appeler-report-ok-une-fois-par-cycle-reussi">2. Appeler <code class="docutils literal notranslate"><span class="pre">report_ok()</span></code> une fois par cycle réussi</a></li>
+<li><a class="reference internal" href="#deploy-vps-sh-restart-core-doit-appeler-systemctl-restart">3. <code class="docutils literal notranslate"><span class="pre">deploy_vps.sh</span> <span class="pre">--restart</span> <span class="pre">core</span></code> doit appeler <code class="docutils literal notranslate"><span class="pre">systemctl</span> <span class="pre">restart</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#alternatives-rejetees">Alternatives rejetées</a></li>
+<li><a class="reference internal" href="#consequences">Conséquences</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../_static/documentation_options.js?v=ef6a59ae"></script>
+    <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/scripts/furo.js?v=46bd48cc"></script>
+    </body>
+</html>

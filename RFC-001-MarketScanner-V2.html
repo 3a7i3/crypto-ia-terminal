@@ -1,0 +1,2004 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="./">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="genindex.html"><link rel="search" title="Search" href="search.html">
+        <link rel="prefetch" href="_static/../assets/logo_ai_quant.png" as="image">
+        <link rel="prefetch" href="_static/../assets/logo_ai_quant.png" as="image">
+
+    <link rel="shortcut icon" href="_static/favicon.ico"><!-- Generated with Sphinx 9.0.4 and Furo 2025.12.19 -->
+        <title>RFC-001 — MarketScanner V2 : Plateforme de Données de Marché - Crypto AI Terminal 9.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=1b9cecba" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="index.html"><div class="brand">Crypto AI Terminal 9.1 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="index.html">
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="_static/../assets/logo_ai_quant.png" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="_static/../assets/logo_ai_quant.png" alt="Dark Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/blob/main/docs/RFC-001-MarketScanner-V2.md?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/edit/main/docs/RFC-001-MarketScanner-V2.md" rel="edit" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="rfc-001-marketscanner-v2-plateforme-de-donnees-de-marche">
+<h1>RFC-001 — MarketScanner V2 : Plateforme de Données de Marché<a class="headerlink" href="#rfc-001-marketscanner-v2-plateforme-de-donnees-de-marche" title="Link to this heading">¶</a></h1>
+<p><strong>Statut :</strong> DRAFT<br />
+<strong>Auteur :</strong> Projet crypto_ai_terminal<br />
+<strong>Date :</strong> 2026-06-20<br />
+<strong>Révision :</strong> 0.1<br />
+<strong>Périmètre :</strong> Architecture et contrats — aucune implémentation</p>
+<hr class="docutils" />
+<section id="table-des-matieres">
+<h2>Table des matières<a class="headerlink" href="#table-des-matieres" title="Link to this heading">¶</a></h2>
+<ol class="arabic simple">
+<li><p><a class="reference internal" href="#contexte-et-motivation">Contexte et motivation</a></p></li>
+<li><p><a class="reference internal" href="#objectifs">Objectifs</a></p></li>
+<li><p><a class="reference internal" href="#non-objectifs">Non-objectifs</a></p></li>
+<li><p><a class="reference internal" href="#contraintes">Contraintes</a></p></li>
+<li><p><a class="reference internal" href="#terminologie">Terminologie</a></p></li>
+<li><p><a class="reference internal" href="#architecture-generale">Architecture générale</a></p></li>
+<li><p><a class="reference internal" href="#entite-centrale-marketsnapshot">Entité centrale : MarketSnapshot</a></p></li>
+<li><p><a class="reference internal" href="#contrats-par-composant">Contrats par composant</a></p></li>
+<li><p><a class="reference internal" href="#etats-du-systeme">États du système</a></p></li>
+<li><p><a class="reference internal" href="#invariants">Invariants</a></p></li>
+<li><p><a class="reference internal" href="#budgets-de-performance">Budgets de performance</a></p></li>
+<li><p><a class="reference internal" href="#sla-internes">SLA internes</a></p></li>
+<li><p><a class="reference internal" href="#matrice-des-pannes">Matrice des pannes</a></p></li>
+<li><p><a class="reference internal" href="#contrat-de-qualite-snapshotquality">Contrat de qualité (SnapshotQuality)</a></p></li>
+<li><p><a class="reference internal" href="#observabilite">Observabilité</a></p></li>
+<li><p><a class="reference internal" href="#scalabilite-chiffree">Scalabilité chiffrée</a></p></li>
+<li><p><a class="reference internal" href="#strategie-de-migration-v1-v2">Stratégie de migration V1 → V2</a></p></li>
+<li><p><a class="reference internal" href="#criteres-dacceptation">Critères d’acceptation</a></p></li>
+<li><p><a class="reference internal" href="#roadmap">Roadmap</a></p></li>
+<li><p><a class="reference internal" href="#annexes">Annexes</a></p></li>
+</ol>
+</section>
+<hr class="docutils" />
+<section id="contexte-et-motivation">
+<h2>1. Contexte et motivation<a class="headerlink" href="#contexte-et-motivation" title="Link to this heading">¶</a></h2>
+<section id="situation-actuelle-v1">
+<h3>1.1 Situation actuelle (V1)<a class="headerlink" href="#situation-actuelle-v1" title="Link to this heading">¶</a></h3>
+<p>Le MarketScanner V1 est un composant monolithique intégré directement dans <code class="docutils literal notranslate"><span class="pre">advisor_loop.py</span></code>. Il assume simultanément :</p>
+<ul class="simple">
+<li><p>La gestion des sessions exchange (authentification, reconnexion)</p></li>
+<li><p>La collecte des données de marché (OHLCV, orderbook, ticker)</p></li>
+<li><p>La construction des snapshots</p></li>
+<li><p>Le rate limiting et les retries</p></li>
+<li><p>La publication vers le Decision Engine</p></li>
+</ul>
+<p>Cette architecture a permis de livrer rapidement les premières phases du projet et d’accumuler 153+ trades paper avec un système stable. Elle atteint aujourd’hui ses limites structurelles.</p>
+</section>
+<section id="limites-observees-pendant-le-burn-in">
+<h3>1.2 Limites observées pendant le burn-in<a class="headerlink" href="#limites-observees-pendant-le-burn-in" title="Link to this heading">¶</a></h3>
+<p>Les audits et le monitoring de production ont mis en évidence :</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Limite</p></th>
+<th class="head"><p>Impact observé</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Couplage I/O ↔ Décision</p></td>
+<td><p>Le Decision Engine subit la latence réseau</p></td>
+</tr>
+<tr class="row-odd"><td><p>Snapshot non contractualisé</p></td>
+<td><p>Cohérence temporelle non garantie</p></td>
+</tr>
+<tr class="row-even"><td><p>Pas de qualité de snapshot</p></td>
+<td><p>HOLD impossible sans connaissance du Collector</p></td>
+</tr>
+<tr class="row-odd"><td><p>Absence d’état explicite</p></td>
+<td><p>Mode dégradé non détectable automatiquement</p></td>
+</tr>
+<tr class="row-even"><td><p>Rate limiter interne au scan</p></td>
+<td><p>Pas d’isolation entre collecte et décision</p></td>
+</tr>
+<tr class="row-odd"><td><p>Pas de métriques Collector</p></td>
+<td><p>Impossible de détecter une dérive de latence</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="declencheur-de-v2">
+<h3>1.3 Déclencheur de V2<a class="headerlink" href="#declencheur-de-v2" title="Link to this heading">¶</a></h3>
+<p>L’objectif de passer de 50 à 500–1000 actifs impose une refonte architecturale. Un composant monolithique ne peut pas absorber cette charge sans devenir un point de contention unique qui dégrade simultanément la collecte et la prise de décision.</p>
+</section>
+<section id="decision-strategique">
+<h3>1.4 Décision stratégique<a class="headerlink" href="#decision-strategique" title="Link to this heading">¶</a></h3>
+<p>Le MarketScanner cesse d’être un <strong>module</strong> et devient un <strong>service de données</strong> avec ses propres contrats, métriques et objectifs de performance. Le Decision Engine ne fera plus jamais d’I/O réseau.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="objectifs">
+<h2>2. Objectifs<a class="headerlink" href="#objectifs" title="Link to this heading">¶</a></h2>
+<p><strong>O-01</strong> — Isoler complètement le Decision Engine de toute opération réseau.</p>
+<p><strong>O-02</strong> — Définir <code class="docutils literal notranslate"><span class="pre">MarketSnapshot</span></code> comme entité contractuelle officielle, seule interface entre Collector et Decision Engine.</p>
+<p><strong>O-03</strong> — Garantir la cohérence temporelle des snapshots (skew maximal défini et mesuré).</p>
+<p><strong>O-04</strong> — Permettre la montée en charge de 50 à 1000 actifs sans refactoring architectural.</p>
+<p><strong>O-05</strong> — Rendre le mode dégradé détectable, gérable et réversible automatiquement.</p>
+<p><strong>O-06</strong> — Produire des métriques d’observabilité suffisantes pour opérer le système en production sans accès aux logs.</p>
+<p><strong>O-07</strong> — Permettre la migration V1 → V2 sans interruption de service et sans perte de comparabilité des données.</p>
+<p><strong>O-08</strong> — Définir des contrats d’entrée/sortie suffisamment précis pour permettre un développement indépendant des composants.</p>
+</section>
+<hr class="docutils" />
+<section id="non-objectifs">
+<h2>3. Non-objectifs<a class="headerlink" href="#non-objectifs" title="Link to this heading">¶</a></h2>
+<p><strong>NO-01</strong> — Cette RFC ne spécifie aucune implémentation Python, aucun algorithme, aucune dépendance.</p>
+<p><strong>NO-02</strong> — La stratégie de scoring et le Decision Engine ne font pas partie de ce périmètre.</p>
+<p><strong>NO-03</strong> — L’intégration d’exchanges supplémentaires (Binance, Bybit) n’est pas dans V2. L’architecture doit le permettre, pas le livrer.</p>
+<p><strong>NO-04</strong> — La persistance longue durée des snapshots (time series database) est hors périmètre. V2 ne fait que du cache opérationnel.</p>
+<p><strong>NO-05</strong> — Le back-testing et la simulation ne font pas partie de V2. L’architecture doit garantir que V2 peut alimenter un back-testeur, sans le construire.</p>
+</section>
+<hr class="docutils" />
+<section id="contraintes">
+<h2>4. Contraintes<a class="headerlink" href="#contraintes" title="Link to this heading">¶</a></h2>
+<p><strong>C-01 — Gel du code pendant le burn-in.</strong> RFC-001 est un document de conception. Aucune ligne de code ne sera produite avant que le burn-in F-01 ait rendu son verdict.</p>
+<p><strong>C-02 — Rétrocompatibilité des trades.</strong> Le format <code class="docutils literal notranslate"><span class="pre">paper_trades.jsonl</span></code> (schema v3) ne doit pas être rompu. Toute évolution de schema doit être additive.</p>
+<p><strong>C-03 — Single exchange (MEXC).</strong> V2 doit supporter MEXC en premier. L’abstraction doit permettre l’ajout d’autres exchanges sans refactoring du Collector.</p>
+<p><strong>C-04 — VPS monocœur / mémoire limitée.</strong> L’architecture doit fonctionner sur un VPS entrée de gamme (2 vCPU, 4 GB RAM). Le parallélisme doit être contrôlé.</p>
+<p><strong>C-05 — Gouvernance des paramètres.</strong> Toute modification de paramètre critique doit passer par <code class="docutils literal notranslate"><span class="pre">parameter_audit.py</span></code> et produire un <code class="docutils literal notranslate"><span class="pre">change_id</span></code>. Cette contrainte héritée de <code class="docutils literal notranslate"><span class="pre">230bff4</span></code> s’applique à V2.</p>
+<p><strong>C-06 — Pas de base de données supplémentaire.</strong> V2 utilise le système de fichiers (JSONL, JSON) comme V1. Pas de Redis, pas de SQLite pour le cache snapshot.</p>
+</section>
+<hr class="docutils" />
+<section id="terminologie">
+<h2>5. Terminologie<a class="headerlink" href="#terminologie" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Terme</p></th>
+<th class="head"><p>Définition</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong>Exchange</strong></p></td>
+<td><p>Plateforme de trading (MEXC en V2)</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Universe</strong></p></td>
+<td><p>Ensemble des symboles surveillés (50 en V2, extensible à 1000)</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>OHLCV</strong></p></td>
+<td><p>Open/High/Low/Close/Volume — données de chandelier</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Snapshot</strong></p></td>
+<td><p>Capture cohérente de l’état du marché à un instant T</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Collector</strong></p></td>
+<td><p>Composant responsable de la collecte des données brutes</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>SnapshotBuilder</strong></p></td>
+<td><p>Composant responsable de l’assemblage d’un Snapshot à partir des données brutes</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>SnapshotCache</strong></p></td>
+<td><p>Stockage en mémoire du dernier Snapshot valide par symbole</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Decision Engine</strong></p></td>
+<td><p>Composant de scoring et de décision de trade — ne fait jamais d’I/O réseau</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Skew</strong></p></td>
+<td><p>Écart temporel maximal entre les timestamps des données d’un même Snapshot</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>collector_generation</strong></p></td>
+<td><p>Entier incrémental identifiant chaque redémarrage du Collector</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>SLA</strong></p></td>
+<td><p>Service Level Agreement interne — engagement de disponibilité d’un composant</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<hr class="docutils" />
+<section id="architecture-generale">
+<h2>6. Architecture générale<a class="headerlink" href="#architecture-generale" title="Link to this heading">¶</a></h2>
+<section id="vue-densemble">
+<h3>6.1 Vue d’ensemble<a class="headerlink" href="#vue-densemble" title="Link to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>┌─────────────────────────────────────────────────────────────┐
+│                    COUCHE COLLECTE                           │
+│                                                             │
+│  Exchange ──► ExchangeSessionManager ──► ExchangeHandle     │
+│                                               │             │
+│                                               ▼             │
+│                                      MarketCollector        │
+│                                               │             │
+│                                        OHLCVStream          │
+│                                               │             │
+│                                               ▼             │
+│                                      SnapshotBuilder        │
+│                                               │             │
+│                                          MarketSnapshot     │
+│                                               │             │
+│                                               ▼             │
+│                                       SnapshotCache         │
+└───────────────────────────────────────────────┬─────────────┘
+                                                │
+                          ┌─────────────────────┘
+                          │  lecture seule, pas d&#39;I/O réseau
+                          ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    COUCHE DÉCISION                           │
+│                                                             │
+│                    Decision Engine                          │
+│              (scoring, signaux, ordres)                     │
+└─────────────────────────────────────────────────────────────┘
+</pre></div>
+</div>
+</section>
+<section id="principe-fondamental">
+<h3>6.2 Principe fondamental<a class="headerlink" href="#principe-fondamental" title="Link to this heading">¶</a></h3>
+<p>La frontière entre les deux couches est <strong>absolue</strong> :</p>
+<ul class="simple">
+<li><p>La couche Collecte ne connaît pas les stratégies.</p></li>
+<li><p>La couche Décision ne connaît pas les exchanges.</p></li>
+<li><p>Toute communication entre les deux passe par <code class="docutils literal notranslate"><span class="pre">MarketSnapshot</span></code>.</p></li>
+</ul>
+</section>
+<section id="flux-de-donnees">
+<h3>6.3 Flux de données<a class="headerlink" href="#flux-de-donnees" title="Link to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>ExchangeSessionManager
+        │
+        │ ExchangeHandle (session valide)
+        ▼
+MarketCollector
+        │
+        │ OHLCVStream (données brutes par symbole)
+        ▼
+SnapshotBuilder
+        │
+        │ MarketSnapshot (entité complète et cohérente)
+        ▼
+SnapshotCache
+        │
+        │ MarketSnapshot (lecture seule, dernier valide)
+        ▼
+Decision Engine
+        │
+        │ Signal(symbol, direction, score, config_version)
+        ▼
+  Execution Layer
+</pre></div>
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="entite-centrale-marketsnapshot">
+<h2>7. Entité centrale : MarketSnapshot<a class="headerlink" href="#entite-centrale-marketsnapshot" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">MarketSnapshot</span></code> est l’entité contractuelle la plus importante de V2. Elle est la <strong>seule</strong> interface entre le Collector et le Decision Engine.</p>
+<section id="schema">
+<h3>7.1 Schéma<a class="headerlink" href="#schema" title="Link to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>MarketSnapshot
+──────────────────────────────────────────────────────
+snapshot_id          : str     — identifiant unique (UUID4)
+created_at           : float   — timestamp Unix UTC de création
+universe             : list[str] — liste des symboles attendus
+symbols_received     : list[str] — symboles effectivement présents
+ohlcv                : dict[str, OHLCVFrame] — données par symbole
+quality              : SnapshotQuality — indicateurs de qualité
+latency              : SnapshotLatency — mesures de performance
+version              : int     — version du schéma snapshot
+collector_generation : int     — redémarrage du Collector (detect reset)
+config_version       : str     — CFG-YYYYMMDD-NNNN (lien gouvernance)
+</pre></div>
+</div>
+</section>
+<section id="ohlcvframe-par-symbole">
+<h3>7.2 OHLCVFrame (par symbole)<a class="headerlink" href="#ohlcvframe-par-symbole" title="Link to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>OHLCVFrame
+──────────────────────────────────────────────────────
+symbol     : str
+timestamp  : float   — timestamp de la dernière bougie
+open       : float
+high       : float
+low        : float
+close      : float
+volume     : float
+source     : str     — &quot;live&quot; | &quot;cache&quot; | &quot;synthetic&quot;
+age_s      : float   — âge en secondes au moment de l&#39;assemblage
+</pre></div>
+</div>
+</section>
+<section id="snapshotlatency">
+<h3>7.3 SnapshotLatency<a class="headerlink" href="#snapshotlatency" title="Link to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>SnapshotLatency
+──────────────────────────────────────────────────────
+fetch_ms    : float  — durée totale de la collecte réseau
+build_ms    : float  — durée de l&#39;assemblage du snapshot
+skew_ms     : float  — max(timestamp) - min(timestamp) en ms
+total_ms    : float  — fetch_ms + build_ms
+</pre></div>
+</div>
+</section>
+<section id="regles-dintegrite">
+<h3>7.4 Règles d’intégrité<a class="headerlink" href="#regles-dintegrite" title="Link to this heading">¶</a></h3>
+<ol class="arabic simple">
+<li><p>Un <code class="docutils literal notranslate"><span class="pre">MarketSnapshot</span></code> ne peut pas être partiel. Si un symbole de l’Universe est absent et qu’aucune donnée cache n’est disponible, le snapshot est <code class="docutils literal notranslate"><span class="pre">INVALID</span></code> et ne doit pas atteindre le Decision Engine.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">created_at</span></code> est le timestamp de fin de l’assemblage, pas du début de la collecte.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">collector_generation</span></code> doit être comparé par le Decision Engine. Une discontinuité indique un redémarrage du Collector : les positions ouvertes doivent être réconciliées.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">config_version</span></code> est lu depuis <code class="docutils literal notranslate"><span class="pre">databases/runtime_config.json</span></code> au moment de la création du snapshot.</p></li>
+</ol>
+</section>
+</section>
+<hr class="docutils" />
+<section id="contrats-par-composant">
+<h2>8. Contrats par composant<a class="headerlink" href="#contrats-par-composant" title="Link to this heading">¶</a></h2>
+<section id="exchangesessionmanager">
+<h3>8.1 ExchangeSessionManager<a class="headerlink" href="#exchangesessionmanager" title="Link to this heading">¶</a></h3>
+<p><strong>Responsabilité unique :</strong> Maintenir une session valide vers un exchange.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Entrée :
+  ExchangeConfig {
+    exchange_id   : str       — identifiant exchange (&quot;mexc&quot;)
+    api_key       : str
+    api_secret    : str
+    testnet       : bool
+    heartbeat_s   : int       — intervalle de ping
+    timeout_ms    : int       — timeout par requête
+  }
+
+Sortie :
+  ExchangeHandle {
+    session       : object    — client exchange authentifié
+    exchange_id   : str
+    connected_at  : float
+    generation    : int
+  }
+
+Garanties :
+  — La session retournée est valide au moment de l&#39;appel
+  — Reconnexion automatique en cas de coupure (max 3 tentatives)
+  — TTL de session respecté (renouvellement avant expiration)
+  — Chaque reconnexion incrémente `generation`
+
+Ne fait jamais :
+  — Collecte de données de marché
+  — Cache
+  — Décision
+  — Exposition de credentials hors du composant
+</pre></div>
+</div>
+</section>
+<section id="marketcollector">
+<h3>8.2 MarketCollector<a class="headerlink" href="#marketcollector" title="Link to this heading">¶</a></h3>
+<p><strong>Responsabilité unique :</strong> Récupérer les données brutes pour un Universe donné.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Entrée :
+  ExchangeHandle
+  Universe : list[str]    — symboles à collecter
+  Timeframe : str         — &quot;1m&quot; | &quot;5m&quot; | &quot;15m&quot;
+  Limit : int             — nombre de bougies par symbole
+
+Sortie :
+  OHLCVStream {
+    data       : dict[str, list[OHLCVBar]]  — données brutes par symbole
+    fetched_at : float                       — timestamp de fin de collecte
+    errors     : dict[str, str]              — symboles en erreur + raison
+    duration_ms : float
+  }
+
+Garanties :
+  — Rate limiting respecté (jamais plus de N requêtes / seconde)
+  — Retry automatique (max 2 tentatives par symbole avant erreur)
+  — Circuit breaker : si &gt;20% de symboles en erreur, émettre DEGRADED
+  — Timeout par symbole (configurable, défaut 2000ms)
+
+Ne fait jamais :
+  — Scoring
+  — Décision
+  — Modification du cache
+  — Construction de snapshot
+  — Connaissance des stratégies
+</pre></div>
+</div>
+</section>
+<section id="snapshotbuilder">
+<h3>8.3 SnapshotBuilder<a class="headerlink" href="#snapshotbuilder" title="Link to this heading">¶</a></h3>
+<p><strong>Responsabilité unique :</strong> Assembler un <code class="docutils literal notranslate"><span class="pre">MarketSnapshot</span></code> cohérent.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Entrée :
+  OHLCVStream
+  SnapshotCache     — pour résolution des données manquantes
+  Universe          — liste de référence pour détecter les absences
+
+Sortie :
+  MarketSnapshot    — entité complète (voir section 7)
+
+Algorithme de résolution (par ordre de priorité) :
+  1. Données &quot;live&quot; issues du stream
+  2. Données &quot;cache&quot; issues du SnapshotCache (si âge &lt; MAX_CACHE_AGE_S)
+  3. Données &quot;synthetic&quot; (interpolation linéaire, flaggées)
+  4. Symbole absent → snapshot INVALID si &gt; MISSING_THRESHOLD
+
+Garanties :
+  — skew_ms &lt; SKW_MAX_MS (défaut : 5000ms)
+  — Chaque OHLCVFrame porte sa source (&quot;live&quot;|&quot;cache&quot;|&quot;synthetic&quot;)
+  — Snapshot invalide jamais transmis au Decision Engine
+
+Ne fait jamais :
+  — Requête réseau
+  — Scoring
+  — Modification de l&#39;Universe
+</pre></div>
+</div>
+</section>
+<section id="snapshotcache">
+<h3>8.4 SnapshotCache<a class="headerlink" href="#snapshotcache" title="Link to this heading">¶</a></h3>
+<p><strong>Responsabilité unique :</strong> Stocker et exposer le dernier Snapshot valide.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Entrée (écriture) :
+  MarketSnapshot    — valide uniquement
+
+Sortie (lecture) :
+  MarketSnapshot | None
+
+Garanties :
+  — Thread-safe (lecture concurrent sans verrou si possible)
+  — Écriture atomique (jamais de snapshot partiel lisible)
+  — TTL par entrée (symbole expiré = None)
+  — Jamais de snapshot INVALID en cache
+
+Ne fait jamais :
+  — Requête réseau
+  — Calcul de features
+  — Décision
+</pre></div>
+</div>
+</section>
+<section id="decision-engine">
+<h3>8.5 Decision Engine<a class="headerlink" href="#decision-engine" title="Link to this heading">¶</a></h3>
+<p><strong>Responsabilité unique :</strong> Produire des signaux de trading à partir d’un Snapshot.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Entrée :
+  MarketSnapshot
+
+Sortie :
+  list[Signal] {
+    symbol              : str
+    direction           : &quot;BUY&quot; | &quot;SELL&quot; | &quot;HOLD&quot;
+    score               : int       — 0-100
+    regime              : str
+    config_version      : str       — hérité du snapshot
+    snapshot_id         : str
+    snapshot_age_ms     : float     — âge du snapshot au moment du scoring
+  }
+
+Garanties :
+  — Temps d&#39;exécution &lt; 10ms pour 1000 symboles
+  — Résultat déterministe pour un Snapshot identique
+  — Jamais de HOLD silencieux : chaque HOLD a une raison
+
+Interdit absolument :
+  — HTTP / WebSocket / REST
+  — sleep() / retry()
+  — Accès réseau de toute nature
+  — Modification du Snapshot entrant
+  — Connaissance de l&#39;ExchangeHandle
+</pre></div>
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="etats-du-systeme">
+<h2>9. États du système<a class="headerlink" href="#etats-du-systeme" title="Link to this heading">¶</a></h2>
+<section id="machine-detats">
+<h3>9.1 Machine d’états<a class="headerlink" href="#machine-detats" title="Link to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>                    ┌──────────────┐
+                    │ INITIALIZING │
+                    └──────┬───────┘
+                           │ session ok + premier snapshot valide
+                           ▼
+                    ┌──────────────┐
+               ┌───│   COLLECTING │◄──────────────┐
+               │   └──────┬───────┘               │
+               │          │ quality &lt; QUALITY_MIN  │ quality &gt;= QUALITY_MIN
+               │          ▼                        │ ET recovering_cycles &gt;= N
+               │   ┌──────────────┐                │
+               │   │   DEGRADED   │────────────────┘
+               │   └──────┬───────┘
+               │          │ erreurs critiques consécutives &gt;= CIRCUIT_BREAKER_N
+               │          ▼
+               │   ┌──────────────┐
+               │   │   HALTED     │
+               │   └──────┬───────┘
+               │          │ intervention manuelle uniquement
+               │          │
+               └──────────┼──────────────────────────────►
+                          │ signal /shutdown ou SIGTERM
+                          ▼
+                    ┌──────────────┐
+                    │   SHUTDOWN   │
+                    └──────────────┘
+</pre></div>
+</div>
+</section>
+<section id="transitions-et-conditions">
+<h3>9.2 Transitions et conditions<a class="headerlink" href="#transitions-et-conditions" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>De → Vers</p></th>
+<th class="head"><p>Condition de déclenchement</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>INITIALIZING → COLLECTING</p></td>
+<td><p>Session valide ET premier snapshot quality &gt;= QUALITY_MIN</p></td>
+</tr>
+<tr class="row-odd"><td><p>COLLECTING → DEGRADED</p></td>
+<td><p>quality &lt; QUALITY_MIN sur N cycles consécutifs (défaut N=3)</p></td>
+</tr>
+<tr class="row-even"><td><p>DEGRADED → COLLECTING</p></td>
+<td><p>quality &gt;= QUALITY_MIN sur M cycles consécutifs (défaut M=5)</p></td>
+</tr>
+<tr class="row-odd"><td><p>DEGRADED → HALTED</p></td>
+<td><p>erreurs critiques &gt;= CIRCUIT_BREAKER_N (défaut 10)</p></td>
+</tr>
+<tr class="row-even"><td><p>HALTED → COLLECTING</p></td>
+<td><p>Intervention manuelle via <code class="docutils literal notranslate"><span class="pre">/resume</span></code> Telegram uniquement</p></td>
+</tr>
+<tr class="row-odd"><td><p>ANY → SHUTDOWN</p></td>
+<td><p>Signal SIGTERM ou commande <code class="docutils literal notranslate"><span class="pre">/shutdown</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="comportement-du-decision-engine-par-etat">
+<h3>9.3 Comportement du Decision Engine par état<a class="headerlink" href="#comportement-du-decision-engine-par-etat" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>État Collector</p></th>
+<th class="head"><p>Comportement Decision Engine</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>INITIALIZING</p></td>
+<td><p>HOLD sur tous les symboles (pas de snapshot disponible)</p></td>
+</tr>
+<tr class="row-odd"><td><p>COLLECTING</p></td>
+<td><p>Normal</p></td>
+</tr>
+<tr class="row-even"><td><p>DEGRADED</p></td>
+<td><p>Signaux autorisés si quality.real_ratio &gt;= DEGRADED_MIN_REAL (défaut 0.7)</p></td>
+</tr>
+<tr class="row-odd"><td><p>HALTED</p></td>
+<td><p>HOLD sur tous les symboles, alerte Telegram immédiate</p></td>
+</tr>
+<tr class="row-even"><td><p>SHUTDOWN</p></td>
+<td><p>Arrêt des signaux, fermeture des positions ouvertes</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="invariants">
+<h2>10. Invariants<a class="headerlink" href="#invariants" title="Link to this heading">¶</a></h2>
+<p>Les invariants sont des propriétés qui doivent être vraies à tout moment. Une violation est un bug, pas une situation de dégradation.</p>
+<section id="invariants-du-collector">
+<h3>10.1 Invariants du Collector<a class="headerlink" href="#invariants-du-collector" title="Link to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">INV</span><span class="o">-</span><span class="n">COL</span><span class="o">-</span><span class="mi">01</span> <span class="p">:</span> <span class="n">Jamais</span> <span class="n">plus</span> <span class="n">de</span> <span class="n">RATE_LIMIT_MAX_RPS</span> <span class="n">requêtes</span> <span class="n">par</span> <span class="n">seconde</span> <span class="n">vers</span> <span class="n">l</span><span class="s1">&#39;exchange.</span>
+
+<span class="n">INV</span><span class="o">-</span><span class="n">COL</span><span class="o">-</span><span class="mi">02</span> <span class="p">:</span> <span class="n">Un</span> <span class="n">symbole</span> <span class="n">en</span> <span class="n">erreur</span> <span class="n">n</span><span class="s1">&#39;interrompt pas la collecte des autres symboles.</span>
+
+<span class="n">INV</span><span class="o">-</span><span class="n">COL</span><span class="o">-</span><span class="mi">03</span> <span class="p">:</span> <span class="n">collector_generation</span> <span class="n">est</span> <span class="n">strictement</span> <span class="n">croissant</span> <span class="n">sur</span> <span class="n">la</span> <span class="n">durée</span> <span class="n">de</span> <span class="n">vie</span> <span class="n">du</span> <span class="n">processus</span><span class="o">.</span>
+
+<span class="n">INV</span><span class="o">-</span><span class="n">COL</span><span class="o">-</span><span class="mi">04</span> <span class="p">:</span> <span class="n">Les</span> <span class="n">credentials</span> <span class="n">d</span><span class="s1">&#39;API ne transitent jamais hors de ExchangeSessionManager.</span>
+</pre></div>
+</div>
+</section>
+<section id="invariants-du-snapshotbuilder">
+<h3>10.2 Invariants du SnapshotBuilder<a class="headerlink" href="#invariants-du-snapshotbuilder" title="Link to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">INV</span><span class="o">-</span><span class="n">SNP</span><span class="o">-</span><span class="mi">01</span> <span class="p">:</span> <span class="n">Aucun</span> <span class="n">snapshot</span> <span class="n">incomplet</span> <span class="n">n</span><span class="s1">&#39;atteint le SnapshotCache ou le Decision Engine.</span>
+
+<span class="n">INV</span><span class="o">-</span><span class="n">SNP</span><span class="o">-</span><span class="mi">02</span> <span class="p">:</span> <span class="n">skew_ms</span> <span class="n">est</span> <span class="n">toujours</span> <span class="n">calculé</span> <span class="n">et</span> <span class="n">présent</span> <span class="n">dans</span> <span class="n">SnapshotLatency</span><span class="o">.</span>
+
+<span class="n">INV</span><span class="o">-</span><span class="n">SNP</span><span class="o">-</span><span class="mi">03</span> <span class="p">:</span> <span class="n">Chaque</span> <span class="n">OHLCVFrame</span> <span class="n">indique</span> <span class="n">sa</span> <span class="n">source</span> <span class="p">(</span><span class="s2">&quot;live&quot;</span><span class="o">|</span><span class="s2">&quot;cache&quot;</span><span class="o">|</span><span class="s2">&quot;synthetic&quot;</span><span class="p">)</span><span class="o">.</span>
+
+<span class="n">INV</span><span class="o">-</span><span class="n">SNP</span><span class="o">-</span><span class="mi">04</span> <span class="p">:</span> <span class="n">created_at</span> <span class="n">est</span> <span class="n">toujours</span> <span class="o">&gt;=</span> <span class="nb">max</span><span class="p">(</span><span class="n">timestamp</span> <span class="n">de</span> <span class="n">tous</span> <span class="n">les</span> <span class="n">OHLCVFrame</span><span class="p">)</span><span class="o">.</span>
+</pre></div>
+</div>
+</section>
+<section id="invariants-du-decision-engine">
+<h3>10.3 Invariants du Decision Engine<a class="headerlink" href="#invariants-du-decision-engine" title="Link to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>INV-DEC-01 : Aucun appel réseau, socket, ou I/O bloquant.
+
+INV-DEC-02 : Résultat déterministe : même Snapshot → mêmes Signaux.
+
+INV-DEC-03 : snapshot_age_ms dans chaque Signal est la durée réelle entre
+             snapshot.created_at et le moment du scoring.
+
+INV-DEC-04 : config_version dans chaque Signal est identique à celui du Snapshot entrant.
+</pre></div>
+</div>
+</section>
+<section id="invariants-transversaux">
+<h3>10.4 Invariants transversaux<a class="headerlink" href="#invariants-transversaux" title="Link to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">INV</span><span class="o">-</span><span class="n">SYS</span><span class="o">-</span><span class="mi">01</span> <span class="p">:</span> <span class="n">Toute</span> <span class="n">modification</span> <span class="n">de</span> <span class="n">paramètre</span> <span class="n">critique</span> <span class="n">produit</span> <span class="n">une</span> <span class="n">entrée</span> <span class="n">dans</span>
+             <span class="n">runtime_parameter_audit</span><span class="o">.</span><span class="n">jsonl</span> <span class="p">(</span><span class="n">hérité</span> <span class="n">de</span> <span class="mi">230</span><span class="n">bff4</span><span class="p">)</span><span class="o">.</span>
+
+<span class="n">INV</span><span class="o">-</span><span class="n">SYS</span><span class="o">-</span><span class="mi">02</span> <span class="p">:</span> <span class="n">Tout</span> <span class="n">trade</span> <span class="n">OPEN</span> <span class="n">embarque</span> <span class="n">runtime_config_version</span> <span class="p">(</span><span class="n">hérité</span> <span class="n">de</span> <span class="mi">230</span><span class="n">bff4</span><span class="p">)</span><span class="o">.</span>
+
+<span class="n">INV</span><span class="o">-</span><span class="n">SYS</span><span class="o">-</span><span class="mi">03</span> <span class="p">:</span> <span class="n">Le</span> <span class="n">système</span> <span class="n">ne</span> <span class="n">peut</span> <span class="n">pas</span> <span class="n">passer</span> <span class="n">de</span> <span class="n">DEGRADED</span> <span class="n">à</span> <span class="n">COLLECTING</span> <span class="n">sans</span> <span class="n">avoir</span>
+             <span class="n">produit</span> <span class="n">N</span> <span class="n">snapshots</span> <span class="n">valides</span> <span class="n">consécutifs</span><span class="o">.</span>
+
+<span class="n">INV</span><span class="o">-</span><span class="n">SYS</span><span class="o">-</span><span class="mi">04</span> <span class="p">:</span> <span class="n">Un</span> <span class="n">snapshot</span> <span class="n">dont</span> <span class="n">quality</span><span class="o">.</span><span class="n">real_ratio</span> <span class="o">=</span> <span class="mi">0</span> <span class="p">(</span><span class="mi">100</span><span class="o">%</span> <span class="n">cache</span> <span class="n">ou</span> <span class="n">synthetic</span><span class="p">)</span>
+             <span class="n">ne</span> <span class="n">déclenche</span> <span class="n">jamais</span> <span class="n">d</span><span class="s1">&#39;ordre. Il peut déclencher des HOLD explicites.</span>
+</pre></div>
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="budgets-de-performance">
+<h2>11. Budgets de performance<a class="headerlink" href="#budgets-de-performance" title="Link to this heading">¶</a></h2>
+<section id="budget-par-couche-cible-50-actifs-p95">
+<h3>11.1 Budget par couche (cible : 50 actifs, P95)<a class="headerlink" href="#budget-par-couche-cible-50-actifs-p95" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Couche</p></th>
+<th class="head"><p>Budget</p></th>
+<th class="head"><p>Métrique</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>ExchangeSessionManager (reconnexion)</p></td>
+<td><p>&lt; 2 000 ms</p></td>
+<td><p>p95</p></td>
+</tr>
+<tr class="row-odd"><td><p>MarketCollector (fetch OHLCV 50 sym)</p></td>
+<td><p>&lt; 100 ms</p></td>
+<td><p>p95</p></td>
+</tr>
+<tr class="row-even"><td><p>SnapshotBuilder (assemblage)</p></td>
+<td><p>&lt; 50 ms</p></td>
+<td><p>p95</p></td>
+</tr>
+<tr class="row-odd"><td><p>SnapshotCache (lecture)</p></td>
+<td><p>&lt; 1 ms</p></td>
+<td><p>p99</p></td>
+</tr>
+<tr class="row-even"><td><p>Decision Engine (scoring 50 sym)</p></td>
+<td><p>&lt; 10 ms</p></td>
+<td><p>p99</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Total cycle (collecte → signal)</strong></p></td>
+<td><p><strong>&lt; 250 ms</strong></p></td>
+<td><p><strong>p95</strong></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="regle-de-composition">
+<h3>11.2 Règle de composition<a class="headerlink" href="#regle-de-composition" title="Link to this heading">¶</a></h3>
+<p>Le budget total est la somme des budgets couche par couche <strong>plus</strong> une marge de 20% pour le scheduling OS et les opérations transversales (logging, audit).</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="sla-internes">
+<h2>12. SLA internes<a class="headerlink" href="#sla-internes" title="Link to this heading">¶</a></h2>
+<section id="disponibilite-cible-par-composant">
+<h3>12.1 Disponibilité cible par composant<a class="headerlink" href="#disponibilite-cible-par-composant" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Composant</p></th>
+<th class="head"><p>SLA</p></th>
+<th class="head"><p>Signification</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>ExchangeSessionManager</p></td>
+<td><p>99.90%</p></td>
+<td><p>Session valide</p></td>
+</tr>
+<tr class="row-odd"><td><p>MarketCollector</p></td>
+<td><p>99.95%</p></td>
+<td><p>Collecte réussie (hors pannes exchange)</p></td>
+</tr>
+<tr class="row-even"><td><p>SnapshotBuilder</p></td>
+<td><p>99.99%</p></td>
+<td><p>Snapshot valide produit si données disponibles</p></td>
+</tr>
+<tr class="row-odd"><td><p>SnapshotCache</p></td>
+<td><p>99.999%</p></td>
+<td><p>Lecture disponible</p></td>
+</tr>
+<tr class="row-even"><td><p>Decision Engine</p></td>
+<td><p>99.999%</p></td>
+<td><p>Signal produit si snapshot disponible</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="latence-par-composant">
+<h3>12.2 Latence par composant<a class="headerlink" href="#latence-par-composant" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Composant</p></th>
+<th class="head"><p>P50</p></th>
+<th class="head"><p>P95</p></th>
+<th class="head"><p>P99</p></th>
+<th class="head"><p>Worst Case</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Collector (fetch 50 sym)</p></td>
+<td><p>60 ms</p></td>
+<td><p>100 ms</p></td>
+<td><p>200 ms</p></td>
+<td><p>2 000 ms</p></td>
+</tr>
+<tr class="row-odd"><td><p>SnapshotBuilder</p></td>
+<td><p>10 ms</p></td>
+<td><p>50 ms</p></td>
+<td><p>100 ms</p></td>
+<td><p>500 ms</p></td>
+</tr>
+<tr class="row-even"><td><p>SnapshotCache read</p></td>
+<td><p>&lt; 0.5 ms</p></td>
+<td><p>1 ms</p></td>
+<td><p>2 ms</p></td>
+<td><p>10 ms</p></td>
+</tr>
+<tr class="row-odd"><td><p>Decision Engine</p></td>
+<td><p>2 ms</p></td>
+<td><p>10 ms</p></td>
+<td><p>20 ms</p></td>
+<td><p>100 ms</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Cycle total</strong></p></td>
+<td><p><strong>&lt; 100 ms</strong></p></td>
+<td><p><strong>&lt; 250 ms</strong></p></td>
+<td><p><strong>&lt; 400 ms</strong></p></td>
+<td><p><strong>&lt; 3 000 ms</strong></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="definition-du-worst-case">
+<h3>12.3 Définition du Worst Case<a class="headerlink" href="#definition-du-worst-case" title="Link to this heading">¶</a></h3>
+<p>Le Worst Case correspond à une reconnexion simultanée à l’exchange et à un rebuilding complet du cache. Il doit rester en dessous du timeout de fermeture de position (configurable, défaut 30 000 ms).</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="matrice-des-pannes">
+<h2>13. Matrice des pannes<a class="headerlink" href="#matrice-des-pannes" title="Link to this heading">¶</a></h2>
+<p>La matrice des pannes définit le comportement attendu du système pour chaque scénario de défaillance. Elle est la référence pour les runbooks opérationnels.</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>#</p></th>
+<th class="head"><p>Scénario</p></th>
+<th class="head"><p>Détection</p></th>
+<th class="head"><p>Comportement attendu</p></th>
+<th class="head"><p>Sortie de crise</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>F-01</p></td>
+<td><p>Exchange HTTP HS (timeout)</p></td>
+<td><p>Collector: timeout &gt; 2s sur &gt; 50% symboles</p></td>
+<td><p>Utiliser SnapshotCache (source = “cache”). État → DEGRADED si N cycles consécutifs</p></td>
+<td><p>Reconnexion automatique via ExchangeSessionManager</p></td>
+</tr>
+<tr class="row-odd"><td><p>F-02</p></td>
+<td><p>WebSocket coupé</p></td>
+<td><p>ExchangeSessionManager: ping timeout</p></td>
+<td><p>Basculer sur REST polling. Alerte Telegram. collector_generation++</p></td>
+<td><p>Reconnexion WS automatique (max 3 tentatives) puis REST stable</p></td>
+</tr>
+<tr class="row-even"><td><p>F-03</p></td>
+<td><p>REST coupé (WebSocket OK)</p></td>
+<td><p>Collector: erreurs HTTP sur &gt; 80% symboles</p></td>
+<td><p>Utiliser snapshot précédent pour les symboles manquants. source = “cache”</p></td>
+<td><p>Retry automatique avec backoff exponentiel</p></td>
+</tr>
+<tr class="row-odd"><td><p>F-04</p></td>
+<td><p>Exchange HS complet</p></td>
+<td><p>ExchangeSessionManager: tous modes échouent</p></td>
+<td><p>État → HALTED. HOLD sur tous signaux. Alerte Telegram critique</p></td>
+<td><p>Intervention manuelle <code class="docutils literal notranslate"><span class="pre">/resume</span></code> après rétablissement exchange</p></td>
+</tr>
+<tr class="row-even"><td><p>F-05</p></td>
+<td><p>Snapshot incomplet (&lt; MISSING_THRESHOLD)</p></td>
+<td><p>SnapshotBuilder: symbols_missing &gt; threshold</p></td>
+<td><p>Snapshot non transmis. Utiliser dernier snapshot valide du cache</p></td>
+<td><p>Prochain cycle de collecte</p></td>
+</tr>
+<tr class="row-odd"><td><p>F-06</p></td>
+<td><p>Snapshot incomplet (&gt; MISSING_THRESHOLD)</p></td>
+<td><p>SnapshotBuilder: symbols_missing &gt;&gt; threshold</p></td>
+<td><p>État → DEGRADED. Decision Engine reçoit signal quality.real_ratio bas</p></td>
+<td><p>Prochain cycle avec données live</p></td>
+</tr>
+<tr class="row-even"><td><p>F-07</p></td>
+<td><p>Cache corrompu ou vide</p></td>
+<td><p>SnapshotCache: lecture retourne None</p></td>
+<td><p>SnapshotBuilder marque snapshot INVALID. Decision Engine → HOLD</p></td>
+<td><p>Reconstruction au prochain cycle de collecte réussie</p></td>
+</tr>
+<tr class="row-odd"><td><p>F-08</p></td>
+<td><p>Collector arrêté / crash</p></td>
+<td><p>Decision Engine: absence de snapshot &gt; MAX_SNAPSHOT_AGE_S</p></td>
+<td><p>Decision Engine → HOLD automatique. Alerte Telegram. Watchdog redémarre Collector</p></td>
+<td><p>Watchdog (processus externe)</p></td>
+</tr>
+<tr class="row-even"><td><p>F-09</p></td>
+<td><p>skew_ms &gt; SKW_MAX_MS</p></td>
+<td><p>SnapshotBuilder: écart temporel &gt; seuil</p></td>
+<td><p>Snapshot produit avec flag quality.skew_exceeded = True. Decision Engine peut choisir HOLD</p></td>
+<td><p>Prochain cycle de collecte synchronisé</p></td>
+</tr>
+<tr class="row-odd"><td><p>F-10</p></td>
+<td><p>Rate limit exchange déclenché</p></td>
+<td><p>Collector: HTTP 429 reçu</p></td>
+<td><p>Pause Collector X secondes (backoff). Utiliser cache. Incrémenter rate_limit_hits</p></td>
+<td><p>Reprise automatique après fenêtre de rate limit</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<hr class="docutils" />
+<section id="contrat-de-qualite-snapshotquality">
+<h2>14. Contrat de qualité (SnapshotQuality)<a class="headerlink" href="#contrat-de-qualite-snapshotquality" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">SnapshotQuality</span></code> est l’interface par laquelle le Decision Engine évalue la fiabilité d’un Snapshot sans avoir connaissance de l’état interne du Collector.</p>
+<section id="id1">
+<h3>14.1 Schéma<a class="headerlink" href="#id1" title="Link to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>SnapshotQuality
+──────────────────────────────────────────────────────
+real_ratio       : float  — fraction de symboles avec données live [0.0, 1.0]
+cached_ratio     : float  — fraction de symboles depuis le cache [0.0, 1.0]
+synthetic_ratio  : float  — fraction de symboles interpolés [0.0, 1.0]
+missing_ratio    : float  — fraction de symboles absents [0.0, 1.0]
+skew_ms          : float  — max(ts) - min(ts) en millisecondes
+age_s            : float  — âge du snapshot au moment de la lecture (Decision Engine)
+missing_symbols  : list[str] — symboles absents
+retry_count      : int    — nombre de retries pendant la collecte
+skew_exceeded    : bool   — True si skew_ms &gt; SKW_MAX_MS
+is_valid         : bool   — False si snapshot ne doit pas déclencher d&#39;ordre
+</pre></div>
+</div>
+</section>
+<section id="invariants-de-snapshotquality">
+<h3>14.2 Invariants de SnapshotQuality<a class="headerlink" href="#invariants-de-snapshotquality" title="Link to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>real_ratio + cached_ratio + synthetic_ratio + missing_ratio = 1.0  (± 1e-6)
+</pre></div>
+</div>
+</section>
+<section id="regles-de-decision-du-decision-engine">
+<h3>14.3 Règles de décision du Decision Engine<a class="headerlink" href="#regles-de-decision-du-decision-engine" title="Link to this heading">¶</a></h3>
+<p>Le Decision Engine doit appliquer ces règles dans l’ordre, sans connaissance de l’état interne du Collector :</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Condition</p></th>
+<th class="head"><p>Action Decision Engine</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">is_valid</span> <span class="pre">=</span> <span class="pre">False</span></code></p></td>
+<td><p>HOLD sur tous symboles. Ne pas logger comme opportunité manquée.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">real_ratio</span> <span class="pre">&lt;</span> <span class="pre">0.50</span></code></p></td>
+<td><p>HOLD sur tous symboles. Logger “snapshot_quality_too_low”.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">missing_ratio</span> <span class="pre">&gt;</span> <span class="pre">0.20</span></code></p></td>
+<td><p>Exclure les symboles manquants. Continuer sur le reste.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">skew_exceeded</span> <span class="pre">=</span> <span class="pre">True</span></code></p></td>
+<td><p>HOLD sur symboles dont <code class="docutils literal notranslate"><span class="pre">age_s</span> <span class="pre">&gt;</span> <span class="pre">AGE_THRESHOLD_S</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">age_s</span> <span class="pre">&gt;</span> <span class="pre">MAX_SNAPSHOT_AGE_S</span></code></p></td>
+<td><p>HOLD sur tous symboles. Logger “snapshot_stale”.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">synthetic_ratio</span> <span class="pre">&gt;</span> <span class="pre">0.30</span></code></p></td>
+<td><p>Réduire la conviction de tous les signaux.</p></td>
+</tr>
+<tr class="row-even"><td><p>Sinon</p></td>
+<td><p>Normal.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="seuils-recommandes-configurables">
+<h3>14.4 Seuils recommandés (configurables)<a class="headerlink" href="#seuils-recommandes-configurables" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Paramètre</p></th>
+<th class="head"><p>Valeur défaut</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">QUALITY_MIN</span></code></p></td>
+<td><p>0.85</p></td>
+<td><p>real_ratio minimum pour état COLLECTING</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">DEGRADED_MIN_REAL</span></code></p></td>
+<td><p>0.70</p></td>
+<td><p>real_ratio minimum pour signaux en mode DEGRADED</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">SKW_MAX_MS</span></code></p></td>
+<td><p>5 000</p></td>
+<td><p>skew maximal acceptable en ms</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">MAX_SNAPSHOT_AGE_S</span></code></p></td>
+<td><p>120</p></td>
+<td><p>âge maximal d’un snapshot pour le Decision Engine</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">MISSING_THRESHOLD</span></code></p></td>
+<td><p>0.20</p></td>
+<td><p>fraction manquante déclenchant DEGRADED</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">AGE_THRESHOLD_S</span></code></p></td>
+<td><p>60</p></td>
+<td><p>âge par symbole au-delà duquel HOLD sur ce symbole</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="observabilite">
+<h2>15. Observabilité<a class="headerlink" href="#observabilite" title="Link to this heading">¶</a></h2>
+<section id="metriques-officielles-api-v2">
+<h3>15.1 Métriques officielles (API V2)<a class="headerlink" href="#metriques-officielles-api-v2" title="Link to this heading">¶</a></h3>
+<p>Ces métriques sont des <strong>contrats</strong>, pas des détails d’implémentation. Chaque composant est tenu de les exposer.</p>
+<section id="collector">
+<h4>Collector<a class="headerlink" href="#collector" title="Link to this heading">¶</a></h4>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Métrique</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">collector_fetch_ms</span></code></p></td>
+<td><p>histogram</p></td>
+<td><p>Durée collecte complète par cycle</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">collector_symbols_ok</span></code></p></td>
+<td><p>counter</p></td>
+<td><p>Symboles collectés avec succès</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">collector_symbols_error</span></code></p></td>
+<td><p>counter</p></td>
+<td><p>Symboles en erreur</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">collector_rate_limit_hits</span></code></p></td>
+<td><p>counter</p></td>
+<td><p>HTTP 429 reçus</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">collector_retries</span></code></p></td>
+<td><p>counter</p></td>
+<td><p>Tentatives de retry</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">collector_ws_reconnects</span></code></p></td>
+<td><p>counter</p></td>
+<td><p>Reconnexions WebSocket</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">collector_generation</span></code></p></td>
+<td><p>gauge</p></td>
+<td><p>Génération courante du Collector</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">collector_queue_depth</span></code></p></td>
+<td><p>gauge</p></td>
+<td><p>Profondeur de la file d’attente interne</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="id2">
+<h4>SnapshotBuilder<a class="headerlink" href="#id2" title="Link to this heading">¶</a></h4>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Métrique</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">snapshot_build_ms</span></code></p></td>
+<td><p>histogram</p></td>
+<td><p>Durée d’assemblage d’un snapshot</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">snapshot_skew_ms</span></code></p></td>
+<td><p>histogram</p></td>
+<td><p>Skew temporel par snapshot</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">snapshot_real_ratio</span></code></p></td>
+<td><p>histogram</p></td>
+<td><p>Fraction live par snapshot</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">snapshot_cached_ratio</span></code></p></td>
+<td><p>histogram</p></td>
+<td><p>Fraction cache par snapshot</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">snapshot_synthetic_ratio</span></code></p></td>
+<td><p>histogram</p></td>
+<td><p>Fraction synthétique par snapshot</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">snapshot_missing_symbols</span></code></p></td>
+<td><p>counter</p></td>
+<td><p>Symboles absents cumulés</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">snapshot_invalid_count</span></code></p></td>
+<td><p>counter</p></td>
+<td><p>Snapshots invalides (non transmis)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">snapshot_frequency_hz</span></code></p></td>
+<td><p>gauge</p></td>
+<td><p>Fréquence de production de snapshots</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="id3">
+<h4>SnapshotCache<a class="headerlink" href="#id3" title="Link to this heading">¶</a></h4>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Métrique</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">cache_hit_ratio</span></code></p></td>
+<td><p>gauge</p></td>
+<td><p>Fraction des lectures satisfaites par le cache</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">cache_miss_count</span></code></p></td>
+<td><p>counter</p></td>
+<td><p>Lectures sans résultat</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">cache_entries</span></code></p></td>
+<td><p>gauge</p></td>
+<td><p>Nombre d’entrées courantes</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">cache_eviction_count</span></code></p></td>
+<td><p>counter</p></td>
+<td><p>Entrées expirées/évincées</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="id4">
+<h4>Decision Engine<a class="headerlink" href="#id4" title="Link to this heading">¶</a></h4>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Métrique</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">decision_age_ms</span></code></p></td>
+<td><p>histogram</p></td>
+<td><p>Âge du snapshot au moment du scoring</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">decision_cycle_ms</span></code></p></td>
+<td><p>histogram</p></td>
+<td><p>Durée totale d’un cycle de décision</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">decision_signals_total</span></code></p></td>
+<td><p>counter</p></td>
+<td><p>Signaux produits (par direction)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">decision_hold_quality</span></code></p></td>
+<td><p>counter</p></td>
+<td><p>HOLD dus à une qualité insuffisante</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">decision_hold_stale</span></code></p></td>
+<td><p>counter</p></td>
+<td><p>HOLD dus à un snapshot trop vieux</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="cycle-global">
+<h4>Cycle global<a class="headerlink" href="#cycle-global" title="Link to this heading">¶</a></h4>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Métrique</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">scan_wall_ms</span></code></p></td>
+<td><p>histogram</p></td>
+<td><p>Durée totale d’un cycle complet</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">snapshot_age_at_decision_ms</span></code></p></td>
+<td><p>histogram</p></td>
+<td><p>Âge du snapshot quand le Decision Engine l’utilise</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">lock_wait_ms</span></code></p></td>
+<td><p>histogram</p></td>
+<td><p>Temps d’attente sur les verrous partagés</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</section>
+<section id="alertes-obligatoires">
+<h3>15.2 Alertes obligatoires<a class="headerlink" href="#alertes-obligatoires" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Condition</p></th>
+<th class="head"><p>Sévérité</p></th>
+<th class="head"><p>Canal</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>État → HALTED</p></td>
+<td><p>CRITICAL</p></td>
+<td><p>Telegram immédiat</p></td>
+</tr>
+<tr class="row-odd"><td><p>État → DEGRADED (&gt; 10 min)</p></td>
+<td><p>HIGH</p></td>
+<td><p>Telegram</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">snapshot_age_at_decision_ms</span></code> &gt; 60 000ms</p></td>
+<td><p>HIGH</p></td>
+<td><p>Log + Telegram</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">collector_rate_limit_hits</span></code> &gt; 10 / heure</p></td>
+<td><p>MEDIUM</p></td>
+<td><p>Log</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">snapshot_invalid_count</span></code> &gt; 5 / heure</p></td>
+<td><p>MEDIUM</p></td>
+<td><p>Log</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">collector_ws_reconnects</span></code> &gt; 3 / heure</p></td>
+<td><p>LOW</p></td>
+<td><p>Log</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="scalabilite-chiffree">
+<h2>16. Scalabilité chiffrée<a class="headerlink" href="#scalabilite-chiffree" title="Link to this heading">¶</a></h2>
+<section id="objectifs-de-latence-par-volume-dactifs">
+<h3>16.1 Objectifs de latence par volume d’actifs<a class="headerlink" href="#objectifs-de-latence-par-volume-dactifs" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head text-right"><p>Actifs</p></th>
+<th class="head text-right"><p>Budget cycle (P95)</p></th>
+<th class="head text-right"><p>Budget décision (P99)</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td class="text-right"><p>50</p></td>
+<td class="text-right"><p>&lt; 250 ms</p></td>
+<td class="text-right"><p>&lt; 10 ms</p></td>
+</tr>
+<tr class="row-odd"><td class="text-right"><p>100</p></td>
+<td class="text-right"><p>&lt; 400 ms</p></td>
+<td class="text-right"><p>&lt; 15 ms</p></td>
+</tr>
+<tr class="row-even"><td class="text-right"><p>250</p></td>
+<td class="text-right"><p>&lt; 600 ms</p></td>
+<td class="text-right"><p>&lt; 25 ms</p></td>
+</tr>
+<tr class="row-odd"><td class="text-right"><p>500</p></td>
+<td class="text-right"><p>&lt; 800 ms</p></td>
+<td class="text-right"><p>&lt; 40 ms</p></td>
+</tr>
+<tr class="row-even"><td class="text-right"><p>1 000</p></td>
+<td class="text-right"><p>&lt; 1 000 ms</p></td>
+<td class="text-right"><p>&lt; 80 ms</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Ces chiffres supposent un VPS 2 vCPU / 4 GB RAM. Un VPS 4 vCPU permettrait de diviser par 1.5 les budgets collecte.</p>
+</section>
+<section id="points-de-contention-identifies">
+<h3>16.2 Points de contention identifiés<a class="headerlink" href="#points-de-contention-identifies" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head text-right"><p>Actifs</p></th>
+<th class="head"><p>Goulot d’étranglement probable</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td class="text-right"><p>50–100</p></td>
+<td><p>Rate limiting exchange (HTTP)</p></td>
+</tr>
+<tr class="row-odd"><td class="text-right"><p>100–250</p></td>
+<td><p>Assemblage SnapshotBuilder (CPU séquentiel)</p></td>
+</tr>
+<tr class="row-even"><td class="text-right"><p>250–500</p></td>
+<td><p>Mémoire (OHLCVStream non compressé)</p></td>
+</tr>
+<tr class="row-odd"><td class="text-right"><p>500–1000</p></td>
+<td><p>GIL Python (parallélisation à prévoir)</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="strategies-de-mitigation-par-palier">
+<h3>16.3 Stratégies de mitigation par palier<a class="headerlink" href="#strategies-de-mitigation-par-palier" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Palier</p></th>
+<th class="head"><p>Mitigation</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>50–100</p></td>
+<td><p>Architecture V2 de base (aucune mitigation supplémentaire)</p></td>
+</tr>
+<tr class="row-odd"><td><p>100–250</p></td>
+<td><p>Parallélisation collecte par batch (ThreadPoolExecutor contrôlé)</p></td>
+</tr>
+<tr class="row-even"><td><p>250–500</p></td>
+<td><p>Compression mémoire OHLCVStream (numpy arrays vs dict)</p></td>
+</tr>
+<tr class="row-odd"><td><p>500–1000</p></td>
+<td><p>Multiprocessing pour SnapshotBuilder ou WebSocket natif</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="strategie-de-migration-v1-v2">
+<h2>17. Stratégie de migration V1 → V2<a class="headerlink" href="#strategie-de-migration-v1-v2" title="Link to this heading">¶</a></h2>
+<section id="phases">
+<h3>17.1 Phases<a class="headerlink" href="#phases" title="Link to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Phase 0 — Préparation
+        │ Tests sur V1 au vert. Métriques baseline V1 documentées.
+        │ RFC-001 approuvée. Aucun changement de comportement.
+        ▼
+Phase 1 — Dual Collector
+        │ V2 tourne en parallèle de V1. Les deux collectent.
+        │ V2 ne transmet PAS au Decision Engine.
+        │ Comparaison automatique : V1_snapshot vs V2_snapshot.
+        ▼
+Phase 2 — Shadow Mode
+        │ V2 alimente un Decision Engine shadow (pas d&#39;ordres réels).
+        │ V1 continue d&#39;alimenter le Decision Engine de production.
+        │ Comparaison des signaux V1 vs V2.
+        ▼
+Phase 3 — Switch
+        │ V2 devient la source principale du Decision Engine.
+        │ V1 tourne encore 48h en lecture seule (fallback).
+        ▼
+Phase 4 — Suppression V1
+        │ V1 retiré après 48h sans incident.
+        │ Post-mortem migration documenté.
+        ▼
+Phase 5 — Stabilisation
+        │ 7 jours d&#39;observation sur V2 seul.
+        │ Métriques comparées avec baseline V1.
+</pre></div>
+</div>
+</section>
+<section id="criteres-de-sortie-par-phase">
+<h3>17.2 Critères de sortie par phase<a class="headerlink" href="#criteres-de-sortie-par-phase" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Phase</p></th>
+<th class="head"><p>Critères de sortie</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>0 → 1</p></td>
+<td><p>RFC approuvée. Tests V1 ≥ 95% verts. Métriques baseline documentées.</p></td>
+</tr>
+<tr class="row-odd"><td><p>1 → 2</p></td>
+<td><p>V2 produit des snapshots valides (real_ratio ≥ 0.85) pendant 48h consécutives. Skew V2 ≤ skew V1.</p></td>
+</tr>
+<tr class="row-even"><td><p>2 → 3</p></td>
+<td><p>Taux de concordance signaux V1 vs V2 ≥ 95% sur 7 jours. Aucun signal HALTED non prévu.</p></td>
+</tr>
+<tr class="row-odd"><td><p>3 → 4</p></td>
+<td><p>48h sans incident en production V2. Aucune alerte CRITICAL.</p></td>
+</tr>
+<tr class="row-even"><td><p>4 → 5</p></td>
+<td><p>Suppression V1 sans régression. Métriques V2 dans les budgets.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="plan-de-rollback">
+<h3>17.3 Plan de rollback<a class="headerlink" href="#plan-de-rollback" title="Link to this heading">¶</a></h3>
+<p>À toute phase, le retour à la phase précédente doit être possible en moins de 5 minutes par redémarrage de configuration.</p>
+<p>Interdit : migration directe V1 → production V2 sans Dual Run et Shadow.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="criteres-dacceptation">
+<h2>18. Critères d’acceptation<a class="headerlink" href="#criteres-dacceptation" title="Link to this heading">¶</a></h2>
+<section id="fonctionnels">
+<h3>18.1 Fonctionnels<a class="headerlink" href="#fonctionnels" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>ID</p></th>
+<th class="head"><p>Critère</p></th>
+<th class="head"><p>Priorité</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>AC-F-01</p></td>
+<td><p>Le Decision Engine ne fait aucun appel réseau. Vérifiable par mock total de network.</p></td>
+<td><p>BLOQUANT</p></td>
+</tr>
+<tr class="row-odd"><td><p>AC-F-02</p></td>
+<td><p>Un snapshot invalide ne déclenche aucun ordre.</p></td>
+<td><p>BLOQUANT</p></td>
+</tr>
+<tr class="row-even"><td><p>AC-F-03</p></td>
+<td><p>La perte d’un symbole n’interrompt pas la collecte des autres.</p></td>
+<td><p>BLOQUANT</p></td>
+</tr>
+<tr class="row-odd"><td><p>AC-F-04</p></td>
+<td><p>collector_generation est incrémenté à chaque redémarrage.</p></td>
+<td><p>BLOQUANT</p></td>
+</tr>
+<tr class="row-even"><td><p>AC-F-05</p></td>
+<td><p>Chaque OHLCVFrame indique sa source.</p></td>
+<td><p>BLOQUANT</p></td>
+</tr>
+<tr class="row-odd"><td><p>AC-F-06</p></td>
+<td><p>Un changement de paramètre via Telegram produit une entrée dans l’audit.</p></td>
+<td><p>BLOQUANT (hérité 230bff4)</p></td>
+</tr>
+<tr class="row-even"><td><p>AC-F-07</p></td>
+<td><p>Chaque signal produit embarque snapshot_id, snapshot_age_ms, config_version.</p></td>
+<td><p>BLOQUANT</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="performance">
+<h3>18.2 Performance<a class="headerlink" href="#performance" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>ID</p></th>
+<th class="head"><p>Critère</p></th>
+<th class="head"><p>Priorité</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>AC-P-01</p></td>
+<td><p>Cycle complet &lt; 250ms P95 avec 50 actifs.</p></td>
+<td><p>BLOQUANT</p></td>
+</tr>
+<tr class="row-odd"><td><p>AC-P-02</p></td>
+<td><p>Decision Engine &lt; 10ms P99 avec 50 actifs.</p></td>
+<td><p>BLOQUANT</p></td>
+</tr>
+<tr class="row-even"><td><p>AC-P-03</p></td>
+<td><p>Cycle complet &lt; 400ms P95 avec 100 actifs.</p></td>
+<td><p>FORTEMENT RECOMMANDÉ</p></td>
+</tr>
+<tr class="row-odd"><td><p>AC-P-04</p></td>
+<td><p>Aucune dégradation des métriques V1 après migration.</p></td>
+<td><p>FORTEMENT RECOMMANDÉ</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="resilience">
+<h3>18.3 Résilience<a class="headerlink" href="#resilience" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>ID</p></th>
+<th class="head"><p>Critère</p></th>
+<th class="head"><p>Priorité</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>AC-R-01</p></td>
+<td><p>Panne exchange complète → HALTED en &lt; 30s.</p></td>
+<td><p>BLOQUANT</p></td>
+</tr>
+<tr class="row-odd"><td><p>AC-R-02</p></td>
+<td><p>Reconnexion automatique WebSocket sans intervention manuelle.</p></td>
+<td><p>BLOQUANT</p></td>
+</tr>
+<tr class="row-even"><td><p>AC-R-03</p></td>
+<td><p>Cache corrompu → rebuild au cycle suivant sans crash.</p></td>
+<td><p>BLOQUANT</p></td>
+</tr>
+<tr class="row-odd"><td><p>AC-R-04</p></td>
+<td><p>HALTED → COLLECTING uniquement via <code class="docutils literal notranslate"><span class="pre">/resume</span></code> Telegram.</p></td>
+<td><p>BLOQUANT</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="id5">
+<h3>18.4 Observabilité<a class="headerlink" href="#id5" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>ID</p></th>
+<th class="head"><p>Critère</p></th>
+<th class="head"><p>Priorité</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>AC-O-01</p></td>
+<td><p>Toutes les métriques de la section 15 sont exposées.</p></td>
+<td><p>BLOQUANT</p></td>
+</tr>
+<tr class="row-odd"><td><p>AC-O-02</p></td>
+<td><p>Alerte Telegram en &lt; 60s pour état HALTED.</p></td>
+<td><p>BLOQUANT</p></td>
+</tr>
+<tr class="row-even"><td><p>AC-O-03</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">scan_wall_ms</span></code> disponible dans chaque rapport Telegram.</p></td>
+<td><p>FORTEMENT RECOMMANDÉ</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="roadmap">
+<h2>19. Roadmap<a class="headerlink" href="#roadmap" title="Link to this heading">¶</a></h2>
+<section id="pre-conditions-avant-implementation">
+<h3>19.1 Pré-conditions avant implémentation<a class="headerlink" href="#pre-conditions-avant-implementation" title="Link to this heading">¶</a></h3>
+<ul class="contains-task-list simple">
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox">Burn-in F-01 verdict rendu (GO / NO-GO)</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox">RFC-001 approuvée par révision</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox">Tests unitaires V1 existants tous au vert</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox">Métriques baseline V1 documentées (latence, qualité snapshot, taux erreur)</p></li>
+</ul>
+</section>
+<section id="phases-dimplementation">
+<h3>19.2 Phases d’implémentation<a class="headerlink" href="#phases-dimplementation" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Phase</p></th>
+<th class="head"><p>Contenu</p></th>
+<th class="head"><p>Durée estimée</p></th>
+<th class="head"><p>Critère d’entrée</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong>P1 — Fondations</strong></p></td>
+<td><p>ExchangeSessionManager + contrat MarketSnapshot + SnapshotQuality</p></td>
+<td><p>1 semaine</p></td>
+<td><p>RFC approuvée</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>P2 — Collector</strong></p></td>
+<td><p>MarketCollector + rate limiter + circuit breaker + métriques</p></td>
+<td><p>1 semaine</p></td>
+<td><p>P1 tests verts</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>P3 — SnapshotBuilder</strong></p></td>
+<td><p>Assemblage + résolution fallback + invariants</p></td>
+<td><p>1 semaine</p></td>
+<td><p>P2 tests verts</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>P4 — Cache + Engine</strong></p></td>
+<td><p>SnapshotCache + isolation Decision Engine</p></td>
+<td><p>1 semaine</p></td>
+<td><p>P3 tests verts</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>P5 — Migration</strong></p></td>
+<td><p>Dual Run + Shadow + Switch + Suppression V1</p></td>
+<td><p>2 semaines</p></td>
+<td><p>P4 tests verts + critères migration</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>P6 — Scalabilité</strong></p></td>
+<td><p>Batch 100–250 actifs + métriques avancées</p></td>
+<td><p>1 semaine</p></td>
+<td><p>P5 stable 7j</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="ce-que-v2-ouvre-apres-livraison">
+<h3>19.3 Ce que V2 ouvre après livraison<a class="headerlink" href="#ce-que-v2-ouvre-apres-livraison" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Multi-exchange (Binance, Bybit) par ajout d’un ExchangeConfig</p></li>
+<li><p>Back-testeur alimenté par SnapshotCache replay</p></li>
+<li><p>Détection de divergence entre exchanges (arbitrage observationnel)</p></li>
+<li><p>Montée à 500–1000 actifs par itération sur la couche Collector</p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="annexes">
+<h2>20. Annexes<a class="headerlink" href="#annexes" title="Link to this heading">¶</a></h2>
+<section id="annexe-a-decisions-architecturales-rejetees">
+<h3>Annexe A — Décisions architecturales rejetées<a class="headerlink" href="#annexe-a-decisions-architecturales-rejetees" title="Link to this heading">¶</a></h3>
+<p><strong>A.1 — Redis comme SnapshotCache</strong></p>
+<p>Rejeté : dépendance externe, latence réseau interne, complexité opérationnelle sur VPS. La contrainte C-06 (pas de base de données supplémentaire) s’applique.</p>
+<p><strong>A.2 — Kafka / message queue entre Collector et Decision Engine</strong></p>
+<p>Rejeté : latence non déterministe, complexité infra, hors budget VPS. Le contrat synchrone via SnapshotCache est suffisant pour V2.</p>
+<p><strong>A.3 — Snapshot stocké en base de données</strong></p>
+<p>Rejeté : non-objectif NO-04. Le cache opérationnel en mémoire est suffisant. La persistance longue durée est une évolution future.</p>
+<p><strong>A.4 — Multiprocessing dès V2</strong></p>
+<p>Rejeté : complexité de synchronisation, problème de partage mémoire. Réservé à V3 si la scalabilité l’exige. Le palier 500–1000 actifs est une amélioration future, pas un objectif V2.</p>
+</section>
+<section id="annexe-b-questions-ouvertes">
+<h3>Annexe B — Questions ouvertes<a class="headerlink" href="#annexe-b-questions-ouvertes" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>#</p></th>
+<th class="head"><p>Question</p></th>
+<th class="head"><p>Impact</p></th>
+<th class="head"><p>Décision requise avant</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Q-01</p></td>
+<td><p>Faut-il exposer les métriques via HTTP (Prometheus) ou seulement en JSONL ?</p></td>
+<td><p>Moyen</p></td>
+<td><p>Phase P1</p></td>
+</tr>
+<tr class="row-odd"><td><p>Q-02</p></td>
+<td><p>Le SnapshotCache doit-il supporter plusieurs Timeframes simultanés ?</p></td>
+<td><p>Haut</p></td>
+<td><p>Phase P3</p></td>
+</tr>
+<tr class="row-even"><td><p>Q-03</p></td>
+<td><p>Le Decision Engine doit-il recevoir l’historique des snapshots ou seulement le dernier ?</p></td>
+<td><p>Haut</p></td>
+<td><p>Phase P4</p></td>
+</tr>
+<tr class="row-odd"><td><p>Q-04</p></td>
+<td><p>Comment gérer les symboles ajoutés/retirés de l’Universe en cours de run ?</p></td>
+<td><p>Moyen</p></td>
+<td><p>Phase P2</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="annexe-c-liens-avec-les-adr-existants">
+<h3>Annexe C — Liens avec les ADR existants<a class="headerlink" href="#annexe-c-liens-avec-les-adr-existants" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>ADR</p></th>
+<th class="head"><p>Relation</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>ADR-0001 (architecture 4 couches)</p></td>
+<td><p>V2 renforce la séparation Collecte / Décision déjà posée</p></td>
+</tr>
+<tr class="row-odd"><td><p>ADR-0002 (domain objects SSoT)</p></td>
+<td><p>MarketSnapshot est le domain object central de V2</p></td>
+</tr>
+<tr class="row-even"><td><p>230bff4 (parameter audit)</p></td>
+<td><p>INV-SYS-01 et INV-SYS-02 héritent directement</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr class="docutils" />
+<p><em>RFC-001 — Révision 0.1 — 2026-06-20 — DRAFT</em><br />
+<em>Prochain jalon : révision institutionnelle avant implémentation.</em></p>
+</section>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Crypto AI Terminal
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">RFC-001 — MarketScanner V2 : Plateforme de Données de Marché</a><ul>
+<li><a class="reference internal" href="#table-des-matieres">Table des matières</a></li>
+<li><a class="reference internal" href="#contexte-et-motivation">1. Contexte et motivation</a><ul>
+<li><a class="reference internal" href="#situation-actuelle-v1">1.1 Situation actuelle (V1)</a></li>
+<li><a class="reference internal" href="#limites-observees-pendant-le-burn-in">1.2 Limites observées pendant le burn-in</a></li>
+<li><a class="reference internal" href="#declencheur-de-v2">1.3 Déclencheur de V2</a></li>
+<li><a class="reference internal" href="#decision-strategique">1.4 Décision stratégique</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#objectifs">2. Objectifs</a></li>
+<li><a class="reference internal" href="#non-objectifs">3. Non-objectifs</a></li>
+<li><a class="reference internal" href="#contraintes">4. Contraintes</a></li>
+<li><a class="reference internal" href="#terminologie">5. Terminologie</a></li>
+<li><a class="reference internal" href="#architecture-generale">6. Architecture générale</a><ul>
+<li><a class="reference internal" href="#vue-densemble">6.1 Vue d’ensemble</a></li>
+<li><a class="reference internal" href="#principe-fondamental">6.2 Principe fondamental</a></li>
+<li><a class="reference internal" href="#flux-de-donnees">6.3 Flux de données</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#entite-centrale-marketsnapshot">7. Entité centrale : MarketSnapshot</a><ul>
+<li><a class="reference internal" href="#schema">7.1 Schéma</a></li>
+<li><a class="reference internal" href="#ohlcvframe-par-symbole">7.2 OHLCVFrame (par symbole)</a></li>
+<li><a class="reference internal" href="#snapshotlatency">7.3 SnapshotLatency</a></li>
+<li><a class="reference internal" href="#regles-dintegrite">7.4 Règles d’intégrité</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#contrats-par-composant">8. Contrats par composant</a><ul>
+<li><a class="reference internal" href="#exchangesessionmanager">8.1 ExchangeSessionManager</a></li>
+<li><a class="reference internal" href="#marketcollector">8.2 MarketCollector</a></li>
+<li><a class="reference internal" href="#snapshotbuilder">8.3 SnapshotBuilder</a></li>
+<li><a class="reference internal" href="#snapshotcache">8.4 SnapshotCache</a></li>
+<li><a class="reference internal" href="#decision-engine">8.5 Decision Engine</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#etats-du-systeme">9. États du système</a><ul>
+<li><a class="reference internal" href="#machine-detats">9.1 Machine d’états</a></li>
+<li><a class="reference internal" href="#transitions-et-conditions">9.2 Transitions et conditions</a></li>
+<li><a class="reference internal" href="#comportement-du-decision-engine-par-etat">9.3 Comportement du Decision Engine par état</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#invariants">10. Invariants</a><ul>
+<li><a class="reference internal" href="#invariants-du-collector">10.1 Invariants du Collector</a></li>
+<li><a class="reference internal" href="#invariants-du-snapshotbuilder">10.2 Invariants du SnapshotBuilder</a></li>
+<li><a class="reference internal" href="#invariants-du-decision-engine">10.3 Invariants du Decision Engine</a></li>
+<li><a class="reference internal" href="#invariants-transversaux">10.4 Invariants transversaux</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#budgets-de-performance">11. Budgets de performance</a><ul>
+<li><a class="reference internal" href="#budget-par-couche-cible-50-actifs-p95">11.1 Budget par couche (cible : 50 actifs, P95)</a></li>
+<li><a class="reference internal" href="#regle-de-composition">11.2 Règle de composition</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#sla-internes">12. SLA internes</a><ul>
+<li><a class="reference internal" href="#disponibilite-cible-par-composant">12.1 Disponibilité cible par composant</a></li>
+<li><a class="reference internal" href="#latence-par-composant">12.2 Latence par composant</a></li>
+<li><a class="reference internal" href="#definition-du-worst-case">12.3 Définition du Worst Case</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#matrice-des-pannes">13. Matrice des pannes</a></li>
+<li><a class="reference internal" href="#contrat-de-qualite-snapshotquality">14. Contrat de qualité (SnapshotQuality)</a><ul>
+<li><a class="reference internal" href="#id1">14.1 Schéma</a></li>
+<li><a class="reference internal" href="#invariants-de-snapshotquality">14.2 Invariants de SnapshotQuality</a></li>
+<li><a class="reference internal" href="#regles-de-decision-du-decision-engine">14.3 Règles de décision du Decision Engine</a></li>
+<li><a class="reference internal" href="#seuils-recommandes-configurables">14.4 Seuils recommandés (configurables)</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#observabilite">15. Observabilité</a><ul>
+<li><a class="reference internal" href="#metriques-officielles-api-v2">15.1 Métriques officielles (API V2)</a><ul>
+<li><a class="reference internal" href="#collector">Collector</a></li>
+<li><a class="reference internal" href="#id2">SnapshotBuilder</a></li>
+<li><a class="reference internal" href="#id3">SnapshotCache</a></li>
+<li><a class="reference internal" href="#id4">Decision Engine</a></li>
+<li><a class="reference internal" href="#cycle-global">Cycle global</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#alertes-obligatoires">15.2 Alertes obligatoires</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#scalabilite-chiffree">16. Scalabilité chiffrée</a><ul>
+<li><a class="reference internal" href="#objectifs-de-latence-par-volume-dactifs">16.1 Objectifs de latence par volume d’actifs</a></li>
+<li><a class="reference internal" href="#points-de-contention-identifies">16.2 Points de contention identifiés</a></li>
+<li><a class="reference internal" href="#strategies-de-mitigation-par-palier">16.3 Stratégies de mitigation par palier</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#strategie-de-migration-v1-v2">17. Stratégie de migration V1 → V2</a><ul>
+<li><a class="reference internal" href="#phases">17.1 Phases</a></li>
+<li><a class="reference internal" href="#criteres-de-sortie-par-phase">17.2 Critères de sortie par phase</a></li>
+<li><a class="reference internal" href="#plan-de-rollback">17.3 Plan de rollback</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#criteres-dacceptation">18. Critères d’acceptation</a><ul>
+<li><a class="reference internal" href="#fonctionnels">18.1 Fonctionnels</a></li>
+<li><a class="reference internal" href="#performance">18.2 Performance</a></li>
+<li><a class="reference internal" href="#resilience">18.3 Résilience</a></li>
+<li><a class="reference internal" href="#id5">18.4 Observabilité</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#roadmap">19. Roadmap</a><ul>
+<li><a class="reference internal" href="#pre-conditions-avant-implementation">19.1 Pré-conditions avant implémentation</a></li>
+<li><a class="reference internal" href="#phases-dimplementation">19.2 Phases d’implémentation</a></li>
+<li><a class="reference internal" href="#ce-que-v2-ouvre-apres-livraison">19.3 Ce que V2 ouvre après livraison</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#annexes">20. Annexes</a><ul>
+<li><a class="reference internal" href="#annexe-a-decisions-architecturales-rejetees">Annexe A — Décisions architecturales rejetées</a></li>
+<li><a class="reference internal" href="#annexe-b-questions-ouvertes">Annexe B — Questions ouvertes</a></li>
+<li><a class="reference internal" href="#annexe-c-liens-avec-les-adr-existants">Annexe C — Liens avec les ADR existants</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="_static/documentation_options.js?v=ef6a59ae"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    </body>
+</html>

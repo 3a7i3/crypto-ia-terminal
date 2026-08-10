@@ -1,0 +1,57 @@
+Traceback (most recent call last):
+  File "/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/jupyter_cache/executors/utils.py", line 58, in single_nb_execution
+    executenb(
+  File "/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/nbclient/client.py", line 1323, in execute
+    return NotebookClient(nb=nb, resources=resources, km=km, **kwargs).execute()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/jupyter_core/utils/__init__.py", line 165, in wrapped
+    return loop.run_until_complete(inner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/asyncio/base_events.py", line 654, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/nbclient/client.py", line 709, in async_execute
+    await self.async_execute_cell(
+  File "/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/nbclient/client.py", line 1062, in async_execute_cell
+    await self._check_raise_for_error(cell, cell_index, exec_reply)
+  File "/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/nbclient/client.py", line 918, in _check_raise_for_error
+    raise CellExecutionError.from_cell_and_msg(cell, exec_reply_content)
+nbclient.exceptions.CellExecutionError: An error occurred while executing the following cell:
+------------------
+import pandas as pd
+import ipywidgets as widgets
+from IPython.display import display
+# Exemple de données
+df = pd.DataFrame({
+    'Actif': ['BTC', 'ETH', 'SOL', 'BNB'],
+    'Volume': [1200, 800, 450, 600],
+    'Sharpe': [1.8, 1.2, 0.9, 1.5]
+})
+search_box = widgets.Text(placeholder='Recherche actif ou valeur...')
+output = widgets.Output()
+def on_search_change(change):
+    with output:
+        output.clear_output()
+        val = change['new']
+        if val:
+            mask = df.apply(lambda row: row.astype(str).str.contains(val, case=False).any(), axis=1)
+            display(df[mask])
+        else:
+            display(df)
+search_box.observe(on_search_change, names='value')
+display(search_box, output)
+output.clear_output()
+display(df)
+------------------
+
+
+[31m---------------------------------------------------------------------------[39m
+[31mModuleNotFoundError[39m                       Traceback (most recent call last)
+[36mCell[39m[36m [39m[32mIn[1][39m[32m, line 1[39m
+[32m----> [39m[32m1[39m [38;5;28;01mimport[39;00m pandas [38;5;28;01mas[39;00m pd
+[32m      2[39m [38;5;28;01mimport[39;00m ipywidgets [38;5;28;01mas[39;00m widgets
+[32m      3[39m [38;5;28;01mfrom[39;00m IPython.display [38;5;28;01mimport[39;00m display
+[32m      4[39m [38;5;66;03m# Exemple de données[39;00m
+
+[31mModuleNotFoundError[39m: No module named 'pandas'
+

@@ -1,0 +1,980 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="./">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="genindex.html"><link rel="search" title="Search" href="search.html">
+        <link rel="prefetch" href="_static/../assets/logo_ai_quant.png" as="image">
+        <link rel="prefetch" href="_static/../assets/logo_ai_quant.png" as="image">
+
+    <link rel="shortcut icon" href="_static/favicon.ico"><!-- Generated with Sphinx 9.0.4 and Furo 2025.12.19 -->
+        <title>ROADMAP — Crypto AI Terminal - Crypto AI Terminal 9.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=1b9cecba" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="index.html"><div class="brand">Crypto AI Terminal 9.1 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="index.html">
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="_static/../assets/logo_ai_quant.png" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="_static/../assets/logo_ai_quant.png" alt="Dark Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/blob/main/docs/ROADMAP_V9_V10_V11.md?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/edit/main/docs/ROADMAP_V9_V10_V11.md" rel="edit" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="roadmap-crypto-ai-terminal">
+<h1>ROADMAP — Crypto AI Terminal<a class="headerlink" href="#roadmap-crypto-ai-terminal" title="Link to this heading">¶</a></h1>
+<blockquote>
+<div><p>Dernière mise à jour : 2026-05-15
+État : P5 livré — Observation Sprint en cours sur VPS</p>
+</div></blockquote>
+<hr class="docutils" />
+<section id="etat-actuel-phase-5-paper-trading-live">
+<h2>ÉTAT ACTUEL : Phase 5 — Paper Trading Live<a class="headerlink" href="#etat-actuel-phase-5-paper-trading-live" title="Link to this heading">¶</a></h2>
+<section id="ce-qui-est-livre-et-operationnel">
+<h3>Ce qui est livré et opérationnel<a class="headerlink" href="#ce-qui-est-livre-et-operationnel" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Couche</p></th>
+<th class="head"><p>Composant</p></th>
+<th class="head"><p>Statut</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong>Marché</strong></p></td>
+<td><p>MarketScanner CCXT multi-exchange</p></td>
+<td><p>✅ Live</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Marché</strong></p></td>
+<td><p>MultiTimeframeScanner (1m/15m/4h/1d)</p></td>
+<td><p>✅ Live</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Marché</strong></p></td>
+<td><p>Connecteurs dédiés Binance/MEXC/Hyperliquid</p></td>
+<td><p>✅ Live</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Marché</strong></p></td>
+<td><p>Multi-exchange feed (Binance/Bybit/OKX/MEXC/HL)</p></td>
+<td><p>✅ Live</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Signal</strong></p></td>
+<td><p>LiveSignalEngine (score 0-100, régime, gate)</p></td>
+<td><p>✅ Live</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Décision</strong></p></td>
+<td><p>ConvictionEngine (5 niveaux, sizing)</p></td>
+<td><p>✅ Live</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Décision</strong></p></td>
+<td><p>GlobalRiskGate (7 conditions)</p></td>
+<td><p>✅ Live</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Décision</strong></p></td>
+<td><p>MetaStrategyEngine (personnalité par régime)</p></td>
+<td><p>✅ Live</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Décision</strong></p></td>
+<td><p>NoTradeIntelligence (rejet intelligent)</p></td>
+<td><p>✅ Live</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Décision</strong></p></td>
+<td><p>SelfAwareness (4 niveaux dérive)</p></td>
+<td><p>✅ Live</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Risque</strong></p></td>
+<td><p>HardLimits (MAX_ORDER_USD=200, MAX_DD=20%)</p></td>
+<td><p>✅ Frozen</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Risque</strong></p></td>
+<td><p>PortfolioBrain (8 checks exposition/corrélation)</p></td>
+<td><p>✅ Live</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Risque</strong></p></td>
+<td><p>KillSwitch + SafeMode</p></td>
+<td><p>✅ Live</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Exécution</strong></p></td>
+<td><p>PaperTrading engine (simulation réaliste)</p></td>
+<td><p>✅ Live</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Exécution</strong></p></td>
+<td><p>ExecutionSimulator (slippage/latence/fill)</p></td>
+<td><p>✅ Live</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Exécution</strong></p></td>
+<td><p>OrderValidator (LOT_SIZE, MIN_NOTIONAL)</p></td>
+<td><p>✅ Live</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Exécution</strong></p></td>
+<td><p>RateLimiter (10 ordres/s Binance)</p></td>
+<td><p>✅ Live</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Audit</strong></p></td>
+<td><p>BlackBox JSONL</p></td>
+<td><p>✅ Live</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Audit</strong></p></td>
+<td><p>TradeLogger + PostMortem</p></td>
+<td><p>✅ Live</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Robustesse</strong></p></td>
+<td><p>RobustnessReport (GO/NO-GO, 30 trades)</p></td>
+<td><p>✅ Live</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Robustesse</strong></p></td>
+<td><p>WalkForward (OOS metrics)</p></td>
+<td><p>✅ Live</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Infrastructure</strong></p></td>
+<td><p>VPS GCP (crypto-advisor.service)</p></td>
+<td><p>✅ Live</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Infrastructure</strong></p></td>
+<td><p>API Server FastAPI (crypto-api.service :8000)</p></td>
+<td><p>✅ Live</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Infrastructure</strong></p></td>
+<td><p>Multi-exchange feed (crypto-feed.service)</p></td>
+<td><p>✅ Live</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Infrastructure</strong></p></td>
+<td><p>VPS→PC sync toutes les 30s</p></td>
+<td><p>✅ Live</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Dashboards</strong></p></td>
+<td><p>Dashboard Hub (port 8500)</p></td>
+<td><p>✅ Live</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Dashboards</strong></p></td>
+<td><p>Execution Health / P2 Audit (port 8509)</p></td>
+<td><p>✅ Live</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Dashboards</strong></p></td>
+<td><p>Risk Dashboard (port 8505)</p></td>
+<td><p>✅ Live</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Dashboards</strong></p></td>
+<td><p>Master Dashboard (port 8502)</p></td>
+<td><p>✅ Live</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Dashboards</strong></p></td>
+<td><p>Decision Trace (port 8503)</p></td>
+<td><p>✅ Live</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Dashboards</strong></p></td>
+<td><p>Multi-Exchange Live (port 8510)</p></td>
+<td><p>✅ Live</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="architecture-de-deploiement-actuelle">
+<h2>Architecture de déploiement actuelle<a class="headerlink" href="#architecture-de-deploiement-actuelle" title="Link to this heading">¶</a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>VPS GCP (34.171.188.99)
+  ├── crypto-advisor.service   advisor_loop.py — cycle 300s
+  │     ├── MarketScanner (CCXT Binance testnet)
+  │     ├── MultiTimeframeScanner (1m/15m/4h/1d)
+  │     ├── LiveSignalEngine → score → gate → conviction
+  │     ├── PaperTrading engine
+  │     └── BlackBox + audit JSONL
+  │
+  ├── crypto-api.service       api_server.py :8000
+  │     └── /api/raw/* → sert les fichiers locaux
+  │
+  └── crypto-feed.service      multi_exchange_feed.py
+        └── Binance/Bybit/OKX/MEXC/Hyperliquid → 30s
+
+PC local (Windows 11)
+  ├── vps_data_sync.py         poll VPS toutes les 30s → fichiers locaux
+  ├── Dashboard Hub :8500      lanceur de tous les dashboards
+  ├── Execution Health :8509   audit P2 pipeline
+  └── [autres dashboards]      lancés à la demande depuis le Hub
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="arborescence-active-modules-en-production">
+<h2>Arborescence active (modules en production)<a class="headerlink" href="#arborescence-active-modules-en-production" title="Link to this heading">¶</a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>crypto_ai_terminal/
+│
+├── ORCHESTRATEURS (racine)
+│   ├── advisor_loop.py                ← PRINCIPAL — cycle 300s VPS
+│   ├── api_server.py                  ← FastAPI :8000 VPS
+│   ├── multi_exchange_feed.py         ← Feed 5 exchanges VPS
+│   ├── vps_data_sync.py               ← Sync VPS→PC (30s)
+│   └── watchdog_vps.py                ← Watchdog + Telegram alert
+│
+├── DASHBOARDS (racine)
+│   ├── dashboard_hub.py               ← :8500 Hub lanceur
+│   ├── dashboard_master.py            ← :8502 Snapshot global
+│   ├── dashboard_risk.py              ← :8505 Risk + score
+│   ├── dashboard_decision_trace.py    ← :8503 BlackBox decisions
+│   ├── dashboard_multi_exchange.py    ← :8510 Multi-exchange live
+│   ├── execution_health.py            ← :8509 P2 Audit pipeline
+│   ├── dashboard_live.py              ← :8501 Live trading
+│   ├── dashboard_positions.py         ← Positions ouvertes
+│   ├── dashboard_functions.py         ← Helpers partagés dashboards
+│   └── dashboard_compare_multi.py     ← Comparaison multi-sessions
+│
+├── MODULES SECONDAIRES (racine)
+│   ├── evolution_core.py              ← Utilisé par main.py
+│   ├── risk_limits.py                 ← Hard limits (frozen)
+│   ├── exchange_factory.py            ← Factory exchanges
+│   └── main.py                        ← Entry point alternatif
+│
+├── quant_hedge_ai/                    ← NOYAU IA
+│   └── agents/
+│       ├── market/
+│       │   ├── market_scanner.py
+│       │   ├── multi_timeframe_scanner.py
+│       │   └── live_signal_engine.py
+│       ├── intelligence/
+│       │   ├── conviction_engine.py
+│       │   ├── meta_strategy_engine.py
+│       │   ├── no_trade_intelligence.py
+│       │   └── self_awareness.py
+│       ├── risk/
+│       │   ├── global_risk_gate.py
+│       │   ├── portfolio_brain.py
+│       │   └── order_sizer.py
+│       └── execution/
+│           ├── execution_engine.py
+│           └── position_manager.py
+│
+├── market_data/                       ← CONNECTEURS EXCHANGE
+│   ├── connectors/
+│   │   ├── base.py
+│   │   ├── binance.py                 ← WebSocket complet
+│   │   ├── mexc.py                    ← REST uniquement
+│   │   └── hyperliquid.py             ← Perpétuels USDC
+│   ├── metrics/
+│   │   ├── flow.py                    ← CVD, sweeps
+│   │   └── orderbook.py               ← imbalance, depth
+│   ├── models.py
+│   └── stream.py                      ← MultiExchangeStream
+│
+├── exchange_constraints/              ← VALIDATION ORDRES
+│   ├── order_validator.py
+│   ├── rate_limiter.py
+│   └── binance_rules.py
+│
+├── execution_simulator/               ← SIMULATION RÉALISTE
+│   ├── fill_simulator.py
+│   ├── slippage.py
+│   ├── latency.py
+│   └── spread.py
+│
+├── paper_trading/                     ← PAPER TRADING ENGINE
+│   ├── engine.py
+│   ├── ledger.py
+│   └── sandbox_validator.py
+│
+├── metrics/                           ← ROBUSTESSE
+│   ├── robustness.py                  ← GO/NO-GO
+│   ├── oos_metrics.py
+│   └── stability_score.py
+│
+├── walk_forward/                      ← WALK FORWARD
+│   ├── engine.py
+│   ├── window_splitter.py
+│   └── reporter.py
+│
+├── monitor/                           ← DÉGRADATION
+│   └── degradation_tracker.py
+│
+├── monitoring/                        ← OBSERVABILITÉ
+│   ├── logger.py
+│   ├── metrics.py
+│   └── pipeline_monitor.py
+│
+├── tracker_system/                    ← SESSIONS &amp; ANALYTICS
+│   ├── sessions/
+│   │   ├── session_manager.py
+│   │   ├── session_analyzer.py
+│   │   └── session_validator.py
+│   └── analytics/
+│       └── score_drift_monitor.py
+│
+├── core/                              ← MODÈLES PARTAGÉS
+│   └── decision_packet.py             ← Modèle DecisionPacket
+│
+├── dashboard/                         ← HELPERS DASHBOARD
+│   └── colors.py                      ← Palette couleurs (lit anara_context/color_system.json)
+│
+├── anara_context/                     ← DESIGN SYSTEM
+│   ├── color_system.json              ← UTILISÉ par dashboard/colors.py
+│   └── [17 autres JSON/MD]            ← Documentation système (non-code)
+│
+├── databases/                         ← DONNÉES RUNTIME (non-git)
+│   ├── live_snapshot.json
+│   ├── black_box.jsonl
+│   ├── cycle_data.jsonl
+│   ├── multi_exchange_snapshot.json
+│   └── strategy_ranking.json
+│
+├── logs/                              ← LOGS RUNTIME (non-git)
+│   ├── advisor_loop.log
+│   ├── trades.jsonl
+│   └── execution_audit/audit.jsonl
+│
+├── deploy/                            ← DÉPLOIEMENT VPS
+│   ├── deploy.sh
+│   └── setup_vps.sh
+│
+├── docs/                              ← DOCUMENTATION
+│   ├── ROADMAP_V9_V10_V11.md          ← CE FICHIER
+│   └── runbooks/
+│       ├── incident_degradation.md
+│       ├── incident_high_latency.md
+│       └── incident_data_leakage.md
+│
+├── tests/                             ← TESTS INTÉGRATION
+│   ├── integration/
+│   │   ├── test_p4_pipeline.py
+│   │   └── test_backtest_pipeline.py
+│   └── [autres tests unitaires]
+│
+├── project_os/                        ← DIAGNOSTIC (non-prod)
+├── frontend/                          ← React app (non connectée)
+└── tools/                             ← Outils analyse (non-prod)
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="debris-a-nettoyer-p6-nettoyage-racine">
+<h2>Débris à nettoyer (P6 — Nettoyage racine)<a class="headerlink" href="#debris-a-nettoyer-p6-nettoyage-racine" title="Link to this heading">¶</a></h2>
+<section id="dossiers-obsoletes-a-supprimer">
+<h3>Dossiers obsolètes à supprimer<a class="headerlink" href="#dossiers-obsoletes-a-supprimer" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Dossier</p></th>
+<th class="head"><p>Fichiers</p></th>
+<th class="head"><p>Raison</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">archives/</span></code></p></td>
+<td><p>483</p></td>
+<td><p>Archives zip et exports d’anciennes phases</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">results/</span></code></p></td>
+<td><p>404</p></td>
+<td><p>Résultats simulations legacy</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">feedback_logs/</span></code></p></td>
+<td><p>190</p></td>
+<td><p>Logs de feedback UI (Pieuvre era)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">reports/</span></code></p></td>
+<td><p>229</p></td>
+<td><p>Rapports auto-générés legacy</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">supervision/</span></code></p></td>
+<td><p>73</p></td>
+<td><p>Module Pieuvre supervision (inactif)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">pieuvre/</span></code></p></td>
+<td><p>34</p></td>
+<td><p>Système Pieuvre (remplacé par couches décision)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">strategy_factory/</span></code></p></td>
+<td><p>27</p></td>
+<td><p>Factory stratégies (non intégré en prod)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">tickets/</span></code></p></td>
+<td><p>27</p></td>
+<td><p>Tickets de bug internes (obsolètes)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">governance/</span></code></p></td>
+<td><p>12</p></td>
+<td><p>Gouvernance Pieuvre (inactif)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">observability/</span></code></p></td>
+<td><p>12</p></td>
+<td><p>Doublon de <code class="docutils literal notranslate"><span class="pre">monitoring/</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">meta_learning/</span></code></p></td>
+<td><p>10</p></td>
+<td><p>Meta-learning non intégré</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">quant-hedge-ai/</span></code></p></td>
+<td><p>10</p></td>
+<td><p>Doublon de <code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/</span></code> (avec tiret)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">system/</span></code></p></td>
+<td><p>14</p></td>
+<td><p>Module système non intégré</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">mvp/</span></code></p></td>
+<td><p>16</p></td>
+<td><p>MVP phase 1 (obsolète)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">audit/</span></code></p></td>
+<td><p>10</p></td>
+<td><p>Audit logs legacy</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ai_autonomous_loop/</span></code></p></td>
+<td><p>6</p></td>
+<td><p>Loop autonome (remplacé par advisor_loop)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">cache/</span></code></p></td>
+<td><p>6</p></td>
+<td><p>Cache ML non utilisé</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">checkpoints/</span></code></p></td>
+<td><p>5</p></td>
+<td><p>Checkpoints ML (evo_state.pkl à la racine aussi)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">sim_summaries/</span></code></p></td>
+<td><p>5</p></td>
+<td><p>Résumés simulations</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">k8s/</span></code></p></td>
+<td><p>3</p></td>
+<td><p>Kubernetes (non déployé)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">artifacts/</span></code></p></td>
+<td><p>2</p></td>
+<td><p>Artefacts CI</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">terminal_core/</span></code></p></td>
+<td><p>9</p></td>
+<td><p>Core terminal ancienne version</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">event_bus/</span></code></p></td>
+<td><p>8</p></td>
+<td><p>Event bus (Pieuvre era, inactif)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">lm_studio/</span></code></p></td>
+<td><p>8</p></td>
+<td><p>LM Studio (non intégré en prod)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">health/</span></code></p></td>
+<td><p>6</p></td>
+<td><p>Health checks legacy</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">crypto_quant_v16/</span></code></p></td>
+<td><p>9</p></td>
+<td><p>Ancienne version v16</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">archive_results/</span></code></p></td>
+<td><p>10</p></td>
+<td><p>Résultats archivés</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="fichiers-python-obsoletes-a-la-racine">
+<h3>Fichiers Python obsolètes à la racine<a class="headerlink" href="#fichiers-python-obsoletes-a-la-racine" title="Link to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Anciens launchers remplacés par LAUNCH_DASHBOARDS.bat</span>
+<span class="n">launch_all</span><span class="o">.</span><span class="n">bat</span><span class="p">,</span> <span class="n">launch_all</span><span class="o">.</span><span class="n">ps1</span><span class="p">,</span> <span class="n">launch_all_visible</span><span class="o">.</span><span class="n">bat</span><span class="p">,</span> <span class="n">launch_pieuvre</span><span class="o">.</span><span class="n">py</span>
+<span class="n">launch_alert_dashboard</span><span class="o">.</span><span class="n">bat</span><span class="p">,</span> <span class="n">launch_botdoctor_api</span><span class="o">.</span><span class="n">bat</span><span class="p">,</span> <span class="n">launch_botdoctor_dashboard</span><span class="o">.</span><span class="n">bat</span>
+<span class="n">launch_dash_app</span><span class="o">.</span><span class="n">bat</span><span class="p">,</span> <span class="n">launch_dashboard_</span><span class="o">*.</span><span class="n">bat</span><span class="p">,</span> <span class="n">launch_equity_curve_streamlit</span><span class="o">.</span><span class="n">bat</span>
+<span class="n">launch_evolution_</span><span class="o">*.</span><span class="n">bat</span><span class="p">,</span> <span class="n">launch_feedback_dashboard</span><span class="o">.</span><span class="n">bat</span><span class="p">,</span> <span class="n">launch_monitoring_api</span><span class="o">.</span><span class="n">bat</span>
+<span class="n">launch_orchestrator_api</span><span class="o">.</span><span class="n">bat</span><span class="p">,</span> <span class="n">launch_panel_overview</span><span class="o">.</span><span class="n">bat</span><span class="p">,</span> <span class="n">launch_quant_</span><span class="o">*.</span><span class="n">bat</span>
+<span class="n">launch_tracker_scheduler</span><span class="o">.</span><span class="n">ps1</span><span class="p">,</span> <span class="n">launch_v12_dashboard</span><span class="o">.</span><span class="n">bat</span><span class="p">,</span> <span class="n">start_all</span><span class="o">.</span><span class="n">bat</span><span class="p">,</span> <span class="n">stop_all</span><span class="o">.</span><span class="n">bat</span>
+
+<span class="c1"># Scripts de simulation legacy</span>
+<span class="n">run_strategy_factory</span><span class="o">.</span><span class="n">py</span><span class="p">,</span> <span class="n">run_strategy_factory_batch</span><span class="o">.</span><span class="n">py</span><span class="p">,</span> <span class="n">run_strategy_factory_large</span><span class="o">.</span><span class="n">py</span>
+<span class="n">run_multi_simulations</span><span class="o">.</span><span class="n">py</span><span class="p">,</span> <span class="n">automate_pipeline</span><span class="o">.</span><span class="n">py</span><span class="p">,</span> <span class="n">automate_pipeline_task</span><span class="o">.</span><span class="n">ps1</span>
+
+<span class="c1"># Scripts de génération de rapports</span>
+<span class="n">generate_</span><span class="o">*.</span><span class="n">py</span><span class="p">,</span> <span class="n">export_</span><span class="o">*.</span><span class="n">py</span><span class="p">,</span> <span class="n">panel_</span><span class="o">*.</span><span class="n">py</span><span class="p">,</span> <span class="n">notify_</span><span class="o">*.</span><span class="n">py</span><span class="p">,</span> <span class="n">send_orchestration_notification</span><span class="o">.</span><span class="n">py</span>
+
+<span class="c1"># Scripts d&#39;installation/setup obsolètes</span>
+<span class="n">install_all</span><span class="o">.</span><span class="n">ps1</span><span class="p">,</span> <span class="n">install_all</span><span class="o">.</span><span class="n">sh</span><span class="p">,</span> <span class="n">install_and_test</span><span class="o">.</span><span class="n">ps1</span><span class="p">,</span> <span class="n">setup_quant_matrix_venv</span><span class="o">.</span><span class="n">ps1</span>
+<span class="n">reset_quant_matrix_venv</span><span class="o">.</span><span class="n">ps1</span><span class="p">,</span> <span class="n">build_docs</span><span class="o">.</span><span class="n">ps1</span><span class="p">,</span> <span class="n">build_docs</span><span class="o">.</span><span class="n">sh</span>
+
+<span class="c1"># Rapports MD à la racine (devraient être dans docs/ ou supprimés)</span>
+<span class="n">P0_IMPLEMENTATION_REPORT</span><span class="o">.</span><span class="n">md</span><span class="p">,</span> <span class="n">P1_COMPLETE_REPORT</span><span class="o">.</span><span class="n">md</span><span class="p">,</span> <span class="n">P2_COMPLETE_REPORT</span><span class="o">.</span><span class="n">md</span>
+<span class="n">ARCHITECTURE_NOTES</span><span class="o">.</span><span class="n">md</span><span class="p">,</span> <span class="n">CLEANUP_REPORT_FINAL</span><span class="o">.</span><span class="n">md</span><span class="p">,</span> <span class="n">CODE_VALIDATION_REPORT</span><span class="o">.</span><span class="n">md</span>
+<span class="n">DEDUPLICATION_REPORT</span><span class="o">.</span><span class="n">md</span><span class="p">,</span> <span class="n">INTEGRATION_REPORT</span><span class="o">.</span><span class="n">md</span><span class="p">,</span> <span class="n">VALIDATION_COMPLETE</span><span class="o">.</span><span class="n">md</span>
+<span class="n">DOCUMENTATION_</span><span class="o">*.</span><span class="n">md</span><span class="p">,</span> <span class="n">FAQ_</span><span class="o">*.</span><span class="n">md</span><span class="p">,</span> <span class="n">TUTORIEL_</span><span class="o">*.</span><span class="n">md</span><span class="p">,</span> <span class="n">GUIDE_</span><span class="o">*.</span><span class="n">md</span><span class="p">,</span> <span class="n">QUICKSTART</span><span class="o">.</span><span class="n">md</span><span class="p">,</span> <span class="n">QUICK_START</span><span class="o">.</span><span class="n">md</span>
+<span class="n">ACTION_PLAN_CHECKLIST</span><span class="o">.</span><span class="n">md</span><span class="p">,</span> <span class="n">IMPLEMENTATION_3_PRIORITIES</span><span class="o">.</span><span class="n">md</span><span class="p">,</span> <span class="n">INVENTAIRE_2026</span><span class="o">-</span><span class="mi">04</span><span class="o">-</span><span class="mf">25.</span><span class="n">md</span>
+
+<span class="c1"># Fichiers orphelins</span>
+<span class="n">evo_state</span><span class="o">.</span><span class="n">pkl</span><span class="p">,</span> <span class="n">strategy_lab</span><span class="o">.</span><span class="n">sqlite</span><span class="p">,</span> <span class="n">evolution_params</span><span class="o">.</span><span class="n">csv</span><span class="p">,</span> <span class="n">test</span><span class="o">.</span><span class="n">csv</span>
+<span class="n">batch_configs</span><span class="o">.</span><span class="n">json</span><span class="p">,</span> <span class="n">alpha_vault_</span><span class="o">*.</span><span class="n">json</span><span class="p">,</span> <span class="n">crypto_ai_terminal</span><span class="o">.</span><span class="n">zip</span><span class="p">,</span> <span class="n">export_codebase_mars2026</span><span class="o">.</span><span class="n">zip</span>
+<span class="n">test_heatmap2d</span><span class="o">.</span><span class="n">png</span><span class="p">,</span> <span class="n">test_matplotlib3d</span><span class="o">.</span><span class="n">png</span><span class="p">,</span> <span class="n">test_plotly3d</span><span class="o">.</span><span class="n">png</span><span class="p">,</span> <span class="n">test_plotly3d</span><span class="o">.</span><span class="n">svg</span>
+</pre></div>
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="zones-fragiles-a-surveiller">
+<h2>Zones fragiles / à surveiller<a class="headerlink" href="#zones-fragiles-a-surveiller" title="Link to this heading">¶</a></h2>
+<section id="critique-a-corriger-rapidement">
+<h3>Critique — À corriger rapidement<a class="headerlink" href="#critique-a-corriger-rapidement" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Zone</p></th>
+<th class="head"><p>Problème</p></th>
+<th class="head"><p>Impact</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">advisor_loop.py</span></code></p></td>
+<td><p>Cycle de 300s — si un exchange timeout, le cycle entier ralentit</p></td>
+<td><p>Signal stale</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">live_snapshot.json</span></code></p></td>
+<td><p>Écrit à chaque cycle, pas de lock — corruption possible si restart pendant écriture</p></td>
+<td><p>Dashboard stale</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">walk_forward/</span></code> + <code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/quant/walk_forward.py</span></code></p></td>
+<td><p>Deux implémentations parallèles — risque d’incohérence</p></td>
+<td><p>Tests faux positifs</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="moyen-a-planifier">
+<h3>Moyen — À planifier<a class="headerlink" href="#moyen-a-planifier" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Zone</p></th>
+<th class="head"><p>Problème</p></th>
+<th class="head"><p>Impact</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">evolution_core.py</span></code> (racine)</p></td>
+<td><p>Module à la racine au lieu de <code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/</span></code> — cassable si renommé</p></td>
+<td><p>main.py casse</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">market_data/</span></code> Bybit/OKX</p></td>
+<td><p>CCXT uniquement, pas de WebSocket dédié</p></td>
+<td><p>Latence données</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">execution_health.py</span></code></p></td>
+<td><p>Attend <code class="docutils literal notranslate"><span class="pre">logs/execution_audit/audit.jsonl</span></code> créé au premier ordre seulement</p></td>
+<td><p>Dashboard vide en sideways</p></td>
+</tr>
+<tr class="row-odd"><td><p>Score 42/100 constant</p></td>
+<td><p>Sideways depuis &gt;24h — normal mais log répétitif</p></td>
+<td><p>Bruit logs</p></td>
+</tr>
+<tr class="row-even"><td><p>~1200 fichiers débris</p></td>
+<td><p>Racine polluée — confusion sur quels fichiers sont actifs</p></td>
+<td><p>Maintenabilité</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="faible-inoffensif">
+<h3>Faible — Inoffensif<a class="headerlink" href="#faible-inoffensif" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Zone</p></th>
+<th class="head"><p>Problème</p></th>
+<th class="head"><p>Impact</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">project_os/</span></code></p></td>
+<td><p>Module de diagnostic non intégré en prod</p></td>
+<td><p>Aucun</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">frontend/</span></code> (React)</p></td>
+<td><p>Frontend React non connecté au système Python</p></td>
+<td><p>Aucun</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">docs/runbooks/</span></code></p></td>
+<td><p>3 runbooks créés, jamais testés en vrai incident</p></td>
+<td><p>Potentiellement inexacts</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="roadmap-prochaines-phases">
+<h2>Roadmap prochaines phases<a class="headerlink" href="#roadmap-prochaines-phases" title="Link to this heading">¶</a></h2>
+<section id="p5-observation-sprint-en-cours-7-14-jours">
+<h3>P5 — Observation Sprint (en cours, 7-14 jours)<a class="headerlink" href="#p5-observation-sprint-en-cours-7-14-jours" title="Link to this heading">¶</a></h3>
+<p><strong>Objectif :</strong> Accumuler 30 trades paper → valider GO/NO-GO robustesse</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>✅ Bot tourne sur VPS (cycle 300s)
+✅ Dashboards connectés via API
+✅ Multi-exchange feed actif
+✅ Git propre — node_modules supprimé
+⏳ En attente : 30 trades pour GO/NO-GO dashboard (marché sideways, 0/30 actuellement)
+⏳ Observer : fills, stale states, websocket reconnects, OOS drift
+</pre></div>
+</div>
+</section>
+<section id="p6-nettoyage-stabilisation-apres-p5-ou-en-parallele">
+<h3>P6 — Nettoyage + Stabilisation (après P5 ou en parallèle)<a class="headerlink" href="#p6-nettoyage-stabilisation-apres-p5-ou-en-parallele" title="Link to this heading">¶</a></h3>
+<p><strong>Objectif :</strong> Codebase propre, données stables</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Nettoyage (1 jour) :
+  [ ] Supprimer les 28 dossiers obsolètes (~1800 fichiers)
+  [ ] Supprimer les ~60 fichiers Python/bat obsolètes à la racine
+  [ ] Supprimer les ~25 fichiers MD de rapport à la racine
+  [ ] Déplacer evolution_core.py dans quant_hedge_ai/
+
+Stabilisation données :
+  [ ] Lock fichier live_snapshot.json (éviter corruption)
+  [ ] Unifier les 2 walk_forward (racine + quant_hedge_ai)
+  [ ] Health endpoint VPS → dashboard status services
+  [ ] Connecteur Bybit dédié (WebSocket)
+  [ ] Connecteur OKX dédié
+</pre></div>
+</div>
+</section>
+<section id="p7-live-capital-conditionnel-a-p5-go">
+<h3>P7 — Live Capital (conditionnel à P5 GO)<a class="headerlink" href="#p7-live-capital-conditionnel-a-p5-go" title="Link to this heading">¶</a></h3>
+<p><strong>Objectif :</strong> Passer du paper au capital réel contrôlé</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Pré-requis GO/NO-GO :
+  [ ] ≥ 30 trades paper avec robustness GO
+  [ ] Profit factor ≥ 1.5 sur 50 trades
+  [ ] Drawdown normalisé &lt; 5%
+  [ ] avg_win/avg_loss ≥ 1.5
+  [ ] 0 incident de corruption de données
+
+Actions :
+  [ ] Créer clés API Binance (Read + Futures Trading)
+  [ ] Activer LIVE_MODE=true dans .env VPS
+  [ ] Capital initial : ≤ $500 (hard limit MIN_CAPITAL_USD)
+  [ ] Monitoring 24h/j via Telegram watchdog
+</pre></div>
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="problemes-silencieux-a-surveiller">
+<h2>Problèmes silencieux à surveiller<a class="headerlink" href="#problemes-silencieux-a-surveiller" title="Link to this heading">¶</a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>1. Score 42/100 constant en sideways
+   → Normal, mais vérifier que le signal change quand le régime change
+   → Si score reste 42 pendant 24h, vérifier LSE + régime detector
+
+2. Execution audit vide
+   → logs/execution_audit/audit.jsonl créé seulement au premier ordre exécuté
+   → En sideways, ce fichier n&#39;existe pas = dashboard Execution Health vide
+   → NORMAL en phase d&#39;observation
+
+3. Sync 8/8 fichiers
+   → multi_exchange_snapshot.json inclus depuis P5
+   → Vérifier que le sync affiche bien 8/8 après redémarrage du vps_data_sync
+
+4. walk_forward en doublon
+   → Deux modules avec des APIs différentes
+   → Si un test passe mais pas l&#39;autre, chercher lequel est appelé
+
+5. evolution_core.py à la racine
+   → main.py l&#39;importe directement
+   → Si quelqu&#39;un déplace le fichier, main.py casse sans erreur évidente
+
+6. ~1200 fichiers débris non supprimés
+   → Aucun impact runtime mais augmente le risque de modifier le mauvais fichier
+   → Nettoyage planifié en P6
+</pre></div>
+</div>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Crypto AI Terminal
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">ROADMAP — Crypto AI Terminal</a><ul>
+<li><a class="reference internal" href="#etat-actuel-phase-5-paper-trading-live">ÉTAT ACTUEL : Phase 5 — Paper Trading Live</a><ul>
+<li><a class="reference internal" href="#ce-qui-est-livre-et-operationnel">Ce qui est livré et opérationnel</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#architecture-de-deploiement-actuelle">Architecture de déploiement actuelle</a></li>
+<li><a class="reference internal" href="#arborescence-active-modules-en-production">Arborescence active (modules en production)</a></li>
+<li><a class="reference internal" href="#debris-a-nettoyer-p6-nettoyage-racine">Débris à nettoyer (P6 — Nettoyage racine)</a><ul>
+<li><a class="reference internal" href="#dossiers-obsoletes-a-supprimer">Dossiers obsolètes à supprimer</a></li>
+<li><a class="reference internal" href="#fichiers-python-obsoletes-a-la-racine">Fichiers Python obsolètes à la racine</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#zones-fragiles-a-surveiller">Zones fragiles / à surveiller</a><ul>
+<li><a class="reference internal" href="#critique-a-corriger-rapidement">Critique — À corriger rapidement</a></li>
+<li><a class="reference internal" href="#moyen-a-planifier">Moyen — À planifier</a></li>
+<li><a class="reference internal" href="#faible-inoffensif">Faible — Inoffensif</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#roadmap-prochaines-phases">Roadmap prochaines phases</a><ul>
+<li><a class="reference internal" href="#p5-observation-sprint-en-cours-7-14-jours">P5 — Observation Sprint (en cours, 7-14 jours)</a></li>
+<li><a class="reference internal" href="#p6-nettoyage-stabilisation-apres-p5-ou-en-parallele">P6 — Nettoyage + Stabilisation (après P5 ou en parallèle)</a></li>
+<li><a class="reference internal" href="#p7-live-capital-conditionnel-a-p5-go">P7 — Live Capital (conditionnel à P5 GO)</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#problemes-silencieux-a-surveiller">Problèmes silencieux à surveiller</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="_static/documentation_options.js?v=ef6a59ae"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    </body>
+</html>

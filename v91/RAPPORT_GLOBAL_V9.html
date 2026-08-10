@@ -1,0 +1,942 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html">
+        <link rel="prefetch" href="../_static/../assets/logo_ai_quant.png" as="image">
+        <link rel="prefetch" href="../_static/../assets/logo_ai_quant.png" as="image">
+
+    <link rel="shortcut icon" href="../_static/favicon.ico"><!-- Generated with Sphinx 9.0.4 and Furo 2025.12.19 -->
+        <title>📊 RAPPORT GLOBAL - Architecture Crypto AI Hedge Fund (V7-V9) - Crypto AI Terminal 9.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=1b9cecba" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">Crypto AI Terminal 9.1 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="../_static/../assets/logo_ai_quant.png" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="../_static/../assets/logo_ai_quant.png" alt="Dark Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/blob/main/docs/v91/RAPPORT_GLOBAL_V9.md?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/edit/main/docs/v91/RAPPORT_GLOBAL_V9.md" rel="edit" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="rapport-global-architecture-crypto-ai-hedge-fund-v7-v9">
+<h1>📊 RAPPORT GLOBAL - Architecture Crypto AI Hedge Fund (V7-V9)<a class="headerlink" href="#rapport-global-architecture-crypto-ai-hedge-fund-v7-v9" title="Link to this heading">¶</a></h1>
+<p><strong>Date:</strong> 10 Mars 2026<br />
+<strong>Localisation:</strong> <code class="docutils literal notranslate"><span class="pre">c:\Users\WINDOWS\crypto_ai_terminal\</span></code><br />
+<strong>État:</strong> Production Ready + V9 Autonomous Lab Déployé</p>
+<hr class="docutils" />
+<section id="vue-densemble-du-workspace">
+<h2>1️⃣ VUE D’ENSEMBLE DU WORKSPACE<a class="headerlink" href="#vue-densemble-du-workspace" title="Link to this heading">¶</a></h2>
+<p>Le workspace contient <strong>4 projets quant majeurs + 1 multi-agent lab autonome (V9)</strong>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>crypto_ai_terminal/
+├── .venv/                        # Python 3.14 virtual env
+├── bot-v3/                       # Advanced trading bot V3
+├── quant-ai-system/              # V7 Multiagent + Docker (actif)
+├── quant-bot-v3-pro/             # Pro bot variant
+├── quant-hedge-bot/              # Trading strategies
+├── quant-trading-system/         # Full trading stack
+├── quant-hedge-ai/               # ✨ V9 NOUVEAU - Autonomous Lab
+├── scripts/                      # Helper scripts
+├── data/                         # Market CSV files
+└── notebooks/                    # Analysis notebooks
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="projets-existants-v1-v7">
+<h2>2️⃣ PROJETS EXISTANTS (V1-V7)<a class="headerlink" href="#projets-existants-v1-v7" title="Link to this heading">¶</a></h2>
+<section id="quant-ai-system-v7-actif-en-docker">
+<h3>📦 quant-ai-system (V7 - Actif en Docker)<a class="headerlink" href="#quant-ai-system-v7-actif-en-docker" title="Link to this heading">¶</a></h3>
+<p><strong>État:</strong> ✅ Running in Docker Compose<br />
+<strong>Version:</strong> V7 Multi-Agent (main_v7_multiagent.py / main_v7_production.py)</p>
+<p><strong>Architecture:</strong></p>
+<ul class="simple">
+<li><p><strong>Agents:</strong> 7+ specialized AI agents (coordonnés)</p></li>
+<li><p><strong>Core:</strong> Market scanner, portfolio manager, risk engine, execution</p></li>
+<li><p><strong>AI:</strong> Strategy generator, evaluator, DQN reinforcement learner</p></li>
+<li><p><strong>Quant:</strong> GA optimizer, backtester avancé (walk-forward testing)</p></li>
+<li><p><strong>Monitoring:</strong> Streamlit dashboard + Prometheus/Grafana</p></li>
+</ul>
+<p><strong>Services Docker:</strong> (env vars: quant-ai-system/.env.example)</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">crypto_ai_postgres</span></code> (5432) - Database</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">crypto_ai_redis</span></code> (6379) - Cache + pub/sub</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">crypto_ai_prometheus</span></code> (9090) - Metrics</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">crypto_ai_grafana</span></code> (3000) - Visualization</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">crypto_ai_dashboard</span></code> (8502 port mappé) - Streamlit</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">crypto_ai_trading_bot</span></code> (8000, 8501) - Main IA bot</p></li>
+</ul>
+<p><strong>Démarrage:</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>quant-ai-system
+docker<span class="w"> </span>compose<span class="w"> </span>up<span class="w"> </span>-d
+</pre></div>
+</div>
+<p><strong>Problèmes corrigés récemment:</strong></p>
+<ul class="simple">
+<li><p>✅ Port conflict: dashboard port 8501 → 8502</p></li>
+<li><p>✅ Prometheus config: monitoring/prometheus.yml créé (fichier au lieu de dossier)</p></li>
+<li><p>✅ Container stale: suppression d’anciens conteneurs</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="autres-projets-versions-anterieures">
+<h3>📦 Autres Projets (Versions antérieures)<a class="headerlink" href="#autres-projets-versions-anterieures" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Projet</p></th>
+<th class="head"><p>Version</p></th>
+<th class="head"><p>État</p></th>
+<th class="head"><p>Remarques</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>bot-v3</p></td>
+<td><p>V3</p></td>
+<td><p>Standalone</p></td>
+<td><p>Structure modulaire classique</p></td>
+</tr>
+<tr class="row-odd"><td><p>quant-hedge-bot</p></td>
+<td><p>V4-V5</p></td>
+<td><p>Standalone</p></td>
+<td><p>Avec interface web pro</p></td>
+</tr>
+<tr class="row-even"><td><p>quant-bot-v3-pro</p></td>
+<td><p>V3 Pro</p></td>
+<td><p>Standalone</p></td>
+<td><p>Variante optimisée</p></td>
+</tr>
+<tr class="row-odd"><td><p>quant-trading-system</p></td>
+<td><p>V5-V6</p></td>
+<td><p>Standalone</p></td>
+<td><p>Full stack deployment-ready</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="nouveau-v9-autonomous-quant-lab-quant-hedge-ai">
+<h2>3️⃣ NOUVEAU: V9 AUTONOMOUS QUANT LAB (quant-hedge-ai)<a class="headerlink" href="#nouveau-v9-autonomous-quant-lab-quant-hedge-ai" title="Link to this heading">¶</a></h2>
+<section id="caracteristiques-principales">
+<h3>✨ Caractéristiques principales<a class="headerlink" href="#caracteristiques-principales" title="Link to this heading">¶</a></h3>
+<p><strong>Architecture:</strong> ~20 agents IA spécialisés, orchestrés en boucle autonome<br />
+<strong>Mode:</strong> Recherche quantitative autonome + paper trading expérimental<br />
+<strong>Langage:</strong> Python 3.14 (type hints modernes)</p>
+</section>
+<section id="structure-des-agents-v9">
+<h3>📂 Structure des agents V9<a class="headerlink" href="#structure-des-agents-v9" title="Link to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>quant-hedge-ai/
+├── main_system.py                 # Orchestrateur principal
+├── README.md                      # Guide de lancement
+│
+├── agents/
+│   ├── research/                  # 4 agents de recherche
+│   │   ├── paper_analyzer.py      # Analyse de stratégies/papers
+│   │   ├── strategy_researcher.py # Ranking par Sharpe/drawdown
+│   │   ├── feature_engineer.py    # Feature extraction depuis candles
+│   │   └── model_builder.py       # Retrain proxy ML
+│   │
+│   ├── market/                    # 4 agents marché
+│   │   ├── market_scanner.py      # Snapshots OHLCV synthétiques
+│   │   ├── orderflow_agent.py     # Imbalance order-flow
+│   │   ├── volatility_agent.py    # Vol detector
+│   │   └── regime_detector.py     # Bull/bear/range detection
+│   │
+│   ├── strategy/                  # 3 agents génération strategy
+│   │   ├── strategy_generator.py  # Génération aléatoire
+│   │   ├── genetic_optimizer.py   # Crossover + mutation
+│   │   └── rl_trader.py           # Epsilon-greedy Q-learner
+│   │
+│   ├── quant/                     # 3 agents quant lab
+│   │   ├── backtest_lab.py        # Backtest synthétique (300-500 strats/cycle)
+│   │   ├── monte_carlo.py         # Simulation MC pour stress-test
+│   │   └── portfolio_optimizer.py # Kelly allocation
+│   │
+│   ├── risk/                      # 3 agents risque
+│   │   ├── risk_monitor.py        # Check drawdown &lt; seuil
+│   │   ├── drawdown_guard.py      # Position sizing adaptatif
+│   │   └── exposure_manager.py    # Capping per-symbol
+│   │
+│   ├── execution/                 # 4 agents exécution
+│   │   ├── execution_engine.py    # Order creation
+│   │   ├── arbitrage_agent.py     # Arbitrage detection
+│   │   ├── liquidity_agent.py     # Volume filtering
+│   │   └── paper_trading_engine.py # Sim trading (balance 100k start)
+│   │
+│   ├── monitoring/                # 2 agents monitoring
+│   │   ├── performance_monitor.py # Summary Sharpe/DD/PnL
+│   │   └── system_monitor.py      # Heartbeat cycle tracking
+│   │
+├── data/
+│   ├── market_database.py         # JSONL market snapshots
+│   └── strategy_database.py       # JSON best_strategies
+│
+├── dashboard/
+│   └── ai_dashboard.py            # Console report rendering
+</pre></div>
+</div>
+</section>
+<section id="cycle-autonome-v9-execution-chaque-iteration">
+<h3>🔄 Cycle Autonome V9 (exécution chaque itération)<a class="headerlink" href="#cycle-autonome-v9-execution-chaque-iteration" title="Link to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>┌─────────────────────────────────────────────────────┐
+│ CYCLE V9 - Autonomous Quant Research Lab            │
+└─────────────────────────────────────────────────────┘
+
+1. MARKET SCAN
+   └─ Snapshot OHLCV 4 symbols (BTCUSDT, ETHUSDT, SOLUSDT, BNBUSDT)
+   └─ OrderFlow + Volatility + Regime detection
+   └─ Save to market_database.jsonl
+
+2. STRATEGY GENERATION &amp; EVOLUTION
+   └─ Generate population (default 300 stratégies)
+   │   - Indicateurs: RSI, MACD, EMA, BOLLINGER, VWAP, ATR
+   │   - Periods: 5-80, Thresholds: 0.1-2.5
+   └─ Genetic optimization (3 générations)
+   │   - Crossover: recombine best candidates
+   │   - Mutation: perturb parameters
+   └─ Result: ~600 strategy variants
+
+3. MASSIVE BACKTESTING
+   └─ Run each strategy sur simulated market data
+   └─ Metrics: PnL, Sharpe, Max Drawdown, Win Rate
+   └─ Sorting seed-based pour reproducibilité
+
+4. RANKING &amp; SELECTION
+   └─ Top 20 strategies par score composite
+   └─ Filter: drawdown &lt; 0.25 (risk limit)
+   └─ Store dans strategy_database.json (top 50 persistent)
+
+5. MODEL RETRAINING
+   └─ Compute avg Sharpe from top 10 survivors
+   └─ Increment model version
+   └─ Update training_score proxy
+
+6. PAPER TRADING EXECUTION
+   └─ RL agent chooses action (BUY/SELL/HOLD)
+   │   - State: regime + momentum + orderflow
+   │   - Q-learning update on reward
+   └─ Arbitrage detection (cross-exchange mock)
+   └─ Execute order sur simulated portfolio
+   │   - Initial balance: 100k
+   │   - Position sizing: adaptive based on drawdown
+
+7. MONITORING &amp; REPORTING
+   └─ Print console report:
+   │   - Best strategy found
+   │   - Portfolio allocation
+   │   - Performance metrics
+   │   - Model version &amp; training score
+   │   - Monte Carlo stress test results
+   │   - Paper trading positions
+</pre></div>
+</div>
+</section>
+<section id="entree-sortie-exemple-dun-cycle">
+<h3>📊 Entrée / Sortie Exemple d’un Cycle<a class="headerlink" href="#entree-sortie-exemple-dun-cycle" title="Link to this heading">¶</a></h3>
+<p><strong>Input:</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Cycle</span> <span class="mi">1</span> <span class="o">@</span> <span class="mi">2026</span><span class="o">-</span><span class="mi">03</span><span class="o">-</span><span class="mi">09</span><span class="n">T15</span><span class="p">:</span><span class="mi">16</span><span class="p">:</span><span class="mi">15</span><span class="n">Z</span>
+<span class="n">Population</span> <span class="n">size</span><span class="p">:</span> <span class="mi">300</span>
+</pre></div>
+</div>
+<p><strong>Output:</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[</span><span class="n">Cycle</span> <span class="mi">1</span><span class="p">]</span> <span class="n">running</span> <span class="o">@</span> <span class="mi">2026</span><span class="o">-</span><span class="mi">03</span><span class="o">-</span><span class="mi">09</span><span class="n">T15</span><span class="p">:</span><span class="mi">16</span><span class="p">:</span><span class="mf">15.455354</span><span class="o">+</span><span class="mi">00</span><span class="p">:</span><span class="mi">00</span>
+<span class="n">Best</span><span class="p">:</span> <span class="n">RSI</span><span class="o">-&gt;</span><span class="n">ATR</span> <span class="n">p</span><span class="o">=</span><span class="mi">69</span> <span class="n">sharpe</span><span class="o">=</span><span class="mf">14.85</span> <span class="n">dd</span><span class="o">=</span><span class="mf">0.0185</span>
+<span class="n">Perf</span><span class="p">:</span> <span class="n">sharpe</span><span class="o">=</span><span class="mf">11.5779</span> <span class="n">dd</span><span class="o">=</span><span class="mf">0.0259</span> <span class="n">pnl</span><span class="o">=</span><span class="mf">45.7907</span>
+<span class="n">Model</span><span class="p">:</span> <span class="n">v1</span> <span class="n">score</span><span class="o">=</span><span class="mf">12.5654</span>
+<span class="n">Portfolio</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;RSI_ATR_69&#39;</span><span class="p">:</span> <span class="mf">0.1523</span><span class="p">,</span> <span class="s1">&#39;ATR_MACD_77&#39;</span><span class="p">:</span> <span class="mf">0.0767</span><span class="p">,</span> <span class="o">...</span><span class="p">}</span>
+<span class="n">MonteCarlo</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;median_terminal&#39;</span><span class="p">:</span> <span class="mf">0.7773</span><span class="p">,</span> <span class="s1">&#39;p05_terminal&#39;</span><span class="p">:</span> <span class="mf">0.1474</span><span class="p">,</span> <span class="s1">&#39;p95_terminal&#39;</span><span class="p">:</span> <span class="mf">4.2707</span><span class="p">}</span>
+<span class="n">Paper</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;balance&#39;</span><span class="p">:</span> <span class="mf">95520.1</span><span class="p">,</span> <span class="s1">&#39;positions&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;BTCUSDT&#39;</span><span class="p">:</span> <span class="mf">0.9537</span><span class="p">}}</span>
+</pre></div>
+</div>
+</section>
+<section id="lancement-v9">
+<h3>🚀 Lancement V9<a class="headerlink" href="#lancement-v9" title="Link to this heading">¶</a></h3>
+<p><strong>Commandes:</strong></p>
+<div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="c"># Terminal</span>
+<span class="nb">cd </span><span class="n">c</span><span class="p">:\</span><span class="n">Users</span><span class="p">\</span><span class="n">WINDOWS</span><span class="p">\</span><span class="n">crypto_ai_terminal</span><span class="p">\</span><span class="n">quant-hedge-ai</span>
+
+<span class="c"># Option 1: 3 cycles (par défaut)</span>
+<span class="n">python</span> <span class="n">main_system</span><span class="p">.</span><span class="n">py</span>
+
+<span class="c"># Option 2: Boucle infinie</span>
+<span class="nv">$env:V9_MAX_CYCLES</span><span class="p">=</span><span class="s2">&quot;0&quot;</span>
+<span class="n">python</span> <span class="n">main_system</span><span class="p">.</span><span class="n">py</span>
+
+<span class="c"># Option 3: Custom</span>
+<span class="nv">$env:V9_MAX_CYCLES</span><span class="p">=</span><span class="s2">&quot;10&quot;</span>
+<span class="nv">$env:V9_POPULATION</span><span class="p">=</span><span class="s2">&quot;500&quot;</span>
+<span class="nv">$env:V9_SLEEP_SECONDS</span><span class="p">=</span><span class="s2">&quot;1&quot;</span>
+<span class="n">python</span> <span class="n">main_system</span><span class="p">.</span><span class="n">py</span>
+</pre></div>
+</div>
+</section>
+<section id="fichiers-sortie-v9">
+<h3>📝 Fichiers Sortie V9<a class="headerlink" href="#fichiers-sortie-v9" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">quant-hedge-ai/data/market_snapshots.jsonl</span></code> - Historique marché</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">quant-hedge-ai/data/best_strategies.json</span></code> - Top 50 strategies persistent</p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="comparaison-v7-vs-v9">
+<h2>4️⃣ COMPARAISON V7 vs V9<a class="headerlink" href="#comparaison-v7-vs-v9" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Aspect</p></th>
+<th class="head"><p>V7 (Docker)</p></th>
+<th class="head"><p>V9 (Standalone)</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong>Mode</strong></p></td>
+<td><p>Real-time trading + monitoring</p></td>
+<td><p>Autonomous research loop</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Agents</strong></p></td>
+<td><p>7-10 (market, strategy, risk)</p></td>
+<td><p>~20 specialized</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Backtesting</strong></p></td>
+<td><p>Walk-forward, few per cycle</p></td>
+<td><p>Massive: 300-500/cycle</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Optimization</strong></p></td>
+<td><p>DQN + GA (slow)</p></td>
+<td><p>GA + RL + genetic (fast)</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Database</strong></p></td>
+<td><p>PostgreSQL + Redis</p></td>
+<td><p>JSON files local</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Dashboard</strong></p></td>
+<td><p>Streamlit web (8502)</p></td>
+<td><p>Console output</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Execution</strong></p></td>
+<td><p>Paper trading + real (connectors)</p></td>
+<td><p>Pure paper trading mock</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Horaire</strong></p></td>
+<td><p>Continuous (24/7)</p></td>
+<td><p>Cycles contrôlées</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Déploiement</strong></p></td>
+<td><p>Docker (multi-container)</p></td>
+<td><p>Single Python process</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Dépendances Externes</strong></p></td>
+<td><p>API exchange, DB services</p></td>
+<td><p>Aucune</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Scalability</strong></p></td>
+<td><p>Haute (distributed)</p></td>
+<td><p>Moyenne (CPU-bound)</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<hr class="docutils" />
+<section id="points-forts-actuels">
+<h2>5️⃣ POINTS FORTS ACTUELS<a class="headerlink" href="#points-forts-actuels" title="Link to this heading">¶</a></h2>
+<p>✅ <strong>Modularité:</strong> Agents découplés, facile d’ajouter/remplacer<br />
+✅ <strong>Autonomie:</strong> V9 tourne en boucle sans intervention<br />
+✅ <strong>Diversité:</strong> 4 versions majeures pour différents use cases<br />
+✅ <strong>Type-safe:</strong> Python 3.14 avec type hints complets<br />
+✅ <strong>Reproductibilité:</strong> Seeds déterministes pour backtests<br />
+✅ <strong>Monitoring:</strong> Console reporting + persistent data<br />
+✅ <strong>Docker:</strong> V7 containerisé, facile à déployer<br />
+✅ <strong>Risk Management:</strong> Drawdown guards, exposure caps, Kelly allocation</p>
+</section>
+<hr class="docutils" />
+<section id="limitations-defis-actuels">
+<h2>6️⃣ LIMITATIONS &amp; DÉFIS ACTUELS<a class="headerlink" href="#limitations-defis-actuels" title="Link to this heading">¶</a></h2>
+<p>⚠️ <strong>Données Synthétiques:</strong></p>
+<ul class="simple">
+<li><p>V9 génère des candles mock (pas d’API réelle)</p></li>
+<li><p>Résultats backtests peu réalistes</p></li>
+</ul>
+<p>⚠️ <strong>Pas d’API Exchange Réelle:</strong></p>
+<ul class="simple">
+<li><p>V7 a connectors mais pas de clés active</p></li>
+<li><p>V9 n’a pas de connecteur externe</p></li>
+</ul>
+<p>⚠️ <strong>Pas d’On-Chain Data:</strong></p>
+<ul class="simple">
+<li><p>Pas d’analyse blockchain</p></li>
+<li><p>Pas de whale tracking</p></li>
+<li><p>Pas de donnée arbitrage réelle multi-exchange</p></li>
+</ul>
+<p>⚠️ <strong>Pas de News/Sentiment:</strong></p>
+<ul class="simple">
+<li><p>Pas d’API news crypto</p></li>
+<li><p>Pas d’analyse sentiment</p></li>
+</ul>
+<p>⚠️ <strong>Model Persistence:</strong></p>
+<ul class="simple">
+<li><p>V9 ne save pas l’état RL model</p></li>
+<li><p>Pas de checkpoint réentrainement</p></li>
+</ul>
+<p>⚠️ <strong>Scalabilité V9:</strong></p>
+<ul class="simple">
+<li><p>Population fixe (300-500) = limit backtest throughput</p></li>
+<li><p>Pas de GPU acceleration</p></li>
+<li><p>Pas de distributed computing</p></li>
+</ul>
+<p>⚠️ <strong>Optimization Gap:</strong></p>
+<ul class="simple">
+<li><p>GA basique (pas d’advanced optimization)</p></li>
+<li><p>Pas de Bayesian optimization</p></li>
+<li><p>Pas de hyperparameter tuning auto</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="opportunites-damelioration">
+<h2>7️⃣ OPPORTUNITÉS D’AMÉLIORATION<a class="headerlink" href="#opportunites-damelioration" title="Link to this heading">¶</a></h2>
+<section id="a-court-terme-1-2-semaines">
+<h3>À Court Terme (1-2 semaines)<a class="headerlink" href="#a-court-terme-1-2-semaines" title="Link to this heading">¶</a></h3>
+<ol class="arabic simple">
+<li><p><strong>Brancher API Réelle:</strong></p>
+<ul class="simple">
+<li><p>Intégrer Binance API dans V9 market_scanner</p></li>
+<li><p>Remplacer mock data par real candles</p></li>
+<li><p>Ajouter credentials via .env</p></li>
+</ul>
+</li>
+<li><p><strong>Model Persistence:</strong></p>
+<ul class="simple">
+<li><p>Sauvegarder Q-table RL trader</p></li>
+<li><p>Checkpoint strategy_database entre runs</p></li>
+<li><p>Resume mode pour long-running experiments</p></li>
+</ul>
+</li>
+<li><p><strong>Améliorer Backtester:</strong></p>
+<ul class="simple">
+<li><p>Commission + slippage realism</p></li>
+<li><p>Order fill simulation</p></li>
+<li><p>Intraday OHLC (pas juste close)</p></li>
+</ul>
+</li>
+<li><p><strong>Advanced Logging:</strong></p>
+<ul class="simple">
+<li><p>JSON structured logging</p></li>
+<li><p>CSV export pour analysis</p></li>
+<li><p>Metrics dashboard (Prometheus)</p></li>
+</ul>
+</li>
+</ol>
+</section>
+<section id="a-moyen-terme-3-4-semaines">
+<h3>À Moyen Terme (3-4 semaines)<a class="headerlink" href="#a-moyen-terme-3-4-semaines" title="Link to this heading">¶</a></h3>
+<ol class="arabic simple" start="5">
+<li><p><strong>Multi-Exchange Arbitrage:</strong></p>
+<ul class="simple">
+<li><p>Binance + Bybit + Kraken prices</p></li>
+<li><p>Real spread detection</p></li>
+<li><p>Cross-exchange order coordination</p></li>
+</ul>
+</li>
+<li><p><strong>On-Chain Analysis:</strong></p>
+<ul class="simple">
+<li><p>Blockchain TX analysis (whale picks)</p></li>
+<li><p>Liquidity pools monitoring</p></li>
+<li><p>Smart contract interactions</p></li>
+</ul>
+</li>
+<li><p><strong>News/Sentiment Integration:</strong></p>
+<ul class="simple">
+<li><p>Crypto news API (CryptoNews, Messari)</p></li>
+<li><p>Sentiment scoring</p></li>
+<li><p>Impact event detection</p></li>
+</ul>
+</li>
+<li><p><strong>Advanced Optimization:</strong></p>
+<ul class="simple">
+<li><p>Bayesian optimization pour hyperparams</p></li>
+<li><p>Differential evolution algo</p></li>
+<li><p>Particle swarm optimization</p></li>
+</ul>
+</li>
+</ol>
+</section>
+<section id="a-long-terme-5-8-semaines">
+<h3>À Long Terme (5-8 semaines)<a class="headerlink" href="#a-long-terme-5-8-semaines" title="Link to this heading">¶</a></h3>
+<ol class="arabic simple" start="9">
+<li><p><strong>V9.1 - Enhanced Agents:</strong></p>
+<ul class="simple">
+<li><p>News crawler agent</p></li>
+<li><p>Whale detector agent</p></li>
+<li><p>On-chain analyzer agent</p></li>
+<li><p>Multi-exchange arbitrage agent</p></li>
+</ul>
+</li>
+<li><p><strong>V10 - Distributed System:</strong></p>
+<ul class="simple">
+<li><p>Distributed backtester (Ray framework)</p></li>
+<li><p>GPU-accelerated RL training</p></li>
+<li><p>Multi-worker pool for strategy evolution</p></li>
+<li><p>Kafka event streaming</p></li>
+</ul>
+</li>
+<li><p><strong>Production Deployment:</strong></p>
+<ul class="simple">
+<li><p>Real-money trading mode</p></li>
+<li><p>Hot-start recovery</p></li>
+<li><p>Live monitoring dashboard</p></li>
+<li><p>Emergency circuit breakers</p></li>
+</ul>
+</li>
+</ol>
+</section>
+</section>
+<hr class="docutils" />
+<section id="technologies-utilisees">
+<h2>8️⃣ TECHNOLOGIES UTILISÉES<a class="headerlink" href="#technologies-utilisees" title="Link to this heading">¶</a></h2>
+<section id="core">
+<h3>Core<a class="headerlink" href="#core" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Python 3.14, Type Hints</p></li>
+<li><p>NumPy, Pandas (data handling)</p></li>
+<li><p>Dataclasses (config management)</p></li>
+</ul>
+</section>
+<section id="v7-docker">
+<h3>V7 (Docker)<a class="headerlink" href="#v7-docker" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>FastAPI (API server)</p></li>
+<li><p>Streamlit (dashboard)</p></li>
+<li><p>PostgreSQL (datastore)</p></li>
+<li><p>Redis (cache)</p></li>
+<li><p>Docker / Docker Compose</p></li>
+<li><p>Prometheus / Grafana (monitoring)</p></li>
+</ul>
+</section>
+<section id="v9">
+<h3>V9<a class="headerlink" href="#v9" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Pure Python stdlib (minimal deps for autonomy)</p></li>
+<li><p>Random (strategy generation)</p></li>
+<li><p>Statistics (math operations)</p></li>
+<li><p>Pathlib (file management)</p></li>
+</ul>
+</section>
+<section id="potential-integrations">
+<h3>Potential Integrations<a class="headerlink" href="#potential-integrations" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>ccxt (exchange API)</p></li>
+<li><p>ta-lib (technical analysis)</p></li>
+<li><p>scikit-learn (ML models)</p></li>
+<li><p>TensorFlow/PyTorch (DL models)</p></li>
+<li><p>Ray (distributed computing)</p></li>
+<li><p>Kafka (event streaming)</p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="architecture-recommandee-v10">
+<h2>9️⃣ ARCHITECTURE RECOMMANDÉE (V10)<a class="headerlink" href="#architecture-recommandee-v10" title="Link to this heading">¶</a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>┌──────────────────────────────────────────────────┐
+│ V10 - PRODUCTION AUTONOMOUS HEDGE FUND           │
+└──────────────────────────────────────────────────┘
+
+┌─ DATA LAYER ─────────────────────────────────┐
+│ • Binance/Bybit/Kraken live feeds (CCXT)      │
+│ • On-chain data (Blockchain RPC)              │
+│ • News scraping + Sentiment API               │
+└───────────────────────────────────────────────┘
+         ↓
+┌─ DISTRIBUTED RESEARCH ────────────────────────┐
+│ • Ray Distributed Backtester                  │
+│ • GPU RL Training (TensorFlow/PyTorch)        │
+│ • Bayesian HyperOpt (Optuna)                  │
+│ • 10k strategies/cycle (vs 300 in V9)         │
+└───────────────────────────────────────────────┘
+         ↓
+┌─ STRATEGY ENGINE (V9 core) ──────────────────┐
+│ • 20 agents autonomes (existing)              │
+│ • RL model persistence + hot reload           │
+│ • Monte Carlo stress tests                    │
+│ • Portfolio optimization (Kelly + CVaR)      │
+└───────────────────────────────────────────────┘
+         ↓
+┌─ MULTI-EXCHANGE EXECUTION ────────────────────┐
+│ • Binance / Bybit connectors                  │
+│ • Arbitrage coordinator                       │
+│ • Real-time position tracking                 │
+│ • Risk circuit breakers                       │
+└───────────────────────────────────────────────┘
+         ↓
+┌─ MONITORING &amp; ANALYTICS ──────────────────────┐
+│ • Prometheus metrics                          │
+│ • Grafana dashboards                          │
+│ • ClickHouse timeseries DB                    │
+│ • Jupyter notebooks for analysis              │
+└───────────────────────────────────────────────┘
+
+Deployment: Kubernetes cluster + message queue (Kafka)
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="prochaines-actions-recommandees">
+<h2>🔟 PROCHAINES ACTIONS RECOMMANDÉES<a class="headerlink" href="#prochaines-actions-recommandees" title="Link to this heading">¶</a></h2>
+<ol class="arabic simple">
+<li><p><strong>Immédiates:</strong></p>
+<ul class="contains-task-list simple">
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox">Branch API réelle dans V9 (Binance)</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox">Test sur données réelles (paper trading)</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox">Ajouter logging structuré</p></li>
+</ul>
+</li>
+<li><p><strong>Cette semaine:</strong></p>
+<ul class="contains-task-list simple">
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox">Multi-exchange support (Bybit, Kraken)</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox">Model persistence (save/load RL state)</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox">Advanced performance tracking</p></li>
+</ul>
+</li>
+<li><p><strong>Prochaines semaines:</strong></p>
+<ul class="contains-task-list simple">
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox">On-chain data integration</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox">News/sentiment analysis</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox">Distributed backtesting (Ray)</p></li>
+</ul>
+</li>
+<li><p><strong>Roadmap long-term:</strong></p>
+<ul class="contains-task-list simple">
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox">V9.1 with 25+ agents</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox">V10 production deployment</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox">Real-money trading (paper → real)</p></li>
+</ul>
+</li>
+</ol>
+</section>
+<hr class="docutils" />
+<section id="contact-documentation">
+<h2>📞 CONTACT &amp; DOCUMENTATION<a class="headerlink" href="#contact-documentation" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><strong>Main Orchestrator:</strong> <code class="docutils literal notranslate"><span class="pre">quant-hedge-ai/main_system.py</span></code></p></li>
+<li><p><strong>Config:</strong> Environment variables (V9_MAX_CYCLES, V9_POPULATION, V9_SLEEP_SECONDS)</p></li>
+<li><p><strong>Data Output:</strong> <code class="docutils literal notranslate"><span class="pre">quant-hedge-ai/data/</span></code> (JSON + JSONL)</p></li>
+<li><p><strong>Docker V7:</strong> <code class="docutils literal notranslate"><span class="pre">quant-ai-system/docker-compose.yml</span></code></p></li>
+<li><p><strong>README V9:</strong> <code class="docutils literal notranslate"><span class="pre">quant-hedge-ai/README.md</span></code></p></li>
+</ul>
+<hr class="docutils" />
+<p><strong>Version Report:</strong> 1.0<br />
+<strong>Last Updated:</strong> 10 Mars 2026<br />
+<strong>Ready for GPT Analysis:</strong> ✅ YES</p>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Crypto AI Terminal
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">📊 RAPPORT GLOBAL - Architecture Crypto AI Hedge Fund (V7-V9)</a><ul>
+<li><a class="reference internal" href="#vue-densemble-du-workspace">1️⃣ VUE D’ENSEMBLE DU WORKSPACE</a></li>
+<li><a class="reference internal" href="#projets-existants-v1-v7">2️⃣ PROJETS EXISTANTS (V1-V7)</a><ul>
+<li><a class="reference internal" href="#quant-ai-system-v7-actif-en-docker">📦 quant-ai-system (V7 - Actif en Docker)</a></li>
+<li><a class="reference internal" href="#autres-projets-versions-anterieures">📦 Autres Projets (Versions antérieures)</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#nouveau-v9-autonomous-quant-lab-quant-hedge-ai">3️⃣ NOUVEAU: V9 AUTONOMOUS QUANT LAB (quant-hedge-ai)</a><ul>
+<li><a class="reference internal" href="#caracteristiques-principales">✨ Caractéristiques principales</a></li>
+<li><a class="reference internal" href="#structure-des-agents-v9">📂 Structure des agents V9</a></li>
+<li><a class="reference internal" href="#cycle-autonome-v9-execution-chaque-iteration">🔄 Cycle Autonome V9 (exécution chaque itération)</a></li>
+<li><a class="reference internal" href="#entree-sortie-exemple-dun-cycle">📊 Entrée / Sortie Exemple d’un Cycle</a></li>
+<li><a class="reference internal" href="#lancement-v9">🚀 Lancement V9</a></li>
+<li><a class="reference internal" href="#fichiers-sortie-v9">📝 Fichiers Sortie V9</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#comparaison-v7-vs-v9">4️⃣ COMPARAISON V7 vs V9</a></li>
+<li><a class="reference internal" href="#points-forts-actuels">5️⃣ POINTS FORTS ACTUELS</a></li>
+<li><a class="reference internal" href="#limitations-defis-actuels">6️⃣ LIMITATIONS &amp; DÉFIS ACTUELS</a></li>
+<li><a class="reference internal" href="#opportunites-damelioration">7️⃣ OPPORTUNITÉS D’AMÉLIORATION</a><ul>
+<li><a class="reference internal" href="#a-court-terme-1-2-semaines">À Court Terme (1-2 semaines)</a></li>
+<li><a class="reference internal" href="#a-moyen-terme-3-4-semaines">À Moyen Terme (3-4 semaines)</a></li>
+<li><a class="reference internal" href="#a-long-terme-5-8-semaines">À Long Terme (5-8 semaines)</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#technologies-utilisees">8️⃣ TECHNOLOGIES UTILISÉES</a><ul>
+<li><a class="reference internal" href="#core">Core</a></li>
+<li><a class="reference internal" href="#v7-docker">V7 (Docker)</a></li>
+<li><a class="reference internal" href="#v9">V9</a></li>
+<li><a class="reference internal" href="#potential-integrations">Potential Integrations</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#architecture-recommandee-v10">9️⃣ ARCHITECTURE RECOMMANDÉE (V10)</a></li>
+<li><a class="reference internal" href="#prochaines-actions-recommandees">🔟 PROCHAINES ACTIONS RECOMMANDÉES</a></li>
+<li><a class="reference internal" href="#contact-documentation">📞 CONTACT &amp; DOCUMENTATION</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../_static/documentation_options.js?v=ef6a59ae"></script>
+    <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/scripts/furo.js?v=46bd48cc"></script>
+    </body>
+</html>

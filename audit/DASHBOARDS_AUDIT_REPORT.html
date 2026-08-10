@@ -1,0 +1,6170 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html">
+        <link rel="prefetch" href="../_static/../assets/logo_ai_quant.png" as="image">
+        <link rel="prefetch" href="../_static/../assets/logo_ai_quant.png" as="image">
+
+    <link rel="shortcut icon" href="../_static/favicon.ico"><!-- Generated with Sphinx 9.0.4 and Furo 2025.12.19 -->
+        <title>Rapport d’audit des Dashboards/Applications - Crypto AI Terminal 9.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=1b9cecba" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">Crypto AI Terminal 9.1 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="../_static/../assets/logo_ai_quant.png" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="../_static/../assets/logo_ai_quant.png" alt="Dark Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/blob/main/docs/audit/DASHBOARDS_AUDIT_REPORT.md?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/edit/main/docs/audit/DASHBOARDS_AUDIT_REPORT.md" rel="edit" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="rapport-daudit-des-dashboards-applications">
+<h1>Rapport d’audit des Dashboards/Applications<a class="headerlink" href="#rapport-daudit-des-dashboards-applications" title="Link to this heading">¶</a></h1>
+<p>Dernière génération : 2026-03-21 16:27</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Fichier</p></th>
+<th class="head"><p>Framework</p></th>
+<th class="head"><p>Script de lancement</p></th>
+<th class="head"><p>Port</p></th>
+<th class="head"><p>Exclu des tests</p></th>
+<th class="head"><p>Documenté</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>evolution_3d_view.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p>launch_evolution_3d_view.bat</p></td>
+<td><p>8501</p></td>
+<td><p>✅</p></td>
+<td><p>✅</p></td>
+<td><p>noqa: F401</p></td>
+</tr>
+<tr class="row-odd"><td><p>evolution_dashboard.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p>launch_evolution_dashboard.bat</p></td>
+<td><p>8501</p></td>
+<td><p>✅</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>ONBOARDING_SCRIPT.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>ai_autonomous_loop\feedback_dashboard.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p>launch_feedback_dashboard.bat</p></td>
+<td><p>8501</p></td>
+<td><p>✅</p></td>
+<td><p>✅</p></td>
+<td><p>Historique rapide</p></td>
+</tr>
+<tr class="row-even"><td><p>crypto_quant_v16\run_autonomous_system.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Historique pour affichage graphique</p></td>
+</tr>
+<tr class="row-odd"><td><p>dashboard\alert_dashboard.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p>launch_alert_dashboard.bat</p></td>
+<td><p>8501</p></td>
+<td><p>✅</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>quant-hedge-bot\professional_dashboard.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>results\dashboard_evolution_results.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Tabs for each world</p></td>
+</tr>
+<tr class="row-even"><td><p>results\dashboard_panel.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Tabs for each world</p></td>
+</tr>
+<tr class="row-odd"><td><p>results\equity_curve_streamlit.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p>launch_equity_curve_streamlit.bat</p></td>
+<td><p>8501</p></td>
+<td><p>✅</p></td>
+<td><p>✅</p></td>
+<td><p>Charger le dernier CSV d’equity curves</p></td>
+</tr>
+<tr class="row-even"><td><p>scripts\crypto_market_scanner.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>cryptos à scanner</p></td>
+</tr>
+<tr class="row-odd"><td><p>scripts\crypto_terminal.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>connexion Binance</p></td>
+</tr>
+<tr class="row-even"><td><p>scripts\generate_audit_report.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>✅</p></td>
+<td><p>❌</p></td>
+<td><p>(.*?)</p></td>
+</tr>
+<tr class="row-odd"><td><p>scripts\generate_dashboards_table.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>(.*?)</p></td>
+</tr>
+<tr class="row-even"><td><p>scripts\test_panel.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Créer un dossier dans data/</p></td>
+</tr>
+<tr class="row-odd"><td><p>scripts\test_python.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Créer un dossier dans data/</p></td>
+</tr>
+<tr class="row-even"><td><p>supervision\botdoctor_dashboard.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p>launch_botdoctor_dashboard.bat</p></td>
+<td><p>8501</p></td>
+<td><p>✅</p></td>
+<td><p>✅</p></td>
+<td><p>Chargement des données</p></td>
+</tr>
+<tr class="row-odd"><td><p>supervision\dashboard_advanced.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p>launch_dashboard_advanced.bat</p></td>
+<td><p>8501</p></td>
+<td><p>✅</p></td>
+<td><p>✅</p></td>
+<td><p>Chargement des données</p></td>
+</tr>
+<tr class="row-even"><td><p>tests\test_alert_dashboard_functional.py</p></td>
+<td><p>Dash</p></td>
+<td><p></p></td>
+<td><p>8050</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Teste le filtrage par module dans le dashboard.</p></td>
+</tr>
+<tr class="row-odd"><td><p>quant_hedge_ai\dashboard\quant_terminal_v12.py</p></td>
+<td><p>Panel</p></td>
+<td><p>launch_quant_terminal_v12.bat</p></td>
+<td><p>5010</p></td>
+<td><p>✅</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>quant-trading-system\dashboard\dashboard.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p>launch_alert_dashboard.bat</p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>quant-trading-system\dashboard\dash_app.py</p></td>
+<td><p>Dash</p></td>
+<td><p>launch_dash_app.bat</p></td>
+<td><p>8050</p></td>
+<td><p>✅</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>quant-trading-system\dashboard\panel_overview.py</p></td>
+<td><p>Panel</p></td>
+<td><p>launch_panel_overview.bat</p></td>
+<td><p>5010</p></td>
+<td><p>✅</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>quant-hedge-bot\dashboard\dashboard.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p>launch_alert_dashboard.bat</p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>quant-bot-v3-pro\dashboard\dashboard.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p>launch_alert_dashboard.bat</p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Add parent to path</p></td>
+</tr>
+<tr class="row-odd"><td><p>quant-ai-system\dashboard\streamlit_dashboard.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>my_trading_system\ui\dashboard_my_trading_panel.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>my_trading_system\ui\dashboard_panel.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>my_trading_system\ui\panel_test_minimal.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Hello Panel!\nSi tu vois ce message, Panel fonctionne.”).servable()</p></td>
+</tr>
+<tr class="row-odd"><td><p>crypto_quant_v16\supervision\dashboard_web.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Exécution autonome pour test rapide</p></td>
+</tr>
+<tr class="row-even"><td><p>crypto_quant_v16\tests\test_quant_dashboard.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Should instantiate dashboard main objects</p></td>
+</tr>
+<tr class="row-odd"><td><p>crypto_quant_v16\tests\test_quant_dashboard_v16.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>header, controls, tabs</p></td>
+</tr>
+<tr class="row-even"><td><p>crypto_quant_v16\tests\test_quant_dashboard_v26.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Should instantiate without error</p></td>
+</tr>
+<tr class="row-odd"><td><p>crypto_quant_v16\tests\test_quant_dashboard_v26_visual.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Configure headless Chrome</p></td>
+</tr>
+<tr class="row-even"><td><p>crypto_quant_v16\tests\test_quant_dashboard_v26_widgets.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Test symbol select widget exists and can be set</p></td>
+</tr>
+<tr class="row-odd"><td><p>crypto_quant_v16\ui\components.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Panel widget pour choisir dynamiquement les indicateurs à afficher sur le graphique principal.</p></td>
+</tr>
+<tr class="row-even"><td><p>crypto_quant_v16\ui\quant_dashboard.py</p></td>
+<td><p>Panel</p></td>
+<td><p>launch_quant_dashboard_v16.bat</p></td>
+<td><p>5010</p></td>
+<td><p>✅</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>crypto_quant_v16\ui\quant_dashboard_v13.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Cluster Status panel</p></td>
+</tr>
+<tr class="row-even"><td><p>crypto_quant_v16\ui\quant_dashboard_v26.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>bot-v3\interface\dashboard.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p>launch_alert_dashboard.bat</p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Add parent directory to path</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\ipykernel_launcher.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Entry point for launching an IPython kernel.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\ipython_pygments_lexers.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\altair_magics.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Magic functions for rendering vega-lite specifications.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\annotated_text_<em>init</em>_.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Writes text with annotations into your Streamlit app.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\camera_input_live_<em>init</em>_.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\comm\base_comm.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Default classes for Comm and CommManager, for usage in IPython.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\comm_<em>init</em>_.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Comm package.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\dotenv\ipython.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Register the %dotenv magic.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\dotenv\main.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\executing\executing.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\fastapi\utils.py</p></td>
+<td><p>FastAPI</p></td>
+<td><p></p></td>
+<td><p>8080</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\holoviews\pyodide.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Used to render elements to an image format (svg or png) if requested</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\hvplot\fugue.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\hvplot\interactive.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\hvplot\ui.py</p></td>
+<td><p>Panel</p></td>
+<td><p>launch_equity_curve_streamlit.bat</p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Explore your data and design your plot via an interactive user interface.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\hvplot\util.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\hvplot\utilities.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\hvplot_<em>init</em>_.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\ipykernel\compiler.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Compiler helpers for the debugger.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\ipykernel\connect.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Connection file-related utilities for the kernel</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\ipykernel\debugger.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Debugger implementation for the IPython kernel.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\ipykernel\displayhook.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Replacements for sys.displayhook that publish over ZMQ.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\ipykernel\embed.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Simple function for embedding an IPython kernel</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\ipykernel\eventloops.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Event loop integration for the ZeroMQ-based kernels.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\ipykernel\heartbeat.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>The client and server for a basic ping-pong style heartbeat.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\ipykernel\iostream.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Wrappers for forwarding stdout/stderr over zmq</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\ipykernel\ipkernel.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>The IPython kernel implementation</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\ipykernel\jsonutil.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Utilities to manipulate JSON objects.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\ipykernel\kernelapp.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>An Application for launching a kernel</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\ipykernel\kernelbase.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Base class for a kernel that talks to frontends over 0MQ.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\ipykernel\kernelspec.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>The IPython kernel spec for Jupyter</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\ipykernel\parentpoller.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>A parent poller for unix.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\ipykernel\zmqshell.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>A ZMQ-based subclass of InteractiveShell.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\ipykernel_eventloop_macos.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Eventloop hook for OS X</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\display.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Public API for display tools in IPython.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\paths.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Find files and directories which IPython uses.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython_<em>init</em>_.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython_<em>main</em>_.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Terminal-based IPython entry point.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\ipywidgets\comm.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>compatibility shim for ipykernel &lt; 6.18</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\ipywidgets_<em>init</em>_.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Interactive widgets for the Jupyter notebook.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\jedi\settings.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\jedi_<em>init</em>_.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\joblib\func_inspect.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\joblib\hashing.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\joblib\memory.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\jupyter_client\adapter.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Adapters for Jupyter msg spec versions.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\jupyter_client\client.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Base class to manage the interaction with a running kernel</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\jupyter_client\consoleapp.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>A minimal application base mixin for all ZMQ based IPython frontends.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\jupyter_client\kernelspec.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Tools for managing kernel specs</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\jupyter_client\kernelspecapp.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Apps for managing kernel specs.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\jupyter_client\session.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Session object for building, serializing, sending, and receiving messages.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\jupyter_client\win_interrupt.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Use a Windows event to interrupt a child process like SIGINT.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\jupyter_console\app.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p>launch_dash_app.bat</p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>A minimal application using the ZMQ-based terminal IPython frontend.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\jupyter_console\completer.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Adapt readline completer interface to make ZMQ request.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\jupyter_console\ptshell.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>IPython terminal interface using prompt_toolkit in place of readline</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\jupyter_console\zmqhistory.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>ZMQ Kernel History accessor and manager.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\jupyter_core\application.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\jupyter_core\command.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>The root <code class="docutils literal notranslate"><span class="pre">jupyter</span></code> command.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\jupyter_core\migrate.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Migrating IPython &lt; 4.0 to Jupyter</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\jupyter_core\paths.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Path utility functions.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\jupyter_core\troubleshoot.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\jupyter_server\serverapp.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>A tornado based Jupyter server.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\jupyter_server\utils.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Notebook related utilities</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\markdownlit_<em>init</em>_.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Apply custom CSS in a Streamlit app.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\matplotlib\animation.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\matplotlib\backend_bases.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\matplotlib\figure.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\matplotlib\pyplot.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\matplotlib\rcsetup.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\matplotlib\text.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\matplotlib_inline\backend_inline.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>A matplotlib backend for publishing figures via display_data</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\matplotlib_inline\config.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Configurable for configuring the IPython inline backend</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\matplotlib_inline_<em>init</em>_.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>noqa</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\nbclient\client.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>nbclient implementation.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\nbclient\jsonutil.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Utilities to manipulate JSON objects.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\nbconvert\nbconvertapp.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>NbConvert is a utility for conversion of .ipynb files.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\nbformat\converter.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>API for converting notebooks between versions.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\nbformat\current.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Deprecated API for working with notebooks</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\nbformat\reader.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>API for reading notebooks of different versions</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\nbformat\sentinel.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Sentinel class for constants with useful reprs</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\nbformat\sign.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Utilities for signing notebooks</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\nbformat\validator.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Notebook format validators.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\nbformat_imports.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\nbformat_<em>init</em>_.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>The Jupyter notebook format</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\notebook_shim\traits.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Whether to enable MathJax for typesetting math/TeX</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\numpy_<em>init</em>_.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\pandas\conftest.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>✅</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\panel\config.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\panel\custom.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\panel\interact.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\panel\param.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\panel\reactive.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\panel\viewable.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\panel_<em>init</em>_.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\param\ipython.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\PIL\Image.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\PIL\ImageShow.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\playhouse\flask_utils.py</p></td>
+<td><p>Flask</p></td>
+<td><p></p></td>
+<td><p>5000</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\plotly\tools.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\prompt_toolkit\cursor_shapes.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\prompt_toolkit\renderer.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\pyviz_comms_<em>init</em>_.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\seaborn\palettes.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Set the color palette in a with statement, otherwise be a list.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\seaborn\widgets.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Create a matplotlib colormap that will be updated by the widgets.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit\config.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Loads the configuration data.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit\delta_generator.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Allows us to create and absorb changes (aka Deltas) to elements.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit\deprecation_util.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>True if we should print deprecation warnings to the browser.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit\error_util.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Show the exception on the frontend.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit\user_info.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Initiate the login flow for the given provider.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit_<em>init</em>_.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Streamlit.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit_avatar_<em>init</em>_.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit_card_<em>init</em>_.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Creates a UI card like component.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit_embedcode_<em>init</em>_.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Strip trailing slash if present on link.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit_faker\chart.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Collects a CSV/JSON file from a URL and load it into a dataframe, with appropriate caching (memo)</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit_faker\data_display.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit_faker\input.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit_faker\media.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit_faker\status.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit_faker\text.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit_image_coordinates_<em>init</em>_.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit_theme\example.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit_theme_<em>init</em>_.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Show the installed version of the Streamlit Theme package.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit_toggle_<em>init</em>_.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>D3D3D3’, active_color=”</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit_vertical_slider_<em>init</em>_.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>E5E9F1”,</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\st_keyup_<em>init</em>_.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\tqdm\autonotebook.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\tqdm\notebook.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\traitlets\log.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Grab the global logger instance.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\traitlets\traitlets.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\widgetsnbextension_<em>init</em>_.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Interactive widgets for the Jupyter notebook.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\xgboost\plotting.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Plotting Library.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages_pytest\debugging.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Interactive debugging with PDB, the Python Debugger.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\zmq\ssh\forward.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\zmq\ssh\tunnel.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Basic ssh tunnel utilities, and convenience functions for tunneling</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\traitlets\config\application.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>A base class for a configurable application.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\traitlets\config\argcomplete_config.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Helper utilities for integrating argcomplete with traitlets</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\traitlets\config\configurable.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>A base class for objects that are configurable.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\traitlets\config\loader.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>A simple configuration system.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\traitlets\config\manager.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Manager to read and modify config data in JSON files.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\traitlets\config_<em>init</em>_.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Copyright © IPython Development Team.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\traitlets\utils\importstring.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\traitlets\utils\nested_update.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Merge two nested dictionaries.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\traitlets\utils\sentinel.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Sentinel class for constants with useful reprs</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\traitlets\utils_<em>init</em>_.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Find a file by looking through a sequence of paths.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit_extras\add_vertical_space_<em>init</em>_.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit_extras\altex_<em>init</em>_.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Collects a CSV/JSON file from a URL and load it into a dataframe, with appropriate caching (memo)</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit_extras\app_logo_<em>init</em>_.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Add a logo (from logo_url) on the top of the navigation page of a multipage app.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit_extras\badges_<em>init</em>_.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Easily create a visual badge for PyPI, GitHub, Streamlit Cloud or other social platforms.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit_extras\bottom_container_<em>init</em>_.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit_extras\button_selector_<em>init</em>_.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit_extras\buy_me_a_coffee_<em>init</em>_.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit_extras\camera_input_live_<em>init</em>_.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>See a new image every second”)</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit_extras\capture_<em>init</em>_.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Redirect STDOUT and STDERR to streamlit functions.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit_extras\chart_annotations_<em>init</em>_.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit_extras\chart_container_<em>init</em>_.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Embed chart in a (chart, data, export, explore) tabs container to let the viewer explore and export its underlying data.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit_extras\colored_header_<em>init</em>_.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Add colorful headers to your Streamlit app.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit_extras\concurrency_limiter_<em>init</em>_.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Add concurrency_limiter decorator to your Streamlit app.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit_extras\customize_running_<em>init</em>_.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit_extras\dataframe_explorer_<em>init</em>_.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit_extras\echo_expander_<em>init</em>_.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit_extras\floating_button_<em>init</em>_.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit_extras\function_explorer_<em>init</em>_.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Gives a Streamlit UI to any function.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit_extras\great_tables_<em>init</em>_.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit_extras\grid_<em>init</em>_.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit_extras\image_coordinates_<em>init</em>_.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit_extras\image_in_tables_<em>init</em>_.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit_extras\image_selector_<em>init</em>_.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit_extras\keyboard_text_<em>init</em>_.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p><style></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit_extras\keyboard_url_<em>init</em>_.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit_extras\let_it_rain_<em>init</em>_.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit_extras\mandatory_date_range_<em>init</em>_.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit_extras\markdownlit_<em>init</em>_.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>mdlit(“{code}”)</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit_extras\mention_<em>init</em>_.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit_extras\metric_cards_<em>init</em>_.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit_extras\no_default_selectbox_<em>init</em>_.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit_extras\pdf_viewer_<em>init</em>_.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Display a PDF document.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit_extras\prometheus_<em>init</em>_.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Custom OpenMetrics collected via protobuf is not currently supported.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit_extras\row_<em>init</em>_.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit_extras\sandbox_<em>init</em>_.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit_extras\skeleton_<em>init</em>_.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit_extras\star_rating_<em>init</em>_.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit_extras\stateful_button_<em>init</em>_.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit_extras\stateful_chat_<em>init</em>_.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit_extras\stodo_<em>init</em>_.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Create a to_do item</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit_extras\stoggle_<em>init</em>_.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit_extras\streaming_write_<em>init</em>_.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Drop-in replacement for <code class="docutils literal notranslate"><span class="pre">st.write</span></code> with streaming support.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit_extras\stylable_container_<em>init</em>_.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit_extras\st_keyup_<em>init</em>_.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit_extras\switch_page_button_<em>init</em>_.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit_extras\tags_<em>init</em>_.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit_extras\theme_<em>init</em>_.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit_extras\toggle_switch_<em>init</em>_.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>On/Off Toggle Switch with color customizations.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit_extras\vertical_slider_<em>init</em>_.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit_extras\word_importances_<em>init</em>_.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Adds a background color to each word based on its importance (float from -1 to 1)</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit_extras\prometheus\example\app.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p>launch_dash_app.bat</p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit_extras\prometheus\example\metrics.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit\commands\echo.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Use in a <code class="docutils literal notranslate"><span class="pre">with</span></code> block to draw some code on the app, then execute it.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit\commands\execution_control.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Stops execution immediately.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit\commands\logo.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Handle App logos.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit\commands\navigation.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Convert various input types to StreamlitPage objects.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit\commands\page_config.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Return the string to pass to the frontend to have it show</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit\connections\base_connection.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>The abstract base class that all Streamlit Connections must inherit from.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit\connections\snowflake_connection.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Base class for Snowflake connections.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit\connections\snowpark_connection.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>A connection to Snowpark using snowflake.snowpark.session.Session. Initialize using</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit\connections\sql_connection.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>A connection to a SQL database using a SQLAlchemy Engine.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit\elements\alert.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p>launch_alert_dashboard.bat</p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Display error message.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit\elements\arrow.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit\elements\balloons.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Draw celebratory balloons.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit\elements\code.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Display a code block with optional syntax highlighting.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit\elements\deck_gl_json_chart.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Parse and check the user provided selection modes.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit\elements\dialog_decorator.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Check the current stack for existing DeltaGenerator’s of type ‘dialog’.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit\elements\empty.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Insert a single-element container.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit\elements\exception.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Display an exception.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit\elements\form.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit\elements\graphviz_chart.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Streamlit support for GraphViz charts.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit\elements\heading.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Display text in header formatting.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit\elements\help.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Allows us to create and absorb changes (aka Deltas) to elements.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit\elements\html.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Insert HTML into your app.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit\elements\iframe.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Load a remote URL in an iframe.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit\elements\image.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Image marshalling.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit\elements\json.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>A repr function for json.dumps default arg, which tries to serialize sets</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit\elements\layouts.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Serializer/deserializer for expander widget state.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit\elements\map.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>A wrapper for simple PyDeck scatter charts.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit\elements\markdown.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Display string formatted as Markdown.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit\elements\media.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Display an audio player.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit\elements\metric.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Display a metric in big bold font, with an optional indicator of how the metric changed.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit\elements\pdf.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Get the PDF custom component if available.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit\elements\plotly_chart.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit\elements\progress.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit\elements\pyplot.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Streamlit support for Matplotlib PyPlot charts.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit\elements\snow.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Draw celebratory snowfall.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit\elements\space.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Add vertical or horizontal space.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit\elements\spinner.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Display a loading spinner while executing a block of code.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit\elements\table.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Parse and check the user provided border mode.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit\elements\text.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Write text without Markdown or HTML parsing.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit\elements\toast.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Display a short message, known as a notification “toast”.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit\elements\vega_charts.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Collection of chart commands that are rendered via our vega-lite chart component.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit\elements\write.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Stream a generator, iterable, or stream-like sequence to the app.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit\hello\animation_demo.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit\hello\dataframe_demo.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit\hello\hello.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit\hello\mapping_demo.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit\hello\plotting_demo.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit\hello\streamlit_app.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Copyright © Streamlit Inc. (2018-2022) Snowflake Inc. (2022-2026)</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit\hello\utils.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Showing the code of the demo.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit\navigation\page.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Configure a page for <code class="docutils literal notranslate"><span class="pre">st.navigation</span></code> in a multipage app.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit\runtime\app_session.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Randomly generate a unique ID for a script execution.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit\runtime\connection_factory.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Create an instance of connection_class with the given name and kwargs.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit\runtime\context.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Get the ClientContext for the current session.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit\runtime\fragment.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>A key-value store for Fragments. Used to implement the &#64;st.fragment decorator.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit\runtime\secrets.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>SecretErrorMessages stores all error messages we use for secrets to allow customization</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit\web\cli.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>A script which is run when the Streamlit package is executed.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit\web\server\app_discovery.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>App discovery utilities for detecting ASGI app instances in scripts.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit\web\server\bidi_component_request_handler.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Serve static assets for Custom Components v2.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit\web\server\component_request_handler.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Disable cache for HTML files.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit\web\server\server.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Get the websocket ping interval and timeout from config or defaults.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit\testing\v1\app_test.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit\runtime\caching\cached_message_replay.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>An element’s message and related metadata for</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit\runtime\caching\cache_data_api.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>&#64;st.cache_data: pickle-based caching.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit\runtime\caching\cache_resource_api.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>&#64;st.cache_resource implementation.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit\runtime\caching\cache_utils.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Common cache logic shared by st.cache_data and st.cache_resource.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit\runtime\caching\legacy_cache_api.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>A library of caching utilities.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit\runtime\scriptrunner\exec_code.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>A context for prepending a directory to sys.path for a second.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit\runtime\scriptrunner\magic.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Modifies the code to support magic Streamlit commands.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit\runtime\scriptrunner\magic_funcs.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>The function that gets magic-ified into Streamlit apps.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit\runtime\state\query_params_proxy.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit\elements\lib\column_types.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Validate a color for a chart column.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit\elements\lib\mutable_expander_container.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>A container returned by <code class="docutils literal notranslate"><span class="pre">st.expander</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit\elements\lib\mutable_popover_container.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>A container returned by <code class="docutils literal notranslate"><span class="pre">st.popover</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit\elements\lib\mutable_tab_container.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>A container returned for each tab in <code class="docutils literal notranslate"><span class="pre">st.tabs</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit\elements\widgets\audio_input.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Display a widget that returns an audio recording from the user’s microphone.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit\elements\widgets\button.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit\elements\widgets\button_group.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>String-based serde for single-select ButtonGroup widgets.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit\elements\widgets\camera_input.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Display a widget that returns pictures from the user’s webcam.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit\elements\widgets\chat.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Represents the value returned by <code class="docutils literal notranslate"><span class="pre">st.chat_input</span></code> after user interaction.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit\elements\widgets\checkbox.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Display a checkbox widget.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit\elements\widgets\color_picker.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Normalize a hex color to include the # prefix.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit\elements\widgets\data_editor.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit\elements\widgets\feedback.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p>launch_feedback_dashboard.bat</p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Get the number of options for the given feedback type.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit\elements\widgets\file_uploader.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Display a file uploader widget.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit\elements\widgets\multiselect.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Initialize the MultiSelectSerde.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit\elements\widgets\number_input.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Display a numeric input widget.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit\elements\widgets\radio.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Serializer/deserializer for Radio widget values.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit\elements\widgets\selectbox.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Initialize the SelectboxSerde.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit\elements\widgets\select_slider.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Serializer/deserializer for select_slider widget values.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit\elements\widgets\slider.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Restore times/datetimes to original timezone (dates are always naive).</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit\elements\widgets\text_widgets.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Display a single-line text input widget.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit\elements\widgets\time_widgets.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Return a time without seconds, microseconds, or timezone info.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit\components\v1_<em>init</em>_.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Contains the files and modules for the exposed API.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\streamlit\components\v2\types.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Shared typing utilities for the <code class="docutils literal notranslate"><span class="pre">st.components.v2</span></code> API.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\streamlit\components\v2_<em>init</em>_.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Register the st.components.v2 API namespace.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\seaborn_core\plot.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>The classes for specifying and compiling a declarative visualization.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\scipy\signal_signaltools.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Determine if inputs arrays need to be swapped in <code class="docutils literal notranslate"><span class="pre">&quot;valid&quot;</span></code> mode.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\pyviz_comms\tests\test_extension.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Store the default values to reset them in the get_ipython fixture</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\pydeck\io\html.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Serializes Python booleans to JavaScript. Returns non-boolean values unchanged.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\prompt_toolkit\application\application.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\prompt_toolkit\input\win32.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\prompt_toolkit\output\win32.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\plotly\io_base_renderers.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\plotly\io_renderers.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\plotly\offline\offline.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Plotly Offline</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\plotly\matplotlylib\mplexporter\tools.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\plotly\matplotlylib\mplexporter\renderers\vega_renderer.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Build the HTML representation for IPython.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\pip_vendor\rich\console.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Size of the terminal.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\pip_vendor\rich\jupyter.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>\</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\pip_vendor\rich\live.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>A thread that calls refresh() at regular intervals.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\pip_vendor\rich\pretty.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Check if an object was created with attrs module.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\pip_vendor\rich\traceback.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Yield start and end positions per line.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\panel\io\application.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\panel\io\handlers.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\panel\io\jupyter_executor.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\panel\io\mime_render.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\panel\io\notebook.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\panel\io\pyodide.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\panel\io\resources.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\panel\io\state.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\panel\io_<em>init</em>_.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\panel\layout\base.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\panel\layout\flex.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\panel\layout\float.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\panel\layout\grid.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\panel\layout\swipe.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\panel\template\base.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\panel\tests\conftest.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>✅</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\panel\tests\test_depends.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Emits a Param warning</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\panel\tests\test_docs.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\panel\tests\test_imports.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>\</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\panel\tests\test_models.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\panel\tests\util.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\panel\util\warnings.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\panel\util_<em>init</em>_.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\panel\widgets\tables.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\panel\tests\command\test_serve.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\panel\tests\io\test_handlers.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\panel\tests\io\test_notebook.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\panel\tests\layout\test_accordion.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Set up a accordion instance</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\panel\tests\layout\test_tabs.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Set up a tabs instance</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\panel\tests\pane\test_alert.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>In this module we test the functionality of the alerts</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\panel\tests\pane\test_base.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>✅</p></td>
+<td><p>✅</p></td>
+<td><p>Ensures internal code correctly detects</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\panel\tests\pane\test_holoviews.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Create pane</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\panel\tests\pane\test_plot.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Create pane</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\panel\tests\pane\test_vega.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Tests for Vega.export() method.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\panel\tests\ui\test_auth.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Loading password page is slow</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\panel\tests\ui\test_param.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\panel\tests\widgets\test_debugger.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>This module contains tests of the Debugger</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\panel\tests\widgets\test_select.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Instantiate with groups and options</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\panel\tests\widgets\test_speech_to_text.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\panel\tests\widgets\test_terminal.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>This module contains tests of the Terminal</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\panel\tests\widgets\test_text_to_speech.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>By Aesop</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\panel\tests\widgets\test_tqdm.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>✅</p></td>
+<td><p>✅</p></td>
+<td><p>Tests of the Tqdm indicator</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\panel\tests\ui\command\test_serve.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Timeout to ensure websocket is initialized</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\panel\tests\ui\io\app.py</p></td>
+<td><p>Panel</p></td>
+<td><p>launch_dash_app.bat</p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\panel\tests\ui\io\test_convert.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>✅</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\panel\tests\ui\io\test_location.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Simple app to set url by widgets’ values</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\panel\tests\ui\io\test_reload.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Write and close (on windows the file handle cannot be reopened for reading otherwise)</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\panel\tests\ui\io\test_resources.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\panel\tests\ui\widgets\test_input.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>1st week</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\panel\tests\ui\widgets\test_sliders.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\panel\pane\vtk\vtk.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\pandas\core\accessor.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\pandas\core\base.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\pandas\core\config_init.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\pandas\core\frame.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\pandas\util_print_versions.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\pandas_config\display.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\pandas\tests\frame\test_api.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>DataFrame whose columns are identifiers shall have them in <strong>dir</strong>.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\pandas\tests\indexes\test_base.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>✅</p></td>
+<td><p>❌</p></td>
+<td><p>TODO: a bunch of scattered tests check this deprecation is enforced.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\pandas\tests\resample\test_resampler_grouper.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>\</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\pandas\tests\io\formats\test_to_html.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\pandas\tests\arrays\categorical\test_warnings.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>https://github.com/pandas-dev/pandas/issues/16409</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\pandas\plotting_matplotlib\core.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\pandas\io\formats\console.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\pandas\io\formats\format.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\pandas\io\formats\printing.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\numpy\lib_npyio_impl.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\numpy\lib_utils_impl.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\numpy\linalg\tests\test_linalg.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>✅</p></td>
+<td><p>❌</p></td>
+<td><p>Test functions for linalg module</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\nbformat\v1\convert.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Convert notebook to the v1 format.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\nbformat\v1\nbbase.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>The basic dict based notebook format.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\nbformat\v1\nbjson.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Read and write notebooks in JSON format.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\nbformat\v1\rwbase.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Base classes and function for readers and writers.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\nbformat\v1_<em>init</em>_.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>The main module for the v1 notebook format.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\nbformat\v2\convert.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Code for converting notebooks to and from the v2 format.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\nbformat\v2\nbbase.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>The basic dict based notebook format.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\nbformat\v2\nbjson.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Read and write notebooks in JSON format.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\nbformat\v2\nbpy.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Read and write notebooks as regular .py files.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\nbformat\v2\nbxml.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>REMOVED: Read and write notebook files as XML.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\nbformat\v2\rwbase.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Base classes and utilities for readers and writers.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\nbformat\v2_<em>init</em>_.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>The main API for the v2 notebook format.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\nbformat\v3\convert.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Code for converting notebooks to and from the v2 format.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\nbformat\v3\nbbase.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>The basic dict based notebook format.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\nbformat\v3\nbjson.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Read and write notebooks in JSON format.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\nbformat\v3\nbpy.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Read and write notebooks as regular .py files.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\nbformat\v3\rwbase.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Base classes and utilities for readers and writers.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\nbformat\v3_<em>init</em>_.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>The main API for the v3 notebook format.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\nbformat\v4\convert.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Code for converting notebooks to and from v3.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\nbformat\v4\nbbase.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Python API for composing notebook elements</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\nbformat\v4\nbjson.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Read and write notebooks in JSON format.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\nbformat\v4\rwbase.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Base classes and utilities for readers and writers.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\nbformat\v4_<em>init</em>_.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>The main API for the v4 notebook format.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\nbconvert\exporters\html.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>HTML Exporter class</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\nbconvert\exporters\notebook.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>NotebookExporter class</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\nbconvert\exporters\pdf.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Export to PDF via latex</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\nbconvert\exporters\qtpdf.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Export to PDF via a headless browser</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\nbconvert\exporters\qtpng.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Export to PNG via a headless browser</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\nbconvert\exporters\templateexporter.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>This module defines TemplateExporter, a highly configurable converter</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\nbconvert\exporters\webpdf.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Export to PDF via a headless browser</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\nbconvert\filters\ansi.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Filters for processing ANSI colors within Jinja templates.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\nbconvert\filters\citation.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Citation handling for LaTeX output.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\nbconvert\filters\datatypefilter.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Filter used to select the first preferred output format available.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\nbconvert\filters\highlight.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\nbconvert\filters\latex.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Latex filters.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\nbconvert\filters\markdown.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Markdown filters</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\nbconvert\filters\markdown_mistune.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Markdown filters with mistune</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\nbconvert\filters\strings.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>String filters.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\nbconvert\filters\widgetsdatatypefilter.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Filter used to select the first preferred output format available,</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\nbconvert\postprocessors\base.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\nbconvert\preprocessors\base.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Base class for preprocessors</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\nbconvert\preprocessors\clearmetadata.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Module containing a preprocessor that removes metadata from code cells</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\nbconvert\preprocessors\clearoutput.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Module containing a preprocessor that removes the outputs from code cells</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\nbconvert\preprocessors\coalescestreams.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Preprocessor for merging consecutive stream outputs for easier handling.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\nbconvert\preprocessors\csshtmlheader.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Module that pre-processes the notebook for export to HTML.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\nbconvert\preprocessors\execute.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Module containing a preprocessor that executes the code cells</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\nbconvert\preprocessors\extractoutput.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>A preprocessor that extracts all of the outputs from the</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\nbconvert\preprocessors\latex.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Module that allows latex output notebooks to be conditioned before</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\nbconvert\preprocessors\regexremove.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\nbconvert\preprocessors\tagremove.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\nbconvert\utils\exceptions.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>NbConvert specific exceptions</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\nbconvert\utils\lexers.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Deprecated as of 5.0; import from IPython.lib.lexers instead.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\nbconvert\utils\pandoc.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Utility for calling pandoc</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\nbconvert\writers\debug.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\nbconvert\writers\files.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Contains writer for writing nbconvert output to filesystem.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\moviepy\video\io\display_in_notebook.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Implements <code class="docutils literal notranslate"><span class="pre">display_in_notebook</span></code>, a function to embed images/videos/audio in the</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\matplotlib\backends\backend_nbagg.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Interactive figures in the IPython notebook.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\matplotlib\backends\backend_webagg.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Displays Agg images in the browser, with interactivity.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\matplotlib\backends\registry.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\matplotlib\backends_backend_gtk.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\matplotlib\testing_<em>init</em>_.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>✅</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\matplotlib\tests\test_backend_inline.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>This code can be removed when Python 3.12, the latest version supported by</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\matplotlib\tests\test_backend_nbagg.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>From https://blog.thedataincubator.com/2016/06/testing-jupyter-notebooks/</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\matplotlib\tests\test_backend_webagg.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\matplotlib\tests\test_pyplot.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>✅</p></td>
+<td><p>❌</p></td>
+<td><p>Test that pyplot_summary lists all the plot functions.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\markdownlit\extensions\at_sign.py</p></td>
+<td><p>Streamlit</p></td>
+<td><p></p></td>
+<td><p>8501</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Transforms ‘&#64;(icon)(label)(url)’ into HTML.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\jupyter_server\auth\identity.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Identity Provider interface</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\jupyter_server\extension\application.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>An extension application.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\jupyter_console\tests\test_console.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>✅</p></td>
+<td><p>❌</p></td>
+<td><p>Tests for two-process terminal frontend</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\jupyter_console\tests\test_image_handler.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>A testing shell class that doesn’t attempt to communicate with the kernel</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\jupyter_console\tests\writetofile.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\jupyter_client\ssh\forward.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Sample script showing how to do local port forwarding over paramiko.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\jupyter_client\ssh\tunnel.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Basic ssh tunnel utilities, and convenience functions for tunneling</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\jedi\api\interpreter.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\jedi\api\replstartup.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\jedi\plugins\registry.py</p></td>
+<td><p>Flask</p></td>
+<td><p></p></td>
+<td><p>5000</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\ipywidgets\widgets\interaction.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Interact with functions using widgets.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\ipywidgets\widgets\widget.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Base Widget class.  Allows user to create widgets in the back-end that render</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\ipywidgets\widgets\widget_output.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Output class.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\ipywidgets\widgets\tests\test_widget.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Test Widget.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\ipywidgets\widgets\tests\test_widget_output.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Context manager that monkeypatches get_ipython and clear_output</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\core\alias.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\core\application.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\core\async_helpers.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\core\autocall.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\core\builtin_trap.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\core\compilerop.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Compiler tools with improved interactive support.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\core\completer.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Completion for IPython.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\core\completerlib.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Implementations for various useful completers.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\core\crashhandler.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>sys.excepthook for IPython itself, leaves a detailed report on disk.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\core\debugger.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\core\debugger_backport.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\core\display.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Top-level display functions for displaying object in different formats.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\core\displayhook.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Displayhook for IPython.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\core\displaypub.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>An interface for publishing rich data to frontends.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\core\display_functions.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Top-level display functions for displaying object in different formats.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\core\display_trap.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\core\doctb.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\core\error.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\core\events.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Infrastructure for registering and firing callbacks on application events.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\core\extensions.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>A class for managing IPython extensions.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\core\formatters.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Display formatters.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\core\getipython.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Simple function to call to get the current InteractiveShell instance</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\core\guarded_eval.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Get unbound method for given bound method.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\core\history.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>History related magics and functionality</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\core\historyapp.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\core\hooks.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Hooks for IPython.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\core\inputtransformer2.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Input transformer machinery to support IPython special syntax.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\core\interactiveshell.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Main IPython class.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\core\logger.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Logger class for IPython’s logging facilities.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\core\macro.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Support for interactive macros in IPython</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\core\magic.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Magic functions for InteractiveShell.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\core\magic_arguments.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>A really cool magic command.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\core\oinspect.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Tools for inspecting Python objects.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\core\page.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\core\payload.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Payload system for IPython.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\core\payloadpage.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>A payload based version of page.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\core\prefilter.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\core\profileapp.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\core\profiledir.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>An object for managing IPython profile directories.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\core\pylabtools.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Pylab (matplotlib) support utilities.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\core\release.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Release data for the IPython project.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\core\shellapp.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\core\splitinput.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\core\tbtools.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\core\tips.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>(month, day)</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\core\ultratb.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\core\usage.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Usage information for the main IPython applications.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\extensions\autoreload.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>IPython extension to reload modules before executing user code.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\extensions\storemagic.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\extensions_<em>init</em>_.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>This directory is meant for IPython extensions.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\external\qt_for_kernel.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Import Qt in a manner suitable for an IPython kernel.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\external\qt_loaders.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\external_<em>init</em>_.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\lib\backgroundjobs.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Manage background (threaded) jobs conveniently from an interactive shell.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\lib\clipboard.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Utilities for accessing the platform’s clipboard.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\lib\deepreload.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\lib\demo.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Module for interactive demos using IPython.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\lib\display.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Various display related classes.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\lib\editorhooks.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>‘editor’ hooks for common editors that work well with ipython</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\lib\guisupport.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\lib\latextools.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Tools for handling LaTeX.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\lib\lexers.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\lib\pretty.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\lib_<em>init</em>_.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\sphinxext\custom_doctests.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\sphinxext\ipython_directive.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\terminal\debugger.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Standalone IPython debugger.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\terminal\embed.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\terminal\interactiveshell.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>IPython terminal interface using prompt_toolkit</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\terminal\ipapp.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\terminal\magics.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Extra magics for terminal use.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\terminal\prompts.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Terminal input and output prompts.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\terminal\ptutils.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>prompt-toolkit utilities</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\testing\globalipapp.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Global IPython app to support test running.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\testing\ipunittest.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Experimental code for cleaner support of IPython syntax with unittest.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\testing\skipdoctest.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Decorators marks that a doctest should be skipped.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\testing\tools.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Generic testing tools.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\testing_<em>init</em>_.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Testing support (tools to test IPython itself).</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\utils\capture.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>IO capturing utilities.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\utils\coloransi.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Deprecated/should be removed, but we break older version of ipyparallel</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\utils\contexts.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Miscellaneous context managers.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\utils\data.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Utilities for working with data structures like lists, dicts and tuples.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\utils\decorators.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Decorators that don’t go anywhere else.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\utils\dir2.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>A fancy version of Python’s builtin :func:<code class="docutils literal notranslate"><span class="pre">dir</span></code> function.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\utils\encoding.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\utils\eventful.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\utils\frame.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\utils\generics.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Generic functions for extending IPython.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\utils\importstring.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\utils\io.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p>launch_evolution_3d_view.bat</p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\utils\ipstruct.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>A dict subclass that supports attribute style access.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\utils\jsonutil.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\utils\log.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\utils\module_paths.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Utility functions for finding modules</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\utils\path.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\utils\process.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\utils\PyColorize.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>generate the leading arrow in front of traceback or debugger</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\utils\sentinel.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Sentinel class for constants with useful reprs</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\utils\strdispatch.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>String dispatch class to match regexps and dispatch commands.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\utils\sysinfo.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\utils\terminal.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p>launch_dashboard_quant_terminal.bat</p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\utils\text.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\utils\timing.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\utils\tokenutil.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Token-related utilities</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\utils\wildcard.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Support for wildcard pattern matching in object inspection.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\utils_process_cli.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>cli-specific implementation of process utilities.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\utils_process_common.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Common utilities for the various process_* implementations.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\utils_process_posix.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Posix-specific implementation of process utilities.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\utils_process_win32.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Windows-specific implementation of process utilities.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\utils_process_win32_controller.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Windows-specific implementation of process utilities with direct WinAPI.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\testing\plugin\dtexample.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Simple example using doctests.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\testing\plugin\ipdoctest.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Nose Plugin that supports IPython doctests.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\testing\plugin\pytest_ipdoctest.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>✅</p></td>
+<td><p>❌</p></td>
+<td><p>Discover and run ipdoctests in modules and test files.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\testing\plugin\setup.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>A Nose plugin to support IPython doctests.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\testing\plugin\simple.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Simple example using doctests.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\terminal\pt_inputhooks\asyncio.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\terminal\pt_inputhooks\glut.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>GLUT Input hook for interactive use with prompt_toolkit</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\terminal\pt_inputhooks\pyglet.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Enable pyglet to be used interactively with prompt_toolkit</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\terminal\pt_inputhooks\qt.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>If we create a QApplication, QEventLoop, or a QTimer, keep a reference to them</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\terminal\pt_inputhooks\wx.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Enable wxPython to be used interactively in prompt_toolkit</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\terminal\pt_inputhooks_<em>init</em>_.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Register the function <em>inputhook</em> as an event loop integration.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\terminal\shortcuts\auto_suggest.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\terminal\shortcuts\filters.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\terminal\shortcuts_<em>init</em>_.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\extensions\deduperreload\deduperreload.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Returns the module’s file path, or the empty string if it’s inaccessible</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\core\magics\ast_mod.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\core\magics\auto.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Implementation of magic functions that control various automatic behaviors.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\core\magics\basic.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Implementation of basic magic functions.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\core\magics\code.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Implementation of code management magic functions.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\core\magics\config.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Implementation of configuration-related magic functions.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\core\magics\display.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Simple magics for display formats</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\core\magics\execution.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Implementation of execution-related magic functions.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\core\magics\extension.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Implementation of magic functions for the extension machinery.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\core\magics\history.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Implementation of magic functions related to History.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\core\magics\logging.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Implementation of magic functions for IPython’s own logging.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\core\magics\namespace.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Implementation of namespace-related magic functions.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\core\magics\osm.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Implementation of magic functions for interaction with the OS.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\core\magics\packaging.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Implementation of packaging-related magic functions.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\core\magics\pylab.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Implementation of magic functions for matplotlib/pylab support.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\IPython\core\magics\script.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Magic functions for running cells in various scripts.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\IPython\core\magics_<em>init</em>_.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Implementation of all the magic functions built into IPython.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\ipykernel\comm\comm.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Base class for a Comm</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\ipykernel\comm\manager.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Base class to manage comms</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\ipykernel\gui\gtk3embed.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>GUI support for the IPython ZeroMQ kernel - GTK toolkit support.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\ipykernel\gui\gtkembed.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>GUI support for the IPython ZeroMQ kernel - GTK toolkit support.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\ipykernel\gui_<em>init</em>_.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>GUI support for the IPython ZeroMQ kernel.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\ipykernel\inprocess\blocking.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Implements a fully blocking kernel client.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\ipykernel\inprocess\channels.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>A kernel client for in-process kernels.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\ipykernel\inprocess\client.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>A client for in-process kernels.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\ipykernel\inprocess\ipkernel.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>An in-process kernel</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\ipykernel\inprocess\manager.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>A kernel manager for in-process kernels.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\ipykernel\inprocess\socket.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Defines a dummy socket implementing (part of) the zmq.Socket interface.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\ipykernel\pylab\backend_inline.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>A matplotlib backend for publishing figures via display_data</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\ipykernel\pylab\config.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Configurable for configuring the IPython inline backend</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\hvplot\plotting\core.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\hvplot\tests\testinteractive.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>noqa</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\hvplot\tests\testpanel.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\hvplot\tests\testutil.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\holoviews\core\options.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Options and OptionTrees allow different classes of options</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\holoviews\element\comparison.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Helper classes for comparing the equality of two HoloViews objects.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\holoviews\ipython\archive.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Implements NotebookArchive used to automatically capture notebook data</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\holoviews\ipython\display_hooks.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Definition and registration of display hooks for the IPython Notebook.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\holoviews\ipython\magics.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Pretty print the current element options</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\holoviews\ipython\preprocessors.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Prototype demo:</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\holoviews\ipython\widgets.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>A simple text progress bar suitable for both the IPython notebook</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\holoviews\ipython_<em>init</em>_.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Display the full traceback after an abbreviated traceback has occurred.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\holoviews\plotting\plot.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Public API for all plots supported by HoloViews, regardless of</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\holoviews\plotting\renderer.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Public API for all plotting renderers supported by HoloViews,</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\holoviews\plotting_<em>init</em>_.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>HoloViews plotting sub-system that defines the interface to be used by</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\holoviews\tests\conftest.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\holoviews\tests\test_selection.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>ff0000”</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\holoviews\tests\test_streams.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\holoviews\util\parser.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>The magics offered by the HoloViews IPython extension are powerful and</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\holoviews\util\warnings.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Find the first place in the stack that is not inside Holoviews and Param.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\holoviews\util_versions.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Data</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\holoviews\util_<em>init</em>_.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Copies the notebooks to the supplied path.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\holoviews\tests\core\test_dynamic.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Tests that Callable memoizes unchanged callbacks</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\holoviews\tests\ipython\test_displayhooks.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\holoviews\tests\ipython\test_magics.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>✅</p></td>
+<td><p>❌</p></td>
+<td><p>TODO: Should set it back</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\holoviews\tests\ipython\test_notebooks.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\holoviews\tests\util\test_help.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\holoviews\tests\util\test_init.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>\</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\holoviews\tests\ui\bokeh\test_callback.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Helper method to perform point selection based on tool type.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\holoviews\tests\ui\bokeh\test_hover.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>✅</p></td>
+<td><p>✅</p></td>
+<td><p>Hover over the plot</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\holoviews\tests\plotting\bokeh\test_elementplot.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Test <code class="docutils literal notranslate"><span class="pre">apply_hard_bounds</span></code> with a single element.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\holoviews\tests\plotting\bokeh\test_overlayplot.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>def test_hover_tool_overlay_renderers(self):</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\holoviews\tests\plotting\bokeh\test_renderer.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>444444’}}</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\holoviews\tests\plotting\matplotlib\test_renderer.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\holoviews\tests\plotting\plotly\test_dash.py</p></td>
+<td><p>Dash</p></td>
+<td><p></p></td>
+<td><p>8050</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>noqa: F401</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\holoviews\tests\plotting\plotly\test_dynamic.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Build stream</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\holoviews\tests\plotting\plotly\test_renderer.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\holoviews\plotting\bokeh\callbacks.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Provides a baseclass to define callbacks, which return data from</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\holoviews\plotting\bokeh\renderer.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\holoviews\plotting\mpl\renderer.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Exporter used to render data from matplotlib, either to a stream</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\holoviews\plotting\plotly\dash.py</p></td>
+<td><p>Dash</p></td>
+<td><p>launch_alert_dashboard.bat</p></td>
+<td><p>8050</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Convert a HoloViews plotly plot to a plotly.py Figure.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\holoviews\plotting\plotly\renderer.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Custom Plotly pane constructor for use by the HoloViews Pane.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\holoviews\examples\gallery\apps\bokeh\crossfilter.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\holoviews\examples\gallery\apps\bokeh\game_of_life.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Set up plot which advances on counter and adds pattern on tap</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\holoviews\examples\gallery\apps\bokeh\gapminder.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\holoviews\examples\gallery\apps\bokeh\streaming_psutil.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p>Define functions to get memory and CPU usage</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\holoviews\examples\gallery\apps\flask\flask_app.py</p></td>
+<td><p>Flask</p></td>
+<td><p></p></td>
+<td><p>5000</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>locally creates a page</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\holoviews\examples\gallery\apps\flask\holoviews_app.py</p></td>
+<td><p>Panel</p></td>
+<td><p></p></td>
+<td><p>5010</p></td>
+<td><p>❌</p></td>
+<td><p>✅</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\holoviews\core\util_<em>init</em>_.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Set of boolean configuration values to change HoloViews’ global</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\docutils\writers\odf_odt_<em>init</em>_.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\debugpy_vendored\pydevd\pydevconsole.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\debugpy_vendored\pydevd\pydev_ipython\inputhook.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\debugpy_vendored\pydevd\pydev_ipython\inputhookglut.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\debugpy_vendored\pydevd\pydev_ipython\inputhookgtk.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\debugpy_vendored\pydevd\pydev_ipython\inputhookgtk3.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\debugpy_vendored\pydevd\pydev_ipython\inputhookpyglet.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\debugpy_vendored\pydevd\pydev_ipython\inputhookqt4.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\debugpy_vendored\pydevd\pydev_ipython\inputhookqt5.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\debugpy_vendored\pydevd\pydev_ipython\inputhookqt6.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\debugpy_vendored\pydevd\pydev_ipython\inputhooktk.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>encoding: utf-8</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\debugpy_vendored\pydevd\pydev_ipython\inputhookwx.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\debugpy_vendored\pydevd\pydev_ipython\matplotlibtools.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Return the gui and mpl backend.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\debugpy_vendored\pydevd\pydev_ipython\qt_for_kernel.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Import Qt in a manner suitable for an IPython kernel.</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\debugpy_vendored\pydevd\pydev_ipython\qt_loaders.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\debugpy_vendored\pydevd_pydevd_bundle\pydevd_process_net_command_json.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\debugpy_vendored\pydevd_pydevd_bundle\pydevd_xml.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\debugpy_vendored\pydevd_pydev_bundle\pydev_console_utils.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\debugpy_vendored\pydevd_pydev_bundle\pydev_ipython_console.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\debugpy_vendored\pydevd_pydev_bundle\pydev_ipython_console_011.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Interface to TerminalInteractiveShell for PyDev Interactive Console frontend</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\debugpy_vendored\pydevd_pydev_bundle\pydev_umd.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\debugpy_vendored\pydevd_pydev_bundle\pydev_versioncheck.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Return True if running Python is suitable for GUI Event Integration and deeper IPython integration</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\debugpy_vendored\pydevd_pydev_bundle_pydev_completer.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\debugpy_vendored\pydevd_pydevd_bundle_debug_adapter\pydevd_schema.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\bokeh\io\notebook.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Callable to configure Bokeh’s show method when a proxy must be</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\bokeh\util\info.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Print version information about Bokeh, Python, the operating system</p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\bokeh\command\subcommands\info.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>—————————————————————————–</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\bokeh\application\handlers\notebook.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\altair\utils\core.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>Utility routines.</p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\altair\utils\display.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\altair\utils\mimebundle.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>.venv\Lib\site-packages\altair\vegalite\v6\api.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p>launch_api_rest.bat</p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>.venv\Lib\site-packages\altair\vegalite\v6\display.py</p></td>
+<td><p>Jupyter</p></td>
+<td><p></p></td>
+<td><p>8888</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>\</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Crypto AI Terminal
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer no-toc">
+      
+      
+      
+    </aside>
+  </div>
+</div><script src="../_static/documentation_options.js?v=ef6a59ae"></script>
+    <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/scripts/furo.js?v=46bd48cc"></script>
+    </body>
+</html>

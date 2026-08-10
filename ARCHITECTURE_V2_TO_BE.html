@@ -1,0 +1,1238 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="./">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="genindex.html"><link rel="search" title="Search" href="search.html">
+        <link rel="prefetch" href="_static/../assets/logo_ai_quant.png" as="image">
+        <link rel="prefetch" href="_static/../assets/logo_ai_quant.png" as="image">
+
+    <link rel="shortcut icon" href="_static/favicon.ico"><!-- Generated with Sphinx 9.0.4 and Furo 2025.12.19 -->
+        <title>ARCHITECTURE V2 — PHASE 0B : TO-BE (Architecture Cible) - Crypto AI Terminal 9.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=1b9cecba" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="index.html"><div class="brand">Crypto AI Terminal 9.1 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="index.html">
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="_static/../assets/logo_ai_quant.png" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="_static/../assets/logo_ai_quant.png" alt="Dark Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/blob/main/docs/ARCHITECTURE_V2_TO_BE.md?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/edit/main/docs/ARCHITECTURE_V2_TO_BE.md" rel="edit" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="architecture-v2-phase-0b-to-be-architecture-cible">
+<h1>ARCHITECTURE V2 — PHASE 0B : TO-BE (Architecture Cible)<a class="headerlink" href="#architecture-v2-phase-0b-to-be-architecture-cible" title="Link to this heading">¶</a></h1>
+<blockquote>
+<div><p><strong>Généré le 2026-06-07</strong>
+<strong>Objectif :</strong> Architecture cible de référence. Toute décision future (ajout de module, refactorisation) sera évaluée par rapport à ce document.
+<strong>Principe :</strong> DDD avec Bounded Contexts stricts. 4 couches. Communication inter-contextes par événements et contrats uniquement.</p>
+</div></blockquote>
+<hr class="docutils" />
+<section id="les-4-couches">
+<h2>1. LES 4 COUCHES<a class="headerlink" href="#les-4-couches" title="Link to this heading">¶</a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>┌──────────────────────────────────────────────────────────────────┐
+│                        APPLICATIONS                              │
+│  Terminal, Dashboards, Telegram Bots, API REST, Frontend React   │
+└──────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌──────────────────────────────────────────────────────────────────┐
+│                          DOMAINS                                 │
+│  9 Bounded Contexts métier — toute la logique de trading         │
+└──────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌──────────────────────────────────────────────────────────────────┐
+│                           CORE                                   │
+│  Machine d&#39;état, Contrats, Invariants, Event Bus, Autorité       │
+└──────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌──────────────────────────────────────────────────────────────────┐
+│                         PLATFORM                                 │
+│  Infra, Observability, Déploiement, CI/CD, Stockage              │
+└──────────────────────────────────────────────────────────────────┘
+</pre></div>
+</div>
+<p><strong>Règles de dépendance strictes :</strong></p>
+<ul class="simple">
+<li><p><strong>Applications</strong> → dépend de <strong>Domains</strong> et <strong>Core</strong> (jamais l’inverse)</p></li>
+<li><p><strong>Domains</strong> → dépend de <strong>Core</strong> (jamais l’inverse)</p></li>
+<li><p><strong>Core</strong> → dépend de <strong>Platform</strong> (pour la persistence, logging, etc.)</p></li>
+<li><p><strong>Platform</strong> → ne dépend de personne (couche la plus basse)</p></li>
+<li><p><strong>Inter-domaines</strong> → communication par événements uniquement, pas d’imports directs</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="les-9-bounded-contexts-domaines-metier">
+<h2>2. LES 9 BOUNDED CONTEXTS (Domaines Métier)<a class="headerlink" href="#les-9-bounded-contexts-domaines-metier" title="Link to this heading">¶</a></h2>
+<section id="market-intelligence">
+<h3>2.1 — Market Intelligence<a class="headerlink" href="#market-intelligence" title="Link to this heading">¶</a></h3>
+<p><strong>Responsabilité :</strong> Tout ce qui concerne la perception du marché.
+<strong>Ce qui entre :</strong> market_data, on-chain, exchange, social
+<strong>Ce qui sort :</strong> MarketSnapshot, Anomaly, WhaleAlert, LiquidityMap, RegimeClassification</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>domains/market/
+├── radar/              # Détection d&#39;anomalies, tokens, social scanning
+├── liquidity/          # Cartographie de liquidité, flux, profondeur
+├── whales/             # Tracking de baleines (on-chain + exchange)
+├── onchain/            # Données on-chain, indicateurs
+├── sentiment/          # Analyse de sentiment (social, news)
+├── regime/             # Classification de régime de marché
+├── data/               # Stream, modèles canoniques, replay
+└── constraints/        # Règles exchange, rate limiting, validation
+</pre></div>
+</div>
+<p><strong>Provenance des fichiers :</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/market_radar/</span></code> → <code class="docutils literal notranslate"><span class="pre">domains/market/radar/</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/liquidity_map/</span></code> → <code class="docutils literal notranslate"><span class="pre">domains/market/liquidity/</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/whales/</span></code> → <code class="docutils literal notranslate"><span class="pre">domains/market/whales/</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">market_radar/whale_tracker.py</span></code> → Fusionné dans <code class="docutils literal notranslate"><span class="pre">domains/market/whales/</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/onchain/</span></code> → <code class="docutils literal notranslate"><span class="pre">domains/market/onchain/</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/market/</span></code> → Distribué dans radar/sentiment</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">market_data/</span></code> → <code class="docutils literal notranslate"><span class="pre">domains/market/data/</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">exchange_constraints/</span></code> → <code class="docutils literal notranslate"><span class="pre">domains/market/constraints/</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">signal/</span></code> (partiellement) → Distribué dans radar/regime</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="strategy">
+<h3>2.2 — Strategy<a class="headerlink" href="#strategy" title="Link to this heading">¶</a></h3>
+<p><strong>Responsabilité :</strong> Génération, évolution, validation, et ranking des stratégies.
+<strong>Ce qui entre :</strong> MarketSnapshot, PerformanceMetrics
+<strong>Ce qui sort :</strong> StrategyInstance, Signal, StrategyRanking</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>domains/strategy/
+├── factory/            # Génération de stratégies (alpha vault, templates)
+├── lab/                # Laboratoire : batch testing, parameter space
+├── evolution/          # Mutation, genetic evolution, ranking
+├── features/           # Feature engineering, registre, matérialisation
+├── validation/         # Validation, probation, walk-forward
+├── backtesting/        # Backtest engine (unique, dédupliqué)
+└── repository/         # Stockage des stratégies, scoreboard
+</pre></div>
+</div>
+<p><strong>Provenance des fichiers :</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">strategy_factory/</span></code> (racine) + <code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/strategy_factory/</span></code> → Fusionnés dans <code class="docutils literal notranslate"><span class="pre">domains/strategy/factory/</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/strategy_lab/</span></code> → <code class="docutils literal notranslate"><span class="pre">domains/strategy/lab/</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/ai_evolution/</span></code> → <code class="docutils literal notranslate"><span class="pre">domains/strategy/evolution/</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">signal/evolution/</span></code> → Fusionné dans <code class="docutils literal notranslate"><span class="pre">domains/strategy/evolution/</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/features/</span></code> → <code class="docutils literal notranslate"><span class="pre">domains/strategy/features/</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">src/agent/</span></code> → <code class="docutils literal notranslate"><span class="pre">domains/strategy/factory/</span></code> (stratégies concrètes)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">backtesters</span></code> multiples → Unifiés dans <code class="docutils literal notranslate"><span class="pre">domains/strategy/backtesting/</span></code></p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="execution">
+<h3>2.3 — Execution<a class="headerlink" href="#execution" title="Link to this heading">¶</a></h3>
+<p><strong>Responsabilité :</strong> Tout ce qui transforme un signal en ordre exécuté.
+<strong>Ce qui entre :</strong> Signal, OrderRequest
+<strong>Ce qui sort :</strong> Fill, ExecutionReport, OrderState</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>domains/execution/
+├── router/             # Acheminement des ordres vers les exchanges
+├── orders/             # Cycle de vie des ordres, validation
+├── fills/              # Fill simulation réaliste, slippage, spread
+├── latency/            # Modèles de latence
+├── exchange/           # Connecteurs exchange (MEXC, Binance, etc.)
+└── reconciliation/     # Réconciliation post-trade, pending orders
+</pre></div>
+</div>
+<p><strong>Provenance des fichiers :</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">execution_simulator/</span></code> → <code class="docutils literal notranslate"><span class="pre">domains/execution/fills/</span></code> + <code class="docutils literal notranslate"><span class="pre">domains/execution/latency/</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">src/engine/</span></code> → <code class="docutils literal notranslate"><span class="pre">domains/execution/router/</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">src/execution/</span></code> → <code class="docutils literal notranslate"><span class="pre">domains/execution/orders/</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/execution/</span></code> → Distribué dans router/orders</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">system/pending_order_tracker.py</span></code> + <code class="docutils literal notranslate"><span class="pre">system/position_reconciler.py</span></code> → <code class="docutils literal notranslate"><span class="pre">domains/execution/reconciliation/</span></code></p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="risk">
+<h3>2.4 — Risk<a class="headerlink" href="#risk" title="Link to this heading">¶</a></h3>
+<p><strong>Responsabilité :</strong> Moteur de risque UNIQUE. Toutes les décisions de risque passent par ici.
+<strong>Ce qui entre :</strong> Signal, PortfolioState, MarketRegime
+<strong>Ce qui sort :</strong> RiskAssessment, Go/NoGo, SizeLimit</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>domains/risk/
+├── engine/             # GlobalRiskGate, RiskLimits — le cœur unique
+├── circuit_breaker/    # Circuit breakers, kill switches
+├── regime_gate/        # Filtrage par régime de marché
+├── exposure/           # Exposition, concentration, corrélation
+└── policies/           # Règles métier de risque (configurables)
+</pre></div>
+</div>
+<p><strong>Provenance des fichiers :</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">risk/</span></code> → <code class="docutils literal notranslate"><span class="pre">domains/risk/engine/</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">src/risk/</span></code> → Fusionné dans <code class="docutils literal notranslate"><span class="pre">domains/risk/circuit_breaker/</span></code> + <code class="docutils literal notranslate"><span class="pre">regime_gate/</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/risk/</span></code> → Fusionné dans <code class="docutils literal notranslate"><span class="pre">domains/risk/engine/</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">supervision/kill_switch*.py</span></code> → <code class="docutils literal notranslate"><span class="pre">domains/risk/circuit_breaker/</span></code> (les kill switches sont du risk, pas de la supervision)</p></li>
+</ul>
+<p><strong>⚠️ Règle impérative :</strong> Après migration, un seul moteur de risque. Tout module qui veut du risque passe par <code class="docutils literal notranslate"><span class="pre">domains/risk/engine/</span></code>.</p>
+</section>
+<hr class="docutils" />
+<section id="portfolio">
+<h3>2.5 — Portfolio<a class="headerlink" href="#portfolio" title="Link to this heading">¶</a></h3>
+<p><strong>Responsabilité :</strong> Gestion du portefeuille, sizing, exposition, déploiement du capital.
+<strong>Ce qui entre :</strong> RiskAssessment, Fill, MarketState
+<strong>Ce qui sort :</strong> OrderSize, PortfolioState, AllocationDecision</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>domains/portfolio/
+├── state/              # État du portefeuille, positions
+├── sizing/             # Order sizing (Kelly, EV, vol-targeting)
+├── deployment/         # Capital throttle, phase gates, KPI tracking
+├── rebalancing/        # Rééquilibrage, diversification
+└── reporting/          # PnL, equity curve, performance attribution
+</pre></div>
+</div>
+<p><strong>Provenance des fichiers :</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">capital_deployment/</span></code> → <code class="docutils literal notranslate"><span class="pre">domains/portfolio/deployment/</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">src/portfolio/</span></code> → <code class="docutils literal notranslate"><span class="pre">domains/portfolio/state/</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/portfolio/</span></code> → Distribué dans sizing/deployment</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">system/equity_curve.py</span></code> → <code class="docutils literal notranslate"><span class="pre">domains/portfolio/reporting/</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">system/strategy_metrics.py</span></code> → <code class="docutils literal notranslate"><span class="pre">domains/portfolio/reporting/</span></code></p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="governance">
+<h3>2.6 — Governance<a class="headerlink" href="#governance" title="Link to this heading">¶</a></h3>
+<p><strong>Responsabilité :</strong> Contrôle souverain, approbation, traçabilité, audit.
+<strong>Ce qui entre :</strong> Tout événement décisionnel
+<strong>Ce qui sort :</strong> Approval/Rejection, DecisionTrace, AuditLog</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>domains/governance/
+├── approval/           # Execution approval, decision router
+├── authority/          # Trading authority, AI constraints
+├── trace/              # Decision trace, decision ledger
+├── audit/              # Audit engine, replay
+├── certification/      # Phase certification
+└── policies/           # Governance policies
+</pre></div>
+</div>
+<p><strong>Provenance des fichiers :</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">governance/</span></code> → Distribué dans approval/authority/trace</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">audit/</span></code> → <code class="docutils literal notranslate"><span class="pre">domains/governance/audit/</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">certification/</span></code> → <code class="docutils literal notranslate"><span class="pre">domains/governance/certification/</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pieuvre/tentacles/audit_commits.py</span></code> → Fusionné dans <code class="docutils literal notranslate"><span class="pre">domains/governance/audit/</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">reality_checks/</span></code> → <code class="docutils literal notranslate"><span class="pre">domains/governance/audit/</span></code> (le gap analysis est de l’audit)</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="intelligence">
+<h3>2.7 — Intelligence<a class="headerlink" href="#intelligence" title="Link to this heading">¶</a></h3>
+<p><strong>Responsabilité :</strong> Apprentissage, feedback loops, méta-décisions, adaptation.
+<strong>Ce qui entre :</strong> TradeResult, PerformanceMetrics, MarketRegime
+<strong>Ce qui sort :</strong> AdaptiveThreshold, StrategyAllocation, RegretDelta</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>domains/intelligence/
+├── meta_learning/      # Learner, mémoire, similarité
+├── feedback/           # Regret engine, feedback loops
+├── adaptation/         # Adaptive threshold, drift detection
+├── allocation/         # Strategy allocator, weighting
+└── llm/                # Intégration LLM (LM Studio)
+</pre></div>
+</div>
+<p><strong>Provenance des fichiers :</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">meta_learning/</span></code> → <code class="docutils literal notranslate"><span class="pre">domains/intelligence/meta_learning/</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/intelligence/</span></code> → <code class="docutils literal notranslate"><span class="pre">domains/intelligence/adaptation/</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">src/analytics/</span></code> → Distribué dans feedback/adaptation</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">lm_studio/</span></code> → <code class="docutils literal notranslate"><span class="pre">domains/intelligence/llm/</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ai_autonomous_loop/</span></code> → Supprimé (module zombie, <code class="docutils literal notranslate"><span class="pre">__init__.py</span></code> vide)</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="simulation">
+<h3>2.8 — Simulation<a class="headerlink" href="#simulation" title="Link to this heading">¶</a></h3>
+<p><strong>Responsabilité :</strong> Backtesting, paper trading, replay, simulation d’exécution.
+<strong>Ce qui entre :</strong> StrategyInstance, MarketData, SimulationConfig
+<strong>Ce qui sort :</strong> SimulationResult, TradeRecord, PerformanceReport</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>domains/simulation/
+├── backtest/           # Moteur de backtest (unique)
+├── paper/              # Paper trading, portefeuille virtuel
+├── replay/             # Replay engine, resimulation
+├── sandbox/            # Environnement isolé pour tests
+└── fills/              # Fill simulation (délégation vers execution/fills)
+</pre></div>
+</div>
+<p><strong>Provenance des fichiers :</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">paper_trading/</span></code> → <code class="docutils literal notranslate"><span class="pre">domains/simulation/paper/</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">src/paper/</span></code> → Fusionné dans <code class="docutils literal notranslate"><span class="pre">domains/simulation/paper/</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">src/backtest/</span></code> → <code class="docutils literal notranslate"><span class="pre">domains/simulation/backtest/</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">strategy_factory/backtester.py</span></code> + <code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/strategy_factory/backtester.py</span></code> + <code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/strategy_lab/backtest_launcher.py</span></code> → Unifiés dans <code class="docutils literal notranslate"><span class="pre">domains/simulation/backtest/</span></code></p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="supervision">
+<h3>2.9 — Supervision<a class="headerlink" href="#supervision" title="Link to this heading">¶</a></h3>
+<p><strong>Responsabilité :</strong> Watchdogs, auto-guérison, escalade, résilience.
+<strong>Ce qui entre :</strong> HealthEvents, Anomalies, Errors
+<strong>Ce qui sort :</strong> EscalationLevel, HealingAction, RecoveryState</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>domains/supervision/
+├── watchdogs/          # Performance watchdog, ops watchdog, exchange monitor
+├── healing/            # Auto-guérison, recovery playbooks, bot doctor
+├── escalation/         # Escalation engine, alert manager
+└── pieuvre/            # Système pieuvre autonome (brain + tentacules)
+</pre></div>
+</div>
+<p><strong>Provenance des fichiers :</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">supervision/</span></code> → Distribué dans watchdogs/healing/escalation</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pieuvre/</span></code> → <code class="docutils literal notranslate"><span class="pre">domains/supervision/pieuvre/</span></code></p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="la-couche-core">
+<h2>3. LA COUCHE CORE<a class="headerlink" href="#la-couche-core" title="Link to this heading">¶</a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>core/
+├── contracts/          # DecisionPacket, SignalResult, OrderRequest — tous les types canoniques
+├── kernel/             # Machine d&#39;état, lifecycle, invariants
+├── authority/          # Authority, signatures, identity
+├── event_bus/          # Bus d&#39;événements (UNIQUE pour tout le système)
+├── startup/            # Bootstrap, warm boot, séquence de démarrage
+└── integrity/          # Burn-in, monte carlo, walk-forward, vérification invariants
+</pre></div>
+</div>
+<p><strong>Provenance des fichiers :</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">core/</span></code> → Distribué dans contracts/kernel/authority</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">system/</span></code> → <code class="docutils literal notranslate"><span class="pre">core/startup/</span></code> + <code class="docutils literal notranslate"><span class="pre">core/integrity/</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">runtime/</span></code> (racine) + <code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/runtime/</span></code> + <code class="docutils literal notranslate"><span class="pre">src/runtime/</span></code> → Unifiés dans <code class="docutils literal notranslate"><span class="pre">core/kernel/</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">event_bus/</span></code> → <code class="docutils literal notranslate"><span class="pre">core/event_bus/</span></code> (fusionné avec <code class="docutils literal notranslate"><span class="pre">src/events/</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">terminal_core/</span></code> → Supprimé (doublon de <code class="docutils literal notranslate"><span class="pre">core/</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">cold_start/</span></code> → <code class="docutils literal notranslate"><span class="pre">core/startup/</span></code></p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="la-couche-platform">
+<h2>4. LA COUCHE PLATFORM<a class="headerlink" href="#la-couche-platform" title="Link to this heading">¶</a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>platform/
+├── observability/      # Telemetry, metrics, logging, health, heartbeat
+├── infrastructure/     # API REST, notifications (email/Discord/Slack/Telegram)
+├── storage/            # Bases de données, repositories, cache
+├── deployment/         # Docker, K8s, scripts VPS, CI/CD
+├── config/             # Configuration centralisée
+└── security/           # (future) Auth, encryption
+</pre></div>
+</div>
+<p><strong>Provenance des fichiers :</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">observability/</span></code> + <code class="docutils literal notranslate"><span class="pre">monitoring/</span></code> + <code class="docutils literal notranslate"><span class="pre">health/</span></code> + <code class="docutils literal notranslate"><span class="pre">metrics/</span></code> → Unifiés dans <code class="docutils literal notranslate"><span class="pre">platform/observability/</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">infra/</span></code> → <code class="docutils literal notranslate"><span class="pre">platform/infrastructure/</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">databases/</span></code> → <code class="docutils literal notranslate"><span class="pre">platform/storage/</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">deploy/</span></code> + <code class="docutils literal notranslate"><span class="pre">k8s/</span></code> + <code class="docutils literal notranslate"><span class="pre">install/</span></code> → <code class="docutils literal notranslate"><span class="pre">platform/deployment/</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">config/</span></code> → <code class="docutils literal notranslate"><span class="pre">platform/config/</span></code></p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="la-couche-applications">
+<h2>5. LA COUCHE APPLICATIONS<a class="headerlink" href="#la-couche-applications" title="Link to this heading">¶</a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>applications/
+├── terminal/           # Terminal de trading, CLI, TUI
+├── dashboard/          # Dashboards (Streamlit, Panel, etc.)
+├── telegram/           # Bots Telegram
+├── api/                # API REST
+└── frontend/           # React/TypeScript (frontend/)
+</pre></div>
+</div>
+<p><strong>Provenance des fichiers :</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">frontend/</span></code> → <code class="docutils literal notranslate"><span class="pre">applications/frontend/</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">dashboard/</span></code> + <code class="docutils literal notranslate"><span class="pre">crypto_quant_v16/</span></code> + <code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/dashboard/</span></code> → Unifiés dans <code class="docutils literal notranslate"><span class="pre">applications/dashboard/</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">src/telegram/</span></code> + <code class="docutils literal notranslate"><span class="pre">infra/notifications/</span></code> (Telegram) → <code class="docutils literal notranslate"><span class="pre">applications/telegram/</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">infra/api/</span></code> → <code class="docutils literal notranslate"><span class="pre">applications/api/</span></code></p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="regles-de-dependance-entre-contextes">
+<h2>6. RÈGLES DE DÉPENDANCE ENTRE CONTEXTES<a class="headerlink" href="#regles-de-dependance-entre-contextes" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>De → Vers</p></th>
+<th class="head text-center"><p>Market</p></th>
+<th class="head text-center"><p>Strategy</p></th>
+<th class="head text-center"><p>Execution</p></th>
+<th class="head text-center"><p>Risk</p></th>
+<th class="head text-center"><p>Portfolio</p></th>
+<th class="head text-center"><p>Governance</p></th>
+<th class="head text-center"><p>Intelligence</p></th>
+<th class="head text-center"><p>Simulation</p></th>
+<th class="head text-center"><p>Supervision</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong>Market</strong></p></td>
+<td class="text-center"><p>-</p></td>
+<td class="text-center"><p>✅</p></td>
+<td class="text-center"><p>❌</p></td>
+<td class="text-center"><p>❌</p></td>
+<td class="text-center"><p>❌</p></td>
+<td class="text-center"><p>❌</p></td>
+<td class="text-center"><p>❌</p></td>
+<td class="text-center"><p>❌</p></td>
+<td class="text-center"><p>❌</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Strategy</strong></p></td>
+<td class="text-center"><p>✅</p></td>
+<td class="text-center"><p>-</p></td>
+<td class="text-center"><p>❌</p></td>
+<td class="text-center"><p>❌</p></td>
+<td class="text-center"><p>❌</p></td>
+<td class="text-center"><p>❌</p></td>
+<td class="text-center"><p>❌</p></td>
+<td class="text-center"><p>✅</p></td>
+<td class="text-center"><p>❌</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Execution</strong></p></td>
+<td class="text-center"><p>✅</p></td>
+<td class="text-center"><p>❌</p></td>
+<td class="text-center"><p>-</p></td>
+<td class="text-center"><p>❌</p></td>
+<td class="text-center"><p>✅</p></td>
+<td class="text-center"><p>❌</p></td>
+<td class="text-center"><p>❌</p></td>
+<td class="text-center"><p>❌</p></td>
+<td class="text-center"><p>❌</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Risk</strong></p></td>
+<td class="text-center"><p>✅</p></td>
+<td class="text-center"><p>❌</p></td>
+<td class="text-center"><p>✅</p></td>
+<td class="text-center"><p>-</p></td>
+<td class="text-center"><p>✅</p></td>
+<td class="text-center"><p>❌</p></td>
+<td class="text-center"><p>❌</p></td>
+<td class="text-center"><p>❌</p></td>
+<td class="text-center"><p>❌</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Portfolio</strong></p></td>
+<td class="text-center"><p>✅</p></td>
+<td class="text-center"><p>❌</p></td>
+<td class="text-center"><p>✅</p></td>
+<td class="text-center"><p>✅</p></td>
+<td class="text-center"><p>-</p></td>
+<td class="text-center"><p>❌</p></td>
+<td class="text-center"><p>❌</p></td>
+<td class="text-center"><p>❌</p></td>
+<td class="text-center"><p>❌</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Governance</strong></p></td>
+<td class="text-center"><p>❌</p></td>
+<td class="text-center"><p>❌</p></td>
+<td class="text-center"><p>✅</p></td>
+<td class="text-center"><p>✅</p></td>
+<td class="text-center"><p>✅</p></td>
+<td class="text-center"><p>-</p></td>
+<td class="text-center"><p>❌</p></td>
+<td class="text-center"><p>❌</p></td>
+<td class="text-center"><p>❌</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Intelligence</strong></p></td>
+<td class="text-center"><p>✅</p></td>
+<td class="text-center"><p>✅</p></td>
+<td class="text-center"><p>❌</p></td>
+<td class="text-center"><p>✅</p></td>
+<td class="text-center"><p>✅</p></td>
+<td class="text-center"><p>❌</p></td>
+<td class="text-center"><p>-</p></td>
+<td class="text-center"><p>❌</p></td>
+<td class="text-center"><p>❌</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Simulation</strong></p></td>
+<td class="text-center"><p>✅</p></td>
+<td class="text-center"><p>✅</p></td>
+<td class="text-center"><p>✅</p></td>
+<td class="text-center"><p>✅</p></td>
+<td class="text-center"><p>✅</p></td>
+<td class="text-center"><p>❌</p></td>
+<td class="text-center"><p>❌</p></td>
+<td class="text-center"><p>-</p></td>
+<td class="text-center"><p>❌</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Supervision</strong></p></td>
+<td class="text-center"><p>❌</p></td>
+<td class="text-center"><p>❌</p></td>
+<td class="text-center"><p>✅</p></td>
+<td class="text-center"><p>✅</p></td>
+<td class="text-center"><p>✅</p></td>
+<td class="text-center"><p>✅</p></td>
+<td class="text-center"><p>❌</p></td>
+<td class="text-center"><p>❌</p></td>
+<td class="text-center"><p>-</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>✅ = peut dépendre (par événements ou contrats)
+❌ = interdit (dépendance directe interdite)</p>
+<p><strong>Règle d’or :</strong> Les dépendances directes traversant les contextes sont interdites. Toute communication inter-contexte passe par <code class="docutils literal notranslate"><span class="pre">core/event_bus/</span></code> ou par des interfaces définies dans <code class="docutils literal notranslate"><span class="pre">core/contracts/</span></code>.</p>
+</section>
+<hr class="docutils" />
+<section id="contrats-canoniques-core-contracts">
+<h2>7. CONTRATS CANONIQUES (core/contracts/)<a class="headerlink" href="#contrats-canoniques-core-contracts" title="Link to this heading">¶</a></h2>
+<p>Fichier unique de référence pour tous les types partagés :</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># core/contracts/types.py</span>
+
+<span class="c1"># ── Signal ──</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Signal</span><span class="p">:</span>
+    <span class="n">symbol</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">side</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;BUY&quot;</span><span class="p">,</span> <span class="s2">&quot;SELL&quot;</span><span class="p">,</span> <span class="s2">&quot;FLAT&quot;</span><span class="p">]</span>
+    <span class="n">score</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">regime</span><span class="p">:</span> <span class="n">MarketRegime</span>
+    <span class="n">timestamp</span><span class="p">:</span> <span class="n">datetime</span>
+
+<span class="c1"># ── Ordre ──</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">OrderRequest</span><span class="p">:</span>
+    <span class="n">symbol</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">side</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;BUY&quot;</span><span class="p">,</span> <span class="s2">&quot;SELL&quot;</span><span class="p">]</span>
+    <span class="n">quantity</span><span class="p">:</span> <span class="n">Decimal</span>
+    <span class="n">order_type</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;MARKET&quot;</span><span class="p">,</span> <span class="s2">&quot;LIMIT&quot;</span><span class="p">,</span> <span class="s2">&quot;STOP_LIMIT&quot;</span><span class="p">]</span>
+    <span class="n">price</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Decimal</span><span class="p">]</span>
+    <span class="n">stop_price</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Decimal</span><span class="p">]</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">Fill</span><span class="p">:</span>
+    <span class="n">order_id</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">symbol</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">side</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;BUY&quot;</span><span class="p">,</span> <span class="s2">&quot;SELL&quot;</span><span class="p">]</span>
+    <span class="n">quantity</span><span class="p">:</span> <span class="n">Decimal</span>
+    <span class="n">price</span><span class="p">:</span> <span class="n">Decimal</span>
+    <span class="n">fee</span><span class="p">:</span> <span class="n">Decimal</span>
+    <span class="n">timestamp</span><span class="p">:</span> <span class="n">datetime</span>
+
+<span class="c1"># ── Risque ──</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">RiskAssessment</span><span class="p">:</span>
+    <span class="n">approved</span><span class="p">:</span> <span class="nb">bool</span>
+    <span class="n">max_size</span><span class="p">:</span> <span class="n">Decimal</span>
+    <span class="n">reason</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="n">metadata</span><span class="p">:</span> <span class="nb">dict</span>
+
+<span class="c1"># ── Événements ──</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">TradeEvent</span><span class="p">:</span>
+    <span class="n">event_type</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;OPEN&quot;</span><span class="p">,</span> <span class="s2">&quot;CLOSE&quot;</span><span class="p">,</span> <span class="s2">&quot;UPDATE&quot;</span><span class="p">]</span>
+    <span class="n">symbol</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">position_id</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="c1"># ... etc.</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">OrderEvent</span><span class="p">:</span> <span class="o">...</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">SignalEvent</span><span class="p">:</span> <span class="o">...</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">RiskEvent</span><span class="p">:</span> <span class="o">...</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">GovernanceEvent</span><span class="p">:</span> <span class="o">...</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">HealthEvent</span><span class="p">:</span> <span class="o">...</span>
+
+<span class="c1"># ── Régime ──</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">MarketRegime</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+    <span class="n">TREND_BULL</span> <span class="o">=</span> <span class="s2">&quot;TREND_BULL&quot;</span>
+    <span class="n">TREND_BEAR</span> <span class="o">=</span> <span class="s2">&quot;TREND_BEAR&quot;</span>
+    <span class="n">SIDEWAYS</span> <span class="o">=</span> <span class="s2">&quot;SIDEWAYS&quot;</span>
+    <span class="n">HIGH_VOL</span> <span class="o">=</span> <span class="s2">&quot;HIGH_VOL&quot;</span>
+    <span class="n">CHOPPY</span> <span class="o">=</span> <span class="s2">&quot;CHOPPY&quot;</span>
+    <span class="n">VOLATILE</span> <span class="o">=</span> <span class="s2">&quot;VOLATILE&quot;</span>
+    <span class="n">UNKNOWN</span> <span class="o">=</span> <span class="s2">&quot;UNKNOWN&quot;</span>
+
+<span class="c1"># ── Conviction ──</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ConvictionLevel</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+    <span class="n">SKIP</span> <span class="o">=</span> <span class="s2">&quot;SKIP&quot;</span>
+    <span class="n">LOW</span> <span class="o">=</span> <span class="s2">&quot;LOW&quot;</span>
+    <span class="n">MEDIUM</span> <span class="o">=</span> <span class="s2">&quot;MEDIUM&quot;</span>
+    <span class="n">HIGH</span> <span class="o">=</span> <span class="s2">&quot;HIGH&quot;</span>
+    <span class="n">VERY_HIGH</span> <span class="o">=</span> <span class="s2">&quot;VERY_HIGH&quot;</span>
+</pre></div>
+</div>
+<p><strong>⚠️ Règle :</strong> Ces types sont la source unique de vérité. Toute duplication d’enum ou de classe de contrat est un bug architectural.</p>
+</section>
+<hr class="docutils" />
+<section id="structure-finale-du-projet">
+<h2>8. STRUCTURE FINALE DU PROJET<a class="headerlink" href="#structure-finale-du-projet" title="Link to this heading">¶</a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>crypto_ai_terminal/
+│
+├── core/                        # Couche Core
+│   ├── contracts/               # Types canoniques, enums, dataclasses
+│   │   ├── __init__.py
+│   │   ├── types.py             # Signal, OrderRequest, Fill, RiskAssessment, etc.
+│   │   └── events.py            # TradeEvent, OrderEvent, SignalEvent, etc.
+│   ├── kernel/                  # Machine d&#39;état, lifecycle
+│   │   ├── lifecycle.py
+│   │   ├── runtime_state_machine.py
+│   │   ├── invariants.py
+│   │   └── authority.py
+│   ├── event_bus/               # Bus d&#39;événements unique
+│   │   ├── bus.py
+│   │   └── bridge.py
+│   ├── startup/                 # Bootstrap, warm boot, cold start
+│   │   ├── bootstrap.py
+│   │   ├── warm_boot.py
+│   │   └── cold_start_manager.py
+│   └── integrity/               # Burn-in, monte carlo, walk-forward
+│       ├── burn_in.py
+│       ├── monte_carlo.py
+│       └── walk_forward.py
+│
+├── domains/                     # Couche Domaines (9 Bounded Contexts)
+│   ├── market/                  # 2.1 — Market Intelligence
+│   │   ├── radar/
+│   │   ├── liquidity/
+│   │   ├── whales/
+│   │   ├── onchain/
+│   │   ├── sentiment/
+│   │   ├── regime/
+│   │   ├── data/
+│   │   └── constraints/
+│   ├── strategy/                # 2.2 — Strategy
+│   │   ├── factory/
+│   │   ├── lab/
+│   │   ├── evolution/
+│   │   ├── features/
+│   │   ├── validation/
+│   │   ├── backtesting/
+│   │   └── repository/
+│   ├── execution/               # 2.3 — Execution
+│   │   ├── router/
+│   │   ├── orders/
+│   │   ├── fills/
+│   │   ├── latency/
+│   │   ├── exchange/
+│   │   └── reconciliation/
+│   ├── risk/                    # 2.4 — Risk (moteur unique)
+│   │   ├── engine/
+│   │   ├── circuit_breaker/
+│   │   ├── regime_gate/
+│   │   ├── exposure/
+│   │   └── policies/
+│   ├── portfolio/               # 2.5 — Portfolio
+│   │   ├── state/
+│   │   ├── sizing/
+│   │   ├── deployment/
+│   │   ├── rebalancing/
+│   │   └── reporting/
+│   ├── governance/              # 2.6 — Governance
+│   │   ├── approval/
+│   │   ├── authority/
+│   │   ├── trace/
+│   │   ├── audit/
+│   │   ├── certification/
+│   │   └── policies/
+│   ├── intelligence/            # 2.7 — Intelligence
+│   │   ├── meta_learning/
+│   │   ├── feedback/
+│   │   ├── adaptation/
+│   │   ├── allocation/
+│   │   └── llm/
+│   ├── simulation/              # 2.8 — Simulation
+│   │   ├── backtest/
+│   │   ├── paper/
+│   │   ├── replay/
+│   │   ├── sandbox/
+│   │   └── fills/
+│   └── supervision/             # 2.9 — Supervision
+│       ├── watchdogs/
+│       ├── healing/
+│       ├── escalation/
+│       └── pieuvre/
+│
+├── platform/                    # Couche Platform
+│   ├── observability/           # Telemetry, metrics, logging, health
+│   │   ├── telemetry.py
+│   │   ├── metrics.py
+│   │   ├── logging.py
+│   │   ├── health.py
+│   │   └── heartbeat.py
+│   ├── infrastructure/          # API, notifications
+│   │   ├── api/
+│   │   ├── notifications/
+│   │   └── panels/
+│   ├── storage/                 # Bases de données
+│   │   ├── databases/
+│   │   └── cache/
+│   ├── deployment/              # Docker, K8s, scripts
+│   │   └── ...
+│   └── config/                  # Configuration centralisée
+│       └── ...
+│
+├── applications/                # Couche Applications
+│   ├── frontend/                # React/TypeScript
+│   ├── dashboard/               # Dashboards unifiés
+│   ├── telegram/                # Bots Telegram
+│   ├── api/                     # API REST
+│   └── terminal/                # CLI/TUI
+│
+├── docs/                        # Documentation
+├── tests/                       # Tests globaux
+├── scripts/                     # Scripts utilitaires
+├── data/                        # Données statiques
+├── config/                      # Configuration runtime
+├── tools/                       # Outils d&#39;analyse
+│
+├── logs/                        # Logs (runtime)
+├── feedback_logs/               # Feedbacks (runtime)
+├── errors/                      # Erreurs (runtime)
+├── reports/                     # Rapports générés (runtime)
+├── results/                     # Résultats (runtime)
+├── archives/                    # Archives
+├── artifacts/                   # Artéfacts build
+├── checkpoints/                 # Points de restauration
+│
+└── [fichiers racine]            # README.md, ROADMAP.md, requirements.txt, Dockerfile, etc.
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="ordre-des-migrations-phase-0c">
+<h2>9. ORDRE DES MIGRATIONS (Phase 0C)<a class="headerlink" href="#ordre-des-migrations-phase-0c" title="Link to this heading">¶</a></h2>
+<p>L’ordre est critique : on commence par le bas de la pyramide.</p>
+<section id="etape-1-platform-fondation">
+<h3>Étape 1 : Platform (fondation)<a class="headerlink" href="#etape-1-platform-fondation" title="Link to this heading">¶</a></h3>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">observability/</span></code> + <code class="docutils literal notranslate"><span class="pre">monitoring/</span></code> + <code class="docutils literal notranslate"><span class="pre">health/</span></code> + <code class="docutils literal notranslate"><span class="pre">metrics/</span></code> → <code class="docutils literal notranslate"><span class="pre">platform/observability/</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">infra/</span></code> → <code class="docutils literal notranslate"><span class="pre">platform/infrastructure/</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">databases/</span></code> → <code class="docutils literal notranslate"><span class="pre">platform/storage/</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">deploy/</span></code> + <code class="docutils literal notranslate"><span class="pre">k8s/</span></code> + <code class="docutils literal notranslate"><span class="pre">install/</span></code> → <code class="docutils literal notranslate"><span class="pre">platform/deployment/</span></code></p></li>
+</ol>
+</section>
+<section id="etape-2-core-contrats-et-noyau">
+<h3>Étape 2 : Core (contrats et noyau)<a class="headerlink" href="#etape-2-core-contrats-et-noyau" title="Link to this heading">¶</a></h3>
+<ol class="arabic simple" start="5">
+<li><p><strong>Créer</strong> <code class="docutils literal notranslate"><span class="pre">core/contracts/types.py</span></code> — tous les types canoniques</p></li>
+<li><p><strong>Fusionner</strong> <code class="docutils literal notranslate"><span class="pre">event_bus/</span></code> + <code class="docutils literal notranslate"><span class="pre">src/events/</span></code> → <code class="docutils literal notranslate"><span class="pre">core/event_bus/</span></code></p></li>
+<li><p><strong>Unifier</strong> <code class="docutils literal notranslate"><span class="pre">runtime/</span></code> + <code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/runtime/</span></code> + <code class="docutils literal notranslate"><span class="pre">src/runtime/</span></code> → <code class="docutils literal notranslate"><span class="pre">core/kernel/</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">system/</span></code> → <code class="docutils literal notranslate"><span class="pre">core/startup/</span></code> + <code class="docutils literal notranslate"><span class="pre">core/integrity/</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">cold_start/</span></code> → <code class="docutils literal notranslate"><span class="pre">core/startup/</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">terminal_core/</span></code> → Supprimer (doublon de <code class="docutils literal notranslate"><span class="pre">core/</span></code>)</p></li>
+</ol>
+</section>
+<section id="etape-3-domaines-metier">
+<h3>Étape 3 : Domaines (métier)<a class="headerlink" href="#etape-3-domaines-metier" title="Link to this heading">¶</a></h3>
+<ol class="arabic simple" start="11">
+<li><p><code class="docutils literal notranslate"><span class="pre">domains/market/</span></code> — fusion de 8 modules market</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">domains/risk/</span></code> — fusion des 3 moteurs de risque</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">domains/strategy/</span></code> — fusion des 5 mécanismes d’évolution</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">domains/execution/</span></code> — fusion des modules d’exécution</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">domains/portfolio/</span></code> — fusion des modules portfolio</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">domains/governance/</span></code> — fusion governance + audit + certification + reality_checks</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">domains/intelligence/</span></code> — fusion des modules d’intelligence</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">domains/simulation/</span></code> — fusion des 4 backtesters + 2 paper trading</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">domains/supervision/</span></code> — supervision + pièuvre</p></li>
+</ol>
+</section>
+<section id="etape-4-applications-interfaces">
+<h3>Étape 4 : Applications (interfaces)<a class="headerlink" href="#etape-4-applications-interfaces" title="Link to this heading">¶</a></h3>
+<ol class="arabic simple" start="20">
+<li><p><code class="docutils literal notranslate"><span class="pre">frontend/</span></code> → <code class="docutils literal notranslate"><span class="pre">applications/frontend/</span></code></p></li>
+<li><p>Fusion des 4 dashboards → <code class="docutils literal notranslate"><span class="pre">applications/dashboard/</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">src/telegram/</span></code> + notifs Telegram → <code class="docutils literal notranslate"><span class="pre">applications/telegram/</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">infra/api/</span></code> → <code class="docutils literal notranslate"><span class="pre">applications/api/</span></code></p></li>
+</ol>
+</section>
+<section id="etape-5-nettoyage-racine">
+<h3>Étape 5 : Nettoyage racine<a class="headerlink" href="#etape-5-nettoyage-racine" title="Link to this heading">¶</a></h3>
+<ol class="arabic simple" start="24">
+<li><p>Déplacer les ~150 fichiers racine : rapports → <code class="docutils literal notranslate"><span class="pre">docs/reports/</span></code>, launchers → <code class="docutils literal notranslate"><span class="pre">scripts/launchers/</span></code></p></li>
+<li><p>Supprimer <code class="docutils literal notranslate"><span class="pre">ai_autonomous_loop/</span></code> (module zombie)</p></li>
+</ol>
+</section>
+</section>
+<hr class="docutils" />
+<section id="shims-temporaires">
+<h2>10. SHIMS TEMPORAIRES<a class="headerlink" href="#shims-temporaires" title="Link to this heading">¶</a></h2>
+<p>Pour chaque migration, on crée un shim :</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Ancien emplacement : quant_hedge_ai/strategy_factory/__init__.py</span>
+<span class="c1"># Devient un shim :</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">⚠️ DEPRECATED — Ce module a migré vers domains/strategy/factory/</span>
+<span class="sd">Ce shim sera supprimé quand plus aucun import ne l&#39;utilisera.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">domains.strategy.factory</span><span class="w"> </span><span class="kn">import</span> <span class="o">*</span>  <span class="c1"># noqa</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+<span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+    <span class="s2">&quot;quant_hedge_ai.strategy_factory est déprécié. Utilisez domains.strategy.factory.&quot;</span><span class="p">,</span>
+    <span class="ne">DeprecationWarning</span><span class="p">,</span>
+    <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Critères de suppression d’un shim :</strong></p>
+<ol class="arabic simple">
+<li><p>Aucun import dans le code source ne référence l’ancien chemin</p></li>
+<li><p>Tous les tests passent avec le nouveau chemin</p></li>
+<li><p>Le shim a existé pendant au moins 2 semaines (période de transition)</p></li>
+</ol>
+</section>
+<hr class="docutils" />
+<section id="validation-finale">
+<h2>11. VALIDATION FINALE<a class="headerlink" href="#validation-finale" title="Link to this heading">¶</a></h2>
+<p>Checklist post-migration :</p>
+<ul class="contains-task-list simple">
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox">Tous les tests passent (<code class="docutils literal notranslate"><span class="pre">pytest</span> <span class="pre">tests/</span></code>)</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"><code class="docutils literal notranslate"><span class="pre">grep</span> <span class="pre">-r</span> <span class="pre">&quot;from</span> <span class="pre">risk</span> <span class="pre">import&quot;</span></code> ne retourne rien (tout passe par <code class="docutils literal notranslate"><span class="pre">domains/risk/engine/</span></code>)</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"><code class="docutils literal notranslate"><span class="pre">grep</span> <span class="pre">-r</span> <span class="pre">&quot;from</span> <span class="pre">strategy_factory&quot;</span></code> ne retourne rien</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"><code class="docutils literal notranslate"><span class="pre">grep</span> <span class="pre">-r</span> <span class="pre">&quot;from</span> <span class="pre">src.events&quot;</span></code> ne retourne rien</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"><code class="docutils literal notranslate"><span class="pre">grep</span> <span class="pre">-r</span> <span class="pre">&quot;from</span> <span class="pre">src.risk&quot;</span></code> ne retourne rien</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox">Le <code class="docutils literal notranslate"><span class="pre">advisor_loop.py</span></code> importe depuis les nouveaux chemins</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox">La racine contient &lt; 30 fichiers</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox">Aucun dossier zombie (vide)</p></li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" disabled="disabled" type="checkbox"><code class="docutils literal notranslate"><span class="pre">ARCHITECTURE_V2_TO_BE.md</span></code> est le document de référence pour toute nouvelle PR</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="gouvernance-architecturale-pour-lavenir">
+<h2>12. GOUVERNANCE ARCHITECTURALE (pour l’avenir)<a class="headerlink" href="#gouvernance-architecturale-pour-lavenir" title="Link to this heading">¶</a></h2>
+<p><strong>Règles pour tout nouveau module :</strong></p>
+<ol class="arabic simple">
+<li><p>À quel Bounded Context appartient-il ? (obligatoire)</p></li>
+<li><p>Est-ce un nouveau concept ou une variation d’un existant ?</p></li>
+<li><p>Quels événements produit-il ? Consomme-t-il ?</p></li>
+<li><p>Respecte-t-il les règles de dépendance de la matrice (§6) ?</p></li>
+</ol>
+<p><strong>Check automatique (future CI) :</strong></p>
+<ul class="simple">
+<li><p>Un linter d’architecture qui vérifie que <code class="docutils literal notranslate"><span class="pre">domains/market/</span></code> n’importe jamais <code class="docutils literal notranslate"><span class="pre">domains/execution/</span></code></p></li>
+<li><p>Un détecteur de doublons d’enums/classes dans <code class="docutils literal notranslate"><span class="pre">core/contracts/</span></code></p></li>
+</ul>
+<hr class="docutils" />
+</section>
+<hr class="docutils" />
+<section id="grille-de-responsabilite-module-responsibility-card">
+<h2>13. GRILLE DE RESPONSABILITÉ (Module Responsibility Card)<a class="headerlink" href="#grille-de-responsabilite-module-responsibility-card" title="Link to this heading">¶</a></h2>
+<p>Pour chaque module migré, remplir cette fiche avant de commencer la migration.
+Un module dont la fiche est incomplète n’est pas prêt à migrer.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Nom        :
+Mission    : (une seule phrase — si deux phrases, c&#39;est deux modules)
+Entrées    : (types canoniques depuis core/contracts/)
+Sorties    : (types canoniques depuis core/contracts/)
+Événements produits  :
+Événements consommés :
+API publique : (liste des fonctions/classes exportées)
+État interne : (None | fichier | DB | mémoire)
+Peut être appelé par : (liste des Bounded Contexts autorisés)
+Ne peut PAS être appelé par : (liste explicite des BC interdits)
+</pre></div>
+</div>
+<p><strong>Signal d’alarme :</strong> si “Mission” dépasse une phrase, le module doit être découpé.
+<strong>Signal d’alarme :</strong> si “Peut être appelé par” = “tout le monde”, le module est une boîte noire globale.</p>
+</section>
+<hr class="docutils" />
+<section id="taxonomie-des-doublons">
+<h2>14. TAXONOMIE DES DOUBLONS<a class="headerlink" href="#taxonomie-des-doublons" title="Link to this heading">¶</a></h2>
+<p>Les doublons se résolvent différemment selon leur catégorie. Identifier la bonne catégorie avant d’agir.</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Catégorie</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Résolution</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong>Doublon de code</strong></p></td>
+<td><p>Même logique copiée dans 2 fichiers différents</p></td>
+<td><p>Extraire dans <code class="docutils literal notranslate"><span class="pre">core/contracts/</span></code> ou module partagé — supprimer l’un</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Doublon de responsabilité</strong></p></td>
+<td><p>2 modules font le même métier (ex: 3 kill switches)</p></td>
+<td><p>Choisir le plus complet, écrire un shim pour les autres, supprimer les shims au bout de 2 semaines</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Doublon d’orchestration</strong></p></td>
+<td><p>2 coordinateurs différents pour le même flux (ex: 5 machines d’états)</p></td>
+<td><p>Unifier dans <code class="docutils literal notranslate"><span class="pre">core/kernel/</span></code> — un seul état souverain</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Doublon de données</strong></p></td>
+<td><p>Même état stocké en 2 endroits (ex: positions dans VirtualPortfolio + MexcSimulator)</p></td>
+<td><p>Désigner 1 source de vérité, les autres écoutent via event bus</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Doublon de gouvernance</strong></p></td>
+<td><p>2 chemins possibles pour prendre la même décision</p></td>
+<td><p>Créer un seul point de décision dans <code class="docutils literal notranslate"><span class="pre">domains/governance/approval/</span></code>, supprimer le bypass</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><strong>Règle :</strong> Identifier la catégorie → appliquer la résolution correspondante. Ne jamais résoudre un doublon de données comme un doublon de code.</p>
+</section>
+<hr class="docutils" />
+<section id="radar-de-maturite-module-maturity-score">
+<h2>15. RADAR DE MATURITÉ (Module Maturity Score)<a class="headerlink" href="#radar-de-maturite-module-maturity-score" title="Link to this heading">¶</a></h2>
+<p>À remplir pour chaque module lors de la Phase 0A (AS-IS). Permet de prioriser les migrations.
+Score &lt; 5 = candidat prioritaire à la refonte. Score ≥ 8 = stable, migrer en dernier.</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Critère</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Note /10</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong>Responsabilité unique</strong></p></td>
+<td><p>Le module fait exactement une chose</p></td>
+<td><p>/10</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Couplage</strong></p></td>
+<td><p>Peu de dépendances directes vers d’autres modules</p></td>
+<td><p>/10</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Testabilité</strong></p></td>
+<td><p>Tests unitaires présents et isolés</p></td>
+<td><p>/10</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Documentation</strong></p></td>
+<td><p>Fiche de responsabilité complète</p></td>
+<td><p>/10</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Cohérence DDD</strong></p></td>
+<td><p>Appartient clairement à un seul Bounded Context</p></td>
+<td><p>/10</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Dette technique</strong></p></td>
+<td><p>Absence de TODO, FIXME, DEPRECATED non traités</p></td>
+<td><p>/10</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><strong>Score composite = moyenne des 6 critères.</strong></p>
+<p>Exemple de radar module <code class="docutils literal notranslate"><span class="pre">risk/circuit_breaker.py</span></code> :</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Responsabilité unique : 7/10  (fait du circuit-breaking ET du kill-switch)
+Couplage             : 4/10  (importe supervision/, governance/, risk/)
+Testabilité          : 6/10  (tests présents mais dépendants de l&#39;état global)
+Documentation        : 3/10  (aucune fiche de responsabilité)
+Cohérence DDD        : 5/10  (entre Risk et Supervision)
+Dette technique      : 5/10  (2 TODO ouverts)
+Score composite      : 5.0/10 → candidat migration prioritaire
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="graphe-de-dependances-phase-0a-obligatoire">
+<h2>16. GRAPHE DE DÉPENDANCES (Phase 0A obligatoire)<a class="headerlink" href="#graphe-de-dependances-phase-0a-obligatoire" title="Link to this heading">¶</a></h2>
+<p>Avant toute migration, construire le graphe : <strong>A ne peut pas vivre sans B</strong>.</p>
+<p>Différent de “A importe B” — c’est une dépendance existentielle.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Exemple :
+advisor_loop → peut vivre sans quant_hedge_ai.dashboard (visualisation)
+advisor_loop → ne peut PAS vivre sans core.authority (gouvernance)
+advisor_loop → ne peut PAS vivre sans domains.risk.engine (sécurité)
+</pre></div>
+</div>
+<p><strong>Ordre de migration = ordre inverse du graphe de dépendance.</strong>
+Les modules sans dépendants (feuilles du graphe) migrent en premier.
+Les modules dont tout dépend (racines) migrent en dernier.</p>
+<p><strong>Outil recommandé :</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>pydeps<span class="w"> </span>&lt;module&gt;<span class="w"> </span>--noshow<span class="w"> </span>--max-bacon<span class="w"> </span><span class="m">3</span>
+<span class="c1"># ou</span>
+grep<span class="w"> </span>-rn<span class="w"> </span><span class="s2">&quot;from &lt;module&gt; import&quot;</span><span class="w"> </span>.<span class="w"> </span>--include<span class="o">=</span><span class="s2">&quot;*.py&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>sort<span class="w"> </span><span class="p">|</span><span class="w"> </span>uniq
+</pre></div>
+</div>
+<hr class="docutils" />
+<blockquote>
+<div><p><strong>Ce document est la constitution architecturale du projet.</strong>
+Toute modification doit passer par une PR documentée qui met à jour ce fichier.</p>
+</div></blockquote>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Crypto AI Terminal
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">ARCHITECTURE V2 — PHASE 0B : TO-BE (Architecture Cible)</a><ul>
+<li><a class="reference internal" href="#les-4-couches">1. LES 4 COUCHES</a></li>
+<li><a class="reference internal" href="#les-9-bounded-contexts-domaines-metier">2. LES 9 BOUNDED CONTEXTS (Domaines Métier)</a><ul>
+<li><a class="reference internal" href="#market-intelligence">2.1 — Market Intelligence</a></li>
+<li><a class="reference internal" href="#strategy">2.2 — Strategy</a></li>
+<li><a class="reference internal" href="#execution">2.3 — Execution</a></li>
+<li><a class="reference internal" href="#risk">2.4 — Risk</a></li>
+<li><a class="reference internal" href="#portfolio">2.5 — Portfolio</a></li>
+<li><a class="reference internal" href="#governance">2.6 — Governance</a></li>
+<li><a class="reference internal" href="#intelligence">2.7 — Intelligence</a></li>
+<li><a class="reference internal" href="#simulation">2.8 — Simulation</a></li>
+<li><a class="reference internal" href="#supervision">2.9 — Supervision</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#la-couche-core">3. LA COUCHE CORE</a></li>
+<li><a class="reference internal" href="#la-couche-platform">4. LA COUCHE PLATFORM</a></li>
+<li><a class="reference internal" href="#la-couche-applications">5. LA COUCHE APPLICATIONS</a></li>
+<li><a class="reference internal" href="#regles-de-dependance-entre-contextes">6. RÈGLES DE DÉPENDANCE ENTRE CONTEXTES</a></li>
+<li><a class="reference internal" href="#contrats-canoniques-core-contracts">7. CONTRATS CANONIQUES (core/contracts/)</a></li>
+<li><a class="reference internal" href="#structure-finale-du-projet">8. STRUCTURE FINALE DU PROJET</a></li>
+<li><a class="reference internal" href="#ordre-des-migrations-phase-0c">9. ORDRE DES MIGRATIONS (Phase 0C)</a><ul>
+<li><a class="reference internal" href="#etape-1-platform-fondation">Étape 1 : Platform (fondation)</a></li>
+<li><a class="reference internal" href="#etape-2-core-contrats-et-noyau">Étape 2 : Core (contrats et noyau)</a></li>
+<li><a class="reference internal" href="#etape-3-domaines-metier">Étape 3 : Domaines (métier)</a></li>
+<li><a class="reference internal" href="#etape-4-applications-interfaces">Étape 4 : Applications (interfaces)</a></li>
+<li><a class="reference internal" href="#etape-5-nettoyage-racine">Étape 5 : Nettoyage racine</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#shims-temporaires">10. SHIMS TEMPORAIRES</a></li>
+<li><a class="reference internal" href="#validation-finale">11. VALIDATION FINALE</a></li>
+<li><a class="reference internal" href="#gouvernance-architecturale-pour-lavenir">12. GOUVERNANCE ARCHITECTURALE (pour l’avenir)</a></li>
+<li><a class="reference internal" href="#grille-de-responsabilite-module-responsibility-card">13. GRILLE DE RESPONSABILITÉ (Module Responsibility Card)</a></li>
+<li><a class="reference internal" href="#taxonomie-des-doublons">14. TAXONOMIE DES DOUBLONS</a></li>
+<li><a class="reference internal" href="#radar-de-maturite-module-maturity-score">15. RADAR DE MATURITÉ (Module Maturity Score)</a></li>
+<li><a class="reference internal" href="#graphe-de-dependances-phase-0a-obligatoire">16. GRAPHE DE DÉPENDANCES (Phase 0A obligatoire)</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="_static/documentation_options.js?v=ef6a59ae"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    </body>
+</html>

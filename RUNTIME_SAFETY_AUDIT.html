@@ -1,0 +1,834 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="./">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="genindex.html"><link rel="search" title="Search" href="search.html">
+        <link rel="prefetch" href="_static/../assets/logo_ai_quant.png" as="image">
+        <link rel="prefetch" href="_static/../assets/logo_ai_quant.png" as="image">
+
+    <link rel="shortcut icon" href="_static/favicon.ico"><!-- Generated with Sphinx 9.0.4 and Furo 2025.12.19 -->
+        <title>Audit de Sécurité Runtime — crypto_ai_terminal - Crypto AI Terminal 9.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=1b9cecba" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="index.html"><div class="brand">Crypto AI Terminal 9.1 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="index.html">
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="_static/../assets/logo_ai_quant.png" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="_static/../assets/logo_ai_quant.png" alt="Dark Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/blob/main/docs/RUNTIME_SAFETY_AUDIT.md?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/edit/main/docs/RUNTIME_SAFETY_AUDIT.md" rel="edit" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="audit-de-securite-runtime-crypto-ai-terminal">
+<h1>Audit de Sécurité Runtime — crypto_ai_terminal<a class="headerlink" href="#audit-de-securite-runtime-crypto-ai-terminal" title="Link to this heading">¶</a></h1>
+<p><strong>Date :</strong> 2026-06-01<br />
+<strong>Périmètre :</strong> mécanismes d’urgence, safe_mode, halt, size_factor</p>
+<hr class="docutils" />
+<section id="inventaire-des-mecanismes-durgence">
+<h2>1. Inventaire des mécanismes d’urgence<a class="headerlink" href="#inventaire-des-mecanismes-durgence" title="Link to this heading">¶</a></h2>
+<p>Le système dispose de <strong>4 systèmes de sécurité indépendants</strong>, non coordonnés entre eux :</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Système</p></th>
+<th class="head"><p>Fichier</p></th>
+<th class="head"><p>Niveau d’abstraction</p></th>
+<th class="head"><p>Déclencheur</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong>KillSwitch (Telegram)</strong></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">supervision/telegram_kill_switch.py</span></code></p></td>
+<td><p>Opérateur humain</p></td>
+<td><p>Commandes <code class="docutils literal notranslate"><span class="pre">/STOP_ALL</span></code>, <code class="docutils literal notranslate"><span class="pre">/SAFE_MODE</span></code>, <code class="docutils literal notranslate"><span class="pre">/RESUME</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>SelfAwarenessEngine</strong></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/intelligence/self_awareness_engine.py</span></code></p></td>
+<td><p>Agent IA autonome</p></td>
+<td><p>Dérive perf/comportementale/marché/infra</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>GlobalRiskGate._safe_mode</strong></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/risk/global_risk_gate.py</span></code></p></td>
+<td><p>Couche risk pré-trade</p></td>
+<td><p>Constructeur (<code class="docutils literal notranslate"><span class="pre">safe_mode=True</span></code>) ou var env <code class="docutils literal notranslate"><span class="pre">P6_SAFE_MODE</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>RuntimeStateMachine</strong></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/runtime/runtime_state_machine.py</span></code></p></td>
+<td><p>Machine d’état infra</p></td>
+<td><p>Compteur d’erreurs en fenêtre glissante</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>system/state_machine.py</strong></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">system/state_machine.py</span></code></p></td>
+<td><p>Persistance JSON</p></td>
+<td><p>Transitions manuelles depuis advisor_loop</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<blockquote>
+<div><p>Note : <code class="docutils literal notranslate"><span class="pre">supervision/kill_switch.py</span></code> et <code class="docutils literal notranslate"><span class="pre">supervision/killswitch_hardened.py</span></code> sont des variantes du même mécanisme Telegram.</p>
+</div></blockquote>
+</section>
+<hr class="docutils" />
+<section id="inventaire-detaille-des-occurrences-safe-mode">
+<h2>2. Inventaire détaillé des occurrences safe_mode<a class="headerlink" href="#inventaire-detaille-des-occurrences-safe-mode" title="Link to this heading">¶</a></h2>
+<section id="system-state-machine-py-lignes-34-129">
+<h3>2.1 system/state_machine.py (lignes 34, 129)<a class="headerlink" href="#system-state-machine-py-lignes-34-129" title="Link to this heading">¶</a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_VALID_STATES</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;NORMAL&quot;</span><span class="p">,</span> <span class="s2">&quot;DEGRADED&quot;</span><span class="p">,</span> <span class="s2">&quot;HALTED&quot;</span><span class="p">,</span> <span class="s2">&quot;RECOVERY&quot;</span><span class="p">,</span> <span class="s2">&quot;SAFE_MODE&quot;</span><span class="p">}</span>
+<span class="c1"># ...</span>
+<span class="k">elif</span> <span class="n">new_state</span> <span class="o">==</span> <span class="s2">&quot;SAFE_MODE&quot;</span><span class="p">:</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;trading_enabled&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>  <span class="c1"># ligne 130</span>
+</pre></div>
+</div>
+<p><strong>Effet :</strong> <code class="docutils literal notranslate"><span class="pre">trading_enabled=False</span></code>, persiste dans <code class="docutils literal notranslate"><span class="pre">databases/system_state.json</span></code>. Pas de recovery automatique.</p>
+</section>
+<section id="quant-hedge-ai-runtime-runtime-state-machine-py-lignes-39-161165-169173">
+<h3>2.2 quant_hedge_ai/runtime/runtime_state_machine.py (lignes 39, 161–165, 169–173)<a class="headerlink" href="#quant-hedge-ai-runtime-runtime-state-machine-py-lignes-39-161165-169173" title="Link to this heading">¶</a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">SystemState</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Enum</span><span class="p">):</span>
+    <span class="n">SAFE_MODE</span> <span class="o">=</span> <span class="s2">&quot;SAFE_MODE&quot;</span>  <span class="c1"># ligne 39</span>
+
+<span class="c1"># Politique :</span>
+<span class="n">_POLICIES</span><span class="p">[</span><span class="n">SystemState</span><span class="o">.</span><span class="n">SAFE_MODE</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+<span class="c1">#                                    can_trade, can_fetch_data, size_factor</span>
+
+<span class="c1"># Recovery depuis SAFE_MODE (ligne 161) :</span>
+<span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">==</span> <span class="n">SystemState</span><span class="o">.</span><span class="n">SAFE_MODE</span><span class="p">:</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_errors</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">silence</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_silence_s</span> <span class="o">*</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_state</span><span class="p">(</span><span class="n">SystemState</span><span class="o">.</span><span class="n">RECOVERY</span><span class="p">,</span> <span class="n">now</span><span class="p">)</span>  <span class="c1"># double silence requis</span>
+</pre></div>
+</div>
+<p><strong>Effet :</strong> bloque trading ET fetch de données ; size_factor=0.0 ; recovery possible après <code class="docutils literal notranslate"><span class="pre">2</span> <span class="pre">×</span> <span class="pre">silence_s</span></code> sans erreur.</p>
+</section>
+<section id="quant-hedge-ai-agents-risk-global-risk-gate-py-lignes-198-489-508-523">
+<h3>2.3 quant_hedge_ai/agents/risk/global_risk_gate.py (lignes 198, 489, 508, 523)<a class="headerlink" href="#quant-hedge-ai-agents-risk-global-risk-gate-py-lignes-198-489-508-523" title="Link to this heading">¶</a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="bp">self</span><span class="o">.</span><span class="n">_safe_mode</span> <span class="o">=</span> <span class="n">safe_mode</span>  <span class="c1"># ligne 198 — constructeur</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">apply_regret_delta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">delta</span><span class="p">):</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_safe_mode</span><span class="p">:</span>  <span class="c1"># ligne 489</span>
+        <span class="k">return</span>  <span class="c1"># ignore l&#39;ajustement</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">set_transition_threshold</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_safe_mode</span><span class="p">:</span>  <span class="c1"># ligne 508</span>
+        <span class="k">return</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">set_adaptive_delta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">delta</span><span class="p">):</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_safe_mode</span><span class="p">:</span>  <span class="c1"># ligne 523</span>
+        <span class="k">return</span>
+</pre></div>
+</div>
+<p><strong>Effet :</strong> <code class="docutils literal notranslate"><span class="pre">_safe_mode=True</span></code> fige les seuils adaptatifs (pas de modification via ATE/RegretEngine/RegimeSmoother). Ne bloque <strong>pas</strong> le trading directement — le gate évalue quand même.</p>
+</section>
+<section id="selfawarenessengine-awarenessstate-lignes-63-544-553">
+<h3>2.4 SelfAwarenessEngine / AwarenessState (lignes 63, 544, 553)<a class="headerlink" href="#selfawarenessengine-awarenessstate-lignes-63-544-553" title="Link to this heading">¶</a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">AwarenessState</span><span class="p">:</span>
+    <span class="n">safe_mode</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>  <span class="c1"># ligne 63</span>
+
+<span class="c1"># WARNING → safe_mode=True + size×0.25 (ligne 553)</span>
+<span class="k">elif</span> <span class="n">level</span> <span class="o">==</span> <span class="n">DangerLevel</span><span class="o">.</span><span class="n">WARNING</span><span class="p">:</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">size_factor</span> <span class="o">=</span> <span class="mf">0.25</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">safe_mode</span> <span class="o">=</span> <span class="kc">True</span>
+
+<span class="c1"># DANGER → halt_until + 30 min (ligne 559)</span>
+<span class="k">elif</span> <span class="n">level</span> <span class="o">==</span> <span class="n">DangerLevel</span><span class="o">.</span><span class="n">DANGER</span><span class="p">:</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">size_factor</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">safe_mode</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">halt_until</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">HALT_DURATION_L3</span> <span class="o">*</span> <span class="mi">60</span>  <span class="c1"># SA_HALT_MINUTES=30</span>
+</pre></div>
+</div>
+<p><strong>Effet :</strong> <code class="docutils literal notranslate"><span class="pre">safe_mode</span></code> interne à l’objet — pas connecté aux autres systèmes.</p>
+</section>
+<section id="telegramkillswitch-lignes-41-224">
+<h3>2.5 TelegramKillSwitch (lignes 41, 224)<a class="headerlink" href="#telegramkillswitch-lignes-41-224" title="Link to this heading">¶</a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">KillSwitchState</span><span class="p">:</span>
+    <span class="n">safe_mode</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>  <span class="c1"># ligne 41</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_cmd_safe_mode</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">safe_mode</span> <span class="o">=</span> <span class="kc">True</span>  <span class="c1"># ligne 224</span>
+</pre></div>
+</div>
+<p><strong>Effet :</strong> <code class="docutils literal notranslate"><span class="pre">kill_switch.is_safe_mode()</span></code> est vérifié dans <code class="docutils literal notranslate"><span class="pre">advisor_loop.py</span></code> (lignes 3271, 3735, 4077, 4555) — bloque l’exécution des ordres en mode observation.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="inventaire-halt-until-halt-minutes">
+<h2>3. Inventaire halt_until / HALT_MINUTES<a class="headerlink" href="#inventaire-halt-until-halt-minutes" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Localisation</p></th>
+<th class="head"><p>Variable</p></th>
+<th class="head"><p>Valeur par défaut</p></th>
+<th class="head"><p>Effet</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">self_awareness_engine.py</span></code> ligne 112</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SA_HALT_MINUTES</span></code> (env)</p></td>
+<td><p>30 minutes</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">halt_until</span> <span class="pre">=</span> <span class="pre">now</span> <span class="pre">+</span> <span class="pre">30</span> <span class="pre">×</span> <span class="pre">60</span></code> au niveau DANGER</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">self_awareness_engine.py</span></code> ligne 572</p></td>
+<td><p>Hardcodé</p></td>
+<td><p>86400 s (24h)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">halt_until</span> <span class="pre">=</span> <span class="pre">now</span> <span class="pre">+</span> <span class="pre">86400</span></code> au niveau CRITICAL</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">tests/test_stability_accelerated.py</span></code> ligne 136</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">state.halt_until</span></code></p></td>
+<td><p>—</p></td>
+<td><p>Avance l’horloge de test si halt actif</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><strong>Recovery DANGER :</strong> automatique après expiry de <code class="docutils literal notranslate"><span class="pre">halt_until</span></code> (checked dans <code class="docutils literal notranslate"><span class="pre">is_safe_to_trade()</span></code> ligne 261 et <code class="docutils literal notranslate"><span class="pre">evaluate()</span></code> ligne 210).<br />
+<strong>Recovery CRITICAL :</strong> 24h hardcodé — <strong>aucune recovery automatique avant expiry</strong>. Seul <code class="docutils literal notranslate"><span class="pre">engine.reset()</span></code> peut forcer le retour à OK.</p>
+</section>
+<hr class="docutils" />
+<section id="inventaire-size-factor">
+<h2>4. Inventaire size_factor<a class="headerlink" href="#inventaire-size-factor" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Source</p></th>
+<th class="head"><p>Valeur</p></th>
+<th class="head"><p>Condition</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">RuntimeStateMachine</span></code> NORMAL</p></td>
+<td><p>1.0</p></td>
+<td><p>Nominal</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">RuntimeStateMachine</span></code> DEGRADED</p></td>
+<td><p>0.5</p></td>
+<td><p>3+ erreurs / 60s</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">RuntimeStateMachine</span></code> CRITICAL/SAFE_MODE/RECOVERY</p></td>
+<td><p>0.0</p></td>
+<td><p>7+/10+ erreurs ou silence insuffisant</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ExecutiveOverride</span></code> CLEAR</p></td>
+<td><p>1.0</p></td>
+<td><p>Pas de conditions déclenchées</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ExecutiveOverride</span></code> REDUCE</p></td>
+<td><p>0.5</p></td>
+<td><p>DD &gt; 3% ou streak &gt;= 3</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ExecutiveOverride</span></code> CAREFUL</p></td>
+<td><p>0.25</p></td>
+<td><p>DD &gt; 5% ou streak &gt;= 5</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ExecutiveOverride</span></code> MINIMAL</p></td>
+<td><p>0.10</p></td>
+<td><p>DD &gt; 7% ou streak &gt;= 7</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ExecutiveOverride</span></code> VETO</p></td>
+<td><p>0.0</p></td>
+<td><p>DD &gt; 10% ou streak &gt;= 10</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">SelfAwarenessEngine</span></code> CAUTION</p></td>
+<td><p>0.5</p></td>
+<td><p>Dérive détectée niveau 1</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">SelfAwarenessEngine</span></code> WARNING</p></td>
+<td><p>0.25</p></td>
+<td><p>Dérive détectée niveau 2</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">SelfAwarenessEngine</span></code> DANGER/CRITICAL</p></td>
+<td><p>0.0</p></td>
+<td><p>Dérive sévère (halt actif)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">GlobalRiskGate._safe_mode=True</span></code></p></td>
+<td><p>N/A (pas size_factor)</p></td>
+<td><p>Fige les seuils adaptatifs uniquement</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">PortfolioBrain</span></code> 8 checks</p></td>
+<td><p>0.0 à 1.0</p></td>
+<td><p>Exposition/concentration/corrélation</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">tracker_system</span></code> exit_config</p></td>
+<td><p>Variable</p></td>
+<td><p>Regime + profit_factor</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><strong>Dans advisor_loop.py,</strong> les facteurs sont <strong>multipliés successivement</strong> :</p>
+<ul class="simple">
+<li><p>Ligne 868-869 : <code class="docutils literal notranslate"><span class="pre">order_size_usd</span> <span class="pre">×</span> <span class="pre">pb_verdict.size_factor</span></code></p></li>
+<li><p>Ligne 984-985 : <code class="docutils literal notranslate"><span class="pre">order_size_usd</span> <span class="pre">×</span> <span class="pre">eo_verdict.size_factor</span></code></p></li>
+<li><p>Ligne 1249-1250 : <code class="docutils literal notranslate"><span class="pre">eff_size</span> <span class="pre">×</span> <span class="pre">conviction.size_factor</span> <span class="pre">×</span> <span class="pre">awareness_engine.effective_size_factor()</span></code></p></li>
+</ul>
+<p><strong>Risque :</strong> si EO dit size=0.5 ET SelfAwareness dit size=0.5, l’ordre final est à 0.25 — comportement correct. Mais si l’un bloque à 0.0 et l’autre à 0.5, le résultat est 0.0 — la traçabilité doit indiquer quelle couche a forcé 0.</p>
+</section>
+<hr class="docutils" />
+<section id="analyse-executiveoverride-compute-level">
+<h2>5. Analyse : ExecutiveOverride._compute_level()<a class="headerlink" href="#analyse-executiveoverride-compute-level" title="Link to this heading">¶</a></h2>
+<p><strong>Fichier :</strong> <code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/risk/executive_override.py</span></code> lignes 294–342</p>
+<section id="flux-de-transitions">
+<h3>Flux de transitions<a class="headerlink" href="#flux-de-transitions" title="Link to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>CLEAR → REDUCE  : DD &gt;= 3% OU daily_loss &gt;= 2% OU streak &gt;= 3 OU overtrading
+REDUCE → CAREFUL: DD &gt;= 5% OU daily_loss &gt;= 3% OU streak &gt;= 5 OU open_pnl &lt;= -5%
+CAREFUL → MINIMAL: DD &gt;= 7% OU daily_loss &gt;= 5% OU streak &gt;= 7 OU open_pnl &lt;= -8%
+MINIMAL → VETO  : DD &gt;= 10% OU daily_loss &gt;= 8% OU streak &gt;= 10 OU open_pnl &lt;= -12%
+VETO → MINIMAL  : DD &lt;= 4% ET daily_loss &lt;= 2% (auto-recovery)
+MINIMAL/CAREFUL/REDUCE → CLEAR : toutes conditions disparaissent
+</pre></div>
+</div>
+</section>
+<section id="probleme-identifie-piege-veto">
+<h3>Problème identifié : piège VETO<a class="headerlink" href="#probleme-identifie-piege-veto" title="Link to this heading">¶</a></h3>
+<p>La condition de recovery VETO→MINIMAL (lignes 307–313) :</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_level</span> <span class="o">==</span> <span class="n">OverrideLevel</span><span class="o">.</span><span class="n">VETO</span><span class="p">:</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">drawdown_pct</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">DD_RECOVERY</span>  <span class="c1"># 4%</span>
+        <span class="ow">and</span> <span class="n">m</span><span class="o">.</span><span class="n">daily_loss_pct</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">DAILY_RECOVERY</span><span class="p">):</span>  <span class="c1"># 2%</span>
+        <span class="k">return</span> <span class="n">OverrideLevel</span><span class="o">.</span><span class="n">MINIMAL</span>
+    <span class="k">return</span> <span class="n">OverrideLevel</span><span class="o">.</span><span class="n">VETO</span>  <span class="c1"># ← reste VETO sinon</span>
+</pre></div>
+</div>
+<p>Si le drawdown oscille autour de 4% (4.1%, 3.9%, 4.1%…), l’EO oscille entre VETO et MINIMAL à chaque cycle — <strong>pas de deadlock mais un comportement oscillatoire</strong> potentiellement perturbant. Recommandation : ajouter une hysterèse (ex: <code class="docutils literal notranslate"><span class="pre">DD_RECOVERY</span> <span class="pre">-</span> <span class="pre">0.5%</span></code> pour le seuil de sortie stable).</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="analyse-selfawarenessengine-niveaux-et-effets">
+<h2>6. Analyse : SelfAwarenessEngine niveaux et effets<a class="headerlink" href="#analyse-selfawarenessengine-niveaux-et-effets" title="Link to this heading">¶</a></h2>
+<p><strong>Fichier :</strong> <code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/intelligence/self_awareness_engine.py</span></code></p>
+<section id="niveaux-et-effets-lignes-539573">
+<h3>Niveaux et effets (lignes 539–573)<a class="headerlink" href="#niveaux-et-effets-lignes-539573" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Niveau</p></th>
+<th class="head"><p>size_factor</p></th>
+<th class="head"><p>safe_mode</p></th>
+<th class="head"><p>halt_until</p></th>
+<th class="head"><p>Telegram</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>OK</p></td>
+<td><p>1.0</p></td>
+<td><p>False</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p>CAUTION</p></td>
+<td><p>0.5</p></td>
+<td><p>False</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-even"><td><p>WARNING</p></td>
+<td><p>0.25</p></td>
+<td><p>True</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p>DANGER</p></td>
+<td><p>0.0</p></td>
+<td><p>True</p></td>
+<td><p>+30 min (<code class="docutils literal notranslate"><span class="pre">SA_HALT_MINUTES</span></code>)</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-even"><td><p>CRITICAL</p></td>
+<td><p>0.0</p></td>
+<td><p>True</p></td>
+<td><p>+24h</p></td>
+<td><p>OUI — <code class="docutils literal notranslate"><span class="pre">_send_telegram_critical()</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="anti-deadlock-freeze-override-lignes-215225">
+<h3>Anti-deadlock FREEZE_OVERRIDE (lignes 215–225)<a class="headerlink" href="#anti-deadlock-freeze-override-lignes-215225" title="Link to this heading">¶</a></h3>
+<p>Après <code class="docutils literal notranslate"><span class="pre">SA_FREEZE_HALTS=3</span></code> halts DANGER consécutifs sans trade, le niveau est capé à WARNING (size×0.25) pour éviter le gel permanent. C’est un mécanisme de recovery implicite.</p>
+<p><strong>Problème identifié : CRITICAL sans recovery automatique</strong><br />
+Au niveau CRITICAL, <code class="docutils literal notranslate"><span class="pre">halt_until</span> <span class="pre">=</span> <span class="pre">now</span> <span class="pre">+</span> <span class="pre">86400</span></code>. La seule sortie est :</p>
+<ol class="arabic simple">
+<li><p>Attendre 24h (l’horloge expire)</p></li>
+<li><p>Appeler <code class="docutils literal notranslate"><span class="pre">engine.reset()</span></code> manuellement</p></li>
+</ol>
+<p><strong>Aucune commande Telegram ne mappe vers <code class="docutils literal notranslate"><span class="pre">awareness_engine.reset()</span></code></strong> dans le code actuel. L’opérateur qui envoie <code class="docutils literal notranslate"><span class="pre">/RESUME</span></code> sur Telegram ne déverrouille que le KillSwitch, <strong>pas</strong> le SelfAwarenessEngine CRITICAL.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="analyse-globalriskgate-safe-mode">
+<h2>7. Analyse : GlobalRiskGate._safe_mode<a class="headerlink" href="#analyse-globalriskgate-safe-mode" title="Link to this heading">¶</a></h2>
+<p><strong>Fichier :</strong> <code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/risk/global_risk_gate.py</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">_safe_mode</span></code> dans GlobalRiskGate est un <strong>mode de gel des seuils adaptatifs</strong>, pas un mode de blocage du trading. Il affecte uniquement :</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">apply_regret_delta()</span></code> — feedback RegretEngine</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">set_transition_threshold()</span></code> — ramp RegimeSmoother</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">set_adaptive_delta()</span></code> — delta ATE</p></li>
+</ul>
+<p>Il est activé via <code class="docutils literal notranslate"><span class="pre">P6_SAFE_MODE=true</span></code> (env var, ligne 85 advisor_loop) ou le constructeur. En <code class="docutils literal notranslate"><span class="pre">P6_SAFE_MODE</span></code>, les seuils de score restent figés à leur valeur de base — le gate continue à évaluer normalement.</p>
+<p><strong>Ce comportement est correct mais mal nommé</strong> : <code class="docutils literal notranslate"><span class="pre">_safe_mode</span></code> de GlobalRiskGate n’est pas le même concept que <code class="docutils literal notranslate"><span class="pre">safe_mode</span></code> du KillSwitch ou de SelfAwareness.</p>
+</section>
+<hr class="docutils" />
+<section id="tableau-des-deadlocks-et-etats-sans-recovery">
+<h2>8. Tableau des deadlocks et états sans recovery<a class="headerlink" href="#tableau-des-deadlocks-et-etats-sans-recovery" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Situation</p></th>
+<th class="head"><p>Système</p></th>
+<th class="head"><p>Gravité</p></th>
+<th class="head"><p>Recovery disponible</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>CRITICAL (SelfAwareness) — halt 24h</p></td>
+<td><p>SelfAwarenessEngine</p></td>
+<td><p>HAUTE</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">engine.reset()</span></code> — non exposé via Telegram ❌</p></td>
+</tr>
+<tr class="row-odd"><td><p>VETO oscillant autour du seuil 4% DD</p></td>
+<td><p>ExecutiveOverride</p></td>
+<td><p>MOYENNE</p></td>
+<td><p>Hysterèse absente — oscillation possible ⚠️</p></td>
+</tr>
+<tr class="row-even"><td><p>SAFE_MODE (system/state_machine.py)</p></td>
+<td><p>SystemStateMachine</p></td>
+<td><p>HAUTE</p></td>
+<td><p>Transition manuelle — pas de recovery auto ❌</p></td>
+</tr>
+<tr class="row-odd"><td><p>SAFE_MODE (RuntimeStateMachine)</p></td>
+<td><p>RuntimeStateMachine</p></td>
+<td><p>MOYENNE</p></td>
+<td><p>Recovery auto après <code class="docutils literal notranslate"><span class="pre">2</span> <span class="pre">×</span> <span class="pre">silence_s</span></code> sans erreur ✓</p></td>
+</tr>
+<tr class="row-even"><td><p>kill_switch.is_halted() + boucle while</p></td>
+<td><p>advisor_loop</p></td>
+<td><p>BASSE</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">/RESUME</span></code> Telegram ✓</p></td>
+</tr>
+<tr class="row-odd"><td><p>awareness DANGER pendant 30 min</p></td>
+<td><p>SelfAwarenessEngine</p></td>
+<td><p>BASSE</p></td>
+<td><p>Expiry automatique <code class="docutils literal notranslate"><span class="pre">halt_until</span></code> ✓</p></td>
+</tr>
+<tr class="row-even"><td><p>3 FREEZE_OVERRIDE halts</p></td>
+<td><p>SelfAwarenessEngine</p></td>
+<td><p>BASSE</p></td>
+<td><p>Cap automatique à WARNING ✓</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<hr class="docutils" />
+<section id="incoherences-entre-les-3-systemes-de-safe-mode">
+<h2>9. Incohérences entre les 3 systèmes de safe mode<a class="headerlink" href="#incoherences-entre-les-3-systemes-de-safe-mode" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Dimension</p></th>
+<th class="head"><p>KillSwitch.safe_mode</p></th>
+<th class="head"><p>SelfAwareness.safe_mode</p></th>
+<th class="head"><p>GlobalRiskGate._safe_mode</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong>Sémantique</strong></p></td>
+<td><p>Observation seule (pas d’ordres)</p></td>
+<td><p>Flag interne état de dérive</p></td>
+<td><p>Gel seuils adaptatifs</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Effet sur trading</strong></p></td>
+<td><p>Bloque l’exécution (advisor_loop ligne 3735)</p></td>
+<td><p>Bloque via <code class="docutils literal notranslate"><span class="pre">is_safe_to_trade()</span></code> (ligne 783)</p></td>
+<td><p>Aucun effet sur trading</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Persistance</strong></p></td>
+<td><p>En mémoire (<code class="docutils literal notranslate"><span class="pre">KillSwitchState.safe_mode</span></code>)</p></td>
+<td><p>En mémoire (<code class="docutils literal notranslate"><span class="pre">AwarenessState.safe_mode</span></code>)</p></td>
+<td><p>En mémoire (<code class="docutils literal notranslate"><span class="pre">self._safe_mode</span></code>)</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Recovery</strong></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">/RESUME</span></code> Telegram</p></td>
+<td><p>Automatique si drift disparaît OU <code class="docutils literal notranslate"><span class="pre">engine.reset()</span></code></p></td>
+<td><p>Constructeur / <code class="docutils literal notranslate"><span class="pre">P6_SAFE_MODE</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Coordonné ?</strong></p></td>
+<td><p>Non</p></td>
+<td><p>Non</p></td>
+<td><p>Non</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><strong>Problème structurel :</strong> les 3 systèmes sont indépendants. Un opérateur peut envoyer <code class="docutils literal notranslate"><span class="pre">/RESUME</span></code> sur Telegram et croire avoir tout déverrouillé, alors que SelfAwareness est toujours en CRITICAL et bloque les trades. Le dashboard affiche <code class="docutils literal notranslate"><span class="pre">safe_mode:</span> <span class="pre">kill_switch.is_safe_mode()</span></code> (ligne 4768) — ne reflète qu’un des trois états.</p>
+</section>
+<hr class="docutils" />
+<section id="hierarchie-recommandee">
+<h2>10. Hiérarchie recommandée<a class="headerlink" href="#hierarchie-recommandee" title="Link to this heading">¶</a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>[1] KillSwitch (Telegram)     — autorité opérateur humain, priorité absolue
+[2] SelfAwarenessEngine        — autonomie IA, surveillance dérive
+[3] ExecutiveOverride          — protection capital, 5 niveaux automatiques
+[4] GlobalRiskGate             — gouvernance pré-trade, seuils adaptatifs
+[5] PortfolioBrain             — vérification exposition portefeuille
+[6] OrderSizer                 — taille finale (Kelly + multiplicateurs)
+</pre></div>
+</div>
+<p>La hiérarchie implicite actuelle est la même, mais <strong>non documentée formellement</strong> et non forcée par code (chaque système peut décider indépendamment).</p>
+</section>
+<hr class="docutils" />
+<section id="chemin-vers-une-runtimestatemachine-centralisee">
+<h2>11. Chemin vers une RuntimeStateMachine centralisée<a class="headerlink" href="#chemin-vers-une-runtimestatemachine-centralisee" title="Link to this heading">¶</a></h2>
+<p>L’architecture actuelle contient deux machines d’état partiellement redondantes :</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">system/state_machine.py</span></code> : persistance JSON, transitions manuelles (<code class="docutils literal notranslate"><span class="pre">NORMAL/DEGRADED/HALTED/RECOVERY/SAFE_MODE</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/runtime/runtime_state_machine.py</span></code> : transitions automatiques par compteur d’erreurs (<code class="docutils literal notranslate"><span class="pre">NORMAL/DEGRADED/CRITICAL/SAFE_MODE/RECOVERY</span></code>)</p></li>
+</ul>
+<p>Le fichier <code class="docutils literal notranslate"><span class="pre">core/runtime_state_machine.py</span></code> existe dans l’arbre (non modifié) — vérifier s’il s’agit d’une troisième implémentation ou d’un proxy.</p>
+<p><strong>Migration recommandée (3 étapes) :</strong></p>
+<ol class="arabic simple">
+<li><p><strong>Phase A — Observabilité unifiée</strong><br />
+Exposer un endpoint unique (ex: <code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/runtime/state</span></code>) qui agrège les 4 états :
+<code class="docutils literal notranslate"><span class="pre">{</span> <span class="pre">&quot;kill_switch&quot;:</span> <span class="pre">...,</span> <span class="pre">&quot;awareness&quot;:</span> <span class="pre">...,</span> <span class="pre">&quot;risk_gate&quot;:</span> <span class="pre">...,</span> <span class="pre">&quot;runtime_sm&quot;:</span> <span class="pre">...,</span> <span class="pre">&quot;system_sm&quot;:</span> <span class="pre">...</span> <span class="pre">}</span></code></p></li>
+<li><p><strong>Phase B — Source de vérité unique</strong><br />
+Élire <code class="docutils literal notranslate"><span class="pre">RuntimeStateMachine</span></code> (qhai) comme source de vérité système. Faire transitionner <code class="docutils literal notranslate"><span class="pre">system/state_machine.py</span></code> depuis les callbacks de <code class="docutils literal notranslate"><span class="pre">RuntimeStateMachine.on_transition()</span></code>. Supprimer la duplication de transitions dans advisor_loop.</p></li>
+<li><p><strong>Phase C — Commande Telegram unifiée</strong><br />
+Mapper <code class="docutils literal notranslate"><span class="pre">/RESUME</span></code> sur <code class="docutils literal notranslate"><span class="pre">kill_switch.resume()</span> <span class="pre">+</span> <span class="pre">awareness_engine.reset()</span> <span class="pre">+</span> <span class="pre">runtime_sm.force_recovery()</span></code> pour garantir que l’opérateur déverrouille réellement tout le système.</p></li>
+</ol>
+</section>
+<hr class="docutils" />
+<section id="recommandations-prioritaires">
+<h2>12. Recommandations prioritaires<a class="headerlink" href="#recommandations-prioritaires" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Priorité</p></th>
+<th class="head"><p>Action</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>P0</p></td>
+<td><p>Exposer <code class="docutils literal notranslate"><span class="pre">awareness_engine.reset()</span></code> via la commande <code class="docutils literal notranslate"><span class="pre">/RESUME</span></code> Telegram — CRITICAL actuel est un piège sans sortie</p></td>
+</tr>
+<tr class="row-odd"><td><p>P1</p></td>
+<td><p>Ajouter une hysterèse dans <code class="docutils literal notranslate"><span class="pre">ExecutiveOverride._compute_level()</span></code> pour éviter l’oscillation VETO↔MINIMAL autour du seuil 4%</p></td>
+</tr>
+<tr class="row-even"><td><p>P1</p></td>
+<td><p>Dashboard : afficher les 4 états de safe_mode simultanément (KillSwitch + SelfAwareness + RuntimeSM + SystemSM)</p></td>
+</tr>
+<tr class="row-odd"><td><p>P2</p></td>
+<td><p>Unifier <code class="docutils literal notranslate"><span class="pre">system/state_machine.py</span></code> et <code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/runtime/runtime_state_machine.py</span></code> — deux implémentations parallèles créent un risque de divergence silencieuse</p></td>
+</tr>
+<tr class="row-even"><td><p>P2</p></td>
+<td><p>Renommer <code class="docutils literal notranslate"><span class="pre">GlobalRiskGate._safe_mode</span></code> en <code class="docutils literal notranslate"><span class="pre">_freeze_adaptive_thresholds</span></code> pour éviter la confusion sémantique avec les autres safe_mode</p></td>
+</tr>
+<tr class="row-odd"><td><p>P3</p></td>
+<td><p>Documenter la hiérarchie des couches de sécurité dans le code source (commentaire en tête de <code class="docutils literal notranslate"><span class="pre">advisor_loop.py</span></code>)</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Crypto AI Terminal
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Audit de Sécurité Runtime — crypto_ai_terminal</a><ul>
+<li><a class="reference internal" href="#inventaire-des-mecanismes-durgence">1. Inventaire des mécanismes d’urgence</a></li>
+<li><a class="reference internal" href="#inventaire-detaille-des-occurrences-safe-mode">2. Inventaire détaillé des occurrences safe_mode</a><ul>
+<li><a class="reference internal" href="#system-state-machine-py-lignes-34-129">2.1 system/state_machine.py (lignes 34, 129)</a></li>
+<li><a class="reference internal" href="#quant-hedge-ai-runtime-runtime-state-machine-py-lignes-39-161165-169173">2.2 quant_hedge_ai/runtime/runtime_state_machine.py (lignes 39, 161–165, 169–173)</a></li>
+<li><a class="reference internal" href="#quant-hedge-ai-agents-risk-global-risk-gate-py-lignes-198-489-508-523">2.3 quant_hedge_ai/agents/risk/global_risk_gate.py (lignes 198, 489, 508, 523)</a></li>
+<li><a class="reference internal" href="#selfawarenessengine-awarenessstate-lignes-63-544-553">2.4 SelfAwarenessEngine / AwarenessState (lignes 63, 544, 553)</a></li>
+<li><a class="reference internal" href="#telegramkillswitch-lignes-41-224">2.5 TelegramKillSwitch (lignes 41, 224)</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#inventaire-halt-until-halt-minutes">3. Inventaire halt_until / HALT_MINUTES</a></li>
+<li><a class="reference internal" href="#inventaire-size-factor">4. Inventaire size_factor</a></li>
+<li><a class="reference internal" href="#analyse-executiveoverride-compute-level">5. Analyse : ExecutiveOverride._compute_level()</a><ul>
+<li><a class="reference internal" href="#flux-de-transitions">Flux de transitions</a></li>
+<li><a class="reference internal" href="#probleme-identifie-piege-veto">Problème identifié : piège VETO</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#analyse-selfawarenessengine-niveaux-et-effets">6. Analyse : SelfAwarenessEngine niveaux et effets</a><ul>
+<li><a class="reference internal" href="#niveaux-et-effets-lignes-539573">Niveaux et effets (lignes 539–573)</a></li>
+<li><a class="reference internal" href="#anti-deadlock-freeze-override-lignes-215225">Anti-deadlock FREEZE_OVERRIDE (lignes 215–225)</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#analyse-globalriskgate-safe-mode">7. Analyse : GlobalRiskGate._safe_mode</a></li>
+<li><a class="reference internal" href="#tableau-des-deadlocks-et-etats-sans-recovery">8. Tableau des deadlocks et états sans recovery</a></li>
+<li><a class="reference internal" href="#incoherences-entre-les-3-systemes-de-safe-mode">9. Incohérences entre les 3 systèmes de safe mode</a></li>
+<li><a class="reference internal" href="#hierarchie-recommandee">10. Hiérarchie recommandée</a></li>
+<li><a class="reference internal" href="#chemin-vers-une-runtimestatemachine-centralisee">11. Chemin vers une RuntimeStateMachine centralisée</a></li>
+<li><a class="reference internal" href="#recommandations-prioritaires">12. Recommandations prioritaires</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="_static/documentation_options.js?v=ef6a59ae"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    </body>
+</html>

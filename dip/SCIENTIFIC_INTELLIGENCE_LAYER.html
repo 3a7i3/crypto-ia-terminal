@@ -1,0 +1,706 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html">
+        <link rel="prefetch" href="../_static/../assets/logo_ai_quant.png" as="image">
+        <link rel="prefetch" href="../_static/../assets/logo_ai_quant.png" as="image">
+
+    <link rel="shortcut icon" href="../_static/favicon.ico"><!-- Generated with Sphinx 9.0.4 and Furo 2025.12.19 -->
+        <title>Scientific Intelligence Layer - L3.5 - Crypto AI Terminal 9.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=1b9cecba" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">Crypto AI Terminal 9.1 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="../_static/../assets/logo_ai_quant.png" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="../_static/../assets/logo_ai_quant.png" alt="Dark Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/blob/main/docs/dip/SCIENTIFIC_INTELLIGENCE_LAYER.md?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/edit/main/docs/dip/SCIENTIFIC_INTELLIGENCE_LAYER.md" rel="edit" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="scientific-intelligence-layer-l3-5">
+<h1>Scientific Intelligence Layer - L3.5<a class="headerlink" href="#scientific-intelligence-layer-l3-5" title="Link to this heading">¶</a></h1>
+<section id="specification-v0-1">
+<h2>Specification v0.1<a class="headerlink" href="#specification-v0-1" title="Link to this heading">¶</a></h2>
+<blockquote>
+<div><p>Document de reference du niveau L3.5.
+Statut : architecture cible, zero effet runtime.
+Autorite : ADR-0007, ADR-0008, Data Governance Spec v1.0, Observer Certification Standard v1.0.</p>
+</div></blockquote>
+</section>
+<hr class="docutils" />
+<section id="mission">
+<h2>1. Mission<a class="headerlink" href="#mission" title="Link to this heading">¶</a></h2>
+<p>Le <strong>Scientific Intelligence Layer</strong> transforme les observations du DIP en
+connaissance scientifique structurée.</p>
+<p>Le DIP D01-D14 repond a des questions operationnelles :</p>
+<ul class="simple">
+<li><p>Que s’est-il passe ?</p></li>
+<li><p>Quelle couche a bloque ?</p></li>
+<li><p>Quelle est la cause racine ?</p></li>
+<li><p>Que donnerait un contrefactuel ?</p></li>
+</ul>
+<p>L3.5 repond a une question plus haute :</p>
+<blockquote>
+<div><p>Que savons-nous reellement du comportement du moteur de decision ?</p>
+</div></blockquote>
+<p>Ce niveau ne cherche pas a ajouter des fonctionnalites de trading. Il definit le
+langage scientifique qui permettra de relier decisions, causes, hypotheses,
+datasets, evidence, confiance et experiences recommandees.</p>
+</section>
+<hr class="docutils" />
+<section id="position-dans-larchitecture">
+<h2>2. Position dans l’architecture<a class="headerlink" href="#position-dans-larchitecture" title="Link to this heading">¶</a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">L4</span>    <span class="n">Research</span> <span class="n">Lab</span>                  <span class="n">genere</span> <span class="n">de</span> <span class="n">nouvelles</span> <span class="n">hypotheses</span> <span class="n">testables</span>
+      <span class="o">^</span>
+      <span class="o">|</span>
+<span class="n">L3</span><span class="mf">.5</span>  <span class="n">Scientific</span> <span class="n">Intelligence</span> <span class="n">Layer</span>  <span class="n">structure</span> <span class="n">la</span> <span class="n">connaissance</span> <span class="n">produite</span>
+      <span class="o">^</span>
+      <span class="o">|</span>
+<span class="n">L3</span>    <span class="n">Scientific</span> <span class="n">Governance</span>          <span class="n">certifie</span> <span class="n">donnees</span><span class="p">,</span> <span class="n">observateur</span><span class="p">,</span> <span class="n">lineage</span>
+      <span class="o">^</span>
+      <span class="o">|</span>
+<span class="n">DIP</span>   <span class="n">D01</span><span class="o">-</span><span class="n">D14</span>                        <span class="n">observe</span><span class="p">,</span> <span class="n">explique</span><span class="p">,</span> <span class="n">rejoue</span><span class="p">,</span> <span class="n">exporte</span>
+      <span class="o">^</span>
+      <span class="o">|</span>
+<span class="n">Engine</span> <span class="n">de</span> <span class="n">decision</span>                   <span class="n">produit</span> <span class="n">les</span> <span class="n">DecisionObservation</span>
+</pre></div>
+</div>
+<p>L3.5 consomme uniquement des artefacts deja produits ou certifies :</p>
+<ul class="simple">
+<li><p>DecisionObservation</p></li>
+<li><p>DecisionGraph</p></li>
+<li><p>CausalTree</p></li>
+<li><p>DecisionTimeline</p></li>
+<li><p>CounterfactualResult</p></li>
+<li><p>KnowledgeEntry D09</p></li>
+<li><p>CertifiedDataset</p></li>
+<li><p>HypothesisResult</p></li>
+<li><p>ObserverCertification</p></li>
+</ul>
+<p>Il ne publie jamais vers le moteur de decision.</p>
+</section>
+<hr class="docutils" />
+<section id="non-objectifs">
+<h2>3. Non-objectifs<a class="headerlink" href="#non-objectifs" title="Link to this heading">¶</a></h2>
+<p>L3.5 ne doit pas :</p>
+<ul class="simple">
+<li><p>ajouter une strategie de trading ;</p></li>
+<li><p>ajouter un indicateur technique ;</p></li>
+<li><p>modifier un seuil ;</p></li>
+<li><p>activer l’auto-calibration ;</p></li>
+<li><p>envoyer un ordre ;</p></li>
+<li><p>remplacer la validation operateur ;</p></li>
+<li><p>conclure une hypothese sans dataset certifie ;</p></li>
+<li><p>produire une recommandation d’action sans niveau d’evidence explicite.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="langage-scientifique-commun">
+<h2>4. Langage scientifique commun<a class="headerlink" href="#langage-scientifique-commun" title="Link to this heading">¶</a></h2>
+<p>Le graphe logique cible est :</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Decision</span>
+  <span class="o">-&gt;</span> <span class="n">RootCause</span>
+  <span class="o">-&gt;</span> <span class="n">Hypothesis</span>
+  <span class="o">-&gt;</span> <span class="n">Dataset</span>
+  <span class="o">-&gt;</span> <span class="n">Evidence</span>
+  <span class="o">-&gt;</span> <span class="n">Confidence</span>
+  <span class="o">-&gt;</span> <span class="n">ScientificConclusion</span>
+  <span class="o">-&gt;</span> <span class="n">RecommendedExperiment</span>
+</pre></div>
+</div>
+<section id="primitives">
+<h3>Primitives<a class="headerlink" href="#primitives" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Primitive</p></th>
+<th class="head"><p>Definition</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Decision</p></td>
+<td><p>Une decision observee par le moteur, identifiee par <code class="docutils literal notranslate"><span class="pre">packet_id</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>RootCause</p></td>
+<td><p>Cause causale principale issue de D03</p></td>
+</tr>
+<tr class="row-even"><td><p>Hypothesis</p></td>
+<td><p>Enonce falsifiable versionne, issu de <code class="docutils literal notranslate"><span class="pre">analysis/hypothesis_registry.yaml</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Dataset</p></td>
+<td><p>Donnees certifiees, tracées par UUID et certification ID</p></td>
+</tr>
+<tr class="row-even"><td><p>Evidence</p></td>
+<td><p>Niveau empirique Weak, Moderate, Strong, VeryStrong, plus confirmations et contradictions</p></td>
+</tr>
+<tr class="row-odd"><td><p>Confidence</p></td>
+<td><p>Confiance dans la connaissance, distincte de la confiance de decision</p></td>
+</tr>
+<tr class="row-even"><td><p>ScientificConclusion</p></td>
+<td><p>Synthese falsifiable : Confirmed, Rejected, Inconclusive, Contradicted ou Stale</p></td>
+</tr>
+<tr class="row-odd"><td><p>RecommendedExperiment</p></td>
+<td><p>Experience proposee pour reduire l’incertitude restante</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="moteurs-si-01-a-si-08">
+<h2>5. Moteurs SI-01 a SI-08<a class="headerlink" href="#moteurs-si-01-a-si-08" title="Link to this heading">¶</a></h2>
+<section id="si-01-decision-knowledge-graph">
+<h3>SI-01 - Decision Knowledge Graph<a class="headerlink" href="#si-01-decision-knowledge-graph" title="Link to this heading">¶</a></h3>
+<p><strong>But :</strong> relier les decisions individuelles aux hypotheses, datasets et
+conclusions scientifiques.</p>
+<p><strong>Sortie cible :</strong></p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">knowledge_edge</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">decision_id</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&lt;packet_id&gt;&quot;</span>
+<span class="w">  </span><span class="nt">root_cause_layer</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;meta_strategy&quot;</span>
+<span class="w">  </span><span class="nt">hypothesis_id</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;H3&quot;</span>
+<span class="w">  </span><span class="nt">dataset_uuid</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&lt;uuid&gt;&quot;</span>
+<span class="w">  </span><span class="nt">evidence_level</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Moderate&quot;</span>
+<span class="w">  </span><span class="nt">confidence</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.71</span>
+<span class="w">  </span><span class="nt">conclusion_id</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;SC-2026-0001&quot;</span>
+<span class="w">  </span><span class="nt">recommended_experiment</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;EXP-002&quot;</span>
+</pre></div>
+</div>
+</section>
+<section id="si-02-causal-memory">
+<h3>SI-02 - Causal Memory<a class="headerlink" href="#si-02-causal-memory" title="Link to this heading">¶</a></h3>
+<p><strong>But :</strong> transformer les motifs repetes en memoire causale.</p>
+<p>Exemple de connaissance cible :</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">causal_memory</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">pattern</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;SELL</span><span class="nv"> </span><span class="s">+</span><span class="nv"> </span><span class="s">bear_trend</span><span class="nv"> </span><span class="s">+</span><span class="nv"> </span><span class="s">ATR&gt;2</span><span class="nv"> </span><span class="s">+</span><span class="nv"> </span><span class="s">score&gt;78&quot;</span>
+<span class="w">  </span><span class="nt">window</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;8w&quot;</span>
+<span class="w">  </span><span class="nt">refusals_pct</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.74</span>
+<span class="w">  </span><span class="nt">regret_class</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;MISSED_WIN&quot;</span>
+<span class="w">  </span><span class="nt">evidence</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Strong&quot;</span>
+<span class="w">  </span><span class="nt">n</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">160</span>
+</pre></div>
+</div>
+</section>
+<section id="si-03-evidence-engine">
+<h3>SI-03 - Evidence Engine<a class="headerlink" href="#si-03-evidence-engine" title="Link to this heading">¶</a></h3>
+<p><strong>But :</strong> suivre l’accumulation de preuves et les evenements qui renforcent ou
+affaiblissent une hypothese.</p>
+<p>Etats possibles :</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">NoEvidence</span> <span class="o">-&gt;</span> <span class="n">Weak</span> <span class="o">-&gt;</span> <span class="n">Moderate</span> <span class="o">-&gt;</span> <span class="n">Strong</span> <span class="o">-&gt;</span> <span class="n">VeryStrong</span>
+                \<span class="o">-&gt;</span> <span class="n">Contradicted</span>
+                \<span class="o">-&gt;</span> <span class="n">Inconclusive</span>
+                \<span class="o">-&gt;</span> <span class="n">Stale</span>
+</pre></div>
+</div>
+<p>Chaque transition doit reference :</p>
+<ul class="simple">
+<li><p>un dataset UUID ;</p></li>
+<li><p>une experience ;</p></li>
+<li><p>une taille d’echantillon ;</p></li>
+<li><p>un test statistique ;</p></li>
+<li><p>un effet observe ;</p></li>
+<li><p>une date d’evaluation.</p></li>
+</ul>
+</section>
+<section id="si-04-scientific-timeline">
+<h3>SI-04 - Scientific Timeline<a class="headerlink" href="#si-04-scientific-timeline" title="Link to this heading">¶</a></h3>
+<p><strong>But :</strong> afficher l’evolution de la connaissance, pas seulement la chronologie
+des decisions.</p>
+<p>Exemple :</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>2026-05  H1 created
+2026-06  30 trades  -&gt; Evidence Weak
+2026-07  80 trades  -&gt; Evidence Moderate
+2026-08  160 trades -&gt; Evidence Strong
+2026-08  H1 Confirmed
+</pre></div>
+</div>
+</section>
+<section id="si-05-contradiction-detector">
+<h3>SI-05 - Contradiction Detector<a class="headerlink" href="#si-05-contradiction-detector" title="Link to this heading">¶</a></h3>
+<p><strong>But :</strong> detecter les conclusions simultanees qui ne peuvent pas etre vraies
+ensemble dans le cadre d’une recommandation.</p>
+<p>Sources initiales :</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">experiments/EXP-001.yaml</span></code> -&gt; <code class="docutils literal notranslate"><span class="pre">known_conflict_pairs</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">analysis/hypothesis_registry.yaml</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">analysis/hypothesis_quality.yaml</span></code></p></li>
+</ul>
+<p>Sortie cible :</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">scientific_contradiction</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">pair</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">H1</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">H3</span><span class="p p-Indicator">]</span>
+<span class="w">  </span><span class="nt">severity</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;BLOCKING&quot;</span>
+<span class="w">  </span><span class="nt">reason</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;H3</span><span class="nv"> </span><span class="s">Rejected</span><span class="nv"> </span><span class="s">invalide</span><span class="nv"> </span><span class="s">une</span><span class="nv"> </span><span class="s">recommandation</span><span class="nv"> </span><span class="s">de</span><span class="nv"> </span><span class="s">seuil</span><span class="nv"> </span><span class="s">fondee</span><span class="nv"> </span><span class="s">sur</span><span class="nv"> </span><span class="s">H1&quot;</span>
+<span class="w">  </span><span class="nt">required_action</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;ouvrir</span><span class="nv"> </span><span class="s">une</span><span class="nv"> </span><span class="s">experience</span><span class="nv"> </span><span class="s">de</span><span class="nv"> </span><span class="s">resolution&quot;</span>
+</pre></div>
+</div>
+</section>
+<section id="si-06-knowledge-confidence">
+<h3>SI-06 - Knowledge Confidence<a class="headerlink" href="#si-06-knowledge-confidence" title="Link to this heading">¶</a></h3>
+<p><strong>But :</strong> mesurer la confiance dans la connaissance produite.</p>
+<p>Difference normative :</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Score</p></th>
+<th class="head"><p>Question</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>OCS</p></td>
+<td><p>Peut-on faire confiance a l’observateur ?</p></td>
+</tr>
+<tr class="row-odd"><td><p>Knowledge Confidence</p></td>
+<td><p>Peut-on faire confiance a la connaissance produite ?</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Dimensions candidates :</p>
+<ul class="simple">
+<li><p>certification du dataset ;</p></li>
+<li><p>OCS au moment de la collecte ;</p></li>
+<li><p>taille d’echantillon ;</p></li>
+<li><p>puissance statistique ;</p></li>
+<li><p>reproductibilite ;</p></li>
+<li><p>absence de contradiction ;</p></li>
+<li><p>fraicheur temporelle ;</p></li>
+<li><p>couverture des regimes.</p></li>
+</ul>
+</section>
+<section id="si-07-scientific-drift">
+<h3>SI-07 - Scientific Drift<a class="headerlink" href="#si-07-scientific-drift" title="Link to this heading">¶</a></h3>
+<p><strong>But :</strong> detecter qu’une connaissance vieillit.</p>
+<p>Une hypothese peut etre <code class="docutils literal notranslate"><span class="pre">Confirmed</span></code> sur un dataset, puis devenir moins fiable si :</p>
+<ul class="simple">
+<li><p>le regime de marche change ;</p></li>
+<li><p>les nouveaux datasets contredisent les anciens ;</p></li>
+<li><p>la performance se degrade hors intervalle attendu ;</p></li>
+<li><p>la reproductibilite tombe sous le seuil.</p></li>
+</ul>
+<p>Sorties possibles :</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Stable</span> <span class="o">|</span> <span class="n">Weakening</span> <span class="o">|</span> <span class="n">Drifted</span> <span class="o">|</span> <span class="n">Stale</span> <span class="o">|</span> <span class="n">Retired</span>
+</pre></div>
+</div>
+</section>
+<section id="si-08-decision-dna">
+<h3>SI-08 - Decision DNA<a class="headerlink" href="#si-08-decision-dna" title="Link to this heading">¶</a></h3>
+<p><strong>But :</strong> encoder chaque decision en sequence comparable pour decouvrir des
+familles de decisions.</p>
+<p>Genome cible :</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">decision_dna</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">packet_id</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&lt;packet_id&gt;&quot;</span>
+<span class="w">  </span><span class="nt">layer_sequence</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;authority&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;meta_strategy&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;gate&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;...&quot;</span><span class="p p-Indicator">]</span>
+<span class="w">  </span><span class="nt">conviction</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.75</span>
+<span class="w">  </span><span class="nt">memory_signature</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;mistake_memory:none&quot;</span>
+<span class="w">  </span><span class="nt">risk_signature</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;portfolio:ok;capital:10usd&quot;</span>
+<span class="w">  </span><span class="nt">personality</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;momentum&quot;</span>
+<span class="w">  </span><span class="nt">outcome</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;REJECTED&quot;</span>
+<span class="w">  </span><span class="nt">regret_class</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;MISSED_WIN&quot;</span>
+<span class="w">  </span><span class="nt">evidence_contribution</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.03</span>
+</pre></div>
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="gates-de-maturite-l3-5">
+<h2>6. Gates de maturite L3.5<a class="headerlink" href="#gates-de-maturite-l3-5" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Gate</p></th>
+<th class="head"><p>Nom</p></th>
+<th class="head"><p>Condition</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>SI-G0</p></td>
+<td><p>Specification</p></td>
+<td><p>ADR-0008 + cette spec publies</p></td>
+</tr>
+<tr class="row-odd"><td><p>SI-G1</p></td>
+<td><p>Sources fiables</p></td>
+<td><p>Observer Certification Level 3 + dataset CERTIFIED/PASS</p></td>
+</tr>
+<tr class="row-even"><td><p>SI-G2</p></td>
+<td><p>Graphe initial</p></td>
+<td><p>SI-01 lit decisions, hypotheses et datasets sans ecrire dans le moteur</p></td>
+</tr>
+<tr class="row-odd"><td><p>SI-G3</p></td>
+<td><p>Evidence release</p></td>
+<td><p>Premiere Knowledge Release avec contradictions et confidence documentees</p></td>
+</tr>
+<tr class="row-even"><td><p>SI-G4</p></td>
+<td><p>Drift release</p></td>
+<td><p>Première conclusion confirmee puis re-evaluee sur dataset ulterieur</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Tant que SI-G1 n’est pas atteint, L3.5 reste une architecture cible.</p>
+</section>
+<hr class="docutils" />
+<section id="contrats-dintegration">
+<h2>7. Contrats d’integration<a class="headerlink" href="#contrats-dintegration" title="Link to this heading">¶</a></h2>
+<section id="avec-le-dip">
+<h3>Avec le DIP<a class="headerlink" href="#avec-le-dip" title="Link to this heading">¶</a></h3>
+<p>L3.5 consomme les exports DIP ou lit le DIPStore en lecture seule. Les modules D01-D14
+restent inchanges.</p>
+</section>
+<section id="avec-les-hypotheses">
+<h3>Avec les hypotheses<a class="headerlink" href="#avec-les-hypotheses" title="Link to this heading">¶</a></h3>
+<p>Toute conclusion L3.5 pointe vers une hypothese versionnee. Une connaissance sans
+hypothese falsifiable reste une observation, pas une conclusion scientifique.</p>
+</section>
+<section id="avec-les-datasets">
+<h3>Avec les datasets<a class="headerlink" href="#avec-les-datasets" title="Link to this heading">¶</a></h3>
+<p>Toute evidence L3.5 pointe vers un dataset certifie. Une evidence issue de donnees
+brutes peut exister en mode exploratoire, mais elle ne peut pas etre utilisee dans
+un Go/No-Go.</p>
+</section>
+<section id="avec-loperateur">
+<h3>Avec l’operateur<a class="headerlink" href="#avec-loperateur" title="Link to this heading">¶</a></h3>
+<p>L3.5 recommande des experiences et signale des contradictions. L’operateur decide
+des changements de configuration.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="regles-invariantes">
+<h2>8. Regles invariantes<a class="headerlink" href="#regles-invariantes" title="Link to this heading">¶</a></h2>
+<ol class="arabic simple">
+<li><p>L3.5 est strictement passif.</p></li>
+<li><p>L3.5 ne modifie jamais un <code class="docutils literal notranslate"><span class="pre">DecisionPacket</span></code>.</p></li>
+<li><p>L3.5 ne modifie jamais un seuil de decision.</p></li>
+<li><p>L3.5 ne conclut jamais sans dataset certifie.</p></li>
+<li><p>L3.5 distingue toujours observation, evidence, conclusion et recommandation.</p></li>
+<li><p>L3.5 journalise les contradictions au lieu de les masquer.</p></li>
+<li><p>L3.5 degrade la confiance d’une connaissance vieillissante.</p></li>
+<li><p>L3.5 reste separable du cas d’usage trading.</p></li>
+</ol>
+</section>
+<hr class="docutils" />
+<section id="historique">
+<h2>9. Historique<a class="headerlink" href="#historique" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Version</p></th>
+<th class="head"><p>Date</p></th>
+<th class="head"><p>Changement</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>v0.1</p></td>
+<td><p>2026-07-01</p></td>
+<td><p>Creation initiale L3.5, SI-01 a SI-08, gates SI-G0 a SI-G4</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Crypto AI Terminal
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Scientific Intelligence Layer - L3.5</a><ul>
+<li><a class="reference internal" href="#specification-v0-1">Specification v0.1</a></li>
+<li><a class="reference internal" href="#mission">1. Mission</a></li>
+<li><a class="reference internal" href="#position-dans-larchitecture">2. Position dans l’architecture</a></li>
+<li><a class="reference internal" href="#non-objectifs">3. Non-objectifs</a></li>
+<li><a class="reference internal" href="#langage-scientifique-commun">4. Langage scientifique commun</a><ul>
+<li><a class="reference internal" href="#primitives">Primitives</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#moteurs-si-01-a-si-08">5. Moteurs SI-01 a SI-08</a><ul>
+<li><a class="reference internal" href="#si-01-decision-knowledge-graph">SI-01 - Decision Knowledge Graph</a></li>
+<li><a class="reference internal" href="#si-02-causal-memory">SI-02 - Causal Memory</a></li>
+<li><a class="reference internal" href="#si-03-evidence-engine">SI-03 - Evidence Engine</a></li>
+<li><a class="reference internal" href="#si-04-scientific-timeline">SI-04 - Scientific Timeline</a></li>
+<li><a class="reference internal" href="#si-05-contradiction-detector">SI-05 - Contradiction Detector</a></li>
+<li><a class="reference internal" href="#si-06-knowledge-confidence">SI-06 - Knowledge Confidence</a></li>
+<li><a class="reference internal" href="#si-07-scientific-drift">SI-07 - Scientific Drift</a></li>
+<li><a class="reference internal" href="#si-08-decision-dna">SI-08 - Decision DNA</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#gates-de-maturite-l3-5">6. Gates de maturite L3.5</a></li>
+<li><a class="reference internal" href="#contrats-dintegration">7. Contrats d’integration</a><ul>
+<li><a class="reference internal" href="#avec-le-dip">Avec le DIP</a></li>
+<li><a class="reference internal" href="#avec-les-hypotheses">Avec les hypotheses</a></li>
+<li><a class="reference internal" href="#avec-les-datasets">Avec les datasets</a></li>
+<li><a class="reference internal" href="#avec-loperateur">Avec l’operateur</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#regles-invariantes">8. Regles invariantes</a></li>
+<li><a class="reference internal" href="#historique">9. Historique</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../_static/documentation_options.js?v=ef6a59ae"></script>
+    <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/scripts/furo.js?v=46bd48cc"></script>
+    </body>
+</html>
