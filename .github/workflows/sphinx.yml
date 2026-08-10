@@ -19,6 +19,11 @@ on:
 jobs:
   build-docs:
     runs-on: ubuntu-latest
+    # Necessaire au push sur gh-pages : le GITHUB_TOKEN est en lecture seule
+    # par defaut, d'ou le 403 de peaceiris/actions-gh-pages. Portee au job
+    # plutot qu'au workflow, et limitee au strict minimum.
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
