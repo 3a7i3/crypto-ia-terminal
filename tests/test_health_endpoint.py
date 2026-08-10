@@ -160,8 +160,10 @@ class TestUpdate:
             except Exception as e:
                 errors.append(e)
         threads = [threading.Thread(target=writer, args=(i,)) for i in range(20)]
-        for t in threads: t.start()
-        for t in threads: t.join()
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
         assert errors == []
 
     def test_remove_component(self, server):

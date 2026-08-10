@@ -76,7 +76,6 @@ class TradeReplay:
         alternatives = []
         for tp in tp_values:
             for sl in sl_values:
-                from tracker_system.engine.exit_engine import ExitEngine
                 from tracker_system.engine.rules.tp_sl import TPSLRule
 
                 engine = ExitEngine([TPSLRule(tp=tp, sl=sl)])

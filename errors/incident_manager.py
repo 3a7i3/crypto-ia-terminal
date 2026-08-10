@@ -31,7 +31,7 @@ from dataclasses import dataclass, field
 from enum import Enum, auto
 from typing import Any, Callable, Dict, List, Optional
 
-from errors.error_bus import ErrorCategory, ErrorEvent, ErrorSeverity, error_bus
+from errors.error_bus import ErrorEvent, ErrorSeverity, error_bus
 from observability.json_logger import get_logger
 from observability.metrics_bus import metrics_bus
 

@@ -6,7 +6,6 @@ Analyse de sensibilité des hyperparamètres sur la performance (partial depende
 import os
 
 import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.inspection import PartialDependenceDisplay

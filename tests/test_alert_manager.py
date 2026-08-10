@@ -1,5 +1,3 @@
-import os
-import tempfile
 
 from supervision.alert_manager import Alert, AlertManager
 
@@ -30,5 +28,5 @@ def test_alert_and_autoheal(tmp_path):
     # Vérifie que l'audit trail contient l'alerte et la correction
     with open(audit_file, "r", encoding="utf-8") as f:
         lines = f.readlines()
-    assert any('"type": "cpu_overload"' in l for l in lines)
-    assert any('"correction": true' in l for l in lines)
+    assert any('"type": "cpu_overload"' in line for line in lines)
+    assert any('"correction": true' in line for line in lines)

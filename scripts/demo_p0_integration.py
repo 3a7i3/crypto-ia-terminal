@@ -9,7 +9,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from tracker_system.p0_integration import P0Manager, create_default_p0_manager
+from tracker_system.p0_integration import create_default_p0_manager
 
 
 def demo_trading_day():

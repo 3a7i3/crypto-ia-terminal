@@ -125,8 +125,8 @@ class SessionAnalyzer:
         if current_type is not None:
             streaks.append((current_type, current_len))
 
-        win_streaks = [l for t, l in streaks if t == "win"]
-        loss_streaks = [l for t, l in streaks if t == "loss"]
+        win_streaks = [length for t, length in streaks if t == "win"]
+        loss_streaks = [length for t, length in streaks if t == "loss"]
 
         return {
             "max_win_streak": max(win_streaks) if win_streaks else 0,

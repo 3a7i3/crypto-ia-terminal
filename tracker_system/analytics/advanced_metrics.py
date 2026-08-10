@@ -3,7 +3,7 @@ P1 — ADVANCED METRICS
 Sharpe ratio, Sortino ratio, CAGR, Calmar ratio, etc.
 """
 
-from typing import List, Dict, Optional, Tuple
+from typing import List, Dict, Tuple
 from statistics import mean, stdev
 import math
 

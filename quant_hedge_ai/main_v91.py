@@ -342,14 +342,6 @@ def run_v91_system(
     shadow_engine._risk_gate = global_risk_gate
     shadow_engine._order_sizer = order_sizer
 
-    # Register SelfHealingBot watchdog pour le StreamBus
-    make_websocket_watchdog(
-        self_healing,
-        bus,
-        reconnect_fn=lambda: _start_streambus_background(bus),
-        name="streambus",
-    )
-
     # =========================================================================
     # POST-MORTEM (Phase 5)
     # =========================================================================
@@ -423,6 +415,14 @@ def run_v91_system(
     _start_streambus_background(bus)
     time.sleep(3)
     print(f"StreamBus prêt — {bus.stats()}")
+
+    # Register SelfHealingBot watchdog pour le StreamBus
+    make_websocket_watchdog(
+        self_healing,
+        bus,
+        reconnect_fn=lambda: _start_streambus_background(bus),
+        name="streambus",
+    )
 
     # =========================================================================
     # DÉMARRAGE SESSION
