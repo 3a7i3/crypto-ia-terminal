@@ -31,13 +31,16 @@ jobs:
           pip install -r docs/requirements.txt
       - name: Copy Markdown files
         run: |
-          python copy_docs_for_sphinx.py
+          python scripts/copy_docs_for_sphinx.py
       - name: Build Sphinx HTML
         run: |
           sphinx-build -b html docs docs/_build/html
+      # linkcheck est un builder integre a Sphinx : aucun paquet a installer.
+      # Non bloquant, car la disponibilite de liens externes ne depend pas du
+      # commit teste. Passer a bloquant est une decision d'operateur.
       - name: Check for broken links
+        continue-on-error: true
         run: |
-          pip install sphinx-linkcheck
           sphinx-build -b linkcheck docs docs/_build/linkcheck
       - name: Notify Discord (optionnel)
         if: always()
