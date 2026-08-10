@@ -28,10 +28,10 @@ jobs:
           cache: pip
 
       - name: Installer les outils de lint
-        run: pip install ruff
+        run: pip install ruff==0.15.8
 
       - name: Ruff — vérification syntaxe et imports
-        run: ruff check . --select=E,F,W --ignore=E501,E402 --exclude=__pycache__,.venv
+        run: ruff check .
 
   # ──────────────────────────────────────────────────────────────────────────
   # 2. TESTS — pytest + coverage
