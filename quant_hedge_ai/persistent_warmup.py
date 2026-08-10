@@ -341,7 +341,6 @@ def _synthetic_ohlcv(symbol: str, timeframe: str, limit: int = 96) -> list:
 
 def _run_demo(n_cycles: int = 5) -> None:
     """Demo : compare bootstrap vs cycle 1 avec et sans CacheWarmer."""
-    import sys
 
     print("\n" + "=" * 64)
     print("  DEMO CacheWarmer — Comparaison bootstrap vs cycle 1")

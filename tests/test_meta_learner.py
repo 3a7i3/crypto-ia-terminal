@@ -1,13 +1,11 @@
 """Tests unitaires et d'intégration pour meta_memory + meta_learner."""
 from __future__ import annotations
 
-import json
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-import pytest
 
 from tracker_system.meta_memory  import MetaMemory
 from tracker_system.meta_learner import MetaLearner, _volatility_bucket, _similarity

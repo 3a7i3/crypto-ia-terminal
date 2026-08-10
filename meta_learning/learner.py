@@ -4,7 +4,7 @@ Algo: find similar context → retourne decision avec meilleure performance
 """
 
 from typing import Any
-from meta_learning.memory import MetaMemory, MemoryEntry
+from meta_learning.memory import MetaMemory
 from meta_learning.similarity import SimilarityEngine
 
 

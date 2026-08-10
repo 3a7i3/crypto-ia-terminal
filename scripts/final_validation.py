@@ -49,25 +49,25 @@ def main():
     # Test 2: Import all modules
     log.info("\n[CHECK 2] Importing all modules...")
     try:
-        from startup_cache import get_startup_cache
+        from startup_cache import get_startup_cache  # noqa: F401 — CHECK 2 : l'import est la verification elle-meme
         log.info("  OK: startup_cache")
 
-        from warm_boot import WarmBootManager
+        from warm_boot import WarmBootManager  # noqa: F401 — CHECK 2 : l'import est la verification elle-meme
         log.info("  OK: warm_boot")
 
-        from evolution_memory import get_evolution_memory_db
+        from evolution_memory import get_evolution_memory_db  # noqa: F401 — CHECK 2 : l'import est la verification elle-meme
         log.info("  OK: evolution_memory")
 
-        from lazy_loader import get_lazy_loader
+        from lazy_loader import get_lazy_loader  # noqa: F401 — CHECK 2 : l'import est la verification elle-meme
         log.info("  OK: lazy_loader")
 
-        from daily_analyzer import get_daily_analyzer
+        from daily_analyzer import get_daily_analyzer  # noqa: F401 — CHECK 2 : l'import est la verification elle-meme
         log.info("  OK: daily_analyzer")
 
-        from circuit_breaker import enable_circuit_breaker
+        from circuit_breaker import enable_circuit_breaker  # noqa: F401 — CHECK 2 : l'import est la verification elle-meme
         log.info("  OK: circuit_breaker")
 
-        from bootstrap_integration import bootstrap_system
+        from bootstrap_integration import bootstrap_system  # noqa: F401 — CHECK 2 : l'import est la verification elle-meme
         log.info("  OK: bootstrap_integration")
 
     except Exception as e:

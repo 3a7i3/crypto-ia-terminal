@@ -49,8 +49,7 @@ def plot_god_mode(df, tracked_id=None):
     Si tracked_id est fourni, met en surbrillance la stratégie correspondante.
     """
     import matplotlib.pyplot as plt
-    import numpy as np
-    from mpl_toolkits.mplot3d import Axes3D
+    from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 — effet de bord : enregistre la projection '3d' de matplotlib
 
     # Vérifier colonnes requises
     if not all(

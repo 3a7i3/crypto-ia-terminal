@@ -5,7 +5,6 @@ TEST P1 — Auto Regime Detection
 
 import sys
 from pathlib import Path
-import math
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 

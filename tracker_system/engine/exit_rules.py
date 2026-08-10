@@ -43,7 +43,7 @@ class TimeExitRule:
 
     def check(self, pos: dict, price: float, context: dict | None = None) -> str | None:
         import time
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         try:
             raw_ts = pos.get("timestamp")

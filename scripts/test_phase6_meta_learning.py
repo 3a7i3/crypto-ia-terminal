@@ -9,7 +9,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from meta_learning.memory import MetaMemory
-from meta_learning.similarity import SimilarityEngine
 from meta_learning.learner import MetaLearner
 
 

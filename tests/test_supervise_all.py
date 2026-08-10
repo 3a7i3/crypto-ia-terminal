@@ -2,9 +2,8 @@
 Tests pour supervise_all.py : import, build_doctor, run_once, rapport.
 """
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
-import pytest
 
 from supervision.bot_doctor import BotDoctor
 from supervision.custom_module import CustomTradingModule

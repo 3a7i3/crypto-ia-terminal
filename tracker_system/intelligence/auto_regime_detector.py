@@ -3,7 +3,7 @@ P1 — AUTO REGIME DETECTION
 Détecte automatiquement: bull_trend, bear_trend, range, scalp, protection
 """
 
-from typing import List, Dict, Optional, Tuple
+from typing import List, Dict, Tuple
 from statistics import mean, stdev
 import math
 

@@ -1,5 +1,3 @@
-import os
-import tempfile
 
 from supervision.alert_manager import Alert, AlertManager
 
