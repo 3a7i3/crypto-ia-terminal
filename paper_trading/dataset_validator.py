@@ -52,7 +52,11 @@ _DEFAULT_PATH = os.getenv("PAPER_TRADE_LOG", "databases/paper_trades.jsonl")
 # balayage `_check_positions`, qui ne clôture pas à la seconde près.
 _MAX_OPEN_AGE_H = float(os.getenv("MEXC_SIM_MAX_AGE_H", "8.0")) * 1.5
 
-_VALID_SCHEMA_VERSIONS = frozenset({1, 2})
+# v3 (paper_trading/recorder.py:43) ajoute regime, score, score_bin,
+# order_id et runtime_config_version. Le recorder ecrit en v3 depuis
+# c657e87 (2026-07-07) : sans le 3 ici, ce validateur rejette 100 %
+# des enregistrements de production.
+_VALID_SCHEMA_VERSIONS = frozenset({1, 2, 3})
 _VALID_CONVICTION_LEVELS = frozenset({"NONE", "LOW", "MEDIUM", "HIGH", "EXTREME"})
 
 # Bornes de plausibilité pour les variables de marché

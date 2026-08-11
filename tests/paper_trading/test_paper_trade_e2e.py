@@ -228,6 +228,11 @@ class TestPaperTradeCompleteLifecycle:
 
         notifications = []
         mock_reader = MagicMock()
+        # MexcSimulator valide l'OHLCV contre le ticker live et rejette
+        # au-dela de _MAX_OHLCV_TICKER_DEV (incident STAR/USDT : OHLCV=$852
+        # vs ticker=$0.17). Un MagicMock nu renvoie 1.0 via __float__, soit
+        # 100 % d'ecart avec le current_price=100_000 ci-dessous.
+        mock_reader.spot.fetch_ticker.return_value = {"last": 100_000.0}
 
         sim = MexcSimulator(
             mexc_reader=mock_reader,
