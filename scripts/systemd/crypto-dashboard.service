@@ -1,0 +1,15 @@
+[Unit]
+Description=CryptoRadar Web Dashboard
+After=network-online.target
+
+[Service]
+Type=simple
+User=mathieu
+WorkingDirectory=/home/mathieu/crypto_ai_terminal
+EnvironmentFile=/home/mathieu/crypto_ai_terminal/.env
+ExecStart=/usr/bin/python3 scripts/dashboard_api.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
