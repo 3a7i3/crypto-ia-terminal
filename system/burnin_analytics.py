@@ -170,13 +170,10 @@ class BurnInAnalytics:
         all_wins_no_loss = gross_loss == 0 and gross_profit > 0
         expectancy = sum(rets) / len(rets) if rets else 0.0
 
-        # Sharpe par trade (mean/std des rendements par trade)
-        sharpe = 0.0
-        if len(rets) >= 2:
-            mean_r = sum(rets) / len(rets)
-            variance = sum((r - mean_r) ** 2 for r in rets) / (len(rets) - 1)
-            std_r = variance**0.5
-            sharpe = round(mean_r / std_r, 4) if std_r > 0 else 0.0
+        # Sharpe par trade (mean/std des rendements par trade) via primitive canonique
+        from metrics.sharpe import sharpe as _sharpe
+
+        sharpe = round(_sharpe(rets, periods_per_year=1), 4)
 
         # Classification alpha
         n = len(rets)
