@@ -10,7 +10,7 @@ from __future__ import annotations
 import re
 import time
 
-from market_data.metrics.liquidity import LiquidityConfig, liquidity_score
+from market_data.metrics.liquidity import liquidity_score
 from market_data.models import NormalizedOrderBook
 from tools.orderbook_live_viewer import Stats, _render
 
