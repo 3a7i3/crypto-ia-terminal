@@ -145,11 +145,12 @@ def _compute_metrics(closes: list[dict]) -> dict:
     gross_loss = abs(sum(losses)) if losses else 0
     pf = gross_win / gross_loss if gross_loss > 0 else float("inf")
 
+    # Sharpe per-trade (pas d'annualisation) via la primitive canonique metrics.sharpe.
+    # Migration Wave 2 (ddof=0 -> ddof=1) — derive numerique mineure attendue.
+    from metrics.sharpe import sharpe as _sharpe
+
     pcts = [float(c.get("pnl_pct", 0) or 0) for c in closes]
-    mean_p = sum(pcts) / n if n else 0
-    var_p = sum((p - mean_p) ** 2 for p in pcts) / n if n > 1 else 0
-    std_p = math.sqrt(var_p) if var_p > 0 else 0
-    sharpe = mean_p / std_p if std_p > 0 else 0.0
+    sharpe = _sharpe(pcts, periods_per_year=1)
 
     return {
         "n": n,

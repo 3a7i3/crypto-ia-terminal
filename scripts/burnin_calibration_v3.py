@@ -267,13 +267,11 @@ def _compute_trade_stats(trades: list[dict]) -> TradeStats:
         if dd > max_dd:
             max_dd = dd
 
-    # Sharpe (daily, approximated from pnl_pct)
-    sharpe = 0.0
-    if len(pnl_pcts) >= 2:
-        mean_r = sum(pnl_pcts) / len(pnl_pcts)
-        variance = sum((r - mean_r) ** 2 for r in pnl_pcts) / len(pnl_pcts)
-        std_r = math.sqrt(variance) if variance > 0 else 0
-        sharpe = round(mean_r / std_r * math.sqrt(252), 2) if std_r > 0 else 0.0
+    # Sharpe annualise (daily, ~252 periodes/an) via la primitive canonique.
+    # Migration Wave 2 (ddof=0 -> ddof=1) — derive numerique mineure attendue.
+    from metrics.sharpe import sharpe as _sharpe
+
+    sharpe = round(_sharpe(pnl_pcts, periods_per_year=252), 2)
 
     return TradeStats(
         count=len(trades),

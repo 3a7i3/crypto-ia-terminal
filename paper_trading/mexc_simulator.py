@@ -210,15 +210,18 @@ class PerformanceTracker:
         return max_dd
 
     def sharpe(self, risk_free: float = 0.0) -> float:
-        if len(self._daily_returns) < 2:
-            return 0.0
-        n = len(self._daily_returns)
-        mean = sum(self._daily_returns) / n
-        variance = sum((r - mean) ** 2 for r in self._daily_returns) / (n - 1)
-        std = math.sqrt(variance) if variance > 0 else 0.0
-        if std == 0:
-            return 0.0
-        return (mean - risk_free) / std * math.sqrt(252)
+        """Sharpe annualise (daily) via la primitive canonique metrics.sharpe.
+
+        Migration Wave 2 : etait deja ddof=1, pure delegation sans derive numerique.
+        Le RF est passe comme rf_annual au lieu d'etre soustrait au mean —
+        la primitive fait (mu - rf_annual/ppy) / sigma qui est algebrique-equivalent
+        quand ppy=252 et RF est deja "daily-equivalent" ; pour un RF annuel donne,
+        la primitive divise correctement. Aucun changement de comportement pour
+        le call site par defaut (risk_free=0.0).
+        """
+        from metrics.sharpe import sharpe as _sharpe
+
+        return _sharpe(self._daily_returns, rf_annual=risk_free, periods_per_year=252)
 
     def days_running(self) -> float:
         return (time.time() - self._start_ts) / 86400.0
