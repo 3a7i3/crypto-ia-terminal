@@ -28,9 +28,20 @@ class BacktestEngine:
 
         ctx = self.run_context or RunContext(strategy_id="unknown")
         pending_close: dict | None = None
+        # No-lookahead : mirror de pending_close pour les entrees. Le signal decide
+        # sur bar i (avec candle["close"] visible) s'execute a l'ouverture du bar i+1.
+        pending_open: dict | None = None
 
         while True:
             candle = self.data_feed.next()
+
+            if pending_open is not None and candle is not None:
+                # Executer l'entree deferee a l'OPEN de ce bar (premier prix atteignable)
+                order = pending_open["order"]
+                entry_px = candle.get("open", candle["close"])
+                self.router.execute(order, entry_px)
+                pending_close = {"symbol": pending_open["symbol"]}
+                pending_open = None
 
             if pending_close is not None and candle is not None:
                 symbol = pending_close["symbol"]
@@ -69,8 +80,8 @@ class BacktestEngine:
                     size=1.0,
                     metadata=order_meta,
                 )
-                self.router.execute(order, candle["close"])
-                pending_close = {"symbol": signal.symbol}
+                # Defer entry to next bar's open (no-lookahead fix)
+                pending_open = {"symbol": signal.symbol, "order": order}
 
             equity = self.portfolio.mark_to_market(
                 {candle.get("symbol", "BTC"): candle["close"]}
