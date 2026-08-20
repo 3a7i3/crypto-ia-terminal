@@ -1,5 +1,3 @@
-import math
-
 from src.domain.trade_event import TradeEvent
 
 
@@ -29,10 +27,13 @@ def max_drawdown(equity_curve: list) -> float:
 
 
 def sharpe_ratio(returns: list, rfr: float = 0.0) -> float:
-    if len(returns) < 2:
-        return 0.0
-    n = len(returns)
-    mean = sum(returns) / n - rfr
-    variance = sum((r - mean) ** 2 for r in returns) / (n - 1)
-    std = math.sqrt(variance) if variance > 0 else 0.0
-    return mean / std if std != 0 else 0.0
+    """Sharpe (non-annualise ici) via la primitive canonique.
+
+    Corrige un bug pre-existant : l'ancienne implementation soustrayait rfr
+    du mean puis calculait la variance autour de (mean - rfr), ce qui deplace
+    le centre de la variance. La primitive fait mean(returns) puis
+    (mu - rfr/N) / sigma correctement.
+    """
+    from metrics.sharpe import sharpe
+
+    return sharpe(returns, rf_annual=rfr, periods_per_year=1)

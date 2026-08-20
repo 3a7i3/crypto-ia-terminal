@@ -97,15 +97,17 @@ def expectancy(pnls: list[float]) -> float | None:
     return round(sum(pnls) / len(pnls), 4)
 
 
-def sharpe(pnls: list[float], risk_free: float = 0.0) -> float | None:
-    if len(pnls) < 2:
-        return None
-    mean = sum(pnls) / len(pnls)
-    variance = sum((p - mean) ** 2 for p in pnls) / (len(pnls) - 1)
-    std = math.sqrt(variance)
-    if std == 0:
-        return None
-    return round((mean - risk_free) / std, 3)
+def sharpe(pnls: list[float], risk_free: float = 0.0) -> float:
+    """Sharpe par-trade (sans annualisation) via la primitive canonique.
+
+    Retourne 0.0 (au lieu de None historiquement) quand len < 2 ou stdev == 0,
+    pour aligner avec la primitive metrics.sharpe. Consommateurs verifies :
+    regime_audit.py:175 (is not None and > 0) et dashboard.py:203 (isinstance)
+    restent compatibles.
+    """
+    from metrics.sharpe import sharpe as _sharpe
+
+    return round(_sharpe(pnls, rf_annual=risk_free, periods_per_year=1), 3)
 
 
 def sortino(pnls: list[float], risk_free: float = 0.0) -> float | None:

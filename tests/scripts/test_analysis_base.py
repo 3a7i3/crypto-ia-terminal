@@ -80,16 +80,19 @@ def test_expectancy_empty() -> None:
 
 
 def test_sharpe_requires_min_2() -> None:
-    assert sharpe([1.0]) is None
+    # Post-unification (metrics.sharpe) : retourne 0.0 au lieu de None.
+    # Consommateurs verifies : is not None and > 0 → False dans les deux cas
+    # (0.0 > 0 = False), isinstance(x, float) and x > 0 → False.
+    assert sharpe([1.0]) == 0.0
 
 
 def test_sharpe_zero_std() -> None:
-    assert sharpe([5.0, 5.0, 5.0]) is None
+    assert sharpe([5.0, 5.0, 5.0]) == 0.0
 
 
 def test_sharpe_positive() -> None:
     result = sharpe([10.0, 20.0, 15.0, 5.0])
-    assert result is not None and result > 0
+    assert result > 0
 
 
 # ── sortino ───────────────────────────────────────────────────────────────────
