@@ -2,7 +2,7 @@
 """radar_bot.py — Bot Telegram interactif CryptoRadar. LECTURE SEULE."""
 
 from __future__ import annotations
-import json, os, sys, time, traceback, urllib.request, urllib.error
+import json, os, sys, threading, time, traceback, urllib.request, urllib.error
 from collections import defaultdict
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -12,6 +12,14 @@ DP_DIR = Path(os.getenv("DP_LOG_DIR", str(PROJECT / "databases")))
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
 CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "").strip()
 ALLOWED_CHATS = {CHAT_ID} if CHAT_ID else set()
+
+# ── Alertes auto sur seuils (observer strict, ADR-0007) ─────────────────
+# Seuils : desactive si <=0 (loss_pct) ou <=0 (signal_conf) ou <=0 (interval)
+ALERT_PNL_LOSS_PCT = float(os.getenv("RADAR_ALERT_PNL_LOSS_PCT", "-3.0"))
+ALERT_SIGNAL_CONF_MIN = float(os.getenv("RADAR_ALERT_SIGNAL_CONF_MIN", "90"))
+ALERT_INTERVAL_S = int(os.getenv("RADAR_ALERT_INTERVAL_S", "300"))
+# Anti-spam : ne pas realerter le meme (symbole, type) avant N secondes
+ALERT_DEDUP_S = int(os.getenv("RADAR_ALERT_DEDUP_S", "3600"))
 
 def tg_request(method, payload=None):
     url = f"https://api.telegram.org/bot{TOKEN}/{method}"
@@ -241,6 +249,117 @@ def cmd_symbol(args):
             lines.append(f"   R:R    {r:.1f}")
     return "\n".join(lines)
 
+def load_live_positions():
+    """Lit databases/live_snapshot.json (ecrit chaque cycle par advisor_loop)."""
+    fp = DP_DIR / "live_snapshot.json"
+    if not fp.exists():
+        return []
+    try:
+        snap = json.loads(fp.read_text(encoding="utf-8"))
+    except Exception:
+        return []
+    return snap.get("positions", []) or []
+
+
+def pnl_at_price(pos, price):
+    """(pnl_pct, pnl_usd) hypothetiques pour une position ouverte a un prix donne."""
+    entry = float(pos.get("entry", 0) or 0)
+    if entry <= 0:
+        return 0.0, 0.0
+    side = str(pos.get("side", "")).lower()
+    lev = float(pos.get("leverage", 1) or 1)
+    size_usd = float(pos.get("size_usd", 0) or 0)
+    if side in ("long", "buy"):
+        pct = (price - entry) / entry
+    elif side in ("short", "sell"):
+        pct = (entry - price) / entry
+    else:
+        return 0.0, 0.0
+    return round(pct * 100, 4), round(pct * size_usd * lev, 2)
+
+
+def cmd_impact(args):
+    """/impact <symbole> <prix>  |  /impact <symbole>  |  /impact  (agrege toutes)"""
+    parts = args.strip().split()
+    symbol = parts[0].upper() if parts else ""
+    price = 0.0
+    if len(parts) >= 2:
+        try:
+            price = float(parts[1])
+        except ValueError:
+            return f"Prix invalide: {parts[1]!r}"
+    positions = load_live_positions()
+    if symbol:
+        q = symbol.replace("/", "").replace("-", "")
+        positions = [p for p in positions
+                     if q in str(p.get("symbol", "")).upper().replace("/", "").replace("-", "")]
+    if not positions:
+        return f"IMPACT — Aucune position ouverte{' pour ' + symbol if symbol else ''}"
+    n_profit = n_loss = 0
+    total_usd = sum_pct = 0.0
+    details = []
+    for p in positions:
+        use_price = price if price > 0 else float(p.get("current", p.get("entry", 0)) or 0)
+        pct, usd = pnl_at_price(p, use_price)
+        if pct > 0:
+            n_profit += 1
+        else:
+            n_loss += 1
+        total_usd += usd
+        sum_pct += pct
+        details.append((p.get("symbol", "?"), str(p.get("side", "")).upper(),
+                        use_price, pct, usd))
+    n = len(positions)
+    header = f"\U0001f4ca IMPACT — {symbol or 'toutes positions'}"
+    if price > 0:
+        header += f" @ {price:g}"
+    else:
+        header += " @ prix live"
+    lines = [header, ""]
+    lines.append(f"Positions: {n}  |  En profit: {n_profit} ({100 * n_profit / n:.0f}%)  |  En perte: {n_loss}")
+    lines.append(f"Total PnL: {total_usd:+.2f} $  |  Avg PnL: {sum_pct / n:+.2f}%")
+    lines.append("")
+    for sym, side, px, pct, usd in details[:20]:
+        icon = "\U0001f7e2" if pct > 0 else "\U0001f534"
+        lines.append(f"{icon} {sym} {side} @ {px:g} -> {pct:+.2f}% ({usd:+.2f} $)")
+    if n > 20:
+        lines.append(f"... +{n - 20} autres")
+    return "\n".join(lines)
+
+
+def cmd_portfolio(_args):
+    """/portfolio -- snapshot instantane des positions ouvertes."""
+    positions = load_live_positions()
+    if not positions:
+        return "\U0001f4bc PORTFOLIO — Aucune position ouverte"
+    total_pnl_usd = 0.0
+    with_pct = []
+    for p in positions:
+        pct = float(p.get("pnl_pct", 0) or 0)
+        usd = float(p.get("pnl_usd", 0) or 0)
+        total_pnl_usd += usd
+        with_pct.append((p.get("symbol", "?"), str(p.get("side", "")).upper(),
+                         float(p.get("entry", 0) or 0), float(p.get("current", 0) or 0),
+                         pct, usd, float(p.get("leverage", 1) or 1)))
+    with_pct.sort(key=lambda x: x[4], reverse=True)
+    n = len(positions)
+    n_profit = sum(1 for x in with_pct if x[4] > 0)
+    lines = ["\U0001f4bc PORTFOLIO — snapshot live", "",
+             f"Positions ouvertes: {n}",
+             f"En profit: {n_profit} ({100 * n_profit / n:.0f}%)  |  En perte: {n - n_profit}",
+             f"Total PnL: {total_pnl_usd:+.2f} $", ""]
+    lines.append("\U0001f4c8 TOP 3 GAINERS")
+    for sym, side, entry, cur, pct, usd, lev in with_pct[:3]:
+        icon = "\U0001f7e2" if side.startswith("L") else "\U0001f534"
+        lines.append(f"{icon} {sym} {side} x{lev:.0f} | {pct:+.2f}% ({usd:+.2f} $) | {entry:g} -> {cur:g}")
+    lines.append("")
+    lines.append("\U0001f4c9 TOP 3 LOSERS")
+    for sym, side, entry, cur, pct, usd, lev in with_pct[-3:][::-1]:
+        icon = "\U0001f7e2" if side.startswith("L") else "\U0001f534"
+        lines.append(f"{icon} {sym} {side} x{lev:.0f} | {pct:+.2f}% ({usd:+.2f} $) | {entry:g} -> {cur:g}")
+    return "\n".join(lines)
+
+
 def cmd_status(_args):
     now = datetime.utcnow()
     today = now.strftime("%Y-%m-%d")
@@ -283,12 +402,86 @@ def cmd_help(_args):
         "/longs       Uniquement les LONG\n"
         "/shorts      Uniquement les SHORT\n"
         "/symbol BTC  Detail d'un symbole\n"
+        "/portfolio   Snapshot live positions ouvertes\n"
+        "/impact SYM P  PnL hypothetique des positions a prix P\n"
         "/status      Etat du systeme\n"
         "/help        Cette aide")
 
 COMMANDS = {"scan": cmd_scan, "signals": cmd_signals, "top50": cmd_top50,
     "longs": cmd_longs, "shorts": cmd_shorts, "symbol": cmd_symbol,
+    "portfolio": cmd_portfolio, "impact": cmd_impact,
     "status": cmd_status, "help": cmd_help, "start": cmd_help}
+
+
+# ── Alertes auto sur seuils (thread daemon, observer strict) ─────────────
+_alert_last_sent: dict[str, float] = {}
+
+
+def _should_alert(key):
+    """True si l'alerte `key` n'a pas ete envoyee dans les ALERT_DEDUP_S dernieres s."""
+    last = _alert_last_sent.get(key, 0.0)
+    if time.time() - last < ALERT_DEDUP_S:
+        return False
+    _alert_last_sent[key] = time.time()
+    return True
+
+
+def _check_and_alert():
+    """Une passe : verifie positions ouvertes + derniers signaux, envoie alertes."""
+    if not CHAT_ID:
+        return
+    # 1. Positions ouvertes -- alerte si PnL < seuil
+    if ALERT_PNL_LOSS_PCT < 0:
+        for p in load_live_positions():
+            pct = float(p.get("pnl_pct", 0) or 0)
+            sym = str(p.get("symbol", "?"))
+            if pct <= ALERT_PNL_LOSS_PCT and _should_alert(f"pnl_loss:{sym}"):
+                side = str(p.get("side", "")).upper()
+                usd = float(p.get("pnl_usd", 0) or 0)
+                cur = float(p.get("current", 0) or 0)
+                sl = float(p.get("sl", 0) or 0)
+                msg = (f"⚠️ ALERTE PnL — {sym} {side}\n"
+                       f"PnL: {pct:+.2f}% ({usd:+.2f} $) <= seuil {ALERT_PNL_LOSS_PCT:g}%\n"
+                       f"Prix: {cur:g} | SL: {sl:g}")
+                try:
+                    send_message(CHAT_ID, msg)
+                except Exception as exc:
+                    print(f"[RadarBot][alert] send failed: {exc}")
+    # 2. Signaux recents -- alerte si confidence >= seuil
+    if ALERT_SIGNAL_CONF_MIN > 0:
+        try:
+            packets = load_recent_packets(1)
+            for s in extract_signals(packets):
+                if s["confidence"] < ALERT_SIGNAL_CONF_MIN:
+                    continue
+                key = f"signal:{s['symbol']}:{s['side']}:{round(s['entry'], 4)}"
+                if not _should_alert(key):
+                    continue
+                icon = "\U0001f7e2" if s["side"] in ("BUY", "LONG") else "\U0001f534"
+                d = "LONG" if s["side"] in ("BUY", "LONG") else "SHORT"
+                msg = (f"\U0001f680 SIGNAL FORT — conf {s['confidence']:.0f}/100\n"
+                       f"{icon} {s['symbol']} {d}\n"
+                       f"Entry: {s['entry']:g} | SL: {s['sl']:g} (-{s['risk_pct']:.1f}%)\n"
+                       f"TP: {s['tp']:g} (+{s['reward_pct']:.1f}%) | {s['regime']}")
+                try:
+                    send_message(CHAT_ID, msg)
+                except Exception as exc:
+                    print(f"[RadarBot][alert] send failed: {exc}")
+        except Exception as exc:
+            print(f"[RadarBot][alert] scan signals failed: {exc}")
+
+
+def alerts_loop():
+    """Boucle background pour les alertes auto. Idempotent, ne bloque jamais le poll."""
+    print(f"[RadarBot] Alerts loop actif (interval={ALERT_INTERVAL_S}s, "
+          f"loss<={ALERT_PNL_LOSS_PCT}%, conf>={ALERT_SIGNAL_CONF_MIN})")
+    while True:
+        try:
+            _check_and_alert()
+        except Exception as exc:
+            print(f"[RadarBot][alerts_loop] {exc}")
+            traceback.print_exc()
+        time.sleep(max(60, ALERT_INTERVAL_S))
 
 def poll_loop():
     print(f"[RadarBot] Demarre — polling Telegram...")
@@ -352,6 +545,9 @@ def main():
                 if handler:
                     send_message(chat_id, handler(args))
         return
+    # Alertes auto en thread daemon (interval > 0 = actif)
+    if ALERT_INTERVAL_S > 0:
+        threading.Thread(target=alerts_loop, daemon=True, name="radar-alerts").start()
     poll_loop()
 
 if __name__ == "__main__":
