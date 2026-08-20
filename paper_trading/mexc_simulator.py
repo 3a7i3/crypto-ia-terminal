@@ -635,6 +635,12 @@ class MexcSimulator:
                 score=pos.score,
                 regime=pos.regime,
                 mode="futures_demo",
+                intended_price=price,
+                fill_price=fill,
+                slippage_pct=((fill - price) / price * 100.0) if price else None,
+                fee_usd=fee,
+                order_type=order.order_type.value,
+                is_maker=order.order_type != OrderType.MARKET,
             )
         except Exception as exc:
             _log.warning("[SIM] record_open échoué: %s", exc)
@@ -807,6 +813,14 @@ class MexcSimulator:
                 mfe_pct=pos.mfe_pct,
                 score=pos.score,
                 regime=pos.regime,
+                intended_price=exit_price,
+                fill_price=fill,
+                slippage_pct=(
+                    (fill - exit_price) / exit_price * 100.0 if exit_price else None
+                ),
+                fee_usd=fee,
+                order_type="market",
+                is_maker=False,
             )
         except Exception as exc:
             _log.warning("[SIM] record_close échoué: %s", exc)

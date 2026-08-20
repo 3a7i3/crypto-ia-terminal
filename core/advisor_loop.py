@@ -3961,12 +3961,21 @@ def main(
                 )
             # ── PaperTradeRecorder — source de vérité entry ───────────────────
             try:
+                from paper_trading.execution_capture import capture_from_ccxt
                 from paper_trading.recorder import DecisionContext as _DecisionContext
                 from paper_trading.recorder import MarketContext as _MarketContext
                 from paper_trading.recorder import get_recorder as _get_recorder
 
                 _conviction = result_row.get("conviction")
                 _tf = result_row.get("transition_forecast")
+                _entry_fill = float(
+                    getattr(pos, "entry_price", _to_float(result_row.get("prix", 0.0)))
+                )
+                _exec = capture_from_ccxt(
+                    order_result,
+                    intended_price=_to_float(result_row.get("prix", 0.0)) or None,
+                    fill_price=_entry_fill or None,
+                )
                 _get_recorder().record_open(
                     trade_id=str(getattr(pos, "order_id", "") or id(pos)),
                     symbol=symbol,
@@ -4002,6 +4011,7 @@ def main(
                             else None
                         ),
                     ),
+                    **_exec,
                 )
             except Exception as _rec_exc:
                 log.debug("[PaperRecorder] open échoué: %s", _rec_exc)
@@ -4055,9 +4065,11 @@ def main(
 
             _mae = getattr(pos, "mae_pct", None)
             _mfe = getattr(pos, "mfe_pct", None)
+            _exit_fill = float(getattr(pos, "current_price", 0.0) or pos.entry_price)
+            _exit_fee = getattr(pos, "exit_fee_usd", None)
             _get_recorder().record_close(
                 trade_id=str(getattr(pos, "order_id", "") or id(pos)),
-                exit_price=float(getattr(pos, "current_price", 0.0) or pos.entry_price),
+                exit_price=_exit_fill,
                 pnl_usd=float(getattr(pos, "pnl_usd", 0.0) or 0.0),
                 pnl_pct=float(getattr(pos, "pnl_pct", 0.0) or 0.0),
                 reason=getattr(reason, "value", str(reason)),
@@ -4070,6 +4082,8 @@ def main(
                 mode=str(getattr(pos, "mode", "futures_demo")),
                 mae_pct=float(_mae) if _mae is not None else None,
                 mfe_pct=float(_mfe) if _mfe is not None else None,
+                fill_price=_exit_fill or None,
+                fee_usd=float(_exit_fee) if _exit_fee is not None else None,
             )
         except Exception as _rec_exc:
             log.debug("[PaperRecorder] close échoué: %s", _rec_exc)
