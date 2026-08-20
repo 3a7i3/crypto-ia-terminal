@@ -528,6 +528,40 @@ class PaperTradeRecorder:
 
         return sorted(result, key=lambda t: t.opened_at or t.closed_at or 0)
 
+    def trades_as_dicts(self, closed_only: bool = True) -> list[dict]:
+        """Vue dict des trades — pour affichage/API (bots Telegram, dashboards).
+
+        Les formatters attendent des dicts à clés génériques plutôt que les
+        dataclasses CompleteTrade. `closed_only=True` ne renvoie que les trades
+        clôturés (PnL réalisé), ordre chronologique (plus ancien → plus récent).
+        """
+        out: list[dict] = []
+        for t in self.trades():
+            if closed_only and t.is_open:
+                continue
+            out.append(
+                {
+                    "trade_id": t.trade_id,
+                    "symbol": t.symbol,
+                    "side": t.side,
+                    "regime": t.regime,
+                    "score": t.score,
+                    "pnl": t.pnl_usd if t.pnl_usd is not None else 0.0,
+                    "pnl_pct": t.pnl_pct,
+                    "entry_price": t.entry_price,
+                    "exit_price": t.exit_price,
+                    "price": t.entry_price,
+                    "close_price": t.exit_price,
+                    "opened_at": t.opened_at,
+                    "closed_at": t.closed_at,
+                    "ts": t.closed_at or t.opened_at or 0,
+                    "reason": t.exit_reason,
+                    "close_reason": t.exit_reason,
+                    "is_win": t.is_win,
+                }
+            )
+        return out
+
     def summary(self) -> dict:
         """Statistiques agrégées des trades complétés."""
         all_trades = self.trades()

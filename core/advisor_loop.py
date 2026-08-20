@@ -3671,7 +3671,10 @@ def main(
             try:
                 from paper_trading.recorder import get_recorder as _gr
 
-                return _gr().get_trades()
+                # trades_as_dicts() — la méthode du recorder est trades(),
+                # pas get_trades() ; renvoie la vue dict attendue par les
+                # formatters (/trades, /history…).
+                return _gr().trades_as_dicts()
             except Exception:
                 return []
 

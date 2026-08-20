@@ -208,6 +208,36 @@ class TestRecorderSchemaV4:
         assert t.entry_fill_price is None
         assert t.total_fee_usd is None
 
+    def test_trades_as_dicts_shape_for_bot(self, recorder):
+        """La vue dict alimente les commandes /trades et /history du bot."""
+        recorder.record_open(
+            trade_id="d1", symbol="BTC/USDT", side="buy",
+            price=100.0, size_usd=30.0, regime="bull_trend", score=72,
+        )
+        recorder.record_close(
+            trade_id="d1", exit_price=103.0, pnl_usd=0.9, pnl_pct=0.03,
+            reason="TP", opened_at=1.0,
+        )
+        rows = recorder.trades_as_dicts()
+        assert len(rows) == 1
+        r = rows[0]
+        # Clés attendues par _fmt_trades / _fmt_history
+        for key in ("symbol", "side", "pnl", "ts", "entry_price",
+                    "exit_price", "reason", "close_reason"):
+            assert key in r
+        assert r["symbol"] == "BTC/USDT"
+        assert r["pnl"] == 0.9
+        assert r["reason"] == "TP"
+        assert r["is_win"] is True
+
+    def test_trades_as_dicts_excludes_open_by_default(self, recorder):
+        recorder.record_open(
+            trade_id="open1", symbol="ETH/USDT", side="buy",
+            price=2000.0, size_usd=30.0,
+        )
+        assert recorder.trades_as_dicts() == []
+        assert len(recorder.trades_as_dicts(closed_only=False)) == 1
+
     def test_merged_view_surfaces_exec_fields(self, recorder):
         recorder.record_open(
             trade_id="t2",
