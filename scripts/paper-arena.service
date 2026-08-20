@@ -1,3 +1,6 @@
+# RÉFÉRENCE UNIQUEMENT — ne pas installer tel quel.
+# Les chemins/user ci-dessous sont indicatifs. L'unité réelle est GÉNÉRÉE
+# avec le user et les chemins du VPS par scripts/vps_paper_arena_setup.sh.
 [Unit]
 Description=Paper Arena V1 — ETH 4h RSI 15/85
 After=network.target
