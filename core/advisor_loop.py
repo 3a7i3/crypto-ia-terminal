@@ -795,6 +795,11 @@ INTEL_INTERVAL_S = int(os.getenv("INTEL_REPORT_EVERY_H", "6")) * 3600
 REAL_BOT_TOKEN = os.getenv("REAL_ACCOUNT_BOT_TOKEN", "")
 REAL_BOT_CHAT = os.getenv("REAL_ACCOUNT_CHAT_ID", "")
 REAL_BOT_REPORT_EVERY = int(os.getenv("REAL_BOT_REPORT_EVERY", "12"))  # cycles
+
+# Dernière évaluation du GlobalRiskGate — alimente la commande /gate du bot.
+# Observation pure (ADR-0007) : copie du dernier GateResult, aucune influence
+# sur la décision (le gate reste seul juge).
+_LAST_GATE: dict = {"result": None, "symbol": "", "ts": 0.0}
 NOTIFY_EVERY = int(os.getenv("ADVISOR_NOTIFY_EVERY", "3"))
 MTF_REFRESH_EVERY = int(os.getenv("ADVISOR_MTF_REFRESH_EVERY", "12"))
 ADVISOR_1H_LIMIT = int(os.getenv("ADVISOR_1H_LIMIT", "96"))
@@ -1601,6 +1606,15 @@ def analyze_symbol(
             gate_result = gate.check(
                 signal, portfolio_drawdown=0.0, order_size_usd=order_size_usd
             )
+    # Observation /gate : mémorise la dernière évaluation (aucun effet décision)
+    try:
+        _LAST_GATE.update(
+            result=gate_result,
+            symbol=getattr(signal, "symbol", "") or "",
+            ts=time.time(),
+        )
+    except Exception:
+        pass
     if _dp and not _dp.is_terminal() and hasattr(gate, "check_packet"):
         try:
             gate.check_packet(
@@ -3708,8 +3722,13 @@ def main(
 
         def _get_gate_for_bot():
             try:
-                snap = gate._last_snapshot  # noqa: F821
-                return vars(snap) if snap is not None else None
+                snap = _LAST_GATE.get("result")
+                if snap is None:
+                    return None
+                d = snap.as_dict() if hasattr(snap, "as_dict") else dict(vars(snap))
+                d["symbol"] = _LAST_GATE.get("symbol", "")
+                d["ts"] = _LAST_GATE.get("ts", 0)
+                return d
             except Exception:
                 return None
 

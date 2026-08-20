@@ -694,37 +694,27 @@ def _fmt_gate(p: CommandDataProvider) -> str:
     snap = p.get_gate() if p.get_gate else None
     if not snap:
         return "_GlobalRiskGate non disponible_"
-    if hasattr(snap, "__dict__"):
+    if hasattr(snap, "as_dict"):
+        snap = snap.as_dict()
+    elif hasattr(snap, "__dict__"):
         snap = snap.__dict__
-    lvl = snap.get("level", "?")
-    if hasattr(lvl, "value"):
-        lvl = lvl.value
-    sf = snap.get("size_factor", 1.0)
-    dd = snap.get("drawdown", 0.0)
-    corr = snap.get("avg_correlation", 0.0)
-    vol = snap.get("vol_ratio", 1.0)
-    exp = snap.get("net_exposure", 0.0)
-    msg = snap.get("message", "")
-    conds = snap.get("triggered_conditions", [])
-    icon = {"SAFE": "SAFE", "WARNING": "WARN", "CRITICAL": "!! CRITICAL"}.get(
-        str(lvl), str(lvl)
-    )
-    lines = [
-        f"*GATE — {icon}*  x{sf:.2f}",
-        _SEP,
-        f"Drawdown:       {dd:.1%}",
-        f"Correlation:    {corr:.2f}",
-        f"Vol ratio:      {vol:.1f}x",
-        f"Exposition:     {exp:.1%}",
-    ]
-    if msg:
-        lines.append(f"Message: {msg}")
-    if conds:
-        lines += ["", "*Conditions déclenchées:*"]
-        for c in conds:
-            lines.append(f"  !! {c}")
-    else:
-        lines.append("\nAucune condition déclenchée")
+    allowed = snap.get("allowed")
+    conditions = snap.get("conditions", {}) or {}
+    failed = snap.get("failed", []) or []
+    warnings = snap.get("warnings", []) or []
+    symbol = snap.get("symbol", "")
+    n_ok = sum(1 for v in conditions.values() if v)
+    icon = "PASS" if allowed else "BLOCK"
+    hdr = f"*GATE — {icon}*"
+    if symbol:
+        hdr += f"  ({symbol})"
+    lines = [hdr, _SEP, f"Conditions: {n_ok}/{len(conditions)} OK"]
+    for name, ok in conditions.items():
+        lines.append(f"  {'OK ' if ok else '!! '} {name}")
+    if failed:
+        lines += ["", "*Échouées:*"] + [f"  !! {f}" for f in failed]
+    if warnings:
+        lines += ["", "*Avertissements:*"] + [f"  ~ {w}" for w in warnings]
     return "\n".join(lines)
 
 
@@ -902,10 +892,13 @@ def _fmt_charts_button() -> str:
 
 def _fmt_certif() -> str:
     import subprocess
+    import sys
 
     try:
         result = subprocess.run(
-            ["python", "certification/p10_checker.py"],
+            # sys.executable = l'interpréteur venv en cours (le binaire "python"
+            # nu n'existe pas sur le VPS, seul python3/.venv est présent).
+            [sys.executable, "certification/p10_checker.py"],
             capture_output=True,
             text=True,
             timeout=30,
