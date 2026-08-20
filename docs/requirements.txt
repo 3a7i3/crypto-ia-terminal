@@ -1,6 +1,5 @@
 sphinx>=7,<8
 sphinx_rtd_theme
-myst-parser
+myst-parser>=2,<4
 furo
 sphinxcontrib-mermaid
-myst-nb

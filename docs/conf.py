@@ -17,7 +17,6 @@ release = "9.1"
 
 extensions = [
     "myst_parser",
-    "myst_nb",
     "sphinx.ext.autodoc",
     "sphinx.ext.napoleon",
     "sphinx.ext.viewcode",
@@ -26,7 +25,7 @@ extensions = [
 
 autosummary_generate = True
 
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "*.ipynb"]
 
 html_theme = "furo"
 html_logo = "../assets/logo_ai_quant.png"
