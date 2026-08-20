@@ -1,0 +1,50 @@
+# @QuantCrypto_bot — SDOS Visualization Client (bot Telegram passif, ADR-0007).
+# Repond aux commandes /snapshot /health /pipeline /portfolio et rafraichit
+# un message epingle toutes les PINNED_UPDATE_S secondes (defaut 600 = 10 min).
+#
+# Prerequis dans .env (deja presents pour le token, a completer pour l'ID pin) :
+#   QC_BOT_TOKEN=<token bot @QuantCrypto_bot>
+#   QC_CHAT_ID=<id chat cible>
+#   QC_PINNED_MSG_ID=<id du message epingle a rafraichir>  # cree via bootstrap
+#   QC_POLL_INTERVAL=2       # (optionnel) intervalle polling commandes en s
+#   QC_PINNED_UPDATE=600     # (optionnel) intervalle refresh pin en s
+#
+# Le message epingle est cree une fois via :
+#   .venv/bin/python scripts/quant_observer_pin_bootstrap.py
+# qui envoie un placeholder, l'epingle (si le bot est admin), et affiche le
+# message_id a mettre dans QC_PINNED_MSG_ID.
+#
+# Installation (VPS, geste operateur) :
+#   sudo cp scripts/systemd/crypto-quant-observer.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now crypto-quant-observer.service
+#   sudo systemctl status crypto-quant-observer.service
+[Unit]
+Description=Crypto AI Terminal — @QuantCrypto_bot (SDOS observer passif, ADR-0007)
+After=network-online.target crypto-advisor.service
+Wants=network-online.target
+StartLimitIntervalSec=120
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=mathieu
+WorkingDirectory=/home/mathieu/crypto_ai_terminal
+EnvironmentFile=-/home/mathieu/crypto_ai_terminal/.env
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONIOENCODING=utf-8
+Environment=TZ=UTC
+Environment=PYTHONPATH=/home/mathieu/crypto_ai_terminal:/home/mathieu/crypto_ai_terminal/core
+ExecStart=/home/mathieu/crypto_ai_terminal/.venv/bin/python -m src.telegram.quant_observer.bot
+Restart=on-failure
+RestartSec=10s
+TimeoutStopSec=30
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=crypto_quant_observer
+Nice=10
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
