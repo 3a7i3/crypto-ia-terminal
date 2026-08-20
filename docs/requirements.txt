@@ -1,4 +1,4 @@
-sphinx
+sphinx<9
 sphinx_rtd_theme
 myst-parser
 furo
