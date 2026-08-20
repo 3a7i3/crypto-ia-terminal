@@ -28,7 +28,7 @@ import os
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Optional
+from typing import Optional
 
 from certification.doc_freeze import DocFreeze
 from certification.immutable_stamp import ImmutableStamp

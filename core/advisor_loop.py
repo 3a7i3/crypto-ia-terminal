@@ -678,7 +678,6 @@ except Exception:
     _OBS_AVAILABLE = False
 
 # P2 Operational Closure — execution constraints + simulation pipeline
-import json as _json
 
 try:
     import exchange_constraints.binance_rules as _binance_rules_mod
@@ -6008,6 +6007,7 @@ def main(
                         # D. Audit log — une ligne JSONL par ordre tenté
                         if _validated and _EXEC_CONSTRAINTS_AVAILABLE:
                             try:
+                                import json as _json
                                 _audit = {
                                     "ts": time.time(),
                                     "symbol": sym,

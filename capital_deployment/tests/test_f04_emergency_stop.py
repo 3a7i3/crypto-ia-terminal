@@ -22,14 +22,11 @@ Total : 14 tests
 
 from __future__ import annotations
 
-import time
 
-import pytest
 
 from capital_deployment.emergency_stop_manager import (
     EmergencyCriteria,
     EmergencyStopManager,
-    EmergencyTrigger,
 )
 
 

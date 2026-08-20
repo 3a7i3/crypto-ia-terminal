@@ -54,7 +54,7 @@ class TestRaiseAlert:
         manager.raise_alert(make_alert(type_="cpu"))
         manager.raise_alert(make_alert(type_="ram"))
         lines = (tmp_path / "audit.jsonl").read_text(encoding="utf-8").splitlines()
-        types = [json.loads(l)["type"] for l in lines]
+        types = [json.loads(line)["type"] for line in lines]
         assert "cpu" in types and "ram" in types
 
 
@@ -93,7 +93,7 @@ class TestRunAutoheal:
         manager.register_autoheal("mod", lambda a: "healed")
         manager.run_autoheal(make_alert(severity="critical"))
         lines = (tmp_path / "audit.jsonl").read_text(encoding="utf-8").splitlines()
-        assert any(json.loads(l).get("correction") for l in lines)
+        assert any(json.loads(line).get("correction") for line in lines)
 
 
 class TestAlertToDict:

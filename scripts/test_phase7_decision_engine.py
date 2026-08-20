@@ -31,7 +31,7 @@ def test_phase7_decision_engine():
             pnl_pct=d["pnl_pct"],
         )
 
-    print(f"[STEP 2] Create DecisionEngine")
+    print("[STEP 2] Create DecisionEngine")
     engine = DecisionEngine(meta_learner=learner)
     print("DecisionEngine ready")
 

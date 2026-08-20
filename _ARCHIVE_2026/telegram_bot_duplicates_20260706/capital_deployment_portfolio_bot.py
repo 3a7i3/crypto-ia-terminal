@@ -30,7 +30,7 @@ import threading
 import time
 import urllib.parse
 import urllib.request
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Callable, Optional
 
 from observability.json_logger import get_logger

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 
@@ -12,7 +11,6 @@ from certification.module_certifier import (
     _REGISTRY,
     ModuleCertificate,
     ModuleCertifier,
-    ModuleSpec,
 )
 
 ROOT = Path(__file__).parent.parent.parent

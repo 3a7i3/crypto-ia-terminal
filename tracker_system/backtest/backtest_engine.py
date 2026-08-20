@@ -5,7 +5,6 @@ BACKTEST ENGINE — Simule trading complet avec système autonome
 from typing import Dict, List, Any
 from dataclasses import dataclass
 from datetime import datetime
-import json
 
 
 @dataclass
@@ -53,7 +52,7 @@ class BacktestEngine:
         Returns:
             Résumé des résultats
         """
-        print(f"\n[BACKTEST] Démarrage")
+        print("\n[BACKTEST] Démarrage")
         print(f"  Capital: ${self.capital:,.2f}")
         print(f"  Symbole: {self.config.symbol}")
         print(f"  Auto decisions: {self.config.use_auto_decisions}")
@@ -217,7 +216,7 @@ class BacktestEngine:
         wins = len([p for p in pnls if p > 0])
 
         total_pnl = sum(t["pnl_usd"] for t in self.trades)
-        final_capital = self.capital + total_pnl
+        final_capital = self.config.initial_capital + total_pnl
 
         return {
             "initial_capital": self.config.initial_capital,

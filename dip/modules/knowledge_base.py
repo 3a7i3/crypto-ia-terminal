@@ -221,7 +221,7 @@ class KnowledgeExtractor:
             )
 
             # Conviction: p_cond * (1 - p_rejected) / (p_cond - conf * p_cond)
-            denom = max(0.001, p_cond * (1 - p_rejected))
+            max(0.001, p_cond * (1 - p_rejected))
             conviction = (p_cond * (1 - p_rejected)) / max(
                 0.001, p_cond - conf * p_cond
             )

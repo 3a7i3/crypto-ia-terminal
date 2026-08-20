@@ -12,7 +12,6 @@ Usage:
 from __future__ import annotations
 
 import importlib
-import json
 import subprocess
 import sys
 import time
@@ -361,7 +360,7 @@ def print_phase(phase: PhaseResult, verbose: bool = False) -> None:
         status = f"{C['OK']}[COMPLETED]{C['RESET']}"
     else:
         n_ok = sum(1 for c in phase.checks if c.passed)
-        n = len(phase.checks)
+        len(phase.checks)
         if n_ok == 0:
             status = f"{C['FAIL']}[PENDING  ]{C['RESET']}"
         else:

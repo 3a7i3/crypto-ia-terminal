@@ -1,7 +1,6 @@
 import json
 from unittest.mock import MagicMock, patch
 
-import pytest
 
 from src.backtest.data_feed import HistoricalDataFeed
 from src.backtest.mexc_feed import fetch_mexc_candles, mexc_feed

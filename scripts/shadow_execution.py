@@ -202,8 +202,8 @@ def analyze(days: int = 7) -> None:
         print(f"    PnL total       : {total_pnl:+.2%}")
 
         if wr > 0.50:
-            print(f"\n  ⚠️  Le gate bloque des trades potentiellement gagnants!")
-            print(f"     → Envisager de baisser le threshold ou revoir les critères.")
+            print("\n  ⚠️  Le gate bloque des trades potentiellement gagnants!")
+            print("     → Envisager de baisser le threshold ou revoir les critères.")
         elif wr < 0.30:
             print(
                 f"\n  ✓ Le gate protège correctement (trades refusés auraient perdu {1-wr:.0%})"
@@ -217,7 +217,7 @@ def analyze(days: int = 7) -> None:
     if scores:
         avg_score = sum(scores) / len(scores)
         max_score = max(scores)
-        print(f"\n  Score des signaux refusés:")
+        print("\n  Score des signaux refusés:")
         print(f"    Moyen={avg_score:.1f}  Max={max_score}")
         if max_score >= 60:
             print(

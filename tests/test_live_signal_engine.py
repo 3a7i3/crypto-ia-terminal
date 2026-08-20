@@ -185,7 +185,7 @@ class TestBlacklist:
             "trend_strength": 0.9,
         }
         # Sans blacklist
-        r1 = engine.evaluate("BTC", mtf_flat, features=features)
+        engine.evaluate("BTC", mtf_flat, features=features)
         # Avec blacklist du régime bull_trend
         engine.blacklist_regime("bull_trend")
         r2 = engine.evaluate("BTC", mtf_flat, features=features)

@@ -18,7 +18,6 @@ from abc import ABC, abstractmethod
 from typing import AsyncGenerator, Optional
 
 from market_data.models import (
-    MarketEvent,
     NormalizedCandle,
     NormalizedOrderBook,
     NormalizedTrade,

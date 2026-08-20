@@ -552,7 +552,7 @@ def print_report(records: list[dict], enriched: list[dict]) -> None:
     W = 64
 
     print(f"\n{'='*W}")
-    print(f"  REGRET AUDIT v2 — Décomposition causale Régime/Moteur/Données")
+    print("  REGRET AUDIT v2 — Décomposition causale Régime/Moteur/Données")
     print(f"{'='*W}")
     print(f"  Records : {n}   Période : {(ts1-ts0)/3600:.0f}h")
     print(f"  De : {_fmt(ts0)}")
@@ -560,7 +560,7 @@ def print_report(records: list[dict], enriched: list[dict]) -> None:
 
     # ── [0] DATA ──────────────────────────────────────────────────────────────
     print(f"\n{'─'*W}")
-    print(f"  [0] DATA LENS — Cohérence des inputs")
+    print("  [0] DATA LENS — Cohérence des inputs")
     print(f"{'─'*W}")
     print(f"  Champs manquants   : {data_r['missing']}/{n}")
     print(f"  Labels invalides   : {data_r['invalid']}/{n}")
@@ -570,14 +570,14 @@ def print_report(records: list[dict], enriched: list[dict]) -> None:
         f"  (max={data_r['max_gap_h']:.1f}h)"
     )
     print(f"  Bruit total        : {data_r['noise_pct']:.1f}%  => {data_r['status']}")
-    print(f"  Distribution régimes:")
+    print("  Distribution régimes:")
     for reg, cnt in sorted(data_r["regime_dist"].items(), key=lambda x: -x[1]):
         print(f"    {reg:<28}: {cnt:>5}  ({100*cnt/n:.0f}%)")
 
     # ── [1] REGIME ────────────────────────────────────────────────────────────
     print(f"\n{'─'*W}")
-    print(f"  [1] REGIME LENS — Marché pur")
-    print(f"  Le régime à lui seul explique-t-il MW vs GR ?")
+    print("  [1] REGIME LENS — Marché pur")
+    print("  Le régime à lui seul explique-t-il MW vs GR ?")
     print(f"{'─'*W}")
     print(f"  {'Régime':<26} {'N':>5}  {'MW%':>6}  {'GR%':>6}  {'Net':>5}  Signal")
     print(f"  {'-'*W}")
@@ -593,12 +593,12 @@ def print_report(records: list[dict], enriched: list[dict]) -> None:
         f"Influence REGIME : {regime_r['influence']:.3f}"
     )
     if regime_r["n_active_regimes"] <= 1:
-        print(f"  => Seul 1 régime actif : pas de variation inter-régime mesurable")
+        print("  => Seul 1 régime actif : pas de variation inter-régime mesurable")
 
     # ── [2] ENGINE ────────────────────────────────────────────────────────────
     print(f"\n{'─'*W}")
-    print(f"  [2] ENGINE LENS — RegretEngine")
-    print(f"  regret_delta prédit-il la qualité des refus ?")
+    print("  [2] ENGINE LENS — RegretEngine")
+    print("  regret_delta prédit-il la qualité des refus ?")
     print(f"{'─'*W}")
     print(f"  {'Delta':>7}  {'N':>5}  {'MW%':>6}  {'GR%':>6}  Qualité")
     print(f"  {'-'*50}")
@@ -615,11 +615,11 @@ def print_report(records: list[dict], enriched: list[dict]) -> None:
         pct_fb = engine_r["plateau_mw_pct"]
         print(f"  ALERTE FEEDBACK LOOP : plateau delta_max avec MW={pct_fb:.0f}%")
     else:
-        print(f"  Feedback loop        : non détectée")
+        print("  Feedback loop        : non détectée")
 
     # ── [3] CROSS-ANALYSIS ────────────────────────────────────────────────────
     print(f"\n{'─'*W}")
-    print(f"  [3] CROSS-ANALYSIS — Qui contrôle le système ?")
+    print("  [3] CROSS-ANALYSIS — Qui contrôle le système ?")
     print(f"{'─'*W}")
     dom = cross_r["dominance"]
     for driver, share in sorted(dom.items(), key=lambda x: -x[1]):
@@ -628,15 +628,15 @@ def print_report(records: list[dict], enriched: list[dict]) -> None:
         print(f"  {driver:<10} {share:.3f}  {bar}{marker}")
     print()
     if cross_r["engine_confounded"]:
-        print(f"  Note : ENGINE confondu avec REGIME (seul régime actif)")
-        print(f"         -> influence ENGINE probablement surestimée")
+        print("  Note : ENGINE confondu avec REGIME (seul régime actif)")
+        print("         -> influence ENGINE probablement surestimée")
     if cross_r["feedback_loop"]:
-        print(f"  ALERTE : Boucle de retro-action confirmee")
+        print("  ALERTE : Boucle de retro-action confirmee")
     print(f"\n  Dominant driver : {cross_r['dominant']}")
 
     # ── [4] TRAJECTOIRE ───────────────────────────────────────────────────────
     print(f"\n{'─'*W}")
-    print(f"  [4] TRAJECTOIRE regret_delta")
+    print("  [4] TRAJECTOIRE regret_delta")
     print(f"{'─'*W}")
     tr = traj_r
     final = tr.get("final", 0)
@@ -650,14 +650,14 @@ def print_report(records: list[dict], enriched: list[dict]) -> None:
     )
 
     if tr.get("transitions"):
-        print(f"\n  Chronologie (extrait):")
+        print("\n  Chronologie (extrait):")
         for t in tr["transitions"][:12]:
             print(
                 f"    {t['dt']}  idx={t['idx']:>5}"
                 f"  delta={t['delta']:+d}  raw={t['raw']:+d}  {t['type']}"
             )
 
-    print(f"\n  Recent vs historique:")
+    print("\n  Recent vs historique:")
     for label, key in [
         ("Ancien (avant 7j)", "older"),
         ("Recent (7 derniers j)", "recent"),
@@ -675,8 +675,8 @@ def print_report(records: list[dict], enriched: list[dict]) -> None:
 
     # ── [5] INTERVENTION TEST ─────────────────────────────────────────────────
     print(f"\n{'─'*W}")
-    print(f"  [5] INTERVENTION TEST — Identifiabilité causale")
-    print(f"  Shuffle labels, outcomes fixes (marche historique immutable)")
+    print("  [5] INTERVENTION TEST — Identifiabilité causale")
+    print("  Shuffle labels, outcomes fixes (marche historique immutable)")
     print(f"  N={intv_r['n_perms']} permutations  |  seuil: p<0.05 => variable causale")
     print(f"{'─'*W}")
 
@@ -688,13 +688,13 @@ def print_report(records: list[dict], enriched: list[dict]) -> None:
         p_str = "N/A"
     else:
         p_str = f"{rv['p_value']:.3f}"
-    print(f"  REGIME -> OUTCOME")
+    print("  REGIME -> OUTCOME")
     print(f"    Labels distincts : {rv['n_labels']}")
     print(f"    Chi-carre observe : {rv['chi_sq']:.2f}")
     print(f"    p-value (permut) : {p_str}")
     print(f"    Verdict          : {rv['verdict']}")
     if rv["groups"]:
-        print(f"    Contingence :")
+        print("    Contingence :")
         for label, v in sorted(
             rv["groups"].items(), key=lambda x: -(x[1]["mw"] + x[1]["gr"])
         ):
@@ -712,7 +712,7 @@ def print_report(records: list[dict], enriched: list[dict]) -> None:
         p_str_e = "N/A"
     else:
         p_str_e = f"{ev['p_value']:.3f}"
-    print(f"  ENGINE (delta bucket) -> OUTCOME")
+    print("  ENGINE (delta bucket) -> OUTCOME")
     print(f"    Labels distincts : {ev['n_labels']}")
     print(f"    Chi-carre observe : {ev['chi_sq']:.2f}")
     print(f"    p-value (permut) : {p_str_e}")
@@ -721,7 +721,7 @@ def print_report(records: list[dict], enriched: list[dict]) -> None:
 
     # Résumé identifiabilité
     both_id = rv["identifiable"] and ev["identifiable"]
-    none_id = not rv["identifiable"] and not ev["identifiable"]
+    not rv["identifiable"] and not ev["identifiable"]
     if rv["p_value"] is None and ev["p_value"] is None:
         id_summary = "NON IDENTIFIABLE — dataset mono-régime / mono-delta. VPS requis."
     elif both_id:
@@ -736,7 +736,7 @@ def print_report(records: list[dict], enriched: list[dict]) -> None:
 
     # ── CONCLUSION ────────────────────────────────────────────────────────────
     print(f"\n{'='*W}")
-    print(f"  CONCLUSION")
+    print("  CONCLUSION")
     print(f"{'='*W}")
 
     dominant = cross_r["dominant"]
@@ -753,23 +753,23 @@ def print_report(records: list[dict], enriched: list[dict]) -> None:
     # Si aucun identifiable: garder dominant du cross-analysis comme approximation
 
     if data_r["status"] == "CORROMPUES":
-        print(f"  [INVALIDE] Pipeline corrompu — diagnostic non fiable")
+        print("  [INVALIDE] Pipeline corrompu — diagnostic non fiable")
     elif dominant == "DATA":
-        print(f"  [DONNEES] Problème qualité données — corriger avant toute conclusion")
+        print("  [DONNEES] Problème qualité données — corriger avant toute conclusion")
     elif dominant == "REGIME":
         sig = (
             regime_r["by_regime"].get(regime_r["dominant_regime"], {}).get("signal", "")
         )
         if "INCORRECTS" in sig:
-            print(f"  [REGIME] Marché dominant + refus incorrects")
+            print("  [REGIME] Marché dominant + refus incorrects")
             dom_r = regime_r["dominant_regime"]
             print(
                 f"           Le régime {dom_r}"
                 " génère des signaux valides refusés à tort"
             )
-            print(f"           => Vérifier base_min ou seuil pour ce régime")
+            print("           => Vérifier base_min ou seuil pour ce régime")
         else:
-            print(f"  [REGIME] Marché dominant + refus justifiés")
+            print("  [REGIME] Marché dominant + refus justifiés")
             print("           Les refus sont corrects — alpha absent dans ce régime")
     elif dominant == "ENGINE":
         if cross_r["engine_confounded"]:
@@ -780,16 +780,16 @@ def print_report(records: list[dict], enriched: list[dict]) -> None:
             print("                  Caveat: delta et phase marche correlees")
             print("                  => VPS requis pour separer les deux effets")
         elif cross_r["feedback_loop"]:
-            print(f"  [ENGINE] Boucle fermee confirmee (test permutation p<0.05)")
+            print("  [ENGINE] Boucle fermee confirmee (test permutation p<0.05)")
             pct_p = engine_r["plateau_mw_pct"]
             print(f"           delta={final_delta:+d} + MW>{pct_p:.0f}% au plateau")
-            print(f"           Sortie : 6 cycles trending / ou intervention manuelle")
+            print("           Sortie : 6 cycles trending / ou intervention manuelle")
         else:
             print("  [ENGINE] Moteur causalement identifiable (p<0.05), pas de boucle")
     elif dominant == "INTERACTION":
-        print(f"  [REGIME x ENGINE] Les deux sont causalement identifiables")
+        print("  [REGIME x ENGINE] Les deux sont causalement identifiables")
         print(
-            f"                    Interaction probable — analyse conditionnelle requise"
+            "                    Interaction probable — analyse conditionnelle requise"
         )
 
     print(f"\n  Impact seuils effectifs (delta={final_delta:+d}) :")

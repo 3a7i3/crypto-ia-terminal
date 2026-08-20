@@ -68,7 +68,7 @@ def test_phase_check_all_ok_when_no_missing(tmp_path):
     checker = PrerequisiteChecker(root=tmp_path)
     phase = "P10-A"
     for m in _PHASE_MODULES[phase]:
-        p = tmp_path / m.replace("/", checker._root.__class__.__name__[:1])
+        tmp_path / m.replace("/", checker._root.__class__.__name__[:1])
         import os
 
         p_abs = tmp_path / m.replace("/", os.sep)

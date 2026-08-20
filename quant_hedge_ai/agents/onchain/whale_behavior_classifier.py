@@ -10,7 +10,6 @@ from __future__ import annotations
 import time
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any
 
 from observability.json_logger import get_logger
 

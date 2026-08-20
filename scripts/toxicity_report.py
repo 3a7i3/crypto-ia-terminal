@@ -84,7 +84,7 @@ W = 72
 print(f"\n{'='*W}")
 print(f"  RAPPORT TOXICITÉ — {len(trades)} trades total, {len(toxic_trades)} toxiques")
 print(f"{'='*W}")
-print(f"  Critères: MAE<=-50% OU (SL ET MAE<=-20%)")
+print("  Critères: MAE<=-50% OU (SL ET MAE<=-20%)")
 print()
 
 if not by_symbol:
@@ -120,7 +120,7 @@ else:
     print(f'  export SYMBOL_BLACKLIST="{bl}"')
 
 # ── Regime breakdown of toxic trades ────────────────────────────────────────
-print(f"\n  Régimes des trades toxiques:")
+print("\n  Régimes des trades toxiques:")
 by_regime: dict[str, list] = defaultdict(list)
 for t in toxic_trades:
     by_regime[t["regime"]].append(t["pnl_usd"])

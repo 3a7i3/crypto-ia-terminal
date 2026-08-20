@@ -244,12 +244,12 @@ def main(as_json: bool = False) -> int:
         print(f"  Dernière ligne: {log['last_line']}")
 
     if results.get("fd_warnings"):
-        print(f"\n  ⚠️  FD warnings:")
+        print("\n  ⚠️  FD warnings:")
         for w in results["fd_warnings"]:
             print(f"    - {w}")
 
     if results.get("alerts"):
-        print(f"\n  🚨 Alertes:")
+        print("\n  🚨 Alertes:")
         for a in results["alerts"]:
             print(f"    - {a}")
 

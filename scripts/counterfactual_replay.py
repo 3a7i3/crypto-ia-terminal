@@ -221,7 +221,7 @@ def report(
     m_drp = metrics(dropped)
 
     print(f"\n{'='*62}")
-    print(f"  REPLAY CONTREFACTUEL — max_positions MetaStrategyEngine")
+    print("  REPLAY CONTREFACTUEL — max_positions MetaStrategyEngine")
     print(f"{'='*62}")
     print(f"  Fenêtre bucket : {window_s:.0f}s (~{window_s/60:.1f} min / cycle)")
 
@@ -261,7 +261,7 @@ def report(
 
     # Par régime
     print(f"\n{'─'*62}")
-    print(f"  IMPACT PAR RÉGIME")
+    print("  IMPACT PAR RÉGIME")
     print(f"{'─'*62}")
     by_reg_all: dict[str, list[float]] = defaultdict(list)
     by_reg_sel: dict[str, list[float]] = defaultdict(list)
@@ -287,7 +287,7 @@ def report(
 
     # Par score bucket
     print(f"\n{'─'*62}")
-    print(f"  RÉPARTITION PAR SCORE (réel vs contrefactuel)")
+    print("  RÉPARTITION PAR SCORE (réel vs contrefactuel)")
     print(f"{'─'*62}")
     score_all: dict[int, list[float]] = defaultdict(list)
     score_sel: dict[int, list[float]] = defaultdict(list)
@@ -316,7 +316,7 @@ def report(
 
     if mfe_vals:
         print(f"\n{'─'*62}")
-        print(f"  MFE / MAE — QUALITÉ DU SIGNAL (tous trades)")
+        print("  MFE / MAE — QUALITÉ DU SIGNAL (tous trades)")
         print(f"{'─'*62}")
         avg_mfe = sum(mfe_vals) / len(mfe_vals)
         avg_mae = sum(mae_vals) / len(mae_vals) if mae_vals else 0
@@ -358,7 +358,7 @@ def report(
     # Top trades éjectés (les plus impactants)
     if dropped:
         print(f"\n{'─'*62}")
-        print(f"  TOP TRADES ÉJECTÉS (par |PnL|)")
+        print("  TOP TRADES ÉJECTÉS (par |PnL|)")
         print(f"{'─'*62}")
         top_drop = sorted(dropped, key=lambda t: abs(t["pnl_usd"]), reverse=True)[:10]
         print(
@@ -380,16 +380,16 @@ def report(
     if not go_real and not go_cf:
         pf_r, pf_c = pf_str(m_all["pf"]), pf_str(m_sel["pf"])
         print(f"  [STABLE NO-GO] PF réel={pf_r}  PF CF={pf_c}")
-        print(f"  → Alpha insuffisant indépendamment du bug max_positions.")
+        print("  → Alpha insuffisant indépendamment du bug max_positions.")
     elif not go_real and go_cf:
         pf_r, pf_c = pf_str(m_all["pf"]), pf_str(m_sel["pf"])
         print(f"  [SHIFT] PF réel={pf_r} NO-GO → PF CF={pf_c} GO")
-        print(f"  → Bypass max_positions a faussé le verdict :")
-        print(f"    les meilleurs signaux sont rentables ; dilution détruit l'edge.")
+        print("  → Bypass max_positions a faussé le verdict :")
+        print("    les meilleurs signaux sont rentables ; dilution détruit l'edge.")
     elif go_real and not go_cf:
         pf_r, pf_c = pf_str(m_all["pf"]), pf_str(m_sel["pf"])
         print(f"  [INVERSE] PF réel={pf_r} GO → PF CF={pf_c} NO-GO")
-        print(f"  → Les meilleurs signaux sont MOINS bons que la moyenne.")
+        print("  → Les meilleurs signaux sont MOINS bons que la moyenne.")
     else:
         pf_r, pf_c = pf_str(m_all["pf"]), pf_str(m_sel["pf"])
         print(f"  [STABLE GO] PF réel={pf_r}  PF CF={pf_c}")

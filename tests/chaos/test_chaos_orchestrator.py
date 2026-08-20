@@ -60,7 +60,7 @@ class TestScenarios:
     def test_spike_and_recover_leaves_recovery_state(self):
         sm = _sm_tight()
         orc = ChaosOrchestrator(sm)
-        result = orc.run_scenario("spike_and_recover")
+        orc.run_scenario("spike_and_recover")
         # Après le scénario, force_recovery() est appelé par run_scenario()
         assert sm.state == SystemState.RECOVERY
 

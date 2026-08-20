@@ -17,7 +17,6 @@ Usage:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
 
 from observability.json_logger import get_logger
 from quant_hedge_ai.agents.quant.backtest_lab import BacktestLab

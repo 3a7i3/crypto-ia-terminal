@@ -122,7 +122,7 @@ def cmd_status():
         "SEALED",
         "CERTIFIED",
     ]:
-        mods = [m for m, l in registry.get("modules", {}).items() if l == level]
+        mods = [m for m, lvl in registry.get("modules", {}).items() if lvl == level]
         if not mods:
             continue
         c = COLORS.get(level, "")

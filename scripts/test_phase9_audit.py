@@ -74,7 +74,7 @@ def test_phase9_audit():
     quality_report = replay_engine.get_decision_quality_report()
     print(f"Total trades: {quality_report['total_trades']}")
     print(f"Skilled ratio: {quality_report['skilled_ratio']:.1%}")
-    print(f"Quality breakdown:")
+    print("Quality breakdown:")
     for quality, ratio in quality_report['breakdown'].items():
         print(f"  {quality}: {ratio}")
 

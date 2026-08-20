@@ -13,13 +13,10 @@ Total : 11 tests
 
 from __future__ import annotations
 
-import time
 
-import pytest
 
 from supervision.proactive_alerts import (
     AlertThreshold,
-    ProactiveAlert,
     ProactiveAlertsEngine,
 )
 

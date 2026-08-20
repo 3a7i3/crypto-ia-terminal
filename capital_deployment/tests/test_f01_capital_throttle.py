@@ -20,7 +20,6 @@ Total : 12 tests
 
 from __future__ import annotations
 
-import time
 
 import pytest
 
@@ -28,7 +27,6 @@ from capital_deployment.capital_throttle import (
     PHASE_CONFIGS,
     PHASE_ORDER,
     CapitalThrottle,
-    PhaseAllocation,
 )
 
 

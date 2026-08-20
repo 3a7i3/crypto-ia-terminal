@@ -22,7 +22,7 @@ import os
 import time
 from dataclasses import dataclass, field
 from enum import Enum
-from statistics import mean, stdev
+from statistics import mean
 from typing import TYPE_CHECKING
 
 from observability.json_logger import get_logger
@@ -433,7 +433,7 @@ class ThreatRadar:
         if not report.threats:
             return "Environnement propre — aucune menace détectée"
 
-        levels_count = {l: 0 for l in ThreatLevel}
+        levels_count = {lvl: 0 for lvl in ThreatLevel}
         for t in report.threats:
             levels_count[t.level] += 1
 

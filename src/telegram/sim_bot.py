@@ -658,14 +658,14 @@ class SimBot:
         }
 
         if target != "all" and target not in datasets:
-            return f"Choix : btc4h | eth4h | sol1h | all"
+            return "Choix : btc4h | eth4h | sol1h | all"
 
         to_run = {target: datasets[target]} if target != "all" else datasets
 
         def _collect_trades(symbol, interval) -> list[float]:
             try:
                 candles = fetch_mexc_candles(symbol, interval, 1000)
-            except Exception as exc:
+            except Exception:
                 return []
             feeds = sliding_windows(candles, window=120, step=15)
             all_pnls = []
@@ -939,7 +939,7 @@ class SimBot:
         lines = [
             f"🏁 *Race 3 familles — {symbol} {interval}*",
             f"{n_w} fenêtres × 120 candles\n",
-            f"```",
+            "```",
             f"{'Stratégie':<14} {'Exp':>7} {'PnL':>8} {'PF':>6} {'DD':>7} {'T':>5}",
             f"{'-'*47}",
         ]
@@ -1144,7 +1144,7 @@ class SimBot:
             + "\n"
             + _fmt(bd["volatile"], "volatile", "⚡")
             + "\n\n"
-            + f"*Tous régimes*\n"
+            + "*Tous régimes*\n"
             + _fmt(bd["all"], "all", "🔬")
         )
 

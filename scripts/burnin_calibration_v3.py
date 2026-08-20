@@ -24,7 +24,6 @@ from __future__ import annotations
 import argparse
 import csv
 import json
-import math
 import os
 import sys
 import time
@@ -267,13 +266,9 @@ def _compute_trade_stats(trades: list[dict]) -> TradeStats:
         if dd > max_dd:
             max_dd = dd
 
-    # Sharpe (daily, approximated from pnl_pct)
-    sharpe = 0.0
-    if len(pnl_pcts) >= 2:
-        mean_r = sum(pnl_pcts) / len(pnl_pcts)
-        variance = sum((r - mean_r) ** 2 for r in pnl_pcts) / len(pnl_pcts)
-        std_r = math.sqrt(variance) if variance > 0 else 0
-        sharpe = round(mean_r / std_r * math.sqrt(252), 2) if std_r > 0 else 0.0
+    from metrics.sharpe import sharpe as _sharpe_fn
+
+    sharpe = round(_sharpe_fn(pnl_pcts, periods_per_year=252.0), 2)
 
     return TradeStats(
         count=len(trades),
@@ -548,7 +543,7 @@ def print_report(report: BurnInV3Report) -> None:
         print(_kpi("Duree moyenne", f"{t.avg_duration_h:.2f}h"))
 
     print(f"\n  {_hr}")
-    print(f"  ETAT SYSTEME")
+    print("  ETAT SYSTEME")
     print(f"  {_hr}")
     print(_kpi("KillSwitch", "HALTED" if s.killswitch_halted else "OK"))
     print(_kpi("V9_ADVISOR_ONLY", str(s.v9_advisor_only)))

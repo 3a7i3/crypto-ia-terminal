@@ -1,7 +1,6 @@
 import uuid
 from datetime import datetime, timezone
 
-import pytest
 
 from src.domain.trade_event import MarketRegime, TradeEvent
 from src.risk.live_gate import LiveGate

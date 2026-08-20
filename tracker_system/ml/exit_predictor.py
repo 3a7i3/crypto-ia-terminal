@@ -6,7 +6,7 @@ Basé sur: features technicals + ML (simple neural network)
 
 import math
 from statistics import mean, stdev
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Tuple
 
 
 class ExitFeatureEngineer:

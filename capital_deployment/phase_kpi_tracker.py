@@ -18,8 +18,6 @@ Phase criteria (minimum required to advance):
 
 from __future__ import annotations
 
-import math
-import statistics
 import time
 from collections import deque
 from dataclasses import dataclass, field
@@ -183,15 +181,14 @@ class PhaseKPITracker:
         return wins / len(self._trades)
 
     def sharpe_ratio(self) -> float:
-        """Annualized Sharpe from daily returns (requires ≥ 2 daily data points)."""
-        if len(self._daily_returns) < 2:
-            return 0.0
-        returns = list(self._daily_returns)
-        mean_r = statistics.mean(returns)
-        std_r = statistics.stdev(returns)
-        if std_r < 1e-12:
-            return 0.0
-        return (mean_r / std_r) * math.sqrt(252)
+        """Annualized Sharpe from daily returns (requires >= 2 daily data points)."""
+        from metrics.sharpe import sharpe as _sharpe_fn
+
+        return _sharpe_fn(
+            list(self._daily_returns),
+            rf_annual=0.0,
+            periods_per_year=252.0,
+        )
 
     def max_drawdown(self) -> float:
         return self._max_drawdown

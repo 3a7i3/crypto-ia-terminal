@@ -216,8 +216,8 @@ def build_section(state: dict) -> list[str]:
         "",
         "### Synthese",
         "",
-        f"| Metrique | Valeur |",
-        f"|----------|--------|",
+        "| Metrique | Valeur |",
+        "|----------|--------|",
         f"| Folds | {state.get('n_folds', '?')} |",
         f"| Folds profitables | {state.get('n_profitable_folds', '?')} / {state.get('n_folds', '?')} ({state.get('profitable_fold_rate', 0):.0%}) |",
         f"| Sharpe OOS moyen | {state.get('mean_oos_sharpe', 0):.3f} ± {state.get('std_oos_sharpe', 0):.3f} |",
@@ -254,7 +254,7 @@ def build_section(state: dict) -> list[str]:
             ov = f.get("overfitting_ratio")
             ov_str = f"{ov:.2f}" if ov is not None else "—"
             ok = "OK" if f.get("is_profitable") else "—"
-            err = f" [ERR]" if f.get("error") else ""
+            err = " [ERR]" if f.get("error") else ""
             lines.append(
                 f"| {f['fold_index']}{err}"
                 f" | {f['train_size']}"
@@ -275,8 +275,8 @@ def build_section(state: dict) -> list[str]:
         lines += [
             "### Stabilite inter-regimes",
             "",
-            f"| | Valeur |",
-            f"|--|--------|",
+            "| | Valeur |",
+            "|--|--------|",
             f"| Score | {stab.get('stability_score', 0):.3f} |",
             f"| CV Sharpe | {stab.get('sharpe_cv', 0):.3f} |",
             f"| Meilleur regime | {best} (Sharpe {stab.get('max_regime_sharpe', 0):.3f}) |",

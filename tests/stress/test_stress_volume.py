@@ -20,7 +20,6 @@ import random
 import tempfile
 import threading
 import time
-from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
@@ -30,7 +29,7 @@ from execution_simulator.models import SimulatedFill
 from market_data.metrics.flow import CumulativeDeltaTracker
 from market_data.models import NormalizedTrade
 from market_data.replay_engine import ReplayEngine
-from metrics.oos_metrics import TradeResult, compute_oos_metrics
+from metrics.oos_metrics import TradeResult
 from monitoring.metrics import MetricsRegistry
 from walk_forward.engine import WalkForwardEngine
 from walk_forward.walk_forward_loop import WalkForwardLoop

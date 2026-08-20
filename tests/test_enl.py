@@ -1,4 +1,3 @@
-import pytest
 
 from src.agent.codex_agent import CodexAgent
 from src.agent.rsi_strategy import RSIStrategy

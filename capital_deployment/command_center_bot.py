@@ -847,7 +847,7 @@ def _fmt_history(p: CommandDataProvider, n: int = 20) -> str:
         return "_Historique trades non disponible_"
     recent = trades[-n:]
     total_pnl = sum(float(t.get("pnl", 0)) for t in recent)
-    wins = sum(1 for t in recent if float(t.get("pnl", 0)) > 0)
+    sum(1 for t in recent if float(t.get("pnl", 0)) > 0)
     sg = "+" if total_pnl >= 0 else ""
     lines = [f"*HISTORIQUE {len(recent)} TRADES*  PnL: {sg}${total_pnl:.2f}", _SEP]
     for t in reversed(recent):

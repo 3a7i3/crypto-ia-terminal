@@ -147,8 +147,6 @@ class RadarRenderer(BaseRenderer):
         )
         lines.append(("", SVL_TEXT, 6, "normal"))
 
-        axis_labels = self.AXES
-        axis_values = values
         for label, val, orig in [
             ("Observer", values[0], h.observer_pct),
             ("Dataset", values[1], h.dataset_pct),

@@ -4,9 +4,6 @@ Valide que la carte d'imports statique est correcte et stable.
 """
 
 import ast
-import importlib.util
-import os
-import sys
 from pathlib import Path
 
 import pytest
@@ -301,7 +298,7 @@ def test_duplication_position_manager_both_exist():
     assert p2.exists(), "position_manager tracker_system absent"
     # Ils doivent gérer des états distincts (vérification nominale)
     src1 = p1.read_text(encoding="utf-8", errors="ignore")
-    src2 = p2.read_text(encoding="utf-8", errors="ignore")
+    p2.read_text(encoding="utf-8", errors="ignore")
     # Les deux ne doivent pas s'importer mutuellement (boucle)
     assert (
         "tracker_system" not in src1

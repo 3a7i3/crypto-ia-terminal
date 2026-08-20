@@ -83,7 +83,7 @@ class TokenBucket:
         Retourne (allowed: bool, retry_after_s: float).
         """
         if tokens <= 0:
-            raise ValueError(f"tokens must be > 0")
+            raise ValueError("tokens must be > 0")
 
         with self._lock:
             self._refill()

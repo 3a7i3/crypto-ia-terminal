@@ -248,7 +248,7 @@ class ExchangeSync:
                 f"  Ventes : {n_sells} trades | ${sell_vol:.4f}",
                 f"  Fees   : ${fees:.6f}",
                 f"  Net    : {sign}${net:.4f}",
-                f"  (estimation — ventes - achats - fees)",
+                "  (estimation — ventes - achats - fees)",
             ]
             return "\n".join(lines)
         except Exception as exc:
@@ -299,7 +299,7 @@ class ExchangeSync:
                 f"  DD actuel : -{current_dd:.2%}",
                 f"  DD max    : -{max_dd:.2%}",
                 f"  ({len(trades)} fills analysés)",
-                f"  (proxy equity = cumul ventes - achats - fees)",
+                "  (proxy equity = cumul ventes - achats - fees)",
             ]
             return "\n".join(lines)
         except Exception as exc:

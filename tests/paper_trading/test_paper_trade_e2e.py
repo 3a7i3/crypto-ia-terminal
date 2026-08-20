@@ -153,7 +153,6 @@ class TestPaperTradeCompleteLifecycle:
             )
 
         assert pos is not None
-        capital_after_open = vp._capital
         notifications.clear()
 
         # Prix chute sous le SL
@@ -255,7 +254,6 @@ class TestPaperTradeCompleteLifecycle:
         assert "BTC/USDT" in sim._positions
 
         pos = sim._positions["BTC/USDT"]
-        capital_after = sim._capital
         notifications.clear()
 
         # 2. Prix atteint TP

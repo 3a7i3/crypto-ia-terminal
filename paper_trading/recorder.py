@@ -467,7 +467,7 @@ class PaperTradeRecorder:
                 "best_trade_pct": None,
                 "worst_trade_pct": None,
                 "avg_duration_min": None,
-                "target_30_trades": f"0 / 30",
+                "target_30_trades": "0 / 30",
             }
 
         wins = [t for t in closed if t.is_win]

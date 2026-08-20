@@ -18,7 +18,6 @@ from __future__ import annotations
 
 import time
 
-import pytest
 
 import cold_start.cold_start_manager as _csm_module
 from cold_start.cold_start_manager import ColdStartManager
@@ -262,7 +261,6 @@ class TestCorruptedData:
     def test_unknown_positions_is_critical_invariant(self):
         """Positions inconnues → invariant critique → FAILED immédiat."""
         from cold_start.warmup_invariants import (
-            WarmupInvariants,
             inv_no_unknown_positions,
         )
 

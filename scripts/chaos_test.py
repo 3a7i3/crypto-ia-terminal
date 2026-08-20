@@ -265,7 +265,7 @@ def main() -> int:
 
     print(f"\n  Score: {passed}/{total}")
     if passed == total:
-        print(f"  🟢 TOUS LES SCÉNARIOS RÉUSSIS")
+        print("  🟢 TOUS LES SCÉNARIOS RÉUSSIS")
     else:
         print(f"  🔴 {total - passed} SCÉNARIO(S) EN ÉCHEC")
     print(f"{'='*W}\n")

@@ -102,7 +102,7 @@ def run_sensitivity(signals: list[dict], deltas: list[int]) -> None:
     n_cycles = len({s["cycle"] for s in signals})
 
     print(f"\n{'='*60}")
-    print(f"  ANALYSE DE SENSIBILITÉ DELTA")
+    print("  ANALYSE DE SENSIBILITÉ DELTA")
     print(f"{'='*60}")
     print(f"  Signaux directionnels (score≥50) : {total}")
     print(f"  Cycles analysés                  : {n_cycles}")
@@ -114,7 +114,7 @@ def run_sensitivity(signals: list[dict], deltas: list[int]) -> None:
         bucket = (s["score"] // 5) * 5
         score_bins[bucket] += 1
 
-    print(f"\n  Distribution des scores :")
+    print("\n  Distribution des scores :")
     for bucket in sorted(score_bins):
         bar = "█" * (score_bins[bucket])
         print(f"    {bucket:2d}-{bucket+4:2d} : {score_bins[bucket]:4d}  {bar}")
@@ -123,7 +123,7 @@ def run_sensitivity(signals: list[dict], deltas: list[int]) -> None:
     regime_counts: dict[str, int] = defaultdict(int)
     for s in signals:
         regime_counts[s["regime"]] += 1
-    print(f"\n  Distribution des régimes :")
+    print("\n  Distribution des régimes :")
     for r, c in sorted(regime_counts.items(), key=lambda x: -x[1]):
         print(f"    {r:<30s} : {c:4d} ({100*c/total:.0f}%)")
 
@@ -153,7 +153,7 @@ def run_sensitivity(signals: list[dict], deltas: list[int]) -> None:
 
     # Zoom : combien de signaux manquent de 1 point ?
     print(f"\n{'─'*60}")
-    print(f"  ZOOM : Signaux à N points du seuil (delta=+6)")
+    print("  ZOOM : Signaux à N points du seuil (delta=+6)")
     print(f"{'─'*60}")
     for gap in [1, 2, 3]:
         near_miss = sum(
@@ -165,7 +165,7 @@ def run_sensitivity(signals: list[dict], deltas: list[int]) -> None:
 
     # Cross-table : régime × score bucket par delta
     print(f"\n{'─'*60}")
-    print(f"  CROSS-TABLE REGIME x SCORE  (signaux acceptés par delta)")
+    print("  CROSS-TABLE REGIME x SCORE  (signaux acceptés par delta)")
     print(f"{'─'*60}")
 
     # Buckets de score à 5 pts

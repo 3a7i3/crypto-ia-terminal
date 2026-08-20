@@ -152,12 +152,12 @@ class HistoricalDataFetcher:
                     ).isoformat(),
                     "open": float(o),
                     "high": float(h),
-                    "low": float(l),
+                    "low": float(low),
                     "close": float(c),
                     "volume": float(v),
                     "source": "ccxt_live",
                 }
-                for ts, o, h, l, c, v in batch_raw
+                for ts, o, h, low, c, v in batch_raw
             ]
 
             clean, report = validate_candles(batch_dicts, symbol=symbol)

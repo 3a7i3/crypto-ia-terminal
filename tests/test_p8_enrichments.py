@@ -245,7 +245,7 @@ def allocator(tmp_path):
 
     prob = StrategyProbationSystem()
     for sid in ["mean_reversion", "breakout", "scalp", "momentum", "grid"]:
-        r = prob.register(sid)
+        prob.register(sid)
         # Forcer toutes en ACTIVE pour ne pas bloquer le capital
         from quant_hedge_ai.agents.intelligence.strategy_probation import StrategyStatus
 
@@ -355,7 +355,7 @@ def test_shadow_track_prefers_oldest_reeval(probation):
 
     # cycle=1 : trop court pour déclencher la rééval SUSPENDED (suspend_reeval=100)
     # donc _ensure_shadow_track agit sur l'état tel quel
-    events = probation.tick_cycle(cycle=1)
+    probation.tick_cycle(cycle=1)
     # strat_a (last_reeval=0) doit être préféré à strat_b (last_reeval=50)
     assert probation.get("strat_a").status == StrategyStatus.TRACKING
     assert probation.get("strat_b").status == StrategyStatus.SUSPENDED

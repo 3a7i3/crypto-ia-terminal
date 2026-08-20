@@ -46,13 +46,13 @@ class LatencyModel:
         drift_factor: float = 1.0,
     ) -> None:
         if base_ms < 0:
-            raise ValueError(f"base_ms must be >= 0")
+            raise ValueError("base_ms must be >= 0")
         if jitter_ms < 0:
-            raise ValueError(f"jitter_ms must be >= 0")
+            raise ValueError("jitter_ms must be >= 0")
         if max_ms < base_ms:
             raise ValueError(f"max_ms ({max_ms}) < base_ms ({base_ms})")
         if drift_factor < 0:
-            raise ValueError(f"drift_factor must be >= 0")
+            raise ValueError("drift_factor must be >= 0")
 
         self.base_ms = base_ms
         self.jitter_ms = jitter_ms

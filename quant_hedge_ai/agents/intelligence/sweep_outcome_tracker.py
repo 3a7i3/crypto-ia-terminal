@@ -397,7 +397,6 @@ class SweepOutcomeTracker:
 
         # RR approximatif (si on avait pris un SL à 1% et cherché 2%)
         sl_pct = 0.01
-        tp_pct = 0.02
         rr = move_pct / sl_pct if move_pct > 0 else -(abs(move_pct) / sl_pct)
 
         try:

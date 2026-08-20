@@ -94,7 +94,7 @@ class ContextBuilder:
         graph_engine = get_graph_engine()
         causal_engine = get_causal_tree_engine()
         exp_engine = get_explainability_engine()
-        cf_engine = get_counterfactual_engine()
+        get_counterfactual_engine()
         kb = get_knowledge_base()
 
         graph = graph_engine.get_graph(packet_id)

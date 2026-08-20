@@ -49,8 +49,6 @@ def plot_god_mode(df, tracked_id=None):
     Si tracked_id est fourni, met en surbrillance la stratégie correspondante.
     """
     import matplotlib.pyplot as plt
-    import numpy as np
-    from mpl_toolkits.mplot3d import Axes3D
 
     # Vérifier colonnes requises
     if not all(
@@ -482,12 +480,11 @@ def compute_drawdown(equity_curve):
 
 # 9c. Sharpe ratio
 def compute_sharpe(equity_curve):
+    from metrics.sharpe import sharpe as _sharpe_fn
+
     equity = np.array(equity_curve)
-    returns = np.diff(equity) / equity[:-1]
-    if np.std(returns) == 0:
-        return 0
-    sharpe = np.mean(returns) / np.std(returns)
-    return sharpe
+    returns = (np.diff(equity) / equity[:-1]).tolist()
+    return _sharpe_fn(returns, periods_per_year=1.0)
 
 
 # 9. Fitness réel

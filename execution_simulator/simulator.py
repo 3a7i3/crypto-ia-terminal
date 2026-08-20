@@ -21,11 +21,11 @@ from __future__ import annotations
 import random
 import uuid
 
-from execution_simulator.fill_simulator import AlwaysFullFill, BaseFillSimulator
+from execution_simulator.fill_simulator import BaseFillSimulator
 from execution_simulator.latency import LatencyModel
 from execution_simulator.models import MarketSnapshot, OrderIntent, SimulatedFill
-from execution_simulator.slippage import BaseSlippage, FixedSlippage
-from execution_simulator.spread import BaseSpread, FixedSpread
+from execution_simulator.slippage import BaseSlippage
+from execution_simulator.spread import BaseSpread
 
 
 class FeeModel:
@@ -42,9 +42,9 @@ class FeeModel:
         maker_rate_bps: float = 2.0,
     ) -> None:
         if taker_rate_bps < 0:
-            raise ValueError(f"taker_rate_bps must be >= 0")
+            raise ValueError("taker_rate_bps must be >= 0")
         if maker_rate_bps < 0:
-            raise ValueError(f"maker_rate_bps must be >= 0")
+            raise ValueError("maker_rate_bps must be >= 0")
         self.taker_rate_bps = taker_rate_bps
         self.maker_rate_bps = maker_rate_bps
 

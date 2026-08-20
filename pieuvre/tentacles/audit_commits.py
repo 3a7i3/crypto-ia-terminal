@@ -16,7 +16,7 @@ import subprocess
 from pathlib import Path
 
 from observability.json_logger import get_logger
-from pieuvre.incidents.models import Finding, IncidentType, Severity
+from pieuvre.incidents.models import Finding, Severity
 from pieuvre.tentacles.base import BaseTentacle
 
 _log = get_logger("pieuvre.tentacles.audit_commits")

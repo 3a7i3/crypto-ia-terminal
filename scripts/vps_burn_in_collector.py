@@ -670,7 +670,7 @@ def _print_p13_table(report: dict) -> None:
         for reason in ak.get("reasons", []):
             print(f"  {_RED}!{_RESET} {reason}")
         print()
-        print(f"  Actions suggérées :")
+        print("  Actions suggérées :")
         for action in ak.get("suggested_actions", []):
             print(f"  {_YELLOW}→{_RESET} {action}")
         print(f"{_BOLD}{_CYAN}{'-'*64}{_RESET}")
@@ -735,7 +735,7 @@ def _alpha_digest_lines(burnin: dict) -> list[str]:
     if floor is not None:
         lines.append(f"🎯 Score floor recommandé : *{floor}* (confiance: {conf})")
     else:
-        lines.append(f"🎯 Score floor recommandé : N/A (données insuffisantes)")
+        lines.append("🎯 Score floor recommandé : N/A (données insuffisantes)")
 
     return lines
 

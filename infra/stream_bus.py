@@ -10,7 +10,7 @@ import asyncio
 import time
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
-from typing import Any, Callable, Optional
+from typing import Callable, Optional
 
 import ccxt.pro as ccxtpro
 

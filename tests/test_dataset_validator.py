@@ -12,13 +12,11 @@ Vérifie que chaque règle d'intégrité est bien appliquée :
 
 from __future__ import annotations
 
-import math
 import time
 
 import pytest
 
 from paper_trading.dataset_validator import (
-    CorpusReport,
     DatasetValidator,
     ValidationResult,
     validate_corpus,
@@ -545,7 +543,6 @@ class TestValidateCorpusViolations:
         assert any("SL" in v for v in r.violations)
 
     def test_duplicate_trade_ids_are_violation(self, tmp_path):
-        import json
 
         from paper_trading.recorder import PaperTradeRecorder
 

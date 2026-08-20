@@ -9,7 +9,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from tracker_system.p0_integration import P0Manager, create_default_p0_manager
+from tracker_system.p0_integration import create_default_p0_manager
 
 
 def demo_trading_day():
@@ -22,10 +22,10 @@ def demo_trading_day():
     # Initialiser P0
     p0 = create_default_p0_manager(initial_capital=10000.0)
     print("\n[INIT] P0Manager créé")
-    print(f"  Capital initial: $10,000.00")
-    print(f"  Max perte jour: -$100")
-    print(f"  Max drawdown: 15%")
-    print(f"  Max exposure: 80%")
+    print("  Capital initial: $10,000.00")
+    print("  Max perte jour: -$100")
+    print("  Max drawdown: 15%")
+    print("  Max exposure: 80%")
 
     # ========================================================================
     # MATIN: OUVERTURE POSITIONS

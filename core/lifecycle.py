@@ -340,7 +340,7 @@ def verify_unique_nominal_terminal() -> list[str]:
             )
         if missing:
             violations.append(
-                f"[P-03/MISSING] POSTMORTEM_ANALYZED absent des terminaux nominaux"
+                "[P-03/MISSING] POSTMORTEM_ANALYZED absent des terminaux nominaux"
             )
     return violations
 
@@ -456,7 +456,7 @@ def generate_ascii_summary() -> str:
         lines.append(f"{prefix} {state.value}")
 
     lines.append("")
-    lines.append(f"  Terminaux exceptionnels (depuis tout état non-terminal) :")
+    lines.append("  Terminaux exceptionnels (depuis tout état non-terminal) :")
     lines.append(f"    → {exceptional_labels}")
     lines.append("")
     lines.append(f"  Total états     : {len(DecisionState)}")

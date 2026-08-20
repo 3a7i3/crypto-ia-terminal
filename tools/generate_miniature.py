@@ -340,9 +340,9 @@ def main() -> int:
         else "python tools/generate_miniature.py"
     )
 
-    w(f"# PROJET MINIATURE — crypto_ai_terminal")
+    w("# PROJET MINIATURE — crypto_ai_terminal")
     w(f"_Genere le {now} par `tools/generate_miniature.py` — mode **{mode_label}**._")
-    w(f"_Squelette d'API : signatures uniquement, jamais le corps des fonctions._")
+    w("_Squelette d'API : signatures uniquement, jamais le corps des fonctions._")
     w(f"_Regenerer (ecrase ce fichier) : `{regen_cmd}`_\n")
 
     w(PREAMBLE)

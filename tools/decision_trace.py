@@ -155,19 +155,19 @@ def print_blocker_stats(entries: list[dict[str, Any]]) -> None:
 
     print(f"\n{_BOLD}BLOCKER STATS — {n} signaux analysés{_RESET}")
     print(f"{'-'*50}")
-    print(f"\n  Par bloqueur :")
+    print("\n  Par bloqueur :")
     for bk, cnt in Counter(stats["by_layer"]).most_common():
         pct = stats["by_layer_pct"].get(bk, 0.0)
         print(f"    {label_for(bk):<40} {cnt:>4}  ({pct:.1f}%)")
 
-    print(f"\n  Par symbole (top bloqueurs) :")
+    print("\n  Par symbole (top bloqueurs) :")
     for sym in sorted(by_symbol):
         top = by_symbol[sym].most_common(1)
         if top:
             bk, cnt = top[0]
             print(f"    {sym:<12}  {label_for(bk):<30}  {cnt}×")
 
-    print(f"\n  Par régime :")
+    print("\n  Par régime :")
     for regime in sorted(by_regime):
         top = by_regime[regime].most_common(2)
         tops = ", ".join(f"{label_for(b)}({c})" for b, c in top)

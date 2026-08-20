@@ -15,7 +15,6 @@ from __future__ import annotations
 import math
 import statistics
 from dataclasses import dataclass
-from typing import Optional
 
 # ---------------------------------------------------------------------------
 # Input
@@ -144,15 +143,12 @@ def _max_drawdown(returns_pct: list[float]) -> float:
 def _sharpe(
     returns_pct: list[float], annualization_factor: float, risk_free_rate: float
 ) -> float:
-    """Sharpe annualise. Retourne 0.0 si std = 0 ou n < 2."""
-    if len(returns_pct) < 2:
-        return 0.0
-    mu = statistics.mean(returns_pct)
-    sigma = statistics.stdev(returns_pct)
-    if sigma <= 0:
-        return 0.0
-    rf_per_trade = risk_free_rate / annualization_factor
-    return (mu - rf_per_trade) / sigma * math.sqrt(annualization_factor)
+    """Sharpe annualise. Delegue a la primitive canonique (metrics.sharpe)."""
+    from metrics.sharpe import sharpe as _sharpe_fn
+
+    return _sharpe_fn(
+        returns_pct, rf_annual=risk_free_rate, periods_per_year=annualization_factor
+    )
 
 
 def _sortino(

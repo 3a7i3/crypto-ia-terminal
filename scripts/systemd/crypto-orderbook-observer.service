@@ -1,0 +1,42 @@
+# orderbook_observer — Observatoire passif orderbook & trades (ADR-0018).
+# Service systemd isole — une panne WebSocket ne fait jamais tomber la decision.
+#
+# Prerequis dans .env :
+#   ORDERBOOK_OBSERVER_ENABLED=true
+#   ORDERBOOK_EXCHANGE=mexc          (optionnel, defaut mexc)
+#   ORDERBOOK_RETENTION_DAYS=7       (optionnel, defaut 7)
+#   ORDERBOOK_DEPTH=20               (optionnel, defaut 20)
+#
+# Installation (VPS, geste operateur) :
+#   sudo cp scripts/systemd/crypto-orderbook-observer.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now crypto-orderbook-observer.service
+[Unit]
+Description=Crypto AI Terminal — Orderbook Flow Observer (ADR-0018, passif)
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=120
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=mathieu
+WorkingDirectory=/home/mathieu/crypto_ai_terminal
+EnvironmentFile=-/home/mathieu/crypto_ai_terminal/.env
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONIOENCODING=utf-8
+Environment=TZ=UTC
+Environment=PYTHONPATH=/home/mathieu/crypto_ai_terminal:/home/mathieu/crypto_ai_terminal/core
+ExecStart=/home/mathieu/crypto_ai_terminal/.venv/bin/python -m orderbook_observer
+Restart=on-failure
+RestartSec=15s
+TimeoutStopSec=30
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=crypto_orderbook_observer
+Nice=10
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

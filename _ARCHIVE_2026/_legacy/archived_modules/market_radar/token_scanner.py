@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import os
 import random
-import time
 from dataclasses import dataclass, field
 
 from observability.json_logger import get_logger

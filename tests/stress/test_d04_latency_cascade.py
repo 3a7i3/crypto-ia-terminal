@@ -14,15 +14,12 @@ Total : 10 tests
 
 from __future__ import annotations
 
-import threading
 import time
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
-import pytest
 
 from runtime.execution_context import ExecutionContext
-from runtime.runtime_coordinator import LayerResult, RuntimeCoordinator
-from runtime.system_state_bus import SystemStateBus
+from runtime.runtime_coordinator import RuntimeCoordinator
 
 
 def _ctx(**kw) -> ExecutionContext:
@@ -176,7 +173,7 @@ class TestLMStudioLatency:
                 # Le mode auto avec LM Studio disponible mais lent
                 # Si le client raise une exception (timeout), le fallback est activé
                 try:
-                    result = router.ask("Signal BTC?")
+                    router.ask("Signal BTC?")
                 except Exception:
                     pass  # timeout géré à l'extérieur
 
@@ -211,7 +208,7 @@ class TestRandomLatencyDegradation:
 
         successes = 0
         for _ in range(5):
-            result = coord.run_cycle(_ctx())
+            coord.run_cycle(_ctx())
             # Le cycle termine toujours (pas de blocage permanent)
             successes += 1
 

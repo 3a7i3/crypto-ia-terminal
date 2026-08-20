@@ -9,7 +9,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from meta_learning.memory import MetaMemory
-from meta_learning.similarity import SimilarityEngine
 from meta_learning.learner import MetaLearner
 
 
@@ -52,7 +51,7 @@ def test_phase6_meta_learning():
     new_context = {"regime": "bull_trend", "volatility": 0.019}
     best = learner.find_best_decision(new_context)
     if best:
-        print(f"Found similar context!")
+        print("Found similar context!")
         print(f"  Decision: tp={best['decision'].get('tp')}, sl={best['decision'].get('sl')}")
         print(f"  Performance: {best['performance']:.4f}")
         print(f"  Similarity score: {best['similarity_score']:.2f}")

@@ -104,7 +104,7 @@ def report(rows: list[dict]) -> None:
         s = sorted(blocked_scores)
         p50 = s[len(s) // 2]
         p90 = s[int(len(s) * 0.9)]
-        print(f"\n  Scores des signaux bloqués:")
+        print("\n  Scores des signaux bloqués:")
         print(
             f"    min={mn:.0f}  p50={p50:.0f}  p90={p90:.0f}  max={mx:.0f}  avg={avg:.1f}"
         )

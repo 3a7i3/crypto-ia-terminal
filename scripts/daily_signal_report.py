@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 """daily_signal_report.py — Rapport quotidien de signaux de trading."""
 from __future__ import annotations
-import argparse, json, os, re, sys, time
-from datetime import datetime, timedelta
+import argparse
+import json
+import os
+import re
+import time
+from datetime import datetime
 from pathlib import Path
 
 PROJECT = Path(__file__).resolve().parent.parent
@@ -17,13 +21,17 @@ def load_packets(date_str=None, last_hours=None):
     cutoff = time.time() - last_hours * 3600 if last_hours else None
     packets = []
     for fp in files:
-        if not fp.exists(): continue
+        if not fp.exists():
+            continue
         with open(fp, "r", encoding="utf-8") as f:
             for line in f:
                 line = line.strip()
-                if not line: continue
-                try: packets.append(json.loads(line))
-                except json.JSONDecodeError: continue
+                if not line:
+                    continue
+                try:
+                    packets.append(json.loads(line))
+                except json.JSONDecodeError:
+                    continue
     if cutoff:
         filtered = []
         for p in packets:
@@ -33,8 +41,10 @@ def load_packets(date_str=None, last_hours=None):
             elif isinstance(ts, str):
                 try:
                     dt2 = datetime.fromisoformat(ts.replace("Z","+00:00"))
-                    if dt2.timestamp() >= cutoff: filtered.append(p)
-                except (ValueError,AttributeError): filtered.append(p)
+                    if dt2.timestamp() >= cutoff:
+                        filtered.append(p)
+                except (ValueError,AttributeError):
+                    filtered.append(p)
         packets = filtered
     return packets
 
@@ -44,14 +54,16 @@ def extract_signals(packets):
         entry = p.get("entry_price")
         sl = p.get("stop_loss")
         tp = p.get("take_profit")
-        if not entry or not sl or not tp: continue
+        if not entry or not sl or not tp:
+            continue
         symbol = p.get("symbol","?")
         side = p.get("side","?")
         r_mult = p.get("r_multiple")
         confidence = p.get("confidence",0)
         regime = p.get("regime","?")
         key = f"{symbol}:{side}:{round(entry,4)}"
-        if key in seen: continue
+        if key in seen:
+            continue
         seen.add(key)
         if side in ("BUY","LONG"):
             risk_pct = (entry-sl)/entry*100 if entry>0 else 0
@@ -86,11 +98,16 @@ def format_report(signals, date_str):
     lines = [f"\U0001f4cb SIGNAUX {date_str} -- {len(signals)} signal(s)\n"]
     if longs:
         lines.append(f"-- LONG ({len(longs)}) --")
-        for s in longs[:10]: lines.append(format_signal(s)); lines.append("")
+        for s in longs[:10]:
+            lines.append(format_signal(s))
+            lines.append("")
     if shorts:
         lines.append(f"-- SHORT ({len(shorts)}) --")
-        for s in shorts[:10]: lines.append(format_signal(s)); lines.append("")
-    if len(signals)>20: lines.append(f"... et {len(signals)-20} autre(s)")
+        for s in shorts[:10]:
+            lines.append(format_signal(s))
+            lines.append("")
+    if len(signals)>20:
+        lines.append(f"... et {len(signals)-20} autre(s)")
     return "\n".join(lines)
 
 def send_telegram(text):
@@ -105,9 +122,13 @@ def send_telegram(text):
     if not chunks:
         chunk = ""
         for line in text.split("\n"):
-            if len(chunk)+len(line)+1>MAX_LEN: chunks.append(chunk); chunk=line+"\n"
-            else: chunk+=line+"\n"
-        if chunk.strip(): chunks.append(chunk)
+            if len(chunk)+len(line)+1>MAX_LEN:
+                chunks.append(chunk)
+                chunk=line+"\n"
+            else:
+                chunk+=line+"\n"
+        if chunk.strip():
+            chunks.append(chunk)
     ok = True
     for i,ch in enumerate(chunks):
         try:
@@ -115,9 +136,14 @@ def send_telegram(text):
             payload = json.dumps({"chat_id":chat_id,"text":ch,"disable_web_page_preview":True}).encode()
             req = urllib.request.Request(url,data=payload,headers={"Content-Type":"application/json"})
             with urllib.request.urlopen(req,timeout=10) as resp:
-                if resp.status!=200: print(f"[WARN] HTTP {resp.status}"); ok=False
-        except Exception as e: print(f"[ERREUR] {e}"); ok=False
-        if i<len(chunks)-1: time.sleep(0.5)
+                if resp.status!=200:
+                    print(f"[WARN] HTTP {resp.status}")
+                    ok=False
+        except Exception as e:
+            print(f"[ERREUR] {e}")
+            ok=False
+        if i<len(chunks)-1:
+            time.sleep(0.5)
     return ok
 
 def main():
@@ -131,7 +157,8 @@ def main():
     last_hours = None
     if args.last:
         m = re.match(r"(\d+(?:\.\d+)?)h?", args.last)
-        if m: last_hours = float(m.group(1))
+        if m:
+            last_hours = float(m.group(1))
     packets = load_packets(date_str=args.date, last_hours=last_hours)
     print(f"Packets charges: {len(packets)}")
     signals = extract_signals(packets)
@@ -141,10 +168,14 @@ def main():
     report = format_report(signals, date_str)
     print("\n" + report)
     if not args.dry_run and signals:
-        if send_telegram(report): print("\n[OK] Rapport envoye via Telegram")
-        else: print("\n[ECHEC] Envoi echoue")
-    elif args.dry_run: print("\n[DRY-RUN] Pas d'envoi")
-    elif not signals: print("\n[INFO] Aucun signal")
+        if send_telegram(report):
+            print("\n[OK] Rapport envoye via Telegram")
+        else:
+            print("\n[ECHEC] Envoi echoue")
+    elif args.dry_run:
+        print("\n[DRY-RUN] Pas d'envoi")
+    elif not signals:
+        print("\n[INFO] Aucun signal")
 
 if __name__ == "__main__":
     main()

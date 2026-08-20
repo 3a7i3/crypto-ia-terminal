@@ -39,7 +39,7 @@ class TestB1SnapshotRecovery:
 
         monkeypatch.setattr(wsm_mod, "_STATE_PERSIST_PATH", state_file)
 
-        sm = wsm_mod.WarmupStateMachine()
+        wsm_mod.WarmupStateMachine()
 
         assert state_file.exists(), "warmup_state.json doit exister après init"
         record = json.loads(state_file.read_text())
@@ -108,11 +108,6 @@ class TestB1SnapshotRecovery:
         monkeypatch.setattr(wsm_mod, "_STATE_PERSIST_PATH", state_file)
 
         sm = wsm_mod.WarmupStateMachine()
-        expected_sequence = [
-            wsm_mod.WarmupState.BOOTING,
-            wsm_mod.WarmupState.FETCHING_MARKET_DATA,
-            wsm_mod.WarmupState.BUILDING_FEATURES,
-        ]
 
         for _ in range(2):
             sm._advance(confidence=1.0)
@@ -362,7 +357,7 @@ class TestB2MidExecutionCrash:
         rec = PositionReconciler(exchange, pm)
 
         try:
-            report = rec.reconcile(force=True)
+            rec.reconcile(force=True)
         except Exception as exc:
             pytest.fail(f"reconcile() a levé une exception: {exc}")
 
@@ -556,7 +551,7 @@ class TestB3AuditRecovery:
 
         # Doit charger sans crash — les entrées valides passent verify_all
         try:
-            log2 = self._make_log(tmp_path)
+            self._make_log(tmp_path)
             # Soit le chargement partiel est propre, soit la vérification échoue
             # Dans les deux cas, pas d'exception levée
         except Exception as exc:
@@ -750,7 +745,7 @@ class TestB4FullAdvisorRestart:
         state_file = tmp_path / "warmup.json"
         monkeypatch.setattr(wsm_mod, "_STATE_PERSIST_PATH", state_file)
 
-        sm = wsm_mod.WarmupStateMachine()
+        wsm_mod.WarmupStateMachine()
         record = json.loads(state_file.read_text())
 
         assert (

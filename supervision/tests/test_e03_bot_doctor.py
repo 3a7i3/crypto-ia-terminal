@@ -15,7 +15,6 @@ from __future__ import annotations
 
 import time
 
-import pytest
 
 from supervision.escalation_engine import (
     EscalationEngine,

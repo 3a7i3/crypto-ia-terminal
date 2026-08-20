@@ -10,7 +10,6 @@ Usage:
 
 from __future__ import annotations
 
-import hashlib
 import hmac as _hmac
 import json
 import os

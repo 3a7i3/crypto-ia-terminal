@@ -256,14 +256,14 @@ def _section_modules(inventory: list) -> list[str]:
 
 def _section_coverage(coverage: dict) -> list[str]:
     s = coverage.get("summary", {})
-    total = s.get("total_modules", 0)
+    s.get("total_modules", 0)
     pct = s.get("coverage_pct", 0)
     orphans = s.get("orphan_test_files", 0)
     variants = s.get("total_parametrize_variants", 0)
     lines = [
         "## Test Coverage",
         "",
-        f"| Statut | Modules |",
+        "| Statut | Modules |",
         "|--------|--------:|",
         f"| COVERED (>=5 tests) | {s.get('covered', 0)} |",
         f"| PARTIAL (1-4 tests) | {s.get('partial', 0)} |",

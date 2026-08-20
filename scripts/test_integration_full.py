@@ -70,7 +70,7 @@ def test_full_pipeline():
         )
 
     metrics = compute_all_metrics(log_file)
-    print(f"Metrics:")
+    print("Metrics:")
     print(f"  Trades: {metrics.get('trades', 0)}")
     print(f"  Winrate: {metrics.get('winrate', 0.0):.2%}")
     print(f"  Expectancy: {metrics.get('expectancy', 0.0):.6f}")

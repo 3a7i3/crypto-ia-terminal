@@ -17,7 +17,6 @@ from __future__ import annotations
 
 import time
 
-import pytest
 
 import cold_start.cold_start_manager as _csm_module
 from cold_start.cold_start_manager import ColdStartManager
@@ -85,7 +84,6 @@ class TestStaleRegime:
 
     def test_stale_regime_triggers_warning_invariant(self):
         """Régime > 1h → inv_regime_not_stale avertit (non critique)."""
-        from cold_start.warmup_invariants import WarmupInvariants
 
         inv = WarmupInvariants()
         snap = _stale_snap(hours_offline=2.0)

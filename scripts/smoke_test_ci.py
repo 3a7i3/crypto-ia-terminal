@@ -112,7 +112,7 @@ check("circuit_breaker fonctionnel", _test_circuit_breaker)
 print("\n[3/5] Backtest & Walk-Forward")
 
 def _test_backtest():
-    import math, random
+    import random
     from quant_hedge_ai.agents.quant.backtest_lab import BacktestLab
     random.seed(42)
     price = 100.0

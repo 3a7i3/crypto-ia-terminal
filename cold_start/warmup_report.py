@@ -200,7 +200,7 @@ class WarmupReport:
     def print_summary(self) -> str:
         """Résumé humain lisible."""
         lines = [
-            f"═══ Cold Start Report ══════════════════",
+            "═══ Cold Start Report ══════════════════",
             f"Session  : {self.session_id}",
             f"Durée    : {self.duration_s:.1f}s",
             "Résultat : "

@@ -7,7 +7,6 @@ Même seed => même résultat, toujours.
 
 from __future__ import annotations
 
-import math
 import random
 
 import pytest
@@ -20,7 +19,7 @@ from execution_simulator.config import (
 from execution_simulator.fill_simulator import AlwaysFullFill, LiquidityBasedFill
 from execution_simulator.latency import LatencyModel
 from execution_simulator.models import MarketSnapshot, OrderIntent, SimulatedFill
-from execution_simulator.simulator import ExecutionSimulator, FeeModel
+from execution_simulator.simulator import FeeModel
 from execution_simulator.slippage import FixedSlippage, LinearSlippage, SqrtSlippage
 from execution_simulator.spread import DynamicSpread, FixedSpread
 

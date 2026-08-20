@@ -1,11 +1,16 @@
 #!/usr/bin/env python3
 """dashboard_api.py — API + Dashboard CryptoRadar. LECTURE SEULE."""
 from __future__ import annotations
-import hashlib,hmac,json,os,secrets,time
+import hashlib
+import hmac
+import json
+import os
+import secrets
+import time
 from collections import defaultdict
 from datetime import datetime,timedelta
 from pathlib import Path
-from fastapi import FastAPI,Request,HTTPException
+from fastapi import FastAPI,HTTPException
 from fastapi.responses import HTMLResponse,JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
@@ -25,16 +30,20 @@ def _verify_token(token):
     try:
         ts, sig = token.split(".")
         expected = hmac.new(_SECRET.encode(), ts.encode(), hashlib.sha256).hexdigest()[:16]
-        if not hmac.compare_digest(sig, expected): return False
+        if not hmac.compare_digest(sig, expected):
+            return False
         return 0 <= time.time() - int(ts) < 86400 * 7
-    except: return False
+    except Exception:
+        return False
 
 _LOGIN_HTML = '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Login</title><style>*{margin:0;padding:0;box-sizing:border-box}body{background:#0f1117;color:#e0e0e0;font-family:system-ui;display:flex;align-items:center;justify-content:center;min-height:100vh}.c{background:#1a1d27;padding:2rem;border-radius:12px;width:min(90vw,360px)}h2{margin-bottom:1rem;color:#3987e5}input{width:100%;padding:12px;border:1px solid #333;border-radius:8px;background:#0f1117;color:#fff;font-size:1rem;margin-bottom:1rem}button{width:100%;padding:12px;border:none;border-radius:8px;background:#2a78d6;color:#fff;font-size:1rem;cursor:pointer}.e{color:#e34948;font-size:.85rem;display:none}</style></head><body><div class="c"><h2>CryptoRadar</h2><p class="e" id="e">Mot de passe incorrect</p><form onsubmit="return d(event)"><input type="password" id="p" placeholder="Mot de passe" autofocus><button>Connexion</button></form></div><script>async function d(e){e.preventDefault();const r=await fetch("/login",{method:"POST",body:new URLSearchParams({password:document.getElementById("p").value})});if(r.ok)location.reload();else document.getElementById("e").style.display="block"}</script></body></html>'
 class AuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
-        if not DASHBOARD_PASSWORD: return await call_next(request)
+        if not DASHBOARD_PASSWORD:
+            return await call_next(request)
         token = request.cookies.get("radar_session")
-        if token and _verify_token(token): return await call_next(request)
+        if token and _verify_token(token):
+            return await call_next(request)
         if request.url.path == "/login" and request.method == "POST":
             form = await request.form()
             if hmac.compare_digest(form.get("password",""), DASHBOARD_PASSWORD):
@@ -42,7 +51,8 @@ class AuthMiddleware(BaseHTTPMiddleware):
                 resp.set_cookie("radar_session", _make_token(), max_age=604800, httponly=True, samesite="lax")
                 return resp
             raise HTTPException(401)
-        if request.url.path.startswith("/api/"): raise HTTPException(401)
+        if request.url.path.startswith("/api/"):
+            raise HTTPException(401)
         return HTMLResponse(_LOGIN_HTML)
 
 app.add_middleware(AuthMiddleware)
@@ -55,22 +65,28 @@ def load_recent_packets(hours=24):
     packets = []
     for ds in sorted(dates):
         fp = DP_DIR / f"decision_packets_{ds}.jsonl"
-        if not fp.exists(): continue
+        if not fp.exists():
+            continue
         with open(fp, "r", encoding="utf-8") as f:
             for line in f:
                 line = line.strip()
-                if not line: continue
-                try: packets.append(json.loads(line))
-                except: continue
+                if not line:
+                    continue
+                try:
+                    packets.append(json.loads(line))
+                except Exception:
+                    continue
     return packets
 
 def compute_stats(packets, min_conf=0):
     by_sym = defaultdict(list)
     for p in packets:
         c = p.get("confidence",0)
-        if c < min_conf: continue
+        if c < min_conf:
+            continue
         s = p.get("symbol","")
-        if s: by_sym[s].append(p)
+        if s:
+            by_sym[s].append(p)
     results = []
     for sym, pks in by_sym.items():
         confs = [p.get("confidence",0) for p in pks]
@@ -78,11 +94,15 @@ def compute_stats(packets, min_conf=0):
         sides = [p.get("side","") for p in pks]
         lo = sum(1 for s in sides if s in ("BUY","LONG"))
         sh = sum(1 for s in sides if s in ("SELL","SHORT"))
-        if lo > sh: dom, pct = "LONG", lo/len(sides)*100
-        elif sh > lo: dom, pct = "SHORT", sh/len(sides)*100
-        else: dom, pct = "MIXED", 50.0
+        if lo > sh:
+            dom, pct = "LONG", lo/len(sides)*100
+        elif sh > lo:
+            dom, pct = "SHORT", sh/len(sides)*100
+        else:
+            dom, pct = "MIXED", 50.0
         regs = defaultdict(int)
-        for p in pks: regs[p.get("regime","?")] += 1
+        for p in pks:
+            regs[p.get("regime","?")] += 1
         reg = max(regs, key=regs.get)
         lat = ([p for p in pks if p.get("entry_price")] or pks)[-1]
         results.append({"symbol":sym,"avg_confidence":round(avg,1),"max_confidence":max(confs),
@@ -96,13 +116,16 @@ def extract_signals(packets):
     best = {}
     for p in packets:
         e,sl,tp = p.get("entry_price"),p.get("stop_loss"),p.get("take_profit")
-        if not e or not sl or not tp: continue
+        if not e or not sl or not tp:
+            continue
         sym,side = p.get("symbol","?"),p.get("side","?")
         k = f"{sym}:{side}"
         if side in ("BUY","LONG"):
-            ri = (e-sl)/e*100 if e>0 else 0; re = (tp-e)/e*100 if e>0 else 0
+            ri = (e-sl)/e*100 if e>0 else 0
+            re = (tp-e)/e*100 if e>0 else 0
         else:
-            ri = (sl-e)/e*100 if e>0 else 0; re = (e-tp)/e*100 if e>0 else 0
+            ri = (sl-e)/e*100 if e>0 else 0
+            re = (e-tp)/e*100 if e>0 else 0
         best[k] = {"symbol":sym,"side":side,"entry":e,"sl":sl,"tp":tp,
             "r_multiple":p.get("r_multiple"),"confidence":p.get("confidence",0),
             "regime":p.get("regime","?"),"risk_pct":round(ri,2),"reward_pct":round(re,2)}
@@ -127,13 +150,15 @@ def api_symbol(symbol:str):
     pkts = load_recent_packets(24)
     q = symbol.upper()
     m = [p for p in pkts if q in p.get("symbol","").upper()]
-    if not m: raise HTTPException(404)
+    if not m:
+        raise HTTPException(404)
     confs = [p.get("confidence",0) for p in m]
     sides = [p.get("side","") for p in m]
     lo = sum(1 for s in sides if s in ("BUY","LONG"))
     sh = sum(1 for s in sides if s in ("SELL","SHORT"))
     regs = defaultdict(int)
-    for p in m: regs[p.get("regime","?")] += 1
+    for p in m:
+        regs[p.get("regime","?")] += 1
     wl = [p for p in m if p.get("entry_price")]
     la = wl[-1] if wl else None
     return {"symbol":m[0].get("symbol",symbol),"n_signals":len(m),
@@ -155,41 +180,10 @@ def api_status():
                     n += 1
                     try:
                         t = json.loads(line).get("created_at","")
-                        if t: lt = t
-                    except: pass
-    dfs = sorted(DP_DIR.glob("decision_packets_*.jsonl"))
-    ts = sum(f.stat().st_size for f in dfs)
-    return {"packets_today":n,"last_packet":lt[:19] if lt else None,
-        "dp_files":len(dfs),"dp_total_gb":round(ts/1e9,2)}
-    confs = [p.get("confidence",0) for p in m]
-    sides = [p.get("side","") for p in m]
-    lo = sum(1 for s in sides if s in ("BUY","LONG"))
-    sh = sum(1 for s in sides if s in ("SELL","SHORT"))
-    regs = defaultdict(int)
-    for p in m: regs[p.get("regime","?")] += 1
-    wl = [p for p in m if p.get("entry_price")]
-    la = wl[-1] if wl else None
-    return {"symbol":m[0].get("symbol",symbol),"n_signals":len(m),
-        "avg_confidence":round(sum(confs)/len(confs),1),"max_confidence":max(confs),
-        "longs":lo,"shorts":sh,"dominant_regime":max(regs,key=regs.get),
-        "last_signal":{"side":la.get("side"),"entry":la.get("entry_price"),
-        "sl":la.get("stop_loss"),"tp":la.get("take_profit"),
-        "r_multiple":la.get("r_multiple")} if la else None}
-
-@app.get("/api/status")
-def api_status():
-    now = datetime.utcnow()
-    fp = DP_DIR / f"decision_packets_{now.strftime('%Y-%m-%d')}.jsonl"
-    n,lt = 0,""
-    if fp.exists():
-        with open(fp,"r") as f:
-            for line in f:
-                if line.strip():
-                    n += 1
-                    try:
-                        t = json.loads(line).get("created_at","")
-                        if t: lt = t
-                    except: pass
+                        if t:
+                            lt = t
+                    except Exception:
+                        pass
     dfs = sorted(DP_DIR.glob("decision_packets_*.jsonl"))
     ts = sum(f.stat().st_size for f in dfs)
     return {"packets_today":n,"last_packet":lt[:19] if lt else None,

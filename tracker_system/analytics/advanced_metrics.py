@@ -3,7 +3,7 @@ P1 — ADVANCED METRICS
 Sharpe ratio, Sortino ratio, CAGR, Calmar ratio, etc.
 """
 
-from typing import List, Dict, Optional, Tuple
+from typing import List, Dict, Tuple
 from statistics import mean, stdev
 import math
 
@@ -21,31 +21,14 @@ class AdvancedMetrics:
     def calculate_sharpe_ratio(self,
                               returns: List[float],
                               period_days: int = 252) -> float:
-        """
-        Sharpe Ratio = (Mean Return - Risk Free Rate) / Std Dev
+        """Sharpe ratio annualise. Delegue a la primitive canonique."""
+        from metrics.sharpe import sharpe as _sharpe_fn
 
-        Args:
-            returns: Liste des returns quotidiens/horaires
-            period_days: Jours annualisés (252 pour quotidien, 252*24 pour horaire)
-
-        Returns:
-            Sharpe ratio annualisé
-        """
-        if len(returns) < 2:
-            return 0.0
-
-        mean_return = mean(returns)
-        std_dev = stdev(returns)
-
-        if std_dev == 0:
-            return 0.0
-
-        # Annualize
-        annual_return = mean_return * period_days
-        annual_std = std_dev * math.sqrt(period_days)
-
-        sharpe = (annual_return - self.risk_free_rate) / annual_std
-        return sharpe
+        return _sharpe_fn(
+            returns,
+            rf_annual=self.risk_free_rate,
+            periods_per_year=float(period_days),
+        )
 
     def calculate_sortino_ratio(self,
                                returns: List[float],

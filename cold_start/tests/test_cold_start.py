@@ -815,7 +815,6 @@ def test_sm_all_valid_transitions_sequential():
     """Certification A-02 : toutes les transitions valides testées."""
     from cold_start.warmup_state_machine import (
         _STATE_SEQUENCE,
-        WarmupState,
         WarmupStateMachine,
     )
 
@@ -937,7 +936,6 @@ def test_estimator_zero_symbols_score_low():
 
 def test_estimator_output_signed():
     from cold_start.market_warmup_estimator import MarketWarmupEstimator
-    from cold_start.warmup_signer import sign_artifact, verify_artifact
 
     est = MarketWarmupEstimator()
     out = est.estimate(_estimator_input())
@@ -1207,13 +1205,6 @@ def test_scenarios_tamper_changes_digest():
         assert tampered_digest != SCENARIOS_BASELINE_DIGEST
     finally:
         SCENARIOS[0].name = original_name
-
-
-def test_scenarios_all_have_unique_ids():
-    from cold_start.warmup_scenarios import SCENARIOS
-
-    ids = [s.id for s in SCENARIOS]
-    assert len(ids) == len(set(ids))
 
 
 def test_scenarios_count_is_12():

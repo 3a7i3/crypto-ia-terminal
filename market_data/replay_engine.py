@@ -34,9 +34,8 @@ from market_data.metrics.flow import (
     PersistenceTracker,
     SweepDetector,
     SweepEvent,
-    WallLifecycle,
 )
-from market_data.metrics.orderbook import book_pressure, features_vector
+from market_data.metrics.orderbook import book_pressure
 from market_data.models import (
     MarketEvent,
     NormalizedCandle,

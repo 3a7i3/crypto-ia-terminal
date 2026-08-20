@@ -5,15 +5,11 @@ from __future__ import annotations
 import uuid
 from unittest.mock import patch
 
-import pytest
 
-from dip.core.types import compute_hash, now_us
 from dip.modules.audit_trail import (
     ACTION_GRAPH_BUILT,
     ACTION_INVESTIGATION_GENERATED,
-    AuditEntry,
     DecisionAuditTrail,
-    get_audit_trail,
 )
 
 

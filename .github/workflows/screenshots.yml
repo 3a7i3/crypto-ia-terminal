@@ -23,6 +23,8 @@ jobs:
           pip install playwright pytest-playwright
           playwright install
       - name: Generate panel screenshots
+        env:
+          PYTHONIOENCODING: utf-8
         run: python scripts/generate_panel_screenshots.py
       - name: Upload screenshots
         uses: actions/upload-artifact@v4

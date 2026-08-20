@@ -84,7 +84,7 @@ def analyze() -> None:
         # Avec ratio moyen de ~1.5 (TP/SL)
         ratio = 1.5
         kelly = max(0, wr - (1 - wr) / ratio)
-        size_pct = min(1.0, kelly * 2)  # demi-Kelly, cap 100%
+        min(1.0, kelly * 2)  # demi-Kelly, cap 100%
 
         if wr >= 0.60:
             conviction_tag = "→ STRONG (1.25×)"
@@ -152,14 +152,14 @@ def analyze() -> None:
             )
 
     # ── Recommandation finale ──────────────────────────────────────────────────
-    print(f"\n  RECOMMANDATION:")
+    print("\n  RECOMMANDATION:")
     if mn == mx:
         print(f"  ⚠️  Tous les scores identiques ({mn}) — vérifier le scorer.")
     elif mx < 70:
         print(
             f"  ⚠️  Score max = {mx} < 70 → scorer sous-calibré ou seuil gate trop élevé."
         )
-        print(f"     → Baisser SIGNAL_MIN_SCORE ou REGIME_SIDEWAYS_MIN_SCORE")
+        print("     → Baisser SIGNAL_MIN_SCORE ou REGIME_SIDEWAYS_MIN_SCORE")
     else:
         best_wr = 0.0
         best_bucket = mn

@@ -22,7 +22,6 @@ from __future__ import annotations
 
 import time
 
-import pytest
 
 from capital_deployment.phase_gate import PhaseGate
 from capital_deployment.phase_kpi_tracker import (

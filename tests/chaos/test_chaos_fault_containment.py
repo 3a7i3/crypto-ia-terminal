@@ -184,7 +184,7 @@ class TestContainmentZone:
     def test_exception_reports_to_state_machine(self):
         sm = _sm_tight()
         for _ in range(2):
-            with ContainmentZone(Zone.MONITORING, fallback=None, state_machine=sm) as z:
+            with ContainmentZone(Zone.MONITORING, fallback=None, state_machine=sm):
                 raise RuntimeError("monitored")
         assert sm.state == SystemState.DEGRADED
 

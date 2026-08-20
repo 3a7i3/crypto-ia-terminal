@@ -114,7 +114,6 @@ class TestRSMAuthorityStates:
         """force_safe_mode() doit être immédiat — pas de délai."""
         from quant_hedge_ai.runtime.runtime_state_machine import (
             RuntimeStateMachine,
-            SystemState,
         )
 
         sm = RuntimeStateMachine()
@@ -147,7 +146,7 @@ class TestGovernanceKernelAuthority:
 
     def test_kernel_normal_state_allows_all(self):
         self._skip_if_no_authority()
-        from core.authority import GovernanceKernel, init_authority
+        from core.authority import init_authority
         from quant_hedge_ai.runtime.runtime_state_machine import RuntimeStateMachine
 
         rsm = RuntimeStateMachine()
@@ -160,7 +159,7 @@ class TestGovernanceKernelAuthority:
 
     def test_kernel_safe_mode_blocks_all_operations(self):
         self._skip_if_no_authority()
-        from core.authority import GovernanceKernel, init_authority
+        from core.authority import init_authority
         from quant_hedge_ai.runtime.runtime_state_machine import RuntimeStateMachine
 
         rsm = RuntimeStateMachine()
@@ -172,7 +171,7 @@ class TestGovernanceKernelAuthority:
 
     def test_kernel_recovery_blocks_order_placement(self):
         self._skip_if_no_authority()
-        from core.authority import GovernanceKernel, init_authority
+        from core.authority import init_authority
         from quant_hedge_ai.runtime.runtime_state_machine import RuntimeStateMachine
 
         rsm = RuntimeStateMachine()
@@ -183,7 +182,7 @@ class TestGovernanceKernelAuthority:
 
     def test_kernel_degraded_reduces_size_factor(self):
         self._skip_if_no_authority()
-        from core.authority import GovernanceKernel, init_authority
+        from core.authority import init_authority
         from quant_hedge_ai.runtime.runtime_state_machine import RuntimeStateMachine
 
         rsm = RuntimeStateMachine(degraded_threshold=1, critical_threshold=100)
@@ -206,7 +205,7 @@ class TestGovernanceKernelAuthority:
     def test_rsm_state_readable_without_exposing_internals(self):
         """Le pipeline lit rsm_state() — pas d'accès à _rsm directement."""
         self._skip_if_no_authority()
-        from core.authority import GovernanceKernel, init_authority
+        from core.authority import init_authority
         from quant_hedge_ai.runtime.runtime_state_machine import RuntimeStateMachine
 
         rsm = RuntimeStateMachine()
@@ -290,8 +289,6 @@ class TestPipelineGovernanceGuard:
         Ce test casse si quelqu'un ajoute `_authority_ok = True` dans
         le bloc FORCE_TEST_EXECUTION.
         """
-        import ast
-        import inspect
         from pathlib import Path
 
         advisor_path = Path(__file__).parent.parent.parent / "core" / "advisor_loop.py"

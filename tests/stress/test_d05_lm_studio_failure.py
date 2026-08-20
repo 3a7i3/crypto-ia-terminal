@@ -15,7 +15,7 @@ Total : 9 tests
 from __future__ import annotations
 
 import time
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -104,7 +104,6 @@ class TestLMStudioIncoherent:
 
     def test_confidence_score_degraded_without_lm(self):
         """Sans LM Studio, le score de confiance des features est réduit (CS-11)."""
-        import cold_start.cold_start_manager as _csm_module
         from cold_start.cold_start_manager import ColdStartManager
 
         # CS-11 : LM Studio down → avg_feature_confidence légèrement réduit

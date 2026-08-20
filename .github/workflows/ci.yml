@@ -31,7 +31,7 @@ jobs:
         run: pip install ruff
 
       - name: Ruff — vérification syntaxe et imports
-        run: ruff check . --select=E,F,W --ignore=E501,E402 --exclude=__pycache__,.venv
+        run: ruff check . --select=E,F,W --ignore=E501,E402 --exclude='__pycache__,.venv,*.ipynb'
 
   # ──────────────────────────────────────────────────────────────────────────
   # 2. TESTS — pytest + coverage

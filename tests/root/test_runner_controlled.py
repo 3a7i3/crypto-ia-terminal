@@ -11,7 +11,6 @@ Avant de passer en live, validate le système en mode test serré:
 
 import os
 import sys
-import time
 import subprocess
 
 def main():

@@ -25,7 +25,7 @@ Alias de compatibilite : binance_usdt_futures_simulator, binance_spot_simulator.
 
 from __future__ import annotations
 
-from execution_simulator.fill_simulator import AlwaysFullFill, LiquidityBasedFill
+from execution_simulator.fill_simulator import LiquidityBasedFill
 from execution_simulator.latency import LatencyModel
 from execution_simulator.simulator import ExecutionSimulator, FeeModel
 from execution_simulator.slippage import FixedSlippage, SqrtSlippage

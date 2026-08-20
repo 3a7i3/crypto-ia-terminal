@@ -5,13 +5,10 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pytest
 
 from certification.immutable_stamp import (
-    _DEFAULT_KEY,
     ImmutableStamp,
     StampRecord,
-    _sign,
 )
 
 ROOT = Path(__file__).parent.parent.parent
@@ -74,7 +71,7 @@ def test_verify_detects_drift_on_real_file(tmp_path, tmp_path_factory):
     fake_file = tmp_path / "fake_module.py"
     fake_file.write_text("# original")
     st = ImmutableStamp(root=tmp_path, stamps_file=tmp_path / "stamps.json")
-    record = st.stamp_from_disk("X-01", "fake_module.py")
+    st.stamp_from_disk("X-01", "fake_module.py")
     fake_file.write_text("# modified")
     ok, reason = st.verify("X-01")
     assert not ok

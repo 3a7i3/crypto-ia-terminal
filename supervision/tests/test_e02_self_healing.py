@@ -13,18 +13,14 @@ Total : 14 tests
 from __future__ import annotations
 
 import json
-import time
-from pathlib import Path
 from unittest.mock import MagicMock
 
-import pytest
 
 from supervision.healing_actions import (
     HealingActionRegistry,
     HealingJournal,
     _heal_degrade_risk_mode,
     _heal_purge_cache,
-    _heal_reinit_exchange,
     _heal_restart_agent_lifecycle,
     _heal_switch_lm_fallback,
 )

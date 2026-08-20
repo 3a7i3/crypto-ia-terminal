@@ -179,7 +179,7 @@ class RealityGapAnalyzer:
 
         for t in closed_trades:
             size = t.get("size_usd", 0.0) or 1.0
-            entry_price = t.get("entry_price") or t.get("signal_price") or 1.0
+            t.get("entry_price") or t.get("signal_price") or 1.0
 
             # Slippage entrée + sortie
             slipp = t.get("entry_slippage_bps", 0.0) + t.get("exit_slippage_bps", 0.0)

@@ -14,11 +14,8 @@ Couvre:
 from __future__ import annotations
 
 import asyncio
-import json
-import textwrap
 import time
 from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -70,12 +67,12 @@ def incident():
 
 class TestIncidentModel:
     def test_required_recovery(self, incident):
-        from pieuvre.incidents.models import RECOVERY_SECONDS, Severity
+        from pieuvre.incidents.models import RECOVERY_SECONDS
 
         assert incident.required_recovery() == RECOVERY_SECONDS[incident.severity]
 
     def test_strength_reward(self, incident):
-        from pieuvre.incidents.models import STRENGTH_GAIN, Severity
+        from pieuvre.incidents.models import STRENGTH_GAIN
 
         assert incident.strength_reward() == STRENGTH_GAIN[incident.severity]
 
@@ -319,7 +316,6 @@ class TestGuerisonTentacle:
         assert secs_exp < secs_base
 
     def test_is_healed_after_zero_recovery(self, tmp_path):
-        from pieuvre.incidents.models import Incident, IncidentType, Severity
         from pieuvre.tentacles.guerison import GuerisonTentacle, RecoveryState
 
         g = GuerisonTentacle(tmp_path)

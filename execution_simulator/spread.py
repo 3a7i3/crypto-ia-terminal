@@ -72,11 +72,11 @@ class DynamicSpread(BaseSpread):
         noise_bps: float = 0.2,
     ) -> None:
         if base_bps < 0:
-            raise ValueError(f"base_bps must be >= 0")
+            raise ValueError("base_bps must be >= 0")
         if vol_multiplier < 0:
-            raise ValueError(f"vol_multiplier must be >= 0")
+            raise ValueError("vol_multiplier must be >= 0")
         if noise_bps < 0:
-            raise ValueError(f"noise_bps must be >= 0")
+            raise ValueError("noise_bps must be >= 0")
         self.base_bps = base_bps
         self.vol_multiplier = vol_multiplier
         self.noise_bps = noise_bps

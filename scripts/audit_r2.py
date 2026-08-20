@@ -269,7 +269,7 @@ def section_regime_distribution(cycles: list[dict], since_label: str) -> None:
                 score_gate[bkt] += 1
 
     if score_dist:
-        print(f"  Score distribution (signaux non-HOLD) :")
+        print("  Score distribution (signaux non-HOLD) :")
         print(f"  {'Bucket':<10} {'N':>6} {'Gate OK':>8} {'Gate %':>7}")
         print(f"  {'-'*34}")
         for bkt, _, _ in SCORE_BUCKETS:

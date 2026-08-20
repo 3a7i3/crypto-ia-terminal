@@ -69,7 +69,7 @@ class SymbolInfo:
         if self.min_qty > self.max_qty:
             raise ValueError(f"min_qty ({self.min_qty}) > max_qty ({self.max_qty})")
         if self.min_notional < 0:
-            raise ValueError(f"min_notional must be >= 0")
+            raise ValueError("min_notional must be >= 0")
         if not 0 < self.percent_price_down <= 1.0:
             raise ValueError(
                 f"percent_price_down must be in (0, 1], got {self.percent_price_down}"

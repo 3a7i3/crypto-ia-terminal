@@ -17,10 +17,8 @@ from pathlib import Path
 
 from observability.json_logger import get_logger
 from pieuvre.incidents.models import (
-    RECOVERY_SECONDS,
     Finding,
     Incident,
-    IncidentType,
     Severity,
 )
 from pieuvre.tentacles.base import BaseTentacle

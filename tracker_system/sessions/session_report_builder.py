@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from tracker_system.sessions.session_analyzer import SessionAnalyzer
-from tracker_system.sessions.session_manager import SESSIONS_ROOT, load_session_trades
+from tracker_system.sessions.session_manager import load_session_trades
 from tracker_system.sessions.session_ranking import register_session
 from tracker_system.sessions.session_scoring import SessionScoring
 from tracker_system.sessions.session_validator import SessionValidator

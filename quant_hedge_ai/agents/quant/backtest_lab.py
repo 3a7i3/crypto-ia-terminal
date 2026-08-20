@@ -214,13 +214,14 @@ class BacktestLab:
                 position = 1
                 entry_px = opens[i]
                 equity *= 1 - self.COMMISSION
+                bar_ret = (closes[i] - opens[i]) / opens[i] if opens[i] else 0.0
+                equity *= 1 + bar_ret
 
-            elif (prev_sig == -1 or (prev_sig == 1 and position == 1)) and position == 1:
-                trade_ret = (opens[i] - entry_px) / entry_px if entry_px else 0.0
-                equity *= (1 + trade_ret) * (1 - self.COMMISSION)
-                bar_ret = trade_ret
+            elif prev_sig == -1 and position == 1:
+                bar_ret = (opens[i] - closes[i - 1]) / closes[i - 1] if closes[i - 1] else 0.0
+                equity *= (1 + bar_ret) * (1 - self.COMMISSION)
                 trades += 1
-                if trade_ret > 0:
+                if closes[i - 1] and opens[i] > closes[i - 1]:
                     wins += 1
                 position = 0
                 entry_px = 0.0
@@ -234,12 +235,9 @@ class BacktestLab:
             dd = (peak - equity) / peak if peak else 0.0
             max_dd = max(max_dd, dd)
 
-        # Clôturer la position finale
         if position == 1 and entry_px:
-            trade_ret = (closes[-1] - entry_px) / entry_px
-            equity *= 1 + trade_ret
             trades += 1
-            if trade_ret > 0:
+            if closes[-1] > entry_px:
                 wins += 1
 
         periods_per_year = _TIMEFRAME_PERIODS_PER_YEAR.get(
@@ -258,13 +256,9 @@ class BacktestLab:
 
     @staticmethod
     def _sharpe(returns: list[float], periods_per_year: int = 8_760) -> float:
-        n = len(returns)
-        if n < 2:
-            return 0.0
-        mu = sum(returns) / n
-        var = sum((r - mu) ** 2 for r in returns) / n
-        std = math.sqrt(var) if var > 0 else 1e-9
-        return (mu / std) * math.sqrt(periods_per_year)
+        from metrics.sharpe import sharpe as _sharpe_fn
+
+        return _sharpe_fn(returns, periods_per_year=float(periods_per_year))
 
     def _empty_result(self, strategy: dict) -> dict:
         return {

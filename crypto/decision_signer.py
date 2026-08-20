@@ -33,7 +33,6 @@ from cryptography.hazmat.primitives.serialization import (
     PublicFormat,
 )
 
-from crypto.key_derivation import CTX_DECISION, derive_key
 from observability.json_logger import get_logger
 
 _log = get_logger("crypto.decision_signer")

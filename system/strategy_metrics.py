@@ -156,14 +156,11 @@ class StrategyAnalyzer:
         else:
             m.recovery_factor = float("inf") if m.total_return_pct > 0 else 0.0
 
-        # Sharpe = (mean_r - rf) / std_r * sqrt(N)
-        if len(returns) >= 2:
-            mean_r = statistics.mean(returns)
-            std_r = statistics.stdev(returns)
-            if std_r > 0:
-                m.sharpe_ratio = (
-                    (mean_r - self._rf / self._af) / std_r * math.sqrt(self._af)
-                )
+        from metrics.sharpe import sharpe as _sharpe_fn
+
+        m.sharpe_ratio = _sharpe_fn(
+            returns, rf_annual=self._rf, periods_per_year=self._af
+        )
 
         # Sortino = mean_r / downside_std * sqrt(N)
         if len(returns) >= 2:

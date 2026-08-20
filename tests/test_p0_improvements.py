@@ -117,10 +117,10 @@ def test_portfolio_risk_manager():
     print(f"   Total exposition: ${report['total_exposure']:.2f}")
     print(f"   Ratio exposition: {report['exposure_ratio']:.1%}")
     print(f"   Limites OK: {report['is_within_limits']}")
-    print(f"\n   Répartition:")
+    print("\n   Répartition:")
     for sym, pct in report['breakdown'].items():
         print(f"     {sym}: {pct:.1%}")
-    print(f"\n   Recommandations:")
+    print("\n   Recommandations:")
     for rec in report['recommendations']:
         print(f"     - {rec}")
 
@@ -189,7 +189,7 @@ def test_integrated_scenario():
     print("="*70)
 
     alert = AlertSystem(initial_capital=10000.0)
-    risk = PortfolioRiskManager(total_capital=10000.0)
+    PortfolioRiskManager(total_capital=10000.0)
     reality = ExecutionReality()
 
     trades = [
@@ -218,14 +218,14 @@ def test_integrated_scenario():
     new_equity = 10000.0 + cumulative_pnl
     alert.update_equity(new_equity)
 
-    print(f"\nRésumé du jour:")
-    print(f"  Capital départ: $10,000.00")
-    print(f"  Profit brut (nominal): +$???")
+    print("\nRésumé du jour:")
+    print("  Capital départ: $10,000.00")
+    print("  Profit brut (nominal): +$???")
     print(f"  Profit net (réaliste): +${cumulative_pnl:.2f}")
     print(f"  Capital fin: ${new_equity:.2f}")
     print(f"  PnL jour: {(cumulative_pnl/10000):.2%}")
 
-    print(f"\nAlerts:")
+    print("\nAlerts:")
     alerts = alert.run_all_checks([
         {"symbol": "BTCUSDT", "size": 1000},
         {"symbol": "ETHUSDT", "size": 2000},

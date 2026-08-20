@@ -77,13 +77,13 @@ class LiquidityBasedFill(BaseFillSimulator):
         vol_limit_penalty: float = 0.02,
     ) -> None:
         if not 0 < max_participation <= 1:
-            raise ValueError(f"max_participation must be in (0, 1]")
+            raise ValueError("max_participation must be in (0, 1]")
         if fill_decay_factor <= 0:
-            raise ValueError(f"fill_decay_factor must be > 0")
+            raise ValueError("fill_decay_factor must be > 0")
         if not 0 <= min_fill_ratio < 1:
-            raise ValueError(f"min_fill_ratio must be in [0, 1)")
+            raise ValueError("min_fill_ratio must be in [0, 1)")
         if not 0 <= limit_fill_prob <= 1:
-            raise ValueError(f"limit_fill_prob must be in [0, 1]")
+            raise ValueError("limit_fill_prob must be in [0, 1]")
 
         self.max_participation = max_participation
         self.fill_decay_factor = fill_decay_factor

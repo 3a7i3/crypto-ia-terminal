@@ -150,7 +150,7 @@ def analyze(trades: list[dict]) -> None:
     # ── Score actuel vs signaux générés ───────────────────────────────────────
     print(f"\n  Note: score max observé dans les données = {mx}")
     if mx < 66:
-        print(f"  ⚠️  PROBLÈME DÉTECTÉ: seuil gate > score max → 0 trade possible!")
+        print("  ⚠️  PROBLÈME DÉTECTÉ: seuil gate > score max → 0 trade possible!")
         print(
             f"  → Réduire le seuil gate sous {mx} ou améliorer la qualité des signaux."
         )
