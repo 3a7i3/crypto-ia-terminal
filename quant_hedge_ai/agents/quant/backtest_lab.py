@@ -185,6 +185,7 @@ class BacktestLab:
         self, strategy: dict, data: list[dict], timeframe: str = "1h"
     ) -> dict:
         closes = [float(c["close"]) for c in data]
+        opens = [float(c.get("open", c["close"])) for c in data]
         highs = [float(c.get("high", c["close"])) for c in data]
         lows = [float(c.get("low", c["close"])) for c in data]
         volumes = [float(c.get("volume", 1.0)) for c in data]
@@ -205,14 +206,17 @@ class BacktestLab:
 
         for i in range(1, len(closes)):
             bar_ret = 0.0
+            # No-lookahead : sigs[i-1] est le dernier signal connu a l'ouverture
+            # du bar i ; on remplit a opens[i], premier prix reellement atteignable.
+            prev_sig = sigs[i - 1]
 
-            if sigs[i] == 1 and position == 0:
+            if prev_sig == 1 and position == 0:
                 position = 1
-                entry_px = closes[i]
+                entry_px = opens[i]
                 equity *= 1 - self.COMMISSION
 
-            elif (sigs[i] == -1 or (sigs[i] == 1 and position == 1)) and position == 1:
-                trade_ret = (closes[i] - entry_px) / entry_px if entry_px else 0.0
+            elif (prev_sig == -1 or (prev_sig == 1 and position == 1)) and position == 1:
+                trade_ret = (opens[i] - entry_px) / entry_px if entry_px else 0.0
                 equity *= (1 + trade_ret) * (1 - self.COMMISSION)
                 bar_ret = trade_ret
                 trades += 1
