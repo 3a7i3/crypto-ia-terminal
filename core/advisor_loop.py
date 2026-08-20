@@ -927,21 +927,74 @@ def _prime_exchange_session(
 # ── Telegram ──────────────────────────────────────────────────────────────────
 
 
-def _telegram(text: str) -> None:
+try:
+    from src.telegram.failure_tracker import ChannelFailureTracker
+
+    _tg_tracker = ChannelFailureTracker(escalate_after=5, cooldown_s=1800.0)
+except Exception:  # pragma: no cover — le tracker ne doit jamais casser l'envoi
+    _tg_tracker = None
+
+
+def _tg_escalate(streak: int, last_error: str) -> None:
+    """Voie de secours quand le canal Telegram principal échoue en série.
+
+    Utilise des canaux INDÉPENDANTS du token défaillant — log critique, email,
+    et le bot intel (token distinct qui survit à un token principal mort) —
+    pour qu'un token cassé ne puisse JAMAIS produire un silence invisible.
+    """
+    alert = (
+        f"[TELEGRAM DOWN] Canal principal en échec {streak}x consécutifs. "
+        f"Dernière erreur: {last_error}. "
+        f"Vérifier TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID dans .env (getMe)."
+    )
+    log.critical(alert)
+    try:
+        _send_email("Canal Telegram en échec", alert)
+    except Exception:
+        pass
+    # Bot intel = token distinct → survit à un token principal mort
+    try:
+        if INTEL_TOKEN and INTEL_CHAT:
+            requests.post(
+                f"https://api.telegram.org/bot{INTEL_TOKEN}/sendMessage",
+                json={"chat_id": INTEL_CHAT, "text": alert},
+                timeout=10,
+            )
+    except Exception:
+        pass
+
+
+def _telegram(text: str) -> bool:
+    """Envoie sur le canal Telegram principal. Retourne True si livré.
+
+    Un échec n'est plus silencieux : compté, loggé avec son streak, et escaladé
+    hors-bande après N échecs consécutifs (voir _tg_escalate).
+    """
     if "PYTEST_CURRENT_TEST" in os.environ:
-        return
+        return True
     if not TELEGRAM_TOKEN or not TELEGRAM_CHAT:
-        return
+        return False
     try:
         r = requests.post(
             f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage",
             json={"chat_id": TELEGRAM_CHAT, "text": text},
             timeout=10,
         )
-        if r.status_code != 200:
-            log.warning("Telegram erreur: %s", r.text)
+        if r.status_code == 200:
+            if _tg_tracker is not None:
+                _tg_tracker.record_success()
+            return True
+        _err = f"HTTP {r.status_code}: {r.text[:200]}"
     except Exception as exc:
-        log.warning("Telegram indisponible: %s", exc)
+        _err = str(exc)
+    if _tg_tracker is not None:
+        verdict = _tg_tracker.record_failure()
+        log.warning("Telegram erreur (%dx consécutifs): %s", verdict.streak, _err)
+        if verdict.should_escalate:
+            _tg_escalate(verdict.streak, _err)
+    else:
+        log.warning("Telegram erreur: %s", _err)
+    return False
 
 
 def _send_email(subject: str, body: str) -> None:
@@ -7200,8 +7253,11 @@ def main(
                             log.debug("[RealBot] rapport erreur: %s", _rbe)
                     # ─────────────────────────────────────────────────────────
 
+                    # Note : la livraison réelle est tracée par _telegram()
+                    # (succès/échec + escalade). Ce log marque le cycle traité,
+                    # il n'affirme plus une livraison qui pourrait avoir 404.
                     log.info(
-                        "[RAPPORT] Telegram envoye — cycle %d (%d symboles)",
+                        "[RAPPORT] cycle %d traité (%d symboles)",
                         cycle,
                         len(results),
                     )
