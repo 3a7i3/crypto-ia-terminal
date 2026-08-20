@@ -96,19 +96,21 @@ class PerformanceSupervisor:
 
     def sharpe(self, window: int = 20) -> float:
         """
-        Sharpe annualisé glissant sur les `window` derniers trades.
-        Hypothèse : 252 trading days, ≈ 1 trade/jour.
-        Retourne 0.0 si insuffisamment de données.
+        Sharpe annualise glissant sur les `window` derniers trades.
+        Hypothese : 252 trading days, ≈ 1 trade/jour.
+        Retourne 0.0 si moins de 3 trades (garde-fou plus strict que la primitive).
+
+        Migration Wave 2 : delegue a metrics.sharpe (ddof=0 -> ddof=1). Le garde-fou
+        len < 3 est conserve intentionnellement (metrique glissante, exige plus que
+        le minimum statistique de 2 imposé par la primitive).
         """
+        from metrics.sharpe import sharpe as _sharpe
+
         trades = list(self._trades)[-window:]
         if len(trades) < 3:
             return 0.0
         returns = [t.pnl_pct for t in trades]
-        mean_r = sum(returns) / len(returns)
-        std_r = math.sqrt(sum((r - mean_r) ** 2 for r in returns) / len(returns))
-        if std_r < 1e-8:
-            return 0.0
-        return round((mean_r / std_r) * math.sqrt(252), 4)
+        return round(_sharpe(returns, periods_per_year=252), 4)
 
     def profit_factor(self, window: int = 100) -> float:
         """

@@ -183,15 +183,14 @@ class PhaseKPITracker:
         return wins / len(self._trades)
 
     def sharpe_ratio(self) -> float:
-        """Annualized Sharpe from daily returns (requires ≥ 2 daily data points)."""
-        if len(self._daily_returns) < 2:
-            return 0.0
-        returns = list(self._daily_returns)
-        mean_r = statistics.mean(returns)
-        std_r = statistics.stdev(returns)
-        if std_r < 1e-12:
-            return 0.0
-        return (mean_r / std_r) * math.sqrt(252)
+        """Annualized Sharpe from daily returns via la primitive canonique.
+
+        Migration Wave 2 : etait deja ddof=1 (statistics.stdev), pure delegation
+        sans derive numerique. Le garde-fou len < 2 est deleguer a la primitive.
+        """
+        from metrics.sharpe import sharpe as _sharpe
+
+        return _sharpe(list(self._daily_returns), periods_per_year=252)
 
     def max_drawdown(self) -> float:
         return self._max_drawdown
