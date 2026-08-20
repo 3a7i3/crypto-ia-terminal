@@ -70,8 +70,18 @@ class BacktestEngine:
             return {"error": "No data available"}
 
         # Simuler chaque bougie
+        # No-lookahead : le signal calcule a la fin du bar i-1 s'execute a l'ouverture
+        # du bar i (premier prix reellement atteignable). Pattern mirror de la sortie
+        # deferee dans src/backtest/engine.py::pending_close.
+        pending_signal: dict | None = None
         for i, kline in enumerate(klines):
-            price = kline["close"]
+            price = kline["close"]  # marking equity a la cloture (correct)
+
+            # STEP 0: executer le signal decide au bar precedent, a l'OPEN de ce bar
+            if pending_signal is not None:
+                entry_px = kline.get("open", price)
+                self._execute_trade(self.config.symbol, pending_signal["side"], entry_px)
+                pending_signal = None
 
             # STEP 1: Décision autonome (si activée)
             if self.config.use_auto_decisions and self.auto_engine:
@@ -82,12 +92,12 @@ class BacktestEngine:
                     # Exécuter avec safe framework
                     self._safe_execute_decision(decision, metrics)
 
-            # STEP 2: Signaux de trading simples
+            # STEP 2: Signaux de trading simples (calcules sur bars 0..i inclus)
             signal = self._generate_signal(klines[:i+1])
 
-            # STEP 3: Exécuter trade si signal
+            # STEP 3: differer l'execution au bar suivant (no-lookahead)
             if signal:
-                self._execute_trade(self.config.symbol, signal["side"], price)
+                pending_signal = signal
 
             # STEP 4: Update equity
             self.equity = self.capital + self._calculate_unrealized_pnl(price)
