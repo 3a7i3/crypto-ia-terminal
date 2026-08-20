@@ -195,6 +195,75 @@ def api_status():
     return {"packets_today":n,"last_packet":lt[:19] if lt else None,
         "dp_files":len(dfs),"dp_total_gb":round(ts/1e9,2)}
 
+def _load_live_positions():
+    """Lit live_snapshot.json ecrit par advisor_loop chaque cycle."""
+    fp = DP_DIR / "live_snapshot.json"
+    if not fp.exists(): return []
+    try: snap = json.loads(fp.read_text(encoding="utf-8"))
+    except: return []
+    return snap.get("positions",[]) or []
+
+def _pnl_at_price(pos, price):
+    """P&L hypothetique d'une position ouverte a un prix donne.
+    LONG : (price - entry) / entry ; SHORT : (entry - price) / entry.
+    Retourne (pnl_pct, pnl_usd) — pnl_usd base sur size_usd + leverage."""
+    entry = float(pos.get("entry",0) or 0)
+    if entry <= 0: return 0.0, 0.0
+    side = str(pos.get("side","")).lower()
+    lev = float(pos.get("leverage",1) or 1)
+    size_usd = float(pos.get("size_usd",0) or 0)
+    if side in ("long","buy"): pct = (price - entry) / entry
+    elif side in ("short","sell"): pct = (entry - price) / entry
+    else: return 0.0, 0.0
+    return round(pct * 100, 4), round(pct * size_usd * lev, 2)
+
+@app.get("/api/portfolio-impact")
+def api_portfolio_impact(symbol:str="", price:float=0.0):
+    """Impact d'un prix hypothetique sur les positions ouvertes.
+    - symbol vide -> agrege sur toutes les positions
+    - price=0 -> utilise le prix courant de chaque position (baseline)
+    Observer strict (ADR-0007) : aucune decision n'est prise ici."""
+    positions = _load_live_positions()
+    if symbol:
+        q = symbol.upper().replace("/","").replace("-","")
+        positions = [p for p in positions if q in str(p.get("symbol","")).upper().replace("/","").replace("-","")]
+    if not positions:
+        return {"symbol":symbol or "all","price":price,"n_positions":0,
+                "n_profit":0,"n_loss":0,"pct_profit":0.0,"pct_loss":0.0,
+                "total_pnl_usd":0.0,"avg_pnl_pct":0.0,"positions":[]}
+    details = []
+    n_profit = n_loss = 0
+    total_pnl_usd = sum_pnl_pct = 0.0
+    for p in positions:
+        use_price = price if price > 0 else float(p.get("current",p.get("entry",0)) or 0)
+        pct, usd = _pnl_at_price(p, use_price)
+        in_profit = pct > 0
+        if in_profit: n_profit += 1
+        else: n_loss += 1
+        total_pnl_usd += usd
+        sum_pnl_pct += pct
+        details.append({
+            "symbol":p.get("symbol",""),"side":p.get("side",""),
+            "entry":p.get("entry"),"current":p.get("current"),
+            "sl":p.get("sl"),"tp":p.get("tp"),
+            "leverage":p.get("leverage",1),"size_usd":p.get("size_usd",0),
+            "pnl_pct_at_price":pct,"pnl_usd_at_price":usd,"in_profit":in_profit,
+        })
+    n = len(positions)
+    return {"symbol":symbol or "all","price":price,"n_positions":n,
+            "n_profit":n_profit,"n_loss":n_loss,
+            "pct_profit":round(100*n_profit/n,1),"pct_loss":round(100*n_loss/n,1),
+            "total_pnl_usd":round(total_pnl_usd,2),
+            "avg_pnl_pct":round(sum_pnl_pct/n,2),
+            "positions":details,"timestamp":datetime.utcnow().isoformat()+"Z"}
+
+@app.get("/api/portfolio-symbols")
+def api_portfolio_symbols():
+    """Liste les symboles ayant au moins une position ouverte (pour dropdown UI)."""
+    positions = _load_live_positions()
+    syms = sorted({str(p.get("symbol","")) for p in positions if p.get("symbol")})
+    return {"data":syms,"count":len(syms)}
+
 @app.get("/", response_class=HTMLResponse)
 def dashboard():
     return _DASH
@@ -235,7 +304,7 @@ td{padding:10px 12px;border-bottom:1px solid var(--bd);white-space:nowrap}tr:hov
 .sg.hot{border:1.5px solid #f0b90b;box-shadow:0 0 12px rgba(240,185,11,.25)}.sg.hot .sgs{color:#f0b90b}tr.hot{background:rgba(240,185,11,.08)!important}tr.hot td:nth-child(2) strong{color:#f0b90b}</style></head><body>
 <div class="rb" id="rb"></div>
 <div class="hd"><h1><span>Crypto</span>Radar</h1><div class="hr"><span class="dot" id="dot"></span><span id="lu">--</span><span id="pc">--</span></div></div>
-<div class="tabs"><button class="tab on" onclick="sw('scanner')">Scanner</button><button class="tab" onclick="sw('signals')">Signaux</button></div>
+<div class="tabs"><button class="tab on" onclick="sw('scanner')">Scanner</button><button class="tab" onclick="sw('signals')">Signaux</button><button class="tab" onclick="sw('impact')">Impact</button></div>
 <div id="t-scanner">
 <div class="sr" id="tiles"></div>
 <div class="fl"><button class="fb on" onclick="fs('ALL')">Tous</button><button class="fb" onclick="fs('LONG')">LONG</button><button class="fb" onclick="fs('SHORT')">SHORT</button><input class="si" placeholder="Chercher..." oninput="fq(this.value)"></div>
@@ -244,6 +313,15 @@ td{padding:10px 12px;border-bottom:1px solid var(--bd);white-space:nowrap}tr:hov
 <div id="t-signals" style="display:none">
 <div class="fl"><button class="fb on" onclick="fss('ALL')">Tous</button><button class="fb" onclick="fss('LONG')">LONG</button><button class="fb" onclick="fss('SHORT')">SHORT</button></div>
 <div class="sc" id="scs"></div>
+</div>
+<div id="t-impact" style="display:none">
+<div class="fl">
+  <select class="si" id="ipsym" onchange="rI()"><option value="">Toutes positions</option></select>
+  <input class="si" id="ippx" type="number" step="0.0001" placeholder="Prix hypothetique (0 = live)" oninput="rI()">
+  <button class="fb" onclick="lI()">Rafraichir</button>
+</div>
+<div class="sr" id="ipT"></div>
+<div class="tw"><table><thead><tr><th>Symbole</th><th>Side</th><th>Entry</th><th>Cur</th><th>SL</th><th>TP</th><th>Lev</th><th>Size $</th><th>PnL %</th><th>PnL $</th><th>Etat</th></tr></thead><tbody id="ipTb"></tbody></table></div>
 </div>
 <script>
 let D=[],S=[],ct='scanner',sf='ALL',ssf='ALL',sq='';
@@ -255,8 +333,11 @@ function fm(v){if(v==null)return'\u2014';if(Math.abs(v)>=1)return v.toLocaleStri
 function rT(){const l=D.filter(s=>s.dominant_side==='LONG').length,sh=D.filter(s=>s.dominant_side==='SHORT').length,ac=D.length?(D.reduce((a,s)=>a+s.avg_confidence,0)/D.length).toFixed(0):'\u2014',mx=D.length?Math.max(...D.map(s=>s.max_confidence)):'\u2014';document.getElementById('tiles').innerHTML='<div class="st"><div class="l">Symboles</div><div class="v">'+D.length+'</div></div><div class="st"><div class="l">LONG</div><div class="v lo">'+l+'</div></div><div class="st"><div class="l">SHORT</div><div class="v sh">'+sh+'</div></div><div class="st"><div class="l">Conf Moy</div><div class="v">'+ac+'</div></div><div class="st"><div class="l">Conf Max</div><div class="v">'+mx+'</div></div>'}
 function rS(){let d=D;if(sf!=='ALL')d=d.filter(s=>s.dominant_side===sf);if(sq)d=d.filter(s=>s.symbol.toUpperCase().includes(sq));document.getElementById('tb').innerHTML=d.map((s,i)=>'<tr class="'+(s.avg_confidence>=80?'hot':'')+'"><td>'+(i+1)+'</td><td><strong>'+s.symbol+'</strong></td><td><span class="'+(s.dominant_side==='LONG'?'sl':'ss')+'">'+s.dominant_side+' '+s.dominance_pct+'%</span></td><td><span class="cb" style="width:'+Math.max(4,s.avg_confidence*.8)+'px"></span> '+s.avg_confidence+'</td><td>'+s.max_confidence+'</td><td>'+s.n_signals+'</td><td><span class="rt">'+s.regime.replace('TREND_','')+'</span></td><td>'+fm(s.entry)+'</td><td>'+fm(s.sl)+'</td><td>'+fm(s.tp)+'</td></tr>').join('');rT()}
 function rG(){let d=S;if(ssf!=='ALL')d=d.filter(s=>ssf==='LONG'?['BUY','LONG'].includes(s.side):['SELL','SHORT'].includes(s.side));document.getElementById('scs').innerHTML=d.slice(0,30).map(s=>{const il=['BUY','LONG'].includes(s.side),dc=il?'sl':'ss',dr=il?'LONG':'SHORT',rr=s.r_multiple?'R:R '+s.r_multiple.toFixed(1):'';return'<div class="sg '+(s.confidence>=80?'hot':'')+'"><div class="sgh"><span class="sgs">'+s.symbol+'</span><span class="'+dc+'">'+dr+'</span></div><div class="sgl"><div><div class="ll">Entry</div><div class="lv">'+fm(s.entry)+'</div></div><div><div class="ll">Stop Loss</div><div class="lv" style="color:var(--sh)">'+fm(s.sl)+'</div><div class="lp">-'+s.risk_pct+'%</div></div><div><div class="ll">Take Profit</div><div class="lv" style="color:var(--lo)">'+fm(s.tp)+'</div><div class="lp">+'+s.reward_pct+'%</div></div></div><div class="sgm"><span>Conf: '+s.confidence+'/100</span><span>'+s.regime.replace('TREND_','')+'</span><span>'+rr+'</span></div></div>'}).join('')}
+async function lI(){try{const sy=document.getElementById('ipsym').value,px=parseFloat(document.getElementById('ippx').value)||0;const q='/api/portfolio-impact?symbol='+encodeURIComponent(sy)+'&price='+px;const r=await fetch(q).then(x=>x.json());rI(r)}catch(e){console.error(e)}}
+async function lIS(){try{const r=await fetch('/api/portfolio-symbols').then(x=>x.json());const sel=document.getElementById('ipsym'),cur=sel.value;sel.innerHTML='<option value="">Toutes positions</option>'+r.data.map(s=>'<option value="'+s+'"'+(s===cur?' selected':'')+'>'+s+'</option>').join('')}catch(e){}}
+function rI(r){if(!r){lI();return}const t=document.getElementById('ipT');if(!r.n_positions){t.innerHTML='<div class="st"><div class="l">Aucune position</div><div class="v">—</div></div>';document.getElementById('ipTb').innerHTML='';return}t.innerHTML='<div class="st"><div class="l">Positions</div><div class="v">'+r.n_positions+'</div></div><div class="st"><div class="l">En profit</div><div class="v lo">'+r.n_profit+'</div></div><div class="st"><div class="l">En perte</div><div class="v sh">'+r.n_loss+'</div></div><div class="st"><div class="l">% Profit</div><div class="v">'+r.pct_profit+'%</div></div><div class="st"><div class="l">Total PnL $</div><div class="v '+(r.total_pnl_usd>=0?'lo':'sh')+'">'+r.total_pnl_usd.toFixed(2)+'</div></div><div class="st"><div class="l">Avg PnL %</div><div class="v '+(r.avg_pnl_pct>=0?'lo':'sh')+'">'+r.avg_pnl_pct.toFixed(2)+'%</div></div>';document.getElementById('ipTb').innerHTML=r.positions.map(p=>{const sc=String(p.side).toLowerCase().startsWith('l')?'sl':'ss';const pc=p.pnl_pct_at_price>=0?'lo':'sh';return'<tr><td><strong>'+p.symbol+'</strong></td><td><span class="'+sc+'">'+String(p.side).toUpperCase()+'</span></td><td>'+fm(p.entry)+'</td><td>'+fm(p.current)+'</td><td>'+fm(p.sl)+'</td><td>'+fm(p.tp)+'</td><td>'+p.leverage+'x</td><td>'+(p.size_usd||0).toFixed(0)+'</td><td class="'+pc+'">'+p.pnl_pct_at_price.toFixed(2)+'%</td><td class="'+pc+'">'+p.pnl_usd_at_price.toFixed(2)+'</td><td>'+(p.in_profit?'✅':'❌')+'</td></tr>'}).join('')}
 async function load(){try{const[a,b,c]=await Promise.all([fetch('/api/scan?top=50&min_conf=60').then(r=>r.json()),fetch('/api/signals?hours=24&limit=50').then(r=>r.json()),fetch('/api/status').then(r=>r.json())]);D=a.data;S=b.data;rS();rG();const dt=document.getElementById('dot'),lp=c.last_packet;if(lp){const ago=Math.floor((Date.now()-new Date(lp+'Z').getTime())/60000);document.getElementById('lu').textContent=ago<60?ago+'min ago':Math.floor(ago/60)+'h ago';dt.className='dot'+(ago>10?' off':'')}document.getElementById('pc').textContent=c.packets_today+' pkts';const rb=document.getElementById('rb');rb.style.width='100%';rb.style.transition='none';requestAnimationFrame(()=>{rb.style.transition='width 30s linear';rb.style.width='0%'})}catch(e){console.error(e);document.getElementById('dot').className='dot off'}}
-load();setInterval(load,30000);
+load();lIS();lI();setInterval(load,30000);setInterval(()=>{lIS();if(document.getElementById('t-impact').style.display!=='none')lI()},30000);
 </script></body></html>"""
 
 if __name__ == "__main__":
