@@ -837,6 +837,12 @@ ADVISOR_PERSISTENT_WARMUP = (
 # launched BEFORE scanner creation so exchange_init + load_markets overlap the full bootstrap.
 # Prewarm threads then skip directly to fetch_ohlcv(), saving up to ~650ms from cycle 1.
 ADVISOR_SESSION_PRIMER = os.getenv("ADVISOR_SESSION_PRIMER", "true").lower() == "true"
+# ADR-0007 observer : persistance passive OHLCV vers databases/market_data.sqlite.
+# Ne modifie aucune decision, INSERT OR IGNORE idempotent, purge auto 30j.
+# Default off — activer explicitement avec ADVISOR_OHLCV_PERSISTENCE=true dans .env.
+ADVISOR_OHLCV_PERSISTENCE = (
+    os.getenv("ADVISOR_OHLCV_PERSISTENCE", "false").lower() == "true"
+)
 
 
 def _session_primer_config() -> JSONDict:
@@ -1096,6 +1102,8 @@ def analyze_symbol(
     runtime: AdvisorRuntime | None = None,
     sl_factor_override: float | None = None,
     tp_factor_override: float | None = None,
+    # ── OHLCV persistence (observer passif, ADR-0007) ───────────────────
+    market_db: Any = None,
     # ── Sweep detection (optionnel) ─────────────────────────────────────
     sweep_detector: Any = None,
     sweep_outcome_tracker: Any = None,
@@ -1248,6 +1256,13 @@ def analyze_symbol(
                 or []
             ),
         )
+        # ADR-0007 observer passif : persiste snapshot OHLCV pour replay/audit.
+        # Ne bloque jamais le pipeline (try/except large), aucun impact decision.
+        if market_db is not None:
+            try:
+                market_db.save_snapshot(market)
+            except Exception as _mdb_exc:
+                log.debug("[MarketDB] persist skip %s: %s", symbol, _mdb_exc)
 
     # Bloc synthétique : si le scanner a dû générer des données synthétiques
     # (API OHLCV échouée), on traite cela comme "pas de données" pour éviter
@@ -3100,6 +3115,23 @@ def main(
             },
         },
     )
+    # ADR-0007 observer passif : MarketDatabase alimente databases/market_data.sqlite
+    # depuis analyze_symbol via save_snapshot. Instancie une seule fois par process.
+    # Off par defaut (voir ADVISOR_OHLCV_PERSISTENCE en tete du fichier).
+    market_db: Any = None
+    if ADVISOR_OHLCV_PERSISTENCE:
+        try:
+            from quant_hedge_ai.strategy_lab.market_db import MarketDatabase
+
+            market_db = MarketDatabase()
+            log.info(
+                "[MarketDB] persistance OHLCV active (observer passif, ADR-0007)"
+            )
+        except Exception as _mdb_init_exc:
+            log.warning(
+                "[MarketDB] init echouee, persistance desactivee: %s", _mdb_init_exc
+            )
+            market_db = None
     prewarm_executor: ThreadPoolExecutor | None = None
     prewarm_futures: dict[str, Any] = {}
     prewarm_mtf_futures: dict[str, Any] = {}
@@ -5563,6 +5595,7 @@ def main(
                         if _sc_state["tp_factor"] != 1.0 or _smoothed_tp is not None
                         else None
                     ),
+                    market_db=market_db,
                     sweep_detector=_sweep_detector,
                     sweep_outcome_tracker=_sweep_outcome_tracker,
                 )
