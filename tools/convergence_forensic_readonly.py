@@ -28,6 +28,7 @@ import hashlib
 import json
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -182,7 +183,7 @@ def _decision_packets_stats(db_dir: Path) -> dict:
     total_lines = 0
     for fp in files:
         current_mtime = fp.stat().st_mtime
-        if newest is None or (newest_mtime is not None and current_mtime > newest_mtime):
+        if newest_mtime is None or current_mtime > newest_mtime:
             newest = fp
             newest_mtime = current_mtime
         with fp.open("r", encoding="utf-8", errors="replace") as f:
@@ -409,6 +410,7 @@ def _probe_vps(args: argparse.Namespace) -> dict:
     user = args.vps_user or os.getenv("VPS_USER", "ubuntu")
     key = args.vps_key or os.getenv("VPS_KEY")
     vps_path = args.vps_path or os.getenv("VPS_PATH", "~/crypto_ai_terminal")
+    vps_path_q = shlex.quote(vps_path)
 
     if not host:
         return {
@@ -421,19 +423,19 @@ def _probe_vps(args: argparse.Namespace) -> dict:
         return {"ok": ok, "output": out}
 
     commands = {
-        "git_head_sha": f"cd {vps_path} && git rev-parse HEAD",
-        "git_dirty": f"cd {vps_path} && git status --porcelain",
+        "git_head_sha": f"cd {vps_path_q} && git rev-parse HEAD",
+        "git_dirty": f"cd {vps_path_q} && git status --porcelain",
         "service_execstart": "systemctl show -p ExecStart --value crypto-advisor.service",
         "service_mainpid": "systemctl show -p MainPID --value crypto-advisor.service",
         "service_status": "systemctl is-active crypto-advisor.service",
         "recent_restarts": "journalctl -u crypto-advisor.service --since '24 hours ago' --no-pager | grep -E 'Started|Starting|Stopped|Main process exited' | tail -n 20",
         "journal_persistence_errors": "journalctl -u crypto-advisor.service --since '24 hours ago' --no-pager | grep -Ei 'paper_trades|regret_analysis|decision_packet|persist|traceback|exception|error' | tail -n 80",
-        "advisor_loop_sha256": f"cd {vps_path} && sha256sum core/advisor_loop.py",
-        "advisor_runtime_adapters_sha256": f"cd {vps_path} && sha256sum core/advisor_runtime_adapters.py",
-        "regime_detector_sha256": f"cd {vps_path} && sha256sum quant_hedge_ai/agents/intelligence/regime_detector.py",
-        "paper_trades_stat": f"cd {vps_path} && test -f databases/paper_trades.jsonl && (stat -c '%s bytes' databases/paper_trades.jsonl; wc -l < databases/paper_trades.jsonl) || echo 'MISSING'",
-        "regret_analysis_stat": f"cd {vps_path} && test -f databases/regret_analysis.jsonl && (stat -c '%s bytes' databases/regret_analysis.jsonl; wc -l < databases/regret_analysis.jsonl) || echo 'MISSING'",
-        "decision_packets_count": f"cd {vps_path} && ls -1 databases/decision_packets*.jsonl 2>/dev/null | wc -l",
+        "advisor_loop_sha256": f"cd {vps_path_q} && sha256sum core/advisor_loop.py",
+        "advisor_runtime_adapters_sha256": f"cd {vps_path_q} && sha256sum core/advisor_runtime_adapters.py",
+        "regime_detector_sha256": f"cd {vps_path_q} && sha256sum quant_hedge_ai/agents/intelligence/regime_detector.py",
+        "paper_trades_stat": f"cd {vps_path_q} && test -f databases/paper_trades.jsonl && (stat -c '%s bytes' databases/paper_trades.jsonl; wc -l < databases/paper_trades.jsonl) || echo 'MISSING'",
+        "regret_analysis_stat": f"cd {vps_path_q} && test -f databases/regret_analysis.jsonl && (stat -c '%s bytes' databases/regret_analysis.jsonl; wc -l < databases/regret_analysis.jsonl) || echo 'MISSING'",
+        "decision_packets_count": f"cd {vps_path_q} && ls -1 databases/decision_packets*.jsonl 2>/dev/null | wc -l",
         "python_exe": "PID=$(systemctl show -p MainPID --value crypto-advisor.service); test \"$PID\" != \"0\" && readlink -f /proc/$PID/exe || echo UNKNOWN",
         "process_cwd": "PID=$(systemctl show -p MainPID --value crypto-advisor.service); test \"$PID\" != \"0\" && readlink -f /proc/$PID/cwd || echo UNKNOWN",
         "process_venv": "PID=$(systemctl show -p MainPID --value crypto-advisor.service); test \"$PID\" != \"0\" && tr '\\0' '\\n' </proc/$PID/environ | grep '^VIRTUAL_ENV=' || echo UNKNOWN",
