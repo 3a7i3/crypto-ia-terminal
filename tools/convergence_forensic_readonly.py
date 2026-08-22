@@ -28,17 +28,17 @@ import hashlib
 import json
 import os
 import re
-import shutil
 import subprocess
+import sys
 import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
-
-from tools.cri_calculator import CLEAN_DATA_SINCE_ACTIVE, compute_cri, trades_provenance
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+
+from tools.cri_calculator import CLEAN_DATA_SINCE_ACTIVE, compute_cri, trades_provenance
 
 STATUS_PASS = "PASS"
 STATUS_FAIL = "FAIL"
@@ -66,7 +66,7 @@ def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def _run(cmd: list[str], cwd: Optional[Path] = None, timeout: int = 20) -> tuple[int, str, str]:
+def _run(cmd: list[str], cwd: Path | None = None, timeout: int = 20) -> tuple[int, str, str]:
     proc = subprocess.run(
         cmd,
         cwd=str(cwd) if cwd else None,
@@ -78,7 +78,7 @@ def _run(cmd: list[str], cwd: Optional[Path] = None, timeout: int = 20) -> tuple
     return proc.returncode, proc.stdout.strip(), proc.stderr.strip()
 
 
-def _sha256_file(path: Path) -> Optional[str]:
+def _sha256_file(path: Path) -> str | None:
     if not path.exists() or not path.is_file():
         return None
     h = hashlib.sha256()
@@ -102,7 +102,7 @@ def _iter_jsonl(path: Path):
                 continue
 
 
-def _parse_ts(record: dict) -> Optional[datetime]:
+def _parse_ts(record: dict) -> datetime | None:
     for k in _TS_KEYS:
         value = record.get(k)
         if value is None:
@@ -145,9 +145,9 @@ def _jsonl_stats(path: Path) -> dict:
     if not exists:
         return stats
 
-    first: Optional[datetime] = None
-    last: Optional[datetime] = None
-    first_post_v4: Optional[datetime] = None
+    first: datetime | None = None
+    last: datetime | None = None
+    first_post_v4: datetime | None = None
     n = 0
     for rec in _iter_jsonl(path):
         n += 1
@@ -361,7 +361,7 @@ def _observer_purity_snapshot(base: Path) -> dict:
     }
 
 
-def _ssh(host: str, user: str, command: str, key: Optional[str], timeout: int = 20) -> tuple[bool, str]:
+def _ssh(host: str, user: str, command: str, key: str | None, timeout: int = 20) -> tuple[bool, str]:
     ssh_cmd = [
         "ssh",
         "-o",
@@ -406,18 +406,18 @@ def _probe_vps(args: argparse.Namespace) -> dict:
         "service_execstart": "systemctl show -p ExecStart --value crypto-advisor.service",
         "service_mainpid": "systemctl show -p MainPID --value crypto-advisor.service",
         "service_status": "systemctl is-active crypto-advisor.service",
-        "recent_restarts": "journalctl -u crypto-advisor.service --since '24 hours ago' --no-pager | grep -E 'Started|Starting|Stopped|Main process exited' | tail -n 20",  # noqa: E501
-        "journal_persistence_errors": "journalctl -u crypto-advisor.service --since '24 hours ago' --no-pager | grep -Ei 'paper_trades|regret_analysis|decision_packet|persist|traceback|exception|error' | tail -n 80",  # noqa: E501
+        "recent_restarts": "journalctl -u crypto-advisor.service --since '24 hours ago' --no-pager | grep -E 'Started|Starting|Stopped|Main process exited' | tail -n 20",
+        "journal_persistence_errors": "journalctl -u crypto-advisor.service --since '24 hours ago' --no-pager | grep -Ei 'paper_trades|regret_analysis|decision_packet|persist|traceback|exception|error' | tail -n 80",
         "advisor_loop_sha256": f"cd {vps_path} && sha256sum core/advisor_loop.py",
         "advisor_runtime_adapters_sha256": f"cd {vps_path} && sha256sum core/advisor_runtime_adapters.py",
         "regime_detector_sha256": f"cd {vps_path} && sha256sum quant_hedge_ai/agents/intelligence/regime_detector.py",
-        "paper_trades_stat": f"cd {vps_path} && test -f databases/paper_trades.jsonl && (stat -c '%s bytes' databases/paper_trades.jsonl; wc -l < databases/paper_trades.jsonl) || echo 'MISSING'",  # noqa: E501
-        "regret_analysis_stat": f"cd {vps_path} && test -f databases/regret_analysis.jsonl && (stat -c '%s bytes' databases/regret_analysis.jsonl; wc -l < databases/regret_analysis.jsonl) || echo 'MISSING'",  # noqa: E501
+        "paper_trades_stat": f"cd {vps_path} && test -f databases/paper_trades.jsonl && (stat -c '%s bytes' databases/paper_trades.jsonl; wc -l < databases/paper_trades.jsonl) || echo 'MISSING'",
+        "regret_analysis_stat": f"cd {vps_path} && test -f databases/regret_analysis.jsonl && (stat -c '%s bytes' databases/regret_analysis.jsonl; wc -l < databases/regret_analysis.jsonl) || echo 'MISSING'",
         "decision_packets_count": f"cd {vps_path} && ls -1 databases/decision_packets*.jsonl 2>/dev/null | wc -l",
-        "python_exe": "PID=$(systemctl show -p MainPID --value crypto-advisor.service); test \"$PID\" != \"0\" && readlink -f /proc/$PID/exe || echo UNKNOWN",  # noqa: E501
-        "process_cwd": "PID=$(systemctl show -p MainPID --value crypto-advisor.service); test \"$PID\" != \"0\" && readlink -f /proc/$PID/cwd || echo UNKNOWN",  # noqa: E501
-        "process_venv": "PID=$(systemctl show -p MainPID --value crypto-advisor.service); test \"$PID\" != \"0\" && tr '\\0' '\\n' </proc/$PID/environ | grep '^VIRTUAL_ENV=' || echo UNKNOWN",  # noqa: E501
-        "services_active": "systemctl list-units --type=service --state=running 'crypto-*' --no-pager --no-legend",  # noqa: E501
+        "python_exe": "PID=$(systemctl show -p MainPID --value crypto-advisor.service); test \"$PID\" != \"0\" && readlink -f /proc/$PID/exe || echo UNKNOWN",
+        "process_cwd": "PID=$(systemctl show -p MainPID --value crypto-advisor.service); test \"$PID\" != \"0\" && readlink -f /proc/$PID/cwd || echo UNKNOWN",
+        "process_venv": "PID=$(systemctl show -p MainPID --value crypto-advisor.service); test \"$PID\" != \"0\" && tr '\\0' '\\n' </proc/$PID/environ | grep '^VIRTUAL_ENV=' || echo UNKNOWN",
+        "services_active": "systemctl list-units --type=service --state=running 'crypto-*' --no-pager --no-legend",
         "disk_usage": "df -h .",
     }
     result = {
@@ -532,6 +532,12 @@ def _verdict_p1a(exception_scan: dict, vps: dict) -> BlockVerdict:
         return BlockVerdict(
             STATUS_FAIL,
             "Présence de bare except dans advisor_loop (ambiguïté de criticité).",
+            {"exception_scan": exception_scan, "persistence_error_lines_24h": log_signals},
+        )
+    if not vps.get("enabled"):
+        return BlockVerdict(
+            STATUS_UNCERTAIN,
+            "Scan statique effectué, mais preuve runtime (journal VPS) absente.",
             {"exception_scan": exception_scan, "persistence_error_lines_24h": log_signals},
         )
     if not touched_critical:
