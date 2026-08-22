@@ -24,7 +24,7 @@ fi
 VPS_HOST="${VPS_HOST:-}"
 VPS_USER="${VPS_USER:-}"
 VPS_PORT="${VPS_PORT:-22}"
-VPS_KEY="${VPS_KEY:-$HOME/.ssh/crypto_vps}"
+VPS_KEY="${VPS_KEY:-$HOME/.ssh/gcp_key}"
 
 # ── Vérification des prérequis ────────────────────────────────────────────────
 if [[ -z "$VPS_HOST" || -z "$VPS_USER" ]]; then
@@ -36,7 +36,7 @@ if [[ -z "$VPS_HOST" || -z "$VPS_USER" ]]; then
     echo "    VPS_USER=<ton_user_sur_le_vps>"
     echo "    VPS_PATH=<chemin_absolu_du_projet_sur_le_vps>  # ex: /home/ubuntu/crypto_ai_terminal"
     echo "    VPS_PORT=22"
-    echo "    VPS_KEY=$HOME/.ssh/crypto_vps"
+    echo "    VPS_KEY=$HOME/.ssh/gcp_key"
     echo "    VPS_RESTART_CMD=pkill -f advisor_loop.py || true"
     echo ""
     exit 1
@@ -79,6 +79,7 @@ fi
 echo ""
 echo "=============================="
 echo "  Setup terminé !"
-echo "  Le git hook post-commit déploiera automatiquement"
-echo "  les fichiers modifiés à chaque commit."
+echo "  Pour déployer : bash scripts/deploy_vps.sh --confirm"
+echo "  (le hook post-commit automatique est aboli — tout déploiement"
+echo "   est un geste délibéré, jamais un effet de bord d'un commit)"
 echo "=============================="
