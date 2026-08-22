@@ -132,7 +132,7 @@ def _parse_ts(record: dict) -> datetime | None:
 
 
 def _jsonl_stats(path: Path) -> dict:
-    exists = path.exists()
+    exists = path.is_file()
     stats = {
         "path": str(path),
         "exists": exists,
@@ -178,10 +178,13 @@ def _decision_packets_stats(db_dir: Path) -> dict:
         files.extend(sorted(db_dir.glob(pat)))
     files = sorted(set(files))
     newest = None
+    newest_mtime = None
     total_lines = 0
     for fp in files:
-        if newest is None or fp.stat().st_mtime > newest.stat().st_mtime:
+        current_mtime = fp.stat().st_mtime
+        if newest is None or (newest_mtime is not None and current_mtime > newest_mtime):
             newest = fp
+            newest_mtime = current_mtime
         with fp.open("r", encoding="utf-8", errors="replace") as f:
             for _ in f:
                 total_lines += 1
@@ -623,6 +626,16 @@ def _checklist_status(report: dict) -> list[dict]:
     local_hashes = report["critical_hashes_local"]
     vps = report["vps_probe"]
     cmds = vps.get("commands", {}) if isinstance(vps, dict) else {}
+    perms = report["permissions_disk"]
+    free_ok = perms.get("disk_free_bytes", 0) > 2 * 1024 * 1024 * 1024  # >=2GB
+    perms_ok = (
+        perms.get("project_readable")
+        and perms.get("project_writable")
+        and perms.get("databases_exists")
+        and perms.get("databases_readable")
+        and perms.get("databases_writable")
+        and free_ok
+    )
 
     def has_vps(key: str) -> bool:
         return bool(vps.get("enabled")) and bool(cmds.get(key, {}).get("ok"))
@@ -639,7 +652,10 @@ def _checklist_status(report: dict) -> list[dict]:
         {"item": "regret_analysis analysé", "status": STATUS_PASS if report["ledger"]["regret_analysis"]["exists"] else STATUS_FAIL},
         {"item": "decision_packets mesurés", "status": STATUS_PASS if report["ledger"]["decision_packets"]["count_files"] > 0 else STATUS_FAIL},
         {"item": "MetaLearner classé", "status": STATUS_UNCERTAIN},
-        {"item": "Permissions + espace disque validés", "status": STATUS_PASS},
+        {
+            "item": "Permissions + espace disque validés",
+            "status": STATUS_PASS if perms_ok else STATUS_FAIL,
+        },
         {"item": "Journal persistence vérifié", "status": STATUS_PASS if has_vps("journal_persistence_errors") else STATUS_UNCERTAIN},
         {"item": "SHA git VPS + dirty state", "status": STATUS_PASS if has_vps("git_head_sha") and has_vps("git_dirty") else STATUS_UNCERTAIN},
         {"item": "Snapshot scientifique exportable", "status": STATUS_PASS if report["snapshot"]["snapshot_sha256"] else STATUS_FAIL},
