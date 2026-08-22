@@ -28,6 +28,7 @@ import hashlib
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import time
@@ -158,7 +159,9 @@ def _jsonl_stats(path: Path) -> dict:
             first = ts
         if last is None or ts > last:
             last = ts
-        if ts >= CLEAN_DATA_SINCE_ACTIVE and first_post_v4 is None:
+        if ts >= CLEAN_DATA_SINCE_ACTIVE and (
+            first_post_v4 is None or ts < first_post_v4
+        ):
             first_post_v4 = ts
 
     stats["line_count"] = n
@@ -256,19 +259,16 @@ def _classify_regime_detectors(base: Path) -> list[dict]:
 
 def _disk_permissions(base: Path) -> dict:
     db = base / "databases"
-    st = os.statvfs(str(base))
-    free = st.f_bavail * st.f_frsize
-    total = st.f_blocks * st.f_frsize
-    used = total - (st.f_bfree * st.f_frsize)
+    usage = shutil.disk_usage(base)
     return {
         "databases_exists": db.exists(),
         "databases_readable": os.access(db, os.R_OK),
         "databases_writable": os.access(db, os.W_OK),
         "project_readable": os.access(base, os.R_OK),
         "project_writable": os.access(base, os.W_OK),
-        "disk_total_bytes": total,
-        "disk_used_bytes": used,
-        "disk_free_bytes": free,
+        "disk_total_bytes": usage.total,
+        "disk_used_bytes": usage.used,
+        "disk_free_bytes": usage.free,
     }
 
 
@@ -299,8 +299,25 @@ def _read_ci_constitutional_state(base: Path) -> dict:
 
 
 def _scan_except_exception(advisor_loop_path: Path) -> dict:
+    if not advisor_loop_path.exists():
+        return {
+            "advisor_loop_missing": True,
+            "except_exception_handlers": 0,
+            "bare_except_handlers": 0,
+            "handlers_with_logging": 0,
+            "handlers_touching_scientific_keywords": 0,
+        }
     src = advisor_loop_path.read_text(encoding="utf-8", errors="replace")
-    tree = ast.parse(src)
+    try:
+        tree = ast.parse(src)
+    except SyntaxError:
+        return {
+            "advisor_loop_parse_error": True,
+            "except_exception_handlers": 0,
+            "bare_except_handlers": 0,
+            "handlers_with_logging": 0,
+            "handlers_touching_scientific_keywords": 0,
+        }
     total = 0
     guarded_logs = 0
     bare_except = 0
