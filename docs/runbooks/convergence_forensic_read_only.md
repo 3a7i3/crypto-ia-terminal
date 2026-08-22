@@ -52,6 +52,9 @@ python tools/convergence_forensic_readonly.py \
   --vps-key <private_key_path>
 ```
 
+Pré-requis SSH sécurité: la clé hôte VPS doit déjà être présente dans
+`~/.ssh/known_hosts` (le protocole utilise `StrictHostKeyChecking=yes`).
+
 ---
 
 ## 2) Preuves collectées
@@ -116,4 +119,3 @@ Le protocole collecte:
 - `UNCERTAIN` : preuve insuffisante (souvent absence d’accès VPS).
 
 Tant que `P0-A` ou `P0-B` n’est pas `PASS`, **aucune optimisation trading**.
-

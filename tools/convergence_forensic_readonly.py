@@ -384,7 +384,7 @@ def _ssh(host: str, user: str, command: str, key: str | None, timeout: int = 20)
         "-o",
         "BatchMode=yes",
         "-o",
-        "StrictHostKeyChecking=accept-new",
+        "StrictHostKeyChecking=yes",
         "-o",
         "ConnectTimeout=10",
     ]
@@ -590,6 +590,7 @@ def _verdict_p1b(ci_state: dict) -> BlockVerdict:
 def _scientific_snapshot(ledger: dict, cri: dict, local_hashes: dict, local_git: dict) -> dict:
     payload = {
         "schema_version": "forensic_snapshot.v1",
+        "snapshot_hash_scope": "payload_without_snapshot_sha256",
         "generated_at": _utc_now(),
         "epoch_clean_data_since": CLEAN_DATA_SINCE_ACTIVE.isoformat(),
         "git_head_sha": local_git.get("head_sha"),
