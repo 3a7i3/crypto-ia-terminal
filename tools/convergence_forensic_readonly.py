@@ -55,6 +55,7 @@ _TS_KEYS = (
     "opened_at",
     "time",
 )
+_SAFE_SSH_RE = re.compile(r"^[A-Za-z0-9._:-]+$")
 
 
 @dataclass
@@ -417,6 +418,13 @@ def _probe_vps(args: argparse.Namespace) -> dict:
             "enabled": False,
             "reason": "VPS host absent (use --vps-host or VPS_HOST).",
         }
+    if not _SAFE_SSH_RE.match(host) or not _SAFE_SSH_RE.match(user):
+        return {
+            "enabled": False,
+            "reason": "VPS host/user contains unsafe characters.",
+            "host": host,
+            "user": user,
+        }
 
     def run_remote(cmd: str) -> dict:
         ok, out = _ssh(host, user, cmd, key=key, timeout=30)
@@ -593,7 +601,7 @@ def _verdict_p1b(ci_state: dict) -> BlockVerdict:
 
 
 def _scientific_snapshot(ledger: dict, cri: dict, local_hashes: dict, local_git: dict) -> dict:
-    payload = {
+    hash_payload = {
         "schema_version": "forensic_snapshot.v1",
         "snapshot_hash_scope": "payload_without_snapshot_sha256",
         "generated_at": _utc_now(),
@@ -615,8 +623,10 @@ def _scientific_snapshot(ledger: dict, cri: dict, local_hashes: dict, local_git:
         "cri": cri,
         "critical_file_hashes": local_hashes,
     }
-    data = json.dumps(payload, sort_keys=True, ensure_ascii=False).encode("utf-8")
-    payload["snapshot_sha256"] = hashlib.sha256(data).hexdigest()
+    data = json.dumps(hash_payload, sort_keys=True, ensure_ascii=False).encode("utf-8")
+    snapshot_sha256 = hashlib.sha256(data).hexdigest()
+    payload = dict(hash_payload)
+    payload["snapshot_sha256"] = snapshot_sha256
     return payload
 
 
