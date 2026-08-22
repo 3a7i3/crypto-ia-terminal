@@ -55,7 +55,7 @@ _TS_KEYS = (
     "opened_at",
     "time",
 )
-_SAFE_SSH_RE = re.compile(r"^[A-Za-z0-9._:-]+$")
+_SAFE_SSH_RE = re.compile(r"^[A-Za-z0-9._-]+$")
 
 
 @dataclass
@@ -195,8 +195,8 @@ def _decision_packets_stats(db_dir: Path) -> dict:
         "total_lines": total_lines,
         "newest_file": str(newest) if newest else None,
         "newest_mtime_utc": (
-            datetime.fromtimestamp(newest.stat().st_mtime, tz=timezone.utc).isoformat()
-            if newest
+            datetime.fromtimestamp(newest_mtime, tz=timezone.utc).isoformat()
+            if newest and newest_mtime is not None
             else None
         ),
     }
@@ -425,6 +425,15 @@ def _probe_vps(args: argparse.Namespace) -> dict:
             "host": host,
             "user": user,
         }
+    if key:
+        key_path = Path(key).expanduser()
+        if not key_path.is_file():
+            return {
+                "enabled": False,
+                "reason": "SSH key path is invalid or not a file.",
+                "key": str(key_path),
+            }
+        key = str(key_path)
 
     def run_remote(cmd: str) -> dict:
         ok, out = _ssh(host, user, cmd, key=key, timeout=30)
@@ -436,8 +445,8 @@ def _probe_vps(args: argparse.Namespace) -> dict:
         "service_execstart": "systemctl show -p ExecStart --value crypto-advisor.service",
         "service_mainpid": "systemctl show -p MainPID --value crypto-advisor.service",
         "service_status": "systemctl is-active crypto-advisor.service",
-        "recent_restarts": "journalctl -u crypto-advisor.service --since '24 hours ago' --no-pager | grep -E 'Started|Starting|Stopped|Main process exited' | tail -n 20",
-        "journal_persistence_errors": "journalctl -u crypto-advisor.service --since '24 hours ago' --no-pager | grep -Ei 'paper_trades|regret_analysis|decision_packet|persist|traceback|exception|error' | tail -n 80",
+        "recent_restarts": 'journalctl -u crypto-advisor.service --since "24 hours ago" --no-pager | grep -E "Started|Starting|Stopped|Main process exited" | tail -n 20',
+        "journal_persistence_errors": 'journalctl -u crypto-advisor.service --since "24 hours ago" --no-pager | grep -Ei "paper_trades|regret_analysis|decision_packet|persist|traceback|exception|error" | tail -n 80',
         "advisor_loop_sha256": f"cd {vps_path_q} && sha256sum core/advisor_loop.py",
         "advisor_runtime_adapters_sha256": f"cd {vps_path_q} && sha256sum core/advisor_runtime_adapters.py",
         "regime_detector_sha256": f"cd {vps_path_q} && sha256sum quant_hedge_ai/agents/intelligence/regime_detector.py",
