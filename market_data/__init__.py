@@ -14,6 +14,7 @@ from market_data.models import (
 )
 from market_data.replay_engine import FlowSnapshot, ReplayEngine, ReplayStats
 from market_data.stream import MultiExchangeStream
+from market_data.liquidity_engine import LiquidityEngineConfig, LiquidityEngineSupervisor
 
 __all__ = [
     "NormalizedTrade",
@@ -27,4 +28,6 @@ __all__ = [
     "ReplayStats",
     "HyperliquidConnector",
     "MEXCFuturesConnector",
+    "LiquidityEngineConfig",
+    "LiquidityEngineSupervisor",
 ]
