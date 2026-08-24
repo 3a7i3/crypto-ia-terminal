@@ -404,3 +404,81 @@ incident logs are being silently lost on rotation, and (2) the deploy path is no
 aligned with the actual supervisor, so "what code is running" is not provable
 without checking. Both are fixable without data loss during the planned weekend
 window.
+
+---
+
+# PART III — SYSTEMD CONTRACT & REMEDIATION PLAN (model complete)
+
+## III.1 systemd unit (OBSERVED FACT, `systemctl cat crypto-advisor.service`)
+
+- `User=mathieu`, `WorkingDirectory=/home/mathieu/crypto_ai_terminal` (correct paths).
+- `EnvironmentFile=-/home/mathieu/crypto_ai_terminal/.env`, `PYTHONPATH=…`, `DP_LOG_DIR=…`, `PYTHONUNBUFFERED=1`, `TZ=UTC`.
+- `ExecStart=…/.venv/bin/python core/advisor_loop.py`.
+- **`Restart=on-failure`, `RestartSec=10s`, `TimeoutStopSec=30`** — restart only on non-zero exit; SIGTERM then 30 s grace then SIGKILL.
+- `StandardOutput/Error=journal`, `SyslogIdentifier=crypto_advisor`, `NoNewPrivileges=true`, `PrivateTmp=true`.
+- **Minor defect:** the unit displays **two `[Service]` sections** — systemd tolerates this (later keys win) but it should be de-duplicated.
+
+**Resolves C8 direction:** the correct restart is `sudo systemctl restart
+crypto-advisor.service` (clean SIGTERM + flush window). `scripts/vps_restart.sh`
+(nohup) must be **retired** on this host — it fights systemd and can leave stale
+code running. This is the single operational change that ends "restarting for
+nothing".
+
+## III.2 Restart of 2026-08-24 15:45:25 (OBSERVED FACT)
+
+- Accidental `systemctl restart` → new **PID 249315**, `active (running)`, 148 tasks, **Memory 565 MB** (vs 1.3 GB pre-restart — leak reset), healthy cycle output.
+- Clean stop (SIGTERM); trade/decision JSONL durable (per-line flush). Freed ~599 MB of deleted-inode retention. No recoverable data lost.
+
+## III.3 REMEDIATION PLAN (design only — no code applied)
+
+### R1 — Logging FD leak / data loss / no-daily-rotation (C1/C2/C3) — root fix
+**Minimal safe change, one file (`observability/json_logger.py`):** share **one
+handler per category** instead of one per module.
+- Add a module-level `_handlers: Dict[category, Handler]` guarded by a lock;
+  `StructuredLogger._get_logger` attaches the **shared** category handler rather
+  than constructing a new `RotatingFileHandler`. Result: **≤8 file handlers total**
+  (one per category) regardless of how many of the 190 modules log → FD count and
+  deleted-inode retention collapse to near zero.
+- Fix the frozen date: give the shared handler a midnight roll (custom
+  `namer`/`rotator` or a small `TimedRotatingFileHandler` subclass writing
+  `logs/<cat>/<date>.jsonl`), so files rotate by **day** and by size, with a single
+  writer that owns rotation.
+- Optional hardening (defer): route through `QueueHandler` + one `QueueListener`
+  so logging never blocks the trading thread.
+
+**Test plan (offline, no VPS):**
+1. Unit: create N `StructuredLogger`s for the same category → assert exactly **1**
+   file handler / 1 open FD is used (not N).
+2. Unit: `get_logger` across many modules → total handlers == number of distinct
+   categories used.
+3. Rotation sim: force size rollover with two loggers on one category → assert no
+   second handler holds a deleted inode; all lines land in the live file.
+4. Regression: existing json lines still parse; schema unchanged.
+
+### R2 — Supervision alignment (C8)
+- De-duplicate the `[Service]` block; retire `scripts/vps_restart.sh` (or make it a
+  thin wrapper that calls `systemctl restart crypto-advisor.service`).
+- Document `sudo systemctl restart crypto-advisor.service` as the only restart path.
+- Verify the watchdog (PID 425) cannot issue a competing restart (still ALERT-ONLY).
+
+### R3 — Socket CLOSE_WAIT (RC-3) — measure then fix
+- On the fresh PID 249315, sample CLOSE_WAIT now and +30 min to get the growth rate,
+  and identify the peer (Telegram vs exchange) → then reuse a `requests.Session` /
+  ensure responses are closed. **Do not fix before the growth rate is known.**
+
+### R4 — Durability polish (low priority)
+- Optional `flush()`+`os.fsync()` on `paper_trades.jsonl` appends for power-loss
+  safety (current per-line close already gives OS-level durability; fsync closes the
+  power-loss gap).
+
+## III.4 DEPLOYMENT PLAN (weekend window, single clean restart)
+1. Land R1 (+R2) on the branch, all unit tests green in CI.
+2. On the VPS, during the planned window: `git pull` (or checkout the merged
+   commit), then **one** `sudo systemctl restart crypto-advisor.service`.
+3. This single restart loads **all** pending fixes together (logger, /certif, /gate,
+   PaperArena feed, exec-capture) — no incremental restarts.
+4. Post-restart verification (read-only): `ls /proc/$(pgrep -f 'core/advisor_loop\.py$')/fd | grep -c deleted` should stay near 0 over hours; `systemctl status` active; bots receiving.
+
+**Model status: COMPLETE.** Reality → mechanism → root cause established with
+OBSERVED FACT + STRONG EVIDENCE. Remaining UNKNOWN is only the CLOSE_WAIT growth
+rate (R3), which needs two timed samples on the fresh process and does not block R1.
