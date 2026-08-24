@@ -609,6 +609,17 @@ class PaperTradeRecorder:
         line = json.dumps(asdict(evt), ensure_ascii=False) + "\n"
         with self._path.open("a", encoding="utf-8") as f:
             f.write(line)
+            # R4 (audit forensic 2026-08-24) : durabilité de la source de vérité.
+            # Le close du `with` vide le buffer Python vers l'OS ; fsync force
+            # l'OS à écrire sur le disque physique → une ligne survit à une
+            # coupure de courant. Volume faible (quelques trades/min) donc le
+            # coût est négligeable. Désactivable via PAPER_TRADE_FSYNC=0.
+            if os.getenv("PAPER_TRADE_FSYNC", "1") != "0":
+                f.flush()
+                try:
+                    os.fsync(f.fileno())
+                except OSError:
+                    pass  # best-effort : certains FS/handles ne supportent pas fsync
 
 
 # ── Singleton partagé ────────────────────────────────────────────────────────
