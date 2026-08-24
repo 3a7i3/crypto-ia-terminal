@@ -325,3 +325,82 @@ cat logs/advisor.lock 2>/dev/null; ls -l logs/advisor.lock 2>/dev/null
 
 **Take a second FD/socket sample ~30 min later** so we can classify each leak as
 *stable* vs *growing* — that single delta decides urgency.
+
+---
+
+# PART II — VPS EVIDENCE (collected 2026-08-24, runbook §16)
+
+All items below are **OBSERVED FACT** unless stated. They confirm the code-derived
+model of Part I and correct one assumption (supervision).
+
+## II.1 CORRECTION — supervision is systemd, not nohup
+
+- PID 423, PPID 1, ELAPSED **2d 10h** (up since 2026-08-22 04:33:34 UTC), RSS **~1.27 GB**, **149 threads**.
+- `systemctl`: **`crypto-advisor.service`** (DASH) is `loaded, enabled, active (running)`, `Main PID: 423`, CGroup `/system.slice/crypto-advisor.service`, ExecStart `.venv/bin/python core/advisor_loop.py`.
+- Absent units: `crypto_advisor.service` (underscore), `crypto_watchdog.service`, `paper-arena.service`.
+- `watchdog_vps.py` runs separately as **PID 425**.
+
+**Consequence — CRITICAL (C8): competing restart mechanisms.** The engine is now
+systemd-managed (auto-restart, starts on boot), but the operator's deploy path is
+`scripts/vps_restart.sh` (anchored `pkill` + **nohup**). These two conflict:
+- If `vps_restart.sh` kills PID 423, systemd's restart policy respawns it under the
+  service — the nohup child then hits the flock and `exit(1)`. Net: the code that
+  actually runs is whatever systemd launched, **not necessarily the freshly
+  checked-out code** → a git checkout + `vps_restart.sh` can **silently fail to
+  load new code**. This directly matches the operator's pain ("restarting for
+  nothing") and is a data-integrity risk (unclear which code is live).
+- Correct restart on this box is `sudo systemctl restart crypto-advisor.service`
+  (STRONG EVIDENCE recommendation — not applied, observation only).
+- **UNKNOWN:** the unit's `Restart=` / `ExecStart` details and whether the watchdog
+  (PID 425) can ALSO trigger a restart → potential three-way race. Collect the unit:
+  `systemctl cat crypto-advisor.service`.
+
+## II.2 File-descriptor leak — CONFIRMED (C1/C2)
+
+- Total FDs on PID 423: **86**; **27 are `(deleted)`**.
+- **Invisible retained disk: 599,084,608 bytes (~572 MiB / 599 MB)** held in deleted inodes.
+- Per-inode grouping: **7 distinct FDs point at ONE deleted 52 MB inode** (`logs/runtime/2026-08-22.jsonl.7`, inode 52428592) — direct proof of multiple `RotatingFileHandler` instances on one file. Many other single FDs hold further ~50 MB deleted inodes.
+- FD open time `Aug 23 21:45` (≠ boot day) ⇒ handlers reopened on their own rollovers.
+
+**Predicted vs observed:** Part I predicted "many FDs on the deleted rotated file,
+invisible disk retention" — **confirmed exactly.**
+
+## II.3 No daily rotation — CONFIRMED (C3)
+
+- FDs simultaneously reference `logs/runtime/2026-08-22.jsonl.*` **and** `logs/runtime/2026-08-23.jsonl` — different handlers frozen on different creation-day filenames while the same process runs across midnight.
+- `logs/runtime/` on disk holds size-rotated `.1`…`.7` sets for many past days (2026-08-01, -06, -12, -13, …), each backup ~50 MB.
+
+## II.4 Disk & stale artifacts
+
+- Filesystem `/`: 39 GB total, **26 GB used (65%)**, 14 GB free. `logs/` = **2.3 GB visible** (+599 MB invisible via open deleted inodes).
+- `logs/advisor.log` = **286 MB**, frozen at `Aug 22 04:33` — the **orphaned nohup redirect** from the pre-systemd era; no longer written (systemd logs to journal + append files). Dead weight, not growing.
+- `logs/advisor_loop.log` (stdlib basicConfig handler) = 10 MB + 5 clean backups → **healthy** (single handler, size rotation working as intended). Confirms the defect is specific to the structured `json_logger`, not stdlib logging.
+
+## II.5 Sockets
+
+- **CLOSE-WAIT: 29** (remote closed, local never `close()`d), ESTAB 21, TIME-WAIT 13, LISTEN **7**.
+- 29 CLOSE_WAIT is a real leak signal (HYPOTHESIS RC-3 supported). 7 LISTEN sockets ⇒ multiple embedded servers (dashboard/chart/etc.).
+- **STILL NEEDED:** a second sample ~30 min later to classify CLOSE_WAIT as stable vs growing (decides urgency). Also `ss -tanp | grep CLOSE-WAIT` with the peer column to identify which endpoint (Telegram vs exchange).
+
+## II.6 Lock & snapshot
+
+- `logs/advisor.lock` = `423`, mtime `Aug 22 04:33` — consistent with the live process; flock held. Singleton healthy.
+- Snapshot `/tmp/scios_forensics_20260823_215514/` = 7 files (timestamp, uptime, memory, disk, process_tree, processes, `06_lsof_pid423.txt` 20 KB), captured 2026-08-23 21:55. Point-in-time only; source of the `Aug 23 21:45` FD timestamps. Not a continuous record.
+
+## II.7 Updated urgency (threat model deltas)
+
+| Risk | Observed magnitude | Time-to-harm | Urgency |
+|---|---|---|---|
+| Invisible disk retention (deleted inodes) | 599 MB in ~2 days (~250–300 MB/day) | weeks before disk pressure at current 65% | MEDIUM |
+| Visible `logs/` growth | 2.3 GB, unbounded per-day sets | weeks–months | MEDIUM |
+| FD growth | 27 deleted in ~2 days (~13/day) | weeks before ulimit (1024) | LOW–MEDIUM |
+| Post-rotation log loss (errors/incidents) | ongoing now | continuous | **HIGH** (integrity, not availability) |
+| CLOSE_WAIT socket leak | 29 | unknown (need delta) | UNKNOWN → measure |
+| systemd vs vps_restart.sh conflict | live now | on next deploy | **HIGH** (may run stale code) |
+
+**Bottom line:** nothing threatens process availability in the next few days, but
+two HIGH-severity integrity issues are active continuously: (1) structured error/
+incident logs are being silently lost on rotation, and (2) the deploy path is not
+aligned with the actual supervisor, so "what code is running" is not provable
+without checking. Both are fixable without data loss during the planned weekend
+window.
