@@ -800,6 +800,12 @@ REAL_BOT_REPORT_EVERY = int(os.getenv("REAL_BOT_REPORT_EVERY", "12"))  # cycles
 # Observation pure (ADR-0007) : copie du dernier GateResult, aucune influence
 # sur la décision (le gate reste seul juge).
 _LAST_GATE: dict = {"result": None, "symbol": "", "ts": 0.0}
+
+# Canal @PaperArena_bot — flux live des ordres SIMULÉS (entrées/sorties, PnL,
+# durée, motif). Observation pure : mirroir des événements de trade paper vers
+# un bot dédié, aucune influence sur la décision.
+PAPER_ARENA_TOKEN = os.getenv("PAPER_ARENA_TG_TOKEN", "")
+PAPER_ARENA_CHAT = os.getenv("PAPER_ARENA_TG_CHAT_ID", "")
 NOTIFY_EVERY = int(os.getenv("ADVISOR_NOTIFY_EVERY", "3"))
 MTF_REFRESH_EVERY = int(os.getenv("ADVISOR_MTF_REFRESH_EVERY", "12"))
 ADVISOR_1H_LIMIT = int(os.getenv("ADVISOR_1H_LIMIT", "96"))
@@ -999,6 +1005,36 @@ def _telegram(text: str) -> bool:
             _tg_escalate(verdict.streak, _err)
     else:
         log.warning("Telegram erreur: %s", _err)
+    return False
+
+
+def _utc_stamp() -> str:
+    """Horodatage UTC lisible, ex. '19 Aug 20:48:34 UTC' (format PaperArena)."""
+    return time.strftime("%d %b %H:%M:%S UTC", time.gmtime())
+
+
+def _paper_arena(text: str) -> bool:
+    """Envoie un événement d'ordre simulé sur le canal @PaperArena_bot.
+
+    Flux dédié entrées/sorties (observation pure, ADR-0007). Silencieux si le
+    token/chat n'est pas configuré ; les erreurs sont loggées sans jamais
+    casser le trading.
+    """
+    if "PYTEST_CURRENT_TEST" in os.environ:
+        return True
+    if not PAPER_ARENA_TOKEN or not PAPER_ARENA_CHAT:
+        return False
+    try:
+        r = requests.post(
+            f"https://api.telegram.org/bot{PAPER_ARENA_TOKEN}/sendMessage",
+            json={"chat_id": PAPER_ARENA_CHAT, "text": text},
+            timeout=10,
+        )
+        if r.status_code == 200:
+            return True
+        log.warning("[PaperArena] erreur: HTTP %s %s", r.status_code, r.text[:120])
+    except Exception as exc:
+        log.warning("[PaperArena] indisponible: %s", exc)
     return False
 
 
@@ -4114,6 +4150,17 @@ def main(
                     )
             except Exception:
                 pass
+            # ── @PaperArena_bot — flux live entrée (ordre simulé) ──────────────
+            try:
+                _paper_arena(
+                    f"ENTRÉE {action.upper()} — {symbol}\n"
+                    f"{_utc_stamp()}\n"
+                    f"Prix:   ${float(getattr(pos, 'entry_price', 0.0)):.6g}\n"
+                    f"Taille: ${float(effective_size):.2f}\n"
+                    f"Compte: {str(getattr(pos, 'mode', 'futures_demo'))}"
+                )
+            except Exception:
+                pass
             _consecutive_losses["value"] = 0
             return True
         except Exception as pos_exc:
@@ -4184,6 +4231,18 @@ def main(
                 _portfolio_bot.send(_close_msg)
             except Exception:
                 pass
+        # ── @PaperArena_bot — flux live sortie (ordre simulé) ──────────────────
+        try:
+            _paper_arena(
+                f"SORTIE {pos.side.value.upper()} — {pos.symbol}\n"
+                f"{_utc_stamp()}\n"
+                f"Entrée: ${pos.entry_price:.6g} → Sortie: ${pos.current_price:.6g}\n"
+                f"PnL:    {sign}${pos.pnl_usd:.2f} ({sign}{pos.pnl_pct:.2%})\n"
+                f"Durée:  {_age_s} | Motif: {reason.value.upper()}\n"
+                f"Compte: {str(getattr(pos, 'mode', 'futures_demo'))}"
+            )
+        except Exception:
+            pass
 
     pos_manager.on_close(_on_position_close)
 
