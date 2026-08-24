@@ -290,8 +290,18 @@ COMMANDS = {"scan": cmd_scan, "signals": cmd_signals, "top50": cmd_top50,
     "longs": cmd_longs, "shorts": cmd_shorts, "symbol": cmd_symbol,
     "status": cmd_status, "help": cmd_help, "start": cmd_help}
 
+def _clear_webhook():
+    """Supprime tout webhook actif pour permettre le polling getUpdates."""
+    try:
+        tg_request("deleteWebhook", {"drop_pending_updates": False})
+        print("[RadarBot] Webhook supprime (si existant).")
+    except Exception as exc:
+        print(f"[RadarBot] deleteWebhook: {exc}")
+
+
 def poll_loop():
     print(f"[RadarBot] Demarre — polling Telegram...")
+    _clear_webhook()
     offset = 0
     while True:
         try:
