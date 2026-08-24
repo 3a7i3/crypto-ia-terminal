@@ -1,0 +1,25 @@
+# CryptoRadar — bot Telegram interactif (commandes /scan, /signals, etc.)
+# Polling long getUpdates, LECTURE SEULE sur les decision packets.
+# Installation (VPS, geste operateur) :
+#   sudo cp scripts/systemd/crypto-radar-bot.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now crypto-radar-bot.service
+[Unit]
+Description=CryptoRadar — bot Telegram interactif (lecture seule)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=mathieu
+WorkingDirectory=/home/mathieu/crypto_ai_terminal
+EnvironmentFile=/home/mathieu/crypto_ai_terminal/.env
+Environment=PYTHONPATH=/home/mathieu/crypto_ai_terminal
+ExecStart=/home/mathieu/crypto_ai_terminal/.venv/bin/python3 scripts/radar_bot.py
+Restart=always
+RestartSec=10
+StandardOutput=append:/home/mathieu/crypto_ai_terminal/logs/radar_bot.log
+StandardError=append:/home/mathieu/crypto_ai_terminal/logs/radar_bot.log
+
+[Install]
+WantedBy=multi-user.target

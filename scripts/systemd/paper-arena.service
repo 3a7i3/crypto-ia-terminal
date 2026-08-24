@@ -1,3 +1,10 @@
+# Paper Arena V1 — ETH/USDT 4h RSI 15/85.
+# Boucle de trading paper qui envoie notifications Telegram
+# (entrees, sorties, rapports) automatiquement.
+# Installation (VPS, geste operateur) :
+#   sudo cp scripts/systemd/paper-arena.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now paper-arena.service
 [Unit]
 Description=Paper Arena V1 — ETH 4h RSI 15/85
 After=network-online.target
