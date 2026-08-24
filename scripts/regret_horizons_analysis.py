@@ -275,18 +275,18 @@ def lens_cross(records: list[dict], horizon: str) -> None:
         verdict = _horizon_verdict(r, horizon) or "ABSENT"
         cells[(fb, sb)][verdict] += 1
 
+    bin_labels = [label for _, _, label in _SCORE_BINS]
     blockers = sorted(
         {k[0] for k in cells},
-        key=lambda b: -sum(sum(cells[(b, s)].values()) for s in [l for _, _, l in _SCORE_BINS]),
+        key=lambda b: -sum(sum(cells[(b, s)].values()) for s in bin_labels),
     )
-    labels = [label for _, _, label in _SCORE_BINS]
 
-    header = f"{'Blocker':<14}" + "".join(f" {l:>9}" for l in labels)
+    header = f"{'Blocker':<14}" + "".join(f" {bl:>9}" for bl in bin_labels)
     print(header)
     print("-" * len(header))
     for fb in blockers:
         row = f"{fb:<14}"
-        for label in labels:
+        for label in bin_labels:
             c = cells.get((fb, label), Counter())
             mw = c["MISSED_WIN"]
             total = mw + c["GOOD_REFUSAL"] + c["NEUTRAL"]
