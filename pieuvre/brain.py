@@ -23,7 +23,6 @@ et augmente la fréquence des scans.
 from __future__ import annotations
 
 import asyncio
-import time
 from enum import Enum
 from pathlib import Path
 

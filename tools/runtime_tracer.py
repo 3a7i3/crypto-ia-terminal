@@ -57,7 +57,7 @@ class ImportTracer:
 
 def trace_imports(modules_to_load: list[str], root: Path) -> dict:
     """Charge chaque module et enregistre ce qui s'est réellement importé."""
-    loaded_before = set(sys.modules.keys())
+    set(sys.modules.keys())
     results = {}
 
     for mod_name in modules_to_load:
@@ -174,12 +174,12 @@ OPTIONAL_MODULES = [
 def generate_map(results: dict, label: str) -> list[str]:
     lines = []
     ok = [(m, r) for m, r in results.items() if r["status"] == "OK"]
-    err = [(m, r) for m, r in results.items() if r["status"] != "OK"]
+    [(m, r) for m, r in results.items() if r["status"] != "OK"]
     lines.append(f"\n### {label} — {len(ok)}/{len(results)} importables\n")
     lines.append("| Module | Status | Dépendances chargées |")
     lines.append("|--------|--------|---------------------|")
     for mod, res in results.items():
-        status = "OK" if res["status"] == "OK" else f"FAIL"
+        status = "OK" if res["status"] == "OK" else "FAIL"
         n_deps = len(res["pulled_in"])
         err_detail = "" if res["status"] == "OK" else f" `{res['status'][:60]}`"
         lines.append(f"| `{mod}` | {status}{err_detail} | +{n_deps} modules |")
@@ -214,20 +214,20 @@ def main():
 
     # Générer le document Markdown
     output_lines = [
-        f"# RUNTIME ACTIVE MAP — Phase 0.5",
+        "# RUNTIME ACTIVE MAP — Phase 0.5",
         f"> Généré : {datetime.now().strftime('%Y-%m-%d %H:%M')} | Méthode : import réel (dry-run)",
-        f"> Env : PAPER_TRADING=true, DRY_RUN=true, mocks exchange",
-        f"",
-        f"## Résumé",
-        f"| Catégorie | Importables | Total | Taux |",
-        f"|-----------|------------|-------|------|",
+        "> Env : PAPER_TRADING=true, DRY_RUN=true, mocks exchange",
+        "",
+        "## Résumé",
+        "| Catégorie | Importables | Total | Taux |",
+        "|-----------|------------|-------|------|",
         f"| Production | {prod_ok} | {len(prod_results)} | {prod_ok/len(prod_results)*100:.0f}% |",
         f"| Optionnel | {opt_ok} | {len(opt_results)} | {opt_ok/len(opt_results)*100:.0f}% |",
-        f"",
-        f"## Interprétation",
-        f"Un module FAIL signifie qu'il ne peut pas être importé dans le process courant.",
-        f"Causes possibles : connexion exchange requise, dépendance absente, SyntaxError.",
-        f"",
+        "",
+        "## Interprétation",
+        "Un module FAIL signifie qu'il ne peut pas être importé dans le process courant.",
+        "Causes possibles : connexion exchange requise, dépendance absente, SyntaxError.",
+        "",
     ]
     output_lines += generate_map(prod_results, "Modules Production")
     output_lines += generate_map(opt_results, "Modules Optionnels")

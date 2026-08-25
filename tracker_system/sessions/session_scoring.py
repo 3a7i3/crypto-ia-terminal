@@ -5,7 +5,6 @@ from typing import Any
 from tracker_system.sessions.session_labels import (
     DRIFT_THRESHOLD,
     KNOWN_REGIMES,
-    SIDEWAYS_OVEREXPOSURE_THRESHOLD,
     analyze_failures,
     build_session_dna,
     label_confidence,

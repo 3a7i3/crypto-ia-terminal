@@ -140,7 +140,6 @@ def validate(m: dict, st: dict[str, str]) -> list[str]:
             errs.append(f"{tid} : conflict_with inexistant '{cw}'")
 
     # Invariant de gating : un ticket non gated ne doit pas toucher un symbole sensible
-    sensitive = ("advisor_loop.py",)  # fichier partage : verification indicative
     for t in m["tickets"]:
         if not t.get("gated") and t.get("risk") == "CRITIQUE":
             errs.append(

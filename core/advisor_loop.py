@@ -678,7 +678,6 @@ except Exception:
     _OBS_AVAILABLE = False
 
 # P2 Operational Closure — execution constraints + simulation pipeline
-import json as _json
 
 try:
     import exchange_constraints.binance_rules as _binance_rules_mod
@@ -796,6 +795,17 @@ INTEL_INTERVAL_S = int(os.getenv("INTEL_REPORT_EVERY_H", "6")) * 3600
 REAL_BOT_TOKEN = os.getenv("REAL_ACCOUNT_BOT_TOKEN", "")
 REAL_BOT_CHAT = os.getenv("REAL_ACCOUNT_CHAT_ID", "")
 REAL_BOT_REPORT_EVERY = int(os.getenv("REAL_BOT_REPORT_EVERY", "12"))  # cycles
+
+# Dernière évaluation du GlobalRiskGate — alimente la commande /gate du bot.
+# Observation pure (ADR-0007) : copie du dernier GateResult, aucune influence
+# sur la décision (le gate reste seul juge).
+_LAST_GATE: dict = {"result": None, "symbol": "", "ts": 0.0}
+
+# Canal @PaperArena_bot — flux live des ordres SIMULÉS (entrées/sorties, PnL,
+# durée, motif). Observation pure : mirroir des événements de trade paper vers
+# un bot dédié, aucune influence sur la décision.
+PAPER_ARENA_TOKEN = os.getenv("PAPER_ARENA_TG_TOKEN", "")
+PAPER_ARENA_CHAT = os.getenv("PAPER_ARENA_TG_CHAT_ID", "")
 NOTIFY_EVERY = int(os.getenv("ADVISOR_NOTIFY_EVERY", "3"))
 MTF_REFRESH_EVERY = int(os.getenv("ADVISOR_MTF_REFRESH_EVERY", "12"))
 ADVISOR_1H_LIMIT = int(os.getenv("ADVISOR_1H_LIMIT", "96"))
@@ -928,21 +938,104 @@ def _prime_exchange_session(
 # ── Telegram ──────────────────────────────────────────────────────────────────
 
 
-def _telegram(text: str) -> None:
+try:
+    from src.telegram.failure_tracker import ChannelFailureTracker
+
+    _tg_tracker = ChannelFailureTracker(escalate_after=5, cooldown_s=1800.0)
+except Exception:  # pragma: no cover — le tracker ne doit jamais casser l'envoi
+    _tg_tracker = None
+
+
+def _tg_escalate(streak: int, last_error: str) -> None:
+    """Voie de secours quand le canal Telegram principal échoue en série.
+
+    Utilise des canaux INDÉPENDANTS du token défaillant — log critique, email,
+    et le bot intel (token distinct qui survit à un token principal mort) —
+    pour qu'un token cassé ne puisse JAMAIS produire un silence invisible.
+    """
+    alert = (
+        f"[TELEGRAM DOWN] Canal principal en échec {streak}x consécutifs. "
+        f"Dernière erreur: {last_error}. "
+        f"Vérifier TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID dans .env (getMe)."
+    )
+    log.critical(alert)
+    try:
+        _send_email("Canal Telegram en échec", alert)
+    except Exception:
+        pass
+    # Bot intel = token distinct → survit à un token principal mort
+    try:
+        if INTEL_TOKEN and INTEL_CHAT:
+            requests.post(
+                f"https://api.telegram.org/bot{INTEL_TOKEN}/sendMessage",
+                json={"chat_id": INTEL_CHAT, "text": alert},
+                timeout=10,
+            )
+    except Exception:
+        pass
+
+
+def _telegram(text: str) -> bool:
+    """Envoie sur le canal Telegram principal. Retourne True si livré.
+
+    Un échec n'est plus silencieux : compté, loggé avec son streak, et escaladé
+    hors-bande après N échecs consécutifs (voir _tg_escalate).
+    """
     if "PYTEST_CURRENT_TEST" in os.environ:
-        return
+        return True
     if not TELEGRAM_TOKEN or not TELEGRAM_CHAT:
-        return
+        return False
     try:
         r = requests.post(
             f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage",
             json={"chat_id": TELEGRAM_CHAT, "text": text},
             timeout=10,
         )
-        if r.status_code != 200:
-            log.warning("Telegram erreur: %s", r.text)
+        if r.status_code == 200:
+            if _tg_tracker is not None:
+                _tg_tracker.record_success()
+            return True
+        _err = f"HTTP {r.status_code}: {r.text[:200]}"
     except Exception as exc:
-        log.warning("Telegram indisponible: %s", exc)
+        _err = str(exc)
+    if _tg_tracker is not None:
+        verdict = _tg_tracker.record_failure()
+        log.warning("Telegram erreur (%dx consécutifs): %s", verdict.streak, _err)
+        if verdict.should_escalate:
+            _tg_escalate(verdict.streak, _err)
+    else:
+        log.warning("Telegram erreur: %s", _err)
+    return False
+
+
+def _utc_stamp() -> str:
+    """Horodatage UTC lisible, ex. '19 Aug 20:48:34 UTC' (format PaperArena)."""
+    return time.strftime("%d %b %H:%M:%S UTC", time.gmtime())
+
+
+def _paper_arena(text: str) -> bool:
+    """Envoie un événement d'ordre simulé sur le canal @PaperArena_bot.
+
+    Flux dédié entrées/sorties (observation pure, ADR-0007). Silencieux si le
+    token/chat n'est pas configuré ; les erreurs sont loggées sans jamais
+    casser le trading.
+    """
+    if "PYTEST_CURRENT_TEST" in os.environ:
+        return True
+    if not PAPER_ARENA_TOKEN or not PAPER_ARENA_CHAT:
+        return False
+    try:
+        r = requests.post(
+            f"https://api.telegram.org/bot{PAPER_ARENA_TOKEN}/sendMessage",
+            json={"chat_id": PAPER_ARENA_CHAT, "text": text},
+            timeout=10,
+        )
+        if r.status_code == 200:
+            return True
+        log.warning("[PaperArena] erreur: HTTP %s %s", r.status_code, r.text[:120])
+    except Exception as exc:
+        log.warning("[PaperArena] indisponible: %s", exc)
+    return False
 
 
 def _send_email(subject: str, body: str) -> None:
@@ -1549,6 +1642,15 @@ def analyze_symbol(
             gate_result = gate.check(
                 signal, portfolio_drawdown=0.0, order_size_usd=order_size_usd
             )
+    # Observation /gate : mémorise la dernière évaluation (aucun effet décision)
+    try:
+        _LAST_GATE.update(
+            result=gate_result,
+            symbol=getattr(signal, "symbol", "") or "",
+            ts=time.time(),
+        )
+    except Exception:
+        pass
     if _dp and not _dp.is_terminal() and hasattr(gate, "check_packet"):
         try:
             gate.check_packet(
@@ -3619,7 +3721,10 @@ def main(
             try:
                 from paper_trading.recorder import get_recorder as _gr
 
-                return _gr().get_trades()
+                # trades_as_dicts() — la méthode du recorder est trades(),
+                # pas get_trades() ; renvoie la vue dict attendue par les
+                # formatters (/trades, /history…).
+                return _gr().trades_as_dicts()
             except Exception:
                 return []
 
@@ -3653,8 +3758,13 @@ def main(
 
         def _get_gate_for_bot():
             try:
-                snap = gate._last_snapshot  # noqa: F821
-                return vars(snap) if snap is not None else None
+                snap = _LAST_GATE.get("result")
+                if snap is None:
+                    return None
+                d = snap.as_dict() if hasattr(snap, "as_dict") else dict(vars(snap))
+                d["symbol"] = _LAST_GATE.get("symbol", "")
+                d["ts"] = _LAST_GATE.get("ts", 0)
+                return d
             except Exception:
                 return None
 
@@ -3962,12 +4072,21 @@ def main(
                 )
             # ── PaperTradeRecorder — source de vérité entry ───────────────────
             try:
+                from paper_trading.execution_capture import capture_from_ccxt
                 from paper_trading.recorder import DecisionContext as _DecisionContext
                 from paper_trading.recorder import MarketContext as _MarketContext
                 from paper_trading.recorder import get_recorder as _get_recorder
 
                 _conviction = result_row.get("conviction")
                 _tf = result_row.get("transition_forecast")
+                _entry_fill = float(
+                    getattr(pos, "entry_price", _to_float(result_row.get("prix", 0.0)))
+                )
+                _exec = capture_from_ccxt(
+                    order_result,
+                    intended_price=_to_float(result_row.get("prix", 0.0)) or None,
+                    fill_price=_entry_fill or None,
+                )
                 _get_recorder().record_open(
                     trade_id=str(getattr(pos, "order_id", "") or id(pos)),
                     symbol=symbol,
@@ -4003,6 +4122,7 @@ def main(
                             else None
                         ),
                     ),
+                    **_exec,
                 )
             except Exception as _rec_exc:
                 log.debug("[PaperRecorder] open échoué: %s", _rec_exc)
@@ -4028,6 +4148,17 @@ def main(
                         f"Vol:    ${float(effective_size):.2f}  |  Volatilite: {_vol_s}\n"
                         f"Score:  {_score}  |  Regime: {_regime}"
                     )
+            except Exception:
+                pass
+            # ── @PaperArena_bot — flux live entrée (ordre simulé) ──────────────
+            try:
+                _paper_arena(
+                    f"ENTRÉE {action.upper()} — {symbol}\n"
+                    f"{_utc_stamp()}\n"
+                    f"Prix:   ${float(getattr(pos, 'entry_price', 0.0)):.6g}\n"
+                    f"Taille: ${float(effective_size):.2f}\n"
+                    f"Compte: {str(getattr(pos, 'mode', 'futures_demo'))}"
+                )
             except Exception:
                 pass
             _consecutive_losses["value"] = 0
@@ -4056,9 +4187,11 @@ def main(
 
             _mae = getattr(pos, "mae_pct", None)
             _mfe = getattr(pos, "mfe_pct", None)
+            _exit_fill = float(getattr(pos, "current_price", 0.0) or pos.entry_price)
+            _exit_fee = getattr(pos, "exit_fee_usd", None)
             _get_recorder().record_close(
                 trade_id=str(getattr(pos, "order_id", "") or id(pos)),
-                exit_price=float(getattr(pos, "current_price", 0.0) or pos.entry_price),
+                exit_price=_exit_fill,
                 pnl_usd=float(getattr(pos, "pnl_usd", 0.0) or 0.0),
                 pnl_pct=float(getattr(pos, "pnl_pct", 0.0) or 0.0),
                 reason=getattr(reason, "value", str(reason)),
@@ -4071,6 +4204,8 @@ def main(
                 mode=str(getattr(pos, "mode", "futures_demo")),
                 mae_pct=float(_mae) if _mae is not None else None,
                 mfe_pct=float(_mfe) if _mfe is not None else None,
+                fill_price=_exit_fill or None,
+                fee_usd=float(_exit_fee) if _exit_fee is not None else None,
             )
         except Exception as _rec_exc:
             log.debug("[PaperRecorder] close échoué: %s", _rec_exc)
@@ -4096,6 +4231,18 @@ def main(
                 _portfolio_bot.send(_close_msg)
             except Exception:
                 pass
+        # ── @PaperArena_bot — flux live sortie (ordre simulé) ──────────────────
+        try:
+            _paper_arena(
+                f"SORTIE {pos.side.value.upper()} — {pos.symbol}\n"
+                f"{_utc_stamp()}\n"
+                f"Entrée: ${pos.entry_price:.6g} → Sortie: ${pos.current_price:.6g}\n"
+                f"PnL:    {sign}${pos.pnl_usd:.2f} ({sign}{pos.pnl_pct:.2%})\n"
+                f"Durée:  {_age_s} | Motif: {reason.value.upper()}\n"
+                f"Compte: {str(getattr(pos, 'mode', 'futures_demo'))}"
+            )
+        except Exception:
+            pass
 
     pos_manager.on_close(_on_position_close)
 
@@ -6008,6 +6155,7 @@ def main(
                         # D. Audit log — une ligne JSONL par ordre tenté
                         if _validated and _EXEC_CONSTRAINTS_AVAILABLE:
                             try:
+                                import json as _json
                                 _audit = {
                                     "ts": time.time(),
                                     "symbol": sym,
@@ -7186,8 +7334,11 @@ def main(
                             log.debug("[RealBot] rapport erreur: %s", _rbe)
                     # ─────────────────────────────────────────────────────────
 
+                    # Note : la livraison réelle est tracée par _telegram()
+                    # (succès/échec + escalade). Ce log marque le cycle traité,
+                    # il n'affirme plus une livraison qui pourrait avoir 404.
                     log.info(
-                        "[RAPPORT] Telegram envoye — cycle %d (%d symboles)",
+                        "[RAPPORT] cycle %d traité (%d symboles)",
                         cycle,
                         len(results),
                     )

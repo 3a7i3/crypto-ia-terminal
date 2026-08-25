@@ -61,7 +61,6 @@ def load_timeline_snapshot() -> TimelineSnapshot:
     )
 
     # Keep TRADE packets first, then SIGNAL_GENERATED, then others — skip SYSTEM noise
-    priority_order = {"TRADE": 0, "SIGNAL": 1, "EXECUTION_PENDING": 2}
 
     def sort_key(p: dict):
         cat = p.get("event_category", "")

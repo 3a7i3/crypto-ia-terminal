@@ -19,9 +19,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
-import tempfile
 import time
-from pathlib import Path
 
 import pytest
 
@@ -134,7 +132,6 @@ class TestBlackBoxEncryption:
             enc.decrypt(tampered)
 
     def test_different_master_secret_cannot_decrypt(self):
-        from cryptography.exceptions import InvalidTag
 
         from crypto.blackbox_encryption import BlackBoxEncryption
 
@@ -346,7 +343,6 @@ class TestApiKeyVault:
         assert "use" in actions
 
     def test_tampered_vault_file_raises(self, tmp_path):
-        from cryptography.exceptions import InvalidTag
 
         from crypto.api_key_vault import ApiKeyVault
 
@@ -376,7 +372,6 @@ class TestApiKeyVault:
             assert bytes(key) == b"my_precious_secret"
 
     def test_rekey_old_vault_unreadable_with_new_key(self, tmp_path):
-        from cryptography.exceptions import InvalidTag
 
         from crypto.api_key_vault import ApiKeyVault
 
@@ -384,7 +379,7 @@ class TestApiKeyVault:
         v_old = ApiKeyVault(master_secret=b"old_key", vault_path=vp)
         v_old.store("api", b"secret")
         # Snapshot avant rekey
-        old_data = json.loads(vp.read_text())
+        json.loads(vp.read_text())
         # Rekey
         v_old.rekey(new_master_secret=b"new_key")
         # Tenter de lire avec l'ancienne clé → doit lever une exception
@@ -778,7 +773,6 @@ class TestIntegration:
 
     def test_blackbox_writes_encrypted(self, tmp_path):
         """Les entrées BlackBox ne sont pas en clair sur disque."""
-        import json as _json
 
         from quant_hedge_ai.agents.intelligence.black_box import BlackBox
 

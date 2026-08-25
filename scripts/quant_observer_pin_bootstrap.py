@@ -123,7 +123,7 @@ def main() -> int:
     # 3. Instructions finales
     print()
     print("=" * 60)
-    print(f"[bootstrap] ID a copier dans .env :")
+    print("[bootstrap] ID a copier dans .env :")
     print()
     print(f"    QC_PINNED_MSG_ID={message_id}")
     print()

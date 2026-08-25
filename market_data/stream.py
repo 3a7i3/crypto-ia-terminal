@@ -26,9 +26,6 @@ from typing import AsyncGenerator, Callable, Optional
 from market_data.connectors.base import BaseConnector
 from market_data.models import (
     MarketEvent,
-    NormalizedCandle,
-    NormalizedOrderBook,
-    NormalizedTrade,
 )
 from observability.json_logger import get_logger
 

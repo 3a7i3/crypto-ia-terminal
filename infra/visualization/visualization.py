@@ -4,11 +4,9 @@ Contient les fonctions de visualisation (plots, exports)
 """
 
 import matplotlib.pyplot as plt
-import numpy as np
 
 
 def plot_god_mode(df, tracked_id=None, show_plots=True):
-    from mpl_toolkits.mplot3d import Axes3D
 
     if not all(
         col in df.columns for col in ["exit.tp", "exit.sl", "fitness", "species"]

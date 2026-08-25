@@ -78,9 +78,15 @@ def current_trace_id() -> str:
 
 
 class JsonFormatter(logging.Formatter):
-    def __init__(self, module: str, category: str) -> None:
+    """Formatter for the shared per-category handler.
+
+    The module name is read from the LogRecord (`module_name` extra), not fixed
+    at construction — a single handler is shared by every module writing to this
+    category, so each line must carry its own producer.
+    """
+
+    def __init__(self, category: str) -> None:
         super().__init__()
-        self._module = module
         self._category = category
 
     def format(self, record: logging.LogRecord) -> str:
@@ -89,7 +95,7 @@ class JsonFormatter(logging.Formatter):
                 record.created, tz=timezone.utc
             ).isoformat(),
             "trace_id": getattr(record, "trace_id", None) or current_trace_id() or "",
-            "module": self._module,
+            "module": getattr(record, "module_name", None) or record.name,
             "category": self._category,
             "event": getattr(record, "event", ""),
             "severity": record.levelname,
@@ -99,6 +105,84 @@ class JsonFormatter(logging.Formatter):
         if record.exc_info:
             payload["exception"] = self.formatException(record.exc_info)
         return json.dumps(payload, ensure_ascii=False, default=str)
+
+
+# ------------------------------------------------------------------
+# Shared per-category file handler (R1 — fixes the FD leak)
+# ------------------------------------------------------------------
+#
+# Root cause of the observed leak: the previous code created ONE
+# RotatingFileHandler per (module, category). With ~190 modules all logging to
+# the shared `runtime` category, ~190 handlers opened the same file; each one
+# rotated independently and the others kept the now-deleted inode open and
+# wrote into it → FD leak, invisible disk retention, and silent post-rotation
+# data loss.
+#
+# Fix: exactly ONE handler per category, shared by every module. A single owner
+# performs rotation under its own lock → no competing rollover, no orphaned
+# inode, no lost record. The handler also rolls to a new dated file at midnight
+# so the `<date>.jsonl` names are truthful in a long-lived process.
+
+
+class _DailySizeRotatingHandler(RotatingFileHandler):
+    """One shared writer per category: size rotation (.1….7) within a day AND a
+    clean switch to a new `<date>.jsonl` file when the calendar day changes."""
+
+    def __init__(
+        self,
+        category: str,
+        *,
+        max_bytes: int,
+        backup_count: int,
+        encoding: str = "utf-8",
+    ) -> None:
+        self._category = category
+        self._current_date = datetime.now().strftime("%Y-%m-%d")
+        super().__init__(
+            self._path_for(self._current_date),
+            maxBytes=max_bytes,
+            backupCount=backup_count,
+            encoding=encoding,
+        )
+
+    def _path_for(self, date_str: str) -> str:
+        return str(LOG_ROOT / self._category / f"{date_str}.jsonl")
+
+    def shouldRollover(self, record: logging.LogRecord) -> int:  # noqa: N802
+        if datetime.now().strftime("%Y-%m-%d") != self._current_date:
+            return 1
+        return super().shouldRollover(record)
+
+    def doRollover(self) -> None:  # noqa: N802
+        today = datetime.now().strftime("%Y-%m-%d")
+        if today != self._current_date:
+            # New day: open a fresh dated file, do NOT shuffle .1….7 backups.
+            self._current_date = today
+            if self.stream:
+                self.stream.close()
+                self.stream = None  # type: ignore[assignment]
+            self.baseFilename = os.path.abspath(self._path_for(today))
+            if not self.delay:
+                self.stream = self._open()
+            return
+        super().doRollover()
+
+
+_category_handlers: Dict[str, _DailySizeRotatingHandler] = {}
+_category_handlers_lock = threading.Lock()
+
+
+def _get_category_handler(category: str) -> _DailySizeRotatingHandler:
+    """Return the single shared file handler for a category (create once)."""
+    with _category_handlers_lock:
+        h = _category_handlers.get(category)
+        if h is None:
+            h = _DailySizeRotatingHandler(
+                category, max_bytes=50 * 1024 * 1024, backup_count=7
+            )
+            h.setFormatter(JsonFormatter(category))
+            _category_handlers[category] = h
+        return h
 
 
 # ------------------------------------------------------------------
@@ -137,24 +221,27 @@ class StructuredLogger:
             logger.setLevel(logging.DEBUG)
             logger.propagate = False
 
-            # JSON file handler
-            date_str = datetime.now().strftime("%Y-%m-%d")
-            log_file = LOG_ROOT / category / f"{date_str}.jsonl"
-            fh = RotatingFileHandler(
-                log_file, maxBytes=50 * 1024 * 1024, backupCount=7, encoding="utf-8"
-            )
-            fh.setFormatter(JsonFormatter(self._module, category))
-            logger.addHandler(fh)
+            # SHARED JSON file handler — one per category, reused across all
+            # modules (R1). Guard against double-attach if the same underlying
+            # stdlib logger is reached twice.
+            fh = _get_category_handler(category)
+            if fh not in logger.handlers:
+                logger.addHandler(fh)
 
-            # Console handler (human readable)
-            ch = logging.StreamHandler()
-            ch.setFormatter(
-                logging.Formatter(
-                    f"%(asctime)s [%(levelname)-8s] [{self._module}] %(message)s",
-                    datefmt="%H:%M:%S",
+            # Console handler (human readable) — per logger, writes to stdout
+            # (fd 1), so it never leaks descriptors. Tagged to avoid duplicates.
+            if not any(
+                getattr(h, "_scios_console", False) for h in logger.handlers
+            ):
+                ch = logging.StreamHandler()
+                ch._scios_console = True  # type: ignore[attr-defined]
+                ch.setFormatter(
+                    logging.Formatter(
+                        f"%(asctime)s [%(levelname)-8s] [{self._module}] %(message)s",
+                        datefmt="%H:%M:%S",
+                    )
                 )
-            )
-            logger.addHandler(ch)
+                logger.addHandler(ch)
 
             self._loggers[category] = logger
             return logger
@@ -178,6 +265,9 @@ class StructuredLogger:
             "event": event,
             "trace_id": trace_id or current_trace_id(),
             "context": context or {},
+            # module travels on the record so the shared category handler can
+            # label each line with its true producer.
+            "module_name": self._module,
         }
         logger.log(level, msg, extra=extra)
 

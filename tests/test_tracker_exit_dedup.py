@@ -15,7 +15,6 @@ from tracker_system.core.trade_tracker import (
     update_positions,
     sync_entries_from_log,
 )
-from tracker_system.engine.exit_engine import ExitEngine
 from tracker_system.engine.exit_factory import build_exit_engine
 from tracker_system.core.position_manager import load_positions
 
@@ -64,7 +63,7 @@ class TestTradeTrackerDedup(unittest.TestCase):
             log_file = root / "trades.jsonl"
             state_file = root / "positions.json"
 
-            position = open_position(
+            open_position(
                 symbol="ETH/USDT",
                 side="BUY",
                 price=3000.0,

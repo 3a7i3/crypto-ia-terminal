@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
-import pytest
 
-from dip.core.types import DecisionStatus, LayerStatus, ScenarioType
+from dip.core.types import DecisionStatus, ScenarioType
 from dip.modules.counterfactual import (
     CounterfactualEngine,
     ImpactAssessor,
@@ -74,7 +73,6 @@ class TestImpactAssessor:
 class TestCounterfactualEngine:
 
     def test_simulate_without_layer(self, tmp_store):
-        from dip.modules.counterfactual import CounterfactualEngine
         from dip.modules.decision_graph import DecisionGraphEngine
 
         graph_engine = DecisionGraphEngine()
@@ -93,7 +91,6 @@ class TestCounterfactualEngine:
             assert result.disclaimer
 
     def test_disclaimer_present(self, tmp_store):
-        from dip.modules.counterfactual import CounterfactualEngine
         from dip.modules.decision_graph import DecisionGraphEngine
 
         graph_engine = DecisionGraphEngine()
@@ -112,7 +109,6 @@ class TestCounterfactualEngine:
             )
 
     def test_confidence_max_085(self, tmp_store):
-        from dip.modules.counterfactual import CounterfactualEngine
         from dip.modules.decision_graph import DecisionGraphEngine
 
         graph_engine = DecisionGraphEngine()
@@ -129,7 +125,6 @@ class TestCounterfactualEngine:
                 assert result.confidence <= 0.85
 
     def test_batch_simulate(self, tmp_store):
-        from dip.modules.counterfactual import CounterfactualEngine
         from dip.modules.decision_graph import DecisionGraphEngine
 
         graph_engine = DecisionGraphEngine()

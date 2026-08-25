@@ -100,15 +100,13 @@ class PerformanceSupervisor:
         Hypothèse : 252 trading days, ≈ 1 trade/jour.
         Retourne 0.0 si insuffisamment de données.
         """
+        from metrics.sharpe import sharpe as _sharpe_fn
+
         trades = list(self._trades)[-window:]
         if len(trades) < 3:
             return 0.0
         returns = [t.pnl_pct for t in trades]
-        mean_r = sum(returns) / len(returns)
-        std_r = math.sqrt(sum((r - mean_r) ** 2 for r in returns) / len(returns))
-        if std_r < 1e-8:
-            return 0.0
-        return round((mean_r / std_r) * math.sqrt(252), 4)
+        return round(_sharpe_fn(returns, periods_per_year=252.0), 4)
 
     def profit_factor(self, window: int = 100) -> float:
         """

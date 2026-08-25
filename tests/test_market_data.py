@@ -422,7 +422,7 @@ class TestAbsorptionTracker:
         trades = [
             NormalizedTrade("b", "X", i * 100, 100.0, 1.0, "buy") for i in range(20)
         ]
-        events = [tracker.update(t) for t in trades if tracker.update(t) is not None]
+        [tracker.update(t) for t in trades if tracker.update(t) is not None]
         # Avec seuil bas, au moins un event doit etre detecte sur 20 trades
         # (on appelle update deux fois par trade dans ce test donc on re-teste proprement)
 

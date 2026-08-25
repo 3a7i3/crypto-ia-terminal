@@ -1,4 +1,3 @@
-import pytest
 
 from src.agent.codex_agent import CodexAgent
 from src.agent.sma_strategy import SMAStrategy

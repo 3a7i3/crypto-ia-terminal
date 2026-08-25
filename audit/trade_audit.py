@@ -51,7 +51,7 @@ class TradeAudit:
         """Le trade était-il une erreur?"""
         mae = float(self.exit.get("mae", 0.0))
         pnl_pct = float(self.exit.get("pnl_pct", 0.0))
-        mfe = float(self.exit.get("mfe", 0.0))
+        float(self.exit.get("mfe", 0.0))
 
         if pnl_pct > 0 and mae < pnl_pct * -0.5:
             return True
@@ -60,8 +60,8 @@ class TradeAudit:
     def get_quality_label(self) -> str:
         """Qualité du trade."""
         pnl = float(self.exit.get("pnl_pct", 0.0))
-        mfe = float(self.exit.get("mfe", 0.0))
-        mae = float(self.exit.get("mae", 0.0))
+        float(self.exit.get("mfe", 0.0))
+        float(self.exit.get("mae", 0.0))
 
         if pnl > 0:
             if self.was_lucky():

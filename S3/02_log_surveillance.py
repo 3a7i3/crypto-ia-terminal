@@ -86,7 +86,7 @@ def analyze(log_lines: list[str]) -> dict:
         r"(Traceback \(most recent call last\).*?)(?=\n\n|\Z)", text, re.DOTALL
     )
     # Compter aussi les ERROR logs simples
-    error_lines = [l for l in log_lines if " ERROR " in l or " CRITICAL " in l]
+    error_lines = [line for line in log_lines if " ERROR " in line or " CRITICAL " in line]
     if exceptions:
         issues.append(
             {
@@ -109,7 +109,7 @@ def analyze(log_lines: list[str]) -> dict:
 
     # ── Watchdog restarts ─────────────────────────────────────────────────────
     restarts = [
-        l for l in log_lines if "restart" in l.lower() or "restarting" in l.lower()
+        line for line in log_lines if "restart" in line.lower() or "restarting" in line.lower()
     ]
     if len(restarts) >= 3:
         issues.append(
@@ -123,14 +123,14 @@ def analyze(log_lines: list[str]) -> dict:
 
     # ── DANGER / FREEZE ───────────────────────────────────────────────────────
     danger_lines = [
-        l for l in log_lines if "DANGER" in l or "FREEZE" in l or "CRITICAL" in l
+        line for line in log_lines if "DANGER" in line or "FREEZE" in line or "CRITICAL" in line
     ]
     if danger_lines:
         issues.append(
             {
                 "severity": (
                     "CRITICAL"
-                    if any("CRITICAL" in l for l in danger_lines)
+                    if any("CRITICAL" in line for line in danger_lines)
                     else "WARNING"
                 ),
                 "category": "danger_freeze",
@@ -142,9 +142,9 @@ def analyze(log_lines: list[str]) -> dict:
 
     # ── Mémoire ───────────────────────────────────────────────────────────────
     mem_issues = [
-        l
-        for l in log_lines
-        if "MemoryError" in l or "OOM" in l or "out of memory" in l.lower()
+        line
+        for line in log_lines
+        if "MemoryError" in line or "OOM" in line or "out of memory" in line.lower()
     ]
     if mem_issues:
         issues.append(
@@ -158,7 +158,7 @@ def analyze(log_lines: list[str]) -> dict:
 
     # ── Inactivité ────────────────────────────────────────────────────────────
     cycle_lines = [
-        l for l in log_lines if "cycle" in l.lower() or "advisor_loop" in l.lower()
+        line for line in log_lines if "cycle" in line.lower() or "advisor_loop" in line.lower()
     ]
     if cycle_lines:
         # Chercher le timestamp de la dernière ligne de cycle

@@ -248,7 +248,7 @@ def check_iv002(verbose: bool = False) -> CheckResult:
         for layer in LAYER_ORDER:
             obs = _make_obs(trade_allowed=False, blocker=layer)
             graph = GraphBuilder.build(obs)
-            pid = obs.packet_id[:8]
+            obs.packet_id[:8]
 
             if not obs.first_blocker:
                 errors.append(f"{layer}: obs.first_blocker est None")
@@ -270,7 +270,7 @@ def check_iv002(verbose: bool = False) -> CheckResult:
             passed=passed,
             duration_ms=(time.time() - start) * 1000,
             details=(
-                f"12/12 couches -> BLOCKED correct"
+                "12/12 couches -> BLOCKED correct"
                 if not errors
                 else f"{len(errors)} erreurs sur 12 couches"
             ),

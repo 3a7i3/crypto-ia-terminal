@@ -16,7 +16,6 @@ import random
 import tempfile
 from pathlib import Path
 
-import pytest
 
 # exchange_constraints
 from exchange_constraints.binance_rules import get_symbol_info
@@ -24,19 +23,17 @@ from exchange_constraints.order_validator import OrderValidator
 
 # execution_simulator
 from execution_simulator.config import binance_usdt_futures_simulator
-from execution_simulator.fill_error_metric import FillErrorMetric, FillMatcher, RealFill
+from execution_simulator.fill_error_metric import FillErrorMetric, FillMatcher
 from execution_simulator.models import MarketSnapshot, OrderIntent
-from market_data.metrics.flow import CumulativeDeltaTracker, FlowSnapshot
+from market_data.metrics.flow import FlowSnapshot
 
 # market_data
-from market_data.models import MarketEvent, NormalizedOrderBook, NormalizedTrade
 from market_data.replay_engine import ReplayEngine
 
 # metrics / monitor
-from metrics.oos_metrics import TradeResult, compute_oos_metrics
+from metrics.oos_metrics import TradeResult
 from monitor.degradation_tracker import DegradationTracker
 from monitoring.logger import null_sink
-from monitoring.metrics import MetricsRegistry
 from monitoring.pipeline_monitor import PipelineMonitor
 
 # walk_forward
@@ -169,7 +166,7 @@ class TestMarketDataToReplay:
 class TestExecutionWithConstraints:
 
     def test_valid_order_fills(self):
-        rng = random.Random(SEED)
+        random.Random(SEED)
         sim = binance_usdt_futures_simulator(seed=SEED)
         info = get_symbol_info("BTCUSDT")
         validator = OrderValidator()
@@ -373,7 +370,7 @@ class TestDegradationInPipeline:
 
     def test_degrading_strategy_detected(self):
         """Strategie en degradation -> DegradationTracker signale."""
-        rng = random.Random(SEED)
+        random.Random(SEED)
         tracker = DegradationTracker(
             sharpe_z_warning=-1.0,
             sharpe_z_critical=-2.0,

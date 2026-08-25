@@ -116,8 +116,8 @@ class TestBollinger:
     def test_upper_above_lower(self):
         prices = [float(p) for p in range(1, 50)]
         upper, lower = _bollinger(prices, 20)
-        for u, l in zip(upper[19:], lower[19:]):
-            assert u > l
+        for u, lo in zip(upper[19:], lower[19:]):
+            assert u > lo
 
     def test_length_preserved(self):
         prices = list(range(30))

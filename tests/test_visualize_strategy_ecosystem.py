@@ -2,10 +2,8 @@ from __future__ import annotations
 
 import importlib
 import sys
-from types import SimpleNamespace
 
 import pandas as pd
-import pytest
 
 
 def _import_module(monkeypatch, dataframe: pd.DataFrame):

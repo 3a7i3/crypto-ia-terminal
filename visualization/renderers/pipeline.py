@@ -68,7 +68,7 @@ class PipelineRenderer(BaseRenderer):
         y_center = 0.55
 
         refusal = p.refusal_breakdown or {}
-        total_refused = sum(refusal.values()) or 1
+        sum(refusal.values()) or 1
 
         for i, (label, key) in enumerate(_LAYERS):
             x = x_start + i * (box_w + gap)

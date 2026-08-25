@@ -16,7 +16,7 @@ from datetime import datetime, timedelta, timezone
 import pytest
 
 from src.analytics.is_oos_splitter import split_is_oos
-from src.domain.trade_event import MarketRegime, TradeEvent
+from src.domain.trade_event import TradeEvent
 
 # ── Factory ──────────────────────────────────────────────────────────────────
 

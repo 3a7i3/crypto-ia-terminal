@@ -233,7 +233,7 @@ def scan_project(
             ):
                 continue
 
-        rel = py_file.relative_to(root)
+        py_file.relative_to(root)
         package = parts[0] if len(parts) > 1 else "root"
 
         if pkg_filter and package != pkg_filter:

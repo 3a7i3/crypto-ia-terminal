@@ -18,7 +18,7 @@ import pytest
 
 from src.analytics.bootstrap_stability import BootstrapResult, run_bootstrap_stability
 from src.analytics.is_oos_splitter import split_is_oos
-from src.domain.trade_event import MarketRegime, TradeEvent
+from src.domain.trade_event import TradeEvent
 
 _EPOCH = datetime(2026, 1, 1, tzinfo=timezone.utc)
 

@@ -27,7 +27,7 @@ from cold_start.warmup_state_machine import WarmupState
 from observability.json_logger import get_logger
 from runtime.execution_context import ExecutionContext
 from runtime.lifecycle_manager import LifecycleManager
-from runtime.runtime_coordinator import CycleResult, RuntimeCoordinator
+from runtime.runtime_coordinator import RuntimeCoordinator
 from runtime.system_state_bus import (
     CHANNEL_SYSTEM_BOOT,
     CHANNEL_SYSTEM_SHUTDOWN,
@@ -396,7 +396,6 @@ def main(
     # ── Boucle principale ─────────────────────────────────────────────────────
     cycle = 0
     prev_ctx: Optional[ExecutionContext] = None
-    last_result: Optional[CycleResult] = None
 
     try:
         while True:
@@ -408,7 +407,6 @@ def main(
             _log.info("[advisor_main] cycle=%d id=%s", cycle, ctx.cycle_id)
             result = coordinator.run_cycle(ctx)
             prev_ctx = ctx
-            last_result = result
 
             if not result.success:
                 _log.warning("[advisor_main] cycle=%d FAIL — %s", cycle, result.error)

@@ -318,7 +318,7 @@ class TestA6NetworkLoss:
         exchange.fetch_order.side_effect = RuntimeError("unexpected crash")
 
         try:
-            report = tracker.reconcile_with_exchange(exchange)
+            tracker.reconcile_with_exchange(exchange)
         except Exception as exc:
             pytest.fail(f"reconcile_with_exchange a levé: {exc}")
 

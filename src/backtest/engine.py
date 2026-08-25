@@ -43,7 +43,7 @@ class BacktestEngine:
                 pending_close = {"symbol": pending_open["symbol"]}
                 pending_open = None
 
-            if pending_close is not None and candle is not None:
+            elif pending_close is not None and candle is not None:
                 symbol = pending_close["symbol"]
                 if symbol in self.portfolio.positions:
                     close_meta = {

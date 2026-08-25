@@ -22,9 +22,7 @@ Critère go/no-go P5 :
 
 from __future__ import annotations
 
-import math
 from dataclasses import dataclass
-from typing import Optional
 
 # ── Ruin Probability ──────────────────────────────────────────────────────────
 
@@ -233,7 +231,7 @@ class RobustnessReport:
 
     def __str__(self) -> str:
         lines = [
-            f"══ Robustness Report ══",
+            "══ Robustness Report ══",
             f"  GO/NO-GO     : {self.go_no_go}",
             f"  Survival     : {self.survival_score:.1f}/100",
             f"  Ruin prob    : {self.ruin_probability:.1%}",

@@ -12,7 +12,6 @@ Dérivation pour un mot de passe (vault) : PBKDF2-SHA256 avec sel stocké.
 
 from __future__ import annotations
 
-import hashlib
 import os
 from typing import Optional
 

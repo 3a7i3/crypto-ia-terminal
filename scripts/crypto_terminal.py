@@ -59,7 +59,7 @@ def update():
     rsi_chart = df.hvplot(x="timestamp", y="rsi", height=200, title="RSI")
 
     return pn.Column(
-        f"# 🚀 Crypto Quant Bot",
+        "# 🚀 Crypto Quant Bot",
         f"### Signal : **{signal}**",
         chart,
         rsi_chart,

@@ -99,7 +99,6 @@ class RegimeStateTracker:
             self._votes = self._votes[-self._stability :]
 
         # ── Hystérésis : transition validée après N cycles identiques ────────
-        changed = False
         if (
             len(self._votes) == self._stability
             and len(set(self._votes)) == 1
@@ -110,7 +109,6 @@ class RegimeStateTracker:
             self._duration = 0
             self._confidence = 0.5  # reset à la transition
             self._in_transition = True
-            changed = True
             _log.info(
                 "[RegimeStateTracker] Transition confirmée: %s → %s",
                 self._prev_stable,

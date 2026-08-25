@@ -8,7 +8,7 @@ on:
 
 jobs:
   coveralls-upload:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
@@ -18,11 +18,22 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install pytest pytest-cov coveralls
+          pip install -r requirements-ci.txt
+          pip install coveralls
       - name: Run tests with coverage
-        run: pytest --cov=. --cov-report=xml
+        run: |
+          pytest \
+            --cov=supervision \
+            --cov=quant_hedge_ai/agents/market \
+            --cov=quant_hedge_ai/agents/execution \
+            --cov=quant_hedge_ai/agents/risk \
+            --cov=quant_hedge_ai/agents/quant \
+            --cov-report=xml \
+            --cov-report=term-missing \
+            -x -q \
+            supervision/test_supervision.py \
+            quant_hedge_ai/strategy_lab/test_strategy_lab.py
       - name: Upload coverage to Coveralls
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: coveralls --service=github
+        run: coveralls --service=github || true

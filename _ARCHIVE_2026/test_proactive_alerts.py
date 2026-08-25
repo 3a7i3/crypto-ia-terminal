@@ -2,16 +2,11 @@
 
 from __future__ import annotations
 
-import time
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from quant_hedge_ai.agents.intelligence.proactive_alerts import (
-    _COOLDOWN_REGIME,
-    _COOLDOWN_RISK,
-    _COOLDOWN_SIGNAL,
-    AlertRecord,
     ProactiveAlerts,
 )
 

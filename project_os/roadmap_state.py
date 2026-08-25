@@ -215,7 +215,7 @@ def _print_state(state: dict[str, Any]) -> None:
 
     actions = state.get("next_actions", [])
     if actions:
-        print(f"\n  Prochaines actions :")
+        print("\n  Prochaines actions :")
         for i, a in enumerate(actions, 1):
             print(f"    {i}. {a}")
 

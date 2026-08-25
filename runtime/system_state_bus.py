@@ -13,7 +13,7 @@ import os
 import threading
 import time
 from collections import defaultdict, deque
-from typing import Any, Callable, Optional
+from typing import Callable, Optional
 
 from observability.json_logger import get_logger
 

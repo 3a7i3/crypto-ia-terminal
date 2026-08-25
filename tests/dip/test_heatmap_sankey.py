@@ -4,12 +4,10 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
-import pytest
 
-from dip.core.types import HeatmapType, SankeyNodeType, TimeRange, now_us
+from dip.core.types import HeatmapType, SankeyNodeType, TimeRange
 from dip.modules.decision_heatmap import DecisionHeatmapEngine, HeatmapBuilder
 from dip.modules.decision_sankey import DecisionSankeyEngine, SankeyBuilder
-from tests.dip.conftest import _insert_decision
 
 
 class TestHeatmapBuilder:

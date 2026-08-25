@@ -21,7 +21,7 @@ from metrics.oos_metrics import OOSMetrics, TradeResult, compute_oos_metrics
 from metrics.stability_score import compute_stability_score
 from monitor.degradation_tracker import DegradationTracker, _mann_kendall
 from walk_forward.engine import WalkForwardEngine
-from walk_forward.walk_forward_loop import FoldResult, WalkForwardLoop
+from walk_forward.walk_forward_loop import WalkForwardLoop
 from walk_forward.window_splitter import WalkForwardWindow, WindowSplitter
 
 SEED = 42
@@ -455,7 +455,7 @@ class TestDegradationTracker:
     def test_no_alert_stable_performance(self):
         tracker = DegradationTracker(window=5)
         for i in range(10):
-            events = tracker.record(i, _make_metrics(sharpe=1.5, win_rate=0.65))
+            tracker.record(i, _make_metrics(sharpe=1.5, win_rate=0.65))
         assert not tracker.is_degrading
 
     def test_warning_on_sharp_drop(self):

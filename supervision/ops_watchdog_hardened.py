@@ -119,7 +119,8 @@ class HardenedOpsWatchdog:
 
         try:
             notifier = OpsNotifier.from_env()
-            alert_fn = lambda msg: notifier.info(msg, key="watchdog_alert")
+            def alert_fn(msg):
+                return notifier.info(msg, key="watchdog_alert")
         except Exception:
             alert_fn = None
 

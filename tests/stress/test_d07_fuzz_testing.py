@@ -15,13 +15,10 @@ Total : 10 tests
 from __future__ import annotations
 
 import json
-import math
 import random
-import string
 import time
 from typing import Any
 
-import pytest
 
 SEED = 2026
 _RNG = random.Random(SEED)
@@ -236,7 +233,7 @@ class TestFuzzDecisionPacket:
 
     def test_fuzz_to_dict_no_crash(self):
         """to_dict() sur un packet valide ne doit jamais crasher."""
-        from core.decision_packet import DecisionPacket, DecisionSide, MarketRegime
+        from core.decision_packet import DecisionPacket
 
         _RNG.seed(SEED + 4)
         for _ in range(500):

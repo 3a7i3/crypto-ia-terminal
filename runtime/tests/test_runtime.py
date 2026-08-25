@@ -21,7 +21,7 @@ import pytest
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 
 
-def _ctx(**overrides) -> "ExecutionContext":
+def _ctx(**overrides) -> "ExecutionContext":  # noqa: F821
     from runtime.execution_context import ExecutionContext
 
     base = dict(
@@ -320,7 +320,7 @@ def test_bus_reset():
 # ── Section 3 : LifecycleManager (B-02) ──────────────────────────────────────
 
 
-def _make_manager(tmp_path: Path) -> "LifecycleManager":
+def _make_manager(tmp_path: Path) -> "LifecycleManager":  # noqa: F821
     from runtime.lifecycle_manager import LifecycleManager
 
     return LifecycleManager(journal_path=tmp_path / "journal.jsonl")
@@ -452,7 +452,7 @@ def test_lifecycle_journal_written(tmp_path):
     mgr.start("a")
     mgr.stop("a")
     journal = (tmp_path / "journal.jsonl").read_text().splitlines()
-    events = [json.loads(l)["event"] for l in journal]
+    events = [json.loads(line)["event"] for line in journal]
     assert "REGISTERED" in events
     assert "STARTED" in events
     assert "STOPPED" in events

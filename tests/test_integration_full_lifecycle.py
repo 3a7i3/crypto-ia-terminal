@@ -8,12 +8,9 @@ import json
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from datetime import datetime, timezone
-import time
 
 from tracker_system.core.trade_tracker import (
     open_position,
-    close_position,
     update_positions,
 )
 from tracker_system.engine.composite_exit_engine import CompositeExitEngine
@@ -51,7 +48,7 @@ class TestFullTradeLifecycle(unittest.TestCase):
     def test_lifecycle_1_long_tp_hit(self) -> None:
         """Lifecycle: LONG → TP touché → PnL positif."""
         # === ÉTAPE 1: SIGNAL → ENTRY ===
-        position = open_position(
+        open_position(
             symbol="BTC/USDT",
             side="BUY",
             price=50000.0,
@@ -112,7 +109,7 @@ class TestFullTradeLifecycle(unittest.TestCase):
 
     def test_lifecycle_2_short_sl_hit(self) -> None:
         """Lifecycle: SHORT → SL touché → PnL négatif."""
-        position = open_position(
+        open_position(
             symbol="ETH/USDT",
             side="SELL",
             price=3000.0,
@@ -151,7 +148,7 @@ class TestFullTradeLifecycle(unittest.TestCase):
 
     def test_lifecycle_3_multiple_positions(self) -> None:
         """Lifecycle: Plusieurs positions en parallèle."""
-        pos1 = open_position(
+        open_position(
             symbol="BTC/USDT",
             side="BUY",
             price=50000.0,
@@ -162,7 +159,7 @@ class TestFullTradeLifecycle(unittest.TestCase):
             state_file=self.state_file,
         )
 
-        pos2 = open_position(
+        open_position(
             symbol="ETH/USDT",
             side="BUY",
             price=3000.0,

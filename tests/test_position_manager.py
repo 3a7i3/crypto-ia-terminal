@@ -170,7 +170,6 @@ def test_atr_update_recalculates_sl_tp():
         use_atr=True,
         atr=0.0,
     )
-    old_tp = pos.tp_price
     pos.update_market_data(atr=5.0)
     assert pos.atr == 5.0
     # Avec ATR=5 et mult=2.5 → TP devrait être ~112.5

@@ -19,7 +19,6 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass, field
-from typing import Optional
 
 from capital_deployment.capital_throttle import PHASE_ORDER
 from capital_deployment.phase_kpi_tracker import PHASE_CRITERIA, PhaseKPITracker

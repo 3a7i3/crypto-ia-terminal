@@ -3,7 +3,7 @@ P2 — MULTI-ASSET PORTFOLIO MANAGEMENT
 Gérer plusieurs actifs avec allocation intelligente
 """
 
-from typing import List, Dict, Tuple, Optional
+from typing import List, Dict, Tuple
 from statistics import mean
 
 

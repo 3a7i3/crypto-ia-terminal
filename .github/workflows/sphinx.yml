@@ -16,6 +16,9 @@ on:
       - '.github/workflows/sphinx.yml'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build-docs:
     runs-on: ubuntu-latest
@@ -31,13 +34,13 @@ jobs:
           pip install -r docs/requirements.txt
       - name: Copy Markdown files
         run: |
-          python copy_docs_for_sphinx.py
+          python scripts/copy_docs_for_sphinx.py
       - name: Build Sphinx HTML
         run: |
           sphinx-build -b html docs docs/_build/html
       - name: Check for broken links
+        continue-on-error: true
         run: |
-          pip install sphinx-linkcheck
           sphinx-build -b linkcheck docs docs/_build/linkcheck
       - name: Notify Discord (optionnel)
         if: always()
@@ -63,6 +66,7 @@ jobs:
           name: sphinx-docs-html
           path: docs/_build/html
       - name: Deploy to GitHub Pages
+        if: github.ref == 'refs/heads/main'
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}

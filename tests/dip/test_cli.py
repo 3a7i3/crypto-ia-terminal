@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
-import pytest
 
 from dip.cli import build_parser, main
 
@@ -220,7 +219,7 @@ class TestCmdKb:
 class TestCmdAudit:
 
     def test_audit_report(self, capsys, tmp_store):
-        from dip.modules.audit_trail import DecisionAuditTrail, get_audit_trail
+        from dip.modules.audit_trail import get_audit_trail
 
         trail = get_audit_trail()
         with patch.object(trail, "_store", tmp_store):

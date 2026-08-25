@@ -26,7 +26,7 @@ import socket
 import ssl
 import time
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 from observability.json_logger import get_logger
 

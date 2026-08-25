@@ -140,7 +140,7 @@ def main() -> int:
         builder.save(candidates, args.save)
         print(f"[PerpScan] Sauvegardé → {args.save}")
         print(
-            f"  Utilisation : V9_SYMBOLS=\"$(python scripts/perp_universe_scan.py --symbols-only | tr '\\n' ' ')\"",  # noqa: E501
+            "  Utilisation : V9_SYMBOLS=\"$(python scripts/perp_universe_scan.py --symbols-only | tr '\\n' ' ')\"",  # noqa: E501
         )
 
     return 0

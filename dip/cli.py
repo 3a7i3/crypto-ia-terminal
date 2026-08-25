@@ -224,7 +224,7 @@ def cmd_diff(args) -> int:
         return 1
     print(f"=== Diff — {diff.packet_id_a[:8]} vs {diff.packet_id_b[:8]} ===")
     print(f"Résumé: {diff.summary}")
-    print(f"\nContexte:")
+    print("\nContexte:")
     for cd in diff.context_diffs:
         mark = "*" if cd.changed else " "
         print(f"  {mark} {cd.field:<15} {cd.value_a!r:<20} → {cd.value_b!r}")
@@ -393,7 +393,7 @@ def cmd_kb(args) -> int:
 
     kb = get_knowledge_base()
     summary = kb.get_knowledge_summary()
-    print(f"=== Knowledge Base ===")
+    print("=== Knowledge Base ===")
     print(f"Entries: {summary.total_entries}  |  Règles: {summary.total_rules}")
     print(f"Taux d'approbation global: {summary.overall_approval_rate:.1%}")
     print(f"Couche bloquante dominante: {summary.top_rejection_cause}")
@@ -431,7 +431,7 @@ def cmd_health(args) -> int:
     print(f"Décisions indexées: {total}")
     print(f"Alertes actives:    {len(alerts)}")
     print(f"Entries KB:         {len(knowledge)}")
-    print(f"Store:              OK")
+    print("Store:              OK")
     print(f"\nStatus global: {'OK' if len(alerts) == 0 else 'WARNING'}")
     return 0
 
@@ -459,7 +459,7 @@ def cmd_metrics(args) -> int:
     print(f"Décisions:          {total}")
     print(f"Approuvées:         {approved} ({approved/total:.1%})")
     print(f"Rejetées:           {total-approved} ({rejection_rate:.1%})")
-    print(f"\nTop couches bloquantes:")
+    print("\nTop couches bloquantes:")
     for layer, cnt in sorted(layers.items(), key=lambda x: -x[1])[:5]:
         print(f"  {layer:<30} {cnt:4d} ({cnt/total:.1%})")
     return 0

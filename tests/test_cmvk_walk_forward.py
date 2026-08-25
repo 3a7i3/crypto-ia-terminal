@@ -1,4 +1,3 @@
-import pytest
 
 from src.backtest.data_feed import HistoricalDataFeed
 from src.backtest.market_generator import trend_up

@@ -220,7 +220,7 @@ def test_rejection_record_default_regret_fields():
 
 
 def test_persist_ioerror_does_not_raise(tmp_path):
-    store = _make_store(tmp_path / "nonexistent_subdir")
+    _make_store(tmp_path / "nonexistent_subdir")
     # Le store crée le répertoire — on force une erreur en rendant le path un fichier
     blocked = tmp_path / "blocked"
     blocked.write_text("not a dir")

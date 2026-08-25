@@ -36,7 +36,7 @@ import threading
 import time
 from collections import deque
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 from observability.metrics_bus import metrics_bus
 from system.state_manager import SystemState, state_manager

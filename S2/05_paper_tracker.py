@@ -164,7 +164,7 @@ def cmd_report() -> None:
 
     target_reached = global_wr >= TARGET_WR and days_active >= TARGET_DAYS
     if target_reached:
-        print(f"\n  ✓ OBJECTIF S2 ATTEINT — passage en live autorisé!")
+        print("\n  ✓ OBJECTIF S2 ATTEINT — passage en live autorisé!")
     elif days_active >= TARGET_DAYS:
         gap = TARGET_WR - global_wr
         print(f"\n  ✗ 14 jours complets mais WR={global_wr:.1%} (manque {gap:.1%})")

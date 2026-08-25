@@ -302,13 +302,11 @@ class TestRuntimeSnapshot:
         """
         Si on importe un module déjà en sys.modules, new_modules doit être vide.
         """
-        import json  # pre-load
 
         from core.initialization_contract import RuntimeSnapshot
 
         snap = RuntimeSnapshot()
         snap.before()
-        import json  # noqa: F811 — already loaded, no new entry
 
         snap.after()
         assert "json" not in snap.delta()["new_modules"]

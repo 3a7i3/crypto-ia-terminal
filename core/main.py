@@ -236,4 +236,3 @@ def load_state(filename: Path | str) -> tuple[PopulationMap, EnvironmentMap, int
 
 if __name__ == "__main__":
     main()
-    

@@ -22,7 +22,6 @@ import argparse
 import json
 import subprocess
 import time
-from collections import Counter
 from pathlib import Path
 
 PAPER_TRACKER_PATH = "databases/paper_tracking.jsonl"
@@ -112,8 +111,8 @@ def evaluate() -> dict:
     except Exception:
         logs = []
 
-    crashes = sum(1 for l in logs if "CRITICAL" in l or "Traceback" in l)
-    restarts = sum(1 for l in logs if "restart" in l.lower())
+    crashes = sum(1 for line in logs if "CRITICAL" in line or "Traceback" in line)
+    restarts = sum(1 for line in logs if "restart" in line.lower())
 
     scores["stability"] = {
         "label": "Stabilité système",
@@ -156,7 +155,7 @@ def evaluate() -> dict:
     }
 
     # ── 4. SelfAwareness ────────────────────────────────────────────────────────
-    danger_events = sum(1 for l in logs if "DANGER" in l or "FREEZE" in l)
+    danger_events = sum(1 for line in logs if "DANGER" in line or "FREEZE" in line)
 
     scores["self_awareness"] = {
         "label": "SelfAwareness",
@@ -190,9 +189,9 @@ def evaluate() -> dict:
     }
 
     # ── 6. Infrastructure ────────────────────────────────────────────────────────
-    mem_issues = sum(1 for l in logs if "MemoryError" in l or "OOM" in l)
+    mem_issues = sum(1 for line in logs if "MemoryError" in line or "OOM" in line)
     reconnects = sum(
-        1 for l in logs if "reconnect" in l.lower() or "Exchange initialisé" in l
+        1 for line in logs if "reconnect" in line.lower() or "Exchange initialisé" in line
     )
 
     scores["infra"] = {

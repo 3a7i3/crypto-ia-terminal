@@ -261,7 +261,7 @@ def run_setup() -> None:
         _write_env(updates)
         _print("\n  ✅  Configuration terminée !", _GREEN)
         _print(
-            f"  Lancez votre système avec : python -m quant_hedge_ai.backtest_real",
+            "  Lancez votre système avec : python -m quant_hedge_ai.backtest_real",
             _CYAN,
         )
     else:

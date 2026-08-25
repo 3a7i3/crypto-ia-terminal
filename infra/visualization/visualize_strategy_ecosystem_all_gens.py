@@ -1,18 +1,14 @@
 import configparser
 import glob
 import os
-from typing import Iterable
 
 
 def missing_module_message():
     missing = []
-    try:
-        import pandas
-    except ImportError:
+    import importlib.util
+    if importlib.util.find_spec("pandas") is None:
         missing.append("pandas")
-    try:
-        import plotly
-    except ImportError:
+    if importlib.util.find_spec("plotly") is None:
         missing.append("plotly")
     if missing:
         print(

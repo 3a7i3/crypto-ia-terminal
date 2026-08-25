@@ -68,7 +68,7 @@ print(f"  BEAR_TREND AUDIT — {len(trades)} trades")
 print(f"{'='*W}")
 
 # ── 1. BUY vs SELL ────────────────────────────────────────────
-print(f"\n  1. Sens des positions")
+print("\n  1. Sens des positions")
 print(f"  {'Side':<6} {'N':>4} {'WR':>6} {'PF':>7} {'PnL':>10}")
 print(f"  {'-'*38}")
 sides: dict[str, list[float]] = defaultdict(list)
@@ -79,7 +79,7 @@ for side in sorted(sides):
     print(f"  {side:<6} {len(pnls):>4} {wr(pnls):>6} {pf(pnls):>7} {sum(pnls):>+9.2f}$")
 
 # ── 2. Score buckets ──────────────────────────────────────────
-print(f"\n  2. PF par bucket de score")
+print("\n  2. PF par bucket de score")
 print(f"  {'Bucket':<8} {'N':>4} {'WR':>6} {'PF':>7} {'PnL':>10}")
 print(f"  {'-'*40}")
 buckets: dict[str, list[float]] = defaultdict(list)
@@ -98,7 +98,7 @@ for bkt in ["<65", "65-69", "70-74", "75+"]:
     print(f"  {bkt:<8} {len(pnls):>4} {wr(pnls):>6} {pf(pnls):>7} {sum(pnls):>+9.2f}$")
 
 # ── 3. MFE / MAE ─────────────────────────────────────────────
-print(f"\n  3. MFE / MAE (direction réelle du prix)")
+print("\n  3. MFE / MAE (direction réelle du prix)")
 mfe_vals = [t["mfe_pct"] for t in trades if t["mfe_pct"] is not None]
 mae_vals = [t["mae_pct"] for t in trades if t["mae_pct"] is not None]
 if mfe_vals:
@@ -126,7 +126,7 @@ if mae_vals:
     print(f"  MAE moy={sum(mae_vals)/len(mae_vals):.2f}%  max={max(mae_vals):.2f}%")
 
 # ── 4. Mode de sortie ─────────────────────────────────────────
-print(f"\n  4. Mode de sortie")
+print("\n  4. Mode de sortie")
 print(f"  {'Raison':<14} {'N':>4} {'WR':>6} {'PnL':>10}")
 print(f"  {'-'*38}")
 reasons: dict[str, list[float]] = defaultdict(list)
@@ -150,7 +150,7 @@ for cat, pnls in sorted(reasons.items(), key=lambda x: -len(x[1])):
     print(f"  {cat:<14} {len(pnls):>4} {wr(pnls):>6} {sum(pnls):>+9.2f}$")
 
 # ── 5. Détail par trade ───────────────────────────────────────
-print(f"\n  5. Détail individuel (trié par PnL)")
+print("\n  5. Détail individuel (trié par PnL)")
 print(
     f"  {'Symbol':<18} {'Sc':>3} {'Side':<5} {'PnL':>8}  {'MFE':>6} {'MAE':>6}  Sortie"
 )
@@ -168,7 +168,7 @@ print(f"\n{'='*W}")
 buy_pnls = sides.get("BUY", [])
 sell_pnls = sides.get("SELL", [])
 all_pnls = [t["pnl_usd"] for t in trades]
-print(f"  VERDICT PRÉLIMINAIRE")
+print("  VERDICT PRÉLIMINAIRE")
 if buy_pnls and pf(buy_pnls) == "n/a":
     buy_pf_str = "n/a"
 elif buy_pnls:

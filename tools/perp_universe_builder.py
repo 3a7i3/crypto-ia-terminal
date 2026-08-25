@@ -234,7 +234,7 @@ class PerpUniverseBuilder:
                 f"{d.get('reliability_score', 0):>5.0f}"
             )
         print(f"{'═'*w}")
-        print(f"  V=Volume  S=Spread  V2=Volatilité  R=Fiabilité")
+        print("  V=Volume  S=Spread  V2=Volatilité  R=Fiabilité")
         print(
             f"  Min vol: ${self.MIN_VOL_USD/1e6:.1f}M  Max spread: {self.MAX_SPREAD_PCT}%\n"  # noqa: E501
         )

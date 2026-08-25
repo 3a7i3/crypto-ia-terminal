@@ -113,8 +113,8 @@ class ProfilingReport:
             "",
             "## Synthese",
             "",
-            f"| Metrique | Valeur |",
-            f"|----------|--------|",
+            "| Metrique | Valeur |",
+            "|----------|--------|",
             f"| Duree reelle | {self.duration_s:.3f} s |",
         ]
         if self.peak_memory_mb is not None:

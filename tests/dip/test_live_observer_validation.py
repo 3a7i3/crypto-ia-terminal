@@ -10,9 +10,7 @@ ADR-0007: checks are passive/read-only, no modification of the engine.
 
 from __future__ import annotations
 
-import json
 
-import pytest
 
 from tools.live_observer_validator import (
     LiveCheckResult,
@@ -152,7 +150,7 @@ def test_scores_in_range():
     """All check scores must be in [0, 100]."""
     results = run_suite(live_mode=False)
     out_of_range = [r for r in results if not (0.0 <= r.score <= 100.0)]
-    assert not out_of_range, f"Scores hors [0,100]: " + ", ".join(
+    assert not out_of_range, "Scores hors [0,100]: " + ", ".join(
         f"{r.check_id}={r.score}" for r in out_of_range
     )
 

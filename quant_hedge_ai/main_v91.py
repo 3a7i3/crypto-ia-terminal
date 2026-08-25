@@ -140,7 +140,6 @@ from supervision.killswitch_hardened import KillSwitchHardened
 from supervision.ops_watchdog import OpsWatchdog
 from supervision.self_healing_bot import (
     SelfHealingBot,
-    make_api_watchdog,
     make_websocket_watchdog,
 )
 
@@ -230,7 +229,7 @@ def run_v91_system(
     )
 
     # #5 — Trade Replay System
-    trade_replay = TradeReplaySystem()
+    TradeReplaySystem()
 
     # #6 — Monte Carlo Stress Tester (run une fois au démarrage)
     _stress_tester = MonteCarloStressTester(
@@ -345,7 +344,7 @@ def run_v91_system(
     # Register SelfHealingBot watchdog pour le StreamBus
     make_websocket_watchdog(
         self_healing,
-        bus,
+        bus,  # noqa: F821
         reconnect_fn=lambda: _start_streambus_background(bus),
         name="streambus",
     )

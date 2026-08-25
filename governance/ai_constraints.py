@@ -35,7 +35,7 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass, field
-from enum import Enum, auto
+from enum import Enum
 from functools import wraps
 from typing import Any, Callable, Dict, List, Optional
 

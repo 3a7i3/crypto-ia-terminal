@@ -4,7 +4,6 @@ Tests complets pour BotDoctor, ModuleStatus et health_score.
 
 from unittest.mock import MagicMock
 
-import pytest
 
 from supervision.bot_doctor import BotDoctor, ModuleStatus
 

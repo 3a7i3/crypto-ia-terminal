@@ -277,7 +277,7 @@ class TestTier3StructuralIsolation:
             if "def _enl_fill" in f.read_text(encoding="utf-8", errors="ignore")
         ]
         assert len(files_with_enl) <= 1, (
-            f"_enl_fill défini dans plusieurs fichiers — duplication ENL :\n"
+            "_enl_fill défini dans plusieurs fichiers — duplication ENL :\n"
             + "\n".join(f"  {v}" for v in files_with_enl)
         )
 
@@ -538,7 +538,6 @@ class TestTier6EconomicConsistency:
 
     def test_timestamps_are_utc(self):
         """opened_at et closed_at sont timezone-aware UTC."""
-        from datetime import timezone
 
         r = _run_fixed_backtest()
         for t in r["trades"]:

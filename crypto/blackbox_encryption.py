@@ -20,7 +20,6 @@ import json
 import os
 from typing import Union
 
-from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 from crypto.key_derivation import CTX_BLACKBOX, derive_key

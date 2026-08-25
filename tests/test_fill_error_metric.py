@@ -14,7 +14,6 @@ tests/test_fill_error_metric.py — P2.4 : Tests du module fill_error_metric.
 from __future__ import annotations
 
 import json
-import math
 import random
 import tempfile
 from dataclasses import dataclass
@@ -31,7 +30,7 @@ from execution_simulator.fill_error_metric import (
     _percentile,
     _stats_from_errors,
 )
-from execution_simulator.models import MarketSnapshot, OrderIntent, SimulatedFill
+from execution_simulator.models import OrderIntent, SimulatedFill
 
 SEED = 42
 

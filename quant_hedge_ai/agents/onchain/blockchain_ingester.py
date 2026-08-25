@@ -13,7 +13,6 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass, field
-from typing import Any
 
 from observability.json_logger import get_logger
 
@@ -152,7 +151,7 @@ class BlockchainIngester:
 
             key = self._api_keys["glassnode"]
             ticker = asset.lower()
-            url = f"https://api.glassnode.com/v1/metrics/supply/profit_relative"
+            url = "https://api.glassnode.com/v1/metrics/supply/profit_relative"
             resp = requests.get(url, params={"a": ticker, "api_key": key}, timeout=5)
             if resp.status_code == 200:
                 items = resp.json()

@@ -1,4 +1,3 @@
-import pytest
 
 from src.analytics.regime_detector import RegimeDetector
 from src.backtest.market_generator import (

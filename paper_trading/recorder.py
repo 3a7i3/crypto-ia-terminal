@@ -12,6 +12,12 @@ Un trade complet = 1 OPEN + 1 CLOSE liés par trade_id.
 
 Schema v1 : champs de base (entry, exit, regime, score).
 Schema v2 : + MarketContext (27 features) + DecisionContext (conviction, personality...).
+Schema v4 : + capture d'exécution (fill, slippage, fee, order_type, is_maker).
+            Observabilité pure (ADR-0007) : ces champs enregistrent CE QUI S'EST
+            PASSÉ à l'exécution, ils n'influencent aucune décision de trading et
+            ne modifient aucun PnL. Additifs et Optional → rétrocompatibles, les
+            trades antérieurs (schema 1/2/3) restent valides avec ces champs à None.
+            La borne d'époque V4 est inchangée : aucun reset de N.
 
 Usage :
     from paper_trading.recorder import PaperTradeRecorder, MarketContext, DecisionContext
@@ -40,7 +46,7 @@ from typing import Optional
 
 _DEFAULT_PATH = os.getenv("PAPER_TRADE_LOG", "databases/paper_trades.jsonl")
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 
 def _score_to_bin(score: int) -> str:
@@ -198,6 +204,13 @@ class TradeEvent:
     decision_context: Optional[DecisionContext] = None
     # Schema v3
     runtime_config_version: str = ""
+    # Schema v4 — capture d'exécution (observabilité pure, ADR-0007)
+    intended_price: Optional[float] = None  # prix visé avant slippage
+    fill_price: Optional[float] = None  # prix d'exécution réel
+    slippage_pct: Optional[float] = None  # (fill - intended) / intended * 100, signé
+    fee_usd: Optional[float] = None  # frais réel facturé pour CET événement
+    order_type: str = ""  # "market" | "limit" | "stop_limit"
+    is_maker: Optional[bool] = None  # True si exécution maker (limit passif)
 
 
 @dataclass
@@ -232,6 +245,18 @@ class CompleteTrade:
     decision_context: Optional[DecisionContext] = None
     # Schema v3
     runtime_config_version: str = ""
+    # Schema v4 — capture d'exécution (vue fusionnée entrée/sortie)
+    entry_fill_price: Optional[float] = None
+    entry_slippage_pct: Optional[float] = None
+    entry_fee_usd: Optional[float] = None
+    entry_order_type: str = ""
+    entry_is_maker: Optional[bool] = None
+    exit_fill_price: Optional[float] = None
+    exit_slippage_pct: Optional[float] = None
+    exit_fee_usd: Optional[float] = None
+    exit_order_type: str = ""
+    exit_is_maker: Optional[bool] = None
+    total_fee_usd: Optional[float] = None  # entry_fee + exit_fee si disponibles
 
 
 # ── Recorder ─────────────────────────────────────────────────────────────────
@@ -270,8 +295,21 @@ class PaperTradeRecorder:
         mode: str = "futures_demo",
         market_context: Optional[MarketContext] = None,
         decision_context: Optional[DecisionContext] = None,
+        intended_price: Optional[float] = None,
+        fill_price: Optional[float] = None,
+        slippage_pct: Optional[float] = None,
+        fee_usd: Optional[float] = None,
+        order_type: str = "",
+        is_maker: Optional[bool] = None,
     ) -> None:
-        from config.parameter_audit import current_config_version
+        try:
+            from config.parameter_audit import current_config_version
+
+            _cfg_version = current_config_version()
+        except Exception:
+            # Sous-système de config indisponible (env minimal, VPS portable) :
+            # l'enregistrement d'un trade ne doit jamais échouer pour autant.
+            _cfg_version = ""
 
         now = time.time()
         evt = TradeEvent(
@@ -291,7 +329,15 @@ class PaperTradeRecorder:
             order_id=order_id,
             market_context=market_context,
             decision_context=decision_context,
-            runtime_config_version=current_config_version(),
+            runtime_config_version=_cfg_version,
+            intended_price=intended_price,
+            fill_price=fill_price,
+            slippage_pct=(
+                round(slippage_pct, 6) if slippage_pct is not None else None
+            ),
+            fee_usd=round(fee_usd, 6) if fee_usd is not None else None,
+            order_type=order_type,
+            is_maker=is_maker,
         )
         self._append(evt)
 
@@ -311,6 +357,12 @@ class PaperTradeRecorder:
         mfe_pct: Optional[float] = None,
         score: int = 0,
         regime: str = "unknown",
+        intended_price: Optional[float] = None,
+        fill_price: Optional[float] = None,
+        slippage_pct: Optional[float] = None,
+        fee_usd: Optional[float] = None,
+        order_type: str = "",
+        is_maker: Optional[bool] = None,
     ) -> None:
         now = time.time()
         duration = (now - opened_at) if opened_at else None
@@ -335,6 +387,14 @@ class PaperTradeRecorder:
             duration_s=round(duration, 1) if duration else None,
             mae_pct=mae_pct,
             mfe_pct=mfe_pct,
+            intended_price=intended_price,
+            fill_price=fill_price,
+            slippage_pct=(
+                round(slippage_pct, 6) if slippage_pct is not None else None
+            ),
+            fee_usd=round(fee_usd, 6) if fee_usd is not None else None,
+            order_type=order_type,
+            is_maker=is_maker,
         )
         self._append(evt)
 
@@ -405,6 +465,11 @@ class PaperTradeRecorder:
                 schema_version=op.schema_version,
                 market_context=op.market_context,
                 decision_context=op.decision_context,
+                entry_fill_price=op.fill_price,
+                entry_slippage_pct=op.slippage_pct,
+                entry_fee_usd=op.fee_usd,
+                entry_order_type=op.order_type,
+                entry_is_maker=op.is_maker,
             )
             if cl:
                 ct.exit_price = cl.exit_price
@@ -418,6 +483,12 @@ class PaperTradeRecorder:
                 ct.is_win = (cl.pnl_usd or 0) > 0
                 ct.mae_pct = cl.mae_pct
                 ct.mfe_pct = cl.mfe_pct
+                ct.exit_fill_price = cl.fill_price
+                ct.exit_slippage_pct = cl.slippage_pct
+                ct.exit_fee_usd = cl.fee_usd
+                ct.exit_order_type = cl.order_type
+                ct.exit_is_maker = cl.is_maker
+            ct.total_fee_usd = _sum_fees(ct.entry_fee_usd, ct.exit_fee_usd)
             result.append(ct)
 
         # CLOSE orphelins (sans OPEN correspondant — cas VPS décalé)
@@ -446,10 +517,50 @@ class PaperTradeRecorder:
                     is_win=(cl.pnl_usd or 0) > 0,
                     mae_pct=cl.mae_pct,
                     mfe_pct=cl.mfe_pct,
+                    exit_fill_price=cl.fill_price,
+                    exit_slippage_pct=cl.slippage_pct,
+                    exit_fee_usd=cl.fee_usd,
+                    exit_order_type=cl.order_type,
+                    exit_is_maker=cl.is_maker,
+                    total_fee_usd=cl.fee_usd,
                 )
                 result.append(ct)
 
         return sorted(result, key=lambda t: t.opened_at or t.closed_at or 0)
+
+    def trades_as_dicts(self, closed_only: bool = True) -> list[dict]:
+        """Vue dict des trades — pour affichage/API (bots Telegram, dashboards).
+
+        Les formatters attendent des dicts à clés génériques plutôt que les
+        dataclasses CompleteTrade. `closed_only=True` ne renvoie que les trades
+        clôturés (PnL réalisé), ordre chronologique (plus ancien → plus récent).
+        """
+        out: list[dict] = []
+        for t in self.trades():
+            if closed_only and t.is_open:
+                continue
+            out.append(
+                {
+                    "trade_id": t.trade_id,
+                    "symbol": t.symbol,
+                    "side": t.side,
+                    "regime": t.regime,
+                    "score": t.score,
+                    "pnl": t.pnl_usd if t.pnl_usd is not None else 0.0,
+                    "pnl_pct": t.pnl_pct,
+                    "entry_price": t.entry_price,
+                    "exit_price": t.exit_price,
+                    "price": t.entry_price,
+                    "close_price": t.exit_price,
+                    "opened_at": t.opened_at,
+                    "closed_at": t.closed_at,
+                    "ts": t.closed_at or t.opened_at or 0,
+                    "reason": t.exit_reason,
+                    "close_reason": t.exit_reason,
+                    "is_win": t.is_win,
+                }
+            )
+        return out
 
     def summary(self) -> dict:
         """Statistiques agrégées des trades complétés."""
@@ -467,7 +578,7 @@ class PaperTradeRecorder:
                 "best_trade_pct": None,
                 "worst_trade_pct": None,
                 "avg_duration_min": None,
-                "target_30_trades": f"0 / 30",
+                "target_30_trades": "0 / 30",
             }
 
         wins = [t for t in closed if t.is_win]
@@ -498,6 +609,17 @@ class PaperTradeRecorder:
         line = json.dumps(asdict(evt), ensure_ascii=False) + "\n"
         with self._path.open("a", encoding="utf-8") as f:
             f.write(line)
+            # R4 (audit forensic 2026-08-24) : durabilité de la source de vérité.
+            # Le close du `with` vide le buffer Python vers l'OS ; fsync force
+            # l'OS à écrire sur le disque physique → une ligne survit à une
+            # coupure de courant. Volume faible (quelques trades/min) donc le
+            # coût est négligeable. Désactivable via PAPER_TRADE_FSYNC=0.
+            if os.getenv("PAPER_TRADE_FSYNC", "1") != "0":
+                f.flush()
+                try:
+                    os.fsync(f.fileno())
+                except OSError:
+                    pass  # best-effort : certains FS/handles ne supportent pas fsync
 
 
 # ── Singleton partagé ────────────────────────────────────────────────────────
@@ -517,3 +639,15 @@ def get_recorder() -> PaperTradeRecorder:
 
 def _iso(ts: float) -> str:
     return datetime.fromtimestamp(ts, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def _sum_fees(
+    entry_fee: Optional[float], exit_fee: Optional[float]
+) -> Optional[float]:
+    """Somme des frais entrée+sortie ; None si les deux sont absents.
+
+    Un seul côté présent → renvoie ce côté (l'autre compte pour 0).
+    """
+    if entry_fee is None and exit_fee is None:
+        return None
+    return round((entry_fee or 0.0) + (exit_fee or 0.0), 6)

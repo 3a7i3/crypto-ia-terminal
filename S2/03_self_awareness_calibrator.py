@@ -14,7 +14,6 @@ Usage :
 from __future__ import annotations
 
 import json
-import math
 import os
 from collections import defaultdict
 from pathlib import Path
@@ -79,10 +78,10 @@ def analyze() -> None:
 
     if baseline_wr - sa_caution < 0:
         print(
-            f"\n  ⚠️  CAUTION ne peut JAMAIS se déclencher (seuil négatif impossible)!"
+            "\n  ⚠️  CAUTION ne peut JAMAIS se déclencher (seuil négatif impossible)!"
         )
     if baseline_wr - sa_warning < 0:
-        print(f"  ⚠️  WARNING ne peut JAMAIS se déclencher (seuil négatif impossible)!")
+        print("  ⚠️  WARNING ne peut JAMAIS se déclencher (seuil négatif impossible)!")
 
     # ── Distribution des win rates roulants ───────────────────────────────────
     if total >= sa_window + 5:
@@ -101,9 +100,9 @@ def analyze() -> None:
         # Seuils recommandés = percentiles de la distribution roulante
         recommended_caution_drop = avg_rolling - p25  # quart inférieur normal
         recommended_warning_drop = avg_rolling - p10  # décile inférieur
-        recommended_danger_drop = avg_rolling - p5  # 5% les pires
+        avg_rolling - p5  # 5% les pires
 
-        print(f"\n  SEUILS RECOMMANDÉS (basés sur distribution réelle):")
+        print("\n  SEUILS RECOMMANDÉS (basés sur distribution réelle):")
         print(
             f"    SA_WR_DROP_CAUTION={recommended_caution_drop:.2f}  "
             f"(déclenche WR < p25={p25:.1%})"
@@ -112,7 +111,7 @@ def analyze() -> None:
             f"    SA_WR_DROP_WARNING={recommended_warning_drop:.2f}  "
             f"(déclenche WR < p10={p10:.1%})"
         )
-        print(f"    # DANGER géré par SA_DD_ACCEL (drawdown accélération)")
+        print("    # DANGER géré par SA_DD_ACCEL (drawdown accélération)")
 
     # ── Analyse des pertes consécutives ───────────────────────────────────────
     print(f"\n  Analyse pertes consécutives (avec loss_rate={1-baseline_wr:.1%}):")
@@ -130,7 +129,7 @@ def analyze() -> None:
     )
     if prob_revenge > 0.30:
         print(
-            f"     Recommandation: augmenter SA_REVENGE_LOSSES à "
+            "     Recommandation: augmenter SA_REVENGE_LOSSES à "
             + str(min(5, sa_revenge + 2))
         )
 
@@ -148,13 +147,13 @@ def analyze() -> None:
         print(f"\n  Drawdown sur les {sa_window} derniers trades: {max_dd:.2%}")
         print(f"  Seuil SA_DD_ACCEL actuel: {sa_dd_accel:.2%}")
         if max_dd > sa_dd_accel * 2:
-            print(f"  → DANGER devrait se déclencher!")
+            print("  → DANGER devrait se déclencher!")
         elif max_dd > sa_dd_accel:
-            print(f"  → WARNING devrait se déclencher!")
+            print("  → WARNING devrait se déclencher!")
 
     # ── Lignes .env à copier ───────────────────────────────────────────────────
     if total >= sa_window + 5:
-        print(f"\n  LIGNES À AJOUTER/MODIFIER DANS .env:")
+        print("\n  LIGNES À AJOUTER/MODIFIER DANS .env:")
         print(f"  {'─'*40}")
         print(f"  SA_WR_DROP_CAUTION={recommended_caution_drop:.2f}")
         print(f"  SA_WR_DROP_WARNING={recommended_warning_drop:.2f}")
@@ -166,7 +165,7 @@ def analyze() -> None:
     for t in trades:
         by_regime[t.get("regime", "unknown")].append(t.get("pnl_pct", 0))
 
-    print(f"\n  Win rate par régime:")
+    print("\n  Win rate par régime:")
     for reg, pnls in sorted(by_regime.items(), key=lambda x: -len(x[1])):
         n = len(pnls)
         wr = sum(1 for p in pnls if p > 0) / n

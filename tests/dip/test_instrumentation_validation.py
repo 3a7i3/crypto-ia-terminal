@@ -7,7 +7,6 @@ Ces tests sont merge-blocking: si l'un echoue, le DIP n'est pas certifie.
 
 from __future__ import annotations
 
-import pytest
 
 from tools.instrumentation_validator import (
     CheckResult,

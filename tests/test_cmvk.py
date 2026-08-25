@@ -1,7 +1,4 @@
-import pytest
 
-from src.domain.order import Order
-from src.domain.position import Position
 from src.domain.signal import Signal
 from src.engine.execution_router import ExecutionRouter
 from src.engine.virtual_exchange import VirtualExchange

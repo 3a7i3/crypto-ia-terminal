@@ -144,7 +144,7 @@ def _explain_safe(obs: "DecisionObservation", cycle: int) -> str:
     elif obs.all_blockers:
         lines.append(f"⛔ {obs.human_verdict}")
     elif not obs.actionable:
-        lines.append(f"⏸ NON ACTIONABLE (signal HOLD ou score < seuil)")
+        lines.append("⏸ NON ACTIONABLE (signal HOLD ou score < seuil)")
     else:
         lines.append("⛔ REFUSÉ")
 
@@ -181,7 +181,6 @@ def _explain_safe(obs: "DecisionObservation", cycle: int) -> str:
     # Conviction
     if obs.conviction_level is None:
         conv_detail = "non configurée"
-        conv_ok = True
     elif obs.conviction_ok:
         sf_str = (
             f" ×{obs.conviction_size_factor:.1f}"

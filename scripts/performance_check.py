@@ -201,7 +201,7 @@ def main(as_json: bool = False, tail_lines: int = 500) -> int:
         print(f"  ❌ Logs: {lm.get('error', '?')}")
 
     if alerts:
-        print(f"\n  🚨 Alertes performance:")
+        print("\n  🚨 Alertes performance:")
         for a in alerts:
             print(f"    - {a}")
 

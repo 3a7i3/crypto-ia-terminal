@@ -186,7 +186,7 @@ def update_positions(
         pos["max_price"] = max(pos.get("max_price", price), price)
         pos["min_price"] = min(pos.get("min_price", price), price)
 
-        entry     = pos["entry_price"]
+        pos["entry_price"]
         direction = pos["direction"]
         sl        = pos["stop_loss"]
         tp        = pos["take_profit"]

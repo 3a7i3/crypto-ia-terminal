@@ -190,7 +190,7 @@ class HMMRegimeEngine:
         rsi = features.get("rsi_14", 50.0)
         atr = features.get("atr_pct", 0.01)
         ema_cross = features.get("ema_cross", 0.0)
-        volume_ratio = features.get("volume_ratio", 1.0)
+        features.get("volume_ratio", 1.0)
 
         probs = RegimeProbabilities()
 

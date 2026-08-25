@@ -16,12 +16,8 @@ from __future__ import annotations
 
 import json
 import os
-import threading
 import time
-from pathlib import Path
-from unittest.mock import MagicMock, patch
 
-import pytest
 
 from supervision.ops_watchdog_hardened import HardenedOpsWatchdog, _pid_alive
 

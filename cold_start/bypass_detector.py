@@ -22,7 +22,6 @@ import json
 import os
 import time
 from pathlib import Path
-from typing import Optional
 
 from cold_start.warmup_signer import sign, verify
 from observability.json_logger import get_logger

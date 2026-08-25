@@ -32,8 +32,8 @@ from __future__ import annotations
 
 import threading
 import time
-from dataclasses import dataclass, field
-from enum import Enum, auto
+from dataclasses import dataclass
+from enum import Enum
 from typing import Callable, Optional
 
 from observability.json_logger import get_logger
@@ -327,8 +327,11 @@ def make_standard_escalation(
     Crée une EscalationEngine avec les 5 niveaux standard et des timeouts par défaut.
     Les fonctions non fournies utilisent des no-ops qui retournent False (force escalade).
     """
-    _noop_fail = lambda: False
-    _noop_ok = lambda: True
+    def _noop_fail():
+        return False
+
+    def _noop_ok():
+        return True
 
     steps = [
         EscalationStep(

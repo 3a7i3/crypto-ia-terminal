@@ -4,13 +4,9 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
-import pytest
 
 from certification.live_kpi_auditor import (
     _MIN_CRITERIA,
-    KPIAuditReport,
-    KPISnapshot,
-    KPIViolation,
     LiveKPIAuditor,
 )
 

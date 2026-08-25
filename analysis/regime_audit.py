@@ -134,7 +134,7 @@ def main(jsonl_path: str | None = None, since: datetime | None = None) -> int:
     print(f"  Régimes couverts   : {sorted({t.regime for t in trades})}")
 
     if len(trades) < 10:
-        print(f"\n  ⏳ Données insuffisantes — relancer à N≥50")
+        print("\n  ⏳ Données insuffisantes — relancer à N≥50")
         print(f"{'='*W}\n")
         return 0
 

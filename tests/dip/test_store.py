@@ -3,9 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from pathlib import Path
 
-import pytest
 
 from dip.core.store import DIPStore, LRUCache
 from dip.core.types import now_us

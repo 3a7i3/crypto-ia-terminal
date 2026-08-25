@@ -1,8 +1,7 @@
-import pytest
 
 from src.agent.codex_agent import CodexAgent
 from src.agent.momentum_strategy import MomentumStrategy
-from src.backtest.market_generator import range_bound, trend_up
+from src.backtest.market_generator import trend_up
 from src.risk.kill_switch import KillSwitch
 
 

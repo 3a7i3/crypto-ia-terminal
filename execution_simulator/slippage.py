@@ -62,9 +62,9 @@ class LinearSlippage(BaseSlippage):
 
     def __init__(self, base_bps: float = 1.0, impact_factor: float = 0.5) -> None:
         if base_bps < 0:
-            raise ValueError(f"base_bps must be >= 0")
+            raise ValueError("base_bps must be >= 0")
         if impact_factor < 0:
-            raise ValueError(f"impact_factor must be >= 0")
+            raise ValueError("impact_factor must be >= 0")
         self.base_bps = base_bps
         self.impact_factor = impact_factor
 
@@ -103,7 +103,7 @@ class SqrtSlippage(BaseSlippage):
         if eta <= 0:
             raise ValueError(f"eta must be > 0, got {eta}")
         if noise_bps < 0:
-            raise ValueError(f"noise_bps must be >= 0")
+            raise ValueError("noise_bps must be >= 0")
         self.eta = eta
         self.noise_bps = noise_bps
 

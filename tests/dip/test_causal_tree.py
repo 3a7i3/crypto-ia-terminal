@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
-import pytest
 
 from dip.modules.causal_tree import CausalTreeBuilder, CausalTreeEngine
 from dip.modules.decision_graph import GraphBuilder
@@ -40,7 +39,6 @@ class TestCausalTreeBuilder:
 class TestCausalTreeEngine:
 
     def test_on_observation_builds_tree(self, tmp_store):
-        from dip.modules.causal_tree import CausalTreeEngine
         from dip.modules.decision_graph import DecisionGraphEngine
 
         graph_engine = DecisionGraphEngine()
@@ -58,7 +56,6 @@ class TestCausalTreeEngine:
             assert tree is not None
 
     def test_get_root_cause(self, tmp_store):
-        from dip.modules.causal_tree import CausalTreeEngine
         from dip.modules.decision_graph import DecisionGraphEngine
 
         graph_engine = DecisionGraphEngine()
@@ -77,7 +74,6 @@ class TestCausalTreeEngine:
             assert root.causing_layer == "meta_strategy"
 
     def test_rejection_stats_empty_on_fresh(self, tmp_store):
-        from dip.modules.causal_tree import CausalTreeEngine
 
         engine = CausalTreeEngine()
         with patch.object(engine, "_store", tmp_store):

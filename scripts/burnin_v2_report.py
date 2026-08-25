@@ -76,7 +76,7 @@ def max_drawdown(pnls_usd: list[float], capital: float = 1000.0) -> float:
 def report(trades: list[dict], min_trades: int) -> None:
     n = len(trades)
     print(f"\n{'='*55}")
-    print(f"  BURN-IN v2 - post-6ce7fc2")
+    print("  BURN-IN v2 - post-6ce7fc2")
     print(f"{'='*55}")
     print(f"  Trades complets : {n}")
 
@@ -97,7 +97,7 @@ def report(trades: list[dict], min_trades: int) -> None:
     total_pnl = sum(pnls_usd)
     mdd = max_drawdown(pnls_usd)
 
-    print(f"\n  --- Métriques globales ---")
+    print("\n  --- Métriques globales ---")
     print(f"  N                : {n}")
     print(f"  Win Rate         : {wr:.1f}%  ({len(wins)}W / {len(losses)}L)")
     print(f"  Profit Factor    : {pf:.3f}")
@@ -113,7 +113,7 @@ def report(trades: list[dict], min_trades: int) -> None:
     for t in trades:
         by_regime[t.get("regime") or "unknown"].append(t.get("pnl_usd") or 0.0)
 
-    print(f"\n  --- Par régime ---")
+    print("\n  --- Par régime ---")
     print(f"  {'Régime':<20} {'N':>4} {'WR':>7} {'PF':>7} {'PnL':>9}")
     print(f"  {'-'*52}")
     for regime in sorted(by_regime, key=lambda r: -len(by_regime[r])):
@@ -129,7 +129,7 @@ def report(trades: list[dict], min_trades: int) -> None:
     for t in trades:
         by_score[t.get("score_bin") or "?"].append(t.get("pnl_usd") or 0.0)
 
-    print(f"\n  --- Par score bin ---")
+    print("\n  --- Par score bin ---")
     print(f"  {'Score':<12} {'N':>4} {'WR':>7} {'PF':>7} {'PnL':>9}")
     print(f"  {'-'*44}")
     for sbin in sorted(by_score, key=lambda s: (s == "?", s)):
@@ -146,7 +146,7 @@ def report(trades: list[dict], min_trades: int) -> None:
         side = (t.get("side") or "?").upper()
         by_side[side].append(t.get("pnl_usd") or 0.0)
 
-    print(f"\n  --- Par side ---")
+    print("\n  --- Par side ---")
     print(f"  {'Side':<8} {'N':>4} {'WR':>7} {'PF':>7} {'Exp USD':>10} {'PnL':>9}")
     print(f"  {'-'*48}")
     for side in sorted(by_side):
@@ -169,7 +169,7 @@ def report(trades: list[dict], min_trades: int) -> None:
         key = f"{regime}+{side}"
         by_rx[key].append(t.get("pnl_usd") or 0.0)
 
-    print(f"\n  --- Par regime x side ---")
+    print("\n  --- Par regime x side ---")
     print(f"  {'Régime+Side':<30} {'N':>4} {'WR':>7} {'PF':>7} {'PnL':>9}")
     print(f"  {'-'*60}")
     for key in sorted(by_rx, key=lambda k: (-len(by_rx[k]), k)):
@@ -189,7 +189,7 @@ def report(trades: list[dict], min_trades: int) -> None:
 
     avg_mfe = sum(mfes_all) / len(mfes_all) if mfes_all else 0.0
     avg_mae = sum(maes_all) / len(maes_all) if maes_all else 0.0
-    print(f"\n  --- MFE / MAE (qualité du signal) ---")
+    print("\n  --- MFE / MAE (qualité du signal) ---")
     print(f"  Global     N={n:>3}  avg MFE: {avg_mfe:+.2f}%  avg MAE: {avg_mae:+.2f}%")
 
     if sl_t:
@@ -222,7 +222,7 @@ def report(trades: list[dict], min_trades: int) -> None:
         reg = t.get("regime") or "unknown"
         mfe_by_regime[reg].append(t.get("mfe_pct") or 0.0)
 
-    print(f"\n  --- MFE par régime (signal utile) ---")
+    print("\n  --- MFE par régime (signal utile) ---")
     print(f"  {'Régime':<25} {'N':>4} {'avg MFE':>9} {'>1%':>5} {'>2%':>5}")
     print(f"  {'-'*52}")
     for reg in sorted(mfe_by_regime, key=lambda r: -len(mfe_by_regime[r])):
@@ -240,7 +240,7 @@ def report(trades: list[dict], min_trades: int) -> None:
     print(f"\n  Fermetures : {reasons_str}")
 
     # --- Verdict ---
-    print(f"\n  --- Verdict ---")
+    print("\n  --- Verdict ---")
     go = pf > 1.20 and exp_usd > 0 and mdd < 0.15
     if go:
         print(f"  [GO] prelive_gate (PF>{1.20:.2f} OK, Exp>0 OK, MaxDD<15% OK)")

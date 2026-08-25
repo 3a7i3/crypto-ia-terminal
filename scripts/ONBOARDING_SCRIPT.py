@@ -17,8 +17,6 @@ Exemple d'utilisation :
 import csv
 import datetime
 import os
-import pathlib
-import random
 
 import pandas as pd
 # 📚 Documentation enrichie et guides d’utilisation

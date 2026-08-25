@@ -5,7 +5,6 @@ set -e
 
 ENV_FILE="$HOME/crypto_ai_terminal/.env"
 SERVICE_NAME="paper-arena"
-SERVICE_SRC="$HOME/crypto_ai_terminal/scripts/paper-arena.service"
 SERVICE_DEST="/etc/systemd/system/${SERVICE_NAME}.service"
 LOG_FILE="$HOME/crypto_ai_terminal/logs/paper_arena.log"
 
@@ -35,9 +34,35 @@ touch "$LOG_FILE"
 echo "[2/5] Logs : $LOG_FILE"
 
 # ── 3. Service systemd ────────────────────────────────────────────────────────
-sudo cp "$SERVICE_SRC" "$SERVICE_DEST"
+# L'unité est GÉNÉRÉE avec l'utilisateur et les chemins RÉELS ($USER/$HOME) au
+# lieu de copier scripts/paper-arena.service tel quel — ce template contenait
+# un user/chemin codés en dur (mathieuhasard111) qui ne correspondent pas
+# forcément au VPS, ce qui faisait échouer le service au démarrage (CHDIR).
+PROJ_DIR="$HOME/crypto_ai_terminal"
+PY_BIN="$PROJ_DIR/.venv/bin/python3"
+sudo tee "$SERVICE_DEST" >/dev/null <<EOF
+[Unit]
+Description=Paper Arena V1 — ETH 4h RSI 15/85
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=$USER
+WorkingDirectory=$PROJ_DIR
+EnvironmentFile=$PROJ_DIR/.env
+Environment=PYTHONPATH=$PROJ_DIR
+ExecStart=$PY_BIN -m src.paper.paper_runner
+Restart=always
+RestartSec=10
+StandardOutput=append:$LOG_FILE
+StandardError=append:$LOG_FILE
+
+[Install]
+WantedBy=multi-user.target
+EOF
 sudo systemctl daemon-reload
-echo "[3/5] Service installé : $SERVICE_DEST"
+echo "[3/5] Service installé : $SERVICE_DEST (user=$USER, dir=$PROJ_DIR)"
 
 # ── 4. Démarrage ──────────────────────────────────────────────────────────────
 sudo systemctl enable "$SERVICE_NAME"

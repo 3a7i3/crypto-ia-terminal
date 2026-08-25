@@ -2,7 +2,13 @@
 """radar_bot.py — Bot Telegram interactif CryptoRadar. LECTURE SEULE."""
 
 from __future__ import annotations
-import json, os, sys, time, traceback, urllib.request, urllib.error
+import json
+import os
+import sys
+import time
+import traceback
+import urllib.request
+import urllib.error
 from collections import defaultdict
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -305,7 +311,7 @@ COMMANDS = {"scan": cmd_scan, "signals": cmd_signals, "top50": cmd_top50,
     "lmi": cmd_lmi, "status": cmd_status, "help": cmd_help, "start": cmd_help}
 
 def poll_loop():
-    print(f"[RadarBot] Demarre — polling Telegram...")
+    print("[RadarBot] Demarre — polling Telegram...")
     offset = 0
     while True:
         try:

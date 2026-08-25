@@ -9,11 +9,8 @@ import random
 import tempfile
 from pathlib import Path
 
-import pytest
 
-from metrics.oos_metrics import TradeResult, compute_oos_metrics
-from metrics.stability_score import compute_stability_score
-from monitor.degradation_tracker import DegradationTracker
+from metrics.oos_metrics import TradeResult
 from walk_forward.engine import WalkForwardEngine, WalkForwardResult
 from walk_forward.reporter import WalkForwardReporter, build_alerts, build_section
 from walk_forward.walk_forward_loop import WalkForwardLoop
@@ -161,7 +158,7 @@ class TestBuildSection:
 
     def test_empty_state_returns_placeholder(self):
         lines = build_section({})
-        assert any("Aucune donnee" in l for l in lines)
+        assert any("Aucune donnee" in line for line in lines)
 
     def test_section_starts_with_header(self):
         result = _make_result()
@@ -199,8 +196,8 @@ class TestBuildSection:
         state = _make_state(result)
         lines = build_section(state)
         assert isinstance(lines, list)
-        for l in lines:
-            assert isinstance(l, str)
+        for line in lines:
+            assert isinstance(line, str)
 
     def test_section_no_degradation_events_no_alert_block(self):
         state = {

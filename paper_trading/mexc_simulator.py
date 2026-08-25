@@ -16,7 +16,6 @@ Variables d'env :
 
 from __future__ import annotations
 
-import math
 import os
 import threading
 import time
@@ -210,15 +209,13 @@ class PerformanceTracker:
         return max_dd
 
     def sharpe(self, risk_free: float = 0.0) -> float:
-        if len(self._daily_returns) < 2:
-            return 0.0
-        n = len(self._daily_returns)
-        mean = sum(self._daily_returns) / n
-        variance = sum((r - mean) ** 2 for r in self._daily_returns) / (n - 1)
-        std = math.sqrt(variance) if variance > 0 else 0.0
-        if std == 0:
-            return 0.0
-        return (mean - risk_free) / std * math.sqrt(252)
+        from metrics.sharpe import sharpe as _sharpe_fn
+
+        return _sharpe_fn(
+            list(self._daily_returns),
+            rf_annual=risk_free,
+            periods_per_year=252.0,
+        )
 
     def days_running(self) -> float:
         return (time.time() - self._start_ts) / 86400.0
@@ -638,6 +635,12 @@ class MexcSimulator:
                 score=pos.score,
                 regime=pos.regime,
                 mode="futures_demo",
+                intended_price=price,
+                fill_price=fill,
+                slippage_pct=((fill - price) / price * 100.0) if price else None,
+                fee_usd=fee,
+                order_type=order.order_type.value,
+                is_maker=order.order_type != OrderType.MARKET,
             )
         except Exception as exc:
             _log.warning("[SIM] record_open échoué: %s", exc)
@@ -810,6 +813,14 @@ class MexcSimulator:
                 mfe_pct=pos.mfe_pct,
                 score=pos.score,
                 regime=pos.regime,
+                intended_price=exit_price,
+                fill_price=fill,
+                slippage_pct=(
+                    (fill - exit_price) / exit_price * 100.0 if exit_price else None
+                ),
+                fee_usd=fee,
+                order_type="market",
+                is_maker=False,
             )
         except Exception as exc:
             _log.warning("[SIM] record_close échoué: %s", exc)
@@ -826,7 +837,7 @@ class MexcSimulator:
             else "—"
         )
         icon = "TP atteint" if reason == "TP" else "SL touche"
-        sl_efficiency = (
+        (
             f"{pos.mae_pct / pos.sl_pct_used * 100:.0f}%"
             if hasattr(pos, "sl_pct_used") and pos.sl_pct_used
             else "—"

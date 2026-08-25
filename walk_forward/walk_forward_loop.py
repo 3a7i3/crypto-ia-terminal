@@ -24,7 +24,7 @@ Usage :
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Callable, Optional
 
 from metrics.oos_metrics import OOSMetrics, TradeResult, compute_oos_metrics

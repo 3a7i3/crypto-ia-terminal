@@ -2,13 +2,10 @@
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
-import pytest
 
-from dip.core.types import Severity, now_us
 from dip.modules.decision_alert import (
-    RULE_REJECTION_BURST,
     AlertDetector,
     DecisionAlertEngine,
 )
@@ -98,7 +95,6 @@ class TestDecisionReplayEngine:
             assert session is None
 
     def test_compare_returns_summary(self, tmp_store):
-        from dip.modules.decision_graph import DecisionGraphEngine
 
         graph_engine = DecisionGraphEngine()
         engine = DecisionReplayEngine()
@@ -128,7 +124,6 @@ class TestDecisionReplayEngine:
 class TestDecisionDiffEngine:
 
     def test_diff_same_obs(self, tmp_store):
-        from dip.modules.decision_graph import DecisionGraphEngine
 
         graph_engine = DecisionGraphEngine()
         diff_engine = DecisionDiffEngine()
@@ -148,7 +143,6 @@ class TestDecisionDiffEngine:
                 assert isinstance(diff.summary, str)
 
     def test_diff_approved_vs_rejected(self, tmp_store):
-        from dip.modules.decision_graph import DecisionGraphEngine
 
         graph_engine = DecisionGraphEngine()
         diff_engine = DecisionDiffEngine()
@@ -174,7 +168,7 @@ class TestAlertDetector:
 
     def test_no_alert_below_threshold(self, tmp_store):
         detector = AlertDetector(tmp_store)
-        obs = _make_obs(False)
+        _make_obs(False)
         # 9 obs rejected = sous le seuil de 10
         for _ in range(9):
             alerts = detector.update(_make_obs(False))
@@ -227,7 +221,7 @@ class TestDecisionAlertEngine:
             # Simuler burst
             for _ in range(9):
                 engine._detector.update(_make_obs(False))
-            alerts1 = engine.on_observation(_make_obs(False))
+            engine.on_observation(_make_obs(False))
             alerts2 = engine.on_observation(_make_obs(False))
             # 2e alerte supprimée par cooldown
             r01_count_2 = sum(1 for a in alerts2 if a.rule_id == "R01")

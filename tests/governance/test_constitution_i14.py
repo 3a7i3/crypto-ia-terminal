@@ -306,10 +306,10 @@ class TestI14SourceEnforcement:
         # On cherche spécifiquement dans le bloc de décision (pas dans les commentaires).
         lines = self._source.splitlines()
         violations = [
-            (i + 1, l)
-            for i, l in enumerate(lines)
-            if "_conviction_ok = conviction is None" in l
-            and not l.strip().startswith("#")
+            (i + 1, line)
+            for i, line in enumerate(lines)
+            if "_conviction_ok = conviction is None" in line
+            and not line.strip().startswith("#")
         ]
         assert (
             not violations
@@ -325,9 +325,9 @@ class TestI14SourceEnforcement:
         """L'ancien _pb_ok = pb_verdict is None ne doit plus exister."""
         lines = self._source.splitlines()
         violations = [
-            (i + 1, l)
-            for i, l in enumerate(lines)
-            if "_pb_ok = pb_verdict is None" in l and not l.strip().startswith("#")
+            (i + 1, line)
+            for i, line in enumerate(lines)
+            if "_pb_ok = pb_verdict is None" in line and not line.strip().startswith("#")
         ]
         assert (
             not violations
@@ -353,7 +353,6 @@ class TestI14TradeAllowedIntegration:
         """Simulation complète : conviction_engine set + conviction=None → trade_allowed=False."""
         conviction_engine = object()
         conviction = None
-        signal_actionable = True
 
         # Tous les autres flags sont True
         _authority_ok = True

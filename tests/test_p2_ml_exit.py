@@ -5,7 +5,6 @@ TEST P2 — ML Exit Prediction
 
 import sys
 from pathlib import Path
-import math
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -129,14 +128,14 @@ def test_ml_exit_predictor():
         print(f"  Current price: ${candles[-1]['close']:.2f}")
         print(f"  Distance: {(candles[-1]['close']/entry_price - 1):.2%}")
 
-        print(f"\n  ML Prediction:")
+        print("\n  ML Prediction:")
         print(f"    Quality: {prediction['quality']}")
         print(f"    Confidence: {prediction['confidence']:.1%}")
         print(f"    Should exit: {prediction['should_exit']}")
         print(f"    Reason: {prediction['reason']}")
 
         features = prediction['features']
-        print(f"\n  Key Metrics:")
+        print("\n  Key Metrics:")
         print(f"    RSI: {features.get('rsi', 0):.1f}")
         print(f"    MFE: {features.get('mfe_pct', 0):.2%}")
         print(f"    MAE: {features.get('mae_pct', 0):.2%}")

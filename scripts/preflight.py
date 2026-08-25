@@ -192,7 +192,7 @@ def main() -> int:
         print(f"{'='*W}\n")
         return 1
 
-    print(f"  🟢 GO — service autorisé à démarrer")
+    print("  🟢 GO — service autorisé à démarrer")
     print(f"{'='*W}\n")
     return 0
 

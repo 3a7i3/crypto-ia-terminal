@@ -26,7 +26,6 @@ Usage :
 from __future__ import annotations
 
 import json
-import math
 import os
 import statistics
 import time

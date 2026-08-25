@@ -9,7 +9,6 @@ import random
 import uuid
 from collections import Counter
 from pathlib import Path
-from typing import Any
 
 import numpy as np
 
@@ -138,9 +137,6 @@ def evolve_world(
         _log.warning("evolve_world: extinction totale, conservation des 3 meilleurs")
 
     # --- Mutation adaptative ---
-    alert_stagnation = False
-    alert_extinction = False
-    alert_surperformance = False
     if fitness_history is not None and len(fitness_history) >= stagnation_patience:
         best_fitness = max(fitness_history)
         if all(
@@ -150,11 +146,9 @@ def evolve_world(
                 "evolve_world: stagnation sur %d générations — extinction dynamique",
                 stagnation_patience,
             )
-            alert_stagnation = True
             # extinction dynamique : on ne garde que 1 élite
             survivors = pop[:1]
             mutation_rate = min(1.0, mutation_base * 2)
-            alert_extinction = True
         else:
             mutation_rate = mutation_base * (
                 0.5
@@ -168,7 +162,6 @@ def evolve_world(
         # Surperformance : record battu
         if pop[0].fitness > best_fitness:
             _log.info("evolve_world: nouveau record de fitness %.4f", pop[0].fitness)
-            alert_surperformance = True
     else:
         mutation_rate = mutation_base
     _log.debug("evolve_world: mutation adaptative taux=%.3f", mutation_rate)
@@ -318,13 +311,12 @@ def compute_drawdown(equity_curve):
 
 
 def compute_sharpe(equity_curve):
-    """Calcule le ratio de Sharpe d'une courbe d'equity."""
+    """Ratio de Sharpe non-annualise (fitness score). Primitive canonique."""
+    from metrics.sharpe import sharpe as _sharpe_fn
+
     equity = np.array(equity_curve)
-    returns = np.diff(equity) / equity[:-1]
-    if np.std(returns) == 0:
-        return 0
-    sharpe = np.mean(returns) / np.std(returns)
-    return sharpe
+    returns = (np.diff(equity) / equity[:-1]).tolist()
+    return _sharpe_fn(returns, periods_per_year=1.0)
 
 
 def score_env_trend(g):
@@ -465,7 +457,6 @@ def evolve(
 def save_simulation_summary(summary_dict, filename):
     """Sauvegarde un résumé de simulation (dict) dans un fichier CSV ou pickle."""
     import csv
-    import os
     import pickle
 
     sim_dir = os.path.join(os.getcwd(), "sim_summaries")

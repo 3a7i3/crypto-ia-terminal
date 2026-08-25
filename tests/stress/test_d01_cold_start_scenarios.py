@@ -16,14 +16,12 @@ from __future__ import annotations
 
 import json
 import time
-from pathlib import Path
 from typing import Tuple
 
-import pytest
 
 import cold_start.cold_start_manager as _csm_module
 from cold_start.cold_start_manager import ColdStartManager
-from cold_start.warmup_scenarios import SCENARIOS, SCENARIOS_BY_ID, get_scenario
+from cold_start.warmup_scenarios import SCENARIOS, get_scenario
 from cold_start.warmup_state_machine import WarmupState
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -151,7 +149,7 @@ class TestColdStartScenarios:
 
     def test_cs02_reboot_apres_crash(self):
         """CS-02 : probation incohérente → peut progresser mais lentement."""
-        sc = get_scenario("CS-02")
+        get_scenario("CS-02")
         state, ticks, snap = _run_scenario("CS-02", max_ticks=60)
         # CS-02 : must_not_reach_live=False, must_fail=False
         # Le système peut atteindre LIVE_READY ou rester bloqué — les 2 sont OK
@@ -170,7 +168,7 @@ class TestColdStartScenarios:
         # CS-05 : score 0.858 (juste au seuil), le système PEUT atteindre LIVE_READY
         # mais avec un score inférieur à une baseline saine (no anomalies, regime=0.80).
         # L'invariant vérifie la réduction du score, pas le blocage absolu.
-        sc = get_scenario("CS-05")
+        get_scenario("CS-05")
         state, ticks, snap = _run_scenario("CS-05")
         # Score doit être < baseline saine (regime=0.80, anomaly=0)
         cs_score = snap.get(

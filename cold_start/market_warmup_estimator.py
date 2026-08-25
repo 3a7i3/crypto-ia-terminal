@@ -34,7 +34,7 @@ import time
 from dataclasses import dataclass, field
 from typing import Literal
 
-from cold_start.warmup_metrics import LIVE_READY_THRESHOLD, WarmupMetrics
+from cold_start.warmup_metrics import LIVE_READY_THRESHOLD
 from cold_start.warmup_signer import sign_artifact
 
 # Seuil live_ready par régime

@@ -9,8 +9,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from tracker_system.analytics.advanced_metrics import (
-    AdvancedMetrics,
-    create_advanced_metrics_manager
+    AdvancedMetrics
 )
 
 
@@ -80,7 +79,7 @@ def test_sharpe_sortino():
         print(f"  Avg daily return: {sum(returns)/len(returns):.3%}")
         print(f"  Sharpe ratio: {sharpe:.2f}")
         print(f"  Sortino ratio: {sortino:.2f}")
-        print(f"  Note: Sortino > Sharpe indique volatilité asymétrique")
+        print("  Note: Sortino > Sharpe indique volatilité asymétrique")
 
 
 def test_cagr_calmar():
@@ -135,7 +134,7 @@ def test_drawdown():
     starting = 10000
     max_dd, peak_idx, trough_idx = metrics.calculate_max_drawdown(starting, returns)
 
-    print(f"\nScenario: 3 days +5%, 3 days -10%, recovery")
+    print("\nScenario: 3 days +5%, 3 days -10%, recovery")
     print(f"  Max Drawdown: {max_dd:.2%}")
     print(f"  Peak at day: {peak_idx}")
     print(f"  Trough at day: {trough_idx}")
@@ -193,30 +192,30 @@ def test_full_report():
         period_days=252
     )
 
-    print(f"\nCAPITAL:")
+    print("\nCAPITAL:")
     print(f"  Départ: ${report['starting_capital']:,.2f}")
     print(f"  Final: ${report['ending_capital']:,.2f}")
     print(f"  Profit: ${report['net_profit']:,.2f} ({report['net_profit_pct']:.2%})")
 
-    print(f"\nPERFORMANCE:")
+    print("\nPERFORMANCE:")
     print(f"  CAGR: {report['cagr']:.2%}")
     print(f"  Sharpe Ratio: {report['sharpe_ratio']:.2f}")
     print(f"  Sortino Ratio: {report['sortino_ratio']:.2f}")
     print(f"  Calmar Ratio: {report['calmar_ratio']:.2f}")
 
-    print(f"\nRISQUE:")
+    print("\nRISQUE:")
     print(f"  Max Drawdown: {report['max_drawdown']:.2%} (${report['max_drawdown_usd']:,.2f})")
     print(f"  Drawdown period: Days {report['max_drawdown_period'][0]} -> {report['max_drawdown_period'][1]}")
     print(f"  Std Dev: {report['std_dev']:.3%}")
 
-    print(f"\nTRADES:")
+    print("\nTRADES:")
     print(f"  Total: {report['num_trades']}")
     print(f"  Wins: {report['num_wins']} ({report['win_rate']:.1%})")
     print(f"  Losses: {report['num_losses']}")
     print(f"  Profit Factor: {report['profit_factor']:.2f}")
     print(f"  Recovery Factor: {report['recovery_factor']:.2f}")
 
-    print(f"\nINTERPRETATION:")
+    print("\nINTERPRETATION:")
     if report['sharpe_ratio'] > 1.0:
         print(f"  [OK] Excellent Sharpe ({report['sharpe_ratio']:.2f})")
     elif report['sharpe_ratio'] > 0.5:

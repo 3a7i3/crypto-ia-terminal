@@ -187,7 +187,7 @@ def features_vector(book: NormalizedOrderBook) -> dict[str, float]:
     Vecteur de features complet du book pour le ML.
     Retourne un dict de floats directement utilisables comme features.
     """
-    sp = spread_metrics(book)
+    spread_metrics(book)
     dp5 = depth_profile(book, 5)
     dp10 = depth_profile(book, 10)
     pr = book_pressure(book, 0.5)

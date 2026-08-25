@@ -26,7 +26,7 @@ Usage minimal :
 from __future__ import annotations
 
 import statistics
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Optional
 
 from metrics.oos_metrics import OOSMetrics, TradeResult, compute_oos_metrics

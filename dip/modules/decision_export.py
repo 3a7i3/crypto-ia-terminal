@@ -113,12 +113,12 @@ class MarkdownExporter:
     def export(report: DIPReport) -> str:
         lines = [
             f"# {report.title}",
-            f"",
+            "",
             f"**Généré le:** {_fmt_ts(report.created_at_us)}",
             f"**Décisions analysées:** {report.decision_count}",
             f"**Taux d'approbation:** {report.approval_rate:.1%}",
             f"**Principale couche bloquante:** {report.top_rejection_layer}",
-            f"",
+            "",
         ]
         for section in report.sections:
             lines.append(f"## {section.title}")
@@ -319,7 +319,7 @@ class DecisionExportEngine:
         graph_engine = get_graph_engine()
         causal_engine = get_causal_tree_engine()
 
-        graph = graph_engine.get_graph(packet_id)
+        graph_engine.get_graph(packet_id)
         causal = causal_engine.build_causal_tree(packet_id)
         audit = self._store.get_audit_trail(packet_id)
         cfs = self._store.get_counterfactuals(packet_id)

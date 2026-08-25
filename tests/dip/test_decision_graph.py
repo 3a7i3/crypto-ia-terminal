@@ -2,17 +2,14 @@
 
 from __future__ import annotations
 
-import uuid
 from unittest.mock import patch
 
-import pytest
 
 from dip.core.types import DecisionStatus, LayerStatus, now_us
 from dip.modules.decision_graph import (
     DecisionGraphEngine,
     GraphBuilder,
     _extract_layer_data,
-    get_graph_engine,
 )
 
 
@@ -25,17 +22,17 @@ class TestExtractLayerData:
     def test_rejected_truncates_at_blocker(self, obs_rejected):
         # meta_strategy est le bloqueur → on s'arrête après meta_strategy
         layers = _extract_layer_data(obs_rejected)
-        layer_names = [l["layer"] for l in layers]
+        layer_names = [lay["layer"] for lay in layers]
         # Le bloqueur est "meta_strategy" (lowercase avec underscore)
         assert "meta_strategy" in layer_names
         blocker_idx = layer_names.index("meta_strategy")
         assert not any(
-            l["status"] == LayerStatus.PASSED for l in layers[blocker_idx + 1 :]
+            lay["status"] == LayerStatus.PASSED for lay in layers[blocker_idx + 1 :]
         )
 
     def test_gate_rejected(self, obs_rejected_gate):
         layers = _extract_layer_data(obs_rejected_gate)
-        gate_layers = [l for l in layers if l["layer"] == "gate"]
+        gate_layers = [lay for lay in layers if lay["layer"] == "gate"]
         assert gate_layers
         assert gate_layers[0]["status"] == LayerStatus.BLOCKED
 
@@ -79,7 +76,6 @@ class TestGraphBuilder:
 class TestDecisionGraphEngine:
 
     def test_on_observation_stores_graph(self, tmp_store):
-        from dip.modules.decision_graph import DecisionGraphEngine
 
         engine = DecisionGraphEngine()
         # Patch le store
@@ -93,7 +89,6 @@ class TestDecisionGraphEngine:
             assert graph.packet_id == obs.packet_id
 
     def test_layer_contributions(self, tmp_store):
-        from dip.modules.decision_graph import DecisionGraphEngine
 
         engine = DecisionGraphEngine()
         with patch.object(engine, "_store", tmp_store):
@@ -106,7 +101,6 @@ class TestDecisionGraphEngine:
             assert len(contribs) > 0
 
     def test_rejection_stats_empty(self, tmp_store):
-        from dip.modules.decision_graph import DecisionGraphEngine
 
         engine = DecisionGraphEngine()
         with patch.object(engine, "_store", tmp_store):

@@ -404,7 +404,7 @@ def _print_table(report: dict[str, Any]) -> None:
             print(f"    [lazy]  {lc}")
 
     hubs = report["hubs"]
-    print(f"\n  Top hubs (dependants) :")
+    print("\n  Top hubs (dependants) :")
     if hubs:
         print(f"    {'Module':<35} {'In':>4} {'Out':>4} {'Coupling':>8}")
         print(f"    {'-'*35} {'-'*4} {'-'*4} {'-'*8}")

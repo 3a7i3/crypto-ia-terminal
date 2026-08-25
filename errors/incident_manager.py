@@ -31,7 +31,7 @@ from dataclasses import dataclass, field
 from enum import Enum, auto
 from typing import Any, Callable, Dict, List, Optional
 
-from errors.error_bus import ErrorCategory, ErrorEvent, ErrorSeverity, error_bus
+from errors.error_bus import ErrorEvent, ErrorSeverity, error_bus
 from observability.json_logger import get_logger
 from observability.metrics_bus import metrics_bus
 
@@ -254,7 +254,7 @@ class IncidentManager:
             time.sleep(30.0)
 
     def _check_stale_incidents(self) -> None:
-        now = time.time()
+        time.time()
         with self._lock:
             open_incidents = [i for i in self._incidents.values() if i.is_open]
 

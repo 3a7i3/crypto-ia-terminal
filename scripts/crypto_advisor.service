@@ -1,3 +1,10 @@
+# ⚠️ OBSOLÈTE — NE PAS INSTALLER. Piège identifié par l'audit forensic 2026-08-24.
+# Ce template vise `advisor_loop.py` (bot passif RACINE), user `mathieuhasard111`
+# et des chemins /home/mathieuhasard111 qui n'existent PAS sur le VPS (user réel :
+# mathieu). L'installer démarre le mauvais programme ou échoue au CHDIR.
+# Le moteur RÉEL (core/advisor_loop.py) est supervisé par `crypto-advisor.service`
+# (TIRET), généré avec les bons chemins par scripts/install_advisor_service.sh.
+# Conservé uniquement comme référence historique.
 [Unit]
 Description=Crypto AI Advisor Loop
 Documentation=https://github.com/mathieuhasard111/crypto_ai_terminal

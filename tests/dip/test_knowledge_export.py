@@ -4,15 +4,13 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
-import pytest
 
-from dip.core.types import TimeRange, now_us
+from dip.core.types import TimeRange
 from dip.modules.decision_export import (
     CSVExporter,
     DecisionExportEngine,
     ExportOptions,
     JSONExporter,
-    MarkdownExporter,
     ReportBuilder,
 )
 from dip.modules.knowledge_base import (
@@ -130,7 +128,7 @@ class TestCSVExporter:
 
     def test_empty_produces_header(self):
         content = CSVExporter.export([])
-        lines = [l for l in content.strip().split("\n") if l]
+        lines = [line for line in content.strip().split("\n") if line]
         assert len(lines) == 1  # juste le header
 
 

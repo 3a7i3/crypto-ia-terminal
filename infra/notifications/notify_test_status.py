@@ -1,7 +1,6 @@
 # Simple notification script for test results
 # This version prints to console and can be extended for email/discord/telegram
 
-import json
 import os
 import smtplib
 import subprocess

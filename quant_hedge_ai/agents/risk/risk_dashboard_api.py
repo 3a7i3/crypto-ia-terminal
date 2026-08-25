@@ -22,7 +22,6 @@ Ou en serveur bloquant :
 
 from __future__ import annotations
 
-import math
 import threading
 from typing import Any
 
@@ -70,14 +69,13 @@ def _make_app(paper_engine, shadow_engine=None):
         }
 
     def _rolling_sharpe(trades: list[dict], window: int = 30) -> float:
+        from metrics.sharpe import sharpe as _sharpe_fn
+
         sells = [t for t in trades if t.get("action") == "SELL"][-window:]
         if len(sells) < 5:
             return 0.0
         returns = [t.get("pnl", 0.0) for t in sells]
-        mean = sum(returns) / len(returns)
-        variance = sum((r - mean) ** 2 for r in returns) / len(returns)
-        std = math.sqrt(variance) if variance > 0 else 1e-9
-        return round((mean / std) * math.sqrt(252), 4)
+        return round(_sharpe_fn(returns, periods_per_year=252.0), 4)
 
     def _rolling_winrate(trades: list[dict], window: int = 30) -> float:
         sells = [t for t in trades if t.get("action") == "SELL"][-window:]

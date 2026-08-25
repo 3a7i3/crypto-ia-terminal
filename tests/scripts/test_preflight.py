@@ -115,7 +115,7 @@ def test_check_permissions_creates_missing_dirs(tmp_path: Path) -> None:
 
 def test_stale_lock_absent(tmp_path: Path) -> None:
     _reset_state()
-    lock = tmp_path / "logs" / "advisor.lock"
+    tmp_path / "logs" / "advisor.lock"
     with patch.object(pf, "ROOT", tmp_path):
         pf.check_stale_lock()
     assert pf._ok is True
