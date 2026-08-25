@@ -1,0 +1,26 @@
+# ADR-0007 — Observatoire Live Market Interaction (LMI), strictement passif.
+# Processus resident : streame les WebSockets publics des symboles selectionnes
+# (market cap / volatilite / win-loss) et ecrit lmi_live_state.json + l'historique.
+# Zero cle, zero ordre, zero branchement au moteur de decision.
+#
+# Installation (VPS, geste operateur) :
+#   sudo cp scripts/systemd/crypto-lmi-observatory.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now crypto-lmi-observatory
+[Unit]
+Description=Crypto AI Terminal - Observatoire LMI live (ADR-0007, passif)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=mathieu
+WorkingDirectory=/home/mathieu/crypto_ai_terminal
+EnvironmentFile=-/home/mathieu/crypto_ai_terminal/.env
+ExecStart=/home/mathieu/crypto_ai_terminal/.venv/bin/python -m trade_analysis.observatory --live --max-symbols 20
+Restart=on-failure
+RestartSec=10
+Nice=10
+
+[Install]
+WantedBy=multi-user.target

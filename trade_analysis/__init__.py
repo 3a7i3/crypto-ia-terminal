@@ -28,6 +28,7 @@ from trade_analysis.models import (
 )
 from trade_analysis.recorder import LMIRecorder
 from trade_analysis.resistance_meter import ResistanceMeter
+from trade_analysis.selection import SymbolCandidate, SymbolSelector
 
 __all__ = [
     "LMIEngine",
@@ -41,4 +42,6 @@ __all__ = [
     "MarketResistance",
     "MarketStateLabel",
     "PressureField",
+    "SymbolSelector",
+    "SymbolCandidate",
 ]
