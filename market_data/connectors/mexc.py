@@ -13,6 +13,7 @@ Particularites MEXC :
 
 from __future__ import annotations
 
+import asyncio
 import json
 import time
 from typing import AsyncGenerator, Optional
@@ -21,7 +22,12 @@ from market_data.connectors.base import BaseConnector
 from market_data.models import NormalizedCandle, NormalizedOrderBook, NormalizedTrade
 
 _BASE = "https://contract.mexc.com/api/v1/contract"
-_WS = "wss://contract.mexc.com/ws"
+# Endpoint WS Futures MEXC : l'ancien /ws redirige desormais vers une page
+# 404 (scheme https), ce qui casse la lib websockets. Le point d'entree
+# courant est /edge. Keepalive applicatif obligatoire (ping toutes les ~15s)
+# sinon le serveur ferme la connexion inactive.
+_WS = "wss://contract.mexc.com/edge"
+_PING_INTERVAL_S = 15.0
 
 _TF_MAP = {
     "1m": "Min1",
@@ -188,6 +194,17 @@ class MEXCFuturesConnector(BaseConnector):
     # WebSocket
     # ------------------------------------------------------------------
 
+    async def _keepalive(self, ws) -> None:
+        """Ping applicatif MEXC toutes les ~15s (sinon le serveur ferme)."""
+        try:
+            while True:
+                await asyncio.sleep(_PING_INTERVAL_S)
+                await ws.send(json.dumps({"method": "ping"}))
+        except asyncio.CancelledError:
+            raise
+        except Exception:  # connexion fermee : le stream s'arrete de lui-meme
+            return
+
     async def stream_trades(self, symbol: str) -> AsyncGenerator[NormalizedTrade, None]:
         """Stream trades MEXC Futures. Necessite `pip install websockets`."""
         import websockets  # type: ignore
@@ -197,24 +214,28 @@ class MEXCFuturesConnector(BaseConnector):
 
         async with websockets.connect(_WS) as ws:
             await ws.send(sub)
-            async for msg in ws:
-                payload = json.loads(msg)
-                if payload.get("channel") != "push.deal":
-                    continue
-                for t in payload.get("data", {}).get("deals", []):
-                    side_raw = int(t.get("T", 1))
-                    ts = int(t.get("t", time.time() * 1000))
-                    price = float(t.get("p", 0))
-                    size_raw = float(t.get("v", 0))
-                    yield NormalizedTrade(
-                        exchange=self.exchange_name,
-                        symbol=self._normalize_symbol(sym),
-                        timestamp_ms=ts if ts > 1e12 else ts * 1000,
-                        price=price,
-                        size=self._contract_to_base(sym, size_raw, price),
-                        side="buy" if side_raw == 1 else "sell",
-                        raw=t,
-                    )
+            ping_task = asyncio.create_task(self._keepalive(ws))
+            try:
+                async for msg in ws:
+                    payload = json.loads(msg)
+                    if payload.get("channel") != "push.deal":
+                        continue
+                    for t in payload.get("data", {}).get("deals", []):
+                        side_raw = int(t.get("T", 1))
+                        ts = int(t.get("t", time.time() * 1000))
+                        price = float(t.get("p", 0))
+                        size_raw = float(t.get("v", 0))
+                        yield NormalizedTrade(
+                            exchange=self.exchange_name,
+                            symbol=self._normalize_symbol(sym),
+                            timestamp_ms=ts if ts > 1e12 else ts * 1000,
+                            price=price,
+                            size=self._contract_to_base(sym, size_raw, price),
+                            side="buy" if side_raw == 1 else "sell",
+                            raw=t,
+                        )
+            finally:
+                ping_task.cancel()
 
     async def stream_orderbook(
         self, symbol: str, depth: int = 20
@@ -227,30 +248,34 @@ class MEXCFuturesConnector(BaseConnector):
 
         async with websockets.connect(_WS) as ws:
             await ws.send(sub)
-            async for msg in ws:
-                payload = json.loads(msg)
-                if payload.get("channel") != "push.depth":
-                    continue
-                d = payload.get("data", {})
-                bids = sorted(
-                    [
-                        (float(p), float(s))
-                        for p, s in zip(d.get("bids", []), d.get("bidVols", []))
-                    ],
-                    reverse=True,
-                )[:depth]
-                asks = sorted(
-                    [
-                        (float(p), float(s))
-                        for p, s in zip(d.get("asks", []), d.get("askVols", []))
-                    ]
-                )[:depth]
-                ts = int(d.get("timestamp", time.time() * 1000))
-                yield NormalizedOrderBook(
-                    exchange=self.exchange_name,
-                    symbol=self._normalize_symbol(sym),
-                    timestamp_ms=ts if ts > 1e12 else ts * 1000,
-                    bids=bids,
-                    asks=asks,
-                    is_snapshot=False,
-                )
+            ping_task = asyncio.create_task(self._keepalive(ws))
+            try:
+                async for msg in ws:
+                    payload = json.loads(msg)
+                    if payload.get("channel") != "push.depth":
+                        continue
+                    d = payload.get("data", {})
+                    bids = sorted(
+                        [
+                            (float(p), float(s))
+                            for p, s in zip(d.get("bids", []), d.get("bidVols", []))
+                        ],
+                        reverse=True,
+                    )[:depth]
+                    asks = sorted(
+                        [
+                            (float(p), float(s))
+                            for p, s in zip(d.get("asks", []), d.get("askVols", []))
+                        ]
+                    )[:depth]
+                    ts = int(d.get("timestamp", time.time() * 1000))
+                    yield NormalizedOrderBook(
+                        exchange=self.exchange_name,
+                        symbol=self._normalize_symbol(sym),
+                        timestamp_ms=ts if ts > 1e12 else ts * 1000,
+                        bids=bids,
+                        asks=asks,
+                        is_snapshot=False,
+                    )
+            finally:
+                ping_task.cancel()
