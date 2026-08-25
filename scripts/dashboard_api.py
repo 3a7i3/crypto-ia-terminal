@@ -195,6 +195,35 @@ def api_status():
     return {"packets_today":n,"last_packet":lt[:19] if lt else None,
         "dp_files":len(dfs),"dp_total_gb":round(ts/1e9,2)}
 
+try:
+    import sys as _sys
+    _sys.path.insert(0, str(PROJECT))
+    from trade_analysis.integrations import dashboard_adapter as _lmi
+except Exception:  # pragma: no cover - LMI optionnel
+    _lmi = None
+
+@app.get("/api/lmi/status")
+def api_lmi_status():
+    if _lmi is None: return {"running": False, "error": "lmi_unavailable"}
+    return _lmi.lmi_status()
+
+@app.get("/api/lmi/table")
+def api_lmi_table():
+    if _lmi is None: return {"data": [], "count": 0}
+    return _lmi.lmi_table()
+
+@app.get("/api/lmi/symbol/{symbol}")
+def api_lmi_symbol(symbol: str):
+    if _lmi is None: raise HTTPException(503)
+    d = _lmi.lmi_symbol(symbol)
+    if d is None: raise HTTPException(404)
+    return d
+
+@app.get("/api/lmi/events")
+def api_lmi_events(min_confidence: float = 0.6):
+    if _lmi is None: return {"data": [], "count": 0}
+    return _lmi.lmi_events(min_confidence=min_confidence)
+
 @app.get("/", response_class=HTMLResponse)
 def dashboard():
     return _DASH
@@ -235,7 +264,7 @@ td{padding:10px 12px;border-bottom:1px solid var(--bd);white-space:nowrap}tr:hov
 .sg.hot{border:1.5px solid #f0b90b;box-shadow:0 0 12px rgba(240,185,11,.25)}.sg.hot .sgs{color:#f0b90b}tr.hot{background:rgba(240,185,11,.08)!important}tr.hot td:nth-child(2) strong{color:#f0b90b}</style></head><body>
 <div class="rb" id="rb"></div>
 <div class="hd"><h1><span>Crypto</span>Radar</h1><div class="hr"><span class="dot" id="dot"></span><span id="lu">--</span><span id="pc">--</span></div></div>
-<div class="tabs"><button class="tab on" onclick="sw('scanner')">Scanner</button><button class="tab" onclick="sw('signals')">Signaux</button></div>
+<div class="tabs"><button class="tab on" onclick="sw('scanner')">Scanner</button><button class="tab" onclick="sw('signals')">Signaux</button><button class="tab" onclick="sw('live')">Live Market</button></div>
 <div id="t-scanner">
 <div class="sr" id="tiles"></div>
 <div class="fl"><button class="fb on" onclick="fs('ALL')">Tous</button><button class="fb" onclick="fs('LONG')">LONG</button><button class="fb" onclick="fs('SHORT')">SHORT</button><input class="si" placeholder="Chercher..." oninput="fq(this.value)"></div>
@@ -245,9 +274,30 @@ td{padding:10px 12px;border-bottom:1px solid var(--bd);white-space:nowrap}tr:hov
 <div class="fl"><button class="fb on" onclick="fss('ALL')">Tous</button><button class="fb" onclick="fss('LONG')">LONG</button><button class="fb" onclick="fss('SHORT')">SHORT</button></div>
 <div class="sc" id="scs"></div>
 </div>
+<div id="t-live" style="display:none">
+<div class="sr" id="lmi-tiles"></div>
+<div class="fl">
+<span style="color:var(--tm);font-size:.75rem;align-self:center">Etat</span>
+<button class="fb on" onclick="lf('state','ALL',event)">Tous</button>
+<button class="fb" onclick="lf('state','accumulation',event)">Accumulation</button>
+<button class="fb" onclick="lf('state','distribution',event)">Distribution</button>
+<button class="fb" onclick="lf('state','conflict',event)">Conflict</button>
+<button class="fb" onclick="lf('state','vacuum_up',event)">Vacuum</button>
+<input class="si" placeholder="Chercher..." oninput="lfq(this.value)">
+</div>
+<div class="tw"><table><thead><tr><th>Symbole</th><th>Etat</th><th>Conf</th><th>Buy</th><th>Sell</th><th>Flux USD</th><th>Resist.</th><th>Fragil.</th><th>Prix</th></tr></thead><tbody id="lmi-tb"></tbody></table></div>
+<p style="padding:0 20px 20px;color:var(--tm);font-size:.75rem">⚠️ Observation de recherche — pas un signal de trading (ADR-0007)</p>
+</div>
 <script>
-let D=[],S=[],ct='scanner',sf='ALL',ssf='ALL',sq='';
-function sw(t){ct=t;document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));document.querySelector('.tab[onclick*="'+t+'"]').classList.add('on');document.getElementById('t-scanner').style.display=t==='scanner'?'':'none';document.getElementById('t-signals').style.display=t==='signals'?'':'none'}
+let D=[],S=[],L=[],ct='scanner',sf='ALL',ssf='ALL',sq='',lsf='ALL',lq='';
+const LMIC={accumulation:'#0ca30c',distribution:'#d03b3b',absorption_buy:'#e0b400',absorption_sell:'#e0b400',fragility_up:'#e08000',fragility_down:'#e08000',compression:'#2a78d6',expansion:'#c000c0',exhaustion_buy:'#a000a0',exhaustion_sell:'#a000a0',vacuum_up:'#00b0b0',vacuum_down:'#00b0b0',conflict:'#f0b90b',quiet:'#7a7a6e'};
+function sw(t){ct=t;document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));document.querySelector('.tab[onclick*="'+t+'"]').classList.add('on');document.getElementById('t-scanner').style.display=t==='scanner'?'':'none';document.getElementById('t-signals').style.display=t==='signals'?'':'none';document.getElementById('t-live').style.display=t==='live'?'':'none';if(t==='live')loadLMI()}
+function lf(k,v,e){lsf=v;document.querySelectorAll('#t-live .fb').forEach(b=>b.classList.remove('on'));e.target.classList.add('on');rL()}
+function lfq(v){lq=v.toUpperCase();rL()}
+function rLT(){const a=L.filter(r=>!r.stale).length,ev=L.filter(r=>r.state!=='quiet'&&!r.stale).length,fl=L.reduce((s,r)=>s+(r.total_flow_usd||0),0);document.getElementById('lmi-tiles').innerHTML='<div class="st"><div class="l">Observes</div><div class="v">'+L.length+'</div></div><div class="st"><div class="l">Actifs</div><div class="v lo">'+a+'</div></div><div class="st"><div class="l">Events</div><div class="v">'+ev+'</div></div><div class="st"><div class="l">Flux USD</div><div class="v">'+fmU(fl)+'</div></div>'}
+function fmU(v){v=v||0;if(Math.abs(v)>=1e6)return(v/1e6).toFixed(1)+'M';if(Math.abs(v)>=1e3)return(v/1e3).toFixed(0)+'k';return v.toFixed(0)}
+function rL(){let d=L;if(lsf!=='ALL')d=d.filter(r=>r.state===lsf);if(lq)d=d.filter(r=>r.symbol.includes(lq));document.getElementById('lmi-tb').innerHTML=d.map(r=>{const c=LMIC[r.state]||'#7a7a6e',o=r.stale?'opacity:.4':'';return'<tr style="'+o+'"><td><strong>'+r.symbol+'</strong></td><td><span style="color:'+c+';font-weight:600">'+r.state.toUpperCase()+'</span></td><td>'+(r.state_confidence*100).toFixed(0)+'</td><td class="sl">'+r.buy_pressure+'</td><td class="ss">'+r.sell_pressure+'</td><td>'+fmU(r.total_flow_usd)+'</td><td>'+fmU(r.resistance)+'</td><td>'+r.fragility.toFixed(2)+'</td><td>'+fm(r.price)+'</td></tr>'}).join('')||'<tr><td colspan="9" style="text-align:center;color:var(--tm);padding:24px">Observatoire inactif ou aucune donnee live</td></tr>';rLT()}
+async function loadLMI(){try{const r=await fetch('/api/lmi/table').then(r=>r.json());L=r.data||[];rL()}catch(e){console.error(e)}}
 function fs(s){sf=s;document.querySelectorAll('#t-scanner .fb').forEach(b=>b.classList.remove('on'));event.target.classList.add('on');rS()}
 function fss(s){ssf=s;document.querySelectorAll('#t-signals .fb').forEach(b=>b.classList.remove('on'));event.target.classList.add('on');rG()}
 function fq(v){sq=v.toUpperCase();rS()}
@@ -257,6 +307,7 @@ function rS(){let d=D;if(sf!=='ALL')d=d.filter(s=>s.dominant_side===sf);if(sq)d=
 function rG(){let d=S;if(ssf!=='ALL')d=d.filter(s=>ssf==='LONG'?['BUY','LONG'].includes(s.side):['SELL','SHORT'].includes(s.side));document.getElementById('scs').innerHTML=d.slice(0,30).map(s=>{const il=['BUY','LONG'].includes(s.side),dc=il?'sl':'ss',dr=il?'LONG':'SHORT',rr=s.r_multiple?'R:R '+s.r_multiple.toFixed(1):'';return'<div class="sg '+(s.confidence>=80?'hot':'')+'"><div class="sgh"><span class="sgs">'+s.symbol+'</span><span class="'+dc+'">'+dr+'</span></div><div class="sgl"><div><div class="ll">Entry</div><div class="lv">'+fm(s.entry)+'</div></div><div><div class="ll">Stop Loss</div><div class="lv" style="color:var(--sh)">'+fm(s.sl)+'</div><div class="lp">-'+s.risk_pct+'%</div></div><div><div class="ll">Take Profit</div><div class="lv" style="color:var(--lo)">'+fm(s.tp)+'</div><div class="lp">+'+s.reward_pct+'%</div></div></div><div class="sgm"><span>Conf: '+s.confidence+'/100</span><span>'+s.regime.replace('TREND_','')+'</span><span>'+rr+'</span></div></div>'}).join('')}
 async function load(){try{const[a,b,c]=await Promise.all([fetch('/api/scan?top=50&min_conf=60').then(r=>r.json()),fetch('/api/signals?hours=24&limit=50').then(r=>r.json()),fetch('/api/status').then(r=>r.json())]);D=a.data;S=b.data;rS();rG();const dt=document.getElementById('dot'),lp=c.last_packet;if(lp){const ago=Math.floor((Date.now()-new Date(lp+'Z').getTime())/60000);document.getElementById('lu').textContent=ago<60?ago+'min ago':Math.floor(ago/60)+'h ago';dt.className='dot'+(ago>10?' off':'')}document.getElementById('pc').textContent=c.packets_today+' pkts';const rb=document.getElementById('rb');rb.style.width='100%';rb.style.transition='none';requestAnimationFrame(()=>{rb.style.transition='width 30s linear';rb.style.width='0%'})}catch(e){console.error(e);document.getElementById('dot').className='dot off'}}
 load();setInterval(load,30000);
+setInterval(()=>{if(ct==='live')loadLMI()},5000);
 </script></body></html>"""
 
 if __name__ == "__main__":
