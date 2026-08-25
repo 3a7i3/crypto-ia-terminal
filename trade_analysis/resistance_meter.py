@@ -17,7 +17,6 @@ Strictement passif (ADR-0007).
 
 from __future__ import annotations
 
-import math
 from collections import deque
 from typing import Optional
 

@@ -19,7 +19,6 @@ Strictement passif (ADR-0007) — aucune influence sur les decisions.
 
 from __future__ import annotations
 
-import asyncio
 from typing import AsyncGenerator, Callable, Iterator, Optional
 
 from market_data.models import (
