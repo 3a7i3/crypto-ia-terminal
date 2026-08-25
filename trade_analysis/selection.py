@@ -32,6 +32,23 @@ OBS_DIR = Path(os.getenv("OBS_DIR", "databases/observation"))
 PAPER_TRADE_LOG = Path(os.getenv("PAPER_TRADE_LOG", "databases/paper_trades.jsonl"))
 
 
+def load_pinned_universe() -> set[str]:
+    """
+    Univers trade epingle (ADR-0017), lu depuis UNIVERSE_PINNED_SYMBOLS.
+
+    Format : symboles separes par des espaces ('BTC/USDT ETH/USDT ...'),
+    exactement comme le consomment backfill_ohlcv / l'advisor. Chaque
+    symbole est normalise ('BTC/USDT' -> 'BTCUSDT').
+
+    Retourne un set vide si la variable est absente : dans ce cas le
+    filtre d'univers est un no-op (utile en dev, hors VPS).
+    """
+    raw = os.getenv("UNIVERSE_PINNED_SYMBOLS", "").strip()
+    if not raw:
+        return set()
+    return {normalize_symbol(s) for s in raw.split() if s.strip()}
+
+
 def normalize_symbol(raw: str) -> str:
     """
     Normalise vers le format interne 'BTCUSDT'.
@@ -225,6 +242,8 @@ class SymbolSelector:
         limit: int = 20,
         since_days: int = 30,
         candidates: Optional[list[SymbolCandidate]] = None,
+        restrict_to_pinned: bool = True,
+        pinned_universe: Optional[set[str]] = None,
     ) -> list[SymbolCandidate]:
         """
         Filtre puis classe les candidats.
@@ -232,13 +251,28 @@ class SymbolSelector:
         sort_by : "market_cap" | "volatility" | "radar_score" | "win_rate"
         Les filtres None sont ignores. min_win_rate exclut les symboles
         sans trade ferme (win_rate == None) uniquement s'il est fourni.
+
+        restrict_to_pinned : si True (defaut), l'univers observe est
+        restreint aux paires de UNIVERSE_PINNED_SYMBOLS (ADR-0017) — cohere
+        l'observatoire avec l'univers trade scientifique. Si l'univers
+        epingle est vide (variable absente, ex. dev), le filtre est ignore.
+        pinned_universe : set injectable (sinon lu depuis l'env).
         """
         cands = candidates if candidates is not None else self.load_candidates(
             since_days
         )
 
+        pinned: set[str] = set()
+        if restrict_to_pinned:
+            pinned = (
+                pinned_universe if pinned_universe is not None
+                else load_pinned_universe()
+            )
+
         filtered: list[SymbolCandidate] = []
         for c in cands:
+            if pinned and c.symbol not in pinned:
+                continue
             if min_market_cap is not None and c.market_cap_proxy < min_market_cap:
                 continue
             if min_volatility is not None and c.volatility < min_volatility:

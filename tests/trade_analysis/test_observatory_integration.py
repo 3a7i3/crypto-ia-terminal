@@ -137,6 +137,45 @@ class TestSymbolSelector:
         assert sel.load_candidates() == []
         assert sel.select() == []
 
+    def test_pinned_universe_restricts(self, tmp_path):
+        obs = tmp_path / "obs"
+        _write_radar(
+            obs,
+            [
+                {"sym": "BTCUSDT", "qv_med": 5e8, "range_pct": 2.0, "score": 90},
+                {"sym": "XAUUSDT", "qv_med": 9e8, "range_pct": 1.0, "score": 95},
+                {"sym": "MUSTOCKUSDT", "qv_med": 8e8, "range_pct": 1.0, "score": 92},
+                {"sym": "ETHUSDT", "qv_med": 3e8, "range_pct": 2.0, "score": 80},
+            ],
+        )
+        sel = SymbolSelector(obs_dir=obs, paper_trade_log=tmp_path / "none.jsonl")
+        pinned = {"BTCUSDT", "ETHUSDT"}
+        res = sel.select(restrict_to_pinned=True, pinned_universe=pinned, limit=10)
+        # XAU (or) et MUSTOCK (action) exclus, meme s'ils ont plus de volume
+        assert [c.symbol for c in res] == ["BTCUSDT", "ETHUSDT"]
+
+    def test_pinned_universe_empty_is_noop(self, tmp_path):
+        obs = tmp_path / "obs"
+        _write_radar(
+            obs,
+            [
+                {"sym": "BTCUSDT", "qv_med": 5e8, "range_pct": 2.0, "score": 90},
+                {"sym": "XAUUSDT", "qv_med": 9e8, "range_pct": 1.0, "score": 95},
+            ],
+        )
+        sel = SymbolSelector(obs_dir=obs, paper_trade_log=tmp_path / "none.jsonl")
+        # Univers epingle vide -> aucun filtre (dev, hors VPS)
+        res = sel.select(restrict_to_pinned=True, pinned_universe=set(), limit=10)
+        assert {c.symbol for c in res} == {"BTCUSDT", "XAUUSDT"}
+
+    def test_load_pinned_universe_from_env(self, monkeypatch):
+        from trade_analysis.selection import load_pinned_universe
+
+        monkeypatch.setenv("UNIVERSE_PINNED_SYMBOLS", "  BTC/USDT ETH/USDT  SOL/USDT ")
+        assert load_pinned_universe() == {"BTCUSDT", "ETHUSDT", "SOLUSDT"}
+        monkeypatch.delenv("UNIVERSE_PINNED_SYMBOLS", raising=False)
+        assert load_pinned_universe() == set()
+
 
 # ---------------------------------------------------------------------------
 # LiveStateStore
