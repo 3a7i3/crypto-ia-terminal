@@ -279,6 +279,18 @@ def cmd_status(_args):
         f"market_data.sqlite:  {db_size / 1e6:.1f} MB"]
     return "\n".join(lines)
 
+def cmd_lmi(args):
+    """Live Market Interaction — observation microstructure (lecture seule)."""
+    try:
+        from trade_analysis.integrations.radar_adapter import (
+            format_lmi_message, format_lmi_overview)
+    except Exception:
+        return "Module LMI indisponible."
+    sym = args.strip().split()[0] if args.strip() else ""
+    if sym:
+        return format_lmi_message(sym)
+    return format_lmi_overview()
+
 def cmd_help(_args):
     return ("\U0001f916 CryptoRadar Bot\n\n"
         "/scan        Top 10 par confiance (24h)\n"
@@ -289,12 +301,14 @@ def cmd_help(_args):
         "/longs       Uniquement les LONG\n"
         "/shorts      Uniquement les SHORT\n"
         "/symbol BTC  Detail d'un symbole\n"
+        "/lmi         Observatoire Live Market (tous)\n"
+        "/lmi BTC     Microstructure live d'un symbole\n"
         "/status      Etat du systeme\n"
         "/help        Cette aide")
 
 COMMANDS = {"scan": cmd_scan, "signals": cmd_signals, "top50": cmd_top50,
     "longs": cmd_longs, "shorts": cmd_shorts, "symbol": cmd_symbol,
-    "status": cmd_status, "help": cmd_help, "start": cmd_help}
+    "lmi": cmd_lmi, "status": cmd_status, "help": cmd_help, "start": cmd_help}
 
 def poll_loop():
     print("[RadarBot] Demarre — polling Telegram...")

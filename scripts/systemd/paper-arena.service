@@ -1,0 +1,41 @@
+# Paper Arena V1 — ETH/USDT 4h RSI 15/85 (ADR-0007, passif).
+# Mission : l'edge observe en recherche survit-il a des donnees reelles ?
+#
+# Prerequis dans .env :
+#   PAPER_ARENA_TG_TOKEN=<token bot @PaperArena_bot>
+#   PAPER_ARENA_TG_CHAT_ID=<chat id destinataire>
+#
+# Installation (VPS, geste operateur) :
+#   sudo cp scripts/systemd/paper-arena.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now paper-arena.service
+#   sudo systemctl status paper-arena.service
+[Unit]
+Description=Paper Arena V1 — ETH/USDT 4h RSI 15/85 (ADR-0007, passif)
+After=network-online.target crypto-advisor.service
+Wants=network-online.target
+StartLimitIntervalSec=120
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=mathieu
+WorkingDirectory=/home/mathieu/crypto_ai_terminal
+EnvironmentFile=-/home/mathieu/crypto_ai_terminal/.env
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONIOENCODING=utf-8
+Environment=TZ=UTC
+Environment=PYTHONPATH=/home/mathieu/crypto_ai_terminal
+ExecStart=/home/mathieu/crypto_ai_terminal/.venv/bin/python3 -m src.paper.paper_runner
+Restart=on-failure
+RestartSec=10s
+TimeoutStopSec=30
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=paper_arena
+Nice=10
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
