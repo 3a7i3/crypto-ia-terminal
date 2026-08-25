@@ -69,15 +69,43 @@ class MEXCFuturesConnector(BaseConnector):
         """Inverse : "BTC_USDT" -> "BTCUSDT"."""
         return mexc_sym.replace("_", "").upper()
 
+    # Cache partage (classe) des tailles de contrat, rempli via l'API detail.
+    _CONTRACT_SIZE_CACHE: dict[str, float] = {}
+    _CONTRACT_SIZE_LOADED: bool = False
+
+    def _ensure_contract_sizes(self) -> None:
+        """
+        Charge contractSize par symbole depuis l'API MEXC (une fois, cache).
+
+        Sans ceci, la conversion contrats->base est fausse : le contrat BTC
+        vaut 0.0001 BTC, pas 1 — d'ou des volumes USD ~10 000x trop gros.
+        """
+        if MEXCFuturesConnector._CONTRACT_SIZE_LOADED:
+            return
+        try:
+            resp = self._get_json(f"{_BASE}/detail")
+            data = resp.get("data", []) if isinstance(resp, dict) else []
+            cache: dict[str, float] = {}
+            for c in data:
+                sym = c.get("symbol")
+                size = c.get("contractSize")
+                if sym and size:
+                    cache[str(sym)] = float(size)
+            if cache:
+                MEXCFuturesConnector._CONTRACT_SIZE_CACHE = cache
+        except Exception as exc:  # offline / API down : on garde le fallback
+            self._log.warning("contract detail fetch failed: %s", exc)
+        finally:
+            MEXCFuturesConnector._CONTRACT_SIZE_LOADED = True
+
     def _contract_to_base(
         self, symbol_mexc: str, contracts: float, price: float
     ) -> float:
-        """Convertit un volume en contrats -> base asset."""
-        cval = _CONTRACT_VALUE.get(symbol_mexc, 1.0)
-        if cval == 1.0:
-            return contracts
-        # Pour les contrats DOGE (1000 DOGE/contrat) : volume = contracts * 1000 DOGE
-        return contracts * cval
+        """Convertit un volume en contrats -> base asset (contracts * contractSize)."""
+        size = MEXCFuturesConnector._CONTRACT_SIZE_CACHE.get(symbol_mexc)
+        if size is None:
+            size = _CONTRACT_VALUE.get(symbol_mexc, 1.0)  # fallback table statique
+        return contracts * size
 
     # ------------------------------------------------------------------
     # REST
@@ -226,6 +254,9 @@ class MEXCFuturesConnector(BaseConnector):
         """Stream trades MEXC Futures. Necessite `pip install websockets`."""
         import websockets  # type: ignore
 
+        await asyncio.get_event_loop().run_in_executor(
+            None, self._ensure_contract_sizes
+        )
         sym = self._mexc_symbol(symbol)
         sub = json.dumps({"method": "sub.deal", "param": {"symbol": sym}})
 
@@ -266,6 +297,9 @@ class MEXCFuturesConnector(BaseConnector):
         """Stream depth MEXC Futures. Necessite `pip install websockets`."""
         import websockets  # type: ignore
 
+        await asyncio.get_event_loop().run_in_executor(
+            None, self._ensure_contract_sizes
+        )
         sym = self._mexc_symbol(symbol)
         sub = json.dumps({"method": "sub.depth", "param": {"symbol": sym}})
 

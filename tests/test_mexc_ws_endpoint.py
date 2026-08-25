@@ -46,3 +46,25 @@ def test_parse_book_side_skips_malformed():
     assert (78835.4, 883.0) in parsed
     assert (100.0, 5.0) in parsed
     assert len(parsed) == 2
+
+
+def test_contract_to_base_uses_contract_size_cache():
+    conn = mexc.MEXCFuturesConnector()
+    saved = dict(mexc.MEXCFuturesConnector._CONTRACT_SIZE_CACHE)
+    try:
+        mexc.MEXCFuturesConnector._CONTRACT_SIZE_CACHE = {"BTC_USDT": 0.0001}
+        # 883 contrats * 0.0001 BTC = 0.0883 BTC (pas 883 !)
+        assert abs(conn._contract_to_base("BTC_USDT", 883, 78896) - 0.0883) < 1e-9
+    finally:
+        mexc.MEXCFuturesConnector._CONTRACT_SIZE_CACHE = saved
+
+
+def test_contract_to_base_fallback_when_unknown():
+    conn = mexc.MEXCFuturesConnector()
+    saved = dict(mexc.MEXCFuturesConnector._CONTRACT_SIZE_CACHE)
+    try:
+        mexc.MEXCFuturesConnector._CONTRACT_SIZE_CACHE = {}
+        # symbole absent du cache et de la table -> facteur 1.0
+        assert conn._contract_to_base("FOO_USDT", 10, 1.0) == 10.0
+    finally:
+        mexc.MEXCFuturesConnector._CONTRACT_SIZE_CACHE = saved
