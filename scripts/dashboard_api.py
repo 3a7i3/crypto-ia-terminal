@@ -204,24 +204,29 @@ except Exception:  # pragma: no cover - LMI optionnel
 
 @app.get("/api/lmi/status")
 def api_lmi_status():
-    if _lmi is None: return {"running": False, "error": "lmi_unavailable"}
+    if _lmi is None:
+        return {"running": False, "error": "lmi_unavailable"}
     return _lmi.lmi_status()
 
 @app.get("/api/lmi/table")
 def api_lmi_table():
-    if _lmi is None: return {"data": [], "count": 0}
+    if _lmi is None:
+        return {"data": [], "count": 0}
     return _lmi.lmi_table()
 
 @app.get("/api/lmi/symbol/{symbol}")
 def api_lmi_symbol(symbol: str):
-    if _lmi is None: raise HTTPException(503)
+    if _lmi is None:
+        raise HTTPException(503)
     d = _lmi.lmi_symbol(symbol)
-    if d is None: raise HTTPException(404)
+    if d is None:
+        raise HTTPException(404)
     return d
 
 @app.get("/api/lmi/events")
 def api_lmi_events(min_confidence: float = 0.6):
-    if _lmi is None: return {"data": [], "count": 0}
+    if _lmi is None:
+        return {"data": [], "count": 0}
     return _lmi.lmi_events(min_confidence=min_confidence)
 
 @app.get("/", response_class=HTMLResponse)
