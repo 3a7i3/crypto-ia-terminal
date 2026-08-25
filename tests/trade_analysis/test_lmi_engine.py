@@ -198,6 +198,27 @@ class TestResistanceMeter:
 
 
 class TestLMIEngine:
+    def test_emits_on_trades_only(self):
+        """Sans orderbook, les trades seuls doivent produire des champs."""
+        engine = LMIEngine(
+            symbol="BTCUSDT",
+            flow_window_ms=5_000,
+            resistance_window_ms=5_000,
+            snapshot_interval_ms=200,
+        )
+        ts = 1_000_000
+        pf = None
+        for i in range(40):
+            t = _make_trade(ts + i * 100, 65000.0, 1.0, "buy")
+            r = engine.process_event(MarketEvent.from_trade(t))
+            if r:
+                pf = r
+        assert pf is not None
+        # liquidite neutre (pas d'orderbook) mais flow/resistance/state presents
+        assert pf.flow.buy_volume_usd > 0
+        assert pf.liquidity.bid_consumed_usd == 0.0
+        assert pf.state in MarketStateLabel
+
     def test_full_pipeline(self):
         engine = LMIEngine(
             symbol="BTCUSDT",

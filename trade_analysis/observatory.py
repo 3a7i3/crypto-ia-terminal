@@ -232,7 +232,36 @@ def _cmd_live(args: argparse.Namespace) -> None:
         print("[Observatory] arret demande")
 
 
+def _load_env(path: str | Path = ".env") -> None:
+    """
+    Charge le .env du projet (UNIVERSE_PINNED_SYMBOLS, OBS_DIR, ...).
+
+    En run manuel, systemd ne charge pas EnvironmentFile : sans ceci le
+    filtre d'univers epingle serait un no-op. Parseur minimal, sans
+    dependance (python-dotenv pas garanti). Les variables deja definies
+    dans l'environnement gagnent (setdefault) — jamais d'ecrasement.
+    """
+    p = Path(path)
+    if not p.exists():
+        return
+    try:
+        for line in p.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            if line.startswith("export "):
+                line = line[len("export "):]
+            key, _, value = line.partition("=")
+            key = key.strip()
+            value = value.strip().strip('"').strip("'")
+            if key:
+                os.environ.setdefault(key, value)
+    except OSError:
+        return
+
+
 def main() -> None:
+    _load_env()
     p = argparse.ArgumentParser(description="Observatoire LMI live (passif)")
     p.add_argument("--exchange", default=DEFAULT_EXCHANGE)
     p.add_argument("--max-symbols", type=int, default=20)

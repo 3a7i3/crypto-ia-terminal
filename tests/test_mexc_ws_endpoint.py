@@ -28,3 +28,21 @@ def test_stream_methods_are_async_generators():
     conn = mexc.MEXCFuturesConnector()
     assert inspect.isasyncgenfunction(conn.stream_trades)
     assert inspect.isasyncgenfunction(conn.stream_orderbook)
+
+
+def test_parse_book_side_contract_format():
+    """Format /edge : niveaux [price, vol_contrats, nb_ordres]."""
+    conn = mexc.MEXCFuturesConnector()
+    levels = [["78835.4", "883", "1"], ["78835.3", "2", "5"]]
+    parsed = conn._parse_book_side("BTC_USDT", levels)
+    assert parsed == [(78835.4, 883.0), (78835.3, 2.0)]
+
+
+def test_parse_book_side_skips_malformed():
+    conn = mexc.MEXCFuturesConnector()
+    levels = [["78835.4", "883"], [], ["bad"], ["100.0", "5", "1"]]
+    parsed = conn._parse_book_side("BTC_USDT", levels)
+    # les niveaux valides passent, les malformes sont ignores
+    assert (78835.4, 883.0) in parsed
+    assert (100.0, 5.0) in parsed
+    assert len(parsed) == 2
