@@ -33,8 +33,21 @@ PAPER_TRADE_LOG = Path(os.getenv("PAPER_TRADE_LOG", "databases/paper_trades.json
 
 
 def normalize_symbol(raw: str) -> str:
-    """'BTC/USDT' | 'BTC_USDT' -> 'BTCUSDT'."""
-    return raw.replace("/", "").replace("_", "").upper()
+    """
+    Normalise vers le format interne 'BTCUSDT'.
+
+    Gere les notations CCXT :
+      'BTC/USDT'        -> 'BTCUSDT'
+      'BTC_USDT'        -> 'BTCUSDT'
+      'BTC/USDT:USDT'   -> 'BTCUSDT'  (suffixe settle des swaps, ignore)
+      'BTCUSDT:USDT'    -> 'BTCUSDT'
+
+    Le suffixe ':<settle>' est retire : sans cela le meme marche apparait
+    en double ('BTCUSDT:USDT' vs 'BTCUSDT') et le connecteur WebSocket ne
+    sait pas souscrire au symbole.
+    """
+    base = raw.split(":", 1)[0]
+    return base.replace("/", "").replace("_", "").upper()
 
 
 @dataclass

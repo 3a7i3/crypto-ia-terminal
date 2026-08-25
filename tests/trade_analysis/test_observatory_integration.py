@@ -46,6 +46,23 @@ class TestSymbolSelector:
         assert normalize_symbol("BTC/USDT") == "BTCUSDT"
         assert normalize_symbol("BTC_USDT") == "BTCUSDT"
         assert normalize_symbol("btcusdt") == "BTCUSDT"
+        # Suffixe settle des swaps CCXT — doit etre retire (sinon doublons)
+        assert normalize_symbol("BTCUSDT:USDT") == "BTCUSDT"
+        assert normalize_symbol("BTC/USDT:USDT") == "BTCUSDT"
+
+    def test_dedup_swap_and_spot(self, tmp_path):
+        obs = tmp_path / "obs"
+        _write_radar(
+            obs,
+            [
+                {"sym": "BTCUSDT:USDT", "qv_med": 5e8, "range_pct": 2.0, "score": 90},
+                {"sym": "BTCUSDT", "qv_med": 4e8, "range_pct": 2.0, "score": 88},
+            ],
+        )
+        sel = SymbolSelector(obs_dir=obs, paper_trade_log=tmp_path / "none.jsonl")
+        cands = sel.load_candidates()
+        # Les deux entrees collapsent sur une seule cle normalisee
+        assert [c.symbol for c in cands] == ["BTCUSDT"]
 
     def test_load_and_merge(self, tmp_path):
         obs = tmp_path / "obs"
