@@ -126,7 +126,10 @@ class LMIEngine:
         if resistance:
             self._last_resistance = resistance
 
-        if flow and self._last_liquidity and self._last_resistance:
+        # Les trades seuls (flow + resistance) suffisent a emettre un champ :
+        # la liquidite (orderbook) est un enrichissement optionnel. Sinon
+        # l'observatoire ne produirait rien tant que le book n'a pas parle.
+        if flow and self._last_resistance:
             return self._build_field(trade.timestamp_ms, trade.symbol)
         return None
 
@@ -141,7 +144,14 @@ class LMIEngine:
         price_change = (price - ref) / ref * 10_000.0 if ref > 0 else 0.0
 
         flow = self._last_flow
-        liq = self._last_liquidity
+        liq = self._last_liquidity or LiquidityDynamics(
+            timestamp_ms=ts,
+            bid_added_usd=0.0, bid_removed_usd=0.0,
+            ask_added_usd=0.0, ask_removed_usd=0.0,
+            bid_consumed_usd=0.0, ask_consumed_usd=0.0,
+            cancellation_rate_bid=0.0, cancellation_rate_ask=0.0,
+            net_liquidity_change_usd=0.0,
+        )
         res = self._last_resistance
 
         state, confidence, components = classify_state(

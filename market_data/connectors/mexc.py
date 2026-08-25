@@ -205,6 +205,23 @@ class MEXCFuturesConnector(BaseConnector):
         except Exception:  # connexion fermee : le stream s'arrete de lui-meme
             return
 
+    def _parse_book_side(self, sym: str, levels: list) -> list[tuple[float, float]]:
+        """
+        Parse un cote du book MEXC Futures (/edge).
+
+        Format contrat : chaque niveau = [price, volume_contrats, nb_ordres].
+        Le volume est converti en base asset. Tolerant aux niveaux malformes.
+        """
+        out: list[tuple[float, float]] = []
+        for lvl in levels:
+            try:
+                price = float(lvl[0])
+                vol_contracts = float(lvl[1])
+            except (TypeError, ValueError, IndexError):
+                continue
+            out.append((price, self._contract_to_base(sym, vol_contracts, price)))
+        return out
+
     async def stream_trades(self, symbol: str) -> AsyncGenerator[NormalizedTrade, None]:
         """Stream trades MEXC Futures. Necessite `pip install websockets`."""
         import websockets  # type: ignore
@@ -218,9 +235,15 @@ class MEXCFuturesConnector(BaseConnector):
             try:
                 async for msg in ws:
                     payload = json.loads(msg)
+                    if not isinstance(payload, dict):
+                        continue
                     if payload.get("channel") != "push.deal":
                         continue
-                    for t in payload.get("data", {}).get("deals", []):
+                    # /edge : data est une LISTE de deals (pas {"deals": [...]})
+                    deals = payload.get("data", [])
+                    if isinstance(deals, dict):  # tolerance ancien format
+                        deals = deals.get("deals", [])
+                    for t in deals:
                         side_raw = int(t.get("T", 1))
                         ts = int(t.get("t", time.time() * 1000))
                         price = float(t.get("p", 0))
@@ -252,21 +275,17 @@ class MEXCFuturesConnector(BaseConnector):
             try:
                 async for msg in ws:
                     payload = json.loads(msg)
+                    if not isinstance(payload, dict):
+                        continue
                     if payload.get("channel") != "push.depth":
                         continue
                     d = payload.get("data", {})
                     bids = sorted(
-                        [
-                            (float(p), float(s))
-                            for p, s in zip(d.get("bids", []), d.get("bidVols", []))
-                        ],
+                        self._parse_book_side(sym, d.get("bids", [])),
                         reverse=True,
                     )[:depth]
                     asks = sorted(
-                        [
-                            (float(p), float(s))
-                            for p, s in zip(d.get("asks", []), d.get("askVols", []))
-                        ]
+                        self._parse_book_side(sym, d.get("asks", []))
                     )[:depth]
                     ts = int(d.get("timestamp", time.time() * 1000))
                     yield NormalizedOrderBook(
