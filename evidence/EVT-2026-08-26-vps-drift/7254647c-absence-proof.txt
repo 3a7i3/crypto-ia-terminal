@@ -1,0 +1,5 @@
+Search for 7254647c across ALL refs and reflog, 2026-08-26T08:10:18Z:
+NOT FOUND in any ref/reflog — commit is VPS-local, never pushed
+
+git cat-file -t 7254647c:
+fatal: Not a valid object name 7254647c

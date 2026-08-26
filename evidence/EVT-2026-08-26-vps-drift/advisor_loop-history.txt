@@ -1,0 +1,6 @@
+abb975c feat(observer): persistance OHLCV passive dans advisor_loop (#42)
+f427895 feat(bot): entête « Statut Compte Réel » branchée sur le compte n°1 en observation
+b58ff9a feat(observation+bot): compte n°1 — soldes réels multi-exchange en lecture seule
+dc86160 feat(observation+bot): pouls multi-exchange à sources séparées + capital compte n°2
+d15138f feat(audit+scanner): exit_replay v2 (rejeu du chemin) + ordonnanceur top-K sous flag
+3a5a05a feat(palier): T5 panneaux Telegram agrégés + T4 sonde de charge + runbook portabilité

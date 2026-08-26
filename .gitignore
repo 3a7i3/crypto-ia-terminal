@@ -70,3 +70,6 @@ frontend/dist/
 frontend/build/
 dist/
 build/
+
+# Claude Code local settings — machine-local, must never be committed (contains tokens)
+.claude/settings.local.json
