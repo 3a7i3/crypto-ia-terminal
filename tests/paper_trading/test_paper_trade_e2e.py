@@ -237,6 +237,11 @@ class TestPaperTradeCompleteLifecycle:
         sim._initial_capital = 100.0
         sim._running = True
 
+        # Ticker live réaliste : sans lui, MagicMock().__float__() renvoie 1.0
+        # et le garde anti-prix-stale (_MAX_OHLCV_TICKER_DEV) rejette l'ordre
+        # pour écart OHLCV($100k)/ticker($1) de ~100 %.
+        mock_reader.spot.fetch_ticker.return_value = {"last": 100_000.0}
+
         # 1. Ordre MARKET BUY
         order = sim.place_market_order(
             symbol="BTC/USDT",
