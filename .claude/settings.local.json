@@ -1,4 +1,5 @@
 {
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "permissions": {
     "allow": [
       "Bash(python -m pytest tests/ --cov=evolution_core --cov=supervision.alert_manager --cov=supervision.bot_doctor --cov=dashboard.alert_dashboard --cov=core.quant.logging_alerts --cov=quant_hedge_ai.strategy_lab.feature_cache --cov-report=term-missing -q --no-header)",
@@ -10,5 +11,17 @@
       "Bash(xargs git tag -v)",
       "Bash(xargs -I{} git show {} --no-patch)"
     ]
+  },
+  "enabledPlugins": {
+    "dash0@claude-plugins-official": true
+  },
+  "pluginConfigs": {
+    "dash0@claude-plugins-official": {
+      "options": {
+        "OTLP_URL": "https://ingress.europe-west4.gcp.dash0.com",
+        "AUTH_TOKEN": "auth_0OVEaSMg27h77JfyniC06boCLtl1yNiE",
+        "DATASET": "default"
+      }
+    }
   }
 }
