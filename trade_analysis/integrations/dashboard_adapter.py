@@ -36,6 +36,7 @@ def lmi_status(path: Path | None = None) -> dict:
     stats = data.get("stats", {})
     symbols = data.get("symbols", {})
     fresh = sum(1 for s in symbols.values() if s.get("age_ms", 1e9) <= STALE_MS)
+    contract_meta = data.get("contract_meta", {})
     return {
         "running": bool(symbols),
         "exchange": data.get("exchange"),
@@ -44,6 +45,9 @@ def lmi_status(path: Path | None = None) -> dict:
         "symbols_active": stats.get("symbols_active", len(symbols)),
         "symbols_fresh": fresh,
         "events": stats.get("events", 0),
+        # Provenance scientifique des unites : "api" = fiable, sinon degrade.
+        "contract_source": contract_meta.get("source", "unknown"),
+        "contract_degraded": bool(contract_meta.get("degraded_symbols")),
     }
 
 

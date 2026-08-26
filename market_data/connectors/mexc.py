@@ -16,6 +16,7 @@ from __future__ import annotations
 import asyncio
 import json
 import time
+from dataclasses import dataclass
 from typing import AsyncGenerator, Optional
 
 from market_data.connectors.base import BaseConnector
@@ -39,15 +40,51 @@ _TF_MAP = {
     "1d": "Day1",
 }
 
-# Taille d'un contrat par symbole (USDT) — utile pour convertir volume contrats -> base asset
+# Taille d'un contrat (base asset par contrat) — FALLBACK UNIQUEMENT.
+#
+# Ce n'est PAS la source d'autorite : la source primaire est l'API MEXC
+# contract/detail (voir _ensure_contract_sizes). Cette table ne sert que de
+# defense de continuite si l'API est injoignable. Toute conversion basee sur
+# elle est marquee source="fallback" et loggee en ERROR (donnee degradee).
+#
+# Valeurs verifiees le 2026-08-26 contre contract/detail. A ne pas prendre
+# pour une verite permanente — MEXC peut changer un contractSize.
 _CONTRACT_VALUE: dict[str, float] = {
-    "BTC_USDT": 1.0,
-    "ETH_USDT": 1.0,
-    "SOL_USDT": 1.0,
-    "BNB_USDT": 1.0,
-    "XRP_USDT": 10.0,  # 10 XRP par contrat
-    "DOGE_USDT": 1000.0,  # 1000 DOGE par contrat
+    "BTC_USDT": 0.0001,
+    "ETH_USDT": 0.01,
+    "SOL_USDT": 0.1,
+    "BNB_USDT": 0.01,
+    "AVAX_USDT": 0.1,
+    "XRP_USDT": 1.0,
+    "DOGE_USDT": 100.0,
 }
+
+
+@dataclass
+class ContractSpecification:
+    """
+    Identite scientifique d'un contrat : sa taille et sa provenance.
+
+    source = "api"      : contractSize lu depuis MEXC contract/detail (autorite)
+    source = "fallback" : table statique de continuite (donnee DEGRADEE)
+    """
+
+    symbol: str
+    contract_size: float
+    source: str  # "api" | "fallback"
+    fetched_at_ms: int
+
+    @property
+    def is_degraded(self) -> bool:
+        return self.source != "api"
+
+    def as_dict(self) -> dict:
+        return {
+            "symbol": self.symbol,
+            "contract_size": self.contract_size,
+            "source": self.source,
+            "fetched_at_ms": self.fetched_at_ms,
+        }
 
 
 class MEXCFuturesConnector(BaseConnector):
@@ -69,49 +106,129 @@ class MEXCFuturesConnector(BaseConnector):
         """Inverse : "BTC_USDT" -> "BTCUSDT"."""
         return mexc_sym.replace("_", "").upper()
 
-    # Cache partage (classe) des tailles de contrat, rempli via l'API detail.
-    _CONTRACT_SIZE_CACHE: dict[str, float] = {}
-    _CONTRACT_SIZE_LOADED: bool = False
+    # Registre partage (classe) des specifications de contrat, avec provenance.
+    _CONTRACT_SPECS: dict[str, ContractSpecification] = {}
+    _CONTRACT_API_LOADED: bool = False
+    _FALLBACK_LOGGED: set[str] = set()
 
     def _ensure_contract_sizes(self) -> None:
         """
-        Charge contractSize par symbole depuis l'API MEXC (une fois, cache).
+        Charge contractSize par symbole depuis l'API MEXC (source d'autorite).
 
-        Sans ceci, la conversion contrats->base est fausse : le contrat BTC
-        vaut 0.0001 BTC, pas 1 — d'ou des volumes USD ~10 000x trop gros.
+        Rempli une seule fois par process (cache classe). Chaque entree est
+        marquee source="api". Si l'API echoue, on logge en ERROR : les
+        conversions retomberont sur le fallback (donnee degradee, tracee).
+
+        Idempotent et sur-appelable : REST et WS l'invoquent tous les deux.
         """
-        if MEXCFuturesConnector._CONTRACT_SIZE_LOADED:
+        if MEXCFuturesConnector._CONTRACT_API_LOADED:
             return
         try:
             resp = self._get_json(f"{_BASE}/detail")
             data = resp.get("data", []) if isinstance(resp, dict) else []
-            cache: dict[str, float] = {}
+            now = int(time.time() * 1000)
+            specs: dict[str, ContractSpecification] = {}
             for c in data:
                 sym = c.get("symbol")
                 size = c.get("contractSize")
                 if sym and size:
-                    cache[str(sym)] = float(size)
-            if cache:
-                MEXCFuturesConnector._CONTRACT_SIZE_CACHE = cache
-        except Exception as exc:  # offline / API down : on garde le fallback
-            self._log.warning("contract detail fetch failed: %s", exc)
-        finally:
-            MEXCFuturesConnector._CONTRACT_SIZE_LOADED = True
+                    specs[str(sym)] = ContractSpecification(
+                        symbol=str(sym),
+                        contract_size=float(size),
+                        source="api",
+                        fetched_at_ms=now,
+                    )
+            if specs:
+                MEXCFuturesConnector._CONTRACT_SPECS = specs
+                MEXCFuturesConnector._CONTRACT_API_LOADED = True
+            else:
+                self._log.error(
+                    "MEXC contract/detail returned no usable contractSize — "
+                    "conversions will use DEGRADED fallback values"
+                )
+        except Exception as exc:
+            self._log.error(
+                "MEXC contract/detail fetch FAILED (%s) — conversions will use "
+                "DEGRADED fallback values",
+                exc,
+            )
+
+    def _spec_for(self, symbol_mexc: str) -> ContractSpecification:
+        """
+        Retourne la ContractSpecification d'un symbole.
+
+        Priorite : registre API. Sinon fallback statique (source="fallback",
+        loggue une fois en ERROR par symbole) — la donnee est alors degradee
+        mais scientifiquement identifiable comme telle.
+        """
+        spec = MEXCFuturesConnector._CONTRACT_SPECS.get(symbol_mexc)
+        if spec is not None and spec.source == "api":
+            return spec
+        size = _CONTRACT_VALUE.get(symbol_mexc, 1.0)
+        spec = ContractSpecification(
+            symbol=symbol_mexc,
+            contract_size=size,
+            source="fallback",
+            fetched_at_ms=int(time.time() * 1000),
+        )
+        MEXCFuturesConnector._CONTRACT_SPECS[symbol_mexc] = spec
+        if symbol_mexc not in MEXCFuturesConnector._FALLBACK_LOGGED:
+            MEXCFuturesConnector._FALLBACK_LOGGED.add(symbol_mexc)
+            self._log.error(
+                "contract size FALLBACK for %s = %s (no API metadata) — "
+                "downstream USD metrics for this symbol are DEGRADED",
+                symbol_mexc,
+                size,
+            )
+        return spec
 
     def _contract_to_base(
         self, symbol_mexc: str, contracts: float, price: float
     ) -> float:
-        """Convertit un volume en contrats -> base asset (contracts * contractSize)."""
-        size = MEXCFuturesConnector._CONTRACT_SIZE_CACHE.get(symbol_mexc)
-        if size is None:
-            size = _CONTRACT_VALUE.get(symbol_mexc, 1.0)  # fallback table statique
-        return contracts * size
+        """
+        Convertit un volume en contrats -> quantite BASE ASSET.
+
+        INVARIANT : la valeur retournee est toujours en actif de base
+        (BTC, ETH, SOL...), jamais un nombre brut de contrats.
+        base = contracts * contract_size.
+        """
+        return contracts * self._spec_for(symbol_mexc).contract_size
+
+    @classmethod
+    def contract_provenance(cls) -> dict:
+        """
+        Resume de provenance des contractSize utilises (pour le sidecar/audit).
+
+        source globale : "api" (tout API), "fallback" (tout fallback),
+        "mixed" (les deux), "unknown" (rien encore charge).
+        """
+        specs = cls._CONTRACT_SPECS
+        n_api = sum(1 for s in specs.values() if s.source == "api")
+        n_fb = sum(1 for s in specs.values() if s.source == "fallback")
+        if not specs:
+            source = "unknown"
+        elif n_fb == 0:
+            source = "api"
+        elif n_api == 0:
+            source = "fallback"
+        else:
+            source = "mixed"
+        return {
+            "source": source,
+            "api_loaded": cls._CONTRACT_API_LOADED,
+            "n_api": n_api,
+            "n_fallback": n_fb,
+            "degraded_symbols": sorted(
+                s.symbol for s in specs.values() if s.is_degraded
+            ),
+        }
 
     # ------------------------------------------------------------------
     # REST
     # ------------------------------------------------------------------
 
     def fetch_trades(self, symbol: str, limit: int = 100) -> list[NormalizedTrade]:
+        self._ensure_contract_sizes()  # charge la spec contrat (REST aussi)
         sym = self._mexc_symbol(symbol)
         data = self._get_json(f"{_BASE}/deals/{sym}", {"limit": min(limit, 100)})
         trades = []
@@ -144,15 +261,17 @@ class MEXCFuturesConnector(BaseConnector):
         return trades
 
     def fetch_orderbook(self, symbol: str, depth: int = 20) -> NormalizedOrderBook:
+        self._ensure_contract_sizes()  # charge la spec contrat (REST aussi)
         sym = self._mexc_symbol(symbol)
         data = self._get_json(f"{_BASE}/depth/{sym}", {"limit": min(depth, 150)})
         book_data = data.get("data", data)
+        # Volumes en contrats -> base asset (coherent avec le chemin WS)
         bids = [
-            (float(p), float(s))
+            (float(p), self._contract_to_base(sym, float(s), float(p)))
             for p, s in zip(book_data.get("bids", []), book_data.get("bidVols", []))
         ]
         asks = [
-            (float(p), float(s))
+            (float(p), self._contract_to_base(sym, float(s), float(p)))
             for p, s in zip(book_data.get("asks", []), book_data.get("askVols", []))
         ]
         # Assurer le tri correct
