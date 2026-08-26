@@ -56,6 +56,7 @@ class LiveStateStore:
     path: Path = LIVE_STATE_FILE
     exchange: str = DEFAULT_EXCHANGE
     watchlist: list[str] = field(default_factory=list)
+    contract_meta: dict = field(default_factory=dict)
     _states: dict[str, dict] = field(default_factory=dict)
     _event_count: int = 0
 
@@ -65,6 +66,10 @@ class LiveStateStore:
 
     def set_watchlist(self, symbols: list[str]) -> None:
         self.watchlist = list(symbols)
+
+    def set_contract_meta(self, meta: dict) -> None:
+        """Provenance des contractSize (source api|fallback|mixed) — audit."""
+        self.contract_meta = dict(meta or {})
 
     def snapshot(self) -> dict:
         now_ms = int(time.time() * 1000)
@@ -76,6 +81,9 @@ class LiveStateStore:
             "updated_at": datetime.now(timezone.utc).isoformat(),
             "exchange": self.exchange,
             "watchlist": self.watchlist,
+            # Provenance scientifique : avec quelle source de contractSize
+            # ces observations ont-elles ete calculees (api|fallback|mixed).
+            "contract_meta": self.contract_meta,
             "symbols": symbols,
             "stats": {
                 "events": self._event_count,
@@ -151,6 +159,14 @@ class Observatory:
             return HyperliquidConnector()
         raise ValueError(f"Exchange non supporte: {self.exchange}")
 
+    def _contract_provenance(self) -> dict:
+        """Provenance des contractSize du connecteur actif (pour le sidecar)."""
+        if self.exchange == "mexc":
+            from market_data.connectors.mexc import MEXCFuturesConnector
+
+            return MEXCFuturesConnector.contract_provenance()
+        return {"source": "n/a"}
+
     async def _run_symbol(self, symbol: str) -> None:
         from market_data.stream import MultiExchangeStream
 
@@ -192,6 +208,7 @@ class Observatory:
         try:
             while self._running:
                 await asyncio.sleep(self.flush_interval_s)
+                self.store.set_contract_meta(self._contract_provenance())
                 self.store.flush()
                 if time.monotonic() - last_reselect >= self.reselect_interval_s:
                     await self._reconcile()
