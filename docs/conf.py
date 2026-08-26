@@ -16,7 +16,8 @@ author = "Crypto AI Team"
 release = "9.1"
 
 extensions = [
-    "myst_parser",
+    # myst_nb charge myst_parser en interne ; lister les deux provoque
+    # "Config value 'myst_commonmark_only' already present". On garde myst_nb seul.
     "myst_nb",
     "sphinx.ext.autodoc",
     "sphinx.ext.napoleon",

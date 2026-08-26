@@ -1,6 +1,8 @@
-sphinx
-sphinx_rtd_theme
-myst-parser
-furo
-sphinxcontrib-mermaid
-myst-nb
+# Toolchain docs épinglé — combinaison validée (build sphinx-build HTML exit 0).
+# Sphinx 8/9 + myst-parser 5.x cassent (SphinxUnreferencedFootnotesDetector).
+sphinx==7.4.7
+sphinx_rtd_theme==2.0.0
+myst-parser==3.0.1
+furo==2024.8.6
+sphinxcontrib-mermaid==0.9.2
+myst-nb==1.1.2

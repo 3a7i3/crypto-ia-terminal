@@ -36,8 +36,11 @@ jobs:
         run: |
           sphinx-build -b html docs docs/_build/html
       - name: Check for broken links
+        # Diagnostic non bloquant : linkcheck est un builder intégré à Sphinx
+        # (aucun paquet `sphinx-linkcheck` n'existe sur PyPI) et échoue sur des
+        # liens externes injoignables — il ne doit pas faire échouer le build.
+        continue-on-error: true
         run: |
-          pip install sphinx-linkcheck
           sphinx-build -b linkcheck docs docs/_build/linkcheck
       - name: Notify Discord (optionnel)
         if: always()
@@ -63,6 +66,7 @@ jobs:
           name: sphinx-docs-html
           path: docs/_build/html
       - name: Deploy to GitHub Pages
+        if: github.ref == 'refs/heads/main'
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
