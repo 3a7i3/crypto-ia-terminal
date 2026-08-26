@@ -1,0 +1,42 @@
+From 6b9902a5d611f67d5783fac74c0246b825454d1d Mon Sep 17 00:00:00 2001
+From: 3a7i3 <mathieuhasard111@gmail.com>
+Date: Mon, 24 Aug 2026 20:08:44 -0700
+Subject: [PATCH] chore: configure Dash0 plugin for observability
+
+Add Dash0 OTLP endpoint configuration to project settings
+with ingress endpoint, auth token, and default dataset.
+---
+ .claude/settings.local.json | 13 +++++++++++++
+ 1 file changed, 13 insertions(+)
+
+diff --git a/.claude/settings.local.json b/.claude/settings.local.json
+index d9b8eb5..3d3c7bd 100644
+--- a/.claude/settings.local.json
++++ b/.claude/settings.local.json
+@@ -1,4 +1,5 @@
+ {
++  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+   "permissions": {
+     "allow": [
+       "Bash(python -m pytest tests/ --cov=evolution_core --cov=supervision.alert_manager --cov=supervision.bot_doctor --cov=dashboard.alert_dashboard --cov=core.quant.logging_alerts --cov=quant_hedge_ai.strategy_lab.feature_cache --cov-report=term-missing -q --no-header)",
+@@ -10,5 +11,17 @@
+       "Bash(xargs git tag -v)",
+       "Bash(xargs -I{} git show {} --no-patch)"
+     ]
++  },
++  "enabledPlugins": {
++    "dash0@claude-plugins-official": true
++  },
++  "pluginConfigs": {
++    "dash0@claude-plugins-official": {
++      "options": {
++        "OTLP_URL": "https://ingress.europe-west4.gcp.dash0.com",
++        "AUTH_TOKEN": "auth_***REDACTED_ROTATE_IN_DASH0***",
++        "DATASET": "default"
++      }
++    }
+   }
+ }
+-- 
+2.43.0
+

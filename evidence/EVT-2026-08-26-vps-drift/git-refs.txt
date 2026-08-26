@@ -1,0 +1,10 @@
+# Repo refs snapshot — captured 2026-08-26T08:10:18Z from ephemeral cloud container
+## HEAD
+a8ca1084a5c7988a0e4afb4c38139a754cd00dda
+## Branch
+claude/vps-git-runtime-audit-yae8f5
+## All refs
+a8ca1084a5c7988a0e4afb4c38139a754cd00dda refs/heads/claude/vps-git-runtime-audit-yae8f5
+68b784dfcb1b80e1ddb0e6879fce25fe0d114ac5 refs/heads/main
+a8ca1084a5c7988a0e4afb4c38139a754cd00dda refs/remotes/origin/claude/vps-git-runtime-audit-yae8f5
+a8ca1084a5c7988a0e4afb4c38139a754cd00dda refs/remotes/origin/main
