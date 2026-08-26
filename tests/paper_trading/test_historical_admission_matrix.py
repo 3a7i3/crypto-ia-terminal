@@ -96,3 +96,152 @@ class TestHistoricalPortfolioBrainDecision:
         assert verdict.allowed is True, (
             f"attendu allowed=True pour HARD_MAX=5, reçu {verdict.reason}"
         )
+
+
+class TestHistoricalLevelAWiring:
+    """Canari Phase 4.6 V1..V4 — verdict Level A appliqué via la vraie frontière.
+
+    Le test simule la 4ᵉ tentative d'ouverture sur l'état {SPX, MET, VIRTUAL}
+    en pilotant HARD_MAX via ``PB_MAX_POSITIONS`` et en produisant le verdict
+    via ``evaluate_hard_portfolio_ceiling``. Prouve que la chaîne complète
+    (vue canonique → Level A → simulateur → ledger) protège l'invariant.
+    """
+
+    def _new_verdict(self, sim):
+        from paper_trading.admission_policy import evaluate_hard_portfolio_ceiling
+
+        pb_max = int(__import__("os").environ.get("PB_MAX_POSITIONS", "5"))
+        view = paper_portfolio_view(sim)
+        return evaluate_hard_portfolio_ceiling(len(view), pb_max)
+
+    def test_v1_hard_max_5_default_admits(
+        self, mexc_positions_historical, monkeypatch, tmp_path
+    ):
+        """V1 — comportement historique préservé (HARD_MAX=5 par défaut)."""
+        from paper_trading.admission_ledger import (
+            AdmissionLedger,
+            reset_admission_ledger_singleton,
+        )
+
+        monkeypatch.setenv("PAPER_ADMISSION_LEDGER", str(tmp_path / "v1.jsonl"))
+        monkeypatch.setenv("PB_MAX_POSITIONS", "5")
+        reset_admission_ledger_singleton()
+        try:
+            monkeypatch.setattr(
+                mexc_positions_historical, "_fetch_price", lambda _sym: 100.0
+            )
+            mexc_positions_historical._capital = 100.0
+            verdict = self._new_verdict(mexc_positions_historical)
+
+            n_before = len(mexc_positions_historical._positions)
+            assert n_before == 3
+            result = mexc_positions_historical.place_market_order(
+                symbol="BNB/USDT",
+                side="buy",
+                qty_usd=10.0,
+                current_price=100.0,
+                admission=verdict,
+                cycle_id="v1",
+            )
+            assert result is not None
+            assert result.status.value == "FILLED"
+            assert len(mexc_positions_historical._positions) == 4
+            pairs = AdmissionLedger().pairs()
+            assert len(pairs) == 1
+            _, out = pairs[0]
+            assert out["write_result"] == "FILLED"
+        finally:
+            reset_admission_ledger_singleton()
+
+    def test_v3_hard_max_2_rejects_fourth_admission(
+        self, mexc_positions_historical, monkeypatch, tmp_path
+    ):
+        """V3 — HARD_MAX=2 avec 3 positions déjà ouvertes (état OVER_LIMIT).
+        La 4ᵉ tentative doit être bloquée par PORTFOLIO_HARD_CEILING.
+        C'est le canari de régression Phase 1 : ce test doit rester rouge si
+        quelqu'un retire INV-001 du chemin PAPER."""
+        from paper_trading.admission_ledger import (
+            AdmissionLedger,
+            reset_admission_ledger_singleton,
+        )
+
+        monkeypatch.setenv("PAPER_ADMISSION_LEDGER", str(tmp_path / "v3.jsonl"))
+        monkeypatch.setenv("PB_MAX_POSITIONS", "2")
+        reset_admission_ledger_singleton()
+        try:
+            monkeypatch.setattr(
+                mexc_positions_historical, "_fetch_price", lambda _sym: 100.0
+            )
+            mexc_positions_historical._capital = 100.0
+            verdict = self._new_verdict(mexc_positions_historical)
+            assert verdict.decision.value == "REJECTED"
+            assert verdict.blocker.value == "PORTFOLIO_HARD_CEILING"
+
+            n_before = len(mexc_positions_historical._positions)
+            result = mexc_positions_historical.place_market_order(
+                symbol="BNB/USDT",
+                side="buy",
+                qty_usd=10.0,
+                current_price=100.0,
+                admission=verdict,
+                cycle_id="v3",
+            )
+            assert result is not None
+            assert result.status.value == "REJECTED"
+            # Aucune fermeture forcée — les 3 positions historiques restent (ADR-0007)
+            assert len(mexc_positions_historical._positions) == n_before == 3
+
+            pairs = AdmissionLedger().pairs()
+            assert len(pairs) == 1
+            att, out = pairs[0]
+            assert att["decision"] == "REJECTED"
+            assert att["blocker"] == "PORTFOLIO_HARD_CEILING"
+            assert out["write_result"] == "REJECTED_ADMISSION"
+            assert out["anomaly"] == "PORTFOLIO_HARD_CEILING"
+            assert out["n_after"] == 3
+        finally:
+            reset_admission_ledger_singleton()
+
+    def test_v4_over_limit_restored_blocks_new_entries_no_forced_close(
+        self, mexc_positions_historical, monkeypatch, tmp_path
+    ):
+        """V4 — INV-003 opérationnel : après restore avec HARD_MAX=2, les 3
+        positions restaurées restent (aucune fermeture forcée, ADR-0007) et
+        toute nouvelle entrée est bloquée."""
+        from paper_trading.admission_ledger import (
+            AdmissionLedger,
+            reset_admission_ledger_singleton,
+        )
+
+        monkeypatch.setenv("PAPER_ADMISSION_LEDGER", str(tmp_path / "v4.jsonl"))
+        monkeypatch.setenv("PB_MAX_POSITIONS", "2")
+        reset_admission_ledger_singleton()
+        try:
+            monkeypatch.setattr(
+                mexc_positions_historical, "_fetch_price", lambda _sym: 100.0
+            )
+            mexc_positions_historical._capital = 100.0
+            # Les 3 positions historiques sont déjà chargées par la fixture
+            # (analogue à un restore au boot). Aucune n'est fermée.
+            assert len(mexc_positions_historical._positions) == 3
+
+            # Deux tentatives successives — les deux doivent être rejetées
+            for i, sym in enumerate(("BNB/USDT", "XRP/USDT")):
+                verdict = self._new_verdict(mexc_positions_historical)
+                result = mexc_positions_historical.place_market_order(
+                    symbol=sym,
+                    side="buy",
+                    qty_usd=10.0,
+                    current_price=100.0,
+                    admission=verdict,
+                    cycle_id=f"v4-{i}",
+                )
+                assert result.status.value == "REJECTED"
+
+            # Toujours 3 positions — aucune n'a été forcée à fermer
+            assert len(mexc_positions_historical._positions) == 3
+            pairs = AdmissionLedger().pairs()
+            assert len(pairs) == 2
+            assert all(o["write_result"] == "REJECTED_ADMISSION" for _, o in pairs)
+        finally:
+            reset_admission_ledger_singleton()
