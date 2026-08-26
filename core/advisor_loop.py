@@ -2188,6 +2188,29 @@ def analyze_symbol(
         _sl = personality.sl_pct if personality else 0.02
         _vp_side = signal.signal.upper() if hasattr(signal, "signal") else "BUY"
         _vp_persona = personality.name if personality else "unknown"
+        # Level A (Phase 5.2.5) — INV-001 additif à INV-002. Off par défaut.
+        # PAPER_PORTFOLIO_BRAIN_LEVEL ∈ {off, a} — b et c arrivent plus tard.
+        _admission_verdict = None
+        _ppb_level = os.getenv("PAPER_PORTFOLIO_BRAIN_LEVEL", "off").lower()
+        if _ppb_level == "a":
+            try:
+                from paper_trading.admission_policy import (
+                    evaluate_hard_portfolio_ceiling,
+                )
+                from paper_trading.paper_portfolio_view import paper_portfolio_view
+
+                _pb_max = int(os.getenv("PB_MAX_POSITIONS", "5"))
+                _canonical_view = paper_portfolio_view(_virtual_portfolio)
+                _admission_verdict = evaluate_hard_portfolio_ceiling(
+                    len(_canonical_view), _pb_max
+                )
+            except Exception as _adm_exc:
+                log.warning(
+                    "[Admission] Level A build verdict failed for %s: %s",
+                    signal.symbol,
+                    _adm_exc,
+                )
+                _admission_verdict = None
         _virtual_portfolio.place_market_order(
             symbol=signal.symbol,
             side=_vp_side,
@@ -2198,6 +2221,8 @@ def analyze_symbol(
             personality=_vp_persona,
             regime=getattr(signal, "regime", "unknown"),
             current_price=float(prix),
+            admission=_admission_verdict,
+            cycle_id=str(cycle),
         )
 
     persona_name = personality.name if personality else "N/A"

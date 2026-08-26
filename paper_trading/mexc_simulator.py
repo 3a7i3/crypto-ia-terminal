@@ -25,6 +25,17 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Callable, Optional
 
+from paper_trading.admission_ledger import get_admission_ledger
+from paper_trading.admission_types import (
+    AdmissionAttempt,
+    AdmissionBlocker,
+    AdmissionDecision,
+    AdmissionVerdict,
+    WriteResult,
+    make_attempt,
+    make_outcome,
+)
+
 try:
     from observability.json_logger import get_logger
 
@@ -68,6 +79,15 @@ class OrderStatus(str, Enum):
     FILLED = "FILLED"
     CANCELLED = "CANCELLED"
     REJECTED = "REJECTED"
+
+
+@dataclass
+class _AdmissionCtx:
+    """Contexte interne — apparie attempt persisté et outcome à venir."""
+
+    attempt: AdmissionAttempt
+    n_before: int
+    short_circuit_order: Optional["MexcOrder"] = None
 
 
 # ── Structures ────────────────────────────────────────────────────────────────
@@ -443,6 +463,114 @@ class MexcSimulator:
 
         return restored
 
+    # ── Admission (Phase 5.2.5) ───────────────────────────────────────────────
+
+    def _make_rejected_stub(self, symbol: str) -> MexcOrder:
+        """MexcOrder minimal en état REJECTED pour l'API de retour."""
+        return MexcOrder(
+            order_id=str(uuid.uuid4())[:10].upper(),
+            symbol=symbol,
+            side=OrderSide.BUY,  # placeholder — order jamais exécuté
+            order_type=OrderType.MARKET,
+            qty_usd=0.0,
+            status=OrderStatus.REJECTED,
+        )
+
+    def _enter_admission(
+        self,
+        symbol: str,
+        admission: Optional[AdmissionVerdict],
+        cycle_id: str,
+    ) -> Optional["_AdmissionCtx"]:
+        """Persiste l'AdmissionAttempt et applique la re-vérification TOCTOU.
+
+        Retourne un contexte avec ``short_circuit_order`` non-None si le
+        write doit être refusé (rejet admission ou stale) — l'appelant
+        court-circuite immédiatement, l'outcome est déjà journalisé.
+        Retourne None si ``admission is None`` (compat historique).
+        """
+        if admission is None:
+            return None
+
+        n_before = len(self._positions)
+        attempt = make_attempt(admission, cycle_id, symbol)
+        ledger = get_admission_ledger()
+        ledger.record_attempt(attempt)
+
+        # Admission rejetée par la couche décision — pas d'écriture.
+        if admission.decision != AdmissionDecision.APPROVED:
+            outcome = make_outcome(
+                attempt,
+                WriteResult.REJECTED_ADMISSION,
+                n_after=n_before,
+                anomaly=admission.blocker.value,
+            )
+            ledger.record_outcome(outcome)
+            return _AdmissionCtx(
+                attempt=attempt,
+                n_before=n_before,
+                short_circuit_order=self._make_rejected_stub(symbol),
+            )
+
+        # TOCTOU : le portefeuille a-t-il bougé depuis le check ?
+        if n_before >= admission.hard_max_at_check:
+            outcome = make_outcome(
+                attempt,
+                WriteResult.REJECTED_STALE,
+                n_after=n_before,
+                anomaly=AdmissionBlocker.STALE_TOCTOU.value,
+            )
+            ledger.record_outcome(outcome)
+            return _AdmissionCtx(
+                attempt=attempt,
+                n_before=n_before,
+                short_circuit_order=self._make_rejected_stub(symbol),
+            )
+
+        return _AdmissionCtx(attempt=attempt, n_before=n_before)
+
+    def _exit_admission(
+        self,
+        ctx: "Optional[_AdmissionCtx]",
+        order: MexcOrder,
+    ) -> None:
+        """Journalise l'AdmissionOutcome reflétant le résultat effectif du write."""
+        if ctx is None or ctx.short_circuit_order is not None:
+            return
+        n_after = len(self._positions)
+        if order.status == OrderStatus.FILLED:
+            pos = self._positions.get(order.symbol)
+            identity = f"{order.symbol}#{pos.pos_id}" if pos else order.symbol
+            outcome = make_outcome(
+                ctx.attempt,
+                WriteResult.FILLED,
+                n_after=n_after,
+                position_identity=identity,
+            )
+        elif order.status == OrderStatus.REJECTED:
+            # Distingue duplicate (position déjà présente) vs autres rejets
+            # (capital insuffisant, prix indisponible, écart OHLCV/ticker).
+            if order.symbol in self._positions and ctx.n_before == n_after:
+                write_result = WriteResult.REJECTED_DUPLICATE
+                anomaly = ""
+            else:
+                write_result = WriteResult.REJECTED_INSUFFICIENT_CAPITAL
+                anomaly = ""
+            outcome = make_outcome(
+                ctx.attempt,
+                write_result,
+                n_after=n_after,
+                anomaly=anomaly,
+            )
+        else:
+            outcome = make_outcome(
+                ctx.attempt,
+                WriteResult.REJECTED_INSUFFICIENT_CAPITAL,
+                n_after=n_after,
+                anomaly=f"unexpected_order_status={order.status.value}",
+            )
+        get_admission_ledger().record_outcome(outcome)
+
     # ── Passage d'ordres ──────────────────────────────────────────────────────
 
     def place_market_order(
@@ -456,8 +584,32 @@ class MexcSimulator:
         personality: str = "unknown",
         current_price: float = 0.0,
         regime: str = "unknown",
+        admission: "Optional[AdmissionVerdict]" = None,
+        cycle_id: str = "",
     ) -> Optional[MexcOrder]:
-        """Ordre MARKET : exécution immédiate au prix courant + slippage."""
+        """Ordre MARKET : exécution immédiate au prix courant + slippage.
+
+        ``admission`` (Phase 5.2.5) : verdict Level A/B/C produit par la
+        couche décision. Si ``None`` → comportement historique (compat
+        Level OFF). Si présent, la frontière d'écriture :
+
+          1. persiste immédiatement un ``AdmissionAttempt`` dans le
+             ledger (invariant : jamais de mutation sans attempt
+             durable) ;
+          2. rejette et journalise ``REJECTED_ADMISSION`` si
+             ``decision != APPROVED`` ;
+          3. re-vérifie TOCTOU (``len(_positions) < hard_max_at_check``)
+             et journalise ``REJECTED_STALE`` si l'état a bougé ;
+          4. procède au chemin historique et journalise
+             ``ADMISSION_OUTCOME`` reflétant le résultat réel.
+
+        ``cycle_id`` : identifiant du cycle advisor pour audit causal.
+        """
+        # ── Enveloppe admission (Phase 5.2.5) ─────────────────────────────
+        _adm_ctx = self._enter_admission(symbol, admission, cycle_id)
+        if _adm_ctx is not None and _adm_ctx.short_circuit_order is not None:
+            return _adm_ctx.short_circuit_order
+
         order = MexcOrder(
             order_id=str(uuid.uuid4())[:10].upper(),
             symbol=symbol,
@@ -475,6 +627,7 @@ class MexcSimulator:
             if current_price <= 0:
                 order.status = OrderStatus.REJECTED
                 self._notify(f"[SIM] ORDRE REJETE — {symbol}: prix indisponible")
+                self._exit_admission(_adm_ctx, order)
                 return order
         else:
             # Valider prix OHLCV vs ticker live — évite entrées stale/corrompues
@@ -498,10 +651,13 @@ class MexcSimulator:
                         f"OHLCV: ${current_price:.4g} | Ticker: ${_live:.4g} "
                         f"| Ecart: {_dev:.0%}"
                     )
+                    self._exit_admission(_adm_ctx, order)
                     return order
                 current_price = _live
 
-        return self._fill_market(order, current_price)
+        result = self._fill_market(order, current_price)
+        self._exit_admission(_adm_ctx, result if result is not None else order)
+        return result
 
     def place_limit_order(
         self,
