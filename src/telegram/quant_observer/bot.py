@@ -2,19 +2,27 @@
 
 Architecture (SVA v1.0):
     User command → load API snapshot → VES.render() → PNG → Telegram
+    User command → load API snapshot → formatters.format_*() → HTML → Telegram
 
-The bot contains ZERO business logic. It calls the Data API, delegates
-to the VES, and publishes the result. It does not read databases directly.
+The bot contains ZERO business logic. It calls the Data API, delegates rendering
+to the VES (charts) or to `formatters` (text), and publishes the result. It does
+not read databases directly and never computes a metric of its own.
+
+Strictly read-only (ADR-0007 — passivité des observers): there is no command
+that writes, calibrates, restarts, or otherwise touches the decision engine.
+Adding one would require a signed ADR, not a new entry in COMMANDS.
+
+Access is allowlisted (`QC_ALLOWED_CHAT_IDS`): anyone who discovers the bot
+handle can otherwise message it, and these commands disclose capital, dataset
+counts and log tails.
 """
 
 from __future__ import annotations
 
-import asyncio  # noqa: F401
 import io
 import logging
 import os
 import time
-from pathlib import Path  # noqa: F401
 
 import requests
 
@@ -31,16 +39,83 @@ PINNED_UPDATE_S = int(os.getenv("QC_PINNED_UPDATE", "600"))  # 10 min
 
 _API_BASE = f"https://api.telegram.org/bot{QC_BOT_TOKEN}"
 
+# ── Authorization ─────────────────────────────────────────────────────────────
+
+
+def allowed_chat_ids() -> set[str]:
+    """Chat ids permitted to issue commands.
+
+    `QC_ALLOWED_CHAT_IDS` (comma-separated) when set, else the single
+    `QC_CHAT_ID`. Read from the environment on each call so the allowlist can be
+    changed without touching import order.
+    """
+    raw = os.getenv("QC_ALLOWED_CHAT_IDS", "")
+    if raw.strip():
+        return {part.strip() for part in raw.split(",") if part.strip()}
+    single = os.getenv("QC_CHAT_ID", "").strip()
+    return {single} if single else set()
+
+
+def is_authorized(chat_id: str) -> bool:
+    """Fail closed: an empty allowlist authorizes nobody."""
+    allowed = allowed_chat_ids()
+    if not allowed:
+        logger.error(
+            "No QC_ALLOWED_CHAT_IDS / QC_CHAT_ID configured — refusing all commands."
+        )
+        return False
+    return str(chat_id).strip() in allowed
+
+
 # ── Telegram helpers ──────────────────────────────────────────────────────────
 
 
-def _post(method: str, **kwargs) -> dict:
+# Long-poll duration asked of Telegram in getUpdates. The HTTP read timeout must
+# stay strictly above it: Telegram legitimately holds the connection open for the
+# full window when no update is pending, so a shorter client timeout aborts every
+# idle poll and logs a failure for normal behaviour.
+LONG_POLL_S = 20
+_HTTP_TIMEOUT_S = 15
+_LONG_POLL_HTTP_TIMEOUT_S = LONG_POLL_S + 10
+
+# 429 is a documented flood-control response carrying parameters.retry_after.
+# One bounded retry is enough for a read-only observer; capped so a large
+# retry_after can never park the poll loop.
+_MAX_RETRY_AFTER_S = 30
+
+
+def _post(
+    method: str,
+    timeout: float = _HTTP_TIMEOUT_S,
+    _retried: bool = False,
+    **kwargs,
+) -> dict:
     try:
-        r = requests.post(f"{_API_BASE}/{method}", timeout=15, **kwargs)
-        return r.json()
+        r = requests.post(f"{_API_BASE}/{method}", timeout=timeout, **kwargs)
+        data = r.json()
     except Exception as e:
         logger.error("Telegram %s failed: %s", method, e)
         return {}
+
+    if isinstance(data, dict) and not data.get("ok", True):
+        retry_after = (data.get("parameters") or {}).get("retry_after")
+        if data.get("error_code") == 429 and retry_after and not _retried:
+            wait = min(float(retry_after), _MAX_RETRY_AFTER_S)
+            logger.warning(
+                "Telegram %s rate-limited (429) — retrying once in %.0fs", method, wait
+            )
+            time.sleep(wait)
+            return _post(method, timeout=timeout, _retried=True, **kwargs)
+        # Surface the failure. Without this a 400 "can't parse entities" — a
+        # malformed HTML payload — would vanish silently and the operator would
+        # simply never receive the answer.
+        logger.error(
+            "Telegram %s rejected: %s %s",
+            method,
+            data.get("error_code"),
+            data.get("description"),
+        )
+    return data
 
 
 def send_photo(chat_id: str, png_bytes: bytes, caption: str = "") -> dict:
@@ -70,7 +145,11 @@ def edit_message(chat_id: str, message_id: str, text: str) -> dict:
 
 
 def get_updates(offset: int = 0) -> list[dict]:
-    data = _post("getUpdates", json={"timeout": 20, "offset": offset})
+    data = _post(
+        "getUpdates",
+        timeout=_LONG_POLL_HTTP_TIMEOUT_S,
+        json={"timeout": LONG_POLL_S, "offset": offset},
+    )
     return data.get("result", [])
 
 
@@ -106,12 +185,113 @@ def _render_portfolio() -> bytes:
     return _ves().render(load_portfolio_snapshot(), viewer_level=3)
 
 
+# ── Text commands ─────────────────────────────────────────────────────────────
+#
+# Each takes the raw argument list and returns a Telegram-HTML string. Imports
+# stay function-local so a text command never pays the matplotlib import that
+# `visualization.renderers` performs at module scope.
+
+_REGRET_TYPES = ("MISSED_WIN", "GOOD_REFUSAL", "CORRECT_TRADE", "BAD_TRADE")
+
+
+def _text_burnin(args: list[str]) -> str:
+    from src.telegram.quant_observer import formatters
+    from visualization.api import load_burnin_snapshot
+
+    return formatters.format_burnin(load_burnin_snapshot())
+
+
+def _text_cri(args: list[str]) -> str:
+    from src.telegram.quant_observer import formatters
+    from visualization.api import load_cri_snapshot
+
+    return formatters.format_cri(load_cri_snapshot())
+
+
+def _text_regret(args: list[str]) -> str:
+    from src.telegram.quant_observer import formatters
+    from visualization.api import load_regret_investigation
+
+    regret_type = args[0].upper() if args else "MISSED_WIN"
+    snap = load_regret_investigation(regret_type=regret_type)
+    text = formatters.format_regret(snap)
+    if snap.n_total == 0 and regret_type not in _REGRET_TYPES:
+        text += "\n\n<i>Types connus : " + ", ".join(_REGRET_TYPES) + "</i>"
+    return text
+
+
+def _text_science(args: list[str]) -> str:
+    from src.telegram.quant_observer import formatters
+    from visualization.api import load_scientific_snapshot
+
+    return formatters.format_science(load_scientific_snapshot())
+
+
+def _text_timeline(args: list[str]) -> str:
+    from src.telegram.quant_observer import formatters
+    from visualization.api import load_timeline_snapshot
+
+    limit = _first_int(args, default=12, maximum=25)
+    return formatters.format_timeline(load_timeline_snapshot(), limit=limit)
+
+
+def _text_rejects(args: list[str]) -> str:
+    from src.telegram.quant_observer import formatters
+    from visualization.api import load_rejections_snapshot
+
+    days = _first_int(args, default=1, maximum=30)
+    return formatters.format_rejections(load_rejections_snapshot(days=days, limit=20))
+
+
+def _text_datasets(args: list[str]) -> str:
+    from src.telegram.quant_observer import formatters
+    from visualization.api import load_datasets_snapshot
+
+    return formatters.format_datasets(load_datasets_snapshot())
+
+
+def _text_logs(args: list[str]) -> str:
+    """`/logs [name] [n] [ERROR|WARNING|INFO]` — order-independent arguments."""
+    from src.telegram.quant_observer import formatters
+    from visualization.api import load_log_tail
+    from visualization.api.logs_api import ALLOWED_LOGS, DEFAULT_LOG
+
+    log_key = DEFAULT_LOG
+    n_lines = 30
+    level = "ALL"
+
+    for token in args:
+        candidate = token.strip().lower()
+        if candidate.isdigit():
+            n_lines = int(candidate)
+        elif candidate.upper() in ("ERROR", "WARNING", "INFO", "ALL"):
+            level = candidate.upper()
+        elif candidate in ALLOWED_LOGS:
+            log_key = candidate
+        else:
+            return (
+                f"⚠️ Argument inconnu : <code>{formatters.esc(token)}</code>\n"
+                f"Logs disponibles : <code>{', '.join(sorted(ALLOWED_LOGS))}</code>"
+            )
+
+    return formatters.format_logs(
+        load_log_tail(log_key=log_key, n_lines=n_lines, level_filter=level)
+    )
+
+
+def _first_int(args: list[str], default: int, maximum: int) -> int:
+    for token in args:
+        if token.strip().isdigit():
+            return max(1, min(int(token.strip()), maximum))
+    return default
+
+
 # ── Pinned message (V3 text, auto-refreshed every 10 min) ────────────────────
 
 
 def _build_pinned_text() -> str:
+    from src.telegram.quant_observer.formatters import bar as bar_text
     from visualization.api import load_health_snapshot, load_pipeline_snapshot
-    from visualization.renderers.base import bar_text, pct_to_color  # noqa: F401
 
     h = load_health_snapshot()
     p = load_pipeline_snapshot()
@@ -158,37 +338,66 @@ def _build_pinned_text() -> str:
 
 # ── Command dispatch ──────────────────────────────────────────────────────────
 
-COMMANDS: dict[str, tuple[str, callable]] = {
-    "/snapshot": ("SDOS Snapshot (4 panels)", _render_snapshot),
-    "/health": ("System Health (radar)", _render_health),
-    "/pipeline": ("Decision Pipeline", _render_pipeline),
-    "/portfolio": ("Portfolio KPIs", _render_portfolio),
+# command → (description, kind, handler). "photo" handlers take no argument and
+# return PNG bytes; "text" handlers take the argument list and return HTML.
+COMMANDS: dict[str, tuple[str, str, callable]] = {
+    # Charts (VES)
+    "/snapshot": ("SDOS Snapshot (4 panneaux)", "photo", _render_snapshot),
+    "/health": ("Santé système (radar)", "photo", _render_health),
+    "/pipeline": ("Pipeline de décision", "photo", _render_pipeline),
+    "/portfolio": ("KPIs portefeuille", "photo", _render_portfolio),
+    # Scientific state (text)
+    "/burnin": ("Seuils du statisticien", "text", _text_burnin),
+    "/cri": ("Calibration Readiness Index", "text", _text_cri),
+    "/science": ("Certification observer + DIP", "text", _text_science),
+    "/datasets": ("Historique des certifications", "text", _text_datasets),
+    # Decision audit (text)
+    "/regret": ("Regret [TYPE]", "text", _text_regret),
+    "/rejects": ("Analyse des rejets [jours]", "text", _text_rejects),
+    "/timeline": ("Décisions récentes [n]", "text", _text_timeline),
+    # Runtime (text)
+    "/logs": ("Logs [nom] [n] [niveau]", "text", _text_logs),
 }
 
 
-def _handle_command(text: str, chat_id: str):
-    cmd = text.strip().lower().split()[0]
-    if cmd == "/start" or cmd == "/help":
-        help_text = (
-            "<b>@QuantCrypto_bot — SDOS Observer</b>\n\n"
-            + "\n".join(
-                f"<code>{c}</code> — {desc}" for c, (desc, _) in COMMANDS.items()
-            )
-            + "\n\n<i>SVA v1.0 — Scientific Visualization Architecture</i>"
+def _help_text() -> str:
+    return (
+        "<b>@QuantCrypto_bot — SDOS Observer</b>\n"
+        "<i>Lecture seule. Aucune commande n'écrit ni ne décide.</i>\n\n"
+        + "\n".join(
+            f"<code>{cmd}</code> — {desc}" for cmd, (desc, _, _) in COMMANDS.items()
         )
-        send_message(chat_id, help_text)
+        + "\n\n<i>SVA v1.0 — Scientific Visualization Architecture</i>"
+    )
+
+
+def _handle_command(text: str, chat_id: str):
+    parts = text.strip().split()
+    if not parts:
+        return
+    cmd = parts[0].lower()
+    # "/cri@QuantCrypto_bot" — Telegram appends the handle in group chats.
+    cmd = cmd.split("@", 1)[0]
+    args = parts[1:]
+
+    if cmd in ("/start", "/help"):
+        send_message(chat_id, _help_text())
         return
 
-    if cmd in COMMANDS:
-        desc, renderer_fn = COMMANDS[cmd]
-        try:
-            png = renderer_fn()
-            send_photo(chat_id, png, caption=f"SDOS — {desc}")
-        except Exception as e:
-            logger.exception("Render error for %s", cmd)
-            send_message(chat_id, f"⚠️ Render error: {e}")
-    else:
-        send_message(chat_id, f"Unknown command: <code>{cmd}</code>\nUse /help")
+    entry = COMMANDS.get(cmd)
+    if entry is None:
+        send_message(chat_id, f"Commande inconnue : <code>{cmd}</code>\n/help")
+        return
+
+    desc, kind, handler = entry
+    try:
+        if kind == "photo":
+            send_photo(chat_id, handler(), caption=f"SDOS — {desc}")
+        else:
+            send_message(chat_id, handler(args))
+    except Exception as e:
+        logger.exception("Handler error for %s", cmd)
+        send_message(chat_id, f"⚠️ Erreur ({desc}) : {e}")
 
 
 # ── Main polling loop ─────────────────────────────────────────────────────────
@@ -200,7 +409,17 @@ def run():
     if not QC_CHAT_ID:
         raise RuntimeError("QC_CHAT_ID not set. Add it to .env.")
 
-    logger.info("@QuantCrypto_bot starting — SVA v1.0")
+    allowed = allowed_chat_ids()
+    if not allowed:
+        raise RuntimeError(
+            "No authorized chat: set QC_ALLOWED_CHAT_IDS (or QC_CHAT_ID) in .env."
+        )
+
+    logger.info(
+        "@QuantCrypto_bot starting — SVA v1.0 — %d authorized chat(s), %d commands",
+        len(allowed),
+        len(COMMANDS),
+    )
     offset = 0
     last_pinned_update = 0.0
 
@@ -223,6 +442,15 @@ def run():
                 text = msg.get("text", "")
                 chat_id = str(msg.get("chat", {}).get("id", ""))
                 if text.startswith("/") and chat_id:
+                    if not is_authorized(chat_id):
+                        # Stay silent: replying would confirm the bot is live to
+                        # an unknown chat. The rejection is logged instead.
+                        logger.warning(
+                            "Refused command %r from unauthorized chat %s",
+                            text[:40],
+                            chat_id,
+                        )
+                        continue
                     logger.info("Command: %s from %s", text, chat_id)
                     _handle_command(text, chat_id)
 
