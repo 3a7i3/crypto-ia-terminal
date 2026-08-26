@@ -250,7 +250,7 @@
 <section id="python-environment">
 <h3>Python Environment<a class="headerlink" href="#python-environment" title="Link to this heading">¶</a></h3>
 <div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="c"># ✓ Verify venv is active</span>
-<span class="p">&gt;</span> <span class="nb">Get-ChildItem</span> <span class="n">-Path</span> <span class="n">env</span><span class="p">:</span> <span class="p">|</span> <span class="nb">Where-Object</span> <span class="p">{</span><span class="nv">$_</span><span class="p">.</span><span class="n">Name</span> <span class="o">-eq</span> <span class="s2">&quot;VIRTUAL_ENV&quot;</span><span class="p">}</span>
+<span class="p">&gt;</span> <span class="nb">Get-ChildItem</span> <span class="n">-Path</span> <span class="n">env</span><span class="p">:</span> <span class="p">|</span> <span class="nb">Where-Object</span> <span class="p">{</span><span class="nv">$_</span><span class="p">.</span><span class="n">Name</span> <span class="o">-eq</span> <span class="s2">"VIRTUAL_ENV"</span><span class="p">}</span>
 
 <span class="n">Expected</span> <span class="n">Output</span><span class="p">:</span>
 <span class="n">Name</span>                           <span class="n">Value</span>
@@ -327,7 +327,7 @@
 <span class="n">Expected</span><span class="p">:</span> <span class="n">No</span> <span class="n">output</span> <span class="p">=</span> <span class="n">success</span>
 
 <span class="c"># ✓ Check imports work</span>
-<span class="p">&gt;</span> <span class="n">python</span> <span class="n">-c</span> <span class="s2">&quot;import main_v91&quot;</span>
+<span class="p">&gt;</span> <span class="n">python</span> <span class="n">-c</span> <span class="s2">"import main_v91"</span>
 <span class="n">Expected</span><span class="p">:</span> <span class="n">No</span> <span class="n">import</span> <span class="n">errors</span>
 </pre></div>
 </div>
@@ -345,9 +345,9 @@
 <section id="core-agents-20-total">
 <h3>Core Agents (20 total)<a class="headerlink" href="#core-agents-20-total" title="Link to this heading">¶</a></h3>
 <div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="c"># ✓ Test each agent module imports</span>
-<span class="p">&gt;</span> <span class="n">python</span> <span class="n">-c</span> <span class="s2">&quot;from agents.research.market_scanner import MarketScanner&quot;</span>
-<span class="p">&gt;</span> <span class="n">python</span> <span class="n">-c</span> <span class="s2">&quot;from agents.strategy.generator import StrategyGenerator&quot;</span>
-<span class="p">&gt;</span> <span class="n">python</span> <span class="n">-c</span> <span class="s2">&quot;from agents.quant.backtest_lab import BacktestLab&quot;</span>
+<span class="p">&gt;</span> <span class="n">python</span> <span class="n">-c</span> <span class="s2">"from agents.research.market_scanner import MarketScanner"</span>
+<span class="p">&gt;</span> <span class="n">python</span> <span class="n">-c</span> <span class="s2">"from agents.strategy.generator import StrategyGenerator"</span>
+<span class="p">&gt;</span> <span class="n">python</span> <span class="n">-c</span> <span class="s2">"from agents.quant.backtest_lab import BacktestLab"</span>
 <span class="c"># ... etc for all agents</span>
 
 <span class="n">Expected</span><span class="p">:</span> <span class="n">All</span> <span class="n">imports</span> <span class="n">succeed</span>
@@ -478,17 +478,17 @@
 <section id="minute-smoke-test">
 <h3>1-Minute Smoke Test<a class="headerlink" href="#minute-smoke-test" title="Link to this heading">¶</a></h3>
 <div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="c"># ✓ Set minimal config for speed</span>
-<span class="nv">$env:V9_MAX_CYCLES</span> <span class="p">=</span> <span class="s2">&quot;1&quot;</span>
-<span class="nv">$env:V9_POPULATION</span> <span class="p">=</span> <span class="s2">&quot;10&quot;</span>
-<span class="nv">$env:V9_GENERATIONS</span> <span class="p">=</span> <span class="s2">&quot;1&quot;</span>
+<span class="nv">$env:V9_MAX_CYCLES</span> <span class="p">=</span> <span class="s2">"1"</span>
+<span class="nv">$env:V9_POPULATION</span> <span class="p">=</span> <span class="s2">"10"</span>
+<span class="nv">$env:V9_GENERATIONS</span> <span class="p">=</span> <span class="s2">"1"</span>
 
 <span class="c"># ✓ Run V9.1</span>
 <span class="nb">cd </span><span class="n">quant-hedge-ai</span>
 <span class="n">python</span> <span class="n">main_v91</span><span class="p">.</span><span class="n">py</span>
 
 <span class="n">Expected</span> <span class="n">Output</span><span class="p">:</span>
-<span class="p">-</span> <span class="s2">&quot;Starting V9.1 Cycle...&quot;</span>
-<span class="p">-</span> <span class="s2">&quot;AI CONTROL CENTER - CYCLE 1&quot;</span>
+<span class="p">-</span> <span class="s2">"Starting V9.1 Cycle..."</span>
+<span class="p">-</span> <span class="s2">"AI CONTROL CENTER - CYCLE 1"</span>
 <span class="p">-</span> <span class="n">All</span> <span class="n">7</span> <span class="n">sections</span> <span class="n">displayed</span>
 <span class="p">-</span> <span class="n">No</span> <span class="n">errors</span>
 <span class="p">-</span> <span class="n">Completes</span> <span class="k">in</span> <span class="p">&lt;</span> <span class="n">30</span> <span class="n">seconds</span>
@@ -498,16 +498,16 @@
 <section id="run-output-validation">
 <h3>Run Output Validation<a class="headerlink" href="#run-output-validation" title="Link to this heading">¶</a></h3>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Expected to see:
-✓ &quot;🤖 AI CONTROL CENTER&quot;
-✓ &quot;📊 MARKET REGIME&quot;
-✓ &quot;🐋 WHALE RADAR&quot;
-✓ &quot;🎯 BEST STRATEGY&quot;
-✓ &quot;📈 SCOREBOARD STATS&quot;
-✓ &quot;💼 PORTFOLIO ALLOCATION&quot;
-✓ &quot;⚡ EXECUTION DECISION&quot;
-✓ &quot;❤️ SYSTEM HEALTH&quot;
-✓ &quot;📊 MonteCarlo Results&quot;
-✓ &quot;💰 Paper Trading State&quot;
+✓ "🤖 AI CONTROL CENTER"
+✓ "📊 MARKET REGIME"
+✓ "🐋 WHALE RADAR"
+✓ "🎯 BEST STRATEGY"
+✓ "📈 SCOREBOARD STATS"
+✓ "💼 PORTFOLIO ALLOCATION"
+✓ "⚡ EXECUTION DECISION"
+✓ "❤️ SYSTEM HEALTH"
+✓ "📊 MonteCarlo Results"
+✓ "💰 Paper Trading State"
 
 Unexpected to see:
 ✗ Any errors or exceptions
@@ -613,13 +613,13 @@ Unexpected to see:
 <section id="intelligence-layer">
 <h3>Intelligence Layer<a class="headerlink" href="#intelligence-layer" title="Link to this heading">¶</a></h3>
 <div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="c"># ✓ Test feature extraction</span>
-<span class="p">&gt;</span> <span class="n">python</span> <span class="n">-c</span> <span class="s2">&quot;</span>
+<span class="p">&gt;</span> <span class="n">python</span> <span class="n">-c</span> <span class="s2">"</span>
 <span class="s2">from agents.intelligence import FeatureEngineer</span>
 <span class="s2">f = FeatureEngineer()</span>
-<span class="s2">candles = [{&#39;close&#39;: 100}, {&#39;close&#39;: 101}, {&#39;close&#39;: 102}]</span>
+<span class="s2">candles = [{'close': 100}, {'close': 101}, {'close': 102}]</span>
 <span class="s2">features = f.extract_features(candles)</span>
 <span class="s2">print(features)</span>
-<span class="s2">&quot;</span>
+<span class="s2">"</span>
 <span class="n">Expected</span><span class="p">:</span> <span class="n">Dict</span> <span class="n">with</span> <span class="n">7</span> <span class="n">keys</span> <span class="p">(</span><span class="n">momentum</span><span class="p">,</span> <span class="n">vol</span><span class="p">,</span> <span class="n">volume_trend</span><span class="p">,</span> <span class="n">etc</span><span class="p">.)</span>
 </pre></div>
 </div>
@@ -633,12 +633,12 @@ Unexpected to see:
 <section id="portfolio-brain">
 <h3>Portfolio Brain<a class="headerlink" href="#portfolio-brain" title="Link to this heading">¶</a></h3>
 <div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="c"># ✓ Test Kelly allocation</span>
-<span class="p">&gt;</span> <span class="n">python</span> <span class="n">-c</span> <span class="s2">&quot;</span>
+<span class="p">&gt;</span> <span class="n">python</span> <span class="n">-c</span> <span class="s2">"</span>
 <span class="s2">from agents.portfolio import PortfolioBrain</span>
 <span class="s2">p = PortfolioBrain()</span>
 <span class="s2">allocation = p.compute_allocation([...], 0.03)</span>
 <span class="s2">print(allocation)</span>
-<span class="s2">&quot;</span>
+<span class="s2">"</span>
 <span class="n">Expected</span><span class="p">:</span> <span class="n">Dict</span> <span class="n">of</span> <span class="n">strategy</span> <span class="n">weights</span> <span class="n">summing</span> <span class="n">to</span> <span class="p">~</span><span class="n">1</span><span class="p">.</span><span class="n">0</span>
 </pre></div>
 </div>
@@ -652,12 +652,12 @@ Unexpected to see:
 <section id="whale-radar">
 <h3>Whale Radar<a class="headerlink" href="#whale-radar" title="Link to this heading">¶</a></h3>
 <div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="c"># ✓ Test whale detection</span>
-<span class="p">&gt;</span> <span class="n">python</span> <span class="n">-c</span> <span class="s2">&quot;</span>
+<span class="p">&gt;</span> <span class="n">python</span> <span class="n">-c</span> <span class="s2">"</span>
 <span class="s2">from agents.whales import WhaleRadar</span>
 <span class="s2">w = WhaleRadar()</span>
-<span class="s2">alerts = w.scan(&#39;BTC/USDT&#39;, 1000000, 42000)</span>
+<span class="s2">alerts = w.scan('BTC/USDT', 1000000, 42000)</span>
 <span class="s2">print(alerts)</span>
-<span class="s2">&quot;</span>
+<span class="s2">"</span>
 <span class="n">Expected</span><span class="p">:</span> <span class="n">List</span> <span class="n">of</span> <span class="n">detected</span> <span class="n">whale</span> <span class="n">transactions</span>
 </pre></div>
 </div>
@@ -671,12 +671,12 @@ Unexpected to see:
 <section id="decision-engine">
 <h3>Decision Engine<a class="headerlink" href="#decision-engine" title="Link to this heading">¶</a></h3>
 <div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="c"># ✓ Test strategy ranking</span>
-<span class="p">&gt;</span> <span class="n">python</span> <span class="n">-c</span> <span class="s2">&quot;</span>
+<span class="p">&gt;</span> <span class="n">python</span> <span class="n">-c</span> <span class="s2">"</span>
 <span class="s2">from engine.decision_engine import DecisionEngine</span>
 <span class="s2">d = DecisionEngine()</span>
 <span class="s2">should_trade = d.should_trade(best_strategy, regime, whale_alerts)</span>
 <span class="s2">print(should_trade)</span>
-<span class="s2">&quot;</span>
+<span class="s2">"</span>
 <span class="n">Expected</span><span class="p">:</span> <span class="n">Boolean</span> <span class="p">(</span><span class="n">True</span><span class="p">/</span><span class="n">False</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -694,9 +694,9 @@ Unexpected to see:
 <section id="minute-research-run">
 <h3>10-Minute Research Run<a class="headerlink" href="#minute-research-run" title="Link to this heading">¶</a></h3>
 <div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="c"># ✓ Run more cycles for data gathering</span>
-<span class="nv">$env:V9_MAX_CYCLES</span> <span class="p">=</span> <span class="s2">&quot;5&quot;</span>
-<span class="nv">$env:V9_POPULATION</span> <span class="p">=</span> <span class="s2">&quot;100&quot;</span>
-<span class="nv">$env:V9_GENERATIONS</span> <span class="p">=</span> <span class="s2">&quot;2&quot;</span>
+<span class="nv">$env:V9_MAX_CYCLES</span> <span class="p">=</span> <span class="s2">"5"</span>
+<span class="nv">$env:V9_POPULATION</span> <span class="p">=</span> <span class="s2">"100"</span>
+<span class="nv">$env:V9_GENERATIONS</span> <span class="p">=</span> <span class="s2">"2"</span>
 
 <span class="n">python</span> <span class="n">main_v91</span><span class="p">.</span><span class="n">py</span>
 
@@ -749,8 +749,8 @@ Unexpected to see:
 <section id="timing-test">
 <h3>Timing Test<a class="headerlink" href="#timing-test" title="Link to this heading">¶</a></h3>
 <div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="c"># Record cycle times to establish baseline</span>
-<span class="nv">$env:V9_MAX_CYCLES</span> <span class="p">=</span> <span class="s2">&quot;3&quot;</span>
-<span class="nv">$env:V9_POPULATION</span> <span class="p">=</span> <span class="s2">&quot;100&quot;</span>
+<span class="nv">$env:V9_MAX_CYCLES</span> <span class="p">=</span> <span class="s2">"3"</span>
+<span class="nv">$env:V9_POPULATION</span> <span class="p">=</span> <span class="s2">"100"</span>
 
 <span class="nb">Measure-Command</span> <span class="p">{</span> <span class="n">python</span> <span class="n">main_v91</span><span class="p">.</span><span class="n">py</span> <span class="p">}</span>
 
@@ -801,13 +801,13 @@ Unexpected to see:
 <section id="reproducibility-verification">
 <h3>Reproducibility Verification<a class="headerlink" href="#reproducibility-verification" title="Link to this heading">¶</a></h3>
 <div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="c"># Run 1: With seed</span>
-<span class="nv">$env:V9_SEED</span> <span class="p">=</span> <span class="s2">&quot;42&quot;</span>
-<span class="nv">$env:V9_MAX_CYCLES</span> <span class="p">=</span> <span class="s2">&quot;2&quot;</span>
+<span class="nv">$env:V9_SEED</span> <span class="p">=</span> <span class="s2">"42"</span>
+<span class="nv">$env:V9_MAX_CYCLES</span> <span class="p">=</span> <span class="s2">"2"</span>
 <span class="n">python</span> <span class="n">main_v91</span><span class="p">.</span><span class="n">py</span> <span class="p">&gt;</span> <span class="n">run1</span><span class="p">.</span><span class="n">txt</span>
 
 <span class="c"># Run 2: With same seed</span>
-<span class="nv">$env:V9_SEED</span> <span class="p">=</span> <span class="s2">&quot;42&quot;</span>
-<span class="nv">$env:V9_MAX_CYCLES</span> <span class="p">=</span> <span class="s2">&quot;2&quot;</span>
+<span class="nv">$env:V9_SEED</span> <span class="p">=</span> <span class="s2">"42"</span>
+<span class="nv">$env:V9_MAX_CYCLES</span> <span class="p">=</span> <span class="s2">"2"</span>
 <span class="n">python</span> <span class="n">main_v91</span><span class="p">.</span><span class="n">py</span> <span class="p">&gt;</span> <span class="n">run2</span><span class="p">.</span><span class="n">txt</span>
 
 <span class="c"># Compare outputs</span>
@@ -829,7 +829,7 @@ Unexpected to see:
 <section id="windows-specific-validation">
 <h3>Windows-Specific Validation<a class="headerlink" href="#windows-specific-validation" title="Link to this heading">¶</a></h3>
 <div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="c"># ✓ Path handling</span>
-<span class="p">&gt;</span> <span class="n">python</span> <span class="n">-c</span> <span class="s2">&quot;import os; print(os.path.exists(&#39;databases&#39;))&quot;</span>
+<span class="p">&gt;</span> <span class="n">python</span> <span class="n">-c</span> <span class="s2">"import os; print(os.path.exists('databases'))"</span>
 <span class="n">Expected</span><span class="p">:</span> <span class="n">True</span>
 
 <span class="c"># ✓ File permissions</span>
@@ -857,8 +857,8 @@ Unexpected to see:
 <h3>V9 Comparison<a class="headerlink" href="#v9-comparison" title="Link to this heading">¶</a></h3>
 <div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="c"># Compare V9 vs V9.1 on same population</span>
 <span class="nb">cd </span><span class="n">quant-hedge-ai</span>
-<span class="nv">$env:V9_MAX_CYCLES</span> <span class="p">=</span> <span class="s2">&quot;2&quot;</span>
-<span class="nv">$env:V9_POPULATION</span> <span class="p">=</span> <span class="s2">&quot;100&quot;</span>
+<span class="nv">$env:V9_MAX_CYCLES</span> <span class="p">=</span> <span class="s2">"2"</span>
+<span class="nv">$env:V9_POPULATION</span> <span class="p">=</span> <span class="s2">"100"</span>
 
 <span class="c"># Run V9.1</span>
 <span class="n">python</span> <span class="n">main_v91</span><span class="p">.</span><span class="n">py</span>

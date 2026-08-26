@@ -585,12 +585,12 @@ causal &lt;packet_id&gt;
     confiance de la cause.
 
 explain &lt;packet_id&gt;
-    Score d&#39;explicabilité sur 5 dimensions (causal_clarity, confidence_drop,
+    Score d'explicabilité sur 5 dimensions (causal_clarity, confidence_drop,
     reasoning_coverage, layer_attribution, reasoning_readability).
     Grade A (≥0.9) à F (&lt;0.4).
 
 counterfactual &lt;packet_id&gt; [--layer &lt;layer&gt;]
-    Simulation &quot;sans cette couche&quot;. Retourne outcome_changed, confidence_delta,
+    Simulation "sans cette couche". Retourne outcome_changed, confidence_delta,
     estimated_pnl_impact. Confiance max = 0.85 (jamais certitude).
 
 replay &lt;packet_id&gt; [--step]
@@ -633,19 +633,19 @@ alerts [--severity HIGH|CRITICAL]
     <span class="n">Rapport</span> <span class="n">complet</span> <span class="p">:</span> <span class="n">résumé</span><span class="p">,</span> <span class="n">par</span> <span class="n">statut</span><span class="p">,</span> <span class="n">par</span> <span class="n">layer</span><span class="p">,</span> <span class="n">par</span> <span class="n">régime</span><span class="o">.</span>
 
 <span class="n">export</span> <span class="o">&lt;</span><span class="n">packet_id</span><span class="o">&gt;</span> <span class="p">[</span><span class="o">--</span><span class="n">output</span> <span class="o">&lt;</span><span class="n">fichier</span><span class="o">&gt;</span><span class="p">]</span>
-    <span class="n">Export</span> <span class="n">complet</span> <span class="n">d</span><span class="s1">&#39;un packet : graph JSON, causal tree, audit trail,</span>
+    <span class="n">Export</span> <span class="n">complet</span> <span class="n">d</span><span class="s1">'un packet : graph JSON, causal tree, audit trail,</span>
     <span class="n">counterfactuals</span><span class="o">.</span>
 
 <span class="n">audit</span> <span class="p">[</span><span class="o">--</span><span class="n">hours</span> <span class="mi">24</span><span class="p">]</span>
-    <span class="n">Journal</span> <span class="n">d</span><span class="s1">&#39;audit DIP : entrées par module et par action.</span>
-    <span class="n">Contrôle</span> <span class="n">d</span><span class="s1">&#39;intégrité SHA-256.</span>
+    <span class="n">Journal</span> <span class="n">d</span><span class="s1">'audit DIP : entrées par module et par action.</span>
+    <span class="n">Contrôle</span> <span class="n">d</span><span class="s1">'intégrité SHA-256.</span>
 </pre></div>
 </div>
 </section>
 <section id="commandes-de-sante">
 <h3>Commandes de santé<a class="headerlink" href="#commandes-de-sante" title="Link to this heading">¶</a></h3>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>kb [--symbol BTCUSDT] [--regime SIDEWAYS] [--drift]
-    Knowledge Base : patterns (N≥50), règles d&#39;association,
+    Knowledge Base : patterns (N≥50), règles d'association,
     détection de dérive.
 
 health

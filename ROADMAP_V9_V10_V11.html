@@ -703,7 +703,7 @@ PC local (Windows 11)
 <span class="c1"># Scripts de génération de rapports</span>
 <span class="n">generate_</span><span class="o">*.</span><span class="n">py</span><span class="p">,</span> <span class="n">export_</span><span class="o">*.</span><span class="n">py</span><span class="p">,</span> <span class="n">panel_</span><span class="o">*.</span><span class="n">py</span><span class="p">,</span> <span class="n">notify_</span><span class="o">*.</span><span class="n">py</span><span class="p">,</span> <span class="n">send_orchestration_notification</span><span class="o">.</span><span class="n">py</span>
 
-<span class="c1"># Scripts d&#39;installation/setup obsolètes</span>
+<span class="c1"># Scripts d'installation/setup obsolètes</span>
 <span class="n">install_all</span><span class="o">.</span><span class="n">ps1</span><span class="p">,</span> <span class="n">install_all</span><span class="o">.</span><span class="n">sh</span><span class="p">,</span> <span class="n">install_and_test</span><span class="o">.</span><span class="n">ps1</span><span class="p">,</span> <span class="n">setup_quant_matrix_venv</span><span class="o">.</span><span class="n">ps1</span>
 <span class="n">reset_quant_matrix_venv</span><span class="o">.</span><span class="n">ps1</span><span class="p">,</span> <span class="n">build_docs</span><span class="o">.</span><span class="n">ps1</span><span class="p">,</span> <span class="n">build_docs</span><span class="o">.</span><span class="n">sh</span>
 
@@ -876,8 +876,8 @@ Actions :
 
 2. Execution audit vide
    → logs/execution_audit/audit.jsonl créé seulement au premier ordre exécuté
-   → En sideways, ce fichier n&#39;existe pas = dashboard Execution Health vide
-   → NORMAL en phase d&#39;observation
+   → En sideways, ce fichier n'existe pas = dashboard Execution Health vide
+   → NORMAL en phase d'observation
 
 3. Sync 8/8 fichiers
    → multi_exchange_snapshot.json inclus depuis P5
@@ -885,11 +885,11 @@ Actions :
 
 4. walk_forward en doublon
    → Deux modules avec des APIs différentes
-   → Si un test passe mais pas l&#39;autre, chercher lequel est appelé
+   → Si un test passe mais pas l'autre, chercher lequel est appelé
 
 5. evolution_core.py à la racine
-   → main.py l&#39;importe directement
-   → Si quelqu&#39;un déplace le fichier, main.py casse sans erreur évidente
+   → main.py l'importe directement
+   → Si quelqu'un déplace le fichier, main.py casse sans erreur évidente
 
 6. ~1200 fichiers débris non supprimés
    → Aucun impact runtime mais augmente le risque de modifier le mauvais fichier

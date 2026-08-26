@@ -297,7 +297,7 @@
 <span class="k">class</span><span class="w"> </span><span class="nc">ExecutionRouter</span><span class="p">:</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sim_engine</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">sim_engine</span> <span class="o">=</span> <span class="n">sim_engine</span>   <span class="c1"># toujours VirtualExchange</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="s2">&quot;sim&quot;</span>              <span class="c1"># mode unique, jamais changé</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="s2">"sim"</span>              <span class="c1"># mode unique, jamais changé</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">order</span><span class="p">:</span> <span class="n">Order</span><span class="p">,</span> <span class="n">price</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Position</span><span class="p">:</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim_engine</span><span class="o">.</span><span class="n">place_order</span><span class="p">(</span><span class="n">order</span><span class="p">,</span> <span class="n">price</span><span class="p">)</span>
@@ -339,7 +339,7 @@
 <span class="k">class</span><span class="w"> </span><span class="nc">TradeEvent</span><span class="p">:</span>
     <span class="n">trade_id</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">symbol</span><span class="p">:</span> <span class="nb">str</span>
-    <span class="n">side</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;buy&quot;</span><span class="p">,</span> <span class="s2">&quot;sell&quot;</span><span class="p">]</span>
+    <span class="n">side</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"buy"</span><span class="p">,</span> <span class="s2">"sell"</span><span class="p">]</span>
     <span class="n">entry_price</span><span class="p">:</span> <span class="nb">float</span>
     <span class="n">exit_price</span><span class="p">:</span> <span class="nb">float</span>
     <span class="n">size</span><span class="p">:</span> <span class="nb">float</span>
@@ -348,11 +348,11 @@
     <span class="n">latency_ms</span><span class="p">:</span> <span class="nb">float</span>
     <span class="n">pnl_usd</span><span class="p">:</span> <span class="nb">float</span>               <span class="c1"># (exit - entry) * size * side_sign - fees</span>
     <span class="n">pnl_pct</span><span class="p">:</span> <span class="nb">float</span>
-    <span class="n">execution_mode</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;backtest&quot;</span><span class="p">,</span> <span class="s2">&quot;paper&quot;</span><span class="p">,</span> <span class="s2">&quot;live&quot;</span><span class="p">]</span>
-    <span class="n">regime</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="n">execution_mode</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"backtest"</span><span class="p">,</span> <span class="s2">"paper"</span><span class="p">,</span> <span class="s2">"live"</span><span class="p">]</span>
+    <span class="n">regime</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span>
     <span class="n">score</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="n">strategy_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
-    <span class="n">trace_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="n">strategy_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span>
+    <span class="n">trace_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span>
     <span class="n">opened_at</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
     <span class="n">closed_at</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
     <span class="n">metadata</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span>
@@ -375,15 +375,15 @@
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">SimulatorAdapter</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Adapte ExecutionSimulator à l&#39;interface place_order / close_position.</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Adapte ExecutionSimulator à l'interface place_order / close_position.</span>
 <span class="sd">    Produit des TradeEvent canoniques.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sim</span><span class="p">:</span> <span class="n">ExecutionSimulator</span><span class="p">,</span> <span class="n">execution_mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;backtest&quot;</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sim</span><span class="p">:</span> <span class="n">ExecutionSimulator</span><span class="p">,</span> <span class="n">execution_mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"backtest"</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_sim</span> <span class="o">=</span> <span class="n">sim</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_mode</span> <span class="o">=</span> <span class="n">execution_mode</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_open_fills</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{}</span>   <span class="c1"># symbol → SimulatedFill d&#39;entrée</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_open_fills</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{}</span>   <span class="c1"># symbol → SimulatedFill d'entrée</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">place_order</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">order</span><span class="p">:</span> <span class="n">Order</span><span class="p">,</span> <span class="n">price</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Position</span><span class="p">:</span>
         <span class="n">intent</span> <span class="o">=</span> <span class="n">OrderIntent</span><span class="p">(</span>
@@ -391,28 +391,28 @@
             <span class="n">side</span><span class="o">=</span><span class="n">order</span><span class="o">.</span><span class="n">side</span><span class="p">,</span>
             <span class="n">size</span><span class="o">=</span><span class="n">order</span><span class="o">.</span><span class="n">size</span><span class="p">,</span>
             <span class="n">signal_price</span><span class="o">=</span><span class="n">price</span><span class="p">,</span>
-            <span class="n">order_type</span><span class="o">=</span><span class="n">order</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;order_type&quot;</span><span class="p">,</span> <span class="s2">&quot;market&quot;</span><span class="p">),</span>
-            <span class="n">direction</span><span class="o">=</span><span class="mi">1</span> <span class="k">if</span> <span class="n">order</span><span class="o">.</span><span class="n">side</span> <span class="o">==</span> <span class="s2">&quot;buy&quot;</span> <span class="k">else</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">order_type</span><span class="o">=</span><span class="n">order</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"order_type"</span><span class="p">,</span> <span class="s2">"market"</span><span class="p">),</span>
+            <span class="n">direction</span><span class="o">=</span><span class="mi">1</span> <span class="k">if</span> <span class="n">order</span><span class="o">.</span><span class="n">side</span> <span class="o">==</span> <span class="s2">"buy"</span> <span class="k">else</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">snapshot</span> <span class="o">=</span> <span class="n">MarketSnapshot</span><span class="p">(</span>
             <span class="n">symbol</span><span class="o">=</span><span class="n">order</span><span class="o">.</span><span class="n">symbol</span><span class="p">,</span>
             <span class="n">price</span><span class="o">=</span><span class="n">price</span><span class="p">,</span>
             <span class="n">bid</span><span class="o">=</span><span class="n">price</span> <span class="o">*</span> <span class="mf">0.9999</span><span class="p">,</span>
             <span class="n">ask</span><span class="o">=</span><span class="n">price</span> <span class="o">*</span> <span class="mf">1.0001</span><span class="p">,</span>
-            <span class="n">volume_24h</span><span class="o">=</span><span class="n">order</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;volume_24h&quot;</span><span class="p">,</span> <span class="mf">1_000_000.0</span><span class="p">),</span>
+            <span class="n">volume_24h</span><span class="o">=</span><span class="n">order</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"volume_24h"</span><span class="p">,</span> <span class="mf">1_000_000.0</span><span class="p">),</span>
             <span class="n">timestamp</span><span class="o">=</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">(),</span>
         <span class="p">)</span>
         <span class="n">fill</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sim</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">intent</span><span class="p">,</span> <span class="n">snapshot</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">fill</span><span class="o">.</span><span class="n">is_rejected</span><span class="p">:</span>
             <span class="c1"># Fail-closed : on ne crée pas de position si le fill est rejeté</span>
-            <span class="k">return</span> <span class="n">Position</span><span class="p">(</span><span class="n">symbol</span><span class="o">=</span><span class="n">order</span><span class="o">.</span><span class="n">symbol</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">entry_price</span><span class="o">=</span><span class="n">price</span><span class="p">,</span> <span class="n">side</span><span class="o">=</span><span class="s2">&quot;long&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">Position</span><span class="p">(</span><span class="n">symbol</span><span class="o">=</span><span class="n">order</span><span class="o">.</span><span class="n">symbol</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">entry_price</span><span class="o">=</span><span class="n">price</span><span class="p">,</span> <span class="n">side</span><span class="o">=</span><span class="s2">"long"</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_open_fills</span><span class="p">[</span><span class="n">order</span><span class="o">.</span><span class="n">symbol</span><span class="p">]</span> <span class="o">=</span> <span class="n">fill</span>
         <span class="k">return</span> <span class="n">Position</span><span class="p">(</span>
             <span class="n">symbol</span><span class="o">=</span><span class="n">order</span><span class="o">.</span><span class="n">symbol</span><span class="p">,</span>
             <span class="n">size</span><span class="o">=</span><span class="n">fill</span><span class="o">.</span><span class="n">filled_size</span><span class="p">,</span>
             <span class="n">entry_price</span><span class="o">=</span><span class="n">fill</span><span class="o">.</span><span class="n">fill_price</span><span class="p">,</span>
-            <span class="n">side</span><span class="o">=</span><span class="s2">&quot;long&quot;</span> <span class="k">if</span> <span class="n">order</span><span class="o">.</span><span class="n">side</span> <span class="o">==</span> <span class="s2">&quot;buy&quot;</span> <span class="k">else</span> <span class="s2">&quot;short&quot;</span><span class="p">,</span>
+            <span class="n">side</span><span class="o">=</span><span class="s2">"long"</span> <span class="k">if</span> <span class="n">order</span><span class="o">.</span><span class="n">side</span> <span class="o">==</span> <span class="s2">"buy"</span> <span class="k">else</span> <span class="s2">"short"</span><span class="p">,</span>
         <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">close_position</span><span class="p">(</span>
@@ -420,27 +420,27 @@
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
         <span class="n">entry_fill</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_open_fills</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">entry_fill</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;symbol&quot;</span><span class="p">:</span> <span class="n">symbol</span><span class="p">,</span> <span class="s2">&quot;pnl&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s2">&quot;closed&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">}</span>
+            <span class="k">return</span> <span class="p">{</span><span class="s2">"symbol"</span><span class="p">:</span> <span class="n">symbol</span><span class="p">,</span> <span class="s2">"pnl"</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s2">"closed"</span><span class="p">:</span> <span class="kc">False</span><span class="p">}</span>
 
         <span class="n">intent</span> <span class="o">=</span> <span class="n">OrderIntent</span><span class="p">(</span>
             <span class="n">symbol</span><span class="o">=</span><span class="n">symbol</span><span class="p">,</span>
-            <span class="n">side</span><span class="o">=</span><span class="s2">&quot;sell&quot;</span> <span class="k">if</span> <span class="n">entry_fill</span><span class="o">.</span><span class="n">side</span> <span class="o">==</span> <span class="s2">&quot;buy&quot;</span> <span class="k">else</span> <span class="s2">&quot;buy&quot;</span><span class="p">,</span>
+            <span class="n">side</span><span class="o">=</span><span class="s2">"sell"</span> <span class="k">if</span> <span class="n">entry_fill</span><span class="o">.</span><span class="n">side</span> <span class="o">==</span> <span class="s2">"buy"</span> <span class="k">else</span> <span class="s2">"buy"</span><span class="p">,</span>
             <span class="n">size</span><span class="o">=</span><span class="n">entry_fill</span><span class="o">.</span><span class="n">filled_size</span><span class="p">,</span>
             <span class="n">signal_price</span><span class="o">=</span><span class="n">price</span><span class="p">,</span>
-            <span class="n">order_type</span><span class="o">=</span><span class="s2">&quot;market&quot;</span><span class="p">,</span>
-            <span class="n">direction</span><span class="o">=-</span><span class="mi">1</span> <span class="k">if</span> <span class="n">entry_fill</span><span class="o">.</span><span class="n">side</span> <span class="o">==</span> <span class="s2">&quot;buy&quot;</span> <span class="k">else</span> <span class="mi">1</span><span class="p">,</span>
+            <span class="n">order_type</span><span class="o">=</span><span class="s2">"market"</span><span class="p">,</span>
+            <span class="n">direction</span><span class="o">=-</span><span class="mi">1</span> <span class="k">if</span> <span class="n">entry_fill</span><span class="o">.</span><span class="n">side</span> <span class="o">==</span> <span class="s2">"buy"</span> <span class="k">else</span> <span class="mi">1</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">snapshot</span> <span class="o">=</span> <span class="n">MarketSnapshot</span><span class="p">(</span>
             <span class="n">symbol</span><span class="o">=</span><span class="n">symbol</span><span class="p">,</span>
             <span class="n">price</span><span class="o">=</span><span class="n">price</span><span class="p">,</span>
             <span class="n">bid</span><span class="o">=</span><span class="n">price</span> <span class="o">*</span> <span class="mf">0.9999</span><span class="p">,</span>
             <span class="n">ask</span><span class="o">=</span><span class="n">price</span> <span class="o">*</span> <span class="mf">1.0001</span><span class="p">,</span>
-            <span class="n">volume_24h</span><span class="o">=</span><span class="p">(</span><span class="n">metadata</span> <span class="ow">or</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;volume_24h&quot;</span><span class="p">,</span> <span class="mf">1_000_000.0</span><span class="p">),</span>
+            <span class="n">volume_24h</span><span class="o">=</span><span class="p">(</span><span class="n">metadata</span> <span class="ow">or</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"volume_24h"</span><span class="p">,</span> <span class="mf">1_000_000.0</span><span class="p">),</span>
             <span class="n">timestamp</span><span class="o">=</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">(),</span>
         <span class="p">)</span>
         <span class="n">exit_fill</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sim</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">intent</span><span class="p">,</span> <span class="n">snapshot</span><span class="p">)</span>
 
-        <span class="n">side_sign</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="k">if</span> <span class="n">entry_fill</span><span class="o">.</span><span class="n">side</span> <span class="o">==</span> <span class="s2">&quot;buy&quot;</span> <span class="k">else</span> <span class="o">-</span><span class="mf">1.0</span>
+        <span class="n">side_sign</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="k">if</span> <span class="n">entry_fill</span><span class="o">.</span><span class="n">side</span> <span class="o">==</span> <span class="s2">"buy"</span> <span class="k">else</span> <span class="o">-</span><span class="mf">1.0</span>
         <span class="n">raw_pnl</span> <span class="o">=</span> <span class="p">(</span><span class="n">exit_fill</span><span class="o">.</span><span class="n">fill_price</span> <span class="o">-</span> <span class="n">entry_fill</span><span class="o">.</span><span class="n">fill_price</span><span class="p">)</span> <span class="o">*</span> <span class="n">entry_fill</span><span class="o">.</span><span class="n">filled_size</span> <span class="o">*</span> <span class="n">side_sign</span>
         <span class="n">total_fees</span> <span class="o">=</span> <span class="n">entry_fill</span><span class="o">.</span><span class="n">fee_usd</span> <span class="o">+</span> <span class="n">exit_fill</span><span class="o">.</span><span class="n">fee_usd</span>
         <span class="n">net_pnl</span> <span class="o">=</span> <span class="n">raw_pnl</span> <span class="o">-</span> <span class="n">total_fees</span>
@@ -458,16 +458,16 @@
             <span class="n">pnl_usd</span><span class="o">=</span><span class="n">net_pnl</span><span class="p">,</span>
             <span class="n">pnl_pct</span><span class="o">=</span><span class="n">net_pnl</span> <span class="o">/</span> <span class="p">(</span><span class="n">entry_fill</span><span class="o">.</span><span class="n">fill_price</span> <span class="o">*</span> <span class="n">entry_fill</span><span class="o">.</span><span class="n">filled_size</span><span class="p">)</span> <span class="o">*</span> <span class="mi">100</span><span class="p">,</span>
             <span class="n">execution_mode</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_mode</span><span class="p">,</span>
-            <span class="n">strategy_id</span><span class="o">=</span><span class="p">(</span><span class="n">metadata</span> <span class="ow">or</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;strategy_id&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">),</span>
-            <span class="n">trace_id</span><span class="o">=</span><span class="p">(</span><span class="n">metadata</span> <span class="ow">or</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;trace_id&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">),</span>
+            <span class="n">strategy_id</span><span class="o">=</span><span class="p">(</span><span class="n">metadata</span> <span class="ow">or</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"strategy_id"</span><span class="p">,</span> <span class="s2">""</span><span class="p">),</span>
+            <span class="n">trace_id</span><span class="o">=</span><span class="p">(</span><span class="n">metadata</span> <span class="ow">or</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"trace_id"</span><span class="p">,</span> <span class="s2">""</span><span class="p">),</span>
         <span class="p">)</span>
 
         <span class="k">return</span> <span class="p">{</span>
-            <span class="s2">&quot;symbol&quot;</span><span class="p">:</span> <span class="n">symbol</span><span class="p">,</span>
-            <span class="s2">&quot;pnl&quot;</span><span class="p">:</span> <span class="n">net_pnl</span><span class="p">,</span>
-            <span class="s2">&quot;closed&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
-            <span class="s2">&quot;exit_price&quot;</span><span class="p">:</span> <span class="n">exit_fill</span><span class="o">.</span><span class="n">fill_price</span><span class="p">,</span>
-            <span class="s2">&quot;trade_event&quot;</span><span class="p">:</span> <span class="n">event</span><span class="p">,</span>
+            <span class="s2">"symbol"</span><span class="p">:</span> <span class="n">symbol</span><span class="p">,</span>
+            <span class="s2">"pnl"</span><span class="p">:</span> <span class="n">net_pnl</span><span class="p">,</span>
+            <span class="s2">"closed"</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+            <span class="s2">"exit_price"</span><span class="p">:</span> <span class="n">exit_fill</span><span class="o">.</span><span class="n">fill_price</span><span class="p">,</span>
+            <span class="s2">"trade_event"</span><span class="p">:</span> <span class="n">event</span><span class="p">,</span>
         <span class="p">}</span>
 </pre></div>
 </div>
@@ -482,17 +482,17 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">src.domain.order</span><span class="w"> </span><span class="kn">import</span> <span class="n">Order</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">src.domain.position</span><span class="w"> </span><span class="kn">import</span> <span class="n">Position</span>
 
-<span class="n">ExecutionMode</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;backtest&quot;</span><span class="p">,</span> <span class="s2">&quot;paper&quot;</span><span class="p">,</span> <span class="s2">&quot;live&quot;</span><span class="p">]</span>
+<span class="n">ExecutionMode</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"backtest"</span><span class="p">,</span> <span class="s2">"paper"</span><span class="p">,</span> <span class="s2">"live"</span><span class="p">]</span>
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">ExecutionRouter</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Point d&#39;entrée unique pour toute exécution d&#39;ordre.</span>
-<span class="sd">    Le mode (backtest/paper/live) détermine l&#39;adapter utilisé.</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Point d'entrée unique pour toute exécution d'ordre.</span>
+<span class="sd">    Le mode (backtest/paper/live) détermine l'adapter utilisé.</span>
 <span class="sd">    Aucun module ne doit appeler un adapter directement.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">adapter</span><span class="p">,</span> <span class="n">mode</span><span class="p">:</span> <span class="n">ExecutionMode</span> <span class="o">=</span> <span class="s2">&quot;backtest&quot;</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">adapter</span><span class="p">,</span> <span class="n">mode</span><span class="p">:</span> <span class="n">ExecutionMode</span> <span class="o">=</span> <span class="s2">"backtest"</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_adapter</span> <span class="o">=</span> <span class="n">adapter</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_mode</span> <span class="o">=</span> <span class="n">mode</span>
 
@@ -524,10 +524,10 @@
 <li><p>Ajouter split train/test 70/30 et benchmark buy &amp; hold</p></li>
 </ol>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Ligne 39 — AVANT :</span>
-<span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">router</span><span class="o">.</span><span class="n">sim_engine</span><span class="o">.</span><span class="n">close_position</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">candle</span><span class="p">[</span><span class="s2">&quot;close&quot;</span><span class="p">],</span> <span class="n">metadata</span><span class="o">=</span><span class="n">close_meta</span><span class="p">)</span>
+<span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">router</span><span class="o">.</span><span class="n">sim_engine</span><span class="o">.</span><span class="n">close_position</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">candle</span><span class="p">[</span><span class="s2">"close"</span><span class="p">],</span> <span class="n">metadata</span><span class="o">=</span><span class="n">close_meta</span><span class="p">)</span>
 
 <span class="c1"># APRÈS :</span>
-<span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">router</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">candle</span><span class="p">[</span><span class="s2">&quot;close&quot;</span><span class="p">],</span> <span class="n">metadata</span><span class="o">=</span><span class="n">close_meta</span><span class="p">)</span>
+<span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">router</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">candle</span><span class="p">[</span><span class="s2">"close"</span><span class="p">],</span> <span class="n">metadata</span><span class="o">=</span><span class="n">close_meta</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>Ajout train/test dans la méthode <code class="docutils literal notranslate"><span class="pre">run()</span></code> :</p>
@@ -552,7 +552,7 @@
 <span class="c1"># Dans _close_position() :</span>
 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_router</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
     <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_router</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">exit_price</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="o">...</span><span class="p">})</span>
-    <span class="n">net_pnl</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;pnl&quot;</span><span class="p">]</span>
+    <span class="n">net_pnl</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="s2">"pnl"</span><span class="p">]</span>
 <span class="k">else</span><span class="p">:</span>
     <span class="c1"># fallback legacy (fee fixe 0.1%)</span>
     <span class="o">...</span>

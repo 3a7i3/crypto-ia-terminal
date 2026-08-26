@@ -471,7 +471,7 @@ Tier 2 — RUNTIME_INIT    : makedirs, load_dotenv, basicConfig → dans main()
 Tier 3 — GATE_REQUIRED   : compute_features(), exchange I/O → après can_trade()
 
 Violations documentées (KNOWN_SIDE_EFFECTS, compliant=False) :
-  - os.makedirs(&quot;logs&quot;)           @ core/advisor_loop.py:59
+  - os.makedirs("logs")           @ core/advisor_loop.py:59
   - load_dotenv(override=True)    @ core/advisor_loop.py:167
   - logging.basicConfig(...)      @ core/advisor_loop.py:175
 </pre></div>

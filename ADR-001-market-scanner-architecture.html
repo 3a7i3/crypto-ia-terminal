@@ -365,7 +365,7 @@ CYCLE (toutes les 300 secondes)
 │   └── [9] EXÉCUTION    — ExecutionEngine.execute()     → REST CCXT           50-500 ms
 ├── [10] APPRENTISSAGE   — MistakeMemory.record()        → JSONL write         1-5 ms
 ├── [11] REPORTING       — Telegram                      → HTTP                 50-200 ms
-└── SLEEP (temps restant jusqu&#39;à 300 s)
+└── SLEEP (temps restant jusqu'à 300 s)
 </pre></div>
 </div>
 </section>
@@ -861,12 +861,12 @@ REST CCXT (fallback) ───────────────────�
     Clé : (symbol, timeframe)
     TTL : 30s (1m), 60s (1h), 600s (4h), 3600s (1d)
     Interface : CacheStore.put(key, df, ttl) / CacheStore.get(key) → Optional[CachedItem]
-    Invariant : lecture toujours possible (retourne None si absent, jamais d&#39;exception)
+    Invariant : lecture toujours possible (retourne None si absent, jamais d'exception)
     │
     ▼
 [5] Feature Extraction
     Input : dict[symbol] → DataFrame
-    Calcul : vectorisé NumPy sur l&#39;ensemble des symboles simultanément
+    Calcul : vectorisé NumPy sur l'ensemble des symboles simultanément
     Features : RSI(14), MACD(12/26/9), EMA(20/50/200), ATR(14), BB(20), volume_ratio
     Interface : FeatureExtractor.compute(candles_dict) → dict[symbol, FeatureVector]
     │
@@ -1236,11 +1236,11 @@ Phase E (100 paires) → Modèle E (hybride complet)
     <span class="n">_store</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">tuple</span><span class="p">,</span> <span class="n">CachedItem</span><span class="p">]</span>
 
     <span class="n">TTL</span> <span class="o">=</span> <span class="p">{</span>
-        <span class="s2">&quot;1m&quot;</span><span class="p">:</span>  <span class="mi">30</span><span class="p">,</span>      <span class="c1"># 30 secondes</span>
-        <span class="s2">&quot;15m&quot;</span><span class="p">:</span> <span class="mi">300</span><span class="p">,</span>     <span class="c1"># 5 minutes</span>
-        <span class="s2">&quot;1h&quot;</span><span class="p">:</span>  <span class="mi">60</span><span class="p">,</span>      <span class="c1"># 60 secondes</span>
-        <span class="s2">&quot;4h&quot;</span><span class="p">:</span>  <span class="mi">600</span><span class="p">,</span>     <span class="c1"># 10 minutes</span>
-        <span class="s2">&quot;1d&quot;</span><span class="p">:</span>  <span class="mi">3600</span><span class="p">,</span>    <span class="c1"># 1 heure</span>
+        <span class="s2">"1m"</span><span class="p">:</span>  <span class="mi">30</span><span class="p">,</span>      <span class="c1"># 30 secondes</span>
+        <span class="s2">"15m"</span><span class="p">:</span> <span class="mi">300</span><span class="p">,</span>     <span class="c1"># 5 minutes</span>
+        <span class="s2">"1h"</span><span class="p">:</span>  <span class="mi">60</span><span class="p">,</span>      <span class="c1"># 60 secondes</span>
+        <span class="s2">"4h"</span><span class="p">:</span>  <span class="mi">600</span><span class="p">,</span>     <span class="c1"># 10 minutes</span>
+        <span class="s2">"1d"</span><span class="p">:</span>  <span class="mi">3600</span><span class="p">,</span>    <span class="c1"># 1 heure</span>
     <span class="p">}</span>
 
     <span class="n">MAX_SYMBOLS</span> <span class="o">=</span> <span class="mi">250</span>
@@ -1263,7 +1263,7 @@ Phase E (100 paires) → Modèle E (hybride complet)
 <section id="connexion-cible-mexc">
 <h4>Connexion cible (MEXC)<a class="headerlink" href="#connexion-cible-mexc" title="Link to this heading">¶</a></h4>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Connexion</span> <span class="n">WebSocket</span> <span class="n">MEXC</span> <span class="p">:</span> <span class="n">wss</span><span class="p">:</span><span class="o">//</span><span class="n">wbs</span><span class="o">.</span><span class="n">mexc</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">ws</span>
-<span class="n">Souscription</span> <span class="n">par</span> <span class="n">symbole</span><span class="o">+</span><span class="n">timeframe</span> <span class="p">:</span> <span class="p">{</span><span class="s2">&quot;method&quot;</span><span class="p">:</span> <span class="s2">&quot;SUBSCRIPTION&quot;</span><span class="p">,</span> <span class="s2">&quot;params&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;spot@public.kline.v3.api@BTC_USDT@Min1&quot;</span><span class="p">]}</span>
+<span class="n">Souscription</span> <span class="n">par</span> <span class="n">symbole</span><span class="o">+</span><span class="n">timeframe</span> <span class="p">:</span> <span class="p">{</span><span class="s2">"method"</span><span class="p">:</span> <span class="s2">"SUBSCRIPTION"</span><span class="p">,</span> <span class="s2">"params"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"spot@public.kline.v3.api@BTC_USDT@Min1"</span><span class="p">]}</span>
 <span class="n">Heartbeat</span> <span class="p">:</span> <span class="n">ping</span> <span class="n">toutes</span> <span class="n">les</span> <span class="mi">20</span> <span class="n">secondes</span>
 <span class="n">Reconnexion</span> <span class="p">:</span> <span class="n">exponentielle</span> <span class="p">(</span><span class="mi">1</span><span class="n">s</span><span class="p">,</span> <span class="mi">2</span><span class="n">s</span><span class="p">,</span> <span class="mi">4</span><span class="n">s</span><span class="p">,</span> <span class="mi">8</span><span class="n">s</span><span class="p">,</span> <span class="nb">max</span> <span class="mi">60</span><span class="n">s</span><span class="p">)</span> <span class="o">+</span> <span class="n">jitter</span>
 </pre></div>
@@ -1299,7 +1299,7 @@ Si Feature Engine est lent :
   → Stratégie : DROP_OLDEST (supprimer le plus ancien événement)
   → Incrémenter compteur : events_dropped_total
 
-Seuil d&#39;alerte : events_dropped_total &gt; 10 par cycle → log WARNING
+Seuil d'alerte : events_dropped_total &gt; 10 par cycle → log WARNING
 Seuil critique : events_dropped_total &gt; 50 → log ERROR + Telegram alert
 </pre></div>
 </div>
@@ -1310,7 +1310,7 @@ Seuil critique : events_dropped_total &gt; 50 → log ERROR + Telegram alert
 <p>Architecture actuelle : circuit breaker par composant dans <code class="docutils literal notranslate"><span class="pre">MarketScanner</span></code>.</p>
 <p>Architecture cible : circuit breaker centralisé et configurable.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>CircuitBreaker(
-    name=&quot;mexc_rest&quot;,
+    name="mexc_rest",
     failure_threshold=3,       # N erreurs consécutives → OPEN
     reset_timeout=60,          # secondes avant tentative HALF_OPEN
     half_open_max_calls=1      # appels autorisés en HALF_OPEN

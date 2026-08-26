@@ -320,8 +320,8 @@ pour des chemins d’écriture, et les handlers de logging ouverts à l’import
 <section id="forme-correcte">
 <h3>Forme correcte<a class="headerlink" href="#forme-correcte" title="Link to this heading">¶</a></h3>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">_resolve_path</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Résolu à CHAQUE appel — injectable par env, testable, jamais figé.&quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">Path</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;X_PATH&quot;</span><span class="p">,</span> <span class="s2">&quot;databases/x.jsonl&quot;</span><span class="p">))</span>
+<span class="w">    </span><span class="sd">"""Résolu à CHAQUE appel — injectable par env, testable, jamais figé."""</span>
+    <span class="k">return</span> <span class="n">Path</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">"X_PATH"</span><span class="p">,</span> <span class="s2">"databases/x.jsonl"</span><span class="p">))</span>
 
 <span class="k">class</span><span class="w"> </span><span class="nc">Writer</span><span class="p">:</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -357,8 +357,8 @@ scientifique). Valide UNIQUEMENT si aucun chemin n’est ancré via
 système de fichiers, pas seulement par le passage des tests :</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>touch<span class="w"> </span>/tmp/marker<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>pytest<span class="w"> </span>&lt;suites&gt;<span class="w"> </span>-q<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>sleep<span class="w"> </span><span class="m">2</span><span class="w">  </span><span class="c1"># threads retardataires</span>
 find<span class="w"> </span>.<span class="w"> </span>-newer<span class="w"> </span>/tmp/marker<span class="w"> </span>-type<span class="w"> </span>f<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-not<span class="w"> </span>-path<span class="w"> </span><span class="s2">&quot;./.git/*&quot;</span><span class="w"> </span>-not<span class="w"> </span>-path<span class="w"> </span><span class="s2">&quot;*/__pycache__/*&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-not<span class="w"> </span>-path<span class="w"> </span><span class="s2">&quot;./.pytest_cache/*&quot;</span>
+<span class="w">  </span>-not<span class="w"> </span>-path<span class="w"> </span><span class="s2">"./.git/*"</span><span class="w"> </span>-not<span class="w"> </span>-path<span class="w"> </span><span class="s2">"*/__pycache__/*"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-not<span class="w"> </span>-path<span class="w"> </span><span class="s2">"./.pytest_cache/*"</span>
 <span class="c1"># Résultat attendu : VIDE.</span>
 </pre></div>
 </div>

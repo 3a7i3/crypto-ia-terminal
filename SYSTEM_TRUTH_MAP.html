@@ -601,21 +601,21 @@ ExecutionEngine.execute(symbol, side, size_usd)
 <hr class="docutils" />
 <section id="script-de-validation">
 <h2>Script de validation<a class="headerlink" href="#script-de-validation" title="Link to this heading">¶</a></h2>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Vérifie qu&#39;un seul module répond par domaine critique</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Vérifie qu'un seul module répond par domaine critique</span>
 <span class="n">TRUTH_MAP</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s2">&quot;signal&quot;</span><span class="p">:</span>    <span class="s2">&quot;quant_hedge_ai.agents.execution.live_signal_engine.LiveSignalEngine&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;regime&quot;</span><span class="p">:</span>    <span class="s2">&quot;quant_hedge_ai.agents.intelligence.regime_detector.AdvancedRegimeDetector&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;position&quot;</span><span class="p">:</span>  <span class="s2">&quot;quant_hedge_ai.agents.execution.position_manager.PositionManager&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;risk_gate&quot;</span><span class="p">:</span> <span class="s2">&quot;quant_hedge_ai.agents.risk.global_risk_gate.GlobalRiskGate&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;execution&quot;</span><span class="p">:</span> <span class="s2">&quot;quant_hedge_ai.agents.execution.execution_engine.ExecutionEngine&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;sizing&quot;</span><span class="p">:</span>    <span class="s2">&quot;quant_hedge_ai.agents.risk.order_sizer.OrderSizer&quot;</span><span class="p">,</span>
+    <span class="s2">"signal"</span><span class="p">:</span>    <span class="s2">"quant_hedge_ai.agents.execution.live_signal_engine.LiveSignalEngine"</span><span class="p">,</span>
+    <span class="s2">"regime"</span><span class="p">:</span>    <span class="s2">"quant_hedge_ai.agents.intelligence.regime_detector.AdvancedRegimeDetector"</span><span class="p">,</span>
+    <span class="s2">"position"</span><span class="p">:</span>  <span class="s2">"quant_hedge_ai.agents.execution.position_manager.PositionManager"</span><span class="p">,</span>
+    <span class="s2">"risk_gate"</span><span class="p">:</span> <span class="s2">"quant_hedge_ai.agents.risk.global_risk_gate.GlobalRiskGate"</span><span class="p">,</span>
+    <span class="s2">"execution"</span><span class="p">:</span> <span class="s2">"quant_hedge_ai.agents.execution.execution_engine.ExecutionEngine"</span><span class="p">,</span>
+    <span class="s2">"sizing"</span><span class="p">:</span>    <span class="s2">"quant_hedge_ai.agents.risk.order_sizer.OrderSizer"</span><span class="p">,</span>
 <span class="p">}</span>
 
 <span class="k">for</span> <span class="n">domain</span><span class="p">,</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">TRUTH_MAP</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-    <span class="n">module_path</span><span class="p">,</span> <span class="bp">cls</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">rsplit</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">module_path</span><span class="p">,</span> <span class="bp">cls</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">rsplit</span><span class="p">(</span><span class="s2">"."</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
     <span class="n">m</span> <span class="o">=</span> <span class="nb">__import__</span><span class="p">(</span><span class="n">module_path</span><span class="p">,</span> <span class="n">fromlist</span><span class="o">=</span><span class="p">[</span><span class="bp">cls</span><span class="p">])</span>
-    <span class="k">assert</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="bp">cls</span><span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;FAIL </span><span class="si">{</span><span class="n">domain</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="bp">cls</span><span class="si">}</span><span class="s2"> introuvable dans </span><span class="si">{</span><span class="n">module_path</span><span class="si">}</span><span class="s2">&quot;</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;OK </span><span class="si">{</span><span class="n">domain</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="bp">cls</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="bp">cls</span><span class="p">),</span> <span class="sa">f</span><span class="s2">"FAIL </span><span class="si">{</span><span class="n">domain</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="bp">cls</span><span class="si">}</span><span class="s2"> introuvable dans </span><span class="si">{</span><span class="n">module_path</span><span class="si">}</span><span class="s2">"</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"OK </span><span class="si">{</span><span class="n">domain</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="bp">cls</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </pre></div>
 </div>
 </section>

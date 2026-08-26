@@ -252,14 +252,14 @@ Ne pas modifier sans mettre à jour les tests <code class="docutils literal notr
 <span class="k">class</span><span class="w"> </span><span class="nc">TradeEvent</span><span class="p">:</span>
     <span class="n">trade_id</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">symbol</span><span class="p">:</span> <span class="nb">str</span>
-    <span class="n">side</span><span class="p">:</span> <span class="nb">str</span>                <span class="c1"># &quot;buy&quot; | &quot;sell&quot;</span>
+    <span class="n">side</span><span class="p">:</span> <span class="nb">str</span>                <span class="c1"># "buy" | "sell"</span>
     <span class="n">entry_price</span><span class="p">:</span> <span class="nb">float</span>
     <span class="n">exit_price</span><span class="p">:</span> <span class="nb">float</span>
     <span class="n">quantity</span><span class="p">:</span> <span class="nb">float</span>
     <span class="n">gross_pnl_usd</span><span class="p">:</span> <span class="nb">float</span>
     <span class="n">fees_usd</span><span class="p">:</span> <span class="nb">float</span>
     <span class="n">slippage_usd</span><span class="p">:</span> <span class="nb">float</span>
-    <span class="n">execution_mode</span><span class="p">:</span> <span class="nb">str</span>      <span class="c1"># &quot;backtest&quot; | &quot;paper&quot; | &quot;live&quot;</span>
+    <span class="n">execution_mode</span><span class="p">:</span> <span class="nb">str</span>      <span class="c1"># "backtest" | "paper" | "live"</span>
     <span class="n">strategy_id</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">run_id</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">opened_at</span><span class="p">:</span> <span class="n">datetime</span>
@@ -357,7 +357,7 @@ Il doit lire <code class="docutils literal notranslate"><span class="pre">trade_
 <h2>Ce qui n’appartient PAS à TradeEvent<a class="headerlink" href="#ce-qui-nappartient-pas-a-tradeevent" title="Link to this heading">¶</a></h2>
 <p>Les détails d’implémentation du simulateur vont dans <code class="docutils literal notranslate"><span class="pre">ExecutionMetadata</span></code> (structure séparée, non encore créée) :</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>eta             — impact de marché Almgren-Chriss
-noise_bps       — bruit d&#39;exécution ENL
+noise_bps       — bruit d'exécution ENL
 latency_ms      — latence simulée
 fill_rate       — fraction exécutée
 noise_model     — modèle utilisé

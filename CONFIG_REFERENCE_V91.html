@@ -245,115 +245,115 @@
 <section id="core-execution">
 <h3>Core Execution<a class="headerlink" href="#core-execution" title="Link to this heading">¶</a></h3>
 <div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="c"># Maximum cycles to run (0 = infinite)</span>
-<span class="nv">$env:V9_MAX_CYCLES</span> <span class="p">=</span> <span class="s2">&quot;5&quot;</span>
+<span class="nv">$env:V9_MAX_CYCLES</span> <span class="p">=</span> <span class="s2">"5"</span>
 
 <span class="c"># Number of strategies per cycle</span>
-<span class="nv">$env:V9_POPULATION</span> <span class="p">=</span> <span class="s2">&quot;300&quot;</span>
+<span class="nv">$env:V9_POPULATION</span> <span class="p">=</span> <span class="s2">"300"</span>
 
 <span class="c"># Sleep seconds between cycles</span>
-<span class="nv">$env:V9_SLEEP_SECONDS</span> <span class="p">=</span> <span class="s2">&quot;2&quot;</span>
+<span class="nv">$env:V9_SLEEP_SECONDS</span> <span class="p">=</span> <span class="s2">"2"</span>
 
 <span class="c"># Random seed for reproducibility</span>
-<span class="nv">$env:V9_SEED</span> <span class="p">=</span> <span class="s2">&quot;42&quot;</span>
+<span class="nv">$env:V9_SEED</span> <span class="p">=</span> <span class="s2">"42"</span>
 </pre></div>
 </div>
 </section>
 <section id="market-data">
 <h3>Market Data<a class="headerlink" href="#market-data" title="Link to this heading">¶</a></h3>
 <div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="c"># Number of candles to generate</span>
-<span class="nv">$env:V9_MARKET_CANDLES</span> <span class="p">=</span> <span class="s2">&quot;500&quot;</span>
+<span class="nv">$env:V9_MARKET_CANDLES</span> <span class="p">=</span> <span class="s2">"500"</span>
 
 <span class="c"># Lookback period for features (bars)</span>
-<span class="nv">$env:V9_LOOKBACK_PERIOD</span> <span class="p">=</span> <span class="s2">&quot;100&quot;</span>
+<span class="nv">$env:V9_LOOKBACK_PERIOD</span> <span class="p">=</span> <span class="s2">"100"</span>
 
 <span class="c"># Market volatility (synthetic data)</span>
-<span class="nv">$env:V9_MARKET_VOLATILITY</span> <span class="p">=</span> <span class="s2">&quot;0.03&quot;</span>
+<span class="nv">$env:V9_MARKET_VOLATILITY</span> <span class="p">=</span> <span class="s2">"0.03"</span>
 
 <span class="c"># Trend strength (0.0 - 1.0)</span>
-<span class="nv">$env:V9_TREND_STRENGTH</span> <span class="p">=</span> <span class="s2">&quot;0.5&quot;</span>
+<span class="nv">$env:V9_TREND_STRENGTH</span> <span class="p">=</span> <span class="s2">"0.5"</span>
 </pre></div>
 </div>
 </section>
 <section id="genetic-algorithm">
 <h3>Genetic Algorithm<a class="headerlink" href="#genetic-algorithm" title="Link to this heading">¶</a></h3>
 <div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="c"># Generations per cycle</span>
-<span class="nv">$env:V9_GENERATIONS</span> <span class="p">=</span> <span class="s2">&quot;3&quot;</span>
+<span class="nv">$env:V9_GENERATIONS</span> <span class="p">=</span> <span class="s2">"3"</span>
 
 <span class="c"># Mutation rate (0.0 - 1.0)</span>
-<span class="nv">$env:V9_MUTATION_RATE</span> <span class="p">=</span> <span class="s2">&quot;0.15&quot;</span>
+<span class="nv">$env:V9_MUTATION_RATE</span> <span class="p">=</span> <span class="s2">"0.15"</span>
 
 <span class="c"># Crossover rate (0.0 - 1.0)</span>
-<span class="nv">$env:V9_CROSSOVER_RATE</span> <span class="p">=</span> <span class="s2">&quot;0.7&quot;</span>
+<span class="nv">$env:V9_CROSSOVER_RATE</span> <span class="p">=</span> <span class="s2">"0.7"</span>
 
 <span class="c"># Elite count (top X strategies survive every generation)</span>
-<span class="nv">$env:V9_ELITE_COUNT</span> <span class="p">=</span> <span class="s2">&quot;10&quot;</span>
+<span class="nv">$env:V9_ELITE_COUNT</span> <span class="p">=</span> <span class="s2">"10"</span>
 </pre></div>
 </div>
 </section>
 <section id="risk-management">
 <h3>Risk Management<a class="headerlink" href="#risk-management" title="Link to this heading">¶</a></h3>
 <div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="c"># Kelly fraction safety factor (0.0 - 1.0)</span>
-<span class="nv">$env:V9_KELLY_SAFETY</span> <span class="p">=</span> <span class="s2">&quot;0.5&quot;</span>
+<span class="nv">$env:V9_KELLY_SAFETY</span> <span class="p">=</span> <span class="s2">"0.5"</span>
 
 <span class="c"># Target portfolio volatility</span>
-<span class="nv">$env:V9_TARGET_VOLATILITY</span> <span class="p">=</span> <span class="s2">&quot;0.15&quot;</span>
+<span class="nv">$env:V9_TARGET_VOLATILITY</span> <span class="p">=</span> <span class="s2">"0.15"</span>
 
 <span class="c"># Maximum single-strategy weight (%)</span>
-<span class="nv">$env:V9_MAX_POSITION_WEIGHT</span> <span class="p">=</span> <span class="s2">&quot;0.30&quot;</span>
+<span class="nv">$env:V9_MAX_POSITION_WEIGHT</span> <span class="p">=</span> <span class="s2">"0.30"</span>
 
 <span class="c"># Minimum Sharpe for trading</span>
-<span class="nv">$env:V9_MIN_SHARPE</span> <span class="p">=</span> <span class="s2">&quot;2.0&quot;</span>
+<span class="nv">$env:V9_MIN_SHARPE</span> <span class="p">=</span> <span class="s2">"2.0"</span>
 
 <span class="c"># Maximum drawdown threshold</span>
-<span class="nv">$env:V9_MAX_DRAWDOWN</span> <span class="p">=</span> <span class="s2">&quot;0.10&quot;</span>
+<span class="nv">$env:V9_MAX_DRAWDOWN</span> <span class="p">=</span> <span class="s2">"0.10"</span>
 </pre></div>
 </div>
 </section>
 <section id="whale-radar">
 <h3>Whale Radar<a class="headerlink" href="#whale-radar" title="Link to this heading">¶</a></h3>
 <div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="c"># Whale transaction threshold (USD)</span>
-<span class="nv">$env:V9_WHALE_THRESHOLD</span> <span class="p">=</span> <span class="s2">&quot;500000&quot;</span>
+<span class="nv">$env:V9_WHALE_THRESHOLD</span> <span class="p">=</span> <span class="s2">"500000"</span>
 
 <span class="c"># Threat level threshold for blocking trades</span>
-<span class="nv">$env:V9_WHALE_BLOCK_THRESHOLD</span> <span class="p">=</span> <span class="s2">&quot;2&quot;</span>
+<span class="nv">$env:V9_WHALE_BLOCK_THRESHOLD</span> <span class="p">=</span> <span class="s2">"2"</span>
 
 <span class="c"># Number of past transactions to analyze</span>
-<span class="nv">$env:V9_WHALE_LOOKBACK</span> <span class="p">=</span> <span class="s2">&quot;50&quot;</span>
+<span class="nv">$env:V9_WHALE_LOOKBACK</span> <span class="p">=</span> <span class="s2">"50"</span>
 </pre></div>
 </div>
 </section>
 <section id="backtesting">
 <h3>Backtesting<a class="headerlink" href="#backtesting" title="Link to this heading">¶</a></h3>
 <div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="c"># Slippage per trade (%)</span>
-<span class="nv">$env:V9_SLIPPAGE</span> <span class="p">=</span> <span class="s2">&quot;0.001&quot;</span>
+<span class="nv">$env:V9_SLIPPAGE</span> <span class="p">=</span> <span class="s2">"0.001"</span>
 
 <span class="c"># Commission per trade (%)</span>
-<span class="nv">$env:V9_COMMISSION</span> <span class="p">=</span> <span class="s2">&quot;0.001&quot;</span>
+<span class="nv">$env:V9_COMMISSION</span> <span class="p">=</span> <span class="s2">"0.001"</span>
 
 <span class="c"># Initial capital</span>
-<span class="nv">$env:V9_INITIAL_CAPITAL</span> <span class="p">=</span> <span class="s2">&quot;100000&quot;</span>
+<span class="nv">$env:V9_INITIAL_CAPITAL</span> <span class="p">=</span> <span class="s2">"100000"</span>
 
 <span class="c"># Monte Carlo simulations</span>
-<span class="nv">$env:V9_MONTECARLO_SIMULATIONS</span> <span class="p">=</span> <span class="s2">&quot;1000&quot;</span>
+<span class="nv">$env:V9_MONTECARLO_SIMULATIONS</span> <span class="p">=</span> <span class="s2">"1000"</span>
 
 <span class="c"># Monte Carlo shock max (%)</span>
-<span class="nv">$env:V9_MONTECARLO_MAX_SHOCK</span> <span class="p">=</span> <span class="s2">&quot;95&quot;</span>
+<span class="nv">$env:V9_MONTECARLO_MAX_SHOCK</span> <span class="p">=</span> <span class="s2">"95"</span>
 </pre></div>
 </div>
 </section>
 <section id="logging-output">
 <h3>Logging &amp; Output<a class="headerlink" href="#logging-output" title="Link to this heading">¶</a></h3>
 <div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="c"># Log level (DEBUG, INFO, WARNING, ERROR)</span>
-<span class="nv">$env:V9_LOG_LEVEL</span> <span class="p">=</span> <span class="s2">&quot;INFO&quot;</span>
+<span class="nv">$env:V9_LOG_LEVEL</span> <span class="p">=</span> <span class="s2">"INFO"</span>
 
 <span class="c"># Enable detailed cycle logs</span>
-<span class="nv">$env:V9_DEBUG_CYCLES</span> <span class="p">=</span> <span class="s2">&quot;false&quot;</span>
+<span class="nv">$env:V9_DEBUG_CYCLES</span> <span class="p">=</span> <span class="s2">"false"</span>
 
 <span class="c"># Save all strategies to file</span>
-<span class="nv">$env:V9_SAVE_ALL_STRATEGIES</span> <span class="p">=</span> <span class="s2">&quot;false&quot;</span>
+<span class="nv">$env:V9_SAVE_ALL_STRATEGIES</span> <span class="p">=</span> <span class="s2">"false"</span>
 
 <span class="c"># Control Center update frequency (cycles)</span>
-<span class="nv">$env:V9_DISPLAY_FREQUENCY</span> <span class="p">=</span> <span class="s2">&quot;1&quot;</span>
+<span class="nv">$env:V9_DISPLAY_FREQUENCY</span> <span class="p">=</span> <span class="s2">"1"</span>
 </pre></div>
 </div>
 </section>
@@ -364,10 +364,10 @@
 <section id="quick-test">
 <h3>1️⃣ QUICK TEST<a class="headerlink" href="#quick-test" title="Link to this heading">¶</a></h3>
 <div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="c"># Test setup (&lt; 10 seconds)</span>
-<span class="nv">$env:V9_MAX_CYCLES</span> <span class="p">=</span> <span class="s2">&quot;1&quot;</span>
-<span class="nv">$env:V9_POPULATION</span> <span class="p">=</span> <span class="s2">&quot;50&quot;</span>
-<span class="nv">$env:V9_GENERATIONS</span> <span class="p">=</span> <span class="s2">&quot;1&quot;</span>
-<span class="nv">$env:V9_MONTECARLO_SIMULATIONS</span> <span class="p">=</span> <span class="s2">&quot;100&quot;</span>
+<span class="nv">$env:V9_MAX_CYCLES</span> <span class="p">=</span> <span class="s2">"1"</span>
+<span class="nv">$env:V9_POPULATION</span> <span class="p">=</span> <span class="s2">"50"</span>
+<span class="nv">$env:V9_GENERATIONS</span> <span class="p">=</span> <span class="s2">"1"</span>
+<span class="nv">$env:V9_MONTECARLO_SIMULATIONS</span> <span class="p">=</span> <span class="s2">"100"</span>
 <span class="n">python</span> <span class="n">main_v91</span><span class="p">.</span><span class="n">py</span>
 </pre></div>
 </div>
@@ -377,11 +377,11 @@
 <section id="research-mode">
 <h3>2️⃣ RESEARCH MODE<a class="headerlink" href="#research-mode" title="Link to this heading">¶</a></h3>
 <div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="c"># Data gathering (2-5 minutes)</span>
-<span class="nv">$env:V9_MAX_CYCLES</span> <span class="p">=</span> <span class="s2">&quot;5&quot;</span>
-<span class="nv">$env:V9_POPULATION</span> <span class="p">=</span> <span class="s2">&quot;300&quot;</span>
-<span class="nv">$env:V9_GENERATIONS</span> <span class="p">=</span> <span class="s2">&quot;3&quot;</span>
-<span class="nv">$env:V9_MONTECARLO_SIMULATIONS</span> <span class="p">=</span> <span class="s2">&quot;500&quot;</span>
-<span class="nv">$env:V9_DEBUG_CYCLES</span> <span class="p">=</span> <span class="s2">&quot;true&quot;</span>
+<span class="nv">$env:V9_MAX_CYCLES</span> <span class="p">=</span> <span class="s2">"5"</span>
+<span class="nv">$env:V9_POPULATION</span> <span class="p">=</span> <span class="s2">"300"</span>
+<span class="nv">$env:V9_GENERATIONS</span> <span class="p">=</span> <span class="s2">"3"</span>
+<span class="nv">$env:V9_MONTECARLO_SIMULATIONS</span> <span class="p">=</span> <span class="s2">"500"</span>
+<span class="nv">$env:V9_DEBUG_CYCLES</span> <span class="p">=</span> <span class="s2">"true"</span>
 <span class="n">python</span> <span class="n">main_v91</span><span class="p">.</span><span class="n">py</span>
 </pre></div>
 </div>
@@ -391,12 +391,12 @@
 <section id="production-simulation">
 <h3>3️⃣ PRODUCTION SIMULATION<a class="headerlink" href="#production-simulation" title="Link to this heading">¶</a></h3>
 <div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="c"># Realistic backtest (15-30 minutes)</span>
-<span class="nv">$env:V9_MAX_CYCLES</span> <span class="p">=</span> <span class="s2">&quot;20&quot;</span>
-<span class="nv">$env:V9_POPULATION</span> <span class="p">=</span> <span class="s2">&quot;500&quot;</span>
-<span class="nv">$env:V9_GENERATIONS</span> <span class="p">=</span> <span class="s2">&quot;5&quot;</span>
-<span class="nv">$env:V9_SLIPPAGE</span> <span class="p">=</span> <span class="s2">&quot;0.002&quot;</span>
-<span class="nv">$env:V9_COMMISSION</span> <span class="p">=</span> <span class="s2">&quot;0.001&quot;</span>
-<span class="nv">$env:V9_MONTECARLO_SIMULATIONS</span> <span class="p">=</span> <span class="s2">&quot;2000&quot;</span>
+<span class="nv">$env:V9_MAX_CYCLES</span> <span class="p">=</span> <span class="s2">"20"</span>
+<span class="nv">$env:V9_POPULATION</span> <span class="p">=</span> <span class="s2">"500"</span>
+<span class="nv">$env:V9_GENERATIONS</span> <span class="p">=</span> <span class="s2">"5"</span>
+<span class="nv">$env:V9_SLIPPAGE</span> <span class="p">=</span> <span class="s2">"0.002"</span>
+<span class="nv">$env:V9_COMMISSION</span> <span class="p">=</span> <span class="s2">"0.001"</span>
+<span class="nv">$env:V9_MONTECARLO_SIMULATIONS</span> <span class="p">=</span> <span class="s2">"2000"</span>
 <span class="n">python</span> <span class="n">main_v91</span><span class="p">.</span><span class="n">py</span>
 </pre></div>
 </div>
@@ -406,11 +406,11 @@
 <section id="overnight-run">
 <h3>4️⃣ OVERNIGHT RUN<a class="headerlink" href="#overnight-run" title="Link to this heading">¶</a></h3>
 <div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="c"># Extended learning (8+ hours)</span>
-<span class="nv">$env:V9_MAX_CYCLES</span> <span class="p">=</span> <span class="s2">&quot;0&quot;</span>
-<span class="nv">$env:V9_POPULATION</span> <span class="p">=</span> <span class="s2">&quot;1000&quot;</span>
-<span class="nv">$env:V9_GENERATIONS</span> <span class="p">=</span> <span class="s2">&quot;10&quot;</span>
-<span class="nv">$env:V9_SLEEP_SECONDS</span> <span class="p">=</span> <span class="s2">&quot;1&quot;</span>
-<span class="nv">$env:V9_SAVE_ALL_STRATEGIES</span> <span class="p">=</span> <span class="s2">&quot;true&quot;</span>
+<span class="nv">$env:V9_MAX_CYCLES</span> <span class="p">=</span> <span class="s2">"0"</span>
+<span class="nv">$env:V9_POPULATION</span> <span class="p">=</span> <span class="s2">"1000"</span>
+<span class="nv">$env:V9_GENERATIONS</span> <span class="p">=</span> <span class="s2">"10"</span>
+<span class="nv">$env:V9_SLEEP_SECONDS</span> <span class="p">=</span> <span class="s2">"1"</span>
+<span class="nv">$env:V9_SAVE_ALL_STRATEGIES</span> <span class="p">=</span> <span class="s2">"true"</span>
 <span class="n">python</span> <span class="n">main_v91</span><span class="p">.</span><span class="n">py</span>
 </pre></div>
 </div>
@@ -420,11 +420,11 @@
 <section id="low-risk-mode">
 <h3>5️⃣ LOW-RISK MODE<a class="headerlink" href="#low-risk-mode" title="Link to this heading">¶</a></h3>
 <div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="c"># Conservative strategy selection</span>
-<span class="nv">$env:V9_KELLY_SAFETY</span> <span class="p">=</span> <span class="s2">&quot;0.25&quot;</span>          <span class="c"># 25% Kelly (safer)</span>
-<span class="nv">$env:V9_MIN_SHARPE</span> <span class="p">=</span> <span class="s2">&quot;3.0&quot;</span>             <span class="c"># Higher bar</span>
-<span class="nv">$env:V9_MAX_DRAWDOWN</span> <span class="p">=</span> <span class="s2">&quot;0.05&quot;</span>          <span class="c"># Tighter drawdown</span>
-<span class="nv">$env:V9_MAX_POSITION_WEIGHT</span> <span class="p">=</span> <span class="s2">&quot;0.15&quot;</span>   <span class="c"># Smaller positions</span>
-<span class="nv">$env:V9_WHALE_BLOCK_THRESHOLD</span> <span class="p">=</span> <span class="s2">&quot;1&quot;</span>    <span class="c"># Block on ANY whale activity</span>
+<span class="nv">$env:V9_KELLY_SAFETY</span> <span class="p">=</span> <span class="s2">"0.25"</span>          <span class="c"># 25% Kelly (safer)</span>
+<span class="nv">$env:V9_MIN_SHARPE</span> <span class="p">=</span> <span class="s2">"3.0"</span>             <span class="c"># Higher bar</span>
+<span class="nv">$env:V9_MAX_DRAWDOWN</span> <span class="p">=</span> <span class="s2">"0.05"</span>          <span class="c"># Tighter drawdown</span>
+<span class="nv">$env:V9_MAX_POSITION_WEIGHT</span> <span class="p">=</span> <span class="s2">"0.15"</span>   <span class="c"># Smaller positions</span>
+<span class="nv">$env:V9_WHALE_BLOCK_THRESHOLD</span> <span class="p">=</span> <span class="s2">"1"</span>    <span class="c"># Block on ANY whale activity</span>
 <span class="n">python</span> <span class="n">main_v91</span><span class="p">.</span><span class="n">py</span>
 </pre></div>
 </div>
@@ -434,11 +434,11 @@
 <section id="aggressive-mode">
 <h3>6️⃣ AGGRESSIVE MODE<a class="headerlink" href="#aggressive-mode" title="Link to this heading">¶</a></h3>
 <div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="c"># Risk-seeking strategy selection</span>
-<span class="nv">$env:V9_KELLY_SAFETY</span> <span class="p">=</span> <span class="s2">&quot;0.75&quot;</span>          <span class="c"># 75% Kelly (aggressive)</span>
-<span class="nv">$env:V9_MIN_SHARPE</span> <span class="p">=</span> <span class="s2">&quot;1.5&quot;</span>             <span class="c"># Lower bar</span>
-<span class="nv">$env:V9_MAX_DRAWDOWN</span> <span class="p">=</span> <span class="s2">&quot;0.20&quot;</span>          <span class="c"># Allow higher DD</span>
-<span class="nv">$env:V9_MAX_POSITION_WEIGHT</span> <span class="p">=</span> <span class="s2">&quot;0.50&quot;</span>   <span class="c"># Larger positions</span>
-<span class="nv">$env:V9_WHALE_BLOCK_THRESHOLD</span> <span class="p">=</span> <span class="s2">&quot;5&quot;</span>    <span class="c"># Allow whale activity</span>
+<span class="nv">$env:V9_KELLY_SAFETY</span> <span class="p">=</span> <span class="s2">"0.75"</span>          <span class="c"># 75% Kelly (aggressive)</span>
+<span class="nv">$env:V9_MIN_SHARPE</span> <span class="p">=</span> <span class="s2">"1.5"</span>             <span class="c"># Lower bar</span>
+<span class="nv">$env:V9_MAX_DRAWDOWN</span> <span class="p">=</span> <span class="s2">"0.20"</span>          <span class="c"># Allow higher DD</span>
+<span class="nv">$env:V9_MAX_POSITION_WEIGHT</span> <span class="p">=</span> <span class="s2">"0.50"</span>   <span class="c"># Larger positions</span>
+<span class="nv">$env:V9_WHALE_BLOCK_THRESHOLD</span> <span class="p">=</span> <span class="s2">"5"</span>    <span class="c"># Allow whale activity</span>
 <span class="n">python</span> <span class="n">main_v91</span><span class="p">.</span><span class="n">py</span>
 </pre></div>
 </div>
@@ -448,9 +448,9 @@
 <section id="trending-market">
 <h3>7️⃣ TRENDING MARKET<a class="headerlink" href="#trending-market" title="Link to this heading">¶</a></h3>
 <div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="c"># Boost for momentum strategies</span>
-<span class="nv">$env:V9_TREND_STRENGTH</span> <span class="p">=</span> <span class="s2">&quot;0.8&quot;</span>         <span class="c"># Strong trend</span>
-<span class="nv">$env:V9_MARKET_VOLATILITY</span> <span class="p">=</span> <span class="s2">&quot;0.02&quot;</span>     <span class="c"># Lower volatility</span>
-<span class="nv">$env:V9_MIN_SHARPE</span> <span class="p">=</span> <span class="s2">&quot;1.5&quot;</span>             <span class="c"># Trend filters work with lower Sharpe</span>
+<span class="nv">$env:V9_TREND_STRENGTH</span> <span class="p">=</span> <span class="s2">"0.8"</span>         <span class="c"># Strong trend</span>
+<span class="nv">$env:V9_MARKET_VOLATILITY</span> <span class="p">=</span> <span class="s2">"0.02"</span>     <span class="c"># Lower volatility</span>
+<span class="nv">$env:V9_MIN_SHARPE</span> <span class="p">=</span> <span class="s2">"1.5"</span>             <span class="c"># Trend filters work with lower Sharpe</span>
 <span class="n">python</span> <span class="n">main_v91</span><span class="p">.</span><span class="n">py</span>
 </pre></div>
 </div>
@@ -460,9 +460,9 @@
 <section id="choppy-market">
 <h3>8️⃣ CHOPPY MARKET<a class="headerlink" href="#choppy-market" title="Link to this heading">¶</a></h3>
 <div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="c"># Boost for mean reversion strategies</span>
-<span class="nv">$env:V9_TREND_STRENGTH</span> <span class="p">=</span> <span class="s2">&quot;0.2&quot;</span>         <span class="c"># Weak trend</span>
-<span class="nv">$env:V9_MARKET_VOLATILITY</span> <span class="p">=</span> <span class="s2">&quot;0.05&quot;</span>     <span class="c"># Higher volatility</span>
-<span class="nv">$env:V9_TARGET_VOLATILITY</span> <span class="p">=</span> <span class="s2">&quot;0.30&quot;</span>     <span class="c"># Accept more vol</span>
+<span class="nv">$env:V9_TREND_STRENGTH</span> <span class="p">=</span> <span class="s2">"0.2"</span>         <span class="c"># Weak trend</span>
+<span class="nv">$env:V9_MARKET_VOLATILITY</span> <span class="p">=</span> <span class="s2">"0.05"</span>     <span class="c"># Higher volatility</span>
+<span class="nv">$env:V9_TARGET_VOLATILITY</span> <span class="p">=</span> <span class="s2">"0.30"</span>     <span class="c"># Accept more vol</span>
 <span class="n">python</span> <span class="n">main_v91</span><span class="p">.</span><span class="n">py</span>
 </pre></div>
 </div>
@@ -472,10 +472,10 @@
 <section id="high-frequency-tuning">
 <h3>9️⃣ HIGH-FREQUENCY TUNING<a class="headerlink" href="#high-frequency-tuning" title="Link to this heading">¶</a></h3>
 <div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="c"># Optimize for fast cycles</span>
-<span class="nv">$env:V9_POPULATION</span> <span class="p">=</span> <span class="s2">&quot;200&quot;</span>             <span class="c"># Smaller population</span>
-<span class="nv">$env:V9_GENERATIONS</span> <span class="p">=</span> <span class="s2">&quot;1&quot;</span>              <span class="c"># Single generation</span>
-<span class="nv">$env:V9_MONTECARLO_SIMULATIONS</span> <span class="p">=</span> <span class="s2">&quot;100&quot;</span> <span class="c"># Quick validation</span>
-<span class="nv">$env:V9_SLEEP_SECONDS</span> <span class="p">=</span> <span class="s2">&quot;0&quot;</span>            <span class="c"># No delay</span>
+<span class="nv">$env:V9_POPULATION</span> <span class="p">=</span> <span class="s2">"200"</span>             <span class="c"># Smaller population</span>
+<span class="nv">$env:V9_GENERATIONS</span> <span class="p">=</span> <span class="s2">"1"</span>              <span class="c"># Single generation</span>
+<span class="nv">$env:V9_MONTECARLO_SIMULATIONS</span> <span class="p">=</span> <span class="s2">"100"</span> <span class="c"># Quick validation</span>
+<span class="nv">$env:V9_SLEEP_SECONDS</span> <span class="p">=</span> <span class="s2">"0"</span>            <span class="c"># No delay</span>
 <span class="n">python</span> <span class="n">main_v91</span><span class="p">.</span><span class="n">py</span>
 </pre></div>
 </div>
@@ -485,10 +485,10 @@
 <section id="reproducibility">
 <h3>🔟 REPRODUCIBILITY<a class="headerlink" href="#reproducibility" title="Link to this heading">¶</a></h3>
 <div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="c"># Same results every run</span>
-<span class="nv">$env:V9_SEED</span> <span class="p">=</span> <span class="s2">&quot;42&quot;</span>
-<span class="nv">$env:V9_MAX_CYCLES</span> <span class="p">=</span> <span class="s2">&quot;5&quot;</span>
-<span class="nv">$env:V9_POPULATION</span> <span class="p">=</span> <span class="s2">&quot;300&quot;</span>
-<span class="nv">$env:V9_DEBUG_CYCLES</span> <span class="p">=</span> <span class="s2">&quot;true&quot;</span>
+<span class="nv">$env:V9_SEED</span> <span class="p">=</span> <span class="s2">"42"</span>
+<span class="nv">$env:V9_MAX_CYCLES</span> <span class="p">=</span> <span class="s2">"5"</span>
+<span class="nv">$env:V9_POPULATION</span> <span class="p">=</span> <span class="s2">"300"</span>
+<span class="nv">$env:V9_DEBUG_CYCLES</span> <span class="p">=</span> <span class="s2">"true"</span>
 <span class="n">python</span> <span class="n">main_v91</span><span class="p">.</span><span class="n">py</span>
 </pre></div>
 </div>
@@ -501,41 +501,41 @@
 <p>If not specified, V9.1 uses:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">V9_1_Config</span><span class="p">:</span>
     <span class="c1"># Execution</span>
-    <span class="n">MAX_CYCLES</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">&#39;V9_MAX_CYCLES&#39;</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
-    <span class="n">POPULATION</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">&#39;V9_POPULATION&#39;</span><span class="p">,</span> <span class="mi">300</span><span class="p">))</span>
-    <span class="n">SLEEP_SECONDS</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">&#39;V9_SLEEP_SECONDS&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
-    <span class="n">SEED</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">&#39;V9_SEED&#39;</span><span class="p">,</span> <span class="mi">42</span><span class="p">))</span>
+    <span class="n">MAX_CYCLES</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">'V9_MAX_CYCLES'</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
+    <span class="n">POPULATION</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">'V9_POPULATION'</span><span class="p">,</span> <span class="mi">300</span><span class="p">))</span>
+    <span class="n">SLEEP_SECONDS</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">'V9_SLEEP_SECONDS'</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+    <span class="n">SEED</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">'V9_SEED'</span><span class="p">,</span> <span class="mi">42</span><span class="p">))</span>
     
     <span class="c1"># Market Data</span>
-    <span class="n">MARKET_CANDLES</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">&#39;V9_MARKET_CANDLES&#39;</span><span class="p">,</span> <span class="mi">500</span><span class="p">))</span>
-    <span class="n">LOOKBACK_PERIOD</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">&#39;V9_LOOKBACK_PERIOD&#39;</span><span class="p">,</span> <span class="mi">100</span><span class="p">))</span>
-    <span class="n">MARKET_VOLATILITY</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">&#39;V9_MARKET_VOLATILITY&#39;</span><span class="p">,</span> <span class="mf">0.03</span><span class="p">))</span>
-    <span class="n">TREND_STRENGTH</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">&#39;V9_TREND_STRENGTH&#39;</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">))</span>
+    <span class="n">MARKET_CANDLES</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">'V9_MARKET_CANDLES'</span><span class="p">,</span> <span class="mi">500</span><span class="p">))</span>
+    <span class="n">LOOKBACK_PERIOD</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">'V9_LOOKBACK_PERIOD'</span><span class="p">,</span> <span class="mi">100</span><span class="p">))</span>
+    <span class="n">MARKET_VOLATILITY</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">'V9_MARKET_VOLATILITY'</span><span class="p">,</span> <span class="mf">0.03</span><span class="p">))</span>
+    <span class="n">TREND_STRENGTH</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">'V9_TREND_STRENGTH'</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">))</span>
     
     <span class="c1"># Genetic Algorithm</span>
-    <span class="n">GENERATIONS</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">&#39;V9_GENERATIONS&#39;</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
-    <span class="n">MUTATION_RATE</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">&#39;V9_MUTATION_RATE&#39;</span><span class="p">,</span> <span class="mf">0.15</span><span class="p">))</span>
-    <span class="n">CROSSOVER_RATE</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">&#39;V9_CROSSOVER_RATE&#39;</span><span class="p">,</span> <span class="mf">0.7</span><span class="p">))</span>
-    <span class="n">ELITE_COUNT</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">&#39;V9_ELITE_COUNT&#39;</span><span class="p">,</span> <span class="mi">10</span><span class="p">))</span>
+    <span class="n">GENERATIONS</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">'V9_GENERATIONS'</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+    <span class="n">MUTATION_RATE</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">'V9_MUTATION_RATE'</span><span class="p">,</span> <span class="mf">0.15</span><span class="p">))</span>
+    <span class="n">CROSSOVER_RATE</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">'V9_CROSSOVER_RATE'</span><span class="p">,</span> <span class="mf">0.7</span><span class="p">))</span>
+    <span class="n">ELITE_COUNT</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">'V9_ELITE_COUNT'</span><span class="p">,</span> <span class="mi">10</span><span class="p">))</span>
     
     <span class="c1"># Risk Management</span>
-    <span class="n">KELLY_SAFETY</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">&#39;V9_KELLY_SAFETY&#39;</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">))</span>
-    <span class="n">TARGET_VOLATILITY</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">&#39;V9_TARGET_VOLATILITY&#39;</span><span class="p">,</span> <span class="mf">0.15</span><span class="p">))</span>
-    <span class="n">MAX_POSITION_WEIGHT</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">&#39;V9_MAX_POSITION_WEIGHT&#39;</span><span class="p">,</span> <span class="mf">0.30</span><span class="p">))</span>
-    <span class="n">MIN_SHARPE</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">&#39;V9_MIN_SHARPE&#39;</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">))</span>
-    <span class="n">MAX_DRAWDOWN</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">&#39;V9_MAX_DRAWDOWN&#39;</span><span class="p">,</span> <span class="mf">0.10</span><span class="p">))</span>
+    <span class="n">KELLY_SAFETY</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">'V9_KELLY_SAFETY'</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">))</span>
+    <span class="n">TARGET_VOLATILITY</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">'V9_TARGET_VOLATILITY'</span><span class="p">,</span> <span class="mf">0.15</span><span class="p">))</span>
+    <span class="n">MAX_POSITION_WEIGHT</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">'V9_MAX_POSITION_WEIGHT'</span><span class="p">,</span> <span class="mf">0.30</span><span class="p">))</span>
+    <span class="n">MIN_SHARPE</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">'V9_MIN_SHARPE'</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">))</span>
+    <span class="n">MAX_DRAWDOWN</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">'V9_MAX_DRAWDOWN'</span><span class="p">,</span> <span class="mf">0.10</span><span class="p">))</span>
     
     <span class="c1"># Whale Radar</span>
-    <span class="n">WHALE_THRESHOLD</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">&#39;V9_WHALE_THRESHOLD&#39;</span><span class="p">,</span> <span class="mi">500000</span><span class="p">))</span>
-    <span class="n">WHALE_BLOCK_THRESHOLD</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">&#39;V9_WHALE_BLOCK_THRESHOLD&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
-    <span class="n">WHALE_LOOKBACK</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">&#39;V9_WHALE_LOOKBACK&#39;</span><span class="p">,</span> <span class="mi">50</span><span class="p">))</span>
+    <span class="n">WHALE_THRESHOLD</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">'V9_WHALE_THRESHOLD'</span><span class="p">,</span> <span class="mi">500000</span><span class="p">))</span>
+    <span class="n">WHALE_BLOCK_THRESHOLD</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">'V9_WHALE_BLOCK_THRESHOLD'</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+    <span class="n">WHALE_LOOKBACK</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">'V9_WHALE_LOOKBACK'</span><span class="p">,</span> <span class="mi">50</span><span class="p">))</span>
     
     <span class="c1"># Backtesting</span>
-    <span class="n">SLIPPAGE</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">&#39;V9_SLIPPAGE&#39;</span><span class="p">,</span> <span class="mf">0.001</span><span class="p">))</span>
-    <span class="n">COMMISSION</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">&#39;V9_COMMISSION&#39;</span><span class="p">,</span> <span class="mf">0.001</span><span class="p">))</span>
-    <span class="n">INITIAL_CAPITAL</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">&#39;V9_INITIAL_CAPITAL&#39;</span><span class="p">,</span> <span class="mi">100000</span><span class="p">))</span>
-    <span class="n">MONTECARLO_SIMULATIONS</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">&#39;V9_MONTECARLO_SIMULATIONS&#39;</span><span class="p">,</span> <span class="mi">1000</span><span class="p">))</span>
-    <span class="n">MONTECARLO_MAX_SHOCK</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">&#39;V9_MONTECARLO_MAX_SHOCK&#39;</span><span class="p">,</span> <span class="mi">95</span><span class="p">))</span>
+    <span class="n">SLIPPAGE</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">'V9_SLIPPAGE'</span><span class="p">,</span> <span class="mf">0.001</span><span class="p">))</span>
+    <span class="n">COMMISSION</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">'V9_COMMISSION'</span><span class="p">,</span> <span class="mf">0.001</span><span class="p">))</span>
+    <span class="n">INITIAL_CAPITAL</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">'V9_INITIAL_CAPITAL'</span><span class="p">,</span> <span class="mi">100000</span><span class="p">))</span>
+    <span class="n">MONTECARLO_SIMULATIONS</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">'V9_MONTECARLO_SIMULATIONS'</span><span class="p">,</span> <span class="mi">1000</span><span class="p">))</span>
+    <span class="n">MONTECARLO_MAX_SHOCK</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">'V9_MONTECARLO_MAX_SHOCK'</span><span class="p">,</span> <span class="mi">95</span><span class="p">))</span>
 </pre></div>
 </div>
 </section>
@@ -545,47 +545,47 @@
 <section id="sharpe-ratio-improvements">
 <h3>Sharpe Ratio Improvements<a class="headerlink" href="#sharpe-ratio-improvements" title="Link to this heading">¶</a></h3>
 <div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="c"># Too many unprofitable strategies?</span>
-<span class="nv">$env:V9_MIN_SHARPE</span> <span class="p">=</span> <span class="s2">&quot;2.5&quot;</span>    <span class="c"># Raise bar</span>
+<span class="nv">$env:V9_MIN_SHARPE</span> <span class="p">=</span> <span class="s2">"2.5"</span>    <span class="c"># Raise bar</span>
 
 <span class="c"># Taking too long to find good strategies?</span>
-<span class="nv">$env:V9_POPULATION</span> <span class="p">=</span> <span class="s2">&quot;500&quot;</span>    <span class="c"># More diversity</span>
-<span class="nv">$env:V9_GENERATIONS</span> <span class="p">=</span> <span class="s2">&quot;5&quot;</span>     <span class="c"># More evolution</span>
+<span class="nv">$env:V9_POPULATION</span> <span class="p">=</span> <span class="s2">"500"</span>    <span class="c"># More diversity</span>
+<span class="nv">$env:V9_GENERATIONS</span> <span class="p">=</span> <span class="s2">"5"</span>     <span class="c"># More evolution</span>
 </pre></div>
 </div>
 </section>
 <section id="id1">
 <h3>Risk Management<a class="headerlink" href="#id1" title="Link to this heading">¶</a></h3>
 <div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="c"># Losing too much on bad weeks?</span>
-<span class="nv">$env:V9_MAX_DRAWDOWN</span> <span class="p">=</span> <span class="s2">&quot;0.05&quot;</span>      <span class="c"># Tighter DD limit</span>
-<span class="nv">$env:V9_KELLY_SAFETY</span> <span class="p">=</span> <span class="s2">&quot;0.25&quot;</span>      <span class="c"># Smaller positions</span>
+<span class="nv">$env:V9_MAX_DRAWDOWN</span> <span class="p">=</span> <span class="s2">"0.05"</span>      <span class="c"># Tighter DD limit</span>
+<span class="nv">$env:V9_KELLY_SAFETY</span> <span class="p">=</span> <span class="s2">"0.25"</span>      <span class="c"># Smaller positions</span>
 
 <span class="c"># Returns too small?</span>
-<span class="nv">$env:V9_KELLY_SAFETY</span> <span class="p">=</span> <span class="s2">&quot;0.75&quot;</span>      <span class="c"># Larger positions</span>
-<span class="nv">$env:V9_MAX_DRAWDOWN</span> <span class="p">=</span> <span class="s2">&quot;0.15&quot;</span>      <span class="c"># Accept more DD</span>
+<span class="nv">$env:V9_KELLY_SAFETY</span> <span class="p">=</span> <span class="s2">"0.75"</span>      <span class="c"># Larger positions</span>
+<span class="nv">$env:V9_MAX_DRAWDOWN</span> <span class="p">=</span> <span class="s2">"0.15"</span>      <span class="c"># Accept more DD</span>
 </pre></div>
 </div>
 </section>
 <section id="convergence-speed">
 <h3>Convergence Speed<a class="headerlink" href="#convergence-speed" title="Link to this heading">¶</a></h3>
 <div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="c"># Finding good strategies slowly?</span>
-<span class="nv">$env:V9_POPULATION</span> <span class="p">=</span> <span class="s2">&quot;1000&quot;</span>        <span class="c"># More strategies to pick from</span>
-<span class="nv">$env:V9_MUTATIONS</span> <span class="p">=</span> <span class="s2">&quot;20&quot;</span>           <span class="c"># More attempts per generation</span>
+<span class="nv">$env:V9_POPULATION</span> <span class="p">=</span> <span class="s2">"1000"</span>        <span class="c"># More strategies to pick from</span>
+<span class="nv">$env:V9_MUTATIONS</span> <span class="p">=</span> <span class="s2">"20"</span>           <span class="c"># More attempts per generation</span>
 
 <span class="c"># Running too slowly?</span>
-<span class="nv">$env:V9_MONTECARLO_SIMULATIONS</span> <span class="p">=</span> <span class="s2">&quot;100&quot;</span>  <span class="c"># Quick validation</span>
-<span class="nv">$env:V9_GENERATIONS</span> <span class="p">=</span> <span class="s2">&quot;1&quot;</span>          <span class="c"># Single pass</span>
+<span class="nv">$env:V9_MONTECARLO_SIMULATIONS</span> <span class="p">=</span> <span class="s2">"100"</span>  <span class="c"># Quick validation</span>
+<span class="nv">$env:V9_GENERATIONS</span> <span class="p">=</span> <span class="s2">"1"</span>          <span class="c"># Single pass</span>
 </pre></div>
 </div>
 </section>
 <section id="market-responsiveness">
 <h3>Market Responsiveness<a class="headerlink" href="#market-responsiveness" title="Link to this heading">¶</a></h3>
 <div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="c"># Not adapting to market changes?</span>
-<span class="nv">$env:V9_MAX_CYCLES</span> <span class="p">=</span> <span class="s2">&quot;0&quot;</span>           <span class="c"># Continuous learning</span>
-<span class="nv">$env:V9_SLEEP_SECONDS</span> <span class="p">=</span> <span class="s2">&quot;0&quot;</span>        <span class="c"># No delays</span>
+<span class="nv">$env:V9_MAX_CYCLES</span> <span class="p">=</span> <span class="s2">"0"</span>           <span class="c"># Continuous learning</span>
+<span class="nv">$env:V9_SLEEP_SECONDS</span> <span class="p">=</span> <span class="s2">"0"</span>        <span class="c"># No delays</span>
 
 <span class="c"># Too many false trades?</span>
-<span class="nv">$env:V9_WHALE_BLOCK_THRESHOLD</span> <span class="p">=</span> <span class="s2">&quot;1&quot;</span>    <span class="c"># Block on whale activity</span>
-<span class="nv">$env:V9_MIN_SHARPE</span> <span class="p">=</span> <span class="s2">&quot;3.0&quot;</span>             <span class="c"># Higher signal quality</span>
+<span class="nv">$env:V9_WHALE_BLOCK_THRESHOLD</span> <span class="p">=</span> <span class="s2">"1"</span>    <span class="c"># Block on whale activity</span>
+<span class="nv">$env:V9_MIN_SHARPE</span> <span class="p">=</span> <span class="s2">"3.0"</span>             <span class="c"># Higher signal quality</span>
 </pre></div>
 </div>
 </section>
@@ -657,16 +657,16 @@
 <section id="environment-variables-cheat-sheet">
 <h2>Environment Variables Cheat Sheet<a class="headerlink" href="#environment-variables-cheat-sheet" title="Link to this heading">¶</a></h2>
 <div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="c"># One-liner QA run</span>
-<span class="nv">$env:V9_MAX_CYCLES</span><span class="p">=</span><span class="s2">&quot;1&quot;</span><span class="p">;</span> <span class="nv">$env:V9_POPULATION</span><span class="p">=</span><span class="s2">&quot;50&quot;</span><span class="p">;</span> <span class="n">python</span> <span class="n">main_v91</span><span class="p">.</span><span class="n">py</span>
+<span class="nv">$env:V9_MAX_CYCLES</span><span class="p">=</span><span class="s2">"1"</span><span class="p">;</span> <span class="nv">$env:V9_POPULATION</span><span class="p">=</span><span class="s2">"50"</span><span class="p">;</span> <span class="n">python</span> <span class="n">main_v91</span><span class="p">.</span><span class="n">py</span>
 
 <span class="c"># One-liner research run</span>
-<span class="nv">$env:V9_MAX_CYCLES</span><span class="p">=</span><span class="s2">&quot;10&quot;</span><span class="p">;</span> <span class="nv">$env:V9_POPULATION</span><span class="p">=</span><span class="s2">&quot;300&quot;</span><span class="p">;</span> <span class="n">python</span> <span class="n">main_v91</span><span class="p">.</span><span class="n">py</span>
+<span class="nv">$env:V9_MAX_CYCLES</span><span class="p">=</span><span class="s2">"10"</span><span class="p">;</span> <span class="nv">$env:V9_POPULATION</span><span class="p">=</span><span class="s2">"300"</span><span class="p">;</span> <span class="n">python</span> <span class="n">main_v91</span><span class="p">.</span><span class="n">py</span>
 
 <span class="c"># One-liner aggressive run</span>
-<span class="nv">$env:V9_KELLY_SAFETY</span><span class="p">=</span><span class="s2">&quot;0.75&quot;</span><span class="p">;</span> <span class="nv">$env:V9_MIN_SHARPE</span><span class="p">=</span><span class="s2">&quot;1.5&quot;</span><span class="p">;</span> <span class="n">python</span> <span class="n">main_v91</span><span class="p">.</span><span class="n">py</span>
+<span class="nv">$env:V9_KELLY_SAFETY</span><span class="p">=</span><span class="s2">"0.75"</span><span class="p">;</span> <span class="nv">$env:V9_MIN_SHARPE</span><span class="p">=</span><span class="s2">"1.5"</span><span class="p">;</span> <span class="n">python</span> <span class="n">main_v91</span><span class="p">.</span><span class="n">py</span>
 
 <span class="c"># One-liner conservative run</span>
-<span class="nv">$env:V9_KELLY_SAFETY</span><span class="p">=</span><span class="s2">&quot;0.25&quot;</span><span class="p">;</span> <span class="nv">$env:V9_MIN_SHARPE</span><span class="p">=</span><span class="s2">&quot;3.0&quot;</span><span class="p">;</span> <span class="n">python</span> <span class="n">main_v91</span><span class="p">.</span><span class="n">py</span>
+<span class="nv">$env:V9_KELLY_SAFETY</span><span class="p">=</span><span class="s2">"0.25"</span><span class="p">;</span> <span class="nv">$env:V9_MIN_SHARPE</span><span class="p">=</span><span class="s2">"3.0"</span><span class="p">;</span> <span class="n">python</span> <span class="n">main_v91</span><span class="p">.</span><span class="n">py</span>
 </pre></div>
 </div>
 <hr class="docutils" />

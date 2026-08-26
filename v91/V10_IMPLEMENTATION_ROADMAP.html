@@ -402,22 +402,22 @@
 <span class="k">class</span><span class="w"> </span><span class="nc">BinanceConnector</span><span class="p">:</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">api_key</span><span class="p">,</span> <span class="n">api_secret</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">exchange</span> <span class="o">=</span> <span class="n">ccxt</span><span class="o">.</span><span class="n">binance</span><span class="p">({</span>
-            <span class="s1">&#39;apiKey&#39;</span><span class="p">:</span> <span class="n">api_key</span><span class="p">,</span>
-            <span class="s1">&#39;secret&#39;</span><span class="p">:</span> <span class="n">api_secret</span><span class="p">,</span>
-            <span class="s1">&#39;enableRateLimit&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+            <span class="s1">'apiKey'</span><span class="p">:</span> <span class="n">api_key</span><span class="p">,</span>
+            <span class="s1">'secret'</span><span class="p">:</span> <span class="n">api_secret</span><span class="p">,</span>
+            <span class="s1">'enableRateLimit'</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
         <span class="p">})</span>
     
-    <span class="k">def</span><span class="w"> </span><span class="nf">fetch_ohlcv</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">symbol</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">timeframe</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;5m&#39;</span><span class="p">,</span> <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">500</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Fetch real OHLCV data from Binance&quot;&quot;&quot;</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">fetch_ohlcv</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">symbol</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">timeframe</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">'5m'</span><span class="p">,</span> <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">500</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Fetch real OHLCV data from Binance"""</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">exchange</span><span class="o">.</span><span class="n">fetch_ohlcv</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">timeframe</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="n">limit</span><span class="p">)</span>
     
     <span class="k">def</span><span class="w"> </span><span class="nf">get_balance</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get account balance&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Get account balance"""</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">exchange</span><span class="o">.</span><span class="n">fetch_balance</span><span class="p">()</span>
     
     <span class="k">def</span><span class="w"> </span><span class="nf">place_order</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">symbol</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">side</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">order_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">amount</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">price</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Place an order (test mode available)&quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="n">order_type</span> <span class="o">==</span> <span class="s1">&#39;market&#39;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Place an order (test mode available)"""</span>
+        <span class="k">if</span> <span class="n">order_type</span> <span class="o">==</span> <span class="s1">'market'</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">exchange</span><span class="o">.</span><span class="n">create_market_order</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">side</span><span class="p">,</span> <span class="n">amount</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">exchange</span><span class="o">.</span><span class="n">create_limit_order</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">side</span><span class="p">,</span> <span class="n">amount</span><span class="p">,</span> <span class="n">price</span><span class="p">)</span>
@@ -485,7 +485,7 @@
     
     <span class="k">def</span><span class="w"> </span><span class="nf">execute_trade</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">symbol</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">side</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">strategy_signal</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> 
                      <span class="n">current_price</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Execute trade simulation with real prices&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Execute trade simulation with real prices"""</span>
         <span class="c1"># Calculate position size (Kelly-weighted)</span>
         <span class="n">position_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_kelly_size</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">strategy_signal</span><span class="p">)</span>
         
@@ -501,26 +501,26 @@
         
         <span class="c1"># Execute</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">balance</span> <span class="o">-=</span> <span class="n">total_cost</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">positions</span><span class="p">[</span><span class="n">symbol</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;size&#39;</span><span class="p">:</span> <span class="n">position_size</span><span class="p">,</span> <span class="s1">&#39;entry&#39;</span><span class="p">:</span> <span class="n">filled_price</span><span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">positions</span><span class="p">[</span><span class="n">symbol</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s1">'size'</span><span class="p">:</span> <span class="n">position_size</span><span class="p">,</span> <span class="s1">'entry'</span><span class="p">:</span> <span class="n">filled_price</span><span class="p">}</span>
         
         <span class="c1"># Log</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">trades</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
-            <span class="s1">&#39;timestamp&#39;</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(),</span>
-            <span class="s1">&#39;symbol&#39;</span><span class="p">:</span> <span class="n">symbol</span><span class="p">,</span>
-            <span class="s1">&#39;side&#39;</span><span class="p">:</span> <span class="n">side</span><span class="p">,</span>
-            <span class="s1">&#39;size&#39;</span><span class="p">:</span> <span class="n">position_size</span><span class="p">,</span>
-            <span class="s1">&#39;price&#39;</span><span class="p">:</span> <span class="n">filled_price</span><span class="p">,</span>
-            <span class="s1">&#39;commission&#39;</span><span class="p">:</span> <span class="n">total_cost</span> <span class="o">-</span> <span class="p">(</span><span class="n">position_size</span> <span class="o">*</span> <span class="n">filled_price</span><span class="p">),</span>
+            <span class="s1">'timestamp'</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(),</span>
+            <span class="s1">'symbol'</span><span class="p">:</span> <span class="n">symbol</span><span class="p">,</span>
+            <span class="s1">'side'</span><span class="p">:</span> <span class="n">side</span><span class="p">,</span>
+            <span class="s1">'size'</span><span class="p">:</span> <span class="n">position_size</span><span class="p">,</span>
+            <span class="s1">'price'</span><span class="p">:</span> <span class="n">filled_price</span><span class="p">,</span>
+            <span class="s1">'commission'</span><span class="p">:</span> <span class="n">total_cost</span> <span class="o">-</span> <span class="p">(</span><span class="n">position_size</span> <span class="o">*</span> <span class="n">filled_price</span><span class="p">),</span>
         <span class="p">})</span>
         
         <span class="k">return</span> <span class="n">filled_price</span>
     
     <span class="k">def</span><span class="w"> </span><span class="nf">get_pnl</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">current_prices</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate unrealized P&amp;L in real-time&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Calculate unrealized P&amp;L in real-time"""</span>
         <span class="n">total_pnl</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="k">for</span> <span class="n">symbol</span><span class="p">,</span> <span class="n">position</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">positions</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="k">if</span> <span class="n">symbol</span> <span class="ow">in</span> <span class="n">current_prices</span><span class="p">:</span>
-                <span class="n">unrealized</span> <span class="o">=</span> <span class="p">(</span><span class="n">current_prices</span><span class="p">[</span><span class="n">symbol</span><span class="p">]</span> <span class="o">-</span> <span class="n">position</span><span class="p">[</span><span class="s1">&#39;entry&#39;</span><span class="p">])</span> <span class="o">*</span> <span class="n">position</span><span class="p">[</span><span class="s1">&#39;size&#39;</span><span class="p">]</span>
+                <span class="n">unrealized</span> <span class="o">=</span> <span class="p">(</span><span class="n">current_prices</span><span class="p">[</span><span class="n">symbol</span><span class="p">]</span> <span class="o">-</span> <span class="n">position</span><span class="p">[</span><span class="s1">'entry'</span><span class="p">])</span> <span class="o">*</span> <span class="n">position</span><span class="p">[</span><span class="s1">'size'</span><span class="p">]</span>
                 <span class="n">total_pnl</span> <span class="o">+=</span> <span class="n">unrealized</span>
         <span class="k">return</span> <span class="n">total_pnl</span>
 </pre></div>
@@ -589,21 +589,21 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">trading_enabled</span> <span class="o">=</span> <span class="kc">True</span>
     
     <span class="k">def</span><span class="w"> </span><span class="nf">check_circuit_breaker</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">current_pnl</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if trading should be blocked&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Check if trading should be blocked"""</span>
         <span class="k">if</span> <span class="n">current_pnl</span> <span class="o">&lt;</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">daily_loss_limit</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">trading_enabled</span> <span class="o">=</span> <span class="kc">False</span>
-            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;⚠️ CIRCUIT BREAKER: Daily loss limit hit!&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">"⚠️ CIRCUIT BREAKER: Daily loss limit hit!"</span><span class="p">)</span>
             <span class="k">return</span> <span class="kc">False</span>
         <span class="k">return</span> <span class="kc">True</span>
     
     <span class="k">def</span><span class="w"> </span><span class="nf">should_stop_loss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">position_pnl</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">stop_loss_pct</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.02</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Stop loss trigger&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Stop loss trigger"""</span>
         <span class="k">if</span> <span class="n">position_pnl</span> <span class="o">&lt;</span> <span class="o">-</span><span class="n">stop_loss_pct</span><span class="p">:</span>
             <span class="k">return</span> <span class="kc">True</span>
         <span class="k">return</span> <span class="kc">False</span>
     
     <span class="k">def</span><span class="w"> </span><span class="nf">should_take_profit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">position_pnl</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">take_profit_pct</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.05</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Take profit trigger&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Take profit trigger"""</span>
         <span class="k">if</span> <span class="n">position_pnl</span> <span class="o">&gt;</span> <span class="n">take_profit_pct</span><span class="p">:</span>
             <span class="k">return</span> <span class="kc">True</span>
         <span class="k">return</span> <span class="kc">False</span>
@@ -772,7 +772,7 @@
   ETH Long: 1.0 ETH @ $2,300 entry (P&amp;L: +$10)
 
 ⚡ LIVE TRADING
-  Today&#39;s Trades: 3
+  Today's Trades: 3
   Win Rate: 66.7%
   Daily P&amp;L: +$85
   Max Drawdown: -1.2%
@@ -844,7 +844,7 @@
 <p><strong>Test Coverage</strong>:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># tests/test_v10_integration.py</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">test_full_cycle</span><span class="p">():</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Test entire V10 cycle: fetch data → backtest → trade&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Test entire V10 cycle: fetch data → backtest → trade"""</span>
     <span class="c1"># 1. Fetch real data</span>
     <span class="c1"># 2. Generate strategies</span>
     <span class="c1"># 3. Backtest</span>
@@ -854,11 +854,11 @@
     <span class="k">pass</span>
 
 <span class="k">def</span><span class="w"> </span><span class="nf">test_risk_management</span><span class="p">():</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Test all circuit breakers&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Test all circuit breakers"""</span>
     <span class="k">pass</span>
 
 <span class="k">def</span><span class="w"> </span><span class="nf">test_data_persistence</span><span class="p">():</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Test database operations&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Test database operations"""</span>
     <span class="k">pass</span>
 </pre></div>
 </div>

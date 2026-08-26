@@ -615,7 +615,7 @@ scientifique et la calibration du moteur.</p>
   <span class="n">python</span> <span class="n">tools</span><span class="o">/</span><span class="n">instrumentation_validator</span><span class="o">.</span><span class="n">py</span>
   <span class="n">Verifier</span><span class="p">:</span> <span class="mi">10</span><span class="o">/</span><span class="mi">10</span> <span class="n">PASS</span>
 
-<span class="n">Etape</span> <span class="mi">2</span><span class="p">:</span> <span class="n">Executer</span> <span class="n">les</span> <span class="n">checks</span> <span class="n">d</span><span class="s1">&#39;instrumentation</span>
+<span class="n">Etape</span> <span class="mi">2</span><span class="p">:</span> <span class="n">Executer</span> <span class="n">les</span> <span class="n">checks</span> <span class="n">d</span><span class="s1">'instrumentation</span>
   <span class="n">python</span> <span class="n">tools</span><span class="o">/</span><span class="n">live_observer_validator</span><span class="o">.</span><span class="n">py</span>
   <span class="n">Verifier</span><span class="p">:</span> <span class="n">III</span> <span class="o">&gt;=</span> <span class="mi">95</span>
 
@@ -659,8 +659,8 @@ scientifique et la calibration du moteur.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="mf">1.</span> <span class="n">Identifier</span> <span class="n">et</span> <span class="n">corriger</span> <span class="n">la</span> <span class="n">cause</span> <span class="n">racine</span>
 <span class="mf">2.</span> <span class="n">Executer</span> <span class="n">les</span> <span class="n">checks</span> <span class="n">IV</span><span class="o">-</span><span class="n">LIVE</span> <span class="n">complets</span>
 <span class="mf">3.</span> <span class="n">Verifier</span> <span class="n">les</span> <span class="n">checks</span> <span class="n">specifiques</span> <span class="n">qui</span> <span class="n">avaient</span> <span class="n">echoue</span>
-<span class="mf">4.</span> <span class="n">Generer</span> <span class="n">un</span> <span class="n">nouveau</span> <span class="n">certificat</span> <span class="n">avec</span> <span class="n">mention</span> <span class="s2">&quot;Re-certification&quot;</span>
-<span class="mf">5.</span> <span class="n">Consigner</span> <span class="n">dans</span> <span class="n">l</span><span class="s1">&#39;historique de certification</span>
+<span class="mf">4.</span> <span class="n">Generer</span> <span class="n">un</span> <span class="n">nouveau</span> <span class="n">certificat</span> <span class="n">avec</span> <span class="n">mention</span> <span class="s2">"Re-certification"</span>
+<span class="mf">5.</span> <span class="n">Consigner</span> <span class="n">dans</span> <span class="n">l</span><span class="s1">'historique de certification</span>
 </pre></div>
 </div>
 </section>
@@ -674,21 +674,21 @@ scientifique et la calibration du moteur.</p>
 </div>
 <p>Format d’une entree:</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;certification_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;OBS-CERT-2026-0001&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;generated_at&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-07-01T12:00:00Z&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;level&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;level_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Certified Software&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;iii&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">100.0</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;ocs&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;iv_passed&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;iv_total&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;iv_live_passed&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;iv_live_total&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;iv_live_skipped&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;n_decisions_production&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;revoked&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;revocation_reason&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;notes&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Level 1 initial certification&quot;</span>
+<span class="w">  </span><span class="nt">"certification_id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"OBS-CERT-2026-0001"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"generated_at"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2026-07-01T12:00:00Z"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"level"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"level_name"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Certified Software"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"iii"</span><span class="p">:</span><span class="w"> </span><span class="mf">100.0</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"ocs"</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"iv_passed"</span><span class="p">:</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"iv_total"</span><span class="p">:</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"iv_live_passed"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"iv_live_total"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"iv_live_skipped"</span><span class="p">:</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"n_decisions_production"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"revoked"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"revocation_reason"</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"notes"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Level 1 initial certification"</span>
 <span class="p">}</span>
 </pre></div>
 </div>

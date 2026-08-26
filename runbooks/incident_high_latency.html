@@ -263,13 +263,13 @@
 <h2>Actions immédiates<a class="headerlink" href="#actions-immediates" title="Link to this heading">¶</a></h2>
 <ol class="arabic">
 <li><p><strong>Profiler le pipeline</strong></p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-c<span class="w"> </span><span class="s2">"</span>
 <span class="s2">from monitoring.profiler import Profiler</span>
 <span class="s2">p = Profiler()</span>
 <span class="s2">result, report = p.profile(run_pipeline)</span>
-<span class="s2">report.write_markdown(&#39;reports/profiling_incident.md&#39;)</span>
+<span class="s2">report.write_markdown('reports/profiling_incident.md')</span>
 <span class="s2">print(report.summary_line())</span>
-<span class="s2">&quot;</span>
+<span class="s2">"</span>
 </pre></div>
 </div>
 </li>

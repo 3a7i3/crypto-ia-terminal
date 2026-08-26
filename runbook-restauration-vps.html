@@ -278,7 +278,7 @@ dépôt git et d’une sauvegarde des données — en ~1 heure, sans rien perdre
 <h2>Sauvegarde (à refaire régulièrement — dernière : 2026-07-16, 16 Mo)<a class="headerlink" href="#sauvegarde-a-refaire-regulierement-derniere-2026-07-16-16-mo" title="Link to this heading">¶</a></h2>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># côté VPS (via ssh) :</span>
 <span class="nb">cd</span><span class="w"> </span>~/crypto_ai_terminal<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>tar<span class="w"> </span>czf<span class="w"> </span>/tmp/vps_science_backup_<span class="k">$(</span>date<span class="w"> </span>+%Y%m%d<span class="k">)</span>.tar.gz<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--exclude<span class="o">=</span><span class="s1">&#39;*.bak_*&#39;</span><span class="w"> </span>databases/paper_trades.jsonl<span class="w"> </span>databases/regret_analysis.jsonl<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--exclude<span class="o">=</span><span class="s1">'*.bak_*'</span><span class="w"> </span>databases/paper_trades.jsonl<span class="w"> </span>databases/regret_analysis.jsonl<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>databases/regret<span class="w"> </span>databases/rejections<span class="w"> </span>databases/observation<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>databases/runtime_config.json<span class="w"> </span>databases/gate_rejections.csv<span class="w"> </span>.env
 <span class="c1"># côté poste local :</span>
@@ -296,7 +296,7 @@ sudo<span class="w"> </span>apt<span class="w"> </span>update<span class="w"> </
 git<span class="w"> </span>clone<span class="w"> </span>https://github.com/3a7i3/crypto-ia-terminal.git<span class="w"> </span>~/crypto_ai_terminal
 <span class="nb">cd</span><span class="w"> </span>~/crypto_ai_terminal
 
-<span class="c1"># 3. Environnement Python — utiliser l&#39;inventaire GELÉ de production</span>
+<span class="c1"># 3. Environnement Python — utiliser l'inventaire GELÉ de production</span>
 <span class="c1">#    (requirements.txt avait dérivé : ccxt manquant, découvert lors de la</span>
 <span class="c1">#    préparation du 2026-07-18) :</span>
 python3.11<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </span>.venv
@@ -306,12 +306,12 @@ python3.11<span class="w"> </span>-m<span class="w"> </span>venv<span class="w">
 tar<span class="w"> </span>xzf<span class="w"> </span>vps_science_backup_YYYYMMDD.tar.gz<span class="w"> </span>-C<span class="w"> </span>~/crypto_ai_terminal
 <span class="c1"># → restaure databases/* et .env à leur place</span>
 
-<span class="c1"># 5. Adapter les chemins des unités si l&#39;utilisateur n&#39;est pas</span>
-<span class="c1">#    &quot;mathieuhasard111&quot; (sed sur User= et les chemins /home/...)</span>
+<span class="c1"># 5. Adapter les chemins des unités si l'utilisateur n'est pas</span>
+<span class="c1">#    "mathieuhasard111" (sed sur User= et les chemins /home/...)</span>
 sudo<span class="w"> </span>cp<span class="w"> </span>scripts/systemd/crypto-*.service<span class="w"> </span>scripts/systemd/crypto-*.timer<span class="w"> </span>/etc/systemd/system/
 sudo<span class="w"> </span>systemctl<span class="w"> </span>daemon-reload
 
-<span class="c1"># 6. Démarrage — moteur d&#39;abord, observation ensuite</span>
+<span class="c1"># 6. Démarrage — moteur d'abord, observation ensuite</span>
 sudo<span class="w"> </span>systemctl<span class="w"> </span><span class="nb">enable</span><span class="w"> </span>--now<span class="w"> </span>crypto-advisor.service
 sudo<span class="w"> </span>systemctl<span class="w"> </span><span class="nb">enable</span><span class="w"> </span>--now<span class="w"> </span>crypto-watchdog.service
 sudo<span class="w"> </span>systemctl<span class="w"> </span><span class="nb">enable</span><span class="w"> </span>--now<span class="w"> </span>crypto-market-observer.timer

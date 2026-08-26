@@ -296,7 +296,7 @@ Source de vérité : ce fichier + <code class="docutils literal notranslate"><sp
 │  COUCHE 5 — ORDER SIZER                                                  │
 │  OrderSizer · DrawdownGuard · KellyCriterion                             │
 │  Responsabilité : calculer la taille en USD. NE REJETTE JAMAIS.          │
-│  Sortie : packet.features[&quot;os_size_usd&quot;] dans [min_size, max_size]       │
+│  Sortie : packet.features["os_size_usd"] dans [min_size, max_size]       │
 │  INVARIANT : OrderSizer ne lève pas SessionHaltedError                   │
 └───────────────────────────┬────────────────────────────────────────────┘
                             │
@@ -306,7 +306,7 @@ Source de vérité : ce fichier + <code class="docutils literal notranslate"><sp
 │  ExecutionEngine · PaperTradingEngine · ShadowEngine                     │
 │  Responsabilité : engager le capital. Ne décide pas du signal.           │
 │  State : APPROVED → EXECUTION_PENDING → EXECUTED                         │
-│  INVARIANT : ExecutionEngine n&#39;importe pas LiveSignalEngine              │
+│  INVARIANT : ExecutionEngine n'importe pas LiveSignalEngine              │
 └───────────────────────────┬────────────────────────────────────────────┘
                             │
                             ▼

@@ -432,7 +432,7 @@
 └───────────────────────────────────────────────┬─────────────┘
                                                 │
                           ┌─────────────────────┘
-                          │  lecture seule, pas d&#39;I/O réseau
+                          │  lecture seule, pas d'I/O réseau
                           ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                    COUCHE DÉCISION                           │
@@ -511,8 +511,8 @@ high       : float
 low        : float
 close      : float
 volume     : float
-source     : str     — &quot;live&quot; | &quot;cache&quot; | &quot;synthetic&quot;
-age_s      : float   — âge en secondes au moment de l&#39;assemblage
+source     : str     — "live" | "cache" | "synthetic"
+age_s      : float   — âge en secondes au moment de l'assemblage
 </pre></div>
 </div>
 </section>
@@ -521,7 +521,7 @@ age_s      : float   — âge en secondes au moment de l&#39;assemblage
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>SnapshotLatency
 ──────────────────────────────────────────────────────
 fetch_ms    : float  — durée totale de la collecte réseau
-build_ms    : float  — durée de l&#39;assemblage du snapshot
+build_ms    : float  — durée de l'assemblage du snapshot
 skew_ms     : float  — max(timestamp) - min(timestamp) en ms
 total_ms    : float  — fetch_ms + build_ms
 </pre></div>
@@ -545,7 +545,7 @@ total_ms    : float  — fetch_ms + build_ms
 <p><strong>Responsabilité unique :</strong> Maintenir une session valide vers un exchange.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Entrée :
   ExchangeConfig {
-    exchange_id   : str       — identifiant exchange (&quot;mexc&quot;)
+    exchange_id   : str       — identifiant exchange ("mexc")
     api_key       : str
     api_secret    : str
     testnet       : bool
@@ -562,7 +562,7 @@ Sortie :
   }
 
 Garanties :
-  — La session retournée est valide au moment de l&#39;appel
+  — La session retournée est valide au moment de l'appel
   — Reconnexion automatique en cas de coupure (max 3 tentatives)
   — TTL de session respecté (renouvellement avant expiration)
   — Chaque reconnexion incrémente `generation`
@@ -581,7 +581,7 @@ Ne fait jamais :
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Entrée :
   ExchangeHandle
   Universe : list[str]    — symboles à collecter
-  Timeframe : str         — &quot;1m&quot; | &quot;5m&quot; | &quot;15m&quot;
+  Timeframe : str         — "1m" | "5m" | "15m"
   Limit : int             — nombre de bougies par symbole
 
 Sortie :
@@ -619,20 +619,20 @@ Sortie :
   MarketSnapshot    — entité complète (voir section 7)
 
 Algorithme de résolution (par ordre de priorité) :
-  1. Données &quot;live&quot; issues du stream
-  2. Données &quot;cache&quot; issues du SnapshotCache (si âge &lt; MAX_CACHE_AGE_S)
-  3. Données &quot;synthetic&quot; (interpolation linéaire, flaggées)
+  1. Données "live" issues du stream
+  2. Données "cache" issues du SnapshotCache (si âge &lt; MAX_CACHE_AGE_S)
+  3. Données "synthetic" (interpolation linéaire, flaggées)
   4. Symbole absent → snapshot INVALID si &gt; MISSING_THRESHOLD
 
 Garanties :
   — skew_ms &lt; SKW_MAX_MS (défaut : 5000ms)
-  — Chaque OHLCVFrame porte sa source (&quot;live&quot;|&quot;cache&quot;|&quot;synthetic&quot;)
+  — Chaque OHLCVFrame porte sa source ("live"|"cache"|"synthetic")
   — Snapshot invalide jamais transmis au Decision Engine
 
 Ne fait jamais :
   — Requête réseau
   — Scoring
-  — Modification de l&#39;Universe
+  — Modification de l'Universe
 </pre></div>
 </div>
 </section>
@@ -667,7 +667,7 @@ Ne fait jamais :
 Sortie :
   list[Signal] {
     symbol              : str
-    direction           : &quot;BUY&quot; | &quot;SELL&quot; | &quot;HOLD&quot;
+    direction           : "BUY" | "SELL" | "HOLD"
     score               : int       — 0-100
     regime              : str
     config_version      : str       — hérité du snapshot
@@ -676,7 +676,7 @@ Sortie :
   }
 
 Garanties :
-  — Temps d&#39;exécution &lt; 10ms pour 1000 symboles
+  — Temps d'exécution &lt; 10ms pour 1000 symboles
   — Résultat déterministe pour un Snapshot identique
   — Jamais de HOLD silencieux : chaque HOLD a une raison
 
@@ -685,7 +685,7 @@ Interdit absolument :
   — sleep() / retry()
   — Accès réseau de toute nature
   — Modification du Snapshot entrant
-  — Connaissance de l&#39;ExchangeHandle
+  — Connaissance de l'ExchangeHandle
 </pre></div>
 </div>
 </section>
@@ -792,23 +792,23 @@ Interdit absolument :
 <p>Les invariants sont des propriétés qui doivent être vraies à tout moment. Une violation est un bug, pas une situation de dégradation.</p>
 <section id="invariants-du-collector">
 <h3>10.1 Invariants du Collector<a class="headerlink" href="#invariants-du-collector" title="Link to this heading">¶</a></h3>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">INV</span><span class="o">-</span><span class="n">COL</span><span class="o">-</span><span class="mi">01</span> <span class="p">:</span> <span class="n">Jamais</span> <span class="n">plus</span> <span class="n">de</span> <span class="n">RATE_LIMIT_MAX_RPS</span> <span class="n">requêtes</span> <span class="n">par</span> <span class="n">seconde</span> <span class="n">vers</span> <span class="n">l</span><span class="s1">&#39;exchange.</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">INV</span><span class="o">-</span><span class="n">COL</span><span class="o">-</span><span class="mi">01</span> <span class="p">:</span> <span class="n">Jamais</span> <span class="n">plus</span> <span class="n">de</span> <span class="n">RATE_LIMIT_MAX_RPS</span> <span class="n">requêtes</span> <span class="n">par</span> <span class="n">seconde</span> <span class="n">vers</span> <span class="n">l</span><span class="s1">'exchange.</span>
 
-<span class="n">INV</span><span class="o">-</span><span class="n">COL</span><span class="o">-</span><span class="mi">02</span> <span class="p">:</span> <span class="n">Un</span> <span class="n">symbole</span> <span class="n">en</span> <span class="n">erreur</span> <span class="n">n</span><span class="s1">&#39;interrompt pas la collecte des autres symboles.</span>
+<span class="n">INV</span><span class="o">-</span><span class="n">COL</span><span class="o">-</span><span class="mi">02</span> <span class="p">:</span> <span class="n">Un</span> <span class="n">symbole</span> <span class="n">en</span> <span class="n">erreur</span> <span class="n">n</span><span class="s1">'interrompt pas la collecte des autres symboles.</span>
 
 <span class="n">INV</span><span class="o">-</span><span class="n">COL</span><span class="o">-</span><span class="mi">03</span> <span class="p">:</span> <span class="n">collector_generation</span> <span class="n">est</span> <span class="n">strictement</span> <span class="n">croissant</span> <span class="n">sur</span> <span class="n">la</span> <span class="n">durée</span> <span class="n">de</span> <span class="n">vie</span> <span class="n">du</span> <span class="n">processus</span><span class="o">.</span>
 
-<span class="n">INV</span><span class="o">-</span><span class="n">COL</span><span class="o">-</span><span class="mi">04</span> <span class="p">:</span> <span class="n">Les</span> <span class="n">credentials</span> <span class="n">d</span><span class="s1">&#39;API ne transitent jamais hors de ExchangeSessionManager.</span>
+<span class="n">INV</span><span class="o">-</span><span class="n">COL</span><span class="o">-</span><span class="mi">04</span> <span class="p">:</span> <span class="n">Les</span> <span class="n">credentials</span> <span class="n">d</span><span class="s1">'API ne transitent jamais hors de ExchangeSessionManager.</span>
 </pre></div>
 </div>
 </section>
 <section id="invariants-du-snapshotbuilder">
 <h3>10.2 Invariants du SnapshotBuilder<a class="headerlink" href="#invariants-du-snapshotbuilder" title="Link to this heading">¶</a></h3>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">INV</span><span class="o">-</span><span class="n">SNP</span><span class="o">-</span><span class="mi">01</span> <span class="p">:</span> <span class="n">Aucun</span> <span class="n">snapshot</span> <span class="n">incomplet</span> <span class="n">n</span><span class="s1">&#39;atteint le SnapshotCache ou le Decision Engine.</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">INV</span><span class="o">-</span><span class="n">SNP</span><span class="o">-</span><span class="mi">01</span> <span class="p">:</span> <span class="n">Aucun</span> <span class="n">snapshot</span> <span class="n">incomplet</span> <span class="n">n</span><span class="s1">'atteint le SnapshotCache ou le Decision Engine.</span>
 
 <span class="n">INV</span><span class="o">-</span><span class="n">SNP</span><span class="o">-</span><span class="mi">02</span> <span class="p">:</span> <span class="n">skew_ms</span> <span class="n">est</span> <span class="n">toujours</span> <span class="n">calculé</span> <span class="n">et</span> <span class="n">présent</span> <span class="n">dans</span> <span class="n">SnapshotLatency</span><span class="o">.</span>
 
-<span class="n">INV</span><span class="o">-</span><span class="n">SNP</span><span class="o">-</span><span class="mi">03</span> <span class="p">:</span> <span class="n">Chaque</span> <span class="n">OHLCVFrame</span> <span class="n">indique</span> <span class="n">sa</span> <span class="n">source</span> <span class="p">(</span><span class="s2">&quot;live&quot;</span><span class="o">|</span><span class="s2">&quot;cache&quot;</span><span class="o">|</span><span class="s2">&quot;synthetic&quot;</span><span class="p">)</span><span class="o">.</span>
+<span class="n">INV</span><span class="o">-</span><span class="n">SNP</span><span class="o">-</span><span class="mi">03</span> <span class="p">:</span> <span class="n">Chaque</span> <span class="n">OHLCVFrame</span> <span class="n">indique</span> <span class="n">sa</span> <span class="n">source</span> <span class="p">(</span><span class="s2">"live"</span><span class="o">|</span><span class="s2">"cache"</span><span class="o">|</span><span class="s2">"synthetic"</span><span class="p">)</span><span class="o">.</span>
 
 <span class="n">INV</span><span class="o">-</span><span class="n">SNP</span><span class="o">-</span><span class="mi">04</span> <span class="p">:</span> <span class="n">created_at</span> <span class="n">est</span> <span class="n">toujours</span> <span class="o">&gt;=</span> <span class="nb">max</span><span class="p">(</span><span class="n">timestamp</span> <span class="n">de</span> <span class="n">tous</span> <span class="n">les</span> <span class="n">OHLCVFrame</span><span class="p">)</span><span class="o">.</span>
 </pre></div>
@@ -838,7 +838,7 @@ INV-DEC-04 : config_version dans chaque Signal est identique à celui du Snapsho
              <span class="n">produit</span> <span class="n">N</span> <span class="n">snapshots</span> <span class="n">valides</span> <span class="n">consécutifs</span><span class="o">.</span>
 
 <span class="n">INV</span><span class="o">-</span><span class="n">SYS</span><span class="o">-</span><span class="mi">04</span> <span class="p">:</span> <span class="n">Un</span> <span class="n">snapshot</span> <span class="n">dont</span> <span class="n">quality</span><span class="o">.</span><span class="n">real_ratio</span> <span class="o">=</span> <span class="mi">0</span> <span class="p">(</span><span class="mi">100</span><span class="o">%</span> <span class="n">cache</span> <span class="n">ou</span> <span class="n">synthetic</span><span class="p">)</span>
-             <span class="n">ne</span> <span class="n">déclenche</span> <span class="n">jamais</span> <span class="n">d</span><span class="s1">&#39;ordre. Il peut déclencher des HOLD explicites.</span>
+             <span class="n">ne</span> <span class="n">déclenche</span> <span class="n">jamais</span> <span class="n">d</span><span class="s1">'ordre. Il peut déclencher des HOLD explicites.</span>
 </pre></div>
 </div>
 </section>
@@ -1076,7 +1076,7 @@ age_s            : float  — âge du snapshot au moment de la lecture (Decision
 missing_symbols  : list[str] — symboles absents
 retry_count      : int    — nombre de retries pendant la collecte
 skew_exceeded    : bool   — True si skew_ms &gt; SKW_MAX_MS
-is_valid         : bool   — False si snapshot ne doit pas déclencher d&#39;ordre
+is_valid         : bool   — False si snapshot ne doit pas déclencher d'ordre
 </pre></div>
 </div>
 </section>
@@ -1503,8 +1503,8 @@ Phase 1 — Dual Collector
         │ Comparaison automatique : V1_snapshot vs V2_snapshot.
         ▼
 Phase 2 — Shadow Mode
-        │ V2 alimente un Decision Engine shadow (pas d&#39;ordres réels).
-        │ V1 continue d&#39;alimenter le Decision Engine de production.
+        │ V2 alimente un Decision Engine shadow (pas d'ordres réels).
+        │ V1 continue d'alimenter le Decision Engine de production.
         │ Comparaison des signaux V1 vs V2.
         ▼
 Phase 3 — Switch
@@ -1516,7 +1516,7 @@ Phase 4 — Suppression V1
         │ Post-mortem migration documenté.
         ▼
 Phase 5 — Stabilisation
-        │ 7 jours d&#39;observation sur V2 seul.
+        │ 7 jours d'observation sur V2 seul.
         │ Métriques comparées avec baseline V1.
 </pre></div>
 </div>

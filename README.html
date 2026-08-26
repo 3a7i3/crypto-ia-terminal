@@ -477,14 +477,14 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">supervision.notifications.telegram_notifier</span><span class="w"> </span><span class="kn">import</span> <span class="n">TelegramNotifier</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">supervision.notifications.email_notifier</span><span class="w"> </span><span class="kn">import</span> <span class="n">EmailNotifier</span>
 
-<span class="n">slack</span> <span class="o">=</span> <span class="n">SlackNotifier</span><span class="p">(</span><span class="n">webhook_url</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;SLACK_WEBHOOK_URL&quot;</span><span class="p">])</span>
-<span class="n">telegram</span> <span class="o">=</span> <span class="n">TelegramNotifier</span><span class="p">(</span><span class="n">bot_token</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;TELEGRAM_BOT_TOKEN&quot;</span><span class="p">],</span> <span class="n">chat_id</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;TELEGRAM_CHAT_ID&quot;</span><span class="p">])</span>
-<span class="n">email</span> <span class="o">=</span> <span class="n">EmailNotifier</span><span class="p">(</span><span class="n">smtp_server</span><span class="o">=</span><span class="s2">&quot;smtp.example.com&quot;</span><span class="p">,</span> <span class="n">from_addr</span><span class="o">=</span><span class="s2">&quot;bot@ex.com&quot;</span><span class="p">,</span> <span class="n">to_addr</span><span class="o">=</span><span class="s2">&quot;admin@ex.com&quot;</span><span class="p">)</span>
+<span class="n">slack</span> <span class="o">=</span> <span class="n">SlackNotifier</span><span class="p">(</span><span class="n">webhook_url</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">"SLACK_WEBHOOK_URL"</span><span class="p">])</span>
+<span class="n">telegram</span> <span class="o">=</span> <span class="n">TelegramNotifier</span><span class="p">(</span><span class="n">bot_token</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">"TELEGRAM_BOT_TOKEN"</span><span class="p">],</span> <span class="n">chat_id</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">"TELEGRAM_CHAT_ID"</span><span class="p">])</span>
+<span class="n">email</span> <span class="o">=</span> <span class="n">EmailNotifier</span><span class="p">(</span><span class="n">smtp_server</span><span class="o">=</span><span class="s2">"smtp.example.com"</span><span class="p">,</span> <span class="n">from_addr</span><span class="o">=</span><span class="s2">"bot@ex.com"</span><span class="p">,</span> <span class="n">to_addr</span><span class="o">=</span><span class="s2">"admin@ex.com"</span><span class="p">)</span>
 
 <span class="c1"># Pour notifier un événement critique :</span>
-<span class="n">slack</span><span class="o">.</span><span class="n">notify</span><span class="p">(</span><span class="s2">&quot;Alerte critique : drawdown excessif&quot;</span><span class="p">)</span>
-<span class="n">telegram</span><span class="o">.</span><span class="n">notify</span><span class="p">(</span><span class="s2">&quot;Alerte critique : drawdown excessif&quot;</span><span class="p">)</span>
-<span class="n">email</span><span class="o">.</span><span class="n">notify</span><span class="p">(</span><span class="s2">&quot;Alerte critique&quot;</span><span class="p">,</span> <span class="s2">&quot;drawdown excessif&quot;</span><span class="p">)</span>
+<span class="n">slack</span><span class="o">.</span><span class="n">notify</span><span class="p">(</span><span class="s2">"Alerte critique : drawdown excessif"</span><span class="p">)</span>
+<span class="n">telegram</span><span class="o">.</span><span class="n">notify</span><span class="p">(</span><span class="s2">"Alerte critique : drawdown excessif"</span><span class="p">)</span>
+<span class="n">email</span><span class="o">.</span><span class="n">notify</span><span class="p">(</span><span class="s2">"Alerte critique"</span><span class="p">,</span> <span class="s2">"drawdown excessif"</span><span class="p">)</span>
 </pre></div>
 </div>
 <p><strong>Astuce</strong> : Placez vos secrets dans des variables d’environnement ou un fichier <code class="docutils literal notranslate"><span class="pre">.env</span></code> (jamais en dur).</p>
@@ -614,10 +614,10 @@
 <h2>⚡ Quick Commands<a class="headerlink" href="#quick-commands" title="Link to this heading">¶</a></h2>
 <div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="c"># V9.1 - Quick test</span>
 <span class="nb">cd </span><span class="n">quant-hedge-ai</span>
-<span class="nv">$env:V9_MAX_CYCLES</span><span class="p">=</span><span class="s2">&quot;1&quot;</span><span class="p">;</span> <span class="n">python</span> <span class="n">main_v91</span><span class="p">.</span><span class="n">py</span>
+<span class="nv">$env:V9_MAX_CYCLES</span><span class="p">=</span><span class="s2">"1"</span><span class="p">;</span> <span class="n">python</span> <span class="n">main_v91</span><span class="p">.</span><span class="n">py</span>
 
 <span class="c"># V9.1 - Research mode</span>
-<span class="nv">$env:V9_MAX_CYCLES</span><span class="p">=</span><span class="s2">&quot;10&quot;</span><span class="p">;</span> <span class="nv">$env:V9_POPULATION</span><span class="p">=</span><span class="s2">&quot;300&quot;</span><span class="p">;</span> <span class="n">python</span> <span class="n">main_v91</span><span class="p">.</span><span class="n">py</span>
+<span class="nv">$env:V9_MAX_CYCLES</span><span class="p">=</span><span class="s2">"10"</span><span class="p">;</span> <span class="nv">$env:V9_POPULATION</span><span class="p">=</span><span class="s2">"300"</span><span class="p">;</span> <span class="n">python</span> <span class="n">main_v91</span><span class="p">.</span><span class="n">py</span>
 
 <span class="c"># Docker V7 - Start all services</span>
 <span class="nb">cd </span><span class="n">quant-ai-system</span>
@@ -830,7 +830,7 @@
 </section>
 <section id="lancement-rapide">
 <h3>Lancement rapide<a class="headerlink" href="#lancement-rapide" title="Link to this heading">¶</a></h3>
-<div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="c"># Lancer l&#39;écosystème évolutif complet</span>
+<div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="c"># Lancer l'écosystème évolutif complet</span>
 <span class="n">python</span> <span class="n">orchestrate_ecosystem</span><span class="p">.</span><span class="n">py</span>
 
 <span class="c"># Dashboard interactif (résultats, analyse, AutoML)</span>

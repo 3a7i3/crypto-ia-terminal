@@ -523,27 +523,27 @@ de laboratoire.</p>
 <h3>Schéma obligatoire<a class="headerlink" href="#schema-obligatoire" title="Link to this heading">¶</a></h3>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">dataset_manifest</span><span class="p">:</span>
 <span class="w">  </span><span class="c1"># Identité</span>
-<span class="w">  </span><span class="nt">uuid</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="w">                         </span><span class="c1"># RFC-4122 v4, généré à l&#39;ouverture du dataset</span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="w">                         </span><span class="c1"># Nom humain (ex: &quot;Burn-in 2026-Q3&quot;)</span>
-<span class="w">  </span><span class="nt">experiment_id</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="w">                </span><span class="c1"># Lien vers experiments/EXP-xxx.yaml</span>
+<span class="w">  </span><span class="nt">uuid</span><span class="p">:</span><span class="w"> </span><span class="s">""</span><span class="w">                         </span><span class="c1"># RFC-4122 v4, généré à l'ouverture du dataset</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">""</span><span class="w">                         </span><span class="c1"># Nom humain (ex: "Burn-in 2026-Q3")</span>
+<span class="w">  </span><span class="nt">experiment_id</span><span class="p">:</span><span class="w"> </span><span class="s">""</span><span class="w">                </span><span class="c1"># Lien vers experiments/EXP-xxx.yaml</span>
 
 <span class="w">  </span><span class="c1"># Traçabilité technique</span>
-<span class="w">  </span><span class="nt">engine_version</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="w">               </span><span class="c1"># ex: &quot;v9&quot;</span>
-<span class="w">  </span><span class="nt">git_commit</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="w">                   </span><span class="c1"># commit au démarrage (7 chars min)</span>
-<span class="w">  </span><span class="nt">git_branch</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="w">                   </span><span class="c1"># ex: &quot;main&quot;</span>
-<span class="w">  </span><span class="nt">observability_version</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span><span class="w">         </span><span class="c1"># Version du système d&#39;observabilité</span>
-<span class="w">  </span><span class="nt">config_hash</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="w">                  </span><span class="c1"># SHA-256[:12] des paramètres clés (en majuscules)</span>
-<span class="w">  </span><span class="nt">feature_flags_hash</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="w">           </span><span class="c1"># SHA-256[:12] du snapshot feature_flags (en majuscules)</span>
+<span class="w">  </span><span class="nt">engine_version</span><span class="p">:</span><span class="w"> </span><span class="s">""</span><span class="w">               </span><span class="c1"># ex: "v9"</span>
+<span class="w">  </span><span class="nt">git_commit</span><span class="p">:</span><span class="w"> </span><span class="s">""</span><span class="w">                   </span><span class="c1"># commit au démarrage (7 chars min)</span>
+<span class="w">  </span><span class="nt">git_branch</span><span class="p">:</span><span class="w"> </span><span class="s">""</span><span class="w">                   </span><span class="c1"># ex: "main"</span>
+<span class="w">  </span><span class="nt">observability_version</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span><span class="w">         </span><span class="c1"># Version du système d'observabilité</span>
+<span class="w">  </span><span class="nt">config_hash</span><span class="p">:</span><span class="w"> </span><span class="s">""</span><span class="w">                  </span><span class="c1"># SHA-256[:12] des paramètres clés (en majuscules)</span>
+<span class="w">  </span><span class="nt">feature_flags_hash</span><span class="p">:</span><span class="w"> </span><span class="s">""</span><span class="w">           </span><span class="c1"># SHA-256[:12] du snapshot feature_flags (en majuscules)</span>
 <span class="w">  </span><span class="nt">schema_version</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span><span class="w">                </span><span class="c1"># Version du schéma DecisionObservation</span>
 
 <span class="w">  </span><span class="c1"># Contexte marché</span>
-<span class="w">  </span><span class="nt">exchange</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="w">                     </span><span class="c1"># ex: &quot;MEXC&quot;</span>
-<span class="w">  </span><span class="nt">mode</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="w">                         </span><span class="c1"># ex: &quot;paper_trading&quot; | &quot;live&quot;</span>
+<span class="w">  </span><span class="nt">exchange</span><span class="p">:</span><span class="w"> </span><span class="s">""</span><span class="w">                     </span><span class="c1"># ex: "MEXC"</span>
+<span class="w">  </span><span class="nt">mode</span><span class="p">:</span><span class="w"> </span><span class="s">""</span><span class="w">                         </span><span class="c1"># ex: "paper_trading" | "live"</span>
 <span class="w">  </span><span class="nt">trading_universe_size</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span><span class="w">         </span><span class="c1"># Nombre de paires au démarrage</span>
 <span class="w">  </span><span class="nt">symbol_blacklist</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[]</span>
 
 <span class="w">  </span><span class="c1"># Dates</span>
-<span class="w">  </span><span class="nt">date_opened</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="w">                  </span><span class="c1"># ISO-8601 UTC</span>
+<span class="w">  </span><span class="nt">date_opened</span><span class="p">:</span><span class="w"> </span><span class="s">""</span><span class="w">                  </span><span class="c1"># ISO-8601 UTC</span>
 <span class="w">  </span><span class="nt">date_closed</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span><span class="w">                </span><span class="c1"># null si toujours actif</span>
 
 <span class="w">  </span><span class="c1"># Certification</span>
@@ -552,11 +552,11 @@ de laboratoire.</p>
 <span class="w">  </span><span class="nt">certification_date</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
 
 <span class="w">  </span><span class="c1"># Filiation</span>
-<span class="w">  </span><span class="nt">parent_dataset_uuid</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span><span class="w">        </span><span class="c1"># Si dérivé d&#39;un autre dataset</span>
+<span class="w">  </span><span class="nt">parent_dataset_uuid</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span><span class="w">        </span><span class="c1"># Si dérivé d'un autre dataset</span>
 
 <span class="w">  </span><span class="c1"># Replay</span>
 <span class="w">  </span><span class="nt">replay_supported</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
-<span class="w">  </span><span class="nt">replay_instructions</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="w">          </span><span class="c1"># Comment reproduire les conditions</span>
+<span class="w">  </span><span class="nt">replay_instructions</span><span class="p">:</span><span class="w"> </span><span class="s">""</span><span class="w">          </span><span class="c1"># Comment reproduire les conditions</span>
 </pre></div>
 </div>
 </section>
@@ -575,32 +575,32 @@ Les données des deux datasets ne sont <strong>jamais mélangées</strong> dans 
 <section id="schema-de-resultat">
 <h3>Schéma de résultat<a class="headerlink" href="#schema-de-resultat" title="Link to this heading">¶</a></h3>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">hypothesis_result</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">hypothesis_id</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="w">                </span><span class="c1"># ex: &quot;H3&quot;</span>
-<span class="w">  </span><span class="nt">hypothesis_version</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="w">           </span><span class="c1"># ex: &quot;H3-v1.0&quot;</span>
-<span class="w">  </span><span class="nt">evaluation_date</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="w">              </span><span class="c1"># ISO-8601 UTC</span>
-<span class="w">  </span><span class="nt">evaluator</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="w">                    </span><span class="c1"># &quot;regime_audit.py v1.x&quot;</span>
+<span class="w">  </span><span class="nt">hypothesis_id</span><span class="p">:</span><span class="w"> </span><span class="s">""</span><span class="w">                </span><span class="c1"># ex: "H3"</span>
+<span class="w">  </span><span class="nt">hypothesis_version</span><span class="p">:</span><span class="w"> </span><span class="s">""</span><span class="w">           </span><span class="c1"># ex: "H3-v1.0"</span>
+<span class="w">  </span><span class="nt">evaluation_date</span><span class="p">:</span><span class="w"> </span><span class="s">""</span><span class="w">              </span><span class="c1"># ISO-8601 UTC</span>
+<span class="w">  </span><span class="nt">evaluator</span><span class="p">:</span><span class="w"> </span><span class="s">""</span><span class="w">                    </span><span class="c1"># "regime_audit.py v1.x"</span>
 
 <span class="w">  </span><span class="c1"># Dataset source</span>
-<span class="w">  </span><span class="nt">dataset_uuid</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="w">                 </span><span class="c1"># UUID du CertifiedDataset</span>
-<span class="w">  </span><span class="nt">dataset_certification_id</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="w">     </span><span class="c1"># CERT-{YYYY}-Q{Q}-{NNN}</span>
-<span class="w">  </span><span class="nt">dataset_certification_level</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="w">  </span><span class="c1"># CERTIFIED | PASS</span>
+<span class="w">  </span><span class="nt">dataset_uuid</span><span class="p">:</span><span class="w"> </span><span class="s">""</span><span class="w">                 </span><span class="c1"># UUID du CertifiedDataset</span>
+<span class="w">  </span><span class="nt">dataset_certification_id</span><span class="p">:</span><span class="w"> </span><span class="s">""</span><span class="w">     </span><span class="c1"># CERT-{YYYY}-Q{Q}-{NNN}</span>
+<span class="w">  </span><span class="nt">dataset_certification_level</span><span class="p">:</span><span class="w"> </span><span class="s">""</span><span class="w">  </span><span class="c1"># CERTIFIED | PASS</span>
 
 <span class="w">  </span><span class="c1"># Expérience parente</span>
-<span class="w">  </span><span class="nt">experiment_id</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="w">                </span><span class="c1"># EXP-xxx</span>
+<span class="w">  </span><span class="nt">experiment_id</span><span class="p">:</span><span class="w"> </span><span class="s">""</span><span class="w">                </span><span class="c1"># EXP-xxx</span>
 
 <span class="w">  </span><span class="c1"># Contexte technique</span>
-<span class="w">  </span><span class="nt">engine_version</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&quot;</span>
-<span class="w">  </span><span class="nt">git_commit</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&quot;</span>
+<span class="w">  </span><span class="nt">engine_version</span><span class="p">:</span><span class="w"> </span><span class="s">""</span>
+<span class="w">  </span><span class="nt">git_commit</span><span class="p">:</span><span class="w"> </span><span class="s">""</span>
 <span class="w">  </span><span class="nt">n_observations</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span>
 
 <span class="w">  </span><span class="c1"># Résultat statistique</span>
-<span class="w">  </span><span class="nt">status</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="w">                       </span><span class="c1"># Confirmed | Rejected | Inconclusive</span>
-<span class="w">  </span><span class="nt">evidence_level</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="w">               </span><span class="c1"># Weak | Moderate | Strong | VeryStrong (voir §6)</span>
+<span class="w">  </span><span class="nt">status</span><span class="p">:</span><span class="w"> </span><span class="s">""</span><span class="w">                       </span><span class="c1"># Confirmed | Rejected | Inconclusive</span>
+<span class="w">  </span><span class="nt">evidence_level</span><span class="p">:</span><span class="w"> </span><span class="s">""</span><span class="w">               </span><span class="c1"># Weak | Moderate | Strong | VeryStrong (voir §6)</span>
 <span class="w">  </span><span class="nt">test_statistic</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
 <span class="w">  </span><span class="nt">p_value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
 <span class="w">  </span><span class="nt">effect_size</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
 <span class="w">  </span><span class="nt">confidence_interval_95</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span><span class="w">     </span><span class="c1"># [lower, upper]</span>
-<span class="w">  </span><span class="nt">result_summary</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&quot;</span>
+<span class="w">  </span><span class="nt">result_summary</span><span class="p">:</span><span class="w"> </span><span class="s">""</span>
 </pre></div>
 </div>
 </section>

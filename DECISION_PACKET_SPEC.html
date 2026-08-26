@@ -279,7 +279,7 @@
     <span class="n">veto</span><span class="p">:</span> <span class="nb">bool</span>
     <span class="n">veto_reason</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
 
-    <span class="c1"># Machine d&#39;état</span>
+    <span class="c1"># Machine d'état</span>
     <span class="n">lifecycle_state</span><span class="p">:</span> <span class="n">DecisionState</span>
     <span class="n">state_history</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">StateTransition</span><span class="p">]</span>
 
@@ -302,7 +302,7 @@
 <h2>2. Graphe de transitions d’état<a class="headerlink" href="#graphe-de-transitions-detat" title="Link to this heading">¶</a></h2>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>CREATED → SIGNAL_GENERATED → CONTEXT_ENRICHED → [REGIME_VALIDATED] → RISK_EVALUATED → APPROVED → EXECUTION_PENDING → EXECUTED → MONITORED → CLOSED → POSTMORTEM_ANALYZED
 
-Branches terminales (depuis n&#39;importe quel état non-terminal) :
+Branches terminales (depuis n'importe quel état non-terminal) :
     REJECTED | EXPIRED | CANCELLED | FAILED | VETOED
 </pre></div>
 </div>

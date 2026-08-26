@@ -504,7 +504,7 @@ n’est jamais affectée.</p>
 </section>
 <section id="recovery-manuelle-safe-mode-ou-incident-prolonge">
 <h3>Recovery manuelle (SAFE_MODE ou incident prolongé)<a class="headerlink" href="#recovery-manuelle-safe-mode-ou-incident-prolonge" title="Link to this heading">¶</a></h3>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="mf">1.</span> <span class="n">Opérateur</span> <span class="n">identifie</span> <span class="n">et</span> <span class="n">résout</span> <span class="n">l</span><span class="s1">&#39;incident</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="mf">1.</span> <span class="n">Opérateur</span> <span class="n">identifie</span> <span class="n">et</span> <span class="n">résout</span> <span class="n">l</span><span class="s1">'incident</span>
 <span class="mf">2.</span> <span class="n">Appelle</span> <span class="n">force_recovery</span><span class="p">()</span> <span class="p">(</span><span class="n">via</span> <span class="n">CommandCenter</span> <span class="n">ou</span> <span class="n">CLI</span><span class="p">)</span>
 <span class="mf">3.</span> <span class="n">Observe</span> <span class="mi">60</span><span class="n">s</span> <span class="n">de</span> <span class="n">stabilité</span> <span class="p">(</span><span class="n">dashboard</span> <span class="n">RECOVERY</span><span class="p">)</span>
 <span class="mf">4.</span> <span class="n">Le</span> <span class="n">système</span> <span class="n">revient</span> <span class="n">à</span> <span class="n">NORMAL</span> <span class="n">automatiquement</span>
@@ -516,7 +516,7 @@ n’est jamais affectée.</p>
 <h3>Recovery partielle (DEGRADED prolongé)<a class="headerlink" href="#recovery-partielle-degraded-prolonge" title="Link to this heading">¶</a></h3>
 <p>Si le système reste en DEGRADED &gt; 10 minutes :</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>1. Vérifier fault_counts dans RuntimeStateMachine.snapshot()
-2. Identifier le composant fautif (ex: &quot;exchange_offline&quot; × 8)
+2. Identifier le composant fautif (ex: "exchange_offline" × 8)
 3. Résoudre le composant spécifique
 4. Les erreurs cessent naturellement → transition RECOVERY → NORMAL
 </pre></div>
@@ -570,12 +570,12 @@ En testnet, les seuils serrés permettent de valider les transitions plus rapide
 <h2>7. Métriques de surveillance<a class="headerlink" href="#metriques-de-surveillance" title="Link to this heading">¶</a></h2>
 <p>La state machine expose <code class="docutils literal notranslate"><span class="pre">snapshot()</span></code> à chaque tick :</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-    <span class="s2">&quot;state&quot;</span><span class="p">:</span> <span class="s2">&quot;DEGRADED&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;can_trade&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
-    <span class="s2">&quot;size_factor&quot;</span><span class="p">:</span> <span class="mf">0.5</span><span class="p">,</span>
-    <span class="s2">&quot;error_count_window&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>
-    <span class="s2">&quot;fault_counts&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;exchange_offline&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span> <span class="s2">&quot;ws_freeze&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">},</span>
-    <span class="s2">&quot;last_error_ago_s&quot;</span><span class="p">:</span> <span class="mf">12.3</span>
+    <span class="s2">"state"</span><span class="p">:</span> <span class="s2">"DEGRADED"</span><span class="p">,</span>
+    <span class="s2">"can_trade"</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="s2">"size_factor"</span><span class="p">:</span> <span class="mf">0.5</span><span class="p">,</span>
+    <span class="s2">"error_count_window"</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>
+    <span class="s2">"fault_counts"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"exchange_offline"</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span> <span class="s2">"ws_freeze"</span><span class="p">:</span> <span class="mi">1</span><span class="p">},</span>
+    <span class="s2">"last_error_ago_s"</span><span class="p">:</span> <span class="mf">12.3</span>
 <span class="p">}</span>
 </pre></div>
 </div>

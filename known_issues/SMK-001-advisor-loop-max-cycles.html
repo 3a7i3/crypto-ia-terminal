@@ -253,13 +253,13 @@ en production</p>
 </pre></div>
 </div>
 <p>Les deux tests appellent :</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">advisor_loop</span><span class="o">.</span><span class="n">main</span><span class="p">([</span><span class="s2">&quot;BTC/USDT&quot;</span><span class="p">],</span> <span class="n">interval</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">max_cycles</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">runtime</span><span class="o">=</span><span class="n">runtime</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">advisor_loop</span><span class="o">.</span><span class="n">main</span><span class="p">([</span><span class="s2">"BTC/USDT"</span><span class="p">],</span> <span class="n">interval</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">max_cycles</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">runtime</span><span class="o">=</span><span class="n">runtime</span><span class="p">)</span>
 <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">added_positions</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
 </pre></div>
 </div>
 <p>et échouent avec :</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="ne">AssertionError</span><span class="p">:</span> <span class="k">assert</span> <span class="mi">21</span> <span class="o">==</span> <span class="mi">1</span>
- <span class="n">where</span> <span class="mi">21</span> <span class="o">=</span> <span class="nb">len</span><span class="p">([</span><span class="n">namespace</span><span class="p">(</span><span class="n">order_id</span><span class="o">=</span><span class="s1">&#39;demo-order-1&#39;</span><span class="p">,</span> <span class="o">...</span><span class="p">),</span> <span class="o">...</span><span class="p">])</span>
+ <span class="n">where</span> <span class="mi">21</span> <span class="o">=</span> <span class="nb">len</span><span class="p">([</span><span class="n">namespace</span><span class="p">(</span><span class="n">order_id</span><span class="o">=</span><span class="s1">'demo-order-1'</span><span class="p">,</span> <span class="o">...</span><span class="p">),</span> <span class="o">...</span><span class="p">])</span>
 </pre></div>
 </div>
 <p><code class="docutils literal notranslate"><span class="pre">analyze_symbol()</span></code> (mocké dans le test) est donc appelé 21 fois au lieu d’une seule, alors qu’un

@@ -293,10 +293,10 @@
 <h2>2. Inventaire détaillé des occurrences safe_mode<a class="headerlink" href="#inventaire-detaille-des-occurrences-safe-mode" title="Link to this heading">¶</a></h2>
 <section id="system-state-machine-py-lignes-34-129">
 <h3>2.1 system/state_machine.py (lignes 34, 129)<a class="headerlink" href="#system-state-machine-py-lignes-34-129" title="Link to this heading">¶</a></h3>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_VALID_STATES</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;NORMAL&quot;</span><span class="p">,</span> <span class="s2">&quot;DEGRADED&quot;</span><span class="p">,</span> <span class="s2">&quot;HALTED&quot;</span><span class="p">,</span> <span class="s2">&quot;RECOVERY&quot;</span><span class="p">,</span> <span class="s2">&quot;SAFE_MODE&quot;</span><span class="p">}</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_VALID_STATES</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"NORMAL"</span><span class="p">,</span> <span class="s2">"DEGRADED"</span><span class="p">,</span> <span class="s2">"HALTED"</span><span class="p">,</span> <span class="s2">"RECOVERY"</span><span class="p">,</span> <span class="s2">"SAFE_MODE"</span><span class="p">}</span>
 <span class="c1"># ...</span>
-<span class="k">elif</span> <span class="n">new_state</span> <span class="o">==</span> <span class="s2">&quot;SAFE_MODE&quot;</span><span class="p">:</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">&quot;trading_enabled&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>  <span class="c1"># ligne 130</span>
+<span class="k">elif</span> <span class="n">new_state</span> <span class="o">==</span> <span class="s2">"SAFE_MODE"</span><span class="p">:</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">[</span><span class="s2">"trading_enabled"</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>  <span class="c1"># ligne 130</span>
 </pre></div>
 </div>
 <p><strong>Effet :</strong> <code class="docutils literal notranslate"><span class="pre">trading_enabled=False</span></code>, persiste dans <code class="docutils literal notranslate"><span class="pre">databases/system_state.json</span></code>. Pas de recovery automatique.</p>
@@ -304,7 +304,7 @@
 <section id="quant-hedge-ai-runtime-runtime-state-machine-py-lignes-39-161165-169173">
 <h3>2.2 quant_hedge_ai/runtime/runtime_state_machine.py (lignes 39, 161–165, 169–173)<a class="headerlink" href="#quant-hedge-ai-runtime-runtime-state-machine-py-lignes-39-161165-169173" title="Link to this heading">¶</a></h3>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">SystemState</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Enum</span><span class="p">):</span>
-    <span class="n">SAFE_MODE</span> <span class="o">=</span> <span class="s2">&quot;SAFE_MODE&quot;</span>  <span class="c1"># ligne 39</span>
+    <span class="n">SAFE_MODE</span> <span class="o">=</span> <span class="s2">"SAFE_MODE"</span>  <span class="c1"># ligne 39</span>
 
 <span class="c1"># Politique :</span>
 <span class="n">_POLICIES</span><span class="p">[</span><span class="n">SystemState</span><span class="o">.</span><span class="n">SAFE_MODE</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
@@ -324,7 +324,7 @@
 
 <span class="k">def</span><span class="w"> </span><span class="nf">apply_regret_delta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">delta</span><span class="p">):</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_safe_mode</span><span class="p">:</span>  <span class="c1"># ligne 489</span>
-        <span class="k">return</span>  <span class="c1"># ignore l&#39;ajustement</span>
+        <span class="k">return</span>  <span class="c1"># ignore l'ajustement</span>
 
 <span class="k">def</span><span class="w"> </span><span class="nf">set_transition_threshold</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_safe_mode</span><span class="p">:</span>  <span class="c1"># ligne 508</span>

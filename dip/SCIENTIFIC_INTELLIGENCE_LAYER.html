@@ -377,14 +377,14 @@ datasets, evidence, confiance et experiences recommandees.</p>
 conclusions scientifiques.</p>
 <p><strong>Sortie cible :</strong></p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">knowledge_edge</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">decision_id</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&lt;packet_id&gt;&quot;</span>
-<span class="w">  </span><span class="nt">root_cause_layer</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;meta_strategy&quot;</span>
-<span class="w">  </span><span class="nt">hypothesis_id</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;H3&quot;</span>
-<span class="w">  </span><span class="nt">dataset_uuid</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&lt;uuid&gt;&quot;</span>
-<span class="w">  </span><span class="nt">evidence_level</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Moderate&quot;</span>
+<span class="w">  </span><span class="nt">decision_id</span><span class="p">:</span><span class="w"> </span><span class="s">"&lt;packet_id&gt;"</span>
+<span class="w">  </span><span class="nt">root_cause_layer</span><span class="p">:</span><span class="w"> </span><span class="s">"meta_strategy"</span>
+<span class="w">  </span><span class="nt">hypothesis_id</span><span class="p">:</span><span class="w"> </span><span class="s">"H3"</span>
+<span class="w">  </span><span class="nt">dataset_uuid</span><span class="p">:</span><span class="w"> </span><span class="s">"&lt;uuid&gt;"</span>
+<span class="w">  </span><span class="nt">evidence_level</span><span class="p">:</span><span class="w"> </span><span class="s">"Moderate"</span>
 <span class="w">  </span><span class="nt">confidence</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.71</span>
-<span class="w">  </span><span class="nt">conclusion_id</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;SC-2026-0001&quot;</span>
-<span class="w">  </span><span class="nt">recommended_experiment</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;EXP-002&quot;</span>
+<span class="w">  </span><span class="nt">conclusion_id</span><span class="p">:</span><span class="w"> </span><span class="s">"SC-2026-0001"</span>
+<span class="w">  </span><span class="nt">recommended_experiment</span><span class="p">:</span><span class="w"> </span><span class="s">"EXP-002"</span>
 </pre></div>
 </div>
 </section>
@@ -393,11 +393,11 @@ conclusions scientifiques.</p>
 <p><strong>But :</strong> transformer les motifs repetes en memoire causale.</p>
 <p>Exemple de connaissance cible :</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">causal_memory</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">pattern</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;SELL</span><span class="nv"> </span><span class="s">+</span><span class="nv"> </span><span class="s">bear_trend</span><span class="nv"> </span><span class="s">+</span><span class="nv"> </span><span class="s">ATR&gt;2</span><span class="nv"> </span><span class="s">+</span><span class="nv"> </span><span class="s">score&gt;78&quot;</span>
-<span class="w">  </span><span class="nt">window</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;8w&quot;</span>
+<span class="w">  </span><span class="nt">pattern</span><span class="p">:</span><span class="w"> </span><span class="s">"SELL</span><span class="nv"> </span><span class="s">+</span><span class="nv"> </span><span class="s">bear_trend</span><span class="nv"> </span><span class="s">+</span><span class="nv"> </span><span class="s">ATR&gt;2</span><span class="nv"> </span><span class="s">+</span><span class="nv"> </span><span class="s">score&gt;78"</span>
+<span class="w">  </span><span class="nt">window</span><span class="p">:</span><span class="w"> </span><span class="s">"8w"</span>
 <span class="w">  </span><span class="nt">refusals_pct</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.74</span>
-<span class="w">  </span><span class="nt">regret_class</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;MISSED_WIN&quot;</span>
-<span class="w">  </span><span class="nt">evidence</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Strong&quot;</span>
+<span class="w">  </span><span class="nt">regret_class</span><span class="p">:</span><span class="w"> </span><span class="s">"MISSED_WIN"</span>
+<span class="w">  </span><span class="nt">evidence</span><span class="p">:</span><span class="w"> </span><span class="s">"Strong"</span>
 <span class="w">  </span><span class="nt">n</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">160</span>
 </pre></div>
 </div>
@@ -449,9 +449,9 @@ ensemble dans le cadre d’une recommandation.</p>
 <p>Sortie cible :</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">scientific_contradiction</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">pair</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">H1</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">H3</span><span class="p p-Indicator">]</span>
-<span class="w">  </span><span class="nt">severity</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;BLOCKING&quot;</span>
-<span class="w">  </span><span class="nt">reason</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;H3</span><span class="nv"> </span><span class="s">Rejected</span><span class="nv"> </span><span class="s">invalide</span><span class="nv"> </span><span class="s">une</span><span class="nv"> </span><span class="s">recommandation</span><span class="nv"> </span><span class="s">de</span><span class="nv"> </span><span class="s">seuil</span><span class="nv"> </span><span class="s">fondee</span><span class="nv"> </span><span class="s">sur</span><span class="nv"> </span><span class="s">H1&quot;</span>
-<span class="w">  </span><span class="nt">required_action</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;ouvrir</span><span class="nv"> </span><span class="s">une</span><span class="nv"> </span><span class="s">experience</span><span class="nv"> </span><span class="s">de</span><span class="nv"> </span><span class="s">resolution&quot;</span>
+<span class="w">  </span><span class="nt">severity</span><span class="p">:</span><span class="w"> </span><span class="s">"BLOCKING"</span>
+<span class="w">  </span><span class="nt">reason</span><span class="p">:</span><span class="w"> </span><span class="s">"H3</span><span class="nv"> </span><span class="s">Rejected</span><span class="nv"> </span><span class="s">invalide</span><span class="nv"> </span><span class="s">une</span><span class="nv"> </span><span class="s">recommandation</span><span class="nv"> </span><span class="s">de</span><span class="nv"> </span><span class="s">seuil</span><span class="nv"> </span><span class="s">fondee</span><span class="nv"> </span><span class="s">sur</span><span class="nv"> </span><span class="s">H1"</span>
+<span class="w">  </span><span class="nt">required_action</span><span class="p">:</span><span class="w"> </span><span class="s">"ouvrir</span><span class="nv"> </span><span class="s">une</span><span class="nv"> </span><span class="s">experience</span><span class="nv"> </span><span class="s">de</span><span class="nv"> </span><span class="s">resolution"</span>
 </pre></div>
 </div>
 </section>
@@ -509,14 +509,14 @@ ensemble dans le cadre d’une recommandation.</p>
 familles de decisions.</p>
 <p>Genome cible :</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">decision_dna</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">packet_id</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&lt;packet_id&gt;&quot;</span>
-<span class="w">  </span><span class="nt">layer_sequence</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;authority&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;meta_strategy&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;gate&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;...&quot;</span><span class="p p-Indicator">]</span>
+<span class="w">  </span><span class="nt">packet_id</span><span class="p">:</span><span class="w"> </span><span class="s">"&lt;packet_id&gt;"</span>
+<span class="w">  </span><span class="nt">layer_sequence</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">"authority"</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">"meta_strategy"</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">"gate"</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">"..."</span><span class="p p-Indicator">]</span>
 <span class="w">  </span><span class="nt">conviction</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.75</span>
-<span class="w">  </span><span class="nt">memory_signature</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;mistake_memory:none&quot;</span>
-<span class="w">  </span><span class="nt">risk_signature</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;portfolio:ok;capital:10usd&quot;</span>
-<span class="w">  </span><span class="nt">personality</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;momentum&quot;</span>
-<span class="w">  </span><span class="nt">outcome</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;REJECTED&quot;</span>
-<span class="w">  </span><span class="nt">regret_class</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;MISSED_WIN&quot;</span>
+<span class="w">  </span><span class="nt">memory_signature</span><span class="p">:</span><span class="w"> </span><span class="s">"mistake_memory:none"</span>
+<span class="w">  </span><span class="nt">risk_signature</span><span class="p">:</span><span class="w"> </span><span class="s">"portfolio:ok;capital:10usd"</span>
+<span class="w">  </span><span class="nt">personality</span><span class="p">:</span><span class="w"> </span><span class="s">"momentum"</span>
+<span class="w">  </span><span class="nt">outcome</span><span class="p">:</span><span class="w"> </span><span class="s">"REJECTED"</span>
+<span class="w">  </span><span class="nt">regret_class</span><span class="p">:</span><span class="w"> </span><span class="s">"MISSED_WIN"</span>
 <span class="w">  </span><span class="nt">evidence_contribution</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.03</span>
 </pre></div>
 </div>

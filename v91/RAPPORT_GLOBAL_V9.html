@@ -464,9 +464,9 @@ docker<span class="w"> </span>compose<span class="w"> </span>up<span class="w"> 
 <span class="n">Best</span><span class="p">:</span> <span class="n">RSI</span><span class="o">-&gt;</span><span class="n">ATR</span> <span class="n">p</span><span class="o">=</span><span class="mi">69</span> <span class="n">sharpe</span><span class="o">=</span><span class="mf">14.85</span> <span class="n">dd</span><span class="o">=</span><span class="mf">0.0185</span>
 <span class="n">Perf</span><span class="p">:</span> <span class="n">sharpe</span><span class="o">=</span><span class="mf">11.5779</span> <span class="n">dd</span><span class="o">=</span><span class="mf">0.0259</span> <span class="n">pnl</span><span class="o">=</span><span class="mf">45.7907</span>
 <span class="n">Model</span><span class="p">:</span> <span class="n">v1</span> <span class="n">score</span><span class="o">=</span><span class="mf">12.5654</span>
-<span class="n">Portfolio</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;RSI_ATR_69&#39;</span><span class="p">:</span> <span class="mf">0.1523</span><span class="p">,</span> <span class="s1">&#39;ATR_MACD_77&#39;</span><span class="p">:</span> <span class="mf">0.0767</span><span class="p">,</span> <span class="o">...</span><span class="p">}</span>
-<span class="n">MonteCarlo</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;median_terminal&#39;</span><span class="p">:</span> <span class="mf">0.7773</span><span class="p">,</span> <span class="s1">&#39;p05_terminal&#39;</span><span class="p">:</span> <span class="mf">0.1474</span><span class="p">,</span> <span class="s1">&#39;p95_terminal&#39;</span><span class="p">:</span> <span class="mf">4.2707</span><span class="p">}</span>
-<span class="n">Paper</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;balance&#39;</span><span class="p">:</span> <span class="mf">95520.1</span><span class="p">,</span> <span class="s1">&#39;positions&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;BTCUSDT&#39;</span><span class="p">:</span> <span class="mf">0.9537</span><span class="p">}}</span>
+<span class="n">Portfolio</span><span class="p">:</span> <span class="p">{</span><span class="s1">'RSI_ATR_69'</span><span class="p">:</span> <span class="mf">0.1523</span><span class="p">,</span> <span class="s1">'ATR_MACD_77'</span><span class="p">:</span> <span class="mf">0.0767</span><span class="p">,</span> <span class="o">...</span><span class="p">}</span>
+<span class="n">MonteCarlo</span><span class="p">:</span> <span class="p">{</span><span class="s1">'median_terminal'</span><span class="p">:</span> <span class="mf">0.7773</span><span class="p">,</span> <span class="s1">'p05_terminal'</span><span class="p">:</span> <span class="mf">0.1474</span><span class="p">,</span> <span class="s1">'p95_terminal'</span><span class="p">:</span> <span class="mf">4.2707</span><span class="p">}</span>
+<span class="n">Paper</span><span class="p">:</span> <span class="p">{</span><span class="s1">'balance'</span><span class="p">:</span> <span class="mf">95520.1</span><span class="p">,</span> <span class="s1">'positions'</span><span class="p">:</span> <span class="p">{</span><span class="s1">'BTCUSDT'</span><span class="p">:</span> <span class="mf">0.9537</span><span class="p">}}</span>
 </pre></div>
 </div>
 </section>
@@ -480,13 +480,13 @@ docker<span class="w"> </span>compose<span class="w"> </span>up<span class="w"> 
 <span class="n">python</span> <span class="n">main_system</span><span class="p">.</span><span class="n">py</span>
 
 <span class="c"># Option 2: Boucle infinie</span>
-<span class="nv">$env:V9_MAX_CYCLES</span><span class="p">=</span><span class="s2">&quot;0&quot;</span>
+<span class="nv">$env:V9_MAX_CYCLES</span><span class="p">=</span><span class="s2">"0"</span>
 <span class="n">python</span> <span class="n">main_system</span><span class="p">.</span><span class="n">py</span>
 
 <span class="c"># Option 3: Custom</span>
-<span class="nv">$env:V9_MAX_CYCLES</span><span class="p">=</span><span class="s2">&quot;10&quot;</span>
-<span class="nv">$env:V9_POPULATION</span><span class="p">=</span><span class="s2">&quot;500&quot;</span>
-<span class="nv">$env:V9_SLEEP_SECONDS</span><span class="p">=</span><span class="s2">&quot;1&quot;</span>
+<span class="nv">$env:V9_MAX_CYCLES</span><span class="p">=</span><span class="s2">"10"</span>
+<span class="nv">$env:V9_POPULATION</span><span class="p">=</span><span class="s2">"500"</span>
+<span class="nv">$env:V9_SLEEP_SECONDS</span><span class="p">=</span><span class="s2">"1"</span>
 <span class="n">python</span> <span class="n">main_system</span><span class="p">.</span><span class="n">py</span>
 </pre></div>
 </div>

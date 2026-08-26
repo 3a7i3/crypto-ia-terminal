@@ -453,8 +453,8 @@ Version schéma Anara : 1.1 (25 modules, 6 layers)</p>
 <strong>Layout :</strong> <code class="docutils literal notranslate"><span class="pre">wide</span></code>, sidebar collapsed</p>
 <section id="structure-actuelle">
 <h4>Structure actuelle<a class="headerlink" href="#structure-actuelle" title="Link to this heading">¶</a></h4>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>[TITRE] &quot;Crypto AI — Dashboard Hub&quot;
-[subtitle] &quot;Lancez et accédez à tous les dashboards depuis un seul endroit.&quot;
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>[TITRE] "Crypto AI — Dashboard Hub"
+[subtitle] "Lancez et accédez à tous les dashboards depuis un seul endroit."
 [divider]
 
 [GRILLE 2 colonnes] — 10 cartes dashboard
@@ -468,7 +468,7 @@ Version schéma Anara : 1.1 (25 modules, 6 layers)</p>
     [btn Lancer/Arrêter] [btn Ouvrir] [● En cours / ○ Arrêté]
 
 [divider]
-[footer] &quot;N dashboard(s) actif(s) — Ce hub tourne sur le port 8500...&quot;
+[footer] "N dashboard(s) actif(s) — Ce hub tourne sur le port 8500..."
 </pre></div>
 </div>
 </section>
@@ -545,8 +545,8 @@ Version schéma Anara : 1.1 (25 modules, 6 layers)</p>
 <section id="id1">
 <h4>Structure actuelle<a class="headerlink" href="#id1" title="Link to this heading">¶</a></h4>
 <p><strong>Header (fixe)</strong></p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>[col 5/6] &quot;## Crypto AI — Master Dashboard&quot;
-[col 1/6] [small &quot;auto 20s&quot;] [btn ↻ Rafraîchir]
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>[col 5/6] "## Crypto AI — Master Dashboard"
+[col 1/6] [small "auto 20s"] [btn ↻ Rafraîchir]
 [divider]
 </pre></div>
 </div>
@@ -562,32 +562,32 @@ Version schéma Anara : 1.1 (25 modules, 6 layers)</p>
 [ROW 4 métriques]
   Symboles analysés  |  Signaux actionnables  |  Trades exécutés  |  Refusés
 
-[caption] &quot;Dernière mise à jour : ... | Cycle #...&quot;
+[caption] "Dernière mise à jour : ... | Cycle #..."
 [Exchange status] texte coloré inline
 
 [2 colonnes]
-  Gauche : table &quot;Couches de refus — cycle courant&quot; (Couche | Refus)
-  Droite : table &quot;Régimes détectés ce cycle&quot; (Régime | Symboles)
+  Gauche : table "Couches de refus — cycle courant" (Couche | Refus)
+  Droite : table "Régimes détectés ce cycle" (Régime | Symboles)
 
 [divider]
-[titre] &quot;Modules système&quot;
+[titre] "Modules système"
 [GRILLE 4 colonnes — 18 modules]
   Chaque module : card avec border-left coloré + tag OK/absent/vide
 
 [divider]
 [2 colonnes]
-  Gauche : line_chart &quot;Capital (150 derniers cycles)&quot; height=175
-  Droite : line_chart &quot;Durée cycle ms&quot; height=175
+  Gauche : line_chart "Capital (150 derniers cycles)" height=175
+  Droite : line_chart "Durée cycle ms" height=175
 
-[si non-compact] bar_chart &quot;Refus cumulés par couche&quot; height=190
+[si non-compact] bar_chart "Refus cumulés par couche" height=190
 </pre></div>
 </div>
 <hr class="docutils" />
 <p><strong>TAB 2 — Marchés Live</strong></p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>[titre] &quot;Signaux live — Cycle #...&quot;
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>[titre] "Signaux live — Cycle #..."
 [dataframe] tableau principal (Symbole | State | Prix | Score | Conviction | Régime | RSI | BB% | ATR% | MACD | EMA | Squeeze | Gate | Trade)
 
-[titre] &quot;Détail par symbole&quot;
+[titre] "Détail par symbole"
 
 [MODE COMPACT] 3 colonnes : badge state + progress bar par symbole
 
@@ -597,7 +597,7 @@ Version schéma Anara : 1.1 (25 modules, 6 layers)</p>
   [progress bar 0-100]
 
 [divider]
-[expander] &quot;◎ Mini graphe live — Score / PnL / Exposition&quot;
+[expander] "◎ Mini graphe live — Score / PnL / Exposition"
   Radio : Score signal | PnL cumulé | Exposition
   → line_chart height=160
 </pre></div>
@@ -605,31 +605,31 @@ Version schéma Anara : 1.1 (25 modules, 6 layers)</p>
 <hr class="docutils" />
 <p><strong>TAB 3 — Analyse Décisions</strong></p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>[verdict bar] texte coloré selon état
-[caption] &quot;N décisions · K cycles · dernier cycle...&quot;
+[caption] "N décisions · K cycles · dernier cycle..."
 
 [ROW 5 métriques]
   Total décisions | HOLD (%) | Trades exécutés | Positions fermées | Refus explicites
 
 [divider]
-[bar_chart] &quot;Distribution des scores de signal&quot; height=190
-[caption] &quot;Moyenne X · Max Y · Min Z&quot;
+[bar_chart] "Distribution des scores de signal" height=190
+[caption] "Moyenne X · Max Y · Min Z"
 
 [2 colonnes]
-  Gauche : table &quot;Régimes&quot; (Régime | Count)
-  Droite : table &quot;Conviction · Personnalité&quot; (Type | Valeur | Count)
+  Gauche : table "Régimes" (Régime | Count)
+  Droite : table "Conviction · Personnalité" (Type | Valeur | Count)
 
 [si non-compact]
-  [line_chart] &quot;Évolution du score par cycle&quot; height=210
+  [line_chart] "Évolution du score par cycle" height=210
   [caption] seuil mental à 70
 
 [divider]
-[table] &quot;Raisons de refus — top modules&quot; (Raison | Occurrences)
+[table] "Raisons de refus — top modules" (Raison | Occurrences)
 
 [si non-compact]
-  [table] &quot;Modules qui valident (passed_by)&quot; (Module | Validations)
+  [table] "Modules qui valident (passed_by)" (Module | Validations)
 
 [divider]
-[titre] &quot;Cohérence Signal → Résultat (post-mortem automatique)&quot;
+[titre] "Cohérence Signal → Résultat (post-mortem automatique)"
 
 [ROW 5 métriques]
   Trades analysés | VALIDATED % | LUCKY % | UNLUCKY % | MISTAKE %
@@ -639,30 +639,30 @@ Version schéma Anara : 1.1 (25 modules, 6 layers)</p>
 [2 métriques]
   Win rate score ≥ 70 | Win rate score &lt; 70
 
-[expander] &quot;Détail trade par trade&quot; → dataframe
+[expander] "Détail trade par trade" → dataframe
 
 [divider]
-[table] &quot;50 dernières décisions&quot; (Heure | Symbole | Décision | Score | Régime | Conviction | Prix | Raison)
+[table] "50 dernières décisions" (Heure | Symbole | Décision | Score | Régime | Conviction | Prix | Raison)
 </pre></div>
 </div>
 <hr class="docutils" />
 <p><strong>TAB 4 — Positions</strong></p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>[titre] &quot;Positions ouvertes&quot;
-[dataframe] brut des positions snapshot | ou info &quot;Aucune position ouverte&quot;
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>[titre] "Positions ouvertes"
+[dataframe] brut des positions snapshot | ou info "Aucune position ouverte"
 
 [divider]
-[titre] &quot;Historique des positions fermées&quot;
+[titre] "Historique des positions fermées"
 [dataframe] 100 derniers exits (Symbole | Résultat | PnL% | PnL$ | Régime | Conviction | Direction | Entrée | Sortie | Durée | Raison sortie | Paper | Date)
 
 [divider]
-[titre] &quot;Performance globale&quot;
+[titre] "Performance globale"
 [ROW 6 métriques]
   Total trades | Win Rate | PnL total | PnL moyen/trade | Meilleur trade | Pire trade
 
-[titre] &quot;PnL cumulé ($)&quot;
+[titre] "PnL cumulé ($)"
 [line_chart] height=175
 
-[si non-compact] table &quot;Raisons de sortie&quot; (Raison | Count)
+[si non-compact] table "Raisons de sortie" (Raison | Count)
 </pre></div>
 </div>
 </section>
@@ -679,11 +679,11 @@ Version schéma Anara : 1.1 (25 modules, 6 layers)</p>
 <section id="sidebar">
 <h4>Sidebar<a class="headerlink" href="#sidebar" title="Link to this heading">¶</a></h4>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>⚙️ Paramètres
-  slider &quot;Shadow trades affichés&quot; (10-200, défaut 50)
-  slider &quot;Lignes de log&quot; (50-500, défaut 200)
-  checkbox &quot;Afficher log brut&quot;
+  slider "Shadow trades affichés" (10-200, défaut 50)
+  slider "Lignes de log" (50-500, défaut 200)
+  checkbox "Afficher log brut"
   [divider]
-  &quot;Commandes Telegram&quot; : /STATUS /SAFE_MODE /RESUME /STOP_ALL /CLOSE_ALL
+  "Commandes Telegram" : /STATUS /SAFE_MODE /RESUME /STOP_ALL /CLOSE_ALL
   [divider]
   [btn 🔄 Actualiser maintenant]
 </pre></div>
@@ -691,8 +691,8 @@ Version schéma Anara : 1.1 (25 modules, 6 layers)</p>
 </section>
 <section id="corps-vertical-pas-de-tabs">
 <h4>Corps (vertical, pas de tabs)<a class="headerlink" href="#corps-vertical-pas-de-tabs" title="Link to this heading">¶</a></h4>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>[TITRE] &quot;📊 Crypto AI Terminal — Risk Dashboard&quot;
-[caption] &quot;Actualisation automatique toutes les 15s | Mode: ADVISOR ONLY&quot;
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>[TITRE] "📊 Crypto AI Terminal — Risk Dashboard"
+[caption] "Actualisation automatique toutes les 15s | Mode: ADVISOR ONLY"
 
 [ROW 1 — 4 métriques]
   ✅/❌ Exchange Binance (latence ms)
@@ -702,7 +702,7 @@ Version schéma Anara : 1.1 (25 modules, 6 layers)</p>
 
 [divider]
 [ROW 2 — Signaux par symbole]
-  &quot;Signaux actifs par symbole&quot;
+  "Signaux actifs par symbole"
   [N colonnes = N symboles] par symbole :
     Nom symbole
     Prix $...
@@ -712,30 +712,30 @@ Version schéma Anara : 1.1 (25 modules, 6 layers)</p>
 
 [divider]
 [ROW 3 — Graphique historique]
-  &quot;Historique des scores (derniers cycles)&quot;
-  [line_chart] pivot par symbole, index=timestamp, width=&quot;stretch&quot;
-  caption &quot;Seuils: 70+ actionable | 50-69 surveiller | &lt;50 pas d&#39;action&quot;
+  "Historique des scores (derniers cycles)"
+  [line_chart] pivot par symbole, index=timestamp, width="stretch"
+  caption "Seuils: 70+ actionable | 50-69 surveiller | &lt;50 pas d'action"
 
 [divider]
 [ROW 4 — Shadow trades]
-  &quot;🧪 Shadow Trades simulés&quot;
+  "🧪 Shadow Trades simulés"
   [dataframe] 20 derniers shadow trades
   [3 métriques] Slippage moyen | Slippage max | Latence moyenne
 
 [divider]
 [ROW 5 — Journal ordres]
-  &quot;📋 Journal des ordres&quot;
+  "📋 Journal des ordres"
   [dataframe] ou info message
 
 [divider]
 [ROW 6 — Trade Replay — expander]
-  &quot;🔁 Trade Replay&quot;
-  Sous-expander 1 : &quot;Rejouer un trade par ID&quot; → text_input + btn Rejouer
-  Sous-expander 2 : &quot;Recherche dans les shadow trades&quot; → 3 selectbox + slider + btn
+  "🔁 Trade Replay"
+  Sous-expander 1 : "Rejouer un trade par ID" → text_input + btn Rejouer
+  Sous-expander 2 : "Recherche dans les shadow trades" → 3 selectbox + slider + btn
 
 [divider]
 [ROW 7 — Confidence Score — expander ouvert]
-  &quot;🔍 Analyse de confiance par symbole&quot;
+  "🔍 Analyse de confiance par symbole"
   selectbox symbole
   3 métriques : Score global | Signal | Régime
   progress bar score
@@ -745,15 +745,15 @@ Version schéma Anara : 1.1 (25 modules, 6 layers)</p>
 
 [divider]
 [ROW 8 — Monte Carlo — expander fermé]
-  &quot;🎲 Monte Carlo Stress Test&quot;
+  "🎲 Monte Carlo Stress Test"
   3 cols de paramètres : Capital, win rate, gains, pertes, chemins, trades, position%
-  checkbox &quot;Calibrer depuis shadow trades&quot;
+  checkbox "Calibrer depuis shadow trades"
   [btn Lancer] → tableau scenarios + verdict + bar_chart survie
 
 [si show_raw_log]
-  &quot;📄 Log brut&quot; avec coloration ERROR/WARNING/SIGNAL ACTIONABLE
+  "📄 Log brut" avec coloration ERROR/WARNING/SIGNAL ACTIONABLE
 
-[caption] &quot;Dernière actualisation: HH:MM:SS&quot;
+[caption] "Dernière actualisation: HH:MM:SS"
 </pre></div>
 </div>
 </section>
@@ -768,24 +768,24 @@ Version schéma Anara : 1.1 (25 modules, 6 layers)</p>
 <h4>Sidebar<a class="headerlink" href="#id2" title="Link to this heading">¶</a></h4>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">## 🧠 Decision Trace</span>
 <span class="o">---</span>
-<span class="n">checkbox</span> <span class="s2">&quot;Auto-refresh (5s)&quot;</span>
-<span class="n">selectbox</span> <span class="s2">&quot;Date (UTC)&quot;</span> <span class="p">[</span><span class="n">rotation</span> <span class="n">fichiers</span> <span class="n">datés</span><span class="p">]</span>
-<span class="n">caption</span> <span class="s2">&quot;Source : chemin/fichier&quot;</span>
-<span class="s2">&quot;N packets chargés&quot;</span>
+<span class="n">checkbox</span> <span class="s2">"Auto-refresh (5s)"</span>
+<span class="n">selectbox</span> <span class="s2">"Date (UTC)"</span> <span class="p">[</span><span class="n">rotation</span> <span class="n">fichiers</span> <span class="n">datés</span><span class="p">]</span>
+<span class="n">caption</span> <span class="s2">"Source : chemin/fichier"</span>
+<span class="s2">"N packets chargés"</span>
 
 <span class="c1">### Filtres</span>
-<span class="n">selectbox</span> <span class="s2">&quot;Symbole&quot;</span> <span class="p">[</span><span class="n">Tous</span> <span class="o">+</span> <span class="n">liste</span><span class="p">]</span>
-<span class="n">selectbox</span> <span class="s2">&quot;État final&quot;</span> <span class="p">[</span><span class="n">Tous</span> <span class="o">+</span> <span class="n">liste</span><span class="p">]</span>
-<span class="s2">&quot;N packets filtrés&quot;</span>
+<span class="n">selectbox</span> <span class="s2">"Symbole"</span> <span class="p">[</span><span class="n">Tous</span> <span class="o">+</span> <span class="n">liste</span><span class="p">]</span>
+<span class="n">selectbox</span> <span class="s2">"État final"</span> <span class="p">[</span><span class="n">Tous</span> <span class="o">+</span> <span class="n">liste</span><span class="p">]</span>
+<span class="s2">"N packets filtrés"</span>
 
 <span class="c1">### Packet sélectionné</span>
-<span class="n">selectbox</span> <span class="s2">&quot;Packet&quot;</span> <span class="p">[</span><span class="n">liste</span> <span class="n">timestamps</span> <span class="o">+</span> <span class="n">symbole</span> <span class="o">+</span> <span class="n">side</span> <span class="o">+</span> <span class="n">état</span><span class="p">]</span>
+<span class="n">selectbox</span> <span class="s2">"Packet"</span> <span class="p">[</span><span class="n">liste</span> <span class="n">timestamps</span> <span class="o">+</span> <span class="n">symbole</span> <span class="o">+</span> <span class="n">side</span> <span class="o">+</span> <span class="n">état</span><span class="p">]</span>
 </pre></div>
 </div>
 </section>
 <section id="corps">
 <h4>Corps<a class="headerlink" href="#corps" title="Link to this heading">¶</a></h4>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>[TITRE] &quot;# Decision Trace&quot;
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>[TITRE] "# Decision Trace"
 
 [ROW 5 métriques]
   Packets | Rejetés % | Approuvés % | Exécutés | Conf. moy.
@@ -801,7 +801,7 @@ Version schéma Anara : 1.1 (25 modules, 6 layers)</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>[2 colonnes 1:2]
 
 Colonne gauche (méta) :
-  section-header &quot;Identité&quot;
+  section-header "Identité"
   Packet [id tronqué à 16 chars]
   Symbole — side
   Régime
@@ -810,12 +810,12 @@ Colonne gauche (méta) :
   Confiance finale X/100
 
   [si features pb_*]
-    section-header &quot;Portfolio&quot;
+    section-header "Portfolio"
     3 métriques : Exposition % | Corrélation | Concentration %
     Metric : Size factor ×N
 
 Colonne droite (lifecycle) :
-  section-header &quot;Lifecycle&quot;
+  section-header "Lifecycle"
   [liste de transitions]
     [badge état coloré] by [acteur] — [durée] — conf X→Y (+Z)
     ↳ [raison tronquée à 120 chars]
@@ -837,12 +837,12 @@ Colonne droite (lifecycle) :
 </div>
 <hr class="docutils" />
 <p><strong>TAB 3 — Reasoning Feed</strong></p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>[section-header] &quot;N packets · N entrées&quot;
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>[section-header] "N packets · N entrées"
 
 [3 colonnes filtres]
-  multiselect &quot;Actor&quot;
-  multiselect &quot;Category&quot;
-  multiselect &quot;Severity&quot; [INFO/WARNING/CRITICAL/FATAL]
+  multiselect "Actor"
+  multiselect "Category"
+  multiselect "Severity" [INFO/WARNING/CRITICAL/FATAL]
 
 [feed vertical] par entrée :
   border-left: 3px solid &lt;severity_color&gt;
@@ -853,12 +853,12 @@ Colonne droite (lifecycle) :
 </div>
 <hr class="docutils" />
 <p><strong>TAB 4 — Rejets</strong></p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[</span><span class="n">section</span><span class="o">-</span><span class="n">header</span><span class="p">]</span> <span class="s2">&quot;Signaux rejetés — opportunités manquées potentielles&quot;</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[</span><span class="n">section</span><span class="o">-</span><span class="n">header</span><span class="p">]</span> <span class="s2">"Signaux rejetés — opportunités manquées potentielles"</span>
 
 <span class="p">[</span><span class="n">dataframe</span><span class="p">]</span> <span class="n">height</span><span class="o">=</span><span class="mi">400</span> <span class="p">(</span><span class="n">Timestamp</span> <span class="o">|</span> <span class="n">Symbole</span> <span class="o">|</span> <span class="n">Side</span> <span class="o">|</span> <span class="n">Régime</span> <span class="o">|</span> <span class="n">Conf</span> <span class="n">finale</span> <span class="o">|</span> <span class="n">Conviction</span> <span class="o">|</span> <span class="n">Rejeté</span> <span class="n">par</span> <span class="o">|</span> <span class="n">Raison</span> <span class="o">|</span> <span class="n">État</span><span class="p">)</span>
 
 <span class="p">[</span><span class="n">si</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="n">rejet</span><span class="p">]</span>
-  <span class="p">[</span><span class="n">section</span><span class="o">-</span><span class="n">header</span><span class="p">]</span> <span class="s2">&quot;Distribution des rejets par acteur&quot;</span>
+  <span class="p">[</span><span class="n">section</span><span class="o">-</span><span class="n">header</span><span class="p">]</span> <span class="s2">"Distribution des rejets par acteur"</span>
   <span class="p">[</span><span class="n">Plotly</span> <span class="n">Bar</span><span class="p">]</span>
     <span class="n">color</span> <span class="o">=</span> <span class="c1">#ef4444</span>
     <span class="n">text</span> <span class="n">outside</span>
@@ -868,7 +868,7 @@ Colonne droite (lifecycle) :
 </div>
 <hr class="docutils" />
 <p><strong>TAB 5 — Sovereignty</strong></p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>[section-header] &quot;Hiérarchie institutionnelle des autorités&quot;
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>[section-header] "Hiérarchie institutionnelle des autorités"
 
 [liste verticale — 8 agents]
   display:flex | bg: #0e1117 | radius: 6px | border-left: 3px solid &lt;auth_color&gt;
@@ -884,10 +884,10 @@ Couleurs autorités :
   capital_authority    #ff4455
   veto_authority       #ff0033
 
-[section-header] &quot;Séparations institutionnelles critiques&quot;
+[section-header] "Séparations institutionnelles critiques"
 [5 items] border-left:#334455 | titre #00e0ff | desc #667788
 
-[section-header] &quot;Exercice réel de souveraineté&quot;
+[section-header] "Exercice réel de souveraineté"
 [dataframe] Actor | Rejets souverains
 </pre></div>
 </div>
@@ -901,11 +901,11 @@ Couleurs autorités :
 <strong>Layout :</strong> <code class="docutils literal notranslate"><span class="pre">wide</span></code>, sidebar collapsed</p>
 <section id="header">
 <h4>Header<a class="headerlink" href="#header" title="Link to this heading">¶</a></h4>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">&lt;</span><span class="n">h2</span><span class="o">&gt;</span> <span class="s2">&quot;⚙️ Execution Health&quot;</span>
-<span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="s2">&quot;P2 Operational — validation · rate limiter · simulation · audit&quot;</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">&lt;</span><span class="n">h2</span><span class="o">&gt;</span> <span class="s2">"⚙️ Execution Health"</span>
+<span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>  <span class="s2">"P2 Operational — validation · rate limiter · simulation · audit"</span>
 
 <span class="p">[</span><span class="n">col</span> <span class="mi">8</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span>
-  <span class="n">col</span> <span class="n">droite</span> <span class="p">:</span> <span class="n">caption</span> <span class="s2">&quot;Auto-refresh 20s&quot;</span> <span class="o">+</span> <span class="n">btn</span> <span class="s2">&quot;↻ Refresh&quot;</span>
+  <span class="n">col</span> <span class="n">droite</span> <span class="p">:</span> <span class="n">caption</span> <span class="s2">"Auto-refresh 20s"</span> <span class="o">+</span> <span class="n">btn</span> <span class="s2">"↻ Refresh"</span>
 
 <span class="p">[</span><span class="n">divider</span><span class="p">]</span>
 </pre></div>
@@ -920,21 +920,21 @@ Couleurs autorités :
 <p><strong>TAB 1 — Audit P2 Live</strong></p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>[si vide]
   card centrée bg=#1e293b border=#334155 radius=8px padding=32px :
-    &quot;⏳&quot; (2rem)
-    &quot;En attente de données live&quot; (1rem)
+    "⏳" (2rem)
+    "En attente de données live" (1rem)
     explication fichier audit.jsonl
-    &quot;Lancer : python advisor_loop.py&quot;
+    "Lancer : python advisor_loop.py"
 
 [si données]
   [ROW 5 métriques]
     Ordres tentés | Validés (-rejetés) | Rejection rate | Slippage moyen bps | Latence simulée ms
 
-  [texte] &quot;Fees totaux simulés : $X.XXXX USD sur N ordres&quot;
+  [texte] "Fees totaux simulés : $X.XXXX USD sur N ordres"
   [divider]
   [dataframe] 200 derniers audits (Heure UTC | Symbole | Side | Size USD | Prix | Validé ✅❌ | Slippage bps | Latence ms | Fee USD | Partial ⚠)
 
   [si données slippage]
-    [bar_chart] &quot;Distribution slippage simulé (bps)&quot;
+    [bar_chart] "Distribution slippage simulé (bps)"
 </pre></div>
 </div>
 <hr class="docutils" />
@@ -946,11 +946,11 @@ Couleurs autorités :
     Total trades | Win Rate | PnL total | Profit Factor | Drawdown max
 
   [divider]
-  [line_chart] &quot;PnL cumulé ($)&quot; height=200
+  [line_chart] "PnL cumulé ($)" height=200
   [divider]
   [2 colonnes]
-    Gauche : bar_chart &quot;PnL par régime&quot; height=200
-    Droite : table &quot;Post-mortem&quot; (Catégorie | Count | %)
+    Gauche : bar_chart "PnL par régime" height=200
+    Droite : table "Post-mortem" (Catégorie | Count | %)
   [divider]
   [dataframe] table trades (Symbole | Side | PnL$ | PnL% | Win | Régime | Conviction | Post-mortem | Durée min | Date | R-multiple)
 </pre></div>
@@ -963,8 +963,8 @@ Couleurs autorités :
   <span class="p">[</span><span class="n">ROW</span> <span class="mi">4</span> <span class="n">métriques</span><span class="p">]</span>
     <span class="n">Total</span> <span class="n">decisions</span> <span class="o">|</span> <span class="n">Rejected</span> <span class="o">|</span> <span class="n">Passed</span> <span class="o">|</span> <span class="n">Avg</span> <span class="n">latence</span> <span class="n">ms</span>
 
-  <span class="p">[</span><span class="n">bar_chart</span><span class="p">]</span> <span class="s2">&quot;Refus par couche&quot;</span> <span class="n">height</span><span class="o">=</span><span class="mi">200</span>
-  <span class="p">[</span><span class="n">dataframe</span><span class="p">]</span> <span class="s2">&quot;Dernières decisions&quot;</span> <span class="p">(</span><span class="n">Timestamp</span> <span class="o">|</span> <span class="n">Symbole</span> <span class="o">|</span> <span class="n">État</span> <span class="o">|</span> <span class="n">Score</span> <span class="o">|</span> <span class="n">Couche</span> <span class="n">rejet</span> <span class="o">|</span> <span class="n">Raison</span><span class="p">)</span>
+  <span class="p">[</span><span class="n">bar_chart</span><span class="p">]</span> <span class="s2">"Refus par couche"</span> <span class="n">height</span><span class="o">=</span><span class="mi">200</span>
+  <span class="p">[</span><span class="n">dataframe</span><span class="p">]</span> <span class="s2">"Dernières decisions"</span> <span class="p">(</span><span class="n">Timestamp</span> <span class="o">|</span> <span class="n">Symbole</span> <span class="o">|</span> <span class="n">État</span> <span class="o">|</span> <span class="n">Score</span> <span class="o">|</span> <span class="n">Couche</span> <span class="n">rejet</span> <span class="o">|</span> <span class="n">Raison</span><span class="p">)</span>
 </pre></div>
 </div>
 <hr class="docutils" />
@@ -987,8 +987,8 @@ Couleurs autorités :
 <strong>Layout :</strong> <code class="docutils literal notranslate"><span class="pre">wide</span></code>, sidebar collapsed</p>
 <section id="id3">
 <h4>Structure actuelle<a class="headerlink" href="#id3" title="Link to this heading">¶</a></h4>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>[TITRE] &quot;🌐 Multi-Exchange — Prix Live&quot;
-[caption] &quot;Données publiques — aucune clé API requise | Refresh 30s&quot;
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>[TITRE] "🌐 Multi-Exchange — Prix Live"
+[caption] "Données publiques — aucune clé API requise | Refresh 30s"
 
 [ROW 3 métriques]
   Exchanges actifs (N/5) | Symboles suivis | Dernière mise à jour
@@ -1009,7 +1009,7 @@ Couleurs autorités :
 ### Spreads inter-exchange
 [dataframe] (Symbole | Prix min | Prix max | Spread % | Moins cher | Plus cher)
 
-[caption] &quot;Auto-refresh dans 30s&quot;
+[caption] "Auto-refresh dans 30s"
 </pre></div>
 </div>
 </section>

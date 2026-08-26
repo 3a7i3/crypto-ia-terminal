@@ -391,19 +391,19 @@ README_V91.md                     # V9.1 documentation (NEW!)
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">features</span> <span class="o">=</span> <span class="n">feature_eng</span><span class="o">.</span><span class="n">extract_features</span><span class="p">(</span><span class="n">candles</span><span class="p">)</span>
 <span class="c1"># Returns:</span>
 <span class="c1"># {</span>
-<span class="c1">#   &quot;momentum&quot;: 0.0346,</span>
-<span class="c1">#   &quot;realized_volatility&quot;: 0.0456,</span>
-<span class="c1">#   &quot;volume_trend&quot;: 1.23,</span>
-<span class="c1">#   &quot;price_range_ratio&quot;: 0.0234,</span>
-<span class="c1">#   &quot;trend_strength&quot;: 0.78,</span>
-<span class="c1">#   &quot;returns_mean&quot;: 0.0012,</span>
-<span class="c1">#   &quot;returns_std&quot;: 0.0345</span>
+<span class="c1">#   "momentum": 0.0346,</span>
+<span class="c1">#   "realized_volatility": 0.0456,</span>
+<span class="c1">#   "volume_trend": 1.23,</span>
+<span class="c1">#   "price_range_ratio": 0.0234,</span>
+<span class="c1">#   "trend_strength": 0.78,</span>
+<span class="c1">#   "returns_mean": 0.0012,</span>
+<span class="c1">#   "returns_std": 0.0345</span>
 <span class="c1"># }</span>
 </pre></div>
 </div>
 <p><strong>Anomaly Detection:</strong></p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">anomalies</span> <span class="o">=</span> <span class="n">feature_eng</span><span class="o">.</span><span class="n">detect_anomalies</span><span class="p">(</span><span class="n">features</span><span class="p">)</span>
-<span class="c1"># Examples: &quot;extreme_momentum_0.1751&quot;, &quot;spike_volatility&quot;, &quot;volume_explosion&quot;</span>
+<span class="c1"># Examples: "extreme_momentum_0.1751", "spike_volatility", "volume_explosion"</span>
 </pre></div>
 </div>
 </section>
@@ -429,18 +429,18 @@ README_V91.md                     # V9.1 documentation (NEW!)
 <section id="whale-radar-agents-whales-init-py">
 <h3>3. Whale Radar (<code class="docutils literal notranslate"><span class="pre">agents/whales/__init__.py</span></code>)<a class="headerlink" href="#whale-radar-agents-whales-init-py" title="Link to this heading">¶</a></h3>
 <p><strong>Anomaly Detection:</strong></p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">whale_scan</span> <span class="o">=</span> <span class="n">whale_radar</span><span class="o">.</span><span class="n">scan</span><span class="p">(</span><span class="n">symbol</span><span class="o">=</span><span class="s2">&quot;BTCUSDT&quot;</span><span class="p">,</span> <span class="n">volume</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">price</span><span class="o">=</span><span class="mi">50000</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">whale_scan</span> <span class="o">=</span> <span class="n">whale_radar</span><span class="o">.</span><span class="n">scan</span><span class="p">(</span><span class="n">symbol</span><span class="o">=</span><span class="s2">"BTCUSDT"</span><span class="p">,</span> <span class="n">volume</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">price</span><span class="o">=</span><span class="mi">50000</span><span class="p">)</span>
 <span class="c1"># Returns:</span>
 <span class="c1"># {</span>
-<span class="c1">#   &quot;symbol&quot;: &quot;BTCUSDT&quot;,</span>
-<span class="c1">#   &quot;alerts&quot;: [&quot;WHALE_BUY: 5000000 USD&quot;],</span>
-<span class="c1">#   &quot;threat_level&quot;: &quot;high&quot;</span>
+<span class="c1">#   "symbol": "BTCUSDT",</span>
+<span class="c1">#   "alerts": ["WHALE_BUY: 5000000 USD"],</span>
+<span class="c1">#   "threat_level": "high"</span>
 <span class="c1"># }</span>
 </pre></div>
 </div>
 <p><strong>Pattern Analysis:</strong></p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">pattern</span> <span class="o">=</span> <span class="n">whale_radar</span><span class="o">.</span><span class="n">analyze_pattern</span><span class="p">(</span><span class="n">transactions</span><span class="o">=</span><span class="p">[</span><span class="o">...</span><span class="p">])</span>
-<span class="c1"># Returns: {&quot;pattern&quot;: &quot;whale_accumulation&quot;, &quot;anomaly_score&quot;: 0.67}</span>
+<span class="c1"># Returns: {"pattern": "whale_accumulation", "anomaly_score": 0.67}</span>
 </pre></div>
 </div>
 </section>
@@ -455,13 +455,13 @@ README_V91.md                     # V9.1 documentation (NEW!)
 <p><strong>Trade Decision Logic:</strong></p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">should_trade</span> <span class="o">=</span> <span class="n">decision_engine</span><span class="o">.</span><span class="n">should_trade</span><span class="p">(</span>
     <span class="n">best_strategy</span><span class="o">=</span><span class="n">best</span><span class="p">,</span>
-    <span class="n">regime</span><span class="o">=</span><span class="s2">&quot;bull_trend&quot;</span><span class="p">,</span>
+    <span class="n">regime</span><span class="o">=</span><span class="s2">"bull_trend"</span><span class="p">,</span>
     <span class="n">whale_alerts</span><span class="o">=</span><span class="p">[]</span>
 <span class="p">)</span>
 <span class="c1"># Returns True if:</span>
 <span class="c1"># - Sharpe &gt; 2.0</span>
 <span class="c1"># - Drawdown &lt; 10%</span>
-<span class="c1"># - regime != &quot;flash_crash&quot;</span>
+<span class="c1"># - regime != "flash_crash"</span>
 <span class="c1"># - whale_alerts &lt;= 2</span>
 </pre></div>
 </div>
@@ -469,9 +469,9 @@ README_V91.md                     # V9.1 documentation (NEW!)
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">risk_limits</span> <span class="o">=</span> <span class="n">decision_engine</span><span class="o">.</span><span class="n">compute_risk_limits</span><span class="p">(</span><span class="n">realized_vol</span><span class="o">=</span><span class="mf">0.0234</span><span class="p">)</span>
 <span class="c1"># Returns:</span>
 <span class="c1"># {</span>
-<span class="c1">#   &quot;max_position_size&quot;: 0.8547,</span>
-<span class="c1">#   &quot;stop_loss_pct&quot;: 0.0026,</span>
-<span class="c1">#   &quot;take_profit_pct&quot;: 0.0051</span>
+<span class="c1">#   "max_position_size": 0.8547,</span>
+<span class="c1">#   "stop_loss_pct": 0.0026,</span>
+<span class="c1">#   "take_profit_pct": 0.0051</span>
 <span class="c1"># }</span>
 </pre></div>
 </div>
@@ -484,10 +484,10 @@ README_V91.md                     # V9.1 documentation (NEW!)
 
 <span class="n">stats</span> <span class="o">=</span> <span class="n">scoreboard</span><span class="o">.</span><span class="n">stats</span><span class="p">()</span>
 <span class="c1"># Returns: {</span>
-<span class="c1">#   &quot;total_strategies&quot;: 1250,</span>
-<span class="c1">#   &quot;avg_sharpe&quot;: 10.5234,</span>
-<span class="c1">#   &quot;best_sharpe&quot;: 16.7913,</span>
-<span class="c1">#   &quot;median_sharpe&quot;: 9.8756</span>
+<span class="c1">#   "total_strategies": 1250,</span>
+<span class="c1">#   "avg_sharpe": 10.5234,</span>
+<span class="c1">#   "best_sharpe": 16.7913,</span>
+<span class="c1">#   "median_sharpe": 9.8756</span>
 <span class="c1"># }</span>
 </pre></div>
 </div>
@@ -641,17 +641,17 @@ NEXT CYCLE
 python<span class="w"> </span>main_v91.py
 
 <span class="c1"># Option 2: 3 cycles (default)</span>
-<span class="nv">$env</span>:V9_MAX_CYCLES<span class="o">=</span><span class="s2">&quot;3&quot;</span>
+<span class="nv">$env</span>:V9_MAX_CYCLES<span class="o">=</span><span class="s2">"3"</span>
 python<span class="w"> </span>main_v91.py
 
 <span class="c1"># Option 3: Infinite loop</span>
-<span class="nv">$env</span>:V9_MAX_CYCLES<span class="o">=</span><span class="s2">&quot;0&quot;</span>
+<span class="nv">$env</span>:V9_MAX_CYCLES<span class="o">=</span><span class="s2">"0"</span>
 python<span class="w"> </span>main_v91.py
 
 <span class="c1"># Option 4: Custom settings</span>
-<span class="nv">$env</span>:V9_MAX_CYCLES<span class="o">=</span><span class="s2">&quot;10&quot;</span>
-<span class="nv">$env</span>:V9_POPULATION<span class="o">=</span><span class="s2">&quot;500&quot;</span>
-<span class="nv">$env</span>:V9_SLEEP_SECONDS<span class="o">=</span><span class="s2">&quot;1&quot;</span>
+<span class="nv">$env</span>:V9_MAX_CYCLES<span class="o">=</span><span class="s2">"10"</span>
+<span class="nv">$env</span>:V9_POPULATION<span class="o">=</span><span class="s2">"500"</span>
+<span class="nv">$env</span>:V9_SLEEP_SECONDS<span class="o">=</span><span class="s2">"1"</span>
 python<span class="w"> </span>main_v91.py
 </pre></div>
 </div>
@@ -706,8 +706,8 @@ python<span class="w"> </span>main_v91.py
   Backtests: 300
   Model Version: 1
 
-📊 MonteCarlo: {&#39;median_terminal&#39;: 0.7426, &#39;p05_terminal&#39;: 0.1793, &#39;p95_terminal&#39;: 3.0357}
-💰 Paper Trading: {&#39;balance&#39;: 100000.0, &#39;positions&#39;: {}}
+📊 MonteCarlo: {'median_terminal': 0.7426, 'p05_terminal': 0.1793, 'p95_terminal': 3.0357}
+💰 Paper Trading: {'balance': 100000.0, 'positions': {}}
 </pre></div>
 </div>
 </section>

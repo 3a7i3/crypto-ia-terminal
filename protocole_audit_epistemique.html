@@ -423,9 +423,9 @@ Le graphe la détecte automatiquement (ancêtre commun ≠ disjoint).</p>
 <h2>5. Graphe de dépendances et défaiteurs<a class="headerlink" href="#graphe-de-dependances-et-defaiteurs" title="Link to this heading">¶</a></h2>
 <p>Chaque affirmation (nœud) déclare ses arêtes. Deux types, <strong>positif ET négatif</strong> :</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Supports</span>        <span class="p">:</span> <span class="p">[</span><span class="n">O3</span><span class="p">,</span> <span class="n">O8</span><span class="p">]</span>      <span class="c1"># nœuds qui soutiennent</span>
-<span class="n">Dépend</span> <span class="n">de</span>       <span class="p">:</span> <span class="p">[</span><span class="n">I2</span><span class="p">]</span>          <span class="c1"># nœuds dont l&#39;énoncé hérite</span>
-<span class="n">Sapé</span> <span class="n">par</span>        <span class="p">:</span> <span class="p">[</span><span class="n">O5</span><span class="p">]</span>          <span class="c1"># undercut : affaiblit l&#39;inférence sans la réfuter</span>
-<span class="n">Réfuté</span> <span class="n">par</span>      <span class="p">:</span> <span class="p">[</span><span class="n">O9</span><span class="p">]</span>          <span class="c1"># rebut : contredit directement l&#39;énoncé</span>
+<span class="n">Dépend</span> <span class="n">de</span>       <span class="p">:</span> <span class="p">[</span><span class="n">I2</span><span class="p">]</span>          <span class="c1"># nœuds dont l'énoncé hérite</span>
+<span class="n">Sapé</span> <span class="n">par</span>        <span class="p">:</span> <span class="p">[</span><span class="n">O5</span><span class="p">]</span>          <span class="c1"># undercut : affaiblit l'inférence sans la réfuter</span>
+<span class="n">Réfuté</span> <span class="n">par</span>      <span class="p">:</span> <span class="p">[</span><span class="n">O9</span><span class="p">]</span>          <span class="c1"># rebut : contredit directement l'énoncé</span>
 </pre></div>
 </div>
 <p>Quand une observation tombe, <strong>toute conclusion qui en hérite devient immédiatement suspecte</strong>
@@ -438,7 +438,7 @@ un défaiteur s’active et déclenche la règle <strong>contradiction = obligat
 </ul>
 <p><strong>Arêtes ajoutées en v3 :</strong></p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Dette (§13)          ──bloque──►  Décision Dx
-Représentativité(§12)──plafonne─►  Confiance d&#39;une Inférence
+Représentativité(§12)──plafonne─►  Confiance d'une Inférence
 Symétrie (§15)       ──impose───►  { recherche des supports , recherche des réfutateurs }
 </pre></div>
 </div>
@@ -495,9 +495,9 @@ une traçabilité qui n’est plus vraie. Le graphe ne doit exister que là où 
   Énoncé          :
   Source          : inspection directe | échantillon | log | doc | mémoire | état mutable
   Couverture      : complète | partielle | inconnue
-  Échantillon/Pop : &lt;observé&gt; / &lt;cible ou &quot;inconnue&quot;&gt;        (v3)
+  Échantillon/Pop : &lt;observé&gt; / &lt;cible ou "inconnue"&gt;        (v3)
   Représentativité: dérivée | NON ÉVALUABLE                  (v3)
-  Biais           : &lt;nom&gt; → gonfle | réduit l&#39;inférence      (v3)
+  Biais           : &lt;nom&gt; → gonfle | réduit l'inférence      (v3)
 
 INFÉRENCE  I#
   Énoncé      :
@@ -527,18 +527,18 @@ NON OBSERVÉ  N#                                               (v3)
 <section id="exemple-complet-recast-dune-affirmation-porteuse">
 <h2>10. Exemple complet (recast d’une affirmation porteuse)<a class="headerlink" href="#exemple-complet-recast-dune-affirmation-porteuse" title="Link to this heading">¶</a></h2>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>OBSERVATION  O1
-  Énoncé          : grep &quot;from src.(domain|paper|backtest|engine|risk|events)&quot;
+  Énoncé          : grep "from src.(domain|paper|backtest|engine|risk|events)"
                     sur core/** → aucune correspondance.
   Source          : inspection directe
   Couverture      : partielle (imports statiques seulement)
-  Échantillon/Pop : imports statiques de core/ / tous les modes d&#39;import (statique+dynamique)
+  Échantillon/Pop : imports statiques de core/ / tous les modes d'import (statique+dynamique)
   Représentativité: dérivée — partielle (les imports dynamiques ne sont pas couverts)
-  Biais           : angle mort import dynamique → gonfle &quot;découplé&quot;
+  Biais           : angle mort import dynamique → gonfle "découplé"
 
 INFÉRENCE  I1
   Énoncé      : les piles core/ (live) et src/ sont découplées.
   Confiance   : très probable  (plafonné par couverture ET représentativité partielles)
-  Portée      : chemin d&#39;exécution inspecté uniquement — PAS &quot;le projet entier&quot;.
+  Portée      : chemin d'exécution inspecté uniquement — PAS "le projet entier".
   Supports    : [O1]
   Sapé par    : [un import dynamique de src, non observé]
   Falsif. log.: exhiber un import dynamique/plugin de src dans le runtime.
@@ -546,14 +546,14 @@ INFÉRENCE  I1
 HYPOTHÈSE  H1
   Énoncé      : la migration ADR-0002 (src = SSoT) est inachevée.
   Confiance   : probable      Source plaus. : ADR-0002 + persistance de core/ en prod.
-  Falsif. exp.: retracer l&#39;historique git de la migration.
+  Falsif. exp.: retracer l'historique git de la migration.
 
 DÉCISION  D1
   Énoncé      : nommer la frontière (Context Map écrite), ne pas fusionner.
   Autorité    : architecte ; appétit au risque bas sur la dette de duplication.
   Dépend de   : [I1, H1]
-  Prémisse c/v: coût d&#39;onboarding d&#39;une frontière tacite &gt; coût d&#39;un document —
-                vrai si l&#39;équipe s&#39;agrandit ; à un seul mainteneur, discutable.
+  Prémisse c/v: coût d'onboarding d'une frontière tacite &gt; coût d'un document —
+                vrai si l'équipe s'agrandit ; à un seul mainteneur, discutable.
 </pre></div>
 </div>
 <p>Note de composition : D1 dépend de I1 (<code class="docutils literal notranslate"><span class="pre">très</span> <span class="pre">probable</span></code>) ET H1 (<code class="docutils literal notranslate"><span class="pre">probable</span></code>) — nœud
@@ -641,7 +641,7 @@ décision <strong>irréversible</strong> est bloquée. Cette irréversibilité e
 <span class="n">critical_justification</span><span class="p">:</span>
   <span class="n">decision</span><span class="p">:</span>         <span class="o">&lt;</span><span class="nb">id</span> <span class="n">de</span> <span class="n">la</span> <span class="n">decision</span> <span class="n">bloquee</span><span class="o">&gt;</span>
   <span class="n">why_irreversible</span><span class="p">:</span> <span class="o">&lt;</span><span class="n">pourquoi</span> <span class="n">un</span> <span class="n">revert</span> <span class="n">NE</span> <span class="n">SUFFIT</span> <span class="n">PAS</span><span class="o">&gt;</span>
-  <span class="n">falsifier</span><span class="p">:</span>        <span class="s2">&quot;montrer que la decision est reversible&quot;</span>
+  <span class="n">falsifier</span><span class="p">:</span>        <span class="s2">"montrer que la decision est reversible"</span>
   <span class="n">max_acceptable_cost</span><span class="p">:</span> <span class="o">&lt;</span><span class="n">effort</span> <span class="n">au</span><span class="o">-</span><span class="n">dela</span> <span class="n">duquel</span> <span class="n">on</span> <span class="n">renonce</span> <span class="n">a</span> <span class="n">lever</span> <span class="n">la</span> <span class="n">dette</span><span class="o">&gt;</span>
 </pre></div>
 </div>
@@ -653,7 +653,7 @@ reconsidérée.</p>
 <p>Format d’usage :</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">NON</span> <span class="n">OBSERVÉ</span> <span class="p">:</span> <span class="o">&lt;</span><span class="n">inconnu</span><span class="o">&gt;</span>
   <span class="n">Dette</span>   <span class="p">:</span> <span class="n">critique</span> <span class="n">POUR</span> <span class="o">&lt;</span><span class="n">décision</span> <span class="n">A</span><span class="o">&gt;</span> <span class="o">|</span> <span class="n">majeure</span> <span class="n">POUR</span> <span class="o">&lt;</span><span class="n">décision</span> <span class="n">B</span><span class="o">&gt;</span> <span class="o">|</span> <span class="n">nulle</span> <span class="n">POUR</span> <span class="o">&lt;</span><span class="n">décision</span> <span class="n">C</span><span class="o">&gt;</span>
-  <span class="n">Bloque</span>  <span class="p">:</span> <span class="n">D</span><span class="o">&lt;</span><span class="n">x</span><span class="o">&gt;</span>        <span class="p">(</span><span class="n">le</span> <span class="n">nœud</span> <span class="n">de</span> <span class="n">décision</span> <span class="n">du</span> <span class="n">graphe</span> <span class="n">que</span> <span class="n">l</span><span class="s1">&#39;inconnu bloque)</span>
+  <span class="n">Bloque</span>  <span class="p">:</span> <span class="n">D</span><span class="o">&lt;</span><span class="n">x</span><span class="o">&gt;</span>        <span class="p">(</span><span class="n">le</span> <span class="n">nœud</span> <span class="n">de</span> <span class="n">décision</span> <span class="n">du</span> <span class="n">graphe</span> <span class="n">que</span> <span class="n">l</span><span class="s1">'inconnu bloque)</span>
 </pre></div>
 </div>
 <p>Exemple : « protection GitHub » = mineure pour merger un document, potentiellement critique
@@ -755,13 +755,13 @@ observation que rien ne peut produire.</p>
 <section id="cycle-de-vie-construire-linstrument-ne-produit-jamais-une-observation">
 <h3>Cycle de vie — construire l’instrument ne produit <strong>jamais</strong> une observation<a class="headerlink" href="#cycle-de-vie-construire-linstrument-ne-produit-jamais-une-observation" title="Link to this heading">¶</a></h3>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>BLIND_SPOT / NON_OBSERVABLE
-      │  construire l&#39;instrument
+      │  construire l'instrument
       ▼
-BLIND_SPOT / OBSERVABLE          ← l&#39;instrument existe, RIEN n&#39;est encore observe
+BLIND_SPOT / OBSERVABLE          ← l'instrument existe, RIEN n'est encore observe
       │  reclassement OBLIGATOIRE
       ▼
 UNKNOWN / NON_OBSERVE
-      │  produire l&#39;observation
+      │  produire l'observation
       ▼
 UNKNOWN / OBSERVE                = levee
 </pre></div>
@@ -789,8 +789,8 @@ l’observer, l’est.</p>
   kind                : UNKNOWN | BLIND_SPOT
   description         : ce qui manque
   status              : (selon le kind, cf. § 16)
-  decision_blocked    : quelle decision, ou &quot;aucune&quot;
-  how_to_observe      : l&#39;action concrete qui leverait l&#39;inconnue
+  decision_blocked    : quelle decision, ou "aucune"
+  how_to_observe      : l'action concrete qui leverait l'inconnue
   debt                : critique | majeure | moyenne | mineure | nulle
   reason              : pourquoi ce niveau de dette
   instrument_required : OBLIGATOIRE si kind = BLIND_SPOT
@@ -895,7 +895,7 @@ Il ne gouvernait pas ce qui se passe <strong>entre</strong> une observation et u
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Observation ──► nettoyage ──► agregation ──► normalisation ──► metrique ──► Decision
                     ▲             ▲               ▲              ▲
                     └─────────────┴───────────────┴──────────────┘
-                       CINQ transformations, jusqu&#39;ici INVISIBLES
+                       CINQ transformations, jusqu'ici INVISIBLES
 </pre></div>
 </div>
 <p>L’histoire des erreurs scientifiques est faite de transformations qui <strong>changent le sens</strong> des
@@ -907,10 +907,10 @@ déduit rien) : <strong>c’est une opération qui altère ce sur quoi tout le r
 <section id="champs-dune-transformation">
 <h3>Champs d’une transformation<a class="headerlink" href="#champs-dune-transformation" title="Link to this heading">¶</a></h3>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">TRANSFORMATION</span>  <span class="n">T</span><span class="c1">#</span>
-  <span class="n">operation</span>              <span class="p">:</span> <span class="n">ce</span> <span class="n">que</span> <span class="n">fait</span> <span class="n">l</span><span class="s1">&#39;etape, en une phrase</span>
+  <span class="n">operation</span>              <span class="p">:</span> <span class="n">ce</span> <span class="n">que</span> <span class="n">fait</span> <span class="n">l</span><span class="s1">'etape, en une phrase</span>
   <span class="nb">input</span> <span class="o">/</span> <span class="n">output</span>         <span class="p">:</span> <span class="n">ce</span> <span class="n">qui</span> <span class="n">entre</span><span class="p">,</span> <span class="n">ce</span> <span class="n">qui</span> <span class="n">sort</span> <span class="p">(</span><span class="n">avec</span> <span class="n">leurs</span> <span class="n">unites</span><span class="p">)</span>
   <span class="n">information_loss</span>       <span class="p">:</span> <span class="n">ce</span> <span class="n">qui</span> <span class="n">devient</span> <span class="n">IRRECUPERABLE</span> <span class="n">apres</span> <span class="n">cette</span> <span class="n">etape</span>
-  <span class="n">assumptions_introduced</span> <span class="p">:</span> <span class="n">ce</span> <span class="n">que</span> <span class="n">l</span><span class="s1">&#39;etape SUPPOSE vrai sans le verifier</span>
+  <span class="n">assumptions_introduced</span> <span class="p">:</span> <span class="n">ce</span> <span class="n">que</span> <span class="n">l</span><span class="s1">'etape SUPPOSE vrai sans le verifier</span>
   <span class="n">reversibility</span>          <span class="p">:</span> <span class="n">reversible</span> <span class="o">|</span> <span class="n">partiellement</span> <span class="o">|</span> <span class="n">irreversible</span>
   <span class="n">falsifier</span>              <span class="p">:</span> <span class="n">quelle</span> <span class="n">observation</span> <span class="n">montrerait</span> <span class="n">que</span> <span class="n">la</span> <span class="n">transformation</span>
                            <span class="n">trahit</span> <span class="n">ses</span> <span class="n">entrees</span>
@@ -938,7 +938,7 @@ et falsificateur expérimental. Une transformation en introduit souvent plus que
   operation   : agregation des PnL par trade en un PnL total
   input       : liste de PnL par trade (USD)   output : PnL total (USD)
   information_loss       : la DISTRIBUTION. Apres T2, impossible de distinguer
-                           &quot;10 petits gains&quot; de &quot;1 gros gain et 9 pertes&quot;
+                           "10 petits gains" de "1 gros gain et 9 pertes"
   assumptions_introduced : que la somme est la statistique pertinente pour la
                            decision — faux si la decision porte sur le risque
   reversibility          : irreversible (la somme ne se decompose pas)

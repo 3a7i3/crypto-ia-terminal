@@ -251,22 +251,22 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">IPython.display</span><span class="w"> </span><span class="kn">import</span> <span class="n">display</span>
 <span class="c1"># Exemple de données</span>
 <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
-    <span class="s1">&#39;Actif&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;BTC&#39;</span><span class="p">,</span> <span class="s1">&#39;ETH&#39;</span><span class="p">,</span> <span class="s1">&#39;SOL&#39;</span><span class="p">,</span> <span class="s1">&#39;BNB&#39;</span><span class="p">],</span>
-    <span class="s1">&#39;Volume&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">1200</span><span class="p">,</span> <span class="mi">800</span><span class="p">,</span> <span class="mi">450</span><span class="p">,</span> <span class="mi">600</span><span class="p">],</span>
-    <span class="s1">&#39;Sharpe&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">1.8</span><span class="p">,</span> <span class="mf">1.2</span><span class="p">,</span> <span class="mf">0.9</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">]</span>
+    <span class="s1">'Actif'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'BTC'</span><span class="p">,</span> <span class="s1">'ETH'</span><span class="p">,</span> <span class="s1">'SOL'</span><span class="p">,</span> <span class="s1">'BNB'</span><span class="p">],</span>
+    <span class="s1">'Volume'</span><span class="p">:</span> <span class="p">[</span><span class="mi">1200</span><span class="p">,</span> <span class="mi">800</span><span class="p">,</span> <span class="mi">450</span><span class="p">,</span> <span class="mi">600</span><span class="p">],</span>
+    <span class="s1">'Sharpe'</span><span class="p">:</span> <span class="p">[</span><span class="mf">1.8</span><span class="p">,</span> <span class="mf">1.2</span><span class="p">,</span> <span class="mf">0.9</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">]</span>
 <span class="p">})</span>
-<span class="n">search_box</span> <span class="o">=</span> <span class="n">widgets</span><span class="o">.</span><span class="n">Text</span><span class="p">(</span><span class="n">placeholder</span><span class="o">=</span><span class="s1">&#39;Recherche actif ou valeur...&#39;</span><span class="p">)</span>
+<span class="n">search_box</span> <span class="o">=</span> <span class="n">widgets</span><span class="o">.</span><span class="n">Text</span><span class="p">(</span><span class="n">placeholder</span><span class="o">=</span><span class="s1">'Recherche actif ou valeur...'</span><span class="p">)</span>
 <span class="n">output</span> <span class="o">=</span> <span class="n">widgets</span><span class="o">.</span><span class="n">Output</span><span class="p">()</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">on_search_change</span><span class="p">(</span><span class="n">change</span><span class="p">):</span>
     <span class="k">with</span> <span class="n">output</span><span class="p">:</span>
         <span class="n">output</span><span class="o">.</span><span class="n">clear_output</span><span class="p">()</span>
-        <span class="n">val</span> <span class="o">=</span> <span class="n">change</span><span class="p">[</span><span class="s1">&#39;new&#39;</span><span class="p">]</span>
+        <span class="n">val</span> <span class="o">=</span> <span class="n">change</span><span class="p">[</span><span class="s1">'new'</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">val</span><span class="p">:</span>
             <span class="n">mask</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">row</span><span class="p">:</span> <span class="n">row</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">case</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">(),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
             <span class="n">display</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">mask</span><span class="p">])</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">display</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
-<span class="n">search_box</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">on_search_change</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="s1">&#39;value&#39;</span><span class="p">)</span>
+<span class="n">search_box</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">on_search_change</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="s1">'value'</span><span class="p">)</span>
 <span class="n">display</span><span class="p">(</span><span class="n">search_box</span><span class="p">,</span> <span class="n">output</span><span class="p">)</span>
 <span class="n">output</span><span class="o">.</span><span class="n">clear_output</span><span class="p">()</span>
 <span class="n">display</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
@@ -282,7 +282,7 @@
 <span class="g g-Whitespace">      </span><span class="mi">3</span> <span class="kn">from</span><span class="w"> </span><span class="nn">IPython.display</span><span class="w"> </span><span class="kn">import</span> <span class="n">display</span>
 <span class="g g-Whitespace">      </span><span class="mi">4</span> <span class="c1"># Exemple de données</span>
 
-<span class="ne">ModuleNotFoundError</span>: No module named &#39;pandas&#39;
+<span class="ne">ModuleNotFoundError</span>: No module named 'pandas'
 </pre></div>
 </div>
 </div>
@@ -293,11 +293,11 @@
 <p>Affichons dynamiquement les résultats de la recherche ou d’autres calculs dans le notebook.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Calcul dynamique : afficher l&#39;actif avec le meilleur Sharpe</span>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Calcul dynamique : afficher l'actif avec le meilleur Sharpe</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">matplotlib.pylab</span><span class="w"> </span><span class="kn">import</span> <span class="n">f</span>
 
 
-<span class="n">best</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;Sharpe&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">idxmax</span><span class="p">()]</span>
+<span class="n">best</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="s1">'Sharpe'</span><span class="p">]</span><span class="o">.</span><span class="n">idxmax</span><span class="p">()]</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">f</span>
 </pre></div>
 </div>

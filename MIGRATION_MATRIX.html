@@ -543,7 +543,7 @@ Généré le 2026-06-08.
 🧪 100% tests verts avant et après merge
 📉 Réduction nette : au moins 1 module ou 5 imports supprimés
 🚫 Zéro nouveau doublon introduit
-🔄 Shim présent si des imports existants utilisent l&#39;ancien chemin
+🔄 Shim présent si des imports existants utilisent l'ancien chemin
 ⏱️ Shim supprimé dans les 14 jours si aucun import restant
 </pre></div>
 </div>
@@ -630,17 +630,17 @@ Généré le 2026-06-08.
 <p>À partir de la Phase 0C, <strong>aucun nouveau module n’est créé</strong> sans répondre à ces 4 questions. Si une réponse est floue, la création est reportée.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>1. À quel Bounded Context appartient-il ?
    → Réponse obligatoire parmi les 9 BC du TO-BE.
-   → &quot;Utilitaire&quot; ou &quot;transverse&quot; n&#39;est pas une réponse.
+   → "Utilitaire" ou "transverse" n'est pas une réponse.
 
 2. Quelle responsabilité unique apporte-t-il ?
-   → Une seule phrase. Si deux phrases sont nécessaires, c&#39;est deux modules.
+   → Une seule phrase. Si deux phrases sont nécessaires, c'est deux modules.
 
 3. Quel contrat public expose-t-il ?
    → Liste des types/fonctions dans core/contracts/ ou sa propre API.
 
 4. Existe-t-il déjà un module qui couvre cette responsabilité ?
    → Vérifier dans ARCHITECTURE_V2_AS_IS.md §1 avant de créer.
-   → Si oui : enrichir l&#39;existant. Si non : créer avec la fiche §13 du TO-BE.
+   → Si oui : enrichir l'existant. Si non : créer avec la fiche §13 du TO-BE.
 </pre></div>
 </div>
 </section>
@@ -648,22 +648,22 @@ Généré le 2026-06-08.
 <section id="modele-de-shim">
 <h2>6. MODÈLE DE SHIM<a class="headerlink" href="#modele-de-shim" title="Link to this heading">¶</a></h2>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># ancien_chemin/__init__.py</span>
-<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">"""</span>
 <span class="sd">⚠️ DEPRECATED — Ce module a migré vers &lt;nouveau_chemin&gt;.</span>
 
 <span class="sd">Ce shim sera supprimé quand :</span>
-<span class="sd">  1. Aucun import n&#39;utilise plus l&#39;ancien chemin.</span>
+<span class="sd">  1. Aucun import n'utilise plus l'ancien chemin.</span>
 <span class="sd">  2. Les tests passent avec le nouveau chemin.</span>
 <span class="sd">  3. Le shim a existé pendant ≥ 14 jours.</span>
 
 <span class="sd">Migration date  : YYYY-MM-DD</span>
 <span class="sd">Target          : &lt;nouveau_chemin&gt;</span>
 <span class="sd">Dépendants (N)  : &lt;nombre&gt;</span>
-<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">"""</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">_warnings</span>
 
 <span class="n">_warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
-    <span class="s2">&quot;&lt;ancien_chemin&gt; est déprécié. Utilisez &lt;nouveau_chemin&gt;.&quot;</span><span class="p">,</span>
+    <span class="s2">"&lt;ancien_chemin&gt; est déprécié. Utilisez &lt;nouveau_chemin&gt;."</span><span class="p">,</span>
     <span class="ne">DeprecationWarning</span><span class="p">,</span>
     <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
 <span class="p">)</span>
@@ -678,13 +678,13 @@ Généré le 2026-06-08.
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Avant la PR :
   [ ] Entrée dans cette matrice créée (module, risque, dépendants)
   [ ] 4 questions souveraines répondues
-  [ ] grep des imports actifs vers l&#39;ancien module effectué
+  [ ] grep des imports actifs vers l'ancien module effectué
   [ ] Shim créé si N dépendants &gt; 0
   [ ] Tests verts sur branche de migration
 
 Après merge :
   [ ] Indicateurs §1 mis à jour
-  [ ] État matrice §2 → &quot;Terminé&quot;
+  [ ] État matrice §2 → "Terminé"
   [ ] Ticket de suppression du shim créé (délai : 14 jours)
   [ ] ARCHITECTURE_V2_AS_IS.md mis à jour (suppression module)
 </pre></div>

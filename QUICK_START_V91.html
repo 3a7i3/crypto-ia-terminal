@@ -434,7 +434,7 @@ trend_strength = 0.78   # Uptrend strength
 <h3>2. Whale Radar<a class="headerlink" href="#whale-radar" title="Link to this heading">¶</a></h3>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Scans for large transactions</span>
 <span class="n">whale_buy_1M</span> <span class="o">=</span> <span class="kc">True</span>     <span class="c1"># Detected 1M+ USD buy</span>
-<span class="n">threat_level</span> <span class="o">=</span> <span class="s2">&quot;MEDIUM&quot;</span> <span class="c1"># Classified as medium risk</span>
+<span class="n">threat_level</span> <span class="o">=</span> <span class="s2">"MEDIUM"</span> <span class="c1"># Classified as medium risk</span>
 </pre></div>
 </div>
 <p>💡 <strong>Result</strong>: Protects from getting caught in whale moves</p>
@@ -508,8 +508,8 @@ trend_strength = 0.78   # Uptrend strength
 <h2>🚀 RUNNING DIFFERENT SCENARIOS<a class="headerlink" href="#running-different-scenarios" title="Link to this heading">¶</a></h2>
 <section id="scenario-1-test-run-validate-it-works">
 <h3>Scenario 1: Test Run (validate it works)<a class="headerlink" href="#scenario-1-test-run-validate-it-works" title="Link to this heading">¶</a></h3>
-<div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="nv">$env:V9_MAX_CYCLES</span><span class="p">=</span><span class="s2">&quot;1&quot;</span>
-<span class="nv">$env:V9_POPULATION</span><span class="p">=</span><span class="s2">&quot;100&quot;</span>
+<div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="nv">$env:V9_MAX_CYCLES</span><span class="p">=</span><span class="s2">"1"</span>
+<span class="nv">$env:V9_POPULATION</span><span class="p">=</span><span class="s2">"100"</span>
 <span class="n">python</span> <span class="n">main_v91</span><span class="p">.</span><span class="n">py</span>
 </pre></div>
 </div>
@@ -520,8 +520,8 @@ trend_strength = 0.78   # Uptrend strength
 <hr class="docutils" />
 <section id="scenario-2-research-run-gather-data">
 <h3>Scenario 2: Research Run (gather data)<a class="headerlink" href="#scenario-2-research-run-gather-data" title="Link to this heading">¶</a></h3>
-<div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="nv">$env:V9_MAX_CYCLES</span><span class="p">=</span><span class="s2">&quot;10&quot;</span>
-<span class="nv">$env:V9_POPULATION</span><span class="p">=</span><span class="s2">&quot;300&quot;</span>
+<div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="nv">$env:V9_MAX_CYCLES</span><span class="p">=</span><span class="s2">"10"</span>
+<span class="nv">$env:V9_POPULATION</span><span class="p">=</span><span class="s2">"300"</span>
 <span class="n">python</span> <span class="n">main_v91</span><span class="p">.</span><span class="n">py</span>
 </pre></div>
 </div>
@@ -532,9 +532,9 @@ trend_strength = 0.78   # Uptrend strength
 <hr class="docutils" />
 <section id="scenario-3-extended-run-overnight">
 <h3>Scenario 3: Extended Run (overnight)<a class="headerlink" href="#scenario-3-extended-run-overnight" title="Link to this heading">¶</a></h3>
-<div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="nv">$env:V9_MAX_CYCLES</span><span class="p">=</span><span class="s2">&quot;0&quot;</span>
-<span class="nv">$env:V9_POPULATION</span><span class="p">=</span><span class="s2">&quot;500&quot;</span>
-<span class="nv">$env:V9_SLEEP_SECONDS</span><span class="p">=</span><span class="s2">&quot;1&quot;</span>
+<div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="nv">$env:V9_MAX_CYCLES</span><span class="p">=</span><span class="s2">"0"</span>
+<span class="nv">$env:V9_POPULATION</span><span class="p">=</span><span class="s2">"500"</span>
+<span class="nv">$env:V9_SLEEP_SECONDS</span><span class="p">=</span><span class="s2">"1"</span>
 <span class="c"># Let it run for hours...</span>
 </pre></div>
 </div>
@@ -559,9 +559,9 @@ trend_strength = 0.78   # Uptrend strength
 <section id="reading-market-snapshots">
 <h3>Reading Market Snapshots<a class="headerlink" href="#reading-market-snapshots" title="Link to this heading">¶</a></h3>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;candles&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<span class="w">    </span><span class="p">{</span><span class="nt">&quot;symbol&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;BTCUSDT&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;open&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">42000</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;close&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">42100</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;volume&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">250000</span><span class="p">,</span><span class="w"> </span><span class="err">...</span><span class="p">},</span>
-<span class="w">    </span><span class="p">{</span><span class="nt">&quot;symbol&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ETHUSDT&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;open&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2300</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;close&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2320</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;volume&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">150000</span><span class="p">,</span><span class="w"> </span><span class="err">...</span><span class="p">}</span>
+<span class="w">  </span><span class="nt">"candles"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="p">{</span><span class="nt">"symbol"</span><span class="p">:</span><span class="w"> </span><span class="s2">"BTCUSDT"</span><span class="p">,</span><span class="w"> </span><span class="nt">"open"</span><span class="p">:</span><span class="w"> </span><span class="mi">42000</span><span class="p">,</span><span class="w"> </span><span class="nt">"close"</span><span class="p">:</span><span class="w"> </span><span class="mi">42100</span><span class="p">,</span><span class="w"> </span><span class="nt">"volume"</span><span class="p">:</span><span class="w"> </span><span class="mi">250000</span><span class="p">,</span><span class="w"> </span><span class="err">...</span><span class="p">},</span>
+<span class="w">    </span><span class="p">{</span><span class="nt">"symbol"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ETHUSDT"</span><span class="p">,</span><span class="w"> </span><span class="nt">"open"</span><span class="p">:</span><span class="w"> </span><span class="mi">2300</span><span class="p">,</span><span class="w"> </span><span class="nt">"close"</span><span class="p">:</span><span class="w"> </span><span class="mi">2320</span><span class="p">,</span><span class="w"> </span><span class="nt">"volume"</span><span class="p">:</span><span class="w"> </span><span class="mi">150000</span><span class="p">,</span><span class="w"> </span><span class="err">...</span><span class="p">}</span>
 <span class="w">  </span><span class="p">]</span>
 <span class="p">}</span>
 </pre></div>
@@ -571,8 +571,8 @@ trend_strength = 0.78   # Uptrend strength
 <h3>Reading Strategy Scoreboard<a class="headerlink" href="#reading-strategy-scoreboard" title="Link to this heading">¶</a></h3>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">[</span>
 <span class="w">  </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;strategy&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;entry_indicator&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;RSI&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;exit_indicator&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;MACD&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;period&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">29</span><span class="p">},</span>
-<span class="w">    </span><span class="nt">&quot;metrics&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;sharpe&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">14.1399</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;drawdown&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0189</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;pnl&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">50.7497</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;cycle&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">}</span>
+<span class="w">    </span><span class="nt">"strategy"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"entry_indicator"</span><span class="p">:</span><span class="w"> </span><span class="s2">"RSI"</span><span class="p">,</span><span class="w"> </span><span class="nt">"exit_indicator"</span><span class="p">:</span><span class="w"> </span><span class="s2">"MACD"</span><span class="p">,</span><span class="w"> </span><span class="nt">"period"</span><span class="p">:</span><span class="w"> </span><span class="mi">29</span><span class="p">},</span>
+<span class="w">    </span><span class="nt">"metrics"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"sharpe"</span><span class="p">:</span><span class="w"> </span><span class="mf">14.1399</span><span class="p">,</span><span class="w"> </span><span class="nt">"drawdown"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0189</span><span class="p">,</span><span class="w"> </span><span class="nt">"pnl"</span><span class="p">:</span><span class="w"> </span><span class="mf">50.7497</span><span class="p">,</span><span class="w"> </span><span class="nt">"cycle"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">}</span>
 <span class="w">  </span><span class="p">},</span>
 <span class="w">  </span><span class="err">...</span>
 <span class="p">]</span>
@@ -586,14 +586,14 @@ trend_strength = 0.78   # Uptrend strength
 <section id="issue-modulenotfounderror-no-module-named-agents-intelligence">
 <h3>Issue: “ModuleNotFoundError: No module named ‘agents.intelligence’”<a class="headerlink" href="#issue-modulenotfounderror-no-module-named-agents-intelligence" title="Link to this heading">¶</a></h3>
 <p><strong>Solution:</strong></p>
-<div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="c"># Ensure you&#39;re in the right directory</span>
+<div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="c"># Ensure you're in the right directory</span>
 <span class="nb">cd </span><span class="n">quant-hedge-ai</span>
 
 <span class="c"># Check Python path</span>
-<span class="n">python</span> <span class="n">-c</span> <span class="s2">&quot;import sys; print(sys.path)&quot;</span>
+<span class="n">python</span> <span class="n">-c</span> <span class="s2">"import sys; print(sys.path)"</span>
 
 <span class="c"># Run with explicit path</span>
-<span class="nv">$env:PYTHONPATH</span><span class="p">=</span><span class="s2">&quot;.&quot;</span>
+<span class="nv">$env:PYTHONPATH</span><span class="p">=</span><span class="s2">"."</span>
 <span class="n">python</span> <span class="n">main_v91</span><span class="p">.</span><span class="n">py</span>
 </pre></div>
 </div>
@@ -664,9 +664,9 @@ trend_strength = 0.78   # Uptrend strength
 <section id="tip-1-custom-population-size">
 <h3>Tip 1: Custom Population Size<a class="headerlink" href="#tip-1-custom-population-size" title="Link to this heading">¶</a></h3>
 <div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="c"># More strategies = better exploration</span>
-<span class="nv">$env:V9_POPULATION</span><span class="p">=</span><span class="s2">&quot;1000&quot;</span>
+<span class="nv">$env:V9_POPULATION</span><span class="p">=</span><span class="s2">"1000"</span>
 <span class="c"># Fewer = faster iteration</span>
-<span class="nv">$env:V9_POPULATION</span><span class="p">=</span><span class="s2">&quot;100&quot;</span>
+<span class="nv">$env:V9_POPULATION</span><span class="p">=</span><span class="s2">"100"</span>
 </pre></div>
 </div>
 </section>
@@ -683,7 +683,7 @@ trend_strength = 0.78   # Uptrend strength
 <section id="tip-3-save-results">
 <h3>Tip 3: Save Results<a class="headerlink" href="#tip-3-save-results" title="Link to this heading">¶</a></h3>
 <div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="c"># Append output to file</span>
-<span class="n">python</span> <span class="n">main_v91</span><span class="p">.</span><span class="n">py</span> <span class="p">&gt;&gt;</span> <span class="n">results_</span><span class="p">$(</span><span class="nb">Get-Date</span> <span class="n">-Format</span> <span class="s1">&#39;yyyyMMdd_HHmmss&#39;</span><span class="p">).</span><span class="n">txt</span>
+<span class="n">python</span> <span class="n">main_v91</span><span class="p">.</span><span class="n">py</span> <span class="p">&gt;&gt;</span> <span class="n">results_</span><span class="p">$(</span><span class="nb">Get-Date</span> <span class="n">-Format</span> <span class="s1">'yyyyMMdd_HHmmss'</span><span class="p">).</span><span class="n">txt</span>
 </pre></div>
 </div>
 </section>

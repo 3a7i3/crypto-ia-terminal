@@ -290,9 +290,9 @@
     <span class="n">conviction_result</span> <span class="o">=</span> <span class="n">conviction_engine</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">packet</span><span class="p">)</span>
     <span class="n">_conviction_ok</span> <span class="o">=</span> <span class="ow">not</span> <span class="n">conviction_result</span><span class="o">.</span><span class="n">blocks_trade</span><span class="p">()</span>
 <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
-    <span class="n">log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;[I-14] conviction_engine exception → REJECTED: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">exc</span><span class="p">)</span>
-    <span class="n">packet</span><span class="o">.</span><span class="n">transition_to</span><span class="p">(</span><span class="n">DecisionState</span><span class="o">.</span><span class="n">REJECTED</span><span class="p">,</span> <span class="n">actor</span><span class="o">=</span><span class="s2">&quot;I14_guard&quot;</span><span class="p">,</span> <span class="n">reason</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;agent_exception:</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">exc</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">_build_rejected_result</span><span class="p">(</span><span class="n">packet</span><span class="p">,</span> <span class="s2">&quot;conviction_exception&quot;</span><span class="p">)</span>
+    <span class="n">log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">"[I-14] conviction_engine exception → REJECTED: </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="n">exc</span><span class="p">)</span>
+    <span class="n">packet</span><span class="o">.</span><span class="n">transition_to</span><span class="p">(</span><span class="n">DecisionState</span><span class="o">.</span><span class="n">REJECTED</span><span class="p">,</span> <span class="n">actor</span><span class="o">=</span><span class="s2">"I14_guard"</span><span class="p">,</span> <span class="n">reason</span><span class="o">=</span><span class="sa">f</span><span class="s2">"agent_exception:</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">exc</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">_build_rejected_result</span><span class="p">(</span><span class="n">packet</span><span class="p">,</span> <span class="s2">"conviction_exception"</span><span class="p">)</span>
 </pre></div>
 </div>
 <p><strong>Règle :</strong> Toute exception agent → résultat de rejet canonique. Jamais <code class="docutils literal notranslate"><span class="pre">_agent_ok</span> <span class="pre">=</span> <span class="pre">True</span></code> après exception.</p>
@@ -311,9 +311,9 @@
 <span class="n">authority</span> <span class="o">=</span> <span class="n">_get_authority</span><span class="p">()</span>
 <span class="k">if</span> <span class="ow">not</span> <span class="n">authority</span><span class="o">.</span><span class="n">can_trade</span><span class="p">():</span>
     <span class="k">if</span> <span class="n">_dp</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">_dp</span><span class="o">.</span><span class="n">transition_to</span><span class="p">(</span><span class="n">DecisionState</span><span class="o">.</span><span class="n">REJECTED</span><span class="p">,</span> <span class="n">actor</span><span class="o">=</span><span class="s2">&quot;G1_authority&quot;</span><span class="p">,</span>
-                          <span class="n">reason</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;can_trade=False state=</span><span class="si">{</span><span class="n">authority</span><span class="o">.</span><span class="n">rsm_state</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">_build_rejected_result</span><span class="p">(</span><span class="n">_dp</span><span class="p">,</span> <span class="s2">&quot;governance_authority_blocked&quot;</span><span class="p">)</span>
+        <span class="n">_dp</span><span class="o">.</span><span class="n">transition_to</span><span class="p">(</span><span class="n">DecisionState</span><span class="o">.</span><span class="n">REJECTED</span><span class="p">,</span> <span class="n">actor</span><span class="o">=</span><span class="s2">"G1_authority"</span><span class="p">,</span>
+                          <span class="n">reason</span><span class="o">=</span><span class="sa">f</span><span class="s2">"can_trade=False state=</span><span class="si">{</span><span class="n">authority</span><span class="o">.</span><span class="n">rsm_state</span><span class="p">()</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">_build_rejected_result</span><span class="p">(</span><span class="n">_dp</span><span class="p">,</span> <span class="s2">"governance_authority_blocked"</span><span class="p">)</span>
 </pre></div>
 </div>
 <p><strong>Livrables :</strong></p>
@@ -327,10 +327,10 @@
 <p><strong>Problème :</strong> trace_id est généré par <code class="docutils literal notranslate"><span class="pre">new_trace_id()</span></code> mais sa présence dans <code class="docutils literal notranslate"><span class="pre">packet.metadata[&quot;trace_id&quot;]</span></code> n’est pas vérifiée avant toute transition vers EXECUTION_PENDING.</p>
 <p><strong>Fix :</strong></p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Avant transition vers EXECUTION_PENDING :</span>
-<span class="k">if</span> <span class="ow">not</span> <span class="n">packet</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;trace_id&quot;</span><span class="p">):</span>
-    <span class="n">packet</span><span class="o">.</span><span class="n">transition_to</span><span class="p">(</span><span class="n">DecisionState</span><span class="o">.</span><span class="n">REJECTED</span><span class="p">,</span> <span class="n">actor</span><span class="o">=</span><span class="s2">&quot;G0_trace&quot;</span><span class="p">,</span>
-                         <span class="n">reason</span><span class="o">=</span><span class="s2">&quot;trace_id_absent&quot;</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">_build_rejected_result</span><span class="p">(</span><span class="n">packet</span><span class="p">,</span> <span class="s2">&quot;missing_trace_id&quot;</span><span class="p">)</span>
+<span class="k">if</span> <span class="ow">not</span> <span class="n">packet</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"trace_id"</span><span class="p">):</span>
+    <span class="n">packet</span><span class="o">.</span><span class="n">transition_to</span><span class="p">(</span><span class="n">DecisionState</span><span class="o">.</span><span class="n">REJECTED</span><span class="p">,</span> <span class="n">actor</span><span class="o">=</span><span class="s2">"G0_trace"</span><span class="p">,</span>
+                         <span class="n">reason</span><span class="o">=</span><span class="s2">"trace_id_absent"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">_build_rejected_result</span><span class="p">(</span><span class="n">packet</span><span class="p">,</span> <span class="s2">"missing_trace_id"</span><span class="p">)</span>
 </pre></div>
 </div>
 <p><strong>Livrables :</strong></p>
@@ -386,7 +386,7 @@
 </pre></div>
 </div>
 <p><strong>Vérification :</strong></p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;from infra.mexc_reader import MexcReader; r = MexcReader(); print(r.spot.test_connection())&quot;</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>-c<span class="w"> </span><span class="s2">"from infra.mexc_reader import MexcReader; r = MexcReader(); print(r.spot.test_connection())"</span>
 <span class="c1"># Attendu : [MEXC] OK | spot | lat=...ms | ...</span>
 </pre></div>
 </div>

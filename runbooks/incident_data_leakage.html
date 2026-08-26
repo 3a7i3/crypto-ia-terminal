@@ -264,14 +264,14 @@
 <h2>Actions immédiates<a class="headerlink" href="#actions-immediates" title="Link to this heading">¶</a></h2>
 <ol class="arabic">
 <li><p><strong>Vérifier les fenêtres</strong></p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-c<span class="w"> </span><span class="s2">"</span>
 <span class="s2">from walk_forward.window_splitter import WindowSplitter</span>
 <span class="s2">ws = WindowSplitter(n_samples=1000, train_size=500, test_size=100, step=200)</span>
 <span class="s2">for w in ws.split():</span>
-<span class="s2">    print(f&#39;Fold {w.fold_index}: train=[{w.train_start}:{w.train_end}] test=[{w.test_start}:{w.test_end}]&#39;)</span>
-<span class="s2">    assert w.train_end &lt;= w.test_start, &#39;LEAKAGE&#39;</span>
-<span class="s2">print(&#39;Toutes les fenetres sont propres.&#39;)</span>
-<span class="s2">&quot;</span>
+<span class="s2">    print(f'Fold {w.fold_index}: train=[{w.train_start}:{w.train_end}] test=[{w.test_start}:{w.test_end}]')</span>
+<span class="s2">    assert w.train_end &lt;= w.test_start, 'LEAKAGE'</span>
+<span class="s2">print('Toutes les fenetres sont propres.')</span>
+<span class="s2">"</span>
 </pre></div>
 </div>
 </li>

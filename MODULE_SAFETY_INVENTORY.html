@@ -541,8 +541,8 @@ et ou ils peuvent devenir vulnerables si on ne les surveille pas.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">system.safety_auditor</span><span class="w"> </span><span class="kn">import</span> <span class="n">SystemSafetyAuditor</span>
 
 <span class="n">auditor</span> <span class="o">=</span> <span class="n">SystemSafetyAuditor</span><span class="p">(</span>
-    <span class="n">required_modules</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;global_risk_gate&quot;</span><span class="p">,</span> <span class="s2">&quot;execution_engine&quot;</span><span class="p">,</span> <span class="s2">&quot;risk_governor&quot;</span><span class="p">},</span>
-    <span class="n">critical_modules</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;global_risk_gate&quot;</span><span class="p">,</span> <span class="s2">&quot;execution_engine&quot;</span><span class="p">,</span> <span class="s2">&quot;risk_governor&quot;</span><span class="p">},</span>
+    <span class="n">required_modules</span><span class="o">=</span><span class="p">{</span><span class="s2">"global_risk_gate"</span><span class="p">,</span> <span class="s2">"execution_engine"</span><span class="p">,</span> <span class="s2">"risk_governor"</span><span class="p">},</span>
+    <span class="n">critical_modules</span><span class="o">=</span><span class="p">{</span><span class="s2">"global_risk_gate"</span><span class="p">,</span> <span class="s2">"execution_engine"</span><span class="p">,</span> <span class="s2">"risk_governor"</span><span class="p">},</span>
 <span class="p">)</span>
 <span class="n">verdict</span> <span class="o">=</span> <span class="n">auditor</span><span class="o">.</span><span class="n">inspect</span><span class="p">()</span>
 <span class="k">if</span> <span class="n">verdict</span><span class="o">.</span><span class="n">block_new_trades</span><span class="p">:</span>

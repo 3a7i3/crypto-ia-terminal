@@ -278,9 +278,9 @@
 <p>Pour bénéficier de cette configuration centralisée dans d’autres scripts, il suffit d’ajouter :</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">configparser</span>
 <span class="n">config</span> <span class="o">=</span> <span class="n">configparser</span><span class="o">.</span><span class="n">ConfigParser</span><span class="p">()</span>
-<span class="n">config</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s1">&#39;strategy_factory_config.ini&#39;</span><span class="p">)</span>
+<span class="n">config</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s1">'strategy_factory_config.ini'</span><span class="p">)</span>
 <span class="c1"># Exemple d’utilisation :</span>
-<span class="n">POP_SIZE</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">getint</span><span class="p">(</span><span class="s1">&#39;simulation&#39;</span><span class="p">,</span> <span class="s1">&#39;pop_size&#39;</span><span class="p">,</span> <span class="n">fallback</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
+<span class="n">POP_SIZE</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">getint</span><span class="p">(</span><span class="s1">'simulation'</span><span class="p">,</span> <span class="s1">'pop_size'</span><span class="p">,</span> <span class="n">fallback</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>Vous pouvez factoriser ce chargement dans un utilitaire commun (ex : config_utils.py) pour éviter la duplication.</p>
@@ -302,8 +302,8 @@
 <p>Pour ajouter la centralisation à d’autres scripts, copiez simplement le bloc suivant en début de fichier :</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">configparser</span>
 <span class="n">config</span> <span class="o">=</span> <span class="n">configparser</span><span class="o">.</span><span class="n">ConfigParser</span><span class="p">()</span>
-<span class="n">config</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s1">&#39;strategy_factory_config.ini&#39;</span><span class="p">)</span>
-<span class="n">SHOW_PLOTS</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">getboolean</span><span class="p">(</span><span class="s1">&#39;visualization&#39;</span><span class="p">,</span> <span class="s1">&#39;show_plots&#39;</span><span class="p">,</span> <span class="n">fallback</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">config</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s1">'strategy_factory_config.ini'</span><span class="p">)</span>
+<span class="n">SHOW_PLOTS</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">getboolean</span><span class="p">(</span><span class="s1">'visualization'</span><span class="p">,</span> <span class="s1">'show_plots'</span><span class="p">,</span> <span class="n">fallback</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>Et remplacez tous les <code class="docutils literal notranslate"><span class="pre">plt.show()</span></code> par :</p>

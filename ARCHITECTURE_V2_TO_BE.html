@@ -262,7 +262,7 @@
                                     ▼
 ┌──────────────────────────────────────────────────────────────────┐
 │                           CORE                                   │
-│  Machine d&#39;état, Contrats, Invariants, Event Bus, Autorité       │
+│  Machine d'état, Contrats, Invariants, Event Bus, Autorité       │
 └──────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
@@ -290,7 +290,7 @@
 <strong>Ce qui entre :</strong> market_data, on-chain, exchange, social
 <strong>Ce qui sort :</strong> MarketSnapshot, Anomaly, WhaleAlert, LiquidityMap, RegimeClassification</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>domains/market/
-├── radar/              # Détection d&#39;anomalies, tokens, social scanning
+├── radar/              # Détection d'anomalies, tokens, social scanning
 ├── liquidity/          # Cartographie de liquidité, flux, profondeur
 ├── whales/             # Tracking de baleines (on-chain + exchange)
 ├── onchain/            # Données on-chain, indicateurs
@@ -504,9 +504,9 @@
 <h2>3. LA COUCHE CORE<a class="headerlink" href="#la-couche-core" title="Link to this heading">¶</a></h2>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>core/
 ├── contracts/          # DecisionPacket, SignalResult, OrderRequest — tous les types canoniques
-├── kernel/             # Machine d&#39;état, lifecycle, invariants
+├── kernel/             # Machine d'état, lifecycle, invariants
 ├── authority/          # Authority, signatures, identity
-├── event_bus/          # Bus d&#39;événements (UNIQUE pour tout le système)
+├── event_bus/          # Bus d'événements (UNIQUE pour tout le système)
 ├── startup/            # Bootstrap, warm boot, séquence de démarrage
 └── integrity/          # Burn-in, monte carlo, walk-forward, vérification invariants
 </pre></div>
@@ -695,7 +695,7 @@
 <span class="c1"># ── Signal ──</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">Signal</span><span class="p">:</span>
     <span class="n">symbol</span><span class="p">:</span> <span class="nb">str</span>
-    <span class="n">side</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;BUY&quot;</span><span class="p">,</span> <span class="s2">&quot;SELL&quot;</span><span class="p">,</span> <span class="s2">&quot;FLAT&quot;</span><span class="p">]</span>
+    <span class="n">side</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"BUY"</span><span class="p">,</span> <span class="s2">"SELL"</span><span class="p">,</span> <span class="s2">"FLAT"</span><span class="p">]</span>
     <span class="n">score</span><span class="p">:</span> <span class="nb">float</span>
     <span class="n">regime</span><span class="p">:</span> <span class="n">MarketRegime</span>
     <span class="n">timestamp</span><span class="p">:</span> <span class="n">datetime</span>
@@ -703,16 +703,16 @@
 <span class="c1"># ── Ordre ──</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">OrderRequest</span><span class="p">:</span>
     <span class="n">symbol</span><span class="p">:</span> <span class="nb">str</span>
-    <span class="n">side</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;BUY&quot;</span><span class="p">,</span> <span class="s2">&quot;SELL&quot;</span><span class="p">]</span>
+    <span class="n">side</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"BUY"</span><span class="p">,</span> <span class="s2">"SELL"</span><span class="p">]</span>
     <span class="n">quantity</span><span class="p">:</span> <span class="n">Decimal</span>
-    <span class="n">order_type</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;MARKET&quot;</span><span class="p">,</span> <span class="s2">&quot;LIMIT&quot;</span><span class="p">,</span> <span class="s2">&quot;STOP_LIMIT&quot;</span><span class="p">]</span>
+    <span class="n">order_type</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"MARKET"</span><span class="p">,</span> <span class="s2">"LIMIT"</span><span class="p">,</span> <span class="s2">"STOP_LIMIT"</span><span class="p">]</span>
     <span class="n">price</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Decimal</span><span class="p">]</span>
     <span class="n">stop_price</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Decimal</span><span class="p">]</span>
 
 <span class="k">class</span><span class="w"> </span><span class="nc">Fill</span><span class="p">:</span>
     <span class="n">order_id</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">symbol</span><span class="p">:</span> <span class="nb">str</span>
-    <span class="n">side</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;BUY&quot;</span><span class="p">,</span> <span class="s2">&quot;SELL&quot;</span><span class="p">]</span>
+    <span class="n">side</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"BUY"</span><span class="p">,</span> <span class="s2">"SELL"</span><span class="p">]</span>
     <span class="n">quantity</span><span class="p">:</span> <span class="n">Decimal</span>
     <span class="n">price</span><span class="p">:</span> <span class="n">Decimal</span>
     <span class="n">fee</span><span class="p">:</span> <span class="n">Decimal</span>
@@ -727,7 +727,7 @@
 
 <span class="c1"># ── Événements ──</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">TradeEvent</span><span class="p">:</span>
-    <span class="n">event_type</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;OPEN&quot;</span><span class="p">,</span> <span class="s2">&quot;CLOSE&quot;</span><span class="p">,</span> <span class="s2">&quot;UPDATE&quot;</span><span class="p">]</span>
+    <span class="n">event_type</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"OPEN"</span><span class="p">,</span> <span class="s2">"CLOSE"</span><span class="p">,</span> <span class="s2">"UPDATE"</span><span class="p">]</span>
     <span class="n">symbol</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">position_id</span><span class="p">:</span> <span class="nb">str</span>
     <span class="c1"># ... etc.</span>
@@ -740,21 +740,21 @@
 
 <span class="c1"># ── Régime ──</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">MarketRegime</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
-    <span class="n">TREND_BULL</span> <span class="o">=</span> <span class="s2">&quot;TREND_BULL&quot;</span>
-    <span class="n">TREND_BEAR</span> <span class="o">=</span> <span class="s2">&quot;TREND_BEAR&quot;</span>
-    <span class="n">SIDEWAYS</span> <span class="o">=</span> <span class="s2">&quot;SIDEWAYS&quot;</span>
-    <span class="n">HIGH_VOL</span> <span class="o">=</span> <span class="s2">&quot;HIGH_VOL&quot;</span>
-    <span class="n">CHOPPY</span> <span class="o">=</span> <span class="s2">&quot;CHOPPY&quot;</span>
-    <span class="n">VOLATILE</span> <span class="o">=</span> <span class="s2">&quot;VOLATILE&quot;</span>
-    <span class="n">UNKNOWN</span> <span class="o">=</span> <span class="s2">&quot;UNKNOWN&quot;</span>
+    <span class="n">TREND_BULL</span> <span class="o">=</span> <span class="s2">"TREND_BULL"</span>
+    <span class="n">TREND_BEAR</span> <span class="o">=</span> <span class="s2">"TREND_BEAR"</span>
+    <span class="n">SIDEWAYS</span> <span class="o">=</span> <span class="s2">"SIDEWAYS"</span>
+    <span class="n">HIGH_VOL</span> <span class="o">=</span> <span class="s2">"HIGH_VOL"</span>
+    <span class="n">CHOPPY</span> <span class="o">=</span> <span class="s2">"CHOPPY"</span>
+    <span class="n">VOLATILE</span> <span class="o">=</span> <span class="s2">"VOLATILE"</span>
+    <span class="n">UNKNOWN</span> <span class="o">=</span> <span class="s2">"UNKNOWN"</span>
 
 <span class="c1"># ── Conviction ──</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">ConvictionLevel</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
-    <span class="n">SKIP</span> <span class="o">=</span> <span class="s2">&quot;SKIP&quot;</span>
-    <span class="n">LOW</span> <span class="o">=</span> <span class="s2">&quot;LOW&quot;</span>
-    <span class="n">MEDIUM</span> <span class="o">=</span> <span class="s2">&quot;MEDIUM&quot;</span>
-    <span class="n">HIGH</span> <span class="o">=</span> <span class="s2">&quot;HIGH&quot;</span>
-    <span class="n">VERY_HIGH</span> <span class="o">=</span> <span class="s2">&quot;VERY_HIGH&quot;</span>
+    <span class="n">SKIP</span> <span class="o">=</span> <span class="s2">"SKIP"</span>
+    <span class="n">LOW</span> <span class="o">=</span> <span class="s2">"LOW"</span>
+    <span class="n">MEDIUM</span> <span class="o">=</span> <span class="s2">"MEDIUM"</span>
+    <span class="n">HIGH</span> <span class="o">=</span> <span class="s2">"HIGH"</span>
+    <span class="n">VERY_HIGH</span> <span class="o">=</span> <span class="s2">"VERY_HIGH"</span>
 </pre></div>
 </div>
 <p><strong>⚠️ Règle :</strong> Ces types sont la source unique de vérité. Toute duplication d’enum ou de classe de contrat est un bug architectural.</p>
@@ -769,12 +769,12 @@
 │   │   ├── __init__.py
 │   │   ├── types.py             # Signal, OrderRequest, Fill, RiskAssessment, etc.
 │   │   └── events.py            # TradeEvent, OrderEvent, SignalEvent, etc.
-│   ├── kernel/                  # Machine d&#39;état, lifecycle
+│   ├── kernel/                  # Machine d'état, lifecycle
 │   │   ├── lifecycle.py
 │   │   ├── runtime_state_machine.py
 │   │   ├── invariants.py
 │   │   └── authority.py
-│   ├── event_bus/               # Bus d&#39;événements unique
+│   ├── event_bus/               # Bus d'événements unique
 │   │   ├── bus.py
 │   │   └── bridge.py
 │   ├── startup/                 # Bootstrap, warm boot, cold start
@@ -879,7 +879,7 @@
 ├── scripts/                     # Scripts utilitaires
 ├── data/                        # Données statiques
 ├── config/                      # Configuration runtime
-├── tools/                       # Outils d&#39;analyse
+├── tools/                       # Outils d'analyse
 │
 ├── logs/                        # Logs (runtime)
 ├── feedback_logs/               # Feedbacks (runtime)
@@ -955,14 +955,14 @@
 <p>Pour chaque migration, on crée un shim :</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Ancien emplacement : quant_hedge_ai/strategy_factory/__init__.py</span>
 <span class="c1"># Devient un shim :</span>
-<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">"""</span>
 <span class="sd">⚠️ DEPRECATED — Ce module a migré vers domains/strategy/factory/</span>
-<span class="sd">Ce shim sera supprimé quand plus aucun import ne l&#39;utilisera.</span>
-<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Ce shim sera supprimé quand plus aucun import ne l'utilisera.</span>
+<span class="sd">"""</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">domains.strategy.factory</span><span class="w"> </span><span class="kn">import</span> <span class="o">*</span>  <span class="c1"># noqa</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
 <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
-    <span class="s2">&quot;quant_hedge_ai.strategy_factory est déprécié. Utilisez domains.strategy.factory.&quot;</span><span class="p">,</span>
+    <span class="s2">"quant_hedge_ai.strategy_factory est déprécié. Utilisez domains.strategy.factory."</span><span class="p">,</span>
     <span class="ne">DeprecationWarning</span><span class="p">,</span>
     <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
 <span class="p">)</span>
@@ -1014,7 +1014,7 @@
 <p>Pour chaque module migré, remplir cette fiche avant de commencer la migration.
 Un module dont la fiche est incomplète n’est pas prêt à migrer.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Nom        :
-Mission    : (une seule phrase — si deux phrases, c&#39;est deux modules)
+Mission    : (une seule phrase — si deux phrases, c'est deux modules)
 Entrées    : (types canoniques depuis core/contracts/)
 Sorties    : (types canoniques depuis core/contracts/)
 Événements produits  :
@@ -1111,7 +1111,7 @@ Score &lt; 5 = candidat prioritaire à la refonte. Score ≥ 8 = stable, migrer 
 <p>Exemple de radar module <code class="docutils literal notranslate"><span class="pre">risk/circuit_breaker.py</span></code> :</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Responsabilité unique : 7/10  (fait du circuit-breaking ET du kill-switch)
 Couplage             : 4/10  (importe supervision/, governance/, risk/)
-Testabilité          : 6/10  (tests présents mais dépendants de l&#39;état global)
+Testabilité          : 6/10  (tests présents mais dépendants de l'état global)
 Documentation        : 3/10  (aucune fiche de responsabilité)
 Cohérence DDD        : 5/10  (entre Risk et Supervision)
 Dette technique      : 5/10  (2 TODO ouverts)
@@ -1136,7 +1136,7 @@ Les modules dont tout dépend (racines) migrent en dernier.</p>
 <p><strong>Outil recommandé :</strong></p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>pydeps<span class="w"> </span>&lt;module&gt;<span class="w"> </span>--noshow<span class="w"> </span>--max-bacon<span class="w"> </span><span class="m">3</span>
 <span class="c1"># ou</span>
-grep<span class="w"> </span>-rn<span class="w"> </span><span class="s2">&quot;from &lt;module&gt; import&quot;</span><span class="w"> </span>.<span class="w"> </span>--include<span class="o">=</span><span class="s2">&quot;*.py&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>sort<span class="w"> </span><span class="p">|</span><span class="w"> </span>uniq
+grep<span class="w"> </span>-rn<span class="w"> </span><span class="s2">"from &lt;module&gt; import"</span><span class="w"> </span>.<span class="w"> </span>--include<span class="o">=</span><span class="s2">"*.py"</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>sort<span class="w"> </span><span class="p">|</span><span class="w"> </span>uniq
 </pre></div>
 </div>
 <hr class="docutils" />
