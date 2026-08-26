@@ -28,7 +28,7 @@ jobs:
           pip install streamlit plotly scikit-learn pandas matplotlib seaborn
       - name: Run CI Panel Report
         run: |
-          python panel_ci_report.py
+          python infra/panels/panel_ci_report.py
       - name: Upload HTML Report
         uses: actions/upload-artifact@v4
         with:

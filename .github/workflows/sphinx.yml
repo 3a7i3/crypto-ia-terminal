@@ -19,6 +19,11 @@ on:
 jobs:
   build-docs:
     runs-on: ubuntu-latest
+    # Requis par l'etape « Deploy to GitHub Pages » : sans cela le push vers
+    # gh-pages echoue avec « Permission denied to github-actions[bot] » (403).
+    # Portee minimale — aucune autre permission n'est accordee.
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
@@ -35,10 +40,13 @@ jobs:
       - name: Build Sphinx HTML
         run: |
           sphinx-build -b html docs docs/_build/html
+      # linkcheck est un builder integre a Sphinx : aucun paquet a installer.
+      # Le « pip install sphinx-linkcheck » precedent echouait systematiquement,
+      # ce paquet n'existant pas sur PyPI.
+      # continue-on-error : un lien externe mort ne doit pas bloquer la
+      # publication de la documentation — le resultat reste consultable dans
+      # les logs du job.
       - name: Check for broken links
-        # Diagnostic non bloquant : linkcheck est un builder intégré à Sphinx
-        # (aucun paquet `sphinx-linkcheck` n'existe sur PyPI) et échoue sur des
-        # liens externes injoignables — il ne doit pas faire échouer le build.
         continue-on-error: true
         run: |
           sphinx-build -b linkcheck docs docs/_build/linkcheck
@@ -65,6 +73,10 @@ jobs:
         with:
           name: sphinx-docs-html
           path: docs/_build/html
+      # Garde de branche : sans elle, tout push sur une branche de travail
+      # correspondant aux « paths » ci-dessus republierait le site public.
+      # Seul main publie ; les autres branches construisent la doc et
+      # deposent l'artefact HTML, sans rien publier.
       - name: Deploy to GitHub Pages
         if: github.ref == 'refs/heads/main'
         uses: peaceiris/actions-gh-pages@v4

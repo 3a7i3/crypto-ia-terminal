@@ -8,7 +8,27 @@ import sys
 from pathlib import Path
 import json
 
+import pytest
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
+
+# Test orphelin depuis ec71f5b (2026-06-13) « refactor(mexc): suppression
+# Binance » : tracker_system/exchange/ a ete supprime lors de la migration
+# vers MEXC, mais ce fichier importe toujours son client. Ses trois autres
+# imports (backtest_engine, auto_decision_engine, safe_execution_framework)
+# existent toujours — seule la couche exchange manque.
+#
+# L'echec etait invisible jusqu'ici : la collecte pytest s'interrompait plus
+# tot sur le masquage du paquet tests/ (voir certification/__init__.py).
+#
+# Skip explicite plutot que suppression : la dette reste visible dans la
+# sortie pytest, et le choix — porter le test sur MEXC ou le supprimer —
+# revient a l'operateur.
+pytest.skip(
+    "Orphelin depuis ec71f5b (suppression Binance, migration MEXC) : "
+    "tracker_system.exchange n'existe plus. A porter sur MEXC ou a supprimer.",
+    allow_module_level=True,
+)
 
 from tracker_system.exchange.binance_client import create_binance_client
 from tracker_system.backtest.backtest_engine import BacktestEngine, BacktestConfig
