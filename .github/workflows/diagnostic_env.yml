@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     paths:
-      - 'diagnostic_env.py'
+      - 'scripts/diagnostic_env.py'
       - 'requirements.txt'
       - '.github/workflows/diagnostic_env.yml'
 
@@ -23,4 +23,4 @@ jobs:
           pip install -r requirements.txt || true
       - name: Diagnostic environnement
         run: |
-          python diagnostic_env.py
+          python scripts/diagnostic_env.py
