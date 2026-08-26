@@ -20,3 +20,10 @@ repos:
       - id: bandit
         args: ["-r", "quant_hedge_ai", "supervision", "scripts", "-f", "json", "--exit-zero"]
         pass_filenames: false
+  # Secret detection — refuse tout commit contenant une clé/token/credential.
+  # Ajouté après l'incident du token Dash0 committé dans .claude/settings.local.json
+  # (repo public). Contrairement à bandit ci-dessus, ce hook BLOQUE (pas d'exit-zero).
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.4
+    hooks:
+      - id: gitleaks
