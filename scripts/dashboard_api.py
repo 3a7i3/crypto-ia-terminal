@@ -161,39 +161,6 @@ def api_status():
     ts = sum(f.stat().st_size for f in dfs)
     return {"packets_today":n,"last_packet":lt[:19] if lt else None,
         "dp_files":len(dfs),"dp_total_gb":round(ts/1e9,2)}
-    confs = [p.get("confidence",0) for p in m]
-    sides = [p.get("side","") for p in m]
-    lo = sum(1 for s in sides if s in ("BUY","LONG"))
-    sh = sum(1 for s in sides if s in ("SELL","SHORT"))
-    regs = defaultdict(int)
-    for p in m: regs[p.get("regime","?")] += 1
-    wl = [p for p in m if p.get("entry_price")]
-    la = wl[-1] if wl else None
-    return {"symbol":m[0].get("symbol",symbol),"n_signals":len(m),
-        "avg_confidence":round(sum(confs)/len(confs),1),"max_confidence":max(confs),
-        "longs":lo,"shorts":sh,"dominant_regime":max(regs,key=regs.get),
-        "last_signal":{"side":la.get("side"),"entry":la.get("entry_price"),
-        "sl":la.get("stop_loss"),"tp":la.get("take_profit"),
-        "r_multiple":la.get("r_multiple")} if la else None}
-
-@app.get("/api/status")
-def api_status():
-    now = datetime.utcnow()
-    fp = DP_DIR / f"decision_packets_{now.strftime('%Y-%m-%d')}.jsonl"
-    n,lt = 0,""
-    if fp.exists():
-        with open(fp,"r") as f:
-            for line in f:
-                if line.strip():
-                    n += 1
-                    try:
-                        t = json.loads(line).get("created_at","")
-                        if t: lt = t
-                    except: pass
-    dfs = sorted(DP_DIR.glob("decision_packets_*.jsonl"))
-    ts = sum(f.stat().st_size for f in dfs)
-    return {"packets_today":n,"last_packet":lt[:19] if lt else None,
-        "dp_files":len(dfs),"dp_total_gb":round(ts/1e9,2)}
 
 try:
     import sys as _sys
