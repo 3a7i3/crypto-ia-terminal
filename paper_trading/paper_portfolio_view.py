@@ -54,6 +54,9 @@ class PositionView:
     leverage: int = 1
     closed: bool = False
     pos_id: str = ""
+    # Personality de la position (portée par MexcPosition.personality).
+    # Non lue par PortfolioBrain — sert au reporting honnête (portfolio_status).
+    personality: str = ""
 
 
 def _map_side(raw_side: object) -> PortfolioSide:
@@ -80,6 +83,7 @@ def _position_to_view(pos: object) -> PositionView:
         leverage=1,
         closed=False,
         pos_id=str(getattr(pos, "pos_id", "") or ""),
+        personality=str(getattr(pos, "personality", "") or ""),
     )
 
 

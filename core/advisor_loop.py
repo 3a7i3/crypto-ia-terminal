@@ -7149,7 +7149,31 @@ def main(
                     except Exception:
                         pass
 
-                    # Meta-Strategy + Ranker — personnalité active + top stratégies
+                    # PORTFOLIO — statut honnête au niveau portefeuille, construit
+                    # depuis la vue canonique (_virtual_portfolio._positions).
+                    # Corrige le mensonge du label META-STRATEGY (Phase 2 §5) qui
+                    # présentait la personality du dernier signal comme policy globale.
+                    if _virtual_portfolio is not None:
+                        try:
+                            from paper_trading.paper_portfolio_view import (
+                                paper_portfolio_view,
+                            )
+                            from paper_trading.portfolio_status import (
+                                build_portfolio_status,
+                                render_portfolio_block,
+                            )
+
+                            _pb_max = int(os.getenv("PB_MAX_POSITIONS", "5"))
+                            _pf_status = build_portfolio_status(
+                                paper_portfolio_view(_virtual_portfolio), _pb_max
+                            )
+                            msg += "\n\n" + render_portfolio_block(_pf_status)
+                        except Exception as _pf_exc:
+                            log.debug("[Reporting] portfolio_status: %s", _pf_exc)
+
+                    # Meta-Strategy + Ranker — personnalité du DERNIER signal traité.
+                    # Étiquetée explicitement "dernier signal" : ce n'est PAS la
+                    # politique globale du portefeuille (voir bloc PORTFOLIO ci-dessus).
                     current_personality = meta_engine.current_personality()
                     if current_personality is not None:
                         p = current_personality
@@ -7168,7 +7192,7 @@ def main(
                         else:
                             _risk_profile = "Aggressive"
                         msg += (
-                            f"\n\nMETA-STRATEGY: {p.name}"
+                            f"\n\nSIGNAL POLICY (dernier signal): {p.name}"
                             f"\n  Taille: x{p.order_size_factor:.1f} | "
                             f"TP:{p.tp_pct:.1%} SL:{p.sl_pct:.1%}"
                             f"\n  Confidence: {_conf}% | Risk Profile: {_risk_profile}"
