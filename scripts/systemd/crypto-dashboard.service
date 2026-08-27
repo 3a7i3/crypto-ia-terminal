@@ -7,6 +7,7 @@ Type=simple
 User=mathieu
 WorkingDirectory=/home/mathieu/crypto_ai_terminal
 EnvironmentFile=/home/mathieu/crypto_ai_terminal/.env
+EnvironmentFile=-/home/mathieu/crypto_ai_terminal/.env.secrets
 ExecStart=/usr/bin/python3 scripts/dashboard_api.py
 Restart=always
 RestartSec=10

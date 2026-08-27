@@ -23,6 +23,7 @@ Type=simple
 User=mathieu
 WorkingDirectory=/home/mathieu/crypto_ai_terminal
 EnvironmentFile=-/home/mathieu/crypto_ai_terminal/.env
+EnvironmentFile=-/home/mathieu/crypto_ai_terminal/.env.secrets
 Environment=PYTHONUNBUFFERED=1
 Environment=PYTHONIOENCODING=utf-8
 Environment=TZ=UTC
