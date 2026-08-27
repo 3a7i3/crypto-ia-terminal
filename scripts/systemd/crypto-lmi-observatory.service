@@ -17,6 +17,7 @@ Type=simple
 User=mathieu
 WorkingDirectory=/home/mathieu/crypto_ai_terminal
 EnvironmentFile=-/home/mathieu/crypto_ai_terminal/.env
+EnvironmentFile=-/home/mathieu/crypto_ai_terminal/.env.secrets
 ExecStart=/home/mathieu/crypto_ai_terminal/.venv/bin/python -m trade_analysis.observatory --live --max-symbols 20
 Restart=on-failure
 RestartSec=10
