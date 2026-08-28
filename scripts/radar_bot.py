@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""radar_bot.py — Bot Telegram interactif CryptoRadar. LECTURE SEULE."""
+"""radar_bot.py — Bot Telegram interactif CryptoRadar. LECTURE SEULE.
+
+Domaine : découverte d'opportunités de marché.
+Ce bot répond à une seule question : « Où se passe-t-il quelque chose sur le marché ? »
+Il n'affiche jamais d'Entry/SL/TP, de données portfolio, ni de métriques système.
+Voir docs/architecture/TELEGRAM_BOT_REGISTRY.md pour le contrat complet.
+"""
 
 from __future__ import annotations
 import json, os, sys, time, traceback, urllib.request, urllib.error
@@ -9,8 +15,10 @@ from pathlib import Path
 
 PROJECT = Path(__file__).resolve().parent.parent
 DP_DIR = Path(os.getenv("DP_LOG_DIR", str(PROJECT / "databases")))
-TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
-CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "").strip()
+# Token dédié CryptoRadar — utilise TELEGRAM_BOT_TOKEN comme fallback temporaire
+# jusqu'à la migration Phase 3. Voir TELEGRAM_BOT_REGISTRY.md.
+TOKEN = (os.getenv("RADAR_BOT_TOKEN") or os.getenv("TELEGRAM_BOT_TOKEN", "")).strip()
+CHAT_ID = (os.getenv("RADAR_CHAT_ID") or os.getenv("TELEGRAM_CHAT_ID", "")).strip()
 ALLOWED_CHATS = {CHAT_ID} if CHAT_ID else set()
 
 def tg_request(method, payload=None):
@@ -88,17 +96,18 @@ def compute_symbol_stats(packets, min_conf=0):
         for p in pks:
             regimes[p.get("regime", "?")] += 1
         regime = max(regimes, key=regimes.get)
-        latest = ([p for p in pks if p.get("entry_price")] or pks)[-1]
         results.append({"symbol": sym, "avg_confidence": round(avg, 1),
             "max_confidence": max(confs), "n_signals": len(pks),
             "dominant_side": dom, "dominance_pct": round(dom_pct, 0),
-            "regime": regime, "entry": latest.get("entry_price"),
-            "sl": latest.get("stop_loss"), "tp": latest.get("take_profit"),
-            "r_multiple": latest.get("r_multiple")})
+            "regime": regime})
     results.sort(key=lambda r: r["avg_confidence"], reverse=True)
     return results
 
 def extract_signals(packets):
+    """Extrait les signaux avec Entry/SL/TP des packets.
+    USAGE INTERNE UNIQUEMENT — pas exposé comme commande Telegram CryptoRadar.
+    Ces données appartiennent au domaine Portfolio (voir TELEGRAM_BOT_REGISTRY.md).
+    """
     signals = []
     seen = set()
     for p in packets:
@@ -134,35 +143,38 @@ def cmd_scan(args):
     stats = compute_symbol_stats(packets, min_conf=65)[:top_n]
     if not stats:
         return "\U0001f4ca SCAN — Aucun symbole avec conf >= 65"
-    now_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
-    lines = [f"\U0001f4ca SCAN — {now_str}", f"Top {len(stats)} (24h, conf>=65)\n"]
-    for s in stats:
-        icon = "\U0001f7e2" if s["dominant_side"] == "LONG" else "\U0001f534" if s["dominant_side"] == "SHORT" else "⚪"
-        lines.append(f"{icon} {s['symbol']} | {s['dominant_side']} {s['dominance_pct']:.0f}% | conf {s['avg_confidence']:.0f} (max {s['max_confidence']:.0f}) | {s['regime']}")
-        if s.get("entry"):
-            lines.append(f"   Entry: {s['entry']:.6g} | SL: {s['sl']:.6g} | TP: {s['tp']:.6g}")
-        lines.append("")
+    now_str = datetime.utcnow().strftime("%d %b · %H:%M UTC")
+    regime_counts: dict = defaultdict(int)
+    for s in compute_symbol_stats(packets, min_conf=0):
+        regime_counts[s["regime"]] += 1
+    main_regime = max(regime_counts, key=regime_counts.get) if regime_counts else "?"
+    total_universe = len(compute_symbol_stats(packets, min_conf=0))
+    watchlist = len(compute_symbol_stats(packets, min_conf=50)) - len(stats)
+    lines = [
+        f"\U0001f4e1 CRYPTORADAR",
+        f"{now_str}",
+        "",
+        f"March\u00e9: {main_regime}",
+        f"Univers: {total_universe} paires \u00b7 Actionnables: {len(stats)} (\u226565)",
+        "",
+        "\U0001f525 TOP OPPORTUNIT\u00c9S",
+    ]
+    for i, s in enumerate(stats, 1):
+        icon = "\U0001f7e2" if s["dominant_side"] == "LONG" else "\U0001f534" if s["dominant_side"] == "SHORT" else "\u26aa"
+        lines.append(f"{i}. {icon} {s['symbol']}  {s['avg_confidence']:.0f}  {s['dominant_side']}  {s['regime']}")
+    if watchlist > 0:
+        lines += ["", f"\U0001f440 SURVEILLANCE", f"{watchlist} paires entre 50\u201364"]
+    lines += ["", "Mode: OBSERVATION"]
     return "\n".join(lines)
 
-def cmd_signals(args):
-    hours = 24
-    a = args.strip().lower()
-    if a:
-        try:
-            hours = float(a.replace("h", ""))
-        except ValueError:
-            pass
-    packets = load_recent_packets(hours)
-    sigs = extract_signals(packets)[:15]
-    if not sigs:
-        return f"\U0001f4cb SIGNALS ({hours:.0f}h) — Aucun signal avec Entry/SL/TP"
-    lines = [f"\U0001f4cb SIGNALS — {len(sigs)} signaux ({hours:.0f}h)\n"]
-    for s in sigs:
-        icon = "\U0001f7e2" if s["side"] in ("BUY", "LONG") else "\U0001f534"
-        d = "LONG" if s["side"] in ("BUY", "LONG") else "SHORT"
-        r_str = f" | R:R {s['r_multiple']:.1f}" if s.get("r_multiple") else ""
-        lines.append(f"{icon} {s['symbol']} {d}\n   Entry: {s['entry']:.6g}\n   SL: {s['sl']:.6g} (-{s['risk_pct']:.1f}%) | TP: {s['tp']:.6g} (+{s['reward_pct']:.1f}%)\n   Conf: {s['confidence']:.0f}/100 | {s['regime']}{r_str}\n")
-    return "\n".join(lines)
+def cmd_signals(_args):
+    """Redirige vers Portfolio Bot — domaine incorrect pour CryptoRadar."""
+    return (
+        "\U0001f4e1 CryptoRadar — domaine marché uniquement\n\n"
+        "Les signaux avec Entry/SL/TP appartiennent au domaine Portfolio.\n"
+        "Utilise \U0001f4bc Mon Portfolio pour consulter les niveaux d'exécution.\n\n"
+        "Commandes disponibles ici : /scan /top50 /longs /shorts /symbol /lmi"
+    )
 
 def cmd_top50(_args):
     packets = load_recent_packets(24)
@@ -175,6 +187,7 @@ def cmd_top50(_args):
         lines.append(f"{i:2d}. {icon} {s['symbol']:12s} {s['dominant_side']:5s} {s['dominance_pct']:3.0f}% | conf {s['avg_confidence']:.0f} | {s['regime']}")
     return "\n".join(lines)
 
+
 def cmd_longs(_args):
     packets = load_recent_packets(24)
     stats = compute_symbol_stats(packets, min_conf=65)
@@ -184,10 +197,9 @@ def cmd_longs(_args):
     lines = [f"\U0001f7e2 TOP LONGS — {len(longs)} symboles (24h)\n"]
     for s in longs:
         lines.append(f"\U0001f7e2 {s['symbol']} | {s['dominance_pct']:.0f}% | conf {s['avg_confidence']:.0f} (max {s['max_confidence']:.0f}) | {s['regime']}")
-        if s.get("entry"):
-            lines.append(f"   Entry: {s['entry']:.6g} | SL: {s['sl']:.6g} | TP: {s['tp']:.6g}")
         lines.append("")
     return "\n".join(lines)
+
 
 def cmd_shorts(_args):
     packets = load_recent_packets(24)
@@ -198,8 +210,6 @@ def cmd_shorts(_args):
     lines = [f"\U0001f534 TOP SHORTS — {len(shorts)} symboles (24h)\n"]
     for s in shorts:
         lines.append(f"\U0001f534 {s['symbol']} | {s['dominance_pct']:.0f}% | conf {s['avg_confidence']:.0f} (max {s['max_confidence']:.0f}) | {s['regime']}")
-        if s.get("entry"):
-            lines.append(f"   Entry: {s['entry']:.6g} | SL: {s['sl']:.6g} | TP: {s['tp']:.6g}")
         lines.append("")
     return "\n".join(lines)
 
@@ -220,58 +230,21 @@ def cmd_symbol(args):
     for p in matching:
         regimes[p.get("regime", "?")] += 1
     dom_regime = max(regimes, key=regimes.get)
-    with_levels = [p for p in matching if p.get("entry_price")]
     lines = [f"\U0001f50d {sym_name} — detail 24h\n",
         f"Signals: {len(matching)}",
         f"Conf:    avg {sum(confs)/len(confs):.1f} | max {max(confs):.0f} | min {min(confs):.0f}",
         f"LONG:    {longs}  |  SHORT: {shorts}",
         f"Regime:  {dom_regime}"]
-    if with_levels:
-        last = with_levels[-1]
-        e, sl, tp = last["entry_price"], last.get("stop_loss", 0), last.get("take_profit", 0)
-        side = last.get("side", "?")
-        icon = "\U0001f7e2" if side in ("BUY", "LONG") else "\U0001f534"
-        d = "LONG" if side in ("BUY", "LONG") else "SHORT"
-        lines.append(f"\n{icon} Dernier signal: {d}")
-        lines.append(f"   Entry: {e:.6g}")
-        lines.append(f"   SL:    {sl:.6g}")
-        lines.append(f"   TP:    {tp:.6g}")
-        r = last.get("r_multiple")
-        if r:
-            lines.append(f"   R:R    {r:.1f}")
     return "\n".join(lines)
 
 def cmd_status(_args):
-    now = datetime.utcnow()
-    today = now.strftime("%Y-%m-%d")
-    fp = DP_DIR / f"decision_packets_{today}.jsonl"
-    n_today = 0
-    last_ts = ""
-    if fp.exists():
-        with open(fp, "r", encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue
-                n_today += 1
-                try:
-                    p = json.loads(line)
-                    ts = p.get("created_at", "")
-                    if ts:
-                        last_ts = ts
-                except Exception:
-                    pass
-    db_path = PROJECT / "databases" / "market_data.sqlite"
-    db_size = db_path.stat().st_size if db_path.exists() else 0
-    dp_files = sorted(DP_DIR.glob("decision_packets_*.jsonl"))
-    n_files = len(dp_files)
-    total_size = sum(f.stat().st_size for f in dp_files)
-    lines = [f"STATUS — {now.strftime('%Y-%m-%d %H:%M UTC')}\n",
-        f"Packets aujourd'hui: {n_today}",
-        f"Dernier packet:      {last_ts[:19] if last_ts else '?'}",
-        f"Fichiers DP:         {n_files} ({total_size / 1e9:.1f} GB)",
-        f"market_data.sqlite:  {db_size / 1e6:.1f} MB"]
-    return "\n".join(lines)
+    """Redirige vers les outils Ops — domaine incorrect pour CryptoRadar."""
+    return (
+        "\U0001f4e1 CryptoRadar — domaine marché uniquement\n\n"
+        "Les métriques système (fichiers DB, taille, uptime) appartiennent "
+        "au domaine Ops/Watchdog.\n\n"
+        "Commandes disponibles ici : /scan /top50 /longs /shorts /symbol /lmi"
+    )
 
 def cmd_lmi(args):
     """Live Market Interaction — observation microstructure (lecture seule)."""
@@ -286,23 +259,23 @@ def cmd_lmi(args):
     return format_lmi_overview()
 
 def cmd_help(_args):
-    return ("\U0001f916 CryptoRadar Bot\n\n"
-        "/scan        Top 10 par confiance (24h)\n"
+    return ("\U0001f916 CryptoRadar — Observatoire marché\n\n"
+        "/scan        Top 10 opportunités par score (24h)\n"
         "/scan 5      Top N symboles\n"
-        "/signals     Signaux avec Entry/SL/TP (24h)\n"
-        "/signals 4h  Signaux des N dernieres heures\n"
-        "/top50       Top 50 compact\n"
-        "/longs       Uniquement les LONG\n"
-        "/shorts      Uniquement les SHORT\n"
-        "/symbol BTC  Detail d'un symbole\n"
-        "/lmi         Observatoire Live Market (tous)\n"
-        "/lmi BTC     Microstructure live d'un symbole\n"
-        "/status      Etat du systeme\n"
-        "/help        Cette aide")
+        "/top50       Top 50 compact (conf>=60)\n"
+        "/longs       Opportunités directionnelles LONG\n"
+        "/shorts      Opportunités directionnelles SHORT\n"
+        "/symbol BTC  Analyse détaillée d'un symbole\n"
+        "/lmi         Vue microstructure marché (tous)\n"
+        "/lmi BTC     Microstructure d'un symbole\n"
+        "/help        Cette aide\n\n"
+        "Domaine : découverte d'opportunités. Pas de portfolio ni de métriques système.")
 
-COMMANDS = {"scan": cmd_scan, "signals": cmd_signals, "top50": cmd_top50,
+COMMANDS = {"scan": cmd_scan, "top50": cmd_top50,
     "longs": cmd_longs, "shorts": cmd_shorts, "symbol": cmd_symbol,
-    "lmi": cmd_lmi, "status": cmd_status, "help": cmd_help, "start": cmd_help}
+    "lmi": cmd_lmi, "help": cmd_help, "start": cmd_help,
+    # Commandes hors-domaine — redirigent vers le bot approprié
+    "signals": cmd_signals, "status": cmd_status}
 
 def poll_loop():
     print(f"[RadarBot] Demarre — polling Telegram...")
@@ -348,7 +321,9 @@ def poll_loop():
 
 def main():
     if not TOKEN:
-        print("[ERREUR] TELEGRAM_BOT_TOKEN manquant")
+        # Cherche le token dédié d'abord, puis le fallback
+        missing = "RADAR_BOT_TOKEN (ou TELEGRAM_BOT_TOKEN en fallback)"
+        print(f"[ERREUR] {missing} manquant")
         sys.exit(1)
     if "--once" in sys.argv:
         result = tg_request("getUpdates", {"timeout": 0})

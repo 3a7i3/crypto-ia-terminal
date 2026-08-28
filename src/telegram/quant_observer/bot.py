@@ -101,9 +101,14 @@ def _render_pipeline() -> bytes:
 
 
 def _render_portfolio() -> bytes:
-    from visualization.api import load_portfolio_snapshot
-
-    return _ves().render(load_portfolio_snapshot(), viewer_level=3)
+    """Redirigé vers Portfolio Bot — domaine incorrect pour Quant Observer.
+    Conservé pour compatibilité ascendante mais ne rend plus de données portfolio.
+    Voir docs/architecture/TELEGRAM_BOT_REGISTRY.md.
+    """
+    raise NotImplementedError(
+        "Le domaine portfolio appartient à 💼 Mon Portfolio bot (P10_PORTFOLIO_BOT_TOKEN). "
+        "Cette commande a été retirée de Quant Observer."
+    )
 
 
 # ── Pinned message (V3 text, auto-refreshed every 10 min) ────────────────────
@@ -162,7 +167,7 @@ COMMANDS: dict[str, tuple[str, callable]] = {
     "/snapshot": ("SDOS Snapshot (4 panels)", _render_snapshot),
     "/health": ("System Health (radar)", _render_health),
     "/pipeline": ("Decision Pipeline", _render_pipeline),
-    "/portfolio": ("Portfolio KPIs", _render_portfolio),
+    # /portfolio retiré — domaine Portfolio (TELEGRAM_BOT_REGISTRY.md)
 }
 
 
@@ -174,9 +179,19 @@ def _handle_command(text: str, chat_id: str):
             + "\n".join(
                 f"<code>{c}</code> — {desc}" for c, (desc, _) in COMMANDS.items()
             )
-            + "\n\n<i>SVA v1.0 — Scientific Visualization Architecture</i>"
+            + "\n\n<i>Domaine : microstructure SDOS. Pas de données portfolio.</i>"
+            "\n<i>SVA v1.0 — Scientific Visualization Architecture</i>"
         )
         send_message(chat_id, help_text)
+        return
+
+    if cmd == "/portfolio":
+        send_message(
+            chat_id,
+            "\U0001f52c Quant Observer — domaine SDOS uniquement\n\n"
+            "Les KPIs portfolio appartiennent à \U0001f4bc Mon Portfolio bot.\n\n"
+            "Commandes disponibles ici : /snapshot /health /pipeline",
+        )
         return
 
     if cmd in COMMANDS:

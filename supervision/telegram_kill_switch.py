@@ -30,8 +30,10 @@ import requests
 from observability.json_logger import get_logger
 
 _log = get_logger("kill_switch")
-TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
-TELEGRAM_CHAT = os.getenv("TELEGRAM_CHAT_ID", "")
+# Token dédié KillSwitch — utilise TELEGRAM_BOT_TOKEN comme fallback temporaire
+# jusqu'à la migration Phase 3. Voir docs/architecture/TELEGRAM_BOT_REGISTRY.md.
+TELEGRAM_TOKEN = (os.getenv("KILLSWITCH_BOT_TOKEN") or os.getenv("TELEGRAM_BOT_TOKEN", ""))
+TELEGRAM_CHAT = (os.getenv("KILLSWITCH_CHAT_ID") or os.getenv("TELEGRAM_CHAT_ID", ""))
 POLL_INTERVAL = 3  # secondes entre chaque check Telegram
 
 

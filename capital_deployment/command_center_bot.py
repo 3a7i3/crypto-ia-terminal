@@ -1,8 +1,10 @@
 """
 capital_deployment/command_center_bot.py — Telegram Command Center
 
-Interface Telegram complète : lecture ET écriture de tous les paramètres.
-Remplace tout dashboard. Bot unique pour tout contrôler.
+Interface Telegram Portfolio : lecture du capital, des performances et des positions.
+Ce bot répond à une seule question : « Est-ce que ma machine gagne de l'argent ? »
+Il n'affiche jamais de signaux de marché par symbole (domaine CryptoRadar).
+Voir docs/architecture/TELEGRAM_BOT_REGISTRY.md pour le contrat complet.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 COMMANDES DISPONIBLES
@@ -12,8 +14,7 @@ COMMANDES DISPONIBLES
   /status          Résumé rapide (phase, KPIs, capital)
   /kpis            KPIs détaillés (WR, Sharpe, DD, trades)
   /phase           Info phase F-xx + temps restant
-  /regime          Régime marché par symbole
-  /signals         Scores signaux actuels
+  /regime          Régime marché (résumé global uniquement)
   /risk            État risque (drawdown, EO, pertes consec.)
   /health          Santé de tous les modules
 
@@ -974,7 +975,6 @@ def _fmt_rapport(p: CommandDataProvider) -> str:
     thr = p.get_throttle() if p.get_throttle else None
     kpis = p.get_kpis() if p.get_kpis else None
     pos = (p.get_positions() if p.get_positions else None) or []
-    sigs = (p.get_signals() if p.get_signals else None) or {}
     trades = (p.get_trades() if p.get_trades else None) or []
 
     lines = [f"*RAPPORT — {now}*", f"Phase *{phase}*"]
@@ -1030,11 +1030,6 @@ def _fmt_rapport(p: CommandDataProvider) -> str:
     else:
         lines.append("  Aucune position")
 
-    if sigs:
-        lines += ["", "*SIGNAUX*"]
-        items = list(sigs.items()) if isinstance(sigs, dict) else []
-        lines += _signals_lines(items)
-
     if trades:
         from datetime import datetime as _dt
 
@@ -1082,8 +1077,7 @@ STATUS
 /status           Resume rapide
 /kpis             KPIs detailles
 /phase            Phase F-xx + temps restant
-/regime           Regime marche par symbole
-/signals          Scores signaux
+/regime           Regime marche (resume global)
 /risk             Etat risque
 /health           Sante modules
 /eo               ExecutiveOverride (niveau + seuils)
@@ -1284,7 +1278,13 @@ class CommandCenterBot:
             "/pnl": lambda: _fmt_pnl(self._provider),
             "/phase": lambda: _fmt_phase(self._provider),
             "/regime": lambda: _fmt_regime(self._provider),
-            "/signals": lambda: _fmt_signals(self._provider),
+            # /signals redirige vers CryptoRadar — domaine marché (TELEGRAM_BOT_REGISTRY.md)
+            "/signals": lambda: (
+                "\U0001f4bc Mon Portfolio — domaine capital uniquement\n\n"
+                "Les scores de signaux par symbole appartiennent au domaine marché.\n"
+                "Utilise \U0001f4e1 CryptoRadar (/scan) pour les opportunités de marché.\n\n"
+                "Commandes disponibles ici : /status /kpis /balance /positions /pnl"
+            ),
             "/risk": lambda: _fmt_risk(self._provider),
             "/health": lambda: _fmt_health(self._provider),
             "/eo": lambda: _fmt_eo(self._provider),
