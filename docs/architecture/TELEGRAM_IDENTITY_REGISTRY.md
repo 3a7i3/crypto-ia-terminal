@@ -23,14 +23,21 @@ All bots are governed by `docs/TELEGRAM_CONSTITUTION.md`.
 Constitutional rule: Telegram = read-only observation layer. Zero control commands.
 
 ## Complete Identity Count
-**10** confirmed Telegram identities found in codebase (8 token/chat variable
-groups explicitly requested for this audit, plus **2 additional identities**
-discovered during the broad `*_BOT_TOKEN`/`*_TOKEN`/`*_CHAT_ID` sweep that
-were not in any prior document's identity table: `NARRATOR_BOT_TOKEN` /
-`NARRATOR_CHAT_ID`, and the legacy `KILLSWITCH_BOT_TOKEN` / `KILLSWITCH_CHAT_ID`
-names — the latter is referenced only in prose in
-`docs/architecture/TELEGRAM_BOT_REGISTRY.md` and was never wired to
-`os.getenv` anywhere in the codebase).
+
+**7 official identities** (6 bots + 1 generic push channel) — as of 2026-08-28 merge.
+
+> **Architecture decision 2026-08-28**: `REAL_ACCOUNT_BOT_TOKEN` has been removed.
+> It was confirmed to be the same physical BotFather token as `P10_PORTFOLIO_BOT_TOKEN`.
+> All real-account push notifications in `core/advisor_loop.py::_telegram_real()`
+> now route through `P10_PORTFOLIO_BOT_TOKEN` / `P10_PORTFOLIO_CHAT_ID`.
+> The variable `REAL_ACCOUNT_BOT_TOKEN` has been deleted from `.env.secrets.example`
+> and from `core/advisor_loop.py`.
+
+Audit history: forensic scan found 10 distinct token-variable groups in the codebase,
+reduced to 7 official identities after:
+- merging `REAL_ACCOUNT_BOT_TOKEN` into `P10_PORTFOLIO_BOT_TOKEN` (same physical token, operator confirmed)
+- classifying `NARRATOR_BOT_TOKEN` as dead code (commented-out placeholder only, never wired)
+- classifying `KILLSWITCH_BOT_TOKEN` as dead code (prose reference only, never wired to `os.getenv`)
 
 No dedicated Telegram *channel* (broadcast, as distinct from a bot/chat)
 identity was found anywhere in the repository.
@@ -46,7 +53,7 @@ identity was found anywhere in the repository.
 | IDENTITY-05 | Paper Arena | `PAPER_ARENA_TG_TOKEN` | `PAPER_ARENA_TG_CHAT_ID` | PUSH_ONLY | NO | YES | `paper-arena.service` | YES | ACTIVE |
 | IDENTITY-06 | CMVK / Sim Bot | `CMVK_BOT_TOKEN` | `CMVK_CHAT_ID` | INTERACTIVE (code) | YES | YES | NONE found | PARTIAL | UNKNOWN |
 | IDENTITY-07 | Generic Alerts (Moteur) | `TELEGRAM_BOT_TOKEN` | `TELEGRAM_CHAT_ID` / `TELEGRAM_BEHAVIOR_CHAT_ID` | PUSH_ONLY | NO | YES | in-process `crypto-advisor.service` + standalone scripts | PARTIAL | ACTIVE |
-| IDENTITY-08 | Real Account Bot | `REAL_ACCOUNT_BOT_TOKEN` | `REAL_ACCOUNT_CHAT_ID` | PUSH_ONLY | NO | YES | in-process `crypto-advisor.service` | NO | ACTIVE |
+| IDENTITY-08 | ~~Real Account Bot~~ | ~~`REAL_ACCOUNT_BOT_TOKEN`~~ | ~~`REAL_ACCOUNT_CHAT_ID`~~ | **MERGED** | — | — | — | — | **MERGED → IDENTITY-02** |
 | IDENTITY-09 | KillSwitch (legacy, dead code) | `KILLSWITCH_BOT_TOKEN` (never wired) | `KILLSWITCH_CHAT_ID` (never wired) | DEAD_CODE | N/A | N/A | NONE | PARTIAL | DEAD_CODE |
 | IDENTITY-10 | Narrator / Télémétrie IA | `NARRATOR_BOT_TOKEN` | `NARRATOR_CHAT_ID` | DEAD_CODE | UNKNOWN | UNKNOWN | NONE found | PARTIAL | DEAD_CODE |
 
@@ -250,7 +257,7 @@ Status: ACTIVE / INACTIVE / DEAD_CODE / UNKNOWN
 
 | Identity | Issue | Severity | Recommended Action |
 |---|---|---|---|
-| IDENTITY-08 Real Account Bot | Completely undocumented in `TELEGRAM_BOT_REGISTRY.md`; absent from `.env.example` | CRITICAL | Add a full profile section to `TELEGRAM_BOT_REGISTRY.md` (mission, authority, allowed/forbidden content) and add the variable pair to `.env.example` |
+| IDENTITY-08 Real Account Bot | **MERGED** — `REAL_ACCOUNT_BOT_TOKEN` deleted; routes via `P10_PORTFOLIO_BOT_TOKEN` (same physical token, operator confirmed 2026-08-28) | RESOLVED | No further action required |
 | IDENTITY-08 Real Account Bot | Shares the same physical BotFather token as IDENTITY-02 (Portfolio) per `.env.secrets.example:74-90`, relying on an unenforced "single poller" convention | HIGH | Document the shared-token relationship explicitly in `TELEGRAM_BOT_REGISTRY.md` so future changes to either bot's polling behavior are made with full awareness of the collision risk |
 | IDENTITY-07 Generic Alerts | Busiest identity by call-site count (per `TELEGRAM_NOTIFICATION_AUDIT.md`), but has no dedicated mission/ownership profile comparable to identities 01-05 | HIGH | Add a profile section to `TELEGRAM_BOT_REGISTRY.md` defining scope, allowed content, and an owner for this channel |
 | IDENTITY-06 CMVK / Sim Bot | Registry only references this bot by a different BotFather name (`@FtnTrading_bot`) and does not reflect its current read-only command set or actual env var names | MEDIUM | Either formally document `CMVK_BOT_TOKEN`/`CMVK_CHAT_ID` under their real names in the Registry, or explicitly record retirement decisions against those variable names |
@@ -274,7 +281,7 @@ Severity: CRITICAL / HIGH / MEDIUM / LOW
 | IDENTITY-05 Paper Arena | KEEP | Active, fully documented; noise-reduction is a message-volume matter, not an identity issue |
 | IDENTITY-06 CMVK / Sim Bot | DOCUMENT or REMOVE | Code is read-only compliant and fully wired, but no deployment evidence exists; operator should confirm intended use and update the Registry accordingly under the real variable names |
 | IDENTITY-07 Generic Alerts (Moteur) | DOCUMENT | Active and heavily used; needs a formal Registry profile matching identities 01-05 |
-| IDENTITY-08 Real Account Bot | DOCUMENT | Active, in production use (boot-time + hourly reports), but completely missing governance — highest-priority documentation gap in this audit |
+| IDENTITY-08 Real Account Bot | MERGED → IDENTITY-02 | Same physical token as Portfolio; `REAL_ACCOUNT_BOT_TOKEN` variable deleted (2026-08-28) |
 | IDENTITY-09 KillSwitch (legacy) | REMOVE (code, future) | Confirmed dead, constitutionally prohibited if reactivated; already recorded as retired |
 | IDENTITY-10 Narrator | REMOVE (formalize) | Code confirmed deleted; needs a signed ADR to close the loop referenced in its own `.env.secrets.example` comment |
 
@@ -288,4 +295,4 @@ Severity: CRITICAL / HIGH / MEDIUM / LOW
 | `docs/architecture/TELEGRAM_BOT_REGISTRY.md` | 5 identities covered with full governance profiles (01-05); IDENTITY-06, 07, 09, 10 mentioned only in prose/anomalies tables under different names or no name; IDENTITY-08 not covered at all |
 | `docs/architecture/TELEGRAM_ECOSYSTEM_MAP.md` | 8 identities covered (01-07, 09, plus explicit "Channel: NOT FOUND"); does not cover IDENTITY-08 Real Account Bot or IDENTITY-10 Narrator |
 | `docs/TELEGRAM_NOTIFICATION_AUDIT.md` | 10 message-source groups covered at the call-site level, including IDENTITY-08 Real Account Bot (flagged as its own "undocumented, new finding") and dead code rows; does not enumerate IDENTITY-10 Narrator (no code exists to inventory messages for) |
-| **This document** | **10 identities — complete** |
+| **This document** | **7 official identities** (10 found, IDENTITY-08 merged, 09+10 dead code) |
