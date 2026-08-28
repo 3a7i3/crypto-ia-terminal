@@ -22,8 +22,8 @@ logger = logging.getLogger(__name__)
 
 # ── Config ────────────────────────────────────────────────────────────────────
 
-QC_BOT_TOKEN = os.getenv("QC_BOT_TOKEN", "")
-QC_CHAT_ID = os.getenv("QC_CHAT_ID", "")
+QC_BOT_TOKEN = os.getenv("QUANT_CRYPTO_BOT_TOKEN", "")
+QC_CHAT_ID = os.getenv("QUANT_CRYPTO_CHAT_ID", "")
 QC_PINNED_MSG = os.getenv("QC_PINNED_MSG_ID", "")  # ID of the pinned live message
 
 POLL_INTERVAL_S = int(os.getenv("QC_POLL_INTERVAL", "2"))
@@ -106,7 +106,7 @@ def _render_portfolio() -> bytes:
     Voir docs/architecture/TELEGRAM_BOT_REGISTRY.md.
     """
     raise NotImplementedError(
-        "Le domaine portfolio appartient à 💼 Mon Portfolio bot (P10_PORTFOLIO_BOT_TOKEN). "
+        "Le domaine portfolio appartient à 💼 Mon Portfolio bot (MON_PORTFOLIO_BOT_TOKEN). "
         "Cette commande a été retirée de Quant Observer."
     )
 
@@ -211,9 +211,9 @@ def _handle_command(text: str, chat_id: str):
 
 def run():
     if not QC_BOT_TOKEN:
-        raise RuntimeError("QC_BOT_TOKEN not set. Add it to .env.")
+        raise RuntimeError("QUANT_CRYPTO_BOT_TOKEN not set. Add it to .env.")
     if not QC_CHAT_ID:
-        raise RuntimeError("QC_CHAT_ID not set. Add it to .env.")
+        raise RuntimeError("QUANT_CRYPTO_CHAT_ID not set. Add it to .env.")
 
     logger.info("@QuantCrypto_bot starting — SVA v1.0")
     offset = 0

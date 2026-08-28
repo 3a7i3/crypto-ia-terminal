@@ -236,7 +236,7 @@ def test_gate_status_shows_fail_symbols():
 
 
 def test_notify_entry_no_crash_without_token(empty_metrics):
-    # Sans PAPER_ARENA_TG_TOKEN configuré → doit se terminer sans exception
+    # Sans PAPER_ARENA_BOT_TOKEN configuré → doit se terminer sans exception
     notify_entry("ETHUSDT", "LONG", 4_215.22, 1_000.0, 14.3, empty_metrics)
 
 

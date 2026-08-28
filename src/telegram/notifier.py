@@ -5,8 +5,8 @@ Utilisé par mexc_simulator et advisor_loop pour envoyer automatiquement
 les événements importants : trades, alertes, rapport quotidien.
 
 Env vars :
-  P10_PORTFOLIO_BOT_TOKEN  — token du bot Telegram
-  P10_PORTFOLIO_CHAT_ID    — chat_id destinataire
+  MON_PORTFOLIO_BOT_TOKEN  — token du bot Telegram
+  MON_PORTFOLIO_CHAT_ID    — chat_id destinataire
 """
 
 from __future__ import annotations
@@ -30,12 +30,12 @@ class Notifier:
     """
 
     def __init__(self, token: str | None = None, chat_id: str | None = None) -> None:
-        self._token = token or os.environ.get("P10_PORTFOLIO_BOT_TOKEN", "")
-        self._chat_id = chat_id or os.environ.get("P10_PORTFOLIO_CHAT_ID", "")
+        self._token = token or os.environ.get("MON_PORTFOLIO_BOT_TOKEN", "")
+        self._chat_id = chat_id or os.environ.get("MON_PORTFOLIO_CHAT_ID", "")
         self._enabled = bool(self._token and self._chat_id)
         if not self._enabled:
             log.warning(
-                "Notifier désactivé — P10_PORTFOLIO_BOT_TOKEN ou CHAT_ID manquant"
+                "Notifier désactivé — MON_PORTFOLIO_BOT_TOKEN ou CHAT_ID manquant"
             )
 
     # ── Événements de trading ─────────────────────────────────────────────────

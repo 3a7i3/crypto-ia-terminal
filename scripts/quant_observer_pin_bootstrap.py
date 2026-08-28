@@ -5,7 +5,7 @@ Le bot @QuantCrypto_bot rafraichit toutes les 10 min un message epingle du
 chat (les "logs auto" de SDOS Live). Il a besoin de l'ID de ce message dans
 QC_PINNED_MSG_ID. Ce script fait le bootstrap une fois :
 
-  1. Envoie un placeholder au chat via QC_BOT_TOKEN / QC_CHAT_ID
+  1. Envoie un placeholder au chat via QUANT_CRYPTO_BOT_TOKEN / QUANT_CRYPTO_CHAT_ID
   2. Tente de l'epingler (necessite que le bot soit admin du chat).
      Si le pin echoue (bot non-admin), le script continue quand meme
      et te dit d'epingler a la main dans Telegram.
@@ -21,7 +21,7 @@ nouvel ID a mettre en .env).
 
 Exit codes :
     0 — succes (message envoye, ID affiche)
-    1 — QC_BOT_TOKEN ou QC_CHAT_ID manquant
+    1 — QUANT_CRYPTO_BOT_TOKEN ou QUANT_CRYPTO_CHAT_ID manquant
     2 — envoi Telegram echoue
 """
 from __future__ import annotations
@@ -41,12 +41,12 @@ try:
 except ImportError:
     pass
 
-QC_BOT_TOKEN = os.getenv("QC_BOT_TOKEN", "").strip()
-QC_CHAT_ID = os.getenv("QC_CHAT_ID", "").strip()
+QC_BOT_TOKEN = os.getenv("QUANT_CRYPTO_BOT_TOKEN", "").strip()
+QC_CHAT_ID = os.getenv("QUANT_CRYPTO_CHAT_ID", "").strip()
 
 if not QC_BOT_TOKEN or not QC_CHAT_ID:
     print(
-        "[ERREUR] QC_BOT_TOKEN ou QC_CHAT_ID manquant dans .env",
+        "[ERREUR] QUANT_CRYPTO_BOT_TOKEN ou QUANT_CRYPTO_CHAT_ID manquant dans .env",
         file=sys.stderr,
     )
     sys.exit(1)

@@ -2,8 +2,8 @@
 # Mission : l'edge observe en recherche survit-il a des donnees reelles ?
 #
 # Prerequis dans .env :
-#   PAPER_ARENA_TG_TOKEN=<token bot @PaperArena_bot>
-#   PAPER_ARENA_TG_CHAT_ID=<chat id destinataire>
+#   PAPER_ARENA_BOT_TOKEN=<token bot @PaperArena_bot>
+#   PAPER_ARENA_CHAT_ID=<chat id destinataire>
 #
 # Installation (VPS, geste operateur) :
 #   sudo cp scripts/systemd/paper-arena.service /etc/systemd/system/

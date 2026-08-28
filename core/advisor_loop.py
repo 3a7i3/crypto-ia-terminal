@@ -789,12 +789,13 @@ SYMBOLS_DEFAULT = [
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT = os.getenv("TELEGRAM_CHAT_ID", "")
 TELEGRAM_BEHAVIOR_CHAT = os.getenv("TELEGRAM_BEHAVIOR_CHAT_ID", "")
-INTEL_TOKEN = os.getenv("INTEL_BOT_TOKEN", "")
-INTEL_CHAT = os.getenv("INTEL_BOT_CHAT_ID", "")
+RAPPORT_AUTOMATIQUE_TOKEN = os.getenv("RAPPORT_AUTOMATIQUE_BOT_TOKEN", "")
+RAPPORT_AUTOMATIQUE_CHAT = os.getenv("RAPPORT_AUTOMATIQUE_CHAT_ID", "")
 INTEL_INTERVAL_S = int(os.getenv("INTEL_REPORT_EVERY_H", "6")) * 3600
-# Bot compte réel — STANDBY jusqu'à activation du trading live sur l'API
-REAL_BOT_TOKEN = os.getenv("REAL_ACCOUNT_BOT_TOKEN", "")
-REAL_BOT_CHAT = os.getenv("REAL_ACCOUNT_CHAT_ID", "")
+# Bot Portfolio (P10) — rapports compte réel + STANDBY/LIVE push
+# REAL_ACCOUNT_BOT_TOKEN supprimé — même identité que MON_PORTFOLIO_BOT_TOKEN (merge 2026-08-28)
+REAL_BOT_TOKEN = os.getenv("MON_PORTFOLIO_BOT_TOKEN", "")
+REAL_BOT_CHAT = os.getenv("MON_PORTFOLIO_CHAT_ID", "")
 REAL_BOT_REPORT_EVERY = int(os.getenv("REAL_BOT_REPORT_EVERY", "12"))  # cycles
 NOTIFY_EVERY = int(os.getenv("ADVISOR_NOTIFY_EVERY", "3"))
 MTF_REFRESH_EVERY = int(os.getenv("ADVISOR_MTF_REFRESH_EVERY", "12"))
@@ -1031,16 +1032,16 @@ def _telegram_real(text: str) -> None:
 def _send_intel(text: str) -> None:
     """Bot Intelligence — résumé 6h en langage naturel (ChiefOfficer briefing).
 
-    Utilise exclusivement INTEL_BOT_TOKEN + INTEL_BOT_CHAT_ID (@rapport_automatique_bot).
+    Utilise exclusivement RAPPORT_AUTOMATIQUE_BOT_TOKEN + RAPPORT_AUTOMATIQUE_CHAT_ID (@rapport_automatique_bot).
     Si non configuré : silencieux (pas de fallback vers @QuantCrpto_bot).
     """
     if "PYTEST_CURRENT_TEST" in os.environ:
         return
-    token = INTEL_TOKEN
-    chat = INTEL_CHAT
+    token = RAPPORT_AUTOMATIQUE_TOKEN
+    chat = RAPPORT_AUTOMATIQUE_CHAT
     if not token or not chat:
         log.debug(
-            "[Intel] INTEL_BOT_TOKEN/INTEL_BOT_CHAT_ID non configurés — briefing ignoré"
+            "[Intel] RAPPORT_AUTOMATIQUE_BOT_TOKEN/RAPPORT_AUTOMATIQUE_CHAT_ID non configurés — briefing ignoré"
         )
         return
     try:

@@ -15,7 +15,8 @@ def test_start_contains_commands(bot):
     reply = bot.handle("/start")
     assert "/run" in reply
     assert "/status" in reply
-    assert "/kill" in reply
+    assert "/kill" not in reply
+    assert "/resume" not in reply
 
 
 def test_help_same_as_start(bot):
@@ -110,33 +111,17 @@ def test_trades_invalid_n_falls_back_to_5(bot):
     assert isinstance(reply, str)
 
 
-# -- /kill / /resume --
+# -- /kill / /resume (removed — control commands not permitted) --
 
 
-def test_kill_blocks_run(bot):
-    bot.handle("/kill")
-    reply = bot.handle("/run fast")
-    assert "Kill switch actif" in reply
+def test_kill_command_removed(bot):
+    reply = bot.handle("/kill")
+    assert "Commande inconnue" in reply
 
 
-def test_kill_then_resume_allows_run(bot):
-    bot.handle("/kill")
-    bot.handle("/resume")
-    reply = bot.handle("/run fast")
-    assert "Run terminé" in reply
-
-
-def test_kill_status_shown(bot):
-    bot.handle("/kill")
-    bot.handle("/run fast")  # blocked
-    bot.handle("/run slow")  # also blocked
-    assert bot._kill_switch.engaged
-
-
-def test_resume_releases_kill_switch(bot):
-    bot.handle("/kill")
-    bot.handle("/resume")
-    assert not bot._kill_switch.engaged
+def test_resume_command_removed(bot):
+    reply = bot.handle("/resume")
+    assert "Commande inconnue" in reply
 
 
 # -- unknown command --

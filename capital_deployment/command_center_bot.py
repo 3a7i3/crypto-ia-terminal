@@ -49,8 +49,8 @@ Sécurité :
   - Les modifications sont écrites dans .env ET appliquées live si possible
 
 Env vars :
-  P10_PORTFOLIO_BOT_TOKEN   Token du bot
-  P10_PORTFOLIO_CHAT_ID     Chat autorisé
+  MON_PORTFOLIO_BOT_TOKEN   Token du bot
+  MON_PORTFOLIO_CHAT_ID     Chat autorisé
   P10_PORTFOLIO_REPORT_H    Rapport auto (heures, défaut 1)
 """
 
@@ -1129,8 +1129,8 @@ class CommandCenterBot:
 
     @classmethod
     def from_env(cls, provider: CommandDataProvider) -> "CommandCenterBot":
-        token = os.getenv("P10_PORTFOLIO_BOT_TOKEN", "")
-        chat_id = os.getenv("P10_PORTFOLIO_CHAT_ID", os.getenv("TELEGRAM_CHAT_ID", ""))
+        token = os.getenv("MON_PORTFOLIO_BOT_TOKEN", "")
+        chat_id = os.getenv("MON_PORTFOLIO_CHAT_ID", os.getenv("TELEGRAM_CHAT_ID", ""))
         rep_mins = float(os.getenv("P10_PORTFOLIO_REPORT_MINS", "0"))
         rep_h = (
             rep_mins / 60.0
@@ -1152,7 +1152,7 @@ class CommandCenterBot:
             return
         if not self._token:
             _log.warning(
-                "[CommandCenter] P10_PORTFOLIO_BOT_TOKEN manquant — bot desactive"
+                "[CommandCenter] MON_PORTFOLIO_BOT_TOKEN manquant — bot desactive"
             )
             return
         self._running = True
