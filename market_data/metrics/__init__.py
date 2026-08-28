@@ -11,6 +11,12 @@ from market_data.metrics.flow import (
     SweepEvent,
     WallLifecycle,
 )
+from market_data.metrics.liquidity import (
+    DEFAULT_CONFIG as LIQUIDITY_DEFAULT_CONFIG,
+    LiquidityConfig,
+    LiquiditySnapshot,
+    liquidity_score,
+)
 from market_data.metrics.orderbook import (
     DepthProfile,
     SpreadMetrics,
@@ -38,6 +44,11 @@ __all__ = [
     "SpreadMetrics",
     "WallLevel",
     "DepthProfile",
+    # Liquidity
+    "liquidity_score",
+    "LiquidityConfig",
+    "LiquiditySnapshot",
+    "LIQUIDITY_DEFAULT_CONFIG",
     # Flow
     "DeltaWindow",
     "CumulativeDeltaTracker",
