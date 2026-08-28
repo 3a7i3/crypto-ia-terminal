@@ -1,133 +1,102 @@
 # TELEGRAM BOT REGISTRY
-**Contrat fonctionnel — version 1.0 — 2026-08-28**
+**Contrat fonctionnel — version 2.0 — 2026-08-28**
 
-> Ce document est le référentiel de définition des bots Telegram du système.
-> Aucun bot ne peut afficher d'information qui n'est pas explicitement listée dans
-> sa section ALLOWED. Aucun bot ne peut consommer un token déjà déclaré POLLING_OWNER
-> dans une autre entrée. Ce document fait autorité sur le code.
+> **Principe constitutionnel** (2026-08-28) :
+> **Telegram = observation et compte rendu uniquement.**
+> Aucune commande qui modifie le comportement de la machine, change un paramètre,
+> arrête ou reprend le trading ne peut être accessible via Telegram.
+> Tout contrôle du système passe exclusivement par le VPS (SSH).
+
+---
+
+## Bots actifs (5 bots)
+
+| Bot BotFather | Username | Token ENV | Rôle | Type |
+|---|---|---|---|---|
+| CryptoRadar_Bot | `@RadarCrypto1_bot` | `RADAR_BOT_TOKEN` (fallback `TELEGRAM_BOT_TOKEN`) | 📡 Scanner marché | Polling + réactif |
+| Mon Portefeuille Bot | `@mon_portfolio_bot` | `P10_PORTFOLIO_BOT_TOKEN` | 💼 Capital + performance | Polling + rapports auto |
+| Quant_Crypto 🔥 | `@QuantCrpto_bot` | `QC_BOT_TOKEN` | 🔬 Univers + régime + signaux + méta | Polling + message épinglé |
+| Rapport Automatique | `@rapport_automatique_bot` | `INTEL_BOT_TOKEN` | 🧠 Rapports IA 6h | Push uniquement |
+| PaperArena | `@PaperArena_bot` | `PAPER_ARENA_TG_TOKEN` | 🧪 Expérience RSI ETH/4H | Push uniquement |
+
+## Bots supprimés
+
+| Bot | Raison |
+|---|---|
+| `@Connexion_VScode_bot` (KillSwitch) | Retiré — constitution 2026-08-28 : aucune commande de contrôle via Telegram |
+| `@FtnTrading_bot` (SimBot) | Retiré — non utilisé en production |
+| `@Telemetrie_IA_bot` | Retiré — non utilisé (service inactif) |
 
 ---
 
 ## TABLE DES MATIÈRES
 
-1. [Phase 0 — Census (inventaire exhaustif)](#phase-0--census)
-2. [Phase 1 — Bot Constitution (contrats fonctionnels)](#phase-1--bot-constitution)
-   - [🛑 KillSwitch](#bot-killswitch)
+1. [Principe constitutionnel](#principe-constitutionnel)
+2. [Phase 0 — Census](#phase-0--census)
+3. [Phase 1 — Bot Constitution](#phase-1--bot-constitution)
    - [📡 CryptoRadar](#bot-cryptoradar)
    - [💼 Portfolio (CommandCenter)](#bot-portfolio)
-   - [🔬 Quant Observer](#bot-quant-observer)
+   - [🔬 Quant Observer (@QuantCrpto_bot)](#bot-quant-observer)
+   - [🧠 Rapport Automatique](#bot-rapport-automatique)
    - [🧪 Paper Arena](#bot-paper-arena)
-3. [Anomalies identifiées](#anomalies-identifiées)
-4. [Feuille de route — Phases 2-5](#feuille-de-route--phases-2-5)
+4. [Anomalies résolues](#anomalies-résolues)
+5. [Feuille de route — Phases 2-5](#feuille-de-route--phases-2-5)
+
+---
+
+## Principe constitutionnel
+
+```
+╔══════════════════════════════════════════════════════════════════════╗
+║  CONSTITUTION TELEGRAM — 2026-08-28                                  ║
+║                                                                      ║
+║  Règle absolue : Telegram = OBSERVATION ET COMPTE RENDU UNIQUEMENT. ║
+║                                                                      ║
+║  AUTORISÉ sur Telegram :                                             ║
+║    - Lire des données (equity, positions, PnL, régime, signaux)      ║
+║    - Recevoir des rapports automatiques (push)                       ║
+║    - Demander un résumé d'état                                       ║
+║                                                                      ║
+║  INTERDIT sur Telegram :                                             ║
+║    - Modifier un paramètre de trading ou de risque                   ║
+║    - Arrêter ou reprendre le moteur                                  ║
+║    - Changer de phase                                                ║
+║    - Modifier la taille des ordres                                   ║
+║    - Réinitialiser des KPIs                                          ║
+║    - Redémarrer un service                                           ║
+║    - Toute action qui change le comportement de la machine           ║
+║                                                                      ║
+║  Tout contrôle passe exclusivement par le VPS (SSH).                ║
+╚══════════════════════════════════════════════════════════════════════╝
+```
 
 ---
 
 ## Phase 0 — Census
 
-### Tableau maître des bots (état courant, extrait du dépôt)
+### Tableau des bots actifs (état courant)
 
-| Bot | Token ENV | Chat ENV | Source principale | Service systemd | Polling owner | Auto-messages | Commandes déclarées |
-|-----|-----------|----------|-------------------|-----------------|---------------|---------------|---------------------|
-| 🛑 KillSwitch | `TELEGRAM_BOT_TOKEN` | `TELEGRAM_CHAT_ID` | `supervision/telegram_kill_switch.py` `supervision/killswitch_hardened.py` | *aucun dédié* (thread dans advisor) | Oui — thread background | Incidents, urgences | `/stop_all` `/resume` `/status` `/help` |
-| 📡 CryptoRadar | `TELEGRAM_BOT_TOKEN` ⚠️ | `TELEGRAM_CHAT_ID` ⚠️ | `scripts/radar_bot.py` | `crypto-radar-bot.service` | Oui — boucle principale | *aucun* (fully reactive) | `/scan` `/signals` `/top50` `/longs` `/shorts` `/symbol` `/lmi` `/status` `/help` |
-| 💼 Portfolio | `P10_PORTFOLIO_BOT_TOKEN` | `P10_PORTFOLIO_CHAT_ID` (fallback `TELEGRAM_CHAT_ID`) | `capital_deployment/command_center_bot.py` | *aucun dédié* (lancé par advisor) | Oui — thread interne | Rapports périodiques (`P10_PORTFOLIO_REPORT_MINS`) | `/status` `/kpis` `/balance` `/positions` `/pnl` `/signals` `/help` |
-| 🔬 Quant Observer | `QC_BOT_TOKEN` | `QC_CHAT_ID` | `src/telegram/quant_observer/bot.py` | `crypto-quant-observer.service` | Oui — boucle principale + refresh pin 10 min | Message épinglé auto-rafraîchi (`QC_PINNED_UPDATE=600s`) | `/snapshot` `/health` `/pipeline` `/portfolio` `/help` |
-| 🧪 Paper Arena | `PAPER_ARENA_TG_TOKEN` | `PAPER_ARENA_TG_CHAT_ID` | `src/paper/paper_runner.py` + `src/paper/paper_report.py` | `paper-arena.service` | *Non* (push only) | Entrée / sortie / résumé d'expérience | *aucune* (push uniquement) |
-
-### Consommateurs supplémentaires du token `TELEGRAM_BOT_TOKEN`
-
-Les fichiers suivants consomment `TELEGRAM_BOT_TOKEN` (usage en push / notification,
-pas en polling) — ils ne sont pas des bots à part entière mais des émetteurs
-qui partagent le canal KillSwitch/Radar :
-
-| Fichier | Usage | Risque |
-|---------|-------|--------|
-| `scripts/telegram_alerts.py` | Alertes push one-shot | Partage canal avec KillSwitch ⚠️ |
-| `infra/notifications/notifications.py` | Notifications infra | Idem |
-| `supervision/notifications/ops_notifier.py` | Alertes ops | Idem |
-| `supervision/performance_watchdog.py` | Alertes performance | Idem |
-| `supervision/exchange_monitor.py` | Alertes exchange | Idem |
-| `core/advisor_loop.py` | Notifications advisor | Idem |
-| `quant_hedge_ai/main_v91.py` | Notifications V9.1 | Idem |
-| `scripts/daily_signal_report.py` | Rapport quotidien | Contenu signal sur canal Radar ⚠️ |
+| Bot | Token ENV | Chat ENV | Source principale | Service systemd | Polling owner | Auto-messages |
+|-----|-----------|----------|-------------------|-----------------|---------------|---------------|
+| 📡 CryptoRadar | `RADAR_BOT_TOKEN` (fallback `TELEGRAM_BOT_TOKEN`) | `RADAR_CHAT_ID` (fallback `TELEGRAM_CHAT_ID`) | `scripts/radar_bot.py` | `crypto-radar-bot.service` | Oui | *Aucun* (réactif) |
+| 💼 Portfolio | `P10_PORTFOLIO_BOT_TOKEN` | `P10_PORTFOLIO_CHAT_ID` | `capital_deployment/command_center_bot.py` | in-process `crypto-advisor` | Oui | Rapports périodiques |
+| 🔬 Quant Observer | `QC_BOT_TOKEN` | `QC_CHAT_ID` | `src/telegram/quant_observer/bot.py` | `crypto-quant-observer.service` | Oui | Message épinglé 10 min |
+| 🧠 Rapport Auto | `INTEL_BOT_TOKEN` | `INTEL_BOT_CHAT_ID` | `quant_hedge_ai/agents/intelligence/system_intel_reporter.py` | in-process `crypto-advisor` | Non | Push 6h |
+| 🧪 Paper Arena | `PAPER_ARENA_TG_TOKEN` | `PAPER_ARENA_TG_CHAT_ID` | `src/paper/paper_runner.py` | `paper-arena.service` | Non | Push événements |
 
 ---
 
 ## Phase 1 — Bot Constitution
 
-### Principe directeur
-
-> **Un bot = l'interface humaine d'un seul domaine.**
-> Un bot répond à une seule question humaine. Tout ce qui ne répond pas à cette
-> question n'a pas sa place dans ce bot.
+### Question humaine par bot
 
 | Bot | Question humaine |
 |-----|-----------------|
-| 🛑 KillSwitch | « Le système est-il sous contrôle ? Puis-je l'arrêter immédiatement ? » |
 | 📡 CryptoRadar | « Où se passe-t-il quelque chose sur le marché en ce moment ? » |
 | 💼 Portfolio | « Est-ce que ma machine gagne réellement de l'argent ? » |
 | 🔬 Quant Observer | « Que se passe-t-il dans la microstructure du système de décision ? » |
-| 🧪 Paper Arena | « Cette hypothèse de recherche survit-elle à des données réelles ? » |
-
----
-
-### BOT: KillSwitch
-
-```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-IDENTITY
-  Name            : 🛑 KillSwitch
-  Token ENV       : KILLSWITCH_BOT_TOKEN          ← cible (actuellement TELEGRAM_BOT_TOKEN)
-  Chat ENV        : KILLSWITCH_CHAT_ID            ← cible (actuellement TELEGRAM_CHAT_ID)
-  Source          : supervision/telegram_kill_switch.py
-                    supervision/killswitch_hardened.py
-  Service         : (pas de service dédié — thread interne à crypto-advisor.service)
-  Polling owner   : Oui — thread background dans advisor
-
-MISSION
-  Protéger le capital. Permettre à l'opérateur d'arrêter ou de reprendre
-  le système en une commande, à tout moment.
-
-AUTHORITY : WRITE — le seul bot autorisé à modifier l'état du moteur.
-
-CRITICALITY : CRITIQUE
-
-COMMANDS (autorisées)
-  /stop_all       Arrêt d'urgence de toutes les exécutions
-  /resume         Reprise après arrêt
-  /status         État de sécurité : actif/arrêté, derniers incidents
-  /help           Liste des commandes
-
-AUTOMATIC MESSAGES (autorisés)
-  - Confirmation d'arrêt d'urgence
-  - Confirmation de reprise
-  - Alerte incident critique (drawdown extrême, erreur fatale)
-  - Heartbeat superviseur (si implémenté)
-
-ALLOWED (contenu autorisé)
-  - État du moteur : RUNNING / STOPPED / EMERGENCY
-  - Autorité active : qui a déclenché l'arrêt
-  - Horodatage du dernier incident
-  - Cause de l'arrêt
-  - Confirmation de commande reçue
-
-FORBIDDEN (contenu interdit)
-  - Signaux de marché (score, direction, symbole)
-  - Données de scan (univers, actionnables)
-  - Portfolio / equity / PnL
-  - Positions ouvertes
-  - Microstructure (LMI, flow, liquidité)
-  - RAM / CPU / PID
-  - Logs système détaillés
-  - Données d'expérience Paper Arena
-  - Résultats de recherche
-
-DEPENDENCIES
-  - supervision/telegram_kill_switch.py
-  - supervision/killswitch_hardened.py
-  - core/advisor_loop.py (réception de commande)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-```
+| 🧠 Rapport Auto | Rapport de synthèse IA toutes les 6h — aucune interaction |
+| 🧪 Paper Arena | « Cette hypothèse de recherche survit-elle aux données réelles ? » |
 
 ---
 
@@ -137,82 +106,44 @@ DEPENDENCIES
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 IDENTITY
   Name            : 📡 CryptoRadar
-  Token ENV       : RADAR_BOT_TOKEN               ← cible (actuellement TELEGRAM_BOT_TOKEN ⚠️)
-  Chat ENV        : RADAR_CHAT_ID                 ← cible (actuellement TELEGRAM_CHAT_ID ⚠️)
+  BotFather       : @RadarCrypto1_bot
+  Token ENV       : RADAR_BOT_TOKEN (fallback TELEGRAM_BOT_TOKEN)
+  Chat ENV        : RADAR_CHAT_ID (fallback TELEGRAM_CHAT_ID)
   Source          : scripts/radar_bot.py
   Service         : crypto-radar-bot.service
-  Polling owner   : Oui — boucle principale (scripts/radar_bot.py)
+  Polling owner   : Oui
 
-MISSION
-  Être les yeux du trader sur le marché.
-  Montrer ce qui mérite l'attention maintenant — pas ce que fait le système.
+MISSION : Être les yeux du trader sur le marché.
 
-AUTHORITY : READ_ONLY — aucune action sur le moteur.
-
+AUTHORITY : READ_ONLY
 CRITICALITY : OBSERVATION
 
-COMMANDS (autorisées)
-  /scan [N]       Top N opportunités par score de confiance (défaut 10)
-  /top50          Top 50 compact
-  /longs          Opportunités directionnelles LONG uniquement
-  /shorts         Opportunités directionnelles SHORT uniquement
-  /symbol TICKER  Analyse détaillée d'un symbole spécifique
-  /lmi            Vue d'ensemble microstructure de marché (LMI)
-  /lmi TICKER     Microstructure d'un symbole spécifique
+COMMANDS
+  /scan [N]       Top N opportunités par score (défaut 10)
+  /top50          Top 50 compact (conf>=60)
+  /longs          Opportunités LONG uniquement
+  /shorts         Opportunités SHORT uniquement
+  /symbol TICKER  Analyse d'un symbole
+  /lmi            Vue microstructure marché
+  /lmi TICKER     Microstructure d'un symbole
   /help           Liste des commandes
 
-COMMANDS SUPPRIMÉES (actuellement présentes, à retirer)
-  /signals        → Expose Entry/SL/TP — données internes moteur, domaine Portfolio
-  /status         → Expose tailles de fichiers DB, nombre de packets — domaine Ops
+AUTOMATIC MESSAGES : Aucun (bot entièrement réactif)
 
-AUTOMATIC MESSAGES (autorisés)
-  Aucun — bot entièrement réactif aux commandes.
-
-ALLOWED (contenu autorisé)
-  - Régime de marché global (BULL / BEAR / SIDEWAYS / UNCERTAIN)
-  - Taille de l'univers observé (N paires)
-  - Nombre d'opportunités actionnables (score ≥ seuil)
-  - Score de confiance par symbole (agrégé, anonymisé si besoin)
-  - Direction dominante par symbole (LONG / SHORT / MIXED)
+ALLOWED
+  - Régime de marché global
+  - Univers observé (N paires)
+  - Score de confiance agrégé par symbole
+  - Direction dominante (LONG/SHORT/MIXED)
   - Régime par symbole
-  - Résumé LMI (microstructure de marché observable)
-  - Données de microstructure pour /lmi (flow, liquidité — en lecture seule)
+  - LMI microstructure (lecture seule)
 
-FORBIDDEN (contenu interdit)
-  - Entry price, Stop Loss, Take Profit (appartient à Portfolio / moteur)
-  - RAM / CPU / PID / mémoire processus
-  - Taille des fichiers de base de données
-  - Nombre de fichiers de décision / logs
-  - État du pipeline de décision IA
-  - Statistiques shadow trading
-  - Portfolio brain / equity / balances
-  - Comptes réels (MEXC, Binance)
-  - Positions ouvertes
-  - PnL réalisé ou non réalisé
-  - État Telegram / health API interne
-  - Métriques systemd / uptime service
-  - Signal Policy / risk internals
-
-FORMAT CIBLE /scan
-  📡 CRYPTORADAR
-  28 AUG · 07:18 UTC
-
-  Marché: SIDEWAYS
-  Univers: 135 paires · Actionnables: 19 (≥66)
-
-  🔥 TOP OPPORTUNITÉS
-  1. CHIP/USDT   76  BUY  BULL
-  2. TAO/USDT    75  BUY  BULL
-  3. UB/USDT     75  BUY  BULL
-
-  👀 SURVEILLANCE
-  56 paires entre 50–65
-
-  Mode: OBSERVATION
-
-DEPENDENCIES
-  - databases/decision_packets_*.jsonl (lecture)
-  - trade_analysis/integrations/radar_adapter (LMI, lecture)
+FORBIDDEN
+  - Entry/SL/TP (données moteur d'exécution)
+  - Portfolio / equity / PnL
+  - RAM / CPU / PID / taille DB
+  - Pipeline IA / shadow stats
+  - Toute commande de contrôle
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
@@ -224,92 +155,49 @@ DEPENDENCIES
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 IDENTITY
   Name            : 💼 Portfolio (CommandCenter)
-  Token ENV       : P10_PORTFOLIO_BOT_TOKEN        ← déjà distinct ✅
+  BotFather       : @mon_portfolio_bot
+  Token ENV       : P10_PORTFOLIO_BOT_TOKEN
   Chat ENV        : P10_PORTFOLIO_CHAT_ID
   Source          : capital_deployment/command_center_bot.py
-  Service         : (pas de service dédié — lancé par crypto-advisor.service)
-  Polling owner   : Oui — thread interne (CommandCenterBot)
+  Service         : in-process crypto-advisor.service
+  Polling owner   : Oui
 
-MISSION
-  Montrer si la machine gagne réellement de l'argent.
-  Répondre à : equity, PnL, win rate, risque, positions ouvertes.
+MISSION : Montrer si la machine gagne réellement de l'argent.
 
-AUTHORITY : READ_ONLY — observation du capital uniquement.
-
+AUTHORITY : READ_ONLY — aucune commande de contrôle
 CRITICALITY : PERFORMANCE
 
-COMMANDS (autorisées)
-  /status         Résumé rapide : phase, capitale, régime
-  /kpis           Métriques de performance (WR, Sharpe, DD, trades)
+COMMANDS (lecture seule uniquement)
+  /status         Résumé : phase, capital, régime
+  /kpis           Win Rate, Sharpe, DD, trades
   /balance        Soldes paper et réels
   /positions      Positions ouvertes + PnL non réalisé
   /pnl            PnL réalisé détaillé
+  /phase          Phase F-xx + progression
+  /regime         Régime marché (résumé global)
+  /risk           État risque (lecture)
+  /health         Santé modules (lecture)
+  /eo             ExecutiveOverride (lecture)
+  /gate           GlobalRiskGate (lecture)
+  /perf           Courbe PnL ASCII
+  /recap [N]      Recap N derniers jours
+  /history [N]    Historique trades
+  /logs [N]       Derniers logs
+  /config         Paramètres (lecture seule)
+  /get PARAM      Valeur d'un paramètre
+  /certif         Certification P10-G
+  /charts         Lien dashboard
   /help           Liste des commandes
 
-COMMANDS SUPPRIMÉES (actuellement présentes, à retirer)
-  /signals        → Scores signaux — domaine CryptoRadar / moteur
+AUTOMATIC MESSAGES
+  - Rapport périodique (P10_PORTFOLIO_REPORT_MINS)
+  - Alerte drawdown (lecture d'état)
 
-AUTOMATIC MESSAGES (autorisés)
-  - Rapport périodique (configurable via P10_PORTFOLIO_REPORT_MINS)
-  - Alerte drawdown dépassé (seuil EO_DD_VETO)
-  - Alerte streak de pertes (seuil EO_STREAK_VETO)
-  - Changement de phase (F-01 → F-02, etc.)
-
-ALLOWED (contenu autorisé)
-  - Equity paper et réelle
-  - Cash disponible
-  - Exposure totale (%)
-  - Win Rate, Sharpe Ratio, Max Drawdown
-  - Nombre de trades, PnL cumulé
-  - Positions ouvertes (symbole, direction, PnL non réalisé)
-  - Phase courante et progression (F-01, jour X/7, etc.)
-  - État global du bot (PAPER / LIVE / STANDBY)
-  - Soldes par exchange (paper + réel agrégé)
-  - Métriques de risque actives (vetos en cours)
-
-FORBIDDEN (contenu interdit)
-  - Scores de signaux par symbole (appartient à CryptoRadar / moteur)
-  - Top 10 opportunités, top signaux
-  - Régime de marché détaillé par paire
-  - Entry/SL/TP pour chaque signal actif
-  - RAM / CPU / PID
-  - Logs pipeline IA
-  - Statistiques shadow / MAGMA
-  - Microstructure LMI
+FORBIDDEN
+  - /pause /resume /set /setphase /maxorder /reset /restart /confirm /cancel
+  - Toute commande qui modifie un paramètre ou le comportement du moteur
+  - Signaux par symbole (domaine CryptoRadar)
   - Données Paper Arena
-  - État systemd / uptime service
-
-FORMAT CIBLE /status
-  💼 MON PORTFOLIO
-  Cycle #216 · 28 AUG · 06:49 UTC
-
-  CAPITAL
-  Paper Equity     $688.24
-  Paper Cash       $688.24
-  Exposure         0.0%
-
-  PERFORMANCE
-  Win Rate         42%
-  Sharpe           3.19
-  Max DD           1.5%
-  Trades           432
-
-  POSITIONS
-  3 ouvertes
-  SPX/USDT   +$0.14
-  TAO/USDT   +$0.06
-  UB/USDT    -$0.05
-
-  PHASE
-  F-01 · Jour 0.8 / 7
-
-  ÉTAT
-  🟢 PAPER / STANDBY
-
-DEPENDENCIES
-  - capital_deployment/phase_kpi_tracker.py (lecture)
-  - databases/paper_trades.jsonl (lecture)
-  - databases/market_data.sqlite (lecture)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
@@ -320,58 +208,73 @@ DEPENDENCIES
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 IDENTITY
-  Name            : 🔬 Quant Observer (@QuantCrypto_bot)
-  Token ENV       : QC_BOT_TOKEN                  ← déjà distinct ✅
+  Name            : 🔬 Quant Observer
+  BotFather       : @QuantCrpto_bot
+  Token ENV       : QC_BOT_TOKEN
   Chat ENV        : QC_CHAT_ID
-  Pinned MSG ENV  : QC_PINNED_MSG_ID
   Source          : src/telegram/quant_observer/bot.py
   Service         : crypto-quant-observer.service
-  Polling owner   : Oui — boucle principale + refresh épinglé toutes les 10 min
+  Polling owner   : Oui + refresh message épinglé (10 min)
 
-MISSION
-  Observer la microstructure interne du système de décision (SDOS).
-  Répondre à : pipeline, décisions, santé des composants, snapshot SDOS.
-  Usage : chercheur / développeur — pas usage quotidien opérationnel.
+MISSION : Univers scanné, régime dominant, scores des signaux,
+          candidats actionnables, état méta-stratégie. Aucun capital.
 
-AUTHORITY : READ_ONLY — visualisation SDOS uniquement.
-
+AUTHORITY : READ_ONLY
 CRITICALITY : RECHERCHE
 
-COMMANDS (autorisées)
+COMMANDS
   /snapshot       Snapshot SDOS complet (4 panneaux)
-  /health         Santé de tous les modules (radar)
+  /health         Santé des modules (radar)
   /pipeline       État du pipeline de décision
   /help           Liste des commandes
 
-COMMANDS SUPPRIMÉES (actuellement présentes, à retirer)
-  /portfolio      → Données KPIs portfolio — domaine Portfolio bot
+AUTOMATIC MESSAGES
+  - Message épinglé auto-rafraîchi (QC_PINNED_UPDATE=600s)
 
-AUTOMATIC MESSAGES (autorisés)
-  - Message épinglé auto-rafraîchi toutes les QC_PINNED_UPDATE secondes (défaut 600s)
-    → Contenu : snapshot SDOS léger (état pipeline, santé, régime)
+ALLOWED
+  - Univers observé (N paires)
+  - Régime dominant (global + distribution)
+  - Scores de signaux agrégés
+  - Candidats actionnables (sans Entry/SL/TP)
+  - État méta-stratégie
+  - Pipeline de décision (lecture)
+  - Santé modules
 
-ALLOWED (contenu autorisé)
-  - État du pipeline de décision (couches actives, bloquées, raisons)
-  - Santé des modules système (API, DB, strategy, risk, market — status OK/WARN/ERR)
-  - Snapshot SDOS : PMI, niveau, gates franchies
-  - Régime de marché global (résumé — pas le détail par paire)
-  - Métriques de décision agrégées (N décisions, N bloquées — anonymisées)
-  - Indicateurs de qualité des données
+FORBIDDEN
+  - Portfolio equity / PnL / balances
+  - Positions réelles
+  - RAM / CPU / PID bruts
+  - Données Paper Arena
+  - Toute commande de contrôle
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
 
-FORBIDDEN (contenu interdit)
-  - Portfolio equity, cash, PnL
-  - Positions ouvertes (symbole + valeur)
-  - Soldes réels par exchange
-  - Signaux par symbole (score, direction)
-  - Top opportunités de marché
-  - Entry/SL/TP
-  - Données Paper Arena (résultats d'expérience)
-  - RAM / CPU / PID bruts (santé OK/WARN/ERR est suffisant)
-  - Commandes de contrôle (stop, resume)
+---
 
-DEPENDENCIES
-  - visualization/api.py (load_pipeline_snapshot, load_health_snapshot)
-  - src/telegram/quant_observer/bot.py
+### BOT: Rapport Automatique
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+IDENTITY
+  Name            : 🧠 Rapport Automatique
+  BotFather       : @rapport_automatique_bot
+  Token ENV       : INTEL_BOT_TOKEN
+  Chat ENV        : INTEL_BOT_CHAT_ID
+  Source          : quant_hedge_ai/agents/intelligence/system_intel_reporter.py
+  Service         : in-process crypto-advisor.service
+  Polling owner   : Non (push uniquement)
+
+MISSION : Rapport de synthèse IA toutes les 6h. Aucune interaction.
+
+AUTHORITY : PUSH_ONLY — aucune commande, aucun polling
+CRITICALITY : INFORMATION
+
+AUTOMATIC MESSAGES
+  - Rapport IA complet toutes les 6h (push)
+
+FORBIDDEN
+  - Toute commande interactive
+  - Données de contrôle
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
@@ -383,139 +286,72 @@ DEPENDENCIES
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 IDENTITY
   Name            : 🧪 Paper Arena
-  Token ENV       : PAPER_ARENA_TG_TOKEN           ← déjà distinct ✅
+  BotFather       : @PaperArena_bot
+  Token ENV       : PAPER_ARENA_TG_TOKEN
   Chat ENV        : PAPER_ARENA_TG_CHAT_ID
-  Source          : src/paper/paper_runner.py
-                    src/paper/paper_report.py
+  Source          : src/paper/paper_runner.py + src/paper/paper_report.py
   Service         : paper-arena.service
-  Polling owner   : Non — push uniquement (pas de getUpdates)
+  Polling owner   : Non (push uniquement)
 
-MISSION
-  Rapporter les résultats d'une expérience scientifique isolée.
-  Répondre à : cette hypothèse de recherche survit-elle aux données réelles ?
+MISSION : Rapporter les résultats d'une expérience scientifique isolée.
 
-AUTHORITY : PUSH_ONLY — aucune commande, aucun polling.
+AUTHORITY : PUSH_ONLY
+CRITICALITY : RECHERCHE
 
-CRITICALITY : RECHERCHE (expérimental)
+AUTOMATIC MESSAGES
+  - Notification d'entrée / sortie
+  - Résumé d'expérience périodique
+  - Statut gate (INSUFFICIENT_SAMPLE → CONCLUSIVE)
 
-COMMANDS : Aucune.
+ALLOWED
+  - Résultats de l'expérience uniquement (WR, PF, PnL expérience, N trades)
+  - Gate progress
 
-AUTOMATIC MESSAGES (autorisés)
-  - Notification d'entrée en position (symbole, direction, prix, raison)
-  - Notification de sortie (symbole, PnL, durée, raison)
-  - Résumé périodique d'expérience (WR, PF, N trades, gate progress)
-  - Notification de gate franchie (INSUFFICIENT SAMPLE → SAMPLE_OK → CONCLUSIVE)
-
-ALLOWED (contenu autorisé)
-  - Nom et description de l'expérience
-  - Symbole et timeframe de l'expérience
-  - État : RUNNING / PAUSED / CONCLUDED
-  - Nombre de trades de l'expérience
-  - Win Rate, Profit Factor, PnL de l'expérience
-  - Max Drawdown de l'expérience
-  - Progression vers le gate de conclusion (N / N_required)
-  - Statut de l'hypothèse (INSUFFICIENT_SAMPLE / INCONCLUSIVE / VALIDATED / REJECTED)
-  - Détail de l'événement déclencheur (entrée / sortie)
-
-FORBIDDEN (contenu interdit)
-  - État global du système (pipeline, advisor)
-  - Portfolio equity / PnL global
-  - Positions réelles
-  - Soldes exchanges
-  - Signaux de marché (autres que ceux de l'expérience)
-  - RAM / CPU / PID
-  - Données d'autres expériences ou d'autres bots
-
-FORMAT CIBLE (message d'entrée)
-  🧪 PAPER ARENA
-
-  Experiment: RSI-EXTREME-V1
-  ETH/USDT · 4H
-
-  STATUS: Running · Trades: 47
-
-  PERFORMANCE
-  WR: 48.9%  PF: 1.12  PnL: +$14.23
-  DD: 3.1%
-
-  GATE
-  Progress: 47 / 100 trades
-  Status: INSUFFICIENT SAMPLE
-
-  Last event:
-  ▶ ENTRY LONG · $3,241 · RSI=14.8
-
-DEPENDENCIES
-  - src/paper/paper_report.py (notify_entry, notify_exit, notify_summary)
+FORBIDDEN
+  - État global du système
+  - Portfolio / balances / PnL global
+  - Toute commande interactive
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
 ---
 
-## Anomalies identifiées
+## Anomalies résolues
 
-### 🔴 CRITIQUE — Collision de token (Phase 3 requise)
-
-| Anomalie | Fichiers concernés | Impact |
-|----------|-------------------|--------|
-| **COLLISION TOKEN** : `TELEGRAM_BOT_TOKEN` est partagé entre KillSwitch (`telegram_kill_switch.py`, `killswitch_hardened.py`) et CryptoRadar (`radar_bot.py`) | `supervision/telegram_kill_switch.py` `supervision/killswitch_hardened.py` `scripts/radar_bot.py` | Conflit `getUpdates` — le radar peut intercepter les commandes `/stop_all` du KillSwitch ou vice versa. Sécurité dégradée. |
-| **COLLISION TOKEN** : nombreux émetteurs push partagent également `TELEGRAM_BOT_TOKEN` | `scripts/telegram_alerts.py` `infra/notifications/notifications.py` `supervision/notifications/ops_notifier.py` et al. | Pollution du canal KillSwitch par des messages non critiques. |
-
-### 🟡 VIOLATION FONCTIONNELLE — CryptoRadar
-
-| Commande | Violation | Destination correcte |
-|----------|-----------|----------------------|
-| `/signals` | Affiche Entry/SL/TP — données du moteur d'exécution | Portfolio ou suppression |
-| `/status` | Affiche taille DB, nombre de fichiers de décision | Ops/Watchdog (logs dashboard) |
-
-### 🟡 VIOLATION FONCTIONNELLE — Portfolio Bot
-
-| Commande | Violation | Destination correcte |
-|----------|-----------|----------------------|
-| `/signals` | Affiche scores par symbole — domaine scanner de marché | CryptoRadar ou suppression |
-
-### 🟡 VIOLATION FONCTIONNELLE — Quant Observer
-
-| Commande | Violation | Destination correcte |
-|----------|-----------|----------------------|
-| `/portfolio` | Affiche KPIs portfolio — domaine Portfolio bot | Portfolio bot |
-
-### ℹ️ INFO — Portfolio sans service systemd dédié
-
-Le CommandCenter bot est lancé dans le thread de `crypto-advisor.service`. Il n'a pas
-de service indépendant. Toléré en phase actuelle, à isoler si le cycle advisor redémarre
-fréquemment.
+| # | Anomalie | Solution | Statut |
+|---|----------|----------|--------|
+| 1 | `TELEGRAM_BOT_TOKEN` partagé entre KillSwitch et CryptoRadar | KillSwitch supprimé + `RADAR_BOT_TOKEN` ajouté avec fallback | ✅ Résolu |
+| 2 | KillSwitch Telegram (commandes `/stop_all` `/resume`) | Interface Telegram retirée — état interne conservé pour `advisor_loop` | ✅ Résolu |
+| 3 | `/signals` dans CryptoRadar (Entry/SL/TP hors domaine) | Remplacé par message de redirection | ✅ Résolu |
+| 4 | `/status` dans CryptoRadar (métriques DB hors domaine) | Remplacé par message de redirection | ✅ Résolu |
+| 5 | `/signals` dans Portfolio (scores par symbole) | Retiré du dispatch et du rapport auto | ✅ Résolu |
+| 6 | `/portfolio` dans Quant Observer | Retiré + handler de redirection | ✅ Résolu |
+| 7 | Commandes d'écriture dans Portfolio (`/pause` `/resume` `/set` etc.) | Retirées — constitution 2026-08-28 | ✅ Résolu |
+| 8 | `@QuantCrpto_bot` non mappé dans le Registry | Mappé → `QC_BOT_TOKEN` | ✅ Résolu |
 
 ---
 
 ## Feuille de route — Phases 2-5
 
 ```
-PHASE 2 — Interface Audit
-  Pour chaque bot : actuel → ce qu'il affiche → ce qu'il devrait afficher → écart.
-  Correction des violations fonctionnelles identifiées ci-dessus.
-  Suppression de /signals dans radar_bot.py et command_center_bot.py.
-  Suppression de /status dans radar_bot.py.
-  Suppression de /portfolio dans quant_observer/bot.py.
+PHASE 2 — Interface Audit         ✅ COMPLÈTE
+PHASE 3 — Token Isolation Prep    ✅ COMPLÈTE (fallbacks en place)
 
-PHASE 3 — Identity Isolation
-  Créer KILLSWITCH_BOT_TOKEN (renommer depuis TELEGRAM_BOT_TOKEN).
-  Créer RADAR_BOT_TOKEN (renommer depuis TELEGRAM_BOT_TOKEN dans radar_bot.py).
-  Migrer les émetteurs push vers un token dédié ALERTS_BOT_TOKEN ou
-  vers les tokens de leur bot propriétaire.
-  Post-condition : 1 token = 1 polling owner = 1 identité bot.
+PHASE 3 (finalisation VPS)
+  Ajouter dans .env.secrets :
+    RADAR_BOT_TOKEN=<token @RadarCrypto1_bot>
+    RADAR_CHAT_ID=<chat_id>
+  Supprimer :
+    KILLSWITCH_BOT_TOKEN / KILLSWITCH_CHAT_ID (plus utilisés)
+  Redémarrer :
+    crypto-radar-bot.service + crypto-advisor.service
 
 PHASE 4 — Tests anti-collision
-  Test statique : grep TELEGRAM_BOT_TOKEN dans les processus polling.
-  Test dynamique : vérifier qu'un seul getUpdates actif par token au runtime.
-  Outil : tools/convergence_forensic_readonly.py (déjà disponible).
+  Vérifier : 1 token = 1 polling owner = 0 conflit 409
+  Outil : tools/convergence_forensic_readonly.py
 
 PHASE 5 — Runtime VPS Audit
-  systemd : units actives, PID, threads, RAM par service.
-  Network : connexions Telegram ouvertes par processus.
-  Tokens effectivement injectés dans l'environnement systemd.
-  Processus orphelins, restart loops.
-  Outil : snapshot non secret du runtime à fournir à l'auditeur.
+  systemd, PID, RAM, connexions Telegram ouvertes par processus.
 ```
 
 ---
@@ -526,3 +362,4 @@ PHASE 5 — Runtime VPS Audit
 > nouveau contenu de message, nouveau token, nouveau service systemd) doit être
 > reflétée dans ce document **avant** d'être mergée dans `main`.
 > Ce document est le contrat. Le code doit respecter le contrat, pas l'inverse.
+
