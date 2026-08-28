@@ -2,6 +2,10 @@
 SimBot — Telegram bot exclusivement dédié au noyau de simulation CMVK.
 Token : CMVK_BOT_TOKEN  /  Chat : CMVK_CHAT_ID
 Isolé des bots live. Affiche uniquement les logs du simulateur.
+
+# CMVK Experimental Observer — READ-ONLY
+# Constitutional rule: no control commands permitted.
+# This bot observes simulations. It does not control production.
 """
 
 import time
@@ -84,8 +88,6 @@ class SimBot:
             "/pnl": self._cmd_pnl,
             "/trades": self._cmd_trades,
             "/runs": self._cmd_runs,
-            "/kill": self._cmd_kill,
-            "/resume": self._cmd_resume,
             "/market": self._cmd_market,
             "/stress": self._cmd_stress,
             "/history": self._cmd_history,
@@ -122,8 +124,8 @@ class SimBot:
             "/status · /pnl · /trades `[N]` · /runs\n"
             "/history `[N]` — derniers N runs persistés\n"
             "/breakdown `[régime]` — stats DB par régime\n\n"
-            "*Contrôle*\n"
-            "/kill · /resume · /help"
+            "_Bot en lecture seule — observation uniquement._\n"
+            "/help"
         )
 
     def _cmd_help(self, arg: str) -> str:
@@ -131,7 +133,7 @@ class SimBot:
 
     def _cmd_run(self, arg: str) -> str:
         if self._kill_switch.engaged:
-            return "⛔ Kill switch actif. Tape /resume avant de lancer un run."
+            return "⛔ Kill switch actif. Run bloqué (contrôle non disponible via ce bot)."
 
         parts = arg.lower().split() if arg else []
 
@@ -1170,14 +1172,6 @@ class SimBot:
             lines.append(f"`{c['close']:.4f}` vol={c['volume']:.0f}")
         lines.append(f"\nDernier : `{last['close']:.4f}` ({sign}{change:.2f}%)")
         return "\n".join(lines)
-
-    def _cmd_kill(self, _: str) -> str:
-        self._kill_switch.trigger("telegram /kill")
-        return "⛔ Kill switch engagé. Aucun run possible jusqu'au /resume."
-
-    def _cmd_resume(self, _: str) -> str:
-        self._kill_switch.release()
-        return "✅ Kill switch relâché. Le simulateur peut reprendre."
 
 
 # ------------------------------------------------------------------ #

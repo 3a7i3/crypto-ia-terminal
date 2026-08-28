@@ -256,23 +256,27 @@ recommendation already recorded in `docs/TELEGRAM_ARCHITECTURE_AUDIT.md`.
 
 ## Bot 6 — CMVK/Simulation
 
-### Status: UNKNOWN — PENDING AUDIT
+### Status: READ-ONLY — control commands removed
 
 ### What We Know
 - Token/chat variables `CMVK_BOT_TOKEN` / `CMVK_CHAT_ID` are wired end-to-end:
   a full polling loop exists in `src/telegram/bot_runner.py` (`getUpdates`,
   `sendMessage`, `deleteWebhook` for 409-conflict recovery), dispatching to
   `src/telegram/sim_bot.py::SimBot.handle`.
-- `src/telegram/sim_bot.py` docstring (lines 2-3) states: "SimBot — Telegram
-  bot exclusivement dédié au noyau de simulation CMVK."
-- Command surface includes read-only inspection commands (`/status`, `/pnl`,
-  `/trades`, `/runs`, `/history`, `/compare`, `/score`, `/distrib`, `/robust`,
-  `/race`, `/validate`, `/overall`, `/breakdown`, `/market`) **and two control
-  commands, `/kill` and `/resume`** (`src/telegram/sim_bot.py:1174-1180`),
-  which trigger/release a kill-switch object — a constitutional violation of
-  "read-only observation only" if this bot is ever activated, regardless of
-  the fact that the kill-switch scope appears limited to the CMVK simulation
-  core rather than live trading.
+- `src/telegram/sim_bot.py` module docstring now states explicitly:
+  "CMVK Experimental Observer — READ-ONLY / Constitutional rule: no control
+  commands permitted. This bot observes simulations. It does not control
+  production."
+- Command surface is now exclusively read-only inspection commands
+  (`/status`, `/pnl`, `/trades`, `/runs`, `/history`, `/compare`, `/score`,
+  `/distrib`, `/robust`, `/race`, `/validate`, `/overall`, `/breakdown`,
+  `/market`). The two former control commands, `/kill` and `/resume`, which
+  used to trigger/release a kill-switch object, **have been removed** —
+  the dispatch entries and the `_cmd_kill`/`_cmd_resume` handler methods no
+  longer exist in `src/telegram/sim_bot.py`. `tests/test_sim_bot.py` now
+  asserts `handle("/kill")` and `handle("/resume")` both return
+  `"Commande inconnue"`. This closes the constitutional violation flagged
+  below, regardless of whether this bot is ever (re)activated.
 - `CMVK_BOT_TOKEN`/`CMVK_CHAT_ID` appear only in `.env.secrets.example`
   (line 117-118), not in `.env.example`.
 - No systemd `.service` file references this bot anywhere under
@@ -292,9 +296,9 @@ recommendation already recorded in `docs/TELEGRAM_ARCHITECTURE_AUDIT.md`.
   `tests/test_sim_bot.py`)
 
 ### Decision Required
-Operator must decide: **KEEP** (define mission, add a dedicated systemd
-service, and remove or gate the `/kill`/`/resume` control commands to
-restore constitutional compliance) or **REMOVE** (delete
+Operator must decide: **KEEP** (define mission and add a dedicated systemd
+service — constitutional compliance is now satisfied since the
+`/kill`/`/resume` control commands are removed) or **REMOVE** (delete
 `src/telegram/bot_runner.py` and `src/telegram/sim_bot.py`, or move them to
 an archive folder consistent with other retired duplicates in
 `_ARCHIVE_2026/`).
