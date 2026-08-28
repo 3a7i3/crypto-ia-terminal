@@ -363,3 +363,34 @@ PHASE 5 — Runtime VPS Audit
 > reflétée dans ce document **avant** d'être mergée dans `main`.
 > Ce document est le contrat. Le code doit respecter le contrat, pas l'inverse.
 
+---
+
+## Governance Gap (appended 2026-08-28 — Phase 3.3.1 Identity Audit)
+
+> **Read-only forensic addendum.** The section below does not modify any
+> content above; it records a gap found during a full-codebase Telegram
+> identity sweep. See `docs/architecture/TELEGRAM_IDENTITY_REGISTRY.md` for
+> the complete audit and evidence.
+
+- **`REAL_ACCOUNT_BOT_TOKEN` / `REAL_ACCOUNT_CHAT_ID` is a live, in-production
+  Telegram identity that is completely absent from this document.** It is
+  wired in `core/advisor_loop.py::_telegram_real` (`core/advisor_loop.py:796-797,
+  1009-1027`), sends boot-time STANDBY/LIVE/NULL-balance alerts
+  (`core/advisor_loop.py:3483,3495,3516`) and an hourly real-account status
+  report (`core/advisor_loop.py:7233`, gated by `REAL_BOT_REPORT_EVERY`,
+  default 12 cycles). It is absent from `.env.example` and only appears in
+  `.env.secrets.example:88-89`.
+- Per `.env.secrets.example:74-90` ("Bot 5/8 : @mon_portfolio_bot"), this
+  identity shares the **same physical BotFather token** as
+  `P10_PORTFOLIO_BOT_TOKEN` (the Portfolio/CommandCenter bot documented
+  above), used send-only in parallel with CommandCenter's own reporting.
+  This relationship — and the "single poller" constraint it depends on — is
+  not recorded anywhere in this Registry.
+- **Recommended action**: add a full profile section for this identity
+  (mission, authority, criticality, allowed/forbidden content, owner) to
+  this document, following the same format as the five bots above, and add
+  the variable pair to `.env.example`.
+- This finding was independently identified in `docs/TELEGRAM_NOTIFICATION_AUDIT.md`
+  ("🔴 Real Account Bot — undocumented, new finding") and is catalogued in
+  full in `docs/architecture/TELEGRAM_IDENTITY_REGISTRY.md` (IDENTITY-08).
+
