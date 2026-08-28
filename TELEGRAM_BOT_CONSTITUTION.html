@@ -1,0 +1,758 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="./">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" />
+
+    <link rel="shortcut icon" href="_static/favicon.ico"/><!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
+        <title>Telegram Bot Constitution - Crypto AI Terminal 9.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=354aac6f" />
+    <link rel="stylesheet" type="text/css" href="_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=1b9cecba" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=302659d7" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="index.html"><div class="brand">Crypto AI Terminal 9.1 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="_static/../assets/logo_ai_quant.png" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="_static/../assets/logo_ai_quant.png" alt="Dark Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/blob/main/docs/TELEGRAM_BOT_CONSTITUTION.md?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/edit/main/docs/TELEGRAM_BOT_CONSTITUTION.md" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="telegram-bot-constitution">
+<h1>Telegram Bot Constitution<a class="headerlink" href="#telegram-bot-constitution" title="Link to this heading">¶</a></h1>
+<blockquote>
+<div><p>Last updated: 2026-08-28</p>
+</div></blockquote>
+<p>This document defines the mission profile for each proven-active Telegram bot
+in this repository, based strictly on code evidence gathered in
+<code class="docutils literal notranslate"><span class="pre">docs/architecture/TELEGRAM_ECOSYSTEM_MAP.md</span></code>. It complements the existing
+<code class="docutils literal notranslate"><span class="pre">docs/TELEGRAM_CONSTITUTION.md</span></code> (constitutional principles) and
+<code class="docutils literal notranslate"><span class="pre">docs/architecture/TELEGRAM_BOT_REGISTRY.md</span></code> (functional contract) — it does
+not supersede either.</p>
+<hr class="docutils" />
+<section id="constitutional-rule-applies-to-all-bots">
+<h2>Constitutional Rule (applies to ALL bots)<a class="headerlink" href="#constitutional-rule-applies-to-all-bots" title="Link to this heading">¶</a></h2>
+<p>Telegram bots are STRICTLY read-only observation interfaces.</p>
+<p>They MUST NOT: modify parameters, start/stop strategies, change portfolio,
+execute trades, modify config files, restart services.</p>
+<p>They MUST: observe, filter, summarize, alert humans.</p>
+<p>Any bot or code path found violating this rule (even if currently inactive or
+undeployed) is a constitutional risk and must be flagged, not silently
+tolerated. See Bot 6 (CMVK/Simulation) below for one such flagged risk.</p>
+</section>
+<hr class="docutils" />
+<section id="bot-1-cryptoradar">
+<h2>Bot 1 — CryptoRadar<a class="headerlink" href="#bot-1-cryptoradar" title="Link to this heading">¶</a></h2>
+<section id="mission">
+<h3>Mission<a class="headerlink" href="#mission" title="Link to this heading">¶</a></h3>
+<p>Detect unusual market phenomena that merit human attention — “Where is
+something happening in the market right now?”</p>
+</section>
+<section id="must-do">
+<h3>Must Do<a class="headerlink" href="#must-do" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Scan market data (universe regime, per-symbol confidence scores, dominant
+direction, LMI microstructure)</p></li>
+<li><p>Filter noise (only exceptional/aggregated events)</p></li>
+<li><p>Send anomaly summaries on request</p></li>
+</ul>
+</section>
+<section id="must-never-do">
+<h3>Must Never Do<a class="headerlink" href="#must-never-do" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Send per-symbol routine status spam (BTC bullish, ETH bearish for every
+symbol on a timer)</p></li>
+<li><p>Expose Entry/SL/TP or portfolio/equity/PnL data (explicitly out of domain —
+redirects <code class="docutils literal notranslate"><span class="pre">/signals</span></code> and <code class="docutils literal notranslate"><span class="pre">/status</span></code> to the correct bot, per
+<code class="docutils literal notranslate"><span class="pre">scripts/radar_bot.py</span></code> and <code class="docutils literal notranslate"><span class="pre">docs/architecture/TELEGRAM_BOT_REGISTRY.md</span></code>)</p></li>
+<li><p>Control trading decisions or modify parameters</p></li>
+</ul>
+</section>
+<section id="inputs">
+<h3>Inputs<a class="headerlink" href="#inputs" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Market/universe scan data consumed by <code class="docutils literal notranslate"><span class="pre">scripts/radar_bot.py</span></code> (regime,
+per-symbol confidence, direction, LMI microstructure) from the databases
+under <code class="docutils literal notranslate"><span class="pre">DP_LOG_DIR</span></code> (see <code class="docutils literal notranslate"><span class="pre">scripts/radar_bot.py:16</span></code>)</p></li>
+</ul>
+</section>
+<section id="outputs">
+<h3>Outputs<a class="headerlink" href="#outputs" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>On-demand command replies only: <code class="docutils literal notranslate"><span class="pre">/scan</span> <span class="pre">[N]</span></code>, <code class="docutils literal notranslate"><span class="pre">/top50</span></code>, <code class="docutils literal notranslate"><span class="pre">/longs</span></code>, <code class="docutils literal notranslate"><span class="pre">/shorts</span></code>,
+<code class="docutils literal notranslate"><span class="pre">/symbol</span> <span class="pre">TICKER</span></code>, <code class="docutils literal notranslate"><span class="pre">/lmi</span> <span class="pre">[TICKER]</span></code>, <code class="docutils literal notranslate"><span class="pre">/help</span></code> (via <code class="docutils literal notranslate"><span class="pre">sendMessage</span></code>,
+<code class="docutils literal notranslate"><span class="pre">scripts/radar_bot.py:49</span></code>)</p></li>
+<li><p>No automatic/unsolicited push messages found in code</p></li>
+</ul>
+</section>
+<section id="target-message-format">
+<h3>Target Message Format<a class="headerlink" href="#target-message-format" title="Link to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>📡 CryptoRadar — Top 5 opportunités (conf ≥ 60)
+1. BTCUSDT  LONG  conf=78  régime=trend
+2. ETHUSDT  SHORT conf=71  régime=range
+...
+</pre></div>
+</div>
+</section>
+<section id="human-value">
+<h3>Human Value<a class="headerlink" href="#human-value" title="Link to this heading">¶</a></h3>
+<p>Answers “where is something happening in the market right now?” without
+requiring the operator to watch every symbol manually.</p>
+</section>
+<section id="noise-reduction-target">
+<h3>Noise Reduction Target<a class="headerlink" href="#noise-reduction-target" title="Link to this heading">¶</a></h3>
+<p>Already LOW (fully reactive, no scheduled push) — no reduction needed;
+maintain current behavior.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="bot-2-portfolio-command-center">
+<h2>Bot 2 — Portfolio Command Center<a class="headerlink" href="#bot-2-portfolio-command-center" title="Link to this heading">¶</a></h2>
+<section id="id1">
+<h3>Mission<a class="headerlink" href="#id1" title="Link to this heading">¶</a></h3>
+<p>Show whether the machine is actually making money — “Is my machine really
+earning money?”</p>
+</section>
+<section id="id2">
+<h3>Must Do<a class="headerlink" href="#id2" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Report capital, phase, KPIs (win rate, Sharpe, drawdown, trade count),
+positions, PnL, risk state (read-only)</p></li>
+<li><p>Send periodic performance reports and drawdown alerts</p></li>
+</ul>
+</section>
+<section id="id3">
+<h3>Must Never Do<a class="headerlink" href="#id3" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Expose per-symbol trading signals (explicitly removed — see
+<code class="docutils literal notranslate"><span class="pre">docs/architecture/TELEGRAM_BOT_REGISTRY.md</span></code>, “Anomalies résolues” #5)</p></li>
+<li><p>Accept any write command (<code class="docutils literal notranslate"><span class="pre">/pause</span></code>, <code class="docutils literal notranslate"><span class="pre">/resume</span></code>, <code class="docutils literal notranslate"><span class="pre">/set</span></code>, <code class="docutils literal notranslate"><span class="pre">/setphase</span></code>,
+<code class="docutils literal notranslate"><span class="pre">/maxorder</span></code>, <code class="docutils literal notranslate"><span class="pre">/reset</span></code>, <code class="docutils literal notranslate"><span class="pre">/restart</span></code> — all explicitly removed per the
+Registry’s “Anomalies résolues” #7)</p></li>
+<li><p>Expose Paper Arena experiment data (separate domain)</p></li>
+</ul>
+</section>
+<section id="id4">
+<h3>Inputs<a class="headerlink" href="#id4" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Capital, phase, KPI, and position state consumed by
+<code class="docutils literal notranslate"><span class="pre">capital_deployment/command_center_bot.py</span></code> from the trading engine’s
+read-only state stores</p></li>
+</ul>
+</section>
+<section id="id5">
+<h3>Outputs<a class="headerlink" href="#id5" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Periodic report on interval <code class="docutils literal notranslate"><span class="pre">P10_PORTFOLIO_REPORT_MINS</span></code>/<code class="docutils literal notranslate"><span class="pre">_H</span></code></p></li>
+<li><p>On-demand command replies: <code class="docutils literal notranslate"><span class="pre">/status</span></code>, <code class="docutils literal notranslate"><span class="pre">/kpis</span></code>, <code class="docutils literal notranslate"><span class="pre">/balance</span></code>, <code class="docutils literal notranslate"><span class="pre">/positions</span></code>,
+<code class="docutils literal notranslate"><span class="pre">/pnl</span></code>, <code class="docutils literal notranslate"><span class="pre">/phase</span></code>, <code class="docutils literal notranslate"><span class="pre">/regime</span></code>, <code class="docutils literal notranslate"><span class="pre">/risk</span></code>, <code class="docutils literal notranslate"><span class="pre">/health</span></code>, <code class="docutils literal notranslate"><span class="pre">/eo</span></code>, <code class="docutils literal notranslate"><span class="pre">/gate</span></code>, <code class="docutils literal notranslate"><span class="pre">/perf</span></code>,
+<code class="docutils literal notranslate"><span class="pre">/recap</span> <span class="pre">[N]</span></code>, <code class="docutils literal notranslate"><span class="pre">/history</span> <span class="pre">[N]</span></code>, <code class="docutils literal notranslate"><span class="pre">/logs</span> <span class="pre">[N]</span></code>, <code class="docutils literal notranslate"><span class="pre">/config</span></code>, <code class="docutils literal notranslate"><span class="pre">/get</span> <span class="pre">PARAM</span></code>,
+<code class="docutils literal notranslate"><span class="pre">/certif</span></code>, <code class="docutils literal notranslate"><span class="pre">/charts</span></code>, <code class="docutils literal notranslate"><span class="pre">/help</span></code> (all read-only)</p></li>
+</ul>
+</section>
+<section id="id6">
+<h3>Target Message Format<a class="headerlink" href="#id6" title="Link to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>💼 Portfolio — Recap
+Phase: F-12 | Capital: &lt;paper&gt; | Régime: trend
+Win Rate: 58% | Sharpe: 1.2 | DD: 4.1% | Trades: 212
+</pre></div>
+</div>
+</section>
+<section id="id7">
+<h3>Human Value<a class="headerlink" href="#id7" title="Link to this heading">¶</a></h3>
+<p>Answers “is my machine really earning money?” with a single glance, without
+needing to inspect raw logs or databases.</p>
+</section>
+<section id="id8">
+<h3>Noise Reduction Target<a class="headerlink" href="#id8" title="Link to this heading">¶</a></h3>
+<p>From MEDIUM (configurable periodic report + drawdown alerts) to LOW —
+ensure the periodic report interval is wide enough that each message
+represents a meaningful state change rather than a routine heartbeat.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="bot-3-quant-observer">
+<h2>Bot 3 — Quant Observer<a class="headerlink" href="#bot-3-quant-observer" title="Link to this heading">¶</a></h2>
+<section id="id9">
+<h3>Mission<a class="headerlink" href="#id9" title="Link to this heading">¶</a></h3>
+<p>Document what is happening in the decision engine’s microstructure —
+“What is happening in the microstructure of the decision system?”</p>
+</section>
+<section id="id10">
+<h3>Must Do<a class="headerlink" href="#id10" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Report scanned universe size, dominant regime (global + distribution),
+aggregated signal scores, actionable candidates (without Entry/SL/TP),
+meta-strategy state, decision pipeline health</p></li>
+</ul>
+</section>
+<section id="id11">
+<h3>Must Never Do<a class="headerlink" href="#id11" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Expose portfolio equity/PnL/balances or real positions (Portfolio’s domain)</p></li>
+<li><p>Expose raw RAM/CPU/PID system metrics</p></li>
+<li><p>Expose Paper Arena experiment data</p></li>
+<li><p>Accept any control command</p></li>
+</ul>
+</section>
+<section id="id12">
+<h3>Inputs<a class="headerlink" href="#id12" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Universe/regime/signal-score/meta-strategy state consumed by
+<code class="docutils literal notranslate"><span class="pre">src/telegram/quant_observer/bot.py</span></code></p></li>
+</ul>
+</section>
+<section id="id13">
+<h3>Outputs<a class="headerlink" href="#id13" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Auto-refreshed pinned message (<code class="docutils literal notranslate"><span class="pre">QC_PINNED_UPDATE</span></code>, default 600s = 10 min)</p></li>
+<li><p>On-demand command replies: <code class="docutils literal notranslate"><span class="pre">/snapshot</span></code>, <code class="docutils literal notranslate"><span class="pre">/health</span></code>, <code class="docutils literal notranslate"><span class="pre">/pipeline</span></code>, <code class="docutils literal notranslate"><span class="pre">/help</span></code></p></li>
+</ul>
+</section>
+<section id="id14">
+<h3>Target Message Format<a class="headerlink" href="#id14" title="Link to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>🔬 Quant Observer — Snapshot
+Universe: 135 paires | Régime dominant: trend (62%)
+Candidats actionnables: 4 | Pipeline: nominal
+</pre></div>
+</div>
+</section>
+<section id="id15">
+<h3>Human Value<a class="headerlink" href="#id15" title="Link to this heading">¶</a></h3>
+<p>Answers “what is happening in the microstructure of the decision system?” —
+a research-facing view that does not touch capital or execution.</p>
+</section>
+<section id="id16">
+<h3>Noise Reduction Target<a class="headerlink" href="#id16" title="Link to this heading">¶</a></h3>
+<p>From MEDIUM (10-minute pinned refresh is a continuous stream) to LOW —
+refresh the pinned message only on significant regime/state change, or widen
+the interval (e.g. 30–60 min), per the recommendation already recorded in
+<code class="docutils literal notranslate"><span class="pre">docs/TELEGRAM_ARCHITECTURE_AUDIT.md</span></code>.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="bot-4-rapport-automatique-intel">
+<h2>Bot 4 — Rapport Automatique / Intel<a class="headerlink" href="#bot-4-rapport-automatique-intel" title="Link to this heading">¶</a></h2>
+<section id="id17">
+<h3>Mission<a class="headerlink" href="#id17" title="Link to this heading">¶</a></h3>
+<p>Deliver a periodic AI-generated natural-language synthesis of system state —
+no interaction, pure information.</p>
+</section>
+<section id="id18">
+<h3>Must Do<a class="headerlink" href="#id18" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Send one periodic synthesis briefing (~every 6 hours) summarizing system
+state in natural language</p></li>
+</ul>
+</section>
+<section id="id19">
+<h3>Must Never Do<a class="headerlink" href="#id19" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Accept any interactive command (confirmed: no <code class="docutils literal notranslate"><span class="pre">getUpdates</span></code> call exists in
+either <code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/intelligence/system_intel_reporter.py</span></code> or the
+sender in <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code>)</p></li>
+<li><p>Dump raw logs instead of a conclusion</p></li>
+</ul>
+</section>
+<section id="id20">
+<h3>Inputs<a class="headerlink" href="#id20" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>System-wide state aggregated by
+<code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/intelligence/system_intel_reporter.py::SystemIntelReporter.build_report</span></code></p></li>
+</ul>
+</section>
+<section id="id21">
+<h3>Outputs<a class="headerlink" href="#id21" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Single push message per cycle via <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py::_send_intel</span></code>
+(<code class="docutils literal notranslate"><span class="pre">sendMessage</span></code>, <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py:1046</span></code>)</p></li>
+</ul>
+</section>
+<section id="id22">
+<h3>Target Message Format<a class="headerlink" href="#id22" title="Link to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>🧠 Rapport Automatique — Synthèse 6h
+Régime dominant stable depuis 18h. Aucune anomalie critique détectée.
+CRI: 42/100 (calibration toujours interdite, N insuffisant).
+</pre></div>
+</div>
+</section>
+<section id="id23">
+<h3>Human Value<a class="headerlink" href="#id23" title="Link to this heading">¶</a></h3>
+<p>Gives the operator a periodic high-level “state of the system” narrative
+without requiring them to actively check anything.</p>
+</section>
+<section id="id24">
+<h3>Noise Reduction Target<a class="headerlink" href="#id24" title="Link to this heading">¶</a></h3>
+<p>Already LOW-MEDIUM (fixed 6h cadence, push-only, no polling) — ensure content
+stays a statistical conclusion, never a raw log dump, per Constitution
+Principle 10.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="bot-5-paper-arena">
+<h2>Bot 5 — Paper Arena<a class="headerlink" href="#bot-5-paper-arena" title="Link to this heading">¶</a></h2>
+<section id="id25">
+<h3>Mission<a class="headerlink" href="#id25" title="Link to this heading">¶</a></h3>
+<p>Report whether a research hypothesis survives contact with real data — “Does
+this research hypothesis survive real data?”</p>
+</section>
+<section id="id26">
+<h3>Must Do<a class="headerlink" href="#id26" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Report the outcome of one isolated experiment (RSI ETH/4H): entry/exit
+events, periodic aggregate summary, gate status
+(<code class="docutils literal notranslate"><span class="pre">INSUFFICIENT_SAMPLE</span></code> → <code class="docutils literal notranslate"><span class="pre">CONCLUSIVE</span></code>)</p></li>
+</ul>
+</section>
+<section id="id27">
+<h3>Must Never Do<a class="headerlink" href="#id27" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Expose global system state, portfolio balances, or global PnL (explicitly
+scoped to the experiment only, per
+<code class="docutils literal notranslate"><span class="pre">docs/architecture/TELEGRAM_BOT_REGISTRY.md</span></code> “FORBIDDEN” section)</p></li>
+<li><p>Accept any interactive command (confirmed: no <code class="docutils literal notranslate"><span class="pre">getUpdates</span></code> found in
+<code class="docutils literal notranslate"><span class="pre">src/paper/paper_runner.py</span></code> or <code class="docutils literal notranslate"><span class="pre">src/paper/paper_report.py</span></code>)</p></li>
+</ul>
+</section>
+<section id="id28">
+<h3>Inputs<a class="headerlink" href="#id28" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Experiment trade events and metrics from <code class="docutils literal notranslate"><span class="pre">src/paper/paper_runner.py</span></code>
+(<code class="docutils literal notranslate"><span class="pre">PaperMetrics</span></code>, gate status via <code class="docutils literal notranslate"><span class="pre">src/paper/paper_gate.py</span></code>)</p></li>
+</ul>
+</section>
+<section id="id29">
+<h3>Outputs<a class="headerlink" href="#id29" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">notify_entry</span></code>, <code class="docutils literal notranslate"><span class="pre">notify_exit</span></code>, <code class="docutils literal notranslate"><span class="pre">notify_summary</span></code> — all <code class="docutils literal notranslate"><span class="pre">sendMessage</span></code> calls
+in <code class="docutils literal notranslate"><span class="pre">src/paper/paper_report.py</span></code></p></li>
+</ul>
+</section>
+<section id="id30">
+<h3>Target Message Format<a class="headerlink" href="#id30" title="Link to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>🧪 Paper Arena — Résumé (N=87)
+WR: 54% | PF: 1.3 | PnL exp.: +2.1%
+Gate: INSUFFICIENT_SAMPLE (N&lt;500)
+</pre></div>
+</div>
+</section>
+<section id="id31">
+<h3>Human Value<a class="headerlink" href="#id31" title="Link to this heading">¶</a></h3>
+<p>Answers “does this research hypothesis survive real data?” with statistical
+conclusions rather than trade-by-trade noise.</p>
+</section>
+<section id="id32">
+<h3>Noise Reduction Target<a class="headerlink" href="#id32" title="Link to this heading">¶</a></h3>
+<p>From MEDIUM-HIGH (per-trade entry/exit notifications) to LOW — replace
+trade-by-trade push with a daily/weekly aggregate (N trades, WR, PF), and
+keep gate-status changes as the only rare, high-value event, per the
+recommendation already recorded in <code class="docutils literal notranslate"><span class="pre">docs/TELEGRAM_ARCHITECTURE_AUDIT.md</span></code>.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="bot-6-cmvk-simulation">
+<h2>Bot 6 — CMVK/Simulation<a class="headerlink" href="#bot-6-cmvk-simulation" title="Link to this heading">¶</a></h2>
+<section id="status-read-only-control-commands-removed">
+<h3>Status: READ-ONLY — control commands removed<a class="headerlink" href="#status-read-only-control-commands-removed" title="Link to this heading">¶</a></h3>
+</section>
+<section id="what-we-know">
+<h3>What We Know<a class="headerlink" href="#what-we-know" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Token/chat variables <code class="docutils literal notranslate"><span class="pre">TELEMETRIE_IA_BOT_TOKEN</span></code> / <code class="docutils literal notranslate"><span class="pre">TELEMETRIE_IA_CHAT_ID</span></code> are wired end-to-end:
+a full polling loop exists in <code class="docutils literal notranslate"><span class="pre">src/telegram/bot_runner.py</span></code> (<code class="docutils literal notranslate"><span class="pre">getUpdates</span></code>,
+<code class="docutils literal notranslate"><span class="pre">sendMessage</span></code>, <code class="docutils literal notranslate"><span class="pre">deleteWebhook</span></code> for 409-conflict recovery), dispatching to
+<code class="docutils literal notranslate"><span class="pre">src/telegram/sim_bot.py::SimBot.handle</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">src/telegram/sim_bot.py</span></code> module docstring now states explicitly:
+“CMVK Experimental Observer — READ-ONLY / Constitutional rule: no control
+commands permitted. This bot observes simulations. It does not control
+production.”</p></li>
+<li><p>Command surface is now exclusively read-only inspection commands
+(<code class="docutils literal notranslate"><span class="pre">/status</span></code>, <code class="docutils literal notranslate"><span class="pre">/pnl</span></code>, <code class="docutils literal notranslate"><span class="pre">/trades</span></code>, <code class="docutils literal notranslate"><span class="pre">/runs</span></code>, <code class="docutils literal notranslate"><span class="pre">/history</span></code>, <code class="docutils literal notranslate"><span class="pre">/compare</span></code>, <code class="docutils literal notranslate"><span class="pre">/score</span></code>,
+<code class="docutils literal notranslate"><span class="pre">/distrib</span></code>, <code class="docutils literal notranslate"><span class="pre">/robust</span></code>, <code class="docutils literal notranslate"><span class="pre">/race</span></code>, <code class="docutils literal notranslate"><span class="pre">/validate</span></code>, <code class="docutils literal notranslate"><span class="pre">/overall</span></code>, <code class="docutils literal notranslate"><span class="pre">/breakdown</span></code>,
+<code class="docutils literal notranslate"><span class="pre">/market</span></code>). The two former control commands, <code class="docutils literal notranslate"><span class="pre">/kill</span></code> and <code class="docutils literal notranslate"><span class="pre">/resume</span></code>, which
+used to trigger/release a kill-switch object, <strong>have been removed</strong> —
+the dispatch entries and the <code class="docutils literal notranslate"><span class="pre">_cmd_kill</span></code>/<code class="docutils literal notranslate"><span class="pre">_cmd_resume</span></code> handler methods no
+longer exist in <code class="docutils literal notranslate"><span class="pre">src/telegram/sim_bot.py</span></code>. <code class="docutils literal notranslate"><span class="pre">tests/test_sim_bot.py</span></code> now
+asserts <code class="docutils literal notranslate"><span class="pre">handle(&quot;/kill&quot;)</span></code> and <code class="docutils literal notranslate"><span class="pre">handle(&quot;/resume&quot;)</span></code> both return
+<code class="docutils literal notranslate"><span class="pre">&quot;Commande</span> <span class="pre">inconnue&quot;</span></code>. This closes the constitutional violation flagged
+below, regardless of whether this bot is ever (re)activated.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">TELEMETRIE_IA_BOT_TOKEN</span></code>/<code class="docutils literal notranslate"><span class="pre">TELEMETRIE_IA_CHAT_ID</span></code> appear only in <code class="docutils literal notranslate"><span class="pre">.env.secrets.example</span></code>
+(line 117-118), not in <code class="docutils literal notranslate"><span class="pre">.env.example</span></code>.</p></li>
+<li><p>No systemd <code class="docutils literal notranslate"><span class="pre">.service</span></code> file references this bot anywhere under
+<code class="docutils literal notranslate"><span class="pre">scripts/systemd/</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">docs/architecture/TELEGRAM_BOT_REGISTRY.md</span></code> (“Bots supprimés” table) lists
+<code class="docutils literal notranslate"><span class="pre">&#64;FtnTrading_bot</span></code> (SimBot) as <strong>removed — “non utilisé en production”</strong>,
+which appears to match this same code by description, though the exact
+BotFather username could not be independently confirmed from code alone.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">docs/TELEGRAM_ARCHITECTURE_AUDIT.md</span></code> independently reached the same
+UNKNOWN/likely-inactive conclusion for this bot in the prior audit.</p></li>
+</ul>
+</section>
+<section id="what-we-dont-know">
+<h3>What We Don’t Know<a class="headerlink" href="#what-we-dont-know" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Mission (is it still needed for CMVK simulation research, or fully retired?)</p></li>
+<li><p>Owner</p></li>
+<li><p>Active usage (no deployment evidence — no service file, no
+<code class="docutils literal notranslate"><span class="pre">.env.example</span></code> entry, no reference outside its own module and
+<code class="docutils literal notranslate"><span class="pre">tests/test_sim_bot.py</span></code>)</p></li>
+</ul>
+</section>
+<section id="decision-required">
+<h3>Decision Required<a class="headerlink" href="#decision-required" title="Link to this heading">¶</a></h3>
+<p>Operator must decide: <strong>KEEP</strong> (define mission and add a dedicated systemd
+service — constitutional compliance is now satisfied since the
+<code class="docutils literal notranslate"><span class="pre">/kill</span></code>/<code class="docutils literal notranslate"><span class="pre">/resume</span></code> control commands are removed) or <strong>REMOVE</strong> (delete
+<code class="docutils literal notranslate"><span class="pre">src/telegram/bot_runner.py</span></code> and <code class="docutils literal notranslate"><span class="pre">src/telegram/sim_bot.py</span></code>, or move them to
+an archive folder consistent with other retired duplicates in
+<code class="docutils literal notranslate"><span class="pre">_ARCHIVE_2026/</span></code>).</p>
+</section>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Crypto AI Terminal
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Telegram Bot Constitution</a><ul>
+<li><a class="reference internal" href="#constitutional-rule-applies-to-all-bots">Constitutional Rule (applies to ALL bots)</a></li>
+<li><a class="reference internal" href="#bot-1-cryptoradar">Bot 1 — CryptoRadar</a><ul>
+<li><a class="reference internal" href="#mission">Mission</a></li>
+<li><a class="reference internal" href="#must-do">Must Do</a></li>
+<li><a class="reference internal" href="#must-never-do">Must Never Do</a></li>
+<li><a class="reference internal" href="#inputs">Inputs</a></li>
+<li><a class="reference internal" href="#outputs">Outputs</a></li>
+<li><a class="reference internal" href="#target-message-format">Target Message Format</a></li>
+<li><a class="reference internal" href="#human-value">Human Value</a></li>
+<li><a class="reference internal" href="#noise-reduction-target">Noise Reduction Target</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#bot-2-portfolio-command-center">Bot 2 — Portfolio Command Center</a><ul>
+<li><a class="reference internal" href="#id1">Mission</a></li>
+<li><a class="reference internal" href="#id2">Must Do</a></li>
+<li><a class="reference internal" href="#id3">Must Never Do</a></li>
+<li><a class="reference internal" href="#id4">Inputs</a></li>
+<li><a class="reference internal" href="#id5">Outputs</a></li>
+<li><a class="reference internal" href="#id6">Target Message Format</a></li>
+<li><a class="reference internal" href="#id7">Human Value</a></li>
+<li><a class="reference internal" href="#id8">Noise Reduction Target</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#bot-3-quant-observer">Bot 3 — Quant Observer</a><ul>
+<li><a class="reference internal" href="#id9">Mission</a></li>
+<li><a class="reference internal" href="#id10">Must Do</a></li>
+<li><a class="reference internal" href="#id11">Must Never Do</a></li>
+<li><a class="reference internal" href="#id12">Inputs</a></li>
+<li><a class="reference internal" href="#id13">Outputs</a></li>
+<li><a class="reference internal" href="#id14">Target Message Format</a></li>
+<li><a class="reference internal" href="#id15">Human Value</a></li>
+<li><a class="reference internal" href="#id16">Noise Reduction Target</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#bot-4-rapport-automatique-intel">Bot 4 — Rapport Automatique / Intel</a><ul>
+<li><a class="reference internal" href="#id17">Mission</a></li>
+<li><a class="reference internal" href="#id18">Must Do</a></li>
+<li><a class="reference internal" href="#id19">Must Never Do</a></li>
+<li><a class="reference internal" href="#id20">Inputs</a></li>
+<li><a class="reference internal" href="#id21">Outputs</a></li>
+<li><a class="reference internal" href="#id22">Target Message Format</a></li>
+<li><a class="reference internal" href="#id23">Human Value</a></li>
+<li><a class="reference internal" href="#id24">Noise Reduction Target</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#bot-5-paper-arena">Bot 5 — Paper Arena</a><ul>
+<li><a class="reference internal" href="#id25">Mission</a></li>
+<li><a class="reference internal" href="#id26">Must Do</a></li>
+<li><a class="reference internal" href="#id27">Must Never Do</a></li>
+<li><a class="reference internal" href="#id28">Inputs</a></li>
+<li><a class="reference internal" href="#id29">Outputs</a></li>
+<li><a class="reference internal" href="#id30">Target Message Format</a></li>
+<li><a class="reference internal" href="#id31">Human Value</a></li>
+<li><a class="reference internal" href="#id32">Noise Reduction Target</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#bot-6-cmvk-simulation">Bot 6 — CMVK/Simulation</a><ul>
+<li><a class="reference internal" href="#status-read-only-control-commands-removed">Status: READ-ONLY — control commands removed</a></li>
+<li><a class="reference internal" href="#what-we-know">What We Know</a></li>
+<li><a class="reference internal" href="#what-we-dont-know">What We Don’t Know</a></li>
+<li><a class="reference internal" href="#decision-required">Decision Required</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="_static/documentation_options.js?v=ef6a59ae"></script>
+    <script src="_static/doctools.js?v=9a2dae69"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/scripts/furo.js?v=5fa4622c"></script>
+    </body>
+</html>

@@ -272,31 +272,31 @@ Tout contrôle du système passe exclusivement par le VPS (SSH).</p>
 <tbody>
 <tr class="row-even"><td><p>CryptoRadar_Bot</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">&#64;RadarCrypto1_bot</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">RADAR_BOT_TOKEN</span></code> (fallback <code class="docutils literal notranslate"><span class="pre">TELEGRAM_BOT_TOKEN</span></code>)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">RADAR_BOT_TOKEN</span></code> (aucun fallback — isolé)</p></td>
 <td><p>📡 Scanner marché</p></td>
 <td><p>Polling + réactif</p></td>
 </tr>
 <tr class="row-odd"><td><p>Mon Portefeuille Bot</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">&#64;mon_portfolio_bot</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">P10_PORTFOLIO_BOT_TOKEN</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">MON_PORTFOLIO_BOT_TOKEN</span></code></p></td>
 <td><p>💼 Capital + performance</p></td>
 <td><p>Polling + rapports auto</p></td>
 </tr>
 <tr class="row-even"><td><p>Quant_Crypto 🔥</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">&#64;QuantCrpto_bot</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">QC_BOT_TOKEN</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">QUANT_CRYPTO_BOT_TOKEN</span></code></p></td>
 <td><p>🔬 Univers + régime + signaux + méta</p></td>
 <td><p>Polling + message épinglé</p></td>
 </tr>
 <tr class="row-odd"><td><p>Rapport Automatique</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">&#64;rapport_automatique_bot</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">INTEL_BOT_TOKEN</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">RAPPORT_AUTOMATIQUE_BOT_TOKEN</span></code></p></td>
 <td><p>🧠 Rapports IA 6h</p></td>
 <td><p>Push uniquement</p></td>
 </tr>
 <tr class="row-even"><td><p>PaperArena</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">&#64;PaperArena_bot</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">PAPER_ARENA_TG_TOKEN</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PAPER_ARENA_BOT_TOKEN</span></code></p></td>
 <td><p>🧪 Expérience RSI ETH/4H</p></td>
 <td><p>Push uniquement</p></td>
 </tr>
@@ -392,40 +392,40 @@ Tout contrôle du système passe exclusivement par le VPS (SSH).</p>
 </thead>
 <tbody>
 <tr class="row-even"><td><p>📡 CryptoRadar</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">RADAR_BOT_TOKEN</span></code> (fallback <code class="docutils literal notranslate"><span class="pre">TELEGRAM_BOT_TOKEN</span></code>)</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">RADAR_CHAT_ID</span></code> (fallback <code class="docutils literal notranslate"><span class="pre">TELEGRAM_CHAT_ID</span></code>)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">RADAR_BOT_TOKEN</span></code> (aucun fallback — isolé)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">RADAR_CHAT_ID</span></code> (aucun fallback — isolé)</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">scripts/radar_bot.py</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">crypto-radar-bot.service</span></code></p></td>
 <td><p>Oui</p></td>
 <td><p><em>Aucun</em> (réactif)</p></td>
 </tr>
 <tr class="row-odd"><td><p>💼 Portfolio</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">P10_PORTFOLIO_BOT_TOKEN</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">P10_PORTFOLIO_CHAT_ID</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">MON_PORTFOLIO_BOT_TOKEN</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">MON_PORTFOLIO_CHAT_ID</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">capital_deployment/command_center_bot.py</span></code></p></td>
 <td><p>in-process <code class="docutils literal notranslate"><span class="pre">crypto-advisor</span></code></p></td>
 <td><p>Oui</p></td>
 <td><p>Rapports périodiques</p></td>
 </tr>
 <tr class="row-even"><td><p>🔬 Quant Observer</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">QC_BOT_TOKEN</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">QC_CHAT_ID</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">QUANT_CRYPTO_BOT_TOKEN</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">QUANT_CRYPTO_CHAT_ID</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">src/telegram/quant_observer/bot.py</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">crypto-quant-observer.service</span></code></p></td>
 <td><p>Oui</p></td>
 <td><p>Message épinglé 10 min</p></td>
 </tr>
 <tr class="row-odd"><td><p>🧠 Rapport Auto</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">INTEL_BOT_TOKEN</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">INTEL_BOT_CHAT_ID</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">RAPPORT_AUTOMATIQUE_BOT_TOKEN</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">RAPPORT_AUTOMATIQUE_CHAT_ID</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/intelligence/system_intel_reporter.py</span></code></p></td>
 <td><p>in-process <code class="docutils literal notranslate"><span class="pre">crypto-advisor</span></code></p></td>
 <td><p>Non</p></td>
 <td><p>Push 6h</p></td>
 </tr>
 <tr class="row-even"><td><p>🧪 Paper Arena</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">PAPER_ARENA_TG_TOKEN</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">PAPER_ARENA_TG_CHAT_ID</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PAPER_ARENA_BOT_TOKEN</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PAPER_ARENA_CHAT_ID</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">src/paper/paper_runner.py</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">paper-arena.service</span></code></p></td>
 <td><p>Non</p></td>
@@ -475,8 +475,8 @@ Tout contrôle du système passe exclusivement par le VPS (SSH).</p>
 IDENTITY
   Name            : 📡 CryptoRadar
   BotFather       : @RadarCrypto1_bot
-  Token ENV       : RADAR_BOT_TOKEN (fallback TELEGRAM_BOT_TOKEN)
-  Chat ENV        : RADAR_CHAT_ID (fallback TELEGRAM_CHAT_ID)
+  Token ENV       : RADAR_BOT_TOKEN (aucun fallback — isolé, exit 1 si absent)
+  Chat ENV        : RADAR_CHAT_ID (aucun fallback — isolé)
   Source          : scripts/radar_bot.py
   Service         : crypto-radar-bot.service
   Polling owner   : Oui
@@ -523,8 +523,8 @@ FORBIDDEN
 IDENTITY
   Name            : 💼 Portfolio (CommandCenter)
   BotFather       : @mon_portfolio_bot
-  Token ENV       : P10_PORTFOLIO_BOT_TOKEN
-  Chat ENV        : P10_PORTFOLIO_CHAT_ID
+  Token ENV       : MON_PORTFOLIO_BOT_TOKEN
+  Chat ENV        : MON_PORTFOLIO_CHAT_ID
   Source          : capital_deployment/command_center_bot.py
   Service         : in-process crypto-advisor.service
   Polling owner   : Oui
@@ -576,8 +576,8 @@ FORBIDDEN
 IDENTITY
   Name            : 🔬 Quant Observer
   BotFather       : @QuantCrpto_bot
-  Token ENV       : QC_BOT_TOKEN
-  Chat ENV        : QC_CHAT_ID
+  Token ENV       : QUANT_CRYPTO_BOT_TOKEN
+  Chat ENV        : QUANT_CRYPTO_CHAT_ID
   Source          : src/telegram/quant_observer/bot.py
   Service         : crypto-quant-observer.service
   Polling owner   : Oui + refresh message épinglé (10 min)
@@ -623,8 +623,8 @@ FORBIDDEN
 IDENTITY
   Name            : 🧠 Rapport Automatique
   BotFather       : @rapport_automatique_bot
-  Token ENV       : INTEL_BOT_TOKEN
-  Chat ENV        : INTEL_BOT_CHAT_ID
+  Token ENV       : RAPPORT_AUTOMATIQUE_BOT_TOKEN
+  Chat ENV        : RAPPORT_AUTOMATIQUE_CHAT_ID
   Source          : quant_hedge_ai/agents/intelligence/system_intel_reporter.py
   Service         : in-process crypto-advisor.service
   Polling owner   : Non (push uniquement)
@@ -651,8 +651,8 @@ FORBIDDEN
 IDENTITY
   Name            : 🧪 Paper Arena
   BotFather       : @PaperArena_bot
-  Token ENV       : PAPER_ARENA_TG_TOKEN
-  Chat ENV        : PAPER_ARENA_TG_CHAT_ID
+  Token ENV       : PAPER_ARENA_BOT_TOKEN
+  Chat ENV        : PAPER_ARENA_CHAT_ID
   Source          : src/paper/paper_runner.py + src/paper/paper_report.py
   Service         : paper-arena.service
   Polling owner   : Non (push uniquement)
@@ -695,7 +695,7 @@ FORBIDDEN
 <tbody>
 <tr class="row-even"><td><p>1</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">TELEGRAM_BOT_TOKEN</span></code> partagé entre KillSwitch et CryptoRadar</p></td>
-<td><p>KillSwitch supprimé + <code class="docutils literal notranslate"><span class="pre">RADAR_BOT_TOKEN</span></code> ajouté avec fallback</p></td>
+<td><p>KillSwitch supprimé + <code class="docutils literal notranslate"><span class="pre">RADAR_BOT_TOKEN</span></code> ajouté ; fallback <code class="docutils literal notranslate"><span class="pre">TELEGRAM_BOT_TOKEN</span></code> supprimé du code (audit 2026-08-28, voir <code class="docutils literal notranslate"><span class="pre">docs/TELEGRAM_ARCHITECTURE_AUDIT.md</span></code>)</p></td>
 <td><p>✅ Résolu</p></td>
 </tr>
 <tr class="row-odd"><td><p>2</p></td>
@@ -730,7 +730,7 @@ FORBIDDEN
 </tr>
 <tr class="row-odd"><td><p>8</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">&#64;QuantCrpto_bot</span></code> non mappé dans le Registry</p></td>
-<td><p>Mappé → <code class="docutils literal notranslate"><span class="pre">QC_BOT_TOKEN</span></code></p></td>
+<td><p>Mappé → <code class="docutils literal notranslate"><span class="pre">QUANT_CRYPTO_BOT_TOKEN</span></code></p></td>
 <td><p>✅ Résolu</p></td>
 </tr>
 </tbody>
@@ -741,7 +741,7 @@ FORBIDDEN
 <section id="feuille-de-route-phases-2-5">
 <h2>Feuille de route — Phases 2-5<a class="headerlink" href="#feuille-de-route-phases-2-5" title="Link to this heading">¶</a></h2>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>PHASE 2 — Interface Audit         ✅ COMPLÈTE
-PHASE 3 — Token Isolation Prep    ✅ COMPLÈTE (fallbacks en place)
+PHASE 3 — Token Isolation Prep    ✅ COMPLÈTE (isolation stricte, fallback retiré 2026-08-28)
 
 PHASE 3 (finalisation VPS)
   Ajouter dans .env.secrets :
@@ -770,6 +770,38 @@ nouveau contenu de message, nouveau token, nouveau service systemd) doit être
 reflétée dans ce document <strong>avant</strong> d’être mergée dans <code class="docutils literal notranslate"><span class="pre">main</span></code>.
 Ce document est le contrat. Le code doit respecter le contrat, pas l’inverse.</p>
 </div></blockquote>
+</section>
+<hr class="docutils" />
+<section id="governance-gap-appended-2026-08-28-phase-3-3-1-identity-audit">
+<h2>Governance Gap (appended 2026-08-28 — Phase 3.3.1 Identity Audit)<a class="headerlink" href="#governance-gap-appended-2026-08-28-phase-3-3-1-identity-audit" title="Link to this heading">¶</a></h2>
+<blockquote>
+<div><p><strong>Read-only forensic addendum.</strong> The section below does not modify any
+content above; it records a gap found during a full-codebase Telegram
+identity sweep. See <code class="docutils literal notranslate"><span class="pre">docs/architecture/TELEGRAM_IDENTITY_REGISTRY.md</span></code> for
+the complete audit and evidence.</p>
+</div></blockquote>
+<ul class="simple">
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">REAL_ACCOUNT_BOT_TOKEN</span></code> / <code class="docutils literal notranslate"><span class="pre">REAL_ACCOUNT_CHAT_ID</span></code> is a live, in-production
+Telegram identity that is completely absent from this document.</strong> It is
+wired in <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py::_telegram_real</span></code> (<code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py:796-797,</span> <span class="pre">1009-1027</span></code>), sends boot-time STANDBY/LIVE/NULL-balance alerts
+(<code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py:3483,3495,3516</span></code>) and an hourly real-account status
+report (<code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py:7233</span></code>, gated by <code class="docutils literal notranslate"><span class="pre">REAL_BOT_REPORT_EVERY</span></code>,
+default 12 cycles). It is absent from <code class="docutils literal notranslate"><span class="pre">.env.example</span></code> and only appears in
+<code class="docutils literal notranslate"><span class="pre">.env.secrets.example:88-89</span></code>.</p></li>
+<li><p>Per <code class="docutils literal notranslate"><span class="pre">.env.secrets.example:74-90</span></code> (“Bot 5/8 : &#64;mon_portfolio_bot”), this
+identity shares the <strong>same physical BotFather token</strong> as
+<code class="docutils literal notranslate"><span class="pre">MON_PORTFOLIO_BOT_TOKEN</span></code> (the Portfolio/CommandCenter bot documented
+above), used send-only in parallel with CommandCenter’s own reporting.
+This relationship — and the “single poller” constraint it depends on — is
+not recorded anywhere in this Registry.</p></li>
+<li><p><strong>Recommended action</strong>: add a full profile section for this identity
+(mission, authority, criticality, allowed/forbidden content, owner) to
+this document, following the same format as the five bots above, and add
+the variable pair to <code class="docutils literal notranslate"><span class="pre">.env.example</span></code>.</p></li>
+<li><p>This finding was independently identified in <code class="docutils literal notranslate"><span class="pre">docs/TELEGRAM_NOTIFICATION_AUDIT.md</span></code>
+(“🔴 Real Account Bot — undocumented, new finding”) and is catalogued in
+full in <code class="docutils literal notranslate"><span class="pre">docs/architecture/TELEGRAM_IDENTITY_REGISTRY.md</span></code> (IDENTITY-08).</p></li>
+</ul>
 </section>
 </section>
 
@@ -831,6 +863,7 @@ Ce document est le contrat. Le code doit respecter le contrat, pas l’inverse.<
 <li><a class="reference internal" href="#anomalies-resolues">Anomalies résolues</a></li>
 <li><a class="reference internal" href="#feuille-de-route-phases-2-5">Feuille de route — Phases 2-5</a></li>
 <li><a class="reference internal" href="#regle-de-mise-a-jour-de-ce-document">Règle de mise à jour de ce document</a></li>
+<li><a class="reference internal" href="#governance-gap-appended-2026-08-28-phase-3-3-1-identity-audit">Governance Gap (appended 2026-08-28 — Phase 3.3.1 Identity Audit)</a></li>
 </ul>
 </li>
 </ul>

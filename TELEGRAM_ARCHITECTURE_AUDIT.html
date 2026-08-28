@@ -1,0 +1,630 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="./">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" />
+
+    <link rel="shortcut icon" href="_static/favicon.ico"/><!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
+        <title>Telegram Architecture — Forensic Audit - Crypto AI Terminal 9.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=354aac6f" />
+    <link rel="stylesheet" type="text/css" href="_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=1b9cecba" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=302659d7" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="index.html"><div class="brand">Crypto AI Terminal 9.1 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="_static/../assets/logo_ai_quant.png" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="_static/../assets/logo_ai_quant.png" alt="Dark Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/blob/main/docs/TELEGRAM_ARCHITECTURE_AUDIT.md?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/edit/main/docs/TELEGRAM_ARCHITECTURE_AUDIT.md" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="telegram-architecture-forensic-audit">
+<h1>Telegram Architecture — Forensic Audit<a class="headerlink" href="#telegram-architecture-forensic-audit" title="Link to this heading">¶</a></h1>
+<p><strong>Date de l’audit</strong> : 2026-08-28
+<strong>Portée</strong> : lecture seule, aucune modification effectuée en Phase A/B/C.
+<strong>Méthode</strong> : recherche exhaustive de <code class="docutils literal notranslate"><span class="pre">getUpdates</span></code>, <code class="docutils literal notranslate"><span class="pre">sendMessage</span></code>, <code class="docutils literal notranslate"><span class="pre">sendPhoto</span></code>,
+<code class="docutils literal notranslate"><span class="pre">sendDocument</span></code>, <code class="docutils literal notranslate"><span class="pre">telegram.org</span></code>, <code class="docutils literal notranslate"><span class="pre">*_BOT_TOKEN</span></code>, <code class="docutils literal notranslate"><span class="pre">*_CHAT_ID</span></code> sur l’ensemble du
+dépôt, croisement avec <code class="docutils literal notranslate"><span class="pre">docs/architecture/TELEGRAM_BOT_REGISTRY.md</span></code> (contrat
+fonctionnel existant, v2.0), les fichiers <code class="docutils literal notranslate"><span class="pre">.service</span></code> systemd et les fichiers
+<code class="docutils literal notranslate"><span class="pre">.env.example</span></code> / <code class="docutils literal notranslate"><span class="pre">.env.secrets.example</span></code>.</p>
+<blockquote>
+<div><p>Ce document est un constat forensique indépendant. Il confirme, complète et
+parfois nuance <code class="docutils literal notranslate"><span class="pre">TELEGRAM_BOT_REGISTRY.md</span></code> (qui reste le contrat de référence
+pour le comportement fonctionnel de chaque bot). Là où les deux divergent,
+la preuve trouvée dans le code fait foi et est signalée explicitement.</p>
+</div></blockquote>
+<hr class="docutils" />
+<section id="table-des-identites-telegram">
+<h2>Table des identités Telegram<a class="headerlink" href="#table-des-identites-telegram" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Identity</p></th>
+<th class="head"><p>Python Component</p></th>
+<th class="head"><p>Entrypoint</p></th>
+<th class="head"><p>Service</p></th>
+<th class="head"><p>Token Variable</p></th>
+<th class="head"><p>Chat Variable</p></th>
+<th class="head"><p>getUpdates</p></th>
+<th class="head"><p>sendMessage</p></th>
+<th class="head"><p>Active Evidence</p></th>
+<th class="head"><p>Current Responsibility</p></th>
+<th class="head"><p>Collision Risk</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>📡 CryptoRadar</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">scripts/radar_bot.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">main()</span></code> → <code class="docutils literal notranslate"><span class="pre">poll_loop()</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">crypto-radar-bot.service</span></code> (ExecStart présent)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">RADAR_BOT_TOKEN</span></code> <strong>avec fallback interdit</strong> <code class="docutils literal notranslate"><span class="pre">TELEGRAM_BOT_TOKEN</span></code> (ligne 20)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">RADAR_CHAT_ID</span></code> avec fallback <code class="docutils literal notranslate"><span class="pre">TELEGRAM_CHAT_ID</span></code> (ligne 21)</p></td>
+<td><p>Oui (long-poll <code class="docutils literal notranslate"><span class="pre">timeout=30</span></code>, boucle infinie)</p></td>
+<td><p>Oui (<code class="docutils literal notranslate"><span class="pre">send_message</span></code>)</p></td>
+<td><p>Service systemd dédié présent dans <code class="docutils literal notranslate"><span class="pre">scripts/systemd/</span></code>, <code class="docutils literal notranslate"><span class="pre">RADAR_BOT_TOKEN</span></code>/<code class="docutils literal notranslate"><span class="pre">RADAR_CHAT_ID</span></code> déjà présents dans <code class="docutils literal notranslate"><span class="pre">.env.example</span></code></p></td>
+<td><p>Scanner marché : <code class="docutils literal notranslate"><span class="pre">/scan</span> <span class="pre">/top50</span> <span class="pre">/longs</span> <span class="pre">/shorts</span> <span class="pre">/symbol</span> <span class="pre">/lmi</span></code> (lecture seule, redirige <code class="docutils literal notranslate"><span class="pre">/signals</span></code> et <code class="docutils literal notranslate"><span class="pre">/status</span></code> hors domaine)</p></td>
+<td><p><strong>ÉLEVÉ tant que <code class="docutils literal notranslate"><span class="pre">RADAR_BOT_TOKEN</span></code> est vide</strong> — retombe alors sur <code class="docutils literal notranslate"><span class="pre">TELEGRAM_BOT_TOKEN</span></code>, un token générique utilisé ailleurs pour du push (voir ci-dessous)</p></td>
+</tr>
+<tr class="row-odd"><td><p>💼 Portfolio (CommandCenter)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">capital_deployment/command_center_bot.py</span></code></p></td>
+<td><p>classe avec méthode <code class="docutils literal notranslate"><span class="pre">start()</span></code> (in-process, invoquée par <code class="docutils literal notranslate"><span class="pre">crypto-advisor</span></code>)</p></td>
+<td><p>in-process <code class="docutils literal notranslate"><span class="pre">crypto-advisor.service</span></code> (UNKNOWN — service non trouvé dans <code class="docutils literal notranslate"><span class="pre">scripts/systemd/</span></code>)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">MON_PORTFOLIO_BOT_TOKEN</span></code> (ligne 1132, pas de fallback token)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">MON_PORTFOLIO_CHAT_ID</span></code> avec fallback <code class="docutils literal notranslate"><span class="pre">TELEGRAM_CHAT_ID</span></code> si absent (ligne 1133)</p></td>
+<td><p>Oui (<code class="docutils literal notranslate"><span class="pre">getUpdates</span></code> ligne 1235)</p></td>
+<td><p>Oui</p></td>
+<td><p>Code présent, référencé dans <code class="docutils literal notranslate"><span class="pre">TELEGRAM_BOT_REGISTRY.md</span></code>, token dédié isolé</p></td>
+<td><p>Capital, performance, KPIs, positions (lecture seule)</p></td>
+<td><p>FAIBLE côté token (isolé) ; MOYEN côté chat_id (fallback partagé <code class="docutils literal notranslate"><span class="pre">TELEGRAM_CHAT_ID</span></code>, risque de destinataire incorrect, pas de collision <code class="docutils literal notranslate"><span class="pre">getUpdates</span></code>)</p></td>
+</tr>
+<tr class="row-even"><td><p>🔬 Quant Observer</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">src/telegram/quant_observer/bot.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">run()</span></code> (ligne 212) → <code class="docutils literal notranslate"><span class="pre">if</span> <span class="pre">__name__</span> <span class="pre">==</span> <span class="pre">&quot;__main__&quot;</span></code> (ligne 254)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">crypto-quant-observer.service</span></code> (ExecStart <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">src.telegram.quant_observer.bot</span></code>)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">QUANT_CRYPTO_BOT_TOKEN</span></code> (pas de fallback)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">QUANT_CRYPTO_CHAT_ID</span></code> (pas de fallback)</p></td>
+<td><p>Oui (ligne 73)</p></td>
+<td><p>Oui</p></td>
+<td><p>Service systemd dédié présent, token dédié dans <code class="docutils literal notranslate"><span class="pre">.env.secrets.example</span></code></p></td>
+<td><p>Univers scanné, régime, scores signaux, méta-stratégie + message épinglé auto-refresh 10 min</p></td>
+<td><p>FAIBLE — token et chat entièrement isolés, aucun fallback trouvé</p></td>
+</tr>
+<tr class="row-odd"><td><p>🧠 Rapport Automatique</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/intelligence/system_intel_reporter.py</span></code></p></td>
+<td><p>fonction de rapport périodique (in-process, pas de boucle <code class="docutils literal notranslate"><span class="pre">poll_loop</span></code>/<code class="docutils literal notranslate"><span class="pre">getUpdates</span></code> trouvée)</p></td>
+<td><p>in-process <code class="docutils literal notranslate"><span class="pre">crypto-advisor.service</span></code> (UNKNOWN — pas de <code class="docutils literal notranslate"><span class="pre">.service</span></code> dédié)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">RAPPORT_AUTOMATIQUE_BOT_TOKEN</span></code> (déclaré dans <code class="docutils literal notranslate"><span class="pre">.env.example</span></code>/<code class="docutils literal notranslate"><span class="pre">.env.secrets.example</span></code>)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">RAPPORT_AUTOMATIQUE_CHAT_ID</span></code></p></td>
+<td><p><strong>Non</strong> (aucune occurrence <code class="docutils literal notranslate"><span class="pre">getUpdates</span></code> dans ce fichier)</p></td>
+<td><p>UNKNOWN (envoi via un notifier partagé, pas de <code class="docutils literal notranslate"><span class="pre">sendMessage</span></code> direct trouvé dans ce fichier)</p></td>
+<td><p>Variables déclarées dans les deux fichiers <code class="docutils literal notranslate"><span class="pre">.env*.example</span></code></p></td>
+<td><p>Rapport IA de synthèse toutes les 6h, push uniquement</p></td>
+<td><p>AUCUN (pas de polling)</p></td>
+</tr>
+<tr class="row-even"><td><p>🧪 Paper Arena</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">src/paper/paper_runner.py</span></code> + <code class="docutils literal notranslate"><span class="pre">src/paper/paper_report.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">paper_report.py</span></code> définit <code class="docutils literal notranslate"><span class="pre">_TOKEN</span></code>/<code class="docutils literal notranslate"><span class="pre">_CHAT</span></code> (lignes 11-12), pas de <code class="docutils literal notranslate"><span class="pre">getUpdates</span></code> trouvé</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">paper-arena.service</span></code> (ExecStart <code class="docutils literal notranslate"><span class="pre">python3</span> <span class="pre">-m</span> <span class="pre">src.paper.paper_runner</span></code>)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PAPER_ARENA_BOT_TOKEN</span></code> (pas de fallback)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PAPER_ARENA_CHAT_ID</span></code> (pas de fallback)</p></td>
+<td><p>Non</p></td>
+<td><p>UNKNOWN (module de reporting, pas de <code class="docutils literal notranslate"><span class="pre">sendMessage</span></code> direct confirmé dans l’extrait audité)</p></td>
+<td><p>Service systemd dédié présent, variables dédiées dans <code class="docutils literal notranslate"><span class="pre">.env.secrets.example</span></code></p></td>
+<td><p>Résultats d’expérience RSI ETH/4H (push uniquement)</p></td>
+<td><p>AUCUN (pas de polling)</p></td>
+</tr>
+<tr class="row-odd"><td><p>⚠️ TELEGRAM_BOT_TOKEN générique (push)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">scripts/telegram_alerts.py</span></code>, <code class="docutils literal notranslate"><span class="pre">S3/01_telegram_alerts.py</span></code>, <code class="docutils literal notranslate"><span class="pre">supervision/notifications/telegram_notifier.py</span></code>, <code class="docutils literal notranslate"><span class="pre">config/settings.py</span></code>, CI (<code class="docutils literal notranslate"><span class="pre">.github/workflows/ci.yml</span></code>)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">sendMessage</span></code> uniquement, aucune boucle <code class="docutils literal notranslate"><span class="pre">getUpdates</span></code> trouvée dans ces fichiers</p></td>
+<td><p>Aucun service dédié — utilisé in-process par <code class="docutils literal notranslate"><span class="pre">advisor_loop</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">TELEGRAM_BOT_TOKEN</span></code> (natif, pas un fallback ici)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">TELEGRAM_CHAT_ID</span></code> / <code class="docutils literal notranslate"><span class="pre">TELEGRAM_BEHAVIOR_CHAT_ID</span></code></p></td>
+<td><p>Non (aucune occurrence trouvée)</p></td>
+<td><p>Oui (plusieurs émetteurs indépendants)</p></td>
+<td><p>Utilisé activement pour alertes trade/danger/erreur/heartbeat</p></td>
+<td><p>Alertes généralistes push (trade, danger, heartbeat, daily summary)</p></td>
+<td><p><strong>C’est ce même token que CryptoRadar utilise en fallback <code class="docutils literal notranslate"><span class="pre">getUpdates</span></code></strong> — voir Phase C</p></td>
+</tr>
+<tr class="row-even"><td><p>🔴 KillSwitch Telegram (legacy, code mort)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">supervision/kill_switch.py</span></code> (classe <code class="docutils literal notranslate"><span class="pre">TelegramKillSwitch</span></code>, polling réel <code class="docutils literal notranslate"><span class="pre">/STOP_ALL</span> <span class="pre">/CLOSE_ALL</span> <span class="pre">/SAFE_MODE</span> <span class="pre">/RESUME</span> <span class="pre">/STATUS</span></code>)</p></td>
+<td><p>Classe jamais instanciée avec un vrai <code class="docutils literal notranslate"><span class="pre">bot_token</span></code> dans le code actif — seule instanciation trouvée est dans le docstring d’exemple (ligne 12)</p></td>
+<td><p>Aucun (<code class="docutils literal notranslate"><span class="pre">KILLSWITCH_BOT_TOKEN</span></code>/<code class="docutils literal notranslate"><span class="pre">KILLSWITCH_CHAT_ID</span></code> n’apparaissent nulle part dans le code, uniquement mentionnés comme supprimés dans <code class="docutils literal notranslate"><span class="pre">TELEGRAM_BOT_REGISTRY.md</span></code>)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">KILLSWITCH_BOT_TOKEN</span></code> (aucune référence <code class="docutils literal notranslate"><span class="pre">os.getenv</span></code> trouvée — variable non câblée)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">KILLSWITCH_CHAT_ID</span></code> (idem)</p></td>
+<td><p>Oui dans le code de la classe, mais <strong>jamais exécuté en pratique</strong></p></td>
+<td><p>Oui (<code class="docutils literal notranslate"><span class="pre">sendMessage</span></code> dans la classe)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code> importe en réalité <code class="docutils literal notranslate"><span class="pre">runtime.TelegramKillSwitch</span></code>, qui résout vers <code class="docutils literal notranslate"><span class="pre">supervision.killswitch_hardened.KillSwitchHardened</span></code> (aucune trace Telegram) — confirmé par absence totale de <code class="docutils literal notranslate"><span class="pre">TOKEN</span></code>/<code class="docutils literal notranslate"><span class="pre">CHAT_ID</span></code>/<code class="docutils literal notranslate"><span class="pre">telegram</span></code> dans <code class="docutils literal notranslate"><span class="pre">killswitch_hardened.py</span></code></p></td>
+<td><p>Kill switch <strong>interne</strong> uniquement (<code class="docutils literal notranslate"><span class="pre">force_halt</span></code>/<code class="docutils literal notranslate"><span class="pre">force_resume</span></code>), documenté comme retiré de Telegram par <code class="docutils literal notranslate"><span class="pre">supervision/telegram_kill_switch.py</span></code> (constitution 2026-08-28)</p></td>
+<td><p>AUCUN actuellement (code mort), mais risque latent si quelqu’un réinstancie <code class="docutils literal notranslate"><span class="pre">supervision.kill_switch.TelegramKillSwitch</span></code> avec <code class="docutils literal notranslate"><span class="pre">TELEGRAM_BOT_TOKEN</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>⚪ Sim/CMVK Bot</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">src/telegram/bot_runner.py</span></code>, <code class="docutils literal notranslate"><span class="pre">src/telegram/sim_bot.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">if</span> <span class="pre">__name__</span> <span class="pre">==</span> <span class="pre">&quot;__main__&quot;</span></code> (ligne 147, <code class="docutils literal notranslate"><span class="pre">bot_runner.py</span></code>)</p></td>
+<td><p>Aucun <code class="docutils literal notranslate"><span class="pre">.service</span></code> trouvé</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">TELEMETRIE_IA_BOT_TOKEN</span></code> (<code class="docutils literal notranslate"><span class="pre">os.environ.get</span></code>, ligne 148)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">TELEMETRIE_IA_CHAT_ID</span></code> (ligne 149)</p></td>
+<td><p>Oui (lignes 69, 92)</p></td>
+<td><p>UNKNOWN</p></td>
+<td><p>Référencé uniquement par ses propres fichiers + <code class="docutils literal notranslate"><span class="pre">tests/test_sim_bot.py</span></code> ; documenté comme supprimé (<code class="docutils literal notranslate"><span class="pre">&#64;FtnTrading_bot</span></code>) dans <code class="docutils literal notranslate"><span class="pre">TELEGRAM_BOT_REGISTRY.md</span></code></p></td>
+<td><p>Bot de simulation — retiré de production selon le registry</p></td>
+<td><p>FAIBLE — token dédié <code class="docutils literal notranslate"><span class="pre">TELEMETRIE_IA_BOT_TOKEN</span></code>, aucun fallback trouvé, mais statut d’activité réelle <strong>UNKNOWN</strong> (aucun service systemd)</p></td>
+</tr>
+<tr class="row-even"><td><p>⚪ Archive — Portfolio Bot dupliqué</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">_ARCHIVE_2026/telegram_bot_duplicates_20260706/*.py</span></code></p></td>
+<td><p>Présent mais dans un dossier <code class="docutils literal notranslate"><span class="pre">_ARCHIVE_2026</span></code></p></td>
+<td><p>Aucun</p></td>
+<td><p>UNKNOWN</p></td>
+<td><p>UNKNOWN</p></td>
+<td><p>Oui (code présent)</p></td>
+<td><p>Oui</p></td>
+<td><p>Dossier explicitement nommé “duplicates”, archivé le 2026-07-06</p></td>
+<td><p>Ancien code dupliqué, non actif</p></td>
+<td><p>AUCUN (archivé, hors production)</p></td>
+</tr>
+<tr class="row-odd"><td><p>⚪ config/telegram_config.json</p></td>
+<td><p>fichier de config JSON générique (<code class="docutils literal notranslate"><span class="pre">bot_token</span></code>/<code class="docutils literal notranslate"><span class="pre">chat_id</span></code> placeholders)</p></td>
+<td><p>N/A</p></td>
+<td><p>N/A</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">bot_token</span></code> (JSON, <code class="docutils literal notranslate"><span class="pre">&quot;enabled&quot;:</span> <span class="pre">false</span></code> par défaut)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">chat_id</span></code> (JSON)</p></td>
+<td><p>Non</p></td>
+<td><p>UNKNOWN</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">enabled:</span> <span class="pre">false</span></code> dans le fichier lu — désactivé par défaut</p></td>
+<td><p>Config alternative pour alertes (non prioritaire, <code class="docutils literal notranslate"><span class="pre">.env</span></code> prend le pas selon <code class="docutils literal notranslate"><span class="pre">S3/01_telegram_alerts.py</span></code>)</p></td>
+<td><p>AUCUN (désactivé)</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><strong>Notes de preuve</strong> :</p>
+<ul class="simple">
+<li><p>“Active Evidence” = fichier systemd trouvé, variable déclarée dans <code class="docutils literal notranslate"><span class="pre">.env*.example</span></code>, et/ou entrée correspondante dans <code class="docutils literal notranslate"><span class="pre">TELEGRAM_BOT_REGISTRY.md</span></code>. L’audit ne peut pas confirmer l’exécution réelle sur le VPS (hors scope, Phase 5 du registry).</p></li>
+<li><p>Tout champ marqué <strong>UNKNOWN</strong> signifie : aucune preuve trouvée dans le dépôt à la date de l’audit.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="notification-inventory">
+<h2>Notification Inventory<a class="headerlink" href="#notification-inventory" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Bot</p></th>
+<th class="head"><p>Current Message Type</p></th>
+<th class="head"><p>Frequency</p></th>
+<th class="head"><p>Human Value</p></th>
+<th class="head"><p>Classification</p></th>
+<th class="head"><p>Proposed Replacement</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>📡 CryptoRadar</p></td>
+<td><p>Réponses interactives <code class="docutils literal notranslate"><span class="pre">/scan</span> <span class="pre">/top50</span> <span class="pre">/longs</span> <span class="pre">/shorts</span> <span class="pre">/symbol</span> <span class="pre">/lmi</span></code></p></td>
+<td><p>À la demande (réactif, aucun push)</p></td>
+<td><p>Élevée — répond à « où se passe-t-il quelque chose sur le marché »</p></td>
+<td><p><strong>KEEP</strong></p></td>
+<td><p>Aucun changement fonctionnel requis ; corriger uniquement l’isolation du token (Phase D)</p></td>
+</tr>
+<tr class="row-odd"><td><p>💼 Portfolio</p></td>
+<td><p>Rapport périodique (<code class="docutils literal notranslate"><span class="pre">P10_PORTFOLIO_REPORT_MINS</span></code>/<code class="docutils literal notranslate"><span class="pre">_H</span></code>) + réponses <code class="docutils literal notranslate"><span class="pre">/status</span> <span class="pre">/kpis</span> <span class="pre">/balance</span> <span class="pre">/positions</span> <span class="pre">...</span></code></p></td>
+<td><p>Périodique (configurable) + à la demande</p></td>
+<td><p>Élevée — répond à « la machine gagne-t-elle de l’argent »</p></td>
+<td><p><strong>KEEP</strong></p></td>
+<td><p>Aucun changement requis</p></td>
+</tr>
+<tr class="row-even"><td><p>🔬 Quant Observer</p></td>
+<td><p>Message épinglé rafraîchi toutes les <code class="docutils literal notranslate"><span class="pre">QC_PINNED_UPDATE</span></code> (défaut 600s = 10 min) + réponses <code class="docutils literal notranslate"><span class="pre">/snapshot</span> <span class="pre">/health</span> <span class="pre">/pipeline</span></code></p></td>
+<td><p>Toutes les 10 min (push pin) + à la demande</p></td>
+<td><p>Moyenne — utile pour la recherche mais un rafraîchissement toutes les 10 min est un flux, pas un événement</p></td>
+<td><p><strong>SUMMARIZE</strong></p></td>
+<td><p>Conserver les commandes à la demande ; envisager d’espacer le refresh du pin (ex. 30-60 min) ou de ne le rafraîchir que sur changement significatif de régime, pour réduire le bruit sans perdre l’info</p></td>
+</tr>
+<tr class="row-odd"><td><p>🧠 Rapport Automatique</p></td>
+<td><p>Rapport IA complet toutes les 6h</p></td>
+<td><p>Fixe, 6h</p></td>
+<td><p>Moyenne à élevée selon densité du rapport — non interactif, purement informationnel</p></td>
+<td><p><strong>KEEP</strong> (à condition que le contenu reste une synthèse et non un flux brut)</p></td>
+<td><p>Si le rapport contient des logs bruts, les remplacer par des conclusions statistiques (cf. Principe 10 de la Constitution)</p></td>
+</tr>
+<tr class="row-even"><td><p>🧪 Paper Arena</p></td>
+<td><p>Notification entrée/sortie de position + résumé périodique + statut de gate (<code class="docutils literal notranslate"><span class="pre">INSUFFICIENT_SAMPLE</span></code> → <code class="docutils literal notranslate"><span class="pre">CONCLUSIVE</span></code>)</p></td>
+<td><p>Événementiel (par trade) + périodique</p></td>
+<td><p>Moyenne — utile en recherche mais les notifications par trade individuel sont du bruit à moyen terme</p></td>
+<td><p><strong>SUMMARIZE</strong></p></td>
+<td><p>Remplacer les notifications trade-par-trade par un résumé quotidien/hebdomadaire (N trades, WR, PF agrégés) ; conserver le changement de statut de gate comme événement rare et à forte valeur</p></td>
+</tr>
+<tr class="row-odd"><td><p>⚠️ Alertes génériques (<code class="docutils literal notranslate"><span class="pre">TELEGRAM_BOT_TOKEN</span></code>)</p></td>
+<td><p>trade / danger / error / heartbeat / daily_summary</p></td>
+<td><p>Variable — heartbeat potentiellement fréquent</p></td>
+<td><p>Faible pour heartbeat répétitif, élevée pour danger/error</p></td>
+<td><p><strong>SUMMARIZE</strong> pour heartbeat, <strong>KEEP</strong> pour danger/error/daily_summary</p></td>
+<td><p>Réduire la fréquence des heartbeats (ou les envoyer uniquement en cas de changement d’état) ; ne jamais faire de heartbeat sur ce canal si un token dédié <code class="docutils literal notranslate"><span class="pre">RADAR_BOT_TOKEN</span></code> doit rester isolé</p></td>
+</tr>
+<tr class="row-even"><td><p>🔴 KillSwitch Telegram (legacy)</p></td>
+<td><p>Commandes de contrôle <code class="docutils literal notranslate"><span class="pre">/STOP_ALL</span> <span class="pre">/CLOSE_ALL</span> <span class="pre">/SAFE_MODE</span> <span class="pre">/RESUME</span> <span class="pre">/STATUS</span></code></p></td>
+<td><p>N/A — code mort, jamais exécuté avec un vrai token</p></td>
+<td><p>Nulle actuellement (non actif) et <strong>interdite par construction</strong> si réactivée (Principe 5 de la Constitution)</p></td>
+<td><p><strong>REMOVE</strong></p></td>
+<td><p>Ne jamais réactiver ; envisager de supprimer physiquement la classe <code class="docutils literal notranslate"><span class="pre">TelegramKillSwitch</span></code> de <code class="docutils literal notranslate"><span class="pre">supervision/kill_switch.py</span></code> dans un futur nettoyage (hors scope de ce patch minimal)</p></td>
+</tr>
+<tr class="row-odd"><td><p>⚪ Sim/CMVK Bot</p></td>
+<td><p>UNKNOWN (pas de preuve d’utilisation active)</p></td>
+<td><p>UNKNOWN</p></td>
+<td><p>Nulle si non utilisé en production</p></td>
+<td><p><strong>UNKNOWN</strong> (probablement REMOVE si confirmé inactif)</p></td>
+<td><p>Confirmer l’inactivité puis archiver comme les autres duplicatas</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<hr class="docutils" />
+<section id="phase-c-collisions-identifiees">
+<h2>PHASE C — Collisions identifiées<a class="headerlink" href="#phase-c-collisions-identifiees" title="Link to this heading">¶</a></h2>
+<section id="collision-confirmee-radar-bot-token-telegram-bot-token">
+<h3>Collision confirmée : <code class="docutils literal notranslate"><span class="pre">RADAR_BOT_TOKEN</span></code> ⇄ <code class="docutils literal notranslate"><span class="pre">TELEGRAM_BOT_TOKEN</span></code><a class="headerlink" href="#collision-confirmee-radar-bot-token-telegram-bot-token" title="Link to this heading">¶</a></h3>
+<p><strong>Preuve (avant patch)</strong> — <code class="docutils literal notranslate"><span class="pre">scripts/radar_bot.py</span></code> ligne 20 :</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">TOKEN</span> <span class="o">=</span> <span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">"RADAR_BOT_TOKEN"</span><span class="p">)</span> <span class="ow">or</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">"TELEGRAM_BOT_TOKEN"</span><span class="p">,</span> <span class="s2">""</span><span class="p">))</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Si <code class="docutils literal notranslate"><span class="pre">RADAR_BOT_TOKEN</span></code> n’est pas défini dans l’environnement du service
+<code class="docutils literal notranslate"><span class="pre">crypto-radar-bot.service</span></code>, ce processus démarre un <code class="docutils literal notranslate"><span class="pre">getUpdates</span></code> long-polling
+(<code class="docutils literal notranslate"><span class="pre">timeout=30</span></code>, boucle infinie) sur le token <code class="docutils literal notranslate"><span class="pre">TELEGRAM_BOT_TOKEN</span></code>. Ce même
+token est utilisé ailleurs dans le dépôt (<code class="docutils literal notranslate"><span class="pre">scripts/telegram_alerts.py</span></code>,
+<code class="docutils literal notranslate"><span class="pre">S3/01_telegram_alerts.py</span></code>, <code class="docutils literal notranslate"><span class="pre">supervision/notifications/telegram_notifier.py</span></code>,
+<code class="docutils literal notranslate"><span class="pre">config/settings.py</span></code>, CI) — mais uniquement pour <code class="docutils literal notranslate"><span class="pre">sendMessage</span></code> (push), donc
+ces émetteurs-là ne provoquent pas de conflit <code class="docutils literal notranslate"><span class="pre">409</span></code> avec <code class="docutils literal notranslate"><span class="pre">getUpdates</span></code>.</p>
+<p>Le vrai risque de collision <code class="docutils literal notranslate"><span class="pre">409</span> <span class="pre">Conflict</span></code> sur <code class="docutils literal notranslate"><span class="pre">getUpdates</span></code> avec ce même
+token viendrait de <strong>tout autre processus qui ferait aussi du long-polling</strong>
+sur <code class="docutils literal notranslate"><span class="pre">TELEGRAM_BOT_TOKEN</span></code>. L’audit n’a trouvé aucun autre poller actif utilisant
+directement <code class="docutils literal notranslate"><span class="pre">TELEGRAM_BOT_TOKEN</span></code> pour <code class="docutils literal notranslate"><span class="pre">getUpdates</span></code> dans le code courant
+(le seul candidat historique documenté était le KillSwitch Telegram, retiré
+selon <code class="docutils literal notranslate"><span class="pre">TELEGRAM_BOT_REGISTRY.md</span></code> et confirmé code mort par cet audit).</p>
+<p><strong>Risque réel identifié</strong> : même sans collision <code class="docutils literal notranslate"><span class="pre">409</span></code> active aujourd’hui, le
+fallback constitue une violation du principe « One Token = One Poller »
+(Constitution, Principe 2) et une dépendance cachée : tant que
+<code class="docutils literal notranslate"><span class="pre">RADAR_BOT_TOKEN</span></code> n’est pas explicitement défini sur le VPS, l’identité
+CryptoRadar (marché) et le canal d’alertes génériques (trade/danger/erreur)
+partagent silencieusement le même token, avec des permissions et un usage
+différents. Un opérateur qui régénère <code class="docutils literal notranslate"><span class="pre">TELEGRAM_BOT_TOKEN</span></code> (rotation de
+sécurité) casserait CryptoRadar sans le savoir s’il ignore ce fallback.</p>
+</section>
+<section id="autres-candidats-examines-aucune-collision-confirmee">
+<h3>Autres candidats examinés (aucune collision confirmée)<a class="headerlink" href="#autres-candidats-examines-aucune-collision-confirmee" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Composants</p></th>
+<th class="head"><p>Token partagé ?</p></th>
+<th class="head"><p>Verdict</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Portfolio chat_id (<code class="docutils literal notranslate"><span class="pre">MON_PORTFOLIO_CHAT_ID</span></code> fallback <code class="docutils literal notranslate"><span class="pre">TELEGRAM_CHAT_ID</span></code>)</p></td>
+<td><p>Chat uniquement, pas de token</p></td>
+<td><p>Pas de collision <code class="docutils literal notranslate"><span class="pre">getUpdates</span></code> — risque de mauvais destinataire seulement (chat, pas token)</p></td>
+</tr>
+<tr class="row-odd"><td><p>Quant Observer (<code class="docutils literal notranslate"><span class="pre">QUANT_CRYPTO_BOT_TOKEN</span></code>)</p></td>
+<td><p>Aucun fallback trouvé</p></td>
+<td><p>Isolé</p></td>
+</tr>
+<tr class="row-even"><td><p>Paper Arena (<code class="docutils literal notranslate"><span class="pre">PAPER_ARENA_BOT_TOKEN</span></code>)</p></td>
+<td><p>Aucun fallback trouvé</p></td>
+<td><p>Isolé</p></td>
+</tr>
+<tr class="row-odd"><td><p>Intel Reporter (<code class="docutils literal notranslate"><span class="pre">RAPPORT_AUTOMATIQUE_BOT_TOKEN</span></code>)</p></td>
+<td><p>Aucun fallback trouvé, pas de <code class="docutils literal notranslate"><span class="pre">getUpdates</span></code></p></td>
+<td><p>Isolé, push-only</p></td>
+</tr>
+<tr class="row-even"><td><p>KillSwitch legacy (<code class="docutils literal notranslate"><span class="pre">supervision/kill_switch.py</span></code>)</p></td>
+<td><p>Jamais câblé à une variable d’environnement réelle</p></td>
+<td><p>Code mort — pas de collision active</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="phase-d-e-patch-applique">
+<h2>PHASE D+E — Patch appliqué<a class="headerlink" href="#phase-d-e-patch-applique" title="Link to this heading">¶</a></h2>
+<p>Le fallback interdit <code class="docutils literal notranslate"><span class="pre">TOKEN</span> <span class="pre">=</span> <span class="pre">os.getenv(&quot;RADAR_BOT_TOKEN&quot;)</span> <span class="pre">or</span> <span class="pre">os.getenv(&quot;TELEGRAM_BOT_TOKEN&quot;,</span> <span class="pre">&quot;&quot;)</span></code>
+a été confirmé dans <code class="docutils literal notranslate"><span class="pre">scripts/radar_bot.py</span></code> (ligne 20) et corrigé :
+<code class="docutils literal notranslate"><span class="pre">RADAR_BOT_TOKEN</span></code> et <code class="docutils literal notranslate"><span class="pre">RADAR_CHAT_ID</span></code> sont désormais requis explicitement,
+sans repli sur <code class="docutils literal notranslate"><span class="pre">TELEGRAM_BOT_TOKEN</span></code>/<code class="docutils literal notranslate"><span class="pre">TELEGRAM_CHAT_ID</span></code>. Le script sort avec
+le code 1 et un message d’erreur explicite (sans jamais afficher de valeur
+de secret) si <code class="docutils literal notranslate"><span class="pre">RADAR_BOT_TOKEN</span></code> est absent. Voir le rapport final pour le
+détail des fichiers modifiés.</p>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Crypto AI Terminal
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Telegram Architecture — Forensic Audit</a><ul>
+<li><a class="reference internal" href="#table-des-identites-telegram">Table des identités Telegram</a></li>
+<li><a class="reference internal" href="#notification-inventory">Notification Inventory</a></li>
+<li><a class="reference internal" href="#phase-c-collisions-identifiees">PHASE C — Collisions identifiées</a><ul>
+<li><a class="reference internal" href="#collision-confirmee-radar-bot-token-telegram-bot-token">Collision confirmée : <code class="docutils literal notranslate"><span class="pre">RADAR_BOT_TOKEN</span></code> ⇄ <code class="docutils literal notranslate"><span class="pre">TELEGRAM_BOT_TOKEN</span></code></a></li>
+<li><a class="reference internal" href="#autres-candidats-examines-aucune-collision-confirmee">Autres candidats examinés (aucune collision confirmée)</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#phase-d-e-patch-applique">PHASE D+E — Patch appliqué</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="_static/documentation_options.js?v=ef6a59ae"></script>
+    <script src="_static/doctools.js?v=9a2dae69"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/scripts/furo.js?v=5fa4622c"></script>
+    </body>
+</html>
