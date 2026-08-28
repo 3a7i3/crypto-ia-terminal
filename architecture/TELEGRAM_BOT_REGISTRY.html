@@ -1,0 +1,850 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" />
+
+    <link rel="shortcut icon" href="../_static/favicon.ico"/><!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
+        <title>TELEGRAM BOT REGISTRY - Crypto AI Terminal 9.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=354aac6f" />
+    <link rel="stylesheet" type="text/css" href="../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=1b9cecba" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=302659d7" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">Crypto AI Terminal 9.1 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="../_static/../assets/logo_ai_quant.png" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="../_static/../assets/logo_ai_quant.png" alt="Dark Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/blob/main/docs/architecture/TELEGRAM_BOT_REGISTRY.md?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/edit/main/docs/architecture/TELEGRAM_BOT_REGISTRY.md" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="telegram-bot-registry">
+<h1>TELEGRAM BOT REGISTRY<a class="headerlink" href="#telegram-bot-registry" title="Link to this heading">¶</a></h1>
+<p><strong>Contrat fonctionnel — version 2.0 — 2026-08-28</strong></p>
+<blockquote>
+<div><p><strong>Principe constitutionnel</strong> (2026-08-28) :
+<strong>Telegram = observation et compte rendu uniquement.</strong>
+Aucune commande qui modifie le comportement de la machine, change un paramètre,
+arrête ou reprend le trading ne peut être accessible via Telegram.
+Tout contrôle du système passe exclusivement par le VPS (SSH).</p>
+</div></blockquote>
+<hr class="docutils" />
+<section id="bots-actifs-5-bots">
+<h2>Bots actifs (5 bots)<a class="headerlink" href="#bots-actifs-5-bots" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Bot BotFather</p></th>
+<th class="head"><p>Username</p></th>
+<th class="head"><p>Token ENV</p></th>
+<th class="head"><p>Rôle</p></th>
+<th class="head"><p>Type</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>CryptoRadar_Bot</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&#64;RadarCrypto1_bot</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">RADAR_BOT_TOKEN</span></code> (fallback <code class="docutils literal notranslate"><span class="pre">TELEGRAM_BOT_TOKEN</span></code>)</p></td>
+<td><p>📡 Scanner marché</p></td>
+<td><p>Polling + réactif</p></td>
+</tr>
+<tr class="row-odd"><td><p>Mon Portefeuille Bot</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&#64;mon_portfolio_bot</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">P10_PORTFOLIO_BOT_TOKEN</span></code></p></td>
+<td><p>💼 Capital + performance</p></td>
+<td><p>Polling + rapports auto</p></td>
+</tr>
+<tr class="row-even"><td><p>Quant_Crypto 🔥</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&#64;QuantCrpto_bot</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">QC_BOT_TOKEN</span></code></p></td>
+<td><p>🔬 Univers + régime + signaux + méta</p></td>
+<td><p>Polling + message épinglé</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rapport Automatique</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&#64;rapport_automatique_bot</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">INTEL_BOT_TOKEN</span></code></p></td>
+<td><p>🧠 Rapports IA 6h</p></td>
+<td><p>Push uniquement</p></td>
+</tr>
+<tr class="row-even"><td><p>PaperArena</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&#64;PaperArena_bot</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PAPER_ARENA_TG_TOKEN</span></code></p></td>
+<td><p>🧪 Expérience RSI ETH/4H</p></td>
+<td><p>Push uniquement</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="bots-supprimes">
+<h2>Bots supprimés<a class="headerlink" href="#bots-supprimes" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Bot</p></th>
+<th class="head"><p>Raison</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">&#64;Connexion_VScode_bot</span></code> (KillSwitch)</p></td>
+<td><p>Retiré — constitution 2026-08-28 : aucune commande de contrôle via Telegram</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">&#64;FtnTrading_bot</span></code> (SimBot)</p></td>
+<td><p>Retiré — non utilisé en production</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">&#64;Telemetrie_IA_bot</span></code></p></td>
+<td><p>Retiré — non utilisé (service inactif)</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<hr class="docutils" />
+<section id="table-des-matieres">
+<h2>TABLE DES MATIÈRES<a class="headerlink" href="#table-des-matieres" title="Link to this heading">¶</a></h2>
+<ol class="arabic simple">
+<li><p><a class="reference internal" href="#principe-constitutionnel">Principe constitutionnel</a></p></li>
+<li><p><a class="reference internal" href="#phase-0-census">Phase 0 — Census</a></p></li>
+<li><p><a class="reference internal" href="#phase-1-bot-constitution">Phase 1 — Bot Constitution</a></p>
+<ul class="simple">
+<li><p><a class="reference internal" href="#bot-cryptoradar">📡 CryptoRadar</a></p></li>
+<li><p><a class="reference internal" href="#bot-portfolio">💼 Portfolio (CommandCenter)</a></p></li>
+<li><p><a class="reference internal" href="#bot-quant-observer">🔬 Quant Observer (&#64;QuantCrpto_bot)</a></p></li>
+<li><p><a class="reference internal" href="#bot-rapport-automatique">🧠 Rapport Automatique</a></p></li>
+<li><p><a class="reference internal" href="#bot-paper-arena">🧪 Paper Arena</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#anomalies-resolues">Anomalies résolues</a></p></li>
+<li><p><a class="reference internal" href="#feuille-de-route-phases-2-5">Feuille de route — Phases 2-5</a></p></li>
+</ol>
+</section>
+<hr class="docutils" />
+<section id="principe-constitutionnel">
+<h2>Principe constitutionnel<a class="headerlink" href="#principe-constitutionnel" title="Link to this heading">¶</a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>╔══════════════════════════════════════════════════════════════════════╗
+║  CONSTITUTION TELEGRAM — 2026-08-28                                  ║
+║                                                                      ║
+║  Règle absolue : Telegram = OBSERVATION ET COMPTE RENDU UNIQUEMENT. ║
+║                                                                      ║
+║  AUTORISÉ sur Telegram :                                             ║
+║    - Lire des données (equity, positions, PnL, régime, signaux)      ║
+║    - Recevoir des rapports automatiques (push)                       ║
+║    - Demander un résumé d'état                                       ║
+║                                                                      ║
+║  INTERDIT sur Telegram :                                             ║
+║    - Modifier un paramètre de trading ou de risque                   ║
+║    - Arrêter ou reprendre le moteur                                  ║
+║    - Changer de phase                                                ║
+║    - Modifier la taille des ordres                                   ║
+║    - Réinitialiser des KPIs                                          ║
+║    - Redémarrer un service                                           ║
+║    - Toute action qui change le comportement de la machine           ║
+║                                                                      ║
+║  Tout contrôle passe exclusivement par le VPS (SSH).                ║
+╚══════════════════════════════════════════════════════════════════════╝
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="phase-0-census">
+<h2>Phase 0 — Census<a class="headerlink" href="#phase-0-census" title="Link to this heading">¶</a></h2>
+<section id="tableau-des-bots-actifs-etat-courant">
+<h3>Tableau des bots actifs (état courant)<a class="headerlink" href="#tableau-des-bots-actifs-etat-courant" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Bot</p></th>
+<th class="head"><p>Token ENV</p></th>
+<th class="head"><p>Chat ENV</p></th>
+<th class="head"><p>Source principale</p></th>
+<th class="head"><p>Service systemd</p></th>
+<th class="head"><p>Polling owner</p></th>
+<th class="head"><p>Auto-messages</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>📡 CryptoRadar</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">RADAR_BOT_TOKEN</span></code> (fallback <code class="docutils literal notranslate"><span class="pre">TELEGRAM_BOT_TOKEN</span></code>)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">RADAR_CHAT_ID</span></code> (fallback <code class="docutils literal notranslate"><span class="pre">TELEGRAM_CHAT_ID</span></code>)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">scripts/radar_bot.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">crypto-radar-bot.service</span></code></p></td>
+<td><p>Oui</p></td>
+<td><p><em>Aucun</em> (réactif)</p></td>
+</tr>
+<tr class="row-odd"><td><p>💼 Portfolio</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">P10_PORTFOLIO_BOT_TOKEN</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">P10_PORTFOLIO_CHAT_ID</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">capital_deployment/command_center_bot.py</span></code></p></td>
+<td><p>in-process <code class="docutils literal notranslate"><span class="pre">crypto-advisor</span></code></p></td>
+<td><p>Oui</p></td>
+<td><p>Rapports périodiques</p></td>
+</tr>
+<tr class="row-even"><td><p>🔬 Quant Observer</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">QC_BOT_TOKEN</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">QC_CHAT_ID</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">src/telegram/quant_observer/bot.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">crypto-quant-observer.service</span></code></p></td>
+<td><p>Oui</p></td>
+<td><p>Message épinglé 10 min</p></td>
+</tr>
+<tr class="row-odd"><td><p>🧠 Rapport Auto</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">INTEL_BOT_TOKEN</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">INTEL_BOT_CHAT_ID</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/intelligence/system_intel_reporter.py</span></code></p></td>
+<td><p>in-process <code class="docutils literal notranslate"><span class="pre">crypto-advisor</span></code></p></td>
+<td><p>Non</p></td>
+<td><p>Push 6h</p></td>
+</tr>
+<tr class="row-even"><td><p>🧪 Paper Arena</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PAPER_ARENA_TG_TOKEN</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PAPER_ARENA_TG_CHAT_ID</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">src/paper/paper_runner.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">paper-arena.service</span></code></p></td>
+<td><p>Non</p></td>
+<td><p>Push événements</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="phase-1-bot-constitution">
+<h2>Phase 1 — Bot Constitution<a class="headerlink" href="#phase-1-bot-constitution" title="Link to this heading">¶</a></h2>
+<section id="question-humaine-par-bot">
+<h3>Question humaine par bot<a class="headerlink" href="#question-humaine-par-bot" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Bot</p></th>
+<th class="head"><p>Question humaine</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>📡 CryptoRadar</p></td>
+<td><p>« Où se passe-t-il quelque chose sur le marché en ce moment ? »</p></td>
+</tr>
+<tr class="row-odd"><td><p>💼 Portfolio</p></td>
+<td><p>« Est-ce que ma machine gagne réellement de l’argent ? »</p></td>
+</tr>
+<tr class="row-even"><td><p>🔬 Quant Observer</p></td>
+<td><p>« Que se passe-t-il dans la microstructure du système de décision ? »</p></td>
+</tr>
+<tr class="row-odd"><td><p>🧠 Rapport Auto</p></td>
+<td><p>Rapport de synthèse IA toutes les 6h — aucune interaction</p></td>
+</tr>
+<tr class="row-even"><td><p>🧪 Paper Arena</p></td>
+<td><p>« Cette hypothèse de recherche survit-elle aux données réelles ? »</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<hr class="docutils" />
+<section id="bot-cryptoradar">
+<h3>BOT: CryptoRadar<a class="headerlink" href="#bot-cryptoradar" title="Link to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+IDENTITY
+  Name            : 📡 CryptoRadar
+  BotFather       : @RadarCrypto1_bot
+  Token ENV       : RADAR_BOT_TOKEN (fallback TELEGRAM_BOT_TOKEN)
+  Chat ENV        : RADAR_CHAT_ID (fallback TELEGRAM_CHAT_ID)
+  Source          : scripts/radar_bot.py
+  Service         : crypto-radar-bot.service
+  Polling owner   : Oui
+
+MISSION : Être les yeux du trader sur le marché.
+
+AUTHORITY : READ_ONLY
+CRITICALITY : OBSERVATION
+
+COMMANDS
+  /scan [N]       Top N opportunités par score (défaut 10)
+  /top50          Top 50 compact (conf&gt;=60)
+  /longs          Opportunités LONG uniquement
+  /shorts         Opportunités SHORT uniquement
+  /symbol TICKER  Analyse d'un symbole
+  /lmi            Vue microstructure marché
+  /lmi TICKER     Microstructure d'un symbole
+  /help           Liste des commandes
+
+AUTOMATIC MESSAGES : Aucun (bot entièrement réactif)
+
+ALLOWED
+  - Régime de marché global
+  - Univers observé (N paires)
+  - Score de confiance agrégé par symbole
+  - Direction dominante (LONG/SHORT/MIXED)
+  - Régime par symbole
+  - LMI microstructure (lecture seule)
+
+FORBIDDEN
+  - Entry/SL/TP (données moteur d'exécution)
+  - Portfolio / equity / PnL
+  - RAM / CPU / PID / taille DB
+  - Pipeline IA / shadow stats
+  - Toute commande de contrôle
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="bot-portfolio">
+<h3>BOT: Portfolio<a class="headerlink" href="#bot-portfolio" title="Link to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+IDENTITY
+  Name            : 💼 Portfolio (CommandCenter)
+  BotFather       : @mon_portfolio_bot
+  Token ENV       : P10_PORTFOLIO_BOT_TOKEN
+  Chat ENV        : P10_PORTFOLIO_CHAT_ID
+  Source          : capital_deployment/command_center_bot.py
+  Service         : in-process crypto-advisor.service
+  Polling owner   : Oui
+
+MISSION : Montrer si la machine gagne réellement de l'argent.
+
+AUTHORITY : READ_ONLY — aucune commande de contrôle
+CRITICALITY : PERFORMANCE
+
+COMMANDS (lecture seule uniquement)
+  /status         Résumé : phase, capital, régime
+  /kpis           Win Rate, Sharpe, DD, trades
+  /balance        Soldes paper et réels
+  /positions      Positions ouvertes + PnL non réalisé
+  /pnl            PnL réalisé détaillé
+  /phase          Phase F-xx + progression
+  /regime         Régime marché (résumé global)
+  /risk           État risque (lecture)
+  /health         Santé modules (lecture)
+  /eo             ExecutiveOverride (lecture)
+  /gate           GlobalRiskGate (lecture)
+  /perf           Courbe PnL ASCII
+  /recap [N]      Recap N derniers jours
+  /history [N]    Historique trades
+  /logs [N]       Derniers logs
+  /config         Paramètres (lecture seule)
+  /get PARAM      Valeur d'un paramètre
+  /certif         Certification P10-G
+  /charts         Lien dashboard
+  /help           Liste des commandes
+
+AUTOMATIC MESSAGES
+  - Rapport périodique (P10_PORTFOLIO_REPORT_MINS)
+  - Alerte drawdown (lecture d'état)
+
+FORBIDDEN
+  - /pause /resume /set /setphase /maxorder /reset /restart /confirm /cancel
+  - Toute commande qui modifie un paramètre ou le comportement du moteur
+  - Signaux par symbole (domaine CryptoRadar)
+  - Données Paper Arena
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="bot-quant-observer">
+<h3>BOT: Quant Observer<a class="headerlink" href="#bot-quant-observer" title="Link to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+IDENTITY
+  Name            : 🔬 Quant Observer
+  BotFather       : @QuantCrpto_bot
+  Token ENV       : QC_BOT_TOKEN
+  Chat ENV        : QC_CHAT_ID
+  Source          : src/telegram/quant_observer/bot.py
+  Service         : crypto-quant-observer.service
+  Polling owner   : Oui + refresh message épinglé (10 min)
+
+MISSION : Univers scanné, régime dominant, scores des signaux,
+          candidats actionnables, état méta-stratégie. Aucun capital.
+
+AUTHORITY : READ_ONLY
+CRITICALITY : RECHERCHE
+
+COMMANDS
+  /snapshot       Snapshot SDOS complet (4 panneaux)
+  /health         Santé des modules (radar)
+  /pipeline       État du pipeline de décision
+  /help           Liste des commandes
+
+AUTOMATIC MESSAGES
+  - Message épinglé auto-rafraîchi (QC_PINNED_UPDATE=600s)
+
+ALLOWED
+  - Univers observé (N paires)
+  - Régime dominant (global + distribution)
+  - Scores de signaux agrégés
+  - Candidats actionnables (sans Entry/SL/TP)
+  - État méta-stratégie
+  - Pipeline de décision (lecture)
+  - Santé modules
+
+FORBIDDEN
+  - Portfolio equity / PnL / balances
+  - Positions réelles
+  - RAM / CPU / PID bruts
+  - Données Paper Arena
+  - Toute commande de contrôle
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="bot-rapport-automatique">
+<h3>BOT: Rapport Automatique<a class="headerlink" href="#bot-rapport-automatique" title="Link to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+IDENTITY
+  Name            : 🧠 Rapport Automatique
+  BotFather       : @rapport_automatique_bot
+  Token ENV       : INTEL_BOT_TOKEN
+  Chat ENV        : INTEL_BOT_CHAT_ID
+  Source          : quant_hedge_ai/agents/intelligence/system_intel_reporter.py
+  Service         : in-process crypto-advisor.service
+  Polling owner   : Non (push uniquement)
+
+MISSION : Rapport de synthèse IA toutes les 6h. Aucune interaction.
+
+AUTHORITY : PUSH_ONLY — aucune commande, aucun polling
+CRITICALITY : INFORMATION
+
+AUTOMATIC MESSAGES
+  - Rapport IA complet toutes les 6h (push)
+
+FORBIDDEN
+  - Toute commande interactive
+  - Données de contrôle
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="bot-paper-arena">
+<h3>BOT: Paper Arena<a class="headerlink" href="#bot-paper-arena" title="Link to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+IDENTITY
+  Name            : 🧪 Paper Arena
+  BotFather       : @PaperArena_bot
+  Token ENV       : PAPER_ARENA_TG_TOKEN
+  Chat ENV        : PAPER_ARENA_TG_CHAT_ID
+  Source          : src/paper/paper_runner.py + src/paper/paper_report.py
+  Service         : paper-arena.service
+  Polling owner   : Non (push uniquement)
+
+MISSION : Rapporter les résultats d'une expérience scientifique isolée.
+
+AUTHORITY : PUSH_ONLY
+CRITICALITY : RECHERCHE
+
+AUTOMATIC MESSAGES
+  - Notification d'entrée / sortie
+  - Résumé d'expérience périodique
+  - Statut gate (INSUFFICIENT_SAMPLE → CONCLUSIVE)
+
+ALLOWED
+  - Résultats de l'expérience uniquement (WR, PF, PnL expérience, N trades)
+  - Gate progress
+
+FORBIDDEN
+  - État global du système
+  - Portfolio / balances / PnL global
+  - Toute commande interactive
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+</pre></div>
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="anomalies-resolues">
+<h2>Anomalies résolues<a class="headerlink" href="#anomalies-resolues" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>#</p></th>
+<th class="head"><p>Anomalie</p></th>
+<th class="head"><p>Solution</p></th>
+<th class="head"><p>Statut</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>1</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">TELEGRAM_BOT_TOKEN</span></code> partagé entre KillSwitch et CryptoRadar</p></td>
+<td><p>KillSwitch supprimé + <code class="docutils literal notranslate"><span class="pre">RADAR_BOT_TOKEN</span></code> ajouté avec fallback</p></td>
+<td><p>✅ Résolu</p></td>
+</tr>
+<tr class="row-odd"><td><p>2</p></td>
+<td><p>KillSwitch Telegram (commandes <code class="docutils literal notranslate"><span class="pre">/stop_all</span></code> <code class="docutils literal notranslate"><span class="pre">/resume</span></code>)</p></td>
+<td><p>Interface Telegram retirée — état interne conservé pour <code class="docutils literal notranslate"><span class="pre">advisor_loop</span></code></p></td>
+<td><p>✅ Résolu</p></td>
+</tr>
+<tr class="row-even"><td><p>3</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">/signals</span></code> dans CryptoRadar (Entry/SL/TP hors domaine)</p></td>
+<td><p>Remplacé par message de redirection</p></td>
+<td><p>✅ Résolu</p></td>
+</tr>
+<tr class="row-odd"><td><p>4</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">/status</span></code> dans CryptoRadar (métriques DB hors domaine)</p></td>
+<td><p>Remplacé par message de redirection</p></td>
+<td><p>✅ Résolu</p></td>
+</tr>
+<tr class="row-even"><td><p>5</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">/signals</span></code> dans Portfolio (scores par symbole)</p></td>
+<td><p>Retiré du dispatch et du rapport auto</p></td>
+<td><p>✅ Résolu</p></td>
+</tr>
+<tr class="row-odd"><td><p>6</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">/portfolio</span></code> dans Quant Observer</p></td>
+<td><p>Retiré + handler de redirection</p></td>
+<td><p>✅ Résolu</p></td>
+</tr>
+<tr class="row-even"><td><p>7</p></td>
+<td><p>Commandes d’écriture dans Portfolio (<code class="docutils literal notranslate"><span class="pre">/pause</span></code> <code class="docutils literal notranslate"><span class="pre">/resume</span></code> <code class="docutils literal notranslate"><span class="pre">/set</span></code> etc.)</p></td>
+<td><p>Retirées — constitution 2026-08-28</p></td>
+<td><p>✅ Résolu</p></td>
+</tr>
+<tr class="row-odd"><td><p>8</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&#64;QuantCrpto_bot</span></code> non mappé dans le Registry</p></td>
+<td><p>Mappé → <code class="docutils literal notranslate"><span class="pre">QC_BOT_TOKEN</span></code></p></td>
+<td><p>✅ Résolu</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<hr class="docutils" />
+<section id="feuille-de-route-phases-2-5">
+<h2>Feuille de route — Phases 2-5<a class="headerlink" href="#feuille-de-route-phases-2-5" title="Link to this heading">¶</a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>PHASE 2 — Interface Audit         ✅ COMPLÈTE
+PHASE 3 — Token Isolation Prep    ✅ COMPLÈTE (fallbacks en place)
+
+PHASE 3 (finalisation VPS)
+  Ajouter dans .env.secrets :
+    RADAR_BOT_TOKEN=&lt;token @RadarCrypto1_bot&gt;
+    RADAR_CHAT_ID=&lt;chat_id&gt;
+  Supprimer :
+    KILLSWITCH_BOT_TOKEN / KILLSWITCH_CHAT_ID (plus utilisés)
+  Redémarrer :
+    crypto-radar-bot.service + crypto-advisor.service
+
+PHASE 4 — Tests anti-collision
+  Vérifier : 1 token = 1 polling owner = 0 conflit 409
+  Outil : tools/convergence_forensic_readonly.py
+
+PHASE 5 — Runtime VPS Audit
+  systemd, PID, RAM, connexions Telegram ouvertes par processus.
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="regle-de-mise-a-jour-de-ce-document">
+<h2>Règle de mise à jour de ce document<a class="headerlink" href="#regle-de-mise-a-jour-de-ce-document" title="Link to this heading">¶</a></h2>
+<blockquote>
+<div><p>Toute modification du comportement d’un bot Telegram (nouvelles commandes,
+nouveau contenu de message, nouveau token, nouveau service systemd) doit être
+reflétée dans ce document <strong>avant</strong> d’être mergée dans <code class="docutils literal notranslate"><span class="pre">main</span></code>.
+Ce document est le contrat. Le code doit respecter le contrat, pas l’inverse.</p>
+</div></blockquote>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Crypto AI Terminal
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">TELEGRAM BOT REGISTRY</a><ul>
+<li><a class="reference internal" href="#bots-actifs-5-bots">Bots actifs (5 bots)</a></li>
+<li><a class="reference internal" href="#bots-supprimes">Bots supprimés</a></li>
+<li><a class="reference internal" href="#table-des-matieres">TABLE DES MATIÈRES</a></li>
+<li><a class="reference internal" href="#principe-constitutionnel">Principe constitutionnel</a></li>
+<li><a class="reference internal" href="#phase-0-census">Phase 0 — Census</a><ul>
+<li><a class="reference internal" href="#tableau-des-bots-actifs-etat-courant">Tableau des bots actifs (état courant)</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#phase-1-bot-constitution">Phase 1 — Bot Constitution</a><ul>
+<li><a class="reference internal" href="#question-humaine-par-bot">Question humaine par bot</a></li>
+<li><a class="reference internal" href="#bot-cryptoradar">BOT: CryptoRadar</a></li>
+<li><a class="reference internal" href="#bot-portfolio">BOT: Portfolio</a></li>
+<li><a class="reference internal" href="#bot-quant-observer">BOT: Quant Observer</a></li>
+<li><a class="reference internal" href="#bot-rapport-automatique">BOT: Rapport Automatique</a></li>
+<li><a class="reference internal" href="#bot-paper-arena">BOT: Paper Arena</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#anomalies-resolues">Anomalies résolues</a></li>
+<li><a class="reference internal" href="#feuille-de-route-phases-2-5">Feuille de route — Phases 2-5</a></li>
+<li><a class="reference internal" href="#regle-de-mise-a-jour-de-ce-document">Règle de mise à jour de ce document</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../_static/documentation_options.js?v=ef6a59ae"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/scripts/furo.js?v=5fa4622c"></script>
+    </body>
+</html>
