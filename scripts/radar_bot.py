@@ -15,10 +15,11 @@ from pathlib import Path
 
 PROJECT = Path(__file__).resolve().parent.parent
 DP_DIR = Path(os.getenv("DP_LOG_DIR", str(PROJECT / "databases")))
-# Token dédié CryptoRadar — utilise TELEGRAM_BOT_TOKEN comme fallback temporaire
-# jusqu'à la migration Phase 3. Voir TELEGRAM_BOT_REGISTRY.md.
-TOKEN = (os.getenv("RADAR_BOT_TOKEN") or os.getenv("TELEGRAM_BOT_TOKEN", "")).strip()
-CHAT_ID = (os.getenv("RADAR_CHAT_ID") or os.getenv("TELEGRAM_CHAT_ID", "")).strip()
+# Token dédié CryptoRadar — AUCUN fallback cross-identité (constitution
+# Telegram, Principe 3 : "No Cross-Identity Token Fallback"). Voir
+# docs/architecture/TELEGRAM_BOT_REGISTRY.md et docs/TELEGRAM_CONSTITUTION.md.
+TOKEN = os.getenv("RADAR_BOT_TOKEN", "").strip()
+CHAT_ID = os.getenv("RADAR_CHAT_ID", "").strip()
 ALLOWED_CHATS = {CHAT_ID} if CHAT_ID else set()
 
 def tg_request(method, payload=None):
@@ -321,9 +322,7 @@ def poll_loop():
 
 def main():
     if not TOKEN:
-        # Cherche le token dédié d'abord, puis le fallback
-        missing = "RADAR_BOT_TOKEN (ou TELEGRAM_BOT_TOKEN en fallback)"
-        print(f"[ERREUR] {missing} manquant")
+        print("[ERREUR] RADAR_BOT_TOKEN manquant", file=sys.stderr)
         sys.exit(1)
     if "--once" in sys.argv:
         result = tg_request("getUpdates", {"timeout": 0})

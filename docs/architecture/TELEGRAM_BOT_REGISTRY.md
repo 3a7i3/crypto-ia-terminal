@@ -13,7 +13,7 @@
 
 | Bot BotFather | Username | Token ENV | Rôle | Type |
 |---|---|---|---|---|
-| CryptoRadar_Bot | `@RadarCrypto1_bot` | `RADAR_BOT_TOKEN` (fallback `TELEGRAM_BOT_TOKEN`) | 📡 Scanner marché | Polling + réactif |
+| CryptoRadar_Bot | `@RadarCrypto1_bot` | `RADAR_BOT_TOKEN` (aucun fallback — isolé) | 📡 Scanner marché | Polling + réactif |
 | Mon Portefeuille Bot | `@mon_portfolio_bot` | `P10_PORTFOLIO_BOT_TOKEN` | 💼 Capital + performance | Polling + rapports auto |
 | Quant_Crypto 🔥 | `@QuantCrpto_bot` | `QC_BOT_TOKEN` | 🔬 Univers + régime + signaux + méta | Polling + message épinglé |
 | Rapport Automatique | `@rapport_automatique_bot` | `INTEL_BOT_TOKEN` | 🧠 Rapports IA 6h | Push uniquement |
@@ -78,7 +78,7 @@
 
 | Bot | Token ENV | Chat ENV | Source principale | Service systemd | Polling owner | Auto-messages |
 |-----|-----------|----------|-------------------|-----------------|---------------|---------------|
-| 📡 CryptoRadar | `RADAR_BOT_TOKEN` (fallback `TELEGRAM_BOT_TOKEN`) | `RADAR_CHAT_ID` (fallback `TELEGRAM_CHAT_ID`) | `scripts/radar_bot.py` | `crypto-radar-bot.service` | Oui | *Aucun* (réactif) |
+| 📡 CryptoRadar | `RADAR_BOT_TOKEN` (aucun fallback — isolé) | `RADAR_CHAT_ID` (aucun fallback — isolé) | `scripts/radar_bot.py` | `crypto-radar-bot.service` | Oui | *Aucun* (réactif) |
 | 💼 Portfolio | `P10_PORTFOLIO_BOT_TOKEN` | `P10_PORTFOLIO_CHAT_ID` | `capital_deployment/command_center_bot.py` | in-process `crypto-advisor` | Oui | Rapports périodiques |
 | 🔬 Quant Observer | `QC_BOT_TOKEN` | `QC_CHAT_ID` | `src/telegram/quant_observer/bot.py` | `crypto-quant-observer.service` | Oui | Message épinglé 10 min |
 | 🧠 Rapport Auto | `INTEL_BOT_TOKEN` | `INTEL_BOT_CHAT_ID` | `quant_hedge_ai/agents/intelligence/system_intel_reporter.py` | in-process `crypto-advisor` | Non | Push 6h |
@@ -107,8 +107,8 @@
 IDENTITY
   Name            : 📡 CryptoRadar
   BotFather       : @RadarCrypto1_bot
-  Token ENV       : RADAR_BOT_TOKEN (fallback TELEGRAM_BOT_TOKEN)
-  Chat ENV        : RADAR_CHAT_ID (fallback TELEGRAM_CHAT_ID)
+  Token ENV       : RADAR_BOT_TOKEN (aucun fallback — isolé, exit 1 si absent)
+  Chat ENV        : RADAR_CHAT_ID (aucun fallback — isolé)
   Source          : scripts/radar_bot.py
   Service         : crypto-radar-bot.service
   Polling owner   : Oui
@@ -320,7 +320,7 @@ FORBIDDEN
 
 | # | Anomalie | Solution | Statut |
 |---|----------|----------|--------|
-| 1 | `TELEGRAM_BOT_TOKEN` partagé entre KillSwitch et CryptoRadar | KillSwitch supprimé + `RADAR_BOT_TOKEN` ajouté avec fallback | ✅ Résolu |
+| 1 | `TELEGRAM_BOT_TOKEN` partagé entre KillSwitch et CryptoRadar | KillSwitch supprimé + `RADAR_BOT_TOKEN` ajouté ; fallback `TELEGRAM_BOT_TOKEN` supprimé du code (audit 2026-08-28, voir `docs/TELEGRAM_ARCHITECTURE_AUDIT.md`) | ✅ Résolu |
 | 2 | KillSwitch Telegram (commandes `/stop_all` `/resume`) | Interface Telegram retirée — état interne conservé pour `advisor_loop` | ✅ Résolu |
 | 3 | `/signals` dans CryptoRadar (Entry/SL/TP hors domaine) | Remplacé par message de redirection | ✅ Résolu |
 | 4 | `/status` dans CryptoRadar (métriques DB hors domaine) | Remplacé par message de redirection | ✅ Résolu |
@@ -335,7 +335,7 @@ FORBIDDEN
 
 ```
 PHASE 2 — Interface Audit         ✅ COMPLÈTE
-PHASE 3 — Token Isolation Prep    ✅ COMPLÈTE (fallbacks en place)
+PHASE 3 — Token Isolation Prep    ✅ COMPLÈTE (isolation stricte, fallback retiré 2026-08-28)
 
 PHASE 3 (finalisation VPS)
   Ajouter dans .env.secrets :

@@ -1,19 +1,15 @@
 # CryptoRadar — bot Telegram interactif, LECTURE SEULE sur les decisions (ADR-0007).
 # Polling long getUpdates, repond aux commandes /scan /top50 /longs /shorts /symbol /lmi.
 #
-# Token migration (Phase 3 — TELEGRAM_BOT_REGISTRY.md) :
-#   Cible : RADAR_BOT_TOKEN + RADAR_CHAT_ID (token dédié, à créer via @BotFather)
-#   Fallback temporaire : TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID
-#   ⚠️ Tant que RADAR_BOT_TOKEN n'est pas défini dans .env, le bot utilise
-#      TELEGRAM_BOT_TOKEN — risque de collision getUpdates avec KillSwitch.
+# Isolation du token (constitution Telegram — docs/TELEGRAM_CONSTITUTION.md,
+# Principe 3 : "No Cross-Identity Token Fallback") :
+#   RADAR_BOT_TOKEN + RADAR_CHAT_ID sont OBLIGATOIRES et n'ont plus de fallback
+#   vers TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID. Le script quitte avec le code 1
+#   si RADAR_BOT_TOKEN est absent — voir scripts/radar_bot.py.
 #
-# Prerequis dans .env (cible Phase 3) :
-#   RADAR_BOT_TOKEN=<token bot CryptoRadar dédié>
+# Prerequis dans .env :
+#   RADAR_BOT_TOKEN=<token bot CryptoRadar dédié, créé via @BotFather>
 #   RADAR_CHAT_ID=<id chat autorisé>
-#
-# Prerequis dans .env (fallback temporaire) :
-#   TELEGRAM_BOT_TOKEN=<token bot>
-#   TELEGRAM_CHAT_ID=<id chat autorisé>
 #
 # Installation (VPS, geste operateur) :
 #   sudo cp scripts/systemd/crypto-radar-bot.service /etc/systemd/system/
