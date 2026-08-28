@@ -1,8 +1,10 @@
 """
 capital_deployment/command_center_bot.py — Telegram Command Center
 
-Interface Telegram complète : lecture ET écriture de tous les paramètres.
-Remplace tout dashboard. Bot unique pour tout contrôler.
+Interface Telegram Portfolio : lecture du capital, des performances et des positions.
+Ce bot répond à une seule question : « Est-ce que ma machine gagne de l'argent ? »
+Il n'affiche jamais de signaux de marché par symbole (domaine CryptoRadar).
+Voir docs/architecture/TELEGRAM_BOT_REGISTRY.md pour le contrat complet.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 COMMANDES DISPONIBLES
@@ -12,8 +14,7 @@ COMMANDES DISPONIBLES
   /status          Résumé rapide (phase, KPIs, capital)
   /kpis            KPIs détaillés (WR, Sharpe, DD, trades)
   /phase           Info phase F-xx + temps restant
-  /regime          Régime marché par symbole
-  /signals         Scores signaux actuels
+  /regime          Régime marché (résumé global uniquement)
   /risk            État risque (drawdown, EO, pertes consec.)
   /health          Santé de tous les modules
 
@@ -62,7 +63,7 @@ import time
 import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Optional
 
 from observability.json_logger import get_logger
 
@@ -70,7 +71,6 @@ _log = get_logger("capital_deployment.command_center_bot")
 
 _POLL_TIMEOUT = 30
 _RETRY_DELAY = 5.0
-_CONFIRM_TTL = 60.0  # secondes pour /confirm
 _MAX_MSG = 4000
 _ENV_PATH = Path(os.getenv("ENV_PATH", ".env"))
 _LOG_PATH = Path(os.getenv("ADVISOR_LOG", "logs/advisor_loop.log"))
@@ -974,7 +974,6 @@ def _fmt_rapport(p: CommandDataProvider) -> str:
     thr = p.get_throttle() if p.get_throttle else None
     kpis = p.get_kpis() if p.get_kpis else None
     pos = (p.get_positions() if p.get_positions else None) or []
-    sigs = (p.get_signals() if p.get_signals else None) or {}
     trades = (p.get_trades() if p.get_trades else None) or []
 
     lines = [f"*RAPPORT — {now}*", f"Phase *{phase}*"]
@@ -1030,11 +1029,6 @@ def _fmt_rapport(p: CommandDataProvider) -> str:
     else:
         lines.append("  Aucune position")
 
-    if sigs:
-        lines += ["", "*SIGNAUX*"]
-        items = list(sigs.items()) if isinstance(sigs, dict) else []
-        lines += _signals_lines(items)
-
     if trades:
         from datetime import datetime as _dt
 
@@ -1053,18 +1047,7 @@ def _fmt_rapport(p: CommandDataProvider) -> str:
     return "\n".join(lines)
 
 
-# ── Modification .env ─────────────────────────────────────────────────────────
-
-
-def _write_env(param: str, value: str) -> bool:
-    try:
-        from dotenv import set_key
-
-        set_key(str(_ENV_PATH), param, value)
-        return True
-    except Exception as exc:
-        _log.error("[CommandCenter] Erreur write .env: %s", exc)
-        return False
+# ── Lecture .env ──────────────────────────────────────────────────────────────
 
 
 def _get_env(param: str) -> Optional[str]:
@@ -1082,8 +1065,7 @@ STATUS
 /status           Resume rapide
 /kpis             KPIs detailles
 /phase            Phase F-xx + temps restant
-/regime           Regime marche par symbole
-/signals          Scores signaux
+/regime           Regime marche (resume global)
 /risk             Etat risque
 /health           Sante modules
 /eo               ExecutiveOverride (niveau + seuils)
@@ -1144,10 +1126,6 @@ class CommandCenterBot:
         self._running = False
         self._offset = 0
         self._last_report = time.time()  # évite envoi immédiat au démarrage
-
-        # Confirmation pending : {description, action_fn, expires}
-        self._pending: Optional[dict] = None
-        self._pending_lock = threading.Lock()
 
     @classmethod
     def from_env(cls, provider: CommandDataProvider) -> "CommandCenterBot":
@@ -1284,7 +1262,13 @@ class CommandCenterBot:
             "/pnl": lambda: _fmt_pnl(self._provider),
             "/phase": lambda: _fmt_phase(self._provider),
             "/regime": lambda: _fmt_regime(self._provider),
-            "/signals": lambda: _fmt_signals(self._provider),
+            # /signals redirige vers CryptoRadar — domaine marché (TELEGRAM_BOT_REGISTRY.md)
+            "/signals": lambda: (
+                "\U0001f4bc Mon Portfolio — domaine capital uniquement\n\n"
+                "Les scores de signaux par symbole appartiennent au domaine marché.\n"
+                "Utilise \U0001f4e1 CryptoRadar (/scan) pour les opportunités de marché.\n\n"
+                "Commandes disponibles ici : /status /kpis /balance /positions /pnl"
+            ),
             "/risk": lambda: _fmt_risk(self._provider),
             "/health": lambda: _fmt_health(self._provider),
             "/eo": lambda: _fmt_eo(self._provider),
@@ -1292,8 +1276,6 @@ class CommandCenterBot:
             "/perf": lambda: _fmt_perf(self._provider),
             "/certif": lambda: _fmt_certif(),
             "/charts": lambda: _fmt_charts_button(),
-            "/confirm": lambda: self._do_confirm(),
-            "/cancel": lambda: self._do_cancel(),
         }
 
         if cmd in handlers:
@@ -1304,7 +1286,7 @@ class CommandCenterBot:
                 self.send(f"Erreur: `{exc}`")
             return
 
-        # Commandes avec arguments
+        # Commandes avec arguments (lecture seule)
         try:
             if cmd == "/config":
                 section = args[0] if args else None
@@ -1326,57 +1308,6 @@ class CommandCenterBot:
                 n = int(args[0]) if args else 10
                 self.send(_fmt_trades(self._provider, n))
 
-            elif cmd == "/set":
-                if len(args) < 2:
-                    self.send("Usage: `/set PARAM valeur`")
-                    return
-                param = args[0].upper()
-                value = " ".join(args[1:])
-                self._queue_set(param, value)
-
-            elif cmd == "/pause":
-                self._queue_action(
-                    description="Passer en mode OBSERVATION (V9_ADVISOR_ONLY=true)",
-                    action=lambda: self._apply_set("V9_ADVISOR_ONLY", "true"),
-                )
-
-            elif cmd == "/resume":
-                self._queue_action(
-                    description="Reprendre TRADING ACTIF (V9_ADVISOR_ONLY=false)",
-                    action=lambda: self._apply_set("V9_ADVISOR_ONLY", "false"),
-                )
-
-            elif cmd == "/setphase":
-                if not args:
-                    self.send("Usage: `/setphase F-02`")
-                    return
-                phase = args[0].upper()
-                if phase not in ["F-01", "F-02", "F-03", "F-04", "F-05"]:
-                    self.send(
-                        f"Phase invalide: `{phase}`\nValides: F-01 F-02 F-03 F-04 F-05"
-                    )
-                    return
-                self._queue_action(
-                    description=f"Changer phase → {phase}",
-                    action=lambda: self._apply_set("P10_PHASE", phase),
-                )
-
-            elif cmd == "/maxorder":
-                if not args:
-                    self.send("Usage: `/maxorder 75` (en USD)")
-                    return
-                try:
-                    val = float(args[0])
-                    if val <= 0:
-                        raise ValueError
-                except ValueError:
-                    self.send("Valeur invalide — doit etre un nombre positif")
-                    return
-                self._queue_action(
-                    description=f"Changer EXEC_MAX_ORDER_USD → {val:.2f}",
-                    action=lambda: self._apply_set("EXEC_MAX_ORDER_USD", str(val)),
-                )
-
             elif cmd == "/blackbox":
                 n = int(args[0]) if args else 10
                 n = min(max(n, 1), 50)
@@ -1395,16 +1326,16 @@ class CommandCenterBot:
                     days = 7
                 self.send(_fmt_recap(self._provider, days))
 
-            elif cmd == "/reset":
-                self._queue_action(
-                    description="Remettre les KPIs à zéro (nouvelle phase)",
-                    action=self._do_reset_kpis,
-                )
-
-            elif cmd == "/restart":
-                self._queue_action(
-                    description="Redémarrer advisor_loop.py sur le VPS",
-                    action=self._do_restart,
+            # Commandes d'écriture bloquées — constitution 2026-08-28
+            elif cmd in {"/pause", "/resume", "/set", "/setphase", "/maxorder",
+                         "/reset", "/restart", "/confirm", "/cancel"}:
+                self.send(
+                    "\U0001f512 Commande de contrôle désactivée\n\n"
+                    "Constitution 2026-08-28 : aucune commande qui modifie le "
+                    "comportement de la machine n'est disponible via Telegram.\n"
+                    "Utilise le VPS (SSH) pour toute action de contrôle.\n\n"
+                    "Commandes disponibles : /status /kpis /balance /positions "
+                    "/pnl /health /risk /eo /gate /perf /recap /history /logs"
                 )
 
             elif cmd.startswith("/"):
@@ -1413,133 +1344,6 @@ class CommandCenterBot:
         except Exception as exc:
             _log.error("[CommandCenter] route error on %s: %s", cmd, exc)
             self.send(f"Erreur: `{exc}`")
-
-    # ── Confirmation ─────────────────────────────────────────────────────────
-
-    def _queue_action(self, description: str, action: Callable[[], Any]) -> None:
-        with self._pending_lock:
-            self._pending = {
-                "description": description,
-                "action": action,
-                "expires": time.time() + _CONFIRM_TTL,
-            }
-        self.send(
-            f"ACTION EN ATTENTE:\n`{description}`\n\n"
-            f"Tape /confirm pour executer ou /cancel pour annuler ({_CONFIRM_TTL:.0f}s)"
-        )
-
-    def _queue_set(self, param: str, value: str) -> None:
-        old_value = _get_env(param)  # capturer avant confirmation
-        command_str = f"/set {param} {value}"
-        live_tag = " [live]" if param in _LIVE_PARAMS else " [redemarrage requis]"
-        self._queue_action(
-            description=f"{param}: `{old_value}` → `{value}`{live_tag}",
-            action=lambda: self._apply_set(
-                param, value, old_value=old_value, command=command_str
-            ),
-        )
-
-    def _do_confirm(self) -> str:
-        with self._pending_lock:
-            p = self._pending
-            if p is None:
-                return "_Aucune action en attente_"
-            if time.time() > p["expires"]:
-                self._pending = None
-                return "_Action expiree (> 60s). Recommence._"
-            action = p["action"]
-            desc = p["description"]
-            self._pending = None
-
-        try:
-            result = action()
-            _log.info("[CommandCenter] Action confirmee: %s", desc)
-            ok_str = str(result) if result is not None else "OK"
-            return f"Confirme: `{desc}`\nResultat: {ok_str}"
-        except Exception as exc:
-            return f"Erreur execution: `{exc}`"
-
-    def _do_cancel(self) -> str:
-        with self._pending_lock:
-            if self._pending is None:
-                return "_Aucune action en attente_"
-            self._pending = None
-        return "Action annulee"
-
-    # ── Actions système ──────────────────────────────────────────────────────
-
-    def _do_reset_kpis(self) -> str:
-        if self._provider.reset_kpis:
-            try:
-                ok = self._provider.reset_kpis()
-                return "KPIs remis a zero" if ok else "reset_kpis a retourne False"
-            except Exception as exc:
-                return f"Erreur reset: {exc}"
-        return "reset_kpis non cable — relance manuelle requise"
-
-    def _do_restart(self) -> str:
-        import subprocess
-
-        script = Path(__file__).parent.parent / "scripts" / "vps_restart.sh"
-        if not script.exists():
-            return f"Script introuvable: {script}"
-        try:
-            result = subprocess.Popen(
-                ["bash", str(script)],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-            )
-            _log.info("[CommandCenter] vps_restart.sh lance PID=%s", result.pid)
-            return f"Redemarrage lance — PID {result.pid}\n(logs dans logs/advisor.log)"
-        except Exception as exc:
-            return f"Erreur restart: {exc}"
-
-    # ── Application des changements ───────────────────────────────────────────
-
-    def _apply_set(
-        self,
-        param: str,
-        value: str,
-        old_value: str = "",
-        command: str = "",
-    ) -> str:
-        from config.parameter_audit import record_parameter_change
-
-        # 1. Audit append-only (avant écriture pour capturer l'ancien état)
-        change_id = record_parameter_change(
-            parameter=param,
-            old_value=old_value,
-            new_value=value,
-            source="telegram",
-            command=command or f"/set {param} {value}",
-            operator=self._chat_id,
-        )
-
-        # 2. Ecrire dans .env
-        written = _write_env(param, value)
-        os.environ[param] = value  # mise a jour process courant aussi
-
-        # 3. Appliquer live si possible
-        live_ok = False
-        if param in _LIVE_PARAMS and self._provider.set_param:
-            try:
-                live_ok = self._provider.set_param(param, value)
-            except Exception as exc:
-                _log.warning("[CommandCenter] set_param live error: %s", exc)
-
-        env_tag = ".env mis a jour" if written else "ERREUR ecriture .env"
-        live_tag = (
-            " + applique live" if live_ok else " (redemarrage pour effet complet)"
-        )
-        _log.info(
-            "[CommandCenter] SET %s=%s — %s%s [%s]",
-            param,
-            value,
-            env_tag,
-            live_tag,
-            change_id,
-        )
-        return f"{env_tag}{live_tag}\n`{change_id}`"
 
     # ── Rapport automatique ───────────────────────────────────────────────────
 
