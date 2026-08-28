@@ -36,8 +36,8 @@ from quant_hedge_ai.agents.intelligence.system_intel_reporter import (  # noqa: 
 )
 
 _TRADES_LOG = Path(os.getenv("PAPER_TRADE_LOG", "databases/paper_trades.jsonl"))
-_INTEL_TOKEN = os.getenv("INTEL_BOT_TOKEN", "")
-_INTEL_CHAT = os.getenv("INTEL_BOT_CHAT_ID", "")
+_INTEL_TOKEN = os.getenv("RAPPORT_AUTOMATIQUE_BOT_TOKEN", "")
+_INTEL_CHAT = os.getenv("RAPPORT_AUTOMATIQUE_CHAT_ID", "")
 
 
 def _read_events() -> list[dict]:
@@ -73,7 +73,7 @@ def send_to_intel(text: str) -> bool:
     token = _INTEL_TOKEN
     chat = _INTEL_CHAT
     if not token or not chat:
-        print("[ERREUR] INTEL_BOT_TOKEN / INTEL_BOT_CHAT_ID non configurés dans .env")
+        print("[ERREUR] RAPPORT_AUTOMATIQUE_BOT_TOKEN / RAPPORT_AUTOMATIQUE_CHAT_ID non configurés dans .env")
         print("         Ajouter ces vars dans le .env du VPS puis relancer.")
         return False
     try:

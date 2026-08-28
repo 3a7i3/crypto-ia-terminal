@@ -259,7 +259,7 @@ recommendation already recorded in `docs/TELEGRAM_ARCHITECTURE_AUDIT.md`.
 ### Status: READ-ONLY — control commands removed
 
 ### What We Know
-- Token/chat variables `CMVK_BOT_TOKEN` / `CMVK_CHAT_ID` are wired end-to-end:
+- Token/chat variables `TELEMETRIE_IA_BOT_TOKEN` / `TELEMETRIE_IA_CHAT_ID` are wired end-to-end:
   a full polling loop exists in `src/telegram/bot_runner.py` (`getUpdates`,
   `sendMessage`, `deleteWebhook` for 409-conflict recovery), dispatching to
   `src/telegram/sim_bot.py::SimBot.handle`.
@@ -277,7 +277,7 @@ recommendation already recorded in `docs/TELEGRAM_ARCHITECTURE_AUDIT.md`.
   asserts `handle("/kill")` and `handle("/resume")` both return
   `"Commande inconnue"`. This closes the constitutional violation flagged
   below, regardless of whether this bot is ever (re)activated.
-- `CMVK_BOT_TOKEN`/`CMVK_CHAT_ID` appear only in `.env.secrets.example`
+- `TELEMETRIE_IA_BOT_TOKEN`/`TELEMETRIE_IA_CHAT_ID` appear only in `.env.secrets.example`
   (line 117-118), not in `.env.example`.
 - No systemd `.service` file references this bot anywhere under
   `scripts/systemd/`.

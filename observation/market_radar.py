@@ -11,8 +11,8 @@ une décision opérateur par ADR (paliers 100-200 → 500 → 1000, cf ADR-0016
 
 Anti-spam Telegram (exigence opérateur 2026-07-15) : le radar n'écrit
 JAMAIS par symbole — un seul digest par exécution, et uniquement si
-RADAR_TELEGRAM_DIGEST=true (défaut false ; utilise INTEL_BOT_TOKEN +
-INTEL_BOT_CHAT_ID, même canal que le rapport 6h).
+RADAR_TELEGRAM_DIGEST=true (défaut false ; utilise RAPPORT_AUTOMATIQUE_BOT_TOKEN +
+RAPPORT_AUTOMATIQUE_CHAT_ID, même canal que le rapport 6h).
 
 Scoring — mêmes références que tools/perp_universe_builder.py (aucun
 indicateur nouveau, gel scientifique) :
@@ -313,8 +313,8 @@ def send_telegram_digest(text: str) -> bool:
     """Un seul message, canal Intel — seulement si RADAR_TELEGRAM_DIGEST=true."""
     if os.getenv("RADAR_TELEGRAM_DIGEST", "false").lower() != "true":
         return False
-    token = os.getenv("INTEL_BOT_TOKEN", "")
-    chat = os.getenv("INTEL_BOT_CHAT_ID", "")
+    token = os.getenv("RAPPORT_AUTOMATIQUE_BOT_TOKEN", "")
+    chat = os.getenv("RAPPORT_AUTOMATIQUE_CHAT_ID", "")
     if not token or not chat:
         return False
     import urllib.request

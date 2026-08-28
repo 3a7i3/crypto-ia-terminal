@@ -18,11 +18,11 @@ source file/line so it can be re-verified independently at any time.
 | # | Identity | Token Variable | Chat Variable | Entrypoint | Service | getUpdates | Mission Status |
 |---|---|---|---|---|---|---|---|
 | 1 | CryptoRadar | `RADAR_BOT_TOKEN` | `RADAR_CHAT_ID` | `scripts/radar_bot.py` | `crypto-radar-bot.service` | YES | ACTIVE |
-| 2 | Portfolio Command Center | `P10_PORTFOLIO_BOT_TOKEN` | `P10_PORTFOLIO_CHAT_ID` | `capital_deployment/command_center_bot.py` | in-process `crypto-advisor.service` (no dedicated `.service` file found) | YES | ACTIVE |
-| 3 | Quant Observer | `QC_BOT_TOKEN` | `QC_CHAT_ID` | `src/telegram/quant_observer/bot.py` | `crypto-quant-observer.service` | YES | ACTIVE |
-| 4 | Rapport Automatique / Intel | `INTEL_BOT_TOKEN` | `INTEL_BOT_CHAT_ID` | `quant_hedge_ai/agents/intelligence/system_intel_reporter.py` (report builder) + `core/advisor_loop.py::_send_intel` (sender) | in-process `crypto-advisor.service` (no dedicated `.service` file found) | NO | ACTIVE |
-| 5 | Paper Arena | `PAPER_ARENA_TG_TOKEN` | `PAPER_ARENA_TG_CHAT_ID` | `src/paper/paper_runner.py` + `src/paper/paper_report.py` | `paper-arena.service` | NO | ACTIVE |
-| 6 | CMVK / Sim Bot | `CMVK_BOT_TOKEN` | `CMVK_CHAT_ID` | `src/telegram/bot_runner.py` + `src/telegram/sim_bot.py` | NONE found | YES | UNKNOWN — PENDING AUDIT |
+| 2 | Portfolio Command Center | `MON_PORTFOLIO_BOT_TOKEN` | `MON_PORTFOLIO_CHAT_ID` | `capital_deployment/command_center_bot.py` | in-process `crypto-advisor.service` (no dedicated `.service` file found) | YES | ACTIVE |
+| 3 | Quant Observer | `QUANT_CRYPTO_BOT_TOKEN` | `QUANT_CRYPTO_CHAT_ID` | `src/telegram/quant_observer/bot.py` | `crypto-quant-observer.service` | YES | ACTIVE |
+| 4 | Rapport Automatique / Intel | `RAPPORT_AUTOMATIQUE_BOT_TOKEN` | `RAPPORT_AUTOMATIQUE_CHAT_ID` | `quant_hedge_ai/agents/intelligence/system_intel_reporter.py` (report builder) + `core/advisor_loop.py::_send_intel` (sender) | in-process `crypto-advisor.service` (no dedicated `.service` file found) | NO | ACTIVE |
+| 5 | Paper Arena | `PAPER_ARENA_BOT_TOKEN` | `PAPER_ARENA_CHAT_ID` | `src/paper/paper_runner.py` + `src/paper/paper_report.py` | `paper-arena.service` | NO | ACTIVE |
+| 6 | CMVK / Sim Bot | `TELEMETRIE_IA_BOT_TOKEN` | `TELEMETRIE_IA_CHAT_ID` | `src/telegram/bot_runner.py` + `src/telegram/sim_bot.py` | NONE found | YES | UNKNOWN — PENDING AUDIT |
 | 7 | KillSwitch (legacy) | `KILLSWITCH_BOT_TOKEN` (never wired to `os.getenv`) | `KILLSWITCH_CHAT_ID` (never wired) | `supervision/kill_switch.py::TelegramKillSwitch` (class never instantiated with a real token) | NONE | YES (in dead code only) | DEAD_CODE |
 | 8 | Generic alerts channel | `TELEGRAM_BOT_TOKEN` | `TELEGRAM_CHAT_ID` | `scripts/telegram_alerts.py`, `S3/01_telegram_alerts.py`, `infra/notifications/notifications.py`, `config/settings.py`, `supervision/*` (multiple independent senders) | none dedicated — used in-process by several scripts/services | NO (no `getUpdates` found on this token in current code) | ACTIVE (push-only, not a "bot identity" with commands) |
 | — | Channel | UNKNOWN | UNKNOWN | none found | none found | — | NOT FOUND — no dedicated broadcast channel identity found in the repo |
@@ -64,8 +64,8 @@ Notes on the summary table:
 
 ### 2. Portfolio Command Center
 
-- **Token Variable**: `P10_PORTFOLIO_BOT_TOKEN`
-- **Chat Variable**: `P10_PORTFOLIO_CHAT_ID`
+- **Token Variable**: `MON_PORTFOLIO_BOT_TOKEN`
+- **Chat Variable**: `MON_PORTFOLIO_CHAT_ID`
 - **Entrypoint**: `capital_deployment/command_center_bot.py`
 - **Service**: UNKNOWN — no dedicated `.service` file found under `scripts/systemd/`; the Registry documents it as in-process, hosted by `crypto-advisor.service` (not found as a distinct systemd unit file in this scan either — `crypto_advisor.service` at repo root and `scripts/crypto_advisor.service` exist but were not opened to confirm they launch this bot; treat as UNKNOWN pending that confirmation).
 - **Polling (getUpdates)**: YES — `capital_deployment/command_center_bot.py:1235`
@@ -81,8 +81,8 @@ Notes on the summary table:
 
 ### 3. Quant Observer
 
-- **Token Variable**: `QC_BOT_TOKEN`
-- **Chat Variable**: `QC_CHAT_ID`
+- **Token Variable**: `QUANT_CRYPTO_BOT_TOKEN`
+- **Chat Variable**: `QUANT_CRYPTO_CHAT_ID`
 - **Entrypoint**: `src/telegram/quant_observer/bot.py` (also bootstrapped by `scripts/quant_observer_pin_bootstrap.py`)
 - **Service**: `crypto-quant-observer.service` (`scripts/systemd/crypto-quant-observer.service`)
 - **Polling (getUpdates)**: YES — `src/telegram/quant_observer/bot.py:73`
@@ -98,25 +98,25 @@ Notes on the summary table:
 
 ### 4. Rapport Automatique / Intel
 
-- **Token Variable**: `INTEL_BOT_TOKEN`
-- **Chat Variable**: `INTEL_BOT_CHAT_ID`
+- **Token Variable**: `RAPPORT_AUTOMATIQUE_BOT_TOKEN`
+- **Chat Variable**: `RAPPORT_AUTOMATIQUE_CHAT_ID`
 - **Entrypoint**: `quant_hedge_ai/agents/intelligence/system_intel_reporter.py` (builds the report content via `SystemIntelReporter.build_report`) + `core/advisor_loop.py::_send_intel` (actual Telegram sender)
 - **Service**: UNKNOWN — no dedicated `.service` file found; hosted in-process, invoked from `core/advisor_loop.py` (which is understood to run under `crypto-advisor.service`, not independently confirmed in this scan).
 - **Polling (getUpdates)**: NO — no `getUpdates` call found in either file.
-- **Push (sendMessage)**: YES — `core/advisor_loop.py:1046` (`requests.post(f".../bot{token}/sendMessage", ...)`), guarded by `core/advisor_loop.py:1039-1044` (silent no-op if `INTEL_BOT_TOKEN`/`INTEL_BOT_CHAT_ID` are unset).
+- **Push (sendMessage)**: YES — `core/advisor_loop.py:1046` (`requests.post(f".../bot{token}/sendMessage", ...)`), guarded by `core/advisor_loop.py:1039-1044` (silent no-op if `RAPPORT_AUTOMATIQUE_BOT_TOKEN`/`RAPPORT_AUTOMATIQUE_CHAT_ID` are unset).
 - **Current Message Types**: One periodic AI-generated natural-language briefing ("ChiefOfficer briefing"), per `core/advisor_loop.py:1031-1032` docstring.
 - **Estimated Frequency**: Every 6 hours (per `docs/architecture/TELEGRAM_BOT_REGISTRY.md` and matching comment intent in code; exact scheduling loop not located inside the two files reviewed here — treat schedule trigger site as UNKNOWN, content/frequency claim as documented).
 - **Mission (Proven)**: Push-only synthesis report, no interactive commands, no polling.
 - **Noise Assessment**: LOW-MEDIUM — fixed low frequency (6h) but content density unverified from code alone.
 - **Status**: ACTIVE
-- **Evidence**: `core/advisor_loop.py:792-793` (env vars), `core/advisor_loop.py:1030-1050` (`_send_intel`), `quant_hedge_ai/agents/intelligence/system_intel_reporter.py:15` (comment: "via INTEL_BOT_TOKEN — jamais mélangé avec @QuantCrpto_bot ou @mon_portfolio_bot").
+- **Evidence**: `core/advisor_loop.py:792-793` (env vars), `core/advisor_loop.py:1030-1050` (`_send_intel`), `quant_hedge_ai/agents/intelligence/system_intel_reporter.py:15` (comment: "via RAPPORT_AUTOMATIQUE_BOT_TOKEN — jamais mélangé avec @QuantCrpto_bot ou @mon_portfolio_bot").
 
 ---
 
 ### 5. Paper Arena
 
-- **Token Variable**: `PAPER_ARENA_TG_TOKEN`
-- **Chat Variable**: `PAPER_ARENA_TG_CHAT_ID`
+- **Token Variable**: `PAPER_ARENA_BOT_TOKEN`
+- **Chat Variable**: `PAPER_ARENA_CHAT_ID`
 - **Entrypoint**: `src/paper/paper_runner.py` (event triggers) + `src/paper/paper_report.py` (Telegram sender)
 - **Service**: `paper-arena.service` (`scripts/systemd/paper-arena.service`)
 - **Polling (getUpdates)**: NO — no `getUpdates` call found in either file.
@@ -132,8 +132,8 @@ Notes on the summary table:
 
 ### 6. CMVK / Sim Bot
 
-- **Token Variable**: `CMVK_BOT_TOKEN`
-- **Chat Variable**: `CMVK_CHAT_ID`
+- **Token Variable**: `TELEMETRIE_IA_BOT_TOKEN`
+- **Chat Variable**: `TELEMETRIE_IA_CHAT_ID`
 - **Entrypoint**: `src/telegram/bot_runner.py` (polling loop) + `src/telegram/sim_bot.py` (command handler, class `SimBot`)
 - **Service**: NONE found — no `.service` file under `scripts/systemd/` references this bot.
 - **Polling (getUpdates)**: YES — `src/telegram/bot_runner.py` (`_call(token, "getUpdates", ...)`, called from `run_forever`); also calls `deleteWebhook` for conflict clearing.
@@ -141,7 +141,7 @@ Notes on the summary table:
 - **Current Message Types**: Read-only inspection commands for a simulation core (`CMVK`): `/start`, `/help`, `/run`, `/status`, `/pnl`, `/trades`, `/runs`, `/stress`, `/history`, `/compare`, `/friction`, `/score`, `/distrib`, `/robust`, `/race`, `/validate`, `/overall`, `/breakdown`, `/market`. The former `/kill` / `/resume` control commands **have been removed** (see below).
 - **Estimated Frequency**: On-demand only.
 - **Mission (Proven, partial)**: Read-only inspection surface for a simulation ("CMVK") backtesting core — confirmed by command list in `src/telegram/sim_bot.py`. Not documented in `docs/architecture/TELEGRAM_BOT_REGISTRY.md`, which instead lists `@FtnTrading_bot` (SimBot) as **removed / not used in production**.
-- **Noise Assessment**: UNKNOWN — no evidence of active deployment (no systemd unit, no `.env.example` entries for `CMVK_BOT_TOKEN`/`CMVK_CHAT_ID`, only present in `.env.secrets.example`).
+- **Noise Assessment**: UNKNOWN — no evidence of active deployment (no systemd unit, no `.env.example` entries for `TELEMETRIE_IA_BOT_TOKEN`/`TELEMETRIE_IA_CHAT_ID`, only present in `.env.secrets.example`).
 - **Status**: UNKNOWN activity, but READ-ONLY compliant — code exists and is wired end-to-end (polling + handler), but no deployment evidence (no service file, not in `.env.example`, marked "removed" in the Registry's "Bots supprimés" table for a bot with a matching description). The control-command violation below has been resolved.
 - **Evidence**: `src/telegram/sim_bot.py` module docstring ("CMVK Experimental Observer — READ-ONLY / Constitutional rule: no control commands permitted. This bot observes simulations. It does not control production."), `src/telegram/bot_runner.py` (full polling loop, `getUpdates`/`sendMessage`/`deleteWebhook`), `docs/architecture/TELEGRAM_BOT_REGISTRY.md:26-28` ("Bots supprimés" table lists `@FtnTrading_bot` (SimBot) as removed), `docs/TELEGRAM_ARCHITECTURE_AUDIT.md` ("⚪ Sim/CMVK Bot" row — same UNKNOWN conclusion reached independently in the prior audit), `tests/test_sim_bot.py` (`test_kill_command_removed`, `test_resume_command_removed` assert both commands now return `"Commande inconnue"`).
 
@@ -195,4 +195,4 @@ Notes on the summary table:
 - Functional contract (source of truth for intended behavior): `docs/architecture/TELEGRAM_BOT_REGISTRY.md`
 - Constitutional principles: `docs/TELEGRAM_CONSTITUTION.md`
 - Prior forensic audit (2026-08-28, same date, independently corroborated by this scan): `docs/TELEGRAM_ARCHITECTURE_AUDIT.md`
-- `.env.example` and `.env.secrets.example` contain placeholders (never values) for all token/chat variables listed above except `CMVK_BOT_TOKEN`/`CMVK_CHAT_ID`, which appear only in `.env.secrets.example`, and `KILLSWITCH_BOT_TOKEN`/`KILLSWITCH_CHAT_ID`, which appear in neither file.
+- `.env.example` and `.env.secrets.example` contain placeholders (never values) for all token/chat variables listed above except `TELEMETRIE_IA_BOT_TOKEN`/`TELEMETRIE_IA_CHAT_ID`, which appear only in `.env.secrets.example`, and `KILLSWITCH_BOT_TOKEN`/`KILLSWITCH_CHAT_ID`, which appear in neither file.

@@ -14,10 +14,10 @@
 | Bot BotFather | Username | Token ENV | Rôle | Type |
 |---|---|---|---|---|
 | CryptoRadar_Bot | `@RadarCrypto1_bot` | `RADAR_BOT_TOKEN` (aucun fallback — isolé) | 📡 Scanner marché | Polling + réactif |
-| Mon Portefeuille Bot | `@mon_portfolio_bot` | `P10_PORTFOLIO_BOT_TOKEN` | 💼 Capital + performance | Polling + rapports auto |
-| Quant_Crypto 🔥 | `@QuantCrpto_bot` | `QC_BOT_TOKEN` | 🔬 Univers + régime + signaux + méta | Polling + message épinglé |
-| Rapport Automatique | `@rapport_automatique_bot` | `INTEL_BOT_TOKEN` | 🧠 Rapports IA 6h | Push uniquement |
-| PaperArena | `@PaperArena_bot` | `PAPER_ARENA_TG_TOKEN` | 🧪 Expérience RSI ETH/4H | Push uniquement |
+| Mon Portefeuille Bot | `@mon_portfolio_bot` | `MON_PORTFOLIO_BOT_TOKEN` | 💼 Capital + performance | Polling + rapports auto |
+| Quant_Crypto 🔥 | `@QuantCrpto_bot` | `QUANT_CRYPTO_BOT_TOKEN` | 🔬 Univers + régime + signaux + méta | Polling + message épinglé |
+| Rapport Automatique | `@rapport_automatique_bot` | `RAPPORT_AUTOMATIQUE_BOT_TOKEN` | 🧠 Rapports IA 6h | Push uniquement |
+| PaperArena | `@PaperArena_bot` | `PAPER_ARENA_BOT_TOKEN` | 🧪 Expérience RSI ETH/4H | Push uniquement |
 
 ## Bots supprimés
 
@@ -79,10 +79,10 @@
 | Bot | Token ENV | Chat ENV | Source principale | Service systemd | Polling owner | Auto-messages |
 |-----|-----------|----------|-------------------|-----------------|---------------|---------------|
 | 📡 CryptoRadar | `RADAR_BOT_TOKEN` (aucun fallback — isolé) | `RADAR_CHAT_ID` (aucun fallback — isolé) | `scripts/radar_bot.py` | `crypto-radar-bot.service` | Oui | *Aucun* (réactif) |
-| 💼 Portfolio | `P10_PORTFOLIO_BOT_TOKEN` | `P10_PORTFOLIO_CHAT_ID` | `capital_deployment/command_center_bot.py` | in-process `crypto-advisor` | Oui | Rapports périodiques |
-| 🔬 Quant Observer | `QC_BOT_TOKEN` | `QC_CHAT_ID` | `src/telegram/quant_observer/bot.py` | `crypto-quant-observer.service` | Oui | Message épinglé 10 min |
-| 🧠 Rapport Auto | `INTEL_BOT_TOKEN` | `INTEL_BOT_CHAT_ID` | `quant_hedge_ai/agents/intelligence/system_intel_reporter.py` | in-process `crypto-advisor` | Non | Push 6h |
-| 🧪 Paper Arena | `PAPER_ARENA_TG_TOKEN` | `PAPER_ARENA_TG_CHAT_ID` | `src/paper/paper_runner.py` | `paper-arena.service` | Non | Push événements |
+| 💼 Portfolio | `MON_PORTFOLIO_BOT_TOKEN` | `MON_PORTFOLIO_CHAT_ID` | `capital_deployment/command_center_bot.py` | in-process `crypto-advisor` | Oui | Rapports périodiques |
+| 🔬 Quant Observer | `QUANT_CRYPTO_BOT_TOKEN` | `QUANT_CRYPTO_CHAT_ID` | `src/telegram/quant_observer/bot.py` | `crypto-quant-observer.service` | Oui | Message épinglé 10 min |
+| 🧠 Rapport Auto | `RAPPORT_AUTOMATIQUE_BOT_TOKEN` | `RAPPORT_AUTOMATIQUE_CHAT_ID` | `quant_hedge_ai/agents/intelligence/system_intel_reporter.py` | in-process `crypto-advisor` | Non | Push 6h |
+| 🧪 Paper Arena | `PAPER_ARENA_BOT_TOKEN` | `PAPER_ARENA_CHAT_ID` | `src/paper/paper_runner.py` | `paper-arena.service` | Non | Push événements |
 
 ---
 
@@ -156,8 +156,8 @@ FORBIDDEN
 IDENTITY
   Name            : 💼 Portfolio (CommandCenter)
   BotFather       : @mon_portfolio_bot
-  Token ENV       : P10_PORTFOLIO_BOT_TOKEN
-  Chat ENV        : P10_PORTFOLIO_CHAT_ID
+  Token ENV       : MON_PORTFOLIO_BOT_TOKEN
+  Chat ENV        : MON_PORTFOLIO_CHAT_ID
   Source          : capital_deployment/command_center_bot.py
   Service         : in-process crypto-advisor.service
   Polling owner   : Oui
@@ -210,8 +210,8 @@ FORBIDDEN
 IDENTITY
   Name            : 🔬 Quant Observer
   BotFather       : @QuantCrpto_bot
-  Token ENV       : QC_BOT_TOKEN
-  Chat ENV        : QC_CHAT_ID
+  Token ENV       : QUANT_CRYPTO_BOT_TOKEN
+  Chat ENV        : QUANT_CRYPTO_CHAT_ID
   Source          : src/telegram/quant_observer/bot.py
   Service         : crypto-quant-observer.service
   Polling owner   : Oui + refresh message épinglé (10 min)
@@ -258,8 +258,8 @@ FORBIDDEN
 IDENTITY
   Name            : 🧠 Rapport Automatique
   BotFather       : @rapport_automatique_bot
-  Token ENV       : INTEL_BOT_TOKEN
-  Chat ENV        : INTEL_BOT_CHAT_ID
+  Token ENV       : RAPPORT_AUTOMATIQUE_BOT_TOKEN
+  Chat ENV        : RAPPORT_AUTOMATIQUE_CHAT_ID
   Source          : quant_hedge_ai/agents/intelligence/system_intel_reporter.py
   Service         : in-process crypto-advisor.service
   Polling owner   : Non (push uniquement)
@@ -287,8 +287,8 @@ FORBIDDEN
 IDENTITY
   Name            : 🧪 Paper Arena
   BotFather       : @PaperArena_bot
-  Token ENV       : PAPER_ARENA_TG_TOKEN
-  Chat ENV        : PAPER_ARENA_TG_CHAT_ID
+  Token ENV       : PAPER_ARENA_BOT_TOKEN
+  Chat ENV        : PAPER_ARENA_CHAT_ID
   Source          : src/paper/paper_runner.py + src/paper/paper_report.py
   Service         : paper-arena.service
   Polling owner   : Non (push uniquement)
@@ -327,7 +327,7 @@ FORBIDDEN
 | 5 | `/signals` dans Portfolio (scores par symbole) | Retiré du dispatch et du rapport auto | ✅ Résolu |
 | 6 | `/portfolio` dans Quant Observer | Retiré + handler de redirection | ✅ Résolu |
 | 7 | Commandes d'écriture dans Portfolio (`/pause` `/resume` `/set` etc.) | Retirées — constitution 2026-08-28 | ✅ Résolu |
-| 8 | `@QuantCrpto_bot` non mappé dans le Registry | Mappé → `QC_BOT_TOKEN` | ✅ Résolu |
+| 8 | `@QuantCrpto_bot` non mappé dans le Registry | Mappé → `QUANT_CRYPTO_BOT_TOKEN` | ✅ Résolu |
 
 ---
 
@@ -382,7 +382,7 @@ PHASE 5 — Runtime VPS Audit
   `.env.secrets.example:88-89`.
 - Per `.env.secrets.example:74-90` ("Bot 5/8 : @mon_portfolio_bot"), this
   identity shares the **same physical BotFather token** as
-  `P10_PORTFOLIO_BOT_TOKEN` (the Portfolio/CommandCenter bot documented
+  `MON_PORTFOLIO_BOT_TOKEN` (the Portfolio/CommandCenter bot documented
   above), used send-only in parallel with CommandCenter's own reporting.
   This relationship — and the "single poller" constraint it depends on — is
   not recorded anywhere in this Registry.

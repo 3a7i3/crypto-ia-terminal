@@ -12,7 +12,7 @@ pas une analyse de marché générique. Répond toujours aux mêmes questions :
   6. Quelle est la recommandation actionnable ?
 
 Destination exclusive : bot Intelligence (@rapport_automatique_bot),
-via INTEL_BOT_TOKEN — jamais mélangé avec @QuantCrpto_bot ou @mon_portfolio_bot.
+via RAPPORT_AUTOMATIQUE_BOT_TOKEN — jamais mélangé avec @QuantCrpto_bot ou @mon_portfolio_bot.
 
 Persistance d'un snapshot léger (cache/intel_reports/last_snapshot.json)
 pour calculer les deltas entre deux rapports consécutifs.

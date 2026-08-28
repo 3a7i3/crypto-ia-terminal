@@ -1,6 +1,6 @@
 """
 SimBot — Telegram bot exclusivement dédié au noyau de simulation CMVK.
-Token : CMVK_BOT_TOKEN  /  Chat : CMVK_CHAT_ID
+Token : TELEMETRIE_IA_BOT_TOKEN  /  Chat : TELEMETRIE_IA_CHAT_ID
 Isolé des bots live. Affiche uniquement les logs du simulateur.
 
 # CMVK Experimental Observer — READ-ONLY

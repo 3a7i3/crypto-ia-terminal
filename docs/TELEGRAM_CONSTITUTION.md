@@ -32,8 +32,8 @@ depuis plus d'un processus à la fois — Telegram renvoie une erreur `409
 Conflict` sinon, et le comportement devient non déterministe (un seul des
 deux processus reçoit réellement les messages). L'audit a confirmé que chaque
 identité active (CryptoRadar, Portfolio, Quant Observer) possède aujourd'hui
-son propre token dédié (`RADAR_BOT_TOKEN`, `P10_PORTFOLIO_BOT_TOKEN`,
-`QC_BOT_TOKEN`) et son propre processus de polling. Le seul poller partageant
+son propre token dédié (`RADAR_BOT_TOKEN`, `MON_PORTFOLIO_BOT_TOKEN`,
+`QUANT_CRYPTO_BOT_TOKEN`) et son propre processus de polling. Le seul poller partageant
 historiquement un token avec un autre usage était `scripts/radar_bot.py` via
 son fallback vers `TELEGRAM_BOT_TOKEN` — corrigé par ce patch.
 

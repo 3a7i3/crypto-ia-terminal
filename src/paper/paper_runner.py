@@ -4,8 +4,8 @@ Mission : répondre à une seule question scientifique.
   L'edge observé en recherche survit-il à des données réelles ?
 
 Env vars requis :
-  PAPER_ARENA_TG_TOKEN   — token Telegram bot dédié
-  PAPER_ARENA_TG_CHAT_ID — chat id destinataire
+  PAPER_ARENA_BOT_TOKEN — token Telegram bot dédié
+  PAPER_ARENA_CHAT_ID   — chat id destinataire
 """
 
 import logging

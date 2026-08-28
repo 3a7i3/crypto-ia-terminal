@@ -1,8 +1,8 @@
 """
 Polling loop du SimBot.
 Variables d'environnement requises :
-  CMVK_BOT_TOKEN  — token du bot Telegram dédié simulation
-  CMVK_CHAT_ID    — chat_id autorisé
+  TELEMETRIE_IA_BOT_TOKEN  — token du bot Telegram dédié simulation
+  TELEMETRIE_IA_CHAT_ID    — chat_id autorisé
 
 Lancement :
   python -m src.telegram.bot_runner
@@ -145,8 +145,8 @@ def run_forever(token: str, chat_id: str, poll_timeout: int = _TIMEOUT) -> None:
 
 
 if __name__ == "__main__":
-    _token = os.environ.get("CMVK_BOT_TOKEN", "")
-    _chat = os.environ.get("CMVK_CHAT_ID", "")
+    _token = os.environ.get("TELEMETRIE_IA_BOT_TOKEN", "")
+    _chat = os.environ.get("TELEMETRIE_IA_CHAT_ID", "")
     if not _token or not _chat:
-        raise SystemExit("CMVK_BOT_TOKEN et CMVK_CHAT_ID doivent être définis.")
+        raise SystemExit("TELEMETRIE_IA_BOT_TOKEN et TELEMETRIE_IA_CHAT_ID doivent être définis.")
     run_forever(_token, _chat)

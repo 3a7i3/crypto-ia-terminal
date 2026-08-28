@@ -47,7 +47,7 @@ All messages are replies to a user command (`poll_loop()` in
 | 3 | `scripts/radar_bot.py:314` | Unrecognized `/command` | `Commande inconnue: /{cmd}\nTape /help` | On-demand | Low | KEEP | None |
 | 4 | `scripts/radar_bot.py:341` | `--once` CLI mode, same dispatch as above | Same as row 1 | On-demand (batch flush mode) | High | KEEP | None |
 
-### 💼 Portfolio / CommandCenter (`@mon_portfolio_bot`, `P10_PORTFOLIO_BOT_TOKEN`)
+### 💼 Portfolio / CommandCenter (`@mon_portfolio_bot`, `MON_PORTFOLIO_BOT_TOKEN`)
 
 | # | File:Line | Trigger | Content Template | Frequency | Human Value | Classification | Proposed Action |
 |---|---|---|---|---|---|---|---|
@@ -57,7 +57,7 @@ All messages are replies to a user command (`poll_loop()` in
 | 4 | `capital_deployment/command_center_bot.py:1332` | `/pause /resume /set /setphase /maxorder /reset /restart /confirm /cancel` | "🔒 Commande de contrôle désactivée — Constitution 2026-08-28" | On-demand (attempted control command) | Low (informational refusal) | SUMMARIZE | Message is correct and intentional, but the module docstring (`capital_deployment/command_center_bot.py:33-39`, "🔧 CONTRÔLE" section) still lists `/pause /resume /setphase /maxorder /confirm /cancel` as if active — **documentation is stale relative to the code**, which already blocks them. Update the docstring to match the runtime behavior (out of scope for this audit; flagged for follow-up, not fixed here per task rules). |
 | 5 | `capital_deployment/command_center_bot.py:1346` | Exception during command routing | `Erreur: {exc}` | On-demand, rare | Low | KEEP | None |
 
-### 🔬 Quant Observer (`@QuantCrpto_bot`, `QC_BOT_TOKEN`)
+### 🔬 Quant Observer (`@QuantCrpto_bot`, `QUANT_CRYPTO_BOT_TOKEN`)
 
 | # | File:Line | Trigger | Content Template | Frequency | Human Value | Classification | Proposed Action |
 |---|---|---|---|---|---|---|---|
@@ -67,14 +67,14 @@ All messages are replies to a user command (`poll_loop()` in
 | 4 | `src/telegram/quant_observer/bot.py:201` (`send_photo`) | `/snapshot /health /pipeline` | Rendered PNG chart with caption | On-demand | High | KEEP | None |
 | 5 | `scripts/quant_observer_pin_bootstrap.py:83-86` | One-time manual bootstrap script (operator runs it once to create the pinned message) | "SDOS LIVE — bootstrap" placeholder | One-time (manual operator action, not recurring) | N/A (setup utility, not a notification) | KEEP | None — not a recurring notification, exempt from noise concerns |
 
-### 🧠 Rapport Automatique / Intel (`@rapport_automatique_bot`, `INTEL_BOT_TOKEN`)
+### 🧠 Rapport Automatique / Intel (`@rapport_automatique_bot`, `RAPPORT_AUTOMATIQUE_BOT_TOKEN`)
 
 | # | File:Line | Trigger | Content Template | Frequency | Human Value | Classification | Proposed Action |
 |---|---|---|---|---|---|---|---|
 | 1 | `core/advisor_loop.py:7139` (via `_send_intel`, defined `core/advisor_loop.py:1031-1055`) | `_now - _last_intel_ts >= INTEL_INTERVAL_S` (`INTEL_REPORT_EVERY_H`, default 6h) — `core/advisor_loop.py:7099-7101` | `SystemIntelReporter.build_report()` — full 6h AI briefing (awareness, regret, mistakes, dataset quality) | Every 6h (default) | High — matches Principe 10 ("scientific conclusion over raw event") as long as content stays a summary | KEEP | None, provided report content remains a synthesis (already the stated design) |
 | 2 | `scripts/test_intel_report.py:80` (`send_to_intel`) | Manual CLI invocation (`python scripts/test_intel_report.py`) | Identical content to production report (calls the same `SystemIntelReporter.build_report()`) | Manual / on-demand (diagnostic tool) | N/A (test utility) | KEEP | None — not a production notification path |
 
-### 🧪 Paper Arena (`@PaperArena_bot`, `PAPER_ARENA_TG_TOKEN`)
+### 🧪 Paper Arena (`@PaperArena_bot`, `PAPER_ARENA_BOT_TOKEN`)
 
 | # | File:Line | Trigger | Content Template | Frequency | Human Value | Classification | Proposed Action |
 |---|---|---|---|---|---|---|---|

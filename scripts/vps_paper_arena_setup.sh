@@ -12,18 +12,18 @@ LOG_FILE="$HOME/crypto_ai_terminal/logs/paper_arena.log"
 echo "=== Paper Arena V1 — Setup ==="
 
 # ── 1. Variables requises ─────────────────────────────────────────────────────
-if ! grep -q "PAPER_ARENA_TG_TOKEN" "$ENV_FILE" 2>/dev/null; then
+if ! grep -q "PAPER_ARENA_BOT_TOKEN" "$ENV_FILE" 2>/dev/null; then
     echo ""
-    echo "ERREUR : PAPER_ARENA_TG_TOKEN manquant dans $ENV_FILE"
+    echo "ERREUR : PAPER_ARENA_BOT_TOKEN manquant dans $ENV_FILE"
     echo "Ajouter dans .env :"
-    echo "  PAPER_ARENA_TG_TOKEN=<token_bot_dédié>"
-    echo "  PAPER_ARENA_TG_CHAT_ID=<chat_id>"
+    echo "  PAPER_ARENA_BOT_TOKEN=<token_bot_dédié>"
+    echo "  PAPER_ARENA_CHAT_ID=<chat_id>"
     exit 1
 fi
 
-if ! grep -q "PAPER_ARENA_TG_CHAT_ID" "$ENV_FILE" 2>/dev/null; then
+if ! grep -q "PAPER_ARENA_CHAT_ID" "$ENV_FILE" 2>/dev/null; then
     echo ""
-    echo "ERREUR : PAPER_ARENA_TG_CHAT_ID manquant dans $ENV_FILE"
+    echo "ERREUR : PAPER_ARENA_CHAT_ID manquant dans $ENV_FILE"
     exit 1
 fi
 

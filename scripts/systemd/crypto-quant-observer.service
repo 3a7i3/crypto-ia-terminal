@@ -3,8 +3,8 @@
 # un message epingle toutes les PINNED_UPDATE_S secondes (defaut 600 = 10 min).
 #
 # Prerequis dans .env (deja presents pour le token, a completer pour l'ID pin) :
-#   QC_BOT_TOKEN=<token bot @QuantCrypto_bot>
-#   QC_CHAT_ID=<id chat cible>
+#   QUANT_CRYPTO_BOT_TOKEN=<token bot @QuantCrypto_bot>
+#   QUANT_CRYPTO_CHAT_ID=<id chat cible>
 #   QC_PINNED_MSG_ID=<id du message epingle a rafraichir>  # cree via bootstrap
 #   QC_POLL_INTERVAL=2       # (optionnel) intervalle polling commandes en s
 #   QC_PINNED_UPDATE=600     # (optionnel) intervalle refresh pin en s

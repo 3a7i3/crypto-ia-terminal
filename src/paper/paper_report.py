@@ -8,14 +8,14 @@ from .paper_metrics import PaperMetrics
 
 logger = logging.getLogger(__name__)
 
-_TOKEN = os.getenv("PAPER_ARENA_TG_TOKEN", "")
-_CHAT = os.getenv("PAPER_ARENA_TG_CHAT_ID", "")
+_TOKEN = os.getenv("PAPER_ARENA_BOT_TOKEN", "")
+_CHAT = os.getenv("PAPER_ARENA_CHAT_ID", "")
 
 
 def _send(text: str) -> None:
     if not _TOKEN or not _CHAT:
         logger.debug(
-            "Telegram not configured (PAPER_ARENA_TG_TOKEN / PAPER_ARENA_TG_CHAT_ID)"
+            "Telegram not configured (PAPER_ARENA_BOT_TOKEN / PAPER_ARENA_CHAT_ID)"
         )
         return
     try:

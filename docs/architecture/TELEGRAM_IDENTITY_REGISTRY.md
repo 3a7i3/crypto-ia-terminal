@@ -27,15 +27,15 @@ Constitutional rule: Telegram = read-only observation layer. Zero control comman
 **7 official identities** (6 bots + 1 generic push channel) — as of 2026-08-28 merge.
 
 > **Architecture decision 2026-08-28**: `REAL_ACCOUNT_BOT_TOKEN` has been removed.
-> It was confirmed to be the same physical BotFather token as `P10_PORTFOLIO_BOT_TOKEN`.
+> It was confirmed to be the same physical BotFather token as `MON_PORTFOLIO_BOT_TOKEN`.
 > All real-account push notifications in `core/advisor_loop.py::_telegram_real()`
-> now route through `P10_PORTFOLIO_BOT_TOKEN` / `P10_PORTFOLIO_CHAT_ID`.
+> now route through `MON_PORTFOLIO_BOT_TOKEN` / `MON_PORTFOLIO_CHAT_ID`.
 > The variable `REAL_ACCOUNT_BOT_TOKEN` has been deleted from `.env.secrets.example`
 > and from `core/advisor_loop.py`.
 
 Audit history: forensic scan found 10 distinct token-variable groups in the codebase,
 reduced to 7 official identities after:
-- merging `REAL_ACCOUNT_BOT_TOKEN` into `P10_PORTFOLIO_BOT_TOKEN` (same physical token, operator confirmed)
+- merging `REAL_ACCOUNT_BOT_TOKEN` into `MON_PORTFOLIO_BOT_TOKEN` (same physical token, operator confirmed)
 - classifying `NARRATOR_BOT_TOKEN` as dead code (commented-out placeholder only, never wired)
 - classifying `KILLSWITCH_BOT_TOKEN` as dead code (prose reference only, never wired to `os.getenv`)
 
@@ -47,11 +47,11 @@ identity was found anywhere in the repository.
 | ID | Identity Name | Token Variable | Chat Variable | Type | Polling | Push | Service | Documented | Status |
 |---|---|---|---|---|---|---|---|---|---|
 | IDENTITY-01 | CryptoRadar | `RADAR_BOT_TOKEN` | `RADAR_CHAT_ID` | INTERACTIVE | YES | YES | `crypto-radar-bot.service` | YES | ACTIVE |
-| IDENTITY-02 | Portfolio (CommandCenter) | `P10_PORTFOLIO_BOT_TOKEN` | `P10_PORTFOLIO_CHAT_ID` | INTERACTIVE | YES | YES | in-process `crypto-advisor.service` | YES | ACTIVE |
-| IDENTITY-03 | Quant Observer | `QC_BOT_TOKEN` | `QC_CHAT_ID` | INTERACTIVE | YES | YES | `crypto-quant-observer.service` | YES | ACTIVE |
-| IDENTITY-04 | Rapport Automatique / Intel | `INTEL_BOT_TOKEN` | `INTEL_BOT_CHAT_ID` | PUSH_ONLY | NO | YES | in-process `crypto-advisor.service` | YES | ACTIVE |
-| IDENTITY-05 | Paper Arena | `PAPER_ARENA_TG_TOKEN` | `PAPER_ARENA_TG_CHAT_ID` | PUSH_ONLY | NO | YES | `paper-arena.service` | YES | ACTIVE |
-| IDENTITY-06 | CMVK / Sim Bot | `CMVK_BOT_TOKEN` | `CMVK_CHAT_ID` | INTERACTIVE (code) | YES | YES | NONE found | PARTIAL | UNKNOWN |
+| IDENTITY-02 | Portfolio (CommandCenter) | `MON_PORTFOLIO_BOT_TOKEN` | `MON_PORTFOLIO_CHAT_ID` | INTERACTIVE | YES | YES | in-process `crypto-advisor.service` | YES | ACTIVE |
+| IDENTITY-03 | Quant Observer | `QUANT_CRYPTO_BOT_TOKEN` | `QUANT_CRYPTO_CHAT_ID` | INTERACTIVE | YES | YES | `crypto-quant-observer.service` | YES | ACTIVE |
+| IDENTITY-04 | Rapport Automatique / Intel | `RAPPORT_AUTOMATIQUE_BOT_TOKEN` | `RAPPORT_AUTOMATIQUE_CHAT_ID` | PUSH_ONLY | NO | YES | in-process `crypto-advisor.service` | YES | ACTIVE |
+| IDENTITY-05 | Paper Arena | `PAPER_ARENA_BOT_TOKEN` | `PAPER_ARENA_CHAT_ID` | PUSH_ONLY | NO | YES | `paper-arena.service` | YES | ACTIVE |
+| IDENTITY-06 | CMVK / Sim Bot | `TELEMETRIE_IA_BOT_TOKEN` | `TELEMETRIE_IA_CHAT_ID` | INTERACTIVE (code) | YES | YES | NONE found | PARTIAL | UNKNOWN |
 | IDENTITY-07 | Generic Alerts (Moteur) | `TELEGRAM_BOT_TOKEN` | `TELEGRAM_CHAT_ID` / `TELEGRAM_BEHAVIOR_CHAT_ID` | PUSH_ONLY | NO | YES | in-process `crypto-advisor.service` + standalone scripts | PARTIAL | ACTIVE |
 | IDENTITY-08 | ~~Real Account Bot~~ | ~~`REAL_ACCOUNT_BOT_TOKEN`~~ | ~~`REAL_ACCOUNT_CHAT_ID`~~ | **MERGED** | — | — | — | — | **MERGED → IDENTITY-02** |
 | IDENTITY-09 | KillSwitch (legacy, dead code) | `KILLSWITCH_BOT_TOKEN` (never wired) | `KILLSWITCH_CHAT_ID` (never wired) | DEAD_CODE | N/A | N/A | NONE | PARTIAL | DEAD_CODE |
@@ -84,8 +84,8 @@ Status: ACTIVE / INACTIVE / DEAD_CODE / UNKNOWN
 ---
 
 ### [IDENTITY-02] Portfolio (CommandCenter)
-- **Token Variable**: `P10_PORTFOLIO_BOT_TOKEN`
-- **Chat Variable**: `P10_PORTFOLIO_CHAT_ID`
+- **Token Variable**: `MON_PORTFOLIO_BOT_TOKEN`
+- **Chat Variable**: `MON_PORTFOLIO_CHAT_ID`
 - **Type**: INTERACTIVE
 - **Entrypoint**: `capital_deployment/command_center_bot.py`, instantiated from `core/advisor_loop.py:3633-3718` (`CommandCenterBot.from_env(...)` then `.start()`)
 - **Service**: in-process `crypto-advisor.service` (`scripts/systemd/crypto-advisor.service`, `ExecStart=... python core/advisor_loop.py`) — no dedicated `.service` file exists for this bot specifically.
@@ -93,17 +93,17 @@ Status: ACTIVE / INACTIVE / DEAD_CODE / UNKNOWN
 - **Push (sendMessage)**: YES — `capital_deployment/command_center_bot.py:1200`
 - **In .env.example**: YES — `.env.example:63-64`
 - **In TELEGRAM_BOT_REGISTRY.md**: YES — full profile present ("BOT: Portfolio" section)
-- **Call sites**: `capital_deployment/command_center_bot.py:1132` (`token = os.getenv("P10_PORTFOLIO_BOT_TOKEN", "")`), `capital_deployment/command_center_bot.py:1133` (`chat_id = os.getenv("P10_PORTFOLIO_CHAT_ID", os.getenv("TELEGRAM_CHAT_ID", ""))` — chat has a fallback to the generic `TELEGRAM_CHAT_ID`; the token does not)
+- **Call sites**: `capital_deployment/command_center_bot.py:1132` (`token = os.getenv("MON_PORTFOLIO_BOT_TOKEN", "")`), `capital_deployment/command_center_bot.py:1133` (`chat_id = os.getenv("MON_PORTFOLIO_CHAT_ID", os.getenv("TELEGRAM_CHAT_ID", ""))` — chat has a fallback to the generic `TELEGRAM_CHAT_ID`; the token does not)
 - **Mission (evidence-based)**: Capital/performance reporting — read-only commands `/status /kpis /balance /positions /pnl /phase /regime /risk /health /eo /gate /perf /recap /history /logs /config /get /certif /charts /help` per `docs/architecture/TELEGRAM_BOT_REGISTRY.md:152-202`.
 - **Owner**: UNKNOWN (not documented)
 - **Status**: ACTIVE
-- **Governance gaps**: Chat variable has a partial fallback to the generic `TELEGRAM_CHAT_ID` (token does not) — low risk of a misdirected message if `P10_PORTFOLIO_CHAT_ID` is unset, but not a polling collision since only the token identifies the poller.
+- **Governance gaps**: Chat variable has a partial fallback to the generic `TELEGRAM_CHAT_ID` (token does not) — low risk of a misdirected message if `MON_PORTFOLIO_CHAT_ID` is unset, but not a polling collision since only the token identifies the poller.
 
 ---
 
 ### [IDENTITY-03] Quant Observer
-- **Token Variable**: `QC_BOT_TOKEN`
-- **Chat Variable**: `QC_CHAT_ID`
+- **Token Variable**: `QUANT_CRYPTO_BOT_TOKEN`
+- **Chat Variable**: `QUANT_CRYPTO_CHAT_ID`
 - **Type**: INTERACTIVE
 - **Entrypoint**: `src/telegram/quant_observer/bot.py` (also bootstrapped once by `scripts/quant_observer_pin_bootstrap.py`)
 - **Service**: `crypto-quant-observer.service` (`scripts/systemd/crypto-quant-observer.service`, `ExecStart=... python -m src.telegram.quant_observer.bot`)
@@ -111,7 +111,7 @@ Status: ACTIVE / INACTIVE / DEAD_CODE / UNKNOWN
 - **Push (sendMessage)**: YES — `src/telegram/quant_observer/bot.py:56`; also `sendPhoto` at `src/telegram/quant_observer/bot.py:48`
 - **In .env.example**: NO — only present in `.env.secrets.example` (also `QC_PINNED_MSG_ID`, `QC_POLL_INTERVAL`, `QC_PINNED_UPDATE`)
 - **In TELEGRAM_BOT_REGISTRY.md**: YES — full profile present ("BOT: Quant Observer" section)
-- **Call sites**: `src/telegram/quant_observer/bot.py:25` (`QC_BOT_TOKEN = os.getenv("QC_BOT_TOKEN", "")`), `src/telegram/quant_observer/bot.py:26` (`QC_CHAT_ID = os.getenv("QC_CHAT_ID", "")`), guard raises at `src/telegram/quant_observer/bot.py:213-216` if either is unset
+- **Call sites**: `src/telegram/quant_observer/bot.py:25` (`QUANT_CRYPTO_BOT_TOKEN = os.getenv("QUANT_CRYPTO_BOT_TOKEN", "")`), `src/telegram/quant_observer/bot.py:26` (`QUANT_CRYPTO_CHAT_ID = os.getenv("QUANT_CRYPTO_CHAT_ID", "")`), guard raises at `src/telegram/quant_observer/bot.py:213-216` if either is unset
 - **Mission (evidence-based)**: Decision-engine microstructure observer — universe scanned, dominant regime, aggregated signal scores, meta-strategy state; explicitly excludes capital/equity/PnL per Registry.
 - **Owner**: UNKNOWN (not documented)
 - **Status**: ACTIVE
@@ -120,8 +120,8 @@ Status: ACTIVE / INACTIVE / DEAD_CODE / UNKNOWN
 ---
 
 ### [IDENTITY-04] Rapport Automatique / Intel
-- **Token Variable**: `INTEL_BOT_TOKEN`
-- **Chat Variable**: `INTEL_BOT_CHAT_ID`
+- **Token Variable**: `RAPPORT_AUTOMATIQUE_BOT_TOKEN`
+- **Chat Variable**: `RAPPORT_AUTOMATIQUE_CHAT_ID`
 - **Type**: PUSH_ONLY
 - **Entrypoint**: `quant_hedge_ai/agents/intelligence/system_intel_reporter.py` (builds report content) + `core/advisor_loop.py::_send_intel` (`core/advisor_loop.py:1031-1053`, actual sender)
 - **Service**: in-process `crypto-advisor.service` — no dedicated `.service` file.
@@ -129,8 +129,8 @@ Status: ACTIVE / INACTIVE / DEAD_CODE / UNKNOWN
 - **Push (sendMessage)**: YES — `core/advisor_loop.py:1048` (`requests.post(f".../bot{token}/sendMessage", ...)`), guarded by `core/advisor_loop.py:1040-1044` (silent no-op + debug log if unset)
 - **In .env.example**: YES — `.env.example:74-75`
 - **In TELEGRAM_BOT_REGISTRY.md**: YES — full profile present ("BOT: Rapport Automatique" section)
-- **Call sites**: `core/advisor_loop.py:792` (`INTEL_TOKEN = os.getenv("INTEL_BOT_TOKEN", "")`), `core/advisor_loop.py:793` (`INTEL_CHAT = os.getenv("INTEL_BOT_CHAT_ID", "")`)
-- **Mission (evidence-based)**: One periodic AI-generated natural-language briefing every ~6h (`INTEL_INTERVAL_S = int(os.getenv("INTEL_REPORT_EVERY_H", "6")) * 3600`, `core/advisor_loop.py:794`), no interactive commands, no polling — comment at `core/advisor_loop.py:1031-1035` explicitly states "Utilise exclusivement INTEL_BOT_TOKEN + INTEL_BOT_CHAT_ID... Si non configuré : silencieux (pas de fallback vers @QuantCrpto_bot)."
+- **Call sites**: `core/advisor_loop.py:792` (`INTEL_TOKEN = os.getenv("RAPPORT_AUTOMATIQUE_BOT_TOKEN", "")`), `core/advisor_loop.py:793` (`INTEL_CHAT = os.getenv("RAPPORT_AUTOMATIQUE_CHAT_ID", "")`)
+- **Mission (evidence-based)**: One periodic AI-generated natural-language briefing every ~6h (`INTEL_INTERVAL_S = int(os.getenv("INTEL_REPORT_EVERY_H", "6")) * 3600`, `core/advisor_loop.py:794`), no interactive commands, no polling — comment at `core/advisor_loop.py:1031-1035` explicitly states "Utilise exclusivement RAPPORT_AUTOMATIQUE_BOT_TOKEN + RAPPORT_AUTOMATIQUE_CHAT_ID... Si non configuré : silencieux (pas de fallback vers @QuantCrpto_bot)."
 - **Owner**: UNKNOWN (not documented)
 - **Status**: ACTIVE
 - **Governance gaps**: None found.
@@ -138,8 +138,8 @@ Status: ACTIVE / INACTIVE / DEAD_CODE / UNKNOWN
 ---
 
 ### [IDENTITY-05] Paper Arena
-- **Token Variable**: `PAPER_ARENA_TG_TOKEN`
-- **Chat Variable**: `PAPER_ARENA_TG_CHAT_ID`
+- **Token Variable**: `PAPER_ARENA_BOT_TOKEN`
+- **Chat Variable**: `PAPER_ARENA_CHAT_ID`
 - **Type**: PUSH_ONLY
 - **Entrypoint**: `src/paper/paper_runner.py` (event triggers) + `src/paper/paper_report.py` (sender)
 - **Service**: `paper-arena.service` (`scripts/systemd/paper-arena.service`, `ExecStart=... python3 -m src.paper.paper_runner`)
@@ -147,7 +147,7 @@ Status: ACTIVE / INACTIVE / DEAD_CODE / UNKNOWN
 - **Push (sendMessage)**: YES — `src/paper/paper_report.py:23` (`requests.post(f".../bot{_TOKEN}/sendMessage", ...)`)
 - **In .env.example**: YES — `.env.example:80-81`
 - **In TELEGRAM_BOT_REGISTRY.md**: YES — full profile present ("BOT: Paper Arena" section)
-- **Call sites**: `src/paper/paper_report.py:11` (`_TOKEN = os.getenv("PAPER_ARENA_TG_TOKEN", "")`), `src/paper/paper_report.py:12` (`_CHAT = os.getenv("PAPER_ARENA_TG_CHAT_ID", "")`)
+- **Call sites**: `src/paper/paper_report.py:11` (`_TOKEN = os.getenv("PAPER_ARENA_BOT_TOKEN", "")`), `src/paper/paper_report.py:12` (`_CHAT = os.getenv("PAPER_ARENA_CHAT_ID", "")`)
 - **Mission (evidence-based)**: Reports the outcome of one isolated research experiment (RSI ETH/4H) — entry/exit notifications, periodic summary, gate status (`INSUFFICIENT_SAMPLE` → `CONCLUSIVE`), scoped strictly to experiment metrics.
 - **Owner**: UNKNOWN (not documented)
 - **Status**: ACTIVE
@@ -156,20 +156,20 @@ Status: ACTIVE / INACTIVE / DEAD_CODE / UNKNOWN
 ---
 
 ### [IDENTITY-06] CMVK / Sim Bot
-- **Token Variable**: `CMVK_BOT_TOKEN`
-- **Chat Variable**: `CMVK_CHAT_ID`
+- **Token Variable**: `TELEMETRIE_IA_BOT_TOKEN`
+- **Chat Variable**: `TELEMETRIE_IA_CHAT_ID`
 - **Type**: INTERACTIVE (fully wired in code: polling + push + command dispatch)
 - **Entrypoint**: `src/telegram/bot_runner.py` (polling loop, `if __name__ == "__main__"` block) + `src/telegram/sim_bot.py` (command handler class `SimBot`)
 - **Service**: NONE found — no `.service` file under `scripts/systemd/` references this bot; module docstring at `src/telegram/bot_runner.py:1-6` documents manual invocation only (`python -m src.telegram.bot_runner`).
 - **Polling (getUpdates)**: YES — `src/telegram/bot_runner.py:69` (`_call(token, "getUpdates", {"timeout": 0, "offset": -1})`), `src/telegram/bot_runner.py:92` (main long-poll loop)
 - **Push (sendMessage)**: YES — `src/telegram/bot_runner.py:39,50` (`_call(..., "sendMessage", ...)`)
 - **In .env.example**: NO
-- **In TELEGRAM_BOT_REGISTRY.md**: PARTIAL — the Registry's "Bots supprimés" (removed bots) table lists `@FtnTrading_bot` (SimBot) as "Retiré — non utilisé en production" (`docs/architecture/TELEGRAM_BOT_REGISTRY.md:29`), but never names the `CMVK_BOT_TOKEN`/`CMVK_CHAT_ID` variables or describes the current READ-ONLY command surface actually present in `src/telegram/sim_bot.py`.
-- **Call sites**: `src/telegram/bot_runner.py:148` (`_token = os.environ.get("CMVK_BOT_TOKEN", "")`), `src/telegram/bot_runner.py:149` (`_chat = os.environ.get("CMVK_CHAT_ID", "")`), `src/telegram/bot_runner.py:151` (`raise SystemExit(...)` if either is unset)
+- **In TELEGRAM_BOT_REGISTRY.md**: PARTIAL — the Registry's "Bots supprimés" (removed bots) table lists `@FtnTrading_bot` (SimBot) as "Retiré — non utilisé en production" (`docs/architecture/TELEGRAM_BOT_REGISTRY.md:29`), but never names the `TELEMETRIE_IA_BOT_TOKEN`/`TELEMETRIE_IA_CHAT_ID` variables or describes the current READ-ONLY command surface actually present in `src/telegram/sim_bot.py`.
+- **Call sites**: `src/telegram/bot_runner.py:148` (`_token = os.environ.get("TELEMETRIE_IA_BOT_TOKEN", "")`), `src/telegram/bot_runner.py:149` (`_chat = os.environ.get("TELEMETRIE_IA_CHAT_ID", "")`), `src/telegram/bot_runner.py:151` (`raise SystemExit(...)` if either is unset)
 - **Mission (evidence-based)**: Read-only inspection surface for a simulation/backtesting core: `/run /status /pnl /trades /runs /stress /history /compare /friction /score /distrib /robust /race /validate /overall /breakdown /market /help`. Module docstring in `src/telegram/sim_bot.py` states: "CMVK Experimental Observer — READ-ONLY... This bot observes simulations. It does not control production." Former `/kill`/`/resume` control-command handlers have been removed (verified by `tests/test_sim_bot.py::test_kill_command_removed` / `test_resume_command_removed`, both asserting "Commande inconnue").
 - **Owner**: UNKNOWN (not documented)
 - **Status**: UNKNOWN — code is wired end-to-end (polling + handler + tests), but there is no deployment evidence: no systemd unit, absent from `.env.example`, and the Registry's own removed-bots table implies it is not used in production under its BotFather name (`@FtnTrading_bot`). The variable pair only appears in `.env.secrets.example`.
-- **Governance gaps**: `CMVK_BOT_TOKEN`/`CMVK_CHAT_ID` are not named anywhere in `TELEGRAM_BOT_REGISTRY.md`; the Registry entry that plausibly corresponds to this identity uses a different name (`@FtnTrading_bot`) and does not reflect the current read-only command set. Recommend either formally documenting this identity under its real variable names or confirming and recording its retirement in the Registry itself (not just by BotFather username).
+- **Governance gaps**: `TELEMETRIE_IA_BOT_TOKEN`/`TELEMETRIE_IA_CHAT_ID` are not named anywhere in `TELEGRAM_BOT_REGISTRY.md`; the Registry entry that plausibly corresponds to this identity uses a different name (`@FtnTrading_bot`) and does not reflect the current read-only command set. Recommend either formally documenting this identity under its real variable names or confirming and recording its retirement in the Registry itself (not just by BotFather username).
 
 ---
 
@@ -208,7 +208,7 @@ Status: ACTIVE / INACTIVE / DEAD_CODE / UNKNOWN
 - **Governance gaps (CRITICAL)**:
   1. Entirely undocumented in `TELEGRAM_BOT_REGISTRY.md` — not one of the "5 bots actifs", no mission/authority/criticality/allowed-forbidden section.
   2. Absent from `.env.example` (the public onboarding template) — a new operator following that file alone would never discover this identity exists.
-  3. Per `.env.secrets.example:74-90` (Bot 5/8 section), `REAL_ACCOUNT_BOT_TOKEN` and `P10_PORTFOLIO_BOT_TOKEN` are documented as **receiving the same physical BotFather token** (`@mon_portfolio_bot`), used for two different send-only purposes on that one token: `_telegram_real()` (this identity) and the CommandCenter's periodic report (identity 02). The comment explicitly warns this is safe only because the CommandCenter (identity 02) is the sole `getUpdates` poller for that token ("UN SEUL poller autorisé par token"). This shared-token relationship is not recorded anywhere in `TELEGRAM_BOT_REGISTRY.md` and represents a latent 409-conflict risk if this were ever changed.
+  3. Per `.env.secrets.example:74-90` (Bot 5/8 section), `REAL_ACCOUNT_BOT_TOKEN` and `MON_PORTFOLIO_BOT_TOKEN` are documented as **receiving the same physical BotFather token** (`@mon_portfolio_bot`), used for two different send-only purposes on that one token: `_telegram_real()` (this identity) and the CommandCenter's periodic report (identity 02). The comment explicitly warns this is safe only because the CommandCenter (identity 02) is the sole `getUpdates` poller for that token ("UN SEUL poller autorisé par token"). This shared-token relationship is not recorded anywhere in `TELEGRAM_BOT_REGISTRY.md` and represents a latent 409-conflict risk if this were ever changed.
   - This finding matches and is independently corroborated by `docs/TELEGRAM_NOTIFICATION_AUDIT.md` ("🔴 Real Account Bot... **undocumented, new finding**").
 
 ---
@@ -257,14 +257,14 @@ Status: ACTIVE / INACTIVE / DEAD_CODE / UNKNOWN
 
 | Identity | Issue | Severity | Recommended Action |
 |---|---|---|---|
-| IDENTITY-08 Real Account Bot | **MERGED** — `REAL_ACCOUNT_BOT_TOKEN` deleted; routes via `P10_PORTFOLIO_BOT_TOKEN` (same physical token, operator confirmed 2026-08-28) | RESOLVED | No further action required |
+| IDENTITY-08 Real Account Bot | **MERGED** — `REAL_ACCOUNT_BOT_TOKEN` deleted; routes via `MON_PORTFOLIO_BOT_TOKEN` (same physical token, operator confirmed 2026-08-28) | RESOLVED | No further action required |
 | IDENTITY-08 Real Account Bot | Shares the same physical BotFather token as IDENTITY-02 (Portfolio) per `.env.secrets.example:74-90`, relying on an unenforced "single poller" convention | HIGH | Document the shared-token relationship explicitly in `TELEGRAM_BOT_REGISTRY.md` so future changes to either bot's polling behavior are made with full awareness of the collision risk |
 | IDENTITY-07 Generic Alerts | Busiest identity by call-site count (per `TELEGRAM_NOTIFICATION_AUDIT.md`), but has no dedicated mission/ownership profile comparable to identities 01-05 | HIGH | Add a profile section to `TELEGRAM_BOT_REGISTRY.md` defining scope, allowed content, and an owner for this channel |
-| IDENTITY-06 CMVK / Sim Bot | Registry only references this bot by a different BotFather name (`@FtnTrading_bot`) and does not reflect its current read-only command set or actual env var names | MEDIUM | Either formally document `CMVK_BOT_TOKEN`/`CMVK_CHAT_ID` under their real names in the Registry, or explicitly record retirement decisions against those variable names |
+| IDENTITY-06 CMVK / Sim Bot | Registry only references this bot by a different BotFather name (`@FtnTrading_bot`) and does not reflect its current read-only command set or actual env var names | MEDIUM | Either formally document `TELEMETRIE_IA_BOT_TOKEN`/`TELEMETRIE_IA_CHAT_ID` under their real names in the Registry, or explicitly record retirement decisions against those variable names |
 | IDENTITY-10 Narrator | Variable names never documented anywhere; code deleted but comment implies an unresolved live-process hazard and an unsigned retirement ADR | MEDIUM | Confirm VPS process state out-of-repo; if confirmed dead, formally close via a signed ADR referenced from the Registry; if a zombie process is confirmed alive, escalate as an operational incident (out of scope for this document) |
 | IDENTITY-09 KillSwitch | `TelegramKillSwitch` class remains in `supervision/kill_switch.py`, unreachable but not deleted | LOW | Track physical removal as a future cleanup item (code change, out of scope here) |
-| IDENTITY-03 Quant Observer | Present in `.env.secrets.example` but not `.env.example`, unlike other active identities | LOW | Add `QC_BOT_TOKEN`/`QC_CHAT_ID` (and related `QC_*` tuning vars) to `.env.example` for onboarding consistency |
-| IDENTITY-02 Portfolio | `P10_PORTFOLIO_CHAT_ID` falls back to generic `TELEGRAM_CHAT_ID` if unset (token has no such fallback) | LOW | No action required; documented behavior, low risk (misdirected message only, no polling collision) |
+| IDENTITY-03 Quant Observer | Present in `.env.secrets.example` but not `.env.example`, unlike other active identities | LOW | Add `QUANT_CRYPTO_BOT_TOKEN`/`QUANT_CRYPTO_CHAT_ID` (and related `QC_*` tuning vars) to `.env.example` for onboarding consistency |
+| IDENTITY-02 Portfolio | `MON_PORTFOLIO_CHAT_ID` falls back to generic `TELEGRAM_CHAT_ID` if unset (token has no such fallback) | LOW | No action required; documented behavior, low risk (misdirected message only, no polling collision) |
 
 Severity: CRITICAL / HIGH / MEDIUM / LOW
 
