@@ -327,28 +327,44 @@ class MultiExchangeStream:
                 f"No feeder tasks created for requested event types: {sorted(types)}"
             )
 
+        def _check_required_feeders() -> None:
+            """Lève StreamPipelineError si un type de flux requis n'a plus aucun
+            feeder actif.
+
+            Sémantique multi-connecteurs : un type d'événement reste « usable »
+            dès qu'au moins UN feeder de ce type est encore vivant (tâche non
+            terminée).  Si plusieurs connecteurs fournissent le même type, la
+            perte d'un seul n'est pas fatale.  En revanche, si TOUS les feeders
+            d'un type requis sont terminés, le pipeline est considéré mort pour
+            ce type.
+
+            Cas critique LMI : le flux trade est porteur des timestamps de
+            marché (PressureField.timestamp_ms).  Un flux orderbook actif ne
+            peut pas masquer la mort définitive du flux trade — c'est exactement
+            le scénario du zombie partiel observé en production.
+
+            Ce contrôle est invoqué :
+            - à chaque expiration de queue.get() (chemin "aucun événement") ;
+            - après chaque événement reçu (chemin "orderbook masque trade mort").
+            """
+            for stream_type, keys in required_by_type.items():
+                if not keys:
+                    continue
+                all_done = all(
+                    tasks[k].done() or tasks[k].cancelled() for k in keys
+                )
+                if all_done:
+                    raise StreamPipelineError(
+                        f"all required {stream_type} feeders terminated for symbol={symbol}"
+                    )
+
         try:
             while True:
                 try:
                     event = await asyncio.wait_for(queue.get(), timeout=health_check_interval_s)
                 except asyncio.TimeoutError:
                     _publish_health("degraded")
-                    required_trade_dead = bool(required_by_type["trade"]) and all(
-                        tasks[k].done() or tasks[k].cancelled()
-                        for k in required_by_type["trade"]
-                    )
-                    required_orderbook_dead = bool(required_by_type["orderbook"]) and all(
-                        tasks[k].done() or tasks[k].cancelled()
-                        for k in required_by_type["orderbook"]
-                    )
-                    required_types = int(bool(required_by_type["trade"])) + int(
-                        bool(required_by_type["orderbook"])
-                    )
-                    dead_types = int(required_trade_dead) + int(required_orderbook_dead)
-                    if required_types > 0 and dead_types == required_types:
-                        raise StreamPipelineError(
-                            f"all required feeders dead for symbol={symbol}"
-                        )
+                    _check_required_feeders()
                     if self._last_stream_health.get("queue_idle_s", 0.0) >= stall_threshold_s:
                         _log.warning(
                             "stream_live queue stall: symbol=%s idle_s=%.1f",
@@ -356,6 +372,10 @@ class MultiExchangeStream:
                             self._last_stream_health["queue_idle_s"],
                         )
                     continue
+                # Vérifier l'état des feeders requis AVANT de yielder l'événement.
+                # Un flux orderbook actif peut empêcher l'expiration de queue.get()
+                # et donc masquer la mort définitive du flux trade.
+                _check_required_feeders()
                 last_event_monotonic = loop.time()
                 last_event_timestamp_ms = event.timestamp_ms
                 _publish_health("healthy")

@@ -117,7 +117,17 @@ async def test_stream_live_timeout_while_feeder_alive_does_not_fail():
 
 
 @pytest.mark.asyncio
-async def test_stream_live_timeout_with_one_dead_feeder_continues():
+@pytest.mark.asyncio
+async def test_stream_live_timeout_with_one_dead_feeder_raises_pipeline_error():
+    """
+    Comportement après correctif BLOCKING-1 :
+    Si le feeder trade se termine (erreur) mais que le feeder orderbook continue
+    de produire des événements, _check_required_feeders() doit détecter la mort
+    du trade et lever StreamPipelineError — même si queue.get() ne timeout pas.
+
+    Ce test documente la correction du zombie partiel observé en production :
+    process alive + orderbook alive ≠ pipeline scientifiquement opérationnel.
+    """
     stream = MultiExchangeStream()
     conn = _ScriptedConnector(
         trade_script=[("raise", RuntimeError("trade feed down"))],
@@ -131,12 +141,8 @@ async def test_stream_live_timeout_with_one_dead_feeder_continues():
         health_check_interval_s=0.2,
         stall_threshold_s=2.0,
     )
-    ev = await asyncio.wait_for(anext(gen), timeout=2.0)
-    assert ev.event_type == "orderbook"
-    assert stream.last_stream_health["pipeline_state"] == "degraded"
-    feeder_trade = stream.last_stream_health["feeders"]["scripted:trade"]
-    assert feeder_trade["error_count"] >= 1
-    assert "trade feed down" in feeder_trade["last_error"]
+    with pytest.raises(StreamPipelineError, match="trade"):
+        await asyncio.wait_for(anext(gen), timeout=2.0)
     await gen.aclose()
 
 

@@ -376,8 +376,7 @@ async def test_reconcile_recreates_done_task():
     # La task done a été retirée et une nouvelle a été créée
     assert "BTCUSDT" in obs._tasks
     new_task = obs._tasks["BTCUSDT"]
-    assert new_task is not done_task  # c'est une nouvelle task
-    assert not new_task.done() or new_task.done()  # peut être déjà terminée (mock), mais différente instance
+    assert new_task is not done_task  # instance différente obligatoire
 
 
 # ---------------------------------------------------------------------------
@@ -498,3 +497,246 @@ async def test_reconcile_repeated_no_duplicate():
     alive_event.set()
     await task_btc
     await task_eth
+
+
+# ---------------------------------------------------------------------------
+# TEST 7 — CRITIQUE : trade feeder mort + orderbook vivant → StreamPipelineError
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_stream_live_trade_dead_orderbook_alive_raises_pipeline_error():
+    """
+    Scénario de l'incident de production :
+    - Le feeder trade se termine (timeout MEXC, ConnectionClosed, etc.)
+    - Le feeder orderbook continue d'injecter des événements dans la queue
+    - queue.get() ne timeout jamais → l'ancien code ne détectait pas la mort du trade
+    - Après le correctif BLOCKING-1, _check_required_feeders() doit détecter la mort
+      du trade feeder et lever StreamPipelineError sur le chemin "event reçu".
+    """
+    from market_data.stream import MultiExchangeStream, StreamPipelineError
+    from market_data.connectors.base import BaseConnector, NormalizedTrade, NormalizedOrderBook
+
+    class _TradeDeadOBAliveConnector(BaseConnector):
+        """Connecteur mock : stream_trades se termine immédiatement, orderbook est infini."""
+
+        @property
+        def exchange_name(self) -> str:
+            return "mock_partial"
+
+        def fetch_trades(self, symbol, limit=100):
+            return []
+
+        def fetch_orderbook(self, symbol, depth=20):
+            return NormalizedOrderBook("mock_partial", symbol, 0, [], [])
+
+        def fetch_candles(self, symbol, timeframe="1m", limit=100, start_ms=None, end_ms=None):
+            return []
+
+        async def stream_trades(self, symbol: str):
+            # Le trade feeder se termine après zéro événement (simule timeout recv)
+            return
+            yield  # rend la fonction un async generator
+
+        async def stream_orderbook(self, symbol: str, depth: int = 20):
+            # Orderbook continue à produire des événements sans arrêt
+            ts = 1_788_000_000_000
+            while True:
+                yield NormalizedOrderBook(
+                    exchange="mock_partial",
+                    symbol=symbol,
+                    timestamp_ms=ts,
+                    bids=[(1000.0, 1.0)],
+                    asks=[(1001.0, 1.0)],
+                    is_snapshot=False,
+                )
+                ts += 100
+                await asyncio.sleep(0)  # céder le contrôle à la boucle d'événements
+
+    ms = MultiExchangeStream()
+    ms.add_connector(_TradeDeadOBAliveConnector())
+
+    with pytest.raises(StreamPipelineError, match="trade"):
+        async for _event in ms.stream_live(
+            "BTCUSDT",
+            event_types=["trade", "orderbook"],
+            health_check_interval_s=0.05,
+        ):
+            pass  # on attend juste la StreamPipelineError
+
+
+@pytest.mark.asyncio
+async def test_stream_live_orderbook_dead_trade_alive_raises_pipeline_error():
+    """
+    Contrôle inverse : orderbook feeder mort, trade feeder vivant.
+    La StreamPipelineError doit également être levée (cohérence de politique).
+    """
+    from market_data.stream import MultiExchangeStream, StreamPipelineError
+    from market_data.connectors.base import BaseConnector, NormalizedTrade, NormalizedOrderBook
+
+    class _OBDeadTradeAliveConnector(BaseConnector):
+        @property
+        def exchange_name(self) -> str:
+            return "mock_ob_dead"
+
+        def fetch_trades(self, symbol, limit=100):
+            return []
+
+        def fetch_orderbook(self, symbol, depth=20):
+            return NormalizedOrderBook("mock_ob_dead", symbol, 0, [], [])
+
+        def fetch_candles(self, symbol, timeframe="1m", limit=100, start_ms=None, end_ms=None):
+            return []
+
+        async def stream_trades(self, symbol: str):
+            ts = 1_788_000_000_000
+            while True:
+                yield NormalizedTrade(
+                    exchange="mock_ob_dead",
+                    symbol=symbol,
+                    timestamp_ms=ts,
+                    price=1000.0,
+                    size=1.0,
+                    side="buy",
+                    raw={},
+                )
+                ts += 100
+                await asyncio.sleep(0)
+
+        async def stream_orderbook(self, symbol: str, depth: int = 20):
+            # Orderbook feeder se termine immédiatement
+            return
+            yield
+
+    ms = MultiExchangeStream()
+    ms.add_connector(_OBDeadTradeAliveConnector())
+
+    with pytest.raises(StreamPipelineError, match="orderbook"):
+        async for _event in ms.stream_live(
+            "BTCUSDT",
+            event_types=["trade", "orderbook"],
+            health_check_interval_s=0.05,
+        ):
+            pass
+
+
+# ---------------------------------------------------------------------------
+# TEST 8 — ConnectionClosed propagé vers _feed_trades → health state dead
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_stream_live_connection_closed_terminates_trade_feeder():
+    """
+    Si websockets lève ConnectionClosed (sous-classe d'Exception) dans stream_trades,
+    _feed_trades doit l'intercepter via `except Exception`, passer feeder_alive=False,
+    et terminer. Le pipeline doit détecter la mort du feeder via _check_required_feeders.
+    """
+    from market_data.stream import MultiExchangeStream, StreamPipelineError
+    from market_data.connectors.base import BaseConnector, NormalizedTrade, NormalizedOrderBook
+
+    class _ConnectionClosedConnector(BaseConnector):
+        @property
+        def exchange_name(self) -> str:
+            return "mock_cc"
+
+        def fetch_trades(self, symbol, limit=100):
+            return []
+
+        def fetch_orderbook(self, symbol, depth=20):
+            return NormalizedOrderBook("mock_cc", symbol, 0, [], [])
+
+        def fetch_candles(self, symbol, timeframe="1m", limit=100, start_ms=None, end_ms=None):
+            return []
+
+        async def stream_trades(self, symbol: str):
+            # Simuler une ConnectionClosed (Exception) après zéro trade
+            raise Exception("ConnectionClosed: websocket closed by remote")
+            yield  # async generator
+
+        async def stream_orderbook(self, symbol: str, depth: int = 20):
+            # Orderbook continue — empêcherait la détection sans le correctif
+            ts = 1_788_000_000_000
+            while True:
+                yield NormalizedOrderBook(
+                    exchange="mock_cc",
+                    symbol=symbol,
+                    timestamp_ms=ts,
+                    bids=[(1000.0, 1.0)],
+                    asks=[(1001.0, 1.0)],
+                    is_snapshot=False,
+                )
+                ts += 100
+                await asyncio.sleep(0)
+
+    ms = MultiExchangeStream()
+    ms.add_connector(_ConnectionClosedConnector())
+
+    with pytest.raises(StreamPipelineError, match="trade"):
+        async for _event in ms.stream_live(
+            "BTCUSDT",
+            event_types=["trade", "orderbook"],
+            health_check_interval_s=0.05,
+        ):
+            pass
+
+
+# ---------------------------------------------------------------------------
+# TEST 9 — Redémarrage complet : timeout → _reconcile → nouvelle task différente
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_reconcile_after_timeout_creates_distinct_task():
+    """
+    Séquence complète :
+    1. task done dans le registre Observatory
+    2. _reconcile() la retire
+    3. nouvelle task créée
+    4. nouvelle task est une instance distincte (pas de doublon)
+    5. nouvelle task est bien celle enregistrée dans _tasks[symbol]
+    """
+    from trade_analysis.observatory import Observatory
+    from trade_analysis.selection import SymbolSelector
+
+    obs = Observatory.__new__(Observatory)
+    obs._tasks = {}
+    obs._engines = {}
+    obs._running = False
+    obs.selector = MagicMock(spec=SymbolSelector)
+    obs.selector.select_symbols.return_value = ["BTCUSDT"]
+    obs.max_symbols = 5
+    obs.selection_kwargs = {}
+    obs.store = MagicMock()
+    obs.store.set_watchlist = MagicMock()
+    obs._recorder = None
+    obs.exchange = "mexc"
+
+    async def _noop():
+        pass
+
+    done_task = asyncio.create_task(_noop())
+    await asyncio.sleep(0)
+    assert done_task.done()
+    obs._tasks["BTCUSDT"] = done_task
+
+    alive_event = asyncio.Event()
+
+    async def _long_running():
+        await alive_event.wait()
+
+    with patch.object(obs, "_run_symbol", side_effect=lambda s: _long_running()):
+        await obs._reconcile()
+
+    assert "BTCUSDT" in obs._tasks
+    new_task = obs._tasks["BTCUSDT"]
+    # Identité : nouvelle instance, pas l'ancienne
+    assert new_task is not done_task
+    # Cohérence : c'est bien la task enregistrée dans le registre
+    assert obs._tasks["BTCUSDT"] is new_task
+    # La nouvelle task est dans le registre, pas de doublon
+    assert len([t for t in obs._tasks.values() if t is new_task]) == 1
+
+    # Cleanup
+    alive_event.set()
+    await new_task
