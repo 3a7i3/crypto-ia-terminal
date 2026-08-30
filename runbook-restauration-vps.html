@@ -281,6 +281,7 @@ dépôt git et d’une sauvegarde des données — en ~1 heure, sans rien perdre
 </tbody>
 </table>
 </div>
+<p>Référence d’inventaire canonique : <code class="docutils literal notranslate"><span class="pre">docs/runbooks/systemd_canonical_inventory.md</span></code>.</p>
 </section>
 <section id="sauvegarde-a-refaire-regulierement-derniere-2026-07-16-16-mo">
 <h2>Sauvegarde (à refaire régulièrement — dernière : 2026-07-16, 16 Mo)<a class="headerlink" href="#sauvegarde-a-refaire-regulierement-derniere-2026-07-16-16-mo" title="Link to this heading">¶</a></h2>
@@ -327,6 +328,32 @@ sudo<span class="w"> </span>systemctl<span class="w"> </span><span class="nb">en
 sudo<span class="w"> </span>systemctl<span class="w"> </span><span class="nb">enable</span><span class="w"> </span>--now<span class="w"> </span>crypto-market-horizons.timer
 </pre></div>
 </div>
+<section id="set-canonique-explicite-restauration-de-base-5-3">
+<h3>Set canonique explicite (restauration de base 5+3)<a class="headerlink" href="#set-canonique-explicite-restauration-de-base-5-3" title="Link to this heading">¶</a></h3>
+<p>Services :</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">crypto-advisor.service</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">crypto-watchdog.service</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">crypto-market-observer.service</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">crypto-market-radar.service</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">crypto-market-horizons.service</span></code></p></li>
+</ul>
+<p>Timers :</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">crypto-market-observer.timer</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">crypto-market-radar.timer</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">crypto-market-horizons.timer</span></code></p></li>
+</ul>
+<p>Note de dérive VPS :</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">crypto-backup.service</span></code> / <code class="docutils literal notranslate"><span class="pre">crypto-backup.timer</span></code> ne font pas partie du set
+canonique Git actuel.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">crypto-burnin-chronicle.service</span></code> / <code class="docutils literal notranslate"><span class="pre">crypto-burnin-chronicle.timer</span></code> ne font
+pas partie du set canonique Git actuel.</p></li>
+<li><p>Ne pas recréer <code class="docutils literal notranslate"><span class="pre">scripts/backup_daily.sh</span></code> ni <code class="docutils literal notranslate"><span class="pre">tools/burnin_chronicle.py</span></code> sans
+source Git signée/validée.</p></li>
+</ul>
+</section>
 </section>
 <section id="verifications-post-restauration-dans-lordre">
 <h2>Vérifications post-restauration (dans l’ordre)<a class="headerlink" href="#verifications-post-restauration-dans-lordre" title="Link to this heading">¶</a></h2>
@@ -427,7 +454,10 @@ whitelist dans le compte MEXC avant le démarrage.</p></li>
 <li><a class="reference internal" href="#">Runbook — Restaurer la machine sur une instance neuve (sans crash)</a><ul>
 <li><a class="reference internal" href="#ce-qui-vit-ou">Ce qui vit où</a></li>
 <li><a class="reference internal" href="#sauvegarde-a-refaire-regulierement-derniere-2026-07-16-16-mo">Sauvegarde (à refaire régulièrement — dernière : 2026-07-16, 16 Mo)</a></li>
-<li><a class="reference internal" href="#restauration-sur-instance-neuve-ubuntu-22-04-2-vcpu-8-go-suffisent">Restauration sur instance neuve (Ubuntu 22.04+, 2 vCPU / 8 Go suffisent)</a></li>
+<li><a class="reference internal" href="#restauration-sur-instance-neuve-ubuntu-22-04-2-vcpu-8-go-suffisent">Restauration sur instance neuve (Ubuntu 22.04+, 2 vCPU / 8 Go suffisent)</a><ul>
+<li><a class="reference internal" href="#set-canonique-explicite-restauration-de-base-5-3">Set canonique explicite (restauration de base 5+3)</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#verifications-post-restauration-dans-lordre">Vérifications post-restauration (dans l’ordre)</a></li>
 <li><a class="reference internal" href="#bascule-ancienne-nouvelle-instance-planifiee-j-5-avant-lecheance-gcp">Bascule ancienne → nouvelle instance (planifiée J-5 avant l’échéance GCP)</a></li>
 <li><a class="reference internal" href="#pieges-connus">Pièges connus</a></li>
