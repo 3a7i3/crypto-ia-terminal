@@ -21,6 +21,7 @@ Usage live (async) :
 from __future__ import annotations
 
 import asyncio
+import os
 from typing import AsyncGenerator, Callable, Optional
 
 from market_data.connectors.base import BaseConnector
@@ -33,6 +34,10 @@ from market_data.models import (
 from observability.json_logger import get_logger
 
 _log = get_logger("market_data.stream")
+
+
+class StreamPipelineError(RuntimeError):
+    """Erreur de pipeline live quand tous les feeders requis sont morts."""
 
 
 class MultiExchangeStream:
@@ -51,6 +56,7 @@ class MultiExchangeStream:
             "candle": [],
             "liquidity": [],
         }
+        self._last_stream_health: dict = {}
 
     def add_connector(self, connector: BaseConnector) -> "MultiExchangeStream":
         self._connectors.append(connector)
@@ -133,38 +139,163 @@ class MultiExchangeStream:
         self,
         symbol: str,
         event_types: Optional[list[str]] = None,
+        health_check_interval_s: float = 5.0,
+        stall_threshold_s: Optional[float] = None,
     ) -> AsyncGenerator[MarketEvent, None]:
         """
         Stream unifie de tous les connecteurs.
         Merge plusieurs streams asyncio en un seul via asyncio.Queue.
         """
         types = set(event_types or ["trade", "orderbook"])
-        queue: asyncio.Queue[MarketEvent] = asyncio.Queue()
+        health_check_interval_s = max(0.2, float(health_check_interval_s))
+        if stall_threshold_s is None:
+            env_s = os.getenv("LMI_STREAM_STALL_S", "").strip()
+            stall_threshold_s = float(env_s) if env_s else max(30.0, health_check_interval_s * 6)
+        stall_threshold_s = max(health_check_interval_s, float(stall_threshold_s))
 
-        async def _feed_trades(conn: BaseConnector) -> None:
+        queue: asyncio.Queue[MarketEvent] = asyncio.Queue()
+        loop = asyncio.get_running_loop()
+        last_event_monotonic = loop.time()
+        last_event_timestamp_ms = 0
+        feeders: dict[str, dict] = {}
+        tasks: dict[str, asyncio.Task] = {}
+
+        def _key(conn: BaseConnector, stream_type: str) -> str:
+            return f"{conn.exchange_name}:{stream_type}"
+
+        def _reconnect_count(conn: BaseConnector, stream_type: str) -> int | None:
+            for name in (f"{stream_type}_reconnect_count", "reconnect_count"):
+                v = getattr(conn, name, None)
+                if isinstance(v, int):
+                    return v
+            return None
+
+        def _publish_health(state: str) -> None:
+            now = loop.time()
+            snapshot = {
+                "pipeline_state": state,
+                "symbol": symbol,
+                "queue_idle_s": max(0.0, now - last_event_monotonic),
+                "last_event_timestamp_ms": last_event_timestamp_ms,
+                "health_check_interval_s": health_check_interval_s,
+                "stall_threshold_s": stall_threshold_s,
+                "feeders": {},
+            }
+            for k, feeder in feeders.items():
+                task = tasks.get(k)
+                task_done = bool(task.done()) if task else True
+                task_cancelled = bool(task.cancelled()) if task else False
+                exc_name = ""
+                if task and task.done() and not task_cancelled:
+                    try:
+                        exc = task.exception()
+                    except asyncio.CancelledError:
+                        exc = None
+                    if exc:
+                        exc_name = type(exc).__name__
+                        if not feeder.get("last_error"):
+                            feeder["last_error"] = f"{type(exc).__name__}: {exc}"
+                            feeder["error_count"] = int(feeder.get("error_count", 0)) + 1
+                snapshot["feeders"][k] = {
+                    "connector": feeder.get("connector"),
+                    "stream_type": feeder.get("stream_type"),
+                    "feeder_alive": bool(feeder.get("feeder_alive")) and not task_done,
+                    "task_done": task_done,
+                    "task_cancelled": task_cancelled,
+                    "last_event_ms": feeder.get("last_event_ms"),
+                    "last_event_monotonic": feeder.get("last_event_monotonic"),
+                    "last_error": feeder.get("last_error"),
+                    "error_count": int(feeder.get("error_count", 0)),
+                    "reconnect_count": feeder.get("reconnect_count"),
+                    "queue_idle_s": snapshot["queue_idle_s"],
+                }
+            self._last_stream_health = snapshot
+
+        async def _feed_trades(conn: BaseConnector, feeder: dict) -> None:
+            feeder["feeder_alive"] = True
             try:
                 async for trade in conn.stream_trades(symbol):
+                    feeder["last_event_monotonic"] = loop.time()
+                    feeder["last_event_ms"] = trade.timestamp_ms
+                    feeder["reconnect_count"] = _reconnect_count(conn, "trade")
                     await queue.put(MarketEvent.from_trade(trade))
+            except asyncio.CancelledError:
+                raise
             except Exception as exc:
+                feeder["last_error"] = f"{type(exc).__name__}: {exc}"
+                feeder["error_count"] = int(feeder.get("error_count", 0)) + 1
                 _log.warning("[%s] stream_trades error: %s", conn.exchange_name, exc)
+            finally:
+                feeder["feeder_alive"] = False
 
-        async def _feed_orderbook(conn: BaseConnector) -> None:
+        async def _feed_orderbook(conn: BaseConnector, feeder: dict) -> None:
+            feeder["feeder_alive"] = True
             try:
                 async for book in conn.stream_orderbook(symbol):
+                    feeder["last_event_monotonic"] = loop.time()
+                    feeder["last_event_ms"] = book.timestamp_ms
+                    feeder["reconnect_count"] = _reconnect_count(conn, "orderbook")
                     await queue.put(MarketEvent.from_orderbook(book))
+            except asyncio.CancelledError:
+                raise
             except Exception as exc:
+                feeder["last_error"] = f"{type(exc).__name__}: {exc}"
+                feeder["error_count"] = int(feeder.get("error_count", 0)) + 1
                 _log.warning("[%s] stream_orderbook error: %s", conn.exchange_name, exc)
+            finally:
+                feeder["feeder_alive"] = False
 
-        tasks = []
         for conn in self._connectors:
             if "trade" in types:
-                tasks.append(asyncio.create_task(_feed_trades(conn)))
+                k = _key(conn, "trade")
+                feeders[k] = {
+                    "connector": conn.exchange_name,
+                    "stream_type": "trade",
+                    "feeder_alive": False,
+                    "last_event_ms": None,
+                    "last_event_monotonic": None,
+                    "last_error": "",
+                    "error_count": 0,
+                    "reconnect_count": _reconnect_count(conn, "trade"),
+                }
+                tasks[k] = asyncio.create_task(_feed_trades(conn, feeders[k]))
             if "orderbook" in types:
-                tasks.append(asyncio.create_task(_feed_orderbook(conn)))
+                k = _key(conn, "orderbook")
+                feeders[k] = {
+                    "connector": conn.exchange_name,
+                    "stream_type": "orderbook",
+                    "feeder_alive": False,
+                    "last_event_ms": None,
+                    "last_event_monotonic": None,
+                    "last_error": "",
+                    "error_count": 0,
+                    "reconnect_count": _reconnect_count(conn, "orderbook"),
+                }
+                tasks[k] = asyncio.create_task(_feed_orderbook(conn, feeders[k]))
 
         try:
             while True:
-                event = await queue.get()
+                try:
+                    event = await asyncio.wait_for(queue.get(), timeout=health_check_interval_s)
+                except asyncio.TimeoutError:
+                    _publish_health("degraded")
+                    all_dead = bool(tasks) and all(
+                        t.done() or t.cancelled() for t in tasks.values()
+                    )
+                    if all_dead:
+                        raise StreamPipelineError(
+                            f"all feeders dead for symbol={symbol}"
+                        )
+                    if self._last_stream_health.get("queue_idle_s", 0.0) >= stall_threshold_s:
+                        _log.warning(
+                            "stream_live queue stall: symbol=%s idle_s=%.1f",
+                            symbol,
+                            self._last_stream_health["queue_idle_s"],
+                        )
+                    continue
+                last_event_monotonic = loop.time()
+                last_event_timestamp_ms = event.timestamp_ms
+                _publish_health("healthy")
                 # Dispatcher les handlers enregistres
                 for handler in self._handlers.get(event.event_type, []):
                     try:
@@ -173,5 +304,10 @@ class MultiExchangeStream:
                         _log.warning("Handler error for %s: %s", event.event_type, exc)
                 yield event
         finally:
-            for t in tasks:
+            _publish_health("stopped")
+            for t in tasks.values():
                 t.cancel()
+
+    @property
+    def last_stream_health(self) -> dict:
+        return dict(self._last_stream_health)
