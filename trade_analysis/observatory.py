@@ -192,8 +192,20 @@ class Observatory:
         wanted = set(watchlist)
 
         for sym in list(self._tasks):
+            task = self._tasks[sym]
             if sym not in wanted:
-                self._tasks[sym].cancel()
+                # Symbole sorti de la watchlist : annuler et retirer
+                task.cancel()
+                self._tasks.pop(sym, None)
+                self._engines.pop(sym, None)
+            elif task.done():
+                # Task terminée (fin normale ou exception capturée) pour un
+                # symbole encore voulu : la retirer pour qu'elle soit recréée.
+                exc = None
+                if not task.cancelled():
+                    exc = task.exception()
+                reason = f"exception={exc!r}" if exc else "completed normally"
+                print(f"[Observatory] {sym} task done ({reason}), scheduling restart")
                 self._tasks.pop(sym, None)
                 self._engines.pop(sym, None)
 
