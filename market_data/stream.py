@@ -21,6 +21,7 @@ Usage live (async) :
 from __future__ import annotations
 
 import asyncio
+import copy
 import os
 from typing import AsyncGenerator, Callable, Optional
 
@@ -146,11 +147,26 @@ class MultiExchangeStream:
         Stream unifie de tous les connecteurs.
         Merge plusieurs streams asyncio en un seul via asyncio.Queue.
         """
-        types = set(event_types or ["trade", "orderbook"])
+        types = set(["trade", "orderbook"] if event_types is None else event_types)
         health_check_interval_s = max(0.2, float(health_check_interval_s))
+        default_stall_s = max(30.0, health_check_interval_s * 6)
         if stall_threshold_s is None:
             env_s = os.getenv("LMI_STREAM_STALL_S", "").strip()
-            stall_threshold_s = float(env_s) if env_s else max(30.0, health_check_interval_s * 6)
+            if env_s:
+                try:
+                    parsed = float(env_s)
+                    if parsed <= 0:
+                        raise ValueError("non-positive")
+                    stall_threshold_s = parsed
+                except ValueError:
+                    _log.warning(
+                        "Invalid LMI_STREAM_STALL_S=%r; fallback to %.1fs",
+                        env_s,
+                        default_stall_s,
+                    )
+                    stall_threshold_s = default_stall_s
+            else:
+                stall_threshold_s = default_stall_s
         stall_threshold_s = max(health_check_interval_s, float(stall_threshold_s))
 
         queue: asyncio.Queue[MarketEvent] = asyncio.Queue()
@@ -159,6 +175,7 @@ class MultiExchangeStream:
         last_event_timestamp_ms = 0
         feeders: dict[str, dict] = {}
         tasks: dict[str, asyncio.Task] = {}
+        required_by_type: dict[str, set[str]] = {"trade": set(), "orderbook": set()}
 
         def _key(conn: BaseConnector, stream_type: str) -> str:
             return f"{conn.exchange_name}:{stream_type}"
@@ -172,13 +189,43 @@ class MultiExchangeStream:
 
         def _publish_health(state: str) -> None:
             now = loop.time()
+            alive_by_type = {"trade": False, "orderbook": False}
+            dead_by_type = {"trade": False, "orderbook": False}
+            for stream_type, keys in required_by_type.items():
+                if not keys:
+                    continue
+                alive = any(
+                    k in tasks
+                    and not tasks[k].done()
+                    and not tasks[k].cancelled()
+                    and bool(feeders.get(k, {}).get("feeder_alive"))
+                    for k in keys
+                )
+                alive_by_type[stream_type] = alive
+                dead_by_type[stream_type] = not alive
+
+            if state == "stopped":
+                pipeline_state = "stopped"
+            elif required_by_type["trade"] and dead_by_type["trade"]:
+                pipeline_state = "degraded"
+            elif required_by_type["orderbook"] and dead_by_type["orderbook"]:
+                pipeline_state = "degraded"
+            elif state == "degraded":
+                pipeline_state = "degraded"
+            else:
+                pipeline_state = "healthy"
+
             snapshot = {
-                "pipeline_state": state,
+                "pipeline_state": pipeline_state,
                 "symbol": symbol,
                 "queue_idle_s": max(0.0, now - last_event_monotonic),
                 "last_event_timestamp_ms": last_event_timestamp_ms,
                 "health_check_interval_s": health_check_interval_s,
                 "stall_threshold_s": stall_threshold_s,
+                "required_event_types": sorted(
+                    t for t, keys in required_by_type.items() if keys
+                ),
+                "required_feeders_alive": alive_by_type,
                 "feeders": {},
             }
             for k, feeder in feeders.items():
@@ -258,6 +305,7 @@ class MultiExchangeStream:
                     "error_count": 0,
                     "reconnect_count": _reconnect_count(conn, "trade"),
                 }
+                required_by_type["trade"].add(k)
                 tasks[k] = asyncio.create_task(_feed_trades(conn, feeders[k]))
             if "orderbook" in types:
                 k = _key(conn, "orderbook")
@@ -271,7 +319,13 @@ class MultiExchangeStream:
                     "error_count": 0,
                     "reconnect_count": _reconnect_count(conn, "orderbook"),
                 }
+                required_by_type["orderbook"].add(k)
                 tasks[k] = asyncio.create_task(_feed_orderbook(conn, feeders[k]))
+
+        if not tasks:
+            raise StreamPipelineError(
+                f"No feeder tasks created for requested event types: {sorted(types)}"
+            )
 
         try:
             while True:
@@ -279,12 +333,21 @@ class MultiExchangeStream:
                     event = await asyncio.wait_for(queue.get(), timeout=health_check_interval_s)
                 except asyncio.TimeoutError:
                     _publish_health("degraded")
-                    all_dead = bool(tasks) and all(
-                        t.done() or t.cancelled() for t in tasks.values()
+                    required_trade_dead = bool(required_by_type["trade"]) and all(
+                        tasks[k].done() or tasks[k].cancelled()
+                        for k in required_by_type["trade"]
                     )
-                    if all_dead:
+                    required_orderbook_dead = bool(required_by_type["orderbook"]) and all(
+                        tasks[k].done() or tasks[k].cancelled()
+                        for k in required_by_type["orderbook"]
+                    )
+                    required_types = int(bool(required_by_type["trade"])) + int(
+                        bool(required_by_type["orderbook"])
+                    )
+                    dead_types = int(required_trade_dead) + int(required_orderbook_dead)
+                    if required_types > 0 and dead_types == required_types:
                         raise StreamPipelineError(
-                            f"all feeders dead for symbol={symbol}"
+                            f"all required feeders dead for symbol={symbol}"
                         )
                     if self._last_stream_health.get("queue_idle_s", 0.0) >= stall_threshold_s:
                         _log.warning(
@@ -305,9 +368,14 @@ class MultiExchangeStream:
                 yield event
         finally:
             _publish_health("stopped")
+            pending = []
             for t in tasks.values():
-                t.cancel()
+                if not t.done():
+                    t.cancel()
+                pending.append(t)
+            if pending:
+                await asyncio.gather(*pending, return_exceptions=True)
 
     @property
     def last_stream_health(self) -> dict:
-        return dict(self._last_stream_health)
+        return copy.deepcopy(self._last_stream_health)

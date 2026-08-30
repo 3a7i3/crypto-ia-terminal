@@ -71,7 +71,7 @@ def _book(ts: int = 1_000_000) -> NormalizedOrderBook:
 @pytest.mark.asyncio
 async def test_stream_live_healthy_event_flow():
     stream = MultiExchangeStream()
-    conn = _ScriptedConnector(trade_script=[("trade", _trade())])
+    conn = _ScriptedConnector(trade_script=[("trade", _trade()), ("sleep", 1.0)])
     stream.add_connector(conn)
 
     gen = stream.stream_live("BTCUSDT", ["trade"], health_check_interval_s=0.2)
@@ -101,7 +101,7 @@ async def test_stream_live_feeder_exception_sets_health_and_fails():
 @pytest.mark.asyncio
 async def test_stream_live_timeout_while_feeder_alive_does_not_fail():
     stream = MultiExchangeStream()
-    conn = _ScriptedConnector(trade_script=[("sleep", 0.35), ("trade", _trade(1_000_123))])
+    conn = _ScriptedConnector(trade_script=[("sleep", 0.35), ("trade", _trade(1_000_123)), ("sleep", 1.0)])
     stream.add_connector(conn)
 
     gen = stream.stream_live(
@@ -132,12 +132,12 @@ async def test_stream_live_timeout_with_one_dead_feeder_continues():
         stall_threshold_s=2.0,
     )
     ev = await asyncio.wait_for(anext(gen), timeout=2.0)
-    await gen.aclose()
-
     assert ev.event_type == "orderbook"
+    assert stream.last_stream_health["pipeline_state"] == "degraded"
     feeder_trade = stream.last_stream_health["feeders"]["scripted:trade"]
     assert feeder_trade["error_count"] >= 1
     assert "trade feed down" in feeder_trade["last_error"]
+    await gen.aclose()
 
 
 @pytest.mark.asyncio
@@ -157,3 +157,95 @@ async def test_stream_live_all_feeders_dead_raises_controlled_failure():
     )
     with pytest.raises(StreamPipelineError):
         await asyncio.wait_for(anext(gen), timeout=1.5)
+
+
+@pytest.mark.asyncio
+async def test_stream_live_orderbook_only_can_be_healthy():
+    stream = MultiExchangeStream()
+    conn = _ScriptedConnector(orderbook_script=[("orderbook", _book(1_100_000)), ("sleep", 1.0)])
+    stream.add_connector(conn)
+
+    gen = stream.stream_live(
+        "BTCUSDT",
+        ["orderbook"],
+        health_check_interval_s=0.2,
+        stall_threshold_s=2.0,
+    )
+    ev = await asyncio.wait_for(anext(gen), timeout=1.0)
+    assert ev.event_type == "orderbook"
+    assert stream.last_stream_health["pipeline_state"] == "healthy"
+    await gen.aclose()
+
+
+@pytest.mark.asyncio
+async def test_stream_live_empty_event_types_fails_fast():
+    stream = MultiExchangeStream()
+    stream.add_connector(_ScriptedConnector())
+    gen = stream.stream_live("BTCUSDT", [], health_check_interval_s=0.2)
+    with pytest.raises(StreamPipelineError, match="No feeder tasks created"):
+        await asyncio.wait_for(anext(gen), timeout=1.0)
+
+
+@pytest.mark.asyncio
+async def test_stream_live_unsupported_event_type_fails_fast():
+    stream = MultiExchangeStream()
+    stream.add_connector(_ScriptedConnector())
+    gen = stream.stream_live("BTCUSDT", ["candle"], health_check_interval_s=0.2)
+    with pytest.raises(StreamPipelineError, match="No feeder tasks created"):
+        await asyncio.wait_for(anext(gen), timeout=1.0)
+
+
+@pytest.mark.asyncio
+async def test_stream_live_missing_env_uses_default_stall(monkeypatch):
+    monkeypatch.delenv("LMI_STREAM_STALL_S", raising=False)
+    stream = MultiExchangeStream()
+    stream.add_connector(_ScriptedConnector(trade_script=[("trade", _trade()), ("sleep", 1.0)]))
+
+    gen = stream.stream_live("BTCUSDT", ["trade"], health_check_interval_s=0.2)
+    await asyncio.wait_for(anext(gen), timeout=1.0)
+    health = stream.last_stream_health
+    await gen.aclose()
+
+    assert health["stall_threshold_s"] == 30.0
+
+
+@pytest.mark.asyncio
+async def test_stream_live_valid_env_stall(monkeypatch):
+    monkeypatch.setenv("LMI_STREAM_STALL_S", "42.5")
+    stream = MultiExchangeStream()
+    stream.add_connector(_ScriptedConnector(trade_script=[("trade", _trade()), ("sleep", 1.0)]))
+
+    gen = stream.stream_live("BTCUSDT", ["trade"], health_check_interval_s=0.2)
+    await asyncio.wait_for(anext(gen), timeout=1.0)
+    health = stream.last_stream_health
+    await gen.aclose()
+
+    assert health["stall_threshold_s"] == 42.5
+
+
+@pytest.mark.asyncio
+async def test_stream_live_invalid_env_stall_fallback(monkeypatch):
+    monkeypatch.setenv("LMI_STREAM_STALL_S", "abc")
+    stream = MultiExchangeStream()
+    stream.add_connector(_ScriptedConnector(trade_script=[("trade", _trade()), ("sleep", 1.0)]))
+
+    gen = stream.stream_live("BTCUSDT", ["trade"], health_check_interval_s=0.2)
+    await asyncio.wait_for(anext(gen), timeout=1.0)
+    health = stream.last_stream_health
+    await gen.aclose()
+
+    assert health["stall_threshold_s"] == 30.0
+
+
+@pytest.mark.asyncio
+async def test_stream_live_non_positive_env_stall_fallback(monkeypatch):
+    monkeypatch.setenv("LMI_STREAM_STALL_S", "0")
+    stream = MultiExchangeStream()
+    stream.add_connector(_ScriptedConnector(trade_script=[("trade", _trade()), ("sleep", 1.0)]))
+
+    gen = stream.stream_live("BTCUSDT", ["trade"], health_check_interval_s=0.2)
+    await asyncio.wait_for(anext(gen), timeout=1.0)
+    health = stream.last_stream_health
+    await gen.aclose()
+
+    assert health["stall_threshold_s"] == 30.0
