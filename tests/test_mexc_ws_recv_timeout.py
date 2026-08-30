@@ -371,7 +371,7 @@ async def test_reconcile_recreates_done_task():
 
     # _run_symbol est patché pour ne pas faire de vrai WebSocket
     with patch.object(obs, "_run_symbol", new_callable=AsyncMock) as mock_run:
-        await obs._reconcile()
+        await obs._restart_dead_tasks()
 
     # La task done a été retirée et une nouvelle a été créée
     assert "BTCUSDT" in obs._tasks
@@ -726,7 +726,7 @@ async def test_reconcile_after_timeout_creates_distinct_task():
         await alive_event.wait()
 
     with patch.object(obs, "_run_symbol", side_effect=lambda s: _long_running()):
-        await obs._reconcile()
+        await obs._restart_dead_tasks()
 
     assert "BTCUSDT" in obs._tasks
     new_task = obs._tasks["BTCUSDT"]
