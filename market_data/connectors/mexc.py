@@ -29,6 +29,12 @@ _BASE = "https://contract.mexc.com/api/v1/contract"
 # sinon le serveur ferme la connexion inactive.
 _WS = "wss://contract.mexc.com/edge"
 _PING_INTERVAL_S = 15.0
+# Délai maximal d'inactivité sur ws.recv() avant de terminer le stream.
+# MEXC peut fermer silencieusement une session longue durée (FIN TCP)
+# sans que la connexion TCP soit immédiatement visible comme morte côté client.
+# Sans ce timeout, _feed_trades/_feed_orderbook bloquent indéfiniment en
+# CLOSE_WAIT : le feeder reste "vivant" mais ne produit plus d'événement.
+_RECV_TIMEOUT_S = 60.0
 
 _TF_MAP = {
     "1m": "Min1",
@@ -383,7 +389,22 @@ class MEXCFuturesConnector(BaseConnector):
             await ws.send(sub)
             ping_task = asyncio.create_task(self._keepalive(ws))
             try:
-                async for msg in ws:
+                while True:
+                    try:
+                        msg = await asyncio.wait_for(
+                            ws.recv(), timeout=_RECV_TIMEOUT_S
+                        )
+                    except asyncio.TimeoutError:
+                        self._log.warning(
+                            "[%s] stream_trades recv timeout after %.0fs for %s"
+                            " — session stale, terminating stream",
+                            self.exchange_name,
+                            _RECV_TIMEOUT_S,
+                            sym,
+                        )
+                        return
+                    except asyncio.CancelledError:
+                        raise
                     payload = json.loads(msg)
                     if not isinstance(payload, dict):
                         continue
@@ -426,7 +447,22 @@ class MEXCFuturesConnector(BaseConnector):
             await ws.send(sub)
             ping_task = asyncio.create_task(self._keepalive(ws))
             try:
-                async for msg in ws:
+                while True:
+                    try:
+                        msg = await asyncio.wait_for(
+                            ws.recv(), timeout=_RECV_TIMEOUT_S
+                        )
+                    except asyncio.TimeoutError:
+                        self._log.warning(
+                            "[%s] stream_orderbook recv timeout after %.0fs for %s"
+                            " — session stale, terminating stream",
+                            self.exchange_name,
+                            _RECV_TIMEOUT_S,
+                            sym,
+                        )
+                        return
+                    except asyncio.CancelledError:
+                        raise
                     payload = json.loads(msg)
                     if not isinstance(payload, dict):
                         continue

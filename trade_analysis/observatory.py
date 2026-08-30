@@ -185,15 +185,43 @@ class Observatory:
         except Exception as exc:  # pragma: no cover - resilience live
             print(f"[Observatory] {symbol} stream error: {exc}")
 
+    async def _restart_dead_tasks(self) -> None:
+        """Relance les tasks terminées pour les symboles encore dans la watchlist.
+
+        Invoquée à chaque flush_interval_s — bien plus fréquemment que
+        _reconcile() (reselect_interval_s).  Ne recalcule pas la watchlist
+        et ne touche pas aux symboles sortants : seule la détection et la
+        relance des tasks done()/cancelled() est effectuée ici.
+        """
+        for sym in list(self._tasks):
+            task = self._tasks[sym]
+            if task.done():
+                exc = None
+                if not task.cancelled():
+                    exc = task.exception()
+                reason = f"exception={exc!r}" if exc else "completed normally"
+                print(f"[Observatory] {sym} task done ({reason}), restarting")
+                self._tasks.pop(sym, None)
+                self._engines.pop(sym, None)
+                self._tasks[sym] = asyncio.create_task(self._run_symbol(sym))
+
     async def _reconcile(self) -> None:
-        """Aligne les taches actives sur la watchlist courante."""
+        """Aligne les taches actives sur la watchlist courante.
+
+        Recalcule la watchlist, arrête les symboles sortants et démarre
+        les nouveaux.  Appelée au démarrage puis tous les reselect_interval_s.
+        La détection des tasks mortes est déléguée à _restart_dead_tasks(),
+        qui tourne à chaque flush_interval_s.
+        """
         watchlist = self.compute_watchlist()
         self.store.set_watchlist(watchlist)
         wanted = set(watchlist)
 
         for sym in list(self._tasks):
+            task = self._tasks[sym]
             if sym not in wanted:
-                self._tasks[sym].cancel()
+                # Symbole sorti de la watchlist : annuler et retirer
+                task.cancel()
                 self._tasks.pop(sym, None)
                 self._engines.pop(sym, None)
 
@@ -210,6 +238,8 @@ class Observatory:
                 await asyncio.sleep(self.flush_interval_s)
                 self.store.set_contract_meta(self._contract_provenance())
                 self.store.flush()
+                # Relance des tasks mortes à chaque flush (rythme flush_interval_s).
+                await self._restart_dead_tasks()
                 if time.monotonic() - last_reselect >= self.reselect_interval_s:
                     await self._reconcile()
                     last_reselect = time.monotonic()
