@@ -13,6 +13,8 @@ dépôt git et d'une sauvegarde des données — en ~1 heure, sans rien perdre.
 | Secrets + config opérateur (`.env` : clés MEXC, tokens Telegram, VPS_*, UNIVERSE_PINNED_SYMBOLS) | dans la sauvegarde tar (JAMAIS dans git) | copie à la racine |
 | État systemd (5 unités + 3 timers) | copies de référence versionnées `scripts/systemd/` | `cp` + `enable` |
 
+Référence d'inventaire canonique : `docs/runbooks/systemd_canonical_inventory.md`.
+
 ## Sauvegarde (à refaire régulièrement — dernière : 2026-07-16, 16 Mo)
 
 ```bash
@@ -59,6 +61,28 @@ sudo systemctl enable --now crypto-market-observer.timer
 sudo systemctl enable --now crypto-market-radar.timer
 sudo systemctl enable --now crypto-market-horizons.timer
 ```
+
+### Set canonique explicite (restauration de base 5+3)
+
+Services :
+- `crypto-advisor.service`
+- `crypto-watchdog.service`
+- `crypto-market-observer.service`
+- `crypto-market-radar.service`
+- `crypto-market-horizons.service`
+
+Timers :
+- `crypto-market-observer.timer`
+- `crypto-market-radar.timer`
+- `crypto-market-horizons.timer`
+
+Note de dérive VPS :
+- `crypto-backup.service` / `crypto-backup.timer` ne font pas partie du set
+  canonique Git actuel.
+- `crypto-burnin-chronicle.service` / `crypto-burnin-chronicle.timer` ne font
+  pas partie du set canonique Git actuel.
+- Ne pas recréer `scripts/backup_daily.sh` ni `tools/burnin_chronicle.py` sans
+  source Git signée/validée.
 
 ## Vérifications post-restauration (dans l'ordre)
 
