@@ -36,9 +36,12 @@ from trade_analysis.models import PressureField
 from trade_analysis.recorder import LMIRecorder
 from trade_analysis.selection import SymbolSelector
 
-LMI_DIR = Path(os.getenv("LMI_DIR", "databases/trade_analysis"))
-LIVE_STATE_FILE = LMI_DIR / "lmi_live_state.json"
 DEFAULT_EXCHANGE = os.getenv("LMI_EXCHANGE", "mexc")
+
+
+def _resolve_live_state_file() -> Path:
+    """Résolu à chaque appel — injectable par env, testable, jamais figé."""
+    return Path(os.getenv("LMI_DIR", "databases/trade_analysis")) / "lmi_live_state.json"
 
 
 # ---------------------------------------------------------------------------
@@ -53,12 +56,18 @@ class LiveStateStore:
     de facon atomique (ecriture temp + rename).
     """
 
-    path: Path = LIVE_STATE_FILE
+    path: Path | None = None
     exchange: str = DEFAULT_EXCHANGE
     watchlist: list[str] = field(default_factory=list)
     contract_meta: dict = field(default_factory=dict)
     _states: dict[str, dict] = field(default_factory=dict)
     _event_count: int = 0
+
+    def __post_init__(self) -> None:
+        if self.path is None:
+            self.path = _resolve_live_state_file()
+        else:
+            self.path = Path(self.path)
 
     def update(self, pf: PressureField) -> None:
         self._states[pf.symbol] = pf.as_dict()

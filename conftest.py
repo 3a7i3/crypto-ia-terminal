@@ -51,6 +51,9 @@ os.environ.setdefault(
 os.environ.setdefault(
     "BLACK_BOX_PATH", os.path.join(_pytest_data_dir, "black_box.jsonl")
 )
+os.environ.setdefault(
+    "LMI_DIR", os.path.join(tempfile.mkdtemp(prefix="pytest_lmi_"), "lmi")
+)
 
 
 @pytest.fixture(autouse=True)
