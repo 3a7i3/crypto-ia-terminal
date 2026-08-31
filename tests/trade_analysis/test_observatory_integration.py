@@ -1,7 +1,6 @@
 """Tests pour selection, observatory (store) et adaptateurs LMI."""
 
 import json
-import os
 from pathlib import Path
 
 from trade_analysis.integrations import dashboard_adapter as da
