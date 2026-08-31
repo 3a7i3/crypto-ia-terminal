@@ -1,0 +1,986 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" />
+
+    <link rel="shortcut icon" href="../_static/favicon.ico"/><!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
+        <title>Suivi d’investigation — 31/08/2026 — check() / check_packet() — État du projet - Crypto AI Terminal 9.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=354aac6f" />
+    <link rel="stylesheet" type="text/css" href="../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=1b9cecba" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=302659d7" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">Crypto AI Terminal 9.1 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="../_static/../assets/logo_ai_quant.png" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="../_static/../assets/logo_ai_quant.png" alt="Dark Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/blob/main/docs/diagnostics/2026-08-31-session-followup-check-packet-project-state.md?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/edit/main/docs/diagnostics/2026-08-31-session-followup-check-packet-project-state.md" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="suivi-dinvestigation-31-08-2026-check-check-packet-etat-du-projet">
+<h1>Suivi d’investigation — 31/08/2026 — check() / check_packet() — État du projet<a class="headerlink" href="#suivi-dinvestigation-31-08-2026-check-check-packet-etat-du-projet" title="Link to this heading">¶</a></h1>
+<p><strong>Date d’investigation :</strong> 30–31 août 2026<br />
+<strong>Rédigé par :</strong> Investigation Claude Code (analyse statique repository + données VPS read-only)<br />
+<strong>Statut global :</strong> Partiellement clos — dette architecturale identifiée, aucun impact opérationnel mesuré, décision architecturale en attente</p>
+<hr class="docutils" />
+<section id="metadonnees">
+<h2>1. Métadonnées<a class="headerlink" href="#metadonnees" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Paramètre</p></th>
+<th class="head"><p>Valeur</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Projet</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">crypto-ai-terminal</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Repository</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">3a7i3/crypto-ia-terminal</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>VPS</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">crypto-advisor-2</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Répertoire VPS</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">/home/mathieu/crypto_ai_terminal</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>Utilisateur VPS actuel</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">ia_strategy_support</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Période d’investigation</p></td>
+<td><p>24–31 août 2026 (validation 8 jours)</p></td>
+</tr>
+<tr class="row-even"><td><p>Nature</p></td>
+<td><p>Analyse statique du code + validation read-only des fichiers JSONL de production</p></td>
+</tr>
+<tr class="row-odd"><td><p>Statut global</p></td>
+<td><p>Partiellement clos — dette architecturale en attente de décision</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<hr class="docutils" />
+<section id="point-de-depart">
+<h2>2. Point de départ<a class="headerlink" href="#point-de-depart" title="Link to this heading">¶</a></h2>
+<section id="document-precedent">
+<h3>Document précédent<a class="headerlink" href="#document-precedent" title="Link to this heading">¶</a></h3>
+<p>L’investigation qui a précédé cette session est archivée dans :</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">docs</span><span class="o">/</span><span class="n">diagnostics</span><span class="o">/</span><span class="mi">2026</span><span class="o">-</span><span class="mi">08</span><span class="o">-</span><span class="mi">30</span><span class="o">-</span><span class="n">meta</span><span class="o">-</span><span class="n">signal</span><span class="o">-</span><span class="n">network</span><span class="o">-</span><span class="n">diagnostic</span><span class="o">.</span><span class="n">md</span>
+</pre></div>
+</div>
+<p>Ce document (commit <code class="docutils literal notranslate"><span class="pre">9fb6525</span></code> — <strong>⚠️ non vérifiable dans le clone courant</strong>, voir §9) couvrait :</p>
+<ul class="simple">
+<li><p>la chaîne Signal Generator → Meta → Gate → décision finale ;</p></li>
+<li><p>le comportement de <code class="docutils literal notranslate"><span class="pre">gate.check()</span></code> vs <code class="docutils literal notranslate"><span class="pre">gate.check_packet()</span></code> ;</p></li>
+<li><p>la cohérence du détecteur de régime entre <code class="docutils literal notranslate"><span class="pre">LiveSignalEngine</span></code> et <code class="docutils literal notranslate"><span class="pre">advisor_loop.py</span></code> ;</p></li>
+<li><p>le rôle et l’état du module HMM V2 ;</p></li>
+<li><p>l’analyse des rejets de production du 30/08/2026.</p></li>
+</ul>
+</section>
+<section id="dossier-laisse-ouvert">
+<h3>Dossier laissé ouvert<a class="headerlink" href="#dossier-laisse-ouvert" title="Link to this heading">¶</a></h3>
+<p>Ce diagnostic avait laissé explicitement ouvert le dossier <code class="docutils literal notranslate"><span class="pre">check()/check_packet()</span></code> :
+la divergence entre les deux méthodes avait été identifiée au niveau du code, mais
+l’impact décisionnel réel en production n’avait pas encore été quantifié sur un
+échantillon représentatif multi-jours.</p>
+<p><strong>L’investigation de la présente session a pour objet de fermer ou qualifier ce dossier.</strong></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="methodologie">
+<h2>3. Méthodologie<a class="headerlink" href="#methodologie" title="Link to this heading">¶</a></h2>
+<section id="sources-utilisees">
+<h3>Sources utilisées<a class="headerlink" href="#sources-utilisees" title="Link to this heading">¶</a></h3>
+<ol class="arabic simple">
+<li><p><strong>Analyse statique du code</strong> — lecture des fichiers sources dans le repository :</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/risk/global_risk_gate.py</span></code> (implémentation de <code class="docutils literal notranslate"><span class="pre">check()</span></code> et <code class="docutils literal notranslate"><span class="pre">check_packet()</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code> (point d’appel et non-capture du retour de <code class="docutils literal notranslate"><span class="pre">check_packet()</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">observability/decision_observation.py</span></code>, <code class="docutils literal notranslate"><span class="pre">observability/rejection_store.py</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">observability/system_snapshot.py</span></code> (chemin vers <code class="docutils literal notranslate"><span class="pre">block_stats_lifetime.json</span></code>)</p></li>
+</ul>
+</li>
+<li><p><strong>Analyse read-only du VPS</strong> — toutes les données VPS ont été fournies par
+copier-coller depuis le terminal VPS. Aucune commande d’écriture n’a été exécutée.</p></li>
+<li><p><strong>Fichiers JSONL</strong> analysés sur le VPS :</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">databases/rejections/rejections_2026-08-30.jsonl</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">databases/decision_packets_YYYY-MM-DD.jsonl</span></code> (plusieurs jours)</p></li>
+</ul>
+</li>
+<li><p><strong>Jointure par <code class="docutils literal notranslate"><span class="pre">packet_id</span></code></strong> — les rejections JSONL et les DecisionPackets ont
+été croisés par le champ <code class="docutils literal notranslate"><span class="pre">packet_id</span></code> pour déterminer l’état <code class="docutils literal notranslate"><span class="pre">check_packet()</span></code> de
+chaque rejet documenté dans le fichier de rejections.</p></li>
+<li><p><strong>Validation multi-jours</strong> — la vérification a été reproduite sur 8 jours consécutifs
+(du 24 au 31/08/2026) pour s’assurer que l’échantillon du 30/08 n’était pas une anomalie.</p></li>
+</ol>
+</section>
+<section id="distinction-preuve-code-vs-preuve-production">
+<h3>Distinction preuve code vs preuve production<a class="headerlink" href="#distinction-preuve-code-vs-preuve-production" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Les faits qualifiés <strong>[CODE]</strong> sont prouvés par lecture du repository et sont
+reproductibles par quiconque lit les fichiers sources.</p></li>
+<li><p>Les faits qualifiés <strong>[VPS]</strong> proviennent des données de production du VPS.
+Ils ne peuvent pas être reproduits par lecture seule du repository.</p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="fausses-pistes-et-methodes-invalides">
+<h2>4. Fausses pistes et méthodes invalides<a class="headerlink" href="#fausses-pistes-et-methodes-invalides" title="Link to this heading">¶</a></h2>
+<blockquote>
+<div><p><strong>Cette section est importante.</strong> Elle documente les erreurs méthodologiques
+commises pendant l’investigation afin d’empêcher qu’une future investigation
+reproduise les mêmes erreurs.</p>
+</div></blockquote>
+<section id="comparaison-score-score-raw-dans-les-rejections">
+<h3>4.1 Comparaison <code class="docutils literal notranslate"><span class="pre">score</span></code> / <code class="docutils literal notranslate"><span class="pre">score_raw</span></code> dans les rejections<a class="headerlink" href="#comparaison-score-score-raw-dans-les-rejections" title="Link to this heading">¶</a></h3>
+<p><strong>Erreur :</strong> Tenter de quantifier la divergence <code class="docutils literal notranslate"><span class="pre">check()</span></code> vs <code class="docutils literal notranslate"><span class="pre">check_packet()</span></code> en
+comparant le champ <code class="docutils literal notranslate"><span class="pre">score</span></code> et le champ <code class="docutils literal notranslate"><span class="pre">score_raw</span></code> des enregistrements de rejection.</p>
+<p><strong>Pourquoi invalide :</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">check()</span></code> compare <code class="docutils literal notranslate"><span class="pre">signal_result.score</span></code> (score du <code class="docutils literal notranslate"><span class="pre">SignalResult</span></code>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">check_packet()</span></code> compare <code class="docutils literal notranslate"><span class="pre">packet.adjusted_confidence</span></code> (champ du <code class="docutils literal notranslate"><span class="pre">DecisionPacket</span></code>).</p></li>
+<li><p>Ces deux valeurs ne sont <strong>pas</strong> directement accessibles ensemble dans le fichier
+<code class="docutils literal notranslate"><span class="pre">rejections_YYYY-MM-DD.jsonl</span></code> ; les champs <code class="docutils literal notranslate"><span class="pre">score</span></code> et <code class="docutils literal notranslate"><span class="pre">score_raw</span></code> de ce fichier
+ne représentent pas la même chose que <code class="docutils literal notranslate"><span class="pre">adjusted_confidence</span></code>.</p></li>
+</ul>
+</section>
+<section id="absence-de-adjusted-confidence-dans-les-rejections">
+<h3>4.2 Absence de <code class="docutils literal notranslate"><span class="pre">adjusted_confidence</span></code> dans les rejections<a class="headerlink" href="#absence-de-adjusted-confidence-dans-les-rejections" title="Link to this heading">¶</a></h3>
+<p><strong>Erreur :</strong> Chercher le champ <code class="docutils literal notranslate"><span class="pre">adjusted_confidence</span></code> directement dans les fichiers
+de rejections.</p>
+<p><strong>Pourquoi invalide :</strong> <code class="docutils literal notranslate"><span class="pre">adjusted_confidence</span></code> est un champ du <code class="docutils literal notranslate"><span class="pre">DecisionPacket</span></code>,
+pas du <code class="docutils literal notranslate"><span class="pre">RejectionRecord</span></code>. Pour accéder à ce champ, il faut consulter les fichiers
+<code class="docutils literal notranslate"><span class="pre">databases/decision_packets_YYYY-MM-DD.jsonl</span></code> et effectuer une jointure par <code class="docutils literal notranslate"><span class="pre">packet_id</span></code>.</p>
+</section>
+<section id="echantillon-non-representatif">
+<h3>4.3 Échantillon non représentatif<a class="headerlink" href="#echantillon-non-representatif" title="Link to this heading">¶</a></h3>
+<p><strong>Erreur :</strong> Tirer des conclusions définitives à partir d’une seule journée
+(30/08/2026 uniquement).</p>
+<p><strong>Correction appliquée :</strong> La validation a été reproduite sur 8 jours (24–31/08)
+pour confirmer la robustesse des conclusions.</p>
+</section>
+<section id="resume-de-la-methode-valide">
+<h3>4.4 Résumé de la méthode valide<a class="headerlink" href="#resume-de-la-methode-valide" title="Link to this heading">¶</a></h3>
+<p>La seule méthode correcte pour qualifier la divergence <code class="docutils literal notranslate"><span class="pre">check()</span></code> / <code class="docutils literal notranslate"><span class="pre">check_packet()</span></code>
+en production est :</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="mf">1.</span> <span class="n">Charger</span> <span class="n">rejections_YYYY</span><span class="o">-</span><span class="n">MM</span><span class="o">-</span><span class="n">DD</span><span class="o">.</span><span class="n">jsonl</span>
+<span class="mf">2.</span> <span class="n">Charger</span> <span class="n">decision_packets_YYYY</span><span class="o">-</span><span class="n">MM</span><span class="o">-</span><span class="n">DD</span><span class="o">.</span><span class="n">jsonl</span>
+<span class="mf">3.</span> <span class="n">Joindre</span> <span class="n">les</span> <span class="n">deux</span> <span class="n">datasets</span> <span class="n">par</span> <span class="n">packet_id</span>
+<span class="mf">4.</span> <span class="n">Comparer</span> <span class="n">gate_failed</span> <span class="p">(</span><span class="n">issu</span> <span class="n">de</span> <span class="n">check</span><span class="p">())</span> <span class="n">avec</span> <span class="n">risk_failed</span> <span class="p">(</span><span class="n">issu</span> <span class="n">de</span> <span class="n">check_packet</span><span class="p">())</span>
+<span class="mf">5.</span> <span class="n">Identifier</span> <span class="n">les</span> <span class="n">cas</span> <span class="n">où</span> <span class="n">gate_failed</span><span class="o">=</span><span class="kc">False</span> <span class="n">ET</span> <span class="n">risk_failed</span><span class="o">=</span><span class="kc">True</span> <span class="p">(</span><span class="n">check</span><span class="p">()</span> <span class="n">laisse</span> <span class="n">passer</span><span class="p">,</span> <span class="n">check_packet</span><span class="p">()</span> <span class="n">aurait</span> <span class="n">bloqué</span><span class="p">)</span>
+<span class="mf">6.</span> <span class="n">Analyser</span> <span class="n">first_blocker</span> <span class="n">pour</span> <span class="n">ces</span> <span class="n">cas</span> <span class="n">divergents</span>
+</pre></div>
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="resultats-code-prouves">
+<h2>5. Résultats CODE PROUVÉS<a class="headerlink" href="#resultats-code-prouves" title="Link to this heading">¶</a></h2>
+<blockquote>
+<div><p>Tous les éléments ci-dessous sont vérifiables dans le repository.</p>
+</div></blockquote>
+<section id="check-compare-signal-result-score">
+<h3>5.1 <code class="docutils literal notranslate"><span class="pre">check()</span></code> compare <code class="docutils literal notranslate"><span class="pre">signal_result.score</span></code><a class="headerlink" href="#check-compare-signal-result-score" title="Link to this heading">¶</a></h3>
+<p><strong>Fichier :</strong> <code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/risk/global_risk_gate.py</span></code>, ligne ~269</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">score</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">signal_result</span><span class="p">,</span> <span class="s2">"score"</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+<span class="n">regime_str</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">signal_result</span><span class="p">,</span> <span class="s2">"regime"</span><span class="p">,</span> <span class="s2">"unknown"</span><span class="p">)</span>
+<span class="n">effective_min</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_effective_min_score</span><span class="p">(</span><span class="n">regime_str</span><span class="p">)</span>
+<span class="n">c3</span> <span class="o">=</span> <span class="n">score</span> <span class="o">&gt;=</span> <span class="n">effective_min</span>
+</pre></div>
+</div>
+<p>L’entrée est un <code class="docutils literal notranslate"><span class="pre">SignalResult</span></code> du <code class="docutils literal notranslate"><span class="pre">LiveSignalEngine</span></code>. Le score comparé est
+<code class="docutils literal notranslate"><span class="pre">signal_result.score</span></code>. <strong>[CODE]</strong></p>
+</section>
+<section id="check-packet-compare-packet-adjusted-confidence">
+<h3>5.2 <code class="docutils literal notranslate"><span class="pre">check_packet()</span></code> compare <code class="docutils literal notranslate"><span class="pre">packet.adjusted_confidence</span></code><a class="headerlink" href="#check-packet-compare-packet-adjusted-confidence" title="Link to this heading">¶</a></h3>
+<p><strong>Fichier :</strong> <code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/risk/global_risk_gate.py</span></code>, ligne ~406</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">score</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">packet</span><span class="p">,</span> <span class="s2">"adjusted_confidence"</span><span class="p">,</span> <span class="n">packet</span><span class="o">.</span><span class="n">confidence</span><span class="p">))</span>
+<span class="n">effective_min</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_effective_min_score</span><span class="p">(</span><span class="n">regime_str</span><span class="p">)</span>
+<span class="n">c3</span> <span class="o">=</span> <span class="n">score</span> <span class="o">&gt;=</span> <span class="n">effective_min</span>
+</pre></div>
+</div>
+<p>L’entrée est un <code class="docutils literal notranslate"><span class="pre">DecisionPacket</span></code>. Le score comparé est <code class="docutils literal notranslate"><span class="pre">packet.adjusted_confidence</span></code>
+(avec fallback sur <code class="docutils literal notranslate"><span class="pre">packet.confidence</span></code>). <strong>[CODE]</strong></p>
+</section>
+<section id="meme-methode-effective-min-score-regime">
+<h3>5.3 Même méthode <code class="docutils literal notranslate"><span class="pre">_effective_min_score(regime)</span></code><a class="headerlink" href="#meme-methode-effective-min-score-regime" title="Link to this heading">¶</a></h3>
+<p>Les deux méthodes utilisent la même fonction <code class="docutils literal notranslate"><span class="pre">_effective_min_score(regime_str)</span></code>
+(lignes ~271 et ~408), ce qui signifie que la divergence ne vient pas du seuil
+mais de la valeur du score comparé. <strong>[CODE]</strong></p>
+</section>
+<section id="retour-de-check-packet-non-capture-dans-le-pipeline-principal">
+<h3>5.4 Retour de <code class="docutils literal notranslate"><span class="pre">check_packet()</span></code> non capturé dans le pipeline principal<a class="headerlink" href="#retour-de-check-packet-non-capture-dans-le-pipeline-principal" title="Link to this heading">¶</a></h3>
+<p><strong>Fichier :</strong> <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code>, lignes 1553–1559</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">if</span> <span class="n">_dp</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">_dp</span><span class="o">.</span><span class="n">is_terminal</span><span class="p">()</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">gate</span><span class="p">,</span> <span class="s2">"check_packet"</span><span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">gate</span><span class="o">.</span><span class="n">check_packet</span><span class="p">(</span>
+            <span class="n">_dp</span><span class="p">,</span> <span class="n">portfolio_drawdown</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">order_size_usd</span><span class="o">=</span><span class="n">order_size_usd</span>
+        <span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">_dp_exc</span><span class="p">:</span>
+        <span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">"[DecisionPacket] check_packet: </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="n">_dp_exc</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>L’appel à <code class="docutils literal notranslate"><span class="pre">check_packet()</span></code> est fire-and-forget : son résultat n’est pas capturé,
+pas affecté à une variable de décision. Le résultat de <code class="docutils literal notranslate"><span class="pre">gate.check()</span></code> (ligne 1550)
+est capturé dans <code class="docutils literal notranslate"><span class="pre">gate_result</span></code> et pilote toutes les décisions. <strong>[CODE]</strong></p>
+</section>
+<section id="results-gate-represente-uniquement-gate-check">
+<h3>5.5 <code class="docutils literal notranslate"><span class="pre">results[&quot;gate&quot;]</span></code> représente uniquement <code class="docutils literal notranslate"><span class="pre">gate.check()</span></code><a class="headerlink" href="#results-gate-represente-uniquement-gate-check" title="Link to this heading">¶</a></h3>
+<p><strong>Fichier :</strong> <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code>, ligne ~2298</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="s2">"gate"</span><span class="p">:</span> <span class="n">gate_result</span><span class="p">,</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">gate_result</span></code> est le résultat de <code class="docutils literal notranslate"><span class="pre">gate.check()</span></code> uniquement.
+<code class="docutils literal notranslate"><span class="pre">results[&quot;gate&quot;]</span></code> ne contient aucune information issue de <code class="docutils literal notranslate"><span class="pre">check_packet()</span></code>. <strong>[CODE]</strong></p>
+</section>
+<section id="block-stats-lifetime-json-represente-uniquement-check">
+<h3>5.6 <code class="docutils literal notranslate"><span class="pre">block_stats_lifetime.json</span></code> représente uniquement <code class="docutils literal notranslate"><span class="pre">check()</span></code><a class="headerlink" href="#block-stats-lifetime-json-represente-uniquement-check" title="Link to this heading">¶</a></h3>
+<p><strong>Fichier :</strong> <code class="docutils literal notranslate"><span class="pre">observability/system_snapshot.py</span></code>, ligne ~292</p>
+<p><code class="docutils literal notranslate"><span class="pre">block_stats_lifetime.json</span></code> est alimenté par le <code class="docutils literal notranslate"><span class="pre">BlockStatsAccumulator</span></code> qui est
+mis à jour via le flux <code class="docutils literal notranslate"><span class="pre">gate_result</span></code> (issu de <code class="docutils literal notranslate"><span class="pre">check()</span></code>). Les statistiques de
+blocage lifetime reflètent donc exclusivement les verdicts de <code class="docutils literal notranslate"><span class="pre">check()</span></code>. <strong>[CODE]</strong></p>
+</section>
+<section id="check-packet-ecrit-son-verdict-dans-le-decisionpacket">
+<h3>5.7 <code class="docutils literal notranslate"><span class="pre">check_packet()</span></code> écrit son verdict dans le DecisionPacket<a class="headerlink" href="#check-packet-ecrit-son-verdict-dans-le-decisionpacket" title="Link to this heading">¶</a></h3>
+<p><strong>Fichier :</strong> <code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/risk/global_risk_gate.py</span></code>, ligne ~459</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">packet</span><span class="o">.</span><span class="n">metadata</span><span class="p">[</span><span class="s2">"risk_failed"</span><span class="p">]</span> <span class="o">=</span> <span class="n">failed</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">check_packet()</span></code> écrit bien son verdict (via <code class="docutils literal notranslate"><span class="pre">risk_failed</span></code>) dans les métadonnées
+du <code class="docutils literal notranslate"><span class="pre">DecisionPacket</span></code>. Ce champ est donc tracé dans les fichiers
+<code class="docutils literal notranslate"><span class="pre">databases/decision_packets_YYYY-MM-DD.jsonl</span></code>. <strong>[CODE]</strong></p>
+</section>
+<section id="synchronisation-g8-d-unidirectionnelle">
+<h3>5.8 Synchronisation G8-D unidirectionnelle<a class="headerlink" href="#synchronisation-g8-d-unidirectionnelle" title="Link to this heading">¶</a></h3>
+<p>La synchronisation entre le résultat Gate (G8) et le DecisionPacket (D) est
+unidirectionnelle dans le pipeline courant : <code class="docutils literal notranslate"><span class="pre">check_packet()</span></code> enrichit le packet
+mais n’influence pas <code class="docutils literal notranslate"><span class="pre">gate_result</span></code>. L’inverse n’est pas non plus implémenté :
+<code class="docutils literal notranslate"><span class="pre">gate_result</span></code> n’est pas réinjecté dans le packet comme source de vérité. <strong>[CODE]</strong></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="resultats-production-prouves">
+<h2>6. Résultats PRODUCTION PROUVÉS<a class="headerlink" href="#resultats-production-prouves" title="Link to this heading">¶</a></h2>
+<blockquote>
+<div><p>Les éléments suivants proviennent de l’analyse des fichiers JSONL du VPS.
+Ils sont marqués <strong>[VPS]</strong> et ne peuvent pas être vérifiés par lecture seule du repository.</p>
+</div></blockquote>
+<section id="contingence-du-30-08-2026">
+<h3>6.1 Contingence du 30/08/2026<a class="headerlink" href="#contingence-du-30-08-2026" title="Link to this heading">¶</a></h3>
+<p>Analyse des rejections du 30 août 2026 par jointure <code class="docutils literal notranslate"><span class="pre">packet_id</span></code> entre
+<code class="docutils literal notranslate"><span class="pre">rejections_2026-08-30.jsonl</span></code> et <code class="docutils literal notranslate"><span class="pre">decision_packets_2026-08-30.jsonl</span></code> :</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p></p></th>
+<th class="head"><p><code class="docutils literal notranslate"><span class="pre">risk_failed=True</span></code></p></th>
+<th class="head"><p><code class="docutils literal notranslate"><span class="pre">risk_failed=False</span></code></p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong><code class="docutils literal notranslate"><span class="pre">gate_failed=True</span></code></strong></p></td>
+<td><p>8 473</p></td>
+<td><p>3 223</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong><code class="docutils literal notranslate"><span class="pre">gate_failed=False</span></code></strong></p></td>
+<td><p>688</p></td>
+<td><p>535</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><strong>[VPS]</strong></p>
+</section>
+<section id="interpretation-des-688-cas-divergents">
+<h3>6.2 Interprétation des 688 cas divergents<a class="headerlink" href="#interpretation-des-688-cas-divergents" title="Link to this heading">¶</a></h3>
+<p>Les 688 cas où <code class="docutils literal notranslate"><span class="pre">gate_failed=False</span></code> et <code class="docutils literal notranslate"><span class="pre">risk_failed=True</span></code> correspondent aux situations
+où <code class="docutils literal notranslate"><span class="pre">check()</span></code> laisse passer mais <code class="docutils literal notranslate"><span class="pre">check_packet()</span></code> aurait bloqué.</p>
+<p><strong>Investigation de ces 688 cas :</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">first_blocker</span></code> = <code class="docutils literal notranslate"><span class="pre">meta</span></code> dans <strong>100 % des cas</strong> (0 exception observée le 30/08). <strong>[VPS]</strong></p></li>
+<li><p>Conséquence : même si <code class="docutils literal notranslate"><span class="pre">check()</span></code> laissait passer, Meta bloquait de toute façon
+la décision avant qu’elle n’arrive à l’étape d’exécution.</p></li>
+<li><p><strong>Impact décisionnel autonome mesuré de la divergence : NULS.</strong> <strong>[VPS]</strong></p></li>
+</ul>
+</section>
+<section id="reproduction-sur-8-jours-2431-08-2026">
+<h3>6.3 Reproduction sur 8 jours (24–31/08/2026)<a class="headerlink" href="#reproduction-sur-8-jours-2431-08-2026" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Environ 4 600 cas divergents (<code class="docutils literal notranslate"><span class="pre">gate_failed=False</span></code>, <code class="docutils literal notranslate"><span class="pre">risk_failed=True</span></code>) sur la période. <strong>[VPS]</strong></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">first_blocker</span></code> = <code class="docutils literal notranslate"><span class="pre">meta</span></code> dans <strong>100 % des cas</strong>, sur les 8 jours. <strong>[VPS]</strong></p></li>
+<li><p><strong>Aucune exception observée</strong> sur 8/8 jours. <strong>[VPS]</strong></p></li>
+<li><p>Conclusion : le résultat du 30/08 n’est pas un artefact d’un jour particulier.
+Il reflète un pattern stable de la production courante. <strong>[VPS]</strong></p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="verdict">
+<h2>7. VERDICT<a class="headerlink" href="#verdict" title="Link to this heading">¶</a></h2>
+<section id="clos">
+<h3>CLOS<a class="headerlink" href="#clos" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Dossier</p></th>
+<th class="head"><p>Conclusion</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Impact opérationnel actuel de <code class="docutils literal notranslate"><span class="pre">check()/check_packet()</span></code></p></td>
+<td><p><strong>CLOS</strong> — aucun impact décisionnel mesuré sur 8 jours (Meta est <code class="docutils literal notranslate"><span class="pre">first_blocker</span></code> dans 100 % des cas divergents).</p></td>
+</tr>
+<tr class="row-odd"><td><p>HMM V2</p></td>
+<td><p><strong>CLOS</strong> — le chemin HMM V2 est inactif dans le pipeline courant (vérifié dans <code class="docutils literal notranslate"><span class="pre">advisor_loop.py</span></code>).</p></td>
+</tr>
+<tr class="row-even"><td><p>Dossier Meta/Signal</p></td>
+<td><p><strong>CLOS</strong> — Meta fonctionne correctement comme premier filtre ; sa cohérence avec le <code class="docutils literal notranslate"><span class="pre">SignalGenerator</span></code> est confirmée.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Mismatch de régime entre LSE et advisor_loop</p></td>
+<td><p><strong>CLOS</strong> — aucun mismatch observé en production.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="ouvert">
+<h3>OUVERT<a class="headerlink" href="#ouvert" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Dossier</p></th>
+<th class="head"><p>Nature</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Dette architecturale <code class="docutils literal notranslate"><span class="pre">check()/check_packet()</span></code></p></td>
+<td><p>La divergence entre les deux méthodes est réelle au niveau du code. Elle n’a pas d’impact aujourd’hui mais pourrait en avoir si les seuils Meta changent. Une décision architecturale est requise (voir §8).</p></td>
+</tr>
+<tr class="row-odd"><td><p>Représentation officielle de <code class="docutils literal notranslate"><span class="pre">results[&quot;gate&quot;]</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">results[&quot;gate&quot;]</span></code> et <code class="docutils literal notranslate"><span class="pre">block_stats_lifetime.json</span></code> reflètent uniquement <code class="docutils literal notranslate"><span class="pre">check()</span></code>. Si <code class="docutils literal notranslate"><span class="pre">check_packet()</span></code> devient la source de vérité, ces structures devront être mises à jour.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="risque-latent">
+<h3>RISQUE LATENT<a class="headerlink" href="#risque-latent" title="Link to this heading">¶</a></h3>
+<p><strong>Changement futur des seuils Meta</strong> : si les seuils Meta sont abaissés (par exemple
+lors d’une phase de calibration future), la proportion de cas où Meta n’est plus
+<code class="docutils literal notranslate"><span class="pre">first_blocker</span></code> pourrait augmenter, exposant la divergence <code class="docutils literal notranslate"><span class="pre">check()/check_packet()</span></code>
+à un impact décisionnel réel. Ce risque est actuellement nul mais devient pertinent
+dès qu’une calibration Meta est envisagée.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="options-architecturales">
+<h2>8. Options architecturales<a class="headerlink" href="#options-architecturales" title="Link to this heading">¶</a></h2>
+<blockquote>
+<div><p>Ces options sont documentées sans choix imposé. La décision appartient au propriétaire du projet.</p>
+</div></blockquote>
+<section id="option-a-convergence-des-scores">
+<h3>Option A — Convergence des scores<a class="headerlink" href="#option-a-convergence-des-scores" title="Link to this heading">¶</a></h3>
+<p>Aligner <code class="docutils literal notranslate"><span class="pre">check()</span></code> et <code class="docutils literal notranslate"><span class="pre">check_packet()</span></code> pour qu’ils comparent le même score :
+soit <code class="docutils literal notranslate"><span class="pre">signal_result.score</span></code> devient <code class="docutils literal notranslate"><span class="pre">adjusted_confidence</span></code>, soit <code class="docutils literal notranslate"><span class="pre">check_packet()</span></code>
+utilise <code class="docutils literal notranslate"><span class="pre">signal_result.score</span></code> comme entrée.</p>
+<p><strong>Avantage :</strong> cohérence totale entre les deux méthodes.<br />
+<strong>Risque :</strong> changement de comportement potentiel ; requiert analyse d’impact et validation.</p>
+</section>
+<section id="option-b-check-packet-comme-source-de-verite">
+<h3>Option B — <code class="docutils literal notranslate"><span class="pre">check_packet()</span></code> comme source de vérité<a class="headerlink" href="#option-b-check-packet-comme-source-de-verite" title="Link to this heading">¶</a></h3>
+<p>Capturer le résultat de <code class="docutils literal notranslate"><span class="pre">check_packet()</span></code> dans <code class="docutils literal notranslate"><span class="pre">advisor_loop.py</span></code> et l’utiliser
+à la place de <code class="docutils literal notranslate"><span class="pre">gate_result</span></code> pour les décisions en aval.</p>
+<p><strong>Avantage :</strong> le <code class="docutils literal notranslate"><span class="pre">DecisionPacket</span></code> devient la source de vérité unique.<br />
+<strong>Risque :</strong> changement architectural significatif ; impact sur <code class="docutils literal notranslate"><span class="pre">results[&quot;gate&quot;]</span></code>,
+<code class="docutils literal notranslate"><span class="pre">block_stats_lifetime.json</span></code>, et toute l’observabilité aval.</p>
+</section>
+<section id="option-c-statu-quo-surveillance-alerte">
+<h3>Option C — Statu quo + surveillance / alerte<a class="headerlink" href="#option-c-statu-quo-surveillance-alerte" title="Link to this heading">¶</a></h3>
+<p>Conserver l’architecture actuelle. Ajouter une alerte (log ou métrique) dès qu’un
+cas divergent (<code class="docutils literal notranslate"><span class="pre">gate_failed=False</span></code>, <code class="docutils literal notranslate"><span class="pre">risk_failed=True</span></code>) n’a pas <code class="docutils literal notranslate"><span class="pre">meta</span></code> comme
+<code class="docutils literal notranslate"><span class="pre">first_blocker</span></code>.</p>
+<p><strong>Avantage :</strong> zéro risque de régression ; adapté à la phase de gel fonctionnel actuelle.<br />
+<strong>Risque :</strong> la dette architecturale reste ; aucune correction si les seuils Meta changent.</p>
+<blockquote>
+<div><p><strong>Recommandation à court terme :</strong> Option C, compte tenu de l’absence d’impact
+mesuré et du gel fonctionnel actuel (voir CLAUDE.md — Phase Validation Scientifique).
+La décision finale sur A/B/C appartient à Mathieu.</p>
+</div></blockquote>
+</section>
+</section>
+<hr class="docutils" />
+<section id="historique-git">
+<h2>9. Historique Git<a class="headerlink" href="#historique-git" title="Link to this heading">¶</a></h2>
+<section id="commits-verifies-dans-ce-clone">
+<h3>Commits vérifiés dans ce clone<a class="headerlink" href="#commits-verifies-dans-ce-clone" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Hash</p></th>
+<th class="head"><p>Statut</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">154baea</span></code></p></td>
+<td><p>✅ Vérifié dans le clone</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">chore:</span> <span class="pre">ignore</span> <span class="pre">runtime-generated</span> <span class="pre">database</span> <span class="pre">files</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">c98181e</span></code></p></td>
+<td><p>✅ Vérifié dans le clone</p></td>
+<td><p>Merge PR #83 — <code class="docutils literal notranslate"><span class="pre">Merge</span> <span class="pre">pull</span> <span class="pre">request</span> <span class="pre">#83</span> <span class="pre">from</span> <span class="pre">3a7i3/copilot/documenter-investigations-techniques</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="pr-83">
+<h3>PR #83<a class="headerlink" href="#pr-83" title="Link to this heading">¶</a></h3>
+<p><strong>Confirmé dans l’historique Git du clone :</strong>
+<code class="docutils literal notranslate"><span class="pre">c98181e</span> <span class="pre">Merge</span> <span class="pre">pull</span> <span class="pre">request</span> <span class="pre">#83</span> <span class="pre">from</span> <span class="pre">3a7i3/copilot/documenter-investigations-techniques</span></code></p>
+</section>
+<section id="commits-non-verifiables-dans-ce-clone">
+<h3>Commits non vérifiables dans ce clone<a class="headerlink" href="#commits-non-verifiables-dans-ce-clone" title="Link to this heading">¶</a></h3>
+<p>Les commits suivants sont mentionnés dans le rapport de suivi VPS mais ne sont pas
+présents dans le clone courant (clone peu profond / shallow clone) :</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Hash</p></th>
+<th class="head"><p>Statut</p></th>
+<th class="head"><p>Description probable</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">9fb6525</span></code></p></td>
+<td><p>⚠️ Non vérifiable dans ce clone</p></td>
+<td><p>Commit lié au diagnostic Meta/Signal/Network du 30/08</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">19fb026</span></code></p></td>
+<td><p>⚠️ Non vérifiable dans ce clone</p></td>
+<td><p>Commit lié à l’investigation VPS</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<blockquote>
+<div><p>Pour vérifier ces commits : <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">fetch</span> <span class="pre">--unshallow</span> <span class="pre">origin</span></code> puis <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">show</span> <span class="pre">9fb6525</span></code>.</p>
+</div></blockquote>
+</section>
+</section>
+<hr class="docutils" />
+<section id="incidents-annexes">
+<h2>10. Incidents annexes<a class="headerlink" href="#incidents-annexes" title="Link to this heading">¶</a></h2>
+<blockquote>
+<div><p>Ces incidents sont documentés pour mémoire. Ils sont <strong>résolus</strong> ou sans impact sur la
+production actuelle, sauf indication contraire.</p>
+</div></blockquote>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Incident</p></th>
+<th class="head"><p>Statut</p></th>
+<th class="head"><p>Note</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Confusion de hash / branche</p></td>
+<td><p>Résolu</p></td>
+<td><p>Investigation initiale partie sur un mauvais hash ; corrigée par <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">log</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Merge et conflit <code class="docutils literal notranslate"><span class="pre">bot.py</span></code></p></td>
+<td><p>Résolu</p></td>
+<td><p>Conflit résolu manuellement ; commit de merge créé correctement</p></td>
+</tr>
+<tr class="row-even"><td><p>Authentification Git / deploy key read-only</p></td>
+<td><p>Partiellement ouvert</p></td>
+<td><p>La deploy key SSH est en lecture seule ; les pushes nécessitent HTTPS + token (voir §11)</p></td>
+</tr>
+<tr class="row-odd"><td><p>HTTPS + token</p></td>
+<td><p>Actif</p></td>
+<td><p>Méthode utilisée pour les pushes depuis le VPS</p></td>
+</tr>
+<tr class="row-even"><td><p>Fichier fantôme</p></td>
+<td><p>Résolu</p></td>
+<td><p>Fichier supprimé de l’historique git sans impact sur la production</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">pytest</span></code> dans <code class="docutils literal notranslate"><span class="pre">.venv</span></code></p></td>
+<td><p>Résolu</p></td>
+<td><p>Confusion initiale entre <code class="docutils literal notranslate"><span class="pre">.venv</span></code> (environnement virtuel Python) et <code class="docutils literal notranslate"><span class="pre">.env</span></code> (variables d’environnement)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code> ignoré</p></td>
+<td><p>Confirmé</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code> est dans <code class="docutils literal notranslate"><span class="pre">.gitignore</span></code> ; ne pas le committer</p></td>
+</tr>
+<tr class="row-odd"><td><p>DS-001</p></td>
+<td><p>Actif, surveillé</p></td>
+<td><p>Règle de chemin configurable définie dans <code class="docutils literal notranslate"><span class="pre">conftest.py</span></code> et <code class="docutils literal notranslate"><span class="pre">core/invariants.py</span></code> ; un point potentiellement ouvert sur <code class="docutils literal notranslate"><span class="pre">lmi_live_state.json</span></code> (voir §11)</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<hr class="docutils" />
+<section id="dossiers-encore-ouverts">
+<h2>11. Dossiers encore ouverts<a class="headerlink" href="#dossiers-encore-ouverts" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Sujet</p></th>
+<th class="head"><p>Statut</p></th>
+<th class="head"><p>Nature</p></th>
+<th class="head"><p>Prochaine action</p></th>
+<th class="head"><p>Responsable</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">check()/check_packet()</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">NEEDS_ARCHITECTURAL_DECISION</span></code></p></td>
+<td><p>Dette architecturale</p></td>
+<td><p>Choisir option A, B ou C (§8)</p></td>
+<td><p>Mathieu</p></td>
+</tr>
+<tr class="row-odd"><td><p>DS-001 / <code class="docutils literal notranslate"><span class="pre">lmi_live_state.json</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">OPEN</span></code></p></td>
+<td><p>Chemin test/production potentiellement non isolé</p></td>
+<td><p>Analyser <code class="docutils literal notranslate"><span class="pre">trade_analysis/observatory.py</span></code> + <code class="docutils literal notranslate"><span class="pre">integrations/dashboard_adapter.py</span></code> ; corriger si violation DS-001 confirmée</p></td>
+<td><p>Claude Code → Copilot</p></td>
+</tr>
+<tr class="row-even"><td><p>Deploy key SSH</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">OPEN</span></code></p></td>
+<td><p>Infrastructure Git — authentification VPS</p></td>
+<td><p>Décision sur la méthode d’authentification (deploy key upgrade ou HTTPS permanent)</p></td>
+<td><p>Mathieu</p></td>
+</tr>
+<tr class="row-odd"><td><p>Runtime files trackés</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PARTIALLY</span> <span class="pre">VERIFIED</span></code></p></td>
+<td><p>Hygiène dépôt</p></td>
+<td><p>Vérifier si d’autres fichiers runtime sont trackés accidentellement (après <code class="docutils literal notranslate"><span class="pre">154baea</span></code>)</p></td>
+<td><p>VPS + Copilot</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<blockquote>
+<div><p><strong>Note DS-001 / <code class="docutils literal notranslate"><span class="pre">lmi_live_state.json</span></code> :</strong> Le fichier <code class="docutils literal notranslate"><span class="pre">trade_analysis/observatory.py</span></code>
+définit <code class="docutils literal notranslate"><span class="pre">LIVE_STATE_FILE</span> <span class="pre">=</span> <span class="pre">LMI_DIR</span> <span class="pre">/</span> <span class="pre">&quot;lmi_live_state.json&quot;</span></code> sans variable d’environnement
+surchargeable. Cela pourrait constituer une violation de DS-001 si ce chemin est utilisé
+par les tests sans isolation. Ce point <strong>n’est pas confirmé comme anomalie</strong> à ce stade ;
+il nécessite une analyse ciblée avant toute correction.</p>
+</div></blockquote>
+</section>
+<hr class="docutils" />
+<section id="prochaine-action-recommandee">
+<h2>12. Prochaine action recommandée<a class="headerlink" href="#prochaine-action-recommandee" title="Link to this heading">¶</a></h2>
+<section id="action-immediate-ne-pas-modifier-check-check-packet">
+<h3>Action immédiate : NE PAS modifier <code class="docutils literal notranslate"><span class="pre">check()</span></code> / <code class="docutils literal notranslate"><span class="pre">check_packet()</span></code><a class="headerlink" href="#action-immediate-ne-pas-modifier-check-check-packet" title="Link to this heading">¶</a></h3>
+<p>L’absence d’impact mesuré et le gel fonctionnel actuel (CLAUDE.md — Phase Validation
+Scientifique) imposent de ne pas toucher à ces méthodes sans décision architecturale préalable.</p>
+</section>
+<section id="sequence-recommandee">
+<h3>Séquence recommandée<a class="headerlink" href="#sequence-recommandee" title="Link to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>1. [Mathieu] Décision architecturale : choisir option A, B, ou C (§8)
+   └─ Si option C : ajouter surveillance/alerte, aucune modification de code
+   └─ Si option A ou B :
+       2. [Claude Code] Analyse d'impact ciblée sur les fichiers concernés
+       3. [Copilot] Modification des fichiers identifiés (uniquement ceux-là)
+       4. [VPS — read-only] Validation post-déploiement sur les fichiers JSONL de production
+</pre></div>
+</div>
+</section>
+<section id="en-parallele-independant">
+<h3>En parallèle (indépendant)<a class="headerlink" href="#en-parallele-independant" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>[Claude Code → Copilot] Analyser et résoudre DS-001 / <code class="docutils literal notranslate"><span class="pre">lmi_live_state.json</span></code> si confirmé.</p></li>
+<li><p>[Mathieu] Décision sur la méthode d’authentification Git (deploy key ou HTTPS).</p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="regle-de-continuite">
+<h2>13. Règle de continuité<a class="headerlink" href="#regle-de-continuite" title="Link to this heading">¶</a></h2>
+<section id="ce-document-doit-etre-mis-a-jour">
+<h3>Ce document doit être mis à jour<a class="headerlink" href="#ce-document-doit-etre-mis-a-jour" title="Link to this heading">¶</a></h3>
+<p>Ce document est une <strong>mémoire de reprise de projet</strong>. Il doit être mis à jour après
+chaque investigation majeure portant sur <code class="docutils literal notranslate"><span class="pre">check()/check_packet()</span></code> ou les sujets
+listés au §11.</p>
+<p>Procédure de mise à jour :</p>
+<ol class="arabic simple">
+<li><p>Créer un nouveau fichier <code class="docutils literal notranslate"><span class="pre">docs/diagnostics/YYYY-MM-DD-&lt;sujet&gt;.md</span></code> pour chaque
+nouvelle investigation substantielle.</p></li>
+<li><p>Référencer le présent document dans le nouveau fichier (<code class="docutils literal notranslate"><span class="pre">Point</span> <span class="pre">de</span> <span class="pre">départ</span></code>).</p></li>
+<li><p>Mettre à jour les tableaux §7 (VERDICT) et §11 (Dossiers ouverts) dans le présent
+document si des dossiers sont clos ou modifiés.</p></li>
+<li><p>Committer la documentation séparément du code (<code class="docutils literal notranslate"><span class="pre">docs:</span> <span class="pre">...</span></code>).</p></li>
+</ol>
+</section>
+<section id="les-conversations-claude-copilot-ne-sont-pas-la-memoire-du-projet">
+<h3>Les conversations Claude/Copilot ne sont pas la mémoire du projet<a class="headerlink" href="#les-conversations-claude-copilot-ne-sont-pas-la-memoire-du-projet" title="Link to this heading">¶</a></h3>
+<blockquote>
+<div><p>Les sessions de conversation Claude Code, Copilot ou autres agents IA sont
+éphémères. Un agent qui démarre une nouvelle session n’a accès qu’à ce qui est
+versionné dans Git. <strong>Toute conclusion, preuve ou décision importante doit être
+documentée ici ou dans un fichier versionné équivalent</strong>, jamais conservée
+uniquement dans l’historique d’une conversation.</p>
+</div></blockquote>
+<hr class="docutils" />
+<p><em>Document créé le 31/08/2026 — investigation read-only, aucune modification de code.</em><br />
+<em>Prochaine révision recommandée : après décision architecturale §8 ou après tout changement de seuil Meta.</em></p>
+</section>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Crypto AI Terminal
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Suivi d’investigation — 31/08/2026 — check() / check_packet() — État du projet</a><ul>
+<li><a class="reference internal" href="#metadonnees">1. Métadonnées</a></li>
+<li><a class="reference internal" href="#point-de-depart">2. Point de départ</a><ul>
+<li><a class="reference internal" href="#document-precedent">Document précédent</a></li>
+<li><a class="reference internal" href="#dossier-laisse-ouvert">Dossier laissé ouvert</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#methodologie">3. Méthodologie</a><ul>
+<li><a class="reference internal" href="#sources-utilisees">Sources utilisées</a></li>
+<li><a class="reference internal" href="#distinction-preuve-code-vs-preuve-production">Distinction preuve code vs preuve production</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#fausses-pistes-et-methodes-invalides">4. Fausses pistes et méthodes invalides</a><ul>
+<li><a class="reference internal" href="#comparaison-score-score-raw-dans-les-rejections">4.1 Comparaison <code class="docutils literal notranslate"><span class="pre">score</span></code> / <code class="docutils literal notranslate"><span class="pre">score_raw</span></code> dans les rejections</a></li>
+<li><a class="reference internal" href="#absence-de-adjusted-confidence-dans-les-rejections">4.2 Absence de <code class="docutils literal notranslate"><span class="pre">adjusted_confidence</span></code> dans les rejections</a></li>
+<li><a class="reference internal" href="#echantillon-non-representatif">4.3 Échantillon non représentatif</a></li>
+<li><a class="reference internal" href="#resume-de-la-methode-valide">4.4 Résumé de la méthode valide</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#resultats-code-prouves">5. Résultats CODE PROUVÉS</a><ul>
+<li><a class="reference internal" href="#check-compare-signal-result-score">5.1 <code class="docutils literal notranslate"><span class="pre">check()</span></code> compare <code class="docutils literal notranslate"><span class="pre">signal_result.score</span></code></a></li>
+<li><a class="reference internal" href="#check-packet-compare-packet-adjusted-confidence">5.2 <code class="docutils literal notranslate"><span class="pre">check_packet()</span></code> compare <code class="docutils literal notranslate"><span class="pre">packet.adjusted_confidence</span></code></a></li>
+<li><a class="reference internal" href="#meme-methode-effective-min-score-regime">5.3 Même méthode <code class="docutils literal notranslate"><span class="pre">_effective_min_score(regime)</span></code></a></li>
+<li><a class="reference internal" href="#retour-de-check-packet-non-capture-dans-le-pipeline-principal">5.4 Retour de <code class="docutils literal notranslate"><span class="pre">check_packet()</span></code> non capturé dans le pipeline principal</a></li>
+<li><a class="reference internal" href="#results-gate-represente-uniquement-gate-check">5.5 <code class="docutils literal notranslate"><span class="pre">results[&quot;gate&quot;]</span></code> représente uniquement <code class="docutils literal notranslate"><span class="pre">gate.check()</span></code></a></li>
+<li><a class="reference internal" href="#block-stats-lifetime-json-represente-uniquement-check">5.6 <code class="docutils literal notranslate"><span class="pre">block_stats_lifetime.json</span></code> représente uniquement <code class="docutils literal notranslate"><span class="pre">check()</span></code></a></li>
+<li><a class="reference internal" href="#check-packet-ecrit-son-verdict-dans-le-decisionpacket">5.7 <code class="docutils literal notranslate"><span class="pre">check_packet()</span></code> écrit son verdict dans le DecisionPacket</a></li>
+<li><a class="reference internal" href="#synchronisation-g8-d-unidirectionnelle">5.8 Synchronisation G8-D unidirectionnelle</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#resultats-production-prouves">6. Résultats PRODUCTION PROUVÉS</a><ul>
+<li><a class="reference internal" href="#contingence-du-30-08-2026">6.1 Contingence du 30/08/2026</a></li>
+<li><a class="reference internal" href="#interpretation-des-688-cas-divergents">6.2 Interprétation des 688 cas divergents</a></li>
+<li><a class="reference internal" href="#reproduction-sur-8-jours-2431-08-2026">6.3 Reproduction sur 8 jours (24–31/08/2026)</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#verdict">7. VERDICT</a><ul>
+<li><a class="reference internal" href="#clos">CLOS</a></li>
+<li><a class="reference internal" href="#ouvert">OUVERT</a></li>
+<li><a class="reference internal" href="#risque-latent">RISQUE LATENT</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#options-architecturales">8. Options architecturales</a><ul>
+<li><a class="reference internal" href="#option-a-convergence-des-scores">Option A — Convergence des scores</a></li>
+<li><a class="reference internal" href="#option-b-check-packet-comme-source-de-verite">Option B — <code class="docutils literal notranslate"><span class="pre">check_packet()</span></code> comme source de vérité</a></li>
+<li><a class="reference internal" href="#option-c-statu-quo-surveillance-alerte">Option C — Statu quo + surveillance / alerte</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#historique-git">9. Historique Git</a><ul>
+<li><a class="reference internal" href="#commits-verifies-dans-ce-clone">Commits vérifiés dans ce clone</a></li>
+<li><a class="reference internal" href="#pr-83">PR #83</a></li>
+<li><a class="reference internal" href="#commits-non-verifiables-dans-ce-clone">Commits non vérifiables dans ce clone</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#incidents-annexes">10. Incidents annexes</a></li>
+<li><a class="reference internal" href="#dossiers-encore-ouverts">11. Dossiers encore ouverts</a></li>
+<li><a class="reference internal" href="#prochaine-action-recommandee">12. Prochaine action recommandée</a><ul>
+<li><a class="reference internal" href="#action-immediate-ne-pas-modifier-check-check-packet">Action immédiate : NE PAS modifier <code class="docutils literal notranslate"><span class="pre">check()</span></code> / <code class="docutils literal notranslate"><span class="pre">check_packet()</span></code></a></li>
+<li><a class="reference internal" href="#sequence-recommandee">Séquence recommandée</a></li>
+<li><a class="reference internal" href="#en-parallele-independant">En parallèle (indépendant)</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#regle-de-continuite">13. Règle de continuité</a><ul>
+<li><a class="reference internal" href="#ce-document-doit-etre-mis-a-jour">Ce document doit être mis à jour</a></li>
+<li><a class="reference internal" href="#les-conversations-claude-copilot-ne-sont-pas-la-memoire-du-projet">Les conversations Claude/Copilot ne sont pas la mémoire du projet</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../_static/documentation_options.js?v=ef6a59ae"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/scripts/furo.js?v=5fa4622c"></script>
+    </body>
+</html>
