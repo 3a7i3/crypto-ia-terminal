@@ -16,6 +16,8 @@ import os
 import time
 from pathlib import Path  # noqa: F401
 
+from src.common.time_display import format_vancouver_time
+
 import requests
 
 logger = logging.getLogger(__name__)
@@ -131,7 +133,7 @@ def _build_pinned_text() -> str:
         return f"<code>{label:<10} {bar}  {val}  {icon}</code>"
 
     lines = [
-        f"📍 <b>SDOS LIVE</b> — {h.ts.strftime('%H:%M')} UTC",
+        f"📍 <b>SDOS LIVE</b> — {format_vancouver_time(h.ts)}",
         "",
         "<b>SANTÉ SYSTÈME</b>",
         row("Observer", h.observer_pct),

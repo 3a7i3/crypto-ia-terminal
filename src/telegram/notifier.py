@@ -17,6 +17,8 @@ import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 
+from src.common.time_display import format_vancouver_time
+
 log = logging.getLogger("telegram.notifier")
 
 _API = "https://api.telegram.org/bot{token}/{method}"
@@ -165,7 +167,7 @@ class Notifier:
         if not self._enabled:
             log.debug("[Notifier] (disabled) %s", text[:80])
             return
-        ts = datetime.now(timezone.utc).strftime("%H:%M")
+        ts = format_vancouver_time(datetime.now(timezone.utc))
         full = f"[{ts}] {text}"
         try:
             params = {"chat_id": self._chat_id, "text": full}
