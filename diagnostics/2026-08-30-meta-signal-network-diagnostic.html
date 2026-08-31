@@ -1,0 +1,1281 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" />
+
+    <link rel="shortcut icon" href="../_static/favicon.ico"/><!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
+        <title>Diagnostic Technique — 30/08/2026 — Meta / Signal / Network - Crypto AI Terminal 9.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=354aac6f" />
+    <link rel="stylesheet" type="text/css" href="../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=1b9cecba" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=302659d7" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">Crypto AI Terminal 9.1 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="../_static/../assets/logo_ai_quant.png" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="../_static/../assets/logo_ai_quant.png" alt="Dark Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/blob/main/docs/diagnostics/2026-08-30-meta-signal-network-diagnostic.md?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/edit/main/docs/diagnostics/2026-08-30-meta-signal-network-diagnostic.md" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="diagnostic-technique-30-08-2026-meta-signal-network">
+<h1>Diagnostic Technique — 30/08/2026 — Meta / Signal / Network<a class="headerlink" href="#diagnostic-technique-30-08-2026-meta-signal-network" title="Link to this heading">¶</a></h1>
+<p><strong>Date d’investigation :</strong> 30–31 août 2026<br />
+<strong>Rédigé par :</strong> Investigation Claude Code (mode analyse/read-only) + vérifications VPS par copier-coller<br />
+<strong>Statut global :</strong> Archivé — certains dossiers clos, un point ouvert sous surveillance</p>
+<hr class="docutils" />
+<section id="contexte">
+<h2>1. Contexte<a class="headerlink" href="#contexte" title="Link to this heading">¶</a></h2>
+<p>Ce document consigne les résultats d’une session d’investigation technique approfondie
+portant sur l’architecture de décision du projet <code class="docutils literal notranslate"><span class="pre">crypto-ai-terminal</span></code>, notamment :</p>
+<ul class="simple">
+<li><p>la chaîne Signal Generator → Meta → Gate → décision finale ;</p></li>
+<li><p>le comportement de <code class="docutils literal notranslate"><span class="pre">gate.check()</span></code> vs <code class="docutils literal notranslate"><span class="pre">gate.check_packet()</span></code> ;</p></li>
+<li><p>la cohérence du détecteur de régime entre <code class="docutils literal notranslate"><span class="pre">LiveSignalEngine</span></code> et <code class="docutils literal notranslate"><span class="pre">advisor_loop.py</span></code> ;</p></li>
+<li><p>le rôle et l’état du module HMM V2 ;</p></li>
+<li><p>l’analyse des rejets de production du 30/08/2026.</p></li>
+</ul>
+<p>Aucune modification de code ni de configuration n’a été effectuée dans le cadre de cette investigation.</p>
+</section>
+<hr class="docutils" />
+<section id="methodologie">
+<h2>2. Méthodologie<a class="headerlink" href="#methodologie" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Lecture statique du code source dans le repository (read-only).</p></li>
+<li><p>Vérifications des données de production (<code class="docutils literal notranslate"><span class="pre">databases/rejections/</span></code>, <code class="docutils literal notranslate"><span class="pre">databases/gate_rejections.csv</span></code>)
+exécutées directement sur le VPS par copier-coller de commandes de diagnostic.</p></li>
+<li><p>Les conclusions marquées <strong>[VPS]</strong> proviennent de l’investigation VPS et ne peuvent pas
+être vérifiées par lecture seule du repository.</p></li>
+<li><p>Aucun résultat n’a été inféré ou inventé ; chaque conclusion est ancrée dans des preuves
+explicites citées dans ce document.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="environnement-vps">
+<h2>3. Environnement VPS<a class="headerlink" href="#environnement-vps" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Paramètre</p></th>
+<th class="head"><p>Valeur</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Projet</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">crypto-ai-terminal</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Utilisateur système (historique)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">mathieu</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>Utilisateur actuel</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">ia_strategy_support</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Hostname</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">crypto-advisor-2</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>Répertoire</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">/home/mathieu/crypto_ai_terminal</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><strong>Services systemd du projet :</strong>
+<code class="docutils literal notranslate"><span class="pre">crypto-advisor</span></code>, <code class="docutils literal notranslate"><span class="pre">crypto-quant-observer</span></code>, <code class="docutils literal notranslate"><span class="pre">paper-arena</span></code>, <code class="docutils literal notranslate"><span class="pre">crypto-lmi-observatory</span></code>,
+<code class="docutils literal notranslate"><span class="pre">crypto-radar-bot</span></code>, <code class="docutils literal notranslate"><span class="pre">crypto-dashboard</span></code>, <code class="docutils literal notranslate"><span class="pre">crypto-watchdog</span></code>, <code class="docutils literal notranslate"><span class="pre">crypto-market-observer</span></code>,
+<code class="docutils literal notranslate"><span class="pre">radar</span></code>, <code class="docutils literal notranslate"><span class="pre">horizons</span></code></p>
+<p><strong>Note de migration :</strong> Le VPS a migré vers une nouvelle VM. Le compte <code class="docutils literal notranslate"><span class="pre">ia_strategy_support</span></code>
+est le compte VPS actuel. Un autre compte disposait des droits <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">pull</span></code> nécessaires
+au travail avec Claude.</p>
+<p><strong>Règle de travail établie :</strong> diagnostic causal avant toute modification de code ;
+aucune action destructive sans confirmation explicite.</p>
+</section>
+<hr class="docutils" />
+<section id="travaux-realises">
+<h2>4. Travaux réalisés<a class="headerlink" href="#travaux-realises" title="Link to this heading">¶</a></h2>
+<ol class="arabic simple">
+<li><p>Analyse causale de <code class="docutils literal notranslate"><span class="pre">advisor_loop.py</span></code> — flux <code class="docutils literal notranslate"><span class="pre">gate.check()</span></code> / <code class="docutils literal notranslate"><span class="pre">gate.check_packet()</span></code>.</p></li>
+<li><p>Vérification de <code class="docutils literal notranslate"><span class="pre">GATE_MIN_SCORE_OVERRIDE</span></code> en production sur <code class="docutils literal notranslate"><span class="pre">crypto-advisor</span></code>.</p></li>
+<li><p>Analyse de <code class="docutils literal notranslate"><span class="pre">databases/gate_rejections.csv</span></code> — recherche de preuve de double-écriture.</p></li>
+<li><p>Analyse de <code class="docutils literal notranslate"><span class="pre">databases/rejections/rejections_2026-08-30.jsonl</span></code> — impact décisionnel.</p></li>
+<li><p>Inspection de <code class="docutils literal notranslate"><span class="pre">meta_strategy_engine.py</span></code> — <code class="docutils literal notranslate"><span class="pre">validate_signal()</span></code>, <code class="docutils literal notranslate"><span class="pre">select()</span></code>, <code class="docutils literal notranslate"><span class="pre">_REGIME_MAP</span></code>.</p></li>
+<li><p>Analyse des 1 548 blocages <code class="docutils literal notranslate"><span class="pre">first_blocker=meta</span></code> du 30/08.</p></li>
+<li><p>Cas MAGMA/USDT : corrélation régime / personnalité / direction.</p></li>
+<li><p>Identification du Signal Generator (<code class="docutils literal notranslate"><span class="pre">LiveSignalEngine</span></code>) et de sa logique de vote.</p></li>
+<li><p>Vérification de l’implémentation active de <code class="docutils literal notranslate"><span class="pre">AdvancedRegimeDetector</span></code>.</p></li>
+<li><p>Vérification du chemin HMM V2 dans <code class="docutils literal notranslate"><span class="pre">advisor_loop.py</span></code>.</p></li>
+<li><p>Dossier crypto-narrator / <code class="docutils literal notranslate"><span class="pre">&#64;Telemetrie_IA_bot</span></code>.</p></li>
+<li><p>Identification des timestamps ANSEM (correction de contexte temporel).</p></li>
+</ol>
+</section>
+<hr class="docutils" />
+<section id="resultats-confirmes-synthese">
+<h2>5. Résultats confirmés (synthèse)<a class="headerlink" href="#resultats-confirmes-synthese" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Domaine</p></th>
+<th class="head"><p>Résultat</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Détecteur de régime</p></td>
+<td><p>Instance unique active, partagée entre Signal Generator et advisor_loop</p></td>
+</tr>
+<tr class="row-odd"><td><p>HMM V2</p></td>
+<td><p>Chemin structurel présent, inactif en production</p></td>
+</tr>
+<tr class="row-even"><td><p>Meta <code class="docutils literal notranslate"><span class="pre">_REGIME_MAP</span></code></p></td>
+<td><p>Table complète confirmée (6 personnalités)</p></td>
+</tr>
+<tr class="row-odd"><td><p>Meta rejets directionnels</p></td>
+<td><p>Cohérents avec <code class="docutils literal notranslate"><span class="pre">allowed_signals</span></code> — comportement intentionnel</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">check()</span></code> / <code class="docutils literal notranslate"><span class="pre">check_packet()</span></code></p></td>
+<td><p>Divergence structurelle confirmée, 0 impact autonome le 30/08</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">GATE_MIN_SCORE_OVERRIDE</span></code></p></td>
+<td><p>Inactif en production [VPS]</p></td>
+</tr>
+<tr class="row-even"><td><p>crypto-narrator</p></td>
+<td><p>Correspond à <code class="docutils literal notranslate"><span class="pre">&#64;Telemetrie_IA_bot</span></code>, module supprimé/décommissionné</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<hr class="docutils" />
+<section id="gate-check-check-packet">
+<h2>6. Gate / check() / check_packet()<a class="headerlink" href="#gate-check-check-packet" title="Link to this heading">¶</a></h2>
+<section id="anomalie-structurelle">
+<h3>6.1 Anomalie structurelle<a class="headerlink" href="#anomalie-structurelle" title="Link to this heading">¶</a></h3>
+<p><strong>Fichier concerné :</strong> <code class="docutils literal notranslate"><span class="pre">advisor_loop.py</span></code></p>
+<p><strong>Observation :</strong><br />
+<code class="docutils literal notranslate"><span class="pre">results[&quot;gate&quot;]</span></code> est alimenté uniquement par le retour de <code class="docutils literal notranslate"><span class="pre">gate.check()</span></code>.<br />
+<code class="docutils literal notranslate"><span class="pre">gate.check_packet()</span></code> est appelé séparément mais son retour n’est capturé dans aucune
+variable contribuant à <code class="docutils literal notranslate"><span class="pre">results[&quot;gate&quot;]</span></code>.</p>
+<p><strong>Conséquence :</strong><br />
+Le compteur <code class="docutils literal notranslate"><span class="pre">gate</span></code> dans <code class="docutils literal notranslate"><span class="pre">block_stats_lifetime.json</span></code> reflète <code class="docutils literal notranslate"><span class="pre">check()</span></code> et non <code class="docutils literal notranslate"><span class="pre">check_packet()</span></code>.<br />
+Il s’agit d’une <strong>anomalie structurelle dans la télémétrie / l’agrégation des verdicts</strong>.</p>
+<p><strong>Statut :</strong> ANOMALIE STRUCTURELLE CONFIRMÉE — aucun correctif apporté lors de cette investigation.</p>
+</section>
+<section id="preuve-reelle-gate-rejections-csv-vps">
+<h3>6.2 Preuve réelle — gate_rejections.csv [VPS]<a class="headerlink" href="#preuve-reelle-gate-rejections-csv-vps" title="Link to this heading">¶</a></h3>
+<p>Une preuve de divergence check/check_packet a été trouvée dans <code class="docutils literal notranslate"><span class="pre">databases/gate_rejections.csv</span></code>.</p>
+<p><strong>Exemple concret (MAGMA/USDT, timestamp ~1788048106.793) :</strong></p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Champ</p></th>
+<th class="head"><p>Écriture 1 (check)</p></th>
+<th class="head"><p>Écriture 2 (check_packet)</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Régime</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">bull_trend</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">TREND_BULL</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Score</p></td>
+<td><p>72 (brut)</p></td>
+<td><p>68.0 (ajusté)</p></td>
+</tr>
+<tr class="row-even"><td><p>Verdict</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">True</span></code> (passé)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">False</span></code> (rejeté)</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Cela démontre que <code class="docutils literal notranslate"><span class="pre">check()</span></code> et <code class="docutils literal notranslate"><span class="pre">check_packet()</span></code> peuvent produire <strong>deux verdicts différents</strong>
+à partir du même cycle d’analyse.</p>
+<p><strong>Format du CSV :</strong> <code class="docutils literal notranslate"><span class="pre">ts,symbol,regime,score,effective_min,allowed,failed</span></code></p>
+<p><strong>Note :</strong> Le CSV <code class="docutils literal notranslate"><span class="pre">gate_rejections.csv</span></code> est cumulatif (multi-jours). Ne pas le comparer
+directement aux JSONL journaliers sans filtrer sur la date.</p>
+</section>
+<section id="deuxieme-exemple-de-double-ecriture-vps">
+<h3>6.3 Deuxième exemple de double-écriture [VPS]<a class="headerlink" href="#deuxieme-exemple-de-double-ecriture-vps" title="Link to this heading">¶</a></h3>
+<p><strong>Exemple concret (T/USDT) :</strong></p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Écriture</p></th>
+<th class="head"><p>Régime</p></th>
+<th class="head"><p>Score</p></th>
+<th class="head"><p>effective_min</p></th>
+<th class="head"><p>Résultat</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>1</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">bear_trend</span></code></p></td>
+<td><p>70</p></td>
+<td><p>72</p></td>
+<td><p>rejeté</p></td>
+</tr>
+<tr class="row-odd"><td><p>2</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">TREND_BEAR</span></code></p></td>
+<td><p>66.0</p></td>
+<td><p>72</p></td>
+<td><p>rejeté</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Même timestamp exact, même symbole, deux régimes et deux scores différents.</p>
+</section>
+<section id="gate-min-score-override">
+<h3>6.4 GATE_MIN_SCORE_OVERRIDE<a class="headerlink" href="#gate-min-score-override" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">GATE_MIN_SCORE_OVERRIDE</span></code> a été vérifié comme <strong>INACTIF</strong> en production sur <code class="docutils literal notranslate"><span class="pre">crypto-advisor</span></code> [VPS].<br />
+Cet override n’est pas la cause de l’anomalie check/check_packet.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="meta-strategy">
+<h2>7. Meta Strategy<a class="headerlink" href="#meta-strategy" title="Link to this heading">¶</a></h2>
+<section id="table-regime-map-confirmee">
+<h3>7.1 Table _REGIME_MAP confirmée<a class="headerlink" href="#table-regime-map-confirmee" title="Link to this heading">¶</a></h3>
+<p><strong>Fichier :</strong> <code class="docutils literal notranslate"><span class="pre">meta_strategy_engine.py</span></code><br />
+<strong>Fonction :</strong> <code class="docutils literal notranslate"><span class="pre">validate_signal()</span></code> possède exactement <strong>4 conditions de rejet</strong>.<br />
+<strong>Fonction :</strong> <code class="docutils literal notranslate"><span class="pre">select()</span></code> mappe le régime vers une personnalité via <code class="docutils literal notranslate"><span class="pre">_REGIME_MAP</span></code> avec
+ajustements dynamiques.</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Personnalité</p></th>
+<th class="head"><p>Régime</p></th>
+<th class="head"><p>allowed_signals</p></th>
+<th class="head"><p>minimum</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">momentum_following</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">bull_trend</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[BUY]</span></code></p></td>
+<td><p>62</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">defensive_short</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">bear_trend</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[SELL]</span></code></p></td>
+<td><p>68</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">mean_reversion</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">sideways</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[BUY,</span> <span class="pre">SELL]</span></code></p></td>
+<td><p>60</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">scalping_mode</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">high_volatility_regime</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[BUY,</span> <span class="pre">SELL]</span></code></p></td>
+<td><p>65</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">capital_protection</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">flash_crash</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[]</span></code></p></td>
+<td><p>999</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">neutral</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">unknown</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[BUY,</span> <span class="pre">SELL]</span></code></p></td>
+<td><p>75</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Correspondance régime → personnalité : <strong>1:1 confirmée</strong>.</p>
+</section>
+<section id="resultats-du-30-08-2026-1-548-blocages-meta-vps">
+<h3>7.2 Résultats du 30/08/2026 — 1 548 blocages Meta [VPS]<a class="headerlink" href="#resultats-du-30-08-2026-1-548-blocages-meta-vps" title="Link to this heading">¶</a></h3>
+<p><strong>Répartition par personnalité :</strong></p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Personnalité</p></th>
+<th class="head"><p>Blocages</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">defensive_short</span></code></p></td>
+<td><p>788</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">momentum_following</span></code></p></td>
+<td><p>601</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">scalping_mode</span></code></p></td>
+<td><p>126</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">capital_protection</span></code></p></td>
+<td><p>33</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><strong>Causes :</strong></p>
+<ul class="simple">
+<li><p>~68 % des rejets Meta sont <strong>directionnels</strong> :</p>
+<ul>
+<li><p>SELL avec <code class="docutils literal notranslate"><span class="pre">momentum_following</span></code> en <code class="docutils literal notranslate"><span class="pre">bull_trend</span></code></p></li>
+<li><p>BUY avec <code class="docutils literal notranslate"><span class="pre">defensive_short</span></code> en <code class="docutils literal notranslate"><span class="pre">bear_trend</span></code></p></li>
+</ul>
+</li>
+<li><p>Les rejets restants sont principalement liés aux seuils de score des personnalités.</p></li>
+</ul>
+<p><strong>Important :</strong> Les rejets directionnels sont cohérents avec les <code class="docutils literal notranslate"><span class="pre">allowed_signals</span></code> configurés.
+Ils ne constituent <strong>pas des bugs</strong> en l’absence de preuve supplémentaire contraire.</p>
+</section>
+<section id="cas-magma-usdt-vps">
+<h3>7.3 Cas MAGMA/USDT [VPS]<a class="headerlink" href="#cas-magma-usdt-vps" title="Link to this heading">¶</a></h3>
+<p>Données du 30/08/2026 pour MAGMA/USDT :</p>
+<ul class="simple">
+<li><p>154 entrées en régime <code class="docutils literal notranslate"><span class="pre">bull_trend</span></code></p></li>
+<li><p>15 entrées en régime <code class="docutils literal notranslate"><span class="pre">high_volatility_regime</span></code></p></li>
+</ul>
+<p><strong>Régime bull_trend :</strong><br />
+Les SELL sont rejetés par Meta car <code class="docutils literal notranslate"><span class="pre">momentum_following</span></code> n’autorise que <code class="docutils literal notranslate"><span class="pre">[BUY]</span></code>.<br />
+Scores observés : ~72–73.<br />
+<strong>Conclusion :</strong> le rejet n’est pas causé par un score faible mais par la règle directionnelle.</p>
+<p><strong>Régime high_volatility_regime :</strong></p>
+<ul class="simple">
+<li><p>Entrées 609–624 : principalement blocage Meta, scores 62–63.</p></li>
+<li><p>Entrée 625 : blocage Gate, score 67.</p></li>
+</ul>
+<p>Aucune preuve du scénario illustratif “75 → 76 VOLATILE” dans les données réelles du 30/08.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="signal-generator">
+<h2>8. Signal Generator<a class="headerlink" href="#signal-generator" title="Link to this heading">¶</a></h2>
+<p><strong>Implémentation :</strong> <code class="docutils literal notranslate"><span class="pre">LiveSignalEngine</span></code></p>
+<p><strong>Logique de direction :</strong> vote multi-indicateurs — EMA cross, Bollinger, momentum, RSI.</p>
+<p><strong>Points confirmés :</strong></p>
+<ul class="simple">
+<li><p>La direction BUY/SELL est produite par vote, sans filtrage selon le régime.</p></li>
+<li><p>Le régime est calculé séparément et contribue au score/ranking mais ne contraint pas
+directement <code class="docutils literal notranslate"><span class="pre">buy_votes</span></code> / <code class="docutils literal notranslate"><span class="pre">sell_votes</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">engine.evaluate()</span></code> est appelé <strong>sans</strong> l’argument <code class="docutils literal notranslate"><span class="pre">personality</span></code>.</p></li>
+<li><p>Un commentaire explicite du code documente que le Signal Engine génère des opportunités
+larges et laisse les couches de risque/Meta effectuer le filtrage.</p></li>
+</ul>
+<p><strong>Architecture observée :</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Signal Generator
+  → génération large (BUY/SELL sans filtre régime)
+  → Meta / Risk filtering
+  → décision finale
+</pre></div>
+</div>
+<p>Cette séparation des responsabilités est considérée comme <strong>INTENTIONNELLE</strong>
+sur la base du code inspecté.</p>
+</section>
+<hr class="docutils" />
+<section id="regime-detector">
+<h2>9. Regime Detector<a class="headerlink" href="#regime-detector" title="Link to this heading">¶</a></h2>
+<p><strong>Implémentation active :</strong> <code class="docutils literal notranslate"><span class="pre">AdvancedRegimeDetector</span></code><br />
+<strong>Fichier :</strong> <code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/intelligence/regime_detector.py</span></code></p>
+<p><strong>Utilisé par :</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">LiveSignalEngine</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">advisor_loop.py</span></code></p></li>
+</ul>
+<p><strong>Occurrence archivée :</strong> <code class="docutils literal notranslate"><span class="pre">_ARCHIVE_2026/_legacy/</span></code> — code historique/mort, ne pas confondre
+avec l’implémentation active.</p>
+<p><strong>Anomalie historique documentée :</strong><br />
+Le code contient le commentaire :</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># was trend &lt; 0.3 (inverted — bug)</span>
+</pre></div>
+</div>
+<p>Ce commentaire indique qu’une ancienne inversion de condition pour <code class="docutils literal notranslate"><span class="pre">bear_trend</span></code> a existé
+puis a été corrigée. <strong>Ce bug n’est plus actif.</strong> Cette trace est conservée uniquement
+à titre historique.</p>
+<p><strong>Conclusion :</strong> La question d’une divergence due à deux classifieurs différents est fermée.
+Le même <code class="docutils literal notranslate"><span class="pre">AdvancedRegimeDetector</span></code> est utilisé partout.</p>
+</section>
+<hr class="docutils" />
+<section id="hmm-v2">
+<h2>10. HMM V2<a class="headerlink" href="#hmm-v2" title="Link to this heading">¶</a></h2>
+<p><strong>Chemin structurel :</strong> <code class="docutils literal notranslate"><span class="pre">advisor_loop.py</span></code> via <code class="docutils literal notranslate"><span class="pre">v2_hmm_regime</span></code></p>
+<p><strong>État en production :</strong> <strong>INACTIF</strong></p>
+<p><strong>Preuves :</strong></p>
+<ul class="simple">
+<li><p>Paramètre avec valeur par défaut <code class="docutils literal notranslate"><span class="pre">None</span></code></p></li>
+<li><p>Aucune réassignation dans <code class="docutils literal notranslate"><span class="pre">advisor_loop.py</span></code></p></li>
+<li><p>Aucun argument <code class="docutils literal notranslate"><span class="pre">v2_hmm_regime=...</span></code> lors de l’appel de production de <code class="docutils literal notranslate"><span class="pre">analyze_symbol()</span></code></p></li>
+<li><p>Aucune instanciation active de <code class="docutils literal notranslate"><span class="pre">HMMRegimeEngine</span></code></p></li>
+<li><p>L’implémentation trouvée est dans <code class="docutils literal notranslate"><span class="pre">_ARCHIVE_2026/</span></code></p></li>
+</ul>
+<p><strong>Conséquence :</strong><br />
+<code class="docutils literal notranslate"><span class="pre">regime_probs</span></code> reste <code class="docutils literal notranslate"><span class="pre">None</span></code>.<br />
+Le bloc suivant est structurellement prévu mais <strong>inatteignable</strong> dans le déploiement actuel :</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">if</span> <span class="n">regime_probs</span><span class="o">.</span><span class="n">confidence</span> <span class="o">&gt;=</span> <span class="mf">0.50</span><span class="p">:</span>
+    <span class="n">regime</span> <span class="o">=</span> <span class="n">regime_probs</span><span class="o">.</span><span class="n">dominant</span>
+</pre></div>
+</div>
+<p><strong>Verdict : <code class="docutils literal notranslate"><span class="pre">NO_MISMATCH_CONFIRMED</span></code></strong><br />
+Aucune divergence Signal Generator / Meta causée par HMM n’a été démontrée.<br />
+Si HMM V2 est activé ultérieurement, cette conclusion devra être réévaluée.</p>
+</section>
+<hr class="docutils" />
+<section id="donnees-de-production">
+<h2>11. Données de production<a class="headerlink" href="#donnees-de-production" title="Link to this heading">¶</a></h2>
+<section id="analyse-du-30-08-2026-rejections-2026-08-30-jsonl-vps">
+<h3>11.1 Analyse du 30/08/2026 — rejections_2026-08-30.jsonl [VPS]<a class="headerlink" href="#analyse-du-30-08-2026-rejections-2026-08-30-jsonl-vps" title="Link to this heading">¶</a></h3>
+<p><strong>Fichier :</strong> <code class="docutils literal notranslate"><span class="pre">databases/rejections/rejections_2026-08-30.jsonl</span></code><br />
+<strong>Volume :</strong> ~12 919 lignes</p>
+<p><strong>Répartition first_blocker :</strong></p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Blocker</p></th>
+<th class="head"><p>Occurrences</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">gate</span></code></p></td>
+<td><p>11 371</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">meta</span></code></p></td>
+<td><p>1 548</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">decision_packet</span></code></p></td>
+<td><p>0</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><strong>Test spécifique check_packet :</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">decision_packet</span></code> comme <strong>seul</strong> blocker : <strong>0</strong></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">decision_packet</span></code> comme <strong>premier</strong> blocker : <strong>0</strong></p></li>
+</ul>
+<p><strong>Mécanisme G8-D sync :</strong><br />
+Lorsque <code class="docutils literal notranslate"><span class="pre">decision_packet(REJECTED)</span></code> apparaît dans <code class="docutils literal notranslate"><span class="pre">all_blockers</span></code>, il apparaît toujours
+<strong>après</strong> un blocage déjà existant par <code class="docutils literal notranslate"><span class="pre">gate</span></code> ou <code class="docutils literal notranslate"><span class="pre">meta</span></code>. Ce comportement est cohérent
+avec le mécanisme G8-D sync identifié.</p>
+</section>
+<section id="correction-de-contexte-temporel-timestamps-ansem-vps">
+<h3>11.2 Correction de contexte temporel — timestamps ANSEM [VPS]<a class="headerlink" href="#correction-de-contexte-temporel-timestamps-ansem-vps" title="Link to this heading">¶</a></h3>
+<p>Les timestamps <code class="docutils literal notranslate"><span class="pre">1788139109.773</span></code> et <code class="docutils literal notranslate"><span class="pre">1788139109.808</span></code> correspondent au <strong>31/08/2026</strong>
+et non au 30/08.<br />
+Le fichier <code class="docutils literal notranslate"><span class="pre">databases/rejections/rejections_2026-08-31.jsonl</span></code> existe bien sur le VPS.</p>
+<p><strong>Impact :</strong> les données ANSEM associées à ces timestamps ne font pas partie du dataset
+du 30/08. À prendre en compte pour toute analyse comparative journalière.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="anomalies-confirmees">
+<h2>12. Anomalies confirmées<a class="headerlink" href="#anomalies-confirmees" title="Link to this heading">¶</a></h2>
+<section id="a1-divergence-check-check-packet-dans-la-telemetrie">
+<h3>A1 — Divergence check() / check_packet() dans la télémétrie<a class="headerlink" href="#a1-divergence-check-check-packet-dans-la-telemetrie" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Champ</p></th>
+<th class="head"><p>Valeur</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong>Statut</strong></p></td>
+<td><p>ANOMALIE STRUCTURELLE CONFIRMÉE</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Fichier</strong></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">advisor_loop.py</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Nature</strong></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">results[&quot;gate&quot;]</span></code> reflète <code class="docutils literal notranslate"><span class="pre">check()</span></code> uniquement ; <code class="docutils literal notranslate"><span class="pre">check_packet()</span></code> est appelé mais son retour n’est pas agrégé</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Preuve</strong></p></td>
+<td><p>Double-écriture observée dans <code class="docutils literal notranslate"><span class="pre">databases/gate_rejections.csv</span></code> avec verdicts divergents sur même cycle</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Correction</strong></p></td>
+<td><p>Aucune apportée lors de cette investigation</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>À faire</strong></p></td>
+<td><p>Traitement ultérieur à planifier</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="anomalies-sans-impact-demontre">
+<h2>13. Anomalies sans impact démontré<a class="headerlink" href="#anomalies-sans-impact-demontre" title="Link to this heading">¶</a></h2>
+<section id="i1-check-packet-sans-impact-decisionnel-autonome-le-30-08">
+<h3>I1 — check_packet() sans impact décisionnel autonome le 30/08<a class="headerlink" href="#i1-check-packet-sans-impact-decisionnel-autonome-le-30-08" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Champ</p></th>
+<th class="head"><p>Valeur</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong>Anomalie parente</strong></p></td>
+<td><p>A1</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Test effectué</strong></p></td>
+<td><p>Analyse complète de <code class="docutils literal notranslate"><span class="pre">rejections_2026-08-30.jsonl</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Résultat</strong></p></td>
+<td><p>0 cas où <code class="docutils literal notranslate"><span class="pre">decision_packet</span></code> est <code class="docutils literal notranslate"><span class="pre">first_blocker</span></code> ou <code class="docutils literal notranslate"><span class="pre">unique_blocker</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Conclusion</strong></p></td>
+<td><p>L’anomalie structurelle est réelle mais n’a produit <strong>aucun impact décisionnel autonome</strong> le 30/08/2026</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="comportements-intentionnels">
+<h2>14. Comportements intentionnels<a class="headerlink" href="#comportements-intentionnels" title="Link to this heading">¶</a></h2>
+<section id="b1-separation-signal-generator-filtrage-meta-risk">
+<h3>B1 — Séparation Signal Generator / filtrage Meta-Risk<a class="headerlink" href="#b1-separation-signal-generator-filtrage-meta-risk" title="Link to this heading">¶</a></h3>
+<p>Le Signal Generator (<code class="docutils literal notranslate"><span class="pre">LiveSignalEngine</span></code>) génère des opportunités larges sans filtrage
+directionnel par régime. Le filtrage est délégué aux couches Meta et Risk.<br />
+Cette architecture est explicitement documentée dans le code source.<br />
+<strong>Statut :</strong> COMPORTEMENT INTENTIONNEL CONFIRMÉ</p>
+</section>
+<section id="b2-rejets-directionnels-meta">
+<h3>B2 — Rejets directionnels Meta<a class="headerlink" href="#b2-rejets-directionnels-meta" title="Link to this heading">¶</a></h3>
+<p>Les rejets de signaux SELL en <code class="docutils literal notranslate"><span class="pre">bull_trend</span></code> ou BUY en <code class="docutils literal notranslate"><span class="pre">bear_trend</span></code> sont le résultat
+attendu des <code class="docutils literal notranslate"><span class="pre">allowed_signals</span></code> définis dans <code class="docutils literal notranslate"><span class="pre">_REGIME_MAP</span></code>.<br />
+Ils ne constituent pas des bugs.<br />
+<strong>Statut :</strong> COMPORTEMENT INTENTIONNEL CONFIRMÉ</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="dossiers-clos">
+<h2>15. Dossiers clos<a class="headerlink" href="#dossiers-clos" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>#</p></th>
+<th class="head"><p>Dossier</p></th>
+<th class="head"><p>Statut</p></th>
+<th class="head"><p>Motif</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>1</p></td>
+<td><p>Meta / Signal / HMM</p></td>
+<td><p><strong>CLOS</strong></p></td>
+<td><p>Architecture comprise, rejets Meta expliqués, même détecteur confirmé, HMM inactif, aucun mismatch réel démontré</p></td>
+</tr>
+<tr class="row-odd"><td><p>2</p></td>
+<td><p>GATE_MIN_SCORE_OVERRIDE</p></td>
+<td><p><strong>CLOS</strong></p></td>
+<td><p>Inactif en production [VPS]</p></td>
+</tr>
+<tr class="row-even"><td><p>3</p></td>
+<td><p>Signal Generator → Meta direction filtering</p></td>
+<td><p><strong>CLOS / INTENTIONNEL</strong></p></td>
+<td><p>Séparation des responsabilités explicitement documentée dans le code</p></td>
+</tr>
+<tr class="row-odd"><td><p>4</p></td>
+<td><p>HMM regime mismatch</p></td>
+<td><p><strong>CLOS — NO_MISMATCH_CONFIRMED</strong></p></td>
+<td><p>HMM V2 non déployé/activé</p></td>
+</tr>
+<tr class="row-even"><td><p>5</p></td>
+<td><p>Regime detector duplication</p></td>
+<td><p><strong>CLOS</strong></p></td>
+<td><p>Même classe <code class="docutils literal notranslate"><span class="pre">AdvancedRegimeDetector</span></code> active pour Signal Generator et advisor_loop</p></td>
+</tr>
+<tr class="row-odd"><td><p>6</p></td>
+<td><p>crypto-narrator / &#64;Telemetrie_IA_bot</p></td>
+<td><p><strong>CLOS / HISTORIQUE</strong></p></td>
+<td><p>Correspondance confirmée, module supprimé, service décommissionné — ne pas réactiver</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<hr class="docutils" />
+<section id="dossiers-encore-ouverts">
+<h2>16. Dossiers encore ouverts<a class="headerlink" href="#dossiers-encore-ouverts" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>#</p></th>
+<th class="head"><p>Dossier</p></th>
+<th class="head"><p>Statut</p></th>
+<th class="head"><p>Action suggérée</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>1</p></td>
+<td><p>check() / check_packet() divergence</p></td>
+<td><p><strong>ANOMALIE STRUCTURELLE — À TRAITER</strong></p></td>
+<td><p>Décider si <code class="docutils literal notranslate"><span class="pre">check_packet()</span></code> doit contribuer à <code class="docutils literal notranslate"><span class="pre">results[&quot;gate&quot;]</span></code> ; impact sur télémétrie et <code class="docutils literal notranslate"><span class="pre">block_stats_lifetime.json</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><strong>Note importante :</strong> L’anomalie A1 est structurellement confirmée mais n’a pas démontré
+d’impact décisionnel autonome sur les données du 30/08/2026. Elle reste néanmoins un
+point technique ouvert nécessitant une décision architecturale explicite.</p>
+</section>
+<hr class="docutils" />
+<section id="commandes-outils-utiles-pour-reprise-future">
+<h2>17. Commandes / outils utiles pour reprise future<a class="headerlink" href="#commandes-outils-utiles-pour-reprise-future" title="Link to this heading">¶</a></h2>
+<section id="decision-trace-py">
+<h3>decision_trace.py<a class="headerlink" href="#decision-trace-py" title="Link to this heading">¶</a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Prérequis</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">PYTHONPATH</span><span class="o">=</span>/home/mathieu/crypto_ai_terminal
+
+<span class="c1"># Usage — le symbole s'écrit SANS "/USDT"</span>
+python<span class="w"> </span>tools/decision_trace.py<span class="w"> </span>--symbol<span class="w"> </span>ANSEM
+
+<span class="c1"># Incorrect</span>
+python<span class="w"> </span>tools/decision_trace.py<span class="w"> </span>--symbol<span class="w"> </span>ANSEM/USDT
+</pre></div>
+</div>
+</section>
+<section id="analyse-des-rejections-journalieres">
+<h3>Analyse des rejections journalières<a class="headerlink" href="#analyse-des-rejections-journalieres" title="Link to this heading">¶</a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Compter les first_blocker par type</span>
+grep<span class="w"> </span>-o<span class="w"> </span><span class="s1">'"first_blocker":"[^"]*"'</span><span class="w"> </span>databases/rejections/rejections_2026-08-30.jsonl<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span><span class="p">|</span><span class="w"> </span>sort<span class="w"> </span><span class="p">|</span><span class="w"> </span>uniq<span class="w"> </span>-c<span class="w"> </span><span class="p">|</span><span class="w"> </span>sort<span class="w"> </span>-rn
+
+<span class="c1"># Identifier les cas decision_packet seul ou premier</span>
+python<span class="w"> </span>-c<span class="w"> </span><span class="s2">"</span>
+<span class="s2">import json</span>
+<span class="s2">with open('databases/rejections/rejections_2026-08-30.jsonl') as f:</span>
+<span class="s2">    for line in f:</span>
+<span class="s2">        r = json.loads(line)</span>
+<span class="s2">        if r.get('first_blocker') == 'decision_packet':</span>
+<span class="s2">            print(r)</span>
+<span class="s2">"</span>
+</pre></div>
+</div>
+</section>
+<section id="analyse-gate-rejections-csv">
+<h3>Analyse gate_rejections.csv<a class="headerlink" href="#analyse-gate-rejections-csv" title="Link to this heading">¶</a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Chercher un symbole (CSV cumulatif — ne pas comparer directement au JSONL journalier)</span>
+grep<span class="w"> </span><span class="s2">"ANSEM"</span><span class="w"> </span>databases/gate_rejections.csv<span class="w"> </span><span class="p">|</span><span class="w"> </span>wc<span class="w"> </span>-l
+
+<span class="c1"># Double-écriture — chercher même timestamp</span>
+awk<span class="w"> </span>-F<span class="s1">','</span><span class="w"> </span><span class="s1">'{print $1}'</span><span class="w"> </span>databases/gate_rejections.csv<span class="w"> </span><span class="p">|</span><span class="w"> </span>sort<span class="w"> </span><span class="p">|</span><span class="w"> </span>uniq<span class="w"> </span>-d<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-20
+</pre></div>
+</div>
+</section>
+<section id="conversion-timestamp-unix">
+<h3>Conversion timestamp Unix<a class="headerlink" href="#conversion-timestamp-unix" title="Link to this heading">¶</a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-c<span class="w"> </span><span class="s2">"import datetime; print(datetime.datetime.utcfromtimestamp(1788048106.793))"</span>
+<span class="c1"># Rappel : 1788139109 → 31/08/2026, pas 30/08/2026</span>
+</pre></div>
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="historique-tracabilite">
+<h2>18. Historique / traçabilité<a class="headerlink" href="#historique-tracabilite" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Date</p></th>
+<th class="head"><p>Événement</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>~2025</p></td>
+<td><p>Correction bug <code class="docutils literal notranslate"><span class="pre">bear_trend</span></code> dans <code class="docutils literal notranslate"><span class="pre">AdvancedRegimeDetector</span></code> (condition <code class="docutils literal notranslate"><span class="pre">trend</span> <span class="pre">&lt;</span> <span class="pre">0.3</span></code> inversée — commentaire <code class="docutils literal notranslate"><span class="pre">#</span> <span class="pre">was</span> <span class="pre">trend</span> <span class="pre">&lt;</span> <span class="pre">0.3</span> <span class="pre">(inverted</span> <span class="pre">—</span> <span class="pre">bug)</span></code> dans le code)</p></td>
+</tr>
+<tr class="row-odd"><td><p>2026-07-17</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">CLEAN_DATA_SINCE_V4</span></code> — époque palier 1, univers élargi à 135 paires</p></td>
+</tr>
+<tr class="row-even"><td><p>2026-08-30</p></td>
+<td><p>Session d’investigation technique (cette session)</p></td>
+</tr>
+<tr class="row-odd"><td><p>2026-08-31</p></td>
+<td><p>Rédaction et versionnement de cette documentation</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<hr class="docutils" />
+<section id="legende-des-statuts">
+<h2>Légende des statuts<a class="headerlink" href="#legende-des-statuts" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Étiquette</p></th>
+<th class="head"><p>Signification</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>ANOMALIE DE CODE CONFIRMÉE</p></td>
+<td><p>Bug ou incohérence structurelle vérifiée dans le code</p></td>
+</tr>
+<tr class="row-odd"><td><p>IMPACT PRODUCTION CONFIRMÉ</p></td>
+<td><p>Impact mesurable démontré sur données réelles</p></td>
+</tr>
+<tr class="row-even"><td><p>IMPACT PRODUCTION NON DÉMONTRÉ</p></td>
+<td><p>Anomalie réelle mais sans impact démontré sur les données disponibles</p></td>
+</tr>
+<tr class="row-odd"><td><p>COMPORTEMENT INTENTIONNEL</p></td>
+<td><p>Comportement observé, explicitement voulu par l’architecture</p></td>
+</tr>
+<tr class="row-even"><td><p>POINT À SURVEILLER</p></td>
+<td><p>Sujet à surveiller lors des prochaines analyses</p></td>
+</tr>
+<tr class="row-odd"><td><p>DOSSIER CLOS</p></td>
+<td><p>Investigation terminée, conclusion définitive</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr class="docutils" />
+<p><em>Document archivé dans <code class="docutils literal notranslate"><span class="pre">docs/diagnostics/</span></code>. Ne pas modifier le code applicatif sur la base de ce seul document sans analyse supplémentaire.</em></p>
+</section>
+<hr class="docutils" />
+<section id="addendum-31-08-2026-cloture-operationnelle-check-check-packet">
+<h2>Addendum — 31/08/2026 — Clôture opérationnelle check() / check_packet()<a class="headerlink" href="#addendum-31-08-2026-cloture-operationnelle-check-check-packet" title="Link to this heading">¶</a></h2>
+<p><strong>Date de l’investigation complémentaire :</strong> 31 août 2026<br />
+<strong>Méthode :</strong> Lecture seule du code source + jointure sur fichiers de production VPS (<code class="docutils literal notranslate"><span class="pre">databases/decision_packets_*.jsonl</span></code> × <code class="docutils literal notranslate"><span class="pre">databases/rejections/rejections_*.jsonl</span></code> via <code class="docutils literal notranslate"><span class="pre">packet_id</span></code>) — aucune modification de code, aucun service redémarré.<br />
+<strong>Statut du dossier avant cet addendum :</strong> ANOMALIE STRUCTURELLE CONFIRMÉE — À TRAITER<br />
+<strong>Statut après cet addendum :</strong> voir tableau de verdict en fin de section.</p>
+<hr class="docutils" />
+<section id="a-1-code-prouve">
+<h3>A.1 CODE PROUVÉ<a class="headerlink" href="#a-1-code-prouve" title="Link to this heading">¶</a></h3>
+<section id="a-1-1-deux-logiques-de-score-differentes-comparees-au-meme-seuil">
+<h4>A.1.1 Deux logiques de score différentes, comparées au même seuil<a class="headerlink" href="#a-1-1-deux-logiques-de-score-differentes-comparees-au-meme-seuil" title="Link to this heading">¶</a></h4>
+<p><strong><code class="docutils literal notranslate"><span class="pre">GlobalRiskGate.check()</span></code></strong><br />
+Fichier : <code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/risk/global_risk_gate.py</span></code>, méthode <code class="docutils literal notranslate"><span class="pre">check()</span></code>, condition ③ (<code class="docutils literal notranslate"><span class="pre">signal_score</span></code>)<br />
+Compare : <code class="docutils literal notranslate"><span class="pre">signal_result.score</span></code> — le <strong>score brut</strong> du signal — au seuil <code class="docutils literal notranslate"><span class="pre">_effective_min_score(regime)</span></code>.</p>
+<p><strong><code class="docutils literal notranslate"><span class="pre">GlobalRiskGate.check_packet()</span></code></strong><br />
+Fichier : <code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/risk/global_risk_gate.py</span></code>, méthode <code class="docutils literal notranslate"><span class="pre">check_packet()</span></code>, condition ③ (<code class="docutils literal notranslate"><span class="pre">signal_score</span></code>)<br />
+Compare : <code class="docutils literal notranslate"><span class="pre">packet.adjusted_confidence</span></code> (fallback <code class="docutils literal notranslate"><span class="pre">packet.confidence</span></code>) — un <strong>score ajusté après reasoning</strong> — au même seuil <code class="docutils literal notranslate"><span class="pre">_effective_min_score(regime)</span></code>.</p>
+<p><strong>Point clé :</strong> <code class="docutils literal notranslate"><span class="pre">_effective_min_score()</span></code> est identique pour les deux appels (même régime → même seuil).<br />
+La divergence de verdicts provient uniquement de la <strong>valeur comparée</strong> (score brut vs score ajusté), pas du seuil.</p>
+</section>
+<section id="a-1-2-le-retour-de-check-packet-est-ignore-dans-le-pipeline-principal">
+<h4>A.1.2 Le retour de check_packet() est ignoré dans le pipeline principal<a class="headerlink" href="#a-1-2-le-retour-de-check-packet-est-ignore-dans-le-pipeline-principal" title="Link to this heading">¶</a></h4>
+<p>Dans <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code>, autour des lignes 1550–1560 :</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">gate.check_packet(...)</span></code> est appelé en mode <strong>fire-and-forget</strong> — son retour (<code class="docutils literal notranslate"><span class="pre">GateResult</span></code>) n’est capturé dans aucune variable.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">results[&quot;gate&quot;]</span></code> (ligne ~2298) provient <strong>exclusivement</strong> de <code class="docutils literal notranslate"><span class="pre">gate.check()</span></code>.</p></li>
+<li><p>Le compteur <code class="docutils literal notranslate"><span class="pre">block_stats_lifetime.json[&quot;gate&quot;]</span></code> ne reflète donc <strong>jamais</strong> le verdict de <code class="docutils literal notranslate"><span class="pre">check_packet()</span></code>.</p></li>
+</ul>
+<p><code class="docutils literal notranslate"><span class="pre">check_packet()</span></code> écrit bien son verdict dans le packet lui-même (<code class="docutils literal notranslate"><span class="pre">DecisionPacket</span></code>) — l’information existe et est correctement propagée dans le packet, mais elle est <strong>absente du chemin de décision legacy</strong> (<code class="docutils literal notranslate"><span class="pre">results[&quot;gate&quot;]</span></code>, <code class="docutils literal notranslate"><span class="pre">block_stats_lifetime</span></code>, flow blockers logués en <code class="docutils literal notranslate"><span class="pre">[FLOW]</span> <span class="pre">...</span> <span class="pre">VERDICT</span></code>).</p>
+</section>
+<section id="a-1-3-synchronisation-existante-mais-unidirectionnelle-bloc-g8-d">
+<h4>A.1.3 Synchronisation existante — mais unidirectionnelle (bloc G8-D)<a class="headerlink" href="#a-1-3-synchronisation-existante-mais-unidirectionnelle-bloc-g8-d" title="Link to this heading">¶</a></h4>
+<p>Un bloc explicite <strong>G8-D</strong> existe dans <code class="docutils literal notranslate"><span class="pre">advisor_loop.py</span></code> (juste après le calcul de <code class="docutils literal notranslate"><span class="pre">trade_allowed</span></code>) :</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Si le pipeline legacy refuse → le packet est forcé à refuser aussi.
+</pre></div>
+</div>
+<p>Ce bloc synchronise dans <strong>un seul sens</strong>.<br />
+Il n’existe <strong>aucun mécanisme symétrique</strong> pour le sens inverse :<br />
+si <code class="docutils literal notranslate"><span class="pre">check_packet()</span></code> aurait refusé mais que le pipeline legacy (via <code class="docutils literal notranslate"><span class="pre">gate.check()</span></code> + les autres gardes) autorise, <strong>rien ne bloque le trade</strong> sur la base du verdict <code class="docutils literal notranslate"><span class="pre">check_packet()</span></code>.</p>
+<p>C’est précisément ce sens inverse qui a été mesuré en production (voir section A.2).</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="a-2-production-prouvee">
+<h3>A.2 PRODUCTION PROUVÉE<a class="headerlink" href="#a-2-production-prouvee" title="Link to this heading">¶</a></h3>
+<p>Investigation sur <code class="docutils literal notranslate"><span class="pre">databases/rejections/rejections_*.jsonl</span></code> et <code class="docutils literal notranslate"><span class="pre">databases/decision_packets_*.jsonl</span></code>.<br />
+Jointure exacte par <code class="docutils literal notranslate"><span class="pre">packet_id</span></code> — clé commune confirmée à <strong>100% de correspondance</strong> sur les échantillons testés.</p>
+<section id="a-2-1-table-de-contingence-30-08-2026-n-12-919-rejets-jointure-100">
+<h4>A.2.1 Table de contingence — 30/08/2026 (n = 12 919 rejets, jointure 100%)<a class="headerlink" href="#a-2-1-table-de-contingence-30-08-2026-n-12-919-rejets-jointure-100" title="Link to this heading">¶</a></h4>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p></p></th>
+<th class="head"><p><code class="docutils literal notranslate"><span class="pre">risk_failed=True</span></code> (check_packet aurait bloqué)</p></th>
+<th class="head"><p><code class="docutils literal notranslate"><span class="pre">risk_failed=False</span></code></p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">gate_failed=True</span></code> (check() a bloqué)</p></td>
+<td><p>8 473</p></td>
+<td><p>3 223</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">gate_failed=False</span></code> (check() a laissé passer)</p></td>
+<td><p><strong>688</strong></p></td>
+<td><p>535</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><strong>La case critique :</strong> <code class="docutils literal notranslate"><span class="pre">gate_failed=False,</span> <span class="pre">risk_failed=True</span></code> = <strong>688 cas</strong> où le verdict legacy (souverain sur l’exécution) a laissé passer un signal que <code class="docutils literal notranslate"><span class="pre">check_packet()</span></code> aurait explicitement rejeté.</p>
+</section>
+<section id="a-2-2-analyse-des-688-cas-divergents-30-08-2026">
+<h4>A.2.2 Analyse des 688 cas divergents — 30/08/2026<a class="headerlink" href="#a-2-2-analyse-des-688-cas-divergents-30-08-2026" title="Link to this heading">¶</a></h4>
+<ul class="simple">
+<li><p><strong>100%</strong> des 688 cas ont <code class="docutils literal notranslate"><span class="pre">first_blocker</span> <span class="pre">=</span> <span class="pre">&quot;meta&quot;</span></code> dans le RejectionStore.<br />
+Dans chaque cas, le trade était <strong>déjà bloqué en amont par <code class="docutils literal notranslate"><span class="pre">MetaStrategyEngine.validate_signal()</span></code></strong>, indépendamment de la divergence <code class="docutils literal notranslate"><span class="pre">check()</span></code>/<code class="docutils literal notranslate"><span class="pre">check_packet()</span></code>.</p></li>
+<li><p><strong>100%</strong> des conditions <code class="docutils literal notranslate"><span class="pre">risk_failed</span></code> sont de type <code class="docutils literal notranslate"><span class="pre">signal_score</span></code> (aucune autre condition : pas de <code class="docutils literal notranslate"><span class="pre">regime_blacklisted</span></code>, pas de <code class="docutils literal notranslate"><span class="pre">signal_confirmed</span></code>, pas de <code class="docutils literal notranslate"><span class="pre">drawdown_ok</span></code>).</p></li>
+</ul>
+<p><strong>Exemples bruts :</strong> <code class="docutils literal notranslate"><span class="pre">RIF/USDT</span></code> bear_trend score 63 &lt; 66, <code class="docutils literal notranslate"><span class="pre">ANTFUN/USDT</span></code> bull_trend score 68 &lt; 70, <code class="docutils literal notranslate"><span class="pre">MAGMA/USDT</span></code> bull_trend score 68 &lt; 70.</p>
+</section>
+<section id="a-2-3-confirmation-sur-8-jours-consecutifs-24-08-31-08-2026">
+<h4>A.2.3 Confirmation sur 8 jours consécutifs (24/08 → 31/08/2026)<a class="headerlink" href="#a-2-3-confirmation-sur-8-jours-consecutifs-24-08-31-08-2026" title="Link to this heading">¶</a></h4>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Date</p></th>
+<th class="head"><p>Cas divergents (gate passe / check_packet aurait bloqué)</p></th>
+<th class="head"><p>first_blocker</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>2026-08-24</p></td>
+<td><p>848</p></td>
+<td><p>100% meta</p></td>
+</tr>
+<tr class="row-odd"><td><p>2026-08-25</p></td>
+<td><p>841</p></td>
+<td><p>100% meta</p></td>
+</tr>
+<tr class="row-even"><td><p>2026-08-26</p></td>
+<td><p>310</p></td>
+<td><p>100% meta</p></td>
+</tr>
+<tr class="row-odd"><td><p>2026-08-27</p></td>
+<td><p>675</p></td>
+<td><p>100% meta</p></td>
+</tr>
+<tr class="row-even"><td><p>2026-08-28</p></td>
+<td><p>502</p></td>
+<td><p>100% meta</p></td>
+</tr>
+<tr class="row-odd"><td><p>2026-08-29</p></td>
+<td><p>692</p></td>
+<td><p>100% meta</p></td>
+</tr>
+<tr class="row-even"><td><p>2026-08-30</p></td>
+<td><p>688</p></td>
+<td><p>100% meta</p></td>
+</tr>
+<tr class="row-odd"><td><p>2026-08-31</p></td>
+<td><p>63</p></td>
+<td><p>100% meta</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><strong>Résultat cumulé (~4 600 cas, 8/8 jours à 100%) :</strong> aucune exception.<br />
+Meta bloque systématiquement en amont, avant que la divergence <code class="docutils literal notranslate"><span class="pre">check()</span></code>/<code class="docutils literal notranslate"><span class="pre">check_packet()</span></code> ait une quelconque conséquence sur l’exécution réelle du trade.</p>
+</section>
+<section id="a-2-4-autres-constats-production-contexte-deja-etablis-avant-cet-addendum">
+<h4>A.2.4 Autres constats production (contexte, déjà établis avant cet addendum)<a class="headerlink" href="#a-2-4-autres-constats-production-contexte-deja-etablis-avant-cet-addendum" title="Link to this heading">¶</a></h4>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">GATE_MIN_SCORE_OVERRIDE</span></code> : confirmé <strong>inactif</strong> en production sur <code class="docutils literal notranslate"><span class="pre">crypto-advisor</span></code>. [VPS]</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">HMM</span> <span class="pre">V2</span></code> (<code class="docutils literal notranslate"><span class="pre">v2_hmm_regime</span></code>) : confirmé <strong>totalement inactif</strong> — aucune variable d’environnement, aucun service systemd, aucune instanciation de <code class="docutils literal notranslate"><span class="pre">HMMRegimeEngine()</span></code> hors archive/tests, paramètre jamais réassigné avant l’appel à <code class="docutils literal notranslate"><span class="pre">analyze_symbol()</span></code>. Dossier <strong>CLOSED</strong>. [VPS + code]</p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="a-3-hypothese-non-prouvee-a-garder-distincte-des-faits">
+<h3>A.3 HYPOTHÈSE (non prouvée — à garder distincte des faits)<a class="headerlink" href="#a-3-hypothese-non-prouvee-a-garder-distincte-des-faits" title="Link to this heading">¶</a></h3>
+<p>Le fait que Meta bloque systématiquement en premier sur cette fenêtre de 8 jours est une <strong>observation empirique, pas une garantie structurelle</strong>.</p>
+<p>Les seuils Gate et Meta sont deux sources indépendantes non synchronisées (confirmé dans le diagnostic du 30/08).<br />
+Rien dans le code ne garantit que Meta restera <strong>toujours</strong> plus strict que Gate sur <code class="docutils literal notranslate"><span class="pre">signal_score</span></code>.</p>
+<p><strong>Risque latent identifié :</strong><br />
+Si Meta est un jour rendu plus permissif (changement de seuil, changement de personnalité pour un régime donné), les ~600–800 cas/jour actuellement filtrés par Meta pourraient cesser de l’être.<br />
+Ces cas deviendraient alors des <strong>trades potentiellement exécutés sans que <code class="docutils literal notranslate"><span class="pre">check_packet()</span></code> ait eu voix au chapitre</strong> — puisque son verdict n’est de toute façon jamais consulté par le pipeline de décision.</p>
+</section>
+<hr class="docutils" />
+<section id="a-4-verdicts-mis-a-jour">
+<h3>A.4 Verdicts mis à jour<a class="headerlink" href="#a-4-verdicts-mis-a-jour" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Dossier</p></th>
+<th class="head"><p>Statut</p></th>
+<th class="head"><p>Base</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>check()/check_packet() — impact opérationnel actuel (30/08 et 8 jours)</p></td>
+<td><p><strong>CLOS</strong></p></td>
+<td><p>Production prouvée — 100% des cas divergents masqués par Meta, 8/8 jours</p></td>
+</tr>
+<tr class="row-odd"><td><p>check()/check_packet() — dette architecturale (retour ignoré + 2 scores comparés)</p></td>
+<td><p><strong>OUVERT → NEEDS_ARCHITECTURAL_DECISION</strong></p></td>
+<td><p>Code prouvé</p></td>
+</tr>
+<tr class="row-even"><td><p>Risque dormant si Meta est assoupli sans garde-fou côté Gate</p></td>
+<td><p><strong>POSSIBLE_ANOMALY (risque latent, non actif)</strong></p></td>
+<td><p>Hypothèse fondée sur code + logs</p></td>
+</tr>
+<tr class="row-odd"><td><p>HMM V2 (v2_hmm_regime)</p></td>
+<td><p><strong>CLOS — NO_MISMATCH_CONFIRMED</strong></p></td>
+<td><p>Code prouvé + absence totale en production</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<hr class="docutils" />
+<section id="a-5-decision-a-prendre-par-mathieu-non-tranchee-ici">
+<h3>A.5 Décision à prendre — par Mathieu (non tranchée ici)<a class="headerlink" href="#a-5-decision-a-prendre-par-mathieu-non-tranchee-ici" title="Link to this heading">¶</a></h3>
+<p><strong>Question ouverte :</strong> Quelle trajectoire architecturale adopter pour la divergence <code class="docutils literal notranslate"><span class="pre">check()</span></code> / <code class="docutils literal notranslate"><span class="pre">check_packet()</span></code> ?</p>
+<p><strong>Option A — Convergence des scores</strong><br />
+Faire converger les deux valeurs comparées par <code class="docutils literal notranslate"><span class="pre">check()</span></code> et <code class="docutils literal notranslate"><span class="pre">check_packet()</span></code> vers une seule et même valeur de référence, de sorte que les deux méthodes appliquent le même test sur la même donnée.</p>
+<p><strong>Option B — check_packet() comme source unique de vérité</strong><br />
+Faire de <code class="docutils literal notranslate"><span class="pre">check_packet()</span></code> la seule source de vérité pour <code class="docutils literal notranslate"><span class="pre">results[&quot;gate&quot;]</span></code> et <code class="docutils literal notranslate"><span class="pre">block_stats_lifetime</span></code>, en dépréciant <code class="docutils literal notranslate"><span class="pre">check()</span></code> (qui serait alors maintenu uniquement pour compatibilité legacy le temps de la transition).</p>
+<p><strong>Option C — Statu quo + alerte de surveillance</strong><br />
+Laisser l’architecture actuelle telle quelle et ajouter une alerte de monitoring activée si <code class="docutils literal notranslate"><span class="pre">risk_failed</span></code> devient <code class="docutils literal notranslate"><span class="pre">first_blocker</span></code> dominant — ce qui signalerait que Meta ne filtre plus en amont et que le risque latent devient actif.</p>
+<p><strong>Aucune de ces trois options n’a été mise en œuvre.</strong> Ce document documente uniquement la question.<br />
+Source de référence pour la décision : ce brief (addendum 31/08/2026).</p>
+<hr class="docutils" />
+<p><em>Addendum rédigé le 31/08/2026 — investigation VPS read-only, aucune modification de code applicatif.</em></p>
+</section>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Crypto AI Terminal
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Diagnostic Technique — 30/08/2026 — Meta / Signal / Network</a><ul>
+<li><a class="reference internal" href="#contexte">1. Contexte</a></li>
+<li><a class="reference internal" href="#methodologie">2. Méthodologie</a></li>
+<li><a class="reference internal" href="#environnement-vps">3. Environnement VPS</a></li>
+<li><a class="reference internal" href="#travaux-realises">4. Travaux réalisés</a></li>
+<li><a class="reference internal" href="#resultats-confirmes-synthese">5. Résultats confirmés (synthèse)</a></li>
+<li><a class="reference internal" href="#gate-check-check-packet">6. Gate / check() / check_packet()</a><ul>
+<li><a class="reference internal" href="#anomalie-structurelle">6.1 Anomalie structurelle</a></li>
+<li><a class="reference internal" href="#preuve-reelle-gate-rejections-csv-vps">6.2 Preuve réelle — gate_rejections.csv [VPS]</a></li>
+<li><a class="reference internal" href="#deuxieme-exemple-de-double-ecriture-vps">6.3 Deuxième exemple de double-écriture [VPS]</a></li>
+<li><a class="reference internal" href="#gate-min-score-override">6.4 GATE_MIN_SCORE_OVERRIDE</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#meta-strategy">7. Meta Strategy</a><ul>
+<li><a class="reference internal" href="#table-regime-map-confirmee">7.1 Table _REGIME_MAP confirmée</a></li>
+<li><a class="reference internal" href="#resultats-du-30-08-2026-1-548-blocages-meta-vps">7.2 Résultats du 30/08/2026 — 1 548 blocages Meta [VPS]</a></li>
+<li><a class="reference internal" href="#cas-magma-usdt-vps">7.3 Cas MAGMA/USDT [VPS]</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#signal-generator">8. Signal Generator</a></li>
+<li><a class="reference internal" href="#regime-detector">9. Regime Detector</a></li>
+<li><a class="reference internal" href="#hmm-v2">10. HMM V2</a></li>
+<li><a class="reference internal" href="#donnees-de-production">11. Données de production</a><ul>
+<li><a class="reference internal" href="#analyse-du-30-08-2026-rejections-2026-08-30-jsonl-vps">11.1 Analyse du 30/08/2026 — rejections_2026-08-30.jsonl [VPS]</a></li>
+<li><a class="reference internal" href="#correction-de-contexte-temporel-timestamps-ansem-vps">11.2 Correction de contexte temporel — timestamps ANSEM [VPS]</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#anomalies-confirmees">12. Anomalies confirmées</a><ul>
+<li><a class="reference internal" href="#a1-divergence-check-check-packet-dans-la-telemetrie">A1 — Divergence check() / check_packet() dans la télémétrie</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#anomalies-sans-impact-demontre">13. Anomalies sans impact démontré</a><ul>
+<li><a class="reference internal" href="#i1-check-packet-sans-impact-decisionnel-autonome-le-30-08">I1 — check_packet() sans impact décisionnel autonome le 30/08</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#comportements-intentionnels">14. Comportements intentionnels</a><ul>
+<li><a class="reference internal" href="#b1-separation-signal-generator-filtrage-meta-risk">B1 — Séparation Signal Generator / filtrage Meta-Risk</a></li>
+<li><a class="reference internal" href="#b2-rejets-directionnels-meta">B2 — Rejets directionnels Meta</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#dossiers-clos">15. Dossiers clos</a></li>
+<li><a class="reference internal" href="#dossiers-encore-ouverts">16. Dossiers encore ouverts</a></li>
+<li><a class="reference internal" href="#commandes-outils-utiles-pour-reprise-future">17. Commandes / outils utiles pour reprise future</a><ul>
+<li><a class="reference internal" href="#decision-trace-py">decision_trace.py</a></li>
+<li><a class="reference internal" href="#analyse-des-rejections-journalieres">Analyse des rejections journalières</a></li>
+<li><a class="reference internal" href="#analyse-gate-rejections-csv">Analyse gate_rejections.csv</a></li>
+<li><a class="reference internal" href="#conversion-timestamp-unix">Conversion timestamp Unix</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#historique-tracabilite">18. Historique / traçabilité</a></li>
+<li><a class="reference internal" href="#legende-des-statuts">Légende des statuts</a></li>
+<li><a class="reference internal" href="#addendum-31-08-2026-cloture-operationnelle-check-check-packet">Addendum — 31/08/2026 — Clôture opérationnelle check() / check_packet()</a><ul>
+<li><a class="reference internal" href="#a-1-code-prouve">A.1 CODE PROUVÉ</a><ul>
+<li><a class="reference internal" href="#a-1-1-deux-logiques-de-score-differentes-comparees-au-meme-seuil">A.1.1 Deux logiques de score différentes, comparées au même seuil</a></li>
+<li><a class="reference internal" href="#a-1-2-le-retour-de-check-packet-est-ignore-dans-le-pipeline-principal">A.1.2 Le retour de check_packet() est ignoré dans le pipeline principal</a></li>
+<li><a class="reference internal" href="#a-1-3-synchronisation-existante-mais-unidirectionnelle-bloc-g8-d">A.1.3 Synchronisation existante — mais unidirectionnelle (bloc G8-D)</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#a-2-production-prouvee">A.2 PRODUCTION PROUVÉE</a><ul>
+<li><a class="reference internal" href="#a-2-1-table-de-contingence-30-08-2026-n-12-919-rejets-jointure-100">A.2.1 Table de contingence — 30/08/2026 (n = 12 919 rejets, jointure 100%)</a></li>
+<li><a class="reference internal" href="#a-2-2-analyse-des-688-cas-divergents-30-08-2026">A.2.2 Analyse des 688 cas divergents — 30/08/2026</a></li>
+<li><a class="reference internal" href="#a-2-3-confirmation-sur-8-jours-consecutifs-24-08-31-08-2026">A.2.3 Confirmation sur 8 jours consécutifs (24/08 → 31/08/2026)</a></li>
+<li><a class="reference internal" href="#a-2-4-autres-constats-production-contexte-deja-etablis-avant-cet-addendum">A.2.4 Autres constats production (contexte, déjà établis avant cet addendum)</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#a-3-hypothese-non-prouvee-a-garder-distincte-des-faits">A.3 HYPOTHÈSE (non prouvée — à garder distincte des faits)</a></li>
+<li><a class="reference internal" href="#a-4-verdicts-mis-a-jour">A.4 Verdicts mis à jour</a></li>
+<li><a class="reference internal" href="#a-5-decision-a-prendre-par-mathieu-non-tranchee-ici">A.5 Décision à prendre — par Mathieu (non tranchée ici)</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../_static/documentation_options.js?v=ef6a59ae"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/scripts/furo.js?v=5fa4622c"></script>
+    </body>
+</html>
