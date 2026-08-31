@@ -469,3 +469,144 @@ python -c "import datetime; print(datetime.datetime.utcfromtimestamp(1788048106.
 ---
 
 *Document archivé dans `docs/diagnostics/`. Ne pas modifier le code applicatif sur la base de ce seul document sans analyse supplémentaire.*
+
+---
+
+## Addendum — 31/08/2026 — Clôture opérationnelle check() / check_packet()
+
+**Date de l'investigation complémentaire :** 31 août 2026  
+**Méthode :** Lecture seule du code source + jointure sur fichiers de production VPS (`databases/decision_packets_*.jsonl` × `databases/rejections/rejections_*.jsonl` via `packet_id`) — aucune modification de code, aucun service redémarré.  
+**Statut du dossier avant cet addendum :** ANOMALIE STRUCTURELLE CONFIRMÉE — À TRAITER  
+**Statut après cet addendum :** voir tableau de verdict en fin de section.
+
+---
+
+### A.1 CODE PROUVÉ
+
+#### A.1.1 Deux logiques de score différentes, comparées au même seuil
+
+**`GlobalRiskGate.check()`**  
+Fichier : `quant_hedge_ai/agents/risk/global_risk_gate.py`, méthode `check()`, condition ③ (`signal_score`)  
+Compare : `signal_result.score` — le **score brut** du signal — au seuil `_effective_min_score(regime)`.
+
+**`GlobalRiskGate.check_packet()`**  
+Fichier : `quant_hedge_ai/agents/risk/global_risk_gate.py`, méthode `check_packet()`, condition ③ (`signal_score`)  
+Compare : `packet.adjusted_confidence` (fallback `packet.confidence`) — un **score ajusté après reasoning** — au même seuil `_effective_min_score(regime)`.
+
+**Point clé :** `_effective_min_score()` est identique pour les deux appels (même régime → même seuil).  
+La divergence de verdicts provient uniquement de la **valeur comparée** (score brut vs score ajusté), pas du seuil.
+
+#### A.1.2 Le retour de check_packet() est ignoré dans le pipeline principal
+
+Dans `core/advisor_loop.py`, autour des lignes 1550–1560 :
+
+- `gate.check_packet(...)` est appelé en mode **fire-and-forget** — son retour (`GateResult`) n'est capturé dans aucune variable.
+- `results["gate"]` (ligne ~2298) provient **exclusivement** de `gate.check()`.
+- Le compteur `block_stats_lifetime.json["gate"]` ne reflète donc **jamais** le verdict de `check_packet()`.
+
+`check_packet()` écrit bien son verdict dans le packet lui-même (`DecisionPacket`) — l'information existe et est correctement propagée dans le packet, mais elle est **absente du chemin de décision legacy** (`results["gate"]`, `block_stats_lifetime`, flow blockers logués en `[FLOW] ... VERDICT`).
+
+#### A.1.3 Synchronisation existante — mais unidirectionnelle (bloc G8-D)
+
+Un bloc explicite **G8-D** existe dans `advisor_loop.py` (juste après le calcul de `trade_allowed`) :
+
+```
+Si le pipeline legacy refuse → le packet est forcé à refuser aussi.
+```
+
+Ce bloc synchronise dans **un seul sens**.  
+Il n'existe **aucun mécanisme symétrique** pour le sens inverse :  
+si `check_packet()` aurait refusé mais que le pipeline legacy (via `gate.check()` + les autres gardes) autorise, **rien ne bloque le trade** sur la base du verdict `check_packet()`.
+
+C'est précisément ce sens inverse qui a été mesuré en production (voir section A.2).
+
+---
+
+### A.2 PRODUCTION PROUVÉE
+
+Investigation sur `databases/rejections/rejections_*.jsonl` et `databases/decision_packets_*.jsonl`.  
+Jointure exacte par `packet_id` — clé commune confirmée à **100% de correspondance** sur les échantillons testés.
+
+#### A.2.1 Table de contingence — 30/08/2026 (n = 12 919 rejets, jointure 100%)
+
+|  | `risk_failed=True` (check_packet aurait bloqué) | `risk_failed=False` |
+|---|---|---|
+| `gate_failed=True` (check() a bloqué) | 8 473 | 3 223 |
+| `gate_failed=False` (check() a laissé passer) | **688** | 535 |
+
+**La case critique :** `gate_failed=False, risk_failed=True` = **688 cas** où le verdict legacy (souverain sur l'exécution) a laissé passer un signal que `check_packet()` aurait explicitement rejeté.
+
+#### A.2.2 Analyse des 688 cas divergents — 30/08/2026
+
+- **100%** des 688 cas ont `first_blocker = "meta"` dans le RejectionStore.  
+  Dans chaque cas, le trade était **déjà bloqué en amont par `MetaStrategyEngine.validate_signal()`**, indépendamment de la divergence `check()`/`check_packet()`.
+- **100%** des conditions `risk_failed` sont de type `signal_score` (aucune autre condition : pas de `regime_blacklisted`, pas de `signal_confirmed`, pas de `drawdown_ok`).
+
+**Exemples bruts :** `RIF/USDT` bear_trend score 63 < 66, `ANTFUN/USDT` bull_trend score 68 < 70, `MAGMA/USDT` bull_trend score 68 < 70.
+
+#### A.2.3 Confirmation sur 8 jours consécutifs (24/08 → 31/08/2026)
+
+| Date | Cas divergents (gate passe / check_packet aurait bloqué) | first_blocker |
+|---|---|---|
+| 2026-08-24 | 848 | 100% meta |
+| 2026-08-25 | 841 | 100% meta |
+| 2026-08-26 | 310 | 100% meta |
+| 2026-08-27 | 675 | 100% meta |
+| 2026-08-28 | 502 | 100% meta |
+| 2026-08-29 | 692 | 100% meta |
+| 2026-08-30 | 688 | 100% meta |
+| 2026-08-31 | 63 | 100% meta |
+
+**Résultat cumulé (~4 600 cas, 8/8 jours à 100%) :** aucune exception.  
+Meta bloque systématiquement en amont, avant que la divergence `check()`/`check_packet()` ait une quelconque conséquence sur l'exécution réelle du trade.
+
+#### A.2.4 Autres constats production (contexte, déjà établis avant cet addendum)
+
+- `GATE_MIN_SCORE_OVERRIDE` : confirmé **inactif** en production sur `crypto-advisor`. [VPS]
+- `HMM V2` (`v2_hmm_regime`) : confirmé **totalement inactif** — aucune variable d'environnement, aucun service systemd, aucune instanciation de `HMMRegimeEngine()` hors archive/tests, paramètre jamais réassigné avant l'appel à `analyze_symbol()`. Dossier **CLOSED**. [VPS + code]
+
+---
+
+### A.3 HYPOTHÈSE (non prouvée — à garder distincte des faits)
+
+Le fait que Meta bloque systématiquement en premier sur cette fenêtre de 8 jours est une **observation empirique, pas une garantie structurelle**.
+
+Les seuils Gate et Meta sont deux sources indépendantes non synchronisées (confirmé dans le diagnostic du 30/08).  
+Rien dans le code ne garantit que Meta restera **toujours** plus strict que Gate sur `signal_score`.
+
+**Risque latent identifié :**  
+Si Meta est un jour rendu plus permissif (changement de seuil, changement de personnalité pour un régime donné), les ~600–800 cas/jour actuellement filtrés par Meta pourraient cesser de l'être.  
+Ces cas deviendraient alors des **trades potentiellement exécutés sans que `check_packet()` ait eu voix au chapitre** — puisque son verdict n'est de toute façon jamais consulté par le pipeline de décision.
+
+---
+
+### A.4 Verdicts mis à jour
+
+| Dossier | Statut | Base |
+|---|---|---|
+| check()/check_packet() — impact opérationnel actuel (30/08 et 8 jours) | **CLOS** | Production prouvée — 100% des cas divergents masqués par Meta, 8/8 jours |
+| check()/check_packet() — dette architecturale (retour ignoré + 2 scores comparés) | **OUVERT → NEEDS_ARCHITECTURAL_DECISION** | Code prouvé |
+| Risque dormant si Meta est assoupli sans garde-fou côté Gate | **POSSIBLE_ANOMALY (risque latent, non actif)** | Hypothèse fondée sur code + logs |
+| HMM V2 (v2_hmm_regime) | **CLOS — NO_MISMATCH_CONFIRMED** | Code prouvé + absence totale en production |
+
+---
+
+### A.5 Décision à prendre — par Mathieu (non tranchée ici)
+
+**Question ouverte :** Quelle trajectoire architecturale adopter pour la divergence `check()` / `check_packet()` ?
+
+**Option A — Convergence des scores**  
+Faire converger les deux valeurs comparées par `check()` et `check_packet()` vers une seule et même valeur de référence, de sorte que les deux méthodes appliquent le même test sur la même donnée.
+
+**Option B — check_packet() comme source unique de vérité**  
+Faire de `check_packet()` la seule source de vérité pour `results["gate"]` et `block_stats_lifetime`, en dépréciant `check()` (qui serait alors maintenu uniquement pour compatibilité legacy le temps de la transition).
+
+**Option C — Statu quo + alerte de surveillance**  
+Laisser l'architecture actuelle telle quelle et ajouter une alerte de monitoring activée si `risk_failed` devient `first_blocker` dominant — ce qui signalerait que Meta ne filtre plus en amont et que le risque latent devient actif.
+
+**Aucune de ces trois options n'a été mise en œuvre.** Ce document documente uniquement la question.  
+Source de référence pour la décision : ce brief (addendum 31/08/2026).
+
+---
+
+*Addendum rédigé le 31/08/2026 — investigation VPS read-only, aucune modification de code applicatif.*
