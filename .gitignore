@@ -75,3 +75,5 @@ build/
 
 # Claude Code local settings — machine-local, must never be committed (contains tokens)
 .claude/settings.local.json
+databases/shadow_execution/shadow_log.jsonl
+databases/strategy_ranking.json
