@@ -353,7 +353,7 @@ class TestDS001LateEnvHonored:
         new_dir = tmp_path / "lmi_writer"
         monkeypatch.setenv("LMI_DIR", str(new_dir))
 
-        store = LiveStateStore()
+        store = obs_mod.LiveStateStore()
         assert store.path == new_dir / "lmi_live_state.json", (
             f"Attendu {new_dir / 'lmi_live_state.json'}, obtenu {store.path}"
         )
