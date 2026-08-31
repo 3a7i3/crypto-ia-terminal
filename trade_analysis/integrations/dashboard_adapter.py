@@ -13,15 +13,17 @@ import os
 from pathlib import Path
 from typing import Optional
 
-LMI_DIR = Path(os.getenv("LMI_DIR", "databases/trade_analysis"))
-LIVE_STATE_FILE = LMI_DIR / "lmi_live_state.json"
-
 # Un symbole dont le dernier etat date de plus de STALE_MS est "stale".
 STALE_MS = 15_000
 
 
+def _resolve_live_state_file() -> Path:
+    """Résolu à chaque appel — injectable par env, testable, jamais figé."""
+    return Path(os.getenv("LMI_DIR", "databases/trade_analysis")) / "lmi_live_state.json"
+
+
 def _load(path: Path | None = None) -> dict:
-    p = path or LIVE_STATE_FILE
+    p = path if path is not None else _resolve_live_state_file()
     if not p.exists():
         return {}
     try:

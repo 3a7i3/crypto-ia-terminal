@@ -1,6 +1,7 @@
 """Tests pour selection, observatory (store) et adaptateurs LMI."""
 
 import json
+import os
 from pathlib import Path
 
 from trade_analysis.integrations import dashboard_adapter as da
@@ -325,3 +326,63 @@ class TestRadarAdapter:
         msg = format_lmi_overview(p)
         assert "LMI OBSERVATORY" in msg
         assert "BTCUSDT" in msg
+
+
+# ---------------------------------------------------------------------------
+# DS-001 — Non-regression : LMI_DIR honoré après import (writer + reader)
+# ---------------------------------------------------------------------------
+
+
+class TestDS001LateEnvHonored:
+    """Vérifie que LMI_DIR posé après import est honoré (ADR-0008 / DS-001).
+
+    Ces tests reproduisent les deux violations HIGH signalées par l'auditeur
+    DS-001 :
+      - late_env_honored_writer : LiveStateStore() sans path explicite doit
+        utiliser le LMI_DIR courant de l'environnement, pas celui figé à
+        l'import d'observatory.py.
+      - late_env_honored_reader : lmi_status() sans path explicite doit lire
+        dans le LMI_DIR courant de l'environnement, pas celui figé à
+        l'import de dashboard_adapter.py.
+    """
+
+    def test_late_env_honored_writer(self, monkeypatch, tmp_path):
+        """LMI_DIR posé après import est honoré par LiveStateStore()."""
+        import trade_analysis.observatory as obs_mod
+
+        new_dir = tmp_path / "lmi_writer"
+        monkeypatch.setenv("LMI_DIR", str(new_dir))
+
+        store = LiveStateStore()
+        assert store.path == new_dir / "lmi_live_state.json", (
+            f"Attendu {new_dir / 'lmi_live_state.json'}, obtenu {store.path}"
+        )
+
+    def test_late_env_honored_reader(self, monkeypatch, tmp_path):
+        """LMI_DIR posé après import est honoré par lmi_status() sans path."""
+        import trade_analysis.integrations.dashboard_adapter as da_mod
+
+        new_dir = tmp_path / "lmi_reader"
+        monkeypatch.setenv("LMI_DIR", str(new_dir))
+
+        # Écrire un sidecar temporaire dans ce répertoire
+        new_dir.mkdir(parents=True, exist_ok=True)
+        sidecar = new_dir / "lmi_live_state.json"
+        sidecar.write_text(
+            json.dumps({
+                "exchange": "mexc",
+                "updated_at": "2026-01-01T00:00:00+00:00",
+                "watchlist": ["BTCUSDT"],
+                "contract_meta": {},
+                "symbols": {"BTCUSDT": {"state": "accumulation", "state_confidence": 0.8,
+                                        "age_ms": 100, "flow": {}, "resistance": {}}},
+                "stats": {"events": 1, "symbols_active": 1, "symbols_watched": 1},
+            }),
+            encoding="utf-8",
+        )
+
+        status = da_mod.lmi_status()
+        assert status["running"] is True, (
+            "lmi_status() devrait lire le sidecar dans LMI_DIR posé après import"
+        )
+        assert status["exchange"] == "mexc"
