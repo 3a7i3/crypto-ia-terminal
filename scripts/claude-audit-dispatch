@@ -15,6 +15,7 @@ set -euo pipefail
 
 PATH='/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
 export PATH
+export GIT_OPTIONAL_LOCKS=0
 umask 077
 
 readonly SNAPSHOT='/srv/claude-audit/repo'
