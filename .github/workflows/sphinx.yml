@@ -9,6 +9,8 @@ name: Build & Deploy Sphinx Docs
 
 on:
   push:
+    branches:
+      - main
     paths:
       - 'docs/**'
       - '*.md'
@@ -18,6 +20,8 @@ on:
 
 jobs:
   build-docs:
+    # Les webhooks et le jeton d'écriture ne sont accessibles que depuis main.
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     # Requis par l'etape « Deploy to GitHub Pages » : sans cela le push vers
     # gh-pages echoue avec « Permission denied to github-actions[bot] » (403).
@@ -73,10 +77,7 @@ jobs:
         with:
           name: sphinx-docs-html
           path: docs/_build/html
-      # Garde de branche : sans elle, tout push sur une branche de travail
-      # correspondant aux « paths » ci-dessus republierait le site public.
-      # Seul main publie ; les autres branches construisent la doc et
-      # deposent l'artefact HTML, sans rien publier.
+      # Défense supplémentaire : seul main peut publier le site public.
       - name: Deploy to GitHub Pages
         if: github.ref == 'refs/heads/main'
         uses: peaceiris/actions-gh-pages@v4
