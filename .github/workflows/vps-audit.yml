@@ -23,12 +23,6 @@ on:
         required: false
         type: string
 
-  push:
-    branches:
-      - main
-    paths:
-      - audit_requests/request.json
-
 permissions:
   contents: write
 
@@ -50,35 +44,28 @@ jobs:
           # request must never change what this run validates or executes.
           ref: ${{ github.sha }}
           fetch-depth: 0
+          token: ${{ github.token }}
+          persist-credentials: true
 
-      - name: Build or validate request
+      - name: Build and validate request
         id: request
         shell: bash
         env:
-          EVENT_NAME: ${{ github.event_name }}
           INPUT_ACTION: ${{ inputs.action }}
           INPUT_REQUEST_ID: ${{ inputs.request_id }}
-          TRIGGER_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
 
-          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
-            args=(new "$INPUT_ACTION" --output /tmp/request.json)
+          args=(new "$INPUT_ACTION" --output /tmp/request.json)
 
-            if [[ -n "$INPUT_REQUEST_ID" ]]; then
-              args+=(--request-id "$INPUT_REQUEST_ID")
-            fi
-
-            python3 scripts/vps_audit_request.py "${args[@]}"
-            python3 scripts/vps_audit_request.py \
-              validate /tmp/request.json \
-              --github-output "$GITHUB_OUTPUT"
-          else
-            python3 scripts/vps_audit_request.py \
-              validate-git "$TRIGGER_SHA" \
-              --repo "$GITHUB_WORKSPACE" \
-              --github-output "$GITHUB_OUTPUT"
+          if [[ -n "$INPUT_REQUEST_ID" ]]; then
+            args+=(--request-id "$INPUT_REQUEST_ID")
           fi
+
+          python3 scripts/vps_audit_request.py "${args[@]}"
+          python3 scripts/vps_audit_request.py \
+            validate /tmp/request.json \
+            --github-output "$GITHUB_OUTPUT"
 
       - name: Install pinned SSH identity
         shell: bash

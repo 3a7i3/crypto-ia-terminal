@@ -3,9 +3,6 @@ name: CI
 on:
   push:
     branches: [ main, master, "chore/**", "feat/**", "fix/**" ]
-    paths-ignore:
-      - "audit_requests/**"
-      - "audit_results/**"
   pull_request:
     branches: [ main, master ]
   workflow_dispatch:
