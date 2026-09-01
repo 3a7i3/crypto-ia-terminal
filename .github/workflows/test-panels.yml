@@ -1,6 +1,20 @@
 name: Test Dashboards and Panels
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "audit_requests/**"
+      - "audit_results/**"
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: test-panels-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
