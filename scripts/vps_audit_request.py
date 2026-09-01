@@ -35,6 +35,7 @@ ALLOWED_ACTIONS = frozenset(
         "repo_status",
         "repo_log",
         "snapshot_manifest",
+        "snapshot_manifest_meta",
     }
 )
 REQUEST_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$")
