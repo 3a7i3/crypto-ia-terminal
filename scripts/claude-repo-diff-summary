@@ -1,0 +1,103 @@
+#!/usr/bin/env bash
+# Bounded, content-free summary of the six known audit-snapshot divergences.
+
+set -euo pipefail
+
+PATH='/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
+export PATH
+export LC_ALL=C
+umask 077
+
+readonly SNAPSHOT='/srv/claude-audit/repo'
+readonly BOT_PATH='src/telegram/quant_observer/bot.py'
+readonly -a TARGETS=(
+    '.env.example'
+    '.env.secrets.example'
+    '.env.smtp.example'
+    'docs/SECURITY_SECRETS.md'
+    'evidence/EVT-2026-08-26-vps-drift/SECRET_PURGE_RUNBOOK.md'
+    "$BOT_PATH"
+)
+
+git_snapshot() {
+    /usr/bin/git -c safe.directory="$SNAPSHOT" -C "$SNAPSHOT" "$@"
+}
+
+normalise_status() {
+    if [[ "$1" == ' ' ]]; then
+        printf 'clean'
+    else
+        printf '%s' "$1"
+    fi
+}
+
+printf 'schema_version=1\n'
+printf 'snapshot=%s\n' "$SNAPSHOT"
+printf 'head_commit=%s\n' "$(git_snapshot rev-parse HEAD)"
+printf 'target_count=%s\n' "${#TARGETS[@]}"
+
+for path in "${TARGETS[@]}"; do
+    printf 'file_begin=%s\n' "$path"
+
+    status="$(git_snapshot status --porcelain=v1 --untracked-files=no -- "$path")"
+    if [[ -z "$status" ]]; then
+        printf 'index_status=clean\n'
+        printf 'worktree_status=clean\n'
+    else
+        printf 'index_status=%s\n' "$(normalise_status "${status:0:1}")"
+        printf 'worktree_status=%s\n' "$(normalise_status "${status:1:1}")"
+    fi
+
+    if git_snapshot cat-file -e "HEAD:$path" 2>/dev/null; then
+        printf 'head_state=tracked\n'
+        printf 'head_blob=%s\n' "$(git_snapshot rev-parse "HEAD:$path")"
+        printf 'head_sha256=%s\n' "$(git_snapshot show "HEAD:$path" | /usr/bin/sha256sum | /usr/bin/awk '{print $1}')"
+    else
+        printf 'head_state=absent\n'
+        printf 'head_blob=absent\n'
+        printf 'head_sha256=absent\n'
+    fi
+
+    worktree_path="$SNAPSHOT/$path"
+    if [[ -L "$worktree_path" ]]; then
+        printf 'worktree_state=symlink\n'
+        printf 'worktree_sha256=not_computed\n'
+    elif [[ -f "$worktree_path" ]]; then
+        printf 'worktree_state=regular_file\n'
+        printf 'worktree_sha256=%s\n' "$(/usr/bin/sha256sum -- "$worktree_path" | /usr/bin/awk '{print $1}')"
+    elif [[ -e "$worktree_path" ]]; then
+        printf 'worktree_state=other\n'
+        printf 'worktree_sha256=not_computed\n'
+    else
+        printf 'worktree_state=absent\n'
+        printf 'worktree_sha256=absent\n'
+    fi
+
+    numstat="$(git_snapshot diff HEAD --no-ext-diff --numstat -- "$path")"
+    if [[ -z "$numstat" ]]; then
+        printf 'added_lines=0\n'
+        printf 'deleted_lines=0\n'
+    else
+        read -r added deleted _ <<< "$numstat"
+        printf 'added_lines=%s\n' "$added"
+        printf 'deleted_lines=%s\n' "$deleted"
+    fi
+
+    printf 'file_end=%s\n' "$path"
+done
+
+# The complete bot diff is hashed and counted but never printed. Only hunk
+# ranges are emitted, with optional function/context text removed.
+printf 'bot_diff_sha256=%s\n' "$(git_snapshot diff HEAD --no-ext-diff --no-color -- "$BOT_PATH" | /usr/bin/sha256sum | /usr/bin/awk '{print $1}')"
+printf 'bot_diff_bytes=%s\n' "$(git_snapshot diff HEAD --no-ext-diff --no-color -- "$BOT_PATH" | /usr/bin/wc -c | /usr/bin/tr -d ' ')"
+git_snapshot diff HEAD --no-ext-diff --no-color --unified=0 -- "$BOT_PATH" \
+    | /usr/bin/awk '
+        BEGIN { count = 0 }
+        /^@@ / {
+            count += 1
+            if (count <= 20 && match($0, /^@@ [^@]+ @@/)) {
+                print "bot_hunk_" count "=" substr($0, RSTART, RLENGTH)
+            }
+        }
+        END { print "bot_hunk_count=" count }
+    '

@@ -34,6 +34,7 @@ ALLOWED_ACTIONS = frozenset(
         "lmi_journal",
         "repo_status",
         "repo_log",
+        "repo_diff_summary",
         "snapshot_manifest",
         "snapshot_manifest_meta",
     }
