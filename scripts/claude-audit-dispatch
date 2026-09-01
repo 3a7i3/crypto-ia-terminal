@@ -68,6 +68,10 @@ case "$REQUEST" in
         exec /usr/local/bin/claude-service-matrix
         ;;
 
+    service_trigger_matrix)
+        exec /usr/local/bin/claude-service-trigger-matrix
+        ;;
+
     snapshot_manifest)
         if [[ ! -r "$MANIFEST" ]]; then
             echo 'AUDIT_MANIFEST_UNAVAILABLE' >&2
