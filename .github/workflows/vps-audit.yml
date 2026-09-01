@@ -1,0 +1,181 @@
+name: VPS Read-Only Audit Bridge
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "Closed allowlist action to run on the VPS auditor"
+        required: true
+        type: choice
+        options:
+          - identity
+          - lmi_status
+          - lmi_health
+          - lmi_journal
+          - repo_status
+          - repo_log
+          - snapshot_manifest
+      request_id:
+        description: "Optional request id (letters, digits, dot, underscore, dash)"
+        required: false
+        type: string
+  push:
+    branches:
+      - main
+    paths:
+      - audit_requests/request.json
+
+permissions:
+  contents: write
+
+concurrency:
+  group: vps-audit-bridge
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    if: github.repository == '3a7i3/crypto-ia-terminal'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout trusted bridge code
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Build or validate request
+        id: request
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_ACTION: ${{ inputs.action }}
+          INPUT_REQUEST_ID: ${{ inputs.request_id }}
+        run: |
+          set -euo pipefail
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            args=(new "$INPUT_ACTION" --output /tmp/request.json)
+            if [[ -n "$INPUT_REQUEST_ID" ]]; then
+              args+=(--request-id "$INPUT_REQUEST_ID")
+            fi
+            python3 scripts/vps_audit_request.py "${args[@]}"
+            python3 scripts/vps_audit_request.py validate /tmp/request.json --github-output "$GITHUB_OUTPUT"
+          else
+            python3 scripts/vps_audit_request.py validate audit_requests/request.json --github-output "$GITHUB_OUTPUT"
+            cp audit_requests/request.json /tmp/request.json
+          fi
+
+      - name: Install pinned SSH identity
+        shell: bash
+        env:
+          VPS_AUDIT_SSH_KEY: ${{ secrets.VPS_AUDIT_SSH_KEY }}
+          VPS_AUDIT_KNOWN_HOSTS: ${{ secrets.VPS_AUDIT_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          test -n "$VPS_AUDIT_SSH_KEY"
+          test -n "$VPS_AUDIT_KNOWN_HOSTS"
+          install -d -m 0700 "$HOME/.ssh"
+          printf '%s\n' "$VPS_AUDIT_SSH_KEY" > "$HOME/.ssh/vps_audit"
+          chmod 0600 "$HOME/.ssh/vps_audit"
+          printf '%s\n' "$VPS_AUDIT_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 0600 "$HOME/.ssh/known_hosts"
+
+      - name: Execute allowlisted VPS action
+        id: remote
+        shell: bash
+        env:
+          ACTION: ${{ steps.request.outputs.action }}
+          VPS_AUDIT_HOST: ${{ secrets.VPS_AUDIT_HOST }}
+        run: |
+          set -uo pipefail
+          test -n "$VPS_AUDIT_HOST" || { echo "VPS_AUDIT_HOST is empty" >&2; exit 2; }
+          started="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+          set +e
+          ssh \
+            -i "$HOME/.ssh/vps_audit" \
+            -o BatchMode=yes \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            -o ConnectTimeout=15 \
+            "claude-audit@$VPS_AUDIT_HOST" \
+            "$ACTION" > /tmp/audit_stdout.txt 2> /tmp/audit_stderr.txt
+          rc=$?
+          set -e
+          finished="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+          {
+            echo "exit_code=$rc"
+            echo "started_at_utc=$started"
+            echo "finished_at_utc=$finished"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Build immutable result envelope
+        shell: bash
+        env:
+          REQUEST_ID: ${{ steps.request.outputs.request_id }}
+          ACTION: ${{ steps.request.outputs.action }}
+          EXIT_CODE: ${{ steps.remote.outputs.exit_code }}
+          STARTED_AT: ${{ steps.remote.outputs.started_at_utc }}
+          FINISHED_AT: ${{ steps.remote.outputs.finished_at_utc }}
+          SOURCE_RUN_ID: ${{ github.run_id }}
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          mkdir -p audit_results
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          def read_limited(path: str, limit: int = 64_000) -> str:
+              data = Path(path).read_bytes()
+              if len(data) > limit:
+                  data = data[:limit] + b"\n[TRUNCATED]\n"
+              return data.decode("utf-8", errors="replace")
+
+          result = {
+              "schema_version": 1,
+              "request_id": os.environ["REQUEST_ID"],
+              "action": os.environ["ACTION"],
+              "exit_code": int(os.environ["EXIT_CODE"]),
+              "started_at_utc": os.environ["STARTED_AT"],
+              "finished_at_utc": os.environ["FINISHED_AT"],
+              "github_run_id": os.environ["SOURCE_RUN_ID"],
+              "source_sha": os.environ["SOURCE_SHA"],
+              "stdout": read_limited("/tmp/audit_stdout.txt"),
+              "stderr": read_limited("/tmp/audit_stderr.txt"),
+          }
+          Path("audit_results/latest.json").write_text(
+              json.dumps(result, indent=2, sort_keys=True) + "\n",
+              encoding="utf-8",
+          )
+          Path(f"audit_results/{result['request_id']}.json").write_text(
+              json.dumps(result, indent=2, sort_keys=True) + "\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Commit audit result
+        shell: bash
+        env:
+          REQUEST_ID: ${{ steps.request.outputs.request_id }}
+        run: |
+          set -euo pipefail
+          git config user.name "vps-audit-bot"
+          git config user.email "vps-audit-bot@users.noreply.github.com"
+          git add audit_results/latest.json "audit_results/${REQUEST_ID}.json"
+          if git diff --cached --quiet; then
+            echo "No result change to commit."
+            exit 0
+          fi
+          git commit -m "audit(vps): ${REQUEST_ID}"
+          git push origin HEAD:main
+
+      - name: Fail workflow when remote action failed
+        if: steps.remote.outputs.exit_code != '0'
+        shell: bash
+        env:
+          EXIT_CODE: ${{ steps.remote.outputs.exit_code }}
+        run: |
+          echo "VPS audit action failed with exit code $EXIT_CODE" >&2
+          exit 1
