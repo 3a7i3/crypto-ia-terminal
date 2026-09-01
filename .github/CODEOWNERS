@@ -13,6 +13,8 @@
 /scripts/claude-* @3a7i3
 /scripts/vps_audit_request.py @3a7i3
 /tests/test_vps_audit_request.py @3a7i3
+/tests/test_claude_audit_snapshot_build.py @3a7i3
+/docs/runbooks/CLAUDE_AUDIT_SNAPSHOT.md @3a7i3
 
 # Secret-handling templates and governance documentation.
 /.env.example @3a7i3
