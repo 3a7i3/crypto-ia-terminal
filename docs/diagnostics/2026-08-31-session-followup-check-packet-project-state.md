@@ -449,3 +449,5 @@ Procédure de mise à jour :
 
 *Document créé le 31/08/2026 — investigation read-only, aucune modification de code.*  
 *Prochaine révision recommandée : après décision architecturale §8 ou après tout changement de seuil Meta.*
+
+<!-- certif: ordinary push topology verified 2026-09-01 (PR #100, REQ-TRIGGER-TOPOLOGY-001) — read-only trace, no functional change -->
