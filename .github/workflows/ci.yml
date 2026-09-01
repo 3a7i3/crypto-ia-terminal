@@ -7,6 +7,10 @@ on:
     branches: [ main, master ]
   workflow_dispatch:
 
+# Le CI de validation ne doit jamais recevoir un jeton d'écriture.
+permissions:
+  contents: read
+
 # Annule les runs en cours si un nouveau push arrive sur la même branche
 concurrency:
   group: ci-${{ github.ref }}
@@ -41,14 +45,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: lint
 
-    # Secrets optionnels — le bot tourne en mode paper si absents
+    # CI volontairement sans secrets et sans accès réseau au marché.
     env:
-      BINANCE_API_KEY:    ${{ secrets.BINANCE_API_KEY }}
-      BINANCE_API_SECRET: ${{ secrets.BINANCE_API_SECRET }}
-      BINANCE_TESTNET:    "true"
-      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-      TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
-      MARKET_SCANNER_SYNTHETIC: "true"   # pas de réseau pendant les tests
+      BINANCE_TESTNET: "true"
+      MARKET_SCANNER_SYNTHETIC: "true"
 
     steps:
       - uses: actions/checkout@v4
@@ -113,18 +113,14 @@ jobs:
         run: python scripts/smoke_test_ci.py
 
   # ──────────────────────────────────────────────────────────────────────────
-  # 4. VALIDATE HISTORICAL — walk-forward sur données synthétiques
-  #    (données réelles uniquement si les clés Binance sont configurées)
+  # 4. VALIDATE HISTORICAL — walk-forward strictement synthétique
+  #    (aucun secret exchange n'est exposé au CI)
   # ──────────────────────────────────────────────────────────────────────────
   validate-strategies:
     name: Walk-forward validation
     runs-on: ubuntu-latest
     needs: tests
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
-
-    env:
-      BINANCE_API_KEY:    ${{ secrets.BINANCE_API_KEY }}
-      BINANCE_API_SECRET: ${{ secrets.BINANCE_API_SECRET }}
 
     steps:
       - uses: actions/checkout@v4
