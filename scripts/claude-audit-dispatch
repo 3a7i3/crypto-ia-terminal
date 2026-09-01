@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+# claude-audit-dispatch — forced-command endpoint for the GitHub VPS audit bridge.
+#
+# Install on the VPS as:
+#   /usr/local/sbin/claude-audit-dispatch
+# owned by root:root, mode 0755.
+#
+# SECURITY CONTRACT
+# - Never executes arbitrary shell supplied by SSH.
+# - Accepts one exact action token via SSH_ORIGINAL_COMMAND.
+# - Every action is read-only.
+# - Unknown/malformed commands fail closed.
+
+set -euo pipefail
+
+PATH='/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
+export PATH
+umask 077
+
+readonly SNAPSHOT='/srv/claude-audit/repo'
+readonly MANIFEST='/srv/claude-audit/AUDIT_MANIFEST.txt'
+readonly REQUEST="${SSH_ORIGINAL_COMMAND:-}"
+
+# Reject empty, oversized, multiline or control-character input before dispatch.
+if [[ -z "$REQUEST" || ${#REQUEST} -gt 64 || "$REQUEST" == *$'\n'* || "$REQUEST" == *$'\r'* ]]; then
+    echo 'AUDIT_DISPATCH_REJECTED: invalid request' >&2
+    exit 64
+fi
+
+/usr/bin/logger -t claude-audit-dispatch -- "action=$REQUEST user=${USER:-unknown}" 2>/dev/null || true
+
+case "$REQUEST" in
+    identity)
+        /usr/bin/whoami
+        /usr/bin/hostname
+        /usr/bin/id
+        ;;
+
+    lmi_status)
+        exec /usr/local/bin/claude-lmi-status
+        ;;
+
+    lmi_health)
+        exec /usr/local/bin/claude-lmi-health
+        ;;
+
+    lmi_journal)
+        # sudoers grants exactly this root-owned wrapper and nothing else.
+        exec /usr/bin/sudo -n /usr/local/sbin/claude-lmi-journal-root
+        ;;
+
+    repo_status)
+        /usr/bin/git -c safe.directory="$SNAPSHOT" -C "$SNAPSHOT" status --short
+        ;;
+
+    repo_log)
+        /usr/bin/git -c safe.directory="$SNAPSHOT" -C "$SNAPSHOT" log \
+            --oneline --decorate --no-color -20
+        ;;
+
+    snapshot_manifest)
+        if [[ ! -r "$MANIFEST" ]]; then
+            echo 'AUDIT_MANIFEST_UNAVAILABLE' >&2
+            exit 66
+        fi
+        exec /usr/bin/cat "$MANIFEST"
+        ;;
+
+    *)
+        echo "AUDIT_DISPATCH_REJECTED: action not allowlisted" >&2
+        exit 64
+        ;;
+esac
