@@ -1,0 +1,22 @@
+# Security-critical ownership for the research audit control plane.
+#
+# This file routes reviews. Enforcement will be enabled only after bridge
+# request/result writes are separated safely from the protected code branch.
+
+# GitHub workflows, agent instructions, and this CODEOWNERS policy.
+/.github/ @3a7i3
+
+# AI engineering governance.
+/CLAUDE.md @3a7i3
+
+# Read-only VPS audit authorization boundary and request validator.
+/scripts/claude-* @3a7i3
+/scripts/vps_audit_request.py @3a7i3
+/tests/test_vps_audit_request.py @3a7i3
+
+# Secret-handling templates and governance documentation.
+/.env.example @3a7i3
+/.env.secrets.example @3a7i3
+/.env.smtp.example @3a7i3
+/docs/SECURITY_SECRETS.md @3a7i3
+/evidence/EVT-2026-08-26-vps-drift/SECRET_PURGE_RUNBOOK.md @3a7i3
