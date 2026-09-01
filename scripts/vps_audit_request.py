@@ -15,14 +15,17 @@ Examples:
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
+import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 SCHEMA_VERSION = 1
+REQUEST_PATH = "audit_requests/request.json"
 ALLOWED_ACTIONS = frozenset(
     {
         "identity",
@@ -35,6 +38,7 @@ ALLOWED_ACTIONS = frozenset(
     }
 )
 REQUEST_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$")
+COMMIT_SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 ALLOWED_KEYS = frozenset({"schema_version", "request_id", "action", "requested_at_utc"})
 
 
@@ -101,6 +105,50 @@ def load_request(path: Path) -> dict[str, Any]:
     return validate_request(payload)
 
 
+def load_request_from_git(repo: Path, commit_sha: str) -> dict[str, Any]:
+    """Load the request stored at REQUEST_PATH in one immutable Git commit."""
+    if not COMMIT_SHA_RE.fullmatch(commit_sha):
+        raise RequestError("commit_sha must be exactly 40 lowercase hexadecimal characters")
+
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(repo), "show", f"{commit_sha}:{REQUEST_PATH}"],
+            check=False,
+            capture_output=True,
+            timeout=10,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise RequestError(f"cannot read request from commit {commit_sha}: {exc}") from exc
+
+    if result.returncode != 0:
+        detail = result.stderr.decode("utf-8", errors="replace").strip()
+        raise RequestError(f"cannot read {REQUEST_PATH} from commit {commit_sha}: {detail}")
+    if len(result.stdout) > 4096:
+        raise RequestError("request file is too large")
+
+    try:
+        payload = json.loads(result.stdout.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise RequestError(f"invalid JSON in commit {commit_sha}: {exc}") from exc
+    return validate_request(payload)
+
+
+def _request_sha256(payload: dict[str, Any]) -> str:
+    canonical = json.dumps(payload, separators=(",", ":"), sort_keys=True).encode("utf-8")
+    return hashlib.sha256(canonical).hexdigest()
+
+
+def _emit_validated(payload: dict[str, Any], github_output: str | None) -> None:
+    if github_output:
+        output_path = Path(github_output)
+        with output_path.open("a", encoding="utf-8") as handle:
+            handle.write(f"request_id={payload['request_id']}\n")
+            handle.write(f"action={payload['action']}\n")
+            handle.write(f"request_sha256={_request_sha256(payload)}\n")
+    else:
+        print(json.dumps(payload, separators=(",", ":"), sort_keys=True))
+
+
 def cmd_new(args: argparse.Namespace) -> int:
     payload = validate_request(
         {
@@ -123,13 +171,13 @@ def cmd_new(args: argparse.Namespace) -> int:
 
 def cmd_validate(args: argparse.Namespace) -> int:
     payload = load_request(Path(args.path))
-    if args.github_output:
-        output_path = Path(args.github_output)
-        with output_path.open("a", encoding="utf-8") as handle:
-            handle.write(f"request_id={payload['request_id']}\n")
-            handle.write(f"action={payload['action']}\n")
-    else:
-        print(json.dumps(payload, separators=(",", ":"), sort_keys=True))
+    _emit_validated(payload, args.github_output)
+    return 0
+
+
+def cmd_validate_git(args: argparse.Namespace) -> int:
+    payload = load_request_from_git(Path(args.repo), args.commit_sha)
+    _emit_validated(payload, args.github_output)
     return 0
 
 
@@ -147,6 +195,14 @@ def build_parser() -> argparse.ArgumentParser:
     validate.add_argument("path")
     validate.add_argument("--github-output", help="append validated fields to GITHUB_OUTPUT")
     validate.set_defaults(func=cmd_validate)
+
+    validate_git = sub.add_parser(
+        "validate-git", help="validate the request from one immutable Git commit"
+    )
+    validate_git.add_argument("commit_sha")
+    validate_git.add_argument("--repo", default=".")
+    validate_git.add_argument("--github-output", help="append validated fields to GITHUB_OUTPUT")
+    validate_git.set_defaults(func=cmd_validate_git)
     return parser
 
 
