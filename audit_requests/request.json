@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "request_id": "REQ-CODEX-POST-FANOUT-FILTER-20260901T172055Z",
-  "action": "identity",
-  "requested_at_utc": "2026-09-01T17:20:55Z"
+  "request_id": "REQ-CODEX-MANIFEST-META-20260901T191006Z",
+  "action": "snapshot_manifest_meta",
+  "requested_at_utc": "2026-09-01T19:10:06Z"
 }
