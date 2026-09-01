@@ -76,7 +76,7 @@ jobs:
           test -n "$VPS_AUDIT_SSH_KEY"
           test -n "$VPS_AUDIT_KNOWN_HOSTS"
           install -d -m 0700 "$HOME/.ssh"
-          printf '%s\n' "$VPS_AUDIT_SSH_KEY" > "$HOME/.ssh/vps_audit"
+          echo "$VPS_AUDIT_SSH_KEY" | tr -d '\r' > "$HOME/.ssh/vps_audit"
           chmod 0600 "$HOME/.ssh/vps_audit"
           printf '%s\n' "$VPS_AUDIT_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
           chmod 0600 "$HOME/.ssh/known_hosts"
