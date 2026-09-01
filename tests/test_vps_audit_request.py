@@ -40,6 +40,66 @@ def _commit_request(repo: Path, request_id: str, action: str) -> str:
 
 
 class TestImmutableGitRequests(unittest.TestCase):
+    def test_repo_diff_summary_is_allowlisted_end_to_end(self):
+        root = Path(__file__).resolve().parents[1]
+        workflow = (root / ".github/workflows/vps-audit.yml").read_text(encoding="utf-8")
+        dispatcher = (root / "scripts/claude-audit-dispatch").read_text(encoding="utf-8")
+        wrapper = (root / "scripts/claude-repo-diff-summary").read_text(encoding="utf-8")
+
+        self.assertIn("repo_diff_summary", audit_request.ALLOWED_ACTIONS)
+        self.assertIn("          - repo_diff_summary\n", workflow)
+        self.assertIn("    repo_diff_summary)\n", dispatcher)
+        self.assertIn("readonly -a TARGETS=(\n", wrapper)
+
+    def test_repo_diff_summary_never_emits_file_contents(self):
+        root = Path(__file__).resolve().parents[1]
+        source = (root / "scripts/claude-repo-diff-summary").read_text(encoding="utf-8")
+
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory) / "repo"
+            repo.mkdir()
+            _git(repo, "init")
+            _git(repo, "config", "user.name", "Test")
+            _git(repo, "config", "user.email", "test@example.invalid")
+
+            env_file = repo / ".env.example"
+            bot_file = repo / "src/telegram/quant_observer/bot.py"
+            bot_file.parent.mkdir(parents=True)
+            env_file.write_text("SECRET_VALUE=must-not-leak\n", encoding="utf-8")
+            bot_file.write_text("def run():\n    return 'safe'\n", encoding="utf-8")
+            _git(repo, "add", ".env.example", "src/telegram/quant_observer/bot.py")
+            _git(repo, "commit", "-m", "baseline")
+
+            env_file.unlink()
+            bot_file.write_text(
+                "def run():\n    token = 'another-must-not-leak'\n    return token\n",
+                encoding="utf-8",
+            )
+
+            test_script = Path(directory) / "summary"
+            test_script.write_text(
+                source.replace(
+                    "readonly SNAPSHOT='/srv/claude-audit/repo'",
+                    f"readonly SNAPSHOT='{repo}'",
+                ),
+                encoding="utf-8",
+            )
+            test_script.chmod(0o700)
+
+            result = subprocess.run(
+                [str(test_script)],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertNotIn("must-not-leak", result.stdout)
+            self.assertIn("worktree_status=D", result.stdout)
+            self.assertIn("worktree_state=absent", result.stdout)
+            self.assertIn("bot_diff_sha256=", result.stdout)
+            self.assertIn("bot_hunk_1=@@", result.stdout)
+            self.assertLess(len(result.stdout), 16_384)
+
     def test_manifest_metadata_action_is_allowlisted_end_to_end(self):
         root = Path(__file__).resolve().parents[1]
         workflow = (root / ".github/workflows/vps-audit.yml").read_text(encoding="utf-8")
