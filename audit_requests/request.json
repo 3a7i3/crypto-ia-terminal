@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "request_id": "REQ-CODEX-REPOLOG-20260901T191137Z",
-  "action": "repo_log",
-  "requested_at_utc": "2026-09-01T19:11:37Z"
+  "request_id": "REQ-CODEX-SERVICE-MATRIX-20260901T195304Z",
+  "action": "service_matrix",
+  "requested_at_utc": "2026-09-01T19:53:04Z"
 }
