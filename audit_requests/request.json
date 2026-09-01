@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "request_id": "REQ-CLAUDE-MANIFEST-20260901T121500Z",
-  "action": "snapshot_manifest",
-  "requested_at_utc": "2026-09-01T12:15:00Z"
+  "request_id": "REQ-CLAUDE-REPOLOG-20260901T130000Z",
+  "action": "repo_log",
+  "requested_at_utc": "2026-09-01T13:00:00Z"
 }
