@@ -96,12 +96,14 @@ jobs:
           install -d -m 0700 "$HOME/.ssh"
 
           printf '%s' "$VPS_AUDIT_SSH_KEY_B64" \
+            | tr -d '[:space:]' \
             | base64 --decode \
             > "$HOME/.ssh/vps_audit"
 
           chmod 0600 "$HOME/.ssh/vps_audit"
 
           echo "Validating decoded SSH private key..."
+
           ssh-keygen -y \
             -f "$HOME/.ssh/vps_audit" \
             >/dev/null
