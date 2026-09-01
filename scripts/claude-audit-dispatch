@@ -64,6 +64,10 @@ case "$REQUEST" in
         exec /usr/local/bin/claude-repo-diff-summary
         ;;
 
+    service_matrix)
+        exec /usr/local/bin/claude-service-matrix
+        ;;
+
     snapshot_manifest)
         if [[ ! -r "$MANIFEST" ]]; then
             echo 'AUDIT_MANIFEST_UNAVAILABLE' >&2

@@ -40,6 +40,23 @@ def _commit_request(repo: Path, request_id: str, action: str) -> str:
 
 
 class TestImmutableGitRequests(unittest.TestCase):
+    def test_service_matrix_is_allowlisted_end_to_end(self):
+        root = Path(__file__).resolve().parents[1]
+        workflow = (root / ".github/workflows/vps-audit.yml").read_text(
+            encoding="utf-8"
+        )
+        dispatcher = (root / "scripts/claude-audit-dispatch").read_text(
+            encoding="utf-8"
+        )
+        pack = (root / "scripts/claude-service-matrix.py").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn("service_matrix", audit_request.ALLOWED_ACTIONS)
+        self.assertIn("          - service_matrix\n", workflow)
+        self.assertIn("    service_matrix)\n", dispatcher)
+        self.assertIn("SERVICE_CATALOG = (\n", pack)
+
     def test_repo_diff_summary_is_allowlisted_end_to_end(self):
         root = Path(__file__).resolve().parents[1]
         workflow = (root / ".github/workflows/vps-audit.yml").read_text(encoding="utf-8")

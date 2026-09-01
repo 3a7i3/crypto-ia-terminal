@@ -35,6 +35,7 @@ ALLOWED_ACTIONS = frozenset(
         "repo_status",
         "repo_log",
         "repo_diff_summary",
+        "service_matrix",
         "snapshot_manifest",
         "snapshot_manifest_meta",
     }
