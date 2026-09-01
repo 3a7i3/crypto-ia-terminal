@@ -15,6 +15,7 @@ on:
           - repo_status
           - repo_log
           - snapshot_manifest
+          - snapshot_manifest_meta
       request_id:
         description: "Optional request id (letters, digits, dot, underscore, dash)"
         required: false
