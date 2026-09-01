@@ -19,6 +19,7 @@ umask 077
 
 readonly SNAPSHOT='/srv/claude-audit/repo'
 readonly MANIFEST='/srv/claude-audit/AUDIT_MANIFEST.txt'
+readonly MANIFEST_DIR='/srv/claude-audit'
 readonly REQUEST="${SSH_ORIGINAL_COMMAND:-}"
 
 # Reject empty, oversized, multiline or control-character input before dispatch.
@@ -64,6 +65,37 @@ case "$REQUEST" in
             exit 66
         fi
         exec /usr/bin/cat "$MANIFEST"
+        ;;
+
+    snapshot_manifest_meta)
+        # Fixed-path metadata only: never emit manifest contents or follow a
+        # caller-controlled path. Absence is an observed state, not an error.
+        printf 'schema_version=1\n'
+        printf 'path=%s\n' "$MANIFEST"
+
+        if [[ -x "$MANIFEST_DIR" ]]; then
+            printf 'parent_searchable=true\n'
+        else
+            printf 'parent_searchable=false\n'
+        fi
+
+        if [[ ! -e "$MANIFEST" && ! -L "$MANIFEST" ]]; then
+            printf 'visible=false\n'
+            printf 'entry_type=absent_or_inaccessible\n'
+            printf 'readable=false\n'
+            exit 0
+        fi
+
+        printf 'visible=true\n'
+        if [[ -r "$MANIFEST" ]]; then
+            printf 'readable=true\n'
+        else
+            printf 'readable=false\n'
+        fi
+
+        LC_ALL=C TZ=UTC /usr/bin/stat \
+            --printf='entry_type=%F\nowner_uid=%u\ngroup_gid=%g\nmode_octal=%a\nsize_bytes=%s\nmtime_utc=%y\n' \
+            -- "$MANIFEST"
         ;;
 
     *)
