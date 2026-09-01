@@ -59,6 +59,10 @@ case "$REQUEST" in
             --oneline --decorate --no-color -20
         ;;
 
+    repo_diff_summary)
+        exec /usr/local/bin/claude-repo-diff-summary
+        ;;
+
     snapshot_manifest)
         if [[ ! -r "$MANIFEST" ]]; then
             echo 'AUDIT_MANIFEST_UNAVAILABLE' >&2
