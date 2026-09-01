@@ -43,7 +43,9 @@ jobs:
       - name: Checkout trusted bridge code
         uses: actions/checkout@v4
         with:
-          ref: main
+          # Pin the worktree to the exact event revision. A later mobile
+          # request must never change what this run validates or executes.
+          ref: ${{ github.sha }}
           fetch-depth: 0
 
       - name: Build or validate request
@@ -53,6 +55,7 @@ jobs:
           EVENT_NAME: ${{ github.event_name }}
           INPUT_ACTION: ${{ inputs.action }}
           INPUT_REQUEST_ID: ${{ inputs.request_id }}
+          TRIGGER_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
 
@@ -69,10 +72,9 @@ jobs:
               --github-output "$GITHUB_OUTPUT"
           else
             python3 scripts/vps_audit_request.py \
-              validate audit_requests/request.json \
+              validate-git "$TRIGGER_SHA" \
+              --repo "$GITHUB_WORKSPACE" \
               --github-output "$GITHUB_OUTPUT"
-
-            cp audit_requests/request.json /tmp/request.json
           fi
 
       - name: Install pinned SSH identity
@@ -167,6 +169,7 @@ jobs:
           FINISHED_AT: ${{ steps.remote.outputs.finished_at_utc }}
           SOURCE_RUN_ID: ${{ github.run_id }}
           SOURCE_SHA: ${{ github.sha }}
+          REQUEST_SHA256: ${{ steps.request.outputs.request_sha256 }}
         run: |
           set -euo pipefail
 
@@ -192,16 +195,12 @@ jobs:
               "finished_at_utc": os.environ["FINISHED_AT"],
               "github_run_id": os.environ["SOURCE_RUN_ID"],
               "source_sha": os.environ["SOURCE_SHA"],
+              "request_sha256": os.environ["REQUEST_SHA256"],
               "stdout": read_limited("/tmp/audit_stdout.txt"),
               "stderr": read_limited("/tmp/audit_stderr.txt"),
           }
 
-          Path("audit_results/latest.json").write_text(
-              json.dumps(result, indent=2, sort_keys=True) + "\n",
-              encoding="utf-8",
-          )
-
-          Path(f"audit_results/{result['request_id']}.json").write_text(
+          Path("/tmp/audit_result.json").write_text(
               json.dumps(result, indent=2, sort_keys=True) + "\n",
               encoding="utf-8",
           )
@@ -217,6 +216,17 @@ jobs:
           git config user.name "vps-audit-bot"
           git config user.email "vps-audit-bot@users.noreply.github.com"
 
+          # Publish on top of the latest main. The run itself remains pinned to
+          # SOURCE_SHA, while a newer request commit may already exist.
+          git fetch origin main
+          git checkout -B audit-result-publisher origin/main
+
+          mkdir -p audit_results
+          install -m 0644 /tmp/audit_result.json audit_results/latest.json
+          install -m 0644 \
+            /tmp/audit_result.json \
+            "audit_results/${REQUEST_ID}.json"
+
           git add \
             audit_results/latest.json \
             "audit_results/${REQUEST_ID}.json"
@@ -227,7 +237,19 @@ jobs:
           fi
 
           git commit -m "audit(vps): ${REQUEST_ID}"
-          git push origin HEAD:main
+          for attempt in 1 2 3; do
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+
+            if [[ "$attempt" -eq 3 ]]; then
+              echo "Could not publish audit result after 3 attempts" >&2
+              exit 1
+            fi
+
+            git fetch origin main
+            git rebase origin/main
+          done
 
       - name: Fail workflow when remote action failed
         if: steps.remote.outputs.exit_code != '0'
