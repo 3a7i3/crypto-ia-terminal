@@ -1,0 +1,12 @@
+{
+  "action": "identity",
+  "exit_code": 255,
+  "finished_at_utc": "2026-09-01T01:44:59Z",
+  "github_run_id": "33459919366",
+  "request_id": "REQ-20260901T014458Z",
+  "schema_version": 1,
+  "source_sha": "c68d5f3f6e3f201103d33947c364f5d0ff8f98dd",
+  "started_at_utc": "2026-09-01T01:44:58Z",
+  "stderr": "No ED25519 host key is known for 136.85.107.18 and you have requested strict checking.\r\nHost key verification failed.\r\n",
+  "stdout": ""
+}
