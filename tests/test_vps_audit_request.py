@@ -40,6 +40,15 @@ def _commit_request(repo: Path, request_id: str, action: str) -> str:
 
 
 class TestImmutableGitRequests(unittest.TestCase):
+    def test_manifest_metadata_action_is_allowlisted_end_to_end(self):
+        root = Path(__file__).resolve().parents[1]
+        workflow = (root / ".github/workflows/vps-audit.yml").read_text(encoding="utf-8")
+        dispatcher = (root / "scripts/claude-audit-dispatch").read_text(encoding="utf-8")
+
+        self.assertIn("snapshot_manifest_meta", audit_request.ALLOWED_ACTIONS)
+        self.assertIn("          - snapshot_manifest_meta\n", workflow)
+        self.assertIn("    snapshot_manifest_meta)\n", dispatcher)
+
     def test_successive_requests_are_loaded_from_their_trigger_commits(self):
         with tempfile.TemporaryDirectory() as directory:
             repo = Path(directory) / "repo"
