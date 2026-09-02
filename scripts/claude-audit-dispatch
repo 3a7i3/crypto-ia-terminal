@@ -65,7 +65,8 @@ case "$REQUEST" in
         ;;
 
     disk_growth)
-        exec /usr/local/bin/claude-disk-growth
+        # sudoers grants exactly this root-owned, argument-free wrapper.
+        exec /usr/bin/sudo -n /usr/local/sbin/claude-disk-growth-root
         ;;
 
     service_matrix)
