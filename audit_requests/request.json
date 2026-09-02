@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "request_id": "REQ-CODEX-SERVICE-MATRIX-20260901T195304Z",
-  "action": "service_matrix",
-  "requested_at_utc": "2026-09-01T19:53:04Z"
+  "request_id": "REQ-CODEX-SERVICE-TRIGGERS-20260902T031848Z",
+  "action": "service_trigger_matrix",
+  "requested_at_utc": "2026-09-02T03:18:48Z"
 }
