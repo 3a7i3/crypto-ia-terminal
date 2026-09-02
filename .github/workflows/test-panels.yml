@@ -3,6 +3,9 @@ name: Test Dashboards and Panels
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - audit_requests/**
+      - audit_results/**
   pull_request:
     branches: [main]
 
