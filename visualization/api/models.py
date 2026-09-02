@@ -66,6 +66,81 @@ class PipelineSnapshot:
 
 
 @dataclass
+class QuantLiveSnapshot:
+    """READ-ONLY SDOS projection for the @QuantCrypto_bot LIVE panel (Q1).
+
+    Answers only the Quant Observer question: *what does the engine currently
+    see, what decision does it produce, where does attrition occur, and is the
+    decision chain healthy?* — nothing else.
+
+    Deliberately excluded, because they are semantically wrong or out of domain
+    for this bot:
+      * portfolio / capital / PnL / win-rate / N-trades  → Portfolio Bot domain
+      * observer/dataset/knowledge/evidence/drift %       → misleading proxies
+        (they measured health booleans, brain score, block counters and
+        exchange uptime under names that did not match their computation)
+      * host metrics (RAM/CPU/PID)                        → not SDOS signal
+      * health.telegram / main_channel                    → generic historical
+        channel, not this bot's delivery health
+
+    Pure projection of ``system_snapshot`` (databases/live_snapshot.json via the
+    canonical source adapter). ADR-0007 passivity: observes, never decides.
+    """
+
+    ts: datetime
+    cycle: int
+    engine_version: str
+    snapshot_age_s: Optional[float]
+
+    # DATA — raw observed health booleans (never an aggregate %)
+    health_market: bool
+    health_api: bool
+    health_database: bool
+
+    # MARKET — what the engine currently sees
+    regime: str
+    exchange_latency_ms: float
+    exchange_uptime_pct: float
+
+    # DECISION — what the engine currently produces
+    state: str
+    top_candidate_symbol: str
+    top_candidate_score: float
+    required_score: float
+    confidence_pct: int
+    reason_text: str
+    gate_reason: str
+    next_evaluation_sec: int
+
+    # ATTRITION — current cycle only (block_stats.current_cycle): layer → count
+    refusal_breakdown: dict[str, int] = field(default_factory=dict)
+
+    # PIPELINE — real per-stage status ({name, status, message})
+    pipeline_stages: list[dict] = field(default_factory=list)
+
+    # DECISION TRACE — real nodes ({node, decision, score, reason_code})
+    decision_trace: list[dict] = field(default_factory=list)
+
+    @property
+    def total_refusals(self) -> int:
+        return sum(self.refusal_breakdown.values())
+
+    @property
+    def dominant_filter(self) -> Optional[str]:
+        if not self.refusal_breakdown:
+            return None
+        return max(self.refusal_breakdown, key=self.refusal_breakdown.get)
+
+    @property
+    def dominant_filter_pct(self) -> float:
+        total = self.total_refusals
+        dominant = self.dominant_filter
+        if total == 0 or dominant is None:
+            return 0.0
+        return round(self.refusal_breakdown[dominant] / total * 100, 1)
+
+
+@dataclass
 class PortfolioSnapshot:
     """Trade performance metrics — canonical input for EquityCurve renderer."""
 
