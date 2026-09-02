@@ -1,0 +1,59 @@
+schema_version: 1
+event_type: EXPERIMENT_SUSPENSION
+event_id: EXP-001-PAUSE-2026-09-02
+experiment_id: EXP-001
+recorded_at_utc: "2026-09-02T20:18:12Z"
+effective_at_utc: "2026-09-02T20:18:12Z"
+recording_policy: append_only
+
+decision:
+  status_before: IN_PROGRESS
+  status_after: SUSPENDED_ADMINISTRATIVELY
+  reason_code: INSTRUMENT_NOT_CERTIFIED
+  reason: >
+    Burn-in lancé avant certification suffisante du runtime, des datasets,
+    de la vérité des positions, du protocole d'ordre et de l'observabilité.
+    Les pulls et redémarrages successifs empêchent de traiter la population
+    comme une époque homogène.
+  initiated_by: human_operator
+
+operator_reported_counts:
+  displayed_or_attempted_trades_approx: 500
+  durably_recorded_closed_trades: 38
+  verification_status: UNVERIFIED_PENDING_RUNTIME_RECONCILIATION
+
+data_disposition:
+  delete_existing_data: false
+  rewrite_existing_data: false
+  forensic_retention: true
+  certified: false
+  eligible_for_future_burnin_n: false
+  revision_mode: true
+  next_certified_experiment_starts_at_n: 0
+
+safety_invariants:
+  PAPER_TRADING_ENABLED: true
+  LIVE_TRADING_CONFIRMED: false
+  FEATURE_AUTO_CALIBRATION: false
+  live_trading_authorized: false
+  withdrawals_authorized: false
+  observer_feedback_to_realtime_decision: false
+
+window:
+  mode: STABILIZATION_LAB
+  operational_start_utc: "2026-09-03T00:00:00Z"
+  audit_deadline_utc: "2026-09-17T00:00:00Z"
+  local_calendar_end: "2026-09-16"
+  automatic_resume: false
+  early_close_requires_human_verdict: true
+
+resume_gate:
+  required_verdict: READY_FOR_BURNIN
+  signed_by_human_operator: false
+  new_experiment_required: true
+  frozen_commit_and_config_required: true
+  frozen_rehearsal_24h_required: true
+
+references:
+  contract: docs/governance/STABILIZATION_WINDOW_2026-09-03_2026-09-16.md
+  original_experiment: experiments/EXP-001.yaml
