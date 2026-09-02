@@ -239,10 +239,13 @@ def test_integer_zero_and_float_zero_have_same_fingerprint(snapshot):
     )
 
 
-def test_signed_zero_has_same_fingerprint(snapshot):
+def test_signed_zero_matches_distinct_rendered_representation(snapshot):
     positive = replace(snapshot, exchange_latency_ms=0.0)
     negative = replace(snapshot, exchange_latency_ms=-0.0)
-    assert bot._quant_live_fingerprint(positive) == bot._quant_live_fingerprint(
+    assert bot.render_quant_live_panel(positive) != bot.render_quant_live_panel(
+        negative
+    )
+    assert bot._quant_live_fingerprint(positive) != bot._quant_live_fingerprint(
         negative
     )
 
@@ -265,11 +268,90 @@ def test_list_and_tuple_share_ordered_sequence_canonical_form():
     )
 
 
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        (math.nan, ["nonfinite", "nan"]),
+        (math.inf, ["nonfinite", "+inf"]),
+        (-math.inf, ["nonfinite", "-inf"]),
+    ],
+)
+def test_non_finite_float_has_deterministic_canonical_form(value, expected):
+    assert bot._canonicalize_fingerprint_value(value) == expected
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        (math.nan, ["nonfinite", "nan"]),
+        (math.inf, ["nonfinite", "+inf"]),
+        (-math.inf, ["nonfinite", "-inf"]),
+    ],
+)
+def test_non_finite_exchange_metric_is_explicit_in_projection(
+    snapshot, value, expected
+):
+    anomalous = replace(snapshot, exchange_latency_ms=value)
+    projection = bot._quant_live_semantic_projection(anomalous)
+
+    assert projection["exchange_latency_ms"] == expected
+
+
 @pytest.mark.parametrize("value", [math.nan, math.inf, -math.inf])
-def test_non_finite_float_is_rejected_explicitly(snapshot, value):
-    invalid = replace(snapshot, exchange_latency_ms=value)
-    with pytest.raises(ValueError, match="non-finite float"):
-        bot._quant_live_fingerprint(invalid)
+def test_non_finite_visible_state_edits_once_then_stabilizes(live, value):
+    live.tick(100.0)
+    live.snapshot = replace(live.snapshot, exchange_latency_ms=value)
+
+    live.tick(101.0)
+    live.tick(102.0)
+
+    assert len(live.edits) == 2
+    assert f"{value:.0f} ms" in live.edits[-1][2]
+    assert bot._QC_LIVE_STATE.confirmed_fingerprint == bot._quant_live_fingerprint(
+        live.snapshot
+    )
+
+
+@pytest.mark.parametrize(
+    ("field_name", "first", "second"),
+    [
+        ("exchange_latency_ms", 225.1, 225.4),
+        ("exchange_uptime_pct", 99.91, 100.0),
+    ],
+)
+def test_render_equivalent_exchange_metrics_share_fingerprint(
+    snapshot, field_name, first, second
+):
+    first_snapshot = replace(snapshot, **{field_name: first})
+    second_snapshot = replace(snapshot, **{field_name: second})
+
+    assert bot.render_quant_live_panel(first_snapshot) == bot.render_quant_live_panel(
+        second_snapshot
+    )
+    assert bot._quant_live_fingerprint(first_snapshot) == bot._quant_live_fingerprint(
+        second_snapshot
+    )
+
+
+@pytest.mark.parametrize(
+    ("field_name", "first", "second"),
+    [
+        ("exchange_latency_ms", 225.4, 225.6),
+        ("exchange_uptime_pct", 99.4, 99.6),
+    ],
+)
+def test_visibly_different_exchange_metrics_change_fingerprint(
+    snapshot, field_name, first, second
+):
+    first_snapshot = replace(snapshot, **{field_name: first})
+    second_snapshot = replace(snapshot, **{field_name: second})
+
+    assert bot.render_quant_live_panel(first_snapshot) != bot.render_quant_live_panel(
+        second_snapshot
+    )
+    assert bot._quant_live_fingerprint(first_snapshot) != bot._quant_live_fingerprint(
+        second_snapshot
+    )
 
 
 def test_tied_dominant_filter_preserves_q1_visible_difference(snapshot):

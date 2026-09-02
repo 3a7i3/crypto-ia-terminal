@@ -494,6 +494,16 @@ class ChangeDrivenLiveState:
 _QC_LIVE_STATE = ChangeDrivenLiveState()
 
 
+def _quantize_rendered_number(value: Any, format_spec: str) -> Any:
+    """Return the visible numeric value, tagging non-finite states explicitly."""
+    rendered = format(value, format_spec)
+    if isinstance(value, float) and not math.isfinite(value):
+        if math.isnan(value):
+            return ["nonfinite", "nan"]
+        return ["nonfinite", "+inf" if value > 0 else "-inf"]
+    return rendered
+
+
 def _quant_live_semantic_projection(snap) -> dict[str, Any]:
     """Canonical Q1 scientific content, excluding display-only clock fields.
 
@@ -529,8 +539,14 @@ def _quant_live_semantic_projection(snap) -> dict[str, Any]:
         "health_market": snap.health_market,
         "health_api": snap.health_api,
         "regime": snap.regime,
-        "exchange_latency_ms": snap.exchange_latency_ms,
-        "exchange_uptime_pct": snap.exchange_uptime_pct,
+        # Keep the fingerprint aligned with the visible Q1 representation.
+        # This also turns NaN/Inf into stable, immediately deliverable text.
+        "exchange_latency_ms": _quantize_rendered_number(
+            snap.exchange_latency_ms, ".0f"
+        ),
+        "exchange_uptime_pct": _quantize_rendered_number(
+            snap.exchange_uptime_pct, ".0f"
+        ),
         "state": snap.state,
         "top_candidate_symbol": snap.top_candidate_symbol,
         "top_candidate_score": snap.top_candidate_score,
@@ -561,9 +577,9 @@ def _canonicalize_fingerprint_value(value: Any) -> Any:
     """Normalize supported semantic values into a deterministic JSON tree.
 
     Numeric values share one domain (1 == 1.0, including signed zero), while
-    booleans retain their own type. Non-finite floats are rejected explicitly;
-    they cannot silently enter a JSON fingerprint. Mapping order is normalized,
-    while list/tuple order remains semantically significant.
+    booleans retain their own type. Non-finite floats use explicit stable tags
+    so an anomalous state remains fingerprintable and visible. Mapping order is
+    normalized, while list/tuple order remains semantically significant.
     """
     if value is None:
         return ["none"]
@@ -573,7 +589,9 @@ def _canonicalize_fingerprint_value(value: Any) -> Any:
         return ["number", value]
     if isinstance(value, float):
         if not math.isfinite(value):
-            raise ValueError("non-finite float cannot be fingerprinted")
+            if math.isnan(value):
+                return ["nonfinite", "nan"]
+            return ["nonfinite", "+inf" if value > 0 else "-inf"]
         if value == 0.0:
             normalized: int | float = 0
         elif value.is_integer():
