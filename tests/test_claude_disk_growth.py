@@ -162,6 +162,33 @@ class TestDiskGrowthAuditPack(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "output limit"):
                 disk_growth.render_snapshot(payload)
 
+    def test_maximum_public_cardinality_stays_under_output_ceiling(self):
+        with tempfile.TemporaryDirectory() as directory:
+            base = Path(directory)
+            catalog = []
+            for root_index in range(2):
+                root = base / f"root-{root_index}"
+                root.mkdir()
+                catalog.append(disk_growth.RootSpec(f"root_{root_index}", str(root)))
+                for bucket_index in range(disk_growth.MAX_BUCKETS_PER_ROOT):
+                    name = f"bucket-{bucket_index:02d}-" + ("x" * 100)
+                    bucket = root / name
+                    bucket.mkdir()
+                    (bucket / "runtime-file.jsonl").write_bytes(
+                        b"z" * (bucket_index + 1)
+                    )
+
+            payload, exit_code = disk_growth.collect_snapshot(
+                catalog=tuple(catalog),
+                observed_at_utc="2026-09-02T00:00:00Z",
+            )
+            rendered = disk_growth.render_snapshot(payload)
+            self.assertEqual(exit_code, 0)
+            self.assertEqual(len(payload["largest_files"]), disk_growth.MAX_LARGEST_FILES)
+            self.assertLessEqual(
+                len(rendered.encode("utf-8")), disk_growth.MAX_OUTPUT_BYTES
+            )
+
     def test_main_rejects_arguments_without_collecting(self):
         error = StringIO()
         with mock.patch.object(disk_growth, "collect_snapshot") as collect:
