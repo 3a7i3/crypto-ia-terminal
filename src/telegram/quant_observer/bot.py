@@ -15,8 +15,10 @@ import html
 import io
 import json
 import logging
+import math
 import os
 import time
+from collections.abc import Mapping
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path  # noqa: F401
@@ -39,6 +41,7 @@ QC_PINNED_MSG = os.getenv("QC_PINNED_MSG_ID", "")  # ID of the pinned live messa
 POLL_INTERVAL_S = int(os.getenv("QC_POLL_INTERVAL", "2"))
 PINNED_UPDATE_S = int(os.getenv("QC_PINNED_UPDATE", "600"))  # 10 min
 QC_SAFETY_REFRESH_S = int(os.getenv("QC_SAFETY_REFRESH", "1800"))  # 30 min
+QC_LIVE_RETRY_S = int(os.getenv("QC_LIVE_RETRY", "30"))
 
 _API_BASE = f"https://api.telegram.org/bot{QC_BOT_TOKEN}"
 
@@ -485,6 +488,7 @@ class ChangeDrivenLiveState:
     last_inspection_ts: float | None = None
     last_delivery_attempt_ts: float | None = None
     last_confirmed_ts: float | None = None
+    last_delivery_failed: bool = False
 
 
 _QC_LIVE_STATE = ChangeDrivenLiveState()
@@ -543,14 +547,65 @@ def _quant_live_semantic_projection(snap) -> dict[str, Any]:
     }
 
 
-def _quant_live_fingerprint(snap) -> str:
-    canonical = json.dumps(
-        _quant_live_semantic_projection(snap),
+def _canonical_json(value: Any) -> str:
+    return json.dumps(
+        value,
         sort_keys=True,
         separators=(",", ":"),
         ensure_ascii=False,
         allow_nan=False,
     )
+
+
+def _canonicalize_fingerprint_value(value: Any) -> Any:
+    """Normalize supported semantic values into a deterministic JSON tree.
+
+    Numeric values share one domain (1 == 1.0, including signed zero), while
+    booleans retain their own type. Non-finite floats are rejected explicitly;
+    they cannot silently enter a JSON fingerprint. Mapping order is normalized,
+    while list/tuple order remains semantically significant.
+    """
+    if value is None:
+        return ["none"]
+    if isinstance(value, bool):
+        return ["bool", value]
+    if isinstance(value, int):
+        return ["number", value]
+    if isinstance(value, float):
+        if not math.isfinite(value):
+            raise ValueError("non-finite float cannot be fingerprinted")
+        if value == 0.0:
+            normalized: int | float = 0
+        elif value.is_integer():
+            normalized = int(value)
+        else:
+            normalized = value
+        return ["number", normalized]
+    if isinstance(value, str):
+        return ["string", value]
+    if isinstance(value, Mapping):
+        entries = [
+            [
+                _canonicalize_fingerprint_value(key),
+                _canonicalize_fingerprint_value(item),
+            ]
+            for key, item in value.items()
+        ]
+        entries.sort(key=lambda entry: _canonical_json(entry[0]))
+        return ["mapping", entries]
+    if isinstance(value, (list, tuple)):
+        return [
+            "sequence",
+            [_canonicalize_fingerprint_value(item) for item in value],
+        ]
+    raise TypeError(f"unsupported fingerprint value type: {type(value).__name__}")
+
+
+def _quant_live_fingerprint(snap) -> str:
+    canonical_projection = _canonicalize_fingerprint_value(
+        _quant_live_semantic_projection(snap)
+    )
+    canonical = _canonical_json(canonical_projection)
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
@@ -584,6 +639,14 @@ def _change_driven_live_tick(now: float, last_pinned_update: float) -> float:
     ):
         return last_pinned_update
 
+    retry_floor_active = (
+        _QC_LIVE_STATE.last_delivery_failed
+        and _QC_LIVE_STATE.last_delivery_attempt_ts is not None
+        and (now - _QC_LIVE_STATE.last_delivery_attempt_ts) < QC_LIVE_RETRY_S
+    )
+    if retry_floor_active:
+        return last_pinned_update
+
     try:
         text = render_quant_live_panel(snap)
     except Exception as e:  # noqa: BLE001 — keep the polling observer alive
@@ -594,6 +657,7 @@ def _change_driven_live_tick(now: float, last_pinned_update: float) -> float:
     result = _QC_DELIVERY.record(
         edit_message(QC_CHAT_ID, QC_PINNED_MSG, text), now
     )
+    _QC_LIVE_STATE.last_delivery_failed = result.is_failure
     if result.is_delivered:
         _QC_LIVE_STATE.confirmed_fingerprint = fingerprint
         _QC_LIVE_STATE.last_confirmed_ts = now

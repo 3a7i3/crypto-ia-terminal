@@ -7,6 +7,7 @@ that Q2 delivery evidence alone decides whether a fingerprint is confirmed.
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timezone
 
@@ -23,7 +24,11 @@ from visualization.api.models import QuantLiveSnapshot
 
 
 def _result(kind: DeliveryKind) -> TransportResult:
-    status = 200 if kind is DeliveryKind.ACK else 400
+    status = {
+        DeliveryKind.ACK: 200,
+        DeliveryKind.NO_CHANGE: 400,
+        DeliveryKind.HTTP_ERROR: 500,
+    }.get(kind, 400)
     return TransportResult(kind=kind, method="editMessageText", http_status=status)
 
 
@@ -90,6 +95,7 @@ def live(monkeypatch, snapshot) -> LiveHarness:
     monkeypatch.setattr(bot, "QC_PINNED_MSG", "123")
     monkeypatch.setattr(bot, "QC_CHAT_ID", "456")
     monkeypatch.setattr(bot, "QC_SAFETY_REFRESH_S", 1800)
+    monkeypatch.setattr(bot, "QC_LIVE_RETRY_S", 30)
     monkeypatch.setattr(bot, "_QC_LIVE_STATE", ChangeDrivenLiveState())
     monkeypatch.setattr(bot, "_QC_DELIVERY", DeliveryState())
     monkeypatch.setattr(bot, "_load_quant_live_snapshot", lambda: harness.snapshot)
@@ -137,6 +143,10 @@ def test_first_snapshot_edits_and_records_inspection(live):
     assert len(live.edits) == 1
     assert bot._QC_LIVE_STATE.last_inspection_ts == 100.0
     assert bot._QC_LIVE_STATE.last_delivery_attempt_ts == 100.0
+
+
+def test_retry_floor_default_is_30_seconds():
+    assert bot.QC_LIVE_RETRY_S == 30
 
 
 def test_identical_semantic_snapshot_does_not_edit(live):
@@ -213,8 +223,80 @@ def test_mapping_order_is_canonical(snapshot):
     )
 
 
+def test_integer_and_integral_float_have_same_fingerprint(snapshot):
+    integer = replace(snapshot, top_candidate_score=1)
+    integral_float = replace(snapshot, top_candidate_score=1.0)
+    assert bot._quant_live_fingerprint(integer) == bot._quant_live_fingerprint(
+        integral_float
+    )
+
+
+def test_integer_zero_and_float_zero_have_same_fingerprint(snapshot):
+    integer = replace(snapshot, exchange_latency_ms=0)
+    floating = replace(snapshot, exchange_latency_ms=0.0)
+    assert bot._quant_live_fingerprint(integer) == bot._quant_live_fingerprint(
+        floating
+    )
+
+
+def test_signed_zero_has_same_fingerprint(snapshot):
+    positive = replace(snapshot, exchange_latency_ms=0.0)
+    negative = replace(snapshot, exchange_latency_ms=-0.0)
+    assert bot._quant_live_fingerprint(positive) == bot._quant_live_fingerprint(
+        negative
+    )
+
+
+def test_true_is_distinct_from_integer_one(snapshot):
+    boolean = replace(snapshot, health_market=True)
+    integer = replace(snapshot, health_market=1)
+    assert bot._quant_live_fingerprint(boolean) != bot._quant_live_fingerprint(integer)
+
+
+def test_false_is_distinct_from_integer_zero(snapshot):
+    boolean = replace(snapshot, health_market=False)
+    integer = replace(snapshot, health_market=0)
+    assert bot._quant_live_fingerprint(boolean) != bot._quant_live_fingerprint(integer)
+
+
+def test_list_and_tuple_share_ordered_sequence_canonical_form():
+    assert bot._canonicalize_fingerprint_value([None, 1, "x"]) == (
+        bot._canonicalize_fingerprint_value((None, 1.0, "x"))
+    )
+
+
+@pytest.mark.parametrize("value", [math.nan, math.inf, -math.inf])
+def test_non_finite_float_is_rejected_explicitly(snapshot, value):
+    invalid = replace(snapshot, exchange_latency_ms=value)
+    with pytest.raises(ValueError, match="non-finite float"):
+        bot._quant_live_fingerprint(invalid)
+
+
+def test_tied_dominant_filter_preserves_q1_visible_difference(snapshot):
+    gate_first = replace(snapshot, refusal_breakdown={"gate": 1, "risk": 1})
+    risk_first = replace(snapshot, refusal_breakdown={"risk": 1, "gate": 1})
+
+    assert gate_first.dominant_filter == "gate"
+    assert risk_first.dominant_filter == "risk"
+    assert bot.render_quant_live_panel(gate_first) != bot.render_quant_live_panel(
+        risk_first
+    )
+    assert bot._quant_live_fingerprint(gate_first) != bot._quant_live_fingerprint(
+        risk_first
+    )
+
+
 def test_collection_order_is_explicitly_significant(snapshot):
     reordered = replace(snapshot, pipeline_stages=list(reversed(snapshot.pipeline_stages)))
+    assert bot._quant_live_fingerprint(reordered) != bot._quant_live_fingerprint(
+        snapshot
+    )
+
+
+def test_decision_trace_order_is_explicitly_significant(snapshot):
+    reordered = replace(
+        snapshot, decision_trace=list(reversed(snapshot.decision_trace))
+    )
     assert bot._quant_live_fingerprint(reordered) != bot._quant_live_fingerprint(
         snapshot
     )
@@ -245,6 +327,7 @@ def test_failure_does_not_confirm_fingerprint(live):
     assert bot._QC_LIVE_STATE.confirmed_fingerprint is None
     assert bot._QC_LIVE_STATE.last_confirmed_ts is None
     assert bot._QC_LIVE_STATE.last_delivery_attempt_ts == 100.0
+    assert bot._QC_LIVE_STATE.last_delivery_failed
     assert bot._QC_DELIVERY.last_failure_ts == 100.0
 
 
@@ -258,18 +341,108 @@ def test_failure_preserves_preceding_confirmed_fingerprint(live):
     assert bot._QC_LIVE_STATE.last_confirmed_ts == 100.0
 
 
-def test_failure_followed_by_same_state_retries(live):
+def test_failure_at_t100_attempts_edit(live):
+    live.edit_results = [_result(DeliveryKind.HTTP_ERROR)]
+    live.tick(100.0)
+    assert len(live.edits) == 1
+    assert bot._QC_LIVE_STATE.last_delivery_attempt_ts == 100.0
+
+
+def test_failure_same_state_at_t101_does_not_edit(live):
+    live.edit_results = [_result(DeliveryKind.HTTP_ERROR)]
+    live.tick(100.0)
+    live.tick(101.0)
+    assert len(live.edits) == 1
+
+
+def test_failure_same_state_before_t130_does_not_edit(live):
+    live.edit_results = [_result(DeliveryKind.HTTP_ERROR)]
+    live.tick(100.0)
+    live.tick(129.999)
+    assert len(live.edits) == 1
+
+
+def test_failure_same_state_at_t130_retries(live):
+    live.edit_results = [
+        _result(DeliveryKind.HTTP_ERROR),
+        _result(DeliveryKind.HTTP_ERROR),
+    ]
+    live.tick(100.0)
+    live.tick(130.0)
+    assert len(live.edits) == 2
+
+
+def test_fast_getupdates_cannot_bypass_retry_floor(live, monkeypatch):
+    live.edit_results = [_result(DeliveryKind.NETWORK_ERROR)]
+    monkeypatch.setattr(bot, "get_updates", lambda offset=0: [])
+
+    live.tick(100.0)
+    assert bot.get_updates(offset=0) == []
+    live.tick(102.0)
+    assert len(live.edits) == 1
+
+
+def test_changed_state_during_backoff_does_not_edit(live):
+    live.edit_results = [_result(DeliveryKind.HTTP_ERROR)]
+    live.tick(100.0)
+    live.snapshot = replace(live.snapshot, regime="bear_trend")
+    live.tick(101.0)
+    assert len(live.edits) == 1
+
+
+def test_changed_state_after_retry_floor_edits(live):
+    live.edit_results = [_result(DeliveryKind.HTTP_ERROR)]
+    live.tick(100.0)
+    live.snapshot = replace(live.snapshot, regime="bear_trend")
+    live.tick(130.0)
+    assert len(live.edits) == 2
+
+
+def test_ack_after_retry_confirms_and_clears_backoff(live):
     live.edit_results = [
         _result(DeliveryKind.HTTP_ERROR),
         _result(DeliveryKind.ACK),
     ]
     live.tick(100.0)
+    live.tick(130.0)
+    assert len(live.edits) == 2
+    assert bot._QC_LIVE_STATE.confirmed_fingerprint == bot._quant_live_fingerprint(
+        live.snapshot
+    )
+    assert bot._QC_LIVE_STATE.last_confirmed_ts == 130.0
+    assert not bot._QC_LIVE_STATE.last_delivery_failed
+
+    live.snapshot = replace(live.snapshot, regime="bear_trend")
+    live.tick(131.0)
+    assert len(live.edits) == 3
+
+
+def test_no_change_after_retry_confirms_and_clears_backoff(live):
+    live.edit_results = [
+        _result(DeliveryKind.NETWORK_ERROR),
+        _result(DeliveryKind.NO_CHANGE),
+    ]
+    live.tick(100.0)
+    live.tick(130.0)
+    assert bot._QC_LIVE_STATE.confirmed_fingerprint == bot._quant_live_fingerprint(
+        live.snapshot
+    )
+    assert bot._QC_LIVE_STATE.last_confirmed_ts == 130.0
+    assert not bot._QC_LIVE_STATE.last_delivery_failed
+
+    live.snapshot = replace(live.snapshot, state="REFUSED")
+    live.tick(131.0)
+    assert len(live.edits) == 3
+
+
+def test_restart_unknown_fingerprint_edits(live, monkeypatch):
+    live.tick(100.0)
+    monkeypatch.setattr(bot, "_QC_LIVE_STATE", ChangeDrivenLiveState())
     live.tick(101.0)
     assert len(live.edits) == 2
     assert bot._QC_LIVE_STATE.confirmed_fingerprint == bot._quant_live_fingerprint(
         live.snapshot
     )
-    assert bot._QC_LIVE_STATE.last_confirmed_ts == 101.0
 
 
 def test_safety_refresh_revalidates_unchanged_state(live):
