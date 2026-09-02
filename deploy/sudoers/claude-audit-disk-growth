@@ -1,0 +1,2 @@
+# Exact privilege boundary for the fixed, root-owned disk_growth wrapper.
+claude-audit ALL=(root) NOPASSWD: /usr/local/sbin/claude-disk-growth-root

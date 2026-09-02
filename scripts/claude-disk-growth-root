@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Fixed root boundary for the content-free disk_growth audit pack.
+
+set -euo pipefail
+
+PATH='/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
+export PATH
+umask 077
+
+if (( $# != 0 )); then
+    echo 'DISK_GROWTH_ROOT_REJECTED: arguments are not accepted' >&2
+    exit 64
+fi
+
+exec /usr/bin/python3 -I /usr/local/bin/claude-disk-growth
