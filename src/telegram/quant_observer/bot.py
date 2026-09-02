@@ -10,8 +10,10 @@ to the VES, and publishes the result. It does not read databases directly.
 from __future__ import annotations
 
 import asyncio  # noqa: F401
+import hashlib
 import html
 import io
+import json
 import logging
 import os
 import time
@@ -36,6 +38,7 @@ QC_PINNED_MSG = os.getenv("QC_PINNED_MSG_ID", "")  # ID of the pinned live messa
 
 POLL_INTERVAL_S = int(os.getenv("QC_POLL_INTERVAL", "2"))
 PINNED_UPDATE_S = int(os.getenv("QC_PINNED_UPDATE", "600"))  # 10 min
+QC_SAFETY_REFRESH_S = int(os.getenv("QC_SAFETY_REFRESH", "1800"))  # 30 min
 
 _API_BASE = f"https://api.telegram.org/bot{QC_BOT_TOKEN}"
 
@@ -462,9 +465,142 @@ def render_quant_live_panel(snap) -> str:
 
 
 def _build_pinned_text() -> str:
+    return render_quant_live_panel(_load_quant_live_snapshot())
+
+
+def _load_quant_live_snapshot():
     from visualization.api import load_quant_live_snapshot
 
-    return render_quant_live_panel(load_quant_live_snapshot())
+    return load_quant_live_snapshot()
+
+
+# ── Change-driven pinned LIVE (Q3 — in-memory only) ───────────────────────────
+
+
+@dataclass
+class ChangeDrivenLiveState:
+    """Evidence for the last semantic LIVE state confirmed by Telegram."""
+
+    confirmed_fingerprint: str | None = None
+    last_inspection_ts: float | None = None
+    last_delivery_attempt_ts: float | None = None
+    last_confirmed_ts: float | None = None
+
+
+_QC_LIVE_STATE = ChangeDrivenLiveState()
+
+
+def _quant_live_semantic_projection(snap) -> dict[str, Any]:
+    """Canonical Q1 scientific content, excluding display-only clock fields.
+
+    Mapping keys are sorted explicitly. Pipeline and trace collections retain
+    producer order because stage/causal order is itself meaningful; only the
+    fields rendered by Q1 are projected, so hidden metadata cannot trigger an
+    edit.
+    """
+    refusal_breakdown = {
+        str(key): value
+        for key, value in sorted(
+            snap.refusal_breakdown.items(), key=lambda item: str(item[0])
+        )
+    }
+    pipeline_stages = [
+        {
+            "name": stage.get("name", ""),
+            "status": stage.get("status", ""),
+            "message": stage.get("message", ""),
+        }
+        for stage in snap.pipeline_stages
+    ]
+    decision_trace = [
+        {
+            "node": node.get("node", ""),
+            "decision": node.get("decision", ""),
+            "score": node.get("score"),
+            "reason_code": node.get("reason_code", ""),
+        }
+        for node in snap.decision_trace
+    ]
+    return {
+        "health_market": snap.health_market,
+        "health_api": snap.health_api,
+        "regime": snap.regime,
+        "exchange_latency_ms": snap.exchange_latency_ms,
+        "exchange_uptime_pct": snap.exchange_uptime_pct,
+        "state": snap.state,
+        "top_candidate_symbol": snap.top_candidate_symbol,
+        "top_candidate_score": snap.top_candidate_score,
+        "required_score": snap.required_score,
+        "mean_signal_score": snap.mean_signal_score,
+        "reason_text": snap.reason_text,
+        "gate_reason": snap.gate_reason,
+        "refusal_breakdown": refusal_breakdown,
+        "total_refusals": snap.total_refusals,
+        "dominant_filter": snap.dominant_filter,
+        "dominant_filter_pct": snap.dominant_filter_pct,
+        "pipeline_stages": pipeline_stages,
+        "decision_trace": decision_trace,
+    }
+
+
+def _quant_live_fingerprint(snap) -> str:
+    canonical = json.dumps(
+        _quant_live_semantic_projection(snap),
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+        allow_nan=False,
+    )
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def _change_driven_live_tick(now: float, last_pinned_update: float) -> float:
+    """Inspect LIVE state and edit only on semantic change or safety refresh.
+
+    ACK and NO_CHANGE confirm the candidate fingerprint. Every Q2 failure keeps
+    the preceding fingerprint, making an identical subsequent state retryable.
+    """
+    if not QC_PINNED_MSG:
+        return last_pinned_update
+
+    try:
+        snap = _load_quant_live_snapshot()
+        fingerprint = _quant_live_fingerprint(snap)
+    except Exception as e:  # noqa: BLE001 — keep the polling observer alive
+        logger.warning("Pinned inspection failed: %s", type(e).__name__)
+        return last_pinned_update
+
+    _QC_LIVE_STATE.last_inspection_ts = now
+    safety_refresh_due = (
+        _QC_LIVE_STATE.confirmed_fingerprint is not None
+        and (
+            _QC_LIVE_STATE.last_confirmed_ts is None
+            or (now - _QC_LIVE_STATE.last_confirmed_ts) >= QC_SAFETY_REFRESH_S
+        )
+    )
+    if (
+        fingerprint == _QC_LIVE_STATE.confirmed_fingerprint
+        and not safety_refresh_due
+    ):
+        return last_pinned_update
+
+    try:
+        text = render_quant_live_panel(snap)
+    except Exception as e:  # noqa: BLE001 — keep the polling observer alive
+        logger.warning("Pinned render failed: %s", type(e).__name__)
+        return last_pinned_update
+
+    _QC_LIVE_STATE.last_delivery_attempt_ts = now
+    result = _QC_DELIVERY.record(
+        edit_message(QC_CHAT_ID, QC_PINNED_MSG, text), now
+    )
+    if result.is_delivered:
+        _QC_LIVE_STATE.confirmed_fingerprint = fingerprint
+        _QC_LIVE_STATE.last_confirmed_ts = now
+        return now
+
+    logger.warning("Pinned update not delivered: %s", result.summary_safe())
+    return last_pinned_update
 
 
 def _pinned_tick(now: float, last_pinned_update: float) -> float:
@@ -550,10 +686,10 @@ def run():
 
     while True:
         try:
-            # Update pinned live message every PINNED_UPDATE_S seconds.
-            # TG-QC-001: the timer only advances on a real Telegram delivery.
+            # Inspect each poll; edit only after semantic change or safety refresh.
+            # Q2 ACK/NO_CHANGE alone can confirm the candidate fingerprint.
             now = time.time()
-            last_pinned_update = _pinned_tick(now, last_pinned_update)
+            last_pinned_update = _change_driven_live_tick(now, last_pinned_update)
 
             # Poll for commands
             updates = get_updates(offset=offset)
