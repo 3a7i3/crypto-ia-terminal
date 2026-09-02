@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "request_id": "REQ-CODEX-SERVICE-TRIGGERS-20260902T032515Z",
-  "action": "service_trigger_matrix",
-  "requested_at_utc": "2026-09-02T03:25:15Z"
+  "request_id": "REQ-CODEX-DISK-GROWTH-20260902T041704Z",
+  "action": "disk_growth",
+  "requested_at_utc": "2026-09-02T04:17:04Z"
 }
