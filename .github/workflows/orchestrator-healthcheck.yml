@@ -6,6 +6,9 @@ name: Orchestrator Healthcheck
 on:
   push:
     branches: [ main ]
+    paths-ignore:
+      - audit_requests/**
+      - audit_results/**
   workflow_dispatch:
 
 permissions:
