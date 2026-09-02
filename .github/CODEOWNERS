@@ -14,9 +14,11 @@
 /scripts/vps_audit_request.py @3a7i3
 /tests/test_vps_audit_request.py @3a7i3
 /tests/test_claude_audit_snapshot_build.py @3a7i3
+/tests/test_claude_disk_growth.py @3a7i3
 /tests/test_claude_service_matrix.py @3a7i3
 /tests/test_claude_service_trigger_matrix.py @3a7i3
 /docs/runbooks/CLAUDE_AUDIT_SNAPSHOT.md @3a7i3
+/docs/runbooks/DISK_GROWTH_AUDIT_PACK.md @3a7i3
 /docs/runbooks/SERVICE_MATRIX_AUDIT_PACK.md @3a7i3
 /docs/runbooks/SERVICE_TRIGGER_MATRIX_AUDIT_PACK.md @3a7i3
 

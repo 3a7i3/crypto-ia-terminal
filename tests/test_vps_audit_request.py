@@ -40,6 +40,23 @@ def _commit_request(repo: Path, request_id: str, action: str) -> str:
 
 
 class TestImmutableGitRequests(unittest.TestCase):
+    def test_disk_growth_is_allowlisted_end_to_end(self):
+        root = Path(__file__).resolve().parents[1]
+        workflow = (root / ".github/workflows/vps-audit.yml").read_text(
+            encoding="utf-8"
+        )
+        dispatcher = (root / "scripts/claude-audit-dispatch").read_text(
+            encoding="utf-8"
+        )
+        pack = (root / "scripts/claude-disk-growth.py").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn("disk_growth", audit_request.ALLOWED_ACTIONS)
+        self.assertIn("          - disk_growth\n", workflow)
+        self.assertIn("    disk_growth)\n", dispatcher)
+        self.assertIn("ROOT_CATALOG = (\n", pack)
+
     def test_service_trigger_matrix_is_allowlisted_end_to_end(self):
         root = Path(__file__).resolve().parents[1]
         workflow = (root / ".github/workflows/vps-audit.yml").read_text(

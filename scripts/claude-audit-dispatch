@@ -64,6 +64,10 @@ case "$REQUEST" in
         exec /usr/local/bin/claude-repo-diff-summary
         ;;
 
+    disk_growth)
+        exec /usr/local/bin/claude-disk-growth
+        ;;
+
     service_matrix)
         exec /usr/local/bin/claude-service-matrix
         ;;
