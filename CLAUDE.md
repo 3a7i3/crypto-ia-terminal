@@ -6,16 +6,20 @@ Ces règles s'appliquent à toutes les sessions, sans exception.
 
 ## AVIS TEMPORAIRE — STABILIZATION LAB (2026-09-02 → 2026-09-16)
 
-Le burn-in EXP-001 est suspendu administrativement depuis le
-`2026-09-02T20:18:12Z`. Jusqu'à un verdict humain `READY_FOR_BURNIN`,
-toute donnée produite pendant la révision est `certified=false` et ne peut
-pas alimenter le N d'une nouvelle époque certifiée.
+La certification du burn-in EXP-001 est suspendue depuis le
+`2026-09-02T20:18:12Z`, mais le runtime VPS continue en paper/revision afin de
+tester les processus réels, les redémarrages, les écritures disque et Telegram.
+Jusqu'à un verdict humain `READY_FOR_BURNIN`, toute donnée produite pendant la
+révision est `certified=false` et ne peut pas alimenter le N d'une nouvelle
+époque certifiée.
 
 Le contrat normatif temporaire est
 `docs/governance/STABILIZATION_WINDOW_2026-09-03_2026-09-16.md`.
 L'acte append-only est `experiments/EXP-001-pause-2026-09-02.yaml`.
 
-Cette fenêtre n'autorise ni live trading, ni calibration alpha, ni nouveau
+Cette fenêtre autorise des déploiements et redémarrages contrôlés du VPS après
+PR mergée, avec preuve du SHA déployé et vérification post-restart. Elle
+n'autorise ni live trading, ni calibration alpha, ni nouveau
 signal/indicateur/stratégie. `PAPER_TRADING_ENABLED=true` et
 `LIVE_TRADING_CONFIRMED=false` restent obligatoires. Le 16 septembre
 n'autorise aucune reprise automatique.
