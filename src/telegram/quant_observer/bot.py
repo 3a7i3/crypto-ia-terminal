@@ -10,13 +10,16 @@ to the VES, and publishes the result. It does not read databases directly.
 from __future__ import annotations
 
 import asyncio  # noqa: F401
+import html
 import io
 import logging
 import os
 import time
 from pathlib import Path  # noqa: F401
 
-from src.common.time_display import format_vancouver_time
+# Kept for display-time consistency across the bot's Telegram surface; the Q1
+# LIVE panel reports snapshot *age* (freshness) rather than a wall-clock stamp.
+from src.common.time_display import format_vancouver_time  # noqa: F401
 
 import requests
 
@@ -113,54 +116,146 @@ def _render_portfolio() -> bytes:
     )
 
 
-# ── Pinned message (V3 text, auto-refreshed every 10 min) ────────────────────
+# ── Pinned LIVE panel (Q1 — semantically-honest, READ-ONLY projection) ────────
+#
+# The panel answers ONLY the Quant Observer question: what does the engine see,
+# what decision does it produce, where is the attrition, is the chain healthy?
+# It is fed exclusively by the READ-ONLY QuantLiveSnapshot projection — no
+# portfolio/capital/PnL/win-rate (Portfolio Bot domain), no
+# observer/dataset/knowledge/evidence/drift proxies (semantically wrong), no
+# host metrics (RAM/CPU/PID), no Telegram/main_channel health.
+
+_LAYER_LABELS = {
+    "gate": "Risk gates",
+    "meta_strategy": "Meta-strategy",
+    "no_trade_layer": "No-trade layer",
+    "portfolio": "Portfolio brain",
+    "risk": "Risk override",
+    "cooldown": "Cooldown",
+    "exchange": "Exchange",
+}
+
+
+def _layer_label(key: str) -> str:
+    return _LAYER_LABELS.get(key, key.replace("_", " ").capitalize())
+
+
+def _esc(value) -> str:
+    """Escape any dynamic value for Telegram HTML (<, >, &).
+
+    All non-static text placed in the panel goes through this so producer
+    strings (engine version, reason_text, gate_reason, symbols, pipeline and
+    trace fields, …) can never be interpreted as HTML / injected.
+    """
+    return html.escape(str(value), quote=False)
+
+
+def _row(label: str, value: str, width: int = 18) -> str:
+    # Pad on the RAW label (alignment), then escape label AND value. Padding
+    # before escaping keeps column width correct — entities render as one glyph.
+    padded = f"{label:<{width}}"
+    return f"<code>{_esc(padded)}{_esc(value)}</code>"
+
+
+def _ok(flag: bool) -> str:
+    return "OK" if flag else "DOWN"
+
+
+def _fmt_score(value: float) -> str:
+    return f"{value:.0f}" if float(value).is_integer() else f"{value:g}"
+
+
+def render_quant_live_panel(snap) -> str:
+    """Pure formatter: QuantLiveSnapshot → Telegram HTML LIVE panel.
+
+    No I/O, no side effects — safe to unit-test with a constructed snapshot.
+    All dynamic values are HTML-escaped (see ``_esc`` / ``_row``); only the
+    static tags (<b>, <code>) are literal markup.
+    """
+    engine = snap.engine_version or "n/a"
+    score_txt = _fmt_score(snap.top_candidate_score)
+    required_txt = _fmt_score(snap.required_score)
+    age = snap.snapshot_age_s
+    age_txt = "UNAVAILABLE" if age is None else f"{age:.0f}s"
+    lines = [
+        "🔬 <b>SDOS LIVE</b>",
+        f"<code>Cycle {_esc(snap.cycle)} · Engine {_esc(engine)}</code>",
+        "",
+        "<b>DATA</b>",
+        _row("Snapshot age", age_txt),
+        _row("Market", _ok(snap.health_market)),
+        _row("API", _ok(snap.health_api)),
+        "",
+        "<b>MARKET</b>",
+        _row("Regime", (snap.regime or "unknown").replace("_", " ").upper()),
+        _row("Exchange latency", f"{snap.exchange_latency_ms:.0f} ms"),
+        _row("Exchange uptime", f"{snap.exchange_uptime_pct:.0f}%"),
+        "",
+        "<b>DECISION</b>",
+        _row("State", snap.state or "—"),
+        _row("Top candidate", snap.top_candidate_symbol or "—"),
+        _row("Score", f"{score_txt} / {required_txt}"),
+        # FIX 3 — producer value is the mean of signal scores, not a confidence.
+        _row("Mean signal score", f"{snap.mean_signal_score} / 100"),
+    ]
+    if snap.reason_text:
+        lines.append(_row("Reason", snap.reason_text))
+    if snap.gate_reason:
+        lines.append(_row("Gate", snap.gate_reason))
+    lines.append(_row("Next evaluation", f"{snap.next_evaluation_sec}s"))
+
+    # ── ATTRITION — current cycle only ──
+    lines += ["", "<b>ATTRITION — CURRENT CYCLE</b>"]
+    if snap.refusal_breakdown:
+        for key, count in sorted(
+            snap.refusal_breakdown.items(), key=lambda kv: (-kv[1], kv[0])
+        ):
+            lines.append(_row(_layer_label(key), str(count)))
+        lines.append(_row("Total refusals", str(snap.total_refusals)))
+        dominant = snap.dominant_filter
+        if dominant is not None:
+            lines += [
+                "",
+                "<b>DOMINANT FILTER</b>",
+                _row(_layer_label(dominant), f"{snap.dominant_filter_pct:.1f}%"),
+            ]
+    else:
+        lines.append(_row("Total refusals", "0"))
+
+    # ── PIPELINE — REPORTED / PARTIAL ──
+    # FIX 5 — this is the state DECLARED by the producer, not independent health
+    # instrumentation: some stages are OK by construction. Not proof the chain
+    # is sound. Telegram/main_channel is excluded upstream (projection).
+    if snap.pipeline_stages:
+        lines += ["", "<b>PIPELINE — REPORTED / PARTIAL</b>"]
+        for stage in snap.pipeline_stages:
+            status = stage.get("status", "")
+            message = stage.get("message", "")
+            value = f"{status} · {message}" if message else status
+            lines.append(_row(stage.get("name", ""), value))
+
+    # ── LIVE TRACE — PARTIAL ──
+    # FIX 6 — only the nodes actually present in the snapshot; NOT the full
+    # causal chain. No synthetic Gate/MetaStrategy/etc. nodes are invented.
+    if snap.decision_trace:
+        lines += ["", "<b>LIVE TRACE — PARTIAL</b>"]
+        for node in snap.decision_trace:
+            parts = [str(node.get("decision", ""))]
+            score = node.get("score")
+            if score is not None:
+                parts.append(_fmt_score(score))
+            reason_code = node.get("reason_code")
+            if reason_code:
+                parts.append(str(reason_code))
+            lines.append(_row(node.get("node", ""), " · ".join(p for p in parts if p)))
+
+    return "\n".join(lines)
 
 
 def _build_pinned_text() -> str:
-    from visualization.api import load_health_snapshot, load_pipeline_snapshot
-    from visualization.renderers.base import bar_text, pct_to_color  # noqa: F401
+    from visualization.api import load_quant_live_snapshot
 
-    h = load_health_snapshot()
-    p = load_pipeline_snapshot()
-
-    state_icon = "✅" if h.system_state == "NORMAL" else "🚨"
-    trade_icon = "🟢" if h.trading_enabled else "🔴"
-
-    def row(label: str, pct: float, val_override: str = "") -> str:
-        bar = bar_text(pct, 10)
-        icon = "✅" if pct >= 80 else ("⚠️" if pct >= 50 else "🚨")
-        val = val_override or f"{pct:.0f}%"
-        return f"<code>{label:<10} {bar}  {val}  {icon}</code>"
-
-    lines = [
-        f"📍 <b>SDOS LIVE</b> — {format_vancouver_time(h.ts)}",
-        "",
-        "<b>SANTÉ SYSTÈME</b>",
-        row("Observer", h.observer_pct),
-        row("Dataset", h.dataset_pct),
-        row("Knowledge", h.knowledge_pct),
-        row("Evidence", h.evidence_pct),
-        row("Capital", h.capital_pct, f"${h.capital_usd:,.0f}"),
-        row("Drift", 100 - h.drift_pct, f"{h.drift_pct:.0f}%↓"),
-        "",
-        f"<b>PIPELINE</b>  [{p.n_signals} signaux]",
-        f"<code>Traités:  {p.n_traded}  |  Refusés: {p.n_refused}  |  "
-        f"Pass: {p.pass_rate_pct:.0f}%</code>",
-    ]
-
-    if p.regime_distribution:
-        dominant = max(p.regime_distribution, key=p.regime_distribution.get)
-        total = sum(p.regime_distribution.values()) or 1
-        pct = p.regime_distribution[dominant] / total * 100
-        lines.append(f"<code>Régime:   {dominant}  {pct:.0f}%</code>")
-
-    lines += [
-        "",
-        f"<code>{state_icon} {h.system_state}  {trade_icon}  "
-        f"N={h.n_trades}  WR={h.win_rate_pct:.0f}%</code>",
-    ]
-
-    return "\n".join(lines)
+    return render_quant_live_panel(load_quant_live_snapshot())
 
 
 # ── Command dispatch ──────────────────────────────────────────────────────────

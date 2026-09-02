@@ -14,6 +14,7 @@ from visualization.api.models import (
     HealthSnapshot,
     PipelineSnapshot,
     PortfolioSnapshot,
+    QuantLiveSnapshot,
     RegimeSnapshot,
     RegretInvestigationSnapshot,
     ScientificSnapshot,
@@ -22,6 +23,7 @@ from visualization.api.models import (
 )
 from visualization.api.pipeline_api import load_pipeline_snapshot
 from visualization.api.portfolio_api import load_portfolio_snapshot
+from visualization.api.quant_live_api import load_quant_live_snapshot
 from visualization.api.regret_api import load_regret_investigation
 from visualization.api.scientific_api import load_scientific_snapshot
 from visualization.api.timeline_api import load_timeline_snapshot
@@ -31,6 +33,7 @@ __all__ = [
     "HealthSnapshot",
     "PipelineSnapshot",
     "PortfolioSnapshot",
+    "QuantLiveSnapshot",
     "RegimeSnapshot",
     "ScientificSnapshot",
     "TimelineEvent",
@@ -43,6 +46,7 @@ __all__ = [
     "RejectionsSnapshot",
     "load_health_snapshot",
     "load_pipeline_snapshot",
+    "load_quant_live_snapshot",
     "load_portfolio_snapshot",
     "load_scientific_snapshot",
     "load_timeline_snapshot",
