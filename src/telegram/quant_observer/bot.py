@@ -15,7 +15,10 @@ import io
 import logging
 import os
 import time
+from dataclasses import dataclass
+from enum import Enum
 from pathlib import Path  # noqa: F401
+from typing import Any, Optional
 
 # Kept for display-time consistency across the bot's Telegram surface; the Q1
 # LIVE panel reports snapshot *age* (freshness) rather than a wall-clock stamp.
@@ -36,19 +39,180 @@ PINNED_UPDATE_S = int(os.getenv("QC_PINNED_UPDATE", "600"))  # 10 min
 
 _API_BASE = f"https://api.telegram.org/bot{QC_BOT_TOKEN}"
 
-# ── Telegram helpers ──────────────────────────────────────────────────────────
+# HTTP timeouts (seconds).
+#  - Default write ops (send/edit): short, no long-poll.
+#  - getUpdates long-polls Telegram for QC_LONGPOLL_S; the HTTP read timeout MUST
+#    be strictly greater than the long-poll, otherwise requests aborts the socket
+#    exactly while Telegram is legitimately holding the connection open — turning
+#    every idle poll into a spurious network failure. Property enforced below.
+_HTTP_TIMEOUT_S = 15
+QC_LONGPOLL_S = 20  # Telegram getUpdates long-poll window
+_GETUPDATES_HTTP_TIMEOUT_S = 25  # MUST be > QC_LONGPOLL_S (see _post/get_updates)
+assert _GETUPDATES_HTTP_TIMEOUT_S > QC_LONGPOLL_S, (
+    "getUpdates HTTP timeout must exceed the Telegram long-poll window"
+)
 
 
-def _post(method: str, **kwargs) -> dict:
+# ── Telegram delivery result (TG-QC-001) ──────────────────────────────────────
+#
+# A Telegram call has a *scientific* outcome, never an implicit one. `{}` is
+# never success. Every call funnels through _post() and returns a TransportResult
+# that distinguishes: real ACK, "no change" (already current), Telegram API
+# error (ok=false), HTTP error, invalid/non-JSON body, and network exception.
+
+
+class DeliveryKind(str, Enum):
+    ACK = "ACK"                    # HTTP 2xx AND Telegram {"ok": true}
+    NO_CHANGE = "NO_CHANGE"        # strict editMessageText HTTP/TG 400 already-current
+    TELEGRAM_ERROR = "TELEGRAM_ERROR"   # valid JSON with {"ok": false, ...}
+    HTTP_ERROR = "HTTP_ERROR"      # non-2xx HTTP not classified as a Telegram error
+    INVALID_RESPONSE = "INVALID_RESPONSE"  # 2xx but body is not JSON / lacks "ok"
+    NETWORK_ERROR = "NETWORK_ERROR"     # request raised (timeout, connection, …)
+
+
+@dataclass(frozen=True)
+class TransportResult:
+    """Explicit, safe-to-log outcome of one Telegram API call.
+
+    Never carries the bot token, the token-bearing URL, or any secret. The
+    Telegram `result` payload (when ok=true) is preserved for the caller.
+    """
+
+    kind: DeliveryKind
+    method: str
+    http_status: Optional[int] = None
+    error_code: Optional[int] = None            # Telegram error_code (ok=false)
+    description_safe: Optional[str] = None       # Telegram description, redacted
+    result: Optional[Any] = None                 # Telegram "result" (ok=true only)
+
+    @property
+    def is_ack(self) -> bool:
+        """A real new delivery acknowledgement (message sent/edited)."""
+        return self.kind is DeliveryKind.ACK
+
+    @property
+    def is_delivered(self) -> bool:
+        """The intended content is present on Telegram's side: either a fresh
+        ACK, or NO_CHANGE (the target message already carries this exact
+        content). Both mean the LIVE is up to date; only NO_CHANGE is not a
+        *new* edit — see Q2.4 semantics."""
+        return self.kind in (DeliveryKind.ACK, DeliveryKind.NO_CHANGE)
+
+    @property
+    def is_failure(self) -> bool:
+        return self.kind in (
+            DeliveryKind.TELEGRAM_ERROR,
+            DeliveryKind.HTTP_ERROR,
+            DeliveryKind.INVALID_RESPONSE,
+            DeliveryKind.NETWORK_ERROR,
+        )
+
+    def summary_safe(self) -> str:
+        bits = [self.method, self.kind.value]
+        if self.http_status is not None:
+            bits.append(f"http={self.http_status}")
+        if self.error_code is not None:
+            bits.append(f"tg={self.error_code}")
+        if self.description_safe:
+            bits.append(self.description_safe)
+        return " ".join(bits)
+
+
+def _redact_secrets(text: str) -> str:
+    """Strip the bot token / token-bearing URL from any string before it can
+    reach a log or a TransportResult. Defence in depth: exception strings from
+    the HTTP layer can embed the request URL (which contains the token)."""
+    safe = text
+    if QC_BOT_TOKEN:
+        safe = safe.replace(QC_BOT_TOKEN, "***")
+    return safe.replace(_API_BASE, "https://api.telegram.org/bot***")
+
+
+def _is_no_change(
+    method: str,
+    http_status: int,
+    error_code: int | None,
+    description: str | None,
+) -> bool:
+    """Recognize Telegram's one legitimate already-current response.
+
+    ``message is not modified`` is meaningful only for editMessageText and only
+    with the exact HTTP/Telegram 400 error pair. Other methods or status/error
+    combinations remain delivery failures even if their description contains
+    the same words.
+    """
+    return (
+        method == "editMessageText"
+        and http_status == 400
+        and error_code == 400
+        and isinstance(description, str)
+        and "message is not modified" in description.lower()
+    )
+
+
+def _post(method: str, *, timeout: int = _HTTP_TIMEOUT_S, **kwargs) -> TransportResult:
+    """Perform one Telegram call and classify the outcome. Never raises; never
+    logs the token or the token-bearing URL."""
     try:
-        r = requests.post(f"{_API_BASE}/{method}", timeout=15, **kwargs)
-        return r.json()
+        r = requests.post(f"{_API_BASE}/{method}", timeout=timeout, **kwargs)
     except Exception as e:
-        logger.error("Telegram %s failed: %s", method, e)
-        return {}
+        # Only the exception *type* — str(e) can embed the token-bearing URL.
+        logger.error("Telegram %s network error: %s", method, type(e).__name__)
+        return TransportResult(
+            kind=DeliveryKind.NETWORK_ERROR,
+            method=method,
+            description_safe=type(e).__name__,
+        )
+
+    status = r.status_code
+    try:
+        data = r.json()
+    except Exception:
+        data = None
+
+    # Telegram returns a JSON envelope even on errors ({"ok": false, ...}).
+    # An ok=false envelope is still useful for classifying the Telegram error,
+    # including the one strict NO_CHANGE exception below.
+    if isinstance(data, dict) and data.get("ok") is False:
+        description = data.get("description")
+        desc_safe = _redact_secrets(str(description)) if description is not None else None
+        error_code = data.get("error_code")
+        error_code = int(error_code) if isinstance(error_code, int) else None
+        kind = (
+            DeliveryKind.NO_CHANGE
+            if _is_no_change(method, status, error_code, description)
+            else DeliveryKind.TELEGRAM_ERROR
+        )
+        return TransportResult(
+            kind=kind,
+            method=method,
+            http_status=status,
+            error_code=error_code,
+            description_safe=desc_safe,
+        )
+
+    # HTTP transport success is a prerequisite for ACK. Even a contradictory
+    # non-2xx {"ok": true} envelope must never be accepted as delivered.
+    if not (200 <= status < 300):
+        return TransportResult(
+            kind=DeliveryKind.HTTP_ERROR, method=method, http_status=status
+        )
+
+    if isinstance(data, dict) and data.get("ok") is True:
+        return TransportResult(
+            kind=DeliveryKind.ACK,
+            method=method,
+            http_status=status,
+            result=data.get("result"),
+        )
+
+    # 2xx without an explicit Telegram {"ok": true/false} envelope.
+    return TransportResult(
+        kind=DeliveryKind.INVALID_RESPONSE, method=method, http_status=status
+    )
 
 
-def send_photo(chat_id: str, png_bytes: bytes, caption: str = "") -> dict:
+def send_photo(chat_id: str, png_bytes: bytes, caption: str = "") -> TransportResult:
     return _post(
         "sendPhoto",
         files={"photo": ("chart.png", io.BytesIO(png_bytes), "image/png")},
@@ -56,13 +220,13 @@ def send_photo(chat_id: str, png_bytes: bytes, caption: str = "") -> dict:
     )
 
 
-def send_message(chat_id: str, text: str, parse_mode: str = "HTML") -> dict:
+def send_message(chat_id: str, text: str, parse_mode: str = "HTML") -> TransportResult:
     return _post(
         "sendMessage", json={"chat_id": chat_id, "text": text, "parse_mode": parse_mode}
     )
 
 
-def edit_message(chat_id: str, message_id: str, text: str) -> dict:
+def edit_message(chat_id: str, message_id: str, text: str) -> TransportResult:
     return _post(
         "editMessageText",
         json={
@@ -75,8 +239,53 @@ def edit_message(chat_id: str, message_id: str, text: str) -> dict:
 
 
 def get_updates(offset: int = 0) -> list[dict]:
-    data = _post("getUpdates", json={"timeout": 20, "offset": offset})
-    return data.get("result", [])
+    # getUpdates long-polls for QC_LONGPOLL_S; the HTTP timeout is deliberately
+    # larger (see module constants) so an idle long-poll is not aborted as a
+    # network error. This larger timeout is scoped to getUpdates ONLY.
+    result = _post(
+        "getUpdates",
+        timeout=_GETUPDATES_HTTP_TIMEOUT_S,
+        json={"timeout": QC_LONGPOLL_S, "offset": offset},
+    )
+    if result.is_ack and isinstance(result.result, list):
+        return result.result
+    return []
+
+
+# ── Delivery state (Q2.5 — in-memory only; no DB, no runtime file) ─────────────
+#
+# The Telegram engine knows, by itself, whether its last delivery succeeded.
+# Pure observability of the transport layer — no burn-in, no persistence.
+
+
+@dataclass
+class DeliveryState:
+    """In-memory delivery evidence with ACK and already-current kept distinct."""
+
+    last_attempt_ts: Optional[float] = None
+    last_ack_ts: Optional[float] = None
+    last_confirmed_current_ts: float | None = None
+    last_failure_ts: Optional[float] = None
+    last_failure_kind: Optional[str] = None
+    last_failure_description_safe: Optional[str] = None
+
+    def record(self, result: TransportResult, now: float) -> TransportResult:
+        self.last_attempt_ts = now
+        if result.is_ack:
+            # Only a fresh Telegram {"ok": true} delivery is a real ACK.
+            self.last_ack_ts = now
+        if result.is_delivered:
+            # ACK and NO_CHANGE both prove the intended content is current.
+            self.last_confirmed_current_ts = now
+        else:
+            self.last_failure_ts = now
+            self.last_failure_kind = result.kind.value
+            self.last_failure_description_safe = result.description_safe
+        return result
+
+
+# Module-level singleton — the Quant Observer's own delivery memory.
+_QC_DELIVERY = DeliveryState()
 
 
 # ── SVA rendering helpers ─────────────────────────────────────────────────────
@@ -258,6 +467,29 @@ def _build_pinned_text() -> str:
     return render_quant_live_panel(load_quant_live_snapshot())
 
 
+def _pinned_tick(now: float, last_pinned_update: float) -> float:
+    """One pinned-LIVE update tick (TG-QC-001).
+
+    Returns the possibly-updated ``last_pinned_update``. The timer is advanced
+    ONLY on a real delivery (ACK, or NO_CHANGE = already current); a failed edit
+    leaves it untouched so the loop retries instead of silently moving on.
+    """
+    if not QC_PINNED_MSG:
+        return last_pinned_update
+    if (now - last_pinned_update) < PINNED_UPDATE_S:
+        return last_pinned_update
+    try:
+        text = _build_pinned_text()
+    except Exception as e:
+        logger.warning("Pinned render failed: %s", type(e).__name__)
+        return last_pinned_update
+    result = _QC_DELIVERY.record(edit_message(QC_CHAT_ID, QC_PINNED_MSG, text), now)
+    if result.is_delivered:
+        return now
+    logger.warning("Pinned update not delivered: %s", result.summary_safe())
+    return last_pinned_update
+
+
 # ── Command dispatch ──────────────────────────────────────────────────────────
 
 COMMANDS: dict[str, tuple[str, callable]] = {
@@ -318,14 +550,10 @@ def run():
 
     while True:
         try:
-            # Update pinned live message every PINNED_UPDATE_S seconds
+            # Update pinned live message every PINNED_UPDATE_S seconds.
+            # TG-QC-001: the timer only advances on a real Telegram delivery.
             now = time.time()
-            if QC_PINNED_MSG and (now - last_pinned_update) >= PINNED_UPDATE_S:
-                try:
-                    edit_message(QC_CHAT_ID, QC_PINNED_MSG, _build_pinned_text())
-                    last_pinned_update = now
-                except Exception as e:
-                    logger.warning("Pinned update failed: %s", e)
+            last_pinned_update = _pinned_tick(now, last_pinned_update)
 
             # Poll for commands
             updates = get_updates(offset=offset)
