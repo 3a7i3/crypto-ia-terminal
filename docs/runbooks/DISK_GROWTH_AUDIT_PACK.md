@@ -52,6 +52,30 @@ Filesystem capacity is read only for `/`. The caller cannot select a path,
 filename, depth, threshold or sort field. Changing the catalog requires a
 reviewed code change and a governed VPS deployment.
 
+## Narrow privilege boundary
+
+The audit identity cannot traverse `/home/mathieu` because that directory is
+mode `0750`. The deployment must not weaken that boundary with `chmod`, group
+membership or a broad ACL.
+
+Instead, the dispatcher invokes exactly:
+
+```text
+/usr/bin/sudo -n /usr/local/sbin/claude-disk-growth-root
+```
+
+The root-owned wrapper rejects every argument and executes only:
+
+```text
+/usr/bin/python3 -I /usr/local/bin/claude-disk-growth
+```
+
+The versioned sudoers fragment grants `claude-audit` only that wrapper path.
+It grants neither an interpreter, shell, caller-controlled path nor another
+command. Python isolated mode (`-I`) ignores user-controlled Python environment
+and import-path settings. The pack itself still contains only its two fixed
+runtime roots and metadata-only operations.
+
 ## Metadata collected
 
 For `/`, the pack uses Python `os.statvfs()` to report:
@@ -88,7 +112,8 @@ The pack:
 - never descends into a mounted filesystem with another device identifier;
 - never writes a local baseline, cache, lock or temporary file;
 - never emits raw exception messages or file content;
-- does not run as root and does not invoke `sudo`;
+- contains no `sudo` call; privilege is entered only through the exact
+  root-owned, argument-free wrapper described above;
 - performs no deletion, compression, rotation, truncation or permission change.
 
 Relative filenames are metadata, not content. They are limited to 160 printable
@@ -251,21 +276,32 @@ as failed, so partial evidence remains attributable.
 `tests/test_vps_audit_request.py` verifies that `disk_growth` is present in the
 request validator, workflow choice list, dispatcher and fixed pack source.
 
+`tests/test_claude_disk_growth_root.py` verifies Bash syntax, exact isolated
+Python execution, rejection of every wrapper argument, absence of shell/eval
+escape hatches and the single-command sudoers grant.
+
 ## Governed deployment and runtime certification
 
 After merge:
 
-1. Download the pack and dispatcher from the exact merge commit.
-2. Verify independently supplied SHA-256 hashes and Python/Bash syntax.
+1. Download the pack, root wrapper, sudoers fragment and dispatcher from the
+   exact merge commit.
+2. Verify independently supplied SHA-256 hashes, Python/Bash syntax and
+   `visudo -cf` against the staged fragment.
 3. Verify the current installed dispatcher and create one explicit backup.
 4. Install the pack root-owned, mode `0755`, as
    `/usr/local/bin/claude-disk-growth`.
-5. Run it once directly as `claude-audit` and print only its compact summary.
-6. Install the matching root-owned dispatcher.
-7. Submit one commit-bound `disk_growth` request through BRIDGE-04.
-8. Certify envelope SHA, request hash, exit code, output size, catalog hash and
+5. Install the wrapper root-owned, mode `0755`, as
+   `/usr/local/sbin/claude-disk-growth-root`.
+6. Install the validated sudoers fragment root-owned, mode `0440`, under
+   `/etc/sudoers.d/` and revalidate the active sudoers policy.
+7. Run the exact wrapper once through `sudo -u claude-audit sudo -n` and print
+   only its compact summary.
+8. Install the matching root-owned dispatcher.
+9. Submit one commit-bound `disk_growth` request through BRIDGE-04.
+10. Certify envelope SHA, request hash, exit code, output size, catalog hash and
    negative disclosure contract.
-9. Submit a second observation only after a meaningful interval; calculate
+11. Submit a second observation only after a meaningful interval; calculate
    growth from the two archived complete envelopes.
 
 No service is restarted and no runtime file is created, opened for content,
@@ -273,7 +309,8 @@ rotated, truncated, compressed or deleted during deployment or certification.
 
 ## Rollback
 
-Rollback restores the exact saved dispatcher and removes only
-`/usr/local/bin/claude-disk-growth`. Deployment-specific mobile commands must
-name the backup path explicitly. Wildcards and recursive deletion are not
+Rollback restores the exact saved dispatcher, removes the exact sudoers
+fragment after validating the remaining policy, and removes only the fixed
+wrapper and pack paths. Deployment-specific mobile commands must name every
+target and backup explicitly. Wildcards and recursive deletion are not
 permitted.
