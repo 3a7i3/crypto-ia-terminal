@@ -2,10 +2,11 @@
 
 ## Décision
 
-Le burn-in EXP-001 est suspendu administrativement à compter du
-`2026-09-02T20:18:12Z`. Son historique est conservé pour analyse forensic,
-mais il n'est pas certifiable et ne doit pas être mélangé à la prochaine
-époque expérimentale.
+La certification du burn-in EXP-001 est suspendue à compter du
+`2026-09-02T20:18:12Z`. Le runtime VPS reste actif en paper/revision afin de
+tester le comportement réel de l'infrastructure. Son historique est conservé
+pour analyse forensic, mais il n'est pas certifiable et ne doit pas être
+mélangé à la prochaine époque expérimentale.
 
 La fenêtre opérationnelle `STABILIZATION_LAB` court du 3 septembre 2026
 au 16 septembre 2026 inclus. Elle peut être close plus tôt par verdict humain,
@@ -62,8 +63,37 @@ l'état actuellement déployé.
 - Activation live, micro-live ou permissions API de trading/retrait.
 - Suppression ou réécriture des journaux historiques.
 - Modification rétroactive de `experiments/EXP-001.yaml`.
-- Déploiement ou redémarrage implicite.
+- Déploiement d'une branche non mergée, d'un SHA non identifié ou restart sans vérification post-déploiement.
 - Interaction décisionnelle de Telegram, LMI ou d'un observer avec le moteur.
+
+## Protocole de déploiement pendant la révision
+
+Le VPS reste disponible comme banc d'essai de l'infrastructure réelle. Les
+tests runtime sont nécessaires notamment pour systemd, la concurrence des
+processus, la rotation des fichiers, les permissions, le réseau et Telegram.
+
+Un changement peut atteindre le VPS uniquement selon cette chaîne:
+
+1. une question causale et une PR dédiée;
+2. tests ciblés et CI interprétée;
+3. revue puis merge sur `main`;
+4. déploiement explicite du SHA mergé, jamais de la branche de travail;
+5. `git fetch` puis mise à jour en fast-forward uniquement;
+6. vérification du SHA et des flags non secrets;
+7. restart du seul service concerné;
+8. smoke test, journal borné et preuve de santé;
+9. période d'observation de 24 à 48 heures;
+10. verdict PASS, FAIL ou ROLLBACK avant la mission suivante.
+
+Le téléphone peut déclencher ce protocole par une interface GitHub
+`workflow_dispatch` contrôlée. Cela n'autorise pas un déploiement automatique
+sur chaque push. Chaque run doit être lié au commit mergé qui l'a déclenché,
+produire un rapport d'audit et conserver un rollback explicite.
+
+Les données produites après chaque déploiement restent
+`revision_mode=true`, `certified=false`. Les pulls, pushes, déploiements et
+restarts sont autorisés comme instruments de validation; ils rendent
+précisément cette fenêtre impropre à un burn-in statistique homogène.
 
 ## Méthode de correction
 
