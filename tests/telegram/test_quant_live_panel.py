@@ -363,6 +363,31 @@ def test_telegram_and_main_channel_absent_from_panel(tmp_path, monkeypatch):
     assert "FAILED" not in panel  # only the telegram stage carried FAILED
 
 
+def test_filter_targets_telegram_stage_not_failed_status(tmp_path, monkeypatch):
+    """The exclusion must key on the *stage name* 'Telegram', never on the
+    FAILED status. With a genuinely FAILED, non-Telegram stage present, that
+    stage — and its FAILED status/message — must survive; only the generic
+    Telegram/main_channel stage is dropped."""
+    payload = _clone()
+    payload["system_snapshot"]["pipeline"] = [
+        {"name": "Exchange", "status": "FAILED", "message": "exchange_unavailable"},
+        {"name": "Telegram", "status": "FAILED", "message": "main_channel"},
+    ]
+    snap = _load(tmp_path, monkeypatch, payload)
+    names = [s["name"] for s in snap.pipeline_stages]
+    assert "Telegram" not in names
+    assert "Exchange" in names
+
+    panel = render_quant_live_panel(snap)
+    # generic Telegram stage dropped
+    assert "Telegram" not in panel
+    assert "main_channel" not in panel
+    # but a real FAILED non-Telegram stage is preserved verbatim
+    assert "Exchange" in panel
+    assert "FAILED" in panel
+    assert "exchange_unavailable" in panel
+
+
 # ── Q1 §13 + FIX 1 — Telegram never used as Quant health ──────────────────────
 
 def test_telegram_health_not_surfaced(tmp_path, monkeypatch):
@@ -538,3 +563,66 @@ def test_no_fabricated_now_on_invalid_timestamp(tmp_path, monkeypatch):
     snap = _load(tmp_path, monkeypatch, _clone(timestamp_utc="garbage"))
     assert snap.ts is None
     assert snap.snapshot_age_s is None
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# QC-DATA-002 — atomic snapshot projection (Q1.2)
+# ══════════════════════════════════════════════════════════════════════════════
+
+def test_projection_reads_canonical_snapshot_exactly_once(monkeypatch):
+    """One LIVE card = one coherent observation.
+
+    The canonical snapshot (databases/live_snapshot.json) must be read EXACTLY
+    ONCE per projection, so cycle/timestamp and market/decision/attrition/
+    pipeline cannot straddle two engine cycles. This test drives a call counter
+    on the physical read boundary (system_snapshot_source._read_live_snapshot),
+    through which every canonical read funnels. It FAILS on Q1.1 (two reads:
+    load_system_snapshot_dict + load_system_snapshot_meta) and PASSES on Q1.2
+    (single read, meta derived from the same payload).
+    """
+    calls = {"n": 0}
+
+    def counting_read():
+        calls["n"] += 1
+        return _SNAPSHOT  # full live payload (top-level with 'system_snapshot')
+
+    monkeypatch.setattr(system_snapshot_source, "_read_live_snapshot", counting_read)
+
+    snap = load_quant_live_snapshot()
+
+    assert calls["n"] == 1, (
+        f"canonical snapshot read {calls['n']} times, expected exactly 1 "
+        "(QC-DATA-002 non-atomic projection)"
+    )
+    # meta-derived fields AND decision fields come from that single payload.
+    assert snap.cycle == 597
+    assert snap.engine_version == "v9.1"
+    assert snap.state == "ACTIVE"
+    assert snap.top_candidate_symbol == "MORPHO/USDT"
+
+
+def test_meta_and_decision_from_same_payload(monkeypatch):
+    """Even if a second read WOULD return a different (N+1) payload, the
+    projection must not observe it: meta (cycle) and decision stay coherent
+    with the first and only read."""
+    payloads = iter([
+        _clone(cycle=597),                          # first (and only) read
+        _clone(cycle=999, timestamp_utc="2099-01-01T00:00:00Z"),  # never reached
+    ])
+
+    def drifting_read():
+        return next(payloads)
+
+    monkeypatch.setattr(system_snapshot_source, "_read_live_snapshot", drifting_read)
+
+    snap = load_quant_live_snapshot()
+    assert snap.cycle == 597  # never 999 from a second read
+    assert snap.state == "ACTIVE"
+
+
+def test_loader_calls_meta_loader_removed():
+    """Static guard: the projection no longer imports/uses the second-read
+    helper load_system_snapshot_meta (QC-DATA-002)."""
+    src = Path("visualization/api/quant_live_api.py").read_text(encoding="utf-8")
+    assert "load_system_snapshot_meta" not in src
+    assert src.count("load_system_snapshot_dict(") == 1

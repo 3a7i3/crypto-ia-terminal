@@ -19,7 +19,6 @@ from datetime import datetime, timezone
 from visualization.api.models import QuantLiveSnapshot
 from visualization.api.system_snapshot_source import (
     load_system_snapshot_dict,
-    load_system_snapshot_meta,
     parse_iso_dt,
 )
 
@@ -32,8 +31,14 @@ def _is_telegram_stage(name: str) -> bool:
 
 
 def load_quant_live_snapshot() -> QuantLiveSnapshot:
+    # QC-DATA-002 — atomic projection: read the canonical snapshot EXACTLY ONCE
+    # so every field (cycle/timestamp AND market/decision/attrition/pipeline)
+    # comes from the same observation. A second read could straddle cycle N and
+    # N+1, breaking the Quant Observer contract: one LIVE card = one coherent
+    # observation. meta is derived from this same snap, never re-read.
     snap = load_system_snapshot_dict()
-    meta = load_system_snapshot_meta()
+    raw_meta = snap.get("meta", {})
+    meta = raw_meta if isinstance(raw_meta, dict) else {}
 
     # FIX 7 — never fabricate a timestamp. A missing/empty/invalid timestamp_utc
     # yields ts=None and snapshot_age_s=None so the LIVE shows UNAVAILABLE, not 0s.
