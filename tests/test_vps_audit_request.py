@@ -51,11 +51,29 @@ class TestImmutableGitRequests(unittest.TestCase):
         pack = (root / "scripts/claude-disk-growth.py").read_text(
             encoding="utf-8"
         )
+        wrapper = (root / "scripts/claude-disk-growth-root").read_text(
+            encoding="utf-8"
+        )
+        sudoers = (root / "deploy/sudoers/claude-audit-disk-growth").read_text(
+            encoding="utf-8"
+        )
 
         self.assertIn("disk_growth", audit_request.ALLOWED_ACTIONS)
         self.assertIn("          - disk_growth\n", workflow)
         self.assertIn("    disk_growth)\n", dispatcher)
         self.assertIn("ROOT_CATALOG = (\n", pack)
+        self.assertIn(
+            "exec /usr/bin/sudo -n /usr/local/sbin/claude-disk-growth-root",
+            dispatcher,
+        )
+        self.assertIn(
+            "exec /usr/bin/python3 -I /usr/local/bin/claude-disk-growth",
+            wrapper,
+        )
+        self.assertIn(
+            "NOPASSWD: /usr/local/sbin/claude-disk-growth-root",
+            sudoers,
+        )
 
     def test_service_trigger_matrix_is_allowlisted_end_to_end(self):
         root = Path(__file__).resolve().parents[1]
