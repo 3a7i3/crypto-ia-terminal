@@ -1,5 +1,5 @@
-schema_version: 1
-event_type: EXPERIMENT_SUSPENSION
+schema_version: 2
+event_type: EXPERIMENT_CERTIFICATION_SUSPENSION
 event_id: EXP-001-PAUSE-2026-09-02
 experiment_id: EXP-001
 recorded_at_utc: "2026-09-02T20:18:12Z"
@@ -8,19 +8,33 @@ recording_policy: append_only
 
 decision:
   status_before: IN_PROGRESS
-  status_after: SUSPENDED_ADMINISTRATIVELY
+  status_after: RUNNING_NON_CERTIFIABLE
   reason_code: INSTRUMENT_NOT_CERTIFIED
   reason: >
-    Burn-in lancé avant certification suffisante du runtime, des datasets,
-    de la vérité des positions, du protocole d'ordre et de l'observabilité.
-    Les pulls et redémarrages successifs empêchent de traiter la population
-    comme une époque homogène.
+    La machine continue en paper/revision comme banc d'essai du runtime, mais
+    les pulls, déploiements et redémarrages nécessaires à la stabilisation
+    empêchent de traiter cette période comme une époque expérimentale homogène.
   initiated_by: human_operator
 
 operator_reported_counts:
   displayed_or_attempted_trades_approx: 500
   durably_recorded_closed_trades: 38
   verification_status: UNVERIFIED_PENDING_RUNTIME_RECONCILIATION
+
+runtime_operation:
+  keep_vps_running: true
+  paper_simulation_allowed: true
+  live_trading_allowed: false
+  controlled_deployments_allowed: true
+  controlled_restarts_allowed: true
+  observation_after_each_deployment_hours:
+    minimum: 24
+    maximum: 48
+  automatic_deploy_on_push: false
+  deploy_only_merged_main_sha: true
+  fast_forward_only: true
+  post_restart_verification_required: true
+  rollback_required: true
 
 data_disposition:
   delete_existing_data: false
@@ -44,7 +58,7 @@ window:
   operational_start_utc: "2026-09-03T00:00:00Z"
   audit_deadline_utc: "2026-09-17T00:00:00Z"
   local_calendar_end: "2026-09-16"
-  automatic_resume: false
+  automatic_resume_of_certified_burnin: false
   early_close_requires_human_verdict: true
 
 resume_gate:
