@@ -312,6 +312,25 @@ invent a baseline from memory or compare partial scans as if they were exact.</p
 filename, depth, threshold or sort field. Changing the catalog requires a
 reviewed code change and a governed VPS deployment.</p>
 </section>
+<section id="narrow-privilege-boundary">
+<h2>Narrow privilege boundary<a class="headerlink" href="#narrow-privilege-boundary" title="Link to this heading">¶</a></h2>
+<p>The audit identity cannot traverse <code class="docutils literal notranslate"><span class="pre">/home/mathieu</span></code> because that directory is
+mode <code class="docutils literal notranslate"><span class="pre">0750</span></code>. The deployment must not weaken that boundary with <code class="docutils literal notranslate"><span class="pre">chmod</span></code>, group
+membership or a broad ACL.</p>
+<p>Instead, the dispatcher invokes exactly:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>/usr/bin/sudo -n /usr/local/sbin/claude-disk-growth-root
+</pre></div>
+</div>
+<p>The root-owned wrapper rejects every argument and executes only:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>/usr/bin/python3 -I /usr/local/bin/claude-disk-growth
+</pre></div>
+</div>
+<p>The versioned sudoers fragment grants <code class="docutils literal notranslate"><span class="pre">claude-audit</span></code> only that wrapper path.
+It grants neither an interpreter, shell, caller-controlled path nor another
+command. Python isolated mode (<code class="docutils literal notranslate"><span class="pre">-I</span></code>) ignores user-controlled Python environment
+and import-path settings. The pack itself still contains only its two fixed
+runtime roots and metadata-only operations.</p>
+</section>
 <section id="metadata-collected">
 <h2>Metadata collected<a class="headerlink" href="#metadata-collected" title="Link to this heading">¶</a></h2>
 <p>For <code class="docutils literal notranslate"><span class="pre">/</span></code>, the pack uses Python <code class="docutils literal notranslate"><span class="pre">os.statvfs()</span></code> to report:</p>
@@ -348,7 +367,8 @@ files;</p></li>
 <li><p>never descends into a mounted filesystem with another device identifier;</p></li>
 <li><p>never writes a local baseline, cache, lock or temporary file;</p></li>
 <li><p>never emits raw exception messages or file content;</p></li>
-<li><p>does not run as root and does not invoke <code class="docutils literal notranslate"><span class="pre">sudo</span></code>;</p></li>
+<li><p>contains no <code class="docutils literal notranslate"><span class="pre">sudo</span></code> call; privilege is entered only through the exact
+root-owned, argument-free wrapper described above;</p></li>
 <li><p>performs no deletion, compression, rotation, truncation or permission change.</p></li>
 </ul>
 <p>Relative filenames are metadata, not content. They are limited to 160 printable
@@ -552,17 +572,27 @@ as failed, so partial evidence remains attributable.</p>
 </ul>
 <p><code class="docutils literal notranslate"><span class="pre">tests/test_vps_audit_request.py</span></code> verifies that <code class="docutils literal notranslate"><span class="pre">disk_growth</span></code> is present in the
 request validator, workflow choice list, dispatcher and fixed pack source.</p>
+<p><code class="docutils literal notranslate"><span class="pre">tests/test_claude_disk_growth_root.py</span></code> verifies Bash syntax, exact isolated
+Python execution, rejection of every wrapper argument, absence of shell/eval
+escape hatches and the single-command sudoers grant.</p>
 </section>
 <section id="governed-deployment-and-runtime-certification">
 <h2>Governed deployment and runtime certification<a class="headerlink" href="#governed-deployment-and-runtime-certification" title="Link to this heading">¶</a></h2>
 <p>After merge:</p>
 <ol class="arabic simple">
-<li><p>Download the pack and dispatcher from the exact merge commit.</p></li>
-<li><p>Verify independently supplied SHA-256 hashes and Python/Bash syntax.</p></li>
+<li><p>Download the pack, root wrapper, sudoers fragment and dispatcher from the
+exact merge commit.</p></li>
+<li><p>Verify independently supplied SHA-256 hashes, Python/Bash syntax and
+<code class="docutils literal notranslate"><span class="pre">visudo</span> <span class="pre">-cf</span></code> against the staged fragment.</p></li>
 <li><p>Verify the current installed dispatcher and create one explicit backup.</p></li>
 <li><p>Install the pack root-owned, mode <code class="docutils literal notranslate"><span class="pre">0755</span></code>, as
 <code class="docutils literal notranslate"><span class="pre">/usr/local/bin/claude-disk-growth</span></code>.</p></li>
-<li><p>Run it once directly as <code class="docutils literal notranslate"><span class="pre">claude-audit</span></code> and print only its compact summary.</p></li>
+<li><p>Install the wrapper root-owned, mode <code class="docutils literal notranslate"><span class="pre">0755</span></code>, as
+<code class="docutils literal notranslate"><span class="pre">/usr/local/sbin/claude-disk-growth-root</span></code>.</p></li>
+<li><p>Install the validated sudoers fragment root-owned, mode <code class="docutils literal notranslate"><span class="pre">0440</span></code>, under
+<code class="docutils literal notranslate"><span class="pre">/etc/sudoers.d/</span></code> and revalidate the active sudoers policy.</p></li>
+<li><p>Run the exact wrapper once through <code class="docutils literal notranslate"><span class="pre">sudo</span> <span class="pre">-u</span> <span class="pre">claude-audit</span> <span class="pre">sudo</span> <span class="pre">-n</span></code> and print
+only its compact summary.</p></li>
 <li><p>Install the matching root-owned dispatcher.</p></li>
 <li><p>Submit one commit-bound <code class="docutils literal notranslate"><span class="pre">disk_growth</span></code> request through BRIDGE-04.</p></li>
 <li><p>Certify envelope SHA, request hash, exit code, output size, catalog hash and
@@ -575,9 +605,10 @@ rotated, truncated, compressed or deleted during deployment or certification.</p
 </section>
 <section id="rollback">
 <h2>Rollback<a class="headerlink" href="#rollback" title="Link to this heading">¶</a></h2>
-<p>Rollback restores the exact saved dispatcher and removes only
-<code class="docutils literal notranslate"><span class="pre">/usr/local/bin/claude-disk-growth</span></code>. Deployment-specific mobile commands must
-name the backup path explicitly. Wildcards and recursive deletion are not
+<p>Rollback restores the exact saved dispatcher, removes the exact sudoers
+fragment after validating the remaining policy, and removes only the fixed
+wrapper and pack paths. Deployment-specific mobile commands must name every
+target and backup explicitly. Wildcards and recursive deletion are not
 permitted.</p>
 </section>
 </section>
@@ -623,6 +654,7 @@ permitted.</p>
 <li><a class="reference internal" href="#purpose">Purpose</a></li>
 <li><a class="reference internal" href="#scientific-meaning-of-growth">Scientific meaning of “growth”</a></li>
 <li><a class="reference internal" href="#fixed-observation-scope">Fixed observation scope</a></li>
+<li><a class="reference internal" href="#narrow-privilege-boundary">Narrow privilege boundary</a></li>
 <li><a class="reference internal" href="#metadata-collected">Metadata collected</a></li>
 <li><a class="reference internal" href="#negative-authority-contract">Negative authority contract</a></li>
 <li><a class="reference internal" href="#hard-bounds">Hard bounds</a></li>
