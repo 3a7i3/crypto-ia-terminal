@@ -82,12 +82,19 @@ class QuantLiveSnapshot:
       * host metrics (RAM/CPU/PID)                        → not SDOS signal
       * health.telegram / main_channel                    → generic historical
         channel, not this bot's delivery health
+      * health.database                                   → only asserts the
+        "databases" directory exists; not integrity/freshness, so not shown
+      * "confidence"                                      → the producer's value
+        is the mean of signal scores (_brain_score), not a probabilistic
+        confidence; exposed verbatim as mean_signal_score, never interpreted
 
     Pure projection of ``system_snapshot`` (databases/live_snapshot.json via the
     canonical source adapter). ADR-0007 passivity: observes, never decides.
     """
 
-    ts: datetime
+    # ts is None when the snapshot carries no valid timestamp_utc — never a
+    # fabricated "now" (that would make a stale/broken snapshot look fresh).
+    ts: Optional[datetime]
     cycle: int
     engine_version: str
     snapshot_age_s: Optional[float]
@@ -95,7 +102,6 @@ class QuantLiveSnapshot:
     # DATA — raw observed health booleans (never an aggregate %)
     health_market: bool
     health_api: bool
-    health_database: bool
 
     # MARKET — what the engine currently sees
     regime: str
@@ -107,7 +113,9 @@ class QuantLiveSnapshot:
     top_candidate_symbol: str
     top_candidate_score: float
     required_score: float
-    confidence_pct: int
+    # Mean of the signal scores (producer: _brain_score / brain_score_pct),
+    # shown as NN / 100. NOT a probabilistic confidence — never interpreted.
+    mean_signal_score: int
     reason_text: str
     gate_reason: str
     next_evaluation_sec: int

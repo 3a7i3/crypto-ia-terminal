@@ -24,12 +24,23 @@ from visualization.api.system_snapshot_source import (
 )
 
 
+def _is_telegram_stage(name: str) -> bool:
+    """Telegram/main_channel is the generic historical channel, NOT this bot's
+    delivery. Excluded from the Quant projection for Q1/Q1.1 (clean delivery is
+    instrumented in Q2)."""
+    return name.strip().lower() == "telegram"
+
+
 def load_quant_live_snapshot() -> QuantLiveSnapshot:
     snap = load_system_snapshot_dict()
     meta = load_system_snapshot_meta()
 
-    ts = parse_iso_dt(meta.get("timestamp_utc")) or datetime.now(timezone.utc)
-    snapshot_age_s = max((datetime.now(timezone.utc) - ts).total_seconds(), 0.0)
+    # FIX 7 — never fabricate a timestamp. A missing/empty/invalid timestamp_utc
+    # yields ts=None and snapshot_age_s=None so the LIVE shows UNAVAILABLE, not 0s.
+    ts = parse_iso_dt(meta.get("timestamp_utc"))
+    snapshot_age_s = None
+    if ts is not None:
+        snapshot_age_s = max((datetime.now(timezone.utc) - ts).total_seconds(), 0.0)
 
     health = snap.get("health", {})
     market = snap.get("market", {})
@@ -43,6 +54,7 @@ def load_quant_live_snapshot() -> QuantLiveSnapshot:
         for k, v in dict(block_stats.get("current_cycle", [])).items()
     }
 
+    # FIX 1 — filter out the Telegram/main_channel stage.
     pipeline_stages = [
         {
             "name": str(s.get("name", "")),
@@ -50,7 +62,7 @@ def load_quant_live_snapshot() -> QuantLiveSnapshot:
             "message": str(s.get("message", "")),
         }
         for s in snap.get("pipeline", [])
-        if isinstance(s, dict)
+        if isinstance(s, dict) and not _is_telegram_stage(str(s.get("name", "")))
     ]
 
     decision_trace = [
@@ -71,7 +83,6 @@ def load_quant_live_snapshot() -> QuantLiveSnapshot:
         snapshot_age_s=snapshot_age_s,
         health_market=bool(health.get("market", False)),
         health_api=bool(health.get("api", False)),
-        health_database=bool(health.get("database", False)),
         regime=str(market.get("regime", "unknown") or "unknown"),
         exchange_latency_ms=float(market.get("exchange_latency_ms", 0.0) or 0.0),
         exchange_uptime_pct=float(market.get("exchange_uptime_pct", 0.0) or 0.0),
@@ -79,7 +90,8 @@ def load_quant_live_snapshot() -> QuantLiveSnapshot:
         top_candidate_symbol=str(decision.get("highest_candidate_symbol", "") or ""),
         top_candidate_score=float(decision.get("highest_candidate_score", 0.0) or 0.0),
         required_score=float(decision.get("required_score", 0.0) or 0.0),
-        confidence_pct=int(decision.get("confidence_pct", 0) or 0),
+        # FIX 3 — producer's brain_score_pct = mean of signal scores.
+        mean_signal_score=int(decision.get("brain_score_pct", 0) or 0),
         reason_text=str(decision.get("reason_text", "") or ""),
         gate_reason=str(decision.get("gate_reason", "") or ""),
         next_evaluation_sec=int(decision.get("next_evaluation_sec", 0) or 0),

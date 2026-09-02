@@ -10,6 +10,7 @@ to the VES, and publishes the result. It does not read databases directly.
 from __future__ import annotations
 
 import asyncio  # noqa: F401
+import html
 import io
 import logging
 import os
@@ -139,8 +140,21 @@ def _layer_label(key: str) -> str:
     return _LAYER_LABELS.get(key, key.replace("_", " ").capitalize())
 
 
+def _esc(value) -> str:
+    """Escape any dynamic value for Telegram HTML (<, >, &).
+
+    All non-static text placed in the panel goes through this so producer
+    strings (engine version, reason_text, gate_reason, symbols, pipeline and
+    trace fields, …) can never be interpreted as HTML / injected.
+    """
+    return html.escape(str(value), quote=False)
+
+
 def _row(label: str, value: str, width: int = 18) -> str:
-    return f"<code>{label:<{width}}{value}</code>"
+    # Pad on the RAW label (alignment), then escape label AND value. Padding
+    # before escaping keeps column width correct — entities render as one glyph.
+    padded = f"{label:<{width}}"
+    return f"<code>{_esc(padded)}{_esc(value)}</code>"
 
 
 def _ok(flag: bool) -> str:
@@ -155,22 +169,22 @@ def render_quant_live_panel(snap) -> str:
     """Pure formatter: QuantLiveSnapshot → Telegram HTML LIVE panel.
 
     No I/O, no side effects — safe to unit-test with a constructed snapshot.
+    All dynamic values are HTML-escaped (see ``_esc`` / ``_row``); only the
+    static tags (<b>, <code>) are literal markup.
     """
     engine = snap.engine_version or "n/a"
     score_txt = _fmt_score(snap.top_candidate_score)
     required_txt = _fmt_score(snap.required_score)
+    age = snap.snapshot_age_s
+    age_txt = "UNAVAILABLE" if age is None else f"{age:.0f}s"
     lines = [
         "🔬 <b>SDOS LIVE</b>",
-        f"<code>Cycle {snap.cycle} · Engine {engine}</code>",
+        f"<code>Cycle {_esc(snap.cycle)} · Engine {_esc(engine)}</code>",
         "",
         "<b>DATA</b>",
-    ]
-    if snap.snapshot_age_s is not None:
-        lines.append(_row("Snapshot age", f"{snap.snapshot_age_s:.0f}s"))
-    lines += [
+        _row("Snapshot age", age_txt),
         _row("Market", _ok(snap.health_market)),
         _row("API", _ok(snap.health_api)),
-        _row("Database", _ok(snap.health_database)),
         "",
         "<b>MARKET</b>",
         _row("Regime", (snap.regime or "unknown").replace("_", " ").upper()),
@@ -181,7 +195,8 @@ def render_quant_live_panel(snap) -> str:
         _row("State", snap.state or "—"),
         _row("Top candidate", snap.top_candidate_symbol or "—"),
         _row("Score", f"{score_txt} / {required_txt}"),
-        _row("Confidence", f"{snap.confidence_pct}%"),
+        # FIX 3 — producer value is the mean of signal scores, not a confidence.
+        _row("Mean signal score", f"{snap.mean_signal_score} / 100"),
     ]
     if snap.reason_text:
         lines.append(_row("Reason", snap.reason_text))
@@ -207,18 +222,23 @@ def render_quant_live_panel(snap) -> str:
     else:
         lines.append(_row("Total refusals", "0"))
 
-    # ── PIPELINE — real stages ──
+    # ── PIPELINE — REPORTED / PARTIAL ──
+    # FIX 5 — this is the state DECLARED by the producer, not independent health
+    # instrumentation: some stages are OK by construction. Not proof the chain
+    # is sound. Telegram/main_channel is excluded upstream (projection).
     if snap.pipeline_stages:
-        lines += ["", "<b>PIPELINE</b>"]
+        lines += ["", "<b>PIPELINE — REPORTED / PARTIAL</b>"]
         for stage in snap.pipeline_stages:
             status = stage.get("status", "")
             message = stage.get("message", "")
             value = f"{status} · {message}" if message else status
             lines.append(_row(stage.get("name", ""), value))
 
-    # ── DECISION TRACE — real nodes ──
+    # ── LIVE TRACE — PARTIAL ──
+    # FIX 6 — only the nodes actually present in the snapshot; NOT the full
+    # causal chain. No synthetic Gate/MetaStrategy/etc. nodes are invented.
     if snap.decision_trace:
-        lines += ["", "<b>DECISION TRACE</b>"]
+        lines += ["", "<b>LIVE TRACE — PARTIAL</b>"]
         for node in snap.decision_trace:
             parts = [str(node.get("decision", ""))]
             score = node.get("score")
