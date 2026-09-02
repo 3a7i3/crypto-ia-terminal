@@ -10,11 +10,15 @@ to the VES, and publishes the result. It does not read databases directly.
 from __future__ import annotations
 
 import asyncio  # noqa: F401
+import hashlib
 import html
 import io
+import json
 import logging
+import math
 import os
 import time
+from collections.abc import Mapping
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path  # noqa: F401
@@ -36,6 +40,8 @@ QC_PINNED_MSG = os.getenv("QC_PINNED_MSG_ID", "")  # ID of the pinned live messa
 
 POLL_INTERVAL_S = int(os.getenv("QC_POLL_INTERVAL", "2"))
 PINNED_UPDATE_S = int(os.getenv("QC_PINNED_UPDATE", "600"))  # 10 min
+QC_SAFETY_REFRESH_S = int(os.getenv("QC_SAFETY_REFRESH", "1800"))  # 30 min
+QC_LIVE_RETRY_S = int(os.getenv("QC_LIVE_RETRY", "30"))
 
 _API_BASE = f"https://api.telegram.org/bot{QC_BOT_TOKEN}"
 
@@ -462,9 +468,221 @@ def render_quant_live_panel(snap) -> str:
 
 
 def _build_pinned_text() -> str:
+    return render_quant_live_panel(_load_quant_live_snapshot())
+
+
+def _load_quant_live_snapshot():
     from visualization.api import load_quant_live_snapshot
 
-    return render_quant_live_panel(load_quant_live_snapshot())
+    return load_quant_live_snapshot()
+
+
+# ── Change-driven pinned LIVE (Q3 — in-memory only) ───────────────────────────
+
+
+@dataclass
+class ChangeDrivenLiveState:
+    """Evidence for the last semantic LIVE state confirmed by Telegram."""
+
+    confirmed_fingerprint: str | None = None
+    last_inspection_ts: float | None = None
+    last_delivery_attempt_ts: float | None = None
+    last_confirmed_ts: float | None = None
+    last_delivery_failed: bool = False
+
+
+_QC_LIVE_STATE = ChangeDrivenLiveState()
+
+
+def _quantize_rendered_number(value: Any, format_spec: str) -> Any:
+    """Return the visible numeric value, tagging non-finite states explicitly."""
+    rendered = format(value, format_spec)
+    if isinstance(value, float) and not math.isfinite(value):
+        if math.isnan(value):
+            return ["nonfinite", "nan"]
+        return ["nonfinite", "+inf" if value > 0 else "-inf"]
+    return rendered
+
+
+def _quant_live_semantic_projection(snap) -> dict[str, Any]:
+    """Canonical Q1 scientific content, excluding display-only clock fields.
+
+    Mapping keys are sorted explicitly. Pipeline and trace collections retain
+    producer order because stage/causal order is itself meaningful; only the
+    fields rendered by Q1 are projected, so hidden metadata cannot trigger an
+    edit.
+    """
+    refusal_breakdown = {
+        str(key): value
+        for key, value in sorted(
+            snap.refusal_breakdown.items(), key=lambda item: str(item[0])
+        )
+    }
+    pipeline_stages = [
+        {
+            "name": stage.get("name", ""),
+            "status": stage.get("status", ""),
+            "message": stage.get("message", ""),
+        }
+        for stage in snap.pipeline_stages
+    ]
+    decision_trace = [
+        {
+            "node": node.get("node", ""),
+            "decision": node.get("decision", ""),
+            "score": node.get("score"),
+            "reason_code": node.get("reason_code", ""),
+        }
+        for node in snap.decision_trace
+    ]
+    return {
+        "health_market": snap.health_market,
+        "health_api": snap.health_api,
+        "regime": snap.regime,
+        # Keep the fingerprint aligned with the visible Q1 representation.
+        # This also turns NaN/Inf into stable, immediately deliverable text.
+        "exchange_latency_ms": _quantize_rendered_number(
+            snap.exchange_latency_ms, ".0f"
+        ),
+        "exchange_uptime_pct": _quantize_rendered_number(
+            snap.exchange_uptime_pct, ".0f"
+        ),
+        "state": snap.state,
+        "top_candidate_symbol": snap.top_candidate_symbol,
+        "top_candidate_score": snap.top_candidate_score,
+        "required_score": snap.required_score,
+        "mean_signal_score": snap.mean_signal_score,
+        "reason_text": snap.reason_text,
+        "gate_reason": snap.gate_reason,
+        "refusal_breakdown": refusal_breakdown,
+        "total_refusals": snap.total_refusals,
+        "dominant_filter": snap.dominant_filter,
+        "dominant_filter_pct": snap.dominant_filter_pct,
+        "pipeline_stages": pipeline_stages,
+        "decision_trace": decision_trace,
+    }
+
+
+def _canonical_json(value: Any) -> str:
+    return json.dumps(
+        value,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+        allow_nan=False,
+    )
+
+
+def _canonicalize_fingerprint_value(value: Any) -> Any:
+    """Normalize supported semantic values into a deterministic JSON tree.
+
+    Numeric values share one domain (1 == 1.0, including signed zero), while
+    booleans retain their own type. Non-finite floats use explicit stable tags
+    so an anomalous state remains fingerprintable and visible. Mapping order is
+    normalized, while list/tuple order remains semantically significant.
+    """
+    if value is None:
+        return ["none"]
+    if isinstance(value, bool):
+        return ["bool", value]
+    if isinstance(value, int):
+        return ["number", value]
+    if isinstance(value, float):
+        if not math.isfinite(value):
+            if math.isnan(value):
+                return ["nonfinite", "nan"]
+            return ["nonfinite", "+inf" if value > 0 else "-inf"]
+        if value == 0.0:
+            normalized: int | float = 0
+        elif value.is_integer():
+            normalized = int(value)
+        else:
+            normalized = value
+        return ["number", normalized]
+    if isinstance(value, str):
+        return ["string", value]
+    if isinstance(value, Mapping):
+        entries = [
+            [
+                _canonicalize_fingerprint_value(key),
+                _canonicalize_fingerprint_value(item),
+            ]
+            for key, item in value.items()
+        ]
+        entries.sort(key=lambda entry: _canonical_json(entry[0]))
+        return ["mapping", entries]
+    if isinstance(value, (list, tuple)):
+        return [
+            "sequence",
+            [_canonicalize_fingerprint_value(item) for item in value],
+        ]
+    raise TypeError(f"unsupported fingerprint value type: {type(value).__name__}")
+
+
+def _quant_live_fingerprint(snap) -> str:
+    canonical_projection = _canonicalize_fingerprint_value(
+        _quant_live_semantic_projection(snap)
+    )
+    canonical = _canonical_json(canonical_projection)
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def _change_driven_live_tick(now: float, last_pinned_update: float) -> float:
+    """Inspect LIVE state and edit only on semantic change or safety refresh.
+
+    ACK and NO_CHANGE confirm the candidate fingerprint. Every Q2 failure keeps
+    the preceding fingerprint, making an identical subsequent state retryable.
+    """
+    if not QC_PINNED_MSG:
+        return last_pinned_update
+
+    try:
+        snap = _load_quant_live_snapshot()
+        fingerprint = _quant_live_fingerprint(snap)
+    except Exception as e:  # noqa: BLE001 — keep the polling observer alive
+        logger.warning("Pinned inspection failed: %s", type(e).__name__)
+        return last_pinned_update
+
+    _QC_LIVE_STATE.last_inspection_ts = now
+    safety_refresh_due = (
+        _QC_LIVE_STATE.confirmed_fingerprint is not None
+        and (
+            _QC_LIVE_STATE.last_confirmed_ts is None
+            or (now - _QC_LIVE_STATE.last_confirmed_ts) >= QC_SAFETY_REFRESH_S
+        )
+    )
+    if (
+        fingerprint == _QC_LIVE_STATE.confirmed_fingerprint
+        and not safety_refresh_due
+    ):
+        return last_pinned_update
+
+    retry_floor_active = (
+        _QC_LIVE_STATE.last_delivery_failed
+        and _QC_LIVE_STATE.last_delivery_attempt_ts is not None
+        and (now - _QC_LIVE_STATE.last_delivery_attempt_ts) < QC_LIVE_RETRY_S
+    )
+    if retry_floor_active:
+        return last_pinned_update
+
+    try:
+        text = render_quant_live_panel(snap)
+    except Exception as e:  # noqa: BLE001 — keep the polling observer alive
+        logger.warning("Pinned render failed: %s", type(e).__name__)
+        return last_pinned_update
+
+    _QC_LIVE_STATE.last_delivery_attempt_ts = now
+    result = _QC_DELIVERY.record(
+        edit_message(QC_CHAT_ID, QC_PINNED_MSG, text), now
+    )
+    _QC_LIVE_STATE.last_delivery_failed = result.is_failure
+    if result.is_delivered:
+        _QC_LIVE_STATE.confirmed_fingerprint = fingerprint
+        _QC_LIVE_STATE.last_confirmed_ts = now
+        return now
+
+    logger.warning("Pinned update not delivered: %s", result.summary_safe())
+    return last_pinned_update
 
 
 def _pinned_tick(now: float, last_pinned_update: float) -> float:
@@ -550,10 +768,10 @@ def run():
 
     while True:
         try:
-            # Update pinned live message every PINNED_UPDATE_S seconds.
-            # TG-QC-001: the timer only advances on a real Telegram delivery.
+            # Inspect each poll; edit only after semantic change or safety refresh.
+            # Q2 ACK/NO_CHANGE alone can confirm the candidate fingerprint.
             now = time.time()
-            last_pinned_update = _pinned_tick(now, last_pinned_update)
+            last_pinned_update = _change_driven_live_tick(now, last_pinned_update)
 
             # Poll for commands
             updates = get_updates(offset=offset)
