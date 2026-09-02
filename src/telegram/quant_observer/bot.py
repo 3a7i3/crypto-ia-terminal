@@ -63,9 +63,9 @@ assert _GETUPDATES_HTTP_TIMEOUT_S > QC_LONGPOLL_S, (
 
 class DeliveryKind(str, Enum):
     ACK = "ACK"                    # HTTP 2xx AND Telegram {"ok": true}
-    NO_CHANGE = "NO_CHANGE"        # Telegram "message is not modified" (ALREADY_CURRENT)
+    NO_CHANGE = "NO_CHANGE"        # strict editMessageText HTTP/TG 400 already-current
     TELEGRAM_ERROR = "TELEGRAM_ERROR"   # valid JSON with {"ok": false, ...}
-    HTTP_ERROR = "HTTP_ERROR"      # non-2xx HTTP with no usable Telegram JSON
+    HTTP_ERROR = "HTTP_ERROR"      # non-2xx HTTP not classified as a Telegram error
     INVALID_RESPONSE = "INVALID_RESPONSE"  # 2xx but body is not JSON / lacks "ok"
     NETWORK_ERROR = "NETWORK_ERROR"     # request raised (timeout, connection, …)
 
@@ -128,8 +128,26 @@ def _redact_secrets(text: str) -> str:
     return safe.replace(_API_BASE, "https://api.telegram.org/bot***")
 
 
-def _is_not_modified(description: Optional[str]) -> bool:
-    return bool(description) and "message is not modified" in description.lower()
+def _is_no_change(
+    method: str,
+    http_status: int,
+    error_code: int | None,
+    description: str | None,
+) -> bool:
+    """Recognize Telegram's one legitimate already-current response.
+
+    ``message is not modified`` is meaningful only for editMessageText and only
+    with the exact HTTP/Telegram 400 error pair. Other methods or status/error
+    combinations remain delivery failures even if their description contains
+    the same words.
+    """
+    return (
+        method == "editMessageText"
+        and http_status == 400
+        and error_code == 400
+        and isinstance(description, str)
+        and "message is not modified" in description.lower()
+    )
 
 
 def _post(method: str, *, timeout: int = _HTTP_TIMEOUT_S, **kwargs) -> TransportResult:
@@ -153,23 +171,16 @@ def _post(method: str, *, timeout: int = _HTTP_TIMEOUT_S, **kwargs) -> Transport
         data = None
 
     # Telegram returns a JSON envelope even on errors ({"ok": false, ...}).
-    # Classify by the envelope first so a 400 "not modified" is not mislabelled
-    # as a bare HTTP error.
-    if isinstance(data, dict) and "ok" in data:
-        if data.get("ok") is True:
-            return TransportResult(
-                kind=DeliveryKind.ACK,
-                method=method,
-                http_status=status,
-                result=data.get("result"),
-            )
+    # An ok=false envelope is still useful for classifying the Telegram error,
+    # including the one strict NO_CHANGE exception below.
+    if isinstance(data, dict) and data.get("ok") is False:
         description = data.get("description")
         desc_safe = _redact_secrets(str(description)) if description is not None else None
         error_code = data.get("error_code")
         error_code = int(error_code) if isinstance(error_code, int) else None
         kind = (
             DeliveryKind.NO_CHANGE
-            if _is_not_modified(description)
+            if _is_no_change(method, status, error_code, description)
             else DeliveryKind.TELEGRAM_ERROR
         )
         return TransportResult(
@@ -180,11 +191,22 @@ def _post(method: str, *, timeout: int = _HTTP_TIMEOUT_S, **kwargs) -> Transport
             description_safe=desc_safe,
         )
 
-    # No usable Telegram envelope.
+    # HTTP transport success is a prerequisite for ACK. Even a contradictory
+    # non-2xx {"ok": true} envelope must never be accepted as delivered.
     if not (200 <= status < 300):
         return TransportResult(
             kind=DeliveryKind.HTTP_ERROR, method=method, http_status=status
         )
+
+    if isinstance(data, dict) and data.get("ok") is True:
+        return TransportResult(
+            kind=DeliveryKind.ACK,
+            method=method,
+            http_status=status,
+            result=data.get("result"),
+        )
+
+    # 2xx without an explicit Telegram {"ok": true/false} envelope.
     return TransportResult(
         kind=DeliveryKind.INVALID_RESPONSE, method=method, http_status=status
     )
@@ -238,17 +260,23 @@ def get_updates(offset: int = 0) -> list[dict]:
 
 @dataclass
 class DeliveryState:
+    """In-memory delivery evidence with ACK and already-current kept distinct."""
+
     last_attempt_ts: Optional[float] = None
     last_ack_ts: Optional[float] = None
+    last_confirmed_current_ts: float | None = None
     last_failure_ts: Optional[float] = None
     last_failure_kind: Optional[str] = None
     last_failure_description_safe: Optional[str] = None
 
     def record(self, result: TransportResult, now: float) -> TransportResult:
         self.last_attempt_ts = now
-        if result.is_delivered:
-            # ACK and NO_CHANGE both confirm the content is current on Telegram.
+        if result.is_ack:
+            # Only a fresh Telegram {"ok": true} delivery is a real ACK.
             self.last_ack_ts = now
+        if result.is_delivered:
+            # ACK and NO_CHANGE both prove the intended content is current.
+            self.last_confirmed_current_ts = now
         else:
             self.last_failure_ts = now
             self.last_failure_kind = result.kind.value

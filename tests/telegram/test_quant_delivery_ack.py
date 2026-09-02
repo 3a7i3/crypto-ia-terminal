@@ -14,6 +14,10 @@ succeeded — `{}` is never treated as success. Covers the 10 mandatory checks:
   9. token absent from logs / safe errors
  10. "message is not modified" → NO_CHANGE (explicit, documented)
 
+Q2.1 additionally proves that non-2xx HTTP can never ACK, NO_CHANGE is limited
+to the exact editMessageText HTTP/TG 400 response, and delivery state separates
+a fresh ACK from proof that the intended content was already current.
+
 Transport is fully mocked — no real network, no wall-clock dependency.
 """
 from __future__ import annotations
@@ -70,6 +74,17 @@ def test_http_500_is_failure(monkeypatch):
     assert res.kind is DeliveryKind.HTTP_ERROR
     assert res.http_status == 500
     assert res.is_failure and not res.is_ack
+
+
+def test_http_500_ok_true_can_never_ack(monkeypatch):
+    """A contradictory Telegram envelope cannot override failed HTTP transport."""
+    _patch_post(monkeypatch, FakeResponse(500, {"ok": True, "result": {}}))
+    res = bot._post("editMessageText", json={})
+    assert res.kind is DeliveryKind.HTTP_ERROR
+    assert res.http_status == 500
+    assert not res.is_ack
+    assert not res.is_delivered
+    assert res.is_failure
 
 
 # ── 3. HTTP 200 + invalid JSON ─────────────────────────────────────────────────
@@ -142,6 +157,7 @@ def test_ack_edit_advances_timer(monkeypatch):
     new = bot._pinned_tick(now=1000.0, last_pinned_update=0.0)
     assert new == 1000.0  # advances only after real ACK
     assert bot._QC_DELIVERY.last_ack_ts == 1000.0
+    assert bot._QC_DELIVERY.last_confirmed_current_ts == 1000.0
     assert bot._QC_DELIVERY.last_failure_ts is None
 
 
@@ -244,6 +260,49 @@ def test_message_not_modified_is_no_change(monkeypatch):
     assert not res.is_failure    # and not a delivery failure
 
 
+def test_message_not_modified_is_not_no_change_for_non_edit_methods(monkeypatch):
+    for method in ("sendMessage", "sendPhoto"):
+        _patch_post(
+            monkeypatch,
+            FakeResponse(400, {
+                "ok": False,
+                "error_code": 400,
+                "description": "Bad Request: message is not modified",
+            }),
+        )
+        res = bot._post(method, json={})
+        assert res.kind is DeliveryKind.TELEGRAM_ERROR
+        assert not res.is_ack and not res.is_delivered and res.is_failure
+
+
+def test_message_not_modified_requires_telegram_error_400(monkeypatch):
+    _patch_post(
+        monkeypatch,
+        FakeResponse(400, {
+            "ok": False,
+            "error_code": 409,
+            "description": "Bad Request: message is not modified",
+        }),
+    )
+    res = bot._post("editMessageText", json={})
+    assert res.kind is DeliveryKind.TELEGRAM_ERROR
+    assert not res.is_ack and not res.is_delivered and res.is_failure
+
+
+def test_message_not_modified_requires_http_400(monkeypatch):
+    _patch_post(
+        monkeypatch,
+        FakeResponse(200, {
+            "ok": False,
+            "error_code": 400,
+            "description": "Bad Request: message is not modified",
+        }),
+    )
+    res = bot._post("editMessageText", json={})
+    assert res.kind is DeliveryKind.TELEGRAM_ERROR
+    assert not res.is_ack and not res.is_delivered and res.is_failure
+
+
 def test_no_change_advances_timer_but_is_not_ack(monkeypatch):
     _prep_pinned(
         monkeypatch,
@@ -255,9 +314,11 @@ def test_no_change_advances_timer_but_is_not_ack(monkeypatch):
             description_safe="Bad Request: message is not modified",
         ),
     )
+    bot._QC_DELIVERY.last_ack_ts = 1500.0
     new = bot._pinned_tick(now=2000.0, last_pinned_update=0.0)
     assert new == 2000.0  # already-current ⇒ LIVE is up to date, retry not needed
-    assert bot._QC_DELIVERY.last_ack_ts == 2000.0  # counted as delivered
+    assert bot._QC_DELIVERY.last_ack_ts == 1500.0  # no fresh Telegram ACK
+    assert bot._QC_DELIVERY.last_confirmed_current_ts == 2000.0
     assert bot._QC_DELIVERY.last_failure_ts is None
 
 
@@ -270,6 +331,7 @@ def test_delivery_state_records_ack_then_failure():
     st.record(TransportResult(kind=DeliveryKind.ACK, method="editMessageText"), now=100.0)
     assert st.last_attempt_ts == 100.0
     assert st.last_ack_ts == 100.0
+    assert st.last_confirmed_current_ts == 100.0
     assert st.last_failure_ts is None
 
     st.record(
@@ -281,8 +343,37 @@ def test_delivery_state_records_ack_then_failure():
     )
     assert st.last_attempt_ts == 200.0
     assert st.last_ack_ts == 100.0            # last good ACK preserved
+    assert st.last_confirmed_current_ts == 100.0  # last current-content proof preserved
     assert st.last_failure_ts == 200.0
     assert st.last_failure_kind == "HTTP_ERROR"
+
+
+def test_delivery_state_no_change_confirms_current_without_new_ack():
+    st = DeliveryState(last_ack_ts=50.0, last_confirmed_current_ts=50.0)
+    st.record(
+        TransportResult(kind=DeliveryKind.NO_CHANGE, method="editMessageText"),
+        now=100.0,
+    )
+    assert st.last_attempt_ts == 100.0
+    assert st.last_ack_ts == 50.0
+    assert st.last_confirmed_current_ts == 100.0
+    assert st.last_failure_ts is None
+
+
+def test_delivery_state_failure_does_not_confirm_current():
+    st = DeliveryState(last_ack_ts=50.0, last_confirmed_current_ts=60.0)
+    st.record(
+        TransportResult(
+            kind=DeliveryKind.NETWORK_ERROR,
+            method="editMessageText",
+            description_safe="Timeout",
+        ),
+        now=100.0,
+    )
+    assert st.last_attempt_ts == 100.0
+    assert st.last_ack_ts == 50.0
+    assert st.last_confirmed_current_ts == 60.0
+    assert st.last_failure_ts == 100.0
 
 
 def test_delivery_state_has_all_required_fields():
@@ -290,6 +381,7 @@ def test_delivery_state_has_all_required_fields():
     for field in (
         "last_attempt_ts",
         "last_ack_ts",
+        "last_confirmed_current_ts",
         "last_failure_ts",
         "last_failure_kind",
         "last_failure_description_safe",
