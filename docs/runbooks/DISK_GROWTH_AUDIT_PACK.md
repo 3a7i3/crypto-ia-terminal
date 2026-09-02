@@ -91,7 +91,7 @@ The pack:
 - does not run as root and does not invoke `sudo`;
 - performs no deletion, compression, rotation, truncation or permission change.
 
-Relative filenames are metadata, not content. They are limited to 512 printable
+Relative filenames are metadata, not content. They are limited to 160 printable
 characters. Unsafe or oversized relative names are replaced with
 `path_sha256:<digest>`. Absolute paths can appear only for the two fixed roots
 and `/`; discovered file records contain relative paths only.
@@ -106,7 +106,7 @@ and `/`; discovered file records contain relative paths only.
 | Recursive depth | 12 |
 | First-level buckets emitted per root | 24 plus one aggregate |
 | Largest files emitted globally | 20 |
-| Relative-path metadata | 512 characters |
+| Relative-path metadata | 160 characters |
 | Total stdout | 24,000 UTF-8 bytes |
 
 If the time, entry or depth boundary prevents a complete traversal, the pack
