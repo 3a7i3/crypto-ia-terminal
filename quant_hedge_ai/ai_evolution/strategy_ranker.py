@@ -289,6 +289,20 @@ class StrategyRanker:
     def blacklisted(self) -> list[dict]:
         return [s.to_dict() for s in self._scores.values() if s.blacklisted]
 
+    def state_provenance(self) -> dict:
+        """Provenance minimale de l'état mémoire (S-02B.1 §12)."""
+        try:
+            state_mtime = _DB_PATH.stat().st_mtime if _DB_PATH.exists() else None
+        except OSError:
+            state_mtime = None
+        return {
+            "subsystem": "StrategyRanker",
+            "source_path": str(_DB_PATH),
+            "state_mtime": state_mtime,
+            "n_strategies": len(self._scores),
+            "n_events": len(self._events),
+        }
+
     def full_report(self) -> dict:
         return {
             "total_strategies": len(self._scores),

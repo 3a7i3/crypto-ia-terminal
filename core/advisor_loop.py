@@ -1480,19 +1480,35 @@ def analyze_symbol(
     open_positions_list: list[Any] = open_positions
     open_positions_count = len(open_positions_list)
 
-    # Meilleur Sharpe mémorisé — depuis ranker en priorité, sinon memory store
-    # S-02B.1 : le fallback StrategyMemoryStore ci-dessous influence directement
+    # Meilleur Sharpe mémorisé — depuis ranker en priorité, sinon memory store.
+    # S-02B.1 : les DEUX sources (StrategyRanker.best_sharpe() en priorité,
+    # StrategyMemoryStore.load_by_regime() en repli) influencent directement
     # la sélection de personnalité (meta_engine.select) et le score du signal
-    # (engine.evaluate) — décision-active (S-02B.1 §9). Sans
-    # FEATURE_ADAPTIVE_DECISION_FEEDBACK, la recommandation reste lue/observée
-    # mais ni son résultat n'est transmis à la décision, ni l'usage_count
-    # sous-jacent n'est incrémenté (record_usage=False) — un match
-    # contrefactuel ne doit pas se faire passer pour un usage réel et biaiser
-    # un classement futur.
+    # (engine.evaluate) — décision-active (S-02B.1 §9, graph-closure). Sans
+    # FEATURE_ADAPTIVE_DECISION_FEEDBACK, chaque source reste lue/observée
+    # (comptage/persistance StrategyRanker déjà géré par record_trade() en
+    # écriture, jamais mutée ici en lecture) mais son résultat n'atteint pas
+    # memory_sharpe. Vrai : précédence legacy conservée (ranker d'abord, puis
+    # repli StrategyMemoryStore si le ranker ne renvoie rien).
     memory_sharpe = None
     try:
         if ranker:
-            memory_sharpe = ranker.best_sharpe(regime) or None
+            _ranker_candidate_sharpe = ranker.best_sharpe(regime) or None
+            if FEATURE_ADAPTIVE_DECISION_FEEDBACK:
+                memory_sharpe = _ranker_candidate_sharpe
+            elif _ranker_candidate_sharpe is not None:
+                try:
+                    _ranker_provenance = ranker.state_provenance()
+                except Exception:
+                    _ranker_provenance = None
+                log.debug(
+                    "[StrategyRanker] recommandation contrefactuelle "
+                    "(mode passif, non appliquée): sharpe=%.4f regime=%s "
+                    "provenance=%s",
+                    _ranker_candidate_sharpe,
+                    regime,
+                    _ranker_provenance,
+                )
         if not memory_sharpe:
             stored = memory.load_by_regime(
                 regime, limit=10, record_usage=FEATURE_ADAPTIVE_DECISION_FEEDBACK
@@ -1807,13 +1823,29 @@ def analyze_symbol(
         and (pb_verdict is None or pb_verdict.allowed)
     ):
         with watchdog.measure("capital_engine"):
-            # Récupère les stats depuis le ranker si disponible
+            # Récupère les stats depuis le ranker si disponible.
+            # S-02B.1 (graph-closure) : win_rate/avg_win/avg_loss/n_trades
+            # dérivés du ranker alimentent directement capital_engine.allocate()
+            # → order_size_usd — décision-active (sizing réel). Sans
+            # FEATURE_ADAPTIVE_DECISION_FEEDBACK, la recommandation reste
+            # lue/observée mais n'est pas transmise au sizing (cae_stats={}
+            # → allocate() retombe sur ses défauts neutres déjà existants).
             cae_stats: JSONDict = {}
             if ranker:
                 strategy_key = symbol.replace("/", "_").lower()
-                cae_stats = capital_engine.stats_from_ranker(
+                _cae_candidate = capital_engine.stats_from_ranker(
                     ranker, strategy_key, regime
                 )
+                if FEATURE_ADAPTIVE_DECISION_FEEDBACK:
+                    cae_stats = _cae_candidate
+                elif _cae_candidate:
+                    log.debug(
+                        "[StrategyRanker] recommandation contrefactuelle "
+                        "(mode passif, non appliquée) pour capital_engine: "
+                        "%s regime=%s",
+                        _cae_candidate,
+                        regime,
+                    )
             volatility = float(
                 features.get("atr_ratio", features.get("volatility", 0.015))
             )
