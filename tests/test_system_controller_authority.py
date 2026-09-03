@@ -10,6 +10,12 @@ exécutés — à la fois dans ActionExecutor.execute()
 (tracker_system/autonomous/auto_decision_engine.py) et dans la mutation de
 _sc_state (core/advisor_loop.py::_sc_run_cycle).
 
+Vérifie aussi que l'API publique elle-même est fail-closed :
+ActionExecutor et AutoDecisionOrchestrator défaultent à
+adaptive_decision_feedback=False — un appelant qui omet ce paramètre obtient
+le mode passif, jamais l'autorité adaptative par accident. Seul `True`
+explicite restaure l'application legacy (jamais par omission).
+
 Hors périmètre (ne pas toucher/tester ici) : FEATURE_REGRET_DECISION_FEEDBACK,
 FEATURE_AUTO_CALIBRATION, RegretEngine, RegretScheduler, REGIME_MISMATCH,
 contrats scientifiques S-01.
@@ -88,6 +94,123 @@ class TestSafetyActionsUnaffectedByFlag:
         assert executed is True
         assert new_config["position_size"] == pytest.approx(0.05)
 
+    def test_stop_trading_applies_under_default_constructor(self):
+        """Omettre adaptive_decision_feedback ne désactive jamais STOP_TRADING
+        (SAFETY AUTHORITY != ADAPTIVE AUTHORITY)."""
+        import system.state_machine as _sm_mod
+
+        executor = ActionExecutor({"trading_enabled": True})  # pas de flag passé
+        mock_sm = MagicMock()
+        original = _sm_mod.get_state_machine
+        _sm_mod.get_state_machine = lambda: mock_sm
+        try:
+            decision = Decision("STOP_TRADING", {}, "dd>5%", confidence=0.95)
+            new_config, executed, _msg = executor.execute(decision)
+        finally:
+            _sm_mod.get_state_machine = original
+
+        assert executed is True
+        assert new_config["trading_enabled"] is False
+        mock_sm.transition.assert_called_once()
+
+    def test_resume_trading_applies_under_default_constructor(self):
+        import system.state_machine as _sm_mod
+
+        executor = ActionExecutor({"trading_enabled": False})  # pas de flag passé
+        mock_sm = MagicMock()
+        original = _sm_mod.get_state_machine
+        _sm_mod.get_state_machine = lambda: mock_sm
+        try:
+            decision = Decision("RESUME_TRADING", {}, "recovered", confidence=0.9)
+            new_config, executed, _msg = executor.execute(decision)
+        finally:
+            _sm_mod.get_state_machine = original
+
+        assert executed is True
+        assert new_config["trading_enabled"] is True
+        mock_sm.transition.assert_called_once()
+
+    def test_reduce_risk_applies_under_default_constructor(self):
+        executor = ActionExecutor({"position_size": 0.1})  # pas de flag passé
+        decision = Decision(
+            "REDUCE_RISK", {"position_size_factor": 0.5}, "loss streak", confidence=0.85
+        )
+        new_config, executed, _msg = executor.execute(decision)
+
+        assert executed is True
+        assert new_config["position_size"] == pytest.approx(0.05)
+
+
+# ── Groupe A-bis : défauts publics fail-closed (omission == passif) ──────────
+
+
+class TestPublicApiDefaultsAreFailClosed:
+    """ActionExecutor et AutoDecisionOrchestrator doivent être fail-closed par
+    défaut : un appelant qui omet adaptive_decision_feedback ne doit jamais
+    obtenir l'autorité adaptative par accident (S-02B.1, LEARNING != AUTHORITY).
+    Seul `adaptive_decision_feedback=True` explicite restaure l'application
+    legacy."""
+
+    def test_orchestrator_default_is_passive_for_adjust_tp(self):
+        orchestrator = AutoDecisionOrchestrator(
+            {"tp": 0.02, "sl": 0.01, "position_size": 0.1, "trading_enabled": True},
+            log_file="/dev/null",
+        )  # pas de adaptive_decision_feedback passé
+        metrics = {"efficiency": 0.40, "mae_pct": -0.01}
+        risk_state = {"drawdown": 0.01, "loss_streak": 0}
+
+        new_config, decision, executed = orchestrator.run_decision_cycle(
+            metrics, risk_state
+        )
+
+        assert decision.action == "ADJUST_TP"  # decision toujours générée/observable
+        assert executed is False
+        assert new_config["tp"] == 0.02  # jamais appliqué par omission
+
+    def test_orchestrator_explicit_true_applies_adjust_tp(self):
+        orchestrator = AutoDecisionOrchestrator(
+            {"tp": 0.02, "sl": 0.01, "position_size": 0.1, "trading_enabled": True},
+            log_file="/dev/null",
+            adaptive_decision_feedback=True,
+        )
+        metrics = {"efficiency": 0.40, "mae_pct": -0.01}
+        risk_state = {"drawdown": 0.01, "loss_streak": 0}
+
+        new_config, decision, executed = orchestrator.run_decision_cycle(
+            metrics, risk_state
+        )
+
+        assert decision.action == "ADJUST_TP"
+        assert executed is True
+        assert new_config["tp"] == pytest.approx(0.02 * 1.15)
+
+    def test_executor_explicit_true_applies_adjust_tp(self):
+        """Pendant de test_default_constructor_is_passive_fail_closed : l'opt-in
+        explicite restaure bien l'application legacy."""
+        executor = ActionExecutor({"tp": 0.02}, adaptive_decision_feedback=True)
+        decision = Decision("ADJUST_TP", {"tp_factor": 1.20}, "x", confidence=0.72)
+        new_config, executed, _msg = executor.execute(decision)
+
+        assert executed is True
+        assert new_config["tp"] == pytest.approx(0.024)
+
+    def test_orchestrator_default_still_executes_stop_trading(self):
+        """La passivité par défaut ne s'étend jamais aux actions de sécurité."""
+        orchestrator = AutoDecisionOrchestrator(
+            {"tp": 0.02, "sl": 0.01, "position_size": 0.1, "trading_enabled": True},
+            log_file="/dev/null",
+        )  # pas de adaptive_decision_feedback passé
+        metrics = {"efficiency": 0.5, "mae_pct": -0.01}
+        risk_state = {"drawdown": 0.07, "loss_streak": 2}  # drawdown > 5%
+
+        new_config, decision, executed = orchestrator.run_decision_cycle(
+            metrics, risk_state
+        )
+
+        assert decision.action == "STOP_TRADING"
+        assert executed is True
+        assert new_config["trading_enabled"] is False
+
 
 # ── Groupe B : ADJUST_TP / ADJUST_SL / APPLY_META — passif vs actif ──────────
 
@@ -114,13 +237,17 @@ class TestAdjustTpPassiveVsActive:
         assert executed is True
         assert new_config["tp"] == pytest.approx(0.024)
 
-    def test_default_constructor_preserves_legacy_active_behavior(self):
+    def test_default_constructor_is_passive_fail_closed(self):
+        """Un appelant qui omet adaptive_decision_feedback obtient le mode
+        passif — jamais l'application adaptative par omission (S-02B.1,
+        LEARNING != AUTHORITY)."""
         executor = ActionExecutor({"tp": 0.02})  # pas de flag passé
         decision = Decision("ADJUST_TP", {"tp_factor": 1.20}, "x", confidence=0.72)
-        new_config, executed, _msg = executor.execute(decision)
+        new_config, executed, msg = executor.execute(decision)
 
-        assert executed is True
-        assert new_config["tp"] == pytest.approx(0.024)
+        assert executed is False
+        assert new_config["tp"] == 0.02
+        assert "not applied" in msg.lower()
 
 
 class TestAdjustSlPassiveVsActive:

@@ -233,19 +233,25 @@ class RiskGuard:
 class ActionExecutor:
     """Exécute les décisions approuvées"""
 
-    def __init__(self, config: Dict[str, Any], adaptive_decision_feedback: bool = True):
+    def __init__(
+        self, config: Dict[str, Any], adaptive_decision_feedback: bool = False
+    ):
         """
         Args:
             config: configuration initiale mutable par les décisions.
-            adaptive_decision_feedback: si False (S-02B.1, ADR LEARNING != AUTHORITY),
-                ADJUST_TP / ADJUST_SL / APPLY_META restent des recommandations
-                contrefactuelles — décision/raison/confiance/params générés et
-                observables, mais AUCUNE mutation de `self.config` et jamais
-                comptées comme `executed=True`. STOP_TRADING, RESUME_TRADING et
-                REDUCE_RISK restent pleinement autoritaires quelle que soit cette
-                valeur (sécurité/récupération/risque, hors périmètre du flag).
-                Défaut True : préserve intégralement le comportement historique
-                pour tout appelant qui ne passe pas explicitement ce paramètre.
+            adaptive_decision_feedback: si False (défaut — fail-closed, S-02B.1,
+                ADR LEARNING != AUTHORITY), ADJUST_TP / ADJUST_SL / APPLY_META
+                restent des recommandations contrefactuelles — décision/raison/
+                confiance/params générés et observables, mais AUCUNE mutation de
+                `self.config` et jamais comptées comme `executed=True`.
+                STOP_TRADING, RESUME_TRADING et REDUCE_RISK restent pleinement
+                autoritaires quelle que soit cette valeur (sécurité/récupération/
+                risque — SAFETY AUTHORITY, hors périmètre du flag et distincte de
+                l'ADAPTIVE AUTHORITY qu'il gouverne).
+                Défaut False / fail-closed : un appelant qui omet ce paramètre
+                obtient le comportement passif, jamais l'application adaptative.
+                Seul `True` explicite restaure l'application legacy — jamais par
+                omission.
         """
         self.config = config.copy()
         self.execution_history = []
@@ -415,7 +421,7 @@ class AutoDecisionOrchestrator:
         initial_config: Dict[str, Any],
         limits: Dict[str, float] = None,
         log_file: str = "logs/decisions.jsonl",
-        adaptive_decision_feedback: bool = True,
+        adaptive_decision_feedback: bool = False,
     ):
         """
         Args:
@@ -423,9 +429,12 @@ class AutoDecisionOrchestrator:
             limits: Limites de risque pour le guard
             log_file: Fichier de log des décisions
             adaptive_decision_feedback: propagé à l'ActionExecutor — voir sa
-                docstring (S-02B.1, ADR LEARNING != AUTHORITY). Défaut True :
-                préserve le comportement historique pour tout appelant qui ne
-                passe pas explicitement ce paramètre.
+                docstring (S-02B.1, ADR LEARNING != AUTHORITY). Défaut False /
+                fail-closed : un appelant qui omet ce paramètre obtient le
+                comportement passif. Seul `True` explicite restaure
+                l'application adaptative legacy (ADJUST_TP/ADJUST_SL/APPLY_META)
+                — jamais par omission. Sans effet sur STOP_TRADING/
+                RESUME_TRADING/REDUCE_RISK (SAFETY AUTHORITY, toujours actifs).
         """
         self.engine = AutoDecisionEngine(initial_config)
         self.guard = RiskGuard(limits or {})
@@ -448,6 +457,20 @@ class AutoDecisionOrchestrator:
 
         Returns:
             (new_config, decision, executed)
+
+        Note (S02_SYSTEMCONTROLLER_GUARD_ORDER_DEBT, non bloquant, non
+        redesigné dans S-02B.1) : ce cycle (decide -> validate -> execute)
+        s'exécute avant que l'appelant (core/advisor_loop.py::_sc_run_cycle)
+        n'évalue ses propres gardes _SC_MIN_CONFIDENCE / cooldown de
+        _sc_state. Ces gardes ne sont donc pas de véritables pré-gardes pour
+        les effets internes à ActionExecutor (state_machine.transition pour
+        STOP_TRADING/RESUME_TRADING, mutation de self.config). En mode
+        adaptatif passif par défaut, ADJUST_TP/ADJUST_SL/APPLY_META n'ont de
+        toute façon aucun effet appliqué (voir ActionExecutor.execute()) —
+        ce n'est donc plus un contournement d'autorité pour ces actions.
+        Pour les actions de sécurité, l'ordre actuel peut être intentionnel.
+        Ne pas changer l'ordre d'exécution ici ; mission forensique dédiée à
+        prévoir séparément.
         """
 
         # STEP 1: Générer décision
