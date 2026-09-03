@@ -8,6 +8,7 @@ on:
         required: true
         type: choice
         options:
+          - disk_attribution
           - disk_growth
           - identity
           - lmi_status

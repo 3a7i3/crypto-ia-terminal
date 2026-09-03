@@ -28,6 +28,7 @@ SCHEMA_VERSION = 1
 REQUEST_PATH = "audit_requests/request.json"
 ALLOWED_ACTIONS = frozenset(
     {
+        "disk_attribution",
         "disk_growth",
         "identity",
         "lmi_status",

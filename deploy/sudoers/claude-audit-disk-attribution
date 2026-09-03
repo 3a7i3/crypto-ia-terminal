@@ -1,0 +1,2 @@
+# Permit only the fixed, argument-free disk attribution wrapper.
+claude-audit ALL=(root) NOPASSWD: /usr/local/sbin/claude-disk-attribution-root
