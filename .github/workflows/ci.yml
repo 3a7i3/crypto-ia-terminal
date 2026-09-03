@@ -77,31 +77,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements-ci.txt
 
-      - name: Pytest + coverage
-        # CI-00B (Phase 2/8) : ce step n'a jamais tourné en pratique avant ce
-        # PR — bloqué par `needs: lint` sur main (le défaut structurel même
-        # que Phase 2 corrige), donc `--cov-fail-under=60` n'a jamais été
-        # vérifié contre le vrai coverage. Constaté une fois le job
-        # découplé : couverture réelle ≈ 4% (dette historique sur
-        # execution/risk/market — hors périmètre CI-00B, gel fonctionnel).
-        # Seuil aligné sur la dette actuelle pour ne pas masquer une future
-        # régression du coverage, sans bloquer sur une dette préexistante
-        # non imputable à ce PR. Relever ce seuil est un travail de mission
-        # séparée (tests réels sur execution/risk/market), pas CI-00B.
-        run: |
-          pytest \
-            --cov=supervision \
-            --cov=quant_hedge_ai/agents/market \
-            --cov=quant_hedge_ai/agents/execution \
-            --cov=quant_hedge_ai/agents/risk \
-            --cov=quant_hedge_ai/agents/quant \
-            --cov-report=xml \
-            --cov-report=term-missing \
-            --cov-fail-under=4 \
-            -x -q \
-            supervision/test_supervision.py \
-            quant_hedge_ai/strategy_lab/test_strategy_lab.py
-
       - name: Pytest — suite de régression complète (tests/)
         # CI-00B (Phase 8) : exécute systématiquement tout tests/, y compris
         # les tests corrigés (permissions, killswitch) et le xfail nommé et
@@ -116,24 +91,76 @@ jobs:
         # le run réintroduirait le défaut que CI-00 a audité (tests non
         # réellement exécutés / signal masqué).
         #
-        # `|| true` + vérification JUnit ci-dessous : le Scientific Data
-        # Guard (conftest.py::pytest_sessionfinish, DS-001/ADR-0008) force
-        # session.exitstatus=1 dès que databases/ ou cache/ change pendant
-        # la session — orthogonal au résultat des tests eux-mêmes. ~13
-        # modules pré-existants (signal/evolution, quant_hedge_ai/
-        # ai_evolution, dip/, system/, infra/...) écrivent dans ces chemins
-        # sans passer par les couches d'isolation DS-001 existantes ; hors
-        # périmètre CI-00B (plusieurs sont dans signal/stratégie, gelés —
-        # voir .ci/known_red_tests.md). Ce défaut n'était jamais visible
-        # avant CI-00B car `tests/` complet ne tournait jamais en CI. Le
-        # garde-fou reste intact et son bandeau reste visible dans les
-        # logs (stderr) ; TEST REGRESSION GATE se base sur le JUnit XML
-        # (échecs/erreurs de tests réels), pas sur l'exit code brut du
-        # process, pour distinguer une vraie régression de ce défaut connu.
-        run: pytest -q tests/ --junitxml=pytest-results.xml || true
+        # Pas de `|| true` ni de contournement JUnit : le code de sortie
+        # pytest ORDINAIRE est le signal, point. Le Scientific Data Guard
+        # (conftest.py::pytest_sessionfinish, DS-001/ADR-0008) ne surcharge
+        # plus session.exitstatus que pour une contamination NOUVELLE de
+        # databases/ ou cache/ (chemin absent de
+        # .ci/scientific_data_guard_baseline.json) ; une dette déjà
+        # baselisée (~10 chemins pré-existants, hors périmètre CI-00B —
+        # signal/évolution, quant_hedge_ai/ai_evolution, etc., gelés) est
+        # affichée en clair mais ne touche jamais au code de sortie. Voir
+        # .ci/known_red_tests.md pour le détail et la mission de suivi.
+        run: pytest -q tests/
 
-      - name: Vérifier l'absence de régression réelle (JUnit XML)
-        run: python scripts/ci/check_junit_no_failures.py pytest-results.xml
+      - name: Upload rapport de couverture
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-xml
+          path: coverage.xml
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # 2bis. COVERAGE REGRESSION BASELINE — CI-00B : signal SÉPARÉ de
+  #    TEST REGRESSION GATE. La correctness des tests (ci-dessus) et le
+  #    niveau de couverture sont deux questions différentes ; les
+  #    confondre dans un seul job masquerait soit une vraie régression de
+  #    test derrière un chiffre de coverage, soit l'inverse. Ce job
+  #    n'affecte JAMAIS TEST REGRESSION GATE et vice-versa (needs: [] sur
+  #    les deux, jobs parallèles indépendants).
+  #
+  #    COVERAGE_TARGET historique = 60% (dette non résolue, documentée —
+  #    voir .ci/known_red_tests.md). Ce job ne prétend PAS que 4% satisfait
+  #    cet objectif : il fige la baseline actuelle (~4.09%, reproduite deux
+  #    fois en CI sur ce PR) comme PLANCHER anti-régression — toute baisse
+  #    EN DESSOUS du plancher fait échouer ce job ; le relever vers 60%
+  #    (tests réels sur execution/risk/market) reste une mission séparée.
+  # ──────────────────────────────────────────────────────────────────────────
+  coverage-baseline:
+    name: "COVERAGE REGRESSION BASELINE"
+    runs-on: ubuntu-latest
+
+    env:
+      BINANCE_TESTNET: "true"
+      MARKET_SCANNER_SYNTHETIC: "true"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Installer les dépendances
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-ci.txt
+
+      - name: Pytest + coverage (plancher anti-régression, PAS l'objectif 60%)
+        run: |
+          pytest \
+            --cov=supervision \
+            --cov=quant_hedge_ai/agents/market \
+            --cov=quant_hedge_ai/agents/execution \
+            --cov=quant_hedge_ai/agents/risk \
+            --cov=quant_hedge_ai/agents/quant \
+            --cov-report=xml \
+            --cov-report=term-missing \
+            --cov-fail-under=4 \
+            -x -q \
+            supervision/test_supervision.py \
+            quant_hedge_ai/strategy_lab/test_strategy_lab.py
 
       - name: Upload rapport de couverture
         if: always()

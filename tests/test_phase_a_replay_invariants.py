@@ -186,9 +186,12 @@ class TestTier2GoldenSnapshot:
             "losers) instead of the golden's larger, all-winning multi-bar "
             "moves (total_pnl 7.6295, win_rate 1.0). Classified "
             "BACKTEST_ENGINE_DEFECT (see CI-00B report section 9). Follow-up "
-            "mission: BT-00."
+            "mission: BT-00. strict=True (CI-00B master review): an "
+            "unexpected PASS must fail the suite, not disappear silently — "
+            "if BT-00 (or an unrelated change) fixes the engine, this "
+            "marker must be removed in the same PR, never left stale."
         ),
-        strict=False,
+        strict=True,
     )
     def test_backtest_matches_golden(self):
         if _GOLDEN is None:

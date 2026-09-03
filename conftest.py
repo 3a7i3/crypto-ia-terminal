@@ -16,13 +16,22 @@ l'exécution, jamais comme défaut de signature ni constante de module figée
    signature non injectables (isolation recorder, black box, cold-start,
    gate CSV, exec trade log).
 3. Scientific Data Guard (SHA256, fin de fichier) : filet de sécurité final
-   — fait échouer toute session pytest si databases/ ou cache/ a changé,
-   peu importe la cause.
+   — fait échouer toute session pytest si databases/ ou cache/ a changé
+   sous un chemin absent du baseline versionné (CI-00B,
+   .ci/scientific_data_guard_baseline.json) ; un chemin déjà connu et
+   baselisé est toléré et affiché, jamais silencieux. Le baseline capture
+   une dette d'isolation de tests pré-existante (voir sa docstring
+   embarquée) — toute CONTAMINATION NOUVELLE (chemin absent du baseline)
+   fait toujours échouer la session normalement (le garde-fou ne
+   surcharge PAS session.exitstatus quand tout changement observé est
+   déjà connu : le code de sortie pytest ordinaire reste la source de
+   vérité pour les échecs/erreurs de tests).
 """
 
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 import sys
 import tempfile
@@ -32,6 +41,9 @@ import pytest
 
 _REPO_ROOT = Path(__file__).parent
 _SCIENTIFIC_DATA_ROOTS = [_REPO_ROOT / "databases", _REPO_ROOT / "cache"]
+_SCIENTIFIC_DATA_GUARD_BASELINE_PATH = (
+    _REPO_ROOT / ".ci" / "scientific_data_guard_baseline.json"
+)
 
 # ── DS-001 — env vars au niveau module (avant toute collection pytest) ────────
 # Posées ici (pas dans une fixture) pour atteindre les constantes de module
@@ -185,6 +197,20 @@ def _snapshot_scientific_data() -> dict[str, str]:
     return snapshot
 
 
+def _to_repo_relative(path_str: str) -> str:
+    try:
+        return Path(path_str).resolve().relative_to(_REPO_ROOT.resolve()).as_posix()
+    except ValueError:
+        return path_str
+
+
+def _load_scientific_data_guard_baseline() -> set[str]:
+    if not _SCIENTIFIC_DATA_GUARD_BASELINE_PATH.exists():
+        return set()
+    data = json.loads(_SCIENTIFIC_DATA_GUARD_BASELINE_PATH.read_text())
+    return set(data.get("known_leaking_paths", []))
+
+
 def pytest_sessionstart(session: pytest.Session) -> None:
     # type: ignore[attr-defined]
     session.config._scientific_data_before = _snapshot_scientific_data()
@@ -195,12 +221,51 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
     if before is None:
         return
     after = _snapshot_scientific_data()
+
+    # CI-00B : mode génération explicite du baseline (jamais implicite).
+    # `SCIENTIFIC_DATA_GUARD_GENERATE=1 pytest -q tests/` réécrit le
+    # baseline avec la liste actuelle des chemins modifiés/ajoutés — un
+    # diff visible et revu en PR, jamais un effet de bord silencieux.
+    if os.environ.get("SCIENTIFIC_DATA_GUARD_GENERATE") == "1":
+        touched = {
+            _to_repo_relative(p)
+            for p in (set(before) | set(after))
+            if before.get(p) != after.get(p)
+        }
+        _SCIENTIFIC_DATA_GUARD_BASELINE_PATH.write_text(
+            json.dumps(
+                {
+                    "$schema": (
+                        "CI-00B Scientific Data Guard baseline "
+                        "(DS-001/ADR-0008). See conftest.py."
+                    ),
+                    "known_leaking_paths": sorted(touched),
+                },
+                indent=2,
+            )
+            + "\n"
+        )
+        print(
+            f"\nSCIENTIFIC DATA GUARD — baseline regenerated: "
+            f"{len(touched)} known path(s) written to "
+            f"{_SCIENTIFIC_DATA_GUARD_BASELINE_PATH}.\n",
+            file=sys.stderr,
+        )
+        return
+
     if before == after:
         return
 
     changed = sorted(p for p in (set(before) & set(after)) if before[p] != after[p])
     added = sorted(set(after) - set(before))
     removed = sorted(set(before) - set(after))
+
+    baseline = _load_scientific_data_guard_baseline()
+    touched_rel = {_to_repo_relative(p): p for p in changed + added}
+    new_contamination = sorted(
+        rel for rel in touched_rel if rel not in baseline
+    )
+    known_debt = sorted(rel for rel in touched_rel if rel in baseline)
 
     lines = [
         "",
@@ -212,16 +277,25 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
         "jamais comme valeur par défaut de signature évaluée à l'import).",
         "=" * 78,
     ]
-    if changed:
-        lines.append("Fichiers modifiés :")
-        lines += [f"  - {p}" for p in changed]
-    if added:
-        lines.append("Fichiers ajoutés :")
-        lines += [f"  - {p}" for p in added]
+    if new_contamination:
+        lines.append("NOUVELLE contamination (absente du baseline — ÉCHEC) :")
+        lines += [f"  - {p}" for p in new_contamination]
+    if known_debt:
+        lines.append(
+            "Dette connue, baselisée (.ci/scientific_data_guard_baseline.json, "
+            "tolérée, non bloquante) :"
+        )
+        lines += [f"  - {p}" for p in known_debt]
     if removed:
-        lines.append("Fichiers supprimés :")
-        lines += [f"  - {p}" for p in removed]
+        lines.append("Fichiers supprimés (jamais bloquant) :")
+        lines += [f"  - {_to_repo_relative(p)}" for p in removed]
     lines += ["=" * 78, ""]
 
     print("\n".join(lines), file=sys.stderr)
-    session.exitstatus = 1
+
+    if new_contamination:
+        session.exitstatus = 1
+    # Sinon : tout changement observé est une dette connue et baselisée —
+    # on NE TOUCHE PAS à session.exitstatus, qui reste le signal ordinaire
+    # de réussite/échec des tests eux-mêmes (pytest_sessionfinish ne fait
+    # ici qu'ajouter un échec, jamais en retirer un).

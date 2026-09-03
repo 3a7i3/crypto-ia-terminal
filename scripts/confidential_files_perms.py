@@ -22,6 +22,18 @@ n'est PAS câblée dans le transfert SSH de `scripts/deploy_vps.sh`
 fournit le mécanisme, prêt à être invoqué par un opérateur ou un
 futur geste de déploiement explicite, sans modifier le comportement
 actuel de déploiement.
+
+AVERTISSEMENT (revue CI-00B) : ce module et ses tests
+(tests/test_confidential_files_perms.py) prouvent que la fonction
+elle-même applique 0600 correctement quand elle est appelée — ils NE
+prouvent PAS que les secrets runtime sont effectivement protégés en
+production, puisque rien n'appelle actuellement cette fonction dans le
+chemin de déploiement réel. L'invariant de sécurité de bout en bout
+reste une dette explicite, suivie, hors périmètre CI-00B — voir
+.ci/known_red_tests.md § « Security permissions ». Une mission
+sécurité/déploiement séparée doit câbler cette fonction (ou
+équivalent) dans le geste de déploiement réel et tester CETTE
+frontière, pas seulement l'utilitaire isolé.
 """
 
 from __future__ import annotations

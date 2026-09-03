@@ -8,10 +8,14 @@ class TestSecurityPermissions(unittest.TestCase):
     # systématiquement les fichiers en 0644, quel que soit leur contenu —
     # git ne transporte pas de permissions restrictives. L'invariant de
     # sécurité réel (les secrets runtime ne doivent jamais être lisibles par
-    # d'autres utilisateurs) est désormais testé contre le mécanisme qui
-    # matérialise ces secrets sur disque :
-    # scripts/confidential_files_perms.py, couvert par
-    # tests/test_confidential_files_perms_hardening.py.
+    # d'autres utilisateurs) est exercé contre l'utilitaire qui matérialise
+    # ces secrets sur disque : scripts/confidential_files_perms.py, couvert
+    # par tests/test_confidential_files_perms.py. AVERTISSEMENT (revue
+    # CI-00B) : cet utilitaire n'est câblé dans aucun geste de déploiement
+    # réel (scripts/deploy_vps.sh ne l'appelle pas) — l'invariant de bout
+    # en bout reste une dette de sécurité/déploiement explicite et suivie,
+    # pas une invariant démontrée en production. Voir
+    # .ci/known_red_tests.md § « Security permissions ».
 
     def test_no_hardcoded_secrets(self):
         # Vérifie qu'aucune valeur de secret n'est en dur dans logging_alerts.py
