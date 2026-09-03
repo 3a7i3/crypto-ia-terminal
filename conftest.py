@@ -228,16 +228,31 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
         return
     after = _snapshot_scientific_data()
 
+    generate_mode = os.environ.get("SCIENTIFIC_DATA_GUARD_GENERATE") == "1"
+
+    if before == after:
+        return
+
+    # Un seul calcul changed/added/removed, partagé par les deux modes
+    # (génération et vérification normale) : le mode génération ne doit
+    # JAMAIS avoir sa propre notion de "touched" divergente de celle qui
+    # décide des échecs, sous peine de pouvoir écrire une suppression dans
+    # le baseline (défaut corrigé — revue indépendante CI-00B.2).
+    changed = sorted(p for p in (set(before) & set(after)) if before[p] != after[p])
+    added = sorted(set(after) - set(before))
+    removed = sorted(set(before) - set(after))
+    removed_rel = sorted(_to_repo_relative(p) for p in removed)
+
     # CI-00B : mode génération explicite du baseline (jamais implicite).
     # `SCIENTIFIC_DATA_GUARD_GENERATE=1 pytest -q tests/` réécrit le
-    # baseline avec la liste actuelle des chemins modifiés/ajoutés — un
-    # diff visible et revu en PR, jamais un effet de bord silencieux.
-    if os.environ.get("SCIENTIFIC_DATA_GUARD_GENERATE") == "1":
-        touched = {
-            _to_repo_relative(p)
-            for p in (set(before) | set(after))
-            if before.get(p) != after.get(p)
-        }
+    # baseline avec la liste actuelle des chemins MODIFIÉS/AJOUTÉS
+    # uniquement — un diff visible et revu en PR, jamais un effet de bord
+    # silencieux. Une suppression n'est JAMAIS écrite dans le baseline,
+    # même en mode génération : elle fait échouer la session exactement
+    # comme en mode normal (voir plus bas), le mode génération ne
+    # retourne PAS avant cette évaluation.
+    if generate_mode:
+        touched = {_to_repo_relative(p) for p in changed + added}
         _SCIENTIFIC_DATA_GUARD_BASELINE_PATH.write_text(
             json.dumps(
                 {
@@ -253,18 +268,22 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
         )
         print(
             f"\nSCIENTIFIC DATA GUARD — baseline regenerated: "
-            f"{len(touched)} known path(s) written to "
+            f"{len(touched)} known path(s) (modified/added only, deletions "
+            f"never included) written to "
             f"{_SCIENTIFIC_DATA_GUARD_BASELINE_PATH}.\n",
             file=sys.stderr,
         )
+        if removed_rel:
+            print(
+                "\nSCIENTIFIC DATA GUARD — suppression détectée pendant la "
+                "génération du baseline (jamais tolérée, jamais écrite "
+                "dans le baseline) :\n"
+                + "\n".join(f"  - {p}" for p in removed_rel)
+                + "\n",
+                file=sys.stderr,
+            )
+            session.exitstatus = 1
         return
-
-    if before == after:
-        return
-
-    changed = sorted(p for p in (set(before) & set(after)) if before[p] != after[p])
-    added = sorted(set(after) - set(before))
-    removed = sorted(set(before) - set(after))
 
     baseline = _load_scientific_data_guard_baseline()
     touched_rel = {_to_repo_relative(p): p for p in changed + added}
@@ -283,7 +302,6 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
         "jamais comme valeur par défaut de signature évaluée à l'import).",
         "=" * 78,
     ]
-    removed_rel = sorted(_to_repo_relative(p) for p in removed)
 
     if new_contamination:
         lines.append("NOUVELLE contamination (absente du baseline — ÉCHEC) :")

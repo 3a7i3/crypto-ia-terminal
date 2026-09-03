@@ -19,6 +19,7 @@ Covers exactly the invariant required by CI-00B master review:
 from __future__ import annotations
 
 import importlib.util
+import json
 from pathlib import Path
 
 import pytest
@@ -158,3 +159,122 @@ def test_existing_pytest_failure_survives_known_baselined_debt(guard, monkeypatc
         exitstatus=1,
     )
     assert session.exitstatus == 1
+
+
+# ── GENERATE mode (SCIENTIFIC_DATA_GUARD_GENERATE=1) ─────────────────────────
+#
+# CI-00B.2 (independent review): an earlier revision derived the generated
+# set from `set(before) | set(after)` where hashes differ, which included
+# REMOVED paths (present before, absent after -- after.get() returns None,
+# differing from the before hash) into the generated baseline, then returned
+# before normal deletion enforcement ran. Fixed: generate mode now shares the
+# exact same changed/added/removed computation as normal mode, only ever
+# writes changed+added into the baseline, and evaluates removed paths for
+# failure exactly like normal mode -- it does not return early past that.
+
+
+def _run_guard_generate(
+    guard, monkeypatch, tmp_path, before: dict, after: dict, exitstatus: int = 0
+):
+    baseline_path = tmp_path / "scientific_data_guard_baseline.json"
+    monkeypatch.setattr(guard, "_SCIENTIFIC_DATA_GUARD_BASELINE_PATH", baseline_path)
+    monkeypatch.setattr(guard, "_snapshot_scientific_data", lambda: after)
+    monkeypatch.setenv("SCIENTIFIC_DATA_GUARD_GENERATE", "1")
+
+    session = _FakeSession(exitstatus=exitstatus)
+    session.config._scientific_data_before = before
+    guard.pytest_sessionfinish(session, exitstatus)
+
+    written = None
+    if baseline_path.exists():
+        written = set(json.loads(baseline_path.read_text())["known_leaking_paths"])
+    return session, written
+
+
+def test_generate_known_modification_is_written_to_baseline(guard, monkeypatch, tmp_path):
+    path = _p(guard, "cache/daily_analysis.db")
+    session, written = _run_guard_generate(
+        guard,
+        monkeypatch,
+        tmp_path,
+        before={path: "hash-old"},
+        after={path: "hash-new"},
+    )
+    assert written == {"cache/daily_analysis.db"}
+    assert session.exitstatus == 0
+
+
+def test_generate_new_addition_is_written_to_baseline(guard, monkeypatch, tmp_path):
+    path = _p(guard, "databases/new_thing.json")
+    session, written = _run_guard_generate(
+        guard,
+        monkeypatch,
+        tmp_path,
+        before={},
+        after={path: "hash-new"},
+    )
+    assert written == {"databases/new_thing.json"}
+    assert session.exitstatus == 0
+
+
+def test_generate_with_deletion_fails_session(guard, monkeypatch, tmp_path):
+    path = _p(guard, "databases/system_state.json")
+    session, _written = _run_guard_generate(
+        guard,
+        monkeypatch,
+        tmp_path,
+        before={path: "hash-old"},
+        after={},
+    )
+    assert session.exitstatus == 1
+
+
+def test_generate_deletion_never_appears_in_generated_baseline(guard, monkeypatch, tmp_path):
+    """The core CI-00B.2 regression: a removed path must never be written
+    into the baseline, even mixed with a legitimate modification in the
+    same session."""
+    kept = _p(guard, "cache/daily_analysis.db")
+    deleted = _p(guard, "databases/system_state.json")
+    session, written = _run_guard_generate(
+        guard,
+        monkeypatch,
+        tmp_path,
+        before={kept: "hash-old", deleted: "hash-old"},
+        after={kept: "hash-new"},
+    )
+    assert written == {"cache/daily_analysis.db"}
+    assert "databases/system_state.json" not in written
+    assert session.exitstatus == 1
+
+
+def test_generate_mode_does_not_clear_existing_pytest_failure(guard, monkeypatch, tmp_path):
+    path = _p(guard, "cache/daily_analysis.db")
+    session, written = _run_guard_generate(
+        guard,
+        monkeypatch,
+        tmp_path,
+        before={path: "hash-old"},
+        after={path: "hash-new"},
+        exitstatus=1,
+    )
+    assert session.exitstatus == 1
+    assert written == {"cache/daily_analysis.db"}
+
+
+def test_generate_mode_does_not_clear_existing_pytest_failure_with_deletion(
+    guard, monkeypatch, tmp_path
+):
+    """Belt-and-braces: exitstatus was already 1 for an unrelated reason AND
+    a deletion also occurred -- must still be 1 (never accidentally reset
+    to 0 by the deletion-handling branch either)."""
+    path = _p(guard, "databases/system_state.json")
+    session, written = _run_guard_generate(
+        guard,
+        monkeypatch,
+        tmp_path,
+        before={path: "hash-old"},
+        after={},
+        exitstatus=1,
+    )
+    assert session.exitstatus == 1
+    assert written == set()
