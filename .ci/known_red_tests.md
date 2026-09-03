@@ -25,19 +25,20 @@ regression.
 `COVERAGE REGRESSION BASELINE`'s gate (`--cov-fail-under=…` on
 `supervision/`, `quant_hedge_ai/agents/{market,execution,risk,quant}`)
 never actually ran on `main` before CI-00B — it was blocked by
-`needs: lint` (the structural defect Phase 2 of CI-00B fixes). Once
-decoupled, actual coverage measured **≈4.09%**, reproduced twice in CI on
-this PR (deterministic, not a one-off).
+`needs: lint` (the structural defect Phase 2 of CI-00B fixes).
 
-**`COVERAGE_TARGET = 60%` is the historical target and remains
-UNRESOLVED, TRACKED DEBT** — this job does **not** claim 4% satisfies it.
-`--cov-fail-under` is set to `4`: a regression floor, not a target. It
-fails only if coverage drops *below* the established baseline (a genuine
-new coverage regression); it does not, and must not be read to, certify
-that 60% coverage exists. Raising the real number back toward 60% by
-adding tests for `execution_engine.py`, `market_scanner.py`, the risk
-gates, etc. is out of CI-00B scope (functional freeze, ADR-0007
-passivity) — separate follow-up work.
+Three distinct numbers, not to be conflated:
+
+| | Value | Status |
+|---|---|---|
+| **Measured reference** | ≈4.09% | The actual coverage observed once the job could finally run, reproduced twice in CI on this PR (deterministic, not a one-off). |
+| **Certified anti-regression floor** | 4.00% (`--cov-fail-under=4`) | What the gate enforces today: fails only if coverage drops *below* this floor (a genuine new regression). Set slightly under the measured reference so normal float/environment variance doesn't false-positive the gate. |
+| **Historical target** | 60% (`COVERAGE_TARGET`) | **Unresolved, tracked debt — unchanged by CI-00B.** The gate does **not** claim 4% satisfies it, and this PR does not touch the target. |
+
+Raising the real number back toward the 60% target by adding tests for
+`execution_engine.py`, `market_scanner.py`, the risk gates, etc. is out
+of CI-00B scope (functional freeze, ADR-0007 passivity) — separate
+follow-up work.
 
 ## Known test-isolation debt: Scientific Data Guard baseline (CI-00B)
 
@@ -60,23 +61,40 @@ CI-00B is expressly forbidden from modifying — this needs a dedicated
 follow-up mission (test-isolation hardening, tentatively `TI-00`), not an
 opportunistic CI-00B fix.
 
-**The guard itself is untouched in behavior and stays fully intact and
-blocking** — a normal pytest invocation, and this full-suite CI run
-alike, still fail on any contamination of `databases/`/`cache/`. What
-changed (CI-00B, master-review-directed): the guard now compares changed
-paths against an explicit, versioned, auditable baseline
+**The guard itself is untouched in blocking power and stays fully
+intact** — a normal pytest invocation, and this full-suite CI run alike,
+still fail on any contamination of `databases/`/`cache/`. What changed
+(CI-00B, master-review-directed): the guard now compares changed paths
+against an explicit, versioned, auditable baseline
 (`.ci/scientific_data_guard_baseline.json`, generated via
 `SCIENTIFIC_DATA_GUARD_GENERATE=1 pytest -q tests/`, a visible diff in
-this PR) instead of failing unconditionally on any change:
+this PR) instead of failing unconditionally on any change. The exact
+invariant:
 
-- A changed/added path **in** the baseline → printed as known debt,
-  never fails the run.
-- A changed/added path **NOT** in the baseline (a genuinely NEW
-  contaminated path) → **fails the session**, exactly as before.
+- A **modified or added** path **in** the baseline → printed as known
+  debt, never fails the run.
+- A **modified or added** path **NOT** in the baseline (a genuinely NEW
+  contaminated path) → **fails the session**.
+- **A REMOVED path under `databases/`/`cache/`, whether or not its
+  string appears in the baseline → ALWAYS fails the session.** The
+  baseline mechanism covers modifications/additions only; it is
+  deliberately never consulted for deletions, and there is currently no
+  governance mechanism designed to tolerate one. A test deleting a
+  scientific-data file must never leave the suite green (this was a
+  real gap in an earlier revision of this fix — removed paths were
+  reported as "never blocking" — caught and closed by master review).
 - `session.exitstatus` is otherwise left untouched by the guard — real
   pytest test failures/errors still fail the run through pytest's own
   ordinary exit code, with no bypass, no `|| true`, no separate
   JUnit-only acceptance layer.
+
+Deterministic unit tests for this exact invariant (baselined
+modification passes, unknown new path fails, any removed path fails
+whether baselined or not, an existing pytest failure is never cleared by
+the guard) live in `tests/test_scientific_data_guard.py`, calling
+`conftest.py`'s hook functions directly against fake before/after
+snapshots — no dependency on what the real baseline file currently
+contains.
 
 Fixing the ~13 offending modules' path isolation so the baseline can
 shrink to empty is separate follow-up work (`TI-00`), not CI-00B.

@@ -16,16 +16,22 @@ l'exécution, jamais comme défaut de signature ni constante de module figée
    signature non injectables (isolation recorder, black box, cold-start,
    gate CSV, exec trade log).
 3. Scientific Data Guard (SHA256, fin de fichier) : filet de sécurité final
-   — fait échouer toute session pytest si databases/ ou cache/ a changé
-   sous un chemin absent du baseline versionné (CI-00B,
-   .ci/scientific_data_guard_baseline.json) ; un chemin déjà connu et
-   baselisé est toléré et affiché, jamais silencieux. Le baseline capture
-   une dette d'isolation de tests pré-existante (voir sa docstring
-   embarquée) — toute CONTAMINATION NOUVELLE (chemin absent du baseline)
-   fait toujours échouer la session normalement (le garde-fou ne
-   surcharge PAS session.exitstatus quand tout changement observé est
-   déjà connu : le code de sortie pytest ordinaire reste la source de
-   vérité pour les échecs/erreurs de tests).
+   — invariant exact (revue master CI-00B) :
+     - chemin MODIFIÉ ou AJOUTÉ, déjà connu du baseline versionné
+       (.ci/scientific_data_guard_baseline.json) : toléré, affiché,
+       jamais bloquant ;
+     - chemin MODIFIÉ ou AJOUTÉ, absent du baseline (contamination
+       NOUVELLE) : ÉCHEC ;
+     - chemin SUPPRIMÉ sous databases/ ou cache/, QUEL QU'IL SOIT
+       (baselisé ou non) : ÉCHEC PAR DÉFAUT, toujours. Le baseline ne
+       couvre QUE les modifications/ajouts connus, jamais les
+       suppressions — aucun mécanisme de gouvernance dédié à tolérer une
+       suppression de donnée scientifique n'existe à ce jour ; en créer
+       un est une décision de gouvernance séparée, pas un défaut CI-00B.
+   Le garde-fou ne surcharge session.exitstatus QUE pour ajouter un échec
+   (contamination nouvelle ou suppression) — jamais pour en retirer un :
+   le code de sortie pytest ordinaire reste la source de vérité pour les
+   échecs/erreurs de tests eux-mêmes.
 """
 
 from __future__ import annotations
@@ -277,6 +283,8 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
         "jamais comme valeur par défaut de signature évaluée à l'import).",
         "=" * 78,
     ]
+    removed_rel = sorted(_to_repo_relative(p) for p in removed)
+
     if new_contamination:
         lines.append("NOUVELLE contamination (absente du baseline — ÉCHEC) :")
         lines += [f"  - {p}" for p in new_contamination]
@@ -286,16 +294,24 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
             "tolérée, non bloquante) :"
         )
         lines += [f"  - {p}" for p in known_debt]
-    if removed:
-        lines.append("Fichiers supprimés (jamais bloquant) :")
-        lines += [f"  - {_to_repo_relative(p)}" for p in removed]
+    if removed_rel:
+        lines.append(
+            "SUPPRESSION de donnée scientifique (ÉCHEC PAR DÉFAUT — jamais "
+            "baselisable ; aucun mécanisme de gouvernance dédié aux "
+            "suppressions n'existe à ce jour) :"
+        )
+        lines += [f"  - {p}" for p in removed_rel]
     lines += ["=" * 78, ""]
 
     print("\n".join(lines), file=sys.stderr)
 
-    if new_contamination:
+    if new_contamination or removed_rel:
         session.exitstatus = 1
-    # Sinon : tout changement observé est une dette connue et baselisée —
-    # on NE TOUCHE PAS à session.exitstatus, qui reste le signal ordinaire
-    # de réussite/échec des tests eux-mêmes (pytest_sessionfinish ne fait
-    # ici qu'ajouter un échec, jamais en retirer un).
+    # Sinon (uniquement dette connue, modifiée/ajoutée, baselisée) : on NE
+    # TOUCHE PAS à session.exitstatus, qui reste le signal ordinaire de
+    # réussite/échec des tests eux-mêmes (pytest_sessionfinish ne fait ici
+    # qu'ajouter un échec, jamais en retirer un). Une suppression n'est
+    # JAMAIS tolérée par le baseline, même si le chemin y figure comme
+    # dette de modification/ajout connue : le baseline ne couvre que
+    # « modifié/ajouté », jamais « supprimé » (pas de mécanisme de
+    # gouvernance dédié — voir docstring module).
