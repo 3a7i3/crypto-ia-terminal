@@ -676,6 +676,20 @@ def _top_strategies_for_display(ranker: Any) -> list[JSONDict]:
 
 load_dotenv(override=True)
 
+# S-02B.1 — re-résout la valeur EFFECTIVE de FEATURE_ADAPTIVE_DECISION_FEEDBACK
+# maintenant que .env est chargé. L'import ligne ~77 a eu lieu avant
+# load_dotenv() ; comme config.feature_flags est déjà dans sys.modules, un
+# ré-import ne réexécuterait pas son corps et renverrait la même constante
+# obsolète (résolue avant load_dotenv). adaptive_decision_feedback_enabled()
+# relit os.environ à cet appel précis, donc après le chargement du .env.
+# Fail-closed : toute erreur de résolution laisse la valeur à False.
+try:
+    from config.feature_flags import adaptive_decision_feedback_enabled
+
+    FEATURE_ADAPTIVE_DECISION_FEEDBACK = adaptive_decision_feedback_enabled()
+except Exception:
+    FEATURE_ADAPTIVE_DECISION_FEEDBACK = False
+
 P6_SAFE_MODE: bool = os.environ.get("P6_SAFE_MODE", "false").lower() in (
     "true",
     "1",

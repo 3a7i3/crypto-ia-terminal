@@ -65,6 +65,27 @@ FEATURE_ADAPTIVE_DECISION_FEEDBACK: bool = _flag(
     "FEATURE_ADAPTIVE_DECISION_FEEDBACK", default=False
 )
 
+
+def adaptive_decision_feedback_enabled() -> bool:
+    """Résolveur public de la valeur EFFECTIVE de FEATURE_ADAPTIVE_DECISION_FEEDBACK.
+
+    La constante de module `FEATURE_ADAPTIVE_DECISION_FEEDBACK` ci-dessus est
+    résolue une seule fois, à l'import de ce module — donc potentiellement
+    AVANT que l'appelant n'ait chargé son `.env` (`load_dotenv()`). Un module
+    déjà présent dans `sys.modules` ne ré-exécute pas son corps à un import
+    ultérieur, donc cette constante resterait figée sur une valeur obsolète
+    même si le `.env` définit ensuite la variable.
+
+    Cette fonction relit `os.environ` à CHAQUE appel (via `_flag`, jamais mis
+    en cache) : elle donne donc la valeur effective correcte quand elle est
+    appelée après le chargement de la configuration, sans dépendre de l'ordre
+    d'import. Fail-closed comme `_flag()` : absent, "false", ou une valeur
+    malformée résolvent tous à False ; seul "true"/"1"/"yes" (insensible à la
+    casse) résout à True.
+    """
+    return _flag("FEATURE_ADAPTIVE_DECISION_FEEDBACK", default=False)
+
+
 # ── P4-P7 — Réservés, désactivés ──────────────────────────────────────────────
 FEATURE_ADAPTIVE_CALIBRATION: bool = _flag(
     "FEATURE_ADAPTIVE_CALIBRATION", default=False
