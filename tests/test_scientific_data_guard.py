@@ -231,10 +231,14 @@ def test_generate_with_deletion_fails_session(guard, monkeypatch, tmp_path):
 
 def test_generate_deletion_never_appears_in_generated_baseline(guard, monkeypatch, tmp_path):
     """The core CI-00B.2 regression: a removed path must never be written
-    into the baseline, even mixed with a legitimate modification in the
-    same session."""
+    into the baseline. CI-00B.2 (independent review) tightened this
+    further -- ANY deletion in the diff blocks writing the baseline file
+    at all, even when a legitimate modification is present in the same
+    session (no baseline file exists yet here, so "untouched" means it
+    stays absent)."""
     kept = _p(guard, "cache/daily_analysis.db")
     deleted = _p(guard, "databases/system_state.json")
+    baseline_path = tmp_path / "scientific_data_guard_baseline.json"
     session, written = _run_guard_generate(
         guard,
         monkeypatch,
@@ -242,8 +246,8 @@ def test_generate_deletion_never_appears_in_generated_baseline(guard, monkeypatc
         before={kept: "hash-old", deleted: "hash-old"},
         after={kept: "hash-new"},
     )
-    assert written == {"cache/daily_analysis.db"}
-    assert "databases/system_state.json" not in written
+    assert written is None
+    assert not baseline_path.exists()
     assert session.exitstatus == 1
 
 
@@ -266,8 +270,10 @@ def test_generate_mode_does_not_clear_existing_pytest_failure_with_deletion(
 ):
     """Belt-and-braces: exitstatus was already 1 for an unrelated reason AND
     a deletion also occurred -- must still be 1 (never accidentally reset
-    to 0 by the deletion-handling branch either)."""
+    to 0 by the deletion-handling branch either), and the baseline file
+    must not be written (no file existed before, none exists after)."""
     path = _p(guard, "databases/system_state.json")
+    baseline_path = tmp_path / "scientific_data_guard_baseline.json"
     session, written = _run_guard_generate(
         guard,
         monkeypatch,
@@ -277,4 +283,54 @@ def test_generate_mode_does_not_clear_existing_pytest_failure_with_deletion(
         exitstatus=1,
     )
     assert session.exitstatus == 1
+    assert written is None
+    assert not baseline_path.exists()
+
+
+def test_generate_zero_diff_clears_preexisting_baseline_to_empty(guard, monkeypatch, tmp_path):
+    """CI-00B.2 (independent review): before == after must NOT short-circuit
+    generate mode. A successful cleanup that brings the scientific-data
+    diff to zero must be able to regenerate the baseline down to an empty
+    set, rather than leaving stale historical exemptions frozen forever."""
+    baseline_path = tmp_path / "scientific_data_guard_baseline.json"
+    baseline_path.write_text(
+        json.dumps({"known_leaking_paths": ["cache/some_old_stale_debt.db"]})
+    )
+
+    path = _p(guard, "cache/daily_analysis.db")
+    session, written = _run_guard_generate(
+        guard,
+        monkeypatch,
+        tmp_path,
+        before={path: "same-hash"},
+        after={path: "same-hash"},  # identical -> before == after
+    )
+
     assert written == set()
+    assert session.exitstatus == 0
+
+
+def test_generate_with_deletion_leaves_existing_baseline_byte_for_byte_unchanged(
+    guard, monkeypatch, tmp_path
+):
+    """CI-00B.2 (independent review): on a deletion, the previous baseline
+    file must not be modified in ANY way -- not truncated, not rewritten,
+    not even reformatted. Compares raw bytes before and after."""
+    baseline_path = tmp_path / "scientific_data_guard_baseline.json"
+    original_bytes = json.dumps(
+        {"known_leaking_paths": ["cache/daily_analysis.db"]}, indent=2
+    ).encode("utf-8")
+    baseline_path.write_bytes(original_bytes)
+
+    kept = _p(guard, "cache/daily_analysis.db")
+    deleted = _p(guard, "databases/system_state.json")
+    session, _written = _run_guard_generate(
+        guard,
+        monkeypatch,
+        tmp_path,
+        before={kept: "hash-old", deleted: "hash-old"},
+        after={kept: "hash-old"},  # kept unchanged; deleted is gone
+    )
+
+    assert baseline_path.read_bytes() == original_bytes
+    assert session.exitstatus == 1

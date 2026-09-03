@@ -230,7 +230,16 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
 
     generate_mode = os.environ.get("SCIENTIFIC_DATA_GUARD_GENERATE") == "1"
 
-    if before == after:
+    # CI-00B.2 (revue indépendante) : le mode génération doit être évalué
+    # MÊME quand before == after (diff scientifique vide) — un nettoyage
+    # réussi qui ramène le diff à zéro doit pouvoir régénérer le baseline
+    # à `known_leaking_paths: []`, sinon d'anciennes exemptions restent
+    # gelées indéfiniment. Le raccourci `before == after: return` ne
+    # s'applique donc plus qu'au mode normal (non-génération), où il reste
+    # un pur raccourci sans incidence observable (aucun chemin touché =
+    # aucun `new_contamination`/`known_debt`/suppression à rapporter de
+    # toute façon).
+    if before == after and not generate_mode:
         return
 
     # Un seul calcul changed/added/removed, partagé par les deux modes
@@ -247,11 +256,31 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
     # `SCIENTIFIC_DATA_GUARD_GENERATE=1 pytest -q tests/` réécrit le
     # baseline avec la liste actuelle des chemins MODIFIÉS/AJOUTÉS
     # uniquement — un diff visible et revu en PR, jamais un effet de bord
-    # silencieux. Une suppression n'est JAMAIS écrite dans le baseline,
-    # même en mode génération : elle fait échouer la session exactement
-    # comme en mode normal (voir plus bas), le mode génération ne
-    # retourne PAS avant cette évaluation.
+    # silencieux.
+    #
+    # CI-00B.2 (revue indépendante) : sémantique exacte —
+    #   - zéro chemin modifié/ajouté/supprimé -> baseline régénéré à []
+    #     (voir avant le raccourci ci-dessus) ;
+    #   - chemins modifiés/ajoutés, AUCUNE suppression -> baseline
+    #     régénéré avec exactement ces chemins ;
+    #   - toute suppression -> ÉCHEC et le fichier baseline n'est PAS
+    #     touché du tout (ni écrit, ni tronqué, ni modifié en aucune
+    #     façon) ; le générer avec une suppression dans le diff n'a pas de
+    #     sens, il faut d'abord la traiter séparément.
     if generate_mode:
+        if removed_rel:
+            print(
+                "\nSCIENTIFIC DATA GUARD — suppression détectée pendant la "
+                "génération du baseline : le fichier baseline N'A PAS été "
+                "modifié (aucune régénération possible avec une "
+                "suppression dans le diff) :\n"
+                + "\n".join(f"  - {p}" for p in removed_rel)
+                + "\n",
+                file=sys.stderr,
+            )
+            session.exitstatus = 1
+            return
+
         touched = {_to_repo_relative(p) for p in changed + added}
         _SCIENTIFIC_DATA_GUARD_BASELINE_PATH.write_text(
             json.dumps(
@@ -268,21 +297,10 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
         )
         print(
             f"\nSCIENTIFIC DATA GUARD — baseline regenerated: "
-            f"{len(touched)} known path(s) (modified/added only, deletions "
-            f"never included) written to "
-            f"{_SCIENTIFIC_DATA_GUARD_BASELINE_PATH}.\n",
+            f"{len(touched)} known path(s) (modified/added only) written "
+            f"to {_SCIENTIFIC_DATA_GUARD_BASELINE_PATH}.\n",
             file=sys.stderr,
         )
-        if removed_rel:
-            print(
-                "\nSCIENTIFIC DATA GUARD — suppression détectée pendant la "
-                "génération du baseline (jamais tolérée, jamais écrite "
-                "dans le baseline) :\n"
-                + "\n".join(f"  - {p}" for p in removed_rel)
-                + "\n",
-                file=sys.stderr,
-            )
-            session.exitstatus = 1
         return
 
     baseline = _load_scientific_data_guard_baseline()
