@@ -4418,6 +4418,13 @@ def main(
                 "max_position_reduction": 0.75,
             },
             log_file="logs/system_controller_decisions.jsonl",
+            # S-02B.1 — ADJUST_TP/ADJUST_SL/APPLY_META restent contrefactuels
+            # tant que FEATURE_ADAPTIVE_DECISION_FEEDBACK=false (LEARNING !=
+            # AUTHORITY). STOP_TRADING/RESUME_TRADING/REDUCE_RISK ne sont pas
+            # affectés par ce flag (sécurité/récupération/risque toujours
+            # autoritaires). Résolution au démarrage, après load_dotenv() —
+            # le hot-reload n'est pas requis pour ce composant.
+            adaptive_decision_feedback=FEATURE_ADAPTIVE_DECISION_FEEDBACK,
         )
         log.info("[SystemController] AutoDecisionOrchestrator initialisé")
     except Exception as _sc_init_exc:
@@ -4708,21 +4715,48 @@ def main(
 
         elif decision.action == "ADJUST_TP":
             factor = decision.params.get("tp_factor", 1.15)
-            _sc_state["tp_factor"] = min(1.5, max(0.8, _sc_state["tp_factor"] * factor))
-            log.info(
-                "[SystemController] ADJUST_TP → tp_factor=%.3f", _sc_state["tp_factor"]
-            )
+            if FEATURE_ADAPTIVE_DECISION_FEEDBACK:
+                _sc_state["tp_factor"] = min(
+                    1.5, max(0.8, _sc_state["tp_factor"] * factor)
+                )
+                log.info(
+                    "[SystemController] ADJUST_TP → tp_factor=%.3f",
+                    _sc_state["tp_factor"],
+                )
+            else:
+                _counterfactual_tp = min(1.5, max(0.8, _sc_state["tp_factor"] * factor))
+                log.debug(
+                    "[SystemController] ADJUST_TP recommandation contrefactuelle"
+                    " (non appliquée, FEATURE_ADAPTIVE_DECISION_FEEDBACK=false):"
+                    " tp_factor actuel=%.3f, aurait été=%.3f",
+                    _sc_state["tp_factor"],
+                    _counterfactual_tp,
+                )
 
         elif decision.action == "ADJUST_SL":
             factor = decision.params.get("sl_factor", 0.85)
-            _sc_state["sl_factor"] = min(1.3, max(0.7, _sc_state["sl_factor"] * factor))
-            log.info(
-                "[SystemController] ADJUST_SL → sl_factor=%.3f", _sc_state["sl_factor"]
-            )
+            if FEATURE_ADAPTIVE_DECISION_FEEDBACK:
+                _sc_state["sl_factor"] = min(
+                    1.3, max(0.7, _sc_state["sl_factor"] * factor)
+                )
+                log.info(
+                    "[SystemController] ADJUST_SL → sl_factor=%.3f",
+                    _sc_state["sl_factor"],
+                )
+            else:
+                _counterfactual_sl = min(1.3, max(0.7, _sc_state["sl_factor"] * factor))
+                log.debug(
+                    "[SystemController] ADJUST_SL recommandation contrefactuelle"
+                    " (non appliquée, FEATURE_ADAPTIVE_DECISION_FEEDBACK=false):"
+                    " sl_factor actuel=%.3f, aurait été=%.3f",
+                    _sc_state["sl_factor"],
+                    _counterfactual_sl,
+                )
 
         # STOP_TRADING et APPLY_META sont gérés directement par ActionExecutor
         # dans run_decision_cycle : state_machine.transition("HALTED") pour STOP,
-        # mutation de config pour APPLY_META.
+        # mutation de config pour APPLY_META (passive/active gérée dans
+        # ActionExecutor.execute() via adaptive_decision_feedback, S-02B.1).
 
     # Callback PositionManager → enregistre le résultat dans le ranker
     def _on_position_close_rank(pos: Any, reason: Any) -> None:
