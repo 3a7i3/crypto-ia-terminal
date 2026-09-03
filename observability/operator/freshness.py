@@ -3,7 +3,7 @@
 Freshness is source-specific (mission §28): this function classifies a
 single age-vs-threshold pair. It never invents a threshold — callers
 that don't have an evidence-backed threshold must pass
-``degraded_threshold_s=None, stale_threshold_s=None`` and accept
+``fresh_threshold_s=None, stale_threshold_s=None`` and accept
 ``FreshnessStatus.UNKNOWN`` for anything but the "no data at all" case.
 """
 

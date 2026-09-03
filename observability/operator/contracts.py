@@ -9,6 +9,7 @@ these contracts without reinterpreting them.
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field, fields, is_dataclass
 from datetime import datetime, timezone
 from enum import Enum
@@ -90,6 +91,28 @@ _NONE_REQUIRED_SEMANTICS = frozenset(
 )
 
 
+def _is_empty_sized(value: Any) -> bool:
+    """True if ``value`` supports ``len()`` and that length is 0. Used to
+    keep PRESENT and EMPTY mutually exclusive without duplicating the
+    "is this a sized, empty value" check in two places."""
+    try:
+        return len(value) == 0
+    except TypeError:
+        return False
+
+
+def _canonical_member_sort_key(jsonable_member: Any) -> str:
+    """A deterministic, type-agnostic sort key for an already-`to_jsonable`-
+    converted value. Used only to impose a canonical order on set/frozenset
+    members: Python's set iteration order depends on hash seeding and
+    insertion history, not on the scientific content, so two snapshots
+    carrying the same set-valued field must not serialize differently
+    merely because of that. A stable JSON string (``sort_keys=True``)
+    sorts safely even across heterogeneous member types, where comparing
+    the raw values directly could raise (e.g. int vs. str)."""
+    return json.dumps(jsonable_member, sort_keys=True)
+
+
 def to_jsonable(value: Any) -> Any:
     """Recursively convert any contracts value into a JSON-safe structure,
     without reinterpreting it — the same "format, never reinterpret" rule
@@ -101,7 +124,10 @@ def to_jsonable(value: Any) -> Any:
     exposing its own ``to_dict()`` (``ObservedValue``, ``PercentageMetric``)
     -> that method's result, itself recursively converted; any other plain
     dataclass -> its fields, recursively converted; ``Mapping`` -> a dict
-    with string keys; ``list``/``tuple``/``set``/``frozenset`` -> a list.
+    with string keys; ``list``/``tuple`` -> a list, order preserved (it is
+    meaningful); ``set``/``frozenset`` -> a list in a canonical
+    deterministic order (their iteration order is not), never Python's
+    hash-dependent iteration order.
     """
     if isinstance(value, Enum):
         return value.value
@@ -116,8 +142,12 @@ def to_jsonable(value: Any) -> Any:
         return {f.name: to_jsonable(getattr(value, f.name)) for f in fields(value)}
     if isinstance(value, Mapping):
         return {str(k): to_jsonable(v) for k, v in value.items()}
-    if isinstance(value, (list, tuple, set, frozenset)):
+    if isinstance(value, (list, tuple)):
         return [to_jsonable(v) for v in value]
+    if isinstance(value, (set, frozenset)):
+        converted = [to_jsonable(v) for v in value]
+        converted.sort(key=_canonical_member_sort_key)
+        return converted
     raise TypeError(f"Cannot serialize value of type {type(value)!r} to a JSON-safe structure: {value!r}")
 
 
@@ -135,16 +165,54 @@ class ObservedValue(Generic[T]):
     semantics: NullSemantics = NullSemantics.PRESENT
 
     def __post_init__(self) -> None:
+        # Canonical invariant matrix (mission remediation, final hardening
+        # pass §2) — every NullSemantics member validates its own shape, so
+        # the dataclass itself (not just the observed()/unknown()/... factory
+        # helpers) can never represent an internally contradictory state.
         if self.semantics in _NONE_REQUIRED_SEMANTICS and self.value is not None:
             raise ValueError(
                 f"ObservedValue with semantics={self.semantics} must carry value=None, "
                 f"got {self.value!r}"
             )
-        if self.semantics == NullSemantics.PRESENT and self.value is None:
-            raise ValueError(
-                "ObservedValue with semantics=PRESENT must carry a non-None value; "
-                "use NullSemantics.ZERO/FALSE/EMPTY for a present-but-empty value"
-            )
+
+        if self.semantics == NullSemantics.PRESENT:
+            if self.value is None:
+                raise ValueError(
+                    "ObservedValue with semantics=PRESENT must carry a non-None value; "
+                    "use NullSemantics.ZERO/FALSE/EMPTY for a present-but-empty value"
+                )
+            if self.value is False:
+                raise ValueError(
+                    "ObservedValue with semantics=PRESENT must not be False; "
+                    "use NullSemantics.FALSE for a present-but-false value"
+                )
+            if not isinstance(self.value, bool) and self.value == 0:
+                raise ValueError(
+                    "ObservedValue with semantics=PRESENT must not be numeric zero; "
+                    "use NullSemantics.ZERO for a present-but-zero value"
+                )
+            if _is_empty_sized(self.value):
+                raise ValueError(
+                    "ObservedValue with semantics=PRESENT must not be an empty "
+                    "collection/string; use NullSemantics.EMPTY for a present-but-empty value"
+                )
+
+        if self.semantics == NullSemantics.ZERO:
+            if isinstance(self.value, bool) or self.value != 0:
+                raise ValueError(
+                    "ObservedValue with semantics=ZERO must carry a genuine numeric zero "
+                    f"and never a bool (bool False belongs to NullSemantics.FALSE), got {self.value!r}"
+                )
+
+        if self.semantics == NullSemantics.FALSE:
+            # Identity-based, not equality-based: 0 == False in Python, but
+            # 0 is not the boolean False a caller meant to report.
+            if self.value is not False:
+                raise ValueError(
+                    f"ObservedValue with semantics=FALSE must carry exactly False "
+                    f"(by identity, not merely by equality), got {self.value!r}"
+                )
+
         if self.semantics == NullSemantics.EMPTY:
             if self.value is None:
                 raise ValueError(
@@ -165,6 +233,14 @@ class ObservedValue(Generic[T]):
                     "ObservedValue with semantics=EMPTY must carry an empty collection "
                     f"or string, got non-empty value {self.value!r}"
                 )
+
+        if self.semantics == NullSemantics.STALE and self.value is None:
+            raise ValueError(
+                "ObservedValue with semantics=STALE must carry the actual last-known "
+                "value, even if that value is 0/False/empty — STALE is a freshness "
+                "condition overriding current availability, not an absence of data; "
+                "use NullSemantics.UNKNOWN if no observation has ever occurred"
+            )
 
     @property
     def is_available(self) -> bool:

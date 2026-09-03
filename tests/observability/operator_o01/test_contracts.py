@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from datetime import datetime, timezone
 
 import pytest
@@ -125,6 +126,100 @@ def test_empty_semantics_rejects_unsized_value():
         ObservedValue(value=42, semantics=NullSemantics.EMPTY)
 
 
+# --- Final contract-hardening pass: the full ObservedValue canonical
+# invariant matrix (independent review, final canonicality mission §1-3).
+# Each NullSemantics member must validate its own shape directly on the
+# dataclass, not only via the observed()/unknown()/... factory helpers,
+# so a caller constructing ObservedValue directly can never represent an
+# internally contradictory state. ---
+
+
+@pytest.mark.parametrize("bad_value", [5, 1, -1, 0.5], ids=["int5", "int1", "int-1", "float0.5"])
+def test_zero_rejects_nonzero_numeric_values(bad_value):
+    with pytest.raises(ValueError):
+        ObservedValue(value=bad_value, semantics=NullSemantics.ZERO)
+
+
+def test_zero_rejects_bool_true_even_though_not_numerically_zero():
+    with pytest.raises(ValueError):
+        ObservedValue(value=True, semantics=NullSemantics.ZERO)
+
+
+def test_zero_rejects_bool_false_despite_false_equalling_zero_numerically():
+    # bool False == 0 numerically, but ZERO must never accept a bool —
+    # that ambiguity belongs to NullSemantics.FALSE instead.
+    with pytest.raises(ValueError):
+        ObservedValue(value=False, semantics=NullSemantics.ZERO)
+
+
+def test_zero_accepts_genuine_numeric_zero():
+    assert ObservedValue(value=0, semantics=NullSemantics.ZERO).value == 0
+    assert ObservedValue(value=0.0, semantics=NullSemantics.ZERO).value == 0.0
+
+
+def test_false_rejects_true():
+    with pytest.raises(ValueError):
+        ObservedValue(value=True, semantics=NullSemantics.FALSE)
+
+
+def test_false_rejects_zero_despite_equality_with_false():
+    # Identity-based, not equality-based: 0 == False in Python, but a
+    # caller reporting FALSE means the boolean, not the integer.
+    with pytest.raises(ValueError):
+        ObservedValue(value=0, semantics=NullSemantics.FALSE)
+
+
+def test_false_accepts_exactly_false():
+    assert ObservedValue(value=False, semantics=NullSemantics.FALSE).value is False
+
+
+@pytest.mark.parametrize(
+    "bad_value",
+    [None, 0, False, "", [], {}],
+    ids=["none", "zero", "false", "empty_str", "empty_list", "empty_dict"],
+)
+def test_present_rejects_none_zero_false_and_empty_values(bad_value):
+    with pytest.raises(ValueError):
+        ObservedValue(value=bad_value, semantics=NullSemantics.PRESENT)
+
+
+@pytest.mark.parametrize("good_value", [True, 42, -1, "x", [1], {"a": 1}, 0.5])
+def test_present_accepts_genuine_nonzero_nonfalse_nonempty_values(good_value):
+    assert ObservedValue(value=good_value, semantics=NullSemantics.PRESENT).value == good_value
+
+
+def test_stale_rejects_none():
+    with pytest.raises(ValueError):
+        ObservedValue(value=None, semantics=NullSemantics.STALE)
+
+
+@pytest.mark.parametrize("real_but_falsy_value", [0, False, "", []], ids=["zero", "false", "empty_str", "empty_list"])
+def test_stale_allows_last_known_value_even_if_falsy_or_empty(real_but_falsy_value):
+    # STALE is a freshness condition overriding current availability, not
+    # an absence of data — it must preserve the actual underlying value
+    # even when that value is 0/False/empty.
+    ov = ObservedValue(value=real_but_falsy_value, semantics=NullSemantics.STALE)
+    assert ov.value == real_but_falsy_value
+
+
+def test_stale_helper_preserves_falsy_values():
+    assert stale(0).value == 0
+    assert stale(False).value is False
+
+
+# --- Factory mapping proof: observed() must route to the semantics the
+# invariant matrix above expects. ---
+
+
+def test_factory_mapping_matches_canonical_semantics():
+    assert observed(0).semantics == NullSemantics.ZERO
+    assert observed(False).semantics == NullSemantics.FALSE
+    assert observed("").semantics == NullSemantics.EMPTY
+    assert observed([]).semantics == NullSemantics.EMPTY
+    assert observed(42).semantics == NullSemantics.PRESENT
+    assert observed(True).semantics == NullSemantics.PRESENT
+
+
 def test_observed_value_serializes_deterministically():
     ov = observed(7)
     d = ov.to_dict()
@@ -205,6 +300,70 @@ def test_to_jsonable_rejects_unserializable_type():
 
     with pytest.raises(TypeError):
         to_jsonable(Unserializable())
+
+
+# --- Final contract-hardening pass: deterministic set/frozenset
+# serialization (independent review, final canonicality mission §4-5).
+# Python's set iteration order depends on hash seeding and insertion
+# history, not on scientific content — to_jsonable() must not let that
+# leak into the canonical snapshot contract. Lists/tuples are untouched:
+# their order is meaningful and must be preserved exactly. ---
+
+
+def test_to_jsonable_set_has_deterministic_canonical_order():
+    assert to_jsonable({"b", "a", "c"}) == ["a", "b", "c"]
+
+
+def test_to_jsonable_frozenset_has_the_same_canonical_order_as_the_equivalent_set():
+    assert to_jsonable(frozenset({"b", "a", "c"})) == to_jsonable({"c", "b", "a"})
+
+
+def test_to_jsonable_set_order_is_independent_of_insertion_order():
+    set_a = set()
+    set_a.add("z")
+    set_a.add("a")
+    set_a.add("m")
+    set_b = set()
+    set_b.add("m")
+    set_b.add("z")
+    set_b.add("a")
+    assert set_a == set_b  # same set, different construction order
+    assert to_jsonable(set_a) == to_jsonable(set_b)
+
+
+def test_to_jsonable_set_of_heterogeneous_jsonable_types_does_not_crash_and_is_deterministic():
+    heterogeneous = {1, "a", 2.5, True}
+    first = to_jsonable(heterogeneous)
+    second = to_jsonable(set(heterogeneous))  # rebuilt, same elements
+    assert first == second
+    assert isinstance(first, list)
+
+
+def test_to_jsonable_does_not_sort_lists_or_tuples():
+    assert to_jsonable(["b", "a", "c"]) == ["b", "a", "c"]
+    assert to_jsonable(("z", "y", "x")) == ["z", "y", "x"]
+
+
+def test_to_jsonable_set_nested_inside_observed_value_is_deterministic():
+    ov_a = observed(frozenset({"risk_gate", "meta_strategy", "no_trade"}))
+    ov_b = observed(frozenset({"no_trade", "risk_gate", "meta_strategy"}))
+    assert to_jsonable(ov_a) == to_jsonable(ov_b)
+
+
+def test_to_jsonable_set_nested_inside_mapping_is_deterministic():
+    evidence_a = {"blockers": {"gate", "meta", "notrade"}}
+    evidence_b = {"blockers": {"notrade", "gate", "meta"}}
+    assert to_jsonable(evidence_a) == to_jsonable(evidence_b)
+
+
+def test_to_jsonable_set_nested_inside_plain_dataclass_is_deterministic():
+    @dataclass(frozen=True)
+    class _HoldsASet:
+        tags: frozenset
+
+    a = _HoldsASet(tags=frozenset({"c", "a", "b"}))
+    b = _HoldsASet(tags=frozenset({"b", "c", "a"}))
+    assert to_jsonable(a) == to_jsonable(b)
 
 
 def test_domain_snapshot_has_schema_version_and_serializes():
