@@ -89,6 +89,69 @@ class TestDiskAttributionAuditPack(unittest.TestCase):
             self.assertEqual(record["scan_status"], "limited")
             self.assertEqual(record["limit_reason"], "entry_limit")
 
+    def test_timeout_during_directory_iteration_marks_limited_not_complete(self):
+        """Independent review, bound 1: the deadline must be enforced
+        *inside* a directory's entry loop, not only between directories.
+        Uses an injected fake monotonic clock -- no real sleeps."""
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "var").mkdir()
+            for index in range(5):
+                (root / "var" / f"file{index}").write_bytes(b"x" * 10)
+
+            calls = {"n": 0}
+
+            def fake_monotonic() -> float:
+                calls["n"] += 1
+                # Calls 1-5: started, outer-check(root), inner-check(var
+                # entry), outer-check(var dir), inner-check(file0) --
+                # all "before the deadline". Call 6 onward (inner-check
+                # before file1): well past the deadline, mid-directory.
+                if calls["n"] <= 5:
+                    return 0.0
+                return disk_attribution.SCAN_TIMEOUT_SECONDS + 1.0
+
+            with mock.patch.object(disk_attribution, "ROOT_PATH", str(root)):
+                record = disk_attribution.scan_root(monotonic=fake_monotonic)
+
+            self.assertEqual(record["scan_status"], "limited")
+            self.assertEqual(record["limit_reason"], "timeout")
+            self.assertNotEqual(record["scan_status"], "complete")
+            # Partial accumulation is fine (file0 processed before the
+            # deadline hit) -- but not all 5 files, proving the loop was
+            # actually cut short mid-directory rather than completing it.
+            self.assertGreaterEqual(record["regular_file_count"], 1)
+            self.assertLess(record["regular_file_count"], 5)
+
+    def test_root_level_files_are_aggregated_never_named(self):
+        """Independent review, bound 2: a regular file directly under `/`
+        must never appear as its own bucket (that would disclose its real
+        name) -- it must fall into a fixed synthetic [root_files] bucket.
+        Directories directly under `/` keep naming their own bucket."""
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "home").mkdir()
+            (root / "home" / "a").write_bytes(b"x" * 10)
+            (root / "var").mkdir()
+            (root / "var" / "b").write_bytes(b"y" * 10)
+            (root / "topsecret-root-file-one.dat").write_bytes(b"z" * 10)
+            (root / "another-root-file.dat").write_bytes(b"w" * 10)
+
+            with mock.patch.object(disk_attribution, "ROOT_PATH", str(root)):
+                record = disk_attribution.scan_root()
+            rendered = json.dumps(record)
+
+            bucket_names = {item["name"] for item in record["buckets"]}
+            self.assertEqual(bucket_names, {"home", "var", "[root_files]"})
+
+            root_files_bucket = next(
+                item for item in record["buckets"] if item["name"] == "[root_files]"
+            )
+            self.assertEqual(root_files_bucket["regular_file_count"], 2)
+
+            self.assertNotIn("topsecret-root-file-one.dat", rendered)
+            self.assertNotIn("another-root-file.dat", rendered)
+
     def test_main_rejects_arguments_without_collecting(self):
         error = StringIO()
         with mock.patch.object(disk_attribution, "collect_snapshot") as collect:

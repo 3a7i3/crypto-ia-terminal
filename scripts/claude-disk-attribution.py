@@ -116,6 +116,16 @@ def scan_root(monotonic: Monotonic = time.monotonic) -> dict[str, Any]:
                 if counters["entries_examined"] >= MAX_ENTRIES:
                     limit_reason = "entry_limit"
                     break
+                # Bound 1 (independent review): the outer `while stack`
+                # deadline check alone lets a single very large directory
+                # run past SCAN_TIMEOUT_SECONDS while still inside this
+                # `for` loop. Re-check on every entry too -- monotonic()
+                # is cheap relative to a stat() syscall, and this is the
+                # only way to bound wall-clock time *within* one
+                # directory, not just between directories.
+                if monotonic() > deadline:
+                    limit_reason = "timeout"
+                    break
                 counters["entries_examined"] += 1
                 try:
                     value = entry.stat(follow_symlinks=False)
@@ -125,12 +135,25 @@ def scan_root(monotonic: Monotonic = time.monotonic) -> dict[str, Any]:
                 except OSError:
                     counters["metadata_error_count"] += 1
                     continue
-                bucket_name = inherited_bucket or entry.name
+                is_dir = stat.S_ISDIR(value.st_mode)
+                if inherited_bucket is not None:
+                    bucket_name = inherited_bucket
+                elif is_dir:
+                    # A root-level directory names its own bucket; its
+                    # descendants inherit this name via `stack`.
+                    bucket_name = entry.name
+                else:
+                    # Bound 2 (independent review): a regular file (or any
+                    # other non-directory entry) directly under `/` must
+                    # never disclose its real name as a bucket label --
+                    # aggregate all of them into one fixed synthetic
+                    # bucket instead.
+                    bucket_name = "[root_files]"
                 if value.st_dev != device:
                     counters["cross_filesystem_skipped_count"] += 1
                 elif stat.S_ISLNK(value.st_mode):
                     counters["symlink_count"] += 1
-                elif stat.S_ISDIR(value.st_mode):
+                elif is_dir:
                     counters["directory_count"] += 1
                     if depth >= MAX_DEPTH:
                         counters["depth_limit_skipped_count"] += 1
@@ -147,7 +170,7 @@ def scan_root(monotonic: Monotonic = time.monotonic) -> dict[str, Any]:
                     _add(totals, value)
                 else:
                     counters["special_entry_count"] += 1
-            if limit_reason == "entry_limit":
+            if limit_reason in ("entry_limit", "timeout"):
                 break
 
     ordered = sorted(
