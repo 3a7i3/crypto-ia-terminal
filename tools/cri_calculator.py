@@ -339,13 +339,14 @@ def compute_cri(
         result["regret_source"] = "canonical:" + f["dataset_version"]
         result["canonical_horizon"] = f["canonical_horizon"]
         result["regret_last_event"] = f["last_event_utc"]
+        result["regret_last_canonical_evaluated"] = f["last_canonical_evaluated_utc"]
         result["regret_fresh"] = f["fresh"]
         result["validity"] = "OK" if f["fresh"] else "PARTIAL"
         if not f["fresh"]:
             result["warnings"] = [
-                "DATASET REGRET PÉRIMÉ (dernier événement "
-                f"{f['last_event_utc']}) — CRI PARTIELLEMENT CENSURÉ, "
-                "ne pas comparer dans le temps"
+                "DATASET REGRET PÉRIMÉ (dernière évaluation canonique "
+                f"{f['last_canonical_evaluated_utc']}) — CRI PARTIELLEMENT "
+                "CENSURÉ, ne pas comparer dans le temps"
             ]
     else:
         result["regret_source"] = "explicit_path"

@@ -8,6 +8,7 @@ import time
 from tools.regret_repository import (
     diagnostics,
     is_fresh,
+    last_canonical_evaluated_ts,
     last_event_ts,
     read_canonical_observations,
     read_canonical_regrets,
@@ -106,5 +107,45 @@ def test_freshness_uses_event_timestamp_not_file_mtime(tmp_path):
     row["ts_eval"] = old
     row["result"]["ts_eval"] = old
     _write(tmp_path, [row])
+    # Le fichier vient d'être écrit (mtime frais) mais le ts_eval scientifique
+    # est vieux de 48h : la fraîcheur ne doit dépendre que du second.
     assert last_event_ts(regret_dir=tmp_path) == old
     assert is_fresh(max_stale_h=6, regret_dir=tmp_path) is False
+
+
+def test_stale_canonical_with_fresh_noncanonical_horizon_is_not_fresh(tmp_path):
+    """Un 5m frais ne doit jamais faire passer la fraîcheur canonique (1h) à vrai."""
+    now = time.time()
+    old = now - 48 * 3600
+    stale_1h = _evidence("obs-1", horizon="1h")
+    stale_1h["ts_eval"] = old
+    stale_1h["result"]["ts_eval"] = old
+    fresh_5m = _evidence("obs-2", horizon="5m")
+    _write(tmp_path, [stale_1h, fresh_5m])
+
+    assert last_canonical_evaluated_ts(regret_dir=tmp_path) == old
+    assert is_fresh(max_stale_h=6, regret_dir=tmp_path) is False
+    # Vivacité producteur (toutes horizons/statuts) reste vraie : le
+    # scheduler écrit toujours, seule l'évidence canonique est périmée.
+    assert abs(last_event_ts(regret_dir=tmp_path) - now) < 5.0
+
+
+def test_stale_canonical_with_fresh_canonical_dropped_is_not_fresh(tmp_path):
+    """Un DROPPED récent sur l'horizon canonique n'est pas une preuve exploitable."""
+    now = time.time()
+    old = now - 48 * 3600
+    stale_1h = _evidence("obs-1", horizon="1h")
+    stale_1h["ts_eval"] = old
+    stale_1h["result"]["ts_eval"] = old
+    fresh_dropped_1h = _evidence("obs-2", horizon="1h", status="DROPPED")
+    _write(tmp_path, [stale_1h, fresh_dropped_1h])
+
+    assert last_canonical_evaluated_ts(regret_dir=tmp_path) == old
+    assert is_fresh(max_stale_h=6, regret_dir=tmp_path) is False
+    assert abs(last_event_ts(regret_dir=tmp_path) - now) < 5.0
+
+
+def test_fresh_canonical_evaluated_is_fresh(tmp_path):
+    fresh_1h = _evidence("obs-1", horizon="1h")
+    _write(tmp_path, [fresh_1h])
+    assert is_fresh(max_stale_h=6, regret_dir=tmp_path) is True

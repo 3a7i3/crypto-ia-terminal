@@ -205,7 +205,15 @@ def diagnostics(
 
 
 def last_event_ts(*, regret_dir: Optional[Path] = None) -> Optional[float]:
-    """Dernier timestamp scientifique observé; ne dépend pas du mtime fichier."""
+    """Dernier timestamp scientifique observé, tous horizons et tous statuts
+    confondus (PENDING/MISSING_PRICE/DROPPED/EVALUATED). Ne dépend pas du
+    mtime fichier.
+
+    Mesure la vivacité du producteur (le scheduler écrit-il toujours ?),
+    jamais la fraîcheur scientifique certifiable — un DROPPED récent ou un
+    horizon non-canonique récent avance cette valeur sans constituer une
+    observation canonique exploitable. Voir ``last_canonical_evaluated_ts``.
+    """
     latest: Optional[float] = None
     for _path, _line_no, line in _iter_lines(regret_dir):
         try:
@@ -236,22 +244,67 @@ def last_write_ts(*, regret_dir: Optional[Path] = None) -> Optional[float]:
     return last_event_ts(regret_dir=regret_dir)
 
 
+def last_canonical_evaluated_ts(
+    horizon: str = CANONICAL_HORIZON, *, regret_dir: Optional[Path] = None
+) -> Optional[float]:
+    """Dernier ``ts_eval`` d'une preuve *exploitable* sur l'horizon canonique.
+
+    Restreint strictement à ``horizon`` (MC-001, par défaut 1h) et au statut
+    ``EVALUATED``. Un PENDING, MISSING_PRICE ou DROPPED récent — même sur
+    l'horizon canonique — n'avance jamais cette valeur : ce ne sont pas des
+    observations utilisables pour la certification. C'est la seule mesure de
+    fraîcheur scientifique valide pour ``is_fresh``/``freshness``.
+    """
+    latest: Optional[float] = None
+    for _path, _line_no, line in _iter_lines(regret_dir):
+        try:
+            raw = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(raw, dict):
+            continue
+        row = _normalise_horizon(raw, horizon)
+        if row is None or row["horizon_status"] != "EVALUATED":
+            continue
+        try:
+            timestamp = float(row["ts_eval"])
+        except (TypeError, ValueError):
+            continue
+        latest = timestamp if latest is None else max(latest, timestamp)
+    return latest
+
+
 def is_fresh(
-    max_stale_h: float = MAX_STALE_H, *, regret_dir: Optional[Path] = None
+    max_stale_h: float = MAX_STALE_H,
+    *,
+    horizon: str = CANONICAL_HORIZON,
+    regret_dir: Optional[Path] = None,
 ) -> bool:
-    latest = last_event_ts(regret_dir=regret_dir)
+    """Fraîcheur scientifique certifiable : horizon canonique + EVALUATED
+    uniquement (voir ``last_canonical_evaluated_ts``)."""
+    latest = last_canonical_evaluated_ts(horizon, regret_dir=regret_dir)
     return latest is not None and 0 <= (time.time() - latest) <= max_stale_h * 3600.0
 
 
-def freshness(*, regret_dir: Optional[Path] = None) -> dict[str, Any]:
-    latest = last_event_ts(regret_dir=regret_dir)
+def freshness(
+    *, horizon: str = CANONICAL_HORIZON, regret_dir: Optional[Path] = None
+) -> dict[str, Any]:
+    latest_event = last_event_ts(regret_dir=regret_dir)
+    latest_canonical = last_canonical_evaluated_ts(horizon, regret_dir=regret_dir)
     return {
         "dataset_version": DATASET_VERSION,
-        "canonical_horizon": CANONICAL_HORIZON,
+        "canonical_horizon": horizon,
         "source_dir": str(REGRET_DIR if regret_dir is None else regret_dir),
         "last_event_utc": (
-            datetime.fromtimestamp(latest, timezone.utc).isoformat() if latest else None
+            datetime.fromtimestamp(latest_event, timezone.utc).isoformat()
+            if latest_event
+            else None
         ),
-        "fresh": is_fresh(regret_dir=regret_dir),
+        "last_canonical_evaluated_utc": (
+            datetime.fromtimestamp(latest_canonical, timezone.utc).isoformat()
+            if latest_canonical
+            else None
+        ),
+        "fresh": is_fresh(horizon=horizon, regret_dir=regret_dir),
         "max_stale_h": MAX_STALE_H,
     }
