@@ -1,6 +1,6 @@
 # MC-001 — Canonical Regret Dataset
 
-**Statut : ACTIF** (2026-07-21) · Embodiment : `tools/regret_repository.py` · Adopté par ADR-0018
+**Statut : ACTIF — schéma 2** (2026-09-03) · Embodiment : `tools/regret_repository.py` · Adopté par ADR-0018
 
 ## Objet
 
@@ -22,12 +22,13 @@ pendant 11 jours, sans alarme. Ce n'était pas une erreur de mesure — une
 | **Horizon canonique** | `1h` (pré-enregistré ; matche la durée de détention courte du moteur) |
 | **Accesseur unique** | `tools.regret_repository.read_canonical_regrets(since)` |
 | **Consommateurs** | CRI, dossier Go/No-Go, audits, dashboards — **jamais** de chemin en dur |
+| **Unité durable** | Une ligne `HORIZON_EVIDENCE` par `observation_id + horizon` |
 
 ## Invariants
 
 1. **Producteur unique / définition unique.** Aucun consommateur ne choisit son
    fichier ; tous passent par l'accesseur.
-2. **Fraîcheur (le plus important).** `is_fresh()` : dernier écrit ≤
+2. **Fraîcheur (le plus important).** `is_fresh()` : dernier événement ≤
    `REGRET_MAX_STALE_H` (défaut 6 h). Un consommateur de certification **doit
    signaler bruyamment** (`validity=PARTIAL`) si la source est périmée. C'est ce
    qui transforme une panne muette en alarme.
@@ -40,6 +41,34 @@ pendant 11 jours, sans alarme. Ce n'était pas une erreur de mesure — une
    de classification sur les appariés). Ce sont **deux instruments distincts** ;
    on ne recolle jamais leurs séries. L'époque V4 (≥ 2026-07-17T01:30Z) étant
    entièrement dans la vie de `regret-v2`, aucune réconciliation n'est nécessaire.
+5. **Durabilité incrémentale.** Chaque horizon `EVALUATED` ou `DROPPED` est
+   append + flush + fsync sans attendre 24h. Le spool ne contient que le travail
+   récupérable; au restart il est réconcilié avec les preuves JSONL. L'identité
+   `observation_id + horizon` est idempotente.
+6. **Provenance.** Quand le producteur les fournit, `packet_id`, `trace_id`,
+   `cycle`, `engine_version` et `experiment_id` restent inchangés depuis la
+   décision. Aucun identifiant de décision absent n'est inventé en aval.
+
+## Sémantique scientifique du schéma 2
+
+`return_pct` est le rendement **directionnel au point final** : une hausse est
+positive pour BUY et une baisse est positive pour SELL. `MISSED_WIN` signifie
+uniquement « mouvement directionnel favorable observé au seuil défini ». Il ne
+prouve pas qu'un trade profitable et exécutable a été manqué : frais, spread,
+slippage, funding, liquidité, impact, latence, taille, contraintes portefeuille
+et trajectoire TP/SL ne sont pas modélisés.
+
+Les champs canoniques sont `favorable_endpoint_pct` et
+`adverse_endpoint_pct`. Les aliases `mfe_pct` et `mae_pct` sont conservés dans
+les nouvelles lignes pour compatibilité historique, avec
+`metric_semantics=endpoint_only`; ils ne sont pas de vrais MFE/MAE. Les anciens
+enregistrements ne sont jamais réinterprétés comme des excursions de trajectoire.
+
+Chaque horizon porte un état explicite : `PENDING` et `MISSING_PRICE` vivent dans
+le spool récupérable; `EVALUATED` et `DROPPED` sont des preuves terminales dans
+le JSONL. `price_observed_ts` est l'heure locale de réception du snapshot et
+`price_source` décrit son chemin applicatif; ce n'est pas l'horodatage natif d'un
+tick exchange. `eval_delay_s` mesure le retard sur l'échéance attendue.
 
 ## Horizon canonique — justification
 

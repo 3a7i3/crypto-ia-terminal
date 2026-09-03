@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" />
 
     <link rel="shortcut icon" href="../_static/favicon.ico"/><!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
-        <title>MC-001 — Canonical Regret Dataset - Crypto AI Terminal 9.1 documentation</title>
+        <title>S-01B — Regret remediation and scientific hardening - Crypto AI Terminal 9.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=354aac6f" />
     <link rel="stylesheet" type="text/css" href="../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
@@ -222,12 +222,12 @@
         </a>
         <div class="content-icon-container">
           <div class="view-this-page">
-  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/blob/main/docs/measurement_contracts/MC-001-canonical-regret-dataset.md?plain=true" title="View this page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/blob/main/docs/audit/S-01B-regret-remediation.md?plain=true" title="View this page">
     <svg><use href="#svg-eye"></use></svg>
     <span class="visually-hidden">View this page</span>
   </a>
 </div><div class="edit-this-page">
-  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/edit/main/docs/measurement_contracts/MC-001-canonical-regret-dataset.md" title="Edit this page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/edit/main/docs/audit/S-01B-regret-remediation.md" title="Edit this page">
     <svg><use href="#svg-pencil"></use></svg>
     <span class="visually-hidden">Edit this page</span>
   </a>
@@ -246,109 +246,73 @@
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <section id="mc-001-canonical-regret-dataset">
-<h1>MC-001 — Canonical Regret Dataset<a class="headerlink" href="#mc-001-canonical-regret-dataset" title="Link to this heading">¶</a></h1>
-<p><strong>Statut : ACTIF — schéma 2</strong> (2026-09-03) · Embodiment : <code class="docutils literal notranslate"><span class="pre">tools/regret_repository.py</span></code> · Adopté par ADR-0018</p>
-<section id="objet">
-<h2>Objet<a class="headerlink" href="#objet" title="Link to this heading">¶</a></h2>
-<p>Un <em>Measurement Contract</em> définit la source <strong>canonique</strong> d’une donnée de
-certification, indépendamment de tout chemin de fichier concret. Il existe
-parce que le 2026-07-10 la chaîne de certification du regret s’est <strong>rompue
-silencieusement</strong> : le producteur a changé (nouveau schéma, nouveau stockage),
-le consommateur (CRI) a continué de lire l’ancien fichier mort et de renvoyer 0
-pendant 11 jours, sans alarme. Ce n’était pas une erreur de mesure — une
-<strong>rupture de traçabilité</strong>.</p>
-</section>
-<section id="contrat">
-<h2>Contrat<a class="headerlink" href="#contrat" title="Link to this heading">¶</a></h2>
-<div class="table-wrapper colwidths-auto docutils container">
-<table class="docutils align-default">
-<thead>
-<tr class="row-odd"><th class="head"><p>Champ</p></th>
-<th class="head"><p>Valeur</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p><strong>Producteur officiel</strong></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">observability/regret_scheduler.py</span></code> (RegretScheduler, event-bus, multi-horizon)</p></td>
-</tr>
-<tr class="row-odd"><td><p><strong>Stockage</strong></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">databases/regret/regret_horizons_YYYY-MM-DD.jsonl</span></code></p></td>
-</tr>
-<tr class="row-even"><td><p><strong>Version dataset</strong></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">regret-v2</span></code></p></td>
-</tr>
-<tr class="row-odd"><td><p><strong>Horizon canonique</strong></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">1h</span></code> (pré-enregistré ; matche la durée de détention courte du moteur)</p></td>
-</tr>
-<tr class="row-even"><td><p><strong>Accesseur unique</strong></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">tools.regret_repository.read_canonical_regrets(since)</span></code></p></td>
-</tr>
-<tr class="row-odd"><td><p><strong>Consommateurs</strong></p></td>
-<td><p>CRI, dossier Go/No-Go, audits, dashboards — <strong>jamais</strong> de chemin en dur</p></td>
-</tr>
-<tr class="row-even"><td><p><strong>Unité durable</strong></p></td>
-<td><p>Une ligne <code class="docutils literal notranslate"><span class="pre">HORIZON_EVIDENCE</span></code> par <code class="docutils literal notranslate"><span class="pre">observation_id</span> <span class="pre">+</span> <span class="pre">horizon</span></code></p></td>
-</tr>
-</tbody>
-</table>
+          <section id="s-01b-regret-remediation-and-scientific-hardening">
+<h1>S-01B — Regret remediation and scientific hardening<a class="headerlink" href="#s-01b-regret-remediation-and-scientific-hardening" title="Link to this heading">¶</a></h1>
+<p><strong>Reference:</strong> main <code class="docutils literal notranslate"><span class="pre">7fc5e28ebd0a54841ff6e4b1c13fd017a07f1838</span></code><br />
+<strong>Scope:</strong> repository only; no deployment, VPS, execution, strategy, portfolio,
+risk-model, or Quant Observer modification.</p>
+<section id="certified-mode-configuration">
+<h2>Certified-mode configuration<a class="headerlink" href="#certified-mode-configuration" title="Link to this heading">¶</a></h2>
+<p>Regret is passive by default. During burn-in both of these must remain false:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>FEATURE_REGRET_DECISION_FEEDBACK=false
+FEATURE_AUTO_CALIBRATION=false
+</pre></div>
 </div>
+<p><code class="docutils literal notranslate"><span class="pre">FEATURE_AUTO_CALIBRATION=true</span></code> alone cannot unlock feedback. The legacy
+RegretEngine calculation and the ActivityTracker <code class="docutils literal notranslate"><span class="pre">REGIME_MISMATCH</span></code> path are
+both below the master <code class="docutils literal notranslate"><span class="pre">FEATURE_REGRET_DECISION_FEEDBACK</span></code> boundary. Enabling the
+master flag is a non-burn-in legacy compatibility action requiring an explicit
+restart and separate governance approval.</p>
 </section>
-<section id="invariants">
-<h2>Invariants<a class="headerlink" href="#invariants" title="Link to this heading">¶</a></h2>
-<ol class="arabic simple">
-<li><p><strong>Producteur unique / définition unique.</strong> Aucun consommateur ne choisit son
-fichier ; tous passent par l’accesseur.</p></li>
-<li><p><strong>Fraîcheur (le plus important).</strong> <code class="docutils literal notranslate"><span class="pre">is_fresh()</span></code> : dernier événement ≤
-<code class="docutils literal notranslate"><span class="pre">REGRET_MAX_STALE_H</span></code> (défaut 6 h). Un consommateur de certification <strong>doit
-signaler bruyamment</strong> (<code class="docutils literal notranslate"><span class="pre">validity=PARTIAL</span></code>) si la source est périmée. C’est ce
-qui transforme une panne muette en alarme.</p></li>
-<li><p><strong>Version déclarée.</strong> Toute sortie de certification embarque <code class="docutils literal notranslate"><span class="pre">dataset_version</span></code></p>
+<section id="canonical-architecture">
+<h2>Canonical architecture<a class="headerlink" href="#canonical-architecture" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">DecisionPacket</span> <span class="pre">→</span> <span class="pre">DecisionObservation</span> <span class="pre">→</span> <span class="pre">DecisionEventBus</span> <span class="pre">→</span> <span class="pre">RejectionStore</span> <span class="pre">+</span> <span class="pre">RegretScheduler</span> <span class="pre">v2</span> <span class="pre">→</span> <span class="pre">horizon</span> <span class="pre">evidence</span> <span class="pre">→</span> <span class="pre">tools.regret_repository</span> <span class="pre">→</span> <span class="pre">offline</span> <span class="pre">scientific</span> <span class="pre">consumers</span></code></p>
+<p>The cycle-wide price feed is delivered to v2 whether or not RegretEngine v1 is
+constructed. RegretEngine v1 and <code class="docutils literal notranslate"><span class="pre">databases/regret_analysis.jsonl</span></code> are retained
+as <code class="docutils literal notranslate"><span class="pre">regret-v1</span> <span class="pre">/</span> <span class="pre">historical</span></code>; they are not canonical and are never implicitly
+combined with regret-v2.</p>
+</section>
+<section id="measurement-interpretation">
+<h2>Measurement interpretation<a class="headerlink" href="#measurement-interpretation" title="Link to this heading">¶</a></h2>
+<p>See MC-001 schema 2. A classification describes favorable or unfavorable
+directional endpoint movement after a rejected signal. It does not demonstrate
+an executable missed trade or profit. The model excludes transaction costs,
+spread, slippage, funding, liquidity, market impact, latency, executable size,
+portfolio constraints, and TP/SL path.</p>
+</section>
+<section id="retention-and-compatibility">
+<h2>Retention and compatibility<a class="headerlink" href="#retention-and-compatibility" title="Link to this heading">¶</a></h2>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">canonical_horizon</span></code> → reproductibilité (un CRI de 2026 reste recalculable).</p></li>
+<li><p>Existing aggregate regret-v2 JSONL records remain readable.</p></li>
+<li><p>New records are one immutable <code class="docutils literal notranslate"><span class="pre">HORIZON_EVIDENCE</span></code> per
+<code class="docutils literal notranslate"><span class="pre">observation_id</span> <span class="pre">+</span> <span class="pre">horizon</span></code> and preserve deprecated endpoint aliases
+<code class="docutils literal notranslate"><span class="pre">mfe_pct</span></code>/<code class="docutils literal notranslate"><span class="pre">mae_pct</span></code> without reinterpreting historical values.</p></li>
+<li><p>RejectionStore schema 2 adds immutable trace and experiment provenance.</p></li>
+<li><p>No existing regret-v1, regret-v2, rejection, or spool artifact is deleted.</p></li>
+<li><p>Retention/archival policy changes are deferred until runtime volume and
+restore tests provide evidence for safe guarantees.</p></li>
 </ul>
-</li>
-<li><p><strong>Pas de splicing inter-instruments.</strong> <code class="docutils literal notranslate"><span class="pre">regret-v2</span></code> ≠ l’ancien <code class="docutils literal notranslate"><span class="pre">regret-v1</span></code>
-(<code class="docutils literal notranslate"><span class="pre">RegretEngine</span></code> → <code class="docutils literal notranslate"><span class="pre">regret_analysis.jsonl</span></code>, mort le 2026-07-10). Comparaison
-V1↔V2 (<code class="docutils literal notranslate"><span class="pre">scratchpad/compare_regret_v1_v2.py</span></code>) : V2 <strong>n’est pas</strong> un sur-ensemble
-de V1 (recouvrement 6-10/07 : V1=3621 vs V2=449, 12 % appariés, ~85 % d’accord
-de classification sur les appariés). Ce sont <strong>deux instruments distincts</strong> ;
-on ne recolle jamais leurs séries. L’époque V4 (≥ 2026-07-17T01:30Z) étant
-entièrement dans la vie de <code class="docutils literal notranslate"><span class="pre">regret-v2</span></code>, aucune réconciliation n’est nécessaire.</p></li>
-<li><p><strong>Durabilité incrémentale.</strong> Chaque horizon <code class="docutils literal notranslate"><span class="pre">EVALUATED</span></code> ou <code class="docutils literal notranslate"><span class="pre">DROPPED</span></code> est
-append + flush + fsync sans attendre 24h. Le spool ne contient que le travail
-récupérable; au restart il est réconcilié avec les preuves JSONL. L’identité
-<code class="docutils literal notranslate"><span class="pre">observation_id</span> <span class="pre">+</span> <span class="pre">horizon</span></code> est idempotente.</p></li>
-<li><p><strong>Provenance.</strong> Quand le producteur les fournit, <code class="docutils literal notranslate"><span class="pre">packet_id</span></code>, <code class="docutils literal notranslate"><span class="pre">trace_id</span></code>,
-<code class="docutils literal notranslate"><span class="pre">cycle</span></code>, <code class="docutils literal notranslate"><span class="pre">engine_version</span></code> et <code class="docutils literal notranslate"><span class="pre">experiment_id</span></code> restent inchangés depuis la
-décision. Aucun identifiant de décision absent n’est inventé en aval.</p></li>
-</ol>
 </section>
-<section id="semantique-scientifique-du-schema-2">
-<h2>Sémantique scientifique du schéma 2<a class="headerlink" href="#semantique-scientifique-du-schema-2" title="Link to this heading">¶</a></h2>
-<p><code class="docutils literal notranslate"><span class="pre">return_pct</span></code> est le rendement <strong>directionnel au point final</strong> : une hausse est
-positive pour BUY et une baisse est positive pour SELL. <code class="docutils literal notranslate"><span class="pre">MISSED_WIN</span></code> signifie
-uniquement « mouvement directionnel favorable observé au seuil défini ». Il ne
-prouve pas qu’un trade profitable et exécutable a été manqué : frais, spread,
-slippage, funding, liquidité, impact, latence, taille, contraintes portefeuille
-et trajectoire TP/SL ne sont pas modélisés.</p>
-<p>Les champs canoniques sont <code class="docutils literal notranslate"><span class="pre">favorable_endpoint_pct</span></code> et
-<code class="docutils literal notranslate"><span class="pre">adverse_endpoint_pct</span></code>. Les aliases <code class="docutils literal notranslate"><span class="pre">mfe_pct</span></code> et <code class="docutils literal notranslate"><span class="pre">mae_pct</span></code> sont conservés dans
-les nouvelles lignes pour compatibilité historique, avec
-<code class="docutils literal notranslate"><span class="pre">metric_semantics=endpoint_only</span></code>; ils ne sont pas de vrais MFE/MAE. Les anciens
-enregistrements ne sont jamais réinterprétés comme des excursions de trajectoire.</p>
-<p>Chaque horizon porte un état explicite : <code class="docutils literal notranslate"><span class="pre">PENDING</span></code> et <code class="docutils literal notranslate"><span class="pre">MISSING_PRICE</span></code> vivent dans
-le spool récupérable; <code class="docutils literal notranslate"><span class="pre">EVALUATED</span></code> et <code class="docutils literal notranslate"><span class="pre">DROPPED</span></code> sont des preuves terminales dans
-le JSONL. <code class="docutils literal notranslate"><span class="pre">price_observed_ts</span></code> est l’heure locale de réception du snapshot et
-<code class="docutils literal notranslate"><span class="pre">price_source</span></code> décrit son chemin applicatif; ce n’est pas l’horodatage natif d’un
-tick exchange. <code class="docutils literal notranslate"><span class="pre">eval_delay_s</span></code> mesure le retard sur l’échéance attendue.</p>
+<section id="legacy-shadowtracker-classification">
+<h2>Legacy ShadowTracker classification<a class="headerlink" href="#legacy-shadowtracker-classification" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">scripts/shadow_execution.py</span></code> and <code class="docutils literal notranslate"><span class="pre">S3/03_shadow_execution.py</span></code> remain byte-for-byte
+identical (SHA-256
+<code class="docutils literal notranslate"><span class="pre">c23581eaffa087d6820322220cdd9eab5729f91bc3c88000702903dab6d62893</span></code>). Runtime
+imports <code class="docutils literal notranslate"><span class="pre">scripts.shadow_execution</span></code>; <code class="docutils literal notranslate"><span class="pre">S3/06_apply_S3.sh</span></code> also treats the S3 copy
+as an installation source. ShadowTracker uses a later closed paper trade on the
+same symbol as a proxy and is not scientifically equivalent to RegretScheduler
+v2. Because the S3 copy still has a repository dependency, neither copy is
+removed in S-01B. Candidate verdict: <code class="docutils literal notranslate"><span class="pre">REMOVE_AFTER_PROOF</span></code>, after the installer
+and replay dependencies are retired or migrated and historical reproduction is
+tested.</p>
 </section>
-<section id="horizon-canonique-justification">
-<h2>Horizon canonique — justification<a class="headerlink" href="#horizon-canonique-justification" title="Link to this heading">¶</a></h2>
-<p>À 15m les verrous regret échouent (MW=58/GR=75), à 1h ils passent (MW=158/GR=141),
-à 4h aussi (261/220). <code class="docutils literal notranslate"><span class="pre">1h</span></code> est retenu comme équilibre entre bruit court-terme et
-durée de détention réelle (TP/SL ~1-2 %). Tout changement d’horizon = nouvel
-addendum à ce contrat (jamais silencieux).</p>
+<section id="runtime-evidence-deferred-to-s-01c">
+<h2>Runtime evidence deferred to S-01C<a class="headerlink" href="#runtime-evidence-deferred-to-s-01c" title="Link to this heading">¶</a></h2>
+<p>Repository tests establish code-path invariants, not live operation. S-01C must
+capture: v1-disabled v2 price receipts; BUY and SELL horizon writes; restart
+reconciliation; canonical repository freshness; stable packet/trace joins;
+zero calls to threshold mutation under certified flags; spool and JSONL volume;
+and absence of per-event Regret Telegram traffic.</p>
 </section>
 </section>
 
@@ -389,12 +353,13 @@ addendum à ce contrat (jamais silencieux).</p>
         <div class="toc-tree-container">
           <div class="toc-tree">
             <ul>
-<li><a class="reference internal" href="#">MC-001 — Canonical Regret Dataset</a><ul>
-<li><a class="reference internal" href="#objet">Objet</a></li>
-<li><a class="reference internal" href="#contrat">Contrat</a></li>
-<li><a class="reference internal" href="#invariants">Invariants</a></li>
-<li><a class="reference internal" href="#semantique-scientifique-du-schema-2">Sémantique scientifique du schéma 2</a></li>
-<li><a class="reference internal" href="#horizon-canonique-justification">Horizon canonique — justification</a></li>
+<li><a class="reference internal" href="#">S-01B — Regret remediation and scientific hardening</a><ul>
+<li><a class="reference internal" href="#certified-mode-configuration">Certified-mode configuration</a></li>
+<li><a class="reference internal" href="#canonical-architecture">Canonical architecture</a></li>
+<li><a class="reference internal" href="#measurement-interpretation">Measurement interpretation</a></li>
+<li><a class="reference internal" href="#retention-and-compatibility">Retention and compatibility</a></li>
+<li><a class="reference internal" href="#legacy-shadowtracker-classification">Legacy ShadowTracker classification</a></li>
+<li><a class="reference internal" href="#runtime-evidence-deferred-to-s-01c">Runtime evidence deferred to S-01C</a></li>
 </ul>
 </li>
 </ul>

@@ -265,8 +265,10 @@ seuil en production — ce qui viole le principe de passivité (voir ADR-0007).<
 <p>Créer <code class="docutils literal notranslate"><span class="pre">observability/regret_scheduler.py</span></code> : un scheduler background thread qui évalue
 chaque <code class="docutils literal notranslate"><span class="pre">RejectionRecord</span></code> sur 7 horizons temporels (5 min, 15 min, 30 min, 1h, 4h, 12h, 24h)
 en utilisant les prix disponibles dans le cache du scanner. Pour chaque horizon, calcule :
-rendement théorique, drawdown max, MFE (maximum favorable excursion), MAE (maximum adverse
-excursion), Sharpe simplifié, regret_score [0,1], type (MISSED_WIN / GOOD_REFUSAL / NEUTRAL).
+rendement directionnel endpoint et regret_score [0,1], type
+(MISSED_WIN / GOOD_REFUSAL / NEUTRAL). Les anciens noms <code class="docutils literal notranslate"><span class="pre">mfe_pct</span></code>/<code class="docutils literal notranslate"><span class="pre">mae_pct</span></code>
+sont des aliases dépréciés et ne désignent pas des excursions sans trajectoire
+de prix intra-horizon (MC-001 schéma 2).
 Les résultats sont persistés dans <code class="docutils literal notranslate"><span class="pre">databases/regret/regret_horizons_YYYY-MM-DD.jsonl</span></code>.</p>
 <p>Le <code class="docutils literal notranslate"><span class="pre">RegretEngine</span></code> existant est conservé intact pour la compatibilité. <code class="docutils literal notranslate"><span class="pre">get_threshold_delta()</span></code>
 est transformé en recommendation-only (voir ADR-0007).</p>
