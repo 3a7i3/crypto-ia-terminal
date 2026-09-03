@@ -30,8 +30,16 @@ from observability.json_logger import get_logger
 _log = get_logger("observability.rejection_store")
 
 _DEFAULT_DIR = Path(os.getenv("REJECTION_STORE_DIR", "databases/rejections"))
-_SCHEMA_VERSION = 1
-_REQUIRED_FIELDS = {"observation_id", "symbol", "side", "score", "price", "ts"}
+_SCHEMA_VERSION = 2
+_REQUIRED_FIELDS = {
+    "observation_id",
+    "packet_id",
+    "symbol",
+    "side",
+    "score",
+    "price",
+    "ts",
+}
 
 
 # ── Schéma du record de rejet ─────────────────────────────────────────────────
@@ -54,6 +62,8 @@ class RejectionRecord:
     # ── Identité ──────────────────────────────────────────────────────────────
     observation_id: str = ""  # "20260629-ETHUSDT-A3F9C2"
     packet_id: str = ""  # UUID du DecisionPacket
+    trace_id: str = ""  # identifiant canonique du cycle, vide si source historique
+    experiment_id: Optional[str] = None
     ts: float = 0.0  # Unix timestamp UTC
     ts_iso: str = ""  # ISO-8601 UTC
     cycle: int = 0
@@ -141,6 +151,8 @@ def _from_observation(obs: Any) -> RejectionRecord:
         schema_version=_SCHEMA_VERSION,
         observation_id=obs.observation_id,
         packet_id=obs.packet_id,
+        trace_id=getattr(obs, "trace_id", ""),
+        experiment_id=getattr(obs, "experiment_id", None),
         ts=obs.ts,
         ts_iso=obs.ts_iso,
         cycle=obs.cycle,
@@ -191,6 +203,9 @@ def _validate(record: RejectionRecord) -> bool:
     missing = _REQUIRED_FIELDS - set(d.keys())
     if missing:
         _log.error("[RejectionStore] Champs manquants: %s", missing)
+        return False
+    if not record.packet_id:
+        _log.error("[RejectionStore] packet_id vide: %s", record.observation_id)
         return False
     if not record.symbol or record.price <= 0:
         _log.error(

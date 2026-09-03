@@ -24,6 +24,8 @@ def _fake_obs(**kwargs) -> Any:
     defaults = dict(
         observation_id="20260629-BTC-ABC123",
         packet_id="pkt-001",
+        trace_id="trace-001",
+        experiment_id="burnin-v4",
         ts=time.time(),
         ts_iso="2026-06-29T12:00:00+00:00",
         cycle=5,
@@ -90,6 +92,11 @@ def test_validate_empty_symbol():
     assert _validate(record) is False
 
 
+def test_validate_empty_packet_id():
+    record = _from_observation(_fake_obs(packet_id=""))
+    assert _validate(record) is False
+
+
 def test_validate_zero_price():
     record = _from_observation(_fake_obs(price=0.0))
     assert _validate(record) is False
@@ -117,7 +124,7 @@ def test_persist_valid_jsonl(tmp_path):
     parsed = json.loads(lines[0])
     assert parsed["symbol"] == "BTC/USDT"
     assert parsed["first_blocker"] == "conviction"
-    assert parsed["schema_version"] == 1
+    assert parsed["schema_version"] == 2
 
 
 def test_persist_multiple_appends(tmp_path):
@@ -193,6 +200,9 @@ def test_rejection_record_from_observation_fields():
     obs = _fake_obs()
     record = _from_observation(obs)
     assert record.symbol == "BTC/USDT"
+    assert record.packet_id == "pkt-001"
+    assert record.trace_id == "trace-001"
+    assert record.experiment_id == "burnin-v4"
     assert record.first_blocker == "conviction"
     assert record.conviction_level == "MEDIUM"
     assert record.conviction_score == 55.0

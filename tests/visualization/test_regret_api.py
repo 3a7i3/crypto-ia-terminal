@@ -100,3 +100,25 @@ def test_load_regret_investigation_missing_file_returns_empty(tmp_path):
     assert snap.by_week == {}
     assert snap.first_evaluated_at is None
     assert snap.last_evaluated_at is None
+
+
+def test_default_source_is_canonical_repository(monkeypatch):
+    import tools.regret_repository as repository
+
+    ts = datetime(2026, 6, 1, tzinfo=timezone.utc).timestamp()
+    monkeypatch.setattr(
+        repository,
+        "read_canonical_regrets",
+        lambda: [
+            {
+                "regret_type": "MISSED_WIN",
+                "all_blockers": ["gate"],
+                "regime": "sideways",
+                "score": 72,
+                "ts_eval": ts,
+            }
+        ],
+    )
+    snap = load_regret_investigation()
+    assert snap.n_total == 1
+    assert snap.by_layer == {"gate": 1}

@@ -1,9 +1,10 @@
-"""Regret Investigation API — read-only breakdown of RegretEngine records.
+"""Regret Investigation API — agrégation read-only du contrat regret-v2.
 
 Answers "what does MISSED_WIN / GOOD_REFUSAL actually consist of?" (which
 blocking layer, which regime, which score band, which time window) without
 touching the decision pipeline. Pure aggregation over
-databases/regret_analysis.jsonl — no writes, no recalibration (ADR-0007).
+La source par défaut est ``tools.regret_repository``. Un chemin explicite reste
+réservé aux audits historiques regret-v1 et aux fixtures de compatibilité.
 """
 
 from __future__ import annotations
@@ -17,8 +18,6 @@ from typing import Optional
 from visualization.api.models import RegretInvestigationSnapshot
 
 _ROOT = Path(__file__).resolve().parents[2]
-_REGRET_DB = _ROOT / "databases" / "regret_analysis.jsonl"
-
 _SCORE_BINS: tuple[tuple[float, float, str], ...] = (
     (0, 50, "<50"),
     (50, 60, "50-59"),
@@ -54,7 +53,20 @@ def load_regret_investigation(
     regret_db_path: Optional[Path] = None,
     regret_type: str = "MISSED_WIN",
 ) -> RegretInvestigationSnapshot:
-    records = _load_records(regret_db_path or _REGRET_DB)
+    if regret_db_path is None:
+        from tools.regret_repository import read_canonical_regrets
+
+        records = [
+            {
+                **record,
+                "refused_by": record.get("all_blockers") or ["unknown"],
+                "ts_evaluated": record.get("ts_eval"),
+            }
+            for record in read_canonical_regrets()
+        ]
+    else:
+        # regret-v1 / historical uniquement; jamais fusionné au v2.
+        records = _load_records(regret_db_path)
     subset = [r for r in records if r.get("regret_type") == regret_type]
 
     by_layer: Counter = Counter()

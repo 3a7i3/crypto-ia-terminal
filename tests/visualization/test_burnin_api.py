@@ -145,6 +145,24 @@ def test_load_burnin_snapshot_missing_files_returns_zeros(tmp_path):
     assert snap.warnings == []
 
 
+def test_default_regret_source_is_canonical_repository(tmp_path, monkeypatch):
+    import tools.regret_repository as repository
+
+    burnin_path = tmp_path / "burnin_v3.json"
+    _write_burnin_v3(burnin_path)
+    monkeypatch.setattr(
+        repository,
+        "read_canonical_regrets",
+        lambda: [
+            {"regret_type": "MISSED_WIN"},
+            {"regret_type": "GOOD_REFUSAL"},
+        ],
+    )
+    snap = load_burnin_snapshot(burnin_path=burnin_path)
+    assert snap.missed_win_count == 1
+    assert snap.good_refusal_count == 1
+
+
 def test_calibration_locked_reflects_env_var(tmp_path, monkeypatch):
     burnin_path = tmp_path / "burnin_v3.json"
     _write_burnin_v3(burnin_path)
@@ -156,6 +174,12 @@ def test_calibration_locked_reflects_env_var(tmp_path, monkeypatch):
     assert snap.calibration_locked is True
 
     monkeypatch.setenv("FEATURE_AUTO_CALIBRATION", "true")
+    snap = load_burnin_snapshot(
+        burnin_path=burnin_path, regret_db_path=tmp_path / "missing.jsonl"
+    )
+    assert snap.calibration_locked is True  # auto-calibration seule ne suffit jamais
+
+    monkeypatch.setenv("FEATURE_REGRET_DECISION_FEEDBACK", "true")
     snap = load_burnin_snapshot(
         burnin_path=burnin_path, regret_db_path=tmp_path / "missing.jsonl"
     )
