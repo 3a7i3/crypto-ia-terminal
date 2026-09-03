@@ -1470,14 +1470,19 @@ def analyze_symbol(
     # S-02B.1 : le fallback StrategyMemoryStore ci-dessous influence directement
     # la sélection de personnalité (meta_engine.select) et le score du signal
     # (engine.evaluate) — décision-active (S-02B.1 §9). Sans
-    # FEATURE_ADAPTIVE_DECISION_FEEDBACK, il reste lu/observé (comptage
-    # usage_count inclus) mais son résultat n'est pas transmis à la décision.
+    # FEATURE_ADAPTIVE_DECISION_FEEDBACK, la recommandation reste lue/observée
+    # mais ni son résultat n'est transmis à la décision, ni l'usage_count
+    # sous-jacent n'est incrémenté (record_usage=False) — un match
+    # contrefactuel ne doit pas se faire passer pour un usage réel et biaiser
+    # un classement futur.
     memory_sharpe = None
     try:
         if ranker:
             memory_sharpe = ranker.best_sharpe(regime) or None
         if not memory_sharpe:
-            stored = memory.load_by_regime(regime, limit=10)
+            stored = memory.load_by_regime(
+                regime, limit=10, record_usage=FEATURE_ADAPTIVE_DECISION_FEEDBACK
+            )
             # Filtrer les entrées sans stratégie nommée (données de test/garbage)
             valid_sharpes = [
                 s.get("sharpe", 0)
@@ -1705,6 +1710,9 @@ def analyze_symbol(
                     consecutive_losses=consecutive_losses,
                     conviction_level=conviction.level.value if conviction else "medium",
                     signal_age_sec=time.time() - signal.timestamp,
+                    # S-02B.1 — trigger_count (compteur APPLIQUÉ) ne doit
+                    # s'incrémenter que si le veto est réellement appliqué.
+                    count_as_applied_block=FEATURE_ADAPTIVE_DECISION_FEEDBACK,
                 )
             else:
                 mm_check = mistake_memory.check_before_trade(
@@ -1716,6 +1724,7 @@ def analyze_symbol(
                     consecutive_losses=consecutive_losses,
                     conviction_level=conviction.level.value if conviction else "medium",
                     signal_age_sec=time.time() - signal.timestamp,
+                    count_as_applied_block=FEATURE_ADAPTIVE_DECISION_FEEDBACK,
                 )
             if mm_check.blocked:
                 # S-02B.1 — LEARNING != AUTHORITY : le match est toujours

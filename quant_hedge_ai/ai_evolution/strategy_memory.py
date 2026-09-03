@@ -76,7 +76,20 @@ class StrategyMemoryStore:
         blacklist = payload.get("blacklist", [])
         return {"strategy": strategy_name, "regime": regime} in blacklist
 
-    def load_by_regime(self, regime: str, limit: int = 20) -> list[dict]:
+    def load_by_regime(
+        self, regime: str, limit: int = 20, record_usage: bool = True
+    ) -> list[dict]:
+        """Charge/classe les stratégies top-k pour un régime.
+
+        `record_usage` (S-02B.1) — un appel passif/contrefactuel (recommandation
+        lue mais jamais appliquée à une décision live, ex. mode
+        FEATURE_ADAPTIVE_DECISION_FEEDBACK=false) doit passer `record_usage=False`
+        pour ne pas gonfler `usage_count`, qui alimente ensuite
+        `_rank_for_loading()`'s usage_penalty et influencerait donc un futur
+        classement sur la base d'une lecture qui n'a jamais été une décision
+        réelle. Défaut `True` : préserve le comportement historique (usage
+        réellement compté) pour tout appelant qui ignore ce paramètre.
+        """
         payload = self._read()
         regimes = payload.get("regimes", {})
         bucket = regimes.get(regime, [])
@@ -96,7 +109,7 @@ class StrategyMemoryStore:
         ranked = self._rank_for_loading(bucket, regime_stability=stability)
         selected = ranked[: max(0, limit)]
 
-        if selected:
+        if selected and record_usage:
             for row in selected:
                 row["usage_count"] = int(row.get("usage_count", 0)) + 1
             self._write(payload)

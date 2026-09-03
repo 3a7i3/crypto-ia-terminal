@@ -63,6 +63,119 @@ class TestMistakeCheckResultBoolSemantics:
         assert bool(res) is True
 
 
+class TestMistakeMemoryTriggerCountSemantics:
+    """S-02B.1 blocker 1 — trigger_count reste un compteur APPLIED-only.
+
+    `BlockRule.trigger_count` est documenté comme "combien de fois cette règle
+    a bloqué un trade" (véto réel). Un match contrefactuel en mode passif
+    (FEATURE_ADAPTIVE_DECISION_FEEDBACK=false) ne doit jamais l'incrémenter —
+    seul `would_match_count` (contrefactuel, toujours incrémenté) le fait.
+    """
+
+    def _seeded_rule(self, tmp_path: Path):
+        mm = _mm(tmp_path)
+        _seed_regime_mismatch_rule(mm)
+        assert len(mm._rules) == 1
+        return mm, mm._rules[0]
+
+    def _matching_context(self) -> dict:
+        return dict(symbol="BTC/USDT", signal="BUY", score=50, regime="sideways", features={})
+
+    def test_passive_match_does_not_increment_trigger_count(self, tmp_path):
+        """Test requis #1 — match + feedback false → trade proceeds, trigger_count inchangé."""
+        mm, rule = self._seeded_rule(tmp_path)
+        baseline = rule.trigger_count
+
+        check = mm.check_before_trade(
+            **self._matching_context(), count_as_applied_block=False
+        )
+
+        assert check.blocked is True, "le match reste visible (contrefactuel)"
+        assert rule.trigger_count == baseline, (
+            "S-02B.1 VIOLATION : un match passif a incrémenté trigger_count "
+            "(compteur APPLIED-only)"
+        )
+
+    def test_applied_match_increments_trigger_count_exactly_once(self, tmp_path):
+        """Test requis #2 — match + feedback true → trade blocked, trigger_count +1."""
+        mm, rule = self._seeded_rule(tmp_path)
+        baseline = rule.trigger_count
+
+        check = mm.check_before_trade(
+            **self._matching_context(), count_as_applied_block=True
+        )
+
+        assert check.blocked is True
+        assert rule.trigger_count == baseline + 1
+
+    def test_default_matches_legacy_applied_behavior(self, tmp_path):
+        """count_as_applied_block par défaut (True) préserve le comportement
+        historique pour tout appelant qui ignore ce paramètre."""
+        mm, rule = self._seeded_rule(tmp_path)
+        baseline = rule.trigger_count
+
+        mm.check_before_trade(**self._matching_context())
+
+        assert rule.trigger_count == baseline + 1
+
+    def test_repeated_passive_checks_no_inflation(self, tmp_path):
+        """Test requis #3 — vérifications passives répétées : pas d'inflation."""
+        mm, rule = self._seeded_rule(tmp_path)
+        baseline = rule.trigger_count
+
+        for _ in range(10):
+            mm.check_before_trade(
+                **self._matching_context(), count_as_applied_block=False
+            )
+
+        assert rule.trigger_count == baseline
+        assert rule.would_match_count == 10
+
+    def test_counterfactual_match_remains_observable(self, tmp_path):
+        """Test requis #4 — le match contrefactuel reste observable
+        (would_match_count dédié, distinct de trigger_count)."""
+        mm, rule = self._seeded_rule(tmp_path)
+
+        check = mm.check_before_trade(
+            **self._matching_context(), count_as_applied_block=False
+        )
+
+        assert check.blocked is True
+        assert check.rule_id == rule.rule_id
+        assert rule.would_match_count >= 1
+        assert rule.trigger_count == 0
+        assert rule.would_match_count > rule.trigger_count
+
+    def test_no_matching_rule_counters_unchanged(self, tmp_path):
+        """Test requis #5 — aucune règle ne matche → compteurs inchangés."""
+        mm, rule = self._seeded_rule(tmp_path)
+        trigger_baseline = rule.trigger_count
+        would_match_baseline = rule.would_match_count
+
+        check = mm.check_before_trade(
+            symbol="ETH/USDT",
+            signal="SELL",
+            score=95,
+            regime="bull_trend",
+            features={},
+            count_as_applied_block=True,
+        )
+
+        assert check.blocked is False
+        assert rule.trigger_count == trigger_baseline
+        assert rule.would_match_count == would_match_baseline
+
+    def test_would_match_count_never_less_than_trigger_count(self, tmp_path):
+        mm, rule = self._seeded_rule(tmp_path)
+        for applied in (False, False, True, False, True):
+            mm.check_before_trade(
+                **self._matching_context(), count_as_applied_block=applied
+            )
+        assert rule.trigger_count == 2
+        assert rule.would_match_count == 5
+        assert rule.would_match_count >= rule.trigger_count
+
+
 class TestMistakeMemoryRuleMatching:
     def test_no_matching_rule_behavior_unchanged(self, tmp_path):
         """Aucune règle → check_before_trade() OK, indépendant du flag S-02."""
@@ -212,13 +325,16 @@ class _FakeStrategyMemoryStore:
 
 
 class _FakeMistakeMemoryBlocking:
-    """check_before_trade() retourne toujours un match bloquant."""
+    """check_before_trade() retourne toujours un match bloquant et capture
+    la valeur de count_as_applied_block reçue à chaque appel."""
 
     def __init__(self):
         self.calls = 0
+        self.count_as_applied_block_calls: list[bool] = []
 
-    def check_before_trade(self, **kwargs):
+    def check_before_trade(self, count_as_applied_block=True, **kwargs):
         self.calls += 1
+        self.count_as_applied_block_calls.append(count_as_applied_block)
         return MistakeCheckResult(
             blocked=True,
             reason="[REGIME_MISMATCH] test rule",
@@ -298,6 +414,10 @@ class TestAdvisorLoopMistakeMemoryPassivity:
         result = _run_analyze_symbol(mm, monkeypatch)
 
         assert mm.calls == 1, "MistakeMemory doit continuer d'être consultée (observation)"
+        assert mm.count_as_applied_block_calls == [False], (
+            "S-02B.1 VIOLATION : count_as_applied_block doit être False en mode "
+            "passif (sinon trigger_count serait gonflé par un match contrefactuel)"
+        )
         assert result["mm_check"].blocked is True, "le match reste visible (contrefactuel)"
         assert "mistake_mem" not in result["blockers"]
         assert result["trade_allowed"] is True, (
@@ -313,6 +433,7 @@ class TestAdvisorLoopMistakeMemoryPassivity:
         mm = _FakeMistakeMemoryBlocking()
         result = _run_analyze_symbol(mm, monkeypatch)
 
+        assert mm.count_as_applied_block_calls == [True]
         assert result["mm_check"].blocked is True
         assert "mistake_mem" in result["blockers"]
         assert result["trade_allowed"] is False
