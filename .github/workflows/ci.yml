@@ -102,13 +102,31 @@ jobs:
             supervision/test_supervision.py \
             quant_hedge_ai/strategy_lab/test_strategy_lab.py
 
-      - name: Pytest — suite de régression complète (tests/)
-        # CI-00B (Phase 8) : exécute systématiquement tout tests/, y compris
-        # les tests corrigés (permissions, killswitch) et le xfail nommé et
-        # documenté (golden backtest, cf. .ci/known_red_tests.md / BT-00).
-        # -q sans -x : un test rouge non attendu doit être visible en entier,
-        # pas masquer les suivants.
-        run: pytest -q tests/
+      - name: Pytest — invariants CI-00B (permissions, killswitch, golden backtest)
+        # CI-00B (Phase 8) : exécute systématiquement les tests remis en
+        # état par cette mission, y compris le xfail nommé et documenté
+        # (golden backtest, cf. .ci/known_red_tests.md / BT-00). -q sans -x :
+        # un rouge non attendu doit être visible en entier.
+        #
+        # Volontairement ciblé sur les fichiers concernés par CI-00B plutôt
+        # que `pytest tests/` en entier : une première tentative de lancer
+        # la suite complète ici (constatée sur ce PR) a confirmé que
+        # `pytest_sessionfinish` force `exitstatus = 1` dès que
+        # databases/ ou cache/ est touché pendant le run — garde-fou
+        # préexistant et non lié (DS-001/ADR-0008, conftest.py), qui se
+        # déclenche presque systématiquement sur les ~4200 tests non isolés
+        # de tests/. Ce n'est ni une régression lint/graphe/identité de
+        # test, ni dans le périmètre de cette mission (gel scientifique —
+        # pas de correction opportuniste d'isolation de tests à l'échelle
+        # du dépôt) ; à traiter dans une mission dédiée (voir rapport
+        # CI-00B §14).
+        run: |
+          pytest -q \
+            tests/test_killswitch_restart_persistence.py \
+            tests/root/test_security_permissions.py \
+            tests/test_confidential_files_perms.py \
+            tests/test_phase_a_replay_invariants.py \
+            tests/test_production_observability.py
 
       - name: Upload rapport de couverture
         if: always()

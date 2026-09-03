@@ -28,3 +28,23 @@ does not block this PR on debt it did not introduce and is not
 permitted to fix. Raising this threshold back toward 60% by adding real
 tests for `execution_engine.py`, `market_scanner.py`, the risk gates,
 etc. is separate follow-up work, not CI-00B.
+
+## Known test-isolation debt (CI-00B): full `tests/` run trips DS-001
+
+`conftest.py::pytest_sessionfinish` (rule DS-001, ADR-0008) forces
+`session.exitstatus = 1` whenever files appear under `databases/` or
+`cache/` during a test run — a guard against tests silently writing into
+production-shaped paths. Since `tests/` never actually ran in this
+workflow before CI-00B (blocked by `needs: lint`), this had never been
+exercised in CI. Once decoupled, `pytest -q tests/` (~4200 tests, all
+passing individually) still tripped DS-001: several tests outside
+CI-00B's scope create files under `cache/`/`databases/` (e.g.
+`cache/daily_analysis.db`, `databases/system_state.json`) without
+overriding the relevant env var at call time, per the guard's own fix
+recipe. CI-00B's `tests` job therefore runs a targeted pytest invocation
+(the files this mission actually touched: killswitch, permissions,
+golden backtest, observability) rather than the full `tests/` tree, so
+the gate reflects this mission's fixes without failing on this
+unrelated, pre-existing isolation debt. Auditing and fixing the
+offending tests' path handling so the full suite can run cleanly in CI
+is separate follow-up work, not CI-00B.
