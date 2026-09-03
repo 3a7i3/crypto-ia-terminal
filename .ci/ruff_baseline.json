@@ -1,7 +1,7 @@
 {
   "$schema": "CI-00B ruff differential baseline v1",
   "rule_selection": "E,F,W (ignore E501,E402)",
-  "count": 999,
+  "count": 994,
   "findings": [
     ".claude/tools/render_docs.py:143:5:F841",
     "S2/01_gate_logger.py:107:15:F541",
@@ -185,11 +185,6 @@
     "dip/modules/decision_export.py:121:13:F541",
     "dip/modules/decision_export.py:322:9:F841",
     "dip/modules/knowledge_base.py:224:13:F841",
-    "docker_streamlit_fastapi_redis_kafka_demo.ipynb:12:2:F821",
-    "docker_streamlit_fastapi_redis_kafka_demo.ipynb:16:2:F821",
-    "docker_streamlit_fastapi_redis_kafka_demo.ipynb:2:1:E401",
-    "docker_streamlit_fastapi_redis_kafka_demo.ipynb:2:8:F811",
-    "docs/notebook_enrichissements.ipynb:2:1:invalid-syntax",
     "errors/incident_manager.py:257:9:F841",
     "errors/incident_manager.py:34:30:F401",
     "event_bus/bridge.py:21:8:F401",

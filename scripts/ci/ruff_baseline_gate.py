@@ -46,7 +46,12 @@ RUFF_ARGS = [
     ".",
     "--select=E,F,W",
     "--ignore=E501,E402",
-    "--exclude=__pycache__,.venv",
+    # .ipynb excluded: ruff's invalid-syntax location for unparseable
+    # notebooks is non-deterministic between runs (observed: same file,
+    # same ruff version, different row/col across invocations), which
+    # breaks position-keyed baseline matching. Notebooks are docs, not
+    # lint-enforced source, in this project.
+    "--exclude=__pycache__,.venv,*.ipynb",
     "--output-format=json",
 ]
 
