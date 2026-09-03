@@ -1,24 +1,21 @@
-import os
-import sys
 import unittest
-
-SENSITIVE_FILES = [
-    "core/quant/logging_alerts.py",  # contient potentiellement des credentials
-    "strategy_factory_config.ini",  # config utilisateur
-    "results/best_strategies_cross_world.json",  # résultats sensibles
-]
 
 
 class TestSecurityPermissions(unittest.TestCase):
-    @unittest.skipIf(sys.platform == "win32", "Permissions Unix non applicables sur Windows")
-    def test_no_world_read_access(self):
-        # Vérifie que les fichiers sensibles ne sont pas world-readable
-        for f in SENSITIVE_FILES:
-            if os.path.exists(f):
-                mode = os.stat(f).st_mode
-                # 0o004 = world read, 0o002 = world write
-                self.assertFalse(mode & 0o004, f"{f} est world-readable !")
-                self.assertFalse(mode & 0o002, f"{f} est world-writable !")
+    # CI-00B (Phase 4): l'ancien test_no_world_read_access vérifiait que des
+    # fichiers *versionnés dans git* n'étaient pas world-readable. C'est un
+    # invariant structurellement intestable ici : `git checkout` restaure
+    # systématiquement les fichiers en 0644, quel que soit leur contenu —
+    # git ne transporte pas de permissions restrictives. L'invariant de
+    # sécurité réel (les secrets runtime ne doivent jamais être lisibles par
+    # d'autres utilisateurs) est exercé contre l'utilitaire qui matérialise
+    # ces secrets sur disque : scripts/confidential_files_perms.py, couvert
+    # par tests/test_confidential_files_perms.py. AVERTISSEMENT (revue
+    # CI-00B) : cet utilitaire n'est câblé dans aucun geste de déploiement
+    # réel (scripts/deploy_vps.sh ne l'appelle pas) — l'invariant de bout
+    # en bout reste une dette de sécurité/déploiement explicite et suivie,
+    # pas une invariant démontrée en production. Voir
+    # .ci/known_red_tests.md § « Security permissions ».
 
     def test_no_hardcoded_secrets(self):
         # Vérifie qu'aucune valeur de secret n'est en dur dans logging_alerts.py

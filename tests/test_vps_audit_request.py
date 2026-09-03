@@ -40,6 +40,31 @@ def _commit_request(repo: Path, request_id: str, action: str) -> str:
 
 
 class TestImmutableGitRequests(unittest.TestCase):
+    def test_disk_attribution_is_allowlisted_end_to_end(self):
+        root = Path(__file__).resolve().parents[1]
+        workflow = (root / ".github/workflows/vps-audit.yml").read_text(encoding="utf-8")
+        dispatcher = (root / "scripts/claude-audit-dispatch").read_text(encoding="utf-8")
+        pack = (root / "scripts/claude-disk-attribution.py").read_text(encoding="utf-8")
+        wrapper = (root / "scripts/claude-disk-attribution-root").read_text(encoding="utf-8")
+        sudoers = (root / "deploy/sudoers/claude-audit-disk-attribution").read_text(encoding="utf-8")
+
+        self.assertIn("disk_attribution", audit_request.ALLOWED_ACTIONS)
+        self.assertIn("          - disk_attribution\n", workflow)
+        self.assertIn("    disk_attribution)\n", dispatcher)
+        self.assertIn('ROOT_PATH = "/"', pack)
+        self.assertIn(
+            "exec /usr/bin/sudo -n /usr/local/sbin/claude-disk-attribution-root",
+            dispatcher,
+        )
+        self.assertIn(
+            "exec /usr/bin/python3 -I /usr/local/bin/claude-disk-attribution",
+            wrapper,
+        )
+        self.assertIn(
+            "NOPASSWD: /usr/local/sbin/claude-disk-attribution-root",
+            sudoers,
+        )
+
     def test_disk_growth_is_allowlisted_end_to_end(self):
         root = Path(__file__).resolve().parents[1]
         workflow = (root / ".github/workflows/vps-audit.yml").read_text(

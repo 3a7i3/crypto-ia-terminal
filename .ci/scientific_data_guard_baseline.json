@@ -1,0 +1,15 @@
+{
+  "$schema": "CI-00B Scientific Data Guard baseline (DS-001/ADR-0008). Repo-relative POSIX paths under databases/ or cache/ that pre-existing, non-CI-00B tests are already known to write when the full tests/ suite runs in one pytest session. Generated once from an observed CI run (2026-09-03, PR #109 commit f0fd5f1) via `SCIENTIFIC_DATA_GUARD_GENERATE=1 pytest -q tests/`. A path listed here is tolerated (printed, not failing); any OTHER path touched under databases/ or cache/ still fails the guard. Regenerating this file is a visible, reviewed diff -- never a silent side effect of a normal test run.",
+  "known_leaking_paths": [
+    "cache/daily_analysis.db",
+    "cache/evolution_memory.db",
+    "cache/startup/configs.json",
+    "cache/startup/evolution_memory.pkl",
+    "cache/startup/last_snapshot.txt",
+    "cache/startup/runtime_state.pkl",
+    "databases/ai_evolution/strategy_memory.json",
+    "databases/dip/dip.sqlite",
+    "databases/sim_runs.sqlite",
+    "databases/system_state.json"
+  ]
+}

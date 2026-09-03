@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import time
+import unittest.mock
 
 import pytest
 
@@ -556,7 +557,21 @@ class TestB4Integration:
         with collector.measure_cycle():
             time.sleep(0.001)
 
-        snap = collector.snapshot()
+        # CI-00B (Phase 7) : collector.snapshot() lit la RSS réelle du
+        # processus pytest via psutil. En exécution isolée cette RSS reste
+        # sous le seuil MEMORY (800MB), mais dans une suite complète
+        # (pytest -q tests/, ~4200 tests, imports lourds cumulés :
+        # pandas/numpy/sklearn/streamlit...) elle le dépasse selon l'ordre
+        # de collecte — flaky observé en CI, non reproduit en isolation
+        # (25/25 passes). L'invariant testé ici est le pipeline
+        # collecte→score→alerte pour un système sain, pas la RSS réelle de
+        # pytest ; on fige donc la mesure mémoire à une valeur saine
+        # contrôlée plutôt que d'élargir le seuil MEMORY (qui reste
+        # inchangé et continue de protéger la valeur réelle en production).
+        with unittest.mock.patch(
+            "observability.metrics_collector._get_memory_mb", return_value=200.0
+        ):
+            snap = collector.snapshot()
         snap.health_score = scorer.compute(snap)
         alerts = engine.check(snap)
 
