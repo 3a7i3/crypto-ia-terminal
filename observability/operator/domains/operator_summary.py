@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import List, Mapping, Optional, Sequence
 
-from observability.operator.contracts import DomainSnapshot, FreshnessStatus, utcnow
+from observability.operator.contracts import DOMAIN_STATUSES, DomainSnapshot, FreshnessStatus, utcnow
 from observability.operator.domains.adaptive_learning import AdaptiveLearningStateSnapshot
 from observability.operator.domains.attrition import AttritionSnapshot
 from observability.operator.domains.data_freshness import DataFreshnessSnapshot
@@ -57,6 +57,51 @@ _QUESTIONS_FR: Mapping[str, str] = {
 
 _DEGRADED_FRESHNESS = frozenset({FreshnessStatus.DEGRADED, FreshnessStatus.STALE, FreshnessStatus.UNKNOWN})
 
+# The only DomainSnapshot.status (contracts.DOMAIN_STATUSES) member that
+# means "no attention needed" (mission remediation §5). Because
+# DOMAIN_STATUSES is a closed vocabulary enforced by
+# DomainSnapshot.__post_init__, this membership check can never silently
+# misclassify an unrecognized-but-healthy status string (e.g. a
+# hypothetical ACTIVE/NOMINAL) as needing attention — every status a
+# domain can legally report is accounted for, which
+# test_registry.py::test_healthy_statuses_partition_domain_statuses proves
+# exhaustively rather than by convention.
+_HEALTHY_STATUSES = frozenset({"OK"})
+assert _HEALTHY_STATUSES <= DOMAIN_STATUSES, "_HEALTHY_STATUSES must be drawn from contracts.DOMAIN_STATUSES"
+
+# Freshness aggregation severity, most severe first (mission remediation
+# §4). UNKNOWN outranks STALE: not knowing whether a domain is fresh is
+# strictly less actionable for an operator than a domain confirmed stale.
+# STALE outranks DEGRADED, DEGRADED outranks FRESH. NOT_APPLICABLE is
+# deliberately absent — it means "freshness does not apply here" and must
+# never contribute a severity, so it is filtered out before this ordering
+# is consulted (see _aggregate_freshness).
+_FRESHNESS_SEVERITY: Sequence[FreshnessStatus] = (
+    FreshnessStatus.UNKNOWN,
+    FreshnessStatus.STALE,
+    FreshnessStatus.DEGRADED,
+    FreshnessStatus.FRESH,
+)
+
+
+def _aggregate_freshness(freshness_values: Sequence[FreshnessStatus]) -> FreshnessStatus:
+    """Most-severe-wins aggregation over _FRESHNESS_SEVERITY.
+
+    NOT_APPLICABLE components are filtered out first: mixing one into an
+    otherwise-FRESH collection must not degrade it (mission remediation
+    §4). If every component is NOT_APPLICABLE — or there are no
+    components at all — there is nothing to report freshness on, so the
+    aggregate is NOT_APPLICABLE; that is not the same as (and must never
+    be invented as) FRESH.
+    """
+    applicable = [f for f in freshness_values if f != FreshnessStatus.NOT_APPLICABLE]
+    if not applicable:
+        return FreshnessStatus.NOT_APPLICABLE
+    for level in _FRESHNESS_SEVERITY:
+        if level in applicable:
+            return level
+    return FreshnessStatus.UNKNOWN  # unreachable: _FRESHNESS_SEVERITY covers every remaining member
+
 
 def _component_from_snapshot(domain: str, snapshot: Optional[DomainSnapshot]) -> ComponentStatus:
     if snapshot is None:
@@ -67,11 +112,7 @@ def _component_from_snapshot(domain: str, snapshot: Optional[DomainSnapshot]) ->
             freshness=FreshnessStatus.UNKNOWN,
             needs_attention=True,
         )
-    needs_attention = snapshot.freshness in _DEGRADED_FRESHNESS or snapshot.status not in (
-        "OK",
-        "HEALTHY",
-        "PASSING",
-    )
+    needs_attention = snapshot.freshness in _DEGRADED_FRESHNESS or snapshot.status not in _HEALTHY_STATUSES
     return ComponentStatus(
         domain=domain,
         question_fr=_QUESTIONS_FR[domain],
@@ -116,11 +157,7 @@ def compose_operator_summary(
         f"{c.domain}: {c.status} (fraîcheur={c.freshness.value})" for c in components if c.needs_attention
     )
     overall_status = "ATTENTION_REQUIRED" if attention_items else "OK"
-    overall_freshness = (
-        FreshnessStatus.UNKNOWN
-        if any(c.freshness == FreshnessStatus.UNKNOWN for c in components)
-        else (FreshnessStatus.STALE if any(c.freshness == FreshnessStatus.STALE for c in components) else FreshnessStatus.FRESH)
-    )
+    overall_freshness = _aggregate_freshness([c.freshness for c in components])
     return OperatorSummary(
         domain="operator_summary",
         observed_at_utc=observed_at_utc or utcnow(),
@@ -142,8 +179,8 @@ MODULES = (
         canonical_source="observability/operator/domains/operator_summary.py",
         status="CANONICAL_NEW",
         consumers=("future Telegram/dashboard/API presentation adapters (O-02+)",),
-        freshness_source="min(freshness des snapshots composés)",
+        freshness_source="agrégation par sévérité (UNKNOWN > STALE > DEGRADED > FRESH, NOT_APPLICABLE filtré) des snapshots composés — voir _aggregate_freshness",
         dependencies=("les 10 autres domaines observability.operator",),
-        known_debt="Aucun score opaque — chaque champ reste traçable à un domaine nommé et à son propre status/freshness.",
+        known_debt="Aucun score opaque — chaque champ reste traçable à un domaine nommé et à son propre status/freshness. Vocabulaire de statut fermé (contracts.DOMAIN_STATUSES) : seul OK est considéré sain, sans liste d'exclusion devinée.",
     ),
 )

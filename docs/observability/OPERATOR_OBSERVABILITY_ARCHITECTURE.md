@@ -93,7 +93,11 @@ Each domain module exports:
 
 - a frozen `*Snapshot` dataclass extending `DomainSnapshot`
   (`contracts.py`) — `schema_version`, `domain`, `observed_at_utc`,
-  `source`, `source_version`, `freshness`, `status`, `evidence`;
+  `source`, `source_version`, `freshness`, `status`, `evidence`. `status`
+  is drawn from a closed vocabulary (`contracts.DOMAIN_STATUSES`:
+  `OK`/`DEGRADED`/`ATTENTION_REQUIRED`/`UNAVAILABLE`), enforced at
+  construction time, so no composer ever has to guess which free-text
+  values mean "healthy";
 - a pure `compose_*_snapshot()` function that accepts already-computed,
   primitive/`ObservedValue`-typed inputs — it never imports a producer
   module itself, so the package has zero import-time coupling to the
@@ -103,6 +107,17 @@ Each domain module exports:
 - `MODULES`: the `ModuleDescriptor`s recording the forensic inventory
   (which existing code is canonical/duplicated/legacy/unused for this
   domain).
+
+**Serialization.** `DomainSnapshot.to_dict()` is generic: it walks
+`dataclasses.fields(self)`, which includes both the spine above and
+every field a subclass adds, and converts each through a shared
+`to_jsonable()` helper (`Enum` -> `.value`, `datetime` -> ISO-8601, a
+value's own `to_dict()` when it has one, plain dataclasses/`Mapping`/
+sequences recursively). A domain module never writes its own serializer;
+adding a field to a `*Snapshot` is enough for it to appear in `to_dict()`
+and survive `json.dumps()` with the stdlib encoder alone
+(`tests/observability/operator_o01/test_serialization.py` proves this
+for all 11 domains).
 
 ## 5. Data flow
 
@@ -156,9 +171,16 @@ other domain snapshots (any subset — missing ones are marked
 There is no opaque global score: `OperatorSummary.status` is
 `"OK"`/`"ATTENTION_REQUIRED"`, and `attention_items` names each
 struggling domain explicitly (`"regret_state: DEGRADED (fraîcheur=STALE)"`),
-never a bare number. Tests (`tests/observability/operator_o01/
-test_operator_summary.py`) assert it does not mutate its inputs and does
-not invent data for absent domains.
+never a bare number. `OperatorSummary.freshness` aggregates the
+components' freshness by explicit severity —
+`UNKNOWN > STALE > DEGRADED > FRESH`, with `NOT_APPLICABLE` filtered out
+before that ordering is applied so it can never silently degrade (or be
+invented as) a healthy result; if every component is `NOT_APPLICABLE`
+(or there are none), the aggregate is `NOT_APPLICABLE` itself
+(`domains/operator_summary.py::_aggregate_freshness`). Tests
+(`tests/observability/operator_o01/test_operator_summary.py`) assert it
+does not mutate its inputs, does not invent data for absent domains, and
+never collapses a `DEGRADED` component into a `FRESH` result.
 
 ## 9. Telegram / dashboard / API adapter philosophy
 

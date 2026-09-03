@@ -69,11 +69,22 @@ the contract the adapters must follow.
 13. **Severity status originates from canonical rules, not emoji
     choice.** A 🔴/🟡/🟢 (or equivalent) must be derived from the
     snapshot's own `status`/`freshness` fields — never chosen
-    independently by the rendering code based on vibes.
+    independently by the rendering code based on vibes. `status` is a
+    closed vocabulary (`contracts.DOMAIN_STATUSES`:
+    `OK`/`DEGRADED`/`ATTENTION_REQUIRED`/`UNAVAILABLE`), enforced by
+    `DomainSnapshot.__post_init__` — an adapter must not invent a
+    healthy-looking status string outside this set, and must not treat
+    any member other than `OK` as healthy.
 14. **Presentation adapters may format, never reinterpret.** Rounding,
     unit conversion (e.g. bytes -> GB), and locale formatting are
     allowed; changing what a value *means* (e.g. treating `DEGRADED` as
-    `FRESH` because "it's probably fine") is not.
+    `FRESH` because "it's probably fine") is not. This applies to
+    aggregation too: `OperatorSummary`'s freshness aggregation is an
+    explicit severity order (`UNKNOWN > STALE > DEGRADED > FRESH`,
+    `NOT_APPLICABLE` excluded from the ordering rather than degrading a
+    result) — an adapter composing multiple snapshots must use the same
+    precedence, never a shortcut that can silently collapse a degraded
+    component into an all-clear.
 
 ## Quant Observer O-02 migration contract
 

@@ -17,11 +17,13 @@ Constitutional constraints (see docs/observability/OPERATOR_OBSERVABILITY_ARCHIT
 """
 
 from observability.operator.contracts import (
+    DOMAIN_STATUSES,
     DomainSnapshot,
     FreshnessStatus,
     NullSemantics,
     ObservedValue,
     PercentageMetric,
+    to_jsonable,
 )
 from observability.operator.freshness import classify_freshness
 from observability.operator.registry import (
@@ -32,11 +34,13 @@ from observability.operator.registry import (
 )
 
 __all__ = [
+    "DOMAIN_STATUSES",
     "DomainSnapshot",
     "FreshnessStatus",
     "NullSemantics",
     "ObservedValue",
     "PercentageMetric",
+    "to_jsonable",
     "classify_freshness",
     "MetricDefinition",
     "MetricRegistry",

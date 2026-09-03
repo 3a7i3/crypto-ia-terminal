@@ -9,7 +9,7 @@ these contracts without reinterpreting them.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields, is_dataclass
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Generic, Mapping, Optional, TypeVar
@@ -31,6 +31,17 @@ DOMAIN_IDS = frozenset(
         "operator_summary",
     }
 )
+
+# Closed vocabulary for DomainSnapshot.status (mission remediation §5 —
+# independent review). Without a closed set, OperatorSummary could only
+# guess which free-text status strings mean "healthy" via an undocumented
+# allowlist (e.g. "HEALTHY"/"PASSING", which no domain in this codebase
+# actually emits) and could misclassify a legitimate but unrecognized
+# healthy status (ACTIVE/AVAILABLE/NOMINAL/...) as needing attention.
+# OK is the only member that represents "no attention needed" — see
+# domains/operator_summary.py's _HEALTHY_STATUSES, which is tested against
+# this exact set so the classification can never silently drift.
+DOMAIN_STATUSES = frozenset({"OK", "DEGRADED", "ATTENTION_REQUIRED", "UNAVAILABLE"})
 
 
 class FreshnessStatus(str, Enum):
@@ -64,14 +75,50 @@ class NullSemantics(str, Enum):
 
 T = TypeVar("T")
 
-_ABSENT_SEMANTICS = frozenset(
+# UNKNOWN/UNAVAILABLE/NOT_APPLICABLE are "no observation exists" states:
+# there is nothing to carry, so value must be None. EMPTY is deliberately
+# NOT in this set — EMPTY means the source *was* successfully observed and
+# the measured collection/string is genuinely empty, so it must carry that
+# real (empty) value, not None. See ObservedValue.__post_init__ for the
+# EMPTY-specific shape check this implies.
+_NONE_REQUIRED_SEMANTICS = frozenset(
     {
         NullSemantics.UNKNOWN,
         NullSemantics.UNAVAILABLE,
         NullSemantics.NOT_APPLICABLE,
-        NullSemantics.EMPTY,
     }
 )
+
+
+def to_jsonable(value: Any) -> Any:
+    """Recursively convert any contracts value into a JSON-safe structure,
+    without reinterpreting it — the same "format, never reinterpret" rule
+    OPERATOR_DISPLAY_CONTRACT.md imposes on presentation adapters applies
+    here to serialization.
+
+    Handles, in order: Enum -> ``.value``; ``datetime`` -> ISO-8601;
+    ``None``/``str``/``int``/``float``/``bool`` as-is; any dataclass
+    exposing its own ``to_dict()`` (``ObservedValue``, ``PercentageMetric``)
+    -> that method's result, itself recursively converted; any other plain
+    dataclass -> its fields, recursively converted; ``Mapping`` -> a dict
+    with string keys; ``list``/``tuple``/``set``/``frozenset`` -> a list.
+    """
+    if isinstance(value, Enum):
+        return value.value
+    if isinstance(value, datetime):
+        return value.isoformat()
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return value
+    to_dict_method = getattr(value, "to_dict", None)
+    if callable(to_dict_method) and is_dataclass(value):
+        return to_jsonable(to_dict_method())
+    if is_dataclass(value) and not isinstance(value, type):
+        return {f.name: to_jsonable(getattr(value, f.name)) for f in fields(value)}
+    if isinstance(value, Mapping):
+        return {str(k): to_jsonable(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple, set, frozenset)):
+        return [to_jsonable(v) for v in value]
+    raise TypeError(f"Cannot serialize value of type {type(value)!r} to a JSON-safe structure: {value!r}")
 
 
 @dataclass(frozen=True)
@@ -88,7 +135,7 @@ class ObservedValue(Generic[T]):
     semantics: NullSemantics = NullSemantics.PRESENT
 
     def __post_init__(self) -> None:
-        if self.semantics in _ABSENT_SEMANTICS and self.value is not None:
+        if self.semantics in _NONE_REQUIRED_SEMANTICS and self.value is not None:
             raise ValueError(
                 f"ObservedValue with semantics={self.semantics} must carry value=None, "
                 f"got {self.value!r}"
@@ -98,13 +145,33 @@ class ObservedValue(Generic[T]):
                 "ObservedValue with semantics=PRESENT must carry a non-None value; "
                 "use NullSemantics.ZERO/FALSE/EMPTY for a present-but-empty value"
             )
+        if self.semantics == NullSemantics.EMPTY:
+            if self.value is None:
+                raise ValueError(
+                    "ObservedValue with semantics=EMPTY must carry the actual observed "
+                    "empty value (e.g. '', [], {}, set()), not None — EMPTY means the "
+                    "source was successfully observed and is genuinely empty, which is "
+                    "a different state from UNKNOWN/UNAVAILABLE/NOT_APPLICABLE"
+                )
+            try:
+                is_empty = len(self.value) == 0
+            except TypeError as exc:
+                raise ValueError(
+                    "ObservedValue with semantics=EMPTY requires a sized value "
+                    f"(str/list/tuple/dict/set/frozenset), got {type(self.value)!r}"
+                ) from exc
+            if not is_empty:
+                raise ValueError(
+                    "ObservedValue with semantics=EMPTY must carry an empty collection "
+                    f"or string, got non-empty value {self.value!r}"
+                )
 
     @property
     def is_available(self) -> bool:
         return self.semantics not in (NullSemantics.UNKNOWN, NullSemantics.UNAVAILABLE)
 
     def to_dict(self) -> Mapping[str, Any]:
-        return {"value": self.value, "semantics": self.semantics.value}
+        return {"value": to_jsonable(self.value), "semantics": self.semantics.value}
 
 
 def observed(value: T) -> ObservedValue[T]:
@@ -204,15 +271,18 @@ class DomainSnapshot:
             raise ValueError(f"Unknown domain id: {self.domain!r}")
         if self.observed_at_utc.tzinfo is None:
             raise ValueError("observed_at_utc must be timezone-aware (UTC)")
+        if self.status not in DOMAIN_STATUSES:
+            raise ValueError(
+                f"Unknown status {self.status!r} for domain {self.domain!r}; "
+                f"must be one of {sorted(DOMAIN_STATUSES)} (DomainSnapshot.status is a "
+                "closed vocabulary so composers never have to guess which values mean "
+                "'healthy' — see contracts.DOMAIN_STATUSES)"
+            )
 
     def to_dict(self) -> Mapping[str, Any]:
-        return {
-            "schema_version": self.schema_version,
-            "domain": self.domain,
-            "observed_at_utc": self.observed_at_utc.isoformat(),
-            "source": self.source,
-            "source_version": self.source_version,
-            "freshness": self.freshness.value,
-            "status": self.status,
-            "evidence": dict(self.evidence),
-        }
+        """Serialize the generic spine AND every field a concrete subclass
+        adds (mission remediation §3): ``dataclasses.fields(self)`` walks
+        the full inheritance chain, so a domain module never needs its own
+        serializer — adding a field to a ``*Snapshot`` subclass is enough
+        for it to appear here automatically."""
+        return {f.name: to_jsonable(getattr(self, f.name)) for f in fields(self)}
