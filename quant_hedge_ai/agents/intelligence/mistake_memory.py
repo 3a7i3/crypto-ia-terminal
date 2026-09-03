@@ -577,6 +577,27 @@ class MistakeMemory:
     def active_rules_summary(self) -> list[str]:
         return [r.describe() for r in self._rules]
 
+    def state_provenance(self) -> dict:
+        """Provenance minimale de l'état mémoire (S-02B.1 §12).
+
+        Ne remplace pas un versioning complet ; suffit à distinguer une
+        recommandation produite depuis l'état mémoire X d'une autre produite
+        depuis l'état Y (mtime + volumétrie).
+        """
+        try:
+            state_mtime = (
+                self._db_path.stat().st_mtime if self._db_path.exists() else None
+            )
+        except OSError:
+            state_mtime = None
+        return {
+            "subsystem": "MistakeMemory",
+            "source_path": str(self._db_path),
+            "state_mtime": state_mtime,
+            "n_records": len(self._mistakes),
+            "n_rules_active": len(self._rules),
+        }
+
     # ── Persistance ───────────────────────────────────────────────────────────
 
     def _load(self) -> list[dict]:

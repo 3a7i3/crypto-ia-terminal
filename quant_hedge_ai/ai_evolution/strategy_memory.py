@@ -122,6 +122,24 @@ class StrategyMemoryStore:
         consecutive_bonus = min(1.0, consecutive / 5.0)
         return round((recent_ratio * 0.7) + (consecutive_bonus * 0.3), 4)
 
+    def state_provenance(self) -> dict:
+        """Provenance minimale de l'état mémoire (S-02B.1 §12)."""
+        try:
+            state_mtime = (
+                self.cfg.file_path.stat().st_mtime
+                if self.cfg.file_path.exists()
+                else None
+            )
+        except OSError:
+            state_mtime = None
+        payload = self._read()
+        return {
+            "subsystem": "StrategyMemoryStore",
+            "source_path": str(self.cfg.file_path),
+            "state_mtime": state_mtime,
+            "regime_count": payload.get("regime_count", 0),
+        }
+
     def _read(self) -> dict:
         if not self.cfg.file_path.exists():
             return {"regimes": {}, "regime_count": 0, "regime_history": []}

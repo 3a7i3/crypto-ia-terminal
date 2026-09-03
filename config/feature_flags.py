@@ -53,6 +53,18 @@ FEATURE_REGRET_DECISION_FEEDBACK: bool = _flag(
 # FEATURE_AUTO_CALIBRATION=true seul : toujours passif.
 FEATURE_AUTO_CALIBRATION: bool = _flag("FEATURE_AUTO_CALIBRATION", default=False)
 
+# ── S-02B.1 — Frontière mémoire adaptative / méta-apprentissage vs décision ──
+# LEARNING != AUTHORITY (ADR S-02B.1). MistakeMemory, MetaLearner et
+# StrategyMemoryStore peuvent en permanence observer, enregistrer, apprendre
+# et proposer. Ce flag maître, false par défaut, est la seule chose qui peut
+# transformer une de leurs recommandations en effet réel sur une décision
+# live (blocage de trade, TP/SL/trailing, score/personnalité). Défaut off,
+# fail-closed : un import cassé ou une variable absente/malformée reste
+# passif, jamais actif.
+FEATURE_ADAPTIVE_DECISION_FEEDBACK: bool = _flag(
+    "FEATURE_ADAPTIVE_DECISION_FEEDBACK", default=False
+)
+
 # ── P4-P7 — Réservés, désactivés ──────────────────────────────────────────────
 FEATURE_ADAPTIVE_CALIBRATION: bool = _flag(
     "FEATURE_ADAPTIVE_CALIBRATION", default=False

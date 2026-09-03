@@ -153,6 +153,10 @@ class MetaLearner:
 
     # ── Affichage ─────────────────────────────────────────────────────────────
 
+    def state_provenance(self) -> dict:
+        """Provenance minimale de l'état MetaMemory sous-jacent (S-02B.1 §12)."""
+        return self.memory.state_provenance()
+
     def summary(self) -> str:
         lines = [f"MetaLearner — {len(self.memory)} entrées en mémoire"]
         for entry in self.memory.all():
