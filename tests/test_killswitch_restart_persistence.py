@@ -72,7 +72,15 @@ def test_safe_mode_survives_restart(tmp_path):
 def test_execution_restored_after_resume_from_persisted_halt(tmp_path):
     """
     Cycle complet : halt persisté → redémarrage → toujours bloqué
-    → RESUME (via _cmd_resume) → exécution à nouveau autorisée.
+    → RESUME (via force_resume(), l'API publique actuelle) → exécution
+    à nouveau autorisée.
+
+    CI-00B (Phase 5) : réécrit contre l'API courante. L'ancienne méthode
+    `_cmd_resume` (chemin de commande Telegram) a été intentionnellement
+    supprimée de KillSwitchHardened ; l'invariant testé ici — la reprise
+    d'exécution après un halt persisté — reste valide et est démontré via
+    `force_resume()`, le point d'entrée programmatique actuel pour un
+    RESUME sans Telegram.
     """
     ks1 = _make_ks(tmp_path)
     ks1.force_halt("planned_maintenance")
@@ -80,10 +88,7 @@ def test_execution_restored_after_resume_from_persisted_halt(tmp_path):
     ks2 = _make_ks(tmp_path)
     assert not ks2.is_execution_allowed()
 
-    # Simule un /RESUME sans Telegram (timestamp factice)
-    import time
-
-    ks2._cmd_resume(received_at=time.time())
+    ks2.force_resume()
 
     assert ks2.is_execution_allowed()
     assert not ks2.is_halted()
