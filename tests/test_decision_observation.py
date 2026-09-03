@@ -67,6 +67,54 @@ def test_build_minimal():
     assert obs.price == 67000.0
     assert obs.cycle == 1
     assert obs.trade_allowed is True
+    assert obs.packet_id == ""  # aucune provenance DecisionPacket inventée
+
+
+def test_packet_and_trace_provenance_preserved():
+    packet = SimpleNamespace(
+        packet_id="packet-canonical-1",
+        metadata={"trace_id": "trace-canonical-1", "experiment_id": "burnin-v4"},
+        state_history=[],
+        reasoning=[],
+    )
+    obs = build_from_result(_minimal_result(decision_packet=packet), cycle=9)
+    assert obs.packet_id == "packet-canonical-1"
+    assert obs.trace_id == "trace-canonical-1"
+    assert obs.experiment_id == "burnin-v4"
+    assert obs.cycle == 9
+
+
+def test_provenance_equal_across_observation_rejection_and_regret(tmp_path):
+    from observability.regret_scheduler import RegretScheduler
+    from observability.rejection_store import _from_observation
+
+    packet = SimpleNamespace(
+        packet_id="packet-chain-1",
+        metadata={"trace_id": "trace-chain-1"},
+        state_history=[],
+        reasoning=[],
+    )
+    obs = build_from_result(
+        _minimal_result(
+            decision_packet=packet,
+            trade_allowed=False,
+            blockers="gate",
+        ),
+        cycle=11,
+        engine_version="v9",
+    )
+    rejection = _from_observation(obs)
+    scheduler = RegretScheduler(store_dir=tmp_path)
+    scheduler.on_observation(obs)
+    candidate = scheduler._candidates[obs.observation_id]
+    candidate.pending_horizons["5m"] = time.time() - 1
+    scheduler.update_price_cache({"BTC/USDT": 68000.0}, source="test")
+    scheduler._tick()
+    evidence = scheduler._persisted_evidence[f"{obs.observation_id}:5m"]
+
+    assert obs.packet_id == rejection.packet_id == evidence["packet_id"]
+    assert obs.trace_id == rejection.trace_id == evidence["trace_id"]
+    assert obs.observation_id == rejection.observation_id == evidence["observation_id"]
 
 
 def test_observation_id_format():
@@ -178,6 +226,7 @@ def test_to_dict_roundtrip():
     d = obs.to_dict()
     assert d["symbol"] == "BTC/USDT"
     assert d["cycle"] == 7
+    assert "packet_id" in d and "trace_id" in d and "experiment_id" in d
     assert isinstance(d["all_blockers"], list)
     assert isinstance(d["features"], dict)
     assert isinstance(d["state_history"], list)

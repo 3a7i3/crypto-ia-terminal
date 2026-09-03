@@ -19,8 +19,10 @@ seuil en production — ce qui viole le principe de passivité (voir ADR-0007).
 Créer `observability/regret_scheduler.py` : un scheduler background thread qui évalue
 chaque `RejectionRecord` sur 7 horizons temporels (5 min, 15 min, 30 min, 1h, 4h, 12h, 24h)
 en utilisant les prix disponibles dans le cache du scanner. Pour chaque horizon, calcule :
-rendement théorique, drawdown max, MFE (maximum favorable excursion), MAE (maximum adverse
-excursion), Sharpe simplifié, regret_score [0,1], type (MISSED_WIN / GOOD_REFUSAL / NEUTRAL).
+rendement directionnel endpoint et regret_score [0,1], type
+(MISSED_WIN / GOOD_REFUSAL / NEUTRAL). Les anciens noms `mfe_pct`/`mae_pct`
+sont des aliases dépréciés et ne désignent pas des excursions sans trajectoire
+de prix intra-horizon (MC-001 schéma 2).
 Les résultats sont persistés dans `databases/regret/regret_horizons_YYYY-MM-DD.jsonl`.
 
 Le `RegretEngine` existant est conservé intact pour la compatibilité. `get_threshold_delta()`

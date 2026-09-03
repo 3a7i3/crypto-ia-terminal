@@ -28,6 +28,11 @@ from observability.regret_scheduler import (
 def _fake_obs(**kwargs) -> Any:
     defaults = dict(
         observation_id="20260629-BTC-ABC",
+        packet_id="pkt-001",
+        trace_id="trace-001",
+        experiment_id="burnin-v4",
+        cycle=42,
+        engine_version="v9",
         symbol="BTC/USDT",
         side="BUY",
         score=75.0,
@@ -81,6 +86,9 @@ def test_compute_buy_price_up_is_missed_win():
     assert result.regret_type == "MISSED_WIN"
     assert result.direction_ok is True
     assert result.return_pct > 0
+    assert result.favorable_endpoint_pct == result.mfe_pct
+    assert result.adverse_endpoint_pct == result.mae_pct
+    assert result.metric_semantics == "endpoint_only"
 
 
 def test_compute_buy_price_down_is_good_refusal():
@@ -164,6 +172,27 @@ def test_on_observation_all_7_horizons_pending(tmp_path):
     assert set(c.pending_horizons.keys()) == set(_HORIZONS.keys())
 
 
+def test_on_observation_preserves_provenance(tmp_path):
+    s = _make_scheduler(tmp_path)
+    s.on_observation(_fake_obs(observation_id="OBS-PROV"))
+    c = s._candidates["OBS-PROV"]
+    assert c.packet_id == "pkt-001"
+    assert c.trace_id == "trace-001"
+    assert c.experiment_id == "burnin-v4"
+    assert c.cycle == 42
+
+
+def test_duplicate_observation_does_not_reset_horizons(tmp_path):
+    s = _make_scheduler(tmp_path)
+    obs = _fake_obs(observation_id="OBS-DUP")
+    s.on_observation(obs)
+    original = s._candidates["OBS-DUP"]
+    original.pending_horizons.pop("5m")
+    s.on_observation(obs)
+    assert s._candidates["OBS-DUP"] is original
+    assert "5m" not in original.pending_horizons
+
+
 # ── Tests _tick / évaluation ──────────────────────────────────────────────────
 
 
@@ -199,11 +228,12 @@ def test_tick_persists_jsonl(tmp_path):
     files = list(tmp_path.glob("regret_horizons_*.jsonl"))
     assert len(files) == 1
     lines = files[0].read_text().strip().splitlines()
-    assert len(lines) == 1
-    report = json.loads(lines[0])
-    assert report["symbol"] == "BTC/USDT"
-    assert "horizons" in report
-    assert len(report["horizons"]) == 7
+    assert len(lines) == 7
+    reports = [json.loads(line) for line in lines]
+    assert {r["horizon"] for r in reports} == set(_HORIZONS)
+    assert all(r["record_type"] == "HORIZON_EVIDENCE" for r in reports)
+    assert all(r["packet_id"] == "pkt-001" for r in reports)
+    assert all(r["trace_id"] == "trace-001" for r in reports)
 
 
 def test_tick_no_price_keeps_candidate(tmp_path):
@@ -237,6 +267,48 @@ def test_tick_partial_horizon_evaluation(tmp_path):
     # Le candidat doit encore être présent (horizons restants)
     assert "OBS-PARTIAL" in s._candidates
     assert len(c.results) == 3
+    lines = next(tmp_path.glob("regret_horizons_*.jsonl")).read_text().splitlines()
+    assert len(lines) == 3  # durable sans attendre 24h
+
+
+def test_v2_persists_buy_and_sell_without_legacy_engine(tmp_path):
+    s = _make_scheduler(tmp_path)  # aucun RegretEngine v1 construit
+    s.on_observation(
+        _fake_obs(observation_id="OBS-BUY", symbol="BUY/USDT", side="BUY", price=100)
+    )
+    s.on_observation(
+        _fake_obs(observation_id="OBS-SELL", symbol="SELL/USDT", side="SELL", price=100)
+    )
+    for candidate in s._candidates.values():
+        candidate.pending_horizons["5m"] = time.time() - 1
+    s.update_price_cache({"BUY/USDT": 105, "SELL/USDT": 95}, source="test")
+    s._tick()
+    rows = [
+        json.loads(line)
+        for line in next(tmp_path.glob("regret_horizons_*.jsonl"))
+        .read_text()
+        .splitlines()
+    ]
+    five_minute = [row for row in rows if row["horizon"] == "5m"]
+    assert len(five_minute) == 2
+    assert all(row["result"]["return_pct"] == 0.05 for row in five_minute)
+    assert all(row["horizon_status"] == "EVALUATED" for row in five_minute)
+
+
+def test_layer_rates_use_valid_denominators(tmp_path):
+    s = _make_scheduler(tmp_path)
+    s.on_observation(_fake_obs(observation_id="OBS-RATE"))
+    c = s._candidates["OBS-RATE"]
+    for h in ("5m", "15m", "30m"):
+        c.pending_horizons[h] = time.time() - 1
+    s.update_price_cache({"BTC/USDT": 70000.0})
+    s._tick()
+    stats = s.layer_performance()["conviction"]
+    assert stats["total_rejections"] == 1
+    assert stats["evaluated_horizons"] == 3
+    assert 0 <= stats["missed_horizon_rate"] <= 1
+    assert 0 <= stats["missed_decision_rate"] <= 1
+    assert "missed_rate" not in stats
 
 
 # ── Tests layer_performance ───────────────────────────────────────────────────
@@ -255,21 +327,29 @@ def test_layer_performance_from_jsonl(tmp_path):
 
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     path = tmp_path / f"regret_horizons_{today}.jsonl"
-    report = {
-        "observation_id": "OBS-001",
-        "symbol": "BTC/USDT",
-        "side": "BUY",
-        "score": 75.0,
-        "all_blockers": ["conviction", "portfolio"],
-        "missed_win_count": 3,
-        "good_refusal_count": 1,
-    }
-    path.write_text(json.dumps(report) + "\n", encoding="utf-8")
+    reports = []
+    for index, regret_type in enumerate(
+        ["MISSED_WIN", "MISSED_WIN", "MISSED_WIN", "GOOD_REFUSAL"]
+    ):
+        reports.append(
+            {
+                "record_type": "HORIZON_EVIDENCE",
+                "observation_id": "OBS-001",
+                "horizon": f"test-{index}",
+                "horizon_status": "EVALUATED",
+                "all_blockers": ["conviction", "portfolio"],
+                "result": {"regret_type": regret_type},
+            }
+        )
+    path.write_text(
+        "\n".join(json.dumps(report) for report in reports) + "\n", encoding="utf-8"
+    )
 
     perf = s.layer_performance()
     assert "conviction" in perf
     assert "portfolio" in perf
-    assert perf["conviction"]["missed_wins"] == 3
+    assert perf["conviction"]["missed_win_horizons"] == 3
+    assert perf["conviction"]["good_refusal_horizons"] == 1
     assert perf["conviction"]["total_rejections"] == 1
 
 
@@ -308,7 +388,7 @@ def test_update_price_cache_concurrent(tmp_path):
             errors.append(e)
 
     threads = [
-        threading.Thread(target=updater, args=(f"SYM{i}/USDT", float(i)))
+        threading.Thread(target=updater, args=(f"SYM{i}/USDT", float(i + 1)))
         for i in range(5)
     ]
     for t in threads:

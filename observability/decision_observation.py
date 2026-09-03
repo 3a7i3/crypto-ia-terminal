@@ -66,6 +66,8 @@ class DecisionObservation:
     # ── Identité ──────────────────────────────────────────────────────────────
     observation_id: str  # "20260629-ETHUSDT-A3F9C2" — human-readable
     packet_id: str  # UUID du DecisionPacket source
+    trace_id: str  # identifiant canonique du cycle produit par advisor_loop
+    experiment_id: Optional[str]  # identifiant existant uniquement, jamais inventé ici
     cycle: int
     ts: float  # Unix timestamp UTC
     ts_iso: str  # ISO-8601 UTC
@@ -172,6 +174,8 @@ class DecisionObservation:
         return {
             "observation_id": self.observation_id,
             "packet_id": self.packet_id,
+            "trace_id": self.trace_id,
+            "experiment_id": self.experiment_id,
             "cycle": self.cycle,
             "ts": self.ts,
             "ts_iso": self.ts_iso,
@@ -296,12 +300,14 @@ def build_from_result(
         human_verdict = "REFUSÉ"
 
     # ── Identity ──────────────────────────────────────────────────────────────
-    packet_id = (
-        str(dp.packet_id) if dp and hasattr(dp, "packet_id") else str(uuid.uuid4())
-    )
+    packet_id = str(dp.packet_id) if dp and hasattr(dp, "packet_id") else ""
+    dp_metadata = getattr(dp, "metadata", {}) if dp is not None else {}
+    trace_id = str(result.get("trace_id") or dp_metadata.get("trace_id") or "")
+    experiment_id_raw = result.get("experiment_id") or dp_metadata.get("experiment_id")
+    experiment_id = str(experiment_id_raw) if experiment_id_raw else None
     date_str = datetime.now(timezone.utc).strftime("%Y%m%d")
     sym_short = symbol.replace("/USDT", "").replace("/", "")[:8]
-    short = packet_id.replace("-", "")[-6:].upper()
+    short = (packet_id or str(uuid.uuid4())).replace("-", "")[-6:].upper()
     obs_id = f"{date_str}-{sym_short}-{short}"
 
     now = time.time()
@@ -428,6 +434,8 @@ def build_from_result(
     return DecisionObservation(
         observation_id=obs_id,
         packet_id=packet_id,
+        trace_id=trace_id,
+        experiment_id=experiment_id,
         cycle=cycle,
         ts=now,
         ts_iso=ts_iso,

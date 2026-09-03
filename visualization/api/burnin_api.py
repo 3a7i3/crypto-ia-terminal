@@ -1,11 +1,11 @@
-"""Burn-in API — assembles BurnInSnapshot from burnin_v3.json + RegretEngine.
+"""Burn-in API — assemble BurnInSnapshot + observations regret-v2 canoniques.
 
 Exposes progress against the statistician thresholds (CLAUDE.md — Règle du
-statisticien) without computing any new derived score. CRI stays unset until
-tools/cri_calculator.py exists (docs/blueprint_v2.md gate S3 — not yet built).
+statisticien) without computing any new derived score. CRI remains unset here;
+its canonical computation belongs to tools/cri_calculator.py.
 
-Read-only: RegretEngine is instantiated only to call .stats() on records
-already persisted to disk (ADR-0007 — passivité).
+Read-only. Un chemin regret explicite conserve le mode regret-v1/historique;
+la source opérationnelle par défaut est tools.regret_repository (MC-001).
 """
 
 from __future__ import annotations
@@ -21,8 +21,6 @@ from visualization.api.models import BurnInSnapshot
 
 _ROOT = Path(__file__).resolve().parents[2]
 _BURNIN_V3 = _ROOT / "cache" / "burn_in_reports" / "burnin_v3.json"
-_REGRET_DB = _ROOT / "databases" / "regret_analysis.jsonl"
-
 # Seuils constitutionnels — CLAUDE.md § Règle du statisticien
 TRADES_MIN = 500
 WINS_MIN = 150
@@ -66,7 +64,22 @@ def _parse_dt(raw: Optional[str]) -> Optional[datetime]:
         return None
 
 
-def _regret_stats(regret_db_path: Path) -> dict:
+def _regret_stats(regret_db_path: Optional[Path] = None) -> dict:
+    if regret_db_path is None:
+        try:
+            from tools.regret_repository import read_canonical_regrets
+
+            records = read_canonical_regrets()
+            return {
+                "missed_wins": sum(
+                    r.get("regret_type") == "MISSED_WIN" for r in records
+                ),
+                "good_refusals": sum(
+                    r.get("regret_type") == "GOOD_REFUSAL" for r in records
+                ),
+            }
+        except Exception:
+            return {"missed_wins": 0, "good_refusals": 0}
     if not regret_db_path.exists():
         return {"missed_wins": 0, "good_refusals": 0}
     try:
@@ -87,11 +100,12 @@ def load_burnin_snapshot(
 ) -> BurnInSnapshot:
     """Load and compute BurnInSnapshot from the two canonical sources."""
     burnin = _load_json(burnin_path or _BURNIN_V3)
-    regret = _regret_stats(regret_db_path or _REGRET_DB)
+    regret = _regret_stats(regret_db_path)
 
     trades = burnin.get("trades", {})
     auto_calib = os.getenv("FEATURE_AUTO_CALIBRATION", "false").strip().lower()
-    calibration_locked = auto_calib != "true"
+    feedback = os.getenv("FEATURE_REGRET_DECISION_FEEDBACK", "false").strip().lower()
+    calibration_locked = not (auto_calib == "true" and feedback == "true")
 
     return BurnInSnapshot(
         ts=datetime.now(timezone.utc),

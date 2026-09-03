@@ -9,7 +9,7 @@ CRI = (w1·N_score + w2·coverage_score + w3·drift_score + w4·balance_score) /
 Poids : w1=w2=w3=w4=25 (égalité faute de justification empirique d'en
 privilégier un — voir ADR-0011). Gate : CRI >= 90/100 (CLAUDE.md).
 
-Lecture seule sur databases/paper_trades.jsonl et databases/regret_analysis.jsonl,
+Lecture seule sur databases/paper_trades.jsonl et le contrat MC-001 regret-v2,
 filtrés par CLEAN_DATA_SINCE_ACTIVE (addendum ADR-0012, 2026-07-09 — restart
 SEC-01 réellement effectif ; v2/01:16Z reposait sur un déploiement
 silencieusement partiel, SEC-01 jamais chargé — voir addendum). Remplace
@@ -48,6 +48,7 @@ WEIGHTS = {"n": 25.0, "coverage": 25.0, "drift": 25.0, "balance": 25.0}
 SCORE_BIN_LABELS = ["<50", "50-59", "60-69", "70-79", "80+"]
 
 DEFAULT_TRADES_PATH = Path("databases/paper_trades.jsonl")
+# Override CLI historique uniquement. ``path=None`` utilise regret_repository.
 DEFAULT_REGRET_PATH = Path("databases/regret_analysis.jsonl")
 
 # ── Filtres de qualité absorbés depuis scripts/burnin_calibration_v3.py ───────
@@ -337,14 +338,15 @@ def compute_cri(
         f = freshness()
         result["regret_source"] = "canonical:" + f["dataset_version"]
         result["canonical_horizon"] = f["canonical_horizon"]
-        result["regret_last_write"] = f["last_write_utc"]
+        result["regret_last_event"] = f["last_event_utc"]
+        result["regret_last_canonical_evaluated"] = f["last_canonical_evaluated_utc"]
         result["regret_fresh"] = f["fresh"]
         result["validity"] = "OK" if f["fresh"] else "PARTIAL"
         if not f["fresh"]:
             result["warnings"] = [
-                "DATASET REGRET PÉRIMÉ (dernier écrit "
-                f"{f['last_write_utc']}) — CRI PARTIELLEMENT CENSURÉ, "
-                "ne pas comparer dans le temps"
+                "DATASET REGRET PÉRIMÉ (dernière évaluation canonique "
+                f"{f['last_canonical_evaluated_utc']}) — CRI PARTIELLEMENT "
+                "CENSURÉ, ne pas comparer dans le temps"
             ]
     else:
         result["regret_source"] = "explicit_path"

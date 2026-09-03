@@ -41,9 +41,16 @@ FEATURE_REJECTION_STORE: bool = _flag("FEATURE_REJECTION_STORE", default=True)
 # Évaluation multi-horizon (5m/15m/30m/1h/4h/12h/24h) des refus.
 FEATURE_REGRET_SCHEDULER: bool = _flag("FEATURE_REGRET_SCHEDULER", default=True)
 
-# ── P3.5 — Gel auto-calibration (DÉFAUT : GEL ACTIF = false désactive l'auto) ─
+# ── P3.5 — Frontière constitutionnelle observation/décision ─────────────────
+# Le flag maître reste false par défaut. FEATURE_AUTO_CALIBRATION ne suffit
+# jamais, à lui seul, à autoriser un résultat de regret à modifier un seuil.
+FEATURE_REGRET_DECISION_FEEDBACK: bool = _flag(
+    "FEATURE_REGRET_DECISION_FEEDBACK", default=False
+)
+
+# Compatibilité du calcul legacy; double opt-in requis avec le flag maître.
 # FEATURE_AUTO_CALIBRATION=false (défaut) : get_threshold_delta() retourne 0.
-# FEATURE_AUTO_CALIBRATION=true : comportement legacy — DÉCONSEILLÉ.
+# FEATURE_AUTO_CALIBRATION=true seul : toujours passif.
 FEATURE_AUTO_CALIBRATION: bool = _flag("FEATURE_AUTO_CALIBRATION", default=False)
 
 # ── P4-P7 — Réservés, désactivés ──────────────────────────────────────────────

@@ -1,34 +1,21 @@
-"""
-regret_engine.py — Regret Analysis Engine
+"""regret_engine.py — instrument regret-v1 historique et non canonique.
 
-Le bot apprend aussi de ce qu'il N'A PAS PRIS.
-
-Niveau tres rare. Tres puissant.
+Il mesure un mouvement directionnel endpoint après un refus. Il ne démontre
+pas un trade profitable exécutable : coûts, spread, slippage, funding,
+liquidité, latence, taille et trajectoire TP/SL ne sont pas modélisés.
 
 Principe :
   1. A chaque TRADE_REFUSED ou HOLD avec score >= seuil,
      le systeme enregistre le contexte (prix, features, regime)
   2. N cycles plus tard, il compare avec le prix actuel
   3. Si le prix a evolue dans la direction du signal refuse,
-     c'est un "REGRET" : le bot aurait du trader
+     c'est une observation directionnelle favorable
   4. Si la direction est inverse : c'est une "BONNE DECISION de refus"
-  5. Les regrets s'accumulent en memoire et ajustent
-     les seuils de confiance des modules qui ont refuse
-
-Ce que ca change :
-  - Un module qui refuse trop souvent de bons trades → son seuil descend
-  - Un module qui refuse bien les mauvais trades → son seuil monte
-  - Le systeme s'auto-calibre sur ses propres opportunites manquees
-
-Exemple :
-  BTC score=75, regime=bull_trend, conviction=MEDIUM
-  → Refuse par: conviction (MEDIUM bloque)
-  → 4h plus tard : BTC +3.2%
-  → Regret enregistre: conviction a bloque un trade rentable
-  → Score de "faussetes negativement" de ConvictionEngine incremente
-  → Prochaine fois : seuil MEDIUM abaisse de 1 point
+  5. L'archive reste disponible pour la reproduction historique
 
 Stocke dans : databases/regret_analysis.jsonl
+Toute mutation de décision exige un double opt-in legacy et est interdite
+pendant le burn-in scientifique. Regret-v2/MC-001 est la source canonique.
 """
 
 from __future__ import annotations
@@ -323,23 +310,26 @@ class RegretEngine:
         ewma_alpha: float = 0.3,
     ) -> int:
         """
-        [ADR-0007 — PASSIVITÉ] Retourne TOUJOURS 0.
+        [ADR-0007 — PASSIVITÉ] Retourne 0 par défaut et pendant le burn-in.
 
         Cette méthode calculait un delta de seuil appliqué automatiquement en production
-        via GlobalRiskGate.apply_regret_delta(). Ce comportement a été gelé (ADR-0007) :
+        via GlobalRiskGate.apply_regret_delta(). Ce comportement est gelé (ADR-0007) :
         toute auto-calibration active viole le principe de passivité des observateurs.
 
         Le calcul est conservé dans calibration_recommendation() pour la Phase 4 (ACE).
-        L'application d'un delta requiert une validation humaine explicite via .env ou
-        config/settings.py — jamais automatiquement.
+        L'application legacy exige deux flags explicites et une validation
+        humaine; elle est hors configuration scientifique certifiée.
 
         Pour obtenir la recommandation (lecture seule) :
             hint = regret_engine.calibration_recommendation(regime, winrate)
         """
-        from config.feature_flags import FEATURE_AUTO_CALIBRATION
+        from config.feature_flags import (
+            FEATURE_AUTO_CALIBRATION,
+            FEATURE_REGRET_DECISION_FEEDBACK,
+        )
 
-        if FEATURE_AUTO_CALIBRATION:
-            # Mode legacy — déconseillé, activé uniquement si explicitement demandé
+        if FEATURE_REGRET_DECISION_FEEDBACK and FEATURE_AUTO_CALIBRATION:
+            # Mode legacy : double opt-in explicite, interdit pendant le burn-in.
             return self._compute_threshold_delta(
                 current_regime, winrate_executed, min_samples, ewma_alpha
             )

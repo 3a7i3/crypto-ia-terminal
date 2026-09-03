@@ -1,14 +1,18 @@
 """
 observability/regret_scheduler.py — Évaluation multi-horizon des signaux refusés.
 
-Pour chaque signal actionable refusé, calcule a posteriori si le trade aurait
-été profitable sur 7 horizons : 5m, 15m, 30m, 1h, 4h, 12h, 24h.
+Pour chaque signal actionable refusé, mesure si sa direction était favorable
+ou défavorable à 7 horizons : 5m, 15m, 30m, 1h, 4h, 12h, 24h.
+
+Cette mesure endpoint n'est PAS la preuve qu'un trade exécutable aurait été
+rentable : frais, spread, slippage, funding, liquidité, latence et trajectoire
+TP/SL ne sont pas modélisés.
 
 Métriques par horizon :
   - return_pct     : rendement théorique si le trade avait été pris
   - direction_ok   : True si la direction du signal était correcte
-  - mfe_pct        : Maximum Favorable Excursion (meilleur moment pour sortir)
-  - mae_pct        : Maximum Adverse Excursion (pire moment)
+  - favorable_endpoint_pct : partie favorable du rendement au point final
+  - adverse_endpoint_pct   : partie défavorable du rendement au point final
   - regret_score   : [0, 1] — coût du refus
   - regret_type    : MISSED_WIN | GOOD_REFUSAL | NEUTRAL
 
@@ -48,6 +52,8 @@ _MIN_SCORE = float(os.getenv("REGRET_MIN_SCORE", "60"))
 _MIN_MOVE_PCT = float(
     os.getenv("REGRET_MIN_MOVE_PCT", "0.008")
 )  # 0.8% mouvement minimum
+_SCHEMA_VERSION = 2
+_DATASET_VERSION = "regret-v2"
 
 # Horizons d'évaluation en secondes
 _HORIZONS: Dict[str, float] = {
@@ -69,15 +75,26 @@ class HorizonResult:
     """Résultat d'évaluation pour un horizon temporel."""
 
     horizon: str  # "5m" | "15m" | ...
-    ts_eval: float  # timestamp UTC de l'évaluation
+    ts_eval: float  # timestamp UTC du calcul
+    expected_eval_ts: float
+    eval_delay_s: float
     price_at_signal: float
     price_at_eval: float
+    price_source: str
+    price_observed_ts: float
+    price_age_s: float
     return_pct: float  # (price_eval - price_signal) / price_signal [signé]
     direction_ok: bool  # True si le signal était dans la bonne direction
-    mfe_pct: float  # Maximum Favorable Excursion (approx = max(0, return))
-    mae_pct: float  # Maximum Adverse Excursion (approx = min(0, return))
+    favorable_endpoint_pct: float
+    adverse_endpoint_pct: float
+    # Aliases historiques : même valeur endpoint, jamais une vraie excursion.
+    mfe_pct: float
+    mae_pct: float
     regret_score: float  # [0, 1]
     regret_type: str  # MISSED_WIN | GOOD_REFUSAL | NEUTRAL
+    status: str = "EVALUATED"
+    metric_semantics: str = "endpoint_only"
+    classification_semantics: str = "directional_observation_not_executable_pnl"
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -97,11 +114,18 @@ class RegretCandidate:
     first_blocker: Optional[str]
     all_blockers: List[str]
     personality_name: str
+    packet_id: str = ""
+    trace_id: str = ""
+    experiment_id: Optional[str] = None
+    cycle: int = 0
+    engine_version: str = "unknown"
 
     # Horizons restant à évaluer : {horizon_name: ts_deadline}
     pending_horizons: Dict[str, float] = field(default_factory=dict)
     # Horizons évalués
     results: Dict[str, Dict[str, Any]] = field(default_factory=dict)
+    # État explicite de chaque horizon.
+    horizon_states: Dict[str, Dict[str, Any]] = field(default_factory=dict)
     # True si tous les horizons ont été évalués
     complete: bool = False
 
@@ -109,6 +133,31 @@ class RegretCandidate:
         if not self.pending_horizons:
             for name, delay in _HORIZONS.items():
                 self.pending_horizons[name] = self.ts_signal + delay
+        for name, delay in _HORIZONS.items():
+            expected = self.ts_signal + delay
+            if name in self.results:
+                status = "EVALUATED"
+            elif name in self.pending_horizons:
+                status = "PENDING"
+            else:
+                status = "DROPPED"
+            self.horizon_states.setdefault(
+                name,
+                {
+                    "status": status,
+                    "expected_eval_ts": expected,
+                    "status_reason": None,
+                },
+            )
+
+
+@dataclass(frozen=True)
+class PriceObservation:
+    """Prix reçu par le scheduler; observed_ts est l'heure de réception locale."""
+
+    price: float
+    observed_ts: float
+    source: str
 
 
 @dataclass
@@ -166,19 +215,38 @@ def _compute_horizon(
     candidate: RegretCandidate,
     horizon: str,
     price_now: float,
+    *,
+    ts_eval: Optional[float] = None,
+    expected_eval_ts: Optional[float] = None,
+    price_source: str = "unknown",
+    price_observed_ts: Optional[float] = None,
 ) -> HorizonResult:
-    """Calcule les métriques de regret pour un horizon donné."""
+    """Calcule un rendement directionnel au point final (pas une excursion)."""
+    evaluated_at = time.time() if ts_eval is None else ts_eval
+    expected_at = (
+        candidate.ts_signal + _HORIZONS[horizon]
+        if expected_eval_ts is None
+        else expected_eval_ts
+    )
+    observed_at = evaluated_at if price_observed_ts is None else price_observed_ts
     p0 = candidate.price_at_signal
     p1 = price_now
 
     if p0 <= 0:
         return HorizonResult(
             horizon=horizon,
-            ts_eval=time.time(),
+            ts_eval=evaluated_at,
+            expected_eval_ts=expected_at,
+            eval_delay_s=max(0.0, evaluated_at - expected_at),
             price_at_signal=p0,
             price_at_eval=p1,
+            price_source=price_source,
+            price_observed_ts=observed_at,
+            price_age_s=max(0.0, evaluated_at - observed_at),
             return_pct=0.0,
             direction_ok=False,
+            favorable_endpoint_pct=0.0,
+            adverse_endpoint_pct=0.0,
             mfe_pct=0.0,
             mae_pct=0.0,
             regret_score=0.0,
@@ -196,9 +264,8 @@ def _compute_horizon(
 
     abs_return = abs(potential_return)
 
-    # MFE / MAE (approximés sans historique intra-horizon)
-    mfe = max(0.0, potential_return)
-    mae = min(0.0, potential_return)
+    favorable_endpoint = max(0.0, potential_return)
+    adverse_endpoint = min(0.0, potential_return)
 
     # Regret score
     if abs_return < _MIN_MOVE_PCT:
@@ -213,13 +280,20 @@ def _compute_horizon(
 
     return HorizonResult(
         horizon=horizon,
-        ts_eval=time.time(),
+        ts_eval=evaluated_at,
+        expected_eval_ts=expected_at,
+        eval_delay_s=max(0.0, evaluated_at - expected_at),
         price_at_signal=p0,
         price_at_eval=p1,
+        price_source=price_source,
+        price_observed_ts=observed_at,
+        price_age_s=max(0.0, evaluated_at - observed_at),
         return_pct=round(potential_return, 6),
         direction_ok=direction_ok,
-        mfe_pct=round(mfe, 6),
-        mae_pct=round(mae, 6),
+        favorable_endpoint_pct=round(favorable_endpoint, 6),
+        adverse_endpoint_pct=round(adverse_endpoint, 6),
+        mfe_pct=round(favorable_endpoint, 6),
+        mae_pct=round(adverse_endpoint, 6),
         regret_score=round(regret_score, 4),
         regret_type=regret_type,
     )
@@ -243,7 +317,7 @@ class RegretScheduler:
         self._dir.mkdir(parents=True, exist_ok=True)
         self._poll_interval = poll_interval_s
         self._candidates: Dict[str, RegretCandidate] = {}  # obs_id → candidate
-        self._price_cache: Dict[str, float] = {}  # symbol → prix courant
+        self._price_cache: Dict[str, PriceObservation] = {}
         self._lock = threading.Lock()
         self._price_lock = threading.Lock()
         self._thread: Optional[threading.Thread] = None
@@ -253,7 +327,9 @@ class RegretScheduler:
         # file en mémoire seule → chaque restart coûtait jusqu'à ~24 h de
         # couverture regret). Rechargée ici, réécrite au plus 1×/poll.
         self._spool_path = self._dir / "pending_spool.json"
+        self._persisted_evidence: Dict[str, Dict[str, Any]] = {}
         self._dirty = False
+        self._load_persisted_evidence()
         self._load_spool()
 
     # ── Lifecycle ─────────────────────────────────────────────────────────────
@@ -304,9 +380,19 @@ class RegretScheduler:
             first_blocker=obs.first_blocker,
             all_blockers=list(obs.all_blockers),
             personality_name=obs.personality_name,
+            packet_id=str(getattr(obs, "packet_id", "") or ""),
+            trace_id=str(getattr(obs, "trace_id", "") or ""),
+            experiment_id=getattr(obs, "experiment_id", None),
+            cycle=int(getattr(obs, "cycle", 0) or 0),
+            engine_version=str(getattr(obs, "engine_version", "unknown") or "unknown"),
         )
 
         with self._lock:
+            if obs.observation_id in self._candidates:
+                return
+            self._reconcile_candidate(candidate)
+            if candidate.complete:
+                return
             self._candidates[obs.observation_id] = candidate
             self._dirty = True
             _log.debug(
@@ -319,14 +405,25 @@ class RegretScheduler:
 
     # ── Prix courant ──────────────────────────────────────────────────────────
 
-    def update_price_cache(self, prices: Dict[str, float]) -> None:
+    def update_price_cache(
+        self,
+        prices: Dict[str, float],
+        *,
+        source: str = "advisor_loop_price_cache",
+        observed_at: Optional[float] = None,
+    ) -> None:
         """
         Met à jour le cache de prix depuis le scanner.
 
         Appelé depuis le thread advisor_loop — thread-safe via _price_lock.
         """
+        received_at = time.time() if observed_at is None else observed_at
         with self._price_lock:
-            self._price_cache.update(prices)
+            for symbol, price in prices.items():
+                if price and price > 0:
+                    self._price_cache[symbol] = PriceObservation(
+                        price=float(price), observed_ts=received_at, source=source
+                    )
 
     # ── Boucle d'évaluation ───────────────────────────────────────────────────
 
@@ -350,9 +447,7 @@ class RegretScheduler:
             prices = dict(self._price_cache)
 
         for candidate in candidates:
-            price_now = prices.get(candidate.symbol, 0.0)
-            if price_now <= 0:
-                continue
+            price_obs = prices.get(candidate.symbol)
 
             # Évalue les horizons dont la deadline est passée
             newly_evaluated: list[str] = []
@@ -363,12 +458,56 @@ class RegretScheduler:
                 # Validité : un horizon trop en retard (restart, prix absent)
                 # est ABANDONNÉ — l'évaluer avec un prix hors-fenêtre
                 # fausserait la mesure.
-                if now - deadline > max(600.0, 0.5 * _HORIZONS[horizon]):
-                    dropped.append(horizon)
+                tolerance = max(600.0, 0.5 * _HORIZONS[horizon])
+                if now - deadline > tolerance:
+                    reason = (
+                        "missing_price_beyond_tolerance"
+                        if price_obs is None
+                        else "evaluation_late_beyond_tolerance"
+                    )
+                    candidate.horizon_states[horizon] = {
+                        "status": "DROPPED",
+                        "expected_eval_ts": deadline,
+                        "ts_eval": now,
+                        "status_reason": reason,
+                    }
+                    if self._persist_horizon(candidate, horizon):
+                        dropped.append(horizon)
                     continue
-                result = _compute_horizon(candidate, horizon, price_now)
+                if price_obs is None:
+                    candidate.horizon_states[horizon] = {
+                        "status": "MISSING_PRICE",
+                        "expected_eval_ts": deadline,
+                        "ts_eval": now,
+                        "status_reason": "price_unavailable_at_poll",
+                    }
+                    self._dirty = True
+                    continue
+                result = _compute_horizon(
+                    candidate,
+                    horizon,
+                    price_obs.price,
+                    ts_eval=now,
+                    expected_eval_ts=deadline,
+                    price_source=price_obs.source,
+                    price_observed_ts=price_obs.observed_ts,
+                )
                 candidate.results[horizon] = result.to_dict()
-                newly_evaluated.append(horizon)
+                candidate.horizon_states[horizon] = {
+                    "status": "EVALUATED",
+                    "expected_eval_ts": deadline,
+                    "ts_eval": now,
+                    "status_reason": None,
+                }
+                if self._persist_horizon(candidate, horizon):
+                    newly_evaluated.append(horizon)
+                else:
+                    candidate.results.pop(horizon, None)
+                    candidate.horizon_states[horizon] = {
+                        "status": "PENDING",
+                        "expected_eval_ts": deadline,
+                        "status_reason": "persistence_failed_retry_required",
+                    }
 
             for h in dropped:
                 del candidate.pending_horizons[h]
@@ -392,13 +531,10 @@ class RegretScheduler:
                     candidate.results[h]["return_pct"] * 100,
                 )
 
-            # Si tous les horizons sont traités → persister (si résultats)
-            # et retirer ; un candidat sans aucun résultat (tout abandonné
-            # après un long arrêt) est simplement retiré, jamais persisté.
+            # Chaque horizon terminal est déjà durable. Le spool ne conserve
+            # que le travail restant.
             if not candidate.pending_horizons:
-                if candidate.results:
-                    candidate.complete = True
-                    self._persist(candidate)
+                candidate.complete = True
                 completed.append(candidate.observation_id)
 
         # Supprimer les candidats complets
@@ -420,11 +556,17 @@ class RegretScheduler:
                 payload = [
                     asdict(c) for c in self._candidates.values() if not c.complete
                 ]
-                self._dirty = False
             tmp = self._spool_path.with_suffix(".json.tmp")
             tmp.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
             os.replace(tmp, self._spool_path)
+            # Ne pas effacer une modification arrivée pendant l'I/O.
+            with self._lock:
+                current = [
+                    asdict(c) for c in self._candidates.values() if not c.complete
+                ]
+                self._dirty = current != payload
         except Exception as exc:
+            self._dirty = True
             _log.warning("[RegretScheduler] spool non écrit: %s", exc)
 
     def _load_spool(self) -> None:
@@ -440,6 +582,9 @@ class RegretScheduler:
                     if not isinstance(d, dict) or d.get("complete"):
                         continue
                     cand = RegretCandidate(**{k: v for k, v in d.items() if k in known})
+                    self._reconcile_candidate(cand)
+                    if cand.complete:
+                        continue
                     self._candidates.setdefault(cand.observation_id, cand)
                     restored += 1
             if restored:
@@ -449,80 +594,125 @@ class RegretScheduler:
         except Exception as exc:
             _log.warning("[RegretScheduler] spool illisible (ignoré): %s", exc)
 
-    def _persist(self, candidate: RegretCandidate) -> None:
-        """Persiste le rapport complet d'un candidat évalué."""
-        # Calcul métriques agrégées
-        missed = sum(
-            1
-            for r in candidate.results.values()
-            if r.get("regret_type") == "MISSED_WIN"
-        )
-        good = sum(
-            1
-            for r in candidate.results.values()
-            if r.get("regret_type") == "GOOD_REFUSAL"
-        )
-        neutral = sum(
-            1 for r in candidate.results.values() if r.get("regret_type") == "NEUTRAL"
-        )
-        max_regret = max(
-            (r.get("regret_score", 0.0) for r in candidate.results.values()),
-            default=0.0,
-        )
+    @staticmethod
+    def _evidence_id(observation_id: str, horizon: str) -> str:
+        return f"{observation_id}:{horizon}"
 
-        # Meilleur / pire horizon
-        returns = {h: r.get("return_pct", 0.0) for h, r in candidate.results.items()}
-        best_h = max(returns, key=returns.get) if returns else None  # type: ignore
-        worst_h = min(returns, key=returns.get) if returns else None  # type: ignore
+    def _load_persisted_evidence(self) -> None:
+        """Indexe les preuves v2 pour garantir l'idempotence après restart."""
+        for path in sorted(self._dir.glob("regret_horizons_*.jsonl")):
+            try:
+                with open(path, "r", encoding="utf-8") as stream:
+                    for line in stream:
+                        try:
+                            record = json.loads(line)
+                        except (TypeError, json.JSONDecodeError):
+                            continue
+                        if record.get("record_type") == "HORIZON_EVIDENCE":
+                            evidence_id = record.get("evidence_id")
+                            if evidence_id:
+                                self._persisted_evidence.setdefault(evidence_id, record)
+                        else:
+                            # Compatibilité avec les anciens agrégats regret-v2.
+                            obs_id = record.get("observation_id")
+                            for horizon, result in record.get("horizons", {}).items():
+                                if obs_id:
+                                    evidence_id = self._evidence_id(obs_id, horizon)
+                                    self._persisted_evidence.setdefault(
+                                        evidence_id,
+                                        {
+                                            "evidence_id": evidence_id,
+                                            "observation_id": obs_id,
+                                            "horizon": horizon,
+                                            "horizon_status": "EVALUATED",
+                                            "result": result,
+                                        },
+                                    )
+            except OSError as exc:
+                _log.warning(
+                    "[RegretScheduler] index evidence impossible %s: %s", path, exc
+                )
 
-        report = RegretReport(
-            observation_id=candidate.observation_id,
-            ts_signal=candidate.ts_signal,
-            ts_iso_signal=datetime.fromtimestamp(
+    def _reconcile_candidate(self, candidate: RegretCandidate) -> None:
+        """Applique au spool les preuves déjà durables, sans réévaluation."""
+        for horizon in list(candidate.pending_horizons):
+            evidence = self._persisted_evidence.get(
+                self._evidence_id(candidate.observation_id, horizon)
+            )
+            if evidence is None:
+                continue
+            status = evidence.get("horizon_status", "EVALUATED")
+            if status == "EVALUATED" and isinstance(evidence.get("result"), dict):
+                candidate.results[horizon] = evidence["result"]
+            candidate.horizon_states[horizon] = {
+                "status": status,
+                "expected_eval_ts": evidence.get("expected_eval_ts"),
+                "ts_eval": evidence.get("ts_eval"),
+                "status_reason": evidence.get("status_reason"),
+            }
+            candidate.pending_horizons.pop(horizon, None)
+        candidate.complete = not candidate.pending_horizons
+
+    def _persist_horizon(self, candidate: RegretCandidate, horizon: str) -> bool:
+        """Persiste une preuve terminale unique ``observation_id + horizon``."""
+        evidence_id = self._evidence_id(candidate.observation_id, horizon)
+        if evidence_id in self._persisted_evidence:
+            return True
+        state = candidate.horizon_states[horizon]
+        result = candidate.results.get(horizon)
+        ts_eval = state.get("ts_eval") or (result or {}).get("ts_eval") or time.time()
+        record = {
+            "schema_version": _SCHEMA_VERSION,
+            "dataset_version": _DATASET_VERSION,
+            "record_type": "HORIZON_EVIDENCE",
+            "evidence_id": evidence_id,
+            "observation_id": candidate.observation_id,
+            "packet_id": candidate.packet_id,
+            "trace_id": candidate.trace_id,
+            "experiment_id": candidate.experiment_id,
+            "cycle": candidate.cycle,
+            "engine_version": candidate.engine_version,
+            "ts_signal": candidate.ts_signal,
+            "ts_iso_signal": datetime.fromtimestamp(
                 candidate.ts_signal, tz=timezone.utc
             ).isoformat(),
-            symbol=candidate.symbol,
-            side=candidate.side,
-            score=candidate.score,
-            price_at_signal=candidate.price_at_signal,
-            regime=candidate.regime,
-            first_blocker=candidate.first_blocker,
-            all_blockers=candidate.all_blockers,
-            personality_name=candidate.personality_name,
-            horizons=dict(candidate.results),
-            missed_win_count=missed,
-            good_refusal_count=good,
-            neutral_count=neutral,
-            max_regret_score=round(max_regret, 4),
-            best_horizon=best_h,
-            worst_horizon=worst_h,
-        )
-
+            "symbol": candidate.symbol,
+            "side": candidate.side,
+            "score": candidate.score,
+            "price_at_signal": candidate.price_at_signal,
+            "regime": candidate.regime,
+            "first_blocker": candidate.first_blocker,
+            "all_blockers": candidate.all_blockers,
+            "personality_name": candidate.personality_name,
+            "horizon": horizon,
+            "horizon_status": state["status"],
+            "status_reason": state.get("status_reason"),
+            "expected_eval_ts": state.get("expected_eval_ts"),
+            "ts_eval": ts_eval,
+            "result": result,
+            # Uniquement pour faciliter la lecture par les consommateurs v2
+            # antérieurs; la ligne reste une preuve mono-horizon.
+            "horizons": {horizon: result} if result is not None else {},
+        }
         try:
-            today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+            today = datetime.fromtimestamp(ts_eval, tz=timezone.utc).strftime(
+                "%Y-%m-%d"
+            )
             path = self._dir / f"regret_horizons_{today}.jsonl"
-            line = json.dumps(report.to_dict(), ensure_ascii=False, default=str)
+            line = json.dumps(record, ensure_ascii=False, default=str)
             with open(path, "a", encoding="utf-8") as f:
                 f.write(line + "\n")
                 f.flush()
                 os.fsync(f.fileno())
-
-            log_parts = [f"MISSED_WIN={missed}", f"GOOD={good}", f"NEUTRAL={neutral}"]
-            if missed > 0:
-                _log.info(
-                    "[RegretScheduler] RAPPORT %s %s %s [max_regret=%.2f blocker=%s]",
-                    candidate.symbol,
-                    candidate.side,
-                    " ".join(log_parts),
-                    max_regret,
-                    candidate.first_blocker,
-                )
+            self._persisted_evidence[evidence_id] = record
+            return True
         except Exception as exc:
             _log.error(
                 "[RegretScheduler] Erreur persistance %s: %s",
-                candidate.observation_id,
+                evidence_id,
                 exc,
             )
+            return False
 
     def stats(self) -> Dict[str, Any]:
         with self._lock:
@@ -535,17 +725,17 @@ class RegretScheduler:
 
     def layer_performance(self) -> Dict[str, Dict[str, Any]]:
         """
-        Analyse les performances par couche bloquante sur tous les fichiers du jour.
+        Analyse les observations directionnelles par couche bloquante aujourd'hui.
 
-        Retourne pour chaque couche : {missed_wins, good_refusals, total, missed_rate}
-        Utilisable par la Phase 4 (ACE) pour identifier les layers trop conservateurs.
+        Les taux ont des dénominateurs explicites : horizons évalués ou décisions
+        uniques. Ils ne sont jamais horizons/décisions.
         """
         today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
         path = self._dir / f"regret_horizons_{today}.jsonl"
         if not path.exists():
             return {}
 
-        layer_stats: Dict[str, Dict[str, int]] = {}
+        layer_stats: Dict[str, Dict[str, Any]] = {}
 
         try:
             with open(path, "r", encoding="utf-8") as f:
@@ -554,32 +744,60 @@ class RegretScheduler:
                     if not line:
                         continue
                     record = json.loads(line)
-                    # Compte par blocker
+                    if record.get("record_type") == "HORIZON_EVIDENCE":
+                        horizon_rows = (
+                            [record]
+                            if record.get("horizon_status") == "EVALUATED"
+                            else []
+                        )
+                    else:
+                        horizon_rows = [
+                            {"result": result}
+                            for result in record.get("horizons", {}).values()
+                            if isinstance(result, dict)
+                        ]
                     for blocker in record.get("all_blockers", []):
                         if blocker not in layer_stats:
                             layer_stats[blocker] = {
-                                "missed_wins": 0,
-                                "good_refusals": 0,
-                                "total": 0,
+                                "missed_win_horizons": 0,
+                                "good_refusal_horizons": 0,
+                                "evaluated_horizons": 0,
+                                "decision_ids": set(),
+                                "missed_decision_ids": set(),
                             }
-                        layer_stats[blocker]["total"] += 1
-                        layer_stats[blocker]["missed_wins"] += record.get(
-                            "missed_win_count", 0
-                        )
-                        layer_stats[blocker]["good_refusals"] += record.get(
-                            "good_refusal_count", 0
-                        )
+                        stats = layer_stats[blocker]
+                        obs_id = record.get("observation_id")
+                        if obs_id:
+                            stats["decision_ids"].add(obs_id)
+                        for row in horizon_rows:
+                            regret_type = (row.get("result") or {}).get("regret_type")
+                            stats["evaluated_horizons"] += 1
+                            if regret_type == "MISSED_WIN":
+                                stats["missed_win_horizons"] += 1
+                                if obs_id:
+                                    stats["missed_decision_ids"].add(obs_id)
+                            elif regret_type == "GOOD_REFUSAL":
+                                stats["good_refusal_horizons"] += 1
         except Exception as exc:
             _log.error("[RegretScheduler] layer_performance: %s", exc)
 
         result: Dict[str, Dict[str, Any]] = {}
         for layer, s in layer_stats.items():
-            total = s["total"]
-            missed = s["missed_wins"]
+            evaluated = s["evaluated_horizons"]
+            decisions = len(s["decision_ids"])
+            missed = s["missed_win_horizons"]
+            missed_decisions = len(s["missed_decision_ids"])
             result[layer] = {
-                "total_rejections": total,
-                "missed_wins": missed,
-                "good_refusals": s["good_refusals"],
-                "missed_rate": round(missed / total, 3) if total else 0.0,
+                "total_rejections": decisions,
+                "evaluated_horizons": evaluated,
+                "missed_win_horizons": missed,
+                "good_refusal_horizons": s["good_refusal_horizons"],
+                "missed_horizon_rate": (
+                    round(missed / evaluated, 3) if evaluated else 0.0
+                ),
+                "decisions_with_missed_win": missed_decisions,
+                "missed_decision_rate": (
+                    round(missed_decisions / decisions, 3) if decisions else 0.0
+                ),
             }
-        return dict(sorted(result.items(), key=lambda x: -x[1]["missed_rate"]))
+        return dict(sorted(result.items(), key=lambda x: -x[1]["missed_horizon_rate"]))

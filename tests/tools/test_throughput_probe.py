@@ -84,7 +84,7 @@ def test_days_to_target_basic_and_edge_cases():
     assert days_to_target(5.0, current_n=500, target=500) == 0.0
 
 
-def test_normalize_regret_horizons_prefers_longest_and_inverts_sell():
+def test_normalize_regret_horizons_uses_scheduler_directional_sell_return():
     record = {
         "ts_signal": _DAY1,
         "symbol": "LAB/USDT",
@@ -100,7 +100,7 @@ def test_normalize_regret_horizons_prefers_longest_and_inverts_sell():
             },
             "30m": {
                 "horizon": "30m",
-                "return_pct": -0.02,
+                "return_pct": 0.02,
                 "direction_ok": True,
                 "regret_type": "GOOD_REFUSAL",
             },
@@ -110,9 +110,31 @@ def test_normalize_regret_horizons_prefers_longest_and_inverts_sell():
     norm = _normalize_regret_horizons(record)
 
     assert norm["horizon"] == "30m"  # préférence horizon long
-    # SELL suivi d'une baisse de 2% = +2% si on avait suivi le signal
+    # Le scheduler a déjà converti SELL + baisse en rendement directionnel positif.
     assert abs(norm["ret_if_followed"] - 0.02) < 1e-12
     assert norm["direction_ok"] is True
+
+
+def test_scheduler_compatible_buy_sell_examples():
+    from observability.regret_scheduler import RegretCandidate, _compute_horizon
+
+    base = dict(
+        observation_id="obs",
+        symbol="X/USDT",
+        score=70,
+        price_at_signal=100,
+        ts_signal=_DAY1,
+        regime="test",
+        first_blocker="gate",
+        all_blockers=["gate"],
+        personality_name="test",
+    )
+    buy = _compute_horizon(RegretCandidate(side="BUY", **base), "1h", 105)
+    sell_down = _compute_horizon(RegretCandidate(side="SELL", **base), "1h", 95)
+    sell_up = _compute_horizon(RegretCandidate(side="SELL", **base), "1h", 105)
+    assert buy.return_pct == 0.05
+    assert sell_down.return_pct == 0.05
+    assert sell_up.return_pct == -0.05
 
 
 def test_normalize_regret_legacy_flat_schema():

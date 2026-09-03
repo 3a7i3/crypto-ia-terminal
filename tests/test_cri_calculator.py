@@ -8,6 +8,7 @@ doit être calculable/testable indépendamment de tout dataset en production).
 from __future__ import annotations
 
 import json
+import time
 
 from tools.cri_calculator import (
     CLEAN_DATA_SINCE_ACTIVE,
@@ -240,3 +241,65 @@ class TestComputeCriIntegration:
         regret_path.write_text("", encoding="utf-8")
         result = compute_cri(trades_path, regret_path)
         assert result["cri"] <= 100.0
+
+
+class TestComputeCriCanonicalFreshness:
+    """MC-001 : validity doit refléter la fraîcheur de l'horizon canonique
+    exploitable (1h, EVALUATED), jamais un horizon non-canonique frais ou
+    un DROPPED/MISSING_PRICE récent — voir la remédiation de la revue
+    indépendante S-01B.2."""
+
+    @staticmethod
+    def _horizon_evidence(obs: str, ts_eval: float, horizon: str = "1h") -> dict:
+        return {
+            "schema_version": 2,
+            "dataset_version": "regret-v2",
+            "record_type": "HORIZON_EVIDENCE",
+            "evidence_id": f"{obs}:{horizon}",
+            "observation_id": obs,
+            "ts_signal": ts_eval - 3600,
+            "ts_eval": ts_eval,
+            "horizon": horizon,
+            "horizon_status": "EVALUATED",
+            "result": {
+                "ts_eval": ts_eval,
+                "favorable_endpoint_pct": 0.0,
+                "adverse_endpoint_pct": 0.0,
+            },
+        }
+
+    def test_stale_canonical_horizon_yields_partial_validity(
+        self, tmp_path, monkeypatch
+    ):
+        import tools.regret_repository as regret_repository
+
+        regret_dir = tmp_path / "regret"
+        regret_dir.mkdir()
+        stale = self._horizon_evidence("obs-1", time.time() - 48 * 3600, horizon="1h")
+        (regret_dir / "regret_horizons_x.jsonl").write_text(
+            json.dumps(stale) + "\n", encoding="utf-8"
+        )
+        monkeypatch.setattr(regret_repository, "REGRET_DIR", regret_dir)
+
+        trades_path = tmp_path / "paper_trades.jsonl"
+        trades_path.write_text("", encoding="utf-8")
+        result = compute_cri(trades_path, None)
+        assert result["validity"] == "PARTIAL"
+        assert result["regret_fresh"] is False
+
+    def test_fresh_canonical_horizon_yields_ok_validity(self, tmp_path, monkeypatch):
+        import tools.regret_repository as regret_repository
+
+        regret_dir = tmp_path / "regret"
+        regret_dir.mkdir()
+        fresh = self._horizon_evidence("obs-1", time.time(), horizon="1h")
+        (regret_dir / "regret_horizons_x.jsonl").write_text(
+            json.dumps(fresh) + "\n", encoding="utf-8"
+        )
+        monkeypatch.setattr(regret_repository, "REGRET_DIR", regret_dir)
+
+        trades_path = tmp_path / "paper_trades.jsonl"
+        trades_path.write_text("", encoding="utf-8")
+        result = compute_cri(trades_path, None)
+        assert result["validity"] == "OK"
+        assert result["regret_fresh"] is True

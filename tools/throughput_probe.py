@@ -8,7 +8,6 @@ qualité attendue, et en combien de temps atteindrait-il N=100 / N=500 ? »
 Sources (déjà produites par les observateurs passifs — AUCUN impact moteur) :
   - databases/rejections/rejections_YYYY-MM-DD.jsonl  (RejectionStore)
   - databases/regret/regret_horizons_YYYY-MM-DD.jsonl (RegretScheduler)
-  - databases/regret_analysis.jsonl                   (RegretEngine, legacy)
   - databases/paper_trades.jsonl                      (MexcSimulator, ledger)
 
 Garde-fous scientifiques (règle du statisticien, CLAUDE.md) :
@@ -96,15 +95,16 @@ def _normalize_regret_horizons(record: dict) -> dict | None:
         chosen = next(iter(horizons.values()))
     if chosen is None:
         return None
-    side = str(record.get("side", "")).upper()
     ret = _f(chosen.get("return_pct"))
     return {
         "ts": _f(record.get("ts_signal")),
         "symbol": record.get("symbol", "?"),
-        "side": side,
+        "side": str(record.get("side", "")).upper(),
         "score": _f(record.get("score")),
         "regime": record.get("regime", "unknown"),
-        "ret_if_followed": ret if side == "BUY" else -ret,
+        # RegretScheduler stocke déjà un rendement directionnel : BUY hausse
+        # et SELL baisse sont tous deux positifs. Ne jamais inverser SELL ici.
+        "ret_if_followed": ret,
         "direction_ok": bool(chosen.get("direction_ok", False)),
         "regret_type": str(chosen.get("regret_type", "NEUTRAL")),
         "horizon": str(chosen.get("horizon", "?")),
@@ -130,18 +130,30 @@ def _normalize_regret_legacy(record: dict) -> dict | None:
 
 
 def load_regrets(db_dir: Path, since_ts: float) -> list[dict]:
-    out: list[dict] = []
-    for fp in sorted(glob.glob(str(db_dir / "regret" / "regret_horizons_*.jsonl"))):
-        for r in _read_jsonl(Path(fp)):
-            norm = _normalize_regret_horizons(r)
-            if norm and norm["ts"] >= since_ts:
-                out.append(norm)
-    if not out:  # fallback legacy (fichier unique, peut être volumineux)
-        for r in _read_jsonl(db_dir / "regret_analysis.jsonl"):
-            norm = _normalize_regret_legacy(r)
-            if norm and norm["ts"] >= since_ts:
-                out.append(norm)
-    return out
+    """Lit exclusivement le contrat canonique regret-v2 à l'horizon 1h."""
+    from datetime import datetime, timezone
+
+    from tools.regret_repository import read_canonical_regrets
+
+    rows = read_canonical_regrets(
+        since=datetime.fromtimestamp(since_ts, tz=timezone.utc),
+        horizon="1h",
+        regret_dir=db_dir / "regret",
+    )
+    return [
+        {
+            "ts": r["ts_signal"],
+            "symbol": r.get("symbol", "?"),
+            "side": str(r.get("side", "")).upper(),
+            "score": _f(r.get("score")),
+            "regime": r.get("regime", "unknown"),
+            "ret_if_followed": _f(r.get("return_pct")),
+            "direction_ok": bool(r.get("direction_ok", False)),
+            "regret_type": str(r.get("regret_type", "NEUTRAL")),
+            "horizon": r.get("horizon", "1h"),
+        }
+        for r in rows
+    ]
 
 
 def load_trades_window(db_dir: Path, since_ts: float) -> dict:

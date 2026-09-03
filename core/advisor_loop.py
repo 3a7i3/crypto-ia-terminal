@@ -4358,10 +4358,12 @@ def main(
     _decision_event_bus: Any = None
     _obs_rejection_store: Any = None
     _obs_regret_scheduler: Any = None
+    FEATURE_REGRET_DECISION_FEEDBACK = False
     try:
         from config.feature_flags import (
             FEATURE_DECISION_EXPLAINER,
             FEATURE_EVENT_BUS,
+            FEATURE_REGRET_DECISION_FEEDBACK,
             FEATURE_REGRET_SCHEDULER,
             FEATURE_REJECTION_STORE,
         )
@@ -5305,7 +5307,12 @@ def main(
             # ── P6 — Adaptive Core : ATE + RegimeSmoother — AVANT scoring ────
             # L'ATE calcule le delta PID (I+D) toutes les 6 cycles (anti-oscil.)
             # puis gate.set_adaptive_delta remplace l'ancien accumulation naïf.
-            if _ate is not None and cycle % 6 == 0 and cycle > 1:
+            if (
+                FEATURE_REGRET_DECISION_FEEDBACK
+                and _ate is not None
+                and cycle % 6 == 0
+                and cycle > 1
+            ):
                 try:
                     _re_raw = 0
                     if regret_engine is not None:
@@ -6418,7 +6425,8 @@ def main(
                         os.getenv("REGIME_MISMATCH_COOLDOWN", "15")
                     )
                     if (
-                        not P6_SAFE_MODE
+                        FEATURE_REGRET_DECISION_FEEDBACK
+                        and not P6_SAFE_MODE
                         and regret_engine is not None
                         and cycle % 3 == 0
                         and (cycle - _last_mismatch_cycle) >= _mismatch_cooldown
@@ -6706,24 +6714,23 @@ def main(
                         t_warmup_s,
                     )
 
-            # Regret Engine — évaluer les candidats en attente
+            # Prix v2 indépendant du moteur regret-v1. Le timestamp représente
+            # la réception locale du snapshot scanner, pas un tick exchange.
             try:
-                if regret_engine is not None:
+                if _obs_regret_scheduler is not None or regret_engine is not None:
                     current_prices = {r["symbol"]: r.get("prix", 0.0) for r in results}
-                    # Alimenter aussi le RegretScheduler multi-horizon (P3)
                     if _obs_regret_scheduler is not None:
                         try:
-                            _obs_regret_scheduler.update_price_cache(current_prices)
+                            _obs_regret_scheduler.update_price_cache(
+                                current_prices,
+                                source="advisor_loop_cycle_snapshot",
+                            )
                         except Exception:
                             pass
-                    new_regrets = regret_engine.evaluate_pending(current_prices, cycle)
-                    for reg in new_regrets:
-                        _telegram(
-                            f"REGRET DETECTE: {reg.symbol} {reg.signal} "
-                            f"score={reg.score} | move={reg.move_pct:.2%}\n"
-                            f"Refuse par: {' | '.join(reg.refused_by)}\n"
-                            f"Gain potentiel manque: {reg.potential_pnl_pct:.2%}"
-                        )
+                    if regret_engine is not None:
+                        # Historique v1 maintenu silencieux; jamais une alerte
+                        # individuelle de "profit manqué" sans modèle d'exécution.
+                        regret_engine.evaluate_pending(current_prices, cycle)
             except Exception:
                 pass
 
