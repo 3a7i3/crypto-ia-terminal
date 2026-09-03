@@ -1,7 +1,7 @@
 {
   "$schema": "CI-00B ruff differential baseline v1",
   "rule_selection": "E,F,W (ignore E501,E402)",
-  "count": 1000,
+  "count": 999,
   "findings": [
     ".claude/tools/render_docs.py:143:5:F841",
     "S2/01_gate_logger.py:107:15:F541",
@@ -391,7 +391,6 @@
     "scripts/burnin_v2_report.py:243:11:F541",
     "scripts/burnin_v2_report.py:79:11:F541",
     "scripts/chaos_test.py:268:15:F541",
-    "scripts/ci/ruff_baseline_gate.py:113:11:F541",
     "scripts/cleanup_root.py:14:8:F401",
     "scripts/counterfactual_replay.py:224:11:F541",
     "scripts/counterfactual_replay.py:264:11:F541",

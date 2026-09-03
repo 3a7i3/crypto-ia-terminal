@@ -40,7 +40,12 @@ jobs:
           cache: pip
 
       - name: Installer les outils de lint
-        run: pip install ruff
+        # Version épinglée : le diff baseline est sensible à la version de
+        # ruff (nouvelles règles / parseur) — pin identique à celui utilisé
+        # pour générer .ci/ruff_baseline.json, sinon des faux "nouveaux"
+        # findings apparaissent sans changement de code (CI-00B, incident
+        # constaté sur ce PR : ruff 0.16.5 vs 0.15.8 en local).
+        run: pip install ruff==0.15.8
 
       - name: Ruff — diff contre le baseline (pas de nouvelle violation)
         run: python scripts/ci/ruff_baseline_gate.py check

@@ -21,6 +21,12 @@ not viable either. This script implements a differential regression gate:
 Forbidden by design: no `continue-on-error`, no mass `# noqa`, no
 `ruff ... --exit-zero`, no autofix. A new violation fails the job with a
 clear, itemized report.
+
+IMPORTANT — ruff version pin: findings (including which syntax errors are
+raised) can change between ruff releases with no code change at all. The
+baseline is only meaningful if generated and checked with the SAME ruff
+version. CI pins `ruff==0.15.8` (see .github/workflows/ci.yml) — use the
+identical version locally when regenerating the baseline.
 """
 
 from __future__ import annotations
@@ -110,7 +116,7 @@ def cmd_check(_args: argparse.Namespace) -> int:
     new_keys = sorted(set(current) - baseline)
     fixed_count = len(baseline - set(current))
 
-    print(f"LINT REGRESSION GATE — ruff baseline diff")
+    print("LINT REGRESSION GATE — ruff baseline diff")
     print(f"  baseline findings : {len(baseline)}")
     print(f"  current findings  : {len(current)}")
     print(f"  fixed since baseline (tolerated, not required) : {fixed_count}")
