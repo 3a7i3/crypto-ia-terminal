@@ -81,7 +81,14 @@ class BlockRule:
     conditions: dict  # ex: {"regime": "sideways", "signal": "BUY", "max_score": 79}
     explanation: str  # pourquoi cette règle existe
     created_ts: float = field(default_factory=time.time)
-    trigger_count: int = 0  # combien de fois cette règle a bloqué un trade
+    # S-02B.1 — trigger_count reste APPLIED-only : combien de fois cette règle a
+    # réellement bloqué un trade (jamais incrémenté par un match contrefactuel en
+    # mode passif — voir would_match_count ci-dessous, et
+    # check_before_trade(count_as_applied_block=...)).
+    trigger_count: int = 0  # combien de fois cette règle a bloqué un trade (APPLIQUÉ)
+    # S-02B.1 — compteur contrefactuel séparé : incrémenté à chaque match, qu'il
+    # soit appliqué ou non. would_match_count >= trigger_count toujours.
+    would_match_count: int = 0
     confirmed_saves: int = 0  # combien de fois le trade bloqué aurait été perdant
 
     def matches(self, context: dict) -> bool:
@@ -115,7 +122,8 @@ class BlockRule:
     def describe(self) -> str:
         cond_str = " + ".join(f"{k}={v}" for k, v in self.conditions.items())
         return (
-            f"[{self.error_type}] {cond_str} -> BLOCK | triggers={self.trigger_count}"
+            f"[{self.error_type}] {cond_str} -> BLOCK | "
+            f"triggers={self.trigger_count} (would_match={self.would_match_count})"
         )
 
 
@@ -187,10 +195,23 @@ class MistakeMemory:
         consecutive_losses: int = 0,
         conviction_level: str = "medium",
         signal_age_sec: float = 0.0,
+        count_as_applied_block: bool = True,
     ) -> MistakeCheckResult:
         """
         Vérifie si ce trade ressemble à une erreur passée.
         Retourne MistakeCheckResult(blocked=True, reason=...) si à bloquer.
+
+        `count_as_applied_block` (S-02B.1) — distingue un match APPLIQUÉ (véto
+        réel, incrémente `BlockRule.trigger_count`) d'un match contrefactuel
+        observé en mode passif (incrémente uniquement `would_match_count`,
+        jamais `trigger_count`). Défaut `True` : préserve le comportement
+        historique pour tout appelant qui ignore ce paramètre — `blocked=True`
+        est retourné dans les deux cas, seul le compteur appliqué diffère.
+        L'appelant (`advisor_loop.py`) décide déjà, séparément, si ce
+        `blocked=True` doit réellement empêcher le trade
+        (FEATURE_ADAPTIVE_DECISION_FEEDBACK) ; ce paramètre garde
+        `trigger_count` synchronisé avec cette même décision plutôt que de le
+        recalculer indépendamment.
         """
         context = {
             "symbol": symbol,
@@ -208,13 +229,20 @@ class MistakeMemory:
         # Vérifie chaque règle active
         for rule in self._rules:
             if rule.matches(context):
-                rule.trigger_count += 1
+                rule.would_match_count += 1
+                if count_as_applied_block:
+                    rule.trigger_count += 1
                 similar = self._count_similar(rule.error_type, regime, signal)
                 _log.info(
-                    "[MistakeMemory] BLOQUÉ rule=%s reason=%s (triggers=%d similar=%d)",
+                    "[MistakeMemory] %s rule=%s reason=%s "
+                    "(trigger_count=%d would_match_count=%d similar=%d)",
+                    "BLOQUÉ (appliqué)"
+                    if count_as_applied_block
+                    else "match contrefactuel (passif, non appliqué)",
                     rule.rule_id,
                     rule.explanation,
                     rule.trigger_count,
+                    rule.would_match_count,
                     similar,
                 )
                 return MistakeCheckResult(
@@ -576,6 +604,27 @@ class MistakeMemory:
 
     def active_rules_summary(self) -> list[str]:
         return [r.describe() for r in self._rules]
+
+    def state_provenance(self) -> dict:
+        """Provenance minimale de l'état mémoire (S-02B.1 §12).
+
+        Ne remplace pas un versioning complet ; suffit à distinguer une
+        recommandation produite depuis l'état mémoire X d'une autre produite
+        depuis l'état Y (mtime + volumétrie).
+        """
+        try:
+            state_mtime = (
+                self._db_path.stat().st_mtime if self._db_path.exists() else None
+            )
+        except OSError:
+            state_mtime = None
+        return {
+            "subsystem": "MistakeMemory",
+            "source_path": str(self._db_path),
+            "state_mtime": state_mtime,
+            "n_records": len(self._mistakes),
+            "n_rules_active": len(self._rules),
+        }
 
     # ── Persistance ───────────────────────────────────────────────────────────
 

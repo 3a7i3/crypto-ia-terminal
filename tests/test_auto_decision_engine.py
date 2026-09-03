@@ -122,7 +122,9 @@ def test_action_executor():
         "trading_enabled": True
     }
 
-    executor = ActionExecutor(config)
+    # adaptive_decision_feedback=True : ce script démontre explicitement
+    # l'application legacy (S-02B.1 fail-closed — jamais par défaut/omission).
+    executor = ActionExecutor(config, adaptive_decision_feedback=True)
 
     # Test 1: Adjust TP
     print("\nTest 1: Adjust TP")
@@ -167,7 +169,9 @@ def test_full_orchestration():
         "trading_enabled": True
     }
 
-    orchestrator = AutoDecisionOrchestrator(config)
+    # adaptive_decision_feedback=True : ce script démontre explicitement
+    # l'application legacy (S-02B.1 fail-closed — jamais par défaut/omission).
+    orchestrator = AutoDecisionOrchestrator(config, adaptive_decision_feedback=True)
 
     scenarios = [
         {

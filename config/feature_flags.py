@@ -53,6 +53,39 @@ FEATURE_REGRET_DECISION_FEEDBACK: bool = _flag(
 # FEATURE_AUTO_CALIBRATION=true seul : toujours passif.
 FEATURE_AUTO_CALIBRATION: bool = _flag("FEATURE_AUTO_CALIBRATION", default=False)
 
+# ── S-02B.1 — Frontière mémoire adaptative / méta-apprentissage vs décision ──
+# LEARNING != AUTHORITY (ADR S-02B.1). MistakeMemory, MetaLearner et
+# StrategyMemoryStore peuvent en permanence observer, enregistrer, apprendre
+# et proposer. Ce flag maître, false par défaut, est la seule chose qui peut
+# transformer une de leurs recommandations en effet réel sur une décision
+# live (blocage de trade, TP/SL/trailing, score/personnalité). Défaut off,
+# fail-closed : un import cassé ou une variable absente/malformée reste
+# passif, jamais actif.
+FEATURE_ADAPTIVE_DECISION_FEEDBACK: bool = _flag(
+    "FEATURE_ADAPTIVE_DECISION_FEEDBACK", default=False
+)
+
+
+def adaptive_decision_feedback_enabled() -> bool:
+    """Résolveur public de la valeur EFFECTIVE de FEATURE_ADAPTIVE_DECISION_FEEDBACK.
+
+    La constante de module `FEATURE_ADAPTIVE_DECISION_FEEDBACK` ci-dessus est
+    résolue une seule fois, à l'import de ce module — donc potentiellement
+    AVANT que l'appelant n'ait chargé son `.env` (`load_dotenv()`). Un module
+    déjà présent dans `sys.modules` ne ré-exécute pas son corps à un import
+    ultérieur, donc cette constante resterait figée sur une valeur obsolète
+    même si le `.env` définit ensuite la variable.
+
+    Cette fonction relit `os.environ` à CHAQUE appel (via `_flag`, jamais mis
+    en cache) : elle donne donc la valeur effective correcte quand elle est
+    appelée après le chargement de la configuration, sans dépendre de l'ordre
+    d'import. Fail-closed comme `_flag()` : absent, "false", ou une valeur
+    malformée résolvent tous à False ; seul "true"/"1"/"yes" (insensible à la
+    casse) résout à True.
+    """
+    return _flag("FEATURE_ADAPTIVE_DECISION_FEEDBACK", default=False)
+
+
 # ── P4-P7 — Réservés, désactivés ──────────────────────────────────────────────
 FEATURE_ADAPTIVE_CALIBRATION: bool = _flag(
     "FEATURE_ADAPTIVE_CALIBRATION", default=False

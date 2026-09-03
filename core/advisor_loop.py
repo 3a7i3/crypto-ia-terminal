@@ -70,6 +70,15 @@ except ImportError:
         pass
 
 
+# S-02B.1 — LEARNING != AUTHORITY. Import fail-closed : un import cassé ou une
+# absence de config ne doit jamais activer par accident l'influence décisionnelle
+# de la mémoire adaptative (MistakeMemory / MetaLearner / StrategyMemoryStore).
+try:
+    from config.feature_flags import FEATURE_ADAPTIVE_DECISION_FEEDBACK
+except ImportError:
+    FEATURE_ADAPTIVE_DECISION_FEEDBACK = False
+
+
 # IMPORTANT : créer logs/ avant FileHandler
 os.makedirs("logs", exist_ok=True)
 
@@ -122,6 +131,32 @@ def _stats_dict(value: Any) -> JSONDict:
 
 def _snapshot_list(value: Any) -> list[JSONDict]:
     return cast(list[JSONDict], value if isinstance(value, list) else [])
+
+
+def resolve_meta_learner_exit_params(
+    ml_decision: dict | None,
+    personality: Any,
+    adaptive_decision_feedback: bool,
+) -> tuple[float, float, float, bool]:
+    """S-02B.1 — frontière passive/opt-in entre MetaLearner et le trade live.
+
+    `ml_decision` (sortie de MetaLearner.find_best) reste une recommandation
+    contrefactuelle tant que `adaptive_decision_feedback` est False : les
+    paramètres d'exit réellement appliqués proviennent alors uniquement de la
+    personnalité (comportement legacy inchangé quand le flag est True).
+
+    Retourne (tp_pct, sl_pct, trailing_pct, applied) où `applied` indique si
+    la recommandation MetaLearner a effectivement été utilisée.
+    """
+    decision = ml_decision or {}
+    applied = bool(adaptive_decision_feedback and decision)
+    effective = decision if applied else {}
+    tp_pct = effective.get("tp") or (personality.tp_pct if personality else 0.04)
+    sl_pct = effective.get("sl") or (personality.sl_pct if personality else 0.02)
+    trailing_pct = effective.get("trail_pct") or (
+        personality.trailing_pct if personality else 0.0
+    )
+    return tp_pct, sl_pct, trailing_pct, applied
 
 
 def _get_exchange_futures(exec_engine: Any) -> Any:
@@ -640,6 +675,20 @@ def _top_strategies_for_display(ranker: Any) -> list[JSONDict]:
 
 
 load_dotenv(override=True)
+
+# S-02B.1 — re-résout la valeur EFFECTIVE de FEATURE_ADAPTIVE_DECISION_FEEDBACK
+# maintenant que .env est chargé. L'import ligne ~77 a eu lieu avant
+# load_dotenv() ; comme config.feature_flags est déjà dans sys.modules, un
+# ré-import ne réexécuterait pas son corps et renverrait la même constante
+# obsolète (résolue avant load_dotenv). adaptive_decision_feedback_enabled()
+# relit os.environ à cet appel précis, donc après le chargement du .env.
+# Fail-closed : toute erreur de résolution laisse la valeur à False.
+try:
+    from config.feature_flags import adaptive_decision_feedback_enabled
+
+    FEATURE_ADAPTIVE_DECISION_FEEDBACK = adaptive_decision_feedback_enabled()
+except Exception:
+    FEATURE_ADAPTIVE_DECISION_FEEDBACK = False
 
 P6_SAFE_MODE: bool = os.environ.get("P6_SAFE_MODE", "false").lower() in (
     "true",
@@ -1431,13 +1480,39 @@ def analyze_symbol(
     open_positions_list: list[Any] = open_positions
     open_positions_count = len(open_positions_list)
 
-    # Meilleur Sharpe mémorisé — depuis ranker en priorité, sinon memory store
+    # Meilleur Sharpe mémorisé — depuis ranker en priorité, sinon memory store.
+    # S-02B.1 : les DEUX sources (StrategyRanker.best_sharpe() en priorité,
+    # StrategyMemoryStore.load_by_regime() en repli) influencent directement
+    # la sélection de personnalité (meta_engine.select) et le score du signal
+    # (engine.evaluate) — décision-active (S-02B.1 §9, graph-closure). Sans
+    # FEATURE_ADAPTIVE_DECISION_FEEDBACK, chaque source reste lue/observée
+    # (comptage/persistance StrategyRanker déjà géré par record_trade() en
+    # écriture, jamais mutée ici en lecture) mais son résultat n'atteint pas
+    # memory_sharpe. Vrai : précédence legacy conservée (ranker d'abord, puis
+    # repli StrategyMemoryStore si le ranker ne renvoie rien).
     memory_sharpe = None
     try:
         if ranker:
-            memory_sharpe = ranker.best_sharpe(regime) or None
+            _ranker_candidate_sharpe = ranker.best_sharpe(regime) or None
+            if FEATURE_ADAPTIVE_DECISION_FEEDBACK:
+                memory_sharpe = _ranker_candidate_sharpe
+            elif _ranker_candidate_sharpe is not None:
+                try:
+                    _ranker_provenance = ranker.state_provenance()
+                except Exception:
+                    _ranker_provenance = None
+                log.debug(
+                    "[StrategyRanker] recommandation contrefactuelle "
+                    "(mode passif, non appliquée): sharpe=%.4f regime=%s "
+                    "provenance=%s",
+                    _ranker_candidate_sharpe,
+                    regime,
+                    _ranker_provenance,
+                )
         if not memory_sharpe:
-            stored = memory.load_by_regime(regime, limit=10)
+            stored = memory.load_by_regime(
+                regime, limit=10, record_usage=FEATURE_ADAPTIVE_DECISION_FEEDBACK
+            )
             # Filtrer les entrées sans stratégie nommée (données de test/garbage)
             valid_sharpes = [
                 s.get("sharpe", 0)
@@ -1447,7 +1522,18 @@ def analyze_symbol(
                 and s["strategy"].get("name")
                 and s.get("sharpe", 0) > 0
             ]
-            memory_sharpe = max(valid_sharpes, default=None)
+            _sms_candidate = max(valid_sharpes, default=None)
+            if FEATURE_ADAPTIVE_DECISION_FEEDBACK:
+                memory_sharpe = _sms_candidate
+            elif _sms_candidate is not None:
+                log.debug(
+                    "[StrategyMemoryStore] recommandation contrefactuelle "
+                    "(mode passif, non appliquée): sharpe=%.4f regime=%s "
+                    "provenance=%s",
+                    _sms_candidate,
+                    regime,
+                    memory.state_provenance(),
+                )
         # Plafond sanity : Sharpe > 5.0 est irréaliste → probablement données de test
         if memory_sharpe and memory_sharpe > 5.0:
             memory_sharpe = None
@@ -1654,6 +1740,9 @@ def analyze_symbol(
                     consecutive_losses=consecutive_losses,
                     conviction_level=conviction.level.value if conviction else "medium",
                     signal_age_sec=time.time() - signal.timestamp,
+                    # S-02B.1 — trigger_count (compteur APPLIQUÉ) ne doit
+                    # s'incrémenter que si le veto est réellement appliqué.
+                    count_as_applied_block=FEATURE_ADAPTIVE_DECISION_FEEDBACK,
                 )
             else:
                 mm_check = mistake_memory.check_before_trade(
@@ -1665,9 +1754,34 @@ def analyze_symbol(
                     consecutive_losses=consecutive_losses,
                     conviction_level=conviction.level.value if conviction else "medium",
                     signal_age_sec=time.time() - signal.timestamp,
+                    count_as_applied_block=FEATURE_ADAPTIVE_DECISION_FEEDBACK,
                 )
             if mm_check.blocked:
-                log.info("[MistakeMemory] Trade bloqué: %s", mm_check.reason)
+                # S-02B.1 — LEARNING != AUTHORITY : le match est toujours
+                # enregistré (would_block=True) ; il n'est converti en veto
+                # réel (applied_block=True) que si le flag maître est actif.
+                if FEATURE_ADAPTIVE_DECISION_FEEDBACK:
+                    log.info(
+                        "[MistakeMemory] Trade bloqué: %s rule_id=%s "
+                        "would_block=True applied_block=True",
+                        mm_check.reason,
+                        mm_check.rule_id,
+                    )
+                else:
+                    # Observabilité best-effort : une provenance indisponible ne
+                    # doit jamais empêcher la passivité elle-même de s'appliquer.
+                    try:
+                        _mm_provenance = mistake_memory.state_provenance()
+                    except Exception:
+                        _mm_provenance = None
+                    log.info(
+                        "[MistakeMemory] Règle matchée (mode passif, non appliqué): "
+                        "%s rule_id=%s would_block=True applied_block=False "
+                        "provenance=%s",
+                        mm_check.reason,
+                        mm_check.rule_id,
+                        _mm_provenance,
+                    )
 
     # ── Portfolio Brain — risque portefeuille global ──────────────────────────
     # Portfolio check sur la taille meta-ajustée (sans conviction) pour être cohérent
@@ -1709,13 +1823,29 @@ def analyze_symbol(
         and (pb_verdict is None or pb_verdict.allowed)
     ):
         with watchdog.measure("capital_engine"):
-            # Récupère les stats depuis le ranker si disponible
+            # Récupère les stats depuis le ranker si disponible.
+            # S-02B.1 (graph-closure) : win_rate/avg_win/avg_loss/n_trades
+            # dérivés du ranker alimentent directement capital_engine.allocate()
+            # → order_size_usd — décision-active (sizing réel). Sans
+            # FEATURE_ADAPTIVE_DECISION_FEEDBACK, la recommandation reste
+            # lue/observée mais n'est pas transmise au sizing (cae_stats={}
+            # → allocate() retombe sur ses défauts neutres déjà existants).
             cae_stats: JSONDict = {}
             if ranker:
                 strategy_key = symbol.replace("/", "_").lower()
-                cae_stats = capital_engine.stats_from_ranker(
+                _cae_candidate = capital_engine.stats_from_ranker(
                     ranker, strategy_key, regime
                 )
+                if FEATURE_ADAPTIVE_DECISION_FEEDBACK:
+                    cae_stats = _cae_candidate
+                elif _cae_candidate:
+                    log.debug(
+                        "[StrategyRanker] recommandation contrefactuelle "
+                        "(mode passif, non appliquée) pour capital_engine: "
+                        "%s regime=%s",
+                        _cae_candidate,
+                        regime,
+                    )
             volatility = float(
                 features.get("atr_ratio", features.get("volatility", 0.015))
             )
@@ -1839,7 +1969,12 @@ def analyze_symbol(
                 AgentVote("meta_strategy", 0.8 if meta_allowed else -0.5),
                 AgentVote(
                     "mistake_memory",
-                    0.0 if mm_check is None else (0.5 if bool(mm_check) else -0.7),
+                    # S-02B.1 : vote neutralisé en mode passif — un match
+                    # contrefactuel ne doit pas non plus influencer
+                    # l'arbitrage V2 via ce second canal.
+                    0.0
+                    if (mm_check is None or not FEATURE_ADAPTIVE_DECISION_FEEDBACK)
+                    else (0.5 if bool(mm_check) else -0.7),
                 ),
                 AgentVote(
                     "executive_override",
@@ -1923,9 +2058,13 @@ def analyze_symbol(
         )  # pb bloqué → cae skipped
         or (allocation is not None and bool(allocation))
     )
+    # S-02B.1 — sans FEATURE_ADAPTIVE_DECISION_FEEDBACK, un match MistakeMemory
+    # (mm_check.blocked=True) reste une observation contrefactuelle ; il ne
+    # peut plus, à lui seul, faire échouer trade_allowed (ADR S-02B.1).
     _mm_ok = (
         mistake_memory is None
         or not signal.actionable
+        or not FEATURE_ADAPTIVE_DECISION_FEEDBACK
         or (mm_check is not None and bool(mm_check))
     )
     _eo_ok = (
@@ -3842,6 +3981,32 @@ def main(
     ) -> Any:
         personality = result_row.get("personality")
         feat = result_row.get("features", {})
+        # S-02B.1 — MetaLearner : la recommandation d'exit (ml_decision) reste
+        # une proposition contrefactuelle tant que FEATURE_ADAPTIVE_DECISION_FEEDBACK
+        # est false ; elle n'est appliquée au TP/SL/trailing réel du trade live
+        # que si le flag maître est explicitement activé (ADR S-02B.1 §8).
+        _ml_decision = result_row.get("ml_decision") or {}
+        _tp_pct, _sl_pct, _trailing_pct, _ml_applied = resolve_meta_learner_exit_params(
+            _ml_decision, personality, FEATURE_ADAPTIVE_DECISION_FEEDBACK
+        )
+        if _ml_decision and not _ml_applied:
+            # Observabilité best-effort : une provenance indisponible (double de
+            # test, implémentation partielle) ne doit jamais empêcher la
+            # construction de la position réelle.
+            try:
+                _ml_provenance = (
+                    meta_learner.state_provenance()
+                    if meta_learner is not None
+                    else None
+                )
+            except Exception:
+                _ml_provenance = None
+            log.debug(
+                "[MetaLearner] recommandation contrefactuelle (mode passif, "
+                "non appliquée): %s applied=False provenance=%s",
+                _ml_decision,
+                _ml_provenance,
+            )
         atr_val = float(feat.get("atr", 0.0))
         vol_val = float(feat.get("atr_ratio", feat.get("volatility", 0.0)))
         entry_price = _to_float(
@@ -3871,18 +4036,9 @@ def main(
                 symbol,
                 action,
                 effective_size,
-                tp_pct=(
-                    (result_row.get("ml_decision") or {}).get("tp")
-                    or (personality.tp_pct if personality else 0.04)
-                ),
-                sl_pct=(
-                    (result_row.get("ml_decision") or {}).get("sl")
-                    or (personality.sl_pct if personality else 0.02)
-                ),
-                trailing=(
-                    (result_row.get("ml_decision") or {}).get("trail_pct")
-                    or (personality.trailing_pct if personality else 0.0)
-                ),
+                tp_pct=_tp_pct,
+                sl_pct=_sl_pct,
+                trailing=_trailing_pct,
                 atr=atr_val,
                 volatility=vol_val,
                 regime=result_row.get("regime", "unknown"),
@@ -3909,7 +4065,13 @@ def main(
         )
         pos.signal_age_sec = time.time() - result_row["signal"].timestamp
         raw_features = result_row.get("features")
-        pos.entry_features = raw_features if isinstance(raw_features, dict) else {}
+        pos.entry_features = dict(raw_features) if isinstance(raw_features, dict) else {}
+        if _ml_decision:
+            # S-02B.1 §11 — observabilité contrefactuelle : distingue toujours
+            # la recommandation de MetaLearner de ce qui a réellement été
+            # appliqué au trade live.
+            pos.entry_features["adaptive_meta_recommendation"] = dict(_ml_decision)
+            pos.entry_features["adaptive_meta_applied"] = _ml_applied
         pos.regime = result_row.get("regime", "unknown")
         pos.subaccount = "main"
         return pos
@@ -4256,6 +4418,13 @@ def main(
                 "max_position_reduction": 0.75,
             },
             log_file="logs/system_controller_decisions.jsonl",
+            # S-02B.1 — ADJUST_TP/ADJUST_SL/APPLY_META restent contrefactuels
+            # tant que FEATURE_ADAPTIVE_DECISION_FEEDBACK=false (LEARNING !=
+            # AUTHORITY). STOP_TRADING/RESUME_TRADING/REDUCE_RISK ne sont pas
+            # affectés par ce flag (sécurité/récupération/risque toujours
+            # autoritaires). Résolution au démarrage, après load_dotenv() —
+            # le hot-reload n'est pas requis pour ce composant.
+            adaptive_decision_feedback=FEATURE_ADAPTIVE_DECISION_FEEDBACK,
         )
         log.info("[SystemController] AutoDecisionOrchestrator initialisé")
     except Exception as _sc_init_exc:
@@ -4546,21 +4715,48 @@ def main(
 
         elif decision.action == "ADJUST_TP":
             factor = decision.params.get("tp_factor", 1.15)
-            _sc_state["tp_factor"] = min(1.5, max(0.8, _sc_state["tp_factor"] * factor))
-            log.info(
-                "[SystemController] ADJUST_TP → tp_factor=%.3f", _sc_state["tp_factor"]
-            )
+            if FEATURE_ADAPTIVE_DECISION_FEEDBACK:
+                _sc_state["tp_factor"] = min(
+                    1.5, max(0.8, _sc_state["tp_factor"] * factor)
+                )
+                log.info(
+                    "[SystemController] ADJUST_TP → tp_factor=%.3f",
+                    _sc_state["tp_factor"],
+                )
+            else:
+                _counterfactual_tp = min(1.5, max(0.8, _sc_state["tp_factor"] * factor))
+                log.debug(
+                    "[SystemController] ADJUST_TP recommandation contrefactuelle"
+                    " (non appliquée, FEATURE_ADAPTIVE_DECISION_FEEDBACK=false):"
+                    " tp_factor actuel=%.3f, aurait été=%.3f",
+                    _sc_state["tp_factor"],
+                    _counterfactual_tp,
+                )
 
         elif decision.action == "ADJUST_SL":
             factor = decision.params.get("sl_factor", 0.85)
-            _sc_state["sl_factor"] = min(1.3, max(0.7, _sc_state["sl_factor"] * factor))
-            log.info(
-                "[SystemController] ADJUST_SL → sl_factor=%.3f", _sc_state["sl_factor"]
-            )
+            if FEATURE_ADAPTIVE_DECISION_FEEDBACK:
+                _sc_state["sl_factor"] = min(
+                    1.3, max(0.7, _sc_state["sl_factor"] * factor)
+                )
+                log.info(
+                    "[SystemController] ADJUST_SL → sl_factor=%.3f",
+                    _sc_state["sl_factor"],
+                )
+            else:
+                _counterfactual_sl = min(1.3, max(0.7, _sc_state["sl_factor"] * factor))
+                log.debug(
+                    "[SystemController] ADJUST_SL recommandation contrefactuelle"
+                    " (non appliquée, FEATURE_ADAPTIVE_DECISION_FEEDBACK=false):"
+                    " sl_factor actuel=%.3f, aurait été=%.3f",
+                    _sc_state["sl_factor"],
+                    _counterfactual_sl,
+                )
 
         # STOP_TRADING et APPLY_META sont gérés directement par ActionExecutor
         # dans run_decision_cycle : state_machine.transition("HALTED") pour STOP,
-        # mutation de config pour APPLY_META.
+        # mutation de config pour APPLY_META (passive/active gérée dans
+        # ActionExecutor.execute() via adaptive_decision_feedback, S-02B.1).
 
     # Callback PositionManager → enregistre le résultat dans le ranker
     def _on_position_close_rank(pos: Any, reason: Any) -> None:

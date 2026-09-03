@@ -16,6 +16,12 @@ _RESUME_COOLDOWN_S = 3600  # 1h minimum après un arrêt
 _RESUME_DRAWDOWN_MAX = 0.03  # drawdown doit être < 3% pour reprendre
 _RESUME_LOSS_STREAK_MAX = 1  # loss_streak doit être <= 1
 
+# S-02B.1 — Actions d'optimisation adaptative dont l'APPLICATION (pas la
+# génération) dépend de FEATURE_ADAPTIVE_DECISION_FEEDBACK. STOP_TRADING,
+# RESUME_TRADING et REDUCE_RISK restent hors de cet ensemble : ce sont des
+# actions de sécurité/récupération/risque, toujours pleinement autoritaires.
+_PASSIVE_GATED_ACTIONS = frozenset({"ADJUST_TP", "ADJUST_SL", "APPLY_META"})
+
 
 @dataclass
 class Decision:
@@ -227,9 +233,29 @@ class RiskGuard:
 class ActionExecutor:
     """Exécute les décisions approuvées"""
 
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(
+        self, config: Dict[str, Any], adaptive_decision_feedback: bool = False
+    ):
+        """
+        Args:
+            config: configuration initiale mutable par les décisions.
+            adaptive_decision_feedback: si False (défaut — fail-closed, S-02B.1,
+                ADR LEARNING != AUTHORITY), ADJUST_TP / ADJUST_SL / APPLY_META
+                restent des recommandations contrefactuelles — décision/raison/
+                confiance/params générés et observables, mais AUCUNE mutation de
+                `self.config` et jamais comptées comme `executed=True`.
+                STOP_TRADING, RESUME_TRADING et REDUCE_RISK restent pleinement
+                autoritaires quelle que soit cette valeur (sécurité/récupération/
+                risque — SAFETY AUTHORITY, hors périmètre du flag et distincte de
+                l'ADAPTIVE AUTHORITY qu'il gouverne).
+                Défaut False / fail-closed : un appelant qui omet ce paramètre
+                obtient le comportement passif, jamais l'application adaptative.
+                Seul `True` explicite restaure l'application legacy — jamais par
+                omission.
+        """
         self.config = config.copy()
         self.execution_history = []
+        self.adaptive_decision_feedback = adaptive_decision_feedback
 
     def execute(self, decision: Decision) -> Tuple[Dict[str, Any], bool, str]:
         """
@@ -242,17 +268,36 @@ class ActionExecutor:
         if decision.action == "NO_ACTION":
             return self.config, True, "No action"
 
-        elif decision.action == "ADJUST_TP":
+        passive = (
+            decision.action in _PASSIVE_GATED_ACTIONS
+            and not self.adaptive_decision_feedback
+        )
+
+        if decision.action == "ADJUST_TP":
             factor = decision.params.get("tp_factor", 1.0)
             old_tp = self.config.get("tp", 0.02)
-            self.config["tp"] = old_tp * factor
-            msg = f"TP adjusted: {old_tp:.3f} -> {self.config['tp']:.3f}"
+            if passive:
+                counterfactual_tp = old_tp * factor
+                msg = (
+                    f"TP adjustment recommended (passive, not applied):"
+                    f" {old_tp:.3f} -> {counterfactual_tp:.3f}"
+                )
+            else:
+                self.config["tp"] = old_tp * factor
+                msg = f"TP adjusted: {old_tp:.3f} -> {self.config['tp']:.3f}"
 
         elif decision.action == "ADJUST_SL":
             factor = decision.params.get("sl_factor", 1.0)
             old_sl = self.config.get("sl", 0.01)
-            self.config["sl"] = old_sl * factor
-            msg = f"SL adjusted: {old_sl:.3f} -> {self.config['sl']:.3f}"
+            if passive:
+                counterfactual_sl = old_sl * factor
+                msg = (
+                    f"SL adjustment recommended (passive, not applied):"
+                    f" {old_sl:.3f} -> {counterfactual_sl:.3f}"
+                )
+            else:
+                self.config["sl"] = old_sl * factor
+                msg = f"SL adjusted: {old_sl:.3f} -> {self.config['sl']:.3f}"
 
         elif decision.action == "REDUCE_RISK":
             factor = decision.params.get("position_size_factor", 1.0)
@@ -288,25 +333,35 @@ class ActionExecutor:
                 pass
 
         elif decision.action == "APPLY_META":
-            # Appliquer config meta-learning
-            for key, value in decision.params.items():
-                if key not in ["confidence"]:
-                    self.config[key] = value
-            msg = "Meta-learned configuration applied"
+            if passive:
+                msg = (
+                    "Meta-learned configuration recommended"
+                    " (passive, not applied): "
+                    f"{decision.params}"
+                )
+            else:
+                # Appliquer config meta-learning
+                for key, value in decision.params.items():
+                    if key not in ["confidence"]:
+                        self.config[key] = value
+                msg = "Meta-learned configuration applied"
 
         else:
             return self.config, False, f"Unknown action: {decision.action}"
+
+        executed = not passive
 
         self.execution_history.append(
             {
                 "timestamp": datetime.utcnow().isoformat(),
                 "action": decision.action,
-                "success": True,
+                "success": executed,
+                "passive": passive,
                 "message": msg,
             }
         )
 
-        return self.config, True, msg
+        return self.config, executed, msg
 
 
 class DecisionLogger:
@@ -366,16 +421,26 @@ class AutoDecisionOrchestrator:
         initial_config: Dict[str, Any],
         limits: Dict[str, float] = None,
         log_file: str = "logs/decisions.jsonl",
+        adaptive_decision_feedback: bool = False,
     ):
         """
         Args:
             initial_config: Configuration initiale de trading
             limits: Limites de risque pour le guard
             log_file: Fichier de log des décisions
+            adaptive_decision_feedback: propagé à l'ActionExecutor — voir sa
+                docstring (S-02B.1, ADR LEARNING != AUTHORITY). Défaut False /
+                fail-closed : un appelant qui omet ce paramètre obtient le
+                comportement passif. Seul `True` explicite restaure
+                l'application adaptative legacy (ADJUST_TP/ADJUST_SL/APPLY_META)
+                — jamais par omission. Sans effet sur STOP_TRADING/
+                RESUME_TRADING/REDUCE_RISK (SAFETY AUTHORITY, toujours actifs).
         """
         self.engine = AutoDecisionEngine(initial_config)
         self.guard = RiskGuard(limits or {})
-        self.executor = ActionExecutor(initial_config)
+        self.executor = ActionExecutor(
+            initial_config, adaptive_decision_feedback=adaptive_decision_feedback
+        )
         self.logger = DecisionLogger(log_file)
 
         self.current_config = initial_config.copy()
@@ -392,6 +457,20 @@ class AutoDecisionOrchestrator:
 
         Returns:
             (new_config, decision, executed)
+
+        Note (S02_SYSTEMCONTROLLER_GUARD_ORDER_DEBT, non bloquant, non
+        redesigné dans S-02B.1) : ce cycle (decide -> validate -> execute)
+        s'exécute avant que l'appelant (core/advisor_loop.py::_sc_run_cycle)
+        n'évalue ses propres gardes _SC_MIN_CONFIDENCE / cooldown de
+        _sc_state. Ces gardes ne sont donc pas de véritables pré-gardes pour
+        les effets internes à ActionExecutor (state_machine.transition pour
+        STOP_TRADING/RESUME_TRADING, mutation de self.config). En mode
+        adaptatif passif par défaut, ADJUST_TP/ADJUST_SL/APPLY_META n'ont de
+        toute façon aucun effet appliqué (voir ActionExecutor.execute()) —
+        ce n'est donc plus un contournement d'autorité pour ces actions.
+        Pour les actions de sécurité, l'ordre actuel peut être intentionnel.
+        Ne pas changer l'ordre d'exécution ici ; mission forensique dédiée à
+        prévoir séparément.
         """
 
         # STEP 1: Générer décision

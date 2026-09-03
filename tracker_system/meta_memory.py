@@ -58,3 +58,21 @@ class MetaMemory:
 
     def __len__(self) -> int:
         return len(self.memory)
+
+    def state_provenance(self) -> dict:
+        """Provenance minimale de l'état mémoire (S-02B.1 §12).
+
+        Les entrées de MetaMemory ne portent pas de timestamp/version
+        individuel ; mtime + volumétrie du fichier suffisent à distinguer un
+        état mémoire d'un autre sans redesign (S02_PROVENANCE_DEBT au-delà).
+        """
+        try:
+            state_mtime = self.path.stat().st_mtime if self.path.exists() else None
+        except OSError:
+            state_mtime = None
+        return {
+            "subsystem": "MetaLearner",
+            "source_path": str(self.path),
+            "state_mtime": state_mtime,
+            "n_entries": len(self.memory),
+        }
