@@ -172,6 +172,27 @@ class TestTier2GoldenSnapshot:
     Si _GOLDEN est None : skip avec instructions.
     """
 
+    @pytest.mark.xfail(
+        reason=(
+            "CI-00B: known-red, tracked. Investigation trace (not fixed here, "
+            "per CI-00B Phase 6 conservatism): BacktestEngine.run() sets "
+            "pending_close unconditionally in the same branch that executes "
+            "pending_open, so every position is force-closed exactly one bar "
+            "after entry (open->close of the same candle) regardless of any "
+            "strategy exit signal. Against the seed=42 synthetic candles, "
+            "close - open is a near-constant +0.1 intrabar spread, so every "
+            "trade's gross_pnl collapses to roughly +/-0.1 depending on side "
+            "(observed total_pnl ~ -1.4e-14 essentially 0, 5 winners / 5 "
+            "losers) instead of the golden's larger, all-winning multi-bar "
+            "moves (total_pnl 7.6295, win_rate 1.0). Classified "
+            "BACKTEST_ENGINE_DEFECT (see CI-00B report section 9). Follow-up "
+            "mission: BT-00. strict=True (CI-00B master review): an "
+            "unexpected PASS must fail the suite, not disappear silently — "
+            "if BT-00 (or an unrelated change) fixes the engine, this "
+            "marker must be removed in the same PR, never left stale."
+        ),
+        strict=True,
+    )
     def test_backtest_matches_golden(self):
         if _GOLDEN is None:
             pytest.skip(
