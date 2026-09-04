@@ -233,10 +233,14 @@ O-01 documents the target philosophy; O-02 implements it.
   learning/observation stay active unconditionally. RECOMMENDED !=
   APPLIED is now real and code-enforced. What remains a gap: no
   dedicated recommendation_count/applied_count surface exists yet in
-  the protected modules (S02_PROVENANCE_DEBT) — this domain still infers
-  the boolean is_decision_active/recommendation_equals_applied metrics
-  from the flag's effective value rather than reading a first-class
-  counter. STOP_TRADING/RESUME_TRADING/REDUCE_RISK remain safety/
+  the protected modules (S02_PROVENANCE_DEBT) — is_decision_active stays
+  UNKNOWN/FUTURE_PROVIDER absent per-event evidence (it is NEVER computed
+  as is_decision_active == decision_feedback_enabled: authorized != used),
+  and recommendation_equals_applied is a fixed structural False for the
+  five gated adaptive subsystems (the RECOMMENDED/APPLIED split existing
+  in code post-S02 is the point, not the flag's runtime value) — neither
+  metric is ever derived from decision_feedback_enabled's truthiness.
+  STOP_TRADING/RESUME_TRADING/REDUCE_RISK remain safety/
   recovery/risk authority, outside this governance, always fully
   authoritative (S02_SYSTEMCONTROLLER_GUARD_ORDER_DEBT tracks a
   separate, non-blocking ordering note for ActionExecutor). Regret's

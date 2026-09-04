@@ -442,32 +442,53 @@ number (mission §18).
 > unconditionally. See below.
 > ```
 
+> **O-01R metric-semantics fix (this pass).** `decision_feedback_enabled`,
+> `is_decision_active` and `recommendation_equals_applied` are three
+> distinct concepts and must never be computed as functions of one
+> another — in particular `is_decision_active == decision_feedback_enabled`
+> and `recommendation_equals_applied == decision_feedback_enabled` are both
+> overclaims and are explicitly rejected below.
+
+#### `adaptive_learning.decision_feedback_enabled` — Rétroaction décisionnelle adaptative autorisée
+
+- **Définition** : AUTORITÉ/PERMISSION uniquement : indique si `config.feature_flags.FEATURE_ADAPTIVE_DECISION_FEEDBACK` (défaut False, fail-closed) est effectivement actif pour ce process. Ne prouve rien sur une recommandation en particulier — ce n'est pas une preuve d'application, seulement l'autorisation qu'un chemin d'application existe. Ne jamais utiliser cette valeur pour déduire `is_decision_active` ou `recommendation_equals_applied`.
+- **Source technique** : `config.feature_flags.adaptive_decision_feedback_enabled()`
+- **Unité / type** : boolean (boolean)
+- **Fraîcheur (source)** : process config, re-résolu à chaque appel (jamais mis en cache) — AVAILABLE
+- **Cadence attendue** : static per process lifetime unless .env changes
+- **Polarité** : not_applicable
+- **Sémantique null** : NOT_DEFINED — le flag est toujours lisible
+- **Sémantique avertissement** : true hors fenêtre de stabilisation autorisée doit être signalé à l'opérateur
+- **Sémantique critique** : NOT_DEFINED
+- **Source de preuve** : config/feature_flags.py:64-86 — lecture seule, aucune modification
+- **Priorité de présentation** : primary
+
 #### `adaptive_learning.is_decision_active` — Sous-système décisionnel-actif
 
-- **Définition** : Indique si ce sous-système d'apprentissage adaptatif influence déjà une décision de trading en temps réel (par opposition à une simple observation/recommandation passive). POST-S02B.1 : gouverné par `config.feature_flags.FEATURE_ADAPTIVE_DECISION_FEEDBACK` (défaut False, fail-closed) ; apprentissage/observation restent actifs indépendamment du flag.
+- **Définition** : EFFECTIVE APPLICATION / INFLUENCE DÉCISIONNELLE : indique si ce sous-système a réellement influencé la décision effective pour l'observation représentée — pas simplement si le flag l'y autorise. `decision_feedback_enabled=true` autorise un chemin d'application ; il ne prouve pas qu'une recommandation a existé, a survécu aux conditions restantes, a été sélectionnée, a changé l'état effectif, ou a été journalée comme appliquée. En l'absence de preuve par-événement, cette valeur reste UNKNOWN/FUTURE_PROVIDER — **jamais** déduite comme `is_decision_active == decision_feedback_enabled`.
 - **Source technique** : `mistake_memory.check_before_trade(count_as_applied_block=FEATURE_ADAPTIVE_DECISION_FEEDBACK) / meta_learner.find_best()+learn() / strategy_memory.load_by_regime(record_usage=FEATURE_ADAPTIVE_DECISION_FEEDBACK) / strategy_ranker.best_sharpe()`
 - **Unité / type** : boolean (boolean)
-- **Fraîcheur (source)** : FUTURE_PROVIDER — nécessite une lecture directe du flag effectif (`adaptive_decision_feedback_enabled()`) au moment de la décision, non encore exposée par un compteur dédié
+- **Fraîcheur (source)** : FUTURE_PROVIDER — nécessite une preuve par-événement (pas seulement la lecture du flag) au moment de la décision, non encore exposée par un compteur dédié
 - **Cadence attendue** : FUTURE_PROVIDER
 - **Polarité** : not_applicable
-- **Sémantique null** : UNKNOWN tant qu'aucun compteur dédié n'expose la valeur effective du flag au moment de chaque décision — S02_PROVENANCE_DEBT
-- **Sémantique avertissement** : true alors que `FEATURE_ADAPTIVE_DECISION_FEEDBACK=false` doit être signalé à l'opérateur comme incohérence à investiguer (le flag est la seule autorité d'application POST-S02B.1)
+- **Sémantique null** : UNKNOWN tant qu'aucun compteur dédié n'expose une preuve d'application par-événement — S02_PROVENANCE_DEBT. Ne jamais combler ce UNKNOWN en substituant la valeur de `decision_feedback_enabled` : enabled != used.
+- **Sémantique avertissement** : true alors que `decision_feedback_enabled=false` doit être signalé à l'opérateur comme incohérence à investiguer immédiatement (le flag est la seule autorité d'application POST-S02B.1)
 - **Sémantique critique** : NOT_DEFINED
 - **Source de preuve** : config/feature_flags.py:64-86 ; core/advisor_loop.py:77-79,687-691,1497,1526,1745-1763,1839,1976,2061-2067,3985-3990,4422-4427,4718-4750 ; tracker_system/autonomous/auto_decision_engine.py:19-23 (`_PASSIVE_GATED_ACTIONS`) — lecture seule, aucune modification
 - **Priorité de présentation** : primary
 
 #### `adaptive_learning.recommendation_equals_applied` — Recommandation = Action appliquée
 
-- **Définition** : Distinction RECOMMENDED vs APPLIED. POST-S02B.1, cette distinction existe réellement en code pour mistake_memory/strategy_memory/meta_learner/strategy_ranker : la recommandation reste toujours calculée, mais son application à une décision live est gouvernée par `FEATURE_ADAPTIVE_DECISION_FEEDBACK` (défaut False). `recommendation_equals_applied=true` seulement quand le flag est actif.
-- **Source technique** : `FEATURE_ADAPTIVE_DECISION_FEEDBACK`
+- **Définition** : PROPRIÉTÉ STRUCTURELLE des cinq sous-systèmes adaptatifs gated (mistake_memory, strategy_memory, meta_learner, strategy_ranker, system_controller_adaptive), pas une vérification d'égalité par événement. PRE-S02B.1, la valeur retournée par ces sous-systèmes ÉTAIT la valeur appliquée (même chemin de code) : `recommendation_equals_applied` était structurellement vrai. POST-S02B.1, la recommandation reste toujours calculée, mais son application est désormais un pas distinct gouverné par `FEATURE_ADAPTIVE_DECISION_FEEDBACK`. C'est cette séparation architecturale — le fait qu'elle existe, indépendamment de la valeur courante du flag — que ce champ rapporte : `recommendation_equals_applied=False` de façon fixe pour ces cinq sous-systèmes, que le flag lise true ou false. **Ne jamais** calculer cette valeur comme `recommendation_equals_applied == decision_feedback_enabled` ni comme une fonction quelconque de la vérité runtime du flag.
+- **Source technique** : `S02B1_STRUCTURAL_SPLIT` — propriété structurelle, pas une égalité runtime avec le flag
 - **Unité / type** : boolean (boolean)
-- **Fraîcheur (source)** : FUTURE_PROVIDER — nécessite exposition directe de `adaptive_decision_feedback_enabled()` comme métrique dédiée
-- **Cadence attendue** : FUTURE_PROVIDER
-- **Polarité** : not_applicable
-- **Sémantique null** : UNKNOWN — S02_PROVENANCE_DEBT : le flag effectif gouverne l'application mais aucun compteur par-recommandation n'existe encore
+- **Fraîcheur (source)** : AVAILABLE — propriété structurelle du code actuel, ne varie pas avec le flag ni dans le temps
+- **Cadence attendue** : n/a — structurel, pas un compteur temporel
+- **Polarité** : lower_is_better
+- **Sémantique null** : NOT_DEFINED — la propriété structurelle est toujours déterminable (False pour ces cinq sous-systèmes)
 - **Sémantique avertissement** : NOT_DEFINED
 - **Sémantique critique** : NOT_DEFINED
-- **Source de preuve** : config/feature_flags.py:64-86 ; quant_hedge_ai/agents/intelligence/mistake_memory.py:198-245 (count_as_applied_block) ; quant_hedge_ai/ai_evolution/strategy_memory.py:80-112 (record_usage)
+- **Source de preuve** : config/feature_flags.py:64-86 ; quant_hedge_ai/agents/intelligence/mistake_memory.py:198-245 (count_as_applied_block, would_match_count/trigger_count désormais distincts) ; quant_hedge_ai/ai_evolution/strategy_memory.py:80-112 (record_usage)
 - **Priorité de présentation** : primary
 
 #### `adaptive_learning.recommendation_count` — Nombre de recommandations
@@ -482,6 +503,34 @@ number (mission §18).
 - **Sémantique avertissement** : NOT_DEFINED
 - **Sémantique critique** : NOT_DEFINED
 - **Source de preuve** : quant_hedge_ai/agents/intelligence/mistake_memory.py:91,232 (would_match_count) — au-delà de ce champ, aucun compteur persistant agrégé confirmé pour strategy_memory/meta_learner/strategy_ranker au-delà de stats()/summary() ponctuels
+- **Priorité de présentation** : diagnostic
+
+#### `adaptive_learning.applied_count` — Nombre d'actions appliquées
+
+- **Définition** : Nombre de recommandations effectivement appliquées à une décision live sur la fenêtre observée (distinct de `recommendation_count`, jamais inféré depuis `decision_feedback_enabled`). `mistake_memory.BlockRule.trigger_count` existe par règle mais aucune méthode n'agrège encore ce compteur au niveau du sous-système entier ; aucun compteur équivalent confirmé pour strategy_memory/meta_learner/strategy_ranker/system_controller_adaptive au-delà de leurs points de gate individuels.
+- **Source technique** : `trigger_count (mistake_memory)` — pas d'agrégat sous-système confirmé pour les autres sous-systèmes
+- **Unité / type** : count (count)
+- **Fraîcheur (source)** : FUTURE_PROVIDER — S02_PROVENANCE_DEBT : agrégat sous-système non encore exposé
+- **Cadence attendue** : FUTURE_PROVIDER
+- **Polarité** : not_applicable
+- **Sémantique null** : UNKNOWN
+- **Sémantique avertissement** : NOT_DEFINED
+- **Sémantique critique** : NOT_DEFINED
+- **Source de preuve** : quant_hedge_ai/agents/intelligence/mistake_memory.py:88,234 (BlockRule.trigger_count, par règle, pas de somme exposée)
+- **Priorité de présentation** : diagnostic
+
+#### `adaptive_learning.memory_state_provenance` — Provenance de l'état mémoire
+
+- **Définition** : Objet `{subsystem, source_path, state_mtime, compteurs volumétriques}` exposé par chacun des cinq sous-systèmes adaptatifs (`state_provenance()`), permettant de distinguer une recommandation produite depuis l'état mémoire X d'une autre produite depuis l'état Y. Ne remplace pas un versioning complet par recommandation (S02_PROVENANCE_DEBT) — c'est une provenance de l'état mémoire agrégé, pas une preuve d'application par-événement (ne pas confondre avec `is_decision_active`).
+- **Source technique** : `<subsystem>.state_provenance()`
+- **Unité / type** : object (enum)
+- **Fraîcheur (source)** : state_mtime dans la valeur elle-même — AVAILABLE (méthode confirmée présente sur les cinq modules protégés)
+- **Cadence attendue** : on demand
+- **Polarité** : not_applicable
+- **Sémantique null** : NOT_DEFINED
+- **Sémantique avertissement** : NOT_DEFINED
+- **Sémantique critique** : NOT_DEFINED
+- **Source de preuve** : quant_hedge_ai/agents/intelligence/mistake_memory.py:608 ; quant_hedge_ai/ai_evolution/strategy_memory.py:138 ; quant_hedge_ai/ai_evolution/strategy_ranker.py:292 ; tracker_system/meta_learner.py:156 ; tracker_system/meta_memory.py:62 — lecture seule, aucune modification
 - **Priorité de présentation** : diagnostic
 
 
