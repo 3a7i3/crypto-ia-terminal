@@ -248,9 +248,11 @@
         <article role="main" id="furo-main-content">
           <section id="observability-module-registry">
 <h1>Observability Module Registry<a class="headerlink" href="#observability-module-registry" title="Link to this heading">¶</a></h1>
-<p>Mission O-01 · This is the human-readable counterpart of
-<code class="docutils literal notranslate"><span class="pre">observability/operator/canonical_registry.DEFAULT_MODULE_REGISTRY</span></code>
-(47 modules across 11 domains, generated from the same <code class="docutils literal notranslate"><span class="pre">ModuleDescriptor</span></code>
+<p>Mission O-01, reconciled by O-01R (PR #117 then S-02B.1/PR #111
+semantics corrected post-merge) · This is the human-readable counterpart
+of <code class="docutils literal notranslate"><span class="pre">observability/operator/canonical_registry.DEFAULT_MODULE_REGISTRY</span></code>
+(50 modules across 11 domains — 3 added by O-01R’s adaptive_learning
+reconciliation — generated from the same <code class="docutils literal notranslate"><span class="pre">ModuleDescriptor</span></code>
 entries that ship in <code class="docutils literal notranslate"><span class="pre">observability/operator/domains/*.py</span></code> — no
 transcription drift, this table is produced from the code). Every entry
 records the forensic reuse decision behind it (mission §26): before any
@@ -291,7 +293,7 @@ documented here first.</p>
 <td><p>No implementation exists yet; the gap is documented so it isn’t silently invented.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">BLOCKED</span></code></p></td>
-<td><p>Exists and is even decision-active, but lives in a file O-01 is constitutionally forbidden to modify (S-02B.1 protected surface) — read-only forensic entry.</p></td>
+<td><p>Exists and is decision-active with no governance flag at all — read-only forensic entry. No live module carries this status post-O-01R: every adaptive_learning subsystem now has FEATURE_ADAPTIVE_DECISION_FEEDBACK (S-02B.1) governing application; the status remains defined for future forensic findings of this shape.</p></td>
 </tr>
 </tbody>
 </table>
@@ -812,6 +814,34 @@ documented here first.</p>
 </section>
 <section id="i-adaptive-learning-state-apprentissage-adaptatif">
 <h3>I — ADAPTIVE LEARNING STATE (Apprentissage adaptatif)<a class="headerlink" href="#i-adaptive-learning-state-apprentissage-adaptatif" title="Link to this heading">¶</a></h3>
+<blockquote>
+<div><p><strong>O-01R reconciliation note.</strong> O-01 (PR #117) was written before S-02B.1
+(PR #111) landed the <code class="docutils literal notranslate"><span class="pre">FEATURE_ADAPTIVE_DECISION_FEEDBACK</span></code> governance
+below, and its original table (status <code class="docutils literal notranslate"><span class="pre">BLOCKED</span></code> for every real
+subsystem, “sans flag de gouvernance explicite”) survived unchanged into
+<code class="docutils literal notranslate"><span class="pre">main</span></code> because the merge did not touch this domain’s content. That was
+not a rollback of either PR — it was stale documentation. See the full
+forensic/remediated/current pattern in
+<code class="docutils literal notranslate"><span class="pre">observability/operator/domains/adaptive_learning.py</span></code>’s module docstring.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>PRE-S02 FORENSIC FINDING:
+All four real subsystems below (mistake_memory, strategy_memory,
+meta_learner, and — not yet listed by O-01 — strategy_ranker) were
+recorded as status="BLOCKED": decision-active in core/advisor_loop.py
+today, independent of any feature flag, with no RECOMMENDED vs APPLIED
+distinction anywhere.
+
+REMEDIATED BY:
+S-02B.1 / PR #111
+
+POST-S02 CURRENT STATE:
+`config.feature_flags.FEATURE_ADAPTIVE_DECISION_FEEDBACK` (default
+False, fail-closed) is the single master switch gating APPLICATION of
+a recommendation from any of these subsystems to a live decision.
+Learning/observation stays active unconditionally; RECOMMENDED !=
+APPLIED is now a real, code-enforced distinction. See the matrix below.
+</pre></div>
+</div>
+</div></blockquote>
 <div class="table-wrapper colwidths-auto docutils container">
 <table class="docutils align-default">
 <thead>
@@ -829,38 +859,65 @@ documented here first.</p>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">adaptive_learning.mistake_memory</span></code></p></td>
 <td><p>Blocage de trade basé sur des règles apprises d’erreurs passées</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/intelligence/mistake_memory.py</span> <span class="pre">(fichier</span> <span class="pre">protégé</span> <span class="pre">S-02B.1,</span> <span class="pre">lecture</span> <span class="pre">seule)</span></code></p></td>
-<td><p><strong>BLOCKED</strong></p></td>
-<td><p>core/advisor_loop.py:1642-1670 (_cb_mistake_memory circuit breaker)</p></td>
+<td><p><strong>PARTIAL</strong></p></td>
+<td><p>core/advisor_loop.py:1642-1670 (_cb_mistake_memory circuit breaker, <code class="docutils literal notranslate"><span class="pre">count_as_applied_block=FEATURE_ADAPTIVE_DECISION_FEEDBACK</span></code>)</p></td>
 <td><p>databases mistake_memory.jsonl ts field</p></td>
-<td><p>—</p></td>
-<td><p>Décisionnel-actif dès aujourd’hui (bloque des trades), sans flag de gouvernance explicite type FEATURE_AUTO_CALIBRATION; stats()/explain_last_mistakes() sont la seule surface observable actuelle, pas de is_learning_active/recommendation_count/applied_count.</p></td>
+<td><p>config.feature_flags.FEATURE_ADAPTIVE_DECISION_FEEDBACK</p></td>
+<td><p>POST-S02B.1 (PR #111) : apprentissage/observation toujours actifs ; blocage réel gouverné par le flag maître (défaut False, fail-closed) — <code class="docutils literal notranslate"><span class="pre">would_match_count</span></code> reste observable même flag=false (<code class="docutils literal notranslate"><span class="pre">would_match_count</span> <span class="pre">&gt;=</span> <span class="pre">trigger_count</span></code> toujours). S02_PROVENANCE_DEBT : pas de recommendation_count/applied_count agrégés dédiés.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">adaptive_learning.strategy_memory</span></code></p></td>
 <td><p>Sélection/blacklist de stratégies par régime</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/ai_evolution/strategy_memory.py</span> <span class="pre">(fichier</span> <span class="pre">protégé</span> <span class="pre">S-02B.1,</span> <span class="pre">lecture</span> <span class="pre">seule)</span></code></p></td>
-<td><p><strong>BLOCKED</strong></p></td>
-<td><p>core/advisor_loop.py:4157 (load_by_regime, décisionnel — classe/sélectionne les stratégies candidates)</p></td>
+<td><p><strong>PARTIAL</strong></p></td>
+<td><p>core/advisor_loop.py:4157 (load_by_regime, <code class="docutils literal notranslate"><span class="pre">record_usage=FEATURE_ADAPTIVE_DECISION_FEEDBACK</span></code>)</p></td>
 <td><p>databases/ai_evolution/strategy_memory.json mtime</p></td>
-<td><p>—</p></td>
-<td><p>Aucune méthode stats()/summary(); un observateur externe doit lire le JSON brut. Décisionnel-actif (mute usage_count et influence la sélection).</p></td>
+<td><p>config.feature_flags.FEATURE_ADAPTIVE_DECISION_FEEDBACK</p></td>
+<td><p>POST-S02B.1 (PR #111) : un appel passif (flag=false) ne mute plus usage_count (<code class="docutils literal notranslate"><span class="pre">record_usage</span></code>). Aucune méthode stats()/summary() ; un observateur externe doit toujours lire le JSON brut — S02_PROVENANCE_DEBT.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">adaptive_learning.meta_learner</span></code></p></td>
 <td><p>Sélection de paramètres de sortie (exit_type/tp/sl) par contexte appris</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">tracker_system/meta_learner.py</span> <span class="pre">+</span> <span class="pre">tracker_system/meta_memory.py</span> <span class="pre">(fichiers</span> <span class="pre">protégés</span> <span class="pre">S-02B.1,</span> <span class="pre">lecture</span> <span class="pre">seule)</span></code></p></td>
-<td><p><strong>BLOCKED</strong></p></td>
-<td><p>core/advisor_loop.py:1404-1418 (find_best, décisionnel), :4690-4729 (learn, tous les 5 trades)</p></td>
+<td><p><strong>PARTIAL</strong></p></td>
+<td><p>core/advisor_loop.py:1404-1418,1976,2061-2067,3985-3990 (find_best, gouverné par le flag), :4690-4729,4718-4750 (learn, toujours actif)</p></td>
 <td><p>dernière entrée meta_memory</p></td>
-<td><p>—</p></td>
-<td><p>find_best() est appliqué directement comme paramètre de sortie live — aucune séparation recommandation/application. summary()/len() sont la seule surface observable.</p></td>
+<td><p>config.feature_flags.FEATURE_ADAPTIVE_DECISION_FEEDBACK</p></td>
+<td><p>POST-S02B.1 (PR #111) : find_best() reste toujours calculé/appris ; son application comme paramètre de sortie live est gouvernée par le flag. RECOMMENDED != APPLIED désormais réel en code. S02_PROVENANCE_DEBT : summary()/len() restent la seule surface observable agrégée.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">adaptive_learning.regret_decision_feedback_precedent</span></code></p></td>
-<td><p>Seul précédent de gouvernance double opt-in pour un chemin d’apprentissage adaptatif</p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">adaptive_learning.strategy_ranker</span></code></p></td>
+<td><p>Classement de stratégies par Sharpe et statistiques de sizing par régime</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/ai_evolution/strategy_ranker.py</span> <span class="pre">(fichier</span> <span class="pre">protégé</span> <span class="pre">S-02B.1,</span> <span class="pre">lecture</span> <span class="pre">seule)</span></code></p></td>
+<td><p><strong>PARTIAL</strong></p></td>
+<td><p>core/advisor_loop.py (best_sharpe et statistiques de sizing consommées par le dimensionnement de capital)</p></td>
+<td><p>dernière mise à jour du ranking</p></td>
+<td><p>config.feature_flags.FEATURE_ADAPTIVE_DECISION_FEEDBACK</p></td>
+<td><p>POST-S02B.1 (PR #111) : classement/observation toujours actifs (best_sharpe() inconditionnel) ; influence live sur memory_sharpe/capital-allocation gouvernée par le même flag que les trois modules ci-dessus. S02_PROVENANCE_DEBT. Nouvelle entrée O-01R : absente de la table originale O-01.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">adaptive_learning.system_controller_adaptive</span></code></p></td>
+<td><p>Actions d’optimisation adaptative (ADJUST_TP, ADJUST_SL, APPLY_META)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">tracker_system/autonomous/auto_decision_engine.py</span> <span class="pre">(fichier</span> <span class="pre">protégé</span> <span class="pre">S-02B.1,</span> <span class="pre">lecture</span> <span class="pre">seule)</span></code></p></td>
+<td><p><strong>PARTIAL</strong></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">AutoDecisionEngine._PASSIVE_GATED_ACTIONS</span></code> (ADJUST_TP, ADJUST_SL, APPLY_META)</p></td>
+<td><p>dernière décision produite</p></td>
+<td><p>config.feature_flags.FEATURE_ADAPTIVE_DECISION_FEEDBACK</p></td>
+<td><p>POST-S02B.1 (PR #111) : génération toujours active, seule l’APPLICATION est gouvernée par le flag (auto_decision_engine.py:19-23). S02_SYSTEMCONTROLLER_GUARD_ORDER_DEBT : l’ordre d’application interne d’ActionExecutor précède les vérifications tardives de confiance/cooldown d’advisor_loop.py ; accepté comme non-bloquant, ordre non modifié par O-01R. Nouvelle entrée O-01R.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">adaptive_learning.system_controller_safety</span></code></p></td>
+<td><p>Actions de sécurité/récupération/risque (STOP_TRADING, RESUME_TRADING, REDUCE_RISK)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">tracker_system/autonomous/auto_decision_engine.py</span> <span class="pre">(fichier</span> <span class="pre">protégé</span> <span class="pre">S-02B.1,</span> <span class="pre">lecture</span> <span class="pre">seule)</span></code></p></td>
+<td><p><strong>CANONICAL_EXISTING</strong></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">AutoDecisionEngine</span></code> — explicitement hors de <code class="docutils literal notranslate"><span class="pre">_PASSIVE_GATED_ACTIONS</span></code></p></td>
+<td><p>dernière décision produite</p></td>
+<td><p>—</p></td>
+<td><p>Ne pas classer comme feedback adaptatif : ces actions restent pleinement autoritaires indépendamment du flag (commentaire explicite auto_decision_engine.py:19-23). Documenté pour clarifier la frontière avec system_controller_adaptive. Nouvelle entrée O-01R.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">adaptive_learning.regret_decision_feedback_precedent</span></code></p></td>
+<td><p>Précédent de gouvernance double opt-in pour un chemin d’apprentissage adaptatif séparé (Regret)</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">config/feature_flags.py::FEATURE_AUTO_CALIBRATION,</span> <span class="pre">FEATURE_REGRET_DECISION_FEEDBACK</span> <span class="pre">(fichier</span> <span class="pre">protégé,</span> <span class="pre">lecture</span> <span class="pre">seule)</span></code></p></td>
 <td><p><strong>CANONICAL_EXISTING</strong></p></td>
 <td><p>RegretEngine.get_threshold_delta() -&gt; GlobalRiskGate.apply_regret_delta()</p></td>
 <td><p>process config</p></td>
 <td><p>—</p></td>
-<td><p>Scope d’ADR-0007 confirmé restreint à ce chemin unique — ne couvre pas mistake_memory/strategy_memory/meta_learner malgré leur nature également adaptative.</p></td>
+<td><p>POST-S02B.1 : n’est plus le seul chemin gouverné — <code class="docutils literal notranslate"><span class="pre">FEATURE_ADAPTIVE_DECISION_FEEDBACK</span></code> (S-02B.1) gouverne désormais mistake_memory/strategy_memory/meta_learner/strategy_ranker/system_controller_adaptive séparément. Les deux flags restent des gouvernances distinctes, jamais fusionnées ; Regret hors périmètre de cette reconciliation.</p></td>
 </tr>
 </tbody>
 </table>

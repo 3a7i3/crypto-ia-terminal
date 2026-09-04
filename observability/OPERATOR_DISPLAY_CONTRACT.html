@@ -282,12 +282,20 @@ must be visually and textually distinguished from
 never summed. This preserves the existing guardrail in
 <code class="docutils literal notranslate"><span class="pre">observability/real_accounts.py</span></code> (see <code class="docutils literal notranslate"><span class="pre">OPERATOR_OBSERVABILITY_</span> <span class="pre">ARCHITECTURE.md</span></code> §10) and directly targets the <code class="docutils literal notranslate"><span class="pre">/kpis</span></code> ambiguity found
 in <code class="docutils literal notranslate"><span class="pre">TELEGRAM_BOT_REGISTRY.md</span></code>.</p></li>
-<li><p><strong>Recommendation != applied action.</strong> Where <code class="docutils literal notranslate"><span class="pre">adaptive_learning</span></code>
-exposes <code class="docutils literal notranslate"><span class="pre">recommendation_count</span></code>/<code class="docutils literal notranslate"><span class="pre">applied_count</span></code>
-(<code class="docutils literal notranslate"><span class="pre">FUTURE_PROVIDER</span></code>/<code class="docutils literal notranslate"><span class="pre">S02_DEPENDENCY</span></code> today), an adapter must never
-collapse the two into one figure once they exist, and must state
-plainly today that no such distinction exists yet for
-mistake_memory/strategy_memory/meta_learner (mission §14 finding).</p></li>
+<li><p><strong>Recommendation != applied action.</strong> POST-S02B.1 (PR #111), the
+RECOMMENDED vs APPLIED split is real and code-enforced for
+mistake_memory/strategy_memory/meta_learner/strategy_ranker: whether a
+recommendation is applied to a live decision is governed by
+<code class="docutils literal notranslate"><span class="pre">config.feature_flags.FEATURE_ADAPTIVE_DECISION_FEEDBACK</span></code> (default
+False, fail-closed), independent of learning/observation which stay
+active unconditionally. <code class="docutils literal notranslate"><span class="pre">adaptive_learning.recommendation_count</span></code>/
+<code class="docutils literal notranslate"><span class="pre">applied_count</span></code> themselves remain <code class="docutils literal notranslate"><span class="pre">FUTURE_PROVIDER</span></code> (S02_PROVENANCE_DEBT
+— no dedicated per-recommendation counter exists yet in the protected
+modules); an adapter must never collapse the two into one figure once
+a counter surface exists, and must not imply today’s absence of a
+<em>counter</em> means the underlying RECOMMENDED/APPLIED distinction itself
+does not exist — it does, at the flag level (mission §14, reconciled
+O-01R).</p></li>
 <li><p><strong>Process alive != scientific health.</strong> <code class="docutils literal notranslate"><span class="pre">system_health.boot_alive</span></code>
 and <code class="docutils literal notranslate"><span class="pre">system_health.health_score</span></code> must always render as two distinct
 signals — a green “process alive” indicator must never stand in for

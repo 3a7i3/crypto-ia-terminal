@@ -373,7 +373,7 @@ they do not merge.</p>
 </tr>
 <tr class="row-even"><td><p>I</p></td>
 <td><p>ADAPTIVE LEARNING STATE</p></td>
-<td><p>Is adaptive learning passive or already decision-active?</p></td>
+<td><p>Is a recommendation, or is it applied — and is FEATURE_ADAPTIVE_DECISION_FEEDBACK on?</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">domains/adaptive_learning.py</span></code></p></td>
 </tr>
 <tr class="row-odd"><td><p>J</p></td>
@@ -504,7 +504,7 @@ Observer O-02 migration contract” and
 </section>
 <section id="known-gaps-forensic-findings-not-fixed-by-o-01">
 <h2>10. Known gaps (forensic findings, not fixed by O-01)<a class="headerlink" href="#known-gaps-forensic-findings-not-fixed-by-o-01" title="Link to this heading">¶</a></h2>
-<ul class="simple">
+<ul>
 <li><p><strong>Dual decision pipeline.</strong> <code class="docutils literal notranslate"><span class="pre">DecisionPacket</span></code>/<code class="docutils literal notranslate"><span class="pre">DecisionObservation</span></code>
 (canonical, ADR-0007) runs in parallel with the legacy dict pipeline
 that still actually drives execution
@@ -515,14 +515,41 @@ See <code class="docutils literal notranslate"><span class="pre">decision_pipeli
 populated) vs. <code class="docutils literal notranslate"><span class="pre">pos_manager</span></code> feeding <code class="docutils literal notranslate"><span class="pre">PortfolioBrain.portfolio_health()</span></code>
 (frequently empty) — exposure/free-capital figures inherit this
 divergence. See <code class="docutils literal notranslate"><span class="pre">portfolio_state.py::MODULES</span></code>.</p></li>
-<li><p><strong>Adaptive learning is decision-active today, not passive.</strong>
-<code class="docutils literal notranslate"><span class="pre">MistakeMemory.check_before_trade()</span></code> and <code class="docutils literal notranslate"><span class="pre">MetaLearner.find_best()</span></code>/
-<code class="docutils literal notranslate"><span class="pre">learn()</span></code> gate/shape live trades without any <code class="docutils literal notranslate"><span class="pre">FEATURE_*</span></code> governance
-flag; <code class="docutils literal notranslate"><span class="pre">RECOMMENDED</span> <span class="pre">!=</span> <span class="pre">APPLIED</span></code> is not distinguished for them (the
-recommendation <em>is</em> the applied value, same code path). ADR-0007’s
-<code class="docutils literal notranslate"><span class="pre">FEATURE_AUTO_CALIBRATION</span></code>/<code class="docutils literal notranslate"><span class="pre">FEATURE_REGRET_DECISION_FEEDBACK</span></code> scope
-covers only the Regret-threshold auto-calibration path. See
-<code class="docutils literal notranslate"><span class="pre">adaptive_learning.py::MODULES</span></code>.</p></li>
+<li><p><strong>Adaptive learning application counters remain unexposed
+(S02_PROVENANCE_DEBT).</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>PRE-S02 FORENSIC FINDING:
+MistakeMemory.check_before_trade() and MetaLearner.find_best()/learn()
+gate/shape live trades without any FEATURE_* governance flag;
+RECOMMENDED != APPLIED is not distinguished for them (the
+recommendation *is* the applied value, same code path).
+
+REMEDIATED BY:
+S-02B.1 / PR #111
+
+POST-S02 CURRENT STATE:
+config.feature_flags.FEATURE_ADAPTIVE_DECISION_FEEDBACK (default
+False, fail-closed) governs APPLICATION only for MistakeMemory,
+MetaLearner/MetaMemory, StrategyMemoryStore, and StrategyRanker;
+learning/observation stay active unconditionally. RECOMMENDED !=
+APPLIED is now real and code-enforced. What remains a gap: no
+dedicated recommendation_count/applied_count surface exists yet in
+the protected modules (S02_PROVENANCE_DEBT) — is_decision_active stays
+UNKNOWN/FUTURE_PROVIDER absent per-event evidence (it is NEVER computed
+as is_decision_active == decision_feedback_enabled: authorized != used),
+and recommendation_equals_applied is a fixed structural False for the
+five gated adaptive subsystems (the RECOMMENDED/APPLIED split existing
+in code post-S02 is the point, not the flag's runtime value) — neither
+metric is ever derived from decision_feedback_enabled's truthiness.
+STOP_TRADING/RESUME_TRADING/REDUCE_RISK remain safety/
+recovery/risk authority, outside this governance, always fully
+authoritative (S02_SYSTEMCONTROLLER_GUARD_ORDER_DEBT tracks a
+separate, non-blocking ordering note for ActionExecutor). Regret's
+FEATURE_AUTO_CALIBRATION/FEATURE_REGRET_DECISION_FEEDBACK remains a
+separate governance path, untouched by this reconciliation. See
+`adaptive_learning.py::MODULES`.
+</pre></div>
+</div>
+</li>
 <li><p><strong>Regret freshness not surfaced over HTTP.</strong> <code class="docutils literal notranslate"><span class="pre">tools/regret_repository.</span> <span class="pre">freshness()</span></code> exists and is correct, but <code class="docutils literal notranslate"><span class="pre">BurnInSnapshot</span></code>
 (<code class="docutils literal notranslate"><span class="pre">visualization/api/burnin_api.py</span></code>) omits it — only the CLI
 (<code class="docutils literal notranslate"><span class="pre">tools/cri_calculator.py</span></code>) sees it today. See <code class="docutils literal notranslate"><span class="pre">regret_state.py::MODULES</span></code>.</p></li>

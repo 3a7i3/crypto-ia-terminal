@@ -35,12 +35,20 @@ the contract the adapters must follow.
    `observability/real_accounts.py` (see `OPERATOR_OBSERVABILITY_
    ARCHITECTURE.md` §10) and directly targets the `/kpis` ambiguity found
    in `TELEGRAM_BOT_REGISTRY.md`.
-7. **Recommendation != applied action.** Where `adaptive_learning`
-   exposes `recommendation_count`/`applied_count`
-   (`FUTURE_PROVIDER`/`S02_DEPENDENCY` today), an adapter must never
-   collapse the two into one figure once they exist, and must state
-   plainly today that no such distinction exists yet for
-   mistake_memory/strategy_memory/meta_learner (mission §14 finding).
+7. **Recommendation != applied action.** POST-S02B.1 (PR #111), the
+   RECOMMENDED vs APPLIED split is real and code-enforced for
+   mistake_memory/strategy_memory/meta_learner/strategy_ranker: whether a
+   recommendation is applied to a live decision is governed by
+   `config.feature_flags.FEATURE_ADAPTIVE_DECISION_FEEDBACK` (default
+   False, fail-closed), independent of learning/observation which stay
+   active unconditionally. `adaptive_learning.recommendation_count`/
+   `applied_count` themselves remain `FUTURE_PROVIDER` (S02_PROVENANCE_DEBT
+   — no dedicated per-recommendation counter exists yet in the protected
+   modules); an adapter must never collapse the two into one figure once
+   a counter surface exists, and must not imply today's absence of a
+   *counter* means the underlying RECOMMENDED/APPLIED distinction itself
+   does not exist — it does, at the flag level (mission §14, reconciled
+   O-01R).
 8. **Process alive != scientific health.** `system_health.boot_alive`
    and `system_health.health_score` must always render as two distinct
    signals — a green "process alive" indicator must never stand in for

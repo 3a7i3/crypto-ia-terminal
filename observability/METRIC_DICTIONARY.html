@@ -720,51 +720,126 @@ number (mission §18).</p>
 </section>
 <section id="i-adaptive-learning-state">
 <h3>I — ADAPTIVE LEARNING STATE<a class="headerlink" href="#i-adaptive-learning-state" title="Link to this heading">¶</a></h3>
+<blockquote>
+<div><p><strong>O-01R reconciliation note.</strong> This section was written pre-S-02B.1 and
+assumed no governance flag existed for these subsystems. It has been
+reconciled against the merged S-02B.1 (PR #111) implementation.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">PRE</span><span class="o">-</span><span class="n">S02</span> <span class="n">FORENSIC</span> <span class="n">FINDING</span><span class="p">:</span>
+<span class="n">mistake_memory</span><span class="o">.</span><span class="n">check_before_trade</span><span class="p">()</span> <span class="ow">and</span> <span class="n">meta_learner</span><span class="o">.</span><span class="n">find_best</span><span class="p">()</span><span class="o">+</span><span class="n">learn</span><span class="p">()</span>
+<span class="n">recorded</span> <span class="k">as</span> <span class="n">decision</span><span class="o">-</span><span class="n">active</span> <span class="n">independent</span> <span class="n">of</span> <span class="nb">any</span> <span class="n">feature</span> <span class="n">flag</span><span class="p">,</span> <span class="k">with</span> <span class="n">no</span>
+<span class="n">RECOMMENDED</span> <span class="n">vs</span> <span class="n">APPLIED</span> <span class="n">distinction</span> <span class="n">anywhere</span><span class="o">.</span>
+
+<span class="n">REMEDIATED</span> <span class="n">BY</span><span class="p">:</span>
+<span class="n">S</span><span class="o">-</span><span class="mi">02</span><span class="n">B</span><span class="mf">.1</span> <span class="o">/</span> <span class="n">PR</span> <span class="c1">#111</span>
+
+<span class="n">POST</span><span class="o">-</span><span class="n">S02</span> <span class="n">CURRENT</span> <span class="n">STATE</span><span class="p">:</span>
+<span class="n">config</span><span class="o">.</span><span class="n">feature_flags</span><span class="o">.</span><span class="n">FEATURE_ADAPTIVE_DECISION_FEEDBACK</span> <span class="p">(</span><span class="n">default</span> <span class="kc">False</span><span class="p">,</span>
+<span class="n">fail</span><span class="o">-</span><span class="n">closed</span><span class="p">)</span> <span class="n">gates</span> <span class="n">APPLICATION</span> <span class="n">only</span><span class="p">;</span> <span class="n">learning</span><span class="o">/</span><span class="n">observation</span> <span class="n">stays</span> <span class="n">active</span>
+<span class="n">unconditionally</span><span class="o">.</span> <span class="n">See</span> <span class="n">below</span><span class="o">.</span>
+</pre></div>
+</div>
+</div></blockquote>
+<blockquote>
+<div><p><strong>O-01R metric-semantics fix (this pass).</strong> <code class="docutils literal notranslate"><span class="pre">decision_feedback_enabled</span></code>,
+<code class="docutils literal notranslate"><span class="pre">is_decision_active</span></code> and <code class="docutils literal notranslate"><span class="pre">recommendation_equals_applied</span></code> are three
+distinct concepts and must never be computed as functions of one
+another — in particular <code class="docutils literal notranslate"><span class="pre">is_decision_active</span> <span class="pre">==</span> <span class="pre">decision_feedback_enabled</span></code>
+and <code class="docutils literal notranslate"><span class="pre">recommendation_equals_applied</span> <span class="pre">==</span> <span class="pre">decision_feedback_enabled</span></code> are both
+overclaims and are explicitly rejected below.</p>
+</div></blockquote>
+<section id="adaptive-learning-decision-feedback-enabled-retroaction-decisionnelle-adaptative-autorisee">
+<h4><code class="docutils literal notranslate"><span class="pre">adaptive_learning.decision_feedback_enabled</span></code> — Rétroaction décisionnelle adaptative autorisée<a class="headerlink" href="#adaptive-learning-decision-feedback-enabled-retroaction-decisionnelle-adaptative-autorisee" title="Link to this heading">¶</a></h4>
+<ul class="simple">
+<li><p><strong>Définition</strong> : AUTORITÉ/PERMISSION uniquement : indique si <code class="docutils literal notranslate"><span class="pre">config.feature_flags.FEATURE_ADAPTIVE_DECISION_FEEDBACK</span></code> (défaut False, fail-closed) est effectivement actif pour ce process. Ne prouve rien sur une recommandation en particulier — ce n’est pas une preuve d’application, seulement l’autorisation qu’un chemin d’application existe. Ne jamais utiliser cette valeur pour déduire <code class="docutils literal notranslate"><span class="pre">is_decision_active</span></code> ou <code class="docutils literal notranslate"><span class="pre">recommendation_equals_applied</span></code>.</p></li>
+<li><p><strong>Source technique</strong> : <code class="docutils literal notranslate"><span class="pre">config.feature_flags.adaptive_decision_feedback_enabled()</span></code></p></li>
+<li><p><strong>Unité / type</strong> : boolean (boolean)</p></li>
+<li><p><strong>Fraîcheur (source)</strong> : process config, re-résolu à chaque appel (jamais mis en cache) — AVAILABLE</p></li>
+<li><p><strong>Cadence attendue</strong> : static per process lifetime unless .env changes</p></li>
+<li><p><strong>Polarité</strong> : not_applicable</p></li>
+<li><p><strong>Sémantique null</strong> : NOT_DEFINED — le flag est toujours lisible</p></li>
+<li><p><strong>Sémantique avertissement</strong> : true hors fenêtre de stabilisation autorisée doit être signalé à l’opérateur</p></li>
+<li><p><strong>Sémantique critique</strong> : NOT_DEFINED</p></li>
+<li><p><strong>Source de preuve</strong> : config/feature_flags.py:64-86 — lecture seule, aucune modification</p></li>
+<li><p><strong>Priorité de présentation</strong> : primary</p></li>
+</ul>
+</section>
 <section id="adaptive-learning-is-decision-active-sous-systeme-decisionnel-actif">
 <h4><code class="docutils literal notranslate"><span class="pre">adaptive_learning.is_decision_active</span></code> — Sous-système décisionnel-actif<a class="headerlink" href="#adaptive-learning-is-decision-active-sous-systeme-decisionnel-actif" title="Link to this heading">¶</a></h4>
 <ul class="simple">
-<li><p><strong>Définition</strong> : Indique si ce sous-système d’apprentissage adaptatif influence déjà une décision de trading en temps réel (par opposition à une simple observation/recommandation passive).</p></li>
-<li><p><strong>Source technique</strong> : <code class="docutils literal notranslate"><span class="pre">mistake_memory.check_before_trade()</span> <span class="pre">/</span> <span class="pre">meta_learner.find_best()+learn()</span> <span class="pre">(lecture</span> <span class="pre">forensique)</span></code></p></li>
+<li><p><strong>Définition</strong> : EFFECTIVE APPLICATION / INFLUENCE DÉCISIONNELLE : indique si ce sous-système a réellement influencé la décision effective pour l’observation représentée — pas simplement si le flag l’y autorise. <code class="docutils literal notranslate"><span class="pre">decision_feedback_enabled=true</span></code> autorise un chemin d’application ; il ne prouve pas qu’une recommandation a existé, a survécu aux conditions restantes, a été sélectionnée, a changé l’état effectif, ou a été journalée comme appliquée. En l’absence de preuve par-événement, cette valeur reste UNKNOWN/FUTURE_PROVIDER — <strong>jamais</strong> déduite comme <code class="docutils literal notranslate"><span class="pre">is_decision_active</span> <span class="pre">==</span> <span class="pre">decision_feedback_enabled</span></code>.</p></li>
+<li><p><strong>Source technique</strong> : <code class="docutils literal notranslate"><span class="pre">mistake_memory.check_before_trade(count_as_applied_block=FEATURE_ADAPTIVE_DECISION_FEEDBACK)</span> <span class="pre">/</span> <span class="pre">meta_learner.find_best()+learn()</span> <span class="pre">/</span> <span class="pre">strategy_memory.load_by_regime(record_usage=FEATURE_ADAPTIVE_DECISION_FEEDBACK)</span> <span class="pre">/</span> <span class="pre">strategy_ranker.best_sharpe()</span></code></p></li>
 <li><p><strong>Unité / type</strong> : boolean (boolean)</p></li>
-<li><p><strong>Fraîcheur (source)</strong> : FUTURE_PROVIDER — nécessite instrumentation dans les fichiers protégés S-02B.1</p></li>
+<li><p><strong>Fraîcheur (source)</strong> : FUTURE_PROVIDER — nécessite une preuve par-événement (pas seulement la lecture du flag) au moment de la décision, non encore exposée par un compteur dédié</p></li>
 <li><p><strong>Cadence attendue</strong> : FUTURE_PROVIDER</p></li>
 <li><p><strong>Polarité</strong> : not_applicable</p></li>
-<li><p><strong>Sémantique null</strong> : UNKNOWN tant qu’aucun champ dédié n’existe dans les modules protégés — cette valeur est aujourd’hui déduite forensiquement, pas lue depuis un champ observable</p></li>
-<li><p><strong>Sémantique avertissement</strong> : true pour un sous-système sans flag de gouvernance explicite doit être signalé à l’opérateur comme écart potentiel à ADR-0007</p></li>
+<li><p><strong>Sémantique null</strong> : UNKNOWN tant qu’aucun compteur dédié n’expose une preuve d’application par-événement — S02_PROVENANCE_DEBT. Ne jamais combler ce UNKNOWN en substituant la valeur de <code class="docutils literal notranslate"><span class="pre">decision_feedback_enabled</span></code> : enabled != used.</p></li>
+<li><p><strong>Sémantique avertissement</strong> : true alors que <code class="docutils literal notranslate"><span class="pre">decision_feedback_enabled=false</span></code> doit être signalé à l’opérateur comme incohérence à investiguer immédiatement (le flag est la seule autorité d’application POST-S02B.1)</p></li>
 <li><p><strong>Sémantique critique</strong> : NOT_DEFINED</p></li>
-<li><p><strong>Source de preuve</strong> : core/advisor_loop.py:1642-1670 (mistake_memory), :1404-1418,4690-4729 (meta_learner) — lecture seule, aucune modification</p></li>
+<li><p><strong>Source de preuve</strong> : config/feature_flags.py:64-86 ; core/advisor_loop.py:77-79,687-691,1497,1526,1745-1763,1839,1976,2061-2067,3985-3990,4422-4427,4718-4750 ; tracker_system/autonomous/auto_decision_engine.py:19-23 (<code class="docutils literal notranslate"><span class="pre">_PASSIVE_GATED_ACTIONS</span></code>) — lecture seule, aucune modification</p></li>
 <li><p><strong>Priorité de présentation</strong> : primary</p></li>
 </ul>
 </section>
 <section id="adaptive-learning-recommendation-equals-applied-recommandation-action-appliquee">
 <h4><code class="docutils literal notranslate"><span class="pre">adaptive_learning.recommendation_equals_applied</span></code> — Recommandation = Action appliquée<a class="headerlink" href="#adaptive-learning-recommendation-equals-applied-recommandation-action-appliquee" title="Link to this heading">¶</a></h4>
 <ul class="simple">
-<li><p><strong>Définition</strong> : Distinction RECOMMENDED vs APPLIED. Aujourd’hui absente pour mistake_memory/strategy_memory/meta_learner: la valeur retournée par le sous-système EST la valeur appliquée, sur le même chemin de code — pas de journal contrefactuel séparé.</p></li>
-<li><p><strong>Source technique</strong> : <code class="docutils literal notranslate"><span class="pre">S02_DEPENDENCY</span></code></p></li>
+<li><p><strong>Définition</strong> : PROPRIÉTÉ STRUCTURELLE des cinq sous-systèmes adaptatifs gated (mistake_memory, strategy_memory, meta_learner, strategy_ranker, system_controller_adaptive), pas une vérification d’égalité par événement. PRE-S02B.1, la valeur retournée par ces sous-systèmes ÉTAIT la valeur appliquée (même chemin de code) : <code class="docutils literal notranslate"><span class="pre">recommendation_equals_applied</span></code> était structurellement vrai. POST-S02B.1, la recommandation reste toujours calculée, mais son application est désormais un pas distinct gouverné par <code class="docutils literal notranslate"><span class="pre">FEATURE_ADAPTIVE_DECISION_FEEDBACK</span></code>. C’est cette séparation architecturale — le fait qu’elle existe, indépendamment de la valeur courante du flag — que ce champ rapporte : <code class="docutils literal notranslate"><span class="pre">recommendation_equals_applied=False</span></code> de façon fixe pour ces cinq sous-systèmes, que le flag lise true ou false. <strong>Ne jamais</strong> calculer cette valeur comme <code class="docutils literal notranslate"><span class="pre">recommendation_equals_applied</span> <span class="pre">==</span> <span class="pre">decision_feedback_enabled</span></code> ni comme une fonction quelconque de la vérité runtime du flag.</p></li>
+<li><p><strong>Source technique</strong> : <code class="docutils literal notranslate"><span class="pre">S02B1_STRUCTURAL_SPLIT</span></code> — propriété structurelle, pas une égalité runtime avec le flag</p></li>
 <li><p><strong>Unité / type</strong> : boolean (boolean)</p></li>
-<li><p><strong>Fraîcheur (source)</strong> : FUTURE_PROVIDER</p></li>
-<li><p><strong>Cadence attendue</strong> : FUTURE_PROVIDER</p></li>
-<li><p><strong>Polarité</strong> : not_applicable</p></li>
-<li><p><strong>Sémantique null</strong> : UNKNOWN — nécessite un champ dédié dans les modules protégés (S02_DEPENDENCY)</p></li>
+<li><p><strong>Fraîcheur (source)</strong> : AVAILABLE — propriété structurelle du code actuel, ne varie pas avec le flag ni dans le temps</p></li>
+<li><p><strong>Cadence attendue</strong> : n/a — structurel, pas un compteur temporel</p></li>
+<li><p><strong>Polarité</strong> : lower_is_better</p></li>
+<li><p><strong>Sémantique null</strong> : NOT_DEFINED — la propriété structurelle est toujours déterminable (False pour ces cinq sous-systèmes)</p></li>
 <li><p><strong>Sémantique avertissement</strong> : NOT_DEFINED</p></li>
 <li><p><strong>Sémantique critique</strong> : NOT_DEFINED</p></li>
-<li><p><strong>Source de preuve</strong> : core/advisor_loop.py:1408-1418,1669-1670 — confirmé par lecture forensique, non instrumenté</p></li>
+<li><p><strong>Source de preuve</strong> : config/feature_flags.py:64-86 ; quant_hedge_ai/agents/intelligence/mistake_memory.py:198-245 (count_as_applied_block, would_match_count/trigger_count désormais distincts) ; quant_hedge_ai/ai_evolution/strategy_memory.py:80-112 (record_usage)</p></li>
 <li><p><strong>Priorité de présentation</strong> : primary</p></li>
 </ul>
 </section>
 <section id="adaptive-learning-recommendation-count-nombre-de-recommandations">
 <h4><code class="docutils literal notranslate"><span class="pre">adaptive_learning.recommendation_count</span></code> — Nombre de recommandations<a class="headerlink" href="#adaptive-learning-recommendation-count-nombre-de-recommandations" title="Link to this heading">¶</a></h4>
 <ul class="simple">
-<li><p><strong>Définition</strong> : Nombre de recommandations produites par le sous-système sur la fenêtre observée.</p></li>
-<li><p><strong>Source technique</strong> : <code class="docutils literal notranslate"><span class="pre">S02_DEPENDENCY</span></code></p></li>
+<li><p><strong>Définition</strong> : Nombre de recommandations produites par le sous-système sur la fenêtre observée, que le flag d’application soit actif ou non.</p></li>
+<li><p><strong>Source technique</strong> : <code class="docutils literal notranslate"><span class="pre">would_match_count</span> <span class="pre">(mistake_memory)</span> <span class="pre">/</span> <span class="pre">find_best()</span> <span class="pre">calls</span> <span class="pre">(meta_learner)</span> <span class="pre">/</span> <span class="pre">load_by_regime()</span> <span class="pre">calls</span> <span class="pre">(strategy_memory)</span> <span class="pre">/</span> <span class="pre">best_sharpe()</span> <span class="pre">calls</span> <span class="pre">(strategy_ranker)</span></code></p></li>
 <li><p><strong>Unité / type</strong> : count (count)</p></li>
-<li><p><strong>Fraîcheur (source)</strong> : FUTURE_PROVIDER</p></li>
+<li><p><strong>Fraîcheur (source)</strong> : FUTURE_PROVIDER — S02_PROVENANCE_DEBT : per-recommendation versioning/compteur agrégé non encore exposé</p></li>
 <li><p><strong>Cadence attendue</strong> : FUTURE_PROVIDER</p></li>
 <li><p><strong>Polarité</strong> : not_applicable</p></li>
 <li><p><strong>Sémantique null</strong> : UNKNOWN</p></li>
 <li><p><strong>Sémantique avertissement</strong> : NOT_DEFINED</p></li>
 <li><p><strong>Sémantique critique</strong> : NOT_DEFINED</p></li>
-<li><p><strong>Source de preuve</strong> : Aucun compteur persistant confirmé pour mistake_memory/strategy_memory/meta_learner au-delà de stats()/summary() ponctuels</p></li>
+<li><p><strong>Source de preuve</strong> : quant_hedge_ai/agents/intelligence/mistake_memory.py:91,232 (would_match_count) — au-delà de ce champ, aucun compteur persistant agrégé confirmé pour strategy_memory/meta_learner/strategy_ranker au-delà de stats()/summary() ponctuels</p></li>
+<li><p><strong>Priorité de présentation</strong> : diagnostic</p></li>
+</ul>
+</section>
+<section id="adaptive-learning-applied-count-nombre-dactions-appliquees">
+<h4><code class="docutils literal notranslate"><span class="pre">adaptive_learning.applied_count</span></code> — Nombre d’actions appliquées<a class="headerlink" href="#adaptive-learning-applied-count-nombre-dactions-appliquees" title="Link to this heading">¶</a></h4>
+<ul class="simple">
+<li><p><strong>Définition</strong> : Nombre de recommandations effectivement appliquées à une décision live sur la fenêtre observée (distinct de <code class="docutils literal notranslate"><span class="pre">recommendation_count</span></code>, jamais inféré depuis <code class="docutils literal notranslate"><span class="pre">decision_feedback_enabled</span></code>). <code class="docutils literal notranslate"><span class="pre">mistake_memory.BlockRule.trigger_count</span></code> existe par règle mais aucune méthode n’agrège encore ce compteur au niveau du sous-système entier ; aucun compteur équivalent confirmé pour strategy_memory/meta_learner/strategy_ranker/system_controller_adaptive au-delà de leurs points de gate individuels.</p></li>
+<li><p><strong>Source technique</strong> : <code class="docutils literal notranslate"><span class="pre">trigger_count</span> <span class="pre">(mistake_memory)</span></code> — pas d’agrégat sous-système confirmé pour les autres sous-systèmes</p></li>
+<li><p><strong>Unité / type</strong> : count (count)</p></li>
+<li><p><strong>Fraîcheur (source)</strong> : FUTURE_PROVIDER — S02_PROVENANCE_DEBT : agrégat sous-système non encore exposé</p></li>
+<li><p><strong>Cadence attendue</strong> : FUTURE_PROVIDER</p></li>
+<li><p><strong>Polarité</strong> : not_applicable</p></li>
+<li><p><strong>Sémantique null</strong> : UNKNOWN</p></li>
+<li><p><strong>Sémantique avertissement</strong> : NOT_DEFINED</p></li>
+<li><p><strong>Sémantique critique</strong> : NOT_DEFINED</p></li>
+<li><p><strong>Source de preuve</strong> : quant_hedge_ai/agents/intelligence/mistake_memory.py:88,234 (BlockRule.trigger_count, par règle, pas de somme exposée)</p></li>
+<li><p><strong>Priorité de présentation</strong> : diagnostic</p></li>
+</ul>
+</section>
+<section id="adaptive-learning-memory-state-provenance-provenance-de-letat-memoire">
+<h4><code class="docutils literal notranslate"><span class="pre">adaptive_learning.memory_state_provenance</span></code> — Provenance de l’état mémoire<a class="headerlink" href="#adaptive-learning-memory-state-provenance-provenance-de-letat-memoire" title="Link to this heading">¶</a></h4>
+<ul class="simple">
+<li><p><strong>Définition</strong> : Objet <code class="docutils literal notranslate"><span class="pre">{subsystem,</span> <span class="pre">source_path,</span> <span class="pre">state_mtime,</span> <span class="pre">compteurs</span> <span class="pre">volumétriques}</span></code> exposé par chacun des cinq sous-systèmes adaptatifs (<code class="docutils literal notranslate"><span class="pre">state_provenance()</span></code>), permettant de distinguer une recommandation produite depuis l’état mémoire X d’une autre produite depuis l’état Y. Ne remplace pas un versioning complet par recommandation (S02_PROVENANCE_DEBT) — c’est une provenance de l’état mémoire agrégé, pas une preuve d’application par-événement (ne pas confondre avec <code class="docutils literal notranslate"><span class="pre">is_decision_active</span></code>).</p></li>
+<li><p><strong>Source technique</strong> : <code class="docutils literal notranslate"><span class="pre">&lt;subsystem&gt;.state_provenance()</span></code></p></li>
+<li><p><strong>Unité / type</strong> : object (enum)</p></li>
+<li><p><strong>Fraîcheur (source)</strong> : state_mtime dans la valeur elle-même — AVAILABLE (méthode confirmée présente sur les cinq modules protégés)</p></li>
+<li><p><strong>Cadence attendue</strong> : on demand</p></li>
+<li><p><strong>Polarité</strong> : not_applicable</p></li>
+<li><p><strong>Sémantique null</strong> : NOT_DEFINED</p></li>
+<li><p><strong>Sémantique avertissement</strong> : NOT_DEFINED</p></li>
+<li><p><strong>Sémantique critique</strong> : NOT_DEFINED</p></li>
+<li><p><strong>Source de preuve</strong> : quant_hedge_ai/agents/intelligence/mistake_memory.py:608 ; quant_hedge_ai/ai_evolution/strategy_memory.py:138 ; quant_hedge_ai/ai_evolution/strategy_ranker.py:292 ; tracker_system/meta_learner.py:156 ; tracker_system/meta_memory.py:62 — lecture seule, aucune modification</p></li>
 <li><p><strong>Priorité de présentation</strong> : diagnostic</p></li>
 </ul>
 </section>
@@ -1101,9 +1176,12 @@ scope for this mission).</p>
 </ul>
 </li>
 <li><a class="reference internal" href="#i-adaptive-learning-state">I — ADAPTIVE LEARNING STATE</a><ul>
+<li><a class="reference internal" href="#adaptive-learning-decision-feedback-enabled-retroaction-decisionnelle-adaptative-autorisee"><code class="docutils literal notranslate"><span class="pre">adaptive_learning.decision_feedback_enabled</span></code> — Rétroaction décisionnelle adaptative autorisée</a></li>
 <li><a class="reference internal" href="#adaptive-learning-is-decision-active-sous-systeme-decisionnel-actif"><code class="docutils literal notranslate"><span class="pre">adaptive_learning.is_decision_active</span></code> — Sous-système décisionnel-actif</a></li>
 <li><a class="reference internal" href="#adaptive-learning-recommendation-equals-applied-recommandation-action-appliquee"><code class="docutils literal notranslate"><span class="pre">adaptive_learning.recommendation_equals_applied</span></code> — Recommandation = Action appliquée</a></li>
 <li><a class="reference internal" href="#adaptive-learning-recommendation-count-nombre-de-recommandations"><code class="docutils literal notranslate"><span class="pre">adaptive_learning.recommendation_count</span></code> — Nombre de recommandations</a></li>
+<li><a class="reference internal" href="#adaptive-learning-applied-count-nombre-dactions-appliquees"><code class="docutils literal notranslate"><span class="pre">adaptive_learning.applied_count</span></code> — Nombre d’actions appliquées</a></li>
+<li><a class="reference internal" href="#adaptive-learning-memory-state-provenance-provenance-de-letat-memoire"><code class="docutils literal notranslate"><span class="pre">adaptive_learning.memory_state_provenance</span></code> — Provenance de l’état mémoire</a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#j-disk-i-o">J — DISK / I-O</a><ul>
