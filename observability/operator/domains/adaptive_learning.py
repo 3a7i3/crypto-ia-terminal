@@ -130,7 +130,7 @@ class SubsystemLearningState:
     is_decision_active: ObservedValue  # distinct from the two above — this subsystem gates/shapes live trades today
     recommendation_count: ObservedValue
     applied_count: ObservedValue
-    recommendation_equals_applied: ObservedValue  # bool — true where no RECOMMENDED/APPLIED split exists yet
+    recommendation_equals_applied: ObservedValue  # bool — structural property; False post-S02 for gated adaptive subsystems, independent of decision_feedback_enabled's runtime value
     decision_feedback_enabled: ObservedValue
     memory_state_provenance: ObservedValue
     last_update_utc: ObservedValue
