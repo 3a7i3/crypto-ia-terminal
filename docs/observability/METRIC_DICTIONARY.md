@@ -423,46 +423,65 @@ number (mission §18).
 
 ### I — ADAPTIVE LEARNING STATE
 
+> **O-01R reconciliation note.** This section was written pre-S-02B.1 and
+> assumed no governance flag existed for these subsystems. It has been
+> reconciled against the merged S-02B.1 (PR #111) implementation.
+>
+> ```
+> PRE-S02 FORENSIC FINDING:
+> mistake_memory.check_before_trade() and meta_learner.find_best()+learn()
+> recorded as decision-active independent of any feature flag, with no
+> RECOMMENDED vs APPLIED distinction anywhere.
+>
+> REMEDIATED BY:
+> S-02B.1 / PR #111
+>
+> POST-S02 CURRENT STATE:
+> config.feature_flags.FEATURE_ADAPTIVE_DECISION_FEEDBACK (default False,
+> fail-closed) gates APPLICATION only; learning/observation stays active
+> unconditionally. See below.
+> ```
+
 #### `adaptive_learning.is_decision_active` — Sous-système décisionnel-actif
 
-- **Définition** : Indique si ce sous-système d'apprentissage adaptatif influence déjà une décision de trading en temps réel (par opposition à une simple observation/recommandation passive).
-- **Source technique** : `mistake_memory.check_before_trade() / meta_learner.find_best()+learn() (lecture forensique)`
+- **Définition** : Indique si ce sous-système d'apprentissage adaptatif influence déjà une décision de trading en temps réel (par opposition à une simple observation/recommandation passive). POST-S02B.1 : gouverné par `config.feature_flags.FEATURE_ADAPTIVE_DECISION_FEEDBACK` (défaut False, fail-closed) ; apprentissage/observation restent actifs indépendamment du flag.
+- **Source technique** : `mistake_memory.check_before_trade(count_as_applied_block=FEATURE_ADAPTIVE_DECISION_FEEDBACK) / meta_learner.find_best()+learn() / strategy_memory.load_by_regime(record_usage=FEATURE_ADAPTIVE_DECISION_FEEDBACK) / strategy_ranker.best_sharpe()`
 - **Unité / type** : boolean (boolean)
-- **Fraîcheur (source)** : FUTURE_PROVIDER — nécessite instrumentation dans les fichiers protégés S-02B.1
+- **Fraîcheur (source)** : FUTURE_PROVIDER — nécessite une lecture directe du flag effectif (`adaptive_decision_feedback_enabled()`) au moment de la décision, non encore exposée par un compteur dédié
 - **Cadence attendue** : FUTURE_PROVIDER
 - **Polarité** : not_applicable
-- **Sémantique null** : UNKNOWN tant qu'aucun champ dédié n'existe dans les modules protégés — cette valeur est aujourd'hui déduite forensiquement, pas lue depuis un champ observable
-- **Sémantique avertissement** : true pour un sous-système sans flag de gouvernance explicite doit être signalé à l'opérateur comme écart potentiel à ADR-0007
+- **Sémantique null** : UNKNOWN tant qu'aucun compteur dédié n'expose la valeur effective du flag au moment de chaque décision — S02_PROVENANCE_DEBT
+- **Sémantique avertissement** : true alors que `FEATURE_ADAPTIVE_DECISION_FEEDBACK=false` doit être signalé à l'opérateur comme incohérence à investiguer (le flag est la seule autorité d'application POST-S02B.1)
 - **Sémantique critique** : NOT_DEFINED
-- **Source de preuve** : core/advisor_loop.py:1642-1670 (mistake_memory), :1404-1418,4690-4729 (meta_learner) — lecture seule, aucune modification
+- **Source de preuve** : config/feature_flags.py:64-86 ; core/advisor_loop.py:77-79,687-691,1497,1526,1745-1763,1839,1976,2061-2067,3985-3990,4422-4427,4718-4750 ; tracker_system/autonomous/auto_decision_engine.py:19-23 (`_PASSIVE_GATED_ACTIONS`) — lecture seule, aucune modification
 - **Priorité de présentation** : primary
 
 #### `adaptive_learning.recommendation_equals_applied` — Recommandation = Action appliquée
 
-- **Définition** : Distinction RECOMMENDED vs APPLIED. Aujourd'hui absente pour mistake_memory/strategy_memory/meta_learner: la valeur retournée par le sous-système EST la valeur appliquée, sur le même chemin de code — pas de journal contrefactuel séparé.
-- **Source technique** : `S02_DEPENDENCY`
+- **Définition** : Distinction RECOMMENDED vs APPLIED. POST-S02B.1, cette distinction existe réellement en code pour mistake_memory/strategy_memory/meta_learner/strategy_ranker : la recommandation reste toujours calculée, mais son application à une décision live est gouvernée par `FEATURE_ADAPTIVE_DECISION_FEEDBACK` (défaut False). `recommendation_equals_applied=true` seulement quand le flag est actif.
+- **Source technique** : `FEATURE_ADAPTIVE_DECISION_FEEDBACK`
 - **Unité / type** : boolean (boolean)
-- **Fraîcheur (source)** : FUTURE_PROVIDER
+- **Fraîcheur (source)** : FUTURE_PROVIDER — nécessite exposition directe de `adaptive_decision_feedback_enabled()` comme métrique dédiée
 - **Cadence attendue** : FUTURE_PROVIDER
 - **Polarité** : not_applicable
-- **Sémantique null** : UNKNOWN — nécessite un champ dédié dans les modules protégés (S02_DEPENDENCY)
+- **Sémantique null** : UNKNOWN — S02_PROVENANCE_DEBT : le flag effectif gouverne l'application mais aucun compteur par-recommandation n'existe encore
 - **Sémantique avertissement** : NOT_DEFINED
 - **Sémantique critique** : NOT_DEFINED
-- **Source de preuve** : core/advisor_loop.py:1408-1418,1669-1670 — confirmé par lecture forensique, non instrumenté
+- **Source de preuve** : config/feature_flags.py:64-86 ; quant_hedge_ai/agents/intelligence/mistake_memory.py:198-245 (count_as_applied_block) ; quant_hedge_ai/ai_evolution/strategy_memory.py:80-112 (record_usage)
 - **Priorité de présentation** : primary
 
 #### `adaptive_learning.recommendation_count` — Nombre de recommandations
 
-- **Définition** : Nombre de recommandations produites par le sous-système sur la fenêtre observée.
-- **Source technique** : `S02_DEPENDENCY`
+- **Définition** : Nombre de recommandations produites par le sous-système sur la fenêtre observée, que le flag d'application soit actif ou non.
+- **Source technique** : `would_match_count (mistake_memory) / find_best() calls (meta_learner) / load_by_regime() calls (strategy_memory) / best_sharpe() calls (strategy_ranker)`
 - **Unité / type** : count (count)
-- **Fraîcheur (source)** : FUTURE_PROVIDER
+- **Fraîcheur (source)** : FUTURE_PROVIDER — S02_PROVENANCE_DEBT : per-recommendation versioning/compteur agrégé non encore exposé
 - **Cadence attendue** : FUTURE_PROVIDER
 - **Polarité** : not_applicable
 - **Sémantique null** : UNKNOWN
 - **Sémantique avertissement** : NOT_DEFINED
 - **Sémantique critique** : NOT_DEFINED
-- **Source de preuve** : Aucun compteur persistant confirmé pour mistake_memory/strategy_memory/meta_learner au-delà de stats()/summary() ponctuels
+- **Source de preuve** : quant_hedge_ai/agents/intelligence/mistake_memory.py:91,232 (would_match_count) — au-delà de ce champ, aucun compteur persistant agrégé confirmé pour strategy_memory/meta_learner/strategy_ranker au-delà de stats()/summary() ponctuels
 - **Priorité de présentation** : diagnostic
 
 

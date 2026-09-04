@@ -85,7 +85,7 @@ they do not merge.
 | F | EXECUTION STATE | Is order execution healthy? | `domains/execution_state.py` |
 | G | DATA FRESHNESS | Is each critical dataset fresh, by its own clock? | `domains/data_freshness.py` |
 | H | REGRET STATE | Is the certified S-01/v2 Regret pipeline scientifically fresh? | `domains/regret_state.py` |
-| I | ADAPTIVE LEARNING STATE | Is adaptive learning passive or already decision-active? | `domains/adaptive_learning.py` |
+| I | ADAPTIVE LEARNING STATE | Is a recommendation, or is it applied — and is FEATURE_ADAPTIVE_DECISION_FEEDBACK on? | `domains/adaptive_learning.py` |
 | J | DISK / I-O | Is storage healthy, per the DA-01 reference architecture? | `domains/disk_io.py` |
 | K | OPERATOR SUMMARY | Composition-only synthesis of the above 10 | `domains/operator_summary.py` |
 
@@ -214,14 +214,36 @@ O-01 documents the target philosophy; O-02 implements it.
   populated) vs. `pos_manager` feeding `PortfolioBrain.portfolio_health()`
   (frequently empty) — exposure/free-capital figures inherit this
   divergence. See `portfolio_state.py::MODULES`.
-- **Adaptive learning is decision-active today, not passive.**
-  `MistakeMemory.check_before_trade()` and `MetaLearner.find_best()`/
-  `learn()` gate/shape live trades without any `FEATURE_*` governance
-  flag; `RECOMMENDED != APPLIED` is not distinguished for them (the
-  recommendation *is* the applied value, same code path). ADR-0007's
-  `FEATURE_AUTO_CALIBRATION`/`FEATURE_REGRET_DECISION_FEEDBACK` scope
-  covers only the Regret-threshold auto-calibration path. See
+- **Adaptive learning application counters remain unexposed
+  (S02_PROVENANCE_DEBT).**
+  ```
+  PRE-S02 FORENSIC FINDING:
+  MistakeMemory.check_before_trade() and MetaLearner.find_best()/learn()
+  gate/shape live trades without any FEATURE_* governance flag;
+  RECOMMENDED != APPLIED is not distinguished for them (the
+  recommendation *is* the applied value, same code path).
+
+  REMEDIATED BY:
+  S-02B.1 / PR #111
+
+  POST-S02 CURRENT STATE:
+  config.feature_flags.FEATURE_ADAPTIVE_DECISION_FEEDBACK (default
+  False, fail-closed) governs APPLICATION only for MistakeMemory,
+  MetaLearner/MetaMemory, StrategyMemoryStore, and StrategyRanker;
+  learning/observation stay active unconditionally. RECOMMENDED !=
+  APPLIED is now real and code-enforced. What remains a gap: no
+  dedicated recommendation_count/applied_count surface exists yet in
+  the protected modules (S02_PROVENANCE_DEBT) — this domain still infers
+  the boolean is_decision_active/recommendation_equals_applied metrics
+  from the flag's effective value rather than reading a first-class
+  counter. STOP_TRADING/RESUME_TRADING/REDUCE_RISK remain safety/
+  recovery/risk authority, outside this governance, always fully
+  authoritative (S02_SYSTEMCONTROLLER_GUARD_ORDER_DEBT tracks a
+  separate, non-blocking ordering note for ActionExecutor). Regret's
+  FEATURE_AUTO_CALIBRATION/FEATURE_REGRET_DECISION_FEEDBACK remains a
+  separate governance path, untouched by this reconciliation. See
   `adaptive_learning.py::MODULES`.
+  ```
 - **Regret freshness not surfaced over HTTP.** `tools/regret_repository.
   freshness()` exists and is correct, but `BurnInSnapshot`
   (`visualization/api/burnin_api.py`) omits it — only the CLI
