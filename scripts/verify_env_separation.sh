@@ -31,9 +31,24 @@
 #
 # Exit code: 0 always (this is a report tool, not a hard gate). Read the
 # printed flags — ENV_MODE_OK / SECRETS_MODE_OK / SECRET_KEYS_IN_ENV_COUNT /
-# DUPLICATE_KEY_COUNT — to decide whether certification criteria are met
-# (see docs/architecture/ENVIRONMENT_CONFIGURATION_CONSTITUTION.md
+# DUPLICATE_WITHIN_ENV_COUNT / DUPLICATE_WITHIN_SECRETS_COUNT /
+# CROSS_FILE_DUPLICATE_KEY_COUNT — to decide whether certification criteria
+# are met (see docs/architecture/ENVIRONMENT_CONFIGURATION_CONSTITUTION.md
 #  § Human .env Certification Contract).
+#
+# ENV-01R metric definitions (do not confuse these — they measure different
+# properties):
+#   - DUPLICATE_WITHIN_ENV_COUNT       : same key name appearing more than
+#                                         once WITHIN .env itself.
+#   - DUPLICATE_WITHIN_SECRETS_COUNT   : same key name appearing more than
+#                                         once WITHIN .env.secrets itself.
+#   - CROSS_FILE_DUPLICATE_KEY_COUNT   : a key name defined in BOTH .env AND
+#                                         .env.secrets (the property named
+#                                         "no name defined in both files" in
+#                                         the ENV constitution). Computed as
+#                                         the size of the intersection of key
+#                                         names between the two files — never
+#                                         inspects or emits values.
 #
 # What this script NEVER does:
 #   - it never echoes, greps, or otherwise displays the right-hand side
@@ -139,16 +154,28 @@ if [[ -n "$SECRET_KEY_NAMES" && -n "$ENV_KEY_NAMES" ]]; then
     | grep -c . || true)"
 fi
 
-# ── DUPLICATE_KEY_COUNT — same key name defined more than once in the SAME
-#    file (either .env or .env.secrets) ────────────────────────────────────
+# ── DUPLICATE_WITHIN_*_COUNT — same key name defined more than once WITHIN
+#    the SAME file (either .env or .env.secrets) ───────────────────────────
 count_duplicates() {
   local names="$1"
   [[ -z "$names" ]] && { echo 0; return; }
   printf '%s\n' "$names" | sort | uniq -d | grep -c . || true
 }
-DUP_ENV="$(count_duplicates "$ENV_KEY_NAMES")"
-DUP_SECRETS="$(count_duplicates "$SECRETS_KEY_NAMES")"
-DUPLICATE_KEY_COUNT=$((DUP_ENV + DUP_SECRETS))
+DUPLICATE_WITHIN_ENV_COUNT="$(count_duplicates "$ENV_KEY_NAMES")"
+DUPLICATE_WITHIN_SECRETS_COUNT="$(count_duplicates "$SECRETS_KEY_NAMES")"
+
+# ── CROSS_FILE_DUPLICATE_KEY_COUNT — a key name defined in BOTH .env AND
+#    .env.secrets (size of the intersection of key-name sets). This is the
+#    "no name defined in both files" property from the ENV constitution —
+#    distinct from the within-file duplicate counts above. Only key NAMES
+#    are compared; values are never inspected or emitted. ──────────────────
+CROSS_FILE_DUPLICATE_KEY_COUNT=0
+if [[ -n "$ENV_KEY_NAMES" && -n "$SECRETS_KEY_NAMES" ]]; then
+  CROSS_FILE_DUPLICATE_KEY_COUNT="$(comm -12 \
+    <(printf '%s\n' "$ENV_KEY_NAMES" | sort -u) \
+    <(printf '%s\n' "$SECRETS_KEY_NAMES" | sort -u) \
+    | grep -c . || true)"
+fi
 
 # ── Sanitized report — counts and status flags only, NEVER values ──────────
 echo "ENV_FILE_PRESENT=${ENV_FILE_PRESENT}"
@@ -156,7 +183,9 @@ echo "SECRETS_FILE_PRESENT=${SECRETS_FILE_PRESENT}"
 echo "ENV_MODE_OK=${ENV_MODE_OK}"
 echo "SECRETS_MODE_OK=${SECRETS_MODE_OK}"
 echo "SECRET_KEYS_IN_ENV_COUNT=${SECRET_KEYS_IN_ENV_COUNT}"
-echo "DUPLICATE_KEY_COUNT=${DUPLICATE_KEY_COUNT}"
+echo "DUPLICATE_WITHIN_ENV_COUNT=${DUPLICATE_WITHIN_ENV_COUNT}"
+echo "DUPLICATE_WITHIN_SECRETS_COUNT=${DUPLICATE_WITHIN_SECRETS_COUNT}"
+echo "CROSS_FILE_DUPLICATE_KEY_COUNT=${CROSS_FILE_DUPLICATE_KEY_COUNT}"
 
 if [[ "$VERBOSE_NAMES" -eq 1 && -n "$SECRET_KEY_NAMES" ]]; then
   echo "--- verbose-names (SET/UNSET only — NEVER values) ---"

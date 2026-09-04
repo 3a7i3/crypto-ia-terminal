@@ -135,7 +135,10 @@ sanitized result, never a raw environment dump, and never runs
   `scripts/verify_env_separation.sh` output only (§8/§9), never by an AI
   opening either file. Do not treat this restart as itself constituting
   that confirmation; record the verifier's `SECRET_KEYS_IN_ENV_COUNT`/
-  `DUPLICATE_KEY_COUNT` output as the evidence.
+  `CROSS_FILE_DUPLICATE_KEY_COUNT` output as the evidence (ENV-01R: the
+  verifier no longer emits a single `DUPLICATE_KEY_COUNT` — it distinguishes
+  within-file duplicates from the cross-file case that matters for
+  precedence).
 
 ## 8. Secret-file permission check (without reading contents)
 

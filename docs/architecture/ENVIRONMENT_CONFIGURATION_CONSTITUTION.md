@@ -299,7 +299,8 @@ result of the current wording. This mission does not edit
 
 **Verifier**: `scripts/verify_env_separation.sh` — a sanitized, counts/flags
 -only report (`ENV_FILE_PRESENT`, `SECRETS_FILE_PRESENT`, `ENV_MODE_OK`,
-`SECRETS_MODE_OK`, `SECRET_KEYS_IN_ENV_COUNT`, `DUPLICATE_KEY_COUNT`, and an
+`SECRETS_MODE_OK`, `SECRET_KEYS_IN_ENV_COUNT`, `DUPLICATE_WITHIN_ENV_COUNT`,
+`DUPLICATE_WITHIN_SECRETS_COUNT`, `CROSS_FILE_DUPLICATE_KEY_COUNT`, and an
 opt-in `--verbose-names` mode printing only `NAME=SET`/`NAME=UNSET`). It
 never prints a value, never sources/exports/evaluates the files it reads,
 and derives its secret-name registry from `.env.secrets.example` by
@@ -308,13 +309,24 @@ default. **THIS SCRIPT MUST BE RUN BY THE HUMAN OPERATOR** against the real
 files (per §2), and did not in this mission; it was tested only against
 `tmp_path` dummy fixtures (`tests/test_verify_env_separation.py`).
 
+ENV-01R correction: an earlier revision of this contract used a single
+`DUPLICATE_KEY_COUNT` name for what the verifier actually computed as a
+WITHIN-file duplicate count, while this contract's own wording ("no name
+defined in both files") describes a CROSS-file property — a naming/property
+mismatch. The verifier now emits three distinct, unambiguous metrics (see
+above); `DUPLICATE_KEY_COUNT` no longer exists as an emitted name.
+
 **Human `.env` Certification Contract** — required to transition `.env`:
 `QUARANTINED_RUNTIME_CONFIG` → `NON_SECRET_RUNTIME_CONFIGURATION` (§1a):
 
 1. Human operator runs `scripts/verify_env_separation.sh` on the real VPS
    files.
 2. `SECRET_KEYS_IN_ENV_COUNT=0` (no secret-class name leaked into `.env`).
-3. `DUPLICATE_KEY_COUNT=0` (no name defined in both files).
+3. `CROSS_FILE_DUPLICATE_KEY_COUNT=0` (no name defined in both `.env` and
+   `.env.secrets` — required minimum). `DUPLICATE_WITHIN_ENV_COUNT=0` and
+   `DUPLICATE_WITHIN_SECRETS_COUNT=0` are preferred additional evidence of
+   file hygiene (a within-file duplicate is not itself a cross-file
+   precedence risk, but indicates a malformed file).
 4. `ENV_MODE_OK=YES` (`.env` not world-writable).
 5. `SECRETS_MODE_OK=YES` (`.env.secrets` is `600`/`400`).
 6. Expected secret variables report `SET` where the deployment requires

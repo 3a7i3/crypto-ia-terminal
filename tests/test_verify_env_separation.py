@@ -68,7 +68,9 @@ class TestVerifierNeverPrintsValues:
         assert report["ENV_FILE_PRESENT"] == "YES"
         assert report["SECRETS_FILE_PRESENT"] == "YES"
         assert report["SECRET_KEYS_IN_ENV_COUNT"] == "0"
-        assert report["DUPLICATE_KEY_COUNT"] == "0"
+        assert report["DUPLICATE_WITHIN_ENV_COUNT"] == "0"
+        assert report["DUPLICATE_WITHIN_SECRETS_COUNT"] == "0"
+        assert report["CROSS_FILE_DUPLICATE_KEY_COUNT"] == "0"
         assert report["SECRETS_MODE_OK"] == "YES"
 
         # Values never appear anywhere in stdout/stderr.
@@ -95,7 +97,7 @@ class TestVerifierNeverPrintsValues:
         )
         assert "should_not_be_here" not in result.stdout
 
-    def test_detects_duplicate_keys(self, tmp_path, registry_file):
+    def test_detects_duplicate_keys_within_env(self, tmp_path, registry_file):
         env_file = tmp_path / ".env.dummy"
         env_file.write_text(
             "NON_SECRET_A=1\nNON_SECRET_A=2\nNON_SECRET_B=3\n", encoding="utf-8"
@@ -107,7 +109,37 @@ class TestVerifierNeverPrintsValues:
         result = run_verifier(env_file, secrets_file, registry_file)
         report = parse_report(result.stdout)
 
-        assert report["DUPLICATE_KEY_COUNT"] == "1"
+        assert report["DUPLICATE_WITHIN_ENV_COUNT"] == "1"
+        assert report["DUPLICATE_WITHIN_SECRETS_COUNT"] == "0"
+        assert report["CROSS_FILE_DUPLICATE_KEY_COUNT"] == "0", (
+            "un doublon INTRA-fichier (.env) ne doit jamais être compté "
+            "comme un doublon CROSS-FILE — ce sont deux propriétés "
+            "distinctes"
+        )
+
+    def test_cross_file_duplicate_key_detected_without_leaking_values(
+        self, tmp_path, registry_file
+    ):
+        """ENV-01R blocker #3 — SHARED_KEY defined in both .env (foo) and
+        .env.secrets (bar): CROSS_FILE_DUPLICATE_KEY_COUNT must report 1,
+        and neither value may ever appear in the script's output."""
+        env_file = tmp_path / ".env.dummy"
+        env_file.write_text("SHARED_KEY=foo\n", encoding="utf-8")
+        secrets_file = tmp_path / ".env.secrets.dummy"
+        secrets_file.write_text("SHARED_KEY=bar\n", encoding="utf-8")
+        secrets_file.chmod(0o600)
+
+        result = run_verifier(env_file, secrets_file, registry_file)
+        report = parse_report(result.stdout)
+
+        assert report["CROSS_FILE_DUPLICATE_KEY_COUNT"] == "1"
+        assert report["DUPLICATE_WITHIN_ENV_COUNT"] == "0"
+        assert report["DUPLICATE_WITHIN_SECRETS_COUNT"] == "0"
+
+        assert "foo" not in result.stdout
+        assert "bar" not in result.stdout
+        assert "foo" not in result.stderr
+        assert "bar" not in result.stderr
 
     def test_flags_insecure_secrets_file_permissions(self, tmp_path, registry_file):
         env_file = tmp_path / ".env.dummy"
