@@ -82,15 +82,17 @@ CRYPTO AI TERMINAL
 │   │   └── quant_hedge_ai/agents/intelligence/no_trade_layer.py (no-trade filtering layer)
 │   │
 │   ├── RISK / SAFETY
-│   │   ├── quant_hedge_ai/agents/risk/global_risk_gate.py (CANONICAL — verified
-│   │   │   wired into the live pipeline: `core/advisor_runtime_adapters.py`
-│   │   │   imports `GlobalRiskGate` from this module, and `core/advisor_loop.py`
-│   │   │   invokes it via `runtime.GlobalRiskGate(...)`)
+│   │   ├── quant_hedge_ai/agents/risk/global_risk_gate.py (CANONICAL_SOURCE_PATH —
+│   │   │   verified wired into the current SOURCE decision path:
+│   │   │   `core/advisor_runtime_adapters.py` imports `GlobalRiskGate` from
+│   │   │   this module, and `core/advisor_loop.py` invokes it via
+│   │   │   `runtime.GlobalRiskGate(...)`. SOURCE PROOF != RUNTIME PROOF —
+│   │   │   actual VPS runtime use of this path remains RUNTIME_PROOF_REQUIRED)
 │   │   ├── risk/global_risk_gate.py (LEGACY — an older, incompatible `asyncio`-
 │   │   │   based implementation whose own docstring targets the retired
 │   │   │   `main_v91.py` loop; not imported by `core/advisor_runtime_adapters.py`
-│   │   │   or any current pipeline entrypoint — superseded, not co-authoritative
-│   │   │   with the quant_hedge_ai gate above)
+│   │   │   or any current SOURCE pipeline entrypoint — superseded, not
+│   │   │   co-authoritative with the quant_hedge_ai gate above)
 │   │   ├── risk/circuit_breaker.py, risk/risk_limits.py
 │   │   ├── portfolio_brain.py
 │   │   └── system/burn_in.py, tracker_system/autonomous/auto_decision_engine.py
@@ -105,7 +107,8 @@ CRYPTO AI TERMINAL
 │   │   ├── quant_hedge_ai/agents/execution/execution_engine.py (CANONICAL_EXISTING order gate)
 │   │   ├── quant_hedge_ai/agents/execution/trade_logger.py     (SQLite order-attempt journal)
 │   │   └── quant_hedge_ai/agents/execution/paper_trading_engine.py (DUPLICATED — different
-│   │       entrypoint, main_system.py/main_v91.py — not the deployed path)
+│   │       entrypoint, main_system.py/main_v91.py — not the current SOURCE-wired
+│   │       path; actual deployed-engine status remains RUNTIME_PROOF_REQUIRED)
 │   │
 │   ├── LEARNING / INTELLIGENCE
 │   │   ├── quant_hedge_ai/agents/intelligence/mistake_memory.py

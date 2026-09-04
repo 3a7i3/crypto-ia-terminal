@@ -134,12 +134,23 @@ sanitized result, never a raw environment dump, and never runs
 
 ## 9. Duplicate environment-key check (without exposing values)
 
-- Using only variable **names** (never values), confirm no name appears in
-  both the non-secret and secret variable-name lists in
-  `docs/architecture/ENVIRONMENT_VARIABLE_REGISTRY.md` for a key expected
-  to be single-sourced. A masked existence check (`SET`/`UNSET` per name)
-  in each file's own scope is acceptable; comparing two masked booleans
-  never exposes a value.
+- An AI agent MUST NOT itself open, read, or parse the real `.env.secrets`
+  file — not even to produce a `SET`/`UNSET` outcome, a key-name listing,
+  or a hash. This holds under every framing ("masked", "names only",
+  "existence check"): opening the file at all is forbidden, regardless of
+  what is done with its contents afterward. The same restriction applies
+  to the real, currently-quarantined `.env` (see §8/Constitution) until the
+  human secret-purge certification is complete.
+- The only source of truth for a duplicate-key check is a trusted
+  HUMAN/operator-side verifier that inspects the real files independently
+  of any AI process and hands back only sanitized, pre-computed results —
+  e.g. `SECRET_DUPLICATE_COUNT=0`, `MEXC_API_KEY=SET`,
+  `QUANT_CRYPTO_BOT_TOKEN=SET`. An AI agent may receive and record such
+  outputs but must never generate them by opening the files itself.
+- Cross-reference the returned names only against
+  `docs/architecture/ENVIRONMENT_VARIABLE_REGISTRY.md`'s non-secret/secret
+  name lists to confirm no name expected to be single-sourced appears in
+  both — this comparison is name-list bookkeeping, not file access.
 
 ## 10. Market state
 
@@ -209,9 +220,14 @@ distinct dedicated bot identities, never conflate the two) and
 loop; `@PaperArena_bot` and `@rapport_automatique_bot` are push-only
 (fresh `sendMessage` calls only, verified in source — neither owns a
 polling loop), so they are not part of the 409-polling-collision surface.
-Confirm `crypto-quant-observer`, `crypto-radar-bot`, and `paper-arena`
-restart in an order that does not race a shared-token bot's polling
-process against itself.
+Canonical restart invariant: for each polling token, exactly one polling
+owner may run at a time. This applies only to the three polling services
+above (`@QuantCrpto_bot`, `@RadarCrypto1_bot`, `@mon_portfolio_bot`).
+Push-only services (`@PaperArena_bot`, `@rapport_automatique_bot`) are not
+members of the `getUpdates`/HTTP-409 collision surface and are not subject
+to this invariant. This contract does not prescribe a mandatory restart
+order beyond that invariant; invent no ordering requirement unless a
+specific source or runtime finding establishes one.
 
 ## Explicit prohibition
 
