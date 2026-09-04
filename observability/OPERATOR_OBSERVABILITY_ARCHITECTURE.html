@@ -1,0 +1,649 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" />
+
+    <link rel="shortcut icon" href="../_static/favicon.ico"/><!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
+        <title>Operator Observability Architecture - Crypto AI Terminal 9.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=354aac6f" />
+    <link rel="stylesheet" type="text/css" href="../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=1b9cecba" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=302659d7" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">Crypto AI Terminal 9.1 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="../_static/../assets/logo_ai_quant.png" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="../_static/../assets/logo_ai_quant.png" alt="Dark Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/blob/main/docs/observability/OPERATOR_OBSERVABILITY_ARCHITECTURE.md?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/edit/main/docs/observability/OPERATOR_OBSERVABILITY_ARCHITECTURE.md" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="operator-observability-architecture">
+<h1>Operator Observability Architecture<a class="headerlink" href="#operator-observability-architecture" title="Link to this heading">¶</a></h1>
+<p>Mission O-01 · Base SHA <code class="docutils literal notranslate"><span class="pre">c560efc51a5180d5bd7e9ec179c2a8b6d1ea8fc4</span></code> · 2026-09-03</p>
+<section id="purpose">
+<h2>1. Purpose<a class="headerlink" href="#purpose" title="Link to this heading">¶</a></h2>
+<p>Crypto AI Terminal already produces a large amount of observability data —
+<code class="docutils literal notranslate"><span class="pre">SystemSnapshot</span></code>, <code class="docutils literal notranslate"><span class="pre">DecisionObservation</span></code>, <code class="docutils literal notranslate"><span class="pre">RejectionStore</span></code>, Regret v2,
+portfolio/execution state, DA-01 disk audits, Telegram renderers. The
+problem this mission addresses is not a lack of data; it is fragmentation:
+different components expose different metrics, some Telegram code
+calculates presentation-specific values instead of reading a canonical
+source, and metric meanings are not always explicit for the operator.</p>
+<p>O-01 establishes a canonical <strong>Operator Observability Architecture</strong>: eleven
+observation domains, a shared snapshot contract, and a metric dictionary,
+so that Telegram, dashboards, APIs and future scientific reports can all
+consume the same definitions instead of recomputing them independently.</p>
+</section>
+<section id="scientific-principles">
+<h2>2. Scientific principles<a class="headerlink" href="#scientific-principles" title="Link to this heading">¶</a></h2>
+<ol class="arabic simple">
+<li><p><strong>Source of truth != presentation layer.</strong> Telegram — and any future
+dashboard/API — is a <em>consumer</em>, never the place a metric is computed.</p></li>
+<li><p><strong>Passivity (ADR-0007).</strong> Nothing in this architecture feeds a trading
+decision. Every contract in <code class="docutils literal notranslate"><span class="pre">observability/operator/</span></code> is read-only,
+deterministic, and side-effect-free at import time.</p></li>
+<li><p><strong>No invented metrics (mission §7, §18).</strong> A metric that does not exist
+in the codebase today is marked <code class="docutils literal notranslate"><span class="pre">NOT_CURRENTLY_AVAILABLE</span></code> or
+<code class="docutils literal notranslate"><span class="pre">FUTURE_PROVIDER</span></code> — never approximated.</p></li>
+<li><p><strong>Explicit null/unknown semantics (mission §27).</strong> <code class="docutils literal notranslate"><span class="pre">0</span></code>, <code class="docutils literal notranslate"><span class="pre">false</span></code>, <code class="docutils literal notranslate"><span class="pre">empty</span></code>,
+<code class="docutils literal notranslate"><span class="pre">unknown</span></code>, <code class="docutils literal notranslate"><span class="pre">unavailable</span></code>, <code class="docutils literal notranslate"><span class="pre">stale</span></code>, and <code class="docutils literal notranslate"><span class="pre">not_applicable</span></code> are distinct,
+testable states (<code class="docutils literal notranslate"><span class="pre">observability/operator/contracts.py::NullSemantics</span></code>),
+not conventions someone has to remember.</p></li>
+<li><p><strong>Domain-specific freshness (mission §28).</strong> There is no single global
+“snapshot age.” Each dataset registers its own freshness clock and
+threshold, because they are frequently and meaningfully different
+(e.g. Regret’s canonical-evaluated-horizon clock vs. market-pulse
+tick age).</p></li>
+<li><p><strong>Reuse before creation (mission §26).</strong> Every canonical module
+documented here wraps an <em>existing</em> producer. Nothing recomputes a
+metric that already has an owner; see
+<a class="reference internal" href="OBSERVABILITY_MODULE_REGISTRY.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">OBSERVABILITY_MODULE_REGISTRY.md</span></code></span></a>
+for the reuse decision behind each entry.</p></li>
+</ol>
+</section>
+<section id="source-of-truth-vs-presentation-separation">
+<h2>3. Source-of-truth vs. presentation separation<a class="headerlink" href="#source-of-truth-vs-presentation-separation" title="Link to this heading">¶</a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>MACHINE / SCIENTIFIC DATA
+  (system/module_registry, observability/*, RejectionStore,
+   tools/regret_repository, infra/wallet_sync, DA-01 packs, ...)
+        |
+        v
+CANONICAL OBSERVABILITY MODULES  (existing, wrapped, not duplicated)
+        |
+        v
+CANONICAL SNAPSHOT / METRIC CONTRACT   &lt;-- observability/operator/
+        |
+        v
+PRESENTATION ADAPTERS  (none exist yet inside this package — O-01 ships
+  contracts only; O-02 builds the adapters)
+        +-- Telegram   (src/telegram/quant_observer/, future O-02 target)
+        +-- dashboards (visualization/api/*)
+        +-- API
+        +-- scientific reports
+</pre></div>
+</div>
+<p>O-01 stops at the canonical contract layer. It does not implement, wire,
+or activate a presentation adapter — see §9 (Non-goals) and
+<a class="reference internal" href="OPERATOR_DISPLAY_CONTRACT.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">OPERATOR_DISPLAY_CONTRACT.md</span></code></span></a> for the
+rules the <em>future</em> adapters must follow.</p>
+</section>
+<section id="domain-model">
+<h2>4. Domain model<a class="headerlink" href="#domain-model" title="Link to this heading">¶</a></h2>
+<p>Eleven domains, each with a documented purpose and responsibility
+boundary (mission §5-§16). No “everything snapshot” — domains compose,
+they do not merge.</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>#</p></th>
+<th class="head"><p>Domain</p></th>
+<th class="head"><p>Question it answers</p></th>
+<th class="head"><p>Module</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>A</p></td>
+<td><p>SYSTEM HEALTH</p></td>
+<td><p>Is the machine alive <em>and</em> scientifically healthy?</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">domains/system_health.py</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>B</p></td>
+<td><p>MARKET STATE</p></td>
+<td><p>Is market data fresh and is the exchange reachable?</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">domains/market_state.py</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>C</p></td>
+<td><p>DECISION PIPELINE</p></td>
+<td><p>Is the decision pipeline progressing, and where?</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">domains/decision_pipeline.py</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>D</p></td>
+<td><p>ATTRITION / REJECTIONS</p></td>
+<td><p>Where are candidates disappearing?</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">domains/attrition.py</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>E</p></td>
+<td><p>PORTFOLIO STATE</p></td>
+<td><p>What does the operator actually hold — paper vs. real?</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">domains/portfolio_state.py</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>F</p></td>
+<td><p>EXECUTION STATE</p></td>
+<td><p>Is order execution healthy?</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">domains/execution_state.py</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>G</p></td>
+<td><p>DATA FRESHNESS</p></td>
+<td><p>Is each critical dataset fresh, by its own clock?</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">domains/data_freshness.py</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>H</p></td>
+<td><p>REGRET STATE</p></td>
+<td><p>Is the certified S-01/v2 Regret pipeline scientifically fresh?</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">domains/regret_state.py</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>I</p></td>
+<td><p>ADAPTIVE LEARNING STATE</p></td>
+<td><p>Is adaptive learning passive or already decision-active?</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">domains/adaptive_learning.py</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>J</p></td>
+<td><p>DISK / I-O</p></td>
+<td><p>Is storage healthy, per the DA-01 reference architecture?</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">domains/disk_io.py</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>K</p></td>
+<td><p>OPERATOR SUMMARY</p></td>
+<td><p>Composition-only synthesis of the above 10</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">domains/operator_summary.py</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Each domain module exports:</p>
+<ul class="simple">
+<li><p>a frozen <code class="docutils literal notranslate"><span class="pre">*Snapshot</span></code> dataclass extending <code class="docutils literal notranslate"><span class="pre">DomainSnapshot</span></code>
+(<code class="docutils literal notranslate"><span class="pre">contracts.py</span></code>) — <code class="docutils literal notranslate"><span class="pre">schema_version</span></code>, <code class="docutils literal notranslate"><span class="pre">domain</span></code>, <code class="docutils literal notranslate"><span class="pre">observed_at_utc</span></code>,
+<code class="docutils literal notranslate"><span class="pre">source</span></code>, <code class="docutils literal notranslate"><span class="pre">source_version</span></code>, <code class="docutils literal notranslate"><span class="pre">freshness</span></code>, <code class="docutils literal notranslate"><span class="pre">status</span></code>, <code class="docutils literal notranslate"><span class="pre">evidence</span></code>. <code class="docutils literal notranslate"><span class="pre">status</span></code>
+is drawn from a closed vocabulary (<code class="docutils literal notranslate"><span class="pre">contracts.DOMAIN_STATUSES</span></code>:
+<code class="docutils literal notranslate"><span class="pre">OK</span></code>/<code class="docutils literal notranslate"><span class="pre">DEGRADED</span></code>/<code class="docutils literal notranslate"><span class="pre">ATTENTION_REQUIRED</span></code>/<code class="docutils literal notranslate"><span class="pre">UNAVAILABLE</span></code>), enforced at
+construction time, so no composer ever has to guess which free-text
+values mean “healthy”;</p></li>
+<li><p>a pure <code class="docutils literal notranslate"><span class="pre">compose_*_snapshot()</span></code> function that accepts already-computed,
+primitive/<code class="docutils literal notranslate"><span class="pre">ObservedValue</span></code>-typed inputs — it never imports a producer
+module itself, so the package has zero import-time coupling to the
+engine;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">METRICS</span></code>: the <code class="docutils literal notranslate"><span class="pre">MetricDefinition</span></code>s it contributes to
+<code class="docutils literal notranslate"><span class="pre">canonical_registry.DEFAULT_METRIC_REGISTRY</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MODULES</span></code>: the <code class="docutils literal notranslate"><span class="pre">ModuleDescriptor</span></code>s recording the forensic inventory
+(which existing code is canonical/duplicated/legacy/unused for this
+domain).</p></li>
+</ul>
+<p><strong>Serialization.</strong> <code class="docutils literal notranslate"><span class="pre">DomainSnapshot.to_dict()</span></code> is generic: it walks
+<code class="docutils literal notranslate"><span class="pre">dataclasses.fields(self)</span></code>, which includes both the spine above and
+every field a subclass adds, and converts each through a shared
+<code class="docutils literal notranslate"><span class="pre">to_jsonable()</span></code> helper (<code class="docutils literal notranslate"><span class="pre">Enum</span></code> -&gt; <code class="docutils literal notranslate"><span class="pre">.value</span></code>, <code class="docutils literal notranslate"><span class="pre">datetime</span></code> -&gt; ISO-8601, a
+value’s own <code class="docutils literal notranslate"><span class="pre">to_dict()</span></code> when it has one, plain dataclasses/<code class="docutils literal notranslate"><span class="pre">Mapping</span></code>/
+sequences recursively). A domain module never writes its own serializer;
+adding a field to a <code class="docutils literal notranslate"><span class="pre">*Snapshot</span></code> is enough for it to appear in <code class="docutils literal notranslate"><span class="pre">to_dict()</span></code>
+and survive <code class="docutils literal notranslate"><span class="pre">json.dumps()</span></code> with the stdlib encoder alone
+(<code class="docutils literal notranslate"><span class="pre">tests/observability/operator_o01/test_serialization.py</span></code> proves this
+for all 11 domains).</p>
+</section>
+<section id="data-flow">
+<h2>5. Data flow<a class="headerlink" href="#data-flow" title="Link to this heading">¶</a></h2>
+<p>A future integration layer (out of O-01’s scope — see §9) will:</p>
+<ol class="arabic simple">
+<li><p>read already-existing in-memory objects (a <code class="docutils literal notranslate"><span class="pre">SystemSnapshot</span></code>, a
+<code class="docutils literal notranslate"><span class="pre">RejectionStore</span></code> query result, <code class="docutils literal notranslate"><span class="pre">WalletSync.get_balance()</span></code>, a DA-01
+JSON pack, …);</p></li>
+<li><p>wrap each value in an <code class="docutils literal notranslate"><span class="pre">ObservedValue</span></code> with explicit <code class="docutils literal notranslate"><span class="pre">NullSemantics</span></code>;</p></li>
+<li><p>call the relevant <code class="docutils literal notranslate"><span class="pre">compose_*_snapshot()</span></code> to build a domain snapshot;</p></li>
+<li><p>optionally call <code class="docutils literal notranslate"><span class="pre">compose_operator_summary()</span></code> to fold several domain
+snapshots into one composition-only synthesis;</p></li>
+<li><p>hand the resulting snapshot(s) to a presentation adapter, which
+formats but never reinterprets (§<code class="docutils literal notranslate"><span class="pre">OPERATOR_DISPLAY_CONTRACT.md</span></code>).</p></li>
+</ol>
+<p>O-01 ships steps 2-4 as tested, passive code. Step 1 (wiring real
+producers in) and step 5 (adapters) are explicitly out of scope — see §9.</p>
+</section>
+<section id="provenance-model">
+<h2>6. Provenance model<a class="headerlink" href="#provenance-model" title="Link to this heading">¶</a></h2>
+<p>Every <code class="docutils literal notranslate"><span class="pre">DomainSnapshot</span></code> carries <code class="docutils literal notranslate"><span class="pre">source</span></code> (the producing module),
+<code class="docutils literal notranslate"><span class="pre">source_version</span></code> (when meaningful — e.g. <code class="docutils literal notranslate"><span class="pre">regret-v2</span></code>), <code class="docutils literal notranslate"><span class="pre">observed_at_utc</span></code>,
+and an <code class="docutils literal notranslate"><span class="pre">evidence</span></code> mapping for domain-appropriate extra provenance.
+Per mission §29, provenance is domain-appropriate: a <code class="docutils literal notranslate"><span class="pre">packet_id</span></code> is not
+forced onto a system-health metric that has none.</p>
+</section>
+<section id="freshness-model">
+<h2>7. Freshness model<a class="headerlink" href="#freshness-model" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">observability/operator/contracts.py::FreshnessStatus</span></code> defines
+<code class="docutils literal notranslate"><span class="pre">FRESH</span> <span class="pre">|</span> <span class="pre">DEGRADED</span> <span class="pre">|</span> <span class="pre">STALE</span> <span class="pre">|</span> <span class="pre">UNKNOWN</span> <span class="pre">|</span> <span class="pre">NOT_APPLICABLE</span></code>. This is the first
+general-purpose formalization of this vocabulary in the codebase — the
+forensic pass found no prior unified freshness enum, only narrow,
+domain-scoped precedents (<code class="docutils literal notranslate"><span class="pre">IncidentType.DATA_STALE</span></code>,
+<code class="docutils literal notranslate"><span class="pre">AdmissionBlocker.REJECTED_STALE</span></code>, the Regret pipeline’s
+canonical-horizon concept). <code class="docutils literal notranslate"><span class="pre">freshness.py::classify_freshness()</span></code> never
+invents a threshold: without an evidence-backed <code class="docutils literal notranslate"><span class="pre">fresh_threshold_s</span></code>/
+<code class="docutils literal notranslate"><span class="pre">stale_threshold_s</span></code> pair it returns <code class="docutils literal notranslate"><span class="pre">UNKNOWN</span></code>, not a guess.</p>
+<p>Freshness stays domain-specific per source (mission §28) — Regret’s
+<code class="docutils literal notranslate"><span class="pre">last_canonical_evaluated_utc</span></code> (evaluated-on-canonical-horizon clock) is
+never conflated with Regret’s <code class="docutils literal notranslate"><span class="pre">last_event_utc</span></code> (mere producer liveness),
+let alone with market-pulse tick age or DA-01 snapshot age.</p>
+</section>
+<section id="operatorsummary-composition">
+<h2>8. OperatorSummary composition<a class="headerlink" href="#operatorsummary-composition" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">domains/operator_summary.py::compose_operator_summary()</span></code> takes the ten
+other domain snapshots (any subset — missing ones are marked
+<code class="docutils literal notranslate"><span class="pre">UNAVAILABLE</span></code>, never invented as healthy) and produces a list of
+<code class="docutils literal notranslate"><span class="pre">ComponentStatus</span></code> entries, each copying its source snapshot’s own
+<code class="docutils literal notranslate"><span class="pre">status</span></code>/<code class="docutils literal notranslate"><span class="pre">freshness</span></code> verbatim — it never recomputes a scientific truth.
+There is no opaque global score: <code class="docutils literal notranslate"><span class="pre">OperatorSummary.status</span></code> is
+<code class="docutils literal notranslate"><span class="pre">&quot;OK&quot;</span></code>/<code class="docutils literal notranslate"><span class="pre">&quot;ATTENTION_REQUIRED&quot;</span></code>, and <code class="docutils literal notranslate"><span class="pre">attention_items</span></code> names each
+struggling domain explicitly (<code class="docutils literal notranslate"><span class="pre">&quot;regret_state:</span> <span class="pre">DEGRADED</span> <span class="pre">(fraîcheur=STALE)&quot;</span></code>),
+never a bare number. <code class="docutils literal notranslate"><span class="pre">OperatorSummary.freshness</span></code> aggregates the
+components’ freshness by explicit severity —
+<code class="docutils literal notranslate"><span class="pre">UNKNOWN</span> <span class="pre">&gt;</span> <span class="pre">STALE</span> <span class="pre">&gt;</span> <span class="pre">DEGRADED</span> <span class="pre">&gt;</span> <span class="pre">FRESH</span></code>, with <code class="docutils literal notranslate"><span class="pre">NOT_APPLICABLE</span></code> filtered out
+before that ordering is applied so it can never silently degrade (or be
+invented as) a healthy result; if every component is <code class="docutils literal notranslate"><span class="pre">NOT_APPLICABLE</span></code>
+(or there are none), the aggregate is <code class="docutils literal notranslate"><span class="pre">NOT_APPLICABLE</span></code> itself
+(<code class="docutils literal notranslate"><span class="pre">domains/operator_summary.py::_aggregate_freshness</span></code>). Tests
+(<code class="docutils literal notranslate"><span class="pre">tests/observability/operator_o01/test_operator_summary.py</span></code>) assert it
+does not mutate its inputs, does not invent data for absent domains, and
+never collapses a <code class="docutils literal notranslate"><span class="pre">DEGRADED</span></code> component into a <code class="docutils literal notranslate"><span class="pre">FRESH</span></code> result.</p>
+</section>
+<section id="telegram-dashboard-api-adapter-philosophy">
+<h2>9. Telegram / dashboard / API adapter philosophy<a class="headerlink" href="#telegram-dashboard-api-adapter-philosophy" title="Link to this heading">¶</a></h2>
+<p>O-01 documents the target philosophy; O-02 implements it.</p>
+<ul class="simple">
+<li><p>A presentation adapter reads a canonical snapshot and <em>formats</em> it —
+translates enum values to French labels via the metric dictionary,
+chooses emoji/color from the metric’s documented severity semantics,
+and renders timestamps/freshness explicitly.</p></li>
+<li><p>It never recalculates a percentage, never infers a status from
+vibes, and never mixes fields from two domains into one number
+without both being explicitly labeled (paper vs. real capital is the
+sharpest example — see <code class="docutils literal notranslate"><span class="pre">portfolio_state.py</span></code>).</p></li>
+<li><p>The already-approved O-02 requirement for <code class="docutils literal notranslate"><span class="pre">&#64;QuantCrpto_bot</span></code> (single
+continuously-edited LIVE message, no pin, no deletion of history,
+French labels, metric-dictionary-backed) is documented here as a
+downstream consumer contract, <strong>not implemented</strong> by O-01 — see
+<a class="reference internal" href="OPERATOR_DISPLAY_CONTRACT.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">OPERATOR_DISPLAY_CONTRACT.md</span></code></span></a> §“Quant
+Observer O-02 migration contract” and
+<a class="reference internal" href="TELEGRAM_BOT_REGISTRY.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">TELEGRAM_BOT_REGISTRY.md</span></code></span></a>.</p></li>
+</ul>
+</section>
+<section id="known-gaps-forensic-findings-not-fixed-by-o-01">
+<h2>10. Known gaps (forensic findings, not fixed by O-01)<a class="headerlink" href="#known-gaps-forensic-findings-not-fixed-by-o-01" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><strong>Dual decision pipeline.</strong> <code class="docutils literal notranslate"><span class="pre">DecisionPacket</span></code>/<code class="docutils literal notranslate"><span class="pre">DecisionObservation</span></code>
+(canonical, ADR-0007) runs in parallel with the legacy dict pipeline
+that still actually drives execution
+(<code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py:1488</span></code> comment); a measured disagreement rate
+exists (<code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py:6274-6295</span></code>) but is unresolved.
+See <code class="docutils literal notranslate"><span class="pre">decision_pipeline.py::MODULES</span></code>.</p></li>
+<li><p><strong>Two divergent position stores.</strong> <code class="docutils literal notranslate"><span class="pre">MexcSimulator</span></code> (real prices,
+populated) vs. <code class="docutils literal notranslate"><span class="pre">pos_manager</span></code> feeding <code class="docutils literal notranslate"><span class="pre">PortfolioBrain.portfolio_health()</span></code>
+(frequently empty) — exposure/free-capital figures inherit this
+divergence. See <code class="docutils literal notranslate"><span class="pre">portfolio_state.py::MODULES</span></code>.</p></li>
+<li><p><strong>Adaptive learning is decision-active today, not passive.</strong>
+<code class="docutils literal notranslate"><span class="pre">MistakeMemory.check_before_trade()</span></code> and <code class="docutils literal notranslate"><span class="pre">MetaLearner.find_best()</span></code>/
+<code class="docutils literal notranslate"><span class="pre">learn()</span></code> gate/shape live trades without any <code class="docutils literal notranslate"><span class="pre">FEATURE_*</span></code> governance
+flag; <code class="docutils literal notranslate"><span class="pre">RECOMMENDED</span> <span class="pre">!=</span> <span class="pre">APPLIED</span></code> is not distinguished for them (the
+recommendation <em>is</em> the applied value, same code path). ADR-0007’s
+<code class="docutils literal notranslate"><span class="pre">FEATURE_AUTO_CALIBRATION</span></code>/<code class="docutils literal notranslate"><span class="pre">FEATURE_REGRET_DECISION_FEEDBACK</span></code> scope
+covers only the Regret-threshold auto-calibration path. See
+<code class="docutils literal notranslate"><span class="pre">adaptive_learning.py::MODULES</span></code>.</p></li>
+<li><p><strong>Regret freshness not surfaced over HTTP.</strong> <code class="docutils literal notranslate"><span class="pre">tools/regret_repository.</span> <span class="pre">freshness()</span></code> exists and is correct, but <code class="docutils literal notranslate"><span class="pre">BurnInSnapshot</span></code>
+(<code class="docutils literal notranslate"><span class="pre">visualization/api/burnin_api.py</span></code>) omits it — only the CLI
+(<code class="docutils literal notranslate"><span class="pre">tools/cri_calculator.py</span></code>) sees it today. See <code class="docutils literal notranslate"><span class="pre">regret_state.py::MODULES</span></code>.</p></li>
+<li><p><strong>Disk/IO is on-demand only.</strong> DA-01 and the disk_growth pack are
+<code class="docutils literal notranslate"><span class="pre">workflow_dispatch</span></code>-triggered forensic audits, never continuous; no
+operator-facing snapshot (<code class="docutils literal notranslate"><span class="pre">SystemSnapshot</span></code>, <code class="docutils literal notranslate"><span class="pre">MetricsSnapshot</span></code>) carries
+a disk field today. See <code class="docutils literal notranslate"><span class="pre">disk_io.py::MODULES</span></code>.</p></li>
+<li><p><strong>Regime confidence/entropy computed but not exposed.</strong> <code class="docutils literal notranslate"><span class="pre">RegimePacket</span></code>
+fields exist and are logged but never reach <code class="docutils literal notranslate"><span class="pre">SystemSnapshot.market</span></code>.
+See <code class="docutils literal notranslate"><span class="pre">market_state.py::MODULES</span></code>.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">portfolio_api.py</span></code> is defective, not just incomplete.</strong> 8 of 10
+fields are hardcoded to <code class="docutils literal notranslate"><span class="pre">0.0</span></code>, and <code class="docutils literal notranslate"><span class="pre">total_pnl_usd</span></code> silently substitutes
+<em>open</em> PnL for <em>total</em> PnL. Flagged <code class="docutils literal notranslate"><span class="pre">PRESENTATION_ONLY</span></code> in the module
+registry — do not treat as canonical until fixed.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">/kpis</span></code> on <code class="docutils literal notranslate"><span class="pre">&#64;mon_portfolio_bot</span></code> mixes paper-derived metrics with a
+real-capital base with no “paper” label</strong> — see
+<a class="reference internal" href="TELEGRAM_BOT_REGISTRY.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">TELEGRAM_BOT_REGISTRY.md</span></code></span></a> for the full
+finding. Not fixed by O-01 (Telegram runtime is out of scope); flagged
+as a priority for O-02.</p></li>
+</ul>
+</section>
+<section id="migration-plan-o-01-o-02">
+<h2>11. Migration plan O-01 -&gt; O-02<a class="headerlink" href="#migration-plan-o-01-o-02" title="Link to this heading">¶</a></h2>
+<ol class="arabic simple">
+<li><p>O-01 ships contracts, registries, domain adapters and docs (this PR).
+No runtime wiring.</p></li>
+<li><p>A future integration mission wires real producers (SystemSnapshot,
+RejectionStore, WalletSync, tools/regret_repository, DA-01 packs,
+etc.) into the <code class="docutils literal notranslate"><span class="pre">compose_*_snapshot()</span></code> functions — read-only, still no
+Telegram/dashboard changes.</p></li>
+<li><p>O-02 builds presentation adapters, starting with <code class="docutils literal notranslate"><span class="pre">&#64;QuantCrpto_bot</span></code>’s
+single-message LIVE panel (French labels, canonical metric IDs, no
+duplicated computation, no pin, no deletion of history — see
+<code class="docutils literal notranslate"><span class="pre">OPERATOR_DISPLAY_CONTRACT.md</span></code>).</p></li>
+<li><p>Remaining bots (<code class="docutils literal notranslate"><span class="pre">&#64;mon_portfolio_bot</span></code>, <code class="docutils literal notranslate"><span class="pre">&#64;PaperArena_bot</span></code>,
+<code class="docutils literal notranslate"><span class="pre">&#64;Telemetrie_IA_bot</span></code>, <code class="docutils literal notranslate"><span class="pre">&#64;RadarCrypto1_bot</span></code>) migrate per the priority
+order in <code class="docutils literal notranslate"><span class="pre">TELEGRAM_BOT_REGISTRY.md</span></code>.</p></li>
+</ol>
+</section>
+<section id="explicit-non-goals-o-01">
+<h2>12. Explicit non-goals (O-01)<a class="headerlink" href="#explicit-non-goals-o-01" title="Link to this heading">¶</a></h2>
+<p>O-01 does not: implement background services, polling loops, Telegram
+send/edit code, exchange calls, new database writers, new retention
+policies, new trading/strategy/risk logic, new systemd services, or any
+wiring into <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code>. It does not modify
+<code class="docutils literal notranslate"><span class="pre">src/telegram/quant_observer/</span></code> or any other Telegram bot code. It does
+not redesign Regret or DA-01 — it consumes their existing semantics. It
+does not touch the S-02B.1-protected files
+(<code class="docutils literal notranslate"><span class="pre">config/feature_flags.py</span></code>, <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code>,
+<code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/intelligence/mistake_memory.py</span></code>,
+<code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/ai_evolution/strategy_memory.py</span></code>,
+<code class="docutils literal notranslate"><span class="pre">tracker_system/meta_learner.py</span></code>, <code class="docutils literal notranslate"><span class="pre">tracker_system/meta_memory.py</span></code>,
+their passivity test files, <code class="docutils literal notranslate"><span class="pre">.ci/ruff_baseline.json</span></code>) — confirmed by
+<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">diff</span> <span class="pre">origin/main...HEAD</span></code> (see PR description).</p>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Crypto AI Terminal
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Operator Observability Architecture</a><ul>
+<li><a class="reference internal" href="#purpose">1. Purpose</a></li>
+<li><a class="reference internal" href="#scientific-principles">2. Scientific principles</a></li>
+<li><a class="reference internal" href="#source-of-truth-vs-presentation-separation">3. Source-of-truth vs. presentation separation</a></li>
+<li><a class="reference internal" href="#domain-model">4. Domain model</a></li>
+<li><a class="reference internal" href="#data-flow">5. Data flow</a></li>
+<li><a class="reference internal" href="#provenance-model">6. Provenance model</a></li>
+<li><a class="reference internal" href="#freshness-model">7. Freshness model</a></li>
+<li><a class="reference internal" href="#operatorsummary-composition">8. OperatorSummary composition</a></li>
+<li><a class="reference internal" href="#telegram-dashboard-api-adapter-philosophy">9. Telegram / dashboard / API adapter philosophy</a></li>
+<li><a class="reference internal" href="#known-gaps-forensic-findings-not-fixed-by-o-01">10. Known gaps (forensic findings, not fixed by O-01)</a></li>
+<li><a class="reference internal" href="#migration-plan-o-01-o-02">11. Migration plan O-01 -&gt; O-02</a></li>
+<li><a class="reference internal" href="#explicit-non-goals-o-01">12. Explicit non-goals (O-01)</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../_static/documentation_options.js?v=ef6a59ae"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/scripts/furo.js?v=5fa4622c"></script>
+    </body>
+</html>
