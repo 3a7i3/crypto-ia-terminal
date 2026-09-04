@@ -220,7 +220,7 @@ for the by-family view:
 
 | VARIABLE A | VARIABLE B | RELATION | CONSUMERS |
 |---|---|---|---|
-| `TELEGRAM_BOT_TOKEN` | `TELEGRAM_TOKEN` | Same physical bot, two names | `tests/phase0/test_phase05_validation.py`, `tools/runtime_tracer.py`, `infra/monitoring/supervise_all.py` read `TELEGRAM_TOKEN`; the deployed path (`core/advisor_loop.py`, `scripts/radar_bot.py`, `.env.example`) uses `TELEGRAM_BOT_TOKEN` |
+| `TELEGRAM_BOT_TOKEN` | `TELEGRAM_TOKEN` | Same physical bot, two names | `tests/phase0/test_phase05_validation.py`, `tools/runtime_tracer.py`, `infra/monitoring/supervise_all.py` read `TELEGRAM_TOKEN`; the deployed generic engine/push path (`core/advisor_loop.py`, `watchdog_vps.py`, `.env.example`) uses `TELEGRAM_BOT_TOKEN`. ENV-01R2 CORRECTIF : `scripts/radar_bot.py` is NOT on this list — it is CryptoRadar's dedicated polling identity and reads `RADAR_BOT_TOKEN`/`RADAR_CHAT_ID` directly, with no fallback to `TELEGRAM_BOT_TOKEN` (source : `scripts/radar_bot.py:21-22,325`; `docs/architecture/TELEGRAM_BOT_REGISTRY.md` § Bot CryptoRadar). |
 | `SLACK_WEBHOOK_URL` | `SLACK_WEBHOOK` | Same setting, two names | `.env.example`/`.env.secrets.example` template `SLACK_WEBHOOK_URL`; `infra/monitoring/supervise_all.py` reads `SLACK_WEBHOOK` |
 | `EMAIL_SMTP_PASS` | `EMAIL_SMTP_PASSWORD` | Same setting, two names | `.env.secrets.example` templates `EMAIL_SMTP_PASS`; `infra/notifications/notify_test_status.py` reads `EMAIL_SMTP_PASSWORD` |
 | `EMAIL_SMTP_SERVER`/`PORT` | `SMTP_SERVER`/`PORT` (+`SMTP_PASS`) | Parallel SMTP config, two prefixes | `infra/monitoring/surveillance_continue.py` reads the bare `SMTP_*` names; the templated/main path uses `EMAIL_SMTP_*` |

@@ -212,3 +212,67 @@ def test_script_never_reads_real_repo_env_files():
     body = "\n".join(body_lines)
     assert real_env_marker not in body
     assert real_secrets_marker not in body
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ENV-01R2 — Active Telegram template coverage
+#
+# Source-only test: reads the TRACKED template `.env.secrets.example` at the
+# repo root and asserts that every currently source-documented ACTIVE
+# Telegram bot token/chat-id NAME (per docs/architecture/TELEGRAM_BOT_REGISTRY.md
+# § "Bots actifs (5 bots)") has a placeholder line present (name declared,
+# value empty). This never opens the real, untracked `.env` / `.env.secrets`
+# files — only the tracked example template and doc/source names hardcoded
+# below from the registry.
+# ═══════════════════════════════════════════════════════════════════════════
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+SECRETS_EXAMPLE = REPO_ROOT / ".env.secrets.example"
+
+# Active per docs/architecture/TELEGRAM_BOT_REGISTRY.md § "Bots actifs (5 bots)"
+# (contrat fonctionnel v2.0, 2026-08-28). None of these are RETIRED/LEGACY.
+ACTIVE_TELEGRAM_TEMPLATE_NAMES = [
+    "RADAR_BOT_TOKEN",
+    "RADAR_CHAT_ID",
+    "MON_PORTFOLIO_BOT_TOKEN",
+    "MON_PORTFOLIO_CHAT_ID",
+    "QUANT_CRYPTO_BOT_TOKEN",
+    "QUANT_CRYPTO_CHAT_ID",
+    "RAPPORT_AUTOMATIQUE_BOT_TOKEN",
+    "RAPPORT_AUTOMATIQUE_CHAT_ID",
+    "PAPER_ARENA_BOT_TOKEN",
+    "PAPER_ARENA_CHAT_ID",
+]
+
+
+class TestActiveTelegramTemplateCoverage:
+    def test_secrets_example_exists(self):
+        assert SECRETS_EXAMPLE.is_file(), (
+            f"tracked template missing: {SECRETS_EXAMPLE}"
+        )
+
+    @pytest.mark.parametrize("name", ACTIVE_TELEGRAM_TEMPLATE_NAMES)
+    def test_active_bot_name_has_empty_placeholder(self, name):
+        """Every active Telegram bot token/chat-id name must appear as a
+        bare `NAME=` (or `NAME=   # comment`) placeholder in the tracked
+        template, with no value to its right — never a real credential."""
+        content = SECRETS_EXAMPLE.read_text(encoding="utf-8")
+        lines = [ln for ln in content.splitlines() if ln.startswith(f"{name}=")]
+        assert lines, f"{name} placeholder not found in {SECRETS_EXAMPLE.name}"
+        for line in lines:
+            value = line.split("=", 1)[1].split("#", 1)[0].strip()
+            assert value == "", (
+                f"{name} must be an empty placeholder in the tracked template, "
+                f"found non-empty value on line: {line!r}"
+            )
+
+    def test_radar_not_described_as_generic_telegram_bot_token(self):
+        """TELEGRAM_BOT_TOKEN must never be documented as Radar's polling
+        identity (@RadarCrypto1_bot) in the tracked secrets template — Radar
+        is a dedicated identity with no fallback (RADAR_BOT_TOKEN)."""
+        content = SECRETS_EXAMPLE.read_text(encoding="utf-8")
+        for line in content.splitlines():
+            if "RadarCrypto1_bot" in line:
+                assert "TELEGRAM_BOT_TOKEN" not in line, (
+                    f"TELEGRAM_BOT_TOKEN wrongly tied to @RadarCrypto1_bot: {line!r}"
+                )
