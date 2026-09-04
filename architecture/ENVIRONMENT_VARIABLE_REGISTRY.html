@@ -1,0 +1,1199 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" />
+
+    <link rel="shortcut icon" href="../_static/favicon.ico"/><!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
+        <title>Environment Variable Registry - Crypto AI Terminal 9.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=354aac6f" />
+    <link rel="stylesheet" type="text/css" href="../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=1b9cecba" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=302659d7" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">Crypto AI Terminal 9.1 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="../_static/../assets/logo_ai_quant.png" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="../_static/../assets/logo_ai_quant.png" alt="Dark Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/blob/main/docs/architecture/ENVIRONMENT_VARIABLE_REGISTRY.md?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/edit/main/docs/architecture/ENVIRONMENT_VARIABLE_REGISTRY.md" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="environment-variable-registry">
+<h1>Environment Variable Registry<a class="headerlink" href="#environment-variable-registry" title="Link to this heading">¶</a></h1>
+<p>Mission FAM-01 / FAM-01R. Variable <strong>names only</strong>, never values, organized
+by machine family. Sourced from a repo-wide census of <code class="docutils literal notranslate"><span class="pre">os.getenv()</span></code>,
+<code class="docutils literal notranslate"><span class="pre">os.environ.get()</span></code>, <code class="docutils literal notranslate"><span class="pre">os.environ[...]</span></code>, <code class="docutils literal notranslate"><span class="pre">.env.example</span></code>, <code class="docutils literal notranslate"><span class="pre">.env.secrets.example</span></code>,
+and <code class="docutils literal notranslate"><span class="pre">scripts/systemd/*.service</span></code> (<code class="docutils literal notranslate"><span class="pre">Environment=</span></code>/<code class="docutils literal notranslate"><span class="pre">EnvironmentFile=</span></code>),
+excluding <code class="docutils literal notranslate"><span class="pre">_ARCHIVE_2026/</span></code>.</p>
+<p><strong>Methodology note (FAM-01R correction):</strong> the original FAM-01 count of
+“573 distinct variable names … consumed via os.getenv/os.environ” mixed
+two different things under one number — code-consumed names and
+template/systemd-only names swept in by the same census pass. Re-running
+the census with an explicit split (regex:
+<code class="docutils literal notranslate"><span class="pre">os\.getenv\(\s*[&quot;']([A-Z_][A-Z0-9_]*)[&quot;']</span></code>,
+<code class="docutils literal notranslate"><span class="pre">os\.environ\.get\(\s*[&quot;']([A-Z_][A-Z0-9_]*)[&quot;']</span></code>,
+<code class="docutils literal notranslate"><span class="pre">os\.environ\[\s*[&quot;']([A-Z_][A-Z0-9_]*)[&quot;']\s*\]</span></code> over all <code class="docutils literal notranslate"><span class="pre">*.py</span></code> files
+excluding <code class="docutils literal notranslate"><span class="pre">_ARCHIVE_2026/</span></code>; <code class="docutils literal notranslate"><span class="pre">[A-Z_][A-Z0-9_]{2,}=</span></code> over <code class="docutils literal notranslate"><span class="pre">.env.example</span></code> and
+<code class="docutils literal notranslate"><span class="pre">.env.secrets.example</span></code>; <code class="docutils literal notranslate"><span class="pre">Environment=&quot;?[A-Z_][A-Z0-9_]*=</span></code> over
+<code class="docutils literal notranslate"><span class="pre">scripts/systemd/*.service</span></code>) gives, at the time of this pass:</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Bucket</p></th>
+<th class="head"><p>Count</p></th>
+<th class="head"><p>Method</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">CODE_CONSUMED</span></code></p></td>
+<td><p>575 distinct names</p></td>
+<td><p>Actually referenced via <code class="docutils literal notranslate"><span class="pre">os.getenv</span></code>/<code class="docutils literal notranslate"><span class="pre">os.environ.get</span></code>/<code class="docutils literal notranslate"><span class="pre">os.environ[...]</span></code> somewhere in the Python source tree</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">TEMPLATE_ONLY</span></code> (<code class="docutils literal notranslate"><span class="pre">.env.example</span></code>)</p></td>
+<td><p>32 names</p></td>
+<td><p>Present as a template entry but with no matching <code class="docutils literal notranslate"><span class="pre">CODE_CONSUMED</span></code> name found</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">TEMPLATE_ONLY</span></code> (<code class="docutils literal notranslate"><span class="pre">.env.secrets.example</span></code>)</p></td>
+<td><p>4 names</p></td>
+<td><p>Same, for the secrets template</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">SYSTEMD_ONLY</span></code></p></td>
+<td><p>4 names (<code class="docutils literal notranslate"><span class="pre">PYTHONUNBUFFERED</span></code>, <code class="docutils literal notranslate"><span class="pre">PYTHONIOENCODING</span></code>, <code class="docutils literal notranslate"><span class="pre">PYTHONPATH</span></code>, <code class="docutils literal notranslate"><span class="pre">TZ</span></code>)</p></td>
+<td><p>Set only via <code class="docutils literal notranslate"><span class="pre">Environment=</span></code> in <code class="docutils literal notranslate"><span class="pre">scripts/systemd/*.service</span></code>, never read via <code class="docutils literal notranslate"><span class="pre">os.getenv</span></code>/<code class="docutils literal notranslate"><span class="pre">os.environ</span></code> in the Python source itself (interpreter-level env vars)</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>The small difference between this pass’s 575 <code class="docutils literal notranslate"><span class="pre">CODE_CONSUMED</span></code> figure and
+the original “573” is attributable to regex/normalization differences
+between census passes, not a material discrepancy — both are in the same
+range and the qualitative finding (the count is a <strong>census of environment
+names from a mixed source set</strong>, not purely code-consumed) is what this
+correction fixes. This registry groups the resulting names by family and
+prefix, and calls out individually only the variables that are
+architecturally significant (secrets, feature flags, duplication
+candidates, cross-family shared config). See
+<code class="docutils literal notranslate"><span class="pre">ENVIRONMENT_CONFIGURATION_CONSTITUTION.md</span></code> for the policy these
+classifications serve.</p>
+<p>SECRET-classified variables below name <code class="docutils literal notranslate"><span class="pre">.env.secrets</span></code> as their location;
+no value for any of them appears anywhere in this document.</p>
+<section id="a-infrastructure-governance">
+<h2>A — INFRASTRUCTURE / GOVERNANCE<a class="headerlink" href="#a-infrastructure-governance" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>VARIABLE_NAME</p></th>
+<th class="head"><p>CATEGORY</p></th>
+<th class="head"><p>EXPECTED_FILE</p></th>
+<th class="head"><p>STATUS</p></th>
+<th class="head"><p>NOTE</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">RESTART_DISABLED_UNTIL_RECONCILIATION</span></code></p></td>
+<td><p>NON_SECRET_RUNTIME_CONFIG</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+<td><p>Shared source of truth, <code class="docutils literal notranslate"><span class="pre">deploy_vps.sh</span> <span class="pre">--restart</span></code> + <code class="docutils literal notranslate"><span class="pre">watchdog_vps.py</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">VPS_RESTART_CMD</span></code></p></td>
+<td><p>DEPLOYMENT_CONFIG</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+<td><p>Double opt-in with <code class="docutils literal notranslate"><span class="pre">--restart</span></code> flag, per CLAUDE.md</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">PAPER_TRADING_ENABLED</span></code></p></td>
+<td><p>FEATURE_FLAG</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+<td><p>Must remain <code class="docutils literal notranslate"><span class="pre">true</span></code> per CLAUDE.md stabilization window</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">LIVE_TRADING_CONFIRMED</span></code></p></td>
+<td><p>FEATURE_FLAG</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+<td><p>Must remain <code class="docutils literal notranslate"><span class="pre">false</span></code> per CLAUDE.md stabilization window</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">FEATURE_AUTO_CALIBRATION</span></code></p></td>
+<td><p>FEATURE_FLAG</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+<td><p>Default False permanent, ADR-0007</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">FEATURE_ADAPTIVE_DECISION_FEEDBACK</span></code></p></td>
+<td><p>FEATURE_FLAG</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+<td><p>S-02B.1 master gate for adaptive_learning application</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">FEATURE_REGRET_DECISION_FEEDBACK</span></code></p></td>
+<td><p>FEATURE_FLAG</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+<td><p>Regret-side governance precedent, ADR-0007</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">SCIENTIFIC_DATA_GUARD_GENERATE</span></code></p></td>
+<td><p>FEATURE_FLAG</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">AI_MODE</span></code></p></td>
+<td><p>NON_SECRET_RUNTIME_CONFIG</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ENGINE_VERSION</span></code></p></td>
+<td><p>NON_SECRET_RUNTIME_CONFIG</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">SYSTEM_STATE_FILE</span></code></p></td>
+<td><p>PATH</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ENV_PATH</span></code></p></td>
+<td><p>PATH</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">INVOCATION_ID</span></code></p></td>
+<td><p>NON_SECRET_RUNTIME_CONFIG</p></td>
+<td><p>CODE_DEFAULT</p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+<td><p>Injected by systemd (<code class="docutils literal notranslate"><span class="pre">%n</span></code>-style), not human-set</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">PYTHONUNBUFFERED</span></code>, <code class="docutils literal notranslate"><span class="pre">PYTHONIOENCODING</span></code>, <code class="docutils literal notranslate"><span class="pre">TZ</span></code>, <code class="docutils literal notranslate"><span class="pre">PYTHONPATH</span></code></p></td>
+<td><p>DEPLOYMENT_CONFIG</p></td>
+<td><p>SYSTEMD_ONLY</p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+<td><p>Set directly in <code class="docutils literal notranslate"><span class="pre">scripts/systemd/*.service</span></code> via <code class="docutils literal notranslate"><span class="pre">Environment=</span></code>, never in <code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">DP_LOG_DIR</span></code>, <code class="docutils literal notranslate"><span class="pre">DP_LOG_PATH</span></code></p></td>
+<td><p>PATH</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code> (also a systemd-only override on <code class="docutils literal notranslate"><span class="pre">crypto-advisor.service</span></code>)</p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">crypto-advisor.service</span></code> sets <code class="docutils literal notranslate"><span class="pre">DP_LOG_DIR</span></code> directly via <code class="docutils literal notranslate"><span class="pre">Environment=</span></code>, overriding any <code class="docutils literal notranslate"><span class="pre">.env</span></code> value for that unit only</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">PARAM_AUDIT_LOG</span></code></p></td>
+<td><p>PATH</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">WATCHDOG_*</span></code> (INTERVAL, TIMEOUT, MAX_RESTARTS, RAM_ALERT_MB, RAM_RESTART_MB, RESTART_COOLDOWN, RESTART_DELAY, STARTUP_GRACE, USE_SYSTEMD, SNAPSHOT, DEAD_ALERT_REPEAT_S)</p></td>
+<td><p>CADENCE / THRESHOLD</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+<td><p>Consumed by <code class="docutils literal notranslate"><span class="pre">watchdog_vps.py</span></code> (deployed) — see precedence-risk finding in the constitution doc</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">P10_WD_*</span></code> (CHECK_S, FREEZE_LAG_S, HEARTBEAT_S, MAX_RESTARTS, STALE_S)</p></td>
+<td><p>CADENCE / THRESHOLD</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+<td><p>Phase-10 watchdog-shaped config, parallel prefix to <code class="docutils literal notranslate"><span class="pre">WATCHDOG_*</span></code> — duplication candidate, see <code class="docutils literal notranslate"><span class="pre">MODULE_FAMILY_REGISTRY.md</span></code>-adjacent debt</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">P10_PHASE</span></code>, <code class="docutils literal notranslate"><span class="pre">P10_CERT_KEY</span></code>, <code class="docutils literal notranslate"><span class="pre">P10_CERT_PATH</span></code>, <code class="docutils literal notranslate"><span class="pre">P10_DECISION_KEY_PATH</span></code>, <code class="docutils literal notranslate"><span class="pre">P10_TAMPER_LOG_PATH</span></code>, <code class="docutils literal notranslate"><span class="pre">P10_WARMUP_HMAC_KEY</span></code></p></td>
+<td><p>SECRET / RESTRICTED_IDENTITY</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env.secrets</span></code> (keys/paths that gate certification)</p></td>
+<td><p>INCONCLUSIVE</p></td>
+<td><p>Key-shaped names; classify as secret pending confirmation these are cryptographic material rather than plain paths — flagged for future remediation, not resolved here</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="b-market-data">
+<h2>B — MARKET / DATA<a class="headerlink" href="#b-market-data" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>VARIABLE_NAME</p></th>
+<th class="head"><p>CATEGORY</p></th>
+<th class="head"><p>EXPECTED_FILE</p></th>
+<th class="head"><p>STATUS</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">EXCHANGE_ID</span></code>, <code class="docutils literal notranslate"><span class="pre">EXCHANGE_TESTNET</span></code>, <code class="docutils literal notranslate"><span class="pre">EXCHANGE_MODE</span></code>, <code class="docutils literal notranslate"><span class="pre">EXCHANGE_HEARTBEAT_S</span></code>, <code class="docutils literal notranslate"><span class="pre">EXCHANGE_MONITOR_URL</span></code></p></td>
+<td><p>NON_SECRET_RUNTIME_CONFIG</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ACTIVE_EXCHANGE</span></code></p></td>
+<td><p>NON_SECRET_RUNTIME_CONFIG</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">MARKET_SCANNER_*</span></code> (EXCHANGE, CACHE_TTL, POOL_SIZE, PROFILE, TIMEFRAME, TESTNET, SYNTHETIC, ALLOW_STALE_CACHE, CB_RECOVERY, PRELOAD_MARKETS, PRELOAD_WAIT_MS, RETRY_BASE_DELAY, RETRY_MAX_DELAY, SESSION_MAX_ERRORS, SESSION_TTL_S, TRACE_TIMINGS)</p></td>
+<td><p>CADENCE / THRESHOLD</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">MTF_SCAN_*</span></code> (MAX_RETRIES, MAX_WORKERS, RETRY_BASE_DELAY, RETRY_MAX_DELAY)</p></td>
+<td><p>THRESHOLD</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">MARKET_DB_PATH</span></code></p></td>
+<td><p>PATH</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">LMI_DIR</span></code>, <code class="docutils literal notranslate"><span class="pre">LMI_EXCHANGE</span></code>, <code class="docutils literal notranslate"><span class="pre">LMI_STREAM_STALL_S</span></code></p></td>
+<td><p>PATH / THRESHOLD</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH — <code class="docutils literal notranslate"><span class="pre">crypto-lmi-observatory.service</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">OBS_DIR</span></code>, <code class="docutils literal notranslate"><span class="pre">OBS_EXCHANGE</span></code>, <code class="docutils literal notranslate"><span class="pre">OBS_EXCHANGES</span></code>, <code class="docutils literal notranslate"><span class="pre">OBS_LOG_ROOT</span></code>, <code class="docutils literal notranslate"><span class="pre">OBS_MIN_FREE_DISK_GB</span></code>, <code class="docutils literal notranslate"><span class="pre">OBS_PRIMARY_EXCHANGE</span></code>, <code class="docutils literal notranslate"><span class="pre">OBS_RETENTION_DAYS</span></code></p></td>
+<td><p>PATH / THRESHOLD</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">PERP_BUILDER_*</span></code> (EXCHANGE, MAX_SPREAD_PCT, MIN_VOL_USD, QUOTES, TOP_N, USE_SWAP)</p></td>
+<td><p>THRESHOLD</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">UNIVERSE_*</span></code> (ENABLED, EXCHANGE, MAX_SPREAD_PCT, MIN_CHANGE_N, MIN_VOL_USD, PINNED_SYMBOLS, QUOTES, REFRESH_H, STORAGE, SYNC_EVERY, TOP_N)</p></td>
+<td><p>FEATURE_FLAG / THRESHOLD</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH — universe is an experimental variable per CLAUDE.md ADR-0017</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">RADAR_*</span></code> (BOT_TOKEN, CHAT_ID, EVAL_MIN_MOVE_PCT, LIVE_MODE, MAX_SPREAD_PCT, MIN_QUOTE_VOL_USD, QUOTES, TELEGRAM_DIGEST, TOP_N)</p></td>
+<td><p>mixed — see split below</p></td>
+<td><p>mixed</p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">RADAR_BOT_TOKEN</span></code></p></td>
+<td><p>SECRET</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env.secrets</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">RADAR_CHAT_ID</span></code></p></td>
+<td><p>RESTRICTED_IDENTITY</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env.secrets</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ALERT_SYMBOL</span></code>, <code class="docutils literal notranslate"><span class="pre">ALERT_TIMEFRAME</span></code>, <code class="docutils literal notranslate"><span class="pre">ALERT_POLL_SECONDS</span></code>, <code class="docutils literal notranslate"><span class="pre">ALERT_COOLDOWN_REGIME</span></code>, <code class="docutils literal notranslate"><span class="pre">ALERT_COOLDOWN_RISK</span></code>, <code class="docutils literal notranslate"><span class="pre">ALERT_COOLDOWN_SIGNAL</span></code></p></td>
+<td><p>CADENCE</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ALERT_EMAIL</span></code></p></td>
+<td><p>RESTRICTED_IDENTITY</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env.secrets</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="c-quantitative-research-learning">
+<h2>C — QUANTITATIVE RESEARCH / LEARNING<a class="headerlink" href="#c-quantitative-research-learning" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>VARIABLE_NAME</p></th>
+<th class="head"><p>CATEGORY</p></th>
+<th class="head"><p>EXPECTED_FILE</p></th>
+<th class="head"><p>STATUS</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">RANKER_*</span></code> (BLACKLIST_DEMOTES, DB, DEMOTE_SCORE, ENABLED, EXCHANGE, MIN_TRADES, MIN_VOL_USD, PROMOTE_SCORE, STALE_DAYS, TOP_N)</p></td>
+<td><p>FEATURE_FLAG / THRESHOLD / PATH</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">MM_*</span></code> (MAX_DB, MIN_LOSS_PCT, REPEAT_THRESHOLD, RULE_EXPIRY_DAYS)</p></td>
+<td><p>THRESHOLD / PATH</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH — <code class="docutils literal notranslate"><span class="pre">mistake_memory.py</span></code> thresholds</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">MISTAKE_DB</span></code></p></td>
+<td><p>PATH</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">P8_*</span></code> (~35 vars: CONF_<em>, DWE_</em>, PERF_W_<em>, PROBATION_</em>, RAMP_<em>, TRACKING_</em>, etc.)</p></td>
+<td><p>THRESHOLD</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH — strategy_ranker / confidence-weighting phase-8 config</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">P9_*</span></code> (~28 vars: BDD_<em>, CONC_</em>, DD_WARN, DRIFT_<em>, ERROR_RATE_</em>, GOV_<em>, LATENCY_</em>, PF_WARN, RG_BURST_COUNT, SHARPE_WARN, etc.)</p></td>
+<td><p>THRESHOLD</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH — phase-9 governance/drift thresholds</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">CAE_*</span></code> (EV_MIN, KELLY_MAX, KELLY_SAFETY, LEVERAGE_MAX, MIN_TRADES_KELLY, VOL_MAX_REDUCTION, VOL_REFERENCE)</p></td>
+<td><p>THRESHOLD</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH — capital allocation engine</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">CONV_*</span></code> (SIZE_<em>, THRESH_</em>, W_MEMORY, W_MTF, W_QUALITY, W_REGIME, W_SIGNAL)</p></td>
+<td><p>THRESHOLD</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH — conviction scoring weights</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">NTL_*</span></code> (~14 vars: CHOP_THRESHOLD, CONTRADICTION, FOMO_WINDOW, MAX_ATR_MULT, MIN_SCORE, W_FOMO, W_MARKET, W_SIGNAL, W_TACTICAL, etc.)</p></td>
+<td><p>THRESHOLD</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH — no_trade_layer thresholds</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">META_*_MIN_SCORE</span></code>, <code class="docutils literal notranslate"><span class="pre">META_*_SL</span></code>, <code class="docutils literal notranslate"><span class="pre">META_*_TP</span></code>, <code class="docutils literal notranslate"><span class="pre">META_*_TRAIL</span></code> (per personality: MOMENTUM, RANGE, SCALP, SHORT)</p></td>
+<td><p>THRESHOLD</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH — per-personality exit params</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">REGIME_*</span></code> (ABSOLUTE_FLOOR, MISMATCH_COOLDOWN, RAMP_CYCLES, SIDEWAYS_MIN_SCORE, SIDEWAYS_TP_ATR, STABILITY_WINDOW)</p></td>
+<td><p>THRESHOLD</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">SIGNAL_MIN_SCORE</span></code></p></td>
+<td><p>THRESHOLD</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">LSE_MTF_MIN_AGREE</span></code>, <code class="docutils literal notranslate"><span class="pre">LSE_MTF_MIN_STRENGTH</span></code></p></td>
+<td><p>THRESHOLD</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">V9_*</span></code> (ADVISOR_ONLY, INITIAL_CAPITAL, LOG_LEVEL, MAX_POSITION_WEIGHT, SYMBOLS)</p></td>
+<td><p>NON_SECRET_RUNTIME_CONFIG</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH — quant_hedge_ai v9 config namespace</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="d-decision-risk-safety">
+<h2>D — DECISION / RISK / SAFETY<a class="headerlink" href="#d-decision-risk-safety" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>VARIABLE_NAME</p></th>
+<th class="head"><p>CATEGORY</p></th>
+<th class="head"><p>EXPECTED_FILE</p></th>
+<th class="head"><p>STATUS</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">INV_*</span></code> (MAX_CUMUL_DELTA, MAX_DD, MAX_DELTA, MAX_FLIPS_10C, MAX_IDLE, MAX_STRATEGY_WEIGHT, MIN_CONFIDENCE, MIN_ENTROPY, MIN_PNL_GO, MIN_STABILITY, MIN_WIN_RATE)</p></td>
+<td><p>THRESHOLD</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH — invariant gate thresholds</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">EO_*</span></code> (DAILY_CAREFUL/MINIMAL/RECOVERY/REDUCE/VETO, DD_<em>, MAX_TRADES_HOUR, OPEN_PNL_</em>, STREAK_*)</p></td>
+<td><p>THRESHOLD</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH — emergency/operational overlay thresholds</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">RG_*</span></code> (AGGRESSIVE_PNL_CYCLES, DD_DEFENSIVE, DD_RISK_OFF, MIN_CYCLES, RECOVERY_PNL_CYCLES, RECOVERY_STABLE, RISK_OFF_SAFE_CYCLES, VOL_DEFENSIVE, VOL_EMERGENCY, VOL_EMERGENCY_COOLDOWN)</p></td>
+<td><p>THRESHOLD</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH — risk-gate regime thresholds</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">SA_*</span></code> (~16 vars: BASELINE_WINDOW, CRITICAL_HALT_SECONDS, DD_ACCEL, FREEZE_HALTS, HALT_MINUTES, LATENCY_<em>, OVERTRADE_</em>, RECENT_WINDOW, REVENGE_<em>, SHARPE_DROP, SLIPPAGE_</em>, WR_DROP_*)</p></td>
+<td><p>THRESHOLD</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH — safety-agent thresholds</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">PB_*</span></code> (MAX_CORRELATION, MAX_EXPOSURE_PCT, MAX_LEVERAGE, MAX_POSITIONS, MAX_REGIME_PCT, MAX_SAME_DIRECTION, MAX_SYMBOL_PCT, MIN_POSITION_USD)</p></td>
+<td><p>THRESHOLD</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH — portfolio_brain limits</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">EM_MAX_AGGRESSIVE</span></code>, <code class="docutils literal notranslate"><span class="pre">EM_MAX_DEFENSIVE</span></code>, <code class="docutils literal notranslate"><span class="pre">EM_MAX_NORMAL</span></code>, <code class="docutils literal notranslate"><span class="pre">EM_MAX_RECOVERY</span></code></p></td>
+<td><p>THRESHOLD</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">CT_*</span></code> (HARD_DD, MIN_OPERATIONAL, RAMP_RATE, REDUCTION, SOFT_DD)</p></td>
+<td><p>THRESHOLD</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">PRELIVE_*</span></code> (BURNIN_MAX_AGE_H, BURNIN_N, MAX_DD, MAX_ORDER_USD, MIN_PF, MIN_SHARPE, MIN_WR)</p></td>
+<td><p>THRESHOLD</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH — <code class="docutils literal notranslate"><span class="pre">scripts/prelive_gate.py</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">GATE_LOG_CSV</span></code>, <code class="docutils literal notranslate"><span class="pre">GATE_MIN_SCORE_OVERRIDE</span></code>, <code class="docutils literal notranslate"><span class="pre">GATE_REQUIRE_CONFIRMED</span></code>, <code class="docutils literal notranslate"><span class="pre">GATE_WARN_THROTTLE_S</span></code></p></td>
+<td><p>PATH / THRESHOLD</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH — global_risk_gate’s own CSV log (the third counting, see constitution/registry)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">KELLY_FRACTION</span></code></p></td>
+<td><p>THRESHOLD</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">MIN_PROFIT_FACTOR</span></code></p></td>
+<td><p>THRESHOLD</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="e-portfolio-execution">
+<h2>E — PORTFOLIO / EXECUTION<a class="headerlink" href="#e-portfolio-execution" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>VARIABLE_NAME</p></th>
+<th class="head"><p>CATEGORY</p></th>
+<th class="head"><p>EXPECTED_FILE</p></th>
+<th class="head"><p>STATUS</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">WALLET_PAPER_CAPITAL</span></code>, <code class="docutils literal notranslate"><span class="pre">WALLET_CACHE_TTL_S</span></code></p></td>
+<td><p>NON_SECRET_RUNTIME_CONFIG</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH — pinned sizing base per CLAUDE.md ADR-0007</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">MEXC_SIM_*</span></code> (CAPITAL, FEE, MAX_AGE_H, MAX_POSITION_USD, MAX_PRICE_DEV, SLIP)</p></td>
+<td><p>THRESHOLD</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">EXEC_*</span></code> (DEDUP_WINDOW, FUTURES_MAX_ORDER_USD, FUTURES_MIN_ORDER_USD, MAX_CONSEC_LOSSES, MAX_DD, MAX_LOSS, MAX_ORDER_USD, TRADE_LOG)</p></td>
+<td><p>THRESHOLD / PATH</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">DEFAULT_ORDER_USD</span></code>, <code class="docutils literal notranslate"><span class="pre">DEFAULT_SL_PCT</span></code>, <code class="docutils literal notranslate"><span class="pre">DEFAULT_TP_PCT</span></code>, <code class="docutils literal notranslate"><span class="pre">MIN_ORDER_USD</span></code>, <code class="docutils literal notranslate"><span class="pre">MAX_ORDER_USD</span></code></p></td>
+<td><p>THRESHOLD</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">PM_*</span></code> (~13 vars: AGING_DECAY, AGING_START, BE_TRIGGER, CHECK_INTERVAL, LIQ_DEFENSE_PCT, MAX_AGE_MIN, PARTIAL_<em>, SL_</em>, TP_*, TRAILING_PCT)</p></td>
+<td><p>THRESHOLD</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH — position manager</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">PAPER_INITIAL_CAPITAL</span></code>, <code class="docutils literal notranslate"><span class="pre">PAPER_SIM_ORDER_USD</span></code>, <code class="docutils literal notranslate"><span class="pre">PAPER_TRADE_LOG</span></code>, <code class="docutils literal notranslate"><span class="pre">PAPER_PORTFOLIO_BRAIN_LEVEL</span></code>, <code class="docutils literal notranslate"><span class="pre">PAPER_ADMISSION_LEDGER</span></code></p></td>
+<td><p>NON_SECRET_RUNTIME_CONFIG / PATH</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">INITIAL_CAPITAL</span></code>, <code class="docutils literal notranslate"><span class="pre">REFERENCE_CAPITAL</span></code>, <code class="docutils literal notranslate"><span class="pre">VIRTUAL_CAPITAL_USD</span></code></p></td>
+<td><p>NON_SECRET_RUNTIME_CONFIG</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>DUPLICATED — three capital-shaped names alongside <code class="docutils literal notranslate"><span class="pre">WALLET_PAPER_CAPITAL</span></code>; see <code class="docutils literal notranslate"><span class="pre">ENVIRONMENT_VARIABLE_REGISTRY.md</span></code> §Duplication below</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">BINANCE_API_KEY</span></code>, <code class="docutils literal notranslate"><span class="pre">BINANCE_API_SECRET</span></code>, <code class="docutils literal notranslate"><span class="pre">BINANCE_LIVE_API_KEY</span></code>, <code class="docutils literal notranslate"><span class="pre">BINANCE_LIVE_API_SECRET</span></code>, <code class="docutils literal notranslate"><span class="pre">BINANCE_FUTURES_DEMO_KEY</span></code>, <code class="docutils literal notranslate"><span class="pre">BINANCE_FUTURES_DEMO_SECRET</span></code>, <code class="docutils literal notranslate"><span class="pre">BINANCE_TESTNET</span></code></p></td>
+<td><p>SECRET (keys/secrets) / NON_SECRET_RUNTIME_CONFIG (<code class="docutils literal notranslate"><span class="pre">_TESTNET</span></code>)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env.secrets</span></code> (keys), <code class="docutils literal notranslate"><span class="pre">.env</span></code> (<code class="docutils literal notranslate"><span class="pre">BINANCE_TESTNET</span></code>)</p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">GATEIO_API_KEY</span></code>, <code class="docutils literal notranslate"><span class="pre">GATEIO_API_SECRET</span></code>, <code class="docutils literal notranslate"><span class="pre">GATEIO_TESTNET</span></code></p></td>
+<td><p>SECRET / NON_SECRET_RUNTIME_CONFIG</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env.secrets</span></code> / <code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">KRAKEN_API_KEY</span></code>, <code class="docutils literal notranslate"><span class="pre">KRAKEN_API_SECRET</span></code></p></td>
+<td><p>SECRET</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env.secrets</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">MEXC_API_KEY</span></code>, <code class="docutils literal notranslate"><span class="pre">MEXC_API_SECRET</span></code></p></td>
+<td><p>SECRET</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env.secrets</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">LIVE_READER_API_KEY</span></code>, <code class="docutils literal notranslate"><span class="pre">LIVE_READER_API_SECRET</span></code>, <code class="docutils literal notranslate"><span class="pre">LIVE_READER_EXCHANGE</span></code></p></td>
+<td><p>SECRET / NON_SECRET_RUNTIME_CONFIG</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env.secrets</span></code> / <code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">REAL_ACCOUNTS_DUST_USD</span></code>, <code class="docutils literal notranslate"><span class="pre">REAL_ACCOUNTS_EXCHANGES</span></code>, <code class="docutils literal notranslate"><span class="pre">REAL_ACCOUNTS_TTL_S</span></code></p></td>
+<td><p>THRESHOLD / NON_SECRET_RUNTIME_CONFIG</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">SYMBOL_BLACKLIST</span></code></p></td>
+<td><p>NON_SECRET_RUNTIME_CONFIG</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">FORCE_TEST_EXECUTION</span></code></p></td>
+<td><p>FEATURE_FLAG</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="f-canonical-scientific-observability-regret">
+<h2>F — CANONICAL SCIENTIFIC OBSERVABILITY / REGRET<a class="headerlink" href="#f-canonical-scientific-observability-regret" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>VARIABLE_NAME</p></th>
+<th class="head"><p>CATEGORY</p></th>
+<th class="head"><p>EXPECTED_FILE</p></th>
+<th class="head"><p>STATUS</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">REGRET_*</span></code> (CANONICAL_HORIZON, DB, DELAY_CYCLES, HORIZONS_DIR, MAX_DB, MAX_STALE_H, MIN_MOVE, MIN_MOVE_PCT, MIN_SCORE)</p></td>
+<td><p>THRESHOLD / PATH</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">REJECTION_STORE_DIR</span></code></p></td>
+<td><p>PATH</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">DQE_DB</span></code>, <code class="docutils literal notranslate"><span class="pre">DQE_QUALITY_THRESHOLD</span></code></p></td>
+<td><p>PATH / THRESHOLD</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH — data-quality engine</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ALLOCATOR_DB</span></code>, <code class="docutils literal notranslate"><span class="pre">FORBIDDEN_PATTERNS_DB</span></code>, <code class="docutils literal notranslate"><span class="pre">PROBATION_DB</span></code></p></td>
+<td><p>PATH</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">SIM_RESTORE_MAX_AGE_H</span></code></p></td>
+<td><p>THRESHOLD</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">BURN_IN_REPORTS_DIR</span></code>, <code class="docutils literal notranslate"><span class="pre">COLD_START_REPORT_DIR</span></code></p></td>
+<td><p>PATH</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">INTEGRITY_AUDIT_EVERY</span></code>, <code class="docutils literal notranslate"><span class="pre">INTEGRITY_LOG_PATH</span></code>, <code class="docutils literal notranslate"><span class="pre">INTEGRITY_UNSAFE_SCORE</span></code></p></td>
+<td><p>CADENCE / PATH / THRESHOLD</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">POSITIONS_SNAPSHOT_PATH</span></code></p></td>
+<td><p>PATH</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">TRADING_STALLED_CYCLES</span></code>, <code class="docutils literal notranslate"><span class="pre">RECOVERY_STABLE_CYCLES</span></code>, <code class="docutils literal notranslate"><span class="pre">HEARTBEAT_CYCLES</span></code>, <code class="docutils literal notranslate"><span class="pre">INACTIVITY_WARN_RATIO</span></code></p></td>
+<td><p>THRESHOLD</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="g-operator-telegram-presentation">
+<h2>G — OPERATOR / TELEGRAM / PRESENTATION<a class="headerlink" href="#g-operator-telegram-presentation" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>VARIABLE_NAME</p></th>
+<th class="head"><p>CATEGORY</p></th>
+<th class="head"><p>EXPECTED_FILE</p></th>
+<th class="head"><p>STATUS</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">TELEGRAM_BOT_TOKEN</span></code>, <code class="docutils literal notranslate"><span class="pre">TELEGRAM_CHAT_ID</span></code>, <code class="docutils literal notranslate"><span class="pre">TELEGRAM_BEHAVIOR_CHAT_ID</span></code></p></td>
+<td><p>SECRET / RESTRICTED_IDENTITY</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env.secrets</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">TELEGRAM_TOKEN</span></code></p></td>
+<td><p>SECRET</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env.secrets</span></code> (if kept)</p></td>
+<td><p>LEGACY / DUPLICATED — alias of <code class="docutils literal notranslate"><span class="pre">TELEGRAM_BOT_TOKEN</span></code>, see duplication table below</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">TELEGRAM_ENABLED</span></code></p></td>
+<td><p>FEATURE_FLAG</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">MON_PORTFOLIO_BOT_TOKEN</span></code>, <code class="docutils literal notranslate"><span class="pre">MON_PORTFOLIO_CHAT_ID</span></code></p></td>
+<td><p>SECRET / RESTRICTED_IDENTITY</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env.secrets</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">PAPER_ARENA_BOT_TOKEN</span></code>, <code class="docutils literal notranslate"><span class="pre">PAPER_ARENA_CHAT_ID</span></code></p></td>
+<td><p>SECRET / RESTRICTED_IDENTITY</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env.secrets</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">RAPPORT_AUTOMATIQUE_BOT_TOKEN</span></code>, <code class="docutils literal notranslate"><span class="pre">RAPPORT_AUTOMATIQUE_CHAT_ID</span></code></p></td>
+<td><p>SECRET / RESTRICTED_IDENTITY</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env.secrets</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">QUANT_CRYPTO_BOT_TOKEN</span></code>, <code class="docutils literal notranslate"><span class="pre">QUANT_CRYPTO_CHAT_ID</span></code></p></td>
+<td><p>SECRET / RESTRICTED_IDENTITY</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env.secrets</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">TELEMETRIE_IA_BOT_TOKEN</span></code>, <code class="docutils literal notranslate"><span class="pre">TELEMETRIE_IA_CHAT_ID</span></code></p></td>
+<td><p>SECRET / RESTRICTED_IDENTITY</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env.secrets</span></code></p></td>
+<td><p>LEGACY per <code class="docutils literal notranslate"><span class="pre">.env.secrets.example</span></code> header (“&#64;Telemetrie_IA_bot retiré”) — kept for audit, not actively wired</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">P10_PORTFOLIO_BOT_TOKEN</span></code>, <code class="docutils literal notranslate"><span class="pre">P10_PORTFOLIO_CHAT_ID</span></code></p></td>
+<td><p>SECRET / RESTRICTED_IDENTITY</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env.secrets</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">QC_PINNED_MSG_ID</span></code>, <code class="docutils literal notranslate"><span class="pre">QC_PINNED_UPDATE</span></code>, <code class="docutils literal notranslate"><span class="pre">QC_POLL_INTERVAL</span></code>, <code class="docutils literal notranslate"><span class="pre">QC_LIVE_RETRY</span></code>, <code class="docutils literal notranslate"><span class="pre">QC_SAFETY_REFRESH</span></code></p></td>
+<td><p>RESTRICTED_IDENTITY / CADENCE</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env.secrets</span></code> (pinned msg id) / <code class="docutils literal notranslate"><span class="pre">.env</span></code> (cadences)</p></td>
+<td><p>ACTIVE_SOURCE_PATH — Quant Observer config</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">DASHBOARD_PASSWORD</span></code></p></td>
+<td><p>SECRET</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env.secrets</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">DASHBOARD_PORT</span></code>, <code class="docutils literal notranslate"><span class="pre">RISK_DASHBOARD_ENABLED</span></code>, <code class="docutils literal notranslate"><span class="pre">RISK_DASHBOARD_PORT</span></code>, <code class="docutils literal notranslate"><span class="pre">HEALTH_PORT</span></code>, <code class="docutils literal notranslate"><span class="pre">CHART_SERVER_HOST</span></code>, <code class="docutils literal notranslate"><span class="pre">CHART_SERVER_PORT</span></code>, <code class="docutils literal notranslate"><span class="pre">CHART_SERVER_URL</span></code></p></td>
+<td><p>PRESENTATION_CONFIG</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">DASHBOARD_AUDIT_NOTIFY_PREFIX</span></code>, <code class="docutils literal notranslate"><span class="pre">DASHBOARD_AUDIT_SLACK_WEBHOOK</span></code>, <code class="docutils literal notranslate"><span class="pre">DASHBOARD_AUDIT_STRICT</span></code></p></td>
+<td><p>PRESENTATION_CONFIG / SECRET (webhook)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code> / <code class="docutils literal notranslate"><span class="pre">.env.secrets</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">SLACK_WEBHOOK_URL</span></code></p></td>
+<td><p>SECRET</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env.secrets</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">SLACK_WEBHOOK</span></code></p></td>
+<td><p>SECRET</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env.secrets</span></code> (if kept)</p></td>
+<td><p>DUPLICATED — alias of <code class="docutils literal notranslate"><span class="pre">SLACK_WEBHOOK_URL</span></code>, see below</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">DISCORD_WEBHOOK_URL</span></code></p></td>
+<td><p>SECRET</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env.secrets</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">EMAIL_ENABLED</span></code>, <code class="docutils literal notranslate"><span class="pre">EMAIL_FROM</span></code>, <code class="docutils literal notranslate"><span class="pre">EMAIL_FROM_ADDR</span></code>, <code class="docutils literal notranslate"><span class="pre">EMAIL_TO</span></code>, <code class="docutils literal notranslate"><span class="pre">EMAIL_TO_ADDR</span></code></p></td>
+<td><p>FEATURE_FLAG / RESTRICTED_IDENTITY</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code> (<code class="docutils literal notranslate"><span class="pre">_ENABLED</span></code>) / <code class="docutils literal notranslate"><span class="pre">.env.secrets</span></code> (addresses)</p></td>
+<td><p>ACTIVE_SOURCE_PATH — <code class="docutils literal notranslate"><span class="pre">EMAIL_FROM</span></code>/<code class="docutils literal notranslate"><span class="pre">EMAIL_FROM_ADDR</span></code> and <code class="docutils literal notranslate"><span class="pre">EMAIL_TO</span></code>/<code class="docutils literal notranslate"><span class="pre">EMAIL_TO_ADDR</span></code> are alias-shaped pairs, see below</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">EMAIL_SMTP_SERVER</span></code>, <code class="docutils literal notranslate"><span class="pre">EMAIL_SMTP_PORT</span></code>, <code class="docutils literal notranslate"><span class="pre">EMAIL_SMTP_USER</span></code>, <code class="docutils literal notranslate"><span class="pre">EMAIL_SMTP_PASS</span></code>, <code class="docutils literal notranslate"><span class="pre">EMAIL_SMTP_PASSWORD</span></code></p></td>
+<td><p>RESTRICTED_IDENTITY / SECRET</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env.secrets</span></code></p></td>
+<td><p>DUPLICATED — <code class="docutils literal notranslate"><span class="pre">EMAIL_SMTP_PASS</span></code> vs <code class="docutils literal notranslate"><span class="pre">EMAIL_SMTP_PASSWORD</span></code>, see below</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">SMTP_SERVER</span></code>, <code class="docutils literal notranslate"><span class="pre">SMTP_PORT</span></code>, <code class="docutils literal notranslate"><span class="pre">SMTP_PASS</span></code></p></td>
+<td><p>SECRET</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env.secrets</span></code></p></td>
+<td><p>DUPLICATED — parallel to <code class="docutils literal notranslate"><span class="pre">EMAIL_SMTP_*</span></code>, see below (consumed by <code class="docutils literal notranslate"><span class="pre">infra/monitoring/surveillance_continue.py</span></code>)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">BATCH_NOTIFY_EMAIL</span></code>, <code class="docutils literal notranslate"><span class="pre">BATCH_NOTIFY_PROVIDER</span></code>, <code class="docutils literal notranslate"><span class="pre">BATCH_NOTIFY_SMTP_PASS</span></code>, <code class="docutils literal notranslate"><span class="pre">BATCH_NOTIFY_SMTP_PORT</span></code>, <code class="docutils literal notranslate"><span class="pre">BATCH_NOTIFY_SMTP_SERVER</span></code>, <code class="docutils literal notranslate"><span class="pre">BATCH_NOTIFY_SMTP_USER</span></code></p></td>
+<td><p>SECRET / NON_SECRET_RUNTIME_CONFIG</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env.secrets</span></code> (creds) / <code class="docutils literal notranslate"><span class="pre">.env</span></code> (provider)</p></td>
+<td><p>DUPLICATED — a third SMTP-shaped prefix, see below</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">RADAR_TELEGRAM_DIGEST</span></code></p></td>
+<td><p>PRESENTATION_CONFIG</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">COO_BRIEF_EVERY</span></code>, <code class="docutils literal notranslate"><span class="pre">INTEL_REPORT_EVERY_H</span></code>, <code class="docutils literal notranslate"><span class="pre">INTEL_SNAPSHOT_PATH</span></code>, <code class="docutils literal notranslate"><span class="pre">INTEL_TRADE_STALL_ALERT_H</span></code>, <code class="docutils literal notranslate"><span class="pre">PORTFOLIO_REPORT_EVERY_H</span></code>, <code class="docutils literal notranslate"><span class="pre">REAL_BOT_REPORT_EVERY</span></code>, <code class="docutils literal notranslate"><span class="pre">WEEKLY_REPORT_EVERY</span></code></p></td>
+<td><p>CADENCE</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">OPS_ALERT_COOLDOWN</span></code>, <code class="docutils literal notranslate"><span class="pre">LATENCY_ALERT_MS</span></code>, <code class="docutils literal notranslate"><span class="pre">STALL_ALERT_SECONDS</span></code></p></td>
+<td><p>THRESHOLD</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="h-lm-studio-local-ai-assist-presentation-adjacent-tooling-not-a-decision-layer">
+<h2>H — LM STUDIO / LOCAL AI ASSIST (presentation-adjacent tooling, not a decision layer)<a class="headerlink" href="#h-lm-studio-local-ai-assist-presentation-adjacent-tooling-not-a-decision-layer" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>VARIABLE_NAME</p></th>
+<th class="head"><p>CATEGORY</p></th>
+<th class="head"><p>EXPECTED_FILE</p></th>
+<th class="head"><p>STATUS</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">LM_STUDIO_API_KEY</span></code></p></td>
+<td><p>SECRET</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env.secrets</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">LM_STUDIO_HOST</span></code>, <code class="docutils literal notranslate"><span class="pre">LM_STUDIO_PORT</span></code>, <code class="docutils literal notranslate"><span class="pre">LM_STUDIO_URL</span></code>, <code class="docutils literal notranslate"><span class="pre">LM_STUDIO_MODEL</span></code>, <code class="docutils literal notranslate"><span class="pre">LM_STUDIO_MAX_TOKENS</span></code>, <code class="docutils literal notranslate"><span class="pre">LM_STUDIO_MIN_SCORE</span></code>, <code class="docutils literal notranslate"><span class="pre">LM_STUDIO_CONNECT_TIMEOUT</span></code>, <code class="docutils literal notranslate"><span class="pre">LM_STUDIO_TIMEOUT</span></code>, <code class="docutils literal notranslate"><span class="pre">LM_STUDIO_AVAILABLE</span></code></p></td>
+<td><p>NON_SECRET_RUNTIME_CONFIG</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="i-misc-legacy-ci">
+<h2>I — MISC / LEGACY / CI<a class="headerlink" href="#i-misc-legacy-ci" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>VARIABLE_NAME</p></th>
+<th class="head"><p>CATEGORY</p></th>
+<th class="head"><p>EXPECTED_FILE</p></th>
+<th class="head"><p>STATUS</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">BB_MAX</span></code>, <code class="docutils literal notranslate"><span class="pre">BB_PATH</span></code>, <code class="docutils literal notranslate"><span class="pre">BLACK_BOX_PATH</span></code></p></td>
+<td><p>PATH / THRESHOLD</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>INCONCLUSIVE — sparse call sites, not traced end-to-end this mission</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">OBSIDIAN_VAULT_PATH</span></code></p></td>
+<td><p>PATH</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH — local documentation vault integration</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">PLAYWRIGHT_E2E</span></code>, <code class="docutils literal notranslate"><span class="pre">SELENIUM_PANEL_E2E</span></code>, <code class="docutils literal notranslate"><span class="pre">TEST_REPORT_URL</span></code>, <code class="docutils literal notranslate"><span class="pre">RUN_STRESS_TEST_AT_STARTUP</span></code></p></td>
+<td><p>DEPLOYMENT_CONFIG</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code> / CI only</p></td>
+<td><p>ACTIVE_SOURCE_PATH (CI/test tooling, not production runtime)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">SCANNER_TOPK_ENABLED</span></code>, <code class="docutils literal notranslate"><span class="pre">SCANNER_TOPK_K</span></code></p></td>
+<td><p>FEATURE_FLAG / THRESHOLD</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">VPS_API_URL</span></code>, <code class="docutils literal notranslate"><span class="pre">VPS_SYNC_INTERVAL</span></code></p></td>
+<td><p>NON_SECRET_RUNTIME_CONFIG</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">MVP_LOG_LEVEL</span></code></p></td>
+<td><p>NON_SECRET_RUNTIME_CONFIG</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">TEMP</span></code></p></td>
+<td><p>UNKNOWN</p></td>
+<td><p>CODE_DEFAULT</p></td>
+<td><p>INCONCLUSIVE — standard OS temp-dir variable incidentally caught by the census regex, not a project-defined config variable</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="duplication-alias-findings">
+<h2>Duplication / alias findings<a class="headerlink" href="#duplication-alias-findings" title="Link to this heading">¶</a></h2>
+<p>See the same table reproduced with RISK/TARGET_CANONICAL_NAME columns in
+<code class="docutils literal notranslate"><span class="pre">ENVIRONMENT_CONFIGURATION_CONSTITUTION.md</span></code>’s companion — summarized here
+for the by-family view:</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>VARIABLE A</p></th>
+<th class="head"><p>VARIABLE B</p></th>
+<th class="head"><p>RELATION</p></th>
+<th class="head"><p>CONSUMERS</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">TELEGRAM_BOT_TOKEN</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">TELEGRAM_TOKEN</span></code></p></td>
+<td><p>Same physical bot, two names</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">tests/phase0/test_phase05_validation.py</span></code>, <code class="docutils literal notranslate"><span class="pre">tools/runtime_tracer.py</span></code>, <code class="docutils literal notranslate"><span class="pre">infra/monitoring/supervise_all.py</span></code> read <code class="docutils literal notranslate"><span class="pre">TELEGRAM_TOKEN</span></code>; the deployed path (<code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code>, <code class="docutils literal notranslate"><span class="pre">scripts/radar_bot.py</span></code>, <code class="docutils literal notranslate"><span class="pre">.env.example</span></code>) uses <code class="docutils literal notranslate"><span class="pre">TELEGRAM_BOT_TOKEN</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">SLACK_WEBHOOK_URL</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SLACK_WEBHOOK</span></code></p></td>
+<td><p>Same setting, two names</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env.example</span></code>/<code class="docutils literal notranslate"><span class="pre">.env.secrets.example</span></code> template <code class="docutils literal notranslate"><span class="pre">SLACK_WEBHOOK_URL</span></code>; <code class="docutils literal notranslate"><span class="pre">infra/monitoring/supervise_all.py</span></code> reads <code class="docutils literal notranslate"><span class="pre">SLACK_WEBHOOK</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">EMAIL_SMTP_PASS</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EMAIL_SMTP_PASSWORD</span></code></p></td>
+<td><p>Same setting, two names</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env.secrets.example</span></code> templates <code class="docutils literal notranslate"><span class="pre">EMAIL_SMTP_PASS</span></code>; <code class="docutils literal notranslate"><span class="pre">infra/notifications/notify_test_status.py</span></code> reads <code class="docutils literal notranslate"><span class="pre">EMAIL_SMTP_PASSWORD</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">EMAIL_SMTP_SERVER</span></code>/<code class="docutils literal notranslate"><span class="pre">PORT</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SMTP_SERVER</span></code>/<code class="docutils literal notranslate"><span class="pre">PORT</span></code> (+<code class="docutils literal notranslate"><span class="pre">SMTP_PASS</span></code>)</p></td>
+<td><p>Parallel SMTP config, two prefixes</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">infra/monitoring/surveillance_continue.py</span></code> reads the bare <code class="docutils literal notranslate"><span class="pre">SMTP_*</span></code> names; the templated/main path uses <code class="docutils literal notranslate"><span class="pre">EMAIL_SMTP_*</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">EMAIL_SMTP_*</span></code> / <code class="docutils literal notranslate"><span class="pre">SMTP_*</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">BATCH_NOTIFY_SMTP_*</span></code></p></td>
+<td><p>A third, independent SMTP-shaped prefix</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">BATCH_NOTIFY_*</span></code> appears to serve a separate batch-notification path, not obviously reconciled with the other two</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">EMAIL_FROM</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EMAIL_FROM_ADDR</span></code></p></td>
+<td><p>Same concept, two names</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env.example</span></code> templates <code class="docutils literal notranslate"><span class="pre">EMAIL_FROM_ADDR</span></code>-style names via split_env’s SECRET_EXACT_NAMES; other call sites use <code class="docutils literal notranslate"><span class="pre">EMAIL_FROM</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">EMAIL_TO</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EMAIL_TO_ADDR</span></code></p></td>
+<td><p>Same concept, two names</p></td>
+<td><p>Same pattern as above</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">INITIAL_CAPITAL</span></code> / <code class="docutils literal notranslate"><span class="pre">REFERENCE_CAPITAL</span></code> / <code class="docutils literal notranslate"><span class="pre">VIRTUAL_CAPITAL_USD</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">WALLET_PAPER_CAPITAL</span></code></p></td>
+<td><p>Four capital-shaped names; <code class="docutils literal notranslate"><span class="pre">WALLET_PAPER_CAPITAL</span></code> is the CLAUDE.md-pinned canonical sizing base</p></td>
+<td><p>Multiple call sites across <code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/</span></code> and <code class="docutils literal notranslate"><span class="pre">paper_trading/</span></code> — not verified this mission whether the other three are read anywhere live or are vestigial</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">WATCHDOG_*</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">P10_WD_*</span></code></p></td>
+<td><p>Two parallel prefixes for what look like the same concern (watchdog cadence/thresholds)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">watchdog_vps.py</span></code> reads <code class="docutils literal notranslate"><span class="pre">WATCHDOG_*</span></code>; <code class="docutils literal notranslate"><span class="pre">P10_WD_*</span></code> consumers not traced to a single file this mission — flagged INCONCLUSIVE</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">MEXC_API_SECRET</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">MEXC_SECRET_KEY</span></code></p></td>
+<td><p>Same secret, two names</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.env.secrets.example</span></code> templates <code class="docutils literal notranslate"><span class="pre">MEXC_API_SECRET</span></code>; <code class="docutils literal notranslate"><span class="pre">scripts/runtime_validator.py</span></code> and <code class="docutils literal notranslate"><span class="pre">scripts/prelive_gate.py</span></code> read <code class="docutils literal notranslate"><span class="pre">MEXC_SECRET_KEY</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">BINANCE_API_SECRET</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">BINANCE_SECRET</span></code></p></td>
+<td><p>Possible alias — <code class="docutils literal notranslate"><span class="pre">BINANCE_SECRET</span></code> appears only as a bare grep hit with no confirmed call site found this pass</p></td>
+<td><p>INCONCLUSIVE — no source file located reading <code class="docutils literal notranslate"><span class="pre">BINANCE_SECRET</span></code> at time of this census; may be dead/legacy naming from a template comment only</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><strong>Target canonical names</strong> (proposed, not applied by this mission — see
+<code class="docutils literal notranslate"><span class="pre">ENVIRONMENT_CONFIGURATION_CONSTITUTION.md</span></code> §6 and §10): <code class="docutils literal notranslate"><span class="pre">TELEGRAM_BOT_TOKEN</span></code>,
+<code class="docutils literal notranslate"><span class="pre">SLACK_WEBHOOK_URL</span></code>, <code class="docutils literal notranslate"><span class="pre">EMAIL_SMTP_PASSWORD</span></code>, <code class="docutils literal notranslate"><span class="pre">EMAIL_SMTP_SERVER</span></code>/<code class="docutils literal notranslate"><span class="pre">PORT</span></code>,
+<code class="docutils literal notranslate"><span class="pre">EMAIL_FROM</span></code>, <code class="docutils literal notranslate"><span class="pre">EMAIL_TO</span></code>, <code class="docutils literal notranslate"><span class="pre">WALLET_PAPER_CAPITAL</span></code>, <code class="docutils literal notranslate"><span class="pre">WATCHDOG_*</span></code>,
+<code class="docutils literal notranslate"><span class="pre">MEXC_API_SECRET</span></code>, <code class="docutils literal notranslate"><span class="pre">BINANCE_API_SECRET</span></code> — each an existing name already in
+active use on the deployed path, so canonicalizing means deprecating the
+other member of each pair, never renaming the deployed one. No rename is
+performed by this mission.</p>
+</section>
+<section id="documented-but-unconsumed-consumed-but-not-templated">
+<h2>Documented-but-unconsumed / consumed-but-not-templated<a class="headerlink" href="#documented-but-unconsumed-consumed-but-not-templated" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">TELEMETRIE_IA_BOT_TOKEN</span></code>/<code class="docutils literal notranslate"><span class="pre">TELEMETRIE_IA_CHAT_ID</span></code> are templated in
+<code class="docutils literal notranslate"><span class="pre">.env.secrets.example</span></code> but the bot itself is marked retired in that same
+file’s header — documented-but-largely-unconsumed, kept for audit.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">P8_*</span></code>/<code class="docutils literal notranslate"><span class="pre">P9_*</span></code>/<code class="docutils literal notranslate"><span class="pre">P10_*</span></code> families (roughly 90 variables combined) are
+consumed extensively in source but have <strong>no entries at all</strong> in
+<code class="docutils literal notranslate"><span class="pre">.env.example</span></code> — every one of them falls back to its code default unless
+an operator adds it manually. This is the single largest
+documented-but-unconsumed-in-templates gap found by this census.</p></li>
+</ul>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Crypto AI Terminal
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Environment Variable Registry</a><ul>
+<li><a class="reference internal" href="#a-infrastructure-governance">A — INFRASTRUCTURE / GOVERNANCE</a></li>
+<li><a class="reference internal" href="#b-market-data">B — MARKET / DATA</a></li>
+<li><a class="reference internal" href="#c-quantitative-research-learning">C — QUANTITATIVE RESEARCH / LEARNING</a></li>
+<li><a class="reference internal" href="#d-decision-risk-safety">D — DECISION / RISK / SAFETY</a></li>
+<li><a class="reference internal" href="#e-portfolio-execution">E — PORTFOLIO / EXECUTION</a></li>
+<li><a class="reference internal" href="#f-canonical-scientific-observability-regret">F — CANONICAL SCIENTIFIC OBSERVABILITY / REGRET</a></li>
+<li><a class="reference internal" href="#g-operator-telegram-presentation">G — OPERATOR / TELEGRAM / PRESENTATION</a></li>
+<li><a class="reference internal" href="#h-lm-studio-local-ai-assist-presentation-adjacent-tooling-not-a-decision-layer">H — LM STUDIO / LOCAL AI ASSIST (presentation-adjacent tooling, not a decision layer)</a></li>
+<li><a class="reference internal" href="#i-misc-legacy-ci">I — MISC / LEGACY / CI</a></li>
+<li><a class="reference internal" href="#duplication-alias-findings">Duplication / alias findings</a></li>
+<li><a class="reference internal" href="#documented-but-unconsumed-consumed-but-not-templated">Documented-but-unconsumed / consumed-but-not-templated</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../_static/documentation_options.js?v=ef6a59ae"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/scripts/furo.js?v=5fa4622c"></script>
+    </body>
+</html>
