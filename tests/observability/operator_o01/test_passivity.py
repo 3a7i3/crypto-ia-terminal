@@ -17,8 +17,10 @@ PROTECTED_IMPORT_PREFIXES = (
     "core.advisor_loop",
     "quant_hedge_ai.agents.intelligence.mistake_memory",
     "quant_hedge_ai.ai_evolution.strategy_memory",
+    "quant_hedge_ai.ai_evolution.strategy_ranker",
     "tracker_system.meta_learner",
     "tracker_system.meta_memory",
+    "tracker_system.autonomous.auto_decision_engine",
 )
 
 FORBIDDEN_CALL_NAMES = {"open", "socket", "urlopen"}

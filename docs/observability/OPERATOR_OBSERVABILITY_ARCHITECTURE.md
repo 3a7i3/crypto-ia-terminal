@@ -214,14 +214,35 @@ O-01 documents the target philosophy; O-02 implements it.
   populated) vs. `pos_manager` feeding `PortfolioBrain.portfolio_health()`
   (frequently empty) — exposure/free-capital figures inherit this
   divergence. See `portfolio_state.py::MODULES`.
-- **Adaptive learning is decision-active today, not passive.**
-  `MistakeMemory.check_before_trade()` and `MetaLearner.find_best()`/
-  `learn()` gate/shape live trades without any `FEATURE_*` governance
-  flag; `RECOMMENDED != APPLIED` is not distinguished for them (the
-  recommendation *is* the applied value, same code path). ADR-0007's
-  `FEATURE_AUTO_CALIBRATION`/`FEATURE_REGRET_DECISION_FEEDBACK` scope
-  covers only the Regret-threshold auto-calibration path. See
-  `adaptive_learning.py::MODULES`.
+- **Adaptive learning — PRE-S-02 finding, remediated by S-02B.1.**
+  O-01's original forensic pass (2026-09-03) found `MistakeMemory.
+  check_before_trade()` and `MetaLearner.find_best()`/`learn()`
+  gating/shaping live trades without any `FEATURE_*` governance flag,
+  with `RECOMMENDED != APPLIED` undistinguished (the recommendation
+  *was* the applied value, same code path). **POST-S-02 (S-02B.1, PR
+  #111, merged at `b5054c8bbdc4ba743baa855060b90e1a9a224e86`):** a
+  single master flag, `config.feature_flags.
+  FEATURE_ADAPTIVE_DECISION_FEEDBACK` (default `False`, fail-closed),
+  now gates the *application* of MistakeMemory's veto, MetaLearner's
+  exit-param recommendation, StrategyMemoryStore/StrategyRanker's
+  selection and sizing influence, and SystemController's `ADJUST_TP`/
+  `ADJUST_SL`/`APPLY_META` — independently re-verified against the
+  post-merge code, not merely taken from the S-02B.1 PR description
+  (see `adaptive_learning.py` module docstring for the exact line
+  citations). `STOP_TRADING`/`RESUME_TRADING`/`REDUCE_RISK` remain
+  **safety authority**, unconditional, never gated by this flag — safety
+  authority != adaptive authority. Regret remains a separate
+  constitutional domain under its own `FEATURE_REGRET_DECISION_FEEDBACK`/
+  `FEATURE_AUTO_CALIBRATION`, never collapsed with the adaptive-learning
+  flag. Remaining debt, recorded not redesigned: `S02_PROVENANCE_DEBT`
+  (state provenance exists per-subsystem — source path, mtime, volumetric
+  counts — but no per-recommendation versioning) and
+  `S02_SYSTEMCONTROLLER_GUARD_ORDER_DEBT` (`AutoDecisionOrchestrator.
+  run_decision_cycle()`'s decide→validate→execute runs before
+  `advisor_loop.py`'s own `_SC_MIN_CONFIDENCE`/cooldown guards; no longer
+  a live authority bypass now that the three adaptive actions are passive
+  by default). See `adaptive_learning.py::MODULES` for the full
+  per-subsystem classification.
 - **Regret freshness not surfaced over HTTP.** `tools/regret_repository.
   freshness()` exists and is correct, but `BurnInSnapshot`
   (`visualization/api/burnin_api.py`) omits it — only the CLI

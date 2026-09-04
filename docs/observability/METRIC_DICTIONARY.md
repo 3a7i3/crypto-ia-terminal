@@ -3,7 +3,7 @@
 Mission O-01 · Every operator-facing metric needs a documented
 definition (mission §18). This dictionary has two parts:
 
-- **Part 1 — Canonical registry (code-backed).** These 32 metrics are
+- **Part 1 — Canonical registry (code-backed).** These 35 metrics are
   `MetricDefinition` entries in `observability/operator/domains/*.py`,
   aggregated by `observability/operator/canonical_registry.py`, and
   tested for uniqueness, French labels, and explicit numerator/
@@ -23,7 +23,7 @@ number (mission §18).
 
 ---
 
-## Part 1 — Canonical registry (32 metrics, code-backed)
+## Part 1 — Canonical registry (35 metrics, code-backed)
 
 ### A — SYSTEM HEALTH
 
@@ -423,48 +423,89 @@ number (mission §18).
 
 ### I — ADAPTIVE LEARNING STATE
 
+#### `adaptive_learning.decision_feedback_enabled` — Rétroaction décisionnelle adaptative
+
+- **Définition** : Flag maître (S-02B.1, LEARNING != AUTHORITY) : tant que false (défaut, fail-closed), MistakeMemory/MetaLearner/StrategyMemoryStore/StrategyRanker/SystemController-adaptatif restent des recommandations contrefactuelles jamais appliquées à une décision live. Distinct de FEATURE_REGRET_DECISION_FEEDBACK (domaine constitutionnel séparé).
+- **Source technique** : `config.feature_flags.adaptive_decision_feedback_enabled()`
+- **Unité / type** : boolean (boolean)
+- **Fraîcheur (source)** : process config, re-résolu à chaque appel (jamais mis en cache)
+- **Cadence attendue** : static per process lifetime unless .env changes
+- **Polarité** : not_applicable
+- **Sémantique null** : NOT_DEFINED
+- **Sémantique avertissement** : NOT_DEFINED
+- **Sémantique critique** : true hors fenêtre de stabilisation autorisée doit être signalé à l'opérateur
+- **Source de preuve** : config/feature_flags.py:56-86 (lecture seule, fichier protégé S-02B.1)
+- **Priorité de présentation** : primary
+
 #### `adaptive_learning.is_decision_active` — Sous-système décisionnel-actif
 
-- **Définition** : Indique si ce sous-système d'apprentissage adaptatif influence déjà une décision de trading en temps réel (par opposition à une simple observation/recommandation passive).
-- **Source technique** : `mistake_memory.check_before_trade() / meta_learner.find_best()+learn() (lecture forensique)`
+- **Définition** : Indique si ce sous-système d'apprentissage adaptatif influence actuellement une décision de trading en temps réel. Vaut exactement decision_feedback_enabled pour les cinq sous-systèmes adaptatifs (mistake_memory, meta_learner, strategy_memory, strategy_ranker, system_controller_adaptive) ; vaut toujours vrai pour system_controller_safety (autorité de sécurité, non gated).
+- **Source technique** : `six points de contrôle gated identiquement par FEATURE_ADAPTIVE_DECISION_FEEDBACK`
 - **Unité / type** : boolean (boolean)
-- **Fraîcheur (source)** : FUTURE_PROVIDER — nécessite instrumentation dans les fichiers protégés S-02B.1
-- **Cadence attendue** : FUTURE_PROVIDER
+- **Fraîcheur (source)** : dérivé de adaptive_learning.decision_feedback_enabled
+- **Cadence attendue** : per advisor loop cycle
 - **Polarité** : not_applicable
-- **Sémantique null** : UNKNOWN tant qu'aucun champ dédié n'existe dans les modules protégés — cette valeur est aujourd'hui déduite forensiquement, pas lue depuis un champ observable
-- **Sémantique avertissement** : true pour un sous-système sans flag de gouvernance explicite doit être signalé à l'opérateur comme écart potentiel à ADR-0007
+- **Sémantique null** : NOT_DEFINED
+- **Sémantique avertissement** : NOT_DEFINED
 - **Sémantique critique** : NOT_DEFINED
-- **Source de preuve** : core/advisor_loop.py:1642-1670 (mistake_memory), :1404-1418,4690-4729 (meta_learner) — lecture seule, aucune modification
+- **Source de preuve** : core/advisor_loop.py:2064-2069 (mistake_memory), :152 (meta_learner), :1497-1527 (strategy_memory/strategy_ranker), :1839 (CAE sizing); tracker_system/autonomous/auto_decision_engine.py:23,271-274 (system_controller)
 - **Priorité de présentation** : primary
 
 #### `adaptive_learning.recommendation_equals_applied` — Recommandation = Action appliquée
 
-- **Définition** : Distinction RECOMMENDED vs APPLIED. Aujourd'hui absente pour mistake_memory/strategy_memory/meta_learner: la valeur retournée par le sous-système EST la valeur appliquée, sur le même chemin de code — pas de journal contrefactuel séparé.
-- **Source technique** : `S02_DEPENDENCY`
+- **Définition** : PRE-S-02 : vrai pour mistake_memory/meta_learner (même valeur, même chemin de code, aucune séparation). POST-S-02 (remédié par S-02B.1) : faux pour les six points de contrôle gated — chacun distingue désormais explicitement une recommandation contrefactuelle (would_match_count, applied=False, log 'recommandation contrefactuelle') d'une application réelle.
+- **Source technique** : `S-02B.1 recommendation/application split`
 - **Unité / type** : boolean (boolean)
-- **Fraîcheur (source)** : FUTURE_PROVIDER
-- **Cadence attendue** : FUTURE_PROVIDER
-- **Polarité** : not_applicable
-- **Sémantique null** : UNKNOWN — nécessite un champ dédié dans les modules protégés (S02_DEPENDENCY)
+- **Fraîcheur (source)** : static structural property of the current codebase
+- **Cadence attendue** : n/a — structural, not time-varying
+- **Polarité** : lower_is_better
+- **Sémantique null** : NOT_DEFINED
 - **Sémantique avertissement** : NOT_DEFINED
 - **Sémantique critique** : NOT_DEFINED
-- **Source de preuve** : core/advisor_loop.py:1408-1418,1669-1670 — confirmé par lecture forensique, non instrumenté
+- **Source de preuve** : quant_hedge_ai/agents/intelligence/mistake_memory.py:229-254 (would_match_count vs trigger_count); core/advisor_loop.py:136-159 (resolve_meta_learner_exit_params returns applied); tracker_system/autonomous/auto_decision_engine.py:260-360 (executed = not passive)
 - **Priorité de présentation** : primary
 
 #### `adaptive_learning.recommendation_count` — Nombre de recommandations
 
-- **Définition** : Nombre de recommandations produites par le sous-système sur la fenêtre observée.
-- **Source technique** : `S02_DEPENDENCY`
+- **Définition** : Nombre de recommandations (contrefactuelles ou appliquées) produites par le sous-système. Des compteurs existent au niveau de la règle (BlockRule.would_match_count pour mistake_memory) ou par appel (le applied bool retourné par resolve_meta_learner_exit_params), mais aucune méthode n'agrège encore ces compteurs au niveau du sous-système entier.
+- **Source technique** : `per-rule/per-call counters, no subsystem-level aggregate`
 - **Unité / type** : count (count)
-- **Fraîcheur (source)** : FUTURE_PROVIDER
-- **Cadence attendue** : FUTURE_PROVIDER
+- **Fraîcheur (source)** : PARTIAL — voir definition_fr
+- **Cadence attendue** : FUTURE_PROVIDER pour l'agrégat sous-système ; AVAILABLE au niveau règle/appel
 - **Polarité** : not_applicable
-- **Sémantique null** : UNKNOWN
+- **Sémantique null** : UNKNOWN au niveau agrégat sous-système ; PRESENT au niveau règle individuelle
 - **Sémantique avertissement** : NOT_DEFINED
 - **Sémantique critique** : NOT_DEFINED
-- **Source de preuve** : Aucun compteur persistant confirmé pour mistake_memory/strategy_memory/meta_learner au-delà de stats()/summary() ponctuels
+- **Source de preuve** : quant_hedge_ai/agents/intelligence/mistake_memory.py:88-91 (BlockRule.would_match_count, par règle, pas de somme exposée)
 - **Priorité de présentation** : diagnostic
 
+#### `adaptive_learning.applied_count` — Nombre d'actions appliquées
+
+- **Définition** : Nombre de recommandations effectivement appliquées à une décision live. Même limite que recommendation_count : BlockRule.trigger_count existe par règle, aucun agrégat sous-système.
+- **Source technique** : `per-rule/per-call counters, no subsystem-level aggregate`
+- **Unité / type** : count (count)
+- **Fraîcheur (source)** : PARTIAL — voir definition_fr
+- **Cadence attendue** : FUTURE_PROVIDER pour l'agrégat sous-système ; AVAILABLE au niveau règle/appel
+- **Polarité** : not_applicable
+- **Sémantique null** : UNKNOWN au niveau agrégat sous-système ; PRESENT au niveau règle individuelle
+- **Sémantique avertissement** : NOT_DEFINED
+- **Sémantique critique** : NOT_DEFINED
+- **Source de preuve** : quant_hedge_ai/agents/intelligence/mistake_memory.py:88 (BlockRule.trigger_count)
+- **Priorité de présentation** : diagnostic
+
+#### `adaptive_learning.memory_state_provenance` — Provenance de l'état mémoire
+
+- **Définition** : {subsystem, source_path, state_mtime, compteurs volumétriques} — permet de distinguer une recommandation produite depuis l'état mémoire X d'une autre produite depuis l'état Y. Ne remplace pas un versioning complet par recommandation (S02_PROVENANCE_DEBT).
+- **Source technique** : `<subsystem>.state_provenance()`
+- **Unité / type** : object (enum)
+- **Fraîcheur (source)** : state_mtime dans la valeur elle-même
+- **Cadence attendue** : on demand
+- **Polarité** : not_applicable
+- **Sémantique null** : NOT_DEFINED
+- **Sémantique avertissement** : NOT_DEFINED
+- **Sémantique critique** : NOT_DEFINED
+- **Source de preuve** : mistake_memory.py:608-627, strategy_memory.py:138-154, strategy_ranker.py:292-303, meta_learner.py:156-158, meta_memory.py:62
+- **Priorité de présentation** : diagnostic
 
 ### J — DISK / I-O
 

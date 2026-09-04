@@ -35,12 +35,23 @@ the contract the adapters must follow.
    `observability/real_accounts.py` (see `OPERATOR_OBSERVABILITY_
    ARCHITECTURE.md` §10) and directly targets the `/kpis` ambiguity found
    in `TELEGRAM_BOT_REGISTRY.md`.
-7. **Recommendation != applied action.** Where `adaptive_learning`
-   exposes `recommendation_count`/`applied_count`
-   (`FUTURE_PROVIDER`/`S02_DEPENDENCY` today), an adapter must never
-   collapse the two into one figure once they exist, and must state
-   plainly today that no such distinction exists yet for
-   mistake_memory/strategy_memory/meta_learner (mission §14 finding).
+7. **Recommendation != applied action.** POST-S-02 (S-02B.1, PR #111),
+   `adaptive_learning`'s six gated points of control (mistake_memory,
+   meta_learner, strategy_memory, strategy_ranker,
+   system_controller_adaptive, and the CapitalAllocationEngine sizing
+   path) each carry a real, structural recommendation/application split —
+   `config.feature_flags.FEATURE_ADAPTIVE_DECISION_FEEDBACK` (default
+   `False`) gates whether a recommendation ever reaches a live decision.
+   An adapter must render both a recommendation and, when it differs
+   (i.e. the flag is `False`), the fact that it was *not* applied — never
+   collapse them into one figure. `recommendation_count`/`applied_count`
+   as subsystem-level aggregates remain `FUTURE_PROVIDER`
+   (`S02_PROVENANCE_DEBT`: only per-rule/per-call counters exist today,
+   e.g. `BlockRule.would_match_count`/`trigger_count`) — do not invent an
+   aggregate that has no canonical producer yet.
+   `system_controller_safety`'s three actions
+   (`STOP_TRADING`/`RESUME_TRADING`/`REDUCE_RISK`) are safety authority,
+   never gated by this flag — never render them as a "recommendation."
 8. **Process alive != scientific health.** `system_health.boot_alive`
    and `system_health.health_score` must always render as two distinct
    signals — a green "process alive" indicator must never stand in for

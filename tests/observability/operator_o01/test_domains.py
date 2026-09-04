@@ -1,6 +1,11 @@
 from datetime import datetime, timezone
 
 from observability.operator.contracts import FreshnessStatus, PercentageMetric, observed, unavailable, unknown
+from observability.operator.domains.adaptive_learning import (
+    MODULES as ADAPTIVE_LEARNING_MODULES,
+    SubsystemLearningState,
+    compose_adaptive_learning_state_snapshot,
+)
 from observability.operator.domains.attrition import compose_attrition_snapshot
 from observability.operator.domains.data_freshness import DatasetFreshness, compose_data_freshness_snapshot
 from observability.operator.domains.decision_pipeline import (
@@ -156,3 +161,68 @@ def test_data_freshness_dataset_carries_its_own_thresholds():
         status="OK",
     )
     assert snap.datasets["regret_v2"].freshness_status == FreshnessStatus.FRESH
+
+
+# --- POST-S-02 integration: adaptive_learning must distinguish SAFETY
+# AUTHORITY from ADAPTIVE AUTHORITY as two separate module entries
+# (mission §8) — never one opaque "adaptive action" state. ---
+
+
+def test_adaptive_learning_modules_separate_safety_from_adaptive_authority():
+    module_ids = {m.module_id for m in ADAPTIVE_LEARNING_MODULES}
+    assert "adaptive_learning.system_controller_safety" in module_ids
+    assert "adaptive_learning.system_controller_adaptive" in module_ids
+
+
+def test_system_controller_safety_module_is_never_described_as_gated():
+    safety = next(
+        m for m in ADAPTIVE_LEARNING_MODULES if m.module_id == "adaptive_learning.system_controller_safety"
+    )
+    assert "config.feature_flags.FEATURE_ADAPTIVE_DECISION_FEEDBACK" not in safety.dependencies
+    assert "gated" not in safety.known_debt.lower() or "jamais gated" in safety.known_debt.lower()
+
+
+def test_system_controller_adaptive_module_declares_the_gating_dependency():
+    adaptive = next(
+        m for m in ADAPTIVE_LEARNING_MODULES if m.module_id == "adaptive_learning.system_controller_adaptive"
+    )
+    assert "config.feature_flags.FEATURE_ADAPTIVE_DECISION_FEEDBACK" in adaptive.dependencies
+
+
+def test_adaptive_learning_covers_strategy_ranker_post_s02():
+    module_ids = {m.module_id for m in ADAPTIVE_LEARNING_MODULES}
+    assert "adaptive_learning.strategy_ranker" in module_ids
+
+
+def test_compose_adaptive_learning_state_snapshot_with_full_post_s02_subsystem_set():
+    def _subsystem(subsystem_id: str, is_decision_active) -> SubsystemLearningState:
+        return SubsystemLearningState(
+            subsystem_id=subsystem_id,
+            is_observation_active=observed(True),
+            is_learning_active=observed(True),
+            is_decision_active=is_decision_active,
+            recommendation_count=unknown(),
+            applied_count=unknown(),
+            recommendation_equals_applied=observed(False),
+            decision_feedback_enabled=observed(False),
+            memory_state_provenance=observed({"subsystem": subsystem_id}),
+            last_update_utc=observed(NOW),
+        )
+
+    subsystems = {
+        "mistake_memory": _subsystem("mistake_memory", observed(False)),
+        "meta_learner": _subsystem("meta_learner", observed(False)),
+        "strategy_memory": _subsystem("strategy_memory", observed(False)),
+        "strategy_ranker": _subsystem("strategy_ranker", observed(False)),
+        "system_controller_safety": _subsystem("system_controller_safety", observed(True)),
+        "system_controller_adaptive": _subsystem("system_controller_adaptive", observed(False)),
+    }
+    snap = compose_adaptive_learning_state_snapshot(
+        observed_at_utc=NOW,
+        subsystems=subsystems,
+        freshness=FreshnessStatus.FRESH,
+        status="OK",
+    )
+    assert snap.subsystems["system_controller_safety"].is_decision_active.value is True
+    assert snap.subsystems["system_controller_adaptive"].is_decision_active.value is False
+    assert snap.subsystems["mistake_memory"].recommendation_equals_applied.value is False
