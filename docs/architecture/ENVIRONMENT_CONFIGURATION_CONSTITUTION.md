@@ -10,29 +10,87 @@ future remediation mission; this mission does not fix any of them.
 
 | File | Purpose |
 |---|---|
-| `.env` | Non-secret runtime configuration only: feature flags, thresholds, cadences, timeframes, paths, modes, presentation settings. |
-| `.env.secrets` | Secret/restricted values only: tokens, API keys/secrets, passwords, webhooks, SMTP credentials, and (per `scripts/split_env.sh`'s explicit, cautious classification) Telegram chat IDs and email addresses. |
-| `.env.secrets.example` | Public template: variable names + descriptions only, no real values. |
-| `.env.example` | Public template for non-secret config, names + defaults/examples only. |
+| `.env` | See §1a for the CURRENT vs TARGET lifecycle classification — this file is not treated as a settled, AI-safe non-secret file yet. |
+| `.env.secrets` | Secret/restricted values only: tokens, API keys/secrets, passwords, webhooks, SMTP credentials, and (per `scripts/split_env.sh`'s explicit, cautious classification) Telegram chat IDs and email addresses. HUMAN_ONLY forever — see §2. |
+| `.env.secrets.example` | See §1b — currently a public template of secret-class variable names, no real values. |
+| `.env.example` | See §1b — CURRENT reality is a mixture of non-secret config and secret-class placeholder names (verified by inspecting names only, e.g. Telegram bot tokens); TARGET is non-secret runtime config only. |
 | `.env.smtp.example` | Public template for SMTP notification config (small, separate concern from the main secrets file). |
+
+## 1a. `.env` current-vs-target lifecycle
+
+`.env` is **not** permanently classified AI-forbidden, but it is also not
+yet safe for an AI to inspect. Two distinct states:
+
+- **CURRENT / BEFORE SECRET-PURGE CERTIFICATION** (today): `.env` =
+  `QUARANTINED_RUNTIME_CONFIG`. Reason: historical documentation
+  (`.env.secrets.example`'s own stale header, see §10) instructed humans to
+  put real secret values into `.env`, so this mission cannot certify that
+  the real, deployed `.env` contains non-secret content only. An AI agent
+  must not inspect the real runtime `.env` until a human completes a
+  secret-purge certification.
+- **TARGET / AFTER HUMAN SECRET-PURGE CERTIFICATION** (future): `.env` =
+  `NON_SECRET_RUNTIME_CONFIGURATION` — feature flags, thresholds, cadences,
+  paths, modes, presentation settings only. Once a human operator certifies
+  (via the masked SET/UNSET verification technique in §8, never by an AI
+  opening the file) that no secret-classified key exists in the real
+  `.env`, AI/automation MAY safely read it directly.
+
+`.env.secrets` remains `HUMAN_ONLY` forever, in both states, regardless of
+any certification of `.env` — see §2.
+
+## 1b. `.env.example` current-vs-target
+
+**CURRENT reality** (verified by inspecting `.env.example`'s variable
+**names** only — template files are explicitly allowed reading, this is
+not a secret-value read): it still contains names/placeholders for
+secret-class variables, e.g. `TELEGRAM_BOT_TOKEN=`, `RADAR_BOT_TOKEN=`,
+`MON_PORTFOLIO_BOT_TOKEN=`, `RAPPORT_AUTOMATIQUE_BOT_TOKEN=`,
+`PAPER_ARENA_BOT_TOKEN=`, `KRAKEN_API_KEY=`/`KRAKEN_API_SECRET=`,
+`GATEIO_API_KEY=`/`GATEIO_API_SECRET=`, `BINANCE_API_KEY=`/
+`BINANCE_API_SECRET=`, and a commented `#SLACK_WEBHOOK_URL=` — a mixture of
+non-secret config and secret-class placeholder names, not yet a clean
+"public non-secret config template."
+
+**TARGET** (future ENV remediation mission — not applied by FAM-01/FAM-01R,
+documentation only): `.env.example` = non-secret runtime config only;
+`.env.secrets.example` = secret/restricted variable names only. Neither
+template file is edited by this mission.
 
 **Invariants:**
 - NO SECRET VALUE SHALL EXIST IN `.env`.
 - NO NON-SECRET CONFIG SHOULD NEED TO LIVE IN `.env.secrets` unless it is
   explicitly classified RESTRICTED (see §6).
 
-## 2. AI secret-access prohibition
+## 2. AI secret-access prohibition (ABSOLUTE)
 
-No AI agent session may read `.env.secrets`, `.env.smtp`, or any real
-runtime `.env` by any means (`cat`, `head`, `tail`, `grep`, `sed`, `awk`,
-`source`, a wildcard sweep like `cat .env*`, or any other tool). An agent
-may inspect `.env.example`, `.env.secrets.example`, `.env.smtp.example`,
-`.gitignore`, `scripts/split_env.sh`, `scripts/systemd/*.service`,
-`docs/SECURITY_SECRETS.md`, and variable **names** referenced in source
-(`os.getenv`, `os.environ.get`, `load_dotenv`, `EnvironmentFile=`) — never
-runtime values. No AI agent session may SSH to any VPS to read these files
-either. This mission (FAM-01) complied with this prohibition throughout;
-see the confirmation in the mission's final report.
+No AI agent session — this agent, or any future agent — may ever read
+`.env.secrets`, `.env.smtp`, or (until the §1a certification) any real
+runtime `.env` by **any** means: not `cat`/`head`/`tail`/`grep`/`sed`/
+`awk`/`source`, not a wildcard sweep like `cat .env*`, not any other tool,
+and — critically — not under any framing that claims to make the read
+safe. Specifically forbidden, with no exception: "key names only"
+parsing of the real file, "masked" parsing of the real file, hashing a
+real value, or determining SET/UNSET by directly opening the file
+oneself. All of these still constitute the AI reading the secret file,
+regardless of what it does with the result afterward.
+
+An AI may only ever **receive the output** of an independently trusted
+human/operator-side verification mechanism that the AI itself did not
+run against the real secret file — for example a script a human runs
+that prints `MEXC_API_KEY=SET`, `QUANT_CRYPTO_BOT_TOKEN=SET`,
+`SECRET_DUPLICATE_COUNT=0`. The AI must never produce that output itself
+by opening the file; it may only consume such an output already produced
+by that trusted mechanism.
+
+An agent may inspect `.env.example`, `.env.secrets.example`,
+`.env.smtp.example`, `.gitignore`, `scripts/split_env.sh`,
+`scripts/systemd/*.service`, `docs/SECURITY_SECRETS.md`, and variable
+**names** referenced in source (`os.getenv`, `os.environ.get`,
+`load_dotenv`, `EnvironmentFile=`) — never runtime values. No AI agent
+session may SSH to any VPS to read these files either. This mission
+(FAM-01, and this remediation pass FAM-01R) complied with this
+prohibition throughout; see the confirmation in the mission's final
+report.
 
 ## 3. Systemd load order
 
@@ -148,10 +206,17 @@ Any future check of "is this secret configured" must report only a masked
 `SET` / `UNSET` outcome per variable name — for example, a script may test
 `[[ -n "${TELEGRAM_BOT_TOKEN:-}" ]]` and print `TELEGRAM_BOT_TOKEN=SET`,
 never the value, never a partial value, never a hash of the value (a hash
-is still an oracle). Bare `env`/`printenv` and
-`systemctl show <unit> -p Environment` must never be run where the output
-could reach a log, a commit, a PR, or an agent transcript, because both
-can print real values.
+is still an oracle). Bare `env`/`printenv` and **any** form of
+`systemctl show <unit> -p Environment` — including a "filter afterward"
+framing — must never be run or prescribed at all, even conditionally: the
+raw command can materialize the full environment (secrets included)
+before any filtering happens, so filtering after the fact does not make it
+safe. The only acceptable design is a trusted human/operator-side
+verifier that itself exposes only explicitly-approved non-secret fields
+plus masked secret-presence outcomes (`SET`/`UNSET`); an AI agent only
+ever receives that mechanism's already-sanitized result, never a raw
+environment dump, and never runs `systemctl show ... -p Environment`
+itself under any circumstance.
 
 ## 9. No-secret logging / PR / CI artifact rule
 

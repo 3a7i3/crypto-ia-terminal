@@ -27,8 +27,29 @@ acceptable.**
 
 ## 3. Service inventory
 
-Confirm the expected set of `systemctl` units for this project is the one
-being restarted, no more, no less: `crypto-advisor`, `crypto-dashboard`,
+The restart procedure must never activate a source-defined service merely
+because its `.service` file exists under `scripts/systemd/`. Every unit
+must first be classified along three distinct axes before a restart
+touches it:
+
+- `SOURCE_DEFINED_UNIT` — a `.service` file exists under
+  `scripts/systemd/` for this component. This is a static fact about the
+  repository, never proof the unit is currently running.
+- `CURRENT_RUNTIME_ACTIVE` (flagged `RUNTIME_PROOF_REQUIRED`) — whether
+  the unit is actually enabled/running on the VPS *right now*. This
+  mission cannot assert this from source alone; it must be confirmed
+  against the real VPS at T-1, never assumed from the unit file's
+  existence.
+- `EXPECTED_AFTER_RESTART` — what the unit's state should be once the
+  restart completes. This must be explicitly approved from T-1 evidence
+  (the `CURRENT_RUNTIME_ACTIVE` check above), never assumed equal to
+  `SOURCE_DEFINED_UNIT`.
+
+Classify each unit as ACTIVE / INACTIVE_EXPECTED / LEGACY / UNKNOWN before
+the restart, and preserve that intended state through the restart unless a
+separately authorized change says otherwise. The candidate set of
+source-defined units for this project (existence in `scripts/systemd/`,
+not proof of current activity) is: `crypto-advisor`, `crypto-dashboard`,
 `crypto-lmi-observatory`, `crypto-market-horizons`(+`.timer`),
 `crypto-market-observer`(+`.timer`), `crypto-market-radar`(+`.timer`),
 `crypto-quant-observer`, `crypto-radar-bot`, `crypto-watchdog`,
@@ -52,10 +73,22 @@ restart).
 - Confirm the `.git/hooks/post-commit` deploy hook remains
   `post-commit.disabled` (per the 2026-07-04 abolition in CLAUDE.md) — a
   restored hook would silently reintroduce automatic deploy-on-commit.
-- Confirm the watchdog (`watchdog_vps.py`, deployed as
-  `crypto-watchdog.service`) is the only automatic process-restart actor;
-  `infra/monitoring/watchdog_vps.py` is an undeployed duplicate and must
-  not be independently invoked (see `docs/architecture/MODULE_FAMILY_REGISTRY.md`).
+- Inventory **both** automatic-restart mechanisms found in source — do
+  not claim either one is the sole automatic restart actor:
+  - **(A)** `watchdog_vps.py` — external process/service-level watchdog,
+    deployed as `crypto-watchdog.service` (a `.service` file for this
+    unit is verified present under `scripts/systemd/`).
+    `infra/monitoring/watchdog_vps.py` is an undeployed duplicate and must
+    not be independently invoked (see
+    `docs/architecture/MODULE_FAMILY_REGISTRY.md`).
+  - **(B)** `supervision/self_healing_bot.py` — an in-process
+    component/process wrapper, verified present in source. It has no
+    independent Telegram identity and no dedicated systemd unit (none
+    found under `scripts/systemd/`).
+  - Neither mechanism's *actual runtime activity* (which one, if either,
+    is actually firing restarts on the real VPS right now) is something
+    this source-only pass can confirm — treat both as
+    `RUNTIME_PROOF_REQUIRED` until confirmed against the real VPS at T-1.
 
 ## 6. Effective non-secret feature flags (masked read only)
 
@@ -65,12 +98,17 @@ that must hold during the stabilization window per CLAUDE.md:
 `FEATURE_AUTO_CALIBRATION=false`. Also confirm
 `FEATURE_ADAPTIVE_DECISION_FEEDBACK` and
 `FEATURE_REGRET_DECISION_FEEDBACK` are at their intended values — these are
-non-secret and may be read directly (never via `env`/`printenv` dumps; a
-targeted single-variable read, e.g. `systemctl show <unit> -p Environment`
-restricted and filtered to just the variable name of interest, or a
-process-level check that only prints `NAME=value` for named non-secret
-flags, is acceptable — the same technique must never be pointed at a
-secret-classified name).
+non-secret, but must still never be checked via `env`/`printenv` dumps or
+via **any** form of `systemctl show <unit> -p Environment`, even
+"restricted and filtered to just the variable name of interest": that raw
+command can materialize the full environment (including secrets) before
+any filtering is applied, so it must never be prescribed at all, even
+conditionally. The only acceptable technique is a trusted human/
+operator-side verifier that itself exposes only these explicitly-approved
+non-secret fields (plus masked `SET`/`UNSET` outcomes for anything
+secret-adjacent) — an AI only ever receives that verifier's already-
+sanitized result, never a raw environment dump, and never runs
+`systemctl show ... -p Environment` itself.
 
 ## 7. `.env` / `.env.secrets` wiring
 
@@ -148,11 +186,29 @@ start would trip over.
 
 ## 15. Telegram state
 
-Confirm each of the 7 active bot roles (per
-`docs/observability/TELEGRAM_BOT_REGISTRY.md`) is expected to reconnect
+**CURRENT roster (verified — 5 active bot roles, not 7):**
+`@RadarCrypto1_bot` (radar), `@mon_portfolio_bot` (Portfolio/Command
+Center), `@QuantCrpto_bot` (Quant Observer), `@rapport_automatique_bot`
+(Rapport Automatique, `RAPPORT_AUTOMATIQUE_BOT_TOKEN`/
+`RAPPORT_AUTOMATIQUE_CHAT_ID`), `@PaperArena_bot`. `@Telemetrie_IA_bot`
+("CMVK/Sim Bot", `TELEMETRIE_IA_BOT_TOKEN`) is retired/inactive per
+`docs/observability/TELEGRAM_BOT_REGISTRY.md` — no systemd unit
+references it, and no `.env.example` entry exists for it — kept for
+historical audit only, not one of the 5 active roles.
+**TARGET-FUTURE-TELEMETRY/NARRATIVE**: a future O-02+ telemetry/narrative
+surface (`FUTURE_TELEMETRY_NARRATIVE`) may repurpose or replace this slot;
+this contract does not assume that surface exists today.
+
+Confirm each of these 5 active bot roles is expected to reconnect
 cleanly — in particular that no two processes are about to poll
 (`getUpdates`) the same token simultaneously post-restart (the documented
 HTTP 409 failure mode in `.env.secrets.example`'s own header comment).
+Only `@QuantCrpto_bot` (Quant Observer) and `@RadarCrypto1_bot` (Radar —
+distinct dedicated bot identities, never conflate the two) and
+`@mon_portfolio_bot` (Portfolio) actually own a polling (`getUpdates`)
+loop; `@PaperArena_bot` and `@rapport_automatique_bot` are push-only
+(fresh `sendMessage` calls only, verified in source — neither owns a
+polling loop), so they are not part of the 409-polling-collision surface.
 Confirm `crypto-quant-observer`, `crypto-radar-bot`, and `paper-arena`
 restart in an order that does not race a shared-token bot's polling
 process against itself.

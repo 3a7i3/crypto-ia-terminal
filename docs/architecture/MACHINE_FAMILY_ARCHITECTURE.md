@@ -38,7 +38,11 @@ this document and in `MODULE_FAMILY_REGISTRY.md` — it is never re-decided
 by an environment variable. What a small number of family-level switches
 (`OPERATOR_QUANT_ENABLED`, `OPERATOR_PORTFOLIO_ENABLED`,
 `OPERATOR_MACHINE_HEALTH_ENABLED`, …) may do is turn a presentation surface
-on or off. They must never redefine which family owns a metric, its
+on or off. **PROPOSED / FUTURE PRESENTATION CONFIG**: none of these three
+names exist today in source (verified — no `os.getenv`/`os.environ` call
+site references them anywhere in the repository); they are a proposed
+future switch family for O-02, not currently-live environment variables.
+They must never redefine which family owns a metric, its
 scientific meaning, which source is canonical, or who holds decision/risk
 authority.
 
@@ -78,8 +82,17 @@ CRYPTO AI TERMINAL
 │   │   └── quant_hedge_ai/agents/intelligence/no_trade_layer.py (no-trade filtering layer)
 │   │
 │   ├── RISK / SAFETY
-│   │   ├── risk/global_risk_gate.py, risk/circuit_breaker.py, risk/risk_limits.py
-│   │   ├── quant_hedge_ai/agents/risk/global_risk_gate.py, portfolio_brain.py
+│   │   ├── quant_hedge_ai/agents/risk/global_risk_gate.py (CANONICAL — verified
+│   │   │   wired into the live pipeline: `core/advisor_runtime_adapters.py`
+│   │   │   imports `GlobalRiskGate` from this module, and `core/advisor_loop.py`
+│   │   │   invokes it via `runtime.GlobalRiskGate(...)`)
+│   │   ├── risk/global_risk_gate.py (LEGACY — an older, incompatible `asyncio`-
+│   │   │   based implementation whose own docstring targets the retired
+│   │   │   `main_v91.py` loop; not imported by `core/advisor_runtime_adapters.py`
+│   │   │   or any current pipeline entrypoint — superseded, not co-authoritative
+│   │   │   with the quant_hedge_ai gate above)
+│   │   ├── risk/circuit_breaker.py, risk/risk_limits.py
+│   │   ├── portfolio_brain.py
 │   │   └── system/burn_in.py, tracker_system/autonomous/auto_decision_engine.py
 │   │       (system_controller_safety = fully authoritative regardless of
 │   │       FEATURE_ADAPTIVE_DECISION_FEEDBACK; system_controller_adaptive =
@@ -117,20 +130,47 @@ CRYPTO AI TERMINAL
 │       track. It is NOT the main paper dataset (paper_trading/mexc_simulator.py
 │       + databases/paper_trades.jsonl remain the main-system paper book), and
 │       it is NOT src/storage/run_repository.py (RunRepository/sim_runs is a
-│       separate simulation-run store — see below). Conflating the two is the
-│       single most common architectural mistake found by prior missions.
+│       separate legacy-simulation store, consumed only by
+│       `src/telegram/sim_bot.py` — see RESEARCH EXPERIMENTS / STORAGE below).
+│       Verified by source: `PaperArena` (`src/paper/*.py`) has **no**
+│       `run_repository`/`RunRepository` import anywhere — it does NOT use
+│       RunRepository. Conflating the two is the single most common
+│       architectural mistake found by prior missions.
+│       │
+│       └── src/storage/run_repository.py (RunRepository/sim_runs — CMVK
+│           simulator persistence layer, default store
+│           `databases/sim_runs.sqlite`; sole consumer is
+│           `src/telegram/sim_bot.py`'s `SimBot`. NOT O-01 canonical
+│           observability, NOT PaperArena persistence, NOT main paper-trading
+│           persistence — reclassified here from a prior mistaken
+│           ACTIVE_CANONICAL/O-01 placement. No systemd unit or
+│           `.env.example` entry was found for the bot that consumes it
+│           (RUNTIME_PROOF_REQUIRED), so its status is
+│           SOURCE_DEFINED_RUNTIME_UNVERIFIED, not ACTIVE_CANONICAL. See
+│           `MODULE_FAMILY_REGISTRY.md` for the full row.)
 │
 ├── CANONICAL SCIENTIFIC OBSERVABILITY
 │   └── O-01
 │       ├── observability/operator/domains/*.py  (11 domains, DEFAULT_MODULE_REGISTRY)
-│       ├── observability/operator/domains/operator_summary.py (pure composition, no
-│       │   independent recomputation — CANONICAL_NEW)
-│       └── src/storage/run_repository.py         (RunRepository/sim_runs — canonical store
-│           of simulation runs; independent of PaperArena and of the live paper book)
+│       └── observability/operator/domains/operator_summary.py (pure composition, no
+│           independent recomputation — CANONICAL_NEW)
 │
 ├── OPERATOR EXPERIENCE
-│   ├── src/telegram/quant_observer/bot.py         (Quant Observer — PRESENTATION CLIENT of
-│   │   O-01 domains, not an independent scientific source; certified distinct from PaperArena)
+│   ├── src/telegram/quant_observer/bot.py         (Quant Observer)
+│   │   CURRENT (verified by source): a presentation client of the main
+│   │   SystemSnapshot/live_snapshot architecture, NOT of O-01. Its actual
+│   │   chain is `src/telegram/quant_observer/bot.py` →
+│   │   `visualization/api/quant_live_api.py::load_quant_live_snapshot()` →
+│   │   `visualization/api/system_snapshot_source.py` →
+│   │   `databases/live_snapshot.json`. None of these three modules import
+│   │   anything under `observability/operator/domains/`.
+│   │   TARGET-O-02 (not yet implemented): Quant Observer should converge on
+│   │   the canonical O-01 operator-observability contracts
+│   │   (`system_health`, `market_state`, `decision_pipeline`, `attrition`,
+│   │   `data_freshness`, `operator_summary`) instead of the SystemSnapshot
+│   │   projection it reads today. This is a target, not a current fact.
+│   │   Either way: Telegram != scientific source of truth — it renders
+│   │   what a producer already computed, it never computes its own number.
 │   ├── scripts/radar_bot.py                       (interactive radar bot — Telegram engine channel)
 │   ├── scripts/quant_observer_pin_bootstrap.py
 │   ├── visualization/api/*.py, sdos_terminal/, dashboard/ (REST/dashboard presentation)
@@ -151,9 +191,9 @@ CRYPTO AI TERMINAL
 | Pair | Relationship |
 |---|---|
 | PaperArena vs main paper dataset | Independent research track vs `paper_trading/mexc_simulator.py` + `databases/paper_trades.jsonl`. Never the same N. |
-| Quant Observer vs PaperArena | Quant Observer (`src/telegram/quant_observer/bot.py`) is a **presentation client** of O-01 canonical observability. It is not a data source and not PaperArena. |
+| Quant Observer vs PaperArena | Quant Observer (`src/telegram/quant_observer/bot.py`) is a **presentation client** — CURRENTLY of the main SystemSnapshot/live_snapshot architecture (`visualization/api/quant_live_api.py` → `system_snapshot_source.py` → `databases/live_snapshot.json`), TARGET-O-02 of canonical O-01 observability (not yet implemented). Either way it is not a data source and not PaperArena. |
 | Regret v2 vs legacy ShadowTracker | `tools/regret_repository.py` (ADR-0018, MC-001) is canonical since 2026-07-10. `quant_hedge_ai/agents/intelligence/regret_engine.py` is the pre-v2 engine — LEGACY, historical-audit only. |
-| RunRepository/sim_runs vs PaperArena | `src/storage/run_repository.py` stores simulation runs generically; PaperArena is one specific experiment program that may or may not use it — they are not aliases of each other. |
+| RunRepository/sim_runs vs PaperArena | `src/storage/run_repository.py` (CMVK/sim_bot persistence) and PaperArena (`src/paper/*.py`) are separate simulation programs. Verified by source: PaperArena has **no** `run_repository`/`RunRepository` import anywhere — it does NOT use RunRepository. They are not aliases of each other. |
 | Telegram vs source of scientific truth | Telegram surfaces (Radar bot, Quant Observer, Rapport Automatique, Paper Arena channel) render certified data; they never compute an independent number that becomes the record. |
 | Learning vs Authority | `adaptive_learning.*` subsystems (mistake_memory, strategy_memory, meta_learner, strategy_ranker, system_controller_adaptive) may only ever be RECOMMENDED, gated by `FEATURE_ADAPTIVE_DECISION_FEEDBACK`. Only `core/authority.py` (GovernanceKernel) and the safety branch of `auto_decision_engine.py` (`system_controller_safety`) hold real decision authority — ADR-0007. |
 | Recommended vs Applied | A subsystem "computing" or "learning" something is never evidence it is influencing a live decision — see the RECOMMENDED/APPLIED matrix in `docs/observability/OBSERVABILITY_MODULE_REGISTRY.md` §I. |

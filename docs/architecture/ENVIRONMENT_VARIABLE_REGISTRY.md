@@ -1,15 +1,39 @@
 # Environment Variable Registry
 
-Mission FAM-01. Variable **names only**, never values, organized by
-machine family. Sourced from a repo-wide census of `os.getenv()`,
+Mission FAM-01 / FAM-01R. Variable **names only**, never values, organized
+by machine family. Sourced from a repo-wide census of `os.getenv()`,
 `os.environ.get()`, `os.environ[...]`, `.env.example`, `.env.secrets.example`,
 and `scripts/systemd/*.service` (`Environment=`/`EnvironmentFile=`),
-excluding `_ARCHIVE_2026/`. **573 distinct variable names** were found
-consumed via `os.getenv`/`os.environ` across the source tree — far more
-than any single document should enumerate line by line, so this registry
-groups them by family and prefix, and calls out individually only the
-variables that are architecturally significant (secrets, feature flags,
-duplication candidates, cross-family shared config). See
+excluding `_ARCHIVE_2026/`.
+
+**Methodology note (FAM-01R correction):** the original FAM-01 count of
+"573 distinct variable names ... consumed via os.getenv/os.environ" mixed
+two different things under one number — code-consumed names and
+template/systemd-only names swept in by the same census pass. Re-running
+the census with an explicit split (regex:
+`os\.getenv\(\s*["']([A-Z_][A-Z0-9_]*)["']`,
+`os\.environ\.get\(\s*["']([A-Z_][A-Z0-9_]*)["']`,
+`os\.environ\[\s*["']([A-Z_][A-Z0-9_]*)["']\s*\]` over all `*.py` files
+excluding `_ARCHIVE_2026/`; `[A-Z_][A-Z0-9_]{2,}=` over `.env.example` and
+`.env.secrets.example`; `Environment="?[A-Z_][A-Z0-9_]*=` over
+`scripts/systemd/*.service`) gives, at the time of this pass:
+
+| Bucket | Count | Method |
+|---|---|---|
+| `CODE_CONSUMED` | 575 distinct names | Actually referenced via `os.getenv`/`os.environ.get`/`os.environ[...]` somewhere in the Python source tree |
+| `TEMPLATE_ONLY` (`.env.example`) | 32 names | Present as a template entry but with no matching `CODE_CONSUMED` name found |
+| `TEMPLATE_ONLY` (`.env.secrets.example`) | 4 names | Same, for the secrets template |
+| `SYSTEMD_ONLY` | 4 names (`PYTHONUNBUFFERED`, `PYTHONIOENCODING`, `PYTHONPATH`, `TZ`) | Set only via `Environment=` in `scripts/systemd/*.service`, never read via `os.getenv`/`os.environ` in the Python source itself (interpreter-level env vars) |
+
+The small difference between this pass's 575 `CODE_CONSUMED` figure and
+the original "573" is attributable to regex/normalization differences
+between census passes, not a material discrepancy — both are in the same
+range and the qualitative finding (the count is a **census of environment
+names from a mixed source set**, not purely code-consumed) is what this
+correction fixes. This registry groups the resulting names by family and
+prefix, and calls out individually only the variables that are
+architecturally significant (secrets, feature flags, duplication
+candidates, cross-family shared config). See
 `ENVIRONMENT_CONFIGURATION_CONSTITUTION.md` for the policy these
 classifications serve.
 
