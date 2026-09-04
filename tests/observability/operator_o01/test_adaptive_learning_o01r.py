@@ -153,7 +153,10 @@ def test_recommendation_equals_applied_stays_false_for_both_flag_values():
         assert state.recommendation_equals_applied.value is False
         assert state.recommendation_equals_applied.value != state.decision_feedback_enabled.value or flag_value is False
         # explicit: never derived as equal to the flag's runtime value
-        assert not (state.recommendation_equals_applied.value == state.decision_feedback_enabled.value == True)
+        assert not (
+            state.recommendation_equals_applied.value is True
+            and state.decision_feedback_enabled.value is True
+        )
 
 
 def test_post_s02_structural_split_preserved_for_all_five_gated_subsystems():
