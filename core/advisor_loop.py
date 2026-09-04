@@ -674,7 +674,19 @@ def _top_strategies_for_display(ranker: Any) -> list[JSONDict]:
     return cast(list[JSONDict], out)
 
 
-load_dotenv(override=True)
+# ENV-01 — précédence dotenv : override=False (défaut python-dotenv) au lieu
+# de override=True. Sous systemd, EnvironmentFile=.env PUIS
+# EnvironmentFile=.env.secrets injecte déjà les valeurs dans le process AVANT
+# que Python ne démarre — os.environ contient donc la valeur .env.secrets
+# (dernière EnvironmentFile gagnante) au moment de cet appel. override=True
+# écrasait cette valeur avec celle du fichier .env relu ici, violant
+# l'invariant PRE-EXISTING PROCESS ENVIRONMENT > dotenv file (FAM-01,
+# ENVIRONMENT_CONFIGURATION_CONSTITUTION.md). override=False laisse intacte
+# toute variable déjà présente dans os.environ (systemd ou export manuel) et
+# ne fait que combler celles qui manquent encore — l'exécution CLI manuelle
+# (sans systemd, sans variable pré-exportée) continue donc de se peupler
+# normalement depuis .env. Voir tests/test_dotenv_precedence.py.
+load_dotenv(override=False)
 
 # S-02B.1 — re-résout la valeur EFFECTIVE de FEATURE_ADAPTIVE_DECISION_FEEDBACK
 # maintenant que .env est chargé. L'import ligne ~77 a eu lieu avant

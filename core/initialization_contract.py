@@ -53,7 +53,12 @@ KNOWN_SIDE_EFFECTS: list[SideEffect] = [
     ),
     SideEffect(
         tier="RUNTIME_INIT",
-        pattern="load_dotenv(override=True)",
+        # ENV-01 : override=True -> override=False (précédence dotenv, cf.
+        # docs/architecture/ENVIRONMENT_CONFIGURATION_CONSTITUTION.md §5).
+        # Toujours un side-effect module-level Tier-2 non déplacé dans
+        # main()/_setup() — cette dette (EIC Tier 1/2) est distincte de la
+        # remédiation de précédence et reste hors périmètre ENV-01.
+        pattern="load_dotenv(override=False)",
         location="core/advisor_loop.py:167",
         compliant=False,
     ),

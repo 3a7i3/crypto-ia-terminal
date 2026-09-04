@@ -1,6 +1,6 @@
 # Environment Variable Registry
 
-Mission FAM-01 / FAM-01R. Variable **names only**, never values, organized
+Mission FAM-01 / FAM-01R / ENV-01. Variable **names only**, never values, organized
 by machine family. Sourced from a repo-wide census of `os.getenv()`,
 `os.environ.get()`, `os.environ[...]`, `.env.example`, `.env.secrets.example`,
 and `scripts/systemd/*.service` (`Environment=`/`EnvironmentFile=`),
@@ -39,6 +39,20 @@ classifications serve.
 
 SECRET-classified variables below name `.env.secrets` as their location;
 no value for any of them appears anywhere in this document.
+
+**AFTER ENV-01 (2026-09)**: every `EXPECTED_FILE = .env.secrets` entry
+below that was previously templated as a placeholder name in the real
+`.env.example` (Telegram bot tokens/chat-ids, exchange API keys,
+`SLACK_WEBHOOK_URL`, `EMAIL_SMTP_SERVER`/`PORT`/`EMAIL_FROM_ADDR`/
+`EMAIL_TO_ADDR`) has now been consolidated so that `.env.secrets.example`
+is its only template location — `.env.example` no longer carries a
+duplicate placeholder for any secret-class name. This registry's per-family
+`EXPECTED_FILE` classification (already correct before ENV-01) was the
+target `.env.example`/`.env.secrets.example` split now implemented; no
+`EXPECTED_FILE` values changed as a result. The two-occurrence
+PRECEDENCE_RISK finding referenced from the constitution's §5 (row A,
+`WATCHDOG_*`) is remediated — see
+`ENVIRONMENT_CONFIGURATION_CONSTITUTION.md` §5.
 
 ## A — INFRASTRUCTURE / GOVERNANCE
 
