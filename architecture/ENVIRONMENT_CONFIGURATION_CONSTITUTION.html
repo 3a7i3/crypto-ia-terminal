@@ -248,11 +248,16 @@
         <article role="main" id="furo-main-content">
           <section id="environment-configuration-constitution">
 <h1>Environment &amp; Configuration Constitution<a class="headerlink" href="#environment-configuration-constitution" title="Link to this heading">¶</a></h1>
-<p>Mission FAM-01. Documentation only — no code, no <code class="docutils literal notranslate"><span class="pre">.env*</span></code> file, no systemd
-unit is modified by this document. It records the target configuration
-constitution, the precedence forensic performed source-only, and the
-policies future remediation work must follow. Findings here point to a
-future remediation mission; this mission does not fix any of them.</p>
+<p>Mission FAM-01 (documentation-only forensic) + Mission ENV-01 (remediation).
+FAM-01 recorded the target configuration constitution, the precedence
+forensic performed source-only, and the policies future remediation work
+must follow, without fixing any of its findings. <strong>ENV-01 (2026-09) closes
+the two PRECEDENCE_RISK findings from §5, splits <code class="docutils literal notranslate"><span class="pre">.env.example</span></code> /
+<code class="docutils literal notranslate"><span class="pre">.env.secrets.example</span></code> per the target in §1b, corrects the stale header
+documented in §10, and ships the human-only verifier described in §12a.</strong>
+Sections below are annotated BEFORE ENV-01 / AFTER ENV-01 /
+RUNTIME_PROOF_REQUIRED where their content changed; sections not annotated
+are unchanged FAM-01 findings, still accurate.</p>
 <section id="purpose-of-each-file">
 <h2>1. Purpose of each file<a class="headerlink" href="#purpose-of-each-file" title="Link to this heading">¶</a></h2>
 <div class="table-wrapper colwidths-auto docutils container">
@@ -284,6 +289,15 @@ future remediation mission; this mission does not fix any of them.</p>
 </section>
 <section id="a-env-current-vs-target-lifecycle">
 <h2>1a. <code class="docutils literal notranslate"><span class="pre">.env</span></code> current-vs-target lifecycle<a class="headerlink" href="#a-env-current-vs-target-lifecycle" title="Link to this heading">¶</a></h2>
+<p><strong>AFTER ENV-01 note</strong>: the root cause named below (the stale
+<code class="docutils literal notranslate"><span class="pre">.env.secrets.example</span></code> header telling humans to put secrets in <code class="docutils literal notranslate"><span class="pre">.env</span></code>) is
+fixed as of ENV-01 (see §10). This does <strong>not</strong> by itself move <code class="docutils literal notranslate"><span class="pre">.env</span></code> out
+of <code class="docutils literal notranslate"><span class="pre">QUARANTINED_RUNTIME_CONFIG</span></code> — the real, already-deployed VPS <code class="docutils literal notranslate"><span class="pre">.env</span></code> may
+still carry secret keys written under the old, incorrect header before the
+fix landed. <code class="docutils literal notranslate"><span class="pre">.env</span></code> remains <code class="docutils literal notranslate"><span class="pre">QUARANTINED_RUNTIME_CONFIG</span></code> until a human
+operator runs <code class="docutils literal notranslate"><span class="pre">scripts/verify_env_separation.sh</span></code> against the real files and
+certifies <code class="docutils literal notranslate"><span class="pre">SECRET_KEYS_IN_ENV_COUNT=0</span></code> per the Human <code class="docutils literal notranslate"><span class="pre">.env</span></code> Certification
+Contract (§12a). RUNTIME_PROOF_REQUIRED.</p>
 <p><code class="docutils literal notranslate"><span class="pre">.env</span></code> is <strong>not</strong> permanently classified AI-forbidden, but it is also not
 yet safe for an AI to inspect. Two distinct states:</p>
 <ul class="simple">
@@ -306,20 +320,25 @@ any certification of <code class="docutils literal notranslate"><span class="pre
 </section>
 <section id="b-env-example-current-vs-target">
 <h2>1b. <code class="docutils literal notranslate"><span class="pre">.env.example</span></code> current-vs-target<a class="headerlink" href="#b-env-example-current-vs-target" title="Link to this heading">¶</a></h2>
-<p><strong>CURRENT reality</strong> (verified by inspecting <code class="docutils literal notranslate"><span class="pre">.env.example</span></code>’s variable
-<strong>names</strong> only — template files are explicitly allowed reading, this is
-not a secret-value read): it still contains names/placeholders for
-secret-class variables, e.g. <code class="docutils literal notranslate"><span class="pre">TELEGRAM_BOT_TOKEN=</span></code>, <code class="docutils literal notranslate"><span class="pre">RADAR_BOT_TOKEN=</span></code>,
+<p><strong>BEFORE ENV-01</strong> (FAM-01 finding, verified by inspecting <code class="docutils literal notranslate"><span class="pre">.env.example</span></code>’s
+variable <strong>names</strong> only — template files are explicitly allowed reading,
+this is not a secret-value read): it still contained names/placeholders
+for secret-class variables, e.g. <code class="docutils literal notranslate"><span class="pre">TELEGRAM_BOT_TOKEN=</span></code>, <code class="docutils literal notranslate"><span class="pre">RADAR_BOT_TOKEN=</span></code>,
 <code class="docutils literal notranslate"><span class="pre">MON_PORTFOLIO_BOT_TOKEN=</span></code>, <code class="docutils literal notranslate"><span class="pre">RAPPORT_AUTOMATIQUE_BOT_TOKEN=</span></code>,
 <code class="docutils literal notranslate"><span class="pre">PAPER_ARENA_BOT_TOKEN=</span></code>, <code class="docutils literal notranslate"><span class="pre">KRAKEN_API_KEY=</span></code>/<code class="docutils literal notranslate"><span class="pre">KRAKEN_API_SECRET=</span></code>,
 <code class="docutils literal notranslate"><span class="pre">GATEIO_API_KEY=</span></code>/<code class="docutils literal notranslate"><span class="pre">GATEIO_API_SECRET=</span></code>, <code class="docutils literal notranslate"><span class="pre">BINANCE_API_KEY=</span></code>/
 <code class="docutils literal notranslate"><span class="pre">BINANCE_API_SECRET=</span></code>, and a commented <code class="docutils literal notranslate"><span class="pre">#SLACK_WEBHOOK_URL=</span></code> — a mixture of
 non-secret config and secret-class placeholder names, not yet a clean
 “public non-secret config template.”</p>
-<p><strong>TARGET</strong> (future ENV remediation mission — not applied by FAM-01/FAM-01R,
-documentation only): <code class="docutils literal notranslate"><span class="pre">.env.example</span></code> = non-secret runtime config only;
-<code class="docutils literal notranslate"><span class="pre">.env.secrets.example</span></code> = secret/restricted variable names only. Neither
-template file is edited by this mission.</p>
+<p><strong>AFTER ENV-01</strong>: all of the above were removed from <code class="docutils literal notranslate"><span class="pre">.env.example</span></code> and
+consolidated into <code class="docutils literal notranslate"><span class="pre">.env.secrets.example</span></code> (which already held the same
+names with richer per-bot documentation — no credential was invented).
+<code class="docutils literal notranslate"><span class="pre">EMAIL_SMTP_SERVER</span></code>/<code class="docutils literal notranslate"><span class="pre">EMAIL_SMTP_PORT</span></code>/<code class="docutils literal notranslate"><span class="pre">EMAIL_FROM_ADDR</span></code>/<code class="docutils literal notranslate"><span class="pre">EMAIL_TO_ADDR</span></code> were
+also moved, per the project’s own existing RESTRICTED_IDENTITY convention
+(<code class="docutils literal notranslate"><span class="pre">scripts/split_env.sh::SECRET_EXACT_NAMES</span></code>) rather than a new judgment
+call. <code class="docutils literal notranslate"><span class="pre">.env.example</span></code> = non-secret runtime config only;
+<code class="docutils literal notranslate"><span class="pre">.env.secrets.example</span></code> = secret/restricted variable names only, with a
+corrected header (§10).</p>
 <p><strong>Invariants:</strong></p>
 <ul class="simple">
 <li><p>NO SECRET VALUE SHALL EXIST IN <code class="docutils literal notranslate"><span class="pre">.env</span></code>.</p></li>
@@ -406,15 +425,15 @@ finding.</p></li>
 <tbody>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py:677</span></code></p></td>
 <td><p>default (<code class="docutils literal notranslate"><span class="pre">.env</span></code>)</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">True</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">False</span></code> (ENV-01, was <code class="docutils literal notranslate"><span class="pre">True</span></code>)</p></td>
 <td><p>Yes — <code class="docutils literal notranslate"><span class="pre">crypto-advisor.service</span></code></p></td>
-<td><p><strong>PRECEDENCE_RISK</strong></p></td>
+<td><p><strong>REMEDIATED</strong> (was PRECEDENCE_RISK)</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">watchdog_vps.py:38</span></code></p></td>
 <td><p>default (<code class="docutils literal notranslate"><span class="pre">.env</span></code>)</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">True</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">False</span></code> (ENV-01, was <code class="docutils literal notranslate"><span class="pre">True</span></code>)</p></td>
 <td><p>Yes — <code class="docutils literal notranslate"><span class="pre">crypto-watchdog.service</span></code></p></td>
-<td><p><strong>PRECEDENCE_RISK</strong></p></td>
+<td><p><strong>REMEDIATED</strong> (was PRECEDENCE_RISK)</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">infra/monitoring/watchdog_vps.py:42</span></code></p></td>
 <td><p>default (<code class="docutils literal notranslate"><span class="pre">.env</span></code>)</p></td>
@@ -551,21 +570,30 @@ finding.</p></li>
 </tbody>
 </table>
 </div>
-<p><strong>Headline finding (PRECEDENCE_RISK, two occurrences):</strong>
+<p><strong>Headline finding, BEFORE ENV-01 (PRECEDENCE_RISK, two occurrences):</strong>
 <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code> (the process <code class="docutils literal notranslate"><span class="pre">crypto-advisor.service</span></code> runs) and the
 deployed <code class="docutils literal notranslate"><span class="pre">watchdog_vps.py</span></code> (the process <code class="docutils literal notranslate"><span class="pre">crypto-watchdog.service</span></code> runs)
-both call <code class="docutils literal notranslate"><span class="pre">load_dotenv(override=True)</span></code> after systemd has already loaded
+both called <code class="docutils literal notranslate"><span class="pre">load_dotenv(override=True)</span></code> after systemd had already loaded
 <code class="docutils literal notranslate"><span class="pre">.env</span></code> then <code class="docutils literal notranslate"><span class="pre">.env.secrets</span></code> in that order. Because <code class="docutils literal notranslate"><span class="pre">override=True</span></code> forces
 <code class="docutils literal notranslate"><span class="pre">python-dotenv</span></code> to overwrite any environment variable already set, any key
-present in <strong>both</strong> <code class="docutils literal notranslate"><span class="pre">.env</span></code> and <code class="docutils literal notranslate"><span class="pre">.env.secrets</span></code> is re-set from <code class="docutils literal notranslate"><span class="pre">.env</span></code> at this
+present in <strong>both</strong> <code class="docutils literal notranslate"><span class="pre">.env</span></code> and <code class="docutils literal notranslate"><span class="pre">.env.secrets</span></code> was re-set from <code class="docutils literal notranslate"><span class="pre">.env</span></code> at this
 point in each process’s own startup — silently reversing the precedence
-systemd intended. Today this is a <em>latent</em> risk rather than a <em>confirmed</em>
-incident: it depends on <code class="docutils literal notranslate"><span class="pre">.env</span></code> and <code class="docutils literal notranslate"><span class="pre">.env.secrets</span></code> actually sharing a
-duplicate key on the real VPS, which this source-only mission cannot
-verify (RUNTIME_PROOF_REQUIRED) and must not attempt to verify by reading
-real secret files. <strong>No code fix is proposed here</strong> — this is a forensic
-finding for a future remediation mission, per the mission’s explicit
-constraint (“do not fix any code — just document findings”).</p>
+systemd intended.</p>
+<p><strong>AFTER ENV-01</strong>: both call sites now use <code class="docutils literal notranslate"><span class="pre">load_dotenv(override=False)</span></code>,
+the <code class="docutils literal notranslate"><span class="pre">python-dotenv</span></code> default — a variable already present in <code class="docutils literal notranslate"><span class="pre">os.environ</span></code>
+(from systemd’s <code class="docutils literal notranslate"><span class="pre">EnvironmentFile=.env</span></code> then <code class="docutils literal notranslate"><span class="pre">EnvironmentFile=.env.secrets</span></code>
+injection, or from any pre-existing process/shell environment for manual
+CLI runs) is never overwritten; only variables still absent afterward get
+populated from <code class="docutils literal notranslate"><span class="pre">.env</span></code>. This restores <code class="docutils literal notranslate"><span class="pre">PRE-EXISTING</span> <span class="pre">PROCESS</span> <span class="pre">ENVIRONMENT</span> <span class="pre">&gt;</span> <span class="pre">dotenv</span> <span class="pre">file</span></code> for both systemd entrypoints while leaving manual/CLI
+execution — which has no pre-existing value to protect — unaffected.
+Proven deterministically with dummy fixtures (no real <code class="docutils literal notranslate"><span class="pre">.env</span></code>/<code class="docutils literal notranslate"><span class="pre">.env.secrets</span></code>
+read) in <code class="docutils literal notranslate"><span class="pre">tests/test_dotenv_precedence.py</span></code> (CASE A/B/C, plus a
+regression-documentation test reproducing the pre-ENV-01 defect). This is a
+source-only proof: whether the real VPS <code class="docutils literal notranslate"><span class="pre">.env</span></code>/<code class="docutils literal notranslate"><span class="pre">.env.secrets</span></code> actually
+share a duplicate key today, and whether the fix changes observed runtime
+behavior there, is <strong>RUNTIME_PROOF_REQUIRED</strong> — to be confirmed only via
+<code class="docutils literal notranslate"><span class="pre">scripts/verify_env_separation.sh</span></code>’s sanitized output (§12a), run by a human
+operator, never by an AI opening either file.</p>
 </section>
 <section id="duplicate-variable-prohibition-and-secret-naming-classification-policy">
 <h2>6. Duplicate-variable prohibition and secret naming/classification policy<a class="headerlink" href="#duplicate-variable-prohibition-and-secret-naming-classification-policy" title="Link to this heading">¶</a></h2>
@@ -622,13 +650,18 @@ constitution document and its companions contain zero real secret values —
 only variable <strong>names</strong> and, where useful, masked-verification technique
 descriptions.</p>
 </section>
-<section id="stale-documentation-finding-env-secrets-example">
-<h2>10. Stale documentation finding: <code class="docutils literal notranslate"><span class="pre">.env.secrets.example</span></code><a class="headerlink" href="#stale-documentation-finding-env-secrets-example" title="Link to this heading">¶</a></h2>
-<p><strong>OLD CLAIM</strong> (as currently written at the top of <code class="docutils literal notranslate"><span class="pre">.env.secrets.example</span></code>,
-verbatim intent): <em>“Ce fichier est un TEMPLATE. Ne le renseignez pas ici —
-ces valeurs vont dans le vrai <code class="docutils literal notranslate"><span class="pre">.env</span></code> du VPS (chargé par les units systemd
-via <code class="docutils literal notranslate"><span class="pre">EnvironmentFile=</span></code>).”</em> — i.e. the template’s own header tells a human
-to copy real secret values into the real <code class="docutils literal notranslate"><span class="pre">.env</span></code> file.</p>
+<section id="stale-documentation-finding-env-secrets-example-fixed-env-01">
+<h2>10. Stale documentation finding: <code class="docutils literal notranslate"><span class="pre">.env.secrets.example</span></code> — FIXED (ENV-01)<a class="headerlink" href="#stale-documentation-finding-env-secrets-example-fixed-env-01" title="Link to this heading">¶</a></h2>
+<p><strong>OLD CLAIM</strong> (as written at the top of <code class="docutils literal notranslate"><span class="pre">.env.secrets.example</span></code> before
+ENV-01, verbatim intent): <em>“Ce fichier est un TEMPLATE. Ne le renseignez
+pas ici — ces valeurs vont dans le vrai <code class="docutils literal notranslate"><span class="pre">.env</span></code> du VPS (chargé par les units
+systemd via <code class="docutils literal notranslate"><span class="pre">EnvironmentFile=</span></code>).”</em> — i.e. the template’s own header told a
+human to copy real secret values into the real <code class="docutils literal notranslate"><span class="pre">.env</span></code> file.</p>
+<p><strong>STATUS: FIXED (ENV-01)</strong>. The header now reads (paraphrased): real secret
+values → <code class="docutils literal notranslate"><span class="pre">.env.secrets</span></code>; non-secret config → <code class="docutils literal notranslate"><span class="pre">.env</span></code>, matching §1/§4/§6 of
+this constitution and <code class="docutils literal notranslate"><span class="pre">scripts/split_env.sh</span></code>’s own intent. See §1a for why
+this fix does not, by itself, retroactively certify the already-deployed
+real VPS <code class="docutils literal notranslate"><span class="pre">.env</span></code> as clean.</p>
 <p><strong>CURRENT TARGET</strong>: per <code class="docutils literal notranslate"><span class="pre">scripts/split_env.sh</span></code>’s own purpose (<code class="docutils literal notranslate"><span class="pre">.env</span></code> →
 non-secret; <code class="docutils literal notranslate"><span class="pre">.env.secrets</span></code> → secrets, <code class="docutils literal notranslate"><span class="pre">chmod</span> <span class="pre">600</span></code>) and per §1 of this
 constitution, real secret values belong in the real <code class="docutils literal notranslate"><span class="pre">.env.secrets</span></code> file,
@@ -649,6 +682,48 @@ in <code class="docutils literal notranslate"><span class="pre">.env.secrets.exa
 the real VPS <code class="docutils literal notranslate"><span class="pre">.env</span></code> does not already contain secret-classified keys as a
 result of the current wording. This mission does not edit
 <code class="docutils literal notranslate"><span class="pre">.env.secrets.example</span></code> itself, per its explicit file-scope constraint.</p>
+</section>
+<section id="a-human-only-environment-verifier-env-certification-contract-env-01">
+<h2>12a. Human-only environment verifier &amp; <code class="docutils literal notranslate"><span class="pre">.env</span></code> certification contract (ENV-01)<a class="headerlink" href="#a-human-only-environment-verifier-env-certification-contract-env-01" title="Link to this heading">¶</a></h2>
+<p><strong>Verifier</strong>: <code class="docutils literal notranslate"><span class="pre">scripts/verify_env_separation.sh</span></code> — a sanitized, counts/flags
+-only report (<code class="docutils literal notranslate"><span class="pre">ENV_FILE_PRESENT</span></code>, <code class="docutils literal notranslate"><span class="pre">SECRETS_FILE_PRESENT</span></code>, <code class="docutils literal notranslate"><span class="pre">ENV_MODE_OK</span></code>,
+<code class="docutils literal notranslate"><span class="pre">SECRETS_MODE_OK</span></code>, <code class="docutils literal notranslate"><span class="pre">SECRET_KEYS_IN_ENV_COUNT</span></code>, <code class="docutils literal notranslate"><span class="pre">DUPLICATE_WITHIN_ENV_COUNT</span></code>,
+<code class="docutils literal notranslate"><span class="pre">DUPLICATE_WITHIN_SECRETS_COUNT</span></code>, <code class="docutils literal notranslate"><span class="pre">CROSS_FILE_DUPLICATE_KEY_COUNT</span></code>, and an
+opt-in <code class="docutils literal notranslate"><span class="pre">--verbose-names</span></code> mode printing only <code class="docutils literal notranslate"><span class="pre">NAME=SET</span></code>/<code class="docutils literal notranslate"><span class="pre">NAME=UNSET</span></code>). It
+never prints a value, never sources/exports/evaluates the files it reads,
+and derives its secret-name registry from <code class="docutils literal notranslate"><span class="pre">.env.secrets.example</span></code> by
+default. <strong>THIS SCRIPT MUST BE RUN BY THE HUMAN OPERATOR</strong> against the real
+<code class="docutils literal notranslate"><span class="pre">.env</span></code>/<code class="docutils literal notranslate"><span class="pre">.env.secrets</span></code> — an AI agent must not invoke it against those real
+files (per §2), and did not in this mission; it was tested only against
+<code class="docutils literal notranslate"><span class="pre">tmp_path</span></code> dummy fixtures (<code class="docutils literal notranslate"><span class="pre">tests/test_verify_env_separation.py</span></code>).</p>
+<p>ENV-01R correction: an earlier revision of this contract used a single
+<code class="docutils literal notranslate"><span class="pre">DUPLICATE_KEY_COUNT</span></code> name for what the verifier actually computed as a
+WITHIN-file duplicate count, while this contract’s own wording (“no name
+defined in both files”) describes a CROSS-file property — a naming/property
+mismatch. The verifier now emits three distinct, unambiguous metrics (see
+above); <code class="docutils literal notranslate"><span class="pre">DUPLICATE_KEY_COUNT</span></code> no longer exists as an emitted name.</p>
+<p><strong>Human <code class="docutils literal notranslate"><span class="pre">.env</span></code> Certification Contract</strong> — required to transition <code class="docutils literal notranslate"><span class="pre">.env</span></code>:
+<code class="docutils literal notranslate"><span class="pre">QUARANTINED_RUNTIME_CONFIG</span></code> → <code class="docutils literal notranslate"><span class="pre">NON_SECRET_RUNTIME_CONFIGURATION</span></code> (§1a):</p>
+<ol class="arabic simple">
+<li><p>Human operator runs <code class="docutils literal notranslate"><span class="pre">scripts/verify_env_separation.sh</span></code> on the real VPS
+files.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">SECRET_KEYS_IN_ENV_COUNT=0</span></code> (no secret-class name leaked into <code class="docutils literal notranslate"><span class="pre">.env</span></code>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">CROSS_FILE_DUPLICATE_KEY_COUNT=0</span></code> (no name defined in both <code class="docutils literal notranslate"><span class="pre">.env</span></code> and
+<code class="docutils literal notranslate"><span class="pre">.env.secrets</span></code> — required minimum). <code class="docutils literal notranslate"><span class="pre">DUPLICATE_WITHIN_ENV_COUNT=0</span></code> and
+<code class="docutils literal notranslate"><span class="pre">DUPLICATE_WITHIN_SECRETS_COUNT=0</span></code> are preferred additional evidence of
+file hygiene (a within-file duplicate is not itself a cross-file
+precedence risk, but indicates a malformed file).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ENV_MODE_OK=YES</span></code> (<code class="docutils literal notranslate"><span class="pre">.env</span></code> not world-writable).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">SECRETS_MODE_OK=YES</span></code> (<code class="docutils literal notranslate"><span class="pre">.env.secrets</span></code> is <code class="docutils literal notranslate"><span class="pre">600</span></code>/<code class="docutils literal notranslate"><span class="pre">400</span></code>).</p></li>
+<li><p>Expected secret variables report <code class="docutils literal notranslate"><span class="pre">SET</span></code> where the deployment requires
+them (<code class="docutils literal notranslate"><span class="pre">--verbose-names</span></code>), with no value ever displayed.</p></li>
+<li><p>The operator records the certification (date, verifier output, sign-off)
+in an operator-side log — never by having an AI agent draft or witness
+the real values.</p></li>
+</ol>
+<p>Only after this certification is recorded may an AI agent read the real
+<code class="docutils literal notranslate"><span class="pre">.env</span></code> directly (never <code class="docutils literal notranslate"><span class="pre">.env.secrets</span></code>, which remains <code class="docutils literal notranslate"><span class="pre">HUMAN_ONLY</span></code> forever
+per §2).</p>
 </section>
 <section id="additional-stale-documentation-observation">
 <h2>11. Additional stale-documentation observation<a class="headerlink" href="#additional-stale-documentation-observation" title="Link to this heading">¶</a></h2>
@@ -710,7 +785,8 @@ not silently drift apart as new variables are added.</p>
 <li><a class="reference internal" href="#human-only-credential-rotation-boundary">7. Human-only credential rotation boundary</a></li>
 <li><a class="reference internal" href="#safe-runtime-verification-policy-masked-only">8. Safe runtime verification policy (masked only)</a></li>
 <li><a class="reference internal" href="#no-secret-logging-pr-ci-artifact-rule">9. No-secret logging / PR / CI artifact rule</a></li>
-<li><a class="reference internal" href="#stale-documentation-finding-env-secrets-example">10. Stale documentation finding: <code class="docutils literal notranslate"><span class="pre">.env.secrets.example</span></code></a></li>
+<li><a class="reference internal" href="#stale-documentation-finding-env-secrets-example-fixed-env-01">10. Stale documentation finding: <code class="docutils literal notranslate"><span class="pre">.env.secrets.example</span></code> — FIXED (ENV-01)</a></li>
+<li><a class="reference internal" href="#a-human-only-environment-verifier-env-certification-contract-env-01">12a. Human-only environment verifier &amp; <code class="docutils literal notranslate"><span class="pre">.env</span></code> certification contract (ENV-01)</a></li>
 <li><a class="reference internal" href="#additional-stale-documentation-observation">11. Additional stale-documentation observation</a></li>
 </ul>
 </li>

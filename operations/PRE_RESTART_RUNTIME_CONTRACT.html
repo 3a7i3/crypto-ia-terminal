@@ -371,14 +371,30 @@ sanitized result, never a raw environment dump, and never runs
 <li><p>Confirm both files exist at the paths every systemd unit expects
 (<code class="docutils literal notranslate"><span class="pre">/home/mathieu/crypto_ai_terminal/.env</span></code> and <code class="docutils literal notranslate"><span class="pre">.env.secrets</span></code>) — do not
 open either file; existence and permission checks only (see §8).</p></li>
-<li><p>Confirm the precedence-risk finding in
-<code class="docutils literal notranslate"><span class="pre">docs/architecture/ENVIRONMENT_CONFIGURATION_CONSTITUTION.md</span></code> §5 remains
-understood: <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code> and the deployed <code class="docutils literal notranslate"><span class="pre">watchdog_vps.py</span></code>
-both call <code class="docutils literal notranslate"><span class="pre">load_dotenv(override=True)</span></code>, so any key duplicated between
-<code class="docutils literal notranslate"><span class="pre">.env</span></code> and <code class="docutils literal notranslate"><span class="pre">.env.secrets</span></code> on the real VPS will resolve to the <code class="docutils literal notranslate"><span class="pre">.env</span></code>
-value inside those two processes specifically, contrary to the systemd
-load order. No fix is prescribed here; this step exists so a restart is
-never mistaken for a moment when this risk was resolved.</p></li>
+<li><p><strong>BEFORE ENV-01</strong>: <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code> and the deployed
+<code class="docutils literal notranslate"><span class="pre">watchdog_vps.py</span></code> both called <code class="docutils literal notranslate"><span class="pre">load_dotenv(override=True)</span></code>, so any key
+duplicated between <code class="docutils literal notranslate"><span class="pre">.env</span></code> and <code class="docutils literal notranslate"><span class="pre">.env.secrets</span></code> on the real VPS resolved to
+the <code class="docutils literal notranslate"><span class="pre">.env</span></code> value inside those two processes specifically, contrary to the
+systemd load order — see the finding formerly recorded in
+<code class="docutils literal notranslate"><span class="pre">docs/architecture/ENVIRONMENT_CONFIGURATION_CONSTITUTION.md</span></code> §5.</p></li>
+<li><p><strong>AFTER ENV-01</strong>: both call sites now use <code class="docutils literal notranslate"><span class="pre">load_dotenv(override=False)</span></code>
+(<code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py:677</span></code>, <code class="docutils literal notranslate"><span class="pre">watchdog_vps.py:38</span></code>) — a variable already
+present in <code class="docutils literal notranslate"><span class="pre">os.environ</span></code> (systemd <code class="docutils literal notranslate"><span class="pre">EnvironmentFile=.env</span></code> then
+<code class="docutils literal notranslate"><span class="pre">EnvironmentFile=.env.secrets</span></code> injection) is never overwritten by the
+in-process <code class="docutils literal notranslate"><span class="pre">load_dotenv()</span></code> re-read; only variables still absent get
+populated from <code class="docutils literal notranslate"><span class="pre">.env</span></code>. Proven with dummy fixtures in
+<code class="docutils literal notranslate"><span class="pre">tests/test_dotenv_precedence.py</span></code> (source-only; this mission did not, and
+could not, read the real VPS <code class="docutils literal notranslate"><span class="pre">.env</span></code>/<code class="docutils literal notranslate"><span class="pre">.env.secrets</span></code>).</p></li>
+<li><p><strong>RUNTIME_PROOF_REQUIRED</strong>: this restart is still the first opportunity to
+confirm on the real VPS process that a key duplicated in both files now
+resolves to the <code class="docutils literal notranslate"><span class="pre">.env.secrets</span></code> value end-to-end — via the sanitized
+<code class="docutils literal notranslate"><span class="pre">scripts/verify_env_separation.sh</span></code> output only (§8/§9), never by an AI
+opening either file. Do not treat this restart as itself constituting
+that confirmation; record the verifier’s <code class="docutils literal notranslate"><span class="pre">SECRET_KEYS_IN_ENV_COUNT</span></code>/
+<code class="docutils literal notranslate"><span class="pre">CROSS_FILE_DUPLICATE_KEY_COUNT</span></code> output as the evidence (ENV-01R: the
+verifier no longer emits a single <code class="docutils literal notranslate"><span class="pre">DUPLICATE_KEY_COUNT</span></code> — it distinguishes
+within-file duplicates from the cross-file case that matters for
+precedence).</p></li>
 </ul>
 </section>
 <section id="secret-file-permission-check-without-reading-contents">
@@ -446,7 +462,10 @@ correctly tagged <code class="docutils literal notranslate"><span class="pre">ce
 <p>Confirm <code class="docutils literal notranslate"><span class="pre">config.feature_flags.FEATURE_ADAPTIVE_DECISION_FEEDBACK</span></code> remains
 at its intended (default <code class="docutils literal notranslate"><span class="pre">False</span></code>, fail-closed) value unless an explicit,
 ADR-backed exception exists — a restart must never be the moment this flag
-silently flips due to <code class="docutils literal notranslate"><span class="pre">.env</span></code> precedence issues (see §7).</p>
+silently flips due to <code class="docutils literal notranslate"><span class="pre">.env</span></code> precedence issues (see §7; AFTER ENV-01 this
+specific dotenv-override vector is closed, but the flag’s resolution order
+relative to <code class="docutils literal notranslate"><span class="pre">load_dotenv()</span></code> — S-02B.1, <code class="docutils literal notranslate"><span class="pre">tests/test_feature_flag_startup_order.py</span></code>
+— is a separate concern this restart step still verifies).</p>
 </section>
 <section id="storage-writers-spools">
 <h2>14. Storage writers / spools<a class="headerlink" href="#storage-writers-spools" title="Link to this heading">¶</a></h2>

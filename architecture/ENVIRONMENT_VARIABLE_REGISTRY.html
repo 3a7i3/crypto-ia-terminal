@@ -248,7 +248,7 @@
         <article role="main" id="furo-main-content">
           <section id="environment-variable-registry">
 <h1>Environment Variable Registry<a class="headerlink" href="#environment-variable-registry" title="Link to this heading">¶</a></h1>
-<p>Mission FAM-01 / FAM-01R. Variable <strong>names only</strong>, never values, organized
+<p>Mission FAM-01 / FAM-01R / ENV-01. Variable <strong>names only</strong>, never values, organized
 by machine family. Sourced from a repo-wide census of <code class="docutils literal notranslate"><span class="pre">os.getenv()</span></code>,
 <code class="docutils literal notranslate"><span class="pre">os.environ.get()</span></code>, <code class="docutils literal notranslate"><span class="pre">os.environ[...]</span></code>, <code class="docutils literal notranslate"><span class="pre">.env.example</span></code>, <code class="docutils literal notranslate"><span class="pre">.env.secrets.example</span></code>,
 and <code class="docutils literal notranslate"><span class="pre">scripts/systemd/*.service</span></code> (<code class="docutils literal notranslate"><span class="pre">Environment=</span></code>/<code class="docutils literal notranslate"><span class="pre">EnvironmentFile=</span></code>),
@@ -305,6 +305,19 @@ candidates, cross-family shared config). See
 classifications serve.</p>
 <p>SECRET-classified variables below name <code class="docutils literal notranslate"><span class="pre">.env.secrets</span></code> as their location;
 no value for any of them appears anywhere in this document.</p>
+<p><strong>AFTER ENV-01 (2026-09)</strong>: every <code class="docutils literal notranslate"><span class="pre">EXPECTED_FILE</span> <span class="pre">=</span> <span class="pre">.env.secrets</span></code> entry
+below that was previously templated as a placeholder name in the real
+<code class="docutils literal notranslate"><span class="pre">.env.example</span></code> (Telegram bot tokens/chat-ids, exchange API keys,
+<code class="docutils literal notranslate"><span class="pre">SLACK_WEBHOOK_URL</span></code>, <code class="docutils literal notranslate"><span class="pre">EMAIL_SMTP_SERVER</span></code>/<code class="docutils literal notranslate"><span class="pre">PORT</span></code>/<code class="docutils literal notranslate"><span class="pre">EMAIL_FROM_ADDR</span></code>/
+<code class="docutils literal notranslate"><span class="pre">EMAIL_TO_ADDR</span></code>) has now been consolidated so that <code class="docutils literal notranslate"><span class="pre">.env.secrets.example</span></code>
+is its only template location — <code class="docutils literal notranslate"><span class="pre">.env.example</span></code> no longer carries a
+duplicate placeholder for any secret-class name. This registry’s per-family
+<code class="docutils literal notranslate"><span class="pre">EXPECTED_FILE</span></code> classification (already correct before ENV-01) was the
+target <code class="docutils literal notranslate"><span class="pre">.env.example</span></code>/<code class="docutils literal notranslate"><span class="pre">.env.secrets.example</span></code> split now implemented; no
+<code class="docutils literal notranslate"><span class="pre">EXPECTED_FILE</span></code> values changed as a result. The two-occurrence
+PRECEDENCE_RISK finding referenced from the constitution’s §5 (row A,
+<code class="docutils literal notranslate"><span class="pre">WATCHDOG_*</span></code>) is remediated — see
+<code class="docutils literal notranslate"><span class="pre">ENVIRONMENT_CONFIGURATION_CONSTITUTION.md</span></code> §5.</p>
 <section id="a-infrastructure-governance">
 <h2>A — INFRASTRUCTURE / GOVERNANCE<a class="headerlink" href="#a-infrastructure-governance" title="Link to this heading">¶</a></h2>
 <div class="table-wrapper colwidths-auto docutils container">
@@ -1052,7 +1065,7 @@ for the by-family view:</p>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">TELEGRAM_BOT_TOKEN</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">TELEGRAM_TOKEN</span></code></p></td>
 <td><p>Same physical bot, two names</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">tests/phase0/test_phase05_validation.py</span></code>, <code class="docutils literal notranslate"><span class="pre">tools/runtime_tracer.py</span></code>, <code class="docutils literal notranslate"><span class="pre">infra/monitoring/supervise_all.py</span></code> read <code class="docutils literal notranslate"><span class="pre">TELEGRAM_TOKEN</span></code>; the deployed path (<code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code>, <code class="docutils literal notranslate"><span class="pre">scripts/radar_bot.py</span></code>, <code class="docutils literal notranslate"><span class="pre">.env.example</span></code>) uses <code class="docutils literal notranslate"><span class="pre">TELEGRAM_BOT_TOKEN</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">tests/phase0/test_phase05_validation.py</span></code>, <code class="docutils literal notranslate"><span class="pre">tools/runtime_tracer.py</span></code>, <code class="docutils literal notranslate"><span class="pre">infra/monitoring/supervise_all.py</span></code> read <code class="docutils literal notranslate"><span class="pre">TELEGRAM_TOKEN</span></code>; the deployed generic engine/push path (<code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code>, <code class="docutils literal notranslate"><span class="pre">watchdog_vps.py</span></code>, <code class="docutils literal notranslate"><span class="pre">.env.example</span></code>) uses <code class="docutils literal notranslate"><span class="pre">TELEGRAM_BOT_TOKEN</span></code>. ENV-01R2 CORRECTIF : <code class="docutils literal notranslate"><span class="pre">scripts/radar_bot.py</span></code> is NOT on this list — it is CryptoRadar’s dedicated polling identity and reads <code class="docutils literal notranslate"><span class="pre">RADAR_BOT_TOKEN</span></code>/<code class="docutils literal notranslate"><span class="pre">RADAR_CHAT_ID</span></code> directly, with no fallback to <code class="docutils literal notranslate"><span class="pre">TELEGRAM_BOT_TOKEN</span></code> (source : <code class="docutils literal notranslate"><span class="pre">scripts/radar_bot.py:21-22,325</span></code>; <code class="docutils literal notranslate"><span class="pre">docs/architecture/TELEGRAM_BOT_REGISTRY.md</span></code> § Bot CryptoRadar).</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">SLACK_WEBHOOK_URL</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">SLACK_WEBHOOK</span></code></p></td>
