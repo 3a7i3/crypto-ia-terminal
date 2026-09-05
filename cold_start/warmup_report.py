@@ -168,17 +168,21 @@ class WarmupReport:
         """Archive le verdict de warmup dans la BlackBox (append-only).
 
         Le chemin est résolu à l'appel (pas au chargement du module) via
-        BLACK_BOX_PATH, pour que monkeypatch.setenv fonctionne réellement
-        dans les tests — un défaut lié à l'import ne réagit jamais à un
-        changement d'env var fait après coup.
+        BB_PATH (même nom de variable d'env que black_box.py — corrige
+        l'incohérence BLACK_BOX_PATH vs BB_PATH, S-03B item 5), pour que
+        monkeypatch.setenv fonctionne réellement dans les tests — un défaut
+        lié à l'import ne réagit jamais à un changement d'env var fait après
+        coup.
+
+        S-03B: route désormais via BlackBox.record_structured_event() —
+        écriture chiffrée canonique, plus de JSON en clair.
         """
-        bb = Path(
-            black_box_path or os.getenv("BLACK_BOX_PATH", "databases/black_box.jsonl")
-        )
+        path = black_box_path or os.getenv("BB_PATH", "databases/black_box.jsonl")
         try:
-            bb.parent.mkdir(parents=True, exist_ok=True)
-            entry = {
-                "event": "WARMUP_COMPLETE",
+            from quant_hedge_ai.agents.intelligence.black_box import BlackBox
+
+            bb = BlackBox(path=path)
+            payload = {
                 "session_id": self.session_id,
                 "scenario_id": self.scenario_id,
                 "final_state": self.final_state.name,
@@ -192,15 +196,14 @@ class WarmupReport:
                 "failure_reason": self.failure_reason,
                 "ts": round(time.time(), 3),
             }
-            with open(bb, "a", encoding="utf-8") as f:
-                f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+            bb.record_structured_event("WARMUP_COMPLETE", payload)
         except Exception as exc:
             _log.warning("[WarmupReport] archivage BlackBox échoué: %s", exc)
 
     def print_summary(self) -> str:
         """Résumé humain lisible."""
         lines = [
-            f"═══ Cold Start Report ══════════════════",
+            "═══ Cold Start Report ══════════════════",
             f"Session  : {self.session_id}",
             f"Durée    : {self.duration_s:.1f}s",
             "Résultat : "

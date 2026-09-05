@@ -235,18 +235,23 @@ class AuditTrailFinal:
         return self._trail_file
 
     def store_in_blackbox(self, trail: AuditTrail) -> bool:
+        """
+        S-03B: route via BlackBox.record_structured_event() (écriture
+        chiffrée canonique) au lieu d'un `open().write()` en clair.
+        """
         bb_path = self._root / "databases" / "black_box.jsonl"
         try:
-            entry = {
-                "type": "P10_AUDIT_TRAIL",
+            from quant_hedge_ai.agents.intelligence.black_box import BlackBox
+
+            bb = BlackBox(path=str(bb_path))
+            payload = {
                 "ts": trail.compiled_at,
                 "complete": trail.complete,
                 "sections": len(trail.sections),
                 "signature": trail.signature,
                 "summary": trail.summary()[:500],
             }
-            with open(bb_path, "a", encoding="utf-8") as f:
-                f.write(json.dumps(entry) + "\n")
+            bb.record_structured_event("P10_AUDIT_TRAIL", payload)
             return True
         except Exception:
             return False

@@ -17,7 +17,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 BASE = Path(__file__).parent
-BLACK_BOX = BASE / "databases" / "black_box.jsonl"
+# S-03B item 8: BLACK_BOX pointait sous infra/api/databases/black_box.jsonl
+# (BASE = infra/api), jamais le fichier réel écrit par BlackBox à la racine
+# du repo. Résolution repo-root alignée sur la convention déjà utilisée par
+# visualization/api/burnin_api.py (Path(__file__).resolve().parents[N]).
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+BLACK_BOX = _REPO_ROOT / "databases" / "black_box.jsonl"
 CYCLE_LOG = BASE / "databases" / "cycle_data.jsonl"
 SNAPSHOT = BASE / "databases" / "live_snapshot.json"
 TRADES = BASE / "logs" / "trades.jsonl"
@@ -49,6 +54,27 @@ def read_jsonl(path: Path, max_lines: int = 5000) -> list[dict]:
         except Exception:
             pass
     return out
+
+
+def read_blackbox_records(max_lines: int = 5000) -> list[dict]:
+    """
+    S-03B item 8: lit databases/black_box.jsonl via la classe BlackBox
+    canonique (chiffrement AES-256-GCM + reconnaissance legacy plaintext),
+    au lieu d'un `json.loads` brut qui ne décrypte jamais rien et ne laisse
+    passer que le bruit plaintext des anciens writers bypass.
+
+    Sécurité : les records renvoyés proviennent du même `BlackBoxEntry`
+    exposé ailleurs dans le code (dashboard interne, réseau de confiance) —
+    aucun champ n'est un secret (pas de clé de chiffrement, pas de credentials).
+    """
+    try:
+        from quant_hedge_ai.agents.intelligence.black_box import BlackBox
+
+        bb = BlackBox(path=str(BLACK_BOX))
+        entries = bb.query(limit=max_lines)
+        return [e.to_dict() for e in entries]
+    except Exception:
+        return []
 
 
 def read_json(path: Path) -> dict:
@@ -221,7 +247,7 @@ def get_snapshot() -> dict:
 
 @app.get("/api/decisions")
 def get_decisions() -> dict:
-    records = read_jsonl(BLACK_BOX, max_lines=5000)
+    records = read_blackbox_records(max_lines=5000)
     decisions = [
         r for r in records if r.get("decision_type") not in ("SYSTEM_EVENT", None)
     ][-300:]
@@ -385,7 +411,7 @@ def raw_snapshot() -> dict:
 
 @app.get("/api/raw/blackbox")
 def raw_blackbox(n: int = 1000) -> dict:
-    return {"lines": read_jsonl(BLACK_BOX, max_lines=n)}
+    return {"lines": read_blackbox_records(max_lines=n)}
 
 
 @app.get("/api/raw/trades")

@@ -21,18 +21,29 @@ from __future__ import annotations
 
 import json
 import os
+import threading
 import time
 import uuid
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
+from typing import Any, Dict, Optional
 
 from observability.json_logger import get_logger
 
 _log = get_logger("quant_hedge_ai.agents.intelligence.black_box")
 _BB_PATH = os.getenv("BB_PATH", "databases/black_box.jsonl")
 _BB_MAX_SIZE = int(os.getenv("BB_MAX", "5000"))  # max entrées en mémoire
+
+# ── S-03B: discriminateurs des writers bypass historiques (plaintext) ────────
+# Ces trois formes existaient avant la remédiation S-03B : elles écrivaient
+# du JSON en clair directement dans le même fichier que BlackBox._append()
+# (qui chiffre). Elles restent reconnues en lecture (LEGACY) pour ne jamais
+# perdre silencieusement des données historiques ; les nouveaux writes de ces
+# trois call sites passent désormais par BlackBox.record_structured_event().
+_LEGACY_EVENT_KEYS = {"WARMUP_COMPLETE", "BYPASS_DETECTED"}
+_LEGACY_TYPE_KEYS = {"P10_AUDIT_TRAIL"}
 
 # Chiffrement AES-256-GCM des entrées (C-01) — singleton lazy
 _bb_enc = None
@@ -102,6 +113,27 @@ class BlackBoxEntry:
     drawdown_session_pct: float = 0.0
     n_trades_today: int = 0
 
+    # ── S-03B: champs de provenance (optionnels, défauts sûrs pour compat
+    # ascendante — une entrée historique désérialisée sans ces clés doit
+    # continuer à se construire via BlackBoxEntry(**data)) ──────────────────
+    schema_version: int = 1  # stampé à 2 par les nouveaux writes S-03B
+    packet_id: str = ""  # DecisionPacket.packet_id — vide si indisponible
+    trace_id: str = ""  # trace_id canonique du cycle (advisor_loop)
+    experiment_id: Optional[str] = None
+    # first_blocker/all_blockers canoniques, copiés depuis DecisionObservation
+    # (via result["blockers"]) — source unique de vérité pour "qui a bloqué".
+    # `refused_by`/`passed_by` ci-dessus restent l'ordre de check INTERNE à
+    # BlackBox._check(), un diagnostic de séquencement, PAS une vérité causale.
+    canonical_first_blocker: str = ""
+    canonical_all_blockers: list = field(default_factory=list)
+    packet_side: str = ""  # vocabulaire LONG/SHORT/FLAT du DecisionPacket
+    # Charge utile structurée pour les événements non-décisionnels (warmup,
+    # bypass, audit trail P10) routés via record_structured_event().
+    event_payload: Optional[dict] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
 
 class BlackBox:
     """
@@ -121,6 +153,17 @@ class BlackBox:
         self._entries: list[BlackBoxEntry] = []
         self._loaded = False
         self._session_capital_peak: float = 0.0
+        # S-03B: compteurs observabilité (item 6/7) — protégés par _stats_lock
+        self._stats_lock = threading.Lock()
+        self._load_stats: Dict[str, int] = {
+            "encrypted_records": 0,
+            "legacy_plaintext_records": 0,
+            "invalid_records": 0,
+            "unrecognized_records": 0,
+        }
+        self._write_attempts = 0
+        self._write_successes = 0
+        self._write_failures = 0
 
     def _ensure_loaded(self) -> None:
         if self._loaded:
@@ -137,19 +180,82 @@ class BlackBox:
                         continue
                     try:
                         data = enc.decrypt_line(line)
+                        with self._stats_lock:
+                            self._load_stats["encrypted_records"] += 1
                     except Exception:
-                        # Fallback migration : entrée en clair (fichier pré-C-01)
+                        # Fallback migration : entrée en clair (fichier pré-C-01
+                        # ou l'un des trois writers bypass historiques — S-03B).
                         try:
                             data = json.loads(line)
                         except Exception:
+                            with self._stats_lock:
+                                self._load_stats["invalid_records"] += 1
                             continue
+                        legacy = self._normalize_legacy_plaintext(data)
+                        if legacy is not None:
+                            with self._stats_lock:
+                                self._load_stats["legacy_plaintext_records"] += 1
+                            self._entries.append(legacy)
+                            continue
+                        # JSON en clair mais pas une des 3 formes bypass connues.
+                        try:
+                            self._entries.append(BlackBoxEntry(**data))
+                            with self._stats_lock:
+                                self._load_stats["legacy_plaintext_records"] += 1
+                        except Exception:
+                            with self._stats_lock:
+                                self._load_stats["unrecognized_records"] += 1
+                        continue
                     try:
                         self._entries.append(BlackBoxEntry(**data))
                     except Exception:
-                        pass
+                        with self._stats_lock:
+                            self._load_stats["invalid_records"] += 1
             self._entries = self._entries[-_BB_MAX_SIZE:]
         except Exception as exc:
             _log.warning("[BlackBox] Chargement partiel: %s", exc)
+
+    @staticmethod
+    def _normalize_legacy_plaintext(data: dict) -> Optional["BlackBoxEntry"]:
+        """
+        Reconnaît les 3 formes plaintext historiques (WARMUP_COMPLETE,
+        BYPASS_DETECTED, P10_AUDIT_TRAIL) et les enveloppe dans un
+        BlackBoxEntry normalisé (decision_type=SYSTEM_EVENT, event_payload=
+        données brutes) — au lieu de les laisser disparaître silencieusement
+        au chargement (S-03B item 6).
+        """
+        event = data.get("event")
+        rtype = data.get("type")
+        if event not in _LEGACY_EVENT_KEYS and rtype not in _LEGACY_TYPE_KEYS:
+            return None
+        label = event or rtype
+        return BlackBoxEntry(
+            ts=float(data.get("ts", 0.0)),
+            decision_type=DecisionType.SYSTEM_EVENT.value,
+            symbol="SYSTEM",
+            signal="EVENT",
+            score=0,
+            regime="unknown",
+            personality="legacy_bypass_writer",
+            price=0.0,
+            reason=f"LEGACY:{label}",
+            schema_version=1,
+            event_payload=dict(data),
+        )
+
+    def get_load_stats(self) -> Dict[str, int]:
+        """Compteurs de chargement — S-03B item 6/7."""
+        with self._stats_lock:
+            return dict(self._load_stats)
+
+    def get_write_stats(self) -> Dict[str, int]:
+        """Compteurs d'écriture — S-03B item 7."""
+        with self._stats_lock:
+            return {
+                "write_attempts": self._write_attempts,
+                "write_successes": self._write_successes,
+                "write_failures": self._write_failures,
+            }
 
     # ── Helpers enrichissement ────────────────────────────────────────────────
 
@@ -288,6 +394,33 @@ class BlackBox:
             reason = "HOLD — pas de signal"
 
         _capital = pb.capital_available if pb else 0.0
+
+        # ── S-03B: provenance canonique (item 3/4) ──────────────────────────
+        # Source unique de vérité pour "qui a bloqué" = result["blockers"],
+        # la même que DecisionObservation.build_from_result. refused_by/
+        # passed_by ci-dessus restent le diagnostic d'ordre interne à
+        # _check(), jamais la vérité causale.
+        blockers_raw = r.get("blockers", "")
+        canonical_all_blockers = (
+            [b.strip() for b in blockers_raw.split(",") if b.strip()]
+            if blockers_raw
+            else []
+        )
+        canonical_first_blocker = (
+            canonical_all_blockers[0] if canonical_all_blockers else ""
+        )
+        dp = r.get("decision_packet")
+        packet_id = str(dp.packet_id) if dp is not None and hasattr(dp, "packet_id") else ""
+        dp_metadata = getattr(dp, "metadata", {}) if dp is not None else {}
+        trace_id = str(r.get("trace_id") or (dp_metadata or {}).get("trace_id") or "")
+        experiment_id_raw = r.get("experiment_id") or (dp_metadata or {}).get(
+            "experiment_id"
+        )
+        experiment_id = str(experiment_id_raw) if experiment_id_raw else None
+        packet_side = ""
+        if dp is not None and hasattr(dp, "side"):
+            packet_side = getattr(dp.side, "value", str(dp.side))
+
         entry = BlackBoxEntry(
             ts=time.time(),
             decision_type=dtype.value,
@@ -329,6 +462,13 @@ class BlackBox:
             cycle=cycle,
             drawdown_session_pct=self._compute_drawdown(_capital),
             n_trades_today=self._count_trades_today(),
+            schema_version=2,
+            packet_id=packet_id,
+            trace_id=trace_id,
+            experiment_id=experiment_id,
+            canonical_first_blocker=canonical_first_blocker,
+            canonical_all_blockers=canonical_all_blockers,
+            packet_side=packet_side,
         )
 
         self._append(entry)
@@ -395,6 +535,36 @@ class BlackBox:
             personality="system",
             price=0.0,
             reason=f"{event}: {detail}" if detail else event,
+        )
+        self._append(entry)
+        return entry
+
+    def record_structured_event(
+        self, event_type: str, payload: dict, symbol: str = "SYSTEM"
+    ) -> BlackBoxEntry:
+        """
+        Enregistre un événement structuré non-décisionnel via le chemin
+        chiffré canonique (S-03B item 5) — remplace les writers bypass qui
+        écrivaient du JSON en clair directement dans le fichier BlackBox
+        (cold_start/warmup_report.py, cold_start/bypass_detector.py,
+        certification/audit_trail_final.py).
+
+        `payload` est préservé intégralement dans `event_payload` — tous les
+        champs des anciens formats plaintext restent accessibles.
+        """
+        self._ensure_loaded()
+        entry = BlackBoxEntry(
+            ts=time.time(),
+            decision_type=DecisionType.SYSTEM_EVENT.value,
+            symbol=symbol,
+            signal="EVENT",
+            score=0,
+            regime="unknown",
+            personality="system",
+            price=0.0,
+            reason=event_type,
+            schema_version=2,
+            event_payload={"event_type": event_type, **dict(payload)},
         )
         self._append(entry)
         return entry
@@ -493,12 +663,18 @@ class BlackBox:
         self._entries.append(entry)
         if len(self._entries) > _BB_MAX_SIZE:
             self._entries = self._entries[-_BB_MAX_SIZE:]
+        with self._stats_lock:
+            self._write_attempts += 1
         try:
             enc = _get_enc()
             line = enc.encrypt_line(asdict(entry)) + "\n"
             with open(self._path, "a", encoding="utf-8") as f:
                 f.write(line)
+            with self._stats_lock:
+                self._write_successes += 1
         except Exception as exc:
+            with self._stats_lock:
+                self._write_failures += 1
             _log.warning("[BlackBox] Sauvegarde échouée: %s", exc)
         _log.debug(
             "[BlackBox] %s | %s %s score=%d | %s",
