@@ -164,3 +164,43 @@ def test_write_stats_track_attempts_successes(bb_path):
     assert stats["write_attempts"] == 1
     assert stats["write_successes"] == 1
     assert stats["write_failures"] == 0
+
+
+# ── S-03B-R1: memory/disk durability (MASTER §5) ─────────────────────────────
+
+
+def test_successful_write_is_durable_and_queryable(bb_path):
+    bb = BlackBox(path=str(bb_path))
+    bb.record_structured_event("DURABLE_OK", {"a": 1})
+
+    stats = bb.get_write_stats()
+    assert stats == {"write_attempts": 1, "write_successes": 1, "write_failures": 0}
+
+    entries = bb.query(limit=10)
+    assert len(entries) == 1
+    assert entries[0].event_payload["event_type"] == "DURABLE_OK"
+
+
+def test_failed_disk_write_does_not_appear_as_persisted_entry(bb_path, monkeypatch):
+    import quant_hedge_ai.agents.intelligence.black_box as bbmod
+
+    class _FailingEnc:
+        def encrypt_line(self, data: dict) -> str:
+            raise RuntimeError("simulated encryption failure")
+
+        def decrypt_line(self, line: str) -> dict:
+            raise AssertionError("should not be called")
+
+    bb = BlackBox(path=str(bb_path))
+    monkeypatch.setattr(bbmod, "_get_enc", lambda: _FailingEnc())
+
+    bb.record_structured_event("DURABLE_FAIL", {"a": 1})
+
+    stats = bb.get_write_stats()
+    assert stats == {"write_attempts": 1, "write_successes": 0, "write_failures": 1}
+
+    # The failed record must not be visible via the same instance's canonical
+    # in-memory cache — it was never durably persisted.
+    entries = bb.query(limit=10)
+    assert entries == []
+    assert not bb_path.exists() or bb_path.read_text() == ""

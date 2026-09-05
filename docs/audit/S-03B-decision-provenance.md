@@ -60,8 +60,9 @@ def side_to_packet_vocabulary(value: str) -> str: ... # BUY/SELL/HOLD -> LONG/SH
 ```
 DecisionPacket (tout cycle du moteur)
   ⊇ DecisionObservation publiée (actionable AND NOT safe_mode — INCHANGÉ)
-      ⊇ RejectionStore (actionable AND refused AND side∈{BUY,SELL,LONG,SHORT} AND provenance_valid — INCHANGÉ + nouveau skip provenance)
-      ⊇ RegretScheduler candidates (dédup sur observation_id — INCHANGÉ)
+      ⊇ RejectionStore (actionable AND refused AND side∈{BUY,SELL,LONG,SHORT} AND provenance_valid — INCHANGÉ + skip provenance)
+      ⊇ RegretScheduler candidates (packet_id valide ET provenance_valid — dédup sur observation_id INCHANGÉ ; skip provenance ajouté en S-03B-R1)
+      ⊇ DIP handlers (packet_id valide ET provenance_valid — garde ajoutée en S-03B-R1, à l'ingress `DIPObserver._on_observation`)
 ```
 
 Compteurs **non comparables** à ce qui précède (déjà documentés, hors scope de cette remédiation) :
@@ -76,16 +77,72 @@ Compteurs **non comparables** à ce qui précède (déjà documentés, hors scop
 
 APRÈS : ajoute `canonical_first_blocker`/`canonical_all_blockers` sur `BlackBoxEntry`, dérivés de la même source (`result["blockers"]`) que `DecisionObservation`. `refused_by`/`passed_by` sont **conservés tels quels** mais documentés comme diagnostic d'ordre interne à `BlackBox._check()`, jamais la vérité causale.
 
-## 7. Missing-provenance guard (S-03B item 1)
+## 7. Provenance admission contract (S-03B item 1, étendu en S-03B-R1)
 
-Dans `build_from_result()` : si `packet_id` est vide (pas de packet, ou packet sans `packet_id`) :
-- WARNING structuré loggué (`observability.decision_observation`).
-- Compteur `get_provenance_failure_stats()["missing_packet_id"]` incrémenté (module-level, protégé par lock).
-- `DecisionObservation.provenance_valid = False` sur l'instance résultante.
+### 7.1. Deux provenances distinctes — jamais confondues
 
-`RejectionStore.on_observation()` saute (avec son propre compteur `stats()["skipped_provenance"]` et un WARNING) toute observation avec `packet_id` vide ou `provenance_valid=False`, au lieu de la persister comme si elle était normalement jointe.
+`packet_id` (identité de jointure canonique inter-systèmes) et `trace_id`
+(provenance de trace runtime, §2) sont deux concepts différents. Un seul
+booléen ne doit jamais impliquer les deux :
 
-Les lecteurs de données historiques (fichiers JSONL déjà écrits) ne sont **pas** soumis à cette validation — seule la construction de nouvelles observations l'est.
+- **`provenance_valid`** = `bool(packet_id)`. `False` uniquement quand
+  `packet_id` n'a pas pu être dérivé d'un `DecisionPacket` réel (pas de
+  packet, ou packet sans `packet_id`). C'est le signal qui gouverne
+  l'admission dans les consommateurs canoniques (§7.2).
+- **`trace_provenance_complete`** (S-03B-R1) = `bool(trace_id)`. Indépendant
+  de `provenance_valid` — un packet peut être parfaitement joignable
+  (`provenance_valid=True`) alors que `trace_id` est absent
+  (`trace_provenance_complete=False`). Ce signal est **purement
+  observable** : un `trace_id` manquant ne fait rejeter aucune observation
+  par aucun consommateur actuel — il n'existe aucune preuve source qu'un
+  consommateur exige `trace_id` pour fonctionner correctement.
+
+Dans `build_from_result()`, chaque défaillance incrémente son propre
+compteur (module-level, protégé par lock), lus via
+`get_provenance_failure_stats()` :
+- `missing_packet_id` — `packet_id` vide → `provenance_valid=False` + WARNING.
+- `missing_trace_id` — `trace_id` vide → `trace_provenance_complete=False`
+  (aucun WARNING bloquant : signal de complétude, pas d'échec).
+
+S-03C doit pouvoir mesurer `missing_packet_id` et `missing_trace_id` comme
+**deux quantités distinctes** (§15).
+
+### 7.2. Modèle d'admission par consommateur
+
+```
+DecisionObservation
+        |
+        | packet_id valide (provenance_valid) ?
+        |
+        +-- NON
+        |    +--> échec de provenance observable (compteur + WARNING, §7.1)
+        |    +--> EventBus continue de transporter (diagnostic/observabilité —
+        |    |    voir §14 : le bus reste un transport, pas un filtre)
+        |    +--> RejectionStore : SKIP (compteur `skipped_provenance`)
+        |    +--> RegretScheduler : SKIP (compteur `skipped_invalid_provenance`, S-03B-R1)
+        |    +--> DIPObserver : SKIP, aucun handler DIP appelé (compteur
+        |         `skipped_invalid_provenance`, S-03B-R1)
+        |
+        +-- OUI
+             +--> admis dans tous les consommateurs scientifiques canoniques
+```
+
+`trace_id` manquant : le packet reste joignable et admis normalement ;
+`trace_provenance_complete=False` doit simplement être mesurable (§15), il
+ne déclenche aucun skip.
+
+Les trois gardes (RejectionStore, RegretScheduler, DIPObserver) sont
+volontairement identiques dans leur forme : elles vérifient
+`packet_id` **et** `provenance_valid` (jamais l'un sans l'autre — une
+construction manuelle/historique d'observation pourrait avoir
+`provenance_valid` resté à sa valeur par défaut `True` alors que
+`packet_id` est vide), incrémentent un compteur dédié, loguent un WARNING,
+puis retournent avant toute construction de l'objet canonique
+(`RejectionRecord`, `RegretCandidate`, dispatch handler DIP).
+
+Les lecteurs de données historiques (fichiers JSONL déjà écrits) ne sont
+**pas** soumis à cette validation — seule la construction de nouvelles
+observations l'est.
 
 ## 8. Schéma `BlackBoxEntry` — avant / après (S-03B item 4)
 
@@ -121,6 +178,31 @@ APRÈS : les trois routent via `BlackBox.record_structured_event(event_type, pay
 
 `BlackBox._append()` expose `get_write_stats()` : `write_attempts`, `write_successes`, `write_failures`.
 
+### 11.1. Durabilité mémoire/disque (S-03B-R1, MASTER §5)
+
+AVANT : `_append()` ajoutait l'entrée à `self._entries` (donc visible via
+`query()`) **avant même** de tenter l'écriture disque chiffrée. Un échec
+d'écriture laissait un enregistrement "fantôme" — interrogeable en mémoire
+alors qu'il n'avait jamais été persisté durablement. Pour un journal d'audit
+scientifique, cette divergence mémoire/disque ne doit jamais être implicite.
+
+APRÈS : l'entrée ne rejoint `self._entries` **que si** l'écriture disque
+chiffrée a réussi. Ordre exact dans `_append()` :
+```
+write_attempts++
+try:
+    écriture chiffrée sur disque
+    self._entries.append(entry)   # ← seulement ici, après succès
+    write_successes++
+except:
+    write_failures++
+    log.warning(...)
+    # entry n'a jamais touché self._entries
+```
+Aucun fsync n'a été ajouté, aucune modification du format de persistance ;
+le pipeline de trading ne plante jamais sur un échec BlackBox (comportement
+inchangé — seule la cohérence mémoire/disque est corrigée).
+
 ## 12. API BlackBox (S-03B item 8)
 
 `infra/api/api_server.py` :
@@ -136,13 +218,26 @@ APRÈS : les trois routent via `BlackBox.record_structured_event(event_type, pay
 
 `DecisionEventBus` reste **best-effort / at-most-once**, sans retry, sans blocage — inchangé. Nouveaux compteurs exposés via `get_stats()` : `observations_published`, `listener_deliveries_submitted`, `listener_deliveries_succeeded`, `listener_deliveries_failed`, `deliveries_dropped_during_shutdown`.
 
+**Frontière bus/consommateur (S-03B-R1, MASTER §4)** : le bus reste
+délibérément un **transport**, jamais un filtre de provenance. Une
+observation à provenance invalide continue d'être transportée par le bus
+(utile pour l'observabilité/diagnostic — voir §7.2) ; c'est à chaque
+consommateur scientifique canonique (RejectionStore, RegretScheduler,
+DIPObserver) d'appliquer sa propre garde d'admission avant de construire un
+objet persistant/joignable. Cette séparation évite de transformer le bus en
+moteur de décision de provenance et préserve sa sémantique best-effort
+existante sans ajout de blocage.
+
 ## 15. S-03C — contrat de mesure runtime (à exécuter plus tard, PAS ici)
 
-Checklist des mesures à produire lors de S-03C (aucune n'est exécutée par S-03B) :
-- N décisions (BlackBox), N observations publiées (EventBus `observations_published`), N écritures BlackBox (`write_successes`/`write_failures`), N rejections persistées, N candidats Regret.
+Checklist des mesures à produire lors de S-03C (aucune n'est exécutée par S-03B/S-03B-R1) :
+- N décisions (BlackBox), N observations publiées (EventBus `observations_published`), N écritures BlackBox (`write_attempts`/`write_successes`/`write_failures`), N rejections persistées, N candidats Regret.
+- N observations à provenance invalide (`get_provenance_failure_stats()["missing_packet_id"]`).
+- N `missing_packet_id` et N `missing_trace_id` — **deux quantités distinctes** (§7.1), jamais fusionnées en une seule.
+- N skips de provenance par consommateur, comptés séparément : `RejectionStore.stats()["skipped_provenance"]`, `RegretScheduler.stats()["skipped_invalid_provenance"]`, `DIPObserver.get_stats()["skipped_invalid_provenance"]`.
 - Taux de jointure par `packet_id` entre BlackBox ↔ DecisionObservation ↔ RejectionStore.
 - Taux de `packet_id`/`observation_id` manquants ou dupliqués.
 - Taux de désaccord `first_blocker` : `DecisionObservation.first_blocker` vs `BlackBoxEntry.canonical_first_blocker` vs `refused_by[0]` (diagnostic).
 - Taux de désaccord de normalisation `side` (`normalize_side(packet_side)` vs `signal`).
-- Compteurs d'échec de livraison EventBus par listener.
+- Compteurs d'échec de livraison EventBus par listener (`listener_deliveries_failed`, `deliveries_dropped_during_shutdown`).
 - Compteurs d'enregistrements non appariés (BlackBox sans `packet_id` correspondant à une `DecisionObservation` connue, et inversement).

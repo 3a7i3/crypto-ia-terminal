@@ -660,9 +660,15 @@ class BlackBox:
     # ── Persistance ───────────────────────────────────────────────────────────
 
     def _append(self, entry: BlackBoxEntry) -> None:
-        self._entries.append(entry)
-        if len(self._entries) > _BB_MAX_SIZE:
-            self._entries = self._entries[-_BB_MAX_SIZE:]
+        # S-03B-R1: durabilité mémoire/disque (MASTER §5). AVANT : l'entrée
+        # rejoignait self._entries (donc visible via query()) AVANT même la
+        # tentative d'écriture chiffrée — un échec disque laissait un
+        # enregistrement "fantôme" interrogeable qui n'avait jamais été
+        # persisté. APRÈS : self._entries ne reçoit l'entrée QUE si l'écriture
+        # disque a réussi ; un échec incrémente write_failures et l'entrée
+        # n'apparaît jamais dans query() sur cette même instance. Aucun fsync
+        # ajouté, aucun changement de format de persistance, le pipeline ne
+        # plante jamais sur un échec BlackBox.
         with self._stats_lock:
             self._write_attempts += 1
         try:
@@ -670,6 +676,9 @@ class BlackBox:
             line = enc.encrypt_line(asdict(entry)) + "\n"
             with open(self._path, "a", encoding="utf-8") as f:
                 f.write(line)
+            self._entries.append(entry)
+            if len(self._entries) > _BB_MAX_SIZE:
+                self._entries = self._entries[-_BB_MAX_SIZE:]
             with self._stats_lock:
                 self._write_successes += 1
         except Exception as exc:

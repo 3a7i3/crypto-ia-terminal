@@ -24,6 +24,7 @@ from observability.decision_observation import (
     normalize_side,
     side_to_packet_vocabulary,
 )
+from observability.regret_scheduler import RegretScheduler
 from observability.rejection_store import RejectionStore
 
 
@@ -190,3 +191,107 @@ def test_eventbus_counters_success_and_failure():
     assert len(ok_calls) == 1
 
     bus.stop()
+
+
+# ── S-03B-R1: Regret provenance admission guard ──────────────────────────────
+
+
+def test_regret_scheduler_skips_invalid_provenance_case_a(tmp_path):
+    """CASE A: actionable rejected BUY, score above threshold, but packet_id
+    missing (provenance_valid=False) — must NOT become a RegretCandidate."""
+    result = _minimal_result(decision_packet=None)
+    obs = build_from_result(result, cycle=1)
+    assert obs.packet_id == ""
+    assert obs.provenance_valid is False
+
+    scheduler = RegretScheduler(store_dir=tmp_path)
+    before = scheduler.stats()["skipped_invalid_provenance"]
+    scheduler.on_observation(obs)
+    stats = scheduler.stats()
+    assert stats["pending_candidates"] == 0
+    assert stats["skipped_invalid_provenance"] == before + 1
+
+
+def test_regret_scheduler_creates_candidate_when_provenance_valid_case_b(tmp_path):
+    """CASE B: same rejected observation, but with a valid packet_id —
+    candidate creation must be unchanged."""
+    dp = _make_packet(packet_id=str(uuid.uuid4()))
+    result = _minimal_result(decision_packet=dp)
+    obs = build_from_result(result, cycle=1)
+    assert obs.packet_id != ""
+    assert obs.provenance_valid is True
+
+    scheduler = RegretScheduler(store_dir=tmp_path)
+    scheduler.on_observation(obs)
+    stats = scheduler.stats()
+    assert stats["pending_candidates"] == 1
+    assert stats["skipped_invalid_provenance"] == 0
+
+
+def test_regret_scheduler_skips_empty_packet_id_even_if_provenance_valid_true_case_c(
+    tmp_path,
+):
+    """CASE C: a manually/historically constructed observation with
+    packet_id="" but provenance_valid accidentally True — must still be
+    skipped (packet_id is checked directly, not only provenance_valid)."""
+    obs = SimpleNamespace(
+        actionable=True,
+        trade_allowed=False,
+        side="BUY",
+        score=75,
+        packet_id="",
+        provenance_valid=True,  # accidentally/historically True
+        observation_id="hist-0001",
+        symbol="BTC/USDT",
+        price=67000.0,
+        ts=time.time(),
+        regime="bull_trend",
+        first_blocker="conviction",
+        all_blockers=["conviction"],
+        personality_name="N/A",
+        trace_id="",
+        experiment_id=None,
+        cycle=1,
+        engine_version="v9",
+    )
+
+    scheduler = RegretScheduler(store_dir=tmp_path)
+    scheduler.on_observation(obs)
+    stats = scheduler.stats()
+    assert stats["pending_candidates"] == 0
+    assert stats["skipped_invalid_provenance"] == 1
+
+
+# ── S-03B-R1: trace provenance completeness ──────────────────────────────────
+
+
+def test_trace_provenance_complete_when_packet_and_trace_valid():
+    dp = _make_packet(packet_id=str(uuid.uuid4()))
+    result = _minimal_result(decision_packet=dp)
+    obs = build_from_result(result, cycle=1)
+    assert obs.provenance_valid is True
+    assert obs.trace_provenance_complete is True
+
+
+def test_trace_provenance_incomplete_when_trace_id_missing_but_packet_valid():
+    dp = SimpleNamespace(
+        packet_id=str(uuid.uuid4()),
+        metadata={},  # no trace_id
+        side=SimpleNamespace(value="LONG"),
+        state_history=[],
+        reasoning=[],
+    )
+    result = _minimal_result(decision_packet=dp)
+    before = get_provenance_failure_stats()["missing_trace_id"]
+    obs = build_from_result(result, cycle=1)
+    assert obs.provenance_valid is True
+    assert obs.trace_provenance_complete is False
+    after = get_provenance_failure_stats()["missing_trace_id"]
+    assert after == before + 1
+
+
+def test_provenance_invalid_when_packet_id_missing_regardless_of_trace():
+    result = _minimal_result(decision_packet=None)
+    obs = build_from_result(result, cycle=1)
+    assert obs.packet_id == ""
+    assert obs.provenance_valid is False
