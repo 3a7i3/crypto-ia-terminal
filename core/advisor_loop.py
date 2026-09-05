@@ -4597,6 +4597,47 @@ def main(
         _obs_rejection_store = None
         _obs_regret_scheduler = None
 
+    # ── S-03D — Runtime provenance exposure (observabilité pure, ADR-0007) ───
+    # Instantané sanitizé des compteurs de provenance déjà instrumentés en
+    # mémoire (S-03A/B/B-R1). Lit les instances LIVE ci-dessus — n'instancie
+    # jamais un consommateur frais (voir observability/runtime_provenance_
+    # snapshot.py, docstring module). Absence de composant = UNAVAILABLE,
+    # jamais 0 fabriqué.
+    # S-03D-R1 blocker 1: n'instancier DIPObserver que si le DIP a réellement
+    # été démarré (dip.bootstrap.is_running()). DIPObserver.instance() est un
+    # singleton "create-if-missing" — l'appeler inconditionnellement créerait
+    # un objet frais quand le DIP n'a jamais démarré, et ses compteurs à zéro
+    # ne seraient pas des observations d'un composant vivant (voir
+    # observability/runtime_provenance_snapshot.py, docstring module).
+    _dip_observer_live: Any = None
+    try:
+        from dip.bootstrap import is_running as _dip_is_running
+
+        if _dip_is_running():
+            from dip.core.observer import DIPObserver as _DIPObserver
+
+            _dip_observer_live = _DIPObserver.instance()
+    except Exception as _dip_exc:
+        log.debug("[S-03D] DIPObserver indisponible (non bloquant): %s", _dip_exc)
+        _dip_observer_live = None
+
+    from observability.runtime_provenance_snapshot import (
+        RuntimeProvenanceInputs as _RuntimeProvenanceInputs,
+        RuntimeProvenanceSnapshotWriter as _RuntimeProvenanceSnapshotWriter,
+    )
+
+    _runtime_provenance_writer = _RuntimeProvenanceSnapshotWriter()
+
+    def _runtime_provenance_inputs() -> "_RuntimeProvenanceInputs":
+        return _RuntimeProvenanceInputs(
+            decision_event_bus=_decision_event_bus,
+            rejection_store=_obs_rejection_store,
+            regret_scheduler=_obs_regret_scheduler,
+            dip_observer=_dip_observer_live,
+            black_box=black_box,
+            invocation_id=os.getenv("INVOCATION_ID"),
+        )
+
     # ── OBS-001 — SystemSnapshot provider + event bus ─────────────────────────
     _snapshot_provider = InMemorySnapshotProvider()
     _snapshot_block_stats = BlockStatsAccumulator()
@@ -7728,6 +7769,14 @@ def main(
             # Watchdog fin de cycle
             watchdog.end_cycle(cycle)
             cycle_completed = True
+
+            # ── S-03D — Runtime provenance exposure (passif, cadence bornée) ──
+            # Jamais d'exception propagée, jamais d'impact sur le cycle
+            # suivant (ADR-0007) : maybe_refresh() avale ses propres erreurs.
+            try:
+                _runtime_provenance_writer.maybe_refresh(_runtime_provenance_inputs())
+            except Exception as _rps_exc:
+                log.debug("[S-03D] Snapshot provenance échoué (non bloquant): %s", _rps_exc)
 
             # ── Heartbeat Telegram compact (toutes les N cycles ≈ 15 min) ────
             _hb_every = int(os.getenv("HEARTBEAT_CYCLES", "3"))
