@@ -76,7 +76,9 @@ schema_v2         / schema_non_v2
 packet_side_present / packet_side_missing
 ```
 
-Et, dénominateur séparé, pour `TRADE_REFUSED` uniquement :
+Et, dénominateur séparé, pour les refus canoniques uniquement — c'est-à-dire
+`actionable AND trade_allowed == False` (voir §5 pour la remédiation
+S-03D-R1 ; **pas** `BlackBoxEntry.decision_type == TRADE_REFUSED`) :
 
 ```
 refused_records_persisted
