@@ -164,6 +164,29 @@ class BlackBox:
         self._write_attempts = 0
         self._write_successes = 0
         self._write_failures = 0
+        # S-03D: agrégat de provenance PROCESS-EPOCH (item 7/8) — jamais
+        # initialisé depuis l'historique chiffré (item 9), toujours à zéro au
+        # démarrage du processus. Incrémenté uniquement depuis _append() APRÈS
+        # succès d'écriture disque (même invariant de durabilité que
+        # self._entries, S-03B-R1). Ne compte que les types de décision qui
+        # portent réellement le contrat de provenance S-03 (record_decision:
+        # TRADE_EXECUTED/TRADE_REFUSED/HOLD) — SYSTEM_EVENT/POSITION_CLOSED/
+        # HALT_TRIGGERED/REGIME_CHANGE en sont exclus car ils n'ont
+        # légitimement jamais de packet_id/trace_id.
+        self._provenance_stats: Dict[str, int] = {
+            "decision_records_persisted": 0,
+            "packet_id_present": 0,
+            "packet_id_missing": 0,
+            "trace_id_present": 0,
+            "trace_id_missing": 0,
+            "schema_v2": 0,
+            "schema_non_v2": 0,
+            "packet_side_present": 0,
+            "packet_side_missing": 0,
+            "refused_records_persisted": 0,
+            "canonical_first_blocker_present": 0,
+            "canonical_first_blocker_missing": 0,
+        }
 
     def _ensure_loaded(self) -> None:
         if self._loaded:
@@ -256,6 +279,58 @@ class BlackBox:
                 "write_successes": self._write_successes,
                 "write_failures": self._write_failures,
             }
+
+    # Types de décision porteurs du contrat de provenance S-03 (record_decision
+    # uniquement). SYSTEM_EVENT/POSITION_CLOSED/HALT_TRIGGERED/REGIME_CHANGE/
+    # SAFE_MODE/AWARENESS_ALERT/RULE_TRIGGERED en sont exclus (S-03D item 7).
+    _PROVENANCE_APPLICABLE_TYPES = frozenset(
+        {
+            DecisionType.TRADE_EXECUTED.value,
+            DecisionType.TRADE_REFUSED.value,
+            DecisionType.HOLD.value,
+        }
+    )
+
+    def get_provenance_stats(self) -> Dict[str, int]:
+        """
+        Agrégat de provenance PROCESS-EPOCH (S-03D) — jamais dérivé de
+        l'historique chiffré, toujours process-lifetime (voir __init__).
+        Dénominateur explicite : `decision_records_persisted` pour les
+        compteurs packet_id/trace_id/schema/side ;
+        `refused_records_persisted` (TRADE_REFUSED uniquement) pour
+        canonical_first_blocker.
+        """
+        with self._stats_lock:
+            return dict(self._provenance_stats)
+
+    def _record_provenance(self, entry: "BlackBoxEntry") -> None:
+        """Appelé depuis _append() APRÈS succès d'écriture disque uniquement."""
+        if entry.decision_type not in self._PROVENANCE_APPLICABLE_TYPES:
+            return
+        s = self._provenance_stats
+        s["decision_records_persisted"] += 1
+        if entry.packet_id:
+            s["packet_id_present"] += 1
+        else:
+            s["packet_id_missing"] += 1
+        if entry.trace_id:
+            s["trace_id_present"] += 1
+        else:
+            s["trace_id_missing"] += 1
+        if entry.schema_version == 2:
+            s["schema_v2"] += 1
+        else:
+            s["schema_non_v2"] += 1
+        if entry.packet_side:
+            s["packet_side_present"] += 1
+        else:
+            s["packet_side_missing"] += 1
+        if entry.decision_type == DecisionType.TRADE_REFUSED.value:
+            s["refused_records_persisted"] += 1
+            if entry.canonical_first_blocker:
+                s["canonical_first_blocker_present"] += 1
+            else:
+                s["canonical_first_blocker_missing"] += 1
 
     # ── Helpers enrichissement ────────────────────────────────────────────────
 
@@ -681,6 +756,7 @@ class BlackBox:
                 self._entries = self._entries[-_BB_MAX_SIZE:]
             with self._stats_lock:
                 self._write_successes += 1
+                self._record_provenance(entry)
         except Exception as exc:
             with self._stats_lock:
                 self._write_failures += 1
