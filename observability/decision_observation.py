@@ -16,11 +16,66 @@ Construction :
 
 from __future__ import annotations
 
+import threading
 import time
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
+
+# ── S-03B item 1: compteur de défaillance de provenance ───────────────────────
+# Incrémenté quand build_from_result() ne peut pas dériver un packet_id
+# joignable (pas de DecisionPacket, ou packet sans packet_id). Une telle
+# observation n'est PAS silencieusement traitée comme normalement jointe :
+# elle est marquée provenance_valid=False et les consommateurs canoniques
+# (RejectionStore) la sautent explicitement.
+_provenance_failure_lock = threading.Lock()
+_provenance_failure_stats: Dict[str, int] = {
+    "missing_packet_id": 0,
+    # S-03B-R1: packet_id (decision join key) et trace_id (trace de cycle
+    # runtime) sont deux identités distinctes — voir provenance_valid vs
+    # trace_provenance_complete plus bas. Ce compteur est incrémenté
+    # indépendamment de missing_packet_id, y compris quand packet_id est
+    # valide (un packet joignable peut quand même avoir un trace_id absent).
+    "missing_trace_id": 0,
+}
+
+
+def get_provenance_failure_stats() -> Dict[str, int]:
+    """Compteur observable des échecs de provenance à la construction."""
+    with _provenance_failure_lock:
+        return dict(_provenance_failure_stats)
+
+
+def _record_provenance_failure(kind: str = "missing_packet_id") -> None:
+    with _provenance_failure_lock:
+        _provenance_failure_stats[kind] += 1
+
+
+# ── S-03B item 11: vocabulaire side — BUY/SELL/HOLD <-> LONG/SHORT/FLAT ───────
+# Pure utility, ne renomme aucun champ public existant. `side` reste
+# BUY/SELL/HOLD partout dans DecisionObservation ; ceci est fourni pour un
+# usage futur/optionnel (ex. comparaison avec DecisionPacket.side).
+_SIDE_TO_PACKET_SIDE = {"BUY": "LONG", "SELL": "SHORT", "HOLD": "FLAT"}
+_PACKET_SIDE_TO_SIDE = {"LONG": "BUY", "SHORT": "SELL", "FLAT": "HOLD"}
+
+
+def normalize_side(value: str) -> str:
+    """
+    Normalise un side quel que soit son vocabulaire d'origine
+    (BUY/SELL/HOLD ou LONG/SHORT/FLAT) vers le vocabulaire BUY/SELL/HOLD
+    utilisé par DecisionObservation. Valeur inconnue -> renvoyée telle quelle.
+    """
+    v = str(value).upper()
+    if v in _PACKET_SIDE_TO_SIDE:
+        return _PACKET_SIDE_TO_SIDE[v]
+    return v
+
+
+def side_to_packet_vocabulary(value: str) -> str:
+    """Inverse de normalize_side — BUY/SELL/HOLD -> LONG/SHORT/FLAT."""
+    v = str(value).upper()
+    return _SIDE_TO_PACKET_SIDE.get(v, v)
 
 # ── Labels lisibles pour les couches ──────────────────────────────────────────
 
@@ -169,6 +224,23 @@ class DecisionObservation:
     state_history: List[Dict[str, Any]]
     reasoning: List[Dict[str, Any]]
 
+    # ── S-03B item 1: provenance ─────────────────────────────────────────────
+    # False quand packet_id n'a pas pu être dérivé d'un DecisionPacket réel
+    # (pas de packet, ou packet sans packet_id). Défaut True pour ne rien
+    # casser sur les constructions existantes hors build_from_result (tests,
+    # historique) qui ne passent pas ce champ explicitement.
+    provenance_valid: bool = True
+
+    # ── S-03B-R1: complétude de la provenance de trace ───────────────────────
+    # packet_id (identité de jointure canonique) et trace_id (provenance de
+    # trace runtime) sont deux concepts distincts — ne jamais laisser un seul
+    # booléen impliquer les deux. Un packet peut être valide alors que
+    # trace_id est absent : provenance_valid reste True, mais
+    # trace_provenance_complete=False le rend observable séparément (S-03C:
+    # missing_packet_id et missing_trace_id sont deux quantités distinctes).
+    # Défaut True pour les mêmes raisons de compatibilité que provenance_valid.
+    trace_provenance_complete: bool = True
+
     def to_dict(self) -> Dict[str, Any]:
         """Sérialisation JSON-safe — utilisé par RejectionStore et RegretScheduler."""
         return {
@@ -236,6 +308,8 @@ class DecisionObservation:
             "features": self.features,
             "state_history": self.state_history,
             "reasoning": self.reasoning,
+            "provenance_valid": self.provenance_valid,
+            "trace_provenance_complete": self.trace_provenance_complete,
         }
 
 
@@ -305,10 +379,48 @@ def build_from_result(
     trace_id = str(result.get("trace_id") or dp_metadata.get("trace_id") or "")
     experiment_id_raw = result.get("experiment_id") or dp_metadata.get("experiment_id")
     experiment_id = str(experiment_id_raw) if experiment_id_raw else None
+
+    # ── S-03B item 1: garde de provenance ────────────────────────────────────
+    # AVANT (bug S-03A #2) : packet_id vide était silencieusement toléré,
+    # l'observation résultante était traitée comme normalement jointe.
+    # APRÈS : signal explicite — log structuré, compteur observable, et
+    # provenance_valid=False sur l'objet pour que les consommateurs canoniques
+    # (RejectionStore) sautent le record au lieu de le joindre à tort.
+    provenance_valid = bool(packet_id)
+    if not provenance_valid:
+        _record_provenance_failure()
+        try:
+            from observability.json_logger import get_logger as _get_logger
+
+            _get_logger("observability.decision_observation").warning(
+                "[Provenance] packet_id manquant — observation non joignable "
+                "(symbol=%s cycle=%s has_packet=%s)",
+                symbol,
+                cycle,
+                dp is not None,
+            )
+        except Exception:
+            pass
+
+    # ── S-03B-R1: complétude de la provenance de trace ───────────────────────
+    # Distinct de provenance_valid : un packet_id valide n'implique pas que
+    # trace_id soit présent. Compté indépendamment (missing_trace_id) pour
+    # que S-03C mesure les deux quantités séparément.
+    trace_provenance_complete = bool(trace_id)
+    if not trace_provenance_complete:
+        _record_provenance_failure(kind="missing_trace_id")
+
+    # ── S-03B item 2: observation_id résistant aux collisions ────────────────
+    # AVANT : f"{date}-{symbol}-{short}" où short = 6 derniers hex de
+    # packet_id (ou uuid4 frais si pas de packet) -> NON résistant aux
+    # collisions (6 hex chars = 16M combinaisons, tronqué arbitrairement).
+    # APRÈS : uuid4() complet en suffixe -> entropie complète, aucune
+    # troncature. Le format ancien reste lisible en lecture historique (aucune
+    # validation stricte de forme n'est ajoutée sur les chemins de lecture).
     date_str = datetime.now(timezone.utc).strftime("%Y%m%d")
     sym_short = symbol.replace("/USDT", "").replace("/", "")[:8]
-    short = (packet_id or str(uuid.uuid4())).replace("-", "")[-6:].upper()
-    obs_id = f"{date_str}-{sym_short}-{short}"
+    full_uuid = uuid.uuid4().hex
+    obs_id = f"{date_str}-{sym_short}-{full_uuid}"
 
     now = time.time()
     ts_iso = datetime.now(timezone.utc).isoformat()
@@ -496,4 +608,6 @@ def build_from_result(
         features=features_clean,
         state_history=state_history,
         reasoning=reasoning_list,
+        provenance_valid=provenance_valid,
+        trace_provenance_complete=trace_provenance_complete,
     )

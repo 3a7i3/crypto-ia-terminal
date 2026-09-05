@@ -729,14 +729,19 @@ def test_report_archive_to_black_box(tmp_path, monkeypatch):
             break
 
     mgr.report().archive_to_black_box(bb_path)
-    import json
-    import pathlib
 
-    lines = pathlib.Path(bb_path).read_text().splitlines()
-    assert len(lines) >= 1
-    entry = json.loads(lines[-1])
-    assert entry["event"] == "WARMUP_COMPLETE"
-    assert "session_id" in entry
+    # S-03B: archive_to_black_box() route désormais via
+    # BlackBox.record_structured_event() (écriture chiffrée canonique) —
+    # on relit donc via le lecteur canonique plutôt que du JSON en clair.
+    from quant_hedge_ai.agents.intelligence.black_box import BlackBox
+
+    bb = BlackBox(path=bb_path)
+    entries = bb.query(limit=10)
+    assert len(entries) >= 1
+    entry = entries[-1]
+    assert entry.event_payload is not None
+    assert entry.event_payload["event_type"] == "WARMUP_COMPLETE"
+    assert "session_id" in entry.event_payload
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1106,18 +1111,22 @@ def test_bypass_archives_bypass_event(tmp_path, monkeypatch):
     import cold_start.bypass_detector as bd_mod
 
     monkeypatch.setattr(bd_mod, "_TOKEN_PATH", token_file)
-    import json
-
     from cold_start.bypass_detector import assert_no_bypass
 
     bb_path = str(tmp_path / "bb.jsonl")
     with pytest.raises(RuntimeError):
         assert_no_bypass(black_box_path=bb_path)
 
-    lines = open(bb_path).readlines()
-    assert len(lines) == 1
-    evt = json.loads(lines[0])
-    assert evt["event"] == "BYPASS_DETECTED"
+    # S-03B: _archive_bypass_event() route désormais via
+    # BlackBox.record_structured_event() (écriture chiffrée canonique) —
+    # on relit donc via le lecteur canonique plutôt que du JSON en clair.
+    from quant_hedge_ai.agents.intelligence.black_box import BlackBox
+
+    bb = BlackBox(path=bb_path)
+    entries = bb.query(limit=10)
+    assert len(entries) == 1
+    assert entries[0].event_payload is not None
+    assert entries[0].event_payload["event_type"] == "BYPASS_DETECTED"
 
 
 def test_cold_start_manager_writes_token_on_live_ready(tmp_path, monkeypatch):

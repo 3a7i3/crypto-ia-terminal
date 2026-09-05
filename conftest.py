@@ -70,6 +70,16 @@ os.environ.setdefault(
     "BLACK_BOX_PATH", os.path.join(_pytest_data_dir, "black_box.jsonl")
 )
 os.environ.setdefault(
+    # S-03B: BB_PATH est le nom canonique lu par
+    # quant_hedge_ai/agents/intelligence/black_box.py::BlackBox (et, depuis
+    # S-03B, par cold_start/warmup_report.py) — BLACK_BOX_PATH ci-dessus
+    # n'isolait donc jamais les instances réelles de BlackBox construites
+    # sans chemin explicite pendant les tests (seul cold_start/
+    # warmup_invariants.py lisait BLACK_BOX_PATH). Les deux variables
+    # restent posées pour ne retirer aucune isolation existante.
+    "BB_PATH", os.path.join(_pytest_data_dir, "black_box.jsonl")
+)
+os.environ.setdefault(
     "LMI_DIR", os.path.join(tempfile.mkdtemp(prefix="pytest_lmi_"), "lmi")
 )
 

@@ -51,6 +51,15 @@ class DecisionEventBus:
         self._executor: Optional[ThreadPoolExecutor] = None
         self._max_workers = max_workers
         self._active = False
+        # S-03B item 9: compteurs observabilité — comptage seul, aucun impact
+        # sur la sémantique de livraison (best-effort/at-most-once, sans
+        # retry, inchangée).
+        self._stats_lock = threading.Lock()
+        self._observations_published = 0
+        self._listener_deliveries_submitted = 0
+        self._listener_deliveries_succeeded = 0
+        self._listener_deliveries_failed = 0
+        self._deliveries_dropped_during_shutdown = 0
 
     def start(self) -> None:
         """Démarre le pool. Appelé une fois au démarrage du moteur."""
@@ -110,11 +119,18 @@ class DecisionEventBus:
         if executor is None:
             return
 
+        with self._stats_lock:
+            self._observations_published += 1
+
         for listener in listeners:
             try:
                 executor.submit(self._safe_call, listener, observation)
+                with self._stats_lock:
+                    self._listener_deliveries_submitted += 1
             except RuntimeError:
                 # Pool shutdown en cours
+                with self._stats_lock:
+                    self._deliveries_dropped_during_shutdown += 1
                 _log.debug("[EventBus] Pool fermé, observation ignorée")
                 break
 
@@ -127,8 +143,32 @@ class DecisionEventBus:
         name = getattr(listener, "__name__", repr(listener))
         try:
             listener(observation)
+            with self._stats_lock:
+                self._listener_deliveries_succeeded += 1
         except Exception as exc:
+            with self._stats_lock:
+                self._listener_deliveries_failed += 1
             _log.warning("[EventBus] Listener '%s' a échoué: %s", name, exc)
+
+    def get_stats(self) -> dict:
+        """
+        Compteurs observables de livraison (S-03B item 9).
+
+        Note de sémantique (corrige une doc potentiellement sur-promettante) :
+        la livraison reste au-mieux (best-effort) et au-plus-une-fois
+        (at-most-once) — aucune garantie, aucun retry. Ces compteurs ne
+        changent rien à ce comportement, ils le rendent seulement mesurable.
+        """
+        with self._stats_lock:
+            return {
+                "observations_published": self._observations_published,
+                "listener_deliveries_submitted": self._listener_deliveries_submitted,
+                "listener_deliveries_succeeded": self._listener_deliveries_succeeded,
+                "listener_deliveries_failed": self._listener_deliveries_failed,
+                "deliveries_dropped_during_shutdown": (
+                    self._deliveries_dropped_during_shutdown
+                ),
+            }
 
     @property
     def listener_count(self) -> int:

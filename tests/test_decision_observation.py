@@ -118,13 +118,15 @@ def test_provenance_equal_across_observation_rejection_and_regret(tmp_path):
 
 
 def test_observation_id_format():
+    # S-03B item 2 : le suffixe est désormais un uuid4 hex complet (32 chars),
+    # plus une troncature à 6 hex chars (non résistante aux collisions).
+    # Format : "YYYYMMDD-SYMBOL-<uuid4 hex complet>"
     obs = build_from_result(_minimal_result(), cycle=5)
-    # Format : "YYYYMMDD-SYMBOL-XXXXXX"
     parts = obs.observation_id.split("-")
     assert len(parts) == 3
     assert len(parts[0]) == 8  # date
     assert parts[1] == "BTC"  # symbol sans USDT
-    assert len(parts[2]) == 6  # hex court
+    assert len(parts[2]) == 32  # uuid4 hex complet, non tronqué
 
 
 def test_blockers_parsed_correctly():

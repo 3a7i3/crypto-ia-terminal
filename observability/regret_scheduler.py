@@ -323,6 +323,11 @@ class RegretScheduler:
         self._thread: Optional[threading.Thread] = None
         self._running = False
         self._eval_count = 0
+        # S-03B-R1: observations à provenance invalide (packet_id vide ou
+        # provenance_valid=False) — jamais promues en RegretCandidate,
+        # comptées séparément pour S-03C. Miroir de
+        # RejectionStore._skipped_provenance_count.
+        self._skipped_invalid_provenance = 0
         # Spool : la file des candidats survit aux restarts (2026-07-21 :
         # file en mémoire seule → chaque restart coûtait jusqu'à ~24 h de
         # couverture regret). Rechargée ici, réécrite au plus 1×/poll.
@@ -367,6 +372,29 @@ class RegretScheduler:
         if obs.side not in ("BUY", "SELL", "LONG", "SHORT"):
             return
         if obs.score < _MIN_SCORE:
+            return
+
+        # S-03B-R1: garde de provenance — miroir de RejectionStore.on_observation.
+        # AVANT (blocker MASTER S-03B-R1 §2) : une observation à packet_id vide
+        # ou provenance_valid=False pouvait quand même devenir un
+        # RegretCandidate (packet_id="" silencieusement toléré), violant
+        # "packet_id = identité canonique de jointure inter-systèmes".
+        # APRÈS : sautée explicitement, jamais promue en candidat — vérifie
+        # packet_id nu (pas seulement provenance_valid) pour rester robuste à
+        # une construction manuelle/historique où provenance_valid
+        # défaudrait à True. Ne modifie ni la math Regret, ni les horizons,
+        # ni le seuil de score.
+        if not getattr(obs, "packet_id", "") or not getattr(
+            obs, "provenance_valid", True
+        ):
+            with self._lock:
+                self._skipped_invalid_provenance += 1
+            _log.warning(
+                "[RegretScheduler] Skip — provenance invalide (packet_id=%r, "
+                "observation_id=%s)",
+                getattr(obs, "packet_id", ""),
+                getattr(obs, "observation_id", ""),
+            )
             return
 
         candidate = RegretCandidate(
@@ -717,10 +745,12 @@ class RegretScheduler:
     def stats(self) -> Dict[str, Any]:
         with self._lock:
             pending = len(self._candidates)
+            skipped_invalid_provenance = self._skipped_invalid_provenance
         return {
             "pending_candidates": pending,
             "horizons_evaluated": self._eval_count,
             "running": self._running,
+            "skipped_invalid_provenance": skipped_invalid_provenance,
         }
 
     def layer_performance(self) -> Dict[str, Dict[str, Any]]:

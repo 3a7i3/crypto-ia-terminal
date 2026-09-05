@@ -170,16 +170,18 @@ def assert_no_bypass(
 
 
 def _archive_bypass_event(reason: str, bb_path: str) -> None:
-    """Archive l'événement BYPASS_DETECTED dans la BlackBox."""
+    """Archive l'événement BYPASS_DETECTED dans la BlackBox.
+
+    S-03B: route via BlackBox.record_structured_event() (écriture chiffrée
+    canonique) au lieu d'un `open().write()` en clair.
+    """
     try:
-        p = Path(bb_path)
-        p.parent.mkdir(parents=True, exist_ok=True)
-        entry = {
-            "event": "BYPASS_DETECTED",
-            "reason": reason,
-            "ts": round(time.time(), 3),
-        }
-        with open(p, "a", encoding="utf-8") as f:
-            f.write(json.dumps(entry) + "\n")
+        from quant_hedge_ai.agents.intelligence.black_box import BlackBox
+
+        bb = BlackBox(path=bb_path)
+        bb.record_structured_event(
+            "BYPASS_DETECTED",
+            {"reason": reason, "ts": round(time.time(), 3)},
+        )
     except Exception as exc:
         _log.debug("[BypassDetector] archivage bypass: %s", exc)

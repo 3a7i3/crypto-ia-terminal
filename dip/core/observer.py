@@ -17,9 +17,13 @@ from __future__ import annotations
 import threading
 from typing import TYPE_CHECKING, Callable, Optional
 
+from observability.json_logger import get_logger
+
 if TYPE_CHECKING:
     from observability.decision_observation import DecisionObservation
 
+
+_log = get_logger("dip.core.observer")
 
 # Type des handlers de module DIP
 DIPHandler = Callable[["DecisionObservation"], None]
@@ -39,6 +43,12 @@ class DIPObserver:
         self._handlers: list[DIPHandler] = []
         self._started = False
         self._hlock = threading.Lock()
+        # S-03B-R1: observations à provenance invalide (packet_id vide ou
+        # provenance_valid=False) ne sont jamais distribuées aux modules DIP
+        # (dip/modules/decision_graph.py dérive graph_id=f"graph_{packet_id}",
+        # non joignable si packet_id est vide) — comptées séparément pour
+        # S-03C.
+        self._skipped_invalid_provenance = 0
 
     @classmethod
     def instance(cls) -> "DIPObserver":
@@ -87,6 +97,28 @@ class DIPObserver:
 
     def _on_observation(self, obs: "DecisionObservation") -> None:
         """Callback reçu du bus. Distribue aux modules DIP."""
+        # S-03B-R1: garde de provenance à l'ingress DIP — miroir de
+        # RejectionStore/RegretScheduler.on_observation. AVANT (blocker MASTER
+        # S-03B-R1 §3) : une observation à packet_id vide était quand même
+        # distribuée aux handlers DIP, qui en dérivent des identités de graphe
+        # non joignables (graph_{packet_id} -> "graph_"). APRÈS : jamais
+        # distribuée, comptée séparément. Ne redesigne pas DIP, ne touche pas
+        # l'isolation try/except par handler ci-dessous.
+        if not getattr(obs, "packet_id", "") or not getattr(
+            obs, "provenance_valid", True
+        ):
+            with self._hlock:
+                self._skipped_invalid_provenance += 1
+            _log.warning(
+                "[DIPObserver] Skip — provenance invalide (packet_id=%r, "
+                "observation_id=%s, symbol=%s, cycle=%s)",
+                getattr(obs, "packet_id", ""),
+                getattr(obs, "observation_id", ""),
+                getattr(obs, "symbol", ""),
+                getattr(obs, "cycle", ""),
+            )
+            return
+
         with self._hlock:
             handlers = list(self._handlers)
         for handler in handlers:
@@ -103,3 +135,11 @@ class DIPObserver:
     def handler_count(self) -> int:
         with self._hlock:
             return len(self._handlers)
+
+    def get_stats(self) -> dict:
+        """Compteurs observables S-03B-R1 (S-03C)."""
+        with self._hlock:
+            return {
+                "handler_count": len(self._handlers),
+                "skipped_invalid_provenance": self._skipped_invalid_provenance,
+            }

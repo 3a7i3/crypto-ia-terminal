@@ -4860,10 +4860,17 @@ def main(
             except Exception:
                 pass
             # Black Box — fermeture position
+            # S-03B item 7: échec visible (log + compteur) au lieu de silencieux
+            # `except: pass`. Ne fait toujours pas planter le pipeline.
             try:
                 black_box.record_position_closed(pos, reason)
-            except Exception:
-                pass
+            except Exception as _bb_close_exc:
+                log.warning(
+                    "[BLACKBOX] record_position_closed a échoué: %s "
+                    "(symbol=%s)",
+                    _bb_close_exc,
+                    getattr(pos, "symbol", "?"),
+                )
             # P9 — PerformanceSupervisor + PortfolioIntelligence
             try:
                 if _perf_supervisor is not None:
@@ -6399,11 +6406,23 @@ def main(
                         _cycle_exec_failed = True
 
                 # Black Box — enregistre chaque décision
+                # S-03B item 7: échec visible (log + compteur) au lieu de
+                # silencieux `except: pass`. Ne fait toujours pas planter le
+                # pipeline — comportement fonctionnel inchangé.
                 try:
                     r["futures_result"] = r.get("futures_result")  # assure la clé
                     black_box.record_decision(r, cycle)
-                except Exception:
-                    pass
+                except Exception as _bb_exc:
+                    _dp = r.get("decision_packet")
+                    log.warning(
+                        "[BLACKBOX] record_decision a échoué: %s "
+                        "(symbol=%s cycle=%s packet_id=%s trace_id=%s)",
+                        _bb_exc,
+                        r.get("symbol", "?"),
+                        cycle,
+                        getattr(_dp, "packet_id", "") if _dp is not None else "",
+                        r.get("trace_id", ""),
+                    )
 
                 # Mise à jour ATR live dans le PositionManager (TP/SL adaptatifs)
                 try:

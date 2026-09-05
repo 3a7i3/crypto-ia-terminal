@@ -244,6 +244,7 @@ class RejectionStore:
         self._path: Optional[Path] = None
         self._write_count = 0
         self._error_count = 0
+        self._skipped_provenance_count = 0
 
     def _get_path(self) -> Path:
         """Chemin du fichier courant, rotation si changement de date UTC."""
@@ -304,6 +305,21 @@ class RejectionStore:
         if obs.side not in ("BUY", "SELL", "LONG", "SHORT"):
             return
 
+        # S-03B item 1: sauter les observations sans provenance joignable
+        # (packet_id vide ou provenance_valid=False explicite) plutôt que de
+        # les persister comme si elles étaient normalement jointes.
+        if not getattr(obs, "packet_id", "") or not getattr(
+            obs, "provenance_valid", True
+        ):
+            self._skipped_provenance_count += 1
+            _log.warning(
+                "[RejectionStore] Skip — provenance invalide (packet_id=%r, "
+                "observation_id=%s)",
+                getattr(obs, "packet_id", ""),
+                getattr(obs, "observation_id", ""),
+            )
+            return
+
         record = _from_observation(obs)
         self.persist(record)
 
@@ -311,6 +327,7 @@ class RejectionStore:
         return {
             "writes": self._write_count,
             "errors": self._error_count,
+            "skipped_provenance": self._skipped_provenance_count,
         }
 
     def count_today(self) -> int:
