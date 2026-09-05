@@ -35,7 +35,16 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-load_dotenv(override=True)
+# ENV-01 — précédence dotenv : override=False (défaut python-dotenv). Sous
+# systemd (crypto-watchdog.service), EnvironmentFile=.env PUIS
+# EnvironmentFile=.env.secrets injecte déjà les valeurs dans le process avant
+# le démarrage de Python ; override=True écrasait cette injection avec le
+# contenu de .env relu ici, violant PRE-EXISTING PROCESS ENVIRONMENT >
+# dotenv file (FAM-01). override=False préserve toute variable déjà présente
+# dans os.environ et ne peuple que celles qui manquent — l'exécution CLI
+# manuelle continue de fonctionner sans changement. Voir
+# tests/test_dotenv_precedence.py.
+load_dotenv(override=False)
 
 logging.basicConfig(
     level=logging.INFO,

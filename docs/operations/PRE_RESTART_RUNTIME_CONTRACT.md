@@ -115,14 +115,30 @@ sanitized result, never a raw environment dump, and never runs
 - Confirm both files exist at the paths every systemd unit expects
   (`/home/mathieu/crypto_ai_terminal/.env` and `.env.secrets`) — do not
   open either file; existence and permission checks only (see §8).
-- Confirm the precedence-risk finding in
-  `docs/architecture/ENVIRONMENT_CONFIGURATION_CONSTITUTION.md` §5 remains
-  understood: `core/advisor_loop.py` and the deployed `watchdog_vps.py`
-  both call `load_dotenv(override=True)`, so any key duplicated between
-  `.env` and `.env.secrets` on the real VPS will resolve to the `.env`
-  value inside those two processes specifically, contrary to the systemd
-  load order. No fix is prescribed here; this step exists so a restart is
-  never mistaken for a moment when this risk was resolved.
+- **BEFORE ENV-01**: `core/advisor_loop.py` and the deployed
+  `watchdog_vps.py` both called `load_dotenv(override=True)`, so any key
+  duplicated between `.env` and `.env.secrets` on the real VPS resolved to
+  the `.env` value inside those two processes specifically, contrary to the
+  systemd load order — see the finding formerly recorded in
+  `docs/architecture/ENVIRONMENT_CONFIGURATION_CONSTITUTION.md` §5.
+- **AFTER ENV-01**: both call sites now use `load_dotenv(override=False)`
+  (`core/advisor_loop.py:677`, `watchdog_vps.py:38`) — a variable already
+  present in `os.environ` (systemd `EnvironmentFile=.env` then
+  `EnvironmentFile=.env.secrets` injection) is never overwritten by the
+  in-process `load_dotenv()` re-read; only variables still absent get
+  populated from `.env`. Proven with dummy fixtures in
+  `tests/test_dotenv_precedence.py` (source-only; this mission did not, and
+  could not, read the real VPS `.env`/`.env.secrets`).
+- **RUNTIME_PROOF_REQUIRED**: this restart is still the first opportunity to
+  confirm on the real VPS process that a key duplicated in both files now
+  resolves to the `.env.secrets` value end-to-end — via the sanitized
+  `scripts/verify_env_separation.sh` output only (§8/§9), never by an AI
+  opening either file. Do not treat this restart as itself constituting
+  that confirmation; record the verifier's `SECRET_KEYS_IN_ENV_COUNT`/
+  `CROSS_FILE_DUPLICATE_KEY_COUNT` output as the evidence (ENV-01R: the
+  verifier no longer emits a single `DUPLICATE_KEY_COUNT` — it distinguishes
+  within-file duplicates from the cross-file case that matters for
+  precedence).
 
 ## 8. Secret-file permission check (without reading contents)
 
@@ -185,7 +201,10 @@ correctly tagged `certified=false` per
 Confirm `config.feature_flags.FEATURE_ADAPTIVE_DECISION_FEEDBACK` remains
 at its intended (default `False`, fail-closed) value unless an explicit,
 ADR-backed exception exists — a restart must never be the moment this flag
-silently flips due to `.env` precedence issues (see §7).
+silently flips due to `.env` precedence issues (see §7; AFTER ENV-01 this
+specific dotenv-override vector is closed, but the flag's resolution order
+relative to `load_dotenv()` — S-02B.1, `tests/test_feature_flag_startup_order.py`
+— is a separate concern this restart step still verifies).
 
 ## 14. Storage writers / spools
 
