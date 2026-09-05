@@ -118,11 +118,16 @@ def test_dip_counters_copied():
 
 def test_unavailable_component_is_not_zero():
     snap = rps.build_snapshot(rps.RuntimeProvenanceInputs())
-    for key in ("event_bus", "rejection_store", "regret_scheduler", "dip", "black_box"):
+    for key in ("event_bus", "rejection_store", "regret_scheduler", "black_box"):
         block = snap[key]
         assert block.get("status") == "UNAVAILABLE"
         # No fabricated numeric fields alongside UNAVAILABLE.
         assert set(block.keys()) == {"status"}
+    # dip_observer=None means DIP was never started (S-03D-R1 blocker 1) —
+    # a distinct status from UNAVAILABLE, still with zero fabricated
+    # numeric fields.
+    dip_block = snap["dip"]
+    assert dip_block == {"status": "NOT_STARTED"}
 
 
 def test_snapshot_atomic_write(tmp_path):

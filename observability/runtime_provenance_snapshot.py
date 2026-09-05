@@ -153,8 +153,14 @@ def _regret_scheduler_block(scheduler: Optional[Any]) -> Dict[str, Any]:
 
 
 def _dip_block(dip_observer: Optional[Any]) -> Dict[str, Any]:
+    # S-03D-R1 blocker 1: absence de dip_observer signifie que le DIP n'a
+    # jamais été démarré (dip.bootstrap.is_running() == False côté appelant,
+    # voir core/advisor_loop.py) — jamais qu'un objet frais a été créé pour
+    # l'occasion. Reporter NOT_STARTED, sans handler_count ni
+    # skipped_invalid_provenance fabriqués : ces compteurs appartiendraient à
+    # un singleton que ce module n'a pas le droit de créer lui-même.
     if dip_observer is None:
-        return _unavailable_block()
+        return {"status": "NOT_STARTED"}
     try:
         stats = dip_observer.get_stats()
         started = bool(getattr(dip_observer, "is_started", False))

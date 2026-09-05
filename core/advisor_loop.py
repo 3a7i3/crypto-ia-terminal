@@ -4603,11 +4603,20 @@ def main(
     # jamais un consommateur frais (voir observability/runtime_provenance_
     # snapshot.py, docstring module). Absence de composant = UNAVAILABLE,
     # jamais 0 fabriqué.
+    # S-03D-R1 blocker 1: n'instancier DIPObserver que si le DIP a réellement
+    # été démarré (dip.bootstrap.is_running()). DIPObserver.instance() est un
+    # singleton "create-if-missing" — l'appeler inconditionnellement créerait
+    # un objet frais quand le DIP n'a jamais démarré, et ses compteurs à zéro
+    # ne seraient pas des observations d'un composant vivant (voir
+    # observability/runtime_provenance_snapshot.py, docstring module).
     _dip_observer_live: Any = None
     try:
-        from dip.core.observer import DIPObserver as _DIPObserver
+        from dip.bootstrap import is_running as _dip_is_running
 
-        _dip_observer_live = _DIPObserver.instance()
+        if _dip_is_running():
+            from dip.core.observer import DIPObserver as _DIPObserver
+
+            _dip_observer_live = _DIPObserver.instance()
     except Exception as _dip_exc:
         log.debug("[S-03D] DIPObserver indisponible (non bloquant): %s", _dip_exc)
         _dip_observer_live = None

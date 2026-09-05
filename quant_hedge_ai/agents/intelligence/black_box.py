@@ -297,14 +297,32 @@ class BlackBox:
         l'historique chiffré, toujours process-lifetime (voir __init__).
         Dénominateur explicite : `decision_records_persisted` pour les
         compteurs packet_id/trace_id/schema/side ;
-        `refused_records_persisted` (TRADE_REFUSED uniquement) pour
+        `refused_records_persisted` (refus canonique
+        `actionable AND trade_allowed == False`, PAS le label
+        decision_type == TRADE_REFUSED — voir _record_provenance) pour
         canonical_first_blocker.
         """
         with self._stats_lock:
             return dict(self._provenance_stats)
 
-    def _record_provenance(self, entry: "BlackBoxEntry") -> None:
-        """Appelé depuis _append() APRÈS succès d'écriture disque uniquement."""
+    def _record_provenance(
+        self, entry: "BlackBoxEntry", is_canonical_refusal: bool = False
+    ) -> None:
+        """Appelé depuis _append() APRÈS succès d'écriture disque uniquement.
+
+        S-03D-R1 blocker 2: le dénominateur de `canonical_first_blocker_*`
+        n'est PAS `entry.decision_type == TRADE_REFUSED`. Ce label BlackBox
+        historique (record_decision) marque aussi TRADE_REFUSED une décision
+        `actionable=True, trade_allowed=True` sans résultat futures_demo — un
+        cas qui peut légitimement n'avoir aucun canonical_first_blocker sans
+        que ce soit un défaut de provenance. `is_canonical_refusal` porte la
+        sémantique canonique `actionable AND trade_allowed == False`,
+        calculée par l'appelant (record_decision) à partir du résultat
+        d'analyse original, jamais dérivée du label decision_type ici. Ce
+        paramètre ne change ni decision_type ni trade_allowed ni la
+        classification BlackBox existante — uniquement ce dénominateur de
+        provenance.
+        """
         if entry.decision_type not in self._PROVENANCE_APPLICABLE_TYPES:
             return
         s = self._provenance_stats
@@ -325,7 +343,7 @@ class BlackBox:
             s["packet_side_present"] += 1
         else:
             s["packet_side_missing"] += 1
-        if entry.decision_type == DecisionType.TRADE_REFUSED.value:
+        if is_canonical_refusal:
             s["refused_records_persisted"] += 1
             if entry.canonical_first_blocker:
                 s["canonical_first_blocker_present"] += 1
@@ -546,7 +564,13 @@ class BlackBox:
             packet_side=packet_side,
         )
 
-        self._append(entry)
+        # S-03D-R1 blocker 2: dénominateur canonique de refus, indépendant du
+        # label dtype (TRADE_REFUSED) — voir _record_provenance docstring.
+        # actionable AND trade_allowed == False, tel que produit par
+        # l'analyse originale, jamais rederivé de decision_type.
+        is_canonical_refusal = bool(signal and signal.actionable and not trade_allowed)
+
+        self._append(entry, is_canonical_refusal)
         return entry
 
     def record_position_closed(self, pos, reason) -> BlackBoxEntry:
@@ -734,7 +758,9 @@ class BlackBox:
 
     # ── Persistance ───────────────────────────────────────────────────────────
 
-    def _append(self, entry: BlackBoxEntry) -> None:
+    def _append(
+        self, entry: BlackBoxEntry, is_canonical_refusal: bool = False
+    ) -> None:
         # S-03B-R1: durabilité mémoire/disque (MASTER §5). AVANT : l'entrée
         # rejoignait self._entries (donc visible via query()) AVANT même la
         # tentative d'écriture chiffrée — un échec disque laissait un
@@ -756,7 +782,7 @@ class BlackBox:
                 self._entries = self._entries[-_BB_MAX_SIZE:]
             with self._stats_lock:
                 self._write_successes += 1
-                self._record_provenance(entry)
+                self._record_provenance(entry, is_canonical_refusal)
         except Exception as exc:
             with self._stats_lock:
                 self._write_failures += 1

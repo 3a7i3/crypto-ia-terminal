@@ -5,7 +5,9 @@ Vérifie l'agrégat de provenance PROCESS-EPOCH ajouté sur BlackBox :
   - incrémente uniquement après succès d'écriture disque (durabilité S-03B-R1)
   - n'applique jamais le contrat de provenance aux types non concernés
     (SYSTEM_EVENT)
-  - le dénominateur canonical_first_blocker est propre à TRADE_REFUSED
+  - le dénominateur canonical_first_blocker est le refus canonique
+    (actionable AND trade_allowed == False), pas le label decision_type
+    TRADE_REFUSED (S-03D-R1 blocker 2)
 
 Toutes les instances BlackBox de ce module pointent vers tmp_path — jamais
 databases/ réel (DS-001).
@@ -139,6 +141,36 @@ def test_refused_record_canonical_first_blocker_missing_is_explicit(bb):
     assert prov["refused_records_persisted"] == 1
     assert prov["canonical_first_blocker_present"] == 0
     assert prov["canonical_first_blocker_missing"] == 1
+
+
+def test_trade_allowed_non_futures_demo_labeled_refused_but_not_canonical(bb):
+    """S-03D-R1 blocker 2, case C.
+
+    actionable=True, trade_allowed=True, but futures_result is not
+    futures_demo -> BlackBox still classifies this DecisionType.TRADE_REFUSED
+    (existing, unchanged classification). The canonical refusal denominator
+    (actionable AND trade_allowed == False) must NOT increment for this
+    record, and canonical_first_blocker_missing must NOT be polluted by a
+    decision that was never a canonical refusal in the first place.
+    """
+    r = _analysis_result(
+        actionable=True,
+        trade_allowed=True,
+        futures_mode=None,
+        blockers="",
+    )
+    entry = bb.record_decision(r, cycle=5)
+    # Existing BlackBox label is preserved verbatim.
+    assert entry.decision_type == DecisionType.TRADE_REFUSED.value
+
+    prov = bb.get_provenance_stats()
+    # But it must not be counted as a canonical refusal.
+    assert prov["refused_records_persisted"] == 0
+    assert prov["canonical_first_blocker_present"] == 0
+    assert prov["canonical_first_blocker_missing"] == 0
+    # decision_records_persisted still moves (TRADE_REFUSED is provenance-
+    # applicable for packet_id/trace_id/schema/side counters).
+    assert prov["decision_records_persisted"] == 1
 
 
 def test_hold_record_not_counted_in_refused_denominator(bb):

@@ -1,6 +1,9 @@
 # S-03D — Runtime Provenance Exposure
 
-Statut : implémentation source, en attente de revue MASTER.
+Statut : S-03D-R1 — remédiation des deux blockers scientifiques de la revue
+MASTER appliquée (DIP: plus d'instanciation d'observateur inactif ;
+BlackBox: dénominateur de refus canonique découplé du label
+`decision_type`), en attente de nouvelle revue MASTER.
 Parent : S-03 — Decision Provenance & Scientific Truth.
 Précède : une future fenêtre de certification runtime bornée (post-merge,
 hors scope de cette mission).
@@ -50,7 +53,7 @@ de régime ou de regret (ADR-0007, gel Phase II).
 | `DecisionEventBus` | `.get_stats()` sur le singleton `get_bus()` | `observations_published`, `listener_deliveries_submitted/succeeded/failed`, `deliveries_dropped_during_shutdown` |
 | `RejectionStore` | `.stats()` sur l'instance live | `writes`, `errors`, `skipped_provenance` |
 | `RegretScheduler` | `.stats()` sur l'instance live | `pending_candidates`, `horizons_evaluated`, `running`, `skipped_invalid_provenance` |
-| `DIPObserver` | `.get_stats()` sur le singleton `DIPObserver.instance()` | `handler_count`, `skipped_invalid_provenance` |
+| `DIPObserver` | `.get_stats()` sur le singleton `DIPObserver.instance()`, **uniquement si `dip.bootstrap.is_running()`** (S-03D-R1, voir §3.2/§7) | `handler_count`, `skipped_invalid_provenance` |
 | `BlackBox` | `.get_write_stats()` / `.get_load_stats()` | `write_attempts/successes/failures` |
 
 Aucun de ces getters n'a été renommé ni dupliqué.
@@ -95,10 +98,22 @@ passées en paramètre (`RuntimeProvenanceInputs`). N'instancie **jamais** un
 `RejectionStore()`, `RegretScheduler()`, `DecisionEventBus()`,
 `DIPObserver()` ou `BlackBox()` frais pour lire `.stats()` — un tel objet
 n'aurait rien observé et produirait des zéros scientifiquement faux (mission
-S-03D §2). La seule exception documentée est `DIPObserver.instance()` : DIP
-est un singleton process-wide (comme `decision_event_bus.get_bus()`) — appeler
-`.instance()` retourne l'objet réel unique du processus, jamais une
-construction séparée.
+S-03D §2).
+
+**S-03D-R1 (remédiation blocker 1)** : `DIPObserver.instance()` avait été
+documenté à tort comme une "exception" sans risque parce que c'est un
+singleton process-wide. C'est faux : `DIPObserver.instance()` est un pattern
+create-if-missing (`if cls._instance is None: cls._instance = cls()`) — si le
+DIP n'a jamais été démarré, l'appeler inconditionnellement **crée** un objet
+frais que ce module n'a pas le droit de créer (exactement le défaut que ce
+paragraphe prétend éviter pour les autres composants). Le wiring
+`core/advisor_loop.py` interroge désormais l'état de lifecycle canonique du
+DIP via `dip.bootstrap.is_running()` **avant** tout accès à `DIPObserver` :
+si le DIP n'est pas démarré, `DIPObserver.instance()` n'est jamais appelé et
+`dip_observer` reste `None` (bloc exposé : `{"status": "NOT_STARTED"}`, voir
+§7). Seul un DIP réellement démarré fait récupérer le singleton existant et
+exposer ses vraies `get_stats()`. Aucun démarrage, aucun enregistrement de
+handler, aucune modification du lifecycle DIP n'est effectué par ce module.
 
 ### 3.3 Wiring dans `core/advisor_loop.py`
 
@@ -107,8 +122,10 @@ Deux points d'intégration, minimaux :
 1. Juste après le bloc d'initialisation des listeners d'observabilité
    (event bus / RejectionStore / RegretScheduler, ~ligne 4600) : capture des
    références déjà existantes (`_decision_event_bus`, `_obs_rejection_store`,
-   `_obs_regret_scheduler`, `black_box`) plus `DIPObserver.instance()`, et
-   création d'un `RuntimeProvenanceSnapshotWriter`.
+   `_obs_regret_scheduler`, `black_box`) plus, uniquement si
+   `dip.bootstrap.is_running()` renvoie `True`, `DIPObserver.instance()` (voir
+   §3.2/§7 pour la remédiation S-03D-R1) — et création d'un
+   `RuntimeProvenanceSnapshotWriter`.
 2. Au point "Watchdog fin de cycle" existant (`watchdog.end_cycle(cycle)`) :
    appel de `writer.maybe_refresh(...)`, enveloppé dans un `try/except` qui
    avale toute exception (jamais de propagation vers la boucle de décision).
@@ -168,9 +185,7 @@ Schéma (version 1) :
     "skipped_invalid_provenance": 0
   },
   "dip": {
-    "status": "NOT_STARTED",
-    "handler_count": 0,
-    "skipped_invalid_provenance": 0
+    "status": "NOT_STARTED"
   },
   "black_box": {
     "status": "ACTIVE",
@@ -206,11 +221,31 @@ compteurs numériques à zéro fabriqués à côté (voir §6).
   `decision_records_persisted` (TRADE_EXECUTED + TRADE_REFUSED + HOLD
   persistés avec succès).
 - `canonical_first_blocker_present/missing` : dénominateur =
-  `refused_records_persisted` (TRADE_REFUSED uniquement). Un `HOLD` ou un
-  `TRADE_EXECUTED` sans first_blocker n'est **jamais** compté ici — la
-  mission interdit explicitement d'appliquer l'exigence "first_blocker doit
-  exister" globalement, car `canonical_first_blocker=None` est légitime pour
-  une décision non refusée.
+  `refused_records_persisted`.
+
+  **S-03D-R1 (remédiation blocker 2)** : ce dénominateur n'est **pas** le
+  label `BlackBoxEntry.decision_type == TRADE_REFUSED`. Le classement
+  `record_decision()` marque `TRADE_REFUSED` toute décision `actionable`
+  qui n'aboutit pas à un `TRADE_EXECUTED` — y compris une décision
+  `actionable=True, trade_allowed=True` mais sans résultat
+  `futures_result.mode == "futures_demo"` (ex. exécution non tentée pour
+  une raison hors provenance). Une telle décision peut légitimement n'avoir
+  aucun `canonical_first_blocker` sans que ce soit un défaut de provenance ;
+  compter ce cas comme refus canonique aurait fabriqué un
+  `canonical_first_blocker_missing` scientifiquement faux. Le dénominateur
+  réel — calculé dans `record_decision()` à partir du résultat d'analyse
+  original, jamais rederivé de `decision_type` — est la sémantique
+  canonique de refus : `actionable AND trade_allowed == False`. Ce booléen
+  (`is_canonical_refusal`) est transmis explicitement à `_append()` puis
+  `_record_provenance()`, uniquement sur la branche de succès de
+  persistance disque (voir §8) ; il ne modifie ni `decision_type`, ni
+  `trade_allowed`, ni le classement BlackBox existant — uniquement ce
+  dénominateur d'exposition. Un `HOLD` ou un `TRADE_EXECUTED` sans
+  first_blocker n'est **jamais** compté ici — la mission interdit
+  explicitement d'appliquer l'exigence "first_blocker doit exister"
+  globalement, car `canonical_first_blocker=None` est légitime pour une
+  décision non refusée. Voir
+  `tests/test_black_box_provenance.py::test_trade_allowed_non_futures_demo_labeled_refused_but_not_canonical`.
 
 ## 6. Sémantique process-epoch
 
@@ -254,12 +289,25 @@ STALE != HEALTHY) :
   sans aucun champ numérique.
 - Un composant présent mais dont la lecture des stats échoue apparaît comme
   `{"status": "ERROR"}`.
-- `DIPObserver` est un cas particulier : c'est un singleton toujours
-  accessible (`DIPObserver.instance()`), mais s'il n'a jamais été démarré
-  (`.start()` jamais appelé — le cas actuel, `advisor_loop.py` n'importe pas
-  `dip.core.observer`), son état réel est `is_started=False` avec
-  `handler_count=0` **véridique** (pas fabriqué) — reflété par
-  `"status": "NOT_STARTED"` à côté des compteurs réels du singleton.
+- `DIPObserver` (**corrigé en S-03D-R1**) : la version initiale de ce
+  paragraphe affirmait qu'appeler `DIPObserver.instance()` inconditionnellement
+  et lire `handler_count=0` sur le singleton ainsi créé produisait un "zéro
+  véridique". C'était faux : `DIPObserver.instance()` crée l'objet s'il
+  n'existe pas encore (`if cls._instance is None: cls._instance = cls()`).
+  Si le DIP n'a jamais été démarré, ces zéros n'étaient pas l'observation
+  d'un composant vivant — ils appartenaient à un objet que le module
+  d'exposition venait de fabriquer pour l'occasion, exactement la violation
+  que ce document prétendait éviter. Le comportement correct : le wiring
+  interroge `dip.bootstrap.is_running()` avant tout accès à `DIPObserver`.
+  DIP non démarré → `DIPObserver.instance()` n'est **jamais appelé**, et le
+  bloc exposé est `{"status": "NOT_STARTED"}` sans `handler_count` ni
+  `skipped_invalid_provenance`. DIP réellement démarré → le singleton
+  existant est récupéré (jamais créé par ce module — il l'a déjà été par
+  `dip.bootstrap.start_dip()`) et ses vraies `get_stats()` sont exposées
+  sous `"status": "ACTIVE"`. Voir tests
+  `tests/test_s03d_dip_gating.py::test_inactive_dip_does_not_call_dip_observer_instance`,
+  `::test_inactive_dip_snapshot_has_no_numeric_counters` et
+  `::test_active_dip_exposes_real_live_singleton_stats`.
 
 ## 8. Durabilité BlackBox
 
