@@ -23,8 +23,8 @@ def test_paper_equity_leads_when_available():
 
     lines = _capital_lines(p, _throttle())
 
-    assert lines[0] == "Wallet virtuel *677.83 USD* — Jour 2.5 / 7"
-    assert lines[1] == "Alloc F-01: 10.00 USD"
+    assert lines[0] == "Wallet virtuel PAPER *677.83 USD* — Jour 2.5 / 7"
+    assert lines[1] == "Alloc F-01 PAPER: 10.00 USD"
 
 
 def test_fallback_to_throttle_without_paper_equity():
@@ -32,13 +32,13 @@ def test_fallback_to_throttle_without_paper_equity():
 
     lines = _capital_lines(p, _throttle())
 
-    assert lines == ["Capital *10.00 USD* — Jour 2.5 / 7"]
+    assert lines == ["Capital PAPER *10.00 USD* — Jour 2.5 / 7"]
 
 
 def test_paper_equity_alone_without_throttle():
     p = CommandDataProvider(get_paper_equity=lambda: 500.0)
 
-    assert _capital_lines(p, None) == ["Wallet virtuel *500.00 USD*"]
+    assert _capital_lines(p, None) == ["Wallet virtuel PAPER *500.00 USD*"]
 
 
 def test_broken_paper_equity_falls_back():
@@ -49,4 +49,4 @@ def test_broken_paper_equity_falls_back():
 
     lines = _capital_lines(p, _throttle())
 
-    assert lines[0].startswith("Capital *10.00 USD*")
+    assert lines[0].startswith("Capital PAPER *10.00 USD*")
