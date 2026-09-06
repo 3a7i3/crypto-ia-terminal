@@ -309,15 +309,25 @@ ASCII PnL curve and history (<code class="docutils literal notranslate"><span cl
 <code class="docutils literal notranslate"><span class="pre">PhaseKPITracker</span></code> rather than recomputing win-rate/Sharpe/DD itself);
 presentation-layer arithmetic only (bar charts, % distance from entry,
 cumulative-PnL sampling).</p></li>
-<li><p><strong>Critical finding — unlabeled paper/real pairing</strong>: the <code class="docutils literal notranslate"><span class="pre">/kpis</span></code>/
-<code class="docutils literal notranslate"><span class="pre">/status</span></code> KPI block (win rate, Sharpe, drawdown, total trades) is
+<li><p><strong>D-7 REMEDIATED (O-02B/O-02B-R1)</strong> — unlabeled paper/real pairing: the
+<code class="docutils literal notranslate"><span class="pre">/kpis</span></code>/<code class="docutils literal notranslate"><span class="pre">/status</span></code> KPI block (win rate, Sharpe, drawdown, total trades) is
 computed exclusively from <strong>paper trades</strong>
-(<code class="docutils literal notranslate"><span class="pre">paper_trading.recorder.get_recorder().get_trades()</span></code>), yet
-<code class="docutils literal notranslate"><span class="pre">PhaseKPITracker</span></code> is initialized with <code class="docutils literal notranslate"><span class="pre">initial_capital=real_capital</span></code>
-(the <strong>real</strong> allocated capital shown in the same message). Neither
-block states “paper” or “real” next to the numbers — a reader could
-reasonably assume the KPIs apply to the real-capital figure shown
-above them. See <code class="docutils literal notranslate"><span class="pre">METRIC_DICTIONARY.md</span></code> Part 2 and
+(<code class="docutils literal notranslate"><span class="pre">paper_trading.recorder.get_recorder().get_trades()</span></code>), while
+<code class="docutils literal notranslate"><span class="pre">PhaseKPITracker</span></code> is initialized with <code class="docutils literal notranslate"><span class="pre">initial_capital=real_capital</span></code>.
+Correction (R1): the <code class="docutils literal notranslate"><span class="pre">real_capital</span></code> variable name in <code class="docutils literal notranslate"><span class="pre">advisor_loop.py</span></code>
+is <strong>not</strong> proof of provenance — <code class="docutils literal notranslate"><span class="pre">get_balances</span></code> is wired to
+<code class="docutils literal notranslate"><span class="pre">ExecutionEngine.fetch_available_capital()</span></code>, which is mode-dependent:
+under <code class="docutils literal notranslate"><span class="pre">PAPER_TRADING_ENABLED=true</span></code> (the current stabilization default)
+it returns the <code class="docutils literal notranslate"><span class="pre">WalletSync</span></code> <strong>PAPER</strong> balance, not a real/API account
+balance; it only reflects a real or testnet exchange balance when paper
+trading is disabled and <code class="docutils literal notranslate"><span class="pre">ExchangeFactory.detect_mode()</span></code> reports
+<code class="docutils literal notranslate"><span class="pre">live</span></code>/<code class="docutils literal notranslate"><span class="pre">testnet</span></code>. <code class="docutils literal notranslate"><span class="pre">command_center_bot.py</span></code> now sources this from
+<code class="docutils literal notranslate"><span class="pre">CommandDataProvider.get_balance_provenance()</span></code> (domain: <code class="docutils literal notranslate"><span class="pre">PAPER</span></code> /
+<code class="docutils literal notranslate"><span class="pre">REAL_API</span></code> / <code class="docutils literal notranslate"><span class="pre">TESTNET_API</span></code> / <code class="docutils literal notranslate"><span class="pre">UNKNOWN</span></code>, fail-closed to <code class="docutils literal notranslate"><span class="pre">UNKNOWN</span></code>) and
+every panel (<code class="docutils literal notranslate"><span class="pre">/status</span></code>, <code class="docutils literal notranslate"><span class="pre">/kpis</span></code>, <code class="docutils literal notranslate"><span class="pre">/balance</span></code>, <code class="docutils literal notranslate"><span class="pre">/pnl</span></code>, <code class="docutils literal notranslate"><span class="pre">/positions</span></code>,
+<code class="docutils literal notranslate"><span class="pre">/trades</span></code>, <code class="docutils literal notranslate"><span class="pre">/perf</span></code>, <code class="docutils literal notranslate"><span class="pre">/recap</span></code>, <code class="docutils literal notranslate"><span class="pre">/history</span></code>, the automatic report) labels
+its PAPER vs. declared-provenance populations explicitly instead of
+presenting them unlabeled. See <code class="docutils literal notranslate"><span class="pre">METRIC_DICTIONARY.md</span></code> Part 2 and
 <code class="docutils literal notranslate"><span class="pre">OPERATOR_DISPLAY_CONTRACT.md</span></code> rule 6.</p></li>
 <li><p><strong>Related orphaned module</strong>: <code class="docutils literal notranslate"><span class="pre">src/telegram/exchange_sync.py</span></code> claims in
 its own docstring to be the “CCXT read-only sync pour

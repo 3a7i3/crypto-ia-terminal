@@ -60,15 +60,25 @@ modified by O-01.
   `PhaseKPITracker` rather than recomputing win-rate/Sharpe/DD itself);
   presentation-layer arithmetic only (bar charts, % distance from entry,
   cumulative-PnL sampling).
-- **Critical finding — unlabeled paper/real pairing**: the `/kpis`/
-  `/status` KPI block (win rate, Sharpe, drawdown, total trades) is
+- **D-7 REMEDIATED (O-02B/O-02B-R1)** — unlabeled paper/real pairing: the
+  `/kpis`/`/status` KPI block (win rate, Sharpe, drawdown, total trades) is
   computed exclusively from **paper trades**
-  (`paper_trading.recorder.get_recorder().get_trades()`), yet
-  `PhaseKPITracker` is initialized with `initial_capital=real_capital`
-  (the **real** allocated capital shown in the same message). Neither
-  block states "paper" or "real" next to the numbers — a reader could
-  reasonably assume the KPIs apply to the real-capital figure shown
-  above them. See `METRIC_DICTIONARY.md` Part 2 and
+  (`paper_trading.recorder.get_recorder().get_trades()`), while
+  `PhaseKPITracker` is initialized with `initial_capital=real_capital`.
+  Correction (R1): the `real_capital` variable name in `advisor_loop.py`
+  is **not** proof of provenance — `get_balances` is wired to
+  `ExecutionEngine.fetch_available_capital()`, which is mode-dependent:
+  under `PAPER_TRADING_ENABLED=true` (the current stabilization default)
+  it returns the `WalletSync` **PAPER** balance, not a real/API account
+  balance; it only reflects a real or testnet exchange balance when paper
+  trading is disabled and `ExchangeFactory.detect_mode()` reports
+  `live`/`testnet`. `command_center_bot.py` now sources this from
+  `CommandDataProvider.get_balance_provenance()` (domain: `PAPER` /
+  `REAL_API` / `TESTNET_API` / `UNKNOWN`, fail-closed to `UNKNOWN`) and
+  every panel (`/status`, `/kpis`, `/balance`, `/pnl`, `/positions`,
+  `/trades`, `/perf`, `/recap`, `/history`, the automatic report) labels
+  its PAPER vs. declared-provenance populations explicitly instead of
+  presenting them unlabeled. See `METRIC_DICTIONARY.md` Part 2 and
   `OPERATOR_DISPLAY_CONTRACT.md` rule 6.
 - **Related orphaned module**: `src/telegram/exchange_sync.py` claims in
   its own docstring to be the "CCXT read-only sync pour
