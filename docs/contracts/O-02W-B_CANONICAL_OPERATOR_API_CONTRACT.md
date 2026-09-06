@@ -4,6 +4,20 @@ Mission O-02W-B · Base SHA `5aecc8859efb7dbeb5ba53177a926abaa43097c` ·
 2026-09-06 · Documentation/architecture-only mission (no runtime code
 changes, no UI, no API deployment, no Telegram, no VPS).
 
+**R1 remediation (O-02W-B-R1, same date):** independent MASTER review
+found three contract-level defects in the original text — (1) an
+inaccurate claim that `observability/system_snapshot.py` already
+implements the atomic-write pattern this contract proposes (it does
+not; the actual precedent is `quant_hedge_ai/dashboard/live_snapshot.py`,
+§1.2/§1.3/§18), (2) an overstated cross-process consistency guarantee
+for the JSONL ledgers (§6.1 now defines an explicit byte-offset
+watermark contract), and (3) no deterministic mechanism preventing a
+stale post-restart snapshot from being presented as current runtime
+truth (§14.1 now defines a runtime-instance manifest). All three are
+corrected in place below; §22 adds the corresponding test requirements.
+This remains documentation-only — no runtime source was changed to
+make the contract true.
+
 This document is the authoritative source-inspected contract for a future
 read-only "operator API" serving the React cockpit (`frontend/`). It
 supersedes no code — it constrains what a future implementation mission
@@ -71,7 +85,7 @@ heap directly. Options considered, per the brief's bounded list:
 
 | Option | Verdict | Rationale |
 |---|---|---|
-| **Atomic JSON snapshot file (single file, atomic rename)** | **SELECTED** | Matches the pattern already in production use (`observability/system_snapshot.py` -> `SystemSnapshot` JSON dump, consumed today by `visualization/api/system_snapshot_source.py`). Trivially restart-safe (file persists), trivially reproducible (one file = one point-in-time truth), atomic via write-to-tmp + `os.replace()`, zero new daemon, zero new dependency, low overhead (periodic write, not per-request). |
+| **Atomic JSON snapshot file (single file, atomic rename)** | **SELECTED** | **Correction (R1-1):** `observability/system_snapshot.py` itself does *not* implement this — it is a pure in-memory `@dataclass` model (`SystemSnapshot` and friends) with no file I/O of its own (confirmed by reading the full file: its only disk write is an unrelated `_lifetime` JSON dump, not atomic, not the live snapshot). The actual atomic-write implementation precedent already in production is `quant_hedge_ai/dashboard/live_snapshot.py::write_snapshot()` — `tmp = path.with_suffix(".tmp"); tmp.write_text(...); tmp.replace(path)` (equivalent to `os.replace()`), called from `core/advisor_loop.py` once per cycle to produce `databases/live_snapshot.json`, which `visualization/api/system_snapshot_source.py` then reads (embedding a `system_snapshot` dict built from `SystemSnapshot`'s fields). This existing writer is genuine **implementation precedent/helper** for the pattern this contract selects — not evidence that `SystemSnapshot` itself is atomic, and not something this contract assumes is reused verbatim (§14 defines additional identity/atomicity fields it does not currently write). The NEW canonical operator snapshot writer this contract specifies is a distinct, new O-02W-B publication mechanism modeled on `live_snapshot.py`'s proven tmp-write-then-replace pattern, not an extension of `system_snapshot.py`. Zero new daemon, zero new dependency, low overhead (periodic write, not per-request). |
 | Multiple domain snapshot files (one JSON per O-01 domain) | REJECTED (as *sole* mechanism) but compatible as an internal detail | O-01's own domain decomposition (§4) argues for per-domain freshness/composition, but multiple files reintroduces the exact "impossible cross-cycle mixture" risk this contract must prevent (§14, ATOMICITY_CONTRACT) unless every file shares one `snapshot_id`/`cycle` and the API refuses to compose across differing ids. Acceptable *inside* the single-envelope option (§1.3) as a serialization detail, not as the transport itself. |
 | Append-only event stream + snapshot | REJECTED for this contract's scope | Real value for DECISION_API history (decision packets are already an event-sourced hash chain, §8) and for TRADE_API history (JSONL ledger already is this). Not needed as the *primary* transport for point-in-time domain state — adds operational complexity (offsets, replay, compaction) with no freshness/atomicity benefit over a snapshot file for state that is naturally "current value," not a stream. The existing JSONL ledgers already give append-only history for trades/decisions; no new bus is required to expose them read-only. |
 | Local Unix domain socket (advisor process serves a socket, API process is a client) | REJECTED | Requires the advisor process to run a server loop and accept connections — a scope/coupling increase inside `core/advisor_loop.py`, explicitly forbidden by this mission ("do NOT modify advisor_loop.py"). Also reintroduces liveness coupling: if the advisor process stalls mid-request, the API blocks: the opposite of "low runtime overhead" and "read-only web process independent of producer liveness." |
@@ -81,39 +95,101 @@ heap directly. Options considered, per the brief's bounded list:
 ### 1.3 Selected design
 
 **One canonical JSON snapshot file per producer process, atomically
-written (tmp file + `os.replace()`), read-only-mounted by the API
-process — the same pattern `observability/system_snapshot.py` already
-uses, extended with the O-01 domain envelope and the identity/atomicity
-fields defined in §14-§15.** The producer (the advisor-loop process, or a
-narrow in-process "operator snapshot writer" it calls once per cycle —
-not a new decisional component, purely a serializer) is the only writer.
-The API process only ever opens the file read-only, never imports
-`MexcSimulator`, `WalletSync`, or `core/advisor_loop.py` (§ PROCESS_
-BOUNDARY_VERDICT). Historical/ledger data (trades, decisions, regret
-events) continues to be read directly from its existing JSONL files by
-the API process — those are already cross-process-safe append-only logs
-and do not need to be re-published inside the snapshot.
+written (tmp file in the destination directory + `os.replace()` or the
+equivalent `Path.replace()`), read-only-mounted by the API process. This
+is a NEW O-02W-B publication mechanism** — it does not exist today as a
+canonical-operator-envelope writer. It is modeled on, and may directly
+reuse, the proven tmp-write-then-replace helper already in production at
+`quant_hedge_ai/dashboard/live_snapshot.py::write_snapshot()` (implementation
+precedent, §1.2), extended with the O-01 domain envelope and the
+identity/atomicity/invalidation fields defined in §14-§15. The producer
+(the advisor-loop process, or a narrow in-process "operator snapshot
+writer" it calls once per cycle — not a new decisional component, purely
+a serializer) is the only writer. The API process only ever opens the
+file read-only, never imports `MexcSimulator`, `WalletSync`, or
+`core/advisor_loop.py` (§ PROCESS_BOUNDARY_VERDICT). Historical/ledger
+data (trades, decisions, regret events) continues to be read directly
+from its existing JSONL files by the API process, subject to the explicit
+read-consistency/watermark contract in §6.1 — those files are
+append-only, but append-only is **not** the same guarantee as an atomic,
+reproducible point-in-time multi-reader snapshot (see §6.1 for why, and
+for the required boundary/watermark mechanism).
+
+**Precise atomic-write requirements** (the write side of this
+mechanism, binding on the future implementation mission):
+
+1. The temporary file MUST be created in the same directory as (and
+   therefore the same filesystem as) the destination path — a
+   cross-filesystem temp location makes the final rename non-atomic on
+   POSIX. `live_snapshot.py`'s `path.with_suffix(".tmp")` already
+   satisfies this by construction; the new writer must preserve that
+   property.
+2. The full snapshot payload MUST be completely serialized to the
+   temporary file (and the temp file closed) before the replace step —
+   no partial/streamed write is replaced mid-flight.
+3. The temp-to-final swap MUST use `os.replace()` (or the `pathlib`
+   equivalent `Path.replace()`, which wraps it) — not `os.rename()` on
+   platforms where rename is not guaranteed atomic when the destination
+   exists (POSIX `rename()` is atomic and always replaces; Windows is
+   not, which `os.replace()` handles portably; this repo's runtime is
+   POSIX-only per its VPS deployment model, but the contract specifies
+   `os.replace()` for correctness regardless).
+4. If serialization fails (exception during `json.dumps`/`write_text`)
+   before the replace step, the previous valid snapshot file MUST remain
+   untouched — this falls out for free from the tmp-then-replace design
+   *as long as the writer never opens the destination path directly for
+   writing*; the implementation mission must preserve this ordering
+   (serialize to tmp fully, replace only on success) exactly as
+   `live_snapshot.py::write_snapshot()` already does (its `except`
+   branch logs and returns without touching `path`).
+5. **Durability vs. reader-atomicity — do not conflate them.** This
+   contract's guarantee is **reader atomicity only**: no reader ever
+   observes a half-written file, because `os.replace()` is atomic with
+   respect to concurrent `open()` calls on POSIX. This contract does
+   **not** guarantee crash durability of the *last* write — without an
+   explicit `os.fsync()` on the temp file descriptor before `replace()`,
+   and a directory `fsync()` on the containing directory after it, a
+   host power-loss or kernel panic between `write_text()` and the next
+   `fsync` boundary can lose the most recent write while still leaving a
+   valid (if one-cycle-stale) snapshot on disk — this is acceptable for
+   this contract's purpose (an observability/cockpit projection, not a
+   durability-critical ledger; the JSONL ledgers remain the durability-
+   critical sources, §6.1) but must not be described as crash-durable.
+   `live_snapshot.py::write_snapshot()` today does **not** call `fsync`
+   at either level — confirmed by reading the full function body — so
+   if the implementation mission wants process-crash durability
+   (surviving an unclean producer restart with zero data loss on the
+   *last* cycle) it must add `os.fsync()` calls explicitly; if it only
+   needs "readers never see torn JSON," the existing `tmp.replace()`
+   step alone already provides that, with no code change required
+   beyond what `live_snapshot.py` already does.
 
 This satisfies every criterion in the brief:
 - **Process isolation** — API process never touches producer memory.
-- **Reproducibility** — one file = one immutable point-in-time state; a
-  copy of the file plus the referenced ledger offsets fully reproduces
-  what the operator saw.
+- **Reproducibility** — one file = one immutable point-in-time state for
+  the *live* domains it carries; a copy of the file plus the ledger
+  watermark fields defined in §6.1 (not "referenced ledger offsets" in
+  the abstract — see §6.1 for the concrete field) fully reproduces what
+  the operator saw, including which historical events were and were not
+  in view.
 - **Freshness** — `generated_at_utc` + per-domain `freshness` (O-01) let
   the API/cockpit compute staleness without guessing.
 - **Atomicity** — `os.replace()` on POSIX is atomic; readers never see a
-  half-written file; §14 defines the identity fields that let the API
-  detect and refuse a torn cross-cycle read even without OS-level torn
-  reads (e.g. a slow NFS mount, not applicable to a local VPS disk but
-  documented defensively).
+  half-written file (reader-atomicity only — see the durability caveat
+  above); §14 defines the identity fields that let the API detect and
+  refuse a torn cross-cycle read even without OS-level torn reads (e.g.
+  a slow NFS mount, not applicable to a local VPS disk but documented
+  defensively), and §14.1 defines how a stale post-restart snapshot is
+  prevented from being presented as current.
 - **Restart safety** — file persists across producer restarts; API
-  serves the last-known snapshot with its true (aging) freshness rather
-  than fabricating a fresh empty one.
+  serves the last-known snapshot labeled `LAST_KNOWN` (never `CURRENT`)
+  per §14.1's restart-invalidation model, with its true (aging)
+  freshness rather than fabricating a fresh empty one.
 - **Read-only web process** — the API process opens no write handle to
   producer state, ever.
-- **Low runtime overhead** — one JSON write per cycle (already the
-  `SystemSnapshot` pattern's cost profile), no new network service, no
-  new message broker.
+- **Low runtime overhead** — one JSON write per cycle (comparable to
+  `live_snapshot.py`'s existing cost profile), no new network service,
+  no new message broker.
 
 No new message bus is introduced. This is a deliberate, evidence-backed
 minimality choice per the brief's explicit constraint.
@@ -370,6 +446,116 @@ worktree, no runtime data) — the schema below is from the recorder's
 No property in this table is fabricated as zero; any field absent for a
 given schema version must render `NOT_EXPOSED` for that record, never a
 default numeric.
+
+### 6.1 JSONL read-consistency / watermark contract (R1-2)
+
+**Correction:** the original draft of this contract characterized the
+JSONL ledgers (`paper_trades.jsonl`, `regret_*.jsonl`, `black_box.jsonl`)
+as directly cross-process-safe, reproducible point-in-time sources
+because they are append-only. That is imprecise. Confirmed by reading
+`paper_trading/recorder.py` in full:
+
+- `_append()` (the writer) does a plain `self._path.open("a").write(line)`
+  — a normal buffered append, no `fsync`, no locking, no atomic-rename
+  step. A concurrent reader mid-write can observe a file whose last line
+  is not yet newline-terminated (a torn write of the in-progress line
+  only — POSIX `write()` on a regular file is not guaranteed atomic
+  across arbitrary sizes, though same-line torn reads are the practical
+  risk, not corruption of earlier lines).
+- `events()` (the reader) iterates line-by-line and wraps each
+  `json.loads(line)` in a bare `try/except Exception: pass` — a
+  malformed or incomplete trailing line is **silently skipped**, not
+  surfaced as an error.
+
+So the correct relationship is:
+
+**APPEND-ONLY ≠ ATOMIC MULTI-READER SNAPSHOT ≠ REPRODUCIBLE
+POINT-IN-TIME VIEW.** Append-only guarantees earlier, fully-written lines
+are never mutated or removed — it does not guarantee that two reads
+(or two different consumers reading concurrently with the writer) see
+the same *set* of lines, and it does not distinguish "confirmed-empty"
+from "unreadable-tail-currently-being-written."
+
+**Required boundary/watermark mechanism — byte offset.** The API
+process, when it opens `databases/paper_trades.jsonl` (and any other
+JSONL ledger it exposes, `regret_*.jsonl` / `black_box.jsonl` included,
+same mechanism) for a request, MUST record the number of bytes
+comprising all **complete** (newline-terminated) lines it successfully
+parsed up to that read — i.e. the offset of the byte immediately after
+the last consumed `\n`, never including a trailing partial line even if
+it happens to parse. This is chosen over the brief's other listed
+options because: a monotonic *event sequence number* does not exist in
+`TradeEvent` today (would require a recorder schema change, out of this
+mission's documentation-only scope, §5 of R1-5); "last canonical event
+identity" (e.g. `trade_id` + `event`) is not strictly monotonic under
+concurrent writers and is harder for a client to compare cheaply than an
+integer; byte offset is trivially obtainable from the read loop already
+required (`f.tell()` after each successfully consumed line), is strictly
+monotonic because the file is append-only, and needs zero recorder
+changes.
+
+**Field added to the envelope:** every TRADE_API response (and any other
+JSONL-ledger-backed response) MUST carry a `ledger_watermark` object:
+
+```
+"ledger_watermark": {
+    "path": "databases/paper_trades.jsonl",
+    "byte_offset": 184320,
+    "read_at_utc": "2026-09-06T19:00:00Z"
+}
+```
+
+This is a concrete field added to this contract, not "referenced ledger
+offsets" left as prose — §1.3's reproducibility bullet and the
+`REQUIRED_FIELD_CONTRACT_TABLE` (below) both reference this exact field.
+
+**Binding requirements (R1-2, all six from the remediation brief):**
+
+1. Every historical/trade-history API response MUST include the
+   `ledger_watermark` above, stating exactly which ledger boundary the
+   response represents.
+2. A reader MUST NOT treat a `json.loads` failure on the final line as
+   "no more data" silently folded into a complete result — the API's
+   read loop must stop *before* an unparseable trailing line and must
+   not advance `byte_offset` past the last successfully parsed line;
+   whether that unparsed tail is itself surfaced (e.g. as a `partial_
+   tail_detected: true` diagnostic flag) is an implementation-mission
+   decision, but it must never be silently merged into "latest
+   confirmed state."
+3. **Confirmed-empty vs. unreadable/incomplete are distinct.** A ledger
+   file that exists, is fully readable, and contains zero valid lines
+   yields `status: AVAILABLE`, `population: 0`, `ledger_watermark.
+   byte_offset: 0` — a genuine `ZERO`. A ledger file that cannot be
+   opened, or whose *entire* content up to any newline fails to parse,
+   yields `status: UNAVAILABLE` — never silently coerced to the same
+   empty-list shape as the confirmed-empty case.
+4. **Open trades whose CLOSE lies beyond the declared watermark remain
+   legitimately `is_open: true` for that historical view.** `trades()`
+   pairs `OPEN`/`CLOSE` events by `trade_id` only from events at or
+   before the declared `byte_offset`; a `CLOSE` line appended after that
+   offset (i.e. after the response's read completed) must not
+   retroactively be merged in — the trade is correctly reported open
+   *as of that watermark*, even if it has since closed. This is a
+   feature of point-in-time reproducibility, not a bug: replaying the
+   same `byte_offset` must always reconstruct the same view (requirement
+   7 below).
+5. **A single response must not combine events beyond its own declared
+   boundary.** If a request spans multiple ledgers (e.g. trades +
+   regret), each carries its own independent `ledger_watermark` — the
+   API must not read one ledger to a later offset than the other under
+   the same request and present them as one consistent point-in-time
+   view without that being visible in each resource's own watermark.
+6. **Reproducibility claims reference this field, not prose.** §1.3's
+   "a copy of the file plus the ledger watermark fields... fully
+   reproduces what the operator saw" is this exact mechanism: given the
+   same ledger file content up to `byte_offset` and the same
+   `snapshot_id`/`cycle` from the OperatorSnapshot envelope, replaying
+   the read deterministically reconstructs the same operator-visible
+   state (see §22, test requirement 7).
+
+This mechanism requires **no new database and no new message bus** —
+it is a read-side discipline over the existing append-only files, per
+R1-2's explicit constraint.
 
 ---
 
@@ -659,6 +845,89 @@ must not be silently reconciled against a new one — the client must
 treat `snapshot_id` as a version key and discard stale reads outright,
 never merge fields across two ids.
 
+### 14.1 Previous-runtime snapshot invalidation (R1-3)
+
+**Gap in the original draft:** `process_instance_id` (§14, §15) is a
+necessary field but is not, by itself, sufficient — nothing in the
+original text prevented the API from reading a snapshot file left on
+disk by a now-dead producer process and presenting it as `FRESH`/
+`CURRENT` merely because its `generated_at_utc` is still inside the
+freshness TTL. A restart sequence exposes this precisely:
+
+```
+A. producer process P1 (process_instance_id=I1) dies
+B. the last snapshot P1 wrote (process_instance_id=I1) remains on disk,
+   wall-clock-fresh (e.g. written 3s before the crash)
+C. producer restarts as process P2 (new process_instance_id=I2)
+D. P2 has not yet completed its first full snapshot-composition cycle
+E. an API request arrives in this window
+```
+
+At step E, age-based freshness alone (`now - generated_at_utc < stale_
+after`) would wrongly label I1's snapshot `FRESH`/current, even though
+it is now a different process instance's stale output. **This contract
+requires the following invariant, enforced independently of wall-clock
+age:**
+
+> `snapshot.process_instance_id != current_producer_process_instance_id`
+> ⇒ the snapshot MUST NOT be presented as `CURRENT` runtime truth,
+> regardless of `generated_at_utc` age.
+
+**Selected mechanism: a separate, atomically-written runtime-instance
+manifest, published before the first domain snapshot of a new process
+lifetime.** Concretely:
+
+1. On process start, before entering its main loop (and before writing
+   its first periodic domain snapshot), the producer writes a small,
+   separate file — e.g. `databases/operator_runtime_manifest.json` —
+   containing at minimum `{process_instance_id, boot_timestamp_utc,
+   pid, source_sha}`, using the same tmp-file-plus-atomic-replace
+   mechanism as §1.3 (this is a second, much smaller atomic write, not
+   a new transport). This manifest is the producer's own declaration of
+   "who is currently running," independent of and always current
+   before any per-cycle domain data exists.
+2. Every periodic domain snapshot embeds the writer's own
+   `process_instance_id` (already required by §14/§15) — this does not
+   change.
+3. **On every read, the API process reads both files** and compares
+   `snapshot.process_instance_id` against
+   `runtime_manifest.process_instance_id`. If they differ, the API
+   MUST label the snapshot's runtime-scoped fields (everything except
+   whatever it can independently attribute to a durable, non-runtime
+   source such as the JSONL ledgers, which have their own §6.1
+   watermark and are unaffected by producer identity) as `LAST_KNOWN`,
+   never `CURRENT`. `LAST_KNOWN` is presented with its true age and an
+   explicit `stale_reason: PRODUCER_RESTARTED` — distinct from ordinary
+   TTL-based `STALE`, since the failure mode here is identity mismatch,
+   not mere elapsed time.
+4. Between step A (manifest published for I2) and the first complete
+   post-restart domain snapshot, the API has a `runtime_manifest`
+   proving a new process is up, but the newest domain snapshot still
+   carries I1. This is precisely the window this mechanism is for: the
+   API can now positively assert `CURRENT_RUNTIME_BOOTING, NO_SNAPSHOT_
+   YET` (I2 is alive per the manifest, but has not yet published) rather
+   than silently serving I1's data as if it were I2's — this is a
+   materially different, and more honest, operator-facing state than
+   either "everything is fine" or "the whole system is down."
+
+**Why not rely on snapshot age alone:** a producer can legitimately be
+slow for a single cycle (a heavier-than-usual pass) without having
+restarted — penalizing every merely-slow cycle with the same signal as
+a genuine restart would create false alarms; conversely a fast restart
+loop could republish inside one TTL window and never trip an age-only
+check at all. Identity comparison via the manifest is deterministic and
+restart-detection-specific; age remains the *separate*, complementary
+signal for ordinary TTL staleness (§13) once identity is confirmed
+unchanged.
+
+**Terminology fixed by this correction:** `LAST_KNOWN` (persisted output
+from a process instance that is not the one currently running, per the
+manifest) is a distinct state from `CURRENT` (persisted output from the
+process instance the manifest confirms is presently alive). A cockpit
+consumer must render these differently — `LAST_KNOWN` should visually
+communicate "this is not what the running system says right now," not
+merely "this is N seconds old."
+
 ---
 
 ## 15. RUNTIME_IDENTITY_CONTRACT
@@ -667,7 +936,7 @@ never merge fields across two ids.
 |---|---|---|
 | `source_sha` | The git commit the running code was checked out from | `git rev-parse HEAD` at process start, or the deploy tooling's own record (`CLAUDE.md`'s `deploy-YYYYMMDD-HHMM` annotated tags carry the SHA + file list — reuse that convention as the audit trail, do not invent a second one) |
 | `runtime_sha` / `deployed_sha` | If separately known — relevant because `CLAUDE.md`'s own documented history (the v2/v3 `CLEAN_DATA_SINCE` incident) shows a real historical case where the deployed code silently diverged from what was believed deployed (the `ssh` `-n` bug in `deploy_vps.sh`) — this field exists specifically so that class of silent divergence is detectable going forward | Deploy tag / `scripts/deploy_vps.sh` audit trail |
-| `process_instance_id` | Unique per process lifetime | Generated at process start (e.g. a UUID or `os.getpid()` combined with boot timestamp for uniqueness across PID reuse) |
+| `process_instance_id` | Unique per process lifetime | Generated at process start (e.g. a UUID or `os.getpid()` combined with boot timestamp for uniqueness across PID reuse); published immediately in a dedicated `operator_runtime_manifest.json` per §14.1, ahead of the first domain snapshot, so the API can detect a producer restart (`LAST_KNOWN` vs `CURRENT`, §14.1) independently of snapshot age |
 | `pid` | If safe to expose (host-local FastAPI/cockpit under the operator's own control — this contract treats it as safe within the read-only, non-public deployment model of §16; must not be exposed if the API is ever made publicly reachable without auth) | `os.getpid()` |
 | `boot timestamp` | Process start time | Recorded at process start |
 | `cycle` | See §14 | advisor loop's own counter |
@@ -751,7 +1020,8 @@ requirements.
 | `sdos_terminal/frontend/` | Not inspected in this pass (directory existence not confirmed independently of `sdos_terminal/api/app.py`'s presence) — classify NEEDS_VERIFICATION rather than guess | — |
 | `risk_dashboard_api.py` | Does not exist at repo root (confirmed: `ls` returned "No such file or directory") | N/A — nothing to classify |
 | `api_rest.py` | Does not exist at repo root (confirmed: `ls` returned "No such file or directory") | N/A — nothing to classify |
-| `observability/system_snapshot.py` + `visualization/api/system_snapshot_source.py` | REUSE_DATA_SEMANTICS (the underlying `SystemSnapshot` JSON-dump pattern) with an explicit caveat: **`SystemSnapshot != O-01`** — O-01's own architecture doc states this class distinction directly (§10 known gap: "`portfolio_api.py` is defective... `SystemSnapshot != O-01`" is implied by the fact O-01 had to build an entirely parallel domain-snapshot contract rather than just wrapping `SystemSnapshot` fields 1:1). Reuse the *atomic-JSON-dump transport pattern* (§1.3 explicitly models the new canonical snapshot on this), never assume `SystemSnapshot`'s existing field values already satisfy O-01/this contract's semantics without independent field-level certification. | |
+| `observability/system_snapshot.py` + `visualization/api/system_snapshot_source.py` | REUSE_DATA_SEMANTICS (the `SystemSnapshot` dataclass field *model*, not any writer it implements) with an explicit caveat: **`SystemSnapshot != O-01`** — O-01's own architecture doc states this class distinction directly (§10 known gap: "`portfolio_api.py` is defective... `SystemSnapshot != O-01`" is implied by the fact O-01 had to build an entirely parallel domain-snapshot contract rather than just wrapping `SystemSnapshot` fields 1:1). **Correction (R1-1):** `system_snapshot.py` itself is a pure in-memory dataclass model with no atomic-write implementation of its own; the actual atomic-JSON-dump writer already in production is `quant_hedge_ai/dashboard/live_snapshot.py::write_snapshot()` (tmp-file + `Path.replace()`, called from `core/advisor_loop.py`), read back by `visualization/api/system_snapshot_source.py`. Reuse *that* writer's tmp-write-then-replace mechanism as implementation precedent for the new §1.3 canonical snapshot writer — never assume `SystemSnapshot`'s existing field values already satisfy O-01/this contract's semantics without independent field-level certification, and never cite `system_snapshot.py` itself as already atomic. | |
+| `quant_hedge_ai/dashboard/live_snapshot.py` (`write_snapshot()`/`read_snapshot()`) | REUSE_TRANSPORT_PATTERN (the atomic tmp-write-then-`Path.replace()` mechanism itself) | Confirmed by full-file read: `write_snapshot()` creates `path.with_suffix(".tmp")` in the destination directory, writes the complete JSON payload via `write_text()`, then calls `tmp.replace(path)` (POSIX-atomic rename), with a bare `except Exception` that logs and leaves the destination untouched on serialization failure — exactly the reader-atomicity property §1.3's precise atomic-write requirements need. It does **not** call `os.fsync()` at any level, so it provides reader-atomicity, not crash-durability of the last write (§1.3 item 5). This is genuine, citable implementation precedent for the new canonical operator snapshot writer — not itself the O-01 envelope, and not `SystemSnapshot`. |
 
 ---
 
@@ -848,13 +1118,24 @@ fields from §14-§15.
   1" O-01 itself deferred ("a future integration layer... will: 1. read
   already-existing in-memory objects... 2. wrap each value in an
   `ObservedValue`... 3. call the relevant `compose_*_snapshot()`").
-- The atomic snapshot writer itself (tmp file + `os.replace()`).
+- The atomic snapshot writer itself (tmp file + `os.replace()`), modeled
+  on `quant_hedge_ai/dashboard/live_snapshot.py::write_snapshot()`
+  (§1.2, §1.3) — a new writer, not a modification of that existing
+  function's own call site.
+- The runtime-instance manifest writer (§14.1) — a small, separate
+  atomic write at process start, ahead of the first domain snapshot.
+- The JSONL read-side watermark logic (§6.1) — byte-offset tracking in
+  the ledger read path, applied uniformly to trades/regret/decision
+  ledgers.
 - A separate, new, read-only FastAPI process (or an addition to
   `sdos_terminal/api/app.py` if that shape is confirmed reusable per
   §18) exposing GET routes over the snapshot file plus direct reads of
-  the existing JSONL ledgers for history (trades, decisions).
+  the existing JSONL ledgers for history (trades, decisions), each
+  response carrying its `ledger_watermark` (§6.1) and the snapshot's
+  `runtime_state` (§14.1).
 - Auth per §16, reusing `scripts/dashboard_api.py`'s HMAC pattern or
   equivalent.
+- The test suite specified in §22 (CONTRACT_TEST_REQUIREMENTS).
 
 **Explicitly out of scope for that mission too** (carried forward from
 this one): any modification to `core/advisor_loop.py`'s decision logic,
@@ -884,6 +1165,83 @@ not a change to what the loop decides.
 | `system_health.health_score` | Composite scientific health (0-100), NOT a global system percentage — scoped to `MetricsSnapshot` inputs only | float | pct (0-100) | over defined `MetricsSnapshot` inputs | OBSERVATIONAL_TELEMETRY | `UNAVAILABLE` if `MetricsSnapshot` missing | `0` is a genuine (critical) score | `MetricsSnapshot` cadence |
 | `mode` (portfolio/wallet) | PAPER/REAL_API/TESTNET_API/UNKNOWN | enum | — | N/A | provenance metadata, not authority | `UNKNOWN` if snapshot predates first successful mode resolution | N/A (categorical) | process-lifetime constant |
 | `snapshot_id` / `cycle` / `runtime_sha` / `process_instance_id` | Identity/atomicity spine | mixed | — | N/A | envelope metadata | never null in a valid snapshot | N/A | write-time |
+| `ledger_watermark` (`path`/`byte_offset`/`read_at_utc`) | Point-in-time boundary for a JSONL-ledger-backed response (§6.1) | object | bytes (`byte_offset`) | N/A | envelope metadata, per-resource | never null on a successful ledger read | `byte_offset: 0` is a genuine empty-ledger read, distinct from `UNAVAILABLE` (§6.1 requirement 3) | read-time (per request) |
+| `runtime_manifest.process_instance_id` / `boot_timestamp_utc` | Independently-published proof of the currently-alive producer instance (§14.1) | mixed | — | N/A | envelope metadata, cross-checked against every snapshot read | `UNAVAILABLE` if the manifest file itself is missing/corrupt (never coerced to "assume current") | N/A | write-time, updated once per process boot |
+| `snapshot.runtime_state` (`CURRENT` \| `LAST_KNOWN`) | Derived label: does `snapshot.process_instance_id` match the current `runtime_manifest`? (§14.1) | enum | — | N/A | envelope metadata, API-computed | N/A (always computable given both files) | N/A | computed at read-time, not stored |
+
+---
+
+## 22. CONTRACT_TEST_REQUIREMENTS (R1-4)
+
+Documentation-only in this mission — these are **requirements the future
+implementation mission (§21) must satisfy with real tests**, not tests
+written here. Each maps directly to a semantic guarantee this contract
+makes elsewhere; a contract clause with no corresponding test requirement
+is not enforceable and would regress silently.
+
+1. **Reader never observes a partial canonical JSON snapshot.** A test
+   that concurrently reads the snapshot file while a writer repeatedly
+   replaces it (tight loop, many iterations) must assert every read
+   either fully parses or the file simply doesn't exist yet — never a
+   `json.JSONDecodeError` from a torn/partial read. Exercises §1.3 item
+   1-3 (atomic-write requirements) and the reader-atomicity claim.
+2. **Failed serialization preserves the previous valid snapshot.** A
+   test that forces the serialization step to raise (e.g. a
+   non-JSON-serializable value injected) must assert the destination
+   file's content and mtime are unchanged after the failed write
+   attempt — never truncated, never partially overwritten. Exercises
+   §1.3 item 4.
+3. **A previous-runtime snapshot is detectable immediately after
+   restart.** A test that (a) writes a snapshot with
+   `process_instance_id=I1`, (b) publishes a fresh `runtime_manifest`
+   with `process_instance_id=I2` (simulating a restart) without yet
+   writing a new domain snapshot, must assert the API-level read
+   immediately reports `runtime_state=LAST_KNOWN` / `stale_reason=
+   PRODUCER_RESTARTED` for the I1 snapshot — with zero delay tied to
+   snapshot age. Exercises §14.1 steps 1-3.
+4. **A stale-identity snapshot cannot be labeled `CURRENT` merely
+   because `age < stale_after`.** A test must construct the specific
+   case where the I1 snapshot is *well within* its normal freshness TTL
+   (e.g. written 2 seconds ago against a 30-second `stale_after`) yet a
+   newer `runtime_manifest` already shows `I2` — and assert the label is
+   still `LAST_KNOWN`, proving identity comparison overrides age-based
+   freshness rather than being redundant with it. Exercises §14.1's
+   core invariant directly (this is the test that would fail against
+   the original, pre-R1 contract text).
+5. **A partial final JSONL line does not silently become confirmed-
+   complete history.** A test that appends a deliberately truncated
+   (non-newline-terminated, unparseable) final line to a ledger fixture
+   must assert the reader's returned `byte_offset` stops at the last
+   *complete* line before the truncated one, and that the response is
+   not silently presented as the full/final trade list without any
+   signal that a tail was excluded. Exercises §6.1 requirement 2.
+6. **A historical response exposes a deterministic ledger watermark.**
+   A test must assert every JSONL-ledger-backed response (trades,
+   regret, decisions) includes a `ledger_watermark` object with a
+   non-null `byte_offset` on any successful read, including a
+   confirmed-empty ledger (`byte_offset: 0`, distinct from
+   `UNAVAILABLE` — requirement 8 below). Exercises §6.1 requirement 1.
+7. **Replaying the same snapshot identity + ledger watermark
+   reconstructs the same operator-visible historical state.** A test
+   must (a) capture a response's `snapshot_id`/`cycle` and
+   `ledger_watermark.byte_offset`, (b) append additional events to the
+   ledger (simulating time passing / new trades), (c) re-read the
+   ledger truncated/bounded to the originally-captured `byte_offset`,
+   and assert the reconstructed view (including which trades appear
+   `is_open` vs closed) is byte-for-byte identical to the original
+   response's trade list — proving requirement 4 of §6.1 (an OPEN whose
+   CLOSE lies beyond the watermark stays open for that historical view)
+   and the reproducibility claim in §1.3.
+8. **`ZERO`/`EMPTY` remains distinct from `UNKNOWN`/`UNAVAILABLE` across
+   all of the above failure modes.** A consolidated assertion across
+   tests 1-7: a confirmed-empty ledger, a confirmed-zero equity, and a
+   confirmed-zero position count must never share a response shape with
+   an unreadable file, a missing manifest, or a pre-first-snapshot
+   producer state. Exercises §17 (FRESHNESS_CONTRACT)'s "no timestamp ⇒
+   UNKNOWN, missing file ⇒ UNAVAILABLE, not zero, not healthy" rule as
+   applied specifically to the new mechanisms this R1 introduces
+   (watermarks, manifest) rather than only to the domains already
+   covered by the original contract text.
 
 ---
 
