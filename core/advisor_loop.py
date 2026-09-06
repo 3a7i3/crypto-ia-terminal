@@ -413,6 +413,31 @@ def _paper_equity_display() -> float | None:
         return None
 
 
+_PAPER_TRADING_TRUTHY = {"1", "true", "yes", "on"}
+
+
+def _balance_provenance_from_mode(exec_mode: str | None) -> str:
+    """Provenance de get_balances() pour CommandCenterBot (D-7/R2).
+
+    Reflete exactement le meme mode effectif que
+    ExecutionEngine.fetch_available_capital() : meme variable
+    (PAPER_TRADING_ENABLED), meme defaut ("true"), meme ensemble truthy
+    ("1"/"true"/"yes"/"on") — relue ici, pas dediuite d'une variable locale
+    d'advisor_loop qui pourrait diverger (ex. `_paper_trading_enabled`,
+    defaut "false" et sans "on", n'est PAS une preuve valable de ce mode).
+    `exec_mode` est `exec_engine._mode` ("paper"/"live"/"testnet") tel que
+    detecte par ExchangeFactory quand PAPER_TRADING_ENABLED ne force pas
+    deja le mode paper. Fail closed — un mode non reconnu ne produit
+    jamais REAL_API par defaut.
+    """
+    paper_enabled = os.getenv("PAPER_TRADING_ENABLED", "true").lower() in _PAPER_TRADING_TRUTHY
+    if paper_enabled:
+        return "PAPER"
+    return {"paper": "PAPER", "live": "REAL_API", "testnet": "TESTNET_API"}.get(
+        exec_mode, "UNKNOWN"
+    )
+
+
 _real_accounts_obs = None
 
 
@@ -3836,20 +3861,8 @@ def main(
                 return None
 
         def _get_balance_provenance_for_bot() -> str:
-            """Provenance de get_balances() pour CommandCenterBot (D-7/R1).
-
-            Reflete le meme mode effectif que
-            ExecutionEngine.fetch_available_capital() : PAPER_TRADING_ENABLED
-            force le mode paper independamment de l'exchange configure ;
-            sinon on lit le mode reellement detecte par ExchangeFactory
-            (exec_engine._mode). Fail closed — un mode non reconnu ne
-            produit jamais REAL_API par defaut.
-            """
-            if _paper_trading_enabled:
-                return "PAPER"
-            _mode = getattr(exec_engine, "_mode", None)  # noqa: F821
-            return {"paper": "PAPER", "live": "REAL_API", "testnet": "TESTNET_API"}.get(
-                _mode, "UNKNOWN"
+            return _balance_provenance_from_mode(
+                getattr(exec_engine, "_mode", None)  # noqa: F821
             )
 
         def _get_blackbox_for_bot(n: int):
