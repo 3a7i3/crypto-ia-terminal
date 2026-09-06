@@ -3835,6 +3835,23 @@ def main(
             except Exception:
                 return None
 
+        def _get_balance_provenance_for_bot() -> str:
+            """Provenance de get_balances() pour CommandCenterBot (D-7/R1).
+
+            Reflete le meme mode effectif que
+            ExecutionEngine.fetch_available_capital() : PAPER_TRADING_ENABLED
+            force le mode paper independamment de l'exchange configure ;
+            sinon on lit le mode reellement detecte par ExchangeFactory
+            (exec_engine._mode). Fail closed — un mode non reconnu ne
+            produit jamais REAL_API par defaut.
+            """
+            if _paper_trading_enabled:
+                return "PAPER"
+            _mode = getattr(exec_engine, "_mode", None)  # noqa: F821
+            return {"paper": "PAPER", "live": "REAL_API", "testnet": "TESTNET_API"}.get(
+                _mode, "UNKNOWN"
+            )
+
         def _get_blackbox_for_bot(n: int):
             try:
                 return black_box.query(limit=n)  # noqa: F821
@@ -3853,6 +3870,7 @@ def main(
         _pb_provider = _CDP(
             get_kpis=lambda: _kpi_snapshot_with_canonical_n(_p10_kpi),
             get_balances=lambda: {"spot": real_capital, "futures": 0.0},
+            get_balance_provenance=_get_balance_provenance_for_bot,
             get_paper_equity=_paper_equity_display,
             get_positions=_get_positions_for_bot,
             get_phase=lambda: _P10_PHASE,

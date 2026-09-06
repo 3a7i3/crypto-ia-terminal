@@ -18,10 +18,10 @@ COMMANDES DISPONIBLES
   /risk            État risque (drawdown, EO, pertes consec.)
   /health          Santé de tous les modules
 
-💰 PORTEFEUILLE (PAPER + RÉEL/API)
-  /balance         Soldes RÉEL/API de tous les comptes
+💰 PORTEFEUILLE (PAPER + provenance déclarée)
+  /balance         Soldes — provenance déclarée (PAPER/RÉEL-API/TESTNET/inconnue)
   /positions       Positions PAPER ouvertes + PnL non réalisé
-  /pnl             PERFORMANCE PAPER + COMPTE RÉEL/API (deux populations distinctes)
+  /pnl             PERFORMANCE PAPER + solde (provenance déclarée, deux populations distinctes)
   /trades [n]      Derniers N trades PAPER (défaut 10)
 
 ⚙️ CONFIGURATION (lecture seule)
@@ -177,6 +177,15 @@ class CommandDataProvider:
     # Lecture
     get_kpis: Optional[Callable[[], Any]] = None
     get_balances: Optional[Callable[[], Any]] = None
+    # Provenance de get_balances — MASTER O-02B-R1 (D-7) : ExecutionEngine.
+    # fetch_available_capital() est mode-dépendant (PAPER_TRADING_ENABLED=true
+    # -> WalletSync paper, sinon solde exchange réel/testnet selon detect_mode()).
+    # Le nom "real_capital" côté advisor_loop n'est PAS une preuve de
+    # provenance — la présentation doit refléter le mode effectif, jamais le
+    # deviner. Domaine fini : "PAPER" | "REAL_API" | "TESTNET_API" | "UNKNOWN".
+    # Absent ou valeur non reconnue -> UNKNOWN (fail closed, jamais REAL_API
+    # par défaut).
+    get_balance_provenance: Optional[Callable[[], str]] = None
     # Equity du wallet virtuel MexcSim (« compte n°2 ») — demande opérateur
     # 2026-07-19 : le panneau affichait en permanence les 10.00 USD alloués
     # Phase F-01 (CapitalThrottle), illisible face aux ~677 USD du wallet
@@ -235,6 +244,29 @@ def _bar(val: float, target: float, width: int = 8, low_good: bool = False) -> s
 
 def _kpi_line(label: str, val_str: str, bar: str, target_str: str, status: str) -> str:
     return f"{label:<9} {bar}  {val_str:<7} cible {target_str:<6} {status}"
+
+
+_BALANCE_PROVENANCE_LABELS: dict[str, str] = {
+    "PAPER": "WALLET MACHINE PAPER",
+    "REAL_API": "COMPTE RÉEL / API",
+    "TESTNET_API": "COMPTE API TESTNET",
+    "UNKNOWN": "SOURCE NON CERTIFIÉE",
+}
+
+
+def _balance_provenance_label(p: CommandDataProvider) -> str:
+    """Libellé de provenance de get_balances() — jamais deviné (D-7/R1).
+
+    Fail closed : toute valeur absente ou non reconnue retombe sur
+    "SOURCE NON CERTIFIÉE", jamais sur REAL_API par défaut.
+    """
+    code = None
+    if p.get_balance_provenance:
+        try:
+            code = p.get_balance_provenance()
+        except Exception:
+            code = None
+    return _BALANCE_PROVENANCE_LABELS.get(str(code or "").upper(), _BALANCE_PROVENANCE_LABELS["UNKNOWN"])
 
 
 # ADR-0017 T5 (anti-spam opérateur) : au-delà de ce nombre de paires, les
@@ -412,7 +444,7 @@ def _fmt_balance(p: CommandDataProvider) -> str:
     bal = p.get_balances() if p.get_balances else None
     if not bal:
         return "_Soldes non disponibles_"
-    lines = ["*SOLDES — COMPTE RÉEL / API*", _SEP]
+    lines = [f"*SOLDES — {_balance_provenance_label(p)}*", _SEP]
     total = 0.0
     for acc, amt in bal.items():
         try:
@@ -474,11 +506,13 @@ def _fmt_positions(p: CommandDataProvider) -> str:
 
 
 def _fmt_pnl(p: CommandDataProvider) -> str:
-    """PnL : deux populations distinctes, jamais fusionnées (D-7).
+    """PnL : deux populations distinctes, jamais fusionnées (D-7/R1).
 
-    KPIs = performance PAPER (paper trading). Soldes = capital RÉEL/API
-    (get_balances). Ce ne sont pas la même population — le PnL PAPER
-    n'appartient pas au compte API, et aucun total combiné n'est calculé.
+    KPIs = performance PAPER (paper trading). Soldes = capital dont la
+    provenance (PAPER / REAL_API / TESTNET_API / UNKNOWN) est déclarée par
+    get_balance_provenance() — jamais supposée REAL/API par défaut. Ce ne
+    sont pas la même population — le PnL PAPER n'appartient pas au compte
+    dont le solde est affiché, et aucun total combiné n'est calculé.
     """
     kpis = p.get_kpis() if p.get_kpis else None
     bal = p.get_balances() if p.get_balances else None
@@ -495,7 +529,7 @@ def _fmt_pnl(p: CommandDataProvider) -> str:
         if kpis:
             lines.append(_SEP)
         total = sum(float(v or 0) for v in bal.values())
-        lines.append("*COMPTE RÉEL / API*")
+        lines.append(f"*{_balance_provenance_label(p)}*")
         lines.append(f"Capital / solde: *{total:.2f} USD*")
     if not kpis and not bal:
         lines.append("_Donnees non disponibles_")
@@ -796,7 +830,7 @@ def _fmt_perf(p: CommandDataProvider) -> str:
     total = cumul[-1] if cumul else 0
     sg = "+" if total >= 0 else ""
     return (
-        f"*PnL CUMULATIF*  {sg}${total:.2f} USD  ({len(pnls)} trades)\n\n"
+        f"*PnL CUMULATIF PAPER*  {sg}${total:.2f} USD  ({len(pnls)} trades)\n\n"
         + "\n".join(rows)
     )
 
@@ -820,7 +854,7 @@ def _fmt_recap(p: CommandDataProvider, days: int = 7) -> str:
     worst = min(pnls) if pnls else 0
     sg = "+" if total >= 0 else ""
     lines = [
-        f"*RECAP {days}j*  ({len(recent)} trades)",
+        f"*RECAP PAPER {days}j*  ({len(recent)} trades)",
         _SEP,
         f"PnL total:   *{sg}${total:.2f}*",
         f"Win rate:    {wr:.0%}  ({wins}W / {len(pnls)-wins}L)",
@@ -1086,10 +1120,10 @@ ANALYSE (PAPER)
 /blackbox [n]     Dernieres N entrees BlackBox
 /charts           Lien dashboard temps reel (graphiques)
 
-PORTEFEUILLE (PAPER + REEL/API)
-/balance          Soldes REEL/API comptes
+PORTEFEUILLE (PAPER + provenance declaree)
+/balance          Soldes — provenance declaree (PAPER/REEL-API/TESTNET/inconnue)
 /positions        Positions PAPER ouvertes (TP/SL/vol/duree)
-/pnl              PERFORMANCE PAPER + COMPTE REEL/API (populations distinctes)
+/pnl              PERFORMANCE PAPER + solde (provenance declaree, populations distinctes)
 /trades [n]       Derniers trades PAPER
 
 CONFIGURATION (lecture seule)
@@ -1110,10 +1144,12 @@ controle.
 class CommandCenterBot:
     """
     Bot Telegram READ-ONLY (observation/reporting) : PAPER (KPIs, positions,
-    trades, equity) et REEL/API (soldes) sont exposes en lecture, avec
-    provenance explicite dans chaque panneau. Aucune commande de controle
-    n'est active — constitution 2026-08-28. Le plan de controle reste le
-    VPS/SSH. Thread daemon.
+    trades, equity) est expose en lecture ; les soldes (get_balances) portent
+    une provenance declaree par get_balance_provenance() — jamais supposee
+    REAL_API par defaut (D-7/R1, cf CommandDataProvider) — avec provenance
+    explicite dans chaque panneau. Aucune commande de controle n'est
+    active — constitution 2026-08-28. Le plan de controle reste le VPS/SSH.
+    Thread daemon.
     """
 
     def __init__(
