@@ -10,43 +10,36 @@ Voir docs/architecture/TELEGRAM_BOT_REGISTRY.md pour le contrat complet.
 COMMANDES DISPONIBLES
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-📊 STATUS
-  /status          Résumé rapide (phase, KPIs, capital)
-  /kpis            KPIs détaillés (WR, Sharpe, DD, trades)
+📊 STATUS (PAPER)
+  /status          Résumé rapide (phase, KPIs PAPER, capital PAPER)
+  /kpis            KPIs PAPER détaillés (WR, Sharpe, DD, trades)
   /phase           Info phase F-xx + temps restant
   /regime          Régime marché (résumé global uniquement)
   /risk            État risque (drawdown, EO, pertes consec.)
   /health          Santé de tous les modules
 
-💰 PORTEFEUILLE
-  /balance         Soldes de tous les comptes
-  /positions       Positions ouvertes + PnL non réalisé
-  /pnl             PnL réalisé détaillé
-  /trades [n]      Derniers N trades (défaut 10)
+💰 PORTEFEUILLE (PAPER + RÉEL/API)
+  /balance         Soldes RÉEL/API de tous les comptes
+  /positions       Positions PAPER ouvertes + PnL non réalisé
+  /pnl             PERFORMANCE PAPER + COMPTE RÉEL/API (deux populations distinctes)
+  /trades [n]      Derniers N trades PAPER (défaut 10)
 
-⚙️ CONFIGURATION
+⚙️ CONFIGURATION (lecture seule)
   /config          Tous les paramètres par section
   /config <section> Section spécifique (trading, risk, tp, eo...)
   /get <PARAM>     Valeur d'un paramètre précis
-  /set <PARAM> <val> Modifier un paramètre (nécessite /confirm)
-
-🔧 CONTRÔLE
-  /pause           Passer en mode observation seule
-  /resume          Reprendre le trading actif
-  /setphase <F-xx> Changer de phase (F-01 à F-05)
-  /maxorder <usd>  Changer la taille max d'ordre
-  /confirm         Confirmer la dernière action en attente
-  /cancel          Annuler
 
 📋 SYSTÈME
   /logs [n]        Derniers N logs (défaut 20)
   /help            Cette liste
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Sécurité :
+Telegram = READ-ONLY (observation/reporting).
   - Répondre uniquement au chat_id configuré
-  - Toute modification nécessite /confirm dans les 60s
-  - Les modifications sont écrites dans .env ET appliquées live si possible
+  - Aucune commande de contrôle/écriture n'est active depuis la
+    constitution 2026-08-28 (/set, /pause, /resume, /setphase, /maxorder,
+    /reset, /restart, /confirm sont désactivées, cf. handler _route()).
+  - Le plan de contrôle reste le VPS/SSH — jamais Telegram.
 
 Env vars :
   MON_PORTFOLIO_BOT_TOKEN   Token du bot
@@ -300,13 +293,13 @@ def _capital_lines(p: CommandDataProvider, thr) -> list[str]:
         mn = thr.allocation().min_duration_days
         suffix = f" — Jour {el:.1f} / {mn}"
         if paper_eq is not None:
-            out.append(f"Wallet virtuel *{paper_eq:.2f} USD*{suffix}")
-            out.append(f"Alloc F-01: {thr.allocated_capital:.2f} USD")
+            out.append(f"Wallet virtuel PAPER *{paper_eq:.2f} USD*{suffix}")
+            out.append(f"Alloc F-01 PAPER: {thr.allocated_capital:.2f} USD")
             return out
-        out.append(f"Capital *{thr.allocated_capital:.2f} USD*{suffix}")
+        out.append(f"Capital PAPER *{thr.allocated_capital:.2f} USD*{suffix}")
         return out
     if paper_eq is not None:
-        out.append(f"Wallet virtuel *{paper_eq:.2f} USD*")
+        out.append(f"Wallet virtuel PAPER *{paper_eq:.2f} USD*")
     return out
 
 
@@ -328,6 +321,7 @@ def _fmt_status(p: CommandDataProvider) -> str:
         dd_t = c.get("max_drawdown", 0.02)
         lines += [
             "",
+            "*PERFORMANCE PAPER*",
             _SEP,
             _kpi_line(
                 "Win Rate",
@@ -369,7 +363,7 @@ def _fmt_kpis(p: CommandDataProvider) -> str:
     wr_t = c.get("min_win_rate", 0.45)
     sh_t = c.get("min_sharpe", 1.0)
     dd_t = c.get("max_drawdown", 0.02)
-    lines = [f"*KPIs — Phase {phase}*", _SEP]
+    lines = [f"*KPIs PAPER — Phase {phase}*", _SEP]
     lines.append(
         _kpi_line(
             "Win Rate",
@@ -418,7 +412,7 @@ def _fmt_balance(p: CommandDataProvider) -> str:
     bal = p.get_balances() if p.get_balances else None
     if not bal:
         return "_Soldes non disponibles_"
-    lines = ["*SOLDES*", _SEP]
+    lines = ["*SOLDES — COMPTE RÉEL / API*", _SEP]
     total = 0.0
     for acc, amt in bal.items():
         try:
@@ -436,8 +430,8 @@ def _fmt_positions(p: CommandDataProvider) -> str:
     if pos is None:
         return "_Positions non disponibles_"
     if not pos:
-        return "*POSITIONS OUVERTES*\n\nAucune position ouverte"
-    lines = [f"*POSITIONS OUVERTES  {len(pos)}*"]
+        return "*POSITIONS PAPER OUVERTES*\n\nAucune position ouverte"
+    lines = [f"*POSITIONS PAPER OUVERTES  {len(pos)}*"]
     for position in pos:
         try:
             sym = position.get("symbol", "?")
@@ -480,19 +474,29 @@ def _fmt_positions(p: CommandDataProvider) -> str:
 
 
 def _fmt_pnl(p: CommandDataProvider) -> str:
+    """PnL : deux populations distinctes, jamais fusionnées (D-7).
+
+    KPIs = performance PAPER (paper trading). Soldes = capital RÉEL/API
+    (get_balances). Ce ne sont pas la même population — le PnL PAPER
+    n'appartient pas au compte API, et aucun total combiné n'est calculé.
+    """
     kpis = p.get_kpis() if p.get_kpis else None
     bal = p.get_balances() if p.get_balances else None
     lines = ["*PnL DETAILS*", _SEP]
     if kpis:
         lines += [
+            "*PERFORMANCE PAPER*",
             f"Trades:        {kpis.total_trades}",
             f"Win rate:      {kpis.win_rate:.1%}",
             f"Max drawdown:  {kpis.max_drawdown:.2%}",
             f"DD courant:    {kpis.current_drawdown:.2%}",
         ]
     if bal:
+        if kpis:
+            lines.append(_SEP)
         total = sum(float(v or 0) for v in bal.values())
-        lines.append(f"Capital total: *{total:.2f} USD*")
+        lines.append("*COMPTE RÉEL / API*")
+        lines.append(f"Capital / solde: *{total:.2f} USD*")
     if not kpis and not bal:
         lines.append("_Donnees non disponibles_")
     return "\n".join(lines)
@@ -505,7 +509,7 @@ def _fmt_trades(p: CommandDataProvider, n: int = 10) -> str:
     if not trades:
         return "_Historique trades non disponible_"
     recent = trades[-n:]
-    lines = [f"*DERNIERS {len(recent)} TRADES*", _SEP]
+    lines = [f"*DERNIERS {len(recent)} TRADES PAPER*", _SEP]
     for t in reversed(recent):
         try:
             sym = t.get("symbol", "?")
@@ -849,7 +853,10 @@ def _fmt_history(p: CommandDataProvider, n: int = 20) -> str:
     total_pnl = sum(float(t.get("pnl", 0)) for t in recent)
     wins = sum(1 for t in recent if float(t.get("pnl", 0)) > 0)
     sg = "+" if total_pnl >= 0 else ""
-    lines = [f"*HISTORIQUE {len(recent)} TRADES*  PnL: {sg}${total_pnl:.2f}", _SEP]
+    lines = [
+        f"*HISTORIQUE PAPER {len(recent)} TRADES*  PnL: {sg}${total_pnl:.2f}",
+        _SEP,
+    ]
     for t in reversed(recent):
         try:
             sym = t.get("symbol", "?")
@@ -988,7 +995,7 @@ def _fmt_rapport(p: CommandDataProvider) -> str:
         dd_t = c.get("max_drawdown", 0.02)
         lines += [
             "",
-            "*PERFORMANCE*",
+            "*PERFORMANCE PAPER*",
             _kpi_line(
                 "Win Rate",
                 f"{kpis.win_rate:.0%}",
@@ -1014,7 +1021,7 @@ def _fmt_rapport(p: CommandDataProvider) -> str:
         ]
 
     n_pos = len(pos)
-    lines += ["", f"*POSITIONS  {n_pos} ouverte{'s' if n_pos != 1 else ''}*"]
+    lines += ["", f"*POSITIONS PAPER  {n_pos} ouverte{'s' if n_pos != 1 else ''}*"]
     if pos:
         for position in pos:
             try:
@@ -1032,7 +1039,7 @@ def _fmt_rapport(p: CommandDataProvider) -> str:
     if trades:
         from datetime import datetime as _dt
 
-        lines += ["", "*DERNIERS TRADES*"]
+        lines += ["", "*DERNIERS TRADES PAPER*"]
         for t in reversed(trades[-3:]):
             try:
                 sym = t.get("symbol", "?")
@@ -1060,10 +1067,11 @@ def _get_env(param: str) -> Optional[str]:
 
 _HELP_TEXT = """
 *COMMANDES DISPONIBLES*
+Telegram = READ-ONLY (observation/reporting uniquement).
 
-STATUS
-/status           Resume rapide
-/kpis             KPIs detailles
+STATUS (PAPER)
+/status           Resume rapide (phase, KPIs PAPER, capital PAPER)
+/kpis             KPIs PAPER detailles
 /phase            Phase F-xx + temps restant
 /regime           Regime marche (resume global)
 /risk             Etat risque
@@ -1072,44 +1080,41 @@ STATUS
 /gate             GlobalRiskGate (conditions actives)
 /certif           Certification P10-G (phases signees)
 
-ANALYSE
-/perf             Courbe PnL cumulatif ASCII
-/recap [n]        Recap N derniers jours (defaut 7)
-/history [n]      Entrees/sorties + PnL realise (defaut 20)
+ANALYSE (PAPER)
+/perf             Courbe PnL PAPER cumulatif ASCII
+/recap [n]        Recap PAPER N derniers jours (defaut 7)
+/history [n]      Entrees/sorties PAPER + PnL realise (defaut 20)
 /blackbox [n]     Dernieres N entrees BlackBox
 /charts           Lien dashboard temps reel (graphiques)
 
-PORTEFEUILLE
-/balance          Soldes comptes
-/positions        Positions ouvertes (TP/SL/vol/duree)
-/pnl              PnL detaille
-/trades [n]       Derniers trades
+PORTEFEUILLE (PAPER + REEL/API)
+/balance          Soldes REEL/API comptes
+/positions        Positions PAPER ouvertes (TP/SL/vol/duree)
+/pnl              PERFORMANCE PAPER + COMPTE REEL/API (populations distinctes)
+/trades [n]       Derniers trades PAPER
 
-CONFIGURATION
+CONFIGURATION (lecture seule)
 /config                Sections disponibles
 /config <section>      Params d'une section
 /get <PARAM>           Valeur d'un param
-/set <PARAM> <val>     Modifier (+ /confirm)
-
-CONTROLE
-/pause            Mode observation seule
-/resume           Reprendre trading
-/setphase <F-xx>  Changer de phase
-/maxorder <usd>   Changer max ordre
-/reset            Remettre les KPIs a zero
-/restart          Redemarrer advisor_loop (VPS)
 
 SYSTEME
 /logs [n]         Derniers logs
-/confirm          Confirmer action
-/cancel           Annuler
+
+Controle : desactive depuis la constitution 2026-08-28. /set /pause
+/resume /setphase /maxorder /reset /restart /confirm /cancel ne font
+plus rien via Telegram — utilise le VPS (SSH) pour toute action de
+controle.
 """.strip()
 
 
 class CommandCenterBot:
     """
-    Bot Telegram complet : lecture + ecriture + controle du systeme.
-    Thread daemon, confirmation requise pour les actions destructives.
+    Bot Telegram READ-ONLY (observation/reporting) : PAPER (KPIs, positions,
+    trades, equity) et REEL/API (soldes) sont exposes en lecture, avec
+    provenance explicite dans chaque panneau. Aucune commande de controle
+    n'est active — constitution 2026-08-28. Le plan de controle reste le
+    VPS/SSH. Thread daemon.
     """
 
     def __init__(
