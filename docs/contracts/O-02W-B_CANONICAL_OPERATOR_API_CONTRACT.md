@@ -18,6 +18,21 @@ corrected in place below; §22 adds the corresponding test requirements.
 This remains documentation-only — no runtime source was changed to
 make the contract true.
 
+**R2 remediation (O-02W-B-R2, same date):** independent review of the
+R1 solution found two further scientific-consistency defects, both now
+corrected in place: (1) the R1-2 watermark model used `path`+`byte_
+offset` as if a logical ledger path were a stable physical identity —
+`scripts/rotate_jsonl.sh` (`mv` + `touch`) proves it is not, so §6.1 now
+adds a `generation_id` and a precise binary-byte-offset requirement
+(the R1 text's `f.tell()` reference was itself imprecise for a
+text-mode file handle); (2) the R1-3 runtime manifest was described in
+several places as proof the producer "is alive," conflating a one-time
+identity declaration with an ongoing liveness signal — §14.2 now
+separates `INSTANCE_RELATION` (identity/succession) from `LIVENESS`
+(sourced independently from `system_health.boot_alive`). §22 gains five
+corresponding test requirements (9-13). R1's three original corrections
+are unchanged and not reverted.
+
 This document is the authoritative source-inspected contract for a future
 read-only "operator API" serving the React cockpit (`frontend/`). It
 supersedes no code — it constrains what a future implementation mission
@@ -90,7 +105,7 @@ heap directly. Options considered, per the brief's bounded list:
 | Append-only event stream + snapshot | REJECTED for this contract's scope | Real value for DECISION_API history (decision packets are already an event-sourced hash chain, §8) and for TRADE_API history (JSONL ledger already is this). Not needed as the *primary* transport for point-in-time domain state — adds operational complexity (offsets, replay, compaction) with no freshness/atomicity benefit over a snapshot file for state that is naturally "current value," not a stream. The existing JSONL ledgers already give append-only history for trades/decisions; no new bus is required to expose them read-only. |
 | Local Unix domain socket (advisor process serves a socket, API process is a client) | REJECTED | Requires the advisor process to run a server loop and accept connections — a scope/coupling increase inside `core/advisor_loop.py`, explicitly forbidden by this mission ("do NOT modify advisor_loop.py"). Also reintroduces liveness coupling: if the advisor process stalls mid-request, the API blocks: the opposite of "low runtime overhead" and "read-only web process independent of producer liveness." |
 | Loopback read-only HTTP (advisor process exposes an internal HTTP endpoint, API process proxies it) | REJECTED | Same objection as the socket option — it requires the producer process to run an HTTP server, which is new functional surface inside or beside the trading engine, not a passive observer. It also duplicates the API layer this mission is defining one process too early. |
-| Other existing safe mechanism (SQLite / shared file-lock DB) | REJECTED for the *hot* live-state path, ACCEPTABLE unchanged for what already uses it | The existing JSONL ledgers (`paper_trades.jsonl`, `regret_*.jsonl`, `black_box.jsonl`) already are this mechanism for historical/append-only data and should be read as-is (§6). Introducing a new SQLite file for *live* snapshot state would be a new storage technology for no benefit over a JSON file already atomic-rename-capable. |
+| Other existing safe mechanism (SQLite / shared file-lock DB) | REJECTED for the *hot* live-state path, ACCEPTABLE unchanged for what already uses it | The existing JSONL ledgers (`paper_trades.jsonl`, `regret_*.jsonl`, `black_box.jsonl`) already are this mechanism for historical/append-only data and should be read directly (§6), subject to the generation-aware watermark discipline in §6.1 (not "as-is" without qualification — append-only alone does not make a rotating ledger a safe multi-reader point-in-time source). Introducing a new SQLite file for *live* snapshot state would be a new storage technology for no benefit over a JSON file already atomic-rename-capable. |
 
 ### 1.3 Selected design
 
@@ -447,7 +462,7 @@ No property in this table is fabricated as zero; any field absent for a
 given schema version must render `NOT_EXPOSED` for that record, never a
 default numeric.
 
-### 6.1 JSONL read-consistency / watermark contract (R1-2)
+### 6.1 JSONL read-consistency / watermark contract (R1-2, extended R2-1)
 
 **Correction:** the original draft of this contract characterized the
 JSONL ledgers (`paper_trades.jsonl`, `regret_*.jsonl`, `black_box.jsonl`)
@@ -476,44 +491,96 @@ are never mutated or removed — it does not guarantee that two reads
 the same *set* of lines, and it does not distinguish "confirmed-empty"
 from "unreadable-tail-currently-being-written."
 
-**Required boundary/watermark mechanism — byte offset.** The API
-process, when it opens `databases/paper_trades.jsonl` (and any other
-JSONL ledger it exposes, `regret_*.jsonl` / `black_box.jsonl` included,
-same mechanism) for a request, MUST record the number of bytes
-comprising all **complete** (newline-terminated) lines it successfully
-parsed up to that read — i.e. the offset of the byte immediately after
-the last consumed `\n`, never including a trailing partial line even if
-it happens to parse. This is chosen over the brief's other listed
-options because: a monotonic *event sequence number* does not exist in
-`TradeEvent` today (would require a recorder schema change, out of this
-mission's documentation-only scope, §5 of R1-5); "last canonical event
-identity" (e.g. `trade_id` + `event`) is not strictly monotonic under
-concurrent writers and is harder for a client to compare cheaply than an
-integer; byte offset is trivially obtainable from the read loop already
-required (`f.tell()` after each successfully consumed line), is strictly
-monotonic because the file is append-only, and needs zero recorder
-changes.
+**Second correction (R2-1): a logical path is not a stable physical
+generation.** Confirmed by reading `scripts/rotate_jsonl.sh`:
+`rotate_if_large()` does `mv "$file" "$archive"` (archive suffixed with a
+UTC timestamp, e.g. `black_box.jsonl.20260906_190000`) followed
+immediately by `touch "$file"`, optionally backgrounding a `gzip` of the
+archive — applied today to `databases/black_box.jsonl`,
+`databases/gate_rejections.csv`, and `databases/integrity_audit.jsonl`
+whenever they exceed `ROTATE_THRESHOLD_MB`. After this runs,
+`databases/black_box.jsonl` is a **brand-new, empty inode** at the same
+path — a `byte_offset` recorded against the pre-rotation file is
+meaningless against the post-rotation file at that path: offset 184320
+might land mid-object in the old generation's content but past-EOF (or,
+worse, coincidentally valid-looking but wrong) in the new one. The
+original §6.1 text implicitly treated "path" as a globally immutable
+identity; that is false for any rotating ledger and must not be implied
+even for ledgers not currently rotated on a schedule (a manual `mv`
+achieves the same effect).
 
-**Field added to the envelope:** every TRADE_API response (and any other
-JSONL-ledger-backed response) MUST carry a `ledger_watermark` object:
+**Corrected model — logical ledger vs. physical generation.** The
+contract now distinguishes:
+
+- **Logical ledger** — the stable, path-like identity an operator or
+  cockpit reasons about ("the paper trades ledger," "the black-box
+  ledger") — this is what `path` denotes, and it MAY remain stable
+  across rotations.
+- **Physical ledger generation** — one specific inode/file instance
+  currently or previously present at that logical path. Rotation
+  creates a new generation at the same logical path; the archived file
+  is a *different, retired* generation, not the same one under a new
+  name.
+
+**Field added to the envelope (supersedes the R1-2 shape):**
 
 ```
 "ledger_watermark": {
-    "path": "databases/paper_trades.jsonl",
+    "logical_source": "paper_trades",
+    "generation_id": "b7e1f2a4c9d3e8f0",
     "byte_offset": 184320,
-    "read_at_utc": "2026-09-06T19:00:00Z"
+    "read_at_utc": "2026-09-06T19:00:00Z",
+    "path": "databases/paper_trades.jsonl"
 }
 ```
 
-This is a concrete field added to this contract, not "referenced ledger
-offsets" left as prose — §1.3's reproducibility bullet and the
-`REQUIRED_FIELD_CONTRACT_TABLE` (below) both reference this exact field.
+`path` is retained as **provenance only** (useful for an operator or
+debugger to locate the file on disk) and MUST NOT be used as the sole
+identity of a watermark for any ledger that can rotate. `generation_id`
+is the opaque value that actually identifies which physical file a
+`byte_offset` is meaningful against.
 
-**Binding requirements (R1-2, all six from the remediation brief):**
+**`generation_id` derivation.** This contract does not mandate a
+specific algorithm (that is an implementation-mission decision, subject
+to R2-5's no-runtime-changes constraint on *this* document), but it
+MUST satisfy: (a) it changes whenever the file at the logical path is
+replaced, truncated, or rotated, and (b) it is derivable from
+information already available to a reader with no ledger-writer changes
+required. Two zero-schema-change candidates, either acceptable: the
+underlying file's **inode number** (`os.stat().st_ino` — a POSIX
+`mv`+`touch` rotation always produces a new inode at the logical path;
+note inode numbers can be reused after deletion on some filesystems over
+long timescales, so pairing with (b) below is recommended) or a
+**content-anchored hash** of the first N bytes of the file at first-open
+time (cheap, stable for the life of that generation, does not depend on
+filesystem-specific inode reuse behavior). Either satisfies the
+requirement without a recorder/rotation-script change.
+
+**Byte-offset unit precision (R2-1 correction).** The original text
+suggested deriving `byte_offset` from `f.tell()` "after each successfully
+consumed line," but `paper_trading/recorder.py::events()` opens the file
+in **text mode** (`self._path.open("r", encoding="utf-8")`). Per the
+Python `io` documentation, `TextIOWrapper.tell()` returns an **opaque
+cookie**, not a guaranteed byte count — on encodings where character and
+byte counts diverge (any non-ASCII UTF-8 content, which this ledger
+schema explicitly allows: `symbol`, `close_reason`, and free-text
+context fields are not ASCII-constrained), the numeric value returned by
+a text-mode `tell()` is not safe to interpret as, or compare against, a
+byte offset computed another way (e.g. `os.path.getsize()` or a
+binary-mode read). **The field is named `byte_offset` and MUST represent
+actual bytes.** The implementation mission must derive it either by (a)
+opening the ledger in **binary mode** (`open(path, "rb")`) and tracking
+position via the binary handle's `tell()`, decoding each line
+individually for JSON parsing, or (b) computing
+`len(line.encode("utf-8"))` accumulated per consumed line against a
+known starting byte offset. A text-mode `tell()` cookie must never be
+stored in or compared as `byte_offset`.
+
+**Binding requirements (R1-2 origin, extended by R2-1 — ten total):**
 
 1. Every historical/trade-history API response MUST include the
-   `ledger_watermark` above, stating exactly which ledger boundary the
-   response represents.
+   `ledger_watermark` above, stating exactly which ledger boundary
+   (logical source + generation + byte offset) the response represents.
 2. A reader MUST NOT treat a `json.loads` failure on the final line as
    "no more data" silently folded into a complete result — the API's
    read loop must stop *before* an unparseable trailing line and must
@@ -525,37 +592,78 @@ offsets" left as prose — §1.3's reproducibility bullet and the
 3. **Confirmed-empty vs. unreadable/incomplete are distinct.** A ledger
    file that exists, is fully readable, and contains zero valid lines
    yields `status: AVAILABLE`, `population: 0`, `ledger_watermark.
-   byte_offset: 0` — a genuine `ZERO`. A ledger file that cannot be
-   opened, or whose *entire* content up to any newline fails to parse,
-   yields `status: UNAVAILABLE` — never silently coerced to the same
-   empty-list shape as the confirmed-empty case.
+   byte_offset: 0` (with a real `generation_id` for that empty file) —
+   a genuine `ZERO`. A ledger file that cannot be opened, or whose
+   *entire* content up to any newline fails to parse, yields `status:
+   UNAVAILABLE` — never silently coerced to the same empty-list shape
+   as the confirmed-empty case.
 4. **Open trades whose CLOSE lies beyond the declared watermark remain
-   legitimately `is_open: true` for that historical view.** `trades()`
-   pairs `OPEN`/`CLOSE` events by `trade_id` only from events at or
-   before the declared `byte_offset`; a `CLOSE` line appended after that
-   offset (i.e. after the response's read completed) must not
+   legitimately `is_open: true` for that historical view**, within the
+   same generation. `trades()` pairs `OPEN`/`CLOSE` events by `trade_id`
+   only from events at or before the declared `byte_offset` *of that
+   generation*; a `CLOSE` line appended after that offset must not
    retroactively be merged in — the trade is correctly reported open
    *as of that watermark*, even if it has since closed. This is a
    feature of point-in-time reproducibility, not a bug: replaying the
-   same `byte_offset` must always reconstruct the same view (requirement
-   7 below).
+   same `generation_id` + `byte_offset` must always reconstruct the same
+   view (requirement 9 below).
 5. **A single response must not combine events beyond its own declared
    boundary.** If a request spans multiple ledgers (e.g. trades +
    regret), each carries its own independent `ledger_watermark` — the
    API must not read one ledger to a later offset than the other under
    the same request and present them as one consistent point-in-time
    view without that being visible in each resource's own watermark.
-6. **Reproducibility claims reference this field, not prose.** §1.3's
-   "a copy of the file plus the ledger watermark fields... fully
-   reproduces what the operator saw" is this exact mechanism: given the
-   same ledger file content up to `byte_offset` and the same
-   `snapshot_id`/`cycle` from the OperatorSnapshot envelope, replaying
-   the read deterministically reconstructs the same operator-visible
-   state (see §22, test requirement 7).
+6. **`generation_id` MUST change when a ledger is replaced, truncated,
+   or rotated** (§6.1's "second correction" above) — a watermark
+   captured against a pre-rotation generation is a different identity
+   from any watermark captured after `rotate_jsonl.sh` (or an equivalent
+   manual `mv`+recreate) runs, even though `path`/`logical_source` are
+   unchanged.
+7. **A `byte_offset` is meaningful only inside its own `generation_id`.**
+   Replay (§22 test requirement 7/9) MUST compare `generation_id` before
+   applying a stored `byte_offset` to any file; a replay request whose
+   `generation_id` does not match the current (or the specifically
+   requested archived) generation at that logical path MUST be refused
+   with an explicit error, never silently applied against a
+   coincidentally similarly-sized different file.
+8. **Referencing a no-longer-retained generation is `UNAVAILABLE`, not
+   an empty result.** `rotate_jsonl.sh` retains a gzip-compressed
+   archive of the rotated-out generation (subject to its own `-mtime
+   +30 -delete` purge for `.gz` files) — if a replay request names a
+   `generation_id` whose archive has since been purged, the API MUST
+   return `status: UNAVAILABLE` with an explicit "generation no longer
+   retained" reason, never an empty-but-`AVAILABLE` history (which would
+   be indistinguishable from requirement 3's genuine-zero case).
+9. **A reader racing a concurrent `mv`+`touch` rotation must keep
+   attributing what it already read to the generation it opened.** If a
+   reader has an open file handle (or has already captured a
+   `generation_id` via inode/content-hash at open time) when
+   `rotate_jsonl.sh` performs its `mv` followed by `touch`, POSIX
+   semantics mean the reader's file descriptor continues to reference
+   the *original* (now-unlinked-from-that-path, but still open) inode —
+   the reader must label everything it read through that handle with
+   the `generation_id` captured at open time, and must not re-stat the
+   path mid-read and silently relabel already-consumed bytes as
+   belonging to the new (post-`touch`) empty generation.
+10. **Reproducibility claims reference this field, not prose.** §1.3's
+    "a copy of the file plus the ledger watermark fields... fully
+    reproduces what the operator saw" is this exact mechanism: given the
+    same ledger generation's content up to `byte_offset` and the same
+    `snapshot_id`/`cycle` from the OperatorSnapshot envelope, replaying
+    the read deterministically reconstructs the same operator-visible
+    state (see §22, test requirement 9).
+
+**Non-rotating ledgers may use a simpler generation model** (e.g. a
+constant `generation_id` derived once at first observation, since they
+are never replaced in place) — but the *common* contract (this section)
+must not describe any logical path as globally immutable, since the
+mechanism (`mv`+recreate) that breaks that assumption is generic shell
+tooling applicable to any file in `databases/`, not specific to
+`black_box.jsonl`.
 
 This mechanism requires **no new database and no new message bus** —
 it is a read-side discipline over the existing append-only files, per
-R1-2's explicit constraint.
+R1-2's and R2-5's explicit constraint.
 
 ---
 
@@ -643,7 +751,7 @@ field sourced from this path `authority: "EXECUTION_AUTHORITY"`.
 | decision outcome (win/loss/etc.) | `BlackBox.record_position_closed()`, ledger `CompleteTrade.is_win` | DECISION_OUTCOME_EVIDENCE |
 | timestamps | `DecisionPacket.StateTransition` (per-transition), `BlackBoxEntry` (per-event) | per-source |
 | latest decision (per symbol) | Producer must materialize the current `DecisionPacket` state per open/recent symbol into the snapshot — this is in-memory, lifecycle-scoped state, not disk-resident until closed | Materialization required, same rule as §2.3 |
-| decision history | Depends on where closed `DecisionPacket`s / `BlackBoxEntry` records are persisted — `BlackBox` writes to `databases/black_box.jsonl` (confirmed referenced in `infra/api/api_server.py`'s `BLACK_BOX` path constant) — this is disk-resident, cross-process-safe, read directly by the API | DECISION_OUTCOME_EVIDENCE, disk-safe |
+| decision history | Depends on where closed `DecisionPacket`s / `BlackBoxEntry` records are persisted — `BlackBox` writes to `databases/black_box.jsonl` (confirmed referenced in `infra/api/api_server.py`'s `BLACK_BOX` path constant) — this is disk-resident and cross-process-*readable*, read directly by the API, **subject to §6.1's generation/watermark consistency rules** (this ledger is one of the three named as rotation-subject by `scripts/rotate_jsonl.sh` — a bare "cross-process-safe" label without the watermark/generation discipline would be exactly the overstatement R1-2/R2-1 correct) | DECISION_OUTCOME_EVIDENCE, disk-resident and cross-process-readable subject to §6.1 |
 
 **Known unresolved measured disagreement** (carried forward from O-01,
 not fixed here): `core/advisor_loop.py:6274-6295` measures a
@@ -883,9 +991,11 @@ lifetime.** Concretely:
    containing at minimum `{process_instance_id, boot_timestamp_utc,
    pid, source_sha}`, using the same tmp-file-plus-atomic-replace
    mechanism as §1.3 (this is a second, much smaller atomic write, not
-   a new transport). This manifest is the producer's own declaration of
-   "who is currently running," independent of and always current
-   before any per-cycle domain data exists.
+   a new transport). **This manifest declares which process instance
+   identity is the most recently started one — it is a one-time,
+   write-once-per-boot identity declaration, not a repeated liveness
+   heartbeat** (§14.2 makes this precise; do not read step 2 below as
+   proof the declared process is still running at read time).
 2. Every periodic domain snapshot embeds the writer's own
    `process_instance_id` (already required by §14/§15) — this does not
    change.
@@ -900,15 +1010,17 @@ lifetime.** Concretely:
    explicit `stale_reason: PRODUCER_RESTARTED` — distinct from ordinary
    TTL-based `STALE`, since the failure mode here is identity mismatch,
    not mere elapsed time.
-4. Between step A (manifest published for I2) and the first complete
-   post-restart domain snapshot, the API has a `runtime_manifest`
-   proving a new process is up, but the newest domain snapshot still
-   carries I1. This is precisely the window this mechanism is for: the
-   API can now positively assert `CURRENT_RUNTIME_BOOTING, NO_SNAPSHOT_
-   YET` (I2 is alive per the manifest, but has not yet published) rather
-   than silently serving I1's data as if it were I2's — this is a
-   materially different, and more honest, operator-facing state than
-   either "everything is fine" or "the whole system is down."
+4. Between step A (manifest published declaring I2) and the first
+   complete post-restart domain snapshot, the API has a
+   `runtime_manifest` establishing that I2 is the current *declared*
+   instance, but the newest domain snapshot still carries I1. This is
+   precisely the window this mechanism is for: the API can now
+   positively assert `INSTANCE_RELATION=PREVIOUS_INSTANCE` for the I1
+   snapshot and `NO_SNAPSHOT_YET` for I2 — a materially different, and
+   more honest, operator-facing state than either "everything is fine"
+   or "the whole system is down." **This step establishes instance
+   relation only; it says nothing about whether I2's process is
+   presently alive — see §14.2.**
 
 **Why not rely on snapshot age alone:** a producer can legitimately be
 slow for a single cycle (a heavier-than-usual pass) without having
@@ -921,12 +1033,103 @@ signal for ordinary TTL staleness (§13) once identity is confirmed
 unchanged.
 
 **Terminology fixed by this correction:** `LAST_KNOWN` (persisted output
-from a process instance that is not the one currently running, per the
-manifest) is a distinct state from `CURRENT` (persisted output from the
-process instance the manifest confirms is presently alive). A cockpit
-consumer must render these differently — `LAST_KNOWN` should visually
-communicate "this is not what the running system says right now," not
-merely "this is N seconds old."
+whose `process_instance_id` does not match the manifest's currently
+*declared* instance) is a distinct state from `CURRENT` (persisted
+output whose `process_instance_id` matches the manifest's declared
+instance). A cockpit consumer must render these differently —
+`LAST_KNOWN` should visually communicate "this is not what the most
+recently started process declared," not merely "this is N seconds old."
+**Neither `LAST_KNOWN` nor `CURRENT`, on their own, are a liveness
+claim** — §14.2 defines liveness as an independent axis.
+
+### 14.2 Instance identity is not liveness (R2-2)
+
+**Gap in the R1 text:** §14.1 as originally written repeatedly described
+the runtime manifest as proof the producer "is alive," "is currently
+running," or "is presently alive." That conflates two genuinely
+different questions:
+
+- **Was this manifest written by the most recently started process
+  instance?** — a fact about **identity/succession**, fully determined
+  by comparing `process_instance_id` values, and permanently true once
+  established (it never becomes false again for that pair of ids).
+- **Is that process instance's OS process still executing right now?**
+  — a fact about **liveness**, which can change from one instant to the
+  next (the process can hang, deadlock, or crash *after* writing its
+  manifest and even after writing several valid snapshots) and which a
+  one-time startup write cannot speak to at all.
+
+A manifest written at boot and never revisited proves only the first.
+**It is not a heartbeat.** A producer that wrote its manifest at
+`boot_timestamp_utc` and then hung indefinitely (e.g. deadlocked before
+its first snapshot cycle, or later mid-lifetime) leaves a manifest that
+continues to compare as "identity match" against any snapshot it did
+manage to publish — this alone must never be read as "therefore it is
+still alive."
+
+**Two independent, explicitly separated models:**
+
+**INSTANCE RELATION** (identity/succession only, derived purely from
+`snapshot.process_instance_id` vs. `runtime_manifest.process_instance_id`):
+
+| Value | Meaning |
+|---|---|
+| `CURRENT_INSTANCE` | The snapshot's `process_instance_id` matches the manifest's declared instance. |
+| `PREVIOUS_INSTANCE` | They differ — the snapshot was produced by an instance that is not the one the manifest currently declares. |
+| `UNKNOWN` | The manifest file is missing, unreadable, or corrupt — identity cannot be determined at all; this is never coerced to `CURRENT_INSTANCE` by default. |
+
+**LIVENESS** (a genuinely separate signal, sourced from the *existing*
+canonical process-liveness mechanism this contract already catalogues —
+`system_health.boot_alive`, §2/§10/`REQUIRED_FIELD_CONTRACT_TABLE` —
+which is itself watchdog-polled and carries its own freshness/staleness
+semantics per §13, not derived from the manifest at all):
+
+| Value | Meaning |
+|---|---|
+| `ALIVE` | The watchdog's own liveness check (not the manifest) reports the process as running, within that check's own freshness window. |
+| `DEAD` | The watchdog's liveness check reports the process as not running, or has positively detected its absence. |
+| `UNKNOWN` | The watchdog/liveness source itself is unreachable or stale beyond its own threshold — never silently presented as `ALIVE`. |
+
+**Binding rules (R2-2, all four from the remediation brief):**
+
+1. **Identity mismatch → never `CURRENT`.** A `PREVIOUS_INSTANCE`
+   relation always yields the higher-level `LAST_KNOWN` label (§14.1),
+   regardless of what `LIVENESS` says about anything.
+2. **Manifest missing/corrupt → `INSTANCE_RELATION = UNKNOWN`.** Never
+   defaulted to `CURRENT_INSTANCE` merely because there is nothing to
+   contradict it.
+3. **Identity match alone MUST NOT be described as proof of `ALIVE`.**
+   `CURRENT_INSTANCE` only means "the most recent snapshot came from the
+   instance the manifest currently declares" — it says nothing about
+   whether that instance's process is still executing at the moment of
+   the API read. A cockpit must consult `LIVENESS` (from
+   `system_health.boot_alive`) separately for that question.
+4. **Stale/unavailable liveness evidence MUST NOT be silently converted
+   to `ALIVE`.** If the watchdog itself is unreachable or its own
+   freshness has expired, `LIVENESS = UNKNOWN` is the only correct
+   value — never defaulted to `ALIVE` because "no evidence of death,"
+   and never defaulted to `ALIVE` because the instance relation happens
+   to be `CURRENT_INSTANCE`.
+
+**If the public API continues to expose a single higher-level `CURRENT
+| LAST_KNOWN` state** (as a convenience projection for simple cockpit
+consumers who do not need the full two-axis model), its derivation MUST
+be stated explicitly rather than left implicit:
+
+```
+runtime_state =
+    LAST_KNOWN   if INSTANCE_RELATION in {PREVIOUS_INSTANCE, UNKNOWN}
+    CURRENT      if INSTANCE_RELATION == CURRENT_INSTANCE
+                    (this labels data provenance/succession only —
+                     it is NOT a liveness claim; a consumer that needs
+                     to know whether the producer is still running must
+                     read LIVENESS separately, never infer it from
+                     runtime_state == CURRENT)
+```
+
+This composite intentionally has no `DEAD`/`ALIVE` branch of its own —
+collapsing liveness into it would silently reintroduce exactly the
+conflation this section corrects.
 
 ---
 
@@ -1165,13 +1368,15 @@ not a change to what the loop decides.
 | `system_health.health_score` | Composite scientific health (0-100), NOT a global system percentage — scoped to `MetricsSnapshot` inputs only | float | pct (0-100) | over defined `MetricsSnapshot` inputs | OBSERVATIONAL_TELEMETRY | `UNAVAILABLE` if `MetricsSnapshot` missing | `0` is a genuine (critical) score | `MetricsSnapshot` cadence |
 | `mode` (portfolio/wallet) | PAPER/REAL_API/TESTNET_API/UNKNOWN | enum | — | N/A | provenance metadata, not authority | `UNKNOWN` if snapshot predates first successful mode resolution | N/A (categorical) | process-lifetime constant |
 | `snapshot_id` / `cycle` / `runtime_sha` / `process_instance_id` | Identity/atomicity spine | mixed | — | N/A | envelope metadata | never null in a valid snapshot | N/A | write-time |
-| `ledger_watermark` (`path`/`byte_offset`/`read_at_utc`) | Point-in-time boundary for a JSONL-ledger-backed response (§6.1) | object | bytes (`byte_offset`) | N/A | envelope metadata, per-resource | never null on a successful ledger read | `byte_offset: 0` is a genuine empty-ledger read, distinct from `UNAVAILABLE` (§6.1 requirement 3) | read-time (per request) |
-| `runtime_manifest.process_instance_id` / `boot_timestamp_utc` | Independently-published proof of the currently-alive producer instance (§14.1) | mixed | — | N/A | envelope metadata, cross-checked against every snapshot read | `UNAVAILABLE` if the manifest file itself is missing/corrupt (never coerced to "assume current") | N/A | write-time, updated once per process boot |
-| `snapshot.runtime_state` (`CURRENT` \| `LAST_KNOWN`) | Derived label: does `snapshot.process_instance_id` match the current `runtime_manifest`? (§14.1) | enum | — | N/A | envelope metadata, API-computed | N/A (always computable given both files) | N/A | computed at read-time, not stored |
+| `ledger_watermark` (`logical_source`/`generation_id`/`byte_offset`/`read_at_utc`/`path`) | Point-in-time boundary for a JSONL-ledger-backed response, generation-aware (§6.1) — `byte_offset` meaningful only within its own `generation_id`; `path` is provenance only, never the sole identity | object | actual bytes (`byte_offset`, binary-derived, §6.1) | N/A | envelope metadata, per-resource | never null on a successful ledger read; `UNAVAILABLE` (not empty) if the referenced `generation_id` is no longer retained (§6.1 requirement 8) | `byte_offset: 0` is a genuine empty-ledger read for that generation, distinct from `UNAVAILABLE` (§6.1 requirement 3) | read-time (per request) |
+| `runtime_manifest.process_instance_id` / `boot_timestamp_utc` | Write-once-per-boot declaration of the most recently started producer instance's identity (§14.1) — an **identity/succession fact, not a liveness proof** (§14.2); a producer can hang or crash after writing this without it ever being revised | mixed | — | N/A | envelope metadata, cross-checked against every snapshot read | `UNKNOWN` instance relation if the manifest file itself is missing/corrupt (never coerced to `CURRENT_INSTANCE`, §14.2 rule 2) | N/A | write-time, updated once per process boot |
+| `snapshot.instance_relation` (`CURRENT_INSTANCE` \| `PREVIOUS_INSTANCE` \| `UNKNOWN`) | Pure identity/succession comparison of `snapshot.process_instance_id` vs. current `runtime_manifest` (§14.2) — never a liveness claim | enum | — | N/A | envelope metadata, API-computed | `UNKNOWN` if manifest missing/corrupt | N/A | computed at read-time, not stored |
+| `system_health.liveness` (`ALIVE` \| `DEAD` \| `UNKNOWN`) | Independent liveness signal sourced from the existing watchdog / `system_health.boot_alive` mechanism (§14.2) — never derived from `instance_relation` | enum | — | N/A | OBSERVATIONAL_TELEMETRY | `UNKNOWN` if the watchdog itself is unreachable or stale (never defaulted to `ALIVE`) | N/A | watchdog poll cadence, per §13 |
+| `snapshot.runtime_state` (`CURRENT` \| `LAST_KNOWN`) | Convenience composite derived solely from `instance_relation` (§14.2) — labels data provenance/succession only, explicitly NOT a liveness claim; consumers needing liveness must read `system_health.liveness` separately | enum | — | N/A | envelope metadata, API-computed | N/A (always computable given the manifest) | N/A | computed at read-time, not stored |
 
 ---
 
-## 22. CONTRACT_TEST_REQUIREMENTS (R1-4)
+## 22. CONTRACT_TEST_REQUIREMENTS (R1-4, extended R2-1/R2-2)
 
 Documentation-only in this mission — these are **requirements the future
 implementation mission (§21) must satisfy with real tests**, not tests
@@ -1242,6 +1447,54 @@ is not enforceable and would regress silently.
    applied specifically to the new mechanisms this R1 introduces
    (watermarks, manifest) rather than only to the domains already
    covered by the original contract text.
+
+**Added by R2-1 (ledger rotation safety):**
+
+9. **Rotation between two reads changes generation identity.** A test
+   must (a) read a ledger fixture and capture its `ledger_watermark`,
+   (b) run the equivalent of `rotate_jsonl.sh`'s `mv`+`touch` sequence
+   against that fixture, (c) read again, and assert the second read's
+   `generation_id` differs from the first even though `path`/
+   `logical_source` are identical. Exercises §6.1 requirement 6.
+10. **The same byte offset against another generation is rejected for
+    replay.** A test must attempt to replay a captured `byte_offset`
+    against a *different* `generation_id` (e.g. the post-rotation empty
+    file, or an unrelated fixture of coincidentally similar size) and
+    assert the API refuses with an explicit error rather than returning
+    a result that silently misattributes bytes from the wrong
+    generation. Exercises §6.1 requirement 7.
+11. **Concurrent rotation cannot misattribute the opened generation.** A
+    test must open a ledger read (or capture its `generation_id` at
+    open time), then perform the `mv`+`touch` rotation sequence while
+    that read is in flight / before a subsequent read of the same
+    handle, and assert all bytes attributed to that read remain labeled
+    with the originally-opened `generation_id`, never silently
+    relabeled to the post-rotation generation. Exercises §6.1
+    requirement 9.
+12. **Watermark offset is measured in actual bytes, including non-ASCII
+    UTF-8 content.** A test must construct a ledger fixture containing
+    at least one record with non-ASCII UTF-8 content (e.g. a symbol or
+    free-text field with multi-byte characters), read it, and assert
+    the resulting `byte_offset` matches an independently-computed
+    binary byte count (e.g. via `os.path.getsize()` on a truncated copy,
+    or `len(line.encode("utf-8"))` accumulation) — not a text-mode
+    `tell()` cookie, which this contract's §6.1 correction identifies as
+    unsafe for exactly this case. Exercises §6.1's byte-offset-unit
+    correction.
+
+**Added by R2-2 (identity vs. liveness):**
+
+13. **Matching identity does not by itself prove liveness.** A test must
+    construct the specific sequence: manifest declares I2, the newest
+    snapshot also carries I2 (so `instance_relation = CURRENT_INSTANCE`
+    and the composite `runtime_state = CURRENT`), and then the producer
+    process is killed/hung with no further writes — and assert that a
+    read at this point still correctly reports `system_health.liveness`
+    as `DEAD` or `UNKNOWN` (per whatever the watchdog's own mechanism
+    observes) independently of `instance_relation`/`runtime_state`
+    still showing `CURRENT_INSTANCE`/`CURRENT`. This is the test that
+    would fail against a naive implementation that infers liveness from
+    identity match alone — exactly the conflation §14.2 corrects.
 
 ---
 
