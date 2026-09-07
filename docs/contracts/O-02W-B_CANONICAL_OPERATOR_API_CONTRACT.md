@@ -78,6 +78,63 @@ tests 11 and 15 gain `TRANSITIONING`-interval and
 rename/gzip-identity-preservation coverage respectively. R1/R2/R3's
 corrections are unchanged and not reverted; still documentation-only.
 
+**R4 remediation (O-02W-B-R4, 2026-09-07):** independent MASTER review
+found ten further defects, all corrected in place below (re-reading
+`core/advisor_loop.py`'s G8 gate, `_balance_provenance_from_mode()`,
+`observability/runtime_provenance_snapshot.py`, `docs/audit/S-03D-
+runtime-provenance-exposure.md`, `watchdog_vps.py`,
+`observability/operator/domains/system_health.py`, `paper_trading/
+mexc_simulator.py`'s `MexcPosition`/`MexcOrder`/`_restore_positions()`/
+`_fill_market()`/`_check_positions()`/`get_open_positions_summary()`, and
+the `decision_packets_YYYY-MM-DD.jsonl`/`black_box.jsonl` persistence
+paths as fresh evidence): (A) the actual mandatory execution-
+authorization gate is `DecisionPacket.is_actionable()`
+(`_effective_trade_allowed = _dp_r.is_actionable()`, with a missing
+packet failing closed to `False`), not "`SHADOW_CANDIDATE`" — the legacy
+dict pipeline supplies analysis/blockers/gating inputs but is not the
+sole final authority; historical §8/O-01-era language calling the legacy
+pipeline "the actual execution driver" is now marked stale; (B) O-02W
+must reuse/extend S-03's already-certified
+`RuntimeProvenanceSnapshotWriter` (atomic tmp+`os.replace()`, PID,
+invocation identity, uptime, `exposure_epoch_id`, sanitization) instead
+of inventing a second, independent process-identity mechanism, and
+`exposure_epoch_id` is an exposure/process epoch, never the
+`CLEAN_DATA_SINCE` experimental epoch; (C) `git rev-parse HEAD` alone is
+only a claimed checkout/source SHA — it proves nothing about worktree
+cleanliness, deployed-file match, or process-memory match, and must
+never be called "the SHA actually running"; (D) `watchdog_vps.py` does
+`pgrep` and only logs a debug line when alive — it does not publish any
+positive, independently-readable liveness snapshot, so canonical runtime
+liveness exposure remains `NOT_EXPOSED` today; (E) mode provenance must
+reuse `core/advisor_loop.py::_balance_provenance_from_mode()` (vocabulary
+`PAPER`/`REAL_API`/`TESTNET_API`/`UNKNOWN`, fail-closed to `UNKNOWN`,
+`PAPER_TRADING_ENABLED` override preserved) rather than describing
+`WalletSync.mode` as copied "verbatim"; (F) `MexcPosition` restore sets
+`personality="restored"` but never passes `regime` (defaults
+`"unknown"`); `current_price` is never stored on `MexcPosition` —
+`get_open_positions_summary()` fetches it at read time via
+`_fetch_price()`, whose `0.0` return means unavailable price evidence,
+not a valid mark price; (G) pipeline-stage availability must distinguish
+`CONTRACT_EXISTS`/`RUNTIME_PRODUCER_EXISTS`/`RUNTIME_EXPOSURE_EXISTS` —
+the existence of `PIPELINE_STAGES`/`StageObservation`/
+`compose_decision_pipeline_snapshot()` is not itself runtime exposure;
+(H) `decision_packets_YYYY-MM-DD.jsonl` (DecisionPacket history) and
+`black_box.jsonl` (BlackBox outcome/provenance evidence) are two
+distinct ledgers, each needing its own source label/freshness/watermark
+— `black_box.jsonl` is not a substitute for DecisionPacket history; (I)
+§21's `MINIMUM_IMPLEMENTATION_MISSION` is rewritten to define O-02W-C —
+an advisor-owned passive snapshot *builder* only — as the sole next
+mission, explicitly excluding FastAPI/HTTP/WebSocket/React/cockpit/auth/
+VPS/systemd/certification work, deferred to O-02W-D/O-02W-E/T-1/
+O-02W-F; (J) F-00 has not started and is not O-02W-B, O-02W-C, or any
+cockpit-implementation mission — "before/after F-00" cockpit language is
+replaced with explicit O-02W-C/O-02W-D/O-02W-F sequencing. §1, §3, §5,
+§7, §8, §9, §10, §14-§15, §17, §18, §19-§22 and the
+`REQUIRED_FIELD_CONTRACT_TABLE` are corrected below; all R1-R3.1
+corrections (atomicity, watermark/generation model, instance-vs-liveness
+split) are preserved and not regressed. Still documentation-only — no
+runtime source was changed to make the contract true.
+
 This document is the authoritative source-inspected contract for a future
 read-only "operator API" serving the React cockpit (`frontend/`). It
 supersedes no code — it constrains what a future implementation mission
@@ -112,7 +169,12 @@ unaffected: nothing here reads or writes runtime state.
 
 ```
 AUTHORITATIVE MACHINE SOURCES (process-local objects, JSONL ledgers, JSON packs)
-   core/advisor_loop.py (analyze_symbol, DecisionPacket producer, execution authority)
+   core/advisor_loop.py (analyze_symbol; G8 gate:
+        _effective_trade_allowed = DecisionPacket.is_actionable() — the
+        mandatory execution-authorization gate; missing packet fails
+        closed to no-order. Legacy dict pipeline (blockers/trade_allowed)
+        supplies analysis/gating inputs into this decision, it is not
+        itself the sole final authority — see §8)
    paper_trading/mexc_simulator.py::MexcSimulator._positions   (in-memory, process-local)
    infra/wallet_sync.py::get_wallet_sync()                     (in-memory singleton, process-local)
    paper_trading/recorder.py -> databases/paper_trades.jsonl   (disk, append-only)
@@ -357,7 +419,8 @@ Read: `infra/wallet_sync.py` (full file, 264 lines) and
 | Real account equity/free/staleness | `observability/real_accounts.py::RealAccountsObserver` | advisor process (poll cadence per notify cycle) | Telegram text block only (never summed with paper — guardrail) | Canonical snapshot, `real_account_*` fields, `NOT_APPLICABLE` if unconfigured | NO for live cache freshness (§2.2) | `RealAccountsObserver` poll timestamp |
 | Realized PnL / closed trades | `paper_trading/recorder.py` -> `databases/paper_trades.jsonl` | any process (file read) | None dedicated (portfolio_api.py substitutes open PnL) | Direct ledger read by API, or denormalized in snapshot | YES (append-only JSONL) | file mtime / last CLOSE `ts` |
 | DecisionPacket / DecisionObservation (latest, per symbol) | `core/decision_packet.py`, `observability/decision_observation.py` | advisor process | `sdos_terminal/api/app.py::/api/decision/{packet_id}` (DecisionTrace) | Canonical snapshot (latest) + existing trace endpoint (history) | Latest: NO (in-memory during lifecycle); history: depends on packet persistence sink | per-decision `observed_at_utc` |
-| Legacy dict pipeline verdict (`trade_allowed`, `blockers`) — actual execution driver | `core/advisor_loop.py::analyze_symbol()` | advisor process | Not exposed over HTTP; drives Telegram/exec only | Canonical snapshot, `decision_pipeline` domain, explicitly labeled AUTHORITY not TELEMETRY | NO | per-cycle |
+| `DecisionPacket.is_actionable()` gate (G8, `_effective_trade_allowed`) — mandatory execution-authorization gate | `core/advisor_loop.py::analyze_symbol()` G8 block (~lines 6093-6195) | advisor process | Not exposed over HTTP; drives Telegram/exec only | Canonical snapshot, `decision_pipeline` domain, explicitly labeled `EXECUTION_AUTHORITY` | NO | per-cycle |
+| Legacy dict pipeline verdict (`trade_allowed`, `blockers`) — analysis/gating input to the G8 gate, not itself the sole authority (stale historical O-01 comment called it "the actual execution driver"; superseded by the G8 correction above) | `core/advisor_loop.py::analyze_symbol()` | advisor process | Not exposed over HTTP; feeds the G8 gate + Telegram | Canonical snapshot, `decision_pipeline` domain, labeled `OBSERVATIONAL_TELEMETRY` (gating input), never `EXECUTION_AUTHORITY` on its own | NO | per-cycle |
 | Pipeline stage counts (attrition) | `observability/rejection_store.py` | any process (file read) | `visualization/api/pipeline_api.py` (narrow, uses `n_signals = n_refused + n_traded`, flagged non-canonical by this mission) | Canonical snapshot via `observability/operator/domains/attrition.py` vocabulary | YES (disk) | RejectionStore record timestamps |
 | Regret v2 state | `tools/regret_repository.py` | any process (file read) | CLI only (`tools/cri_calculator.py`); `BurnInSnapshot` omits freshness (O-01 known gap) | Canonical snapshot via `observability/operator/domains/regret_state.py` | YES (disk) | `last_canonical_evaluated_utc` |
 | System health (boot alive, health score) | `observability/system_snapshot.py`, `observability/health_score.py`, `watchdog_vps.py` | advisor process (+ watchdog) | `visualization/api/health_api.py` (partial, `SystemSnapshot`-derived) | Canonical snapshot via `system_health` domain | Boot-alive: NO (process liveness is inherently local, needs a watchdog-style external check); health_score: derivable from `MetricsSnapshot` if persisted | watchdog poll / `MetricsSnapshot` cadence |
@@ -400,7 +463,7 @@ Mapping the brief's requested envelope fields onto what already exists
 | `source_updated_at_utc` | Not a distinct O-01 field today — `observed_at_utc` conflates "when the domain composer ran" with "when the underlying source last changed." **This contract adds it** as a genuinely new, narrow field on the *snapshot envelope* (§14) because the brief's freshness model (§13) requires distinguishing "we polled at T" from "the source's own last-change time is T-5min." This is a documentation-only addition here — no code exists yet; a future implementation mission must add it to `DomainSnapshot` or an envelope wrapper. |
 | `freshness` | `DomainSnapshot.freshness` (`FreshnessStatus`: `FRESH/DEGRADED/STALE/UNKNOWN/NOT_APPLICABLE`) | direct |
 | `unit` | `MetricDefinition.unit`/`.value_type` (registry-level, not per-value) | reused; units are a property of the *metric definition*, not repeated on every value instance — avoids redundant per-response payload bloat |
-| `authority` | **New concept this mission introduces explicitly** — not an O-01 field. See §8 (`DECISION_API_CONTRACT`) for the authority/telemetry split this must encode: `EXECUTION_AUTHORITY` vs `OBSERVATIONAL_TELEMETRY` vs `SHADOW_CANDIDATE`. Documented here as a required *new* per-field or per-domain tag; not yet implemented in code. |
+| `authority` | **New concept this mission introduces explicitly** — not an O-01 field. See §8 (`DECISION_API_CONTRACT`) for the authority/telemetry split this must encode: `EXECUTION_AUTHORITY` (the `DecisionPacket.is_actionable()` G8 gate's terminal verdict, §8) vs `OBSERVATIONAL_TELEMETRY` (analysis/gating inputs and reporting mirrors, including the legacy dict pipeline and `DecisionObservation`) vs `DECISION_OUTCOME_EVIDENCE` (`BlackBox`, post-hoc outcome/provenance log, never a gate). **Correction (R4/BLOCKER A):** the original draft's third vocabulary value, `SHADOW_CANDIDATE`, described a stale relationship in which the legacy dict pipeline was authoritative and `DecisionPacket` was a mere non-authoritative candidate track — re-reading the current G8 gate shows the reverse is true (`DecisionPacket.is_actionable()` is the mandatory gate; the legacy pipeline is an input). `SHADOW_CANDIDATE` is retired from this vocabulary; use the three values above. Documented here as a required *new* per-field or per-domain tag; not yet implemented in code. |
 | `evidence_ref` | `DomainSnapshot.evidence: Mapping[str, Any]` | direct — already a free-form provenance bag per domain |
 
 **Decision:** the future operator API's response envelope = O-01's
@@ -453,12 +516,12 @@ file plus the ledger JSONL directly for closed-trade history.
 | `side` | YES (`OrderSide`) | |
 | `size_usd` (`qty_usd`) | YES | |
 | `entry_price` | YES | |
-| `current_price` | YES, but **only while the owning process's monitor loop is live** — a restored/second-process view without a fresh price tick would show stale/entry price; must be labeled with its own `observed_at_utc` | |
-| `tp_price` / `sl_price` | YES, but on **restore** these are recomputed from a fixed 4%/2% assumption (`_restore_positions()`), not the original order's true TP/SL if it differed — flag this provenance distinction explicitly in the snapshot (`tp_sl_source: "original"` vs `"restored_default"`) | |
-| `unrealized_pnl_usd` / `_pct` | YES, computed from `current_price` — inherits the same staleness caveat | |
+| `current_price` | NOT stored on `MexcPosition` at all (no `current_price` field on the dataclass, confirmed by full field-list read) — it is a **materialized derived observation**, fetched at read/materialization time by `get_open_positions_summary()` calling `_fetch_price(symbol)`. `_fetch_price()` returns `0.0` both when no exchange client is wired (`self._mexc is None`) and on any fetch exception — a `0.0` therefore means **unavailable price evidence**, never a legitimate market price of zero; the snapshot MUST render it as `UNAVAILABLE`/`STALE`, never as `price: 0`. Must carry its own `observed_at_utc` distinct from the position's `opened_ts`, since it is computed at materialization time, not stored position state. | |
+| `tp_price` / `sl_price` | YES, but on **restore** these are recomputed from a fixed 4%/2% assumption (`_restore_positions()`), not the original order's true TP/SL if it differed — the snapshot MUST carry an explicit `tp_sl_source: "original"` (normal `_fill_market()` open) vs. `"restored_default"` (restore path) provenance tag; `"restored_default"` must never be presented with the same confidence as an order-derived value | |
+| `unrealized_pnl_usd` / `_pct` | YES, computed from the materialized `current_price` above at read time (`get_open_positions_summary()`), not stored on `MexcPosition` — inherits the same "0.0 == unavailable, not a valid zero PnL" caveat: if the underlying price fetch failed, PnL must be `UNAVAILABLE`, never silently `0` | |
 | `opened_at` | YES (`opened_ts`) | |
-| `regime` | PARTIAL — `regime` is attached to the ledger `TradeEvent`/`CompleteTrade` at open time (`paper_trading/recorder.py`), not stored on the live `MexcPosition` object itself (inspected: `MexcPosition` construction in `_restore_positions()` does not set a `regime` attribute) — genuinely attached only via a join back to the ledger by `trade_id`/`symbol`, not on the position object directly. Mark `NOT_EXPOSED` on the position object; `AVAILABLE_VIA_LEDGER_JOIN` if the API performs that join. |
-| `personality` | PARTIAL — `MexcPosition.personality` field exists and is set to the literal string `"restored"` on restore (`_restore_positions()` line ~438); its value on a freshly-opened (non-restored) position was not confirmed in this inspection pass (constructor call site for normal opens not fully traced in this mission's time budget) — mark `NEEDS_VERIFICATION`, do not assume it is genuinely populated for live-opened positions without re-reading the open-order path. |
+| `regime` | On a **normally opened** position (`_fill_market()`), `regime=order.regime` is populated from the originating `MexcOrder` — confirmed present in the constructor call. On a **restored** position, `_restore_positions()`'s `MexcPosition(...)` construction call does **not** pass `regime` at all, so it silently defaults to the dataclass default `"unknown"` — this is a real, confirmed provenance gap distinct from the normal-open path, not a uniform `NOT_EXPOSED`. The snapshot must label a restored position's `regime` as `"unknown"` with an explicit `restored_without_regime: true` (or equivalent) marker, never presented with the same confidence as a normal open's ledger-sourced `regime`. A join back to the originating ledger `TradeEvent`/`CompleteTrade` by `trade_id`/`symbol` can recover the true historical `regime` for a restored position (`AVAILABLE_VIA_LEDGER_JOIN`) — the API should prefer that join over the position object's own (potentially `"unknown"`) `regime` field for restored positions specifically. |
+| `personality` | On a **normally opened** position (`_fill_market()`), `personality=order.personality` is populated from the originating `MexcOrder` — confirmed present in the constructor call, resolving O-19's prior `NEEDS_VERIFICATION`. On a **restored** position, `_restore_positions()` sets the literal string `"restored"` (confirmed at the construction call site) — this is itself a provenance label, not a genuine personality value, and must be exposed as such (`personality: "restored"` is meaningful provenance, distinct from a real personality name). |
 
 **Forbidden:** the future web API process instantiating `MexcSimulator`
 or calling `get_wallet_sync()` and treating the result as the live
@@ -1040,14 +1103,46 @@ cite: the mode is a **process-wide constant for the lifetime of the
 advisor process**, set at startup, never toggled mid-run by this
 contract's design.
 
-**How the API exposes it:** the canonical snapshot (§1.3) must carry
-`WalletSync.mode` verbatim as an explicit `mode` field on the portfolio
-domain, using the closed `PAPER/REAL_API/TESTNET_API/UNKNOWN` vocabulary
-(`UNKNOWN` if the snapshot was generated before the producer's first
-successful `get_wallet_sync()` call — never defaulted to `PAPER` by the
-API layer's own guess). `MexcPosition`-level `mode` inherited from the
-originating `TradeEvent.mode` (`"futures_demo"|"paper"|"live"`, §6) must
-be reconciled against the wallet-level mode string, not treated as an
+**Correction (R4/BLOCKER E — reuse `_balance_provenance_from_mode()`,
+never "verbatim").** Re-reading `core/advisor_loop.py` confirms a
+dedicated, already-existing resolver,
+`_balance_provenance_from_mode(exec_mode: str | None) -> str`, whose own
+docstring states it reflects "exactement le meme mode effectif que
+`ExecutionEngine.fetch_available_capital()`" — it re-reads
+`PAPER_TRADING_ENABLED` directly (same env var, same default `"true"`,
+same truthy set `{"1","true","yes","on"}`) rather than trusting any
+locally-cached advisor-loop variable that "could diverge," and maps
+`exec_mode` (`exec_engine._mode`, one of `"paper"/"live"/"testnet"`)
+through `{"paper": "PAPER", "live": "REAL_API", "testnet":
+"TESTNET_API"}.get(exec_mode, "UNKNOWN")` — an **unrecognized
+`exec_mode` fails closed to `"UNKNOWN"`, never defaults to
+`"REAL_API"`**, and `PAPER_TRADING_ENABLED=true` **overrides** `exec_mode`
+entirely, always resolving to `PAPER` regardless of what `exec_mode`
+says. This is the canonical mode-provenance resolver this contract
+requires the producer to reuse (or an extracted shared function with
+identical semantics) — **the original draft's "carry `WalletSync.mode`
+verbatim" language is corrected**: the API must never independently
+reinterpret a raw mode string; it must publish whatever the producer's
+already-resolved provenance label is (i.e. `_balance_provenance_from_mode()`'s
+output, or the equivalent extracted resolver), preserving the
+`PAPER_TRADING_ENABLED` override and the fail-closed-to-`UNKNOWN`
+behavior exactly.
+
+**How the API exposes it:** the canonical snapshot (§1.3) must carry the
+already-resolved provenance label (§ above) as an explicit `mode` field
+on the portfolio domain, using the closed
+`PAPER/REAL_API/TESTNET_API/UNKNOWN` vocabulary (`UNKNOWN` if the
+snapshot was generated before the producer's first successful mode
+resolution, or if the underlying `exec_mode` was itself unrecognized —
+never defaulted to `PAPER` or `REAL_API` by the API layer's own guess).
+This contract distinguishes the **raw internal mode** (`exec_engine._mode`,
+or `WalletSync`'s raw constructor parameter — an internal, unresolved
+value) from the **presentation provenance** (`_balance_provenance_from_mode()`'s
+output, or the reused equivalent) that the API is required to expose —
+the API must publish the latter, never the former reinterpreted
+independently. `MexcPosition`-level `mode` inherited from the originating
+`TradeEvent.mode` (`"futures_demo"|"paper"|"live"`, §6) must be
+reconciled against the wallet-level provenance label, not treated as an
 independent second source of truth — a mismatch between the two is
 itself a reportable anomaly (`ATTENTION_REQUIRED`), not silently
 resolved by preferring one over the other.
@@ -1056,53 +1151,128 @@ resolved by preferring one over the other.
 
 ## 8. DECISION_API_CONTRACT
 
-**EXECUTION AUTHORITY** — `core/advisor_loop.py::analyze_symbol()`,
-specifically its **legacy dict pipeline** (`blockers`, `trade_allowed`)
-which O-01 already confirmed, by direct citation of
-`core/advisor_loop.py:1488`'s own comment, is "the actual execution
-driver today." This is the only component in the entire system
-authorized to gate a trade (ADR-0007). The operator API must label any
-field sourced from this path `authority: "EXECUTION_AUTHORITY"`.
+**Correction (R4/BLOCKER A — the current mandatory authorization gate is
+`DecisionPacket.is_actionable()`, not "`SHADOW_CANDIDATE`").** Re-reading
+`core/advisor_loop.py`'s G8 block (~lines 6093-6195) directly contradicts
+the original draft's characterization. The actual sequence at execution
+time is:
 
-**DECISION TELEMETRY** — two components, both explicitly
-**non**-authoritative:
+```
+_legacy_trade_allowed = bool(r.get("trade_allowed", r["gate"].allowed))   # legacy pipeline verdict
+_dp_r = r.get("decision_packet")
+if _dp_r is None:
+    _effective_trade_allowed = False        # G8-E: no packet -> no authority -> no order
+else:
+    _effective_trade_allowed = _dp_r.is_actionable()   # G8-D/E: DecisionPacket is the sole authority
+```
 
-- `DecisionPacket` (`core/decision_packet.py`) — a sealed, hash-chained
-  state machine (`StateTransition`, `ReasoningEntry` dataclasses
-  confirmed present) tracking a decision's lifecycle
-  (`DecisionState` enum). O-01 classifies this `PARTIAL`/"candidate
-  track... n'est pas encore le pilote réel de l'exécution." Label:
-  `authority: "SHADOW_CANDIDATE"`.
-- `BlackBox` (`quant_hedge_ai/agents/intelligence/black_box.py`) —
-  `record_decision()`, `record_position_closed()`, `record_halt()`,
-  `record_regime_change()` etc. confirmed present (line-numbered above,
-  §Research). This is a decision-**outcome**/provenance evidence log,
-  not a gate: it records what happened after the authority path already
-  decided. Label: `authority: "DECISION_OUTCOME_EVIDENCE"`.
+The gate's own inline comment is explicit: *"Le DecisionPacket est la
+source unique d'autorisation... Principe : DecisionPacket absent =
+autorité absente = pas d'ordre."* The subsequent order-placement `if`
+block requires `_effective_trade_allowed` (the `DecisionPacket`-derived
+value), not the legacy pipeline's `trade_allowed` — a legacy-pipeline
+`True` with no (or a non-actionable) `DecisionPacket` is **blocked**,
+never executed. Any earlier O-01-era text citing
+`core/advisor_loop.py:1488`'s comment calling the legacy dict pipeline
+"the actual execution driver today" describes an **historically stale**
+relationship that no longer matches the current G8 gate and must not be
+relied on; it is preserved below only as historical context, explicitly
+marked stale.
+
+**EXECUTION AUTHORITY** — `core/decision_packet.py`'s `DecisionPacket`,
+specifically its `is_actionable()` verdict as consumed by the G8 gate
+(`core/advisor_loop.py`, ~lines 6093-6195: `_effective_trade_allowed =
+_dp_r.is_actionable()`, missing packet fails closed to `False`). This is
+the only mandatory execution-authorization gate in the current system
+(ADR-0007 — the decision engine, not any observer, remains the sole
+component authorized to gate a trade; `DecisionPacket.is_actionable()`
+is that engine's terminal gate). The operator API must label any field
+sourced from this gate `authority: "EXECUTION_AUTHORITY"`.
+
+**ANALYSIS/GATING INPUT** — `core/advisor_loop.py::analyze_symbol()`'s
+**legacy dict pipeline** (`blockers`, `trade_allowed`, `gate.allowed`)
+feeds analysis, blockers, and gating context that the G8 gate consults
+alongside the `DecisionPacket` — it supplies real inputs to the final
+decision (e.g. `_legacy_trade_allowed` is compared against the packet's
+verdict for the disagreement-rate metric, and legacy blockers still
+suppress execution via other gates earlier in the pipeline), but it is
+**not, on its own, the sole final authority**: a legacy `trade_allowed =
+True` cannot execute without an actionable `DecisionPacket`. Label:
+`authority: "OBSERVATIONAL_TELEMETRY"` for fields sourced purely from
+this path once the G8 verdict has been applied; the terminal executed
+verdict itself (post-G8) is `EXECUTION_AUTHORITY` regardless of which
+inputs fed it.
+
+**DecisionObservation** (`observability/decision_observation.py`)
+remains **observational telemetry only** — it mirrors/reports the
+terminal verdict for measurement purposes and has no path back into the
+gate. Label: `authority: "OBSERVATIONAL_TELEMETRY"`.
+
+**BlackBox** (`quant_hedge_ai/agents/intelligence/black_box.py`) —
+`record_decision()`, `record_position_closed()`, `record_halt()`,
+`record_regime_change()` etc. confirmed present. This is a
+decision-**outcome**/provenance evidence log, not a gate and not an
+authorization mechanism of any kind: it records what happened after the
+G8 gate already decided. Label: `authority: "DECISION_OUTCOME_EVIDENCE"`.
+`BlackBox` must never be described or implemented as an authorization
+gate, nor as a substitute source for `DecisionPacket` history — see §8.1
+below and BLOCKER H (§ TRADE_API_CONTRACT / decision-history sourcing).
 
 | Field | Source | Authority label |
 |---|---|---|
-| `packet_id` | `DecisionPacket.packet_id` (UUID, `field(default_factory=uuid.uuid4)`) | SHADOW_CANDIDATE |
-| `trace_id` | Not a distinct field found on `DecisionPacket` itself in this pass — `context_id`/`created_cycle_id` exist (lines 402-403) and may serve this role; `governance/decision_trace.py` (consumer, per O-01 `decision_pipeline.decision_packet.consumers`) likely defines the canonical `trace_id` concept — **NEEDS_VERIFICATION against `governance/decision_trace.py`**, not confirmed read in this pass. Mark `PARTIALLY_AVAILABLE` pending that read. | SHADOW_CANDIDATE |
+| `packet_id` | `DecisionPacket.packet_id` (UUID, `field(default_factory=uuid.uuid4)`) | Part of the `EXECUTION_AUTHORITY` gate's own identity (the packet whose `is_actionable()` was consulted by G8) |
+| `trace_id` | Not a distinct field found on `DecisionPacket` itself in this pass — `context_id`/`created_cycle_id` exist (lines 402-403) and may serve this role; `governance/decision_trace.py` (consumer, per O-01 `decision_pipeline.decision_packet.consumers`) likely defines the canonical `trace_id` concept — **NEEDS_VERIFICATION against `governance/decision_trace.py`**, not confirmed read in this pass. Mark `PARTIALLY_AVAILABLE` pending that read. | Same as `packet_id` — identity of the authority packet |
 | `symbol` | Present on `DecisionPacket` context (via `context_id` join) and on the legacy pipeline's per-symbol call | Both tracks |
-| `side` | `DecisionSide` enum on `DecisionPacket` | SHADOW_CANDIDATE |
-| `score` | `confidence_raw` / `adjusted_confidence` (`DecisionPacket`, lines 417-418) | SHADOW_CANDIDATE; legacy pipeline's own `score` is EXECUTION_AUTHORITY |
+| `side` | `DecisionSide` enum on `DecisionPacket` | Identity/context of the authority packet |
+| `score` | `confidence_raw` / `adjusted_confidence` (`DecisionPacket`, lines 417-418) | Packet-internal scoring input to the G8 gate; legacy pipeline's own `score` field is `OBSERVATIONAL_TELEMETRY` (an analysis input, not itself the terminal verdict) |
 | `regime` | `MarketRegime` enum on `DecisionPacket`; also present on legacy pipeline / ledger records | Both, label per source |
-| `trade_allowed` | Legacy dict pipeline field, `observability/decision_observation.py::DecisionObservation.trade_allowed` (O-01's canonical telemetry reporting field, `decision_pipeline.trade_allowed` metric) | The *terminal verdict that actually executes* is `EXECUTION_AUTHORITY`; `DecisionObservation`'s copy of it is `OBSERVATIONAL_TELEMETRY` (it mirrors the authority verdict for reporting, per O-01's own module description) |
+| `is_actionable()` verdict (G8 gate) | `DecisionPacket.is_actionable()`, consumed as `_effective_trade_allowed` in `core/advisor_loop.py`'s G8 block | `EXECUTION_AUTHORITY` — this is the terminal, mandatory gate (BLOCKER A correction) |
+| `trade_allowed` (legacy pipeline field) | Legacy dict pipeline field (`r["gate"].allowed`/`r.get("trade_allowed")`) — an analysis/gating input consulted alongside the packet, not itself the sole authority | `OBSERVATIONAL_TELEMETRY` |
+| `trade_allowed` (`DecisionObservation` copy) | `observability/decision_observation.py::DecisionObservation.trade_allowed` (O-01's canonical telemetry reporting field, `decision_pipeline.trade_allowed` metric) | `OBSERVATIONAL_TELEMETRY` — mirrors the terminal verdict for reporting only, no path back into the gate |
 | `first_blocker` | `DecisionObservation.first_blocker` | OBSERVATIONAL_TELEMETRY |
 | `all_blockers` | `by_layer_breakdown` in `observability/operator/domains/attrition.py`, backed by `observability/rejection_store.py` | OBSERVATIONAL_TELEMETRY |
 | decision outcome (win/loss/etc.) | `BlackBox.record_position_closed()`, ledger `CompleteTrade.is_win` | DECISION_OUTCOME_EVIDENCE |
 | timestamps | `DecisionPacket.StateTransition` (per-transition), `BlackBoxEntry` (per-event) | per-source |
 | latest decision (per symbol) | Producer must materialize the current `DecisionPacket` state per open/recent symbol into the snapshot — this is in-memory, lifecycle-scoped state, not disk-resident until closed | Materialization required, same rule as §2.3 |
-| decision history | Depends on where closed `DecisionPacket`s / `BlackBoxEntry` records are persisted — `BlackBox` writes to `databases/black_box.jsonl` (confirmed referenced in `infra/api/api_server.py`'s `BLACK_BOX` path constant) — this is disk-resident and cross-process-*readable*, read directly by the API, **subject to §6.1's generation/watermark consistency rules** (this ledger is one of the three named as rotation-subject by `scripts/rotate_jsonl.sh` — a bare "cross-process-safe" label without the watermark/generation discipline would be exactly the overstatement R1-2/R2-1 correct) | DECISION_OUTCOME_EVIDENCE, disk-resident and cross-process-readable subject to §6.1 |
+| decision history | See §8.1 below (BLOCKER H) — two distinct ledgers, not one | Split by ledger, §8.1 |
+
+### 8.1 Decision-history sourcing — two distinct ledgers (R4/BLOCKER H)
+
+**Correction:** the original draft treated `black_box.jsonl` as if it
+were (or could substitute for) the persisted `DecisionPacket` history.
+Re-reading the persistence paths shows these are **two distinct
+ledgers** with distinct semantics, distinct freshness clocks, and
+distinct watermarks — neither is a substitute for the other:
+
+| Ledger | Path pattern | What it persists | Confirmed consumers | Authority label |
+|---|---|---|---|---|
+| **DecisionPacket history** | `databases/decision_packets_YYYY-MM-DD.jsonl` (date-sharded, per-day file; `core/advisor_loop.py` writes to `<DP_LOG_DIR>/decision_packets_{date}.jsonl`) | Persisted `DecisionPacket` records — the actual G8-gate authority packets, once terminal | `visualization/api/timeline_api.py` (globs `decision_packets_*.jsonl`), `scripts/trend_scanner.py`, `scripts/daily_signal_report.py`, `scripts/radar_bot.py`, `scripts/dashboard_api.py` | `EXECUTION_AUTHORITY` history (the persisted record of what the gate actually decided) |
+| **BlackBox log** | `databases/black_box.jsonl` (`quant_hedge_ai/agents/intelligence/black_box.py`, `_BB_PATH`) | Outcome/provenance events (`record_decision()`, `record_position_closed()`, `record_halt()`, `record_regime_change()`) — what happened, not the authorization act itself | `infra/api/api_server.py`'s `BLACK_BOX` path constant | `DECISION_OUTCOME_EVIDENCE` — never a substitute for DecisionPacket history |
+
+Each ledger requires its **own** `ledger_watermark` (§6.1), its own
+`logical_source` label (e.g. `"decision_packets"` vs. `"black_box"`), and
+its own freshness clock — an API response must never present one as if
+it satisfies the other's history requirement, and both are **disk-
+resident, cross-process-readable, subject to §6.1's generation/watermark
+consistency rules** (both are named rotation-subject candidates: the
+date-sharded `decision_packets_*.jsonl` files rotate by date natively,
+and `black_box.jsonl` is one of the three files `scripts/rotate_jsonl.sh`
+explicitly rotates by size). This document's own schema-inspection pass
+did not sample current runtime data from either ledger — no
+`databases/decision_packets_*.jsonl` or `databases/black_box.jsonl` file
+exists in this checkout (fresh worktree) — so no claim here is a claim
+about *current* runtime content, only about the schema/consumer wiring
+confirmed by reading the producing/consuming source.
 
 **Known unresolved measured disagreement** (carried forward from O-01,
 not fixed here): `core/advisor_loop.py:6274-6295` measures a
-`decision_packet_disagreement_rate` between the SHADOW_CANDIDATE track
-and the EXECUTION_AUTHORITY track. This rate itself is a valid,
-exposable `decision_pipeline.disagreement_rate` metric (already
-registered in O-01) — expose it, but never let it imply DecisionPacket
-is authoritative.
+`decision_packet_disagreement_rate` between the `DecisionPacket`-derived
+`EXECUTION_AUTHORITY` verdict and the legacy pipeline's own verdict. This
+rate itself is a valid, exposable `decision_pipeline.disagreement_rate`
+metric (already registered in O-01) — expose it, but it exists precisely
+*because* the two tracks can disagree, not as evidence either one is
+merely a "candidate": the `DecisionPacket` verdict is what actually
+executes (BLOCKER A), the legacy pipeline supplies a comparison signal.
 
 ---
 
@@ -1128,19 +1298,57 @@ and `observability/operator/domains/attrition.py`
 (`by_layer_breakdown`, `rejection_rate_over_rejections`,
 `execution_ratio`).
 
+**Correction (R4/BLOCKER G — dataclass/composer existence is not runtime
+exposure).** The original draft's `CANONICALLY_AVAILABLE` label was
+applied to several `PIPELINE_STAGES` entries on the strength of
+`observability/operator/domains/decision_pipeline.py` defining the
+`StageObservation` dataclass and a `compose_decision_pipeline_snapshot()`
+composer function. Re-reading confirms: **no call site in
+`core/advisor_loop.py` (or anywhere else) invokes
+`compose_decision_pipeline_snapshot()`** — the composer and its
+13-`PIPELINE_STAGES` vocabulary are real, but nothing in the current
+runtime populates a `StageObservation` for any stage. This contract now
+requires a three-tier classification for every pipeline stage, and
+forbids collapsing the first two into the label the brief reserves for
+proven runtime exposure:
+
+| Tier | Meaning |
+|---|---|
+| `CONTRACT_EXISTS` | The stage is named in `PIPELINE_STAGES` and/or has a `StageObservation` shape defined — a vocabulary/schema exists |
+| `RUNTIME_PRODUCER_EXISTS` | Something in the running advisor process actually populates a `StageObservation` for that stage (a confirmed call site feeding real counts) |
+| `RUNTIME_EXPOSURE_EXISTS` | That populated observation is actually reachable by a reader outside the advisor process (materialized into the canonical snapshot, or otherwise readable) |
+
+None of the 13 `PIPELINE_STAGES` entries currently has a confirmed
+`RUNTIME_PRODUCER_EXISTS` or `RUNTIME_EXPOSURE_EXISTS` — `compose_
+decision_pipeline_snapshot()` exists as `CONTRACT_EXISTS` only for all
+of them, pending the O-02W-C materialization work (§21). Where a stage's
+underlying *disk-backed* evidence is separately, genuinely available
+today (e.g. `observability/rejection_store.py`'s persisted rejection
+records feeding `attrition.py`), that disk-backed evidence is called out
+separately from the unpopulated 13-stage `StageObservation` model below
+— it is not the same thing as the pipeline-stage composer having a real
+producer. `NOT_EXPOSED` replaces the original draft's `CANONICALLY_
+AVAILABLE`/`PARTIALLY_AVAILABLE` labels wherever only `CONTRACT_EXISTS`
+is true; `PARTIALLY_AVAILABLE` is reserved for a stage with a *proven*
+`RUNTIME_PRODUCER_EXISTS` but no full `RUNTIME_EXPOSURE_EXISTS`;
+`AMBIGUOUS` is reserved for genuine semantic ambiguity (the brief's
+stage concept not cleanly mapping onto any named stage at all), not for
+"not yet wired." No fabricated stage counts or percentages are asserted
+anywhere below.
+
 | Brief stage | Classification | Evidence |
 |---|---|---|
 | MARKET OBSERVED | AMBIGUOUS | No dedicated candidate counter upstream of `analyze_symbol()` — O-01's own `decision_pipeline.py` docstring states "UNIVERSE and FEATURES are not separate stages with dedicated candidate counters in the current implementation." |
 | CANDIDATES | AMBIGUOUS | Same as above — "happen upstream of `analyze_symbol()` without their own telemetry object." |
-| SIGNALS | PARTIALLY_AVAILABLE | `signal` is a named stage in `PIPELINE_STAGES` (`StageObservation` per stage: `input_count`, `output_count`, `rejection_count`, `status`), but O-01's legacy-pipeline `ModuleDescriptor` notes "FILTERS et SIGNALS sont fusionnés dans gate/meta/no-trade plutôt que d'être des étapes nommées séparées" for the actual execution-driving path — the *DecisionObservation* track has the named stage, the *legacy authority* track does not cleanly separate it. |
-| META PASS | CANONICALLY_AVAILABLE | `meta_strategy` stage, `StageObservation` |
+| SIGNALS | `CONTRACT_EXISTS` only (`signal` is a named `PIPELINE_STAGES` entry with a defined `StageObservation` shape: `input_count`, `output_count`, `rejection_count`, `status`) — `NOT_EXPOSED` at runtime, no confirmed producer call site | O-01's legacy-pipeline `ModuleDescriptor` additionally notes "FILTERS et SIGNALS sont fusionnés dans gate/meta/no-trade plutôt que d'être des étapes nommées séparées" for the actual execution-driving path — even the *contract* only cleanly names this stage on the `DecisionObservation`/`decision_pipeline.py` side, not on the legacy-authority side. |
+| META PASS | `CONTRACT_EXISTS` only — `NOT_EXPOSED` at runtime, no confirmed producer | `meta_strategy` stage named in `PIPELINE_STAGES`; `compose_decision_pipeline_snapshot()` has no call site |
 | FILTER PASS | AMBIGUOUS | Not a distinct named stage in `PIPELINE_STAGES` — folded into `risk_gate`/`no_trade_layer` per the legacy-pipeline module descriptor's own admission. |
-| GATE PASS | CANONICALLY_AVAILABLE | `risk_gate` stage (5-condition `GlobalRiskGate` per the pipeline docstring's chain description) |
-| RISK PASS | CANONICALLY_AVAILABLE (overlaps GATE PASS — same `risk_gate` stage; the brief's RISK/GATE split does not exist as two separate stages in the code) | `risk_gate` stage |
-| PORTFOLIO ADMISSION | CANONICALLY_AVAILABLE | `portfolio_brain` stage (feeds `PortfolioBrain.portfolio_health()` — carries forward O-01's `portfolio_brain_duplicated` known-debt: this stage's counters may inherit the `pos_manager` vs `MexcSimulator` divergence, §5) |
-| ORDERS | CANONICALLY_AVAILABLE | `execution` stage, terminal `StageObservation` |
-| FILLS | PARTIALLY_AVAILABLE | Not a distinct `PIPELINE_STAGES` entry; fills are implicit in a successful `execution` stage plus the ledger's `OPEN` event — no separate fill-vs-order-sent distinction found (relevant for a simulator with no real exchange fill/reject asymmetry; MexcSimulator's own admission/rejection stub (`_make_rejected_stub`) is closer to a fill-layer signal but was not fully traced for a dedicated counter). |
-| REJECTIONS | CANONICALLY_AVAILABLE | `observability/rejection_store.py`, wrapped by `attrition.py`'s `by_layer_breakdown` / `dominant_blocker` / `rejection_rate_over_rejections` — explicitly scoped (per that module's own docstring) to actionable `trade_allowed=False` records with `side in (BUY,SELL,LONG,SHORT)`; HOLD/non-actionable signals are never counted here — **this distinguishes zero rejections (a real, `ZERO`-semantics count) from "rejection tracking not instrumented for this cycle" (`UNAVAILABLE`)** per the brief's requirement. |
+| GATE PASS | `CONTRACT_EXISTS` only — `NOT_EXPOSED` at runtime, no confirmed producer | `risk_gate` stage named (5-condition `GlobalRiskGate` per the pipeline docstring's chain description); no call site populates it |
+| RISK PASS | `CONTRACT_EXISTS` only, overlaps GATE PASS (same `risk_gate` stage; the brief's RISK/GATE split does not exist as two separate stages in the code) — `NOT_EXPOSED` at runtime | `risk_gate` stage |
+| PORTFOLIO ADMISSION | `CONTRACT_EXISTS` only — `NOT_EXPOSED` at runtime | `portfolio_brain` stage named (feeds `PortfolioBrain.portfolio_health()` — carries forward O-01's `portfolio_brain_duplicated` known-debt: this stage's counters may inherit the `pos_manager` vs `MexcSimulator` divergence, §5); no confirmed producer call site |
+| ORDERS | `CONTRACT_EXISTS` only — `NOT_EXPOSED` at runtime | `execution` stage named, terminal `StageObservation` shape; no confirmed producer call site |
+| FILLS | AMBIGUOUS | Not a distinct `PIPELINE_STAGES` entry; fills are implicit in a successful `execution` stage plus the ledger's `OPEN` event — no separate fill-vs-order-sent distinction found (relevant for a simulator with no real exchange fill/reject asymmetry; MexcSimulator's own admission/rejection stub (`_make_rejected_stub`) is closer to a fill-layer signal but was not fully traced for a dedicated counter). |
+| REJECTIONS | `PARTIALLY_AVAILABLE` — genuinely proven `RUNTIME_PRODUCER_EXISTS` + disk exposure, but this is `observability/rejection_store.py`'s own persisted evidence, not the `PIPELINE_STAGES`/`StageObservation` model | `observability/rejection_store.py`, wrapped by `attrition.py`'s `by_layer_breakdown` / `dominant_blocker` / `rejection_rate_over_rejections` — explicitly scoped (per that module's own docstring) to actionable `trade_allowed=False` records with `side in (BUY,SELL,LONG,SHORT)`; HOLD/non-actionable signals are never counted here — **this distinguishes zero rejections (a real, `ZERO`-semantics count) from "rejection tracking not instrumented for this cycle" (`UNAVAILABLE`)** per the brief's requirement. This is genuine disk-backed rejection/attrition evidence, kept separate from the unpopulated 13-stage `StageObservation` model above. |
 
 `execution_ratio` (`attrition.py`, `PercentageMetric`, all-signals-wide
 denominator) is the canonical numerator/denominator pair to use for any
@@ -1164,7 +1372,7 @@ Domains to expose, verbatim from O-01's eleven:
 
 | Domain | O-01 module | This contract's exposure |
 |---|---|---|
-| SYSTEM HEALTH | `system_health.py` — `boot_alive` (process-liveness tier, distinct from) `health_score`/`health_level` (scientific-health tier), `exchange_connectivity_healthy`, `exchange_latency_ms`, `module_statuses` | Expose both tiers separately, never merged into one number |
+| SYSTEM HEALTH | `system_health.py` — `boot_alive` (process-liveness tier, distinct from) `health_score`/`health_level` (scientific-health tier), `exchange_connectivity_healthy`, `exchange_latency_ms`, `module_statuses` | Expose both tiers separately, never merged into one number. **`boot_alive` correction (R4/BLOCKER D):** `CONTRACT_EXISTS`/`CHECK_IMPLEMENTATION_EXISTS` (the vocabulary and `watchdog_vps.py`'s `pgrep` check both exist), but canonical runtime exposure is `NOT_EXPOSED` — the watchdog's alive path only `log.debug()`s, publishing no readable artifact; see §14.2 for the required `UNKNOWN`-until-a-real-publisher-exists behavior. |
 | MARKET STATE | `market_state.py` | Exposed via §12 MARKET_API_CONTRACT |
 | DECISION PIPELINE | `decision_pipeline.py` | §9 |
 | ATTRITION | `attrition.py` | §9 |
@@ -1280,7 +1488,7 @@ guarantees, not domain facts):
 |---|---|
 | `snapshot_id` | Opaque unique id per write (e.g. UUID or monotonically increasing counter) — lets a consumer detect "I am looking at two different snapshots" even if timestamps alone are ambiguous |
 | `cycle` | The advisor loop's own cycle counter at the moment of composition — the single most important field for preventing "positions from cycle N + capital from cycle N+1" mixtures, since every domain composed into one snapshot write must share one `cycle` value by construction (the write happens once per cycle, not per domain) |
-| `runtime_sha` | The git SHA actually running in the producer process (distinct from `source_sha`/deployed SHA, §15) |
+| `runtime_sha` | **Correction (R4/BLOCKER C):** there is no runtime mechanism today that proves which SHA's *bytes are actually executing in process memory*. `git rev-parse HEAD` (§15) is only a **claimed checkout/source SHA** — it does not prove a clean worktree, that deployed files match that commit, that imported bytes on disk match it, or that the running process's memory matches it (`CLAUDE.md`'s own v2/v3 `CLEAN_DATA_SINCE` history is a real precedent for exactly this class of silent divergence — the `ssh -n` bug in `deploy_vps.sh` left a believed-deployed SHA that never actually reached the VPS). This contract therefore never labels `git rev-parse HEAD` alone "the SHA actually running." Until a genuine runtime-evidence mechanism exists, this field's value must be classified `CLAIMED_ONLY` (source-claimed, unverified) or `NOT_EXPOSED`, never asserted as `VERIFIED` runtime proof — see the four-way distinction in §15. |
 | `process_instance_id` | Identifies *which* advisor process instance produced this (relevant across restarts — a new PID after a restart is a new instance even if `runtime_sha` is unchanged) |
 | `generated_at_utc` | Wall-clock write time |
 
@@ -1427,11 +1635,54 @@ canonical process-liveness mechanism this contract already catalogues —
 which is itself watchdog-polled and carries its own freshness/staleness
 semantics per §13, not derived from the manifest at all):
 
+**Correction (R4/BLOCKER D — independent liveness is not exposed
+today).** Re-reading `watchdog_vps.py` in full: `_is_engine_running()`
+runs `pgrep -f <ENGINE_PGREP_PATTERN>` and returns a bool; `_tick()`
+calls it and, when the engine **is** running, does nothing but
+`log.debug("core/advisor_loop.py OK")` — no file is written, no atomic
+snapshot, no positive record readable by any other process. Only when
+the engine is judged **dead** does the watchdog act (alert/restart). The
+watchdog therefore never publishes a positive, independently-readable
+liveness artifact today. This forces a four-way classification, not a
+single "boot_alive: AVAILABLE":
+
+| Layer | Classification |
+|---|---|
+| Liveness **definition**/contract (`system_health.boot_alive`'s meaning, per `observability/operator/domains/system_health.py`) | `CONTRACT_EXISTS` |
+| Liveness **checking logic** (`watchdog_vps.py::_is_engine_running()`'s `pgrep`) | `CHECK_IMPLEMENTATION_EXISTS` |
+| Canonical, readable **runtime exposure** of that check's result (a file/socket/snapshot a separate API process could read) | `NOT_EXPOSED` — confirmed: the debug-log-only branch produces nothing durable or cross-process-readable |
+| API **availability today** (`boot_alive` served over any operator API) | `NOT_EXPOSED` — no such API exists, and even if it did, it would have nothing positive to read from the watchdog |
+
+**Independent liveness must never be derived from**: a process-identity
+match (`instance_relation == CURRENT_INSTANCE`, §14.2 rule 3, unchanged),
+the mere presence of the S-03 `RuntimeProvenanceSnapshotWriter`'s
+identity record (proves only that the process wrote it once — not that
+it is still running, exactly the same identity-vs-liveness conflation
+§14.2 already forbids for the runtime manifest), or snapshot freshness
+alone (a hung process can leave a wall-clock-fresh but stale file, §14.1).
+A genuinely independent liveness publisher (the watchdog atomically
+writing its own positive "I observed the process alive at T" record,
+readable by a separate API process) **may be deferred to a future,
+explicitly authorized mission** (O-02W-D, or a dedicated `T-1`-class
+runtime/deployment mission) — it is out of scope for this contract and
+for O-02W-C (§21) to implement.
+
 | Value | Meaning |
 |---|---|
 | `ALIVE` | The watchdog's own liveness check (not the manifest) reports the process as running, within that check's own freshness window. |
 | `DEAD` | The watchdog's liveness check reports the process as not running, or has positively detected its absence. |
 | `UNKNOWN` | The watchdog/liveness source itself is unreachable or stale beyond its own threshold — never silently presented as `ALIVE`. |
+
+**Current state (R4):** because `watchdog_vps.py` publishes no positive,
+readable record (see the `NOT_EXPOSED` classification above), any
+present-day implementation of this table has **no legitimate source for
+`ALIVE`** — a future API reading this field today must return `UNKNOWN`
+for every request, never `ALIVE`, until the deferred independent
+liveness publisher (O-02W-D/T-1) exists. This is a contract requirement,
+not merely a current-state observation: an implementation must not
+synthesize `ALIVE` from any other signal in the meantime (instance
+identity, manifest presence, snapshot freshness — all explicitly
+forbidden above).
 
 **Binding rules (R2-2, all four from the remediation brief):**
 
@@ -1478,16 +1729,70 @@ conflation this section corrects.
 
 ## 15. RUNTIME_IDENTITY_CONTRACT
 
+**Correction (R4/BLOCKER B — reuse S-03, do not invent a second
+mechanism).** `observability/runtime_provenance_snapshot.py`'s
+`RuntimeProvenanceSnapshotWriter` (S-03D, already certified, full-file
+read) already publishes, per process, an atomically-written (tmp +
+`os.replace()`) sanitized identity block: `process.pid`,
+`process.invocation_id`, `process.exposure_epoch_id` (a UUID generated
+once per process, `_EXPOSURE_EPOCH_ID = str(uuid.uuid4())`),
+`process.uptime_s`, plus component-liveness sub-blocks
+(`decision_observation`, `event_bus`, `rejection_store`,
+`regret_scheduler`, `dip`, `black_box`). This contract's
+`RUNTIME_IDENTITY_CONTRACT` **reuses/extends this writer as the single
+shared `RuntimeIdentity` source** rather than defining a second,
+independent process-identity mechanism with its own atomic-write/
+sanitization logic — the `operator_runtime_manifest.json` of §14.1 and
+the process-identity fields below MUST be produced by (or reconciled
+with) this same S-03 writer/schema, not duplicated. **Naming
+correction:** S-03's `exposure_epoch_id` is an **exposure/process
+epoch** — a UUID scoped to one process lifetime, identifying "which run
+of the exposure layer wrote this" — and is explicitly **not** the
+`CLEAN_DATA_SINCE` experimental/universe epoch (`CLAUDE.md`'s
+`CLEAN_DATA_SINCE_V4` boundary). The two must never share a field name;
+this contract uses `experiment_epoch_id` (aliased below,
+`clean_data_epoch_id` is an acceptable synonym) for the latter, reserving
+`exposure_epoch_id` for S-03's process-scoped meaning exactly as that
+module already defines it.
+
+**Correction (R4/BLOCKER C — source claim vs. runtime proof, four-way
+distinction).** `git rev-parse HEAD` (or the deploy tag's recorded SHA)
+proves only that a checkout claims to be at that commit — never that
+the worktree is clean, that the files on disk under that checkout match
+the commit's tree, that the bytes actually imported by the running
+Python process match those files, or that the process's in-memory state
+reflects that code. This contract requires every SHA-shaped identity
+field to carry one of these four explicit, non-conflatable states,
+never collapsed into a single "SHA" value presented as ambient truth:
+
+| State | Meaning | Source |
+|---|---|---|
+| **Claimed checkout/source SHA** | What `git rev-parse HEAD` (or the deploy tag) says the checkout is at — a claim, not a proof | `git rev-parse HEAD` at process start, or `CLAUDE.md`'s `deploy-YYYYMMDD-HHMM` annotated tags (SHA + file list) |
+| **Worktree state** | `CLEAN` / `DIRTY` / `UNKNOWN` — whether the checkout has uncommitted/untracked changes at the moment of the claim; `UNKNOWN` if this was never checked | `git status --porcelain` (if run) at process start; `UNKNOWN` if not run |
+| **Deployment identity/evidence** | If available — a record that this specific SHA's files were actually transferred to this host (the deploy tag's file list, or a post-deploy verification step) | `scripts/deploy_vps.sh` audit trail, if the runtime process can read it |
+| **Runtime evidence status** | `VERIFIED` (an independent mechanism actually confirmed process-memory/imported-bytes match the claimed SHA — does not exist today), `CLAIMED_ONLY` (only the source-claim above exists, nothing independently confirms it), or `UNKNOWN` (not even a claim was recorded) | No `VERIFIED` mechanism exists in this codebase today; this contract requires the field default to `CLAIMED_ONLY`, never silently upgraded to `VERIFIED` |
+
+**This contract never labels `git rev-parse HEAD` alone "the SHA
+actually running."** Absent a genuine runtime-verification mechanism
+(none is specified or implemented by this contract), any SHA-shaped
+identity exposed by the future snapshot must render as `CLAIMED_ONLY` or
+`NOT_EXPOSED` — never `VERIFIED`. **"SOURCE PROOF != RUNTIME PROOF"**
+(preserved from the original text) is the summary invariant; §22 adds
+negative tests asserting the API never asserts `VERIFIED` runtime-SHA
+proof without an actual verification mechanism behind it.
+
 | Field | Meaning | Source |
 |---|---|---|
-| `source_sha` | The git commit the running code was checked out from | `git rev-parse HEAD` at process start, or the deploy tooling's own record (`CLAUDE.md`'s `deploy-YYYYMMDD-HHMM` annotated tags carry the SHA + file list — reuse that convention as the audit trail, do not invent a second one) |
-| `runtime_sha` / `deployed_sha` | If separately known — relevant because `CLAUDE.md`'s own documented history (the v2/v3 `CLEAN_DATA_SINCE` incident) shows a real historical case where the deployed code silently diverged from what was believed deployed (the `ssh` `-n` bug in `deploy_vps.sh`) — this field exists specifically so that class of silent divergence is detectable going forward | Deploy tag / `scripts/deploy_vps.sh` audit trail |
-| `process_instance_id` | Unique per process lifetime | Generated at process start (e.g. a UUID or `os.getpid()` combined with boot timestamp for uniqueness across PID reuse); published immediately in a dedicated `operator_runtime_manifest.json` per §14.1, ahead of the first domain snapshot, so the API can detect a producer restart (`LAST_KNOWN` vs `CURRENT`, §14.1) independently of snapshot age |
-| `pid` | If safe to expose (host-local FastAPI/cockpit under the operator's own control — this contract treats it as safe within the read-only, non-public deployment model of §16; must not be exposed if the API is ever made publicly reachable without auth) | `os.getpid()` |
-| `boot timestamp` | Process start time | Recorded at process start |
+| `source_sha` | The **claimed** checkout/source SHA — see the four-way distinction above; never presented as proof of what is executing | `git rev-parse HEAD` at process start, or the deploy tooling's own record (`CLAUDE.md`'s `deploy-YYYYMMDD-HHMM` annotated tags carry the SHA + file list — reuse that convention as the audit trail, do not invent a second one) |
+| `worktree_state` | `CLEAN`/`DIRTY`/`UNKNOWN` — see the four-way distinction above | `git status --porcelain`, if run; `UNKNOWN` otherwise |
+| `runtime_sha_evidence_status` (was `runtime_sha`/`deployed_sha`) | `CLAIMED_ONLY`/`VERIFIED`/`UNKNOWN` per the four-way distinction above — **renamed and re-scoped by R4**: this field is never itself a second SHA value asserted as ground truth, it is the *evidence status* attached to `source_sha`. `CLAUDE.md`'s own documented history (the v2/v3 `CLEAN_DATA_SINCE` incident, the `ssh -n` bug in `deploy_vps.sh`) is the concrete precedent this field exists to make visible rather than silently assumed away | Deploy tag / `scripts/deploy_vps.sh` audit trail for deployment identity; no `VERIFIED` mechanism exists today, so this field defaults to `CLAIMED_ONLY` |
+| `process_instance_id` | Unique per process lifetime | Generated at process start (e.g. a UUID or `os.getpid()` combined with boot timestamp for uniqueness across PID reuse); reuses/reconciles with S-03's `RuntimeProvenanceSnapshotWriter` process-identity fields (`process.pid`, `process.invocation_id`) rather than defining a parallel identity; published immediately in a dedicated `operator_runtime_manifest.json` per §14.1, ahead of the first domain snapshot, so the API can detect a producer restart (`LAST_KNOWN` vs `CURRENT`, §14.1) independently of snapshot age |
+| `pid` | If safe to expose (host-local FastAPI/cockpit under the operator's own control — this contract treats it as safe within the read-only, non-public deployment model of §16; must not be exposed if the API is ever made publicly reachable without auth) | `os.getpid()`, already published by S-03's `process.pid` — reuse that value, do not recompute independently |
+| `boot timestamp` | Process start time | Recorded at process start; reconcilable with S-03's `process.uptime_s` (process-monotonic uptime) rather than a second, independently-tracked boot clock |
 | `cycle` | See §14 | advisor loop's own counter |
 | `schema_version` | Snapshot schema version — reuse O-01's `contracts.SCHEMA_VERSION` pattern (currently `"1.0.0"`), extended for the envelope-level additions this contract proposes (§4) | `observability/operator/contracts.py::SCHEMA_VERSION` |
-| `exposure_epoch_id` | If applicable — maps to `CLAUDE.md`'s "époque" concept (e.g. the `CLEAN_DATA_SINCE_V4` universe-epoch boundary) so a cockpit consumer can tell which experimental epoch the currently-exposed data belongs to, without duplicating that governance logic in the API itself (it should read the same canonical epoch boundary the statistician's tooling reads — `scripts/data_quality.py`'s `CLEAN_DATA_SINCE_ACTIVE` alias — never a locally copied constant, per `CLAUDE.md`'s explicit "jamais copiée localement" rule) | `scripts/data_quality.py::CLEAN_DATA_SINCE_ACTIVE` |
+| `exposure_epoch_id` | S-03's **process/exposure epoch** — a UUID generated once per process (`_EXPOSURE_EPOCH_ID`), identifying which run of the exposure layer produced a given block. Reused verbatim from `observability/runtime_provenance_snapshot.py`, not a second independently-generated value. **Never conflated with the experiment/universe epoch below.** An identity record's existence proves only that this process wrote it once — it is not itself a liveness claim (§14.2 already establishes this principle for the separate runtime manifest; the same rule applies here). | `observability/runtime_provenance_snapshot.py::_EXPOSURE_EPOCH_ID` |
+| `experiment_epoch_id` (renamed from the original draft's `exposure_epoch_id` — was a naming collision, R4/BLOCKER B) | The `CLAUDE.md` "époque" concept (e.g. the `CLEAN_DATA_SINCE_V4` universe-epoch boundary) so a cockpit consumer can tell which experimental epoch the currently-exposed data belongs to, without duplicating that governance logic in the API itself (it should read the same canonical epoch boundary the statistician's tooling reads — `scripts/data_quality.py`'s `CLEAN_DATA_SINCE_ACTIVE` alias — never a locally copied constant, per `CLAUDE.md`'s explicit "jamais copiée localement" rule). `clean_data_epoch_id` is an acceptable synonym field name; either name is fine as long as it is never spelled `exposure_epoch_id`. | `scripts/data_quality.py::CLEAN_DATA_SINCE_ACTIVE` |
 
 **No secrets.** No API key, no exchange credential, no Telegram token,
 no `.env` value beyond the non-secret identity fields above may ever
@@ -1526,29 +1831,58 @@ The future operator API is **READ-ONLY**, full stop:
 
 ## 17. PANEL_REQUIREMENT_MATRIX
 
-"F-00" = the first cockpit release milestone. Minimum contracts required
-before F-00, per panel:
+**Correction (R4/BLOCKER J — F-00 has not started and is not this
+mission).** The original draft used "F-00" as shorthand for "the first
+cockpit release milestone" and framed this matrix as "before/after
+F-00." Per `CLAUDE.md` and the mission sequencing this contract itself
+defines (§21), **F-00 has not started**: it is a distinct, later
+burn-in/certification measurement pass (market freshness, decision
+throughput, pipeline attrition, position truth, paper execution, Regret,
+adaptive passivity, clock consistency, disk/write growth, restart
+stability) that only begins **after** the required operator/runtime
+certification sequence below — it is not O-02W-B (this contract), not
+O-02W-C (the snapshot-builder mission this contract unblocks, §21), and
+not "the initial cockpit implementation." This matrix is corrected to
+sequence panels against the actual mission chain instead:
 
-| Panel | Minimum contract required before F-00 |
+- **O-02W-C** (§21): advisor-owned snapshot *builder* only — no API, no
+  UI. Nothing in this matrix ships to an operator's screen at this
+  stage; O-02W-C only makes the fields *materializable*.
+- **O-02W-D** (§21): read-only API + cockpit panels, MASTER-reviewed
+  only after O-02W-C's producer snapshot exists. This is the actual
+  first point any panel below can be *rendered*.
+- **O-02W-F / O-02C** (§21): later runtime operator-experience
+  certification, after O-02W-D ships.
+- **F-00**: a separate, later measurement pass, gated on its own
+  certification sequence — never described as "the first cockpit
+  release" by this contract.
+
+Minimum contracts required for each panel, keyed to the mission that may
+first render it (`REQUIRED_FOR_O-02W-D` = needed at first cockpit
+render; `SAFE_TO_ADD_AFTER_O-02W-D` = may lag without blocking initial
+render):
+
+| Panel | Minimum contract required for O-02W-D |
 |---|---|
 | **GLOBAL** | RUNTIME_IDENTITY_CONTRACT (§15) + ATOMICITY_CONTRACT (§14) + at minimum `operator_summary` domain (§10) — a cockpit cannot render *anything* trustworthy without knowing what snapshot/cycle it is looking at and whether the system considers itself healthy |
-| **MARKET** | `market_state` domain (§10/§12), scoped to freshness/connectivity only — full CryptoRadar integration is explicitly SAFE_TO_ADD_AFTER_F00 |
+| **MARKET** | `market_state` domain (§10/§12), scoped to freshness/connectivity only — full CryptoRadar integration is explicitly `SAFE_TO_ADD_AFTER_O-02W-D` |
 | **PORTFOLIO** | Full §5 PORTFOLIO_API_CONTRACT for paper equity/open positions/realized PnL; REAL account fields may ship as `NOT_APPLICABLE` placeholders if no real account is configured during the stabilization window (current state) |
 | **TRADES** | §6 TRADE_API_CONTRACT closed-trade history, ledger-read only — no live position dependency, so this is one of the *cheapest* panels to ship correctly |
-| **DECISIONS** | §8's `EXECUTION AUTHORITY` verdict + `first_blocker`/`all_blockers` (attrition) at minimum; full `DecisionPacket` shadow-track detail may ship after F-00 |
+| **DECISIONS** | §8's `EXECUTION_AUTHORITY` verdict (`DecisionPacket.is_actionable()`, the G8 gate) + `first_blocker`/`all_blockers` (attrition) at minimum; full `DecisionPacket` detail may ship after O-02W-D's first cut |
 
 | Domain | Classification | Justification |
 |---|---|---|
-| PIPELINE | REQUIRED_BEFORE_F00 (attrition/rejections subset only) | An operator needs to see *why* trades aren't happening (the single most common operator question); full 13-stage `StageObservation` detail can lag, but `dominant_blocker`/`execution_ratio` cannot |
-| RISK | SAFE_TO_ADD_AFTER_F00 | `risk_gate`/`execution_state` domains are diagnostic depth, not a first-cut operator need beyond the authority verdict already required for DECISIONS |
-| REGRET | SAFE_TO_ADD_AFTER_F00 | Statistician-facing (CRI/N-thresholds), not an operational go/no-go signal for day-to-day monitoring; `v2_active`/`canonical_freshness` alone (operator-primary tier, §11) could ship early cheaply, but full regret detail is not F-00-critical |
-| DATA (freshness) | REQUIRED_BEFORE_F00 (as a cross-cutting concern, not a standalone panel) | Every other panel's numbers are meaningless without a freshness indicator attached — this is not a separate panel to defer, it is a property every other panel's fields must already carry per §13 |
-| SYSTEM | REQUIRED_BEFORE_F00 (boot_alive + operator_summary subset only) | An operator must be able to tell "is the machine even running" before anything else matters; full disk_io/module_statuses detail is SAFE_TO_ADD_AFTER_F00 |
+| PIPELINE | `REQUIRED_FOR_O-02W-D` (attrition/rejections subset only) | An operator needs to see *why* trades aren't happening (the single most common operator question); full 13-stage `StageObservation` detail can lag (and per §9/BLOCKER G currently has no runtime producer at all), but `dominant_blocker`/`execution_ratio` cannot |
+| RISK | `SAFE_TO_ADD_AFTER_O-02W-D` | `risk_gate`/`execution_state` domains are diagnostic depth, not a first-cut operator need beyond the authority verdict already required for DECISIONS |
+| REGRET | `SAFE_TO_ADD_AFTER_O-02W-D` | Statistician-facing (CRI/N-thresholds), not an operational go/no-go signal for day-to-day monitoring; `v2_active`/`canonical_freshness` alone (operator-primary tier, §11) could ship early cheaply, but full regret detail is not required for O-02W-D's first cut |
+| DATA (freshness) | `REQUIRED_FOR_O-02W-D` (as a cross-cutting concern, not a standalone panel) | Every other panel's numbers are meaningless without a freshness indicator attached — this is not a separate panel to defer, it is a property every other panel's fields must already carry per §13 |
+| SYSTEM | `REQUIRED_FOR_O-02W-D` (boot_alive contract subset + operator_summary; **boot_alive itself remains `NOT_EXPOSED` at runtime today per §14.2/BLOCKER D** until the deferred independent liveness publisher exists) | An operator must be able to tell "is the machine even running" before anything else matters; full disk_io/module_statuses detail is `SAFE_TO_ADD_AFTER_O-02W-D` |
 
 This matrix deliberately does not maximize panel count — several O-01
 domains (disk_io, adaptive_learning detail, full decision_pipeline stage
-breakdown) are explicitly deferred as diagnostic depth rather than F-00
-requirements.
+breakdown) are explicitly deferred as diagnostic depth rather than
+O-02W-D first-cut requirements. None of this matrix is F-00 — F-00 is a
+later, separately-gated measurement mission (§21, BLOCKER J).
 
 ---
 
@@ -1584,8 +1918,9 @@ documented explicitly rather than silently omitted:
 | Regime/entropy confidence on `SystemSnapshot.market` | O-01 `market_state.py::MODULES` (already documents this gap) | "`RegimePacket` fields exist and are logged but never reach `SystemSnapshot.market`." `NOT_EXPOSED` at the `SystemSnapshot` level; may exist upstream in `RegimePacket` itself (not independently re-verified in this pass beyond citing O-01's finding). |
 | Continuous disk/IO operator-facing snapshot | O-01 `disk_io.py::MODULES` (already documents this gap) | DA-01 is `workflow_dispatch`-triggered only, "no operator-facing snapshot (`SystemSnapshot`, `MetricsSnapshot`) carries a disk field today." `UNAVAILABLE` outside audit windows by design, not a bug to fix here. |
 | Regret freshness over HTTP | O-01 `regret_state.py::MODULES` (already documents this gap) | `tools/regret_repository.freshness()` exists and is correct but `BurnInSnapshot` omits it; only the CLI (`tools/cri_calculator.py`) sees it today. This contract's §11 requires the implementation mission to close this gap, not perpetuate it. |
-| `MexcPosition.personality` for a normally (non-restored) opened position | `paper_trading/mexc_simulator.py` | Confirmed `"restored"` literal on restore path; the live-open code path's value for this field was not independently re-traced to full confirmation within this mission's time budget. `NEEDS_VERIFICATION`, not asserted either way. |
-| `MexcPosition.regime` | `paper_trading/mexc_simulator.py` (`_restore_positions()` construction site) | Not set on the `MexcPosition` object itself; only present on the originating ledger `TradeEvent`. `NOT_EXPOSED` on the position object directly; `AVAILABLE_VIA_LEDGER_JOIN` if the API performs an explicit join by `trade_id`/`symbol`. |
+| `MexcPosition.current_price` | `paper_trading/mexc_simulator.py::MexcPosition` full field list, `get_open_positions_summary()` | Not a stored field on `MexcPosition` at all — R4 re-read confirms it is a **materialized derived observation** computed at read time by `_fetch_price()`. `_fetch_price()` returns `0.0` both on missing exchange client and on any exception, so a raw `0.0` is unavailable-price evidence, never a genuine zero market price. `AVAILABLE` only as a materialized, separately-timestamped field distinct from `_positions` state; `UNAVAILABLE` (never `0`) when `_fetch_price()` cannot obtain a price. |
+| `MexcPosition.personality` for a normally (non-restored) opened position | `paper_trading/mexc_simulator.py::_fill_market()` construction call | R4 re-read confirms: `_fill_market()` constructs `MexcPosition(..., personality=order.personality, regime=order.regime, ...)` — both fields **are** populated from the originating `MexcOrder` on a normal open. This resolves the prior `NEEDS_VERIFICATION`: `AVAILABLE` for normal opens, distinct from the restore path's `personality="restored"` literal (itself a provenance label, not a real personality value). |
+| `MexcPosition.regime` | `paper_trading/mexc_simulator.py` (`_restore_positions()` construction site) | R4 re-read confirms `_restore_positions()`'s `MexcPosition(...)` call does not pass `regime` at all, so it silently takes the dataclass default `"unknown"` — a confirmed provenance gap on the restore path specifically (not a uniform gap: normal opens via `_fill_market()` do set `regime=order.regime`, `AVAILABLE`). For a restored position, `regime` on the object itself must be exposed as `"unknown"` with an explicit restored-without-regime marker; `AVAILABLE_VIA_LEDGER_JOIN` if the API performs an explicit join back to the ledger `TradeEvent`/`CompleteTrade` by `trade_id`/`symbol`, which the contract prefers over trusting the restored object's own `regime` field. |
 
 ---
 
@@ -1603,10 +1938,15 @@ documented explicitly rather than silently omitted:
    both be live; this matters for which one the future operator API is
    actually built to serve. Needs an explicit product decision, not an
    engineering guess.
-4. **`MexcPosition` live-open `personality`/`regime` population** —
-   §19 above; affects whether the PORTFOLIO panel's "personality if
-   genuinely attached" field (per the brief) can ship at F-00 or must
-   wait.
+4. **`MexcPosition` restore-path `regime` gap and `current_price`
+   materialization** — §19 above (R4 confirms normal-open `personality`/
+   `regime` ARE populated from `MexcOrder` via `_fill_market()`; the
+   remaining real gap is `_restore_positions()` never passing `regime`,
+   silently defaulting to `"unknown"`, and `current_price` never being
+   stored state, only a read-time materialized observation from
+   `_fetch_price()`, whose `0.0` means unavailable, not zero). Affects
+   whether the PORTFOLIO panel's restored-position `regime` field can
+   ship at O-02W-C/D without the ledger join, or must wait for it.
 5. **Restored-position TP/SL provenance labeling** (§5: fixed 4%/2%
    default vs. the position's true original TP/SL) is a real,
    observable data-quality risk for any operator trusting the cockpit's
@@ -1651,61 +1991,116 @@ documented explicitly rather than silently omitted:
 
 ## 21. MINIMUM_IMPLEMENTATION_MISSION
 
-The next implementation mission this contract unblocks (source-only
-description, explicitly **no code** in this document):
+**Correction (R4/BLOCKER I — rewritten to define O-02W-C as the ONLY
+next mission).** The original draft bundled the snapshot builder, the
+JSONL watermark/sidecar mechanisms, a new FastAPI process, cockpit
+wiring, and auth into a single "next implementation mission." That
+overstates what one mission should responsibly attempt next and blurs
+the boundary this document exists to hold (documentation/architecture
+only, zero API/UI/VPS/Telegram — see the header). This section is
+rewritten to name **O-02W-C** as the **only** mission this contract
+unblocks next, with every other piece explicitly deferred to named,
+separately-authorized later missions.
 
-**Mission scope:** build the **canonical operator snapshot writer** as a
-narrow, in-process addition invoked once per advisor loop cycle (not a
-new decisional component — a pure serializer with zero decision
-authority), materializing exactly the fields enumerated as
-"materialization required" in §2.3, §5, §7, §8, using the O-01
-`compose_*_snapshot()` functions already shipped
-(`observability/operator/domains/*.py`) as the composition layer, and
-writing the result via atomic tmp-file-plus-`os.replace()` to a single
-canonical JSON path, augmented with the envelope-level identity/atomicity
-fields from §14-§15.
+### 21.1 O-02W-C — Canonical operator snapshot builder (the only next mission)
 
-**In scope:**
-- Wiring real producers (`SystemSnapshot`, `MexcSimulator` via
-  `paper_portfolio_view`/`portfolio_status.py`, `WalletSync`,
-  `RejectionStore`, `tools/regret_repository.py`, `DecisionObservation`)
-  into the O-01 `compose_*_snapshot()` calls — this is exactly the "step
-  1" O-01 itself deferred ("a future integration layer... will: 1. read
-  already-existing in-memory objects... 2. wrap each value in an
-  `ObservedValue`... 3. call the relevant `compose_*_snapshot()`").
-- The atomic snapshot writer itself (tmp file + `os.replace()`), modeled
-  on `quant_hedge_ai/dashboard/live_snapshot.py::write_snapshot()`
-  (§1.2, §1.3) — a new writer, not a modification of that existing
-  function's own call site.
-- The runtime-instance manifest writer (§14.1) — a small, separate
-  atomic write at process start, ahead of the first domain snapshot.
-- The JSONL read-side watermark logic (§6.1) — byte-offset tracking in
-  the ledger read path, applied uniformly to trades/regret/decision
-  ledgers.
-- The generation-identity sidecar/metadata mechanism (§6.1.1) — the
-  small, ledger-lifecycle-owned metadata associating each logical ledger
-  with its current and past `generation_id`s, wired into
-  `rotate_jsonl.sh` (or its future equivalent) so rotation and any
-  governed reset allocate/invalidate identities per §6.1.2. Not
-  implemented by this contract; a required deliverable of that mission,
-  not an optional enhancement.
-- A separate, new, read-only FastAPI process (or an addition to
-  `sdos_terminal/api/app.py` if that shape is confirmed reusable per
-  §18) exposing GET routes over the snapshot file plus direct reads of
-  the existing JSONL ledgers for history (trades, decisions), each
-  response carrying its `ledger_watermark` (§6.1) and the snapshot's
-  `runtime_state` (§14.1).
-- Auth per §16, reusing `scripts/dashboard_api.py`'s HMAC pattern or
-  equivalent.
-- The test suite specified in §22 (CONTRACT_TEST_REQUIREMENTS).
+**Mission scope:** build the **canonical operator snapshot builder**
+inside the advisor process — a narrow, additive materialization step
+invoked once per advisor loop cycle (not a new decisional component — a
+pure serializer with zero decision authority, zero effect on
+`trade_allowed`/`is_actionable()`/timing-critical flow, zero new error
+propagation into the loop), which:
 
-**Explicitly out of scope for that mission too** (carried forward from
-this one): any modification to `core/advisor_loop.py`'s decision logic,
-any new signal/indicator/threshold, any Telegram wiring, any VPS
-deploy/restart action, any write path from the API back toward the
-advisor process. The writer call site inside the advisor loop is
-additive instrumentation (read current state, serialize, write file) —
-not a change to what the loop decides.
+- Reads already-existing live, in-process objects (`SystemSnapshot`,
+  `MexcSimulator` via `paper_portfolio_view`/`portfolio_status.py`,
+  `WalletSync`, `RejectionStore`, `tools/regret_repository.py`,
+  `DecisionObservation`, the current/latest `DecisionPacket` per symbol)
+  — materializing exactly the fields enumerated as "materialization
+  required" in §2.3, §5, §7, §8 of this contract, including the
+  corrected §5/§8 provenance labels (`current_price`/`regime` restore
+  gaps, BLOCKER F; `EXECUTION_AUTHORITY` vs `OBSERVATIONAL_TELEMETRY` vs
+  `DECISION_OUTCOME_EVIDENCE`, BLOCKER A).
+- Reuses the O-01 `compose_*_snapshot()` functions already shipped
+  (`observability/operator/domains/*.py`) as the composition layer where
+  a real producer for that domain now exists — this is exactly the
+  "step 1" O-01 itself deferred, and exactly the step that turns a
+  domain's classification from `CONTRACT_EXISTS`/`RUNTIME_PRODUCER_
+  EXISTS` into genuine `RUNTIME_EXPOSURE_EXISTS` (§9/BLOCKER G) for the
+  domains this mission actually wires.
+- Reuses/reconciles S-03's `RuntimeProvenanceSnapshotWriter`
+  (`observability/runtime_provenance_snapshot.py`) as the shared
+  `RuntimeIdentity` source (§15/BLOCKER B) rather than inventing a
+  second identity mechanism — the `operator_runtime_manifest.json`
+  (§14.1) and process-identity fields (§15) must be produced by, or
+  reconciled against, this same writer/schema.
+- Writes the result via a single atomic tmp-file-plus-`os.replace()`
+  write to one canonical JSON path, modeled on `quant_hedge_ai/
+  dashboard/live_snapshot.py::write_snapshot()` (§1.2, §1.3) — a new
+  writer, not a modification of that existing function's own call site
+  — augmented with the envelope-level identity/atomicity fields from
+  §14-§15, at a bounded cadence (comparable to S-03's ~30-60s target,
+  not per-request).
+- Is fail-passive: a serialization/write failure is logged and counted,
+  never raised into the advisor loop, never affecting `trade_allowed`/
+  `is_actionable()` or any decision path (ADR-0007).
+- Ships a focused test suite covering exactly this builder: atomic-write
+  reader-atomicity (§22 test 1), failed-serialization preservation (§22
+  test 2), the fail-passive guarantee above, and correct materialization
+  of the corrected §5/§7/§8 provenance labels (mode override/unknown-mode
+  cases, §22; restored-position `regime`/`current_price` labeling, §22).
+
+**Explicitly OUT of scope for O-02W-C** (deferred to named later
+missions below, not silently assumed or bundled in):
+- Any FastAPI process, HTTP routes, or WebSocket server.
+- Any React/cockpit UI work of any kind.
+- Auth implementation (§16) — a contract requirement on the *future*
+  API, not something O-02W-C builds.
+- Any process that reads the JSONL ledgers directly as a "web process"
+  concern — O-02W-C only writes the in-process snapshot; it does not
+  build a ledger reader.
+- The JSONL sidecar/rotation-script implementation (§6.1.1/§6.1.4) —
+  wiring `rotate_jsonl.sh` (or its future equivalent) to allocate/
+  invalidate `generation_id`s is a **separately authorized** deliverable
+  (§21.2 below), not part of O-02W-C.
+- Any VPS deployment, systemd unit, or restart action.
+- Any runtime/deployment certification claim (§15's `VERIFIED` runtime-
+  SHA evidence status, or the independent liveness publisher of §14.2/
+  BLOCKER D) — O-02W-C does not claim to produce these.
+- Any modification to `core/advisor_loop.py`'s decision logic, any new
+  signal/indicator/threshold, any Telegram wiring, any write path back
+  toward the advisor process from anything reading its output. The
+  writer call site inside the advisor loop is additive instrumentation
+  (read current state, serialize, write file) — not a change to what the
+  loop decides, and it must never alter decision values, authorization,
+  timing-critical flow, or error propagation of the existing loop.
+
+### 21.2 Later missions (named, not started, not bundled into O-02W-C)
+
+- **§6.1's sidecar/transition-protocol implementation** — wiring
+  `rotate_jsonl.sh` (or its future equivalent) to allocate/invalidate
+  `generation_id`s per §6.1.1-§6.1.4. A separately authorized
+  deliverable; may be assigned to O-02W-C's follow-up or a dedicated
+  ledger-lifecycle mission, but is not implicitly included in O-02W-C
+  itself.
+- **O-02W-D** — the read-only API + cockpit panels mission. Explicitly
+  gated on O-02W-C's producer snapshot existing and having been
+  MASTER-reviewed first; only then does building the FastAPI process
+  (§1.3, §16 auth), the JSONL-ledger read/watermark logic (§6.1) as a
+  *reader*, and the actual cockpit panel wiring (§17) become in scope.
+- **O-02W-E** — Telegram notification/retirement work relating to this
+  contract's domains, if any is ever authorized; not this contract's or
+  O-02W-C's concern.
+- **T-1** (or an equivalently-named dedicated mission) — runtime/
+  deployment certification: the genuine independent liveness publisher
+  deferred in §14.2/BLOCKER D, and any mechanism that could ever justify
+  a `VERIFIED` (not merely `CLAIMED_ONLY`) runtime-SHA evidence status
+  per §15/BLOCKER C.
+- **O-02W-F / O-02C** — later runtime operator-experience certification,
+  after O-02W-D ships and is observed in production.
+
+None of the above is started by this document. This document
+(O-02W-B-R4) and O-02W-C together do not constitute F-00 — see §17's
+correction (BLOCKER J).
 
 ---
 
@@ -1715,18 +2110,21 @@ not a change to what the loop decides.
 |---|---|---|---|---|---|---|---|---|
 | `portfolio.paper_equity_usd` | Current simulated equity | float | usd | N/A (scalar) | OBSERVATIONAL_TELEMETRY | `UNAVAILABLE` if WalletSync unreachable | Genuine `$0` equity is `ZERO`, distinct from unavailable | ledger mtime |
 | `portfolio.open_positions[]` | Live paper positions | list[object] | — | count = list length | OBSERVATIONAL_TELEMETRY | `UNAVAILABLE` if simulator not instantiated | `EMPTY` list if simulator active with zero positions | snapshot `generated_at_utc` |
-| `portfolio.open_positions[].current_price` | Live mark price | float | usd | N/A | OBSERVATIONAL_TELEMETRY | `STALE` if no fresh tick since position restore | N/A (price is never legitimately 0) | per-position last tick |
+| `portfolio.open_positions[].current_price` | Live mark price — **not stored on `MexcPosition`; a materialized derived observation** computed at read time by `get_open_positions_summary()`'s `_fetch_price()` call (§5/BLOCKER F) | float | usd | N/A | OBSERVATIONAL_TELEMETRY | `UNAVAILABLE` if `_fetch_price()` returns `0.0` (no exchange client, or fetch exception — both collapse to `0.0` at the source and must be relabeled `UNAVAILABLE`, never passed through as a price); `STALE` if no fresh tick since position restore | N/A (a `0.0` from `_fetch_price()` is unavailable-price evidence, never a legitimate zero market price) | materialization time (own `observed_at_utc`, distinct from position `opened_ts`) |
+| `portfolio.open_positions[].regime` | Position-level regime — populated from `MexcOrder.regime` on a normal open (`_fill_market()`); **silently defaults to `"unknown"` on the restore path** (`_restore_positions()` never passes `regime`, §5/BLOCKER F) | str (enum-like) | — | N/A | OBSERVATIONAL_TELEMETRY | Restored positions: `"unknown"` with an explicit `restored_without_regime: true` marker, never presented with the same confidence as a normal open's `regime`; `AVAILABLE_VIA_LEDGER_JOIN` if the API joins back to the ledger `TradeEvent` by `trade_id`/`symbol` | N/A (categorical) | position-open time (normal) / restore time (restored, best-effort) |
 | `portfolio.realized_pnl_usd` | Sum of closed-trade PnL | float | usd | N over closed trades | OBSERVATIONAL_TELEMETRY | `UNAVAILABLE` if ledger unreadable | `ZERO` if genuinely no closed trades yet | ledger mtime |
 | `trade.fees` | Per-trade fee amount | float | usd | N/A | OBSERVATIONAL_TELEMETRY | `NOT_EXPOSED` always (not recorded, §19) | never rendered as 0 | N/A |
-| `decision.trade_allowed` (authority copy) | Terminal execution verdict | bool | boolean | N/A | EXECUTION_AUTHORITY | `UNKNOWN` if no cycle ran yet for symbol | `FALSE` is a genuine, meaningful value (blocked) | per-cycle |
-| `decision.trade_allowed` (DecisionObservation copy) | Mirrored verdict for reporting | bool | boolean | N/A | OBSERVATIONAL_TELEMETRY | same | same | per-cycle |
+| `decision.is_actionable` (G8 gate verdict) | Terminal execution-authorization verdict — `DecisionPacket.is_actionable()` as consumed by `_effective_trade_allowed` in the G8 gate (§8/BLOCKER A); a missing `DecisionPacket` fails closed to `False` | bool | boolean | N/A | EXECUTION_AUTHORITY | `UNKNOWN` if no cycle ran yet for symbol (never coerced to `True`) | `FALSE` is a genuine, meaningful value (blocked, including the "packet absent" case) | per-cycle |
+| `decision.trade_allowed` (legacy pipeline field, gating input to the G8 gate) | Legacy dict pipeline verdict — an analysis/gating input the G8 gate consults, not itself the sole authority (§8/BLOCKER A) | bool | boolean | N/A | OBSERVATIONAL_TELEMETRY | `UNKNOWN` if no cycle ran yet for symbol | `FALSE` is meaningful (a blocker fired upstream of G8) | per-cycle |
+| `decision.trade_allowed` (DecisionObservation copy) | Mirrored verdict for reporting only, no path back into the gate | bool | boolean | N/A | OBSERVATIONAL_TELEMETRY | same | same | per-cycle |
 | `pipeline.execution_ratio` | All-signals-wide executed/refused ratio | PercentageMetric | pct | numerator=executed, denominator=all evaluated signals | OBSERVATIONAL_TELEMETRY | `UNAVAILABLE` if `activity_tracker` unreachable | `0%` is a genuine (bad) rate, not absence | per cycle |
 | `attrition.dominant_blocker` | Most frequent rejection layer | str (enum-like) | — | over `RejectionStore` window | OBSERVATIONAL_TELEMETRY | `UNKNOWN` if zero rejection records at all | N/A (categorical) | `RejectionStore` record timestamps |
 | `regret.canonical_freshness` | Regret v2 evaluated-horizon freshness | FreshnessStatus | enum | N/A | OBSERVATIONAL_TELEMETRY | `UNKNOWN` if no canonical evaluation has ever run | N/A | `last_canonical_evaluated_utc` |
-| `system_health.boot_alive` | Process liveness | bool | boolean | N/A | OBSERVATIONAL_TELEMETRY | `UNAVAILABLE` if watchdog itself unreachable | `FALSE` is genuine (process down) | watchdog poll |
+| `system_health.boot_alive` | Process liveness — **`CONTRACT_EXISTS`/`CHECK_IMPLEMENTATION_EXISTS` today (watchdog's own `pgrep`-based check runs), but `NOT_EXPOSED` for any independent reader** (§14.2/BLOCKER D: `watchdog_vps.py`'s alive branch only logs `log.debug(...)`, publishing nothing durable) | bool | boolean | N/A | OBSERVATIONAL_TELEMETRY | Today: **must render `UNKNOWN`** for every read — no legitimate `ALIVE`/`FALSE` source is exposed yet; post-O-02W-D/T-1 (once the deferred independent liveness publisher exists), `UNAVAILABLE` if watchdog itself unreachable | `FALSE` would be genuine (process down) once a real publisher exists; today there is no genuine value to report at all, only `UNKNOWN` | watchdog poll (once exposed) |
 | `system_health.health_score` | Composite scientific health (0-100), NOT a global system percentage — scoped to `MetricsSnapshot` inputs only | float | pct (0-100) | over defined `MetricsSnapshot` inputs | OBSERVATIONAL_TELEMETRY | `UNAVAILABLE` if `MetricsSnapshot` missing | `0` is a genuine (critical) score | `MetricsSnapshot` cadence |
-| `mode` (portfolio/wallet) | PAPER/REAL_API/TESTNET_API/UNKNOWN | enum | — | N/A | provenance metadata, not authority | `UNKNOWN` if snapshot predates first successful mode resolution | N/A (categorical) | process-lifetime constant |
-| `snapshot_id` / `cycle` / `runtime_sha` / `process_instance_id` | Identity/atomicity spine | mixed | — | N/A | envelope metadata | never null in a valid snapshot | N/A | write-time |
+| `mode` (portfolio/wallet) | `PAPER`/`REAL_API`/`TESTNET_API`/`UNKNOWN` — the API publishes the producer's **already-resolved provenance label** (`core/advisor_loop.py::_balance_provenance_from_mode()` or an extracted resolver with identical semantics, §7/BLOCKER E), never reinterprets a raw internal mode independently; `PAPER_TRADING_ENABLED` truthy always overrides to `PAPER` regardless of `exec_mode` | enum | — | N/A | provenance metadata, not authority | `UNKNOWN` if snapshot predates first successful mode resolution, **or if the underlying `exec_mode` was itself unrecognized (fail-closed — never defaulted to `REAL_API` or `PAPER`)** | N/A (categorical) | process-lifetime constant |
+| `snapshot_id` / `cycle` / `process_instance_id` | Identity/atomicity spine | mixed | — | N/A | envelope metadata | never null in a valid snapshot | N/A | write-time |
+| `source_sha` / `worktree_state` / `runtime_sha_evidence_status` | Claimed checkout SHA / `CLEAN`\|`DIRTY`\|`UNKNOWN` / `CLAIMED_ONLY`\|`VERIFIED`\|`UNKNOWN` (§15/BLOCKER C) — `source_sha` is never itself proof of what is executing; no `VERIFIED` mechanism exists today | mixed | — | N/A | envelope metadata | `runtime_sha_evidence_status` defaults `CLAIMED_ONLY` if only `git rev-parse HEAD` was read, `UNKNOWN` if nothing was recorded — never `VERIFIED` without an actual verification mechanism | N/A | write-time (claim), not a liveness/freshness clock |
 | `ledger_watermark` (`logical_source`/`generation_id`/`byte_offset`/`read_at_utc`/`path`) | Point-in-time boundary for a JSONL-ledger-backed response, generation-aware (§6.1) — `byte_offset` meaningful only within its own `generation_id`; `path` is provenance only, never the sole identity. **`generation_id` is a stable opaque UUID/epoch allocated once per governed generation by the §6.1.1 sidecar** — never recomputed from file content/inode on read; a `LEGACY`/`BEST-EFFORT` fallback (§6.1.3, inode or once-captured content anchor) is labeled distinctly and is not a substitute when the sidecar is available | object | actual bytes (`byte_offset`, binary-derived, §6.1) | N/A | envelope metadata, per-resource | never null on a successful ledger read; `UNAVAILABLE` (not empty) if the referenced `generation_id` is no longer retained (§6.1 requirement 8) or if a detected ungoverned mutation invalidates the read (§6.1.2) | `byte_offset: 0` is a genuine empty-ledger read for that generation, distinct from `UNAVAILABLE` (§6.1 requirement 3) | read-time (per request) |
 | `runtime_manifest.process_instance_id` / `boot_timestamp_utc` | Write-once-per-boot declaration of the most recently started producer instance's identity (§14.1) — an **identity/succession fact, not a liveness proof** (§14.2); a producer can hang or crash after writing this without it ever being revised | mixed | — | N/A | envelope metadata, cross-checked against every snapshot read | `UNKNOWN` instance relation if the manifest file itself is missing/corrupt (never coerced to `CURRENT_INSTANCE`, §14.2 rule 2) | N/A | write-time, updated once per process boot |
 | `snapshot.instance_relation` (`CURRENT_INSTANCE` \| `PREVIOUS_INSTANCE` \| `UNKNOWN`) | Pure identity/succession comparison of `snapshot.process_instance_id` vs. current `runtime_manifest` (§14.2) — never a liveness claim | enum | — | N/A | envelope metadata, API-computed | `UNKNOWN` if manifest missing/corrupt | N/A | computed at read-time, not stored |
@@ -1735,13 +2133,27 @@ not a change to what the loop decides.
 
 ---
 
-## 22. CONTRACT_TEST_REQUIREMENTS (R1-4, extended R2-1/R2-2, extended R3, amended R3.1)
+## 22. CONTRACT_TEST_REQUIREMENTS (R1-4, extended R2-1/R2-2, extended R3, amended R3.1, reassigned R4)
 
-Documentation-only in this mission — these are **requirements the future
-implementation mission (§21) must satisfy with real tests**, not tests
-written here. Each maps directly to a semantic guarantee this contract
-makes elsewhere; a contract clause with no corresponding test requirement
-is not enforceable and would regress silently.
+Documentation-only in this mission — these are **requirements a future
+implementation mission must satisfy with real tests**, not tests written
+here (and, per BLOCKER I/§21, no runtime or deployment proof of any kind
+is offered by this doc-only R4 pass). Each maps directly to a semantic
+guarantee this contract makes elsewhere; a contract clause with no
+corresponding test requirement is not enforceable and would regress
+silently.
+
+**Mission assignment (R4 correction — the original text implied one
+undifferentiated "future implementation mission"; per §21 there are
+several, and each test below belongs to a specific one):**
+
+| Test group | Belongs to |
+|---|---|
+| Snapshot-writer atomicity/failure-preservation (1-2), fail-passive/materialization correctness (mode override/unknown-mode, restored-position labeling) | **O-02W-C** (§21.1) |
+| Ledger-generation/reader/watermark tests (5-18) | **A later ledger/API mission** (§21.2 — the sidecar/transition-protocol implementation and/or O-02W-D's ledger-reader work), not O-02W-C |
+| Runtime-manifest/instance-relation/liveness tests (3-4, 13) | **O-02W-C** for the manifest-writing half (§14.1); the API-side read/label half belongs to **O-02W-D** |
+| API/auth tests (routes, HMAC auth, WS) | **O-02W-D** (§21.2) exclusively — O-02W-C builds no API surface at all |
+| Source-SHA/runtime-evidence negative tests (19-20, new below) | **O-02W-D or T-1** (§21.2) — whichever mission first exposes a `source_sha`/runtime-evidence field over any reader |
 
 1. **Reader never observes a partial canonical JSON snapshot.** A test
    that concurrently reads the snapshot file while a writer repeatedly
@@ -1948,6 +2360,46 @@ empty successful result is only ever correct for a confirmed `ACTIVE`
 generation genuinely containing zero valid lines (requirement 3), never
 as a stand-in for "a transition was in progress and I couldn't tell."
 
+**Added by R4 (BLOCKER C — source claim vs. runtime proof, negative
+tests):**
+
+19. **A claimed source SHA is never presented as `VERIFIED` runtime
+    proof.** A test must construct a snapshot/manifest exposing
+    `source_sha` derived only from `git rev-parse HEAD` (no independent
+    verification mechanism run) and assert the corresponding evidence-
+    status field renders `CLAIMED_ONLY` (or `UNKNOWN` if not even
+    recorded), never `VERIFIED` — and a separate assertion that no
+    string in the response ever states or implies "the SHA actually
+    running" for a `CLAIMED_ONLY` value. Exercises §15's four-way
+    source-claim/worktree-state/deployment-evidence/runtime-evidence
+    distinction.
+20. **A dirty or unchecked worktree is never silently reported as
+    `CLEAN`.** A test must construct the case where `git status
+    --porcelain` was never run (or reports uncommitted changes) and
+    assert `worktree_state` renders `UNKNOWN` (or `DIRTY`) respectively
+    — never defaulted to `CLEAN` merely because nothing contradicts it.
+    Exercises the same §15 distinction, `worktree_state` specifically.
+
+**Added by R4 (BLOCKER E — mode provenance override + unknown-mode
+cases):**
+
+21. **`PAPER_TRADING_ENABLED` overrides `exec_mode` regardless of its
+    value.** A test must set `PAPER_TRADING_ENABLED` truthy alongside an
+    `exec_mode` of `"live"` or `"testnet"` and assert the exposed mode
+    provenance resolves to `PAPER` — proving the override in
+    `_balance_provenance_from_mode()` (or the reused equivalent) is
+    preserved by whatever the API publishes, never independently
+    reinterpreted. Exercises §7's override-preservation requirement.
+22. **An unrecognized `exec_mode` fails closed to `UNKNOWN`, never
+    `REAL_API`.** A test must pass an `exec_mode` value outside
+    `{"paper","live","testnet"}` (with `PAPER_TRADING_ENABLED` falsy) and
+    assert the exposed mode provenance is `UNKNOWN` — and a second
+    assertion that no code path in the exposure layer defaults an
+    unrecognized mode to `REAL_API`. Exercises §7's fail-closed
+    requirement, the single most safety-critical case in this contract's
+    mode vocabulary (a false `REAL_API` label on paper-mode data would be
+    exactly the mis-attribution ADR-0007/O-01 already warn against).
+
 ---
 
 ## PROCESS_BOUNDARY_VERDICT
@@ -1991,9 +2443,12 @@ process?**
    second process has no way to know which mode the advisor's singleton
    was constructed with without being told.
 4. The current/latest `DecisionPacket` state per symbol during its
-   in-memory lifecycle (§8) — closed/terminal packets that reach a disk
-   sink (e.g. `black_box.jsonl`) do not require this, only the live,
-   in-flight state does.
+   in-memory lifecycle (§8) — closed/terminal packets that reach their
+   disk sink (`databases/decision_packets_YYYY-MM-DD.jsonl`, the
+   DecisionPacket history ledger, §8.1) do not require this
+   materialization, only the live, in-flight state does. (`black_box.
+   jsonl` is a separate, distinct ledger — outcome/provenance evidence,
+   never a substitute for `DecisionPacket` history, §8.1/BLOCKER H.)
 5. Paper-mode `WalletSync.get_balance()` — not strictly *required*
    (re-derivable, §2.2), but materialized anyway by this contract's
    design (§2.3) to give the API one single source of truth instead of
