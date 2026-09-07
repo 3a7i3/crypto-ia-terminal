@@ -181,6 +181,34 @@ corrections are unchanged and not reverted. Still documentation-only —
 no runtime source was changed to make the contract true; the two files
 re-read above were read, not modified.
 
+**R4.2 remediation (O-02W-B-R4.2, 2026-09-07):** R4.1 was not fully
+consistent — it supplemented several sections with corrected text but
+left older contradictory sentences standing alongside it. This MINIMAL
+pass removes those residual sentences in place, without adding a new
+parallel explanation section: (A) the process-identity model in §15/
+§21.1/test 30 no longer says S-03 is a "shared RuntimeIdentity source"
+or that fields are "produced by (or reconciled with)"/"reuses/
+reconciles" S-03 — the advisor bootstrap is now stated as the sole
+identity authority and the S-03 writer as a passive consumer/projection
+throughout; (B) §14/§15/the field table now define and use the
+previously-missing `deployment_evidence` schema field as a fourth
+envelope field (source_sha/worktree_state/deployment_evidence/
+runtime_sha_evidence_status), removing the stale "three envelope
+fields" wording; (C) §13's freshness table and the
+`REQUIRED_FIELD_CONTRACT_TABLE`'s `system_health.liveness` row no
+longer claim a current "existing watchdog" source or a bare "Watchdog
+unreachable -> UNAVAILABLE" — both now state today's `NOT_EXPOSED`/
+`UNKNOWN`-only reality separately from the future-only independent-
+publisher case, and test 28 is split by owning mission (O-02W-C/
+O-02W-D/T-1); (D) §5's restored-position regime row now specifies the
+exact `pos_id == trade_id` join (symbol as post-join check only, never
+a fallback), replacing the "by trade_id/symbol"/"API should prefer that
+join" wording, and clarifies the enrichment belongs to the O-02W-C
+producer, not the API; (E) §8's trace_id authority cell no longer says
+"Same as packet_id" — it now reads `NOT_EXPOSED_AS_DISTINCT_FIELD`,
+matching the classification already established. R1-R4.1's corrections
+are unchanged and not reverted; still documentation-only.
+
 This document is the authoritative source-inspected contract for a future
 read-only "operator API" serving the React cockpit (`frontend/`). It
 supersedes no code — it constrains what a future implementation mission
@@ -587,7 +615,7 @@ file plus the ledger JSONL directly for closed-trade history.
 | `tp_price` / `sl_price` | YES, but on **restore** these are recomputed from a fixed 4%/2% assumption (`_restore_positions()`), not the original order's true TP/SL if it differed — the snapshot MUST carry an explicit `tp_sl_source: "original"` (normal `_fill_market()` open) vs. `"restored_default"` (restore path) provenance tag; `"restored_default"` must never be presented with the same confidence as an order-derived value | |
 | `unrealized_pnl_usd` / `_pct` | YES, computed from the materialized `current_price` above at read time (`get_open_positions_summary()`), not stored on `MexcPosition` — inherits the same "0.0 == unavailable, not a valid zero PnL" caveat: if the underlying price fetch failed, PnL must be `UNAVAILABLE`, never silently `0` | |
 | `opened_at` | YES (`opened_ts`) | |
-| `regime` | On a **normally opened** position (`_fill_market()`), `regime=order.regime` is populated from the originating `MexcOrder` — confirmed present in the constructor call. On a **restored** position, `_restore_positions()`'s `MexcPosition(...)` construction call does **not** pass `regime` at all, so it silently defaults to the dataclass default `"unknown"` — this is a real, confirmed provenance gap distinct from the normal-open path, not a uniform `NOT_EXPOSED`. The snapshot must label a restored position's `regime` as `"unknown"` with an explicit `restored_without_regime: true` (or equivalent) marker, never presented with the same confidence as a normal open's ledger-sourced `regime`. A join back to the originating ledger `TradeEvent`/`CompleteTrade` by `trade_id`/`symbol` can recover the true historical `regime` for a restored position (`AVAILABLE_VIA_LEDGER_JOIN`) — the API should prefer that join over the position object's own (potentially `"unknown"`) `regime` field for restored positions specifically. |
+| `regime` | On a **normally opened** position (`_fill_market()`), `regime=order.regime` is populated from the originating `MexcOrder` — confirmed present in the constructor call. On a **restored** position, `_restore_positions()`'s `MexcPosition(...)` construction call does **not** pass `regime` at all, so it silently defaults to the dataclass default `"unknown"` — this is a real, confirmed provenance gap distinct from the normal-open path, not a uniform `NOT_EXPOSED`. The snapshot must label a restored position's `regime` as `"unknown"` with an explicit `restored_without_regime: true` (or equivalent) marker, never presented with the same confidence as a normal open's ledger-sourced `regime`. **(R4.2 — exact join key, not `trade_id`/`symbol`.)** The **only** permitted join back to the originating ledger record is `MexcPosition.pos_id == ledger TradeEvent`/`CompleteTrade.trade_id` — `pos_id` is the in-memory position-side identity, `trade_id` is the ledger-side identity, and this exact-id match is the sole lookup key. `symbol` may be used only as a **post-join consistency check** against the matched record, never as a lookup key or fallback join, and never to borrow `regime`/`personality`/TP-SL provenance from a different trade that merely shares the same symbol. If `pos_id` is missing, no exact `trade_id` match exists, or the matched record's `symbol` conflicts, the result is `UNKNOWN`/`UNAVAILABLE`, never a symbol-matched guess (`AVAILABLE_VIA_LEDGER_JOIN` only applies to a genuine exact-id match). This enrichment belongs to the advisor-owned producer/materializer in O-02W-C (§21.1) — the later read-only API exposes the already-materialized result and never repairs or re-infers an open position's provenance independently. |
 | `personality` | On a **normally opened** position (`_fill_market()`), `personality=order.personality` is populated from the originating `MexcOrder` — confirmed present in the constructor call, resolving O-19's prior `NEEDS_VERIFICATION`. On a **restored** position, `_restore_positions()` sets the literal string `"restored"` (confirmed at the construction call site) — this is itself a provenance label, not a genuine personality value, and must be exposed as such (`personality: "restored"` is meaningful provenance, distinct from a real personality name). |
 
 **Forbidden:** the future web API process instantiating `MexcSimulator`
@@ -1288,7 +1316,7 @@ below and BLOCKER H (§ TRADE_API_CONTRACT / decision-history sourcing).
 | Field | Source | Authority label |
 |---|---|---|
 | `packet_id` | `DecisionPacket.packet_id` (UUID, `field(default_factory=uuid.uuid4)`) | Part of the `EXECUTION_AUTHORITY` gate's own identity (the packet whose `is_actionable()` was consulted by G8) |
-| `trace_id` | **Resolved (R4.1, full read of `governance/decision_trace.py`):** `DecisionPacket` exposes **no field literally named `trace_id`** — `context_id`/`created_cycle_id` exist and remain semantically distinct identifiers (packet/context/cycle), never a trace identity. `governance/decision_trace.py` is a pure human-readable formatter (`explain_decision()`, `format_decision_chain()`, `format_rejection_reason()`) that renders an existing `DecisionPacket`'s fields as text/log lines — it establishes **no separate canonical `trace_id` concept** of its own; it never introduces, computes, or persists an identity field. Classification: **`NOT_EXPOSED_AS_DISTINCT_FIELD`.** This contract does not alias or synthesize a `trace_id` from `packet_id`/`context_id`/`created_cycle_id` or any other convenient identifier — those remain semantically distinct fields (§19). | Same as `packet_id` — identity of the authority packet |
+| `trace_id` | **Resolved (R4.1, full read of `governance/decision_trace.py`):** `DecisionPacket` exposes **no field literally named `trace_id`** — `context_id`/`created_cycle_id` exist and remain semantically distinct identifiers (packet/context/cycle), never a trace identity. `governance/decision_trace.py` is a pure human-readable formatter (`explain_decision()`, `format_decision_chain()`, `format_rejection_reason()`) that renders an existing `DecisionPacket`'s fields as text/log lines — it establishes **no separate canonical `trace_id` concept** of its own; it never introduces, computes, or persists an identity field. Classification: **`NOT_EXPOSED_AS_DISTINCT_FIELD`.** This contract does not alias or synthesize a `trace_id` from `packet_id`/`context_id`/`created_cycle_id` or any other convenient identifier — those remain semantically distinct fields (§19). | N/A — `NOT_EXPOSED_AS_DISTINCT_FIELD` (R4.2 — no distinct `trace_id` authority claim; `packet_id`/`context_id`/`created_cycle_id` retain their own independent authority labels above) |
 | `symbol` | Present on `DecisionPacket` context (via `context_id` join) and on the legacy pipeline's per-symbol call | Both tracks |
 | `side` | `DecisionSide` enum on `DecisionPacket` | Identity/context of the authority packet |
 | `score` | `confidence_raw` / `adjusted_confidence` (`DecisionPacket`, lines 417-418) | Packet-internal scoring input to the G8 gate; legacy pipeline's own `score` field is `OBSERVATIONAL_TELEMETRY` (an analysis input, not itself the terminal verdict) |
@@ -1536,7 +1564,7 @@ single global "snapshot age"):
 | Decision pipeline | per-cycle `DecisionObservation` publication | same | No `DecisionObservation` this cycle for symbol -> `UNKNOWN` | Fresh cycle, no special handling needed (stateless per-cycle) |
 | Attrition | `RejectionStore` record timestamps | same | Empty query result -> distinguish **ZERO rejections this window** (`NullSemantics.ZERO`) from **RejectionStore file missing/unreadable** (`UNAVAILABLE`) — never conflate | File persists across restart |
 | Regret | `last_canonical_evaluated_utc` (the real clock) vs. `last_event_utc` (producer liveness only — never substituted for the former) | same distinction | No canonical evaluation yet -> `UNKNOWN` | Disk-resident, unaffected by restart |
-| System health | watchdog poll cadence (boot tier) / `MetricsSnapshot` cadence (scientific tier) | same | Watchdog unreachable -> `UNAVAILABLE` for boot tier specifically (not silently "unhealthy" merged with scientific tier) | Watchdog is a separate process; its own liveness is a precondition for the boot-alive signal to mean anything |
+| System health | `MetricsSnapshot` cadence (scientific tier); boot/liveness tier has **no current source** (R4.2 — see below) | same for scientific tier | **Today:** the boot-liveness source exposure is `NOT_EXPOSED` — `watchdog_vps.py`'s check runs but publishes no independently-readable artifact, so the value is always `UNKNOWN`, and `observed_at`/`source_updated_at` for that tier are unavailable/not-applicable because no canonical record exists to timestamp (§14.2). **Future-only** (after O-02W-D/T-1 builds the independent liveness publisher): a stale or unreachable publisher may then produce `UNAVAILABLE` for the boot tier specifically. Neither today nor in the future does restart/manifest/snapshot age or presence ever produce `ALIVE`. | Watchdog is a separate process; once the future publisher exists, its own liveness is a precondition for the boot-alive signal to mean anything |
 | Disk/IO | DA-01 pack timestamp | same | Outside an audit window -> `UNAVAILABLE`, never `OK`-by-default | On-demand only; no restart concept applies |
 | Market state | exchange/market-pulse tick age | same | Exchange unreachable -> `STALE` or `UNAVAILABLE` per `exchange_connectivity_healthy` | New connection attempted next cycle |
 
@@ -1555,7 +1583,7 @@ guarantees, not domain facts):
 |---|---|
 | `snapshot_id` | Opaque unique id per write (e.g. UUID or monotonically increasing counter) — lets a consumer detect "I am looking at two different snapshots" even if timestamps alone are ambiguous |
 | `cycle` | The advisor loop's own cycle counter at the moment of composition — the single most important field for preventing "positions from cycle N + capital from cycle N+1" mixtures, since every domain composed into one snapshot write must share one `cycle` value by construction (the write happens once per cycle, not per domain) |
-| `source_sha` / `worktree_state` / `runtime_sha_evidence_status` | **Correction (R4.1/BLOCKER C — schema consistency):** the original draft named a single required `runtime_sha` field here; that name is **retired terminology** (see the remediation history header) and must not reappear anywhere in this contract as a required field. There is no runtime mechanism today that proves which SHA's *bytes are actually executing in process memory*. `git rev-parse HEAD` (§15) is only a **claimed checkout/source SHA** — it does not prove a clean worktree, that deployed files match that commit, that imported bytes on disk match it, or that the running process's memory matches it (`CLAUDE.md`'s own v2/v3 `CLEAN_DATA_SINCE` history is a real precedent for exactly this class of silent divergence — the `ssh -n` bug in `deploy_vps.sh` left a believed-deployed SHA that never actually reached the VPS). This contract therefore never labels `git rev-parse HEAD` alone "the SHA actually running." The three envelope fields carrying this information — `source_sha` (claimed, nullable when unavailable), `worktree_state` (`CLEAN`/`DIRTY`/`UNKNOWN`), and `runtime_sha_evidence_status` (`VERIFIED`/`CLAIMED_ONLY`/`UNKNOWN`) — are defined once, canonically, in §15, and reused verbatim here; this table does not redefine them. `runtime_sha_evidence_status` defaults `CLAIMED_ONLY`, never asserted as `VERIFIED` without an independent runtime-attested mechanism — see the four-way distinction in §15. |
+| `source_sha` / `worktree_state` / `deployment_evidence` / `runtime_sha_evidence_status` | **Correction (R4.1/BLOCKER C — schema consistency; R4.2 adds the missing fourth field):** the original draft named a single required `runtime_sha` field here; that name is **retired terminology** (see the remediation history header) and must not reappear anywhere in this contract as a required field. There is no runtime mechanism today that proves which SHA's *bytes are actually executing in process memory*. `git rev-parse HEAD` (§15) is only a **claimed checkout/source SHA** — it does not prove a clean worktree, that deployed files match that commit, that imported bytes on disk match it, or that the running process's memory matches it (`CLAUDE.md`'s own v2/v3 `CLEAN_DATA_SINCE` history is a real precedent for exactly this class of silent divergence — the `ssh -n` bug in `deploy_vps.sh` left a believed-deployed SHA that never actually reached the VPS). This contract therefore never labels `git rev-parse HEAD` alone "the SHA actually running." The **four** envelope fields carrying this information — `source_sha` (claimed, nullable when unavailable), `worktree_state` (`CLEAN`/`DIRTY`/`UNKNOWN`), `deployment_evidence` (a sanitized object recording whether a deployment artifact proves specific files reached the host, never whether those bytes are executing), and `runtime_sha_evidence_status` (`VERIFIED`/`CLAIMED_ONLY`/`UNKNOWN`) — are defined once, canonically, in §15, and reused verbatim here; this table does not redefine them. A `VERIFIED` `deployment_evidence.status` proves file transfer only and MUST NEVER automatically upgrade `runtime_sha_evidence_status`; that field defaults `CLAIMED_ONLY`, never asserted as `VERIFIED` without an independent runtime-attested mechanism — see the four-way distinction in §15. |
 | `process_instance_id` | Identifies *which* advisor process instance produced this (relevant across restarts — a new PID after a restart is a new instance even if `source_sha` is unchanged) — subject to the equality invariant defined in §15 (R4.1) |
 | `generated_at_utc` | Wall-clock write time |
 
@@ -1805,13 +1833,18 @@ read) already publishes, per process, an atomically-written (tmp +
 once per process, `_EXPOSURE_EPOCH_ID = str(uuid.uuid4())`),
 `process.uptime_s`, plus component-liveness sub-blocks
 (`decision_observation`, `event_bus`, `rejection_store`,
-`regret_scheduler`, `dip`, `black_box`). This contract's
-`RUNTIME_IDENTITY_CONTRACT` **reuses/extends this writer as the single
-shared `RuntimeIdentity` source** rather than defining a second,
-independent process-identity mechanism with its own atomic-write/
-sanitization logic — the `operator_runtime_manifest.json` of §14.1 and
-the process-identity fields below MUST be produced by (or reconciled
-with) this same S-03 writer/schema, not duplicated.
+`regret_scheduler`, `dip`, `black_box`). **Correction (R4.2): the sole
+identity authority in this model is the advisor bootstrap** (see the
+deterministic ownership model immediately below), which generates
+`process_instance_id` exactly once per process lifetime — the S-03
+writer is a **passive identity consumer/projection**: it receives that
+value and republishes it unchanged alongside its own existing fields,
+and never generates, reconciles, or otherwise produces an identity of
+its own. The `operator_runtime_manifest.json` of §14.1 and the
+process-identity fields below MUST publish exactly the value the
+advisor bootstrap generated, propagated through the S-03 writer as a
+projection — never independently produced, reconciled, or re-derived
+by any of these components.
 
 **One deterministic process identity (R4.1 — resolves the ambiguity
 between S-03's `exposure_epoch_id`, O-02W's `process_instance_id`,
@@ -1886,7 +1919,7 @@ never collapsed into a single "SHA" value presented as ambient truth:
 |---|---|---|
 | **Claimed checkout/source SHA** | What `git rev-parse HEAD` (or the deploy tag) says the checkout is at — a claim, not a proof | `git rev-parse HEAD` at process start, or `CLAUDE.md`'s `deploy-YYYYMMDD-HHMM` annotated tags (SHA + file list) |
 | **Worktree state** | `CLEAN` / `DIRTY` / `UNKNOWN` — whether the checkout has uncommitted/untracked changes at the moment of the claim; `UNKNOWN` if this was never checked | `git status --porcelain` (if run) at process start; `UNKNOWN` if not run |
-| **Deployment identity/evidence** | If available — a record that this specific SHA's files were actually transferred to this host (the deploy tag's file list, or a post-deploy verification step) | `scripts/deploy_vps.sh` audit trail, if the runtime process can read it |
+| **Deployment identity/evidence** (`deployment_evidence`, R4.2) | If available — a sanitized record that this specific SHA's files were actually transferred to this host (the deploy tag's file list, or a post-deploy verification step); proves file transfer only, never that those bytes are what the process currently has in memory | `scripts/deploy_vps.sh` audit trail, if the runtime process can read it |
 | **Runtime evidence status** | `VERIFIED` (an independent mechanism actually confirmed process-memory/imported-bytes match the claimed SHA — does not exist today), `CLAIMED_ONLY` (only the source-claim above exists, nothing independently confirms it), or `UNKNOWN` (not even a claim was recorded) | No `VERIFIED` mechanism exists in this codebase today; this contract requires the field default to `CLAIMED_ONLY`, never silently upgraded to `VERIFIED` |
 
 **This contract never labels `git rev-parse HEAD` alone "the SHA
@@ -1902,8 +1935,9 @@ proof without an actual verification mechanism behind it.
 |---|---|---|
 | `source_sha` | The **claimed** checkout/source SHA — see the four-way distinction above; never presented as proof of what is executing | `git rev-parse HEAD` at process start, or the deploy tooling's own record (`CLAUDE.md`'s `deploy-YYYYMMDD-HHMM` annotated tags carry the SHA + file list — reuse that convention as the audit trail, do not invent a second one) |
 | `worktree_state` | `CLEAN`/`DIRTY`/`UNKNOWN` — see the four-way distinction above | `git status --porcelain`, if run; `UNKNOWN` otherwise |
+| `deployment_evidence` (R4.2 — the fourth envelope field, previously described in prose but never given a literal schema) | A **sanitized object**, never a second SHA claim and never itself proof of what is executing: `{status: VERIFIED \| CLAIMED_ONLY \| UNKNOWN, source: deploy_tag \| deploy_audit \| post_deploy_verification \| null, evidence_ref: sanitized reference \| null, observed_at_utc: UTC timestamp \| null}`. `VERIFIED` here means only that the deployment artifact proves specific files were transferred to this host — it does **not** prove which bytes are currently executing in process memory, and it must **never** automatically upgrade `runtime_sha_evidence_status` to `VERIFIED`. Missing evidence renders `UNKNOWN`, never an assumed deployment. `evidence_ref` MUST NEVER contain a secret path, credential, token, environment dump, or any other sensitive deployment content — sanitized reference only (e.g. a deploy-tag name, not a raw log). | `scripts/deploy_vps.sh`'s `deploy-YYYYMMDD-HHMM` annotated-tag audit trail (`source: deploy_tag`/`deploy_audit`), or a future post-deploy verification step (`source: post_deploy_verification`); `UNKNOWN` if none of these ran |
 | `runtime_sha_evidence_status` (was `runtime_sha`/`deployed_sha`) | `CLAIMED_ONLY`/`VERIFIED`/`UNKNOWN` per the four-way distinction above — **renamed and re-scoped by R4**: this field is never itself a second SHA value asserted as ground truth, it is the *evidence status* attached to `source_sha`. `CLAUDE.md`'s own documented history (the v2/v3 `CLEAN_DATA_SINCE` incident, the `ssh -n` bug in `deploy_vps.sh`) is the concrete precedent this field exists to make visible rather than silently assumed away | Deploy tag / `scripts/deploy_vps.sh` audit trail for deployment identity; no `VERIFIED` mechanism exists today, so this field defaults to `CLAIMED_ONLY` |
-| `process_instance_id` | Unique per process lifetime | Generated at process start (e.g. a UUID or `os.getpid()` combined with boot timestamp for uniqueness across PID reuse); reuses/reconciles with S-03's `RuntimeProvenanceSnapshotWriter` process-identity fields (`process.pid`, `process.invocation_id`) rather than defining a parallel identity; published immediately in a dedicated `operator_runtime_manifest.json` per §14.1, ahead of the first domain snapshot, so the API can detect a producer restart (`LAST_KNOWN` vs `CURRENT`, §14.1) independently of snapshot age |
+| `process_instance_id` | Unique per process lifetime | **Generated exactly once, at advisor-process bootstrap, before the main loop begins — the advisor bootstrap is the sole identity authority** (§15 ownership model above). The value is then passed unchanged into S-03's `RuntimeProvenanceSnapshotWriter` (a passive identity consumer/projection of `process.pid`/`process.invocation_id`, never a second generator or a reconciliation point) and published immediately in a dedicated `operator_runtime_manifest.json` per §14.1, ahead of the first domain snapshot, so the API can detect a producer restart (`LAST_KNOWN` vs `CURRENT`, §14.1) independently of snapshot age |
 | `pid` | If safe to expose (host-local FastAPI/cockpit under the operator's own control — this contract treats it as safe within the read-only, non-public deployment model of §16; must not be exposed if the API is ever made publicly reachable without auth) | `os.getpid()`, already published by S-03's `process.pid` — reuse that value, do not recompute independently |
 | `boot timestamp` | Process start time | Recorded at process start; reconcilable with S-03's `process.uptime_s` (process-monotonic uptime) rather than a second, independently-tracked boot clock |
 | `cycle` | See §14 | advisor loop's own counter |
@@ -2148,12 +2182,14 @@ propagation into the loop), which:
   domain's classification from `CONTRACT_EXISTS`/`RUNTIME_PRODUCER_
   EXISTS` into genuine `RUNTIME_EXPOSURE_EXISTS` (§9/BLOCKER G) for the
   domains this mission actually wires.
-- Reuses/reconciles S-03's `RuntimeProvenanceSnapshotWriter`
-  (`observability/runtime_provenance_snapshot.py`) as the shared
-  `RuntimeIdentity` source (§15/BLOCKER B) rather than inventing a
+- Propagates the advisor bootstrap's single `process_instance_id`
+  (§15's identity-authority model, corrected R4.2) into S-03's
+  `RuntimeProvenanceSnapshotWriter` (`observability/
+  runtime_provenance_snapshot.py`), which remains a **passive identity
+  consumer/projection**, never a generator, rather than inventing a
   second identity mechanism — the `operator_runtime_manifest.json`
-  (§14.1) and process-identity fields (§15) must be produced by, or
-  reconciled against, this same writer/schema.
+  (§14.1) and process-identity fields (§15) publish exactly that value,
+  never independently produced or reconciled against it.
 - Writes the result via a single atomic tmp-file-plus-`os.replace()`
   write to one canonical JSON path, modeled on `quant_hedge_ai/
   dashboard/live_snapshot.py::write_snapshot()` (§1.2, §1.3) — a new
@@ -2232,7 +2268,7 @@ correction (BLOCKER J).
 | `portfolio.paper_equity_usd` | Current simulated equity | float | usd | N/A (scalar) | OBSERVATIONAL_TELEMETRY | `UNAVAILABLE` if WalletSync unreachable | Genuine `$0` equity is `ZERO`, distinct from unavailable | ledger mtime |
 | `portfolio.open_positions[]` | Live paper positions | list[object] | — | count = list length | OBSERVATIONAL_TELEMETRY | `UNAVAILABLE` if simulator not instantiated | `EMPTY` list if simulator active with zero positions | snapshot `generated_at_utc` |
 | `portfolio.open_positions[].current_price` | Live mark price — **not stored on `MexcPosition`; a materialized derived observation** computed at read time by `get_open_positions_summary()`'s `_fetch_price()` call (§5/BLOCKER F) | float | usd | N/A | OBSERVATIONAL_TELEMETRY | `UNAVAILABLE` if `_fetch_price()` returns `0.0` (no exchange client, or fetch exception — both collapse to `0.0` at the source and must be relabeled `UNAVAILABLE`, never passed through as a price); `STALE` if no fresh tick since position restore | N/A (a `0.0` from `_fetch_price()` is unavailable-price evidence, never a legitimate zero market price) | materialization time (own `observed_at_utc`, distinct from position `opened_ts`) |
-| `portfolio.open_positions[].regime` | Position-level regime — populated from `MexcOrder.regime` on a normal open (`_fill_market()`); **silently defaults to `"unknown"` on the restore path** (`_restore_positions()` never passes `regime`, §5/BLOCKER F) | str (enum-like) | — | N/A | OBSERVATIONAL_TELEMETRY | Restored positions: `"unknown"` with an explicit `restored_without_regime: true` marker, never presented with the same confidence as a normal open's `regime`; `AVAILABLE_VIA_LEDGER_JOIN` if the API joins back to the ledger `TradeEvent` by `trade_id`/`symbol` | N/A (categorical) | position-open time (normal) / restore time (restored, best-effort) |
+| `portfolio.open_positions[].regime` | Position-level regime — populated from `MexcOrder.regime` on a normal open (`_fill_market()`); **silently defaults to `"unknown"` on the restore path** (`_restore_positions()` never passes `regime`, §5/BLOCKER F) | str (enum-like) | — | N/A | OBSERVATIONAL_TELEMETRY | Restored positions: `"unknown"` with an explicit `restored_without_regime: true` marker, never presented with the same confidence as a normal open's `regime`; `AVAILABLE_VIA_LEDGER_JOIN` only for a genuine exact `pos_id == trade_id` match (never a `symbol`-only fallback, R4.2 — see §5), performed by the O-02W-C producer/materializer, not re-inferred by the API | N/A (categorical) | position-open time (normal) / restore time (restored, best-effort) |
 | `portfolio.realized_pnl_usd` | Sum of closed-trade PnL | float | usd | N over closed trades | OBSERVATIONAL_TELEMETRY | `UNAVAILABLE` if ledger unreadable | `ZERO` if genuinely no closed trades yet | ledger mtime |
 | `trade.fees` | Per-trade fee amount | float | usd | N/A | OBSERVATIONAL_TELEMETRY | `NOT_EXPOSED` always (not recorded, §19) | never rendered as 0 | N/A |
 | `decision.is_actionable` (G8 gate verdict) | Terminal execution-authorization verdict — `DecisionPacket.is_actionable()` as consumed by `_effective_trade_allowed` in the G8 gate (§8/BLOCKER A); a missing `DecisionPacket` fails closed to `False` | bool | boolean | N/A | EXECUTION_AUTHORITY | `UNKNOWN` if no cycle ran yet for symbol (never coerced to `True`) | `FALSE` is a genuine, meaningful value (blocked, including the "packet absent" case) | per-cycle |
@@ -2245,11 +2281,11 @@ correction (BLOCKER J).
 | `system_health.health_score` | Composite scientific health (0-100), NOT a global system percentage — scoped to `MetricsSnapshot` inputs only | float | pct (0-100) | over defined `MetricsSnapshot` inputs | OBSERVATIONAL_TELEMETRY | `UNAVAILABLE` if `MetricsSnapshot` missing | `0` is a genuine (critical) score | `MetricsSnapshot` cadence |
 | `mode` (portfolio/wallet) | `PAPER`/`REAL_API`/`TESTNET_API`/`UNKNOWN` — the API publishes the producer's **already-resolved provenance label** (`core/advisor_loop.py::_balance_provenance_from_mode()` or an extracted resolver with identical semantics, §7/BLOCKER E), never reinterprets a raw internal mode independently; `PAPER_TRADING_ENABLED` truthy always overrides to `PAPER` regardless of `exec_mode` | enum | — | N/A | provenance metadata, not authority | `UNKNOWN` if snapshot predates first successful mode resolution, **or if the underlying `exec_mode` was itself unrecognized (fail-closed — never defaulted to `REAL_API` or `PAPER`)** | N/A (categorical) | process-lifetime constant |
 | `snapshot_id` / `cycle` / `process_instance_id` | Identity/atomicity spine | mixed | — | N/A | envelope metadata | never null in a valid snapshot | N/A | write-time |
-| `source_sha` / `worktree_state` / `runtime_sha_evidence_status` | Claimed checkout SHA / `CLEAN`\|`DIRTY`\|`UNKNOWN` / `CLAIMED_ONLY`\|`VERIFIED`\|`UNKNOWN` (§15/BLOCKER C) — `source_sha` is never itself proof of what is executing; no `VERIFIED` mechanism exists today | mixed | — | N/A | envelope metadata | `runtime_sha_evidence_status` defaults `CLAIMED_ONLY` if only `git rev-parse HEAD` was read, `UNKNOWN` if nothing was recorded — never `VERIFIED` without an actual verification mechanism | N/A | write-time (claim), not a liveness/freshness clock |
+| `source_sha` / `worktree_state` / `deployment_evidence` / `runtime_sha_evidence_status` | Claimed checkout SHA / `CLEAN`\|`DIRTY`\|`UNKNOWN` / sanitized `{status, source, evidence_ref, observed_at_utc}` object (R4.2) / `CLAIMED_ONLY`\|`VERIFIED`\|`UNKNOWN` (§15/BLOCKER C) — `source_sha` is never itself proof of what is executing; `deployment_evidence` proves file transfer only, never process-memory contents, and must never automatically upgrade `runtime_sha_evidence_status`; no `VERIFIED` runtime-evidence mechanism exists today | mixed | — | N/A | envelope metadata | `deployment_evidence` renders `UNKNOWN` if no deploy-tag/audit/verification record exists, never an assumed deployment; `runtime_sha_evidence_status` defaults `CLAIMED_ONLY` if only `git rev-parse HEAD` was read, `UNKNOWN` if nothing was recorded — never `VERIFIED` without an actual verification mechanism | N/A | write-time (claim), not a liveness/freshness clock |
 | `ledger_watermark` (`logical_source`/`generation_id`/`byte_offset`/`read_at_utc`/`path`) | Point-in-time boundary for a JSONL-ledger-backed response, generation-aware (§6.1) — `byte_offset` meaningful only within its own `generation_id`; `path` is provenance only, never the sole identity. **`generation_id` is a stable opaque UUID/epoch allocated once per governed generation by the §6.1.1 sidecar** — never recomputed from file content/inode on read; a `LEGACY`/`BEST-EFFORT` fallback (§6.1.3, inode or once-captured content anchor) is labeled distinctly and is not a substitute when the sidecar is available | object | actual bytes (`byte_offset`, binary-derived, §6.1) | N/A | envelope metadata, per-resource | never null on a successful ledger read; `UNAVAILABLE` (not empty) if the referenced `generation_id` is no longer retained (§6.1 requirement 8) or if a detected ungoverned mutation invalidates the read (§6.1.2) | `byte_offset: 0` is a genuine empty-ledger read for that generation, distinct from `UNAVAILABLE` (§6.1 requirement 3) | read-time (per request) |
 | `runtime_manifest.process_instance_id` / `boot_timestamp_utc` | Write-once-per-boot declaration of the most recently started producer instance's identity (§14.1) — an **identity/succession fact, not a liveness proof** (§14.2); a producer can hang or crash after writing this without it ever being revised | mixed | — | N/A | envelope metadata, cross-checked against every snapshot read | `UNKNOWN` instance relation if the manifest file itself is missing/corrupt (never coerced to `CURRENT_INSTANCE`, §14.2 rule 2) | N/A | write-time, updated once per process boot |
 | `snapshot.instance_relation` (`CURRENT_INSTANCE` \| `PREVIOUS_INSTANCE` \| `UNKNOWN`) | Pure identity/succession comparison of `snapshot.process_instance_id` vs. current `runtime_manifest` (§14.2) — never a liveness claim | enum | — | N/A | envelope metadata, API-computed | `UNKNOWN` if manifest missing/corrupt | N/A | computed at read-time, not stored |
-| `system_health.liveness` (`ALIVE` \| `DEAD` \| `UNKNOWN`) | Independent liveness signal sourced from the existing watchdog / `system_health.boot_alive` mechanism (§14.2) — never derived from `instance_relation` | enum | — | N/A | OBSERVATIONAL_TELEMETRY | `UNKNOWN` if the watchdog itself is unreachable or stale (never defaulted to `ALIVE`) | N/A | watchdog poll cadence, per §13 |
+| `system_health.liveness` (`ALIVE` \| `DEAD` \| `UNKNOWN`) | **Today: no canonical source exists — `NOT_EXPOSED`, value always `UNKNOWN`** (§14.2/BLOCKER D: `watchdog_vps.py`'s check runs but publishes no independently-readable artifact). **Future-only:** once a separately implemented and MASTER-reviewed independent liveness publisher exists (O-02W-D/T-1), this field is sourced from that publisher, and `ALIVE`/`DEAD` become legal values only then; a stale/unreachable publisher may then produce `UNAVAILABLE`. Never derived from `boot_alive`'s current check, logs, manifest presence, `process_instance_id`/`instance_relation`, or snapshot freshness unless explicitly published through that future mechanism. | enum | — | N/A | OBSERVATIONAL_TELEMETRY | Today: always `UNKNOWN` (no legitimate source). Future: `UNKNOWN` if the publisher itself is unreachable or stale (never defaulted to `ALIVE`) | N/A | Today: N/A (no canonical record). Future: publisher poll cadence, per §13 |
 | `snapshot.runtime_state` (`CURRENT` \| `LAST_KNOWN`) | Convenience composite derived solely from `instance_relation` (§14.2) — labels data provenance/succession only, explicitly NOT a liveness claim; consumers needing liveness must read `system_health.liveness` separately | enum | — | N/A | envelope metadata, API-computed | N/A (always computable given the manifest) | N/A | computed at read-time, not stored |
 
 ---
@@ -2488,15 +2524,25 @@ as a stand-in for "a transition was in progress and I couldn't tell."
 tests):**
 
 19. **A claimed source SHA is never presented as `VERIFIED` runtime
-    proof.** A test must construct a snapshot/manifest exposing
-    `source_sha` derived only from `git rev-parse HEAD` (no independent
-    verification mechanism run) and assert the corresponding evidence-
-    status field renders `CLAIMED_ONLY` (or `UNKNOWN` if not even
-    recorded), never `VERIFIED` — and a separate assertion that no
-    string in the response ever states or implies "the SHA actually
-    running" for a `CLAIMED_ONLY` value. Exercises §15's four-way
+    proof, and `VERIFIED` deployment evidence never auto-upgrades it.**
+    A test must construct a snapshot/manifest exposing `source_sha`
+    derived only from `git rev-parse HEAD` (no independent verification
+    mechanism run) and assert the corresponding evidence-status field
+    renders `CLAIMED_ONLY` (or `UNKNOWN` if not even recorded), never
+    `VERIFIED` — and a separate assertion that no string in the
+    response ever states or implies "the SHA actually running" for a
+    `CLAIMED_ONLY` value. A second case must construct
+    `deployment_evidence.status = VERIFIED` (a deploy-tag/audit record
+    proving file transfer) alongside no independent runtime-attestation
+    mechanism, and assert `runtime_sha_evidence_status` still renders
+    `CLAIMED_ONLY` — proving `VERIFIED` deployment evidence never by
+    itself upgrades runtime-SHA evidence status. A third case must
+    assert that with no deploy-tag/audit/verification record at all,
+    `deployment_evidence.status` renders `UNKNOWN`, never an assumed
+    deployment, and that `evidence_ref` never carries a secret path,
+    credential, token, or environment dump. Exercises §15's four-way
     source-claim/worktree-state/deployment-evidence/runtime-evidence
-    distinction.
+    distinction and the R4.2 `deployment_evidence` schema.
 20. **A dirty or unchecked worktree is never silently reported as
     `CLEAN`.** A test must construct the case where `git status
     --porcelain` was never run (or reports uncommitted changes) and
@@ -2563,21 +2609,28 @@ already anticipated but had not yet enumerated as numbered items):**
     table and the `REQUIRED_FIELD_CONTRACT_TABLE` row for
     `current_price`.
 26. **Normal-open vs. restored-position provenance is distinguished, and
-    ledger enrichment joins by exact `trade_id` only.** A test must (a)
-    construct a normally-opened position (via `_fill_market()`) and
-    assert its materialized `personality`/`regime` are sourced from the
-    originating `MexcOrder` with full confidence, (b) construct a
-    restored position (via `_restore_positions()`) and assert
-    `personality: "restored"` and `regime: "unknown"` with an explicit
-    `restored_without_regime: true` (or equivalent) marker are exposed,
-    never presented with the same confidence as a normal open, and (c)
-    assert that any historical regime/provenance enrichment join against
-    the ledger is performed by **exact `trade_id` match only** — a test
-    fixture with two ledger records sharing the same `symbol` but
-    different `trade_id`s must confirm the join never falls back to a
-    symbol-only match, and that absent an exact `trade_id` match the
-    result is `UNKNOWN`/`UNAVAILABLE`, never guessed from the
-    symbol-sharing record. Exercises §5/§19/BLOCKER F in full.
+    ledger enrichment joins by exact `pos_id == trade_id` only, owned by
+    the O-02W-C producer.** A test must (a) construct a normally-opened
+    position (via `_fill_market()`) and assert its materialized
+    `personality`/`regime` are sourced from the originating `MexcOrder`
+    with full confidence, (b) construct a restored position (via
+    `_restore_positions()`) and assert `personality: "restored"` and
+    `regime: "unknown"` with an explicit `restored_without_regime: true`
+    (or equivalent) marker are exposed, never presented with the same
+    confidence as a normal open, and (c) assert that any historical
+    regime/provenance enrichment join against the ledger is performed
+    **only** by exact `MexcPosition.pos_id == ledger TradeEvent`/
+    `CompleteTrade.trade_id` match — a test fixture with two ledger
+    records sharing the same `symbol` but different `trade_id`s must
+    confirm the join never falls back to a symbol-only match (symbol is
+    usable only as a post-join consistency check), that absent an exact
+    `pos_id`/`trade_id` match or on a symbol conflict the result is
+    `UNKNOWN`/`UNAVAILABLE`, never guessed from the symbol-sharing
+    record, and (d) assert this enrichment happens in the advisor-owned
+    O-02W-C producer/materializer, with the API-side test suite (§21.2)
+    separately asserting the API exposes the already-materialized result
+    without repairing or re-inferring it independently. Exercises
+    §5/§19/BLOCKER F in full.
 27. **A missing `DecisionPacket` makes the final authorization `False`,
     with correct authority labels preserved.** A test must construct the
     G8-gate case where `decision_packet` is `None` for a cycle and assert
@@ -2592,17 +2645,27 @@ already anticipated but had not yet enumerated as numbered items):**
     `REQUIRED_FIELD_CONTRACT_TABLE` rows for `decision.is_actionable`/
     `decision.trade_allowed`.
 28. **Current liveness remains `UNKNOWN`/`NOT_EXPOSED`, never `ALIVE`,
-    until an independent liveness publisher exists.** A test against
-    **today's actual system** (no new publisher built) must assert every
-    read of `system_health.liveness` renders `UNKNOWN` — never `ALIVE`
-    — regardless of `instance_relation`, manifest presence, or snapshot
-    freshness (§14.2/BLOCKER D). A second, forward-looking assertion (to
-    be exercised once O-02W-D/T-1 builds the deferred independent
-    watchdog-publisher) must confirm that only a genuinely independent,
-    positively-published liveness record can ever produce `ALIVE` — no
-    other signal in this contract's current model is a legitimate source
-    for it. Exercises the negative invariant added to §14.2 by this
-    correction.
+    until an independent liveness publisher exists (R4.2 — split by
+    owning mission, not one undifferentiated test).**
+    - **O-02W-C** (the producer snapshot): a test must assert the
+      canonical operator snapshot builder never emits `ALIVE` for
+      `system_health.liveness` — the materialization step only ever
+      writes `UNKNOWN`, since it has no independent liveness publisher
+      to read from (§14.2/BLOCKER D).
+    - **O-02W-D** (the API): a test must assert the API layer
+      preserves whatever value the snapshot carries for
+      `system_health.liveness` without inference — it never derives
+      `ALIVE`/`DEAD` from `instance_relation`, manifest presence, or
+      snapshot freshness, and against today's actual system (no new
+      publisher built) every read renders `UNKNOWN`, never `ALIVE`.
+    - **T-1** (the later independent publisher): a forward-looking test,
+      exercised only once O-02W-D/T-1 builds the deferred independent
+      liveness publisher, must confirm that only a genuinely
+      independent, positively-published liveness record can ever
+      authorize `ALIVE`/`DEAD` as legal values — no other signal in
+      this contract's current model is a legitimate source for either.
+
+    Exercises the negative invariant added to §14.2 by this correction.
 29. **`process_instance_id` equality holds across S-03, the operator
     snapshot, and the operator manifest; a restart creates a new
     identity.** A test must (a) read all three sources
@@ -2617,7 +2680,8 @@ already anticipated but had not yet enumerated as numbered items):**
     identity.** A test must assert that neither the operator-snapshot
     writer nor the operator-manifest writer ever calls its own
     UUID/PID-timestamp generation for `process_instance_id` when a
-    shared value is already available from the advisor bootstrap/S-03 —
+    shared value is already available from the advisor bootstrap (the
+    sole identity authority; S-03 is a passive consumer/projection) —
     i.e. the value is always propagated, never freshly minted a second
     time within the same process lifetime. Exercises §15's "no writer
     may independently regenerate/infer/reconcile a second identity"
