@@ -33,6 +33,25 @@ separates `INSTANCE_RELATION` (identity/succession) from `LIVENESS`
 corresponding test requirements (9-13). R1's three original corrections
 are unchanged and not reverted.
 
+**R3 remediation (O-02W-B-R3, same date):** independent review found the
+R2-1 `generation_id` derivation itself conceptually insufficient — inode
+alone does not detect a same-inode truncate-in-place, and a first-N-byte
+content hash *recomputed on every read* is unstable during ordinary
+append growth past N bytes. §6.1 now defines the canonical
+`generation_id` as a stable opaque UUID/epoch **allocated once and
+persisted** by a new §6.1.1 generation sidecar/metadata mechanism (an
+observability identity mechanism only — never a database, daemon,
+message bus, or decision component), with inode/content-hash demoted to
+an explicitly labeled `LEGACY`/`BEST-EFFORT` fallback (§6.1.3) carrying
+documented limitations. §6.1.2 adds the previously-missing governed-
+truncate/reset invariant (new identity or explicit invalidation, never
+silent retention) and classifies ungoverned destructive mutation as a
+detected-and-invalidated integrity violation, not a silently-trusted
+read. §22 gains five more test requirements (14-18). Neither the sidecar
+nor any other runtime mechanism is implemented by this correction — it
+remains a requirement for the future implementation mission. R1 and R2's
+corrections are unchanged and not reverted.
+
 This document is the authoritative source-inspected contract for a future
 read-only "operator API" serving the React cockpit (`frontend/`). It
 supersedes no code — it constrains what a future implementation mission
@@ -540,21 +559,46 @@ identity of a watermark for any ledger that can rotate. `generation_id`
 is the opaque value that actually identifies which physical file a
 `byte_offset` is meaningful against.
 
-**`generation_id` derivation.** This contract does not mandate a
-specific algorithm (that is an implementation-mission decision, subject
-to R2-5's no-runtime-changes constraint on *this* document), but it
-MUST satisfy: (a) it changes whenever the file at the logical path is
-replaced, truncated, or rotated, and (b) it is derivable from
-information already available to a reader with no ledger-writer changes
-required. Two zero-schema-change candidates, either acceptable: the
-underlying file's **inode number** (`os.stat().st_ino` — a POSIX
-`mv`+`touch` rotation always produces a new inode at the logical path;
-note inode numbers can be reused after deletion on some filesystems over
-long timescales, so pairing with (b) below is recommended) or a
-**content-anchored hash** of the first N bytes of the file at first-open
-time (cheap, stable for the life of that generation, does not depend on
-filesystem-specific inode reuse behavior). Either satisfies the
-requirement without a recorder/rotation-script change.
+**`generation_id` derivation — canonical model (R3 correction).** R2-1
+left the derivation open between two zero-schema-change candidates
+(inode number, first-N-byte content hash) and described both as
+"acceptable." Independent review found both **conceptually insufficient
+as a canonical identity**, not merely as implementation shortcuts:
+
+- **Inode alone is insufficient.** A POSIX `mv`+`touch` rotation (the
+  actual `rotate_jsonl.sh` mechanism) does produce a new inode at the
+  logical path — but a **truncate-in-place** (e.g. `open(path, "w")`
+  reopening the same path, or `ftruncate()` on an already-open
+  descriptor) can retain the *same* inode while destroying the file's
+  entire prior content. Inode identity therefore does not reliably
+  distinguish "same governed generation" from "same inode, destructively
+  reset content." `inode alone != canonical generation identity`.
+- **A naively recomputed first-N-byte hash is unstable.** If the hash is
+  *recomputed on every read* (as R2-1's wording implied) rather than
+  captured once and persisted, a ledger that starts smaller than N bytes
+  changes its own first-N-byte content as ordinary appends grow it past
+  N — an entirely legitimate, non-destructive append can then flip the
+  "generation identity" a naive implementation would compute, which is
+  exactly backwards. `recomputed prefix hash != stable canonical
+  generation identity`.
+
+**Corrected canonical definition:** `generation_id` is **a stable
+opaque UUID (or an equivalent monotonic generation epoch) allocated
+exactly once for one governed ledger generation**, at the moment that
+generation is created (first write of a new file, or the moment a
+rotation/reset produces a new active file) — never recomputed from
+file content or inode on each read. Once allocated, it never changes
+for the life of that generation, regardless of how large the file
+grows through ordinary append. This requires the identity to be
+**persisted outside the ledger file itself**, in the small sidecar/
+metadata mechanism defined in §6.1.1 below — it is not something a
+reader can safely reconstruct by inspecting file bytes or inode alone
+on every read.
+
+This is a documentation-only correction: the sidecar/metadata mechanism
+does not exist today and is **not implemented by this contract** — it is
+a requirement for the future implementation mission (§21, §6.1.1),
+consistent with R2-5's no-runtime-changes constraint on this document.
 
 **Byte-offset unit precision (R2-1 correction).** The original text
 suggested deriving `byte_offset` from `f.tell()` "after each successfully
@@ -576,7 +620,110 @@ individually for JSON parsing, or (b) computing
 known starting byte offset. A text-mode `tell()` cookie must never be
 stored in or compared as `byte_offset`.
 
-**Binding requirements (R1-2 origin, extended by R2-1 — ten total):**
+### 6.1.1 Generation sidecar/metadata contract (R3)
+
+The canonical `generation_id` (§6.1's corrected definition above) must
+be **persisted**, not recomputed. This requires a minimal metadata
+mechanism — an "observability identity sidecar" — owned by the ledger
+lifecycle (the same process/tooling that creates, rotates, or resets a
+ledger, e.g. `rotate_jsonl.sh` or its future equivalent). This section
+defines its **minimum required responsibilities only** — it is not
+implemented anywhere today, and this document does not implement it.
+
+The sidecar/metadata mechanism MUST associate, per logical ledger:
+
+- `logical_source` — which logical ledger this entry describes (e.g.
+  `"paper_trades"`, `"black_box"`).
+- `generation_id` — the opaque UUID/epoch, allocated once.
+- **Generation creation/activation timestamp** — when this generation
+  became the active one at its logical path.
+- **Intended physical ledger generation** — enough information (e.g. the
+  archive filename pattern `rotate_jsonl.sh` already produces, such as
+  `black_box.jsonl.20260906_190000`) to locate the actual file this
+  generation refers to, whether active or archived.
+- **Lifecycle state**, where required — e.g. `ACTIVE` / `ARCHIVED` /
+  `INVALIDATED`, so a reader or replay request can distinguish a
+  retained-but-archived generation from one explicitly invalidated by a
+  governed reset (§6.1's truncate/reset invariant below).
+- **Controlled create/rotate/reset ownership** — which governed
+  operation (initial creation, `rotate_jsonl.sh`-style rotation, or an
+  explicit governed reset) produced this generation, for audit purposes.
+
+**What the sidecar is explicitly NOT**, per this contract's minimality
+principle (§1.2/§1.3): it must not become a new database, a new daemon,
+a message bus, a decision component, or a trading authority. It is
+strictly an **observability identity mechanism** — small metadata (e.g.
+one JSON record per logical ledger, itself written with the same
+tmp-file-plus-atomic-replace discipline as §1.3, so its own updates
+don't reintroduce the torn-write problem this section exists to solve)
+associating a logical ledger with its current and past generation
+identities. Nothing about this sidecar grants it authority over trading
+decisions, execution, or risk — it exists purely so a read-only API can
+correctly label historical data it already has permission to read.
+
+### 6.1.2 Governed truncate/reset vs. ungoverned mutation (R3)
+
+**Governed truncate/reset.** A controlled, in-protocol destructive reset
+of a ledger (e.g. an operator-invoked "clear this ledger" maintenance
+action, if one is ever implemented) MUST, as part of that same governed
+operation:
+
+- allocate a new `generation_id` for the post-reset (now-empty) active
+  ledger; **or**
+- explicitly mark the previous generation `INVALIDATED` in the sidecar
+  (§6.1.1) if the logical path is not immediately reactivated.
+
+A governed reset must **never silently retain the previous generation's
+identity** for content that is no longer the same content — doing so
+would let a `byte_offset` captured before the reset be replayed against
+unrelated post-reset data, exactly the failure mode §6.1's replay
+requirements (7-8) exist to prevent.
+
+**Ungoverned mutation is an integrity violation, not a silently-trusted
+read.** This contract does **not** claim that every possible out-of-
+protocol filesystem mutation (a manual `rm`+recreate outside
+`rotate_jsonl.sh`, a stray script, an operator `vim`-editing the file in
+place, disk corruption) can always be perfectly detected — that would be
+an overstated guarantee this contract explicitly avoids making. What it
+does require: if the reader's own integrity observations (e.g. the
+generation identity it captured at open time no longer matches what the
+sidecar or a legacy fallback signal — §6.1.3 — reports for that logical
+path, or a byte range it already validated no longer parses consistently
+with what it read) detect such a mutation, the read MUST be
+**invalidated rather than silently trusted** — surfaced as an explicit
+integrity-violation/invalid state, never presented as a normal
+`AVAILABLE` result and never silently reusing the old watermark against
+whatever content now happens to be at that path.
+
+### 6.1.3 Legacy/best-effort fallback (R3)
+
+Absent the sidecar (§6.1.1) — e.g. during a transitional period before
+the future implementation mission builds it — a reader MAY fall back to
+observation-based heuristics: device+inode, file size, modification/
+change timestamps, or a content-anchored integrity anchor captured once
+at first open (never recomputed per read, per §6.1's corrected
+definition). Any such fallback:
+
+- MUST be explicitly labeled `LEGACY` / `BEST-EFFORT` in the API
+  response and/or internal diagnostics — never presented as
+  equivalent in reliability to the canonical opaque `generation_id`.
+- MUST document its own known limitations inline wherever it is used:
+  inode alone does not detect every truncate-in-place (§6.1's canonical-
+  model correction); a naively *recomputed* prefix hash can change
+  during ordinary, non-destructive file growth and is therefore unsafe
+  used that way (a prefix hash captured *once* at first-open and never
+  recomputed is a legitimate — if still best-effort — content anchor,
+  distinct from the naive recompute-per-read approach this section
+  rejects); none of these observational signals can fully replace
+  governed generation lifecycle metadata, because none of them are
+  written *by* the governed lifecycle operation itself — they are
+  inferred *after the fact* from whatever state the filesystem happens
+  to be in.
+- MUST NOT be described in any part of this contract as equivalent to,
+  or a substitute for, the canonical sidecar-backed opaque UUID model
+  (§6.1.1) once that mechanism exists.
+
+**Binding requirements (R1-2 origin, extended by R2-1, extended by R3 — thirteen total):**
 
 1. Every historical/trade-history API response MUST include the
    `ledger_watermark` above, stating exactly which ledger boundary
@@ -636,15 +783,19 @@ stored in or compared as `byte_offset`.
    be indistinguishable from requirement 3's genuine-zero case).
 9. **A reader racing a concurrent `mv`+`touch` rotation must keep
    attributing what it already read to the generation it opened.** If a
-   reader has an open file handle (or has already captured a
-   `generation_id` via inode/content-hash at open time) when
-   `rotate_jsonl.sh` performs its `mv` followed by `touch`, POSIX
-   semantics mean the reader's file descriptor continues to reference
-   the *original* (now-unlinked-from-that-path, but still open) inode —
-   the reader must label everything it read through that handle with
-   the `generation_id` captured at open time, and must not re-stat the
-   path mid-read and silently relabel already-consumed bytes as
-   belonging to the new (post-`touch`) empty generation.
+   reader has an open file handle (and has already captured/bound the
+   `generation_id` from the sidecar, §6.1.1, or a labeled `LEGACY`
+   fallback, §6.1.3, at open time) when `rotate_jsonl.sh` performs its
+   `mv` followed by `touch`, POSIX semantics mean the reader's file
+   descriptor continues to reference the *original* (now-unlinked-from-
+   that-path, but still open) inode — the reader must label everything
+   it read through that handle with the `generation_id` bound at open
+   time, and must not re-stat the path mid-read and silently relabel
+   already-consumed bytes as belonging to the new (post-`touch`) empty
+   generation. If the reader cannot prove this association held for the
+   whole read (e.g. the sidecar's record for that generation changed
+   underneath it in a way it cannot reconcile), it must retry, reject,
+   or return an explicit integrity/unavailable state — never guess.
 10. **Reproducibility claims reference this field, not prose.** §1.3's
     "a copy of the file plus the ledger watermark fields... fully
     reproduces what the operator saw" is this exact mechanism: given the
@@ -652,14 +803,32 @@ stored in or compared as `byte_offset`.
     `snapshot_id`/`cycle` from the OperatorSnapshot envelope, replaying
     the read deterministically reconstructs the same operator-visible
     state (see §22, test requirement 9).
+11. **A governed truncate/reset MUST allocate a new `generation_id` or
+    explicitly invalidate the previous one** (§6.1.2) — it must never
+    silently retain the previous generation's identity for content that
+    is no longer the same content.
+12. **An ungoverned, out-of-protocol destructive mutation is classified
+    as an integrity violation when detected, never silently trusted**
+    (§6.1.2) — this contract does not claim perfect detection of every
+    possible out-of-protocol mutation, only that a *detected* one must
+    invalidate the read rather than silently reuse a stale watermark.
+13. **A `LEGACY`/`BEST-EFFORT` fallback identity (§6.1.3) must never be
+    presented as equivalent to the canonical sidecar-backed opaque
+    `generation_id`** — every response or diagnostic using a fallback
+    must label it as such, and must not claim the reliability guarantees
+    (requirements 6-9, 11-12 above) that only the canonical sidecar-backed
+    model can actually provide.
 
-**Non-rotating ledgers may use a simpler generation model** (e.g. a
-constant `generation_id` derived once at first observation, since they
-are never replaced in place) — but the *common* contract (this section)
-must not describe any logical path as globally immutable, since the
-mechanism (`mv`+recreate) that breaks that assumption is generic shell
-tooling applicable to any file in `databases/`, not specific to
-`black_box.jsonl`.
+**Non-rotating ledgers may use a simpler sidecar entry** (a single
+`generation_id` allocated once at first-observation and never reissued,
+since they are never rotated or reset in practice) — but the *common*
+contract (this section) must not describe any logical path as globally
+immutable, since the mechanism (`mv`+recreate, or an in-place truncate)
+that breaks that assumption is generic shell/filesystem capability
+applicable to any file in `databases/`, not specific to
+`black_box.jsonl`. Even a "non-rotating" ledger's `generation_id` is
+still the canonical sidecar-backed identity (§6.1.1), not a value
+recomputed from file content on each read.
 
 This mechanism requires **no new database and no new message bus** —
 it is a read-side discipline over the existing append-only files, per
@@ -1294,6 +1463,15 @@ documented explicitly rather than silently omitted:
    reconciliation" — quoting O-01 verbatim, still true here); the
    REGRET_API_CONTRACT (§11) only exposes its *state*, never its
    governance.
+9. **The §6.1.1 generation sidecar does not exist yet** (R3) — until the
+   implementation mission builds it and wires it into `rotate_jsonl.sh`
+   (or its future equivalent), any reader must operate in the explicitly
+   labeled `LEGACY`/`BEST-EFFORT` mode (§6.1.3), with the documented
+   inode/prefix-hash limitations. This is a known, real gap for the
+   period between this contract's certification and that mission's
+   completion — the cockpit must not present `LEGACY`-derived generation
+   identity with the same confidence as the canonical sidecar-backed
+   model once it exists.
 
 ---
 
@@ -1330,6 +1508,13 @@ fields from §14-§15.
 - The JSONL read-side watermark logic (§6.1) — byte-offset tracking in
   the ledger read path, applied uniformly to trades/regret/decision
   ledgers.
+- The generation-identity sidecar/metadata mechanism (§6.1.1) — the
+  small, ledger-lifecycle-owned metadata associating each logical ledger
+  with its current and past `generation_id`s, wired into
+  `rotate_jsonl.sh` (or its future equivalent) so rotation and any
+  governed reset allocate/invalidate identities per §6.1.2. Not
+  implemented by this contract; a required deliverable of that mission,
+  not an optional enhancement.
 - A separate, new, read-only FastAPI process (or an addition to
   `sdos_terminal/api/app.py` if that shape is confirmed reusable per
   §18) exposing GET routes over the snapshot file plus direct reads of
@@ -1368,7 +1553,7 @@ not a change to what the loop decides.
 | `system_health.health_score` | Composite scientific health (0-100), NOT a global system percentage — scoped to `MetricsSnapshot` inputs only | float | pct (0-100) | over defined `MetricsSnapshot` inputs | OBSERVATIONAL_TELEMETRY | `UNAVAILABLE` if `MetricsSnapshot` missing | `0` is a genuine (critical) score | `MetricsSnapshot` cadence |
 | `mode` (portfolio/wallet) | PAPER/REAL_API/TESTNET_API/UNKNOWN | enum | — | N/A | provenance metadata, not authority | `UNKNOWN` if snapshot predates first successful mode resolution | N/A (categorical) | process-lifetime constant |
 | `snapshot_id` / `cycle` / `runtime_sha` / `process_instance_id` | Identity/atomicity spine | mixed | — | N/A | envelope metadata | never null in a valid snapshot | N/A | write-time |
-| `ledger_watermark` (`logical_source`/`generation_id`/`byte_offset`/`read_at_utc`/`path`) | Point-in-time boundary for a JSONL-ledger-backed response, generation-aware (§6.1) — `byte_offset` meaningful only within its own `generation_id`; `path` is provenance only, never the sole identity | object | actual bytes (`byte_offset`, binary-derived, §6.1) | N/A | envelope metadata, per-resource | never null on a successful ledger read; `UNAVAILABLE` (not empty) if the referenced `generation_id` is no longer retained (§6.1 requirement 8) | `byte_offset: 0` is a genuine empty-ledger read for that generation, distinct from `UNAVAILABLE` (§6.1 requirement 3) | read-time (per request) |
+| `ledger_watermark` (`logical_source`/`generation_id`/`byte_offset`/`read_at_utc`/`path`) | Point-in-time boundary for a JSONL-ledger-backed response, generation-aware (§6.1) — `byte_offset` meaningful only within its own `generation_id`; `path` is provenance only, never the sole identity. **`generation_id` is a stable opaque UUID/epoch allocated once per governed generation by the §6.1.1 sidecar** — never recomputed from file content/inode on read; a `LEGACY`/`BEST-EFFORT` fallback (§6.1.3, inode or once-captured content anchor) is labeled distinctly and is not a substitute when the sidecar is available | object | actual bytes (`byte_offset`, binary-derived, §6.1) | N/A | envelope metadata, per-resource | never null on a successful ledger read; `UNAVAILABLE` (not empty) if the referenced `generation_id` is no longer retained (§6.1 requirement 8) or if a detected ungoverned mutation invalidates the read (§6.1.2) | `byte_offset: 0` is a genuine empty-ledger read for that generation, distinct from `UNAVAILABLE` (§6.1 requirement 3) | read-time (per request) |
 | `runtime_manifest.process_instance_id` / `boot_timestamp_utc` | Write-once-per-boot declaration of the most recently started producer instance's identity (§14.1) — an **identity/succession fact, not a liveness proof** (§14.2); a producer can hang or crash after writing this without it ever being revised | mixed | — | N/A | envelope metadata, cross-checked against every snapshot read | `UNKNOWN` instance relation if the manifest file itself is missing/corrupt (never coerced to `CURRENT_INSTANCE`, §14.2 rule 2) | N/A | write-time, updated once per process boot |
 | `snapshot.instance_relation` (`CURRENT_INSTANCE` \| `PREVIOUS_INSTANCE` \| `UNKNOWN`) | Pure identity/succession comparison of `snapshot.process_instance_id` vs. current `runtime_manifest` (§14.2) — never a liveness claim | enum | — | N/A | envelope metadata, API-computed | `UNKNOWN` if manifest missing/corrupt | N/A | computed at read-time, not stored |
 | `system_health.liveness` (`ALIVE` \| `DEAD` \| `UNKNOWN`) | Independent liveness signal sourced from the existing watchdog / `system_health.boot_alive` mechanism (§14.2) — never derived from `instance_relation` | enum | — | N/A | OBSERVATIONAL_TELEMETRY | `UNKNOWN` if the watchdog itself is unreachable or stale (never defaulted to `ALIVE`) | N/A | watchdog poll cadence, per §13 |
@@ -1376,7 +1561,7 @@ not a change to what the loop decides.
 
 ---
 
-## 22. CONTRACT_TEST_REQUIREMENTS (R1-4, extended R2-1/R2-2)
+## 22. CONTRACT_TEST_REQUIREMENTS (R1-4, extended R2-1/R2-2, extended R3)
 
 Documentation-only in this mission — these are **requirements the future
 implementation mission (§21) must satisfy with real tests**, not tests
@@ -1495,6 +1680,62 @@ is not enforceable and would regress silently.
     still showing `CURRENT_INSTANCE`/`CURRENT`. This is the test that
     would fail against a naive implementation that infers liveness from
     identity match alone — exactly the conflation §14.2 corrects.
+
+**Added by R3 (generation identity finalization):**
+
+14. **Stable normal append, including growth through a prospective
+    prefix length.** A test must (a) create one governed generation and
+    capture its sidecar-assigned `generation_id`, (b) append several
+    records to it, deliberately including growth from a file smaller
+    than any prospective content-hash prefix length (e.g. append past
+    the naive candidate's N-byte boundary from R2-1), and (c) assert the
+    `generation_id` remains byte-for-byte unchanged throughout — proving
+    it is not recomputed from file content or size. This is the test
+    that would fail against R2-1's original naive-recompute suggestion,
+    exactly the instability §6.1's canonical-model correction identifies.
+15. **Rotation allocates a new generation; a retained archive keeps the
+    old one.** A test must perform the equivalent of
+    `scripts/rotate_jsonl.sh` (`mv`+`touch`) and assert (a) the new
+    active ledger at the logical path receives a *new* sidecar-allocated
+    `generation_id`, distinct from the pre-rotation one, and (b) the
+    retained archived file's `generation_id` — read via its recorded
+    location in the sidecar (§6.1.1) — is unchanged from what it was
+    before rotation. Extends test 9 (R2-1) with the archive-retention
+    half explicitly.
+16. **Governed reset creates a new generation or invalidates the
+    previous one.** A test must perform a controlled truncate/reset
+    against a ledger and assert either (a) a new `generation_id` is
+    allocated for the post-reset active ledger, or (b) the previous
+    generation's sidecar entry is explicitly marked `INVALIDATED` — and
+    that no code path allows the previous identity to silently persist
+    unchanged against the now-different content. Exercises §6.1.2's
+    governed-reset invariant and binding requirement 11.
+17. **Ungoverned destructive mutation is surfaced as an integrity
+    violation, never silently trusted.** A test must simulate an
+    out-of-protocol destructive mutation (e.g. truncate-in-place via a
+    raw `open(path, "w")` bypassing the governed lifecycle entirely, so
+    the inode is unchanged but content is destroyed — the exact
+    inode-alone failure case §6.1's canonical-model correction
+    describes) and assert the reader detects the inconsistency (its
+    captured/bound generation identity no longer reconciles with what it
+    can observe) and returns an explicit integrity-violation/invalid
+    state — never silently reusing the old watermark against the new,
+    unrelated content. Exercises §6.1.2's ungoverned-mutation invariant
+    and binding requirement 12.
+18. **Legacy fallback is never presented as canonical-equivalent.** A
+    test using a `LEGACY`/`BEST-EFFORT` fallback identity (inode-only,
+    or a once-captured content anchor) must assert the response/
+    diagnostic explicitly labels it as such, and a separate test must
+    confirm the fallback path is never silently substituted for a
+    sidecar-backed canonical `generation_id` when the sidecar is
+    actually available. Exercises §6.1.3 and binding requirement 13.
+
+All R1/R2 requirements remain in force and are not superseded by the
+above — in particular: actual binary-byte offsets (test 12), incomplete
+final-line handling (test 5), identity distinct from liveness (test 13),
+`UNKNOWN != ZERO` and `UNAVAILABLE != EMPTY` (tests 3, 8 above and R3
+tests 16-17, which extend the same principle to governed/ungoverned
+generation transitions).
 
 ---
 
