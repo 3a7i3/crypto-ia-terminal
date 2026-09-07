@@ -135,6 +135,52 @@ corrections (atomicity, watermark/generation model, instance-vs-liveness
 split) are preserved and not regressed. Still documentation-only — no
 runtime source was changed to make the contract true.
 
+**R4.1 remediation (O-02W-B-R4.1, 2026-09-07):** a fresh independent
+MASTER review (`O02WB_REQUEST_CHANGES`, not architectural — the cockpit
+architecture is not redesigned) found six residual consistency defects
+in R4's text, all corrected in place below, with two files re-read as
+fresh evidence (`paper_trading/mexc_simulator.py`'s `_check_positions()`/
+`_total_equity()`/full `MexcPosition` field list, and
+`governance/decision_trace.py` in full): (A) §2.1's speculative "a second
+process... would show `current_price == entry_price`" line was not
+grounded in source — re-reading `_check_positions()`/`_total_equity()`
+confirms `MexcPosition` has no `current_price` field at all (not merely
+unpopulated); the monitor loop fetches price locally per tick only to
+update stored `mae_pct`/`mfe_pct` extrema and decide TP/SL/TIMEOUT
+closure, never persisting a price/PnL field, and `_total_equity()`'s own
+entry-notional fallback (`equity += p.qty_usd` when price is
+unavailable) is a real but narrowly-scoped equity-sum behavior, not a
+`current_price` field's fallback — §2.1 and §2.3 are corrected to state
+this precisely and remove the unsupported claim; (B) the process-identity
+model (S-03 `exposure_epoch_id` vs. `process_instance_id` vs.
+`operator_runtime_manifest.json`) is resolved into one deterministic
+ownership/propagation model with an explicit equality invariant
+(`S03.process.process_instance_id == operator_snapshot.process_instance_id
+== operator_manifest.process_instance_id`), added to §15; (C) §14's
+ATOMICITY_CONTRACT table still carried a standalone required `runtime_sha`
+field, contradicting §15's already-renamed `source_sha`/`worktree_state`/
+`runtime_sha_evidence_status` model — the §14 row is corrected to point
+at, not redefine, the §15 model, and `runtime_sha` is retired terminology
+from here on; (D) §14.2's liveness model already correctly classified
+current liveness `NOT_EXPOSED`/`UNKNOWN`-only — an explicit negative
+invariant and test (28) are added rather than leaving it only as prose;
+(E) §22 gains ten new numbered test requirements (23-32) covering the
+builder-boundary/fail-passive/price-unavailability/provenance/missing-
+packet/liveness/process-identity-equality/no-second-identity/no-secrets/
+no-fabricated-`trace_id` cases the mission-assignment table already
+implied but had not yet enumerated, each assigned to its correct mission
+(O-02W-C, O-02W-D, or T-1) without moving any FastAPI/HTTP/WebSocket/
+React/auth/VPS/systemd/certification work into O-02W-C; (F) `trace_id` is
+resolved from `PARTIALLY_AVAILABLE`/"pending source inspection" to a
+final `NOT_EXPOSED_AS_DISTINCT_FIELD` classification, backed by a full
+read of `governance/decision_trace.py` (a pure text-formatting consumer
+that establishes no separate trace identity) — §4/§8/§19/§20 are
+reconciled to state this consistently and remove all remaining
+pending-verification language for this specific question. R1-R4's
+corrections are unchanged and not reverted. Still documentation-only —
+no runtime source was changed to make the contract true; the two files
+re-read above were read, not modified.
+
 This document is the authoritative source-inspected contract for a future
 read-only "operator API" serving the React cockpit (`frontend/`). It
 supersedes no code — it constrains what a future implementation mission
@@ -335,18 +381,39 @@ Read: `paper_trading/mexc_simulator.py` (constructor, `start()`,
   process start, and only entry-side fields (`entry_price`, `tp_price`,
   `sl_price` computed from fixed 4%/2% assumptions, not the live TP/SL
   the original order actually carried — see `_restore_positions()`
-  lines ~410-448). **Current price, unrealized PnL, and live TP/SL are
-  never persisted** — they exist only as long as the owning process's
-  monitor loop (`_monitor_loop`, `_check_positions()`) keeps ticking
-  fresh market prices into the in-memory `MexcPosition` objects.
+  lines ~410-448).
+- **Correction (R4.1/BLOCKER A precision pass — re-reading `_check_
+  positions()`, `_total_equity()`, and the full `MexcPosition` field
+  list).** `MexcPosition` (dataclass fields: `pos_id`, `symbol`, `side`,
+  `qty_usd`, `entry_price`, `tp_price`, `sl_price`, `fee_entry_usd`,
+  `score`, `personality`, `regime`, `opened_ts`, `exit_price`,
+  `closed_ts`, `pnl_usd`, `pnl_pct`, `close_reason`, `mae_pct`,
+  `mfe_pct`) has **no `current_price` field at all** — confirmed by the
+  full field list, not merely absent from a partial read. `_positions`
+  holds **position state** (entry terms, close/exit bookkeeping,
+  MAE/MFE extrema), never a continuously-stored live mark price or
+  unrealized PnL. The monitor loop's `_check_positions()` calls
+  `_fetch_price(sym)` **locally, once per tick**, purely to (a) update
+  the position's stored `mae_pct`/`mfe_pct` extrema via
+  `pos.live_pnl_pct(price)`, and (b) decide TP/SL/TIMEOUT closure — it
+  never assigns the fetched price to any durable field on the position
+  object. `_total_equity()` similarly fetches price locally for a
+  mark-to-market equity sum and, **when `_fetch_price()` returns `0` or
+  less, falls back to valuing that position at its entry-notional
+  (`equity += p.qty_usd`)** for the equity aggregate only — this is a
+  real, source-confirmed fallback, but it is scoped to the internal
+  equity-sum calculation, not a `current_price` field on `MexcPosition`
+  (no such field exists to fall back on). Neither method establishes a
+  durable `current_price`/unrealized-PnL field on the position; both are
+  read-time-only computations discarded at the end of each tick.
 - **Verdict:** a second process instantiating `MexcSimulator()` fresh
   gets `_positions == {}` until (if ever) it independently reconstructs
   approximate entry-side state from the ledger, and even then it has no
-  live market price feed of its own wired in this mission's scope — it
-  would show `current_price == entry_price` (stale) or nothing at all.
-  **This is exactly the failure mode the mission brief warns about**:
-  the second process would present empty/wrong state, not the real
-  running machine.
+  live market price feed of its own wired in this mission's scope, and
+  no way to recover the first process's in-memory `mae_pct`/`mfe_pct`
+  extrema (never persisted). **This is exactly the failure mode the
+  mission brief warns about**: the second process would present empty/
+  incomplete state, not the real running machine's in-memory history.
 
 ### 2.2 `WalletSync` (`infra/wallet_sync.py`)
 
@@ -398,7 +465,7 @@ Read: `infra/wallet_sync.py` (full file, 264 lines) and
 
 | State | Process-local? | Materialization required |
 |---|---|---|
-| `MexcSimulator._positions` (open paper positions, live current_price/unrealized PnL) | YES — pure heap state, live-price-dependent | YES — producer writes the full open-position list (with current mark price at snapshot time) into the canonical snapshot every cycle. |
+| `MexcSimulator._positions` (open paper positions — entry terms, MAE/MFE extrema; **no stored current_price/unrealized PnL field**, §2.1/BLOCKER A) | YES — pure heap state | YES — producer writes the full open-position list into the canonical snapshot every cycle, including a read-time-materialized mark price (via the same `_fetch_price()` call `get_open_positions_summary()` already makes, §5) computed fresh at materialization time, not read out of a stored field that does not exist. |
 | `WalletSync.get_balance()` result (paper mode) | Effectively no (re-derivable from disk), but only if `mode` is externally known | YES anyway, for a single point of truth and to avoid the API re-implementing wallet arithmetic (reuse-before-creation, O-01 principle §6) |
 | `WalletSync.get_balance()` result (live/testnet mode), `WalletSync.capital_x` | YES — in-memory cache + one-time bootstrap value | YES — mandatory; no safe re-derivation without an independent, uncoordinated exchange API call |
 | `WalletSync.mode` | YES — constructor parameter of the process's own singleton | YES — must be carried in the snapshot as explicit provenance (§7) |
@@ -1221,7 +1288,7 @@ below and BLOCKER H (§ TRADE_API_CONTRACT / decision-history sourcing).
 | Field | Source | Authority label |
 |---|---|---|
 | `packet_id` | `DecisionPacket.packet_id` (UUID, `field(default_factory=uuid.uuid4)`) | Part of the `EXECUTION_AUTHORITY` gate's own identity (the packet whose `is_actionable()` was consulted by G8) |
-| `trace_id` | Not a distinct field found on `DecisionPacket` itself in this pass — `context_id`/`created_cycle_id` exist (lines 402-403) and may serve this role; `governance/decision_trace.py` (consumer, per O-01 `decision_pipeline.decision_packet.consumers`) likely defines the canonical `trace_id` concept — **NEEDS_VERIFICATION against `governance/decision_trace.py`**, not confirmed read in this pass. Mark `PARTIALLY_AVAILABLE` pending that read. | Same as `packet_id` — identity of the authority packet |
+| `trace_id` | **Resolved (R4.1, full read of `governance/decision_trace.py`):** `DecisionPacket` exposes **no field literally named `trace_id`** — `context_id`/`created_cycle_id` exist and remain semantically distinct identifiers (packet/context/cycle), never a trace identity. `governance/decision_trace.py` is a pure human-readable formatter (`explain_decision()`, `format_decision_chain()`, `format_rejection_reason()`) that renders an existing `DecisionPacket`'s fields as text/log lines — it establishes **no separate canonical `trace_id` concept** of its own; it never introduces, computes, or persists an identity field. Classification: **`NOT_EXPOSED_AS_DISTINCT_FIELD`.** This contract does not alias or synthesize a `trace_id` from `packet_id`/`context_id`/`created_cycle_id` or any other convenient identifier — those remain semantically distinct fields (§19). | Same as `packet_id` — identity of the authority packet |
 | `symbol` | Present on `DecisionPacket` context (via `context_id` join) and on the legacy pipeline's per-symbol call | Both tracks |
 | `side` | `DecisionSide` enum on `DecisionPacket` | Identity/context of the authority packet |
 | `score` | `confidence_raw` / `adjusted_confidence` (`DecisionPacket`, lines 417-418) | Packet-internal scoring input to the G8 gate; legacy pipeline's own `score` field is `OBSERVATIONAL_TELEMETRY` (an analysis input, not itself the terminal verdict) |
@@ -1488,8 +1555,8 @@ guarantees, not domain facts):
 |---|---|
 | `snapshot_id` | Opaque unique id per write (e.g. UUID or monotonically increasing counter) — lets a consumer detect "I am looking at two different snapshots" even if timestamps alone are ambiguous |
 | `cycle` | The advisor loop's own cycle counter at the moment of composition — the single most important field for preventing "positions from cycle N + capital from cycle N+1" mixtures, since every domain composed into one snapshot write must share one `cycle` value by construction (the write happens once per cycle, not per domain) |
-| `runtime_sha` | **Correction (R4/BLOCKER C):** there is no runtime mechanism today that proves which SHA's *bytes are actually executing in process memory*. `git rev-parse HEAD` (§15) is only a **claimed checkout/source SHA** — it does not prove a clean worktree, that deployed files match that commit, that imported bytes on disk match it, or that the running process's memory matches it (`CLAUDE.md`'s own v2/v3 `CLEAN_DATA_SINCE` history is a real precedent for exactly this class of silent divergence — the `ssh -n` bug in `deploy_vps.sh` left a believed-deployed SHA that never actually reached the VPS). This contract therefore never labels `git rev-parse HEAD` alone "the SHA actually running." Until a genuine runtime-evidence mechanism exists, this field's value must be classified `CLAIMED_ONLY` (source-claimed, unverified) or `NOT_EXPOSED`, never asserted as `VERIFIED` runtime proof — see the four-way distinction in §15. |
-| `process_instance_id` | Identifies *which* advisor process instance produced this (relevant across restarts — a new PID after a restart is a new instance even if `runtime_sha` is unchanged) |
+| `source_sha` / `worktree_state` / `runtime_sha_evidence_status` | **Correction (R4.1/BLOCKER C — schema consistency):** the original draft named a single required `runtime_sha` field here; that name is **retired terminology** (see the remediation history header) and must not reappear anywhere in this contract as a required field. There is no runtime mechanism today that proves which SHA's *bytes are actually executing in process memory*. `git rev-parse HEAD` (§15) is only a **claimed checkout/source SHA** — it does not prove a clean worktree, that deployed files match that commit, that imported bytes on disk match it, or that the running process's memory matches it (`CLAUDE.md`'s own v2/v3 `CLEAN_DATA_SINCE` history is a real precedent for exactly this class of silent divergence — the `ssh -n` bug in `deploy_vps.sh` left a believed-deployed SHA that never actually reached the VPS). This contract therefore never labels `git rev-parse HEAD` alone "the SHA actually running." The three envelope fields carrying this information — `source_sha` (claimed, nullable when unavailable), `worktree_state` (`CLEAN`/`DIRTY`/`UNKNOWN`), and `runtime_sha_evidence_status` (`VERIFIED`/`CLAIMED_ONLY`/`UNKNOWN`) — are defined once, canonically, in §15, and reused verbatim here; this table does not redefine them. `runtime_sha_evidence_status` defaults `CLAIMED_ONLY`, never asserted as `VERIFIED` without an independent runtime-attested mechanism — see the four-way distinction in §15. |
+| `process_instance_id` | Identifies *which* advisor process instance produced this (relevant across restarts — a new PID after a restart is a new instance even if `source_sha` is unchanged) — subject to the equality invariant defined in §15 (R4.1) |
 | `generated_at_utc` | Wall-clock write time |
 
 **Consistency expectation:** the API process must refuse to compose a
@@ -1744,7 +1811,57 @@ shared `RuntimeIdentity` source** rather than defining a second,
 independent process-identity mechanism with its own atomic-write/
 sanitization logic — the `operator_runtime_manifest.json` of §14.1 and
 the process-identity fields below MUST be produced by (or reconciled
-with) this same S-03 writer/schema, not duplicated. **Naming
+with) this same S-03 writer/schema, not duplicated.
+
+**One deterministic process identity (R4.1 — resolves the ambiguity
+between S-03's `exposure_epoch_id`, O-02W's `process_instance_id`,
+`operator_runtime_manifest.json`, and any "RuntimeIdentity" concept into
+exactly one ownership/propagation model):**
+
+- The advisor bootstrap owns **one canonical `process_instance_id`**,
+  generated **exactly once per advisor process lifetime**, at process
+  start, before the main loop begins.
+- That same value is passed **unchanged** to (a) the S-03 runtime
+  provenance projection (`observability/runtime_provenance_snapshot.py`),
+  (b) the canonical operator snapshot (§1.3/§14), and (c) the operator
+  runtime manifest (§14.1), if the manifest remains part of the design.
+- **No writer, no manifest, and no consumer may independently
+  regenerate, infer, or "reconcile" a second `process_instance_id`** for
+  the same process lifetime — there is exactly one authority (the
+  advisor bootstrap) and every other component is a pure propagator of
+  the value it already received.
+- **Equality invariant (binding on every future implementation):**
+  ```
+  S03.process.process_instance_id
+    == operator_snapshot.process_instance_id
+    == operator_manifest.process_instance_id
+  ```
+  for any triple read from the same advisor process lifetime. A
+  violation of this invariant (any two of the three disagreeing while
+  both are non-null) is itself an integrity defect the implementation
+  mission must surface, never silently tolerate or paper over by
+  preferring one value over another.
+- S-03's own `exposure_epoch_id` (below) **remains a distinct
+  exposure-layer identity**, unchanged in meaning, unless and until a
+  separately reviewed migration explicitly changes its semantics —
+  `process_instance_id` is never silently aliased to
+  `exposure_epoch_id`, in either direction.
+- A future O-02W-C mission may extend S-03's inputs/schema so that
+  S-03 itself comes to publish the shared `process_instance_id`
+  (rather than the operator snapshot/manifest independently deriving
+  it) — but any such extension **must preserve S-03's existing
+  `exposure_epoch_id` meaning** exactly as already defined; it is an
+  additive schema change, not a replacement.
+- The `operator_runtime_manifest.json` (§14.1) **may mirror** the
+  shared `process_instance_id` for restart detection, but it is **not
+  an independent identity authority** — it never generates or
+  re-derives its own value; it only republishes what the advisor
+  bootstrap generated.
+- `experiment_epoch_id`/`clean_data_epoch_id` (below) remain a **third,
+  fully separate** identity axis from both process identity and S-03's
+  exposure identity — never conflated with either.
+
+**Naming
 correction:** S-03's `exposure_epoch_id` is an **exposure/process
 epoch** — a UUID scoped to one process lifetime, identifying "which run
 of the exposure layer wrote this" — and is explicitly **not** the
@@ -1914,7 +2031,7 @@ documented explicitly rather than silently omitted:
 |---|---|---|
 | Trade fees | `paper_trading/recorder.py::TradeEvent`/`CompleteTrade` full field list | No fee field in either dataclass; `MexcSimulator` claims to simulate "fees MEXC" in its docstring but the recorder schema does not persist an amount. `NOT_EXPOSED`, never `0`. |
 | Adaptive learning `recommendation_count`/`applied_count` | O-01 `adaptive_learning.py` (already documents this gap as `S02_PROVENANCE_DEBT`) | No dedicated counter exists in `MistakeMemory`/`MetaLearner`/`MetaMemory`/`StrategyMemoryStore`/`StrategyRanker`; `recommendation_equals_applied` is a "fixed structural False" by design post-S02, not a measured rate. `NOT_EXPOSED`. |
-| `DecisionPacket.trace_id` (as a distinctly-named field) | `core/decision_packet.py` field list (lines 400-437 range inspected) | No field literally named `trace_id` found; `context_id`/`created_cycle_id` are the closest candidates. `PARTIALLY_AVAILABLE`, pending a read of `governance/decision_trace.py` not completed in this pass. |
+| `DecisionPacket.trace_id` (as a distinctly-named field) | `core/decision_packet.py` field list (lines 400-437 range inspected), plus `governance/decision_trace.py` (full read, R4.1) | No field literally named `trace_id` found on `DecisionPacket`; `context_id`/`created_cycle_id` are the closest candidates but remain semantically distinct identifiers, never aliased. `governance/decision_trace.py` is confirmed (full read) to be a pure text-formatting consumer (`explain_decision()`/`format_decision_chain()`/`format_rejection_reason()`) — it establishes no separate canonical trace identity of its own. S-03 counters that refer to "missing trace provenance" elsewhere in the codebase do not prove `DecisionPacket` exposes a distinct trace field; they describe a different (S-03-side) gap. Classification: `NOT_EXPOSED_AS_DISTINCT_FIELD` (resolved — no remaining `PARTIALLY_AVAILABLE`/pending-verification status). |
 | Regime/entropy confidence on `SystemSnapshot.market` | O-01 `market_state.py::MODULES` (already documents this gap) | "`RegimePacket` fields exist and are logged but never reach `SystemSnapshot.market`." `NOT_EXPOSED` at the `SystemSnapshot` level; may exist upstream in `RegimePacket` itself (not independently re-verified in this pass beyond citing O-01's finding). |
 | Continuous disk/IO operator-facing snapshot | O-01 `disk_io.py::MODULES` (already documents this gap) | DA-01 is `workflow_dispatch`-triggered only, "no operator-facing snapshot (`SystemSnapshot`, `MetricsSnapshot`) carries a disk field today." `UNAVAILABLE` outside audit windows by design, not a bug to fix here. |
 | Regret freshness over HTTP | O-01 `regret_state.py::MODULES` (already documents this gap) | `tools/regret_repository.freshness()` exists and is correct but `BurnInSnapshot` omits it; only the CLI (`tools/cri_calculator.py`) sees it today. This contract's §11 requires the implementation mission to close this gap, not perpetuate it. |
@@ -1926,10 +2043,14 @@ documented explicitly rather than silently omitted:
 
 ## 20. CONTRACT RISKS / OPEN QUESTIONS
 
-1. **`DecisionPacket.trace_id` existence and shape** are unresolved
-   pending a read of `governance/decision_trace.py` — a future
-   implementation mission (or a short follow-up research pass) must
-   confirm this before the DECISIONS panel's field list is finalized.
+1. **RESOLVED (R4.1).** `DecisionPacket.trace_id` does not exist as a
+   distinct field; `governance/decision_trace.py` (now fully read) is a
+   pure text-formatting consumer and establishes no separate canonical
+   trace identity. Classification is `NOT_EXPOSED_AS_DISTINCT_FIELD`
+   (§8, §19) — the DECISIONS panel's field list must use `packet_id`/
+   `context_id`/`created_cycle_id` as the distinct identifiers they are,
+   never a synthesized or aliased `trace_id`. No further verification
+   pass is required for this specific question.
 2. **`execution_state.py` domain fields** were confirmed to exist
    (183-line file) but not individually enumerated in this pass —
    flagged `NEEDS_FULL_FIELD_READ` in §10.
@@ -2133,7 +2254,7 @@ correction (BLOCKER J).
 
 ---
 
-## 22. CONTRACT_TEST_REQUIREMENTS (R1-4, extended R2-1/R2-2, extended R3, amended R3.1, reassigned R4)
+## 22. CONTRACT_TEST_REQUIREMENTS (R1-4, extended R2-1/R2-2, extended R3, amended R3.1, reassigned R4, completed R4.1 — tests 23-32)
 
 Documentation-only in this mission — these are **requirements a future
 implementation mission must satisfy with real tests**, not tests written
@@ -2154,6 +2275,9 @@ several, and each test below belongs to a specific one):**
 | Runtime-manifest/instance-relation/liveness tests (3-4, 13) | **O-02W-C** for the manifest-writing half (§14.1); the API-side read/label half belongs to **O-02W-D** |
 | API/auth tests (routes, HMAC auth, WS) | **O-02W-D** (§21.2) exclusively — O-02W-C builds no API surface at all |
 | Source-SHA/runtime-evidence negative tests (19-20, new below) | **O-02W-D or T-1** (§21.2) — whichever mission first exposes a `source_sha`/runtime-evidence field over any reader |
+| Builder-boundary/no-fresh-instantiation, fail-passive serialization, price-unavailability materialization, restore-vs-normal provenance, missing-`DecisionPacket` materialization, process-identity equality/no-second-identity, no-secrets whitelist (23-27, 29-30, 32, new below) | **O-02W-C** (§21.1) — the advisor-owned passive snapshot builder's own test suite |
+| Current-liveness-never-`ALIVE` test (28, new below) | **O-02W-D or T-1** (§21.2) — whichever mission first exposes `system_health.liveness` over any reader; **not** O-02W-C, which builds no independent liveness publisher |
+| No-fabricated-`trace_id` test (31, new below) | **O-02W-C** (materialization must not synthesize the field) and **O-02W-D** (API exposure must not synthesize it either) — both missions' test suites carry this assertion independently |
 
 1. **Reader never observes a partial canonical JSON snapshot.** A test
    that concurrently reads the snapshot file while a writer repeatedly
@@ -2399,6 +2523,124 @@ cases):**
     requirement, the single most safety-critical case in this contract's
     mode vocabulary (a false `REAL_API` label on paper-mode data would be
     exactly the mis-attribution ADR-0007/O-01 already warn against).
+
+**Added by R4.1 (§21.1/O-02W-C boundary, process-identity, secrets, and
+trace_id — completing the future-test coverage §22's own mission table
+already anticipated but had not yet enumerated as numbered items):**
+
+23. **The builder never instantiates a fresh `MexcSimulator`/
+    `WalletSync`/other process-local telemetry owner.** A test must
+    inspect (or exercise via dependency injection) the snapshot-builder
+    call site and assert it only ever reads the **already-existing, live
+    references** the advisor process already holds (the running
+    `MexcSimulator` instance, the running `WalletSync` singleton, etc.)
+    — never constructs a new instance of any of these classes itself.
+    Constructing a fresh instance inside the builder would silently
+    reintroduce the exact process-boundary defect this contract's
+    `PROCESS_BOUNDARY_VERDICT` forbids, just inside the same process
+    instead of a second one. Exercises §2.3/§21.1's "reads already-
+    existing live objects" requirement.
+24. **Serialization/atomic-write failure is fail-passive.** Extending
+    test 2: a test must assert that a forced serialization or
+    write-step failure is (a) logged and counted via a metric/counter,
+    (b) never raised into or propagated through the advisor loop's own
+    call stack, (c) never changes `trade_allowed`/`is_actionable()` or
+    any other decision-path value, and (d) never leaves a partial final
+    snapshot file at the canonical path (the pre-existing valid snapshot
+    remains byte-for-byte unchanged). Exercises §21.1's fail-passive
+    guarantee directly, not merely the write-preservation half already
+    covered by test 2.
+25. **`_fetch_price() == 0.0` maps to `UNAVAILABLE`, never a legitimate
+    zero price, and any price-dependent unrealized PnL is `UNAVAILABLE`
+    too.** A test must force `_fetch_price()` to return `0.0` (no
+    exchange client wired, or a raised/caught fetch exception — both
+    collapse to `0.0` at the source, §2.1/§5/BLOCKER A) and assert the
+    materialized `open_positions[].current_price` renders `UNAVAILABLE`
+    (never `price: 0`) and the corresponding `unrealized_pnl_usd`/`_pct`
+    for that position also render `UNAVAILABLE` (never a fabricated
+    `0`) — proving the unavailability propagates through the derived
+    value, not just the raw price. Exercises §5's per-position field
+    table and the `REQUIRED_FIELD_CONTRACT_TABLE` row for
+    `current_price`.
+26. **Normal-open vs. restored-position provenance is distinguished, and
+    ledger enrichment joins by exact `trade_id` only.** A test must (a)
+    construct a normally-opened position (via `_fill_market()`) and
+    assert its materialized `personality`/`regime` are sourced from the
+    originating `MexcOrder` with full confidence, (b) construct a
+    restored position (via `_restore_positions()`) and assert
+    `personality: "restored"` and `regime: "unknown"` with an explicit
+    `restored_without_regime: true` (or equivalent) marker are exposed,
+    never presented with the same confidence as a normal open, and (c)
+    assert that any historical regime/provenance enrichment join against
+    the ledger is performed by **exact `trade_id` match only** — a test
+    fixture with two ledger records sharing the same `symbol` but
+    different `trade_id`s must confirm the join never falls back to a
+    symbol-only match, and that absent an exact `trade_id` match the
+    result is `UNKNOWN`/`UNAVAILABLE`, never guessed from the
+    symbol-sharing record. Exercises §5/§19/BLOCKER F in full.
+27. **A missing `DecisionPacket` makes the final authorization `False`,
+    with correct authority labels preserved.** A test must construct the
+    G8-gate case where `decision_packet` is `None` for a cycle and assert
+    the materialized `decision.is_actionable` renders `False` (never
+    `UNKNOWN` treated as truthy, never inherited from the legacy
+    pipeline's own `trade_allowed`), labeled `authority:
+    "EXECUTION_AUTHORITY"`, while a legacy-pipeline `trade_allowed: True`
+    for the same cycle is separately exposed and correctly labeled
+    `authority: "OBSERVATIONAL_TELEMETRY"` — proving the materialization
+    never conflates the two tracks or lets the observational track stand
+    in for the missing authority. Exercises §8/BLOCKER A and the
+    `REQUIRED_FIELD_CONTRACT_TABLE` rows for `decision.is_actionable`/
+    `decision.trade_allowed`.
+28. **Current liveness remains `UNKNOWN`/`NOT_EXPOSED`, never `ALIVE`,
+    until an independent liveness publisher exists.** A test against
+    **today's actual system** (no new publisher built) must assert every
+    read of `system_health.liveness` renders `UNKNOWN` — never `ALIVE`
+    — regardless of `instance_relation`, manifest presence, or snapshot
+    freshness (§14.2/BLOCKER D). A second, forward-looking assertion (to
+    be exercised once O-02W-D/T-1 builds the deferred independent
+    watchdog-publisher) must confirm that only a genuinely independent,
+    positively-published liveness record can ever produce `ALIVE` — no
+    other signal in this contract's current model is a legitimate source
+    for it. Exercises the negative invariant added to §14.2 by this
+    correction.
+29. **`process_instance_id` equality holds across S-03, the operator
+    snapshot, and the operator manifest; a restart creates a new
+    identity.** A test must (a) read all three sources
+    (`RuntimeProvenanceSnapshotWriter`'s output, the canonical operator
+    snapshot, `operator_runtime_manifest.json`) for one process lifetime
+    and assert all three `process_instance_id` values are identical, and
+    (b) restart the simulated process and assert all three sources now
+    agree on a **new**, different value — never a stale mix where one
+    source still reports the pre-restart identity. Exercises §15's
+    equality invariant (R4.1) directly.
+30. **No component independently regenerates a second process
+    identity.** A test must assert that neither the operator-snapshot
+    writer nor the operator-manifest writer ever calls its own
+    UUID/PID-timestamp generation for `process_instance_id` when a
+    shared value is already available from the advisor bootstrap/S-03 —
+    i.e. the value is always propagated, never freshly minted a second
+    time within the same process lifetime. Exercises §15's "no writer
+    may independently regenerate/infer/reconcile a second identity"
+    rule.
+31. **No distinct `trace_id` is fabricated or aliased from convenient
+    identifiers.** A test must assert that no API/snapshot response ever
+    contains a field literally named `trace_id`, and that no code path
+    synthesizes one by concatenating, hashing, or otherwise deriving a
+    value from `packet_id`/`context_id`/`created_cycle_id` — those three
+    identifiers remain independently readable and semantically distinct
+    in every response. Exercises §8/§19/§20/BLOCKER F's
+    `NOT_EXPOSED_AS_DISTINCT_FIELD` classification (R4.1).
+32. **No secret material is ever serialized.** A test must assert the
+    canonical snapshot and any future API response are produced via a
+    **strict field whitelist** (an explicit allow-list of named fields,
+    never a generic `__dict__`/`vars()`/object dump of `WalletSync`,
+    `MexcSimulator`, or any exchange-client object) and must specifically
+    assert the absence of: raw environment-variable dumps, API keys,
+    exchange credentials, Telegram bot tokens, private keys, passwords,
+    or any value derived from a secret in a way that could reconstruct
+    it (e.g. a token substring). This is the hard "No secrets" constraint
+    already stated in §15, made testable. Exercises §15's no-secrets
+    invariant and §16's read-only/security posture.
 
 ---
 
