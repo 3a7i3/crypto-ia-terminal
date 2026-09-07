@@ -52,6 +52,32 @@ nor any other runtime mechanism is implemented by this correction — it
 remains a requirement for the future implementation mission. R1 and R2's
 corrections are unchanged and not reverted.
 
+**R3.1 micro-remediation (O-02W-B-R3.1, same date):** independent review
+of R3 found three remaining defects, corrected in place: (1) §6.1's
+closing sentence still called the mechanism "a read-side discipline,"
+contradicting R3's own governed-lifecycle-metadata model — now described
+as "governed ledger-lifecycle metadata publication plus read-side
+validation"; (2) atomically replacing the sidecar record alone does not
+atomically bind it to the ledger file it describes — a concrete
+sidecar-lags-rotation race was possible — so §6.1.1 now adds a
+`metadata_revision` and a `TRANSITIONING` lifecycle state, and new §6.1.4
+defines the required governed transition (publish `TRANSITIONING` before
+mutating, only then expose the new generation as `ACTIVE`) and reader
+protocol (bind at open, `fstat()`-verify physical binding, re-check
+before returning, reject/retry on any mismatch — device/inode used only
+as a binding-verification observation, never as canonical identity);
+(3) "one specific inode/file instance" was too narrow given
+`rotate_jsonl.sh`'s own `gzip` step — `generation_id` now identifies one
+logical content generation across successive physical representations
+(plain then `.gz`), with `byte_offset` explicitly defined against the
+canonical *uncompressed* byte stream, decompressed before a watermark is
+ever applied to an archived `.gz` file. Test 17 is narrowed to the
+specific detectable case (same-inode truncation below a confirmed
+offset) rather than implying universal ungoverned-mutation detection;
+tests 11 and 15 gain `TRANSITIONING`-interval and
+rename/gzip-identity-preservation coverage respectively. R1/R2/R3's
+corrections are unchanged and not reverted; still documentation-only.
+
 This document is the authoritative source-inspected contract for a future
 read-only "operator API" serving the React cockpit (`frontend/`). It
 supersedes no code — it constrains what a future implementation mission
@@ -535,11 +561,26 @@ contract now distinguishes:
   cockpit reasons about ("the paper trades ledger," "the black-box
   ledger") — this is what `path` denotes, and it MAY remain stable
   across rotations.
-- **Physical ledger generation** — one specific inode/file instance
-  currently or previously present at that logical path. Rotation
-  creates a new generation at the same logical path; the archived file
-  is a *different, retired* generation, not the same one under a new
-  name.
+- **Generation (logical content generation, R3.1 correction)** —
+  `generation_id` identifies **one governed logical ledger content
+  generation**, not "one specific inode/file instance" (R3's original
+  wording was too narrow and conflicts with `rotate_jsonl.sh`'s own
+  `gzip "$archive"` step, which changes the archived file's inode/bytes-
+  on-disk without changing what content generation it represents).
+  **A single generation may have successive physical representations**
+  over its lifetime: the plain-text file while active, then a
+  compressed `.gz` file once archived. Renaming a generation's file
+  (the `mv` half of rotation) does not change its identity. Compressing
+  it (`gzip`) does not change its identity **provided decompression
+  reproduces the original byte stream exactly** — the sidecar (§6.1.1)
+  maps a `generation_id` to whatever its *current* retained physical
+  representation is, updating that mapping across rename/compress
+  transitions without allocating a new `generation_id` for the same
+  content. Rotation creates a **new generation** only for the new
+  *active* (post-rotation, empty) ledger at the logical path; the
+  archived generation is a *different, retired* generation identity,
+  unaffected by whatever physical representation (plain or `.gz`) later
+  holds its bytes.
 
 **Field added to the envelope (supersedes the R1-2 shape):**
 
@@ -556,8 +597,20 @@ contract now distinguishes:
 `path` is retained as **provenance only** (useful for an operator or
 debugger to locate the file on disk) and MUST NOT be used as the sole
 identity of a watermark for any ledger that can rotate. `generation_id`
-is the opaque value that actually identifies which physical file a
-`byte_offset` is meaningful against.
+is the opaque value that identifies which **logical content generation**
+(not which specific on-disk inode/file — see the corrected model above)
+a `byte_offset` is meaningful against.
+
+**Canonical byte-offset representation (R3.1 correction).**
+`byte_offset` is defined as an offset into the generation's **canonical
+uncompressed ledger byte stream** — the plain JSONL content as it was
+written, before any archival compression. When a generation's current
+retained physical representation is a `.gz` file (post-`rotate_jsonl.sh`
+archival), the implementation MUST decompress it and apply/measure the
+watermark against the decompressed byte stream — **never against
+compressed byte positions**, which have no stable relationship to the
+uncompressed content a previously-captured `byte_offset` was measured
+against.
 
 **`generation_id` derivation — canonical model (R3 correction).** R2-1
 left the derivation open between two zero-schema-change candidates
@@ -630,21 +683,60 @@ ledger, e.g. `rotate_jsonl.sh` or its future equivalent). This section
 defines its **minimum required responsibilities only** — it is not
 implemented anywhere today, and this document does not implement it.
 
+**Atomic replacement of the sidecar record alone is not sufficient
+(R3.1 correction).** §1.3's tmp-write-plus-`os.replace()` pattern makes
+each *individual* sidecar update atomic — but the sidecar and the ledger
+file it describes are **two separate filesystem objects**, and nothing
+about atomically replacing one alone atomically binds it to the other.
+Concretely, this unsafe sequence is possible without the state model
+below: (1) sidecar says the active generation at logical path P is `G1`;
+(2) the rotator `mv`s the old file at P aside; (3) the rotator creates a
+new, empty file at P; (4) the sidecar has **not yet** been advanced to
+`G2`; (5) a reader opens the new file at P while the sidecar still
+reports `G1`; (6) the reader incorrectly labels the new (empty, post-
+rotation) bytes as belonging to `G1`. The sidecar/metadata mechanism
+therefore requires a **revision/state model**, not just an atomically-
+written record, to make this sequence detectable and rejectable.
+
 The sidecar/metadata mechanism MUST associate, per logical ledger:
 
 - `logical_source` — which logical ledger this entry describes (e.g.
   `"paper_trades"`, `"black_box"`).
-- `generation_id` — the opaque UUID/epoch, allocated once.
+- `generation_id` — the opaque UUID/epoch, allocated once, identifying
+  a logical content generation (§6.1's corrected model — not tied to
+  one specific inode).
+- **`metadata_revision`** — a monotonically increasing counter/value on
+  the sidecar record itself, incremented on every write to that record.
+  This is what lets a reader detect "the sidecar changed underneath me"
+  independently of whether `generation_id` also changed (§6.1.4).
+- **Lifecycle state** — one of `ACTIVE`, `TRANSITIONING`, `ARCHIVED`, or
+  `INVALIDATED` (R3.1 adds `TRANSITIONING` to R3's original three-state
+  set): `ACTIVE` is the current live generation at the logical path;
+  `TRANSITIONING` is published *before* any rotation/reset mutates the
+  active ledger path and cleared only once the new mapping is fully
+  published (§6.1.4) — its purpose is to make the unsafe window in the
+  race above an explicit, observable state rather than an invisible gap;
+  `ARCHIVED` is a retained, replayable past generation; `INVALIDATED` is
+  a generation a governed reset explicitly retired without replacement
+  data.
 - **Generation creation/activation timestamp** — when this generation
   became the active one at its logical path.
 - **Intended physical ledger generation** — enough information (e.g. the
   archive filename pattern `rotate_jsonl.sh` already produces, such as
-  `black_box.jsonl.20260906_190000`) to locate the actual file this
-  generation refers to, whether active or archived.
-- **Lifecycle state**, where required — e.g. `ACTIVE` / `ARCHIVED` /
-  `INVALIDATED`, so a reader or replay request can distinguish a
-  retained-but-archived generation from one explicitly invalidated by a
-  governed reset (§6.1's truncate/reset invariant below).
+  `black_box.jsonl.20260906_190000`, or its `.gz`-compressed form once
+  archived, per §6.1's rename/compression-identity correction) to locate
+  the actual file this generation's bytes currently live in, whether
+  active or archived.
+- **Physical binding observation** — for the *currently active*
+  representation only, an observation such as `st_dev` + `st_ino`
+  (device + inode) from `fstat()` on the opened handle, recorded so a
+  reader can verify its open handle actually corresponds to what the
+  sidecar currently calls `ACTIVE` for that logical path. **This is used
+  only to verify association between an open handle and the sidecar's
+  current record — it is never the canonical generation identity**
+  (§6.1's canonical-model correction: `inode alone != canonical
+  generation identity` still holds; this field's role is narrower and
+  purely defensive).
 - **Controlled create/rotate/reset ownership** — which governed
   operation (initial creation, `rotate_jsonl.sh`-style rotation, or an
   explicit governed reset) produced this generation, for audit purposes.
@@ -723,7 +815,81 @@ definition). Any such fallback:
   or a substitute for, the canonical sidecar-backed opaque UUID model
   (§6.1.1) once that mechanism exists.
 
-**Binding requirements (R1-2 origin, extended by R2-1, extended by R3 — thirteen total):**
+### 6.1.4 Governed lifecycle transition and reader validation protocol (R3.1)
+
+This section defines the **minimal race-safe protocol** required to
+close the sidecar/ledger race described in §6.1.1. Like the rest of
+§6.1.1-6.1.3, it is a requirement for the future implementation mission
+— not implemented by this document.
+
+**Required governed transition** (performed by whatever governed
+operation rotates or resets a ledger, e.g. `rotate_jsonl.sh`'s future
+equivalent):
+
+1. **Atomically publish `TRANSITIONING`** for the logical ledger's
+   sidecar record *before* mutating the active ledger path in any way —
+   this closes the window in which a reader could observe `ACTIVE`
+   metadata pointing at a path whose content is about to change
+   underneath it.
+2. Perform the rotation (`mv` old, create new) or reset.
+3. **Allocate the new generation identity**, when the transition
+   produces a new active generation (rotation, or a reset that doesn't
+   invalidate in place).
+4. **Preserve the old generation's identity** for any retained
+   historical content (the archived file, whether still plain-text or
+   later `gzip`-compressed — §6.1's rename/compression-identity
+   correction).
+5. **Atomically publish the final active/archive mapping** — the
+   sidecar record(s) reflecting the new `ACTIVE` generation's identity
+   and physical binding, and the old generation's `ARCHIVED` (or
+   `INVALIDATED`, per §6.1.2) state and location — as one atomic write
+   (or a small ordered sequence the reader protocol below can still
+   validate against, per-record `metadata_revision`).
+6. **Only then** does the new generation become visible to readers as
+   `ACTIVE`. A reader observing `TRANSITIONING` at any point before this
+   step must not treat the logical path's content as belonging to
+   either the old or the new generation with confidence — see the
+   reader protocol below.
+
+**Required reader protocol:**
+
+1. Read the sidecar's metadata revision, call it `M1`, along with the
+   current `generation_id`, lifecycle state, and physical binding
+   observation for the logical ledger.
+2. If the state is not `ACTIVE` (i.e. it is `TRANSITIONING`), **reject
+   or retry** — do not proceed to open the ledger path under a
+   `TRANSITIONING` state, since which generation's bytes currently sit
+   at that path is not yet determined.
+3. Open the ledger file at the logical path.
+4. Call `fstat()` **on the opened handle** (not a fresh `stat()` on the
+   path, which could race a subsequent rotation) to obtain the actual
+   `st_dev`/`st_ino` of what was opened.
+5. **Verify** that this observed binding matches the physical binding
+   observation the sidecar reported for the `ACTIVE` generation at step
+   1 — a mismatch means a rotation raced the open between steps 1 and 3,
+   and the read must not proceed as if it opened the expected generation.
+6. **Re-read the sidecar metadata**, call this `M2`.
+7. **Accept the read only if** `M1` and `M2` agree on `generation_id`,
+   lifecycle state (`ACTIVE` throughout), and physical binding — i.e.
+   nothing about the sidecar's view of this logical ledger changed
+   between the initial check and the confirming re-check.
+8. For a read that spans a non-trivial duration (large ledger, or a
+   long-lived streaming read) during which a rotation could plausibly
+   occur, **validate again before returning** the result to the caller,
+   not only once at open time — the same revision/binding/state
+   comparison as steps 6-7, immediately before the response is finalized.
+9. **On any mismatch at any step, retry, or return an explicit
+   unavailable/integrity state** — never return an empty successful
+   result merely because a transition was observed to be underway, and
+   never silently attribute bytes read to a generation the validation
+   could not confirm.
+
+Device and inode observations are used **only** as the physical-binding
+verification described above — per §6.1's and §6.1.1's corrections,
+they never become, and must never be described as, the canonical
+generation identity.
+
+**Binding requirements (R1-2 origin, extended by R2-1, extended by R3, extended by R3.1 — thirteen total, R3.1 clarifying rather than adding numbered items):**
 
 1. Every historical/trade-history API response MUST include the
    `ledger_watermark` above, stating exactly which ledger boundary
@@ -782,19 +948,22 @@ definition). Any such fallback:
    retained" reason, never an empty-but-`AVAILABLE` history (which would
    be indistinguishable from requirement 3's genuine-zero case).
 9. **A reader racing a concurrent `mv`+`touch` rotation must keep
-   attributing what it already read to the generation it opened.** If a
-   reader has an open file handle (and has already captured/bound the
-   `generation_id` from the sidecar, §6.1.1, or a labeled `LEGACY`
-   fallback, §6.1.3, at open time) when `rotate_jsonl.sh` performs its
-   `mv` followed by `touch`, POSIX semantics mean the reader's file
-   descriptor continues to reference the *original* (now-unlinked-from-
-   that-path, but still open) inode — the reader must label everything
-   it read through that handle with the `generation_id` bound at open
-   time, and must not re-stat the path mid-read and silently relabel
-   already-consumed bytes as belonging to the new (post-`touch`) empty
-   generation. If the reader cannot prove this association held for the
-   whole read (e.g. the sidecar's record for that generation changed
-   underneath it in a way it cannot reconcile), it must retry, reject,
+   attributing what it already read to the generation it opened**, per
+   the full governed transition + reader validation protocol of §6.1.4
+   (revision check, `fstat()`-based physical-binding verification,
+   re-check before returning). If a reader has an open file handle (and
+   has already captured/bound the `generation_id` from the sidecar,
+   §6.1.1, or a labeled `LEGACY` fallback, §6.1.3, at open time) when
+   `rotate_jsonl.sh` performs its `mv` followed by `touch`, POSIX
+   semantics mean the reader's file descriptor continues to reference
+   the *original* (now-unlinked-from-that-path, but still open) inode —
+   the reader must label everything it read through that handle with
+   the `generation_id` bound at open time, and must not re-stat the
+   path mid-read and silently relabel already-consumed bytes as
+   belonging to the new (post-`touch`) empty generation. If the reader
+   cannot prove this association held for the whole read (e.g. the
+   sidecar's `metadata_revision` for that generation changed underneath
+   it in a way it cannot reconcile, per §6.1.4 step 9), it must retry, reject,
    or return an explicit integrity/unavailable state — never guess.
 10. **Reproducibility claims reference this field, not prose.** §1.3's
     "a copy of the file plus the ledger watermark fields... fully
@@ -830,9 +999,14 @@ applicable to any file in `databases/`, not specific to
 still the canonical sidecar-backed identity (§6.1.1), not a value
 recomputed from file content on each read.
 
-This mechanism requires **no new database and no new message bus** —
-it is a read-side discipline over the existing append-only files, per
-R1-2's and R2-5's explicit constraint.
+This mechanism requires **no new database and no new message bus**
+(R3.1 correction: it is no longer accurate to describe it as purely "a
+read-side discipline" — §6.1.1's sidecar and §6.1.4's governed
+transition protocol require **governed ledger-lifecycle metadata
+publication plus read-side validation**, i.e. coordinated writes by the
+lifecycle operation *and* validated reads, not read-side logic alone),
+consistent with R1-2's and R2-5's explicit constraint against new
+storage/messaging infrastructure.
 
 ---
 
@@ -1561,7 +1735,7 @@ not a change to what the loop decides.
 
 ---
 
-## 22. CONTRACT_TEST_REQUIREMENTS (R1-4, extended R2-1/R2-2, extended R3)
+## 22. CONTRACT_TEST_REQUIREMENTS (R1-4, extended R2-1/R2-2, extended R3, amended R3.1)
 
 Documentation-only in this mission — these are **requirements the future
 implementation mission (§21) must satisfy with real tests**, not tests
@@ -1648,14 +1822,24 @@ is not enforceable and would regress silently.
     assert the API refuses with an explicit error rather than returning
     a result that silently misattributes bytes from the wrong
     generation. Exercises §6.1 requirement 7.
-11. **Concurrent rotation cannot misattribute the opened generation.** A
-    test must open a ledger read (or capture its `generation_id` at
-    open time), then perform the `mv`+`touch` rotation sequence while
-    that read is in flight / before a subsequent read of the same
-    handle, and assert all bytes attributed to that read remain labeled
-    with the originally-opened `generation_id`, never silently
-    relabeled to the post-rotation generation. Exercises §6.1
-    requirement 9.
+11. **Concurrent rotation cannot misattribute the opened generation**
+    (amended R3.1)**.** A test must open a ledger read (or capture its
+    `generation_id` at open time), then perform the `mv`+`touch`
+    rotation sequence while that read is in flight / before a
+    subsequent read of the same handle, and assert all bytes attributed
+    to that read remain labeled with the originally-opened
+    `generation_id`, never silently relabeled to the post-rotation
+    generation. **R3.1 addition:** a second case must specifically
+    construct a reader that queries the sidecar *during* the
+    `TRANSITIONING` interval (§6.1.4) — after `TRANSITIONING` is
+    published but before the final active/archive mapping is — and
+    assert the reader rejects or retries rather than opening the ledger
+    path under an indeterminate state; a third case must assert the
+    `fstat()`-based physical-binding check (§6.1.4 reader protocol steps
+    4-5) catches a rotation that raced between the reader's initial
+    sidecar read and its `open()` call, even if the sidecar's own
+    revision check alone would not have. Exercises §6.1 requirement 9
+    and §6.1.4 in full.
 12. **Watermark offset is measured in actual bytes, including non-ASCII
     UTF-8 content.** A test must construct a ledger fixture containing
     at least one record with non-ASCII UTF-8 content (e.g. a symbol or
@@ -1694,14 +1878,25 @@ is not enforceable and would regress silently.
     that would fail against R2-1's original naive-recompute suggestion,
     exactly the instability §6.1's canonical-model correction identifies.
 15. **Rotation allocates a new generation; a retained archive keeps the
-    old one.** A test must perform the equivalent of
+    old one, including through rename and gzip compression** (amended
+    R3.1)**.** A test must perform the equivalent of
     `scripts/rotate_jsonl.sh` (`mv`+`touch`) and assert (a) the new
     active ledger at the logical path receives a *new* sidecar-allocated
     `generation_id`, distinct from the pre-rotation one, and (b) the
     retained archived file's `generation_id` — read via its recorded
     location in the sidecar (§6.1.1) — is unchanged from what it was
-    before rotation. Extends test 9 (R2-1) with the archive-retention
-    half explicitly.
+    before rotation. **R3.1 addition:** the test must continue past the
+    `mv` to also run `rotate_jsonl.sh`'s `gzip` step on the archive and
+    assert the `generation_id` is *still* unchanged after compression
+    (proving rename and compression are both identity-preserving
+    physical-representation changes, per §6.1's corrected model); a
+    further case must capture a `(generation_id, byte_offset)` watermark
+    against the plain-text archive, compress it, then replay the same
+    watermark against the now-`.gz` representation and assert the
+    implementation decompresses before applying the offset, reproducing
+    byte-identical results to the pre-compression read (never applying
+    the offset against compressed byte positions, per §6.1's canonical-
+    byte-offset-representation correction).
 16. **Governed reset creates a new generation or invalidates the
     previous one.** A test must perform a controlled truncate/reset
     against a ledger and assert either (a) a new `generation_id` is
@@ -1710,18 +1905,28 @@ is not enforceable and would regress silently.
     that no code path allows the previous identity to silently persist
     unchanged against the now-different content. Exercises §6.1.2's
     governed-reset invariant and binding requirement 11.
-17. **Ungoverned destructive mutation is surfaced as an integrity
-    violation, never silently trusted.** A test must simulate an
-    out-of-protocol destructive mutation (e.g. truncate-in-place via a
-    raw `open(path, "w")` bypassing the governed lifecycle entirely, so
-    the inode is unchanged but content is destroyed — the exact
-    inode-alone failure case §6.1's canonical-model correction
-    describes) and assert the reader detects the inconsistency (its
-    captured/bound generation identity no longer reconciles with what it
-    can observe) and returns an explicit integrity-violation/invalid
-    state — never silently reusing the old watermark against the new,
-    unrelated content. Exercises §6.1.2's ungoverned-mutation invariant
-    and binding requirement 12.
+17. **A detectable ungoverned destructive mutation is surfaced as an
+    integrity violation, never silently trusted** (amended R3.1 for
+    precision — this test asserts a specific detectable case, not
+    universal detection of every possible ungoverned mutation, which
+    §6.1.2 explicitly does not claim). The test: (a) perform a normal
+    read and capture a valid watermark with `byte_offset > 0`; (b)
+    truncate the *same inode* (e.g. `ftruncate()` on a fresh `open()` of
+    the same path, or equivalent) to a size **below** that confirmed
+    `byte_offset` — the exact same-inode, content-destroyed case §6.1's
+    canonical-model correction describes; (c) assert that on the next
+    read, the observed size rollback (or an `fstat()`-based binding
+    inconsistency, §6.1.4) is detected and invalidates the read — the
+    reader must return an explicit integrity-violation/invalid state,
+    never silently reuse the old watermark against the truncated
+    content. **Explicit limitation preserved, not overridden by this
+    test:** an out-of-protocol mutation that leaves no observable
+    inconsistency (e.g. content edited in place without changing size,
+    inode, or anything else the reader observes) may not be detectable
+    without stronger integrity instrumentation than this contract
+    requires — this test targets the case that *is* required to be
+    caught, not a claim of universal coverage. Exercises §6.1.2's
+    ungoverned-mutation invariant and binding requirement 12.
 18. **Legacy fallback is never presented as canonical-equivalent.** A
     test using a `LEGACY`/`BEST-EFFORT` fallback identity (inode-only,
     or a once-captured content anchor) must assert the response/
@@ -1730,12 +1935,18 @@ is not enforceable and would regress silently.
     sidecar-backed canonical `generation_id` when the sidecar is
     actually available. Exercises §6.1.3 and binding requirement 13.
 
-All R1/R2 requirements remain in force and are not superseded by the
+All R1/R2/R3 requirements remain in force and are not superseded by the
 above — in particular: actual binary-byte offsets (test 12), incomplete
 final-line handling (test 5), identity distinct from liveness (test 13),
 `UNKNOWN != ZERO` and `UNAVAILABLE != EMPTY` (tests 3, 8 above and R3
 tests 16-17, which extend the same principle to governed/ungoverned
-generation transitions).
+generation transitions). **R3.1 extends this same principle once more:**
+`TRANSITIONING != AVAILABLE` and `TRANSITIONING/UNAVAILABLE != EMPTY` —
+a reader observing the sidecar's `TRANSITIONING` state (§6.1.4) must
+reject/retry rather than return any result, including an empty one; an
+empty successful result is only ever correct for a confirmed `ACTIVE`
+generation genuinely containing zero valid lines (requirement 3), never
+as a stand-in for "a transition was in progress and I couldn't tell."
 
 ---
 
