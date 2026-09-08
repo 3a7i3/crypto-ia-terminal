@@ -52,7 +52,9 @@ from observability.operator.contracts import (
     unavailable,
     unknown,
 )
+from observability.operator.domains.decision_pipeline import compose_decision_pipeline_snapshot
 from observability.operator.domains.portfolio_state import compose_portfolio_state_snapshot
+from observability.operator.domains.system_health import compose_system_health_snapshot
 from observability.source_evidence import SourceEvidence
 
 _log = get_logger("observability.operator_snapshot_builder")
@@ -107,6 +109,7 @@ class OperatorSnapshotInputs:
     mexc_simulator: Optional[Any] = None  # paper_trading.mexc_simulator.MexcSimulator
     wallet_sync: Optional[Any] = None  # infra.wallet_sync.WalletSync
     ledger_trades: Optional[List[Any]] = None  # paper_trading.recorder.CompleteTrade
+    real_accounts_observer: Optional[Any] = None  # observability.real_accounts.RealAccountsObserver
     decisions: List[DecisionRecord] = field(default_factory=list)
     now_fn: Any = time.time
 
@@ -261,40 +264,77 @@ def _build_portfolio_domain(inputs: OperatorSnapshotInputs, now: float) -> Dict[
         paper_portfolio_view = None  # type: ignore[assignment]
         build_portfolio_status = None  # type: ignore[assignment]
 
+    # Correction D (R2): a `paper_portfolio_view()` failure (raise or
+    # unusable return) must NEVER silently collapse into an empty
+    # positions list reported FRESH/OK — that is a false "healthy, no
+    # positions" claim. It must publish an explicit UNAVAILABLE domain
+    # instead. Track whether the view itself was actually read this cycle
+    # so `domain_available` below never claims success on a failure path.
+    domain_available = True
     if sim is None or paper_portfolio_view is None:
         open_positions_ov: ObservedValue = unavailable()
         open_positions_count_ov: ObservedValue = unavailable()
         status_block: Dict[str, Any] = {}
+        domain_available = False
     else:
         try:
             view = paper_portfolio_view(sim)
-        except Exception:
-            view = []
-        raw_positions = getattr(sim, "_positions", {}) or {}
-        materialized = []
-        for pv in view:
-            pos = raw_positions.get(pv.symbol)
-            if pos is None:
-                continue
-            price = _fetch_price_for(sim, pv.symbol)
-            materialized.append(
-                _materialize_position(
-                    pos,
-                    price,
-                    inputs.ledger_trades,
-                    price_observed_at_utc=_iso_utc(now),
+            if view is None or not isinstance(view, list):
+                raise ValueError(
+                    "paper_portfolio_view() returned a non-list/None result"
                 )
+        except Exception as _view_exc:
+            _log.warning(
+                "[O-02W-C] paper_portfolio_view() a échoué (portfolio "
+                "marqué UNAVAILABLE, jamais vide/OK): %s",
+                _view_exc,
             )
-        open_positions_ov = observed(materialized)
-        open_positions_count_ov = observed(len(view))
-        status_block = {}
-        if build_portfolio_status is not None:
-            try:
-                hard_max = int(os.getenv("PB_MAX_POSITIONS", "5"))
-                status = build_portfolio_status(view, hard_max)
-                status_block = {"portfolio_status": status.to_dict()}
-            except Exception:
-                status_block = {}
+            open_positions_ov = unavailable()
+            open_positions_count_ov = unavailable()
+            status_block = {}
+            domain_available = False
+            view = None
+
+        if domain_available:
+            # Capture ONE bounded inventory snapshot up front
+            # (raw_positions dict) and enrich only from that frozen
+            # mapping — if a position vanishes from `sim._positions`
+            # between view-creation and enrichment (a race), that
+            # position is simply skipped, and the published
+            # `open_positions_count` is corrected to match exactly what
+            # was actually materialized (never a stale count from the
+            # original view length) — count/list are always consistent
+            # for every published snapshot (Correction D invariant).
+            raw_positions = dict(getattr(sim, "_positions", {}) or {})
+            materialized = []
+            for pv in view:
+                pos = raw_positions.get(pv.symbol)
+                if pos is None:
+                    # Race: position present in the view snapshot but no
+                    # longer in the frozen inventory — skip it rather
+                    # than publish a phantom entry; count is derived
+                    # from `materialized` below, so it stays consistent.
+                    continue
+                price = _fetch_price_for(sim, pv.symbol)
+                materialized.append(
+                    _materialize_position(
+                        pos,
+                        price,
+                        inputs.ledger_trades,
+                        price_observed_at_utc=_iso_utc(now),
+                    )
+                )
+            open_positions_ov = observed(materialized)
+            open_positions_count_ov = observed(len(materialized))
+            assert open_positions_count_ov.value == len(materialized)
+            status_block = {}
+            if build_portfolio_status is not None:
+                try:
+                    hard_max = int(os.getenv("PB_MAX_POSITIONS", "5"))
+                    status = build_portfolio_status(view, hard_max)
+                    status_block = {"portfolio_status": status.to_dict()}
+                except Exception:
+                    status_block = {}
 
     if mode == "PAPER" and inputs.wallet_sync is not None:
         try:
@@ -309,31 +349,110 @@ def _build_portfolio_domain(inputs: OperatorSnapshotInputs, now: float) -> Dict[
         # be non-None — that field is PAPER-only by name and by contract.
         paper_equity_ov = not_applicable()
 
-    # Real/testnet account equity — honestly NOT_APPLICABLE: no
-    # `observability.real_accounts.RealAccountsObserver` reference is
-    # threaded into this builder this round (see docstring above).
-    real_account_equity_ov = not_applicable()
-    real_account_free_ov = not_applicable()
-    real_account_stale_ov = not_applicable()
+    # Correction C: real/testnet account observations reuse the advisor
+    # process's own already-existing `RealAccountsObserver` output when
+    # one was injected (`inputs.real_accounts_observer`). Unconfigured
+    # (no reference passed in at all) => NOT_APPLICABLE. Configured but
+    # unreadable this cycle => UNAVAILABLE. This module never constructs
+    # a `RealAccountsObserver` itself.
+    real_accounts_observer = getattr(inputs, "real_accounts_observer", None)
+    real_accounts_queried = False
+    if real_accounts_observer is None:
+        # Unconfigured: no `observability.real_accounts.RealAccountsObserver`
+        # reference was injected into this advisor process at all.
+        real_account_equity_ov = not_applicable()
+        real_account_free_ov = not_applicable()
+        real_account_stale_ov = not_applicable()
+    else:
+        real_accounts_queried = True
+        try:
+            from observability.real_accounts import aggregate as _ra_aggregate
+
+            snaps = real_accounts_observer.snapshot()
+            agg = _ra_aggregate(snaps)
+            if agg is None:
+                # Configured (observer exists / exchanges detected) but no
+                # account is currently readable => UNAVAILABLE, not
+                # NOT_APPLICABLE — a real, distinct configured-but-broken
+                # state.
+                real_account_equity_ov = unavailable()
+                real_account_free_ov = unavailable()
+                real_account_stale_ov = unavailable()
+            else:
+                equity, free, _assets = agg
+                real_account_equity_ov = observed(float(equity))
+                real_account_free_ov = observed(float(free))
+                real_account_stale_ov = observed(False)
+        except Exception as _ra_exc:
+            _log.debug(
+                "[O-02W-C] RealAccountsObserver configuré mais illisible "
+                "ce cycle (UNAVAILABLE, jamais fabriqué): %s",
+                _ra_exc,
+            )
+            real_account_equity_ov = unavailable()
+            real_account_free_ov = unavailable()
+            real_account_stale_ov = unavailable()
+
+    # Correction C: paper_unrealized_pnl_usd = deterministic sum of each
+    # materialized position's own unrealized_pnl_usd. If ANY position's
+    # price/PnL is UNAVAILABLE, the aggregate is UNAVAILABLE too — never
+    # a silent partial sum over only the available subset.
+    if not domain_available:
+        paper_unrealized_pnl_ov = unavailable()
+    else:
+        _pnl_values = []
+        _all_pnl_available = True
+        for _p in materialized if domain_available else []:
+            _pnl_field = _p.get("unrealized_pnl_usd", {})
+            if _pnl_field.get("value") is None:
+                _all_pnl_available = False
+                break
+            _pnl_values.append(_pnl_field["value"])
+        if _all_pnl_available:
+            paper_unrealized_pnl_ov = observed(round(sum(_pnl_values), 6))
+        else:
+            paper_unrealized_pnl_ov = unavailable()
+
+    # Non-PAPER modes: the process-local WalletSync balance/capital is
+    # exposed under distinctly-named, provenance-labeled fields — NEVER
+    # under `paper_equity_usd` (Correction C).
+    wallet_balance_non_paper_ov: ObservedValue = not_applicable()
+    if mode != "PAPER" and inputs.wallet_sync is not None:
+        try:
+            wallet_balance_non_paper_ov = observed(float(inputs.wallet_sync.get_balance()))
+        except Exception:
+            wallet_balance_non_paper_ov = unavailable()
+
+    # Correction D: `source`/`evidence` name ONLY sources actually read
+    # this cycle — RealAccountsObserver is never named unless it was
+    # genuinely queried this cycle.
+    _evidence = {"builder": "O-02W-C"}
+    if sim is not None:
+        _evidence["mexc_simulator"] = "read"
+    if inputs.wallet_sync is not None:
+        _evidence["wallet_sync"] = "read"
+    if real_accounts_queried:
+        _evidence["real_accounts_observer"] = "read"
 
     portfolio_state_snapshot = compose_portfolio_state_snapshot(
         observed_at_utc=_dt_from_ts(now),
         paper_equity_usd=paper_equity_ov,
         paper_open_positions_count=open_positions_count_ov,
-        paper_unrealized_pnl_usd=unavailable(),
+        paper_unrealized_pnl_usd=paper_unrealized_pnl_ov,
         paper_realized_pnl_usd=unavailable(),
         real_account_equity_usd=real_account_equity_ov,
         real_account_free_usd=real_account_free_ov,
         real_account_stale=real_account_stale_ov,
-        freshness=FreshnessStatus.FRESH if sim is not None else FreshnessStatus.UNKNOWN,
-        status="OK" if sim is not None else "UNAVAILABLE",
+        freshness=FreshnessStatus.FRESH if domain_available else FreshnessStatus.UNKNOWN,
+        status="OK" if domain_available else "UNAVAILABLE",
         source_version=None,
-        evidence={"builder": "O-02W-C"},
+        evidence=_evidence,
     )
 
     return {
         "mode": mode,
         "paper_equity_usd": paper_equity_ov.to_dict(),
+        "non_paper_wallet_balance_usd": wallet_balance_non_paper_ov.to_dict(),
         "open_positions": open_positions_ov.to_dict(),
         **status_block,
         "portfolio_state": portfolio_state_snapshot.to_dict(),
@@ -344,12 +463,24 @@ def _build_portfolio_domain(inputs: OperatorSnapshotInputs, now: float) -> Dict[
 
 
 def _build_decision_record(rec: DecisionRecord) -> Dict[str, Any]:
+    """Correction E (R2): materialize every available `DecisionPacket`
+    field the contract calls out — not just `is_actionable`/identity. A
+    missing packet still fails closed to `is_actionable=False`
+    (unchanged). `trace_id` is never fabricated: this builder has no
+    trace_id producer, so that field simply never appears rather than
+    being invented."""
+
     dp = rec.decision_packet
     if dp is None:
         is_actionable_ov = ObservedValue(value=False, semantics=NullSemantics.FALSE)
         packet_id = None
         context_id = None
         created_cycle_id = None
+        side_ov: ObservedValue = unknown()
+        confidence_raw_ov: ObservedValue = unknown()
+        confidence_adjusted_ov: ObservedValue = unknown()
+        regime_ov: ObservedValue = unknown()
+        lifecycle_state_ov: ObservedValue = unknown()
     else:
         try:
             actionable = bool(dp.is_actionable())
@@ -362,6 +493,27 @@ def _build_decision_record(rec: DecisionRecord) -> Dict[str, Any]:
         packet_id = getattr(dp, "packet_id", None)
         context_id = getattr(dp, "context_id", None)
         created_cycle_id = getattr(dp, "created_cycle_id", None)
+
+        _side = getattr(dp, "side", None)
+        side_ov = observed(getattr(_side, "value", _side)) if _side is not None else unknown()
+
+        _conf_raw = getattr(dp, "confidence_raw", None)
+        confidence_raw_ov = observed(_conf_raw) if _conf_raw is not None else unknown()
+
+        _conf_adj = getattr(dp, "adjusted_confidence", None)
+        confidence_adjusted_ov = observed(_conf_adj) if _conf_adj is not None else unknown()
+
+        _regime = getattr(dp, "regime", None)
+        regime_ov = (
+            observed(getattr(_regime, "value", _regime)) if _regime is not None else unknown()
+        )
+
+        _lifecycle = getattr(dp, "lifecycle_state", None)
+        lifecycle_state_ov = (
+            observed(getattr(_lifecycle, "value", _lifecycle))
+            if _lifecycle is not None
+            else unknown()
+        )
 
     if rec.legacy_trade_allowed is None:
         legacy_ov: ObservedValue = unknown()
@@ -378,27 +530,81 @@ def _build_decision_record(rec: DecisionRecord) -> Dict[str, Any]:
         "packet_id": packet_id,
         "context_id": context_id,
         "created_cycle_id": created_cycle_id,
+        "side": side_ov.to_dict(),
+        "confidence_raw": confidence_raw_ov.to_dict(),
+        "confidence_adjusted": confidence_adjusted_ov.to_dict(),
+        "regime": regime_ov.to_dict(),
+        "lifecycle_state": lifecycle_state_ov.to_dict(),
         "is_actionable": {**is_actionable_ov.to_dict(), "authority": "EXECUTION_AUTHORITY"},
         "trade_allowed": {**legacy_ov.to_dict(), "authority": "OBSERVATIONAL_TELEMETRY"},
         "first_blocker": rec.legacy_first_blocker,
     }
 
 
-def _build_decision_domain(inputs: OperatorSnapshotInputs) -> Dict[str, Any]:
-    return {
-        "decisions": [_build_decision_record(rec) for rec in inputs.decisions],
-    }
+def _build_decision_domain(inputs: OperatorSnapshotInputs, now: float) -> Dict[str, Any]:
+    """Correction B (R2): the top-level decision domain now reuses the
+    full O-01 `DomainSnapshot` spine via
+    `compose_decision_pipeline_snapshot()`, instead of a bare ad hoc dict.
+    No real per-stage candidate counters exist in this builder (no new
+    stage-counting mechanism is introduced — Scientific Debt Rule/gel
+    architectural), so `stages=()` and the domain-level aggregate
+    `trade_allowed`/`first_blocker` stay `UNKNOWN` — there is no single
+    scientifically valid aggregate across symbols. The detailed
+    per-symbol `DecisionRecord` projections (Correction E) are preserved
+    ADDITIVELY, nested under `per_symbol_decisions` inside this same
+    domain payload — never a second, competing structure that could
+    disagree with the canonical `DecisionPipelineSnapshot`.
+    """
+
+    per_symbol = [_build_decision_record(rec) for rec in inputs.decisions]
+
+    pipeline_snapshot = compose_decision_pipeline_snapshot(
+        observed_at_utc=_dt_from_ts(now),
+        stages=(),
+        trade_allowed=unknown(),
+        first_blocker=unknown(),
+        freshness=FreshnessStatus.FRESH if per_symbol else FreshnessStatus.UNKNOWN,
+        status="OK" if per_symbol else "ATTENTION_REQUIRED",
+        source="core.advisor_loop.DecisionRecord (per-symbol, injected) + core.decision_packet.DecisionPacket",
+        source_version=None,
+        evidence={"builder": "O-02W-C", "per_symbol_count": len(per_symbol)},
+    )
+
+    payload = pipeline_snapshot.to_dict()
+    payload["per_symbol_decisions"] = per_symbol
+    return payload
 
 
 # ── System health (§14.2/BLOCKER D — boot_alive always UNKNOWN today) ──────
 
 
-def _build_system_health_domain() -> Dict[str, Any]:
-    # O-02W-C has no independent liveness publisher (deferred to T-1
-    # alone, §14.2). This MUST always be value=null/UNKNOWN — never
-    # inferred from process_instance_id, manifest presence, or snapshot
-    # freshness (§22 test 28).
-    return {"boot_alive": unknown().to_dict()}
+def _build_system_health_domain(now: float) -> Dict[str, Any]:
+    # Correction F (R2): reuse the full O-01 spine via
+    # `compose_system_health_snapshot()` instead of a bare dict.
+    # `boot_alive` MUST remain exactly value=null/UNKNOWN — O-02W-C has no
+    # independent liveness publisher (deferred to T-1 alone, §14.2) and
+    # NEVER infers liveness from the manifest, snapshot freshness, PID,
+    # process_instance_id, or S-03 (unchanged from R0/R1; re-verified
+    # after the B/C/D changes above — nothing in this module writes to
+    # `boot_alive` except this one hardcoded `unknown()` call).
+    # Every other field also stays UNKNOWN/UNAVAILABLE: this builder has
+    # no in-process producer for health_score/exchange connectivity/
+    # module statuses — never fabricated.
+    snapshot = compose_system_health_snapshot(
+        observed_at_utc=_dt_from_ts(now),
+        boot_alive=unknown(),
+        health_score=unavailable(),
+        health_level=unknown(),
+        exchange_connectivity_healthy=unavailable(),
+        exchange_latency_ms=unavailable(),
+        module_statuses={},
+        freshness=FreshnessStatus.UNKNOWN,
+        status="ATTENTION_REQUIRED",
+        source="observability.operator_snapshot_builder (no independent liveness publisher)",
+        source_version=None,
+        evidence={"builder": "O-02W-C"},
+    )
+    return snapshot.to_dict()
 
 
 # ── Envelope + full snapshot composition ─────────────────────────────────────
@@ -419,8 +625,8 @@ def build_operator_snapshot(inputs: OperatorSnapshotInputs) -> Dict[str, Any]:
         "generated_at_utc": _iso_utc(now),
         **inputs.source_evidence.to_dict(),
         "portfolio": _build_portfolio_domain(inputs, now),
-        "decision_pipeline": _build_decision_domain(inputs),
-        "system_health": _build_system_health_domain(),
+        "decision_pipeline": _build_decision_domain(inputs, now),
+        "system_health": _build_system_health_domain(now),
     }
 
 

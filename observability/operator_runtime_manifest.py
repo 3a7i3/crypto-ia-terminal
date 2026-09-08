@@ -92,15 +92,27 @@ def write_runtime_manifest(
     pid: Optional[int] = None,
     path: Path = DEFAULT_MANIFEST_PATH,
     now_fn=time.time,
+    boot_timestamp_utc: Optional[str] = None,
 ) -> bool:
     """Convenience: build + write the manifest in one call.
 
     Intended to be called exactly once per process lifetime, before the
     main advisor loop begins and before the first canonical operator
     domain snapshot is written (§14.1 step 1).
+
+    Correction G (R2, MASTER review round 2): a manifest write can be
+    RETRIED (§14.1 — the write may fail once and succeed on a later
+    cycle) for the SAME `process_instance_id`. Without an explicit
+    `boot_timestamp_utc`, every retry recomputed `_iso_utc(now_fn())`
+    fresh, silently redefining the process's boot time to "now" on a
+    delayed successful retry. Pass the ORIGINAL boot timestamp (captured
+    once, at bootstrap, by the caller) here on every retry so it never
+    drifts. Omit only for direct/standalone callers that intentionally
+    want "now" (e.g. simple one-shot test helpers) — production code
+    (`OperatorBootCoordinator`) always passes it explicitly.
     """
 
-    boot_ts = _iso_utc(now_fn())
+    boot_ts = boot_timestamp_utc if boot_timestamp_utc is not None else _iso_utc(now_fn())
     payload = build_manifest(
         process_instance_id=process_instance_id,
         boot_timestamp_utc=boot_ts,

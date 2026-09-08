@@ -443,7 +443,7 @@ def test_ledger_join_rejects_symbol_conflict():
 def test_missing_decision_packet_materializes_false_authority():
     rec = osb.DecisionRecord(symbol="BTC/USDT", decision_packet=None, legacy_trade_allowed=True)
     result = osb.build_operator_snapshot(_inputs(decisions=[rec]))
-    decision = result["decision_pipeline"]["decisions"][0]
+    decision = result["decision_pipeline"]["per_symbol_decisions"][0]
     assert decision["is_actionable"]["value"] is False
     assert decision["is_actionable"]["authority"] == "EXECUTION_AUTHORITY"
     assert decision["trade_allowed"]["value"] is True
@@ -454,7 +454,7 @@ def test_actionable_decision_packet_labeled_execution_authority():
     dp = _FakeDecisionPacket(actionable=True)
     rec = osb.DecisionRecord(symbol="BTC/USDT", decision_packet=dp, legacy_trade_allowed=False)
     result = osb.build_operator_snapshot(_inputs(decisions=[rec]))
-    decision = result["decision_pipeline"]["decisions"][0]
+    decision = result["decision_pipeline"]["per_symbol_decisions"][0]
     assert decision["is_actionable"]["value"] is True
     assert decision["is_actionable"]["authority"] == "EXECUTION_AUTHORITY"
     assert decision["packet_id"] == "p1"
@@ -836,3 +836,434 @@ def test_no_generic_object_or_env_dump_in_builder_source():
     assert "vars(" not in src
     assert "__dict__" not in src
     assert "os.environ" not in src
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# R2 (second MASTER review round) — corrections A, B, C, D, E, F, G
+# ═══════════════════════════════════════════════════════════════════════
+
+from observability.operator_boot_coordinator import OperatorBootCoordinator
+from observability.operator_runtime_manifest import read_manifest as _read_manifest
+
+
+# ── Correction A — REAL mode call site, not a hand-precomputed boolean ────
+#
+# advisor_loop.py's real production call site now invokes
+# `resolve_mode_provenance(exec_mode, None)` — passing `None` makes the
+# resolver itself re-read PAPER_TRADING_ENABLED from the environment with
+# canonical semantics. These tests exercise exactly that call shape (the
+# actual production path), not a hand-precomputed boolean fed to the pure
+# function in isolation.
+
+
+def test_mode_a_env_absent_defaults_to_paper(monkeypatch):
+    monkeypatch.delenv("PAPER_TRADING_ENABLED", raising=False)
+    assert resolve_mode_provenance("live", None) == "PAPER"
+
+
+def test_mode_a_env_on_is_paper(monkeypatch):
+    monkeypatch.setenv("PAPER_TRADING_ENABLED", "on")
+    assert resolve_mode_provenance("live", None) == "PAPER"
+
+
+def test_mode_a_env_false_live_is_real_api(monkeypatch):
+    monkeypatch.setenv("PAPER_TRADING_ENABLED", "false")
+    assert resolve_mode_provenance("live", None) == "REAL_API"
+
+
+def test_mode_a_env_false_testnet_is_testnet_api(monkeypatch):
+    monkeypatch.setenv("PAPER_TRADING_ENABLED", "false")
+    assert resolve_mode_provenance("testnet", None) == "TESTNET_API"
+
+
+def test_mode_a_env_false_unknown_raw_mode_is_unknown(monkeypatch):
+    monkeypatch.setenv("PAPER_TRADING_ENABLED", "false")
+    assert resolve_mode_provenance("something_else", None) == "UNKNOWN"
+
+
+def test_mode_a_advisor_loop_call_site_never_passes_divergent_local():
+    """Regression guard: the R1 bug was passing the divergent local
+    `_paper_trading_enabled` (default "false", missing "on") into the
+    resolver at the real call site. Assert the source no longer does
+    that."""
+    import inspect
+
+    import core.advisor_loop as _al
+
+    src = inspect.getsource(_al)
+    assert "_op_resolve_mode(" in src
+    # Locate the _op_resolve_mode(...) call and assert its argument list
+    # never references the divergent local `_paper_trading_enabled`.
+    call_start = src.index("_op_mode = _op_resolve_mode(")
+    call_end = src.index(")", call_start) + 1
+    call_text = src[call_start:call_end]
+    assert "_paper_trading_enabled" not in call_text
+    assert "None" in call_text
+
+
+# ── Correction D — portfolio-view failure never becomes empty/healthy ─────
+
+
+class _RaisingPortfolioSimulator(_FakeSimulator):
+    pass
+
+
+def test_portfolio_view_failure_is_unavailable_not_empty_healthy(monkeypatch):
+    """Regression test written against R1's actual behavior first: before
+    the fix, a `paper_portfolio_view()` exception was swallowed into
+    `view = []`, and the domain still reported FRESH/OK with an empty
+    positions list — a false 'healthy, no positions' claim. After the fix,
+    the domain must be UNAVAILABLE."""
+
+    sim = _RaisingPortfolioSimulator(positions={"BTCUSDT": _FakePosition("p1", "BTCUSDT")})
+
+    def _boom(_sim):
+        raise RuntimeError("paper_portfolio_view exploded")
+
+    monkeypatch.setattr(
+        "paper_trading.paper_portfolio_view.paper_portfolio_view", _boom, raising=False
+    )
+    import sys as _sys
+
+    if "paper_trading.paper_portfolio_view" not in _sys.modules:
+        import types as _types
+
+        _mod = _types.ModuleType("paper_trading.paper_portfolio_view")
+        _mod.paper_portfolio_view = _boom
+        _sys.modules["paper_trading.paper_portfolio_view"] = _mod
+
+    result = osb.build_operator_snapshot(_inputs(mexc_simulator=sim))
+    portfolio = result["portfolio"]
+    portfolio_state = portfolio["portfolio_state"]
+
+    assert portfolio_state["status"] == "UNAVAILABLE"
+    # Never a false-healthy empty list.
+    assert portfolio["open_positions"]["semantics"] == "UNAVAILABLE"
+    assert portfolio["open_positions"]["value"] is None
+    assert portfolio_state["paper_open_positions_count"]["semantics"] == "UNAVAILABLE"
+
+
+def test_open_positions_count_always_matches_list_length_on_success():
+    sim = _FakeSimulator(
+        positions={
+            "BTCUSDT": _FakePosition("p1", "BTCUSDT"),
+            "ETHUSDT": _FakePosition("p2", "ETHUSDT"),
+        },
+        prices={"BTCUSDT": 51000.0, "ETHUSDT": 3000.0},
+    )
+    result = osb.build_operator_snapshot(_inputs(mexc_simulator=sim))
+    portfolio = result["portfolio"]
+    open_positions = portfolio["open_positions"]["value"]
+    count = portfolio["portfolio_state"]["paper_open_positions_count"]["value"]
+    assert count == len(open_positions)
+
+
+def test_disappearing_position_race_never_publishes_mismatched_count():
+    """A position present in the view snapshot but removed from the
+    simulator's live inventory before enrichment (a race) must never
+    produce a `count != len(list)` snapshot — it is dropped from both
+    consistently."""
+
+    class _RaceSimulator(_FakeSimulator):
+        pass
+
+    sim = _RaceSimulator(
+        positions={"BTCUSDT": _FakePosition("p1", "BTCUSDT")},
+        prices={"BTCUSDT": 51000.0},
+    )
+
+    class _View:
+        def __init__(self, symbol):
+            self.symbol = symbol
+
+    import paper_trading.paper_portfolio_view as _ppv_mod
+
+    def _view_with_phantom(_sim):
+        # Simulate the view seeing a position ("ETHUSDT") that the frozen
+        # `_positions` inventory read by the builder does not contain.
+        return [_View("BTCUSDT"), _View("ETHUSDT")]
+
+    import unittest.mock as _mock
+
+    with _mock.patch.object(_ppv_mod, "paper_portfolio_view", _view_with_phantom):
+        result = osb.build_operator_snapshot(_inputs(mexc_simulator=sim))
+
+    portfolio = result["portfolio"]
+    open_positions = portfolio["open_positions"]["value"]
+    count = portfolio["portfolio_state"]["paper_open_positions_count"]["value"]
+    assert count == len(open_positions) == 1
+    assert open_positions[0]["symbol"] == "BTCUSDT"
+
+
+# ── Correction C — aggregate PnL unavailable on incomplete price evidence ──
+
+
+def test_aggregate_unrealized_pnl_unavailable_when_any_price_missing():
+    sim = _FakeSimulator(
+        positions={
+            "BTCUSDT": _FakePosition("p1", "BTCUSDT"),
+            "ETHUSDT": _FakePosition("p2", "ETHUSDT"),
+        },
+        prices={"BTCUSDT": 51000.0},  # ETHUSDT price missing => 0.0 => unavailable
+    )
+    result = osb.build_operator_snapshot(_inputs(mexc_simulator=sim))
+    agg = result["portfolio"]["portfolio_state"]["paper_unrealized_pnl_usd"]
+    assert agg["semantics"] == "UNAVAILABLE"
+    assert agg["value"] is None
+
+
+def test_aggregate_unrealized_pnl_present_when_all_prices_available():
+    sim = _FakeSimulator(
+        positions={"BTCUSDT": _FakePosition("p1", "BTCUSDT")},
+        prices={"BTCUSDT": 51000.0},
+    )
+    result = osb.build_operator_snapshot(_inputs(mexc_simulator=sim))
+    agg = result["portfolio"]["portfolio_state"]["paper_unrealized_pnl_usd"]
+    assert agg["value"] is not None
+
+
+# ── Correction C — real-account configured/unconfigured/unreadable ────────
+
+
+class _FakeRealAccountsObserverConfiguredOk:
+    def snapshot(self):
+        from observability.real_accounts import RealAccountSnapshot
+
+        return (
+            RealAccountSnapshot(
+                exchange="binance", ok=True, ts_utc="2026-01-01T00:00Z", total_usd=500.0
+            ),
+        )
+
+
+class _FakeRealAccountsObserverConfiguredBroken:
+    def snapshot(self):
+        from observability.real_accounts import RealAccountSnapshot
+
+        return (
+            RealAccountSnapshot(
+                exchange="binance", ok=False, ts_utc="2026-01-01T00:00Z", error="boom"
+            ),
+        )
+
+
+def test_real_accounts_unconfigured_is_not_applicable():
+    result = osb.build_operator_snapshot(_inputs())
+    ps = result["portfolio"]["portfolio_state"]
+    assert ps["real_account_equity_usd"]["semantics"] == "NOT_APPLICABLE"
+
+
+def test_real_accounts_configured_and_readable_is_observed():
+    result = osb.build_operator_snapshot(
+        _inputs(real_accounts_observer=_FakeRealAccountsObserverConfiguredOk())
+    )
+    ps = result["portfolio"]["portfolio_state"]
+    assert ps["real_account_equity_usd"]["semantics"] == "PRESENT"
+    assert ps["real_account_equity_usd"]["value"] == 500.0
+
+
+def test_real_accounts_configured_but_unreadable_is_unavailable():
+    result = osb.build_operator_snapshot(
+        _inputs(real_accounts_observer=_FakeRealAccountsObserverConfiguredBroken())
+    )
+    ps = result["portfolio"]["portfolio_state"]
+    assert ps["real_account_equity_usd"]["semantics"] == "UNAVAILABLE"
+
+
+# ── Correction B — full O-01 spine on decision_pipeline / system_health ───
+
+
+def test_decision_pipeline_domain_carries_full_domain_snapshot_spine():
+    result = osb.build_operator_snapshot(_inputs())
+    dp = result["decision_pipeline"]
+    for key in ("domain", "observed_at_utc", "source", "freshness", "status", "schema_version"):
+        assert key in dp, f"missing O-01 spine field: {key}"
+    assert dp["domain"] == "decision_pipeline"
+    assert "per_symbol_decisions" in dp  # additive, preserved detail
+
+
+def test_system_health_domain_carries_full_domain_snapshot_spine():
+    result = osb.build_operator_snapshot(_inputs())
+    sh = result["system_health"]
+    for key in ("domain", "observed_at_utc", "source", "freshness", "status", "schema_version"):
+        assert key in sh, f"missing O-01 spine field: {key}"
+    assert sh["domain"] == "system_health"
+    assert sh["boot_alive"]["value"] is None
+    assert sh["boot_alive"]["semantics"] == "UNKNOWN"
+
+
+def test_portfolio_state_domain_still_has_full_spine_after_r2_changes():
+    result = osb.build_operator_snapshot(_inputs())
+    ps = result["portfolio"]["portfolio_state"]
+    for key in ("domain", "observed_at_utc", "source", "freshness", "status", "schema_version"):
+        assert key in ps
+
+
+# ── Correction E — full DecisionPacket projection via a faithful ctor ─────
+
+
+def test_decision_record_materializes_full_packet_via_real_constructor():
+    from core.decision_packet import ConvictionLevel, DecisionPacket, DecisionSide, MarketRegime
+
+    dp = DecisionPacket(
+        symbol="BTCUSDT",
+        side=DecisionSide.LONG,
+        confidence=72.5,
+        regime=MarketRegime.TREND_BULL,
+        conviction=ConvictionLevel.HIGH,
+        created_cycle_id="cycle-42",
+        context_id="ctx-7",
+    )
+
+    rec = osb.DecisionRecord(
+        symbol="BTCUSDT",
+        decision_packet=dp,
+        legacy_trade_allowed=True,
+        legacy_first_blocker=None,
+    )
+    result = osb.build_operator_snapshot(_inputs(decisions=[rec]))
+    materialized = result["decision_pipeline"]["per_symbol_decisions"][0]
+
+    assert materialized["packet_id"] == dp.packet_id
+    assert materialized["context_id"] == "ctx-7"
+    assert materialized["created_cycle_id"] == "cycle-42"
+    assert materialized["side"]["value"] == DecisionSide.LONG.value
+    assert materialized["regime"]["value"] == MarketRegime.TREND_BULL.value
+    assert materialized["confidence_raw"]["value"] is not None
+    assert materialized["confidence_adjusted"]["value"] is not None
+    assert materialized["is_actionable"]["authority"] == "EXECUTION_AUTHORITY"
+    assert materialized["trade_allowed"]["authority"] == "OBSERVATIONAL_TELEMETRY"
+    assert "trace_id" not in materialized  # never fabricated
+
+
+def test_decision_record_missing_packet_still_fails_closed():
+    rec = osb.DecisionRecord(symbol="ETHUSDT", decision_packet=None)
+    result = osb.build_operator_snapshot(_inputs(decisions=[rec]))
+    materialized = result["decision_pipeline"]["per_symbol_decisions"][0]
+    assert materialized["is_actionable"]["value"] is False
+
+
+# ── Correction G — OperatorBootCoordinator, the REAL production object ───
+
+
+def test_coordinator_manifest_failure_blocks_snapshot_publication(tmp_path):
+    def _always_fail(**kwargs):
+        return False
+
+    coord = OperatorBootCoordinator(
+        write_manifest_fn=_always_fail,
+        capture_source_evidence_fn=lambda: _source_evidence(),
+    )
+    assert coord.snapshot_publication_allowed() is False
+    coord.try_publish_manifest()
+    assert coord.snapshot_publication_allowed() is False
+
+
+def test_coordinator_retry_succeeds_and_then_allows_snapshot(tmp_path):
+    calls = {"n": 0}
+
+    def _fail_then_succeed(**kwargs):
+        calls["n"] += 1
+        return calls["n"] >= 2
+
+    coord = OperatorBootCoordinator(
+        write_manifest_fn=_fail_then_succeed,
+        capture_source_evidence_fn=lambda: _source_evidence(),
+    )
+    assert coord.try_publish_manifest() is False
+    assert coord.snapshot_publication_allowed() is False
+    assert coord.try_publish_manifest() is True
+    assert coord.snapshot_publication_allowed() is True
+
+
+def test_coordinator_retry_reuses_same_process_id_and_original_boot_timestamp():
+    calls = {"n": 0}
+    seen_boot_timestamps = []
+    seen_process_ids = []
+
+    def _fail_then_succeed(*, process_instance_id, source_sha, boot_timestamp_utc):
+        calls["n"] += 1
+        seen_boot_timestamps.append(boot_timestamp_utc)
+        seen_process_ids.append(process_instance_id)
+        return calls["n"] >= 3
+
+    coord = OperatorBootCoordinator(
+        write_manifest_fn=_fail_then_succeed,
+        capture_source_evidence_fn=lambda: _source_evidence(),
+    )
+    original_boot_ts = coord.boot_timestamp_utc
+    original_pid = coord.process_instance_id
+
+    coord.try_publish_manifest()
+    coord.try_publish_manifest()
+    coord.try_publish_manifest()
+
+    assert coord.manifest_published is True
+    assert len(set(seen_boot_timestamps)) == 1
+    assert seen_boot_timestamps[0] == original_boot_ts
+    assert len(set(seen_process_ids)) == 1
+    assert seen_process_ids[0] == original_pid
+
+
+def test_coordinator_real_write_runtime_manifest_never_redefines_boot_on_retry(tmp_path, monkeypatch):
+    """Uses the REAL `write_runtime_manifest()` (not a stub) to prove the
+    production manifest writer itself never recomputes a fresh timestamp
+    on a delayed successful retry."""
+
+    manifest_path = tmp_path / "operator_runtime_manifest.json"
+    fail_flag = {"fail": True}
+
+    real_write = manifest_mod.write_runtime_manifest
+
+    def _wrapped(**kwargs):
+        if fail_flag["fail"]:
+            return False
+        return real_write(path=manifest_path, **kwargs)
+
+    coord = OperatorBootCoordinator(
+        write_manifest_fn=_wrapped,
+        capture_source_evidence_fn=lambda: _source_evidence(),
+    )
+    original_boot_ts = coord.boot_timestamp_utc
+
+    assert coord.try_publish_manifest() is False
+    fail_flag["fail"] = False
+    assert coord.try_publish_manifest() is True
+
+    payload = _read_manifest(path=manifest_path)
+    assert payload["boot_timestamp_utc"] == original_boot_ts
+    assert payload["process_instance_id"] == coord.process_instance_id
+
+
+def test_second_bootstrap_simulated_restart_yields_new_identity_everywhere():
+    """A fresh coordinator instance (simulated second bootstrap) must
+    produce a NEW process_instance_id, consistently propagated to every
+    output fed from it — never reusing the previous process's identity."""
+
+    coord_a = OperatorBootCoordinator(capture_source_evidence_fn=lambda: _source_evidence())
+    coord_b = OperatorBootCoordinator(capture_source_evidence_fn=lambda: _source_evidence())
+
+    assert coord_a.process_instance_id != coord_b.process_instance_id
+
+    inputs_a = _inputs(process_instance_id=coord_a.process_instance_id)
+    inputs_b = _inputs(process_instance_id=coord_b.process_instance_id)
+    snap_a = osb.build_operator_snapshot(inputs_a)
+    snap_b = osb.build_operator_snapshot(inputs_b)
+
+    assert snap_a["process_instance_id"] == coord_a.process_instance_id
+    assert snap_b["process_instance_id"] == coord_b.process_instance_id
+    assert snap_a["process_instance_id"] != snap_b["process_instance_id"]
+
+
+def test_coordinator_is_the_object_used_by_advisor_loop_source():
+    """Non-tautological wiring check: advisor_loop.py must construct and
+    use OperatorBootCoordinator itself, not merely something a test
+    reimplements."""
+    import inspect
+
+    import core.advisor_loop as _al
+
+    src = inspect.getsource(_al)
+    assert "OperatorBootCoordinator(" in src
+    assert "_op_boot_coordinator.try_publish_manifest()" in src
+    assert "_op_boot_coordinator.snapshot_publication_allowed()" in src

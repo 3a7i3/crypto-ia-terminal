@@ -443,6 +443,49 @@ def _balance_provenance_from_mode(exec_mode: str | None) -> str:
 _real_accounts_obs = None
 
 
+class _RealAccountsObserverAdapter:
+    """Correction C (R2, MASTER review round 2): O-02W-C must reuse the
+    advisor process's OWN already-existing `RealAccountsObserver`
+    reference when one is configured/available — never leave the field
+    always-`NOT_APPLICABLE` merely because R1 didn't wire it, and never
+    instantiate a fresh `RealAccountsObserver` inside the snapshot
+    builder itself (§2.3/§23).
+
+    `_real_accounts_obs` (module-level, lazily created by
+    `_real_accounts_snapshots()`) IS that already-existing live reference
+    — this adapter exposes it through the `.snapshot()` interface the
+    builder's `observability.real_accounts.aggregate()` call expects,
+    without constructing a second, independent observer.
+    """
+
+    def snapshot(self):
+        global _real_accounts_obs
+        from observability.real_accounts import RealAccountsObserver
+
+        if _real_accounts_obs is None:
+            _real_accounts_obs = RealAccountsObserver()
+        return _real_accounts_obs.snapshot()
+
+
+def _op_real_accounts_observer_for_snapshot():
+    """Returns the injectable adapter when at least one real exchange is
+    configured (§ correction C: "configured" state), else None
+    (unconfigured => the builder maps this to NOT_APPLICABLE, never a
+    fabricated value)."""
+
+    try:
+        from observability.real_accounts import configured_exchanges
+
+        if not configured_exchanges():
+            return None
+    except Exception:
+        return None
+    return _REAL_ACCOUNTS_OBSERVER_ADAPTER
+
+
+_REAL_ACCOUNTS_OBSERVER_ADAPTER = _RealAccountsObserverAdapter()
+
+
 def _real_accounts_snapshots():
     """Soldes des comptes API réels (« compte n°1 ») — affichage uniquement.
 
@@ -4661,15 +4704,23 @@ def main(
 
     _runtime_provenance_writer = _RuntimeProvenanceSnapshotWriter()
 
-    # O-02W-C (§15, R1 correction D): the advisor bootstrap is the SOLE
-    # identity authority. Exactly one process_instance_id is generated
-    # here, once, before the main loop begins — every consumer below
-    # (S-03's _runtime_provenance_inputs(), the operator runtime manifest,
-    # the operator snapshot builder) receives this exact value as an
-    # explicit parameter. No consumer may call the generator itself.
-    from observability.process_identity import generate_process_instance_id
+    # O-02W-C (§15, R1 correction D; R2 correction G): the advisor bootstrap
+    # is the SOLE identity authority. `OperatorBootCoordinator` is
+    # constructed exactly once here, before the main loop begins — it
+    # generates `process_instance_id` and captures `boot_timestamp_utc`
+    # exactly once (§15/§14.1) — and every consumer below (S-03's
+    # `_runtime_provenance_inputs()`, the operator runtime manifest, the
+    # operator snapshot builder) receives this SAME coordinator's
+    # `process_instance_id` as an explicit parameter, so all three outputs
+    # carry a non-tautological, identically-sourced identity by
+    # construction. No consumer may call the generator itself.
+    from observability.operator_boot_coordinator import OperatorBootCoordinator
+    from observability.source_evidence import capture_source_evidence
 
-    _op_process_instance_id: str = generate_process_instance_id()
+    _op_boot_coordinator = OperatorBootCoordinator(
+        capture_source_evidence_fn=capture_source_evidence,
+    )
+    _op_process_instance_id: str = _op_boot_coordinator.process_instance_id
 
     def _runtime_provenance_inputs(
         process_instance_id: str = _op_process_instance_id,
@@ -5427,55 +5478,32 @@ def main(
     # Observer/serializer pur (ADR-0007) : identité de processus + manifest
     # runtime + writer, initialisés une seule fois avant la boucle principale.
     # Aucun impact sur trade_allowed/is_actionable() ou toute autre décision.
-    # process_instance_id est déjà celui généré une seule fois au bootstrap
-    # ci-dessus (_op_process_instance_id) — jamais régénéré ici (§15, D).
+    #
+    # Correction G (R2, MASTER review round 2): the identity/boot-timestamp/
+    # manifest-published/retry logic that R1 scattered across a closure
+    # (`_op_try_publish_manifest`) and loose `nonlocal` variables is now
+    # owned by `_op_boot_coordinator` (`OperatorBootCoordinator`,
+    # constructed once, above, before `_runtime_provenance_inputs()` was
+    # defined) — a single directly-testable production object, not a
+    # second one constructed here.
     _op_snapshot_writer: Any = None
-    _op_source_evidence: Any = None
-    _op_manifest_published: bool = False
-
-    def _op_try_publish_manifest() -> bool:
-        """Bounded retry, called at most once per cycle boundary (never a
-        tight loop): publishes the manifest for THIS process_instance_id
-        if not already done. Returns the up-to-date success state. Never
-        raises (fail-passive, ADR-0007) — a failure is logged/counted by
-        write_runtime_manifest() itself (write_errors)."""
-
-        nonlocal _op_manifest_published
-        if _op_manifest_published:
-            return True
-        try:
-            from observability.operator_runtime_manifest import write_runtime_manifest
-
-            ok = write_runtime_manifest(
-                process_instance_id=_op_process_instance_id,
-                source_sha=_op_source_evidence.source_sha if _op_source_evidence else None,
-            )
-        except Exception as _op_manifest_exc:
-            log.debug(
-                "[O-02W-C] Publication manifest échouée (non bloquant): %s",
-                _op_manifest_exc,
-            )
-            ok = False
-        _op_manifest_published = ok
-        return ok
 
     try:
         from observability.operator_snapshot_builder import OperatorSnapshotWriter
-        from observability.source_evidence import capture_source_evidence
 
-        _op_source_evidence = capture_source_evidence()
         # Manifest publié AVANT le premier instantané de domaine (§14.1) —
-        # correction C (R1) : le succès de cette publication devient un
-        # invariant vérifié avant chaque écriture du snapshot canonique
-        # (voir _op_try_publish_manifest() au call site, plus bas), jamais
-        # simplement "tenté et ignoré".
-        _op_try_publish_manifest()
+        # correction C (R1)/G (R2) : le succès de cette publication devient
+        # un invariant vérifié avant chaque écriture du snapshot canonique
+        # (voir _op_boot_coordinator.snapshot_publication_allowed() au call
+        # site, plus bas), jamais simplement "tenté et ignoré".
+        _op_boot_coordinator.try_publish_manifest()
         _op_snapshot_writer = OperatorSnapshotWriter()
         log.info(
             "[O-02W-C] OperatorSnapshotWriter initialisé (process_instance_id=%s, "
-            "manifest_published=%s)",
-            _op_process_instance_id,
-            _op_manifest_published,
+            "boot_timestamp_utc=%s, manifest_published=%s)",
+            _op_boot_coordinator.process_instance_id,
+            _op_boot_coordinator.boot_timestamp_utc,
+            _op_boot_coordinator.manifest_published,
         )
     except Exception as _op_boot_exc:
         log.warning(
@@ -7887,15 +7915,17 @@ def main(
             # WalletSync), ne modifie aucune décision.
             if _op_snapshot_writer is not None:
                 try:
-                    # Correction C (R1): aucun snapshot canonique tant que
-                    # le manifest de CE process_instance_id n'a pas été
-                    # publié avec succès au moins une fois — retry borné
+                    # Correction C (R1)/G (R2): aucun snapshot canonique
+                    # tant que le manifest de CE process_instance_id n'a pas
+                    # été publié avec succès au moins une fois — retry borné
                     # (un essai par cycle), jamais de blocage de la boucle.
-                    if not _op_try_publish_manifest():
+                    # Owned by `_op_boot_coordinator` (correction G).
+                    _op_boot_coordinator.try_publish_manifest()
+                    if not _op_boot_coordinator.snapshot_publication_allowed():
                         log.debug(
                             "[O-02W-C] snapshot différé: manifest process=%s "
                             "pas encore publié",
-                            _op_process_instance_id,
+                            _op_boot_coordinator.process_instance_id,
                         )
                     else:
                         from observability.mode_provenance import (
@@ -7906,15 +7936,19 @@ def main(
                             OperatorSnapshotInputs as _OpSnapshotInputs,
                         )
 
-                        # Correction A (R1): la présentation-mode est résolue
-                        # UNE SEULE FOIS ici, via le résolveur canonique
-                        # (mêmes sémantiques O-02B que
-                        # _balance_provenance_from_mode()) — jamais le
-                        # vocabulaire brut/truthy de _paper_trading_enabled
-                        # passé tel quel au builder.
+                        # Correction A (R2, MASTER review round 2): R1
+                        # still passed the divergent local
+                        # `_paper_trading_enabled` (default "false", missing
+                        # "on" from its truthy set) into the resolver — the
+                        # exact variable the contract forbids trusting.
+                        # `paper_trading_enabled=None` makes the resolver
+                        # re-read `PAPER_TRADING_ENABLED` itself, with the
+                        # canonical default "true" and canonical truthy set
+                        # — byte-for-byte the same semantics as
+                        # `_balance_provenance_from_mode()`.
                         _op_mode = _op_resolve_mode(
                             getattr(exec_engine, "_mode", None),
-                            _paper_trading_enabled,
+                            None,
                         )
 
                         _op_decisions = [
@@ -7934,10 +7968,13 @@ def main(
                         _op_snapshot_writer.maybe_refresh(
                             _OpSnapshotInputs(
                                 cycle=cycle,
-                                process_instance_id=_op_process_instance_id,
-                                source_evidence=_op_source_evidence,
+                                process_instance_id=_op_boot_coordinator.process_instance_id,
+                                source_evidence=_op_boot_coordinator.source_evidence,
                                 mexc_simulator=_virtual_portfolio,
                                 wallet_sync=_get_wallet_sync_boot(),
+                                real_accounts_observer=(
+                                    _op_real_accounts_observer_for_snapshot()
+                                ),
                                 mode=_op_mode,
                                 # ledger_trades=None documenté (BLOCKER E,
                                 # option b) : PaperTradeRecorder.trades() relit
