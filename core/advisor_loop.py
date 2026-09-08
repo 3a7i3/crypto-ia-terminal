@@ -456,6 +456,21 @@ class _RealAccountsObserverAdapter:
     — this adapter exposes it through the `.snapshot()` interface the
     builder's `observability.real_accounts.aggregate()` call expects,
     without constructing a second, independent observer.
+
+    R4.3 (seventh MASTER review round, narrow production-adapter
+    correction): the adapter now also forwards the observer's governed
+    freshness evidence — `last_poll_utc()`, `last_poll_age_s()`, and the
+    `ttl_s` property — not just `snapshot()`. Every forwarded value comes
+    from the exact same process-local `_real_accounts_obs` instance that
+    `.snapshot()` already reads and lazily creates; none of the three
+    freshness accessors below ever trigger that lazy creation themselves.
+    Before any `snapshot()` call has happened this process lifetime
+    (`_real_accounts_obs is None`), they return the honest unavailable
+    representation (`None`) rather than guessing — `ttl_s` is a
+    per-instance, constructor-configurable value on the real
+    `RealAccountsObserver` (defaulting from `REAL_ACCOUNTS_TTL_S`, but
+    overridable at construction), not a class-level constant, so its
+    real value genuinely does not exist before that instance does.
     """
 
     def snapshot(self):
@@ -465,6 +480,36 @@ class _RealAccountsObserverAdapter:
         if _real_accounts_obs is None:
             _real_accounts_obs = RealAccountsObserver()
         return _real_accounts_obs.snapshot()
+
+    def last_poll_utc(self):
+        """Forwards to the same process-local `_real_accounts_obs`
+        instance used by `.snapshot()`. Never creates that instance —
+        returns `None` (honest unavailable) if no `snapshot()` call has
+        happened yet this process lifetime."""
+        if _real_accounts_obs is None:
+            return None
+        return _real_accounts_obs.last_poll_utc()
+
+    def last_poll_age_s(self):
+        """Forwards to the same process-local `_real_accounts_obs`
+        instance used by `.snapshot()`. Never creates that instance —
+        returns `None` (honest unavailable) if no `snapshot()` call has
+        happened yet this process lifetime."""
+        if _real_accounts_obs is None:
+            return None
+        return _real_accounts_obs.last_poll_age_s()
+
+    @property
+    def ttl_s(self):
+        """Forwards to the same process-local `_real_accounts_obs`
+        instance used by `.snapshot()`. Never creates that instance —
+        returns `None` (honest unavailable) if no `snapshot()` call has
+        happened yet this process lifetime, since the real `ttl_s` is
+        per-instance/constructor-configurable, not a static constant
+        available before that instance exists."""
+        if _real_accounts_obs is None:
+            return None
+        return _real_accounts_obs.ttl_s
 
 
 def _op_real_accounts_observer_for_snapshot():

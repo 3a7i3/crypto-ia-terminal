@@ -2285,3 +2285,248 @@ def test_mexc_simulator_import_failure_never_claims_attempted_read():
     evidence = result["portfolio"]["evidence"]
     assert "mexc_simulator" not in evidence
     assert result["portfolio"]["status"] == "UNAVAILABLE"
+
+
+# ── R4.3 (seventh MASTER review round) — production-adapter integration ───
+#
+# MASTER's finding: R3/R4/R4.2's `_ObsFresh`/`_ObsStale`/etc. fakes are
+# injected directly into `OperatorSnapshotInputs.real_accounts_observer` —
+# this proves the BUILDER's contract is correct, but says nothing about
+# whether `core/advisor_loop.py`'s actual production
+# `_RealAccountsObserverAdapter` correctly forwards freshness evidence
+# from the real, process-local `RealAccountsObserver`. Before R4.3 the
+# adapter only forwarded `.snapshot()` — `last_poll_utc()`/
+# `last_poll_age_s()`/`ttl_s` were never forwarded at all, so real
+# freshness evidence silently stayed UNKNOWN in production even when the
+# underlying observer genuinely had it. These tests exercise the REAL
+# `_RealAccountsObserverAdapter` class from `core.advisor_loop`, with a
+# fake underlying observer installed as the module-level
+# `_real_accounts_obs` — never a real exchange, never real secrets.
+
+
+class _FakeUnderlyingRealAccountsObserver:
+    """Stands in for `observability.real_accounts.RealAccountsObserver`
+    itself (the thing `_real_accounts_obs` holds), with identity-tracking
+    and call-count instrumentation so a test can prove the adapter reused
+    this exact instance rather than fabricating a second one."""
+
+    def __init__(self, *, last_poll_utc=None, last_poll_age_s=None, ttl_s=900.0, raise_on_snapshot=False):
+        self.identity_tag = "fake-underlying-observer"
+        self.snapshot_calls = 0
+        self.last_poll_utc_calls = 0
+        self.last_poll_age_s_calls = 0
+        self._last_poll_utc = last_poll_utc
+        self._last_poll_age_s = last_poll_age_s
+        self._ttl_s = ttl_s
+        self._raise_on_snapshot = raise_on_snapshot
+
+    def snapshot(self):
+        self.snapshot_calls += 1
+        if self._raise_on_snapshot:
+            raise RuntimeError("simulated exchange read failure")
+        from observability.real_accounts import RealAccountSnapshot
+
+        return (RealAccountSnapshot(exchange="binance", ok=True, ts_utc="x", total_usd=100.0),)
+
+    def last_poll_utc(self):
+        self.last_poll_utc_calls += 1
+        return self._last_poll_utc
+
+    def last_poll_age_s(self):
+        self.last_poll_age_s_calls += 1
+        return self._last_poll_age_s
+
+    @property
+    def ttl_s(self):
+        return self._ttl_s
+
+
+def test_production_adapter_same_instance_forwarding_and_no_second_observer():
+    """Test A: install one fake as the module-level `_real_accounts_obs`,
+    construct the REAL `_RealAccountsObserverAdapter`, and prove every
+    forwarded call (`snapshot()`, `last_poll_utc()`, `last_poll_age_s()`,
+    `ttl_s`) reaches that exact same fake instance — and that no second
+    `RealAccountsObserver` is ever constructed."""
+
+    import core.advisor_loop as _al
+    from observability.real_accounts import RealAccountsObserver as _RealObserverClass
+
+    fake = _FakeUnderlyingRealAccountsObserver(
+        last_poll_utc="2026-09-08T12:00:00Z", last_poll_age_s=10.0, ttl_s=900.0
+    )
+    original = _al._real_accounts_obs
+    original_init = _RealObserverClass.__init__
+    init_calls = {"n": 0}
+
+    def _counting_init(self, *args, **kwargs):
+        init_calls["n"] += 1
+        return original_init(self, *args, **kwargs)
+
+    try:
+        _al._real_accounts_obs = fake
+        _RealObserverClass.__init__ = _counting_init
+
+        adapter = _al._RealAccountsObserverAdapter()
+        snaps = adapter.snapshot()
+        utc = adapter.last_poll_utc()
+        age = adapter.last_poll_age_s()
+        ttl = adapter.ttl_s
+
+        assert _al._real_accounts_obs is fake
+        assert fake.snapshot_calls == 1
+        assert fake.last_poll_utc_calls == 1
+        assert fake.last_poll_age_s_calls == 1
+        assert snaps[0].exchange == "binance"
+        assert utc == "2026-09-08T12:00:00Z"
+        assert age == 10.0
+        assert ttl == 900.0
+        # No second RealAccountsObserver was ever constructed: the fake
+        # was pre-installed, so the real class's __init__ must never run.
+        assert init_calls["n"] == 0
+    finally:
+        _RealObserverClass.__init__ = original_init
+        _al._real_accounts_obs = original
+
+
+def test_production_adapter_fresh_observation_propagates_through_real_adapter():
+    """Test B: a fresh fake observer (age well under ttl_s) installed as
+    `_real_accounts_obs`, snapshot built through the REAL production
+    `_RealAccountsObserverAdapter` (not a direct builder-level fake).
+    Freshness evidence must propagate; whole-portfolio freshness/timestamp
+    invariants (R4/R4.1) must remain unchanged."""
+
+    import core.advisor_loop as _al
+
+    fake = _FakeUnderlyingRealAccountsObserver(
+        last_poll_utc="2026-09-08T12:00:00Z", last_poll_age_s=10.0, ttl_s=900.0
+    )
+    original = _al._real_accounts_obs
+    try:
+        _al._real_accounts_obs = fake
+        adapter = _al._RealAccountsObserverAdapter()
+        result = osb.build_operator_snapshot(_inputs(real_accounts_observer=adapter))
+    finally:
+        _al._real_accounts_obs = original
+
+    portfolio = result["portfolio"]
+    assert portfolio["evidence"]["real_accounts_observer"] == "read"
+    assert portfolio["real_account_last_poll_utc"]["semantics"] == "PRESENT"
+    assert portfolio["real_account_last_poll_utc"]["value"] == "2026-09-08T12:00:00Z"
+    assert portfolio["real_account_stale"]["semantics"] == "FALSE"
+    assert portfolio["real_account_stale"]["value"] is False
+    # Unchanged R4 invariant: a real-account poll timestamp is never
+    # promoted to whole-domain freshness.
+    assert portfolio["source_updated_at_utc"]["semantics"] == "UNKNOWN"
+    # Unchanged R4.1 invariant: real-account-only freshness must never
+    # be promoted into a whole-portfolio FRESH claim.
+    assert portfolio["freshness"] != "FRESH"
+
+
+def test_production_adapter_stale_observation_propagates_through_real_adapter():
+    """Test C: same setup as B, but age exceeds ttl_s. `real_account_stale`
+    must be PRESENT/True; the poll timestamp stays attached only to the
+    real-account sub-source field, never promoted to
+    `source_updated_at_utc`/whole-portfolio freshness."""
+
+    import core.advisor_loop as _al
+
+    fake = _FakeUnderlyingRealAccountsObserver(
+        last_poll_utc="2026-09-08T10:00:00Z", last_poll_age_s=5000.0, ttl_s=900.0
+    )
+    original = _al._real_accounts_obs
+    try:
+        _al._real_accounts_obs = fake
+        adapter = _al._RealAccountsObserverAdapter()
+        result = osb.build_operator_snapshot(_inputs(real_accounts_observer=adapter))
+    finally:
+        _al._real_accounts_obs = original
+
+    portfolio = result["portfolio"]
+    assert portfolio["real_account_stale"]["semantics"] == "PRESENT"
+    assert portfolio["real_account_stale"]["value"] is True
+    assert portfolio["real_account_last_poll_utc"]["value"] == "2026-09-08T10:00:00Z"
+    assert portfolio["source_updated_at_utc"]["semantics"] == "UNKNOWN"
+    assert portfolio["freshness"] != "FRESH"
+
+
+def test_production_adapter_no_initialized_observer_is_honest_none_no_side_effect():
+    """Test D: with `_real_accounts_obs` still None (pre-`snapshot()`),
+    the freshness accessors must return None (honest unavailable) and
+    must NOT instantiate an observer as a side effect of merely being
+    called."""
+
+    import core.advisor_loop as _al
+    from observability.real_accounts import RealAccountsObserver as _RealObserverClass
+
+    original = _al._real_accounts_obs
+    original_init = _RealObserverClass.__init__
+    init_calls = {"n": 0}
+
+    def _counting_init(self, *args, **kwargs):
+        init_calls["n"] += 1
+        return original_init(self, *args, **kwargs)
+
+    try:
+        _al._real_accounts_obs = None
+        _RealObserverClass.__init__ = _counting_init
+
+        adapter = _al._RealAccountsObserverAdapter()
+        assert adapter.last_poll_utc() is None
+        assert adapter.last_poll_age_s() is None
+        assert adapter.ttl_s is None
+        # Merely calling the freshness accessors must never trigger the
+        # lazy-init that only `.snapshot()` is allowed to trigger.
+        assert init_calls["n"] == 0
+        assert _al._real_accounts_obs is None
+    finally:
+        _RealObserverClass.__init__ = original_init
+        _al._real_accounts_obs = original
+
+
+def test_production_unconfigured_path_returns_none_and_builder_keeps_not_applicable():
+    """Test E: `_op_real_accounts_observer_for_snapshot()` returns None
+    when no exchange is configured, and the builder keeps the
+    real-account fields NOT_APPLICABLE — proving this R2/R3 invariant
+    survives the R4.3 adapter changes."""
+
+    import core.advisor_loop as _al
+
+    original = _al._real_accounts_obs
+    try:
+        _al._real_accounts_obs = None
+        with __import__("unittest.mock", fromlist=["mock"]).patch(
+            "observability.real_accounts.configured_exchanges", return_value=()
+        ):
+            observer = _al._op_real_accounts_observer_for_snapshot()
+            assert observer is None
+            result = osb.build_operator_snapshot(_inputs(real_accounts_observer=observer))
+    finally:
+        _al._real_accounts_obs = original
+
+    portfolio = result["portfolio"]
+    assert portfolio["real_account_stale"]["semantics"] == "NOT_APPLICABLE"
+    assert "real_accounts_observer" not in portfolio["evidence"]
+
+
+def test_production_adapter_failure_is_fail_passive_through_real_adapter():
+    """Test F: the fake's `snapshot()` raises. Evidence must be
+    'read_attempted_failed', account fields UNAVAILABLE, timestamps
+    UNKNOWN, and no exception propagates out of the adapter/builder."""
+
+    import core.advisor_loop as _al
+
+    fake = _FakeUnderlyingRealAccountsObserver(raise_on_snapshot=True)
+    original = _al._real_accounts_obs
+    try:
+        _al._real_accounts_obs = fake
+        adapter = _al._RealAccountsObserverAdapter()
+        result = osb.build_operator_snapshot(_inputs(real_accounts_observer=adapter))
+    finally:
+        _al._real_accounts_obs = original
+
+    portfolio = result["portfolio"]
+    assert portfolio["evidence"]["real_accounts_observer"] == "read_attempted_failed"
+    assert portfolio["real_account_equity_usd"]["semantics"] == "UNAVAILABLE"
+    assert portfolio["real_account_free_usd"]["semantics"] == "UNAVAILABLE"
+    assert portfolio["real_account_stale"]["semantics"] == "UNAVAILABLE"
+    assert portfolio["real_account_last_poll_utc"]["semantics"] == "UNKNOWN"
