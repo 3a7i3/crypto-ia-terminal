@@ -2118,3 +2118,170 @@ def test_portfolio_status_never_ok_while_freshness_not_fresh_invariant():
         # general rule above so it stays correct if a genuine FRESH
         # producer is ever added.
         assert portfolio["status"] != "OK"
+
+
+# ── R4.2 (sixth MASTER review) — RealAccountsObserver evidence honesty ────
+#
+# Same defect class R4.1 fixed for wallet_sync/mexc_simulator, previously
+# missed for RealAccountsObserver: `real_accounts_queried` (renamed
+# `real_accounts_query_attempted`) was flipped True merely because
+# `real_accounts_observer is not None`, BEFORE `snapshot()` was actually
+# called — so a raising `snapshot()` still serialized
+# `evidence.real_accounts_observer = "read"`, a false success claim.
+
+
+class _RaisingRealAccountsObserver:
+    """snapshot() raises unconditionally — proves a genuinely-attempted but
+    failed real-accounts read is never represented as a successful 'read'."""
+
+    def snapshot(self):
+        raise RuntimeError("boom")
+
+
+class _FakeRealAccountsObserverConfiguredOkNoUsableAccount:
+    """snapshot() succeeds (the OBSERVER call itself works), but the
+    returned aggregate has no readable account inside it (every account
+    reports ok=False) — the nuance in correction A test #4: the observer
+    read succeeded even though the field-level account data stays
+    UNAVAILABLE."""
+
+    def snapshot(self):
+        from observability.real_accounts import RealAccountSnapshot
+
+        return (
+            RealAccountSnapshot(
+                exchange="binance", ok=False, ts_utc="2026-01-01T00:00Z", error="no data"
+            ),
+        )
+
+
+def test_real_accounts_no_observer_injected_evidence_key_absent():
+    """Correction A test #1: no observer injected -> evidence key absent
+    entirely (never inferred, never a placeholder)."""
+
+    result = osb.build_operator_snapshot(_inputs(real_accounts_observer=None))
+    evidence = result["portfolio"]["evidence"]
+    assert "real_accounts_observer" not in evidence
+
+
+def test_real_accounts_readable_observer_evidence_is_read():
+    """Correction A test #2: a genuinely successful snapshot() ->
+    evidence.real_accounts_observer == 'read' exactly."""
+
+    result = osb.build_operator_snapshot(
+        _inputs(real_accounts_observer=_FakeRealAccountsObserverConfiguredOk())
+    )
+    evidence = result["portfolio"]["evidence"]
+    assert evidence["real_accounts_observer"] == "read"
+
+
+def test_real_accounts_snapshot_raises_evidence_is_read_attempted_failed():
+    """Correction A test #3: snapshot() raises -> evidence.real_accounts_observer
+    == 'read_attempted_failed' (never 'read'), and the real-account fields
+    stay UNAVAILABLE while source timestamps stay UNKNOWN — this is the
+    exact bug: the OLD code set `real_accounts_queried=True` merely because
+    the observer reference existed, before the failing call, and therefore
+    published a false 'read' here."""
+
+    result = osb.build_operator_snapshot(
+        _inputs(real_accounts_observer=_RaisingRealAccountsObserver())
+    )
+    portfolio = result["portfolio"]
+    evidence = portfolio["evidence"]
+    assert evidence["real_accounts_observer"] != "read"
+    assert evidence["real_accounts_observer"] == "read_attempted_failed"
+    assert portfolio["real_account_equity_usd"]["semantics"] == "UNAVAILABLE"
+    assert portfolio["real_account_free_usd"]["semantics"] == "UNAVAILABLE"
+    assert portfolio["real_account_stale"]["semantics"] == "UNAVAILABLE"
+    assert portfolio["real_account_last_poll_utc"]["semantics"] == "UNKNOWN"
+
+
+def test_real_accounts_read_succeeds_but_no_usable_account_still_evidence_read():
+    """Correction A test #4 (the nuance): snapshot() itself succeeds — the
+    OBSERVER was genuinely read — even though the returned aggregate has no
+    readable account inside it. evidence.real_accounts_observer must stay
+    'read' (the observer-level call succeeded), while the FIELD-level
+    account values independently report UNAVAILABLE. These are two
+    distinct facts and must never be conflated."""
+
+    result = osb.build_operator_snapshot(
+        _inputs(
+            real_accounts_observer=_FakeRealAccountsObserverConfiguredOkNoUsableAccount()
+        )
+    )
+    portfolio = result["portfolio"]
+    evidence = portfolio["evidence"]
+    assert evidence["real_accounts_observer"] == "read"
+    assert portfolio["real_account_equity_usd"]["semantics"] == "UNAVAILABLE"
+    assert portfolio["real_account_free_usd"]["semantics"] == "UNAVAILABLE"
+    assert portfolio["real_account_stale"]["semantics"] == "UNAVAILABLE"
+
+
+# ── R4.2 correction B — counter-based proof of zero WalletSync access ─────
+
+
+class _CountingRaisingWallet:
+    """Like `_RaisingWallet`, but with explicit access counters so a test
+    can prove zero access even if some future code path caught-and-swallowed
+    an exception raised by get_balance()/capital_x — 'no exception observed'
+    is not by itself proof 'never called'."""
+
+    def __init__(self):
+        self.get_balance_calls = 0
+        self.capital_x_reads = 0
+
+    def get_balance(self):
+        self.get_balance_calls += 1
+        raise AssertionError("get_balance() must never be called in UNKNOWN mode")
+
+    @property
+    def capital_x(self):
+        self.capital_x_reads += 1
+        raise AssertionError("capital_x must never be read in UNKNOWN mode")
+
+
+def test_unknown_mode_zero_wallet_access_proven_by_counters():
+    """Correction B: UNKNOWN mode must cause ZERO WalletSync access —
+    proven by explicit counters incremented BEFORE any raise, not merely by
+    the absence of a propagated exception (which a caught-and-swallowed
+    access attempt would also produce)."""
+
+    wallet = _CountingRaisingWallet()
+    result = osb.build_operator_snapshot(_inputs(mode="UNKNOWN", wallet_sync=wallet))
+    portfolio = result["portfolio"]
+
+    assert wallet.get_balance_calls == 0
+    assert wallet.capital_x_reads == 0
+    assert portfolio["paper_equity_usd"]["semantics"] == "UNKNOWN"
+    assert portfolio["non_paper_wallet_balance_usd"]["semantics"] == "UNKNOWN"
+    assert portfolio["capital_x_usd"]["semantics"] == "UNKNOWN"
+    assert "wallet_sync" not in portfolio["evidence"]
+
+
+# ── R4.2 § 4 consistency check — mexc_simulator "attempted" must mean a
+# genuine paper_portfolio_view() call, never inferred from `sim is not
+# None` alone (e.g. an import failure before the call ever happens). ──────
+
+
+def test_mexc_simulator_import_failure_never_claims_attempted_read():
+    """If `paper_portfolio_view`/`build_portfolio_status` cannot even be
+    imported, no query was ever attempted against `sim` — evidence must
+    omit `mexc_simulator` entirely, never publish 'read_attempted_failed'
+    for a call that never happened."""
+
+    import builtins
+    import unittest.mock as _mock
+
+    sim = _FakeSimulator(positions={}, prices={})
+    real_import = builtins.__import__
+
+    def _blocking_import(name, *args, **kwargs):
+        if name == "paper_trading.paper_portfolio_view":
+            raise ImportError("simulated unavailable module")
+        return real_import(name, *args, **kwargs)
+
+    with _mock.patch("builtins.__import__", side_effect=_blocking_import):
+        result = osb.build_operator_snapshot(_inputs(mexc_simulator=sim))
+    evidence = result["portfolio"]["evidence"]
+    assert "mexc_simulator" not in evidence
+    assert result["portfolio"]["status"] == "UNAVAILABLE"

@@ -357,7 +357,15 @@ def _build_portfolio_domain(inputs: OperatorSnapshotInputs, now: float) -> Dict[
     # positions" claim. It must publish an explicit UNAVAILABLE domain
     # instead. Track whether the view itself was actually read this cycle
     # so `domain_available` below never claims success on a failure path.
+    # Consistency check (R4.2 § 4): `mexc_query_attempted` flips True only
+    # immediately before the actual `paper_portfolio_view(sim)` call — NOT
+    # merely because `sim is not None`. Previously, when the import of
+    # `paper_portfolio_view` itself failed (module unavailable), the call
+    # never happened at all, yet evidence still claimed
+    # `"read_attempted_failed"` (inferred solely from `sim is not None`) —
+    # a false "we tried and failed" when no attempt was actually made.
     domain_available = True
+    mexc_query_attempted = False
     if sim is None or paper_portfolio_view is None:
         open_positions_ov: ObservedValue = unavailable()
         open_positions_count_ov: ObservedValue = unavailable()
@@ -365,6 +373,7 @@ def _build_portfolio_domain(inputs: OperatorSnapshotInputs, now: float) -> Dict[
         domain_available = False
     else:
         try:
+            mexc_query_attempted = True
             view = paper_portfolio_view(sim)
             if view is None or not isinstance(view, list):
                 raise ValueError(
@@ -464,7 +473,19 @@ def _build_portfolio_domain(inputs: OperatorSnapshotInputs, now: float) -> Dict[
     # unreadable this cycle => UNAVAILABLE. This module never constructs
     # a `RealAccountsObserver` itself.
     real_accounts_observer = getattr(inputs, "real_accounts_observer", None)
-    real_accounts_queried = False
+    # Correction A (R4.2): explicit access tracking, same state model as
+    # `wallet_sync`/`mexc_simulator` (R4.1) — `real_accounts_query_attempted`
+    # flips True immediately before the actual `snapshot()` call (never
+    # merely because `real_accounts_observer is not None`), and
+    # `real_accounts_read_ok` flips True only once `snapshot()` has
+    # genuinely returned successfully — a caught exception below never
+    # leaves it True. A successful `snapshot()` whose aggregate happens to
+    # contain no readable account (`agg is None`) still leaves
+    # `real_accounts_read_ok=True`: the OBSERVER call succeeded, even
+    # though the per-field account values it yielded are independently
+    # UNAVAILABLE.
+    real_accounts_query_attempted = False
+    real_accounts_read_ok = False
     real_accounts_source_updated_iso: Optional[str] = None
     if real_accounts_observer is None:
         # Unconfigured: no `observability.real_accounts.RealAccountsObserver`
@@ -473,11 +494,12 @@ def _build_portfolio_domain(inputs: OperatorSnapshotInputs, now: float) -> Dict[
         real_account_free_ov = not_applicable()
         real_account_stale_ov = not_applicable()
     else:
-        real_accounts_queried = True
         try:
             from observability.real_accounts import aggregate as _ra_aggregate
 
+            real_accounts_query_attempted = True
             snaps = real_accounts_observer.snapshot()
+            real_accounts_read_ok = True
             agg = _ra_aggregate(snaps)
             # Correction C (R3): freshness/staleness is derived ONLY from
             # the observer's own real poll timestamp + its governed TTL —
@@ -617,12 +639,14 @@ def _build_portfolio_domain(inputs: OperatorSnapshotInputs, now: float) -> Dict[
     # dict — `real_accounts_observer` follows the same omit-if-unqueried
     # pattern). `real_accounts_observer` is unchanged from R3/R4.
     _evidence = {"builder": "O-02W-C"}
-    if sim is not None:
+    if mexc_query_attempted:
         _evidence["mexc_simulator"] = "read" if domain_available else "read_attempted_failed"
     if wallet_sync_queried:
         _evidence["wallet_sync"] = "read" if wallet_sync_read_ok else "read_attempted_failed"
-    if real_accounts_queried:
-        _evidence["real_accounts_observer"] = "read"
+    if real_accounts_query_attempted:
+        _evidence["real_accounts_observer"] = (
+            "read" if real_accounts_read_ok else "read_attempted_failed"
+        )
 
     portfolio_state_snapshot = compose_portfolio_state_snapshot(
         observed_at_utc=_dt_from_ts(now),
@@ -683,11 +707,11 @@ def _build_portfolio_domain(inputs: OperatorSnapshotInputs, now: float) -> Dict[
 
     real_account_last_poll_ov = (
         observed(real_accounts_source_updated_iso)
-        if (real_accounts_queried and real_accounts_source_updated_iso)
+        if (real_accounts_query_attempted and real_accounts_source_updated_iso)
         else unknown()
     )
     portfolio_state_dict["real_account_last_poll_utc"] = real_account_last_poll_ov.to_dict()
-    if real_accounts_queried and real_accounts_source_updated_iso:
+    if real_accounts_query_attempted and real_accounts_source_updated_iso:
         portfolio_state_dict["evidence"] = {
             **portfolio_state_dict.get("evidence", {}),
             "source_timestamps": {"real_accounts": real_accounts_source_updated_iso},
