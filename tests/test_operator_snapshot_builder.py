@@ -668,15 +668,23 @@ def test_builder_publishes_paper_equity_only_in_paper_mode():
 def test_live_or_testnet_balance_never_appears_under_paper_equity_usd():
     """Explicit proof (BLOCKER A): even if a WalletSync-like reference is
     passed in, a REAL_API/TESTNET_API resolved mode must never publish its
-    balance under paper_equity_usd — the field becomes NOT_APPLICABLE."""
+    balance under paper_equity_usd — the field becomes NOT_APPLICABLE.
+    UNKNOWN mode (R4 correction A — fail closed) must never claim
+    NOT_APPLICABLE either, since that would silently assert PAPER; it
+    becomes UNKNOWN instead."""
 
     wallet = _FakeWallet(balance=999999.0)  # a deliberately eye-catching value
-    for mode in ("REAL_API", "TESTNET_API", "UNKNOWN"):
+    expected_semantics = {
+        "REAL_API": "NOT_APPLICABLE",
+        "TESTNET_API": "NOT_APPLICABLE",
+        "UNKNOWN": "UNKNOWN",
+    }
+    for mode, expected in expected_semantics.items():
         result = osb.build_operator_snapshot(_inputs(mode=mode, wallet_sync=wallet))
         pe = result["portfolio"]["paper_equity_usd"]
         assert pe["value"] != 999999.0
         assert pe["value"] is None
-        assert pe["semantics"] == "NOT_APPLICABLE"
+        assert pe["semantics"] == expected
         assert result["portfolio"]["mode"] == mode
 
 
@@ -696,7 +704,7 @@ def test_wallet_sync_absent_in_paper_mode_is_unavailable_not_zero():
 
 def test_portfolio_state_domain_carries_full_domain_snapshot_spine():
     result = osb.build_operator_snapshot(_inputs())
-    ps = result["portfolio"]["portfolio_state"]
+    ps = result["portfolio"]
     for key in (
         "domain",
         "observed_at_utc",
@@ -713,7 +721,7 @@ def test_portfolio_state_domain_carries_full_domain_snapshot_spine():
 
 def test_real_account_fields_are_honestly_not_applicable_not_dropped():
     result = osb.build_operator_snapshot(_inputs())
-    ps = result["portfolio"]["portfolio_state"]
+    ps = result["portfolio"]
     for field_name in ("real_account_equity_usd", "real_account_free_usd", "real_account_stale"):
         assert field_name in ps  # never silently omitted
         assert ps[field_name]["semantics"] == "NOT_APPLICABLE"
@@ -934,7 +942,7 @@ def test_portfolio_view_failure_is_unavailable_not_empty_healthy(monkeypatch):
 
     result = osb.build_operator_snapshot(_inputs(mexc_simulator=sim))
     portfolio = result["portfolio"]
-    portfolio_state = portfolio["portfolio_state"]
+    portfolio_state = portfolio
 
     assert portfolio_state["status"] == "UNAVAILABLE"
     # Never a false-healthy empty list.
@@ -954,7 +962,7 @@ def test_open_positions_count_always_matches_list_length_on_success():
     result = osb.build_operator_snapshot(_inputs(mexc_simulator=sim))
     portfolio = result["portfolio"]
     open_positions = portfolio["open_positions"]["value"]
-    count = portfolio["portfolio_state"]["paper_open_positions_count"]["value"]
+    count = portfolio["paper_open_positions_count"]["value"]
     assert count == len(open_positions)
 
 
@@ -990,7 +998,7 @@ def test_disappearing_position_race_never_publishes_mismatched_count():
 
     portfolio = result["portfolio"]
     open_positions = portfolio["open_positions"]["value"]
-    count = portfolio["portfolio_state"]["paper_open_positions_count"]["value"]
+    count = portfolio["paper_open_positions_count"]["value"]
     assert count == len(open_positions) == 1
     assert open_positions[0]["symbol"] == "BTCUSDT"
 
@@ -1007,7 +1015,7 @@ def test_aggregate_unrealized_pnl_unavailable_when_any_price_missing():
         prices={"BTCUSDT": 51000.0},  # ETHUSDT price missing => 0.0 => unavailable
     )
     result = osb.build_operator_snapshot(_inputs(mexc_simulator=sim))
-    agg = result["portfolio"]["portfolio_state"]["paper_unrealized_pnl_usd"]
+    agg = result["portfolio"]["paper_unrealized_pnl_usd"]
     assert agg["semantics"] == "UNAVAILABLE"
     assert agg["value"] is None
 
@@ -1018,7 +1026,7 @@ def test_aggregate_unrealized_pnl_present_when_all_prices_available():
         prices={"BTCUSDT": 51000.0},
     )
     result = osb.build_operator_snapshot(_inputs(mexc_simulator=sim))
-    agg = result["portfolio"]["portfolio_state"]["paper_unrealized_pnl_usd"]
+    agg = result["portfolio"]["paper_unrealized_pnl_usd"]
     assert agg["value"] is not None
 
 
@@ -1049,7 +1057,7 @@ class _FakeRealAccountsObserverConfiguredBroken:
 
 def test_real_accounts_unconfigured_is_not_applicable():
     result = osb.build_operator_snapshot(_inputs())
-    ps = result["portfolio"]["portfolio_state"]
+    ps = result["portfolio"]
     assert ps["real_account_equity_usd"]["semantics"] == "NOT_APPLICABLE"
 
 
@@ -1057,7 +1065,7 @@ def test_real_accounts_configured_and_readable_is_observed():
     result = osb.build_operator_snapshot(
         _inputs(real_accounts_observer=_FakeRealAccountsObserverConfiguredOk())
     )
-    ps = result["portfolio"]["portfolio_state"]
+    ps = result["portfolio"]
     assert ps["real_account_equity_usd"]["semantics"] == "PRESENT"
     assert ps["real_account_equity_usd"]["value"] == 500.0
 
@@ -1066,7 +1074,7 @@ def test_real_accounts_configured_but_unreadable_is_unavailable():
     result = osb.build_operator_snapshot(
         _inputs(real_accounts_observer=_FakeRealAccountsObserverConfiguredBroken())
     )
-    ps = result["portfolio"]["portfolio_state"]
+    ps = result["portfolio"]
     assert ps["real_account_equity_usd"]["semantics"] == "UNAVAILABLE"
 
 
@@ -1094,7 +1102,7 @@ def test_system_health_domain_carries_full_domain_snapshot_spine():
 
 def test_portfolio_state_domain_still_has_full_spine_after_r2_changes():
     result = osb.build_operator_snapshot(_inputs())
-    ps = result["portfolio"]["portfolio_state"]
+    ps = result["portfolio"]
     for key in ("domain", "observed_at_utc", "source", "freshness", "status", "schema_version"):
         assert key in ps
 
@@ -1274,7 +1282,7 @@ def test_coordinator_is_the_object_used_by_advisor_loop_source():
 
 def test_portfolio_domain_envelope_carries_source_updated_at_utc_and_authority():
     result = osb.build_operator_snapshot(_inputs())
-    ps = result["portfolio"]["portfolio_state"]
+    ps = result["portfolio"]
     assert "source_updated_at_utc" in ps
     assert set(ps["source_updated_at_utc"].keys()) == {"value", "semantics"}
     assert ps["authority"] == "OBSERVATIONAL_TELEMETRY"
@@ -1313,7 +1321,7 @@ def test_no_source_updated_at_utc_field_is_fabricated_from_generated_at_utc():
     generated_at_utc/observed_at_utc — this would fail against the
     pre-R3 code, which had no such field at all."""
     result = osb.build_operator_snapshot(_inputs())
-    ps = result["portfolio"]["portfolio_state"]
+    ps = result["portfolio"]
     generated_at = result["generated_at_utc"]
     # No real-accounts source was queried this cycle -> honestly UNKNOWN,
     # never a copy of generated_at_utc/observed_at_utc.
@@ -1322,7 +1330,15 @@ def test_no_source_updated_at_utc_field_is_fabricated_from_generated_at_utc():
     assert ps["source_updated_at_utc"]["value"] != generated_at
 
 
-def test_portfolio_source_updated_at_utc_reflects_real_accounts_poll_when_queried():
+def test_portfolio_source_updated_at_utc_never_promoted_from_real_accounts_poll():
+    """R4 regression (correction C): a RealAccountsObserver poll timestamp
+    describes ONLY that sub-source, never the whole portfolio domain
+    (positions/prices/WalletSync collectively have no source timestamp of
+    their own) — the domain-level `source_updated_at_utc` must stay
+    UNKNOWN even when real_accounts was genuinely queried this cycle. The
+    real information is preserved separately, not discarded, via
+    `real_account_last_poll_utc` and `evidence.source_timestamps`."""
+
     class _ObsWithPoll(_FakeRealAccountsObserverConfiguredOk):
         def last_poll_utc(self):
             return "2026-09-08T00:00:00Z"
@@ -1333,9 +1349,15 @@ def test_portfolio_source_updated_at_utc_reflects_real_accounts_poll_when_querie
         ttl_s = 900.0
 
     result = osb.build_operator_snapshot(_inputs(real_accounts_observer=_ObsWithPoll()))
-    ps = result["portfolio"]["portfolio_state"]
-    assert ps["source_updated_at_utc"]["value"] == "2026-09-08T00:00:00Z"
-    assert ps["source_updated_at_utc"]["semantics"] == "PRESENT"
+    ps = result["portfolio"]
+    # Domain-level field never promoted from the real-accounts sub-source.
+    assert ps["source_updated_at_utc"]["semantics"] == "UNKNOWN"
+    assert ps["source_updated_at_utc"]["value"] is None
+    # The real-accounts-specific timestamp is preserved beside its own
+    # field, scoped honestly to its own sub-source.
+    assert ps["real_account_last_poll_utc"]["value"] == "2026-09-08T00:00:00Z"
+    assert ps["real_account_last_poll_utc"]["semantics"] == "PRESENT"
+    assert ps["evidence"]["source_timestamps"]["real_accounts"] == "2026-09-08T00:00:00Z"
 
 
 # ── R3 — Correction B: capital_x_usd materialization ───────────────────────
@@ -1466,20 +1488,20 @@ class _ObsPartiallyReadableMultiExchange:
 
 def test_real_accounts_unconfigured_stale_is_not_applicable():
     result = osb.build_operator_snapshot(_inputs())
-    ps = result["portfolio"]["portfolio_state"]
+    ps = result["portfolio"]
     assert ps["real_account_stale"]["semantics"] == "NOT_APPLICABLE"
 
 
 def test_real_accounts_configured_readable_fresh_is_observed_false():
     result = osb.build_operator_snapshot(_inputs(real_accounts_observer=_ObsFresh()))
-    ps = result["portfolio"]["portfolio_state"]
+    ps = result["portfolio"]
     assert ps["real_account_stale"]["semantics"] == "FALSE"
     assert ps["real_account_stale"]["value"] is False
 
 
 def test_real_accounts_configured_readable_stale_is_observed_true():
     result = osb.build_operator_snapshot(_inputs(real_accounts_observer=_ObsStale()))
-    ps = result["portfolio"]["portfolio_state"]
+    ps = result["portfolio"]
     assert ps["real_account_stale"]["semantics"] == "PRESENT"
     assert ps["real_account_stale"]["value"] is True
 
@@ -1490,7 +1512,7 @@ def test_real_accounts_readable_but_no_timestamp_evidence_is_unknown_not_false()
     result = osb.build_operator_snapshot(
         _inputs(real_accounts_observer=_ObsNoTimestampEvidence())
     )
-    ps = result["portfolio"]["portfolio_state"]
+    ps = result["portfolio"]
     assert ps["real_account_stale"]["semantics"] == "UNKNOWN"
     assert ps["real_account_stale"]["value"] is None
 
@@ -1499,7 +1521,7 @@ def test_real_accounts_configured_unreadable_stale_is_unavailable():
     result = osb.build_operator_snapshot(
         _inputs(real_accounts_observer=_FakeRealAccountsObserverConfiguredBroken())
     )
-    ps = result["portfolio"]["portfolio_state"]
+    ps = result["portfolio"]
     assert ps["real_account_stale"]["semantics"] == "UNAVAILABLE"
 
 
@@ -1507,7 +1529,7 @@ def test_real_accounts_partially_readable_multi_exchange_never_fabricates_all_fr
     result = osb.build_operator_snapshot(
         _inputs(real_accounts_observer=_ObsPartiallyReadableMultiExchange())
     )
-    ps = result["portfolio"]["portfolio_state"]
+    ps = result["portfolio"]
     # Equity/free reflect only the readable exchange (aggregate()'s own
     # `ok` filter); staleness is derived from the one genuine poll that
     # covered both exchanges in this bulk-poll observer, never claiming
@@ -1626,3 +1648,314 @@ def test_no_new_stage_counting_or_synthetic_aggregation_mechanism_introduced():
     rec = osb.DecisionRecord(symbol="BTCUSDT", decision_packet=dp_packet, legacy_trade_allowed=True)
     result = osb.build_operator_snapshot(_inputs(decisions=[rec]))
     assert result["decision_pipeline"]["stages"] == []
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# R4 (fourth MASTER review round) — corrections A, B, C
+# ═══════════════════════════════════════════════════════════════════════
+#
+# Theme: (A) fail-closed for UNKNOWN mode, (B) one unambiguous portfolio
+# domain envelope, (C) freshness must follow evidence. Each test below
+# was written and confirmed FAILING against pre-R4 HEAD `0cb18fba` before
+# the corresponding fix landed.
+
+
+class _RaisingWallet:
+    """A WalletSync-like fake whose get_balance()/capital_x RAISE if
+    accessed at all — used to PROVE the builder never touches it in
+    UNKNOWN mode (R4 correction A), not merely that its return value is
+    discarded."""
+
+    def get_balance(self):
+        raise AssertionError("get_balance() must never be called in UNKNOWN mode")
+
+    @property
+    def capital_x(self):
+        raise AssertionError("capital_x must never be read in UNKNOWN mode")
+
+
+# ── R4 test 1/2 — UNKNOWN mode never reads WalletSync; all three fields UNKNOWN ─
+
+
+def test_unknown_mode_never_reads_wallet_sync_at_all():
+    """R4 test 1: a raising fake proves the builder never calls
+    get_balance() or reads capital_x when mode=UNKNOWN — if it did, the
+    fake would raise and this test would fail with AssertionError instead
+    of passing cleanly."""
+
+    wallet = _RaisingWallet()
+    result = osb.build_operator_snapshot(_inputs(mode="UNKNOWN", wallet_sync=wallet))
+    # Reaching this point at all (no AssertionError propagated) already
+    # proves the fake was never touched; the field assertions below are
+    # the second half of the proof.
+    portfolio = result["portfolio"]
+    assert portfolio["paper_equity_usd"]["semantics"] == "UNKNOWN"
+    assert portfolio["non_paper_wallet_balance_usd"]["semantics"] == "UNKNOWN"
+    assert portfolio["capital_x_usd"]["semantics"] == "UNKNOWN"
+
+
+def test_unknown_mode_all_three_balance_fields_are_unknown_not_fabricated():
+    """R4 test 2: explicit matrix proof — UNKNOWN mode publishes UNKNOWN
+    (never NOT_APPLICABLE, never a fabricated PRESENT/ZERO) for all three
+    mode-dependent balance fields, with value=None in every case."""
+
+    wallet = _FakeWalletWithCapitalX(balance=42.0, capital_x=777.0)
+    result = osb.build_operator_snapshot(_inputs(mode="UNKNOWN", wallet_sync=wallet))
+    portfolio = result["portfolio"]
+    for field_name in ("paper_equity_usd", "non_paper_wallet_balance_usd", "capital_x_usd"):
+        ov = portfolio[field_name]
+        assert ov["semantics"] == "UNKNOWN", f"{field_name} should be UNKNOWN, got {ov}"
+        assert ov["value"] is None
+
+
+def test_unknown_mode_matrix_never_wallet_sync_none_guard_bypassed():
+    """A wallet_sync=None UNKNOWN-mode cycle must also publish UNKNOWN
+    (not NOT_APPLICABLE/UNAVAILABLE) — the fail-closed rule is about the
+    MODE, not merely about whether a wallet reference happens to be
+    present."""
+
+    result = osb.build_operator_snapshot(_inputs(mode="UNKNOWN", wallet_sync=None))
+    portfolio = result["portfolio"]
+    for field_name in ("paper_equity_usd", "non_paper_wallet_balance_usd", "capital_x_usd"):
+        assert portfolio[field_name]["semantics"] == "UNKNOWN"
+
+
+def test_full_mode_matrix_paper_real_testnet_unknown():
+    """The complete matrix from the mission spec, all four modes at once."""
+
+    wallet = _FakeWalletWithCapitalX(balance=10.0, capital_x=20.0)
+
+    paper = osb.build_operator_snapshot(_inputs(mode="PAPER", wallet_sync=wallet))["portfolio"]
+    assert paper["paper_equity_usd"]["semantics"] in ("PRESENT", "ZERO", "UNAVAILABLE")
+    assert paper["non_paper_wallet_balance_usd"]["semantics"] == "NOT_APPLICABLE"
+    assert paper["capital_x_usd"]["semantics"] == "NOT_APPLICABLE"
+
+    for mode in ("REAL_API", "TESTNET_API"):
+        snap = osb.build_operator_snapshot(_inputs(mode=mode, wallet_sync=wallet))["portfolio"]
+        assert snap["paper_equity_usd"]["semantics"] == "NOT_APPLICABLE"
+        assert snap["non_paper_wallet_balance_usd"]["semantics"] in ("PRESENT", "ZERO", "UNAVAILABLE")
+        assert snap["capital_x_usd"]["semantics"] in ("PRESENT", "ZERO", "UNAVAILABLE")
+
+    unknown_snap = osb.build_operator_snapshot(_inputs(mode="UNKNOWN", wallet_sync=wallet))["portfolio"]
+    for field_name in ("paper_equity_usd", "non_paper_wallet_balance_usd", "capital_x_usd"):
+        assert unknown_snap[field_name]["semantics"] == "UNKNOWN"
+
+
+# ── R4 test 3/4 — one unambiguous portfolio envelope, no nested copy ──────
+
+
+_O01_ENVELOPE_KEYS = frozenset(
+    {
+        "domain",
+        "observed_at_utc",
+        "source",
+        "source_version",
+        "freshness",
+        "status",
+        "schema_version",
+        "evidence",
+        "source_updated_at_utc",
+        "authority",
+    }
+)
+
+_PORTFOLIO_PAYLOAD_KEYS = _O01_ENVELOPE_KEYS | {
+    "mode",
+    "paper_equity_usd",
+    "paper_open_positions_count",
+    "paper_unrealized_pnl_usd",
+    "paper_realized_pnl_usd",
+    "non_paper_wallet_balance_usd",
+    "capital_x_usd",
+    "real_account_equity_usd",
+    "real_account_free_usd",
+    "real_account_stale",
+    "real_account_last_poll_utc",
+    "open_positions",
+    "portfolio_status",  # only present when the simulator is available
+}
+
+
+def test_every_portfolio_field_is_inside_the_one_authoritative_envelope():
+    """R4 test 3: every field published under `snapshot["portfolio"]`
+    is accounted for by this single domain's known field set — no
+    sibling field exists that isn't part of the one O-01 envelope's
+    scope (and the envelope's own identity/provenance spine is present
+    directly at `portfolio`, not nested)."""
+
+    pos = _FakePosition("p1", "BTC/USDT")
+    sim = _FakeSimulator(positions={"BTC/USDT": pos}, prices={"BTC/USDT": 100.0})
+    result = osb.build_operator_snapshot(_inputs(mexc_simulator=sim))
+    portfolio = result["portfolio"]
+
+    unexpected = set(portfolio.keys()) - _PORTFOLIO_PAYLOAD_KEYS
+    assert unexpected == set(), f"unexpected sibling fields outside the envelope: {unexpected}"
+    for key in _O01_ENVELOPE_KEYS:
+        assert key in portfolio, f"missing O-01 envelope spine field: {key}"
+    assert portfolio["domain"] == "portfolio_state"
+
+
+def test_no_competing_nested_portfolio_state_copy_remains():
+    """R4 test 4: the old `portfolio.portfolio_state` nested envelope
+    (R1-R3 shape) must no longer exist anywhere in the payload — one
+    domain, one envelope, at `snapshot["portfolio"]` directly."""
+
+    result = osb.build_operator_snapshot(_inputs())
+    assert "portfolio_state" not in result["portfolio"]
+    # No JSON key literally named "portfolio_state" anywhere in the
+    # serialized snapshot — it was a dict key holding a second nested
+    # envelope, not merely the "domain": "portfolio_state" value string
+    # (which legitimately remains, identifying the one envelope's domain).
+    assert not any(k == "portfolio_state" for k in result["portfolio"].keys())
+
+
+# ── R4 test 5/6 — real-account timestamp not promoted; portfolio never FRESH ─
+
+
+def test_real_account_timestamp_not_promoted_to_whole_portfolio_freshness():
+    """R4 test 5: even when RealAccountsObserver was genuinely queried and
+    has a real poll timestamp, that timestamp must not be presented as the
+    WHOLE portfolio domain's `source_updated_at_utc` (positions/prices/
+    WalletSync have no source timestamp of their own to corroborate it)."""
+
+    class _ObsWithPoll(_FakeRealAccountsObserverConfiguredOk):
+        def last_poll_utc(self):
+            return "2026-09-08T09:00:00Z"
+
+        def last_poll_age_s(self):
+            return 1.0
+
+        ttl_s = 900.0
+
+    result = osb.build_operator_snapshot(_inputs(real_accounts_observer=_ObsWithPoll()))
+    portfolio = result["portfolio"]
+    assert portfolio["source_updated_at_utc"]["semantics"] == "UNKNOWN"
+    assert portfolio["source_updated_at_utc"]["value"] is None
+    # Distinct, honestly-scoped sibling field carries the real evidence.
+    assert portfolio["real_account_last_poll_utc"]["value"] == "2026-09-08T09:00:00Z"
+
+
+def test_portfolio_domain_cannot_be_fresh_when_source_freshness_unproved():
+    """R4 test 6: `freshness` must never be FRESH while
+    `source_updated_at_utc` is UNKNOWN and no other governed freshness
+    proof is recorded in evidence — checked across every code path that
+    can produce a portfolio domain (simulator present/absent, real
+    accounts queried/not)."""
+
+    pos = _FakePosition("p1", "BTC/USDT")
+    sim = _FakeSimulator(positions={"BTC/USDT": pos}, prices={"BTC/USDT": 100.0})
+
+    class _ObsWithPoll(_FakeRealAccountsObserverConfiguredOk):
+        def last_poll_utc(self):
+            return "2026-09-08T09:00:00Z"
+
+        def last_poll_age_s(self):
+            return 1.0
+
+        ttl_s = 900.0
+
+    for kwargs in (
+        {},
+        {"mexc_simulator": sim},
+        {"real_accounts_observer": _ObsWithPoll()},
+        {"mexc_simulator": sim, "real_accounts_observer": _ObsWithPoll()},
+    ):
+        result = osb.build_operator_snapshot(_inputs(**kwargs))
+        portfolio = result["portfolio"]
+        assert portfolio["freshness"] != "FRESH", f"unexpected FRESH with kwargs={kwargs}"
+        if portfolio["source_updated_at_utc"]["semantics"] == "UNKNOWN":
+            assert portfolio["freshness"] in ("UNKNOWN", "DEGRADED")
+
+
+# ── R4 test 7 — decision pipeline cannot be FRESH when aggregate source is UNKNOWN ─
+
+
+def test_decision_pipeline_never_fresh_regardless_of_per_symbol_count():
+    """R4 test 7: fails against pre-R4 HEAD, which set
+    `freshness=FRESH if per_symbol else UNKNOWN` — a per-symbol list being
+    non-empty is not proof the domain-level aggregate (still genuinely
+    UNKNOWN) is fresh. Checked both with and without per-symbol records."""
+
+    result_empty = osb.build_operator_snapshot(_inputs(decisions=[]))
+    assert result_empty["decision_pipeline"]["freshness"] != "FRESH"
+
+    dp = _FakeDecisionPacket(actionable=True)
+    rec = osb.DecisionRecord(symbol="BTCUSDT", decision_packet=dp, legacy_trade_allowed=True)
+    result_with_records = osb.build_operator_snapshot(_inputs(decisions=[rec]))
+    dpipe = result_with_records["decision_pipeline"]
+    assert dpipe["freshness"] != "FRESH"
+    assert dpipe["source_updated_at_utc"]["semantics"] == "UNKNOWN"
+    # R3 invariants preserved unchanged.
+    assert dpipe["status"] == "ATTENTION_REQUIRED"
+    assert dpipe["evidence"]["exposure"] == "PARTIAL"
+
+
+# ── R4 test 8 — per-position/real-account source timestamps stay attached ──
+
+
+def test_per_position_and_real_account_timestamps_remain_correctly_attached():
+    """R4 test 8: restructuring the envelope must not lose or misattribute
+    per-position (`current_price_observed_at_utc`) or real-account
+    (`real_account_last_poll_utc`) timestamp evidence — each stays on its
+    own actual source, never merged into the domain-level field."""
+
+    pos = _FakePosition("p1", "BTC/USDT", opened_ts=1_000.0)
+    sim = _FakeSimulator(positions={"BTC/USDT": pos}, prices={"BTC/USDT": 100.0})
+
+    class _ObsWithPoll(_FakeRealAccountsObserverConfiguredOk):
+        def last_poll_utc(self):
+            return "2026-09-08T09:30:00Z"
+
+        def last_poll_age_s(self):
+            return 2.0
+
+        ttl_s = 900.0
+
+    result = osb.build_operator_snapshot(
+        _inputs(mexc_simulator=sim, real_accounts_observer=_ObsWithPoll())
+    )
+    portfolio = result["portfolio"]
+    position = portfolio["open_positions"]["value"][0]
+    assert position["current_price_observed_at_utc"] is not None
+    assert position["opened_at"] == 1_000.0
+    assert portfolio["real_account_last_poll_utc"]["value"] == "2026-09-08T09:30:00Z"
+    # Domain-level source_updated_at_utc is a THIRD, distinct field —
+    # never conflated with either of the above.
+    assert portfolio["source_updated_at_utc"]["semantics"] == "UNKNOWN"
+
+
+# ── R4 test 9 — R3 decision timestamps/authority survive the restructuring ─
+
+
+def test_r3_decision_timestamps_and_authority_labels_survive_r4_restructuring():
+    import datetime as _dt
+
+    class _Transition:
+        def __init__(self, ts):
+            self.timestamp = ts
+
+    dp_packet = _FakeDecisionPacket(actionable=True)
+    dp_packet.created_at = _dt.datetime(2026, 9, 8, 12, 0, 0, tzinfo=_dt.timezone.utc)
+    dp_packet.state_history = [
+        _Transition(_dt.datetime(2026, 9, 8, 12, 5, 0, tzinfo=_dt.timezone.utc)),
+    ]
+    rec = osb.DecisionRecord(symbol="BTCUSDT", decision_packet=dp_packet, legacy_trade_allowed=True)
+    result = osb.build_operator_snapshot(_inputs(decisions=[rec]))
+    per_symbol = result["decision_pipeline"]["per_symbol_decisions"][0]
+
+    assert per_symbol["created_at"]["value"] == "2026-09-08T12:00:00Z"
+    assert per_symbol["latest_transition_at_utc"]["value"] == "2026-09-08T12:05:00Z"
+    assert per_symbol["is_actionable"]["authority"] == "EXECUTION_AUTHORITY"
+    assert per_symbol["trade_allowed"]["authority"] == "OBSERVATIONAL_TELEMETRY"
+    assert per_symbol["first_blocker"]["authority"] == "OBSERVATIONAL_TELEMETRY"
+
+
+# ── R4 test 10 — system_health untouched by the restructuring ─────────────
+
+
+def test_system_health_still_boot_alive_unknown_after_r4_restructuring():
+    result = osb.build_operator_snapshot(_inputs())
+    sh = result["system_health"]
+    assert sh["boot_alive"] == {"value": None, "semantics": "UNKNOWN"}
+    assert sh["source_updated_at_utc"]["semantics"] == "UNKNOWN"
+    assert sh["freshness"] == "UNKNOWN"

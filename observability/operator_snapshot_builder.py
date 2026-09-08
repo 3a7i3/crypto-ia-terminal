@@ -408,6 +408,12 @@ def _build_portfolio_domain(inputs: OperatorSnapshotInputs, now: float) -> Dict[
                 except Exception:
                     status_block = {}
 
+    # Correction A (R4): fail-closed mode matrix — UNKNOWN mode must never
+    # be treated as "anything other than PAPER" (the old `mode != "PAPER"`
+    # condition below for non_paper_wallet_balance_usd incorrectly folded
+    # UNKNOWN into the REAL/TESTNET branch). PAPER -> PRESENT/ZERO or
+    # UNAVAILABLE; REAL_API/TESTNET_API -> NOT_APPLICABLE; UNKNOWN ->
+    # UNKNOWN (never NOT_APPLICABLE — that would silently assert PAPER).
     if mode == "PAPER" and inputs.wallet_sync is not None:
         try:
             paper_equity_ov: ObservedValue = observed(float(inputs.wallet_sync.get_balance()))
@@ -415,10 +421,14 @@ def _build_portfolio_domain(inputs: OperatorSnapshotInputs, now: float) -> Dict[
             paper_equity_ov = unavailable()
     elif mode == "PAPER":
         paper_equity_ov = unavailable()
+    elif mode == "UNKNOWN":
+        # UNKNOWN mode: never claim PAPER/REAL/TESTNET applicability, never
+        # read wallet_sync at all — the only honest semantic is UNKNOWN.
+        paper_equity_ov = unknown()
     else:
-        # BLOCKER A: a REAL/TESTNET/UNKNOWN mode never publishes a wallet
-        # balance under paper_equity_usd, even if wallet_sync happens to
-        # be non-None — that field is PAPER-only by name and by contract.
+        # BLOCKER A: a REAL/TESTNET mode never publishes a wallet balance
+        # under paper_equity_usd, even if wallet_sync happens to be
+        # non-None — that field is PAPER-only by name and by contract.
         paper_equity_ov = not_applicable()
 
     # Correction C: real/testnet account observations reuse the advisor
@@ -506,18 +516,39 @@ def _build_portfolio_domain(inputs: OperatorSnapshotInputs, now: float) -> Dict[
 
     # Non-PAPER modes: the process-local WalletSync balance/capital is
     # exposed under distinctly-named, provenance-labeled fields — NEVER
-    # under `paper_equity_usd` (Correction C).
-    wallet_balance_non_paper_ov: ObservedValue = not_applicable()
-    if mode != "PAPER" and inputs.wallet_sync is not None:
-        try:
-            wallet_balance_non_paper_ov = observed(float(inputs.wallet_sync.get_balance()))
-        except Exception:
+    # under `paper_equity_usd` (Correction C, R3).
+    #
+    # Correction A (R4): fail-closed matrix — REAL_API/TESTNET_API ->
+    # PRESENT/ZERO or UNAVAILABLE (read wallet_sync); PAPER ->
+    # NOT_APPLICABLE; UNKNOWN -> UNKNOWN, and `inputs.wallet_sync` is NEVER
+    # read/called in UNKNOWN mode (fixes the old `mode != "PAPER"`
+    # condition, which incorrectly included UNKNOWN and performed a wallet
+    # read + published an attributed balance it had no right to claim).
+    wallet_balance_non_paper_ov: ObservedValue
+    if mode in ("REAL_API", "TESTNET_API"):
+        if inputs.wallet_sync is not None:
+            try:
+                wallet_balance_non_paper_ov = observed(float(inputs.wallet_sync.get_balance()))
+            except Exception:
+                wallet_balance_non_paper_ov = unavailable()
+        else:
             wallet_balance_non_paper_ov = unavailable()
+    elif mode == "PAPER":
+        wallet_balance_non_paper_ov = not_applicable()
+    else:
+        # UNKNOWN mode: never call get_balance(), never NOT_APPLICABLE
+        # (that would silently assert PAPER) — the only honest semantic is
+        # UNKNOWN.
+        wallet_balance_non_paper_ov = unknown()
 
     # Correction B (R3): `WalletSync.capital_x` is a DISTINCT piece of
     # LIVE/TESTNET state from `get_balance()` above — the contract requires
     # BOTH to be materialized (§2.3). Reuses the same already-injected
     # `inputs.wallet_sync` instance; never a second WalletSync.
+    #
+    # Correction A (R4): UNKNOWN mode never reads `inputs.wallet_sync.capital_x`
+    # at all — the `unknown()` branch below is reached without touching
+    # `inputs.wallet_sync` in any way.
     capital_x_ov: ObservedValue
     if mode in ("REAL_API", "TESTNET_API"):
         if inputs.wallet_sync is None:
@@ -536,7 +567,8 @@ def _build_portfolio_domain(inputs: OperatorSnapshotInputs, now: float) -> Dict[
     else:
         # UNKNOWN mode: never claim LIVE/TESTNET provenance, never
         # NOT_APPLICABLE (that would silently assert PAPER), never a
-        # fabricated value — the only honest semantic is UNKNOWN.
+        # fabricated value, never a read of wallet_sync — the only honest
+        # semantic is UNKNOWN.
         capital_x_ov = unknown()
 
     # Correction D: `source`/`evidence` name ONLY sources actually read
@@ -559,34 +591,73 @@ def _build_portfolio_domain(inputs: OperatorSnapshotInputs, now: float) -> Dict[
         real_account_equity_usd=real_account_equity_ov,
         real_account_free_usd=real_account_free_ov,
         real_account_stale=real_account_stale_ov,
-        freshness=FreshnessStatus.FRESH if domain_available else FreshnessStatus.UNKNOWN,
+        # Correction C (R4): "freshness must follow evidence" — this
+        # domain mixes several sub-sources (MexcSimulator/WalletSync
+        # positions+prices, neither of which exposes its own last-changed
+        # timestamp to this builder, and RealAccountsObserver, which does)
+        # and NO single genuinely trustworthy timestamp covers the WHOLE
+        # domain today. FRESH would claim exactly that ("this is fresh
+        # relative to a known point"), which cannot be honestly claimed
+        # here even when `domain_available` — so this NEVER reads FRESH:
+        # DEGRADED when at least the position inventory was materialized
+        # this cycle (partial, in-process evidence exists, just not a
+        # cross-domain source timestamp), UNKNOWN when even that failed.
+        freshness=FreshnessStatus.DEGRADED if domain_available else FreshnessStatus.UNKNOWN,
         status="OK" if domain_available else "UNAVAILABLE",
         source_version=None,
         evidence=_evidence,
     )
 
-    # Correction A (R3): envelope-level `source_updated_at_utc`/`authority`.
-    # `portfolio_state` mixes several sub-sources (MexcSimulator/WalletSync,
-    # neither of which exposes its own last-changed timestamp to this
-    # builder, and RealAccountsObserver, which does) — the only genuinely
-    # trustworthy single timestamp available for the whole domain is the
-    # real-accounts poll time when that sub-source was actually queried
-    # this cycle; otherwise this is honestly UNKNOWN, never a copy of
-    # `observed_at_utc`/`generated_at_utc`.
+    # Correction A (R3) / Correction C (R4): envelope-level
+    # `source_updated_at_utc`/`authority`. `portfolio` mixes several
+    # sub-sources (MexcSimulator/WalletSync positions+prices, neither of
+    # which exposes its own last-changed timestamp to this builder, and
+    # RealAccountsObserver, which does) — R3 promoted the real-accounts
+    # poll timestamp to THIS domain-level field whenever that sub-source
+    # was queried, which is exactly the R4 defect: a real-accounts-only
+    # timestamp describes only that sub-source, never the whole domain
+    # (positions/prices/WalletSync collectively). The domain-level
+    # `source_updated_at_utc` therefore stays UNKNOWN unconditionally —
+    # never a copy of `observed_at_utc`/`generated_at_utc`, and never a
+    # promoted sub-source timestamp — while the real information is
+    # preserved, not discarded, via `real_account_last_poll_utc` (a
+    # sibling field scoped to its own sub-source) and
+    # `evidence.source_timestamps.real_accounts` below.
     portfolio_state_dict = dict(portfolio_state_snapshot.to_dict())
-    portfolio_state_dict["source_updated_at_utc"] = _source_updated_ov(
-        real_accounts_source_updated_iso if real_accounts_queried else None
-    )
+    portfolio_state_dict["source_updated_at_utc"] = _source_updated_ov(None)
     portfolio_state_dict["authority"] = _AUTHORITY_OBSERVATIONAL_TELEMETRY
 
+    real_account_last_poll_ov = (
+        observed(real_accounts_source_updated_iso)
+        if (real_accounts_queried and real_accounts_source_updated_iso)
+        else unknown()
+    )
+    portfolio_state_dict["real_account_last_poll_utc"] = real_account_last_poll_ov.to_dict()
+    if real_accounts_queried and real_accounts_source_updated_iso:
+        portfolio_state_dict["evidence"] = {
+            **portfolio_state_dict.get("evidence", {}),
+            "source_timestamps": {"real_accounts": real_accounts_source_updated_iso},
+        }
+
+    # Correction B (R4): ONE unambiguous portfolio domain envelope — the
+    # full O-01 spine (domain/observed_at_utc/source/source_version/
+    # freshness/status/schema_version/evidence/source_updated_at_utc/
+    # authority) lives directly at `snapshot["portfolio"]`, together with
+    # every sibling field (mode, non_paper_wallet_balance_usd,
+    # capital_x_usd, open_positions, portfolio_status). No second, nested
+    # `portfolio_state` copy is kept — `paper_equity_usd`,
+    # `paper_open_positions_count`, `paper_unrealized_pnl_usd`,
+    # `real_account_*` already live inside `portfolio_state_dict` via
+    # `compose_portfolio_state_snapshot()` above, so merging that dict IS
+    # the single canonical representation; no field exists outside this
+    # one envelope's scope.
     return {
+        **portfolio_state_dict,
         "mode": mode,
-        "paper_equity_usd": paper_equity_ov.to_dict(),
         "non_paper_wallet_balance_usd": wallet_balance_non_paper_ov.to_dict(),
         "capital_x_usd": capital_x_ov.to_dict(),
         "open_positions": open_positions_ov.to_dict(),
         **status_block,
-        "portfolio_state": portfolio_state_dict,
     }
 
 
@@ -732,7 +803,15 @@ def _build_decision_domain(inputs: OperatorSnapshotInputs, now: float) -> Dict[s
         stages=(),
         trade_allowed=unknown(),
         first_blocker=unknown(),
-        freshness=FreshnessStatus.FRESH if per_symbol else FreshnessStatus.UNKNOWN,
+        # Correction C (R4): "freshness must follow evidence" — the
+        # domain-level aggregate (stages/trade_allowed/first_blocker) has
+        # no real per-cycle producer (option 2, unchanged from R3) and
+        # `source_updated_at_utc` stays UNKNOWN below, so `freshness` must
+        # never read FRESH merely because the per-symbol list happens to
+        # be non-empty — that was the R3 bug (a composer call existing is
+        # not proof its values are genuinely populated at the domain
+        # level). Always UNKNOWN here, regardless of `per_symbol` count.
+        freshness=FreshnessStatus.UNKNOWN,
         status="ATTENTION_REQUIRED",
         source="core.advisor_loop.DecisionRecord (per-symbol, injected) + core.decision_packet.DecisionPacket",
         source_version=None,
