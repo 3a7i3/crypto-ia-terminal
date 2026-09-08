@@ -259,6 +259,23 @@ health/identity/freshness and an honest `boot_alive` `UNKNOWN` state,
 never a liveness-determination claim, which remains gated on T-1. R1-R4.3
 corrections are unchanged and not reverted; still documentation-only.
 
+**R4.5 remediation (O-02W-B-R4.5, 2026-09-08):** independent review found
+residual passages still deferring the future independent liveness
+publisher to "O-02W-D, or T-1" / "O-02W-D/T-1" / "post-O-02W-D/T-1"
+(§14.2, its canonical mapping table, and the `REQUIRED_FIELD_CONTRACT_
+TABLE`'s `system_health.boot_alive` row), contradicting R4.4's own
+correctly-stated final mission allocation. All are corrected in place to
+one owner: **T-1 alone** implements the independent liveness publisher;
+O-02W-C only ever serializes `value=null`/`UNKNOWN`; O-02W-D, before T-1
+exists, exposes that `UNKNOWN` state honestly and never builds the
+publisher; after T-1 integration, the API reads T-1's independent
+artifact and maps it into `system_health.boot_alive`. Test 28 and its
+mission-assignment table row are now phase-explicit (O-02W-C /
+O-02W-D-pre-T-1 / T-1-integration) rather than describing O-02W-D as
+"preserving whatever value the snapshot carries" in a single enduring
+statement that blurred the pre-T-1 and post-T-1 cases. R1-R4.4
+corrections are unchanged and not reverted; still documentation-only.
+
 This document is the authoritative source-inspected contract for a future
 read-only "operator API" serving the React cockpit (`frontend/`). It
 supersedes no code — it constrains what a future implementation mission
@@ -1823,10 +1840,11 @@ it is still running, exactly the same identity-vs-liveness conflation
 alone (a hung process can leave a wall-clock-fresh but stale file, §14.1).
 A genuinely independent liveness publisher (the watchdog atomically
 writing its own positive "I observed the process alive at T" record,
-readable by a separate API process) **may be deferred to a future,
-explicitly authorized mission** (O-02W-D, or a dedicated `T-1`-class
-runtime/deployment mission) — it is out of scope for this contract and
-for O-02W-C (§21) to implement.
+readable by a separate API process) **is deferred to the future `T-1`
+mission, and to `T-1` alone** — it is out of scope for this contract,
+for O-02W-C (§21.1), and for O-02W-D (§21.2) to implement. O-02W-D may
+only read and expose whatever T-1 eventually publishes; it never builds
+the publisher itself.
 
 **Canonical serialized public field (R4.4 — resolves the R4.2 duplication
 between this table and `REQUIRED_FIELD_CONTRACT_TABLE`'s separate
@@ -1842,7 +1860,7 @@ or an independent enum competing with `system_health.boot_alive`.
 | State | `value` | `semantics` | When |
 |---|---|---|---|
 | **Current state — no independent publisher exists** | `null` | `UNKNOWN` | Always, today. §14.2/BLOCKER D: `watchdog_vps.py` publishes no positive, readable record; no liveness-source timestamp exists at all. Never inferred from snapshot freshness, manifest presence, `process_instance_id`/`instance_relation`, PID, or S-03 output. |
-| **Future fresh independent publisher — positive observation** | `true` | `PRESENT` | Once a genuinely independent liveness publisher exists (deferred to O-02W-D/T-1) and positively observes the process running, within its own freshness window. |
+| **Future fresh independent publisher — positive observation** | `true` | `PRESENT` | Once a genuinely independent liveness publisher exists (deferred to T-1 alone) and positively observes the process running, within its own freshness window. |
 | **Future fresh independent publisher — negative observation** | `false` | `FALSE` | The same future publisher positively observes the process is not running. |
 | **Future publisher exists but cannot be read** | `null` | `UNAVAILABLE` | The publisher's record exists but the read fails (unreachable file/socket, parse failure, etc.). |
 | **Future publisher record exceeds its governed freshness threshold** | `null` | `STALE` | The publisher's own last-observation timestamp is older than its governed freshness threshold (§13). |
@@ -2360,7 +2378,7 @@ correction (BLOCKER J).
 | `pipeline.execution_ratio` | All-signals-wide executed/refused ratio | PercentageMetric | pct | numerator=executed, denominator=all evaluated signals | OBSERVATIONAL_TELEMETRY | `UNAVAILABLE` if `activity_tracker` unreachable | `0%` is a genuine (bad) rate, not absence | per cycle |
 | `attrition.dominant_blocker` | Most frequent rejection layer | str (enum-like) | — | over `RejectionStore` window | OBSERVATIONAL_TELEMETRY | `UNKNOWN` if zero rejection records at all | N/A (categorical) | `RejectionStore` record timestamps |
 | `regret.canonical_freshness` | Regret v2 evaluated-horizon freshness | FreshnessStatus | enum | N/A | OBSERVATIONAL_TELEMETRY | `UNKNOWN` if no canonical evaluation has ever run | N/A | `last_canonical_evaluated_utc` |
-| `system_health.boot_alive` (`ObservedValue[bool]` — **the one canonical serialized liveness field, R4.4**; `LIVENESS` remains a conceptual axis name only, §14.2, never a second serialized field or a competing `ALIVE`/`DEAD`/`UNKNOWN` enum) | Process liveness — **`CONTRACT_EXISTS`/`CHECK_IMPLEMENTATION_EXISTS` today (watchdog's own `pgrep`-based check runs), but `NOT_EXPOSED` for any independent reader** (§14.2/BLOCKER D: `watchdog_vps.py`'s alive branch only logs `log.debug(...)`, publishing nothing durable). Full mapping (§14.2): today always `value=null`/`UNKNOWN`; once a genuinely independent publisher exists (deferred to O-02W-D/T-1), a positive observation is `value=true`/`PRESENT`, a negative observation is `value=false`/`FALSE`, an unreadable publisher record is `value=null`/`UNAVAILABLE`, and a publisher record older than its governed freshness threshold is `value=null`/`STALE` | `ObservedValue[bool]` | boolean | N/A | OBSERVATIONAL_TELEMETRY | Today: **must render `value=null`/`semantics=UNKNOWN`** for every read — never inferred from snapshot freshness, manifest presence, `process_instance_id`/`instance_relation`, PID, or S-03 output; post-O-02W-D/T-1 (once the deferred independent publisher exists), `UNAVAILABLE` if its record cannot be read, `STALE` if it exceeds its own freshness threshold | `FALSE` (`value=false`) would be genuine (process positively observed down) once a real publisher exists; today there is no genuine value to report at all, only `UNKNOWN` | watchdog poll (once exposed), §13 |
+| `system_health.boot_alive` (`ObservedValue[bool]` — **the one canonical serialized liveness field, R4.4**; `LIVENESS` remains a conceptual axis name only, §14.2, never a second serialized field or a competing `ALIVE`/`DEAD`/`UNKNOWN` enum) | Process liveness — **`CONTRACT_EXISTS`/`CHECK_IMPLEMENTATION_EXISTS` today (watchdog's own `pgrep`-based check runs), but `NOT_EXPOSED` for any independent reader** (§14.2/BLOCKER D: `watchdog_vps.py`'s alive branch only logs `log.debug(...)`, publishing nothing durable). Full mapping (§14.2): today always `value=null`/`UNKNOWN`; once a genuinely independent publisher exists (deferred to T-1 alone; O-02W-D never builds it, only consumes it), a positive observation is `value=true`/`PRESENT`, a negative observation is `value=false`/`FALSE`, an unreadable publisher record is `value=null`/`UNAVAILABLE`, and a publisher record older than its governed freshness threshold is `value=null`/`STALE` | `ObservedValue[bool]` | boolean | N/A | OBSERVATIONAL_TELEMETRY | Today: **must render `value=null`/`semantics=UNKNOWN`** for every read — never inferred from snapshot freshness, manifest presence, `process_instance_id`/`instance_relation`, PID, or S-03 output; post-T-1 integration (once T-1's independent publisher exists and the API consumes its artifact), `UNAVAILABLE` if its record cannot be read, `STALE` if it exceeds its own freshness threshold | `FALSE` (`value=false`) would be genuine (process positively observed down) once a real publisher exists; today there is no genuine value to report at all, only `UNKNOWN` | watchdog poll (once exposed), §13 |
 | `system_health.health_score` | Composite scientific health (0-100), NOT a global system percentage — scoped to `MetricsSnapshot` inputs only | float | pct (0-100) | over defined `MetricsSnapshot` inputs | OBSERVATIONAL_TELEMETRY | `UNAVAILABLE` if `MetricsSnapshot` missing | `0` is a genuine (critical) score | `MetricsSnapshot` cadence |
 | `mode` (portfolio/wallet) | `PAPER`/`REAL_API`/`TESTNET_API`/`UNKNOWN` — the API publishes the producer's **already-resolved provenance label** (`core/advisor_loop.py::_balance_provenance_from_mode()` or an extracted resolver with identical semantics, §7/BLOCKER E), never reinterprets a raw internal mode independently; `PAPER_TRADING_ENABLED` truthy always overrides to `PAPER` regardless of `exec_mode` | enum | — | N/A | provenance metadata, not authority | `UNKNOWN` if snapshot predates first successful mode resolution, **or if the underlying `exec_mode` was itself unrecognized (fail-closed — never defaulted to `REAL_API` or `PAPER`)** | N/A (categorical) | process-lifetime constant |
 | `snapshot_id` / `cycle` / `process_instance_id` | Identity/atomicity spine | mixed | — | N/A | envelope metadata | never null in a valid snapshot | N/A | write-time |
@@ -2394,7 +2412,7 @@ several, and each test below belongs to a specific one):**
 | API/auth tests (routes, HMAC auth, WS) | **O-02W-D** (§21.2) exclusively — O-02W-C builds no API surface at all |
 | Source-SHA/runtime-evidence tests (19-20, new below) | Three-way split (R4.4, matching tests 19-20's own bodies): **O-02W-C** (producer-side tests — `source_sha`/`worktree_state`/`deployment_evidence`/`runtime_sha_evidence_status` materialization correctness, including the fail-closed/no-upgrade cases), **O-02W-D** (the API preserves the producer's values/statuses without upgrading, inferring, or relabeling them), **T-1** (tests the future independent runtime-attestation mechanism that may legitimately produce `runtime_sha_evidence_status = VERIFIED`) |
 | Builder-boundary/no-fresh-instantiation, fail-passive serialization, price-unavailability materialization, restore-vs-normal provenance, missing-`DecisionPacket` materialization, process-identity equality/no-second-identity, no-secrets whitelist (23-27, 29-30, 32, new below) | **O-02W-C** (§21.1) — the advisor-owned passive snapshot builder's own test suite |
-| Current-liveness-never-fabricated test (28, new below) | Three-way split, matching test 28's own body (R4.4 — field renamed to the one canonical `system_health.boot_alive`): **O-02W-C** (the producer snapshot builder never emits `true`/`PRESENT`, always `value=null`/`UNKNOWN`), **O-02W-D** (the API preserves the snapshot's value without inference), **T-1** (the future independent liveness publisher is the only mechanism that may ever authorize `true`/`PRESENT` or `false`/`FALSE`) |
+| Current-liveness-never-fabricated test (28, new below) | Phase-explicit three-way split, matching test 28's own body (R4.5 — one owner for the publisher): **O-02W-C** (the producer snapshot builder never emits `true`/`PRESENT`, always `value=null`/`UNKNOWN`), **O-02W-D pre-T-1** (the API exposes the honest `value=null`/`UNKNOWN` state with zero inference; it never builds the publisher), **T-1 integration** (T-1 is the sole mission authorized to implement the independent liveness publisher and owns the integration work needed for the API to consume it; only after T-1 integration does the API read T-1's artifact and map it to `true`/`PRESENT`, `false`/`FALSE`, `null`/`UNAVAILABLE`, or `null`/`STALE`) |
 | No-fabricated-`trace_id` test (31, new below) | **O-02W-C** (materialization must not synthesize the field) and **O-02W-D** (API exposure must not synthesize it either) — both missions' test suites carry this assertion independently |
 
 1. **Reader never observes a partial canonical JSON snapshot.** A test
@@ -2767,23 +2785,29 @@ already anticipated but had not yet enumerated as numbered items):**
       step only ever writes `value=null`/`semantics=UNKNOWN`, since it
       has no independent liveness publisher to read from (§14.2/
       BLOCKER D).
-    - **O-02W-D** (the API): a test must assert the API layer
-      preserves whatever value/semantics the snapshot carries for
-      `system_health.boot_alive` without inference — it never derives
-      `true`/`false` from `instance_relation`, manifest presence, or
-      snapshot freshness, and against today's actual system (no new
-      publisher built) every read renders `value=null`/`UNKNOWN`, never
-      `true`/`PRESENT`.
-    - **T-1** (the later independent publisher): a forward-looking test,
-      exercised only once the deferred independent liveness publisher
-      exists, must confirm that only a genuinely independent,
-      positively-published liveness record can ever authorize
-      `value=true`/`PRESENT` or `value=false`/`FALSE` as legal values
-      for `system_health.boot_alive` — no other signal in this
-      contract's current model is a legitimate source for either, and
-      an unreadable or stale publisher record must render
-      `UNAVAILABLE`/`STALE` respectively, never silently coerced to
-      `PRESENT`.
+    - **O-02W-D pre-T-1** (the API, before T-1's independent publisher
+      exists): a test must assert the API layer exposes exactly the
+      `value=null`/`semantics=UNKNOWN` state honestly, with zero
+      inference — it never derives `true`/`false` from
+      `instance_relation`, manifest presence, or snapshot freshness, and
+      against today's actual system (no publisher built yet) every read
+      renders `value=null`/`UNKNOWN`, never `true`/`PRESENT`. This test
+      does not implement or assume any publisher; O-02W-D is a consumer/
+      presentation layer only, never the publisher's builder.
+    - **T-1 integration** (the sole owner of the independent publisher,
+      including the integration work the read-only API needs to consume
+      it): a test, exercised only once T-1's independent liveness
+      publisher exists, must confirm (a) the publisher is the sole
+      evidence source — no other signal in this contract's model
+      (snapshot freshness, manifest presence, `process_instance_id`/
+      `instance_relation`, PID, or S-03 output) may ever authorize a
+      value — and (b) the API, after T-1 integration, reads T-1's
+      independent artifact and maps its exact evidence deterministically:
+      a positive observation to `value=true`/`PRESENT`, a negative
+      observation to `value=false`/`FALSE`, an unreadable record to
+      `value=null`/`UNAVAILABLE`, and a record older than its governed
+      freshness threshold to `value=null`/`STALE` — never silently
+      coerced to `PRESENT`.
 
     Exercises the negative invariant added to §14.2 by this correction.
 29. **`process_instance_id` equality holds across S-03, the operator
