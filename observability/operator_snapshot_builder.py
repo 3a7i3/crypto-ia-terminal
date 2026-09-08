@@ -20,15 +20,27 @@ process_instance_id, generated_at_utc, source_sha, worktree_state,
 deployment_evidence, runtime_sha_evidence_status.
 
 Domain payloads materialized here (§21.1 "minimum process-local
-materialization"): portfolio (open positions + paper equity + mode),
-decision authority (EXECUTION_AUTHORITY vs OBSERVATIONAL_TELEMETRY vs
+materialization"): portfolio (open positions + paper equity + mode +
+real/testnet account observation, when configured — see below), decision
+authority (EXECUTION_AUTHORITY vs OBSERVATIONAL_TELEMETRY vs
 DECISION_OUTCOME_EVIDENCE, §8), system_health.boot_alive (always
 `value=null`/`UNKNOWN` today, §14.2/BLOCKER D — O-02W-C never fabricates
 liveness). Everything else this contract catalogues (attrition, regret,
-pipeline stages, disk/IO, real accounts) is intentionally left
-NOT_EXPOSED by this mission — see the mission PR description for the
-full list; O-02W-C does not attempt to materialize every O-01 domain in
-one pass.
+pipeline stages, disk/IO) remains NOT_EXPOSED by this mission — see the
+mission PR description for the full list; O-02W-C does not attempt to
+materialize every O-01 domain in one pass.
+
+Real/testnet account observation (§5/§7, wired R2-R4): an already-existing
+advisor-owned `observability.real_accounts.RealAccountsObserver` MAY be
+injected into `OperatorSnapshotInputs.real_accounts_observer`. This module
+never instantiates a new observer or exchange client itself — only three
+honest states exist: unconfigured (no reference injected) ->
+`NOT_APPLICABLE`; configured but unreadable this cycle -> `UNAVAILABLE`;
+configured and readable -> `observed(...)`. The real-account poll
+timestamp stays scoped to its own sub-source
+(`portfolio.real_account_last_poll_utc`) and is never promoted to the
+whole-portfolio `source_updated_at_utc`, which remains `UNKNOWN` (§4
+correction A/C, R3-R4).
 """
 
 from __future__ import annotations
@@ -317,13 +329,16 @@ def _build_portfolio_domain(inputs: OperatorSnapshotInputs, now: float) -> Dict[
       opened_ts) — a single symbol-keyed lookup, never a re-scan.
     - `paper_equity_usd` is published ONLY when `inputs.mode == "PAPER"`
       (BLOCKER A) — a live/testnet balance can never appear under this
-      field name. Real/testnet account equity is intentionally
-      NOT_APPLICABLE here: this mission wires no
-      `observability.real_accounts.RealAccountsObserver` reference (no
-      such live reference is passed into `OperatorSnapshotInputs` this
-      round) — represented honestly via `not_applicable()`/`UNKNOWN`,
-      never fabricated (§21.1, per contract §5/§7 producer:
-      `observability/real_accounts.py`).
+      field name.
+    - Real/testnet account equity/free-cash/staleness (§5/§7, producer:
+      `observability/real_accounts.py::RealAccountsObserver`) are
+      materialized from an already-existing advisor-owned
+      `RealAccountsObserver` reference, when one is injected via
+      `inputs.real_accounts_observer` — this module never instantiates
+      one itself. Unconfigured (no reference injected) -> honest
+      `not_applicable()`; configured but unreadable this cycle ->
+      `unavailable()`; configured and readable -> `observed(...)`. See
+      correction C below for the freshness scoping of this sub-source.
     """
 
     sim = inputs.mexc_simulator
@@ -414,9 +429,20 @@ def _build_portfolio_domain(inputs: OperatorSnapshotInputs, now: float) -> Dict[
     # UNKNOWN into the REAL/TESTNET branch). PAPER -> PRESENT/ZERO or
     # UNAVAILABLE; REAL_API/TESTNET_API -> NOT_APPLICABLE; UNKNOWN ->
     # UNKNOWN (never NOT_APPLICABLE — that would silently assert PAPER).
+    # Correction A (R4.1): explicit access tracking — `evidence.wallet_sync`
+    # must reflect a GENUINE query this cycle, never merely the presence of
+    # `inputs.wallet_sync`. `wallet_sync_queried` flips True only on the
+    # code paths below that actually attempt `get_balance()`/`capital_x`;
+    # `wallet_sync_read_ok` flips True only when such an attempt genuinely
+    # yielded a value (a failed attempt is still "queried", just not "ok").
+    wallet_sync_queried = False
+    wallet_sync_read_ok = False
+
     if mode == "PAPER" and inputs.wallet_sync is not None:
+        wallet_sync_queried = True
         try:
             paper_equity_ov: ObservedValue = observed(float(inputs.wallet_sync.get_balance()))
+            wallet_sync_read_ok = True
         except Exception:
             paper_equity_ov = unavailable()
     elif mode == "PAPER":
@@ -527,8 +553,10 @@ def _build_portfolio_domain(inputs: OperatorSnapshotInputs, now: float) -> Dict[
     wallet_balance_non_paper_ov: ObservedValue
     if mode in ("REAL_API", "TESTNET_API"):
         if inputs.wallet_sync is not None:
+            wallet_sync_queried = True
             try:
                 wallet_balance_non_paper_ov = observed(float(inputs.wallet_sync.get_balance()))
+                wallet_sync_read_ok = True
             except Exception:
                 wallet_balance_non_paper_ov = unavailable()
         else:
@@ -554,6 +582,7 @@ def _build_portfolio_domain(inputs: OperatorSnapshotInputs, now: float) -> Dict[
         if inputs.wallet_sync is None:
             capital_x_ov = unavailable()
         else:
+            wallet_sync_queried = True
             try:
                 cx = inputs.wallet_sync.capital_x
             except Exception:
@@ -562,6 +591,7 @@ def _build_portfolio_domain(inputs: OperatorSnapshotInputs, now: float) -> Dict[
                 capital_x_ov = unavailable()
             else:
                 capital_x_ov = observed(float(cx))
+                wallet_sync_read_ok = True
     elif mode == "PAPER":
         capital_x_ov = not_applicable()
     else:
@@ -571,14 +601,26 @@ def _build_portfolio_domain(inputs: OperatorSnapshotInputs, now: float) -> Dict[
         # semantic is UNKNOWN.
         capital_x_ov = unknown()
 
-    # Correction D: `source`/`evidence` name ONLY sources actually read
-    # this cycle — RealAccountsObserver is never named unless it was
-    # genuinely queried this cycle.
+    # Correction D (R3) / Correction A (R4.1): `source`/`evidence` name
+    # ONLY sources actually read this cycle — never inferred merely from a
+    # reference being non-None (that was the R4.1 defect for
+    # `wallet_sync`: `inputs.wallet_sync is not None` is presence, not
+    # access). `mexc_simulator` is genuinely touched whenever `sim` is not
+    # None (`paper_portfolio_view(sim)` is always attempted on that path;
+    # a caught failure there is `domain_available=False`, so the read was
+    # attempted but did not succeed). `wallet_sync` is genuinely touched
+    # only via `wallet_sync_queried` above, set exclusively on the code
+    # paths that actually call `get_balance()`/read `capital_x` — UNKNOWN
+    # mode and `wallet_sync=None` both leave it False, so the key is
+    # omitted entirely rather than published as a false "read"/placeholder
+    # "not_read" (no such placeholder convention exists elsewhere in this
+    # dict — `real_accounts_observer` follows the same omit-if-unqueried
+    # pattern). `real_accounts_observer` is unchanged from R3/R4.
     _evidence = {"builder": "O-02W-C"}
     if sim is not None:
-        _evidence["mexc_simulator"] = "read"
-    if inputs.wallet_sync is not None:
-        _evidence["wallet_sync"] = "read"
+        _evidence["mexc_simulator"] = "read" if domain_available else "read_attempted_failed"
+    if wallet_sync_queried:
+        _evidence["wallet_sync"] = "read" if wallet_sync_read_ok else "read_attempted_failed"
     if real_accounts_queried:
         _evidence["real_accounts_observer"] = "read"
 
@@ -602,8 +644,20 @@ def _build_portfolio_domain(inputs: OperatorSnapshotInputs, now: float) -> Dict[
         # DEGRADED when at least the position inventory was materialized
         # this cycle (partial, in-process evidence exists, just not a
         # cross-domain source timestamp), UNKNOWN when even that failed.
+        #
+        # Correction B (R4.1): `status` must never claim `OK` while
+        # `freshness` admits `DEGRADED`/`UNKNOWN` — that combination is an
+        # internal contradiction (full health claimed alongside admitted
+        # degraded freshness). `status` now honestly tracks `freshness`
+        # via the same `domain_available` condition, never a second,
+        # independently-derived health judgment:
+        #   - inventory materialized this cycle -> freshness=DEGRADED,
+        #     status=DEGRADED (was incorrectly OK before R4.1).
+        #   - inventory could not be materialized (view/simulator
+        #     failure) -> freshness=UNKNOWN, status=UNAVAILABLE
+        #     (unchanged).
         freshness=FreshnessStatus.DEGRADED if domain_available else FreshnessStatus.UNKNOWN,
-        status="OK" if domain_available else "UNAVAILABLE",
+        status="DEGRADED" if domain_available else "UNAVAILABLE",
         source_version=None,
         evidence=_evidence,
     )

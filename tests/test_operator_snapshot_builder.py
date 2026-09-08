@@ -1959,3 +1959,162 @@ def test_system_health_still_boot_alive_unknown_after_r4_restructuring():
     assert sh["boot_alive"] == {"value": None, "semantics": "UNKNOWN"}
     assert sh["source_updated_at_utc"]["semantics"] == "UNKNOWN"
     assert sh["freshness"] == "UNKNOWN"
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# R4.1 — fifth MASTER review corrections A-C
+# ═══════════════════════════════════════════════════════════════════════════
+
+# ── Correction A — evidence.wallet_sync must reflect a GENUINE read ───────
+
+
+def test_unknown_mode_wallet_sync_never_accessed_by_raising_fake_r4_1():
+    """UNKNOWN mode with a raising WalletSync fake never touches it — the
+    fake never raises because it is never called (re-verifies R4's fix
+    is intact under the R4.1 evidence-tracking rewrite)."""
+
+    wallet = _RaisingWallet()
+    result = osb.build_operator_snapshot(_inputs(mode="UNKNOWN", wallet_sync=wallet))
+    portfolio = result["portfolio"]
+    assert portfolio["paper_equity_usd"]["semantics"] == "UNKNOWN"
+    assert portfolio["non_paper_wallet_balance_usd"]["semantics"] == "UNKNOWN"
+    assert portfolio["capital_x_usd"]["semantics"] == "UNKNOWN"
+
+
+def test_unknown_mode_evidence_never_claims_wallet_sync_read():
+    """Correction A: the resulting evidence dict must NOT claim
+    `wallet_sync` was read when the builder never queried it (UNKNOWN
+    mode) — the key must be entirely absent, not a false 'read' claim nor
+    a placeholder value."""
+
+    wallet = _RaisingWallet()
+    result = osb.build_operator_snapshot(_inputs(mode="UNKNOWN", wallet_sync=wallet))
+    evidence = result["portfolio"]["evidence"]
+    assert "wallet_sync" not in evidence
+
+
+def test_paper_mode_wallet_sync_genuinely_queried_records_evidence():
+    """Correction A: PAPER mode with WalletSync genuinely queried (and
+    successfully read) records evidence.wallet_sync == 'read'."""
+
+    wallet = _FakeWallet(balance=99.0)
+    result = osb.build_operator_snapshot(_inputs(mode="PAPER", wallet_sync=wallet))
+    evidence = result["portfolio"]["evidence"]
+    assert evidence["wallet_sync"] == "read"
+
+
+@pytest.mark.parametrize("mode", ["REAL_API", "TESTNET_API"])
+def test_real_testnet_mode_wallet_sync_genuinely_queried_records_evidence(mode):
+    """Correction A: REAL_API/TESTNET_API with WalletSync genuinely
+    queried records evidence.wallet_sync == 'read'."""
+
+    wallet = _FakeWalletWithCapitalX(balance=10.0, capital_x=20.0)
+    result = osb.build_operator_snapshot(_inputs(mode=mode, wallet_sync=wallet))
+    evidence = result["portfolio"]["evidence"]
+    assert evidence["wallet_sync"] == "read"
+
+
+def test_wallet_sync_none_never_produces_read_evidence():
+    """Correction A: `wallet_sync=None` never produces `wallet_sync` read
+    evidence in ANY mode, since no instance was ever injected to query."""
+
+    for mode in ("PAPER", "REAL_API", "TESTNET_API", "UNKNOWN"):
+        result = osb.build_operator_snapshot(_inputs(mode=mode, wallet_sync=None))
+        evidence = result["portfolio"]["evidence"]
+        assert "wallet_sync" not in evidence, f"unexpected wallet_sync evidence for mode={mode}"
+
+
+def test_wallet_sync_failed_read_never_claims_success_in_evidence():
+    """Correction A: a genuinely-attempted but FAILED WalletSync read
+    (get_balance() raises) must never be represented as a successful
+    'read' — it is recorded as queried-but-failed, distinctly."""
+
+    wallet = _FakeWallet(raise_on_read=True)
+    result = osb.build_operator_snapshot(_inputs(mode="PAPER", wallet_sync=wallet))
+    evidence = result["portfolio"]["evidence"]
+    assert evidence["wallet_sync"] != "read"
+    assert evidence["wallet_sync"] == "read_attempted_failed"
+    # And the field itself must be UNAVAILABLE, never a fabricated value.
+    assert result["portfolio"]["paper_equity_usd"]["semantics"] == "UNAVAILABLE"
+
+
+def test_mexc_simulator_evidence_does_not_claim_read_on_view_failure():
+    """Secondary A fix: the equivalent MexcSimulator evidence bug (claims
+    'read' merely because `sim is not None`, regardless of whether
+    `paper_portfolio_view()` actually succeeded) — a failing view must not
+    be represented as a plain successful 'read'."""
+
+    class _BrokenSimulator:
+        _positions = {}
+
+    import unittest.mock as _mock
+
+    with _mock.patch(
+        "paper_trading.paper_portfolio_view.paper_portfolio_view",
+        side_effect=RuntimeError("boom"),
+    ):
+        result = osb.build_operator_snapshot(_inputs(mexc_simulator=_BrokenSimulator()))
+    evidence = result["portfolio"]["evidence"]
+    assert evidence["mexc_simulator"] != "read"
+    assert evidence["mexc_simulator"] == "read_attempted_failed"
+    assert result["portfolio"]["status"] == "UNAVAILABLE"
+
+
+# ── Correction B — portfolio domain status/freshness mapping ──────────────
+
+
+def test_portfolio_status_unavailable_when_inventory_cannot_be_materialized():
+    """Correction B, table row 1: position inventory CANNOT be
+    materialized (no simulator at all) -> freshness=UNKNOWN,
+    status=UNAVAILABLE."""
+
+    result = osb.build_operator_snapshot(_inputs(mexc_simulator=None))
+    portfolio = result["portfolio"]
+    assert portfolio["freshness"] == "UNKNOWN"
+    assert portfolio["status"] == "UNAVAILABLE"
+
+
+def test_portfolio_status_degraded_when_inventory_materialized_but_domain_freshness_unproved():
+    """Correction B, table row 2: position inventory IS materialized (a
+    working simulator with a resolvable view), but whole-domain freshness
+    cannot be established (the normal case, per R4) -> freshness=DEGRADED,
+    status=DEGRADED (was incorrectly status=OK before R4.1)."""
+
+    pos = _FakePosition("p1", "BTC/USDT")
+    sim = _FakeSimulator(positions={"BTC/USDT": pos}, prices={"BTC/USDT": 100.0})
+    result = osb.build_operator_snapshot(_inputs(mexc_simulator=sim))
+    portfolio = result["portfolio"]
+    assert portfolio["freshness"] == "DEGRADED"
+    assert portfolio["status"] == "DEGRADED"
+
+
+def test_portfolio_status_never_ok_while_freshness_not_fresh_invariant():
+    """Correction B general invariant: no current portfolio snapshot can
+    combine status=OK with a non-FRESH domain freshness — checked across
+    every code path this builder can produce for the portfolio domain."""
+
+    pos = _FakePosition("p1", "BTC/USDT")
+    sim = _FakeSimulator(positions={"BTC/USDT": pos}, prices={"BTC/USDT": 100.0})
+    wallet = _FakeWalletWithCapitalX(balance=10.0, capital_x=20.0)
+
+    variants = [
+        {},
+        {"mexc_simulator": sim},
+        {"mexc_simulator": None},
+        {"mexc_simulator": sim, "wallet_sync": wallet, "mode": "PAPER"},
+        {"mexc_simulator": sim, "wallet_sync": wallet, "mode": "REAL_API"},
+        {"mexc_simulator": sim, "mode": "UNKNOWN"},
+    ]
+    for kwargs in variants:
+        result = osb.build_operator_snapshot(_inputs(**kwargs))
+        portfolio = result["portfolio"]
+        if portfolio["status"] == "OK":
+            assert portfolio["freshness"] == "FRESH", (
+                f"status=OK combined with non-FRESH freshness="
+                f"{portfolio['freshness']!r} for kwargs={kwargs}"
+            )
+        # Given this builder never emits FRESH (R4), this collapses to an
+        # unconditional never-OK assertion today — still expressed via the
+        # general rule above so it stays correct if a genuine FRESH
+        # producer is ever added.
+        assert portfolio["status"] != "OK"
