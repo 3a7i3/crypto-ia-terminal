@@ -71,6 +71,22 @@ DEFAULT_MIN_REFRESH_INTERVAL_S = 30.0
 
 _RESTORED_PERSONALITY = "restored"
 
+# Envelope-level authority vocabulary (§4/§8, correction A, R3). Distinct
+# from and never overwriting the existing PER-FIELD authority labels
+# already correctly applied to `is_actionable` (EXECUTION_AUTHORITY) and
+# `trade_allowed`/`first_blocker` (OBSERVATIONAL_TELEMETRY) inside the
+# decision domain — this is a coarser, domain-envelope-level tag.
+_AUTHORITY_OBSERVATIONAL_TELEMETRY = "OBSERVATIONAL_TELEMETRY"
+
+
+def _source_updated_ov(iso_ts: Optional[str]) -> Dict[str, Any]:
+    """Wrap a genuine source-side last-updated timestamp as an
+    `ObservedValue`, or an honest `UNKNOWN` when no trustworthy source
+    timestamp exists this cycle (§4 correction A, R3) — never a
+    renamed/copied `observed_at_utc`/`generated_at_utc`."""
+
+    return (observed(iso_ts) if iso_ts else unknown()).to_dict()
+
 
 # ── Dependency-injection inputs — never constructed by this module ──────────
 
@@ -230,6 +246,62 @@ def _fetch_price_for(mexc_simulator: Any, symbol: str) -> Optional[float]:
         return None
 
 
+def _real_accounts_last_poll_utc(real_accounts_observer: Any) -> Optional[str]:
+    """Read-only access to the observer's own last-real-poll timestamp
+    (§21.1 correction C, R3) — never a new exchange client, never a
+    fabricated value. Returns None if the observer exposes no such
+    accessor (older stand-in/fake) or has never polled."""
+
+    accessor = getattr(real_accounts_observer, "last_poll_utc", None)
+    if not callable(accessor):
+        return None
+    try:
+        return accessor()
+    except Exception:
+        return None
+
+
+def _real_accounts_ttl_s(real_accounts_observer: Any) -> Optional[float]:
+    ttl = getattr(real_accounts_observer, "ttl_s", None)
+    if ttl is not None:
+        try:
+            return float(ttl)
+        except Exception:
+            pass
+    # Fallback: the observer's own private TTL attribute, kept read-only
+    # here — never mutated, never used to construct a second observer.
+    ttl = getattr(real_accounts_observer, "_ttl", None)
+    try:
+        return float(ttl) if ttl is not None else None
+    except Exception:
+        return None
+
+
+def _real_accounts_staleness(real_accounts_observer: Any) -> ObservedValue:
+    """Correction C (R3): deterministic, evidence-backed freshness model —
+    derived ONLY from the observer's own real poll timestamp + governed
+    TTL. Never `observed(False)` merely because `aggregate()` returned
+    something."""
+
+    age_accessor = getattr(real_accounts_observer, "last_poll_age_s", None)
+    if not callable(age_accessor):
+        # No timestamp evidence mechanism at all on this observer —
+        # freshness genuinely cannot be proven.
+        return unknown()
+    try:
+        age_s = age_accessor()
+    except Exception:
+        return unknown()
+    if age_s is None:
+        # Observer exists but has never completed a real poll — no
+        # timestamp evidence to derive freshness from.
+        return unknown()
+    ttl_s = _real_accounts_ttl_s(real_accounts_observer)
+    if ttl_s is None or ttl_s <= 0:
+        return unknown()
+    return observed(bool(age_s > ttl_s))
+
+
 def _build_portfolio_domain(inputs: OperatorSnapshotInputs, now: float) -> Dict[str, Any]:
     """§21.1/§5/BLOCKER A+B+E: canonical portfolio materialization.
 
@@ -357,6 +429,7 @@ def _build_portfolio_domain(inputs: OperatorSnapshotInputs, now: float) -> Dict[
     # a `RealAccountsObserver` itself.
     real_accounts_observer = getattr(inputs, "real_accounts_observer", None)
     real_accounts_queried = False
+    real_accounts_source_updated_iso: Optional[str] = None
     if real_accounts_observer is None:
         # Unconfigured: no `observability.real_accounts.RealAccountsObserver`
         # reference was injected into this advisor process at all.
@@ -370,11 +443,28 @@ def _build_portfolio_domain(inputs: OperatorSnapshotInputs, now: float) -> Dict[
 
             snaps = real_accounts_observer.snapshot()
             agg = _ra_aggregate(snaps)
+            # Correction C (R3): freshness/staleness is derived ONLY from
+            # the observer's own real poll timestamp + its governed TTL —
+            # never fabricated merely because `aggregate()` returned
+            # something. The observer polls every configured exchange in
+            # ONE bulk call per refresh (`snapshot()`), so this single
+            # timestamp genuinely covers every exchange in `snaps` — there
+            # is no per-exchange freshness divergence to hide behind a
+            # false global claim here (a partially-readable multi-exchange
+            # `snaps` — some `ok=False` — still shares this one poll time;
+            # `agg`/equity already excludes the unreadable ones via
+            # `aggregate()`'s own `ok` filter, so staleness reflects
+            # exactly what was actually polled, not a broader claim).
+            real_accounts_source_updated_iso = _real_accounts_last_poll_utc(
+                real_accounts_observer
+            )
             if agg is None:
                 # Configured (observer exists / exchanges detected) but no
                 # account is currently readable => UNAVAILABLE, not
                 # NOT_APPLICABLE — a real, distinct configured-but-broken
-                # state.
+                # state. Staleness is UNAVAILABLE too (unchanged from R2) —
+                # never derived from a TTL comparison when there is
+                # nothing readable to date.
                 real_account_equity_ov = unavailable()
                 real_account_free_ov = unavailable()
                 real_account_stale_ov = unavailable()
@@ -382,7 +472,7 @@ def _build_portfolio_domain(inputs: OperatorSnapshotInputs, now: float) -> Dict[
                 equity, free, _assets = agg
                 real_account_equity_ov = observed(float(equity))
                 real_account_free_ov = observed(float(free))
-                real_account_stale_ov = observed(False)
+                real_account_stale_ov = _real_accounts_staleness(real_accounts_observer)
         except Exception as _ra_exc:
             _log.debug(
                 "[O-02W-C] RealAccountsObserver configuré mais illisible "
@@ -392,6 +482,7 @@ def _build_portfolio_domain(inputs: OperatorSnapshotInputs, now: float) -> Dict[
             real_account_equity_ov = unavailable()
             real_account_free_ov = unavailable()
             real_account_stale_ov = unavailable()
+            real_accounts_source_updated_iso = None
 
     # Correction C: paper_unrealized_pnl_usd = deterministic sum of each
     # materialized position's own unrealized_pnl_usd. If ANY position's
@@ -423,6 +514,31 @@ def _build_portfolio_domain(inputs: OperatorSnapshotInputs, now: float) -> Dict[
         except Exception:
             wallet_balance_non_paper_ov = unavailable()
 
+    # Correction B (R3): `WalletSync.capital_x` is a DISTINCT piece of
+    # LIVE/TESTNET state from `get_balance()` above — the contract requires
+    # BOTH to be materialized (§2.3). Reuses the same already-injected
+    # `inputs.wallet_sync` instance; never a second WalletSync.
+    capital_x_ov: ObservedValue
+    if mode in ("REAL_API", "TESTNET_API"):
+        if inputs.wallet_sync is None:
+            capital_x_ov = unavailable()
+        else:
+            try:
+                cx = inputs.wallet_sync.capital_x
+            except Exception:
+                cx = None
+            if cx is None:
+                capital_x_ov = unavailable()
+            else:
+                capital_x_ov = observed(float(cx))
+    elif mode == "PAPER":
+        capital_x_ov = not_applicable()
+    else:
+        # UNKNOWN mode: never claim LIVE/TESTNET provenance, never
+        # NOT_APPLICABLE (that would silently assert PAPER), never a
+        # fabricated value — the only honest semantic is UNKNOWN.
+        capital_x_ov = unknown()
+
     # Correction D: `source`/`evidence` name ONLY sources actually read
     # this cycle — RealAccountsObserver is never named unless it was
     # genuinely queried this cycle.
@@ -449,13 +565,28 @@ def _build_portfolio_domain(inputs: OperatorSnapshotInputs, now: float) -> Dict[
         evidence=_evidence,
     )
 
+    # Correction A (R3): envelope-level `source_updated_at_utc`/`authority`.
+    # `portfolio_state` mixes several sub-sources (MexcSimulator/WalletSync,
+    # neither of which exposes its own last-changed timestamp to this
+    # builder, and RealAccountsObserver, which does) — the only genuinely
+    # trustworthy single timestamp available for the whole domain is the
+    # real-accounts poll time when that sub-source was actually queried
+    # this cycle; otherwise this is honestly UNKNOWN, never a copy of
+    # `observed_at_utc`/`generated_at_utc`.
+    portfolio_state_dict = dict(portfolio_state_snapshot.to_dict())
+    portfolio_state_dict["source_updated_at_utc"] = _source_updated_ov(
+        real_accounts_source_updated_iso if real_accounts_queried else None
+    )
+    portfolio_state_dict["authority"] = _AUTHORITY_OBSERVATIONAL_TELEMETRY
+
     return {
         "mode": mode,
         "paper_equity_usd": paper_equity_ov.to_dict(),
         "non_paper_wallet_balance_usd": wallet_balance_non_paper_ov.to_dict(),
+        "capital_x_usd": capital_x_ov.to_dict(),
         "open_positions": open_positions_ov.to_dict(),
         **status_block,
-        "portfolio_state": portfolio_state_snapshot.to_dict(),
+        "portfolio_state": portfolio_state_dict,
     }
 
 
@@ -481,6 +612,8 @@ def _build_decision_record(rec: DecisionRecord) -> Dict[str, Any]:
         confidence_adjusted_ov: ObservedValue = unknown()
         regime_ov: ObservedValue = unknown()
         lifecycle_state_ov: ObservedValue = unknown()
+        created_at_ov: ObservedValue = unknown()
+        latest_transition_at_ov: ObservedValue = unknown()
     else:
         try:
             actionable = bool(dp.is_actionable())
@@ -515,6 +648,22 @@ def _build_decision_record(rec: DecisionRecord) -> Dict[str, Any]:
             else unknown()
         )
 
+        # Correction D (R3): §8 time evidence — `created_at` plus the
+        # LATEST lifecycle transition timestamp, only when the packet
+        # genuinely exposes one (`state_history[-1].timestamp`). Never a
+        # timestamp field the real `DecisionPacket` class does not have.
+        _created_at = getattr(dp, "created_at", None)
+        created_at_ov = observed(_iso_from_dt(_created_at)) if _created_at is not None else unknown()
+
+        _state_history = getattr(dp, "state_history", None) or []
+        if _state_history:
+            _last_ts = getattr(_state_history[-1], "timestamp", None)
+            latest_transition_at_ov = (
+                observed(_iso_from_dt(_last_ts)) if _last_ts is not None else unknown()
+            )
+        else:
+            latest_transition_at_ov = unknown()
+
     if rec.legacy_trade_allowed is None:
         legacy_ov: ObservedValue = unknown()
     else:
@@ -525,11 +674,18 @@ def _build_decision_record(rec: DecisionRecord) -> Dict[str, Any]:
             ),
         )
 
+    if rec.legacy_first_blocker is None:
+        first_blocker_ov: ObservedValue = unknown()
+    else:
+        first_blocker_ov = observed(rec.legacy_first_blocker)
+
     return {
         "symbol": rec.symbol,
         "packet_id": packet_id,
         "context_id": context_id,
         "created_cycle_id": created_cycle_id,
+        "created_at": created_at_ov.to_dict(),
+        "latest_transition_at_utc": latest_transition_at_ov.to_dict(),
         "side": side_ov.to_dict(),
         "confidence_raw": confidence_raw_ov.to_dict(),
         "confidence_adjusted": confidence_adjusted_ov.to_dict(),
@@ -537,7 +693,10 @@ def _build_decision_record(rec: DecisionRecord) -> Dict[str, Any]:
         "lifecycle_state": lifecycle_state_ov.to_dict(),
         "is_actionable": {**is_actionable_ov.to_dict(), "authority": "EXECUTION_AUTHORITY"},
         "trade_allowed": {**legacy_ov.to_dict(), "authority": "OBSERVATIONAL_TELEMETRY"},
-        "first_blocker": rec.legacy_first_blocker,
+        "first_blocker": {
+            **first_blocker_ov.to_dict(),
+            "authority": "OBSERVATIONAL_TELEMETRY",
+        },
     }
 
 
@@ -558,19 +717,47 @@ def _build_decision_domain(inputs: OperatorSnapshotInputs, now: float) -> Dict[s
 
     per_symbol = [_build_decision_record(rec) for rec in inputs.decisions]
 
+    # Correction D (R3): "SOURCE PROOF != RUNTIME PROOF" — the mere
+    # existence of per-symbol records does NOT make the domain-level
+    # aggregate (`stages`/`trade_allowed`/`first_blocker`, still
+    # genuinely UNKNOWN — no real per-cycle aggregate producer exists,
+    # option 2 chosen per the mission instructions) an `OK` claim. `status`
+    # is ALWAYS `ATTENTION_REQUIRED` here — never `OK` — because the
+    # domain's own headline aggregate fields are UNKNOWN regardless of how
+    # many per-symbol records were materialized this cycle. This is
+    # explicitly labeled a PARTIAL exposure in `evidence`, never silently
+    # implied by a healthy-looking status.
     pipeline_snapshot = compose_decision_pipeline_snapshot(
         observed_at_utc=_dt_from_ts(now),
         stages=(),
         trade_allowed=unknown(),
         first_blocker=unknown(),
         freshness=FreshnessStatus.FRESH if per_symbol else FreshnessStatus.UNKNOWN,
-        status="OK" if per_symbol else "ATTENTION_REQUIRED",
+        status="ATTENTION_REQUIRED",
         source="core.advisor_loop.DecisionRecord (per-symbol, injected) + core.decision_packet.DecisionPacket",
         source_version=None,
-        evidence={"builder": "O-02W-C", "per_symbol_count": len(per_symbol)},
+        evidence={
+            "builder": "O-02W-C",
+            "per_symbol_count": len(per_symbol),
+            "exposure": "PARTIAL",
+            "partial_reason": (
+                "Domain-level aggregate (stages/trade_allowed/first_blocker) has no "
+                "real per-cycle producer in this codebase; only per-symbol "
+                "DecisionRecord projections are genuinely materialized. status is "
+                "never OK while the aggregate is UNKNOWN, regardless of per-symbol "
+                "record count."
+            ),
+        },
     )
 
-    payload = pipeline_snapshot.to_dict()
+    payload = dict(pipeline_snapshot.to_dict())
+    # Correction A (R3): envelope-level source_updated_at_utc/authority.
+    # No genuine domain-level (cross-symbol) source timestamp exists —
+    # per-symbol `created_at`/`latest_transition_at_utc` above are the
+    # real per-record evidence; the aggregate has none, so this is
+    # honestly UNKNOWN rather than a copy of observed_at_utc/generated_at_utc.
+    payload["source_updated_at_utc"] = _source_updated_ov(None)
+    payload["authority"] = _AUTHORITY_OBSERVATIONAL_TELEMETRY
     payload["per_symbol_decisions"] = per_symbol
     return payload
 
@@ -604,7 +791,13 @@ def _build_system_health_domain(now: float) -> Dict[str, Any]:
         source_version=None,
         evidence={"builder": "O-02W-C"},
     )
-    return snapshot.to_dict()
+    payload = dict(snapshot.to_dict())
+    # Correction A (R3): no genuine source-side last-changed timestamp
+    # exists for this domain (no in-process producer at all this round) —
+    # honestly UNKNOWN, never a copy of observed_at_utc.
+    payload["source_updated_at_utc"] = _source_updated_ov(None)
+    payload["authority"] = _AUTHORITY_OBSERVATIONAL_TELEMETRY
+    return payload
 
 
 # ── Envelope + full snapshot composition ─────────────────────────────────────
@@ -644,6 +837,21 @@ def _dt_from_ts(ts: float):
     import datetime as _dt
 
     return _dt.datetime.fromtimestamp(ts, tz=_dt.timezone.utc)
+
+
+def _iso_from_dt(dt: Any) -> Optional[str]:
+    """Format a real `datetime` (naive treated as UTC, per
+    `DecisionPacket.created_at`'s own `datetime.utcnow()` default factory)
+    as an ISO-8601 UTC string — never fabricates a timestamp for a
+    non-datetime/None input."""
+
+    import datetime as _dt
+
+    if dt is None or not isinstance(dt, _dt.datetime):
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=_dt.timezone.utc)
+    return dt.astimezone(_dt.timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
 
 
 # ── Strict field whitelist / no-secrets guard (§15, §22 test 32) ───────────

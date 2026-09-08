@@ -1267,3 +1267,362 @@ def test_coordinator_is_the_object_used_by_advisor_loop_source():
     assert "OperatorBootCoordinator(" in src
     assert "_op_boot_coordinator.try_publish_manifest()" in src
     assert "_op_boot_coordinator.snapshot_publication_allowed()" in src
+
+
+# ── R3 — Correction A: envelope source_updated_at_utc / authority ─────────
+
+
+def test_portfolio_domain_envelope_carries_source_updated_at_utc_and_authority():
+    result = osb.build_operator_snapshot(_inputs())
+    ps = result["portfolio"]["portfolio_state"]
+    assert "source_updated_at_utc" in ps
+    assert set(ps["source_updated_at_utc"].keys()) == {"value", "semantics"}
+    assert ps["authority"] == "OBSERVATIONAL_TELEMETRY"
+
+
+def test_decision_pipeline_envelope_carries_source_updated_at_utc_and_authority():
+    result = osb.build_operator_snapshot(_inputs())
+    dp = result["decision_pipeline"]
+    assert "source_updated_at_utc" in dp
+    assert dp["authority"] == "OBSERVATIONAL_TELEMETRY"
+
+
+def test_system_health_envelope_carries_source_updated_at_utc_and_authority():
+    result = osb.build_operator_snapshot(_inputs())
+    sh = result["system_health"]
+    assert "source_updated_at_utc" in sh
+    assert sh["authority"] == "OBSERVATIONAL_TELEMETRY"
+
+
+def test_envelope_authority_never_overwrites_per_field_decision_authority():
+    dp_packet = _FakeDecisionPacket(actionable=True)
+    rec = osb.DecisionRecord(symbol="BTCUSDT", decision_packet=dp_packet, legacy_trade_allowed=True)
+    result = osb.build_operator_snapshot(_inputs(decisions=[rec]))
+    dp = result["decision_pipeline"]
+    per_symbol = dp["per_symbol_decisions"][0]
+    # envelope-level (coarse) authority is OBSERVATIONAL_TELEMETRY...
+    assert dp["authority"] == "OBSERVATIONAL_TELEMETRY"
+    # ...but the existing, more precise per-field authority distinctions
+    # (R2) must be untouched by the new envelope-level field.
+    assert per_symbol["is_actionable"]["authority"] == "EXECUTION_AUTHORITY"
+    assert per_symbol["trade_allowed"]["authority"] == "OBSERVATIONAL_TELEMETRY"
+
+
+def test_no_source_updated_at_utc_field_is_fabricated_from_generated_at_utc():
+    """R3 regression: source_updated_at_utc must never silently equal
+    generated_at_utc/observed_at_utc — this would fail against the
+    pre-R3 code, which had no such field at all."""
+    result = osb.build_operator_snapshot(_inputs())
+    ps = result["portfolio"]["portfolio_state"]
+    generated_at = result["generated_at_utc"]
+    # No real-accounts source was queried this cycle -> honestly UNKNOWN,
+    # never a copy of generated_at_utc/observed_at_utc.
+    assert ps["source_updated_at_utc"]["semantics"] == "UNKNOWN"
+    assert ps["source_updated_at_utc"]["value"] is None
+    assert ps["source_updated_at_utc"]["value"] != generated_at
+
+
+def test_portfolio_source_updated_at_utc_reflects_real_accounts_poll_when_queried():
+    class _ObsWithPoll(_FakeRealAccountsObserverConfiguredOk):
+        def last_poll_utc(self):
+            return "2026-09-08T00:00:00Z"
+
+        def last_poll_age_s(self):
+            return 5.0
+
+        ttl_s = 900.0
+
+    result = osb.build_operator_snapshot(_inputs(real_accounts_observer=_ObsWithPoll()))
+    ps = result["portfolio"]["portfolio_state"]
+    assert ps["source_updated_at_utc"]["value"] == "2026-09-08T00:00:00Z"
+    assert ps["source_updated_at_utc"]["semantics"] == "PRESENT"
+
+
+# ── R3 — Correction B: capital_x_usd materialization ───────────────────────
+
+
+class _FakeWalletWithCapitalX(_FakeWallet):
+    def __init__(self, balance=1234.56, capital_x=None):
+        super().__init__(balance=balance)
+        self._capital_x = capital_x
+
+    @property
+    def capital_x(self):
+        return self._capital_x
+
+
+def test_capital_x_usd_present_in_real_api_mode_with_valid_capital_x():
+    wallet = _FakeWalletWithCapitalX(capital_x=777.5)
+    result = osb.build_operator_snapshot(_inputs(mode="REAL_API", wallet_sync=wallet))
+    cx = result["portfolio"]["capital_x_usd"]
+    assert cx["semantics"] == "PRESENT"
+    assert cx["value"] == 777.5
+
+
+def test_capital_x_usd_present_in_testnet_api_mode_with_valid_capital_x():
+    wallet = _FakeWalletWithCapitalX(capital_x=42.0)
+    result = osb.build_operator_snapshot(_inputs(mode="TESTNET_API", wallet_sync=wallet))
+    cx = result["portfolio"]["capital_x_usd"]
+    assert cx["semantics"] == "PRESENT"
+    assert cx["value"] == 42.0
+
+
+def test_capital_x_usd_unavailable_when_capital_x_is_none():
+    wallet = _FakeWalletWithCapitalX(capital_x=None)
+    result = osb.build_operator_snapshot(_inputs(mode="REAL_API", wallet_sync=wallet))
+    cx = result["portfolio"]["capital_x_usd"]
+    assert cx["semantics"] == "UNAVAILABLE"
+    assert cx["value"] is None
+
+
+def test_capital_x_usd_not_applicable_in_paper_mode():
+    wallet = _FakeWalletWithCapitalX(capital_x=999.0)
+    result = osb.build_operator_snapshot(_inputs(mode="PAPER", wallet_sync=wallet))
+    cx = result["portfolio"]["capital_x_usd"]
+    assert cx["semantics"] == "NOT_APPLICABLE"
+    assert cx["value"] is None
+
+
+def test_capital_x_usd_unknown_in_unknown_mode():
+    wallet = _FakeWalletWithCapitalX(capital_x=999.0)
+    result = osb.build_operator_snapshot(_inputs(mode="UNKNOWN", wallet_sync=wallet))
+    cx = result["portfolio"]["capital_x_usd"]
+    assert cx["semantics"] == "UNKNOWN"
+    assert cx["value"] is None
+
+
+def test_capital_x_usd_never_appears_under_paper_equity_usd_field_name():
+    wallet = _FakeWalletWithCapitalX(capital_x=555.0, balance=42.0)
+    result = osb.build_operator_snapshot(_inputs(mode="REAL_API", wallet_sync=wallet))
+    portfolio = result["portfolio"]
+    assert portfolio["paper_equity_usd"]["semantics"] == "NOT_APPLICABLE"
+    assert portfolio["capital_x_usd"]["value"] == 555.0
+
+
+# ── R3 — Correction C: evidence-backed real-account freshness ─────────────
+
+
+class _ObsFresh:
+    def snapshot(self):
+        from observability.real_accounts import RealAccountSnapshot
+
+        return (RealAccountSnapshot(exchange="binance", ok=True, ts_utc="x", total_usd=100.0),)
+
+    def last_poll_utc(self):
+        return "2026-09-08T12:00:00Z"
+
+    def last_poll_age_s(self):
+        return 10.0  # well within TTL
+
+    ttl_s = 900.0
+
+
+class _ObsStale:
+    def snapshot(self):
+        from observability.real_accounts import RealAccountSnapshot
+
+        return (RealAccountSnapshot(exchange="binance", ok=True, ts_utc="x", total_usd=100.0),)
+
+    def last_poll_utc(self):
+        return "2026-09-08T10:00:00Z"
+
+    def last_poll_age_s(self):
+        return 5000.0  # beyond TTL
+
+    ttl_s = 900.0
+
+
+class _ObsNoTimestampEvidence:
+    """Configured/readable, but exposes NO timestamp accessor at all —
+    freshness genuinely cannot be proven."""
+
+    def snapshot(self):
+        from observability.real_accounts import RealAccountSnapshot
+
+        return (RealAccountSnapshot(exchange="binance", ok=True, ts_utc="x", total_usd=100.0),)
+
+
+class _ObsPartiallyReadableMultiExchange:
+    """Two exchanges configured, only one readable this cycle — must not
+    fabricate a false global 'all fresh' claim; the one genuine poll
+    timestamp covers exactly what was polled."""
+
+    def snapshot(self):
+        from observability.real_accounts import RealAccountSnapshot
+
+        return (
+            RealAccountSnapshot(exchange="binance", ok=True, ts_utc="x", total_usd=100.0),
+            RealAccountSnapshot(exchange="kraken", ok=False, ts_utc="x", error="timeout"),
+        )
+
+    def last_poll_utc(self):
+        return "2026-09-08T12:00:00Z"
+
+    def last_poll_age_s(self):
+        return 20.0
+
+    ttl_s = 900.0
+
+
+def test_real_accounts_unconfigured_stale_is_not_applicable():
+    result = osb.build_operator_snapshot(_inputs())
+    ps = result["portfolio"]["portfolio_state"]
+    assert ps["real_account_stale"]["semantics"] == "NOT_APPLICABLE"
+
+
+def test_real_accounts_configured_readable_fresh_is_observed_false():
+    result = osb.build_operator_snapshot(_inputs(real_accounts_observer=_ObsFresh()))
+    ps = result["portfolio"]["portfolio_state"]
+    assert ps["real_account_stale"]["semantics"] == "FALSE"
+    assert ps["real_account_stale"]["value"] is False
+
+
+def test_real_accounts_configured_readable_stale_is_observed_true():
+    result = osb.build_operator_snapshot(_inputs(real_accounts_observer=_ObsStale()))
+    ps = result["portfolio"]["portfolio_state"]
+    assert ps["real_account_stale"]["semantics"] == "PRESENT"
+    assert ps["real_account_stale"]["value"] is True
+
+
+def test_real_accounts_readable_but_no_timestamp_evidence_is_unknown_not_false():
+    """R3 regression: this fails against pre-R3 code, which fabricated
+    `observed(False)` merely because aggregate() succeeded."""
+    result = osb.build_operator_snapshot(
+        _inputs(real_accounts_observer=_ObsNoTimestampEvidence())
+    )
+    ps = result["portfolio"]["portfolio_state"]
+    assert ps["real_account_stale"]["semantics"] == "UNKNOWN"
+    assert ps["real_account_stale"]["value"] is None
+
+
+def test_real_accounts_configured_unreadable_stale_is_unavailable():
+    result = osb.build_operator_snapshot(
+        _inputs(real_accounts_observer=_FakeRealAccountsObserverConfiguredBroken())
+    )
+    ps = result["portfolio"]["portfolio_state"]
+    assert ps["real_account_stale"]["semantics"] == "UNAVAILABLE"
+
+
+def test_real_accounts_partially_readable_multi_exchange_never_fabricates_all_fresh():
+    result = osb.build_operator_snapshot(
+        _inputs(real_accounts_observer=_ObsPartiallyReadableMultiExchange())
+    )
+    ps = result["portfolio"]["portfolio_state"]
+    # Equity/free reflect only the readable exchange (aggregate()'s own
+    # `ok` filter); staleness is derived from the one genuine poll that
+    # covered both exchanges in this bulk-poll observer, never claiming
+    # more than what was actually observed.
+    assert ps["real_account_equity_usd"]["semantics"] == "PRESENT"
+    assert ps["real_account_stale"]["semantics"] == "FALSE"
+
+
+# ── R3 — Correction D: decision domain runtime semantics ──────────────────
+
+
+def test_decision_domain_status_never_ok_even_with_per_symbol_records():
+    """R3 regression: fails against pre-R3 code, which published
+    status='OK' whenever any per-symbol record existed despite
+    stages=()/trade_allowed=UNKNOWN/first_blocker=UNKNOWN."""
+    dp_packet = _FakeDecisionPacket(actionable=True)
+    rec = osb.DecisionRecord(symbol="BTCUSDT", decision_packet=dp_packet, legacy_trade_allowed=True)
+    result = osb.build_operator_snapshot(_inputs(decisions=[rec]))
+    dp = result["decision_pipeline"]
+    assert dp["status"] != "OK"
+    assert dp["trade_allowed"]["semantics"] == "UNKNOWN"
+    assert dp["first_blocker"]["semantics"] == "UNKNOWN"
+    assert dp["evidence"]["exposure"] == "PARTIAL"
+
+
+def test_decision_domain_status_attention_required_with_no_records_too():
+    result = osb.build_operator_snapshot(_inputs(decisions=[]))
+    dp = result["decision_pipeline"]
+    assert dp["status"] == "ATTENTION_REQUIRED"
+
+
+def test_per_symbol_first_blocker_is_observed_value_with_authority():
+    rec = osb.DecisionRecord(
+        symbol="ETHUSDT",
+        decision_packet=None,
+        legacy_trade_allowed=False,
+        legacy_first_blocker="risk_gate",
+    )
+    result = osb.build_operator_snapshot(_inputs(decisions=[rec]))
+    fb = result["decision_pipeline"]["per_symbol_decisions"][0]["first_blocker"]
+    assert fb["value"] == "risk_gate"
+    assert fb["semantics"] == "PRESENT"
+    assert fb["authority"] == "OBSERVATIONAL_TELEMETRY"
+
+
+def test_per_symbol_first_blocker_none_is_unknown_observed_value_not_bare_none():
+    rec = osb.DecisionRecord(symbol="ETHUSDT", decision_packet=None, legacy_trade_allowed=None)
+    result = osb.build_operator_snapshot(_inputs(decisions=[rec]))
+    fb = result["decision_pipeline"]["per_symbol_decisions"][0]["first_blocker"]
+    assert isinstance(fb, dict)
+    assert fb["semantics"] == "UNKNOWN"
+    assert fb["authority"] == "OBSERVATIONAL_TELEMETRY"
+
+
+def test_decision_packet_created_at_materialized():
+    import datetime as _dt
+
+    dp_packet = _FakeDecisionPacket(actionable=True)
+    dp_packet.created_at = _dt.datetime(2026, 9, 8, 12, 0, 0, tzinfo=_dt.timezone.utc)
+    rec = osb.DecisionRecord(symbol="BTCUSDT", decision_packet=dp_packet)
+    result = osb.build_operator_snapshot(_inputs(decisions=[rec]))
+    per_symbol = result["decision_pipeline"]["per_symbol_decisions"][0]
+    assert per_symbol["created_at"]["value"] == "2026-09-08T12:00:00Z"
+    assert per_symbol["created_at"]["semantics"] == "PRESENT"
+
+
+def test_decision_packet_missing_created_at_is_unknown_not_fabricated():
+    dp_packet = _FakeDecisionPacket(actionable=True)
+    # no created_at attribute at all on this minimal fake
+    rec = osb.DecisionRecord(symbol="BTCUSDT", decision_packet=dp_packet)
+    result = osb.build_operator_snapshot(_inputs(decisions=[rec]))
+    per_symbol = result["decision_pipeline"]["per_symbol_decisions"][0]
+    assert per_symbol["created_at"]["semantics"] == "UNKNOWN"
+
+
+def test_decision_packet_latest_transition_from_real_state_history():
+    import datetime as _dt
+
+    class _Transition:
+        def __init__(self, ts):
+            self.timestamp = ts
+
+    dp_packet = _FakeDecisionPacket(actionable=True)
+    dp_packet.state_history = [
+        _Transition(_dt.datetime(2026, 9, 8, 11, 0, 0, tzinfo=_dt.timezone.utc)),
+        _Transition(_dt.datetime(2026, 9, 8, 11, 5, 0, tzinfo=_dt.timezone.utc)),
+    ]
+    rec = osb.DecisionRecord(symbol="BTCUSDT", decision_packet=dp_packet)
+    result = osb.build_operator_snapshot(_inputs(decisions=[rec]))
+    per_symbol = result["decision_pipeline"]["per_symbol_decisions"][0]
+    assert per_symbol["latest_transition_at_utc"]["value"] == "2026-09-08T11:05:00Z"
+
+
+def test_decision_packet_no_state_history_transition_is_unknown():
+    dp_packet = _FakeDecisionPacket(actionable=True)
+    dp_packet.state_history = []
+    rec = osb.DecisionRecord(symbol="BTCUSDT", decision_packet=dp_packet)
+    result = osb.build_operator_snapshot(_inputs(decisions=[rec]))
+    per_symbol = result["decision_pipeline"]["per_symbol_decisions"][0]
+    assert per_symbol["latest_transition_at_utc"]["semantics"] == "UNKNOWN"
+
+
+def test_missing_decision_packet_still_fails_closed_with_time_evidence_unknown():
+    rec = osb.DecisionRecord(symbol="BTCUSDT", decision_packet=None)
+    result = osb.build_operator_snapshot(_inputs(decisions=[rec]))
+    per_symbol = result["decision_pipeline"]["per_symbol_decisions"][0]
+    assert per_symbol["is_actionable"]["value"] is False
+    assert per_symbol["created_at"]["semantics"] == "UNKNOWN"
+    assert per_symbol["latest_transition_at_utc"]["semantics"] == "UNKNOWN"
+
+
+def test_no_new_stage_counting_or_synthetic_aggregation_mechanism_introduced():
+    """Guards against accidentally choosing option 1 with an invented
+    aggregation mechanism — stages must remain empty, never synthesized."""
+    dp_packet = _FakeDecisionPacket(actionable=True)
+    rec = osb.DecisionRecord(symbol="BTCUSDT", decision_packet=dp_packet, legacy_trade_allowed=True)
+    result = osb.build_operator_snapshot(_inputs(decisions=[rec]))
+    assert result["decision_pipeline"]["stages"] == []
