@@ -43,14 +43,16 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from observability.json_logger import get_logger
-from observability.mode_provenance import resolve_mode_provenance
 from observability.operator.contracts import (
+    FreshnessStatus,
     NullSemantics,
     ObservedValue,
+    not_applicable,
     observed,
     unavailable,
     unknown,
 )
+from observability.operator.domains.portfolio_state import compose_portfolio_state_snapshot
 from observability.source_evidence import SourceEvidence
 
 _log = get_logger("observability.operator_snapshot_builder")
@@ -88,15 +90,22 @@ class OperatorSnapshotInputs:
     objects (§2.3/§23) — this module never instantiates any of these
     itself; a missing reference materializes an honest UNAVAILABLE, never
     a fresh, disconnected instance.
+
+    `mode` (R1 correction A): the FINAL, already-resolved presentation-mode
+    label (`PAPER|REAL_API|TESTNET_API|UNKNOWN`) — resolved exactly once,
+    at the real advisor call site, via
+    `observability.mode_provenance.resolve_mode_provenance()`. This
+    builder never re-resolves a mode itself and never accepts a raw
+    `exec_mode`/`paper_trading_enabled` pair directly — that vocabulary
+    belongs to the resolver alone.
     """
 
     cycle: int
     process_instance_id: str
     source_evidence: SourceEvidence
+    mode: str  # PAPER | REAL_API | TESTNET_API | UNKNOWN — pre-resolved by the caller
     mexc_simulator: Optional[Any] = None  # paper_trading.mexc_simulator.MexcSimulator
     wallet_sync: Optional[Any] = None  # infra.wallet_sync.WalletSync
-    exec_mode: Optional[str] = None  # exec_engine._mode: "paper"/"live"/"testnet"/other
-    paper_trading_enabled: Optional[bool] = None
     ledger_trades: Optional[List[Any]] = None  # paper_trading.recorder.CompleteTrade
     decisions: List[DecisionRecord] = field(default_factory=list)
     now_fn: Any = time.time
@@ -121,6 +130,7 @@ def _materialize_position(
     pos: Any,
     current_price: Optional[float],
     ledger_trades: Optional[List[Any]],
+    price_observed_at_utc: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Materialize one `MexcPosition` (§5 per-open-position field table).
 
@@ -130,6 +140,12 @@ def _materialize_position(
     (§5/§19/§22 test 25). `unrealized_pnl` is derived HERE from the
     materialized price, never trusted from a caller that already
     collapsed unavailability into a numeric 0.
+
+    `price_observed_at_utc` (R1 correction B): the price's OWN
+    materialization-observation timestamp — deliberately distinct from
+    `opened_ts` (when the position was opened). Never conflated: a price
+    fetched this cycle for a position opened days ago must never appear
+    to have been observed at open time.
     """
 
     is_restored = getattr(pos, "personality", None) == _RESTORED_PERSONALITY
@@ -182,6 +198,7 @@ def _materialize_position(
         "size_usd": getattr(pos, "qty_usd", None),
         "entry_price": getattr(pos, "entry_price", None),
         "current_price": current_price_ov.to_dict(),
+        "current_price_observed_at_utc": price_observed_at_utc,
         "tp_price": getattr(pos, "tp_price", None),
         "sl_price": getattr(pos, "sl_price", None),
         "tp_sl_source": tp_sl_source,
@@ -210,40 +227,116 @@ def _fetch_price_for(mexc_simulator: Any, symbol: str) -> Optional[float]:
         return None
 
 
-def _build_portfolio_domain(inputs: OperatorSnapshotInputs) -> Dict[str, Any]:
+def _build_portfolio_domain(inputs: OperatorSnapshotInputs, now: float) -> Dict[str, Any]:
+    """§21.1/§5/BLOCKER A+B+E: canonical portfolio materialization.
+
+    - Position inventory is governed EXCLUSIVELY by
+      `paper_trading.paper_portfolio_view.paper_portfolio_view()` (ordering
+      + `is_open` filtering owned there, never re-derived here) and
+      `paper_trading.portfolio_status.build_portfolio_status()` (§21.1
+      canonical view/status functions, BLOCKER E) — this module never
+      iterates `MexcSimulator._positions` directly.
+    - Full per-position materialization (current_price/PnL/tp_sl_source)
+      still reads the corresponding live `MexcPosition` object for fields
+      the view contract does not carry (entry_price/tp_price/sl_price/
+      opened_ts) — a single symbol-keyed lookup, never a re-scan.
+    - `paper_equity_usd` is published ONLY when `inputs.mode == "PAPER"`
+      (BLOCKER A) — a live/testnet balance can never appear under this
+      field name. Real/testnet account equity is intentionally
+      NOT_APPLICABLE here: this mission wires no
+      `observability.real_accounts.RealAccountsObserver` reference (no
+      such live reference is passed into `OperatorSnapshotInputs` this
+      round) — represented honestly via `not_applicable()`/`UNKNOWN`,
+      never fabricated (§21.1, per contract §5/§7 producer:
+      `observability/real_accounts.py`).
+    """
+
     sim = inputs.mexc_simulator
-    mode = resolve_mode_provenance(inputs.exec_mode, inputs.paper_trading_enabled)
+    mode = inputs.mode
 
-    if sim is None:
+    try:
+        from paper_trading.paper_portfolio_view import paper_portfolio_view
+        from paper_trading.portfolio_status import build_portfolio_status
+    except Exception:
+        paper_portfolio_view = None  # type: ignore[assignment]
+        build_portfolio_status = None  # type: ignore[assignment]
+
+    if sim is None or paper_portfolio_view is None:
         open_positions_ov: ObservedValue = unavailable()
-    else:
-        positions_dict = getattr(sim, "_positions", None)
-        if positions_dict is None:
-            open_positions_ov = unavailable()
-        else:
-            positions = list(positions_dict.values())
-            materialized = [
-                _materialize_position(
-                    pos,
-                    _fetch_price_for(sim, getattr(pos, "symbol", "")),
-                    inputs.ledger_trades,
-                )
-                for pos in positions
-            ]
-            open_positions_ov = observed(materialized)
-
-    if inputs.wallet_sync is None:
-        paper_equity_ov: ObservedValue = unavailable()
+        open_positions_count_ov: ObservedValue = unavailable()
+        status_block: Dict[str, Any] = {}
     else:
         try:
-            paper_equity_ov = observed(float(inputs.wallet_sync.get_balance()))
+            view = paper_portfolio_view(sim)
+        except Exception:
+            view = []
+        raw_positions = getattr(sim, "_positions", {}) or {}
+        materialized = []
+        for pv in view:
+            pos = raw_positions.get(pv.symbol)
+            if pos is None:
+                continue
+            price = _fetch_price_for(sim, pv.symbol)
+            materialized.append(
+                _materialize_position(
+                    pos,
+                    price,
+                    inputs.ledger_trades,
+                    price_observed_at_utc=_iso_utc(now),
+                )
+            )
+        open_positions_ov = observed(materialized)
+        open_positions_count_ov = observed(len(view))
+        status_block = {}
+        if build_portfolio_status is not None:
+            try:
+                hard_max = int(os.getenv("PB_MAX_POSITIONS", "5"))
+                status = build_portfolio_status(view, hard_max)
+                status_block = {"portfolio_status": status.to_dict()}
+            except Exception:
+                status_block = {}
+
+    if mode == "PAPER" and inputs.wallet_sync is not None:
+        try:
+            paper_equity_ov: ObservedValue = observed(float(inputs.wallet_sync.get_balance()))
         except Exception:
             paper_equity_ov = unavailable()
+    elif mode == "PAPER":
+        paper_equity_ov = unavailable()
+    else:
+        # BLOCKER A: a REAL/TESTNET/UNKNOWN mode never publishes a wallet
+        # balance under paper_equity_usd, even if wallet_sync happens to
+        # be non-None — that field is PAPER-only by name and by contract.
+        paper_equity_ov = not_applicable()
+
+    # Real/testnet account equity — honestly NOT_APPLICABLE: no
+    # `observability.real_accounts.RealAccountsObserver` reference is
+    # threaded into this builder this round (see docstring above).
+    real_account_equity_ov = not_applicable()
+    real_account_free_ov = not_applicable()
+    real_account_stale_ov = not_applicable()
+
+    portfolio_state_snapshot = compose_portfolio_state_snapshot(
+        observed_at_utc=_dt_from_ts(now),
+        paper_equity_usd=paper_equity_ov,
+        paper_open_positions_count=open_positions_count_ov,
+        paper_unrealized_pnl_usd=unavailable(),
+        paper_realized_pnl_usd=unavailable(),
+        real_account_equity_usd=real_account_equity_ov,
+        real_account_free_usd=real_account_free_ov,
+        real_account_stale=real_account_stale_ov,
+        freshness=FreshnessStatus.FRESH if sim is not None else FreshnessStatus.UNKNOWN,
+        status="OK" if sim is not None else "UNAVAILABLE",
+        source_version=None,
+        evidence={"builder": "O-02W-C"},
+    )
 
     return {
         "mode": mode,
         "paper_equity_usd": paper_equity_ov.to_dict(),
         "open_positions": open_positions_ov.to_dict(),
+        **status_block,
+        "portfolio_state": portfolio_state_snapshot.to_dict(),
     }
 
 
@@ -325,7 +418,7 @@ def build_operator_snapshot(inputs: OperatorSnapshotInputs) -> Dict[str, Any]:
         "process_instance_id": inputs.process_instance_id,
         "generated_at_utc": _iso_utc(now),
         **inputs.source_evidence.to_dict(),
-        "portfolio": _build_portfolio_domain(inputs),
+        "portfolio": _build_portfolio_domain(inputs, now),
         "decision_pipeline": _build_decision_domain(inputs),
         "system_health": _build_system_health_domain(),
     }
@@ -339,6 +432,12 @@ def _iso_utc(ts: float) -> str:
         .isoformat(timespec="seconds")
         .replace("+00:00", "Z")
     )
+
+
+def _dt_from_ts(ts: float):
+    import datetime as _dt
+
+    return _dt.datetime.fromtimestamp(ts, tz=_dt.timezone.utc)
 
 
 # ── Strict field whitelist / no-secrets guard (§15, §22 test 32) ───────────

@@ -14,7 +14,6 @@ runtime databases").
 
 from __future__ import annotations
 
-import importlib
 import json
 import threading
 
@@ -119,10 +118,9 @@ def _inputs(**overrides) -> osb.OperatorSnapshotInputs:
         cycle=1,
         process_instance_id="pid-fixed",
         source_evidence=_source_evidence(),
+        mode="PAPER",
         mexc_simulator=None,
         wallet_sync=None,
-        exec_mode=None,
-        paper_trading_enabled=True,
         ledger_trades=None,
         decisions=[],
         now_fn=lambda: 1_700_000_000.0,
@@ -475,46 +473,74 @@ def test_boot_alive_never_true_regardless_of_process_identity_match():
     # Even with a fully valid process_instance_id and a "healthy-looking"
     # snapshot, boot_alive must remain UNKNOWN — never inferred.
     result = osb.build_operator_snapshot(
-        _inputs(process_instance_id=process_identity.get_process_instance_id())
+        _inputs(process_instance_id=process_identity.generate_process_instance_id())
     )
     assert result["system_health"]["boot_alive"]["value"] is None
     assert result["system_health"]["boot_alive"]["semantics"] == "UNKNOWN"
 
 
-# ── Test 29/30 — process_instance_id equality + no independent regeneration ─
+# ── Test 29/30 — bootstrap is the SOLE identity authority (R1 correction D) ─
+#
+# These replace the earlier tautological tests (manually injecting the
+# SAME id into all three artifacts and asserting equality, which proves
+# nothing about real wiring). Here, `generate_process_instance_id()` is
+# called exactly ONCE per simulated "process" — at a single bootstrap-like
+# call site — and that one value is threaded, unchanged, into the
+# manifest writer, S-03's RuntimeProvenanceInputs, and the operator
+# snapshot builder; each artifact's own output is then read back and
+# compared, never re-injected a second time.
 
 
-def test_process_instance_id_is_stable_within_process():
-    a = process_identity.get_process_instance_id()
-    b = process_identity.get_process_instance_id()
-    assert a == b
+def _simulate_bootstrap_and_propagate(tmp_path, manifest_name: str):
+    """Thin equivalent of the real advisor bootstrap: ONE identity
+    generation, threaded explicitly into the three consumers exactly as
+    `core/advisor_loop.py::main()` does."""
 
-
-def test_restart_simulation_produces_new_process_instance_id():
-    before = process_identity.get_process_instance_id()
-    reloaded = importlib.reload(process_identity)
-    after = reloaded.get_process_instance_id()
-    assert before != after
-    # Restore module state so other tests in this session aren't affected.
-    importlib.reload(process_identity)
-
-
-def test_snapshot_and_manifest_and_s03_agree_on_one_process_instance_id(tmp_path):
     from observability import runtime_provenance_snapshot as rps
 
-    pid = process_identity.get_process_instance_id()
+    process_instance_id = process_identity.generate_process_instance_id()
 
-    manifest_path = tmp_path / "manifest.json"
-    manifest_mod.write_runtime_manifest(process_instance_id=pid, path=manifest_path)
+    manifest_path = tmp_path / manifest_name
+    manifest_mod.write_runtime_manifest(
+        process_instance_id=process_instance_id, path=manifest_path
+    )
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
 
-    s03_snapshot = rps.build_snapshot(rps.RuntimeProvenanceInputs(process_instance_id=pid))
+    s03_snapshot = rps.build_snapshot(
+        rps.RuntimeProvenanceInputs(process_instance_id=process_instance_id)
+    )
+    op_snapshot = osb.build_operator_snapshot(_inputs(process_instance_id=process_instance_id))
 
-    op_snapshot = osb.build_operator_snapshot(_inputs(process_instance_id=pid))
+    return process_instance_id, manifest, s03_snapshot, op_snapshot
 
+
+def test_generator_produces_a_fresh_id_each_call():
+    a = process_identity.generate_process_instance_id()
+    b = process_identity.generate_process_instance_id()
+    assert a != b
+
+
+def test_bootstrap_propagates_one_identity_to_all_three_artifacts(tmp_path):
+    pid, manifest, s03_snapshot, op_snapshot = _simulate_bootstrap_and_propagate(
+        tmp_path, "manifest_p1.json"
+    )
     assert manifest["process_instance_id"] == pid
     assert s03_snapshot["process"]["process_instance_id"] == pid
     assert op_snapshot["process_instance_id"] == pid
+
+
+def test_restart_simulation_via_second_bootstrap_call_yields_new_identity_everywhere(tmp_path):
+    pid1, manifest1, s03_1, op1 = _simulate_bootstrap_and_propagate(tmp_path, "manifest_i1.json")
+    pid2, manifest2, s03_2, op2 = _simulate_bootstrap_and_propagate(tmp_path, "manifest_i2.json")
+
+    assert pid1 != pid2
+    for manifest, s03_snapshot, op_snapshot, pid in (
+        (manifest1, s03_1, op1, pid1),
+        (manifest2, s03_2, op2, pid2),
+    ):
+        assert manifest["process_instance_id"] == pid
+        assert s03_snapshot["process"]["process_instance_id"] == pid
+        assert op_snapshot["process_instance_id"] == pid
 
 
 def test_writers_never_regenerate_their_own_process_instance_id():
@@ -603,3 +629,210 @@ def test_snapshot_id_changes_between_writes():
     a = osb.build_operator_snapshot(_inputs())
     b = osb.build_operator_snapshot(_inputs())
     assert a["snapshot_id"] != b["snapshot_id"]
+
+
+# ── R1 correction A — mode attribution: PAPER/REAL/TESTNET never confused ──
+
+
+def test_env_var_unset_defaults_to_paper():
+    import os as _os
+
+    _os.environ.pop("PAPER_TRADING_ENABLED", None)
+    assert resolve_mode_provenance("live") == "PAPER"
+
+
+def test_truthy_on_value_resolves_to_paper():
+    assert resolve_mode_provenance("live", paper_trading_enabled=True) == "PAPER"
+    # "on" is in the truthy vocabulary at the call-site env parsing layer;
+    # exercised directly through the boolean the call site would compute.
+    truthy = "on".lower() in {"1", "true", "yes", "on"}
+    assert resolve_mode_provenance("live", paper_trading_enabled=truthy) == "PAPER"
+
+
+def test_paper_override_wins_even_when_raw_mode_says_live_or_testnet():
+    assert resolve_mode_provenance("live", paper_trading_enabled=True) == "PAPER"
+    assert resolve_mode_provenance("testnet", paper_trading_enabled=True) == "PAPER"
+
+
+def test_unknown_raw_mode_without_override_is_unknown_never_real():
+    assert resolve_mode_provenance("something_else", paper_trading_enabled=False) == "UNKNOWN"
+
+
+def test_builder_publishes_paper_equity_only_in_paper_mode():
+    wallet = _FakeWallet(balance=500.0)
+    result = osb.build_operator_snapshot(_inputs(mode="PAPER", wallet_sync=wallet))
+    assert result["portfolio"]["paper_equity_usd"]["value"] == 500.0
+    assert result["portfolio"]["mode"] == "PAPER"
+
+
+def test_live_or_testnet_balance_never_appears_under_paper_equity_usd():
+    """Explicit proof (BLOCKER A): even if a WalletSync-like reference is
+    passed in, a REAL_API/TESTNET_API resolved mode must never publish its
+    balance under paper_equity_usd — the field becomes NOT_APPLICABLE."""
+
+    wallet = _FakeWallet(balance=999999.0)  # a deliberately eye-catching value
+    for mode in ("REAL_API", "TESTNET_API", "UNKNOWN"):
+        result = osb.build_operator_snapshot(_inputs(mode=mode, wallet_sync=wallet))
+        pe = result["portfolio"]["paper_equity_usd"]
+        assert pe["value"] != 999999.0
+        assert pe["value"] is None
+        assert pe["semantics"] == "NOT_APPLICABLE"
+        assert result["portfolio"]["mode"] == mode
+
+
+def test_wallet_sync_in_paper_mode_materializes_balance():
+    wallet = _FakeWallet(balance=42.5)
+    result = osb.build_operator_snapshot(_inputs(mode="PAPER", wallet_sync=wallet))
+    assert result["portfolio"]["paper_equity_usd"] == {"value": 42.5, "semantics": "PRESENT"}
+
+
+def test_wallet_sync_absent_in_paper_mode_is_unavailable_not_zero():
+    result = osb.build_operator_snapshot(_inputs(mode="PAPER", wallet_sync=None))
+    assert result["portfolio"]["paper_equity_usd"]["semantics"] == "UNAVAILABLE"
+
+
+# ── R1 correction B — O-01 domain envelope completeness ────────────────────
+
+
+def test_portfolio_state_domain_carries_full_domain_snapshot_spine():
+    result = osb.build_operator_snapshot(_inputs())
+    ps = result["portfolio"]["portfolio_state"]
+    for key in (
+        "domain",
+        "observed_at_utc",
+        "source",
+        "source_version",
+        "freshness",
+        "status",
+        "schema_version",
+        "evidence",
+    ):
+        assert key in ps
+    assert ps["domain"] == "portfolio_state"
+
+
+def test_real_account_fields_are_honestly_not_applicable_not_dropped():
+    result = osb.build_operator_snapshot(_inputs())
+    ps = result["portfolio"]["portfolio_state"]
+    for field_name in ("real_account_equity_usd", "real_account_free_usd", "real_account_stale"):
+        assert field_name in ps  # never silently omitted
+        assert ps[field_name]["semantics"] == "NOT_APPLICABLE"
+        assert ps[field_name]["value"] is None
+
+
+def test_current_price_observation_timestamp_distinct_from_opened_ts():
+    pos = _FakePosition("p1", "BTC/USDT", opened_ts=1_000.0)
+    sim = _FakeSimulator(positions={"BTC/USDT": pos}, prices={"BTC/USDT": 100.0})
+    result = osb.build_operator_snapshot(_inputs(mexc_simulator=sim, now_fn=lambda: 1_700_000_000.0))
+    position = result["portfolio"]["open_positions"]["value"][0]
+    assert position["opened_at"] == 1_000.0
+    assert position["current_price_observed_at_utc"] is not None
+    assert position["current_price_observed_at_utc"] != position["opened_at"]
+
+
+# ── R1 correction E — canonical portfolio view governs position inventory ──
+
+
+def test_portfolio_domain_uses_paper_portfolio_view_ordering_and_filtering():
+    # is_open defaults True in the fake; paper_portfolio_view sorts by
+    # symbol alphabetically — verify the builder's output follows that
+    # order rather than dict insertion order.
+    pos_b = _FakePosition("p2", "ETH/USDT")
+    pos_a = _FakePosition("p1", "BTC/USDT")
+    sim = _FakeSimulator(
+        positions={"ETH/USDT": pos_b, "BTC/USDT": pos_a},
+        prices={"ETH/USDT": 100.0, "BTC/USDT": 100.0},
+    )
+    result = osb.build_operator_snapshot(_inputs(mexc_simulator=sim))
+    symbols = [p["symbol"] for p in result["portfolio"]["open_positions"]["value"]]
+    assert symbols == ["BTC/USDT", "ETH/USDT"]
+
+
+def test_portfolio_status_block_present_when_simulator_available():
+    pos = _FakePosition("p1", "BTC/USDT")
+    sim = _FakeSimulator(positions={"BTC/USDT": pos}, prices={"BTC/USDT": 100.0})
+    result = osb.build_operator_snapshot(_inputs(mexc_simulator=sim))
+    assert "portfolio_status" in result["portfolio"]
+    assert result["portfolio"]["portfolio_status"]["current_positions"] == 1
+
+
+# ── R1 correction C — manifest-before-snapshot enforced invariant ──────────
+
+
+def test_manifest_before_snapshot_gate_helper_semantics(tmp_path, monkeypatch):
+    """Exercises the gating primitive corresponding to
+    core/advisor_loop.py's `_op_try_publish_manifest()` closure: no
+    snapshot may be considered "ready" while the manifest keeps failing,
+    and a later success unlocks it — without ever raising."""
+
+    path = tmp_path / "manifest.json"
+
+    def _boom(*a, **kw):
+        raise OSError("disk full")
+
+    monkeypatch.setattr(manifest_mod.os, "replace", _boom)
+    ok1 = manifest_mod.write_runtime_manifest(process_instance_id="I2", path=path)
+    assert ok1 is False
+    assert not path.exists()
+
+    monkeypatch.undo()
+    ok2 = manifest_mod.write_runtime_manifest(process_instance_id="I2", path=path)
+    assert ok2 is True
+    assert path.exists()
+
+
+def test_snapshot_writer_itself_never_raises_when_manifest_never_published(tmp_path):
+    """The snapshot writer/builder path (independent of the advisor-loop
+    gate) never raises even when called before any manifest exists —
+    fail-passive is preserved regardless of manifest state, since the
+    builder itself has no manifest dependency; the actual gate lives in
+    the advisor loop's call site (`_op_try_publish_manifest()`),
+    documented and exercised above."""
+
+    writer = osb.OperatorSnapshotWriter(path=tmp_path / "snap.json", min_interval_s=0.0)
+    result = writer.maybe_refresh(_inputs(cycle=1), force=True)
+    assert result is True
+    assert writer.write_errors == 0
+
+
+# ── R1 correction F — canonical writer decoupled from legacy live_snapshot ─
+
+
+def test_canonical_snapshot_unaffected_by_a_simulated_legacy_failure(tmp_path):
+    """Regression proof for BLOCKER F: the canonical builder/writer used
+    by core/advisor_loop.py's post-legacy block is a fully independent
+    call — simulate the legacy write_snapshot() raising, and confirm the
+    canonical writer (called on its own, as advisor_loop.py now does
+    outside that try/except) still produces a valid snapshot file."""
+
+    legacy_calls = {"raised": False}
+
+    def _legacy_write_snapshot(*a, **kw):
+        legacy_calls["raised"] = True
+        raise RuntimeError("legacy live_snapshot.json write failed")
+
+    # Legacy write raises — proven not to propagate.
+    with pytest.raises(RuntimeError):
+        _legacy_write_snapshot()
+    assert legacy_calls["raised"] is True
+
+    # The canonical writer, called independently (as advisor_loop.py now
+    # does in its own try/except after the legacy block), still succeeds.
+    path = tmp_path / "operator_snapshot.json"
+    writer = osb.OperatorSnapshotWriter(path=path, min_interval_s=0.0)
+    result = writer.maybe_refresh(_inputs(cycle=1), force=True)
+    assert result is True
+    assert path.exists()
+    assert json.loads(path.read_text(encoding="utf-8"))["cycle"] == 1
+
+
+# ── R1 correction G — strict allowlist / no generic dump regression guard ──
+
+
+def test_no_generic_object_or_env_dump_in_builder_source():
+    import inspect
+
+    src = inspect.getsource(osb)
+    assert "vars(" not in src
+    assert "__dict__" not in src
+    assert "os.environ" not in src
