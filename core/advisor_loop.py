@@ -430,12 +430,14 @@ def _balance_provenance_from_mode(exec_mode: str | None) -> str:
     deja le mode paper. Fail closed — un mode non reconnu ne produit
     jamais REAL_API par defaut.
     """
-    paper_enabled = os.getenv("PAPER_TRADING_ENABLED", "true").lower() in _PAPER_TRADING_TRUTHY
-    if paper_enabled:
-        return "PAPER"
-    return {"paper": "PAPER", "live": "REAL_API", "testnet": "TESTNET_API"}.get(
-        exec_mode, "UNKNOWN"
-    )
+    # O-02W-C: délégation vers le résolveur pur extrait — même sémantique
+    # exacte (même variable d'env, même défaut, même ensemble truthy, même
+    # fail-closed), maintenant partagée avec le snapshot builder
+    # (observability/mode_provenance.py::resolve_mode_provenance) au lieu
+    # d'être dupliquée. Aucun changement de comportement.
+    from observability.mode_provenance import resolve_mode_provenance
+
+    return resolve_mode_provenance(exec_mode, paper_trading_enabled=None)
 
 
 _real_accounts_obs = None
@@ -4660,6 +4662,14 @@ def main(
     _runtime_provenance_writer = _RuntimeProvenanceSnapshotWriter()
 
     def _runtime_provenance_inputs() -> "_RuntimeProvenanceInputs":
+        # O-02W-C (§15): propage l'identité unique du bootstrap — S-03 reste
+        # un simple projecteur passif, jamais un second générateur.
+        try:
+            from observability.process_identity import get_process_instance_id
+
+            _op_pid = get_process_instance_id()
+        except Exception:
+            _op_pid = None
         return _RuntimeProvenanceInputs(
             decision_event_bus=_decision_event_bus,
             rejection_store=_obs_rejection_store,
@@ -4667,6 +4677,7 @@ def main(
             dip_observer=_dip_observer_live,
             black_box=black_box,
             invocation_id=os.getenv("INVOCATION_ID"),
+            process_instance_id=_op_pid,
         )
 
     # ── OBS-001 — SystemSnapshot provider + event bus ─────────────────────────
@@ -5403,6 +5414,38 @@ def main(
         log.warning("[Integrity] StateIntegrityAudit indisponible: %s", _sia_exc)
 
     _p8_transition_cache: tuple | None = None  # (next_regime, prob) du cycle précédent
+
+    # ── O-02W-C — Canonical operator snapshot builder bootstrap ──────────────
+    # Observer/serializer pur (ADR-0007) : identité de processus + manifest
+    # runtime + writer, initialisés une seule fois avant la boucle principale.
+    # Aucun impact sur trade_allowed/is_actionable() ou toute autre décision.
+    _op_snapshot_writer: Any = None
+    _op_process_instance_id: "str | None" = None
+    _op_source_evidence: Any = None
+    try:
+        from observability.operator_runtime_manifest import write_runtime_manifest
+        from observability.operator_snapshot_builder import OperatorSnapshotWriter
+        from observability.process_identity import get_process_instance_id
+        from observability.source_evidence import capture_source_evidence
+
+        _op_process_instance_id = get_process_instance_id()
+        _op_source_evidence = capture_source_evidence()
+        # Manifest publié AVANT le premier instantané de domaine (§14.1).
+        write_runtime_manifest(
+            process_instance_id=_op_process_instance_id,
+            source_sha=_op_source_evidence.source_sha,
+        )
+        _op_snapshot_writer = OperatorSnapshotWriter()
+        log.info(
+            "[O-02W-C] OperatorSnapshotWriter initialisé (process_instance_id=%s)",
+            _op_process_instance_id,
+        )
+    except Exception as _op_boot_exc:
+        log.warning(
+            "[O-02W-C] Bootstrap snapshot operateur echoue (non bloquant): %s",
+            _op_boot_exc,
+        )
+        _op_snapshot_writer = None
 
     while True:
         cycle += 1
@@ -7688,6 +7731,50 @@ def main(
                     log.debug("[P9] snapshot partiel: %s", _p9_snap_exc)
 
                 _write_snap(_snap_data, _Path("databases/live_snapshot.json"))
+
+                # ── O-02W-C — Canonical operator snapshot (passif, ADR-0007) ──
+                # Instrumentation additive uniquement : lit des objets déjà
+                # existants (results, _virtual_portfolio, WalletSync), ne
+                # modifie aucune décision, jamais propagé si erreur.
+                if _op_snapshot_writer is not None:
+                    try:
+                        from observability.operator_snapshot_builder import (
+                            DecisionRecord as _OpDecisionRecord,
+                            OperatorSnapshotInputs as _OpSnapshotInputs,
+                        )
+
+                        _op_decisions = [
+                            _OpDecisionRecord(
+                                symbol=_r["symbol"],
+                                decision_packet=_r.get("decision_packet"),
+                                legacy_trade_allowed=_r.get("trade_allowed"),
+                                legacy_first_blocker=(
+                                    _r["gate"].reason
+                                    if _r.get("gate") is not None
+                                    and not getattr(_r["gate"], "allowed", True)
+                                    else None
+                                ),
+                            )
+                            for _r in results
+                        ]
+                        _op_snapshot_writer.maybe_refresh(
+                            _OpSnapshotInputs(
+                                cycle=cycle,
+                                process_instance_id=_op_process_instance_id,
+                                source_evidence=_op_source_evidence,
+                                mexc_simulator=_virtual_portfolio,
+                                wallet_sync=_get_wallet_sync_boot(),
+                                exec_mode=getattr(exec_engine, "_mode", None),
+                                paper_trading_enabled=_paper_trading_enabled,
+                                ledger_trades=None,
+                                decisions=_op_decisions,
+                            )
+                        )
+                    except Exception as _op_snap_exc:
+                        log.debug(
+                            "[O-02W-C] snapshot operateur echoue (non bloquant): %s",
+                            _op_snap_exc,
+                        )
 
                 # ── JSONL persistence — une ligne par cycle ──────────────────
                 import datetime as _dt_mod
