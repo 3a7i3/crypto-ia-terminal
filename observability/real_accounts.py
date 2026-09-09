@@ -107,15 +107,48 @@ class RealAccountsObserver:
         )
         self._client_factory = client_factory or _default_client_factory
         self._clients: dict[str, Any] = {}
-        self._cache: tuple[float, tuple[RealAccountSnapshot, ...]] | None = None
+        # (monotonic_poll_ts, wall_clock_poll_utc_ts, snaps) — the wall-clock
+        # component is the ONLY genuine source-side timestamp this observer
+        # tracks: it is the moment the last real poll actually completed,
+        # never a request-time/read-time timestamp. Read-only accessors
+        # below (last_poll_utc/last_poll_age_s) surface it for O-02W-C
+        # freshness derivation (§21.1 correction C) — never a new exchange
+        # client, never secret access.
+        self._cache: tuple[float, float, tuple[RealAccountSnapshot, ...]] | None = None
 
     def snapshot(self, force: bool = False) -> tuple[RealAccountSnapshot, ...]:
         now = time.monotonic()
         if not force and self._cache is not None and now - self._cache[0] < self._ttl:
-            return self._cache[1]
+            return self._cache[2]
         snaps = tuple(self._read_one(ex) for ex in configured_exchanges())
-        self._cache = (now, snaps)
+        self._cache = (now, time.time(), snaps)
         return snaps
+
+    def last_poll_utc(self) -> str | None:
+        """ISO-8601 UTC timestamp of the last real poll that actually
+        completed, or ``None`` if no poll has ever run this process
+        lifetime. Read-only — never mutates cache state."""
+        if self._cache is None:
+            return None
+        return (
+            datetime.fromtimestamp(self._cache[1], tz=timezone.utc)
+            .isoformat(timespec="seconds")
+            .replace("+00:00", "Z")
+        )
+
+    @property
+    def ttl_s(self) -> float:
+        """Read-only governed TTL (seconds) this observer's freshness is
+        judged against — never mutated after construction."""
+        return self._ttl
+
+    def last_poll_age_s(self) -> float | None:
+        """Seconds elapsed since the last real poll completed, or ``None``
+        if no poll has ever run. Uses the monotonic component so it is
+        immune to wall-clock adjustments."""
+        if self._cache is None:
+            return None
+        return time.monotonic() - self._cache[0]
 
     # ── interne ──────────────────────────────────────────────────────────
 
