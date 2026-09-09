@@ -1,138 +1,151 @@
-// ── Data contracts — Crypto AI Terminal ──────────────────────────────────────
+// ── Canonical operator snapshot types ────────────────────────────────────────
+// Mirrors GET /api/operator/v1/snapshot (O-02W-D1 API, O-02W-C producer).
+// The cockpit never recomputes, corrects, enriches, or infers any of this —
+// it only renders producer-supplied values and their provenance.
 
-export type MarketRegime =
-  | "TREND_BULL" | "TREND_BEAR" | "RANGE" | "VOLATILE" | "UNKNOWN";
+import type { ObservedValue } from "./lib/observedValue";
 
-export type ConvictionLevel = "VERY_HIGH" | "HIGH" | "MEDIUM" | "LOW" | "SKIP";
+export type InstanceRelation = "CURRENT_INSTANCE" | "PREVIOUS_INSTANCE" | "UNKNOWN";
+export type RuntimeState = "CURRENT" | "LAST_KNOWN";
+export type WorktreeState = "CLEAN" | "DIRTY" | "UNKNOWN";
+export type DeploymentEvidenceStatus = "VERIFIED" | "CLAIMED_ONLY" | "UNKNOWN";
+export type RuntimeShaEvidenceStatus = "VERIFIED" | "CLAIMED_ONLY" | "UNKNOWN";
+export type PortfolioMode = "PAPER" | "REAL_API" | "TESTNET_API" | "UNKNOWN";
+export type Authority = "EXECUTION_AUTHORITY" | "OBSERVATIONAL_TELEMETRY" | "DECISION_OUTCOME_EVIDENCE" | string;
 
-export type DecisionState =
-  | "CREATED" | "SIGNAL_GENERATED" | "CONTEXT_ENRICHED"
-  | "REGIME_VALIDATED" | "RISK_EVALUATED" | "APPROVED"
-  | "EXECUTION_PENDING" | "EXECUTED" | "MONITORED" | "CLOSED"
-  | "POSTMORTEM_ANALYZED" | "REJECTED" | "EXPIRED"
-  | "CANCELLED" | "FAILED" | "VETOED";
-
-export type PostmortemCategory = "VALIDATED" | "LUCKY" | "UNLUCKY" | "MISTAKE";
-export type SignalKind          = "trade" | "setup" | "watch" | "hold" | "block";
-export type IndicatorState      = "ok" | "warn" | "alert" | "neutral";
-export type MiniChartMetric     = "pnl" | "signal_score" | "exposure";
-
-export interface IndicatorSet {
-  rsi?:       number;
-  bb_pct?:    number;
-  atr?:       number;
-  macd_bull?: boolean;
-  ema_bull?:  boolean;
-  squeeze?:   boolean;
-}
-
-export interface SymbolSignal {
-  symbol:       string;
-  price:        number;
-  change_24h:   number;
-  regime:       MarketRegime;
-  score:        number;
-  signal:       SignalKind;
-  gate_allowed: boolean;
-  actionable:   boolean;
-  indicators:   IndicatorSet;
-  pnl_series?:  number[];
+export interface DeploymentEvidence {
+  status: DeploymentEvidenceStatus;
+  source: string | null;
+  evidence_ref: string | null;
+  observed_at_utc: string | null;
 }
 
 export interface OpenPosition {
-  id:            string;
-  symbol:        string;
-  side:          "long" | "short";
-  size:          number;
-  entry_price:   number;
-  current_price: number;
-  pnl_usd:       number;
-  pnl_pct:       number;
-  sl_price?:     number;
-  tp_price?:     number;
-  regime:        MarketRegime;
-  conviction:    ConvictionLevel;
-  opened_at:     string;
-  pnl_series:    number[];
+  position_id: string;
+  symbol: string;
+  side: string | null;
+  size_usd: number | null;
+  entry_price: number | null;
+  current_price: ObservedValue<number>;
+  current_price_observed_at_utc: string | null;
+  tp_price: number | null;
+  sl_price: number | null;
+  tp_sl_source: "original" | "restored_default" | string;
+  unrealized_pnl_usd: ObservedValue<number>;
+  unrealized_pnl_pct: ObservedValue<number>;
+  opened_at: string | null;
+  regime: ObservedValue<string>;
+  restored_without_regime: boolean;
+  personality: string | null;
+  restored: boolean;
 }
 
-export interface ClosedPosition {
-  id:          string;
-  symbol:      string;
-  side:        "long" | "short";
-  pnl_usd:     number;
-  pnl_pct:     number;
-  r_multiple:  number;
-  regime:      MarketRegime;
-  conviction:  ConvictionLevel;
-  postmortem:  PostmortemCategory;
-  duration_ms: number;
-  closed_at:   string;
-  pnl_series:  number[];
+export interface PortfolioDomain {
+  domain: string;
+  observed_at_utc: string;
+  source: string;
+  freshness: string;
+  status: string;
+  schema_version: string;
+  source_version: string | null;
+  evidence: Record<string, unknown>;
+  source_updated_at_utc: ObservedValue<string>;
+  authority: Authority;
+  mode: PortfolioMode;
+  paper_equity_usd: ObservedValue<number>;
+  paper_open_positions_count: ObservedValue<number>;
+  paper_unrealized_pnl_usd: ObservedValue<number>;
+  paper_realized_pnl_usd: ObservedValue<number>;
+  real_account_equity_usd: ObservedValue<number>;
+  real_account_free_usd: ObservedValue<number>;
+  real_account_stale: ObservedValue<boolean>;
+  real_account_last_poll_utc: ObservedValue<string>;
+  non_paper_wallet_balance_usd: ObservedValue<number>;
+  capital_x_usd: ObservedValue<number>;
+  open_positions: ObservedValue<OpenPosition[]>;
+  portfolio_status?: Record<string, unknown>;
+  [key: string]: unknown;
 }
 
-export interface DecisionPacket {
-  id:               string;
-  symbol:           string;
-  state:            DecisionState;
-  decision_type:    string;
-  score:            number;
-  conviction:       ConvictionLevel;
-  regime:           MarketRegime;
-  rejection_reason?: string;
-  postmortem?:      PostmortemCategory;
-  created_at:       string;
-  duration_ms:      number;
+export interface PerSymbolDecision {
+  symbol: string;
+  packet_id: string | null;
+  context_id: string | null;
+  created_cycle_id: string | null;
+  created_at: ObservedValue<string>;
+  latest_transition_at_utc: ObservedValue<string>;
+  side: ObservedValue<string>;
+  confidence_raw: ObservedValue<number>;
+  confidence_adjusted: ObservedValue<number>;
+  regime: ObservedValue<string>;
+  lifecycle_state: ObservedValue<string>;
+  is_actionable: ObservedValue<boolean> & { authority: Authority };
+  trade_allowed: ObservedValue<boolean> & { authority: Authority };
+  first_blocker: ObservedValue<string> & { authority: Authority };
 }
 
-export interface ModuleHealth {
-  name:        string;
-  status:      "ok" | "warn" | "error" | "offline";
-  last_tick_ms: number;
-  detail?:     string;
+export interface DecisionPipelineDomain {
+  domain: string;
+  observed_at_utc: string;
+  source: string;
+  freshness: string;
+  status: string;
+  schema_version: string;
+  source_version: string | null;
+  evidence: Record<string, unknown>;
+  source_updated_at_utc: ObservedValue<string>;
+  authority: Authority;
+  stages: unknown[];
+  trade_allowed: ObservedValue<boolean>;
+  first_blocker: ObservedValue<string>;
+  per_symbol_decisions: PerSymbolDecision[];
+  [key: string]: unknown;
 }
 
-export interface SystemSnapshot {
-  capital_usd:      number;
-  daily_pnl:        number;
-  open_positions:   number;
-  win_rate_7d:      number;
-  mode:             "paper" | "testnet" | "live";
-  modules:          ModuleHealth[];
-  last_updated:     string;
+export interface SystemHealthDomain {
+  domain: string;
+  observed_at_utc: string;
+  source: string;
+  freshness: string;
+  status: string;
+  schema_version: string;
+  source_version: string | null;
+  evidence: Record<string, unknown>;
+  source_updated_at_utc: ObservedValue<string>;
+  authority: Authority;
+  boot_alive: ObservedValue<boolean>;
+  health_score: ObservedValue<number>;
+  health_level: ObservedValue<string>;
+  exchange_connectivity_healthy: ObservedValue<boolean>;
+  exchange_latency_ms: ObservedValue<number>;
+  module_statuses: Record<string, unknown>;
+  [key: string]: unknown;
 }
 
-// ── Score tracking ────────────────────────────────────────────────────────────
-
-export type RegimeStatus = "STRONG" | "GOOD" | "WEAK" | "AVOID";
-
-export interface RegimePerf {
-  regime:  string;
-  trades:  number;
-  winrate: number;  // 0-1
-  avg_pnl: number;  // % as decimal (0.04 = +4%)
-  status:  RegimeStatus;
+export interface OperatorSnapshot {
+  schema_version: string;
+  snapshot_id: string;
+  cycle: number;
+  process_instance_id: string;
+  generated_at_utc: string;
+  source_sha: string | null;
+  worktree_state: WorktreeState;
+  deployment_evidence: DeploymentEvidence;
+  runtime_sha_evidence_status: RuntimeShaEvidenceStatus;
+  portfolio: PortfolioDomain;
+  decision_pipeline: DecisionPipelineDomain;
+  system_health: SystemHealthDomain;
+  // Reader-supplied evidence (never producer-authored), merged onto the
+  // envelope by the API's /api/operator/v1/snapshot route:
+  instance_relation: InstanceRelation;
+  runtime_state: RuntimeState;
+  stale_reason: string | null;
+  snapshot_age_s: number | null;
+  freshness_classification: string;
 }
 
-export interface OptimizerEntry {
-  regime:   string;
-  tp:       number;
-  sl:       number;
-  trailing: number;
-  score:    number;
-  winrate:  number;  // 0-1
-}
-
-export interface ScoreSnapshot {
-  trades:       number;
-  winrate:      number;  // 0-1
-  expectancy:   number;  // decimal e.g. 0.0346
-  efficiency:   number;  // 0-1
-  pnl_total:    number;  // USD
-  avg_mfe:      number;  // 0-1
-  avg_mae:      number;  // 0-1 (negative)
-  equity_curve: number[]; // cumulative PnL USD per trade
-  regimes:      RegimePerf[];
-  optimizer:    OptimizerEntry[];
-  last_updated: string;
+export interface ApiStructuredError {
+  error_code?: string;
+  error_message?: string;
+  retries_used?: number;
 }
