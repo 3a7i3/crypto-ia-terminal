@@ -9,6 +9,7 @@ import React from "react";
 import type { OperatorSnapshot, OpenPosition } from "../types";
 import { ObservedValueView } from "../components/ObservedValueView";
 import { ModeBadge } from "../components/ModeBadge";
+import { isObservedValue } from "../lib/observedValue";
 
 const fmtUsd = (v: unknown) => (typeof v === "number" ? `$${v.toFixed(2)}` : String(v));
 const fmtPct = (v: unknown) => (typeof v === "number" ? `${v.toFixed(2)}%` : String(v));
@@ -52,9 +53,92 @@ const Field: React.FC<{ label: string; children: React.ReactNode }> = ({ label, 
   </div>
 );
 
+const PositionsTable: React.FC<{ positions: OpenPosition[] }> = ({ positions }) => (
+  <div style={{ overflowX: "auto" }}>
+    <table className="w-full">
+      <thead>
+        <tr className="text-left" style={{ color: "var(--text-muted)" }}>
+          {["Symbol", "Side", "Size", "Entry", "Current", "PnL $", "PnL %", "Regime", "TP/SL source", "Personality"].map((h) => (
+            <th key={h} className="font-mono text-[10px] font-normal pb-1 pr-3">
+              {h}
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {positions.map((pos) => (
+          <PositionRow key={pos.position_id || pos.symbol} pos={pos} />
+        ))}
+      </tbody>
+    </table>
+  </div>
+);
+
+/** O-02W-D2-R1 Correction D — `open_positions` presentation, never via
+ * `String(value)`:
+ * - PRESENT with a non-empty array: render the table.
+ * - EMPTY: the genuine observed-empty state (delegated to ObservedValueView).
+ * - STALE with a valid array: render the supplied last-known rows wrapped in
+ *   a visible STALE warning around the whole position section.
+ * - UNKNOWN/UNAVAILABLE/NOT_APPLICABLE: explicit semantics, no rows.
+ * - Malformed combinations: INVALID_OBSERVED_VALUE (never repaired).
+ * Never recomputes price, PnL, count, or exposure. */
+const OpenPositionsSection: React.FC<{ ov: unknown }> = ({ ov }) => {
+  if (!isObservedValue(ov)) {
+    return <ObservedValueView ov={ov} />;
+  }
+
+  if (ov.semantics === "PRESENT" || ov.semantics === "STALE") {
+    if (!Array.isArray(ov.value)) {
+      // Semantics claims a list but the value isn't one — contradictory,
+      // never coerced into an empty/healthy render.
+      return (
+        <span className="ov ov-invalid" data-testid="ov-invalid">
+          INVALID_OBSERVED_VALUE
+        </span>
+      );
+    }
+
+    const positions = ov.value as OpenPosition[];
+
+    if (positions.length === 0) {
+      return (
+        <div className="font-mono text-xs" style={{ color: "var(--text-muted)" }}>
+          (empty — zero open positions observed)
+        </div>
+      );
+    }
+
+    const table = <PositionsTable positions={positions} />;
+
+    if (ov.semantics === "STALE") {
+      return (
+        <div data-testid="open-positions-stale-wrapper">
+          <div
+            data-testid="open-positions-stale-badge"
+            className="font-mono text-[10px] mb-2"
+            style={{ color: "#f59e0b" }}
+          >
+            ⚠ STALE — last-known open positions, not a current observation
+          </div>
+          {table}
+        </div>
+      );
+    }
+
+    return table;
+  }
+
+  // UNKNOWN / UNAVAILABLE / NOT_APPLICABLE — no rows, explicit semantics only.
+  return (
+    <div className="font-mono text-xs">
+      <ObservedValueView ov={ov} />
+    </div>
+  );
+};
+
 export const PortfolioView: React.FC<{ snapshot: OperatorSnapshot }> = ({ snapshot }) => {
   const p = snapshot.portfolio;
-  const positions = p.open_positions?.semantics === "PRESENT" ? (p.open_positions.value as OpenPosition[]) : [];
 
   return (
     <div className="flex flex-col gap-4" data-testid="portfolio-view">
@@ -116,38 +200,13 @@ export const PortfolioView: React.FC<{ snapshot: OperatorSnapshot }> = ({ snapsh
         </Field>
       </div>
 
-      <div className="p-3" style={{ background: "var(--bg-card)", borderRadius: 8, border: "1px solid var(--bg-border)" }}>
+      <div
+        data-testid="open-positions-section"
+        className="p-3"
+        style={{ background: "var(--bg-card)", borderRadius: 8, border: "1px solid var(--bg-border)" }}
+      >
         <div className="font-mono text-xs font-bold mb-2">Open positions</div>
-        {p.open_positions?.semantics !== "PRESENT" ? (
-          <div className="font-mono text-xs">
-            <ObservedValueView ov={p.open_positions} />
-          </div>
-        ) : positions.length === 0 ? (
-          <div className="font-mono text-xs" style={{ color: "var(--text-muted)" }}>
-            (empty — zero open positions observed)
-          </div>
-        ) : (
-          <div style={{ overflowX: "auto" }}>
-            <table className="w-full">
-              <thead>
-                <tr className="text-left" style={{ color: "var(--text-muted)" }}>
-                  {["Symbol", "Side", "Size", "Entry", "Current", "PnL $", "PnL %", "Regime", "TP/SL source", "Personality"].map(
-                    (h) => (
-                      <th key={h} className="font-mono text-[10px] font-normal pb-1 pr-3">
-                        {h}
-                      </th>
-                    ),
-                  )}
-                </tr>
-              </thead>
-              <tbody>
-                {positions.map((pos) => (
-                  <PositionRow key={pos.position_id || pos.symbol} pos={pos} />
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <OpenPositionsSection ov={p.open_positions} />
       </div>
     </div>
   );

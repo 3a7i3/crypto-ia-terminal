@@ -53,4 +53,24 @@ describe("ObservedValueView", () => {
     render(<ObservedValueView ov={"not-an-observed-value"} />);
     expect(screen.getByTestId("ov-invalid")).toBeInTheDocument();
   });
+
+  it("rejects a contradictory PRESENT/null combination as INVALID_OBSERVED_VALUE (Correction A)", () => {
+    render(<ObservedValueView ov={{ value: null, semantics: "PRESENT" }} />);
+    expect(screen.getByTestId("ov-invalid")).toBeInTheDocument();
+  });
+
+  it("rejects a contradictory ZERO/non-zero combination as INVALID_OBSERVED_VALUE (Correction A)", () => {
+    render(<ObservedValueView ov={{ value: 7, semantics: "ZERO" }} />);
+    expect(screen.getByTestId("ov-invalid")).toBeInTheDocument();
+  });
+
+  it("rejects a contradictory UNKNOWN/non-null combination as INVALID_OBSERVED_VALUE (Correction A)", () => {
+    render(<ObservedValueView ov={{ value: 99, semantics: "UNKNOWN" }} />);
+    expect(screen.getByTestId("ov-invalid")).toBeInTheDocument();
+  });
+
+  it("rejects a contradictory STALE/null combination as INVALID_OBSERVED_VALUE (Correction A)", () => {
+    render(<ObservedValueView ov={{ value: null, semantics: "STALE" }} />);
+    expect(screen.getByTestId("ov-invalid")).toBeInTheDocument();
+  });
 });

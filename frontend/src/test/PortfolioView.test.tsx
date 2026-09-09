@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { PortfolioView } from "../views/PortfolioView";
 import { baseSnapshot } from "./fixtures";
 
@@ -61,5 +61,93 @@ describe("PortfolioView", () => {
     const row = screen.getByTestId("open-position-row");
     expect(row).toHaveTextContent("BTCUSDT");
     expect(row).toHaveTextContent("20");
+  });
+
+  // O-02W-D2-R1 Correction D — STALE / EMPTY / UNKNOWN / malformed
+  // open_positions presentation.
+  const stalePosition = {
+    position_id: "p1",
+    symbol: "ETHUSDT",
+    side: "long",
+    size_usd: 50,
+    entry_price: 3000,
+    current_price: { value: 3100, semantics: "PRESENT" },
+    current_price_observed_at_utc: "2026-09-08T00:00:00+00:00",
+    tp_price: 3200,
+    sl_price: 2900,
+    tp_sl_source: "original",
+    unrealized_pnl_usd: { value: 10, semantics: "PRESENT" },
+    unrealized_pnl_pct: { value: 1, semantics: "PRESENT" },
+    opened_at: "2026-09-07T00:00:00+00:00",
+    regime: { value: "RANGE", semantics: "PRESENT" },
+    restored_without_regime: false,
+    personality: "conservative",
+    restored: false,
+  };
+
+  it("renders STALE open positions as the supplied last-known rows with a visible STALE warning, never String(value)", () => {
+    const snap = baseSnapshot();
+    snap.portfolio.open_positions = { semantics: "STALE", value: [stalePosition] } as never;
+    render(<PortfolioView snapshot={snap} />);
+
+    expect(screen.getByTestId("open-positions-stale-wrapper")).toBeInTheDocument();
+    expect(screen.getByTestId("open-positions-stale-badge")).toHaveTextContent("STALE");
+    const row = screen.getByTestId("open-position-row");
+    expect(row).toHaveTextContent("ETHUSDT");
+    // Never the array's default string coercion.
+    expect(screen.getByTestId("open-positions-stale-wrapper").textContent).not.toContain("[object Object]");
+  });
+
+  it("renders EMPTY open positions as a genuine observed-empty state", () => {
+    const snap = baseSnapshot();
+    snap.portfolio.open_positions = { semantics: "EMPTY", value: [] } as never;
+    render(<PortfolioView snapshot={snap} />);
+    const section = within(screen.getByTestId("open-positions-section"));
+    expect(section.getByTestId("ov-empty")).toBeInTheDocument();
+    expect(section.queryByTestId("open-position-row")).toBeNull();
+  });
+
+  it("renders UNKNOWN open positions with explicit semantics and no rows", () => {
+    const snap = baseSnapshot();
+    snap.portfolio.open_positions = { semantics: "UNKNOWN", value: null } as never;
+    render(<PortfolioView snapshot={snap} />);
+    const section = within(screen.getByTestId("open-positions-section"));
+    expect(section.getByTestId("ov-unknown")).toHaveTextContent("UNKNOWN");
+    expect(section.queryByTestId("open-position-row")).toBeNull();
+  });
+
+  it("renders UNAVAILABLE open positions with explicit semantics and no rows", () => {
+    const snap = baseSnapshot();
+    snap.portfolio.open_positions = { semantics: "UNAVAILABLE", value: null } as never;
+    render(<PortfolioView snapshot={snap} />);
+    const section = within(screen.getByTestId("open-positions-section"));
+    expect(section.getByTestId("ov-unavailable")).toHaveTextContent("UNAVAILABLE");
+    expect(section.queryByTestId("open-position-row")).toBeNull();
+  });
+
+  it("renders NOT_APPLICABLE open positions with explicit semantics and no rows", () => {
+    const snap = baseSnapshot();
+    snap.portfolio.open_positions = { semantics: "NOT_APPLICABLE", value: null } as never;
+    render(<PortfolioView snapshot={snap} />);
+    const section = within(screen.getByTestId("open-positions-section"));
+    expect(section.getByTestId("ov-not-applicable")).toHaveTextContent("NOT_APPLICABLE");
+    expect(section.queryByTestId("open-position-row")).toBeNull();
+  });
+
+  it("renders a malformed open_positions (PRESENT semantics, non-array value) as INVALID_OBSERVED_VALUE", () => {
+    const snap = baseSnapshot();
+    snap.portfolio.open_positions = { semantics: "PRESENT", value: "not-an-array" } as never;
+    render(<PortfolioView snapshot={snap} />);
+    const section = within(screen.getByTestId("open-positions-section"));
+    expect(section.getByTestId("ov-invalid")).toHaveTextContent("INVALID_OBSERVED_VALUE");
+    expect(section.queryByTestId("open-position-row")).toBeNull();
+  });
+
+  it("renders a malformed open_positions (contradictory value/semantics) as INVALID_OBSERVED_VALUE", () => {
+    const snap = baseSnapshot();
+    snap.portfolio.open_positions = { semantics: "ZERO", value: [{ symbol: "X" }] } as never;
+    render(<PortfolioView snapshot={snap} />);
+    const section = within(screen.getByTestId("open-positions-section"));
+    expect(section.getByTestId("ov-invalid")).toHaveTextContent("INVALID_OBSERVED_VALUE");
   });
 });
