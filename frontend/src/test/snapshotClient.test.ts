@@ -70,4 +70,74 @@ describe("useOperatorSnapshot", () => {
     await waitFor(() => expect(result.current.status).toBe("transport_error"));
     expect(result.current.status).not.toBe("success");
   });
+
+  // O-02W-D2-R1.1 case 15 — every malformed HTTP 200 body MASTER
+  // independently reproduced must produce transport_error, never success.
+  it.each([
+    ["portfolio.status = object", () => {
+      const s = baseSnapshot();
+      (s.portfolio as unknown as Record<string, unknown>).status = { bad: true };
+      return s;
+    }],
+    ["system_health.freshness = array", () => {
+      const s = baseSnapshot();
+      (s.system_health as unknown as Record<string, unknown>).freshness = ["bad"];
+      return s;
+    }],
+    ["open_positions[].side = object", () => {
+      const s = baseSnapshot();
+      s.portfolio.open_positions = {
+        semantics: "PRESENT",
+        value: [
+          {
+            position_id: "p1",
+            symbol: "BTCUSDT",
+            side: { bad: true },
+            size_usd: 100,
+            entry_price: 50000,
+            current_price: { value: 51000, semantics: "PRESENT" },
+            current_price_observed_at_utc: null,
+            tp_price: null,
+            sl_price: null,
+            tp_sl_source: "original",
+            unrealized_pnl_usd: { value: 20, semantics: "PRESENT" },
+            unrealized_pnl_pct: { value: 2, semantics: "PRESENT" },
+            opened_at: null,
+            regime: { value: "TREND_BULL", semantics: "PRESENT" },
+            restored_without_regime: false,
+            personality: null,
+            restored: false,
+          },
+        ],
+      } as never;
+      return s;
+    }],
+    ["contradictory confidence_raw", () => {
+      const s = baseSnapshot();
+      s.decision_pipeline.per_symbol_decisions = [
+        {
+          symbol: "ETHUSDT",
+          packet_id: null,
+          context_id: null,
+          created_cycle_id: null,
+          created_at: { value: null, semantics: "UNKNOWN" },
+          latest_transition_at_utc: { value: null, semantics: "UNKNOWN" },
+          side: { value: null, semantics: "UNKNOWN" },
+          confidence_raw: { value: null, semantics: "PRESENT" },
+          confidence_adjusted: { value: null, semantics: "UNKNOWN" },
+          regime: { value: null, semantics: "UNKNOWN" },
+          lifecycle_state: { value: null, semantics: "UNKNOWN" },
+          is_actionable: { value: false, semantics: "FALSE", authority: "EXECUTION_AUTHORITY" },
+          trade_allowed: { value: null, semantics: "UNKNOWN", authority: "OBSERVATIONAL_TELEMETRY" },
+          first_blocker: { value: null, semantics: "UNKNOWN", authority: "OBSERVATIONAL_TELEMETRY" },
+        },
+      ] as never;
+      return s;
+    }],
+  ] as const)("rejects malformed body (%s) as transport_error, never success", async (_label, build) => {
+    fetchMock.mockResolvedValue(jsonResponse(build()));
+    const { result } = renderHook(() => useOperatorSnapshot(60_000));
+    await waitFor(() => expect(result.current.status).toBe("transport_error"));
+    expect(result.current.status).not.toBe("success");
+  });
 });

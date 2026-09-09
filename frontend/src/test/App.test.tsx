@@ -56,4 +56,53 @@ describe("App", () => {
     render(<App />);
     await waitFor(() => expect(screen.getByTestId("mode-badge")).toHaveAttribute("data-mode", "UNKNOWN"));
   });
+
+  // O-02W-D2-R1.1 case 16 — a malformed `status` and a malformed position
+  // field must be rejected by the admission gate BEFORE React attempts to
+  // render them: the app must never throw and must never show a success
+  // panel for either body.
+  it("never renders (and never throws) when portfolio.status is malformed", async () => {
+    const snap = baseSnapshot();
+    (snap.portfolio as unknown as Record<string, unknown>).status = { bad: true };
+    fetchMock.mockResolvedValue(jsonResponse(snap));
+
+    expect(() => render(<App />)).not.toThrow();
+    await waitFor(() => expect(screen.getByTestId("snapshot-status-transport-error")).toBeInTheDocument());
+    expect(screen.queryByTestId("overview-view")).toBeNull();
+    expect(screen.getByTestId("no-snapshot")).toBeInTheDocument();
+  });
+
+  it("never renders (and never throws) when an open position field is malformed", async () => {
+    const snap = baseSnapshot();
+    snap.portfolio.open_positions = {
+      semantics: "PRESENT",
+      value: [
+        {
+          position_id: "p1",
+          symbol: "BTCUSDT",
+          side: { bad: true },
+          size_usd: 100,
+          entry_price: 50000,
+          current_price: { value: 51000, semantics: "PRESENT" },
+          current_price_observed_at_utc: null,
+          tp_price: null,
+          sl_price: null,
+          tp_sl_source: "original",
+          unrealized_pnl_usd: { value: 20, semantics: "PRESENT" },
+          unrealized_pnl_pct: { value: 2, semantics: "PRESENT" },
+          opened_at: null,
+          regime: { value: "TREND_BULL", semantics: "PRESENT" },
+          restored_without_regime: false,
+          personality: null,
+          restored: false,
+        },
+      ],
+    } as never;
+    fetchMock.mockResolvedValue(jsonResponse(snap));
+
+    expect(() => render(<App />)).not.toThrow();
+    await waitFor(() => expect(screen.getByTestId("snapshot-status-transport-error")).toBeInTheDocument());
+    expect(screen.queryByTestId("portfolio-view")).toBeNull();
+    expect(screen.getByTestId("no-snapshot")).toBeInTheDocument();
+  });
 });
