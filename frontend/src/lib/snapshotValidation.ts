@@ -47,6 +47,11 @@ function isBoolean(x: unknown): x is boolean {
 
 const WORKTREE_STATES = new Set(["CLEAN", "DIRTY", "UNKNOWN"]);
 const EVIDENCE_STATUSES = new Set(["VERIFIED", "CLAIMED_ONLY", "UNKNOWN"]);
+// O-02W-D2-R1.1 Correction E — `deployment_evidence.source` is a closed
+// producer-identity vocabulary (contract §15), never free-form text. A
+// VERIFIED status is never treated as proof of runtime memory here — this
+// is a shape check only, not a semantic upgrade of the evidence itself.
+const DEPLOYMENT_EVIDENCE_SOURCES = new Set(["deploy_tag", "deploy_audit", "post_deploy_verification"]);
 const PORTFOLIO_MODES = new Set(["PAPER", "REAL_API", "TESTNET_API", "UNKNOWN"]);
 const INSTANCE_RELATIONS = new Set(["CURRENT_INSTANCE", "PREVIOUS_INSTANCE", "UNKNOWN"]);
 const RUNTIME_STATES = new Set(["CURRENT", "LAST_KNOWN"]);
@@ -77,11 +82,17 @@ function isValidAuthorityObservedValue(x: unknown): boolean {
   return isNonBlankString(authority);
 }
 
+/** O-02W-D2-R1.1 Correction E — the canonical `deployment_evidence` schema:
+ * `status` closed to VERIFIED/CLAIMED_ONLY/UNKNOWN, `source` closed to
+ * deploy_tag/deploy_audit/post_deploy_verification/null (an invented,
+ * case-mismatched, or padded value is rejected — never coerced),
+ * `evidence_ref` a non-blank string or null, `observed_at_utc` a string or
+ * null. `runtime_sha_evidence_status` is never upgraded by any of this. */
 function isValidDeploymentEvidence(x: unknown): boolean {
   if (!isPlainObject(x)) return false;
   if (!EVIDENCE_STATUSES.has(x.status as string)) return false;
-  if (x.source !== null && typeof x.source !== "string") return false;
-  if (x.evidence_ref !== null && typeof x.evidence_ref !== "string") return false;
+  if (x.source !== null && !DEPLOYMENT_EVIDENCE_SOURCES.has(x.source as string)) return false;
+  if (!isNullableNonBlankString(x.evidence_ref)) return false;
   if (!isNullableString(x.observed_at_utc)) return false;
   return true;
 }

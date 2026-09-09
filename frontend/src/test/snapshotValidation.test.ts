@@ -393,3 +393,123 @@ describe("validateOperatorSnapshot — R1.1 top-level rendered primitives (Corre
     expect(validateOperatorSnapshot(snap)).toBe(true);
   });
 });
+
+// ── O-02W-D2-R1.1 (second round) — Correction E + case-mismatch/padding ────
+// MASTER's second pass also required a closed vocabulary for
+// deployment_evidence.source and explicit rejection of case-mismatched /
+// whitespace-padded alternatives to any closed-vocabulary field.
+
+describe("validateOperatorSnapshot — Correction E (deployment-evidence consistency)", () => {
+  it("case 17a: deployment_evidence.status = invented string -> false", () => {
+    const snap = baseSnapshot();
+    snap.deployment_evidence = { ...snap.deployment_evidence, status: "PARTIALLY_VERIFIED" } as never;
+    expect(validateOperatorSnapshot(snap)).toBe(false);
+  });
+
+  it("case 17b: deployment_evidence.source = invented string -> false", () => {
+    const snap = baseSnapshot();
+    snap.deployment_evidence = { ...snap.deployment_evidence, source: "manual_ssh" } as never;
+    expect(validateOperatorSnapshot(snap)).toBe(false);
+  });
+
+  it("case 17c: deployment_evidence.source = case-mismatched valid value -> false", () => {
+    const snap = baseSnapshot();
+    snap.deployment_evidence = { ...snap.deployment_evidence, source: "Deploy_Tag" } as never;
+    expect(validateOperatorSnapshot(snap)).toBe(false);
+  });
+
+  it("case 17d: deployment_evidence.source = whitespace-padded valid value -> false", () => {
+    const snap = baseSnapshot();
+    snap.deployment_evidence = { ...snap.deployment_evidence, source: " deploy_tag " } as never;
+    expect(validateOperatorSnapshot(snap)).toBe(false);
+  });
+
+  it("case 17e: deployment_evidence.evidence_ref = blank string -> false", () => {
+    const snap = baseSnapshot();
+    snap.deployment_evidence = { ...snap.deployment_evidence, evidence_ref: "   " } as never;
+    expect(validateOperatorSnapshot(snap)).toBe(false);
+  });
+
+  it("case 17f: deployment_evidence.evidence_ref = object -> false", () => {
+    const snap = baseSnapshot();
+    snap.deployment_evidence = { ...snap.deployment_evidence, evidence_ref: { bad: true } } as never;
+    expect(validateOperatorSnapshot(snap)).toBe(false);
+  });
+
+  it("accepts deployment_evidence.source = null (unconfigured)", () => {
+    const snap = baseSnapshot();
+    snap.deployment_evidence = { ...snap.deployment_evidence, source: null };
+    expect(validateOperatorSnapshot(snap)).toBe(true);
+  });
+
+  it.each(["deploy_tag", "deploy_audit", "post_deploy_verification"])(
+    "accepts deployment_evidence.source = %s (closed vocabulary member)",
+    (source) => {
+      const snap = baseSnapshot();
+      snap.deployment_evidence = { ...snap.deployment_evidence, source };
+      expect(validateOperatorSnapshot(snap)).toBe(true);
+    },
+  );
+});
+
+describe("validateOperatorSnapshot — case-mismatch / whitespace-padding rejection", () => {
+  it("rejects a lowercase portfolio.mode", () => {
+    const snap = baseSnapshot();
+    (snap.portfolio as unknown as Record<string, unknown>).mode = "paper";
+    expect(validateOperatorSnapshot(snap)).toBe(false);
+  });
+
+  it("rejects a whitespace-padded portfolio.status", () => {
+    const snap = baseSnapshot();
+    (snap.portfolio as unknown as Record<string, unknown>).status = " DEGRADED ";
+    expect(validateOperatorSnapshot(snap)).toBe(false);
+  });
+
+  it("rejects a lowercase domain freshness value", () => {
+    const snap = baseSnapshot();
+    (snap.system_health as unknown as Record<string, unknown>).freshness = "unknown";
+    expect(validateOperatorSnapshot(snap)).toBe(false);
+  });
+
+  it("rejects a whitespace-padded instance_relation", () => {
+    const snap = baseSnapshot();
+    (snap as unknown as Record<string, unknown>).instance_relation = " CURRENT_INSTANCE ";
+    expect(validateOperatorSnapshot(snap)).toBe(false);
+  });
+});
+
+describe("validateOperatorSnapshot — invalid decision identifiers (case 15)", () => {
+  it("rejects a decision row with a blank symbol", () => {
+    const snap = baseSnapshot();
+    snap.decision_pipeline.per_symbol_decisions = [{ ...validDecision, symbol: "   " }] as never;
+    expect(validateOperatorSnapshot(snap)).toBe(false);
+  });
+
+  it("rejects a decision row with a non-string packet_id", () => {
+    const snap = baseSnapshot();
+    snap.decision_pipeline.per_symbol_decisions = [{ ...validDecision, packet_id: 12345 }] as never;
+    expect(validateOperatorSnapshot(snap)).toBe(false);
+  });
+
+  it("rejects a decision row with an object context_id", () => {
+    const snap = baseSnapshot();
+    snap.decision_pipeline.per_symbol_decisions = [{ ...validDecision, context_id: { bad: true } }] as never;
+    expect(validateOperatorSnapshot(snap)).toBe(false);
+  });
+
+  it("never relabels OBSERVATIONAL_TELEMETRY as EXECUTION_AUTHORITY (authority is validated, not normalized)", () => {
+    const snap = baseSnapshot();
+    const decisionWithTelemetryActionable = {
+      ...validDecision,
+      is_actionable: { value: true, semantics: "PRESENT", authority: "OBSERVATIONAL_TELEMETRY" },
+    };
+    snap.decision_pipeline.per_symbol_decisions = [decisionWithTelemetryActionable] as never;
+    // The validator only checks that `authority` is a non-blank string — it
+    // never inspects or rewrites its value, so this passes exactly as
+    // supplied (the mission forbids relabeling, not merely rendering it).
+    expect(validateOperatorSnapshot(snap)).toBe(true);
+    expect(snap.decision_pipeline.per_symbol_decisions[0].is_actionable.authority).toBe(
+      "OBSERVATIONAL_TELEMETRY",
+    );
+  });
+});
