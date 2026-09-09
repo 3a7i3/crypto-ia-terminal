@@ -10,8 +10,11 @@ component every endpoint uses to load the canonical operator snapshot. It:
 4. Performs a bounded retry if the manifest changed during the read.
 5. Validates JSON structure.
 6. Validates required envelope fields AND their values (§ O-02W-D1-R1
-   correction C — key presence alone is not enough).
-7. Compares manifest and snapshot ``process_instance_id``.
+   correction C, extended by R1.1 correction A to cover the four source/
+   runtime-evidence fields — key presence alone is not enough).
+7. Compares manifest and snapshot ``process_instance_id``, requiring the
+   manifest to be minimally usable for identity purposes first (R1.1
+   correction B).
 8. Never replaces missing/corrupt data with empty successful data.
 9. Never mutates the loaded document.
 10. Never persists a repaired/default document.
@@ -61,6 +64,13 @@ _REQUIRED_ENVELOPE_FIELDS = (
     "portfolio",
     "decision_pipeline",
     "system_health",
+    # R1.1 correction A: the four source/runtime-evidence fields the
+    # certified O-02W-B contract (§14/§15) defines and O-02W-C produces
+    # (observability/source_evidence.py::SourceEvidence.to_dict()).
+    "source_sha",
+    "worktree_state",
+    "deployment_evidence",
+    "runtime_sha_evidence_status",
 )
 
 # Snapshot schema versions this reader understands. Duplicated here
@@ -68,6 +78,11 @@ _REQUIRED_ENVELOPE_FIELDS = (
 # deliberately — see `paths.py` docstring: the API package must not
 # import the producer module at all, even for a constant.
 _SUPPORTED_SCHEMA_VERSIONS = frozenset({"1.0.0"})
+
+# The manifest's own `schema_version` (an int, per
+# observability/operator_runtime_manifest.py::SCHEMA_VERSION) — duplicated
+# here for the same reason as above.
+_SUPPORTED_MANIFEST_SCHEMA_VERSIONS = frozenset({1})
 
 # A cycle number is a plain, non-negative integer identity — not a
 # timestamp, not unbounded. This is intentionally generous (mission §5
@@ -78,6 +93,11 @@ _CYCLE_MIN = 0
 _CYCLE_MAX = 2**63 - 1
 
 _DOMAIN_KEYS = ("portfolio", "decision_pipeline", "system_health")
+
+_WORKTREE_STATES = frozenset({"CLEAN", "DIRTY", "UNKNOWN"})
+_RUNTIME_SHA_EVIDENCE_STATUSES = frozenset({"VERIFIED", "CLAIMED_ONLY", "UNKNOWN"})
+_DEPLOYMENT_EVIDENCE_STATUSES = frozenset({"VERIFIED", "CLAIMED_ONLY", "UNKNOWN"})
+_DEPLOYMENT_EVIDENCE_REQUIRED_KEYS = ("status", "source", "evidence_ref", "observed_at_utc")
 
 DEFAULT_MAX_RETRIES = 3
 
@@ -135,7 +155,20 @@ def _missing_required_fields(snapshot: Dict[str, Any]) -> List[str]:
 
 
 def _is_non_empty_string(value: Any) -> bool:
+    """A non-empty string — allows whitespace-only content. Used for
+    free-form evidence text (`deployment_evidence.source`/`evidence_ref`,
+    `source_sha`) where whitespace is not a meaningful distinct concern."""
+
     return isinstance(value, str) and len(value) > 0
+
+
+def _is_valid_identifier(value: Any) -> bool:
+    """A non-empty, non-whitespace-only string — used for genuine
+    identity fields (`snapshot_id`, `process_instance_id`) where a
+    whitespace-only value is exactly as useless as an empty one (R1.1
+    correction B: "reject whitespace-only identifiers")."""
+
+    return isinstance(value, str) and len(value.strip()) > 0
 
 
 def _is_valid_cycle(value: Any) -> bool:
@@ -154,6 +187,11 @@ def _parse_timestamp(value: Any) -> "tuple[Optional[_dt.datetime], Optional[str]
     ``error_code`` is ``None`` on success, or a code describing exactly
     why the value could not be trusted — never a silently-swallowed
     ``None`` result mistaken for "no timestamp field" (R1 correction D).
+
+    R1.1 correction C: a field named ``*_utc`` must carry genuine UTC
+    evidence — tz-aware alone is not enough. A tz-aware value with a
+    non-zero UTC offset (a mislabeled local timestamp) is rejected just
+    as a naive one is; this reader never silently normalizes it.
     """
 
     if not isinstance(value, str) or not value:
@@ -171,11 +209,50 @@ def _parse_timestamp(value: Any) -> "tuple[Optional[_dt.datetime], Optional[str]
         # own `_iso_utc()` always emits an explicit offset; a naive value
         # reaching this reader is itself a schema violation).
         return None, "TIMESTAMP_NOT_TIMEZONE_AWARE"
+    if parsed.utcoffset() != _dt.timedelta(0):
+        # Tz-aware but NOT actually UTC — a field named `_utc` claiming a
+        # non-zero offset is a mislabeled local timestamp, never silently
+        # accepted as canonical UTC evidence.
+        return None, "TIMESTAMP_NOT_UTC_OFFSET_ZERO"
     return parsed, None
 
 
+def _validate_deployment_evidence(value: Any) -> Optional[str]:
+    """Validate `deployment_evidence` (R1.1 correction A). Returns an
+    error code, or `None` if valid. Never repairs or defaults the object
+    — an invalid/incomplete evidence object is a structured failure."""
+
+    if not isinstance(value, dict):
+        return "SNAPSHOT_INVALID_DEPLOYMENT_EVIDENCE_TYPE"
+
+    for key in _DEPLOYMENT_EVIDENCE_REQUIRED_KEYS:
+        if key not in value:
+            return "SNAPSHOT_DEPLOYMENT_EVIDENCE_MISSING_FIELD"
+
+    status = value["status"]
+    if status not in _DEPLOYMENT_EVIDENCE_STATUSES:
+        return "SNAPSHOT_INVALID_DEPLOYMENT_EVIDENCE_STATUS"
+
+    source = value["source"]
+    if source is not None and not _is_non_empty_string(source):
+        return "SNAPSHOT_INVALID_DEPLOYMENT_EVIDENCE_SOURCE"
+
+    evidence_ref = value["evidence_ref"]
+    if evidence_ref is not None and not _is_non_empty_string(evidence_ref):
+        return "SNAPSHOT_INVALID_DEPLOYMENT_EVIDENCE_REF"
+
+    observed_at_utc = value["observed_at_utc"]
+    if observed_at_utc is not None:
+        _, ts_err = _parse_timestamp(observed_at_utc)
+        if ts_err is not None:
+            return "SNAPSHOT_INVALID_DEPLOYMENT_EVIDENCE_TIMESTAMP"
+
+    return None
+
+
 def _validate_snapshot_schema(snapshot: Dict[str, Any]) -> Optional[str]:
-    """Validate VALUES, not just key presence (R1 correction C).
+    """Validate VALUES, not just key presence (R1 correction C, extended
+    by R1.1 correction A to the four source/runtime-evidence fields).
 
     Returns ``None`` if the snapshot is valid, or an explicit error code
     otherwise. Never repairs or coerces an invalid value.
@@ -185,10 +262,10 @@ def _validate_snapshot_schema(snapshot: Dict[str, Any]) -> Optional[str]:
     if schema_version not in _SUPPORTED_SCHEMA_VERSIONS:
         return "SNAPSHOT_UNSUPPORTED_SCHEMA_VERSION"
 
-    if not _is_non_empty_string(snapshot.get("snapshot_id")):
+    if not _is_valid_identifier(snapshot.get("snapshot_id")):
         return "SNAPSHOT_INVALID_SNAPSHOT_ID"
 
-    if not _is_non_empty_string(snapshot.get("process_instance_id")):
+    if not _is_valid_identifier(snapshot.get("process_instance_id")):
         return "SNAPSHOT_INVALID_PROCESS_INSTANCE_ID"
 
     if not _is_valid_cycle(snapshot.get("cycle")):
@@ -202,20 +279,64 @@ def _validate_snapshot_schema(snapshot: Dict[str, Any]) -> Optional[str]:
         if not isinstance(snapshot.get(key), dict):
             return f"SNAPSHOT_INVALID_DOMAIN_TYPE_{key.upper()}"
 
+    # R1.1 correction A — source/runtime-evidence fields.
+    source_sha = snapshot.get("source_sha")
+    if source_sha is not None and not _is_non_empty_string(source_sha):
+        return "SNAPSHOT_INVALID_SOURCE_SHA"
+
+    if snapshot.get("worktree_state") not in _WORKTREE_STATES:
+        return "SNAPSHOT_INVALID_WORKTREE_STATE"
+
+    dep_err = _validate_deployment_evidence(snapshot.get("deployment_evidence"))
+    if dep_err is not None:
+        return dep_err
+
+    if snapshot.get("runtime_sha_evidence_status") not in _RUNTIME_SHA_EVIDENCE_STATUSES:
+        return "SNAPSHOT_INVALID_RUNTIME_SHA_EVIDENCE_STATUS"
+
     return None
 
 
-def _manifest_identity(manifest: Optional[Dict[str, Any]], manifest_err: Optional[str]) -> Optional[str]:
-    """Return the manifest's `process_instance_id` ONLY if it is usable
-    for identity comparison (a non-empty string on a structurally valid
-    manifest) — otherwise `None`, which the caller treats as "identity
-    cannot be determined" (R1 correction C: two null/empty/malformed
-    identities must never compare equal)."""
+def _manifest_usable_for_identity(manifest: Optional[Dict[str, Any]], manifest_err: Optional[str]) -> bool:
+    """R1.1 correction B: a manifest may participate in identity
+    comparison only when it carries ALL of its minimum contractual
+    fields with valid values — not merely a non-empty
+    `process_instance_id` (the R1 defect).
+
+    Returns `False` for anything short of a fully usable manifest — the
+    caller treats that as `INSTANCE_RELATION_UNKNOWN`, never as a reason
+    to fail the whole read (an unusable manifest is an identity-evidence
+    gap, not necessarily a snapshot-data failure).
+    """
 
     if manifest_err is not None or manifest is None:
-        return None
-    pid = manifest.get("process_instance_id")
-    return pid if _is_non_empty_string(pid) else None
+        return False
+
+    if not _is_valid_identifier(manifest.get("process_instance_id")):
+        return False
+
+    _, ts_err = _parse_timestamp(manifest.get("boot_timestamp_utc"))
+    if ts_err is not None:
+        return False
+
+    pid = manifest.get("pid")
+    if isinstance(pid, bool) or not isinstance(pid, int) or pid <= 0:
+        return False
+
+    # source_sha's KEY must be present (the contract's minimum manifest
+    # field list includes it) even though its VALUE may be null — a
+    # manifest missing the key entirely is not the same as one that
+    # explicitly declares "no source SHA claim."
+    if "source_sha" not in manifest:
+        return False
+    source_sha = manifest["source_sha"]
+    if source_sha is not None and not _is_non_empty_string(source_sha):
+        return False
+
+    if "schema_version" in manifest and manifest["schema_version"] not in _SUPPORTED_MANIFEST_SCHEMA_VERSIONS:
+        return False
+
+    return True
 
 
 class SafeSnapshotReader:
@@ -320,16 +441,21 @@ class SafeSnapshotReader:
                 retries_used=retries_used,
             )
 
-        # §14.1/§14.2 INSTANCE_RELATION — manifest missing/unreadable/
-        # corrupt, or an identity that is null/empty/malformed on either
-        # side, => UNKNOWN. Never coerced to CURRENT_INSTANCE (R1
-        # correction C: two invalid identities must never compare equal).
-        manifest_pid = _manifest_identity(manifest, manifest_err)
-        snapshot_pid = snapshot["process_instance_id"]  # already schema-validated non-empty str
+        # §14.1/§14.2 INSTANCE_RELATION — a manifest that is missing,
+        # unreadable, corrupt, OR simply not minimally usable for
+        # identity purposes (R1.1 correction B: process_instance_id,
+        # boot_timestamp_utc, pid, source_sha, schema_version all
+        # individually valid) => UNKNOWN. Never coerced to
+        # CURRENT_INSTANCE, and an unusable manifest never fails the
+        # whole read with a 503 — the snapshot is still served, labeled
+        # UNKNOWN/LAST_KNOWN (an identity-evidence gap, not snapshot-data
+        # corruption).
+        manifest_usable = _manifest_usable_for_identity(manifest, manifest_err)
+        snapshot_pid = snapshot["process_instance_id"]  # already schema-validated identifier
 
-        if manifest_err is not None or manifest_pid is None:
+        if not manifest_usable:
             instance_relation = INSTANCE_RELATION_UNKNOWN
-        elif manifest_pid == snapshot_pid:
+        elif manifest["process_instance_id"] == snapshot_pid:
             instance_relation = INSTANCE_RELATION_CURRENT
         else:
             instance_relation = INSTANCE_RELATION_PREVIOUS
@@ -338,18 +464,20 @@ class SafeSnapshotReader:
             runtime_state = RUNTIME_STATE_CURRENT
             stale_reason = None
         elif instance_relation == INSTANCE_RELATION_PREVIOUS:
-            # A genuine, evidenced identity mismatch: the manifest names a
-            # DIFFERENT instance than the one that produced this snapshot
-            # — the only case honestly describable as a producer restart.
-            # This holds regardless of elapsed time (R1 correction B): a
-            # one-second-old snapshot from I1 is LAST_KNOWN/
-            # PRODUCER_RESTARTED the instant the I2 manifest is published.
+            # A genuine, evidenced identity mismatch on a fully usable
+            # manifest: the manifest names a DIFFERENT instance than the
+            # one that produced this snapshot — the only case honestly
+            # describable as a producer restart. This holds regardless of
+            # elapsed time (R1 correction B): a one-second-old snapshot
+            # from I1 is LAST_KNOWN/PRODUCER_RESTARTED the instant the I2
+            # manifest is published.
             runtime_state = RUNTIME_STATE_LAST_KNOWN
             stale_reason = STALE_REASON_PRODUCER_RESTARTED
         else:
             # UNKNOWN: a missing/corrupt/unusable manifest is evidence of
             # nothing about restart history — never mislabeled as
-            # PRODUCER_RESTARTED (R1 correction B).
+            # PRODUCER_RESTARTED (R1 correction B; R1.1 correction B
+            # extends this to "unusable," not merely "absent").
             runtime_state = RUNTIME_STATE_LAST_KNOWN
             stale_reason = None
 

@@ -35,6 +35,18 @@ from observability.operator_api.reader import (
 # ── Fixtures ──────────────────────────────────────────────────────────────
 
 
+def _valid_deployment_evidence(**overrides):
+    # Real shape emitted by observability.source_evidence.DeploymentEvidence.to_dict()
+    base = {
+        "status": "UNKNOWN",
+        "source": None,
+        "evidence_ref": None,
+        "observed_at_utc": None,
+    }
+    base.update(overrides)
+    return base
+
+
 def _valid_snapshot(process_instance_id="inst-1", cycle=42, snapshot_id="snap-1"):
     return {
         "schema_version": "1.0.0",
@@ -42,9 +54,10 @@ def _valid_snapshot(process_instance_id="inst-1", cycle=42, snapshot_id="snap-1"
         "cycle": cycle,
         "process_instance_id": process_instance_id,
         "generated_at_utc": "2026-09-09T00:00:00Z",
+        # Real shape emitted by observability.source_evidence.SourceEvidence.to_dict()
         "source_sha": "deadbeef",
         "worktree_state": "UNKNOWN",
-        "deployment_evidence": {},
+        "deployment_evidence": _valid_deployment_evidence(),
         "runtime_sha_evidence_status": "CLAIMED_ONLY",
         "portfolio": {"paper_equity_usd": {"value": 1000.0, "semantics": "PRESENT"}},
         "decision_pipeline": {"trade_allowed": {"value": None, "semantics": "UNKNOWN"}},
@@ -846,3 +859,346 @@ def test_r1_manifest_missing_process_instance_id_key_is_unknown(paths):
     assert result.ok is True
     assert result.instance_relation == INSTANCE_RELATION_UNKNOWN
     assert result.stale_reason is None
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# O-02W-D1-R1.1 — MASTER final remediation tests
+# ══════════════════════════════════════════════════════════════════════════
+
+
+# ── 1-4. Missing source/runtime-evidence fields → structured 503 ───────────
+
+
+def test_r11_missing_source_sha_fails_explicitly(client, paths):
+    snap_path, manifest_path = paths
+    snap = _valid_snapshot()
+    del snap["source_sha"]
+    _write_json(snap_path, snap)
+    _write_json(manifest_path, _valid_manifest())
+
+    resp = client.get("/api/operator/v1/snapshot")
+    assert resp.status_code == 503
+    assert resp.json()["error_code"] == "SNAPSHOT_MISSING_REQUIRED_FIELDS"
+
+
+def test_r11_missing_worktree_state_fails_explicitly(client, paths):
+    snap_path, manifest_path = paths
+    snap = _valid_snapshot()
+    del snap["worktree_state"]
+    _write_json(snap_path, snap)
+    _write_json(manifest_path, _valid_manifest())
+
+    resp = client.get("/api/operator/v1/snapshot")
+    assert resp.status_code == 503
+    assert resp.json()["error_code"] == "SNAPSHOT_MISSING_REQUIRED_FIELDS"
+
+
+def test_r11_missing_deployment_evidence_fails_explicitly(client, paths):
+    snap_path, manifest_path = paths
+    snap = _valid_snapshot()
+    del snap["deployment_evidence"]
+    _write_json(snap_path, snap)
+    _write_json(manifest_path, _valid_manifest())
+
+    resp = client.get("/api/operator/v1/snapshot")
+    assert resp.status_code == 503
+    assert resp.json()["error_code"] == "SNAPSHOT_MISSING_REQUIRED_FIELDS"
+
+
+def test_r11_missing_runtime_sha_evidence_status_fails_explicitly(client, paths):
+    snap_path, manifest_path = paths
+    snap = _valid_snapshot()
+    del snap["runtime_sha_evidence_status"]
+    _write_json(snap_path, snap)
+    _write_json(manifest_path, _valid_manifest())
+
+    resp = client.get("/api/operator/v1/snapshot")
+    assert resp.status_code == 503
+    assert resp.json()["error_code"] == "SNAPSHOT_MISSING_REQUIRED_FIELDS"
+
+
+# ── 5/6. Invalid enum values → 503 ──────────────────────────────────────────
+
+
+def test_r11_invalid_worktree_state_enum_fails_explicitly(client, paths):
+    snap_path, manifest_path = paths
+    _write_json(snap_path, {**_valid_snapshot(), "worktree_state": "SOMETHING_ELSE"})
+    _write_json(manifest_path, _valid_manifest())
+
+    resp = client.get("/api/operator/v1/snapshot")
+    assert resp.status_code == 503
+    assert resp.json()["error_code"] == "SNAPSHOT_INVALID_WORKTREE_STATE"
+
+
+def test_r11_invalid_runtime_sha_evidence_status_enum_fails_explicitly(client, paths):
+    snap_path, manifest_path = paths
+    _write_json(
+        snap_path, {**_valid_snapshot(), "runtime_sha_evidence_status": "SOMETHING_ELSE"}
+    )
+    _write_json(manifest_path, _valid_manifest())
+
+    resp = client.get("/api/operator/v1/snapshot")
+    assert resp.status_code == 503
+    assert resp.json()["error_code"] == "SNAPSHOT_INVALID_RUNTIME_SHA_EVIDENCE_STATUS"
+
+
+# ── 7. Non-object deployment_evidence → 503 ─────────────────────────────────
+
+
+def test_r11_non_object_deployment_evidence_fails_explicitly(client, paths):
+    snap_path, manifest_path = paths
+    _write_json(snap_path, {**_valid_snapshot(), "deployment_evidence": "not-an-object"})
+    _write_json(manifest_path, _valid_manifest())
+
+    resp = client.get("/api/operator/v1/snapshot")
+    assert resp.status_code == 503
+    assert resp.json()["error_code"] == "SNAPSHOT_INVALID_DEPLOYMENT_EVIDENCE_TYPE"
+
+
+# ── 8. Missing deployment-evidence subfield → 503 ───────────────────────────
+
+
+@pytest.mark.parametrize("missing_key", ["status", "source", "evidence_ref", "observed_at_utc"])
+def test_r11_missing_deployment_evidence_subfield_fails_explicitly(client, paths, missing_key):
+    snap_path, manifest_path = paths
+    dep = _valid_deployment_evidence()
+    del dep[missing_key]
+    _write_json(snap_path, {**_valid_snapshot(), "deployment_evidence": dep})
+    _write_json(manifest_path, _valid_manifest())
+
+    resp = client.get("/api/operator/v1/snapshot")
+    assert resp.status_code == 503
+    assert resp.json()["error_code"] == "SNAPSHOT_DEPLOYMENT_EVIDENCE_MISSING_FIELD"
+
+
+# ── 9. Invalid deployment-evidence status → 503 ─────────────────────────────
+
+
+def test_r11_invalid_deployment_evidence_status_fails_explicitly(client, paths):
+    snap_path, manifest_path = paths
+    dep = _valid_deployment_evidence(status="SOMETHING_ELSE")
+    _write_json(snap_path, {**_valid_snapshot(), "deployment_evidence": dep})
+    _write_json(manifest_path, _valid_manifest())
+
+    resp = client.get("/api/operator/v1/snapshot")
+    assert resp.status_code == 503
+    assert resp.json()["error_code"] == "SNAPSHOT_INVALID_DEPLOYMENT_EVIDENCE_STATUS"
+
+
+# ── 10. Invalid non-null deployment timestamp → 503 ─────────────────────────
+
+
+def test_r11_invalid_deployment_evidence_timestamp_fails_explicitly(client, paths):
+    snap_path, manifest_path = paths
+    dep = _valid_deployment_evidence(
+        status="VERIFIED", source="deploy_tag", evidence_ref="deploy-20260909-0000",
+        observed_at_utc="not-a-timestamp",
+    )
+    _write_json(snap_path, {**_valid_snapshot(), "deployment_evidence": dep})
+    _write_json(manifest_path, _valid_manifest())
+
+    resp = client.get("/api/operator/v1/snapshot")
+    assert resp.status_code == 503
+    assert resp.json()["error_code"] == "SNAPSHOT_INVALID_DEPLOYMENT_EVIDENCE_TIMESTAMP"
+
+
+def test_r11_non_utc_offset_deployment_evidence_timestamp_fails_explicitly(client, paths):
+    snap_path, manifest_path = paths
+    dep = _valid_deployment_evidence(
+        status="VERIFIED", source="deploy_tag", evidence_ref="deploy-20260909-0000",
+        observed_at_utc="2026-09-09T00:00:00+05:00",
+    )
+    _write_json(snap_path, {**_valid_snapshot(), "deployment_evidence": dep})
+    _write_json(manifest_path, _valid_manifest())
+
+    resp = client.get("/api/operator/v1/snapshot")
+    assert resp.status_code == 503
+    assert resp.json()["error_code"] == "SNAPSHOT_INVALID_DEPLOYMENT_EVIDENCE_TIMESTAMP"
+
+
+# ── 11. deployment_evidence.status=VERIFIED never alters runtime_sha_evidence_status ─
+
+
+def test_r11_verified_deployment_evidence_never_alters_runtime_sha_status(client, paths):
+    snap_path, manifest_path = paths
+    dep = _valid_deployment_evidence(
+        status="VERIFIED",
+        source="deploy_tag",
+        evidence_ref="deploy-20260909-0000",
+        observed_at_utc="2026-09-09T00:00:00Z",
+    )
+    snap = {**_valid_snapshot(), "deployment_evidence": dep, "runtime_sha_evidence_status": "CLAIMED_ONLY"}
+    _write_json(snap_path, snap)
+    _write_json(manifest_path, _valid_manifest())
+
+    resp = client.get("/api/operator/v1/snapshot")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["deployment_evidence"]["status"] == "VERIFIED"
+    # Never upgraded to VERIFIED merely because deployment_evidence is.
+    assert body["runtime_sha_evidence_status"] == "CLAIMED_ONLY"
+
+
+# ── 12-17. Manifest usability rules ─────────────────────────────────────────
+
+
+def test_r11_missing_manifest_boot_timestamp_is_unknown_last_known(paths):
+    snap_path, manifest_path = paths
+    _write_json(snap_path, _valid_snapshot(process_instance_id="inst-1"))
+    manifest = _valid_manifest(process_instance_id="inst-1")
+    del manifest["boot_timestamp_utc"]
+    _write_json(manifest_path, manifest)
+
+    reader = SafeSnapshotReader(snapshot_path=snap_path, manifest_path=manifest_path)
+    result = reader.read()
+    assert result.ok is True
+    assert result.instance_relation == INSTANCE_RELATION_UNKNOWN
+    assert result.runtime_state == RUNTIME_STATE_LAST_KNOWN
+    assert result.stale_reason is None
+
+
+def test_r11_invalid_manifest_boot_timestamp_is_unknown_last_known(paths):
+    snap_path, manifest_path = paths
+    _write_json(snap_path, _valid_snapshot(process_instance_id="inst-1"))
+    manifest = {**_valid_manifest(process_instance_id="inst-1"), "boot_timestamp_utc": "not-a-timestamp"}
+    _write_json(manifest_path, manifest)
+
+    reader = SafeSnapshotReader(snapshot_path=snap_path, manifest_path=manifest_path)
+    result = reader.read()
+    assert result.ok is True
+    assert result.instance_relation == INSTANCE_RELATION_UNKNOWN
+    assert result.runtime_state == RUNTIME_STATE_LAST_KNOWN
+    assert result.stale_reason is None
+
+
+@pytest.mark.parametrize("bad_pid", [None, "12345", -1, 0])
+def test_r11_missing_or_invalid_manifest_pid_is_unknown_last_known(paths, bad_pid):
+    snap_path, manifest_path = paths
+    _write_json(snap_path, _valid_snapshot(process_instance_id="inst-1"))
+    manifest = {**_valid_manifest(process_instance_id="inst-1"), "pid": bad_pid}
+    _write_json(manifest_path, manifest)
+
+    reader = SafeSnapshotReader(snapshot_path=snap_path, manifest_path=manifest_path)
+    result = reader.read()
+    assert result.ok is True
+    assert result.instance_relation == INSTANCE_RELATION_UNKNOWN
+    assert result.runtime_state == RUNTIME_STATE_LAST_KNOWN
+    assert result.stale_reason is None
+
+
+def test_r11_boolean_manifest_pid_is_rejected(paths):
+    snap_path, manifest_path = paths
+    _write_json(snap_path, _valid_snapshot(process_instance_id="inst-1"))
+    manifest = {**_valid_manifest(process_instance_id="inst-1"), "pid": True}
+    _write_json(manifest_path, manifest)
+
+    reader = SafeSnapshotReader(snapshot_path=snap_path, manifest_path=manifest_path)
+    result = reader.read()
+    assert result.ok is True
+    assert result.instance_relation == INSTANCE_RELATION_UNKNOWN
+    assert result.runtime_state == RUNTIME_STATE_LAST_KNOWN
+
+
+def test_r11_missing_manifest_source_sha_is_unknown_last_known(paths):
+    snap_path, manifest_path = paths
+    _write_json(snap_path, _valid_snapshot(process_instance_id="inst-1"))
+    manifest = _valid_manifest(process_instance_id="inst-1")
+    del manifest["source_sha"]
+    _write_json(manifest_path, manifest)
+
+    reader = SafeSnapshotReader(snapshot_path=snap_path, manifest_path=manifest_path)
+    result = reader.read()
+    assert result.ok is True
+    assert result.instance_relation == INSTANCE_RELATION_UNKNOWN
+    assert result.runtime_state == RUNTIME_STATE_LAST_KNOWN
+
+
+def test_r11_whitespace_only_manifest_identity_is_unknown_last_known(paths):
+    snap_path, manifest_path = paths
+    _write_json(snap_path, _valid_snapshot(process_instance_id="inst-1"))
+    manifest = {**_valid_manifest(), "process_instance_id": "   "}
+    _write_json(manifest_path, manifest)
+
+    reader = SafeSnapshotReader(snapshot_path=snap_path, manifest_path=manifest_path)
+    result = reader.read()
+    assert result.ok is True
+    assert result.instance_relation == INSTANCE_RELATION_UNKNOWN
+    assert result.runtime_state == RUNTIME_STATE_LAST_KNOWN
+    assert result.stale_reason is None
+
+
+# ── 18. Whitespace-only snapshot identity → 503 ─────────────────────────────
+
+
+def test_r11_whitespace_only_snapshot_identity_fails_explicitly(client, paths):
+    snap_path, manifest_path = paths
+    _write_json(snap_path, {**_valid_snapshot(), "process_instance_id": "   "})
+    _write_json(manifest_path, _valid_manifest())
+
+    resp = client.get("/api/operator/v1/snapshot")
+    assert resp.status_code == 503
+    assert resp.json()["error_code"] == "SNAPSHOT_INVALID_PROCESS_INSTANCE_ID"
+
+
+def test_r11_whitespace_only_snapshot_id_fails_explicitly(client, paths):
+    snap_path, manifest_path = paths
+    _write_json(snap_path, {**_valid_snapshot(), "snapshot_id": "   "})
+    _write_json(manifest_path, _valid_manifest())
+
+    resp = client.get("/api/operator/v1/snapshot")
+    assert resp.status_code == 503
+    assert resp.json()["error_code"] == "SNAPSHOT_INVALID_SNAPSHOT_ID"
+
+
+# ── 19/20. Fully valid manifest, matching/differing identity ───────────────
+
+
+def test_r11_fully_valid_manifest_matching_identity_is_current_instance(paths):
+    snap_path, manifest_path = paths
+    _write_json(snap_path, _valid_snapshot(process_instance_id="inst-1"))
+    _write_json(manifest_path, _valid_manifest(process_instance_id="inst-1"))
+
+    reader = SafeSnapshotReader(snapshot_path=snap_path, manifest_path=manifest_path)
+    result = reader.read()
+    assert result.ok is True
+    assert result.instance_relation == INSTANCE_RELATION_CURRENT
+    assert result.runtime_state == RUNTIME_STATE_CURRENT
+    assert result.stale_reason is None
+
+
+def test_r11_fully_valid_manifest_differing_identity_is_previous_instance(paths):
+    snap_path, manifest_path = paths
+    _write_json(snap_path, _valid_snapshot(process_instance_id="inst-old"))
+    _write_json(manifest_path, _valid_manifest(process_instance_id="inst-new"))
+
+    reader = SafeSnapshotReader(snapshot_path=snap_path, manifest_path=manifest_path)
+    result = reader.read()
+    assert result.ok is True
+    assert result.instance_relation == INSTANCE_RELATION_PREVIOUS
+    assert result.runtime_state == RUNTIME_STATE_LAST_KNOWN
+    assert result.stale_reason == STALE_REASON_PRODUCER_RESTARTED
+
+
+# ── 21. Invalid manifest never produces PRODUCER_RESTARTED ──────────────────
+
+
+@pytest.mark.parametrize(
+    "corrupt_manifest_overrides",
+    [
+        {"pid": "not-an-int"},
+        {"boot_timestamp_utc": "not-a-timestamp"},
+        {"process_instance_id": "   "},
+        {"source_sha": ""},
+    ],
+)
+def test_r11_invalid_manifest_never_produces_producer_restarted(paths, corrupt_manifest_overrides):
+    snap_path, manifest_path = paths
+    _write_json(snap_path, _valid_snapshot(process_instance_id="inst-different-from-manifest"))
+    manifest = {**_valid_manifest(process_instance_id="inst-1"), **corrupt_manifest_overrides}
+    _write_json(manifest_path, manifest)
+
+    reader = SafeSnapshotReader(snapshot_path=snap_path, manifest_path=manifest_path)
+    result = reader.read()
+    assert result.ok is True
+    assert result.stale_reason != STALE_REASON_PRODUCER_RESTARTED
+    assert result.instance_relation == INSTANCE_RELATION_UNKNOWN
