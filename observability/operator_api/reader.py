@@ -11,9 +11,11 @@ component every endpoint uses to load the canonical operator snapshot. It:
 5. Validates JSON structure.
 6. Validates required envelope fields AND their values (§ O-02W-D1-R1
    correction C, extended by R1.1 correction A to cover the four source/
-   runtime-evidence fields, and by R1.2 corrections A/B to a closed
+   runtime-evidence fields, by R1.2 corrections A/B to a closed
    vocabulary for `deployment_evidence.source` and whitespace-only
-   rejection for evidence strings — key presence alone is not enough).
+   rejection for evidence strings, and by R1.3 corrections A/B to make
+   every enum/allowlist check type-safe against arbitrary JSON values
+   (lists/dicts/bools/floats) — key presence alone is not enough).
 7. Compares manifest and snapshot ``process_instance_id``, requiring the
    manifest to be minimally usable for identity purposes first (R1.1
    correction B).
@@ -176,13 +178,31 @@ def _is_valid_identifier(value: Any) -> bool:
     return isinstance(value, str) and len(value.strip()) > 0
 
 
+def _is_valid_string_enum(value: Any, allowed: frozenset) -> bool:
+    """Type-safe membership test for a closed string vocabulary (R1.3
+    correction A). A raw ``value in allowed`` is unsafe here: a JSON
+    list or dict is unhashable and raises ``TypeError`` inside a
+    ``frozenset`` membership test, which would otherwise escape as an
+    uncaught exception (HTTP 500) instead of the contractually required
+    structured 503. The type check MUST run first — only a genuine
+    ``str`` is ever compared against the allowlist, and no value is
+    stringified, trimmed, normalized, or case-folded to make it match.
+    """
+
+    return isinstance(value, str) and value in allowed
+
+
 def _is_valid_deployment_evidence_source(value: Any) -> bool:
     """R1.2 correction A: `deployment_evidence.source` is validated
     against the certified contract's closed vocabulary — never merely
     "is this a non-empty string." `None` is accepted separately by the
-    caller (this helper only judges a non-null candidate value)."""
+    caller (this helper only judges a non-null candidate value).
 
-    return value in _DEPLOYMENT_EVIDENCE_SOURCES
+    R1.3 correction A: type-safe — a list/dict candidate must never
+    reach the underlying `frozenset` membership test unhashed.
+    """
+
+    return _is_valid_string_enum(value, _DEPLOYMENT_EVIDENCE_SOURCES)
 
 
 def _is_valid_cycle(value: Any) -> bool:
@@ -244,7 +264,7 @@ def _validate_deployment_evidence(value: Any) -> Optional[str]:
             return "SNAPSHOT_DEPLOYMENT_EVIDENCE_MISSING_FIELD"
 
     status = value["status"]
-    if status not in _DEPLOYMENT_EVIDENCE_STATUSES:
+    if not _is_valid_string_enum(status, _DEPLOYMENT_EVIDENCE_STATUSES):
         return "SNAPSHOT_INVALID_DEPLOYMENT_EVIDENCE_STATUS"
 
     # R1.2 correction A: closed vocabulary, never "any non-empty string."
@@ -278,7 +298,7 @@ def _validate_snapshot_schema(snapshot: Dict[str, Any]) -> Optional[str]:
     """
 
     schema_version = snapshot.get("schema_version")
-    if schema_version not in _SUPPORTED_SCHEMA_VERSIONS:
+    if not _is_valid_string_enum(schema_version, _SUPPORTED_SCHEMA_VERSIONS):
         return "SNAPSHOT_UNSUPPORTED_SCHEMA_VERSION"
 
     if not _is_valid_identifier(snapshot.get("snapshot_id")):
@@ -304,14 +324,16 @@ def _validate_snapshot_schema(snapshot: Dict[str, Any]) -> Optional[str]:
     if source_sha is not None and not _is_valid_identifier(source_sha):
         return "SNAPSHOT_INVALID_SOURCE_SHA"
 
-    if snapshot.get("worktree_state") not in _WORKTREE_STATES:
+    if not _is_valid_string_enum(snapshot.get("worktree_state"), _WORKTREE_STATES):
         return "SNAPSHOT_INVALID_WORKTREE_STATE"
 
     dep_err = _validate_deployment_evidence(snapshot.get("deployment_evidence"))
     if dep_err is not None:
         return dep_err
 
-    if snapshot.get("runtime_sha_evidence_status") not in _RUNTIME_SHA_EVIDENCE_STATUSES:
+    if not _is_valid_string_enum(
+        snapshot.get("runtime_sha_evidence_status"), _RUNTIME_SHA_EVIDENCE_STATUSES
+    ):
         return "SNAPSHOT_INVALID_RUNTIME_SHA_EVIDENCE_STATUS"
 
     return None
@@ -354,8 +376,21 @@ def _manifest_usable_for_identity(manifest: Optional[Dict[str, Any]], manifest_e
     if source_sha is not None and not _is_valid_identifier(source_sha):
         return False
 
-    if "schema_version" in manifest and manifest["schema_version"] not in _SUPPORTED_MANIFEST_SCHEMA_VERSIONS:
-        return False
+    # R1.3 correction B: the manifest's schema_version, when present,
+    # must be an EXACT integer matching the allowlist — never a bool
+    # (True == 1 in Python), never a float (1.0 == 1), never a string,
+    # list, or dict. A raw `in _SUPPORTED_MANIFEST_SCHEMA_VERSIONS`
+    # membership test would both accept `True`/`1.0` (equality-based
+    # frozenset lookup) and raise TypeError on an unhashable list/dict —
+    # the explicit type checks below rule out both failure modes.
+    if "schema_version" in manifest:
+        schema_version = manifest["schema_version"]
+        if (
+            isinstance(schema_version, bool)
+            or not isinstance(schema_version, int)
+            or schema_version not in _SUPPORTED_MANIFEST_SCHEMA_VERSIONS
+        ):
+            return False
 
     return True
 

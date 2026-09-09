@@ -1365,3 +1365,160 @@ def test_r12_default_unknown_deployment_evidence_object_is_accepted(client, path
 
 
 # ── 10. All existing focused tests continue to pass — see the full suite run.
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# O-02W-D1-R1.3 — MASTER JSON-type-safe enum validation tests
+# ══════════════════════════════════════════════════════════════════════════
+
+_MALFORMED_ENUM_VALUES = [[], {}, True, 1, 1.0, None]
+_MALFORMED_ENUM_VALUES_NO_NONE = [[], {}, True, 1, 1.0]
+_MALFORMED_ENUM_VALUES_UNHASHABLE_FIRST = [[], {}, True, 1]
+
+
+# ── A. Snapshot schema_version: malformed types → 503 SNAPSHOT_UNSUPPORTED_SCHEMA_VERSION ─
+
+
+@pytest.mark.parametrize("bad_value", _MALFORMED_ENUM_VALUES)
+def test_r13_malformed_schema_version_fails_explicitly(client, paths, bad_value):
+    snap_path, manifest_path = paths
+    _write_json(snap_path, {**_valid_snapshot(), "schema_version": bad_value})
+    _write_json(manifest_path, _valid_manifest())
+
+    resp = client.get("/api/operator/v1/snapshot")
+    assert resp.status_code == 503
+    assert resp.json()["error_code"] == "SNAPSHOT_UNSUPPORTED_SCHEMA_VERSION"
+
+
+# ── B. worktree_state: malformed types → 503 SNAPSHOT_INVALID_WORKTREE_STATE ─
+
+
+@pytest.mark.parametrize("bad_value", _MALFORMED_ENUM_VALUES)
+def test_r13_malformed_worktree_state_fails_explicitly(client, paths, bad_value):
+    snap_path, manifest_path = paths
+    _write_json(snap_path, {**_valid_snapshot(), "worktree_state": bad_value})
+    _write_json(manifest_path, _valid_manifest())
+
+    resp = client.get("/api/operator/v1/snapshot")
+    assert resp.status_code == 503
+    assert resp.json()["error_code"] == "SNAPSHOT_INVALID_WORKTREE_STATE"
+
+
+# ── C. runtime_sha_evidence_status: malformed types → 503 ──────────────────
+
+
+@pytest.mark.parametrize("bad_value", _MALFORMED_ENUM_VALUES)
+def test_r13_malformed_runtime_sha_evidence_status_fails_explicitly(client, paths, bad_value):
+    snap_path, manifest_path = paths
+    _write_json(snap_path, {**_valid_snapshot(), "runtime_sha_evidence_status": bad_value})
+    _write_json(manifest_path, _valid_manifest())
+
+    resp = client.get("/api/operator/v1/snapshot")
+    assert resp.status_code == 503
+    assert resp.json()["error_code"] == "SNAPSHOT_INVALID_RUNTIME_SHA_EVIDENCE_STATUS"
+
+
+# ── D. deployment_evidence.status: malformed types → 503 ───────────────────
+
+
+@pytest.mark.parametrize("bad_value", _MALFORMED_ENUM_VALUES)
+def test_r13_malformed_deployment_evidence_status_fails_explicitly(client, paths, bad_value):
+    snap_path, manifest_path = paths
+    dep = _valid_deployment_evidence(status=bad_value)
+    _write_json(snap_path, {**_valid_snapshot(), "deployment_evidence": dep})
+    _write_json(manifest_path, _valid_manifest())
+
+    resp = client.get("/api/operator/v1/snapshot")
+    assert resp.status_code == 503
+    assert resp.json()["error_code"] == "SNAPSHOT_INVALID_DEPLOYMENT_EVIDENCE_STATUS"
+
+
+# ── E. deployment_evidence.source: malformed non-null types → 503 ──────────
+
+
+@pytest.mark.parametrize("bad_value", _MALFORMED_ENUM_VALUES_NO_NONE)
+def test_r13_malformed_deployment_evidence_source_fails_explicitly(client, paths, bad_value):
+    snap_path, manifest_path = paths
+    dep = _valid_deployment_evidence(status="VERIFIED", source=bad_value)
+    _write_json(snap_path, {**_valid_snapshot(), "deployment_evidence": dep})
+    _write_json(manifest_path, _valid_manifest())
+
+    resp = client.get("/api/operator/v1/snapshot")
+    assert resp.status_code == 503
+    assert resp.json()["error_code"] == "SNAPSHOT_INVALID_DEPLOYMENT_EVIDENCE_SOURCE"
+
+
+# R1.2 behavior preserved: None and the three exact strings remain valid —
+# see test_r12_null_deployment_evidence_source_is_accepted and
+# test_r12_each_permitted_deployment_evidence_source_is_accepted above.
+
+
+# ── F. Manifest schema_version: malformed types never produce 500/CURRENT/PREVIOUS/PRODUCER_RESTARTED ─
+
+
+@pytest.mark.parametrize("bad_value", [True, False, 1.0, "1", [], {}, None])
+def test_r13_malformed_manifest_schema_version_is_unknown_last_known(client, paths, bad_value):
+    snap_path, manifest_path = paths
+    _write_json(snap_path, _valid_snapshot(process_instance_id="inst-1"))
+    manifest = {**_valid_manifest(process_instance_id="inst-1"), "schema_version": bad_value}
+    _write_json(manifest_path, manifest)
+
+    resp = client.get("/api/operator/v1/snapshot")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["instance_relation"] == INSTANCE_RELATION_UNKNOWN
+    assert body["runtime_state"] == RUNTIME_STATE_LAST_KNOWN
+    assert body["stale_reason"] is None
+
+
+def test_r13_exact_integer_one_manifest_schema_version_matching_identity_is_current(client, paths):
+    snap_path, manifest_path = paths
+    _write_json(snap_path, _valid_snapshot(process_instance_id="inst-1"))
+    manifest = {**_valid_manifest(process_instance_id="inst-1"), "schema_version": 1}
+    _write_json(manifest_path, manifest)
+
+    resp = client.get("/api/operator/v1/snapshot")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["instance_relation"] == INSTANCE_RELATION_CURRENT
+    assert body["runtime_state"] == RUNTIME_STATE_CURRENT
+    assert body["stale_reason"] is None
+
+
+def test_r13_absent_manifest_schema_version_remains_usable(client, paths):
+    snap_path, manifest_path = paths
+    _write_json(snap_path, _valid_snapshot(process_instance_id="inst-1"))
+    manifest = _valid_manifest(process_instance_id="inst-1")
+    del manifest["schema_version"]
+    _write_json(manifest_path, manifest)
+
+    resp = client.get("/api/operator/v1/snapshot")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["instance_relation"] == INSTANCE_RELATION_CURRENT
+    assert body["runtime_state"] == RUNTIME_STATE_CURRENT
+    assert body["stale_reason"] is None
+
+
+# ── G. End-to-end structured-error proof across all four operator routes ───
+
+
+@pytest.mark.parametrize(
+    "endpoint",
+    [
+        "/api/operator/v1/snapshot",
+        "/api/operator/v1/portfolio",
+        "/api/operator/v1/decision-pipeline",
+        "/api/operator/v1/system-health",
+    ],
+)
+@pytest.mark.parametrize("bad_value", _MALFORMED_ENUM_VALUES_UNHASHABLE_FIRST)
+def test_r13_unhashable_malformed_value_never_500s_on_any_route(client, paths, bad_value, endpoint):
+    snap_path, manifest_path = paths
+    dep = _valid_deployment_evidence(status="VERIFIED", source=bad_value)
+    _write_json(snap_path, {**_valid_snapshot(), "deployment_evidence": dep})
+    _write_json(manifest_path, _valid_manifest())
+
+    resp = client.get(endpoint)
+    assert resp.status_code == 503, f"{endpoint} with source={bad_value!r} returned {resp.status_code}"
+    assert resp.json()["error_code"] == "SNAPSHOT_INVALID_DEPLOYMENT_EVIDENCE_SOURCE"
