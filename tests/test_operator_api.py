@@ -1202,3 +1202,166 @@ def test_r11_invalid_manifest_never_produces_producer_restarted(paths, corrupt_m
     assert result.ok is True
     assert result.stale_reason != STALE_REASON_PRODUCER_RESTARTED
     assert result.instance_relation == INSTANCE_RELATION_UNKNOWN
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# O-02W-D1-R1.2 — MASTER final schema-strictness remediation tests
+# ══════════════════════════════════════════════════════════════════════════
+
+
+# ── 1. Snapshot source_sha=" " → structured 503 ─────────────────────────────
+
+
+def test_r12_whitespace_only_snapshot_source_sha_fails_explicitly(client, paths):
+    snap_path, manifest_path = paths
+    _write_json(snap_path, {**_valid_snapshot(), "source_sha": " "})
+    _write_json(manifest_path, _valid_manifest())
+
+    resp = client.get("/api/operator/v1/snapshot")
+    assert resp.status_code == 503
+    assert resp.json()["error_code"] == "SNAPSHOT_INVALID_SOURCE_SHA"
+
+
+# ── 2. Manifest source_sha=" " → snapshot still served, UNKNOWN/LAST_KNOWN ──
+
+
+def test_r12_whitespace_only_manifest_source_sha_is_unknown_last_known(client, paths):
+    snap_path, manifest_path = paths
+    _write_json(snap_path, _valid_snapshot(process_instance_id="inst-1"))
+    manifest = {**_valid_manifest(process_instance_id="inst-1"), "source_sha": " "}
+    _write_json(manifest_path, manifest)
+
+    resp = client.get("/api/operator/v1/snapshot")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["instance_relation"] == INSTANCE_RELATION_UNKNOWN
+    assert body["runtime_state"] == RUNTIME_STATE_LAST_KNOWN
+    assert body["stale_reason"] is None
+
+
+# ── 3/4. deployment_evidence.source: invented value / whitespace → 503 ─────
+
+
+def test_r12_invented_deployment_evidence_source_fails_explicitly(client, paths):
+    snap_path, manifest_path = paths
+    dep = _valid_deployment_evidence(status="VERIFIED", source="invented_source")
+    _write_json(snap_path, {**_valid_snapshot(), "deployment_evidence": dep})
+    _write_json(manifest_path, _valid_manifest())
+
+    resp = client.get("/api/operator/v1/snapshot")
+    assert resp.status_code == 503
+    assert resp.json()["error_code"] == "SNAPSHOT_INVALID_DEPLOYMENT_EVIDENCE_SOURCE"
+
+
+def test_r12_whitespace_deployment_evidence_source_fails_explicitly(client, paths):
+    snap_path, manifest_path = paths
+    dep = _valid_deployment_evidence(status="VERIFIED", source=" ")
+    _write_json(snap_path, {**_valid_snapshot(), "deployment_evidence": dep})
+    _write_json(manifest_path, _valid_manifest())
+
+    resp = client.get("/api/operator/v1/snapshot")
+    assert resp.status_code == 503
+    assert resp.json()["error_code"] == "SNAPSHOT_INVALID_DEPLOYMENT_EVIDENCE_SOURCE"
+
+
+def test_r12_case_mismatched_deployment_evidence_source_fails_explicitly(client, paths):
+    snap_path, manifest_path = paths
+    dep = _valid_deployment_evidence(status="VERIFIED", source="Deploy_Tag")
+    _write_json(snap_path, {**_valid_snapshot(), "deployment_evidence": dep})
+    _write_json(manifest_path, _valid_manifest())
+
+    resp = client.get("/api/operator/v1/snapshot")
+    assert resp.status_code == 503
+    assert resp.json()["error_code"] == "SNAPSHOT_INVALID_DEPLOYMENT_EVIDENCE_SOURCE"
+
+
+def test_r12_padded_deployment_evidence_source_fails_explicitly(client, paths):
+    snap_path, manifest_path = paths
+    dep = _valid_deployment_evidence(status="VERIFIED", source=" deploy_tag ")
+    _write_json(snap_path, {**_valid_snapshot(), "deployment_evidence": dep})
+    _write_json(manifest_path, _valid_manifest())
+
+    resp = client.get("/api/operator/v1/snapshot")
+    assert resp.status_code == 503
+    assert resp.json()["error_code"] == "SNAPSHOT_INVALID_DEPLOYMENT_EVIDENCE_SOURCE"
+
+
+# ── 5. deployment_evidence.evidence_ref=" " → 503 ───────────────────────────
+
+
+def test_r12_whitespace_only_deployment_evidence_ref_fails_explicitly(client, paths):
+    snap_path, manifest_path = paths
+    dep = _valid_deployment_evidence(status="VERIFIED", source="deploy_tag", evidence_ref=" ")
+    _write_json(snap_path, {**_valid_snapshot(), "deployment_evidence": dep})
+    _write_json(manifest_path, _valid_manifest())
+
+    resp = client.get("/api/operator/v1/snapshot")
+    assert resp.status_code == 503
+    assert resp.json()["error_code"] == "SNAPSHOT_INVALID_DEPLOYMENT_EVIDENCE_REF"
+
+
+def test_r12_empty_deployment_evidence_ref_fails_explicitly(client, paths):
+    snap_path, manifest_path = paths
+    dep = _valid_deployment_evidence(status="VERIFIED", source="deploy_tag", evidence_ref="")
+    _write_json(snap_path, {**_valid_snapshot(), "deployment_evidence": dep})
+    _write_json(manifest_path, _valid_manifest())
+
+    resp = client.get("/api/operator/v1/snapshot")
+    assert resp.status_code == 503
+    assert resp.json()["error_code"] == "SNAPSHOT_INVALID_DEPLOYMENT_EVIDENCE_REF"
+
+
+# ── 6/7/8. Each exact permitted source accepted; None accepted; default object accepted ─
+
+
+@pytest.mark.parametrize(
+    "source_value", ["deploy_tag", "deploy_audit", "post_deploy_verification"]
+)
+def test_r12_each_permitted_deployment_evidence_source_is_accepted(client, paths, source_value):
+    snap_path, manifest_path = paths
+    dep = _valid_deployment_evidence(
+        status="VERIFIED",
+        source=source_value,
+        evidence_ref="deploy-20260909-0000",
+        observed_at_utc="2026-09-09T00:00:00Z",
+    )
+    _write_json(snap_path, {**_valid_snapshot(), "deployment_evidence": dep})
+    _write_json(manifest_path, _valid_manifest())
+
+    resp = client.get("/api/operator/v1/snapshot")
+    assert resp.status_code == 200
+    # ── 9. Returned verbatim, never normalized/rewritten ──
+    assert resp.json()["deployment_evidence"]["source"] == source_value
+
+
+def test_r12_null_deployment_evidence_source_is_accepted(client, paths):
+    snap_path, manifest_path = paths
+    dep = _valid_deployment_evidence(status="CLAIMED_ONLY", source=None)
+    _write_json(snap_path, {**_valid_snapshot(), "deployment_evidence": dep})
+    _write_json(manifest_path, _valid_manifest())
+
+    resp = client.get("/api/operator/v1/snapshot")
+    assert resp.status_code == 200
+    assert resp.json()["deployment_evidence"]["source"] is None
+
+
+def test_r12_default_unknown_deployment_evidence_object_is_accepted(client, paths):
+    snap_path, manifest_path = paths
+    # The producer's current default object (observability/source_evidence.py
+    # ::DeploymentEvidence()) — all three nullable evidence fields null.
+    dep = _valid_deployment_evidence()
+    assert dep == {
+        "status": "UNKNOWN",
+        "source": None,
+        "evidence_ref": None,
+        "observed_at_utc": None,
+    }
+    _write_json(snap_path, {**_valid_snapshot(), "deployment_evidence": dep})
+    _write_json(manifest_path, _valid_manifest())
+
+    resp = client.get("/api/operator/v1/snapshot")
+    assert resp.status_code == 200
+    assert resp.json()["deployment_evidence"] == dep
+
+
+# ── 10. All existing focused tests continue to pass — see the full suite run.

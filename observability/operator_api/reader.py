@@ -11,7 +11,9 @@ component every endpoint uses to load the canonical operator snapshot. It:
 5. Validates JSON structure.
 6. Validates required envelope fields AND their values (§ O-02W-D1-R1
    correction C, extended by R1.1 correction A to cover the four source/
-   runtime-evidence fields — key presence alone is not enough).
+   runtime-evidence fields, and by R1.2 corrections A/B to a closed
+   vocabulary for `deployment_evidence.source` and whitespace-only
+   rejection for evidence strings — key presence alone is not enough).
 7. Compares manifest and snapshot ``process_instance_id``, requiring the
    manifest to be minimally usable for identity purposes first (R1.1
    correction B).
@@ -99,6 +101,15 @@ _RUNTIME_SHA_EVIDENCE_STATUSES = frozenset({"VERIFIED", "CLAIMED_ONLY", "UNKNOWN
 _DEPLOYMENT_EVIDENCE_STATUSES = frozenset({"VERIFIED", "CLAIMED_ONLY", "UNKNOWN"})
 _DEPLOYMENT_EVIDENCE_REQUIRED_KEYS = ("status", "source", "evidence_ref", "observed_at_utc")
 
+# R1.2 correction A: `deployment_evidence.source` is a CLOSED vocabulary
+# per the certified contract (§15) — a producer-identity provenance tag,
+# not free-form text. Any value outside this set (including an invented
+# label, a differently-cased variant, or whitespace) is rejected; `None`
+# (unavailable) is handled separately, not as a member of this set.
+_DEPLOYMENT_EVIDENCE_SOURCES = frozenset(
+    {"deploy_tag", "deploy_audit", "post_deploy_verification"}
+)
+
 DEFAULT_MAX_RETRIES = 3
 
 
@@ -154,21 +165,24 @@ def _missing_required_fields(snapshot: Dict[str, Any]) -> List[str]:
     return [f for f in _REQUIRED_ENVELOPE_FIELDS if f not in snapshot]
 
 
-def _is_non_empty_string(value: Any) -> bool:
-    """A non-empty string — allows whitespace-only content. Used for
-    free-form evidence text (`deployment_evidence.source`/`evidence_ref`,
-    `source_sha`) where whitespace is not a meaningful distinct concern."""
-
-    return isinstance(value, str) and len(value) > 0
-
-
 def _is_valid_identifier(value: Any) -> bool:
-    """A non-empty, non-whitespace-only string — used for genuine
-    identity fields (`snapshot_id`, `process_instance_id`) where a
-    whitespace-only value is exactly as useless as an empty one (R1.1
-    correction B: "reject whitespace-only identifiers")."""
+    """A non-empty, non-whitespace-only string — a whitespace-only value
+    is exactly as useless as an empty one. Used for genuine identity/
+    evidence fields (`snapshot_id`, `process_instance_id`, `source_sha`
+    on both snapshot and manifest, `deployment_evidence.evidence_ref`)
+    (R1.1 correction B / R1.2 correction B: "reject whitespace-only
+    identifiers"/"evidence strings")."""
 
     return isinstance(value, str) and len(value.strip()) > 0
+
+
+def _is_valid_deployment_evidence_source(value: Any) -> bool:
+    """R1.2 correction A: `deployment_evidence.source` is validated
+    against the certified contract's closed vocabulary — never merely
+    "is this a non-empty string." `None` is accepted separately by the
+    caller (this helper only judges a non-null candidate value)."""
+
+    return value in _DEPLOYMENT_EVIDENCE_SOURCES
 
 
 def _is_valid_cycle(value: Any) -> bool:
@@ -233,12 +247,17 @@ def _validate_deployment_evidence(value: Any) -> Optional[str]:
     if status not in _DEPLOYMENT_EVIDENCE_STATUSES:
         return "SNAPSHOT_INVALID_DEPLOYMENT_EVIDENCE_STATUS"
 
+    # R1.2 correction A: closed vocabulary, never "any non-empty string."
+    # `None` (unavailable) is legal; anything else must be an EXACT match
+    # to one of the contract's three source labels — never trimmed,
+    # normalized, or case-folded before comparison.
     source = value["source"]
-    if source is not None and not _is_non_empty_string(source):
+    if source is not None and not _is_valid_deployment_evidence_source(source):
         return "SNAPSHOT_INVALID_DEPLOYMENT_EVIDENCE_SOURCE"
 
+    # R1.2 correction B: whitespace-only is exactly as invalid as empty.
     evidence_ref = value["evidence_ref"]
-    if evidence_ref is not None and not _is_non_empty_string(evidence_ref):
+    if evidence_ref is not None and not _is_valid_identifier(evidence_ref):
         return "SNAPSHOT_INVALID_DEPLOYMENT_EVIDENCE_REF"
 
     observed_at_utc = value["observed_at_utc"]
@@ -279,9 +298,10 @@ def _validate_snapshot_schema(snapshot: Dict[str, Any]) -> Optional[str]:
         if not isinstance(snapshot.get(key), dict):
             return f"SNAPSHOT_INVALID_DOMAIN_TYPE_{key.upper()}"
 
-    # R1.1 correction A — source/runtime-evidence fields.
+    # R1.1 correction A — source/runtime-evidence fields. R1.2 correction
+    # B: whitespace-only is exactly as invalid as empty.
     source_sha = snapshot.get("source_sha")
-    if source_sha is not None and not _is_non_empty_string(source_sha):
+    if source_sha is not None and not _is_valid_identifier(source_sha):
         return "SNAPSHOT_INVALID_SOURCE_SHA"
 
     if snapshot.get("worktree_state") not in _WORKTREE_STATES:
@@ -326,11 +346,12 @@ def _manifest_usable_for_identity(manifest: Optional[Dict[str, Any]], manifest_e
     # source_sha's KEY must be present (the contract's minimum manifest
     # field list includes it) even though its VALUE may be null — a
     # manifest missing the key entirely is not the same as one that
-    # explicitly declares "no source SHA claim."
+    # explicitly declares "no source SHA claim." R1.2 correction B:
+    # whitespace-only is exactly as invalid as empty.
     if "source_sha" not in manifest:
         return False
     source_sha = manifest["source_sha"]
-    if source_sha is not None and not _is_non_empty_string(source_sha):
+    if source_sha is not None and not _is_valid_identifier(source_sha):
         return False
 
     if "schema_version" in manifest and manifest["schema_version"] not in _SUPPORTED_MANIFEST_SCHEMA_VERSIONS:
