@@ -18,3 +18,11 @@ ccxt>=4.5
 # dans requirements-vps.txt mais absent d'ici, donc absent de la CI —
 # la collecte pytest de test_parallel_engine.py echouait sur ModuleNotFoundError.
 joblib>=1.3.0
+
+# Requis par observability/operator_api/ (O-02W-D1, lecture seule) et
+# tests/test_operator_api.py : deja present dans
+# requirements-vps-frozen-20260718.txt (production) mais absent d'ici, donc
+# absent de la CI — la collecte pytest de test_operator_api.py echouait sur
+# ModuleNotFoundError: No module named 'fastapi'.
+fastapi==0.136.1
+uvicorn==0.46.0
