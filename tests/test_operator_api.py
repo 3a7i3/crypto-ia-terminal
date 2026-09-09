@@ -12,8 +12,10 @@ only on temporary files").
 from __future__ import annotations
 
 import json
+import os
 import threading
 import time
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
@@ -25,6 +27,7 @@ from observability.operator_api.reader import (
     INSTANCE_RELATION_UNKNOWN,
     RUNTIME_STATE_CURRENT,
     RUNTIME_STATE_LAST_KNOWN,
+    STALE_REASON_PRODUCER_RESTARTED,
     SafeSnapshotReader,
 )
 
@@ -409,25 +412,72 @@ def test_no_exchange_credentials_read_or_network_calls(client, paths, monkeypatc
     assert resp.status_code == 200
 
 
-def test_no_fresh_forbidden_instantiations(monkeypatch):
-    import paper_trading.mexc_simulator as mexc_mod
-    import infra.wallet_sync as wallet_mod
-    import observability.real_accounts as real_accounts_mod
+# ── R1 correction A: fresh-process import isolation ─────────────────────────
+#
+# The previous design imported the forbidden modules into THIS test
+# process and monkeypatched them, then reloaded the API — that proves
+# nothing about a genuinely clean process, and itself imports modules
+# with possible side effects before the assertion even runs. A real
+# subprocess with nothing pre-imported is the only way to prove that
+# `import observability.operator_api.app` alone never pulls in the
+# producer/writer/runtime modules, and never performs a filesystem write
+# (e.g. `observability.json_logger`'s module-level `logs/` mkdir).
 
-    def _forbidden(*args, **kwargs):
-        raise AssertionError("forbidden object instantiated by the operator API")
+_ISOLATION_CHECK_SCRIPT = """
+import sys
+sys.path.insert(0, {repo_root!r})
+import observability.operator_api.app  # noqa: F401
 
-    monkeypatch.setattr(mexc_mod, "MexcSimulator", _forbidden, raising=False)
-    monkeypatch.setattr(wallet_mod, "WalletSync", _forbidden, raising=False)
-    monkeypatch.setattr(real_accounts_mod, "RealAccountsObserver", _forbidden, raising=False)
+forbidden = [
+    "observability.operator_snapshot_builder",
+    "observability.operator_runtime_manifest",
+    "observability.json_logger",
+    "paper_trading.mexc_simulator",
+    "infra.wallet_sync",
+    "observability.real_accounts",
+    "core.advisor_loop",
+]
+leaked = [m for m in forbidden if m in sys.modules]
+if leaked:
+    print("LEAKED:" + ",".join(leaked))
+else:
+    print("CLEAN")
+"""
 
-    import importlib
 
-    import observability.operator_api.app as app_mod
-    import observability.operator_api.reader as reader_mod
+def _run_isolation_script(cwd) -> str:
+    import subprocess
+    import sys as _sys
 
-    importlib.reload(reader_mod)
-    importlib.reload(app_mod)
+    repo_root = str(Path(__file__).resolve().parent.parent)
+    script = _ISOLATION_CHECK_SCRIPT.format(repo_root=repo_root)
+    env = {"PATH": os.environ.get("PATH", ""), "PYTHONDONTWRITEBYTECODE": "1"}
+    result = subprocess.run(
+        [_sys.executable, "-c", script],
+        cwd=str(cwd),
+        capture_output=True,
+        text=True,
+        env=env,
+        timeout=60,
+    )
+    assert result.returncode == 0, f"isolation script failed: {result.stderr}"
+    return result.stdout.strip()
+
+
+def test_1_fresh_process_import_never_pulls_forbidden_modules(tmp_path):
+    output = _run_isolation_script(tmp_path)
+    assert output == "CLEAN", output
+
+
+def test_2_fresh_process_import_creates_no_application_directory(tmp_path):
+    before = set(tmp_path.iterdir())
+    _run_isolation_script(tmp_path)
+    after = set(tmp_path.iterdir())
+    # Only cwd-relative artifacts matter here (e.g. a stray `logs/` or
+    # `databases/` directory created by an importer's module-level
+    # side effect) — nothing the API's own import should ever create.
+    created = after - before
+    assert created == set(), f"import created unexpected paths: {created}"
 
 
 def test_no_import_of_advisor_loop():
@@ -552,3 +602,247 @@ def test_reader_never_persists_repaired_document(paths):
     # The malformed file on disk must remain exactly as it was — no
     # "repaired" or default document was ever written back.
     assert snap_path.read_text(encoding="utf-8") == "{bad json"
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# O-02W-D1-R1 — MASTER remediation tests
+# ══════════════════════════════════════════════════════════════════════════
+
+
+# ── 4/5/6. Two null/empty/wrongly-typed identities never yield CURRENT_INSTANCE ─
+
+
+def test_r1_none_identities_never_yield_current_instance(paths):
+    snap_path, manifest_path = paths
+    snap = _valid_snapshot(process_instance_id="inst-1")
+    _write_json(snap_path, snap)
+    _write_json(manifest_path, {**_valid_manifest(), "process_instance_id": None})
+
+    reader = SafeSnapshotReader(snapshot_path=snap_path, manifest_path=manifest_path)
+    result = reader.read()
+    assert result.ok is True
+    assert result.instance_relation == INSTANCE_RELATION_UNKNOWN
+    assert result.stale_reason is None
+
+
+def test_r1_empty_identities_never_yield_current_instance(paths):
+    snap_path, manifest_path = paths
+    _write_json(snap_path, _valid_snapshot(process_instance_id="inst-1"))
+    _write_json(manifest_path, {**_valid_manifest(), "process_instance_id": ""})
+
+    reader = SafeSnapshotReader(snapshot_path=snap_path, manifest_path=manifest_path)
+    result = reader.read()
+    assert result.ok is True
+    assert result.instance_relation == INSTANCE_RELATION_UNKNOWN
+    assert result.stale_reason is None
+
+
+def test_r1_wrongly_typed_identities_never_yield_current_instance(paths):
+    snap_path, manifest_path = paths
+    _write_json(snap_path, _valid_snapshot(process_instance_id="inst-1"))
+    _write_json(manifest_path, {**_valid_manifest(), "process_instance_id": 12345})
+
+    reader = SafeSnapshotReader(snapshot_path=snap_path, manifest_path=manifest_path)
+    result = reader.read()
+    assert result.ok is True
+    assert result.instance_relation == INSTANCE_RELATION_UNKNOWN
+    assert result.stale_reason is None
+
+
+# ── 7. Unsupported snapshot schema version fails explicitly ────────────────
+
+
+def test_r1_unsupported_schema_version_fails_explicitly(client, paths):
+    snap_path, manifest_path = paths
+    _write_json(snap_path, {**_valid_snapshot(), "schema_version": "9.9.9"})
+    _write_json(manifest_path, _valid_manifest())
+
+    resp = client.get("/api/operator/v1/snapshot")
+    assert resp.status_code == 503
+    assert resp.json()["error_code"] == "SNAPSHOT_UNSUPPORTED_SCHEMA_VERSION"
+
+
+# ── 8. Invalid cycle types fail explicitly, including boolean ──────────────
+
+
+@pytest.mark.parametrize("bad_cycle", [True, False, "42", 3.5, None, -1])
+def test_r1_invalid_cycle_types_fail_explicitly(client, paths, bad_cycle):
+    snap_path, manifest_path = paths
+    _write_json(snap_path, {**_valid_snapshot(), "cycle": bad_cycle})
+    _write_json(manifest_path, _valid_manifest())
+
+    resp = client.get("/api/operator/v1/snapshot")
+    assert resp.status_code == 503
+    assert resp.json()["error_code"] == "SNAPSHOT_INVALID_CYCLE"
+
+
+# ── 9. Invalid domain types fail explicitly ─────────────────────────────────
+
+
+@pytest.mark.parametrize("domain_key", ["portfolio", "decision_pipeline", "system_health"])
+def test_r1_invalid_domain_type_fails_explicitly(client, paths, domain_key):
+    snap_path, manifest_path = paths
+    _write_json(snap_path, {**_valid_snapshot(), domain_key: "not-an-object"})
+    _write_json(manifest_path, _valid_manifest())
+
+    resp = client.get("/api/operator/v1/snapshot")
+    assert resp.status_code == 503
+    assert resp.json()["error_code"] == f"SNAPSHOT_INVALID_DOMAIN_TYPE_{domain_key.upper()}"
+
+
+# ── 10. Invalid timestamp fails explicitly ──────────────────────────────────
+
+
+@pytest.mark.parametrize(
+    "bad_ts", ["not-a-timestamp", "2026-09-09T00:00:00", "", 12345, None]
+)
+def test_r1_invalid_timestamp_fails_explicitly(client, paths, bad_ts):
+    snap_path, manifest_path = paths
+    _write_json(snap_path, {**_valid_snapshot(), "generated_at_utc": bad_ts})
+    _write_json(manifest_path, _valid_manifest())
+
+    resp = client.get("/api/operator/v1/snapshot")
+    assert resp.status_code == 503
+    assert resp.json()["error_code"] == "SNAPSHOT_INVALID_TIMESTAMP"
+
+
+# ── 11. Future timestamp is not silently clamped to age zero ───────────────
+
+
+def test_r1_future_timestamp_not_silently_clamped_to_zero(client, paths):
+    snap_path, manifest_path = paths
+    _write_json(snap_path, {**_valid_snapshot(), "generated_at_utc": "2099-01-01T00:00:00Z"})
+    _write_json(manifest_path, _valid_manifest())
+
+    resp = client.get("/api/operator/v1/snapshot")
+    assert resp.status_code == 503
+    body = resp.json()
+    assert body["error_code"] == "SNAPSHOT_CLOCK_SKEW_FUTURE_TIMESTAMP"
+    assert "snapshot_age_s" not in body
+
+
+def test_r1_reader_rejects_future_timestamp_directly(paths):
+    snap_path, manifest_path = paths
+    _write_json(snap_path, {**_valid_snapshot(), "generated_at_utc": "2099-01-01T00:00:00Z"})
+    _write_json(manifest_path, _valid_manifest())
+
+    reader = SafeSnapshotReader(snapshot_path=snap_path, manifest_path=manifest_path)
+    result = reader.read()
+    assert result.ok is False
+    assert result.error_code == "SNAPSHOT_CLOCK_SKEW_FUTURE_TIMESTAMP"
+
+
+# ── 12/13. Identity mismatch immediately emits stale_reason, even when recent ─
+
+
+def test_r1_identity_mismatch_immediately_stale_reason_producer_restarted(paths):
+    import datetime as _dt
+
+    snap_path, manifest_path = paths
+    now_iso = (
+        _dt.datetime.now(_dt.timezone.utc) - _dt.timedelta(seconds=1)
+    ).isoformat(timespec="seconds").replace("+00:00", "Z")
+    _write_json(
+        snap_path,
+        {**_valid_snapshot(process_instance_id="inst-old"), "generated_at_utc": now_iso},
+    )
+    _write_json(manifest_path, _valid_manifest(process_instance_id="inst-new"))
+
+    reader = SafeSnapshotReader(snapshot_path=snap_path, manifest_path=manifest_path)
+    result = reader.read()
+    assert result.ok is True
+    # Even a one-second-old snapshot is immediately LAST_KNOWN/
+    # PRODUCER_RESTARTED once the manifest names a different instance —
+    # never dependent on elapsed time.
+    assert result.instance_relation == INSTANCE_RELATION_PREVIOUS
+    assert result.runtime_state == RUNTIME_STATE_LAST_KNOWN
+    assert result.stale_reason == STALE_REASON_PRODUCER_RESTARTED
+    assert result.snapshot_age_s < 5.0
+
+
+# ── 14. Domain endpoints expose the same stale reason ───────────────────────
+
+
+@pytest.mark.parametrize(
+    "endpoint", ["/api/operator/v1/portfolio", "/api/operator/v1/decision-pipeline", "/api/operator/v1/system-health"]
+)
+def test_r1_domain_endpoints_expose_stale_reason(client, paths, endpoint):
+    snap_path, manifest_path = paths
+    _write_json(snap_path, _valid_snapshot(process_instance_id="inst-old"))
+    _write_json(manifest_path, _valid_manifest(process_instance_id="inst-new"))
+
+    resp = client.get(endpoint)
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["instance_relation"] == INSTANCE_RELATION_PREVIOUS
+    assert body["stale_reason"] == STALE_REASON_PRODUCER_RESTARTED
+
+
+# ── 15. Current instance does not fabricate a stale reason ─────────────────
+
+
+def test_r1_current_instance_never_fabricates_stale_reason(client, paths):
+    snap_path, manifest_path = paths
+    _write_json(snap_path, _valid_snapshot(process_instance_id="inst-1"))
+    _write_json(manifest_path, _valid_manifest(process_instance_id="inst-1"))
+
+    resp = client.get("/api/operator/v1/snapshot")
+    body = resp.json()
+    assert body["instance_relation"] == INSTANCE_RELATION_CURRENT
+    assert body["stale_reason"] is None
+
+
+# ── 16. Missing/corrupt manifest never claims PRODUCER_RESTARTED ───────────
+
+
+def test_r1_missing_manifest_never_claims_producer_restarted(client, paths):
+    snap_path, _ = paths
+    _write_json(snap_path, _valid_snapshot())
+
+    resp = client.get("/api/operator/v1/snapshot")
+    body = resp.json()
+    assert body["instance_relation"] == INSTANCE_RELATION_UNKNOWN
+    assert body["stale_reason"] is None
+
+
+def test_r1_corrupt_manifest_never_claims_producer_restarted(client, paths):
+    snap_path, manifest_path = paths
+    _write_json(snap_path, _valid_snapshot())
+    manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    manifest_path.write_text("{bad", encoding="utf-8")
+
+    resp = client.get("/api/operator/v1/snapshot")
+    body = resp.json()
+    assert body["instance_relation"] == INSTANCE_RELATION_UNKNOWN
+    assert body["stale_reason"] is None
+
+
+# ── 17. The API does not synthesize a distinct trace_id ─────────────────────
+
+
+def test_r1_api_never_synthesizes_trace_id(client, paths):
+    snap_path, manifest_path = paths
+    snap = _valid_snapshot()
+    assert "trace_id" not in snap
+    _write_json(snap_path, snap)
+    _write_json(manifest_path, _valid_manifest())
+
+    resp = client.get("/api/operator/v1/snapshot")
+    assert "trace_id" not in resp.json()
+
+
+# ── 3 (reprise). Manifest identity validation distinguishes usable vs corrupt ─
+
+
+def test_r1_manifest_missing_process_instance_id_key_is_unknown(paths):
+    snap_path, manifest_path = paths
+    _write_json(snap_path, _valid_snapshot(process_instance_id="inst-1"))
+    manifest_without_pid = _valid_manifest()
+    del manifest_without_pid["process_instance_id"]
+    _write_json(manifest_path, manifest_without_pid)
+
+    reader = SafeSnapshotReader(snapshot_path=snap_path, manifest_path=manifest_path)
+    result = reader.read()
+    assert result.ok is True
+    assert result.instance_relation == INSTANCE_RELATION_UNKNOWN
+    assert result.stale_reason is None

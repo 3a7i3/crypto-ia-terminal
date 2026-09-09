@@ -9,7 +9,8 @@ component every endpoint uses to load the canonical operator snapshot. It:
 3. Re-reads the runtime manifest.
 4. Performs a bounded retry if the manifest changed during the read.
 5. Validates JSON structure.
-6. Validates required envelope fields.
+6. Validates required envelope fields AND their values (§ O-02W-D1-R1
+   correction C — key presence alone is not enough).
 7. Compares manifest and snapshot ``process_instance_id``.
 8. Never replaces missing/corrupt data with empty successful data.
 9. Never mutates the loaded document.
@@ -17,8 +18,9 @@ component every endpoint uses to load the canonical operator snapshot. It:
 
 It never writes to either file, never instantiates
 ``MexcSimulator``/``WalletSync``/``RealAccountsObserver``, never imports
-``core.advisor_loop``, and never infers process liveness from anything it
-reads here (§14.2 of
+``core.advisor_loop`` (or any producer/writer module — see
+``observability/operator_api/paths.py`` for why), and never infers
+process liveness from anything it reads here (§14.2 of
 docs/contracts/O-02W-B_CANONICAL_OPERATOR_API_CONTRACT.md).
 """
 
@@ -31,8 +33,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from observability.operator_runtime_manifest import DEFAULT_MANIFEST_PATH
-from observability.operator_snapshot_builder import DEFAULT_SNAPSHOT_PATH
+from observability.operator_api.paths import DEFAULT_MANIFEST_PATH, DEFAULT_SNAPSHOT_PATH
 
 # §14.1/§14.2 INSTANCE_RELATION vocabulary — identity/succession only,
 # never a liveness claim.
@@ -45,6 +46,12 @@ INSTANCE_RELATION_UNKNOWN = "UNKNOWN"
 RUNTIME_STATE_CURRENT = "CURRENT"
 RUNTIME_STATE_LAST_KNOWN = "LAST_KNOWN"
 
+# Contractual stale reason (R1 correction B) — set ONLY when the relation
+# is PREVIOUS_INSTANCE (a genuine, evidenced producer restart). Never set
+# for CURRENT_INSTANCE (nothing to explain) or UNKNOWN (a missing/corrupt
+# manifest is not evidence of a restart — it is evidence of nothing).
+STALE_REASON_PRODUCER_RESTARTED = "PRODUCER_RESTARTED"
+
 _REQUIRED_ENVELOPE_FIELDS = (
     "schema_version",
     "snapshot_id",
@@ -55,6 +62,22 @@ _REQUIRED_ENVELOPE_FIELDS = (
     "decision_pipeline",
     "system_health",
 )
+
+# Snapshot schema versions this reader understands. Duplicated here
+# (rather than imported from `observability.operator_snapshot_builder`)
+# deliberately — see `paths.py` docstring: the API package must not
+# import the producer module at all, even for a constant.
+_SUPPORTED_SCHEMA_VERSIONS = frozenset({"1.0.0"})
+
+# A cycle number is a plain, non-negative integer identity — not a
+# timestamp, not unbounded. This is intentionally generous (mission §5
+# gives no explicit contractual upper bound); the point is to reject
+# malformed types (bool, float, string, negative), not to guess a real
+# ceiling.
+_CYCLE_MIN = 0
+_CYCLE_MAX = 2**63 - 1
+
+_DOMAIN_KEYS = ("portfolio", "decision_pipeline", "system_health")
 
 DEFAULT_MAX_RETRIES = 3
 
@@ -73,6 +96,7 @@ class SnapshotReadResult:
     manifest: Optional[Dict[str, Any]] = None
     instance_relation: str = INSTANCE_RELATION_UNKNOWN
     runtime_state: str = RUNTIME_STATE_LAST_KNOWN
+    stale_reason: Optional[str] = None
     snapshot_age_s: Optional[float] = None
     freshness_classification: str = "UNKNOWN"
     error_code: Optional[str] = None
@@ -110,21 +134,88 @@ def _missing_required_fields(snapshot: Dict[str, Any]) -> List[str]:
     return [f for f in _REQUIRED_ENVELOPE_FIELDS if f not in snapshot]
 
 
-def _compute_age_s(generated_at_utc: Any, now_fn) -> Optional[float]:
-    if not isinstance(generated_at_utc, str):
-        return None
+def _is_non_empty_string(value: Any) -> bool:
+    return isinstance(value, str) and len(value) > 0
+
+
+def _is_valid_cycle(value: Any) -> bool:
+    # bool is a subclass of int in Python — explicitly excluded, a cycle
+    # number is never a boolean (mission §8 test 8/R1).
+    if isinstance(value, bool):
+        return False
+    if not isinstance(value, int):
+        return False
+    return _CYCLE_MIN <= value <= _CYCLE_MAX
+
+
+def _parse_timestamp(value: Any) -> "tuple[Optional[_dt.datetime], Optional[str]]":
+    """Parse an ISO-8601 UTC timestamp. Returns (parsed_dt, error_code).
+
+    ``error_code`` is ``None`` on success, or a code describing exactly
+    why the value could not be trusted — never a silently-swallowed
+    ``None`` result mistaken for "no timestamp field" (R1 correction D).
+    """
+
+    if not isinstance(value, str) or not value:
+        return None, "INVALID_TIMESTAMP_TYPE"
+    ts = value
+    if ts.endswith("Z"):
+        ts = ts[:-1] + "+00:00"
     try:
-        ts = generated_at_utc
-        if ts.endswith("Z"):
-            ts = ts[:-1] + "+00:00"
         parsed = _dt.datetime.fromisoformat(ts)
-        if parsed.tzinfo is None:
-            parsed = parsed.replace(tzinfo=_dt.timezone.utc)
     except ValueError:
+        return None, "INVALID_TIMESTAMP_FORMAT"
+    if parsed.tzinfo is None:
+        # A naive timestamp cannot be honestly compared to UTC "now" —
+        # never silently assumed to already be UTC here (the producer's
+        # own `_iso_utc()` always emits an explicit offset; a naive value
+        # reaching this reader is itself a schema violation).
+        return None, "TIMESTAMP_NOT_TIMEZONE_AWARE"
+    return parsed, None
+
+
+def _validate_snapshot_schema(snapshot: Dict[str, Any]) -> Optional[str]:
+    """Validate VALUES, not just key presence (R1 correction C).
+
+    Returns ``None`` if the snapshot is valid, or an explicit error code
+    otherwise. Never repairs or coerces an invalid value.
+    """
+
+    schema_version = snapshot.get("schema_version")
+    if schema_version not in _SUPPORTED_SCHEMA_VERSIONS:
+        return "SNAPSHOT_UNSUPPORTED_SCHEMA_VERSION"
+
+    if not _is_non_empty_string(snapshot.get("snapshot_id")):
+        return "SNAPSHOT_INVALID_SNAPSHOT_ID"
+
+    if not _is_non_empty_string(snapshot.get("process_instance_id")):
+        return "SNAPSHOT_INVALID_PROCESS_INSTANCE_ID"
+
+    if not _is_valid_cycle(snapshot.get("cycle")):
+        return "SNAPSHOT_INVALID_CYCLE"
+
+    _, ts_err = _parse_timestamp(snapshot.get("generated_at_utc"))
+    if ts_err is not None:
+        return "SNAPSHOT_INVALID_TIMESTAMP"
+
+    for key in _DOMAIN_KEYS:
+        if not isinstance(snapshot.get(key), dict):
+            return f"SNAPSHOT_INVALID_DOMAIN_TYPE_{key.upper()}"
+
+    return None
+
+
+def _manifest_identity(manifest: Optional[Dict[str, Any]], manifest_err: Optional[str]) -> Optional[str]:
+    """Return the manifest's `process_instance_id` ONLY if it is usable
+    for identity comparison (a non-empty string on a structurally valid
+    manifest) — otherwise `None`, which the caller treats as "identity
+    cannot be determined" (R1 correction C: two null/empty/malformed
+    identities must never compare equal)."""
+
+    if manifest_err is not None or manifest is None:
         return None
-    now = now_fn()
-    now_dt = _dt.datetime.fromtimestamp(now, tz=_dt.timezone.utc)
-    return max(0.0, (now_dt - parsed).total_seconds())
+    pid = manifest.get("process_instance_id")
+    return pid if _is_non_empty_string(pid) else None
 
 
 class SafeSnapshotReader:
@@ -199,24 +290,68 @@ class SafeSnapshotReader:
                 retries_used=retries_used,
             )
 
+        schema_err = _validate_snapshot_schema(snapshot)
+        if schema_err is not None:
+            return SnapshotReadResult(
+                ok=False,
+                error_code=schema_err,
+                error_message=f"Snapshot failed schema value validation: {schema_err}",
+                retries_used=retries_used,
+            )
+
+        # R1 correction D: clock-skew/timestamp honesty. The timestamp
+        # itself already passed format validation above; here we reject
+        # a snapshot claiming to have been generated in the future
+        # relative to this reader's clock — never silently clamped to a
+        # plausible-looking zero-second age (the previous `max(0.0, ...)`
+        # defect). This is a structured failure, not a fabricated value.
+        parsed_ts, _ = _parse_timestamp(snapshot.get("generated_at_utc"))
+        now_dt = _dt.datetime.fromtimestamp(self._now_fn(), tz=_dt.timezone.utc)
+        raw_age_s = (now_dt - parsed_ts).total_seconds()
+        if raw_age_s < 0:
+            return SnapshotReadResult(
+                ok=False,
+                error_code="SNAPSHOT_CLOCK_SKEW_FUTURE_TIMESTAMP",
+                error_message=(
+                    "Snapshot generated_at_utc is in the future relative to this "
+                    f"reader's clock (age would be {raw_age_s:.3f}s) — never "
+                    "silently clamped to zero."
+                ),
+                retries_used=retries_used,
+            )
+
         # §14.1/§14.2 INSTANCE_RELATION — manifest missing/unreadable/
-        # corrupt => UNKNOWN, never coerced to CURRENT_INSTANCE.
-        if manifest_err is not None:
+        # corrupt, or an identity that is null/empty/malformed on either
+        # side, => UNKNOWN. Never coerced to CURRENT_INSTANCE (R1
+        # correction C: two invalid identities must never compare equal).
+        manifest_pid = _manifest_identity(manifest, manifest_err)
+        snapshot_pid = snapshot["process_instance_id"]  # already schema-validated non-empty str
+
+        if manifest_err is not None or manifest_pid is None:
             instance_relation = INSTANCE_RELATION_UNKNOWN
-        elif "process_instance_id" not in manifest:
-            instance_relation = INSTANCE_RELATION_UNKNOWN
-        elif manifest["process_instance_id"] == snapshot["process_instance_id"]:
+        elif manifest_pid == snapshot_pid:
             instance_relation = INSTANCE_RELATION_CURRENT
         else:
             instance_relation = INSTANCE_RELATION_PREVIOUS
 
-        runtime_state = (
-            RUNTIME_STATE_CURRENT
-            if instance_relation == INSTANCE_RELATION_CURRENT
-            else RUNTIME_STATE_LAST_KNOWN
-        )
-
-        age_s = _compute_age_s(snapshot.get("generated_at_utc"), self._now_fn)
+        if instance_relation == INSTANCE_RELATION_CURRENT:
+            runtime_state = RUNTIME_STATE_CURRENT
+            stale_reason = None
+        elif instance_relation == INSTANCE_RELATION_PREVIOUS:
+            # A genuine, evidenced identity mismatch: the manifest names a
+            # DIFFERENT instance than the one that produced this snapshot
+            # — the only case honestly describable as a producer restart.
+            # This holds regardless of elapsed time (R1 correction B): a
+            # one-second-old snapshot from I1 is LAST_KNOWN/
+            # PRODUCER_RESTARTED the instant the I2 manifest is published.
+            runtime_state = RUNTIME_STATE_LAST_KNOWN
+            stale_reason = STALE_REASON_PRODUCER_RESTARTED
+        else:
+            # UNKNOWN: a missing/corrupt/unusable manifest is evidence of
+            # nothing about restart history — never mislabeled as
+            # PRODUCER_RESTARTED (R1 correction B).
+            runtime_state = RUNTIME_STATE_LAST_KNOWN
+            stale_reason = None
 
         return SnapshotReadResult(
             ok=True,
@@ -224,7 +359,8 @@ class SafeSnapshotReader:
             manifest=copy.deepcopy(manifest) if manifest is not None else None,
             instance_relation=instance_relation,
             runtime_state=runtime_state,
-            snapshot_age_s=age_s,
+            stale_reason=stale_reason,
+            snapshot_age_s=raw_age_s,
             # No governed freshness threshold exists for this envelope
             # today (mission §5) — age is exposed, classification stays
             # UNKNOWN rather than inventing a threshold.
@@ -239,6 +375,7 @@ __all__ = [
     "INSTANCE_RELATION_UNKNOWN",
     "RUNTIME_STATE_CURRENT",
     "RUNTIME_STATE_LAST_KNOWN",
+    "STALE_REASON_PRODUCER_RESTARTED",
     "SnapshotReadResult",
     "SafeSnapshotReader",
 ]

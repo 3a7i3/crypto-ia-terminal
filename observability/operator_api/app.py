@@ -23,12 +23,8 @@ from typing import Any, Dict
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 
-from observability.operator_api.reader import (
-    DEFAULT_MANIFEST_PATH,
-    DEFAULT_SNAPSHOT_PATH,
-    SafeSnapshotReader,
-    SnapshotReadResult,
-)
+from observability.operator_api.paths import DEFAULT_MANIFEST_PATH, DEFAULT_SNAPSHOT_PATH
+from observability.operator_api.reader import SafeSnapshotReader, SnapshotReadResult
 
 app = FastAPI(
     title="Crypto AI Terminal — Operator API (read-only)",
@@ -81,6 +77,7 @@ def _envelope(result: SnapshotReadResult) -> Dict[str, Any]:
         "generated_at_utc": snap.get("generated_at_utc"),
         "instance_relation": result.instance_relation,
         "runtime_state": result.runtime_state,
+        "stale_reason": result.stale_reason,
         "snapshot_age_s": result.snapshot_age_s,
         "freshness_classification": result.freshness_classification,
     }
@@ -133,6 +130,7 @@ def get_snapshot() -> Any:
     payload = dict(result.snapshot)  # shallow copy of the already-deep-copied doc
     payload["instance_relation"] = result.instance_relation
     payload["runtime_state"] = result.runtime_state
+    payload["stale_reason"] = result.stale_reason
     payload["snapshot_age_s"] = result.snapshot_age_s
     payload["freshness_classification"] = result.freshness_classification
     return payload
