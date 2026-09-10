@@ -138,6 +138,41 @@ Telegram secret to implement any option. R1.2's starting HEAD is
 `5149d3f1cfa347f91511ac7216930e170c5be0d8`; only this file was
 modified.
 
+**R1.3 remediation (O-02W-E1-R1.3, same date):** independent MASTER
+review found four residual defects, corrected in place (marked
+`[R1.3]`): (A) TG-10's cutover cell still read `DEAD_CODE_REMOVAL_CANDIDATE`
+/ "dead-code hygiene" despite using `NO_IMPLEMENTATION_SOURCE_PROVEN`
+as its evidence class — corrected to a new, non-code-implying label
+(`CONFIG_PLACEHOLDER_HYGIENE_CANDIDATE` / "comment/configuration
+placeholder cleanup"), stating precisely that only two commented-out
+env placeholders exist and there is no implementation to retire; (B)
+normative (non-historical) occurrences of "active code path," "active
+production instantiation," "active caller," "already-active
+entrypoint," and equivalents are replaced throughout with bounded
+source terminology (named repository entrypoint, non-test/non-archive
+importer or caller found/not found, systemd reference present), and
+§14's verification bullet now states explicitly that a repository
+entrypoint, import chain, construction site, call site, or systemd
+reference proves only source/configuration reachability, never
+deployment, execution, or delivery; (C) §13's four safety-relevant
+findings are each given their own explicit remediation (finding 1: a
+documentation/governance correction to `GLOBAL_STATE_MACHINE.md`;
+finding 2: remove/replace the `/STOP_ALL` string; finding 3:
+remove/replace the three `/RESUME` strings; finding 4: a separate
+remove/route/repair decision per broken call expression) rather than
+one shared "source mission," and §16's summary is aligned to match;
+(D) the closing §13 rule now states explicitly that removing or
+rewording a misleading instruction is the safe default, that
+implementing any live Telegram control command is *not* authorized by
+this mission or any prior remediation round, and what a future
+control-surface mission would require (separate MASTER authorization,
+an ADR/authority-boundary review, security review,
+authentication/replay/audit requirements, dedicated tests) — replacing
+the prior "actually wire a live... resume/stop path" phrasing, which
+read as authorizing exactly what this rule now forecloses. R1.3's
+starting HEAD is `d1b3687ef5dd8f2d9457f76f448d8db343e6e08f`; only this
+file was modified.
+
 Final certification of this contract belongs exclusively to the
 independent ChatGPT MASTER reviewer. This document is a proposal for
 that review, not a self-certified conclusion.
@@ -167,8 +202,8 @@ control surface to it (§8, §11).
 | `SOURCE_PROVEN` | Verified directly against source at this commit (file:line cited). |
 | `DOCUMENTED_BUT_NOT_SOURCE_PROVEN` | Asserted by an existing doc, not independently re-verified here. |
 | `RUNTIME_UNKNOWN` | Code exists; whether it is currently running/deployed on the VPS cannot be determined without VPS access, which this mission does not have. |
-| `MODULE_IMPORTABLE_NOT_INSTANTIATED` **[R1, new]** | The module/class is imported (directly or transitively, e.g. at package-init) by an active code path, but no active code path constructs the object with live credentials or calls its start/poll method. Importing a class has no runtime effect by itself unless the module has import-time side effects (checked case by case). This is distinct from, and strictly weaker evidence of aliveness than, `SOURCE_PROVEN` reachability — and distinct from, and strictly stronger than, full unreachability. |
-| `DEAD_CODE_SOURCE_PROVEN` | An implementation (module/class) is confirmed present in source, and after checking both the import graph *and* every instantiation/call site, no active code path constructs the object with live credentials or invokes its behavior. **[R1]** This class must not be used for a module that is merely uninstantiated if the module itself is still imported by an active path — use `MODULE_IMPORTABLE_NOT_INSTANTIATED` for that case instead, so "no active instantiation found" is never conflated with "unreachable source." **[R1.2, definition tightened]** This class presumes an implementation exists to be checked. It is **not used anywhere in this document as currently written** — the one identity it might have applied to (TG-10, Narrator) has no implementation module at all, so `NO_IMPLEMENTATION_SOURCE_PROVEN` (below) applies instead, a narrower and distinct fact than "implementation exists but is unreachable." This class remains defined for potential future use (an identity with a confirmed-present, confirmed-unreachable implementation), but no row in §9 currently uses it. |
+| `MODULE_IMPORTABLE_NOT_INSTANTIATED` **[R1, new; wording bounded R1.3]** | A non-test, non-archive `import` statement for this module/class is confirmed present in source (directly, or transitively — e.g. at package-init, so any import of the containing package executes this module's top-level code) — but no non-test, non-archive construction call (with live credentials) or start/poll method call was found anywhere in source. Importing a class has no runtime effect by itself unless the module has import-time side effects (checked case by case). This class states two source facts only — an import statement exists, and no construction call was found — not that either the import or a construction call has executed in a deployed process. Distinct from, and a narrower claim than, `SOURCE_PROVEN` reachability — and distinct from, and a broader claim than, full unreachability. |
+| `DEAD_CODE_SOURCE_PROVEN` | An implementation (module/class) is confirmed present in source, and after checking both the import graph *and* every instantiation/call site, no non-test, non-archive construction call (with live credentials) or behavior-invoking call was found anywhere in source. **[R1]** This class must not be used for a module that is merely uninstantiated if an import statement for the module is still found on a non-test, non-archive path — use `MODULE_IMPORTABLE_NOT_INSTANTIATED` for that case instead, so "no construction call found" is never conflated with "no import found." **[R1.2, definition tightened; wording bounded R1.3]** This class presumes an implementation exists to be checked. It is **not used anywhere in this document as currently written** — the one identity it might have applied to (TG-10, Narrator) has no implementation module at all, so `NO_IMPLEMENTATION_SOURCE_PROVEN` (below) applies instead, a narrower and distinct fact than "implementation exists but no construction call was found." This class remains defined for potential future use (an identity with a confirmed-present implementation and no construction call found anywhere), but no row in §9 currently uses it. |
 | `NO_IMPLEMENTATION_SOURCE_PROVEN` **[R1.2, new]** | This mission's searches found configuration/comment placeholders referencing an identity (e.g. a token/chat variable name), but found **no implementation module, class, function, entrypoint, instantiation, or call site** anywhere in non-archive source for that identity. Distinct from `DEAD_CODE_SOURCE_PROVEN` (which requires a confirmed-present implementation that is merely unreachable) — this class instead states that no implementation was found to evaluate reachability of in the first place. Absence of an implementation is not "dead code": there is no code, live or dead, to classify. |
 | `SOURCE_PROVEN_NONFUNCTIONAL_NOTIFICATION_CALL` **[R1.1, new; scope tightened R1.2]** | A notification call site is confirmed present in source, and its exact invocation (constructor arguments, method name) is confirmed to not match the callee's real API — so **if** the containing component is running and the triggering condition reaches this expression, the expression deterministically raises an exception before any HTTP request is attempted, caught and discarded by a broad `except Exception` at or near the call site. This class asserts only the deterministic-failure-if-reached fact; it does **not** assert that the containing component is running or that the trigger has ever actually occurred in production — both remain `RUNTIME_UNKNOWN`. Distinct from `DEAD_CODE_SOURCE_PROVEN`/`MODULE_IMPORTABLE_NOT_INSTANTIATED` (which describe whether a code path is ever reached at all) — this class describes what happens *if* it is reached. See §13. |
 | `OPERATOR_DECISION_REQUIRED` | A human judgment call this document cannot resolve on its own. |
@@ -541,8 +576,8 @@ classified by grep count alone). Headline findings:
   real token. **[R1]** `supervision/kill_switch.py`'s own reachability
   is corrected in §9 (Correction B): its module is imported at
   `supervision/__init__.py:11-13` (package-init time, executed by any
-  `import supervision.*`), but no active code path in non-archive,
-  non-test source instantiates the class with a live token — the two
+  `import supervision.*`), but no non-archive, non-test source file
+  instantiates the class with a live token — the two
   hits for `TelegramKillSwitch(` outside the archive are the class's
   own docstring example (`kill_switch.py:12`) and
   `core/advisor_loop.py:3578`, which constructs the *aliased*
@@ -634,11 +669,11 @@ tables together.
 | TG-06 | Generic / Engine Alerts | `TELEGRAM_BOT_TOKEN` **[R1.1, corrected — this column previously also listed the two chat variables below]** | `TELEGRAM_CHAT_ID` (default channel), `TELEGRAM_BEHAVIOR_CHAT_ID` (behavior sub-channel, falls back to `TELEGRAM_CHAT_ID` if unset) | `core/advisor_loop.py` (`_telegram`, `_telegram_behavior`), `scripts/telegram_alerts.py`, `supervision/performance_watchdog.py`, `supervision/exchange_monitor.py`, `watchdog_vps.py` (root — see §17 re: the unrelated `infra/monitoring/watchdog_vps.py` duplicate) | `crypto-advisor.service` + independent scripts | PUSH_ONLY | SYSTEM | PARTIAL (see §9a for per-family split) | SOURCE_PROVEN | see §9a rows TG-06a/b/c/d | operator decision (message-family split) / E2 |
 | TG-07 | Real Account Bot (merged into TG-02's token) | — (uses `MON_PORTFOLIO_BOT_TOKEN`/`_CHAT_ID`) | same as TG-02 | `core/advisor_loop.py::_telegram_real` (1186-1205) | `crypto-advisor.service` (in-process) | PUSH_ONLY (shares TG-02's token; TG-02 remains the sole poller for that token) | PORTFOLIO (real-account sub-channel) | PARTIAL — see §9a | SOURCE_PROVEN (merge complete: no live `os.getenv("REAL_ACCOUNT_BOT_TOKEN")` read remains; historical comment identifier persists, §1) | **[R1, Correction G]** `OPERATOR_DECISION_REQUIRED` — was `KEEP_UNTIL_COCKPIT_RUNTIME_CERTIFIED`; corrected because this is a unique push notification with no cockpit-side push equivalent (cockpit is pull-only, §8); field parity alone cannot retire it — see §11 Phase 3 | operator decision / E2 |
 | TG-08 | CMVK / Sim Bot | `TELEMETRIE_IA_BOT_TOKEN` | `TELEMETRIE_IA_CHAT_ID` | `src/telegram/bot_runner.py`, `src/telegram/sim_bot.py` | none — no systemd unit references this file; not called from `advisor_loop.py` or `paper_runner.py`; not in `.env.example` | BOTH (code fully implements polling+push if run manually) | EXPERIMENT (simulation/backtest inspection) | NONE | RUNTIME_UNKNOWN — code SOURCE_PROVEN, but no deployment entrypoint exists at this commit | operator must decide deploy-or-remove; `docs/TELEGRAM_BOT_CONSTITUTION.md` Bot 6 section frames the same open question | operator decision |
-| TG-09 | KillSwitch (legacy `supervision/kill_switch.py::TelegramKillSwitch`) | `KILLSWITCH_BOT_TOKEN`/`_CHAT_ID` — name only, **never read via `os.getenv` anywhere in source** | same | `supervision/kill_switch.py` | none instantiates it live | **[R1, Correction B — evidence class corrected]** `MODULE_IMPORTABLE_NOT_INSTANTIATED`, not `DEAD_CODE_SOURCE_PROVEN`. `supervision/__init__.py:11-13` imports `TelegramKillSwitch` from this module at package-init time (`from supervision.kill_switch import (TelegramKillSwitch,)`), so any `import supervision` or `import supervision.<anything>` executes this module's top-level code. That top-level code (read in full) contains only an `Enum` and a class definition with no import-time side effects — so importing it has no runtime behavior by itself. Separately, the class itself is never **instantiated** with a live token: the only two `TelegramKillSwitch(` hits outside archive are the class's own docstring example and `core/advisor_loop.py:3578`, which constructs the *aliased* `KillSwitchHardened` under the same name (via `core/advisor_runtime_adapters.py:109`) — a distinct class with zero Telegram code. Net: source present, transitively imported, **no active production instantiation found**, runtime status on the VPS unknown without VPS evidence. | `FORBIDDEN_MUST_NEVER_REACTIVATE` (unchanged) | none — must never be wired to a real token; ADR-0007 forbids any observer-layer component from holding execution authority | none (constitutional prohibition, not a retirement candidate) |
-| TG-10 | Narrator | `NARRATOR_BOT_TOKEN`/`_CHAT_ID` — commented out, `.env.secrets.example:92-93` only | same | none — no implementation module, class, entrypoint, instantiation, or call site was found by this mission's searches | none | NONE | n/a | n/a | **[R1.2, corrected]** `NO_IMPLEMENTATION_SOURCE_PROVEN` (see §0 for definition; this identity does not use `DEAD_CODE_SOURCE_PROVEN`, which presumes an implementation exists) | `DEAD_CODE_REMOVAL_CANDIDATE` — nothing to remove beyond two commented-out env lines; cosmetic, out of this mission's scope | dead-code hygiene (non-urgent, E2 or later) |
+| TG-09 | KillSwitch (legacy `supervision/kill_switch.py::TelegramKillSwitch`) | `KILLSWITCH_BOT_TOKEN`/`_CHAT_ID` — name only, **never read via `os.getenv` anywhere in source** | same | `supervision/kill_switch.py` | none instantiates it live | **[R1, Correction B — evidence class corrected]** `MODULE_IMPORTABLE_NOT_INSTANTIATED`, not `DEAD_CODE_SOURCE_PROVEN`. `supervision/__init__.py:11-13` imports `TelegramKillSwitch` from this module at package-init time (`from supervision.kill_switch import (TelegramKillSwitch,)`), so any `import supervision` or `import supervision.<anything>` executes this module's top-level code. That top-level code (read in full) contains only an `Enum` and a class definition with no import-time side effects — so importing it has no runtime behavior by itself. Separately, the class itself is never **instantiated** with a live token: the only two `TelegramKillSwitch(` hits outside archive are the class's own docstring example and `core/advisor_loop.py:3578`, which constructs the *aliased* `KillSwitchHardened` under the same name (via `core/advisor_runtime_adapters.py:109`) — a distinct class with zero Telegram code. Net: source present, transitively imported, **no non-test, non-archive construction call with a live token found**, runtime status on the VPS unknown without VPS evidence. | `FORBIDDEN_MUST_NEVER_REACTIVATE` (unchanged) | none — must never be wired to a real token; ADR-0007 forbids any observer-layer component from holding execution authority | none (constitutional prohibition, not a retirement candidate) |
+| TG-10 | Narrator | `NARRATOR_BOT_TOKEN`/`_CHAT_ID` — commented out, `.env.secrets.example:92-93` only | same | none — no implementation module, class, entrypoint, instantiation, or call site was found by this mission's searches | none | NONE | n/a | n/a | `NO_IMPLEMENTATION_SOURCE_PROVEN` (see §0 for definition; this identity does not use `DEAD_CODE_SOURCE_PROVEN`, which presumes an implementation exists) | **[R1.3, corrected — not a code-removal classification]** `CONFIG_PLACEHOLDER_HYGIENE_CANDIDATE` — this identity has no implementation to retire; only two commented-out env-variable placeholder lines exist (`NARRATOR_BOT_TOKEN`/`NARRATOR_CHAT_ID` in `.env.secrets.example:92-93`). "Removal" here means deleting inert comment text, not decommissioning code | comment/configuration placeholder cleanup (non-urgent, E2 or later) |
 | TG-11 | Internal-only kill switch (`supervision/telegram_kill_switch.py`, name-collides with TG-09's class name but is a distinct, separate implementation) | none — docstring states Telegram polling was removed | none | `supervision/telegram_kill_switch.py` | referenced only by two `tests/phase0/` files and `tools/runtime_tracer.py`; **not imported by `core/advisor_loop.py`**, and not imported by `supervision/__init__.py` either (checked — that file imports only `kill_switch` and `killswitch_hardened`, not `telegram_kill_switch`) | NONE (zero Telegram code; only a programmatic `force_halt()/force_resume()` API) | n/a | n/a | SOURCE_PROVEN (fully unreachable from `supervision/__init__.py` or `core/advisor_loop.py` — unlike TG-09, this one has no package-init import path either) | `OPERATOR_DECISION_REQUIRED` **[R1.1, corrected]** — this file exposes the same `force_halt()/force_resume()` shape as `supervision/killswitch_hardened.py` and has no found caller, which is consistent with (but not proof of) supersession; confirming actual supersession status requires checking historical commit intent, not something this source-only pass can establish with certainty | operator decision (low priority) — confirm superseded status before any removal |
 
-**Total identities: 7 active-in-source token groups (TG-01 through
+**Total identities: 7 implemented token groups (TG-01 through
 TG-06, TG-08) + 1 merged (TG-07 → TG-02's token) + 1 identity with
 **no implementation found at all** (TG-10, `NO_IMPLEMENTATION_SOURCE_PROVEN`
 — not "dead code," since there is no code, live or dead, to classify;
@@ -1048,20 +1083,36 @@ halted state — which is precisely a safety-relevant condition.
    `NORMAL ↔ SAFE_MODE` transitions partly to "KillSwitch / Telegram."
    Current source shows these transitions are exclusively programmatic
    (`KillSwitchHardened.force_safe_mode()`/`.force_resume()`), never
-   Telegram-triggered — no active code path calls `force_resume()`
-   from any Telegram handler (confirmed: zero call sites outside the
-   method's own definition and the unreachable `supervision/telegram_kill_switch.py`
-   parallel definition, §9 TG-11). Not corrected in this mission (out
-   of scope); must be corrected in a separate, narrowly scoped source
-   mission **before T-1 deployment/runtime certification**.
+   Telegram-triggered — no non-archive, non-test source file calls
+   `force_resume()` from any Telegram handler (confirmed: zero call
+   sites outside the method's own definition and the unreachable
+   `supervision/telegram_kill_switch.py` parallel definition, §9
+   TG-11). **[R1.3, own remediation assigned per Correction C]** This
+   is a documentation-accuracy defect in an existing repository
+   document, not a code defect — its remediation is a narrowly scoped
+   **documentation/governance correction** to
+   `docs/GLOBAL_STATE_MACHINE.md` (updating the attributed trigger from
+   "KillSwitch / Telegram" to the actual programmatic
+   `force_safe_mode()`/`force_resume()` callers), not a source-code
+   change and not necessarily the same mission as findings 2-4 below.
+   Not corrected in this documentation-only PR (out of scope); should
+   be corrected **before T-1 deployment/runtime certification** so the
+   deployed system's own documentation is accurate.
 2. **`SAFETY_RELEVANT_OPERATOR_INSTRUCTION_DRIFT`** —
    `supervision/exchange_monitor.py:252-257` tells the operator (via an
-   email escalation body) to send `/STOP_ALL` on Telegram. No live
-   Telegram poller implements that command against a real token — the
-   only implementation (`supervision/kill_switch.py`) is
+   email escalation body) to send `/STOP_ALL` on Telegram. No non-test,
+   non-archive Telegram poller implements that command against a real
+   token — the only implementation (`supervision/kill_switch.py`) is
    `MODULE_IMPORTABLE_NOT_INSTANTIATED` (§9, Correction B), not a live
    handler. The instruction is currently non-actionable as written.
-   Not corrected in this mission; must be corrected before T-1.
+   **[R1.3, own remediation assigned per Correction C]** This finding's
+   own remediation: **remove or replace the misleading `/STOP_ALL`
+   instruction** in that email body, unless a separately authorized
+   control-surface design for a real `/STOP_ALL` path is later approved
+   through the process described in §13's closing note below (a
+   distinct mission, with its own authorization — this document
+   neither proposes nor authorizes that design). Not corrected in this
+   documentation-only PR; must be corrected before T-1.
 3. **`SAFETY_RELEVANT_OPERATOR_INSTRUCTION_DRIFT` [R1, wording
    corrected R1.2]** — `core/advisor_loop.py` contains three
    operator-facing `/RESUME` instructions with the identical drift
@@ -1096,7 +1147,15 @@ halted state — which is precisely a safety-relevant condition.
    triggering degraded/halted condition fires in a running process;
    what is broken, independent of delivery, is that the command named
    in the instruction (`/RESUME`) has no live Telegram handler even if
-   the message is received.
+   the message is received. **[R1.3, own remediation assigned per
+   Correction C]** This finding's own remediation: **remove or replace
+   only these three misleading `/RESUME` instructions** in
+   `core/advisor_loop.py`; this is a distinct fix from finding 2's
+   `/STOP_ALL` instruction (different file, different message family)
+   and from finding 4's broken notifier call (below) — grouping any of
+   the three findings' remediations together would misstate that they
+   share a fix, not merely a root symptom (an unwired Telegram resume
+   path).
 4. **`SAFETY_RELEVANT_OPERATOR_INSTRUCTION_DRIFT`
    /
    `SOURCE_PROVEN_NONFUNCTIONAL_NOTIFICATION_CALL` [R1.1, new;
@@ -1134,6 +1193,15 @@ halted state — which is precisely a safety-relevant condition.
    class of finding, distinct message family, and **not counted** among
    the 5 misleading operator-facing command strings (it carries no
    command instruction of its own) — see the unit taxonomy below.
+   **[R1.3, own remediation assigned per Correction C]** This finding's
+   own remediation is decided **separately** from findings 1-3: for the
+   SelfAwareness broken call (and, independently, for the
+   structurally-identical PositionManager broken call), a future
+   mission must decide among removing the notification, routing it
+   through an already-approved notification facade, or repairing the
+   call through a governed identity/configuration path — not
+   necessarily the same choice, and not necessarily the same mission,
+   as finding 3's `/RESUME`-instruction removal/replacement.
 5. `docs/TELEGRAM_ARCHITECTURE_AUDIT.md`'s description of an "ÉLEVÉ"
    risk `RADAR_BOT_TOKEN` → `TELEGRAM_BOT_TOKEN` fallback is stale
    (current `scripts/radar_bot.py` has no such fallback) — but this is
@@ -1167,29 +1235,58 @@ interchangeably]**
 
 These three counts (4 findings, 5 strings, 2 broken calls) are not
 interchangeable and must not be summarized as "five items" without
-specifying which unit. **Required follow-up, stated explicitly:**
-findings 1-4 must be corrected in a separate, narrowly scoped source
-mission before T-1 deployment/runtime certification. For finding 3's
-three strings (source-valid delivery-attempt path, but non-actionable
-because no live handler exists for the named command): either remove
-the misleading `/RESUME`/`/STOP_ALL` instructions from operator-facing
-messages, or actually wire a live, constitutionally-compliant
-resume/stop path. For finding 4's broken call expression: **this
-document does not prescribe a single specific repair.** A separately
-authorized source mission must decide among (a) removing the
-notification entirely, (b) routing it through an already-approved
-notification identity/facade (e.g. the existing `OpsNotifier`/generic
-`TELEGRAM_BOT_TOKEN` channel, if that routing is itself approved), or
-(c) repairing the call through an explicitly governed identity and
-configuration path. **This contract does not authorize creating,
-copying, exposing, or wiring any Telegram secret/token/chat-id value
-to implement any of these options** — that decision and its
-implementation are out of scope for this documentation-only mission.
-Only once finding 4's delivery question is resolved by that future
-mission does the resulting message's `/RESUME` instruction become the
-same open actionability question as finding 3's three strings. This
-document does not choose between those options and does not modify
-runtime code to implement any of them.
+specifying which unit.
+
+**[R1.3, per-finding remediation, Correction C]** All four findings
+must be corrected before T-1 deployment/runtime certification, but
+they do **not** necessarily share one mission, one fix, or one
+timeline — each is assigned its own remediation above and restated
+here for clarity:
+
+- **Finding 1** (`GLOBAL_STATE_MACHINE.md` contradiction): a narrowly
+  scoped **documentation/governance correction** — update the
+  attributed trigger to the actual programmatic caller. Not a source
+  code change.
+- **Finding 2** (`/STOP_ALL` string): **remove or replace** the
+  misleading instruction in `supervision/exchange_monitor.py`, unless
+  a separately authorized control-surface design for a real
+  `/STOP_ALL` path is later approved (see the closing rule below — such
+  a design is not proposed or authorized by this contract).
+- **Finding 3** (three `core/advisor_loop.py` `/RESUME` strings):
+  **remove or replace** only these three misleading instructions — a
+  fix distinct from finding 2's.
+- **Finding 4** (broken SelfAwareness notifier call, and separately
+  the structurally-identical PositionManager call): **this document
+  does not prescribe a single specific repair.** A separately
+  authorized source mission must decide, for each of the two broken
+  call expressions independently, among (a) removing the notification
+  entirely, (b) routing it through an already-approved notification
+  identity/facade (e.g. the existing `OpsNotifier`/generic
+  `TELEGRAM_BOT_TOKEN` channel, if that routing is itself approved), or
+  (c) repairing the call through an explicitly governed identity and
+  configuration path. **This contract does not authorize creating,
+  copying, exposing, or wiring any Telegram secret/token/chat-id value
+  to implement any of these options** — that decision and its
+  implementation are out of scope for this documentation-only mission.
+
+**[R1.3, closing rule, Correction D]** Removing or rewording a
+misleading operator instruction (findings 2 and 3) is the **safe
+default** and requires no new authorization beyond the narrowly scoped
+correction mission each finding names above. **Implementing any
+Telegram command that changes runtime state — including a live
+`/RESUME` or `/STOP_ALL` handler — is *not* authorized by O-02W-E1 or
+any of its remediation rounds.** Such a control surface, if ever
+proposed, would require a separate mission with its own explicit
+MASTER authorization, an ADR/authority-boundary review consistent with
+ADR-0007, a security review, authentication/replay/audit requirements,
+and dedicated tests — none of which this contract performs or
+substitutes for. The read-only cockpit (§8) remains control-free and
+this document proposes no change to that. `supervision/kill_switch.py`'s
+`TelegramKillSwitch` (TG-09, §9) must never be reactivated — see its
+`FORBIDDEN_MUST_NEVER_REACTIVATE` classification, unchanged by any
+remediation round. This document does not choose among the options
+listed above for any finding and does not modify runtime code to
+implement any of them.
 
 ---
 
@@ -1256,9 +1353,17 @@ runtime code to implement any of them.
 - No runtime or deployment claim is inferred from repository presence
   anywhere in this document — every claim distinguishes source proof
   (`SOURCE_PROVEN`), import-reachability
-  (`MODULE_IMPORTABLE_NOT_INSTANTIATED`), and runtime/deployment proof
-  (`RUNTIME_UNKNOWN` unless a systemd `ExecStart=` or an
-  already-confirmed-active caller is shown).
+  (`MODULE_IMPORTABLE_NOT_INSTANTIATED`), and runtime/deployment status
+  (`RUNTIME_UNKNOWN` in every case). **[R1.3, Correction B — rule
+  stated explicitly]** A named repository entrypoint, import chain,
+  construction site, call site, or systemd `ExecStart=` reference
+  proves only source or configuration reachability. **None of these
+  prove deployment, process execution, trigger occurrence, configured
+  credentials, network success, or message delivery** — those remain
+  `RUNTIME_UNKNOWN` throughout this document unless independent VPS
+  evidence (out of scope for this mission) is obtained. A systemd
+  reference is never presented anywhere in this document as sufficient
+  proof that the referenced process is actually running.
 - No runtime, Telegram, or workflow file was changed by this
   remediation — the diff is limited to this one contract document.
 
@@ -1317,9 +1422,14 @@ unchanged by this remediation round, per its scope restriction (§12).
   expressions** (SelfAwareness, carrying a `/RESUME` string; and
   PositionManager, carrying no `/RESUME` string — a
   liquidation-distance warning only). These three counts are distinct
-  and must not be used interchangeably. All four findings must be
-  corrected in a separate, narrowly scoped source mission before T-1
-  deployment/runtime certification.
+  and must not be used interchangeably. **[R1.3, corrected]** All four
+  findings must be corrected before T-1 deployment/runtime
+  certification, but not necessarily by the same mission: finding 1 is
+  a documentation/governance correction; findings 2 and 3 are each a
+  remove-or-replace fix to a misleading operator-facing string;
+  finding 4 requires a separate decision (remove, route through an
+  approved facade, or governed repair) for each of its two broken call
+  expressions. See §13 for the per-finding remediation.
 - **[R1, new]** Two architectural-boundary items requiring a future
   source mission, neither modified by this documentation-only PR: the
   dormant Portfolio mutator (§9b, `_set_param_live`) and the
@@ -1330,8 +1440,9 @@ unchanged by this remediation round, per its scope restriction (§12).
 - **[R1.1, new]** Three files reclassified from "not Telegram-capable"
   to indirect-Telegram-capable via `OpsNotifier`/`TelegramNotifier`
   (§17, Correction B): `event_bus/bridge.py`, `supervision/ops_watchdog.py`,
-  `supervision/ops_watchdog_hardened.py` — none has a proven active
-  production caller; `event_bus/bridge.py`'s one found caller
+  `supervision/ops_watchdog_hardened.py` — none has a non-test,
+  non-archive caller found with a construction call using
+  `.from_env()`; `event_bus/bridge.py`'s one found caller
   (`quant_hedge_ai/main_v91.py:211`) constructs `SupervisionBridge()`
   without a notifier, i.e. Telegram-disabled on that specific path.
 
@@ -1341,13 +1452,20 @@ unchanged by this remediation round, per its scope restriction (§12).
 
 **[R1, new section]** Complete accounting of the 18 files named in the
 O-02W-E1-R1 mission mandate, plus the previously-covered identity
-files for cross-reference. "Reachable" means confirmed imported or
-instantiated from an already-active entrypoint (`core/advisor_loop.py`,
-`paper_runner.py`, or a systemd `ExecStart=`) — absence of a systemd
-unit or caller does **not** prove the file never runs (it could be
-invoked manually or by an undiscovered scheduler), it only means this
-mission found no `SOURCE_PROVEN` active caller, hence `RUNTIME_UNKNOWN`
-rather than a "dead" or "active" claim.
+files for cross-reference. **[R1.3, bounded terminology]** "Reachable"
+means: a non-test, non-archive `import` statement, instantiation, or
+call site was found in `core/advisor_loop.py`, `paper_runner.py`, or a
+named repository entrypoint; or a systemd unit reference (`ExecStart=`)
+naming the file is present in the repository. None of these prove
+deployment, process execution, or that the code has ever run —
+absence of a systemd unit or caller does **not** prove the file never
+runs (it could be invoked manually or by a scheduler this mission's
+searches did not find), and *presence* of a systemd unit or import
+site proves only source/configuration reachability, not that the
+corresponding process is deployed, running, or has ever executed. This
+mission's searches finding no such reference means `RUNTIME_UNKNOWN`
+for that file, never a "dead" or "definitely running" claim either
+way.
 
 **[R1.1]** Speculative labels used in the R1 draft of this table
 ("likely dead," "likely a stale duplicate," "reachable via an active
@@ -1373,14 +1491,14 @@ is safe.
 | `scripts/test_intel_report.py` | `RAPPORT_AUTOMATIQUE_BOT_TOKEN`/`_CHAT_ID` | Sender-only test/debug script | PUSH_ONLY | Manual test of the Intel-briefing message format | Systemd/cron search: no reference found | RUNTIME_UNKNOWN | **[R1.1, corrected]** `OPERATOR_DECISION_REQUIRED` — this mission found no systemd/cron reference, which is not by itself proof the script is unreachable or safe to remove; a manual/debug script's actual continued utility is an operator judgment, not a source-provable fact |
 | `scripts/trend_scanner.py` | `TELEGRAM_BOT_TOKEN`/`TELEGRAM_CHAT_ID` | Sender-only script | PUSH_ONLY | Trend-scan alert | Systemd/cron search: no reference found | RUNTIME_UNKNOWN | `OPERATOR_DECISION_REQUIRED` |
 | `scripts/vps_burn_in_collector.py` | `TELEGRAM_BOT_TOKEN`/`TELEGRAM_CHAT_ID` | Sender-only script | PUSH_ONLY | Burn-in metrics collection warning | Systemd/cron search: no reference found | RUNTIME_UNKNOWN | `OPERATOR_DECISION_REQUIRED` |
-| `src/telegram/notifier.py` | `MON_PORTFOLIO_BOT_TOKEN`/`_CHAT_ID` | Library/notifier module | Library-only | Generic `Notifier` wrapping `sendMessage` for the Portfolio token | Import search: imported by `src/telegram/__init__.py:1` and `src/telegram/sim_bot.py:36` (TG-08). No import found from `core/advisor_loop.py`, `capital_deployment/command_center_bot.py`, or `src/telegram/quant_observer/bot.py` | RUNTIME_UNKNOWN — TG-08 itself has no source caller found from any confirmed-running entrypoint (§9 TG-08), so this file's only found import path is, in turn, unconfirmed as to whether it executes in any deployed process | `OPERATOR_DECISION_REQUIRED` — tied to the same TG-08 deploy-or-remove decision (§9 TG-08), not independently a removal candidate |
+| `src/telegram/notifier.py` | `MON_PORTFOLIO_BOT_TOKEN`/`_CHAT_ID` | Library/notifier module | Library-only | Generic `Notifier` wrapping `sendMessage` for the Portfolio token | Import search: imported by `src/telegram/__init__.py:1` and `src/telegram/sim_bot.py:36` (TG-08). No import found from `core/advisor_loop.py`, `capital_deployment/command_center_bot.py`, or `src/telegram/quant_observer/bot.py` | RUNTIME_UNKNOWN — TG-08 itself has no non-test, non-archive source caller or systemd reference found (§9 TG-08), so this file's only found import path is, in turn, one this mission cannot confirm executes in any deployed process | `OPERATOR_DECISION_REQUIRED` — tied to the same TG-08 deploy-or-remove decision (§9 TG-08), not independently a removal candidate |
 | `supervision/notifications/telegram_notifier.py` | token/chat passed by caller (no module-level constant); `__init__(self, bot_token, chat_id)` at lines 16-18, `.notify(message)` begins line 20 | Library/notifier module | Library-only | Thin `TelegramNotifier.notify()` wrapper | Import search: imported by `quant_hedge_ai/agents/intelligence/self_awareness_engine.py:623` and `quant_hedge_ai/agents/execution/position_manager.py:526`, both constructed from `core/advisor_loop.py` via `core/advisor_runtime_adapters.py` by a source-valid construction path (`SelfAwarenessEngine` used at `advisor_loop.py:4484`; `PositionManager` used at `advisor_loop.py:4055-4056,4180`) | SOURCE_PROVEN: the import statement is on a code path that executes whenever the importing module is imported. **[R1.1, Correction C; wording corrected R1.2]** However, **both actual call sites are `SOURCE_PROVEN_NONFUNCTIONAL_NOTIFICATION_CALL`** (§0): `self_awareness_engine.py:626` and `position_manager.py:528` both call `TelegramNotifier().send(...)` — zero constructor arguments against the `__init__(self, bot_token, chat_id)` signature above, and `.send()`, a method that does not exist on this class (the real method is `.notify(message)`, above). **If** reached at runtime, each deterministically raises before any HTTP request, caught by an enclosing `except Exception: pass`; whether either is ever reached in a deployed, triggering process is `RUNTIME_UNKNOWN`. The module/class itself is not broken — only these two specific call expressions are | `OPERATOR_DECISION_REQUIRED` — a separately authorized source mission must decide, for each call site, among removing the notification, routing it through an already-approved notification identity/facade, or repairing the call through an explicitly governed identity/configuration path; this contract does not authorize creating, copying, exposing, or wiring any Telegram secret to implement any of these options, and does not itself prescribe which option to take |
 | `supervision/self_healing_bot.py` | `TELEGRAM_BOT_TOKEN`/`TELEGRAM_CHAT_ID` | Sender-only module | PUSH_ONLY | Self-healing/module-recovery alert | Import search: `core/advisor_runtime_adapters.py:111` imports `SelfHealingBot`, instantiated at `advisor_loop.py:3623-3624`, started at `advisor_loop.py:3686` — source caller found | SOURCE_PROVEN (code + source caller found); RUNTIME_UNKNOWN whether `crypto-advisor.service` is running on the VPS | `KEEP_UNTIL_COCKPIT_RUNTIME_CERTIFIED` — same TG-06-class treatment; should be folded into TG-06's Phase 2 comparison as an additional message source |
 | `core/orchestration/orchestrate_ecosystem.py` | `TELEGRAM_BOT_TOKEN`/`TELEGRAM_CHAT_ID` (via `TelegramNotifier`) | Orchestration script | Library-caller, PUSH_ONLY when invoked | Multi-world-simulation run-and-archive notification | Systemd search: no unit found. Import search: not imported by `advisor_loop.py`/`paper_runner.py` | RUNTIME_UNKNOWN — no source caller found; this mission draws no conclusion beyond that absence | `OPERATOR_DECISION_REQUIRED` |
 | `infra/monitoring/supervise_all.py` | `TELEGRAM_TOKEN`/`TELEGRAM_CHAT_ID` (note: **different env-var name**, `TELEGRAM_TOKEN` not `TELEGRAM_BOT_TOKEN`, with hardcoded placeholder defaults) | Standalone supervision loop | Library-caller, PUSH_ONLY when invoked with real values | BotDoctor health-score alert | Systemd search: no unit found. Import search: not imported by `advisor_loop.py`/`paper_runner.py` | RUNTIME_UNKNOWN — no source caller found | `OPERATOR_DECISION_REQUIRED`; flag the env-var name mismatch as a separate minor finding — even a fully-configured `.env` would not populate this file's default token path, since it reads a different variable name than every other identity in §9 |
 | `event_bus/bridge.py` | none directly — **[R1.1, Correction B, reclassified]** indirect via `OpsNotifier` → `supervision/notifications/telegram_notifier.py::TelegramNotifier` | Bridge/integration module, not a direct sender | Indirect Telegram-capable: `SupervisionBridge.from_env()` (lines 85-94) constructs `OpsNotifier.from_env()`; `_notify()` (line 300) calls `self._notifier.info(...)`, reached from at least 10 internal call sites (lines 122, 136, 151, 166, 184, 204, 218, 230, 258, 269) | Various supervision-event notifications (crash, rejection, halt, etc. — not independently itemized in this pass) | Import/caller search: the only found instantiation site, `quant_hedge_ai/main_v91.py:211`, calls `SupervisionBridge()` with **no arguments** — not `.from_env()` — so that specific path constructs the bridge **without** a notifier (Telegram-disabled on that path, confirmed by the constructor default). No caller of `SupervisionBridge.from_env()` was found in non-archive, non-test source | RUNTIME_UNKNOWN for whether any caller ever uses `.from_env()` in production; the one found caller is confirmed Telegram-disabled | `OPERATOR_DECISION_REQUIRED` — not "not applicable," since indirect Telegram capability is real even though the one found caller doesn't exercise it |
-| `supervision/ops_watchdog.py` | none directly — indirect via `OpsNotifier` → `TelegramNotifier` | Standalone supervision loop | Indirect Telegram-capable: `OpsWatchdog.from_env()` (lines 48-52) constructs `OpsNotifier.from_env()`; its crash/rejection/session-halt/staleness/heartbeat paths can call the notifier | Crash/rejection/halt/staleness/heartbeat notifications (not independently itemized) | Systemd search: no unit found. Import search: no caller of `OpsWatchdog.from_env()` or `OpsWatchdog()` found in non-archive, non-test source | RUNTIME_UNKNOWN — no active production instantiation proven | `OPERATOR_DECISION_REQUIRED` — indirect-capable, no proven active entrypoint; not "not applicable" |
-| `supervision/ops_watchdog_hardened.py` | none directly — indirect via `OpsNotifier` → `TelegramNotifier` | Standalone supervision loop (hardened variant) | Indirect Telegram-capable: `HardenedOpsWatchdog.from_env()` (lines 116-121) constructs `OpsNotifier.from_env()` and creates an alert callback | Hardened-watchdog alert notifications (not independently itemized) | Systemd search: no unit found. Import search: no caller of `HardenedOpsWatchdog.from_env()` or `HardenedOpsWatchdog()` found in non-archive, non-test source | RUNTIME_UNKNOWN — no active production instantiation proven | `OPERATOR_DECISION_REQUIRED` — indirect-capable, no proven active entrypoint; not "not applicable" |
+| `supervision/ops_watchdog.py` | none directly — indirect via `OpsNotifier` → `TelegramNotifier` | Standalone supervision loop | Indirect Telegram-capable: `OpsWatchdog.from_env()` (lines 48-52) constructs `OpsNotifier.from_env()`; its crash/rejection/session-halt/staleness/heartbeat paths can call the notifier | Crash/rejection/halt/staleness/heartbeat notifications (not independently itemized) | Systemd search: no unit found. Import search: no caller of `OpsWatchdog.from_env()` or `OpsWatchdog()` found in non-archive, non-test source | RUNTIME_UNKNOWN — no non-test, non-archive construction call found | `OPERATOR_DECISION_REQUIRED` — indirect-capable, no non-test/non-archive caller or systemd reference found; not "not applicable" |
+| `supervision/ops_watchdog_hardened.py` | none directly — indirect via `OpsNotifier` → `TelegramNotifier` | Standalone supervision loop (hardened variant) | Indirect Telegram-capable: `HardenedOpsWatchdog.from_env()` (lines 116-121) constructs `OpsNotifier.from_env()` and creates an alert callback | Hardened-watchdog alert notifications (not independently itemized) | Systemd search: no unit found. Import search: no caller of `HardenedOpsWatchdog.from_env()` or `HardenedOpsWatchdog()` found in non-archive, non-test source | RUNTIME_UNKNOWN — no non-test, non-archive construction call found | `OPERATOR_DECISION_REQUIRED` — indirect-capable, no non-test/non-archive caller or systemd reference found; not "not applicable" |
 
 **Intermediary integration nodes** (not independently in the 18-file
 mandate, but required context for the three rows above, per
