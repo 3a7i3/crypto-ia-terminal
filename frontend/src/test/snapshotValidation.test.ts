@@ -129,7 +129,7 @@ const validPosition = {
   tp_sl_source: "original",
   unrealized_pnl_usd: { value: 20, semantics: "PRESENT" },
   unrealized_pnl_pct: { value: 2, semantics: "PRESENT" },
-  opened_at: "2026-09-08T00:00:00+00:00",
+  opened_at: 1789084800,
   regime: { value: "TREND_BULL", semantics: "PRESENT" },
   restored_without_regime: false,
   personality: "aggressive",

@@ -33,7 +33,7 @@ export interface OpenPosition {
   tp_sl_source: "original" | "restored_default" | string;
   unrealized_pnl_usd: ObservedValue<number>;
   unrealized_pnl_pct: ObservedValue<number>;
-  opened_at: string | null;
+  opened_at: number | null; // epoch seconds (MexcPosition.opened_ts) — never an ISO string, per contract §5/§19
   regime: ObservedValue<string>;
   restored_without_regime: boolean;
   personality: string | null;

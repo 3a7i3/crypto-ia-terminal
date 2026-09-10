@@ -1,0 +1,95 @@
+name: Cross-Stack Compatibility Gate
+
+# O-02W-D3 — LOCAL CROSS-STACK COMPATIBILITY GATE.
+#
+# Proves that one canonical payload generated through the actual Python
+# O-02W-C producer path travels unchanged through the real O-02W-D1
+# FastAPI reader/route and is accepted, unaltered, by the real O-02W-D2
+# frontend validator/cockpit. All artifacts are generated into a temporary
+# directory at run time (tests/cross_stack/generate_fixtures.py); nothing
+# here is a committed handwritten "golden" fixture. No exchange
+# credentials, no VPS/network deployment. Deliberately separate from the
+# repository-wide `ci.yml`/`frontend-ci.yml` gates.
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "observability/operator_snapshot_builder.py"
+      - "observability/operator_runtime_manifest.py"
+      - "observability/operator_api/**"
+      - "observability/source_evidence.py"
+      - "observability/operator/domains/**"
+      - "frontend/src/lib/snapshotValidation.ts"
+      - "frontend/src/lib/snapshotClient.ts"
+      - "frontend/src/types.ts"
+      - "frontend/src/App.tsx"
+      - "tests/cross_stack/**"
+      - "frontend/src/test/crossStack.compat.test.tsx"
+      - ".github/workflows/cross-stack-compat.yml"
+  push:
+    branches: [main]
+    paths:
+      - "observability/operator_snapshot_builder.py"
+      - "observability/operator_runtime_manifest.py"
+      - "observability/operator_api/**"
+      - "observability/source_evidence.py"
+      - "observability/operator/domains/**"
+      - "frontend/src/lib/snapshotValidation.ts"
+      - "frontend/src/lib/snapshotClient.ts"
+      - "frontend/src/types.ts"
+      - "frontend/src/App.tsx"
+      - "tests/cross_stack/**"
+      - "frontend/src/test/crossStack.compat.test.tsx"
+      - ".github/workflows/cross-stack-compat.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cross-stack-compat-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  cross-stack-compat:
+    name: "CROSS-STACK COMPATIBILITY GATE"
+    runs-on: ubuntu-latest
+
+    # No secrets, no exchange access, no VPS/network deployment.
+    env:
+      BINANCE_TESTNET: "true"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-ci.txt
+
+      - name: Python producer/reader/API integration tests
+        run: pytest -q tests/cross_stack/
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Generate cross-stack fixtures (temporary directory, real producer path)
+        run: python -m tests.cross_stack.generate_fixtures --out frontend/.cross-stack-fixtures
+
+      - name: Frontend cross-stack compatibility test
+        working-directory: frontend
+        env:
+          CROSS_STACK_FIXTURES_DIR: ${{ github.workspace }}/frontend/.cross-stack-fixtures
+        run: npx vitest run src/test/crossStack.compat.test.tsx

@@ -17,7 +17,7 @@ export function baseSnapshot(overrides: Partial<OperatorSnapshot> = {}): Operato
     },
     runtime_sha_evidence_status: "VERIFIED",
     portfolio: {
-      domain: "portfolio",
+      domain: "portfolio_state",
       observed_at_utc: "2026-09-09T00:00:00+00:00",
       source: "test",
       freshness: "DEGRADED",

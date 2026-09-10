@@ -71,7 +71,14 @@ const RUNTIME_STATES = new Set(["CURRENT", "LAST_KNOWN"]);
 // strings are all rejected — never coerced or defaulted.
 const DOMAIN_STATUSES = new Set(["OK", "DEGRADED", "ATTENTION_REQUIRED", "UNAVAILABLE"]);
 const FRESHNESS_STATUSES = new Set(["FRESH", "DEGRADED", "STALE", "UNKNOWN", "NOT_APPLICABLE"]);
-const DOMAIN_IDS = new Set(["portfolio", "decision_pipeline", "system_health"]);
+// O-02W-D3 correction: the real O-01 domain identifier for the portfolio
+// domain is `portfolio_state` (observability/operator/domains/
+// portfolio_state.py — every `compose_portfolio_state_snapshot()` call
+// site), NOT the top-level envelope key `portfolio` under which the API
+// exposes it. These are two different, both-legitimate names (envelope
+// key vs. O-01 domain id) — never conflated by inventing a `"portfolio"`
+// domain id the producer never emits.
+const DOMAIN_IDS = new Set(["portfolio_state", "decision_pipeline", "system_health"]);
 
 // O-02W-D2-R1.2 Correction C — the canonical authority vocabulary
 // (§4/§8 of the contract) is closed. Never normalized, relabeled, or
@@ -207,7 +214,11 @@ function isValidOpenPosition(x: unknown): boolean {
   if (!isNonBlankString(x.tp_sl_source)) return false;
   if (!isNumericObservedValue(x.unrealized_pnl_usd)) return false;
   if (!isNumericObservedValue(x.unrealized_pnl_pct)) return false;
-  if (!isNullableString(x.opened_at)) return false;
+  // O-02W-D3 correction: `opened_at` is `MexcPosition.opened_ts`, a raw
+  // epoch-seconds float at the real producer (contract §5/§19 field
+  // table) — never an ISO string. A string here is the wrong type, not a
+  // legal alternate representation.
+  if (!isNullableFiniteNumber(x.opened_at)) return false;
   if (!isStringObservedValue(x.regime)) return false;
   if (!isBoolean(x.restored_without_regime)) return false;
   if (!isNullableString(x.personality)) return false;
@@ -217,7 +228,7 @@ function isValidOpenPosition(x: unknown): boolean {
 
 function isValidPortfolio(x: unknown): boolean {
   if (!isPlainObject(x)) return false;
-  if (!isValidDomainSpine(x, "portfolio")) return false;
+  if (!isValidDomainSpine(x, "portfolio_state")) return false;
   if (!PORTFOLIO_MODES.has(x.mode as string)) return false;
 
   // O-02W-D2-R1.2 Correction B — numeric-typed portfolio fields.
