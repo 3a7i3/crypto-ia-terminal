@@ -27,12 +27,12 @@ NORMAL → DEGRADED → HALTED → RECOVERY → NORMAL
 |-----------|-----------|-------------|
 | NORMAL → DEGRADED | loss_streak ≥ 3 | AutoDecisionEngine / ExecutiveOverride |
 | NORMAL → HALTED | drawdown > 5% | AutoDecisionEngine |
-| NORMAL → SAFE_MODE | commande manuelle | KillSwitch / Telegram |
+| NORMAL → SAFE_MODE | commande manuelle | Programmatique interne — `RuntimeStateMachine.force_safe_mode()` (`quant_hedge_ai/runtime/runtime_state_machine.py`) ou `KillSwitchHardened.force_safe_mode()` (`supervision/killswitch_hardened.py`, docstring : « sans interface Telegram »). **Aucun appelant non-test/non-archive de l'une ou l'autre méthode n'existe dans le code actuel** — seuls `core/invariants.py` (auto-vérification d'invariant sur une instance jetable, pas le runtime réel) et des fichiers `tests/` y font appel. Aucune procédure opérateur manuelle documentée ici n'est prouvée par le code source. |
 | DEGRADED → HALTED | drawdown > 5% ou loss_streak ≥ 5 | AutoDecisionEngine |
 | HALTED → RECOVERY | drawdown < 3% ET loss_streak ≤ 1 ET cooldown 1h | AutoDecisionEngine (RESUME_TRADING) |
 | RECOVERY → NORMAL | 10 cycles propres consécutifs | SystemStateMachine.to_normal_if_stable() |
 | RECOVERY → HALTED | nouvelle dégradation | AutoDecisionEngine |
-| SAFE_MODE → NORMAL | commande manuelle | KillSwitch / Telegram |
+| SAFE_MODE → NORMAL | commande manuelle | Programmatique interne — `KillSwitchHardened.force_resume()` (`supervision/killswitch_hardened.py`, docstring : « sans Telegram »). Le légataire `TelegramKillSwitch.force_resume()` (`supervision/telegram_kill_switch.py`) existe aussi mais n'a, comme `KillSwitchHardened.force_resume()`, **aucun appelant non-test/non-archive** dans le code actuel. Note : `RuntimeStateMachine` (la machine à états de ce document) ne définit aucune méthode `force_resume` — sa sortie de SAFE_MODE passe par `clear_safe_mode_request()` / `clear_all_safe_mode_requests()` ou l'écoulement du délai de silence, pas par une commande manuelle. Aucune procédure Telegram ne déclenche cette transition dans le code actuel. |
 
 ### Règle fondamentale
 > **Toute transition HALTED doit avoir une condition de sortie explicite.**

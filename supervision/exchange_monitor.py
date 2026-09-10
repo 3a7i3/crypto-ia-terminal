@@ -252,7 +252,12 @@ class ExchangeMonitor:
                     f"Actions possibles:\n"
                     f"  1. Vérifier la connexion internet du VPS\n"
                     f"  2. Vérifier le statut de l'exchange\n"
-                    f"  3. Envoyer /STOP_ALL sur Telegram si le bot doit s'arrêter\n\n"
+                    f"  3. Aucune commande d'arrêt n'est disponible via Telegram "
+                    f"(surface de contrôle canonique). Si le bot doit s'arrêter, "
+                    f"l'intervention doit passer par un mécanisme gouverné et "
+                    f"documenté en dehors de Telegram (accès VPS direct) ; "
+                    f"aucune procédure de ce type n'est actuellement documentée "
+                    f"dans ce dépôt — escalade manuelle requise\n\n"
                     f"Le bot continue à observer sans passer d'ordres."
                 ),
             )
