@@ -3541,8 +3541,11 @@ def main(
 
     def _on_stop_all():
         # Callback KillSwitchHardened.on_stop_all — pas de commande Telegram :
-        # KillSwitchHardened n'a aucune interface Telegram (voir son docstring)
-        # et ce callback n'a aucun appelant runtime de production connu.
+        # KillSwitchHardened n'a aucune interface Telegram (voir son docstring).
+        # Aucun site d'appel non-test/non-archive de force_halt() (la seule
+        # méthode invoquant ce callback) n'a été trouvé dans le code examiné ;
+        # le câblage du callback existe, mais son invocation réelle en
+        # exécution reste inconnue.
         _halt_requested.set()
         runtime_authority.request_safe_mode(
             "kill_switch_stop_all", "STOP_ALL programmatique (callback KillSwitchHardened)"
@@ -3580,9 +3583,9 @@ def main(
         # Callback câblé sur KillSwitchHardened.force_resume() (voir
         # core/advisor_runtime_adapters.py — TelegramKillSwitch est un alias
         # de KillSwitchHardened, qui n'expose aucune interface Telegram).
-        # Aucune commande Telegram n'invoque ce chemin aujourd'hui : ce
-        # callback n'a aucun appelant non-test/non-archive dans le code
-        # actuel.
+        # Aucun site d'appel non-test/non-archive de force_resume() n'a été
+        # trouvé dans le code examiné ; le câblage du callback existe, mais
+        # son invocation réelle en exécution reste inconnue.
         _halt_requested.clear()
         runtime_authority.clear_all_safe_mode_requests()
         if _awareness_ref["engine"] is not None:
@@ -3599,13 +3602,12 @@ def main(
             try:
                 _black_box_ref["instance"].record_system_event(
                     "OPERATOR_RESUME",
-                    "Callback _on_resume invoque (origine operateur/Telegram "
-                    "non etablie par le code source — aucun dispatcher "
-                    "Telegram n'implemente de commande de reprise, et ce "
-                    "callback n'a aucun appelant runtime de production "
-                    "connu ; identifiant OPERATOR_RESUME conserve pour "
-                    "compatibilite BlackBox, sans impliquer une origine "
-                    "operateur prouvee)",
+                    "Callback _on_resume invoque a l'instant. Origine de "
+                    "cette invocation (operateur, Telegram, ou autre) non "
+                    "etablie — n'inferer ni origine operateur ni origine "
+                    "Telegram a partir de cet evenement seul. Identifiant "
+                    "OPERATOR_RESUME conserve pour compatibilite BlackBox "
+                    "(legacy) ; ce n'est pas une preuve d'action operateur.",
                 )
             except Exception as _bb_exc:
                 log.debug("[main] BlackBox OPERATOR_RESUME non journalise: %s", _bb_exc)
@@ -5624,8 +5626,10 @@ def main(
                 "requise."
             )
             # Attendre que _halt_requested soit levé (voir _on_resume :
-            # callback câblé sur KillSwitchHardened.force_resume(), qui n'a
-            # aujourd'hui aucun appelant runtime de production connu —
+            # callback câblé sur KillSwitchHardened.force_resume(). Aucun
+            # site d'appel non-test/non-archive de force_resume() n'a été
+            # trouvé dans le code examiné ; le câblage du callback existe,
+            # mais son invocation réelle en exécution reste inconnue —
             # aucune commande Telegram n'invoque ce chemin, et aucune
             # procédure de reprise opérateur n'est documentée/prouvée par le
             # code source pour ce chemin).

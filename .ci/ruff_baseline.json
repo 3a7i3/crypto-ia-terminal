@@ -124,7 +124,7 @@
     "cold_start/tests/test_cold_start.py:945:42:F401",
     "cold_start/tests/test_cold_start.py:945:57:F401",
     "cold_start/warmup_signer.py:13:8:F401",
-    "core/advisor_loop.py:6558:47:F823",
+    "core/advisor_loop.py:6562:47:F823",
     "core/lifecycle.py:343:17:F541",
     "core/lifecycle.py:459:18:F541",
     "core/main.py:239:1:W293",

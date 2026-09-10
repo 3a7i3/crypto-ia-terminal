@@ -302,13 +302,7 @@ def test_advisor_loop_on_resume_callback_unchanged_behaviorally():
 
 
 def test_advisor_loop_blackbox_description_claims_no_unproven_manual_origin():
-    match = re.search(
-        r'record_system_event\(\s*"OPERATOR_RESUME",(.*?)\)',
-        ADVISOR_LOOP_SRC,
-        re.DOTALL,
-    )
-    assert match, "OPERATOR_RESUME record_system_event call not found"
-    body = match.group(1)
+    body = _operator_resume_event_body_flat()
     assert "Resume manuel" not in body
     assert "non etablie" in body or "non établie" in body
 
@@ -578,3 +572,163 @@ def test_advisor_loop_callback_mutations_source_keys_and_wiring_unchanged():
     assert "OPERATOR_RESUME" in ADVISOR_LOOP_SRC
     assert '_halt_requested.set()' in ADVISOR_LOOP_SRC
     assert 'runtime_authority.request_safe_mode(' in ADVISOR_LOOP_SRC
+
+
+# ---------------------------------------------------------------------------
+# O-02W-PRE-T1-A-R1.3 — the BlackBox OPERATOR_RESUME event must not
+# self-contradict (it fires because _on_resume was just invoked, so it
+# cannot also assert no caller is known), and static comments must use
+# bounded "no call site found" language rather than a claim of knowledge
+# about deployed production execution.
+# ---------------------------------------------------------------------------
+
+
+def _flatten_comment(text: str) -> str:
+    """Join wrapped `#`-prefixed comment lines into one contiguous string,
+    so a multi-word phrase spanning a line wrap can be matched literally."""
+    lines = [line.split("#", 1)[-1].strip() for line in text.splitlines()]
+    return " ".join(line for line in lines if line)
+
+
+def _operator_resume_event_body() -> str:
+    # Non-greedy up to a comma followed by the call's own closing paren on
+    # its own line — the description string itself may contain parentheses
+    # (e.g. "(operateur, Telegram, ou autre)"), so a naive `.*?\)` stops at
+    # the first inner paren instead of the call's actual end.
+    match = re.search(
+        r'record_system_event\(\s*"OPERATOR_RESUME",(.*?),\s*\n\s*\)',
+        ADVISOR_LOOP_SRC,
+        re.DOTALL,
+    )
+    assert match, "OPERATOR_RESUME record_system_event call not found"
+    return match.group(1)
+
+
+def _operator_resume_event_body_flat() -> str:
+    """Same as _operator_resume_event_body(), but with the adjacent string
+    literal fragments joined into one contiguous string, so a phrase
+    spanning a line wrap (e.g. "non "/"etablie") can be matched literally."""
+    raw = _operator_resume_event_body()
+    # Strip quote characters and excess whitespace between fragments.
+    return " ".join(raw.replace('"', " ").split())
+
+
+def test_blackbox_event_states_on_resume_was_invoked():
+    body = _operator_resume_event_body()
+    assert "_on_resume" in body
+    assert "invoque" in body.lower()
+
+
+def test_blackbox_event_states_origin_not_established_without_inferring_one():
+    body = _operator_resume_event_body_flat()
+    assert "non etablie" in body or "non établie" in body
+    assert "n'inferer ni origine operateur ni origine" in body or (
+        "n'inférer ni origine opérateur ni origine" in body
+    )
+
+
+def test_blackbox_event_states_operator_resume_is_compatibility_identifier():
+    body = _operator_resume_event_body()
+    assert "compatibilite BlackBox" in body or "compatibilité BlackBox" in body
+    assert "legacy" in body.lower() or "preuve d'action operateur" in body or (
+        "preuve d'action opérateur" in body
+    )
+
+
+def test_blackbox_event_does_not_assert_no_known_caller():
+    """The event fires because _on_resume just ran — it cannot also claim,
+    inside its own description, that the callback has no known caller.
+    That was the R1.3 self-contradiction: an emitted runtime event
+    asserting a static "no caller found" repository-search conclusion.
+    """
+    body = _operator_resume_event_body()
+    for forbidden in (
+        "aucun appelant",
+        "aucun caller",
+        "aucun appelant runtime de production",
+        "n'a aucun appelant",
+    ):
+        assert forbidden not in body, (
+            f"OPERATOR_RESUME event description must not contain {forbidden!r} "
+            "— a static no-caller claim cannot coexist with the event's own "
+            "emission, which proves the callback was just invoked"
+        )
+
+
+def test_advisor_loop_no_remaining_appelant_runtime_de_production_phrase():
+    for phrase in (
+        "appelant runtime de production connu",
+        "appelants runtime de production",
+        "aucun appelant runtime de production",
+    ):
+        assert phrase not in ADVISOR_LOOP_SRC, (
+            f"advisor_loop.py must not contain the overclaiming phrase "
+            f"{phrase!r}"
+        )
+
+
+def test_advisor_loop_static_comments_use_bounded_call_site_language():
+    """The _on_stop_all callback comment and the suspended-loop _on_resume
+    explanation must state only that no non-test/non-archive call site to
+    the relevant force_*() method was found — not a claim of knowledge
+    about whether the callback actually ran in a deployed process.
+    """
+    on_stop_all_match = re.search(
+        r"def _on_stop_all\(\):(.*?)\n        _halt_requested\.set\(\)",
+        ADVISOR_LOOP_SRC,
+        re.DOTALL,
+    )
+    assert on_stop_all_match, "_on_stop_all comment block not found"
+    on_stop_all_comment = _flatten_comment(on_stop_all_match.group(1))
+    assert "site d'appel non-test/non-archive" in on_stop_all_comment
+    assert "force_halt()" in on_stop_all_comment
+    assert "invocation réelle en exécution reste inconnue" in on_stop_all_comment
+    assert "appelant runtime de production" not in on_stop_all_comment
+
+    suspended_loop_match = re.search(
+        r"# Attendre que _halt_requested soit levé.*?procédure de reprise "
+        r"opérateur n'est documentée/prouvée par le\s*\n\s*# code source pour "
+        r"ce chemin\)\.",
+        ADVISOR_LOOP_SRC,
+        re.DOTALL,
+    )
+    assert suspended_loop_match, "suspended-loop _on_resume comment not found"
+    suspended_loop_comment = _flatten_comment(suspended_loop_match.group(0))
+    assert "site d'appel non-test/non-archive" in suspended_loop_comment
+    assert "force_resume()" in suspended_loop_comment
+    assert "invocation réelle en exécution reste inconnue" in suspended_loop_comment
+    assert "appelant runtime de production" not in suspended_loop_comment
+
+
+def test_advisor_loop_on_resume_definition_comment_uses_bounded_language():
+    match = re.search(
+        r"def _on_resume\(\):(.*?)\n        _halt_requested\.clear\(\)",
+        ADVISOR_LOOP_SRC,
+        re.DOTALL,
+    )
+    assert match, "_on_resume definition comment block not found"
+    comment = match.group(1)
+    assert "site d'appel non-test/non-archive" in comment
+    assert "force_resume()" in comment
+    assert "appelant runtime de production" not in comment
+    assert "appelant non-test/non-archive dans le code" not in comment
+
+
+def test_r1_3_callback_wiring_mutations_event_identifier_and_control_flow_unchanged():
+    """Nothing behavioral moved this round — only comments/event text."""
+    assert "on_stop_all=_on_stop_all" in ADVISOR_LOOP_SRC
+    assert "on_close_all=_on_close_all" in ADVISOR_LOOP_SRC
+    assert "on_safe_mode=_on_safe_mode" in ADVISOR_LOOP_SRC
+    assert "on_resume=_on_resume" in ADVISOR_LOOP_SRC
+    assert '"kill_switch_stop_all"' in ADVISOR_LOOP_SRC
+    assert '"kill_switch_close_all"' in ADVISOR_LOOP_SRC
+    assert '"kill_switch_safe_mode"' in ADVISOR_LOOP_SRC
+    assert '"OPERATOR_RESUME"' in ADVISOR_LOOP_SRC
+    assert "_halt_requested.clear()" in ADVISOR_LOOP_SRC
+    assert "runtime_authority.clear_all_safe_mode_requests()" in ADVISOR_LOOP_SRC
+    assert "STOP_ALL programmatique (callback KillSwitchHardened)" in ADVISOR_LOOP_SRC
+    assert "CLOSE_ALL programmatique (callback KillSwitchHardened)" in ADVISOR_LOOP_SRC
+    assert "SAFE_MODE programmatique (callback KillSwitchHardened)" in ADVISOR_LOOP_SRC
+    assert "Callback on_stop_all invoque" in ADVISOR_LOOP_SRC
+    assert "Callback on_close_all invoque" in ADVISOR_LOOP_SRC
+    assert "Callback on_safe_mode invoque" in ADVISOR_LOOP_SRC
