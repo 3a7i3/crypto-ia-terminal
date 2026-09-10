@@ -105,4 +105,52 @@ describe("App", () => {
     expect(screen.queryByTestId("portfolio-view")).toBeNull();
     expect(screen.getByTestId("no-snapshot")).toBeInTheDocument();
   });
+
+  // O-02W-D2-R1.2 render regression — a string `"false"` must never reach a
+  // boolean render callback and must never be displayed as `true` via JS
+  // truthiness. The typed admission gate rejects the whole snapshot before
+  // SystemView/DecisionsView ever mount, so no "true" text for a supplied
+  // "false" string can ever appear anywhere in the document.
+  it('never displays a string "false" boot_alive as true — the typed gate rejects it before render', async () => {
+    const snap = baseSnapshot();
+    snap.system_health.boot_alive = { value: "false", semantics: "PRESENT" } as never;
+    fetchMock.mockResolvedValue(jsonResponse(snap));
+
+    expect(() => render(<App />)).not.toThrow();
+    await waitFor(() => expect(screen.getByTestId("snapshot-status-transport-error")).toBeInTheDocument());
+    expect(screen.queryByTestId("system-view")).toBeNull();
+    expect(screen.getByTestId("no-snapshot")).toBeInTheDocument();
+    // No "true" boolean-rendered boot_alive value anywhere in the document —
+    // the malformed body never reached ObservedValueView's boolean callback.
+    expect(document.body.textContent ?? "").not.toMatch(/\btrue\b/);
+  });
+
+  it('never displays a string "false" is_actionable as true — the typed gate rejects it before render', async () => {
+    const snap = baseSnapshot();
+    snap.decision_pipeline.per_symbol_decisions = [
+      {
+        symbol: "ETHUSDT",
+        packet_id: null,
+        context_id: null,
+        created_cycle_id: null,
+        created_at: { value: null, semantics: "UNKNOWN" },
+        latest_transition_at_utc: { value: null, semantics: "UNKNOWN" },
+        side: { value: null, semantics: "UNKNOWN" },
+        confidence_raw: { value: null, semantics: "UNKNOWN" },
+        confidence_adjusted: { value: null, semantics: "UNKNOWN" },
+        regime: { value: null, semantics: "UNKNOWN" },
+        lifecycle_state: { value: null, semantics: "UNKNOWN" },
+        is_actionable: { value: "false", semantics: "PRESENT", authority: "EXECUTION_AUTHORITY" },
+        trade_allowed: { value: null, semantics: "UNKNOWN", authority: "OBSERVATIONAL_TELEMETRY" },
+        first_blocker: { value: null, semantics: "UNKNOWN", authority: "OBSERVATIONAL_TELEMETRY" },
+      },
+    ] as never;
+    fetchMock.mockResolvedValue(jsonResponse(snap));
+
+    expect(() => render(<App />)).not.toThrow();
+    await waitFor(() => expect(screen.getByTestId("snapshot-status-transport-error")).toBeInTheDocument());
+    expect(screen.queryByTestId("decisions-view")).toBeNull();
+    expect(screen.getByTestId("no-snapshot")).toBeInTheDocument();
+    expect(document.body.textContent ?? "").not.toMatch(/\btrue\b/);
+  });
 });

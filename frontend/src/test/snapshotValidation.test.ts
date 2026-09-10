@@ -497,19 +497,347 @@ describe("validateOperatorSnapshot — invalid decision identifiers (case 15)", 
     expect(validateOperatorSnapshot(snap)).toBe(false);
   });
 
-  it("never relabels OBSERVATIONAL_TELEMETRY as EXECUTION_AUTHORITY (authority is validated, not normalized)", () => {
+  // Corrected by O-02W-D2-R1.2 Correction C: the certified field mapping is
+  // now enforced exactly (is_actionable.authority === EXECUTION_AUTHORITY),
+  // never merely "any non-blank string". A snapshot labeling is_actionable
+  // OBSERVATIONAL_TELEMETRY is rejected outright — the validator never
+  // repairs or relabels it back to the correct value.
+  it("case 16: rejects is_actionable labeled OBSERVATIONAL_TELEMETRY instead of EXECUTION_AUTHORITY", () => {
     const snap = baseSnapshot();
     const decisionWithTelemetryActionable = {
       ...validDecision,
       is_actionable: { value: true, semantics: "PRESENT", authority: "OBSERVATIONAL_TELEMETRY" },
     };
     snap.decision_pipeline.per_symbol_decisions = [decisionWithTelemetryActionable] as never;
-    // The validator only checks that `authority` is a non-blank string — it
-    // never inspects or rewrites its value, so this passes exactly as
-    // supplied (the mission forbids relabeling, not merely rendering it).
+    expect(validateOperatorSnapshot(snap)).toBe(false);
+  });
+});
+
+// ── O-02W-D2-R1.2 — typed ObservedValue and authority hardening ────────────
+// MASTER independently reproduced a further hole: `isObservedValue()`
+// validates only the generic null-semantics matrix, not the generic type
+// `T`, so a string `"false"` could satisfy a boolean field's PRESENT
+// semantics and a string could satisfy a numeric field's PRESENT semantics.
+// React then renders "false" as `true` via JS truthiness — a false-
+// liveness / false-execution-authority presentation. Every case below must
+// return `false`.
+
+describe("validateOperatorSnapshot — R1.2 typed boolean fields (Correction A/B)", () => {
+  it('case 1: boot_alive PRESENT "false" -> false', () => {
+    const snap = baseSnapshot();
+    snap.system_health.boot_alive = { value: "false", semantics: "PRESENT" } as never;
+    expect(validateOperatorSnapshot(snap)).toBe(false);
+  });
+
+  it("case 2: boot_alive ZERO 0 -> false", () => {
+    const snap = baseSnapshot();
+    snap.system_health.boot_alive = { value: 0, semantics: "ZERO" } as never;
+    expect(validateOperatorSnapshot(snap)).toBe(false);
+  });
+
+  it('case 3: exchange_connectivity_healthy PRESENT "true" -> false', () => {
+    const snap = baseSnapshot();
+    snap.system_health.exchange_connectivity_healthy = { value: "true", semantics: "PRESENT" } as never;
+    expect(validateOperatorSnapshot(snap)).toBe(false);
+  });
+
+  it("case 4: real_account_stale PRESENT 1 -> false", () => {
+    const snap = baseSnapshot();
+    snap.portfolio.real_account_stale = { value: 1, semantics: "PRESENT" } as never;
+    expect(validateOperatorSnapshot(snap)).toBe(false);
+  });
+
+  it('case 5: is_actionable PRESENT "false" -> false', () => {
+    const snap = baseSnapshot();
+    snap.decision_pipeline.per_symbol_decisions = [
+      { ...validDecision, is_actionable: { value: "false", semantics: "PRESENT", authority: "EXECUTION_AUTHORITY" } },
+    ] as never;
+    expect(validateOperatorSnapshot(snap)).toBe(false);
+  });
+
+  it('case 6: trade_allowed PRESENT "true" -> false', () => {
+    const snap = baseSnapshot();
+    snap.decision_pipeline.per_symbol_decisions = [
+      {
+        ...validDecision,
+        trade_allowed: { value: "true", semantics: "PRESENT", authority: "OBSERVATIONAL_TELEMETRY" },
+      },
+    ] as never;
+    expect(validateOperatorSnapshot(snap)).toBe(false);
+  });
+
+  it("rejects aggregate decision_pipeline.trade_allowed carrying a string", () => {
+    const snap = baseSnapshot();
+    snap.decision_pipeline.trade_allowed = { value: "true", semantics: "PRESENT" } as never;
+    expect(validateOperatorSnapshot(snap)).toBe(false);
+  });
+
+  it("boolean ZERO/other-numeric non-null values are rejected for a boolean field", () => {
+    const snap = baseSnapshot();
+    snap.system_health.exchange_connectivity_healthy = { value: [], semantics: "PRESENT" } as never;
+    expect(validateOperatorSnapshot(snap)).toBe(false);
+  });
+
+  it("positive: boolean FALSE (exact false) remains valid", () => {
+    const snap = baseSnapshot();
+    snap.system_health.exchange_connectivity_healthy = { value: false, semantics: "FALSE" } as never;
     expect(validateOperatorSnapshot(snap)).toBe(true);
-    expect(snap.decision_pipeline.per_symbol_decisions[0].is_actionable.authority).toBe(
-      "OBSERVATIONAL_TELEMETRY",
-    );
+  });
+
+  it("positive: boolean PRESENT true remains valid", () => {
+    const snap = baseSnapshot();
+    snap.system_health.exchange_connectivity_healthy = { value: true, semantics: "PRESENT" } as never;
+    expect(validateOperatorSnapshot(snap)).toBe(true);
+  });
+
+  it("positive: boolean STALE (true or false) remains valid", () => {
+    const snap = baseSnapshot();
+    snap.system_health.boot_alive = { value: true, semantics: "STALE" } as never;
+    expect(validateOperatorSnapshot(snap)).toBe(true);
+    snap.system_health.boot_alive = { value: false, semantics: "STALE" } as never;
+    expect(validateOperatorSnapshot(snap)).toBe(true);
+  });
+});
+
+describe("validateOperatorSnapshot — R1.2 typed numeric fields (Correction A/B)", () => {
+  it("case 7a: paper_equity_usd carries a string -> false", () => {
+    const snap = baseSnapshot();
+    snap.portfolio.paper_equity_usd = { value: "1000", semantics: "PRESENT" } as never;
+    expect(validateOperatorSnapshot(snap)).toBe(false);
+  });
+
+  it("case 7b: real_account_equity_usd carries a string -> false", () => {
+    const snap = baseSnapshot();
+    snap.portfolio.real_account_equity_usd = { value: "5000", semantics: "PRESENT" } as never;
+    expect(validateOperatorSnapshot(snap)).toBe(false);
+  });
+
+  it("case 8a: capital_x_usd carries a boolean -> false", () => {
+    const snap = baseSnapshot();
+    snap.portfolio.capital_x_usd = { value: true, semantics: "PRESENT" } as never;
+    expect(validateOperatorSnapshot(snap)).toBe(false);
+  });
+
+  it("case 8b: exchange_latency_ms carries a boolean -> false", () => {
+    const snap = baseSnapshot();
+    snap.system_health.exchange_latency_ms = { value: false, semantics: "FALSE" } as never;
+    // FALSE is not a legal semantics for a numeric field's generic matrix
+    // either way, but the typed check independently rejects the boolean
+    // value regardless of which layer catches it first.
+    expect(validateOperatorSnapshot(snap)).toBe(false);
+  });
+
+  it("case 9a: confidence_raw STALE carries a string -> false", () => {
+    const snap = baseSnapshot();
+    snap.decision_pipeline.per_symbol_decisions = [
+      { ...validDecision, confidence_raw: { value: "0.8", semantics: "STALE" } },
+    ] as never;
+    expect(validateOperatorSnapshot(snap)).toBe(false);
+  });
+
+  it("case 9b: health_score STALE carries an object -> false", () => {
+    const snap = baseSnapshot();
+    snap.system_health.health_score = { value: { bad: true }, semantics: "STALE" } as never;
+    expect(validateOperatorSnapshot(snap)).toBe(false);
+  });
+
+  it("case 9c: exchange_latency_ms STALE carries NaN-equivalent (non-finite) -> false", () => {
+    const snap = baseSnapshot();
+    snap.system_health.exchange_latency_ms = { value: Infinity, semantics: "STALE" } as never;
+    expect(validateOperatorSnapshot(snap)).toBe(false);
+  });
+
+  it("rejects OpenPosition.current_price carrying a string", () => {
+    const snap = baseSnapshot();
+    snap.portfolio.open_positions = {
+      semantics: "PRESENT",
+      value: [{ ...validPosition, current_price: { value: "51000", semantics: "PRESENT" } }],
+    } as never;
+    expect(validateOperatorSnapshot(snap)).toBe(false);
+  });
+
+  it("positive: numeric ZERO remains valid", () => {
+    const snap = baseSnapshot();
+    snap.portfolio.paper_equity_usd = { value: 0, semantics: "ZERO" } as never;
+    expect(validateOperatorSnapshot(snap)).toBe(true);
+  });
+
+  it("positive: numeric STALE with zero remains valid", () => {
+    const snap = baseSnapshot();
+    snap.system_health.health_score = { value: 0, semantics: "STALE" } as never;
+    expect(validateOperatorSnapshot(snap)).toBe(true);
+  });
+
+  it("positive: numeric PRESENT finite non-zero remains valid", () => {
+    const snap = baseSnapshot();
+    snap.portfolio.capital_x_usd = { value: 42.5, semantics: "PRESENT" } as never;
+    expect(validateOperatorSnapshot(snap)).toBe(true);
+  });
+});
+
+describe("validateOperatorSnapshot — R1.2 typed string fields (Correction A/B)", () => {
+  it("case 10a: side carries an object -> false", () => {
+    const snap = baseSnapshot();
+    snap.decision_pipeline.per_symbol_decisions = [
+      { ...validDecision, side: { value: { bad: true }, semantics: "PRESENT" } },
+    ] as never;
+    expect(validateOperatorSnapshot(snap)).toBe(false);
+  });
+
+  it("case 10b: regime carries a number -> false", () => {
+    const snap = baseSnapshot();
+    snap.decision_pipeline.per_symbol_decisions = [
+      { ...validDecision, regime: { value: 42, semantics: "PRESENT" } },
+    ] as never;
+    expect(validateOperatorSnapshot(snap)).toBe(false);
+  });
+
+  it("case 10c: health_level carries a number -> false", () => {
+    const snap = baseSnapshot();
+    snap.system_health.health_level = { value: 100, semantics: "PRESENT" } as never;
+    expect(validateOperatorSnapshot(snap)).toBe(false);
+  });
+
+  it("case 10d: OpenPosition.regime carries an array -> false", () => {
+    const snap = baseSnapshot();
+    snap.portfolio.open_positions = {
+      semantics: "PRESENT",
+      value: [{ ...validPosition, regime: { value: ["bad"], semantics: "PRESENT" } }],
+    } as never;
+    expect(validateOperatorSnapshot(snap)).toBe(false);
+  });
+
+  it("rejects aggregate decision_pipeline.first_blocker carrying a number", () => {
+    const snap = baseSnapshot();
+    snap.decision_pipeline.first_blocker = { value: 1, semantics: "PRESENT" } as never;
+    expect(validateOperatorSnapshot(snap)).toBe(false);
+  });
+
+  it("positive: string EMPTY remains valid where meaningful", () => {
+    const snap = baseSnapshot();
+    snap.decision_pipeline.per_symbol_decisions = [
+      { ...validDecision, regime: { value: "", semantics: "EMPTY" } },
+    ] as never;
+    expect(validateOperatorSnapshot(snap)).toBe(true);
+  });
+
+  it("positive: string STALE remains valid", () => {
+    const snap = baseSnapshot();
+    snap.system_health.health_level = { value: "DEGRADED_LAST_KNOWN", semantics: "STALE" } as never;
+    expect(validateOperatorSnapshot(snap)).toBe(true);
+  });
+});
+
+describe("validateOperatorSnapshot — R1.2 typed list field (open_positions, Correction A/B)", () => {
+  it('case 11: open_positions EMPTY "" -> false', () => {
+    const snap = baseSnapshot();
+    snap.portfolio.open_positions = { semantics: "EMPTY", value: "" } as never;
+    expect(validateOperatorSnapshot(snap)).toBe(false);
+  });
+
+  it("case 12: open_positions EMPTY {} -> false", () => {
+    const snap = baseSnapshot();
+    snap.portfolio.open_positions = { semantics: "EMPTY", value: {} } as never;
+    expect(validateOperatorSnapshot(snap)).toBe(false);
+  });
+
+  it("case 13: open_positions PRESENT with a non-array (string) -> false", () => {
+    const snap = baseSnapshot();
+    snap.portfolio.open_positions = { semantics: "PRESENT", value: "not-an-array" } as never;
+    expect(validateOperatorSnapshot(snap)).toBe(false);
+  });
+
+  it("open_positions PRESENT with a non-array (object) -> false", () => {
+    const snap = baseSnapshot();
+    snap.portfolio.open_positions = { semantics: "PRESENT", value: { bad: true } } as never;
+    expect(validateOperatorSnapshot(snap)).toBe(false);
+  });
+
+  it("open_positions STALE with a non-array -> false", () => {
+    const snap = baseSnapshot();
+    snap.portfolio.open_positions = { semantics: "STALE", value: "not-an-array" } as never;
+    expect(validateOperatorSnapshot(snap)).toBe(false);
+  });
+
+  it("positive: open_positions EMPTY [] remains valid", () => {
+    const snap = baseSnapshot();
+    snap.portfolio.open_positions = { semantics: "EMPTY", value: [] } as never;
+    expect(validateOperatorSnapshot(snap)).toBe(true);
+  });
+
+  it("positive: open_positions STALE with a valid array remains valid", () => {
+    const snap = baseSnapshot();
+    snap.portfolio.open_positions = { semantics: "STALE", value: [validPosition] } as never;
+    expect(validateOperatorSnapshot(snap)).toBe(true);
+  });
+});
+
+describe("validateOperatorSnapshot — R1.2 authority contract (Correction C)", () => {
+  it("case 14: invented authority -> false", () => {
+    const snap = baseSnapshot();
+    snap.decision_pipeline.per_symbol_decisions = [
+      { ...validDecision, is_actionable: { ...validDecision.is_actionable, authority: "SOMETHING_ELSE" } },
+    ] as never;
+    expect(validateOperatorSnapshot(snap)).toBe(false);
+  });
+
+  it("case 15: padded authority -> false", () => {
+    const snap = baseSnapshot();
+    snap.decision_pipeline.per_symbol_decisions = [
+      {
+        ...validDecision,
+        trade_allowed: { ...validDecision.trade_allowed, authority: " OBSERVATIONAL_TELEMETRY " },
+      },
+    ] as never;
+    expect(validateOperatorSnapshot(snap)).toBe(false);
+  });
+
+  it("case 17: trade_allowed labeled EXECUTION_AUTHORITY instead of OBSERVATIONAL_TELEMETRY -> false", () => {
+    const snap = baseSnapshot();
+    snap.decision_pipeline.per_symbol_decisions = [
+      { ...validDecision, trade_allowed: { ...validDecision.trade_allowed, authority: "EXECUTION_AUTHORITY" } },
+    ] as never;
+    expect(validateOperatorSnapshot(snap)).toBe(false);
+  });
+
+  it("case 18: first_blocker labeled EXECUTION_AUTHORITY instead of OBSERVATIONAL_TELEMETRY -> false", () => {
+    const snap = baseSnapshot();
+    snap.decision_pipeline.per_symbol_decisions = [
+      { ...validDecision, first_blocker: { ...validDecision.first_blocker, authority: "EXECUTION_AUTHORITY" } },
+    ] as never;
+    expect(validateOperatorSnapshot(snap)).toBe(false);
+  });
+
+  it("rejects a domain-level authority value outside the closed vocabulary", () => {
+    const snap = baseSnapshot();
+    (snap.portfolio as unknown as Record<string, unknown>).authority = "SOMETHING_ELSE";
+    expect(validateOperatorSnapshot(snap)).toBe(false);
+  });
+
+  it("rejects a numeric domain-level authority value", () => {
+    const snap = baseSnapshot();
+    (snap.system_health as unknown as Record<string, unknown>).authority = 1;
+    expect(validateOperatorSnapshot(snap)).toBe(false);
+  });
+
+  it("positive: valid producer authority mappings remain valid", () => {
+    const snap = baseSnapshot();
+    snap.decision_pipeline.per_symbol_decisions = [validDecision] as never;
+    expect(validateOperatorSnapshot(snap)).toBe(true);
+  });
+
+  it("positive: DECISION_OUTCOME_EVIDENCE is a legal domain-level authority value", () => {
+    const snap = baseSnapshot();
+    (snap.system_health as unknown as Record<string, unknown>).authority = "DECISION_OUTCOME_EVIDENCE";
+    expect(validateOperatorSnapshot(snap)).toBe(true);
+  });
+});
+
+describe("validateOperatorSnapshot — R1.2 a complete canonical snapshot still passes", () => {
+  it("accepts a fully valid canonical snapshot with typed fields and correct authority mapping", () => {
+    const snap = baseSnapshot();
+    snap.portfolio.open_positions = { semantics: "PRESENT", value: [validPosition] } as never;
+    snap.decision_pipeline.per_symbol_decisions = [validDecision] as never;
+    expect(validateOperatorSnapshot(snap)).toBe(true);
   });
 });

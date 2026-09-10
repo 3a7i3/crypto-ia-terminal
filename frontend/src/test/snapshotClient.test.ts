@@ -140,4 +140,76 @@ describe("useOperatorSnapshot", () => {
     await waitFor(() => expect(result.current.status).toBe("transport_error"));
     expect(result.current.status).not.toBe("success");
   });
+
+  // O-02W-D2-R1.2 — `isObservedValue()` validates the generic null-
+  // semantics matrix but not the generic type `T`; MASTER reproduced a
+  // string-valued boolean/numeric field and a non-array EMPTY list
+  // slipping through as `true`. Every body below must produce
+  // transport_error, never success.
+  it.each([
+    ["string-valued boot_alive", () => {
+      const s = baseSnapshot();
+      s.system_health.boot_alive = { value: "false", semantics: "PRESENT" } as never;
+      return s;
+    }],
+    ["string-valued is_actionable", () => {
+      const s = baseSnapshot();
+      s.decision_pipeline.per_symbol_decisions = [
+        {
+          symbol: "ETHUSDT",
+          packet_id: null,
+          context_id: null,
+          created_cycle_id: null,
+          created_at: { value: null, semantics: "UNKNOWN" },
+          latest_transition_at_utc: { value: null, semantics: "UNKNOWN" },
+          side: { value: null, semantics: "UNKNOWN" },
+          confidence_raw: { value: null, semantics: "UNKNOWN" },
+          confidence_adjusted: { value: null, semantics: "UNKNOWN" },
+          regime: { value: null, semantics: "UNKNOWN" },
+          lifecycle_state: { value: null, semantics: "UNKNOWN" },
+          is_actionable: { value: "false", semantics: "PRESENT", authority: "EXECUTION_AUTHORITY" },
+          trade_allowed: { value: null, semantics: "UNKNOWN", authority: "OBSERVATIONAL_TELEMETRY" },
+          first_blocker: { value: null, semantics: "UNKNOWN", authority: "OBSERVATIONAL_TELEMETRY" },
+        },
+      ] as never;
+      return s;
+    }],
+    ["string-valued numeric equity", () => {
+      const s = baseSnapshot();
+      s.portfolio.paper_equity_usd = { value: "1000", semantics: "PRESENT" } as never;
+      return s;
+    }],
+    ["non-array EMPTY open_positions", () => {
+      const s = baseSnapshot();
+      s.portfolio.open_positions = { semantics: "EMPTY", value: "" } as never;
+      return s;
+    }],
+    ["incorrect authority mapping (trade_allowed as EXECUTION_AUTHORITY)", () => {
+      const s = baseSnapshot();
+      s.decision_pipeline.per_symbol_decisions = [
+        {
+          symbol: "ETHUSDT",
+          packet_id: null,
+          context_id: null,
+          created_cycle_id: null,
+          created_at: { value: null, semantics: "UNKNOWN" },
+          latest_transition_at_utc: { value: null, semantics: "UNKNOWN" },
+          side: { value: null, semantics: "UNKNOWN" },
+          confidence_raw: { value: null, semantics: "UNKNOWN" },
+          confidence_adjusted: { value: null, semantics: "UNKNOWN" },
+          regime: { value: null, semantics: "UNKNOWN" },
+          lifecycle_state: { value: null, semantics: "UNKNOWN" },
+          is_actionable: { value: false, semantics: "FALSE", authority: "EXECUTION_AUTHORITY" },
+          trade_allowed: { value: false, semantics: "FALSE", authority: "EXECUTION_AUTHORITY" },
+          first_blocker: { value: null, semantics: "UNKNOWN", authority: "OBSERVATIONAL_TELEMETRY" },
+        },
+      ] as never;
+      return s;
+    }],
+  ] as const)("rejects R1.2 malformed body (%s) as transport_error, never success", async (_label, build) => {
+    fetchMock.mockResolvedValue(jsonResponse(build()));
+    const { result } = renderHook(() => useOperatorSnapshot(60_000));
+    await waitFor(() => expect(result.current.status).toBe("transport_error"));
+    expect(result.current.status).not.toBe("success");
+  });
 });
