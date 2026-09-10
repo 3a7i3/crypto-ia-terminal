@@ -515,23 +515,13 @@ class PositionManager:
     def _check_liquidation_defense(self, pos: Position) -> None:
         """Ferme la position d'urgence si on approche de la liquidation."""
         dist = pos.liquidation_distance_pct()
-        # Alerte Telegram si dist < 15%
+        # Avertissement local si dist < 15% (aucune notification externe)
         if 0.08 < dist < 0.15:
             _log.warning(
                 "[PositionManager] ALERTE LIQUIDATION %s — dist=%.1f%%",
                 pos.symbol,
                 dist * 100,
             )
-            try:
-                from supervision.notifications.telegram_notifier import TelegramNotifier
-
-                TelegramNotifier().send(
-                    f"ALERTE LIQUIDATION {pos.symbol}\n"
-                    f"Prix: ${pos.current_price:.2f} | Distance: {dist*100:.1f}%\n"
-                    f"PnL: {pos.pnl_usd:+.2f}$"
-                )
-            except Exception:
-                pass
         # Fermeture d'urgence si dist < seuil defense
         if dist < pos.liq_defense_pct:
             _log.critical(

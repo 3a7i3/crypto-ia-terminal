@@ -12,7 +12,7 @@ Niveaux de réponse automatique :
   NIVEAU 1 → réduction taille (×0.5)
   NIVEAU 2 → safe mode (alertes suspendues)
   NIVEAU 3 → halt temporaire (N minutes)
-  NIVEAU 4 → kill switch + Telegram critique
+  NIVEAU 4 → taille 0, safe mode, halt critique interne et journal local
 
 Le bot cesse de trader "vite" pour trader "juste".
 """
@@ -36,7 +36,7 @@ class DangerLevel(IntEnum):
     CAUTION = 1  # réduction taille
     WARNING = 2  # safe mode
     DANGER = 3  # halt temporaire
-    CRITICAL = 4  # kill switch
+    CRITICAL = 4  # halt critique interne
 
 
 @dataclass
@@ -259,7 +259,9 @@ class SelfAwarenessEngine:
 
     def operator_resume(self, full_reset: bool = False) -> None:
         """
-        Reprise explicite après /RESUME opérateur.
+        Reprise par appel interne explicite ou interface de contrôle
+        séparément autorisée. Aucune commande Telegram n'invoque cette
+        méthode.
 
         - full_reset=True  : reset complet (historique conservé, état remis à OK)
         - full_reset=False : lève uniquement le halt et rétrograde en WARNING
@@ -286,7 +288,7 @@ class SelfAwarenessEngine:
             },
         )
         _log.warning(
-            "[SelfAwareness] RESUME opérateur — halt levé, niveau=%s",
+            "[SelfAwareness] operator_resume invoqué — halt levé, niveau=%s",
             self._state.level.name,
         )
 
@@ -613,23 +615,9 @@ class SelfAwarenessEngine:
             self._state.safe_mode = True
             self._state.halt_until = time.time() + self.CRITICAL_HALT_SECONDS
             _log.critical(
-                "[SelfAwareness] CRITICAL — kill switch déclenché (halt %.0fs)",
+                "[SelfAwareness] CRITICAL — halt critique interne activé (halt %.0fs)",
                 self.CRITICAL_HALT_SECONDS,
             )
-            self._send_telegram_critical(drifts)
-
-    def _send_telegram_critical(self, drifts: list[DriftSignal]) -> None:
-        try:
-            from supervision.notifications.telegram_notifier import TelegramNotifier
-
-            msgs = "\n".join(f"• {d.message}" for d in drifts[:5])
-            TelegramNotifier().send(
-                f"SELF-AWARENESS CRITIQUE\n"
-                f"Trading suspendu 24h — dérives détectées:\n{msgs}\n"
-                f"Envoyer /RESUME pour reprendre manuellement."
-            )
-        except Exception:
-            pass
 
     # ── Helpers stats ─────────────────────────────────────────────────────────
 
