@@ -158,16 +158,16 @@ def test_state_machine_doc_names_force_safe_mode_and_force_resume():
 
 
 def test_state_machine_doc_distinguishes_production_callers_from_invariant_checks():
-    # Auto and named production-runtime paths must be named explicitly.
+    # Auto and named source-proven call-site paths must be named explicitly.
     assert "report_error()" in STATE_MACHINE_DOC
     assert "request_safe_mode(" in STATE_MACHINE_DOC
     assert "core/invariants.py" in STATE_MACHINE_DOC
-    # The doc must not overclaim "no caller at all" for the class - it must
-    # scope the "no caller" statement to the specific force_* convenience
-    # methods, since request_safe_mode()/report_error() do have production
-    # callers.
+    # The doc must not overclaim "no call site at all" for the class - it
+    # must scope the "no call site" statement to the specific force_*
+    # convenience methods, since request_safe_mode()/report_error() do have
+    # SOURCE_PROVEN call sites elsewhere.
     assert "instance jetable" in STATE_MACHINE_DOC
-    assert "aucun appelant runtime de production" in STATE_MACHINE_DOC
+    assert "aucun site d'appel non-test/non-archive" in STATE_MACHINE_DOC
 
 
 def test_state_machine_doc_does_not_conflate_killswitch_hardened_with_rsm():
@@ -452,29 +452,87 @@ def test_advisor_loop_kill_switch_comment_describes_only_proven_facts():
     assert "no-op" in block or "aucun polling" in block or "aucun thread" in block
 
 
-def test_state_machine_doc_distinguishes_invoked_from_merely_wired_callbacks():
-    assert "Chemins source-prouvés invoqués en production" in STATE_MACHINE_DOC
+def test_state_machine_doc_distinguishes_source_proven_call_sites_from_wired_callbacks():
+    """R1.2: the doc must bound its claim to call-site *presence*, not
+    observed production execution — replaces the R1.1 test that required
+    the overclaiming phrase "Chemins source-prouvés invoqués en production".
+    """
     assert (
-        "Chemins source-prouvés câblés, mais NON source-prouvés invoqués en "
-        "production" in STATE_MACHINE_DOC
+        "Sites d'appel explicites présents dans le code runtime "
+        "non-test/non-archive" in STATE_MACHINE_DOC
+    )
+    assert (
+        "Callbacks enregistrés (câblage `SOURCE_PROVEN`), sans site d'appel "
+        "invoquant le callback trouvé" in STATE_MACHINE_DOC
     )
 
 
-def test_state_machine_doc_does_not_classify_kill_switch_callbacks_as_invoked():
-    # Locate the "invoked in production" clause specifically and confirm the
-    # four kill-switch callbacks are not listed inside it.
+def test_state_machine_doc_does_not_classify_kill_switch_callbacks_as_call_sites():
+    # Locate the "explicit call sites" clause specifically and confirm the
+    # four kill-switch callbacks are not listed inside it as call sites.
     match = re.search(
-        r"Chemins source-prouvés invoqués en production\*\*.*?(?=\*\*Chemins "
-        r"source-prouvés câblés)",
+        r"Sites d'appel explicites présents dans le code runtime "
+        r"non-test/non-archive\*\*.*?(?=\*\*Callbacks enregistrés)",
         STATE_MACHINE_DOC,
         re.DOTALL,
     )
-    assert match, "invoked-in-production clause not found"
-    invoked_clause = match.group(0)
+    assert match, "explicit-call-sites clause not found"
+    call_site_clause = match.group(0)
     for callback in ("_on_stop_all", "_on_close_all", "_on_safe_mode"):
-        assert callback not in invoked_clause, (
-            f"{callback} must not be classified as invoked in production"
+        assert callback not in call_site_clause, (
+            f"{callback} must not be classified as a source-proven call site"
         )
+
+
+def test_state_machine_doc_rejects_overclaim_phrases():
+    """None of the observed-execution overclaims from R1/R1.1 may remain."""
+    for phrase in (
+        "invoqués en production",
+        "invoquée en production",
+        "appelé en production",
+        "appelants runtime de production",
+        "appelant runtime de production",
+        "code mort",
+        "inatteignable",
+    ):
+        assert phrase not in STATE_MACHINE_DOC, (
+            f"overclaiming phrase still present: {phrase!r}"
+        )
+
+
+def test_state_machine_doc_uses_source_proven_runtime_unknown_framework():
+    assert "SOURCE_PROVEN" in STATE_MACHINE_DOC
+    assert "RUNTIME_UNKNOWN" in STATE_MACHINE_DOC
+    # The legend must explicitly state that call-site presence proves only
+    # source reachability, not deployment/execution.
+    assert "ne sont prouvés par aucune inspection de dépôt" in STATE_MACHINE_DOC
+
+
+def test_state_machine_doc_callback_registration_not_equated_to_invocation():
+    assert (
+        "Ne jamais décrire l'enregistrement d'un callback" in STATE_MACHINE_DOC
+    )
+    assert "comme un site d'appel de ce callback" in STATE_MACHINE_DOC
+
+
+def test_state_machine_doc_on_close_all_has_no_invoker_found_bounded_claim():
+    """R1.2 Correction B: _on_close_all's non-invocation must be phrased as
+    'no invoker found' (RUNTIME_UNKNOWN), not as an absolute 'dead code /
+    unreachable' claim.
+    """
+    match = re.search(
+        r"`on_close_all` est enregistré au constructeur.*?exécution réelle "
+        r"reste `RUNTIME_UNKNOWN`, sans que cela constitue une preuve "
+        r"d'impossibilité absolue\.",
+        STATE_MACHINE_DOC,
+        re.DOTALL,
+    )
+    assert match, "_on_close_all bounded-claim sentence not found"
+    clause = match.group(0)
+    assert "aucune méthode de `KillSwitchHardened` n'invoque ce callback stocké" in clause
+    assert "aucun site d'appel non-test/non-archive invoquant `_on_close_all`" in clause
+    assert "code mort" not in clause
+    assert "inatteignable" not in clause
 
 
 def test_state_machine_doc_no_longer_claims_stale_telegram_reason_strings_remain():
