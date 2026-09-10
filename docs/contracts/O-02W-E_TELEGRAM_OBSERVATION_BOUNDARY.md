@@ -244,6 +244,27 @@ source wiring, not deployment/runtime state. R1.5's starting HEAD is
 `9827ab4380ae21f277bfe41a2f566d2fa1ed8bac`; only this file was
 modified.
 
+**PRE-T1-C structural note (same date, out-of-band of the R1-R1.5
+Telegram-observation remediation rounds above):** mission
+O-02W-PRE-T1-C removed `_set_param_live` and its `set_param=` wiring
+into the `CommandDataProvider` construction from `core/advisor_loop.py`
+entirely, and removed the `set_param`/`reset_kpis` fields from
+`CommandDataProvider` in `capital_deployment/command_center_bot.py`
+(base HEAD `95f1150d13617c0cf326f2777c4d2fa69d91465b`). This R1 round of
+PRE-T1-C (same date) brings every normative claim below back in sync
+with that removal: §6, TG-02c (§9a), and §9b no longer describe
+`_set_param_live`/`CommandDataProvider.set_param` as a presently-wired,
+merely-unreachable capability — they record it as structurally absent
+from source. §9b, §11 Phase 4, §12, and §16 no longer list "the
+dormant Portfolio mutator" as outstanding architectural-boundary debt
+requiring a future source mission, since that mission is this one.
+This note makes no claim about deployment or runtime state — repo-only
+claim, same as the rest of this document. `_set_param_live` and
+`CommandDataProvider.set_param` remain accurate as **historical**
+references above (R1-R1.5) describing the pre-PRE-T1-C state of the
+code at the time those rounds were written; they are not restated as
+still-current facts anywhere below this point.
+
 Final certification of this contract belongs exclusively to the
 independent ChatGPT MASTER reviewer. This document is a proposal for
 that review, not a self-certified conclusion.
@@ -685,8 +706,11 @@ classified by grep count alone). Headline findings:
   Telegram code are unrelated non-Telegram Python syntax
   (`config/settings.py`, `risk/circuit_breaker.py`) or
   `capital_deployment/command_center_bot.py`'s explicit blocked-command
-  set, which returns a fixed refusal string and never calls
-  `CommandDataProvider.set_param` or any mutator (§9b, Correction D).
+  set, which returns a fixed refusal string. **[PRE-T1-C, R1]**
+  `CommandDataProvider` has no `set_param` field or any mutator field
+  at all (`capital_deployment/command_center_bot.py`) — the call
+  cannot occur, structurally, not merely "does not occur on the
+  reviewed path" (§9b).
 - No `.py` file outside `supervision/kill_switch.py` has a source-wired
   dispatcher for any of the eight command-mutation literals; none was
   found wired to a real token. **[R1]** `supervision/kill_switch.py`'s own reachability
@@ -831,7 +855,7 @@ TG-02, TG-03, and TG-06.
 |---|---|---|---|---|---|---|
 | TG-02a | TG-02 | On-demand read commands (`/status /kpis /phase /regime /risk /health /balance /positions /pnl /trades /config /get /logs /help /eo /gate /perf /certif /charts /blackbox /history /recap`, `command_center_bot.py` handler dict + arg-commands, lines 1295-1367) | `ON_DEMAND_READ_ONLY_QUERY` | PARTIAL (status/positions/pnl fields likely overlap cockpit `portfolio` domain; query semantics — ask-and-receive — have no cockpit equivalent) | `KEEP_UNTIL_COCKPIT_RUNTIME_CERTIFIED` | T-1 + Phase 2 / E2 |
 | TG-02b | TG-02 | Periodic auto-report (`_report_loop`, `command_center_bot.py:1390-1400`, interval `P10_PORTFOLIO_REPORT_H`, default 1h) | `PERIODIC_STATUS_SUMMARY` | PARTIAL (report content likely overlaps `portfolio` domain fields; the *push* delivery itself has no cockpit equivalent, cockpit is pull-only) | `KEEP_UNTIL_COCKPIT_RUNTIME_CERTIFIED` (per Correction G, only for the field-content portion; the push-delivery value itself needs the same operator sign-off as TG-06's periodic subset, §11 Phase 3) | T-1 + Phase 2 / E2 |
-| TG-02c | TG-02 | Blocked control commands (`/pause /resume /set /setphase /maxorder /reset /restart /confirm /cancel`, `command_center_bot.py:1370-1379`) | `FORBIDDEN_CONTROL_SURFACE` | NONE (inert — the handler for each of these commands returns a fixed refusal response, and the reviewed path makes no call to `CommandDataProvider.set_param` or any other mutator, so no cockpit equivalent is needed) | `FORBIDDEN_MUST_NEVER_REACTIVATE` (remains forbidden even though currently inert — see §9b for the dormant mutator this refusal currently blocks) | none |
+| TG-02c | TG-02 | Blocked control commands (`/pause /resume /set /setphase /maxorder /reset /restart /confirm /cancel`, `command_center_bot.py:1370-1379`) | `FORBIDDEN_CONTROL_SURFACE` | NONE (inert — the handler for each of these commands returns a fixed refusal response; **[PRE-T1-C, R1]** `CommandDataProvider` has no `set_param` field or any mutator field, so no such call can exist anywhere in `command_center_bot.py`, not merely on the reviewed dispatch path — no cockpit equivalent is needed) | `FORBIDDEN_MUST_NEVER_REACTIVATE` (remains forbidden as a permanent guardrail even though the mutator it once guarded against has been structurally removed — see §9b) | none |
 | TG-03a | TG-03 | On-demand commands (`/snapshot /health /pipeline`, `bot.py:714-716`) | `ON_DEMAND_READ_ONLY_QUERY` | PARTIAL (pipeline/health concepts likely overlap `decisions`/`system` domains) | `KEEP_UNTIL_COCKPIT_RUNTIME_CERTIFIED` | T-1 + Phase 2 / E2 |
 | TG-03b | TG-03 | Pinned-panel change-driven live refresh (`_change_driven_live_tick`/`_pinned_tick`, `bot.py:630-708`, minimum interval `QC_SAFETY_REFRESH_S`=1800s or `PINNED_UPDATE_S`=600s) | `PERIODIC_STATUS_SUMMARY` | PARTIAL for content; the edit-in-place pinned-message UX and any `sendPhoto` chart delivery have no cockpit equivalent (cockpit requires an active pull, never edits a persistent view for the operator) | `KEEP_UNTIL_COCKPIT_RUNTIME_CERTIFIED`, subject to the same push-value caveat as TG-02b (§11 Phase 3) | T-1 + Phase 2 / E2 |
 | TG-06a | TG-06 | Exchange down/up (`supervision/exchange_monitor.py:207,229-234`), session halt/resume (`core/advisor_loop.py:3878,5576,5583`), crash alerts | `CRITICAL_SAFETY_ALERT` | PARTIAL for status content; push delivery itself has no cockpit equivalent | `KEEP_PERMANENT_CRITICAL_ALERT` | none — never retired |
@@ -846,53 +870,50 @@ side-by-side comparison defined in §11.
 
 ---
 
-## 9b. Dormant Portfolio mutator capability (Correction D)
+## 9b. Portfolio mutator — structurally removed (Correction D; resolved PRE-T1-C, R1)
 
-**[R1, new section]** `core/advisor_loop.py:3903-3908` defines:
+**[R1, original section; superseded by PRE-T1-C, R1 below]** This
+section originally documented a dormant `_set_param_live` mutator,
+defined at `core/advisor_loop.py:3903-3908`, wired at
+`core/advisor_loop.py:3989` as `set_param=_set_param_live` into the
+`CommandDataProvider` construction that fed a `CommandCenterBot`
+instance, and a corresponding `set_param` field declared on
+`CommandDataProvider` in `capital_deployment/command_center_bot.py`,
+never read or invoked by `_route()`. That was accurate at the source
+revision those rounds reviewed.
 
-```python
-def _set_param_live(name: str, value: str) -> bool:
-    os.environ[name] = value
-    if name == "EXEC_MAX_ORDER_USD":
-        nonlocal max_order
-        max_order = float(value)
-    return True
-```
+**[PRE-T1-C, R1 — current state]** Mission O-02W-PRE-T1-C removed this
+capability structurally, not merely by leaving it unreachable:
 
-This function mutates `os.environ` unconditionally and additionally
-mutates the local `max_order` closure variable for one parameter name.
-It is passed at `core/advisor_loop.py:3989` as `set_param=_set_param_live`
-into the `CommandDataProvider` construction (`_pb_provider`, lines
-3973-3990) that is then handed to a `CommandCenterBot` object
-constructed and started by the same source path (`advisor_loop.py:3991-3992`,
-`_portfolio_bot = CommandCenterBot.from_env(_pb_provider);
-_portfolio_bot.start()`) — a source-valid construction and `.start()`
-call; whether this code path actually executes in a deployed process
-is `RUNTIME_UNKNOWN`.
+- `_set_param_live` is **absent** from `core/advisor_loop.py` —
+  confirmed by `rg -n "_set_param_live" core/advisor_loop.py` returning
+  no match.
+- No `set_param=` keyword argument appears anywhere in the
+  `CommandDataProvider` construction in `core/advisor_loop.py`.
+- `CommandDataProvider` in `capital_deployment/command_center_bot.py`
+  declares no `set_param` field and no `reset_kpis` field — every
+  field on the dataclass is a read callback (verified by
+  `tests/test_pre_t1_c_portfolio_provider_read_only.py`, extended this
+  round to assert every field name starts with `get_`).
+- `_route()` still dispatches only read-only handlers plus the
+  explicit blocked-command branch (§9a, row TG-02c) that returns a
+  fixed refusal string; that refusal now blocks nothing that could
+  structurally reach a mutator, because no mutator field exists to
+  reach.
 
-`capital_deployment/command_center_bot.py`'s `CommandDataProvider`
-declares the `set_param` field at line 212, but a repo-wide search
-confirms it is **never read or invoked** anywhere in
-`command_center_bot.py` — `_route()` (lines 1284-1386) dispatches only
-read-only handlers plus the explicit blocked-command branch (§9a,
-row TG-02c) that returns a fixed refusal string.
-
-**Evidence-honest classification:** no active Telegram mutation
-handler exists today — `_route()` never reaches `set_param`. But this
-is not merely "a mutator that exists somewhere in the codebase"; it is
-a fully-implemented, environment-mutating capability **already wired
-into the provider object the `CommandCenterBot` construction path
-above passes to its bot instance**, source-reachable whenever that
-construction path executes.
-Activating it would require adding exactly one new branch to
-`_route()`'s dispatch — a materially smaller and more dangerous gap
-than if `_set_param_live` were unwired or the provider had no
-`set_param` field at all. This is architectural boundary debt, not
-evidence that Telegram currently controls the machine. Its removal or
-neutralization (e.g., removing the `set_param` wiring at line 3989, or
-deleting `_set_param_live` entirely if `EXEC_MAX_ORDER_USD` live-tuning
-is not wanted via any path) requires a later source mission, before
-T-1 deployment/runtime certification — not this documentation-only PR.
+**Evidence-honest classification:** there is no Telegram mutation
+handler, no mutator field on the provider, and no environment-mutating
+function wired into its construction — not "unreachable," but absent
+from source entirely. This is a repo-only, `SOURCE_PROVEN` claim about
+`core/advisor_loop.py` and `capital_deployment/command_center_bot.py`
+at the current commit; it makes no claim about VPS deployment or
+runtime state, which remain `RUNTIME_UNKNOWN` as throughout this
+document. This closes the architectural-boundary debt this section
+previously flagged — no future source mission is required to remove
+`_set_param_live` or its wiring, because PRE-T1-C already did.
+`FORBIDDEN_MUST_NEVER_REACTIVATE` (§9a, TG-02c) remains the governing
+classification regardless: it is a permanent guardrail against ever
+reintroducing such a mutator, not a statement about present-day risk.
 
 ---
 
@@ -1137,11 +1158,13 @@ because of criterion 7 above.
   `KEEP_RESEARCH_INTERFACE` row unconditionally.
 - Never modify execution authority (ADR-0007 remains absolute).
 - One bot/message family per reversible change — no batch retirement.
-- Address the dormant-mutator boundary debt (§9b) and the real-capital
-  architectural-boundary decision (§9c) via a separate, narrowly
-  scoped source mission **before** any T-1 runtime certification is
-  considered final — not as part of E2's Telegram-retirement work
-  itself, since neither is a Telegram-retirement item.
+- Address the real-capital architectural-boundary decision (§9c) via a
+  separate, narrowly scoped source mission **before** any T-1 runtime
+  certification is considered final — not as part of E2's
+  Telegram-retirement work itself, since it is not a Telegram-retirement
+  item. **[PRE-T1-C, R1]** The Portfolio-mutator boundary debt
+  previously listed here alongside it is resolved (§9b) — no future
+  source mission is needed for it.
 
 ---
 
@@ -1167,11 +1190,15 @@ because of criterion 7 above.
   — its existing R1-era pointer (added by the original O-02W-E1
   mission) is left byte-for-byte unchanged, per this remediation's
   scope restriction.
-- **[R1]** Did not modify `_set_param_live`, its wiring into
+- **[R1, historical — true as of the O-02W-E1 remediation rounds; see
+  PRE-T1-C, R1 note below §9b for the current, structurally-resolved
+  state]** Did not modify `_set_param_live`, its wiring into
   `CommandDataProvider`, or `ExecutionEngine.fetch_available_capital()`
-  — both are documented as architectural boundary debt (§9b, §9c)
-  requiring a separate future source mission, not redesigned or
-  neutralized here.
+  — at that time both were documented as architectural boundary debt
+  (§9b, §9c). **[PRE-T1-C, R1]** The Portfolio-mutator half of that
+  debt is resolved by mission O-02W-PRE-T1-C (§9b); the real-capital
+  half (§9c) is untouched by this documentation round and still
+  requires a separate future source mission.
 - **[R1.1]** Did not modify `infra/wallet_sync.py`'s fallback chain
   (`_last_value`/`_fallback`/`_base_capital`, §9c), `event_bus/bridge.py`,
   `supervision/ops_watchdog.py`, `supervision/ops_watchdog_hardened.py`
@@ -1551,8 +1578,10 @@ unchanged by this remediation round, per its scope restriction (§12).
   — package-init-importable, no non-test, non-archive construction
   call supplying token credentials found, not "unreachable" in the
   unqualified sense the original text used)
-  and TG-02c (the currently-inert blocked-command set that would
-  activate `_set_param_live` if ever unblocked, §9b).
+  and TG-02c (the blocked-command set — a permanent guardrail; **[PRE-T1-C,
+  R1]** the mutator it once guarded against, `_set_param_live`, is now
+  structurally absent from source rather than merely unblocked-but-inert,
+  §9b).
 - **[R1.2, explicit unit taxonomy — see §13 for full detail]** Four
   numbered `SAFETY_RELEVANT_OPERATOR_INSTRUCTION_DRIFT` findings —
   items 1-4 of §13's six-entry numbered list (items 5-6 are not
@@ -1578,13 +1607,19 @@ unchanged by this remediation round, per its scope restriction (§12).
   finding 4 requires a separate decision (remove, route through an
   approved facade, or governed repair) for each of its two broken call
   expressions. See §13 for the per-finding remediation.
-- **[R1, new]** Two architectural-boundary items requiring a future
-  source mission, neither modified by this documentation-only PR: the
-  dormant Portfolio mutator (§9b, `_set_param_live`) and the
-  real-capital sizing/risk feed (§9c, Flow 2 — **[R1.1]** now
-  precisely described as falling back to stale cached data or paper
-  capital, never to an `UNKNOWN` numeric value, only the display
-  provenance label fail-closes).
+- **[R1, historical — see PRE-T1-C, R1 immediately below]** This
+  bullet originally listed two architectural-boundary items requiring
+  a future source mission: the dormant Portfolio mutator (§9b,
+  `_set_param_live`) and the real-capital sizing/risk feed (§9c,
+  Flow 2). **[PRE-T1-C, R1]** The Portfolio-mutator item is resolved —
+  mission O-02W-PRE-T1-C structurally removed `_set_param_live` and
+  the `set_param`/`reset_kpis` fields (§9b); it is no longer
+  outstanding debt and requires no future source mission. One
+  architectural-boundary item remains open: the real-capital
+  sizing/risk feed (§9c, Flow 2 — **[R1.1]** now precisely described
+  as falling back to stale cached data or paper capital, never to an
+  `UNKNOWN` numeric value, only the display provenance label
+  fail-closes), which this documentation round does not modify.
 - **[R1.1, new]** Three files reclassified from "not Telegram-capable"
   to indirect-Telegram-capable via `OpsNotifier`/`TelegramNotifier`
   (§17, Correction B): `event_bus/bridge.py`, `supervision/ops_watchdog.py`,

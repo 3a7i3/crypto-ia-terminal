@@ -147,23 +147,6 @@ _CONFIG_SECTIONS: dict[str, list[str]] = {
     ],
 }
 
-# Params que l'on peut changer LIVE (sans redémarrage)
-_LIVE_PARAMS = {
-    "EXEC_MAX_ORDER_USD",
-    "EXEC_FUTURES_MAX_ORDER_USD",
-    "EXEC_MAX_DD",
-    "EXEC_MAX_LOSS",
-    "EXEC_MAX_CONSEC_LOSSES",
-    "PM_TP_PCT",
-    "PM_SL_PCT",
-    "PM_TRAILING_PCT",
-    "SIGNAL_MIN_SCORE",
-    "GATE_REQUIRE_CONFIRMED",
-    "P10_PHASE",
-    "V9_ADVISOR_ONLY",
-}
-
-
 # ── Data provider ─────────────────────────────────────────────────────────────
 
 
@@ -971,8 +954,7 @@ def _fmt_config(section: Optional[str] = None) -> str:
             return f"Section inconnue. Disponibles: {available}"
         for k in keys:
             v = env.get(k, "_non defini_")
-            live = "live" if k in _LIVE_PARAMS else "restart"
-            lines.append(f"`{k}` = {v} [{live}]")
+            lines.append(f"`{k}` = {v}")
     else:
         lines.append("Sections: " + ", ".join(_CONFIG_SECTIONS.keys()))
         lines.append("\nTape `/config <section>` pour les details.")
