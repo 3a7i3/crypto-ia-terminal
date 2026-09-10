@@ -285,16 +285,26 @@ def test_help_text_does_not_advertise_control_commands_as_active():
 # ── Route-level control-command block regression (D-7 mission requirement) ─
 
 
+def test_command_data_provider_has_no_set_param_field():
+    """set_param n'existe plus du tout dans le dataclass (retrait structurel)."""
+    with pytest.raises(TypeError):
+        CommandDataProvider(set_param=lambda name, val: True)
+
+
+def test_command_data_provider_has_no_reset_kpis_field():
+    """reset_kpis n'existe plus du tout dans le dataclass (retrait structurel)."""
+    with pytest.raises(TypeError):
+        CommandDataProvider(reset_kpis=lambda: True)
+
+
 def _bot_with_recorder(monkeypatch):
-    """Bot dont send() est stubbe — pas d'appel Telegram reseau."""
-    provider = CommandDataProvider(
-        set_param=lambda name, val: (_ for _ in ()).throw(
-            AssertionError(f"set_param must never be called via Telegram: {name}={val}")
-        ),
-        reset_kpis=lambda: (_ for _ in ()).throw(
-            AssertionError("reset_kpis must never be called via Telegram")
-        ),
-    )
+    """Bot dont send() est stubbe — pas d'appel Telegram reseau.
+
+    Le provider ne possede plus aucun champ d'ecriture (set_param/reset_kpis
+    ont ete supprimes du dataclass) : il n'y a donc plus rien a instrumenter
+    pour prouver la non-mutation, la capacite elle-meme n'existe plus.
+    """
+    provider = CommandDataProvider()
     bot = CommandCenterBot(token="x", chat_id="42", provider=provider)
     sent: list[str] = []
     monkeypatch.setattr(bot, "send", lambda text: sent.append(text) or True)

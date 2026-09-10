@@ -206,10 +206,6 @@ class CommandDataProvider:
         None  # -> dict (GlobalRiskGate last snapshot)
     )
     get_blackbox: Optional[Callable[[int], Any]] = None  # (n) -> list[BlackBoxEntry]
-    # Actions
-    reset_kpis: Optional[Callable[[], bool]] = None  # réinitialise les KPIs
-    # Écriture live
-    set_param: Optional[Callable[[str, str], bool]] = None  # (name, value) -> ok
 
 
 # ── Formatteurs ───────────────────────────────────────────────────────────────
