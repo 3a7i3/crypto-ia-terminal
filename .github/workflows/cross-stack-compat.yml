@@ -10,40 +10,22 @@ name: Cross-Stack Compatibility Gate
 # here is a committed handwritten "golden" fixture. No exchange
 # credentials, no VPS/network deployment. Deliberately separate from the
 # repository-wide `ci.yml`/`frontend-ci.yml` gates.
+#
+# O-02W-D3-R1.1 Blocker A: deliberately NO `paths:` filter. A hand-picked
+# path allowlist is fragile by construction — e.g. the producer directly
+# imports `paper_trading/paper_portfolio_view.py` and
+# `paper_trading/portfolio_status.py`, neither of which was covered by the
+# R1 allowlist, and other indirect dependencies can silently reproduce the
+# same gap in the future. The gate itself is short (a handful of steps),
+# so the stronger scientific guarantee of running on every PR/push to
+# `main` costs little and can never again miss a contract-affecting change
+# through an incomplete manual list.
 
 on:
   pull_request:
     branches: [main]
-    paths:
-      - ".github/workflows/cross-stack-compat.yml"
-      - "requirements*.txt"
-      - "core/advisor_loop.py"
-      - "paper_trading/mexc_simulator.py"
-      - "observability/operator_snapshot_builder.py"
-      - "observability/operator_runtime_manifest.py"
-      - "observability/source_evidence.py"
-      - "observability/real_accounts.py"
-      - "observability/operator/**"
-      - "observability/operator_api/**"
-      - "frontend/**"
-      - "tests/cross_stack/**"
-      - "tests/test_operator_snapshot_builder.py"
   push:
     branches: [main]
-    paths:
-      - ".github/workflows/cross-stack-compat.yml"
-      - "requirements*.txt"
-      - "core/advisor_loop.py"
-      - "paper_trading/mexc_simulator.py"
-      - "observability/operator_snapshot_builder.py"
-      - "observability/operator_runtime_manifest.py"
-      - "observability/source_evidence.py"
-      - "observability/real_accounts.py"
-      - "observability/operator/**"
-      - "observability/operator_api/**"
-      - "frontend/**"
-      - "tests/cross_stack/**"
-      - "tests/test_operator_snapshot_builder.py"
 
 permissions:
   contents: read

@@ -147,25 +147,32 @@ def test_fixture_chronology_deployment_evidence_precedes_boot_and_snapshot():
     assert _DEPLOYMENT_OBSERVED_AT_UTC <= _iso_utc(FIXED_NOW)
 
 
-def test_generated_scenario_a_carries_the_coherent_timeline():
+def test_generated_scenario_a_carries_the_coherent_timeline(tmp_path: Path):
     """The actual generated snapshot/API body reflects the same coherent
-    ordering, not merely the module-level constants in isolation."""
-    results = generate_fixture_bundle(Path.cwd() / ".pytest_chronology_tmp")
-    try:
-        body = results["A_minimal_canonical"]["body"]
-        generated_at = body["generated_at_utc"]
-        deployment_observed_at = body["deployment_evidence"]["observed_at_utc"]
-        assert deployment_observed_at <= generated_at
-    finally:
-        import shutil
+    ordering, not merely the module-level constants in isolation.
 
-        shutil.rmtree(Path.cwd() / ".pytest_chronology_tmp", ignore_errors=True)
+    O-02W-D3-R1.1 Correction B: uses pytest's own `tmp_path` — never the
+    repository working directory — so every generated artifact stays under
+    pytest-managed temporary storage, no manual cleanup is needed, and
+    parallel test runs can never collide on one fixed directory name.
+    """
+    results = generate_fixture_bundle(tmp_path)
+    body = results["A_minimal_canonical"]["body"]
+    generated_at = body["generated_at_utc"]
+    deployment_observed_at = body["deployment_evidence"]["observed_at_utc"]
+    assert deployment_observed_at <= generated_at
 
 
 # ── O-02W-D3-R1 Correction C — FastAPI reader restoration ──────────────────
 
 
 def test_fetch_via_real_api_restores_the_exact_previous_reader(tmp_path: Path):
+    # O-02W-D3-R1.1 Correction C: capture whatever reader genuinely existed
+    # before this test touches global state, and restore that EXACT object
+    # afterward — never a freshly-constructed default `SafeSnapshotReader()`,
+    # which would itself silently repoint api_app away from whatever an
+    # earlier test/consumer had configured.
+    reader_before_test = api_app.get_reader()
     sentinel_reader = SafeSnapshotReader(
         snapshot_path=tmp_path / "sentinel_snapshot.json",
         manifest_path=tmp_path / "sentinel_manifest.json",
@@ -182,12 +189,13 @@ def test_fetch_via_real_api_restores_the_exact_previous_reader(tmp_path: Path):
         assert result["http_status"] == 200
         assert api_app.get_reader() is sentinel_reader
     finally:
-        api_app._reader = SafeSnapshotReader()
+        api_app._reader = reader_before_test
 
 
 def test_fetch_via_real_api_restores_the_previous_reader_even_if_the_request_raises(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
+    reader_before_test = api_app.get_reader()
     sentinel_reader = SafeSnapshotReader(
         snapshot_path=tmp_path / "sentinel_snapshot.json",
         manifest_path=tmp_path / "sentinel_manifest.json",
@@ -217,7 +225,7 @@ def test_fetch_via_real_api_restores_the_previous_reader_even_if_the_request_rai
             gf._fetch_via_real_api(scenario_dir)
         assert api_app.get_reader() is sentinel_reader
     finally:
-        api_app._reader = SafeSnapshotReader()
+        api_app._reader = reader_before_test
 
 
 def test_fixture_generation_never_contaminates_a_later_api_test(tmp_path: Path):
@@ -225,6 +233,7 @@ def test_fixture_generation_never_contaminates_a_later_api_test(tmp_path: Path):
     its own real (non-temporary-scenario) reader configuration afterward,
     must never observe the generator's last temporary scenario paths."""
 
+    reader_before_test = api_app.get_reader()
     real_snapshot_path = tmp_path / "real_databases" / "operator_snapshot.json"
     real_manifest_path = tmp_path / "real_databases" / "operator_runtime_manifest.json"
     api_app.configure_reader(snapshot_path=real_snapshot_path, manifest_path=real_manifest_path)
@@ -244,7 +253,7 @@ def test_fixture_generation_never_contaminates_a_later_api_test(tmp_path: Path):
         assert response.status_code == 503
         assert response.json()["error_code"] == "SNAPSHOT_MISSING"
     finally:
-        api_app._reader = SafeSnapshotReader()
+        api_app._reader = reader_before_test
 
 
 def _minimal_inputs():

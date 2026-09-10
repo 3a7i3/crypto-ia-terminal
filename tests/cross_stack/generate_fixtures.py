@@ -67,7 +67,7 @@ def _iso_utc(ts: float) -> str:
 # a scientifically incoherent payload: deployment/boot evidence can never be
 # observed after the snapshot they describe was generated. Every deterministic
 # fixture timestamp is now derived from ONE anchor (FIXED_NOW) so the
-# ordering boot <= deployment-evidence-observation <= snapshot-generation
+# ordering deployment-evidence-observation <= boot <= snapshot-generation
 # always holds, with no real current time anywhere in this module.
 FIXED_NOW = 1_700_000_000.0  # snapshot generation instant for every scenario
 _BOOT_TIMESTAMP_UTC = _iso_utc(FIXED_NOW - 3600.0)  # 1h before snapshot generation
