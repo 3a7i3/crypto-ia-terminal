@@ -15,33 +15,35 @@ on:
   pull_request:
     branches: [main]
     paths:
+      - ".github/workflows/cross-stack-compat.yml"
+      - "requirements*.txt"
+      - "core/advisor_loop.py"
+      - "paper_trading/mexc_simulator.py"
       - "observability/operator_snapshot_builder.py"
       - "observability/operator_runtime_manifest.py"
-      - "observability/operator_api/**"
       - "observability/source_evidence.py"
-      - "observability/operator/domains/**"
-      - "frontend/src/lib/snapshotValidation.ts"
-      - "frontend/src/lib/snapshotClient.ts"
-      - "frontend/src/types.ts"
-      - "frontend/src/App.tsx"
+      - "observability/real_accounts.py"
+      - "observability/operator/**"
+      - "observability/operator_api/**"
+      - "frontend/**"
       - "tests/cross_stack/**"
-      - "frontend/src/test/crossStack.compat.test.tsx"
-      - ".github/workflows/cross-stack-compat.yml"
+      - "tests/test_operator_snapshot_builder.py"
   push:
     branches: [main]
     paths:
+      - ".github/workflows/cross-stack-compat.yml"
+      - "requirements*.txt"
+      - "core/advisor_loop.py"
+      - "paper_trading/mexc_simulator.py"
       - "observability/operator_snapshot_builder.py"
       - "observability/operator_runtime_manifest.py"
-      - "observability/operator_api/**"
       - "observability/source_evidence.py"
-      - "observability/operator/domains/**"
-      - "frontend/src/lib/snapshotValidation.ts"
-      - "frontend/src/lib/snapshotClient.ts"
-      - "frontend/src/types.ts"
-      - "frontend/src/App.tsx"
+      - "observability/real_accounts.py"
+      - "observability/operator/**"
+      - "observability/operator_api/**"
+      - "frontend/**"
       - "tests/cross_stack/**"
-      - "frontend/src/test/crossStack.compat.test.tsx"
-      - ".github/workflows/cross-stack-compat.yml"
+      - "tests/test_operator_snapshot_builder.py"
 
 permissions:
   contents: read
@@ -55,9 +57,10 @@ jobs:
     name: "CROSS-STACK COMPATIBILITY GATE"
     runs-on: ubuntu-latest
 
-    # No secrets, no exchange access, no VPS/network deployment.
-    env:
-      BINANCE_TESTNET: "true"
+    # No secrets, no exchange access, no VPS/network deployment, and
+    # deliberately no exchange-mode environment variable at all — the
+    # compatibility gate uses only deterministic passive fakes and must
+    # never advertise or depend on any exchange mode (paper/testnet/live).
 
     steps:
       - uses: actions/checkout@v4

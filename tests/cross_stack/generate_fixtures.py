@@ -22,6 +22,7 @@ Programmatic: ``generate_fixture_bundle(Path(out_dir))``
 from __future__ import annotations
 
 import argparse
+import datetime as _dt
 import json
 from pathlib import Path
 from typing import Any, Dict
@@ -45,7 +46,40 @@ from tests.test_operator_snapshot_builder import (  # noqa: E402
     _FakeWallet,
 )
 
-FIXED_NOW = 1_700_000_000.0  # 2023-11-14T22:13:20Z — deterministic clock for every scenario
+
+def _iso_utc(ts: float) -> str:
+    """Format a fixed epoch-seconds value as an ISO-8601 UTC string — the
+    same format the real producer's own `_iso_utc()` emits. Never wall-clock
+    time (O-02W-D3-R1 Correction B)."""
+
+    return (
+        _dt.datetime.fromtimestamp(ts, tz=_dt.timezone.utc)
+        .isoformat(timespec="seconds")
+        .replace("+00:00", "Z")
+    )
+
+
+# ── O-02W-D3-R1 Correction B — one coherent deterministic fixture timeline ──
+#
+# The R0 harness used FIXED_NOW (2023-11-14T22:13:20Z, an arbitrary
+# deterministic snapshot-generation instant) alongside hardcoded 2026-09-10
+# deployment/boot evidence strings — years AFTER the snapshot clock. That is
+# a scientifically incoherent payload: deployment/boot evidence can never be
+# observed after the snapshot they describe was generated. Every deterministic
+# fixture timestamp is now derived from ONE anchor (FIXED_NOW) so the
+# ordering boot <= deployment-evidence-observation <= snapshot-generation
+# always holds, with no real current time anywhere in this module.
+FIXED_NOW = 1_700_000_000.0  # snapshot generation instant for every scenario
+_BOOT_TIMESTAMP_UTC = _iso_utc(FIXED_NOW - 3600.0)  # 1h before snapshot generation
+_DEPLOYMENT_OBSERVED_AT_UTC = _iso_utc(FIXED_NOW - 7200.0)  # 2h before snapshot generation
+_DEPLOYMENT_EVIDENCE_REF = _dt.datetime.fromtimestamp(
+    FIXED_NOW - 7200.0, tz=_dt.timezone.utc
+).strftime("deploy-%Y%m%d-%H%M")
+
+assert _BOOT_TIMESTAMP_UTC <= _iso_utc(FIXED_NOW), "boot time must precede snapshot generation"
+assert _DEPLOYMENT_OBSERVED_AT_UTC <= _BOOT_TIMESTAMP_UTC, (
+    "deployment-evidence observation must precede boot, which must precede snapshot generation"
+)
 
 
 class _CountingWallet:
@@ -74,8 +108,8 @@ def _source_evidence(**overrides: Any) -> SourceEvidence:
         deployment_evidence=DeploymentEvidence(
             status="VERIFIED",
             source="deploy_tag",
-            evidence_ref="deploy-20260910-0900",
-            observed_at_utc="2026-09-10T09:00:00Z",
+            evidence_ref=_DEPLOYMENT_EVIDENCE_REF,
+            observed_at_utc=_DEPLOYMENT_OBSERVED_AT_UTC,
         ),
         runtime_sha_evidence_status="CLAIMED_ONLY",
     )
@@ -105,7 +139,7 @@ def _write_snapshot_and_manifest(
         pid=4242,
         path=manifest_path,
         now_fn=lambda: FIXED_NOW,
-        boot_timestamp_utc="2026-09-10T09:00:00Z",
+        boot_timestamp_utc=_BOOT_TIMESTAMP_UTC,
     )
     return scenario_dir
 
@@ -114,17 +148,32 @@ def _fetch_via_real_api(scenario_dir: Path) -> Dict[str, Any]:
     """Configure the REAL FastAPI app's reader at this scenario's temporary
     paths and issue a real in-process HTTP GET via `TestClient` — the exact
     boundary the real read-only API process serves in production, minus a
-    public socket."""
+    public socket.
 
+    O-02W-D3-R1 Correction C: test-isolated. The module-global
+    ``observability.operator_api.app`` reader is a shared, process-wide
+    singleton (the same one `configure_reader()`/`get_reader()` manage) —
+    any caller that repoints it and never restores it leaves every LATER
+    consumer of that module (a real API test running after this generator
+    in the same interpreter) silently pointed at this scenario's temporary
+    files. The previous reader is captured before mutation and restored in
+    a ``finally`` block, so a raised exception during the request can never
+    leave global API state contaminated for whatever runs next.
+    """
+
+    previous_reader = api_app.get_reader()
     reader = SafeSnapshotReader(
         snapshot_path=scenario_dir / "operator_snapshot.json",
         manifest_path=scenario_dir / "operator_runtime_manifest.json",
         now_fn=lambda: FIXED_NOW,
     )
     api_app._reader = reader  # same mechanism configure_reader() uses
-    client = TestClient(api_app.app)
-    response = client.get("/api/operator/v1/snapshot")
-    return {"http_status": response.status_code, "body": response.json()}
+    try:
+        with TestClient(api_app.app) as client:
+            response = client.get("/api/operator/v1/snapshot")
+        return {"http_status": response.status_code, "body": response.json()}
+    finally:
+        api_app._reader = previous_reader
 
 
 # ── Scenario builders ───────────────────────────────────────────────────────
@@ -305,7 +354,7 @@ def _scenario_f_failure_honesty(base_dir: Path) -> Dict[str, Any]:
         pid=4242,
         path=manifest_path,
         now_fn=lambda: FIXED_NOW,
-        boot_timestamp_utc="2026-09-10T09:00:00Z",
+        boot_timestamp_utc=_BOOT_TIMESTAMP_UTC,
     )
     return _fetch_via_real_api(scenario_dir)
 

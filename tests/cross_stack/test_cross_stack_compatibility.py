@@ -19,7 +19,18 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from tests.cross_stack.generate_fixtures import generate_fixture_bundle
+import pytest
+
+from observability.operator_api import app as api_app
+from observability.operator_api.reader import SafeSnapshotReader
+from tests.cross_stack import generate_fixtures as gf
+from tests.cross_stack.generate_fixtures import (
+    FIXED_NOW,
+    _BOOT_TIMESTAMP_UTC,
+    _DEPLOYMENT_OBSERVED_AT_UTC,
+    _iso_utc,
+    generate_fixture_bundle,
+)
 
 
 def test_generates_all_six_mandatory_scenarios(tmp_path: Path):
@@ -118,3 +129,125 @@ def test_scenario_f_malformed_snapshot_is_governed_503(tmp_path: Path):
     assert body["error_code"] == "SNAPSHOT_UNSUPPORTED_SCHEMA_VERSION"
     assert "portfolio" not in body
     assert "decision_pipeline" not in body
+
+
+# ── O-02W-D3-R1 Correction B — deterministic fixture chronology ────────────
+
+
+def test_fixture_chronology_boot_precedes_snapshot_generation():
+    """Boot time must never be after the snapshot-generation instant."""
+    assert _BOOT_TIMESTAMP_UTC <= _iso_utc(FIXED_NOW)
+
+
+def test_fixture_chronology_deployment_evidence_precedes_boot_and_snapshot():
+    """Deployment-evidence observation must precede both boot and snapshot
+    generation — an impossible payload (evidence observed years after the
+    snapshot it describes) must never be generated again."""
+    assert _DEPLOYMENT_OBSERVED_AT_UTC <= _BOOT_TIMESTAMP_UTC
+    assert _DEPLOYMENT_OBSERVED_AT_UTC <= _iso_utc(FIXED_NOW)
+
+
+def test_generated_scenario_a_carries_the_coherent_timeline():
+    """The actual generated snapshot/API body reflects the same coherent
+    ordering, not merely the module-level constants in isolation."""
+    results = generate_fixture_bundle(Path.cwd() / ".pytest_chronology_tmp")
+    try:
+        body = results["A_minimal_canonical"]["body"]
+        generated_at = body["generated_at_utc"]
+        deployment_observed_at = body["deployment_evidence"]["observed_at_utc"]
+        assert deployment_observed_at <= generated_at
+    finally:
+        import shutil
+
+        shutil.rmtree(Path.cwd() / ".pytest_chronology_tmp", ignore_errors=True)
+
+
+# ── O-02W-D3-R1 Correction C — FastAPI reader restoration ──────────────────
+
+
+def test_fetch_via_real_api_restores_the_exact_previous_reader(tmp_path: Path):
+    sentinel_reader = SafeSnapshotReader(
+        snapshot_path=tmp_path / "sentinel_snapshot.json",
+        manifest_path=tmp_path / "sentinel_manifest.json",
+    )
+    api_app._reader = sentinel_reader
+    try:
+        scenario_dir = tmp_path / "scenario"
+        gf._write_snapshot_and_manifest(
+            scenario_dir,
+            _minimal_inputs(),
+            manifest_process_instance_id="inst-restore-check",
+        )
+        result = gf._fetch_via_real_api(scenario_dir)
+        assert result["http_status"] == 200
+        assert api_app.get_reader() is sentinel_reader
+    finally:
+        api_app._reader = SafeSnapshotReader()
+
+
+def test_fetch_via_real_api_restores_the_previous_reader_even_if_the_request_raises(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    sentinel_reader = SafeSnapshotReader(
+        snapshot_path=tmp_path / "sentinel_snapshot.json",
+        manifest_path=tmp_path / "sentinel_manifest.json",
+    )
+    api_app._reader = sentinel_reader
+
+    class _ExplodingTestClient:
+        def __init__(self, *_args, **_kwargs) -> None:
+            pass
+
+        def __enter__(self):
+            raise RuntimeError("simulated request-path failure")
+
+        def __exit__(self, *_exc):
+            return False
+
+    monkeypatch.setattr(gf, "TestClient", _ExplodingTestClient)
+
+    try:
+        scenario_dir = tmp_path / "scenario_raises"
+        gf._write_snapshot_and_manifest(
+            scenario_dir,
+            _minimal_inputs(),
+            manifest_process_instance_id="inst-restore-raise-check",
+        )
+        with pytest.raises(RuntimeError, match="simulated request-path failure"):
+            gf._fetch_via_real_api(scenario_dir)
+        assert api_app.get_reader() is sentinel_reader
+    finally:
+        api_app._reader = SafeSnapshotReader()
+
+
+def test_fixture_generation_never_contaminates_a_later_api_test(tmp_path: Path):
+    """Running the full cross-stack generator, then a plain API test against
+    its own real (non-temporary-scenario) reader configuration afterward,
+    must never observe the generator's last temporary scenario paths."""
+
+    real_snapshot_path = tmp_path / "real_databases" / "operator_snapshot.json"
+    real_manifest_path = tmp_path / "real_databases" / "operator_runtime_manifest.json"
+    api_app.configure_reader(snapshot_path=real_snapshot_path, manifest_path=real_manifest_path)
+    try:
+        generate_fixture_bundle(tmp_path / "fixtures_out")
+
+        # The generator must have restored api_app's reader back to the one
+        # configured immediately above — never left pointed at the last
+        # scenario's (now possibly-cleaned-up) temporary files.
+        current_reader = api_app.get_reader()
+        assert current_reader._snapshot_path == real_snapshot_path
+        assert current_reader._manifest_path == real_manifest_path
+
+        with gf.TestClient(api_app.app) as client:
+            response = client.get("/api/operator/v1/snapshot")
+        # MISSING, not a leftover scenario body — proves no contamination.
+        assert response.status_code == 503
+        assert response.json()["error_code"] == "SNAPSHOT_MISSING"
+    finally:
+        api_app._reader = SafeSnapshotReader()
+
+
+def _minimal_inputs():
+    from tests.test_operator_snapshot_builder import _inputs as _base_inputs
+
+    return _base_inputs(now_fn=lambda: FIXED_NOW)
