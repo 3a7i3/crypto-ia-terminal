@@ -201,8 +201,11 @@ def test_self_awareness_critical_transition_preserves_safety_state(monkeypatch):
         SelfAwarenessEngine,
     )
 
-    callback_calls = []
-    engine = SelfAwarenessEngine(on_level_change=lambda state: callback_calls.append(state))
+    # _apply_level() itself never invokes on_level_change (only evaluate()
+    # does, on a level transition) — no callback is constructed or
+    # asserted here; callback behavior is covered separately by
+    # test_self_awareness_critical_transition_invokes_level_change_callback.
+    engine = SelfAwarenessEngine()
 
     drifts = [
         DriftSignal(
@@ -265,48 +268,72 @@ def test_self_awareness_critical_transition_logs_critical(monkeypatch):
         target_logger.removeHandler(handler)
 
     assert any(
-        "CRITICAL" in record.getMessage() and "kill switch" in record.getMessage()
+        "CRITICAL" in record.getMessage()
+        and "halt critique interne" in record.getMessage()
         for record in records
-    ), "expected local critical log line to remain present"
+    ), "expected the honest local critical log line to remain present"
+    assert not any(
+        "kill switch" in record.getMessage() for record in records
+    ), "CRITICAL log must not claim a kill switch was triggered"
 
 
 def test_self_awareness_critical_transition_invokes_level_change_callback(monkeypatch):
     """Exercise the same public path advisor_loop.py wires
     (on_level_change=_on_awareness_change) via evaluate(), proving the
-    callback still fires on a real level transition, not just via the
-    private _apply_level() shortcut used by the other tests here."""
+    callback still fires on a real CRITICAL level transition.
+
+    Natural latency alone classifies as DANGER, not CRITICAL, in
+    _check_infra_drift() — so this test isolates causality by
+    monkeypatching the three other drift detectors to report no drift
+    and the infra detector to report exactly one DangerLevel.CRITICAL
+    DriftSignal, then drives the real, public evaluate() path.
+    """
     _block_network(monkeypatch)
     from quant_hedge_ai.agents.intelligence.self_awareness_engine import (
         DangerLevel,
+        DriftSignal,
         SelfAwarenessEngine,
     )
 
     callback_calls = []
     engine = SelfAwarenessEngine(on_level_change=lambda state: callback_calls.append(state))
 
-    # Feed enough trades with catastrophic latency to breach LATENCY_CRIT_MS
-    # and reach CRITICAL through the real evaluate() path.
-    for i in range(SelfAwarenessEngine.RECENT_WINDOW + 5):
+    # Enough trades to clear evaluate()'s initial data-guard
+    # (len(self._trades) >= max(3, RECENT_WINDOW // 2)).
+    for _ in range(SelfAwarenessEngine.RECENT_WINDOW + 5):
         engine.record_trade(
             pnl_pct=0.01,
             sharpe=1.0,
             regime="trend",
             personality="default",
-            latency_ms=SelfAwarenessEngine.LATENCY_CRIT_MS + 1000,
+            latency_ms=50.0,
             slippage_pct=0.0,
         )
-    state = engine.evaluate()
 
-    if state.level >= DangerLevel.DANGER:
-        assert len(callback_calls) >= 1
-        assert callback_calls[-1] is engine._state
-    else:
-        pytest.skip(
-            "evaluate() did not reach DANGER/CRITICAL with this synthetic "
-            "trade sequence — behavioral CRITICAL coverage is provided by "
-            "test_self_awareness_critical_transition_preserves_safety_state "
-            "via the exact same _apply_level() code path evaluate() calls"
-        )
+    critical_signal = DriftSignal(
+        dimension="infra",
+        metric="synthetic_critical",
+        value=1.0,
+        baseline=0.0,
+        severity=DangerLevel.CRITICAL,
+        message="synthetic CRITICAL drift for test isolation",
+    )
+    monkeypatch.setattr(engine, "_check_performance_drift", lambda: [])
+    monkeypatch.setattr(engine, "_check_behavioral_drift", lambda: [])
+    monkeypatch.setattr(engine, "_check_market_mismatch", lambda: [])
+    monkeypatch.setattr(engine, "_check_infra_drift", lambda: [critical_signal])
+
+    before = time.time()
+    state = engine.evaluate()
+    after = time.time()
+
+    assert state.level == DangerLevel.CRITICAL
+    assert len(callback_calls) == 1
+    assert callback_calls[0] is engine._state
+    assert state.size_factor == 0.0
+    assert state.safe_mode is True
+    assert state.halt_until <= before + SelfAwarenessEngine.CRITICAL_HALT_SECONDS + 5
+    assert state.halt_until >= after + SelfAwarenessEngine.CRITICAL_HALT_SECONDS - 5
 
 
 def test_self_awareness_on_level_change_still_wired_in_advisor_loop():
@@ -436,3 +463,50 @@ def test_no_new_telegram_env_var_in_either_module():
         assert not re.search(r"TELEGRAM_\w+", src), (
             f"{path.name} references a TELEGRAM_* environment variable"
         )
+
+
+# ---------------------------------------------------------------------------
+# O-02W-PRE-T1-B-R1 — evidence-honest CRITICAL transition certification
+# ---------------------------------------------------------------------------
+
+
+def test_module_docstring_no_longer_claims_kill_switch_or_telegram_at_level4():
+    assert "kill switch + Telegram critique" not in SELF_AWARENESS_SRC
+    assert "NIVEAU 4" in SELF_AWARENESS_SRC
+    match = re.search(r"NIVEAU 4.*", SELF_AWARENESS_SRC)
+    assert match, "NIVEAU 4 line not found in module docstring"
+    line = match.group(0)
+    assert "kill switch" not in line
+    assert "Telegram" not in line
+
+
+def test_critical_log_no_longer_claims_kill_switch_triggered():
+    assert "kill switch déclenché" not in SELF_AWARENESS_SRC
+    assert "halt critique interne activé" in SELF_AWARENESS_SRC
+
+
+def test_operator_resume_log_does_not_assert_unproven_operator_origin():
+    assert "RESUME opérateur" not in SELF_AWARENESS_SRC
+    assert "operator_resume invoqué" in SELF_AWARENESS_SRC
+
+
+def test_operator_resume_method_name_unchanged_as_compatibility_identifier():
+    """operator_resume() is a compatibility identifier — its name must not
+    be renamed even though its docstring/log wording was corrected."""
+    assert "def operator_resume(" in SELF_AWARENESS_SRC
+
+
+def test_no_pytest_skip_in_critical_callback_test():
+    """The CRITICAL-callback test must produce a real pass/fail, not a
+    skip that could mask absent proof."""
+    source_path = Path(__file__)
+    src = source_path.read_text(encoding="utf-8")
+    match = re.search(
+        r"def test_self_awareness_critical_transition_invokes_level_change_callback"
+        r"\(.*?\n(?=def |\Z)",
+        src,
+        re.DOTALL,
+    )
+    assert match, "target test function not found in this file"
+    body = match.group(0)
+    assert "pytest.skip" not in body

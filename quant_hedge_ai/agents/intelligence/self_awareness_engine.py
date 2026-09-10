@@ -12,7 +12,7 @@ Niveaux de réponse automatique :
   NIVEAU 1 → réduction taille (×0.5)
   NIVEAU 2 → safe mode (alertes suspendues)
   NIVEAU 3 → halt temporaire (N minutes)
-  NIVEAU 4 → kill switch + Telegram critique
+  NIVEAU 4 → taille 0, safe mode, halt critique interne et journal local
 
 Le bot cesse de trader "vite" pour trader "juste".
 """
@@ -288,7 +288,7 @@ class SelfAwarenessEngine:
             },
         )
         _log.warning(
-            "[SelfAwareness] RESUME opérateur — halt levé, niveau=%s",
+            "[SelfAwareness] operator_resume invoqué — halt levé, niveau=%s",
             self._state.level.name,
         )
 
@@ -615,7 +615,7 @@ class SelfAwarenessEngine:
             self._state.safe_mode = True
             self._state.halt_until = time.time() + self.CRITICAL_HALT_SECONDS
             _log.critical(
-                "[SelfAwareness] CRITICAL — kill switch déclenché (halt %.0fs)",
+                "[SelfAwareness] CRITICAL — halt critique interne activé (halt %.0fs)",
                 self.CRITICAL_HALT_SECONDS,
             )
 
