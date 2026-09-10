@@ -287,3 +287,132 @@ def test_contract_doc_no_longer_lists_mutator_as_outstanding_future_mission():
         not in text
     )
     assert "it is no longer\n  outstanding debt and requires no future source mission" in text
+
+
+# ── R1.1: PRE-T1-A/B/C reconciliation — new regression tests ───────────────
+#
+# These tests prove the contract doc (docs/contracts/
+# O-02W-E_TELEGRAM_OBSERVATION_BOUNDARY.md) has been reconciled with the
+# structural fixes already merged into main by missions O-02W-PRE-T1-A
+# (GLOBAL_STATE_MACHINE.md / exchange_monitor.py / advisor_loop.py /RESUME
+# negation strings) and O-02W-PRE-T1-B (removal of the two
+# TelegramNotifier().send(...) call sites). They must FAIL against the
+# pre-correction contract doc content at HEAD
+# 45f8c9a4f48b023ca831b3498d4acd9e43f2a298 and PASS after the R1.1
+# correction. No test here touches Telegram, the VPS, or any secret.
+
+
+def test_pre_t1_a_b_c_reconciliation_section_exists():
+    text = CONTRACT_PATH.read_text(encoding="utf-8")
+    assert "PRE-T1-A / PRE-T1-B reconciliation" in text
+    assert "HISTORICAL_FINDINGS_DISCOVERED" in text
+    assert "CURRENT_UNRESOLVED_FINDINGS" in text
+
+
+def test_findings_1_to_3_marked_resolved_by_pre_t1_a():
+    text = CONTRACT_PATH.read_text(encoding="utf-8")
+    assert text.count("RESOLVED_BY_PRE_T1_A") >= 3
+
+
+def test_finding_4_and_broken_calls_marked_resolved_by_pre_t1_b():
+    text = CONTRACT_PATH.read_text(encoding="utf-8")
+    assert text.count("RESOLVED_BY_PRE_T1_B") >= 2
+
+
+def test_portfolio_mutator_remains_marked_resolved_by_pre_t1_c():
+    text = CONTRACT_PATH.read_text(encoding="utf-8")
+    assert "resolved PRE-T1-C" in text or "RESOLVED_BY_PRE_T1_C" in text or "PRE-T1-C, R1" in text
+
+
+def test_no_current_passage_presents_stop_all_as_present_in_exchange_monitor():
+    text = CONTRACT_PATH.read_text(encoding="utf-8")
+    # The old unqualified present-tense claim must be gone.
+    assert (
+        "`supervision/exchange_monitor.py:252-257` tells the operator (via an\n   email escalation body) to send `/STOP_ALL` on Telegram."
+        not in text
+    )
+    assert "longer contains a `/STOP_ALL` string of any kind" in text
+
+
+def test_no_current_passage_presents_old_send_resume_messages_as_present():
+    text = CONTRACT_PATH.read_text(encoding="utf-8")
+    # Old present-tense instruction phrasing must not remain unqualified.
+    assert '"Envoyez /RESUME si intervention requise"' not in text.replace(
+        "line\n   3870\n   (degraded-mode alert, ", ""
+    ) or "negation-of-availability" in text
+    assert "negation-of-availability" in text
+    assert "Aucune commande /RESUME n'est disponible" in text
+
+
+def test_no_current_passage_presents_telegramnotifier_send_as_present_in_sae_or_pm():
+    text = CONTRACT_PATH.read_text(encoding="utf-8")
+    assert "neither file imports or references" in text or (
+        "returns no\n" in text and "match in either file" in text
+    ) or "returns no match in either file" in text
+
+
+def test_source_confirms_zero_telegramnotifier_send_in_sae_and_pm():
+    sae = (REPO_ROOT / "quant_hedge_ai" / "agents" / "intelligence" / "self_awareness_engine.py").read_text(
+        encoding="utf-8"
+    )
+    pm = (REPO_ROOT / "quant_hedge_ai" / "agents" / "execution" / "position_manager.py").read_text(
+        encoding="utf-8"
+    )
+    assert "TelegramNotifier" not in sae
+    assert "TelegramNotifier" not in pm
+
+
+def test_source_confirms_advisor_loop_resume_messages_are_negations():
+    text = (REPO_ROOT / "core" / "advisor_loop.py").read_text(encoding="utf-8")
+    assert "/RESUME" in text  # the string is still present, but only as a negation
+    assert "Aucune commande /RESUME n'est disponible" in text
+    # The old misleading imperative strings must not exist.
+    assert "Envoyez /RESUME si intervention requise" not in text
+    assert "Envoyez /RESUME pour reprendre" not in text
+    assert "Envoyer /RESUME pour reprendre\"" not in text
+
+
+def test_source_confirms_exchange_monitor_has_no_stop_all_instruction():
+    text = (REPO_ROOT / "supervision" / "exchange_monitor.py").read_text(encoding="utf-8")
+    assert "/STOP_ALL" not in text
+
+
+def test_historical_and_current_counters_are_distinct():
+    text = CONTRACT_PATH.read_text(encoding="utf-8")
+    # Historical bucket still records the original counts...
+    assert "4 findings, 5 old misleading strings, 2 old broken calls" in text or (
+        "5 misleading operator-facing command strings" in text
+        and "2 source-proven-nonfunctional" in text
+    )
+    # ...while the current bucket explicitly states zero.
+    assert "0 of the 4 findings" in text
+    assert "current total: 0" in text.lower() or "current: 0" in text.lower()
+
+
+def test_tg_02c_forbidden_classification_unchanged():
+    text = CONTRACT_PATH.read_text(encoding="utf-8")
+    assert "TG-02c" in text
+    assert "FORBIDDEN_MUST_NEVER_REACTIVATE" in text
+
+
+def test_pre_t1_d_real_capital_remains_separate_and_unresolved():
+    text = CONTRACT_PATH.read_text(encoding="utf-8")
+    assert "PRE-T1-D" in text
+    assert "separate, unresolved" in text or "separate, unresolved architectural decision" in text
+
+
+def test_tg_02c_citation_updated_to_current_line_numbers():
+    text = CONTRACT_PATH.read_text(encoding="utf-8")
+    assert "command_center_bot.py:1347-1357" in text
+    assert "command_center_bot.py:1370-1379" not in text
+
+
+def test_source_confirms_refusal_branch_is_at_updated_lines():
+    lines = (REPO_ROOT / "capital_deployment" / "command_center_bot.py").read_text(
+        encoding="utf-8"
+    ).splitlines()
+    # 1-indexed: lines 1347-1357 (per the contract citation) contain the
+    # blocked-command refusal branch.
+    window = "\n".join(lines[1346:1357])
+    assert "/pause" in window and "/resume" in window
+    assert "Commande de contrôle désactivée" in window

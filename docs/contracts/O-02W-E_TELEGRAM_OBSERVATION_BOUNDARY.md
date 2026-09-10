@@ -65,8 +65,10 @@ nonfunctional notifier call sites are added —
 `TelegramNotifier().send(...)`, a signature/method mismatch against the
 real `TelegramNotifier(bot_token, chat_id).notify(message)` API,
 silently swallowed by `except Exception: pass` — new evidence class
-`SOURCE_PROVEN_NONFUNCTIONAL_NOTIFICATION_CALL` (§0, §13); the
-SelfAwareness message's own `/RESUME` instruction is added to the
+`SOURCE_PROVEN_NONFUNCTIONAL_NOTIFICATION_CALL` (§0, §13). **[Since
+resolved by mission O-02W-PRE-T1-B — both call sites are absent from
+current source; see §9d.]** At the time this evidence class was added,
+the SelfAwareness message's own `/RESUME` instruction was added to the
 safety-drift inventory (§6, §13), which now totals **five** items, not
 four, and distinguishes three presently send-capable advisor messages
 from one currently-non-deliverable SelfAwareness message and the
@@ -657,15 +659,21 @@ classified by grep count alone). Headline findings:
   in §9, Correction B — the module is package-init-importable but
   has no non-test, non-archive construction call supplying token credentials, see below), (b) docstrings in
   `supervision/killswitch_hardened.py` stating these commands were
-  "retirées" (removed), (c) one operator-facing email string in
-  `supervision/exchange_monitor.py:252-257` instructing the operator
-  to "send `/STOP_ALL` on Telegram" — classified
-  `SAFETY_RELEVANT_OPERATOR_INSTRUCTION_DRIFT` (§13), (d) tests
-  asserting these are now rejected.
-- **[R1.2, corrected accounting]** `/RESUME` (case-insensitive) occurs
+  "retirées" (removed), (c) **[historical, `RESOLVED_BY_PRE_T1_A` — see
+  §9d]** one operator-facing email string that previously existed in
+  `supervision/exchange_monitor.py` (historically ~lines 252-257)
+  instructing the operator to "send `/STOP_ALL` on Telegram" — this
+  string is **absent from `supervision/exchange_monitor.py` as of
+  current HEAD** (`rg -n -i "/stop_all" supervision/exchange_monitor.py`
+  returns no match); the `SAFETY_RELEVANT_OPERATOR_INSTRUCTION_DRIFT`
+  classification (§13 finding 2) is current-state resolved, kept only
+  as a historical record, (d) tests asserting these are now rejected.
+- **[R1.2, corrected accounting; superseded for current state by
+  PRE-T1-A/B — see §9d]** `/RESUME` (case-insensitive) occurred
   at **11 raw line hits** in `core/advisor_loop.py`
   (`git grep -ni '/resume' <rev> -- core/advisor_loop.py`, reproducible
-  against R1 starting HEAD `d702b7f2a06c59eb1972de3026afd317cf70d314`):
+  against R1 starting HEAD `d702b7f2a06c59eb1972de3026afd317cf70d314`,
+  a historical, pre-PRE-T1-A revision):
   lines 3560, 3563, 3566, 3571 (callback/log lines inside `_on_resume()`
   — code logging and an internal comment string, not operator-facing
   instructions), 3870, 3878, 5576 (the three operator-facing message
@@ -673,35 +681,40 @@ classified by grep count alone). Headline findings:
   /RESUME callback`), 4556 (a comment listing unrelated identifier
   names, `STOP_TRADING/RESUME_TRADING/REDUCE_RISK`), and 5578, 5580
   (comments describing the wait loop, not messages sent to anyone).
-  **Exactly 3 of these 11 are operator-facing Telegram message
+  **Exactly 3 of these 11 were operator-facing Telegram message
   strings**, not merely code identifiers, comments, or log lines: line
   3870 ("Envoyez /RESUME si intervention requise" — degraded-mode
   alert), line 3878 ("Envoyez /RESUME pour reprendre" — halted-mode
   alert), and line 5576 ("Boucle suspendue par Kill Switch. Envoyer
-  /RESUME pour reprendre" — the halted-loop wait message). The
-  remaining 8 hits must not be counted as operator instructions. A
-  separate, fourth operator-facing `/RESUME` string exists **outside**
+  /RESUME pour reprendre" — the halted-loop wait message). **[current
+  state, `RESOLVED_BY_PRE_T1_A`, re-verified this round]** As of current
+  HEAD these three strings, now at lines 3909, 3921, and 5614
+  (`nl -ba core/advisor_loop.py`), read instead as explicit
+  negation-of-availability statements — e.g. "Aucune commande /RESUME
+  n'est disponible via Telegram (dispatcher canonique) ; ... Escalade
+  manuelle requise" — not instructions to send a command; the string
+  `/RESUME` remains present in the text solely to name the command that
+  is explicitly stated to be unavailable. A separate, fourth
+  operator-facing `/RESUME` string historically existed **outside**
   `core/advisor_loop.py`, in
-  `quant_hedge_ai/agents/intelligence/self_awareness_engine.py:626-629`
-  ("SELF-AWARENESS CRITIQUE\nTrading suspendu 24h — dérives
-  détectées:...\nEnvoyer /RESUME pour reprendre manuellement."), inside
-  `_send_telegram_critical()` — this one is additionally
+  `quant_hedge_ai/agents/intelligence/self_awareness_engine.py`
+  (historically ~lines 626-629, inside `_send_telegram_critical()`) —
+  this one was additionally historically
   `SOURCE_PROVEN_NONFUNCTIONAL_NOTIFICATION_CALL` (§0, §13): the call
-  is `TelegramNotifier().send(...)`, which does not match the real
+  was `TelegramNotifier().send(...)`, which did not match the real
   `TelegramNotifier.__init__(self, bot_token, chat_id)` /
-  `.notify(message)` API (§17, Correction F for exact line numbers), so
-  *if* this expression is reached at runtime, it deterministically
-  fails before any HTTP request is attempted — caught by the enclosing
-  `except Exception: pass`. Whether this expression is ever reached in
-  production (i.e., whether the containing process runs and the
-  triggering condition fires) is `RUNTIME_UNKNOWN`; what is
-  `SOURCE_PROVEN` is only that *if* reached, it cannot succeed as
-  written. **Total misleading operator-facing command strings: 5** — 1
-  `/STOP_ALL` (`supervision/exchange_monitor.py:252-257`) + 4
-  `/RESUME` (3 in `advisor_loop.py`, 1 in
-  `self_awareness_engine.py`) — see §13 for the full inventory using
-  this same unit taxonomy (findings vs. strings vs. broken call
-  expressions, not interchangeably).
+  `.notify(message)` API (§17). **[current state,
+  `RESOLVED_BY_PRE_T1_B`, re-verified this round]** `rg -n
+  "TelegramNotifier"
+  quant_hedge_ai/agents/intelligence/self_awareness_engine.py` returns
+  no match — `_send_telegram_critical()` and its `/RESUME` string and
+  broken call are absent from current source, not merely non-actionable.
+  **Historical total misleading operator-facing command strings: 5** — 1
+  `/STOP_ALL` (`supervision/exchange_monitor.py`, historically
+  ~lines 252-257) + 4 `/RESUME` (3 in `advisor_loop.py`, 1 in
+  `self_awareness_engine.py`); **current total: 0** — see §9d and §13
+  for the full inventory using this same unit taxonomy (findings vs.
+  strings vs. broken call expressions, not interchangeably).
 - `/resume`, `/kill`, `/restart`, `/set`, `/pause` hits outside
   Telegram code are unrelated non-Telegram Python syntax
   (`config/settings.py`, `risk/circuit_breaker.py`) or
@@ -855,7 +868,7 @@ TG-02, TG-03, and TG-06.
 |---|---|---|---|---|---|---|
 | TG-02a | TG-02 | On-demand read commands (`/status /kpis /phase /regime /risk /health /balance /positions /pnl /trades /config /get /logs /help /eo /gate /perf /certif /charts /blackbox /history /recap`, `command_center_bot.py` handler dict + arg-commands, lines 1295-1367) | `ON_DEMAND_READ_ONLY_QUERY` | PARTIAL (status/positions/pnl fields likely overlap cockpit `portfolio` domain; query semantics — ask-and-receive — have no cockpit equivalent) | `KEEP_UNTIL_COCKPIT_RUNTIME_CERTIFIED` | T-1 + Phase 2 / E2 |
 | TG-02b | TG-02 | Periodic auto-report (`_report_loop`, `command_center_bot.py:1390-1400`, interval `P10_PORTFOLIO_REPORT_H`, default 1h) | `PERIODIC_STATUS_SUMMARY` | PARTIAL (report content likely overlaps `portfolio` domain fields; the *push* delivery itself has no cockpit equivalent, cockpit is pull-only) | `KEEP_UNTIL_COCKPIT_RUNTIME_CERTIFIED` (per Correction G, only for the field-content portion; the push-delivery value itself needs the same operator sign-off as TG-06's periodic subset, §11 Phase 3) | T-1 + Phase 2 / E2 |
-| TG-02c | TG-02 | Blocked control commands (`/pause /resume /set /setphase /maxorder /reset /restart /confirm /cancel`, `command_center_bot.py:1370-1379`) | `FORBIDDEN_CONTROL_SURFACE` | NONE (inert — the handler for each of these commands returns a fixed refusal response; **[PRE-T1-C, R1]** `CommandDataProvider` has no `set_param` field or any mutator field, so no such call can exist anywhere in `command_center_bot.py`, not merely on the reviewed dispatch path — no cockpit equivalent is needed) | `FORBIDDEN_MUST_NEVER_REACTIVATE` (remains forbidden as a permanent guardrail even though the mutator it once guarded against has been structurally removed — see §9b) | none |
+| TG-02c | TG-02 | Blocked control commands (`/pause /resume /set /setphase /maxorder /reset /restart /confirm /cancel`, `command_center_bot.py:1347-1357` — **[R1.1, citation corrected; was 1370-1379, verified via `nl -ba` against current HEAD]**) | `FORBIDDEN_CONTROL_SURFACE` | NONE (inert — the handler for each of these commands returns a fixed refusal response; **[PRE-T1-C, R1]** `CommandDataProvider` has no `set_param` field or any mutator field, so no such call can exist anywhere in `command_center_bot.py`, not merely on the reviewed dispatch path — no cockpit equivalent is needed) | `FORBIDDEN_MUST_NEVER_REACTIVATE` (remains forbidden as a permanent guardrail even though the mutator it once guarded against has been structurally removed — see §9b) | none |
 | TG-03a | TG-03 | On-demand commands (`/snapshot /health /pipeline`, `bot.py:714-716`) | `ON_DEMAND_READ_ONLY_QUERY` | PARTIAL (pipeline/health concepts likely overlap `decisions`/`system` domains) | `KEEP_UNTIL_COCKPIT_RUNTIME_CERTIFIED` | T-1 + Phase 2 / E2 |
 | TG-03b | TG-03 | Pinned-panel change-driven live refresh (`_change_driven_live_tick`/`_pinned_tick`, `bot.py:630-708`, minimum interval `QC_SAFETY_REFRESH_S`=1800s or `PINNED_UPDATE_S`=600s) | `PERIODIC_STATUS_SUMMARY` | PARTIAL for content; the edit-in-place pinned-message UX and any `sendPhoto` chart delivery have no cockpit equivalent (cockpit requires an active pull, never edits a persistent view for the operator) | `KEEP_UNTIL_COCKPIT_RUNTIME_CERTIFIED`, subject to the same push-value caveat as TG-02b (§11 Phase 3) | T-1 + Phase 2 / E2 |
 | TG-06a | TG-06 | Exchange down/up (`supervision/exchange_monitor.py:207,229-234`), session halt/resume (`core/advisor_loop.py:3878,5576,5583`), crash alerts | `CRITICAL_SAFETY_ALERT` | PARTIAL for status content; push delivery itself has no cockpit equivalent | `KEEP_PERMANENT_CRITICAL_ALERT` | none — never retired |
@@ -914,6 +927,82 @@ previously flagged — no future source mission is required to remove
 `FORBIDDEN_MUST_NEVER_REACTIVATE` (§9a, TG-02c) remains the governing
 classification regardless: it is a permanent guardrail against ever
 reintroducing such a mutator, not a statement about present-day risk.
+
+## 9d. PRE-T1-A / PRE-T1-B reconciliation — historical vs. current findings
+
+**[PRE-T1-C, R1.1 — Corrections A/B/C, new section]** This section
+exists because missions O-02W-PRE-T1-A and O-02W-PRE-T1-B, both merged
+into `main` before this branch (`claude/o02w-pre-t1-c-structural-read-only-provider`)
+existed, source-corrected the four `SAFETY_RELEVANT_OPERATOR_INSTRUCTION_DRIFT`
+findings this contract recorded in §6/§13/§16 against an earlier HEAD.
+Every normative passage elsewhere in this document that still describes
+those four findings has been re-tagged in place (`RESOLVED_BY_PRE_T1_A`
+/ `RESOLVED_BY_PRE_T1_B`); this section is the single authoritative
+summary an operator can read without cross-checking every tag.
+
+**`HISTORICAL_FINDINGS_DISCOVERED`** (as originally recorded by O-02W-E1,
+counted against the pre-PRE-T1-A/B source revision — see §6 for the
+exact historical commit accounting):
+
+- 4 numbered `SAFETY_RELEVANT_OPERATOR_INSTRUCTION_DRIFT` findings
+  (§13 items 1-4).
+- 5 misleading operator-facing command strings (1 `/STOP_ALL` in
+  `supervision/exchange_monitor.py`; 4 `/RESUME` — 3 in
+  `core/advisor_loop.py`, 1 in
+  `quant_hedge_ai/agents/intelligence/self_awareness_engine.py`).
+- 2 source-proven-nonfunctional `TelegramNotifier().send(...)` broken
+  call expressions (`self_awareness_engine.py`,
+  `quant_hedge_ai/agents/execution/position_manager.py`).
+
+**`CURRENT_UNRESOLVED_FINDINGS`** (verified fresh against this branch's
+current HEAD, `45f8c9a4f48b023ca831b3498d4acd9e43f2a298`, by this
+R1.1 round — `rg`/`nl` re-run directly against the files below, not
+assumed from history):
+
+- 0 of the 4 findings remain unresolved.
+- 0 misleading operator-facing command strings remain among these four
+  findings: `supervision/exchange_monitor.py` no longer instructs the
+  operator to send `/STOP_ALL` (`rg -n -i "/stop_all"
+  supervision/exchange_monitor.py` — no match); `docs/GLOBAL_STATE_MACHINE.md`
+  no longer attributes `NORMAL ↔ SAFE_MODE` transitions to a Telegram
+  command; and the three `core/advisor_loop.py` messages that still
+  contain the literal string `/RESUME` (now at lines 3909, 3921, 5614 —
+  verified via `nl -ba core/advisor_loop.py`) are, on inspection of
+  their current text, explicit **negation-of-availability** statements
+  ("Aucune commande /RESUME n'est disponible via Telegram ... Escalade
+  manuelle requise"), not instructions to send a command — the drift
+  this finding named no longer exists in that text.
+- 0 broken `TelegramNotifier().send(...)` call expressions remain at
+  either historical site: `rg -n "TelegramNotifier"
+  quant_hedge_ai/agents/intelligence/self_awareness_engine.py
+  quant_hedge_ai/agents/execution/position_manager.py` returns no
+  match in either file — PRE-T1-B removed `_send_telegram_critical()`
+  (the SelfAwareness call site) and the equivalent PositionManager call
+  site entirely, not merely the broken invocation.
+
+**Resolution mapping** (also applied as inline tags at each site listed
+in §6/§13/§16/§17):
+
+| Finding | §13 item | Historical string/call | Resolved by | Current state |
+|---|---|---|---|---|
+| GLOBAL_STATE_MACHINE.md drift | 1 | "KillSwitch / Telegram" attribution | `RESOLVED_BY_PRE_T1_A` | Attributes transitions only to programmatic `RuntimeStateMachine`/`KillSwitchHardened` callers; `SOURCE_PROVEN`/`RUNTIME_UNKNOWN` qualified throughout |
+| `/STOP_ALL` instruction | 2 | `supervision/exchange_monitor.py` (historically ~252-257) | `RESOLVED_BY_PRE_T1_A` | String absent from file |
+| 3× `/RESUME` instructions | 3 | `core/advisor_loop.py` (historically ~3870, 3878, 5576) | `RESOLVED_BY_PRE_T1_A` | Now negation-of-availability text at lines 3909, 3921, 5614 |
+| SelfAwareness `/RESUME` + broken call | 4 (SelfAwareness half) | `self_awareness_engine.py` (historically ~623-631, call at ~626) | `RESOLVED_BY_PRE_T1_B` | `_send_telegram_critical()` and the `TelegramNotifier().send(...)` call site are absent from the file |
+| PositionManager broken call | 4 (PositionManager half) | `position_manager.py` (historically ~528) | `RESOLVED_BY_PRE_T1_B` | `TelegramNotifier().send(...)` call site absent from the file |
+
+**Not touched by this reconciliation, still open:** PRE-T1-D /
+`real_capital` (§9c's real-capital sizing/risk boundary — see §16
+group 3) remains a **separate, unresolved architectural decision**;
+nothing in PRE-T1-A,
+PRE-T1-B, PRE-T1-C, or this R1.1 documentation round modifies, resolves,
+or narrows it. TG-02c's `FORBIDDEN_MUST_NEVER_REACTIVATE` classification
+(§9a) is also unchanged by this reconciliation — it remains a permanent
+guardrail, not a statement conditioned on these four findings.
+
+Any anomaly found during this R1.1 verification pass that is **not**
+one of these four historical findings is reported separately in the
+delivery notes for this round, not folded into either counter above.
 
 ---
 
@@ -1180,12 +1269,19 @@ because of criterion 7 above.
   comments only; all values in `.env.secrets.example` at this commit
   are empty placeholders.
 - Did not touch the VPS.
-- Did not edit `docs/GLOBAL_STATE_MACHINE.md` or
+- **[R1, historical — true as of the O-02W-E1 remediation rounds; see
+  §9d for the current, `RESOLVED_BY_PRE_T1_A` state]** At that time,
+  this mission did not edit `docs/GLOBAL_STATE_MACHINE.md` or
   `supervision/exchange_monitor.py`, despite the staleness/drift items
-  identified in §1/§13 — those corrections are recorded here as
+  identified in §1/§13 — those corrections were recorded here as
   findings for a future, narrowly scoped source mission, per §13's
   explicit statement that they must be corrected before T-1
-  deployment/runtime certification, not in this documentation-only PR.
+  deployment/runtime certification, not in that documentation-only PR.
+  **[PRE-T1-A]** Both files have since been corrected by mission
+  O-02W-PRE-T1-A, merged into `main` before this branch existed; this
+  R1.1 documentation round did not itself touch either file (only the
+  contract doc and this test file), and re-verified the PRE-T1-A
+  correction is present at current HEAD (§9d).
 - **[R1]** Did not modify `docs/architecture/TELEGRAM_IDENTITY_REGISTRY.md`
   — its existing R1-era pointer (added by the original O-02W-E1
   mission) is left byte-for-byte unchanged, per this remediation's
@@ -1199,15 +1295,25 @@ because of criterion 7 above.
   debt is resolved by mission O-02W-PRE-T1-C (§9b); the real-capital
   half (§9c) is untouched by this documentation round and still
   requires a separate future source mission.
-- **[R1.1]** Did not modify `infra/wallet_sync.py`'s fallback chain
+- **[R1.1, historical — see §9d for the current, `RESOLVED_BY_PRE_T1_B`
+  state of the two call sites]** At that time, this mission did not
+  modify `infra/wallet_sync.py`'s fallback chain
   (`_last_value`/`_fallback`/`_base_capital`, §9c), `event_bus/bridge.py`,
   `supervision/ops_watchdog.py`, `supervision/ops_watchdog_hardened.py`
-  (§17), or the two broken `TelegramNotifier().send(...)` call sites in
-  `quant_hedge_ai/agents/intelligence/self_awareness_engine.py:626` and
-  `quant_hedge_ai/agents/execution/position_manager.py:528` (§13) — all
-  are documented as source-proven findings requiring a future,
+  (§17), or the two broken `TelegramNotifier().send(...)` call sites
+  that then existed in
+  `quant_hedge_ai/agents/intelligence/self_awareness_engine.py` and
+  `quant_hedge_ai/agents/execution/position_manager.py` (§13) — all
+  were documented as source-proven findings requiring a future,
   narrowly scoped source mission before T-1 certification, not fixed
-  in this documentation-only PR.
+  in that documentation-only PR. **[PRE-T1-B]** The two notifier call
+  sites have since been removed by mission O-02W-PRE-T1-B; the
+  `infra/wallet_sync.py`, `event_bus/bridge.py`, and
+  `supervision/ops_watchdog*.py` items remain untouched and still
+  require a separate future source mission (unaffected by PRE-T1-A/B/C).
+  This R1.1 documentation round did not itself modify any of these
+  production files, and re-verified the PRE-T1-B removal is present at
+  current HEAD (§9d).
 
 ---
 
@@ -1222,8 +1328,18 @@ non-actionable, §9/§6), but capable of misleading an operator into
 believing a functioning recovery command exists during a degraded or
 halted state — which is precisely a safety-relevant condition.
 
-1. **`SAFETY_RELEVANT_OPERATOR_INSTRUCTION_DRIFT`** —
-   `docs/GLOBAL_STATE_MACHINE.md` (~line 30/35) attributes
+**[R1.1, `RESOLVED_BY_PRE_T1_A` — see §9d]** Findings 1-3 below were
+corrected by mission O-02W-PRE-T1-A, merged into `main` before this
+branch existed. They are kept here, explicitly bounded to the
+pre-PRE-T1-A source revision, as the historical record that motivated
+PRE-T1-A; none of the three represents the current state of
+`docs/GLOBAL_STATE_MACHINE.md`, `supervision/exchange_monitor.py`, or
+`core/advisor_loop.py`. See §9d's `CURRENT_UNRESOLVED_FINDINGS` bucket
+for the re-verified current state.
+
+1. **`SAFETY_RELEVANT_OPERATOR_INSTRUCTION_DRIFT` [historical —
+   `RESOLVED_BY_PRE_T1_A`]** —
+   `docs/GLOBAL_STATE_MACHINE.md` (~line 30/35, pre-PRE-T1-A) attributed
    `NORMAL ↔ SAFE_MODE` transitions partly to "KillSwitch / Telegram."
    Current source shows these transitions are exclusively programmatic
    (`KillSwitchHardened.force_safe_mode()`/`.force_resume()`), never
@@ -1239,11 +1355,17 @@ halted state — which is precisely a safety-relevant condition.
    "KillSwitch / Telegram" to the actual programmatic
    `force_safe_mode()`/`force_resume()` callers), not a source-code
    change and not necessarily the same mission as findings 2-4 below.
-   Not corrected in this documentation-only PR (out of scope); should
-   be corrected **before T-1 deployment/runtime certification** so the
-   deployed system's own documentation is accurate.
-2. **`SAFETY_RELEVANT_OPERATOR_INSTRUCTION_DRIFT`** —
-   `supervision/exchange_monitor.py:252-257` tells the operator (via an
+   **[historical — `RESOLVED_BY_PRE_T1_A`]** Corrected by mission
+   O-02W-PRE-T1-A: `docs/GLOBAL_STATE_MACHINE.md` no longer attributes
+   `NORMAL ↔ SAFE_MODE` (or any other) transition to "KillSwitch /
+   Telegram" — the current text attributes transitions only to
+   programmatic `RuntimeStateMachine`/`KillSwitchHardened` callers, each
+   qualified `SOURCE_PROVEN`/`RUNTIME_UNKNOWN` (verified this round by
+   reading the file's current text in full).
+2. **`SAFETY_RELEVANT_OPERATOR_INSTRUCTION_DRIFT` [historical —
+   `RESOLVED_BY_PRE_T1_A`]** —
+   `supervision/exchange_monitor.py` (historically ~lines 252-257, prior
+   to PRE-T1-A) told the operator (via an
    email escalation body) to send `/STOP_ALL` on Telegram. No non-test,
    non-archive Telegram poller implements that command against a real
    token — the only implementation (`supervision/kill_switch.py`) is
@@ -1255,10 +1377,14 @@ halted state — which is precisely a safety-relevant condition.
    control-surface design for a real `/STOP_ALL` path is later approved
    through the process described in §13's closing note below (a
    distinct mission, with its own authorization — this document
-   neither proposes nor authorizes that design). Not corrected in this
-   documentation-only PR; must be corrected before T-1.
+   neither proposes nor authorizes that design). **[historical —
+   `RESOLVED_BY_PRE_T1_A`]** `supervision/exchange_monitor.py` no
+   longer contains a `/STOP_ALL` string of any kind (`rg -n -i
+   "/stop_all" supervision/exchange_monitor.py` returns no match,
+   verified this round).
 3. **`SAFETY_RELEVANT_OPERATOR_INSTRUCTION_DRIFT` [R1, wording
-   corrected R1.2]** — `core/advisor_loop.py` contains three
+   corrected R1.2; historical — `RESOLVED_BY_PRE_T1_A`]** —
+   `core/advisor_loop.py` historically contained three
    operator-facing `/RESUME` instructions with the identical drift
    (one finding, three strings, per §6/§16's unit taxonomy): line 3870
    (degraded-mode alert, "Envoyez /RESUME si intervention requise"),
@@ -1294,19 +1420,27 @@ halted state — which is precisely a safety-relevant condition.
    in the instruction (`/RESUME`) has no dispatcher this mission found
    on any non-test, non-archive Telegram source path, even if the
    message is received. **[R1.3, own remediation assigned per
-   Correction C]** This finding's own remediation: **remove or replace
-   only these three misleading `/RESUME` instructions** in
-   `core/advisor_loop.py`; this is a distinct fix from finding 2's
+   Correction C]** This finding's own remediation was: **remove or
+   replace only these three misleading `/RESUME` instructions** in
+   `core/advisor_loop.py`; this was a distinct fix from finding 2's
    `/STOP_ALL` instruction (different file, different message family)
    and from finding 4's broken notifier call (below) — grouping any of
    the three findings' remediations together would misstate that they
    share a fix, not merely a root symptom (an unwired Telegram resume
-   path).
+   path). **[historical — `RESOLVED_BY_PRE_T1_A`]** Mission
+   O-02W-PRE-T1-A applied exactly this remediation: the three messages,
+   now at `core/advisor_loop.py:3909, 3921, 5614` (verified this round
+   via `nl -ba`), read "Aucune commande /RESUME n'est disponible via
+   Telegram (dispatcher canonique) ; ... Escalade manuelle requise" —
+   an explicit negation of command availability, not an instruction to
+   send one. No current message in this file instructs an operator to
+   send `/RESUME`.
 4. **`SAFETY_RELEVANT_OPERATOR_INSTRUCTION_DRIFT`
    /
    `SOURCE_PROVEN_NONFUNCTIONAL_NOTIFICATION_CALL` [R1.1, new;
-   corrected R1.2]** —
-   `quant_hedge_ai/agents/intelligence/self_awareness_engine.py:623-631`
+   corrected R1.2; historical — `RESOLVED_BY_PRE_T1_B`, see §9d]** —
+   `quant_hedge_ai/agents/intelligence/self_awareness_engine.py`
+   historically (pre-PRE-T1-B, at lines ~623-631)
    (`_send_telegram_critical()`) constructs a fourth operator-facing
    `/RESUME` string, separate from and in addition to the three
    `core/advisor_loop.py` strings in item 3: `"SELF-AWARENESS
@@ -1332,22 +1466,33 @@ halted state — which is precisely a safety-relevant condition.
    two** such broken call expressions found (the second, below, carries
    no `/RESUME` text). A second, structurally identical broken call
    expression exists at
-   `quant_hedge_ai/agents/execution/position_manager.py:528`
+   `quant_hedge_ai/agents/execution/position_manager.py` (historically
+   at line ~528)
    (`_check_liquidation_defense()`, a liquidation-distance warning, not
    itself carrying a `/RESUME` instruction but sharing the exact same
    `TelegramNotifier().send(...)` defect) — recorded here as the same
    class of finding, distinct message family, and **not counted** among
    the 5 misleading operator-facing command strings (it carries no
    command instruction of its own) — see the unit taxonomy below.
-   **[R1.3, own remediation assigned per Correction C]** This finding's
-   own remediation is decided **separately** from findings 1-3: for the
+   **[R1.3, own remediation assigned per Correction C; historical —
+   `RESOLVED_BY_PRE_T1_B`]** This finding's
+   own remediation was decided **separately** from findings 1-3: for the
    SelfAwareness broken call (and, independently, for the
    structurally-identical PositionManager broken call), a future
-   mission must decide among removing the notification, routing it
+   mission was to decide among removing the notification, routing it
    through an already-approved notification facade, or repairing the
    call through a governed identity/configuration path — not
    necessarily the same choice, and not necessarily the same mission,
-   as finding 3's `/RESUME`-instruction removal/replacement.
+   as finding 3's `/RESUME`-instruction removal/replacement. Mission
+   O-02W-PRE-T1-B chose removal for both: `rg -n "TelegramNotifier"
+   quant_hedge_ai/agents/intelligence/self_awareness_engine.py
+   quant_hedge_ai/agents/execution/position_manager.py` returns no
+   match in either file, verified this round — both broken call sites,
+   and the `/RESUME` string the SelfAwareness one carried, are absent
+   from current source. `TelegramNotifier` itself remains a valid,
+   still-used notifier class (§17 row for
+   `supervision/notifications/telegram_notifier.py`) — this resolution
+   does not make it dead code, only these two call sites are affected.
 5. `docs/TELEGRAM_ARCHITECTURE_AUDIT.md`'s description of an "ÉLEVÉ"
    risk `RADAR_BOT_TOKEN` → `TELEGRAM_BOT_TOKEN` fallback is stale
    (current `scripts/radar_bot.py` has no such fallback) — but this is
@@ -1362,6 +1507,11 @@ halted state — which is precisely a safety-relevant condition.
 
 **[R1.2, explicit unit taxonomy — do not use these units
 interchangeably; R1.4, Correction E — items numbered explicitly]**
+
+**[R1.1, `HISTORICAL_FINDINGS_DISCOVERED` — all counts below are
+historical, counted against the pre-PRE-T1-A/B revision; the current
+count for all four findings, all five strings, and both broken calls
+is zero — see §9d `CURRENT_UNRESOLVED_FINDINGS`.]**
 
 - **4 numbered safety-relevant findings** — **items 1-4 of the
   six-entry numbered list above** (items 5-6 are explicitly *not*
@@ -1416,6 +1566,15 @@ here for clarity:
   copying, exposing, or wiring any Telegram secret/token/chat-id value
   to implement any of these options** — that decision and its
   implementation are out of scope for this documentation-only mission.
+
+**[R1.1, `RESOLVED_BY_PRE_T1_A`/`RESOLVED_BY_PRE_T1_B` — current state]**
+All four findings above are historical. Missions O-02W-PRE-T1-A
+(findings 1-3) and O-02W-PRE-T1-B (finding 4, both call sites) have
+each been merged into `main` and re-verified against this branch's
+current HEAD by this R1.1 round: 0 of the 4 findings, 0 of the 5
+misleading strings, and 0 of the 2 broken call expressions remain
+unresolved. See §9d for the full historical/current reconciliation and
+per-finding evidence.
 
 **[R1.3, closing rule, Correction D]** Removing or rewording a
 misleading operator instruction (findings 2 and 3) is the **safe
@@ -1582,7 +1741,9 @@ unchanged by this remediation round, per its scope restriction (§12).
   R1]** the mutator it once guarded against, `_set_param_live`, is now
   structurally absent from source rather than merely unblocked-but-inert,
   §9b).
-- **[R1.2, explicit unit taxonomy — see §13 for full detail]** Four
+- **[R1.2, explicit unit taxonomy — see §13 for full detail; R1.1,
+  `HISTORICAL_FINDINGS_DISCOVERED` — see §9d for the current,
+  re-verified state]** Four
   numbered `SAFETY_RELEVANT_OPERATOR_INSTRUCTION_DRIFT` findings —
   items 1-4 of §13's six-entry numbered list (items 5-6 are not
   safety-relevant): (1)
@@ -1600,13 +1761,17 @@ unchanged by this remediation round, per its scope restriction (§12).
   PositionManager, carrying no `/RESUME` string — a
   liquidation-distance warning only). These three counts are distinct
   and must not be used interchangeably. **[R1.3, corrected]** All four
-  findings must be corrected before T-1 deployment/runtime
-  certification, but not necessarily by the same mission: finding 1 is
-  a documentation/governance correction; findings 2 and 3 are each a
+  findings needed to be corrected before T-1 deployment/runtime
+  certification, but not necessarily by the same mission: finding 1 was
+  a documentation/governance correction; findings 2 and 3 were each a
   remove-or-replace fix to a misleading operator-facing string;
-  finding 4 requires a separate decision (remove, route through an
+  finding 4 required a separate decision (remove, route through an
   approved facade, or governed repair) for each of its two broken call
-  expressions. See §13 for the per-finding remediation.
+  expressions. See §13 for the per-finding remediation. **[current
+  state, `RESOLVED_BY_PRE_T1_A`/`RESOLVED_BY_PRE_T1_B`]** All four are
+  resolved as of current HEAD — 0 findings, 0 strings, 0 broken calls
+  remain among these four; see §9d `CURRENT_UNRESOLVED_FINDINGS` for
+  the re-verified evidence per site.
 - **[R1, historical — see PRE-T1-C, R1 immediately below]** This
   bullet originally listed two architectural-boundary items requiring
   a future source mission: the dormant Portfolio mutator (§9b,
@@ -1675,7 +1840,7 @@ is safe.
 | `scripts/trend_scanner.py` | `TELEGRAM_BOT_TOKEN`/`TELEGRAM_CHAT_ID` | Sender-only script | PUSH_ONLY | Trend-scan alert | Systemd/cron search: no reference found | RUNTIME_UNKNOWN | `OPERATOR_DECISION_REQUIRED` |
 | `scripts/vps_burn_in_collector.py` | `TELEGRAM_BOT_TOKEN`/`TELEGRAM_CHAT_ID` | Sender-only script | PUSH_ONLY | Burn-in metrics collection warning | Systemd/cron search: no reference found | RUNTIME_UNKNOWN | `OPERATOR_DECISION_REQUIRED` |
 | `src/telegram/notifier.py` | `MON_PORTFOLIO_BOT_TOKEN`/`_CHAT_ID` | Library/notifier module | Library-only | Generic `Notifier` wrapping `sendMessage` for the Portfolio token | Import search: imported by `src/telegram/__init__.py:1` and `src/telegram/sim_bot.py:36` (TG-08). No import found from `core/advisor_loop.py`, `capital_deployment/command_center_bot.py`, or `src/telegram/quant_observer/bot.py` | RUNTIME_UNKNOWN — TG-08 itself has no non-test, non-archive source caller or systemd reference found (§9 TG-08), so this file's only found import path is, in turn, one this mission cannot confirm executes in any deployed process | `OPERATOR_DECISION_REQUIRED` — tied to the same TG-08 deploy-or-remove decision (§9 TG-08), not independently a removal candidate |
-| `supervision/notifications/telegram_notifier.py` | token/chat passed by caller (no module-level constant); `__init__(self, bot_token, chat_id)` at lines 16-18, `.notify(message)` begins line 20 | Library/notifier module | Library-only | Thin `TelegramNotifier.notify()` wrapper | Import search: imported by `quant_hedge_ai/agents/intelligence/self_awareness_engine.py:623` and `quant_hedge_ai/agents/execution/position_manager.py:526`, both constructed from `core/advisor_loop.py` via `core/advisor_runtime_adapters.py` by a source-valid construction path (`SelfAwarenessEngine` used at `advisor_loop.py:4484`; `PositionManager` used at `advisor_loop.py:4055-4056,4180`) | SOURCE_PROVEN: the import statement is on a code path that executes whenever the importing module is imported. **[R1.1, Correction C; wording corrected R1.2]** However, **both actual call sites are `SOURCE_PROVEN_NONFUNCTIONAL_NOTIFICATION_CALL`** (§0): `self_awareness_engine.py:626` and `position_manager.py:528` both call `TelegramNotifier().send(...)` — zero constructor arguments against the `__init__(self, bot_token, chat_id)` signature above, and `.send()`, a method that does not exist on this class (the real method is `.notify(message)`, above). **If** reached at runtime, each deterministically raises before any HTTP request, caught by an enclosing `except Exception: pass`; whether either is ever reached in a deployed, triggering process is `RUNTIME_UNKNOWN`. The module/class itself is not broken — only these two specific call expressions are | `OPERATOR_DECISION_REQUIRED` — a separately authorized source mission must decide, for each call site, among removing the notification, routing it through an already-approved notification identity/facade, or repairing the call through an explicitly governed identity/configuration path; this contract does not authorize creating, copying, exposing, or wiring any Telegram secret to implement any of these options, and does not itself prescribe which option to take |
+| `supervision/notifications/telegram_notifier.py` | token/chat passed by caller (no module-level constant); `__init__(self, bot_token, chat_id)` at lines 16-18, `.notify(message)` begins line 20 | Library/notifier module | Library-only | Thin `TelegramNotifier.notify()` wrapper | **[historical, pre-PRE-T1-B]** Import search at that time: imported by `quant_hedge_ai/agents/intelligence/self_awareness_engine.py:623` and `quant_hedge_ai/agents/execution/position_manager.py:526`, both constructed from `core/advisor_loop.py` via `core/advisor_runtime_adapters.py` by a source-valid construction path (`SelfAwarenessEngine` used at `advisor_loop.py:4522`; `PositionManager` used at `advisor_loop.py:4094` — **[R1.1, citations corrected this round from stale `4484`/`4055-4056,4180`, verified via `rg -n` against current HEAD]**). **[historical — `RESOLVED_BY_PRE_T1_B`, see §9d]** SOURCE_PROVEN at that time: the import statement was on a code path that executed whenever the importing module was imported, and **both actual call sites were `SOURCE_PROVEN_NONFUNCTIONAL_NOTIFICATION_CALL`** (§0): `self_awareness_engine.py:626` and `position_manager.py:528` both called `TelegramNotifier().send(...)` — zero constructor arguments against the `__init__(self, bot_token, chat_id)` signature above, and `.send()`, a method that does not exist on this class (the real method is `.notify(message)`, above). **Current state (verified this round):** neither file imports or references `TelegramNotifier` at all any more — `rg -n "TelegramNotifier" quant_hedge_ai/agents/intelligence/self_awareness_engine.py quant_hedge_ai/agents/execution/position_manager.py` returns no match in either file; `self_awareness_engine.py`'s `_send_telegram_critical()` method (the SelfAwareness call site) and the equivalent construction in `position_manager.py` are both structurally absent, not merely unreached. `TelegramNotifier` and its `.notify()` API remain unchanged and still validly used elsewhere by other identities in this table — this resolution does not make the class dead code, only these two specific historical call sites are affected | Historically `OPERATOR_DECISION_REQUIRED` — a separately authorized source mission was to decide, for each call site, among removing the notification, routing it through an already-approved notification identity/facade, or repairing the call through an explicitly governed identity/configuration path; this contract did not authorize creating, copying, exposing, or wiring any Telegram secret to implement any of these options. **Current: resolved** — mission O-02W-PRE-T1-B removed both call sites (chose the "remove the notification" option for each), closing this row's `OPERATOR_DECISION_REQUIRED` item; no future source mission is required for these two sites |
 | `supervision/self_healing_bot.py` | `TELEGRAM_BOT_TOKEN`/`TELEGRAM_CHAT_ID` | Sender-only module | PUSH_ONLY | Self-healing/module-recovery alert | Import search: `core/advisor_runtime_adapters.py:111` imports `SelfHealingBot`, instantiated at `advisor_loop.py:3623-3624`, started at `advisor_loop.py:3686` — source caller found | SOURCE_PROVEN (code + source caller found); RUNTIME_UNKNOWN whether `crypto-advisor.service` is running on the VPS | `KEEP_UNTIL_COCKPIT_RUNTIME_CERTIFIED` — same TG-06-class treatment; should be folded into TG-06's Phase 2 comparison as an additional message source |
 | `core/orchestration/orchestrate_ecosystem.py` | `TELEGRAM_BOT_TOKEN`/`TELEGRAM_CHAT_ID` (via `TelegramNotifier`) | Orchestration script | Library-caller, PUSH_ONLY when invoked | Multi-world-simulation run-and-archive notification | Systemd search: no unit found. Import search: not imported by `advisor_loop.py`/`paper_runner.py` | RUNTIME_UNKNOWN — no source caller found; this mission draws no conclusion beyond that absence | `OPERATOR_DECISION_REQUIRED` |
 | `infra/monitoring/supervise_all.py` | `TELEGRAM_TOKEN`/`TELEGRAM_CHAT_ID` (note: **different env-var name**, `TELEGRAM_TOKEN` not `TELEGRAM_BOT_TOKEN`, with hardcoded placeholder defaults) | Standalone supervision loop | Library-caller, PUSH_ONLY when invoked with real values | BotDoctor health-score alert | Systemd search: no unit found. Import search: not imported by `advisor_loop.py`/`paper_runner.py` | RUNTIME_UNKNOWN — no source caller found | `OPERATOR_DECISION_REQUIRED`; flag the env-var name mismatch as a separate minor finding — even a fully-configured `.env` would not populate this file's default token path, since it reads a different variable name than every other identity in §9 |
