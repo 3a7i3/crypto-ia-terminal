@@ -262,6 +262,16 @@ document remains authoritative for <em>intended</em> per-bot behavior); it exist
 answer one narrower question exhaustively: <strong>how many distinct Telegram
 token/chat identities exist in this repository, and what is the code-proven
 evidence for each?</strong></p>
+<blockquote>
+<div><p><strong>Cutover pointer (2026-09-10, O-02W-E1):</strong> for the forward-looking
+question of which of these identities may retire once the read-only
+web cockpit (<code class="docutils literal notranslate"><span class="pre">observability/operator_api</span></code>, <code class="docutils literal notranslate"><span class="pre">frontend/</span></code>) is deployed
+and runtime-certified, see
+<code class="docutils literal notranslate"><span class="pre">docs/contracts/O-02W-E_TELEGRAM_OBSERVATION_BOUNDARY.md</span></code>. This
+registry remains the authoritative record of <em>current</em> identities;
+the contract governs their <em>future</em> relationship to the cockpit and
+introduces no change to this document’s findings.</p>
+</div></blockquote>
 <p>This scan re-verified every claim below directly against the current
 repository state (grep + line-level inspection on 2026-08-28) rather than
 only citing prior documents. Where this scan found the code has changed
