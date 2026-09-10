@@ -3501,7 +3501,9 @@ def main(
             prewarm_executor.shutdown(wait=False, cancel_futures=True)
             prewarm_executor = None
 
-    # Kill switch — état partagé entre thread Telegram et boucle principale.
+    # Kill switch — état partagé entre le thread interne du kill switch
+    # (KillSwitchHardened, sans interface Telegram — voir
+    # core/advisor_runtime_adapters.py:109) et la boucle principale.
     # threading.Event : thread-safe sans dépendance au GIL, sémantique claire.
     # set()     → arrêt demandé
     # clear()   → reprise autorisée
@@ -3534,20 +3536,31 @@ def main(
         return runtime_authority.state == SystemState.SAFE_MODE
 
     def _on_stop_all():
+        # Callback KillSwitchHardened.on_stop_all — pas de commande Telegram :
+        # KillSwitchHardened n'a aucune interface Telegram (voir son docstring)
+        # et ce callback n'a aucun appelant runtime de production connu.
         _halt_requested.set()
-        runtime_authority.request_safe_mode("kill_switch_stop_all", "STOP_ALL telegram")
+        runtime_authority.request_safe_mode(
+            "kill_switch_stop_all", "STOP_ALL programmatique (callback KillSwitchHardened)"
+        )
         log.critical("[main] STOP_ALL recu — la boucle va s'arreter au prochain cycle")
 
     def _on_close_all():
+        # Callback KillSwitchHardened.on_close_all — pas de commande Telegram
+        # (voir _on_stop_all ci-dessus).
         _halt_requested.set()
         runtime_authority.request_safe_mode(
-            "kill_switch_close_all", "CLOSE_ALL telegram"
+            "kill_switch_close_all",
+            "CLOSE_ALL programmatique (callback KillSwitchHardened)",
         )
         log.critical("[main] CLOSE_ALL recu — la boucle va s'arreter au prochain cycle")
 
     def _on_safe_mode():
+        # Callback KillSwitchHardened.on_safe_mode — pas de commande Telegram
+        # (voir _on_stop_all ci-dessus).
         runtime_authority.request_safe_mode(
-            "kill_switch_safe_mode", "SAFE_MODE telegram"
+            "kill_switch_safe_mode",
+            "SAFE_MODE programmatique (callback KillSwitchHardened)",
         )
         log.warning("[main] SAFE_MODE recu — autorité runtime en SAFE_MODE")
 
@@ -3574,8 +3587,13 @@ def main(
             try:
                 _black_box_ref["instance"].record_system_event(
                     "OPERATOR_RESUME",
-                    "Resume manuel hors Telegram (aucun dispatcher "
-                    "Telegram n'implemente de commande de reprise)",
+                    "Callback _on_resume invoque (origine operateur/Telegram "
+                    "non etablie par le code source — aucun dispatcher "
+                    "Telegram n'implemente de commande de reprise, et ce "
+                    "callback n'a aucun appelant runtime de production "
+                    "connu ; identifiant OPERATOR_RESUME conserve pour "
+                    "compatibilite BlackBox, sans impliquer une origine "
+                    "operateur prouvee)",
                 )
             except Exception as _bb_exc:
                 log.debug("[main] BlackBox OPERATOR_RESUME non journalise: %s", _bb_exc)
@@ -3875,9 +3893,10 @@ def main(
             _telegram(
                 f"Mode DEGRADED — exchange instable\n{reason}\n"
                 f"Trading continue. Aucune commande /RESUME n'est disponible "
-                f"via Telegram (dispatcher canonique) ; toute intervention "
-                f"requise doit passer par un mécanisme séparément gouverné "
-                f"en dehors de Telegram."
+                f"via Telegram (dispatcher canonique) ; aucune procédure de "
+                f"reprise opérateur n'est actuellement documentée/prouvée par "
+                f"le code source. Escalade manuelle requise si intervention "
+                f"nécessaire."
             )
 
         def _on_op_halted(reason: str) -> None:
@@ -3886,8 +3905,9 @@ def main(
             _telegram(
                 f"P10-F HALTED — intervention requise\n{reason}\n"
                 f"Aucune commande /RESUME n'est disponible via Telegram "
-                f"(dispatcher canonique) ; l'intervention requise doit passer "
-                f"par un mécanisme séparément gouverné en dehors de Telegram."
+                f"(dispatcher canonique) ; aucune procédure de reprise "
+                f"opérateur n'est actuellement documentée/prouvée par le code "
+                f"source. Escalade manuelle requise."
             )
 
         def _on_op_recovered() -> None:
@@ -5587,20 +5607,24 @@ def main(
             _telegram(
                 "Boucle suspendue par Kill Switch. Aucune commande /RESUME "
                 "n'est disponible via Telegram (dispatcher canonique) ; "
-                "l'intervention requise doit passer par un mécanisme "
-                "séparément gouverné en dehors de Telegram."
+                "aucune procédure de reprise opérateur n'est actuellement "
+                "documentée/prouvée par le code source. Escalade manuelle "
+                "requise."
             )
-            # Attendre que _halt_requested soit levé par une intervention hors
-            # Telegram (voir _on_resume : callback câblé sur
-            # KillSwitchHardened.force_resume(), qui n'a aujourd'hui aucun
-            # appelant non-test/non-archive — aucune commande Telegram
-            # n'invoque ce chemin).
+            # Attendre que _halt_requested soit levé (voir _on_resume :
+            # callback câblé sur KillSwitchHardened.force_resume(), qui n'a
+            # aujourd'hui aucun appelant runtime de production connu —
+            # aucune commande Telegram n'invoque ce chemin, et aucune
+            # procédure de reprise opérateur n'est documentée/prouvée par le
+            # code source pour ce chemin).
             # Intervalle 0.5s pour une reprise quasi-immédiate après la levée.
             while kill_switch.is_halted() or _halt_requested.is_set():
                 time.sleep(0.5)
             log.info("[main] Kill switch levé — reprise boucle")
             _telegram("Kill Switch leve — reprise du cycle normal.")
-            # Réinitialise l'état d'urgence P10-F après intervention opérateur
+            # Réinitialise l'état d'urgence P10-F une fois _halt_requested
+            # levé (origine de la levée — opérateur ou autre — non prouvée
+            # par le code source ; voir _on_resume ci-dessus)
             if _p10_emergency is not None:
                 _p10_emergency.reset()
             if "_consecutive_exec_errors" in dir():

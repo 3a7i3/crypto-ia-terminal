@@ -1,16 +1,24 @@
-"""O-02W-PRE-T1-A — regression tests for the safety-instruction truthfulness fixes.
+"""O-02W-PRE-T1-A / O-02W-PRE-T1-A-R1 — regression tests for the
+safety-instruction truthfulness fixes.
 
-Covers the three source-proven drifts from O-02W-E1 §13:
-  1. GLOBAL_STATE_MACHINE.md misattributing SAFE_MODE transitions to Telegram.
-  2. ExchangeMonitor's critical email instructing a nonexistent /STOP_ALL command.
-  3. advisor_loop.py's /RESUME instructions with no canonical dispatcher.
+Covers the source-proven drifts from O-02W-E1 §13 and the MASTER-review
+follow-up (R1):
+  1. GLOBAL_STATE_MACHINE.md misattributing SAFE_MODE transitions to Telegram
+     / "commande manuelle", and misrepresenting SAFE_MODE -> NORMAL as a
+     direct RuntimeStateMachine transition.
+  2. ExchangeMonitor's critical email instructing a nonexistent /STOP_ALL
+     command.
+  3. advisor_loop.py's /RESUME instructions and adjacent prose (BlackBox
+     description, kill-switch callback reasons, comments) with no canonical
+     dispatcher or proven operator origin.
 
 Behavior-level assertions are used where the code can be exercised without
-booting the full advisor loop (ExchangeMonitor). The advisor_loop.py and
-GLOBAL_STATE_MACHINE.md properties are message/documentation-integrity
-properties that cannot be safely exercised without booting the full advisor,
-so they are checked at the source-text level, matching the pattern already
-used by the repository's other advisor_loop smoke/message tests.
+booting the full advisor loop (ExchangeMonitor, RuntimeStateMachine). The
+advisor_loop.py and GLOBAL_STATE_MACHINE.md wording properties are
+message/documentation-integrity properties that cannot be safely exercised
+without booting the full advisor, so they are checked at the source-text
+level, matching the pattern already used by the repository's other
+advisor_loop smoke/message tests.
 """
 
 from __future__ import annotations
@@ -26,6 +34,147 @@ STATE_MACHINE_DOC = (REPO_ROOT / "docs" / "GLOBAL_STATE_MACHINE.md").read_text(
 EXCHANGE_MONITOR_SRC = (REPO_ROOT / "supervision" / "exchange_monitor.py").read_text(
     encoding="utf-8"
 )
+
+
+# ---------------------------------------------------------------------------
+# RuntimeStateMachine — actual state-machine semantics (behavioral)
+# ---------------------------------------------------------------------------
+
+
+def _make_rsm(**kwargs):
+    from quant_hedge_ai.runtime.runtime_state_machine import RuntimeStateMachine
+
+    clock = {"t": 0.0}
+
+    def _clock():
+        return clock["t"]
+
+    rsm = RuntimeStateMachine(_clock=_clock, **kwargs)
+    return rsm, clock
+
+
+def test_rsm_error_threshold_transitions_to_safe_mode_automatically():
+    from quant_hedge_ai.runtime.runtime_state_machine import SystemState
+
+    rsm, clock = _make_rsm(safe_threshold=3, critical_threshold=2, degraded_threshold=1)
+    for _ in range(3):
+        rsm.report_error("generic")
+    assert rsm.state == SystemState.SAFE_MODE
+
+
+def test_rsm_named_request_safe_mode_transitions_to_safe_mode():
+    from quant_hedge_ai.runtime.runtime_state_machine import SystemState
+
+    rsm, clock = _make_rsm()
+    state = rsm.request_safe_mode("self_awareness", "level=CRITICAL")
+    assert state == SystemState.SAFE_MODE
+    assert rsm.state == SystemState.SAFE_MODE
+
+
+def test_rsm_clearing_last_named_request_transitions_to_recovery_not_normal():
+    from quant_hedge_ai.runtime.runtime_state_machine import SystemState
+
+    rsm, clock = _make_rsm()
+    rsm.request_safe_mode("self_awareness", "level=CRITICAL")
+    assert rsm.state == SystemState.SAFE_MODE
+    state = rsm.clear_safe_mode_request("self_awareness")
+    assert state == SystemState.RECOVERY
+    assert rsm.state == SystemState.RECOVERY
+
+
+def test_rsm_clear_all_safe_mode_requests_transitions_to_recovery_not_normal():
+    from quant_hedge_ai.runtime.runtime_state_machine import SystemState
+
+    rsm, clock = _make_rsm()
+    rsm.request_safe_mode("kill_switch_stop_all", "reason_a")
+    rsm.request_safe_mode("self_awareness", "reason_b")
+    assert rsm.state == SystemState.SAFE_MODE
+    state = rsm.clear_all_safe_mode_requests()
+    assert state == SystemState.RECOVERY
+    assert rsm.state == SystemState.RECOVERY
+
+
+def test_rsm_stable_report_ok_transitions_recovery_to_normal():
+    from quant_hedge_ai.runtime.runtime_state_machine import SystemState
+
+    rsm, clock = _make_rsm(stability_s=60.0)
+    rsm.request_safe_mode("self_awareness", "reason")
+    rsm.clear_all_safe_mode_requests()
+    assert rsm.state == SystemState.RECOVERY
+
+    # Not yet stable.
+    clock["t"] += 10.0
+    rsm.report_ok()
+    assert rsm.state == SystemState.RECOVERY
+
+    # Stability window elapsed.
+    clock["t"] += 60.0
+    state = rsm.report_ok()
+    assert state == SystemState.NORMAL
+    assert rsm.state == SystemState.NORMAL
+
+
+def test_rsm_no_direct_safe_mode_to_normal_method_exists():
+    """RuntimeStateMachine has no API that jumps SAFE_MODE straight to NORMAL."""
+    from quant_hedge_ai.runtime.runtime_state_machine import RuntimeStateMachine
+
+    assert not hasattr(RuntimeStateMachine, "force_resume")
+
+
+# ---------------------------------------------------------------------------
+# GLOBAL_STATE_MACHINE.md — SAFE_MODE attribution and transition model
+# ---------------------------------------------------------------------------
+
+
+def test_state_machine_doc_does_not_label_safe_mode_transitions_manual_command():
+    assert "commande manuelle" not in STATE_MACHINE_DOC
+
+
+def test_state_machine_doc_does_not_claim_direct_safe_mode_to_normal():
+    for line in STATE_MACHINE_DOC.splitlines():
+        if line.strip().startswith("| SAFE_MODE → NORMAL"):
+            raise AssertionError(
+                "doc must not claim SAFE_MODE -> NORMAL as a direct "
+                f"RuntimeStateMachine transition row: {line!r}"
+            )
+    assert "SAFE_MODE → RECOVERY" in STATE_MACHINE_DOC
+    assert (
+        "ne définit aucune transition directe SAFE_MODE → NORMAL"
+        in STATE_MACHINE_DOC
+    )
+
+
+def test_state_machine_doc_no_longer_attributes_safe_mode_to_telegram():
+    for line in STATE_MACHINE_DOC.splitlines():
+        if "SAFE_MODE" in line and "|" in line and "Vers" not in line:
+            assert "KillSwitch / Telegram" not in line, (
+                f"SAFE_MODE transition row still attributes to Telegram: {line!r}"
+            )
+
+
+def test_state_machine_doc_names_force_safe_mode_and_force_resume():
+    assert "force_safe_mode()" in STATE_MACHINE_DOC
+    assert "force_resume()" in STATE_MACHINE_DOC
+
+
+def test_state_machine_doc_distinguishes_production_callers_from_invariant_checks():
+    # Auto and named production-runtime paths must be named explicitly.
+    assert "report_error()" in STATE_MACHINE_DOC
+    assert "request_safe_mode(" in STATE_MACHINE_DOC
+    assert "core/invariants.py" in STATE_MACHINE_DOC
+    # The doc must not overclaim "no caller at all" for the class - it must
+    # scope the "no caller" statement to the specific force_* convenience
+    # methods, since request_safe_mode()/report_error() do have production
+    # callers.
+    assert "instance jetable" in STATE_MACHINE_DOC
+    assert "aucun appelant runtime de production" in STATE_MACHINE_DOC
+
+
+def test_state_machine_doc_does_not_conflate_killswitch_hardened_with_rsm():
+    assert "Ne pas conflater les deux états" in STATE_MACHINE_DOC
+    assert "RuntimeStateMachine (classe différente)" in STATE_MACHINE_DOC or (
+        "classe différente" in STATE_MACHINE_DOC
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -78,30 +227,68 @@ def test_advisor_loop_no_operator_facing_resume_command_remains():
             )
 
 
-def test_advisor_loop_replacement_messages_avoid_claiming_telegram_control_path():
+def test_advisor_loop_replacement_messages_disclose_no_documented_recovery_procedure():
     # Source-level f-string literals may split across lines (interrupted by
     # a closing/opening quote pair), so tolerate that gap in the match.
-    matches = re.findall(
-        r'Aucune commande /RESUME ["\s]*n\'est disponible.{0,80}?via Telegram',
+    resume_unavailable = re.findall(
+        r"Aucune commande /RESUME [\"\s]*n'est disponible.{0,80}?via Telegram",
         ADVISOR_LOOP_SRC,
         re.DOTALL,
     )
-    assert len(matches) == 3, (
+    assert len(resume_unavailable) == 3, (
         "each replacement message must explicitly state that no /RESUME "
         "command is available via Telegram, in exactly the three target "
         "locations (degraded, halted, suspended-loop)"
     )
 
+    # advisor_loop.py's f-strings wrap across lines at arbitrary word
+    # boundaries (interrupted by a closing/opening quote pair, optionally
+    # prefixed with 'f'), so tolerate that gap between every word.
+    _sep = r'[f"\s]*'
+    _words = "aucune procédure de reprise opérateur n'est actuellement documentée".split(
+        " "
+    )
+    pattern = _sep.join(re.escape(w) for w in _words)
+    no_documented_procedure = re.findall(pattern, ADVISOR_LOOP_SRC, re.DOTALL | re.IGNORECASE)
+    assert len(no_documented_procedure) == 3, (
+        "each replacement message must disclose that no operator recovery "
+        "procedure is currently documented/source-proven, not merely that "
+        "Telegram lacks the command"
+    )
 
-def test_advisor_loop_on_resume_callback_unchanged_behaviorally():
-    """The wording fix must not touch _on_resume's actual state mutations."""
-    match = re.search(
-        r"def _on_resume\(\):.*?(?=\n    def _on_close_all\(\)|\n    kill_switch = )",
+    escalade_manuelle = re.findall(
+        r"Escalade" + _sep + r"manuelle" + _sep + r"requise",
         ADVISOR_LOOP_SRC,
         re.DOTALL,
     )
-    # _on_resume is defined before _on_close_all/_on_safe_mode in source order,
-    # so anchor on the next top-level statement instead.
+    assert len(escalade_manuelle) == 3, (
+        "each replacement message must require manual escalation rather "
+        "than implying an existing alternative control mechanism"
+    )
+
+
+def test_advisor_loop_replacement_messages_invent_no_control_surface():
+    forbidden = (
+        "bouton",
+        "endpoint",
+        "API route",
+        "/api/",
+        "shell command",
+        "systemctl",
+        "curl ",
+    )
+    for match in re.finditer(
+        r'_telegram\(\s*f?"(?:Mode DEGRADED|P10-F HALTED|Boucle suspendue).*?\)',
+        ADVISOR_LOOP_SRC,
+        re.DOTALL,
+    ):
+        body = match.group(0)
+        for needle in forbidden:
+            assert needle not in body, f"message invents a control surface: {needle!r}"
+
+
+def test_advisor_loop_on_resume_callback_unchanged_behaviorally():
+    """The wording fix must not touch _on_resume's actual state mutations."""
     match = re.search(
         r"def _on_resume\(\):(.*?)\n    kill_switch = _profile_bootstrap_step",
         ADVISOR_LOOP_SRC,
@@ -114,41 +301,55 @@ def test_advisor_loop_on_resume_callback_unchanged_behaviorally():
     assert "OPERATOR_RESUME" in body
 
 
+def test_advisor_loop_blackbox_description_claims_no_unproven_manual_origin():
+    match = re.search(
+        r'record_system_event\(\s*"OPERATOR_RESUME",(.*?)\)',
+        ADVISOR_LOOP_SRC,
+        re.DOTALL,
+    )
+    assert match, "OPERATOR_RESUME record_system_event call not found"
+    body = match.group(1)
+    assert "Resume manuel" not in body
+    assert "non etablie" in body or "non établie" in body
+
+
+def test_advisor_loop_kill_switch_comments_do_not_claim_telegram_thread_or_command():
+    assert "thread Telegram" not in ADVISOR_LOOP_SRC
+    assert "STOP_ALL telegram" not in ADVISOR_LOOP_SRC
+    assert "CLOSE_ALL telegram" not in ADVISOR_LOOP_SRC
+    assert "SAFE_MODE telegram" not in ADVISOR_LOOP_SRC
+    assert "intervention opérateur" not in ADVISOR_LOOP_SRC
+
+
+def test_advisor_loop_kill_switch_callback_reasons_are_programmatic_not_telegram():
+    for reason in (
+        "STOP_ALL programmatique (callback KillSwitchHardened)",
+        "CLOSE_ALL programmatique (callback KillSwitchHardened)",
+        "SAFE_MODE programmatique (callback KillSwitchHardened)",
+    ):
+        assert reason in ADVISOR_LOOP_SRC
+
+
 def test_advisor_loop_no_new_telegram_command_handler_added():
     assert "_COMMANDS" not in ADVISOR_LOOP_SRC
     assert not re.search(r'"/RESUME":\s*self\.', ADVISOR_LOOP_SRC)
 
 
-def test_advisor_loop_legitimate_identifiers_preserved():
+def test_advisor_loop_legitimate_identifiers_and_mutations_preserved():
     assert "RESUME_TRADING" in ADVISOR_LOOP_SRC
     assert '"RESUME_TRADING": 600.0' in ADVISOR_LOOP_SRC
     assert "on_resume=_on_resume" in ADVISOR_LOOP_SRC
+    assert "on_stop_all=_on_stop_all" in ADVISOR_LOOP_SRC
+    assert "on_close_all=_on_close_all" in ADVISOR_LOOP_SRC
+    assert "on_safe_mode=_on_safe_mode" in ADVISOR_LOOP_SRC
+    assert '_halt_requested.set()' in ADVISOR_LOOP_SRC
+    assert 'runtime_authority.report_ok()' in ADVISOR_LOOP_SRC
+    assert 'runtime_authority.report_error("cycle_exception")' in ADVISOR_LOOP_SRC
 
 
 # ---------------------------------------------------------------------------
-# GLOBAL_STATE_MACHINE.md — SAFE_MODE attribution
-# ---------------------------------------------------------------------------
-
-
-def test_state_machine_doc_no_longer_attributes_safe_mode_to_telegram():
-    for line in STATE_MACHINE_DOC.splitlines():
-        if "SAFE_MODE" in line and "|" in line and "Vers" not in line:
-            assert "KillSwitch / Telegram" not in line, (
-                f"SAFE_MODE transition row still attributes to Telegram: {line!r}"
-            )
-
-
-def test_state_machine_doc_names_force_safe_mode_and_force_resume():
-    assert "force_safe_mode()" in STATE_MACHINE_DOC
-    assert "force_resume()" in STATE_MACHINE_DOC
-
-
-def test_state_machine_doc_states_no_canonical_caller_exists():
-    assert "aucun appelant non-test/non-archive" in STATE_MACHINE_DOC
-
-
-# ---------------------------------------------------------------------------
-# supervision/exchange_monitor.py — /STOP_ALL instruction
+# supervision/exchange_monitor.py — /STOP_ALL instruction (unchanged this
+# round; re-verified for regression)
 # ---------------------------------------------------------------------------
 
 
