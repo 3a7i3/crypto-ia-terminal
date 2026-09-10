@@ -213,6 +213,37 @@ carrying `/RESUME`). R1.4's starting HEAD is
 `6fba05afd851c212fb96bd82a87c3b1e03afc892`; only this file was
 modified.
 
+**R1.5 remediation (O-02W-E1-R1.5, same date):** independent MASTER
+review found two further defects, corrected in place (marked
+`[R1.5]`): (A) §16's `OPERATOR_DECISION_REQUIRED items` bullet
+conflated four distinct classification units and was missing TG-10
+entirely while wrongly including TG-06d (an §9a message-family
+transition state, not an identity-level operator decision) and the
+real-capital architectural boundary (an §9c Flow 2 sign-off item, not
+a Telegram cutover classification at all). Rewritten into four
+explicit groups: (1) primary identity-level decisions — TG-04, TG-07,
+TG-08, TG-10 (added), TG-11; (2) message-family transition states,
+preserved exactly from §9a, with TG-06d's `KEEP_UNTIL_COCKPIT_RUNTIME_CERTIFIED`
+token unchanged; (3) the real-capital boundary, now stated explicitly
+as a separate architectural decision, not a Telegram identity or
+message-family classification; (4) §17's file-level
+`OPERATOR_DECISION_REQUIRED` occurrences, identified as a separate
+per-file inventory not enumerated by group 1. TG-04's and TG-08's §9
+cutover-prerequisite cells are normalized to begin with the formal
+`OPERATOR_DECISION_REQUIRED` token, without changing their substantive
+decisions; (B) remaining runtime-implying wording removed: the
+`REAL_ACCOUNT_BOT_TOKEN` claim ("no live `os.getenv(...)` read") is
+corrected to "no executable, non-comment `os.getenv(...)` call exists
+in the reviewed source" in both §1 and TG-07's row; TG-02c's "command
+that has no live effect" is replaced with the exact source facts (a
+fixed refusal response, no call to `CommandDataProvider.set_param`);
+`docs/architecture/TELEGRAM_BOT_REGISTRY.md`'s "the 5 active bots it
+documents" is corrected to attribute the `ACTIVE` label to the
+registry itself, stating separately that this contract verified only
+source wiring, not deployment/runtime state. R1.5's starting HEAD is
+`9827ab4380ae21f277bfe41a2f566d2fa1ed8bac`; only this file was
+modified.
+
 Final certification of this contract belongs exclusively to the
 independent ChatGPT MASTER reviewer. This document is a proposal for
 that review, not a self-certified conclusion.
@@ -306,28 +337,37 @@ rather than trusted as-is. Findings:
     behavior. `DOCUMENTED_BUT_NOT_SOURCE_PROVEN` → now `SOURCE_PROVEN`
     at corrected line numbers, this document's §9.
 - **`docs/architecture/TELEGRAM_BOT_REGISTRY.md`** (v2.0, 2026-08-28) —
-  the 5 active bots it documents (CryptoRadar, Portfolio, Quant
-  Observer, Rapport Automatique, Paper Arena) match current source
-  exactly. Its own "Governance Gap" appendix already flagged the
-  undocumented `REAL_ACCOUNT_BOT_TOKEN` merge; that merge is confirmed
-  **complete** at this commit. **[R1, Correction H — precise wording]**
-  The exact fact, re-verified: no live `os.getenv("REAL_ACCOUNT_BOT_TOKEN")`
-  read exists anywhere in current source. The identifier itself still
-  appears in two places as historical comment text, not as a live
-  read: `core/advisor_loop.py:972` (`# REAL_ACCOUNT_BOT_TOKEN supprimé
+  **[R1.5, Correction B — attributed to the registry, not asserted as
+  this contract's own runtime finding]** the five bot identities that
+  registry labels `ACTIVE` (CryptoRadar, Portfolio, Quant Observer,
+  Rapport Automatique, Paper Arena) have source wiring in the current
+  repository that matches this registry's description exactly (token
+  variable, entrypoint file, and command surface all verified against
+  source). This contract confirms the *source wiring* only — whether
+  any of these five identities is currently deployed or running on the
+  VPS remains `RUNTIME_UNKNOWN` without VPS evidence. Its own
+  "Governance Gap" appendix already flagged the undocumented
+  `REAL_ACCOUNT_BOT_TOKEN` merge; that merge is confirmed **complete**
+  in source at this commit. **[R1, Correction H — precise wording;
+  R1.5, further bounded]** The exact fact, re-verified: no executable,
+  non-comment `os.getenv("REAL_ACCOUNT_BOT_TOKEN")` call exists in the
+  reviewed source. The identifier itself still appears in two places
+  as historical comment text, not as an executable read:
+  `core/advisor_loop.py:972` (`# REAL_ACCOUNT_BOT_TOKEN supprimé
   — même identité que MON_PORTFOLIO_BOT_TOKEN (merge 2026-08-28)`) and
   `.env.secrets.example:123` (`# REAL_ACCOUNT_BOT_TOKEN supprimé —
   fusionné avec MON_PORTFOLIO_BOT_TOKEN`), plus historical mentions in
   `docs/` and one captured audit-log JSON. The prior wording ("no
   reference remains anywhere in source") overstated this — the
   identifier is still present as inert commentary, which is exactly
-  the intended audit trail, not a residual live read.
+  the intended audit trail, not an executable, non-comment read.
 - **`docs/TELEGRAM_CONSTITUTION.md`** (v1.0, 2026-08-28) — Principle 5
   ("Telegram Cannot Silently Control the Machine") and Principle 3
   ("No Cross-Identity Token Fallback") both match current code exactly
   (`SOURCE_PROVEN`, §9a/§13 below).
 - **`docs/TELEGRAM_BOT_CONSTITUTION.md`** (2026-08-28) — command lists
-  for the 5 active bots match current code. Its Bot 6 (Sim Bot) section
+  for the five bot identities this registry set labels `ACTIVE` match
+  current source. Its Bot 6 (Sim Bot) section
   frames KEEP-and-deploy vs. REMOVE as an open decision; still open at
   this commit — no systemd unit or `.env.example` entry has been added
   for it since. Carried forward as `OPERATOR_DECISION_REQUIRED` (§9,
@@ -740,11 +780,11 @@ tables together.
 | TG-01 | CryptoRadar (`@RadarCrypto1_bot`) | `RADAR_BOT_TOKEN` | `RADAR_CHAT_ID` | `scripts/radar_bot.py` | `crypto-radar-bot.service` (independent) | BOTH (poll `getUpdates` + push) | MARKET | NONE | SOURCE_PROVEN (code); RUNTIME_UNKNOWN (VPS) | n/a — protected, §5 | none |
 | TG-02 | Portfolio / CommandCenter (`@mon_portfolio_bot`) | `MON_PORTFOLIO_BOT_TOKEN` | `MON_PORTFOLIO_CHAT_ID` (falls back to `TELEGRAM_CHAT_ID`) | `capital_deployment/command_center_bot.py`, instantiated by `core/advisor_loop.py:3991-3992` | `crypto-advisor.service` (in-process) | BOTH | PORTFOLIO | PARTIAL (see §9a for per-family split) | SOURCE_PROVEN | see §9a rows TG-02a/b/c | T-1 + Phase 2 / E2 |
 | TG-03 | Quant Observer (`@QuantCrpto_bot`) | `QUANT_CRYPTO_BOT_TOKEN` | `QUANT_CRYPTO_CHAT_ID` | `src/telegram/quant_observer/bot.py` | `crypto-quant-observer.service` (independent) | BOTH | DECISION (research) | PARTIAL (see §9a) | SOURCE_PROVEN | see §9a rows TG-03a/b | T-1 + Phase 2 / E2 |
-| TG-04 | Rapport Automatique / Intel | `RAPPORT_AUTOMATIQUE_BOT_TOKEN` | `RAPPORT_AUTOMATIQUE_CHAT_ID` | `core/advisor_loop.py::_send_intel` (1208-1232) | `crypto-advisor.service` (in-process) | PUSH_ONLY | SYSTEM (AI-generated periodic briefing) | UNKNOWN — narrative content, no field-level comparison performed | SOURCE_PROVEN | operator must decide whether narrative-briefing value is replaced by cockpit or is unique | operator decision / E2 |
+| TG-04 | Rapport Automatique / Intel | `RAPPORT_AUTOMATIQUE_BOT_TOKEN` | `RAPPORT_AUTOMATIQUE_CHAT_ID` | `core/advisor_loop.py::_send_intel` (1208-1232) | `crypto-advisor.service` (in-process) | PUSH_ONLY | SYSTEM (AI-generated periodic briefing) | UNKNOWN — narrative content, no field-level comparison performed | SOURCE_PROVEN | `OPERATOR_DECISION_REQUIRED` — operator must decide whether narrative-briefing value is replaced by cockpit or is unique | operator decision / E2 |
 | TG-05 | Paper Arena | `PAPER_ARENA_BOT_TOKEN` | `PAPER_ARENA_CHAT_ID` | `src/paper/paper_runner.py`, `src/paper/paper_report.py` | `paper-arena.service` (independent) | PUSH_ONLY | EXPERIMENT | NONE | SOURCE_PROVEN | n/a | none |
 | TG-06 | Generic / Engine Alerts | `TELEGRAM_BOT_TOKEN` **[R1.1, corrected — this column previously also listed the two chat variables below]** | `TELEGRAM_CHAT_ID` (default channel), `TELEGRAM_BEHAVIOR_CHAT_ID` (behavior sub-channel, falls back to `TELEGRAM_CHAT_ID` if unset) | `core/advisor_loop.py` (`_telegram`, `_telegram_behavior`), `scripts/telegram_alerts.py`, `supervision/performance_watchdog.py`, `supervision/exchange_monitor.py`, `watchdog_vps.py` (root — see §17 re: the unrelated `infra/monitoring/watchdog_vps.py` duplicate) | `crypto-advisor.service` + independent scripts | PUSH_ONLY | SYSTEM | PARTIAL (see §9a for per-family split) | SOURCE_PROVEN | see §9a rows TG-06a/b/c/d | operator decision (message-family split) / E2 |
-| TG-07 | Real Account Bot (merged into TG-02's token) | — (uses `MON_PORTFOLIO_BOT_TOKEN`/`_CHAT_ID`) | same as TG-02 | `core/advisor_loop.py::_telegram_real` (1186-1205) | `crypto-advisor.service` (in-process) | PUSH_ONLY (shares TG-02's token; TG-02 remains the sole poller for that token) | PORTFOLIO (real-account sub-channel) | PARTIAL — see §9a | SOURCE_PROVEN (merge complete: no live `os.getenv("REAL_ACCOUNT_BOT_TOKEN")` read remains; historical comment identifier persists, §1) | **[R1, Correction G]** `OPERATOR_DECISION_REQUIRED` — was `KEEP_UNTIL_COCKPIT_RUNTIME_CERTIFIED`; corrected because this is a unique push notification with no cockpit-side push equivalent (cockpit is pull-only, §8); field parity alone cannot retire it — see §11 Phase 3 | operator decision / E2 |
-| TG-08 | CMVK / Sim Bot | `TELEMETRIE_IA_BOT_TOKEN` | `TELEMETRIE_IA_CHAT_ID` | `src/telegram/bot_runner.py`, `src/telegram/sim_bot.py` | none — no systemd unit references this file; not called from `advisor_loop.py` or `paper_runner.py`; not in `.env.example` | BOTH (code fully implements polling+push if run manually) | EXPERIMENT (simulation/backtest inspection) | NONE | RUNTIME_UNKNOWN — code SOURCE_PROVEN, but no deployment entrypoint exists at this commit | operator must decide deploy-or-remove; `docs/TELEGRAM_BOT_CONSTITUTION.md` Bot 6 section frames the same open question | operator decision |
+| TG-07 | Real Account Bot (merged into TG-02's token) | — (uses `MON_PORTFOLIO_BOT_TOKEN`/`_CHAT_ID`) | same as TG-02 | `core/advisor_loop.py::_telegram_real` (1186-1205) | `crypto-advisor.service` (in-process) | PUSH_ONLY (shares TG-02's token; TG-02 remains the sole poller for that token) | PORTFOLIO (real-account sub-channel) | PARTIAL — see §9a | SOURCE_PROVEN (merge complete: no executable, non-comment `os.getenv("REAL_ACCOUNT_BOT_TOKEN")` call exists in the reviewed source; historical comment identifier persists, §1) | **[R1, Correction G]** `OPERATOR_DECISION_REQUIRED` — was `KEEP_UNTIL_COCKPIT_RUNTIME_CERTIFIED`; corrected because this is a unique push notification with no cockpit-side push equivalent (cockpit is pull-only, §8); field parity alone cannot retire it — see §11 Phase 3 | operator decision / E2 |
+| TG-08 | CMVK / Sim Bot | `TELEMETRIE_IA_BOT_TOKEN` | `TELEMETRIE_IA_CHAT_ID` | `src/telegram/bot_runner.py`, `src/telegram/sim_bot.py` | none — no systemd unit references this file; not called from `advisor_loop.py` or `paper_runner.py`; not in `.env.example` | BOTH (code fully implements polling+push if run manually) | EXPERIMENT (simulation/backtest inspection) | NONE | RUNTIME_UNKNOWN — code SOURCE_PROVEN, but no deployment entrypoint exists at this commit | `OPERATOR_DECISION_REQUIRED` — operator must decide deploy-or-remove; `docs/TELEGRAM_BOT_CONSTITUTION.md` Bot 6 section frames the same open question | operator decision |
 | TG-09 | KillSwitch (legacy `supervision/kill_switch.py::TelegramKillSwitch`) | `KILLSWITCH_BOT_TOKEN`/`_CHAT_ID` — name only, **never read via `os.getenv` anywhere in source** | same | `supervision/kill_switch.py` | no non-test, non-archive construction call with token credentials was found | **[R1, Correction B — evidence class corrected]** `MODULE_IMPORTABLE_NOT_INSTANTIATED`, not `DEAD_CODE_SOURCE_PROVEN`. `supervision/__init__.py:11-13` imports `TelegramKillSwitch` from this module at package-init time (`from supervision.kill_switch import (TelegramKillSwitch,)`), so any `import supervision` or `import supervision.<anything>` executes this module's top-level code. That top-level code (read in full) contains only an `Enum` and a class definition with no import-time side effects — so importing it has no runtime behavior by itself. Separately, the class itself has no non-test, non-archive construction call supplying token credentials: the only two `TelegramKillSwitch(` hits outside archive are the class's own docstring example and `core/advisor_loop.py:3578`, which constructs the *aliased* `KillSwitchHardened` under the same name (via `core/advisor_runtime_adapters.py:109`) — a distinct class with zero Telegram code. Net: source present, transitively imported, **no non-test, non-archive construction call with token credentials found**, runtime status on the VPS unknown without VPS evidence. | `FORBIDDEN_MUST_NEVER_REACTIVATE` (unchanged) | none — must never be wired to a real token; ADR-0007 forbids any observer-layer component from holding execution authority | none (constitutional prohibition, not a retirement candidate) |
 | TG-10 | Narrator | `NARRATOR_BOT_TOKEN`/`_CHAT_ID` — commented out, `.env.secrets.example:92-93` only | same | none — no implementation module, class, entrypoint, instantiation, or call site was found by this mission's searches | none | NONE | n/a | n/a | `NO_IMPLEMENTATION_SOURCE_PROVEN` (see §0 for definition; this identity does not use `DEAD_CODE_SOURCE_PROVEN`, which presumes an implementation exists) | **[R1.4, corrected — Correction A]** `OPERATOR_DECISION_REQUIRED`. No Narrator implementation was found in the reviewed repository sources — but this does not prove no deployed, orphaned, or externally managed process exists, and no VPS or runtime verification was performed during O-02W-E1. `docs/architecture/TELEGRAM_IDENTITY_REGISTRY.md:256` quotes a `.env.secrets.example` comment describing an unresolved operational claim: `"Rôle CODE : AUCUN dans main. Module observability/narrator SUPPRIMÉ du disque, process PID 504 vit en mémoire depuis Aug 24 (zombie DS-002 v2). À tuer proprement — ne PAS renseigner de token ici tant que le code n'est pas restauré ou l'ADR 'narrateur retiré' signé."` — i.e. an alleged live/zombie process (PID 504) and an explicitly unsigned retirement ADR. Repository-source absence cannot settle that runtime question or substitute for the named ADR. Formal retirement cannot be authorized until the runtime claim is resolved (out-of-repo, VPS-side) and the required ADR/governance decision is recorded. Cleanup of the two inert comment/config placeholder lines (`.env.secrets.example:92-93`) is secondary housekeeping, conditional on that decision — see follow-up note below, not itself this identity's cutover classification | operator/governance decision: resolve the PID 504 runtime claim and record the "narrateur retiré" ADR before any retirement or cleanup action; comment/configuration placeholder cleanup may follow once that decision is recorded (non-urgent, E2 or later) |
 | TG-11 | Internal-only kill switch (`supervision/telegram_kill_switch.py`, name-collides with TG-09's class name but is a distinct, separate implementation) | none — docstring states Telegram polling was removed | none | `supervision/telegram_kill_switch.py` | referenced only by two `tests/phase0/` files and `tools/runtime_tracer.py`; **not imported by `core/advisor_loop.py`**, and not imported by `supervision/__init__.py` either (checked — that file imports only `kill_switch` and `killswitch_hardened`, not `telegram_kill_switch`) | NONE (zero Telegram code; only a programmatic `force_halt()/force_resume()` API) | n/a | n/a | SOURCE_PROVEN (fully unreachable from `supervision/__init__.py` or `core/advisor_loop.py` — unlike TG-09, this one has no package-init import path either) | `OPERATOR_DECISION_REQUIRED` **[R1.1, corrected]** — this file exposes the same `force_halt()/force_resume()` shape as `supervision/killswitch_hardened.py` and has no found caller, which is consistent with (but not proof of) supersession; confirming actual supersession status requires checking historical commit intent, not something this source-only pass can establish with certainty | operator decision (low priority) — confirm superseded status before any removal |
@@ -791,7 +831,7 @@ TG-02, TG-03, and TG-06.
 |---|---|---|---|---|---|---|
 | TG-02a | TG-02 | On-demand read commands (`/status /kpis /phase /regime /risk /health /balance /positions /pnl /trades /config /get /logs /help /eo /gate /perf /certif /charts /blackbox /history /recap`, `command_center_bot.py` handler dict + arg-commands, lines 1295-1367) | `ON_DEMAND_READ_ONLY_QUERY` | PARTIAL (status/positions/pnl fields likely overlap cockpit `portfolio` domain; query semantics — ask-and-receive — have no cockpit equivalent) | `KEEP_UNTIL_COCKPIT_RUNTIME_CERTIFIED` | T-1 + Phase 2 / E2 |
 | TG-02b | TG-02 | Periodic auto-report (`_report_loop`, `command_center_bot.py:1390-1400`, interval `P10_PORTFOLIO_REPORT_H`, default 1h) | `PERIODIC_STATUS_SUMMARY` | PARTIAL (report content likely overlaps `portfolio` domain fields; the *push* delivery itself has no cockpit equivalent, cockpit is pull-only) | `KEEP_UNTIL_COCKPIT_RUNTIME_CERTIFIED` (per Correction G, only for the field-content portion; the push-delivery value itself needs the same operator sign-off as TG-06's periodic subset, §11 Phase 3) | T-1 + Phase 2 / E2 |
-| TG-02c | TG-02 | Blocked control commands (`/pause /resume /set /setphase /maxorder /reset /restart /confirm /cancel`, `command_center_bot.py:1370-1379`, fixed refusal string, never calls `CommandDataProvider.set_param`) | `FORBIDDEN_CONTROL_SURFACE` | NONE (inert — no cockpit equivalent is needed for a command that has no live effect) | `FORBIDDEN_MUST_NEVER_REACTIVATE` (remains forbidden even though currently inert — see §9b for the dormant mutator this refusal currently blocks) | none |
+| TG-02c | TG-02 | Blocked control commands (`/pause /resume /set /setphase /maxorder /reset /restart /confirm /cancel`, `command_center_bot.py:1370-1379`) | `FORBIDDEN_CONTROL_SURFACE` | NONE (inert — the handler for each of these commands returns a fixed refusal response, and the reviewed path makes no call to `CommandDataProvider.set_param` or any other mutator, so no cockpit equivalent is needed) | `FORBIDDEN_MUST_NEVER_REACTIVATE` (remains forbidden even though currently inert — see §9b for the dormant mutator this refusal currently blocks) | none |
 | TG-03a | TG-03 | On-demand commands (`/snapshot /health /pipeline`, `bot.py:714-716`) | `ON_DEMAND_READ_ONLY_QUERY` | PARTIAL (pipeline/health concepts likely overlap `decisions`/`system` domains) | `KEEP_UNTIL_COCKPIT_RUNTIME_CERTIFIED` | T-1 + Phase 2 / E2 |
 | TG-03b | TG-03 | Pinned-panel change-driven live refresh (`_change_driven_live_tick`/`_pinned_tick`, `bot.py:630-708`, minimum interval `QC_SAFETY_REFRESH_S`=1800s or `PINNED_UPDATE_S`=600s) | `PERIODIC_STATUS_SUMMARY` | PARTIAL for content; the edit-in-place pinned-message UX and any `sendPhoto` chart delivery have no cockpit equivalent (cockpit requires an active pull, never edits a persistent view for the operator) | `KEEP_UNTIL_COCKPIT_RUNTIME_CERTIFIED`, subject to the same push-value caveat as TG-02b (§11 Phase 3) | T-1 + Phase 2 / E2 |
 | TG-06a | TG-06 | Exchange down/up (`supervision/exchange_monitor.py:207,229-234`), session halt/resume (`core/advisor_loop.py:3878,5576,5583`), crash alerts | `CRITICAL_SAFETY_ALERT` | PARTIAL for status content; push delivery itself has no cockpit equivalent | `KEEP_PERMANENT_CRITICAL_ALERT` | none — never retired |
@@ -1474,15 +1514,38 @@ unchanged by this remediation round, per its scope restriction (§12).
   standard pending the §13 drift resolution.
 - CryptoRadar and Paper Arena classified `KEEP_RESEARCH_INTERFACE`,
   untouched, no overlap with cockpit domains.
-- `OPERATOR_DECISION_REQUIRED` items: TG-04 (Intel briefing
-  replacement value), TG-06d (routine-telemetry-candidate split
-  pending Phase 2), TG-07 (STANDBY↔LIVE push — **[R1, new]** moved
-  here from an automatic cutover path per Correction G), TG-08 (Sim
-  Bot deploy-or-remove), TG-11 (superseded-status confirmation before
-  any removal), plus **[R1, new]** the real-capital architectural
-  boundary (§9c, Flow 2) as a separate item requiring explicit
-  MASTER/operator sign-off, distinct from any Telegram-retirement
-  decision.
+- **[R1.5, Correction A — regrouped into four distinct categories;
+  do not conflate them]**
+
+  1. **Primary identity-level `OPERATOR_DECISION_REQUIRED` items**
+     (§9, one decision per Telegram/internal identity): TG-04 (Intel
+     briefing replacement-value decision), TG-07 (STANDBY↔LIVE unique
+     push decision — **[R1, new]** moved here from an automatic
+     cutover path per Correction G), TG-08 (Sim Bot deploy-or-remove
+     decision), TG-10 (**[R1.4/R1.5, added]** Narrator runtime/ADR
+     governance decision — resolve the PID 504/zombie-process claim
+     and record the "narrateur retiré" ADR before any retirement or
+     cleanup action, §9), TG-11 (superseded-status confirmation before
+     any removal).
+  2. **Message-family transition states** (§9a, preserved exactly, not
+     relabelled here): TG-06d remains `KEEP_UNTIL_COCKPIT_RUNTIME_CERTIFIED`
+     — it is a routine-telemetry-candidate split pending the Phase 2
+     comparison/operator sign-off described in §9a and §11, not an
+     `OPERATOR_DECISION_REQUIRED` item; describing that pending sign-off
+     here does not change its §9a transition-state token.
+  3. **Separate architectural decision** (§9c, Flow 2 — not a
+     Telegram identity or message-family cutover classification at
+     all): the real-capital sizing/risk boundary requires explicit
+     MASTER/operator sign-off, entirely distinct from any Telegram
+     retirement or message-family decision above.
+  4. **§17 file-level decisions** (a separate per-file inventory, not
+     part of the primary identity-level list in group 1 above): several
+     individual source files in §17 (e.g. `S3/01_telegram_alerts.py`,
+     `infra/notifications/notify_test_status.py`,
+     `supervision/ops_watchdog.py`) are independently classified
+     `OPERATOR_DECISION_REQUIRED` at the file level — see §17 directly;
+     this summary bullet's group 1 does not enumerate every such
+     occurrence in the document.
 - `FORBIDDEN_MUST_NEVER_REACTIVATE`: TG-09 (legacy KillSwitch,
   reclassified per Correction B to `MODULE_IMPORTABLE_NOT_INSTANTIATED`
   — package-init-importable, no non-test, non-archive construction
