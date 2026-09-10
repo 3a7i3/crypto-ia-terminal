@@ -70,6 +70,7 @@ node_modules/
 frontend/node_modules/
 frontend/dist/
 frontend/build/
+frontend/.cross-stack-fixtures/
 dist/
 build/
 
