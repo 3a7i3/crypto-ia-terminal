@@ -259,7 +259,9 @@ class SelfAwarenessEngine:
 
     def operator_resume(self, full_reset: bool = False) -> None:
         """
-        Reprise explicite après /RESUME opérateur.
+        Reprise par appel interne explicite ou interface de contrôle
+        séparément autorisée. Aucune commande Telegram n'invoque cette
+        méthode.
 
         - full_reset=True  : reset complet (historique conservé, état remis à OK)
         - full_reset=False : lève uniquement le halt et rétrograde en WARNING
@@ -616,20 +618,6 @@ class SelfAwarenessEngine:
                 "[SelfAwareness] CRITICAL — kill switch déclenché (halt %.0fs)",
                 self.CRITICAL_HALT_SECONDS,
             )
-            self._send_telegram_critical(drifts)
-
-    def _send_telegram_critical(self, drifts: list[DriftSignal]) -> None:
-        try:
-            from supervision.notifications.telegram_notifier import TelegramNotifier
-
-            msgs = "\n".join(f"• {d.message}" for d in drifts[:5])
-            TelegramNotifier().send(
-                f"SELF-AWARENESS CRITIQUE\n"
-                f"Trading suspendu 24h — dérives détectées:\n{msgs}\n"
-                f"Envoyer /RESUME pour reprendre manuellement."
-            )
-        except Exception:
-            pass
 
     # ── Helpers stats ─────────────────────────────────────────────────────────
 
