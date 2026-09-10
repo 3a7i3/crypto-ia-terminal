@@ -3501,9 +3501,13 @@ def main(
             prewarm_executor.shutdown(wait=False, cancel_futures=True)
             prewarm_executor = None
 
-    # Kill switch — état partagé entre le thread interne du kill switch
-    # (KillSwitchHardened, sans interface Telegram — voir
-    # core/advisor_runtime_adapters.py:109) et la boucle principale.
+    # Kill switch — _halt_requested est un threading.Event partagé entre les
+    # callbacks programmatiques enregistrés ci-dessous (_on_stop_all,
+    # _on_close_all, _on_safe_mode, _on_resume) et la boucle principale.
+    # KillSwitchHardened (sans interface Telegram — voir
+    # core/advisor_runtime_adapters.py:109) ne crée aucun thread : son
+    # start() est un no-op (aucun polling), et is_thread_alive() retourne
+    # toujours False (supervision/killswitch_hardened.py).
     # threading.Event : thread-safe sans dépendance au GIL, sémantique claire.
     # set()     → arrêt demandé
     # clear()   → reprise autorisée
@@ -3543,7 +3547,10 @@ def main(
         runtime_authority.request_safe_mode(
             "kill_switch_stop_all", "STOP_ALL programmatique (callback KillSwitchHardened)"
         )
-        log.critical("[main] STOP_ALL recu — la boucle va s'arreter au prochain cycle")
+        log.critical(
+            "[main] Callback on_stop_all invoque — la boucle va s'arreter au "
+            "prochain cycle"
+        )
 
     def _on_close_all():
         # Callback KillSwitchHardened.on_close_all — pas de commande Telegram
@@ -3553,7 +3560,10 @@ def main(
             "kill_switch_close_all",
             "CLOSE_ALL programmatique (callback KillSwitchHardened)",
         )
-        log.critical("[main] CLOSE_ALL recu — la boucle va s'arreter au prochain cycle")
+        log.critical(
+            "[main] Callback on_close_all invoque — la boucle va s'arreter au "
+            "prochain cycle"
+        )
 
     def _on_safe_mode():
         # Callback KillSwitchHardened.on_safe_mode — pas de commande Telegram
@@ -3562,7 +3572,9 @@ def main(
             "kill_switch_safe_mode",
             "SAFE_MODE programmatique (callback KillSwitchHardened)",
         )
-        log.warning("[main] SAFE_MODE recu — autorité runtime en SAFE_MODE")
+        log.warning(
+            "[main] Callback on_safe_mode invoque — autorité runtime en SAFE_MODE"
+        )
 
     def _on_resume():
         # Callback câblé sur KillSwitchHardened.force_resume() (voir

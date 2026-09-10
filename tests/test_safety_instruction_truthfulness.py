@@ -392,3 +392,131 @@ def test_exchange_monitor_thresholds_and_callbacks_unchanged(monkeypatch):
 def test_exchange_monitor_no_new_stop_mechanism_added():
     assert "def force_stop" not in EXCHANGE_MONITOR_SRC
     assert "_COMMANDS" not in EXCHANGE_MONITOR_SRC
+
+
+# ---------------------------------------------------------------------------
+# O-02W-PRE-T1-A-R1.1 — KillSwitchHardened owns no thread; callback logs are
+# source-honest; the doc distinguishes invoked production paths from
+# callbacks that are merely wired.
+# ---------------------------------------------------------------------------
+
+
+def _make_killswitch_hardened(tmp_path):
+    from supervision.killswitch_hardened import KillSwitchHardened
+
+    return KillSwitchHardened(state_path=tmp_path / "ks_state.json")
+
+
+def test_killswitch_hardened_start_creates_no_thread(tmp_path):
+    """KillSwitchHardened.start() is a no-op regarding thread creation."""
+    import threading
+
+    before = {t.ident for t in threading.enumerate()}
+    ks = _make_killswitch_hardened(tmp_path)
+    ks.start()
+    after = {t.ident for t in threading.enumerate()}
+    assert after == before, "KillSwitchHardened.start() must not spawn a thread"
+
+
+def test_killswitch_hardened_is_thread_alive_always_false(tmp_path):
+    ks = _make_killswitch_hardened(tmp_path)
+    assert ks.is_thread_alive() is False
+    ks.start()
+    assert ks.is_thread_alive() is False
+
+
+def test_killswitch_hardened_owns_no_thread_attribute():
+    """Source proof: no threading.Thread is ever constructed in this class."""
+    src = (REPO_ROOT / "supervision" / "killswitch_hardened.py").read_text(
+        encoding="utf-8"
+    )
+    assert "threading.Thread(" not in src
+
+
+def test_advisor_loop_no_thread_interne_claim():
+    assert "thread interne du kill switch" not in ADVISOR_LOOP_SRC
+    assert "thread Telegram" not in ADVISOR_LOOP_SRC
+
+
+def test_advisor_loop_kill_switch_comment_describes_only_proven_facts():
+    match = re.search(
+        r"# Kill switch —.*?\n    _halt_requested = threading\.Event\(\)",
+        ADVISOR_LOOP_SRC,
+        re.DOTALL,
+    )
+    assert match, "kill-switch comment block not found"
+    block = match.group(0)
+    assert "threading.Event" in block
+    # Must not claim KillSwitchHardened owns/starts a worker thread.
+    assert "KillSwitchHardened" in block
+    assert "no-op" in block or "aucun polling" in block or "aucun thread" in block
+
+
+def test_state_machine_doc_distinguishes_invoked_from_merely_wired_callbacks():
+    assert "Chemins source-prouvés invoqués en production" in STATE_MACHINE_DOC
+    assert (
+        "Chemins source-prouvés câblés, mais NON source-prouvés invoqués en "
+        "production" in STATE_MACHINE_DOC
+    )
+
+
+def test_state_machine_doc_does_not_classify_kill_switch_callbacks_as_invoked():
+    # Locate the "invoked in production" clause specifically and confirm the
+    # four kill-switch callbacks are not listed inside it.
+    match = re.search(
+        r"Chemins source-prouvés invoqués en production\*\*.*?(?=\*\*Chemins "
+        r"source-prouvés câblés)",
+        STATE_MACHINE_DOC,
+        re.DOTALL,
+    )
+    assert match, "invoked-in-production clause not found"
+    invoked_clause = match.group(0)
+    for callback in ("_on_stop_all", "_on_close_all", "_on_safe_mode"):
+        assert callback not in invoked_clause, (
+            f"{callback} must not be classified as invoked in production"
+        )
+
+
+def test_state_machine_doc_no_longer_claims_stale_telegram_reason_strings_remain():
+    # R1 removed the "STOP_ALL telegram" etc. reason strings from
+    # advisor_loop.py; the doc must not claim they still exist in the final
+    # source.
+    assert "STOP_ALL telegram" not in STATE_MACHINE_DOC
+    assert "CLOSE_ALL telegram" not in STATE_MACHINE_DOC
+    assert "SAFE_MODE telegram" not in STATE_MACHINE_DOC
+    for reason_string in ("STOP_ALL telegram", "CLOSE_ALL telegram", "SAFE_MODE telegram"):
+        assert reason_string not in ADVISOR_LOOP_SRC
+
+
+def test_advisor_loop_callback_logs_state_only_that_callback_was_invoked():
+    for callback_log in (
+        "Callback on_stop_all invoque",
+        "Callback on_close_all invoque",
+        "Callback on_safe_mode invoque",
+    ):
+        assert callback_log in ADVISOR_LOOP_SRC
+
+
+def test_advisor_loop_callback_logs_do_not_claim_telegram_or_operator_origin():
+    for match in re.finditer(
+        r'log\.(?:critical|warning)\(\s*"\[main\] Callback on_\w+ invoque.*?"\s*\)',
+        ADVISOR_LOOP_SRC,
+        re.DOTALL,
+    ):
+        body = match.group(0)
+        assert "telegram" not in body.lower()
+        assert "opérateur" not in body.lower() and "operateur" not in body.lower()
+        assert "recu" not in body.lower()
+
+
+def test_advisor_loop_callback_mutations_source_keys_and_wiring_unchanged():
+    assert '"kill_switch_stop_all"' in ADVISOR_LOOP_SRC
+    assert '"kill_switch_close_all"' in ADVISOR_LOOP_SRC
+    assert '"kill_switch_safe_mode"' in ADVISOR_LOOP_SRC
+    assert "on_stop_all=_on_stop_all" in ADVISOR_LOOP_SRC
+    assert "on_close_all=_on_close_all" in ADVISOR_LOOP_SRC
+    assert "on_safe_mode=_on_safe_mode" in ADVISOR_LOOP_SRC
+    assert "on_resume=_on_resume" in ADVISOR_LOOP_SRC
+    assert "OPERATOR_RESUME" in ADVISOR_LOOP_SRC
+    assert '_halt_requested.set()' in ADVISOR_LOOP_SRC
+    assert 'runtime_authority.request_safe_mode(' in ADVISOR_LOOP_SRC
