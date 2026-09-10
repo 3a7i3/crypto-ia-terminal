@@ -36,7 +36,7 @@ class DangerLevel(IntEnum):
     CAUTION = 1  # réduction taille
     WARNING = 2  # safe mode
     DANGER = 3  # halt temporaire
-    CRITICAL = 4  # kill switch
+    CRITICAL = 4  # halt critique interne
 
 
 @dataclass

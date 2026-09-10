@@ -510,3 +510,15 @@ def test_no_pytest_skip_in_critical_callback_test():
     assert match, "target test function not found in this file"
     body = match.group(0)
     assert "pytest.skip" not in body
+
+
+def test_self_awareness_module_has_no_kill_switch_attribution():
+    """R1.1: the DangerLevel.CRITICAL enum member's comment ('# kill
+    switch') falsely attributed a global KillSwitch trigger to
+    _apply_level(), which only sets size_factor=0.0, safe_mode=True, and
+    a local halt_until. No 'kill switch' wording of any kind may remain
+    in the production module."""
+    assert not re.search(r"kill[ _-]?switch", SELF_AWARENESS_SRC, re.IGNORECASE), (
+        "self_awareness_engine.py must not attribute any kill-switch "
+        "behavior — _apply_level() never triggers the global KillSwitch"
+    )
