@@ -3939,19 +3939,12 @@ def main(
         log.warning("[P10-F] OperationalState non disponible: %s", _op_init_exc)
     # ─────────────────────────────────────────────────────────────────────────
 
-    # ── P10-F Command Center Bot (lecture + écriture depuis Telegram) ────────
+    # ── P10-F Command Center Bot (lecture seule — observation Telegram) ──────
     _portfolio_bot = None
     _chart_server = None
     try:
         from capital_deployment.command_center_bot import CommandCenterBot
         from capital_deployment.command_center_bot import CommandDataProvider as _CDP
-
-        def _set_param_live(name: str, value: str) -> bool:
-            os.environ[name] = value
-            if name == "EXEC_MAX_ORDER_USD":
-                nonlocal max_order
-                max_order = float(value)
-            return True
 
         def _get_trades_for_bot():
             try:
@@ -4032,7 +4025,6 @@ def main(
             get_gate=_get_gate_for_bot,
             get_blackbox=_get_blackbox_for_bot,
             get_trades=_get_trades_for_bot,
-            set_param=_set_param_live,
         )
         _portfolio_bot = CommandCenterBot.from_env(_pb_provider)
         _portfolio_bot.start()
