@@ -1,0 +1,1681 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" />
+
+    <link rel="shortcut icon" href="../_static/favicon.ico"/><!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
+        <title>ADR-0020 — Deterministic, durable and idempotent order submission (O-02W-PRE-T1-E REM-B) - Crypto AI Terminal 9.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=354aac6f" />
+    <link rel="stylesheet" type="text/css" href="../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=1b9cecba" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=302659d7" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">Crypto AI Terminal 9.1 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="../_static/../assets/logo_ai_quant.png" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="../_static/../assets/logo_ai_quant.png" alt="Dark Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/blob/main/docs/adr/0020-deterministic-durable-idempotent-order-submission.md?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/edit/main/docs/adr/0020-deterministic-durable-idempotent-order-submission.md" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="adr-0020-deterministic-durable-and-idempotent-order-submission-o-02w-pre-t1-e-rem-b">
+<h1>ADR-0020 — Deterministic, durable and idempotent order submission (O-02W-PRE-T1-E REM-B)<a class="headerlink" href="#adr-0020-deterministic-durable-and-idempotent-order-submission-o-02w-pre-t1-e-rem-b" title="Link to this heading">¶</a></h1>
+<p>Status: Accepted (implementation scope, not runtime certification)
+Date: 2026-09-11
+Supersedes: none. Extends ADR-0019 (pre-network order authorization, REM-A).</p>
+<section id="context">
+<h2>Context<a class="headerlink" href="#context" title="Link to this heading">¶</a></h2>
+<p>REM-A (ADR-0019) closed the pre-network authorization boundary: no
+mutation call may reach the exchange with an invalid, un-authorized, or
+balance-unchecked amount. It explicitly left out of scope: deterministic
+order identity, durable intent-before-network journaling,
+retry/reconciliation semantics, and the unwired <code class="docutils literal notranslate"><span class="pre">OrderDeduplicator</span></code>
+time-window mechanism’s inherent limits (a 30s window is not a durable,
+restart-surviving, deterministic identity — it is a best-effort spam
+guard, and remains one; REM-B does not replace it, it adds an orthogonal,
+durable layer beneath it).</p>
+<p>This mission (REM-B) closes the next causal gap: <strong>one logical order
+intention can still produce more than one exchange submission</strong> if a
+network call times out, the process restarts mid-flight, or the same
+DecisionPacket/close instruction is delivered twice — because nothing
+upstream of <code class="docutils literal notranslate"><span class="pre">create_order()</span></code> remembers, durably, “was this exact
+intention already attempted?”</p>
+</section>
+<section id="decision">
+<h2>Decision<a class="headerlink" href="#decision" title="Link to this heading">¶</a></h2>
+<p>Introduce <code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/execution/order_intent_protocol.py</span></code>:</p>
+<ol class="arabic">
+<li><p><strong>Canonical logical intent</strong> (<code class="docutils literal notranslate"><span class="pre">OrderIntent</span></code>) — a versioned, immutable,
+causally-scoped representation (namespace, causal_id, account_scope,
+symbol, side, order_type, amount, price, reduce_only, position_ref).
+No wall-clock time, PID, random UUID, retry count, mutable status, or
+secret ever enters the canonical payload.</p></li>
+<li><p><strong>Deterministic full digest</strong> — SHA-256 over a fixed-field-order,
+locale-independent canonical JSON serialization. The same logical
+intention always produces the same digest (I1); a genuinely different
+decision (different <code class="docutils literal notranslate"><span class="pre">causal_id</span></code>, symbol, side, amount, price, or
+<code class="docutils literal notranslate"><span class="pre">reduce_only</span></code>) always produces a different one (I2).</p></li>
+<li><p><strong>Exchange-safe client order ID</strong> — a short, deterministic fragment of
+the full digest, prefixed with a schema version tag
+(<code class="docutils literal notranslate"><span class="pre">reb1&lt;hex-fragment&gt;</span></code>, ≤32 chars by default). The full digest and full
+canonical payload are always persisted locally; the short ID is only a
+transport identifier. A short-ID collision against a <em>different</em> full
+digest/payload is detected and fails closed (I7,
+<code class="docutils literal notranslate"><span class="pre">SubmissionOutcome.IDENTITY_COLLISION</span></code>) — never silently treated as the
+same order.</p></li>
+<li><p><strong>Durable append-only journal</strong> (<code class="docutils literal notranslate"><span class="pre">OrderIntentJournal</span></code>) — one minimal
+new authority, introduced because no existing durable order-cycle
+journal was found in this repository (the closest candidates,
+<code class="docutils literal notranslate"><span class="pre">src/journal/trade_logger.py</span></code> and <code class="docutils literal notranslate"><span class="pre">OrderDeduplicator</span></code>, are in-memory /
+time-window mechanisms, not durable-before-network authorities — see
+inventory below). JSONL, one record per state transition, fsync’d
+before returning. Reconstructing state means replaying the file and
+keeping, per intent digest, the last valid (parseable) record — a
+truncated final line from a crash mid-write is skipped, not fatal.
+Default production path: <code class="docutils literal notranslate"><span class="pre">databases/order_intent_journal.jsonl</span></code>
+(matches this repo’s existing <code class="docutils literal notranslate"><span class="pre">databases/*.json(l)</span></code> runtime-state
+convention), overridable via <code class="docutils literal notranslate"><span class="pre">ORDER_INTENT_JOURNAL_PATH</span></code>.</p>
+<p>State vocabulary (closed): <code class="docutils literal notranslate"><span class="pre">INTENT_RECORDED</span></code> → <code class="docutils literal notranslate"><span class="pre">SUBMISSION_STARTED</span></code> →
+{<code class="docutils literal notranslate"><span class="pre">ACKNOWLEDGED</span></code> | <code class="docutils literal notranslate"><span class="pre">EXPLICITLY_REJECTED</span></code> | <code class="docutils literal notranslate"><span class="pre">RECONCILE_REQUIRED</span></code>} →
+(<code class="docutils literal notranslate"><span class="pre">RECONCILE_REQUIRED</span></code> only) {<code class="docutils literal notranslate"><span class="pre">RECONCILED_FOUND</span></code> |
+<code class="docutils literal notranslate"><span class="pre">RECONCILED_NOT_FOUND_PENDING</span></code> | <code class="docutils literal notranslate"><span class="pre">COLLISION</span></code>}. No generic <code class="docutils literal notranslate"><span class="pre">FAILED</span></code>
+state exists — an ambiguous outcome is never conflated with a proven
+failure or a proven success (I10). Invalid transitions raise
+<code class="docutils literal notranslate"><span class="pre">InvalidTransitionError</span></code> rather than being silently written.</p>
+<p>Concurrency: a single <code class="docutils literal notranslate"><span class="pre">threading.RLock</span></code> per journal instance
+serializes readers/writers within one process, plus a per-intent-digest
+lock in the coordinator so unrelated intents never block each other.
+This is <strong>not</strong> a cross-process lock. This repository runs one
+execution process at a time (single VPS <code class="docutils literal notranslate"><span class="pre">advisor_loop.py</span></code> writer per
+the CLAUDE.md stabilization window); running two processes against the
+same journal path concurrently is an explicit single-writer
+requirement, not silently assumed safe — documented here rather than
+pretending a thread lock covers it.</p>
+</li>
+<li><p><strong>Submission coordinator</strong> (<code class="docutils literal notranslate"><span class="pre">OrderIntentCoordinator.submit</span></code>) —
+enforces: build intent → (caller already ran REM-A authorization) →
+canonicalize → derive identity → acquire per-digest lock → read journal
+→ if already recorded, return existing typed state, zero new mutation
+calls (I4/I6) → persist <code class="docutils literal notranslate"><span class="pre">INTENT_RECORDED</span></code> (durable) → persist
+<code class="docutils literal notranslate"><span class="pre">SUBMISSION_STARTED</span></code> (durable, <em>before</em> the network call — I3) → call
+the exchange <strong>exactly once</strong> → classify the raw result into
+<code class="docutils literal notranslate"><span class="pre">ACKNOWLEDGED</span></code> / <code class="docutils literal notranslate"><span class="pre">EXPLICITLY_REJECTED</span></code> / <code class="docutils literal notranslate"><span class="pre">AMBIGUOUS</span></code> and persist the
+corresponding terminal or <code class="docutils literal notranslate"><span class="pre">RECONCILE_REQUIRED</span></code> state. A caller-supplied
+<code class="docutils literal notranslate"><span class="pre">mutate()</span></code> callable performs the actual exchange call — this module
+never imports <code class="docutils literal notranslate"><span class="pre">ccxt</span></code> or opens a socket itself.</p></li>
+<li><p><strong>Reconciliation</strong> (<code class="docutils literal notranslate"><span class="pre">OrderIntentCoordinator.reconcile</span></code>) — read-only
+with respect to order creation. For an intent in <code class="docutils literal notranslate"><span class="pre">RECONCILE_REQUIRED</span></code>
+or <code class="docutils literal notranslate"><span class="pre">RECONCILED_NOT_FOUND_PENDING</span></code>: exactly one match → verify
+compatibility → <code class="docutils literal notranslate"><span class="pre">RECONCILED_FOUND</span></code> (never resubmits); zero matches →
+<code class="docutils literal notranslate"><span class="pre">RECONCILED_NOT_FOUND_PENDING</span></code> (still ambiguous, still never
+resubmits — no time-delay-based “safe to retry” policy is introduced);
+more than one match, or a payload mismatch → fail closed
+(<code class="docutils literal notranslate"><span class="pre">IDENTITY_COLLISION</span></code>); a lookup failure leaves the intent in
+<code class="docutils literal notranslate"><span class="pre">RECONCILE_REQUIRED</span></code>, recording the read failure.</p></li>
+<li><p><strong>Typed results</strong> (<code class="docutils literal notranslate"><span class="pre">SubmissionOutcome</span></code>) distinguish authorization
+denial, already-recorded, acknowledged, explicitly rejected,
+reconcile-required, reconciled-found, not-found-but-ambiguous,
+identity collision, journal failure, and unsupported adapter
+capability — never a bare <code class="docutils literal notranslate"><span class="pre">None</span></code>/boolean standing in for more than one
+meaning.</p></li>
+<li><p><strong>Adapter capability declaration</strong> (<code class="docutils literal notranslate"><span class="pre">AdapterCapabilities</span></code>) — an
+adapter that cannot accept a deterministic client order ID fails
+closed (<code class="docutils literal notranslate"><span class="pre">UNSUPPORTED_ADAPTER_CAPABILITY</span></code>) rather than silently
+submitting without one.</p></li>
+</ol>
+</section>
+<section id="integration">
+<h2>Integration<a class="headerlink" href="#integration" title="Link to this heading">¶</a></h2>
+<p>Both source-reachable mutation families are wired through the
+coordinator <strong>as an additive, backward-compatible path gated on an
+explicit <code class="docutils literal notranslate"><span class="pre">decision_id</span></code> parameter</strong>:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">ExecutionEngine.create_order(...,</span> <span class="pre">decision_id=None)</span></code> →
+<code class="docutils literal notranslate"><span class="pre">_place_live_order(...,</span> <span class="pre">decision_id=None)</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ExecutionEngine.create_futures_order(...,</span> <span class="pre">decision_id=None)</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PositionManager._send_close_order</span></code> — always routed through the
+coordinator; the causal id is derived deterministically from
+<code class="docutils literal notranslate"><span class="pre">pos.order_id</span></code> (the same key this module already uses to index open
+positions) composed with the <code class="docutils literal notranslate"><span class="pre">CloseReason</span></code>, falling back to the same
+<code class="docutils literal notranslate"><span class="pre">symbol_opened_at</span></code> composite <code class="docutils literal notranslate"><span class="pre">PositionManager.add_position</span></code> already
+uses as a key when <code class="docutils literal notranslate"><span class="pre">order_id</span></code> is unset. <code class="docutils literal notranslate"><span class="pre">opened_at</span></code> is an immutable
+field set once at position construction — never “current time at
+submission” — so this fallback stays a stable per-position identity.</p></li>
+</ul>
+<p><strong>Known limitation, stated explicitly (scope control, mission §16):</strong>
+<code class="docutils literal notranslate"><span class="pre">ExecutionEngine.create_order()</span></code>/<code class="docutils literal notranslate"><span class="pre">create_futures_order()</span></code> do not yet
+have a <code class="docutils literal notranslate"><span class="pre">decision_id</span></code> supplied by their only current caller
+(<code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code>), which this mission does not modify. When
+<code class="docutils literal notranslate"><span class="pre">decision_id</span></code> is omitted, these two call sites keep their pre-REM-B
+behavior unchanged (direct <code class="docutils literal notranslate"><span class="pre">_with_retry(create_order,</span> <span class="pre">...)</span></code> call) —
+this is a deliberate fail-open-to-old-behavior choice, not a silent
+gap: REM-B does not claim I4/I8 coverage for a caller that has not yet
+been given a causal id to pass. Full closure of this requires plumbing
+an existing DecisionPacket/decision id through <code class="docutils literal notranslate"><span class="pre">advisor_loop.py</span></code>, which
+is explicitly out of this mission’s scope control (§16: “avoid
+modifying core/advisor_loop.py unless required to propagate an
+existing causal ID… prefer fail-closed over deriving identity from
+time” — no upstream causal id currently flows to this call site to
+propagate). <code class="docutils literal notranslate"><span class="pre">PositionManager._send_close_order</span></code> has no such gap: its
+causal id is derived entirely from state this module already owns.</p>
+</section>
+<section id="existing-code-inventory-mission-4-recorded-for-audit">
+<h2>Existing-code inventory (mission §4, recorded for audit)<a class="headerlink" href="#existing-code-inventory-mission-4-recorded-for-audit" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/execution/order_deduplicator.py</span></code> —
+<code class="docutils literal notranslate"><span class="pre">OrderDeduplicator</span></code>: in-memory, time-window (<code class="docutils literal notranslate"><span class="pre">&lt;</span> <span class="pre">30s</span></code>) duplicate guard.
+Not durable, not restart-surviving, not keyed on a deterministic
+logical identity (keyed on symbol/action/size proximity). Kept
+unchanged and untouched — it remains a complementary, orthogonal
+spam guard, not superseded by REM-B.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">src/journal/trade_logger.py</span></code> — <code class="docutils literal notranslate"><span class="pre">TradeLogger</span></code>: in-memory event log
+(<code class="docutils literal notranslate"><span class="pre">_open_logs</span></code>, <code class="docutils literal notranslate"><span class="pre">_closed_trades</span></code>), no disk persistence, no
+submission-identity concept. Not a durable authority; not reused.</p></li>
+<li><p>No <code class="docutils literal notranslate"><span class="pre">PendingOrderTracker</span></code>, <code class="docutils literal notranslate"><span class="pre">clientOrderId</span></code>/<code class="docutils literal notranslate"><span class="pre">newClientOrderId</span></code>
+construction, or order-status state machine existed anywhere in the
+source tree before this mission (grep-verified, mission §4). REM-B
+introduces the first one.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">order_authorization.py</span></code> (REM-A, ADR-0019) remains the sole
+pre-network authorization boundary; this module never re-implements
+or bypasses it (I9) — every <code class="docutils literal notranslate"><span class="pre">OrderIntentCoordinator.submit()</span></code> call
+requires a caller-supplied <code class="docutils literal notranslate"><span class="pre">authorized:</span> <span class="pre">bool</span></code> that REM-B treats as
+opaque.</p></li>
+</ul>
+</section>
+<section id="rem-c-exclusions-explicit-not-implemented-here">
+<h2>REM-C exclusions (explicit, not implemented here)<a class="headerlink" href="#rem-c-exclusions-explicit-not-implemented-here" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Partial-fill lifecycle and fill-quantity reconciliation.</p></li>
+<li><p>Complete position reconstruction from journal + exchange state after a
+crash window.</p></li>
+<li><p>PnL accounting changes.</p></li>
+<li><p>Any automatic resubmission policy after <code class="docutils literal notranslate"><span class="pre">RECONCILED_NOT_FOUND_PENDING</span></code>
+(e.g. a time-based “safe to retry” rule) — deliberately not invented
+here; any future such policy requires separate proof and explicit
+operator authorization.</p></li>
+<li><p>Full <code class="docutils literal notranslate"><span class="pre">advisor_loop.py</span></code> causal-id plumbing for the spot/futures
+<code class="docutils literal notranslate"><span class="pre">ExecutionEngine</span></code> paths (see Known limitation above).</p></li>
+</ul>
+</section>
+<section id="consequences">
+<h2>Consequences<a class="headerlink" href="#consequences" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Positive: a timeout, connection reset, or process restart between
+<code class="docutils literal notranslate"><span class="pre">SUBMISSION_STARTED</span></code> and a definitive exchange answer can no longer
+silently trigger a second real order for the <code class="docutils literal notranslate"><span class="pre">PositionManager</span></code> close
+path, and for any <code class="docutils literal notranslate"><span class="pre">ExecutionEngine</span></code> caller that supplies a
+<code class="docutils literal notranslate"><span class="pre">decision_id</span></code>.</p></li>
+<li><p>Negative / accepted debt: the <code class="docutils literal notranslate"><span class="pre">ExecutionEngine.create_order()</span></code> /
+<code class="docutils literal notranslate"><span class="pre">create_futures_order()</span></code> spot and futures-demo paths, as actually
+invoked by <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code> today, do not yet pass a
+<code class="docutils literal notranslate"><span class="pre">decision_id</span></code> and therefore do not yet get I4/I8 coverage — this is
+recorded as REMEDIATION_REQUIRED-relevant residual scope in the
+PRE-T1-E contract, not silently claimed closed.</p></li>
+<li><p>The single-writer, single-process durability assumption (§7 above) is
+a documented constraint, not a general multi-process guarantee.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="r1-correction-round-master-review-2026-09-11">
+<h2>R1 correction round (MASTER review, 2026-09-11)<a class="headerlink" href="#r1-correction-round-master-review-2026-09-11" title="Link to this heading">¶</a></h2>
+<p>Eight blockers identified by MASTER review of the R0 round above, corrected
+on top of R0’s history (starting HEAD <code class="docutils literal notranslate"><span class="pre">8398c8ec88e445aca87981cc2683282d87a371ee</span></code>
+— the corrected preflight point, one commit past the R1 mission’s originally
+cited <code class="docutils literal notranslate"><span class="pre">cc549a30...</span></code>, which was itself a <code class="docutils literal notranslate"><span class="pre">decision_id</span></code>-propagation fix I had
+already pushed). No REM-C scope started; contract verdict stays
+<code class="docutils literal notranslate"><span class="pre">REMEDIATION_REQUIRED</span></code>.</p>
+<section id="correction-a-causal-identity-becomes-mandatory-not-optional">
+<h3>Correction A — causal identity becomes mandatory, not optional<a class="headerlink" href="#correction-a-causal-identity-becomes-mandatory-not-optional" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">ExecutionEngine.create_order()</span></code>/<code class="docutils literal notranslate"><span class="pre">create_futures_order()</span></code> previously fell
+back to a legacy direct <code class="docutils literal notranslate"><span class="pre">self._exchange[.futures].create_order()</span></code> call
+(no journal, no idempotence) whenever <code class="docutils literal notranslate"><span class="pre">decision_id</span></code> was <code class="docutils literal notranslate"><span class="pre">None</span></code>. Both now
+fail closed with a typed <code class="docutils literal notranslate"><span class="pre">MISSING_CAUSAL_ID</span></code>-shaped denial (<code class="docutils literal notranslate"><span class="pre">mode:</span> <span class="pre">&quot;rejected&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">denial_reason:</span> <span class="pre">&quot;MISSING_CAUSAL_ID&quot;</span></code>) — zero exchange
+mutation calls, zero journal writes. <code class="docutils literal notranslate"><span class="pre">PositionManager._send_close_order()</span></code>
+already derived an unconditional causal id (<code class="docutils literal notranslate"><span class="pre">pos.order_id</span></code> + <code class="docutils literal notranslate"><span class="pre">CloseReason</span></code>,
+falling back to the same <code class="docutils literal notranslate"><span class="pre">symbol_opened_at</span></code> composite this module already
+uses as its position dict key) — confirmed by inspection, no bypass
+existed there, no change needed.</p>
+</section>
+<section id="correction-b-causal-id-trace-id-provenance-and-stability">
+<h3>Correction B — causal-ID (<code class="docutils literal notranslate"><span class="pre">trace_id</span></code>) provenance and stability<a class="headerlink" href="#correction-b-causal-id-trace-id-provenance-and-stability" title="Link to this heading">¶</a></h3>
+<p>Traced completely (source-level, <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code>):</p>
+<ul class="simple">
+<li><p><strong>Created</strong>: <code class="docutils literal notranslate"><span class="pre">_trace_id</span> <span class="pre">=</span> <span class="pre">new_trace_id()</span></code> (line 1288), exactly once per
+decision cycle — confirmed by AST: exactly one assignment site to
+<code class="docutils literal notranslate"><span class="pre">_trace_id</span></code> in the whole file.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">new_trace_id()</span></code></strong> = <code class="docutils literal notranslate"><span class="pre">str(uuid.uuid4())</span></code> (<code class="docutils literal notranslate"><span class="pre">observability/json_logger.py</span></code>)
+— a <strong>random</strong> value, not content-derived from the decision.</p></li>
+<li><p><strong>Exists on DecisionPacket</strong>: <code class="docutils literal notranslate"><span class="pre">_dp.metadata[&quot;trace_id&quot;]</span> <span class="pre">=</span> <span class="pre">_trace_id</span></code>
+(line 1711, mandatory per I-16).</p></li>
+<li><p><strong>Deterministic?</strong> No — the VALUE is random. But it is <strong>stable</strong>: read
+once, never regenerated between decision creation and the
+<code class="docutils literal notranslate"><span class="pre">create_order()</span></code>/<code class="docutils literal notranslate"><span class="pre">create_futures_order()</span></code> call for that one execution
+attempt (confirmed: <code class="docutils literal notranslate"><span class="pre">r[&quot;trace_id&quot;]</span></code> always traces back to the single
+<code class="docutils literal notranslate"><span class="pre">_trace_id</span></code> variable, never a fresh <code class="docutils literal notranslate"><span class="pre">new_trace_id()</span></code> call inline — the
+one OTHER <code class="docutils literal notranslate"><span class="pre">new_trace_id()</span></code> call site in the file is for an unrelated
+<code class="docutils literal notranslate"><span class="pre">_enl_dp</span></code> ENL-2 crash-audit record, never reaching execution).</p></li>
+<li><p><strong>Persisted?</strong> Only in-memory (DecisionPacket metadata), not durably
+written to disk before the decision reaches execution.</p></li>
+<li><p><strong>Survives serialization/reconstruction?</strong> <strong>No</strong> — this is the honest,
+named gap. Nothing in <code class="docutils literal notranslate"><span class="pre">advisor_loop.py</span></code> persists a DecisionPacket to
+disk before execution and nothing on process restart re-reads a prior
+in-flight decision to recover its <code class="docutils literal notranslate"><span class="pre">trace_id</span></code>. A crash between decision
+creation and the network mutation call cannot be reconciled by restart
+using <code class="docutils literal notranslate"><span class="pre">trace_id</span></code> alone.</p></li>
+<li><p><strong>Two distinct decisions share it?</strong> No — each cycle generates a fresh
+UUID; Group A/L tests prove distinct causal ids never collapse.</p></li>
+</ul>
+<p><strong>Conclusion</strong>: neither pure Outcome 1 (“existing identifier proven fully
+stable including across reconstruction”) nor a full Outcome 2 rewrite. The
+existing <code class="docutils literal notranslate"><span class="pre">trace_id</span></code> genuinely satisfies I1/I2/I4/I5 (stable identity for
+one execution attempt; no regeneration at the retry/submission boundary,
+because there is no retry loop calling <code class="docutils literal notranslate"><span class="pre">create_order()</span></code> twice within a
+cycle). It does <strong>not</strong> provide restart-reconstruction of an in-flight
+decision (a stronger form of I6) — that requires durably persisting the
+<em>decision itself</em> before execution, which is a genuinely larger change
+(a new pre-execution durable decision log) reserved for REM-C’s
+crash-window-recovery scope rather than invented here. Documented as
+explicit residual scope below, not silently claimed solved.</p>
+</section>
+<section id="correction-c-exhaustive-caller-inventory">
+<h3>Correction C — exhaustive caller inventory<a class="headerlink" href="#correction-c-exhaustive-caller-inventory" title="Link to this heading">¶</a></h3>
+<p>Fresh repository-wide search (<code class="docutils literal notranslate"><span class="pre">grep</span> <span class="pre">-rn</span></code> for <code class="docutils literal notranslate"><span class="pre">create_order</span></code>/
+<code class="docutils literal notranslate"><span class="pre">create_futures_order</span></code>/<code class="docutils literal notranslate"><span class="pre">_send_close_order</span></code>, excluding tests):</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>File</p></th>
+<th class="head"><p>Reachability</p></th>
+<th class="head"><p>Externally capable</p></th>
+<th class="head"><p>Causal id</p></th>
+<th class="head"><p>Protocol</p></th>
+<th class="head"><p>Fail-closed w/o id</p></th>
+<th class="head"><p>Proof</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code> (×2)</p></td>
+<td><p>source-reachable, real entrypoint</p></td>
+<td><p>yes</p></td>
+<td><p>yes (<code class="docutils literal notranslate"><span class="pre">trace_id</span></code>)</p></td>
+<td><p>yes</p></td>
+<td><p>n/a (always supplies id)</p></td>
+<td><p>Group L</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/execution/execution_engine.py</span></code> (<code class="docutils literal notranslate"><span class="pre">_mutate_via_coordinator</span></code>)</p></td>
+<td><p>internal, gated</p></td>
+<td><p>yes</p></td>
+<td><p>n/a (wrapper)</p></td>
+<td><p>yes</p></td>
+<td><p>n/a</p></td>
+<td><p>Group A/N</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/execution/position_manager.py</span></code> (<code class="docutils literal notranslate"><span class="pre">_send_close_order</span></code>)</p></td>
+<td><p>internal, gated</p></td>
+<td><p>yes</p></td>
+<td><p>yes (unconditional)</p></td>
+<td><p>yes</p></td>
+<td><p>n/a</p></td>
+<td><p>Group I</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/risk/portfolio_brain.py</span></code>, <code class="docutils literal notranslate"><span class="pre">capital_allocation_engine.py</span></code></p></td>
+<td><p>docstring usage example (<code class="docutils literal notranslate"><span class="pre">...</span></code> ellipsis, not valid call syntax)</p></td>
+<td><p>no</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+<td><p>source inspection</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">supervision/ops_watchdog.py</span></code></p></td>
+<td><p>docstring usage example</p></td>
+<td><p>no</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+<td><p>source inspection</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/main_v91.py</span></code>, <code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/main_system.py</span></code></p></td>
+<td><p><strong>source-reachable, real code</strong>, documented as a <em>parallel/legacy entrypoint</em> (<code class="docutils literal notranslate"><span class="pre">observability/operator/domains/execution_state.py:170</span></code> — pre-existing governance debt, explicitly flagged “hors périmètre O-01”)</p></td>
+<td><p>yes, if <code class="docutils literal notranslate"><span class="pre">_live=True</span></code></p></td>
+<td><p><strong>no</strong></p></td>
+<td><p>n/a</p></td>
+<td><p><strong>yes, automatically</strong> — Correction A’s check lives inside <code class="docutils literal notranslate"><span class="pre">ExecutionEngine.create_order()</span></code> itself, so this caller cannot bypass it without being touched</p></td>
+<td><p>Group N (<code class="docutils literal notranslate"><span class="pre">test_all_known_production_callers...</span></code>)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">scripts/smoke_test_ci.py</span></code></p></td>
+<td><p>CI smoke test only</p></td>
+<td><p>no</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">main_v91.py</span></code>/<code class="docutils literal notranslate"><span class="pre">main_system.py</span></code> are deliberately <strong>not modified</strong> — out of
+REM-B-R1 scope (not the production entrypoint; a separate, pre-existing
+governance question) — but are automatically protected by Correction A’s
+fail-closed check regardless, since that check lives inside
+<code class="docutils literal notranslate"><span class="pre">ExecutionEngine</span></code> itself, not in <code class="docutils literal notranslate"><span class="pre">advisor_loop.py</span></code>.</p>
+<p>A mechanical AST test
+(<code class="docutils literal notranslate"><span class="pre">test_execution_engine_create_order_calls_only_inside_coordinator_wrapper</span></code>,
+<code class="docutils literal notranslate"><span class="pre">test_position_manager_create_order_calls_only_inside_coordinator_wrapper</span></code>)
+fails if a NEW direct <code class="docutils literal notranslate"><span class="pre">X.create_order(...)</span></code> call site is added to either
+production module outside the coordinator’s <code class="docutils literal notranslate"><span class="pre">mutate()</span></code> closure — verified
+load-bearing by temporarily reintroducing a fake bypass call and
+confirming the test catches it. <strong>Known limitation, disclosed honestly</strong>:
+this AST pattern only matches <code class="docutils literal notranslate"><span class="pre">X.create_order(...)</span></code> as a direct call
+expression — it does NOT catch the specific pre-Correction-A bypass shape
+<code class="docutils literal notranslate"><span class="pre">self._with_retry(self._exchange.create_order,</span> <span class="pre">...)</span></code> (the method
+reference passed <em>by reference</em> as an argument, not called directly),
+which is exactly why a second, string-literal-based test
+(<code class="docutils literal notranslate"><span class="pre">test_no_legacy_bypass_branch_remains_in_execution_engine</span></code>) was added
+for that specific historical pattern, and why Correction A’s own
+<em>behavioral</em> tests (zero-mutation-calls proofs) — not the static
+scanners — remain the actual authoritative proof, per spec §5’s own
+“do not rely on static tests alone.”</p>
+</section>
+<section id="correction-d-inter-process-safe-journal-ownership">
+<h3>Correction D — inter-process-safe journal ownership<a class="headerlink" href="#correction-d-inter-process-safe-journal-ownership" title="Link to this heading">¶</a></h3>
+<p>R0’s journal used only a <code class="docutils literal notranslate"><span class="pre">threading.Lock</span></code>/<code class="docutils literal notranslate"><span class="pre">threading.RLock</span></code> — explicitly
+documented as NOT cross-process-safe, but not actually enforced.
+R1 adds <code class="docutils literal notranslate"><span class="pre">_CrossProcessLock</span></code> (<code class="docutils literal notranslate"><span class="pre">fcntl.flock</span></code>, <code class="docutils literal notranslate"><span class="pre">LOCK_EX</span></code>) wrapping the
+check-and-register critical section (collision check, existing-state
+check, <code class="docutils literal notranslate"><span class="pre">INTENT_RECORDED</span></code> + <code class="docutils literal notranslate"><span class="pre">SUBMISSION_STARTED</span></code> appends) — released
+<em>before</em> the network mutation call, per spec §6.4, since the durable
+<code class="docutils literal notranslate"><span class="pre">SUBMISSION_STARTED</span></code> record is what blocks every competitor from that
+point on, not the lock itself.</p>
+<p><strong>Platform</strong>: POSIX-only (<code class="docutils literal notranslate"><span class="pre">fcntl</span></code>), matching this repo’s documented
+single-Linux-VPS production runtime. On any platform without <code class="docutils literal notranslate"><span class="pre">fcntl</span></code>, or
+if <code class="docutils literal notranslate"><span class="pre">flock()</span></code> itself raises, submission fails closed with a typed
+<code class="docutils literal notranslate"><span class="pre">LOCK_UNAVAILABLE</span></code> result — zero mutation calls, zero journal writes —
+rather than silently degrading to the (cross-process-unsafe)
+<code class="docutils literal notranslate"><span class="pre">threading.Lock</span></code>.</p>
+<p><strong>Deliberately coarse-grained</strong>: one lock file per journal (not
+per-digest) — simpler to reason about correctly; this repo’s actual
+production shape is a single-writer VPS with low order volume, so
+serializing all concurrent submissions through one journal is an
+acceptable cost, not a scalability requirement this mission needs to
+solve.</p>
+<p><strong>Real <code class="docutils literal notranslate"><span class="pre">multiprocessing</span></code> tests</strong> (not thread simulation):
+<code class="docutils literal notranslate"><span class="pre">tests/test_pre_t1_e_rem_b_idempotent_order_protocol.py::TestGroupK_RealCrossProcessSafety</span></code>
+spawns actual <code class="docutils literal notranslate"><span class="pre">multiprocessing.Process</span></code> workers (separate OS processes,
+separate interpreters), synchronized via <code class="docutils literal notranslate"><span class="pre">multiprocessing.Barrier</span></code>, racing
+on the same journal file, counting mutation attempts via a process-safe
+append-only counter file:</p>
+<ul class="simple">
+<li><p>2 processes, same intent → exactly 1 mutation attempt (verified).</p></li>
+<li><p>5 processes, same intent → exactly 1 mutation attempt (verified).</p></li>
+<li><p>2 processes, 2 genuinely distinct intents → exactly 2 mutation attempts
+(proves the lock does not over-serialize unrelated intents into one).</p></li>
+<li><p>Lock failure (<code class="docutils literal notranslate"><span class="pre">flock</span></code> raises, or <code class="docutils literal notranslate"><span class="pre">fcntl</span></code> unavailable) → zero mutation
+calls, zero journal writes, typed <code class="docutils literal notranslate"><span class="pre">LOCK_UNAVAILABLE</span></code>.</p></li>
+</ul>
+<p><strong>Fail-before proof for this correction is unusually strong</strong>: run against
+the R1 starting HEAD (<code class="docutils literal notranslate"><span class="pre">8398c8ec</span></code>, which had no cross-process lock at all),
+the 2-process test did not merely produce “2 mutation attempts” — it threw
+a real <code class="docutils literal notranslate"><span class="pre">InvalidTransitionError</span></code> (<code class="docutils literal notranslate"><span class="pre">INTENT_RECORDED</span> <span class="pre">-&gt;</span> <span class="pre">ACKNOWLEDGED</span></code> attempted
+twice for the same digest), a genuine manifestation of the exact race this
+correction closes, not a synthetic/contrived failure.</p>
+</section>
+<section id="correction-e-adapter-capability-contract">
+<h3>Correction E — adapter capability contract<a class="headerlink" href="#correction-e-adapter-capability-contract" title="Link to this heading">¶</a></h3>
+<p>R0’s single hardcoded <code class="docutils literal notranslate"><span class="pre">AdapterCapabilities(supports_client_order_id=True,</span> <span class="pre">client_order_id_param=&quot;clientOrderId&quot;,</span> <span class="pre">...)</span></code> applied to <strong>every</strong>
+<code class="docutils literal notranslate"><span class="pre">EXCHANGE_ID</span></code> this repo can be configured with — <code class="docutils literal notranslate"><span class="pre">mexc</span></code> (default),
+<code class="docutils literal notranslate"><span class="pre">krakenfutures</span></code>, <code class="docutils literal notranslate"><span class="pre">binanceusdm</span></code> — despite this class’s own docstring
+describing itself as “multi-exchange.” This was a genuine defect: CCXT’s
+raw client-order-id parameter name is not uniform across exchanges (the
+Binance-family REST APIs use <code class="docutils literal notranslate"><span class="pre">newClientOrderId</span></code>, not <code class="docutils literal notranslate"><span class="pre">clientOrderId</span></code>); a
+wrong parameter is typically silently ignored by the exchange, defeating
+REM-B’s deterministic-identity guarantee while the call still appears to
+succeed.</p>
+<p><code class="docutils literal notranslate"><span class="pre">ccxt</span></code> is not installed in this development sandbox (<code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">ccxt</span></code>
+failed on an unrelated system <code class="docutils literal notranslate"><span class="pre">cryptography</span></code> package conflict, not a
+network issue) — the exact raw parameter names for <code class="docutils literal notranslate"><span class="pre">krakenfutures</span></code>/
+<code class="docutils literal notranslate"><span class="pre">binanceusdm</span></code> could <strong>not</strong> be verified against the actual installed
+library. Rather than guess and silently trust a plausible-but-unverified
+name, <code class="docutils literal notranslate"><span class="pre">capabilities_for_exchange()</span></code> (new, <code class="docutils literal notranslate"><span class="pre">order_intent_protocol.py</span></code>,
+shared by both <code class="docutils literal notranslate"><span class="pre">ExecutionEngine</span></code> and <code class="docutils literal notranslate"><span class="pre">PositionManager</span></code> — single source of
+truth, I8) now returns:</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p><code class="docutils literal notranslate"><span class="pre">EXCHANGE_ID</span></code></p></th>
+<th class="head"><p><code class="docutils literal notranslate"><span class="pre">supports_client_order_id</span></code></p></th>
+<th class="head"><p><code class="docutils literal notranslate"><span class="pre">client_order_id_param</span></code></p></th>
+<th class="head"><p>Status</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">mexc</span></code> (default)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">True</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;clientOrderId&quot;</span></code></p></td>
+<td><p>Verified — this repo’s default, REM-B’s only end-to-end-tested exchange, <code class="docutils literal notranslate"><span class="pre">clientOrderId</span></code> is MEXC’s documented spot-API parameter name</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">krakenfutures</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">False</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p></td>
+<td><p><strong>Unverified</strong> — fails closed</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">binanceusdm</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">False</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p></td>
+<td><p><strong>Unverified</strong> — fails closed</p></td>
+</tr>
+<tr class="row-odd"><td><p>any other value</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">False</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p></td>
+<td><p>Unverified — fails closed</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>An unsupported/unverified adapter denies before any mutation call
+(<code class="docutils literal notranslate"><span class="pre">UNSUPPORTED_ADAPTER_CAPABILITY</span></code>, zero mutation calls) — proven both at
+the protocol layer (<code class="docutils literal notranslate"><span class="pre">TestGroupM_AdapterCapabilityMatrix</span></code>) and through the
+real <code class="docutils literal notranslate"><span class="pre">ExecutionEngine.create_futures_order()</span></code> call path with
+<code class="docutils literal notranslate"><span class="pre">EXCHANGE_ID=krakenfutures</span></code>
+(<code class="docutils literal notranslate"><span class="pre">test_execution_engine_uses_shared_capability_table_for_futures</span></code>).</p>
+<p><strong>Fail-before proof</strong>: against R1 starting HEAD <code class="docutils literal notranslate"><span class="pre">8398c8ec</span></code>, this exact
+test produced a genuine behavioral mismatch — <code class="docutils literal notranslate"><span class="pre">result[&quot;mode&quot;]</span> <span class="pre">==</span> <span class="pre">&quot;futures_demo&quot;</span></code> where <code class="docutils literal notranslate"><span class="pre">&quot;futures_failed&quot;</span></code> was required — proving the old
+code genuinely allowed an unverified-adapter order through to a (mocked)
+real mutation call.</p>
+<p>Verifying the exact <code class="docutils literal notranslate"><span class="pre">krakenfutures</span></code>/<code class="docutils literal notranslate"><span class="pre">binanceusdm</span></code> parameter names against
+a real <code class="docutils literal notranslate"><span class="pre">ccxt</span></code> install, and populating <code class="docutils literal notranslate"><span class="pre">supports_open_order_search</span></code>/
+<code class="docutils literal notranslate"><span class="pre">supports_closed_order_search</span></code>/reconciliation-method wiring for <code class="docutils literal notranslate"><span class="pre">mexc</span></code>, is
+left as an explicit, named follow-up (not fabricated here).</p>
+</section>
+<section id="correction-f-strengthened-fail-before-proof">
+<h3>Correction F — strengthened fail-before proof<a class="headerlink" href="#correction-f-strengthened-fail-before-proof" title="Link to this heading">¶</a></h3>
+<p>R0’s fail-before claim (“the whole test file fails to even <em>import</em>”) was
+correctly identified as weak. R1’s new tests were run via <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">worktree</span> <span class="pre">add</span></code> against the exact R1 starting HEAD (<code class="docutils literal notranslate"><span class="pre">8398c8ec88e445aca87981cc2683282d87a371ee</span></code>)
+with the CORRECTED test file copied in (production code unchanged):</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">test_two_processes_same_intent_at_most_one_mutation</span></code> — genuine runtime
+exception (<code class="docutils literal notranslate"><span class="pre">InvalidTransitionError</span></code>), not an import error.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">test_execution_engine_uses_shared_capability_table_for_futures</span></code> — genuine
+value mismatch (<code class="docutils literal notranslate"><span class="pre">futures_demo</span></code> vs required <code class="docutils literal notranslate"><span class="pre">futures_failed</span></code>), not an
+import error.</p></li>
+<li><p>Several Group K/M tests DID fail via <code class="docutils literal notranslate"><span class="pre">AttributeError</span></code>/<code class="docutils literal notranslate"><span class="pre">ImportError</span></code> for
+genuinely-missing new symbols (<code class="docutils literal notranslate"><span class="pre">fcntl</span></code> attribute presence,
+<code class="docutils literal notranslate"><span class="pre">capabilities_for_exchange</span></code> not yet existing) — disclosed honestly as
+weaker (but still per-test runtime, not whole-file-collection) evidence,
+consistent with those specific corrections adding wholly new
+capabilities rather than fixing a pre-existing wrong behavior.</p></li>
+<li><p>Group N’s AST bypass-detector tests passed unchanged on the old HEAD —
+disclosed honestly as NOT fail-before evidence for Correction C (their
+value is forward-looking regression protection, verified load-bearing
+separately by reintroducing a synthetic bypass on the current branch).</p></li>
+</ul>
+</section>
+<section id="correction-g-tests-conftest-py-resolution">
+<h3>Correction G — <code class="docutils literal notranslate"><span class="pre">tests/conftest.py</span></code> resolution<a class="headerlink" href="#correction-g-tests-conftest-py-resolution" title="Link to this heading">¶</a></h3>
+<p>Root-caused: <code class="docutils literal notranslate"><span class="pre">tests/conftest.py</span></code>’s <code class="docutils literal notranslate"><span class="pre">ORDER_INTENT_JOURNAL_PATH</span></code> redirect
+only applies to test files collected under <code class="docutils literal notranslate"><span class="pre">tests/</span></code> — <code class="docutils literal notranslate"><span class="pre">execution_engine.py</span></code>’s
+module-level <code class="docutils literal notranslate"><span class="pre">_DEFAULT_ORDER_INTENT_JOURNAL_PATH</span></code> constant (frozen at
+import time, DS-001/ADR-0008) therefore fell through to the REAL
+production default (<code class="docutils literal notranslate"><span class="pre">databases/order_intent_journal.jsonl</span></code>) for every test
+file OUTSIDE <code class="docutils literal notranslate"><span class="pre">tests/</span></code> (e.g.
+<code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/execution/test_execution_engine_futures.py</span></code>) —
+confirmed to have actually polluted that file with 54+ real JSONL records
+during this session’s own development. Root <code class="docutils literal notranslate"><span class="pre">conftest.py</span></code> already has an
+established DS-001 pattern for exactly this class of problem
+(<code class="docutils literal notranslate"><span class="pre">OBS_LOG_ROOT</span></code>, <code class="docutils literal notranslate"><span class="pre">BLACK_BOX_PATH</span></code>, <code class="docutils literal notranslate"><span class="pre">REJECTION_STORE_DIR</span></code>, etc. — env vars
+set at MODULE level, before pytest collection, because the values freeze
+at import). <code class="docutils literal notranslate"><span class="pre">ORDER_INTENT_JOURNAL_PATH</span></code> was added to that existing block
+and the narrower <code class="docutils literal notranslate"><span class="pre">tests/conftest.py</span></code> deleted. No autouse fixture was
+added (it is a plain <code class="docutils literal notranslate"><span class="pre">os.environ.setdefault(...)</span></code> call, identical in kind
+to the ten other lines already in that block); it does not touch
+<code class="docutils literal notranslate"><span class="pre">sys.path</span></code>, module caches, clocks, or any singleton beyond the one env
+var. Verified via every full-suite run performed in this session since
+the fix (repeatedly, including representative unrelated suites —
+<code class="docutils literal notranslate"><span class="pre">supervision/tests/test_e04_killswitch.py</span></code>,
+<code class="docutils literal notranslate"><span class="pre">tests/visualization/test_regret_api.py</span></code>): identical pre-existing failure
+signatures before and after, and zero <code class="docutils literal notranslate"><span class="pre">databases/order_intent_journal.jsonl</span></code>
+pollution in every run since.</p>
+</section>
+</section>
+<section id="r1-files-changed">
+<h2>R1 files changed<a class="headerlink" href="#r1-files-changed" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/execution/order_intent_protocol.py</span></code> — <code class="docutils literal notranslate"><span class="pre">LockUnavailableError</span></code>,
+<code class="docutils literal notranslate"><span class="pre">_CrossProcessLock</span></code>, <code class="docutils literal notranslate"><span class="pre">OrderIntentJournal.cross_process_lock()</span></code>,
+<code class="docutils literal notranslate"><span class="pre">capabilities_for_exchange()</span></code>, <code class="docutils literal notranslate"><span class="pre">_ADAPTER_CAPABILITIES_BY_EXCHANGE</span></code>,
+new <code class="docutils literal notranslate"><span class="pre">SubmissionOutcome</span></code> members (<code class="docutils literal notranslate"><span class="pre">MISSING_CAUSAL_ID</span></code>,
+<code class="docutils literal notranslate"><span class="pre">INTENT_ALREADY_RECORDED</span></code>, <code class="docutils literal notranslate"><span class="pre">SUBMISSION_ALREADY_STARTED</span></code>,
+<code class="docutils literal notranslate"><span class="pre">RECONCILIATION_CONFLICT</span></code>, <code class="docutils literal notranslate"><span class="pre">LOCK_UNAVAILABLE</span></code>), <code class="docutils literal notranslate"><span class="pre">AdapterCapabilities</span></code>
+extended with <code class="docutils literal notranslate"><span class="pre">max_client_order_id_len</span></code>/<code class="docutils literal notranslate"><span class="pre">client_order_id_charset</span></code>/
+<code class="docutils literal notranslate"><span class="pre">supports_open_order_search</span></code>/<code class="docutils literal notranslate"><span class="pre">supports_closed_order_search</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/execution/execution_engine.py</span></code> — Correction A
+(fail-closed on missing <code class="docutils literal notranslate"><span class="pre">decision_id</span></code>, both spot and futures paths),
+Correction E wiring (<code class="docutils literal notranslate"><span class="pre">capabilities_for_exchange(exch_id)</span></code> instead of a
+hardcoded constant), SEC-01 neutrality fix (gate-blocked response gains
+the same <code class="docutils literal notranslate"><span class="pre">order_intent_outcome</span></code>/<code class="docutils literal notranslate"><span class="pre">client_order_id</span></code> null keys the
+REM-B-rejected response has), exception classifier keyword fix
+(<code class="docutils literal notranslate"><span class="pre">&quot;no</span> <span class="pre">permission&quot;</span></code>/<code class="docutils literal notranslate"><span class="pre">&quot;permission</span> <span class="pre">denied&quot;</span></code> now <code class="docutils literal notranslate"><span class="pre">EXPLICITLY_REJECTED</span></code>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/execution/position_manager.py</span></code> — Correction E
+wiring, same classifier keyword fix.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">conftest.py</span></code> (root) — Correction G.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">tests/conftest.py</span></code> — deleted (Correction G).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">tests/test_pre_t1_e_rem_b_idempotent_order_protocol.py</span></code> — Groups K
+(real multiprocess), L (causal-id provenance), M (adapter capability
+matrix), N (caller inventory + bypass detection).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">tests/test_pre_t1_e_rem_a_order_authorization.py</span></code>,
+<code class="docutils literal notranslate"><span class="pre">tests/test_pre_t1_e_order_cycle_safety.py</span></code>,
+<code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/execution/test_execution_engine.py</span></code>,
+<code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/execution/test_execution_engine_futures.py</span></code> —
+~25 call sites updated to supply <code class="docutils literal notranslate"><span class="pre">decision_id</span></code>; several assertions that
+encoded now-fixed defects (H3 clientOrderId absence, H5 blind retry,
+SEC-01 key-set neutrality) rewritten to assert corrected behavior,
+historical docstrings preserved.</p></li>
+</ul>
+</section>
+<section id="updated-rem-c-exclusions-still-explicit-still-not-implemented">
+<h2>Updated REM-C exclusions (still explicit, still not implemented)<a class="headerlink" href="#updated-rem-c-exclusions-still-explicit-still-not-implemented" title="Link to this heading">¶</a></h2>
+<p>Unchanged from R0, PLUS the new named gap from Correction B: durable
+persistence of the DecisionPacket/intent itself BEFORE execution (needed
+for true restart-reconstruction of an in-flight decision) is REM-C scope,
+not invented here.</p>
+</section>
+<section id="r1-consequences">
+<h2>R1 Consequences<a class="headerlink" href="#r1-consequences" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Positive: missing-identity external mutation is now impossible (fails
+closed, not merely undocumented); cross-process journal races are now
+actually prevented (not merely disclaimed); unverified exchange
+adapters cannot silently defeat identity/idempotence; a mechanical
+regression test exists for new direct bypass call sites.</p></li>
+<li><p>Negative / accepted debt: <code class="docutils literal notranslate"><span class="pre">trace_id</span></code>-based identity does not survive a
+process crash between decision creation and network mutation (no
+restart-reconstruction) — reserved for REM-C. <code class="docutils literal notranslate"><span class="pre">krakenfutures</span></code>/
+<code class="docutils literal notranslate"><span class="pre">binanceusdm</span></code> adapter capabilities remain unverified and therefore
+blocked from external submission until an operator confirms against
+the real <code class="docutils literal notranslate"><span class="pre">ccxt</span></code> package.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="r1-1-correction-round-master-review-2026-09-11">
+<h2>R1.1 correction round (MASTER review, 2026-09-11)<a class="headerlink" href="#r1-1-correction-round-master-review-2026-09-11" title="Link to this heading">¶</a></h2>
+<p>Three remaining blockers from R1, starting HEAD <code class="docutils literal notranslate"><span class="pre">cf9a9e74d8d699e6ca315af274da6d7bbef275d9</span></code>.</p>
+<section id="blocker-a-durable-upstream-decision-identity">
+<h3>Blocker A — durable upstream decision identity<a class="headerlink" href="#blocker-a-durable-upstream-decision-identity" title="Link to this heading">¶</a></h3>
+<p><strong>Investigation</strong> (full trace, <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code>): <code class="docutils literal notranslate"><span class="pre">_trace_id</span> <span class="pre">=</span> <span class="pre">new_trace_id()</span></code>
+(a random UUID) is created exactly once per decision cycle, stored on
+<code class="docutils literal notranslate"><span class="pre">DecisionPacket.metadata[&quot;trace_id&quot;]</span></code>, never regenerated before reaching
+execution — R1’s Correction B had already established all of this. The
+one gap R1 named but did not close: <code class="docutils literal notranslate"><span class="pre">_trace_id</span></code> was never durably
+persisted BEFORE execution, only held in process memory.</p>
+<p><strong>Fix</strong>: new module <code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/execution/decision_identity.py</span></code>
+— a minimal, narrowly-scoped append-only <code class="docutils literal notranslate"><span class="pre">DecisionIdentityJournal</span></code>
+(fsync-before-return, same durability contract as <code class="docutils literal notranslate"><span class="pre">OrderIntentJournal</span></code>:
+truncated final record tolerated, earlier valid records survive). This is
+the explicit fallback spec §4 describes (“if no canonical decision
+persistence exists, implement the minimum append-only decision-identity
+persistence necessary for REM-B”) — confirmed no canonical decision
+persistence exists in this repository before execution (the various
+observability/audit logs record decisions only after an attempt, or
+asynchronously).</p>
+<p><code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code>’s <code class="docutils literal notranslate"><span class="pre">analyze_symbol()</span></code> now calls
+<code class="docutils literal notranslate"><span class="pre">default_decision_identity_journal().persist(_trace_id,</span> <span class="pre">...)</span></code>
+IMMEDIATELY after <code class="docutils literal notranslate"><span class="pre">_trace_id</span></code> is created — before any authorization or
+execution logic runs (source-proven: the <code class="docutils literal notranslate"><span class="pre">persist()</span></code> call site is within
+2000 characters of the <code class="docutils literal notranslate"><span class="pre">_trace_id</span></code> assignment, before
+<code class="docutils literal notranslate"><span class="pre">set_trace_id(_trace_id)</span></code>’s only downstream use).</p>
+<p><code class="docutils literal notranslate"><span class="pre">ExecutionEngine._decision_id_is_durably_persisted()</span></code> gates BOTH mutation
+paths (spot and futures): a <code class="docutils literal notranslate"><span class="pre">decision_id</span></code> that is merely non-empty is no
+longer sufficient — it must be found in the durable decision-identity
+journal. Missing OR unpersisted fails closed with a typed denial
+(<code class="docutils literal notranslate"><span class="pre">MISSING_CAUSAL_ID</span></code> / <code class="docutils literal notranslate"><span class="pre">UNPERSISTED_CAUSAL_ID</span></code>), zero mutation calls.</p>
+<p><strong>Causal ordering proven</strong> (not merely asserted): <code class="docutils literal notranslate"><span class="pre">DECISION_ID_CREATED</span> <span class="pre">-&gt;</span> <span class="pre">DECISION_PERSISTED</span> <span class="pre">-&gt;</span> <span class="pre">REM_A_AUTHORIZATION</span> <span class="pre">-&gt;</span> <span class="pre">ORDER_INTENT_RECORDED</span> <span class="pre">-&gt;</span> <span class="pre">SUBMISSION_STARTED</span> <span class="pre">-&gt;</span> <span class="pre">EXCHANGE_MUTATION</span></code>. A restart-simulation test
+(<code class="docutils literal notranslate"><span class="pre">test_restart_cannot_convert_one_decision_into_a_second_order_identity</span></code>)
+persists a decision id, submits successfully, reconstructs a BRAND NEW
+<code class="docutils literal notranslate"><span class="pre">ExecutionEngine</span></code> instance (simulating a process restart), and resubmits
+the SAME decision_id — the reconstructed coordinator recognizes the
+already-ACKNOWLEDGED intent and performs zero further mutation calls.</p>
+<p><strong>Legacy/missing identity</strong>: any caller (including
+<code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/main_v91.py</span></code>/<code class="docutils literal notranslate"><span class="pre">main_system.py</span></code>, R1’s named unmodified
+parallel entrypoint) that supplies a <code class="docutils literal notranslate"><span class="pre">decision_id</span></code> never durably
+persisted fails closed — the SAME code path as a genuinely missing one,
+per spec §3 invariant 5 (“Missing persisted ID → typed fail-closed
+denial and zero mutation calls”).</p>
+<p><strong><code class="docutils literal notranslate"><span class="pre">PositionManager</span></code> scope note</strong>: <code class="docutils literal notranslate"><span class="pre">PositionManager._send_close_order</span></code>’s
+causal id (<code class="docutils literal notranslate"><span class="pre">pos.order_id</span></code> + <code class="docutils literal notranslate"><span class="pre">CloseReason</span></code>, falling back to a
+<code class="docutils literal notranslate"><span class="pre">symbol_opened_at</span></code> composite) is derived from already-durable position
+state (a previously-acknowledged exchange order id, or an immutable
+position-creation timestamp) tracked by <code class="docutils literal notranslate"><span class="pre">PositionManager</span></code> itself — not
+requiring a SEPARATE persistence step, since the position object it’s
+derived from is already the durable record. Left unchanged.</p>
+<p><strong>Fail-before proof</strong> (behavioral, against <code class="docutils literal notranslate"><span class="pre">cf9a9e74</span></code>, NOT an import
+error): a standalone script constructing the OLD <code class="docutils literal notranslate"><span class="pre">ExecutionEngine</span></code> and
+calling <code class="docutils literal notranslate"><span class="pre">create_order(...,</span> <span class="pre">decision_id=&quot;never-persisted-anywhere&quot;)</span></code> (a
+bare string, never recorded anywhere) reached a REAL mutation call —
+<code class="docutils literal notranslate"><span class="pre">mode:</span> <span class="pre">&quot;live&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">mock_exchange.create_order.called:</span> <span class="pre">True</span></code>. On the
+corrected branch, the identical call returns <code class="docutils literal notranslate"><span class="pre">mode:</span> <span class="pre">&quot;rejected&quot;</span></code>,
+<code class="docutils literal notranslate"><span class="pre">denial_reason:</span> <span class="pre">&quot;UNPERSISTED_CAUSAL_ID&quot;</span></code>, zero mutation calls.</p>
+<p><strong>Correction to a prior claim</strong>: while investigating whether any existing
+persistence/reconciliation infrastructure could be reused for this
+blocker, <code class="docutils literal notranslate"><span class="pre">system/pending_order_tracker.py::PendingOrderTracker</span></code> was found
+to actually EXIST as a class (contradicting R0’s ADR claim that “no
+<code class="docutils literal notranslate"><span class="pre">PendingOrderTracker</span></code> class/module exists anywhere”) — but confirmed via
+<code class="docutils literal notranslate"><span class="pre">grep</span> <span class="pre">-rn</span> <span class="pre">&quot;PendingOrderTracker(&quot;</span></code> to never be instantiated anywhere in
+production code, and keyed by exchange-assigned <code class="docutils literal notranslate"><span class="pre">order_id</span></code> (not
+<code class="docutils literal notranslate"><span class="pre">clientOrderId</span></code>) with in-memory-only state, so it could not have served
+either this blocker’s decision-identity requirement or Blocker B’s
+reconciliation-certification requirement. B9’s original resolution (REM-B
+built its own journal) stands; only the precise phrasing of “does not
+exist” is corrected to “exists but is never wired into any production
+code path.”</p>
+</section>
+<section id="blocker-b-real-adapter-reconciliation-capability">
+<h3>Blocker B — real adapter reconciliation capability<a class="headerlink" href="#blocker-b-real-adapter-reconciliation-capability" title="Link to this heading">¶</a></h3>
+<p><strong>Finding</strong>: R1 authorized MEXC’s external submission on the strength of
+a documented, plausible <code class="docutils literal notranslate"><span class="pre">clientOrderId</span></code> parameter name alone — but
+<code class="docutils literal notranslate"><span class="pre">OrderIntentCoordinator.reconcile()</span></code> accepted an arbitrary caller-supplied
+<code class="docutils literal notranslate"><span class="pre">lookup</span></code> callable with no certification that any REAL adapter implements
+matching semantics. A test fake accepting <code class="docutils literal notranslate"><span class="pre">&quot;clientOrderId&quot;</span></code> is not proof
+an adapter supports reconciliation.</p>
+<p><strong>Capability matrix</strong> (repository-wide search:
+<code class="docutils literal notranslate"><span class="pre">grep</span> <span class="pre">-rln</span> <span class="pre">&quot;fetch_order\|fetch_open_orders\|fetch_closed_orders&quot;</span></code>):</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Exchange</p></th>
+<th class="head"><p>Configured</p></th>
+<th class="head"><p>Submission param</p></th>
+<th class="head"><p>Reconciliation evidence</p></th>
+<th class="head"><p>Verdict</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">mexc</span></code></p></td>
+<td><p>Yes (default)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">clientOrderId</span></code> (documented, general knowledge — NOT verified against a pinned <code class="docutils literal notranslate"><span class="pre">ccxt</span></code> install; <code class="docutils literal notranslate"><span class="pre">ccxt</span></code> uninstallable in this sandbox)</p></td>
+<td><p>No in-repo pinned implementation of order lookup-by-clientOrderId found. <code class="docutils literal notranslate"><span class="pre">market_data/connectors/mexc.py</span></code>/<code class="docutils literal notranslate"><span class="pre">infra/mexc_reader.py</span></code> only fetch order BOOKS. <code class="docutils literal notranslate"><span class="pre">PendingOrderTracker</span></code> exists but is unwired and keyed by exchange <code class="docutils literal notranslate"><span class="pre">order_id</span></code>, not <code class="docutils literal notranslate"><span class="pre">clientOrderId</span></code>.</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SUBMIT_ONLY_RECONCILIATION_UNVERIFIED</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">krakenfutures</span></code></p></td>
+<td><p>Yes</p></td>
+<td><p>Unverified</p></td>
+<td><p>Unverified</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">UNSUPPORTED</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">binanceusdm</span></code></p></td>
+<td><p>Yes</p></td>
+<td><p>Unverified</p></td>
+<td><p>Unverified</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">UNSUPPORTED</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>any other</p></td>
+<td><p>N/A</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">UNSUPPORTED</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><strong>MEXC verdict, precisely</strong>: per spec §5’s explicit rule — “Only
+<code class="docutils literal notranslate"><span class="pre">SUBMIT_AND_RECONCILE_VERIFIED</span></code> may authorize an externally capable
+submission during PRE-T1” — <code class="docutils literal notranslate"><span class="pre">SUBMIT_ONLY_RECONCILIATION_UNVERIFIED</span></code>, despite
+its name, does NOT authorize external submission either. MEXC is
+downgraded from R1’s submission-authorized status.
+<code class="docutils literal notranslate"><span class="pre">AdapterCapabilities.supports_client_order_id</span></code> is now a DERIVED property
+(<code class="docutils literal notranslate"><span class="pre">verdict</span> <span class="pre">==</span> <span class="pre">SUBMIT_AND_RECONCILE_VERIFIED</span></code>), not an independently settable
+field — eliminating the possibility of a future capability entry
+accidentally authorizing submission without the matching verdict.</p>
+<p><strong>Reconciliation ownership</strong>: <code class="docutils literal notranslate"><span class="pre">OrderIntentCoordinator.reconcile()</span></code> now
+checks <code class="docutils literal notranslate"><span class="pre">self._capabilities.verdict</span> <span class="pre">==</span> <span class="pre">SUBMIT_AND_RECONCILE_VERIFIED</span></code>
+BEFORE invoking the caller-supplied <code class="docutils literal notranslate"><span class="pre">lookup</span></code> — a production caller cannot
+inject a permissive <code class="docutils literal notranslate"><span class="pre">lookup</span></code> to bypass this; <code class="docutils literal notranslate"><span class="pre">reconcile()</span></code> is gated on the
+SAME capability object the coordinator was constructed with, never one
+the caller substitutes at call time. Tests inject a fake
+<code class="docutils literal notranslate"><span class="pre">SUBMIT_AND_RECONCILE_VERIFIED</span></code> capability (documented as
+“test fixture — certified for hermetic testing only” in its <code class="docutils literal notranslate"><span class="pre">evidence</span></code>
+field) to exercise the authorized path without promoting the real,
+unverified MEXC entry.</p>
+<p><strong>Runtime impact</strong>: zero. <code class="docutils literal notranslate"><span class="pre">reconcile()</span></code> was never called from any
+production path (<code class="docutils literal notranslate"><span class="pre">grep</span> <span class="pre">-rn</span> <span class="pre">&quot;\.reconcile(&quot;</span></code> finds only
+<code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code>’s UNRELATED <code class="docutils literal notranslate"><span class="pre">_position_reconciler.reconcile()</span></code>,
+a different, pre-existing reconciler). This downgrade affects only a
+hypothetical future live-submission path, already blocked by
+<code class="docutils literal notranslate"><span class="pre">PAPER_TRADING_ENABLED=true</span></code> (CLAUDE.md stabilization window).</p>
+<p><strong>Fail-before proof</strong> (behavioral): against <code class="docutils literal notranslate"><span class="pre">cf9a9e74</span></code>,
+<code class="docutils literal notranslate"><span class="pre">capabilities_for_exchange(&quot;mexc&quot;).supports_client_order_id</span></code> was <code class="docutils literal notranslate"><span class="pre">True</span></code>
+with <code class="docutils literal notranslate"><span class="pre">supports_lookup_by_client_order_id:</span> <span class="pre">True</span></code> — the exact
+over-authorization this blocker corrects.</p>
+</section>
+<section id="blocker-c-complete-mutation-bypass-detection">
+<h3>Blocker C — complete mutation-bypass detection<a class="headerlink" href="#blocker-c-complete-mutation-bypass-detection" title="Link to this heading">¶</a></h3>
+<p><strong>Finding</strong>: R1’s detector matched <code class="docutils literal notranslate"><span class="pre">X.create_order(...)</span></code> only when the
+attribute access was the direct <code class="docutils literal notranslate"><span class="pre">.func</span></code> of a <code class="docutils literal notranslate"><span class="pre">Call</span></code> node — missing the
+exact historical bypass shape <code class="docutils literal notranslate"><span class="pre">_with_retry(exchange.create_order,</span> <span class="pre">...)</span></code>
+(the method reference passed BY REFERENCE as a bare argument).</p>
+<p><strong>Fix</strong>: <code class="docutils literal notranslate"><span class="pre">_mutation_references()</span></code> (replacing the R1 scanner) records ANY
+syntactic <code class="docutils literal notranslate"><span class="pre">ast.Attribute</span></code> access named after a mutation method — Layers
+1-3 (direct call, reference-passed-to-wrapper, assigned-to-alias) collapse
+into one AST node shape and are caught uniformly; Layer 4 (<code class="docutils literal notranslate"><span class="pre">getattr(X,</span> <span class="pre">&quot;create_order&quot;)</span></code> with a literal string) is matched separately; Layer 5
+(wrapper delegation) falls out naturally from per-function attribution;
+Layer 6 is the allowlist comparison in each test.</p>
+<p><strong>Bounded detection model, stated explicitly</strong> (spec §7’s own
+requirement — “do not claim perfect static detection”): does NOT catch
+attribute names built from string concatenation/formatting at runtime,
+<code class="docutils literal notranslate"><span class="pre">importlib</span></code>-based dynamic imports, <code class="docutils literal notranslate"><span class="pre">setattr</span></code>-based monkeypatching, or any
+reflection beyond a literal <code class="docutils literal notranslate"><span class="pre">getattr(X,</span> <span class="pre">&quot;name&quot;)</span></code> call. Combined with an
+independent repository-wide <code class="docutils literal notranslate"><span class="pre">grep</span></code> (a completely different, non-AST
+detection method) corroborating the same call sites.</p>
+<p><strong>Fail-before proof</strong> (behavioral): the OLD scanner’s exact logic, run
+against a synthetic fixture reproducing <code class="docutils literal notranslate"><span class="pre">_with_retry(exchange.</span> <span class="pre">create_order,</span> <span class="pre">...)</span></code>, returns an EMPTY set (misses it entirely). The NEW
+scanner, run against the identical fixture, correctly attributes the
+reference to its enclosing function. Verified additionally (this branch)
+by reintroducing a synthetic bypass into a copy of the real
+<code class="docutils literal notranslate"><span class="pre">execution_engine.py</span></code> and confirming the new scanner catches it.</p>
+</section>
+</section>
+<section id="r1-1-files-changed">
+<h2>R1.1 files changed<a class="headerlink" href="#r1-1-files-changed" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/execution/decision_identity.py</span></code> (new) —
+<code class="docutils literal notranslate"><span class="pre">DecisionIdentityJournal</span></code>, <code class="docutils literal notranslate"><span class="pre">DecisionIdentityError</span></code>,
+<code class="docutils literal notranslate"><span class="pre">default_decision_identity_journal()</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/execution/order_intent_protocol.py</span></code> —
+<code class="docutils literal notranslate"><span class="pre">AdapterCapabilityVerdict</span></code> enum; <code class="docutils literal notranslate"><span class="pre">AdapterCapabilities.verdict</span></code>
+(replacing independent <code class="docutils literal notranslate"><span class="pre">supports_client_order_id</span></code>/
+<code class="docutils literal notranslate"><span class="pre">supports_lookup_by_client_order_id</span></code> fields with derived properties);
+MEXC downgraded to <code class="docutils literal notranslate"><span class="pre">SUBMIT_ONLY_RECONCILIATION_UNVERIFIED</span></code>;
+<code class="docutils literal notranslate"><span class="pre">reconcile()</span></code> capability-gated before invoking <code class="docutils literal notranslate"><span class="pre">lookup</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/execution/execution_engine.py</span></code> —
+<code class="docutils literal notranslate"><span class="pre">_get_decision_identity_journal()</span></code>, <code class="docutils literal notranslate"><span class="pre">_decision_id_is_durably_persisted()</span></code>;
+both mutation paths gated on it; <code class="docutils literal notranslate"><span class="pre">MISSING_CAUSAL_ID</span></code>/
+<code class="docutils literal notranslate"><span class="pre">UNPERSISTED_CAUSAL_ID</span></code> distinguished.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code> — durably persists <code class="docutils literal notranslate"><span class="pre">_trace_id</span></code> immediately at
+creation, before any downstream logic.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">conftest.py</span></code> (root) — <code class="docutils literal notranslate"><span class="pre">DECISION_IDENTITY_JOURNAL_PATH</span></code> DS-001 entry.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">tests/test_pre_t1_e_rem_b_idempotent_order_protocol.py</span></code> — Groups O
+(durable decision identity), rewritten Group N (layered bypass
+detector), updated Group M (MEXC downgrade).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">tests/test_pre_t1_e_order_cycle_safety.py</span></code>,
+<code class="docutils literal notranslate"><span class="pre">tests/test_pre_t1_e_rem_a_order_authorization.py</span></code>,
+<code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/execution/test_execution_engine.py</span></code>,
+<code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/execution/test_execution_engine_futures.py</span></code> —
+test-only capability/decision-identity fixture injection (mirroring the
+existing fake-exchange pattern) so tests targeting OTHER behavior are
+not broken by the stricter real gates; <code class="docutils literal notranslate"><span class="pre">.ci/ruff_baseline.json</span></code>
+regenerated (958, 2 genuine fixes + 1 pre-existing line-shift).</p></li>
+</ul>
+</section>
+<section id="id1">
+<h2>Updated REM-C exclusions (still explicit, still not implemented)<a class="headerlink" href="#id1" title="Link to this heading">¶</a></h2>
+<p>Unchanged from R1, PLUS: verification of <code class="docutils literal notranslate"><span class="pre">krakenfutures</span></code>/<code class="docutils literal notranslate"><span class="pre">binanceusdm</span></code>
+exact CCXT parameter names and reconciliation methods against a real
+<code class="docutils literal notranslate"><span class="pre">ccxt</span></code> install remains an explicit, named follow-up (not REM-C, but not
+done here either — deliberately fails closed instead of guessed).</p>
+</section>
+<section id="r1-1-consequences">
+<h2>R1.1 Consequences<a class="headerlink" href="#r1-1-consequences" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Positive: a decision’s causal identity is now durably established
+BEFORE it can authorize a real mutation, closing the restart-
+reconstruction gap R1 named but left open; no adapter can be granted
+external-submission authority without a certified reconciliation
+contract; the mutation-bypass detector catches the exact historical
+bypass shape it previously missed.</p></li>
+<li><p>Negative / accepted debt: MEXC’s real-world submission capability is
+now fully deny-closed pending an operator verifying <code class="docutils literal notranslate"><span class="pre">krakenfutures</span></code>/
+<code class="docutils literal notranslate"><span class="pre">binanceusdm</span></code>/<code class="docutils literal notranslate"><span class="pre">mexc</span></code> reconciliation against the real <code class="docutils literal notranslate"><span class="pre">ccxt</span></code> package —
+zero live impact today (paper-only stabilization window), but a
+necessary follow-up before ANY future live-trading authorization.</p></li>
+</ul>
+</section>
+<section id="r1-2-final-safety-correction-round-2026-09-11">
+<h2>R1.2 final safety correction round (2026-09-11)<a class="headerlink" href="#r1-2-final-safety-correction-round-2026-09-11" title="Link to this heading">¶</a></h2>
+<p>Starting HEAD: <code class="docutils literal notranslate"><span class="pre">e5d81deb8439f553c23c09b9f1653505d94de5b3</span></code> (verified:
+local/remote/GitHub PR metadata all matched; base <code class="docutils literal notranslate"><span class="pre">092bb88f...</span></code> unchanged;
+working tree clean). MASTER’s R1.2 review named exactly two remaining
+blockers.</p>
+<section id="blocker-a-every-non-fully-verified-adapter-must-fail-closed">
+<h3>Blocker A — every non-fully-verified adapter must fail closed<a class="headerlink" href="#blocker-a-every-non-fully-verified-adapter-must-fail-closed" title="Link to this heading">¶</a></h3>
+<p><strong>Classification (R1.3 correction, MASTER review): <code class="docutils literal notranslate"><span class="pre">ALREADY_SATISFIED_AT_R1_1</span> <span class="pre">—</span> <span class="pre">REVALIDATED_IN_R1_2</span></code>.</strong>
+R1.2 did NOT implement this production boundary — it was already fully
+implemented and in force as of R1.1’s Blocker B fix. R1.2’s contribution
+was exclusively the 16-test proof below, run against the R1.1 head with
+zero production-code change. The implementation round is <strong>R1.1</strong>; the
+revalidation round is <strong>R1.2</strong>. (R1.3, this section’s own round, corrects
+an earlier draft of this document that could be read as implying R1.2
+itself closed the boundary — it did not; R1.2 only proved it was already
+closed.)</p>
+<p><strong>Investigation finding, not a code defect</strong>: re-reading
+<code class="docutils literal notranslate"><span class="pre">OrderIntentCoordinator.submit()</span></code> (the actual production submission path)
+showed this invariant was <strong>already fully enforced by R1.1</strong>. <code class="docutils literal notranslate"><span class="pre">submit()</span></code>’s
+very first gate after the authorization check is
+<code class="docutils literal notranslate"><span class="pre">if</span> <span class="pre">not</span> <span class="pre">self._capabilities.supports_client_order_id:</span> <span class="pre">return</span> <span class="pre">UNSUPPORTED_ADAPTER_CAPABILITY</span></code> — and <code class="docutils literal notranslate"><span class="pre">supports_client_order_id</span></code> is a
+DERIVED property, <code class="docutils literal notranslate"><span class="pre">True</span></code> only when <code class="docutils literal notranslate"><span class="pre">verdict</span> <span class="pre">==</span> <span class="pre">SUBMIT_AND_RECONCILE_VERIFIED</span></code>. Since R1.1’s Blocker B downgraded MEXC to
+<code class="docutils literal notranslate"><span class="pre">SUBMIT_ONLY_RECONCILIATION_UNVERIFIED</span></code> (a verdict this property
+explicitly treats as <code class="docutils literal notranslate"><span class="pre">False</span></code> despite its name), and no other exchange
+holds any capability-table entry, EVERY exchange this repository can be
+configured with (<code class="docutils literal notranslate"><span class="pre">mexc</span></code>, <code class="docutils literal notranslate"><span class="pre">krakenfutures</span></code>, <code class="docutils literal notranslate"><span class="pre">binanceusdm</span></code>, any unknown
+<code class="docutils literal notranslate"><span class="pre">EXCHANGE_ID</span></code> value, any alias/typo) already reaches this gate and is
+denied before any mutation call, with zero <code class="docutils literal notranslate"><span class="pre">SUBMISSION_STARTED</span></code> journal
+writes. <code class="docutils literal notranslate"><span class="pre">reconcile()</span></code>’s own capability gate (R1.1) already prevents a
+caller-supplied <code class="docutils literal notranslate"><span class="pre">lookup</span></code> from being invoked for an uncertified adapter,
+and <code class="docutils literal notranslate"><span class="pre">capabilities_for_exchange()</span></code> (the SOLE production authority, read
+fresh on every call from the shared table) has no parameter allowing a
+caller to override it.</p>
+<p><strong>Proof, not a fix</strong>: 16 new tests
+(<code class="docutils literal notranslate"><span class="pre">TestGroupP_R12_AdapterFailClosed</span></code> in
+<code class="docutils literal notranslate"><span class="pre">tests/test_pre_t1_e_rem_b_idempotent_order_protocol.py</span></code>) exercise this
+invariant end-to-end — MEXC spot (<code class="docutils literal notranslate"><span class="pre">ExecutionEngine.create_order</span></code>), MEXC
+futures (<code class="docutils literal notranslate"><span class="pre">create_futures_order</span></code>), MEXC position close
+(<code class="docutils literal notranslate"><span class="pre">PositionManager._send_close_order</span></code>), Kraken Futures, Binance USD-M,
+an unregistered exchange id, four plausible MEXC aliases
+(<code class="docutils literal notranslate"><span class="pre">mexc-spot</span></code>/<code class="docutils literal notranslate"><span class="pre">mexc_v2</span></code>/<code class="docutils literal notranslate"><span class="pre">MEXC2</span></code>/<code class="docutils literal notranslate"><span class="pre">mexcfutures</span></code>), a directly-constructed
+<code class="docutils literal notranslate"><span class="pre">SUBMIT_ONLY_RECONCILIATION_UNVERIFIED</span></code> capability (proving the RULE, not
+just today’s MEXC data), a caller-supplied permissive <code class="docutils literal notranslate"><span class="pre">lookup</span></code> (proven
+never invoked), source-level proof that no production call site accepts a
+caller-supplied capability override, a <code class="docutils literal notranslate"><span class="pre">SUBMIT_AND_RECONCILE_VERIFIED</span></code>
+fake submitting exactly once (never twice on a duplicate call), an
+ambiguous result on a verified fake entering reconciliation without
+resubmission, zero journal transitions for a denied adapter, and a naive
+3-attempt retry wrapper denied on every attempt. <strong>All 16 pass unmodified
+against the R1.1 head</strong> (<code class="docutils literal notranslate"><span class="pre">e5d81deb</span></code>) — the fail-before proof for this
+blocker is therefore a NEGATIVE result: no behavioral gap existed. No
+production code was changed for Blocker A in this round.</p>
+</section>
+<section id="blocker-b-genuine-causal-reconstruction-after-process-restart">
+<h3>Blocker B — genuine causal reconstruction after process restart<a class="headerlink" href="#blocker-b-genuine-causal-reconstruction-after-process-restart" title="Link to this heading">¶</a></h3>
+<p>R1.1’s <code class="docutils literal notranslate"><span class="pre">DecisionIdentityJournal</span></code> proved a <code class="docutils literal notranslate"><span class="pre">decision_id</span></code>, once durably
+written, is still found by <code class="docutils literal notranslate"><span class="pre">is_persisted()</span></code> after a fresh journal
+instance is constructed — but MASTER’s review correctly identified this
+as insufficient: it proves only “a decision with this id once existed”,
+not that its canonical payload is reconstructible, nor that it stays
+bound to exactly one authorized order intent, using a stable recovery
+selector rather than a retained in-memory <code class="docutils literal notranslate"><span class="pre">decision_id</span></code> variable.</p>
+<p><strong>Fail-before proof (behavioral, not import/collection failure)</strong>: of 30
+new tests in <code class="docutils literal notranslate"><span class="pre">TestGroupQ_R12_CausalReconstruction</span></code>, 14 fail against the
+R1.1 head (<code class="docutils literal notranslate"><span class="pre">e5d81deb</span></code>) with <code class="docutils literal notranslate"><span class="pre">AttributeError</span></code> — <code class="docutils literal notranslate"><span class="pre">bind_intent</span></code>,
+<code class="docutils literal notranslate"><span class="pre">recover_pending_decisions</span></code>, <code class="docutils literal notranslate"><span class="pre">find_by_cycle_key</span></code>, <code class="docutils literal notranslate"><span class="pre">verify_digest</span></code>, <code class="docutils literal notranslate"><span class="pre">get</span></code>
+did not exist on <code class="docutils literal notranslate"><span class="pre">DecisionIdentityJournal</span></code>; the remaining 16 (duplicate-
+delivery idempotence, basic persistence) already passed, being genuinely
+unaffected by this blocker.</p>
+<p><strong>Fix</strong>: <code class="docutils literal notranslate"><span class="pre">decision_identity.py</span></code> rewritten, <code class="docutils literal notranslate"><span class="pre">SCHEMA_VERSION</span></code> bumped to 2:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">persist()</span></code> now computes and durably stores a canonical <code class="docutils literal notranslate"><span class="pre">payload</span></code> (the
+fields the caller has available — namespace/cycle/symbol/action by
+default, or a caller-supplied richer payload) plus its SHA-256
+<code class="docutils literal notranslate"><span class="pre">payload_digest</span></code> — the reconstructible evidence R1.2 requires, not
+merely an opaque id. A <code class="docutils literal notranslate"><span class="pre">persist()</span></code> call for a <code class="docutils literal notranslate"><span class="pre">decision_id</span></code> already
+recorded with a DIFFERENT payload digest now raises
+<code class="docutils literal notranslate"><span class="pre">DecisionIdentityError</span></code> (conflicting duplicate, fails closed); the SAME
+payload digest (genuine duplicate delivery) remains idempotent, as R1.1
+already required.</p></li>
+<li><p>New <code class="docutils literal notranslate"><span class="pre">bind_intent(decision_id,</span> <span class="pre">intent_digest)</span></code>: atomically binds a
+persisted decision to the exact <code class="docutils literal notranslate"><span class="pre">OrderIntent.full_digest()</span></code> it
+authorizes. Fails closed (<code class="docutils literal notranslate"><span class="pre">DecisionIdentityError</span></code>, zero journal writes)
+for an unpersisted <code class="docutils literal notranslate"><span class="pre">decision_id</span></code>; replaying the identical
+<code class="docutils literal notranslate"><span class="pre">(decision_id,</span> <span class="pre">intent_digest)</span></code> pair is idempotent (a retried submission
+attempt is not an error); binding the same <code class="docutils literal notranslate"><span class="pre">decision_id</span></code> to a
+DIFFERENT <code class="docutils literal notranslate"><span class="pre">intent_digest</span></code> raises — one persisted decision authorizes
+exactly one order intent under this module’s model (REM-C may define an
+explicit versioned child-intent index if multi-intent decisions are
+ever needed; this module does not silently allow it).</p></li>
+<li><p>New <code class="docutils literal notranslate"><span class="pre">get(decision_id)</span></code>, <code class="docutils literal notranslate"><span class="pre">recover_pending_decisions(namespace=...)</span></code>,
+<code class="docutils literal notranslate"><span class="pre">find_by_cycle_key(namespace=,</span> <span class="pre">cycle=,</span> <span class="pre">symbol=)</span></code>, <code class="docutils literal notranslate"><span class="pre">verify_digest(...)</span></code>:
+the R1.2 §4.4 restart-reconstruction surface. A caller holding ONLY the
+journal’s durable path (no retained <code class="docutils literal notranslate"><span class="pre">decision_id</span></code> variable, coordinator,
+or engine object) can construct a brand-new <code class="docutils literal notranslate"><span class="pre">DecisionIdentityJournal</span></code>
+and recover every recoverable decision, verify its payload’s integrity,
+and locate one by a stable (namespace, cycle, symbol) selector instead
+of an already-known id. A record missing <code class="docutils literal notranslate"><span class="pre">payload</span></code>/<code class="docutils literal notranslate"><span class="pre">payload_digest</span></code> (a
+genuinely legacy, pre-R1.2 record) is excluded from
+<code class="docutils literal notranslate"><span class="pre">recover_pending_decisions()</span></code> — fails closed for reconstruction — while
+<code class="docutils literal notranslate"><span class="pre">is_persisted()</span></code> still honors it, preserving R1.1 backward
+compatibility for data written before this schema version.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ExecutionEngine._bind_decision_to_intent()</span></code> (new): called from both
+<code class="docutils literal notranslate"><span class="pre">_place_live_order()</span></code> and <code class="docutils literal notranslate"><span class="pre">create_futures_order()</span></code> immediately after
+<code class="docutils literal notranslate"><span class="pre">build_order_intent(...)</span></code>, before the mutation call. A binding failure
+(conflicting rebind, or a decision that somehow became unpersisted
+between the earlier <code class="docutils literal notranslate"><span class="pre">_decision_id_is_durably_persisted</span></code> check and this
+point) returns a typed <code class="docutils literal notranslate"><span class="pre">DECISION_INTENT_BINDING_FAILED</span></code> denial with
+zero mutation calls, exactly like <code class="docutils literal notranslate"><span class="pre">MISSING_CAUSAL_ID</span></code>/
+<code class="docutils literal notranslate"><span class="pre">UNPERSISTED_CAUSAL_ID</span></code>. Tightens the causal ordering to:
+<code class="docutils literal notranslate"><span class="pre">DECISION_ID_CREATED</span> <span class="pre">-&gt;</span> <span class="pre">DECISION_RECORD_DURABLY_PERSISTED</span> <span class="pre">-&gt;</span> <span class="pre">REM_A_ORDER_AUTHORIZATION</span> <span class="pre">-&gt;</span> <span class="pre">ORDER_INTENT_BOUND_TO_DECISION</span> <span class="pre">-&gt;</span> <span class="pre">ORDER_INTENT_DURABLY_PERSISTED</span> <span class="pre">-&gt;</span> <span class="pre">SUBMISSION_STARTED</span> <span class="pre">-&gt;</span> <span class="pre">EXCHANGE_MUTATION_ATTEMPT</span></code>.</p></li>
+</ul>
+<p>All 30 Group Q tests pass on R1.2’s head, including a full end-to-end
+restart-reconstruction proof (<code class="docutils literal notranslate"><span class="pre">test_restart_reconstructs_pending_decision_using_only_durable_state</span></code>
+— a decision is persisted inside a nested scope whose locals, including
+the <code class="docutils literal notranslate"><span class="pre">decision_id</span></code> variable and the <code class="docutils literal notranslate"><span class="pre">DecisionIdentityJournal</span></code> instance
+itself, are explicitly discarded; recovery afterward uses only the
+durable path plus a <code class="docutils literal notranslate"><span class="pre">(namespace,</span> <span class="pre">cycle,</span> <span class="pre">symbol)</span></code> selector) and a combined
+Blocker-A/B restart proof
+(<code class="docutils literal notranslate"><span class="pre">test_restart_with_binding_preserves_binding_and_causes_no_resubmission</span></code>)
+showing a brand-new <code class="docutils literal notranslate"><span class="pre">ExecutionEngine</span></code>, given the same <code class="docutils literal notranslate"><span class="pre">decision_id</span></code>,
+recovers the same binding and causes zero further exchange mutation
+calls.</p>
+</section>
+<section id="r1-2-test-fixture-updates">
+<h3>R1.2 test-fixture updates<a class="headerlink" href="#r1-2-test-fixture-updates" title="Link to this heading">¶</a></h3>
+<p>The 4 existing <code class="docutils literal notranslate"><span class="pre">_certify_mexc_for_test</span></code> helpers (in
+<code class="docutils literal notranslate"><span class="pre">tests/test_pre_t1_e_order_cycle_safety.py</span></code>,
+<code class="docutils literal notranslate"><span class="pre">tests/test_pre_t1_e_rem_a_order_authorization.py</span></code>,
+<code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/execution/test_execution_engine.py</span></code>,
+<code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/execution/test_execution_engine_futures.py</span></code>) each
+gained one additional <code class="docutils literal notranslate"><span class="pre">monkeypatch.setattr(_EE,</span> <span class="pre">&quot;_bind_decision_to_intent&quot;,</span> <span class="pre">lambda</span> <span class="pre">self,</span> <span class="pre">decision_id,</span> <span class="pre">intent:</span> <span class="pre">None)</span></code> line
+— mirroring the existing <code class="docutils literal notranslate"><span class="pre">_decision_id_is_durably_persisted</span></code> bypass — so
+tests targeting OTHER behavior (sizing, symbol conversion, SEC-01 gate,
+etc.) are not broken by the new binding gate. Dedicated Group Q tests
+exercise the real, un-bypassed binding gate directly.</p>
+</section>
+<section id="r1-2-verification">
+<h3>R1.2 verification<a class="headerlink" href="#r1-2-verification" title="Link to this heading">¶</a></h3>
+<p>Targeted suite (REM-A/REM-B/order-cycle-safety/PRE-T1-D/PRE-T1-C/
+execution-engine/position-manager/advisor-loop-smoke): 528 tests, 527
+pass, 1 pre-existing unrelated <code class="docutils literal notranslate"><span class="pre">ccxt</span></code>-not-installed environment failure
+(reproduces identically on <code class="docutils literal notranslate"><span class="pre">origin/main</span></code>, confirmed via a disposable
+worktree — see the R1.1 CI-triage precedent in PR #138’s history for the
+same class of failure). Ruff baseline gate: 958/958, 0 new (1 genuine
+unused-import fix in <code class="docutils literal notranslate"><span class="pre">decision_identity.py</span></code> itself). <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">diff</span> <span class="pre">--check</span></code>:
+clean. No <code class="docutils literal notranslate"><span class="pre">databases/order_intent_journal.jsonl</span></code> or
+<code class="docutils literal notranslate"><span class="pre">databases/decision_identity_journal.jsonl</span></code> pollution.</p>
+</section>
+<section id="r1-2-safety-confirmations">
+<h3>R1.2 safety confirmations<a class="headerlink" href="#r1-2-safety-confirmations" title="Link to this heading">¶</a></h3>
+<p>No real/testnet exchange call, no live trading, no deployment, no VPS
+access, no secrets touched, no REM-C scope started. PR remains <strong>draft</strong>,
+<strong>unmerged</strong>, no force-push, no rebase, no squash, no amend of previously
+reviewed commits.</p>
+</section>
+</section>
+<section id="r1-3-legacy-execution-ineligibility-correction-2026-09-11">
+<h2>R1.3 legacy execution ineligibility correction (2026-09-11)<a class="headerlink" href="#r1-3-legacy-execution-ineligibility-correction-2026-09-11" title="Link to this heading">¶</a></h2>
+<p>Starting HEAD: <code class="docutils literal notranslate"><span class="pre">5bfe1a89ecdc4414dd7452386681a75615b20d74</span></code> (verified:
+local/remote/GitHub PR metadata all matched; base <code class="docutils literal notranslate"><span class="pre">092bb88f...</span></code> unchanged;
+working tree clean). MASTER’s R1.3 review identified that R1.2’s
+decision-identity gate, while genuinely closing the restart-reconstruction
+gap, conflated two DIFFERENT questions: “does a record exist for this
+<code class="docutils literal notranslate"><span class="pre">decision_id</span></code>?” (historical/existence) and “is this record valid enough to
+authorize a real mutation?” (execution authority). <code class="docutils literal notranslate"><span class="pre">ExecutionEngine</span></code>’s
+mutation gate used <code class="docutils literal notranslate"><span class="pre">DecisionIdentityJournal.is_persisted()</span></code> — the former —
+to answer the latter.</p>
+<section id="is-persisted-call-site-inventory-complete-repository-grep">
+<h3><code class="docutils literal notranslate"><span class="pre">is_persisted(</span></code> call-site inventory (complete repository grep)<a class="headerlink" href="#is-persisted-call-site-inventory-complete-repository-grep" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>File:Line</p></th>
+<th class="head"><p>Classification</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">decision_identity.py:266</span></code> (now shifted) — the <code class="docutils literal notranslate"><span class="pre">def</span> <span class="pre">is_persisted(...)</span></code> definition</p></td>
+<td><p>Historical/existence query (by design)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">execution_engine.py</span></code> — inside <code class="docutils literal notranslate"><span class="pre">_decision_id_is_durably_persisted()</span></code>, called from both mutation gates (<code class="docutils literal notranslate"><span class="pre">_place_live_order</span></code>, <code class="docutils literal notranslate"><span class="pre">create_futures_order</span></code>)</p></td>
+<td><p><strong>EXECUTION-AUTHORITY DECISION</strong> — the exact defect. Confirmed behaviorally (see fail-before proof below), not merely by code reading.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">tests/test_pre_t1_e_rem_b_idempotent_order_protocol.py</span></code> — 12 call sites (Groups O/Q)</p></td>
+<td><p>Test assertions verifying <code class="docutils literal notranslate"><span class="pre">is_persisted()</span></code>’s own existence-membership semantics, including an explicit R1.1-backward-compatibility test for legacy records</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="fail-before-proof-behavioral-exact-starting-head-5bfe1a89-real-mutation-counters">
+<h3>Fail-before proof (behavioral, exact starting HEAD <code class="docutils literal notranslate"><span class="pre">5bfe1a89</span></code>, real mutation counters)<a class="headerlink" href="#fail-before-proof-behavioral-exact-starting-head-5bfe1a89-real-mutation-counters" title="Link to this heading">¶</a></h3>
+<p><strong>Scenario A — legacy authority.</strong> A hand-crafted schema-v1 record
+(<code class="docutils literal notranslate"><span class="pre">{&quot;schema_version&quot;:</span> <span class="pre">1,</span> <span class="pre">&quot;decision_id&quot;:</span> <span class="pre">&quot;legacy-dec-A1&quot;,</span> <span class="pre">&quot;namespace&quot;:</span> <span class="pre">...,</span> <span class="pre">&quot;cycle&quot;:</span> <span class="pre">1,</span> <span class="pre">&quot;symbol&quot;:</span> <span class="pre">&quot;BTC/USDT&quot;,</span> <span class="pre">&quot;ts&quot;:</span> <span class="pre">0.0}</span></code>
+— no <code class="docutils literal notranslate"><span class="pre">payload</span></code>, no <code class="docutils literal notranslate"><span class="pre">payload_digest</span></code>, no <code class="docutils literal notranslate"><span class="pre">lifecycle_state</span></code>, no
+<code class="docutils literal notranslate"><span class="pre">bound_intent_digest</span></code>) was written directly to a temp journal file.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>STEP 2 — is_persisted('legacy-dec-A1'): True
+STEP 3 — create_order() result mode: live
+STEP 3 — mock_exchange.create_order.call_count: 1
+STEP 4 — final record after execution: {"bound_intent_digest": "5ef7c05e...", "lifecycle_state": "BOUND", "schema_version": 1, ...}
+</pre></div>
+</div>
+<p>Confirmed: <code class="docutils literal notranslate"><span class="pre">is_persisted()</span></code> returned <code class="docutils literal notranslate"><span class="pre">True</span></code>; <code class="docutils literal notranslate"><span class="pre">ExecutionEngine.create_order()</span></code>
+accepted the id and reached the certified fake exchange’s <code class="docutils literal notranslate"><span class="pre">create_order()</span></code>
+exactly once; <code class="docutils literal notranslate"><span class="pre">bind_intent()</span></code> extended the record to <code class="docutils literal notranslate"><span class="pre">BOUND</span></code> while it was
+STILL <code class="docutils literal notranslate"><span class="pre">schema_version:</span> <span class="pre">1</span></code> — never upgraded to schema-v2-valid.</p>
+<p><strong>Scenario B — corrupted v2 authority.</strong> A genuine schema-v2 record was
+persisted, then a second line was appended reusing the same <code class="docutils literal notranslate"><span class="pre">decision_id</span></code>
+with its <code class="docutils literal notranslate"><span class="pre">payload.symbol</span></code> mutated WITHOUT recomputing <code class="docutils literal notranslate"><span class="pre">payload_digest</span></code>.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>STEP 1 — verify_digest('corrupt-dec-B1'): False
+STEP 2 — create_order() result mode: live
+STEP 3 — mock_exchange.create_order.call_count: 1
+</pre></div>
+</div>
+<p>Confirmed: <code class="docutils literal notranslate"><span class="pre">verify_digest()</span></code> correctly detected the corruption, but the
+R1.2 execution gate accepted the record anyway and reached the fake
+exchange’s <code class="docutils literal notranslate"><span class="pre">create_order()</span></code> exactly once.</p>
+<p>Neither proof used an absent symbol, <code class="docutils literal notranslate"><span class="pre">AttributeError</span></code>, an import/
+collection failure, or source inspection alone — both are genuine
+behavioral acceptances with a real (fake-exchange) mutation counter
+reaching <code class="docutils literal notranslate"><span class="pre">1</span></code>.</p>
+</section>
+<section id="architectural-correction">
+<h3>Architectural correction<a class="headerlink" href="#architectural-correction" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">decision_identity.py</span></code> gained:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">_is_sha256_hex(value)</span></code> — structural-only check (64 lowercase hex
+characters) for <code class="docutils literal notranslate"><span class="pre">payload_digest</span></code>/<code class="docutils literal notranslate"><span class="pre">bound_intent_digest</span></code>, used before any
+digest recomputation is attempted;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">_validate_record_for_execution(record)</span></code> (static, pure, no I/O) — the
+SOLE strict-validity function, checking in order: <code class="docutils literal notranslate"><span class="pre">schema_version</span> <span class="pre">==</span> <span class="pre">2</span></code>;
+exact non-empty <code class="docutils literal notranslate"><span class="pre">decision_id</span></code>; well-typed non-empty <code class="docutils literal notranslate"><span class="pre">payload</span></code>; a
+structurally valid stored <code class="docutils literal notranslate"><span class="pre">payload_digest</span></code>; the recomputed digest
+matches; duplicated provenance fields (<code class="docutils literal notranslate"><span class="pre">namespace</span></code>/<code class="docutils literal notranslate"><span class="pre">cycle</span></code>/<code class="docutils literal notranslate"><span class="pre">symbol</span></code>/
+<code class="docutils literal notranslate"><span class="pre">action</span></code>) agree between the record’s top level and <code class="docutils literal notranslate"><span class="pre">payload</span></code>; a
+recognized lifecycle state (<code class="docutils literal notranslate"><span class="pre">CREATED</span></code>/<code class="docutils literal notranslate"><span class="pre">BOUND</span></code>); <code class="docutils literal notranslate"><span class="pre">CREATED</span></code> implies
+unbound; <code class="docutils literal notranslate"><span class="pre">BOUND</span></code> implies a structurally valid <code class="docutils literal notranslate"><span class="pre">bound_intent_digest</span></code>.
+Returns <code class="docutils literal notranslate"><span class="pre">None</span></code> (eligible) or a stable machine-readable reason string;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">execution_ineligibility_reason(decision_id)</span></code> — the read-only
+EXECUTION-AUTHORITY query (<code class="docutils literal notranslate"><span class="pre">None</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;NOT_PERSISTED&quot;</span></code>, or one of
+<code class="docutils literal notranslate"><span class="pre">_validate_record_for_execution</span></code>’s reasons);</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">is_execution_eligible(decision_id)</span></code> — boolean convenience wrapper;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">is_persisted()</span></code> is now explicitly documented as historical/existence-
+only and is no longer read by any execution gate;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">bind_intent()</span></code> now calls <code class="docutils literal notranslate"><span class="pre">_validate_record_for_execution()</span></code> BEFORE its
+existing bind logic — a legacy or corrupted record raises
+<code class="docutils literal notranslate"><span class="pre">DecisionIdentityError</span></code> with ZERO journal writes, closing exactly the
+“silent upgrade to BOUND” gap Scenario A demonstrated. <code class="docutils literal notranslate"><span class="pre">intent_digest</span></code>
+itself is now also validated for SHA-256 hex shape;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">recover_pending_decisions()</span></code> tightened to exclude every
+execution-ineligible record (via the same strict function), not merely
+ones missing <code class="docutils literal notranslate"><span class="pre">payload</span></code>/<code class="docutils literal notranslate"><span class="pre">payload_digest</span></code> outright.</p></li>
+</ul>
+<p><code class="docutils literal notranslate"><span class="pre">execution_engine.py</span></code> gained <code class="docutils literal notranslate"><span class="pre">_decision_execution_denial_reason(decision_id)</span></code>
+— the ACTUAL execution gate for both <code class="docutils literal notranslate"><span class="pre">_place_live_order()</span></code> (spot/live
+<code class="docutils literal notranslate"><span class="pre">create_order()</span></code>) and <code class="docutils literal notranslate"><span class="pre">create_futures_order()</span></code>, replacing the
+<code class="docutils literal notranslate"><span class="pre">is_persisted()</span></code>-backed <code class="docutils literal notranslate"><span class="pre">_decision_id_is_durably_persisted()</span></code> check at
+both call sites. Returns <code class="docutils literal notranslate"><span class="pre">None</span></code> (proceed), <code class="docutils literal notranslate"><span class="pre">MISSING_CAUSAL_ID</span></code> (falsy
+id), <code class="docutils literal notranslate"><span class="pre">UNPERSISTED_CAUSAL_ID</span></code> (no record at all), or <code class="docutils literal notranslate"><span class="pre">INELIGIBLE_CAUSAL_ID</span></code>
+(a record exists but fails strict validation — the precise reason is
+logged via <code class="docutils literal notranslate"><span class="pre">_log.warning</span></code>, never silently discarded, satisfying spec §4’s
+“do not silently map corrupted evidence to ordinary absence”).
+<code class="docutils literal notranslate"><span class="pre">_decision_id_is_durably_persisted()</span></code> itself is RETAINED (its existence-
+only semantics are still occasionally useful for audit/observability
+tooling) but its docstring now explicitly forbids using it to gate a
+mutation, and neither mutation path reads it anymore.</p>
+</section>
+<section id="pass-after-permanent-regression-tests">
+<h3>Pass-after (permanent regression tests)<a class="headerlink" href="#pass-after-permanent-regression-tests" title="Link to this heading">¶</a></h3>
+<p>14 new tests, <code class="docutils literal notranslate"><span class="pre">TestGroupR_R13_LegacyExecutionIneligibility</span></code> in
+<code class="docutils literal notranslate"><span class="pre">tests/test_pre_t1_e_rem_b_idempotent_order_protocol.py</span></code>: legacy v1
+rejected before spot/futures mutation (2); corrupted v2 rejected before
+spot/futures mutation (2); direct <code class="docutils literal notranslate"><span class="pre">bind_intent()</span></code> refusal with zero
+append for legacy/corrupted records (2); valid v2 <code class="docutils literal notranslate"><span class="pre">CREATED</span></code> binds exactly
+once, replay is idempotent, rebind-to-different-intent is rejected (3);
+valid v2 record still reaches a certified fake adapter exactly once (1);
+historical existence lookup finds legacy evidence without granting
+execution authority (1); restart reconstruction excludes every
+ineligible record (1); no default journal pollution (1); no network/
+exchange calls from the new gate/helpers (1). Two test-only helper
+builders (<code class="docutils literal notranslate"><span class="pre">_build_spot_engine</span></code>/<code class="docutils literal notranslate"><span class="pre">_build_futures_engine</span></code>) inject FRESH,
+temp-path-scoped <code class="docutils literal notranslate"><span class="pre">DecisionIdentityJournal</span></code>/<code class="docutils literal notranslate"><span class="pre">OrderIntentJournal</span></code>/
+<code class="docutils literal notranslate"><span class="pre">OrderIntentCoordinator</span></code> instances directly into the engine’s private
+cache attributes, rather than relying on <code class="docutils literal notranslate"><span class="pre">monkeypatch.setenv()</span></code> for the
+journal-path env vars — those module constants freeze at import time
+(documented DS-001 pattern, root <code class="docutils literal notranslate"><span class="pre">conftest.py</span></code>), so a per-test env
+monkeypatch cannot actually redirect them; direct instance injection is
+the correct, genuinely isolated approach and was verified necessary by
+the initial 4 test failures this exact mistake produced during
+development (fixed before this round’s final commit).</p>
+<p>For every invalid-record test: result is <code class="docutils literal notranslate"><span class="pre">&quot;rejected&quot;</span></code>; <code class="docutils literal notranslate"><span class="pre">denial_reason</span></code> is
+<code class="docutils literal notranslate"><span class="pre">&quot;INELIGIBLE_CAUSAL_ID&quot;</span></code>; the fake exchange’s <code class="docutils literal notranslate"><span class="pre">create_order</span></code> call count is
+<code class="docutils literal notranslate"><span class="pre">0</span></code>; the order-intent journal’s line count is unchanged (<code class="docutils literal notranslate"><span class="pre">0</span></code>); the
+decision journal’s line count is unchanged (no spurious append); no
+<code class="docutils literal notranslate"><span class="pre">SUBMISSION_STARTED</span></code> state exists anywhere in the order-intent journal.
+None of the 4 existing <code class="docutils literal notranslate"><span class="pre">_certify_mexc_for_test</span></code> monkeypatch helpers
+(across <code class="docutils literal notranslate"><span class="pre">test_execution_engine.py</span></code>, <code class="docutils literal notranslate"><span class="pre">test_execution_engine_futures.py</span></code>,
+<code class="docutils literal notranslate"><span class="pre">test_pre_t1_e_order_cycle_safety.py</span></code>, <code class="docutils literal notranslate"><span class="pre">test_pre_t1_e_rem_a_order_authorization.py</span></code>)
+were changed to bypass <code class="docutils literal notranslate"><span class="pre">_validate_record_for_execution</span></code>/
+<code class="docutils literal notranslate"><span class="pre">execution_ineligibility_reason</span></code> themselves — they only bypass
+<code class="docutils literal notranslate"><span class="pre">_decision_execution_denial_reason</span></code> (mirroring the pre-existing
+<code class="docutils literal notranslate"><span class="pre">_decision_id_is_durably_persisted</span></code> bypass pattern) for tests that target
+OTHER behavior; Group R’s tests exercise the REAL, un-bypassed strict
+gate directly, so the production correction is never itself weakened by
+a fixture.</p>
+</section>
+<section id="blocker-a-documentation-correction-r1-3-per-masters-explicit-instruction">
+<h3>Blocker A documentation correction (R1.3, per MASTER’s explicit instruction)<a class="headerlink" href="#blocker-a-documentation-correction-r1-3-per-masters-explicit-instruction" title="Link to this heading">¶</a></h3>
+<p>R1.2’s phrasing risked being read as implying R1.2 itself corrected the
+adapter fail-closed production boundary. It did not: that boundary was
+<strong>implemented in R1.1</strong> (via <code class="docutils literal notranslate"><span class="pre">OrderIntentCoordinator.submit()</span></code>’s
+<code class="docutils literal notranslate"><span class="pre">supports_client_order_id</span></code> gate, itself derived from
+<code class="docutils literal notranslate"><span class="pre">AdapterCapabilityVerdict.SUBMIT_AND_RECONCILE_VERIFIED</span></code>) and <strong>only
+revalidated in R1.2</strong> (via the 16 <code class="docutils literal notranslate"><span class="pre">TestGroupP_R12_AdapterFailClosed</span></code>
+tests, which pass unmodified against the R1.1 head, with zero production
+code changed). The required classification, applied verbatim to this ADR,
+the order-cycle-safety contract, and the PR description:
+<code class="docutils literal notranslate"><span class="pre">ALREADY_SATISFIED_AT_R1_1</span> <span class="pre">—</span> <span class="pre">REVALIDATED_IN_R1_2</span></code>. The 16-test proof, the
+zero-mutation evidence, and the exact source anchor
+(<code class="docutils literal notranslate"><span class="pre">if</span> <span class="pre">not</span> <span class="pre">self._capabilities.supports_client_order_id:</span> <span class="pre">return</span> <span class="pre">UNSUPPORTED_ADAPTER_CAPABILITY</span></code> in <code class="docutils literal notranslate"><span class="pre">OrderIntentCoordinator.submit()</span></code>,
+where <code class="docutils literal notranslate"><span class="pre">supports_client_order_id</span></code> is <code class="docutils literal notranslate"><span class="pre">True</span></code> ONLY when <code class="docutils literal notranslate"><span class="pre">verdict</span> <span class="pre">==</span> <span class="pre">SUBMIT_AND_RECONCILE_VERIFIED</span></code>) are all preserved unchanged from R1.2’s
+section above — only the attribution wording is corrected here and in
+§22.3 of the contract.</p>
+</section>
+<section id="r1-3-verification">
+<h3>R1.3 verification<a class="headerlink" href="#r1-3-verification" title="Link to this heading">¶</a></h3>
+<p>Targeted suite (REM-B protocol file/order-cycle-safety/REM-A
+authorization/execution-engine/execution-engine-futures): 314 tests, 313
+pass, 1 pre-existing unrelated <code class="docutils literal notranslate"><span class="pre">ccxt</span></code>-not-installed environment failure
+(same class already confirmed pre-existing on <code class="docutils literal notranslate"><span class="pre">origin/main</span></code> in R1.1/R1.2).
+Ruff baseline gate, <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">diff</span> <span class="pre">--check</span></code>, and journal-pollution checks: see
+final report. No REM-C scope started; no real/testnet exchange call; no
+deployment; no VPS or secret access.</p>
+</section>
+<section id="r1-3-safety-confirmations">
+<h3>R1.3 safety confirmations<a class="headerlink" href="#r1-3-safety-confirmations" title="Link to this heading">¶</a></h3>
+<p>No real/testnet exchange call, no live trading, no deployment, no VPS
+access, no secrets touched, no REM-C scope started, no O-02W-E2/T-1/F-00
+scope started. PR remains <strong>draft</strong>, <strong>unmerged</strong>, no force-push, no
+rebase, no squash, no amend of previously reviewed commits.</p>
+</section>
+</section>
+<section id="r1-4-persist-idempotence-legacy-upgrade-closure-and-binding-permanence-2026-09-11">
+<h2>R1.4 persist() idempotence — legacy upgrade closure and binding permanence (2026-09-11)<a class="headerlink" href="#r1-4-persist-idempotence-legacy-upgrade-closure-and-binding-permanence-2026-09-11" title="Link to this heading">¶</a></h2>
+<p>Starting HEAD: <code class="docutils literal notranslate"><span class="pre">015f701574c099ae35f37bab3980e49d7edda35d</span></code> (verified:
+local/remote/GitHub PR metadata all matched; base <code class="docutils literal notranslate"><span class="pre">092bb88f...</span></code> unchanged;
+working tree clean). R1.3 correctly separated historical existence from
+execution authority in <code class="docutils literal notranslate"><span class="pre">bind_intent()</span></code>/<code class="docutils literal notranslate"><span class="pre">execution_ineligibility_reason()</span></code>
+— but MASTER’s R1.4 review found <code class="docutils literal notranslate"><span class="pre">DecisionIdentityJournal.persist()</span></code>
+itself still had two related authority-reset defects.</p>
+<section id="persist-production-call-site-inventory">
+<h3><code class="docutils literal notranslate"><span class="pre">persist(</span></code> production call-site inventory<a class="headerlink" href="#persist-production-call-site-inventory" title="Link to this heading">¶</a></h3>
+<p>Repository-wide grep for <code class="docutils literal notranslate"><span class="pre">.persist(</span></code> confirms exactly ONE production
+(non-test) call site: <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py:1308</span></code>, inside
+<code class="docutils literal notranslate"><span class="pre">analyze_symbol()</span></code>, immediately after <code class="docutils literal notranslate"><span class="pre">_trace_id</span> <span class="pre">=</span> <span class="pre">new_trace_id()</span></code>
+(line 1288) — classified as <strong>first creation only</strong>: <code class="docutils literal notranslate"><span class="pre">new_trace_id()</span></code>
+generates a fresh random UUID on every call, so under the current call
+pattern this site can never actually invoke <code class="docutils literal notranslate"><span class="pre">persist()</span></code> twice for the
+SAME <code class="docutils literal notranslate"><span class="pre">decision_id</span></code> (no outer caller can force id reuse; a caller-level
+retry of <code class="docutils literal notranslate"><span class="pre">analyze_symbol()</span></code> itself would regenerate a new id anyway).
+<code class="docutils literal notranslate"><span class="pre">ExecutionEngine</span></code> itself NEVER calls <code class="docutils literal notranslate"><span class="pre">.persist()</span></code> (confirmed by grep —
+only <code class="docutils literal notranslate"><span class="pre">is_persisted()</span></code>, <code class="docutils literal notranslate"><span class="pre">execution_ineligibility_reason()</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">bind_intent()</span></code>). All other <code class="docutils literal notranslate"><span class="pre">.persist(</span></code> matches are either
+<code class="docutils literal notranslate"><span class="pre">RejectionStore.persist()</span></code> (<code class="docutils literal notranslate"><span class="pre">observability/rejection_store.py</span></code>,
+<code class="docutils literal notranslate"><span class="pre">tests/test_rejection_store.py</span></code> — an unrelated class with an unrelated
+method of the same name) or the ~35 test-only call sites in
+<code class="docutils literal notranslate"><span class="pre">tests/test_pre_t1_e_rem_b_idempotent_order_protocol.py</span></code>. Despite no
+current production path triggering a duplicate <code class="docutils literal notranslate"><span class="pre">persist()</span></code> call, the
+public API contract must still be safe against future retry/duplicate-
+delivery callers — which is exactly what R1.4 closes.</p>
+</section>
+<section id="fail-before-proof-behavioral-real-mutation-counters-exact-starting-head">
+<h3>Fail-before proof (behavioral, real mutation counters, exact starting HEAD)<a class="headerlink" href="#fail-before-proof-behavioral-real-mutation-counters-exact-starting-head" title="Link to this heading">¶</a></h3>
+<p><strong>Scenario A (legacy upgrade through persist())</strong>: a hand-crafted
+schema-v1 legacy record (<code class="docutils literal notranslate"><span class="pre">is_persisted()</span></code> → <code class="docutils literal notranslate"><span class="pre">True</span></code>,
+<code class="docutils literal notranslate"><span class="pre">is_execution_eligible()</span></code> → <code class="docutils literal notranslate"><span class="pre">False</span></code>, 1 journal line) was passed to the
+PUBLIC <code class="docutils literal notranslate"><span class="pre">persist()</span></code> API with metadata compatible with the legacy record.
+Result: <code class="docutils literal notranslate"><span class="pre">persist()</span></code> returned normally (no exception), appended a SECOND
+line (a brand-new valid schema-v2 <code class="docutils literal notranslate"><span class="pre">CREATED</span></code> record), and
+<code class="docutils literal notranslate"><span class="pre">is_execution_eligible()</span></code> flipped to <code class="docutils literal notranslate"><span class="pre">True</span></code>. Through the real
+<code class="docutils literal notranslate"><span class="pre">ExecutionEngine.create_order()</span></code> path (certified fake exchange, no
+network): <code class="docutils literal notranslate"><span class="pre">mode=&quot;live&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">denial_reason=None</span></code>,
+<strong><code class="docutils literal notranslate"><span class="pre">mock_exchange.create_order.call_count</span> <span class="pre">==</span> <span class="pre">1</span></code></strong>. Root cause: the OLD
+conflict check (<code class="docutils literal notranslate"><span class="pre">existing.get(&quot;payload_digest&quot;)</span> <span class="pre">and</span> <span class="pre">existing[&quot;payload_digest&quot;]</span> <span class="pre">!=</span> <span class="pre">digest</span></code>) is a no-op when <code class="docutils literal notranslate"><span class="pre">existing</span></code> has NO
+<code class="docutils literal notranslate"><span class="pre">payload_digest</span></code> key at all (exactly a legacy record’s shape) — so
+<code class="docutils literal notranslate"><span class="pre">persist()</span></code> fell through to an unconditional append.</p>
+<p><strong>Scenario B (bound decision reset through persist())</strong>: a genuine
+schema-v2 decision <code class="docutils literal notranslate"><span class="pre">D</span></code> was persisted and bound to intent digest <code class="docutils literal notranslate"><span class="pre">A</span></code>
+(<code class="docutils literal notranslate"><span class="pre">lifecycle_state=&quot;BOUND&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">bound_intent_digest=A</span></code>, 2 journal lines).
+Calling <code class="docutils literal notranslate"><span class="pre">persist(D,</span> <span class="pre">...)</span></code> again with the IDENTICAL canonical provenance
+(a duplicate-delivery replay) appended a THIRD line resetting
+<code class="docutils literal notranslate"><span class="pre">lifecycle_state</span></code> back to <code class="docutils literal notranslate"><span class="pre">&quot;CREATED&quot;</span></code> and <code class="docutils literal notranslate"><span class="pre">bound_intent_digest</span></code> to
+<code class="docutils literal notranslate"><span class="pre">None</span></code>. <code class="docutils literal notranslate"><span class="pre">bind_intent(D,</span> <span class="pre">B)</span></code> with <code class="docutils literal notranslate"><span class="pre">B</span> <span class="pre">!=</span> <span class="pre">A</span></code> — which R1.3 correctly rejects
+when the durable binding is intact — then SUCCEEDED (no exception),
+overwriting the binding to <code class="docutils literal notranslate"><span class="pre">B</span></code>. Root cause: the OLD digest-conflict
+check only raised when digests DIFFERED; an IDENTICAL digest fell
+through the same unconditional-append path as Scenario A, with no
+early-return for “nothing changed, do nothing.”</p>
+<p>Neither proof used <code class="docutils literal notranslate"><span class="pre">AttributeError</span></code>, an absent method, a collection
+failure, or a mock that bypasses the production gate — both used real
+<code class="docutils literal notranslate"><span class="pre">DecisionIdentityJournal</span></code>/<code class="docutils literal notranslate"><span class="pre">ExecutionEngine</span></code> instances against temp-path
+journals, with <code class="docutils literal notranslate"><span class="pre">MagicMock</span></code>-based fake exchanges whose <code class="docutils literal notranslate"><span class="pre">create_order</span></code>
+call counter is the actual evidence.</p>
+</section>
+<section id="precise-root-cause">
+<h3>Precise root cause<a class="headerlink" href="#precise-root-cause" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">persist()</span></code>’s existing-record handling had two independent gaps in the
+SAME code path: (1) the conflict check was skipped entirely (not merely
+under-triggered) when the existing record had no <code class="docutils literal notranslate"><span class="pre">payload_digest</span></code> — the
+exact shape of ANY legacy or otherwise-malformed record; (2) even when
+the check correctly did NOT trigger (matching digest — the legitimate
+duplicate-delivery case), the function had no early-return and fell
+through to the SAME unconditional append that a genuinely new decision
+uses — silently resetting lifecycle state regardless of whether anything
+had actually changed.</p>
+</section>
+<section id="fix-final-persist-semantics">
+<h3>Fix — final <code class="docutils literal notranslate"><span class="pre">persist()</span></code> semantics<a class="headerlink" href="#fix-final-persist-semantics" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">persist()</span></code> now branches into exactly three cases per call, matching the
+R1.4 spec’s pseudocode:</p>
+<ol class="arabic simple">
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">existing</span> <span class="pre">is</span> <span class="pre">None</span></code></strong> (I1 — first persistence): validate and append
+exactly as before — one valid <code class="docutils literal notranslate"><span class="pre">CREATED</span></code> record.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">existing</span></code> exists</strong>: it is first validated with the SAME strict
+<code class="docutils literal notranslate"><span class="pre">_validate_record_for_execution()</span></code> function <code class="docutils literal notranslate"><span class="pre">bind_intent()</span></code> and
+<code class="docutils literal notranslate"><span class="pre">execution_ineligibility_reason()</span></code> use.</p>
+<ul class="simple">
+<li><p>If <code class="docutils literal notranslate"><span class="pre">existing</span></code> is NOT execution-eligible (I5/I6 — legacy schema,
+corrupted digest, invalid lifecycle, …): raise
+<code class="docutils literal notranslate"><span class="pre">DecisionIdentityError</span></code>, <strong>zero append</strong>. A legacy or corrupted
+record can no longer be silently promoted into fresh v2 authority
+merely by calling <code class="docutils literal notranslate"><span class="pre">persist()</span></code> again — the same rule <code class="docutils literal notranslate"><span class="pre">bind_intent()</span></code>
+already enforced for BINDING now applies to PERSISTING too.</p></li>
+<li><p>If <code class="docutils literal notranslate"><span class="pre">existing</span></code> IS eligible but a duplicated top-level provenance
+field (<code class="docutils literal notranslate"><span class="pre">namespace</span></code>/<code class="docutils literal notranslate"><span class="pre">cycle</span></code>/<code class="docutils literal notranslate"><span class="pre">symbol</span></code>/<code class="docutils literal notranslate"><span class="pre">action</span></code>) disagrees with the
+candidate (I7): raise <code class="docutils literal notranslate"><span class="pre">DecisionIdentityError</span></code>, <strong>zero append</strong> —
+checked before the payload-digest comparison so this specific
+conflict is reported precisely.</p></li>
+<li><p>If the recomputed candidate digest disagrees with the existing
+stored digest: raise <code class="docutils literal notranslate"><span class="pre">DecisionIdentityError</span></code>, <strong>zero append</strong>
+(unchanged conflict rule from R1.2).</p></li>
+<li><p>Otherwise (I2/I3/I4/I8 — genuine duplicate-delivery replay, same
+provenance, same payload): <strong>return the existing record UNCHANGED,
+zero append.</strong> This is the change that actually fixes Scenario B —
+there is no code path left that appends a new record for an
+unchanged, already-persisted decision, so <code class="docutils literal notranslate"><span class="pre">lifecycle_state</span></code> and
+<code class="docutils literal notranslate"><span class="pre">bound_intent_digest</span></code> can never be reset by a duplicate <code class="docutils literal notranslate"><span class="pre">persist()</span></code>
+call.</p></li>
+</ul>
+</li>
+</ol>
+<p><code class="docutils literal notranslate"><span class="pre">persist()</span></code> MUST NEVER reset <code class="docutils literal notranslate"><span class="pre">lifecycle_state</span></code>, MUST NEVER clear
+<code class="docutils literal notranslate"><span class="pre">bound_intent_digest</span></code>, MUST NEVER silently upgrade legacy/corrupted
+evidence — all three are now structurally impossible: every branch either
+appends a genuinely NEW record for a genuinely NEW decision, or raises
+with zero writes, or returns the untouched existing record.</p>
+</section>
+<section id="id2">
+<h3>Pass-after (permanent regression tests)<a class="headerlink" href="#id2" title="Link to this heading">¶</a></h3>
+<p>14 new tests, <code class="docutils literal notranslate"><span class="pre">TestGroupS_R14_PersistIdempotence</span></code> in
+<code class="docutils literal notranslate"><span class="pre">tests/test_pre_t1_e_rem_b_idempotent_order_protocol.py</span></code>: identical
+duplicate <code class="docutils literal notranslate"><span class="pre">CREATED</span></code> persist is zero-append/idempotent (1); duplicate
+persist after <code class="docutils literal notranslate"><span class="pre">BOUND</span></code> preserves state/digest/line-count (3); different
+bind after duplicate persist remains rejected (1); legacy record +
+persist raises with zero append and remains ineligible (2); corrupted v2</p>
+<ul class="simple">
+<li><p>persist raises with zero append and remains ineligible (2); same-id
+different-payload and provenance-disagreement both remain rejected (2);
+end-to-end spot and futures proofs that duplicate persist cannot produce
+a second mutation (2); restart/new-journal-instance binding permanence
+(1). Both fail-before scripts re-run against the fixed code confirm the
+exact required pass-after transitions (see final report).</p></li>
+</ul>
+</section>
+<section id="r1-4-verification">
+<h3>R1.4 verification<a class="headerlink" href="#r1-4-verification" title="Link to this heading">¶</a></h3>
+<p>Targeted suite (REM-B protocol file/order-cycle-safety/REM-A
+authorization/execution-engine/execution-engine-futures): 328 tests, 327
+pass, 1 pre-existing unrelated <code class="docutils literal notranslate"><span class="pre">ccxt</span></code>-not-installed environment failure
+(same class already confirmed pre-existing across R1.1/R1.2/R1.3). Ruff
+baseline gate: 958/958, 0 new. <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">diff</span> <span class="pre">--check</span></code>: clean. No
+<code class="docutils literal notranslate"><span class="pre">databases/order_intent_journal.jsonl</span></code> or
+<code class="docutils literal notranslate"><span class="pre">databases/decision_identity_journal.jsonl</span></code> pollution. Exactly 2 files
+changed: <code class="docutils literal notranslate"><span class="pre">decision_identity.py</span></code> (production) and
+<code class="docutils literal notranslate"><span class="pre">tests/test_pre_t1_e_rem_b_idempotent_order_protocol.py</span></code> (tests) —
+<code class="docutils literal notranslate"><span class="pre">execution_engine.py</span></code> was NOT modified; the fail-before investigation
+confirmed the defect was entirely contained in <code class="docutils literal notranslate"><span class="pre">persist()</span></code> itself, with
+no production-code change needed at any <code class="docutils literal notranslate"><span class="pre">ExecutionEngine</span></code> call site.</p>
+</section>
+<section id="r1-4-does-not-regress-r1-3">
+<h3>R1.4 does not regress R1.3<a class="headerlink" href="#r1-4-does-not-regress-r1-3" title="Link to this heading">¶</a></h3>
+<p>All R1.3 properties revalidated in the same test run: legacy/corrupted
+direct <code class="docutils literal notranslate"><span class="pre">bind_intent()</span></code> rejection, strict
+<code class="docutils literal notranslate"><span class="pre">execution_ineligibility_reason()</span></code>, spot/futures zero mutation,
+<code class="docutils literal notranslate"><span class="pre">recover_pending_decisions()</span></code> exclusion, historical <code class="docutils literal notranslate"><span class="pre">is_persisted()</span></code>
+semantics unchanged (still existence-only, never execution authority),
+and Blocker A’s attribution remains
+<code class="docutils literal notranslate"><span class="pre">ALREADY_SATISFIED_AT_R1_1</span> <span class="pre">—</span> <span class="pre">REVALIDATED_IN_R1_2</span></code> (unchanged, not
+rewritten).</p>
+</section>
+<section id="r1-4-safety-confirmations">
+<h3>R1.4 safety confirmations<a class="headerlink" href="#r1-4-safety-confirmations" title="Link to this heading">¶</a></h3>
+<p>No real/testnet exchange call, no live trading, no deployment, no VPS
+access, no secrets touched, no REM-C scope started, no O-02W-E2/T-1/F-00
+scope started. PR remains <strong>draft</strong>, <strong>unmerged</strong>, no force-push, no
+rebase, no squash, no amend of previously reviewed commits.</p>
+</section>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Crypto AI Terminal
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">ADR-0020 — Deterministic, durable and idempotent order submission (O-02W-PRE-T1-E REM-B)</a><ul>
+<li><a class="reference internal" href="#context">Context</a></li>
+<li><a class="reference internal" href="#decision">Decision</a></li>
+<li><a class="reference internal" href="#integration">Integration</a></li>
+<li><a class="reference internal" href="#existing-code-inventory-mission-4-recorded-for-audit">Existing-code inventory (mission §4, recorded for audit)</a></li>
+<li><a class="reference internal" href="#rem-c-exclusions-explicit-not-implemented-here">REM-C exclusions (explicit, not implemented here)</a></li>
+<li><a class="reference internal" href="#consequences">Consequences</a></li>
+<li><a class="reference internal" href="#r1-correction-round-master-review-2026-09-11">R1 correction round (MASTER review, 2026-09-11)</a><ul>
+<li><a class="reference internal" href="#correction-a-causal-identity-becomes-mandatory-not-optional">Correction A — causal identity becomes mandatory, not optional</a></li>
+<li><a class="reference internal" href="#correction-b-causal-id-trace-id-provenance-and-stability">Correction B — causal-ID (<code class="docutils literal notranslate"><span class="pre">trace_id</span></code>) provenance and stability</a></li>
+<li><a class="reference internal" href="#correction-c-exhaustive-caller-inventory">Correction C — exhaustive caller inventory</a></li>
+<li><a class="reference internal" href="#correction-d-inter-process-safe-journal-ownership">Correction D — inter-process-safe journal ownership</a></li>
+<li><a class="reference internal" href="#correction-e-adapter-capability-contract">Correction E — adapter capability contract</a></li>
+<li><a class="reference internal" href="#correction-f-strengthened-fail-before-proof">Correction F — strengthened fail-before proof</a></li>
+<li><a class="reference internal" href="#correction-g-tests-conftest-py-resolution">Correction G — <code class="docutils literal notranslate"><span class="pre">tests/conftest.py</span></code> resolution</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#r1-files-changed">R1 files changed</a></li>
+<li><a class="reference internal" href="#updated-rem-c-exclusions-still-explicit-still-not-implemented">Updated REM-C exclusions (still explicit, still not implemented)</a></li>
+<li><a class="reference internal" href="#r1-consequences">R1 Consequences</a></li>
+<li><a class="reference internal" href="#r1-1-correction-round-master-review-2026-09-11">R1.1 correction round (MASTER review, 2026-09-11)</a><ul>
+<li><a class="reference internal" href="#blocker-a-durable-upstream-decision-identity">Blocker A — durable upstream decision identity</a></li>
+<li><a class="reference internal" href="#blocker-b-real-adapter-reconciliation-capability">Blocker B — real adapter reconciliation capability</a></li>
+<li><a class="reference internal" href="#blocker-c-complete-mutation-bypass-detection">Blocker C — complete mutation-bypass detection</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#r1-1-files-changed">R1.1 files changed</a></li>
+<li><a class="reference internal" href="#id1">Updated REM-C exclusions (still explicit, still not implemented)</a></li>
+<li><a class="reference internal" href="#r1-1-consequences">R1.1 Consequences</a></li>
+<li><a class="reference internal" href="#r1-2-final-safety-correction-round-2026-09-11">R1.2 final safety correction round (2026-09-11)</a><ul>
+<li><a class="reference internal" href="#blocker-a-every-non-fully-verified-adapter-must-fail-closed">Blocker A — every non-fully-verified adapter must fail closed</a></li>
+<li><a class="reference internal" href="#blocker-b-genuine-causal-reconstruction-after-process-restart">Blocker B — genuine causal reconstruction after process restart</a></li>
+<li><a class="reference internal" href="#r1-2-test-fixture-updates">R1.2 test-fixture updates</a></li>
+<li><a class="reference internal" href="#r1-2-verification">R1.2 verification</a></li>
+<li><a class="reference internal" href="#r1-2-safety-confirmations">R1.2 safety confirmations</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#r1-3-legacy-execution-ineligibility-correction-2026-09-11">R1.3 legacy execution ineligibility correction (2026-09-11)</a><ul>
+<li><a class="reference internal" href="#is-persisted-call-site-inventory-complete-repository-grep"><code class="docutils literal notranslate"><span class="pre">is_persisted(</span></code> call-site inventory (complete repository grep)</a></li>
+<li><a class="reference internal" href="#fail-before-proof-behavioral-exact-starting-head-5bfe1a89-real-mutation-counters">Fail-before proof (behavioral, exact starting HEAD <code class="docutils literal notranslate"><span class="pre">5bfe1a89</span></code>, real mutation counters)</a></li>
+<li><a class="reference internal" href="#architectural-correction">Architectural correction</a></li>
+<li><a class="reference internal" href="#pass-after-permanent-regression-tests">Pass-after (permanent regression tests)</a></li>
+<li><a class="reference internal" href="#blocker-a-documentation-correction-r1-3-per-masters-explicit-instruction">Blocker A documentation correction (R1.3, per MASTER’s explicit instruction)</a></li>
+<li><a class="reference internal" href="#r1-3-verification">R1.3 verification</a></li>
+<li><a class="reference internal" href="#r1-3-safety-confirmations">R1.3 safety confirmations</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#r1-4-persist-idempotence-legacy-upgrade-closure-and-binding-permanence-2026-09-11">R1.4 persist() idempotence — legacy upgrade closure and binding permanence (2026-09-11)</a><ul>
+<li><a class="reference internal" href="#persist-production-call-site-inventory"><code class="docutils literal notranslate"><span class="pre">persist(</span></code> production call-site inventory</a></li>
+<li><a class="reference internal" href="#fail-before-proof-behavioral-real-mutation-counters-exact-starting-head">Fail-before proof (behavioral, real mutation counters, exact starting HEAD)</a></li>
+<li><a class="reference internal" href="#precise-root-cause">Precise root cause</a></li>
+<li><a class="reference internal" href="#fix-final-persist-semantics">Fix — final <code class="docutils literal notranslate"><span class="pre">persist()</span></code> semantics</a></li>
+<li><a class="reference internal" href="#id2">Pass-after (permanent regression tests)</a></li>
+<li><a class="reference internal" href="#r1-4-verification">R1.4 verification</a></li>
+<li><a class="reference internal" href="#r1-4-does-not-regress-r1-3">R1.4 does not regress R1.3</a></li>
+<li><a class="reference internal" href="#r1-4-safety-confirmations">R1.4 safety confirmations</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../_static/documentation_options.js?v=ef6a59ae"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/scripts/furo.js?v=5fa4622c"></script>
+    </body>
+</html>
