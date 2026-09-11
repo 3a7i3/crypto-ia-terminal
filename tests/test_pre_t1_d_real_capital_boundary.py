@@ -1629,3 +1629,278 @@ class TestR2StructuralProof:
         second = ws.get_scientific_capital()
 
         assert first == second == 175.0
+
+
+# ─────────────────────────────────────────────────────────────────────────
+# O-02W-PRE-T1-D REMEDIATION R1 — defect fixes:
+#   1. core/advisor_loop.py's decisional variable renamed real_capital ->
+#      scientific_capital (naming only, no formula change).
+#   2. observe_exchange_balance()'s cache-hit branch no longer collapses
+#      every within-TTL cache hit into STALE_CACHE. Six explicit states are
+#      now reachable: FRESH, ZERO, CACHED_FRESH, STALE_CACHE, ERROR, ABSENT.
+#
+# All timing here is a CONTROLLED CLOCK (monkeypatched infra.wallet_sync.time
+# module's time.time) — no sleep() anywhere, fully deterministic.
+# ─────────────────────────────────────────────────────────────────────────
+
+
+class _FakeClock:
+    """Deterministic, manually-advanced clock injected in place of time.time."""
+
+    def __init__(self, start: float = 1_000_000.0):
+        self._t = start
+
+    def __call__(self) -> float:
+        return self._t
+
+    def advance(self, seconds: float) -> None:
+        self._t += seconds
+
+
+class TestR1CacheStateClassification:
+    """Defect 2 fix: the six ExchangeObservationStatus states are each
+    independently reachable and pairwise distinguishable, under a fully
+    controlled clock (no sleep)."""
+
+    def test_fresh_reachable_on_first_live_call_with_positive_balance(
+        self, monkeypatch, isolated_ledger
+    ):
+        clock = _FakeClock()
+        monkeypatch.setattr(ws.time, "time", clock)
+        fake = FakeExchange(free_usdt=250.0)
+        wallet = ws.WalletSync(mode="live", exchange=fake)
+
+        obs = wallet.observe_exchange_balance()
+
+        assert obs.status == ws.ExchangeObservationStatus.FRESH
+        assert obs.value == 250.0
+        assert fake.calls == 1
+
+    def test_zero_reachable_on_live_call_with_genuine_zero_balance(
+        self, monkeypatch, isolated_ledger
+    ):
+        clock = _FakeClock()
+        monkeypatch.setattr(ws.time, "time", clock)
+        fake = FakeExchange(free_usdt=0.0)
+        wallet = ws.WalletSync(mode="live", exchange=fake)
+
+        obs = wallet.observe_exchange_balance()
+
+        assert obs.status == ws.ExchangeObservationStatus.ZERO
+        assert obs.value == 0.0
+        assert fake.calls == 1
+
+    def test_cached_fresh_reachable_on_normal_within_ttl_cache_hit(
+        self, monkeypatch, isolated_ledger
+    ):
+        clock = _FakeClock()
+        monkeypatch.setattr(ws.time, "time", clock)
+        monkeypatch.setattr(ws, "_CACHE_TTL_S", 30.0)
+        fake = FakeExchange(free_usdt=42.0)
+        wallet = ws.WalletSync(mode="live", exchange=fake)
+
+        first = wallet.observe_exchange_balance()
+        assert first.status == ws.ExchangeObservationStatus.FRESH
+        assert fake.calls == 1
+
+        # Advance the clock well within the 30s TTL — a normal cache hit,
+        # not a fallback-after-failure.
+        clock.advance(5.0)
+        second = wallet.observe_exchange_balance()
+
+        assert second.status == ws.ExchangeObservationStatus.CACHED_FRESH
+        assert second.value == 42.0
+        # No API call attempted on the cache-hit path.
+        assert fake.calls == 1
+
+    def test_cached_fresh_reachable_after_a_zero_observation_too(
+        self, monkeypatch, isolated_ledger
+    ):
+        """A genuine ZERO is a valid fresh observation and populates the
+        cache — a subsequent within-TTL call must reuse it as CACHED_FRESH
+        with value 0.0, not re-hit the API."""
+        clock = _FakeClock()
+        monkeypatch.setattr(ws.time, "time", clock)
+        monkeypatch.setattr(ws, "_CACHE_TTL_S", 30.0)
+        fake = FakeExchange(free_usdt=0.0)
+        wallet = ws.WalletSync(mode="live", exchange=fake)
+
+        first = wallet.observe_exchange_balance()
+        assert first.status == ws.ExchangeObservationStatus.ZERO
+        assert fake.calls == 1
+
+        clock.advance(1.0)
+        second = wallet.observe_exchange_balance()
+
+        assert second.status == ws.ExchangeObservationStatus.CACHED_FRESH
+        assert second.value == 0.0
+        assert fake.calls == 1
+
+    def test_stale_cache_reachable_only_after_ttl_expiry_and_failed_refresh(
+        self, monkeypatch, isolated_ledger
+    ):
+        clock = _FakeClock()
+        monkeypatch.setattr(ws.time, "time", clock)
+        monkeypatch.setattr(ws, "_CACHE_TTL_S", 30.0)
+        fake = FakeExchange(free_usdt=99.0)
+        wallet = ws.WalletSync(mode="live", exchange=fake)
+
+        first = wallet.observe_exchange_balance()
+        assert first.status == ws.ExchangeObservationStatus.FRESH
+        assert fake.calls == 1
+
+        # TTL expires; refresh attempt is made and fails.
+        clock.advance(31.0)
+        fake._raise = True
+        second = wallet.observe_exchange_balance()
+
+        assert second.status == ws.ExchangeObservationStatus.STALE_CACHE
+        assert second.value == 99.0
+        assert fake.calls == 2  # a refresh WAS attempted this time
+
+    def test_stale_cache_reachable_via_force_refresh_and_failed_refresh(
+        self, monkeypatch, isolated_ledger
+    ):
+        """force_refresh=True bypasses the cache-hit branch even well within
+        TTL, so a failing refresh right after a fresh call still yields
+        STALE_CACHE (attempted + failed), never CACHED_FRESH."""
+        clock = _FakeClock()
+        monkeypatch.setattr(ws.time, "time", clock)
+        monkeypatch.setattr(ws, "_CACHE_TTL_S", 9999.0)
+        fake = FakeExchange(free_usdt=77.0)
+        wallet = ws.WalletSync(mode="live", exchange=fake)
+
+        first = wallet.observe_exchange_balance()
+        assert first.status == ws.ExchangeObservationStatus.FRESH
+
+        clock.advance(1.0)  # still well within TTL
+        fake._raise = True
+        second = wallet.observe_exchange_balance(force_refresh=True)
+
+        assert second.status == ws.ExchangeObservationStatus.STALE_CACHE
+        assert second.value == 77.0
+        assert fake.calls == 2
+
+    def test_error_reachable_on_failed_refresh_with_no_prior_observation(
+        self, monkeypatch, isolated_ledger
+    ):
+        clock = _FakeClock()
+        monkeypatch.setattr(ws.time, "time", clock)
+        fake = FakeExchange(raise_on_fetch=True)
+        wallet = ws.WalletSync(mode="live", exchange=fake)
+
+        obs = wallet.observe_exchange_balance()
+
+        assert obs.status == ws.ExchangeObservationStatus.ERROR
+        assert obs.value is None
+        assert fake.calls == 1
+
+    def test_absent_reachable_in_paper_mode_and_without_exchange(
+        self, monkeypatch, isolated_ledger
+    ):
+        clock = _FakeClock()
+        monkeypatch.setattr(ws.time, "time", clock)
+
+        paper_wallet = ws.WalletSync(mode="paper", exchange=FakeExchange(free_usdt=5.0))
+        no_exchange_wallet = ws.WalletSync(mode="live", exchange=None)
+
+        assert (
+            paper_wallet.observe_exchange_balance().status
+            == ws.ExchangeObservationStatus.ABSENT
+        )
+        assert (
+            no_exchange_wallet.observe_exchange_balance().status
+            == ws.ExchangeObservationStatus.ABSENT
+        )
+
+    @pytest.mark.parametrize(
+        "status_a,status_b",
+        [
+            (a, b)
+            for a in ws.ExchangeObservationStatus
+            for b in ws.ExchangeObservationStatus
+            if a != b
+        ],
+    )
+    def test_all_six_statuses_are_pairwise_distinguishable(self, status_a, status_b):
+        """Enum-level structural proof: 6 distinct members, none aliasing
+        another (guards against a future accidental value collision)."""
+        assert status_a.value != status_b.value
+
+    def test_exactly_six_statuses_exist(self):
+        assert len(list(ws.ExchangeObservationStatus)) == 6
+        assert {s.value for s in ws.ExchangeObservationStatus} == {
+            "fresh",
+            "zero",
+            "cached_fresh",
+            "stale_cache",
+            "error",
+            "absent",
+        }
+
+
+class TestR1ObservationNeverAffectsScientificCapitalOrSizing:
+    """No matter which of the 6 observation states occurs, get_scientific_capital()
+    and the derived order_size/sizing formula are completely unaffected."""
+
+    @pytest.mark.parametrize(
+        "build_wallet_and_observe",
+        [
+            "fresh",
+            "zero",
+            "cached_fresh",
+            "stale_cache",
+            "error",
+            "absent",
+        ],
+    )
+    def test_each_observation_state_leaves_scientific_capital_and_sizing_unchanged(
+        self, build_wallet_and_observe, monkeypatch, isolated_ledger
+    ):
+        monkeypatch.setattr(ws, "_PAPER_CAPITAL", 200.0)
+        monkeypatch.setattr(ws, "_CACHE_TTL_S", 30.0)
+        clock = _FakeClock()
+        monkeypatch.setattr(ws.time, "time", clock)
+
+        baseline_capital = ws.get_scientific_capital()
+        baseline_order_size = min(50.0, baseline_capital * 0.05)
+        assert baseline_capital == 200.0
+
+        case = build_wallet_and_observe
+        if case == "fresh":
+            wallet = ws.WalletSync(mode="live", exchange=FakeExchange(free_usdt=9_999.0))
+            obs = wallet.observe_exchange_balance()
+            assert obs.status == ws.ExchangeObservationStatus.FRESH
+        elif case == "zero":
+            wallet = ws.WalletSync(mode="live", exchange=FakeExchange(free_usdt=0.0))
+            obs = wallet.observe_exchange_balance()
+            assert obs.status == ws.ExchangeObservationStatus.ZERO
+        elif case == "cached_fresh":
+            fake = FakeExchange(free_usdt=5_000.0)
+            wallet = ws.WalletSync(mode="live", exchange=fake)
+            wallet.observe_exchange_balance()
+            clock.advance(1.0)
+            obs = wallet.observe_exchange_balance()
+            assert obs.status == ws.ExchangeObservationStatus.CACHED_FRESH
+        elif case == "stale_cache":
+            fake = FakeExchange(free_usdt=3_000.0)
+            wallet = ws.WalletSync(mode="live", exchange=fake)
+            wallet.observe_exchange_balance()
+            clock.advance(31.0)
+            fake._raise = True
+            obs = wallet.observe_exchange_balance()
+            assert obs.status == ws.ExchangeObservationStatus.STALE_CACHE
+        elif case == "error":
+            wallet = ws.WalletSync(mode="live", exchange=FakeExchange(raise_on_fetch=True))
+            obs = wallet.observe_exchange_balance()
+            assert obs.status == ws.ExchangeObservationStatus.ERROR
+        else:  # absent
+            wallet = ws.WalletSync(mode="live", exchange=None)
+            obs = wallet.observe_exchange_balance()
+            assert obs.status == ws.ExchangeObservationStatus.ABSENT
+
+        after_capital = ws.get_scientific_capital()
+        after_order_size = min(50.0, after_capital * 0.05)
+
+        assert after_capital == baseline_capital == 200.0
+        assert after_order_size == baseline_order_size

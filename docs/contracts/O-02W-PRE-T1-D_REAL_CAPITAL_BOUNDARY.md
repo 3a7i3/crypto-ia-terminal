@@ -964,9 +964,15 @@ state, no `EXCHANGE_MODE`, no `PAPER_TRADING_ENABLED`, no
 
 `WalletSync.observe_exchange_balance()` — a new method — is the **sole**
 exchange-observation accessor. It returns an `ExchangeBalanceObservation`
-(`status` ∈ `FRESH|ZERO|STALE_CACHE|ERROR|ABSENT`, `value`), never a bare
-ambiguous float. It is DISPLAY-ONLY and is never called from any
-decisional path (proven structurally, §14.3 invariant 20).
+(`status` ∈ `FRESH|ZERO|CACHED_FRESH|STALE_CACHE|ERROR|ABSENT`, `value`),
+never a bare ambiguous float. `CACHED_FRESH` is a normal within-TTL cache
+hit (no API call attempted this invocation); `STALE_CACHE` is reserved for
+the case where a refresh WAS attempted (TTL expired, or `force_refresh=True`)
+and failed, returning a previously-known value as fallback (R1 correction,
+§14.4 below — the initial remediation's cache-hit branch collapsed these
+two into `STALE_CACHE` for virtually every cache reuse). It is DISPLAY-ONLY
+and is never called from any decisional path (proven structurally, §14.3
+invariant 20).
 
 `ExecutionEngine.fetch_available_capital()` — the historical decisional
 entry point this audit's §3/§11/§12 characterized — is rewritten to call
@@ -976,7 +982,10 @@ entry point this audit's §3/§11/§12 characterized — is rewritten to call
 `core/advisor_loop.py`'s `order_size` (frozen at bootstrap per §5/H5) is
 now recomputed every cycle immediately after the scientific-capital
 refresh, using the same unchanged formula
-(`min(max_order, real_capital * V9_MAX_POSITION_WEIGHT)`).
+(`min(max_order, scientific_capital * V9_MAX_POSITION_WEIGHT)`). The
+decisional local variable in this flow was renamed from `real_capital` to
+`scientific_capital` (R1 correction, §14.5 below) — naming only, formula
+unchanged.
 
 P10 `CapitalThrottle` (`capital_deployment/capital_throttle.py`, §6/H6) is
 **unchanged** — still intentionally pinned to `WALLET_PAPER_CAPITAL` per
@@ -1025,7 +1034,47 @@ function).
 by the original audit — this mission made no VPS changes and no
 deployment (per the stabilization-window freeze).
 
-### 14.4 Verdict
+### 14.4 R1 correction (post-review, 2026-09-11)
+
+Two defects found in MASTER review of the initial remediation, fixed on top
+of the same branch (no rebase, no history rewrite):
+
+1. **Naming** — the decisional local in `core/advisor_loop.py` assigned
+   from `exec_engine.fetch_available_capital()` (feeding `order_size`,
+   `portfolio_brain.update_capital()`, `capital_engine.update_capital()`)
+   was still named `real_capital`, misleadingly implying a real exchange
+   balance post-remediation. Renamed to `scientific_capital` throughout the
+   decisional flow of that file (formula unchanged). The one keyword
+   argument at the `system.state_integrity` `_integrity_audit.run(...)`
+   call site kept its `real_capital=` parameter name (owned by a different,
+   out-of-scope module) — only the value passed changed to
+   `scientific_capital`.
+2. **Cache classification** — `observe_exchange_balance()`'s cache-hit
+   branch (`STALE_CACHE if now - self._last_fetch_ts > 0 else FRESH`)
+   collapsed virtually every within-TTL cache hit into `STALE_CACHE`, since
+   time always advances. A new `CACHED_FRESH` status was added to
+   `ExchangeObservationStatus`; the branch now returns `CACHED_FRESH`
+   unconditionally for a normal within-TTL cache hit (no API call
+   attempted), and `STALE_CACHE` is reserved for the failure-fallback case
+   (refresh attempted because TTL expired or `force_refresh=True`, and
+   failed). A genuine `ZERO` observation now also populates the cache
+   (`_last_value`/`_last_fetch_ts`), same as `FRESH`, so a subsequent
+   within-TTL call correctly returns `CACHED_FRESH(0.0)` instead of
+   re-hitting the API every time.
+
+**Regression proof:** `tests/test_pre_t1_d_real_capital_boundary.py` grew
+from 94 to 139 tests (45 new, in `TestR1CacheStateClassification` and
+`TestR1ObservationNeverAffectsScientificCapitalOrSizing`), using a
+monkeypatched `time.time` (`_FakeClock`, no `sleep()`) to deterministically
+reach and distinguish all 6 `ExchangeObservationStatus` states, confirm
+exact fake-exchange call counts per state, and prove none of the 6 states
+ever changes `get_scientific_capital()`'s return value or the derived
+`order_size`. Fail-before/pass-after: 4 of the new tests fail against the
+pre-R1 `infra/wallet_sync.py` (confirmed via `git stash` of that file
+alone) and all 139 pass with the fix. Both fixes are naming/display-only —
+no sizing formula, threshold, or decisional data changed.
+
+### 14.5 Verdict
 
 **VERDICT: `REMEDIATION_REQUIRED` (§13) is now CLOSED by this section.**
 Defects #1-#6 and #8 are `REMEDIATED_IN_PRE_T1_D`; defects #7, #9, #10 were

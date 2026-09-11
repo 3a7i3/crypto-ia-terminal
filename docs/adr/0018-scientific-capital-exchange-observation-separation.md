@@ -26,8 +26,11 @@ quelconque client exchange.
 Les soldes d'exchange réels (spot/futures via `ccxt`) restent une
 information **strictement observationnelle**, exposée par
 `WalletSync.observe_exchange_balance()` (nouvel accesseur, retournant un
-`ExchangeBalanceObservation` explicite : `FRESH` / `ZERO` / `STALE_CACHE` /
-`ERROR` / `ABSENT`) et par `observability/real_accounts.py` (déjà
+`ExchangeBalanceObservation` explicite : `FRESH` / `ZERO` / `CACHED_FRESH` /
+`STALE_CACHE` / `ERROR` / `ABSENT` — `CACHED_FRESH` pour un cache hit normal
+dans le TTL sans tentative d'appel API, distinct de `STALE_CACHE` qui suppose
+un refresh effectivement tenté et échoué (voir addendum R1 en fin de
+document)) et par `observability/real_accounts.py` (déjà
 structurellement indépendant, propre client `ccxt`, aucune dépendance à
 `WalletSync`). Ces deux chemins peuvent alimenter l'affichage
 (cockpit/Telegram) mais **jamais** une calculation de décision.
@@ -148,3 +151,30 @@ réel, **aucun** déploiement VPS, **aucune** calibration alpha, **aucun**
 nouveau signal/indicateur/stratégie. `PAPER_TRADING_ENABLED=true` et
 `LIVE_TRADING_CONFIRMED=false` restent les défauts obligatoires et ne sont
 modifiés par aucun changement de cette ADR.
+
+## Addendum R1 (correction post-review)
+
+Deux corrections mineures apportées à la mission initiale, sans changement
+de la décision architecturale de §1 :
+
+1. **Nommage** — la variable décisionnelle du flux `core/advisor_loop.py`
+   assignée depuis `exec_engine.fetch_available_capital()` (utilisée pour
+   `order_size`, `portfolio_brain.update_capital()`,
+   `capital_engine.update_capital()`) s'appelait encore `real_capital`,
+   induisant en erreur puisqu'elle ne représente plus un solde d'exchange
+   réel mais le capital scientifique de décision. Renommée
+   `scientific_capital` dans tout le chemin décisionnel de ce fichier.
+2. **Classification du cache** — `observe_exchange_balance()` distinguait
+   mal un cache hit normal (dans le TTL, aucun appel API tenté) d'un repli
+   après échec de refresh : la condition précédente retournait
+   `STALE_CACHE` pour pratiquement tout cache hit, le temps avançant
+   toujours. Un nouvel état `CACHED_FRESH` a été ajouté à
+   `ExchangeObservationStatus` pour le cache hit normal ; `STALE_CACHE` est
+   désormais réservé au cas où un refresh a été effectivement tenté (TTL
+   expiré ou `force_refresh=True`) et a échoué, retournant la dernière
+   valeur connue en repli. Six états distincts et testés individuellement :
+   `FRESH`, `ZERO`, `CACHED_FRESH`, `STALE_CACHE`, `ERROR`, `ABSENT`.
+
+Les deux corrections sont display-only / naming-only — aucune formule de
+sizing, aucun seuil, aucune donnée décisionnelle n'est modifiée. Zéro
+trading réel autorisé par cet addendum.
