@@ -32,6 +32,52 @@ def _fake_exchange(usdt_balance: float = 10_000.0, last_price: float = 50_000.0)
     return ex
 
 
+def _certify_mexc_for_test(monkeypatch):
+    """O-02W-PRE-T1-E REM-B-R1.1, Blocker B: real `mexc` is deliberately
+    deny-closed (reconciliation unproven against a pinned implementation).
+    Tests inject a fake, test-only certified capability instead."""
+    from quant_hedge_ai.agents.execution import order_intent_protocol as oip
+
+    monkeypatch.setitem(
+        oip._ADAPTER_CAPABILITIES_BY_EXCHANGE,
+        "mexc",
+        oip.AdapterCapabilities(
+            verdict=oip.AdapterCapabilityVerdict.SUBMIT_AND_RECONCILE_VERIFIED,
+            client_order_id_param="clientOrderId",
+            supports_open_order_search=True,
+            supports_closed_order_search=True,
+            evidence="test fixture — certified for hermetic testing only",
+        ),
+    )
+    # O-02W-PRE-T1-E REM-B-R1.1, Blocker A: these tests exercise OTHER
+    # behavior (sizing, symbol conversion, SEC-01 gate, etc.), not the
+    # decision-identity persistence check itself — bypass it here exactly
+    # like the capability fake above, so a bare decision_id string keeps
+    # working for them. Dedicated tests exercise the REAL persistence
+    # check via `decision_identity.DecisionIdentityJournal` directly.
+    from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine as _EE
+
+    monkeypatch.setattr(
+        _EE, "_decision_id_is_durably_persisted", lambda self, decision_id: bool(decision_id)
+    )
+    # O-02W-PRE-T1-E REM-B-R1.3: bypass the REAL execution gate too — see
+    # identical comment in
+    # quant_hedge_ai/agents/execution/test_execution_engine_futures.py's
+    # _certify_mexc_for_test.
+    monkeypatch.setattr(
+        _EE,
+        "_decision_execution_denial_reason",
+        lambda self, decision_id: None if decision_id else "MISSING_CAUSAL_ID",
+    )
+    # O-02W-PRE-T1-E REM-B-R1.2, Blocker B: decision->intent binding now
+    # requires a REAL durably-persisted decision record (bind_intent()
+    # raises DecisionIdentityError otherwise) — these tests exercise OTHER
+    # behavior, so bypass the binding gate the same way, mirroring the
+    # persistence bypass above. Dedicated tests exercise the real binding
+    # invariants directly via DecisionIdentityJournal.
+    monkeypatch.setattr(_EE, "_bind_decision_to_intent", lambda self, decision_id, intent: None)
+
+
 @pytest.fixture
 def live_engine_factory(tmp_path, monkeypatch):
     """Builds an ExecutionEngine wired to a fake exchange, live path open
@@ -40,6 +86,7 @@ def live_engine_factory(tmp_path, monkeypatch):
     monkeypatch.setenv("EXEC_MAX_ORDER_USD", "1e12")
     monkeypatch.setenv("PAPER_TRADING_ENABLED", "false")
     monkeypatch.setenv("EXEC_DEDUP_WINDOW", "30")
+    _certify_mexc_for_test(monkeypatch)
 
     def _make(mock_exchange=None):
         from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
@@ -154,36 +201,56 @@ class TestScenarioB_MinNotionalAmplification:
 
 
 class TestScenarioD_OrderIdentity:
-    """H3 — REFUTED: no clientOrderId/newClientOrderId is ever constructed
-    or sent. Order identity is entirely exchange-assigned, post-hoc."""
+    """H3 — REFUTED at HEAD `297eba89`: no clientOrderId/newClientOrderId
+    was ever constructed or sent, and two logically-identical intentions
+    produced two independent, uncorrelated exchange orders.
 
-    def test_no_client_order_id_passed_to_exchange(self, live_engine_factory):
+    REMEDIATED_IN_PRE_T1_E_REM_B: `order_intent_protocol.py` derives a
+    deterministic `clientOrderId` from the canonical intent and the
+    coordinator returns the existing recorded state (no re-submission) for
+    a repeated identical intent — see
+    `tests/test_pre_t1_e_rem_b_idempotent_order_protocol.py` for full proof.
+    These two tests are updated to assert the corrected behavior instead
+    of re-stating the historical defect as if it still passed.
+    """
+
+    def test_client_order_id_now_passed_to_exchange(self, live_engine_factory):
         mock_exchange = _fake_exchange()
         e = live_engine_factory(mock_exchange)
-        e.create_order("BTC/USDT", "BUY", 100.0)
+        e.create_order(
+            "BTC/USDT", "BUY", 100.0, decision_id="scenario-d-client-id"
+        )
 
         args, kwargs = mock_exchange.create_order.call_args
-        haystack = str(args) + str(kwargs)
-        assert "clientOrderId" not in haystack
-        assert "client_order_id" not in haystack
+        params = kwargs.get("params", {})
+        assert "clientOrderId" in params
+        assert params["clientOrderId"]  # non-empty, deterministic
 
-    def test_same_logical_intention_run_twice_yields_two_distinct_exchange_ids(
+    def test_same_logical_intention_run_twice_is_idempotent_not_duplicated(
         self, live_engine_factory
     ):
-        """Two logically-identical intentions (after the dedup window is
-        disabled) produce two independent exchange-assigned ids with no
-        causal link between them and the originating decision."""
+        """A truly identical logical intention (same decision_id, same
+        trade fields) submitted twice now yields exactly ONE exchange
+        mutation call — the second invocation returns the already-recorded
+        state instead of creating a second, uncorrelated order."""
         mock_exchange = _fake_exchange()
-        mock_exchange.create_order.side_effect = [
-            {"id": "order-A"},
-            {"id": "order-B"},
-        ]
+        mock_exchange.create_order.return_value = {"id": "order-A"}
         e = live_engine_factory(mock_exchange)
-        e._dedup._window = 0.0  # disable dedup to isolate identity behavior
-        r1 = e.create_order("BTC/USDT", "BUY", 100.0)
-        r2 = e.create_order("BTC/USDT", "BUY", 100.0)
-        assert r1["id"] != r2["id"]
-        assert mock_exchange.create_order.call_count == 2
+        e._dedup._window = 0.0  # isolate REM-B idempotence from dedup
+        r1 = e.create_order(
+            "BTC/USDT", "BUY", 100.0, decision_id="scenario-d-repeat"
+        )
+        r2 = e.create_order(
+            "BTC/USDT", "BUY", 100.0, decision_id="scenario-d-repeat"
+        )
+        # A duplicate of an already-ACKNOWLEDGED intent correctly reports
+        # ACKNOWLEDGED again (with the SAME exchange order id) rather than
+        # a separate "still pending" label — the invariant under test is
+        # that no second mutation call ever occurred, not the exact label.
+        assert r1["mode"] == "live"
+        assert r2["mode"] == "live"
+        assert r1["id"] == r2["id"] == "order-A"
+        assert mock_exchange.create_order.call_count == 1
 
 
 # ── Scenario E — intent persistence ordering ────────────────────────────────
@@ -208,11 +275,22 @@ class TestScenarioE_PersistenceOrdering:
             return real_log(*a, **k)
 
         e._logger.log = _spy_log
-        e.create_order("BTC/USDT", "BUY", 100.0)
+        e.create_order(
+            "BTC/USDT", "BUY", 100.0, decision_id="scenario-e-precedence"
+        )
 
+        # REMEDIATED_IN_PRE_T1_E_REM_B (partial — see contract §22): the
+        # REM-B durable order-intent journal (INTENT_RECORDED then
+        # SUBMISSION_STARTED, both fsync'd) IS now written and durably
+        # synced strictly BEFORE this exact exchange call — proven
+        # end-to-end in tests/test_pre_t1_e_rem_b_idempotent_order_protocol.py
+        # Group B. This assertion is intentionally scoped to what it always
+        # measured: TradeLogger's separate SQLite audit-log write, which
+        # REM-B does not touch and which still occurs after the exchange
+        # call — that specific ordering claim remains an accurate,
+        # unremediated observation about TradeLogger, not about REM-B's own
+        # durable intent journal.
         assert events == ["EXCHANGE_CALL_ATTEMPTED", "DURABLE_LOG_WRITTEN"]
-        # Honest assertion of the observed (unsafe) order — a safe system
-        # would require ["INTENT_PERSISTED", "EXCHANGE_CALL_ATTEMPTED", ...].
 
     def test_sqlite_log_is_empty_at_the_moment_of_the_exchange_call(
         self, live_engine_factory, tmp_path
@@ -234,7 +312,9 @@ class TestScenarioE_PersistenceOrdering:
         mock_exchange = _fake_exchange()
         mock_exchange.create_order.side_effect = _capture
         e = live_engine_factory(mock_exchange)
-        e.create_order("BTC/USDT", "BUY", 100.0)
+        e.create_order(
+            "BTC/USDT", "BUY", 100.0, decision_id="scenario-e-sqlite-empty"
+        )
 
         assert row_count_at_call_time["n"] == 0
 
@@ -243,24 +323,32 @@ class TestScenarioE_PersistenceOrdering:
 
 
 class TestScenarioG_TimeoutBeforeAcceptance:
-    """H5 — REFUTED: _with_retry reissues the identical call after any
-    exception, with no reconciliation lookup of any kind."""
+    """H5 — REFUTED at HEAD `297eba89`: `_with_retry` reissued the
+    identical mutation call after any exception, with no reconciliation
+    lookup of any kind.
 
-    def test_with_retry_reissues_identical_call_on_every_failure(
+    REMEDIATED_IN_PRE_T1_E_REM_B: the mutation call itself is never wrapped
+    in `_with_retry` (`_mutate_via_coordinator`'s docstring: "REM-B never
+    adds its OWN retry loop around a submission") — a timeout is classified
+    AMBIGUOUS and persisted RECONCILE_REQUIRED after exactly one call.
+    """
+
+    def test_timeout_causes_exactly_one_call_and_reconcile_required(
         self, live_engine_factory
     ):
         mock_exchange = _fake_exchange()
         mock_exchange.create_order.side_effect = TimeoutError("network timeout")
         e = live_engine_factory(mock_exchange)
-        # avoid reconnect() churn by keeping self._exchange as our mock
         e.reconnect = lambda: True
 
-        result = e.create_order("BTC/USDT", "BUY", 100.0)
+        result = e.create_order(
+            "BTC/USDT", "BUY", 100.0, decision_id="scenario-g-timeout"
+        )
 
-        assert result["mode"] == "live_failed"
-        # 3 blind retries in _with_retry + 1 after reconnect() = 4 identical
-        # calls, no fetch_order/reconciliation call in between.
-        assert mock_exchange.create_order.call_count == 4
+        assert result["mode"] == "live_ambiguous"
+        assert result["order_intent_outcome"] == "RECONCILE_REQUIRED"
+        # Exactly one mutation call — no blind retry (I5).
+        assert mock_exchange.create_order.call_count == 1
         mock_exchange.fetch_order.assert_not_called()
 
 
@@ -268,18 +356,22 @@ class TestScenarioG_TimeoutBeforeAcceptance:
 
 
 class TestScenarioH_LostResponseAfterAcceptance:
-    """H5/H6 — REFUTED: when the exchange accepts an order but the response
-    is lost (raises after recording), the blind retry can and does attempt
-    a second submission — OrderDeduplicator does not help here because its
-    register() call never ran for the first (excepted) attempt."""
+    """H5/H6 — REFUTED at HEAD `297eba89`: when the exchange accepted an
+    order but the response was lost (raised after recording), the blind
+    retry could and did attempt a second submission.
 
-    def test_blind_retry_after_ambiguous_ack_resubmits(self, live_engine_factory):
+    REMEDIATED_IN_PRE_T1_E_REM_B: exactly one mutation call is made; the
+    lost/ambiguous response is persisted RECONCILE_REQUIRED and reconciled
+    read-only by deterministic clientOrderId (never a blind resubmission)
+    — see tests/test_pre_t1_e_rem_b_idempotent_order_protocol.py Group F.
+    """
+
+    def test_lost_response_causes_exactly_one_acceptance_attempt(
+        self, live_engine_factory
+    ):
         accepted_orders = []
 
-        call_state = {"n": 0}
-
         def _flaky_create(*args, **kwargs):
-            call_state["n"] += 1
             # The exchange silently accepts the order (side effect happens)
             # but the response never reaches the caller (raises instead).
             accepted_orders.append(args)
@@ -290,15 +382,13 @@ class TestScenarioH_LostResponseAfterAcceptance:
         e = live_engine_factory(mock_exchange)
         e.reconnect = lambda: True
 
-        e.create_order("BTC/USDT", "BUY", 100.0)
+        result = e.create_order(
+            "BTC/USDT", "BUY", 100.0, decision_id="scenario-h-lost-response"
+        )
 
-        # The fake exchange "accepted" the order on every one of the 4
-        # blind attempts (3 retries + 1 post-reconnect) — in a real venue
-        # each of these could be a genuinely distinct accepted order,
-        # because no clientOrderId ties them together for the exchange to
-        # dedupe, and OrderDeduplicator.register() (execution_engine.py:324)
-        # never ran since every attempt raised.
-        assert len(accepted_orders) == 4
+        # Exactly one attempt — no blind retry to compound the ambiguity.
+        assert len(accepted_orders) == 1
+        assert result["order_intent_outcome"] == "RECONCILE_REQUIRED"
 
 
 # ── Scenario I — duplicate invocation (same-process, non-ambiguous case) ───
@@ -315,8 +405,12 @@ class TestScenarioI_DuplicateInvocation:
         mock_exchange = _fake_exchange()
         e = live_engine_factory(mock_exchange)
 
-        r1 = e.create_order("BTC/USDT", "BUY", 100.0)
-        r2 = e.create_order("BTC/USDT", "BUY", 100.0)
+        r1 = e.create_order(
+            "BTC/USDT", "BUY", 100.0, decision_id="scenario-i-dup-1"
+        )
+        r2 = e.create_order(
+            "BTC/USDT", "BUY", 100.0, decision_id="scenario-i-dup-2"
+        )
 
         assert r1["mode"] == "live"
         assert r2["mode"] == "rejected"
@@ -343,7 +437,9 @@ class TestScenarioJ_PartialFill:
             "amount": 0.002,
         }
         e = live_engine_factory(mock_exchange)
-        result = e.create_order("BTC/USDT", "BUY", 100.0)
+        result = e.create_order(
+            "BTC/USDT", "BUY", 100.0, decision_id="scenario-j-partial-fill"
+        )
 
         assert result["mode"] == "live"
         # No distinct "partial" mode/flag exists on this return value.
@@ -497,8 +593,17 @@ class TestCallSiteInventory:
 
         src = inspect.getsource(mod.PositionManager._send_close_order)
         assert "_with_retry" not in src
-        assert "for " not in src  # no retry loop
-        assert "except Exception" in src  # swallow-and-log only
+        # Updated for O-02W-PRE-T1-E REM-B: the mutation call itself is now
+        # wrapped by the REM-B durable coordinator (order_intent_protocol.py)
+        # instead of a bare try/except at this call site — REM-B's whole
+        # point is that an ambiguous result becomes RECONCILE_REQUIRED, not
+        # a blind retry loop. A comprehension used only to classify an
+        # exception message ("for k in (...)") is not a retry loop; the
+        # structural guarantee this test protects — no `while`-based retry
+        # and no second create_order() call on the same path — is checked
+        # directly instead of banning the substring "for ".
+        assert "while " not in src  # no retry loop
+        assert src.count("create_order(") <= 1  # exactly one mutation call site
 
     def test_position_manager_close_honesty_fixed_by_rem_a(self):
         """Blocker B7 at the original audit HEAD: _close_position() set

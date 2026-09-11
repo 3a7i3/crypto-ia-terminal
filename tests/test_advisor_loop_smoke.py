@@ -374,7 +374,11 @@ def test_main_opens_real_position_path_and_updates_tracker(monkeypatch):
             return True
 
         def create_futures_order(
-            self, symbol: str, side: str, size: float
+            self,
+            symbol: str,
+            side: str,
+            size: float,
+            decision_id: str | None = None,
         ) -> dict[str, object]:
             return {
                 "mode": "futures_demo",
@@ -497,7 +501,11 @@ def test_main_opens_position_when_paper_execution_is_used(monkeypatch):
             return False
 
         def create_order(
-            self, symbol: str, side: str, size: float
+            self,
+            symbol: str,
+            side: str,
+            size: float,
+            decision_id: str | None = None,
         ) -> dict[str, object]:
             order_calls.append((symbol, side, size))
             return {

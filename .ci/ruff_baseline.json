@@ -1,7 +1,7 @@
 {
   "$schema": "CI-00B ruff differential baseline v1",
   "rule_selection": "E,F,W (ignore E501,E402)",
-  "count": 960,
+  "count": 958,
   "findings": [
     ".claude/tools/render_docs.py:143:5:F841",
     "S2/01_gate_logger.py:107:15:F541",
@@ -124,7 +124,7 @@
     "cold_start/tests/test_cold_start.py:945:42:F401",
     "cold_start/tests/test_cold_start.py:945:57:F401",
     "cold_start/warmup_signer.py:13:8:F401",
-    "core/advisor_loop.py:6561:47:F823",
+    "core/advisor_loop.py:6589:47:F823",
     "core/lifecycle.py:343:17:F541",
     "core/lifecycle.py:459:18:F541",
     "core/main.py:239:1:W293",
@@ -242,8 +242,6 @@
     "project_os/reporter.py:266:9:F541",
     "project_os/roadmap_state.py:218:15:F541",
     "project_os/scanner.py:236:9:F841",
-    "quant_hedge_ai/agents/execution/test_execution_engine_futures.py:123:9:F841",
-    "quant_hedge_ai/agents/execution/test_execution_engine_futures.py:132:9:F841",
     "quant_hedge_ai/agents/execution/trade_postmortem.py:18:20:F401",
     "quant_hedge_ai/agents/execution/trade_replay.py:24:20:F401",
     "quant_hedge_ai/agents/intelligence/ai_advisor.py:17:36:F401",

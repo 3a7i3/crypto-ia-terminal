@@ -3,10 +3,25 @@ from __future__ import annotations
 import math
 import os
 import time
+from typing import Optional
 
 from observability.json_logger import get_logger
 from quant_hedge_ai.agents.execution.order_authorization import authorize_order
 from quant_hedge_ai.agents.execution.order_deduplicator import OrderDeduplicator
+from quant_hedge_ai.agents.execution.decision_identity import (
+    DecisionIdentityError,
+    DecisionIdentityJournal,
+    default_decision_identity_journal,
+)
+from quant_hedge_ai.agents.execution.order_intent_protocol import (
+    ExchangeMutationOutcome,
+    ExchangeMutationResult,
+    OrderIntentCoordinator,
+    OrderIntentJournal,
+    SubmissionOutcome,
+    build_order_intent,
+    capabilities_for_exchange,
+)
 from quant_hedge_ai.agents.execution.trade_logger import TradeLogger
 from quant_hedge_ai.agents.risk.session_guard import (
     OrderTooLargeError,
@@ -24,6 +39,14 @@ def execution_autoheal(alert):
 
 
 alert_manager.register_autoheal("execution", execution_autoheal)
+
+# ── O-02W-PRE-T1-E REM-B — durable order-intent journal (I3/I4/I6/I8) ─────
+# Single default durable location, consistent with this repo's other
+# runtime-state files under `databases/` (see `databases/runtime_config.json`,
+# `databases/system_state.json`). Overridable via env for tests/ops.
+_DEFAULT_ORDER_INTENT_JOURNAL_PATH = os.getenv(
+    "ORDER_INTENT_JOURNAL_PATH", "databases/order_intent_journal.jsonl"
+)
 
 
 class ExecutionEngine:
@@ -56,6 +79,17 @@ class ExecutionEngine:
         if live:
             self._exchange = self._init_exchange()
             self._exchange_futures = self._init_futures_demo()
+
+        # O-02W-PRE-T1-E REM-B — durable idempotent submission coordinator.
+        # Lazily constructed (see `_get_order_intent_coordinator` below): a
+        # plain `ExecutionEngine()` construction (paper mode, most tests)
+        # must not touch disk under `databases/` unless a caller actually
+        # exercises the `decision_id=` REM-B path — avoids contaminating the
+        # scientific data guard baseline (.ci/scientific_data_guard_baseline.json,
+        # conftest.py) on every unrelated test run.
+        self._order_intent_journal = None
+        self._order_intent_coordinator = None
+        self._decision_identity_journal = None
 
         # Safety layer
         self._dedup = OrderDeduplicator(
@@ -260,7 +294,9 @@ class ExecutionEngine:
 
     # ── Main API ───────────────────────────────────────────────────────────────
 
-    def create_order(self, symbol: str, action: str, size: float) -> dict:
+    def create_order(
+        self, symbol: str, action: str, size: float, decision_id: str | None = None
+    ) -> dict:
         """
         Place an order through the full safety pipeline.
 
@@ -269,6 +305,16 @@ class ExecutionEngine:
           - "live"        — live order filled
           - "live_failed" — live order failed (exchange error)
           - "rejected"    — blocked by safety layer
+
+        `decision_id` (O-02W-PRE-T1-E REM-B, optional): when the caller
+        already has a stable upstream causal identifier for this order
+        intention (e.g. a DecisionPacket id), pass it to route the live
+        mutation through the durable, deterministic, idempotent
+        submission protocol (order_intent_protocol.py). When omitted, this
+        call keeps its pre-REM-B behavior unchanged — REM-B does not yet
+        claim I4/I8 coverage for callers that have no causal id to give it
+        (see ADR — advisor_loop.py causal-id plumbing is REM-C-adjacent
+        scope, not modified by this mission).
         """
         size = size * self._size_factor
 
@@ -336,7 +382,7 @@ class ExecutionEngine:
 
         # ── 4. Execute ────────────────────────────────────────────────────────
         if self._live and self._exchange is not None:
-            result = self._place_live_order(symbol, action, size)
+            result = self._place_live_order(symbol, action, size, decision_id=decision_id)
         else:
             result = {
                 "symbol": symbol,
@@ -377,6 +423,7 @@ class ExecutionEngine:
         action: str,
         size_usd: float,
         leverage: int = 1,
+        decision_id: str | None = None,
     ) -> dict:
         """
         Passe un ordre Futures Demo (krakenfutures testnet ou Binance demo).
@@ -472,9 +519,92 @@ class ExecutionEngine:
             # silent amplification).
             qty = auth.normalized_qty
 
-            order = self._with_retry(
-                self._exchange_futures.create_order, ccxt_symbol, "market", side, qty
-            )
+            _denial_reason = self._decision_execution_denial_reason(decision_id)
+            if _denial_reason is None:
+                intent = build_order_intent(
+                    namespace="ExecutionEngine.futures",
+                    causal_id=decision_id,
+                    account_scope=f"{os.getenv('EXCHANGE_ID', 'mexc')}:futures_demo",
+                    symbol=ccxt_symbol,
+                    side=side,
+                    order_type="market",
+                    amount=qty,
+                    price=price,
+                    reduce_only=False,
+                )
+                _binding_denial = self._bind_decision_to_intent(decision_id, intent)
+                if _binding_denial is not None:
+                    return {
+                        "symbol": symbol,
+                        "action": action,
+                        "size": size_usd,
+                        "mode": "rejected",
+                        "error": "decision_id could not be atomically bound "
+                        "to this order intent — refusing the legacy bypass",
+                        "denial_reason": _binding_denial,
+                        "order_intent_outcome": None,
+                        "client_order_id": None,
+                    }
+                mutate = self._mutate_via_coordinator(
+                    self._exchange_futures.create_order, ccxt_symbol, side, qty
+                )
+                sub = self._get_order_intent_coordinator().submit(
+                    intent,
+                    authorized=True,
+                    authorization_ref=auth.detail,
+                    mutate=mutate,
+                )
+                if sub.outcome != SubmissionOutcome.ACKNOWLEDGED:
+                    _log.warning(
+                        "[ExecutionEngine] Ordre futures non acquitté (REM-B) %s %s: %s",
+                        action,
+                        symbol,
+                        sub.outcome.value,
+                    )
+                    return {
+                        "symbol": symbol,
+                        "action": action,
+                        "size": size_usd,
+                        "mode": "futures_ambiguous"
+                        if sub.outcome
+                        in (
+                            SubmissionOutcome.RECONCILE_REQUIRED,
+                            SubmissionOutcome.RECONCILED_NOT_FOUND_PENDING,
+                        )
+                        else "futures_failed",
+                        "error": sub.detail,
+                        "order_intent_outcome": sub.outcome.value,
+                        "client_order_id": sub.client_order_id,
+                    }
+                order = (sub.raw_evidence or {}).get("order", {"id": sub.exchange_order_id})
+            else:
+                # O-02W-PRE-T1-E REM-B-R1, Correction A + R1.1 Blocker A +
+                # R1.3 (strict eligibility): missing, unpersisted, OR
+                # execution-INELIGIBLE (legacy/corrupted/lifecycle-invalid)
+                # must never select the legacy direct-submission path —
+                # this adapter (futures demo) reaches a real external
+                # mutation call, so it fails closed with zero exchange
+                # mutation calls and no journal write rather than silently
+                # bypassing REM-B.
+                _log.warning(
+                    "[ExecutionEngine] Ordre futures refusé — decision_id "
+                    "%s (REM-B-R1.3, fail-closed, motif=%s) %s %s",
+                    decision_id,
+                    _denial_reason,
+                    action,
+                    symbol,
+                )
+                return {
+                    "symbol": symbol,
+                    "action": action,
+                    "size": size_usd,
+                    "mode": "rejected",
+                    "error": "decision_id must be non-empty, durably "
+                    "persisted, AND strictly execution-eligible "
+                    "(decision_identity.py) for any externally reachable "
+                    "mutation — refusing the legacy bypass",
+                    "denial_reason": _denial_reason,
+                }
             _log.info(
                 "[ExecutionEngine] Ordre FUTURES DEMO: %s %.4f %s @ $%.2f (lev x%d) id=%s",
                 action,
@@ -514,7 +644,153 @@ class ExecutionEngine:
             "on",
         }
 
-    def _place_live_order(self, symbol: str, action: str, size: float) -> dict:
+    def _get_order_intent_coordinator(self) -> OrderIntentCoordinator:
+        if self._order_intent_coordinator is None:
+            self._order_intent_journal = OrderIntentJournal(
+                _DEFAULT_ORDER_INTENT_JOURNAL_PATH
+            )
+            exch_id = os.getenv("EXCHANGE_ID", "mexc")
+            self._order_intent_coordinator = OrderIntentCoordinator(
+                self._order_intent_journal, capabilities_for_exchange(exch_id)
+            )
+        return self._order_intent_coordinator
+
+    def _get_decision_identity_journal(self) -> DecisionIdentityJournal:
+        # O-02W-PRE-T1-E REM-B-R1.1, Blocker A — lazily constructed, same
+        # rationale as `_get_order_intent_coordinator` above: a plain
+        # `ExecutionEngine()` construction must not touch disk unless a
+        # caller actually exercises the decision_id path.
+        if self._decision_identity_journal is None:
+            self._decision_identity_journal = default_decision_identity_journal()
+        return self._decision_identity_journal
+
+    def _decision_id_is_durably_persisted(self, decision_id: str | None) -> bool:
+        """O-02W-PRE-T1-E REM-B-R1.1, Blocker A: a HISTORICAL/EXISTENCE
+        query only — True iff SOME record (any schema version, any
+        validity) has ever been durably written for `decision_id`. R1.3:
+        THIS METHOD MUST NEVER BE USED TO GATE A MUTATION — its True/False
+        answer says nothing about whether that record is a legacy,
+        corrupted, or otherwise execution-ineligible one. It is retained
+        for audit/observability callers that genuinely only need "did this
+        id ever get recorded at all" (e.g. debugging tooling), and is no
+        longer read by `create_order()`/`create_futures_order()`'s
+        execution gate — see `_decision_execution_denial_reason` below,
+        which is the actual gate, built on the strict
+        `execution_ineligibility_reason()` check."""
+        if not decision_id:
+            return False
+        return self._get_decision_identity_journal().is_persisted(decision_id)
+
+    def _decision_execution_denial_reason(self, decision_id: str | None) -> Optional[str]:
+        """O-02W-PRE-T1-E REM-B-R1.3 — the ACTUAL execution-authority gate.
+        Returns `None` when `decision_id` is strictly execution-eligible
+        (see `DecisionIdentityJournal.execution_ineligibility_reason`):
+        schema_version==2, a well-typed canonical payload whose recomputed
+        digest matches the stored one, internally consistent duplicated
+        provenance fields, and a recognized, structurally valid lifecycle
+        state. Otherwise returns one of three distinguishable typed
+        reasons, deliberately NOT collapsed into one generic denial (spec
+        §4 — "do not silently map corrupted evidence to ordinary
+        absence"):
+
+          - `MISSING_CAUSAL_ID`      — decision_id itself is falsy;
+          - `UNPERSISTED_CAUSAL_ID`  — non-empty, but no record exists at all;
+          - `INELIGIBLE_CAUSAL_ID`   — a record exists but fails strict
+                                       validation (legacy schema, corrupted
+                                       digest, contradictory provenance,
+                                       invalid lifecycle state, ...) — the
+                                       precise machine-readable reason is
+                                       logged, never silently discarded.
+        """
+        if not decision_id:
+            return "MISSING_CAUSAL_ID"
+        reason = self._get_decision_identity_journal().execution_ineligibility_reason(
+            decision_id
+        )
+        if reason is None:
+            return None
+        if reason == "NOT_PERSISTED":
+            return "UNPERSISTED_CAUSAL_ID"
+        _log.warning(
+            "[ExecutionEngine] decision_id=%s est INELIGIBLE pour "
+            "l'exécution (REM-B-R1.3, motif précis: %s) — refus fail-closed",
+            decision_id,
+            reason,
+        )
+        return "INELIGIBLE_CAUSAL_ID"
+
+    def _bind_decision_to_intent(self, decision_id: str, intent) -> Optional[str]:
+        """O-02W-PRE-T1-E REM-B-R1.2, Blocker B §4.3: atomically binds the
+        durably-persisted decision to the exact order-intent digest about to
+        be submitted, BEFORE the mutation call — a persisted decision alone
+        only proves "some decision with this id once existed", not which
+        order it authorized. Returns `None` on success, or a typed denial
+        reason string if the binding could not be established (a rebind
+        attempt to a DIFFERENT intent digest, or a journal write failure) —
+        callers MUST treat a non-None return as a hard fail-closed refusal
+        with zero mutation calls, exactly like a missing/unpersisted
+        decision_id."""
+        try:
+            self._get_decision_identity_journal().bind_intent(
+                decision_id, intent.full_digest()
+            )
+        except DecisionIdentityError as exc:
+            _log.warning(
+                "[ExecutionEngine] Liaison décision→intention refusée "
+                "(REM-B-R1.2, fail-closed) decision_id=%s: %s",
+                decision_id,
+                exc,
+            )
+            return "DECISION_INTENT_BINDING_FAILED"
+        return None
+
+    def _mutate_via_coordinator(self, mutate_fn, ccxt_symbol, side, qty):
+        """Wraps a raw `self._exchange.create_order(...)` call (via
+        `_with_retry`) into the typed `ExchangeMutationResult` the
+        coordinator requires — REM-B never adds its OWN retry loop around a
+        submission; `_with_retry` here only covers pre-submission read calls
+        upstream (ticker/markets/balance), never the mutation itself (I5)."""
+
+        def mutate(intent, client_order_id):
+            try:
+                order = mutate_fn(
+                    ccxt_symbol,
+                    "market",
+                    side,
+                    qty,
+                    params={"clientOrderId": client_order_id},
+                )
+                return ExchangeMutationResult(
+                    outcome=ExchangeMutationOutcome.ACKNOWLEDGED,
+                    exchange_order_id=order.get("id"),
+                    raw={"order": order},
+                )
+            except Exception as exc:  # noqa: BLE001 — classify below
+                msg = str(exc).lower()
+                if any(k in msg for k in ("timeout", "timed out", "econnreset", "connection")):
+                    return ExchangeMutationResult(
+                        outcome=ExchangeMutationOutcome.AMBIGUOUS,
+                        error_category="transport_error",
+                        raw={"error": str(exc)},
+                    )
+                if any(k in msg for k in ("insufficient", "invalid", "rejected", "not enough", "no permission", "permission denied")):
+                    return ExchangeMutationResult(
+                        outcome=ExchangeMutationOutcome.EXPLICITLY_REJECTED,
+                        error_category="exchange_rejected",
+                        raw={"error": str(exc)},
+                    )
+                # Unknown exception shape — never assume success or failure.
+                return ExchangeMutationResult(
+                    outcome=ExchangeMutationOutcome.AMBIGUOUS,
+                    error_category="unknown_response",
+                    raw={"error": str(exc)},
+                )
+
+        return mutate
+
+    def _place_live_order(
+        self, symbol: str, action: str, size: float, decision_id: str | None = None
+    ) -> dict:
         """
         Passe un ordre market réel via ccxt.
         size = montant en USD à dépenser (BUY) ou valeur USD à vendre (SELL).
@@ -535,6 +811,14 @@ class ExecutionEngine:
                 "size": round(size, 4),
                 "mode": "live_failed",
                 "error": "blocked_by_paper_gate",
+                # O-02W-PRE-T1-E REM-B-R1: the REM-B mutation-rejected shape
+                # gained `order_intent_outcome`/`client_order_id` — SEC-01
+                # neutrality requires this gate-blocked shape carry the same
+                # keys (null here, since no intent was ever built) so an
+                # observer cannot distinguish "gate blocked it" from "a real
+                # rejection occurred" merely by which keys are present.
+                "order_intent_outcome": None,
+                "client_order_id": None,
             }
 
         # Authority composition (Correction E, O-02W-PRE-T1-E REM-A):
@@ -626,9 +910,97 @@ class ExecutionEngine:
 
             qty = auth.normalized_qty
 
-            order = self._with_retry(
-                self._exchange.create_order, ccxt_symbol, "market", side, qty
-            )
+            _denial_reason = self._decision_execution_denial_reason(decision_id)
+            if _denial_reason is None:
+                # O-02W-PRE-T1-E REM-B — durable, deterministic, idempotent
+                # submission path. Not entered when the caller has no
+                # STRICTLY EXECUTION-ELIGIBLE upstream causal id (see
+                # create_order docstring; R1.1 Blocker A tightened this
+                # from "merely non-empty" to "durably recorded", and R1.3
+                # tightened it further from "merely recorded" to "recorded
+                # AND passes strict schema/digest/lifecycle validation").
+                intent = build_order_intent(
+                    namespace="ExecutionEngine.spot",
+                    causal_id=decision_id,
+                    account_scope=f"{os.getenv('EXCHANGE_ID', 'mexc')}:live",
+                    symbol=ccxt_symbol,
+                    side=side,
+                    order_type="market",
+                    amount=qty,
+                    price=price,
+                    reduce_only=False,
+                )
+                _binding_denial = self._bind_decision_to_intent(decision_id, intent)
+                if _binding_denial is not None:
+                    return {
+                        "symbol": symbol,
+                        "action": action,
+                        "size": round(size, 4),
+                        "mode": "rejected",
+                        "error": "decision_id could not be atomically bound "
+                        "to this order intent — refusing the legacy bypass",
+                        "denial_reason": _binding_denial,
+                        "order_intent_outcome": None,
+                        "client_order_id": None,
+                    }
+                mutate = self._mutate_via_coordinator(
+                    self._exchange.create_order, ccxt_symbol, side, qty
+                )
+                sub = self._get_order_intent_coordinator().submit(
+                    intent,
+                    authorized=True,
+                    authorization_ref=auth.detail,
+                    mutate=mutate,
+                )
+                if sub.outcome != SubmissionOutcome.ACKNOWLEDGED:
+                    _log.warning(
+                        "[ExecutionEngine] Ordre live non acquitté (REM-B) %s %s: %s",
+                        action,
+                        symbol,
+                        sub.outcome.value,
+                    )
+                    return {
+                        "symbol": symbol,
+                        "action": action,
+                        "size": round(size, 4),
+                        "mode": "live_ambiguous"
+                        if sub.outcome
+                        in (
+                            SubmissionOutcome.RECONCILE_REQUIRED,
+                            SubmissionOutcome.RECONCILED_NOT_FOUND_PENDING,
+                        )
+                        else "live_failed",
+                        "error": sub.detail,
+                        "order_intent_outcome": sub.outcome.value,
+                        "client_order_id": sub.client_order_id,
+                    }
+                order = (sub.raw_evidence or {}).get("order", {"id": sub.exchange_order_id})
+            else:
+                # O-02W-PRE-T1-E REM-B-R1, Correction A + R1.1 Blocker A +
+                # R1.3 (strict eligibility): missing, unpersisted, OR
+                # execution-INELIGIBLE (legacy/corrupted/lifecycle-invalid)
+                # must never select the legacy direct-submission path —
+                # this is the real live exchange, so it fails closed with
+                # zero exchange mutation calls and no journal write.
+                _log.warning(
+                    "[ExecutionEngine] Ordre live refusé — decision_id "
+                    "%s (REM-B-R1.3, fail-closed, motif=%s) %s %s",
+                    decision_id,
+                    _denial_reason,
+                    action,
+                    symbol,
+                )
+                return {
+                    "symbol": symbol,
+                    "action": action,
+                    "size": round(size, 4),
+                    "mode": "rejected",
+                    "error": "decision_id must be non-empty, durably "
+                    "persisted, AND strictly execution-eligible "
+                    "(decision_identity.py) for any externally reachable "
+                    "mutation — refusing the legacy bypass",
+                    "denial_reason": _denial_reason,
+                }
             _log.info(
                 "[ExecutionEngine] Ordre live: %s %.8f %s @ $%.2f (USD: $%.2f) id=%s",
                 action,

@@ -477,12 +477,56 @@ def _fake_execution_exchange(
     return ex
 
 
+def _certify_mexc_for_test(monkeypatch):
+    """O-02W-PRE-T1-E REM-B-R1.1, Blocker B: real `mexc` is deliberately
+    deny-closed (reconciliation unproven against a pinned implementation).
+    Tests inject a fake, test-only certified capability instead."""
+    from quant_hedge_ai.agents.execution import order_intent_protocol as oip
+
+    monkeypatch.setitem(
+        oip._ADAPTER_CAPABILITIES_BY_EXCHANGE,
+        "mexc",
+        oip.AdapterCapabilities(
+            verdict=oip.AdapterCapabilityVerdict.SUBMIT_AND_RECONCILE_VERIFIED,
+            client_order_id_param="clientOrderId",
+            supports_open_order_search=True,
+            supports_closed_order_search=True,
+            evidence="test fixture — certified for hermetic testing only",
+        ),
+    )
+    # O-02W-PRE-T1-E REM-B-R1.1, Blocker A: these tests exercise OTHER
+    # behavior (sizing, symbol conversion, SEC-01 gate, etc.), not the
+    # decision-identity persistence check itself — bypass it here exactly
+    # like the capability fake above, so a bare decision_id string keeps
+    # working for them. Dedicated tests exercise the REAL persistence
+    # check via `decision_identity.DecisionIdentityJournal` directly.
+    from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine as _EE
+
+    monkeypatch.setattr(
+        _EE, "_decision_id_is_durably_persisted", lambda self, decision_id: bool(decision_id)
+    )
+    # O-02W-PRE-T1-E REM-B-R1.3: bypass the REAL execution gate too — see
+    # identical comment in
+    # quant_hedge_ai/agents/execution/test_execution_engine_futures.py's
+    # _certify_mexc_for_test.
+    monkeypatch.setattr(
+        _EE,
+        "_decision_execution_denial_reason",
+        lambda self, decision_id: None if decision_id else "MISSING_CAUSAL_ID",
+    )
+    # O-02W-PRE-T1-E REM-B-R1.2, Blocker B: bypass the real decision->intent
+    # binding gate the same way — see identical comment in
+    # test_pre_t1_e_order_cycle_safety.py's _certify_mexc_for_test.
+    monkeypatch.setattr(_EE, "_bind_decision_to_intent", lambda self, decision_id, intent: None)
+
+
 @pytest.fixture
 def live_engine(tmp_path, monkeypatch):
     monkeypatch.setenv("EXEC_TRADE_LOG", str(tmp_path / "trades.sqlite"))
     monkeypatch.setenv("EXEC_MAX_ORDER_USD", "1e12")
     monkeypatch.setenv("PAPER_TRADING_ENABLED", "false")
     monkeypatch.setenv("EXEC_DEDUP_WINDOW", "0")
+    _certify_mexc_for_test(monkeypatch)
 
     def _make(mock_exchange=None):
         from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
@@ -533,16 +577,31 @@ class TestGroupF_ExecutionEngine:
     def test_valid_buy_reaches_single_mutation(self, live_engine):
         ex = _fake_execution_exchange(base_balance=1.0)
         e = live_engine(ex)
-        result = e.create_order("BTC/USDT", "BUY", 100.0)
+        result = e.create_order(
+            "BTC/USDT", "BUY", 100.0, decision_id="rem-a-groupf-buy"
+        )
         assert result["mode"] == "live"
         ex.create_order.assert_called_once()
 
     def test_valid_sell_reaches_single_mutation(self, live_engine):
         ex = _fake_execution_exchange(base_balance=1.0)
         e = live_engine(ex)
-        result = e.create_order("BTC/USDT", "SELL", 100.0)
+        result = e.create_order(
+            "BTC/USDT", "SELL", 100.0, decision_id="rem-a-groupf-sell"
+        )
         assert result["mode"] == "live"
         ex.create_order.assert_called_once()
+
+    def test_missing_decision_id_fails_closed_zero_mutation(self, live_engine):
+        # O-02W-PRE-T1-E REM-B-R1, Correction A: a missing causal id must
+        # never select the legacy direct-submission path for a live-capable
+        # engine — zero exchange mutation calls, typed denial.
+        ex = _fake_execution_exchange(base_balance=1.0)
+        e = live_engine(ex)
+        result = e.create_order("BTC/USDT", "BUY", 100.0)
+        assert result["mode"] == "rejected"
+        assert result["denial_reason"] == "MISSING_CAUSAL_ID"
+        ex.create_order.assert_not_called()
 
     def test_paper_gate_blocks_before_any_authorization_call(self, tmp_path, monkeypatch):
         monkeypatch.setenv("EXEC_TRADE_LOG", str(tmp_path / "t2.sqlite"))
@@ -581,6 +640,7 @@ class TestGroupF_PositionManager:
     def _make_pm(self, exchange, monkeypatch, paper_trading_enabled="false"):
         monkeypatch.setenv("PAPER_TRADING_ENABLED", paper_trading_enabled)
         monkeypatch.setenv("LIVE_TRADING_CONFIRMED", "true")
+        _certify_mexc_for_test(monkeypatch)
         from quant_hedge_ai.agents.execution.position_manager import PositionManager
 
         return PositionManager(exchange=exchange, paper_mode=False)
@@ -654,7 +714,15 @@ class TestGroupF_PositionManager:
 
         ex.create_order.assert_called_once()  # exactly one mutation attempt
         assert pos.closed is False  # NOT silently marked closed
-        assert pos.close_order_status == "live_failed"
+        # Updated for O-02W-PRE-T1-E REM-B: an unclassified exception from
+        # the exchange call is genuinely ambiguous — it is neither a proven
+        # failure nor a proven success (I10, spec H5) — so it now surfaces
+        # as "live_ambiguous" (RECONCILE_REQUIRED) rather than being
+        # collapsed into "live_failed". The pre-REM-B honesty property this
+        # test protects (never silently marked closed on any non-ack
+        # outcome) still holds — see `pos.closed is False` above.
+        assert pos.close_order_status in ("live_failed", "live_ambiguous")
+        assert pos.close_order_status == "live_ambiguous"
 
     def test_close_qty_never_exceeds_tracked_position_qty(self, monkeypatch):
         from unittest.mock import MagicMock
@@ -873,20 +941,29 @@ class TestGroupG_NonRegression:
         assert result["size"] == pytest.approx(50.0, abs=0.01)
 
     def test_no_client_order_id_introduced(self):
-        """No production code path constructs/sends a clientOrderId — the
-        one mention in order_authorization.py is its own docstring
-        explicitly disclaiming the feature, not an implementation."""
+        """REM-A itself (order_authorization.py) never constructs/sends a
+        clientOrderId — that stays true post-REM-B too, since REM-A remains
+        the pre-network authorization boundary and REM-B's deterministic
+        identity lives entirely in order_intent_protocol.py (see
+        docs/adr/0019-pre-network-order-authorization.md, REM-B ADR).
+
+        Updated for O-02W-PRE-T1-E REM-B: ExecutionEngine/PositionManager
+        NOW deliberately construct a deterministic clientOrderId via the
+        REM-B durable submission coordinator — this is the intended,
+        tested feature this mission implements (see
+        tests/test_pre_t1_e_rem_b_idempotent_order_protocol.py), not a
+        regression of REM-A's scope boundary. This guard is narrowed to
+        the module it always meant to describe: order_authorization.py."""
         import inspect
 
-        from quant_hedge_ai.agents.execution import (
-            execution_engine as ee_mod,
-            position_manager as pm_mod,
-        )
+        from quant_hedge_ai.agents.execution import order_authorization as oa_mod
 
-        for mod in (ee_mod, pm_mod):
-            src = inspect.getsource(mod)
-            assert "clientOrderId" not in src
-            assert "client_order_id" not in src
+        src = inspect.getsource(oa_mod)
+        # The docstring's own disclaiming mention of "clientOrderId" is
+        # expected and fine; there must be no *constructed* identifier
+        # (no f-string/format building one) in this module.
+        assert "newClientOrderId" not in src
+        assert "params={" not in src  # never builds exchange call params here
 
     def test_no_pending_order_tracker_activation_introduced(self):
         import inspect

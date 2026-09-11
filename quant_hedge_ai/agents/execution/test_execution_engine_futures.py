@@ -9,9 +9,57 @@ import pytest
 # ── Fixture ───────────────────────────────────────────────────────────────────
 
 
+def _certify_mexc_for_test(monkeypatch):
+    """O-02W-PRE-T1-E REM-B-R1.1, Blocker B: real `mexc` is deliberately
+    deny-closed (reconciliation unproven against a pinned implementation)
+    — see quant_hedge_ai/agents/execution/test_execution_engine.py for the
+    full rationale, duplicated here narrowly to avoid a cross-test-module
+    import."""
+    from quant_hedge_ai.agents.execution import order_intent_protocol as oip
+
+    monkeypatch.setitem(
+        oip._ADAPTER_CAPABILITIES_BY_EXCHANGE,
+        "mexc",
+        oip.AdapterCapabilities(
+            verdict=oip.AdapterCapabilityVerdict.SUBMIT_AND_RECONCILE_VERIFIED,
+            client_order_id_param="clientOrderId",
+            supports_open_order_search=True,
+            supports_closed_order_search=True,
+            evidence="test fixture — certified for hermetic testing only",
+        ),
+    )
+    # O-02W-PRE-T1-E REM-B-R1.1, Blocker A: these tests exercise OTHER
+    # behavior (sizing, symbol conversion, SEC-01 gate, etc.), not the
+    # decision-identity persistence check itself — bypass it here exactly
+    # like the capability fake above, so a bare decision_id string keeps
+    # working for them. Dedicated tests exercise the REAL persistence
+    # check via `decision_identity.DecisionIdentityJournal` directly.
+    from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine as _EE
+
+    monkeypatch.setattr(
+        _EE, "_decision_id_is_durably_persisted", lambda self, decision_id: bool(decision_id)
+    )
+    # O-02W-PRE-T1-E REM-B-R1.3: the actual execution gate is now
+    # `_decision_execution_denial_reason` (strict schema/digest/lifecycle
+    # eligibility), not `_decision_id_is_durably_persisted` (historical
+    # existence only) — bypass the REAL gate here too, for the same reason
+    # (these tests exercise OTHER behavior). Dedicated tests exercise the
+    # real, un-bypassed strict-eligibility gate directly.
+    monkeypatch.setattr(
+        _EE,
+        "_decision_execution_denial_reason",
+        lambda self, decision_id: None if decision_id else "MISSING_CAUSAL_ID",
+    )
+    # O-02W-PRE-T1-E REM-B-R1.2, Blocker B: bypass the real decision->intent
+    # binding gate the same way — see identical comment in
+    # test_pre_t1_e_order_cycle_safety.py's _certify_mexc_for_test.
+    monkeypatch.setattr(_EE, "_bind_decision_to_intent", lambda self, decision_id, intent: None)
+
+
 @pytest.fixture
 def eng(tmp_path, monkeypatch):
-    monkeypatch.setenv("EXCHANGE_ID", "binance")  # isolate from .env krakenfutures
+    monkeypatch.setenv("EXCHANGE_ID", "mexc")  # isolate from .env krakenfutures; also the verified REM-B-R1 adapter capability
+    _certify_mexc_for_test(monkeypatch)
     monkeypatch.setenv("EXEC_TRADE_LOG", str(tmp_path / "trades.sqlite"))
     monkeypatch.setenv("EXEC_MAX_DD", "0.05")
     monkeypatch.setenv("EXEC_MAX_LOSS", "0.03")
@@ -45,12 +93,12 @@ def _with_futures(eng) -> MagicMock:
 
 class TestFuturesUnavailable:
     def test_no_exchange_returns_unavailable(self, eng):
-        result = eng.create_futures_order("BTC/USDT", "BUY", 60.0)
+        result = eng.create_futures_order("BTC/USDT", "BUY", 60.0, decision_id="rem-b-r1-test-48")
         assert result["mode"] == "futures_unavailable"
         assert "MEXC_API_KEY" in result["error"]
 
     def test_unavailable_contains_symbol(self, eng):
-        result = eng.create_futures_order("ETH/USDT", "BUY", 60.0)
+        result = eng.create_futures_order("ETH/USDT", "BUY", 60.0, decision_id="rem-b-r1-test-53")
         assert result["symbol"] == "ETH/USDT"
 
 
@@ -60,23 +108,23 @@ class TestFuturesUnavailable:
 class TestFuturesSuccess:
     def test_buy_returns_futures_demo_mode(self, eng):
         _with_futures(eng)
-        result = eng.create_futures_order("BTC/USDT", "BUY", 60.0)
+        result = eng.create_futures_order("BTC/USDT", "BUY", 60.0, decision_id="rem-b-r1-test-63")
         assert result["mode"] == "futures_demo"
         assert result["id"] == "f123"
 
     def test_sell_side_forwarded(self, eng):
         mock_ex = _with_futures(eng)
-        eng.create_futures_order("ETH/USDT", "SELL", 60.0)
+        eng.create_futures_order("ETH/USDT", "SELL", 60.0, decision_id="rem-b-r1-test-69")
         assert mock_ex.create_order.call_args[0][2] == "sell"
 
     def test_buy_side_forwarded(self, eng):
         mock_ex = _with_futures(eng)
-        eng.create_futures_order("BTC/USDT", "BUY", 60.0)
+        eng.create_futures_order("BTC/USDT", "BUY", 60.0, decision_id="rem-b-r1-test-74")
         assert mock_ex.create_order.call_args[0][2] == "buy"
 
     def test_usd_size_in_result(self, eng):
         _with_futures(eng)
-        result = eng.create_futures_order("BTC/USDT", "BUY", 60.0)
+        result = eng.create_futures_order("BTC/USDT", "BUY", 60.0, decision_id="rem-b-r1-test-79")
         assert "usd_size" in result
         assert result["usd_size"] > 0
 
@@ -87,19 +135,19 @@ class TestFuturesSuccess:
 class TestFuturesSymbolConversion:
     def test_slash_pair_converted_to_perp(self, eng):
         mock_ex = _with_futures(eng)
-        eng.create_futures_order("BTC/USDT", "BUY", 60.0)
+        eng.create_futures_order("BTC/USDT", "BUY", 60.0, decision_id="rem-b-r1-test-90")
         used = mock_ex.create_order.call_args[0][0]
         assert used == "BTC/USDT:USDT"
 
     def test_already_perp_not_double_converted(self, eng):
         mock_ex = _with_futures(eng)
-        eng.create_futures_order("BTC/USDT:USDT", "BUY", 60.0)
+        eng.create_futures_order("BTC/USDT:USDT", "BUY", 60.0, decision_id="rem-b-r1-test-96")
         used = mock_ex.create_order.call_args[0][0]
         assert used == "BTC/USDT:USDT"
 
     def test_no_slash_converted(self, eng):
         mock_ex = _with_futures(eng)
-        eng.create_futures_order("BTCUSDT", "BUY", 60.0)
+        eng.create_futures_order("BTCUSDT", "BUY", 60.0, decision_id="rem-b-r1-test-102")
         used = mock_ex.create_order.call_args[0][0]
         assert used == "BTC/USDT:USDT"
 
@@ -114,14 +162,14 @@ class TestFuturesSizeClamping:
         (the H2-shaped defect this round removed) — no mutation call at all.
         """
         mock_ex = _with_futures(eng)
-        result = eng.create_futures_order("BTC/USDT", "BUY", 1.0)
+        result = eng.create_futures_order("BTC/USDT", "BUY", 1.0, decision_id="rem-b-r1-test-117")
         assert result["mode"] == "rejected"
         assert result["denial_reason"] == "BELOW_MIN_NOTIONAL"
         mock_ex.create_order.assert_not_called()
 
     def test_above_max_clamped_down(self, eng):
-        mock_ex = _with_futures(eng)
-        result = eng.create_futures_order("BTC/USDT", "BUY", 99999.0)
+        _with_futures(eng)
+        result = eng.create_futures_order("BTC/USDT", "BUY", 99999.0, decision_id="rem-b-r1-test-124")
         assert result["mode"] == "futures_demo"
         # size_usd est clampé à 200 avant conversion en qty ;
         # la valeur finale peut être légèrement supérieure à cause de l'arrondi
@@ -129,8 +177,8 @@ class TestFuturesSizeClamping:
         assert result["usd_size"] > 0
 
     def test_within_range_unchanged(self, eng):
-        mock_ex = _with_futures(eng)
-        result = eng.create_futures_order("BTC/USDT", "BUY", 100.0)
+        _with_futures(eng)
+        result = eng.create_futures_order("BTC/USDT", "BUY", 100.0, decision_id="rem-b-r1-test-133")
         assert result["mode"] == "futures_demo"
 
 
@@ -140,19 +188,19 @@ class TestFuturesSizeClamping:
 class TestFuturesLeverage:
     def test_leverage_1_no_set_leverage_call(self, eng):
         mock_ex = _with_futures(eng)
-        eng.create_futures_order("BTC/USDT", "BUY", 60.0, leverage=1)
+        eng.create_futures_order("BTC/USDT", "BUY", 60.0, leverage=1, decision_id="rem-b-r1-test-143")
         mock_ex.set_leverage.assert_not_called()
 
     def test_leverage_3_calls_set_leverage(self, eng):
         mock_ex = _with_futures(eng)
-        eng.create_futures_order("BTC/USDT", "BUY", 60.0, leverage=3)
+        eng.create_futures_order("BTC/USDT", "BUY", 60.0, leverage=3, decision_id="rem-b-r1-test-148")
         mock_ex.set_leverage.assert_called_once()
         assert mock_ex.set_leverage.call_args[0][0] == 3
 
     def test_leverage_exception_order_still_placed(self, eng):
         mock_ex = _with_futures(eng)
         mock_ex.set_leverage.side_effect = Exception("not supported")
-        result = eng.create_futures_order("BTC/USDT", "BUY", 60.0, leverage=2)
+        result = eng.create_futures_order("BTC/USDT", "BUY", 60.0, leverage=2, decision_id="rem-b-r1-test-155")
         assert result["mode"] == "futures_demo"
 
 
@@ -160,23 +208,28 @@ class TestFuturesLeverage:
 
 
 class TestFuturesErrors:
-    def test_exchange_error_returns_futures_failed(self, eng):
+    def test_exchange_error_returns_futures_ambiguous(self, eng):
+        # O-02W-PRE-T1-E REM-B: an unclassified exception from the exchange
+        # call is ambiguous (I5) — it must never be silently reported as a
+        # clean "failed" (which would incorrectly suggest zero side effects
+        # occurred). The coordinator persists RECONCILE_REQUIRED and this
+        # surfaces as "futures_ambiguous", never resubmitted automatically.
         mock_ex = _with_futures(eng)
         mock_ex.create_order.side_effect = RuntimeError("exchange down")
-        result = eng.create_futures_order("BTC/USDT", "BUY", 60.0)
-        assert result["mode"] == "futures_failed"
-        assert "exchange down" in result["error"]
+        result = eng.create_futures_order("BTC/USDT", "BUY", 60.0, decision_id="rem-b-r1-test-166")
+        assert result["mode"] == "futures_ambiguous"
+        assert result["order_intent_outcome"] == "RECONCILE_REQUIRED"
 
     def test_load_markets_error_uses_defaults(self, eng):
         mock_ex = _with_futures(eng)
         mock_ex.load_markets.side_effect = Exception("markets unavailable")
-        result = eng.create_futures_order("BTC/USDT", "BUY", 60.0)
+        result = eng.create_futures_order("BTC/USDT", "BUY", 60.0, decision_id="rem-b-r1-test-173")
         assert result["mode"] == "futures_demo"
 
     def test_fetch_ticker_error_returns_futures_failed(self, eng):
         mock_ex = _with_futures(eng)
         mock_ex.fetch_ticker.side_effect = Exception("ticker timeout")
-        result = eng.create_futures_order("BTC/USDT", "BUY", 60.0)
+        result = eng.create_futures_order("BTC/USDT", "BUY", 60.0, decision_id="rem-b-r1-test-179")
         assert result["mode"] == "futures_failed"
         assert "ticker timeout" in result["error"]
 
@@ -187,7 +240,7 @@ class TestFuturesErrors:
 class TestFetchAvailableCapital:
     @pytest.fixture(autouse=True)
     def _isolate_exchange(self, monkeypatch):
-        monkeypatch.setenv("EXCHANGE_ID", "binance")
+        monkeypatch.setenv("EXCHANGE_ID", "mexc")
 
     def test_fallback_when_no_exchange(self, tmp_path, monkeypatch):
         # fetch_available_capital() délègue à WalletSync (WALLET_PAPER_CAPITAL).
@@ -311,19 +364,19 @@ class TestDetectQuoteAsset:
 
 class TestDeduplication:
     def test_same_order_rejected(self, eng):
-        eng.create_order("BTC/USDT", "BUY", 100.0)
-        result = eng.create_order("BTC/USDT", "BUY", 100.0)
+        eng.create_order("BTC/USDT", "BUY", 100.0, decision_id="rem-b-r1-test-314")
+        result = eng.create_order("BTC/USDT", "BUY", 100.0, decision_id="rem-b-r1-test-315")
         assert result["mode"] == "rejected"
         assert "duplicate" in result["error"]
 
     def test_different_action_not_duplicate(self, eng):
-        eng.create_order("BTC/USDT", "BUY", 100.0)
-        result = eng.create_order("BTC/USDT", "SELL", 100.0)
+        eng.create_order("BTC/USDT", "BUY", 100.0, decision_id="rem-b-r1-test-320")
+        result = eng.create_order("BTC/USDT", "SELL", 100.0, decision_id="rem-b-r1-test-321")
         assert result["mode"] == "paper"
 
     def test_different_symbol_not_duplicate(self, eng):
-        eng.create_order("BTC/USDT", "BUY", 100.0)
-        result = eng.create_order("ETH/USDT", "BUY", 100.0)
+        eng.create_order("BTC/USDT", "BUY", 100.0, decision_id="rem-b-r1-test-325")
+        result = eng.create_order("ETH/USDT", "BUY", 100.0, decision_id="rem-b-r1-test-326")
         assert result["mode"] == "paper"
 
 

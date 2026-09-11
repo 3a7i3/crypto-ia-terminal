@@ -7,6 +7,52 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 
+def _certify_mexc_for_test(monkeypatch):
+    """O-02W-PRE-T1-E REM-B-R1.1, Blocker B: real `mexc` is deliberately
+    deny-closed (`SUBMIT_ONLY_RECONCILIATION_UNVERIFIED` — reconciliation
+    unproven against a pinned implementation). Tests that need to exercise
+    the authorized-submission path inject a fake, test-only
+    `SUBMIT_AND_RECONCILE_VERIFIED` capability instead of relying on the
+    real (unverified) mexc entry — proving the certified-adapter contract
+    without silently promoting the real, unverified adapter."""
+    from quant_hedge_ai.agents.execution import order_intent_protocol as oip
+
+    monkeypatch.setitem(
+        oip._ADAPTER_CAPABILITIES_BY_EXCHANGE,
+        "mexc",
+        oip.AdapterCapabilities(
+            verdict=oip.AdapterCapabilityVerdict.SUBMIT_AND_RECONCILE_VERIFIED,
+            client_order_id_param="clientOrderId",
+            supports_open_order_search=True,
+            supports_closed_order_search=True,
+            evidence="test fixture — certified for hermetic testing only",
+        ),
+    )
+    # O-02W-PRE-T1-E REM-B-R1.1, Blocker A: these tests exercise OTHER
+    # behavior (sizing, symbol conversion, SEC-01 gate, etc.), not the
+    # decision-identity persistence check itself — bypass it here exactly
+    # like the capability fake above, so a bare decision_id string keeps
+    # working for them. Dedicated tests exercise the REAL persistence
+    # check via `decision_identity.DecisionIdentityJournal` directly.
+    from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine as _EE
+
+    monkeypatch.setattr(
+        _EE, "_decision_id_is_durably_persisted", lambda self, decision_id: bool(decision_id)
+    )
+    # O-02W-PRE-T1-E REM-B-R1.3: bypass the REAL execution gate too — see
+    # identical comment in test_execution_engine_futures.py's
+    # _certify_mexc_for_test.
+    monkeypatch.setattr(
+        _EE,
+        "_decision_execution_denial_reason",
+        lambda self, decision_id: None if decision_id else "MISSING_CAUSAL_ID",
+    )
+    # O-02W-PRE-T1-E REM-B-R1.2, Blocker B: bypass the real decision->intent
+    # binding gate the same way — see identical comment in
+    # test_pre_t1_e_order_cycle_safety.py's _certify_mexc_for_test.
+    monkeypatch.setattr(_EE, "_bind_decision_to_intent", lambda self, decision_id, intent: None)
+
+
 @pytest.fixture
 def eng(tmp_path, monkeypatch):
     monkeypatch.setenv("EXEC_TRADE_LOG", str(tmp_path / "trades.sqlite"))
@@ -15,6 +61,7 @@ def eng(tmp_path, monkeypatch):
     monkeypatch.setenv("EXEC_MAX_CONSEC_LOSSES", "3")
     monkeypatch.setenv("EXEC_MAX_ORDER_USD", "10000")
     monkeypatch.setenv("EXEC_DEDUP_WINDOW", "30")
+    _certify_mexc_for_test(monkeypatch)
     from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
 
     e = ExecutionEngine(live=False)
@@ -134,12 +181,13 @@ class TestLiveFallback:
         mock_exchange.load_markets.return_value = {}
         mock_exchange.fetch_balance.return_value = {"free": {"USDT": usdt_balance}}
 
-    def test_place_live_order_exception_returns_live_failed(
+    def test_place_live_order_exception_returns_live_ambiguous(
         self, tmp_path, monkeypatch
     ):
         monkeypatch.setenv("EXEC_TRADE_LOG", str(tmp_path / "t.sqlite"))
         monkeypatch.setenv("EXEC_MAX_ORDER_USD", "10000")
         monkeypatch.setenv("PAPER_TRADING_ENABLED", "false")  # gate SEC-01 ouvert
+        _certify_mexc_for_test(monkeypatch)
         from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
 
         e = ExecutionEngine(live=False, _sleep=lambda _: None)
@@ -149,14 +197,22 @@ class TestLiveFallback:
         mock_exchange.create_order.side_effect = RuntimeError("connection refused")
         e._exchange = mock_exchange
         e.start_session(10_000.0)
-        result = e.create_order("BTCUSDT", "BUY", 100.0)
-        assert result["mode"] == "live_failed"
-        assert "connection refused" in result["error"]
+        result = e.create_order("BTCUSDT", "BUY", 100.0, decision_id="test-live-exc")
+        # O-02W-PRE-T1-E REM-B: a connection error is ambiguous (I5), not a
+        # clean "failed" — persisted RECONCILE_REQUIRED, never silently
+        # reported as if nothing happened. The typed error_category
+        # ("transport_error") surfaces in `error`; the raw exception text
+        # is preserved as evidence in the journal's `error_category` field,
+        # not re-derived from the raw message at the ExecutionEngine layer.
+        assert result["mode"] == "live_ambiguous"
+        assert result["error"] == "transport_error"
+        assert result["order_intent_outcome"] == "RECONCILE_REQUIRED"
 
     def test_place_live_order_success(self, tmp_path, monkeypatch):
         monkeypatch.setenv("EXEC_TRADE_LOG", str(tmp_path / "t.sqlite"))
         monkeypatch.setenv("EXEC_MAX_ORDER_USD", "10000")
         monkeypatch.setenv("PAPER_TRADING_ENABLED", "false")  # gate SEC-01 ouvert
+        _certify_mexc_for_test(monkeypatch)
         from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
 
         e = ExecutionEngine(live=False)
@@ -166,7 +222,7 @@ class TestLiveFallback:
         mock_exchange.create_order.return_value = {"id": "abc123", "status": "closed"}
         e._exchange = mock_exchange
         e.start_session(10_000.0)
-        result = e.create_order("BTCUSDT", "BUY", 100.0)
+        result = e.create_order("BTCUSDT", "BUY", 100.0, decision_id="test-live-success")
         assert result["mode"] == "live"
         assert result["id"] == "abc123"
 
@@ -174,6 +230,7 @@ class TestLiveFallback:
         monkeypatch.setenv("EXEC_TRADE_LOG", str(tmp_path / "t.sqlite"))
         monkeypatch.setenv("EXEC_MAX_ORDER_USD", "10000")
         monkeypatch.setenv("PAPER_TRADING_ENABLED", "false")  # gate SEC-01 ouvert
+        _certify_mexc_for_test(monkeypatch)
         from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
 
         e = ExecutionEngine(live=False)
@@ -188,13 +245,14 @@ class TestLiveFallback:
         }
         e._exchange = mock_exchange
         e.start_session(10_000.0)
-        e.create_order("BTCUSDT", "SELL", 100.0)
+        e.create_order("BTCUSDT", "SELL", 100.0, decision_id="test-live-sell")
         assert mock_exchange.create_order.call_args[0][2] == "sell"
 
     def test_place_live_order_symbol_slash_conversion(self, tmp_path, monkeypatch):
         monkeypatch.setenv("EXEC_TRADE_LOG", str(tmp_path / "t.sqlite"))
         monkeypatch.setenv("EXEC_MAX_ORDER_USD", "10000")
         monkeypatch.setenv("PAPER_TRADING_ENABLED", "false")  # gate SEC-01 ouvert
+        _certify_mexc_for_test(monkeypatch)
         from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
 
         e = ExecutionEngine(live=False)
@@ -204,7 +262,7 @@ class TestLiveFallback:
         mock_exchange.create_order.return_value = {"id": "x"}
         e._exchange = mock_exchange
         e.start_session(10_000.0)
-        e.create_order("BTCUSDT", "BUY", 100.0)
+        e.create_order("BTCUSDT", "BUY", 100.0, decision_id="test-live-slash")
         assert "/" in mock_exchange.create_order.call_args[0][0]
 
 
@@ -227,6 +285,7 @@ class TestExecutionGateSEC01:
     def _make_live_engine(self, tmp_path, monkeypatch, mock_exchange):
         monkeypatch.setenv("EXEC_TRADE_LOG", str(tmp_path / "t.sqlite"))
         monkeypatch.setenv("EXEC_MAX_ORDER_USD", "10000")
+        _certify_mexc_for_test(monkeypatch)
         from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
 
         e = ExecutionEngine(live=False, _sleep=lambda _: None)
@@ -257,7 +316,7 @@ class TestExecutionGateSEC01:
         mock_gated = MagicMock()
         self._setup_mock_exchange(mock_gated)
         e_gated = self._make_live_engine(tmp_path, monkeypatch, mock_gated)
-        gated_result = e_gated.create_order("ETH/USDT", "SELL", 100.0)
+        gated_result = e_gated.create_order("ETH/USDT", "SELL", 100.0, decision_id="test-gate-shape-gated")
 
         monkeypatch.setenv("PAPER_TRADING_ENABLED", "false")
         mock_real = MagicMock()
@@ -266,7 +325,7 @@ class TestExecutionGateSEC01:
             '{"code":700007,"msg":"No permission to access the endpoint."}'
         )
         e_real = self._make_live_engine(tmp_path, monkeypatch, mock_real)
-        real_result = e_real.create_order("ETH/USDT", "SELL", 100.0)
+        real_result = e_real.create_order("ETH/USDT", "SELL", 100.0, decision_id="test-gate-shape-real")
 
         assert gated_result["mode"] == real_result["mode"] == "live_failed"
         assert set(gated_result.keys()) == set(real_result.keys())
@@ -280,7 +339,7 @@ class TestExecutionGateSEC01:
         mock_exchange.create_order.return_value = {"id": "live1"}
         e = self._make_live_engine(tmp_path, monkeypatch, mock_exchange)
 
-        result = e.create_order("BTC/USDT", "BUY", 100.0)
+        result = e.create_order("BTC/USDT", "BUY", 100.0, decision_id="test-gate-off")
 
         assert result["mode"] == "live"
         mock_exchange.fetch_ticker.assert_called_once()
@@ -319,5 +378,5 @@ class TestExecutionGateSEC01:
         assert blocked["mode"] == "live_failed"
 
         monkeypatch.setenv("PAPER_TRADING_ENABLED", "false")
-        unblocked = e.create_order("SOL/USDT", "BUY", 100.0)
+        unblocked = e.create_order("SOL/USDT", "BUY", 100.0, decision_id="test-gate-sol-2")
         assert unblocked["mode"] == "live"

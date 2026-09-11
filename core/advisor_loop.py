@@ -1287,6 +1287,34 @@ def analyze_symbol(
 ) -> AnalysisResult:
     _trace_id = new_trace_id()
     set_trace_id(_trace_id)
+    # O-02W-PRE-T1-E REM-B-R1.1, Blocker A: durably persist the decision
+    # identity HERE, at the decision-creation boundary, BEFORE any
+    # downstream authorization/execution work — this is what makes
+    # `_trace_id` (propagated later as `decision_id`) satisfy the causal
+    # ordering DECISION_ID_CREATED -> DECISION_PERSISTED -> ... ->
+    # EXCHANGE_MUTATION, closing the gap R1's Correction B investigation
+    # named explicitly (in-memory-only identity, never durably recorded
+    # before execution). A persistence failure here is non-fatal to
+    # analysis itself (this function still returns a valid, non-actionable
+    # read on observability failure) — but `ExecutionEngine` refuses to
+    # honor a `decision_id` that isn't found in this durable journal, so a
+    # failed persist here transitively fails closed at execution time
+    # (zero mutation calls), never silently.
+    try:
+        from quant_hedge_ai.agents.execution.decision_identity import (
+            default_decision_identity_journal,
+        )
+
+        default_decision_identity_journal().persist(
+            _trace_id, namespace="advisor_loop.analyze_symbol", cycle=cycle, symbol=symbol
+        )
+    except Exception as _dec_id_exc:
+        log.warning(
+            "[DecisionIdentity] échec de persistance durable pour trace_id=%s: %s "
+            "— l'exécution refusera cette décision (fail-closed)",
+            _trace_id,
+            _dec_id_exc,
+        )
 
     # G1 — fail-fast governance: RuntimeAuthority must block the pipeline at entry.
     # If authority says NO, we return an immediate non-actionable decision and
@@ -6563,17 +6591,31 @@ def main(
                                 pass
 
                         if _validated:
+                            # O-02W-PRE-T1-E REM-B: propagate the existing
+                            # per-decision-cycle trace_id (I-16, mandatory,
+                            # generated once via new_trace_id() at decision
+                            # time) as the deterministic causal identifier
+                            # for order-intent identity/idempotence. Missing
+                            # trace_id fails closed inside the protocol
+                            # rather than substituting a fabricated id.
+                            _decision_id = r.get("trace_id") or None
                             if exec_engine.has_futures_demo():
                                 fut = _stats_dict(
                                     exec_engine.create_futures_order(
-                                        sym, signal_action, effective_size
+                                        sym,
+                                        signal_action,
+                                        effective_size,
+                                        decision_id=_decision_id,
                                     )
                                 )
                                 exec_label = "FUTURES DEMO"
                             else:
                                 fut = _stats_dict(
                                     exec_engine.create_order(
-                                        sym, signal_action, effective_size
+                                        sym,
+                                        signal_action,
+                                        effective_size,
+                                        decision_id=_decision_id,
                                     )
                                 )
                                 exec_label = "EXECUTION"
