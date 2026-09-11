@@ -717,3 +717,137 @@ adapter's real reconciliation capability against a pinned `ccxt` install,
 and does not enable live trading in any way. No real order, testnet call,
 exchange call, VPS access, secret access, or deployment occurred in this
 round. PR #138 remains **draft** and **unmerged**.
+
+## 23. REM-C R1 — execution-domain provenance and paper recovery honesty (2026-09-11)
+
+**Addendum to §1-22.2, not a rewrite.** This is the first REM-C
+implementation round (deliberately narrow, per
+`docs/adr/0021-execution-domain-provenance-and-paper-recovery-honesty.md`).
+It is not the fill-engine implementation, not exchange reconciliation
+certification, and not testnet/live enablement.
+
+### 23.1 Execution-domain provenance rule
+
+The canonical `Position` dataclass
+(`quant_hedge_ai/agents/execution/position_manager.py`) previously carried
+no execution-domain field at all — nothing prevented a PAPER-mode
+`PositionManager`'s internal state from being compared against a REAL
+exchange's `fetch_positions()` result by symbol string alone. A new
+`ExecutionDomain(str, Enum)` (`REAL | TESTNET | FUTURES_DEMO | PAPER |
+SHADOW | UNKNOWN`) is added; `Position.domain` defaults to `UNKNOWN`
+(fail-closed, never assumed REAL nor PAPER). `PositionManager` resolves
+its own `.domain` from the same construction context callers already pass
+(`domain=` explicit override > `paper_mode=True` -> `PAPER` >
+`exchange is not None` -> `REAL` > otherwise `UNKNOWN`) and stamps it onto
+any position added via `add_position()` that still carries the `UNKNOWN`
+default — an explicitly different domain on the position itself is never
+overwritten.
+
+### 23.2 Reconciliation same-domain invariant
+
+`system/position_reconciler.py`'s `PositionReconciler.reconcile()` called
+`pos_manager.get_open_positions()` — a method that never existed on the
+canonical `PositionManager` (only `get_open()` does). Because of
+`hasattr()` guarding, this silently returned `internal_pos = {}` in
+production, every cycle, for the life of the code (a second, structurally
+identical instance of the same defect existed in `core/advisor_loop.py`'s
+boot-time heartbeat amorçage, also fixed here). Fixing only the method
+name would have made the reconciler suddenly see real internal state for
+the first time — without a domain check, this creates the risk this
+mission was scoped to close: a PAPER-domain `PositionManager` compared
+against a REAL `fetch_positions()` call. `PositionReconciler` now takes an
+`expected_domain` (default `REAL`, since `exchange_futures.fetch_positions()`
+is definitionally a real/testnet account call) and refuses to run the
+comparison at all unless `pos_manager.domain == expected_domain` proves
+compatible; an incompatible or unproven (`UNKNOWN`) domain produces
+`comparable=False` with empty ghost/orphan lists — never a fabricated
+finding. Once domain-compatible, individual positions that themselves
+carry a non-matching or `UNKNOWN` domain are still excluded from
+ghost/orphan comparison and reported separately
+(`unresolved_domain_positions`), never folded into a ghost/orphan claim.
+Only after both gates pass does the corrected `get_open()` call run.
+Reconciliation remains strictly observational — it was already read-only
+(`fetch_positions()` + comparison), and REM-C R1 adds no mutation path.
+
+### 23.3 PAPER restart evidence-honesty rule
+
+`MexcSimulator._restore_positions()` (`paper_trading/mexc_simulator.py`)
+previously (a) recorded `pnl_usd=0.0`/`pnl_pct=0.0` for positions expired
+during a downtime window, presenting "nothing happened" as if it were
+known fact rather than genuinely unknown; (b) always recomputed TP/SL
+from hardcoded 4%/2% defaults, discarding whatever the position's actual
+original TP/SL had been, with no way to tell a reconstructed value from
+an original one; (c) always set `fee_entry_usd=0.0`, because the ledger
+schema never captured it. `PaperTradeRecorder`'s `TradeEvent`/
+`CompleteTrade` schema is extended to v4 with three new OPEN-only
+optional fields — `tp_price`, `sl_price`, `fee_entry_usd` — defaulting to
+`None` (absent evidence), never a fabricated number; `record_open()` now
+persists them when the caller has them (the live-order-fill path does).
+`_restore_positions()`: (a) expired-during-downtime positions are now
+closed with `pnl_usd=None`/`pnl_pct=None` — missing evidence stays
+missing, it is never converted to a known zero; (b) restoration uses the
+durably recorded `tp_price`/`sl_price`/`fee_entry_usd` verbatim when a
+schema-v4 record has them; only when genuinely absent (older records) does
+it fall back to the same recomputed defaults as before, but now flags the
+position's `restored_evidence_gaps` list (`tp_sl_reconstructed_default`,
+`fee_entry_unknown`) and its `personality` as
+`"restored_evidence_incomplete"` rather than the previously undifferentiated
+`"restored"` — a reconstructed value is never presented as the original
+evidence again.
+
+### 23.4 Files changed
+
+- `quant_hedge_ai/agents/execution/position_manager.py` — `ExecutionDomain`
+  enum, `Position.domain`, `PositionManager.domain` resolution and
+  stamping in `add_position()`.
+- `system/position_reconciler.py` — domain-compatibility gate,
+  `get_open_positions()` -> `get_open()` fix, per-position domain
+  filtering, `ReconcileReport.comparable`/`pm_domain`/`expected_domain`/
+  `unresolved_domain_positions`.
+- `core/advisor_loop.py` — the same `get_open_positions()` ->
+  `get_open()` fix in the boot-time heartbeat amorçage guard (no other
+  change; construction of `PositionReconciler` is unchanged).
+- `paper_trading/recorder.py` — schema v4 (`tp_price`/`sl_price`/
+  `fee_entry_usd`, all `Optional`), `record_open()`/`record_close()`
+  signature extensions (`record_close`'s `pnl_usd`/`pnl_pct` are now
+  `Optional[float]`), `trades()` propagation.
+- `paper_trading/mexc_simulator.py` — `MexcPosition.restored_evidence_gaps`,
+  `_restore_positions()` evidence-honest reconstruction, `record_open()`
+  call site passes through `tp_price`/`sl_price`/`fee_entry_usd`.
+- `paper_trading/dataset_validator.py` — `_VALID_SCHEMA_VERSIONS` extended
+  to include `4` (mechanical, matches the new `SCHEMA_VERSION`).
+- `tests/test_rem_c_r1_execution_domain.py` — new, fail-before/pass-after
+  regression suite (Scenarios A/B/C plus the observational-only
+  invariant).
+- `tests/test_restart_safety.py` — `TestB2MidExecutionCrash`'s
+  `PositionReconciler` mocks updated to the canonical `get_open()` API and
+  given an explicit `ExecutionDomain.REAL` (mechanical; these tests
+  exercise exactly the API this mission corrects).
+- `.ci/ruff_baseline.json` — 7 pre-existing findings (in
+  `paper_trading/mexc_simulator.py`, `paper_trading/recorder.py`,
+  `tests/test_restart_safety.py`) shifted line numbers only, due to lines
+  inserted above them by this mission; no new violation, verified via
+  `python scripts/ci/ruff_baseline_gate.py check` (958/958, zero new).
+
+### 23.5 REM-C blockers remaining fully open, unattempted, explicitly out of this mission's scope
+
+Canonical `ExecutionEvidence`/`FillRecord`; cumulative exchange fill
+journal; partial-fill ingestion and deduplication; exchange fill polling
+(`fetch_order()`/`fetch_my_trades()` production integration); real-exchange
+fee accounting and VWAP reconstruction; exchange adapter certification;
+resubmission policy; real position reconstruction from exchange fills;
+full crash-window/partial-fill recovery (B8, still only restart-idempotent
+per REM-B); durable pre-execution decision persistence beyond what R1.1
+already added. These are REM-C R2/R3/R4 scope.
+
+**Updated verdict: still `REMEDIATION_REQUIRED`.** REM-C R1 closes the
+execution-domain provenance gap and the reconciler API mismatch (now
+domain-gated, never fabricating cross-domain findings), and closes the
+PAPER-restart PnL/TP/SL/fee fabrication defects R0.1 found (now explicit
+`None`/flagged-reconstruction instead of silent zero/default). It does not
+implement the fill-evidence chain, does not certify real exchange
+reconciliation, and does not enable live or testnet trading in any way.
+No real order, testnet call, exchange call, VPS access, secret access, or
+deployment occurred in this round. `PAPER_TRADING_ENABLED=true` and
+`LIVE_TRADING_CONFIRMED=false` are unchanged. T-1 and F-00 remain not
+started.

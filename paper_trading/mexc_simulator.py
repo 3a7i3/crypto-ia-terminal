@@ -134,6 +134,11 @@ class MexcPosition:
     close_reason: str = ""
     mae_pct: float = 0.0
     mfe_pct: float = 0.0
+    # REM-C R1 — restart evidence-honesty markers. Empty = nothing was
+    # reconstructed; non-empty entries name which fields could not be
+    # restored from durable evidence and were recomputed/defaulted instead
+    # (never presented as the original values). See _restore_positions().
+    restored_evidence_gaps: list = field(default_factory=list)
 
     @property
     def is_open(self) -> bool:
@@ -379,11 +384,15 @@ class MexcSimulator:
                     _RESTORE_MAX_AGE_S / 3600,
                 )
                 try:
+                    # REM-C R1 — the process was down; what actually happened
+                    # to price/PnL during the gap is not durably known. exit
+                    # price and PnL are recorded as unknown (None), never
+                    # fabricated as entry_price/0.0 pretending nothing moved.
                     recorder.record_close(
                         trade_id=trade.trade_id,
                         exit_price=trade.entry_price,
-                        pnl_usd=0.0,
-                        pnl_pct=0.0,
+                        pnl_usd=None,
+                        pnl_pct=None,
                         reason="expired_on_restore",
                         opened_at=trade.opened_at,
                         symbol=trade.symbol,
@@ -424,13 +433,41 @@ class MexcSimulator:
                 else OrderSide.SELL
             )
             entry = trade.entry_price
-            tp_pct, sl_pct = 0.04, 0.02
-            if side == OrderSide.BUY:
-                tp = entry * (1 + tp_pct)
-                sl = entry * (1 - sl_pct)
+            evidence_gaps: list = []
+
+            # REM-C R1 — schema v4 records the original TP/SL durably.
+            # Older (pre-v4) records never captured it: recomputing from
+            # defaults is a RECONSTRUCTION, not the original evidence, and
+            # must be flagged as such rather than presented as known fact.
+            trade_tp = getattr(trade, "tp_price", None)
+            trade_sl = getattr(trade, "sl_price", None)
+            if trade_tp is not None and trade_sl is not None:
+                tp, sl = trade_tp, trade_sl
             else:
-                tp = entry * (1 - tp_pct)
-                sl = entry * (1 + sl_pct)
+                tp_pct, sl_pct = 0.04, 0.02
+                if side == OrderSide.BUY:
+                    tp = entry * (1 + tp_pct)
+                    sl = entry * (1 - sl_pct)
+                else:
+                    tp = entry * (1 - tp_pct)
+                    sl = entry * (1 + sl_pct)
+                evidence_gaps.append("tp_sl_reconstructed_default")
+
+            trade_fee = getattr(trade, "fee_entry_usd", None)
+            if trade_fee is not None:
+                fee_entry = trade_fee
+            else:
+                fee_entry = 0.0
+                evidence_gaps.append("fee_entry_unknown")
+
+            personality = "restored" if not evidence_gaps else "restored_evidence_incomplete"
+            if evidence_gaps:
+                _log.warning(
+                    "[SIM] Restore %s — évidence incomplète (%s), valeurs "
+                    "reconstruites (non originales)",
+                    trade.symbol,
+                    ", ".join(evidence_gaps),
+                )
 
             pos = MexcPosition(
                 pos_id=trade.trade_id,
@@ -440,10 +477,11 @@ class MexcSimulator:
                 entry_price=entry,
                 tp_price=tp,
                 sl_price=sl,
-                fee_entry_usd=0.0,
+                fee_entry_usd=fee_entry,
                 score=trade.score,
-                personality="restored",
+                personality=personality,
                 opened_ts=trade.opened_at or now,
+                restored_evidence_gaps=evidence_gaps,
             )
             self._positions[trade.symbol] = pos
             self._capital -= trade.size_usd
@@ -794,6 +832,9 @@ class MexcSimulator:
                 score=pos.score,
                 regime=pos.regime,
                 mode="futures_demo",
+                tp_price=pos.tp_price,
+                sl_price=pos.sl_price,
+                fee_entry_usd=pos.fee_entry_usd,
             )
         except Exception as exc:
             _log.warning("[SIM] record_open échoué: %s", exc)

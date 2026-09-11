@@ -5554,16 +5554,16 @@ def main(
         from system.state_machine import get_state_machine as _get_sm_boot
 
         _sm_boot = _get_sm_boot()
-        # Amorcer last_successful_order_at si des positions existent déjà au boot
-        if (
-            hasattr(pos_manager, "get_open_positions")
-            and pos_manager.get_open_positions()
-        ):
+        # Amorcer last_successful_order_at si des positions existent déjà au
+        # boot. REM-C R1 — canonical API is get_open(), not
+        # get_open_positions() (which never existed, so this guard was
+        # always False and this heartbeat amorçage silently never ran).
+        if hasattr(pos_manager, "get_open") and pos_manager.get_open():
             _sm_boot.update_heartbeat(
                 n_signals=0,
                 n_orders=1,
                 exchange_ok=True,
-                open_positions=len(pos_manager.get_open_positions()),
+                open_positions=len(pos_manager.get_open()),
             )
         _position_reconciler = _RecCls(_get_exchange_futures(exec_engine), pos_manager)
     except Exception as _obs_boot_exc:

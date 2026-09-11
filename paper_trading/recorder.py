@@ -40,7 +40,7 @@ from typing import Optional
 
 _DEFAULT_PATH = os.getenv("PAPER_TRADE_LOG", "databases/paper_trades.jsonl")
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 
 def _score_to_bin(score: int) -> str:
@@ -198,6 +198,12 @@ class TradeEvent:
     decision_context: Optional[DecisionContext] = None
     # Schema v3
     runtime_config_version: str = ""
+    # Schema v4 (REM-C R1) — OPEN-only, evidence for honest PAPER restart
+    # restoration. None means "not recorded" and MUST NOT be treated as
+    # zero/default by any reader (see MexcSimulator._restore_positions()).
+    tp_price: Optional[float] = None
+    sl_price: Optional[float] = None
+    fee_entry_usd: Optional[float] = None
 
 
 @dataclass
@@ -232,6 +238,11 @@ class CompleteTrade:
     decision_context: Optional[DecisionContext] = None
     # Schema v3
     runtime_config_version: str = ""
+    # Schema v4 (REM-C R1) — see TradeEvent. None = not recorded (unknown),
+    # never a fabricated original value.
+    tp_price: Optional[float] = None
+    sl_price: Optional[float] = None
+    fee_entry_usd: Optional[float] = None
 
 
 # ── Recorder ─────────────────────────────────────────────────────────────────
@@ -270,6 +281,9 @@ class PaperTradeRecorder:
         mode: str = "futures_demo",
         market_context: Optional[MarketContext] = None,
         decision_context: Optional[DecisionContext] = None,
+        tp_price: Optional[float] = None,
+        sl_price: Optional[float] = None,
+        fee_entry_usd: Optional[float] = None,
     ) -> None:
         from config.parameter_audit import current_config_version
 
@@ -292,6 +306,9 @@ class PaperTradeRecorder:
             market_context=market_context,
             decision_context=decision_context,
             runtime_config_version=current_config_version(),
+            tp_price=tp_price,
+            sl_price=sl_price,
+            fee_entry_usd=fee_entry_usd,
         )
         self._append(evt)
 
@@ -299,8 +316,8 @@ class PaperTradeRecorder:
         self,
         trade_id: str,
         exit_price: float,
-        pnl_usd: float,
-        pnl_pct: float,
+        pnl_usd: Optional[float],
+        pnl_pct: Optional[float],
         reason: str = "",
         opened_at: Optional[float] = None,
         symbol: str = "",
@@ -329,8 +346,8 @@ class PaperTradeRecorder:
             score_bin=_score_to_bin(score),
             regime=regime,
             exit_price=exit_price,
-            pnl_usd=round(pnl_usd, 4),
-            pnl_pct=round(pnl_pct, 6),
+            pnl_usd=round(pnl_usd, 4) if pnl_usd is not None else None,
+            pnl_pct=round(pnl_pct, 6) if pnl_pct is not None else None,
             reason=reason,
             duration_s=round(duration, 1) if duration else None,
             mae_pct=mae_pct,
@@ -405,6 +422,9 @@ class PaperTradeRecorder:
                 schema_version=op.schema_version,
                 market_context=op.market_context,
                 decision_context=op.decision_context,
+                tp_price=op.tp_price,
+                sl_price=op.sl_price,
+                fee_entry_usd=op.fee_entry_usd,
             )
             if cl:
                 ct.exit_price = cl.exit_price

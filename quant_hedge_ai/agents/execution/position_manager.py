@@ -57,6 +57,23 @@ class PositionSide(str, Enum):
     SHORT = "short"
 
 
+class ExecutionDomain(str, Enum):
+    """REM-C R1 — provenance d'une position, jamais un détail d'affichage.
+
+    Une position PAPER ne doit jamais pouvoir être comparée à un compte
+    REAL par erreur (cf PositionReconciler). UNKNOWN est le défaut sûr :
+    une provenance non prouvée échoue fermé (fail-closed), elle n'est
+    jamais silencieusement assimilée à REAL ni à PAPER.
+    """
+
+    REAL = "real"
+    TESTNET = "testnet"
+    FUTURES_DEMO = "futures_demo"
+    PAPER = "paper"
+    SHADOW = "shadow"
+    UNKNOWN = "unknown"
+
+
 class CloseReason(str, Enum):
     TP = "take_profit"
     SL = "stop_loss"
@@ -146,6 +163,12 @@ class Position:
     # échec silencieusement avalé.
     close_order_status: str = ""
     close_order_denial_reason: Optional[str] = None
+
+    # REM-C R1 — provenance explicite d'exécution. UNKNOWN par défaut :
+    # jamais assimilé silencieusement à REAL ni à PAPER. Stampée par
+    # PositionManager.add_position() si non fournie explicitement à la
+    # construction (cf `domain` du PositionManager qui la porte).
+    domain: ExecutionDomain = ExecutionDomain.UNKNOWN
 
     def __post_init__(self) -> None:
         self._recalc_tp_sl()
@@ -264,10 +287,29 @@ class PositionManager:
         exchange=None,
         check_interval_s: float = float(os.getenv("PM_CHECK_INTERVAL", "10")),
         paper_mode: bool = False,
+        domain: Optional[ExecutionDomain] = None,
     ) -> None:
         self._exchange = exchange
         self._interval = check_interval_s
         self._paper = paper_mode or (exchange is None)
+
+        # REM-C R1 — execution-domain provenance for every position this
+        # manager holds. Explicit `domain` always wins. Otherwise resolved
+        # from the same construction context callers already provide:
+        #   paper_mode=True            -> PAPER (explicit caller intent)
+        #   paper_mode=False + exchange -> REAL (a live exchange handle was
+        #                                  actually passed in)
+        #   paper_mode=False, no exch. -> UNKNOWN (ambiguous — fails closed,
+        #                                  never silently assumed REAL)
+        if domain is not None:
+            self.domain = domain
+        elif paper_mode:
+            self.domain = ExecutionDomain.PAPER
+        elif exchange is not None:
+            self.domain = ExecutionDomain.REAL
+        else:
+            self.domain = ExecutionDomain.UNKNOWN
+
         self._positions: dict[str, Position] = {}  # order_id → Position
         self._closed: list[Position] = []
         self._lock = threading.Lock()
@@ -311,6 +353,12 @@ class PositionManager:
     # ── API publique ───────────────────────────────────────────────────────────
 
     def add_position(self, pos: Position, silent: bool = False) -> None:
+        # REM-C R1 — stamp this manager's proven domain onto positions that
+        # arrive without an explicit one. A position constructed with an
+        # explicit non-UNKNOWN domain (e.g. a test asserting cross-domain
+        # behavior) is never overwritten.
+        if pos.domain is ExecutionDomain.UNKNOWN:
+            pos.domain = self.domain
         key = pos.order_id or f"{pos.symbol}_{pos.opened_at}"
         with self._lock:
             self._positions[key] = pos
