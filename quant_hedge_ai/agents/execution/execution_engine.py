@@ -8,13 +8,13 @@ from observability.json_logger import get_logger
 from quant_hedge_ai.agents.execution.order_authorization import authorize_order
 from quant_hedge_ai.agents.execution.order_deduplicator import OrderDeduplicator
 from quant_hedge_ai.agents.execution.order_intent_protocol import (
-    AdapterCapabilities,
     ExchangeMutationOutcome,
     ExchangeMutationResult,
     OrderIntentCoordinator,
     OrderIntentJournal,
     SubmissionOutcome,
     build_order_intent,
+    capabilities_for_exchange,
 )
 from quant_hedge_ai.agents.execution.trade_logger import TradeLogger
 from quant_hedge_ai.agents.risk.session_guard import (
@@ -40,11 +40,6 @@ alert_manager.register_autoheal("execution", execution_autoheal)
 # `databases/system_state.json`). Overridable via env for tests/ops.
 _DEFAULT_ORDER_INTENT_JOURNAL_PATH = os.getenv(
     "ORDER_INTENT_JOURNAL_PATH", "databases/order_intent_journal.jsonl"
-)
-_CCXT_CAPABILITIES = AdapterCapabilities(
-    supports_client_order_id=True,
-    client_order_id_param="clientOrderId",
-    supports_lookup_by_client_order_id=True,
 )
 
 
@@ -626,8 +621,9 @@ class ExecutionEngine:
             self._order_intent_journal = OrderIntentJournal(
                 _DEFAULT_ORDER_INTENT_JOURNAL_PATH
             )
+            exch_id = os.getenv("EXCHANGE_ID", "mexc")
             self._order_intent_coordinator = OrderIntentCoordinator(
-                self._order_intent_journal, _CCXT_CAPABILITIES
+                self._order_intent_journal, capabilities_for_exchange(exch_id)
             )
         return self._order_intent_coordinator
 

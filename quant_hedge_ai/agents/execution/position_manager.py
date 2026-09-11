@@ -36,13 +36,13 @@ from typing import Optional
 
 from observability.json_logger import get_logger
 from quant_hedge_ai.agents.execution.order_intent_protocol import (
-    AdapterCapabilities,
     ExchangeMutationOutcome,
     ExchangeMutationResult,
     OrderIntentCoordinator,
     OrderIntentJournal,
     SubmissionOutcome,
     build_order_intent,
+    capabilities_for_exchange,
 )
 from quant_hedge_ai.agents.execution.order_authorization import (
     authorize_order,
@@ -655,13 +655,9 @@ class PositionManager:
                 "ORDER_INTENT_JOURNAL_PATH", "databases/order_intent_journal.jsonl"
             )
             self._order_intent_journal = OrderIntentJournal(journal_path)
+            exch_id = os.getenv("EXCHANGE_ID", "mexc")
             self._order_intent_coordinator = OrderIntentCoordinator(
-                self._order_intent_journal,
-                AdapterCapabilities(
-                    supports_client_order_id=True,
-                    client_order_id_param="clientOrderId",
-                    supports_lookup_by_client_order_id=True,
-                ),
+                self._order_intent_journal, capabilities_for_exchange(exch_id)
             )
         return self._order_intent_coordinator
 

@@ -456,7 +456,7 @@ class TestGroupFReconciliation:
             lookup=lambda cid: ReconciliationLookupResult(False, [match]),
             verify_match=lambda payload, cand: payload["symbol"] == cand.get("symbol"),
         )
-        assert result.outcome == SubmissionOutcome.IDENTITY_COLLISION
+        assert result.outcome == SubmissionOutcome.RECONCILIATION_CONFLICT
 
     def test_conflicting_client_id_fails_closed(self, tmp_path):
         coord, _ = coordinator(tmp_path)
@@ -468,7 +468,7 @@ class TestGroupFReconciliation:
             lookup=lambda cid: ReconciliationLookupResult(False, [match]),
             verify_match=lambda payload, cand: False,
         )
-        assert result.outcome == SubmissionOutcome.IDENTITY_COLLISION
+        assert result.outcome == SubmissionOutcome.RECONCILIATION_CONFLICT
 
     def test_multiple_matches_fail_closed(self, tmp_path):
         coord, _ = coordinator(tmp_path)
@@ -478,7 +478,7 @@ class TestGroupFReconciliation:
             intent.full_digest(),
             lookup=lambda cid: ReconciliationLookupResult(False, [{"id": "1"}, {"id": "2"}]),
         )
-        assert result.outcome == SubmissionOutcome.IDENTITY_COLLISION
+        assert result.outcome == SubmissionOutcome.RECONCILIATION_CONFLICT
 
     def test_lookup_failure_remains_ambiguous(self, tmp_path):
         coord, journal = coordinator(tmp_path)
@@ -843,3 +843,564 @@ class TestGroupJNonRegression:
         calls = []
         coord.submit(intent, authorized=True, authorization_ref="a", mutate=lambda i, c: calls.append(1))
         assert calls == []
+
+
+# ─────────────────────────────────────────────────────────────────────────
+# Group K — REAL cross-process safety (O-02W-PRE-T1-E REM-B-R1,
+# Correction D). Uses `multiprocessing.Process` (separate OS processes,
+# each with its own interpreter/memory — NOT threads sharing one process)
+# racing on the SAME journal file via `multiprocessing.Barrier` to
+# synchronize their submission attempt, and a process-safe counter file
+# (each process appends one line via its own OS-level append) to prove the
+# exchange mutation call happened at most once across ALL processes.
+# ─────────────────────────────────────────────────────────────────────────
+
+import multiprocessing
+
+
+def _mp_submit_worker(journal_path, counter_path, barrier, result_queue, causal_id):
+    """Runs in a SEPARATE OS process. Builds its own fresh
+    OrderIntentJournal/OrderIntentCoordinator instance (no shared Python
+    objects with the parent — only the journal FILE PATH and counter FILE
+    PATH are shared, which is the whole point: the OS file lock is what
+    must do the work, not any in-memory Python structure)."""
+    from quant_hedge_ai.agents.execution.order_intent_protocol import (
+        AdapterCapabilities,
+        ExchangeMutationOutcome,
+        ExchangeMutationResult,
+        OrderIntentCoordinator,
+        OrderIntentJournal,
+        build_order_intent,
+    )
+
+    journal = OrderIntentJournal(journal_path)
+    caps = AdapterCapabilities(
+        supports_client_order_id=True,
+        client_order_id_param="clientOrderId",
+        supports_lookup_by_client_order_id=True,
+    )
+    coordinator_ = OrderIntentCoordinator(journal, caps)
+    intent = build_order_intent(
+        namespace="EXP-001",
+        causal_id=causal_id,
+        account_scope="mexc:main",
+        symbol="BTC/USDT",
+        side="buy",
+        order_type="market",
+        amount="100.00",
+        price="50000.00",
+        reduce_only=False,
+    )
+
+    def mutate(_intent, _client_order_id):
+        # Each attempted mutation appends exactly one line. A small,
+        # single `write()` to a file opened O_APPEND is atomic on POSIX
+        # for writes below PIPE_BUF, so no additional locking is needed
+        # here to count attempts correctly.
+        with open(counter_path, "a", encoding="utf-8") as f:
+            f.write("1\n")
+        return ExchangeMutationResult(
+            outcome=ExchangeMutationOutcome.ACKNOWLEDGED, exchange_order_id="EX-1"
+        )
+
+    barrier.wait()  # synchronize: all processes attempt submission together
+    result = coordinator_.submit(
+        intent, authorized=True, authorization_ref="ok", mutate=mutate
+    )
+    result_queue.put(result.outcome.value)
+
+
+class TestGroupK_RealCrossProcessSafety:
+    def test_two_processes_same_intent_at_most_one_mutation(self, tmp_path):
+        journal_path = str(tmp_path / "mp_journal.jsonl")
+        counter_path = str(tmp_path / "counter.txt")
+        open(counter_path, "w").close()
+        barrier = multiprocessing.Barrier(2)
+        q = multiprocessing.Queue()
+        procs = [
+            multiprocessing.Process(
+                target=_mp_submit_worker,
+                args=(journal_path, counter_path, barrier, q, "mp-same-intent"),
+            )
+            for _ in range(2)
+        ]
+        for p in procs:
+            p.start()
+        for p in procs:
+            p.join(timeout=15)
+            assert not p.is_alive(), "worker process hung"
+
+        outcomes = sorted(q.get(timeout=5) for _ in procs)
+        mutation_attempts = len(open(counter_path, encoding="utf-8").read().splitlines())
+
+        assert mutation_attempts == 1, (
+            f"expected exactly one mutation attempt across 2 processes "
+            f"racing on the same intent, got {mutation_attempts}"
+        )
+        # Both processes receive a compatible typed outcome — one that
+        # actually submitted (ACKNOWLEDGED) and one that saw the durable
+        # record already claimed (SUBMISSION_ALREADY_STARTED, or
+        # ACKNOWLEDGED if it observed the completed state).
+        assert set(outcomes).issubset(
+            {"ACKNOWLEDGED", "SUBMISSION_ALREADY_STARTED", "INTENT_ALREADY_RECORDED"}
+        )
+
+    def test_five_processes_same_intent_at_most_one_mutation(self, tmp_path):
+        journal_path = str(tmp_path / "mp_journal5.jsonl")
+        counter_path = str(tmp_path / "counter5.txt")
+        open(counter_path, "w").close()
+        n = 5
+        barrier = multiprocessing.Barrier(n)
+        q = multiprocessing.Queue()
+        procs = [
+            multiprocessing.Process(
+                target=_mp_submit_worker,
+                args=(journal_path, counter_path, barrier, q, "mp-same-intent-5"),
+            )
+            for _ in range(n)
+        ]
+        for p in procs:
+            p.start()
+        for p in procs:
+            p.join(timeout=20)
+            assert not p.is_alive(), "worker process hung"
+
+        mutation_attempts = len(open(counter_path, encoding="utf-8").read().splitlines())
+        assert mutation_attempts == 1, (
+            f"expected exactly one mutation attempt across {n} processes "
+            f"racing on the same intent, got {mutation_attempts}"
+        )
+        outcomes = [q.get(timeout=5) for _ in procs]
+        assert len(outcomes) == n
+
+    def test_two_distinct_intents_across_processes_do_not_collapse(self, tmp_path):
+        journal_path = str(tmp_path / "mp_journal_distinct.jsonl")
+        counter_path = str(tmp_path / "counter_distinct.txt")
+        open(counter_path, "w").close()
+        barrier = multiprocessing.Barrier(2)
+        q = multiprocessing.Queue()
+        procs = [
+            multiprocessing.Process(
+                target=_mp_submit_worker,
+                args=(journal_path, counter_path, barrier, q, f"mp-distinct-{i}"),
+            )
+            for i in range(2)
+        ]
+        for p in procs:
+            p.start()
+        for p in procs:
+            p.join(timeout=15)
+            assert not p.is_alive()
+
+        mutation_attempts = len(open(counter_path, encoding="utf-8").read().splitlines())
+        # Two genuinely different causal_id -> different digests -> both
+        # are new intents -> both legitimately submit (2 mutations, not 1).
+        assert mutation_attempts == 2
+        outcomes = [q.get(timeout=5) for _ in procs]
+        assert outcomes == ["ACKNOWLEDGED", "ACKNOWLEDGED"]
+
+    def test_lock_unavailable_causes_zero_mutation_calls(self, tmp_path, monkeypatch):
+        from quant_hedge_ai.agents.execution import order_intent_protocol as mod
+
+        coord, journal = coordinator(tmp_path)
+        intent = make_intent(causal_id="lock-fail-1")
+
+        def _raise_flock(*a, **k):
+            raise OSError("simulated flock failure")
+
+        monkeypatch.setattr(mod.fcntl, "flock", _raise_flock)
+        calls = []
+        result = coord.submit(
+            intent,
+            authorized=True,
+            authorization_ref="ok",
+            mutate=lambda i, c: calls.append(1),
+        )
+        assert result.outcome == SubmissionOutcome.LOCK_UNAVAILABLE
+        assert calls == []  # zero mutation calls
+        # Zero journal writes either — INTENT_RECORDED was never persisted.
+        assert journal.get(intent.full_digest()) is None
+
+    def test_lock_unavailable_on_unsupported_platform(self, tmp_path, monkeypatch):
+        from quant_hedge_ai.agents.execution import order_intent_protocol as mod
+
+        monkeypatch.setattr(mod, "fcntl", None)
+        coord, journal = coordinator(tmp_path)
+        intent = make_intent(causal_id="lock-fail-2")
+        calls = []
+        result = coord.submit(
+            intent,
+            authorized=True,
+            authorization_ref="ok",
+            mutate=lambda i, c: calls.append(1),
+        )
+        assert result.outcome == SubmissionOutcome.LOCK_UNAVAILABLE
+        assert calls == []
+        assert journal.get(intent.full_digest()) is None
+
+
+# ─────────────────────────────────────────────────────────────────────────
+# Group L — causal-ID (trace_id) provenance and stability (O-02W-PRE-T1-E
+# REM-B-R1, Correction B). See docs/adr/0020-...md §Provenance for the full
+# investigation; these are the source-level and behavioral proofs it cites.
+# ─────────────────────────────────────────────────────────────────────────
+
+
+class TestGroupL_CausalIdProvenance:
+    def test_trace_id_generated_exactly_once_per_cycle_no_reassignment(self):
+        """Source-level proof: `_trace_id` (core/advisor_loop.py) is
+        assigned exactly once per cycle (`_trace_id = new_trace_id()`) and
+        every `"trace_id": _trace_id` dict entry — including the one the
+        two ExecutionEngine call sites eventually read via
+        `r.get("trace_id")` — refers to that SAME variable, never a
+        re-invocation of `new_trace_id()`. The one OTHER `new_trace_id()`
+        call in the file is for an unrelated `_enl_dp` (ENL-2 crash-audit
+        record for a FAILED cycle), never reaching `create_order()`/
+        `create_futures_order()`."""
+        import ast
+
+        src = open("core/advisor_loop.py", encoding="utf-8").read()
+        tree = ast.parse(src)
+
+        new_trace_id_call_lines = []
+        trace_id_assign_lines = []
+        for node in ast.walk(tree):
+            if (
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Name)
+                and node.func.id == "new_trace_id"
+            ):
+                new_trace_id_call_lines.append(node.lineno)
+            if (
+                isinstance(node, ast.Assign)
+                and len(node.targets) == 1
+                and isinstance(node.targets[0], ast.Name)
+                and node.targets[0].id == "_trace_id"
+            ):
+                trace_id_assign_lines.append(node.lineno)
+
+        # Exactly one `_trace_id = new_trace_id()` assignment site in the
+        # whole file (the per-cycle decision identity) — a second call to
+        # new_trace_id() exists (for `_enl_dp`, an unrelated audit record)
+        # but it is never assigned to `_trace_id`.
+        assert len(trace_id_assign_lines) == 1, (
+            f"expected exactly one `_trace_id = new_trace_id()` assignment, "
+            f"found at lines {trace_id_assign_lines} — a second assignment "
+            f"site would mean decision_id could silently regenerate "
+            f"mid-cycle, defeating I1/I2"
+        )
+        # Exactly one literal `new_trace_id()` call — the per-cycle
+        # `_trace_id` assignment itself. The unrelated ENL-2 crash-audit
+        # record uses an aliased import (`from ... import new_trace_id as
+        # _new_tid`) and calls `_new_tid()`, which does not match this AST
+        # check by name — confirmed separately not to feed `_trace_id`.
+        assert len(new_trace_id_call_lines) == 1, (
+            f"expected exactly one literal new_trace_id() call site, found "
+            f"at lines {new_trace_id_call_lines} — a new call site should "
+            f"be reviewed for whether it silently creates a second, "
+            f"competing causal identity"
+        )
+        assert "_new_tid()" in src and "_enl_dp.metadata" in src, (
+            "expected the ENL-2 crash-audit record to keep using its own "
+            "aliased new_trace_id (as _new_tid) rather than reusing "
+            "_trace_id — proves it is a genuinely separate identity, not "
+            "a silent regeneration of the decision's own trace_id"
+        )
+
+    def test_decision_id_kwarg_traces_back_to_the_single_trace_id_variable(self):
+        """Source-level proof that the two `decision_id=` call-site
+        arguments in advisor_loop.py read `r.get("trace_id")`, and that
+        `r["trace_id"]` is always assigned from the single per-cycle
+        `_trace_id` variable (never a literal, never a fresh call)."""
+        src = open("core/advisor_loop.py", encoding="utf-8").read()
+        assert 'decision_id=_decision_id' in src
+        assert '_decision_id = r.get("trace_id") or None' in src
+        # Every dict literal assigning the "trace_id" key uses the _trace_id
+        # variable — never a hardcoded string or a fresh new_trace_id() call
+        # inline in a dict literal (which would silently break I1's "same
+        # logical intention -> same identity" for the decision-to-order
+        # path).
+        import re
+
+        trace_id_dict_entries = re.findall(r'"trace_id":\s*([^\n]+?)[,}]\s*$', src, re.MULTILINE)
+        assert trace_id_dict_entries, "expected at least one trace_id dict entry"
+        allowed = {"_trace_id", 'r.get("trace_id", "")', 'r.get("trace_id"'}
+        for entry in trace_id_dict_entries:
+            normalized = entry.strip().rstrip(",")
+            assert normalized in allowed or normalized.startswith('r.get("trace_id"'), (
+                f'unexpected "trace_id": {entry!r} — every dict entry must '
+                f"reference the single per-cycle _trace_id variable (or "
+                f"read it back via r.get), never a fresh/hardcoded value"
+            )
+
+    def test_distinct_trace_id_values_never_collapse_even_with_identical_trade_fields(self):
+        """Behavioral proof (complements Group A's causal-id tests): two
+        distinct trace_id-derived causal ids, with every OTHER intent field
+        held identical, produce distinct digests/client-order-ids — proving
+        the identity space genuinely keys off the volatile-but-stable
+        trace_id, not just the trade fields."""
+        i1 = make_intent(causal_id="11111111-1111-1111-1111-111111111111")
+        i2 = make_intent(causal_id="22222222-2222-2222-2222-222222222222")
+        assert i1.full_digest() != i2.full_digest()
+        assert i1.client_order_id() != i2.client_order_id()
+
+    def test_same_trace_id_value_reused_within_one_attempt_yields_same_identity(self):
+        """The complementary case: if the SAME trace_id value legitimately
+        reaches the mutation boundary twice within one logical attempt
+        (e.g. this process's own retry-by-idempotent-resubmission, not a
+        blind retry), identity stays IDENTICAL — this is the property that
+        actually makes REM-B's idempotence work for a stable-but-random
+        causal id, without requiring the id itself to be content-derived."""
+        i1 = make_intent(causal_id="33333333-3333-3333-3333-333333333333")
+        i2 = make_intent(causal_id="33333333-3333-3333-3333-333333333333")
+        assert i1.full_digest() == i2.full_digest()
+        assert i1.client_order_id() == i2.client_order_id()
+
+
+# ─────────────────────────────────────────────────────────────────────────
+# Group M — adapter capability matrix (O-02W-PRE-T1-E REM-B-R1,
+# Correction E). See docs/adr/0020-...md for the full per-exchange matrix
+# and why krakenfutures/binanceusdm are deliberately unverified/fail-closed.
+# ─────────────────────────────────────────────────────────────────────────
+
+
+class TestGroupM_AdapterCapabilityMatrix:
+    def test_mexc_is_supported_with_correct_param(self):
+        from quant_hedge_ai.agents.execution.order_intent_protocol import (
+            capabilities_for_exchange,
+        )
+
+        caps = capabilities_for_exchange("mexc")
+        assert caps.supports_client_order_id is True
+        assert caps.client_order_id_param == "clientOrderId"
+        assert caps.supports_lookup_by_client_order_id is True
+
+    def test_mexc_lookup_case_insensitive(self):
+        from quant_hedge_ai.agents.execution.order_intent_protocol import (
+            capabilities_for_exchange,
+        )
+
+        assert capabilities_for_exchange("MEXC").supports_client_order_id is True
+        assert capabilities_for_exchange("Mexc").supports_client_order_id is True
+
+    def test_unverified_exchanges_fail_closed(self):
+        """krakenfutures and binanceusdm are BOTH configurable via
+        EXCHANGE_ID in this repo (execution_engine.py's
+        `_futures_exchanges` set) but their exact raw clientOrderId
+        parameter name was not verified against the installed `ccxt`
+        library — both must fail closed rather than silently guess."""
+        from quant_hedge_ai.agents.execution.order_intent_protocol import (
+            capabilities_for_exchange,
+        )
+
+        for exch_id in ("krakenfutures", "binanceusdm", "binance", "unknown_exchange"):
+            caps = capabilities_for_exchange(exch_id)
+            assert caps.supports_client_order_id is False, exch_id
+            assert caps.client_order_id_param is None, exch_id
+            assert caps.supports_lookup_by_client_order_id is False, exch_id
+
+    def test_unsupported_capability_zero_mutation_calls(self, tmp_path):
+        coord, journal = coordinator(tmp_path, caps=NO_CID_CAPS)
+        intent = make_intent(causal_id="unsupported-1")
+        calls = []
+        result = coord.submit(
+            intent,
+            authorized=True,
+            authorization_ref="ok",
+            mutate=lambda i, c: calls.append(1),
+        )
+        assert result.outcome == SubmissionOutcome.UNSUPPORTED_ADAPTER_CAPABILITY
+        assert calls == []
+        assert journal.get(intent.full_digest()) is None
+
+    def test_execution_engine_uses_shared_capability_table_for_futures(
+        self, tmp_path, monkeypatch
+    ):
+        """The real production caller shape: EXCHANGE_ID=krakenfutures
+        (a real, configurable, futures-capable exchange in this repo) must
+        deny before any mutation call — zero exchange interaction — rather
+        than silently sending an unverified clientOrderId parameter."""
+        monkeypatch.setenv("EXCHANGE_ID", "krakenfutures")
+        monkeypatch.setenv("EXEC_TRADE_LOG", str(tmp_path / "t.sqlite"))
+        monkeypatch.setenv("EXEC_FUTURES_MIN_ORDER_USD", "55")
+        monkeypatch.setenv("EXEC_FUTURES_MAX_ORDER_USD", "200")
+        from unittest.mock import MagicMock
+
+        from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
+
+        e = ExecutionEngine(live=False, _sleep=lambda _: None)
+        e.start_session(10_000.0)
+        mock_ex = MagicMock()
+        mock_ex.fetch_ticker.return_value = {"last": 50_000.0}
+        mock_ex.load_markets.return_value = {}
+        e._exchange_futures = mock_ex
+
+        result = e.create_futures_order(
+            "BTC/USD", "BUY", 100.0, decision_id="unverified-exchange-1"
+        )
+        assert result["mode"] == "futures_failed"
+        assert result["order_intent_outcome"] == "UNSUPPORTED_ADAPTER_CAPABILITY"
+        mock_ex.create_order.assert_not_called()
+
+
+# ─────────────────────────────────────────────────────────────────────────
+# Group N — exhaustive caller inventory + mechanical bypass detection
+# (O-02W-PRE-T1-E REM-B-R1, Correction C). See docs/adr/0020-...md for the
+# full caller table this codifies. This is a STATIC/AST proof — it is
+# deliberately combined with the Group A-M BEHAVIORAL proofs above (a
+# static check alone is explicitly insufficient per spec §5).
+# ─────────────────────────────────────────────────────────────────────────
+
+
+class TestGroupN_CallerInventoryAndBypassDetection:
+    def _functions_containing_create_order_call(self, path):
+        """Returns the set of (qualified) function names in `path` whose
+        body contains a `.create_order(...)` call — regardless of nesting
+        depth, so a call inside a nested closure is correctly attributed
+        to its enclosing named function."""
+        import ast
+
+        src = open(path, encoding="utf-8").read()
+        tree = ast.parse(src)
+        found = set()
+
+        class _Visitor(ast.NodeVisitor):
+            def __init__(self):
+                self.stack = []
+
+            def visit_FunctionDef(self, node):
+                self.stack.append(node.name)
+                self.generic_visit(node)
+                self.stack.pop()
+
+            def visit_Call(self, node):
+                if (
+                    isinstance(node.func, ast.Attribute)
+                    and node.func.attr == "create_order"
+                    and self.stack
+                ):
+                    found.add(".".join(self.stack))
+                self.generic_visit(node)
+
+        _Visitor().visit(tree)
+        return found
+
+    def test_execution_engine_create_order_calls_only_inside_coordinator_wrapper(self):
+        path = "quant_hedge_ai/agents/execution/execution_engine.py"
+        functions = self._functions_containing_create_order_call(path)
+        # The ONLY function in this file allowed to contain a raw
+        # `.create_order(...)` call is `_mutate_via_coordinator`'s nested
+        # `mutate` closure — every source-reachable submission path MUST
+        # go through it. A new function name appearing here means a new
+        # direct exchange-mutation call site was added OUTSIDE the
+        # durable/idempotent protocol — exactly the bypass Correction C
+        # exists to catch.
+        allowed = {"_mutate_via_coordinator.mutate"}
+        unexpected = functions - allowed
+        assert not unexpected, (
+            f"new direct .create_order(...) call site(s) found outside "
+            f"the REM-B coordinator wrapper: {unexpected} — route through "
+            f"OrderIntentCoordinator.submit() instead"
+        )
+
+    def test_position_manager_create_order_calls_only_inside_coordinator_wrapper(self):
+        path = "quant_hedge_ai/agents/execution/position_manager.py"
+        functions = self._functions_containing_create_order_call(path)
+        allowed = {"_send_close_order.mutate"}
+        unexpected = functions - allowed
+        assert not unexpected, (
+            f"new direct .create_order(...) call site(s) found outside "
+            f"the REM-B coordinator wrapper: {unexpected} — route through "
+            f"OrderIntentCoordinator.submit() instead"
+        )
+
+    def test_no_legacy_bypass_branch_remains_in_execution_engine(self):
+        """The pre-Correction-A `else: order = self._with_retry(self.
+        _exchange[.futures].create_order, ...)` bypass (taken whenever
+        decision_id was falsy) must not reappear — confirmed by searching
+        for `_with_retry` combined with `.create_order` anywhere in the
+        module (the ONLY correct use of `_with_retry` in this file is for
+        pre-mutation read calls: fetch_ticker/load_markets/fetch_balance,
+        never the mutation itself, per `_mutate_via_coordinator`'s own
+        docstring)."""
+        src = open(
+            "quant_hedge_ai/agents/execution/execution_engine.py", encoding="utf-8"
+        ).read()
+        assert "_with_retry(\n                        self._exchange.create_order" not in src
+        assert "_with_retry(self._exchange.create_order" not in src
+        assert "_with_retry(self._exchange_futures.create_order" not in src
+        assert "_with_retry(\n                self._exchange_futures.create_order" not in src
+
+    def test_all_known_production_callers_of_create_order_inventoried(self):
+        """Fresh repo-wide search proving the caller inventory documented
+        in the ADR is exhaustive at the time this test runs — new grep
+        hits outside the already-reviewed set must be investigated, not
+        silently accepted. Reviewed-and-classified callers:
+
+        - core/advisor_loop.py (2 sites) — source-reachable, externally
+          capable, decision_id supplied via trace_id propagation.
+        - quant_hedge_ai/agents/execution/position_manager.py — internal
+          gated call inside `_send_close_order`'s mutate() closure.
+        - quant_hedge_ai/agents/execution/execution_engine.py — internal
+          gated call inside `_mutate_via_coordinator`'s mutate() closure,
+          plus its own docstring mention.
+        - quant_hedge_ai/agents/risk/portfolio_brain.py,
+          capital_allocation_engine.py, supervision/ops_watchdog.py —
+          docstring usage EXAMPLES only (`...` ellipsis placeholders,
+          not valid Python call syntax) — not source-reachable code.
+        - quant_hedge_ai/main_v91.py, quant_hedge_ai/main_system.py —
+          REAL calls, in a documented PARALLEL/legacy entrypoint (see
+          observability/operator/domains/execution_state.py:170 — already
+          flagged pre-existing governance debt, "hors périmètre O-01").
+          Do NOT supply decision_id. Left unmodified (out of REM-B-R1
+          scope — not advisor_loop.py, the actual production entrypoint)
+          but PROTECTED anyway: Correction A's fail-closed check lives
+          inside ExecutionEngine.create_order() itself, so these callers
+          cannot bypass REM-B even without being touched — they simply
+          receive MISSING_CAUSAL_ID if they ever reach a real mutation.
+        - scripts/smoke_test_ci.py — CI smoke test, not production.
+        """
+        import subprocess
+
+        result = subprocess.run(
+            [
+                "grep",
+                "-rn",
+                r"\.create_order(\|\.create_futures_order(\|_send_close_order(",
+                "--include=*.py",
+                "core/",
+                "quant_hedge_ai/",
+                "scripts/",
+                "supervision/",
+                "infra/",
+            ],
+            cwd=".",
+            capture_output=True,
+            text=True,
+        )
+        hits = [
+            line
+            for line in result.stdout.splitlines()
+            if "/test_" not in line and "tests/" not in line
+            and "order_intent_protocol.py" not in line
+        ]
+        known_files = {
+            "core/advisor_loop.py",
+            "quant_hedge_ai/agents/risk/portfolio_brain.py",
+            "quant_hedge_ai/agents/risk/capital_allocation_engine.py",
+            "quant_hedge_ai/agents/execution/execution_engine.py",
+            "quant_hedge_ai/agents/execution/position_manager.py",
+            "quant_hedge_ai/main_v91.py",
+            "quant_hedge_ai/main_system.py",
+            "scripts/smoke_test_ci.py",
+            "supervision/ops_watchdog.py",
+        }
+        unexpected_files = {
+            line.split(":", 1)[0] for line in hits
+        } - known_files
+        assert not unexpected_files, (
+            f"new file(s) with a direct create_order/create_futures_order/"
+            f"_send_close_order reference not in the reviewed caller "
+            f"inventory: {unexpected_files} — investigate and classify "
+            f"before assuming REM-B coverage is still complete"
+        )

@@ -466,3 +466,44 @@ attempt B8's full crash-window/partial-fill scope. No live trading, no
 real exchange call, and no deployment occurred in this mission — see
 §17/§19/§20 of the mission spec for the full prohibition list this
 remediation respected.
+
+## 22.1 REM-B R1 correction round (2026-09-11)
+
+**Addendum to §22, not a rewrite.** REM-B-R1 corrected eight blockers
+MASTER review identified in the §22 round, per
+`docs/adr/0020-deterministic-durable-idempotent-order-submission.md`'s R1
+section (full detail there). Updated blocker status:
+
+| Blocker | R0 status | R1 status |
+|---|---|---|
+| B3 (H3, deterministic identity) | REMEDIATED_IN_PRE_T1_E_REM_B | **Unchanged, strengthened.** Adapter-capability-gated (Correction E) — an unverified adapter now denies before the identity is ever transmitted, rather than silently sending it. |
+| B4 (H4, durable-before-network) | Caveat: `advisor_loop.py` didn't supply `decision_id` | **Caveat CLOSED** (was already closed by a same-day follow-up commit before this R1 mission began — `core/advisor_loop.py`'s two call sites propagate the existing `trace_id` per-decision-cycle identifier). R1 additionally closes a NEW gap found during verification: without a `decision_id`, `ExecutionEngine` fell back to an un-journaled legacy path instead of failing closed — Correction A removes that fallback entirely. B4 is now REMEDIATED_IN_PRE_T1_E_REM_B for every source-reachable caller of `ExecutionEngine.create_order()`/`create_futures_order()` through `advisor_loop.py`, with the Correction B caveat below. |
+| B5 (H5/H6, blind retry / reconciliation) | Same caveat as B4 | Same resolution as B4. Additionally strengthened by Correction D: the durable-before-network guarantee is now genuinely cross-process-safe (`fcntl.flock`), not merely single-process — proven by real `multiprocessing.Process` tests, not thread simulation. |
+| B8 (H9, crash-window recovery) | Partial — restart idempotence only | **Unchanged partial status, but the honest boundary is now sharper.** Correction B's investigation established precisely WHY full crash-window recovery is not yet closed: `trace_id` is stable in-memory for one execution attempt but not durably persisted BEFORE the decision reaches execution, so a restart cannot reconstruct an in-flight decision's identity. This is named explicitly (ADR-0020 R1 §Correction B) as the specific remaining piece of B8, reserved for REM-C. |
+| B9 (`PendingOrderTracker`) | Not reused — superseded | Unchanged. |
+| (new) Adapter capability correctness | Not previously assessed | **New finding, closed.** A single hardcoded `AdapterCapabilities` claimed `clientOrderId` worked for every `EXCHANGE_ID` this repo supports (`mexc`, `krakenfutures`, `binanceusdm`) — CCXT's raw parameter name is not uniform across exchanges, so this was a latent defect that could have silently defeated B3's identity guarantee for non-`mexc` exchanges. Now exchange-specific (`capabilities_for_exchange()`), with unverified exchanges failing closed. |
+| (new) Cross-process journal safety | Documented as single-writer only, not enforced | **New finding, closed.** An OS-level `fcntl.flock` now actually enforces single-writer-at-a-time on the journal's critical section (POSIX only, explicitly), replacing the prior single-writer *assumption* with an enforced, tested guarantee — `LOCK_UNAVAILABLE` fails closed rather than silently proceeding unprotected. |
+| (new) Legacy direct-submission bypass | Not previously assessed | **New finding, closed.** Both `ExecutionEngine` mutation paths had an `else:` branch that called the exchange directly (no journal, no idempotence) whenever `decision_id` was absent — Correction A removes this fallback; missing identity now always fails closed with zero mutation calls. |
+
+**REM-C blockers remaining fully open, unattempted, explicitly out of this
+mission's scope (unchanged from §22, refined per above):** complete
+partial-fill lifecycle and fill-quantity reconciliation; full position
+reconstruction after a crash window, INCLUDING durable pre-execution
+persistence of the DecisionPacket/intent needed to reconstruct an
+in-flight decision's identity after a crash (the specific remaining piece
+of B8, named explicitly in ADR-0020 R1); PnL accounting changes; any
+automatic resubmission policy after `RECONCILED_NOT_FOUND_PENDING`;
+verification of `krakenfutures`/`binanceusdm` exact CCXT client-order-id
+parameter names against the real `ccxt` package (currently fail-closed,
+pending operator verification, not silently assumed).
+
+**Updated verdict: still `REMEDIATION_REQUIRED`.** REM-B-R1 closes the B4/B5
+caveat for `ExecutionEngine`'s real caller shape, closes a legacy-bypass
+defect Correction A found, closes a latent multi-exchange adapter-capability
+defect, and closes a documented-but-unenforced cross-process safety gap.
+It does not close B8's full crash-window-recovery scope (the specific
+remaining piece is now named precisely: durable pre-execution decision
+persistence), does not start REM-C, and does not verify the two unverified
+adapter's exact parameter names (deliberately fails closed instead of
+guessing). No live trading, no real exchange call, no deployment occurred
+in this round.

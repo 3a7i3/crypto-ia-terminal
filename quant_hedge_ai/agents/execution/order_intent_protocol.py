@@ -29,12 +29,18 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import platform
 import threading
 from dataclasses import dataclass, field
 from decimal import Decimal
 from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, Optional
+
+try:
+    import fcntl  # POSIX only — see LockUnavailableError / _CrossProcessLock docstring below
+except ImportError:  # pragma: no cover — non-POSIX platform
+    fcntl = None  # type: ignore[assignment]
 
 SCHEMA_VERSION = 1
 _CLIENT_ID_PREFIX = "reb"  # rem-b
@@ -49,6 +55,69 @@ class MissingCausalIdentityError(ValueError):
     """Raised when an upstream causal identifier required for uniqueness is
     absent. REM-B fails closed here rather than substituting wall-clock time
     or a random UUID (spec §6.7)."""
+
+
+class LockUnavailableError(RuntimeError):
+    """Raised when the cross-process journal lock cannot be acquired —
+    unsupported platform, `flock` failure, or a stale/corrupted lock state.
+    The coordinator catches this and fails closed (zero mutation calls,
+    typed `LOCK_UNAVAILABLE` result) rather than proceeding unprotected."""
+
+
+class _CrossProcessLock:
+    """OS-level advisory file lock (`fcntl.flock`, `LOCK_EX`) protecting the
+    journal's check-and-register critical section across SEPARATE OS
+    PROCESSES — not just threads within one process (O-02W-PRE-T1-E
+    REM-B-R1, Correction D).
+
+    Explicit platform scope: this repo's supported production runtime is a
+    single Linux VPS process (`advisor_loop.py`, see CLAUDE.md stabilization
+    window) — POSIX-only. `fcntl` is unavailable on Windows; on any platform
+    where it cannot be imported, or where `flock()` itself raises, this
+    fails closed via `LockUnavailableError` rather than silently degrading
+    to a threading.Lock (which does not protect separate processes at all
+    — confusing the two would be exactly the mistake Correction D exists to
+    rule out).
+
+    Deliberately coarse-grained: ONE lock file per journal (not per-digest)
+    — simpler to reason about and correct, at the cost of serializing all
+    concurrent submissions through this journal regardless of whether they
+    target the same logical intent. Acceptable for this system's actual
+    production shape (single-writer VPS, low order rate); a per-digest
+    cross-process lock would need a proven distributed primitive this repo
+    does not have, and inventing one is out of REM-B-R1's narrow scope.
+    """
+
+    def __init__(self, journal_path: Path):
+        self._lock_path = journal_path.with_suffix(journal_path.suffix + ".lock")
+        self._fh = None
+
+    def __enter__(self) -> "_CrossProcessLock":
+        if fcntl is None:
+            raise LockUnavailableError(
+                f"cross-process journal locking requires POSIX fcntl — "
+                f"unavailable on this platform ({platform.system()})"
+            )
+        try:
+            self._fh = open(self._lock_path, "a+")
+            fcntl.flock(self._fh.fileno(), fcntl.LOCK_EX)
+        except OSError as exc:
+            if self._fh is not None:
+                self._fh.close()
+                self._fh = None
+            raise LockUnavailableError(
+                f"failed to acquire cross-process journal lock at "
+                f"{self._lock_path}: {exc}"
+            ) from exc
+        return self
+
+    def __exit__(self, exc_type, exc, tb) -> None:
+        if self._fh is not None:
+            try:
+                fcntl.flock(self._fh.fileno(), fcntl.LOCK_UN)
+            finally:
+                self._fh.close()
+                self._fh = None
 
 
 def _norm_decimal_str(value: Any) -> str:
@@ -227,15 +296,24 @@ class InvalidTransitionError(RuntimeError):
 class SubmissionOutcome(str, Enum):
     MISSING_CAUSAL_ID = "MISSING_CAUSAL_ID"
     AUTHORIZATION_DENIED = "AUTHORIZATION_DENIED"
+    # ALREADY_RECORDED retained for backward compatibility with existing
+    # callers/tests that branch on it generically; INTENT_ALREADY_RECORDED
+    # and SUBMISSION_ALREADY_STARTED (O-02W-PRE-T1-E REM-B-R1, spec §10)
+    # are the more specific outcomes _typed_result_from_record now returns
+    # for a duplicate seen in those two particular states.
     ALREADY_RECORDED = "ALREADY_RECORDED"
+    INTENT_ALREADY_RECORDED = "INTENT_ALREADY_RECORDED"
+    SUBMISSION_ALREADY_STARTED = "SUBMISSION_ALREADY_STARTED"
     ACKNOWLEDGED = "ACKNOWLEDGED"
     EXPLICITLY_REJECTED = "EXPLICITLY_REJECTED"
     RECONCILE_REQUIRED = "RECONCILE_REQUIRED"
     RECONCILED_FOUND = "RECONCILED_FOUND"
     RECONCILED_NOT_FOUND_PENDING = "RECONCILED_NOT_FOUND_PENDING"
     IDENTITY_COLLISION = "IDENTITY_COLLISION"
+    RECONCILIATION_CONFLICT = "RECONCILIATION_CONFLICT"
     JOURNAL_FAILURE = "JOURNAL_FAILURE"
     UNSUPPORTED_ADAPTER_CAPABILITY = "UNSUPPORTED_ADAPTER_CAPABILITY"
+    LOCK_UNAVAILABLE = "LOCK_UNAVAILABLE"
 
 
 @dataclass(frozen=True)
@@ -282,6 +360,14 @@ class OrderIntentJournal:
     @property
     def path(self) -> Path:
         return self._path
+
+    def cross_process_lock(self) -> _CrossProcessLock:
+        """A fresh OS-level lock bound to this journal's path — a NEW
+        `_CrossProcessLock` per acquisition (never a shared/reused instance)
+        so that unrelated in-process callers cannot accidentally observe
+        each other's lock state; the OS file lock itself is what provides
+        the actual cross-process exclusion (Correction D)."""
+        return _CrossProcessLock(self._path)
 
     def _read_all_records(self) -> list[dict]:
         records: list[dict] = []
@@ -396,9 +482,70 @@ class OrderIntentJournal:
 
 @dataclass(frozen=True)
 class AdapterCapabilities:
+    """Typed capability declaration for one exchange adapter (spec §9,
+    tightened in REM-B-R1 Correction E). `max_client_order_id_len` and
+    `client_order_id_charset` describe the ACTUAL constraints the adapter's
+    upstream API imposes (not this module's own `client_order_id()` output
+    length, which stays under any reasonable exchange limit already —
+    these are for a caller to validate an adapter-specific ceiling
+    tighter than 32 chars, if one is ever found)."""
+
     supports_client_order_id: bool
     client_order_id_param: Optional[str]  # e.g. "clientOrderId", "newClientOrderId"
     supports_lookup_by_client_order_id: bool
+    max_client_order_id_len: int = 32
+    client_order_id_charset: str = "alnum"  # "alnum" | "alnum_dash" | ...
+    supports_open_order_search: bool = False
+    supports_closed_order_search: bool = False
+
+
+# O-02W-PRE-T1-E REM-B-R1, Correction E: a single hardcoded capability for
+# every `EXCHANGE_ID` this repo's execution paths can be configured with —
+# as they were before this correction — was a defect, not a simplification.
+# CCXT's raw client-order-id parameter name is NOT uniform across
+# exchanges (e.g. Binance-family REST APIs use `newClientOrderId`, not
+# `clientOrderId`); sending the wrong one is typically silently ignored by
+# the exchange, defeating REM-B's deterministic-identity guarantee while
+# the call still appears to succeed. `ccxt` is not installed in this
+# development sandbox (`pip install ccxt` failed here on an unrelated
+# system `cryptography` package conflict, not a network issue), so the
+# exact raw parameter name for `krakenfutures`/`binanceusdm` could NOT be
+# verified against the actual installed library version — rather than
+# guess and silently trust a plausible-but-unverified name, those adapters
+# fail closed (`supports_client_order_id=False` -> `submit()` returns
+# `UNSUPPORTED_ADAPTER_CAPABILITY`, zero mutation calls) until an operator
+# verifies and extends this table against the real `ccxt` package. Only
+# `mexc` is marked supported: it is this repo's default (`EXCHANGE_ID`
+# unset -> "mexc"), the only exchange REM-B's own test suite exercises
+# end-to-end, and `clientOrderId` is MEXC's documented spot-API parameter
+# name (also used, unverified beyond that, for its futures-demo path,
+# which in practice never reaches CCXT directly — see
+# `ExecutionEngine._init_futures_demo`).
+_ADAPTER_CAPABILITIES_BY_EXCHANGE: dict[str, AdapterCapabilities] = {
+    "mexc": AdapterCapabilities(
+        supports_client_order_id=True,
+        client_order_id_param="clientOrderId",
+        supports_lookup_by_client_order_id=True,
+        supports_open_order_search=True,
+        supports_closed_order_search=True,
+    ),
+}
+_UNVERIFIED_ADAPTER_CAPABILITIES = AdapterCapabilities(
+    supports_client_order_id=False,
+    client_order_id_param=None,
+    supports_lookup_by_client_order_id=False,
+)
+
+
+def capabilities_for_exchange(exchange_id: str) -> AdapterCapabilities:
+    """Looked up fresh on every call (DS-001/ADR-0008 — never cached at
+    import time) so a test or a runtime `EXCHANGE_ID` change takes effect
+    immediately. Shared by `ExecutionEngine` and `PositionManager` so both
+    mutation families apply the identical, single-source-of-truth
+    capability table (I8)."""
+    return _ADAPTER_CAPABILITIES_BY_EXCHANGE.get(
+        exchange_id.lower(), _UNVERIFIED_ADAPTER_CAPABILITIES
+    )
 
 
 class ExchangeMutationOutcome(str, Enum):
@@ -504,62 +651,107 @@ class OrderIntentCoordinator:
             )
 
         with self._lock_for(digest):
-            # I7 — collision detection: a different canonical payload
-            # already recorded under this client_order_id but a DIFFERENT
-            # digest is a fail-closed condition, checked before anything
-            # else so a partial digest space clash can never proceed.
-            existing_by_cid = self._journal.find_by_client_order_id(client_order_id)
-            if existing_by_cid is not None and existing_by_cid.get("intent_digest") != digest:
-                return SubmissionResult(
-                    outcome=SubmissionOutcome.IDENTITY_COLLISION,
-                    intent_digest=digest,
-                    client_order_id=client_order_id,
-                    state=IntentState.COLLISION,
-                    detail=(
-                        "client_order_id collision with a different canonical "
-                        "payload — refusing to treat as the same order"
-                    ),
-                )
-
-            existing = self._journal.get(digest)
-            if existing is not None:
-                return self._typed_result_from_record(existing, digest, client_order_id)
-
+            # O-02W-PRE-T1-E REM-B-R1, Correction D: the in-process
+            # threading.Lock above serializes same-process races on this
+            # digest cheaply; it does NOT protect against a SEPARATE OS
+            # process racing on the same journal file. The OS-level
+            # `_CrossProcessLock` below is what actually does — held only
+            # across the check-and-register critical section (collision
+            # check, existing-state check, INTENT_RECORDED +
+            # SUBMISSION_STARTED appends), released BEFORE the network
+            # mutation call (spec §6.4 — no need to hold it across a slow
+            # network call once SUBMISSION_STARTED is durable, since that
+            # durable record is itself what blocks every competitor).
             try:
-                self._journal.append_transition(
-                    intent_digest=digest,
-                    client_order_id=client_order_id,
-                    state=IntentState.INTENT_RECORDED,
-                    canonical_payload=intent.canonical_dict(),
-                    causal_refs={
-                        "namespace": intent.namespace,
-                        "causal_id": intent.causal_id,
-                        "position_ref": intent.position_ref,
-                    },
-                    authorization_ref=authorization_ref,
-                )
-            except Exception as exc:  # journal I/O failure — zero mutation calls
+                cross_process_lock = self._journal.cross_process_lock()
+            except LockUnavailableError as exc:
                 return SubmissionResult(
-                    outcome=SubmissionOutcome.JOURNAL_FAILURE,
+                    outcome=SubmissionOutcome.LOCK_UNAVAILABLE,
                     intent_digest=digest,
                     client_order_id=client_order_id,
                     state=None,
-                    detail=f"journal write failed before any mutation: {exc}",
+                    detail=f"cross-process journal lock unavailable: {exc}",
                 )
 
             try:
-                self._journal.append_transition(
-                    intent_digest=digest,
-                    client_order_id=client_order_id,
-                    state=IntentState.SUBMISSION_STARTED,
-                )
-            except Exception as exc:
+                with cross_process_lock:
+                    # I7 — collision detection: a different canonical
+                    # payload already recorded under this client_order_id
+                    # but a DIFFERENT digest is a fail-closed condition,
+                    # checked before anything else so a partial digest
+                    # space clash can never proceed.
+                    existing_by_cid = self._journal.find_by_client_order_id(
+                        client_order_id
+                    )
+                    if (
+                        existing_by_cid is not None
+                        and existing_by_cid.get("intent_digest") != digest
+                    ):
+                        return SubmissionResult(
+                            outcome=SubmissionOutcome.IDENTITY_COLLISION,
+                            intent_digest=digest,
+                            client_order_id=client_order_id,
+                            state=IntentState.COLLISION,
+                            detail=(
+                                "client_order_id collision with a different "
+                                "canonical payload — refusing to treat as "
+                                "the same order"
+                            ),
+                        )
+
+                    existing = self._journal.get(digest)
+                    if existing is not None:
+                        return self._typed_result_from_record(
+                            existing, digest, client_order_id
+                        )
+
+                    try:
+                        self._journal.append_transition(
+                            intent_digest=digest,
+                            client_order_id=client_order_id,
+                            state=IntentState.INTENT_RECORDED,
+                            canonical_payload=intent.canonical_dict(),
+                            causal_refs={
+                                "namespace": intent.namespace,
+                                "causal_id": intent.causal_id,
+                                "position_ref": intent.position_ref,
+                            },
+                            authorization_ref=authorization_ref,
+                        )
+                    except Exception as exc:  # journal I/O failure — zero mutation calls
+                        return SubmissionResult(
+                            outcome=SubmissionOutcome.JOURNAL_FAILURE,
+                            intent_digest=digest,
+                            client_order_id=client_order_id,
+                            state=None,
+                            detail=f"journal write failed before any mutation: {exc}",
+                        )
+
+                    try:
+                        self._journal.append_transition(
+                            intent_digest=digest,
+                            client_order_id=client_order_id,
+                            state=IntentState.SUBMISSION_STARTED,
+                        )
+                    except Exception as exc:
+                        return SubmissionResult(
+                            outcome=SubmissionOutcome.JOURNAL_FAILURE,
+                            intent_digest=digest,
+                            client_order_id=client_order_id,
+                            state=None,
+                            detail=f"journal write failed before mutation: {exc}",
+                        )
+                    # `cross_process_lock` releases here (end of `with`),
+                    # BEFORE the network mutation call below — the durable
+                    # SUBMISSION_STARTED record just written is what blocks
+                    # every competitor from this point on, not the lock.
+            except LockUnavailableError as exc:
                 return SubmissionResult(
-                    outcome=SubmissionOutcome.JOURNAL_FAILURE,
+                    outcome=SubmissionOutcome.LOCK_UNAVAILABLE,
                     intent_digest=digest,
                     client_order_id=client_order_id,
                     state=None,
-                    detail=f"journal write failed before mutation: {exc}",
+                    detail=f"cross-process journal lock failed mid-section: {exc}",
                 )
 
             # ── exactly one exchange mutation call ──────────────────────
@@ -617,8 +809,8 @@ class OrderIntentCoordinator:
     ) -> SubmissionResult:
         state = IntentState(record["state"])
         mapping = {
-            IntentState.INTENT_RECORDED: SubmissionOutcome.ALREADY_RECORDED,
-            IntentState.SUBMISSION_STARTED: SubmissionOutcome.ALREADY_RECORDED,
+            IntentState.INTENT_RECORDED: SubmissionOutcome.INTENT_ALREADY_RECORDED,
+            IntentState.SUBMISSION_STARTED: SubmissionOutcome.SUBMISSION_ALREADY_STARTED,
             IntentState.ACKNOWLEDGED: SubmissionOutcome.ACKNOWLEDGED,
             IntentState.EXPLICITLY_REJECTED: SubmissionOutcome.EXPLICITLY_REJECTED,
             IntentState.RECONCILE_REQUIRED: SubmissionOutcome.RECONCILE_REQUIRED,
@@ -706,7 +898,7 @@ class OrderIntentCoordinator:
                     reconciliation_evidence={"matches": result.matches},
                 )
                 return SubmissionResult(
-                    outcome=SubmissionOutcome.IDENTITY_COLLISION,
+                    outcome=SubmissionOutcome.RECONCILIATION_CONFLICT,
                     intent_digest=intent_digest,
                     client_order_id=client_order_id,
                     state=IntentState.COLLISION,
@@ -727,7 +919,7 @@ class OrderIntentCoordinator:
                     reconciliation_evidence={"candidate": candidate},
                 )
                 return SubmissionResult(
-                    outcome=SubmissionOutcome.IDENTITY_COLLISION,
+                    outcome=SubmissionOutcome.RECONCILIATION_CONFLICT,
                     intent_digest=intent_digest,
                     client_order_id=client_order_id,
                     state=IntentState.COLLISION,

@@ -11,7 +11,7 @@ import pytest
 
 @pytest.fixture
 def eng(tmp_path, monkeypatch):
-    monkeypatch.setenv("EXCHANGE_ID", "binance")  # isolate from .env krakenfutures
+    monkeypatch.setenv("EXCHANGE_ID", "mexc")  # isolate from .env krakenfutures; also the verified REM-B-R1 adapter capability
     monkeypatch.setenv("EXEC_TRADE_LOG", str(tmp_path / "trades.sqlite"))
     monkeypatch.setenv("EXEC_MAX_DD", "0.05")
     monkeypatch.setenv("EXEC_MAX_LOSS", "0.03")
@@ -192,7 +192,7 @@ class TestFuturesErrors:
 class TestFetchAvailableCapital:
     @pytest.fixture(autouse=True)
     def _isolate_exchange(self, monkeypatch):
-        monkeypatch.setenv("EXCHANGE_ID", "binance")
+        monkeypatch.setenv("EXCHANGE_ID", "mexc")
 
     def test_fallback_when_no_exchange(self, tmp_path, monkeypatch):
         # fetch_available_capital() délègue à WalletSync (WALLET_PAPER_CAPITAL).
