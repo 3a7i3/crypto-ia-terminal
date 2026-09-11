@@ -320,8 +320,18 @@ def test_finding_4_and_broken_calls_marked_resolved_by_pre_t1_b():
 
 
 def test_portfolio_mutator_remains_marked_resolved_by_pre_t1_c():
+    # Scoped to §9b itself (not a document-wide `or`): the resolution status
+    # must be stated inside §9b's own text, not merely somewhere else in the
+    # document.
     text = CONTRACT_PATH.read_text(encoding="utf-8")
-    assert "resolved PRE-T1-C" in text or "RESOLVED_BY_PRE_T1_C" in text or "PRE-T1-C, R1" in text
+    section_9b = _extract_section(
+        text,
+        "## 9b. Portfolio mutator",
+        "## 9d. PRE-T1-A / PRE-T1-B reconciliation",
+    )
+    assert "resolved PRE-T1-C" in section_9b or "PRE-T1-C, R1" in section_9b
+    assert "structurally removed" in section_9b
+    assert "no future source mission is required to remove" in section_9b
 
 
 def test_no_current_passage_presents_stop_all_as_present_in_exchange_monitor():
@@ -334,14 +344,49 @@ def test_no_current_passage_presents_stop_all_as_present_in_exchange_monitor():
     assert "longer contains a `/STOP_ALL` string of any kind" in text
 
 
+def _extract_section(text, start_marker, end_marker):
+    """Return the slice of `text` from `start_marker` up to (excluding)
+    `end_marker`. Raises if either marker is missing, so a test using this
+    helper fails loudly rather than silently matching the whole document."""
+    start = text.index(start_marker)
+    end = text.index(end_marker, start)
+    return text[start:end]
+
+
+def _extract_table_row(text, row_marker):
+    """Return the single markdown-table-row line starting with `row_marker`.
+    This doc's §9/§9a rows are each one long physical line, so this is a
+    precise per-row extraction rather than a whole-document search."""
+    for line in text.splitlines():
+        if line.startswith(row_marker):
+            return line
+    raise AssertionError(f"table row starting with {row_marker!r} not found")
+
+
 def test_no_current_passage_presents_old_send_resume_messages_as_present():
+    # Scoped to §13 finding 3 specifically (not the whole document): a
+    # faulty re-appearance of the old imperative string anywhere ELSE in the
+    # doc (e.g. inside an unrelated section) must not let this test pass —
+    # so we extract exactly finding 3's text and check within it.
     text = CONTRACT_PATH.read_text(encoding="utf-8")
-    # Old present-tense instruction phrasing must not remain unqualified.
-    assert '"Envoyez /RESUME si intervention requise"' not in text.replace(
-        "line\n   3870\n   (degraded-mode alert, ", ""
-    ) or "negation-of-availability" in text
+    finding_3 = _extract_section(
+        text,
+        "3. **`SAFETY_RELEVANT_OPERATOR_INSTRUCTION_DRIFT`",
+        "4. **`SAFETY_RELEVANT_OPERATOR_INSTRUCTION_DRIFT`",
+    )
+    # The old imperative strings may appear inside finding 3 only as
+    # historical quotations (they are — that's the point of the finding),
+    # but the section as a whole must state the negation-of-availability
+    # replacement text, current-state-tagged, not present it as live.
+    assert "negation of command availability" in finding_3
+    assert "Aucune commande /RESUME n'est disponible" in finding_3
+    assert "CURRENT_UNRESOLVED = NO" in finding_3
+    assert "HISTORICAL" in finding_3
+    # Outside any historical block, the doc-wide negation phrasing and the
+    # updated line numbers must be present.
     assert "negation-of-availability" in text
     assert "Aucune commande /RESUME n'est disponible" in text
+    assert "core/advisor_loop.py:3909, 3921, 5614" in text
 
 
 def test_no_current_passage_presents_telegramnotifier_send_as_present_in_sae_or_pm():
@@ -390,9 +435,13 @@ def test_historical_and_current_counters_are_distinct():
 
 
 def test_tg_02c_forbidden_classification_unchanged():
+    # Row-specific: extract the TG-02c table row itself and assert
+    # FORBIDDEN_MUST_NEVER_REACTIVATE appears within that same row, not
+    # merely anywhere else in the document (e.g. TG-09's row, which also
+    # carries this token).
     text = CONTRACT_PATH.read_text(encoding="utf-8")
-    assert "TG-02c" in text
-    assert "FORBIDDEN_MUST_NEVER_REACTIVATE" in text
+    row = _extract_table_row(text, "| TG-02c |")
+    assert "FORBIDDEN_MUST_NEVER_REACTIVATE" in row
 
 
 def test_pre_t1_d_real_capital_remains_separate_and_unresolved():
@@ -416,3 +465,74 @@ def test_source_confirms_refusal_branch_is_at_updated_lines():
     window = "\n".join(lines[1346:1357])
     assert "/pause" in window and "/resume" in window
     assert "Commande de contrôle désactivée" in window
+
+
+# ── R1.2: §9d block — historical vs. current counters, checked precisely ───
+
+
+def test_9d_block_has_explicit_historical_and_current_counter_labels():
+    text = CONTRACT_PATH.read_text(encoding="utf-8")
+    section_9d = _extract_section(
+        text,
+        "## 9d. PRE-T1-A / PRE-T1-B reconciliation",
+        "## 10.",
+    )
+    assert "HISTORICAL_FINDINGS_DISCOVERED" in section_9d
+    assert "CURRENT_UNRESOLVED_FINDINGS" in section_9d
+    # Historical counters: 4 findings / 5 strings / 2 broken calls.
+    assert "4 numbered" in section_9d
+    assert "5 misleading operator-facing command strings" in section_9d
+    assert "2 source-proven-nonfunctional" in section_9d
+    # Current counters: 0 / 0 / 0, each stated explicitly, not merely implied.
+    assert "0 of the 4 findings remain unresolved" in section_9d
+    assert "0 misleading operator-facing command strings remain" in section_9d
+    assert "0 broken `TelegramNotifier().send(...)` call expressions remain" in section_9d
+
+
+# ── R1.2: main current-state citations, verified against actual source ─────
+
+
+def test_contract_cites_current_portfolio_bot_construction_lines():
+    text = CONTRACT_PATH.read_text(encoding="utf-8")
+    assert "core/advisor_loop.py:4029-4030" in text
+    assert "core/advisor_loop.py:3991-3992" not in text.replace(
+        "was `3991-3992`", ""
+    )
+
+
+def test_contract_cites_current_route_and_report_loop_lines():
+    text = CONTRACT_PATH.read_text(encoding="utf-8")
+    assert "command_center_bot.py:1347-1357" in text
+    assert "command_center_bot.py:1368-1378" in text
+    assert "command_center_bot.py:1390-1400" not in text.replace(
+        "was `1390-1400`", ""
+    )
+
+
+def test_contract_cites_current_resume_negation_lines():
+    text = CONTRACT_PATH.read_text(encoding="utf-8")
+    for line_no in ("3909", "3921", "5614"):
+        assert line_no in text
+
+
+def test_source_confirms_route_and_report_loop_at_cited_lines():
+    lines = (REPO_ROOT / "capital_deployment" / "command_center_bot.py").read_text(
+        encoding="utf-8"
+    ).splitlines()
+    route_window = "\n".join(lines[1261:1363])
+    assert "def _route(self, msg: dict) -> None:" in route_window
+    report_window = "\n".join(lines[1367:1378])
+    assert "def _report_loop(self) -> None:" in report_window
+
+
+def test_source_confirms_portfolio_bot_construction_at_cited_lines():
+    lines = (REPO_ROOT / "core" / "advisor_loop.py").read_text(encoding="utf-8").splitlines()
+    window = "\n".join(lines[4028:4030])
+    assert "CommandCenterBot.from_env(" in window
+    assert "_portfolio_bot.start()" in window
+
+
+def test_source_confirms_resume_negation_lines_contain_resume_string():
+    lines = (REPO_ROOT / "core" / "advisor_loop.py").read_text(encoding="utf-8").splitlines()
+    for line_no in (3909, 3921, 5614):
+        assert "/RESUME" in lines[line_no - 1]
