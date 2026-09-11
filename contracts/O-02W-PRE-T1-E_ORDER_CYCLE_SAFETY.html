@@ -1,0 +1,947 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" />
+
+    <link rel="shortcut icon" href="../_static/favicon.ico"/><!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
+        <title>O-02W-PRE-T1-E — Order-Cycle Safety Audit (Causal, Audit-First) - Crypto AI Terminal 9.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=354aac6f" />
+    <link rel="stylesheet" type="text/css" href="../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=1b9cecba" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=302659d7" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">Crypto AI Terminal 9.1 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="../_static/../assets/logo_ai_quant.png" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="../_static/../assets/logo_ai_quant.png" alt="Dark Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/blob/main/docs/contracts/O-02W-PRE-T1-E_ORDER_CYCLE_SAFETY.md?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/edit/main/docs/contracts/O-02W-PRE-T1-E_ORDER_CYCLE_SAFETY.md" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="o-02w-pre-t1-e-order-cycle-safety-audit-causal-audit-first">
+<h1>O-02W-PRE-T1-E — Order-Cycle Safety Audit (Causal, Audit-First)<a class="headerlink" href="#o-02w-pre-t1-e-order-cycle-safety-audit-causal-audit-first" title="Link to this heading">¶</a></h1>
+<section id="scope-and-prohibitions">
+<h2>1. Scope and prohibitions<a class="headerlink" href="#scope-and-prohibitions" title="Link to this heading">¶</a></h2>
+<p>This is an <strong>audit</strong>, not a remediation. Zero production logic changes. Only two
+files are authored by this mission: this contract and
+<code class="docutils literal notranslate"><span class="pre">tests/test_pre_t1_e_order_cycle_safety.py</span></code>. No VPS access, no secrets, no
+real/testnet credentials, no real exchange call anywhere (including in tests —
+fake exchanges only), no deployment, no env changes, no strategy/signal/
+risk/sizing/portfolio changes, no Telegram changes, no live-trading
+activation, no merge. O-02W-E2, T-1 and F-00 are explicitly out of scope and
+not started.</p>
+<p>Per the project’s current governance (<code class="docutils literal notranslate"><span class="pre">CLAUDE.md</span></code>, STABILIZATION_WINDOW
+2026-09-02→2026-09-16, ADR-0007 passivité absolue des observers, Scientific
+Debt Rule): this audit adds a measurement/certification artifact only. It
+recommends no threshold change, no new indicator, no new decision layer.</p>
+</section>
+<section id="exact-starting-sha">
+<h2>2. Exact starting SHA<a class="headerlink" href="#exact-starting-sha" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">main</span></code> (local and <code class="docutils literal notranslate"><span class="pre">origin/main</span></code>, verified equal before branching):
+<code class="docutils literal notranslate"><span class="pre">0ace5ccc13e3c111bc7191834c059ef5391e9f65</span></code></p></li>
+<li><p>Merge commit parents (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">show</span> <span class="pre">-s</span> <span class="pre">--format=%P</span></code>): first
+<code class="docutils literal notranslate"><span class="pre">2f226d097568fe6d3fd2c07a4296fa4d6535204c</span></code>, second
+<code class="docutils literal notranslate"><span class="pre">5770f0768abcc4f46494c73a7472fc219af4c76c</span></code> — matches PR #135
+(<code class="docutils literal notranslate"><span class="pre">base.sha</span></code> = first parent, <code class="docutils literal notranslate"><span class="pre">head.sha</span></code> = second parent), state <code class="docutils literal notranslate"><span class="pre">closed</span></code>,
+<code class="docutils literal notranslate"><span class="pre">merged:</span> <span class="pre">true</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">infra/wallet_sync.py</span></code> on this HEAD: <code class="docutils literal notranslate"><span class="pre">get_scientific_capital()</span></code> at line 75,
+<code class="docutils literal notranslate"><span class="pre">WalletSync.observe_exchange_balance()</span></code> at line 264 — PRE-T1-D separation
+confirmed present.</p></li>
+<li><p>Audit branch: <code class="docutils literal notranslate"><span class="pre">claude/o02w-pre-t1-e-order-cycle-safety-audit</span></code>, created from
+this exact <code class="docutils literal notranslate"><span class="pre">main</span></code>.</p></li>
+<li><p>Open-PR overlap check: <code class="docutils literal notranslate"><span class="pre">list_pull_requests(state=open)</span></code> returned 20 open
+PRs (#118, #53, #52, #39, #38, #36, #35, #34, #33, #32, #31, #30, #29, #27,
+#26, #25, #24, #23, #20, #19). None targets <code class="docutils literal notranslate"><span class="pre">execution_engine.py</span></code>,
+<code class="docutils literal notranslate"><span class="pre">position_manager.py</span></code>, <code class="docutils literal notranslate"><span class="pre">order_deduplicator.py</span></code>, <code class="docutils literal notranslate"><span class="pre">session_guard.py</span></code>,
+<code class="docutils literal notranslate"><span class="pre">pending_order_tracker.py</span></code>, <code class="docutils literal notranslate"><span class="pre">wallet_sync.py</span></code>, or <code class="docutils literal notranslate"><span class="pre">exchange_factory.py</span></code> by
+title/branch name. This is a repo-inspection-only check (titles/branch
+names), not a diff-content check of all 20 PRs.</p></li>
+</ul>
+</section>
+<section id="scientific-question">
+<h2>3. Scientific question<a class="headerlink" href="#scientific-question" title="Link to this heading">¶</a></h2>
+<p>Can one logical trading intention produce an invalid, oversized, duplicated,
+unattributable, or unreconciled order under normal execution, network
+ambiguity, partial fills, rejection, restart, or crash? Does every order
+trace back to one authorized decision packet? Does every ambiguous network
+result lead to reconciliation rather than blind resubmission?</p>
+<p><strong>Headline finding:</strong> on the primary live-order path
+(<code class="docutils literal notranslate"><span class="pre">ExecutionEngine._place_live_order</span></code>), the answer to the central question is
+<strong>yes — one logical intention can produce an invalid-input-derived order, a
+silently oversized order, and (after network ambiguity) a duplicated
+order</strong>, because size validation substitutes rather than rejects, min-notional
+handling silently enlarges, no deterministic client order id is generated or
+passed to the exchange, and the retry wrapper resubmits blindly with no
+reconciliation step. See §17 for the exact hermetic proof and §18 for the
+blocker list.</p>
+</section>
+<section id="hypotheses-h1h12-verdicts">
+<h2>4. Hypotheses H1–H12 — verdicts<a class="headerlink" href="#hypotheses-h1h12-verdicts" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>#</p></th>
+<th class="head"><p>Hypothesis</p></th>
+<th class="head"><p>Verdict</p></th>
+<th class="head"><p>One-line reason</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>H1</p></td>
+<td><p>Invalid-size rejection</p></td>
+<td><p><strong>REFUTED</strong></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">execution_engine.py:274-283</span></code> — <code class="docutils literal notranslate"><span class="pre">size&lt;=0</span> <span class="pre">or</span> <span class="pre">size&gt;1e9</span></code> does not reject; it force-alerts then <strong>substitutes <code class="docutils literal notranslate"><span class="pre">size</span> <span class="pre">=</span> <span class="pre">1.0</span></code></strong> and lets the order proceed (<code class="docutils literal notranslate"><span class="pre">mode</span></code> stays non-<code class="docutils literal notranslate"><span class="pre">rejected</span></code>). NaN passes the guard <strong>unchanged</strong> (<code class="docutils literal notranslate"><span class="pre">nan&lt;=0</span></code> and <code class="docutils literal notranslate"><span class="pre">nan&gt;1e9</span></code> are both <code class="docutils literal notranslate"><span class="pre">False</span></code> in Python — proven in §17 Scenario A). The existing test class is literally named <code class="docutils literal notranslate"><span class="pre">TestAnomalousSizeRecovery</span></code> (<code class="docutils literal notranslate"><span class="pre">.../test_execution_engine.py:82</span></code>), confirming this is documented, intentional “recovery,” not rejection.</p></td>
+</tr>
+<tr class="row-odd"><td><p>H2</p></td>
+<td><p>No silent minimum amplification</p></td>
+<td><p><strong>REFUTED</strong></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">execution_engine.py:493-500</span></code> — below-min-notional <code class="docutils literal notranslate"><span class="pre">size</span></code> is silently replaced with <code class="docutils literal notranslate"><span class="pre">min_notional</span> <span class="pre">*</span> <span class="pre">1.05</span></code>, i.e. up to and beyond the authorized intention with no re-authorization, no alert, no reject path.</p></td>
+</tr>
+<tr class="row-even"><td><p>H3</p></td>
+<td><p>Deterministic identity</p></td>
+<td><p><strong>REFUTED</strong></p></td>
+<td><p>No <code class="docutils literal notranslate"><span class="pre">clientOrderId</span></code>/<code class="docutils literal notranslate"><span class="pre">newClientOrderId</span></code> parameter is ever constructed or passed to any exchange call (`rg -n “clientOrderId</p></td>
+</tr>
+<tr class="row-odd"><td><p>H4</p></td>
+<td><p>Durable intent before network</p></td>
+<td><p><strong>REFUTED</strong></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">create_order()</span></code>’s only pre-network gates are in-memory (<code class="docutils literal notranslate"><span class="pre">SessionGuard.check_order</span></code>, <code class="docutils literal notranslate"><span class="pre">OrderDeduplicator.is_duplicate</span></code> — both non-durable, reset on process restart). The durable step, <code class="docutils literal notranslate"><span class="pre">TradeLogger.log(result,</span> <span class="pre">status)</span></code> (<code class="docutils literal notranslate"><span class="pre">execution_engine.py:326</span></code>), executes <strong>after</strong> <code class="docutils literal notranslate"><span class="pre">_place_live_order()</span></code> (<code class="docutils literal notranslate"><span class="pre">execution_engine.py:313-314</span></code>), i.e. after the network mutation attempt, not before. <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code> does append a best-effort <code class="docutils literal notranslate"><span class="pre">logs/execution_audit/audit.jsonl</span></code> line before calling <code class="docutils literal notranslate"><span class="pre">exec_engine.create_order(...)</span></code> (lines ~6544-6562), but that write is wrapped in a bare <code class="docutils literal notranslate"><span class="pre">except</span> <span class="pre">Exception:</span> <span class="pre">pass</span></code> — not fsync’d, not the system of record <code class="docutils literal notranslate"><span class="pre">TradeLogger</span></code> uses, and is caller-side only (not present for the <code class="docutils literal notranslate"><span class="pre">position_manager._send_close_order</span></code> path at all).</p></td>
+</tr>
+<tr class="row-even"><td><p>H5</p></td>
+<td><p>No blind retry</p></td>
+<td><p><strong>REFUTED</strong></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">_with_retry()</span></code> (<code class="docutils literal notranslate"><span class="pre">execution_engine.py:152-180</span></code>) is a literal blind retry: same <code class="docutils literal notranslate"><span class="pre">fn</span></code>/<code class="docutils literal notranslate"><span class="pre">args</span></code>/<code class="docutils literal notranslate"><span class="pre">kwargs</span></code> re-invoked up to 3 times with fixed backoff, then <code class="docutils literal notranslate"><span class="pre">reconnect()</span></code> + one more blind call. No call to <code class="docutils literal notranslate"><span class="pre">fetch_order</span></code>/<code class="docutils literal notranslate"><span class="pre">fetch_open_orders</span></code> to check whether the prior attempt actually landed, no use of any deterministic id to look the order up. <code class="docutils literal notranslate"><span class="pre">PendingOrderTracker</span></code> (<code class="docutils literal notranslate"><span class="pre">system/pending_order_tracker.py</span></code>), which implements exactly the reconciliation machinery (<code class="docutils literal notranslate"><span class="pre">reconcile_with_exchange()</span></code>, NEW→PARTIAL_FILL→FILLED state machine) H5 would need, is <strong>not imported anywhere in the order-submission path</strong> — only by <code class="docutils literal notranslate"><span class="pre">system/boot_gate.py</span></code> (as an optional constructor arg, never instantiated there) and by tests.</p></td>
+</tr>
+<tr class="row-odd"><td><p>H6</p></td>
+<td><p>Duplicate-call idempotence</p></td>
+<td><p><strong>REFUTED</strong></p></td>
+<td><p>Same call twice in immediate succession is only blocked by <code class="docutils literal notranslate"><span class="pre">OrderDeduplicator</span></code>, an in-memory, 10%-bucketed, symbol+action+size key (<code class="docutils literal notranslate"><span class="pre">order_deduplicator.py:56-59</span></code>) registered <strong>after</strong> the exchange call already returned (<code class="docutils literal notranslate"><span class="pre">execution_engine.py:324</span></code>, after line 314). A timeout during the <em>first</em> call (exception before <code class="docutils literal notranslate"><span class="pre">register()</span></code> runs) leaves no dedup entry, so the blind retry in <code class="docutils literal notranslate"><span class="pre">_with_retry</span></code> (H5) can and will re-submit — see Scenario I/H proof in §17.</p></td>
+</tr>
+<tr class="row-even"><td><p>H7</p></td>
+<td><p>Correct balance authority</p></td>
+<td><p><strong>PARTIALLY CONFIRMED</strong></p></td>
+<td><p>BUY path explicitly checks quote-asset free balance (<code class="docutils literal notranslate"><span class="pre">execution_engine.py:503-514</span></code>, <code class="docutils literal notranslate"><span class="pre">detect_quote_asset</span></code>); no SELL-side base-asset check exists in <code class="docutils literal notranslate"><span class="pre">_place_live_order</span></code> — SELL just computes <code class="docutils literal notranslate"><span class="pre">qty</span> <span class="pre">=</span> <span class="pre">size/price</span></code> and submits, with no balance check at all (an asymmetry, not a swapped-asset bug — H7 as literally stated, quote-for-BUY, is true; the missing SELL-side check is a separate, undocumented gap noted as a blocker). Confirmed separately: <code class="docutils literal notranslate"><span class="pre">get_scientific_capital()</span></code> makes zero exchange calls (<code class="docutils literal notranslate"><span class="pre">infra/wallet_sync.py:75-</span></code>) and <code class="docutils literal notranslate"><span class="pre">observe_exchange_balance()</span></code> is display-only and never referenced by <code class="docutils literal notranslate"><span class="pre">fetch_available_capital()</span></code> (PRE-T1-D boundary, re-verified not regressed — §15).</p></td>
+</tr>
+<tr class="row-odd"><td><p>H8</p></td>
+<td><p>Honest execution outcomes</p></td>
+<td><p><strong>CONFIRMED (structure), with a caveat</strong></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">mode</span></code> values (<code class="docutils literal notranslate"><span class="pre">paper</span></code>, <code class="docutils literal notranslate"><span class="pre">live</span></code>, <code class="docutils literal notranslate"><span class="pre">live_failed</span></code>, <code class="docutils literal notranslate"><span class="pre">rejected</span></code>, <code class="docutils literal notranslate"><span class="pre">futures_demo</span></code>, <code class="docutils literal notranslate"><span class="pre">futures_failed</span></code>, <code class="docutils literal notranslate"><span class="pre">futures_unavailable</span></code>) are structurally distinguishable, and <code class="docutils literal notranslate"><span class="pre">PendingOrderTracker</span></code>’s status set (<code class="docutils literal notranslate"><span class="pre">NEW/PARTIAL_FILL/FILLED/CANCELLED/EXPIRED/UNKNOWN</span></code>) is sound <em>in isolation</em> (<code class="docutils literal notranslate"><span class="pre">system/pending_order_tracker.py:79-99</span></code> transition table forbids resurrecting a terminal order). Caveat: <code class="docutils literal notranslate"><span class="pre">PendingOrderTracker</span></code> is not wired into <code class="docutils literal notranslate"><span class="pre">_place_live_order</span></code>, so this honest state machine <strong>never actually classifies a real order outcome</strong> in the current call graph — the live path’s only outcome vocabulary is the flatter <code class="docutils literal notranslate"><span class="pre">mode</span></code> string.</p></td>
+</tr>
+<tr class="row-even"><td><p>H9</p></td>
+<td><p>Crash-window recovery</p></td>
+<td><p><strong>REFUTED</strong></p></td>
+<td><p>No durable intent record exists before the network call (H4), and no attributable identity is generated (H3). A crash between “network call sent” and “response received” (window 3 in the mission’s crash taxonomy) leaves nothing on disk from which the just-attempted order could be reconstructed or reconciled after restart — <code class="docutils literal notranslate"><span class="pre">PendingOrderTracker</span></code>’s in-memory <code class="docutils literal notranslate"><span class="pre">self._orders</span></code> dict (<code class="docutils literal notranslate"><span class="pre">system/pending_order_tracker.py:180</span></code>) is itself non-durable and, per H5, unused on this path anyway.</p></td>
+</tr>
+<tr class="row-odd"><td><p>H10</p></td>
+<td><p>Canonical trading authority</p></td>
+<td><p><strong>INCONCLUSIVE (fail-closed on the paths examined, but no single canonical authority found)</strong></p></td>
+<td><p>Two independent gates each fail closed on their own: <code class="docutils literal notranslate"><span class="pre">PAPER_TRADING_ENABLED</span></code> (default <code class="docutils literal notranslate"><span class="pre">true</span></code>) blocks before any network call in <code class="docutils literal notranslate"><span class="pre">_place_live_order</span></code> (<code class="docutils literal notranslate"><span class="pre">execution_engine.py:455-471</span></code>), and <code class="docutils literal notranslate"><span class="pre">LIVE_TRADING_CONFIRMED</span></code> (default <code class="docutils literal notranslate"><span class="pre">false</span></code>) gates <code class="docutils literal notranslate"><span class="pre">live=True</span></code> construction in <code class="docutils literal notranslate"><span class="pre">ExecutionEngine.from_env()</span></code> (<code class="docutils literal notranslate"><span class="pre">execution_engine.py:196-202</span></code>). Both examined combinations that should forbid trading did forbid it (Scenario M, §17). But <code class="docutils literal notranslate"><span class="pre">position_manager._send_close_order</span></code> (<code class="docutils literal notranslate"><span class="pre">position_manager.py:594-618</span></code>) checks only <code class="docutils literal notranslate"><span class="pre">self._paper</span></code>/<code class="docutils literal notranslate"><span class="pre">self._exchange</span> <span class="pre">is</span> <span class="pre">None</span></code> — it does <strong>not</strong> re-check <code class="docutils literal notranslate"><span class="pre">PAPER_TRADING_ENABLED</span></code> or <code class="docutils literal notranslate"><span class="pre">LIVE_TRADING_CONFIRMED</span></code> itself; its safety depends entirely on how <code class="docutils literal notranslate"><span class="pre">self._exchange</span></code>/<code class="docutils literal notranslate"><span class="pre">self._paper</span></code> were set by its caller, which this audit did not fully trace (out of the time-boxed reading list — <code class="docutils literal notranslate"><span class="pre">position_manager.py</span></code> is 600+ lines and its full construction call graph was not exhaustively walked). Not a proven bypass; an unresolved risk (§18). No single documented “canonical authority” module (e.g. a <code class="docutils literal notranslate"><span class="pre">GlobalStateMachine.can_submit_order()</span></code> choke point) was found gating <em>both</em> call sites uniformly.</p></td>
+</tr>
+<tr class="row-even"><td><p>H11</p></td>
+<td><p>PRE-T1-D separation preserved</p></td>
+<td><p><strong>CONFIRMED</strong></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">fetch_available_capital()</span></code> calls only <code class="docutils literal notranslate"><span class="pre">get_scientific_capital()</span></code> (<code class="docutils literal notranslate"><span class="pre">execution_engine.py:249-251</span></code>), which makes zero exchange calls and does not read <code class="docutils literal notranslate"><span class="pre">_singleton</span></code>/<code class="docutils literal notranslate"><span class="pre">_mode</span></code>/<code class="docutils literal notranslate"><span class="pre">_exchange</span></code> (<code class="docutils literal notranslate"><span class="pre">infra/wallet_sync.py:75-</span></code> docstring + body). <code class="docutils literal notranslate"><span class="pre">observe_exchange_balance()</span></code> is a separate, unreferenced-by-sizing accessor. PRE-T1-D boundary test suite re-run clean at this HEAD — see §17 Scenario P.</p></td>
+</tr>
+<tr class="row-odd"><td><p>H12</p></td>
+<td><p>Runtime status remains unknown</p></td>
+<td><p><strong>CONFIRMED by construction</strong></p></td>
+<td><p>This audit performed zero VPS access, zero deployment checks, zero live/testnet calls. All findings are <code class="docutils literal notranslate"><span class="pre">SOURCE_PROVEN</span></code>/<code class="docutils literal notranslate"><span class="pre">BEHAVIOR_PROVEN_HERMETIC</span></code>/<code class="docutils literal notranslate"><span class="pre">SOURCE_REACHABLE</span></code>. No runtime claim is made or implied; the STABILIZATION_WINDOW governance (<code class="docutils literal notranslate"><span class="pre">CLAUDE.md</span></code>) independently marks all current VPS activity <code class="docutils literal notranslate"><span class="pre">certified=false</span></code>/paper-revision only.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="complete-mutation-call-site-inventory">
+<h2>5. Complete mutation call-site inventory<a class="headerlink" href="#complete-mutation-call-site-inventory" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">rg</span></code> sweep for exchange-mutating calls (<code class="docutils literal notranslate"><span class="pre">create_order</span></code>, <code class="docutils literal notranslate"><span class="pre">create_market_order</span></code>,
+<code class="docutils literal notranslate"><span class="pre">create_limit_order</span></code>, <code class="docutils literal notranslate"><span class="pre">set_leverage</span></code>) across all non-archive, non-test source:</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Call site</p></th>
+<th class="head"><p>File:line</p></th>
+<th class="head"><p>Path</p></th>
+<th class="head"><p>Reachable from</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">self._exchange.create_order(ccxt_symbol,</span> <span class="pre">&quot;market&quot;,</span> <span class="pre">side,</span> <span class="pre">qty)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">execution_engine.py:532</span></code> (inside <code class="docutils literal notranslate"><span class="pre">_with_retry</span></code>, called at 531)</p></td>
+<td><p>Spot live order (<code class="docutils literal notranslate"><span class="pre">_place_live_order</span></code>)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">ExecutionEngine.create_order()</span></code> → <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py:6575</span></code>, <code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/main_system.py:168</span></code>, <code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/main_v91.py:759</span></code>, <code class="docutils literal notranslate"><span class="pre">supervision/ops_watchdog.py:20</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">self._exchange_futures.create_order(ccxt_symbol,</span> <span class="pre">&quot;market&quot;,</span> <span class="pre">side,</span> <span class="pre">qty)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">execution_engine.py:408-410</span></code></p></td>
+<td><p>Futures-demo order (<code class="docutils literal notranslate"><span class="pre">create_futures_order</span></code>)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">ExecutionEngine.create_futures_order()</span></code> → <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py:6567</span></code> (<code class="docutils literal notranslate"><span class="pre">exec_engine.has_futures_demo()</span></code> branch)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">self._exchange_futures.set_leverage(leverage,</span> <span class="pre">ccxt_symbol)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">execution_engine.py:381</span></code></p></td>
+<td><p>Leverage mutation, wrapped in bare <code class="docutils literal notranslate"><span class="pre">except:</span> <span class="pre">pass</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">create_futures_order()</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">self._exchange.create_order(ccxt_symbol,</span> <span class="pre">&quot;market&quot;,</span> <span class="pre">side,</span> <span class="pre">qty,</span> <span class="pre">params={&quot;reduceOnly&quot;:</span> <span class="pre">True})</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">position_manager.py:616-618</span></code></p></td>
+<td><p>Position-close order — <strong>independent path, no <code class="docutils literal notranslate"><span class="pre">_with_retry</span></code>, no <code class="docutils literal notranslate"><span class="pre">OrderDeduplicator</span></code>, no <code class="docutils literal notranslate"><span class="pre">SessionGuard</span></code>, no <code class="docutils literal notranslate"><span class="pre">TradeLogger</span></code></strong></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PositionManager._close_position()</span></code> → <code class="docutils literal notranslate"><span class="pre">_send_close_order()</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">raw</span> <span class="pre">=</span> <span class="pre">self._exchange.create_order(...)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">_ARCHIVE_2026/binance_connector.py:357</span></code></p></td>
+<td><p>Archived — not import-reachable from any production module (<code class="docutils literal notranslate"><span class="pre">_ARCHIVE_2026/</span></code> is excluded from <code class="docutils literal notranslate"><span class="pre">rg</span> <span class="pre">-l</span></code> hits outside itself)</p></td>
+<td><p>none found</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">order</span> <span class="pre">=</span> <span class="pre">self._exchange.create_market_order(symbol,</span> <span class="pre">side,</span> <span class="pre">qty)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">_ARCHIVE_2026/mvp/execution_engine_mvp.py:236</span></code></p></td>
+<td><p>Archived — same as above</p></td>
+<td><p>none found</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><strong>Distinct live/mutation-capable engines: 2</strong> (<code class="docutils literal notranslate"><span class="pre">ExecutionEngine</span></code> spot+futures-demo path, <code class="docutils literal notranslate"><span class="pre">PositionManager</span></code> close-order path). They are audited as <strong>separate rows</strong> below — never merged into one general claim, per mission instructions. <code class="docutils literal notranslate"><span class="pre">_ARCHIVE_2026/*</span></code> is <code class="docutils literal notranslate"><span class="pre">SOURCE_REACHABLE</span></code> in the literal filesystem sense but not import-reachable from any production entrypoint located in this sweep — classified <code class="docutils literal notranslate"><span class="pre">NOT_SOURCE_REACHABLE</span></code> for the live call graph.</p>
+</section>
+<section id="causal-order-lifecycle-per-path-inventory">
+<h2>6. Causal order lifecycle — per-path inventory<a class="headerlink" href="#causal-order-lifecycle-per-path-inventory" title="Link to this heading">¶</a></h2>
+<section id="path-a-executionengine-create-order-place-live-order">
+<h3>Path A — <code class="docutils literal notranslate"><span class="pre">ExecutionEngine.create_order()</span></code> → <code class="docutils literal notranslate"><span class="pre">_place_live_order()</span></code><a class="headerlink" href="#path-a-executionengine-create-order-place-live-order" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Field</p></th>
+<th class="head"><p>Finding</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Entrypoint</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">ExecutionEngine.create_order(symbol,</span> <span class="pre">action,</span> <span class="pre">size)</span></code>, called from <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py:6575</span></code>, <code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/main_system.py:168</span></code>, <code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/main_v91.py:759</span></code>, <code class="docutils literal notranslate"><span class="pre">supervision/ops_watchdog.py:20</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Authorization source</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">LIVE_TRADING_CONFIRMED</span></code> (construction time, <code class="docutils literal notranslate"><span class="pre">from_env()</span></code>), <code class="docutils literal notranslate"><span class="pre">PAPER_TRADING_ENABLED</span></code> (call-time, re-read every call — <code class="docutils literal notranslate"><span class="pre">_place_live_order:455</span></code>)</p></td>
+</tr>
+<tr class="row-even"><td><p>Decision/packet identity</p></td>
+<td><p>None — no packet object, no clientOrderId; caller passes raw <code class="docutils literal notranslate"><span class="pre">(symbol,</span> <span class="pre">action,</span> <span class="pre">size)</span></code> positional args</p></td>
+</tr>
+<tr class="row-odd"><td><p>Size source</p></td>
+<td><p>Caller-supplied <code class="docutils literal notranslate"><span class="pre">size</span></code> (USD notional), scaled by <code class="docutils literal notranslate"><span class="pre">self._size_factor</span></code> (<code class="docutils literal notranslate"><span class="pre">:271</span></code>)</p></td>
+</tr>
+<tr class="row-even"><td><p>Risk validation</p></td>
+<td><p>(1) size sanity <code class="docutils literal notranslate"><span class="pre">&lt;=0</span> <span class="pre">or</span> <span class="pre">&gt;1e9</span></code> → <strong>substitutes</strong>, does not reject (<code class="docutils literal notranslate"><span class="pre">:274-283</span></code>); (2) <code class="docutils literal notranslate"><span class="pre">SessionGuard.check_order</span></code> → raises/rejects (<code class="docutils literal notranslate"><span class="pre">:287</span></code>); (3) <code class="docutils literal notranslate"><span class="pre">OrderDeduplicator.is_duplicate</span></code> → rejects (<code class="docutils literal notranslate"><span class="pre">:301</span></code>)</p></td>
+</tr>
+<tr class="row-odd"><td><p>Persistence point</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">TradeLogger.log()</span></code> — <strong>after</strong> exchange call (<code class="docutils literal notranslate"><span class="pre">:326</span></code>, vs. exchange call at <code class="docutils literal notranslate"><span class="pre">:313-314</span></code>)</p></td>
+</tr>
+<tr class="row-even"><td><p>First exchange mutation</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">self._exchange.fetch_ticker</span></code> (read) then <code class="docutils literal notranslate"><span class="pre">self._exchange.create_order</span></code> (<code class="docutils literal notranslate"><span class="pre">:532</span></code>), inside <code class="docutils literal notranslate"><span class="pre">_with_retry</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Exchange identifier</p></td>
+<td><p>Exchange-assigned <code class="docutils literal notranslate"><span class="pre">order.get(&quot;id&quot;)</span></code> only; no client-supplied id</p></td>
+</tr>
+<tr class="row-even"><td><p>Retry behavior</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">_with_retry</span></code>: 3 blind retries (0.5/1/2s) + 1 reconnect-then-retry, same args each time — <strong>no reconciliation lookup</strong></p></td>
+</tr>
+<tr class="row-odd"><td><p>Reconciliation behavior</p></td>
+<td><p>None on this path (<code class="docutils literal notranslate"><span class="pre">PendingOrderTracker</span></code> not wired in)</p></td>
+</tr>
+<tr class="row-even"><td><p>Fill handling</p></td>
+<td><p>None — <code class="docutils literal notranslate"><span class="pre">create_order</span></code>’s market order result is returned as-is; no fetch-order-status follow-up, no fill polling</p></td>
+</tr>
+<tr class="row-odd"><td><p>Position writer</p></td>
+<td><p>Outside this file — <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code>’s <code class="docutils literal notranslate"><span class="pre">_register_position_from_execution(fut,</span> <span class="pre">...)</span></code> (caller-side, not audited line-by-line — out of reading budget)</p></td>
+</tr>
+<tr class="row-even"><td><p>Crash-recovery behavior</p></td>
+<td><p>None — no durable pre-network record exists to recover from (§ H4/H9)</p></td>
+</tr>
+<tr class="row-odd"><td><p>Evidence class</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_PROVEN</span></code> (static reading) + <code class="docutils literal notranslate"><span class="pre">BEHAVIOR_PROVEN_HERMETIC</span></code> (§17 A/B/D/G/H/I)</p></td>
+</tr>
+<tr class="row-even"><td><p>Unresolved risk</p></td>
+<td><p>SELL-side has no balance check at all (H7 gap); <code class="docutils literal notranslate"><span class="pre">min_notional*1.05</span></code> amplification unauthorized by any explicit re-approval step</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="path-b-positionmanager-send-close-order">
+<h3>Path B — <code class="docutils literal notranslate"><span class="pre">PositionManager._send_close_order()</span></code><a class="headerlink" href="#path-b-positionmanager-send-close-order" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Field</p></th>
+<th class="head"><p>Finding</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Entrypoint</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PositionManager._close_position()</span></code> → <code class="docutils literal notranslate"><span class="pre">_send_close_order()</span></code>, internal, not directly caller-invoked from <code class="docutils literal notranslate"><span class="pre">advisor_loop.py</span></code> in the reading performed</p></td>
+</tr>
+<tr class="row-odd"><td><p>Authorization source</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">self._paper</span></code> / <code class="docutils literal notranslate"><span class="pre">self._exchange</span> <span class="pre">is</span> <span class="pre">None</span></code> only (<code class="docutils literal notranslate"><span class="pre">:601</span></code>) — no re-check of <code class="docutils literal notranslate"><span class="pre">PAPER_TRADING_ENABLED</span></code>/<code class="docutils literal notranslate"><span class="pre">LIVE_TRADING_CONFIRMED</span></code> at this call site itself</p></td>
+</tr>
+<tr class="row-even"><td><p>Decision/packet identity</p></td>
+<td><p>None — derived from internal <code class="docutils literal notranslate"><span class="pre">Position</span></code> dataclass, no clientOrderId</p></td>
+</tr>
+<tr class="row-odd"><td><p>Size source</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">pos.qty</span></code> or <code class="docutils literal notranslate"><span class="pre">qty_override</span></code> (base-asset quantity, not USD)</p></td>
+</tr>
+<tr class="row-even"><td><p>Risk validation</p></td>
+<td><p>None visible at this call site — no <code class="docutils literal notranslate"><span class="pre">SessionGuard</span></code>, no dedup, no size sanity check</p></td>
+</tr>
+<tr class="row-odd"><td><p>Persistence point</p></td>
+<td><p>None — no journal write before or after the call in the read code (<code class="docutils literal notranslate"><span class="pre">:594-618</span></code>)</p></td>
+</tr>
+<tr class="row-even"><td><p>First exchange mutation</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">self._exchange.create_order(ccxt_symbol,</span> <span class="pre">&quot;market&quot;,</span> <span class="pre">side,</span> <span class="pre">qty,</span> <span class="pre">params={&quot;reduceOnly&quot;:</span> <span class="pre">True})</span></code> (<code class="docutils literal notranslate"><span class="pre">:616-618</span></code>)</p></td>
+</tr>
+<tr class="row-odd"><td><p>Exchange identifier</p></td>
+<td><p>Exchange-assigned <code class="docutils literal notranslate"><span class="pre">order.get(&quot;id&quot;)</span></code>, only logged, not persisted</p></td>
+</tr>
+<tr class="row-even"><td><p>Retry behavior</p></td>
+<td><p>None — single <code class="docutils literal notranslate"><span class="pre">try/except</span></code>, logs and swallows on failure, no retry</p></td>
+</tr>
+<tr class="row-odd"><td><p>Reconciliation behavior</p></td>
+<td><p>None</p></td>
+</tr>
+<tr class="row-even"><td><p>Fill handling</p></td>
+<td><p>None</p></td>
+</tr>
+<tr class="row-odd"><td><p>Position writer</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">pos.closed</span> <span class="pre">=</span> <span class="pre">True</span></code> set unconditionally by the <em>caller</em> <code class="docutils literal notranslate"><span class="pre">_close_position()</span></code> regardless of whether <code class="docutils literal notranslate"><span class="pre">_send_close_order</span></code> actually succeeded (<code class="docutils literal notranslate"><span class="pre">:576-579</span></code> sets <code class="docutils literal notranslate"><span class="pre">pos.closed=True</span></code> right after calling <code class="docutils literal notranslate"><span class="pre">_send_close_order</span></code>, which only logs-and-swallows exceptions — <strong>an exchange failure does not prevent the position from being marked closed locally</strong>)</p></td>
+</tr>
+<tr class="row-even"><td><p>Crash-recovery behavior</p></td>
+<td><p>None</p></td>
+</tr>
+<tr class="row-odd"><td><p>Evidence class</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_PROVEN</span></code> (static reading only — no hermetic test written for this path per §17 budget; flagged <code class="docutils literal notranslate"><span class="pre">INCONCLUSIVE</span></code> for hermetic proof, <code class="docutils literal notranslate"><span class="pre">SOURCE_PROVEN</span></code> for the structural claim)</p></td>
+</tr>
+<tr class="row-even"><td><p>Unresolved risk</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">pos.closed=True</span></code> on a failed close order is a phantom-flat-position risk: local state says closed, exchange may not agree — reduceOnly limits the downside (can’t create a new inverse position) but does not prove the position actually closed</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</section>
+<section id="authority-matrix">
+<h2>7. Authority matrix<a class="headerlink" href="#authority-matrix" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p><code class="docutils literal notranslate"><span class="pre">PAPER_TRADING_ENABLED</span></code></p></th>
+<th class="head"><p><code class="docutils literal notranslate"><span class="pre">LIVE_TRADING_CONFIRMED</span></code></p></th>
+<th class="head"><p><code class="docutils literal notranslate"><span class="pre">self._live</span></code> (construction)</p></th>
+<th class="head"><p>Exchange call reached in <code class="docutils literal notranslate"><span class="pre">_place_live_order</span></code>?</p></th>
+<th class="head"><p>Evidence</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">true</span></code> (default)</p></td>
+<td><p>any</p></td>
+<td><p>any</p></td>
+<td><p><strong>No</strong> — blocked at <code class="docutils literal notranslate"><span class="pre">:455-471</span></code> before any network call, returns <code class="docutils literal notranslate"><span class="pre">mode=live_failed</span></code> synthetically</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">BEHAVIOR_PROVEN_HERMETIC</span></code> (Scenario M)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">false</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">false</span></code> (default)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">False</span></code> (constructor never sets <code class="docutils literal notranslate"><span class="pre">live=True</span></code> — <code class="docutils literal notranslate"><span class="pre">from_env()</span></code> requires <code class="docutils literal notranslate"><span class="pre">live_trading_confirmed</span></code>)</p></td>
+<td><p><strong>No</strong> — <code class="docutils literal notranslate"><span class="pre">create_order()</span></code>’s branch at <code class="docutils literal notranslate"><span class="pre">:313</span></code> requires <code class="docutils literal notranslate"><span class="pre">self._live</span> <span class="pre">and</span> <span class="pre">self._exchange</span> <span class="pre">is</span> <span class="pre">not</span> <span class="pre">None</span></code>; <code class="docutils literal notranslate"><span class="pre">self._live=False</span></code> routes to paper branch unconditionally</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">BEHAVIOR_PROVEN_HERMETIC</span></code> (Scenario M)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">false</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">true</span></code>, but no API keys</p></td>
+<td><p>n/a</p></td>
+<td><p><strong>No</strong> — <code class="docutils literal notranslate"><span class="pre">ExchangeFactory.info()[&quot;has_api_key&quot;]</span></code> false ⇒ <code class="docutils literal notranslate"><span class="pre">live=False</span></code> in <code class="docutils literal notranslate"><span class="pre">from_env()</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_PROVEN</span></code> (not independently re-hermeticized — relies on <code class="docutils literal notranslate"><span class="pre">exchange_factory.py</span></code>, read partially)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">false</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">true</span></code>, keys present</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">True</span></code></p></td>
+<td><p><strong>Yes, network call attempted</strong> — this is the only combination that reaches <code class="docutils literal notranslate"><span class="pre">_place_live_order</span></code>’s network section; every finding in H1-H6/H9 applies here</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_PROVEN</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>No <code class="docutils literal notranslate"><span class="pre">HALT</span></code>/<code class="docutils literal notranslate"><span class="pre">SAFE_MODE</span></code>/kill-switch flag is read anywhere inside
+<code class="docutils literal notranslate"><span class="pre">execution_engine.py</span></code> or <code class="docutils literal notranslate"><span class="pre">position_manager.py</span></code> themselves (<code class="docutils literal notranslate"><span class="pre">rg</span> <span class="pre">-n</span> <span class="pre">&quot;SAFE_MODE|HALT&quot;</span> <span class="pre">quant_hedge_ai/agents/execution/</span></code>: 0 matches). Those
+authorities (<code class="docutils literal notranslate"><span class="pre">supervision/kill_switch.py</span></code>, <code class="docutils literal notranslate"><span class="pre">governance/trading_authority.py</span></code>,
+<code class="docutils literal notranslate"><span class="pre">system/state_machine.py</span></code>, etc.) exist and were located but their
+integration into the two call paths above was <strong>not traced end-to-end</strong>
+inside the reading budget of this round — this is the basis for H10’s
+<code class="docutils literal notranslate"><span class="pre">INCONCLUSIVE</span></code> verdict, not a claim that they don’t gate order flow via the
+caller (<code class="docutils literal notranslate"><span class="pre">advisor_loop.py</span></code>) instead.</p>
+</section>
+<section id="persistence-before-network-findings">
+<h2>8. Persistence-before-network findings<a class="headerlink" href="#persistence-before-network-findings" title="Link to this heading">¶</a></h2>
+<p><strong>Blocker.</strong> Neither Path A nor Path B writes a durable, queryable record of
+the order <em>intention</em> before attempting the exchange mutation.
+<code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code>’s <code class="docutils literal notranslate"><span class="pre">logs/execution_audit/audit.jsonl</span></code> append (around
+line 6544-6562) is the closest thing to an intent record and <em>does</em> precede
+the <code class="docutils literal notranslate"><span class="pre">exec_engine.create_order(...)</span></code> call at line 6575, but: (a) it is wrapped
+in <code class="docutils literal notranslate"><span class="pre">except</span> <span class="pre">Exception:</span> <span class="pre">pass</span></code>, so a write failure is silently swallowed and
+does not block the subsequent order; (b) it exists only on the
+<code class="docutils literal notranslate"><span class="pre">advisor_loop.py</span></code>→<code class="docutils literal notranslate"><span class="pre">ExecutionEngine</span></code> call path, not on the
+<code class="docutils literal notranslate"><span class="pre">PositionManager._send_close_order</span></code> path or the <code class="docutils literal notranslate"><span class="pre">ops_watchdog.py</span></code>/
+<code class="docutils literal notranslate"><span class="pre">main_system.py</span></code>/<code class="docutils literal notranslate"><span class="pre">main_v91.py</span></code> call sites; © it is not consulted by
+<code class="docutils literal notranslate"><span class="pre">_with_retry</span></code>’s retry logic or by any reconciliation code — it is
+write-only, never read back. See §17 Scenario E.</p>
+</section>
+<section id="idempotency-findings">
+<h2>9. Idempotency findings<a class="headerlink" href="#idempotency-findings" title="Link to this heading">¶</a></h2>
+<p><strong>Blocker.</strong> <code class="docutils literal notranslate"><span class="pre">OrderDeduplicator</span></code> only prevents a <em>second, separate</em>
+<code class="docutils literal notranslate"><span class="pre">create_order()</span></code> invocation with matching <code class="docutils literal notranslate"><span class="pre">(symbol,</span> <span class="pre">action,</span> <span class="pre">round(size,1))</span></code>
+within its window, and only registers <strong>after</strong> the first call already
+returned (<code class="docutils literal notranslate"><span class="pre">execution_engine.py:324</span></code>, after the network branch at <code class="docutils literal notranslate"><span class="pre">:313</span></code>).
+It does nothing to prevent <code class="docutils literal notranslate"><span class="pre">_with_retry</span></code>’s own internal blind retries
+(§17 Scenario I) from producing two exchange orders when the first network
+call’s <em>response</em> is lost but the order itself landed (classic ambiguous-ack
+scenario, H5/H6). No clientOrderId means the exchange itself cannot dedupe
+either.</p>
+</section>
+<section id="network-ambiguity-findings">
+<h2>10. Network ambiguity findings<a class="headerlink" href="#network-ambiguity-findings" title="Link to this heading">¶</a></h2>
+<p><strong>Blocker.</strong> <code class="docutils literal notranslate"><span class="pre">_with_retry</span></code> treats every exception identically —
+“timeout before any exchange-side effect” and “timeout after the exchange
+already accepted the order” are indistinguishable to this code, and both are
+handled the same way: retry the same call. There is no fetch-order-by-id
+step, no client-order-id lookup, no “was this order actually placed?”
+check anywhere in the retry path. See §17 Scenario G/H.</p>
+</section>
+<section id="crash-window-findings">
+<h2>11. Crash-window findings<a class="headerlink" href="#crash-window-findings" title="Link to this heading">¶</a></h2>
+<p>Because no durable intent record exists before the network call (§8) and no
+deterministic identity is generated (H3), a process crash in the interval
+between “network call sent” and “process resumes” leaves the system with
+literally nothing to reconcile against on restart, on this call graph. This
+is a structural absence, not a hermetically-exercised “crash → wrong state”
+demonstration (no process-crash harness was built — restart was modeled as
+“construct a fresh <code class="docutils literal notranslate"><span class="pre">ExecutionEngine</span></code>/<code class="docutils literal notranslate"><span class="pre">TradeLogger</span></code> against the same DB
+path,” which is the honest limit of what a hermetic unit test can model for
+an actual OS-level crash). Classified <code class="docutils literal notranslate"><span class="pre">SOURCE_PROVEN</span></code> (absence of the
+mechanism), not <code class="docutils literal notranslate"><span class="pre">BEHAVIOR_PROVEN_HERMETIC</span></code> for the crash itself — see
+Scenario N.</p>
+</section>
+<section id="buy-sell-balance-findings">
+<h2>12. BUY/SELL balance findings<a class="headerlink" href="#buy-sell-balance-findings" title="Link to this heading">¶</a></h2>
+<p>BUY: <code class="docutils literal notranslate"><span class="pre">execution_engine.py:503-514</span></code> explicitly reads quote-asset free balance
+via <code class="docutils literal notranslate"><span class="pre">self.detect_quote_asset(ccxt_symbol)</span></code> and reduces <code class="docutils literal notranslate"><span class="pre">size</span></code> (not rejects)
+if insufficient. SELL: no balance check of any kind exists in
+<code class="docutils literal notranslate"><span class="pre">_place_live_order</span></code> — <code class="docutils literal notranslate"><span class="pre">qty</span> <span class="pre">=</span> <span class="pre">size/price</span></code> is computed and submitted directly
+regardless of actual base-asset holdings, relying entirely on the exchange
+to reject an oversized sell. This is asymmetric handling, not a
+quote/base mix-up (H7’s literal claim, “BUY checks quote, SELL checks
+base,” is therefore not confirmed for the SELL half — there is no SELL
+check at all, which is a stronger gap, flagged as a blocker.)</p>
+</section>
+<section id="precision-and-minimum-notional-findings">
+<h2>13. Precision and minimum-notional findings<a class="headerlink" href="#precision-and-minimum-notional-findings" title="Link to this heading">¶</a></h2>
+<p>Confirmed silent amplification at <code class="docutils literal notranslate"><span class="pre">execution_engine.py:500</span></code>
+(<code class="docutils literal notranslate"><span class="pre">size</span> <span class="pre">=</span> <span class="pre">min_notional</span> <span class="pre">*</span> <span class="pre">1.05</span></code>) — see H2. Precision rounding
+(<code class="docutils literal notranslate"><span class="pre">:517-526</span></code>) rounds toward the exchange’s tick size but only ever <em>after</em>
+the amplification step, so it cannot itself reduce exposure back below the
+originally authorized amount; worst case compounds with the amplification.</p>
+</section>
+<section id="partial-fill-findings">
+<h2>14. Partial-fill findings<a class="headerlink" href="#partial-fill-findings" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">_place_live_order</span></code> and <code class="docutils literal notranslate"><span class="pre">_send_close_order</span></code> both submit a single market
+order and return whatever the exchange call returns synchronously; neither
+polls <code class="docutils literal notranslate"><span class="pre">fetch_order</span></code> for eventual full fill nor distinguishes a
+CCXT <code class="docutils literal notranslate"><span class="pre">partial</span></code>/<code class="docutils literal notranslate"><span class="pre">remaining</span></code>-carrying response from a full fill in the
+returned dict — the <code class="docutils literal notranslate"><span class="pre">mode</span></code> field stays <code class="docutils literal notranslate"><span class="pre">&quot;live&quot;</span></code> either way. <code class="docutils literal notranslate"> <span class="pre">PendingOrderTracker</span></code> implements exactly this distinction
+(<code class="docutils literal notranslate"><span class="pre">PARTIAL_FILL</span></code> state, <code class="docutils literal notranslate"><span class="pre">fill_ratio</span></code>, <code class="docutils literal notranslate"><span class="pre">unfilled_qty</span></code>) but, as established in
+§6/H5, is not wired into either path. See §17 Scenario J.</p>
+</section>
+<section id="separation-from-scientific-capital">
+<h2>15. Separation from scientific capital<a class="headerlink" href="#separation-from-scientific-capital" title="Link to this heading">¶</a></h2>
+<p>Re-verified, not regressed: <code class="docutils literal notranslate"><span class="pre">ExecutionEngine.fetch_available_capital()</span></code>
+(<code class="docutils literal notranslate"><span class="pre">:229-251</span></code>) calls only <code class="docutils literal notranslate"><span class="pre">get_scientific_capital()</span></code>, which is a pure function
+of <code class="docutils literal notranslate"><span class="pre">WALLET_PAPER_CAPITAL</span></code> + ledger PnL with zero exchange calls
+(<code class="docutils literal notranslate"><span class="pre">infra/wallet_sync.py:75-</span></code>). <code class="docutils literal notranslate"><span class="pre">observe_exchange_balance()</span></code> is a fully
+separate method on <code class="docutils literal notranslate"><span class="pre">WalletSync</span></code>, never referenced by
+<code class="docutils literal notranslate"><span class="pre">fetch_available_capital</span></code> or by any sizing code found in
+<code class="docutils literal notranslate"><span class="pre">execution_engine.py</span></code>/<code class="docutils literal notranslate"><span class="pre">position_manager.py</span></code>. §17 Scenario P re-runs the
+PRE-T1-D boundary suite at this HEAD as a non-regression check.</p>
+</section>
+<section id="source-evidence-vs-runtime-unknown-distinction">
+<h2>16. Source evidence vs runtime-unknown distinction<a class="headerlink" href="#source-evidence-vs-runtime-unknown-distinction" title="Link to this heading">¶</a></h2>
+<p>Every finding above is <code class="docutils literal notranslate"><span class="pre">SOURCE_PROVEN</span></code> (static reading of this exact HEAD,
+cited by file:line) and/or <code class="docutils literal notranslate"><span class="pre">BEHAVIOR_PROVEN_HERMETIC</span></code> (fake-exchange test in
+§17). No claim is made about VPS deployment, runtime invocation, or real
+exchange effect — those remain <code class="docutils literal notranslate"><span class="pre">RUNTIME_UNKNOWN</span></code> per H12 and per the
+project’s STABILIZATION_WINDOW governance, independent of this audit.</p>
+</section>
+<section id="test-matrix-and-exact-results">
+<h2>17. Test matrix and exact results<a class="headerlink" href="#test-matrix-and-exact-results" title="Link to this heading">¶</a></h2>
+<p>See <code class="docutils literal notranslate"><span class="pre">tests/test_pre_t1_e_order_cycle_safety.py</span></code>. All scenarios use a fake
+CCXT-shaped exchange object, <code class="docutils literal notranslate"><span class="pre">tmp_path</span></code> SQLite/JSONL files, and explicit call
+counters — no real network, no credentials, no sleep (dedup/backoff
+<code class="docutils literal notranslate"><span class="pre">_sleep</span></code> is injected as a no-op via the constructor’s <code class="docutils literal notranslate"><span class="pre">_sleep</span></code> param; the
+fake exchange’s <code class="docutils literal notranslate"><span class="pre">time</span></code> dependencies are monkeypatched where needed).</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Scenario</p></th>
+<th class="head"><p>What it proves</p></th>
+<th class="head"><p>Result</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>A — invalid sizes</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0</span></code>, <code class="docutils literal notranslate"><span class="pre">-50</span></code>, <code class="docutils literal notranslate"><span class="pre">NaN</span></code>, <code class="docutils literal notranslate"><span class="pre">+inf</span></code>, size passed through the sanity gate; confirms <strong>substitution not rejection</strong>, confirms NaN bypasses the check entirely</p></td>
+<td><p>Matches H1 REFUTED</p></td>
+</tr>
+<tr class="row-odd"><td><p>B — min-notional</p></td>
+<td><p>Below-minimum size submitted; exchange receives <code class="docutils literal notranslate"><span class="pre">qty</span></code> corresponding to <code class="docutils literal notranslate"><span class="pre">min_notional*1.05</span></code>, not the original authorized <code class="docutils literal notranslate"><span class="pre">size</span></code></p></td>
+<td><p>Matches H2 REFUTED</p></td>
+</tr>
+<tr class="row-even"><td><p>D — order identity</p></td>
+<td><p>Same <code class="docutils literal notranslate"><span class="pre">(symbol,</span> <span class="pre">action,</span> <span class="pre">size)</span></code> invoked twice; no <code class="docutils literal notranslate"><span class="pre">clientOrderId</span></code> ever appears in the fake exchange’s captured call kwargs</p></td>
+<td><p>Matches H3 REFUTED</p></td>
+</tr>
+<tr class="row-odd"><td><p>E — persistence ordering</p></td>
+<td><p>Instrumented <code class="docutils literal notranslate"><span class="pre">TradeLogger.log</span></code> and fake-exchange call both timestamped; log call observed strictly after the exchange call for Path A</p></td>
+<td><p>Matches H4 REFUTED</p></td>
+</tr>
+<tr class="row-even"><td><p>G — timeout before acceptance</p></td>
+<td><p>Fake exchange raises on every call within a window; <code class="docutils literal notranslate"><span class="pre">_with_retry</span></code> reissues the identical call up to 3 times, all pre-acceptance — proves blind-retry structure, not reconciliation</p></td>
+<td><p>Matches H5 REFUTED</p></td>
+</tr>
+<tr class="row-odd"><td><p>H — accept then lost response</p></td>
+<td><p>Fake exchange records an order (counter increments) then raises; <code class="docutils literal notranslate"><span class="pre">create_order</span></code>’s only recourse is <code class="docutils literal notranslate"><span class="pre">_with_retry</span></code>’s blind retry, which — because <code class="docutils literal notranslate"><span class="pre">OrderDeduplicator.register()</span></code> never ran (exception happened before line 324) — is <strong>not blocked by dedup either</strong></p></td>
+<td><p>Matches H5/H6 REFUTED</p></td>
+</tr>
+<tr class="row-even"><td><p>I — duplicate invocation</p></td>
+<td><p>Two full <code class="docutils literal notranslate"><span class="pre">create_order()</span></code> calls with identical args inside the dedup window; <strong>second call is rejected by <code class="docutils literal notranslate"><span class="pre">OrderDeduplicator</span></code></strong> (this one path is proven safe for the simple double-call case, as opposed to the ambiguous-retry case in H)</p></td>
+<td><p>Confirms dedup DOES work as a same-process double-invocation guard, refines but does not reverse H6</p></td>
+</tr>
+<tr class="row-odd"><td><p>J — partial fill</p></td>
+<td><p>Fake exchange returns a <code class="docutils literal notranslate"><span class="pre">filled</span> <span class="pre">&lt;</span> <span class="pre">amount</span></code> market-order response; <code class="docutils literal notranslate"><span class="pre">_place_live_order</span></code>’s result dict is inspected — <code class="docutils literal notranslate"><span class="pre">mode</span></code> stays <code class="docutils literal notranslate"><span class="pre">&quot;live&quot;</span></code>, no distinct partial-fill signal is exposed by this path</p></td>
+<td><p>Matches §14</p></td>
+</tr>
+<tr class="row-even"><td><p>M — authority matrix</p></td>
+<td><p>All four rows of §7 reproduced with a fake exchange; exchange <code class="docutils literal notranslate"><span class="pre">create_order</span></code> call counter is asserted <code class="docutils literal notranslate"><span class="pre">0</span></code> for every forbidden combination</p></td>
+<td><p>Confirms H10’s fail-closed finding for Path A</p></td>
+</tr>
+<tr class="row-odd"><td><p>P — PRE-T1-D non-regression</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">tests/test_pre_t1_d_real_capital_boundary.py</span></code> re-run at this HEAD</p></td>
+<td><p>See exact count below</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Scenarios <strong>C</strong> (precision boundary — folded into B, same code path),
+<strong>F</strong> (successful ack — trivial, covered by existing
+<code class="docutils literal notranslate"><span class="pre">test_execution_engine.py</span></code> paper/live-happy-path tests, not re-duplicated),
+<strong>K</strong> (rejection/rate-limit — the fake-exchange exception path is identical
+to G’s mechanism; a distinct scenario would not add new evidence beyond G),
+<strong>L</strong> (BUY/SELL asymmetry — covered narratively in §12, hermeticized as part
+of scenario B’s balance-check assertion), <strong>N</strong> (crash windows — see §11,
+not independently hermeticized beyond what §8/§9 already establish; a
+literal process-crash harness is outside what a <code class="docutils literal notranslate"><span class="pre">pytest</span></code> process can honize
+without spawning and killing a subprocess, judged out of scope for this
+round), and <strong>O</strong> (existing paper behavior unchanged — proven by re-running
+the full existing <code class="docutils literal notranslate"><span class="pre">test_execution_engine*.py</span></code> suites unmodified, see below)
+are addressed by direct reference to existing evidence rather than
+duplicated as new named test functions, to avoid inflating the test count
+with redundant assertions on the same code path.</p>
+<section id="exact-verification-run-this-head-this-branch">
+<h3>Exact verification run (this HEAD, this branch)<a class="headerlink" href="#exact-verification-run-this-head-this-branch" title="Link to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">tests</span><span class="o">/</span><span class="n">test_pre_t1_e_order_cycle_safety</span><span class="o">.</span><span class="n">py</span>                        <span class="mi">23</span> <span class="n">passed</span><span class="p">,</span> <span class="mi">0</span> <span class="n">failed</span>
+<span class="n">quant_hedge_ai</span><span class="o">/</span><span class="n">agents</span><span class="o">/</span><span class="n">execution</span><span class="o">/</span><span class="n">test_execution_engine</span><span class="o">.</span><span class="n">py</span> \
+  <span class="o">+</span> <span class="n">test_execution_engine_futures</span><span class="o">.</span><span class="n">py</span> <span class="o">+</span> <span class="n">test_order_deduplicator</span><span class="o">.</span><span class="n">py</span> \
+  <span class="o">+</span> <span class="n">test_trade_logger</span><span class="o">.</span><span class="n">py</span> <span class="o">+</span> <span class="n">test_paper_trading_engine</span><span class="o">.</span><span class="n">py</span>           <span class="mi">120</span> <span class="n">passed</span><span class="p">,</span> <span class="mi">1</span> <span class="n">pre</span><span class="o">-</span><span class="n">existing</span> <span class="n">failure</span>
+<span class="n">tests</span><span class="o">/</span><span class="n">test_pre_t1_d_real_capital_boundary</span><span class="o">.</span><span class="n">py</span>                      <span class="mi">139</span> <span class="n">passed</span><span class="p">,</span> <span class="mi">0</span> <span class="n">failed</span>
+<span class="n">tests</span><span class="o">/</span><span class="n">test_safety_instruction_truthfulness</span><span class="o">.</span><span class="n">py</span>                      <span class="mi">51</span> <span class="n">passed</span><span class="p">,</span> <span class="mi">0</span> <span class="n">failed</span>
+<span class="n">python</span> <span class="n">scripts</span><span class="o">/</span><span class="n">ci</span><span class="o">/</span><span class="n">ruff_baseline_gate</span><span class="o">.</span><span class="n">py</span> <span class="n">check</span>                     <span class="mi">961</span> <span class="n">baseline</span> <span class="o">==</span> <span class="mi">961</span> <span class="n">current</span><span class="p">,</span> <span class="mi">0</span> <span class="n">new</span>
+<span class="n">git</span> <span class="n">diff</span> <span class="o">--</span><span class="n">check</span>                                                  <span class="n">clean</span> <span class="p">(</span><span class="n">exit</span> <span class="mi">0</span><span class="p">)</span>
+<span class="n">git</span> <span class="n">status</span> <span class="o">/</span> <span class="n">diff</span> <span class="o">--</span><span class="n">name</span><span class="o">-</span><span class="n">only</span> <span class="n">main</span>                                <span class="n">only</span> <span class="n">the</span> <span class="mi">2</span> <span class="n">authorized</span> <span class="n">audit</span> <span class="n">files</span>
+</pre></div>
+</div>
+<p>The 1 pre-existing failure —
+<code class="docutils literal notranslate"><span class="pre">TestFromEnv::test_from_env_live_when_keys_present_and_confirmed</span></code> — is the
+same <code class="docutils literal notranslate"><span class="pre">ccxt</span></code>-not-installed environment gap PR #135 documented at R1
+(<code class="docutils literal notranslate"><span class="pre">ModuleNotFoundError:</span> <span class="pre">No</span> <span class="pre">module</span> <span class="pre">named</span> <span class="pre">'ccxt'</span></code>, confirmed via
+<code class="docutils literal notranslate"><span class="pre">python3</span> <span class="pre">-c</span> <span class="pre">&quot;import</span> <span class="pre">ccxt&quot;</span></code> in this exact environment). It is unrelated to
+this change and was not investigated further (never call something
+“pre-existing” by name alone — this was independently reproduced by import
+error, not assumed).</p>
+</section>
+</section>
+<section id="blocker-list">
+<h2>18. Blocker list<a class="headerlink" href="#blocker-list" title="Link to this heading">¶</a></h2>
+<ol class="arabic simple">
+<li><p><strong>B1 (H1)</strong> — invalid/NaN/oversized <code class="docutils literal notranslate"><span class="pre">size</span></code> is silently substituted
+(<code class="docutils literal notranslate"><span class="pre">size</span> <span class="pre">=</span> <span class="pre">1.0</span></code>), not rejected, and the substituted order still proceeds to
+the exchange call. <code class="docutils literal notranslate"><span class="pre">execution_engine.py:274-283</span></code>.</p></li>
+<li><p><strong>B2 (H2)</strong> — below-min-notional orders are silently enlarged to
+<code class="docutils literal notranslate"><span class="pre">min_notional*1.05</span></code>, exceeding the originally authorized amount with no
+re-authorization step. <code class="docutils literal notranslate"><span class="pre">execution_engine.py:493-500</span></code>.</p></li>
+<li><p><strong>B3 (H3)</strong> — no deterministic client order id is ever generated or sent;
+order identity is entirely exchange-assigned and post-hoc.</p></li>
+<li><p><strong>B4 (H4)</strong> — the durable audit log write happens after, not before, the
+exchange mutation call on Path A; Path B has no durable write at all.</p></li>
+<li><p><strong>B5 (H5/H6)</strong> — <code class="docutils literal notranslate"><span class="pre">_with_retry</span></code> blindly resubmits identical order
+parameters after any exception, including after the exchange may have
+already accepted the order (lost-ack scenario), with no reconciliation
+step and no protection from <code class="docutils literal notranslate"><span class="pre">OrderDeduplicator</span></code> in that specific window.</p></li>
+<li><p><strong>B6 (H7/§12)</strong> — no balance check exists on the SELL side of
+<code class="docutils literal notranslate"><span class="pre">_place_live_order</span></code> at all.</p></li>
+<li><p><strong>B7 (§6 Path B)</strong> — <code class="docutils literal notranslate"><span class="pre">PositionManager._close_position()</span></code> marks
+<code class="docutils literal notranslate"><span class="pre">pos.closed</span> <span class="pre">=</span> <span class="pre">True</span></code> unconditionally after calling <code class="docutils literal notranslate"><span class="pre">_send_close_order</span></code>,
+even when the underlying exchange call raised and was swallowed.</p></li>
+<li><p><strong>B8 (H9/§11)</strong> — no crash-window recovery mechanism exists on either
+path; nothing durable is written before the network call to recover
+from.</p></li>
+<li><p><strong>B9 (H5/H8/§14)</strong> — <code class="docutils literal notranslate"><span class="pre">PendingOrderTracker</span></code>, the one module in this
+codebase that implements the state machine and reconciliation logic the
+mission’s hypotheses call for, is not wired into either mutation path —
+it is dead safety infrastructure with respect to real order flow.</p></li>
+<li><p><strong>B10 (H10, unresolved, not proven)</strong> — <code class="docutils literal notranslate"><span class="pre">PositionManager._send_close_order</span></code>
+does not itself re-check <code class="docutils literal notranslate"><span class="pre">PAPER_TRADING_ENABLED</span></code>/<code class="docutils literal notranslate"><span class="pre">LIVE_TRADING_CONFIRMED</span></code>;
+its safety is inherited from caller-side construction that this round did
+not fully trace. Flagged as an open risk, not a proven bypass.</p></li>
+</ol>
+</section>
+<section id="remediation-prerequisites">
+<h2>19. Remediation prerequisites<a class="headerlink" href="#remediation-prerequisites" title="Link to this heading">¶</a></h2>
+<p>Not authorized or attempted in this round (audit-first). For a future
+remediation mission (would need its own ADR-driven scope, per this
+repository’s Scientific Debt Rule and ADR-0007): reject (not substitute)
+invalid sizes including NaN/inf with <code class="docutils literal notranslate"><span class="pre">math.isfinite</span></code>; treat min-notional
+violations as a reject-or-explicit-reauthorize decision, never a silent
+enlarge; generate and pass a deterministic <code class="docutils literal notranslate"><span class="pre">clientOrderId</span></code> derived from a
+durable decision-packet id; persist the full order intention (symbol,
+action, size, decision id) to durable storage <em>before</em> any network call on
+both Path A and Path B; replace <code class="docutils literal notranslate"><span class="pre">_with_retry</span></code>’s blind retry with a
+reconcile-by-id-then-retry-only-if-truly-absent policy, using
+<code class="docutils literal notranslate"><span class="pre">PendingOrderTracker</span></code> (wiring the existing module in rather than building a
+new one, consistent with the Scientific Debt Rule’s “eliminate more
+variables than you add”); add a SELL-side base-asset balance check
+symmetric to the BUY-side one; make <code class="docutils literal notranslate"><span class="pre">_send_close_order</span></code>’s caller
+conditional <code class="docutils literal notranslate"><span class="pre">pos.closed</span></code> on confirmed success, not on “the call was
+attempted.”</p>
+</section>
+<section id="final-verdict">
+<h2>20. Final verdict<a class="headerlink" href="#final-verdict" title="Link to this heading">¶</a></h2>
+<p><strong><code class="docutils literal notranslate"><span class="pre">REMEDIATION_REQUIRED</span></code></strong> — mandatory per the verdict rule: this audit found
+source-reachable paths that (a) can create an invalid/oversized order from
+input the system is supposed to reject (B1, B2), (b) can resubmit blindly
+after network ambiguity, creating a duplicate (B5), and © lose causal
+identity end-to-end (B3, B4, B8). None of this is a hermetic-proof-only
+finding contingent on missing infrastructure — it is proven directly from
+this exact HEAD’s source and confirmed behaviorally against a fake exchange
+in §17. No production code was modified to address any of it in this round,
+per the audit-first scope.</p>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Crypto AI Terminal
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">O-02W-PRE-T1-E — Order-Cycle Safety Audit (Causal, Audit-First)</a><ul>
+<li><a class="reference internal" href="#scope-and-prohibitions">1. Scope and prohibitions</a></li>
+<li><a class="reference internal" href="#exact-starting-sha">2. Exact starting SHA</a></li>
+<li><a class="reference internal" href="#scientific-question">3. Scientific question</a></li>
+<li><a class="reference internal" href="#hypotheses-h1h12-verdicts">4. Hypotheses H1–H12 — verdicts</a></li>
+<li><a class="reference internal" href="#complete-mutation-call-site-inventory">5. Complete mutation call-site inventory</a></li>
+<li><a class="reference internal" href="#causal-order-lifecycle-per-path-inventory">6. Causal order lifecycle — per-path inventory</a><ul>
+<li><a class="reference internal" href="#path-a-executionengine-create-order-place-live-order">Path A — <code class="docutils literal notranslate"><span class="pre">ExecutionEngine.create_order()</span></code> → <code class="docutils literal notranslate"><span class="pre">_place_live_order()</span></code></a></li>
+<li><a class="reference internal" href="#path-b-positionmanager-send-close-order">Path B — <code class="docutils literal notranslate"><span class="pre">PositionManager._send_close_order()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#authority-matrix">7. Authority matrix</a></li>
+<li><a class="reference internal" href="#persistence-before-network-findings">8. Persistence-before-network findings</a></li>
+<li><a class="reference internal" href="#idempotency-findings">9. Idempotency findings</a></li>
+<li><a class="reference internal" href="#network-ambiguity-findings">10. Network ambiguity findings</a></li>
+<li><a class="reference internal" href="#crash-window-findings">11. Crash-window findings</a></li>
+<li><a class="reference internal" href="#buy-sell-balance-findings">12. BUY/SELL balance findings</a></li>
+<li><a class="reference internal" href="#precision-and-minimum-notional-findings">13. Precision and minimum-notional findings</a></li>
+<li><a class="reference internal" href="#partial-fill-findings">14. Partial-fill findings</a></li>
+<li><a class="reference internal" href="#separation-from-scientific-capital">15. Separation from scientific capital</a></li>
+<li><a class="reference internal" href="#source-evidence-vs-runtime-unknown-distinction">16. Source evidence vs runtime-unknown distinction</a></li>
+<li><a class="reference internal" href="#test-matrix-and-exact-results">17. Test matrix and exact results</a><ul>
+<li><a class="reference internal" href="#exact-verification-run-this-head-this-branch">Exact verification run (this HEAD, this branch)</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#blocker-list">18. Blocker list</a></li>
+<li><a class="reference internal" href="#remediation-prerequisites">19. Remediation prerequisites</a></li>
+<li><a class="reference internal" href="#final-verdict">20. Final verdict</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../_static/documentation_options.js?v=ef6a59ae"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/scripts/furo.js?v=5fa4622c"></script>
+    </body>
+</html>
