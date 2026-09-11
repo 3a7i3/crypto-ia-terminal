@@ -390,10 +390,26 @@ def test_no_current_passage_presents_old_send_resume_messages_as_present():
 
 
 def test_no_current_passage_presents_telegramnotifier_send_as_present_in_sae_or_pm():
+    # Scoped to the exact table row discussing SelfAwarenessEngine/
+    # PositionManager TelegramNotifier status (the
+    # `supervision/notifications/telegram_notifier.py` row), not a
+    # document-wide `A or B or C` alternative that could pass for the
+    # wrong reason.
     text = CONTRACT_PATH.read_text(encoding="utf-8")
-    assert "neither file imports or references" in text or (
-        "returns no\n" in text and "match in either file" in text
-    ) or "returns no match in either file" in text
+    row = _extract_table_row(
+        text, "| `supervision/notifications/telegram_notifier.py` |"
+    )
+    assert (
+        "neither file imports or references `TelegramNotifier` at all any more"
+        in row
+    )
+    assert (
+        'rg -n "TelegramNotifier" '
+        "quant_hedge_ai/agents/intelligence/self_awareness_engine.py "
+        "quant_hedge_ai/agents/execution/position_manager.py` returns no "
+        "match in either file"
+        in row
+    )
 
 
 def test_source_confirms_zero_telegramnotifier_send_in_sae_and_pm():
@@ -536,3 +552,50 @@ def test_source_confirms_resume_negation_lines_contain_resume_string():
     lines = (REPO_ROOT / "core" / "advisor_loop.py").read_text(encoding="utf-8").splitlines()
     for line_no in (3909, 3921, 5614):
         assert "/RESUME" in lines[line_no - 1]
+
+
+# ── R1.3, Correction A: §6 TelegramKillSwitch citation, section-scoped ─────
+
+
+def test_section_6_cites_current_telegramkillswitch_construction_line():
+    # Scoped to §6's own KillSwitch paragraph (via _extract_section, not the
+    # whole document): the paragraph must cite the verified-correct current
+    # line and must not still cite the old stale line 3578.
+    text = CONTRACT_PATH.read_text(encoding="utf-8")
+    section_6 = _extract_section(text, "## 6. Consistency search results", "## 7.")
+    paragraph = _extract_section(
+        text,
+        "No `.py` file outside `supervision/kill_switch.py`",
+        "No `KILLSWITCH_BOT_TOKEN`",
+    )
+    assert paragraph in section_6
+    assert "core/advisor_loop.py:3617" in paragraph
+    assert "core/advisor_loop.py:3578" not in paragraph.replace(
+        "was\n  `3578`, verified via `rg -n`/`nl -ba` against current source]**", ""
+    )
+
+
+def test_source_confirms_telegramkillswitch_construction_at_cited_line():
+    lines = (REPO_ROOT / "core" / "advisor_loop.py").read_text(encoding="utf-8").splitlines()
+    window = "\n".join(lines[3615:3619])
+    assert "runtime.TelegramKillSwitch(" in window
+
+
+# ── R1.3, Correction B: §9d no longer mislabels eb0a6af1... as current HEAD ─
+
+
+def test_section_9d_does_not_call_eb0a6af1_the_current_head():
+    # Scoped to §9d specifically (not a document-wide search): the exact
+    # old phrase/pairing ("the actual current HEAD" immediately followed
+    # by the eb0a6af1... SHA) must no longer appear there.
+    text = CONTRACT_PATH.read_text(encoding="utf-8")
+    section_9d = _extract_section(
+        text, "## 9d. PRE-T1-A / PRE-T1-B reconciliation", "## 10."
+    )
+    assert (
+        "the actual current HEAD,\n`eb0a6af1c581d0e770b098fe615802e891828216`"
+        not in section_9d
+    )
+    assert "eb0a6af1c581d0e770b098fe615802e891828216" in section_9d
+    assert "R1.2's own starting point" in section_9d
+    assert "touching no\nproduction file" in section_9d

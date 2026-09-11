@@ -735,7 +735,8 @@ classified by grep count alone). Headline findings:
   constructs the class with token credentials — the two
   hits for `TelegramKillSwitch(` outside the archive are the class's
   own docstring example (`kill_switch.py:12`) and
-  `core/advisor_loop.py:3578`, which constructs the *aliased*
+  `core/advisor_loop.py:3617` (**[R1.3, citation corrected; was
+  `3578`, verified via `rg -n`/`nl -ba` against current source]**), which constructs the *aliased*
   `runtime.TelegramKillSwitch` name bound to `KillSwitchHardened` (via
   `core/advisor_runtime_adapters.py:109`) — a different class with zero
   Telegram code, not this one.
@@ -960,9 +961,20 @@ exact historical commit accounting):
 round against this branch's then-current HEAD,
 `45f8c9a4f48b023ca831b3498d4acd9e43f2a298` — a historical, superseded
 revision, **not** the current HEAD of this branch — and re-verified
-this R1.2 round against the actual current HEAD,
-`eb0a6af1c581d0e770b098fe615802e891828216`, via `rg`/`nl` re-run
-directly against the files below, not assumed from history):
+this R1.2 round via `rg`/`nl` re-run directly against the production
+source tree inherited from `eb0a6af1c581d0e770b098fe615802e891828216`
+(R1.1's resulting commit, i.e. R1.2's own starting point), not assumed
+from history. **[R1.3 correction]** `eb0a6af1...` was R1.2's
+*source/starting* commit, not "the actual current HEAD" — that earlier
+wording was inaccurate and has been removed. R1.2 itself changed only
+the contract doc and this documentary test file
+(`docs/contracts/O-02W-E_TELEGRAM_OBSERVATION_BOUNDARY.md` and
+`tests/test_pre_t1_c_portfolio_provider_read_only.py`), touching no
+production file (verified via `git show cc28c91c0c310dc76bcfec2f7ae816b9ddd007d0
+--stat`, R1.2's resulting commit) — so every production-file line
+number cited below and elsewhere in this document remained identical
+across R1.2, unaffected by whether the citing commit is `eb0a6af1...`
+or R1.2's resulting commit):
 
 - 0 of the 4 findings remain unresolved.
 - 0 misleading operator-facing command strings remain among these four
