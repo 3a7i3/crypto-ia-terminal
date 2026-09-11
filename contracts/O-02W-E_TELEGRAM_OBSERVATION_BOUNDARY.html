@@ -311,8 +311,10 @@ nonfunctional notifier call sites are added —
 <code class="docutils literal notranslate"><span class="pre">TelegramNotifier().send(...)</span></code>, a signature/method mismatch against the
 real <code class="docutils literal notranslate"><span class="pre">TelegramNotifier(bot_token,</span> <span class="pre">chat_id).notify(message)</span></code> API,
 silently swallowed by <code class="docutils literal notranslate"><span class="pre">except</span> <span class="pre">Exception:</span> <span class="pre">pass</span></code> — new evidence class
-<code class="docutils literal notranslate"><span class="pre">SOURCE_PROVEN_NONFUNCTIONAL_NOTIFICATION_CALL</span></code> (§0, §13); the
-SelfAwareness message’s own <code class="docutils literal notranslate"><span class="pre">/RESUME</span></code> instruction is added to the
+<code class="docutils literal notranslate"><span class="pre">SOURCE_PROVEN_NONFUNCTIONAL_NOTIFICATION_CALL</span></code> (§0, §13). <strong>[Since
+resolved by mission O-02W-PRE-T1-B — both call sites are absent from
+current source; see §9d.]</strong> At the time this evidence class was added,
+the SelfAwareness message’s own <code class="docutils literal notranslate"><span class="pre">/RESUME</span></code> instruction was added to the
 safety-drift inventory (§6, §13), which now totals <strong>five</strong> items, not
 four, and distinguishes three presently send-capable advisor messages
 from one currently-non-deliverable SelfAwareness message and the
@@ -485,6 +487,26 @@ registry itself, stating separately that this contract verified only
 source wiring, not deployment/runtime state. R1.5’s starting HEAD is
 <code class="docutils literal notranslate"><span class="pre">9827ab4380ae21f277bfe41a2f566d2fa1ed8bac</span></code>; only this file was
 modified.</p>
+<p><strong>PRE-T1-C structural note (same date, out-of-band of the R1-R1.5
+Telegram-observation remediation rounds above):</strong> mission
+O-02W-PRE-T1-C removed <code class="docutils literal notranslate"><span class="pre">_set_param_live</span></code> and its <code class="docutils literal notranslate"><span class="pre">set_param=</span></code> wiring
+into the <code class="docutils literal notranslate"><span class="pre">CommandDataProvider</span></code> construction from <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code>
+entirely, and removed the <code class="docutils literal notranslate"><span class="pre">set_param</span></code>/<code class="docutils literal notranslate"><span class="pre">reset_kpis</span></code> fields from
+<code class="docutils literal notranslate"><span class="pre">CommandDataProvider</span></code> in <code class="docutils literal notranslate"><span class="pre">capital_deployment/command_center_bot.py</span></code>
+(base HEAD <code class="docutils literal notranslate"><span class="pre">95f1150d13617c0cf326f2777c4d2fa69d91465b</span></code>). This R1 round of
+PRE-T1-C (same date) brings every normative claim below back in sync
+with that removal: §6, TG-02c (§9a), and §9b no longer describe
+<code class="docutils literal notranslate"><span class="pre">_set_param_live</span></code>/<code class="docutils literal notranslate"><span class="pre">CommandDataProvider.set_param</span></code> as a presently-wired,
+merely-unreachable capability — they record it as structurally absent
+from source. §9b, §11 Phase 4, §12, and §16 no longer list “the
+dormant Portfolio mutator” as outstanding architectural-boundary debt
+requiring a future source mission, since that mission is this one.
+This note makes no claim about deployment or runtime state — repo-only
+claim, same as the rest of this document. <code class="docutils literal notranslate"><span class="pre">_set_param_live</span></code> and
+<code class="docutils literal notranslate"><span class="pre">CommandDataProvider.set_param</span></code> remain accurate as <strong>historical</strong>
+references above (R1-R1.5) describing the pre-PRE-T1-C state of the
+code at the time those rounds were written; they are not restated as
+still-current facts anywhere below this point.</p>
 <p>Final certification of this contract belongs exclusively to the
 independent ChatGPT MASTER reviewer. This document is a proposal for
 that review, not a self-certified conclusion.</p>
@@ -801,10 +823,11 @@ the cockpit — where exchange-account capital feeds sizing and risk
 components directly: <code class="docutils literal notranslate"><span class="pre">ExecutionEngine.fetch_available_capital()</span></code>
 (<code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/execution/execution_engine.py:229-249</span></code>)
 returns <code class="docutils literal notranslate"><span class="pre">real_capital</span></code>, which <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code> then feeds into
-<code class="docutils literal notranslate"><span class="pre">order_size</span></code> (line 4009), <code class="docutils literal notranslate"><span class="pre">PortfolioBrain</span></code> (line 4504),
-<code class="docutils literal notranslate"><span class="pre">CapitalAllocationEngine</span></code> (line 4510), <code class="docutils literal notranslate"><span class="pre">ExecutiveOverride</span></code> (line
-7191), and risk-throttle/drawdown computations (lines 4865, 5036,
-5044, 5224, 5842). This is a pre-existing architectural design (the
+<code class="docutils literal notranslate"><span class="pre">order_size</span></code> (line 4046), <code class="docutils literal notranslate"><span class="pre">PortfolioBrain</span></code> (line 4542),
+<code class="docutils literal notranslate"><span class="pre">CapitalAllocationEngine</span></code> (line 4548), <code class="docutils literal notranslate"><span class="pre">ExecutiveOverride</span></code> (line
+7241), and risk-throttle/drawdown computations (lines 4903, 5074,
+5082, 5262, 5892). <strong>[R1.2, citations corrected; verified via <code class="docutils literal notranslate"><span class="pre">rg</span> <span class="pre">-n</span> <span class="pre">&quot;real_capital&quot;</span> <span class="pre">core/advisor_loop.py</span></code> against current HEAD]</strong> This is
+a pre-existing architectural design (the
 live-trading capital feed), not something this mission’s cockpit or
 Telegram work created or could disable, and it is not a Telegram or
 cockpit control-surface violation — but the original contract’s
@@ -900,56 +923,68 @@ no other bot edits or sends photos.</p></li>
 in §9, Correction B — the module is package-init-importable but
 has no non-test, non-archive construction call supplying token credentials, see below), (b) docstrings in
 <code class="docutils literal notranslate"><span class="pre">supervision/killswitch_hardened.py</span></code> stating these commands were
-“retirées” (removed), © one operator-facing email string in
-<code class="docutils literal notranslate"><span class="pre">supervision/exchange_monitor.py:252-257</span></code> instructing the operator
-to “send <code class="docutils literal notranslate"><span class="pre">/STOP_ALL</span></code> on Telegram” — classified
-<code class="docutils literal notranslate"><span class="pre">SAFETY_RELEVANT_OPERATOR_INSTRUCTION_DRIFT</span></code> (§13), (d) tests
-asserting these are now rejected.</p></li>
-<li><p><strong>[R1.2, corrected accounting]</strong> <code class="docutils literal notranslate"><span class="pre">/RESUME</span></code> (case-insensitive) occurs
+“retirées” (removed), © <strong>[historical, <code class="docutils literal notranslate"><span class="pre">RESOLVED_BY_PRE_T1_A</span></code> — see
+§9d]</strong> one operator-facing email string that previously existed in
+<code class="docutils literal notranslate"><span class="pre">supervision/exchange_monitor.py</span></code> (historically ~lines 252-257)
+instructing the operator to “send <code class="docutils literal notranslate"><span class="pre">/STOP_ALL</span></code> on Telegram” — this
+string is <strong>absent from <code class="docutils literal notranslate"><span class="pre">supervision/exchange_monitor.py</span></code> as of
+current HEAD</strong> (<code class="docutils literal notranslate"><span class="pre">rg</span> <span class="pre">-n</span> <span class="pre">-i</span> <span class="pre">&quot;/stop_all&quot;</span> <span class="pre">supervision/exchange_monitor.py</span></code>
+returns no match); the <code class="docutils literal notranslate"><span class="pre">SAFETY_RELEVANT_OPERATOR_INSTRUCTION_DRIFT</span></code>
+classification (§13 finding 2) is current-state resolved, kept only
+as a historical record, (d) tests asserting these are now rejected.</p></li>
+<li><p><strong>[R1.2, corrected accounting; superseded for current state by
+PRE-T1-A/B — see §9d]</strong> <code class="docutils literal notranslate"><span class="pre">/RESUME</span></code> (case-insensitive) occurred
 at <strong>11 raw line hits</strong> in <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code>
 (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">grep</span> <span class="pre">-ni</span> <span class="pre">'/resume'</span> <span class="pre">&lt;rev&gt;</span> <span class="pre">--</span> <span class="pre">core/advisor_loop.py</span></code>, reproducible
-against R1 starting HEAD <code class="docutils literal notranslate"><span class="pre">d702b7f2a06c59eb1972de3026afd317cf70d314</span></code>):
+against R1 starting HEAD <code class="docutils literal notranslate"><span class="pre">d702b7f2a06c59eb1972de3026afd317cf70d314</span></code>,
+a historical, pre-PRE-T1-A revision):
 lines 3560, 3563, 3566, 3571 (callback/log lines inside <code class="docutils literal notranslate"><span class="pre">_on_resume()</span></code>
 — code logging and an internal comment string, not operator-facing
 instructions), 3870, 3878, 5576 (the three operator-facing message
 strings, detailed below), 4486 (a code comment, <code class="docutils literal notranslate"><span class="pre">#</span> <span class="pre">expose</span> <span class="pre">pour</span> <span class="pre">/RESUME</span> <span class="pre">callback</span></code>), 4556 (a comment listing unrelated identifier
 names, <code class="docutils literal notranslate"><span class="pre">STOP_TRADING/RESUME_TRADING/REDUCE_RISK</span></code>), and 5578, 5580
 (comments describing the wait loop, not messages sent to anyone).
-<strong>Exactly 3 of these 11 are operator-facing Telegram message
+<strong>Exactly 3 of these 11 were operator-facing Telegram message
 strings</strong>, not merely code identifiers, comments, or log lines: line
 3870 (“Envoyez /RESUME si intervention requise” — degraded-mode
 alert), line 3878 (“Envoyez /RESUME pour reprendre” — halted-mode
 alert), and line 5576 (“Boucle suspendue par Kill Switch. Envoyer
-/RESUME pour reprendre” — the halted-loop wait message). The
-remaining 8 hits must not be counted as operator instructions. A
-separate, fourth operator-facing <code class="docutils literal notranslate"><span class="pre">/RESUME</span></code> string exists <strong>outside</strong>
+/RESUME pour reprendre” — the halted-loop wait message). <strong>[current
+state, <code class="docutils literal notranslate"><span class="pre">RESOLVED_BY_PRE_T1_A</span></code>, re-verified this round]</strong> As of current
+HEAD these three strings, now at lines 3909, 3921, and 5614
+(<code class="docutils literal notranslate"><span class="pre">nl</span> <span class="pre">-ba</span> <span class="pre">core/advisor_loop.py</span></code>), read instead as explicit
+negation-of-availability statements — e.g. “Aucune commande /RESUME
+n’est disponible via Telegram (dispatcher canonique) ; … Escalade
+manuelle requise” — not instructions to send a command; the string
+<code class="docutils literal notranslate"><span class="pre">/RESUME</span></code> remains present in the text solely to name the command that
+is explicitly stated to be unavailable. A separate, fourth
+operator-facing <code class="docutils literal notranslate"><span class="pre">/RESUME</span></code> string historically existed <strong>outside</strong>
 <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code>, in
-<code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/intelligence/self_awareness_engine.py:626-629</span></code>
-(“SELF-AWARENESS CRITIQUE\nTrading suspendu 24h — dérives
-détectées:…\nEnvoyer /RESUME pour reprendre manuellement.”), inside
-<code class="docutils literal notranslate"><span class="pre">_send_telegram_critical()</span></code> — this one is additionally
+<code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/intelligence/self_awareness_engine.py</span></code>
+(historically ~lines 626-629, inside <code class="docutils literal notranslate"><span class="pre">_send_telegram_critical()</span></code>) —
+this one was additionally historically
 <code class="docutils literal notranslate"><span class="pre">SOURCE_PROVEN_NONFUNCTIONAL_NOTIFICATION_CALL</span></code> (§0, §13): the call
-is <code class="docutils literal notranslate"><span class="pre">TelegramNotifier().send(...)</span></code>, which does not match the real
+was <code class="docutils literal notranslate"><span class="pre">TelegramNotifier().send(...)</span></code>, which did not match the real
 <code class="docutils literal notranslate"><span class="pre">TelegramNotifier.__init__(self,</span> <span class="pre">bot_token,</span> <span class="pre">chat_id)</span></code> /
-<code class="docutils literal notranslate"><span class="pre">.notify(message)</span></code> API (§17, Correction F for exact line numbers), so
-<em>if</em> this expression is reached at runtime, it deterministically
-fails before any HTTP request is attempted — caught by the enclosing
-<code class="docutils literal notranslate"><span class="pre">except</span> <span class="pre">Exception:</span> <span class="pre">pass</span></code>. Whether this expression is ever reached in
-production (i.e., whether the containing process runs and the
-triggering condition fires) is <code class="docutils literal notranslate"><span class="pre">RUNTIME_UNKNOWN</span></code>; what is
-<code class="docutils literal notranslate"><span class="pre">SOURCE_PROVEN</span></code> is only that <em>if</em> reached, it cannot succeed as
-written. <strong>Total misleading operator-facing command strings: 5</strong> — 1
-<code class="docutils literal notranslate"><span class="pre">/STOP_ALL</span></code> (<code class="docutils literal notranslate"><span class="pre">supervision/exchange_monitor.py:252-257</span></code>) + 4
-<code class="docutils literal notranslate"><span class="pre">/RESUME</span></code> (3 in <code class="docutils literal notranslate"><span class="pre">advisor_loop.py</span></code>, 1 in
-<code class="docutils literal notranslate"><span class="pre">self_awareness_engine.py</span></code>) — see §13 for the full inventory using
-this same unit taxonomy (findings vs. strings vs. broken call
-expressions, not interchangeably).</p></li>
+<code class="docutils literal notranslate"><span class="pre">.notify(message)</span></code> API (§17). <strong>[current state,
+<code class="docutils literal notranslate"><span class="pre">RESOLVED_BY_PRE_T1_B</span></code>, re-verified this round]</strong> <code class="docutils literal notranslate"><span class="pre">rg</span> <span class="pre">-n</span> <span class="pre">&quot;TelegramNotifier&quot;</span> <span class="pre">quant_hedge_ai/agents/intelligence/self_awareness_engine.py</span></code> returns
+no match — <code class="docutils literal notranslate"><span class="pre">_send_telegram_critical()</span></code> and its <code class="docutils literal notranslate"><span class="pre">/RESUME</span></code> string and
+broken call are absent from current source, not merely non-actionable.
+<strong>Historical total misleading operator-facing command strings: 5</strong> — 1
+<code class="docutils literal notranslate"><span class="pre">/STOP_ALL</span></code> (<code class="docutils literal notranslate"><span class="pre">supervision/exchange_monitor.py</span></code>, historically
+~lines 252-257) + 4 <code class="docutils literal notranslate"><span class="pre">/RESUME</span></code> (3 in <code class="docutils literal notranslate"><span class="pre">advisor_loop.py</span></code>, 1 in
+<code class="docutils literal notranslate"><span class="pre">self_awareness_engine.py</span></code>); <strong>current total: 0</strong> — see §9d and §13
+for the full inventory using this same unit taxonomy (findings vs.
+strings vs. broken call expressions, not interchangeably).</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">/resume</span></code>, <code class="docutils literal notranslate"><span class="pre">/kill</span></code>, <code class="docutils literal notranslate"><span class="pre">/restart</span></code>, <code class="docutils literal notranslate"><span class="pre">/set</span></code>, <code class="docutils literal notranslate"><span class="pre">/pause</span></code> hits outside
 Telegram code are unrelated non-Telegram Python syntax
 (<code class="docutils literal notranslate"><span class="pre">config/settings.py</span></code>, <code class="docutils literal notranslate"><span class="pre">risk/circuit_breaker.py</span></code>) or
 <code class="docutils literal notranslate"><span class="pre">capital_deployment/command_center_bot.py</span></code>’s explicit blocked-command
-set, which returns a fixed refusal string and never calls
-<code class="docutils literal notranslate"><span class="pre">CommandDataProvider.set_param</span></code> or any mutator (§9b, Correction D).</p></li>
+set, which returns a fixed refusal string. <strong>[PRE-T1-C, R1]</strong>
+<code class="docutils literal notranslate"><span class="pre">CommandDataProvider</span></code> has no <code class="docutils literal notranslate"><span class="pre">set_param</span></code> field or any mutator field
+at all (<code class="docutils literal notranslate"><span class="pre">capital_deployment/command_center_bot.py</span></code>) — the call
+cannot occur, structurally, not merely “does not occur on the
+reviewed path” (§9b).</p></li>
 <li><p>No <code class="docutils literal notranslate"><span class="pre">.py</span></code> file outside <code class="docutils literal notranslate"><span class="pre">supervision/kill_switch.py</span></code> has a source-wired
 dispatcher for any of the eight command-mutation literals; none was
 found wired to a real token. <strong>[R1]</strong> <code class="docutils literal notranslate"><span class="pre">supervision/kill_switch.py</span></code>’s own reachability
@@ -959,7 +994,8 @@ is corrected in §9 (Correction B): its module is imported at
 constructs the class with token credentials — the two
 hits for <code class="docutils literal notranslate"><span class="pre">TelegramKillSwitch(</span></code> outside the archive are the class’s
 own docstring example (<code class="docutils literal notranslate"><span class="pre">kill_switch.py:12</span></code>) and
-<code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py:3578</span></code>, which constructs the <em>aliased</em>
+<code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py:3617</span></code> (<strong>[R1.3, citation corrected; was
+<code class="docutils literal notranslate"><span class="pre">3578</span></code>, verified via <code class="docutils literal notranslate"><span class="pre">rg</span> <span class="pre">-n</span></code>/<code class="docutils literal notranslate"><span class="pre">nl</span> <span class="pre">-ba</span></code> against current source]</strong>), which constructs the <em>aliased</em>
 <code class="docutils literal notranslate"><span class="pre">runtime.TelegramKillSwitch</span></code> name bound to <code class="docutils literal notranslate"><span class="pre">KillSwitchHardened</span></code> (via
 <code class="docutils literal notranslate"><span class="pre">core/advisor_runtime_adapters.py:109</span></code>) — a different class with zero
 Telegram code, not this one.</p></li>
@@ -1084,7 +1120,7 @@ tables together.</p>
 <td><p>Portfolio / CommandCenter (<code class="docutils literal notranslate"><span class="pre">&#64;mon_portfolio_bot</span></code>)</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">MON_PORTFOLIO_BOT_TOKEN</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">MON_PORTFOLIO_CHAT_ID</span></code> (falls back to <code class="docutils literal notranslate"><span class="pre">TELEGRAM_CHAT_ID</span></code>)</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">capital_deployment/command_center_bot.py</span></code>, instantiated by <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py:3991-3992</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">capital_deployment/command_center_bot.py</span></code>, instantiated by <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py:4029-4030</span></code> (<code class="docutils literal notranslate"><span class="pre">CommandCenterBot.from_env(...)</span></code> / <code class="docutils literal notranslate"><span class="pre">.start()</span></code>, <strong>[R1.2, citation corrected; was <code class="docutils literal notranslate"><span class="pre">3991-3992</span></code>, verified via <code class="docutils literal notranslate"><span class="pre">nl</span> <span class="pre">-ba</span></code> against current HEAD]</strong>)</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">crypto-advisor.service</span></code> (in-process)</p></td>
 <td><p>BOTH</p></td>
 <td><p>PORTFOLIO</p></td>
@@ -1177,7 +1213,7 @@ tables together.</p>
 <td><p>same</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">supervision/kill_switch.py</span></code></p></td>
 <td><p>no non-test, non-archive construction call with token credentials was found</p></td>
-<td><p><strong>[R1, Correction B — evidence class corrected]</strong> <code class="docutils literal notranslate"><span class="pre">MODULE_IMPORTABLE_NOT_INSTANTIATED</span></code>, not <code class="docutils literal notranslate"><span class="pre">DEAD_CODE_SOURCE_PROVEN</span></code>. <code class="docutils literal notranslate"><span class="pre">supervision/__init__.py:11-13</span></code> imports <code class="docutils literal notranslate"><span class="pre">TelegramKillSwitch</span></code> from this module at package-init time (<code class="docutils literal notranslate"><span class="pre">from</span> <span class="pre">supervision.kill_switch</span> <span class="pre">import</span> <span class="pre">(TelegramKillSwitch,)</span></code>), so any <code class="docutils literal notranslate"><span class="pre">import</span> <span class="pre">supervision</span></code> or <code class="docutils literal notranslate"><span class="pre">import</span> <span class="pre">supervision.&lt;anything&gt;</span></code> executes this module’s top-level code. That top-level code (read in full) contains only an <code class="docutils literal notranslate"><span class="pre">Enum</span></code> and a class definition with no import-time side effects — so importing it has no runtime behavior by itself. Separately, the class itself has no non-test, non-archive construction call supplying token credentials: the only two <code class="docutils literal notranslate"><span class="pre">TelegramKillSwitch(</span></code> hits outside archive are the class’s own docstring example and <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py:3578</span></code>, which constructs the <em>aliased</em> <code class="docutils literal notranslate"><span class="pre">KillSwitchHardened</span></code> under the same name (via <code class="docutils literal notranslate"><span class="pre">core/advisor_runtime_adapters.py:109</span></code>) — a distinct class with zero Telegram code. Net: source present, transitively imported, <strong>no non-test, non-archive construction call with token credentials found</strong>, runtime status on the VPS unknown without VPS evidence.</p></td>
+<td><p><strong>[R1, Correction B — evidence class corrected]</strong> <code class="docutils literal notranslate"><span class="pre">MODULE_IMPORTABLE_NOT_INSTANTIATED</span></code>, not <code class="docutils literal notranslate"><span class="pre">DEAD_CODE_SOURCE_PROVEN</span></code>. <code class="docutils literal notranslate"><span class="pre">supervision/__init__.py:11-13</span></code> imports <code class="docutils literal notranslate"><span class="pre">TelegramKillSwitch</span></code> from this module at package-init time (<code class="docutils literal notranslate"><span class="pre">from</span> <span class="pre">supervision.kill_switch</span> <span class="pre">import</span> <span class="pre">(TelegramKillSwitch,)</span></code>), so any <code class="docutils literal notranslate"><span class="pre">import</span> <span class="pre">supervision</span></code> or <code class="docutils literal notranslate"><span class="pre">import</span> <span class="pre">supervision.&lt;anything&gt;</span></code> executes this module’s top-level code. That top-level code (read in full) contains only an <code class="docutils literal notranslate"><span class="pre">Enum</span></code> and a class definition with no import-time side effects — so importing it has no runtime behavior by itself. Separately, the class itself has no non-test, non-archive construction call supplying token credentials: the only two <code class="docutils literal notranslate"><span class="pre">TelegramKillSwitch(</span></code> hits outside archive are the class’s own docstring example and <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py:3617</span></code> (<strong>[R1.2, citation corrected; was <code class="docutils literal notranslate"><span class="pre">3578</span></code>, verified via <code class="docutils literal notranslate"><span class="pre">rg</span> <span class="pre">-n</span></code> against current HEAD]</strong>), which constructs the <em>aliased</em> <code class="docutils literal notranslate"><span class="pre">KillSwitchHardened</span></code> under the same name (via <code class="docutils literal notranslate"><span class="pre">core/advisor_runtime_adapters.py:109</span></code>) — a distinct class with zero Telegram code. Net: source present, transitively imported, <strong>no non-test, non-archive construction call with token credentials found</strong>, runtime status on the VPS unknown without VPS evidence.</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">FORBIDDEN_MUST_NEVER_REACTIVATE</span></code> (unchanged)</p></td>
 <td><p>none — must never be wired to a real token; ADR-0007 forbids any observer-layer component from holding execution authority</p></td>
 <td><p>none (constitutional prohibition, not a retirement candidate)</p></td>
@@ -1271,7 +1307,7 @@ TG-02, TG-03, and TG-06.</p>
 </tr>
 <tr class="row-odd"><td><p>TG-02b</p></td>
 <td><p>TG-02</p></td>
-<td><p>Periodic auto-report (<code class="docutils literal notranslate"><span class="pre">_report_loop</span></code>, <code class="docutils literal notranslate"><span class="pre">command_center_bot.py:1390-1400</span></code>, interval <code class="docutils literal notranslate"><span class="pre">P10_PORTFOLIO_REPORT_H</span></code>, default 1h)</p></td>
+<td><p>Periodic auto-report (<code class="docutils literal notranslate"><span class="pre">_report_loop</span></code>, <code class="docutils literal notranslate"><span class="pre">command_center_bot.py:1368-1378</span></code> — <strong>[R1.2, citation corrected; was <code class="docutils literal notranslate"><span class="pre">1390-1400</span></code>, verified via <code class="docutils literal notranslate"><span class="pre">nl</span> <span class="pre">-ba</span></code> against current HEAD]</strong>, interval <code class="docutils literal notranslate"><span class="pre">P10_PORTFOLIO_REPORT_H</span></code>, default 1h)</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">PERIODIC_STATUS_SUMMARY</span></code></p></td>
 <td><p>PARTIAL (report content likely overlaps <code class="docutils literal notranslate"><span class="pre">portfolio</span></code> domain fields; the <em>push</em> delivery itself has no cockpit equivalent, cockpit is pull-only)</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">KEEP_UNTIL_COCKPIT_RUNTIME_CERTIFIED</span></code> (per Correction G, only for the field-content portion; the push-delivery value itself needs the same operator sign-off as TG-06’s periodic subset, §11 Phase 3)</p></td>
@@ -1279,10 +1315,10 @@ TG-02, TG-03, and TG-06.</p>
 </tr>
 <tr class="row-even"><td><p>TG-02c</p></td>
 <td><p>TG-02</p></td>
-<td><p>Blocked control commands (<code class="docutils literal notranslate"><span class="pre">/pause</span> <span class="pre">/resume</span> <span class="pre">/set</span> <span class="pre">/setphase</span> <span class="pre">/maxorder</span> <span class="pre">/reset</span> <span class="pre">/restart</span> <span class="pre">/confirm</span> <span class="pre">/cancel</span></code>, <code class="docutils literal notranslate"><span class="pre">command_center_bot.py:1370-1379</span></code>)</p></td>
+<td><p>Blocked control commands (<code class="docutils literal notranslate"><span class="pre">/pause</span> <span class="pre">/resume</span> <span class="pre">/set</span> <span class="pre">/setphase</span> <span class="pre">/maxorder</span> <span class="pre">/reset</span> <span class="pre">/restart</span> <span class="pre">/confirm</span> <span class="pre">/cancel</span></code>, <code class="docutils literal notranslate"><span class="pre">command_center_bot.py:1347-1357</span></code> — <strong>[R1.1, citation corrected; was 1370-1379, verified via <code class="docutils literal notranslate"><span class="pre">nl</span> <span class="pre">-ba</span></code> against current HEAD]</strong>)</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">FORBIDDEN_CONTROL_SURFACE</span></code></p></td>
-<td><p>NONE (inert — the handler for each of these commands returns a fixed refusal response, and the reviewed path makes no call to <code class="docutils literal notranslate"><span class="pre">CommandDataProvider.set_param</span></code> or any other mutator, so no cockpit equivalent is needed)</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">FORBIDDEN_MUST_NEVER_REACTIVATE</span></code> (remains forbidden even though currently inert — see §9b for the dormant mutator this refusal currently blocks)</p></td>
+<td><p>NONE (inert — the handler for each of these commands returns a fixed refusal response; <strong>[PRE-T1-C, R1]</strong> <code class="docutils literal notranslate"><span class="pre">CommandDataProvider</span></code> has no <code class="docutils literal notranslate"><span class="pre">set_param</span></code> field or any mutator field, so no such call can exist anywhere in <code class="docutils literal notranslate"><span class="pre">command_center_bot.py</span></code>, not merely on the reviewed dispatch path — no cockpit equivalent is needed)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">FORBIDDEN_MUST_NEVER_REACTIVATE</span></code> (remains forbidden as a permanent guardrail even though the mutator it once guarded against has been structurally removed — see §9b)</p></td>
 <td><p>none</p></td>
 </tr>
 <tr class="row-odd"><td><p>TG-03a</p></td>
@@ -1303,7 +1339,7 @@ TG-02, TG-03, and TG-06.</p>
 </tr>
 <tr class="row-odd"><td><p>TG-06a</p></td>
 <td><p>TG-06</p></td>
-<td><p>Exchange down/up (<code class="docutils literal notranslate"><span class="pre">supervision/exchange_monitor.py:207,229-234</span></code>), session halt/resume (<code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py:3878,5576,5583</span></code>), crash alerts</p></td>
+<td><p>Exchange down/up (<code class="docutils literal notranslate"><span class="pre">supervision/exchange_monitor.py:207,229-234</span></code>), session halt/resume (<code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py:3921,5614,5632</span></code> — <strong>[R1.2, citation corrected; was <code class="docutils literal notranslate"><span class="pre">3878,5576,5583</span></code>, verified via <code class="docutils literal notranslate"><span class="pre">nl</span> <span class="pre">-ba</span></code> against current HEAD]</strong>), crash alerts</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">CRITICAL_SAFETY_ALERT</span></code></p></td>
 <td><p>PARTIAL for status content; push delivery itself has no cockpit equivalent</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">KEEP_PERMANENT_CRITICAL_ALERT</span></code></p></td>
@@ -1311,7 +1347,7 @@ TG-02, TG-03, and TG-06.</p>
 </tr>
 <tr class="row-even"><td><p>TG-06b</p></td>
 <td><p>TG-06</p></td>
-<td><p>Degraded-mode state notice (<code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py:3870</span></code>, “Mode DEGRADED — exchange instable… Trading continue”)</p></td>
+<td><p>Degraded-mode state notice (<code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py:3909</span></code> — <strong>[R1.2, citation corrected; was <code class="docutils literal notranslate"><span class="pre">3870</span></code>, verified via <code class="docutils literal notranslate"><span class="pre">nl</span> <span class="pre">-ba</span></code> against current HEAD]</strong>, “Mode DEGRADED — exchange instable… Trading continue”)</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">STATE_CHANGE_ALERT</span></code></p></td>
 <td><p>PARTIAL</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">KEEP_PERMANENT_CRITICAL_ALERT</span></code> (degraded-state transitions are safety-adjacent — treated conservatively as permanent given the drift noted in §13)</p></td>
@@ -1319,7 +1355,7 @@ TG-02, TG-03, and TG-06.</p>
 </tr>
 <tr class="row-odd"><td><p>TG-06c</p></td>
 <td><p>TG-06</p></td>
-<td><p>Heartbeat / periodic-style reports (<code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py:8162,7669</span></code>)</p></td>
+<td><p>Heartbeat / periodic-style reports (compact heartbeat send <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py:8212</span></code>, per-cycle report send <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py:7719</span></code> — <strong>[R1.2, citation corrected; was <code class="docutils literal notranslate"><span class="pre">8162,7669</span></code>, verified via <code class="docutils literal notranslate"><span class="pre">rg</span> <span class="pre">-n</span></code> against current HEAD]</strong>)</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">PERIODIC_STATUS_SUMMARY</span></code></p></td>
 <td><p>PARTIAL (likely field overlap with cockpit <code class="docutils literal notranslate"><span class="pre">overview</span></code>/<code class="docutils literal notranslate"><span class="pre">system</span></code>)</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">KEEP_UNTIL_COCKPIT_RUNTIME_CERTIFIED</span></code></p></td>
@@ -1349,48 +1385,168 @@ strongest claim made anywhere is <code class="docutils literal notranslate"><spa
 side-by-side comparison defined in §11.</p>
 </section>
 <hr class="docutils" />
-<section id="b-dormant-portfolio-mutator-capability-correction-d">
-<h2>9b. Dormant Portfolio mutator capability (Correction D)<a class="headerlink" href="#b-dormant-portfolio-mutator-capability-correction-d" title="Link to this heading">¶</a></h2>
-<p><strong>[R1, new section]</strong> <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py:3903-3908</span></code> defines:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">_set_param_live</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-    <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
-    <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">"EXEC_MAX_ORDER_USD"</span><span class="p">:</span>
-        <span class="k">nonlocal</span> <span class="n">max_order</span>
-        <span class="n">max_order</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
-    <span class="k">return</span> <span class="kc">True</span>
-</pre></div>
+<section id="b-portfolio-mutator-structurally-removed-correction-d-resolved-pre-t1-c-r1">
+<h2>9b. Portfolio mutator — structurally removed (Correction D; resolved PRE-T1-C, R1)<a class="headerlink" href="#b-portfolio-mutator-structurally-removed-correction-d-resolved-pre-t1-c-r1" title="Link to this heading">¶</a></h2>
+<p><strong>[R1, original section; superseded by PRE-T1-C, R1 below]</strong> This
+section originally documented a dormant <code class="docutils literal notranslate"><span class="pre">_set_param_live</span></code> mutator,
+defined at <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py:3903-3908</span></code>, wired at
+<code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py:3989</span></code> as <code class="docutils literal notranslate"><span class="pre">set_param=_set_param_live</span></code> into the
+<code class="docutils literal notranslate"><span class="pre">CommandDataProvider</span></code> construction that fed a <code class="docutils literal notranslate"><span class="pre">CommandCenterBot</span></code>
+instance, and a corresponding <code class="docutils literal notranslate"><span class="pre">set_param</span></code> field declared on
+<code class="docutils literal notranslate"><span class="pre">CommandDataProvider</span></code> in <code class="docutils literal notranslate"><span class="pre">capital_deployment/command_center_bot.py</span></code>,
+never read or invoked by <code class="docutils literal notranslate"><span class="pre">_route()</span></code>. That was accurate at the source
+revision those rounds reviewed.</p>
+<p><strong>[PRE-T1-C, R1 — current state]</strong> Mission O-02W-PRE-T1-C removed this
+capability structurally, not merely by leaving it unreachable:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">_set_param_live</span></code> is <strong>absent</strong> from <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code> —
+confirmed by <code class="docutils literal notranslate"><span class="pre">rg</span> <span class="pre">-n</span> <span class="pre">&quot;_set_param_live&quot;</span> <span class="pre">core/advisor_loop.py</span></code> returning
+no match.</p></li>
+<li><p>No <code class="docutils literal notranslate"><span class="pre">set_param=</span></code> keyword argument appears anywhere in the
+<code class="docutils literal notranslate"><span class="pre">CommandDataProvider</span></code> construction in <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">CommandDataProvider</span></code> in <code class="docutils literal notranslate"><span class="pre">capital_deployment/command_center_bot.py</span></code>
+declares no <code class="docutils literal notranslate"><span class="pre">set_param</span></code> field and no <code class="docutils literal notranslate"><span class="pre">reset_kpis</span></code> field — every
+field on the dataclass is a read callback (verified by
+<code class="docutils literal notranslate"><span class="pre">tests/test_pre_t1_c_portfolio_provider_read_only.py</span></code>, extended this
+round to assert every field name starts with <code class="docutils literal notranslate"><span class="pre">get_</span></code>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">_route()</span></code> still dispatches only read-only handlers plus the
+explicit blocked-command branch (§9a, row TG-02c) that returns a
+fixed refusal string; that refusal now blocks nothing that could
+structurally reach a mutator, because no mutator field exists to
+reach.</p></li>
+</ul>
+<p><strong>Evidence-honest classification:</strong> there is no Telegram mutation
+handler, no mutator field on the provider, and no environment-mutating
+function wired into its construction — not “unreachable,” but absent
+from source entirely. This is a repo-only, <code class="docutils literal notranslate"><span class="pre">SOURCE_PROVEN</span></code> claim about
+<code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code> and <code class="docutils literal notranslate"><span class="pre">capital_deployment/command_center_bot.py</span></code>
+at the current commit; it makes no claim about VPS deployment or
+runtime state, which remain <code class="docutils literal notranslate"><span class="pre">RUNTIME_UNKNOWN</span></code> as throughout this
+document. This closes the architectural-boundary debt this section
+previously flagged — no future source mission is required to remove
+<code class="docutils literal notranslate"><span class="pre">_set_param_live</span></code> or its wiring, because PRE-T1-C already did.
+<code class="docutils literal notranslate"><span class="pre">FORBIDDEN_MUST_NEVER_REACTIVATE</span></code> (§9a, TG-02c) remains the governing
+classification regardless: it is a permanent guardrail against ever
+reintroducing such a mutator, not a statement about present-day risk.</p>
+</section>
+<section id="d-pre-t1-a-pre-t1-b-reconciliation-historical-vs-current-findings">
+<h2>9d. PRE-T1-A / PRE-T1-B reconciliation — historical vs. current findings<a class="headerlink" href="#d-pre-t1-a-pre-t1-b-reconciliation-historical-vs-current-findings" title="Link to this heading">¶</a></h2>
+<p><strong>[PRE-T1-C, R1.1 — Corrections A/B/C, new section]</strong> This section
+exists because missions O-02W-PRE-T1-A and O-02W-PRE-T1-B, both merged
+into <code class="docutils literal notranslate"><span class="pre">main</span></code> before this branch (<code class="docutils literal notranslate"><span class="pre">claude/o02w-pre-t1-c-structural-read-only-provider</span></code>)
+existed, source-corrected the four <code class="docutils literal notranslate"><span class="pre">SAFETY_RELEVANT_OPERATOR_INSTRUCTION_DRIFT</span></code>
+findings this contract recorded in §6/§13/§16 against an earlier HEAD.
+Every normative passage elsewhere in this document that still describes
+those four findings has been re-tagged in place (<code class="docutils literal notranslate"><span class="pre">RESOLVED_BY_PRE_T1_A</span></code>
+/ <code class="docutils literal notranslate"><span class="pre">RESOLVED_BY_PRE_T1_B</span></code>); this section is the single authoritative
+summary an operator can read without cross-checking every tag.</p>
+<p><strong><code class="docutils literal notranslate"><span class="pre">HISTORICAL_FINDINGS_DISCOVERED</span></code></strong> (as originally recorded by O-02W-E1,
+counted against the pre-PRE-T1-A/B source revision — see §6 for the
+exact historical commit accounting):</p>
+<ul class="simple">
+<li><p>4 numbered <code class="docutils literal notranslate"><span class="pre">SAFETY_RELEVANT_OPERATOR_INSTRUCTION_DRIFT</span></code> findings
+(§13 items 1-4).</p></li>
+<li><p>5 misleading operator-facing command strings (1 <code class="docutils literal notranslate"><span class="pre">/STOP_ALL</span></code> in
+<code class="docutils literal notranslate"><span class="pre">supervision/exchange_monitor.py</span></code>; 4 <code class="docutils literal notranslate"><span class="pre">/RESUME</span></code> — 3 in
+<code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code>, 1 in
+<code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/intelligence/self_awareness_engine.py</span></code>).</p></li>
+<li><p>2 source-proven-nonfunctional <code class="docutils literal notranslate"><span class="pre">TelegramNotifier().send(...)</span></code> broken
+call expressions (<code class="docutils literal notranslate"><span class="pre">self_awareness_engine.py</span></code>,
+<code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/execution/position_manager.py</span></code>).</p></li>
+</ul>
+<p><strong><code class="docutils literal notranslate"><span class="pre">CURRENT_UNRESOLVED_FINDINGS</span></code></strong> (originally verified by the R1.1
+round against this branch’s then-current HEAD,
+<code class="docutils literal notranslate"><span class="pre">45f8c9a4f48b023ca831b3498d4acd9e43f2a298</span></code> — a historical, superseded
+revision, <strong>not</strong> the current HEAD of this branch — and re-verified
+this R1.2 round via <code class="docutils literal notranslate"><span class="pre">rg</span></code>/<code class="docutils literal notranslate"><span class="pre">nl</span></code> re-run directly against the production
+source tree inherited from <code class="docutils literal notranslate"><span class="pre">eb0a6af1c581d0e770b098fe615802e891828216</span></code>
+(R1.1’s resulting commit, i.e. R1.2’s own starting point), not assumed
+from history. <strong>[R1.3 correction]</strong> <code class="docutils literal notranslate"><span class="pre">eb0a6af1...</span></code> was R1.2’s
+<em>source/starting</em> commit, not “the actual current HEAD” — that earlier
+wording was inaccurate and has been removed. R1.2 itself changed only
+the contract doc and this documentary test file
+(<code class="docutils literal notranslate"><span class="pre">docs/contracts/O-02W-E_TELEGRAM_OBSERVATION_BOUNDARY.md</span></code> and
+<code class="docutils literal notranslate"><span class="pre">tests/test_pre_t1_c_portfolio_provider_read_only.py</span></code>), touching no
+production file (verified via <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">show</span> <span class="pre">cc28c91c0c310dc76bcfec2f7ae816b9ddd007d0</span> <span class="pre">--stat</span></code>, R1.2’s resulting commit) — so every production-file line
+number cited below and elsewhere in this document remained identical
+across R1.2, unaffected by whether the citing commit is <code class="docutils literal notranslate"><span class="pre">eb0a6af1...</span></code>
+or R1.2’s resulting commit):</p>
+<ul class="simple">
+<li><p>0 of the 4 findings remain unresolved.</p></li>
+<li><p>0 misleading operator-facing command strings remain among these four
+findings: <code class="docutils literal notranslate"><span class="pre">supervision/exchange_monitor.py</span></code> no longer instructs the
+operator to send <code class="docutils literal notranslate"><span class="pre">/STOP_ALL</span></code> (<code class="docutils literal notranslate"><span class="pre">rg</span> <span class="pre">-n</span> <span class="pre">-i</span> <span class="pre">&quot;/stop_all&quot;</span> <span class="pre">supervision/exchange_monitor.py</span></code> — no match); <code class="docutils literal notranslate"><span class="pre">docs/GLOBAL_STATE_MACHINE.md</span></code>
+no longer attributes <code class="docutils literal notranslate"><span class="pre">NORMAL</span> <span class="pre">↔</span> <span class="pre">SAFE_MODE</span></code> transitions to a Telegram
+command; and the three <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code> messages that still
+contain the literal string <code class="docutils literal notranslate"><span class="pre">/RESUME</span></code> (now at lines 3909, 3921, 5614 —
+verified via <code class="docutils literal notranslate"><span class="pre">nl</span> <span class="pre">-ba</span> <span class="pre">core/advisor_loop.py</span></code>) are, on inspection of
+their current text, explicit <strong>negation-of-availability</strong> statements
+(“Aucune commande /RESUME n’est disponible via Telegram … Escalade
+manuelle requise”), not instructions to send a command — the drift
+this finding named no longer exists in that text.</p></li>
+<li><p>0 broken <code class="docutils literal notranslate"><span class="pre">TelegramNotifier().send(...)</span></code> call expressions remain at
+either historical site: <code class="docutils literal notranslate"><span class="pre">rg</span> <span class="pre">-n</span> <span class="pre">&quot;TelegramNotifier&quot;</span> <span class="pre">quant_hedge_ai/agents/intelligence/self_awareness_engine.py</span> <span class="pre">quant_hedge_ai/agents/execution/position_manager.py</span></code> returns no
+match in either file — PRE-T1-B removed <code class="docutils literal notranslate"><span class="pre">_send_telegram_critical()</span></code>
+(the SelfAwareness call site) and the equivalent PositionManager call
+site entirely, not merely the broken invocation.</p></li>
+</ul>
+<p><strong>Resolution mapping</strong> (also applied as inline tags at each site listed
+in §6/§13/§16/§17):</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Finding</p></th>
+<th class="head"><p>§13 item</p></th>
+<th class="head"><p>Historical string/call</p></th>
+<th class="head"><p>Resolved by</p></th>
+<th class="head"><p>Current state</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>GLOBAL_STATE_MACHINE.md drift</p></td>
+<td><p>1</p></td>
+<td><p>“KillSwitch / Telegram” attribution</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">RESOLVED_BY_PRE_T1_A</span></code></p></td>
+<td><p>Attributes transitions only to programmatic <code class="docutils literal notranslate"><span class="pre">RuntimeStateMachine</span></code>/<code class="docutils literal notranslate"><span class="pre">KillSwitchHardened</span></code> callers; <code class="docutils literal notranslate"><span class="pre">SOURCE_PROVEN</span></code>/<code class="docutils literal notranslate"><span class="pre">RUNTIME_UNKNOWN</span></code> qualified throughout</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">/STOP_ALL</span></code> instruction</p></td>
+<td><p>2</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">supervision/exchange_monitor.py</span></code> (historically ~252-257)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">RESOLVED_BY_PRE_T1_A</span></code></p></td>
+<td><p>String absent from file</p></td>
+</tr>
+<tr class="row-even"><td><p>3× <code class="docutils literal notranslate"><span class="pre">/RESUME</span></code> instructions</p></td>
+<td><p>3</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code> (historically ~3870, 3878, 5576)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">RESOLVED_BY_PRE_T1_A</span></code></p></td>
+<td><p>Now negation-of-availability text at lines 3909, 3921, 5614</p></td>
+</tr>
+<tr class="row-odd"><td><p>SelfAwareness <code class="docutils literal notranslate"><span class="pre">/RESUME</span></code> + broken call</p></td>
+<td><p>4 (SelfAwareness half)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">self_awareness_engine.py</span></code> (historically ~623-631, call at ~626)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">RESOLVED_BY_PRE_T1_B</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">_send_telegram_critical()</span></code> and the <code class="docutils literal notranslate"><span class="pre">TelegramNotifier().send(...)</span></code> call site are absent from the file</p></td>
+</tr>
+<tr class="row-even"><td><p>PositionManager broken call</p></td>
+<td><p>4 (PositionManager half)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">position_manager.py</span></code> (historically ~528)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">RESOLVED_BY_PRE_T1_B</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">TelegramNotifier().send(...)</span></code> call site absent from the file</p></td>
+</tr>
+</tbody>
+</table>
 </div>
-<p>This function mutates <code class="docutils literal notranslate"><span class="pre">os.environ</span></code> unconditionally and additionally
-mutates the local <code class="docutils literal notranslate"><span class="pre">max_order</span></code> closure variable for one parameter name.
-It is passed at <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py:3989</span></code> as <code class="docutils literal notranslate"><span class="pre">set_param=_set_param_live</span></code>
-into the <code class="docutils literal notranslate"><span class="pre">CommandDataProvider</span></code> construction (<code class="docutils literal notranslate"><span class="pre">_pb_provider</span></code>, lines
-3973-3990) that is then handed to a <code class="docutils literal notranslate"><span class="pre">CommandCenterBot</span></code> object
-constructed and started by the same source path (<code class="docutils literal notranslate"><span class="pre">advisor_loop.py:3991-3992</span></code>,
-<code class="docutils literal notranslate"><span class="pre">_portfolio_bot</span> <span class="pre">=</span> <span class="pre">CommandCenterBot.from_env(_pb_provider);</span> <span class="pre">_portfolio_bot.start()</span></code>) — a source-valid construction and <code class="docutils literal notranslate"><span class="pre">.start()</span></code>
-call; whether this code path actually executes in a deployed process
-is <code class="docutils literal notranslate"><span class="pre">RUNTIME_UNKNOWN</span></code>.</p>
-<p><code class="docutils literal notranslate"><span class="pre">capital_deployment/command_center_bot.py</span></code>’s <code class="docutils literal notranslate"><span class="pre">CommandDataProvider</span></code>
-declares the <code class="docutils literal notranslate"><span class="pre">set_param</span></code> field at line 212, but a repo-wide search
-confirms it is <strong>never read or invoked</strong> anywhere in
-<code class="docutils literal notranslate"><span class="pre">command_center_bot.py</span></code> — <code class="docutils literal notranslate"><span class="pre">_route()</span></code> (lines 1284-1386) dispatches only
-read-only handlers plus the explicit blocked-command branch (§9a,
-row TG-02c) that returns a fixed refusal string.</p>
-<p><strong>Evidence-honest classification:</strong> no active Telegram mutation
-handler exists today — <code class="docutils literal notranslate"><span class="pre">_route()</span></code> never reaches <code class="docutils literal notranslate"><span class="pre">set_param</span></code>. But this
-is not merely “a mutator that exists somewhere in the codebase”; it is
-a fully-implemented, environment-mutating capability <strong>already wired
-into the provider object the <code class="docutils literal notranslate"><span class="pre">CommandCenterBot</span></code> construction path
-above passes to its bot instance</strong>, source-reachable whenever that
-construction path executes.
-Activating it would require adding exactly one new branch to
-<code class="docutils literal notranslate"><span class="pre">_route()</span></code>’s dispatch — a materially smaller and more dangerous gap
-than if <code class="docutils literal notranslate"><span class="pre">_set_param_live</span></code> were unwired or the provider had no
-<code class="docutils literal notranslate"><span class="pre">set_param</span></code> field at all. This is architectural boundary debt, not
-evidence that Telegram currently controls the machine. Its removal or
-neutralization (e.g., removing the <code class="docutils literal notranslate"><span class="pre">set_param</span></code> wiring at line 3989, or
-deleting <code class="docutils literal notranslate"><span class="pre">_set_param_live</span></code> entirely if <code class="docutils literal notranslate"><span class="pre">EXEC_MAX_ORDER_USD</span></code> live-tuning
-is not wanted via any path) requires a later source mission, before
-T-1 deployment/runtime certification — not this documentation-only PR.</p>
+<p><strong>Not touched by this reconciliation, still open:</strong> PRE-T1-D /
+<code class="docutils literal notranslate"><span class="pre">real_capital</span></code> (§9c’s real-capital sizing/risk boundary — see §16
+group 3) remains a <strong>separate, unresolved architectural decision</strong>;
+nothing in PRE-T1-A,
+PRE-T1-B, PRE-T1-C, or this R1.1 documentation round modifies, resolves,
+or narrows it. TG-02c’s <code class="docutils literal notranslate"><span class="pre">FORBIDDEN_MUST_NEVER_REACTIVATE</span></code> classification
+(§9a) is also unchanged by this reconciliation — it remains a permanent
+guardrail, not a statement conditioned on these four findings.</p>
+<p>Any anomaly found during this R1.1 verification pass that is <strong>not</strong>
+one of these four historical findings is reported separately in the
+delivery notes for this round, not folded into either counter above.</p>
 </section>
 <hr class="docutils" />
 <section id="c-real-account-data-boundary-two-independent-flows-correction-e">
@@ -1424,14 +1580,17 @@ constructor-selected live/testnet mode.</p></li>
 <code class="docutils literal notranslate"><span class="pre">&quot;paper&quot;</span></code>, and this flag explicitly <code class="docutils literal notranslate"><span class="pre">true</span></code>.</p></li>
 </ol>
 <p>The returned value, assigned to <code class="docutils literal notranslate"><span class="pre">real_capital</span></code> in <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code>
-(initial fetch line 3796, refreshed in the main loop lines 5690-5694),
-feeds: <code class="docutils literal notranslate"><span class="pre">order_size</span></code> sizing (line 4009), <code class="docutils literal notranslate"><span class="pre">PortfolioBrain.total_capital</span></code>
-(line 4504), <code class="docutils literal notranslate"><span class="pre">CapitalAllocationEngine.total_capital</span></code> (line 4510),
-<code class="docutils literal notranslate"><span class="pre">ExecutiveOverride.update(capital_current=...)</span></code> (line 7191), the
-capital throttle (line 5842), the dynamic-exposure module (line 5224),
-and drawdown-ratio computations (lines 4865, 5036, 5044).</p>
-<p><strong><code class="docutils literal notranslate"><span class="pre">capital_deployment/command_center_bot.py:181-183</span></code>’s own provenance
-comment already documents exactly this ambiguity precisely</strong> and is
+(initial fetch line 3835, refreshed in the main loop lines 5742-5744 —
+<strong>[R1.2, citations corrected throughout this paragraph; verified via
+<code class="docutils literal notranslate"><span class="pre">rg</span> <span class="pre">-n</span> <span class="pre">&quot;real_capital&quot;</span> <span class="pre">core/advisor_loop.py</span></code> against current HEAD]</strong>),
+feeds: <code class="docutils literal notranslate"><span class="pre">order_size</span></code> sizing (line 4046), <code class="docutils literal notranslate"><span class="pre">PortfolioBrain.total_capital</span></code>
+(line 4542), <code class="docutils literal notranslate"><span class="pre">CapitalAllocationEngine.total_capital</span></code> (line 4548),
+<code class="docutils literal notranslate"><span class="pre">ExecutiveOverride.update(capital_current=...)</span></code> (line 7241), the
+capital throttle (line 5892), the dynamic-exposure module (line 5262),
+and drawdown-ratio computations (lines 4903, 5074, 5082).</p>
+<p><strong><code class="docutils literal notranslate"><span class="pre">capital_deployment/command_center_bot.py:163-170</span></code>’s own provenance
+comment (</strong>[R1.2, citation corrected; was <code class="docutils literal notranslate"><span class="pre">181-183</span></code>, verified via <code class="docutils literal notranslate"><span class="pre">nl</span> <span class="pre">-ba</span></code>
+against current HEAD]<strong>) already documents exactly this ambiguity precisely</strong> and is
 quoted here as the authoritative in-source articulation:</p>
 <blockquote>
 <div><p>Provenance de <code class="docutils literal notranslate"><span class="pre">get_balances</span></code> — MASTER O-02B-R1 (D-7) :
@@ -1467,7 +1626,7 @@ live balance) if present, <strong>or <code class="docutils literal notranslate">
 (<code class="docutils literal notranslate"><span class="pre">_last_value</span></code>) or the configured paper-capital constant — never an
 <code class="docutils literal notranslate"><span class="pre">UNKNOWN</span></code>/<code class="docutils literal notranslate"><span class="pre">None</span></code>/<code class="docutils literal notranslate"><span class="pre">NaN</span></code> that would halt or flag the sizing calculation
 that consumes it.</strong> The <code class="docutils literal notranslate"><span class="pre">&quot;PAPER&quot;</span> <span class="pre">|</span> <span class="pre">&quot;REAL_API&quot;</span> <span class="pre">|</span> <span class="pre">&quot;TESTNET_API&quot;</span> <span class="pre">|</span> <span class="pre">&quot;UNKNOWN&quot;</span></code> domain quoted above is the <strong>Command Center bot’s display
-provenance label</strong> (<code class="docutils literal notranslate"><span class="pre">command_center_bot.py:181-183</span></code>) — a separate,
+provenance label</strong> (<code class="docutils literal notranslate"><span class="pre">command_center_bot.py:163-170</span></code>) — a separate,
 presentation-layer classification of <em>which mode produced the number
 being shown to the operator</em> — and its fail-closed-to-<code class="docutils literal notranslate"><span class="pre">UNKNOWN</span></code>
 behavior describes only that label, not the sizing calculation in
@@ -1716,11 +1875,13 @@ approved in Phase 3.</p></li>
 <code class="docutils literal notranslate"><span class="pre">KEEP_RESEARCH_INTERFACE</span></code> row unconditionally.</p></li>
 <li><p>Never modify execution authority (ADR-0007 remains absolute).</p></li>
 <li><p>One bot/message family per reversible change — no batch retirement.</p></li>
-<li><p>Address the dormant-mutator boundary debt (§9b) and the real-capital
-architectural-boundary decision (§9c) via a separate, narrowly
-scoped source mission <strong>before</strong> any T-1 runtime certification is
-considered final — not as part of E2’s Telegram-retirement work
-itself, since neither is a Telegram-retirement item.</p></li>
+<li><p>Address the real-capital architectural-boundary decision (§9c) via a
+separate, narrowly scoped source mission <strong>before</strong> any T-1 runtime
+certification is considered final — not as part of E2’s
+Telegram-retirement work itself, since it is not a Telegram-retirement
+item. <strong>[PRE-T1-C, R1]</strong> The Portfolio-mutator boundary debt
+previously listed here alongside it is resolved (§9b) — no future
+source mission is needed for it.</p></li>
 </ul>
 </section>
 </section>
@@ -1738,30 +1899,51 @@ to the cockpit.</p></li>
 comments only; all values in <code class="docutils literal notranslate"><span class="pre">.env.secrets.example</span></code> at this commit
 are empty placeholders.</p></li>
 <li><p>Did not touch the VPS.</p></li>
-<li><p>Did not edit <code class="docutils literal notranslate"><span class="pre">docs/GLOBAL_STATE_MACHINE.md</span></code> or
+<li><p><strong>[R1, historical — true as of the O-02W-E1 remediation rounds; see
+§9d for the current, <code class="docutils literal notranslate"><span class="pre">RESOLVED_BY_PRE_T1_A</span></code> state]</strong> At that time,
+this mission did not edit <code class="docutils literal notranslate"><span class="pre">docs/GLOBAL_STATE_MACHINE.md</span></code> or
 <code class="docutils literal notranslate"><span class="pre">supervision/exchange_monitor.py</span></code>, despite the staleness/drift items
-identified in §1/§13 — those corrections are recorded here as
+identified in §1/§13 — those corrections were recorded here as
 findings for a future, narrowly scoped source mission, per §13’s
 explicit statement that they must be corrected before T-1
-deployment/runtime certification, not in this documentation-only PR.</p></li>
+deployment/runtime certification, not in that documentation-only PR.
+<strong>[PRE-T1-A]</strong> Both files have since been corrected by mission
+O-02W-PRE-T1-A, merged into <code class="docutils literal notranslate"><span class="pre">main</span></code> before this branch existed; this
+R1.1 documentation round did not itself touch either file (only the
+contract doc and this test file), and re-verified the PRE-T1-A
+correction is present at current HEAD (§9d).</p></li>
 <li><p><strong>[R1]</strong> Did not modify <code class="docutils literal notranslate"><span class="pre">docs/architecture/TELEGRAM_IDENTITY_REGISTRY.md</span></code>
 — its existing R1-era pointer (added by the original O-02W-E1
 mission) is left byte-for-byte unchanged, per this remediation’s
 scope restriction.</p></li>
-<li><p><strong>[R1]</strong> Did not modify <code class="docutils literal notranslate"><span class="pre">_set_param_live</span></code>, its wiring into
+<li><p><strong>[R1, historical — true as of the O-02W-E1 remediation rounds; see
+PRE-T1-C, R1 note below §9b for the current, structurally-resolved
+state]</strong> Did not modify <code class="docutils literal notranslate"><span class="pre">_set_param_live</span></code>, its wiring into
 <code class="docutils literal notranslate"><span class="pre">CommandDataProvider</span></code>, or <code class="docutils literal notranslate"><span class="pre">ExecutionEngine.fetch_available_capital()</span></code>
-— both are documented as architectural boundary debt (§9b, §9c)
-requiring a separate future source mission, not redesigned or
-neutralized here.</p></li>
-<li><p><strong>[R1.1]</strong> Did not modify <code class="docutils literal notranslate"><span class="pre">infra/wallet_sync.py</span></code>’s fallback chain
+— at that time both were documented as architectural boundary debt
+(§9b, §9c). <strong>[PRE-T1-C, R1]</strong> The Portfolio-mutator half of that
+debt is resolved by mission O-02W-PRE-T1-C (§9b); the real-capital
+half (§9c) is untouched by this documentation round and still
+requires a separate future source mission.</p></li>
+<li><p><strong>[R1.1, historical — see §9d for the current, <code class="docutils literal notranslate"><span class="pre">RESOLVED_BY_PRE_T1_B</span></code>
+state of the two call sites]</strong> At that time, this mission did not
+modify <code class="docutils literal notranslate"><span class="pre">infra/wallet_sync.py</span></code>’s fallback chain
 (<code class="docutils literal notranslate"><span class="pre">_last_value</span></code>/<code class="docutils literal notranslate"><span class="pre">_fallback</span></code>/<code class="docutils literal notranslate"><span class="pre">_base_capital</span></code>, §9c), <code class="docutils literal notranslate"><span class="pre">event_bus/bridge.py</span></code>,
 <code class="docutils literal notranslate"><span class="pre">supervision/ops_watchdog.py</span></code>, <code class="docutils literal notranslate"><span class="pre">supervision/ops_watchdog_hardened.py</span></code>
-(§17), or the two broken <code class="docutils literal notranslate"><span class="pre">TelegramNotifier().send(...)</span></code> call sites in
-<code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/intelligence/self_awareness_engine.py:626</span></code> and
-<code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/execution/position_manager.py:528</span></code> (§13) — all
-are documented as source-proven findings requiring a future,
+(§17), or the two broken <code class="docutils literal notranslate"><span class="pre">TelegramNotifier().send(...)</span></code> call sites
+that then existed in
+<code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/intelligence/self_awareness_engine.py</span></code> and
+<code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/execution/position_manager.py</span></code> (§13) — all
+were documented as source-proven findings requiring a future,
 narrowly scoped source mission before T-1 certification, not fixed
-in this documentation-only PR.</p></li>
+in that documentation-only PR. <strong>[PRE-T1-B]</strong> The two notifier call
+sites have since been removed by mission O-02W-PRE-T1-B; the
+<code class="docutils literal notranslate"><span class="pre">infra/wallet_sync.py</span></code>, <code class="docutils literal notranslate"><span class="pre">event_bus/bridge.py</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">supervision/ops_watchdog*.py</span></code> items remain untouched and still
+require a separate future source mission (unaffected by PRE-T1-A/B/C).
+This R1.1 documentation round did not itself modify any of these
+production files, and re-verified the PRE-T1-B removal is present at
+current HEAD (§9d).</p></li>
 </ul>
 </section>
 <hr class="docutils" />
@@ -1775,9 +1957,18 @@ Telegram control surface (both instructions are currently
 non-actionable, §9/§6), but capable of misleading an operator into
 believing a functioning recovery command exists during a degraded or
 halted state — which is precisely a safety-relevant condition.</p>
+<p><strong>[R1.1, <code class="docutils literal notranslate"><span class="pre">RESOLVED_BY_PRE_T1_A</span></code> — see §9d]</strong> Findings 1-3 below were
+corrected by mission O-02W-PRE-T1-A, merged into <code class="docutils literal notranslate"><span class="pre">main</span></code> before this
+branch existed. They are kept here, explicitly bounded to the
+pre-PRE-T1-A source revision, as the historical record that motivated
+PRE-T1-A; none of the three represents the current state of
+<code class="docutils literal notranslate"><span class="pre">docs/GLOBAL_STATE_MACHINE.md</span></code>, <code class="docutils literal notranslate"><span class="pre">supervision/exchange_monitor.py</span></code>, or
+<code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code>. See §9d’s <code class="docutils literal notranslate"><span class="pre">CURRENT_UNRESOLVED_FINDINGS</span></code> bucket
+for the re-verified current state.</p>
 <ol class="arabic simple">
-<li><p><strong><code class="docutils literal notranslate"><span class="pre">SAFETY_RELEVANT_OPERATOR_INSTRUCTION_DRIFT</span></code></strong> —
-<code class="docutils literal notranslate"><span class="pre">docs/GLOBAL_STATE_MACHINE.md</span></code> (~line 30/35) attributes
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">SAFETY_RELEVANT_OPERATOR_INSTRUCTION_DRIFT</span></code> [HISTORICAL —
+<code class="docutils literal notranslate"><span class="pre">RESOLVED_BY_PRE_T1_A</span></code> — <code class="docutils literal notranslate"><span class="pre">CURRENT_UNRESOLVED</span> <span class="pre">=</span> <span class="pre">NO</span></code>]</strong> —
+<code class="docutils literal notranslate"><span class="pre">docs/GLOBAL_STATE_MACHINE.md</span></code> (~line 30/35, pre-PRE-T1-A) attributed
 <code class="docutils literal notranslate"><span class="pre">NORMAL</span> <span class="pre">↔</span> <span class="pre">SAFE_MODE</span></code> transitions partly to “KillSwitch / Telegram.”
 Current source shows these transitions are exclusively programmatic
 (<code class="docutils literal notranslate"><span class="pre">KillSwitchHardened.force_safe_mode()</span></code>/<code class="docutils literal notranslate"><span class="pre">.force_resume()</span></code>), never
@@ -1793,11 +1984,18 @@ document, not a code defect — its remediation is a narrowly scoped
 “KillSwitch / Telegram” to the actual programmatic
 <code class="docutils literal notranslate"><span class="pre">force_safe_mode()</span></code>/<code class="docutils literal notranslate"><span class="pre">force_resume()</span></code> callers), not a source-code
 change and not necessarily the same mission as findings 2-4 below.
-Not corrected in this documentation-only PR (out of scope); should
-be corrected <strong>before T-1 deployment/runtime certification</strong> so the
-deployed system’s own documentation is accurate.</p></li>
-<li><p><strong><code class="docutils literal notranslate"><span class="pre">SAFETY_RELEVANT_OPERATOR_INSTRUCTION_DRIFT</span></code></strong> —
-<code class="docutils literal notranslate"><span class="pre">supervision/exchange_monitor.py:252-257</span></code> tells the operator (via an
+<strong>[<code class="docutils literal notranslate"><span class="pre">HISTORICAL_REMEDIATION_REQUIREMENT</span></code> — <code class="docutils literal notranslate"><span class="pre">COMPLETED</span></code>]</strong>
+<strong>[HISTORICAL — <code class="docutils literal notranslate"><span class="pre">RESOLVED_BY_PRE_T1_A</span></code>]</strong> Corrected by mission
+O-02W-PRE-T1-A: <code class="docutils literal notranslate"><span class="pre">docs/GLOBAL_STATE_MACHINE.md</span></code> no longer attributes
+<code class="docutils literal notranslate"><span class="pre">NORMAL</span> <span class="pre">↔</span> <span class="pre">SAFE_MODE</span></code> (or any other) transition to “KillSwitch /
+Telegram” — the current text attributes transitions only to
+programmatic <code class="docutils literal notranslate"><span class="pre">RuntimeStateMachine</span></code>/<code class="docutils literal notranslate"><span class="pre">KillSwitchHardened</span></code> callers, each
+qualified <code class="docutils literal notranslate"><span class="pre">SOURCE_PROVEN</span></code>/<code class="docutils literal notranslate"><span class="pre">RUNTIME_UNKNOWN</span></code> (verified this round by
+reading the file’s current text in full).</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">SAFETY_RELEVANT_OPERATOR_INSTRUCTION_DRIFT</span></code> [HISTORICAL —
+<code class="docutils literal notranslate"><span class="pre">RESOLVED_BY_PRE_T1_A</span></code> — <code class="docutils literal notranslate"><span class="pre">CURRENT_UNRESOLVED</span> <span class="pre">=</span> <span class="pre">NO</span></code>]</strong> —
+<code class="docutils literal notranslate"><span class="pre">supervision/exchange_monitor.py</span></code> (historically ~lines 252-257, prior
+to PRE-T1-A) told the operator (via an
 email escalation body) to send <code class="docutils literal notranslate"><span class="pre">/STOP_ALL</span></code> on Telegram. No non-test,
 non-archive Telegram poller implements that command against a real
 token — the only implementation (<code class="docutils literal notranslate"><span class="pre">supervision/kill_switch.py</span></code>) is
@@ -1809,10 +2007,15 @@ instruction</strong> in that email body, unless a separately authorized
 control-surface design for a real <code class="docutils literal notranslate"><span class="pre">/STOP_ALL</span></code> path is later approved
 through the process described in §13’s closing note below (a
 distinct mission, with its own authorization — this document
-neither proposes nor authorizes that design). Not corrected in this
-documentation-only PR; must be corrected before T-1.</p></li>
+neither proposes nor authorizes that design).
+<strong>[<code class="docutils literal notranslate"><span class="pre">HISTORICAL_REMEDIATION_REQUIREMENT</span></code> — <code class="docutils literal notranslate"><span class="pre">COMPLETED</span></code>]</strong>
+<strong>[HISTORICAL — <code class="docutils literal notranslate"><span class="pre">RESOLVED_BY_PRE_T1_A</span></code>]</strong> <code class="docutils literal notranslate"><span class="pre">supervision/exchange_monitor.py</span></code> no
+longer contains a <code class="docutils literal notranslate"><span class="pre">/STOP_ALL</span></code> string of any kind (<code class="docutils literal notranslate"><span class="pre">rg</span> <span class="pre">-n</span> <span class="pre">-i</span> <span class="pre">&quot;/stop_all&quot;</span> <span class="pre">supervision/exchange_monitor.py</span></code> returns no match,
+verified this round).</p></li>
 <li><p><strong><code class="docutils literal notranslate"><span class="pre">SAFETY_RELEVANT_OPERATOR_INSTRUCTION_DRIFT</span></code> [R1, wording
-corrected R1.2]</strong> — <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code> contains three
+corrected R1.2; HISTORICAL — <code class="docutils literal notranslate"><span class="pre">RESOLVED_BY_PRE_T1_A</span></code> —
+<code class="docutils literal notranslate"><span class="pre">CURRENT_UNRESOLVED</span> <span class="pre">=</span> <span class="pre">NO</span></code>]</strong> —
+<code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code> historically contained three
 operator-facing <code class="docutils literal notranslate"><span class="pre">/RESUME</span></code> instructions with the identical drift
 (one finding, three strings, per §6/§16’s unit taxonomy): line 3870
 (degraded-mode alert, “Envoyez /RESUME si intervention requise”),
@@ -1824,7 +2027,7 @@ evidence for — <code class="docutils literal notranslate"><span class="pre">Ki
 is the class selected/constructed by the canonical source
 construction path for the kill switch (<code class="docutils literal notranslate"><span class="pre">core/advisor_runtime_adapters.py:109</span></code>
 aliases <code class="docutils literal notranslate"><span class="pre">TelegramKillSwitch</span> <span class="pre">=</span> <span class="pre">KillSwitchHardened</span></code>, instantiated at
-<code class="docutils literal notranslate"><span class="pre">advisor_loop.py:3578</span></code>); whether that construction path actually
+<code class="docutils literal notranslate"><span class="pre">advisor_loop.py:3617</span></code>, <strong>[R1.2, citation corrected; was <code class="docutils literal notranslate"><span class="pre">3578</span></code>]</strong>); whether that construction path actually
 runs in a deployed process is <code class="docutils literal notranslate"><span class="pre">RUNTIME_UNKNOWN</span></code>. <code class="docutils literal notranslate"><span class="pre">KillSwitchHardened</span></code>’s
 source contains zero Telegram code (confirmed by grep,
 §9/§13 item 1), and <code class="docutils literal notranslate"><span class="pre">force_resume()</span></code> has zero call sites outside its
@@ -1848,19 +2051,30 @@ what is broken, independent of delivery, is that the command named
 in the instruction (<code class="docutils literal notranslate"><span class="pre">/RESUME</span></code>) has no dispatcher this mission found
 on any non-test, non-archive Telegram source path, even if the
 message is received. <strong>[R1.3, own remediation assigned per
-Correction C]</strong> This finding’s own remediation: <strong>remove or replace
-only these three misleading <code class="docutils literal notranslate"><span class="pre">/RESUME</span></code> instructions</strong> in
-<code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code>; this is a distinct fix from finding 2’s
+Correction C]</strong> This finding’s own remediation was: <strong>remove or
+replace only these three misleading <code class="docutils literal notranslate"><span class="pre">/RESUME</span></code> instructions</strong> in
+<code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code>; this was a distinct fix from finding 2’s
 <code class="docutils literal notranslate"><span class="pre">/STOP_ALL</span></code> instruction (different file, different message family)
 and from finding 4’s broken notifier call (below) — grouping any of
 the three findings’ remediations together would misstate that they
 share a fix, not merely a root symptom (an unwired Telegram resume
-path).</p></li>
+path).
+<strong>[<code class="docutils literal notranslate"><span class="pre">HISTORICAL_REMEDIATION_REQUIREMENT</span></code> — <code class="docutils literal notranslate"><span class="pre">COMPLETED</span></code>]</strong>
+<strong>[HISTORICAL — <code class="docutils literal notranslate"><span class="pre">RESOLVED_BY_PRE_T1_A</span></code>]</strong> Mission
+O-02W-PRE-T1-A applied exactly this remediation: the three messages,
+now at <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py:3909,</span> <span class="pre">3921,</span> <span class="pre">5614</span></code> (verified this round
+via <code class="docutils literal notranslate"><span class="pre">nl</span> <span class="pre">-ba</span></code>), read “Aucune commande /RESUME n’est disponible via
+Telegram (dispatcher canonique) ; … Escalade manuelle requise” —
+an explicit negation of command availability, not an instruction to
+send one. No current message in this file instructs an operator to
+send <code class="docutils literal notranslate"><span class="pre">/RESUME</span></code>.</p></li>
 <li><p><strong><code class="docutils literal notranslate"><span class="pre">SAFETY_RELEVANT_OPERATOR_INSTRUCTION_DRIFT</span></code>
 /
 <code class="docutils literal notranslate"><span class="pre">SOURCE_PROVEN_NONFUNCTIONAL_NOTIFICATION_CALL</span></code> [R1.1, new;
-corrected R1.2]</strong> —
-<code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/intelligence/self_awareness_engine.py:623-631</span></code>
+corrected R1.2; HISTORICAL — <code class="docutils literal notranslate"><span class="pre">RESOLVED_BY_PRE_T1_B</span></code> —
+<code class="docutils literal notranslate"><span class="pre">CURRENT_UNRESOLVED</span> <span class="pre">=</span> <span class="pre">NO</span></code>, see §9d]</strong> —
+<code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/intelligence/self_awareness_engine.py</span></code>
+historically (pre-PRE-T1-B, at lines ~623-631)
 (<code class="docutils literal notranslate"><span class="pre">_send_telegram_critical()</span></code>) constructs a fourth operator-facing
 <code class="docutils literal notranslate"><span class="pre">/RESUME</span></code> string, separate from and in addition to the three
 <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code> strings in item 3: <code class="docutils literal notranslate"><span class="pre">&quot;SELF-AWARENESS</span> <span class="pre">CRITIQUE\nTrading</span> <span class="pre">suspendu</span> <span class="pre">24h</span> <span class="pre">—</span> <span class="pre">dérives</span> <span class="pre">détectées:\n{msgs}\nEnvoyer</span> <span class="pre">/RESUME</span> <span class="pre">pour</span> <span class="pre">reprendre</span> <span class="pre">manuellement.&quot;</span></code>. This one differs in kind
@@ -1884,22 +2098,33 @@ call expression carrying a <code class="docutils literal notranslate"><span clas
 two</strong> such broken call expressions found (the second, below, carries
 no <code class="docutils literal notranslate"><span class="pre">/RESUME</span></code> text). A second, structurally identical broken call
 expression exists at
-<code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/execution/position_manager.py:528</span></code>
+<code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/execution/position_manager.py</span></code> (historically
+at line ~528)
 (<code class="docutils literal notranslate"><span class="pre">_check_liquidation_defense()</span></code>, a liquidation-distance warning, not
 itself carrying a <code class="docutils literal notranslate"><span class="pre">/RESUME</span></code> instruction but sharing the exact same
 <code class="docutils literal notranslate"><span class="pre">TelegramNotifier().send(...)</span></code> defect) — recorded here as the same
 class of finding, distinct message family, and <strong>not counted</strong> among
 the 5 misleading operator-facing command strings (it carries no
 command instruction of its own) — see the unit taxonomy below.
-<strong>[R1.3, own remediation assigned per Correction C]</strong> This finding’s
-own remediation is decided <strong>separately</strong> from findings 1-3: for the
+<strong>[R1.3, own remediation assigned per Correction C; historical —
+<code class="docutils literal notranslate"><span class="pre">RESOLVED_BY_PRE_T1_B</span></code>]</strong> This finding’s
+own remediation was decided <strong>separately</strong> from findings 1-3: for the
 SelfAwareness broken call (and, independently, for the
 structurally-identical PositionManager broken call), a future
-mission must decide among removing the notification, routing it
+mission was to decide among removing the notification, routing it
 through an already-approved notification facade, or repairing the
 call through a governed identity/configuration path — not
 necessarily the same choice, and not necessarily the same mission,
-as finding 3’s <code class="docutils literal notranslate"><span class="pre">/RESUME</span></code>-instruction removal/replacement.</p></li>
+as finding 3’s <code class="docutils literal notranslate"><span class="pre">/RESUME</span></code>-instruction removal/replacement.
+<strong>[<code class="docutils literal notranslate"><span class="pre">HISTORICAL_REMEDIATION_REQUIREMENT</span></code> — <code class="docutils literal notranslate"><span class="pre">COMPLETED</span></code>]</strong>
+Mission
+O-02W-PRE-T1-B chose removal for both: <code class="docutils literal notranslate"><span class="pre">rg</span> <span class="pre">-n</span> <span class="pre">&quot;TelegramNotifier&quot;</span> <span class="pre">quant_hedge_ai/agents/intelligence/self_awareness_engine.py</span> <span class="pre">quant_hedge_ai/agents/execution/position_manager.py</span></code> returns no
+match in either file, verified this round — both broken call sites,
+and the <code class="docutils literal notranslate"><span class="pre">/RESUME</span></code> string the SelfAwareness one carried, are absent
+from current source. <code class="docutils literal notranslate"><span class="pre">TelegramNotifier</span></code> itself remains a valid,
+still-used notifier class (§17 row for
+<code class="docutils literal notranslate"><span class="pre">supervision/notifications/telegram_notifier.py</span></code>) — this resolution
+does not make it dead code, only these two call sites are affected.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">docs/TELEGRAM_ARCHITECTURE_AUDIT.md</span></code>’s description of an “ÉLEVÉ”
 risk <code class="docutils literal notranslate"><span class="pre">RADAR_BOT_TOKEN</span></code> → <code class="docutils literal notranslate"><span class="pre">TELEGRAM_BOT_TOKEN</span></code> fallback is stale
 (current <code class="docutils literal notranslate"><span class="pre">scripts/radar_bot.py</span></code> has no such fallback) — but this is
@@ -1914,6 +2139,10 @@ behavior) — corrected in this document’s §1/§9, not safety-relevant.</p></
 </ol>
 <p><strong>[R1.2, explicit unit taxonomy — do not use these units
 interchangeably; R1.4, Correction E — items numbered explicitly]</strong></p>
+<p><strong>[R1.1, <code class="docutils literal notranslate"><span class="pre">HISTORICAL_FINDINGS_DISCOVERED</span></code> — all counts below are
+historical, counted against the pre-PRE-T1-A/B revision; the current
+count for all four findings, all five strings, and both broken calls
+is zero — see §9d <code class="docutils literal notranslate"><span class="pre">CURRENT_UNRESOLVED_FINDINGS</span></code>.]</strong></p>
 <ul class="simple">
 <li><p><strong>4 numbered safety-relevant findings</strong> — <strong>items 1-4 of the
 six-entry numbered list above</strong> (items 5-6 are explicitly <em>not</em>
@@ -1941,22 +2170,30 @@ must be corrected before T-1 deployment/runtime certification, but
 they do <strong>not</strong> necessarily share one mission, one fix, or one
 timeline — each is assigned its own remediation above and restated
 here for clarity:</p>
+<p>All four bullets below are <code class="docutils literal notranslate"><span class="pre">HISTORICAL_REMEDIATION_REQUIREMENT</span> <span class="pre">—</span> <span class="pre">COMPLETED</span></code> (<code class="docutils literal notranslate"><span class="pre">CURRENT_UNRESOLVED</span> <span class="pre">=</span> <span class="pre">NO</span></code> for every finding, §9d); they are
+restated verbatim as originally assigned for audit-trail purposes only,
+not as outstanding work.</p>
 <ul class="simple">
-<li><p><strong>Finding 1</strong> (<code class="docutils literal notranslate"><span class="pre">GLOBAL_STATE_MACHINE.md</span></code> contradiction): a narrowly
+<li><p><strong>Finding 1</strong> (<code class="docutils literal notranslate"><span class="pre">GLOBAL_STATE_MACHINE.md</span></code> contradiction):
+<code class="docutils literal notranslate"><span class="pre">HISTORICAL_REMEDIATION_REQUIREMENT</span> <span class="pre">—</span> <span class="pre">COMPLETED</span></code>. Was: a narrowly
 scoped <strong>documentation/governance correction</strong> — update the
 attributed trigger to the actual programmatic caller. Not a source
 code change.</p></li>
-<li><p><strong>Finding 2</strong> (<code class="docutils literal notranslate"><span class="pre">/STOP_ALL</span></code> string): <strong>remove or replace</strong> the
-misleading instruction in <code class="docutils literal notranslate"><span class="pre">supervision/exchange_monitor.py</span></code>, unless
-a separately authorized control-surface design for a real
-<code class="docutils literal notranslate"><span class="pre">/STOP_ALL</span></code> path is later approved (see the closing rule below — such
-a design is not proposed or authorized by this contract).</p></li>
+<li><p><strong>Finding 2</strong> (<code class="docutils literal notranslate"><span class="pre">/STOP_ALL</span></code> string):
+<code class="docutils literal notranslate"><span class="pre">HISTORICAL_REMEDIATION_REQUIREMENT</span> <span class="pre">—</span> <span class="pre">COMPLETED</span></code>. Was: <strong>remove or
+replace</strong> the misleading instruction in
+<code class="docutils literal notranslate"><span class="pre">supervision/exchange_monitor.py</span></code>, unless a separately authorized
+control-surface design for a real <code class="docutils literal notranslate"><span class="pre">/STOP_ALL</span></code> path is later approved
+(see the closing rule below — such a design is not proposed or
+authorized by this contract).</p></li>
 <li><p><strong>Finding 3</strong> (three <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code> <code class="docutils literal notranslate"><span class="pre">/RESUME</span></code> strings):
-<strong>remove or replace</strong> only these three misleading instructions — a
-fix distinct from finding 2’s.</p></li>
+<code class="docutils literal notranslate"><span class="pre">HISTORICAL_REMEDIATION_REQUIREMENT</span> <span class="pre">—</span> <span class="pre">COMPLETED</span></code>. Was: <strong>remove or
+replace</strong> only these three misleading instructions — a fix distinct
+from finding 2’s.</p></li>
 <li><p><strong>Finding 4</strong> (broken SelfAwareness notifier call, and separately
-the structurally-identical PositionManager call): <strong>this document
-does not prescribe a single specific repair.</strong> A separately
+the structurally-identical PositionManager call):
+<code class="docutils literal notranslate"><span class="pre">HISTORICAL_REMEDIATION_REQUIREMENT</span> <span class="pre">—</span> <span class="pre">COMPLETED</span></code>. Was: <strong>this
+document does not prescribe a single specific repair.</strong> A separately
 authorized source mission must decide, for each of the two broken
 call expressions independently, among (a) removing the notification
 entirely, (b) routing it through an already-approved notification
@@ -1966,8 +2203,18 @@ identity/facade (e.g. the existing <code class="docutils literal notranslate"><s
 configuration path. <strong>This contract does not authorize creating,
 copying, exposing, or wiring any Telegram secret/token/chat-id value
 to implement any of these options</strong> — that decision and its
-implementation are out of scope for this documentation-only mission.</p></li>
+implementation are out of scope for this documentation-only mission.
+Mission O-02W-PRE-T1-B chose option (a), removal, for both call
+sites.</p></li>
 </ul>
+<p><strong>[R1.1, <code class="docutils literal notranslate"><span class="pre">RESOLVED_BY_PRE_T1_A</span></code>/<code class="docutils literal notranslate"><span class="pre">RESOLVED_BY_PRE_T1_B</span></code> — current state]</strong>
+All four findings above are historical. Missions O-02W-PRE-T1-A
+(findings 1-3) and O-02W-PRE-T1-B (finding 4, both call sites) have
+each been merged into <code class="docutils literal notranslate"><span class="pre">main</span></code> and re-verified against this branch’s
+current HEAD by this R1.1 round: 0 of the 4 findings, 0 of the 5
+misleading strings, and 0 of the 2 broken call expressions remain
+unresolved. See §9d for the full historical/current reconciliation and
+per-finding evidence.</p>
 <p><strong>[R1.3, closing rule, Correction D]</strong> Removing or rewording a
 misleading operator instruction (findings 2 and 3) is the <strong>safe
 default</strong> and requires no new authorization beyond the narrowly scoped
@@ -2130,9 +2377,13 @@ reclassified per Correction B to <code class="docutils literal notranslate"><spa
 — package-init-importable, no non-test, non-archive construction
 call supplying token credentials found, not “unreachable” in the
 unqualified sense the original text used)
-and TG-02c (the currently-inert blocked-command set that would
-activate <code class="docutils literal notranslate"><span class="pre">_set_param_live</span></code> if ever unblocked, §9b).</p></li>
-<li><p><strong>[R1.2, explicit unit taxonomy — see §13 for full detail]</strong> Four
+and TG-02c (the blocked-command set — a permanent guardrail; <strong>[PRE-T1-C,
+R1]</strong> the mutator it once guarded against, <code class="docutils literal notranslate"><span class="pre">_set_param_live</span></code>, is now
+structurally absent from source rather than merely unblocked-but-inert,
+§9b).</p></li>
+<li><p><strong>[R1.2, explicit unit taxonomy — see §13 for full detail; R1.1,
+<code class="docutils literal notranslate"><span class="pre">HISTORICAL_FINDINGS_DISCOVERED</span></code> — see §9d for the current,
+re-verified state]</strong> Four
 numbered <code class="docutils literal notranslate"><span class="pre">SAFETY_RELEVANT_OPERATOR_INSTRUCTION_DRIFT</span></code> findings —
 items 1-4 of §13’s six-entry numbered list (items 5-6 are not
 safety-relevant): (1)
@@ -2151,22 +2402,32 @@ expressions</strong> (SelfAwareness, carrying a <code class="docutils literal no
 PositionManager, carrying no <code class="docutils literal notranslate"><span class="pre">/RESUME</span></code> string — a
 liquidation-distance warning only). These three counts are distinct
 and must not be used interchangeably. <strong>[R1.3, corrected]</strong> All four
-findings must be corrected before T-1 deployment/runtime
-certification, but not necessarily by the same mission: finding 1 is
-a documentation/governance correction; findings 2 and 3 are each a
+findings needed to be corrected before T-1 deployment/runtime
+certification, but not necessarily by the same mission: finding 1 was
+a documentation/governance correction; findings 2 and 3 were each a
 remove-or-replace fix to a misleading operator-facing string;
-finding 4 requires a separate decision (remove, route through an
+finding 4 required a separate decision (remove, route through an
 approved facade, or governed repair) for each of its two broken call
-expressions. See §13 for the per-finding remediation.</p></li>
+expressions. See §13 for the per-finding remediation. <strong>[current
+state, <code class="docutils literal notranslate"><span class="pre">RESOLVED_BY_PRE_T1_A</span></code>/<code class="docutils literal notranslate"><span class="pre">RESOLVED_BY_PRE_T1_B</span></code>]</strong> All four are
+resolved as of current HEAD — 0 findings, 0 strings, 0 broken calls
+remain among these four; see §9d <code class="docutils literal notranslate"><span class="pre">CURRENT_UNRESOLVED_FINDINGS</span></code> for
+the re-verified evidence per site.</p></li>
 </ul>
 </li>
-<li><p><strong>[R1, new]</strong> Two architectural-boundary items requiring a future
-source mission, neither modified by this documentation-only PR: the
-dormant Portfolio mutator (§9b, <code class="docutils literal notranslate"><span class="pre">_set_param_live</span></code>) and the
-real-capital sizing/risk feed (§9c, Flow 2 — <strong>[R1.1]</strong> now
-precisely described as falling back to stale cached data or paper
-capital, never to an <code class="docutils literal notranslate"><span class="pre">UNKNOWN</span></code> numeric value, only the display
-provenance label fail-closes).</p></li>
+<li><p><strong>[R1, historical — see PRE-T1-C, R1 immediately below]</strong> This
+bullet originally listed two architectural-boundary items requiring
+a future source mission: the dormant Portfolio mutator (§9b,
+<code class="docutils literal notranslate"><span class="pre">_set_param_live</span></code>) and the real-capital sizing/risk feed (§9c,
+Flow 2). <strong>[PRE-T1-C, R1]</strong> The Portfolio-mutator item is resolved —
+mission O-02W-PRE-T1-C structurally removed <code class="docutils literal notranslate"><span class="pre">_set_param_live</span></code> and
+the <code class="docutils literal notranslate"><span class="pre">set_param</span></code>/<code class="docutils literal notranslate"><span class="pre">reset_kpis</span></code> fields (§9b); it is no longer
+outstanding debt and requires no future source mission. One
+architectural-boundary item remains open: the real-capital
+sizing/risk feed (§9c, Flow 2 — <strong>[R1.1]</strong> now precisely described
+as falling back to stale cached data or paper capital, never to an
+<code class="docutils literal notranslate"><span class="pre">UNKNOWN</span></code> numeric value, only the display provenance label
+fail-closes), which this documentation round does not modify.</p></li>
 <li><p><strong>[R1.1, new]</strong> Three files reclassified from “not Telegram-capable”
 to indirect-Telegram-capable via <code class="docutils literal notranslate"><span class="pre">OpsNotifier</span></code>/<code class="docutils literal notranslate"><span class="pre">TelegramNotifier</span></code>
 (§17, Correction B): <code class="docutils literal notranslate"><span class="pre">event_bus/bridge.py</span></code>, <code class="docutils literal notranslate"><span class="pre">supervision/ops_watchdog.py</span></code>,
@@ -2325,16 +2586,16 @@ is safe.</p>
 <td><p>Library/notifier module</p></td>
 <td><p>Library-only</p></td>
 <td><p>Thin <code class="docutils literal notranslate"><span class="pre">TelegramNotifier.notify()</span></code> wrapper</p></td>
-<td><p>Import search: imported by <code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/intelligence/self_awareness_engine.py:623</span></code> and <code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/execution/position_manager.py:526</span></code>, both constructed from <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code> via <code class="docutils literal notranslate"><span class="pre">core/advisor_runtime_adapters.py</span></code> by a source-valid construction path (<code class="docutils literal notranslate"><span class="pre">SelfAwarenessEngine</span></code> used at <code class="docutils literal notranslate"><span class="pre">advisor_loop.py:4484</span></code>; <code class="docutils literal notranslate"><span class="pre">PositionManager</span></code> used at <code class="docutils literal notranslate"><span class="pre">advisor_loop.py:4055-4056,4180</span></code>)</p></td>
-<td><p>SOURCE_PROVEN: the import statement is on a code path that executes whenever the importing module is imported. <strong>[R1.1, Correction C; wording corrected R1.2]</strong> However, <strong>both actual call sites are <code class="docutils literal notranslate"><span class="pre">SOURCE_PROVEN_NONFUNCTIONAL_NOTIFICATION_CALL</span></code></strong> (§0): <code class="docutils literal notranslate"><span class="pre">self_awareness_engine.py:626</span></code> and <code class="docutils literal notranslate"><span class="pre">position_manager.py:528</span></code> both call <code class="docutils literal notranslate"><span class="pre">TelegramNotifier().send(...)</span></code> — zero constructor arguments against the <code class="docutils literal notranslate"><span class="pre">__init__(self,</span> <span class="pre">bot_token,</span> <span class="pre">chat_id)</span></code> signature above, and <code class="docutils literal notranslate"><span class="pre">.send()</span></code>, a method that does not exist on this class (the real method is <code class="docutils literal notranslate"><span class="pre">.notify(message)</span></code>, above). <strong>If</strong> reached at runtime, each deterministically raises before any HTTP request, caught by an enclosing <code class="docutils literal notranslate"><span class="pre">except</span> <span class="pre">Exception:</span> <span class="pre">pass</span></code>; whether either is ever reached in a deployed, triggering process is <code class="docutils literal notranslate"><span class="pre">RUNTIME_UNKNOWN</span></code>. The module/class itself is not broken — only these two specific call expressions are</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">OPERATOR_DECISION_REQUIRED</span></code> — a separately authorized source mission must decide, for each call site, among removing the notification, routing it through an already-approved notification identity/facade, or repairing the call through an explicitly governed identity/configuration path; this contract does not authorize creating, copying, exposing, or wiring any Telegram secret to implement any of these options, and does not itself prescribe which option to take</p></td>
+<td><p><strong>[historical, pre-PRE-T1-B]</strong> Import search at that time: imported by <code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/intelligence/self_awareness_engine.py:623</span></code> and <code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/execution/position_manager.py:526</span></code>, both constructed from <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code> via <code class="docutils literal notranslate"><span class="pre">core/advisor_runtime_adapters.py</span></code> by a source-valid construction path (<code class="docutils literal notranslate"><span class="pre">SelfAwarenessEngine</span></code> used at <code class="docutils literal notranslate"><span class="pre">advisor_loop.py:4522</span></code>; <code class="docutils literal notranslate"><span class="pre">PositionManager</span></code> used at <code class="docutils literal notranslate"><span class="pre">advisor_loop.py:4094</span></code> — <strong>[R1.1, citations corrected this round from stale <code class="docutils literal notranslate"><span class="pre">4484</span></code>/<code class="docutils literal notranslate"><span class="pre">4055-4056,4180</span></code>, verified via <code class="docutils literal notranslate"><span class="pre">rg</span> <span class="pre">-n</span></code> against current HEAD]</strong>). <strong>[historical — <code class="docutils literal notranslate"><span class="pre">RESOLVED_BY_PRE_T1_B</span></code>, see §9d]</strong> SOURCE_PROVEN at that time: the import statement was on a code path that executed whenever the importing module was imported, and <strong>both actual call sites were <code class="docutils literal notranslate"><span class="pre">SOURCE_PROVEN_NONFUNCTIONAL_NOTIFICATION_CALL</span></code></strong> (§0): <code class="docutils literal notranslate"><span class="pre">self_awareness_engine.py:626</span></code> and <code class="docutils literal notranslate"><span class="pre">position_manager.py:528</span></code> both called <code class="docutils literal notranslate"><span class="pre">TelegramNotifier().send(...)</span></code> — zero constructor arguments against the <code class="docutils literal notranslate"><span class="pre">__init__(self,</span> <span class="pre">bot_token,</span> <span class="pre">chat_id)</span></code> signature above, and <code class="docutils literal notranslate"><span class="pre">.send()</span></code>, a method that does not exist on this class (the real method is <code class="docutils literal notranslate"><span class="pre">.notify(message)</span></code>, above). <strong>Current state (verified this round):</strong> neither file imports or references <code class="docutils literal notranslate"><span class="pre">TelegramNotifier</span></code> at all any more — <code class="docutils literal notranslate"><span class="pre">rg</span> <span class="pre">-n</span> <span class="pre">&quot;TelegramNotifier&quot;</span> <span class="pre">quant_hedge_ai/agents/intelligence/self_awareness_engine.py</span> <span class="pre">quant_hedge_ai/agents/execution/position_manager.py</span></code> returns no match in either file; <code class="docutils literal notranslate"><span class="pre">self_awareness_engine.py</span></code>’s <code class="docutils literal notranslate"><span class="pre">_send_telegram_critical()</span></code> method (the SelfAwareness call site) and the equivalent construction in <code class="docutils literal notranslate"><span class="pre">position_manager.py</span></code> are both structurally absent, not merely unreached. <code class="docutils literal notranslate"><span class="pre">TelegramNotifier</span></code> and its <code class="docutils literal notranslate"><span class="pre">.notify()</span></code> API remain unchanged and still validly used elsewhere by other identities in this table — this resolution does not make the class dead code, only these two specific historical call sites are affected</p></td>
+<td><p>Historically <code class="docutils literal notranslate"><span class="pre">OPERATOR_DECISION_REQUIRED</span></code> — a separately authorized source mission was to decide, for each call site, among removing the notification, routing it through an already-approved notification identity/facade, or repairing the call through an explicitly governed identity/configuration path; this contract did not authorize creating, copying, exposing, or wiring any Telegram secret to implement any of these options. <strong>Current: resolved</strong> — mission O-02W-PRE-T1-B removed both call sites (chose the “remove the notification” option for each), closing this row’s <code class="docutils literal notranslate"><span class="pre">OPERATOR_DECISION_REQUIRED</span></code> item; no future source mission is required for these two sites</p></td>
+<td><p></p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">supervision/self_healing_bot.py</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">TELEGRAM_BOT_TOKEN</span></code>/<code class="docutils literal notranslate"><span class="pre">TELEGRAM_CHAT_ID</span></code></p></td>
 <td><p>Sender-only module</p></td>
 <td><p>PUSH_ONLY</p></td>
 <td><p>Self-healing/module-recovery alert</p></td>
-<td><p>Import search: <code class="docutils literal notranslate"><span class="pre">core/advisor_runtime_adapters.py:111</span></code> imports <code class="docutils literal notranslate"><span class="pre">SelfHealingBot</span></code>, instantiated at <code class="docutils literal notranslate"><span class="pre">advisor_loop.py:3623-3624</span></code>, started at <code class="docutils literal notranslate"><span class="pre">advisor_loop.py:3686</span></code> — source caller found</p></td>
+<td><p>Import search: <code class="docutils literal notranslate"><span class="pre">core/advisor_runtime_adapters.py:111</span></code> imports <code class="docutils literal notranslate"><span class="pre">SelfHealingBot</span></code>, instantiated at <code class="docutils literal notranslate"><span class="pre">advisor_loop.py:3663</span></code>, started at <code class="docutils literal notranslate"><span class="pre">advisor_loop.py:3725</span></code> — source caller found (<strong>[R1.2, citations corrected; were <code class="docutils literal notranslate"><span class="pre">3623-3624</span></code>/<code class="docutils literal notranslate"><span class="pre">3686</span></code>, verified via <code class="docutils literal notranslate"><span class="pre">rg</span> <span class="pre">-n</span></code> against current HEAD]</strong>)</p></td>
 <td><p>SOURCE_PROVEN (code + source caller found); RUNTIME_UNKNOWN whether <code class="docutils literal notranslate"><span class="pre">crypto-advisor.service</span></code> is running on the VPS</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">KEEP_UNTIL_COCKPIT_RUNTIME_CERTIFIED</span></code> — same TG-06-class treatment; should be folded into TG-06’s Phase 2 comparison as an additional message source</p></td>
 </tr>
@@ -2522,7 +2783,8 @@ require.</p>
 <li><a class="reference internal" href="#cockpit-read-only-surface-for-10-overlap-comparison">8. Cockpit read-only surface (for §10 overlap comparison)</a></li>
 <li><a class="reference internal" href="#identity-matrix">9. Identity matrix</a></li>
 <li><a class="reference internal" href="#a-message-family-table-correction-f-one-category-per-row">9a. Message-family table (Correction F — one category per row)</a></li>
-<li><a class="reference internal" href="#b-dormant-portfolio-mutator-capability-correction-d">9b. Dormant Portfolio mutator capability (Correction D)</a></li>
+<li><a class="reference internal" href="#b-portfolio-mutator-structurally-removed-correction-d-resolved-pre-t1-c-r1">9b. Portfolio mutator — structurally removed (Correction D; resolved PRE-T1-C, R1)</a></li>
+<li><a class="reference internal" href="#d-pre-t1-a-pre-t1-b-reconciliation-historical-vs-current-findings">9d. PRE-T1-A / PRE-T1-B reconciliation — historical vs. current findings</a></li>
 <li><a class="reference internal" href="#c-real-account-data-boundary-two-independent-flows-correction-e">9c. Real-account data boundary — two independent flows (Correction E)</a></li>
 <li><a class="reference internal" href="#cockpit-overlap-matrix">10. Cockpit-overlap matrix</a></li>
 <li><a class="reference internal" href="#safe-cutover-protocol-defined-not-executed">11. Safe cutover protocol (defined, not executed)</a><ul>
