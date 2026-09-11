@@ -3832,11 +3832,11 @@ def main(
 
     # Lire le capital réel disponible (balance USDT testnet ou .env fallback)
     # Après bootstrap, WalletSync retourne X si défini, sinon WALLET_PAPER_CAPITAL.
-    real_capital = exec_engine.fetch_available_capital()
-    if real_capital < MIN_CAPITAL_X:
+    scientific_capital = exec_engine.fetch_available_capital()
+    if scientific_capital < MIN_CAPITAL_X:
         log.warning(
             "[WalletSync] Capital = $%.4f < $%.1f — système en mode dégradé",
-            real_capital,
+            scientific_capital,
             MIN_CAPITAL_X,
         )
 
@@ -3873,10 +3873,10 @@ def main(
             phase=_P10_PHASE,
             halt_fn=lambda reason: _halt_requested.set(),
         )
-        _p10_kpi = _P10KPICls(phase=_P10_PHASE, initial_capital=real_capital)
+        _p10_kpi = _P10KPICls(phase=_P10_PHASE, initial_capital=scientific_capital)
         if advisor_only:
             # Paper mode : capital paper indépendant du capital réel throttlé.
-            # Le CapitalThrottle (basé sur $real_capital live) ne s'applique pas.
+            # Le CapitalThrottle (basé sur $scientific_capital live) ne s'applique pas.
             # Invariant : paper_order_usd n'affecte jamais la taille des ordres live.
             _paper_order_usd = float(os.getenv("PAPER_SIM_ORDER_USD", "25.0"))
             max_order = min(max_order, _paper_order_usd)
@@ -4011,7 +4011,7 @@ def main(
 
         _pb_provider = _CDP(
             get_kpis=lambda: _kpi_snapshot_with_canonical_n(_p10_kpi),
-            get_balances=lambda: {"spot": real_capital, "futures": 0.0},
+            get_balances=lambda: {"spot": scientific_capital, "futures": 0.0},
             get_balance_provenance=_get_balance_provenance_for_bot,
             get_paper_equity=_paper_equity_display,
             get_positions=_get_positions_for_bot,
@@ -4044,11 +4044,11 @@ def main(
     # ─────────────────────────────────────────────────────────────────────────
 
     order_size = min(
-        max_order, real_capital * float(os.getenv("V9_MAX_POSITION_WEIGHT", "0.05"))
+        max_order, scientific_capital * float(os.getenv("V9_MAX_POSITION_WEIGHT", "0.05"))
     )
     log.info(
         "Capital disponible: $%.2f | Taille ordre: $%.2f (max $%.2f)",
-        real_capital,
+        scientific_capital,
         order_size,
         max_order,
     )
@@ -4071,7 +4071,7 @@ def main(
         f"Symboles: {', '.join(symbols)}\n"
         f"Intervalle: {interval}s | Rapport: toutes les {interval * NOTIFY_EVERY // 60} min\n"
         f"Portefeuille unique: {_x_status}\n"
-        f"Capital: ${real_capital:.0f} | Ordre max: ${order_size:.0f}\n"
+        f"Capital: ${scientific_capital:.0f} | Ordre max: ${order_size:.0f}\n"
         f"Mode: {trading_mode}\n"
         f"Kill Switch: actif | Exchange Monitor: actif\n"
         f"Self-Healing: actif | Watchdog: actif\n"
@@ -4085,7 +4085,7 @@ def main(
     sub_manager = None
     log.info(
         "[Portefeuille] Unique — X=$%.2f USDT (SubaccountManager désactivé définitivement)",
-        real_capital,
+        scientific_capital,
     )
 
     # Position Manager — surveille les positions ouvertes (TP/SL/trailing)
@@ -4539,13 +4539,13 @@ def main(
     # Portfolio Brain — risque global du portefeuille (corrélation, concentration, exposition)
     portfolio_brain = _profile_bootstrap_step(
         "portfolio_brain",
-        lambda: runtime.PortfolioBrain(total_capital=real_capital),
+        lambda: runtime.PortfolioBrain(total_capital=scientific_capital),
     )
 
     # Capital Allocation Engine — taille optimale par Kelly/EV/volatilité
     capital_engine = _profile_bootstrap_step(
         "capital_engine",
-        lambda: runtime.CapitalAllocationEngine(total_capital=real_capital),
+        lambda: runtime.CapitalAllocationEngine(total_capital=scientific_capital),
     )
 
     # ── System Controller — méta-régulateur post-trade ────────────────────────
@@ -4636,7 +4636,7 @@ def main(
     executive_override = _profile_bootstrap_step(
         "executive_override",
         lambda: runtime.ExecutiveOverride(
-            total_capital=real_capital,
+            total_capital=scientific_capital,
             on_level_change=_on_override_change,
         ),
     )
@@ -4645,7 +4645,7 @@ def main(
     black_box = _profile_bootstrap_step("black_box", runtime.BlackBox)
     _black_box_ref["instance"] = black_box
     black_box.record_system_event(
-        "DEMARRAGE", f"capital={real_capital:.0f} mode={trading_mode}"
+        "DEMARRAGE", f"capital={scientific_capital:.0f} mode={trading_mode}"
     )
     # Marqueur BOOT automatique — plus jamais de redémarrage anonyme (cf. incident
     # 2026-07-07 : 3 arrêts sans auteur identifié entre 04:00 et 04:08 UTC).
@@ -4900,7 +4900,7 @@ def main(
         risk_state = {
             "drawdown": max(
                 0.0,
-                -_to_float(pm_stats.get("total_pnl_usd", 0.0)) / max(1.0, real_capital),
+                -_to_float(pm_stats.get("total_pnl_usd", 0.0)) / max(1.0, scientific_capital),
             ),
             "loss_streak": _consecutive_losses["value"],
         }
@@ -5071,7 +5071,7 @@ def main(
             try:
                 pm_stats_live = _stats_dict(pos_manager.stats())
                 open_pnl_pct = _to_float(pm_stats_live.get("open_pnl_usd", 0.0)) / max(
-                    1.0, real_capital
+                    1.0, scientific_capital
                 )
                 executive_override.update(
                     loss_streak=_consecutive_losses["value"],
@@ -5079,7 +5079,7 @@ def main(
                     daily_loss_pct=max(
                         0.0,
                         -_to_float(pm_stats_live.get("total_pnl_usd", 0.0))
-                        / max(1.0, real_capital),
+                        / max(1.0, scientific_capital),
                     ),
                 )
             except Exception:
@@ -5217,13 +5217,13 @@ def main(
         from observability.metrics_collector import MetricsCollector as _MCCls
 
         _metrics_collector = _MCCls(
-            capital_fn=lambda: real_capital,
+            capital_fn=lambda: scientific_capital,
             positions_fn=lambda: (
                 len(pos_manager.get_open_positions())
                 if hasattr(pos_manager, "get_open_positions")
                 else 0
             ),
-            initial_capital=real_capital,
+            initial_capital=scientific_capital,
         )
         _metrics_collector.set_boot_gate_cleared(True)
         _alert_engine_p12 = _AECls(
@@ -5259,7 +5259,7 @@ def main(
 
         _risk_governor: Any = _RGCls()
         _capital_throttle: Any = _CTCls()
-        _dyn_exposure: Any = _DEMCls(real_capital)
+        _dyn_exposure: Any = _DEMCls(scientific_capital)
         log.info(
             "[P7] RiskGovernor + CapitalThrottle + DynamicExposureManager initialisés"
         )
@@ -5735,13 +5735,20 @@ def main(
                     log.debug("[Universe] Sync erreur cycle %d: %s", cycle, _use)
             # ─────────────────────────────────────────────────────────────────
 
-            # Mise à jour du capital réel en début de cycle (balance live)
+            # Mise à jour du capital scientifique en début de cycle (O-02W-PRE-T1-D
+            # remediation) — order_size doit refléter le capital scientifique courant,
+            # pas la valeur figée au bootstrap (défaut #8 de l'audit PRE-T1-D).
             try:
                 fresh_capital = exec_engine.fetch_available_capital()
                 if fresh_capital > 0:
-                    real_capital = fresh_capital
-                    portfolio_brain.update_capital(real_capital)
-                    capital_engine.update_capital(real_capital)
+                    scientific_capital = fresh_capital
+                    portfolio_brain.update_capital(scientific_capital)
+                    capital_engine.update_capital(scientific_capital)
+                    order_size = min(
+                        max_order,
+                        scientific_capital
+                        * float(os.getenv("V9_MAX_POSITION_WEIGHT", "0.05")),
+                    )
             except Exception:
                 pass
 
@@ -5889,7 +5896,7 @@ def main(
             if _risk_governor is not None:
                 try:
                     _ct_factor = (
-                        _capital_throttle.update(real_capital)
+                        _capital_throttle.update(scientific_capital)
                         if _capital_throttle is not None
                         else 1.0
                     )
@@ -5964,7 +5971,7 @@ def main(
                         cycle=cycle,
                         regime=_adaptive_regime,
                         risk_state=_rg_state_str,
-                        capital_total=real_capital,
+                        capital_total=scientific_capital,
                         exposure_factor=(
                             _rg_snapshot.size_multiplier if _rg_snapshot else 1.0
                         ),
@@ -6413,7 +6420,7 @@ def main(
                             )
                             check_hard_limits(
                                 order_size_usd=effective_size,
-                                capital_usd=max(real_capital, 1.0),
+                                capital_usd=max(scientific_capital, 1.0),
                                 current_drawdown_pct=(
                                     float(r.get("gate", {}).get("drawdown_pct", 0.0))
                                     if hasattr(r.get("gate"), "get")
@@ -7238,7 +7245,7 @@ def main(
 
             # Executive Override — mise à jour capital live
             try:
-                executive_override.update(capital_current=real_capital)
+                executive_override.update(capital_current=scientific_capital)
             except Exception:
                 pass
 
@@ -7317,7 +7324,7 @@ def main(
                     # Compte n°1 — en observation (aucun exchange d'exécution),
                     # l'entête « Statut Compte Réel » reflète les soldes réels
                     # multi-exchange observés au lieu de $0. Affichage
-                    # uniquement, jamais le sizing (ADR-0007 ; real_capital
+                    # uniquement, jamais le sizing (ADR-0007 ; scientific_capital
                     # reste la base épinglée WALLET_PAPER_CAPITAL).
                     if _ex is None:
                         try:
@@ -7362,7 +7369,7 @@ def main(
                         for _p in _open_positions
                     )
                     _paper_equity = _to_float(
-                        pb_health.get("capital", real_capital), 0.0
+                        pb_health.get("capital", scientific_capital), 0.0
                     )
                     _paper_cash = max(0.0, _paper_equity - _deployed_notional)
 
@@ -7817,7 +7824,7 @@ def main(
                 _snap_data = {
                     "ts": time.time(),
                     "cycle": cycle,
-                    "capital": real_capital,
+                    "capital": scientific_capital,
                     "safe_mode": _runtime_safe_mode_active(),
                     "cycle_duration_ms": _cycle_elapsed_ms,
                     "n_symbols": len(results),
@@ -7970,7 +7977,7 @@ def main(
                     ):
                         _ir = _integrity_audit.run(
                             cycle=cycle,
-                            real_capital=real_capital,
+                            real_capital=scientific_capital,
                             last_trade_signal=last_trade_signal,
                             last_loss_time=last_loss_time,
                             trades_this_hour=trades_this_hour,
@@ -8147,12 +8154,12 @@ def main(
                         ),
                         portfolio=PortfolioSnapshot(
                             paper_equity=round(
-                                _to_float(_hb_pb.get("capital", real_capital), 0.0), 2
+                                _to_float(_hb_pb.get("capital", scientific_capital), 0.0), 2
                             ),
                             paper_cash=round(
                                 max(
                                     0.0,
-                                    _to_float(_hb_pb.get("capital", real_capital), 0.0)
+                                    _to_float(_hb_pb.get("capital", scientific_capital), 0.0)
                                     - sum(
                                         _to_float(getattr(p, "size_usd", 0.0), 0.0)
                                         for p in pos_manager.get_open()

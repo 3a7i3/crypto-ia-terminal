@@ -228,31 +228,27 @@ class ExecutionEngine:
 
     def fetch_available_capital(self) -> float:
         """
-        Retourne le capital USDT libre — source unique via WalletSync.
+        Retourne le capital de décision scientifique — SEULE entrée pour le
+        sizing/risque (O-02W-PRE-T1-D remediation,
+        docs/adr/0018-scientific-capital-exchange-observation-separation.md).
 
-        En mode paper : WALLET_PAPER_CAPITAL + somme cumulative des pnl_usd
-        du ledger (databases/paper_trades.jsonl) — identique à ce qu'affichent
-        /portfolio, le bot Intel et prelive_gate.py. Plus de divergence entre
-        modules (avant : MEXC_SIM_CAPITAL / V9_INITIAL_CAPITAL / VIRTUAL_CAPITAL_USD
-        coexistaient sans jamais être synchronisés).
+        WALLET_PAPER_CAPITAL + somme cumulative des pnl_usd du ledger
+        (databases/paper_trades.jsonl) — identique à ce qu'affichent
+        /portfolio, le bot Intel et prelive_gate.py.
 
-        En mode live/testnet : solde réel via l'exchange configuré, caché et
-        avec fallback sur la dernière valeur connue si l'API échoue (évite de
-        fabriquer un faux drawdown — cf bug DD=89.9% / ExecutiveOverride VETO).
+        Cette valeur est désormais STRICTEMENT indépendante de
+        EXCHANGE_MODE, PAPER_TRADING_ENABLED, LIVE_TRADING_CONFIRMED, de
+        self._mode/self._exchange, et de l'ordre d'initialisation du
+        singleton WalletSync — elle ne fait AUCUN appel exchange (défauts
+        #1-#6 de l'audit PRE-T1-D, closés). Les soldes d'exchange réels
+        restent purement observationnels : voir
+        infra.wallet_sync.WalletSync.observe_exchange_balance() /
+        observability/real_accounts.py, qui ne doivent jamais alimenter ce
+        retour.
         """
-        from infra.wallet_sync import get_wallet_sync
+        from infra.wallet_sync import get_scientific_capital
 
-        # En PAPER_TRADING_ENABLED=true, la machine doit utiliser son capital local
-        # (WALLET_PAPER_CAPITAL + PnL session) et non le solde API.
-        paper_trading_enabled = os.getenv("PAPER_TRADING_ENABLED", "true").lower() in {
-            "1",
-            "true",
-            "yes",
-            "on",
-        }
-        wallet_mode = "paper" if paper_trading_enabled else self._mode
-        wallet = get_wallet_sync(exchange=self._exchange, mode=wallet_mode)
-        return wallet.get_balance()
+        return get_scientific_capital()
 
     def detect_quote_asset(self, symbol: str) -> str:
         """Détecte la devise de quote d'une paire (ex: BTC/USDT → USDT)."""

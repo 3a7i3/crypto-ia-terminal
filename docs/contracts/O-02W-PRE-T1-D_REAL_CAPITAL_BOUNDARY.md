@@ -934,3 +934,150 @@ display-only status (§7), and the absence of VPS runtime proof (§9) are all
 unchanged and unaffected by this round's correction.
 
 **VERDICT (unchanged): `REMEDIATION_REQUIRED`.**
+
+---
+
+## 14. O-02W-PRE-T1-D REMEDIATION (2026-09-11) — R2, closes this audit's `REMEDIATION_REQUIRED` verdict
+
+**This section does not erase the historical audit above** — §1-§13 remain
+the accurate record of what PR #134 found and proved, under the heading
+`HISTORICAL_AUDIT_FINDING` throughout this section. This section records
+what changed, under `REMEDIATED_IN_PRE_T1_D`, and what now holds, under
+`CURRENT_INVARIANT`. Full design rationale:
+`docs/adr/0018-scientific-capital-exchange-observation-separation.md`.
+Branch: `claude/o02w-pre-t1-d-scientific-capital-separation`.
+
+**Approved policy (verbatim, per mission brief):** *"Scientific/paper
+portfolio capital is the sole input to scientific decision, risk and
+sizing calculations. Real exchange balances are display-only during the
+F-00 scientific phase and must not influence those calculations."*
+
+### 14.1 Architectural change
+
+`infra.wallet_sync.get_scientific_capital()` — a new, standalone module
+function — is now the **sole** accessor for decision/sizing/risk capital.
+It equals `WALLET_PAPER_CAPITAL + cumulative ledger PnL` (the formula
+`WalletSync._base_capital()`/`get_balance()` already used in paper mode —
+**unchanged**), makes **zero exchange calls**, and reads no singleton
+state, no `EXCHANGE_MODE`, no `PAPER_TRADING_ENABLED`, no
+`LIVE_TRADING_CONFIRMED`.
+
+`WalletSync.observe_exchange_balance()` — a new method — is the **sole**
+exchange-observation accessor. It returns an `ExchangeBalanceObservation`
+(`status` ∈ `FRESH|ZERO|CACHED_FRESH|STALE_CACHE|ERROR|ABSENT`, `value`),
+never a bare ambiguous float. `CACHED_FRESH` is a normal within-TTL cache
+hit (no API call attempted this invocation); `STALE_CACHE` is reserved for
+the case where a refresh WAS attempted (TTL expired, or `force_refresh=True`)
+and failed, returning a previously-known value as fallback (R1 correction,
+§14.4 below — the initial remediation's cache-hit branch collapsed these
+two into `STALE_CACHE` for virtually every cache reuse). It is DISPLAY-ONLY
+and is never called from any decisional path (proven structurally, §14.3
+invariant 20).
+
+`ExecutionEngine.fetch_available_capital()` — the historical decisional
+entry point this audit's §3/§11/§12 characterized — is rewritten to call
+`get_scientific_capital()` exclusively. It no longer references
+`get_wallet_sync`, `wallet_mode`, `self._exchange`, or `self._mode`.
+
+`core/advisor_loop.py`'s `order_size` (frozen at bootstrap per §5/H5) is
+now recomputed every cycle immediately after the scientific-capital
+refresh, using the same unchanged formula
+(`min(max_order, scientific_capital * V9_MAX_POSITION_WEIGHT)`). The
+decisional local variable in this flow was renamed from `real_capital` to
+`scientific_capital` (R1 correction, §14.5 below) — naming only, formula
+unchanged.
+
+P10 `CapitalThrottle` (`capital_deployment/capital_throttle.py`, §6/H6) is
+**unchanged** — still intentionally pinned to `WALLET_PAPER_CAPITAL` per
+ADR-0011/ADR-0007; no alternative was needed to satisfy the separation
+policy, since P10 was already reading a value structurally identical to
+`get_scientific_capital()`'s formula.
+
+`RealAccountsObserver`/`observability/real_accounts.py` (§7, `DISPLAY_ONLY`)
+— **unchanged**, already structurally independent.
+
+### 14.2 Defect-by-defect status
+
+| # | Defect (§13 of the historical audit) | Status |
+|---|---|---|
+| 1 | Singleton mode frozen at first call | `REMEDIATED_IN_PRE_T1_D` — decisional path no longer reads singleton mode |
+| 2 | Later mode requests silently ignored | `REMEDIATED_IN_PRE_T1_D` — decisional path no longer requests a mode |
+| 3 | API balance can influence PAPER-labeled calculations | `REMEDIATED_IN_PRE_T1_D` — proven by `TestR2ScientificInvariance`/`TestR2DirectionalNonContamination` |
+| 4 | Paper capital can influence LIVE/TESTNET-requesting calculations | `REMEDIATED_IN_PRE_T1_D` — no LIVE/TESTNET request reaches the decisional accessor at all now |
+| 5 | Live/testnet API error can silently return `WALLET_PAPER_CAPITAL` as exchange evidence | `REMEDIATED_IN_PRE_T1_D` — `observe_exchange_balance()` returns `ERROR`, never a masked paper value |
+| 6 | API zero and API failure collapse to the same numeric result | `REMEDIATED_IN_PRE_T1_D` — `ZERO` vs `ERROR` are distinct statuses |
+| 7 | `_x`/`_last_value` co-seeded, previously mis-described | `CURRENT_INVARIANT` — classification already corrected in PR #134 (R1.2); untouched by this remediation, and now entirely outside the scientific-capital path regardless |
+| 8 | `order_size` can remain frozen after capital changes | `REMEDIATED_IN_PRE_T1_D` — recomputed every cycle, §14.1 |
+| 9 | Order-execution gating and capital provenance are independent guarantees | `CURRENT_INVARIANT` — confirmed unchanged, `TestR2ExecutionSafety` (invariants 16-19) |
+| 10 | `RealAccountsObserver`/cockpit/Telegram are observational only | `CURRENT_INVARIANT` — confirmed unchanged, no modification required |
+
+### 14.3 Regression proof
+
+`tests/test_pre_t1_d_real_capital_boundary.py` — 94 tests total (the
+original 64, with 9 rewritten where their expected result deliberately
+demonstrated a now-fixed defect — marked `HISTORICAL_AUDIT_FINDING` /
+`REMEDIATED_IN_PRE_T1_D` in their docstrings — plus 30 new tests across
+`TestR2ScientificInvariance` (6), `TestR2DirectionalNonContamination` (4),
+`TestR2FailureHonesty` (5), `TestR2ExecutionSafety` (4), and
+`TestR2StructuralProof` (3), covering all 22 required invariants with
+some parametrized). All 94 pass at the remediated HEAD. Before this
+remediation (starting HEAD `2f226d09...`), the 9 rewritten tests failed as
+expected (they asserted the pre-remediation leak/frozen-state behavior).
+`quant_hedge_ai/agents/execution/test_execution_engine_futures.py`'s
+`TestFetchAvailableCapital::test_paper_trading_disabled_uses_exchange_balance`
+was likewise rewritten for the same reason (same historical-defect class,
+outside the two mandated test files but a direct caller of the changed
+function).
+
+**RUNTIME_UNKNOWN (unchanged from the historical audit):** the actual VPS
+`.env`/process runtime state remains unestablished by this remediation, as
+by the original audit — this mission made no VPS changes and no
+deployment (per the stabilization-window freeze).
+
+### 14.4 R1 correction (post-review, 2026-09-11)
+
+Two defects found in MASTER review of the initial remediation, fixed on top
+of the same branch (no rebase, no history rewrite):
+
+1. **Naming** — the decisional local in `core/advisor_loop.py` assigned
+   from `exec_engine.fetch_available_capital()` (feeding `order_size`,
+   `portfolio_brain.update_capital()`, `capital_engine.update_capital()`)
+   was still named `real_capital`, misleadingly implying a real exchange
+   balance post-remediation. Renamed to `scientific_capital` throughout the
+   decisional flow of that file (formula unchanged). The one keyword
+   argument at the `system.state_integrity` `_integrity_audit.run(...)`
+   call site kept its `real_capital=` parameter name (owned by a different,
+   out-of-scope module) — only the value passed changed to
+   `scientific_capital`.
+2. **Cache classification** — `observe_exchange_balance()`'s cache-hit
+   branch (`STALE_CACHE if now - self._last_fetch_ts > 0 else FRESH`)
+   collapsed virtually every within-TTL cache hit into `STALE_CACHE`, since
+   time always advances. A new `CACHED_FRESH` status was added to
+   `ExchangeObservationStatus`; the branch now returns `CACHED_FRESH`
+   unconditionally for a normal within-TTL cache hit (no API call
+   attempted), and `STALE_CACHE` is reserved for the failure-fallback case
+   (refresh attempted because TTL expired or `force_refresh=True`, and
+   failed). A genuine `ZERO` observation now also populates the cache
+   (`_last_value`/`_last_fetch_ts`), same as `FRESH`, so a subsequent
+   within-TTL call correctly returns `CACHED_FRESH(0.0)` instead of
+   re-hitting the API every time.
+
+**Regression proof:** `tests/test_pre_t1_d_real_capital_boundary.py` grew
+from 94 to 139 tests (45 new, in `TestR1CacheStateClassification` and
+`TestR1ObservationNeverAffectsScientificCapitalOrSizing`), using a
+monkeypatched `time.time` (`_FakeClock`, no `sleep()`) to deterministically
+reach and distinguish all 6 `ExchangeObservationStatus` states, confirm
+exact fake-exchange call counts per state, and prove none of the 6 states
+ever changes `get_scientific_capital()`'s return value or the derived
+`order_size`. Fail-before/pass-after: 4 of the new tests fail against the
+pre-R1 `infra/wallet_sync.py` (confirmed via `git stash` of that file
+alone) and all 139 pass with the fix. Both fixes are naming/display-only —
+no sizing formula, threshold, or decisional data changed.
+
+### 14.5 Verdict
+
+**VERDICT: `REMEDIATION_REQUIRED` (§13) is now CLOSED by this section.**
+Defects #1-#6 and #8 are `REMEDIATED_IN_PRE_T1_D`; defects #7, #9, #10 were
+already `CURRENT_INVARIANT`/acceptable design and remain so, unmodified.
+This remediation does not authorize live trading or deployment — see
+`docs/adr/0018-scientific-capital-exchange-observation-separation.md` §8.

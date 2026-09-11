@@ -1,5 +1,23 @@
 # Telegram Observation Boundary & Safe Cutover Contract
 
+**O-02W-PRE-T1-D remediation note (2026-09-11, added post-hoc, does not
+rewrite the audit text below):** this document's references to
+`ExecutionEngine.fetch_available_capital()`/`real_capital` being
+"mode-dependent" (e.g. §9a, §16, the French excerpt near "mode-dépendant")
+describe the **pre-remediation** behavior, now `HISTORICAL_AUDIT_FINDING`.
+As of the O-02W-PRE-T1-D remediation
+(`docs/adr/0018-scientific-capital-exchange-observation-separation.md`,
+`docs/contracts/O-02W-PRE-T1-D_REAL_CAPITAL_BOUNDARY.md`'s remediation
+section), `fetch_available_capital()` returns the scientific/paper capital
+exclusively (`infra.wallet_sync.get_scientific_capital()`) — it is no
+longer mode-dependent, and `real_capital` in `core/advisor_loop.py` is
+fed by that function. This narrows, but does not withdraw, this document's
+finding that real-account data was distinct from the pure display-only
+observer path: `fetch_available_capital()` remains outside
+`RealAccountsObserver`'s Flow 1, but is now itself fully decoupled from any
+exchange balance rather than merely a separate mode-dependent flow. See the
+remediation section of the PRE-T1-D contract for the current invariant.
+
 Mission O-02W-E1 · Base SHA `17a2f70537ee48f70500974dddf5f0458c02cc50` ·
 2026-09-10 · Documentation-only mission (no runtime code changes, no
 Telegram sender/poller/token/chat/command changed, no VPS access, no
