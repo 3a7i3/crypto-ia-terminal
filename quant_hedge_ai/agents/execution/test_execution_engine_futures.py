@@ -252,13 +252,26 @@ class TestFetchAvailableCapital:
         assert e.fetch_available_capital() == 1337.0
         _ws.reset_wallet_sync()
 
-    def test_paper_trading_disabled_uses_exchange_balance(self, tmp_path, monkeypatch):
+    def test_paper_trading_disabled_does_not_leak_exchange_balance_into_scientific_capital(
+        self, tmp_path, monkeypatch
+    ):
+        """R2 remediation (O-02W-PRE-T1-D fix): HISTORICAL_AUDIT_FINDING —
+        this test originally proved that PAPER_TRADING_ENABLED=false plus
+        an attached exchange caused fetch_available_capital() to return the
+        exchange balance (defect #3/#4). REMEDIATED_IN_PRE_T1_D:
+        fetch_available_capital() is now the scientific-capital accessor
+        exclusively, independent of PAPER_TRADING_ENABLED and of any
+        attached exchange."""
         monkeypatch.setenv("EXEC_TRADE_LOG", str(tmp_path / "t.sqlite"))
         monkeypatch.setenv("PAPER_TRADING_ENABLED", "false")
         import infra.wallet_sync as _ws
 
         class _FakeExchange:
+            def __init__(self):
+                self.calls = 0
+
             def fetch_balance(self):
+                self.calls += 1
                 return {"free": {"USDT": 321.5}}
 
         _ws.reset_wallet_sync()
@@ -267,8 +280,10 @@ class TestFetchAvailableCapital:
 
         e = ExecutionEngine(live=False)
         e._mode = "live"
-        e._exchange = _FakeExchange()
-        assert e.fetch_available_capital() == 321.5
+        fake = _FakeExchange()
+        e._exchange = fake
+        assert e.fetch_available_capital() == 7777.0  # scientific capital only
+        assert fake.calls == 0
         _ws.reset_wallet_sync()
 
 
