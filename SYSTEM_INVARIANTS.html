@@ -270,22 +270,22 @@
 </thead>
 <tbody>
 <tr class="row-even"><td><p><strong>Condition</strong></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">size</span> <span class="pre">&lt;=</span> <span class="pre">0</span></code> ou <code class="docutils literal notranslate"><span class="pre">size</span> <span class="pre">&gt;</span> <span class="pre">1e9</span></code> avant tout envoi d’ordre</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">size</span></code> non-fini, <code class="docutils literal notranslate"><span class="pre">size</span> <span class="pre">&lt;=</span> <span class="pre">0</span></code> ou <code class="docutils literal notranslate"><span class="pre">size</span> <span class="pre">&gt;</span> <span class="pre">1e9</span></code> avant tout envoi d’ordre</p></td>
 </tr>
 <tr class="row-odd"><td><p><strong>Module</strong></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/execution/execution_engine.py:285</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/execution/execution_engine.py</span></code> (Correction A, O-02W-PRE-T1-E REM-A — voir <code class="docutils literal notranslate"><span class="pre">docs/adr/0019-pre-network-order-authorization.md</span></code>)</p></td>
 </tr>
 <tr class="row-even"><td><p><strong>Mécanisme</strong></p></td>
-<td><p>Alerte critique + auto-heal à 1.0 USD (jamais transmis tel quel)</p></td>
+<td><p>Alerte critique + rejet (<code class="docutils literal notranslate"><span class="pre">mode=&quot;rejected&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">denial_reason</span></code>) — plus jamais de substitution/auto-heal à une valeur fabriquée depuis REM-A</p></td>
 </tr>
 <tr class="row-odd"><td><p><strong>Enforcement</strong></p></td>
-<td><p><strong>SOFT</strong> (auto-heal, non rejeté — alert critique levée)</p></td>
+<td><p><strong>HARD</strong> (rejeté, jamais transmis — alert critique levée)</p></td>
 </tr>
 <tr class="row-even"><td><p><strong>Log</strong></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">AlertManager.raise_alert(&quot;order_size_anomaly&quot;,</span> <span class="pre">&quot;critical&quot;)</span></code></p></td>
 </tr>
 <tr class="row-odd"><td><p><strong>Test</strong></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">test_invariants.py::test_i01_size_zero_auto_healed</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">test_invariants.py::test_i01_size_zero_rejected</span></code>, <code class="docutils literal notranslate"><span class="pre">test_i01_negative_size_rejected</span></code></p></td>
 </tr>
 </tbody>
 </table>

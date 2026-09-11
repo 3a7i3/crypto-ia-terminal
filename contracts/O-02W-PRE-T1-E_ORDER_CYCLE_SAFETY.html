@@ -861,6 +861,100 @@ this exact HEAD’s source and confirmed behaviorally against a fake exchange
 in §17. No production code was modified to address any of it in this round,
 per the audit-first scope.</p>
 </section>
+<section id="rem-a-remediation-status-o-02w-pre-t1-e-rem-a-2026-09-11">
+<h2>21. REM-A remediation status (O-02W-PRE-T1-E-REM-A, 2026-09-11)<a class="headerlink" href="#rem-a-remediation-status-o-02w-pre-t1-e-rem-a-2026-09-11" title="Link to this heading">¶</a></h2>
+<p><strong>This section is an addendum, not a rewrite</strong> — §1-20 above document the
+audit exactly as performed against <code class="docutils literal notranslate"><span class="pre">297eba89</span></code> and are preserved unedited.
+A first, narrow remediation phase (REM-A) has since fixed a subset of the
+blockers listed in §18, per
+<code class="docutils literal notranslate"><span class="pre">docs/adr/0019-pre-network-order-authorization.md</span></code>. Status per blocker:</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Blocker</p></th>
+<th class="head"><p>Status</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>B1 (H1, invalid-size substitution)</p></td>
+<td><p><strong>REMEDIATED_IN_PRE_T1_E_REM_A</strong> — rejected via <code class="docutils literal notranslate"><span class="pre">authorize_order()</span></code>, <code class="docutils literal notranslate"><span class="pre">math.isfinite()</span></code> closes the NaN gap. Zero exchange mutations on any invalid input.</p></td>
+</tr>
+<tr class="row-odd"><td><p>B2 (H2, min-notional amplification)</p></td>
+<td><p><strong>REMEDIATED_IN_PRE_T1_E_REM_A</strong> — rejected (<code class="docutils literal notranslate"><span class="pre">BELOW_MIN_NOTIONAL</span></code>), never enlarged. Precision normalization is <code class="docutils literal notranslate"><span class="pre">Decimal</span></code>/floor-only and provably never increases authorized exposure.</p></td>
+</tr>
+<tr class="row-even"><td><p>B3 (H3, no deterministic order identity)</p></td>
+<td><p><strong>UNRESOLVED — reserved for REM-B.</strong> Not attempted; explicitly out of REM-A’s scope.</p></td>
+</tr>
+<tr class="row-odd"><td><p>B4 (H4, durable write after network)</p></td>
+<td><p><strong>UNRESOLVED — reserved for REM-B.</strong> <code class="docutils literal notranslate"><span class="pre">TradeLogger.log()</span></code> still runs after <code class="docutils literal notranslate"><span class="pre">_place_live_order()</span></code>; no durable pre-network intent record was added.</p></td>
+</tr>
+<tr class="row-even"><td><p>B5 (H5/H6, blind retry, no reconciliation)</p></td>
+<td><p><strong>UNRESOLVED — reserved for REM-B.</strong> <code class="docutils literal notranslate"><span class="pre">_with_retry</span></code> is unchanged; still resubmits identical parameters blindly.</p></td>
+</tr>
+<tr class="row-odd"><td><p>B6 (H7, no SELL balance check)</p></td>
+<td><p><strong>REMEDIATED_IN_PRE_T1_E_REM_A</strong> — <code class="docutils literal notranslate"><span class="pre">authorize_order()</span></code> requires and validates <code class="docutils literal notranslate"><span class="pre">available_base_balance</span></code> for every SELL, deny-closed on missing/insufficient/malformed/non-finite.</p></td>
+</tr>
+<tr class="row-even"><td><p>B7 (<code class="docutils literal notranslate"><span class="pre">PositionManager</span></code> swallowed exception)</p></td>
+<td><p><strong>PARTIALLY REMEDIATED_IN_PRE_T1_E_REM_A</strong> — <code class="docutils literal notranslate"><span class="pre">_send_close_order()</span></code> now returns an explicit <code class="docutils literal notranslate"><span class="pre">authorized</span></code>/<code class="docutils literal notranslate"><span class="pre">mutation_attempted</span></code>/<code class="docutils literal notranslate"><span class="pre">mode</span></code>/<code class="docutils literal notranslate"><span class="pre">denial_reason</span></code> outcome instead of swallowing exceptions silently, and <code class="docutils literal notranslate"><span class="pre">_close_position()</span></code> no longer marks <code class="docutils literal notranslate"><span class="pre">pos.closed</span> <span class="pre">=</span> <span class="pre">True</span></code> on a denial or a failed mutation (the position stays open and is naturally re-evaluated on the next tick — no new retry/reconciliation machinery was added). This is the narrow honesty fix the REM-A mission authorized, not the full reconciliation system B9 still calls for.</p></td>
+</tr>
+<tr class="row-odd"><td><p>B8 (H9, no crash-window recovery)</p></td>
+<td><p><strong>UNRESOLVED — reserved for REM-B/REM-C.</strong> No durable pre-network record exists; unaffected by REM-A.</p></td>
+</tr>
+<tr class="row-even"><td><p>B9 (<code class="docutils literal notranslate"><span class="pre">PendingOrderTracker</span></code> unwired)</p></td>
+<td><p><strong>UNRESOLVED — reserved for REM-B.</strong> Still not imported/wired into either mutation path; REM-A does not activate it (explicitly out of scope).</p></td>
+</tr>
+<tr class="row-odd"><td><p>B10 (H10 pre-network portion, <code class="docutils literal notranslate"><span class="pre">PositionManager</span></code> authority gap)</p></td>
+<td><p><strong>REMEDIATED_IN_PRE_T1_E_REM_A (documented composition, not a single canonical module).</strong> <code class="docutils literal notranslate"><span class="pre">_send_close_order()</span></code> now re-checks <code class="docutils literal notranslate"><span class="pre">PAPER_TRADING_ENABLED</span></code>/<code class="docutils literal notranslate"><span class="pre">LIVE_TRADING_CONFIRMED</span></code> itself, fail-closed, immediately before mutation, via <code class="docutils literal notranslate"><span class="pre">evaluate_trading_authority()</span></code> — see ADR-0019 §1 for the exact composition. The live-order path’s <code class="docutils literal notranslate"><span class="pre">LIVE_TRADING_CONFIRMED</span></code> gate (<code class="docutils literal notranslate"><span class="pre">ExecutionEngine.from_env()</span></code>) and its <code class="docutils literal notranslate"><span class="pre">PAPER_TRADING_ENABLED</span></code> re-check (<code class="docutils literal notranslate"><span class="pre">_place_live_order</span></code>) were already fail-closed per the original H10 finding and are unchanged. No single “canonical authority” module was introduced — this remains a documented composition of existing/extended gates, consistent with H10’s original characterization.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Not covered by REM-A R0 and not claimed as fixed at the time: <code class="docutils literal notranslate"><span class="pre">ExecutionEngine.create_futures_order()</span></code>’s own below-minimum clamp (<code class="docutils literal notranslate"><span class="pre">max(futures_min,</span> <span class="pre">...)</span></code>) — a distinct instance of the H2 anti-pattern on the futures-demo path, left untouched in R0 to avoid unjustified blast radius (see ADR-0019 §6). <strong>Superseded in R1 below.</strong> <code class="docutils literal notranslate"><span class="pre">PositionManager._check_partial_close()</span></code> still ignores <code class="docutils literal notranslate"><span class="pre">_send_close_order()</span></code>’s return value for its own qty/size_usd bookkeeping (unchanged, out of R1 scope too).</p>
+<section id="r1-correction-round-master-review-2026-09-11">
+<h3>21.1 R1 correction round (MASTER review, 2026-09-11)<a class="headerlink" href="#r1-correction-round-master-review-2026-09-11" title="Link to this heading">¶</a></h3>
+<p>Four defects raised by MASTER’s review of the R0 round above, resolved
+without introducing any REM-B/REM-C functionality — see ADR-0019 §6bis for
+full detail:</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Defect</p></th>
+<th class="head"><p>Resolution</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>1. <code class="docutils literal notranslate"><span class="pre">create_futures_order()</span></code> left source-reachable with an H2-shaped amplification (<code class="docutils literal notranslate"><span class="pre">max(futures_min,</span> <span class="pre">...)</span></code>)</p></td>
+<td><p>Traced: genuinely source-reachable from <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py:6568</span></code> (<code class="docutils literal notranslate"><span class="pre">exec_engine.create_futures_order(...)</span></code> under <code class="docutils literal notranslate"><span class="pre">has_futures_demo()</span></code>), not dead code — the R0 “documented, out of scope” resolution was insufficient. Now wired to <code class="docutils literal notranslate"><span class="pre">authorize_order()</span></code> (new <code class="docutils literal notranslate"><span class="pre">require_balance_check=False</span></code> parameter — futures/margin markets consume quote-denominated margin on both BUY and SELL, not a base-asset balance). The upward clamp to <code class="docutils literal notranslate"><span class="pre">futures_min</span></code> is removed and replaced by rejection (<code class="docutils literal notranslate"><span class="pre">BELOW_MIN_NOTIONAL</span></code>); the downward clamp to <code class="docutils literal notranslate"><span class="pre">futures_max</span></code> is retained (narrowing only, never amplifies). <code class="docutils literal notranslate"><span class="pre">amt_precision</span></code> fallback corrected <code class="docutils literal notranslate"><span class="pre">0.001</span></code> → <code class="docutils literal notranslate"><span class="pre">1e-5</span></code> (matches <code class="docutils literal notranslate"><span class="pre">_place_live_order()</span></code>’s existing fallback) to avoid spurious <code class="docutils literal notranslate"><span class="pre">PRECISION_COLLAPSE</span></code> under strict floor rounding. <code class="docutils literal notranslate"><span class="pre">qty</span></code> is never re-clamped up to the exchange’s <code class="docutils literal notranslate"><span class="pre">min_qty</span></code> after authorization — that would reintroduce the same H2 shape. B2 is now closed for the futures-demo path too, not only spot/live.</p></td>
+</tr>
+<tr class="row-odd"><td><p>2. Dimensional confusion in <code class="docutils literal notranslate"><span class="pre">PositionManager._send_close_order()</span></code>’s <code class="docutils literal notranslate"><span class="pre">authorize_order()</span></code> call</p></td>
+<td><p>The dead ternary <code class="docutils literal notranslate"><span class="pre">qty</span> <span class="pre">*</span> <span class="pre">price</span> <span class="pre">if</span> <span class="pre">price</span> <span class="pre">&gt;</span> <span class="pre">0</span> <span class="pre">else</span> <span class="pre">qty</span> <span class="pre">*</span> <span class="pre">price</span></code> (both branches textually identical — always <code class="docutils literal notranslate"><span class="pre">qty</span> <span class="pre">*</span> <span class="pre">price</span></code>, a code-hygiene defect, not a value defect: verified against a git-worktree copy of the starting HEAD that the numeric result was already correct) is removed. Replaced with explicitly named <code class="docutils literal notranslate"><span class="pre">requested_notional</span> <span class="pre">=</span> <span class="pre">qty</span> <span class="pre">*</span> <span class="pre">price</span></code> / <code class="docutils literal notranslate"><span class="pre">ceiling_notional</span> <span class="pre">=</span> <span class="pre">pos.qty</span> <span class="pre">*</span> <span class="pre">price</span></code>, both documented as USD notional (the dimension <code class="docutils literal notranslate"><span class="pre">authorize_order()</span></code> expects), never conflated with <code class="docutils literal notranslate"><span class="pre">qty</span></code>/<code class="docutils literal notranslate"><span class="pre">pos.qty</span></code> (base-asset units). New tests at non-trivial prices (50 000 and 0.001) prove <code class="docutils literal notranslate"><span class="pre">normalized_qty</span></code> and the notional cannot be transposed, and that <code class="docutils literal notranslate"><span class="pre">create_order()</span></code> receives the correct base-asset quantity.</p></td>
+</tr>
+<tr class="row-even"><td><p>3. <code class="docutils literal notranslate"><span class="pre">PositionManager</span></code> calling a local re-implementation instead of the shared <code class="docutils literal notranslate"><span class="pre">evaluate_trading_authority()</span></code></p></td>
+<td><p>Verified on this exact HEAD: no local re-implementation exists — <code class="docutils literal notranslate"><span class="pre">_send_close_order()</span></code> already reads <code class="docutils literal notranslate"><span class="pre">PAPER_TRADING_ENABLED</span></code>/<code class="docutils literal notranslate"><span class="pre">LIVE_TRADING_CONFIRMED</span></code> fresh and calls the shared <code class="docutils literal notranslate"><span class="pre">evaluate_trading_authority()</span></code> with those values, with no gate check inline before or instead of that call. No code change was needed. A construction proof was added regardless (monkeypatching <code class="docutils literal notranslate"><span class="pre">evaluate_trading_authority</span></code> in the <code class="docutils literal notranslate"><span class="pre">position_manager</span></code> module namespace, asserting it is called with the fresh kwargs and that its return value drives <code class="docutils literal notranslate"><span class="pre">_send_close_order()</span></code>’s result).</p></td>
+</tr>
+<tr class="row-odd"><td><p>4. Documentation scope</p></td>
+<td><p>This §21.1 and ADR-0019 §6bis updated to reflect exactly the above three fixes — no broader documentation pass, no REM-B/REM-C claims.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Test suite: <code class="docutils literal notranslate"><span class="pre">tests/test_pre_t1_e_rem_a_order_authorization.py</span></code> grew from 83
+to 88 tests (5 new: 1 futures-demo rejection proof moved into
+<code class="docutils literal notranslate"><span class="pre">test_execution_engine_futures.py</span></code>, 4 <code class="docutils literal notranslate"><span class="pre">PositionManager</span></code> dimensional/
+authority-sharing proofs added directly to this file);
+<code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/execution/test_execution_engine_futures.py</span></code>’s
+<code class="docutils literal notranslate"><span class="pre">test_below_min_clamped_up</span></code> was renamed <code class="docutils literal notranslate"><span class="pre">test_below_min_rejected_not_amplified</span></code>
+and rewritten to assert rejection instead of amplification (the test that
+previously encoded the clamp as intentional now encodes its removal).</p>
+<p><strong>Updated verdict: still <code class="docutils literal notranslate"><span class="pre">REMEDIATION_REQUIRED</span></code>.</strong> REM-A (R0 + R1) closes
+B1, B2 (now on both the spot/live and futures-demo paths), B6, and B10
+(pre-network authority), and narrows B7 to its documented honesty fix. B3,
+B4, B5, B8, B9 remain fully open and are reserved for REM-B/REM-C, per the
+mission’s explicit scope boundary. The order cycle is not end-to-end safe
+after REM-A — only its pre-network input/exposure/balance/authority
+validation is.</p>
+</section>
+</section>
 </section>
 
         </article>
@@ -928,6 +1022,10 @@ per the audit-first scope.</p>
 <li><a class="reference internal" href="#blocker-list">18. Blocker list</a></li>
 <li><a class="reference internal" href="#remediation-prerequisites">19. Remediation prerequisites</a></li>
 <li><a class="reference internal" href="#final-verdict">20. Final verdict</a></li>
+<li><a class="reference internal" href="#rem-a-remediation-status-o-02w-pre-t1-e-rem-a-2026-09-11">21. REM-A remediation status (O-02W-PRE-T1-E-REM-A, 2026-09-11)</a><ul>
+<li><a class="reference internal" href="#r1-correction-round-master-review-2026-09-11">21.1 R1 correction round (MASTER review, 2026-09-11)</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
