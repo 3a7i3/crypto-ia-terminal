@@ -426,3 +426,43 @@ B4, B5, B8, B9 remain fully open and are reserved for REM-B/REM-C, per the
 mission's explicit scope boundary. The order cycle is not end-to-end safe
 after REM-A — only its pre-network input/exposure/balance/authority
 validation is.
+
+## 22. REM-B remediation status (O-02W-PRE-T1-E-REM-B, 2026-09-11)
+
+**This section is an addendum, not a rewrite** — §1-21 above are preserved
+unedited. A second remediation phase (REM-B) has since addressed a further
+subset of §18's blockers, per
+`docs/adr/0020-deterministic-durable-idempotent-order-submission.md`.
+`quant_hedge_ai/agents/execution/order_intent_protocol.py` introduces
+deterministic logical-intent identity, a durable append-only intent
+journal, an at-most-once submission coordinator, and read-only
+reconciliation. New test suite:
+`tests/test_pre_t1_e_rem_b_idempotent_order_protocol.py` (67 tests,
+Groups A-J). Status per blocker:
+
+| Blocker | Status |
+|---|---|
+| B3 (H3, no deterministic order identity) | **REMEDIATED_IN_PRE_T1_E_REM_B** — `OrderIntent.full_digest()`/`client_order_id()` are deterministic and versioned; short-ID collisions against a different full payload fail closed (`IDENTITY_COLLISION`). Reaches the exchange call via `params={"clientOrderId": ...}` on both `ExecutionEngine` mutation paths (when a `decision_id` is supplied — see caveat below) and unconditionally on the `PositionManager` close path. |
+| B4 (H4, durable write after network) | **REMEDIATED_IN_PRE_T1_E_REM_B for the paths that route through the coordinator.** `INTENT_RECORDED` and `SUBMISSION_STARTED` are fsync'd to `databases/order_intent_journal.jsonl` (or `ORDER_INTENT_JOURNAL_PATH`) strictly before the exchange mutation call (proven in `TestGroupBDurableOrdering`, ordering spies). **Caveat:** `ExecutionEngine.create_order()`/`create_futures_order()` only enter this path when their caller supplies `decision_id`; `core/advisor_loop.py` (their only current caller) does not yet do so, and this mission does not modify `advisor_loop.py` (scope control, mission §16) to add it without an existing causal id to propagate. For that specific caller shape, B4 remains open. `PositionManager._send_close_order` has no such caveat — it derives its causal id internally and is unconditionally covered. |
+| B5 (H5/H6, blind retry, no reconciliation) | **REMEDIATED_IN_PRE_T1_E_REM_B for the coordinator-routed paths, same caveat as B4.** A timeout/connection-reset/lost-response/malformed-response result is classified `AMBIGUOUS` and persisted as `RECONCILE_REQUIRED` — the coordinator never issues a second `create_order()` call for the same intent; `OrderIntentCoordinator.reconcile()` provides a read-only reconciliation path that never resubmits, including when nothing is found (`RECONCILED_NOT_FOUND_PENDING` stays ambiguous, deliberately with no auto-resubmit-after-delay policy). `_with_retry` itself is unchanged and still wraps only pre-mutation read calls (ticker/markets/balance) on the coordinator-routed branch — it is never used to wrap the mutation call anymore on that branch. |
+| B8 (H9, no crash-window recovery) | **PARTIALLY REMEDIATED_IN_PRE_T1_E_REM_B — restart idempotence only, not full crash-window recovery.** Reconstructing `OrderIntentJournal`/`OrderIntentCoordinator` from the same durable path after a restart never re-submits an intent already recorded in any state (`TestGroupGRestart`, all 5 REM-B-relevant states). This is deliberately **not** full position reconstruction, partial-fill recovery, or PnL accounting — those remain REM-C scope, unattempted here. |
+| B9 (`PendingOrderTracker` unwired) | **NOT reused — superseded, documented.** Mission §4 required investigating reuse before building new; grep-verified no `PendingOrderTracker` class/module exists anywhere in this repository's source tree (the blocker's name referred to a hypothesized/planned component, not an actual unwired implementation found on this HEAD). REM-B's `OrderIntentJournal`/`OrderIntentCoordinator` is the state-machine-plus-reconciliation implementation B9 called for, built fresh per ADR-0020, wired into both mutation families. |
+
+**REM-C blockers remaining fully open, unattempted, explicitly out of this
+mission's scope:** complete partial-fill lifecycle and fill-quantity
+reconciliation; full position reconstruction after a crash window; PnL
+accounting changes; any automatic resubmission policy after
+`RECONCILED_NOT_FOUND_PENDING`; `core/advisor_loop.py` causal-id plumbing
+for `ExecutionEngine.create_order()`/`create_futures_order()` (needed to
+close the B4/B5 caveat above for those two call sites specifically).
+
+**Updated verdict: still `REMEDIATION_REQUIRED`.** REM-B closes B3 fully,
+closes B4/B5/B8 for the `PositionManager` close path and for any
+`ExecutionEngine` caller that supplies a `decision_id`, and does not touch
+B9's underlying gap except by building the durable authority it called
+for. It does not close B4/B5 for `ExecutionEngine`'s actual current
+caller (`advisor_loop.py`, which passes no `decision_id`), and does not
+attempt B8's full crash-window/partial-fill scope. No live trading, no
+real exchange call, and no deployment occurred in this mission — see
+§17/§19/§20 of the mission spec for the full prohibition list this
+remediation respected.

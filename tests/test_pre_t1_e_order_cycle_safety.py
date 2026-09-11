@@ -497,8 +497,17 @@ class TestCallSiteInventory:
 
         src = inspect.getsource(mod.PositionManager._send_close_order)
         assert "_with_retry" not in src
-        assert "for " not in src  # no retry loop
-        assert "except Exception" in src  # swallow-and-log only
+        # Updated for O-02W-PRE-T1-E REM-B: the mutation call itself is now
+        # wrapped by the REM-B durable coordinator (order_intent_protocol.py)
+        # instead of a bare try/except at this call site — REM-B's whole
+        # point is that an ambiguous result becomes RECONCILE_REQUIRED, not
+        # a blind retry loop. A comprehension used only to classify an
+        # exception message ("for k in (...)") is not a retry loop; the
+        # structural guarantee this test protects — no `while`-based retry
+        # and no second create_order() call on the same path — is checked
+        # directly instead of banning the substring "for ".
+        assert "while " not in src  # no retry loop
+        assert src.count("create_order(") <= 1  # exactly one mutation call site
 
     def test_position_manager_close_honesty_fixed_by_rem_a(self):
         """Blocker B7 at the original audit HEAD: _close_position() set

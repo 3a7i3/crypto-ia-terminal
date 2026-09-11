@@ -35,6 +35,15 @@ from enum import Enum
 from typing import Optional
 
 from observability.json_logger import get_logger
+from quant_hedge_ai.agents.execution.order_intent_protocol import (
+    AdapterCapabilities,
+    ExchangeMutationOutcome,
+    ExchangeMutationResult,
+    OrderIntentCoordinator,
+    OrderIntentJournal,
+    SubmissionOutcome,
+    build_order_intent,
+)
 from quant_hedge_ai.agents.execution.order_authorization import (
     authorize_order,
     evaluate_trading_authority,
@@ -265,6 +274,17 @@ class PositionManager:
         self._running = False
         self._thread: threading.Thread | None = None
         self._callbacks: list = []  # fn(pos, reason) appelée à chaque close
+
+        # O-02W-PRE-T1-E REM-B — durable idempotent submission coordinator
+        # for the close-order mutation family. Same default journal location
+        # as ExecutionEngine (single durable authority, I8); shares state
+        # across both mutation families when they point at the same path.
+        # Lazily constructed on first live close (paper mode never reaches
+        # `_send_close_order`'s mutation branch) — avoids touching disk
+        # under `databases/` on every PositionManager() construction and
+        # contaminating the scientific data guard baseline (conftest.py).
+        self._order_intent_journal = None
+        self._order_intent_coordinator = None
 
     # ── Cycle de vie ───────────────────────────────────────────────────────────
 
@@ -605,7 +625,8 @@ class PositionManager:
         # re-attempt the close (no new retry/reconciliation machinery is
         # introduced here — this is the pre-existing periodic tick loop).
         if result.get("authorized") is False or (
-            result.get("mutation_attempted") and result.get("mode") == "live_failed"
+            result.get("mutation_attempted")
+            and result.get("mode") in ("live_failed", "live_ambiguous")
         ):
             _log.error(
                 "[PositionManager] Fermeture NON confirmée %s — raison=%s "
@@ -627,6 +648,22 @@ class PositionManager:
                 fn(pos, reason)
             except Exception:
                 pass
+
+    def _get_order_intent_coordinator(self) -> OrderIntentCoordinator:
+        if self._order_intent_coordinator is None:
+            journal_path = os.getenv(
+                "ORDER_INTENT_JOURNAL_PATH", "databases/order_intent_journal.jsonl"
+            )
+            self._order_intent_journal = OrderIntentJournal(journal_path)
+            self._order_intent_coordinator = OrderIntentCoordinator(
+                self._order_intent_journal,
+                AdapterCapabilities(
+                    supports_client_order_id=True,
+                    client_order_id_param="clientOrderId",
+                    supports_lookup_by_client_order_id=True,
+                ),
+            )
+        return self._order_intent_coordinator
 
     def _send_close_order(
         self,
@@ -761,14 +798,74 @@ class PositionManager:
                 "error": auth.detail,
             }
 
-        try:
-            order = self._exchange.create_order(
-                ccxt_symbol,
-                "market",
-                side,
-                auth.normalized_qty,
-                params={"reduceOnly": True},
-            )
+        # O-02W-PRE-T1-E REM-B — deterministic causal id for this close
+        # intention: `pos.order_id` is the unique dict key this
+        # PositionManager already uses for this position (I1/I2 — the same
+        # tracked position always yields the same close identity; a
+        # genuinely new position, e.g. re-entry, has a distinct order_id).
+        # `reason` distinguishes a MANUAL close from a STOP/TP close of the
+        # same position so they never collapse into one identity.
+        # Falls back to the SAME `symbol_opened_at` composite this module
+        # already uses as this position's dict key (line ~320) when
+        # `order_id` is unset — `opened_at` is an immutable field set once
+        # at position construction, not "current time at submission", so
+        # this stays a stable per-position identity, never a fresh value
+        # per call.
+        position_key = pos.order_id or f"{pos.symbol}_{pos.opened_at}"
+        causal_id = f"{position_key}:{reason.value}"
+
+        intent = build_order_intent(
+            namespace="PositionManager.close",
+            causal_id=causal_id,
+            account_scope=f"{os.getenv('EXCHANGE_ID', 'mexc')}:position_manager",
+            symbol=ccxt_symbol,
+            side=side,
+            order_type="market",
+            amount=auth.normalized_qty,
+            price=price,
+            reduce_only=True,
+            position_ref=position_key,
+        )
+
+        def mutate(order_intent, client_order_id):
+            try:
+                order = self._exchange.create_order(
+                    ccxt_symbol,
+                    "market",
+                    side,
+                    auth.normalized_qty,
+                    params={"reduceOnly": True, "clientOrderId": client_order_id},
+                )
+                return ExchangeMutationResult(
+                    outcome=ExchangeMutationOutcome.ACKNOWLEDGED,
+                    exchange_order_id=order.get("id"),
+                    raw={"order": order},
+                )
+            except Exception as exc:  # noqa: BLE001
+                msg = str(exc).lower()
+                if any(k in msg for k in ("timeout", "timed out", "econnreset", "connection")):
+                    return ExchangeMutationResult(
+                        outcome=ExchangeMutationOutcome.AMBIGUOUS,
+                        error_category="transport_error",
+                        raw={"error": str(exc)},
+                    )
+                if any(k in msg for k in ("insufficient", "invalid", "rejected", "not enough")):
+                    return ExchangeMutationResult(
+                        outcome=ExchangeMutationOutcome.EXPLICITLY_REJECTED,
+                        error_category="exchange_rejected",
+                        raw={"error": str(exc)},
+                    )
+                return ExchangeMutationResult(
+                    outcome=ExchangeMutationOutcome.AMBIGUOUS,
+                    error_category="unknown_response",
+                    raw={"error": str(exc)},
+                )
+
+        sub = self._get_order_intent_coordinator().submit(
+            intent, authorized=True, authorization_ref=auth.detail, mutate=mutate
+        )
+        if sub.outcome == SubmissionOutcome.ACKNOWLEDGED:
+            order = (sub.raw_evidence or {}).get("order", {"id": sub.exchange_order_id})
             _log.info("[PositionManager] Ordre close envoyé id=%s", order.get("id"))
             return {
                 "symbol": pos.symbol,
@@ -778,16 +875,26 @@ class PositionManager:
                 "denial_reason": None,
                 "order": order,
             }
-        except Exception as exc:
-            _log.error("[PositionManager] Echec close order %s: %s", pos.symbol, exc)
-            return {
-                "symbol": pos.symbol,
-                "mode": "live_failed",
-                "authorized": True,
-                "mutation_attempted": True,
-                "denial_reason": None,
-                "error": str(exc),
-            }
+        _log.error(
+            "[PositionManager] Close order non acquitté (REM-B) %s: %s",
+            pos.symbol,
+            sub.outcome.value,
+        )
+        return {
+            "symbol": pos.symbol,
+            "mode": "live_ambiguous"
+            if sub.outcome
+            in (
+                SubmissionOutcome.RECONCILE_REQUIRED,
+                SubmissionOutcome.RECONCILED_NOT_FOUND_PENDING,
+            )
+            else "live_failed",
+            "authorized": True,
+            "mutation_attempted": True,
+            "denial_reason": None,
+            "order_intent_outcome": sub.outcome.value,
+            "error": sub.detail,
+        }
 
     @staticmethod
     def _to_ccxt_symbol(symbol: str) -> str:

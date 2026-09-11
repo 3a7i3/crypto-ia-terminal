@@ -7,6 +7,15 @@ import time
 from observability.json_logger import get_logger
 from quant_hedge_ai.agents.execution.order_authorization import authorize_order
 from quant_hedge_ai.agents.execution.order_deduplicator import OrderDeduplicator
+from quant_hedge_ai.agents.execution.order_intent_protocol import (
+    AdapterCapabilities,
+    ExchangeMutationOutcome,
+    ExchangeMutationResult,
+    OrderIntentCoordinator,
+    OrderIntentJournal,
+    SubmissionOutcome,
+    build_order_intent,
+)
 from quant_hedge_ai.agents.execution.trade_logger import TradeLogger
 from quant_hedge_ai.agents.risk.session_guard import (
     OrderTooLargeError,
@@ -24,6 +33,19 @@ def execution_autoheal(alert):
 
 
 alert_manager.register_autoheal("execution", execution_autoheal)
+
+# ── O-02W-PRE-T1-E REM-B — durable order-intent journal (I3/I4/I6/I8) ─────
+# Single default durable location, consistent with this repo's other
+# runtime-state files under `databases/` (see `databases/runtime_config.json`,
+# `databases/system_state.json`). Overridable via env for tests/ops.
+_DEFAULT_ORDER_INTENT_JOURNAL_PATH = os.getenv(
+    "ORDER_INTENT_JOURNAL_PATH", "databases/order_intent_journal.jsonl"
+)
+_CCXT_CAPABILITIES = AdapterCapabilities(
+    supports_client_order_id=True,
+    client_order_id_param="clientOrderId",
+    supports_lookup_by_client_order_id=True,
+)
 
 
 class ExecutionEngine:
@@ -56,6 +78,16 @@ class ExecutionEngine:
         if live:
             self._exchange = self._init_exchange()
             self._exchange_futures = self._init_futures_demo()
+
+        # O-02W-PRE-T1-E REM-B — durable idempotent submission coordinator.
+        # Lazily constructed (see `_get_order_intent_coordinator` below): a
+        # plain `ExecutionEngine()` construction (paper mode, most tests)
+        # must not touch disk under `databases/` unless a caller actually
+        # exercises the `decision_id=` REM-B path — avoids contaminating the
+        # scientific data guard baseline (.ci/scientific_data_guard_baseline.json,
+        # conftest.py) on every unrelated test run.
+        self._order_intent_journal = None
+        self._order_intent_coordinator = None
 
         # Safety layer
         self._dedup = OrderDeduplicator(
@@ -260,7 +292,9 @@ class ExecutionEngine:
 
     # ── Main API ───────────────────────────────────────────────────────────────
 
-    def create_order(self, symbol: str, action: str, size: float) -> dict:
+    def create_order(
+        self, symbol: str, action: str, size: float, decision_id: str | None = None
+    ) -> dict:
         """
         Place an order through the full safety pipeline.
 
@@ -269,6 +303,16 @@ class ExecutionEngine:
           - "live"        — live order filled
           - "live_failed" — live order failed (exchange error)
           - "rejected"    — blocked by safety layer
+
+        `decision_id` (O-02W-PRE-T1-E REM-B, optional): when the caller
+        already has a stable upstream causal identifier for this order
+        intention (e.g. a DecisionPacket id), pass it to route the live
+        mutation through the durable, deterministic, idempotent
+        submission protocol (order_intent_protocol.py). When omitted, this
+        call keeps its pre-REM-B behavior unchanged — REM-B does not yet
+        claim I4/I8 coverage for callers that have no causal id to give it
+        (see ADR — advisor_loop.py causal-id plumbing is REM-C-adjacent
+        scope, not modified by this mission).
         """
         size = size * self._size_factor
 
@@ -336,7 +380,7 @@ class ExecutionEngine:
 
         # ── 4. Execute ────────────────────────────────────────────────────────
         if self._live and self._exchange is not None:
-            result = self._place_live_order(symbol, action, size)
+            result = self._place_live_order(symbol, action, size, decision_id=decision_id)
         else:
             result = {
                 "symbol": symbol,
@@ -377,6 +421,7 @@ class ExecutionEngine:
         action: str,
         size_usd: float,
         leverage: int = 1,
+        decision_id: str | None = None,
     ) -> dict:
         """
         Passe un ordre Futures Demo (krakenfutures testnet ou Binance demo).
@@ -472,9 +517,54 @@ class ExecutionEngine:
             # silent amplification).
             qty = auth.normalized_qty
 
-            order = self._with_retry(
-                self._exchange_futures.create_order, ccxt_symbol, "market", side, qty
-            )
+            if decision_id:
+                intent = build_order_intent(
+                    namespace="ExecutionEngine.futures",
+                    causal_id=decision_id,
+                    account_scope=f"{os.getenv('EXCHANGE_ID', 'mexc')}:futures_demo",
+                    symbol=ccxt_symbol,
+                    side=side,
+                    order_type="market",
+                    amount=qty,
+                    price=price,
+                    reduce_only=False,
+                )
+                mutate = self._mutate_via_coordinator(
+                    self._exchange_futures.create_order, ccxt_symbol, side, qty
+                )
+                sub = self._get_order_intent_coordinator().submit(
+                    intent,
+                    authorized=True,
+                    authorization_ref=auth.detail,
+                    mutate=mutate,
+                )
+                if sub.outcome != SubmissionOutcome.ACKNOWLEDGED:
+                    _log.warning(
+                        "[ExecutionEngine] Ordre futures non acquitté (REM-B) %s %s: %s",
+                        action,
+                        symbol,
+                        sub.outcome.value,
+                    )
+                    return {
+                        "symbol": symbol,
+                        "action": action,
+                        "size": size_usd,
+                        "mode": "futures_ambiguous"
+                        if sub.outcome
+                        in (
+                            SubmissionOutcome.RECONCILE_REQUIRED,
+                            SubmissionOutcome.RECONCILED_NOT_FOUND_PENDING,
+                        )
+                        else "futures_failed",
+                        "error": sub.detail,
+                        "order_intent_outcome": sub.outcome.value,
+                        "client_order_id": sub.client_order_id,
+                    }
+                order = (sub.raw_evidence or {}).get("order", {"id": sub.exchange_order_id})
+            else:
+                order = self._with_retry(
+                    self._exchange_futures.create_order, ccxt_symbol, "market", side, qty
+                )
             _log.info(
                 "[ExecutionEngine] Ordre FUTURES DEMO: %s %.4f %s @ $%.2f (lev x%d) id=%s",
                 action,
@@ -514,7 +604,63 @@ class ExecutionEngine:
             "on",
         }
 
-    def _place_live_order(self, symbol: str, action: str, size: float) -> dict:
+    def _get_order_intent_coordinator(self) -> OrderIntentCoordinator:
+        if self._order_intent_coordinator is None:
+            self._order_intent_journal = OrderIntentJournal(
+                _DEFAULT_ORDER_INTENT_JOURNAL_PATH
+            )
+            self._order_intent_coordinator = OrderIntentCoordinator(
+                self._order_intent_journal, _CCXT_CAPABILITIES
+            )
+        return self._order_intent_coordinator
+
+    def _mutate_via_coordinator(self, mutate_fn, ccxt_symbol, side, qty):
+        """Wraps a raw `self._exchange.create_order(...)` call (via
+        `_with_retry`) into the typed `ExchangeMutationResult` the
+        coordinator requires — REM-B never adds its OWN retry loop around a
+        submission; `_with_retry` here only covers pre-submission read calls
+        upstream (ticker/markets/balance), never the mutation itself (I5)."""
+
+        def mutate(intent, client_order_id):
+            try:
+                order = mutate_fn(
+                    ccxt_symbol,
+                    "market",
+                    side,
+                    qty,
+                    params={"clientOrderId": client_order_id},
+                )
+                return ExchangeMutationResult(
+                    outcome=ExchangeMutationOutcome.ACKNOWLEDGED,
+                    exchange_order_id=order.get("id"),
+                    raw={"order": order},
+                )
+            except Exception as exc:  # noqa: BLE001 — classify below
+                msg = str(exc).lower()
+                if any(k in msg for k in ("timeout", "timed out", "econnreset", "connection")):
+                    return ExchangeMutationResult(
+                        outcome=ExchangeMutationOutcome.AMBIGUOUS,
+                        error_category="transport_error",
+                        raw={"error": str(exc)},
+                    )
+                if any(k in msg for k in ("insufficient", "invalid", "rejected", "not enough")):
+                    return ExchangeMutationResult(
+                        outcome=ExchangeMutationOutcome.EXPLICITLY_REJECTED,
+                        error_category="exchange_rejected",
+                        raw={"error": str(exc)},
+                    )
+                # Unknown exception shape — never assume success or failure.
+                return ExchangeMutationResult(
+                    outcome=ExchangeMutationOutcome.AMBIGUOUS,
+                    error_category="unknown_response",
+                    raw={"error": str(exc)},
+                )
+
+        return mutate
+
+    def _place_live_order(
+        self, symbol: str, action: str, size: float, decision_id: str | None = None
+    ) -> dict:
         """
         Passe un ordre market réel via ccxt.
         size = montant en USD à dépenser (BUY) ou valeur USD à vendre (SELL).
@@ -626,9 +772,57 @@ class ExecutionEngine:
 
             qty = auth.normalized_qty
 
-            order = self._with_retry(
-                self._exchange.create_order, ccxt_symbol, "market", side, qty
-            )
+            if decision_id:
+                # O-02W-PRE-T1-E REM-B — durable, deterministic, idempotent
+                # submission path. Not entered when the caller has no
+                # upstream causal id (see create_order docstring).
+                intent = build_order_intent(
+                    namespace="ExecutionEngine.spot",
+                    causal_id=decision_id,
+                    account_scope=f"{os.getenv('EXCHANGE_ID', 'mexc')}:live",
+                    symbol=ccxt_symbol,
+                    side=side,
+                    order_type="market",
+                    amount=qty,
+                    price=price,
+                    reduce_only=False,
+                )
+                mutate = self._mutate_via_coordinator(
+                    self._exchange.create_order, ccxt_symbol, side, qty
+                )
+                sub = self._get_order_intent_coordinator().submit(
+                    intent,
+                    authorized=True,
+                    authorization_ref=auth.detail,
+                    mutate=mutate,
+                )
+                if sub.outcome != SubmissionOutcome.ACKNOWLEDGED:
+                    _log.warning(
+                        "[ExecutionEngine] Ordre live non acquitté (REM-B) %s %s: %s",
+                        action,
+                        symbol,
+                        sub.outcome.value,
+                    )
+                    return {
+                        "symbol": symbol,
+                        "action": action,
+                        "size": round(size, 4),
+                        "mode": "live_ambiguous"
+                        if sub.outcome
+                        in (
+                            SubmissionOutcome.RECONCILE_REQUIRED,
+                            SubmissionOutcome.RECONCILED_NOT_FOUND_PENDING,
+                        )
+                        else "live_failed",
+                        "error": sub.detail,
+                        "order_intent_outcome": sub.outcome.value,
+                        "client_order_id": sub.client_order_id,
+                    }
+                order = (sub.raw_evidence or {}).get("order", {"id": sub.exchange_order_id})
+            else:
+                order = self._with_retry(
+                    self._exchange.create_order, ccxt_symbol, "market", side, qty
+                )
             _log.info(
                 "[ExecutionEngine] Ordre live: %s %.8f %s @ $%.2f (USD: $%.2f) id=%s",
                 action,

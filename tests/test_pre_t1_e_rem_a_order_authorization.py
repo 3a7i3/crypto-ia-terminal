@@ -654,7 +654,15 @@ class TestGroupF_PositionManager:
 
         ex.create_order.assert_called_once()  # exactly one mutation attempt
         assert pos.closed is False  # NOT silently marked closed
-        assert pos.close_order_status == "live_failed"
+        # Updated for O-02W-PRE-T1-E REM-B: an unclassified exception from
+        # the exchange call is genuinely ambiguous — it is neither a proven
+        # failure nor a proven success (I10, spec H5) — so it now surfaces
+        # as "live_ambiguous" (RECONCILE_REQUIRED) rather than being
+        # collapsed into "live_failed". The pre-REM-B honesty property this
+        # test protects (never silently marked closed on any non-ack
+        # outcome) still holds — see `pos.closed is False` above.
+        assert pos.close_order_status in ("live_failed", "live_ambiguous")
+        assert pos.close_order_status == "live_ambiguous"
 
     def test_close_qty_never_exceeds_tracked_position_qty(self, monkeypatch):
         from unittest.mock import MagicMock
@@ -873,20 +881,29 @@ class TestGroupG_NonRegression:
         assert result["size"] == pytest.approx(50.0, abs=0.01)
 
     def test_no_client_order_id_introduced(self):
-        """No production code path constructs/sends a clientOrderId — the
-        one mention in order_authorization.py is its own docstring
-        explicitly disclaiming the feature, not an implementation."""
+        """REM-A itself (order_authorization.py) never constructs/sends a
+        clientOrderId — that stays true post-REM-B too, since REM-A remains
+        the pre-network authorization boundary and REM-B's deterministic
+        identity lives entirely in order_intent_protocol.py (see
+        docs/adr/0019-pre-network-order-authorization.md, REM-B ADR).
+
+        Updated for O-02W-PRE-T1-E REM-B: ExecutionEngine/PositionManager
+        NOW deliberately construct a deterministic clientOrderId via the
+        REM-B durable submission coordinator — this is the intended,
+        tested feature this mission implements (see
+        tests/test_pre_t1_e_rem_b_idempotent_order_protocol.py), not a
+        regression of REM-A's scope boundary. This guard is narrowed to
+        the module it always meant to describe: order_authorization.py."""
         import inspect
 
-        from quant_hedge_ai.agents.execution import (
-            execution_engine as ee_mod,
-            position_manager as pm_mod,
-        )
+        from quant_hedge_ai.agents.execution import order_authorization as oa_mod
 
-        for mod in (ee_mod, pm_mod):
-            src = inspect.getsource(mod)
-            assert "clientOrderId" not in src
-            assert "client_order_id" not in src
+        src = inspect.getsource(oa_mod)
+        # The docstring's own disclaiming mention of "clientOrderId" is
+        # expected and fine; there must be no *constructed* identifier
+        # (no f-string/format building one) in this module.
+        assert "newClientOrderId" not in src
+        assert "params={" not in src  # never builds exchange call params here
 
     def test_no_pending_order_tracker_activation_introduced(self):
         import inspect
