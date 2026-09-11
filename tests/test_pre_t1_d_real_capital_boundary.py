@@ -826,6 +826,163 @@ class TestR1Case4LiveErrorNoCacheNoXRealPath:
         assert fake_exchange.calls == 1
 
 
+# ─────────────────────────────────────────────────────────────────────────
+# R1.1 CORRECTION (BLOCKER A) — Cases 1-4 above construct ExecutionEngine
+# directly (`ExecutionEngine(live=False)` then manual `_exchange`/`_mode`
+# assignment). That is a real, hermetic exercise of the WalletSync/
+# fetch_available_capital mechanism, but it is NOT `ExecutionEngine.from_env()`
+# — and the specific combination those cases use (`_mode="live"` with an
+# attached exchange, while `LIVE_TRADING_CONFIRMED` is left at its default
+# "false") is a state `from_env()` never produces: `from_env()` only attaches
+# a live exchange when `LIVE_TRADING_CONFIRMED` is truthy (execution_engine.py
+# `from_env()`, line ~199). Cases 6-7 below close that gap: they call the
+# REAL `ExecutionEngine.from_env()` classmethod, with `ExchangeFactory.create`
+# monkeypatched to a fake (no network, no ccxt dependency), and prove what
+# that real construction path actually does — both for the source-reachable
+# but operator-incoherent PAPER_TRADING_ENABLED=true + LIVE_TRADING_CONFIRMED=true
+# combination (Case 6) and for the LIVE_TRADING_CONFIRMED=false contrast
+# (Case 7).
+# ─────────────────────────────────────────────────────────────────────────
+
+
+class TestR1_1Case6FromEnvRealConstructionLiveConfirmedPaperEnabled:
+    """Case 6 (REAL_FROM_ENV_PATH_PROVEN_HERMETIC): the actual
+    ExecutionEngine.from_env() classmethod is called — not a direct
+    ExecutionEngine(live=...) construction with manually assigned
+    `_exchange`/`_mode`. Configuration: fake API keys present,
+    EXCHANGE_TESTNET unset/false (-> ExchangeFactory.detect_mode()=="live"),
+    LIVE_TRADING_CONFIRMED=true, PAPER_TRADING_ENABLED=true,
+    EXCHANGE_MODE=live (WalletSync singleton seed), fake exchange returning a
+    distinctive balance. ExchangeFactory.create is monkeypatched to return
+    the fake exchange — no network, no ccxt import needed.
+
+    This proves a SOURCE_REACHABLE_CONFIGURATION that is operator-incoherent
+    (PAPER_TRADING_ENABLED=true and LIVE_TRADING_CONFIRMED=true are both set)
+    but currently allowed by independent predicates: from_env() genuinely
+    attaches a live exchange, the WalletSync singleton is genuinely created
+    in live mode, fetch_available_capital() genuinely returns the API
+    balance despite the PAPER gate, and _place_live_order still blocks the
+    order before any order-creation call — all through the real production
+    call chain, not injected engine state.
+    """
+
+    def test_from_env_attaches_live_exchange_and_leaks_balance_despite_paper_gate(
+        self, monkeypatch, isolated_ledger, tmp_path
+    ):
+        monkeypatch.setenv("MEXC_API_KEY", "fake-key")
+        monkeypatch.setenv("MEXC_API_SECRET", "fake-secret")
+        monkeypatch.delenv("EXCHANGE_TESTNET", raising=False)  # -> mode "live"
+        monkeypatch.setenv("LIVE_TRADING_CONFIRMED", "true")
+        monkeypatch.setenv("PAPER_TRADING_ENABLED", "true")
+        monkeypatch.setenv("EXCHANGE_MODE", "live")  # WalletSync singleton seed
+        monkeypatch.setenv("EXEC_TRADE_LOG", str(tmp_path / "trades.sqlite"))
+        monkeypatch.setattr(ws, "_PAPER_CAPITAL", 1000.0)
+
+        fake_exchange = FakeExchange(free_usdt=55_555.0)
+        from infra.exchange_factory import ExchangeFactory
+
+        monkeypatch.setattr(
+            ExchangeFactory, "create", staticmethod(lambda *a, **k: fake_exchange)
+        )
+
+        from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
+
+        # The REAL from_env() classmethod — not a direct ExecutionEngine(...)
+        # construction with manual attribute assignment.
+        eng = ExecutionEngine.from_env()
+
+        # from_env() genuinely attached a live exchange: has_api_key=True,
+        # mode="live"!="paper", LIVE_TRADING_CONFIRMED truthy -> live=True ->
+        # __init__ calls _init_exchange() -> ExchangeFactory.create().
+        assert eng._live is True
+        assert eng._exchange is fake_exchange
+        assert eng._mode == "live"
+
+        # bootstrap_capital_x() runs before fetch_available_capital(), as the
+        # real core/advisor_loop.py boot order requires.
+        x = ws.bootstrap_capital_x(exchange=eng._exchange)
+        assert x == 55_555.0
+        assert ws.get_wallet_sync().mode == "live"  # singleton created live
+        calls_after_bootstrap = fake_exchange.calls
+        assert calls_after_bootstrap == 1
+
+        # fetch_available_capital() returns the API balance despite the
+        # PAPER_TRADING_ENABLED=true gate, because the singleton's mode was
+        # already frozen "live" by bootstrap_capital_x() above.
+        capital = eng.fetch_available_capital()
+        assert capital == 55_555.0
+        assert fake_exchange.calls == calls_after_bootstrap + 1  # a balance-read call
+
+        # The order-placement gate still blocks the order — distinct
+        # counters: no further exchange calls are made for the blocked
+        # order (it never reaches ticker/balance/create_order calls).
+        calls_before_order_attempt = fake_exchange.calls
+        result = eng._place_live_order("BTC/USDT", "BUY", 50.0)
+        assert result["mode"] == "live_failed"
+        assert result["error"] == "blocked_by_paper_gate"
+        assert fake_exchange.calls == calls_before_order_attempt  # 0 order-attempt calls
+
+
+class TestR1_1Case7FromEnvRealConstructionConfirmedFalseContrast:
+    """Case 7 (REAL_FROM_ENV_PATH_PROVEN_HERMETIC, contrast to Case 6):
+    same fake API keys present, but LIVE_TRADING_CONFIRMED=false (the
+    default) and PAPER_TRADING_ENABLED=true. Proves, through the REAL
+    from_env() path (no manual `_exchange`/`_mode` assignment), what
+    actually happens: from_env()'s three-way AND (has_api_key AND
+    mode!="paper" AND LIVE_TRADING_CONFIRMED) evaluates False, so
+    __init__ never calls _init_exchange() at all -- no live exchange is
+    attached, self._mode stays the __init__ default "paper", and the
+    engine falls back to the paper/testnet-unreached branch. This is the
+    honest replacement for the BLOCKER A-flagged mismatch: the original
+    Case-1-style tests' `LIVE_TRADING_CONFIRMED=false` + injected `_mode=
+    "live"` combination never actually arises from from_env()."""
+
+    def test_from_env_confirmed_false_never_attaches_exchange(
+        self, monkeypatch, isolated_ledger, tmp_path
+    ):
+        monkeypatch.setenv("MEXC_API_KEY", "fake-key")
+        monkeypatch.setenv("MEXC_API_SECRET", "fake-secret")
+        monkeypatch.delenv("EXCHANGE_TESTNET", raising=False)
+        monkeypatch.delenv("LIVE_TRADING_CONFIRMED", raising=False)  # default false
+        monkeypatch.setenv("PAPER_TRADING_ENABLED", "true")
+        monkeypatch.delenv("EXCHANGE_MODE", raising=False)  # singleton -> "paper"
+        monkeypatch.setenv("EXEC_TRADE_LOG", str(tmp_path / "trades.sqlite"))
+        monkeypatch.setattr(ws, "_PAPER_CAPITAL", 1000.0)
+
+        fake_exchange = FakeExchange(free_usdt=77_777.0)
+        from infra.exchange_factory import ExchangeFactory
+
+        # Even though create() is patched to succeed, from_env()'s own gate
+        # must prevent it from ever being called, because live=False.
+        create_calls = {"n": 0}
+
+        def _tracking_create(*a, **k):
+            create_calls["n"] += 1
+            return fake_exchange
+
+        monkeypatch.setattr(
+            ExchangeFactory, "create", staticmethod(_tracking_create)
+        )
+
+        from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
+
+        eng = ExecutionEngine.from_env()
+
+        assert eng._live is False
+        assert eng._exchange is None  # __init__ only calls _init_exchange() if live
+        assert eng._mode == "paper"  # __init__ default, never overwritten
+        assert create_calls["n"] == 0  # ExchangeFactory.create() never invoked
+
+        # fetch_available_capital(): no exchange attached, wallet_mode forced
+        # "paper" by PAPER_TRADING_ENABLED=true anyway -> WalletSync singleton
+        # created fresh (no prior bootstrap_capital_x call in this test) in
+        # paper mode -> WALLET_PAPER_CAPITAL + ledger PnL, exchange untouched.
+        capital = eng.fetch_available_capital()
+        assert capital == 1000.0
+        assert fake_exchange.calls == 0  # the fake exchange was never reached
+        assert ws.get_wallet_sync().mode == "paper"
+
+
 class TestR1Case5DistinguishableFallbackSources:
     """Case 5: (a) stale cache, (b) bootstrapped _x, (c) genuine zero
     balance, (d) API error — all through get_balance()/fetch_available_capital,

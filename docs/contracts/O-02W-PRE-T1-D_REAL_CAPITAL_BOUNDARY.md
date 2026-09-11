@@ -15,15 +15,37 @@ after it on `origin/main` at audit time. Branch:
 `NOT_APPLICABLE`.
 
 **Companion test file:**
-`tests/test_pre_t1_d_real_capital_boundary.py` (56 hermetic tests, no
-network, no secrets, fake exchanges only — 46 from the original round plus
-10 added in R1, Cases 1-5 below).
+`tests/test_pre_t1_d_real_capital_boundary.py` (58 hermetic tests, no
+network, no secrets, fake exchanges only — 46 from the original round, 10
+added in R1 (Cases 1-5, §11), plus 2 added in R1.1 (Cases 6-7, §11a) that
+call the real `ExecutionEngine.from_env()` classmethod).
+
+**R1.1 evidence-level framework (this round):** every hermetic finding in
+this document is now tagged with exactly one of four evidence phrases,
+never conflated:
+- `REAL_FROM_ENV_PATH_PROVEN_HERMETIC` — a test that actually calls
+  `ExecutionEngine.from_env()` (with `ExchangeFactory.create` monkeypatched,
+  no network) and observes its genuine construction result. Only §11a
+  Cases 6-7 currently carry this tag.
+- `PRODUCTION_FUNCTIONS_WITH_INJECTED_STATE` — the real `WalletSync`/
+  `fetch_available_capital()`/`get_balance()` production functions are
+  exercised, but `ExecutionEngine._exchange`/`_mode` were assigned directly
+  by the test (`eng._exchange = fake; eng._mode = "live"`), not produced by
+  `from_env()`. This is what §11 Cases 1-5 (and the original round's
+  Scenarios A-K) prove — a real mechanism, with test-injected engine state.
+- `SOURCE_REACHABLE_CONFIGURATION` — a combination of env vars that source
+  inspection shows is reachable (and, since R1.1, that §11a Case 6 proves
+  hermetically through `from_env()` itself) but that no coherent operator
+  intent would set simultaneously (`PAPER_TRADING_ENABLED=true` AND
+  `LIVE_TRADING_CONFIRMED=true` together).
+- `DEPLOYED_RUNTIME_UNKNOWN` — the actual VPS `.env`/process state, never
+  established by this audit (§9).
 
 **R1 correction note (this section added on the follow-up round):** the
 original round's H1 conclusion ("PAPER is isolated from API balance") was
 stated unconditionally. That statement is corrected throughout this document
 to `PAPER_ISOLATION_CONDITIONAL_ON_EFFECTIVE_SINGLETON_MODE` — see §1, §3,
-§10 and the new §11 (Case 1-5 results) below. The original H2/H4/H5/H6
+§13 and §11 (Case 1-5 results) below. The original H2/H4/H5/H6
 findings and their source citations are unchanged and re-verified against
 current source as part of this correction; only their framing/classification
 and the H1 conclusion are revised. **Runtime scope note:** this entire audit
@@ -31,6 +53,34 @@ characterizes code behavior under hermetic test, never the deployed VPS
 `.env`/process state — the actual VPS runtime environment-variable
 configuration remains `RUNTIME_UNKNOWN` throughout this document, including
 after this correction.
+
+**R1.1 correction note (this section added on the second follow-up round):**
+R1's §11 Case 1 constructed `ExecutionEngine` directly
+(`ExecutionEngine(live=False)` then `eng._exchange = fake_exchange;
+eng._mode = "live"`) and the R1 §10a matrix presented that combination
+alongside a `LIVE_TRADING_CONFIRMED=false` column, as if it reproduced what
+`ExecutionEngine.from_env()` itself would construct. It does not:
+`from_env()` only ever attaches a live exchange
+(`self._exchange = self._init_exchange()`) when its own three-way AND —
+`has_api_key AND mode != "paper" AND LIVE_TRADING_CONFIRMED` — is true; with
+`LIVE_TRADING_CONFIRMED=false`, `from_env()` constructs `ExecutionEngine(live=False)`,
+which never calls `_init_exchange()` at all, leaving `_exchange=None` and
+`_mode="paper"` (the `__init__` default). §11 Case 1's `_mode="live"` +
+attached-exchange state, together with `LIVE_TRADING_CONFIRMED=false`, is
+therefore a state `from_env()` never produces — this was a mismatch between
+what R1's test actually exercised (`PRODUCTION_FUNCTIONS_WITH_INJECTED_STATE`)
+and what the matrix's column implied it represented. This round (R1.1)
+corrects the mismatch by: (a) introducing the four-way evidence-level
+framework above; (b) relabeling every §11 Case 1-5 finding as
+`PRODUCTION_FUNCTIONS_WITH_INJECTED_STATE` throughout; (c) adding new §11a
+Cases 6-7, which call the actual `ExecutionEngine.from_env()` classmethod
+(no manual `_exchange`/`_mode` assignment) under, respectively, the
+source-reachable-but-operator-incoherent `LIVE_TRADING_CONFIRMED=true` +
+`PAPER_TRADING_ENABLED=true` combination and the `LIVE_TRADING_CONFIRMED=false`
+contrast; (d) correcting the §10a matrix rows accordingly. No prior finding
+about the WalletSync-singleton mode-freezing mechanism itself (§3, §3a) is
+withdrawn — that mechanism is real and remains proven; only the claim that
+R1's Case 1 reproduced `from_env()`'s own construction is corrected.
 
 ---
 
@@ -444,7 +494,7 @@ architectural coupling between the two, however deliberately chosen.
 | P10 `CapitalThrottle` (`capital_deployment`) | `advisor_loop.py:3871-3896` | `EXECUTION_LIMIT` | pinned to `WALLET_PAPER_CAPITAL`, not refreshed (§6) |
 | P7 `CapitalThrottle` (`quant_hedge_ai.../risk`) | `advisor_loop.py:5253+` | `RISK_INPUT` | drawdown-factor throttle, driven by `.update(capital)` calls, distinct class from P10 (§6) |
 | `ExecutionEngine._place_live_order` size clamps (`min_notional`, balance check) | `execution_engine.py:481-534` | `EXECUTION_LIMIT` | reads live balance directly via `self._exchange.fetch_balance()`, independent of `WalletSync` |
-| `ExecutionEngine.create_order` `SessionGuard` | `session_guard.py` (imported, not read in full — see §10) | `RISK_INPUT` | session-level drawdown/order-size checks, invoked before every order |
+| `ExecutionEngine.create_order` `SessionGuard` | `session_guard.py` (imported, not read in full — see §9) | `RISK_INPUT` | session-level drawdown/order-size checks, invoked before every order |
 | `RealAccountsObserver` (`observability/real_accounts.py`) | own `ccxt` client, independent of `WalletSync` | `DISPLAY_ONLY` | Flow 1; §9c-confirmed no feedback path exists into sizing/risk (`SOURCE_PROVEN`: no import of it anywhere in the risk/execution modules read for this audit) |
 | `aggregate()` (real_accounts.py) | same module | `DISPLAY_ONLY` | feeds "Statut Compte Réel" header text only |
 | Command Center bot's capital rendering | `capital_deployment/command_center_bot.py:163-170` | `TELEMETRY_ONLY` | its own docstring explicitly disclaims being a provenance proof; renders `resolve_mode_provenance()`'s label |
@@ -527,7 +577,13 @@ architectural coupling between the two, however deliberately chosen.
 
 ---
 
-## 10a. Mode-combination matrix (Correction C)
+## 10. Mode-combination matrix (Correction C)
+
+**R1.1 section-numbering correction:** this document previously numbered
+sections `9`, `10a`, `11`, then `10` (Final verdict) out of order. Sections
+are renumbered here to run sequentially: `10` (this matrix, was `10a`), `11`
+(Case 1-5, unchanged number), `12` (new — Case 6-7, `from_env()`), `13`
+(Final verdict, was `10`).
 
 Every row is tagged with exactly one of `SOURCE_REACHABLE` (the code path
 exists and was read, but not exercised under hermetic test in this file),
@@ -536,20 +592,31 @@ exercises this exact combination through the real call path), or
 `RUNTIME_UNKNOWN` (whether this combination occurs on the deployed VPS is
 not established by this audit and is out of scope).
 
-| `PAPER_TRADING_ENABLED` | `EXCHANGE_MODE` (singleton seed) | `ExecutionEngine._mode` | `LIVE_TRADING_CONFIRMED` | exchange present | singleton effective `.mode` | final numeric provenance | API call made | real order blockable | sizing/risk influence | Tag |
-|---|---|---|---|---|---|---|---|---|---|---|
-| true | live | live | false | yes | **live** (frozen) | exchange balance | **yes** | blocked (`blocked_by_paper_gate`) | **yes — API leaks into "paper" figure** | `BEHAVIOR_PROVEN_HERMETIC` (§11 Case 1) |
-| 1/yes/on | live | live | false | yes | **live** (frozen) | exchange balance | **yes** | blocked | **yes** (same as above, truthy-variant) | `BEHAVIOR_PROVEN_HERMETIC` (§11 Case 2) |
-| false | (unset → paper) | live/testnet | false | yes | **paper** (frozen) | `WALLET_PAPER_CAPITAL` + ledger PnL | no | allowable (subject to other gates) | **yes — paper capital feeds a live/testnet-requesting caller** | `BEHAVIOR_PROVEN_HERMETIC` (§11 Case 3) |
-| false | live | live | false | no (raises) | live | `WALLET_PAPER_CAPITAL` (fallback, no cache/no `_x`) | attempted, failed | allowable | possible, ambiguous (§4/§11 Case 4) | `BEHAVIOR_PROVEN_HERMETIC` (§11 Case 4) |
-| true | (unset → paper) | — | false | yes (unused) | paper | `WALLET_PAPER_CAPITAL` + ledger PnL | no | blocked | none (H1 holds in this row) | `BEHAVIOR_PROVEN_HERMETIC` (original round, Scenario A) |
-| false | live | live | true | yes | live | exchange balance (fresh/cached) | yes | **allowable — real order can reach the exchange** | full — this is the intended live path | `BEHAVIOR_PROVEN_HERMETIC` (original round, `TestFromEnv`, plus §2 live-fetch tests) |
-| true | live | live | true | yes | **live** (frozen) | exchange balance | yes | blocked (paper gate overrides `LIVE_TRADING_CONFIRMED`) | yes (same leak as row 1; `LIVE_TRADING_CONFIRMED` does not change `fetch_available_capital()`'s outcome) | `SOURCE_REACHABLE` — not separately re-run with `LIVE_TRADING_CONFIRMED=true` in this file, but `_place_live_order`'s gate check is independent of it per §2's execution-gate row |
-| — (any) | — | — | — | — | — (whatever this VPS process's actual boot order/env produced) | — | — | — | — | `RUNTIME_UNKNOWN` for the deployed VPS in every row above — this matrix proves code-level reachability and hermetic behavior only, never which row is currently active in production (§9) |
+Each row is additionally marked **`INJECTED`** (state assigned directly on
+`ExecutionEngine` by the test — `PRODUCTION_FUNCTIONS_WITH_INJECTED_STATE`)
+or **`FROM_ENV`** (constructed by the real `ExecutionEngine.from_env()` —
+`REAL_FROM_ENV_PATH_PROVEN_HERMETIC`) so the construction path is never
+ambiguous. Rows 1/2 (R1.1 correction) are `LIVE_TRADING_CONFIRMED=false`
++ `_mode="live"`-with-exchange-attached, a state `INJECTED` tests can
+produce but `from_env()` itself never does — see row 8/§12 Case 6 and row 9/§12
+Case 7 for what `from_env()` actually constructs in the two configurations
+that matter here.
+
+| `PAPER_TRADING_ENABLED` | `EXCHANGE_MODE` (singleton seed) | `ExecutionEngine._mode` | `LIVE_TRADING_CONFIRMED` | exchange present | singleton effective `.mode` | final numeric provenance | API call made | real order blockable | sizing/risk influence | Construction | Tag |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| true | live | live | false | yes | **live** (frozen) | exchange balance | **yes** | blocked (`blocked_by_paper_gate`) | **yes — API leaks into "paper" figure** | `INJECTED` — not producible by `from_env()` with `LIVE_TRADING_CONFIRMED=false` (see row 9) | `PRODUCTION_FUNCTIONS_WITH_INJECTED_STATE` (§11 Case 1) |
+| 1/yes/on | live | live | false | yes | **live** (frozen) | exchange balance | **yes** | blocked | **yes** (same as above, truthy-variant) | `INJECTED` (same caveat as row 1) | `PRODUCTION_FUNCTIONS_WITH_INJECTED_STATE` (§11 Case 2) |
+| false | (unset → paper) | live/testnet | false | yes | **paper** (frozen) | `WALLET_PAPER_CAPITAL` + ledger PnL | no | allowable (subject to other gates) | **yes — paper capital feeds a live/testnet-requesting caller** | `INJECTED` | `PRODUCTION_FUNCTIONS_WITH_INJECTED_STATE` (§11 Case 3) |
+| false | live | live | false | no (raises) | live | `WALLET_PAPER_CAPITAL` (fallback, no cache/no `_x`) | attempted, failed | allowable | possible, ambiguous (§4/§11 Case 4) | `INJECTED` | `PRODUCTION_FUNCTIONS_WITH_INJECTED_STATE` (§11 Case 4) |
+| true | (unset → paper) | — | false | yes (unused) | paper | `WALLET_PAPER_CAPITAL` + ledger PnL | no | blocked | none (H1 holds in this row) | `INJECTED` | `PRODUCTION_FUNCTIONS_WITH_INJECTED_STATE` (original round, Scenario A) |
+| false | live | live | true | yes | live | exchange balance (fresh/cached) | yes | **allowable — real order can reach the exchange** | full — this is the intended live path | `INJECTED` | `PRODUCTION_FUNCTIONS_WITH_INJECTED_STATE` (original round, `TestFromEnv`, plus §2 live-fetch tests) |
+| true | live | live | true | yes | **live** (frozen) | exchange balance | yes | blocked (paper gate overrides `LIVE_TRADING_CONFIRMED`) | yes (same leak as row 1; `LIVE_TRADING_CONFIRMED` does not change `fetch_available_capital()`'s outcome) | `FROM_ENV` — the real `ExecutionEngine.from_env()` classmethod, `ExchangeFactory.create` monkeypatched, no manual `_exchange`/`_mode` assignment | `REAL_FROM_ENV_PATH_PROVEN_HERMETIC` + `SOURCE_REACHABLE_CONFIGURATION` (operator-incoherent: both PAPER_TRADING_ENABLED and LIVE_TRADING_CONFIRMED true) (§12 Case 6) |
+| true | (unset → paper) | paper (from_env `__init__` default; `_init_exchange()` never called) | false | **no — `_exchange=None`, `from_env()` never attaches one** | paper | `WALLET_PAPER_CAPITAL` + ledger PnL | no | n/a — `_place_live_order` would also block via the paper gate, but `create_order()`'s own `self._live` check already routes to the paper branch first | none | `FROM_ENV` — the real `ExecutionEngine.from_env()` classmethod; contrast to row 8 | `REAL_FROM_ENV_PATH_PROVEN_HERMETIC` (§12 Case 7) |
+| — (any) | — | — | — | — | — (whatever this VPS process's actual boot order/env produced) | — | — | — | — | — | `DEPLOYED_RUNTIME_UNKNOWN` for the deployed VPS in every row above — this matrix proves code-level reachability and hermetic behavior only, never which row is currently active in production (§9) |
 
 ---
 
-## 11. Case 1-5 results (R1 combined causal-order tests)
+## 11. Case 1-5 results (R1 combined causal-order tests) — `PRODUCTION_FUNCTIONS_WITH_INJECTED_STATE`
 
 All cases below exercise the **real production call chain**
 (`bootstrap_capital_x()` → `ExecutionEngine.fetch_available_capital()` →
@@ -560,6 +627,22 @@ the real causal order using the production functions** (the actual
 functions are imported and called directly) — it is explicitly **not** a
 "full `advisor_loop` loop" test: the daemon's main loop function itself is
 never instantiated or run. See Correction F.
+
+**R1.1 evidence-level correction:** every case in this section constructs
+`ExecutionEngine` directly and assigns `_exchange`/`_mode` on it by hand
+(`eng = ExecutionEngine(live=False); eng._exchange = fake_exchange;
+eng._mode = "live"`) — this is **not** `ExecutionEngine.from_env()`. All
+findings below are therefore tagged `PRODUCTION_FUNCTIONS_WITH_INJECTED_STATE`:
+the `WalletSync` singleton, `get_wallet_sync()`, and
+`fetch_available_capital()` are the real, unmodified production functions,
+and the causal order/mode-freezing mechanism they prove is real — but the
+`ExecutionEngine` state feeding into them was injected by the test, not
+produced by `from_env()`. In particular, Case 1/2's
+`LIVE_TRADING_CONFIRMED=false` + `_mode="live"`-with-exchange-attached
+combination is a state `from_env()` itself never produces (see the R1.1
+correction note above and §11a Case 7 for the actual `from_env()` behavior
+under `LIVE_TRADING_CONFIRMED=false`). Do not read any case below as a
+reproduction of `from_env()`'s own construction logic — for that, see §11a.
 
 - **Case 1** (`TestR1Case1LiveModeSingletonFreezesDespitePaperFlag`):
   `EXCHANGE_MODE=live`, `PAPER_TRADING_ENABLED=true`, fake exchange
@@ -613,7 +696,68 @@ never instantiated or run. See Correction F.
 
 ---
 
-## 10. Final verdict
+## 12. Case 6-7 results (R1.1 real `ExecutionEngine.from_env()` tests) — `REAL_FROM_ENV_PATH_PROVEN_HERMETIC`
+
+Both cases below call the actual `ExecutionEngine.from_env()` classmethod —
+no `ExecutionEngine(live=...)` direct construction, no manual `_exchange`/
+`_mode` assignment. `infra.exchange_factory.ExchangeFactory.create` is
+monkeypatched to return a fake exchange (no network, no `ccxt` import
+required); `ExchangeFactory.info()`/`detect_mode()` run unmodified against
+real (fake-valued) env vars, so `from_env()`'s own live/paper decision logic
+executes for real.
+
+- **Case 6** (`TestR1_1Case6FromEnvRealConstructionLiveConfirmedPaperEnabled`):
+  fake `MEXC_API_KEY`/`MEXC_API_SECRET` present, `EXCHANGE_TESTNET` unset
+  (→ `detect_mode()=="live"`), `LIVE_TRADING_CONFIRMED=true`,
+  `PAPER_TRADING_ENABLED=true`, `EXCHANGE_MODE=live` (WalletSync singleton
+  seed), fake exchange `free_usdt=55555.0`. Proven, through
+  `ExecutionEngine.from_env()` itself:
+  - `eng._live is True`, `eng._exchange is fake_exchange`, `eng._mode ==
+    "live"` — `from_env()` genuinely attached a live exchange (it called
+    `_init_exchange()` → `ExchangeFactory.create()`, the monkeypatched
+    fake).
+  - After `bootstrap_capital_x(exchange=eng._exchange)` (1 exchange call):
+    the `WalletSync` singleton is created with `.mode == "live"`.
+  - `eng.fetch_available_capital() == 55555.0` (1 further exchange call,
+    total 2) despite `PAPER_TRADING_ENABLED=true` — the API balance is
+    returned to a caller requesting "paper" wallet_mode, exactly as §3/§11
+    Case 1 describe, but this time proven through the real construction
+    path rather than injected `_mode`.
+  - `eng._place_live_order(...)` still returns `blocked_by_paper_gate`,
+    with **zero additional exchange calls** (call count stays at 2) —
+    distinguishing the balance-read calls (2, both before the order
+    attempt) from the order-attempt calls (0), confirming the order never
+    reaches `fetch_ticker`/`fetch_balance`/`create_order`.
+  - This proves a `SOURCE_REACHABLE_CONFIGURATION`
+    (`PAPER_TRADING_ENABLED=true` AND `LIVE_TRADING_CONFIRMED=true`
+    simultaneously — operator-incoherent, since PAPER and LIVE-CONFIRMED
+    are not meant to both be asserted) is not merely theoretically
+    reachable by source inspection but is **exercised end-to-end through
+    `from_env()`** and reproduces the same API-leak-into-PAPER effect as
+    §11 Case 1, this time without any test-injected engine state.
+- **Case 7** (`TestR1_1Case7FromEnvRealConstructionConfirmedFalseContrast`):
+  same fake API keys present, `LIVE_TRADING_CONFIRMED` unset (default
+  `"false"`), `PAPER_TRADING_ENABLED=true`, `EXCHANGE_MODE` unset. Proven:
+  - `eng._live is False`, `eng._exchange is None`, `eng._mode == "paper"`
+    (the `__init__` default — never overwritten, because `_init_exchange()`
+    is only called when `live=True`).
+  - `ExchangeFactory.create()` is **never invoked** (`create_calls["n"] ==
+    0`, tracked directly) — `from_env()`'s own three-way AND short-circuits
+    before any exchange construction is attempted.
+  - `eng.fetch_available_capital() == 1000.0` (`WALLET_PAPER_CAPITAL`
+    fixture value), the fake exchange's `.calls == 0` throughout, and the
+    `WalletSync` singleton ends up in `"paper"` mode.
+  - This is the honest, hermetically-proven answer to BLOCKER A's required
+    contrast: with `LIVE_TRADING_CONFIRMED=false`, the real `from_env()`
+    path does **not** attach a live exchange at all — it falls back to the
+    `__init__`-default paper state, not to some intermediate testnet state.
+    §11 Case 1's `LIVE_TRADING_CONFIRMED=false` + attached-exchange
+    combination (the mismatch this round corrects) simply cannot arise from
+    `from_env()`.
+
+---
+
+## 13. Final verdict
 
 Per the mission's own decision rule: *"If an API balance can influence
 PAPER, or if paper capital can silently feed live/testnet sizing, the
@@ -629,9 +773,12 @@ language is removed and replaced by the following six enumerated points):
    `get_wallet_sync(mode=...)` call's `mode` argument is a no-op once the
    singleton exists — `SOURCE_PROVEN` + `BEHAVIOR_PROVEN_HERMETIC`.
 3. **Possible API influence on PAPER-labeled calculations** (§3a direction
-   1, §11 Case 1/2): when the singleton is frozen `live`/`testnet` before a
-   `PAPER_TRADING_ENABLED=true` request, the real exchange balance is
-   returned to that caller — `BEHAVIOR_PROVEN_HERMETIC`.
+   1, §11 Case 1/2, and — through the real `ExecutionEngine.from_env()`
+   construction path, no injected state — §12 Case 6): when the singleton
+   is frozen `live`/`testnet` before a `PAPER_TRADING_ENABLED=true` request,
+   the real exchange balance is returned to that caller —
+   `PRODUCTION_FUNCTIONS_WITH_INJECTED_STATE` (§11) and, independently,
+   `REAL_FROM_ENV_PATH_PROVEN_HERMETIC` (§12 Case 6).
 4. **Possible paper-capital influence on LIVE/TESTNET calculations** (§3a
    direction 2, §11 Case 3, and the original round's H4/H6): when the
    singleton is frozen `paper` before a `live`/`testnet`-requesting caller,
@@ -682,5 +829,21 @@ strategy/risk/sizing/portfolio/execution logic").
 
 **Runtime honesty note (Correction F):** the actual VPS runtime
 environment-variable configuration (whether `EXCHANGE_MODE` is ever set,
-and to what) remains `RUNTIME_UNKNOWN` — this audit, in both rounds,
-characterizes code behavior under hermetic test, never deployed state.
+and to what) remains `DEPLOYED_RUNTIME_UNKNOWN` — this audit, across all
+three rounds, characterizes code behavior under hermetic test, never
+deployed state.
+
+**R1.1 addendum — BLOCKER A resolved, verdict unchanged:** §12 Cases 6-7
+close the gap this round was opened to close: point 3 above is now proven
+both with injected engine state (§11) and through the real
+`ExecutionEngine.from_env()` construction path (§12 Case 6), and §12 Case 7
+proves the honest contrast — with `LIVE_TRADING_CONFIRMED=false`,
+`from_env()` never attaches a live exchange at all, so the mismatched
+`LIVE_TRADING_CONFIRMED=false` + attached-exchange state R1's Case 1
+originally implied never actually arises in production construction. This
+strengthens, but does not change, the verdict below: `frozen order_size`,
+the intentionally-pinned P10 `CapitalThrottle` (§6), `RealAccountsObserver`'s
+display-only status (§7), and the absence of VPS runtime proof (§9) are all
+unchanged and unaffected by this round's correction.
+
+**VERDICT (unchanged): `REMEDIATION_REQUIRED`.**
