@@ -15,8 +15,22 @@ after it on `origin/main` at audit time. Branch:
 `NOT_APPLICABLE`.
 
 **Companion test file:**
-`tests/test_pre_t1_d_real_capital_boundary.py` (46 hermetic tests, no
-network, no secrets, fake exchanges only).
+`tests/test_pre_t1_d_real_capital_boundary.py` (56 hermetic tests, no
+network, no secrets, fake exchanges only — 46 from the original round plus
+10 added in R1, Cases 1-5 below).
+
+**R1 correction note (this section added on the follow-up round):** the
+original round's H1 conclusion ("PAPER is isolated from API balance") was
+stated unconditionally. That statement is corrected throughout this document
+to `PAPER_ISOLATION_CONDITIONAL_ON_EFFECTIVE_SINGLETON_MODE` — see §1, §3,
+§10 and the new §11 (Case 1-5 results) below. The original H2/H4/H5/H6
+findings and their source citations are unchanged and re-verified against
+current source as part of this correction; only their framing/classification
+and the H1 conclusion are revised. **Runtime scope note:** this entire audit
+characterizes code behavior under hermetic test, never the deployed VPS
+`.env`/process state — the actual VPS runtime environment-variable
+configuration remains `RUNTIME_UNKNOWN` throughout this document, including
+after this correction.
 
 ---
 
@@ -148,23 +162,99 @@ Because step 1 always runs first and always creates the singleton, step 2's
 life of the process — `BEHAVIOR_PROVEN_HERMETIC`
 (`TestH2SingletonConstructionOrder.test_bootstrap_capital_x_creates_singleton_before_fetch_available_capital_mode`).
 
-**Practical consequence:** this ordering issue is *masked* rather than
-*harmless*, because `get_balance()` itself re-checks `self._mode` on every
-call (not a cached decision) and `fetch_available_capital()` always passes
-the intended `wallet_mode` — but since the singleton's `.mode` never
-actually changes to reflect it, `get_balance()`'s paper/live branch is
-driven by whatever `EXCHANGE_MODE` said at first construction, not by
-`PAPER_TRADING_ENABLED` on later calls, for any code path that reads
-`wallet.mode` directly (e.g. Telegram/cockpit provenance rendering that
-calls `get_wallet_sync().mode` rather than recomputing). `.get_balance()`
-called with **no explicit mode override** (i.e. as `WalletSync.get_balance()`
-is always invoked — it takes no mode parameter) therefore behaves according
-to the **singleton's frozen `._mode`**, not the freshly intended one. In the
-observed default configuration (`EXCHANGE_MODE` unset → `"paper"`,
-`PAPER_TRADING_ENABLED` default `"true"`) both agree, which is why this has
-not manifested as a visible defect: the divergence only becomes observable
-when `EXCHANGE_MODE` is explicitly set to something other than what
-`PAPER_TRADING_ENABLED` would imply (Scenario L, K).
+**Practical consequence (R1-corrected — this is the finding that overturns
+the original round's unconditional H1 claim):** `get_balance()` branches
+strictly on `self._mode` — the singleton's frozen mode — **not** on the
+`wallet_mode` string that `fetch_available_capital()` computed and passed
+into `get_wallet_sync(mode=wallet_mode)`. Because that `mode=` argument is
+silently discarded once the singleton exists (§3 above), **the entire
+paper-vs-live numeric branch actually taken by `get_balance()` is decided by
+whichever mode created the singleton first — `EXCHANGE_MODE` at
+`bootstrap_capital_x()` time — regardless of what `PAPER_TRADING_ENABLED`
+requests on every later call.** Concretely: if `EXCHANGE_MODE=live` (or
+`testnet`) and `bootstrap_capital_x()` runs before any `PAPER_TRADING_ENABLED`
+check is consulted (the actual `core/advisor_loop.py` order, always), the
+singleton stays in `live`/`testnet` mode for the life of the process — so
+`get_balance()` takes the live/testnet branch, **queries the real exchange**,
+and returns that API-sourced value to `fetch_available_capital()`'s caller,
+**even though `PAPER_TRADING_ENABLED=true` and the caller explicitly
+requested `wallet_mode="paper"`.** This is proven hermetically through the
+real call path in §11 Case 1. In the observed default configuration
+(`EXCHANGE_MODE` unset → `"paper"`, `PAPER_TRADING_ENABLED` default `"true"`)
+both agree and no leak occurs — the divergence is only observable when
+`EXCHANGE_MODE` is explicitly set to something other than what
+`PAPER_TRADING_ENABLED` would imply (Scenario L, K; §11 Cases 1-3). This is
+**not** merely a display-provenance issue (contrast the original framing):
+it changes which numeric branch of `WalletSync.get_balance()` executes and
+whether `exchange.fetch_balance()` is actually called — see §4a (H2
+reclassification) below.
+
+**Four distinct things this document must never conflate (BLOCKER A):**
+
+1. **Isolation of calculations** — whether the *number* fed into
+   sizing/risk originates from the exchange API or from
+   `WALLET_PAPER_CAPITAL`. This is what §3/§11 Cases 1-3 characterize, and
+   it is **conditional** on the singleton's effective mode, not guaranteed
+   by `PAPER_TRADING_ENABLED=true`.
+2. **Blocking of network *execution*** — `_place_live_order`'s
+   `blocked_by_paper_gate` short-circuit, which reads
+   `ExecutionEngine._paper_trading_enabled()` directly (not through the
+   frozen singleton) and always fires before any order reaches the network
+   when `PAPER_TRADING_ENABLED` is truthy. This gate is **unconditionally
+   reliable** for its narrow purpose (no real order is ever sent) —
+   `BEHAVIOR_PROVEN_HERMETIC`, §11 Case 1 re-confirms it fires even while
+   the API balance leaked into the capital figure in the very same test.
+   Blocking execution does **not** prove the capital figure computed
+   upstream of that gate was isolated from the API — these are different
+   guarantees, proven by different mechanisms, and Case 1 shows they can
+   diverge in the same call sequence.
+3. **Capital provenance** — which fallback tier (fresh fetch / stale cache
+   / `_x` / `WALLET_PAPER_CAPITAL`) actually produced the returned float;
+   see §4.
+4. **The mode displayed to the operator** — `resolve_mode_provenance()`'s
+   label, a separate presentation-layer computation (§8.2) that can itself
+   diverge from both (1) and (3).
+
+---
+
+## 3a. H2 reclassification (Correction D) — not a display bug, a branch-selection bug
+
+**R1 correction:** the original round scoped H2 narrowly, alongside H3's
+Telegram-banner finding. H2 is reclassified here as its own primary finding,
+because it does not just affect what is *displayed* — it determines **which
+numeric branch of `WalletSync.get_balance()` actually executes**
+(`if self._mode == "paper":` vs. the live/testnet branch that calls
+`self._exchange.fetch_balance()`), independent of any display code.
+
+**Both contamination directions are proven, hermetically, through the real
+call path (§11):**
+
+1. **API → PAPER direction (§11 Case 1/2):** singleton frozen in
+   `live`/`testnet` mode by `bootstrap_capital_x()` (from `EXCHANGE_MODE`),
+   then `PAPER_TRADING_ENABLED=true` is requested later —
+   `fetch_available_capital()`'s `wallet_mode="paper"` argument is discarded,
+   `get_balance()` takes the live/testnet branch, and the real exchange
+   balance is returned to a caller that believes it is operating in PAPER
+   mode. `exchange.fetch_balance()` **is called** — `BEHAVIOR_PROVEN_HERMETIC`,
+   call count asserted directly.
+2. **Paper → LIVE/TESTNET direction (§11 Case 3):** singleton frozen in
+   `paper` mode (no `EXCHANGE_MODE` set), then `PAPER_TRADING_ENABLED=false`
+   is requested later with `ExecutionEngine._mode` set to `live`/`testnet` —
+   the paper branch still executes, `WALLET_PAPER_CAPITAL` + ledger PnL is
+   returned, and `exchange.fetch_balance()` is **never called**, even though
+   a working exchange was available and the engine's own state believed it
+   was in live/testnet mode. This connects directly to the original round's
+   H4 finding (paper capital silently feeding live/testnet sizing) and to
+   H6 (P10 throttle deliberately pinned to paper capital) — H2's paper→live
+   direction is the *unintentional*, order-dependent counterpart to H6's
+   *intentional*, ADR-0011-documented pinning.
+
+**Secondary consequence, not the primary finding:** displayed provenance
+(`resolve_mode_provenance()`, §8.2) can also diverge from the actual
+numeric source, because it is computed independently from `exec_mode` and
+`paper_trading_enabled` rather than by reading the singleton's true
+`._mode`/branch — but this display divergence is downstream of, and
+secondary to, the branch-selection effect documented above.
 
 ---
 
@@ -212,6 +302,32 @@ This entire mechanism is independently documented, with identical
 conclusions, in `docs/contracts/O-02W-E_TELEGRAM_OBSERVATION_BOUNDARY.md`
 §9c Flow 2 (Correction E / R1.1), which this audit's hermetic tests now
 additionally prove at the unit level rather than by source reading alone.
+
+**R1 refinement (§11 Case 5b):** `_x` and **cache** are not fully
+independent tiers in practice. `WalletSync.set_x()` (called internally by a
+successful `bootstrap()`) also seeds `self._last_value = self._x`
+(`wallet_sync.py:126`, comment "fallback live aussi"). So a process that
+successfully bootstraps and then experiences an API error never reaches the
+"`_last_value is None` → use `_x`" branch of `_base_capital()` on its own —
+it is served by the ordinary cache-fallback path with a value that happens
+to equal `_x`. The `_x`-only branch of `_base_capital()` is reached only
+when a caller has `_x` set (via `set_x()`/`bootstrap()`) **without** having
+gone through `get_balance()`'s own successful-fetch path — hermetically
+reachable (§11 Case 5b constructs it directly) but not the typical process
+lifecycle. This does not change the H4 verdict; it refines which of the two
+listed tiers ("cache" vs. "`_x`") a real bootstrapped process actually hits.
+
+**R1 refinement (§11 Case 5c/5d — explicit non-distinguishability finding):**
+a genuine zero balance (Scenario H) and an API error (Scenario F/G) are
+**not distinguishable from `get_balance()`'s return value, from the outside,
+by design** — both fall through to the identical `return self._fallback()`
+call with no side channel (no return-value tag, no raised/re-raised
+exception, no distinct log field surfaced to the caller) that would let a
+caller tell "exchange reachable, balance truly zero" apart from "exchange
+unreachable." This is stated here as an explicit, proven finding (§11 Case
+5c/5d), not inferred or assumed away — the current implementation genuinely
+cannot make this distinction from `WalletSync.get_balance()`'s return type
+alone.
 
 ---
 
@@ -411,40 +527,160 @@ architectural coupling between the two, however deliberately chosen.
 
 ---
 
+## 10a. Mode-combination matrix (Correction C)
+
+Every row is tagged with exactly one of `SOURCE_REACHABLE` (the code path
+exists and was read, but not exercised under hermetic test in this file),
+`BEHAVIOR_PROVEN_HERMETIC` (a test in `tests/test_pre_t1_d_real_capital_boundary.py`
+exercises this exact combination through the real call path), or
+`RUNTIME_UNKNOWN` (whether this combination occurs on the deployed VPS is
+not established by this audit and is out of scope).
+
+| `PAPER_TRADING_ENABLED` | `EXCHANGE_MODE` (singleton seed) | `ExecutionEngine._mode` | `LIVE_TRADING_CONFIRMED` | exchange present | singleton effective `.mode` | final numeric provenance | API call made | real order blockable | sizing/risk influence | Tag |
+|---|---|---|---|---|---|---|---|---|---|---|
+| true | live | live | false | yes | **live** (frozen) | exchange balance | **yes** | blocked (`blocked_by_paper_gate`) | **yes — API leaks into "paper" figure** | `BEHAVIOR_PROVEN_HERMETIC` (§11 Case 1) |
+| 1/yes/on | live | live | false | yes | **live** (frozen) | exchange balance | **yes** | blocked | **yes** (same as above, truthy-variant) | `BEHAVIOR_PROVEN_HERMETIC` (§11 Case 2) |
+| false | (unset → paper) | live/testnet | false | yes | **paper** (frozen) | `WALLET_PAPER_CAPITAL` + ledger PnL | no | allowable (subject to other gates) | **yes — paper capital feeds a live/testnet-requesting caller** | `BEHAVIOR_PROVEN_HERMETIC` (§11 Case 3) |
+| false | live | live | false | no (raises) | live | `WALLET_PAPER_CAPITAL` (fallback, no cache/no `_x`) | attempted, failed | allowable | possible, ambiguous (§4/§11 Case 4) | `BEHAVIOR_PROVEN_HERMETIC` (§11 Case 4) |
+| true | (unset → paper) | — | false | yes (unused) | paper | `WALLET_PAPER_CAPITAL` + ledger PnL | no | blocked | none (H1 holds in this row) | `BEHAVIOR_PROVEN_HERMETIC` (original round, Scenario A) |
+| false | live | live | true | yes | live | exchange balance (fresh/cached) | yes | **allowable — real order can reach the exchange** | full — this is the intended live path | `BEHAVIOR_PROVEN_HERMETIC` (original round, `TestFromEnv`, plus §2 live-fetch tests) |
+| true | live | live | true | yes | **live** (frozen) | exchange balance | yes | blocked (paper gate overrides `LIVE_TRADING_CONFIRMED`) | yes (same leak as row 1; `LIVE_TRADING_CONFIRMED` does not change `fetch_available_capital()`'s outcome) | `SOURCE_REACHABLE` — not separately re-run with `LIVE_TRADING_CONFIRMED=true` in this file, but `_place_live_order`'s gate check is independent of it per §2's execution-gate row |
+| — (any) | — | — | — | — | — (whatever this VPS process's actual boot order/env produced) | — | — | — | — | `RUNTIME_UNKNOWN` for the deployed VPS in every row above — this matrix proves code-level reachability and hermetic behavior only, never which row is currently active in production (§9) |
+
+---
+
+## 11. Case 1-5 results (R1 combined causal-order tests)
+
+All cases below exercise the **real production call chain**
+(`bootstrap_capital_x()` → `ExecutionEngine.fetch_available_capital()` →
+`WalletSync.get_balance()`), not an isolated `WalletSync.get_balance()`
+call, per the mission's requirement. This is a **hermetic reproduction of
+the real causal order using the production functions** (the actual
+`bootstrap_capital_x`, `get_wallet_sync`, `fetch_available_capital`
+functions are imported and called directly) — it is explicitly **not** a
+"full `advisor_loop` loop" test: the daemon's main loop function itself is
+never instantiated or run. See Correction F.
+
+- **Case 1** (`TestR1Case1LiveModeSingletonFreezesDespitePaperFlag`):
+  `EXCHANGE_MODE=live`, `PAPER_TRADING_ENABLED=true`, fake exchange
+  `free_usdt=13579.0`. Proven: `bootstrap_capital_x()` returns `13579.0`
+  (1 exchange call); singleton `.mode == "live"`;
+  `eng.fetch_available_capital() == 13579.0` (1 additional exchange call,
+  total 2) despite `PAPER_TRADING_ENABLED=true`; `_place_live_order` still
+  returns `blocked_by_paper_gate` with 0 further exchange calls. **API
+  capital DOES enter the calculation while the execution gate stays
+  active** — the two guarantees are independent, as BLOCKER A requires
+  this document to state explicitly.
+- **Case 2** (`TestR1Case2PaperTruthyVariantsDoNotChangeCase1Outcome`,
+  parametrized `"1"`/`"yes"`/`"on"`): identical outcome to Case 1 for all
+  three truthy spellings — `fetch_available_capital() == 24680.0` (the
+  Case-2 fixture's fake balance) in every sub-case; confirms the leak is
+  independent of which truthy string is used.
+- **Case 3** (`TestR1Case3PaperSingletonFreezesLiveTestnetRequest`,
+  parametrized `"live"`/`"testnet"`): `EXCHANGE_MODE` unset (singleton
+  starts `"paper"`), `PAPER_TRADING_ENABLED=false`, `ExecutionEngine._mode`
+  set to `"live"`/`"testnet"`, fake exchange `free_usdt=99999.0`. Proven:
+  singleton stays `"paper"`; `fetch_available_capital() == 321.0`
+  (`WALLET_PAPER_CAPITAL`, exactly the paper fixture value) for **both**
+  `"live"` and `"testnet"` requests; exchange call count unchanged from
+  before the request (0 additional calls) — the live/testnet request is
+  silently ignored and paper capital is used despite a working, queryable
+  API.
+- **Case 4** (`TestR1Case4LiveErrorNoCacheNoXRealPath`): singleton
+  effective mode `"live"`, `PAPER_TRADING_ENABLED=false`, API raises, no
+  cache, no successful bootstrap (`wallet.capital_x is None` asserted
+  directly before the call). Through the real
+  `ExecutionEngine.fetch_available_capital()` path:
+  `capital == 42.0` (`WALLET_PAPER_CAPITAL`), exactly 1 failed exchange
+  call attempted.
+- **Case 5** (`TestR1Case5DistinguishableFallbackSources`, four
+  sub-tests):
+  - **5a stale cache:** returns the cached `777.0`, not `_x` (`500.0`,
+    deliberately also set) or paper (`42.0`) — exchange called exactly
+    once total (cache hit skips the second call).
+  - **5b bootstrapped `_x`:** returns `300.0` (`_x`, via
+    `_base_capital()`'s non-paper branch) rather than `42.0` (paper) —
+    but see the §4 R1 refinement: a successful `bootstrap()` also seeds
+    `_last_value`, so this branch is reached only when `_last_value` was
+    never populated by `get_balance()` itself.
+  - **5c/5d zero balance vs. API error:** both return the identical
+    `42.0` via the identical `_fallback()` call — proven **not**
+    distinguishable from the return value alone, stated as an explicit
+    finding (§4 R1 refinement), not conflated as "the same thing" without
+    proof: both source exchanges are asserted to have been called exactly
+    once, confirming the *only* observable difference is upstream of
+    `get_balance()`'s return type.
+
+---
+
 ## 10. Final verdict
 
 Per the mission's own decision rule: *"If an API balance can influence
 PAPER, or if paper capital can silently feed live/testnet sizing, the
 verdict CANNOT be `BOUNDARY_PROVEN_SAFE`."*
 
-- §1/§2 (H1): no evidence an API balance influences PAPER-mode sizing —
-  `PAPER_TRADING_ENABLED` truthy forces `wallet_mode="paper"` inside
-  `fetch_available_capital()` on first singleton construction, and paper
-  mode's `get_balance()` never calls `exchange.fetch_balance()`
-  (`BEHAVIOR_PROVEN_HERMETIC`, exchange call count = 0 in every paper-mode
-  test in this suite).
-- §4 (H4): **paper capital (`WALLET_PAPER_CAPITAL`) CAN and DOES silently
-  feed live/testnet sizing** — Scenario F, `BEHAVIOR_PROVEN_HERMETIC` — any
-  time a live/testnet capital fetch fails with no prior cache and no
-  successful bootstrap.
+**R1-corrected basis** (the original round's "H1 globally proven safe"
+language is removed and replaced by the following six enumerated points):
 
-Per the mission's decision rule, this single confirmed finding is
-sufficient on its own to preclude `BOUNDARY_PROVEN_SAFE`. This is not a
-speculative or `RUNTIME_UNKNOWN` finding — it is proven both from source
-(`wallet_sync.py:159-206`) and from a hermetic unit test exercising the
-exact fallback chain with no network access.
+1. **Singleton mode frozen at first call** (§3): `get_wallet_sync()`
+   resolves `.mode` only once, at first construction, from `EXCHANGE_MODE`
+   (default `"paper"`) — `SOURCE_PROVEN` + `BEHAVIOR_PROVEN_HERMETIC`.
+2. **Later mode requests silently ignored** (§3): any subsequent
+   `get_wallet_sync(mode=...)` call's `mode` argument is a no-op once the
+   singleton exists — `SOURCE_PROVEN` + `BEHAVIOR_PROVEN_HERMETIC`.
+3. **Possible API influence on PAPER-labeled calculations** (§3a direction
+   1, §11 Case 1/2): when the singleton is frozen `live`/`testnet` before a
+   `PAPER_TRADING_ENABLED=true` request, the real exchange balance is
+   returned to that caller — `BEHAVIOR_PROVEN_HERMETIC`.
+4. **Possible paper-capital influence on LIVE/TESTNET calculations** (§3a
+   direction 2, §11 Case 3, and the original round's H4/H6): when the
+   singleton is frozen `paper` before a `live`/`testnet`-requesting caller,
+   `WALLET_PAPER_CAPITAL` is returned instead — `BEHAVIOR_PROVEN_HERMETIC`.
+5. **Ambiguous API fallback between error / zero / cache / `_x` / paper
+   capital** (§4, §11 Case 4/5): error, no-cache/no-`_x` returns paper
+   capital (Case 4); zero balance and API error are not distinguishable
+   from the return value (Case 5c/5d); stale cache and bootstrapped `_x`
+   are each individually distinguishable and proven so (Case 5a/5b) —
+   `BEHAVIOR_PROVEN_HERMETIC` throughout.
+6. **`order_size` not recomputed after refresh** (§5/H5): `SOURCE_PROVEN`
+   by grep (`core/advisor_loop.py`'s sole `order_size =` assignment, line
+   4046, never reassigned) — no evidence found of any later recomputation;
+   this audit did not find proof otherwise.
 
-**VERDICT: REMEDIATION_REQUIRED**
+**Corrected conclusion replacing the original H1 statement:**
+`PAPER_ISOLATION_CONDITIONAL_ON_EFFECTIVE_SINGLETON_MODE` — PAPER-mode
+calculations are isolated from the exchange API **only when the singleton's
+effective mode is actually `"paper"`** at the time `get_balance()` is
+called. `PAPER_TRADING_ENABLED=true` does **not**, by itself, guarantee this
+— it guarantees only that a real *order* cannot reach the network (point 2
+of BLOCKER A's four-way distinction), which is a narrower and different
+guarantee than "the capital figure was never touched by the API" (point 1).
+In the process's actual default boot configuration (`EXCHANGE_MODE` unset →
+`"paper"`), the two happen to coincide, which is why this had not manifested
+as an externally visible defect — but that coincidence is a property of the
+default configuration, not a property the code enforces.
+
+**VERDICT: REMEDIATION_REQUIRED** (unchanged from the original round's
+top-level verdict; only its documented basis is corrected above).
 
 This does not mean the current behavior is unauthorized or accidental —
 §9c of `docs/contracts/O-02W-E_TELEGRAM_OBSERVATION_BOUNDARY.md` already
-identifies this exact mechanism and explicitly defers its resolution to "a
-dedicated boundary hardening mission," which this document is a
+identifies the H4/paper→live direction and explicitly defers its resolution
+to "a dedicated boundary hardening mission," which this document is a
 prerequisite audit for, not a substitute for. The remediation this verdict
-calls for is an explicit MASTER/operator decision on whether the
-live/testnet fallback-to-paper-capital behavior is acceptable as-is (with
-its risk made visible, e.g. a distinct `UNKNOWN`/`DEGRADED` numeric
-sentinel instead of a silent paper-capital substitution) or must be
-hardened — precisely the decision this mission's brief anticipated and
+calls for is an explicit MASTER/operator decision on: (a) whether the
+live/testnet fallback-to-paper-capital behavior (point 4/5 above) is
+acceptable as-is or must be hardened (e.g. a distinct `UNKNOWN`/`DEGRADED`
+numeric sentinel instead of a silent substitution), and (b) whether
+`get_wallet_sync()`'s mode-freezing-at-first-call behavior (points 1-3
+above) should instead raise/log loudly on a divergent later `mode=` request,
+or be resolved by ensuring `bootstrap_capital_x()` and
+`fetch_available_capital()` are guaranteed to agree on mode before either
+ever runs — precisely the decision this mission's brief anticipated and
 explicitly prohibited this audit from making unilaterally ("No change to
 strategy/risk/sizing/portfolio/execution logic").
+
+**Runtime honesty note (Correction F):** the actual VPS runtime
+environment-variable configuration (whether `EXCHANGE_MODE` is ever set,
+and to what) remains `RUNTIME_UNKNOWN` — this audit, in both rounds,
+characterizes code behavior under hermetic test, never deployed state.

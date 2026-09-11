@@ -646,3 +646,271 @@ class TestH1EndToEndPaperIsolation:
 
         assert wallet.get_balance() == pytest.approx(1050.0)
         assert fake_exchange.calls == 0
+
+
+# ─────────────────────────────────────────────────────────────────────────
+# R1 CORRECTION — Cases 1-5: full causal-order combination through the REAL
+# path (bootstrap_capital_x -> ExecutionEngine.fetch_available_capital ->
+# WalletSync.get_balance), proving/disproving H1's unconditional claim.
+# ─────────────────────────────────────────────────────────────────────────
+
+
+class TestR1Case1LiveModeSingletonFreezesDespitePaperFlag:
+    """Case 1: EXCHANGE_MODE=live, PAPER_TRADING_ENABLED=true, fake exchange
+    with a distinctive balance, bootstrap_capital_x() runs BEFORE
+    fetch_available_capital() — the real advisor_loop.py causal order.
+
+    Proves: the singleton is created in "live" mode by bootstrap_capital_x()
+    (EXCHANGE_MODE), and fetch_available_capital()'s wallet_mode="paper"
+    request (from PAPER_TRADING_ENABLED) is silently ignored for `.mode` —
+    but get_balance() itself branches on `self._mode` at CALL time, and
+    since `self._mode` is frozen to "live", get_balance() takes the
+    live/testnet branch and DOES call exchange.fetch_balance(), even though
+    PAPER_TRADING_ENABLED=true. The PAPER execution gate (_place_live_order)
+    still blocks a real order, but the API balance HAS influenced the
+    numeric capital figure returned to callers — H1's unconditional
+    "PAPER is isolated" claim is FALSE in this reachable scenario.
+    """
+
+    def test_live_singleton_frozen_before_paper_request_lets_api_balance_through(
+        self, monkeypatch, isolated_ledger, tmp_path
+    ):
+        monkeypatch.setenv("EXCHANGE_MODE", "live")
+        monkeypatch.setenv("PAPER_TRADING_ENABLED", "true")
+        monkeypatch.setenv("EXEC_TRADE_LOG", str(tmp_path / "trades.sqlite"))
+        monkeypatch.setattr(ws, "_PAPER_CAPITAL", 1000.0)
+        from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
+
+        fake_exchange = FakeExchange(free_usdt=13_579.0)  # distinctive value
+
+        # Real causal order: bootstrap_capital_x() first (advisor_loop.py ~3777).
+        x = ws.bootstrap_capital_x(exchange=fake_exchange)
+        assert x == 13_579.0  # bootstrap() itself always reads the real API
+        assert ws.get_wallet_sync().mode == "live"  # frozen from EXCHANGE_MODE
+        calls_after_bootstrap = fake_exchange.calls
+        assert calls_after_bootstrap == 1
+
+        # Then ExecutionEngine.fetch_available_capital() — the REAL path,
+        # not a direct WalletSync.get_balance() call.
+        eng = ExecutionEngine(live=False)
+        eng._exchange = fake_exchange
+        eng._mode = "live"
+
+        capital = eng.fetch_available_capital()
+
+        # wallet_mode requested was "paper" (PAPER_TRADING_ENABLED=true), but
+        # the singleton's .mode is still "live" — get_balance() branches on
+        # self._mode, which is "live", so it fetches from the exchange.
+        assert ws.get_wallet_sync().mode == "live"
+        assert capital == 13_579.0  # API balance leaked into the "paper" request
+        assert fake_exchange.calls == calls_after_bootstrap + 1  # exchange WAS queried
+
+        # The PAPER execution gate still blocks a REAL ORDER (separate concern
+        # from capital provenance) — proves distinction (2) vs (1)/(3) in BLOCKER A.
+        result = eng._place_live_order("BTC/USDT", "BUY", 50.0)
+        assert result["mode"] == "live_failed"
+        assert result["error"] == "blocked_by_paper_gate"
+
+
+class TestR1Case2PaperTruthyVariantsDoNotChangeCase1Outcome:
+    """Case 2: same scenario as Case 1, but PAPER_TRADING_ENABLED set to
+    "1"/"yes"/"on" instead of "true" — proves the outcome is identical
+    regardless of which truthy spelling is used, since the requested
+    wallet_mode is ignored either way once the singleton pre-exists."""
+
+    @pytest.mark.parametrize("value", ["1", "yes", "on"])
+    def test_truthy_variant_still_lets_api_balance_through(
+        self, value, monkeypatch, isolated_ledger, tmp_path
+    ):
+        monkeypatch.setenv("EXCHANGE_MODE", "live")
+        monkeypatch.setenv("PAPER_TRADING_ENABLED", value)
+        monkeypatch.setenv("EXEC_TRADE_LOG", str(tmp_path / "trades.sqlite"))
+        monkeypatch.setattr(ws, "_PAPER_CAPITAL", 1000.0)
+        from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
+
+        fake_exchange = FakeExchange(free_usdt=24_680.0)
+
+        ws.bootstrap_capital_x(exchange=fake_exchange)
+        assert ws.get_wallet_sync().mode == "live"
+
+        eng = ExecutionEngine(live=False)
+        eng._exchange = fake_exchange
+        eng._mode = "live"
+
+        # Confirm ExecutionEngine's own predicate does recognize this value
+        # as PAPER-truthy (it does — the divergence is not in this
+        # predicate, it's in the singleton-mode-freezing mechanism).
+        assert ExecutionEngine._paper_trading_enabled() is True
+
+        capital = eng.fetch_available_capital()
+        assert capital == 24_680.0  # same leak regardless of truthy spelling
+
+
+class TestR1Case3PaperSingletonFreezesLiveTestnetRequest:
+    """Case 3: mirror direction — EXCHANGE_MODE absent (singleton starts in
+    "paper"), PAPER_TRADING_ENABLED=false, ExecutionEngine._mode set to
+    "live"/"testnet" (self._mode, the attribute ExecutionEngine uses
+    internally after from_env()/__init__ — verified in execution_engine.py:
+    self._mode = "paper" default at __init__, overwritten by from_env()'s
+    ExchangeFactory.detect_mode() result). Fake exchange available and
+    working. Proves the live/testnet request is silently ignored and the
+    PAPER ledger value is used despite a working, queryable API — the
+    mirror-image contamination direction connecting to H4."""
+
+    @pytest.mark.parametrize("requested_mode", ["live", "testnet"])
+    def test_live_testnet_request_ignored_paper_value_used_despite_working_api(
+        self, requested_mode, monkeypatch, isolated_ledger, tmp_path
+    ):
+        monkeypatch.delenv("EXCHANGE_MODE", raising=False)  # singleton -> "paper"
+        monkeypatch.setenv("PAPER_TRADING_ENABLED", "false")
+        monkeypatch.setenv("EXEC_TRADE_LOG", str(tmp_path / "trades.sqlite"))
+        monkeypatch.setattr(ws, "_PAPER_CAPITAL", 321.0)
+        from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
+
+        fake_exchange = FakeExchange(free_usdt=99_999.0)  # working, distinctive
+
+        # Singleton created first, in "paper" mode (no EXCHANGE_MODE set).
+        ws.bootstrap_capital_x(exchange=fake_exchange)
+        assert ws.get_wallet_sync().mode == "paper"
+        calls_after_bootstrap = fake_exchange.calls
+
+        eng = ExecutionEngine(live=False)
+        eng._exchange = fake_exchange
+        eng._mode = requested_mode  # engine "wants" live/testnet
+
+        capital = eng.fetch_available_capital()
+
+        # wallet_mode computed inside fetch_available_capital() would be
+        # `requested_mode` (PAPER_TRADING_ENABLED=false), but the pre-existing
+        # singleton's .mode stays "paper" — get_balance() takes the paper
+        # branch: WALLET_PAPER_CAPITAL + ledger PnL, exchange never queried.
+        assert ws.get_wallet_sync().mode == "paper"
+        assert capital == pytest.approx(321.0)
+        assert fake_exchange.calls == calls_after_bootstrap  # not queried again
+
+
+class TestR1Case4LiveErrorNoCacheNoXRealPath:
+    """Case 4: effective singleton mode "live", PAPER_TRADING_ENABLED=false,
+    API error (raises), no cache, no successful bootstrap (_x never set).
+    Tested through the REAL path ExecutionEngine.fetch_available_capital(),
+    not a direct WalletSync.get_balance() call."""
+
+    def test_live_error_no_cache_no_x_returns_paper_capital_via_real_path(
+        self, monkeypatch, isolated_ledger, tmp_path
+    ):
+        monkeypatch.setenv("EXCHANGE_MODE", "live")
+        monkeypatch.setenv("PAPER_TRADING_ENABLED", "false")
+        monkeypatch.setenv("EXEC_TRADE_LOG", str(tmp_path / "trades.sqlite"))
+        monkeypatch.setattr(ws, "_PAPER_CAPITAL", 42.0)
+        from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
+
+        fake_exchange = FakeExchange(raise_on_fetch=True)
+
+        # Create the singleton via get_wallet_sync directly with no bootstrap
+        # success (bootstrap() is NOT called here -> _x stays None), mirroring
+        # "no successful bootstrap" precisely.
+        wallet = ws.get_wallet_sync(exchange=fake_exchange)
+        assert wallet.mode == "live"
+        assert wallet.capital_x is None
+
+        eng = ExecutionEngine(live=False)
+        eng._exchange = fake_exchange
+        eng._mode = "live"
+
+        capital = eng.fetch_available_capital()
+
+        # get_balance() -> live branch -> fetch_balance() raises -> _fallback()
+        # -> _last_value is None -> _base_capital() -> self._x is None ->
+        # WALLET_PAPER_CAPITAL. Exactly one failed call attempted.
+        assert capital == 42.0
+        assert fake_exchange.calls == 1
+
+
+class TestR1Case5DistinguishableFallbackSources:
+    """Case 5: (a) stale cache, (b) bootstrapped _x, (c) genuine zero
+    balance, (d) API error — all through get_balance()/fetch_available_capital,
+    proving they are code-path-distinguishable even where the returned
+    float coincides. Where the current code CANNOT distinguish two cases
+    (zero balance vs. error, both falling through the same `_fallback()`
+    call with no side channel), this is stated as an explicit finding,
+    not papered over."""
+
+    def test_a_stale_cache_returns_cached_value_not_paper_or_x(
+        self, monkeypatch, isolated_ledger
+    ):
+        monkeypatch.setattr(ws, "_PAPER_CAPITAL", 42.0)
+        monkeypatch.setattr(ws, "_CACHE_TTL_S", 9999.0)  # cache stays "fresh"
+        fake_exchange = FakeExchange(free_usdt=777.0)
+        wallet = ws.WalletSync(exchange=fake_exchange, mode="live")
+        wallet.set_x(500.0)  # _x also set, to prove cache wins over _x too
+
+        first = wallet.get_balance(force_refresh=True)
+        assert first == 777.0
+        assert fake_exchange.calls == 1
+
+        fake_exchange._raise = True
+        second = wallet.get_balance()  # no force_refresh -> serves fresh cache
+        assert second == 777.0  # cache, not 500.0 (_x) or 42.0 (paper)
+        assert fake_exchange.calls == 1  # exchange not called again — cache hit
+
+    def test_b_bootstrapped_x_used_when_no_cache_and_api_fails(
+        self, monkeypatch, isolated_ledger
+    ):
+        monkeypatch.setattr(ws, "_PAPER_CAPITAL", 42.0)
+        fake_exchange = FakeExchange(raise_on_fetch=False, free_usdt=0.0)
+        wallet = ws.WalletSync(exchange=fake_exchange, mode="live")
+
+        # bootstrap() succeeds via a SEPARATE fake exchange with a valid
+        # balance (simulating boot-time success), setting _x without ever
+        # populating _last_value through get_balance()'s own fetch path.
+        boot_exchange = FakeExchange(free_usdt=300.0)
+        assert wallet.bootstrap(boot_exchange) == 300.0
+        assert wallet.capital_x == 300.0
+        # bootstrap() -> set_x() ALSO seeds _last_value = self._x (wallet_sync.py:126,
+        # "fallback live aussi") — so _x and cache are not independent channels here;
+        # this in itself refines §4's earlier framing of "_x" as a distinct fallback
+        # tier from "cache": in practice, a successful bootstrap() populates BOTH.
+        assert wallet._last_value == 300.0
+
+        fake_exchange._raise = True
+        # force_refresh=True bypasses the cache-freshness check but the API
+        # call fails, so _fallback() runs: _last_value is 300.0 (seeded by
+        # bootstrap's set_x), so it is returned directly — the _x-only branch
+        # of _base_capital() is reached only when _last_value is None, which
+        # a prior successful bootstrap() never leaves true.
+        result = wallet.get_balance(force_refresh=True)
+        assert result == 300.0  # NOT 42.0 (paper) — code-path distinguishable
+
+    def test_c_and_d_zero_balance_and_api_error_are_NOT_source_distinguishable(
+        self, monkeypatch, isolated_ledger
+    ):
+        """FINDING (not papered over): a genuine zero USDT balance (c) and
+        an API error (d) both fall through the SAME `if usdt > 0` guard /
+        except branch into the SAME `_fallback()` call, with no distinct
+        return value, flag, exception type recorded, or log field surfaced
+        to the caller. The current implementation genuinely cannot
+        distinguish "exchange reachable, balance truly zero" from "exchange
+        unreachable" from get_balance()'s return value alone — this test
+        proves both produce the identical float via the identical code
+        branch (WalletSync.get_balance -> `except Exception: pass` /
+        `if usdt > 0` both drop into `return self._fallback()`), which is
+        the finding itself, not a gap in this test's coverage."""
+        monkeypatch.setattr(ws, "_PAPER_CAPITAL", 42.0)
+
+        zero_exchange = FakeExchange(free_usdt=0.0)
+        wallet_zero = ws.WalletSync(exchange=zero_exchange, mode="live")
+        result_zero = wallet_zero.get_balance(force_refresh=True)
+
+        error_exchange = FakeExchange(raise_on_fetch=True)
+        wallet_error = ws.WalletSync(exchange=error_exchange, mode="live")
+        result_error = wallet_error.get_balance(force_refresh=True)
+
+        # Same numeric outcome via the same fallback path — proven identical,
+        # not merely asserted; this IS the H4-adjacent ambiguity finding.
+        assert result_zero == 42.0
+        assert result_error == 42.0
+        assert result_zero == result_error
+        # Both exchanges WERE called once (proving reachability differs
+        # upstream even though the return value can't tell you that).
+        assert zero_exchange.calls == 1
+        assert error_exchange.calls == 1
