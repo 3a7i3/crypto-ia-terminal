@@ -15,27 +15,29 @@ import pytest
 # ── I-01 ─────────────────────────────────────────────────────────────────────
 
 
-def test_i01_size_zero_auto_healed():
-    """I-01: size=0 → alert critique + auto-heal à 1.0 (jamais envoyé avec size=0)."""
+def test_i01_size_zero_rejected():
+    """I-01: size=0 → refusé avant tout appel exchange (jamais "auto-healé" à
+    une valeur positive fabriquée — voir O-02W-PRE-T1-E REM-A Correction A,
+    docs/adr/0019-pre-network-order-authorization.md). L'invariant garanti
+    reste le même qu'avant : size=0 n'est JAMAIS envoyé tel quel à
+    l'exchange — désormais parce que l'ordre est rejeté, pas guéri."""
     from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
 
     engine = ExecutionEngine(live=False)
     result = engine.create_order("BTC/USDT", "BUY", size=0.0)
-    # L'invariant garantit que size=0 n'est JAMAIS envoyé tel quel à l'exchange
-    assert (
-        result.get("size", 0.0) != 0.0
-    ), f"size=0 ne doit pas être transmis tel quel: {result}"
+    assert result.get("mode") == "rejected", f"size=0 doit être refusé: {result}"
+    assert result.get("denial_reason") == "NON_POSITIVE_AMOUNT"
 
 
-def test_i01_negative_size_auto_healed():
-    """I-01 bis: size négative → auto-heal (jamais transmise négative)."""
+def test_i01_negative_size_rejected():
+    """I-01 bis: size négative → refusée avant tout appel exchange (jamais
+    "auto-healée" — voir O-02W-PRE-T1-E REM-A Correction A)."""
     from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
 
     engine = ExecutionEngine(live=False)
     result = engine.create_order("ETH/USDT", "SELL", size=-50.0)
-    assert (
-        result.get("size", 0.0) >= 0.0
-    ), f"size négative ne doit pas être transmise: {result}"
+    assert result.get("mode") == "rejected", f"size négative doit être refusée: {result}"
+    assert result.get("denial_reason") == "NON_POSITIVE_AMOUNT"
 
 
 # ── I-02 ─────────────────────────────────────────────────────────────────────

@@ -35,6 +35,10 @@ from enum import Enum
 from typing import Optional
 
 from observability.json_logger import get_logger
+from quant_hedge_ai.agents.execution.order_authorization import (
+    authorize_order,
+    evaluate_trading_authority,
+)
 
 _log = get_logger("quant_hedge_ai.agents.execution.position_manager")
 
@@ -126,6 +130,13 @@ class Position:
     closed: bool = False
     close_reason: str = ""
     regime: str = "unknown"  # régime au moment de l'entrée
+
+    # Honnêteté de sortie (O-02W-PRE-T1-E REM-A, PositionManager exception
+    # honesty fix) — dernier statut/raison de refus du close order, pour que
+    # `closed=False` après un échec de fermeture soit observable, jamais un
+    # échec silencieusement avalé.
+    close_order_status: str = ""
+    close_order_denial_reason: Optional[str] = None
 
     def __post_init__(self) -> None:
         self._recalc_tp_sl()
@@ -583,7 +594,30 @@ class PositionManager:
             pos.pnl_usd,
             pos.pnl_pct * 100,
         )
-        self._send_close_order(pos, reason=reason)
+        result = self._send_close_order(pos, reason=reason)
+        pos.close_order_status = result.get("mode", "")
+        pos.close_order_denial_reason = result.get("denial_reason")
+
+        # PositionManager exception-honesty fix (O-02W-PRE-T1-E REM-A): a
+        # denied authorization or a failed mutation must NOT be silently
+        # reported as a successful close — the caller/log must see the real
+        # outcome. `closed` stays False so the next tick's checks naturally
+        # re-attempt the close (no new retry/reconciliation machinery is
+        # introduced here — this is the pre-existing periodic tick loop).
+        if result.get("authorized") is False or (
+            result.get("mutation_attempted") and result.get("mode") == "live_failed"
+        ):
+            _log.error(
+                "[PositionManager] Fermeture NON confirmée %s — raison=%s "
+                "statut=%s denial=%s (position reste ouverte, retentée au "
+                "prochain tick)",
+                pos.symbol,
+                reason.value,
+                result.get("mode"),
+                result.get("denial_reason"),
+            )
+            return
+
         pos.closed = True
         pos.close_reason = reason.value
         with self._lock:
@@ -599,9 +633,27 @@ class PositionManager:
         pos: Position,
         qty_override: Optional[float] = None,
         reason: CloseReason = CloseReason.MANUAL,
-    ) -> None:
+    ) -> dict:
+        """
+        Envoie l'ordre de fermeture (reduceOnly) sur l'exchange, derrière la
+        même frontière d'autorisation pre-network que ExecutionEngine
+        (O-02W-PRE-T1-E REM-A).
+
+        Modèle de collatéral pour un close reduceOnly (Correction D) : ce
+        n'est PAS un achat/vente spot classique — il ne peut jamais réduire
+        au-delà de la position déjà ouverte et suivie. L'inventaire
+        exécutable faisant autorité est donc `pos.qty` (la quantité
+        actuellement suivie par ce PositionManager pour cette position),
+        jamais le capital scientifique ni un solde spot fabriqué. La
+        quantité demandée ne peut jamais dépasser ce plafond.
+
+        Retourne un dict de résultat explicite — `authorized`,
+        `mutation_attempted`, `mode`, `denial_reason` — jamais un échec
+        silencieusement avalé.
+        """
         qty = qty_override or pos.qty
         side = "sell" if pos.side == PositionSide.LONG else "buy"
+
         if self._paper or self._exchange is None:
             _log.info(
                 "[PositionManager][PAPER] close %s %s qty=%.4f reason=%s",
@@ -610,15 +662,132 @@ class PositionManager:
                 qty,
                 reason.value,
             )
-            return
+            return {
+                "symbol": pos.symbol,
+                "mode": "paper",
+                "authorized": True,
+                "mutation_attempted": False,
+                "denial_reason": None,
+            }
+
+        # Fail-closed authority re-check immediately before mutation
+        # (Correction E) — PositionManager previously only checked
+        # self._paper/self._exchange, never re-checking PAPER_TRADING_ENABLED
+        # or LIVE_TRADING_CONFIRMED itself (audit H10 gap).
+        paper_trading_enabled = os.getenv(
+            "PAPER_TRADING_ENABLED", "true"
+        ).lower() in {"1", "true", "yes", "on"}
+        live_trading_confirmed = os.getenv(
+            "LIVE_TRADING_CONFIRMED", "false"
+        ).lower() in {"1", "true", "yes", "on"}
+        authority_ok, authority_reason = evaluate_trading_authority(
+            paper_trading_enabled=paper_trading_enabled,
+            live_trading_confirmed=live_trading_confirmed,
+            exchange_present=self._exchange is not None,
+            live_mode=True,
+        )
+        if not authority_ok:
+            _log.warning(
+                "[PositionManager] Close order refusé — autorité: %s (%s)",
+                authority_reason,
+                pos.symbol,
+            )
+            return {
+                "symbol": pos.symbol,
+                "mode": "rejected",
+                "authorized": False,
+                "mutation_attempted": False,
+                "denial_reason": "AUTHORITY_DENIED",
+                "error": authority_reason,
+            }
+
+        ccxt_symbol = self._to_ccxt_symbol(pos.symbol)
+
+        amount_precision = None
         try:
-            ccxt_symbol = self._to_ccxt_symbol(pos.symbol)
+            markets = self._exchange.load_markets()
+            mkt = markets.get(ccxt_symbol, {})
+            amount_precision = (mkt.get("precision", {}) or {}).get("amount")
+        except Exception as exc:
+            _log.warning(
+                "[PositionManager] load_markets erreur (%s): %s", ccxt_symbol, exc
+            )
+
+        price = pos.current_price if pos.current_price > 0 else pos.entry_price
+
+        # Dimensional fix (O-02W-PRE-T1-E REM-A R1, defect 2): `authorize_order()`
+        # expects `requested_amount`/`authorized_max_amount` as a USD notional
+        # (it divides by `price` internally to derive `normalized_qty`) — never
+        # a raw base-asset quantity. `qty` here is base-asset units (BTC, etc.);
+        # `requested_notional`/`ceiling_notional` are the corresponding USD
+        # notional at the current price. The previous dead ternary
+        # (`qty * price if price > 0 else qty * price`) always evaluated to
+        # `qty * price` regardless of the condition — removed entirely, not
+        # merely simplified, since a `price <= 0` here would have to be
+        # caught as METADATA_UNAVAILABLE by `authorize_order()` itself
+        # (via its own price validation), not silently computed as 0.
+        requested_notional = qty * price
+        ceiling_notional = pos.qty * price
+        auth = authorize_order(
+            symbol=ccxt_symbol,
+            # Balance-check side is always "sell"/base-inventory here: a
+            # reduceOnly close (whichever way it is submitted to ccxt) is
+            # always bounded by the tracked position's own base quantity,
+            # never by a spot quote balance — see docstring above.
+            side="sell",
+            requested_amount=requested_notional,
+            price=price,
+            amount_precision=amount_precision,
+            min_notional=0.0,  # closing never has a minimum — only a ceiling
+            authorized_max_amount=ceiling_notional,
+            available_base_balance=pos.qty,
+            balance_source="position_manager.tracked_qty",
+        )
+        if not auth.authorized:
+            reason_str = auth.denial_reason.value if auth.denial_reason else "denied"
+            _log.error(
+                "[PositionManager] Close order refusé (pre-network authorization) "
+                "%s: %s — %s",
+                pos.symbol,
+                reason_str,
+                auth.detail,
+            )
+            return {
+                "symbol": pos.symbol,
+                "mode": "rejected",
+                "authorized": False,
+                "mutation_attempted": False,
+                "denial_reason": reason_str,
+                "error": auth.detail,
+            }
+
+        try:
             order = self._exchange.create_order(
-                ccxt_symbol, "market", side, qty, params={"reduceOnly": True}
+                ccxt_symbol,
+                "market",
+                side,
+                auth.normalized_qty,
+                params={"reduceOnly": True},
             )
             _log.info("[PositionManager] Ordre close envoyé id=%s", order.get("id"))
+            return {
+                "symbol": pos.symbol,
+                "mode": "live",
+                "authorized": True,
+                "mutation_attempted": True,
+                "denial_reason": None,
+                "order": order,
+            }
         except Exception as exc:
             _log.error("[PositionManager] Echec close order %s: %s", pos.symbol, exc)
+            return {
+                "symbol": pos.symbol,
+                "mode": "live_failed",
+                "authorized": True,
+                "mutation_attempted": True,
+                "denial_reason": None,
+                "error": str(exc),
+            }
 
     @staticmethod
     def _to_ccxt_symbol(symbol: str) -> str:

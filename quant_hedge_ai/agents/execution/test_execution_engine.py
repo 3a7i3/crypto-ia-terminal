@@ -181,6 +181,11 @@ class TestLiveFallback:
         mock_exchange = MagicMock()
         self._setup_mock_exchange(mock_exchange)
         mock_exchange.create_order.return_value = {"id": "sell1"}
+        # SELL requires the BASE asset balance (O-02W-PRE-T1-E REM-A, H7
+        # fix) — a quote-only balance is no longer sufficient.
+        mock_exchange.fetch_balance.return_value = {
+            "free": {"USDT": 10_000.0, "BTC": 1.0}
+        }
         e._exchange = mock_exchange
         e.start_session(10_000.0)
         e.create_order("BTCUSDT", "SELL", 100.0)
@@ -213,7 +218,11 @@ class TestExecutionGateSEC01:
     ) -> None:
         mock_exchange.fetch_ticker.return_value = {"last": 50_000.0}
         mock_exchange.load_markets.return_value = {}
-        mock_exchange.fetch_balance.return_value = {"free": {"USDT": usdt_balance}}
+        # Both quote (BUY) and base (SELL, O-02W-PRE-T1-E REM-A H7 fix)
+        # balances present so tests in this class can exercise either side.
+        mock_exchange.fetch_balance.return_value = {
+            "free": {"USDT": usdt_balance, "ETH": 10.0, "BTC": 10.0}
+        }
 
     def _make_live_engine(self, tmp_path, monkeypatch, mock_exchange):
         monkeypatch.setenv("EXEC_TRADE_LOG", str(tmp_path / "t.sqlite"))

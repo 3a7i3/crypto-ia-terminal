@@ -15,12 +15,12 @@ Chaque invariant a: ID · condition · module responsable · mécanisme · nivea
 
 | Champ | Valeur |
 |-------|--------|
-| **Condition** | `size <= 0` ou `size > 1e9` avant tout envoi d'ordre |
-| **Module** | `quant_hedge_ai/agents/execution/execution_engine.py:285` |
-| **Mécanisme** | Alerte critique + auto-heal à 1.0 USD (jamais transmis tel quel) |
-| **Enforcement** | **SOFT** (auto-heal, non rejeté — alert critique levée) |
+| **Condition** | `size` non-fini, `size <= 0` ou `size > 1e9` avant tout envoi d'ordre |
+| **Module** | `quant_hedge_ai/agents/execution/execution_engine.py` (Correction A, O-02W-PRE-T1-E REM-A — voir `docs/adr/0019-pre-network-order-authorization.md`) |
+| **Mécanisme** | Alerte critique + rejet (`mode="rejected"`, `denial_reason`) — plus jamais de substitution/auto-heal à une valeur fabriquée depuis REM-A |
+| **Enforcement** | **HARD** (rejeté, jamais transmis — alert critique levée) |
 | **Log** | `AlertManager.raise_alert("order_size_anomaly", "critical")` |
-| **Test** | `test_invariants.py::test_i01_size_zero_auto_healed` |
+| **Test** | `test_invariants.py::test_i01_size_zero_rejected`, `test_i01_negative_size_rejected` |
 
 ---
 

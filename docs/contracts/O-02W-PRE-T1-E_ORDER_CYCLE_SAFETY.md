@@ -373,3 +373,56 @@ finding contingent on missing infrastructure — it is proven directly from
 this exact HEAD's source and confirmed behaviorally against a fake exchange
 in §17. No production code was modified to address any of it in this round,
 per the audit-first scope.
+
+## 21. REM-A remediation status (O-02W-PRE-T1-E-REM-A, 2026-09-11)
+
+**This section is an addendum, not a rewrite** — §1-20 above document the
+audit exactly as performed against `297eba89` and are preserved unedited.
+A first, narrow remediation phase (REM-A) has since fixed a subset of the
+blockers listed in §18, per
+`docs/adr/0019-pre-network-order-authorization.md`. Status per blocker:
+
+| Blocker | Status |
+|---|---|
+| B1 (H1, invalid-size substitution) | **REMEDIATED_IN_PRE_T1_E_REM_A** — rejected via `authorize_order()`, `math.isfinite()` closes the NaN gap. Zero exchange mutations on any invalid input. |
+| B2 (H2, min-notional amplification) | **REMEDIATED_IN_PRE_T1_E_REM_A** — rejected (`BELOW_MIN_NOTIONAL`), never enlarged. Precision normalization is `Decimal`/floor-only and provably never increases authorized exposure. |
+| B3 (H3, no deterministic order identity) | **UNRESOLVED — reserved for REM-B.** Not attempted; explicitly out of REM-A's scope. |
+| B4 (H4, durable write after network) | **UNRESOLVED — reserved for REM-B.** `TradeLogger.log()` still runs after `_place_live_order()`; no durable pre-network intent record was added. |
+| B5 (H5/H6, blind retry, no reconciliation) | **UNRESOLVED — reserved for REM-B.** `_with_retry` is unchanged; still resubmits identical parameters blindly. |
+| B6 (H7, no SELL balance check) | **REMEDIATED_IN_PRE_T1_E_REM_A** — `authorize_order()` requires and validates `available_base_balance` for every SELL, deny-closed on missing/insufficient/malformed/non-finite. |
+| B7 (`PositionManager` swallowed exception) | **PARTIALLY REMEDIATED_IN_PRE_T1_E_REM_A** — `_send_close_order()` now returns an explicit `authorized`/`mutation_attempted`/`mode`/`denial_reason` outcome instead of swallowing exceptions silently, and `_close_position()` no longer marks `pos.closed = True` on a denial or a failed mutation (the position stays open and is naturally re-evaluated on the next tick — no new retry/reconciliation machinery was added). This is the narrow honesty fix the REM-A mission authorized, not the full reconciliation system B9 still calls for. |
+| B8 (H9, no crash-window recovery) | **UNRESOLVED — reserved for REM-B/REM-C.** No durable pre-network record exists; unaffected by REM-A. |
+| B9 (`PendingOrderTracker` unwired) | **UNRESOLVED — reserved for REM-B.** Still not imported/wired into either mutation path; REM-A does not activate it (explicitly out of scope). |
+| B10 (H10 pre-network portion, `PositionManager` authority gap) | **REMEDIATED_IN_PRE_T1_E_REM_A (documented composition, not a single canonical module).** `_send_close_order()` now re-checks `PAPER_TRADING_ENABLED`/`LIVE_TRADING_CONFIRMED` itself, fail-closed, immediately before mutation, via `evaluate_trading_authority()` — see ADR-0019 §1 for the exact composition. The live-order path's `LIVE_TRADING_CONFIRMED` gate (`ExecutionEngine.from_env()`) and its `PAPER_TRADING_ENABLED` re-check (`_place_live_order`) were already fail-closed per the original H10 finding and are unchanged. No single "canonical authority" module was introduced — this remains a documented composition of existing/extended gates, consistent with H10's original characterization. |
+
+Not covered by REM-A R0 and not claimed as fixed at the time: `ExecutionEngine.create_futures_order()`'s own below-minimum clamp (`max(futures_min, ...)`) — a distinct instance of the H2 anti-pattern on the futures-demo path, left untouched in R0 to avoid unjustified blast radius (see ADR-0019 §6). **Superseded in R1 below.** `PositionManager._check_partial_close()` still ignores `_send_close_order()`'s return value for its own qty/size_usd bookkeeping (unchanged, out of R1 scope too).
+
+### 21.1 R1 correction round (MASTER review, 2026-09-11)
+
+Four defects raised by MASTER's review of the R0 round above, resolved
+without introducing any REM-B/REM-C functionality — see ADR-0019 §6bis for
+full detail:
+
+| Defect | Resolution |
+|---|---|
+| 1. `create_futures_order()` left source-reachable with an H2-shaped amplification (`max(futures_min, ...)`) | Traced: genuinely source-reachable from `core/advisor_loop.py:6568` (`exec_engine.create_futures_order(...)` under `has_futures_demo()`), not dead code — the R0 "documented, out of scope" resolution was insufficient. Now wired to `authorize_order()` (new `require_balance_check=False` parameter — futures/margin markets consume quote-denominated margin on both BUY and SELL, not a base-asset balance). The upward clamp to `futures_min` is removed and replaced by rejection (`BELOW_MIN_NOTIONAL`); the downward clamp to `futures_max` is retained (narrowing only, never amplifies). `amt_precision` fallback corrected `0.001` → `1e-5` (matches `_place_live_order()`'s existing fallback) to avoid spurious `PRECISION_COLLAPSE` under strict floor rounding. `qty` is never re-clamped up to the exchange's `min_qty` after authorization — that would reintroduce the same H2 shape. B2 is now closed for the futures-demo path too, not only spot/live. |
+| 2. Dimensional confusion in `PositionManager._send_close_order()`'s `authorize_order()` call | The dead ternary `qty * price if price > 0 else qty * price` (both branches textually identical — always `qty * price`, a code-hygiene defect, not a value defect: verified against a git-worktree copy of the starting HEAD that the numeric result was already correct) is removed. Replaced with explicitly named `requested_notional = qty * price` / `ceiling_notional = pos.qty * price`, both documented as USD notional (the dimension `authorize_order()` expects), never conflated with `qty`/`pos.qty` (base-asset units). New tests at non-trivial prices (50 000 and 0.001) prove `normalized_qty` and the notional cannot be transposed, and that `create_order()` receives the correct base-asset quantity. |
+| 3. `PositionManager` calling a local re-implementation instead of the shared `evaluate_trading_authority()` | Verified on this exact HEAD: no local re-implementation exists — `_send_close_order()` already reads `PAPER_TRADING_ENABLED`/`LIVE_TRADING_CONFIRMED` fresh and calls the shared `evaluate_trading_authority()` with those values, with no gate check inline before or instead of that call. No code change was needed. A construction proof was added regardless (monkeypatching `evaluate_trading_authority` in the `position_manager` module namespace, asserting it is called with the fresh kwargs and that its return value drives `_send_close_order()`'s result). |
+| 4. Documentation scope | This §21.1 and ADR-0019 §6bis updated to reflect exactly the above three fixes — no broader documentation pass, no REM-B/REM-C claims. |
+
+Test suite: `tests/test_pre_t1_e_rem_a_order_authorization.py` grew from 83
+to 88 tests (5 new: 1 futures-demo rejection proof moved into
+`test_execution_engine_futures.py`, 4 `PositionManager` dimensional/
+authority-sharing proofs added directly to this file);
+`quant_hedge_ai/agents/execution/test_execution_engine_futures.py`'s
+`test_below_min_clamped_up` was renamed `test_below_min_rejected_not_amplified`
+and rewritten to assert rejection instead of amplification (the test that
+previously encoded the clamp as intentional now encodes its removal).
+
+**Updated verdict: still `REMEDIATION_REQUIRED`.** REM-A (R0 + R1) closes
+B1, B2 (now on both the spot/live and futures-demo paths), B6, and B10
+(pre-network authority), and narrows B7 to its documented honesty fix. B3,
+B4, B5, B8, B9 remain fully open and are reserved for REM-B/REM-C, per the
+mission's explicit scope boundary. The order cycle is not end-to-end safe
+after REM-A — only its pre-network input/exposure/balance/authority
+validation is.
