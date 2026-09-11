@@ -1,0 +1,1471 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" />
+
+    <link rel="shortcut icon" href="../_static/favicon.ico"/><!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
+        <title>O-02W-PRE-T1-D — Real Capital Boundary Audit - Crypto AI Terminal 9.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=354aac6f" />
+    <link rel="stylesheet" type="text/css" href="../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=1b9cecba" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=302659d7" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">Crypto AI Terminal 9.1 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="../_static/../assets/logo_ai_quant.png" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="../_static/../assets/logo_ai_quant.png" alt="Dark Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/blob/main/docs/contracts/O-02W-PRE-T1-D_REAL_CAPITAL_BOUNDARY.md?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/edit/main/docs/contracts/O-02W-PRE-T1-D_REAL_CAPITAL_BOUNDARY.md" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="o-02w-pre-t1-d-real-capital-boundary-audit">
+<h1>O-02W-PRE-T1-D — Real Capital Boundary Audit<a class="headerlink" href="#o-02w-pre-t1-d-real-capital-boundary-audit" title="Link to this heading">¶</a></h1>
+<p><strong>Mission type:</strong> causal AUDIT (read-heavy investigation + characterization).
+<strong>Not a fix.</strong> Zero production logic was modified by this document or its
+companion test file.</p>
+<p><strong>Verified base:</strong> <code class="docutils literal notranslate"><span class="pre">origin/main</span></code> = <code class="docutils literal notranslate"><span class="pre">3cfae266bd9fa005f9db998025bf278046a8a5ca</span></code>
+(merge commit of PR #133, parents <code class="docutils literal notranslate"><span class="pre">fe45a2bc6209f5b3a4928483759af4ab46d8e850</span></code></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">fb432c0394e798be19fe007f452072eb408a0684</span></code>), working tree clean, no commits
+after it on <code class="docutils literal notranslate"><span class="pre">origin/main</span></code> at audit time. Branch:
+<code class="docutils literal notranslate"><span class="pre">claude/o02w-pre-t1-d-real-capital-boundary-audit</span></code>.</p></li>
+</ul>
+<p><strong>Evidence classes used throughout:</strong> <code class="docutils literal notranslate"><span class="pre">SOURCE_PROVEN</span></code>,
+<code class="docutils literal notranslate"><span class="pre">BEHAVIOR_PROVEN_HERMETIC</span></code>, <code class="docutils literal notranslate"><span class="pre">RUNTIME_UNKNOWN</span></code>, <code class="docutils literal notranslate"><span class="pre">CONTRADICTION_FOUND</span></code>,
+<code class="docutils literal notranslate"><span class="pre">NOT_APPLICABLE</span></code>.</p>
+<p><strong>Companion test file:</strong>
+<code class="docutils literal notranslate"><span class="pre">tests/test_pre_t1_d_real_capital_boundary.py</span></code> (58 hermetic tests, no
+network, no secrets, fake exchanges only — 46 from the original round, 10
+added in R1 (Cases 1-5, §11), plus 2 added in R1.1 (Cases 6-7, §11a) that
+call the real <code class="docutils literal notranslate"><span class="pre">ExecutionEngine.from_env()</span></code> classmethod).</p>
+<p><strong>R1.1 evidence-level framework (this round):</strong> every hermetic finding in
+this document is now tagged with exactly one of four evidence phrases,
+never conflated:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">REAL_FROM_ENV_PATH_PROVEN_HERMETIC</span></code> — a test that actually calls
+<code class="docutils literal notranslate"><span class="pre">ExecutionEngine.from_env()</span></code> (with <code class="docutils literal notranslate"><span class="pre">ExchangeFactory.create</span></code> monkeypatched,
+no network) and observes its genuine construction result. Only §11a
+Cases 6-7 currently carry this tag.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PRODUCTION_FUNCTIONS_WITH_INJECTED_STATE</span></code> — the real <code class="docutils literal notranslate"><span class="pre">WalletSync</span></code>/
+<code class="docutils literal notranslate"><span class="pre">fetch_available_capital()</span></code>/<code class="docutils literal notranslate"><span class="pre">get_balance()</span></code> production functions are
+exercised, but <code class="docutils literal notranslate"><span class="pre">ExecutionEngine._exchange</span></code>/<code class="docutils literal notranslate"><span class="pre">_mode</span></code> were assigned directly
+by the test (<code class="docutils literal notranslate"><span class="pre">eng._exchange</span> <span class="pre">=</span> <span class="pre">fake;</span> <span class="pre">eng._mode</span> <span class="pre">=</span> <span class="pre">&quot;live&quot;</span></code>), not produced by
+<code class="docutils literal notranslate"><span class="pre">from_env()</span></code>. This is what §11 Cases 1-5 (and the original round’s
+Scenarios A-K) prove — a real mechanism, with test-injected engine state.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">SOURCE_REACHABLE_CONFIGURATION</span></code> — a combination of env vars that source
+inspection shows is reachable (and, since R1.1, that §11a Case 6 proves
+hermetically through <code class="docutils literal notranslate"><span class="pre">from_env()</span></code> itself) but that no coherent operator
+intent would set simultaneously (<code class="docutils literal notranslate"><span class="pre">PAPER_TRADING_ENABLED=true</span></code> AND
+<code class="docutils literal notranslate"><span class="pre">LIVE_TRADING_CONFIRMED=true</span></code> together).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">DEPLOYED_RUNTIME_UNKNOWN</span></code> — the actual VPS <code class="docutils literal notranslate"><span class="pre">.env</span></code>/process state, never
+established by this audit (§9).</p></li>
+</ul>
+<p><strong>R1 correction note (this section added on the follow-up round):</strong> the
+original round’s H1 conclusion (“PAPER is isolated from API balance”) was
+stated unconditionally. That statement is corrected throughout this document
+to <code class="docutils literal notranslate"><span class="pre">PAPER_ISOLATION_CONDITIONAL_ON_EFFECTIVE_SINGLETON_MODE</span></code> — see §1, §3,
+§13 and §11 (Case 1-5 results) below. The original H2/H4/H5/H6
+findings and their source citations are unchanged and re-verified against
+current source as part of this correction; only their framing/classification
+and the H1 conclusion are revised. <strong>Runtime scope note:</strong> this entire audit
+characterizes code behavior under hermetic test, never the deployed VPS
+<code class="docutils literal notranslate"><span class="pre">.env</span></code>/process state — the actual VPS runtime environment-variable
+configuration remains <code class="docutils literal notranslate"><span class="pre">RUNTIME_UNKNOWN</span></code> throughout this document, including
+after this correction.</p>
+<p><strong>R1.1 correction note (this section added on the second follow-up round):</strong>
+R1’s §11 Case 1 constructed <code class="docutils literal notranslate"><span class="pre">ExecutionEngine</span></code> directly
+(<code class="docutils literal notranslate"><span class="pre">ExecutionEngine(live=False)</span></code> then <code class="docutils literal notranslate"><span class="pre">eng._exchange</span> <span class="pre">=</span> <span class="pre">fake_exchange;</span> <span class="pre">eng._mode</span> <span class="pre">=</span> <span class="pre">&quot;live&quot;</span></code>) and the R1 §10a matrix presented that combination
+alongside a <code class="docutils literal notranslate"><span class="pre">LIVE_TRADING_CONFIRMED=false</span></code> column, as if it reproduced what
+<code class="docutils literal notranslate"><span class="pre">ExecutionEngine.from_env()</span></code> itself would construct. It does not:
+<code class="docutils literal notranslate"><span class="pre">from_env()</span></code> only ever attaches a live exchange
+(<code class="docutils literal notranslate"><span class="pre">self._exchange</span> <span class="pre">=</span> <span class="pre">self._init_exchange()</span></code>) when its own three-way AND —
+<code class="docutils literal notranslate"><span class="pre">has_api_key</span> <span class="pre">AND</span> <span class="pre">mode</span> <span class="pre">!=</span> <span class="pre">&quot;paper&quot;</span> <span class="pre">AND</span> <span class="pre">LIVE_TRADING_CONFIRMED</span></code> — is true; with
+<code class="docutils literal notranslate"><span class="pre">LIVE_TRADING_CONFIRMED=false</span></code>, <code class="docutils literal notranslate"><span class="pre">from_env()</span></code> constructs <code class="docutils literal notranslate"><span class="pre">ExecutionEngine(live=False)</span></code>,
+which never calls <code class="docutils literal notranslate"><span class="pre">_init_exchange()</span></code> at all, leaving <code class="docutils literal notranslate"><span class="pre">_exchange=None</span></code> and
+<code class="docutils literal notranslate"><span class="pre">_mode=&quot;paper&quot;</span></code> (the <code class="docutils literal notranslate"><span class="pre">__init__</span></code> default). §11 Case 1’s <code class="docutils literal notranslate"><span class="pre">_mode=&quot;live&quot;</span></code> +
+attached-exchange state, together with <code class="docutils literal notranslate"><span class="pre">LIVE_TRADING_CONFIRMED=false</span></code>, is
+therefore a state <code class="docutils literal notranslate"><span class="pre">from_env()</span></code> never produces — this was a mismatch between
+what R1’s test actually exercised (<code class="docutils literal notranslate"><span class="pre">PRODUCTION_FUNCTIONS_WITH_INJECTED_STATE</span></code>)
+and what the matrix’s column implied it represented. This round (R1.1)
+corrects the mismatch by: (a) introducing the four-way evidence-level
+framework above; (b) relabeling every §11 Case 1-5 finding as
+<code class="docutils literal notranslate"><span class="pre">PRODUCTION_FUNCTIONS_WITH_INJECTED_STATE</span></code> throughout; © adding new §11a
+Cases 6-7, which call the actual <code class="docutils literal notranslate"><span class="pre">ExecutionEngine.from_env()</span></code> classmethod
+(no manual <code class="docutils literal notranslate"><span class="pre">_exchange</span></code>/<code class="docutils literal notranslate"><span class="pre">_mode</span></code> assignment) under, respectively, the
+source-reachable-but-operator-incoherent <code class="docutils literal notranslate"><span class="pre">LIVE_TRADING_CONFIRMED=true</span></code> +
+<code class="docutils literal notranslate"><span class="pre">PAPER_TRADING_ENABLED=true</span></code> combination and the <code class="docutils literal notranslate"><span class="pre">LIVE_TRADING_CONFIRMED=false</span></code>
+contrast; (d) correcting the §10a matrix rows accordingly. No prior finding
+about the WalletSync-singleton mode-freezing mechanism itself (§3, §3a) is
+withdrawn — that mechanism is real and remains proven; only the claim that
+R1’s Case 1 reproduced <code class="docutils literal notranslate"><span class="pre">from_env()</span></code>’s own construction is corrected.</p>
+<hr class="docutils" />
+<section id="causal-graph-of-capital-provenance">
+<h2>1. Causal graph of capital provenance<a class="headerlink" href="#causal-graph-of-capital-provenance" title="Link to this heading">¶</a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>                         ┌──────────────────────────────┐
+                         │   os.environ (process boot)   │
+                         │  EXCHANGE_ID, EXCHANGE_TESTNET │
+                         │  {EXCH}_API_KEY/_SECRET         │
+                         │  PAPER_TRADING_ENABLED          │
+                         │  LIVE_TRADING_CONFIRMED         │
+                         │  WALLET_PAPER_CAPITAL           │
+                         └───────────────┬────────────────┘
+                                          │
+                     ExchangeFactory.detect_mode() [SOURCE_PROVEN]
+                       -&gt; "live" | "testnet" | "paper"
+                        (has_keys AND NOT testnet -&gt; live
+                         has_keys AND testnet     -&gt; testnet
+                         else                     -&gt; paper)
+                                          │
+                  ExecutionEngine.from_env() [SOURCE_PROVEN]
+                    live = has_api_key AND mode!="paper"
+                           AND LIVE_TRADING_CONFIRMED truthy
+                                          │
+                         ExecutionEngine.__init__(live=...)
+                    live=True  -&gt; self._exchange = _init_exchange()
+                                  self._mode = detect_mode()  (from ExchangeFactory)
+                    live=False -&gt; self._exchange = None, self._mode="paper" (unset)
+                                          │
+        ┌─────────────────────────────────┴─────────────────────────────────┐
+        │                                                                    │
+   core/advisor_loop.py bootstrap (line ~3777)                    core/advisor_loop.py per-cycle
+   bootstrap_capital_x(exec_engine._exchange)                     refresh (lines 5739-5746)
+   -&gt; get_wallet_sync(exchange=exchange)  [creates the singleton  fetch_available_capital()
+      if none exists yet; mode resolved from                       -&gt; get_wallet_sync(...)
+      EXCHANGE_MODE env, default "paper" — see §3]                    (mode arg IGNORED if
+   -&gt; wallet.bootstrap(exchange): fetch_balance(),                     singleton pre-exists,
+      X = free USDT if &gt;= MIN_CAPITAL_X else None                      see §3)
+                                          │                              │
+                         real_capital = exec_engine.fetch_available_capital()  (line 3835, first;
+                                          line 5740/5742, refreshed every cycle)
+                                          │
+              ExecutionEngine.fetch_available_capital() [SOURCE_PROVEN,
+                execution_engine.py:229-255]:
+                paper_trading_enabled = PAPER_TRADING_ENABLED in {1,true,yes,on}
+                wallet_mode = "paper" if paper_trading_enabled else self._mode
+                wallet = get_wallet_sync(exchange=self._exchange, mode=wallet_mode)
+                return wallet.get_balance()
+                                          │
+                        WalletSync.get_balance() [SOURCE_PROVEN, wallet_sync.py:166-206]
+             mode=="paper": self._base_capital() + _read_ledger_pnl()
+                              (_base_capital paper branch = WALLET_PAPER_CAPITAL constant,
+                               NEVER self._x, regardless of whether bootstrap() succeeded)
+             mode!="paper": cached _last_value (if fresh) OR
+                              exchange.fetch_balance() OR
+                              _fallback() = _last_value (stale) OR _base_capital()
+                              (_base_capital non-paper branch = self._x if set,
+                               else WALLET_PAPER_CAPITAL — see §4/H4)
+                                          │
+                    real_capital  (core/advisor_loop.py, a bare local, reassigned
+                                    every cycle — see §5)
+                                          │
+        ┌──────────────┬──────────────────┬───────────────────┬─────────────────┐
+        │              │                  │                    │                 │
+  order_size       PortfolioBrain    CapitalAllocationEngine  ExecutiveOverride  P10 CapitalThrottle
+  (line 4046,      .update_capital   .update_capital           .update(          (constructed with
+  computed ONCE     (line 5743)       (line 5744)                capital_current  WALLET_PAPER_CAPITAL,
+  at bootstrap,                                                  =real_capital)   NOT real_capital —
+  never                                                           (line 7241)      see §6/H6)
+  recomputed —
+  see §5/H5)
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">RealAccountsObserver</span></code> (<code class="docutils literal notranslate"><span class="pre">observability/real_accounts.py</span></code>) and
+<code class="docutils literal notranslate"><span class="pre">command_center_bot.py</span></code>’s cockpit/Telegram rendering read exchange balances
+through their <strong>own</strong> <code class="docutils literal notranslate"><span class="pre">ccxt</span></code> client instances (<code class="docutils literal notranslate"><span class="pre">_default_client_factory</span></code>),
+entirely independent of <code class="docutils literal notranslate"><span class="pre">WalletSync</span></code> — <strong>SOURCE_PROVEN</strong>: no import of
+<code class="docutils literal notranslate"><span class="pre">infra.wallet_sync</span></code> exists in <code class="docutils literal notranslate"><span class="pre">observability/real_accounts.py</span></code>. This is
+Flow 1 in the O-02W-E contract’s terminology (§9c); the causal graph above
+is Flow 2. The two flows share no code path.</p>
+</section>
+<hr class="docutils" />
+<section id="paper-testnet-real-api-unknown-matrix">
+<h2>2. PAPER / TESTNET / REAL_API / UNKNOWN matrix<a class="headerlink" href="#paper-testnet-real-api-unknown-matrix" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Axis</p></th>
+<th class="head"><p>PAPER</p></th>
+<th class="head"><p>TESTNET_API</p></th>
+<th class="head"><p>REAL_API</p></th>
+<th class="head"><p>UNKNOWN</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ExchangeFactory.detect_mode()</span></code></p></td>
+<td><p>no API keys</p></td>
+<td><p>keys + <code class="docutils literal notranslate"><span class="pre">EXCHANGE_TESTNET=true</span></code></p></td>
+<td><p>keys + <code class="docutils literal notranslate"><span class="pre">EXCHANGE_TESTNET=false</span></code></p></td>
+<td><p>not a <code class="docutils literal notranslate"><span class="pre">detect_mode()</span></code> output — <code class="docutils literal notranslate"><span class="pre">NOT_APPLICABLE</span></code> there</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ExecutionEngine._mode</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;paper&quot;</span></code> (default, unset by <code class="docutils literal notranslate"><span class="pre">_init_exchange</span></code> on failure)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;testnet&quot;</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;live&quot;</span></code></p></td>
+<td><p>never set to this string — <code class="docutils literal notranslate"><span class="pre">NOT_APPLICABLE</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">wallet_mode</span></code> passed to <code class="docutils literal notranslate"><span class="pre">get_wallet_sync()</span></code></p></td>
+<td><p>forced <code class="docutils literal notranslate"><span class="pre">&quot;paper&quot;</span></code> whenever <code class="docutils literal notranslate"><span class="pre">PAPER_TRADING_ENABLED</span></code> is truthy, <strong>regardless of <code class="docutils literal notranslate"><span class="pre">self._mode</span></code></strong></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">self._mode</span></code> when <code class="docutils literal notranslate"><span class="pre">PAPER_TRADING_ENABLED</span></code> falsy and <code class="docutils literal notranslate"><span class="pre">_mode==&quot;testnet&quot;</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">self._mode</span></code> when <code class="docutils literal notranslate"><span class="pre">PAPER_TRADING_ENABLED</span></code> falsy and <code class="docutils literal notranslate"><span class="pre">_mode==&quot;live&quot;</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">NOT_APPLICABLE</span></code> — no UNKNOWN wallet mode exists in source</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">WalletSync.get_balance()</span></code> numeric source</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">WALLET_PAPER_CAPITAL</span></code> + ledger PnL</p></td>
+<td><p>exchange balance (cached/fresh) or fallback (stale cache or <code class="docutils literal notranslate"><span class="pre">WALLET_PAPER_CAPITAL</span></code>)</p></td>
+<td><p>same mechanism as TESTNET</p></td>
+<td><p>never returns a sentinel; <strong><code class="docutils literal notranslate"><span class="pre">UNKNOWN</span></code> numeric value does not exist in this module</strong> — <strong>CONTRADICTION_FOUND</strong> against the presentation-layer’s UNKNOWN domain, see §9</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">resolve_mode_provenance()</span></code> display label (<code class="docutils literal notranslate"><span class="pre">observability/mode_provenance.py</span></code>)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;PAPER&quot;</span></code> (overrides everything when <code class="docutils literal notranslate"><span class="pre">PAPER_TRADING_ENABLED</span></code> truthy)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;TESTNET_API&quot;</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;REAL_API&quot;</span></code></p></td>
+<td><p>any <code class="docutils literal notranslate"><span class="pre">exec_mode</span></code> not in <code class="docutils literal notranslate"><span class="pre">{&quot;paper&quot;,&quot;live&quot;,&quot;testnet&quot;}</span></code>, or absent — fails closed <strong>SOURCE_PROVEN</strong> (<code class="docutils literal notranslate"><span class="pre">mode_provenance.py:44</span></code>)</p></td>
+</tr>
+<tr class="row-odd"><td><p>Live order execution gate (<code class="docutils literal notranslate"><span class="pre">_place_live_order</span></code>)</p></td>
+<td><p>always short-circuits to <code class="docutils literal notranslate"><span class="pre">mode=&quot;live_failed&quot;,</span> <span class="pre">error=&quot;blocked_by_paper_gate&quot;</span></code> <strong>before any network call</strong>, <code class="docutils literal notranslate"><span class="pre">BEHAVIOR_PROVEN_HERMETIC</span></code></p></td>
+<td><p>reaches the exchange call (subject to <code class="docutils literal notranslate"><span class="pre">self._live</span></code>/<code class="docutils literal notranslate"><span class="pre">self._exchange</span></code> also being true)</p></td>
+<td><p>reaches the exchange call</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">NOT_APPLICABLE</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Live order placement additionally requires <code class="docutils literal notranslate"><span class="pre">self._live</span> <span class="pre">is</span> <span class="pre">True</span></code> AND
+<code class="docutils literal notranslate"><span class="pre">self._exchange</span> <span class="pre">is</span> <span class="pre">not</span> <span class="pre">None</span></code>, which in turn requires
+<code class="docutils literal notranslate"><span class="pre">ExecutionEngine.from_env()</span></code>’s <strong>three-way AND</strong>: API keys present, mode
+<code class="docutils literal notranslate"><span class="pre">!=</span> <span class="pre">&quot;paper&quot;</span></code>, and <code class="docutils literal notranslate"><span class="pre">LIVE_TRADING_CONFIRMED</span></code> truthy (<code class="docutils literal notranslate"><span class="pre">execution_engine.py:182-202</span></code>,
+<code class="docutils literal notranslate"><span class="pre">SOURCE_PROVEN</span></code>, exercised by <code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/execution/test_execution_engine.py::TestFromEnv</span></code>).</p>
+</section>
+<hr class="docutils" />
+<section id="walletsync-initialization-order-h2">
+<h2>3. WalletSync initialization order (H2)<a class="headerlink" href="#walletsync-initialization-order-h2" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">get_wallet_sync(exchange=None,</span> <span class="pre">mode=None)</span></code> (<code class="docutils literal notranslate"><span class="pre">infra/wallet_sync.py:227-244</span></code>):</p>
+<ul class="simple">
+<li><p>If the module-global singleton does not exist: creates it with
+<code class="docutils literal notranslate"><span class="pre">mode</span> <span class="pre">=</span> <span class="pre">mode</span> <span class="pre">or</span> <span class="pre">os.getenv(&quot;EXCHANGE_MODE&quot;,</span> <span class="pre">&quot;paper&quot;)</span></code>.</p></li>
+<li><p>If it already exists: an <code class="docutils literal notranslate"><span class="pre">exchange</span></code> argument is attached <strong>retroactively</strong>
+only if the singleton currently has none; a <code class="docutils literal notranslate"><span class="pre">mode</span></code> argument is <strong>silently
+ignored</strong> — there is no code path that mutates <code class="docutils literal notranslate"><span class="pre">WalletSync._mode</span></code> after
+construction (<code class="docutils literal notranslate"><span class="pre">SOURCE_PROVEN</span></code> by inspection; <code class="docutils literal notranslate"><span class="pre">BEHAVIOR_PROVEN_HERMETIC</span></code> via
+<code class="docutils literal notranslate"><span class="pre">TestH2SingletonConstructionOrder.test_singleton_created_first_retains_its_mode_despite_later_explicit_mode</span></code>).</p></li>
+</ul>
+<p><strong>Actual boot order in <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code>:</strong></p>
+<ol class="arabic simple">
+<li><p>Line ~3777: <code class="docutils literal notranslate"><span class="pre">bootstrap_capital_x(exec_engine._exchange)</span></code> →
+<code class="docutils literal notranslate"><span class="pre">get_wallet_sync(exchange=exchange)</span></code> (no <code class="docutils literal notranslate"><span class="pre">mode=</span></code> argument) — this is the
+call that <strong>creates</strong> the singleton. Its mode is <code class="docutils literal notranslate"><span class="pre">EXCHANGE_MODE</span></code> env
+(default <code class="docutils literal notranslate"><span class="pre">&quot;paper&quot;</span></code>), <strong>not</strong> derived from <code class="docutils literal notranslate"><span class="pre">PAPER_TRADING_ENABLED</span></code>.</p></li>
+<li><p>Line 3835 (first) and lines 5740-5746 (every cycle thereafter):
+<code class="docutils literal notranslate"><span class="pre">exec_engine.fetch_available_capital()</span></code> → <code class="docutils literal notranslate"><span class="pre">get_wallet_sync(exchange=self._exchange,</span> <span class="pre">mode=wallet_mode)</span></code> where <code class="docutils literal notranslate"><span class="pre">wallet_mode</span></code> <strong>is</strong> derived from
+<code class="docutils literal notranslate"><span class="pre">PAPER_TRADING_ENABLED</span></code>.</p></li>
+</ol>
+<p>Because step 1 always runs first and always creates the singleton, step 2’s
+<code class="docutils literal notranslate"><span class="pre">mode=</span></code> argument is a no-op for <code class="docutils literal notranslate"><span class="pre">.mode</span></code> on every subsequent call for the
+life of the process — <code class="docutils literal notranslate"><span class="pre">BEHAVIOR_PROVEN_HERMETIC</span></code>
+(<code class="docutils literal notranslate"><span class="pre">TestH2SingletonConstructionOrder.test_bootstrap_capital_x_creates_singleton_before_fetch_available_capital_mode</span></code>).</p>
+<p><strong>Practical consequence (R1-corrected — this is the finding that overturns
+the original round’s unconditional H1 claim):</strong> <code class="docutils literal notranslate"><span class="pre">get_balance()</span></code> branches
+strictly on <code class="docutils literal notranslate"><span class="pre">self._mode</span></code> — the singleton’s frozen mode — <strong>not</strong> on the
+<code class="docutils literal notranslate"><span class="pre">wallet_mode</span></code> string that <code class="docutils literal notranslate"><span class="pre">fetch_available_capital()</span></code> computed and passed
+into <code class="docutils literal notranslate"><span class="pre">get_wallet_sync(mode=wallet_mode)</span></code>. Because that <code class="docutils literal notranslate"><span class="pre">mode=</span></code> argument is
+silently discarded once the singleton exists (§3 above), <strong>the entire
+paper-vs-live numeric branch actually taken by <code class="docutils literal notranslate"><span class="pre">get_balance()</span></code> is decided by
+whichever mode created the singleton first — <code class="docutils literal notranslate"><span class="pre">EXCHANGE_MODE</span></code> at
+<code class="docutils literal notranslate"><span class="pre">bootstrap_capital_x()</span></code> time — regardless of what <code class="docutils literal notranslate"><span class="pre">PAPER_TRADING_ENABLED</span></code>
+requests on every later call.</strong> Concretely: if <code class="docutils literal notranslate"><span class="pre">EXCHANGE_MODE=live</span></code> (or
+<code class="docutils literal notranslate"><span class="pre">testnet</span></code>) and <code class="docutils literal notranslate"><span class="pre">bootstrap_capital_x()</span></code> runs before any <code class="docutils literal notranslate"><span class="pre">PAPER_TRADING_ENABLED</span></code>
+check is consulted (the actual <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code> order, always), the
+singleton stays in <code class="docutils literal notranslate"><span class="pre">live</span></code>/<code class="docutils literal notranslate"><span class="pre">testnet</span></code> mode for the life of the process — so
+<code class="docutils literal notranslate"><span class="pre">get_balance()</span></code> takes the live/testnet branch, <strong>queries the real exchange</strong>,
+and returns that API-sourced value to <code class="docutils literal notranslate"><span class="pre">fetch_available_capital()</span></code>’s caller,
+<strong>even though <code class="docutils literal notranslate"><span class="pre">PAPER_TRADING_ENABLED=true</span></code> and the caller explicitly
+requested <code class="docutils literal notranslate"><span class="pre">wallet_mode=&quot;paper&quot;</span></code>.</strong> This is proven hermetically through the
+real call path in §11 Case 1. In the observed default configuration
+(<code class="docutils literal notranslate"><span class="pre">EXCHANGE_MODE</span></code> unset → <code class="docutils literal notranslate"><span class="pre">&quot;paper&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">PAPER_TRADING_ENABLED</span></code> default <code class="docutils literal notranslate"><span class="pre">&quot;true&quot;</span></code>)
+both agree and no leak occurs — the divergence is only observable when
+<code class="docutils literal notranslate"><span class="pre">EXCHANGE_MODE</span></code> is explicitly set to something other than what
+<code class="docutils literal notranslate"><span class="pre">PAPER_TRADING_ENABLED</span></code> would imply (Scenario L, K; §11 Cases 1-3). This is
+<strong>not</strong> merely a display-provenance issue (contrast the original framing):
+it changes which numeric branch of <code class="docutils literal notranslate"><span class="pre">WalletSync.get_balance()</span></code> executes and
+whether <code class="docutils literal notranslate"><span class="pre">exchange.fetch_balance()</span></code> is actually called — see §4a (H2
+reclassification) below.</p>
+<p><strong>Four distinct things this document must never conflate (BLOCKER A):</strong></p>
+<ol class="arabic simple">
+<li><p><strong>Isolation of calculations</strong> — whether the <em>number</em> fed into
+sizing/risk originates from the exchange API or from
+<code class="docutils literal notranslate"><span class="pre">WALLET_PAPER_CAPITAL</span></code>. This is what §3/§11 Cases 1-3 characterize, and
+it is <strong>conditional</strong> on the singleton’s effective mode, not guaranteed
+by <code class="docutils literal notranslate"><span class="pre">PAPER_TRADING_ENABLED=true</span></code>.</p></li>
+<li><p><strong>Blocking of network <em>execution</em></strong> — <code class="docutils literal notranslate"><span class="pre">_place_live_order</span></code>’s
+<code class="docutils literal notranslate"><span class="pre">blocked_by_paper_gate</span></code> short-circuit, which reads
+<code class="docutils literal notranslate"><span class="pre">ExecutionEngine._paper_trading_enabled()</span></code> directly (not through the
+frozen singleton) and always fires before any order reaches the network
+when <code class="docutils literal notranslate"><span class="pre">PAPER_TRADING_ENABLED</span></code> is truthy. This gate is <strong>unconditionally
+reliable</strong> for its narrow purpose (no real order is ever sent) —
+<code class="docutils literal notranslate"><span class="pre">BEHAVIOR_PROVEN_HERMETIC</span></code>, §11 Case 1 re-confirms it fires even while
+the API balance leaked into the capital figure in the very same test.
+Blocking execution does <strong>not</strong> prove the capital figure computed
+upstream of that gate was isolated from the API — these are different
+guarantees, proven by different mechanisms, and Case 1 shows they can
+diverge in the same call sequence.</p></li>
+<li><p><strong>Capital provenance</strong> — which fallback tier (fresh fetch / stale cache
+/ <code class="docutils literal notranslate"><span class="pre">_x</span></code> / <code class="docutils literal notranslate"><span class="pre">WALLET_PAPER_CAPITAL</span></code>) actually produced the returned float;
+see §4.</p></li>
+<li><p><strong>The mode displayed to the operator</strong> — <code class="docutils literal notranslate"><span class="pre">resolve_mode_provenance()</span></code>’s
+label, a separate presentation-layer computation (§8.2) that can itself
+diverge from both (1) and (3).</p></li>
+</ol>
+</section>
+<hr class="docutils" />
+<section id="a-h2-reclassification-correction-d-not-a-display-bug-a-branch-selection-bug">
+<h2>3a. H2 reclassification (Correction D) — not a display bug, a branch-selection bug<a class="headerlink" href="#a-h2-reclassification-correction-d-not-a-display-bug-a-branch-selection-bug" title="Link to this heading">¶</a></h2>
+<p><strong>R1 correction:</strong> the original round scoped H2 narrowly, alongside H3’s
+Telegram-banner finding. H2 is reclassified here as its own primary finding,
+because it does not just affect what is <em>displayed</em> — it determines <strong>which
+numeric branch of <code class="docutils literal notranslate"><span class="pre">WalletSync.get_balance()</span></code> actually executes</strong>
+(<code class="docutils literal notranslate"><span class="pre">if</span> <span class="pre">self._mode</span> <span class="pre">==</span> <span class="pre">&quot;paper&quot;:</span></code> vs. the live/testnet branch that calls
+<code class="docutils literal notranslate"><span class="pre">self._exchange.fetch_balance()</span></code>), independent of any display code.</p>
+<p><strong>Both contamination directions are proven, hermetically, through the real
+call path (§11):</strong></p>
+<ol class="arabic simple">
+<li><p><strong>API → PAPER direction (§11 Case 1/2):</strong> singleton frozen in
+<code class="docutils literal notranslate"><span class="pre">live</span></code>/<code class="docutils literal notranslate"><span class="pre">testnet</span></code> mode by <code class="docutils literal notranslate"><span class="pre">bootstrap_capital_x()</span></code> (from <code class="docutils literal notranslate"><span class="pre">EXCHANGE_MODE</span></code>),
+then <code class="docutils literal notranslate"><span class="pre">PAPER_TRADING_ENABLED=true</span></code> is requested later —
+<code class="docutils literal notranslate"><span class="pre">fetch_available_capital()</span></code>’s <code class="docutils literal notranslate"><span class="pre">wallet_mode=&quot;paper&quot;</span></code> argument is discarded,
+<code class="docutils literal notranslate"><span class="pre">get_balance()</span></code> takes the live/testnet branch, and the real exchange
+balance is returned to a caller that believes it is operating in PAPER
+mode. <code class="docutils literal notranslate"><span class="pre">exchange.fetch_balance()</span></code> <strong>is called</strong> — <code class="docutils literal notranslate"><span class="pre">BEHAVIOR_PROVEN_HERMETIC</span></code>,
+call count asserted directly.</p></li>
+<li><p><strong>Paper → LIVE/TESTNET direction (§11 Case 3):</strong> singleton frozen in
+<code class="docutils literal notranslate"><span class="pre">paper</span></code> mode (no <code class="docutils literal notranslate"><span class="pre">EXCHANGE_MODE</span></code> set), then <code class="docutils literal notranslate"><span class="pre">PAPER_TRADING_ENABLED=false</span></code>
+is requested later with <code class="docutils literal notranslate"><span class="pre">ExecutionEngine._mode</span></code> set to <code class="docutils literal notranslate"><span class="pre">live</span></code>/<code class="docutils literal notranslate"><span class="pre">testnet</span></code> —
+the paper branch still executes, <code class="docutils literal notranslate"><span class="pre">WALLET_PAPER_CAPITAL</span></code> + ledger PnL is
+returned, and <code class="docutils literal notranslate"><span class="pre">exchange.fetch_balance()</span></code> is <strong>never called</strong>, even though
+a working exchange was available and the engine’s own state believed it
+was in live/testnet mode. This connects directly to the original round’s
+H4 finding (paper capital silently feeding live/testnet sizing) and to
+H6 (P10 throttle deliberately pinned to paper capital) — H2’s paper→live
+direction is the <em>unintentional</em>, order-dependent counterpart to H6’s
+<em>intentional</em>, ADR-0011-documented pinning.</p></li>
+</ol>
+<p><strong>Secondary consequence, not the primary finding:</strong> displayed provenance
+(<code class="docutils literal notranslate"><span class="pre">resolve_mode_provenance()</span></code>, §8.2) can also diverge from the actual
+numeric source, because it is computed independently from <code class="docutils literal notranslate"><span class="pre">exec_mode</span></code> and
+<code class="docutils literal notranslate"><span class="pre">paper_trading_enabled</span></code> rather than by reading the singleton’s true
+<code class="docutils literal notranslate"><span class="pre">._mode</span></code>/branch — but this display divergence is downstream of, and
+secondary to, the branch-selection effect documented above.</p>
+</section>
+<hr class="docutils" />
+<section id="h4-api-mode-fallback-chain-value-origin-vs-internal-storage-vs-branch-executed">
+<h2>4. H4 — API-mode fallback chain (value origin vs. internal storage vs. branch executed)<a class="headerlink" href="#h4-api-mode-fallback-chain-value-origin-vs-internal-storage-vs-branch-executed" title="Link to this heading">¶</a></h2>
+<p><strong>R1.2 correction (this section rewritten to fix a factual error left
+uncorrected by R1.1):</strong> the previous framing of this section (“four
+independent fallback levels”, <code class="docutils literal notranslate"><span class="pre">_x</span></code>/cache as separate operational tiers) is
+replaced below by an explicit three-way distinction, verified against the
+real <code class="docutils literal notranslate"><span class="pre">infra/wallet_sync.py</span></code> source:</p>
+<ul class="simple">
+<li><p><strong>Value origin</strong> — where the number historically came from: <code class="docutils literal notranslate"><span class="pre">FRESH_API</span></code>
+(a <code class="docutils literal notranslate"><span class="pre">fetch_balance()</span></code> call that just succeeded), <code class="docutils literal notranslate"><span class="pre">BOOTSTRAP_X</span></code> (the
+one-shot <code class="docutils literal notranslate"><span class="pre">bootstrap()</span></code>/<code class="docutils literal notranslate"><span class="pre">set_x()</span></code> call at process start), <code class="docutils literal notranslate"><span class="pre">PAPER_BASE</span></code>
+(<code class="docutils literal notranslate"><span class="pre">WALLET_PAPER_CAPITAL</span></code>), or <code class="docutils literal notranslate"><span class="pre">PAPER_LEDGER_PNL</span></code> (paper-mode ledger
+replay).</p></li>
+<li><p><strong>Internal storage</strong> — the field actually holding the value at read time.
+<code class="docutils literal notranslate"><span class="pre">_x</span></code> holds the capital accepted at bootstrap and is never overwritten
+after that (<code class="docutils literal notranslate"><span class="pre">wallet_sync.py:125</span></code>). <code class="docutils literal notranslate"><span class="pre">_last_value</span></code> holds either the
+X-bootstrap value <strong>or</strong> the most recent positive API value obtained
+afterward — <code class="docutils literal notranslate"><span class="pre">set_x()</span></code> writes <code class="docutils literal notranslate"><span class="pre">self._last_value</span> <span class="pre">=</span> <span class="pre">self._x</span></code> in the same
+call (<code class="docutils literal notranslate"><span class="pre">wallet_sync.py:126</span></code>, comment “fallback live aussi”), and a later
+successful <code class="docutils literal notranslate"><span class="pre">fetch_balance()</span></code> overwrites <code class="docutils literal notranslate"><span class="pre">_last_value</span></code> again
+(<code class="docutils literal notranslate"><span class="pre">wallet_sync.py:195</span></code>). <code class="docutils literal notranslate"><span class="pre">_x</span></code> and <code class="docutils literal notranslate"><span class="pre">_last_value</span></code> are therefore not
+independent channels: after any successful bootstrap, <code class="docutils literal notranslate"><span class="pre">_last_value</span></code> is
+never <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p></li>
+<li><p><strong>Branch actually executed</strong> — which code path <code class="docutils literal notranslate"><span class="pre">get_balance()</span></code>/
+<code class="docutils literal notranslate"><span class="pre">_fallback()</span></code>/<code class="docutils literal notranslate"><span class="pre">_base_capital()</span></code> take. <code class="docutils literal notranslate"><span class="pre">SOURCE_PROVEN</span></code>,
+<code class="docutils literal notranslate"><span class="pre">wallet_sync.py:159-206</span></code>:</p></li>
+</ul>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">_fallback</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_last_value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_last_value</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_base_capital</span><span class="p">()</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_base_capital</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_x</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_x</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">_PAPER_CAPITAL</span>
+</pre></div>
+</div>
+<p><strong>Real operational chain</strong> (<code class="docutils literal notranslate"><span class="pre">SOURCE_PROVEN</span></code>, verified against current
+source):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>PAPER mode
+→ PAPER_BASE + PAPER_LEDGER_PNL
+
+LIVE/TESTNET mode
+→ valid TTL cache → _last_value
+
+→ else API attempt
+   → positive value → _last_value updated → value returned
+   → zero or exception → _fallback()
+
+_fallback()
+→ _last_value if not None
+→ else _base_capital()
+
+_base_capital() in LIVE/TESTNET
+→ _x if not None
+→ else PAPER_BASE
+</pre></div>
+</div>
+<p><strong>Essential qualifier:</strong> in the normal public cycle, a successful bootstrap
+calls <code class="docutils literal notranslate"><span class="pre">set_x()</span></code>, which initializes <code class="docutils literal notranslate"><span class="pre">_x</span></code> and <code class="docutils literal notranslate"><span class="pre">_last_value</span></code>
+<strong>simultaneously</strong>. The <code class="docutils literal notranslate"><span class="pre">_base_capital()</span> <span class="pre">→</span> <span class="pre">_x</span></code> branch is therefore
+<strong>normally not reached</strong> after a successful public bootstrap, because
+<code class="docutils literal notranslate"><span class="pre">_fallback()</span></code> returns <code class="docutils literal notranslate"><span class="pre">_last_value</span></code> first — <code class="docutils literal notranslate"><span class="pre">_base_capital()</span></code>’s <code class="docutils literal notranslate"><span class="pre">_x</span></code> branch
+is only ever reached when <code class="docutils literal notranslate"><span class="pre">_last_value</span> <span class="pre">is</span> <span class="pre">None</span></code>, i.e. when <code class="docutils literal notranslate"><span class="pre">_x</span></code> was set
+through some path other than the public <code class="docutils literal notranslate"><span class="pre">set_x()</span></code>/<code class="docutils literal notranslate"><span class="pre">bootstrap()</span></code> call (see
+the <code class="docutils literal notranslate"><span class="pre">INTERNAL_STATE_ONLY_NOT_PRODUCED_BY_PUBLIC_BOOTSTRAP_PATH</span></code>
+classification below), which no observed production call path produces.</p>
+<p><strong>Consumer-visible provenance:</strong> none of the above is tagged or surfaced to
+the caller — <code class="docutils literal notranslate"><span class="pre">get_balance()</span></code> always returns a plain <code class="docutils literal notranslate"><span class="pre">float</span></code>; a consumer
+cannot tell from the return value alone whether it came from a fresh fetch,
+a cache hit, or the X-bootstrap value replayed through <code class="docutils literal notranslate"><span class="pre">_last_value</span></code> (see
+Case 5c/5d below for the sharper zero-vs-error instance of this same
+non-distinguishability).</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Value</p></th>
+<th class="head"><p>Storage at read time</p></th>
+<th class="head"><p>When used</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong>fresh</strong></p></td>
+<td><p>not stored yet; about to become <code class="docutils literal notranslate"><span class="pre">_last_value</span></code></p></td>
+<td><p>live/testnet, cache expired or <code class="docutils literal notranslate"><span class="pre">force_refresh=True</span></code>, fetch succeeds, <code class="docutils literal notranslate"><span class="pre">usdt</span> <span class="pre">&gt;</span> <span class="pre">0</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>cache / X-bootstrap replay (<code class="docutils literal notranslate"><span class="pre">_last_value</span></code>)</strong></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">_last_value</span></code></p></td>
+<td><p>live/testnet, cache still within <code class="docutils literal notranslate"><span class="pre">WALLET_CACHE_TTL_S</span></code> (default 30s); OR live/testnet fetch fails/raises/returns 0 <strong>and</strong> <code class="docutils literal notranslate"><span class="pre">_last_value</span> <span class="pre">is</span> <span class="pre">not</span> <span class="pre">None</span></code> (populated either by a prior successful fetch, or by <code class="docutils literal notranslate"><span class="pre">set_x()</span></code> at bootstrap, or both)</p></td>
+</tr>
+<tr class="row-even"><td><p><strong><code class="docutils literal notranslate"><span class="pre">_x</span></code>-only branch of <code class="docutils literal notranslate"><span class="pre">_base_capital()</span></code></strong></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">_x</span></code></p></td>
+<td><p>only reached when <code class="docutils literal notranslate"><span class="pre">_last_value</span> <span class="pre">is</span> <span class="pre">None</span></code> — <code class="docutils literal notranslate"><span class="pre">INTERNAL_STATE_ONLY_NOT_PRODUCED_BY_PUBLIC_BOOTSTRAP_PATH</span></code>: not producible by a normal <code class="docutils literal notranslate"><span class="pre">set_x()</span></code>/<code class="docutils literal notranslate"><span class="pre">bootstrap()</span></code> call, since that call sets <code class="docutils literal notranslate"><span class="pre">_last_value</span></code> in the same step; would require manual private-attribute mutation, an undemonstrated state-restore path, a future production change, or internal corruption</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>paper fallback (<code class="docutils literal notranslate"><span class="pre">WALLET_PAPER_CAPITAL</span></code>)</strong></p></td>
+<td><p>module constant <code class="docutils literal notranslate"><span class="pre">_PAPER_CAPITAL</span></code></p></td>
+<td><p>(a) always, in paper mode; (b) in live/testnet mode, whenever <code class="docutils literal notranslate"><span class="pre">_last_value</span> <span class="pre">is</span> <span class="pre">None</span></code> <strong>and</strong> <code class="docutils literal notranslate"><span class="pre">_x</span> <span class="pre">is</span> <span class="pre">None</span></code> — i.e. bootstrap never succeeded and no fetch has ever succeeded</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><strong>Confirmed (Scenario F, <code class="docutils literal notranslate"><span class="pre">BEHAVIOR_PROVEN_HERMETIC</span></code>,
+<code class="docutils literal notranslate"><span class="pre">TestScenarioFGHApiFailureFallbacks.test_live_mode_api_error_no_cache_falls_back_to_paper_capital_constant</span></code>):</strong>
+in live/testnet mode, with no cache and no successful bootstrap, an API
+error causes <code class="docutils literal notranslate"><span class="pre">get_balance()</span></code> to return <code class="docutils literal notranslate"><span class="pre">WALLET_PAPER_CAPITAL</span></code> — <strong>a paper
+sizing constant silently substituted as a live-mode numeric capital
+figure</strong>, with no distinguishing signal to any downstream consumer
+(<code class="docutils literal notranslate"><span class="pre">order_size</span></code>, <code class="docutils literal notranslate"><span class="pre">PortfolioBrain</span></code>, <code class="docutils literal notranslate"><span class="pre">CapitalAllocationEngine</span></code>,
+<code class="docutils literal notranslate"><span class="pre">ExecutiveOverride</span></code>, the throttle/drawdown computations all receive a plain
+<code class="docutils literal notranslate"><span class="pre">float</span></code>).</p>
+<p><strong>Confirmed (Scenario G, <code class="docutils literal notranslate"><span class="pre">BEHAVIOR_PROVEN_HERMETIC</span></code>):</strong> with a prior
+successful fetch, a subsequent failure returns the stale cached value
+instead — this is the design intent stated in the module docstring
+(“évite de fabriquer un faux drawdown sur un échec réseau temporaire”).</p>
+<p><strong>Confirmed (Scenario H, <code class="docutils literal notranslate"><span class="pre">BEHAVIOR_PROVEN_HERMETIC</span></code>):</strong> a genuine zero
+balance (<code class="docutils literal notranslate"><span class="pre">free.USDT</span> <span class="pre">==</span> <span class="pre">0.0</span></code>) is rejected by the <code class="docutils literal notranslate"><span class="pre">if</span> <span class="pre">usdt</span> <span class="pre">&gt;</span> <span class="pre">0:</span></code> guard
+(<code class="docutils literal notranslate"><span class="pre">wallet_sync.py:194</span></code>) and falls through to the same fallback chain as an
+API error — the caller cannot distinguish “exchange reachable, balance
+truly zero” from “exchange unreachable” from the return value alone.</p>
+<p><strong>Contrast (<code class="docutils literal notranslate"><span class="pre">test_bootstrap_zero_balance_returns_none_not_zero</span></code>):</strong>
+<code class="docutils literal notranslate"><span class="pre">bootstrap()</span></code> itself does fail closed to <code class="docutils literal notranslate"><span class="pre">None</span></code> (not a substituted number)
+when the balance is below <code class="docutils literal notranslate"><span class="pre">MIN_CAPITAL_X</span></code> — this is the one capital-related
+entry point in this module that does not silently substitute a number. It
+is a one-shot call at process start, not part of the per-cycle refresh
+path, so it does not protect the per-cycle <code class="docutils literal notranslate"><span class="pre">get_balance()</span></code> calls above.</p>
+<p>This entire mechanism is independently documented, with identical
+conclusions, in <code class="docutils literal notranslate"><span class="pre">docs/contracts/O-02W-E_TELEGRAM_OBSERVATION_BOUNDARY.md</span></code>
+§9c Flow 2 (Correction E / R1.1), which this audit’s hermetic tests now
+additionally prove at the unit level rather than by source reading alone.</p>
+<p><strong>R1.2 correction (§11 Case 5b):</strong> R1.1 stated that Case 5b’s returned value
+was “<code class="docutils literal notranslate"><span class="pre">_x</span></code>, via <code class="docutils literal notranslate"><span class="pre">_base_capital()</span></code>” — this was factually wrong and is
+corrected here. <code class="docutils literal notranslate"><span class="pre">WalletSync.set_x()</span></code> (called internally by a successful
+<code class="docutils literal notranslate"><span class="pre">bootstrap()</span></code>) seeds <code class="docutils literal notranslate"><span class="pre">self._last_value</span> <span class="pre">=</span> <span class="pre">self._x</span></code> in the same call
+(<code class="docutils literal notranslate"><span class="pre">wallet_sync.py:126</span></code>, comment “fallback live aussi”). So a process that
+successfully bootstraps and then experiences an API error does <strong>not</strong>
+reach <code class="docutils literal notranslate"><span class="pre">_base_capital()</span></code> at all: <code class="docutils literal notranslate"><span class="pre">_fallback()</span></code> finds <code class="docutils literal notranslate"><span class="pre">_last_value</span></code> is not
+<code class="docutils literal notranslate"><span class="pre">None</span></code> (it equals <code class="docutils literal notranslate"><span class="pre">300.0</span></code>, the bootstrapped value) and returns it directly
+— <code class="docutils literal notranslate"><span class="pre">_base_capital()</span></code> and its <code class="docutils literal notranslate"><span class="pre">_x</span></code> branch are never called. <code class="docutils literal notranslate"><span class="pre">_x</span></code>’s value is
+still the one visible in the result, but only because <code class="docutils literal notranslate"><span class="pre">_last_value</span></code> was
+seeded from it at bootstrap time, not because <code class="docutils literal notranslate"><span class="pre">_base_capital()</span></code>’s <code class="docutils literal notranslate"><span class="pre">_x</span></code>
+branch executed. The <code class="docutils literal notranslate"><span class="pre">_x</span></code>-only branch of <code class="docutils literal notranslate"><span class="pre">_base_capital()</span></code> is reached only
+when <code class="docutils literal notranslate"><span class="pre">_last_value</span> <span class="pre">is</span> <span class="pre">None</span></code> — a state the public <code class="docutils literal notranslate"><span class="pre">set_x()</span></code>/<code class="docutils literal notranslate"><span class="pre">bootstrap()</span></code>
+path never leaves behind, since it always sets both fields together;
+producing it requires manual private-attribute mutation, an undemonstrated
+state-restore path, a future production change, or internal corruption
+(<code class="docutils literal notranslate"><span class="pre">INTERNAL_STATE_ONLY_NOT_PRODUCED_BY_PUBLIC_BOOTSTRAP_PATH</span></code>, see §4 above).
+Case 5b (renamed <code class="docutils literal notranslate"><span class="pre">test_bootstrap_seeded_last_value_is_returned_after_api_failure</span></code>)
+now proves this directly: it spies on <code class="docutils literal notranslate"><span class="pre">_base_capital()</span></code> and asserts it is
+called zero times while still returning <code class="docutils literal notranslate"><span class="pre">300.0</span></code> via <code class="docutils literal notranslate"><span class="pre">_last_value</span></code>. This
+does not change the H4 verdict; it corrects which mechanism — <code class="docutils literal notranslate"><span class="pre">_last_value</span></code>
+replay, not the <code class="docutils literal notranslate"><span class="pre">_x</span></code> branch of <code class="docutils literal notranslate"><span class="pre">_base_capital()</span></code> — actually produces the
+observed value.</p>
+<p><strong>R1 refinement (§11 Case 5c/5d — explicit non-distinguishability finding):</strong>
+a genuine zero balance (Scenario H) and an API error (Scenario F/G) are
+<strong>not distinguishable from <code class="docutils literal notranslate"><span class="pre">get_balance()</span></code>’s return value, from the outside,
+by design</strong> — both fall through to the identical <code class="docutils literal notranslate"><span class="pre">return</span> <span class="pre">self._fallback()</span></code>
+call with no side channel (no return-value tag, no raised/re-raised
+exception, no distinct log field surfaced to the caller) that would let a
+caller tell “exchange reachable, balance truly zero” apart from “exchange
+unreachable.” This is stated here as an explicit, proven finding (§11 Case
+5c/5d), not inferred or assumed away — the current implementation genuinely
+cannot make this distinction from <code class="docutils literal notranslate"><span class="pre">WalletSync.get_balance()</span></code>’s return type
+alone.</p>
+</section>
+<hr class="docutils" />
+<section id="h5-initial-behavior-vs-refresh-behavior">
+<h2>5. H5 — Initial behavior vs. refresh behavior<a class="headerlink" href="#h5-initial-behavior-vs-refresh-behavior" title="Link to this heading">¶</a></h2>
+<p><strong>Initial (bootstrap, <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py:3835,4046</span></code>):</strong>
+<code class="docutils literal notranslate"><span class="pre">real_capital</span> <span class="pre">=</span> <span class="pre">exec_engine.fetch_available_capital()</span></code> is fetched once, and
+<code class="docutils literal notranslate"><span class="pre">order_size</span> <span class="pre">=</span> <span class="pre">min(max_order,</span> <span class="pre">real_capital</span> <span class="pre">*</span> <span class="pre">V9_MAX_POSITION_WEIGHT)</span></code>
+(line 4046) is computed <strong>once</strong>, from that single bootstrap-time value.</p>
+<p><strong>Refresh (per cycle, <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py:5739-5746</span></code>):</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">try</span><span class="p">:</span>
+    <span class="n">fresh_capital</span> <span class="o">=</span> <span class="n">exec_engine</span><span class="o">.</span><span class="n">fetch_available_capital</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">fresh_capital</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">real_capital</span> <span class="o">=</span> <span class="n">fresh_capital</span>
+        <span class="n">portfolio_brain</span><span class="o">.</span><span class="n">update_capital</span><span class="p">(</span><span class="n">real_capital</span><span class="p">)</span>
+        <span class="n">capital_engine</span><span class="o">.</span><span class="n">update_capital</span><span class="p">(</span><span class="n">real_capital</span><span class="p">)</span>
+<span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+    <span class="k">pass</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">SOURCE_PROVEN</span></code> findings:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">real_capital</span></code> (the bare local) <strong>is</strong> reassigned every cycle when
+<code class="docutils literal notranslate"><span class="pre">fresh_capital</span> <span class="pre">&gt;</span> <span class="pre">0</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PortfolioBrain.update_capital()</span></code> and <code class="docutils literal notranslate"><span class="pre">CapitalAllocationEngine.update_capital()</span></code>
+<strong>are</strong> called every cycle with the refreshed value — <code class="docutils literal notranslate"><span class="pre">BEHAVIOR_PROVEN_HERMETIC</span></code>
+via <code class="docutils literal notranslate"><span class="pre">TestScenarioJRefreshPropagation</span></code> (both engines’ subsequent outputs
+change after <code class="docutils literal notranslate"><span class="pre">update_capital()</span></code>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ExecutiveOverride.update(capital_current=real_capital)</span></code> is called
+separately, later in the same cycle (line 7241), using the <strong>already
+refreshed</strong> <code class="docutils literal notranslate"><span class="pre">real_capital</span></code> local from the same cycle — so it does receive
+the fresh value, just via a second call site rather than the block above.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">order_size</span></code> (the bare local computed once at line 4046) is never
+recomputed anywhere in the main loop.</strong> <code class="docutils literal notranslate"><span class="pre">grep</span> <span class="pre">-n</span> <span class="pre">&quot;order_size\s*=&quot;</span></code> across
+<code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code> shows exactly one assignment (line 4046); its two
+later uses (lines 6075, 6163) both read the frozen bootstrap-time value
+(<code class="docutils literal notranslate"><span class="pre">order_size</span> <span class="pre">*</span> <span class="pre">_sc_state[&quot;risk_factor&quot;]</span></code>, or as a fallback when
+<code class="docutils literal notranslate"><span class="pre">CapitalAllocationEngine</span></code> output is absent). If <code class="docutils literal notranslate"><span class="pre">fresh_capital</span></code> grows or
+shrinks substantially across a long-running session, the base sizing
+figure feeding <code class="docutils literal notranslate"><span class="pre">analyze_symbol()</span></code> does not track it — only the two
+<code class="docutils literal notranslate"><span class="pre">update_capital()</span></code>-driven engines do.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">_p10_throttle</span></code>, <code class="docutils literal notranslate"><span class="pre">_p10_kpi.initial_capital</span></code>, and the <code class="docutils literal notranslate"><span class="pre">max_order</span></code> ceiling
+derived from <code class="docutils literal notranslate"><span class="pre">_p10_throttle</span></code> at bootstrap (lines 3871-3896) are likewise
+computed once and not refreshed — consistent with §6’s finding that P10
+throttle is deliberately pinned, not merely stale.</p></li>
+</ul>
+<p><strong>Classification:</strong> <code class="docutils literal notranslate"><span class="pre">CONTRADICTION_FOUND</span></code> (documentation claims a single
+unified “capital refresh,” but three different consumers — <code class="docutils literal notranslate"><span class="pre">order_size</span></code>,
+the two <code class="docutils literal notranslate"><span class="pre">update_capital()</span></code>-driven engines, <code class="docutils literal notranslate"><span class="pre">ExecutiveOverride</span></code> — have three
+different refresh behaviors: frozen / refreshed-together / refreshed
+separately-but-same-cycle).</p>
+</section>
+<hr class="docutils" />
+<section id="h6-capitalthrottle-pinned-to-wallet-paper-capital">
+<h2>6. H6 — CapitalThrottle pinned to <code class="docutils literal notranslate"><span class="pre">WALLET_PAPER_CAPITAL</span></code><a class="headerlink" href="#h6-capitalthrottle-pinned-to-wallet-paper-capital" title="Link to this heading">¶</a></h2>
+<p>Two unrelated classes share the name <code class="docutils literal notranslate"><span class="pre">CapitalThrottle</span></code>:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">capital_deployment/capital_throttle.py::CapitalThrottle</span></code> — phase-based
+ceiling (F-01…F-05), a <strong>percentage of a <code class="docutils literal notranslate"><span class="pre">total_capital</span></code> figure fixed at
+construction</strong>. This is the “P10” throttle referenced in
+<code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/risk/capital_throttle.py::CapitalThrottle</span></code> — an
+unrelated drawdown-based size-factor throttle (P7), constructed with no
+capital argument at all and driven entirely by <code class="docutils literal notranslate"><span class="pre">update(capital)</span></code> calls
+each cycle (<code class="docutils literal notranslate"><span class="pre">SOURCE_PROVEN</span></code>, line 5253 imports it under the alias
+<code class="docutils literal notranslate"><span class="pre">_CTCls</span></code>, distinct from <code class="docutils literal notranslate"><span class="pre">_P10ThrottleCls</span></code> at line 3862). This second
+class is <code class="docutils literal notranslate"><span class="pre">NOT_APPLICABLE</span></code> to H6.</p></li>
+</ul>
+<p><code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py:3871</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># ADR-0011: base épinglée pour stationnarité du sizing pendant la validation.</span>
+<span class="n">_p10_throttle</span> <span class="o">=</span> <span class="n">_P10ThrottleCls</span><span class="p">(</span><span class="n">total_capital</span><span class="o">=</span><span class="n">_paper_capital</span><span class="p">,</span> <span class="n">phase</span><span class="o">=</span><span class="n">_P10_PHASE</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">_paper_capital</span> <span class="pre">=</span> <span class="pre">float(os.getenv(&quot;WALLET_PAPER_CAPITAL&quot;,</span> <span class="pre">&quot;1000&quot;))</span></code>
+(line 3779) — this is constructed <strong>unconditionally</strong>, including in the
+non-<code class="docutils literal notranslate"><span class="pre">advisor_only</span></code> (live) branch (lines 3889-3896: <code class="docutils literal notranslate"><span class="pre">max_order</span> <span class="pre">=</span> <span class="pre">min(max_order,</span> <span class="pre">_p10_throttle.throttled_size(max_order))</span></code>).</p>
+<p><strong>Established effect (<code class="docutils literal notranslate"><span class="pre">BEHAVIOR_PROVEN_HERMETIC</span></code>,
+<code class="docutils literal notranslate"><span class="pre">TestH6CapitalThrottlePinnedToPaperCapital</span></code>):</strong> the F-01 phase ceiling is
+<code class="docutils literal notranslate"><span class="pre">min(1%</span> <span class="pre">of</span> <span class="pre">WALLET_PAPER_CAPITAL,</span> <span class="pre">100</span> <span class="pre">EUR)</span></code> — entirely independent of
+<code class="docutils literal notranslate"><span class="pre">real_capital</span></code>/live exchange balance, by construction. This throttle’s
+ceiling therefore <strong>cannot grow or shrink with actual live/testnet
+capital</strong>; it only changes if <code class="docutils literal notranslate"><span class="pre">WALLET_PAPER_CAPITAL</span></code> or <code class="docutils literal notranslate"><span class="pre">P10_PHASE</span></code> change.</p>
+<p><strong>Not classified as a defect:</strong> the in-source comment explicitly cites
+ADR-0011 and “stationnarité du sizing pendant la validation” (sizing
+stationarity during validation) as the rationale — this matches
+<code class="docutils literal notranslate"><span class="pre">CLAUDE.md</span></code>’s ADR-0007 constitutional rule verbatim: <em>“Base de sizing
+épinglée à <code class="docutils literal notranslate"><span class="pre">WALLET_PAPER_CAPITAL</span></code> jusqu’aux gates de calibration ; tout
+sizing dépendant de l’equity est une décision de calibration explicite,
+jamais un effet de redémarrage.”</em> This audit therefore classifies H6 as
+<code class="docutils literal notranslate"><span class="pre">SOURCE_PROVEN</span></code> intentional design, not <code class="docutils literal notranslate"><span class="pre">CONTRADICTION_FOUND</span></code> — but flags
+that its <em>effect</em> in the non-<code class="docutils literal notranslate"><span class="pre">advisor_only</span></code> branch is to throttle <strong>live</strong>
+order sizes using a <strong>paper</strong> capital ceiling, which is a real
+architectural coupling between the two, however deliberately chosen.</p>
+</section>
+<hr class="docutils" />
+<section id="every-consumer-and-its-classification">
+<h2>7. Every consumer and its classification<a class="headerlink" href="#every-consumer-and-its-classification" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Consumer</p></th>
+<th class="head"><p>Source location</p></th>
+<th class="head"><p>Classification</p></th>
+<th class="head"><p>Note</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">order_size</span></code> (base sizing)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py:4046</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">DECISION_INPUT</span></code></p></td>
+<td><p>frozen at bootstrap, see §5</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">PortfolioBrain._capital</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">portfolio_brain.py:111-117</span></code>, wired <code class="docutils literal notranslate"><span class="pre">advisor_loop.py:5743</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">RISK_INPUT</span></code></p></td>
+<td><p>refreshed every cycle</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">CapitalAllocationEngine._capital</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">capital_allocation_engine.py:99-103</span></code>, wired <code class="docutils literal notranslate"><span class="pre">advisor_loop.py:5744</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">RISK_INPUT</span></code> / <code class="docutils literal notranslate"><span class="pre">DECISION_INPUT</span></code></p></td>
+<td><p>drives Kelly sizing; refreshed every cycle</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ExecutiveOverride._capital</span></code> / <code class="docutils literal notranslate"><span class="pre">_metrics.capital_current</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">executive_override.py:168-174</span></code>, wired <code class="docutils literal notranslate"><span class="pre">advisor_loop.py:7241</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">RISK_INPUT</span></code></p></td>
+<td><p>drives drawdown-based VETO/REDUCE levels; refreshed every cycle, same-cycle as above</p></td>
+</tr>
+<tr class="row-even"><td><p>P10 <code class="docutils literal notranslate"><span class="pre">CapitalThrottle</span></code> (<code class="docutils literal notranslate"><span class="pre">capital_deployment</span></code>)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">advisor_loop.py:3871-3896</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EXECUTION_LIMIT</span></code></p></td>
+<td><p>pinned to <code class="docutils literal notranslate"><span class="pre">WALLET_PAPER_CAPITAL</span></code>, not refreshed (§6)</p></td>
+</tr>
+<tr class="row-odd"><td><p>P7 <code class="docutils literal notranslate"><span class="pre">CapitalThrottle</span></code> (<code class="docutils literal notranslate"><span class="pre">quant_hedge_ai.../risk</span></code>)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">advisor_loop.py:5253+</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">RISK_INPUT</span></code></p></td>
+<td><p>drawdown-factor throttle, driven by <code class="docutils literal notranslate"><span class="pre">.update(capital)</span></code> calls, distinct class from P10 (§6)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ExecutionEngine._place_live_order</span></code> size clamps (<code class="docutils literal notranslate"><span class="pre">min_notional</span></code>, balance check)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">execution_engine.py:481-534</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EXECUTION_LIMIT</span></code></p></td>
+<td><p>reads live balance directly via <code class="docutils literal notranslate"><span class="pre">self._exchange.fetch_balance()</span></code>, independent of <code class="docutils literal notranslate"><span class="pre">WalletSync</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ExecutionEngine.create_order</span></code> <code class="docutils literal notranslate"><span class="pre">SessionGuard</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">session_guard.py</span></code> (imported, not read in full — see §9)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">RISK_INPUT</span></code></p></td>
+<td><p>session-level drawdown/order-size checks, invoked before every order</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">RealAccountsObserver</span></code> (<code class="docutils literal notranslate"><span class="pre">observability/real_accounts.py</span></code>)</p></td>
+<td><p>own <code class="docutils literal notranslate"><span class="pre">ccxt</span></code> client, independent of <code class="docutils literal notranslate"><span class="pre">WalletSync</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">DISPLAY_ONLY</span></code></p></td>
+<td><p>Flow 1; §9c-confirmed no feedback path exists into sizing/risk (<code class="docutils literal notranslate"><span class="pre">SOURCE_PROVEN</span></code>: no import of it anywhere in the risk/execution modules read for this audit)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">aggregate()</span></code> (real_accounts.py)</p></td>
+<td><p>same module</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">DISPLAY_ONLY</span></code></p></td>
+<td><p>feeds “Statut Compte Réel” header text only</p></td>
+</tr>
+<tr class="row-even"><td><p>Command Center bot’s capital rendering</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">capital_deployment/command_center_bot.py:163-170</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">TELEMETRY_ONLY</span></code></p></td>
+<td><p>its own docstring explicitly disclaims being a provenance proof; renders <code class="docutils literal notranslate"><span class="pre">resolve_mode_provenance()</span></code>’s label</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">resolve_mode_provenance()</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">observability/mode_provenance.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">TELEMETRY_ONLY</span></code></p></td>
+<td><p>pure presentation-layer label resolver, fails closed to <code class="docutils literal notranslate"><span class="pre">UNKNOWN</span></code>; does not feed any decision</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">session_pnl_since_restart()</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">wallet_sync.py:212-220</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">TELEMETRY_ONLY</span></code></p></td>
+<td><p>explicitly documented as display-only, “never for sizing/risk” (<code class="docutils literal notranslate"><span class="pre">SOURCE_PROVEN</span></code>, docstring + no call site outside Telegram messages found)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">WalletSync.initial_capital()</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">wallet_sync.py:208-210</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">RISK_INPUT</span></code></p></td>
+<td><p>used for ROI%/drawdown% computation per its own docstring — not read in full call-site detail beyond that docstring claim; <code class="docutils literal notranslate"><span class="pre">RUNTIME_UNKNOWN</span></code> for exact consumers (not among the files mandated for full read)</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<hr class="docutils" />
+<section id="contradictions-between-comments-and-actual-behavior">
+<h2>8. Contradictions between comments and actual behavior<a class="headerlink" href="#contradictions-between-comments-and-actual-behavior" title="Link to this heading">¶</a></h2>
+<ol class="arabic simple">
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">advisor_loop.py:3778</span></code> <code class="docutils literal notranslate"><span class="pre">_paper_mode</span></code> predicate vs. the decisional
+gate.</strong> <code class="docutils literal notranslate"><span class="pre">_paper_mode</span> <span class="pre">=</span> <span class="pre">os.getenv(&quot;PAPER_TRADING_ENABLED&quot;,</span> <span class="pre">&quot;true&quot;).lower()</span> <span class="pre">==</span> <span class="pre">&quot;true&quot;</span></code> accepts only the literal string <code class="docutils literal notranslate"><span class="pre">&quot;true&quot;</span></code>,
+while the actual decisional gates (<code class="docutils literal notranslate"><span class="pre">ExecutionEngine._paper_trading_enabled()</span></code>,
+<code class="docutils literal notranslate"><span class="pre">fetch_available_capital()</span></code>’s inline check, <code class="docutils literal notranslate"><span class="pre">resolve_mode_provenance()</span></code>)
+all accept <code class="docutils literal notranslate"><span class="pre">{&quot;1&quot;,&quot;true&quot;,&quot;yes&quot;,&quot;on&quot;}</span></code>. <code class="docutils literal notranslate"><span class="pre">CONTRADICTION_FOUND</span></code>,
+<code class="docutils literal notranslate"><span class="pre">BEHAVIOR_PROVEN_HERMETIC</span></code>
+(<code class="docutils literal notranslate"><span class="pre">TestH3ModePredicateConsistency.test_advisor_loop_bootstrap_predicate_diverges_from_execution_engine</span></code>).
+<strong>Scope-limited:</strong> this local variable is used exactly once, to pick
+between two Telegram message strings (STANDBY vs LIVE wording) — it is
+<code class="docutils literal notranslate"><span class="pre">DISPLAY_ONLY</span></code>/<code class="docutils literal notranslate"><span class="pre">TELEMETRY_ONLY</span></code>, not wired into sizing or execution. If
+<code class="docutils literal notranslate"><span class="pre">PAPER_TRADING_ENABLED=1</span></code> (numeric truthy, accepted everywhere else),
+the operator would see a “LIVE” Telegram banner while the system is in
+fact still in PAPER mode for every decisional purpose — a <strong>presentation
+bug</strong>, not a boundary breach, but exactly the class of divergence this
+codebase has already had to fix once before (see
+<code class="docutils literal notranslate"><span class="pre">tests/test_advisor_loop_balance_provenance.py</span></code>’s own docstring
+describing an earlier, now-fixed instance of this same bug pattern in
+<code class="docutils literal notranslate"><span class="pre">_balance_provenance_from_mode</span></code>).</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">WalletSync.get_balance()</span></code>’s numeric domain vs. the presentation
+layer’s <code class="docutils literal notranslate"><span class="pre">PAPER</span> <span class="pre">|</span> <span class="pre">REAL_API</span> <span class="pre">|</span> <span class="pre">TESTNET_API</span> <span class="pre">|</span> <span class="pre">UNKNOWN</span></code> domain.</strong>
+<code class="docutils literal notranslate"><span class="pre">command_center_bot.py</span></code>’s own comment (quoted in §9c of the O-02W-E
+contract) states the provenance label fails closed to <code class="docutils literal notranslate"><span class="pre">UNKNOWN</span></code> on an
+unrecognized mode — true for the <strong>label</strong>
+(<code class="docutils literal notranslate"><span class="pre">resolve_mode_provenance()</span></code>, <code class="docutils literal notranslate"><span class="pre">SOURCE_PROVEN</span></code>), but the <strong>numeric
+capital value</strong> that label is meant to describe never has an <code class="docutils literal notranslate"><span class="pre">UNKNOWN</span></code>
+state: it is always a concrete <code class="docutils literal notranslate"><span class="pre">float</span></code>, sourced per §4’s fallback chain.
+<code class="docutils literal notranslate"><span class="pre">CONTRADICTION_FOUND</span></code> only if the two domains are conflated — the O-02W-E
+contract (§9c, R1.1) already corrects this conflation in its own prior
+text; this audit’s tests (<code class="docutils literal notranslate"><span class="pre">TestScenarioKEnvDivergence.test_mode_provenance_label_fails_closed_on_unrecognized_exec_mode</span></code>)
+independently confirm both halves of that correction hermetically.</p></li>
+<li><p><strong>Two same-named <code class="docutils literal notranslate"><span class="pre">CapitalThrottle</span></code> classes</strong> (§6) — not a contradiction
+in behavior, but a naming collision that makes source navigation and any
+future refactor error-prone; documented here as a latent audit risk.</p></li>
+</ol>
+</section>
+<hr class="docutils" />
+<section id="runtime-proof-limits-what-could-not-be-established-hermetically">
+<h2>9. Runtime proof limits (what could NOT be established hermetically)<a class="headerlink" href="#runtime-proof-limits-what-could-not-be-established-hermetically" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><strong>Whether <code class="docutils literal notranslate"><span class="pre">EXCHANGE_MODE</span></code> is ever actually set to a value diverging from
+<code class="docutils literal notranslate"><span class="pre">PAPER_TRADING_ENABLED</span></code> in the deployed VPS <code class="docutils literal notranslate"><span class="pre">.env</span></code>.</strong> §3’s masking effect
+only manifests under that divergence; this audit proves the mechanism
+exists in source and under hermetic test, but cannot inspect the VPS’s
+live environment (prohibited by mission scope: no VPS access). <code class="docutils literal notranslate"><span class="pre">RUNTIME_UNKNOWN</span></code>.</p></li>
+<li><p><strong>Whether a live/testnet API outage has ever actually triggered the
+paper-capital-substitution path (§4, Scenario F) in production</strong>, versus
+only ever hitting the stale-cache path (Scenario G). Both are proven
+reachable in source and hermetically; which one has occurred historically
+on the VPS is <code class="docutils literal notranslate"><span class="pre">RUNTIME_UNKNOWN</span></code> — would require VPS log access, out of
+scope.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">SessionGuard</span></code>’s exact drawdown/size checks</strong> (<code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/risk/session_guard.py</span></code>)
+were imported and referenced by <code class="docutils literal notranslate"><span class="pre">ExecutionEngine</span></code> but not among the files
+mandated for full read by this mission; its exact provenance chain for
+the capital figures it uses is <code class="docutils literal notranslate"><span class="pre">RUNTIME_UNKNOWN</span></code> here — flagged for a
+follow-up audit, not fabricated.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">WalletSync.initial_capital()</span></code>’s full consumer list</strong> beyond its own
+docstring claim (ROI%/drawdown% display) — not traced to every call site;
+<code class="docutils literal notranslate"><span class="pre">RUNTIME_UNKNOWN</span></code>.</p></li>
+<li><p><strong>Whether <code class="docutils literal notranslate"><span class="pre">capital_deployment/capital_throttle.py</span></code>’s P10 throttle or
+<code class="docutils literal notranslate"><span class="pre">capital_deployment/emergency_stop_manager.py</span></code>/<code class="docutils literal notranslate"><span class="pre">phase_kpi_tracker.py</span></code>
+read any capital figure other than the ones documented here</strong> — these
+two modules were imported by <code class="docutils literal notranslate"><span class="pre">advisor_loop.py</span></code> in the same block but not
+among the files mandated for full read; not characterized further here.</p></li>
+<li><p>Production VPS behavior (restart timing, actual <code class="docutils literal notranslate"><span class="pre">.env</span></code> contents, real
+exchange responses) is <strong>out of scope by explicit prohibition</strong> in this
+mission and is not claimed anywhere in this document.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="mode-combination-matrix-correction-c">
+<h2>10. Mode-combination matrix (Correction C)<a class="headerlink" href="#mode-combination-matrix-correction-c" title="Link to this heading">¶</a></h2>
+<p><strong>R1.1 section-numbering correction:</strong> this document previously numbered
+sections <code class="docutils literal notranslate"><span class="pre">9</span></code>, <code class="docutils literal notranslate"><span class="pre">10a</span></code>, <code class="docutils literal notranslate"><span class="pre">11</span></code>, then <code class="docutils literal notranslate"><span class="pre">10</span></code> (Final verdict) out of order. Sections
+are renumbered here to run sequentially: <code class="docutils literal notranslate"><span class="pre">10</span></code> (this matrix, was <code class="docutils literal notranslate"><span class="pre">10a</span></code>), <code class="docutils literal notranslate"><span class="pre">11</span></code>
+(Case 1-5, unchanged number), <code class="docutils literal notranslate"><span class="pre">12</span></code> (new — Case 6-7, <code class="docutils literal notranslate"><span class="pre">from_env()</span></code>), <code class="docutils literal notranslate"><span class="pre">13</span></code>
+(Final verdict, was <code class="docutils literal notranslate"><span class="pre">10</span></code>).</p>
+<p>Every row is tagged with exactly one of <code class="docutils literal notranslate"><span class="pre">SOURCE_REACHABLE</span></code> (the code path
+exists and was read, but not exercised under hermetic test in this file),
+<code class="docutils literal notranslate"><span class="pre">BEHAVIOR_PROVEN_HERMETIC</span></code> (a test in <code class="docutils literal notranslate"><span class="pre">tests/test_pre_t1_d_real_capital_boundary.py</span></code>
+exercises this exact combination through the real call path), or
+<code class="docutils literal notranslate"><span class="pre">RUNTIME_UNKNOWN</span></code> (whether this combination occurs on the deployed VPS is
+not established by this audit and is out of scope).</p>
+<p>Each row is additionally marked <strong><code class="docutils literal notranslate"><span class="pre">INJECTED</span></code></strong> (state assigned directly on
+<code class="docutils literal notranslate"><span class="pre">ExecutionEngine</span></code> by the test — <code class="docutils literal notranslate"><span class="pre">PRODUCTION_FUNCTIONS_WITH_INJECTED_STATE</span></code>)
+or <strong><code class="docutils literal notranslate"><span class="pre">FROM_ENV</span></code></strong> (constructed by the real <code class="docutils literal notranslate"><span class="pre">ExecutionEngine.from_env()</span></code> —
+<code class="docutils literal notranslate"><span class="pre">REAL_FROM_ENV_PATH_PROVEN_HERMETIC</span></code>) so the construction path is never
+ambiguous. Rows 1/2 (R1.1 correction) are <code class="docutils literal notranslate"><span class="pre">LIVE_TRADING_CONFIRMED=false</span></code></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">_mode=&quot;live&quot;</span></code>-with-exchange-attached, a state <code class="docutils literal notranslate"><span class="pre">INJECTED</span></code> tests can
+produce but <code class="docutils literal notranslate"><span class="pre">from_env()</span></code> itself never does — see row 8/§12 Case 6 and row 9/§12
+Case 7 for what <code class="docutils literal notranslate"><span class="pre">from_env()</span></code> actually constructs in the two configurations
+that matter here.</p></li>
+</ul>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p><code class="docutils literal notranslate"><span class="pre">PAPER_TRADING_ENABLED</span></code></p></th>
+<th class="head"><p><code class="docutils literal notranslate"><span class="pre">EXCHANGE_MODE</span></code> (singleton seed)</p></th>
+<th class="head"><p><code class="docutils literal notranslate"><span class="pre">ExecutionEngine._mode</span></code></p></th>
+<th class="head"><p><code class="docutils literal notranslate"><span class="pre">LIVE_TRADING_CONFIRMED</span></code></p></th>
+<th class="head"><p>exchange present</p></th>
+<th class="head"><p>singleton effective <code class="docutils literal notranslate"><span class="pre">.mode</span></code></p></th>
+<th class="head"><p>final numeric provenance</p></th>
+<th class="head"><p>API call made</p></th>
+<th class="head"><p>real order blockable</p></th>
+<th class="head"><p>sizing/risk influence</p></th>
+<th class="head"><p>Construction</p></th>
+<th class="head"><p>Tag</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>true</p></td>
+<td><p>live</p></td>
+<td><p>live</p></td>
+<td><p>false</p></td>
+<td><p>yes</p></td>
+<td><p><strong>live</strong> (frozen)</p></td>
+<td><p>exchange balance</p></td>
+<td><p><strong>yes</strong></p></td>
+<td><p>blocked (<code class="docutils literal notranslate"><span class="pre">blocked_by_paper_gate</span></code>)</p></td>
+<td><p><strong>yes — API leaks into “paper” figure</strong></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">INJECTED</span></code> — not producible by <code class="docutils literal notranslate"><span class="pre">from_env()</span></code> with <code class="docutils literal notranslate"><span class="pre">LIVE_TRADING_CONFIRMED=false</span></code> (see row 9)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PRODUCTION_FUNCTIONS_WITH_INJECTED_STATE</span></code> (§11 Case 1)</p></td>
+</tr>
+<tr class="row-odd"><td><p>1/yes/on</p></td>
+<td><p>live</p></td>
+<td><p>live</p></td>
+<td><p>false</p></td>
+<td><p>yes</p></td>
+<td><p><strong>live</strong> (frozen)</p></td>
+<td><p>exchange balance</p></td>
+<td><p><strong>yes</strong></p></td>
+<td><p>blocked</p></td>
+<td><p><strong>yes</strong> (same as above, truthy-variant)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">INJECTED</span></code> (same caveat as row 1)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PRODUCTION_FUNCTIONS_WITH_INJECTED_STATE</span></code> (§11 Case 2)</p></td>
+</tr>
+<tr class="row-even"><td><p>false</p></td>
+<td><p>(unset → paper)</p></td>
+<td><p>live/testnet</p></td>
+<td><p>false</p></td>
+<td><p>yes</p></td>
+<td><p><strong>paper</strong> (frozen)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">WALLET_PAPER_CAPITAL</span></code> + ledger PnL</p></td>
+<td><p>no</p></td>
+<td><p>allowable (subject to other gates)</p></td>
+<td><p><strong>yes — paper capital feeds a live/testnet-requesting caller</strong></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">INJECTED</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PRODUCTION_FUNCTIONS_WITH_INJECTED_STATE</span></code> (§11 Case 3)</p></td>
+</tr>
+<tr class="row-odd"><td><p>false</p></td>
+<td><p>live</p></td>
+<td><p>live</p></td>
+<td><p>false</p></td>
+<td><p>no (raises)</p></td>
+<td><p>live</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">WALLET_PAPER_CAPITAL</span></code> (fallback, no cache/no <code class="docutils literal notranslate"><span class="pre">_x</span></code>)</p></td>
+<td><p>attempted, failed</p></td>
+<td><p>allowable</p></td>
+<td><p>possible, ambiguous (§4/§11 Case 4)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">INJECTED</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PRODUCTION_FUNCTIONS_WITH_INJECTED_STATE</span></code> (§11 Case 4)</p></td>
+</tr>
+<tr class="row-even"><td><p>true</p></td>
+<td><p>(unset → paper)</p></td>
+<td><p>—</p></td>
+<td><p>false</p></td>
+<td><p>yes (unused)</p></td>
+<td><p>paper</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">WALLET_PAPER_CAPITAL</span></code> + ledger PnL</p></td>
+<td><p>no</p></td>
+<td><p>blocked</p></td>
+<td><p>none (H1 holds in this row)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">INJECTED</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PRODUCTION_FUNCTIONS_WITH_INJECTED_STATE</span></code> (original round, Scenario A)</p></td>
+</tr>
+<tr class="row-odd"><td><p>false</p></td>
+<td><p>live</p></td>
+<td><p>live</p></td>
+<td><p>true</p></td>
+<td><p>yes</p></td>
+<td><p>live</p></td>
+<td><p>exchange balance (fresh/cached)</p></td>
+<td><p>yes</p></td>
+<td><p><strong>allowable — real order can reach the exchange</strong></p></td>
+<td><p>full — this is the intended live path</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">INJECTED</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PRODUCTION_FUNCTIONS_WITH_INJECTED_STATE</span></code> (original round, <code class="docutils literal notranslate"><span class="pre">TestFromEnv</span></code>, plus §2 live-fetch tests)</p></td>
+</tr>
+<tr class="row-even"><td><p>true</p></td>
+<td><p>live</p></td>
+<td><p>live</p></td>
+<td><p>true</p></td>
+<td><p>yes</p></td>
+<td><p><strong>live</strong> (frozen)</p></td>
+<td><p>exchange balance</p></td>
+<td><p>yes</p></td>
+<td><p>blocked (paper gate overrides <code class="docutils literal notranslate"><span class="pre">LIVE_TRADING_CONFIRMED</span></code>)</p></td>
+<td><p>yes (same leak as row 1; <code class="docutils literal notranslate"><span class="pre">LIVE_TRADING_CONFIRMED</span></code> does not change <code class="docutils literal notranslate"><span class="pre">fetch_available_capital()</span></code>’s outcome)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">FROM_ENV</span></code> — the real <code class="docutils literal notranslate"><span class="pre">ExecutionEngine.from_env()</span></code> classmethod, <code class="docutils literal notranslate"><span class="pre">ExchangeFactory.create</span></code> monkeypatched, no manual <code class="docutils literal notranslate"><span class="pre">_exchange</span></code>/<code class="docutils literal notranslate"><span class="pre">_mode</span></code> assignment</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">REAL_FROM_ENV_PATH_PROVEN_HERMETIC</span></code> + <code class="docutils literal notranslate"><span class="pre">SOURCE_REACHABLE_CONFIGURATION</span></code> (operator-incoherent: both PAPER_TRADING_ENABLED and LIVE_TRADING_CONFIRMED true) (§12 Case 6)</p></td>
+</tr>
+<tr class="row-odd"><td><p>true</p></td>
+<td><p>(unset → paper)</p></td>
+<td><p>paper (from_env <code class="docutils literal notranslate"><span class="pre">__init__</span></code> default; <code class="docutils literal notranslate"><span class="pre">_init_exchange()</span></code> never called)</p></td>
+<td><p>false</p></td>
+<td><p><strong>no — <code class="docutils literal notranslate"><span class="pre">_exchange=None</span></code>, <code class="docutils literal notranslate"><span class="pre">from_env()</span></code> never attaches one</strong></p></td>
+<td><p>paper</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">WALLET_PAPER_CAPITAL</span></code> + ledger PnL</p></td>
+<td><p>no</p></td>
+<td><p>n/a — <code class="docutils literal notranslate"><span class="pre">_place_live_order</span></code> would also block via the paper gate, but <code class="docutils literal notranslate"><span class="pre">create_order()</span></code>’s own <code class="docutils literal notranslate"><span class="pre">self._live</span></code> check already routes to the paper branch first</p></td>
+<td><p>none</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">FROM_ENV</span></code> — the real <code class="docutils literal notranslate"><span class="pre">ExecutionEngine.from_env()</span></code> classmethod; contrast to row 8</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">REAL_FROM_ENV_PATH_PROVEN_HERMETIC</span></code> (§12 Case 7)</p></td>
+</tr>
+<tr class="row-even"><td><p>— (any)</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+<td><p>— (whatever this VPS process’s actual boot order/env produced)</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">DEPLOYED_RUNTIME_UNKNOWN</span></code> for the deployed VPS in every row above — this matrix proves code-level reachability and hermetic behavior only, never which row is currently active in production (§9)</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<hr class="docutils" />
+<section id="case-1-5-results-r1-combined-causal-order-tests-production-functions-with-injected-state">
+<h2>11. Case 1-5 results (R1 combined causal-order tests) — <code class="docutils literal notranslate"><span class="pre">PRODUCTION_FUNCTIONS_WITH_INJECTED_STATE</span></code><a class="headerlink" href="#case-1-5-results-r1-combined-causal-order-tests-production-functions-with-injected-state" title="Link to this heading">¶</a></h2>
+<p>All cases below exercise the <strong>real production call chain</strong>
+(<code class="docutils literal notranslate"><span class="pre">bootstrap_capital_x()</span></code> → <code class="docutils literal notranslate"><span class="pre">ExecutionEngine.fetch_available_capital()</span></code> →
+<code class="docutils literal notranslate"><span class="pre">WalletSync.get_balance()</span></code>), not an isolated <code class="docutils literal notranslate"><span class="pre">WalletSync.get_balance()</span></code>
+call, per the mission’s requirement. This is a <strong>hermetic reproduction of
+the real causal order using the production functions</strong> (the actual
+<code class="docutils literal notranslate"><span class="pre">bootstrap_capital_x</span></code>, <code class="docutils literal notranslate"><span class="pre">get_wallet_sync</span></code>, <code class="docutils literal notranslate"><span class="pre">fetch_available_capital</span></code>
+functions are imported and called directly) — it is explicitly <strong>not</strong> a
+“full <code class="docutils literal notranslate"><span class="pre">advisor_loop</span></code> loop” test: the daemon’s main loop function itself is
+never instantiated or run. See Correction F.</p>
+<p><strong>R1.1 evidence-level correction:</strong> every case in this section constructs
+<code class="docutils literal notranslate"><span class="pre">ExecutionEngine</span></code> directly and assigns <code class="docutils literal notranslate"><span class="pre">_exchange</span></code>/<code class="docutils literal notranslate"><span class="pre">_mode</span></code> on it by hand
+(<code class="docutils literal notranslate"><span class="pre">eng</span> <span class="pre">=</span> <span class="pre">ExecutionEngine(live=False);</span> <span class="pre">eng._exchange</span> <span class="pre">=</span> <span class="pre">fake_exchange;</span> <span class="pre">eng._mode</span> <span class="pre">=</span> <span class="pre">&quot;live&quot;</span></code>) — this is <strong>not</strong> <code class="docutils literal notranslate"><span class="pre">ExecutionEngine.from_env()</span></code>. All
+findings below are therefore tagged <code class="docutils literal notranslate"><span class="pre">PRODUCTION_FUNCTIONS_WITH_INJECTED_STATE</span></code>:
+the <code class="docutils literal notranslate"><span class="pre">WalletSync</span></code> singleton, <code class="docutils literal notranslate"><span class="pre">get_wallet_sync()</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">fetch_available_capital()</span></code> are the real, unmodified production functions,
+and the causal order/mode-freezing mechanism they prove is real — but the
+<code class="docutils literal notranslate"><span class="pre">ExecutionEngine</span></code> state feeding into them was injected by the test, not
+produced by <code class="docutils literal notranslate"><span class="pre">from_env()</span></code>. In particular, Case 1/2’s
+<code class="docutils literal notranslate"><span class="pre">LIVE_TRADING_CONFIRMED=false</span></code> + <code class="docutils literal notranslate"><span class="pre">_mode=&quot;live&quot;</span></code>-with-exchange-attached
+combination is a state <code class="docutils literal notranslate"><span class="pre">from_env()</span></code> itself never produces (see the R1.1
+correction note above and §11a Case 7 for the actual <code class="docutils literal notranslate"><span class="pre">from_env()</span></code> behavior
+under <code class="docutils literal notranslate"><span class="pre">LIVE_TRADING_CONFIRMED=false</span></code>). Do not read any case below as a
+reproduction of <code class="docutils literal notranslate"><span class="pre">from_env()</span></code>’s own construction logic — for that, see §11a.</p>
+<ul class="simple">
+<li><p><strong>Case 1</strong> (<code class="docutils literal notranslate"><span class="pre">TestR1Case1LiveModeSingletonFreezesDespitePaperFlag</span></code>):
+<code class="docutils literal notranslate"><span class="pre">EXCHANGE_MODE=live</span></code>, <code class="docutils literal notranslate"><span class="pre">PAPER_TRADING_ENABLED=true</span></code>, fake exchange
+<code class="docutils literal notranslate"><span class="pre">free_usdt=13579.0</span></code>. Proven: <code class="docutils literal notranslate"><span class="pre">bootstrap_capital_x()</span></code> returns <code class="docutils literal notranslate"><span class="pre">13579.0</span></code>
+(1 exchange call); singleton <code class="docutils literal notranslate"><span class="pre">.mode</span> <span class="pre">==</span> <span class="pre">&quot;live&quot;</span></code>;
+<code class="docutils literal notranslate"><span class="pre">eng.fetch_available_capital()</span> <span class="pre">==</span> <span class="pre">13579.0</span></code> (1 additional exchange call,
+total 2) despite <code class="docutils literal notranslate"><span class="pre">PAPER_TRADING_ENABLED=true</span></code>; <code class="docutils literal notranslate"><span class="pre">_place_live_order</span></code> still
+returns <code class="docutils literal notranslate"><span class="pre">blocked_by_paper_gate</span></code> with 0 further exchange calls. <strong>API
+capital DOES enter the calculation while the execution gate stays
+active</strong> — the two guarantees are independent, as BLOCKER A requires
+this document to state explicitly.</p></li>
+<li><p><strong>Case 2</strong> (<code class="docutils literal notranslate"><span class="pre">TestR1Case2PaperTruthyVariantsDoNotChangeCase1Outcome</span></code>,
+parametrized <code class="docutils literal notranslate"><span class="pre">&quot;1&quot;</span></code>/<code class="docutils literal notranslate"><span class="pre">&quot;yes&quot;</span></code>/<code class="docutils literal notranslate"><span class="pre">&quot;on&quot;</span></code>): identical outcome to Case 1 for all
+three truthy spellings — <code class="docutils literal notranslate"><span class="pre">fetch_available_capital()</span> <span class="pre">==</span> <span class="pre">24680.0</span></code> (the
+Case-2 fixture’s fake balance) in every sub-case; confirms the leak is
+independent of which truthy string is used.</p></li>
+<li><p><strong>Case 3</strong> (<code class="docutils literal notranslate"><span class="pre">TestR1Case3PaperSingletonFreezesLiveTestnetRequest</span></code>,
+parametrized <code class="docutils literal notranslate"><span class="pre">&quot;live&quot;</span></code>/<code class="docutils literal notranslate"><span class="pre">&quot;testnet&quot;</span></code>): <code class="docutils literal notranslate"><span class="pre">EXCHANGE_MODE</span></code> unset (singleton
+starts <code class="docutils literal notranslate"><span class="pre">&quot;paper&quot;</span></code>), <code class="docutils literal notranslate"><span class="pre">PAPER_TRADING_ENABLED=false</span></code>, <code class="docutils literal notranslate"><span class="pre">ExecutionEngine._mode</span></code>
+set to <code class="docutils literal notranslate"><span class="pre">&quot;live&quot;</span></code>/<code class="docutils literal notranslate"><span class="pre">&quot;testnet&quot;</span></code>, fake exchange <code class="docutils literal notranslate"><span class="pre">free_usdt=99999.0</span></code>. Proven:
+singleton stays <code class="docutils literal notranslate"><span class="pre">&quot;paper&quot;</span></code>; <code class="docutils literal notranslate"><span class="pre">fetch_available_capital()</span> <span class="pre">==</span> <span class="pre">321.0</span></code>
+(<code class="docutils literal notranslate"><span class="pre">WALLET_PAPER_CAPITAL</span></code>, exactly the paper fixture value) for <strong>both</strong>
+<code class="docutils literal notranslate"><span class="pre">&quot;live&quot;</span></code> and <code class="docutils literal notranslate"><span class="pre">&quot;testnet&quot;</span></code> requests; exchange call count unchanged from
+before the request (0 additional calls) — the live/testnet request is
+silently ignored and paper capital is used despite a working, queryable
+API.</p></li>
+<li><p><strong>Case 4</strong> (<code class="docutils literal notranslate"><span class="pre">TestR1Case4LiveErrorNoCacheNoXRealPath</span></code>): singleton
+effective mode <code class="docutils literal notranslate"><span class="pre">&quot;live&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">PAPER_TRADING_ENABLED=false</span></code>, API raises, no
+cache, no successful bootstrap (<code class="docutils literal notranslate"><span class="pre">wallet.capital_x</span> <span class="pre">is</span> <span class="pre">None</span></code> asserted
+directly before the call). Through the real
+<code class="docutils literal notranslate"><span class="pre">ExecutionEngine.fetch_available_capital()</span></code> path:
+<code class="docutils literal notranslate"><span class="pre">capital</span> <span class="pre">==</span> <span class="pre">42.0</span></code> (<code class="docutils literal notranslate"><span class="pre">WALLET_PAPER_CAPITAL</span></code>), exactly 1 failed exchange
+call attempted.</p></li>
+<li><p><strong>Case 5</strong> (<code class="docutils literal notranslate"><span class="pre">TestR1Case5DistinguishableFallbackSources</span></code>, four
+sub-tests):</p>
+<ul>
+<li><p><strong>5a stale cache:</strong> returns the cached <code class="docutils literal notranslate"><span class="pre">777.0</span></code>, not <code class="docutils literal notranslate"><span class="pre">_x</span></code> (<code class="docutils literal notranslate"><span class="pre">500.0</span></code>,
+deliberately also set) or paper (<code class="docutils literal notranslate"><span class="pre">42.0</span></code>) — exchange called exactly
+once total (cache hit skips the second call).</p></li>
+<li><p><strong>5b bootstrap-seeded <code class="docutils literal notranslate"><span class="pre">_last_value</span></code>:</strong> returns <code class="docutils literal notranslate"><span class="pre">300.0</span></code> (the
+X-bootstrap value, replayed via <code class="docutils literal notranslate"><span class="pre">_last_value</span></code>, <strong>not</strong> via
+<code class="docutils literal notranslate"><span class="pre">_base_capital()</span></code>’s <code class="docutils literal notranslate"><span class="pre">_x</span></code> branch — see the §4 R1.2 correction) rather
+than <code class="docutils literal notranslate"><span class="pre">42.0</span></code> (paper). A successful <code class="docutils literal notranslate"><span class="pre">bootstrap()</span></code> seeds <code class="docutils literal notranslate"><span class="pre">_last_value</span> <span class="pre">=</span> <span class="pre">_x</span></code> in the same call, so <code class="docutils literal notranslate"><span class="pre">_fallback()</span></code> returns <code class="docutils literal notranslate"><span class="pre">_last_value</span></code> directly;
+<code class="docutils literal notranslate"><span class="pre">_base_capital()</span></code> is proven, via a call-count spy, to be invoked zero
+times in this case.</p></li>
+<li><p><strong>5c/5d zero balance vs. API error:</strong> both return the identical
+<code class="docutils literal notranslate"><span class="pre">42.0</span></code> via the identical <code class="docutils literal notranslate"><span class="pre">_fallback()</span></code> call — proven <strong>not</strong>
+distinguishable from the return value alone, stated as an explicit
+finding (§4 R1 refinement), not conflated as “the same thing” without
+proof: both source exchanges are asserted to have been called exactly
+once, confirming the <em>only</em> observable difference is upstream of
+<code class="docutils literal notranslate"><span class="pre">get_balance()</span></code>’s return type.</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="case-6-7-results-r1-1-real-executionengine-from-env-tests-real-from-env-path-proven-hermetic">
+<h2>12. Case 6-7 results (R1.1 real <code class="docutils literal notranslate"><span class="pre">ExecutionEngine.from_env()</span></code> tests) — <code class="docutils literal notranslate"><span class="pre">REAL_FROM_ENV_PATH_PROVEN_HERMETIC</span></code><a class="headerlink" href="#case-6-7-results-r1-1-real-executionengine-from-env-tests-real-from-env-path-proven-hermetic" title="Link to this heading">¶</a></h2>
+<p>Both cases below call the actual <code class="docutils literal notranslate"><span class="pre">ExecutionEngine.from_env()</span></code> classmethod —
+no <code class="docutils literal notranslate"><span class="pre">ExecutionEngine(live=...)</span></code> direct construction, no manual <code class="docutils literal notranslate"><span class="pre">_exchange</span></code>/
+<code class="docutils literal notranslate"><span class="pre">_mode</span></code> assignment. <code class="docutils literal notranslate"><span class="pre">infra.exchange_factory.ExchangeFactory.create</span></code> is
+monkeypatched to return a fake exchange (no network, no <code class="docutils literal notranslate"><span class="pre">ccxt</span></code> import
+required); <code class="docutils literal notranslate"><span class="pre">ExchangeFactory.info()</span></code>/<code class="docutils literal notranslate"><span class="pre">detect_mode()</span></code> run unmodified against
+real (fake-valued) env vars, so <code class="docutils literal notranslate"><span class="pre">from_env()</span></code>’s own live/paper decision logic
+executes for real.</p>
+<ul class="simple">
+<li><p><strong>Case 6</strong> (<code class="docutils literal notranslate"><span class="pre">TestR1_1Case6FromEnvRealConstructionLiveConfirmedPaperEnabled</span></code>):
+fake <code class="docutils literal notranslate"><span class="pre">MEXC_API_KEY</span></code>/<code class="docutils literal notranslate"><span class="pre">MEXC_API_SECRET</span></code> present, <code class="docutils literal notranslate"><span class="pre">EXCHANGE_TESTNET</span></code> unset
+(→ <code class="docutils literal notranslate"><span class="pre">detect_mode()==&quot;live&quot;</span></code>), <code class="docutils literal notranslate"><span class="pre">LIVE_TRADING_CONFIRMED=true</span></code>,
+<code class="docutils literal notranslate"><span class="pre">PAPER_TRADING_ENABLED=true</span></code>, <code class="docutils literal notranslate"><span class="pre">EXCHANGE_MODE=live</span></code> (WalletSync singleton
+seed), fake exchange <code class="docutils literal notranslate"><span class="pre">free_usdt=55555.0</span></code>. Proven, through
+<code class="docutils literal notranslate"><span class="pre">ExecutionEngine.from_env()</span></code> itself:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">eng._live</span> <span class="pre">is</span> <span class="pre">True</span></code>, <code class="docutils literal notranslate"><span class="pre">eng._exchange</span> <span class="pre">is</span> <span class="pre">fake_exchange</span></code>, <code class="docutils literal notranslate"><span class="pre">eng._mode</span> <span class="pre">==</span> <span class="pre">&quot;live&quot;</span></code> — <code class="docutils literal notranslate"><span class="pre">from_env()</span></code> genuinely attached a live exchange (it called
+<code class="docutils literal notranslate"><span class="pre">_init_exchange()</span></code> → <code class="docutils literal notranslate"><span class="pre">ExchangeFactory.create()</span></code>, the monkeypatched
+fake).</p></li>
+<li><p>After <code class="docutils literal notranslate"><span class="pre">bootstrap_capital_x(exchange=eng._exchange)</span></code> (1 exchange call):
+the <code class="docutils literal notranslate"><span class="pre">WalletSync</span></code> singleton is created with <code class="docutils literal notranslate"><span class="pre">.mode</span> <span class="pre">==</span> <span class="pre">&quot;live&quot;</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">eng.fetch_available_capital()</span> <span class="pre">==</span> <span class="pre">55555.0</span></code> (1 further exchange call,
+total 2) despite <code class="docutils literal notranslate"><span class="pre">PAPER_TRADING_ENABLED=true</span></code> — the API balance is
+returned to a caller requesting “paper” wallet_mode, exactly as §3/§11
+Case 1 describe, but this time proven through the real construction
+path rather than injected <code class="docutils literal notranslate"><span class="pre">_mode</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">eng._place_live_order(...)</span></code> still returns <code class="docutils literal notranslate"><span class="pre">blocked_by_paper_gate</span></code>,
+with <strong>zero additional exchange calls</strong> (call count stays at 2) —
+distinguishing the balance-read calls (2, both before the order
+attempt) from the order-attempt calls (0), confirming the order never
+reaches <code class="docutils literal notranslate"><span class="pre">fetch_ticker</span></code>/<code class="docutils literal notranslate"><span class="pre">fetch_balance</span></code>/<code class="docutils literal notranslate"><span class="pre">create_order</span></code>.</p></li>
+<li><p>This proves a <code class="docutils literal notranslate"><span class="pre">SOURCE_REACHABLE_CONFIGURATION</span></code>
+(<code class="docutils literal notranslate"><span class="pre">PAPER_TRADING_ENABLED=true</span></code> AND <code class="docutils literal notranslate"><span class="pre">LIVE_TRADING_CONFIRMED=true</span></code>
+simultaneously — operator-incoherent, since PAPER and LIVE-CONFIRMED
+are not meant to both be asserted) is not merely theoretically
+reachable by source inspection but is <strong>exercised end-to-end through
+<code class="docutils literal notranslate"><span class="pre">from_env()</span></code></strong> and reproduces the same API-leak-into-PAPER effect as
+§11 Case 1, this time without any test-injected engine state.</p></li>
+</ul>
+</li>
+<li><p><strong>Case 7</strong> (<code class="docutils literal notranslate"><span class="pre">TestR1_1Case7FromEnvRealConstructionConfirmedFalseContrast</span></code>):
+same fake API keys present, <code class="docutils literal notranslate"><span class="pre">LIVE_TRADING_CONFIRMED</span></code> unset (default
+<code class="docutils literal notranslate"><span class="pre">&quot;false&quot;</span></code>), <code class="docutils literal notranslate"><span class="pre">PAPER_TRADING_ENABLED=true</span></code>, <code class="docutils literal notranslate"><span class="pre">EXCHANGE_MODE</span></code> unset. Proven:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">eng._live</span> <span class="pre">is</span> <span class="pre">False</span></code>, <code class="docutils literal notranslate"><span class="pre">eng._exchange</span> <span class="pre">is</span> <span class="pre">None</span></code>, <code class="docutils literal notranslate"><span class="pre">eng._mode</span> <span class="pre">==</span> <span class="pre">&quot;paper&quot;</span></code>
+(the <code class="docutils literal notranslate"><span class="pre">__init__</span></code> default — never overwritten, because <code class="docutils literal notranslate"><span class="pre">_init_exchange()</span></code>
+is only called when <code class="docutils literal notranslate"><span class="pre">live=True</span></code>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ExchangeFactory.create()</span></code> is <strong>never invoked</strong> (<code class="docutils literal notranslate"><span class="pre">create_calls[&quot;n&quot;]</span> <span class="pre">==</span> <span class="pre">0</span></code>, tracked directly) — <code class="docutils literal notranslate"><span class="pre">from_env()</span></code>’s own three-way AND short-circuits
+before any exchange construction is attempted.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">eng.fetch_available_capital()</span> <span class="pre">==</span> <span class="pre">1000.0</span></code> (<code class="docutils literal notranslate"><span class="pre">WALLET_PAPER_CAPITAL</span></code>
+fixture value), the fake exchange’s <code class="docutils literal notranslate"><span class="pre">.calls</span> <span class="pre">==</span> <span class="pre">0</span></code> throughout, and the
+<code class="docutils literal notranslate"><span class="pre">WalletSync</span></code> singleton ends up in <code class="docutils literal notranslate"><span class="pre">&quot;paper&quot;</span></code> mode.</p></li>
+<li><p>This is the honest, hermetically-proven answer to BLOCKER A’s required
+contrast: with <code class="docutils literal notranslate"><span class="pre">LIVE_TRADING_CONFIRMED=false</span></code>, the real <code class="docutils literal notranslate"><span class="pre">from_env()</span></code>
+path does <strong>not</strong> attach a live exchange at all — it falls back to the
+<code class="docutils literal notranslate"><span class="pre">__init__</span></code>-default paper state, not to some intermediate testnet state.
+§11 Case 1’s <code class="docutils literal notranslate"><span class="pre">LIVE_TRADING_CONFIRMED=false</span></code> + attached-exchange
+combination (the mismatch this round corrects) simply cannot arise from
+<code class="docutils literal notranslate"><span class="pre">from_env()</span></code>.</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="final-verdict">
+<h2>13. Final verdict<a class="headerlink" href="#final-verdict" title="Link to this heading">¶</a></h2>
+<p>Per the mission’s own decision rule: <em>“If an API balance can influence
+PAPER, or if paper capital can silently feed live/testnet sizing, the
+verdict CANNOT be <code class="docutils literal notranslate"><span class="pre">BOUNDARY_PROVEN_SAFE</span></code>.”</em></p>
+<p><strong>R1-corrected basis</strong> (the original round’s “H1 globally proven safe”
+language is removed and replaced by the following six enumerated points):</p>
+<ol class="arabic simple">
+<li><p><strong>Singleton mode frozen at first call</strong> (§3): <code class="docutils literal notranslate"><span class="pre">get_wallet_sync()</span></code>
+resolves <code class="docutils literal notranslate"><span class="pre">.mode</span></code> only once, at first construction, from <code class="docutils literal notranslate"><span class="pre">EXCHANGE_MODE</span></code>
+(default <code class="docutils literal notranslate"><span class="pre">&quot;paper&quot;</span></code>) — <code class="docutils literal notranslate"><span class="pre">SOURCE_PROVEN</span></code> + <code class="docutils literal notranslate"><span class="pre">BEHAVIOR_PROVEN_HERMETIC</span></code>.</p></li>
+<li><p><strong>Later mode requests silently ignored</strong> (§3): any subsequent
+<code class="docutils literal notranslate"><span class="pre">get_wallet_sync(mode=...)</span></code> call’s <code class="docutils literal notranslate"><span class="pre">mode</span></code> argument is a no-op once the
+singleton exists — <code class="docutils literal notranslate"><span class="pre">SOURCE_PROVEN</span></code> + <code class="docutils literal notranslate"><span class="pre">BEHAVIOR_PROVEN_HERMETIC</span></code>.</p></li>
+<li><p><strong>Possible API influence on PAPER-labeled calculations</strong> (§3a direction
+1, §11 Case 1/2, and — through the real <code class="docutils literal notranslate"><span class="pre">ExecutionEngine.from_env()</span></code>
+construction path, no injected state — §12 Case 6): when the singleton
+is frozen <code class="docutils literal notranslate"><span class="pre">live</span></code>/<code class="docutils literal notranslate"><span class="pre">testnet</span></code> before a <code class="docutils literal notranslate"><span class="pre">PAPER_TRADING_ENABLED=true</span></code> request,
+the real exchange balance is returned to that caller —
+<code class="docutils literal notranslate"><span class="pre">PRODUCTION_FUNCTIONS_WITH_INJECTED_STATE</span></code> (§11) and, independently,
+<code class="docutils literal notranslate"><span class="pre">REAL_FROM_ENV_PATH_PROVEN_HERMETIC</span></code> (§12 Case 6).</p></li>
+<li><p><strong>Possible paper-capital influence on LIVE/TESTNET calculations</strong> (§3a
+direction 2, §11 Case 3, and the original round’s H4/H6): when the
+singleton is frozen <code class="docutils literal notranslate"><span class="pre">paper</span></code> before a <code class="docutils literal notranslate"><span class="pre">live</span></code>/<code class="docutils literal notranslate"><span class="pre">testnet</span></code>-requesting caller,
+<code class="docutils literal notranslate"><span class="pre">WALLET_PAPER_CAPITAL</span></code> is returned instead — <code class="docutils literal notranslate"><span class="pre">BEHAVIOR_PROVEN_HERMETIC</span></code>.</p></li>
+<li><p><strong>Ambiguous API fallback between error / zero / cache-or-bootstrap
+replay (<code class="docutils literal notranslate"><span class="pre">_last_value</span></code>) / paper capital</strong> (§4, §11 Case 4/5): error,
+no-cache/no-bootstrap returns paper capital (Case 4); zero balance and
+API error are not distinguishable from the return value (Case 5c/5d);
+a fresh-fetch cache hit and a bootstrap-seeded <code class="docutils literal notranslate"><span class="pre">_last_value</span></code> replay are
+each individually distinguishable and proven so (Case 5a/5b) — the
+latter proven, via a <code class="docutils literal notranslate"><span class="pre">_base_capital()</span></code> call-count spy, to never reach
+the <code class="docutils literal notranslate"><span class="pre">_x</span></code> branch of <code class="docutils literal notranslate"><span class="pre">_base_capital()</span></code> — <code class="docutils literal notranslate"><span class="pre">BEHAVIOR_PROVEN_HERMETIC</span></code>
+throughout.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">order_size</span></code> not recomputed after refresh</strong> (§5/H5): <code class="docutils literal notranslate"><span class="pre">SOURCE_PROVEN</span></code>
+by grep (<code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code>’s sole <code class="docutils literal notranslate"><span class="pre">order_size</span> <span class="pre">=</span></code> assignment, line
+4046, never reassigned) — no evidence found of any later recomputation;
+this audit did not find proof otherwise.</p></li>
+</ol>
+<p><strong>Corrected conclusion replacing the original H1 statement:</strong>
+<code class="docutils literal notranslate"><span class="pre">PAPER_ISOLATION_CONDITIONAL_ON_EFFECTIVE_SINGLETON_MODE</span></code> — PAPER-mode
+calculations are isolated from the exchange API <strong>only when the singleton’s
+effective mode is actually <code class="docutils literal notranslate"><span class="pre">&quot;paper&quot;</span></code></strong> at the time <code class="docutils literal notranslate"><span class="pre">get_balance()</span></code> is
+called. <code class="docutils literal notranslate"><span class="pre">PAPER_TRADING_ENABLED=true</span></code> does <strong>not</strong>, by itself, guarantee this
+— it guarantees only that a real <em>order</em> cannot reach the network (point 2
+of BLOCKER A’s four-way distinction), which is a narrower and different
+guarantee than “the capital figure was never touched by the API” (point 1).
+In the process’s actual default boot configuration (<code class="docutils literal notranslate"><span class="pre">EXCHANGE_MODE</span></code> unset →
+<code class="docutils literal notranslate"><span class="pre">&quot;paper&quot;</span></code>), the two happen to coincide, which is why this had not manifested
+as an externally visible defect — but that coincidence is a property of the
+default configuration, not a property the code enforces.</p>
+<p><strong>VERDICT: REMEDIATION_REQUIRED</strong> (unchanged from the original round’s
+top-level verdict; only its documented basis is corrected above).</p>
+<p>This does not mean the current behavior is unauthorized or accidental —
+§9c of <code class="docutils literal notranslate"><span class="pre">docs/contracts/O-02W-E_TELEGRAM_OBSERVATION_BOUNDARY.md</span></code> already
+identifies the H4/paper→live direction and explicitly defers its resolution
+to “a dedicated boundary hardening mission,” which this document is a
+prerequisite audit for, not a substitute for. The remediation this verdict
+calls for is an explicit MASTER/operator decision on: (a) whether the
+live/testnet fallback-to-paper-capital behavior (point 4/5 above) is
+acceptable as-is or must be hardened (e.g. a distinct <code class="docutils literal notranslate"><span class="pre">UNKNOWN</span></code>/<code class="docutils literal notranslate"><span class="pre">DEGRADED</span></code>
+numeric sentinel instead of a silent substitution), and (b) whether
+<code class="docutils literal notranslate"><span class="pre">get_wallet_sync()</span></code>’s mode-freezing-at-first-call behavior (points 1-3
+above) should instead raise/log loudly on a divergent later <code class="docutils literal notranslate"><span class="pre">mode=</span></code> request,
+or be resolved by ensuring <code class="docutils literal notranslate"><span class="pre">bootstrap_capital_x()</span></code> and
+<code class="docutils literal notranslate"><span class="pre">fetch_available_capital()</span></code> are guaranteed to agree on mode before either
+ever runs — precisely the decision this mission’s brief anticipated and
+explicitly prohibited this audit from making unilaterally (“No change to
+strategy/risk/sizing/portfolio/execution logic”).</p>
+<p><strong>Runtime honesty note (Correction F):</strong> the actual VPS runtime
+environment-variable configuration (whether <code class="docutils literal notranslate"><span class="pre">EXCHANGE_MODE</span></code> is ever set,
+and to what) remains <code class="docutils literal notranslate"><span class="pre">DEPLOYED_RUNTIME_UNKNOWN</span></code> — this audit, across all
+three rounds, characterizes code behavior under hermetic test, never
+deployed state.</p>
+<p><strong>R1.1 addendum — BLOCKER A resolved, verdict unchanged:</strong> §12 Cases 6-7
+close the gap this round was opened to close: point 3 above is now proven
+both with injected engine state (§11) and through the real
+<code class="docutils literal notranslate"><span class="pre">ExecutionEngine.from_env()</span></code> construction path (§12 Case 6), and §12 Case 7
+proves the honest contrast — with <code class="docutils literal notranslate"><span class="pre">LIVE_TRADING_CONFIRMED=false</span></code>,
+<code class="docutils literal notranslate"><span class="pre">from_env()</span></code> never attaches a live exchange at all, so the mismatched
+<code class="docutils literal notranslate"><span class="pre">LIVE_TRADING_CONFIRMED=false</span></code> + attached-exchange state R1’s Case 1
+originally implied never actually arises in production construction. This
+strengthens, but does not change, the verdict below: <code class="docutils literal notranslate"><span class="pre">frozen</span> <span class="pre">order_size</span></code>,
+the intentionally-pinned P10 <code class="docutils literal notranslate"><span class="pre">CapitalThrottle</span></code> (§6), <code class="docutils literal notranslate"><span class="pre">RealAccountsObserver</span></code>’s
+display-only status (§7), and the absence of VPS runtime proof (§9) are all
+unchanged and unaffected by this round’s correction.</p>
+<p><strong>VERDICT (unchanged): <code class="docutils literal notranslate"><span class="pre">REMEDIATION_REQUIRED</span></code>.</strong></p>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Crypto AI Terminal
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">O-02W-PRE-T1-D — Real Capital Boundary Audit</a><ul>
+<li><a class="reference internal" href="#causal-graph-of-capital-provenance">1. Causal graph of capital provenance</a></li>
+<li><a class="reference internal" href="#paper-testnet-real-api-unknown-matrix">2. PAPER / TESTNET / REAL_API / UNKNOWN matrix</a></li>
+<li><a class="reference internal" href="#walletsync-initialization-order-h2">3. WalletSync initialization order (H2)</a></li>
+<li><a class="reference internal" href="#a-h2-reclassification-correction-d-not-a-display-bug-a-branch-selection-bug">3a. H2 reclassification (Correction D) — not a display bug, a branch-selection bug</a></li>
+<li><a class="reference internal" href="#h4-api-mode-fallback-chain-value-origin-vs-internal-storage-vs-branch-executed">4. H4 — API-mode fallback chain (value origin vs. internal storage vs. branch executed)</a></li>
+<li><a class="reference internal" href="#h5-initial-behavior-vs-refresh-behavior">5. H5 — Initial behavior vs. refresh behavior</a></li>
+<li><a class="reference internal" href="#h6-capitalthrottle-pinned-to-wallet-paper-capital">6. H6 — CapitalThrottle pinned to <code class="docutils literal notranslate"><span class="pre">WALLET_PAPER_CAPITAL</span></code></a></li>
+<li><a class="reference internal" href="#every-consumer-and-its-classification">7. Every consumer and its classification</a></li>
+<li><a class="reference internal" href="#contradictions-between-comments-and-actual-behavior">8. Contradictions between comments and actual behavior</a></li>
+<li><a class="reference internal" href="#runtime-proof-limits-what-could-not-be-established-hermetically">9. Runtime proof limits (what could NOT be established hermetically)</a></li>
+<li><a class="reference internal" href="#mode-combination-matrix-correction-c">10. Mode-combination matrix (Correction C)</a></li>
+<li><a class="reference internal" href="#case-1-5-results-r1-combined-causal-order-tests-production-functions-with-injected-state">11. Case 1-5 results (R1 combined causal-order tests) — <code class="docutils literal notranslate"><span class="pre">PRODUCTION_FUNCTIONS_WITH_INJECTED_STATE</span></code></a></li>
+<li><a class="reference internal" href="#case-6-7-results-r1-1-real-executionengine-from-env-tests-real-from-env-path-proven-hermetic">12. Case 6-7 results (R1.1 real <code class="docutils literal notranslate"><span class="pre">ExecutionEngine.from_env()</span></code> tests) — <code class="docutils literal notranslate"><span class="pre">REAL_FROM_ENV_PATH_PROVEN_HERMETIC</span></code></a></li>
+<li><a class="reference internal" href="#final-verdict">13. Final verdict</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../_static/documentation_options.js?v=ef6a59ae"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/scripts/furo.js?v=5fa4622c"></script>
+    </body>
+</html>
