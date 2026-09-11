@@ -67,7 +67,9 @@ def main() -> None:
         print("  " + "-" * 75)
         for i, t in enumerate(reversed(closed[-10:]), 1):
             pnl_s = f"{(t.pnl_pct or 0)*100:+.2f}%" if t.pnl_pct is not None else "  ?"
-            wl = "WIN" if t.is_win else "LOSS"
+            # REM-C R1.1 — t.is_win is None for genuinely unknown outcomes
+            # (e.g. expired_on_restore); must never render as LOSS.
+            wl = "N/A" if t.is_win is None else ("WIN" if t.is_win else "LOSS")
             ep = f"{t.entry_price:.2f}" if t.entry_price else "?"
             xp = f"{t.exit_price:.2f}" if t.exit_price else "?"
             row = (

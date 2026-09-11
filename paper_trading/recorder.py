@@ -315,7 +315,7 @@ class PaperTradeRecorder:
     def record_close(
         self,
         trade_id: str,
-        exit_price: float,
+        exit_price: Optional[float],
         pnl_usd: Optional[float],
         pnl_pct: Optional[float],
         reason: str = "",
@@ -329,6 +329,13 @@ class PaperTradeRecorder:
         score: int = 0,
         regime: str = "unknown",
     ) -> None:
+        # REM-C R1.1 — `exit_price=None` means the exit price is genuinely
+        # unknown (e.g. a downtime-window expiry — see MexcSimulator._
+        # restore_positions()). `TradeEvent.price` is a required legacy
+        # field with no consumer reading it for CLOSE events (only
+        # `.exit_price` is read for exit info — see `trades()` below); 0.0
+        # here is a placeholder for that unread field, never presented as
+        # a known exit price.
         now = time.time()
         duration = (now - opened_at) if opened_at else None
         evt = TradeEvent(
@@ -338,7 +345,7 @@ class PaperTradeRecorder:
             ts_iso=_iso(now),
             symbol=symbol,
             side=side,
-            price=exit_price,
+            price=exit_price if exit_price is not None else 0.0,
             size_usd=size_usd,
             mode=mode,
             schema_version=SCHEMA_VERSION,
@@ -435,7 +442,11 @@ class PaperTradeRecorder:
                 ct.closed_iso = cl.ts_iso
                 ct.duration_s = cl.duration_s
                 ct.is_open = False
-                ct.is_win = (cl.pnl_usd or 0) > 0
+                # REM-C R1.1 — pnl_usd=None (genuinely unknown, e.g. an
+                # `expired_on_restore` close) must stay is_win=None, never
+                # coerced into a LOSS. A real, known pnl_usd=0.0 is a real
+                # non-win and correctly stays is_win=False.
+                ct.is_win = None if cl.pnl_usd is None else (cl.pnl_usd > 0)
                 ct.mae_pct = cl.mae_pct
                 ct.mfe_pct = cl.mfe_pct
             result.append(ct)
@@ -463,7 +474,7 @@ class PaperTradeRecorder:
                     closed_iso=cl.ts_iso,
                     duration_s=cl.duration_s,
                     is_open=False,
-                    is_win=(cl.pnl_usd or 0) > 0,
+                    is_win=None if cl.pnl_usd is None else (cl.pnl_usd > 0),
                     mae_pct=cl.mae_pct,
                     mfe_pct=cl.mfe_pct,
                 )

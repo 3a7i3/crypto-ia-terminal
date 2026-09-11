@@ -49,6 +49,13 @@ class ReconcileReport:
     pm_domain: str = ExecutionDomain.UNKNOWN.value
     expected_domain: str = ExecutionDomain.REAL.value
     unresolved_domain_positions: list = field(default_factory=list)
+    # REM-C R1.1 — `performed=False` means no comparison was attempted at
+    # all (currently only the rate-limit skip path below). Distinct from
+    # `comparable=False`, where a comparison WAS attempted and concluded
+    # the domains/accounts are incompatible. Neither state may ever read
+    # as CLEAN — a report for an operation that did not run is not
+    # evidence of a clean system.
+    performed: bool = True
 
     @property
     def has_drift(self) -> bool:
@@ -61,9 +68,16 @@ class ReconcileReport:
 
     @property
     def is_clean(self) -> bool:
-        return self.comparable and self.exchange_reachable and not self.has_drift
+        return (
+            self.performed
+            and self.comparable
+            and self.exchange_reachable
+            and not self.has_drift
+        )
 
     def summary(self) -> str:
+        if not self.performed:
+            return f"NOT_PERFORMED ({self.error or 'skipped'})"
         if not self.comparable:
             return (
                 f"NON_COMPARABLE (pm_domain={self.pm_domain} "
@@ -123,7 +137,7 @@ class PositionReconciler:
         ghost/orphan n'est calculée, jamais de faux positif fabriqué.
         """
         if not force and not self.should_reconcile():
-            return ReconcileReport(error="skipped — too soon")
+            return ReconcileReport(error="skipped — too soon", performed=False)
 
         pm_domain = getattr(self._pm, "domain", ExecutionDomain.UNKNOWN)
         report = ReconcileReport(
@@ -137,6 +151,27 @@ class PositionReconciler:
             report.error = (
                 f"non-comparable execution domains: pos_manager={report.pm_domain} "
                 f"expected={report.expected_domain}"
+            )
+            _log.warning("[Reconciler] %s", report.error)
+            return report
+
+        # REM-C R1.1 — same domain LABEL is not proof of same account or
+        # exchange connection: two distinct PositionManager/exchange pairs
+        # can both legitimately be labeled REAL. The smallest safe proof
+        # available in this architecture is object identity of the
+        # exchange handle itself — `pos_manager._exchange` (the connection
+        # it was constructed with and reports positions against) must be
+        # THIS reconciler's own `exchange_futures` handle. No new account
+        # identifier is invented; if pos_manager exposes no `_exchange`
+        # attribute at all, identity cannot be proven and this fails
+        # closed exactly like an unproven domain.
+        pm_exchange = getattr(self._pm, "_exchange", None)
+        if pm_exchange is not self._exchange:
+            report.comparable = False
+            report.error = (
+                f"domain matches ({report.pm_domain}) but exchange/account "
+                "identity is unproven — pos_manager's exchange handle is not "
+                "this reconciler's exchange_futures handle"
             )
             _log.warning("[Reconciler] %s", report.error)
             return report

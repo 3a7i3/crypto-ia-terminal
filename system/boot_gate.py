@@ -45,6 +45,10 @@ class BootGateReport:
     expired_orders: list = field(default_factory=list)
     unknown_orders: list = field(default_factory=list)
     exchange_reachable: bool = True
+    # REM-C R1.1 — surfaces PositionReconciler's own comparability verdict
+    # (ExecutionDomain/exchange-identity proof) so `check()` can fail
+    # closed on it explicitly, not just on non-empty ghost/orphan lists.
+    position_reconcile_comparable: bool = True
 
     def summary(self) -> str:
         if self.cleared:
@@ -114,6 +118,9 @@ class BootGate:
             report.ghost_positions = pos_report.ghost_positions
             report.orphan_positions = pos_report.orphan_positions
             report.position_reconcile_clean = pos_report.is_clean
+            report.position_reconcile_comparable = getattr(
+                pos_report, "comparable", True
+            )
 
         except Exception as exc:
             report.exchange_reachable = False
@@ -149,7 +156,25 @@ class BootGate:
             or report.unknown_orders
         )
 
-        if has_drift:
+        # REM-C R1.1 — a non-comparable position reconciliation (unproven
+        # execution domain or exchange/account identity — see
+        # PositionReconciler) previously slipped through here: it reports
+        # empty ghost/orphan lists BY DESIGN (never a fabricated finding),
+        # so `has_drift` alone was blind to it and the gate could clear on
+        # a reconciliation that was never actually performed. Position
+        # reconciliation must be BOTH comparable AND clean to count as
+        # satisfied; anything else fails closed exactly like a real
+        # ghost/orphan finding would.
+        if not report.position_reconcile_comparable:
+            report.reason = (
+                f"Position reconcile non-comparable (domain/account identity "
+                f"unproven): {pos_report.error or pos_report.summary()}"
+            )
+            _log.critical("[BootGate] BLOQUÉ — %s", report.reason)
+        elif not report.position_reconcile_clean:
+            report.reason = f"Position reconcile not clean: {pos_report.summary()}"
+            _log.critical("[BootGate] BLOQUÉ — %s", report.reason)
+        elif has_drift:
             report.reason = f"Anomalies détectées: {report.summary()}"
             _log.critical("[BootGate] BLOQUÉ — %s", report.reason)
         else:

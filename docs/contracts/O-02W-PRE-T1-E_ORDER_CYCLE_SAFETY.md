@@ -840,14 +840,68 @@ full crash-window/partial-fill recovery (B8, still only restart-idempotent
 per REM-B); durable pre-execution decision persistence beyond what R1.1
 already added. These are REM-C R2/R3/R4 scope.
 
-**Updated verdict: still `REMEDIATION_REQUIRED`.** REM-C R1 closes the
-execution-domain provenance gap and the reconciler API mismatch (now
-domain-gated, never fabricating cross-domain findings), and closes the
-PAPER-restart PnL/TP/SL/fee fabrication defects R0.1 found (now explicit
-`None`/flagged-reconstruction instead of silent zero/default). It does not
+**R0 verdict (superseded below by R1.1): still `REMEDIATION_REQUIRED`.**
+REM-C R1 closed the execution-domain provenance gap and the reconciler API
+mismatch (now domain-gated, never fabricating cross-domain findings), and
+closed the PAPER-restart PnL/TP/SL/fee fabrication defects R0.1 found (now
+explicit `None`/flagged-reconstruction instead of silent zero/default). It
+did not implement the fill-evidence chain, did not certify real exchange
+reconciliation, and did not enable live or testnet trading in any way. No
+real order, testnet call, exchange call, VPS access, secret access, or
+deployment occurred in that round.
+
+### 23.6 REM-C R1.1 — MASTER correction round (2026-09-11)
+
+**Addendum to §23.1-23.5, not a rewrite.** MASTER review of R1 (PR #139,
+head `027cb0c71ce291209794ba929bff729ab71876c0`) found R1's own
+implementation of this contract's stated intent was itself incomplete in
+five places. Full technical detail in ADR-0021's "R1.1 — MASTER correction
+round" addendum; summarized here:
+
+| Finding | R1 defect | R1.1 correction |
+|---|---|---|
+| A | `PositionManager(exchange=X)` inferred `domain=REAL` merely because `X is not None` — false, since the only production caller (`core/advisor_loop.py` via `_get_exchange_futures()`) can pass a TESTNET-mode krakenfutures handle exactly as easily as a REAL one. | Inference removed entirely (`exchange is not None` no longer implies anything). New `core/advisor_loop.py::_futures_position_domain()` derives the proven domain from `exec_engine._mode` and passes it explicitly via `domain=`. |
+| B | `PositionReconciler` authorized comparison on domain-LABEL equality alone — two distinct REAL-labeled `PositionManager`/exchange pairs could pass. | Added an exchange-identity check (`pos_manager._exchange is <reconciler's own exchange_futures>`) after the domain check; mismatch or unprovable identity fails closed exactly like a domain mismatch. |
+| C | Expired-on-restore PAPER positions still wrote `exit_price=trade.entry_price` (R1 had already fixed `pnl_usd`/`pnl_pct` to `None` but left this one substitution in place). | `exit_price=None` on expiry; `PaperTradeRecorder.record_close()`'s `exit_price` param is now `Optional[float]`. |
+| D | `PaperTradeRecorder.trades()` computed `is_win = (cl.pnl_usd or 0) > 0`, silently converting `pnl_usd=None` (unknown) into `is_win=False` (a claimed LOSS). | `is_win = None if cl.pnl_usd is None else (cl.pnl_usd > 0)` in both aggregation branches; `paper_trading/status.py`'s display now renders `N/A` instead of `LOSS` for `is_win=None`; `dataset_validator.py`'s pre-existing `expired_on_restore` exclusion (unaffected) reverified by regression test. |
+| E | `BootGate.check()` never inspected `pos_report.comparable`/`is_clean` — a non-comparable reconciliation (empty ghost/orphan lists BY DESIGN) could still clear the gate. | `BootGateReport.position_reconcile_comparable` added; `check()` now blocks on non-comparable, then on not-clean (which also closes a related pre-existing gap: price-drift-only dirtiness was never checked by `BootGate`'s own `has_drift` variable), before the existing ghost/orphan/order-anomaly check. |
+
+Also closed, per the mission's semantic-sweep instruction (§6): the
+rate-limited "skipped — too soon" `ReconcileReport` previously read as
+`is_clean=True` despite no comparison having run at all. A new
+`ReconcileReport.performed: bool` field (default `True`, set `False` only
+on that skip path) is now part of `is_clean`'s condition.
+
+**Files changed (R1.1):** `quant_hedge_ai/agents/execution/
+position_manager.py`, `core/advisor_loop.py`, `system/
+position_reconciler.py`, `system/boot_gate.py`, `paper_trading/
+recorder.py`, `paper_trading/mexc_simulator.py`, `paper_trading/
+status.py`, `tests/test_rem_c_r1_execution_domain.py` (21 new tests),
+`tests/test_restart_safety.py` (mechanical — mock `_exchange` identity),
+`.ci/ruff_baseline.json` (mechanical line-shift only).
+
+**Tests:** `tests/test_rem_c_r1_execution_domain.py` — 30/30 passed (9 R1
++ 21 R1.1). Full targeted regression (`test_position_manager`,
+`test_exchange_reality` incl. `TestA7BootGate`, `test_restart_safety`,
+`test_dataset_validator`, `paper_trading/`, REM-A/REM-B suites, PRE-T1-D
+capital boundary, operator snapshot): 825 passed. The same 9
+`TestB3AuditRecovery` failures as R1 remain, confirmed pre-existing and
+unrelated (`_cffi_backend`/`cryptography` sandbox gap, reproduces
+identically on `origin/main`). `ruff_baseline_gate.py check`: 958/958,
+zero new. `git diff --check`: clean.
+
+**Updated verdict: still `REMEDIATION_REQUIRED`.** REM-C R1.1 corrects all
+five MASTER-identified defects in R1's own implementation without
+expanding scope into REM-C R2/R3/R4: execution-domain inference is now
+evidence-based rather than presence-based, reconciliation requires
+exchange-identity proof in addition to a domain-label match, PAPER restart
+no longer substitutes any value (entry price or otherwise) for a genuinely
+unknown exit price, unknown PnL can no longer surface as a claimed LOSS
+anywhere in the read path, and BootGate can no longer clear trading on a
+reconciliation that was never actually proven comparable. It does not
 implement the fill-evidence chain, does not certify real exchange
-reconciliation, and does not enable live or testnet trading in any way.
-No real order, testnet call, exchange call, VPS access, secret access, or
+reconciliation, and does not enable live or testnet trading in any way. No
+real order, testnet call, exchange call, VPS access, secret access, or
 deployment occurred in this round. `PAPER_TRADING_ENABLED=true` and
 `LIVE_TRADING_CONFIRMED=false` are unchanged. T-1 and F-00 remain not
 started.

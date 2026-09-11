@@ -192,3 +192,189 @@ real-exchange fee accounting/VWAP reconstruction; exchange adapter
 certification; resubmission policy; real position reconstruction from
 exchange fills; full crash-window/partial-fill recovery (B8 remains only
 restart-idempotent, per REM-B).
+
+---
+
+## R1.1 — MASTER correction round (2026-09-11)
+
+**Addendum to the above, not a rewrite.** MASTER review of the R1 PR (#139,
+head `027cb0c71ce291209794ba929bff729ab71876c0`) found five residual
+defects in R1's own implementation of this ADR's stated intent. All five
+are corrected here, on the same PR/branch, without touching R2/R3/R4 scope.
+
+### Finding A — `exchange is not None` is not proof of REAL
+
+R1's `PositionManager.__init__()` inferred `domain=REAL` whenever a
+non-None `exchange` argument was passed and neither `domain=` nor
+`paper_mode=True` was given. This is false: the real advisor construction
+site (`core/advisor_loop.py`) passes
+`exchange=_get_exchange_futures(exec_engine)`, and
+`ExecutionEngine._init_futures_demo()` (`quant_hedge_ai/agents/execution/
+execution_engine.py`) returns a non-None value ONLY for `EXCHANGE_ID=
+krakenfutures`, in which case it is **the same object** as
+`exec_engine._exchange` (the spot exchange) — not a distinct "futures
+demo" sandbox. That object's actual domain (REAL vs TESTNET) is exactly
+`exec_engine._mode` ("live"/"testnet"/"paper", set by
+`infra.exchange_factory.detect_mode()` from `EXCHANGE_TESTNET`), never
+something the handle's mere non-nullness proves. For every other
+exchange (MEXC included), `_exchange_futures` is always `None` and that
+branch is `paper_mode=True` regardless.
+
+**Correction.** `PositionManager.__init__()` no longer infers anything
+from `exchange`'s nullness: `domain=` explicit argument wins, else
+`paper_mode=True` -> `PAPER`, else `UNKNOWN` (fails closed). A new
+`core/advisor_loop.py::_futures_position_domain(exec_engine, paper_mode)`
+resolves the proven domain from `exec_engine._mode` and is passed
+explicitly as `domain=` at the one production construction site. Per the
+mission's evidence: `_mode == "live"` -> `REAL`, `"testnet"` -> `TESTNET`,
+anything else (including "paper" or missing) -> `UNKNOWN`. `FUTURES_DEMO`
+is deliberately never produced by this call site — this codebase has no
+execution path that connects to an actual sandboxed futures-demo venue
+distinct from the spot exchange's own real/testnet mode; the "Futures
+Demo" name in `ExecutionEngine` is a label, not a third connection this
+function could honestly attest to. `FUTURES_DEMO` remains a defined
+`ExecutionDomain` value for a future call site that does connect to one.
+
+### Finding B — same domain label is not same account/exchange
+
+R1's `PositionReconciler` verified only `pos_manager.domain ==
+expected_domain`. Two independently-constructed `PositionManager`/
+exchange pairs can both legitimately carry the label `REAL` while
+representing different accounts or connections — a label match alone
+must not authorize comparing their positions.
+
+**Correction.** After the domain-label check passes, `reconcile()` now
+additionally requires `pos_manager._exchange is <this reconciler's own
+exchange_futures handle>` — object identity, the smallest proof this
+architecture can make without inventing a new account-identifier concept.
+`PositionManager` already stores its `exchange` argument as `self.
+_exchange`; no new field was added to it. A missing `_exchange` attribute,
+a different object, or `None` all fail closed identically to a domain
+mismatch: `comparable=False`, empty ghost/orphan lists, an explicit
+`error` naming the identity gap.
+
+### Finding C — expired PAPER restore still faked the exit price
+
+R1 already stopped fabricating `pnl_usd`/`pnl_pct` as `0.0` on a
+downtime-window expiry, but the same code path still wrote
+`exit_price=trade.entry_price` — false precision presenting "no price
+movement" as if it were known.
+
+**Correction.** `PaperTradeRecorder.record_close()`'s `exit_price`
+parameter is now `Optional[float]`; `MexcSimulator._restore_positions()`'s
+expiry path passes `exit_price=None`. `TradeEvent.exit_price`/
+`CompleteTrade.exit_price` were already `Optional` from R1 — only the
+call site's fabricated substitution needed removing.
+
+### Finding D — unknown PnL was silently converted to LOSS
+
+`PaperTradeRecorder.trades()` computed `is_win = (cl.pnl_usd or 0) > 0`.
+For `pnl_usd=None` (genuinely unknown), Python's `or` coerces this to
+`0 > 0` = `False` — UNKNOWN became LOSS, directly contradicting this
+ADR's evidence-honesty rule.
+
+**Correction.** `is_win = None if cl.pnl_usd is None else (cl.pnl_usd >
+0)` in both aggregation branches (paired trades and orphaned closes). A
+genuinely recorded `pnl_usd=0.0` still correctly resolves `is_win=False`
+(a known non-win, distinct from an unknown outcome). Consumer inventory
+(both `paper_trading.trades()`'s only two production call sites and
+direct format-string readers of the newly-reachable `None`s):
+
+- `paper_trading/status.py` (`main()`) — line rendering `wl = "WIN" if
+  t.is_win else "LOSS"` would render every unknown trade as LOSS. Fixed to
+  `"N/A" if t.is_win is None else ("WIN" if t.is_win else "LOSS")`. Its
+  `pnl_pct`/`exit_price` formatting already guarded on `is not None`/
+  truthiness before this round and needed no change.
+- `paper_trading/dataset_validator.py::validate_corpus()` — already
+  excludes `reason == "expired_on_restore"` from win/loss population
+  stats before touching `pnl_usd` at all (unchanged, reverified by
+  regression test); its `pnl = getattr(cl, "pnl_usd", 0.0) or 0.0` line is
+  only reached for non-excluded (evidenced) trades, so the `or 0.0`
+  coercion there is inert for genuinely-unknown records and was left
+  alone rather than widened speculatively.
+- No other direct production consumer of `CompleteTrade.is_win` or
+  `PaperTradeRecorder.trades()` exists in this repository (grep-verified).
+  This closes the finding without a broader analytics rewrite.
+
+### Finding E — BootGate could clear trading on a non-comparable reconciliation
+
+`system/boot_gate.py::BootGate.check()` copied `pos_report.ghost_positions`/
+`orphan_positions` and computed its own `has_drift` from those (plus
+order-tracker fields) — but a `comparable=False` `ReconcileReport` has
+EMPTY ghost/orphan lists by design (R1's own invariant: never fabricate a
+finding from an unproven comparison). `check()` never looked at
+`pos_report.comparable` or `pos_report.is_clean` at all, so a reconciler
+that could not prove domain/account compatibility — meaning NO comparison
+happened — still let the gate clear.
+
+**Correction.** `BootGateReport` gains `position_reconcile_comparable`
+(copied from `pos_report.comparable`). `check()`'s final decision now
+checks, in order: `not comparable` -> blocked (reason names the
+domain/identity gap); `not position_reconcile_clean` -> blocked (reason
+names the reconciler's own summary — this also closes a second,
+previously-unnoticed gap where a `price_drifts`-only-dirty report,
+which `is_clean` accounts for but the pre-existing local `has_drift`
+variable did not, could have cleared the gate); `has_drift` -> blocked
+(unchanged ghost/orphan/order-anomaly path). Only when all three pass does
+the gate clear — identical outcome to before for every existing clean or
+ghost/orphan-dirty scenario (regression-tested), newly fail-closed for the
+non-comparable case.
+
+### Section 6 — `ReconcileReport` must never read CLEAN for a skipped run
+
+The rate-limited early return, `ReconcileReport(error="skipped — too
+soon")`, left every other field at its default — including
+`comparable=True`, `exchange_reachable=True`, empty ghost/orphan/drift
+lists — so `is_clean` evaluated `True` for an operation that never ran at
+all. `BootGate.check()` always calls `reconcile(force=True)` so this
+specific gap does not currently reach it, but the report contract itself
+was unsound, exactly as named in the mission's semantic-sweep instruction.
+
+**Correction.** Added `ReconcileReport.performed: bool = True`; the
+rate-limit skip path sets `performed=False`; `is_clean` now requires
+`performed` in addition to `comparable`, `exchange_reachable`, and `not
+has_drift`. No broader report-state-machine redesign — one field, one
+call site, one property.
+
+### Corrected framing (supersedes conflicting R1 wording above)
+
+- **opaque exchange object != REAL provenance.** A non-None exchange
+  handle is evidence a connection exists, never evidence of which domain
+  it connects to.
+- **same domain label != same account/exchange.** Two REAL-labeled
+  managers can be different accounts; reconciliation requires exchange
+  identity proof, not just a matching label.
+- **MISSING EXIT EVIDENCE != ENTRY PRICE.** An unknown exit price is
+  `None`, never the entry price presented as if nothing moved.
+- **MISSING PNL != ZERO, and MISSING PNL != LOSS.** `pnl_usd=None` stays
+  `None` through every layer, including the derived `is_win`, which must
+  itself be `None` rather than falling back to `False`.
+
+### Files changed (R1.1, in addition to R1's list)
+
+- `quant_hedge_ai/agents/execution/position_manager.py` — removed the
+  `exchange is not None -> REAL` inference.
+- `core/advisor_loop.py` — added `_futures_position_domain()`; the
+  `PositionManager` construction site now passes `domain=` explicitly.
+- `system/position_reconciler.py` — exchange-identity check after the
+  domain check; `ReconcileReport.performed` and the "skipped" path setting
+  it `False`; `summary()`/`is_clean` updated accordingly.
+- `system/boot_gate.py` — `position_reconcile_comparable`; fail-closed
+  ordering in `check()`'s final decision.
+- `paper_trading/recorder.py` — `record_close(exit_price: Optional[float]
+  )`; `is_win` no longer coerces `None` to `False` in either aggregation
+  branch.
+- `paper_trading/mexc_simulator.py` — expiry path passes `exit_price=None`
+  instead of `trade.entry_price`.
+- `paper_trading/status.py` — `wl` rendering distinguishes `N/A` from
+  `LOSS`.
+- `tests/test_rem_c_r1_execution_domain.py` — 21 new tests (A1-A6, B1-B4,
+  C, D1-D7, E1-E5, the `ReconcileReport.performed` regression).
+- `tests/test_restart_safety.py` — `TestB2MidExecutionCrash`'s mocks now
+  set `pm._exchange` to the same object passed to `PositionReconciler`
+  (mechanical — these mocks exercise exactly the identity check this
+  round adds).
+- `.ci/ruff_baseline.json` — mechanical line-shift only (verified via
+  `python scripts/ci/ruff_baseline_gate.py check`, 958/958, zero new).
+
+No REM-C R2/R3/R4 functionality was implemented in this round either.

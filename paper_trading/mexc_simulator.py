@@ -384,13 +384,17 @@ class MexcSimulator:
                     _RESTORE_MAX_AGE_S / 3600,
                 )
                 try:
-                    # REM-C R1 — the process was down; what actually happened
-                    # to price/PnL during the gap is not durably known. exit
-                    # price and PnL are recorded as unknown (None), never
-                    # fabricated as entry_price/0.0 pretending nothing moved.
+                    # REM-C R1.1 — the process was down; what actually
+                    # happened to price/PnL during the gap is not durably
+                    # known. exit price and PnL are recorded as unknown
+                    # (None), never fabricated as entry_price/0.0 pretending
+                    # nothing moved. MASTER review (R1.1) corrected R1's own
+                    # residual defect here: R1 already fixed pnl_usd/pnl_pct
+                    # but still substituted `trade.entry_price` as if it
+                    # were the genuine exit price.
                     recorder.record_close(
                         trade_id=trade.trade_id,
-                        exit_price=trade.entry_price,
+                        exit_price=None,
                         pnl_usd=None,
                         pnl_pct=None,
                         reason="expired_on_restore",

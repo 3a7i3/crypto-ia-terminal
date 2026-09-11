@@ -293,20 +293,30 @@ class PositionManager:
         self._interval = check_interval_s
         self._paper = paper_mode or (exchange is None)
 
-        # REM-C R1 — execution-domain provenance for every position this
+        # REM-C R1.1 — execution-domain provenance for every position this
         # manager holds. Explicit `domain` always wins. Otherwise resolved
-        # from the same construction context callers already provide:
-        #   paper_mode=True            -> PAPER (explicit caller intent)
-        #   paper_mode=False + exchange -> REAL (a live exchange handle was
-        #                                  actually passed in)
-        #   paper_mode=False, no exch. -> UNKNOWN (ambiguous — fails closed,
-        #                                  never silently assumed REAL)
+        # ONLY from evidence that actually proves something:
+        #   paper_mode=True  -> PAPER (explicit caller intent)
+        #   otherwise        -> UNKNOWN (fails closed)
+        #
+        # R1 originally inferred `exchange is not None -> REAL`. MASTER
+        # review (R1.1) proved this false: `core/advisor_loop.py` passes
+        # `exchange=_get_exchange_futures(exec_engine)`, and
+        # `ExecutionEngine._init_futures_demo()` returns that handle only
+        # for krakenfutures, where it is THE SAME OBJECT as the spot
+        # exchange (`self._exchange`) — whose actual domain (REAL vs
+        # TESTNET) is `ExecutionEngine._mode`, not something an opaque
+        # handle's mere presence proves. An opaque, non-None exchange
+        # object is evidence a *connection* exists — never evidence of
+        # WHICH domain it connects to. The real advisor construction site
+        # (`core/advisor_loop.py`, `_futures_position_domain()`) now
+        # resolves this from `exec_engine._mode` and passes it explicitly
+        # via `domain=`; this constructor no longer guesses from the
+        # exchange argument's nullness.
         if domain is not None:
             self.domain = domain
         elif paper_mode:
             self.domain = ExecutionDomain.PAPER
-        elif exchange is not None:
-            self.domain = ExecutionDomain.REAL
         else:
             self.domain = ExecutionDomain.UNKNOWN
 

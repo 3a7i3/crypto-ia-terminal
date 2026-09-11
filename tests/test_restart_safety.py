@@ -244,6 +244,7 @@ class TestB2MidExecutionCrash:
 
         pm = MagicMock()
         pm.domain = ExecutionDomain.REAL
+        pm._exchange = exchange
         pm.get_open.return_value = internal_positions
 
         rec = PositionReconciler(exchange, pm)
@@ -351,6 +352,7 @@ class TestB2MidExecutionCrash:
 
         pm = MagicMock()
         pm.domain = ExecutionDomain.REAL
+        pm._exchange = exchange
         pm.get_open.return_value = []
 
         rec = PositionReconciler(exchange, pm)
@@ -393,6 +395,7 @@ class TestB2MidExecutionCrash:
 
         pm = MagicMock()
         pm.domain = ExecutionDomain.REAL
+        pm._exchange = exchange
         pm.get_open.return_value = [internal_pos]
 
         rec = PositionReconciler(exchange, pm)
@@ -416,6 +419,7 @@ class TestB2MidExecutionCrash:
 
         pm = MagicMock()
         pm.domain = ExecutionDomain.REAL
+        pm._exchange = exchange
         pm.get_open.return_value = [internal_pos]
 
         rec = PositionReconciler(exchange, pm)
@@ -433,6 +437,7 @@ class TestB2MidExecutionCrash:
         exchange.fetch_positions.return_value = []
         pm = MagicMock()
         pm.domain = ExecutionDomain.REAL
+        pm._exchange = exchange
         pm.get_open.return_value = []
 
         rec = PositionReconciler(exchange, pm)
@@ -450,6 +455,7 @@ class TestB2MidExecutionCrash:
         exchange.fetch_positions.return_value = []
         pm = MagicMock()
         pm.domain = ExecutionDomain.REAL
+        pm._exchange = exchange
         pm.get_open.return_value = []
 
         rec = PositionReconciler(exchange, pm)
