@@ -1,9 +1,19 @@
 # WEB COCKPIT DATA MAP
 
-Status: CANONICAL — R1 (WEB-DOC-01)
+Status: CANONICAL — R1.1 (WEB-DOC-01)
 Basis: WEB COCKPIT DATA MAP R0.1 (accepted), revalidated against source at
-commit `1c36ad33c2f9d6263d786aae96f5269f0ded23a5`.
+commit `1c36ad33c2f9d6263d786aae96f5269f0ded23a5` (also current `origin/main`
+and the original base of this document); corrected in R1.1 per MASTER review.
 Scope: documentation only. This document changes no machine behavior.
+
+**Parallel PR note (as of R1.1):** `PR #139` ("O-02W-PRE-T1-E REM-C R1:
+execution-domain provenance and paper recovery honesty") is open, **draft,
+unmerged**, based on the same `main` SHA as this document. Its content
+(`ExecutionDomain` enum, `PositionReconciler` domain-compatibility gate,
+`MexcSimulator._restore_positions()` evidence-honesty fixes) is described in
+this document only as roadmap status (§20), never as canonical current-main
+behavior. If #139 merges or moves, this document's basis does not
+automatically follow — a future correction round must revalidate.
 
 ---
 
@@ -117,7 +127,7 @@ current, working Web foundation this document builds on.
 | **O-02W-D1** | The read-only operator API: `GET /api/operator/v1/snapshot`, structured validation, no writes, no JSONL access, no direct import of the trading engine. | `observability/operator_api/app.py`, `reader.py` (`SafeSnapshotReader`), `paths.py` (`SOURCE_PROVEN`) |
 | **O-02W-D2** | The React polling client: a single serialized snapshot-polling hook with monotonic sequencing, plus client-side structural validation mirroring the server. | `frontend/src/lib/snapshotClient.ts`, `snapshotValidation.ts`, `observedValue.ts`, `types.ts`; CI gate `.github/workflows/frontend-ci.yml` (`SOURCE_PROVEN`) |
 | **O-02W-D3** | Cross-stack compatibility verification: a CI gate proving the O-02W-C producer's output travels unchanged through the real D1 API and is accepted by the real D2 client. | `.github/workflows/cross-stack-compat.yml`; `tests/cross_stack/*` (`SOURCE_PROVEN`) |
-| **O-02W-E1** | A Telegram-identity-registry cutover pointer (dated 2026-09-10), referenced inline rather than as a standalone contract. Scope should be treated conservatively pending a dedicated contract file. | `docs/architecture/TELEGRAM_IDENTITY_REGISTRY.md` (`DOCUMENTATION_CONTRACT`, narrow) |
+| **O-02W-E1** | Delivered as its own dedicated, ~2000-line contract — the Telegram observation-boundary review, covering per-identity analysis across multiple remediation rounds (R1/R1.1/R1.2). This is a standalone contract, not merely a pointer from the identity registry (that registry is one supporting citation among many inside it). | `docs/contracts/O-02W-E_TELEGRAM_OBSERVATION_BOUNDARY.md` (mission header self-identifies as "O-02W-E1"; `DOCUMENTATION_CONTRACT`) |
 
 ---
 
@@ -160,19 +170,20 @@ Not authorized, now or by implication of anything in this document:
 | Universe size | `market_state.universe_size` domain field | Scientific | `SOURCE_PROVEN` (field), `RUNTIME_UNKNOWN` (population) | `SOURCE_UNSAFE` | `NEEDS_SNAPSHOT_EXPOSURE` | No confirmed producer (field comment: "INCONCLUSIVE, no confirmed producer found") |
 | DecisionPacket actionability | `DecisionPacket.is_actionable()` | Execution authority | `SOURCE_PROVEN` | `SOURCE_READY` | `WEB_READY_NOW` (as `decision_pipeline` telemetry) | — |
 | Blockers | Legacy `trade_allowed` / blockers list | Analysis/gating input (not authority) | `LEGACY` | `SOURCE_READY` | `WEB_READY_NOW` | Superseded as authority by DecisionPacket; kept for observability and TYPE-A-DISAGREEMENT auditing |
-| Scientific capital (`WALLET_PAPER_CAPITAL`) | Sizing configuration, pinned per ADR-0007 | Governance | `DOCUMENTATION_CONTRACT` | `SOURCE_READY` | `WEB_READY_NOW` | — |
-| Real-account balance | Exchange account state (out of scope for Web read) | Execution | `RUNTIME_UNKNOWN` | `SOURCE_UNSAFE` | `BLOCKED_BY_SCIENTIFIC_WORK` | REM-C / real-account observation not certified |
-| Paper equity | `PaperTradeRecorder` / paper ledger | Scientific (paper domain) | `SOURCE_PROVEN` | `SOURCE_READY` | `WEB_READY_NOW` | — |
-| Paper positions | `PositionManager` (paper mode) | Scientific (paper domain) | `DERIVED_BY_TRACE` | `SOURCE_READY` | `WEB_READY_NOW` | Registered as a lazy factory in the advisor runtime |
-| Real positions observation | Exchange / execution engine | Execution | `RUNTIME_UNKNOWN` | `SOURCE_UNSAFE` | `BLOCKED_BY_SCIENTIFIC_WORK` | REM-C dependency (§9, §10) |
+| Scientific capital | `infra/wallet_sync.py::get_scientific_capital()` — the sole decisional-capital accessor (sizing/risk/EV), pure function independent of exchange mode/state, pinned per ADR-0007/ADR-0018 | Governance | `SOURCE_PROVEN` | `SOURCE_READY` | `WEB_READY_NOW` | Architecturally separate from real-account observation (see next row); never combined with it (ADR-0018) |
+| Real-account balance | `observability/real_accounts.py::RealAccountsObserver` — passive, read-only (`fetch_balance`/`fetch_ticker` only, never places orders); flows into the canonical snapshot's `portfolio_state.real_account_equity_usd`/`real_account_free_usd`/`real_account_stale` when an observer instance is injected by the advisor process | Execution (observation only) | `SOURCE_PROVEN` (mechanism/wiring), `RUNTIME_UNKNOWN` (independent proof the VPS actually injects a live observer each cycle) | `SOURCE_READY` (as a display fact) | `WEB_READY_NOW` (snapshot fields exist) | Display-only by design — architecturally forbidden from sizing/risk (ADR-0007, ADR-0018); never merged with scientific capital |
+| Paper equity | `infra/wallet_sync.py::WalletSync.get_balance()` — WALLET_PAPER_CAPITAL-based paper/scientific-capital semantics, published to the snapshot only when `mode == "PAPER"` | Scientific (paper domain) | `SOURCE_PROVEN` | `SOURCE_READY` | `WEB_READY_NOW` | `PaperTradeRecorder` is a separate component: durable append-only trade-event history, not the equity accessor |
+| Paper positions | `paper_trading.paper_portfolio_view.paper_portfolio_view()` reading `MexcSimulator._positions` — the snapshot builder's docstring states this module never iterates `_positions` directly and that position inventory is governed exclusively by this view function | Scientific (paper domain) | `SOURCE_PROVEN` | `SOURCE_READY` | `WEB_READY_NOW` | `PositionManager` is a distinct, frequently-empty internal store and is **not** the producer of `paper_open_positions_count`/`open_positions[]`/unrealized PnL — do not conflate the two |
+| Real positions observation | Not yet a governed snapshot producer; would require exchange-side `fetch_positions()` plus an execution-domain compatibility gate (PAPER vs REAL) to avoid comparing incompatible position stores | Execution | `RUNTIME_UNKNOWN` | `SOURCE_UNSAFE` | `BLOCKED_BY_SCIENTIFIC_WORK` | The domain-compatibility gate needed here is proposed, unmerged REM-C R1 scope (PR #139, `REM_C_R1_IN_PROGRESS_NOT_ON_MAIN`) — see §9, §20 |
 | Regret v2 | Regret analysis pipeline | Scientific | `DOCUMENTATION_CONTRACT` | `SOURCE_PARTIAL` | `NEEDS_HISTORY_READER` | Historical regret currently lives in append-only files |
 | Runtime SHA | `observability/source_evidence.py` | System health | `SOURCE_PROVEN` (mechanism), `RUNTIME_UNKNOWN` (independent proof) | `SOURCE_PARTIAL` | `WEB_READY_NOW` (as self-reported value) | Independent (T-1) confirmation not yet available |
 | Deployment evidence | `source_evidence.py` / deploy tags | System health | `DOCUMENTATION_CONTRACT` | `SOURCE_PARTIAL` | `NEEDS_SNAPSHOT_EXPOSURE` | T-1 mission (not started) owns the independent version |
-| Liveness (advisor process) | T-1 (independent liveness publisher) | System health | `FUTURE_WORK` | `SOURCE_UNSAFE` | `BLOCKED_BY_SCIENTIFIC_WORK` | T-1 not started; snapshot age must never be used as a liveness proxy |
-| Order intent | Advisor loop G8 block | Execution | `SOURCE_PROVEN` | `SOURCE_READY` (paper), `SOURCE_UNSAFE` (real) | `NEEDS_API_EXPOSURE` | REM-C for durable pre-execution intent persistence |
-| ACK | Execution engine / exchange response | Execution | `RUNTIME_UNKNOWN` | `SOURCE_PARTIAL` | `BLOCKED_BY_SCIENTIFIC_WORK` | REM-C |
-| Fills | Execution engine / exchange | Execution | `RUNTIME_UNKNOWN` | `SOURCE_UNSAFE` | `BLOCKED_BY_SCIENTIFIC_WORK` | REM-C explicitly excludes fill-quantity reconciliation today |
-| Realized PnL | `PaperTradeRecorder` (paper) / execution ledger (real) | Scientific / Execution | `SOURCE_PROVEN` (paper), `RUNTIME_UNKNOWN` (real) | `SOURCE_READY` (paper) | `NEEDS_HISTORY_READER` (historical), `WEB_READY_NOW` (current snapshot value, paper) | — |
+| Liveness (advisor process) | T-1 (independent liveness publisher) | System health | `FUTURE_WORK` | `SOURCE_UNSAFE` | `BLOCKED_BY_SCIENTIFIC_WORK` | T-1 not started; snapshot age must never be used as a liveness proxy. Distinct from the health score (see §15): a healthy composite score is not proof of process liveness |
+| Order intent — execution authorization | `DecisionPacket.is_actionable()` in the advisor loop's G8 block — decides *whether* to call `exec_engine.create_order()`/`create_futures_order()` at all | Execution authority | `SOURCE_PROVEN` | `SOURCE_READY` | `WEB_READY_NOW` (as `decision_pipeline` telemetry) | Distinct from order-intent identity (next row) — this row is the gate, not the durable record |
+| Order intent — durable identity/journal | `quant_hedge_ai/agents/execution/decision_identity.py::DecisionIdentityJournal` + `order_intent_protocol.py::OrderIntentJournal`/`OrderIntentCoordinator`, wired inside `ExecutionEngine.create_order()`/`create_futures_order()` (REM-B scope, present on current main) — provides durable pre-network decision/intent identity and idempotent duplicate protection | Execution | `SOURCE_PROVEN` for the two confirmed G8 call sites (`core/advisor_loop.py` calls into `exec_engine.create_order`/`create_futures_order`); `PARTIAL` — not exhaustively audited for every other potential caller in the file | `SOURCE_PARTIAL` | `NEEDS_API_EXPOSURE` | Explicitly does NOT cover (by its own docstring): full decision/packet reconstruction, replay of strategy state, partial-fill lifecycle, automatic resubmission after restart — that is REM-C scope |
+| ACK | `order_intent_protocol.py` state machine — `ACKNOWLEDGED` is a distinct, non-terminal `IntentState`/`SubmissionOutcome`, never equated with FILLED in the reviewed source (REM-B scope, on current main) | Execution | `SOURCE_PROVEN` (state exists and is distinct), `RUNTIME_UNKNOWN` (real-exchange ACK path) | `SOURCE_PARTIAL` | `BLOCKED_BY_SCIENTIFIC_WORK` | Further truth-ladder labels (PARTIALLY_FILLED, FILLED, POSITION_APPLIED, CLOSED, REALIZED_PNL_FINAL, RESTART_RECONSTRUCTION) were not exhaustively located in this pass — treat as unverified rather than asserting a complete state matrix (§9) |
+| Fills | Execution engine / exchange | Execution | `RUNTIME_UNKNOWN` | `SOURCE_UNSAFE` | `BLOCKED_BY_SCIENTIFIC_WORK` | Partial-fill lifecycle/fill-quantity reconciliation remains unimplemented on current main; proposed in unmerged REM-C R1 (PR #139) only partly (execution-domain provenance for reconciliation, not the fill engine itself) |
+| Realized PnL | `PaperTradeRecorder` (paper, durable trade-event history) / execution ledger (real) | Scientific / Execution | `SOURCE_PROVEN` (paper), `RUNTIME_UNKNOWN` (real) | `SOURCE_READY` (paper) | `NEEDS_HISTORY_READER` (historical), `WEB_READY_NOW` (current snapshot value, paper) | — |
 
 ---
 
@@ -210,28 +221,62 @@ packet's ID as a plain string but is not the packet and carries no
 authorization method. It is consistent with ADR-0007: it observes and
 records, it never gates.
 
+**Execution authorization is not the same layer as order-intent identity.**
+`DecisionPacket.is_actionable()`/G8 decides *whether* to call
+`ExecutionEngine.create_order()`/`create_futures_order()` at all — that is
+authorization. Once that gate passes, a separate durable layer takes over
+inside `ExecutionEngine`: `quant_hedge_ai/agents/execution/decision_identity.py`'s
+`DecisionIdentityJournal` and `order_intent_protocol.py`'s `OrderIntentJournal`
+/`OrderIntentCoordinator` persist the decision/intent identity before any
+network mutation and provide idempotent duplicate protection. Both layers
+are real and wired (REM-B scope, present on current main), but they answer
+different questions: G8 asks "is this trade allowed to proceed", the
+identity/journal layer asks "has this exact intent already been durably
+recorded and can it be safely retried". Caller coverage for the
+identity/journal layer is confirmed at the primary G8 execution call sites;
+it has not been exhaustively audited across every other potential caller of
+`create_order`/`create_futures_order` in `core/advisor_loop.py`, so it is
+classified `SOURCE_PARTIAL` for full-file caller coverage, not because the
+mechanism itself is incomplete.
+
 ---
 
 ## 9. Execution Truth Map
 
+**Two distinct efforts must not be conflated: REM-B (present on current
+main) and REM-C (proposed, unmerged).** REM-B delivered durable decision
+identity (`DecisionIdentityJournal`) and durable pre-network order-intent
+identity with idempotent duplicate protection (`OrderIntentJournal`/
+`OrderIntentCoordinator`), wired inside `ExecutionEngine` — this is real,
+current-main code, not future work. What remains open is the REM-C truth
+ladder below: execution-domain provenance for reconciliation, fill-quantity
+truth, and full crash-window/partial-fill recovery. REM-C R1 (PR #139) is
+**open, draft, unmerged**, based on the same `main` SHA as this document —
+its `ExecutionDomain` enum, `PositionReconciler` domain-compatibility gate,
+and `MexcSimulator._restore_positions()` evidence-honesty fixes are not yet
+part of canonical current-main behavior. Use `REM_C_R1_IN_PROGRESS_NOT_ON_MAIN`
+rather than "REM-C not started" — the roadmap has moved past zero, the code
+has not yet landed on `main`.
+
 | Stage | Classification | Notes |
 |---|---|---|
 | DECISION | `CANONICAL_NOW` | `DecisionPacket` + `is_actionable()`, live in the advisor loop |
-| INTENT | `CANONICAL_NOW` (paper) / `PARTIAL` (real) | Order-submission branch entered once `_effective_trade_allowed` and other gates pass |
+| INTENT (durable identity) | `CANONICAL_NOW` for the confirmed G8 call sites (REM-B) | `DecisionIdentityJournal`/`OrderIntentJournal`/`OrderIntentCoordinator`, wired inside `ExecutionEngine`; not exhaustively audited for every caller (§8) |
 | AUTHORIZATION | `CANONICAL_NOW` | Gate itself is the authorization step (§8) |
-| SUBMISSION | `CANONICAL_NOW` (paper, via `MexcSimulator`) / `REM_C_DEPENDENCY` (real, durable/idempotent submission) | ADR-0020 scopes durable/idempotent real submission; explicitly notes REM-C exclusions |
-| ACK | `REM_C_DEPENDENCY` | No confirmed live call chain independent of REM-C scope |
-| ORDER OBSERVATION | `REM_C_DEPENDENCY` | Same |
-| FILL | `REM_C_DEPENDENCY` | ADR-0020 explicitly excludes "partial-fill lifecycle and fill-quantity reconciliation" as REM-C scope, not yet implemented |
-| POSITION | `CANONICAL_NOW` (paper, via `PositionManager`) / `REM_C_DEPENDENCY` (real) | — |
-| CLOSE | `CANONICAL_NOW` (paper) / `REM_C_DEPENDENCY` (real) | — |
-| PNL | `CANONICAL_NOW` (paper, via `PaperTradeRecorder`) / `REM_C_DEPENDENCY` (real) | — |
+| SUBMISSION | `CANONICAL_NOW` (paper, via `MexcSimulator`) / `CANONICAL_NOW` for durable idempotent identity, `PARTIAL` for domain-safe reconciliation (real) — REM-B provides the former; REM-C R1 (unmerged) proposes the domain gate needed for the latter | ADR-0020 is REM-B scope, present on current main |
+| ACKNOWLEDGED | `SOURCE_PROVEN` as a distinct state (REM-B, `order_intent_protocol.py`) for paper; `RUNTIME_UNKNOWN` for a real-exchange ACK path | `ACKNOWLEDGED` is never equated with `FILLED` in the reviewed source — they are distinct states in the intent state machine |
+| ORDER OBSERVATION | `REM_C_R1_IN_PROGRESS_NOT_ON_MAIN` | Execution-domain provenance (needed to safely compare PAPER vs REAL position/order state) is proposed in PR #139, not on main |
+| PARTIALLY_FILLED / FILLED | `RUNTIME_UNKNOWN` | Not confirmed as implemented, labeled state on current main in this revalidation pass; do not assert a complete state matrix without further evidence |
+| POSITION | `CANONICAL_NOW` (paper, via `paper_portfolio_view()` reading `MexcSimulator._positions` — not `PositionManager`, §7) / `REM_C_R1_IN_PROGRESS_NOT_ON_MAIN` (real, domain-safe reconciliation) | — |
+| CLOSE | `CANONICAL_NOW` (paper) / `REM_C_R1_IN_PROGRESS_NOT_ON_MAIN` (real) | — |
+| REALIZED_PNL_FINAL | `CANONICAL_NOW` (paper, via `PaperTradeRecorder`) / `RUNTIME_UNKNOWN` (real) | — |
+| RESTART_RECONSTRUCTION | `REM_C_R1_IN_PROGRESS_NOT_ON_MAIN` | PAPER-restart evidence-honesty fixes (avoiding fabricated zero-PnL/TP-SL on restart) are PR #139 scope, unmerged |
 
-Do not imply REM-C R2/R3-style completion anywhere: as of the starting
-SHA, REM-C is a named future remediation scope (fill-quantity
-reconciliation, partial-fill lifecycle, crash-window durable decision
-persistence) with **no REM-C scope started** — every ADR-0020 reference to
-it is paired with that disclaimer.
+Do not imply REM-C R2/R3/R4-style completion anywhere: those remain fully
+unstarted (canonical `ExecutionEvidence`/`FillRecord`, cumulative exchange
+fill journal, partial-fill ingestion/deduplication, exchange fill polling,
+real-exchange fee accounting, exchange adapter certification, resubmission
+policy) per PR #139's own explicit deferral list.
 
 ---
 
@@ -239,18 +284,20 @@ it is paired with that disclaimer.
 
 | Component | Status | Evidence |
 |---|---|---|
-| `MexcSimulator` (`paper_trading/mexc_simulator.py`) | `ACTIVE` | Instantiated directly in the advisor loop bootstrap, gated on advisor-only/`PAPER_TRADING_ENABLED` |
-| `PaperTradeRecorder` (`paper_trading/recorder.py`) | `ACTIVE` | Used as the entry/exit source of truth inside the advisor loop's paper bookkeeping |
-| `PositionManager` (`quant_hedge_ai/agents/execution/position_manager.py`) | `ACTIVE` | Registered as a lazy factory in the advisor runtime registry |
+| `MexcSimulator` (`paper_trading/mexc_simulator.py`) | `ACTIVE`; also the authority for paper open positions/unrealized PnL via `paper_portfolio_view()` (§7) | Instantiated directly in the advisor loop bootstrap, gated on advisor-only/`PAPER_TRADING_ENABLED` |
+| `PaperTradeRecorder` (`paper_trading/recorder.py`) | `ACTIVE` — durable append-only paper trade-event history and realized PnL; **not** the paper-equity accessor (that is `WalletSync.get_balance()`, §7) | Used as the entry/exit source of truth inside the advisor loop's paper bookkeeping |
+| `PositionManager` (`quant_hedge_ai/agents/execution/position_manager.py`) | `SOURCE_REACHABLE` (registered as a lazy factory in the advisor runtime registry); **not** the producer of the snapshot's paper position fields — those come from `paper_portfolio_view()` reading `MexcSimulator._positions` directly (§7). `PositionManager` is a separate, frequently-empty internal store noted as a forensic divergence risk | Do not conflate with `MexcSimulator` as paper-position authority |
 | Runtime `PaperTradingEngine` (`quant_hedge_ai/agents/execution/paper_trading_engine.py`) | `ACTIVE`, but in the alternate `quant_hedge_ai/main_system.py` / `main_v91.py` entry points and `system/burn_in.py` | Not found instantiated inside `core/advisor_loop.py`; treat as a separate runtime family (§20 dependency note) |
 | `BurninSimulationEngine` (`paper_trading/engine.py`) | `DORMANT / ACTIVATION_UNCONFIRMED` | Only found in module docstring usage examples; no production call site found in `core/advisor_loop.py` or elsewhere. Its own docstring explicitly distinguishes it from the live `PaperTradingEngine` |
 | `PaperLedger` (`paper_trading/ledger.py`) | `DORMANT / ACTIVATION_UNCONFIRMED` | Only known caller is `BurninSimulationEngine.__init__`, itself dormant |
-| `ShadowTracker` (`scripts/shadow_execution.py`) | `STANDALONE_SCRIPT` | Instantiated only within its own script; not part of the advisor loop's runtime call chain — an offline/manual tool |
-| `ShadowExecutionEngine` (`quant_hedge_ai/agents/execution/shadow_engine.py`) | `ACTIVE` | Registered as a lazy factory in the advisor runtime registry alongside `PositionManager` |
+| `ShadowTracker` (`scripts/shadow_execution.py`, "S3") | `SOURCE_REACHABLE` — imported and instantiated at advisor-loop bootstrap (`_shadow_s3`), called from the gate/decision path via `_shadow_s3.log_refused(...)` when a gate refuses a trade. `RUNTIME_UNKNOWN`: whether this path actually executes on the VPS (i.e. whether the availability guard is true there) is not provable from source alone — **not** a standalone/offline-only script as previously stated | Distinct from `ShadowExecutionEngine` below — do not conflate the two |
+| `ShadowExecutionEngine` (`quant_hedge_ai/agents/execution/shadow_engine.py`) | `SOURCE_REACHABLE` — constructed at advisor-loop bootstrap via a lazy bootstrap-step factory registered alongside `PositionManager`. `RUNTIME_UNKNOWN`: whether this bootstrap step succeeds and executes meaningfully on the VPS is not provable from source alone | Distinct from `ShadowTracker`/S3 above |
 
 None of these are described as active beyond what a traced runtime call
-chain supports; `BurninSimulationEngine` in particular stays conservatively
-`DORMANT / ACTIVATION_UNCONFIRMED` per the current evidence.
+chain supports; `BurninSimulationEngine`/`PaperLedger` stay conservatively
+`DORMANT / ACTIVATION_UNCONFIRMED`, and `ShadowTracker`/`ShadowExecutionEngine`
+are `SOURCE_REACHABLE` with `RUNTIME_UNKNOWN` VPS-execution proof — a real
+call site is not the same claim as independently proven production activity.
 
 ---
 
@@ -262,7 +309,7 @@ chain supports; `BurninSimulationEngine` in particular stays conservatively
 | MARKETS | What markets is the machine watching? | Market state domain | Partial (universe_size missing) | Table | Universe-size producer | WEB-MARKET-01 |
 | REGIMES | What regime is detected, how confident? | Regime classifier → market_state | Partial (confidence not wired) | Badge + trend | Regime-confidence transport | WEB-REGIME-01 |
 | DECISIONS | What did the machine decide, and why? | DecisionPacket / decision_pipeline | Web ready (current cycle) | Timeline | History reader for past decisions | WEB-DECISION-01 |
-| PORTFOLIO | What PAPER portfolio exists? | PositionManager / PaperTradeRecorder | Web ready | Table + chart | Real-position observation for REAL view | WEB-PORTFOLIO-01 |
+| PORTFOLIO | What PAPER portfolio exists? What real-account balance is passively observed? | `paper_portfolio_view()`/`MexcSimulator` (paper positions), `WalletSync.get_balance()` (paper equity), `PaperTradeRecorder` (paper trade history), `RealAccountsObserver` (real balance, display-only) | Web ready (paper); real-account balance snapshot fields exist but VPS-live injection is `RUNTIME_UNKNOWN` | Table + chart | Real-position observation (not just balance) for a full REAL view | WEB-PORTFOLIO-01 |
 | PERFORMANCE | How is paper performance trending? | PaperTradeRecorder history | Needs history reader | Chart | Governed JSONL projection | WEB-PORTFOLIO-01 |
 | REGRET | Was a good trade missed or refused? | Regret v2 pipeline | Needs history reader | Table | Governed projection | WEB-REGRET-01 |
 | DATA | What datasets/snapshots exist, how fresh? | Snapshot manifests, data quality gates | Partial | Table | Data explorer (§14) | WEB-DATA-01 |
@@ -279,12 +326,15 @@ MARKET DATA → UNIVERSE → INDICATORS → STRATEGIES → SIGNALS → FILTERS
 ```
 
 Confirmed joins (paper path): SIGNALS → FILTERS → RISK → PORTFOLIO →
-EXECUTION (via `DecisionPacket`/G8) → ORDERS (paper, via `MexcSimulator`) →
-POSITIONS (`PositionManager`) → P&L (`PaperTradeRecorder`).
+EXECUTION (via `DecisionPacket`/G8, with durable intent identity via REM-B's
+`OrderIntentJournal`/`OrderIntentCoordinator`) → ORDERS (paper, via
+`MexcSimulator`) → POSITIONS (`paper_portfolio_view()` reading
+`MexcSimulator._positions` — not `PositionManager`, §7) → P&L
+(`PaperTradeRecorder`).
 
 Unconfirmed / not fabricated: UNIVERSE sizing is not confirmed wired
 end-to-end (§7); FILLS and the real-money ORDERS/POSITIONS/P&L joins are
-`REM_C_DEPENDENCY` per §9 and must not be shown as complete.
+`REM_C_R1_IN_PROGRESS_NOT_ON_MAIN` per §9 and must not be shown as complete.
 
 ---
 
@@ -301,17 +351,17 @@ honesty status:
 | regime | Available (confidence: see §7) |
 | blockers | Available (legacy, telemetry) |
 | actionability | Available (`is_actionable()`) |
-| order intent | Available (paper), `REM_C_DEPENDENCY` (real) |
-| submission | Available (paper), `REM_C_DEPENDENCY` (real) |
-| ACK | `REM_C_DEPENDENCY` |
-| fill | `REM_C_DEPENDENCY` |
-| position | Available (paper), `REM_C_DEPENDENCY` (real) |
-| close | Available (paper), `REM_C_DEPENDENCY` (real) |
-| PnL | Available (paper), `REM_C_DEPENDENCY` (real) |
+| order intent (durable identity) | Available for confirmed G8 call sites, both paper and real (REM-B: `DecisionIdentityJournal`/`OrderIntentJournal`) |
+| submission | Available (paper, via `MexcSimulator`), `REM_C_R1_IN_PROGRESS_NOT_ON_MAIN` (domain-safe real submission) |
+| ACK | Available as a distinct state (paper, `order_intent_protocol.py`), `RUNTIME_UNKNOWN` (real) |
+| fill | `RUNTIME_UNKNOWN` — not confirmed implemented on current main |
+| position | Available (paper, via `paper_portfolio_view()`), `REM_C_R1_IN_PROGRESS_NOT_ON_MAIN` (real) |
+| close | Available (paper), `REM_C_R1_IN_PROGRESS_NOT_ON_MAIN` (real) |
+| PnL | Available (paper, via `PaperTradeRecorder`), `RUNTIME_UNKNOWN` (real) |
 | regret | `NEEDS_HISTORY_READER` |
 
-Any future decision-trace panel must mark the REM-C-dependent fields as
-unavailable rather than approximating them.
+Any future decision-trace panel must mark the fields not yet proven on
+current main as unavailable rather than approximating them.
 
 ---
 
@@ -346,13 +396,18 @@ files and the API — this component does not exist yet (§4, `NEEDS_HISTORY_REA
 | Snapshot freshness | O-02W-C timestamp | Available |
 | Process instance | `process_identity.py` | Available |
 | Data freshness | Snapshot manifest | Available |
-| Health score | Not yet defined as a single composite | `FUTURE_WORK` |
+| Health score | `observability/health_score.py::HealthScore.compute()` — a documented, implemented composite (0-100): Memory 25pts, Reliability 25pts, Exchange 20pts, Trading 20pts, Performance 10pts, with CRITICAL/DEGRADED/HEALTHY/PERFECT thresholds. Wired into the canonical snapshot as `system_health.health_score` | `SOURCE_PROVEN`, `WEB_READY_NOW` |
 | Exchange connectivity | Execution engine | `RUNTIME_UNKNOWN` |
 
 **T-1 owns independent advisor-process liveness evidence and has not
 started.** Snapshot age must never be used as a substitute for boot/process
 liveness — a stale snapshot and a dead process are not the same signal,
 and conflating them was a known documentation risk in prior drafts.
+**The health score is not a liveness proof either** — it is a composite of
+memory/reliability/exchange/trading/performance metrics that can be
+computed from a stale or cached `MetricsSnapshot`; a healthy score is a
+different fact from an independently proven live process, and the two must
+never be conflated.
 
 ---
 
@@ -418,8 +473,8 @@ trigger.
 | WEB-DATA-01 | Data explorer, snapshot/dataset browsing | `SOURCE_READY` (manifests) | `NEEDS_API_EXPOSURE` | Manifest API routes | None known | Low |
 | WEB-REGRET-01 | Regret v2 panel | `SOURCE_PARTIAL` | `NEEDS_HISTORY_READER` | History reader | N thresholds (see CLAUDE.md) still unmet | Medium (statistical validity) |
 | WEB-MARKET-01 | Market/universe panel | `SOURCE_UNSAFE` (universe_size) | `NEEDS_SNAPSHOT_EXPOSURE` | Universe-size producer | No confirmed producer | Medium |
-| WEB-PORTFOLIO-01 | Paper portfolio + performance panels | `SOURCE_READY` (paper) | `WEB_READY_NOW` (current), `NEEDS_HISTORY_READER` (trend) | History reader for trend view | None known | Low |
-| WEB-EXECUTION-01 | Execution truth map panel (paper first) | `SOURCE_PARTIAL` | `NEEDS_API_EXPOSURE` | REM-C for real-money stages | Real fills/ACK not implemented | High if real-money scope is added prematurely |
+| WEB-PORTFOLIO-01 | Paper portfolio + performance panels, plus passive real-account balance display | `SOURCE_READY` (paper positions/equity, real-account balance display) | `WEB_READY_NOW` (current paper + real-balance snapshot fields), `NEEDS_HISTORY_READER` (trend) | History reader for trend view | None known for paper; real-account balance display already has snapshot fields but VPS-live injection is `RUNTIME_UNKNOWN` | Low |
+| WEB-EXECUTION-01 | Execution truth map panel (paper first) | `SOURCE_PARTIAL` (REM-B durable identity/intent present; REM-C R1 domain-safe reconciliation and fill truth proposed, unmerged) | `NEEDS_API_EXPOSURE` | REM-C R1 merge for domain-safe real-position reconciliation; REM-C R2+ for fills/ACK truth | Real fills/ACK not implemented; REM-C R1 (PR #139) not yet merged | High if real-money scope is added prematurely |
 | WEB-HUMAN-LAB-01 | Human research lab (§17) | Not started | Not started | Full schema/design | Entirely future | Medium (scope creep risk) |
 
 `WEB-DECISION-02 — Promote DecisionPacket` is explicitly **not** included:
@@ -432,7 +487,8 @@ promotion mission is needed or valid.
 
 | Dependency | What it gates | Status |
 |---|---|---|
-| **REM-C** | Real-money ACK, fills, partial-fill reconciliation, crash-window durable decision persistence | Not started; ADR-0020 carries repeated "no REM-C scope started" disclaimers |
+| **REM-B** | Durable decision identity, durable pre-network order-intent identity, idempotent duplicate protection | **Present on current main**, wired inside `ExecutionEngine` (`DecisionIdentityJournal`, `OrderIntentJournal`/`OrderIntentCoordinator`); caller coverage confirmed at the primary G8 execution call sites, not exhaustively audited elsewhere |
+| **REM-C** | Execution-domain provenance for reconciliation, PAPER-restart evidence honesty (R1); fill-quantity truth, partial-fill lifecycle, crash-window recovery (R2+) | `REM_C_R1_IN_PROGRESS_NOT_ON_MAIN` — R0 forensic audit and R0.1 correction complete (accepted as basis); **R1 is in an open, draft, unmerged PR (#139)**, based on the same `main` SHA as this document; R2/R3/R4 not started |
 | **T-1** | Independent advisor-process liveness, independent deployment/SHA confirmation | Not started (explicitly, per O-02W-E and O-02W-B contracts) |
 | **Runtime observation** | Any claim that a component is "active" in production, beyond a traced call chain | Confirmed only where a real runtime call site was found (§10, §12); otherwise `RUNTIME_UNKNOWN` |
 | **F-00** | A separate, later scientific measurement pass, gated on its own criteria | **DEFINED / REFERENCED IN GOVERNANCE — NOT STARTED.** Explicitly not O-02W-B, C, D, or E, and not any cockpit-implementation mission. |
@@ -452,8 +508,11 @@ The smallest useful cockpit, using only currently trustworthy facts:
    actionability and its inputs, from the live snapshot.
 4. **Why was it accepted/refused?** — blockers/legacy `trade_allowed` shown
    as gating-input telemetry, alongside the authoritative packet verdict.
-5. **What PAPER portfolio exists?** — current positions and equity from
-   `PositionManager` / `PaperTradeRecorder`, clearly labeled PAPER.
+5. **What PAPER portfolio exists?** — current positions from
+   `paper_portfolio_view()` (reading `MexcSimulator._positions`) and equity
+   from `WalletSync.get_balance()`, clearly labeled PAPER; a passive,
+   display-only real-account balance from `RealAccountsObserver` may be
+   shown alongside it, never combined with it.
 6. **What evidence supports the display?** — every value tagged with its
    evidence class per §3, visible on hover or in a details view.
 
@@ -470,21 +529,31 @@ real-money view — those require the history reader and REM-C respectively.
   but not confirmed wired into the canonical snapshot (§7).
 - **Historical paper-trade reader**: no governed projection over
   `paper_trades.jsonl` exists yet; the API must not read it directly (§14).
-- **Fill truth**: real-money fills and ACKs are REM-C-dependent and not
-  implemented (§9).
-- **Position authority/provenance for real accounts**: not implemented;
-  paper positions are `SOURCE_READY`, real positions are not (§7, §10).
+- **Fill truth**: real-money fills, ACK-to-filled progression, and
+  partial-fill lifecycle are not implemented on current main; REM-C R1
+  (PR #139, unmerged) addresses domain-safe reconciliation and PAPER-restart
+  evidence honesty, not the fill engine itself (§9).
+- **Real-position reconciliation**: not implemented on current main; a
+  domain-compatibility gate (PAPER vs REAL) is required before any
+  real-position reconciliation can safely run, and is proposed, unmerged
+  REM-C R1 scope (§7, §9, §20). Real-account **balance** (display-only,
+  via `RealAccountsObserver`) is a separate, already-wired fact — do not
+  conflate balance observation with position reconciliation.
 - **Independent liveness**: T-1 not started; snapshot age must not be used
-  as a substitute (§15).
-- **Execution-health aggregation**: no single composite health score exists
-  today (§15).
+  as a substitute, and neither must the system health score (§15).
 - **`BurninSimulationEngine` / `PaperLedger` activation status**: both
   conservatively classified `DORMANT / ACTIVATION_UNCONFIRMED`; no
   production call site found. Any future claim of activation needs fresh
   evidence, not inference from the presence of the class (§10).
-- **O-02W-E1 scope**: referenced only inline from
-  `TELEGRAM_IDENTITY_REGISTRY.md`, no standalone contract found; treat its
-  scope conservatively until a dedicated contract exists (§5).
+- **Shadow component VPS-runtime proof**: `ShadowTracker`/S3 and
+  `ShadowExecutionEngine` both have real bootstrap/call-site evidence
+  (`SOURCE_REACHABLE`), but whether they actually execute on the live VPS
+  is `RUNTIME_UNKNOWN` — a source-reachable call site is not proof of
+  production activity (§10).
+- **REM-C R1 merge status**: PR #139 is open, draft, and unmerged as of
+  this document's R1.1 basis; its content must not be described as
+  canonical current-main behavior until it merges and this document is
+  revalidated (§9, §20).
 
 ---
 
