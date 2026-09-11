@@ -984,7 +984,9 @@ class TestR1_1Case7FromEnvRealConstructionConfirmedFalseContrast:
 
 
 class TestR1Case5DistinguishableFallbackSources:
-    """Case 5: (a) stale cache, (b) bootstrapped _x, (c) genuine zero
+    """Case 5: (a) stale cache, (b) bootstrap-seeded `_last_value` replay
+    (R1.2: not `_x` via `_base_capital()` — see the renamed test below),
+    (c) genuine zero
     balance, (d) API error — all through get_balance()/fetch_available_capital,
     proving they are code-path-distinguishable even where the returned
     float coincides. Where the current code CANNOT distinguish two cases
@@ -1010,33 +1012,64 @@ class TestR1Case5DistinguishableFallbackSources:
         assert second == 777.0  # cache, not 500.0 (_x) or 42.0 (paper)
         assert fake_exchange.calls == 1  # exchange not called again — cache hit
 
-    def test_b_bootstrapped_x_used_when_no_cache_and_api_fails(
+    def test_bootstrap_seeded_last_value_is_returned_after_api_failure(
         self, monkeypatch, isolated_ledger
     ):
+        """R1.2 correction (was `test_b_bootstrapped_x_used_when_no_cache_and_api_fails`,
+        renamed to reflect its real behavior — R1.1 incorrectly left the old
+        framing ("_x, via _base_capital()") uncorrected).
+
+        Proves, in order:
+          1. bootstrap() returns 300.0.
+          2. wallet.capital_x (_x) == 300.0.
+          3. wallet._last_value == 300.0 immediately after bootstrap (set_x()
+             seeds both fields in the same call — wallet_sync.py:126,
+             "fallback live aussi").
+          4. the API then fails.
+          5. _fallback() (reached via get_balance()) returns _last_value.
+          6. _base_capital() is NOT necessary to produce this result — proven
+             with a spy that increments a counter on every call; the counter
+             is 0 after the fallback runs, so the `_x` branch of
+             `_base_capital()` was never reached.
+        """
         monkeypatch.setattr(ws, "_PAPER_CAPITAL", 42.0)
         fake_exchange = FakeExchange(raise_on_fetch=False, free_usdt=0.0)
         wallet = ws.WalletSync(exchange=fake_exchange, mode="live")
 
-        # bootstrap() succeeds via a SEPARATE fake exchange with a valid
-        # balance (simulating boot-time success), setting _x without ever
-        # populating _last_value through get_balance()'s own fetch path.
+        # 1-2: bootstrap() succeeds via a SEPARATE fake exchange with a valid
+        # balance (simulating boot-time success), setting _x.
         boot_exchange = FakeExchange(free_usdt=300.0)
         assert wallet.bootstrap(boot_exchange) == 300.0
         assert wallet.capital_x == 300.0
-        # bootstrap() -> set_x() ALSO seeds _last_value = self._x (wallet_sync.py:126,
-        # "fallback live aussi") — so _x and cache are not independent channels here;
-        # this in itself refines §4's earlier framing of "_x" as a distinct fallback
-        # tier from "cache": in practice, a successful bootstrap() populates BOTH.
+
+        # 3: bootstrap() -> set_x() ALSO seeds _last_value = self._x
+        # (wallet_sync.py:126) — _x and _last_value are populated together,
+        # not through get_balance()'s own successful-fetch path.
         assert wallet._last_value == 300.0
 
+        # 4: the API then fails.
         fake_exchange._raise = True
-        # force_refresh=True bypasses the cache-freshness check but the API
-        # call fails, so _fallback() runs: _last_value is 300.0 (seeded by
-        # bootstrap's set_x), so it is returned directly — the _x-only branch
-        # of _base_capital() is reached only when _last_value is None, which
-        # a prior successful bootstrap() never leaves true.
+
+        # 6 (spy installed before the call): count _base_capital() calls.
+        base_capital_calls = {"n": 0}
+        real_base_capital = wallet._base_capital
+
+        def _spy_base_capital():
+            base_capital_calls["n"] += 1
+            return real_base_capital()
+
+        monkeypatch.setattr(wallet, "_base_capital", _spy_base_capital)
+
+        # 5: force_refresh=True bypasses the cache-freshness check, the API
+        # call fails, so get_balance() falls through to _fallback(), which
+        # finds _last_value (300.0, seeded by bootstrap's set_x) is not None
+        # and returns it directly — _base_capital() is never reached.
         result = wallet.get_balance(force_refresh=True)
         assert result == 300.0  # NOT 42.0 (paper) — code-path distinguishable
+
+        # 6: proof that _base_capital() (and therefore its `_x` branch) was
+        # NOT necessary to produce this result.
+        assert base_capital_calls["n"] == 0
 
     def test_c_and_d_zero_balance_and_api_error_are_NOT_source_distinguishable(
         self, monkeypatch, isolated_ledger
@@ -1071,3 +1104,119 @@ class TestR1Case5DistinguishableFallbackSources:
         # upstream even though the return value can't tell you that).
         assert zero_exchange.calls == 1
         assert error_exchange.calls == 1
+
+
+# ─────────────────────────────────────────────────────────────────────────
+# R1.2 — documentary regression tests: the contract doc must not regress to
+# the R1.1 factual error about the `_x`/`_last_value` fallback chain (the
+# doc claimed Case 5b passed through `_base_capital()`'s `_x` branch; it
+# does not — see the corrected §4/§11 text and the renamed Case 5b test
+# above). These tests read the actual doc file and assert on scoped,
+# specific pieces of text — never permissive `or`-joined checks.
+# ─────────────────────────────────────────────────────────────────────────
+
+import pathlib
+import re
+
+_CONTRACT_DOC_PATH = (
+    pathlib.Path(__file__).resolve().parent.parent
+    / "docs"
+    / "contracts"
+    / "O-02W-PRE-T1-D_REAL_CAPITAL_BOUNDARY.md"
+)
+
+
+def _read_contract_doc() -> str:
+    return _CONTRACT_DOC_PATH.read_text(encoding="utf-8")
+
+
+def _extract_section(doc: str, heading: str, next_heading_prefix: str = "## ") -> str:
+    """Return the text of the section starting at `heading` (a full line,
+    e.g. "## 4. H4 — ...") up to (not including) the next line starting
+    with `next_heading_prefix`. Raises AssertionError if `heading` is not
+    found verbatim as its own line — keeps section lookups exact rather
+    than fuzzy-matched."""
+    lines = doc.splitlines()
+    start = None
+    for i, line in enumerate(lines):
+        if line.strip() == heading:
+            start = i
+            break
+    assert start is not None, f"heading not found verbatim: {heading!r}"
+    end = len(lines)
+    for j in range(start + 1, len(lines)):
+        if lines[j].startswith(next_heading_prefix):
+            end = j
+            break
+    return "\n".join(lines[start:end])
+
+
+class TestR1_2DocumentaryRegressionCorrectXLastValueFraming:
+    """Regression tests for the R1.2 correction of the `_x`/`_last_value`
+    fallback-chain framing. Each test targets one specific, scoped claim —
+    no permissive `or`-joined assertions."""
+
+    def test_doc_states_set_x_initializes_last_value(self):
+        section = _extract_section(
+            _read_contract_doc(),
+            "## 4. H4 — API-mode fallback chain (value origin vs. internal storage vs. branch executed)",
+        )
+        assert (
+            "`set_x()` writes `self._last_value = self._x` in the same"
+            in section
+        )
+        assert "call (`wallet_sync.py:126`" in section
+
+    def test_doc_states_normal_bootstrap_returns_x_value_via_last_value(self):
+        section = _extract_section(
+            _read_contract_doc(),
+            "## 4. H4 — API-mode fallback chain (value origin vs. internal storage vs. branch executed)",
+        )
+        assert (
+            "The `_base_capital() → _x` branch is therefore\n**normally not reached** "
+            "after a successful public bootstrap, because\n`_fallback()` returns "
+            "`_last_value` first"
+            in section
+        )
+
+    def test_doc_no_longer_claims_case_5b_passes_through_base_capital(self):
+        doc = _read_contract_doc()
+        # The exact R1.1 wrong phrase must be gone.
+        assert "returns `300.0` (`_x`, via\n    `_base_capital()`" not in doc
+        # And no remaining sentence in the document claims Case 5b's result
+        # was produced "via `_base_capital()`" (case-insensitive, tolerant
+        # of internal line wraps).
+        collapsed = re.sub(r"\s+", " ", doc)
+        assert "300.0 (_x, via _base_capital()" not in collapsed
+        assert "300.0 (_x, via\n    `_base_capital()`" not in doc
+
+    def test_doc_classifies_x_only_state_as_not_from_public_bootstrap_path(self):
+        assert (
+            "INTERNAL_STATE_ONLY_NOT_PRODUCED_BY_PUBLIC_BOOTSTRAP_PATH"
+            in _read_contract_doc()
+        )
+
+    def test_doc_case_5b_summary_references_last_value_not_x_branch(self):
+        section = _extract_section(
+            _read_contract_doc(),
+            "## 11. Case 1-5 results (R1 combined causal-order tests) — `PRODUCTION_FUNCTIONS_WITH_INJECTED_STATE`",
+        )
+        assert "5b bootstrap-seeded `_last_value`:" in section
+        assert "not** via\n    `_base_capital()`'s `_x` branch" in section
+
+    def test_renamed_case_5b_test_exists_with_base_capital_spy_assertion(self):
+        test_source = pathlib.Path(__file__).read_text(encoding="utf-8")
+        assert (
+            "def test_bootstrap_seeded_last_value_is_returned_after_api_failure("
+            in test_source
+        )
+        assert 'assert base_capital_calls["n"] == 0' in test_source
+        # The old (R1.1) test name must not exist as a *test definition* —
+        # checked structurally (a `def <old name>(` line), not merely as a
+        # substring, so this assertion is not defeated by this very file
+        # mentioning the old name in a comment/docstring elsewhere.
+        old_def = "def " + "test_b_bootstrapped_x_used_when_no_cache_and_api_fails" + "("
+        def_lines = [
+            ln for ln in test_source.splitlines() if ln.strip().startswith(old_def)
+        ]
+        assert def_lines == []

@@ -308,17 +308,89 @@ secondary to, the branch-selection effect documented above.
 
 ---
 
-## 4. H4 — API-mode fallback chain (fresh / cache / `_x` / paper fallback)
+## 4. H4 — API-mode fallback chain (value origin vs. internal storage vs. branch executed)
 
-Four distinct values exist and must not be conflated (`SOURCE_PROVEN`,
-`wallet_sync.py`):
+**R1.2 correction (this section rewritten to fix a factual error left
+uncorrected by R1.1):** the previous framing of this section ("four
+independent fallback levels", `_x`/cache as separate operational tiers) is
+replaced below by an explicit three-way distinction, verified against the
+real `infra/wallet_sync.py` source:
 
-| Value | What it is | When used |
+- **Value origin** — where the number historically came from: `FRESH_API`
+  (a `fetch_balance()` call that just succeeded), `BOOTSTRAP_X` (the
+  one-shot `bootstrap()`/`set_x()` call at process start), `PAPER_BASE`
+  (`WALLET_PAPER_CAPITAL`), or `PAPER_LEDGER_PNL` (paper-mode ledger
+  replay).
+- **Internal storage** — the field actually holding the value at read time.
+  `_x` holds the capital accepted at bootstrap and is never overwritten
+  after that (`wallet_sync.py:125`). `_last_value` holds either the
+  X-bootstrap value **or** the most recent positive API value obtained
+  afterward — `set_x()` writes `self._last_value = self._x` in the same
+  call (`wallet_sync.py:126`, comment "fallback live aussi"), and a later
+  successful `fetch_balance()` overwrites `_last_value` again
+  (`wallet_sync.py:195`). `_x` and `_last_value` are therefore not
+  independent channels: after any successful bootstrap, `_last_value` is
+  never `None`.
+- **Branch actually executed** — which code path `get_balance()`/
+  `_fallback()`/`_base_capital()` take. `SOURCE_PROVEN`,
+  `wallet_sync.py:159-206`:
+
+```python
+def _fallback(self) -> float:
+    if self._last_value is not None:
+        return self._last_value
+    return self._base_capital()
+
+def _base_capital(self) -> float:
+    return self._x if self._x is not None else _PAPER_CAPITAL
+```
+
+**Real operational chain** (`SOURCE_PROVEN`, verified against current
+source):
+
+```
+PAPER mode
+→ PAPER_BASE + PAPER_LEDGER_PNL
+
+LIVE/TESTNET mode
+→ valid TTL cache → _last_value
+
+→ else API attempt
+   → positive value → _last_value updated → value returned
+   → zero or exception → _fallback()
+
+_fallback()
+→ _last_value if not None
+→ else _base_capital()
+
+_base_capital() in LIVE/TESTNET
+→ _x if not None
+→ else PAPER_BASE
+```
+
+**Essential qualifier:** in the normal public cycle, a successful bootstrap
+calls `set_x()`, which initializes `_x` and `_last_value`
+**simultaneously**. The `_base_capital() → _x` branch is therefore
+**normally not reached** after a successful public bootstrap, because
+`_fallback()` returns `_last_value` first — `_base_capital()`'s `_x` branch
+is only ever reached when `_last_value is None`, i.e. when `_x` was set
+through some path other than the public `set_x()`/`bootstrap()` call (see
+the `INTERNAL_STATE_ONLY_NOT_PRODUCED_BY_PUBLIC_BOOTSTRAP_PATH`
+classification below), which no observed production call path produces.
+
+**Consumer-visible provenance:** none of the above is tagged or surfaced to
+the caller — `get_balance()` always returns a plain `float`; a consumer
+cannot tell from the return value alone whether it came from a fresh fetch,
+a cache hit, or the X-bootstrap value replayed through `_last_value` (see
+Case 5c/5d below for the sharper zero-vs-error instance of this same
+non-distinguishability).
+
+| Value | Storage at read time | When used |
 |---|---|---|
-| **fresh** | `exchange.fetch_balance()` result, just fetched | live/testnet, cache expired or `force_refresh=True`, fetch succeeds, `usdt > 0` |
-| **cache (`_last_value`)** | last successful fresh value | live/testnet, cache still within `WALLET_CACHE_TTL_S` (default 30s); OR live/testnet fetch fails/raises/returns 0 and a prior successful fetch exists |
-| **`_x` (bootstrapped capital)** | value set once via `bootstrap()`/`set_x()` at process start, `>= MIN_CAPITAL_X` | only reached inside `_base_capital()`'s non-paper branch, and only when `_last_value is None` (i.e., no fresh/cached value has ever existed) |
-| **paper fallback (`WALLET_PAPER_CAPITAL`)** | the env-configured paper constant | (a) always, in paper mode; (b) in live/testnet mode, whenever `_last_value is None` **and** `_x is None` — i.e. bootstrap never succeeded and no fetch has ever succeeded |
+| **fresh** | not stored yet; about to become `_last_value` | live/testnet, cache expired or `force_refresh=True`, fetch succeeds, `usdt > 0` |
+| **cache / X-bootstrap replay (`_last_value`)** | `_last_value` | live/testnet, cache still within `WALLET_CACHE_TTL_S` (default 30s); OR live/testnet fetch fails/raises/returns 0 **and** `_last_value is not None` (populated either by a prior successful fetch, or by `set_x()` at bootstrap, or both) |
+| **`_x`-only branch of `_base_capital()`** | `_x` | only reached when `_last_value is None` — `INTERNAL_STATE_ONLY_NOT_PRODUCED_BY_PUBLIC_BOOTSTRAP_PATH`: not producible by a normal `set_x()`/`bootstrap()` call, since that call sets `_last_value` in the same step; would require manual private-attribute mutation, an undemonstrated state-restore path, a future production change, or internal corruption |
+| **paper fallback (`WALLET_PAPER_CAPITAL`)** | module constant `_PAPER_CAPITAL` | (a) always, in paper mode; (b) in live/testnet mode, whenever `_last_value is None` **and** `_x is None` — i.e. bootstrap never succeeded and no fetch has ever succeeded |
 
 **Confirmed (Scenario F, `BEHAVIOR_PROVEN_HERMETIC`,
 `TestScenarioFGHApiFailureFallbacks.test_live_mode_api_error_no_cache_falls_back_to_paper_capital_constant`):**
@@ -353,19 +425,29 @@ conclusions, in `docs/contracts/O-02W-E_TELEGRAM_OBSERVATION_BOUNDARY.md`
 §9c Flow 2 (Correction E / R1.1), which this audit's hermetic tests now
 additionally prove at the unit level rather than by source reading alone.
 
-**R1 refinement (§11 Case 5b):** `_x` and **cache** are not fully
-independent tiers in practice. `WalletSync.set_x()` (called internally by a
-successful `bootstrap()`) also seeds `self._last_value = self._x`
+**R1.2 correction (§11 Case 5b):** R1.1 stated that Case 5b's returned value
+was "`_x`, via `_base_capital()`" — this was factually wrong and is
+corrected here. `WalletSync.set_x()` (called internally by a successful
+`bootstrap()`) seeds `self._last_value = self._x` in the same call
 (`wallet_sync.py:126`, comment "fallback live aussi"). So a process that
-successfully bootstraps and then experiences an API error never reaches the
-"`_last_value is None` → use `_x`" branch of `_base_capital()` on its own —
-it is served by the ordinary cache-fallback path with a value that happens
-to equal `_x`. The `_x`-only branch of `_base_capital()` is reached only
-when a caller has `_x` set (via `set_x()`/`bootstrap()`) **without** having
-gone through `get_balance()`'s own successful-fetch path — hermetically
-reachable (§11 Case 5b constructs it directly) but not the typical process
-lifecycle. This does not change the H4 verdict; it refines which of the two
-listed tiers ("cache" vs. "`_x`") a real bootstrapped process actually hits.
+successfully bootstraps and then experiences an API error does **not**
+reach `_base_capital()` at all: `_fallback()` finds `_last_value` is not
+`None` (it equals `300.0`, the bootstrapped value) and returns it directly
+— `_base_capital()` and its `_x` branch are never called. `_x`'s value is
+still the one visible in the result, but only because `_last_value` was
+seeded from it at bootstrap time, not because `_base_capital()`'s `_x`
+branch executed. The `_x`-only branch of `_base_capital()` is reached only
+when `_last_value is None` — a state the public `set_x()`/`bootstrap()`
+path never leaves behind, since it always sets both fields together;
+producing it requires manual private-attribute mutation, an undemonstrated
+state-restore path, a future production change, or internal corruption
+(`INTERNAL_STATE_ONLY_NOT_PRODUCED_BY_PUBLIC_BOOTSTRAP_PATH`, see §4 above).
+Case 5b (renamed `test_bootstrap_seeded_last_value_is_returned_after_api_failure`)
+now proves this directly: it spies on `_base_capital()` and asserts it is
+called zero times while still returning `300.0` via `_last_value`. This
+does not change the H4 verdict; it corrects which mechanism — `_last_value`
+replay, not the `_x` branch of `_base_capital()` — actually produces the
+observed value.
 
 **R1 refinement (§11 Case 5c/5d — explicit non-distinguishability finding):**
 a genuine zero balance (Scenario H) and an API error (Scenario F/G) are
@@ -681,11 +763,13 @@ reproduction of `from_env()`'s own construction logic — for that, see §11a.
   - **5a stale cache:** returns the cached `777.0`, not `_x` (`500.0`,
     deliberately also set) or paper (`42.0`) — exchange called exactly
     once total (cache hit skips the second call).
-  - **5b bootstrapped `_x`:** returns `300.0` (`_x`, via
-    `_base_capital()`'s non-paper branch) rather than `42.0` (paper) —
-    but see the §4 R1 refinement: a successful `bootstrap()` also seeds
-    `_last_value`, so this branch is reached only when `_last_value` was
-    never populated by `get_balance()` itself.
+  - **5b bootstrap-seeded `_last_value`:** returns `300.0` (the
+    X-bootstrap value, replayed via `_last_value`, **not** via
+    `_base_capital()`'s `_x` branch — see the §4 R1.2 correction) rather
+    than `42.0` (paper). A successful `bootstrap()` seeds `_last_value =
+    _x` in the same call, so `_fallback()` returns `_last_value` directly;
+    `_base_capital()` is proven, via a call-count spy, to be invoked zero
+    times in this case.
   - **5c/5d zero balance vs. API error:** both return the identical
     `42.0` via the identical `_fallback()` call — proven **not**
     distinguishable from the return value alone, stated as an explicit
@@ -783,12 +867,15 @@ language is removed and replaced by the following six enumerated points):
    direction 2, §11 Case 3, and the original round's H4/H6): when the
    singleton is frozen `paper` before a `live`/`testnet`-requesting caller,
    `WALLET_PAPER_CAPITAL` is returned instead — `BEHAVIOR_PROVEN_HERMETIC`.
-5. **Ambiguous API fallback between error / zero / cache / `_x` / paper
-   capital** (§4, §11 Case 4/5): error, no-cache/no-`_x` returns paper
-   capital (Case 4); zero balance and API error are not distinguishable
-   from the return value (Case 5c/5d); stale cache and bootstrapped `_x`
-   are each individually distinguishable and proven so (Case 5a/5b) —
-   `BEHAVIOR_PROVEN_HERMETIC` throughout.
+5. **Ambiguous API fallback between error / zero / cache-or-bootstrap
+   replay (`_last_value`) / paper capital** (§4, §11 Case 4/5): error,
+   no-cache/no-bootstrap returns paper capital (Case 4); zero balance and
+   API error are not distinguishable from the return value (Case 5c/5d);
+   a fresh-fetch cache hit and a bootstrap-seeded `_last_value` replay are
+   each individually distinguishable and proven so (Case 5a/5b) — the
+   latter proven, via a `_base_capital()` call-count spy, to never reach
+   the `_x` branch of `_base_capital()` — `BEHAVIOR_PROVEN_HERMETIC`
+   throughout.
 6. **`order_size` not recomputed after refresh** (§5/H5): `SOURCE_PROVEN`
    by grep (`core/advisor_loop.py`'s sole `order_size =` assignment, line
    4046, never reassigned) — no evidence found of any later recomputation;
