@@ -3,11 +3,13 @@ from __future__ import annotations
 import math
 import os
 import time
+from typing import Optional
 
 from observability.json_logger import get_logger
 from quant_hedge_ai.agents.execution.order_authorization import authorize_order
 from quant_hedge_ai.agents.execution.order_deduplicator import OrderDeduplicator
 from quant_hedge_ai.agents.execution.decision_identity import (
+    DecisionIdentityError,
     DecisionIdentityJournal,
     default_decision_identity_journal,
 )
@@ -529,6 +531,19 @@ class ExecutionEngine:
                     price=price,
                     reduce_only=False,
                 )
+                _binding_denial = self._bind_decision_to_intent(decision_id, intent)
+                if _binding_denial is not None:
+                    return {
+                        "symbol": symbol,
+                        "action": action,
+                        "size": size_usd,
+                        "mode": "rejected",
+                        "error": "decision_id could not be atomically bound "
+                        "to this order intent — refusing the legacy bypass",
+                        "denial_reason": _binding_denial,
+                        "order_intent_outcome": None,
+                        "client_order_id": None,
+                    }
                 mutate = self._mutate_via_coordinator(
                     self._exchange_futures.create_order, ccxt_symbol, side, qty
                 )
@@ -662,6 +677,31 @@ class ExecutionEngine:
         if not decision_id:
             return False
         return self._get_decision_identity_journal().is_persisted(decision_id)
+
+    def _bind_decision_to_intent(self, decision_id: str, intent) -> Optional[str]:
+        """O-02W-PRE-T1-E REM-B-R1.2, Blocker B §4.3: atomically binds the
+        durably-persisted decision to the exact order-intent digest about to
+        be submitted, BEFORE the mutation call — a persisted decision alone
+        only proves "some decision with this id once existed", not which
+        order it authorized. Returns `None` on success, or a typed denial
+        reason string if the binding could not be established (a rebind
+        attempt to a DIFFERENT intent digest, or a journal write failure) —
+        callers MUST treat a non-None return as a hard fail-closed refusal
+        with zero mutation calls, exactly like a missing/unpersisted
+        decision_id."""
+        try:
+            self._get_decision_identity_journal().bind_intent(
+                decision_id, intent.full_digest()
+            )
+        except DecisionIdentityError as exc:
+            _log.warning(
+                "[ExecutionEngine] Liaison décision→intention refusée "
+                "(REM-B-R1.2, fail-closed) decision_id=%s: %s",
+                decision_id,
+                exc,
+            )
+            return "DECISION_INTENT_BINDING_FAILED"
+        return None
 
     def _mutate_via_coordinator(self, mutate_fn, ccxt_symbol, side, qty):
         """Wraps a raw `self._exchange.create_order(...)` call (via
@@ -846,6 +886,19 @@ class ExecutionEngine:
                     price=price,
                     reduce_only=False,
                 )
+                _binding_denial = self._bind_decision_to_intent(decision_id, intent)
+                if _binding_denial is not None:
+                    return {
+                        "symbol": symbol,
+                        "action": action,
+                        "size": round(size, 4),
+                        "mode": "rejected",
+                        "error": "decision_id could not be atomically bound "
+                        "to this order intent — refusing the legacy bypass",
+                        "denial_reason": _binding_denial,
+                        "order_intent_outcome": None,
+                        "client_order_id": None,
+                    }
                 mutate = self._mutate_via_coordinator(
                     self._exchange.create_order, ccxt_symbol, side, qty
                 )

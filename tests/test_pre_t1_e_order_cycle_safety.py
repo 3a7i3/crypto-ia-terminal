@@ -60,6 +60,13 @@ def _certify_mexc_for_test(monkeypatch):
     monkeypatch.setattr(
         _EE, "_decision_id_is_durably_persisted", lambda self, decision_id: bool(decision_id)
     )
+    # O-02W-PRE-T1-E REM-B-R1.2, Blocker B: decision->intent binding now
+    # requires a REAL durably-persisted decision record (bind_intent()
+    # raises DecisionIdentityError otherwise) — these tests exercise OTHER
+    # behavior, so bypass the binding gate the same way, mirroring the
+    # persistence bypass above. Dedicated tests exercise the real binding
+    # invariants directly via DecisionIdentityJournal.
+    monkeypatch.setattr(_EE, "_bind_decision_to_intent", lambda self, decision_id, intent: None)
 
 
 @pytest.fixture

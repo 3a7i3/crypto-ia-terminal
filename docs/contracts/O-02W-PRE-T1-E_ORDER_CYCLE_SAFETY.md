@@ -536,3 +536,31 @@ an unverifiable live capability" — this is a corrected posture, not a
 remaining defect), does not start REM-C, and does not enable live
 trading in any way. No real order, exchange call, VPS access, secret
 access, or deployment occurred in this round.
+
+## 22.3 REM-B R1.2 final safety correction round (2026-09-11)
+
+**Addendum to §22/§22.1/§22.2, not a rewrite.** Two remaining blockers from
+MASTER's R1.2 review, per ADR-0020's R1.2 section (full detail there).
+
+| Blocker | Investigation finding | Resolution |
+|---|---|---|
+| A — every non-`SUBMIT_AND_RECONCILE_VERIFIED` adapter must fail closed before network mutation | **Investigation established this invariant was ALREADY FULLY SATISFIED by R1.1** — `OrderIntentCoordinator.submit()`'s `supports_client_order_id` gate (itself `verdict == SUBMIT_AND_RECONCILE_VERIFIED`, derived, not independently settable) already denies MEXC, `krakenfutures`, `binanceusdm`, any unknown/alias exchange id, and any `SUBMIT_ONLY_RECONCILIATION_UNVERIFIED`/`UNSUPPORTED`/`INCONCLUSIVE` verdict, before any mutation call, with zero `SUBMISSION_STARTED` journal writes; `reconcile()`'s capability gate (R1.1 Blocker B) already prevents a caller-supplied `lookup` from being invoked for an uncertified adapter. Confirmed via fail-before proof: 16 new Group P tests (`TestGroupP_R12_AdapterFailClosed`, covering MEXC spot/futures/PositionManager-close denial, Kraken Futures, Binance USD-M, unknown adapters, adapter aliases, direct `SUBMIT_ONLY_RECONCILIATION_UNVERIFIED` denial, caller-supplied lookup/capability non-promotion, verified-fake exactly-once submission, ambiguous-result no-resubmission, zero `SUBMISSION_STARTED` transition, and retry-wrapper non-bypass) **already pass unmodified against the R1.1 head** (`e5d81deb`). No production code change was needed or made for this blocker. | **CONFIRMED_ALREADY_REMEDIATED_IN_PRE_T1_E_REM_B_R1_1** — R1.2 adds only the explicit proof (Group P), not a behavior change. |
+| B — genuine causal reconstruction after process restart | R1.1's `DecisionIdentityJournal` proved only that a `decision_id` string, once durably written, stays found by an `is_persisted()` membership check — MASTER correctly identified this as insufficient: it does not prove the DECISION's canonical payload is reconstructible, nor that it stays bound to exactly one authorized order intent. Confirmed via fail-before proof: 14 of 30 new Group Q tests (`TestGroupQ_R12_CausalReconstruction`) fail with `AttributeError` against the R1.1 head (`e5d81deb`) — `bind_intent`, `recover_pending_decisions`, `find_by_cycle_key`, `verify_digest`, `get` did not exist; behavioral, not import/collection failures. | **REMEDIATED_IN_PRE_T1_E_REM_B_R1_2.** `decision_identity.py` rewritten (schema_version 2): every `persist()` call now computes and stores a canonical `payload`/`payload_digest`; a NEW `bind_intent(decision_id, intent_digest)` atomically binds the persisted decision to the exact `OrderIntent` digest it authorizes (idempotent replay of the same digest; fail-closed `DecisionIdentityError` on a different digest, an unpersisted decision, or a conflicting duplicate `persist()` for the same id with a different payload); `recover_pending_decisions()`/`find_by_cycle_key()`/`get()`/`verify_digest()` let a caller with ONLY the durable journal path — no retained `decision_id` variable, coordinator, or engine object — reconstruct every recoverable decision from durable state alone. `ExecutionEngine._bind_decision_to_intent()` calls `bind_intent()` in both `create_order()`/`create_futures_order()` immediately after building the `OrderIntent`, before the mutation call — tightening the causal ordering to `DECISION_ID_CREATED -> DECISION_RECORD_DURABLY_PERSISTED -> REM_A_AUTHORIZATION -> ORDER_INTENT_BOUND_TO_DECISION -> ORDER_INTENT_DURABLY_PERSISTED -> SUBMISSION_STARTED -> EXCHANGE_MUTATION`. A genuinely legacy (schema_version=1) record without `payload`/`payload_digest` is excluded from `recover_pending_decisions()` (fails closed for reconstruction) while `is_persisted()` still honors it (R1.1 backward compatibility). All 30 Group Q tests pass on R1.2's head. |
+
+**REM-C blockers remaining fully open, unattempted, explicitly out of this
+mission's scope (unchanged from §22/§22.1/§22.2):** complete partial-fill
+lifecycle; full position reconstruction after a crash window; PnL
+accounting changes; any automatic resubmission policy after
+`RECONCILED_NOT_FOUND_PENDING`; verification of
+`krakenfutures`/`binanceusdm`/MEXC's exact CCXT reconciliation methods
+against a real, installed `ccxt` package (still fails closed rather than
+guessed).
+
+**Updated verdict: still `REMEDIATION_REQUIRED`.** R1.2 closes Blocker B
+with a genuine new capability (decision-to-intent binding and
+durable-state-only restart reconstruction) and formally proves Blocker A
+was already closed by R1.1 — but does not start REM-C, does not verify any
+adapter's real reconciliation capability against a pinned `ccxt` install,
+and does not enable live trading in any way. No real order, exchange call,
+VPS access, secret access, or deployment occurred in this round. PR #138
+remains **draft** and **unmerged**.

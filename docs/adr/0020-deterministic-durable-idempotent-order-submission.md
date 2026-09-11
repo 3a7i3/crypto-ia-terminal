@@ -716,3 +716,161 @@ done here either — deliberately fails closed instead of guessed).
   `binanceusdm`/`mexc` reconciliation against the real `ccxt` package —
   zero live impact today (paper-only stabilization window), but a
   necessary follow-up before ANY future live-trading authorization.
+
+## R1.2 final safety correction round (2026-09-11)
+
+Starting HEAD: `e5d81deb8439f553c23c09b9f1653505d94de5b3` (verified:
+local/remote/GitHub PR metadata all matched; base `092bb88f...` unchanged;
+working tree clean). MASTER's R1.2 review named exactly two remaining
+blockers.
+
+### Blocker A — every non-fully-verified adapter must fail closed
+
+**Investigation finding, not a code defect**: re-reading
+`OrderIntentCoordinator.submit()` (the actual production submission path)
+showed this invariant was **already fully enforced by R1.1**. `submit()`'s
+very first gate after the authorization check is
+`if not self._capabilities.supports_client_order_id: return
+UNSUPPORTED_ADAPTER_CAPABILITY` — and `supports_client_order_id` is a
+DERIVED property, `True` only when `verdict ==
+SUBMIT_AND_RECONCILE_VERIFIED`. Since R1.1's Blocker B downgraded MEXC to
+`SUBMIT_ONLY_RECONCILIATION_UNVERIFIED` (a verdict this property
+explicitly treats as `False` despite its name), and no other exchange
+holds any capability-table entry, EVERY exchange this repository can be
+configured with (`mexc`, `krakenfutures`, `binanceusdm`, any unknown
+`EXCHANGE_ID` value, any alias/typo) already reaches this gate and is
+denied before any mutation call, with zero `SUBMISSION_STARTED` journal
+writes. `reconcile()`'s own capability gate (R1.1) already prevents a
+caller-supplied `lookup` from being invoked for an uncertified adapter,
+and `capabilities_for_exchange()` (the SOLE production authority, read
+fresh on every call from the shared table) has no parameter allowing a
+caller to override it.
+
+**Proof, not a fix**: 16 new tests
+(`TestGroupP_R12_AdapterFailClosed` in
+`tests/test_pre_t1_e_rem_b_idempotent_order_protocol.py`) exercise this
+invariant end-to-end — MEXC spot (`ExecutionEngine.create_order`), MEXC
+futures (`create_futures_order`), MEXC position close
+(`PositionManager._send_close_order`), Kraken Futures, Binance USD-M,
+an unregistered exchange id, four plausible MEXC aliases
+(`mexc-spot`/`mexc_v2`/`MEXC2`/`mexcfutures`), a directly-constructed
+`SUBMIT_ONLY_RECONCILIATION_UNVERIFIED` capability (proving the RULE, not
+just today's MEXC data), a caller-supplied permissive `lookup` (proven
+never invoked), source-level proof that no production call site accepts a
+caller-supplied capability override, a `SUBMIT_AND_RECONCILE_VERIFIED`
+fake submitting exactly once (never twice on a duplicate call), an
+ambiguous result on a verified fake entering reconciliation without
+resubmission, zero journal transitions for a denied adapter, and a naive
+3-attempt retry wrapper denied on every attempt. **All 16 pass unmodified
+against the R1.1 head** (`e5d81deb`) — the fail-before proof for this
+blocker is therefore a NEGATIVE result: no behavioral gap existed. No
+production code was changed for Blocker A in this round.
+
+### Blocker B — genuine causal reconstruction after process restart
+
+R1.1's `DecisionIdentityJournal` proved a `decision_id`, once durably
+written, is still found by `is_persisted()` after a fresh journal
+instance is constructed — but MASTER's review correctly identified this
+as insufficient: it proves only "a decision with this id once existed",
+not that its canonical payload is reconstructible, nor that it stays
+bound to exactly one authorized order intent, using a stable recovery
+selector rather than a retained in-memory `decision_id` variable.
+
+**Fail-before proof (behavioral, not import/collection failure)**: of 30
+new tests in `TestGroupQ_R12_CausalReconstruction`, 14 fail against the
+R1.1 head (`e5d81deb`) with `AttributeError` — `bind_intent`,
+`recover_pending_decisions`, `find_by_cycle_key`, `verify_digest`, `get`
+did not exist on `DecisionIdentityJournal`; the remaining 16 (duplicate-
+delivery idempotence, basic persistence) already passed, being genuinely
+unaffected by this blocker.
+
+**Fix**: `decision_identity.py` rewritten, `SCHEMA_VERSION` bumped to 2:
+
+- `persist()` now computes and durably stores a canonical `payload` (the
+  fields the caller has available — namespace/cycle/symbol/action by
+  default, or a caller-supplied richer payload) plus its SHA-256
+  `payload_digest` — the reconstructible evidence R1.2 requires, not
+  merely an opaque id. A `persist()` call for a `decision_id` already
+  recorded with a DIFFERENT payload digest now raises
+  `DecisionIdentityError` (conflicting duplicate, fails closed); the SAME
+  payload digest (genuine duplicate delivery) remains idempotent, as R1.1
+  already required.
+- New `bind_intent(decision_id, intent_digest)`: atomically binds a
+  persisted decision to the exact `OrderIntent.full_digest()` it
+  authorizes. Fails closed (`DecisionIdentityError`, zero journal writes)
+  for an unpersisted `decision_id`; replaying the identical
+  `(decision_id, intent_digest)` pair is idempotent (a retried submission
+  attempt is not an error); binding the same `decision_id` to a
+  DIFFERENT `intent_digest` raises — one persisted decision authorizes
+  exactly one order intent under this module's model (REM-C may define an
+  explicit versioned child-intent index if multi-intent decisions are
+  ever needed; this module does not silently allow it).
+- New `get(decision_id)`, `recover_pending_decisions(namespace=...)`,
+  `find_by_cycle_key(namespace=, cycle=, symbol=)`, `verify_digest(...)`:
+  the R1.2 §4.4 restart-reconstruction surface. A caller holding ONLY the
+  journal's durable path (no retained `decision_id` variable, coordinator,
+  or engine object) can construct a brand-new `DecisionIdentityJournal`
+  and recover every recoverable decision, verify its payload's integrity,
+  and locate one by a stable (namespace, cycle, symbol) selector instead
+  of an already-known id. A record missing `payload`/`payload_digest` (a
+  genuinely legacy, pre-R1.2 record) is excluded from
+  `recover_pending_decisions()` — fails closed for reconstruction — while
+  `is_persisted()` still honors it, preserving R1.1 backward
+  compatibility for data written before this schema version.
+- `ExecutionEngine._bind_decision_to_intent()` (new): called from both
+  `_place_live_order()` and `create_futures_order()` immediately after
+  `build_order_intent(...)`, before the mutation call. A binding failure
+  (conflicting rebind, or a decision that somehow became unpersisted
+  between the earlier `_decision_id_is_durably_persisted` check and this
+  point) returns a typed `DECISION_INTENT_BINDING_FAILED` denial with
+  zero mutation calls, exactly like `MISSING_CAUSAL_ID`/
+  `UNPERSISTED_CAUSAL_ID`. Tightens the causal ordering to:
+  `DECISION_ID_CREATED -> DECISION_RECORD_DURABLY_PERSISTED ->
+  REM_A_ORDER_AUTHORIZATION -> ORDER_INTENT_BOUND_TO_DECISION ->
+  ORDER_INTENT_DURABLY_PERSISTED -> SUBMISSION_STARTED ->
+  EXCHANGE_MUTATION_ATTEMPT`.
+
+All 30 Group Q tests pass on R1.2's head, including a full end-to-end
+restart-reconstruction proof (`test_restart_reconstructs_pending_decision_using_only_durable_state`
+— a decision is persisted inside a nested scope whose locals, including
+the `decision_id` variable and the `DecisionIdentityJournal` instance
+itself, are explicitly discarded; recovery afterward uses only the
+durable path plus a `(namespace, cycle, symbol)` selector) and a combined
+Blocker-A/B restart proof
+(`test_restart_with_binding_preserves_binding_and_causes_no_resubmission`)
+showing a brand-new `ExecutionEngine`, given the same `decision_id`,
+recovers the same binding and causes zero further exchange mutation
+calls.
+
+### R1.2 test-fixture updates
+
+The 4 existing `_certify_mexc_for_test` helpers (in
+`tests/test_pre_t1_e_order_cycle_safety.py`,
+`tests/test_pre_t1_e_rem_a_order_authorization.py`,
+`quant_hedge_ai/agents/execution/test_execution_engine.py`,
+`quant_hedge_ai/agents/execution/test_execution_engine_futures.py`) each
+gained one additional `monkeypatch.setattr(_EE,
+"_bind_decision_to_intent", lambda self, decision_id, intent: None)` line
+— mirroring the existing `_decision_id_is_durably_persisted` bypass — so
+tests targeting OTHER behavior (sizing, symbol conversion, SEC-01 gate,
+etc.) are not broken by the new binding gate. Dedicated Group Q tests
+exercise the real, un-bypassed binding gate directly.
+
+### R1.2 verification
+
+Targeted suite (REM-A/REM-B/order-cycle-safety/PRE-T1-D/PRE-T1-C/
+execution-engine/position-manager/advisor-loop-smoke): 528 tests, 527
+pass, 1 pre-existing unrelated `ccxt`-not-installed environment failure
+(reproduces identically on `origin/main`, confirmed via a disposable
+worktree — see the R1.1 CI-triage precedent in PR #138's history for the
+same class of failure). Ruff baseline gate: 958/958, 0 new (1 genuine
+unused-import fix in `decision_identity.py` itself). `git diff --check`:
+clean. No `databases/order_intent_journal.jsonl` or
+`databases/decision_identity_journal.jsonl` pollution.
+
+### R1.2 safety confirmations
+
+No real/testnet exchange call, no live trading, no deployment, no VPS
+access, no secrets touched, no REM-C scope started. PR remains **draft**,
+**unmerged**, no force-push, no rebase, no squash, no amend of previously
+reviewed commits.

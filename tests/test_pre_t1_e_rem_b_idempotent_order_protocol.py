@@ -1863,3 +1863,662 @@ class TestGroupO_DurableDecisionIdentity:
         # recognizes the already-ACKNOWLEDGED intent.
         ex2.create_order.assert_not_called()
         assert r2["id"] == "restart-ok"  # same order, not a new one
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# Group P — R1.2 Blocker A: exhaustive fail-closed adapter gating
+# (O-02W-PRE-T1-E REM-B-R1.2). Group M already proved the CAPABILITY
+# TABLE's own verdicts; this group proves the SUBMISSION-PATH consequence
+# of those verdicts end-to-end — zero mutation calls, zero
+# SUBMISSION_STARTED transitions, and that neither a caller-supplied
+# `lookup` nor a caller-supplied capability object can promote a
+# non-fully-verified adapter into one that can submit or reconcile.
+# ═══════════════════════════════════════════════════════════════════════
+
+
+class TestGroupP_R12_AdapterFailClosed:
+    def test_mexc_real_capability_denies_submission_zero_mutation(self, tmp_path):
+        """MEXC's REAL (unverified) production capability entry —
+        SUBMIT_ONLY_RECONCILIATION_UNVERIFIED — must deny submission
+        through the coordinator exactly like UNSUPPORTED does; the
+        verdict's name must never be read as "submission is fine"."""
+        from quant_hedge_ai.agents.execution.order_intent_protocol import (
+            capabilities_for_exchange,
+        )
+
+        real_mexc_caps = capabilities_for_exchange("mexc")
+        coord, journal = coordinator(tmp_path, caps=real_mexc_caps)
+        intent = make_intent(causal_id="p-mexc-spot-1")
+        mutator = CountingMutator(fixed=ack())
+        result = coord.submit(
+            intent, authorized=True, authorization_ref="ok", mutate=mutator
+        )
+        assert result.outcome == SubmissionOutcome.UNSUPPORTED_ADAPTER_CAPABILITY
+        assert mutator.call_count == 0
+        assert journal.get(intent.full_digest()) is None  # no SUBMISSION_STARTED write
+
+    def test_mexc_spot_submission_via_execution_engine_denied_zero_mutation(
+        self, tmp_path, monkeypatch
+    ):
+        """End-to-end through the real, un-bypassed ExecutionEngine —
+        EXCHANGE_ID=mexc (the repo's own default), real capability table,
+        decision_id durably persisted first (isolating this test to the
+        ADAPTER gate, not the decision-identity gate)."""
+        monkeypatch.setenv("EXEC_TRADE_LOG", str(tmp_path / "t.sqlite"))
+        monkeypatch.setenv("EXEC_MAX_ORDER_USD", "10000")
+        monkeypatch.setenv("PAPER_TRADING_ENABLED", "false")
+        monkeypatch.setenv("EXCHANGE_ID", "mexc")
+        monkeypatch.setenv(
+            "DECISION_IDENTITY_JOURNAL_PATH", str(tmp_path / "decisions.jsonl")
+        )
+        monkeypatch.setenv(
+            "ORDER_INTENT_JOURNAL_PATH", str(tmp_path / "order_intents.jsonl")
+        )
+        from unittest.mock import MagicMock
+
+        from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
+
+        e = ExecutionEngine(live=False, _sleep=lambda _: None)
+        e._live = True
+        mock_exchange = MagicMock()
+        mock_exchange.fetch_ticker.return_value = {"last": 50_000.0}
+        mock_exchange.load_markets.return_value = {}
+        mock_exchange.fetch_balance.return_value = {"free": {"USDT": 10_000.0}}
+        e._exchange = mock_exchange
+        e.start_session(10_000.0)
+        e._get_decision_identity_journal().persist("p-mexc-e2e-1", namespace="test")
+
+        result = e.create_order("BTC/USDT", "BUY", 100.0, decision_id="p-mexc-e2e-1")
+        assert result["mode"] == "live_failed"
+        assert result["order_intent_outcome"] == "UNSUPPORTED_ADAPTER_CAPABILITY"
+        mock_exchange.create_order.assert_not_called()
+
+    def test_mexc_futures_submission_via_execution_engine_denied_zero_mutation(
+        self, tmp_path, monkeypatch
+    ):
+        monkeypatch.setenv("EXEC_TRADE_LOG", str(tmp_path / "t.sqlite"))
+        monkeypatch.setenv("EXCHANGE_ID", "mexc")
+        monkeypatch.setenv("EXEC_FUTURES_MIN_ORDER_USD", "55")
+        monkeypatch.setenv("EXEC_FUTURES_MAX_ORDER_USD", "200")
+        monkeypatch.setenv(
+            "DECISION_IDENTITY_JOURNAL_PATH", str(tmp_path / "decisions.jsonl")
+        )
+        monkeypatch.setenv(
+            "ORDER_INTENT_JOURNAL_PATH", str(tmp_path / "order_intents.jsonl")
+        )
+        from unittest.mock import MagicMock
+
+        from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
+
+        e = ExecutionEngine(live=False, _sleep=lambda _: None)
+        e.start_session(10_000.0)
+        mock_ex = MagicMock()
+        mock_ex.fetch_ticker.return_value = {"last": 50_000.0}
+        mock_ex.load_markets.return_value = {}
+        e._exchange_futures = mock_ex
+        e._get_decision_identity_journal().persist("p-mexc-futures-1", namespace="test")
+
+        result = e.create_futures_order(
+            "BTC/USDT", "BUY", 100.0, decision_id="p-mexc-futures-1"
+        )
+        assert result["mode"] == "futures_failed"
+        assert result["order_intent_outcome"] == "UNSUPPORTED_ADAPTER_CAPABILITY"
+        mock_ex.create_order.assert_not_called()
+
+    def test_mexc_positionmanager_close_denied_zero_mutation(self, tmp_path, monkeypatch):
+        """PositionManager._send_close_order must obey the SAME shared
+        capability table — a real (unverified) mexc adapter denies the
+        close mutation exactly like ExecutionEngine's paths do."""
+        monkeypatch.setenv("EXCHANGE_ID", "mexc")
+        monkeypatch.setenv("PAPER_TRADING_ENABLED", "false")
+        monkeypatch.setenv("LIVE_TRADING_CONFIRMED", "true")
+        monkeypatch.setenv(
+            "ORDER_INTENT_JOURNAL_PATH", str(tmp_path / "order_intents.jsonl")
+        )
+        from unittest.mock import MagicMock
+
+        from quant_hedge_ai.agents.execution.position_manager import (
+            Position,
+            PositionManager,
+            PositionSide,
+        )
+
+        mock_ex = MagicMock()
+        mock_ex.load_markets.return_value = {
+            "BTC/USD:USD": {"precision": {"amount": 0.0001}}
+        }
+        pm = PositionManager(exchange=mock_ex, paper_mode=False)
+        pos = Position(
+            symbol="BTC/USDT",
+            side=PositionSide.LONG,
+            entry_price=50_000.0,
+            size_usd=100.0,
+            qty=0.002,
+            order_id="pm-mexc-close-1",
+        )
+        pos.current_price = 51_000.0
+        result = pm._send_close_order(pos, reason=__import__(
+            "quant_hedge_ai.agents.execution.position_manager", fromlist=["CloseReason"]
+        ).CloseReason.MANUAL)
+        assert result["mode"] == "live_failed"
+        mock_ex.create_order.assert_not_called()
+
+    def test_krakenfutures_submission_denied_zero_mutation(self, tmp_path):
+        from quant_hedge_ai.agents.execution.order_intent_protocol import (
+            capabilities_for_exchange,
+        )
+
+        coord, journal = coordinator(tmp_path, caps=capabilities_for_exchange("krakenfutures"))
+        intent = make_intent(causal_id="p-kraken-1")
+        mutator = CountingMutator(fixed=ack())
+        result = coord.submit(intent, authorized=True, authorization_ref="ok", mutate=mutator)
+        assert result.outcome == SubmissionOutcome.UNSUPPORTED_ADAPTER_CAPABILITY
+        assert mutator.call_count == 0
+
+    def test_binanceusdm_submission_denied_zero_mutation(self, tmp_path):
+        from quant_hedge_ai.agents.execution.order_intent_protocol import (
+            capabilities_for_exchange,
+        )
+
+        coord, journal = coordinator(tmp_path, caps=capabilities_for_exchange("binanceusdm"))
+        intent = make_intent(causal_id="p-binanceusdm-1")
+        mutator = CountingMutator(fixed=ack())
+        result = coord.submit(intent, authorized=True, authorization_ref="ok", mutate=mutator)
+        assert result.outcome == SubmissionOutcome.UNSUPPORTED_ADAPTER_CAPABILITY
+        assert mutator.call_count == 0
+
+    def test_unknown_adapter_denied_zero_mutation(self, tmp_path):
+        from quant_hedge_ai.agents.execution.order_intent_protocol import (
+            capabilities_for_exchange,
+        )
+
+        coord, journal = coordinator(
+            tmp_path, caps=capabilities_for_exchange("some_never_registered_exchange")
+        )
+        intent = make_intent(causal_id="p-unknown-1")
+        mutator = CountingMutator(fixed=ack())
+        result = coord.submit(intent, authorized=True, authorization_ref="ok", mutate=mutator)
+        assert result.outcome == SubmissionOutcome.UNSUPPORTED_ADAPTER_CAPABILITY
+        assert mutator.call_count == 0
+
+    def test_adapter_alias_cannot_bypass_capability_table(self, tmp_path):
+        """A plausible-looking alias/variant of a real exchange id
+        ('mexc-spot', 'mexc_v2', 'MEXC2') is NOT in the capability table
+        and must fail closed exactly like any other unknown identifier —
+        never silently fall back to the real 'mexc' entry by prefix/fuzzy
+        match."""
+        from quant_hedge_ai.agents.execution.order_intent_protocol import (
+            AdapterCapabilityVerdict,
+            capabilities_for_exchange,
+        )
+
+        for alias in ("mexc-spot", "mexc_v2", "MEXC2", "mexcfutures"):
+            caps = capabilities_for_exchange(alias)
+            assert caps.verdict == AdapterCapabilityVerdict.UNSUPPORTED, alias
+            assert caps.supports_client_order_id is False, alias
+
+    def test_submit_only_reconciliation_unverified_denied_directly(self, tmp_path):
+        """Constructs a coordinator directly with a
+        SUBMIT_ONLY_RECONCILIATION_UNVERIFIED capability (not going
+        through the shared table) to prove the DENIAL RULE itself, not
+        just today's MEXC data — this must hold for any adapter that ever
+        receives this verdict, present or future."""
+        caps = AdapterCapabilities(
+            verdict=AdapterCapabilityVerdict.SUBMIT_ONLY_RECONCILIATION_UNVERIFIED,
+            client_order_id_param="clientOrderId",
+        )
+        coord, journal = coordinator(tmp_path, caps=caps)
+        intent = make_intent(causal_id="p-submit-only-1")
+        mutator = CountingMutator(fixed=ack())
+        result = coord.submit(intent, authorized=True, authorization_ref="ok", mutate=mutator)
+        assert result.outcome == SubmissionOutcome.UNSUPPORTED_ADAPTER_CAPABILITY
+        assert mutator.call_count == 0
+
+    def test_caller_supplied_lookup_never_invoked_for_unverified_capability(self, tmp_path):
+        """`reconcile()` must never call a caller-supplied `lookup` unless
+        THIS coordinator's own certified capability is
+        SUBMIT_AND_RECONCILE_VERIFIED — a permissive `lookup` a caller
+        passes in cannot promote an unverified adapter's capability."""
+        from quant_hedge_ai.agents.execution.order_intent_protocol import (
+            capabilities_for_exchange,
+        )
+
+        coord, journal = coordinator(tmp_path, caps=capabilities_for_exchange("mexc"))
+        lookup_calls = []
+
+        def permissive_lookup(client_order_id):
+            lookup_calls.append(client_order_id)
+            return ReconciliationLookupResult(lookup_failed=False, matches=[{"id": "fake"}])
+
+        result = coord.reconcile("nonexistent-digest", lookup=permissive_lookup)
+        assert result.outcome == SubmissionOutcome.UNSUPPORTED_ADAPTER_CAPABILITY
+        assert lookup_calls == []  # never invoked
+
+    def test_caller_supplied_capability_object_cannot_promote_production_adapter(self):
+        """`capabilities_for_exchange()` — the SOLE production authority —
+        always returns the SAME verdict for 'mexc' regardless of any
+        AdapterCapabilities object a caller might construct elsewhere;
+        there is no parameter on `ExecutionEngine`/`PositionManager` that
+        accepts a caller-supplied capability override for a production
+        exchange id (source-level proof: `_get_order_intent_coordinator`
+        calls `capabilities_for_exchange(exch_id)` unconditionally)."""
+        import inspect
+
+        from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
+        from quant_hedge_ai.agents.execution.position_manager import PositionManager
+        from quant_hedge_ai.agents.execution.order_intent_protocol import (
+            AdapterCapabilityVerdict,
+            capabilities_for_exchange,
+        )
+
+        # A caller builds an arbitrary "fully verified" fake locally...
+        _ = AdapterCapabilities(
+            verdict=AdapterCapabilityVerdict.SUBMIT_AND_RECONCILE_VERIFIED,
+            client_order_id_param="clientOrderId",
+        )
+        # ...but it is never wired into either production coordinator
+        # constructor — both call sites read ONLY from the shared table.
+        for src in (
+            inspect.getsource(ExecutionEngine._get_order_intent_coordinator),
+            inspect.getsource(PositionManager._get_order_intent_coordinator),
+        ):
+            assert "capabilities_for_exchange(" in src
+        # ...and the real production verdict is unaffected by the local
+        # fake object's mere existence.
+        assert (
+            capabilities_for_exchange("mexc").verdict
+            == AdapterCapabilityVerdict.SUBMIT_ONLY_RECONCILIATION_UNVERIFIED
+        )
+
+    def test_fully_verified_fake_adapter_submits_exactly_once(self, tmp_path):
+        coord, journal = coordinator(tmp_path, caps=FULL_CAPS)
+        intent = make_intent(causal_id="p-verified-1")
+        mutator = CountingMutator(fixed=ack())
+        r1 = coord.submit(intent, authorized=True, authorization_ref="ok", mutate=mutator)
+        assert r1.outcome == SubmissionOutcome.ACKNOWLEDGED
+        assert mutator.call_count == 1
+        r2 = coord.submit(intent, authorized=True, authorization_ref="ok", mutate=mutator)
+        assert r2.outcome == SubmissionOutcome.ACKNOWLEDGED
+        assert mutator.call_count == 1  # still exactly once — duplicate call, no resubmission
+
+    def test_ambiguous_on_verified_fake_enters_reconciliation_without_resubmission(
+        self, tmp_path
+    ):
+        coord, journal = coordinator(tmp_path, caps=FULL_CAPS)
+        intent = make_intent(causal_id="p-ambiguous-1")
+        mutator = CountingMutator(fixed=ambiguous())
+        r1 = coord.submit(intent, authorized=True, authorization_ref="ok", mutate=mutator)
+        assert r1.outcome == SubmissionOutcome.RECONCILE_REQUIRED
+        assert mutator.call_count == 1
+        # A duplicate submit call (e.g. a naive retry) must NOT re-invoke
+        # the mutator — the ambiguous result is recorded, not resubmitted.
+        r2 = coord.submit(intent, authorized=True, authorization_ref="ok", mutate=mutator)
+        assert r2.outcome == SubmissionOutcome.RECONCILE_REQUIRED
+        assert mutator.call_count == 1
+
+    def test_non_verified_adapter_creates_no_submission_started_transition(self, tmp_path):
+        from quant_hedge_ai.agents.execution.order_intent_protocol import (
+            capabilities_for_exchange,
+        )
+
+        coord, journal = coordinator(tmp_path, caps=capabilities_for_exchange("mexc"))
+        intent = make_intent(causal_id="p-no-transition-1")
+        coord.submit(
+            intent, authorized=True, authorization_ref="ok", mutate=CountingMutator(fixed=ack())
+        )
+        # Zero journal records for this digest at all — not even
+        # INTENT_RECORDED, let alone SUBMISSION_STARTED.
+        assert journal.get(intent.full_digest()) is None
+        assert journal.latest_by_digest() == {}
+
+    def test_retry_wrapper_cannot_bypass_capability_denial(self, tmp_path):
+        """A naive caller-side retry loop around `submit()` (mirroring the
+        production `_with_retry` shape, but at the submission layer) must
+        be denied on EVERY attempt — the capability gate is re-checked
+        every call, not bypassable by simply calling again."""
+        from quant_hedge_ai.agents.execution.order_intent_protocol import (
+            capabilities_for_exchange,
+        )
+
+        coord, journal = coordinator(tmp_path, caps=capabilities_for_exchange("mexc"))
+        intent = make_intent(causal_id="p-retry-wrapper-1")
+        mutator = CountingMutator(fixed=ack())
+        outcomes = []
+        for _ in range(3):  # naive retry wrapper
+            outcomes.append(
+                coord.submit(
+                    intent, authorized=True, authorization_ref="ok", mutate=mutator
+                ).outcome
+            )
+        assert all(o == SubmissionOutcome.UNSUPPORTED_ADAPTER_CAPABILITY for o in outcomes)
+        assert mutator.call_count == 0
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# Group Q — R1.2 Blocker B: genuine causal reconstruction after restart
+# (O-02W-PRE-T1-E REM-B-R1.2, §4). Group O proved a decision_id, once
+# persisted, stays found by an is_persisted() membership check across a
+# fresh journal instance — MASTER review named this insufficient: it does
+# not prove the DECISION ITSELF (its canonical payload) can be
+# RECONSTRUCTED from durable state using only a stable recovery selector,
+# nor that it stays bound to exactly one authorized order intent. This
+# group proves both.
+# ═══════════════════════════════════════════════════════════════════════
+
+
+class TestGroupQ_R12_CausalReconstruction:
+    def test_bind_intent_requires_a_persisted_decision(self, tmp_path):
+        from quant_hedge_ai.agents.execution.decision_identity import (
+            DecisionIdentityError,
+            DecisionIdentityJournal,
+        )
+
+        j = DecisionIdentityJournal(tmp_path / "decisions.jsonl")
+        with pytest.raises(DecisionIdentityError):
+            j.bind_intent("never-persisted", "some-intent-digest")
+        # zero writes — the journal file gained no records from the failed bind
+        assert j.recover_pending_decisions() == {}
+
+    def test_bind_intent_records_lifecycle_transition(self, tmp_path):
+        from quant_hedge_ai.agents.execution.decision_identity import (
+            DecisionIdentityJournal,
+        )
+
+        j = DecisionIdentityJournal(tmp_path / "decisions.jsonl")
+        j.persist("dec-bind-1", namespace="test", cycle=1, symbol="BTC/USDT")
+        rec = j.bind_intent("dec-bind-1", "intent-digest-1")
+        assert rec["lifecycle_state"] == "BOUND"
+        assert rec["bound_intent_digest"] == "intent-digest-1"
+        assert j.get("dec-bind-1")["bound_intent_digest"] == "intent-digest-1"
+
+    def test_same_replay_preserves_bound_intent_digest_idempotent(self, tmp_path):
+        from quant_hedge_ai.agents.execution.decision_identity import (
+            DecisionIdentityJournal,
+        )
+
+        j = DecisionIdentityJournal(tmp_path / "decisions.jsonl")
+        j.persist("dec-bind-2", namespace="test")
+        j.bind_intent("dec-bind-2", "intent-digest-2")
+        # Replaying the SAME bind (e.g. a retried submission attempt)
+        # must succeed idempotently, never raise, never change the binding.
+        rec2 = j.bind_intent("dec-bind-2", "intent-digest-2")
+        assert rec2["bound_intent_digest"] == "intent-digest-2"
+
+    def test_binding_same_decision_to_different_intent_fails_closed(self, tmp_path):
+        from quant_hedge_ai.agents.execution.decision_identity import (
+            DecisionIdentityError,
+            DecisionIdentityJournal,
+        )
+
+        j = DecisionIdentityJournal(tmp_path / "decisions.jsonl")
+        j.persist("dec-bind-3", namespace="test")
+        j.bind_intent("dec-bind-3", "intent-digest-original")
+        with pytest.raises(DecisionIdentityError):
+            j.bind_intent("dec-bind-3", "intent-digest-DIFFERENT")
+        # the original binding survives the failed rebind attempt
+        assert j.get("dec-bind-3")["bound_intent_digest"] == "intent-digest-original"
+
+    def test_restart_reconstructs_pending_decision_using_only_durable_state(self, tmp_path):
+        """The R1.2 §4.4 core proof: a decision is created and persisted
+        inside a nested scope whose locals (including the `decision_id`
+        variable itself) go out of scope entirely — recovery afterward
+        uses ONLY the durable journal path plus a stable (namespace,
+        cycle, symbol) selector, never a retained in-memory id/object."""
+        from quant_hedge_ai.agents.execution.decision_identity import (
+            DecisionIdentityJournal,
+        )
+
+        path = tmp_path / "decisions.jsonl"
+
+        def _create_and_discard() -> str:
+            j = DecisionIdentityJournal(path)
+            rec = j.persist(
+                "dec-restart-recon-1",
+                namespace="advisor_loop.analyze_symbol",
+                cycle=42,
+                symbol="BTC/USDT",
+                action="BUY",
+            )
+            del j  # discard the journal instance too — not just the id
+            return rec["payload_digest"]  # only the digest crosses the boundary
+
+        original_digest = _create_and_discard()
+
+        # "process restart": a brand-new journal instance, no retained
+        # coordinator/engine/closure, no retained decision_id variable.
+        j2 = DecisionIdentityJournal(path)
+        recovered = j2.find_by_cycle_key(
+            namespace="advisor_loop.analyze_symbol", cycle=42, symbol="BTC/USDT"
+        )
+        assert recovered is not None
+        assert recovered["payload_digest"] == original_digest
+        assert j2.verify_digest(recovered["decision_id"])
+
+    def test_reconstructed_record_preserves_exact_decision_id_and_payload(self, tmp_path):
+        from quant_hedge_ai.agents.execution.decision_identity import (
+            DecisionIdentityJournal,
+        )
+
+        path = tmp_path / "decisions.jsonl"
+        DecisionIdentityJournal(path).persist(
+            "dec-preserve-1", namespace="ns", cycle=7, symbol="ETH/USDT", action="SELL"
+        )
+        j2 = DecisionIdentityJournal(path)
+        pending = j2.recover_pending_decisions(namespace="ns")
+        assert "dec-preserve-1" in pending
+        rec = pending["dec-preserve-1"]
+        assert rec["decision_id"] == "dec-preserve-1"
+        assert rec["payload"]["cycle"] == 7
+        assert rec["payload"]["symbol"] == "ETH/USDT"
+        assert rec["payload"]["action"] == "SELL"
+
+    def test_missing_decision_record_fails_closed(self, tmp_path):
+        from quant_hedge_ai.agents.execution.decision_identity import (
+            DecisionIdentityJournal,
+        )
+
+        j = DecisionIdentityJournal(tmp_path / "decisions.jsonl")
+        assert j.get("never-existed") is None
+        assert not j.is_persisted("never-existed")
+        assert j.recover_pending_decisions() == {}
+        assert j.find_by_cycle_key(namespace="ns", cycle=1, symbol="BTC/USDT") is None
+
+    def test_legacy_incomplete_record_excluded_from_recovery_but_backward_compatible(
+        self, tmp_path
+    ):
+        """A genuinely legacy (pre-R1.2, schema_version=1) record —
+        missing `payload`/`payload_digest` — is NOT recoverable (fails
+        closed for reconstruction) but R1.1's simpler is_persisted() gate
+        still honors it, for backward compatibility with data written
+        before this module gained canonical payloads."""
+        import json as _json
+
+        path = tmp_path / "decisions.jsonl"
+        legacy_record = {
+            "schema_version": 1,
+            "decision_id": "dec-legacy-1",
+            "namespace": "test",
+            "cycle": 1,
+            "symbol": "BTC/USDT",
+            "ts": 0.0,
+        }
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(_json.dumps(legacy_record) + "\n", encoding="utf-8")
+
+        from quant_hedge_ai.agents.execution.decision_identity import (
+            DecisionIdentityJournal,
+        )
+
+        j = DecisionIdentityJournal(path)
+        assert j.is_persisted("dec-legacy-1")  # R1.1 backward compatibility
+        assert j.recover_pending_decisions() == {}  # but NOT reconstructible
+        assert j.verify_digest("dec-legacy-1") is False
+
+    def test_tampered_payload_fails_digest_verification(self, tmp_path):
+        from quant_hedge_ai.agents.execution.decision_identity import (
+            DecisionIdentityJournal,
+        )
+
+        j = DecisionIdentityJournal(tmp_path / "decisions.jsonl")
+        j.persist("dec-tamper-1", namespace="test", cycle=1, symbol="BTC/USDT")
+        # A caller-supplied payload that disagrees with what was durably
+        # stored must fail verification — this is the tamper-detection path.
+        tampered = {"namespace": "test", "cycle": 999, "symbol": "ETH/USDT", "action": None}
+        assert j.verify_digest("dec-tamper-1", payload=tampered) is False
+        # the genuine, unmodified payload still verifies correctly
+        assert j.verify_digest("dec-tamper-1") is True
+
+    def test_conflicting_duplicate_decision_record_fails_closed(self, tmp_path):
+        """The SAME decision_id persisted twice with a DIFFERENT payload
+        (e.g. a bug that reused an id across two distinct decisions) is a
+        conflict, not a duplicate delivery — R1.2 fails it closed rather
+        than silently accepting whichever payload arrived last."""
+        from quant_hedge_ai.agents.execution.decision_identity import (
+            DecisionIdentityError,
+            DecisionIdentityJournal,
+        )
+
+        j = DecisionIdentityJournal(tmp_path / "decisions.jsonl")
+        j.persist("dec-conflict-1", namespace="test", cycle=1, symbol="BTC/USDT")
+        with pytest.raises(DecisionIdentityError):
+            j.persist("dec-conflict-1", namespace="test", cycle=2, symbol="ETH/USDT")
+        # the original record survives the rejected conflicting write
+        assert j.get("dec-conflict-1")["payload"]["cycle"] == 1
+
+    def test_genuine_duplicate_delivery_of_identical_payload_remains_idempotent(self, tmp_path):
+        """The non-conflicting counterpart to the test above: persisting
+        the SAME decision_id with the SAME resulting payload twice (e.g. a
+        duplicated DecisionPacket delivery) must NOT raise — this is the
+        expected duplicate-delivery case, not a conflict."""
+        from quant_hedge_ai.agents.execution.decision_identity import (
+            DecisionIdentityJournal,
+        )
+
+        j = DecisionIdentityJournal(tmp_path / "decisions.jsonl")
+        j.persist("dec-dup-ok-1", namespace="test", cycle=1, symbol="BTC/USDT")
+        j.persist("dec-dup-ok-1", namespace="test", cycle=1, symbol="BTC/USDT")  # no raise
+        assert j.is_persisted("dec-dup-ok-1")
+
+    def test_truncated_record_never_recoverable(self, tmp_path):
+        path = tmp_path / "decisions.jsonl"
+        from quant_hedge_ai.agents.execution.decision_identity import (
+            DecisionIdentityJournal,
+        )
+
+        j = DecisionIdentityJournal(path)
+        j.persist("dec-trunc-valid-1", namespace="test", cycle=1, symbol="BTC/USDT")
+        with open(path, "a", encoding="utf-8") as f:
+            f.write('{"decision_id": "dec-trunc-broken", "payload"')  # truncated
+
+        j2 = DecisionIdentityJournal(path)
+        pending = j2.recover_pending_decisions()
+        assert "dec-trunc-valid-1" in pending
+        assert "dec-trunc-broken" not in pending
+
+    def test_identical_trade_fields_two_new_decisions_produce_distinct_ids(self, tmp_path):
+        """Two genuinely distinct decision-creation events with
+        byte-identical trade fields (same cycle/symbol/action — as a
+        strategy re-evaluating and re-deciding the exact same trade could
+        produce) must receive DISTINCT decision_id values — this module
+        never derives identity from payload content, only from the
+        upstream-supplied id (advisor_loop's random UUID)."""
+        from quant_hedge_ai.agents.execution.decision_identity import (
+            DecisionIdentityJournal,
+        )
+
+        j = DecisionIdentityJournal(tmp_path / "decisions.jsonl")
+        j.persist("dec-identical-A", namespace="test", cycle=1, symbol="BTC/USDT", action="BUY")
+        j.persist("dec-identical-B", namespace="test", cycle=1, symbol="BTC/USDT", action="BUY")
+        pending = j.recover_pending_decisions(namespace="test")
+        assert set(pending.keys()) == {"dec-identical-A", "dec-identical-B"}
+        # identical payload content is fine — the identities themselves differ
+        assert (
+            pending["dec-identical-A"]["payload_digest"]
+            == pending["dec-identical-B"]["payload_digest"]
+        )
+
+    def test_recovery_and_verification_perform_no_network_or_exchange_calls(self, tmp_path):
+        """Source-level + behavioral proof: `recover_pending_decisions`,
+        `find_by_cycle_key`, and `verify_digest` operate purely on the
+        local durable file — no exchange/network object is ever
+        constructed or required to call them."""
+        import inspect
+
+        from quant_hedge_ai.agents.execution.decision_identity import (
+            DecisionIdentityJournal,
+        )
+
+        for name in ("recover_pending_decisions", "find_by_cycle_key", "verify_digest"):
+            src = inspect.getsource(getattr(DecisionIdentityJournal, name))
+            for forbidden in ("requests.", "ccxt", "socket.", "urlopen", "fetch_"):
+                assert forbidden not in src, (name, forbidden)
+
+        j = DecisionIdentityJournal(tmp_path / "decisions.jsonl")
+        j.persist("dec-no-network-1", namespace="test", cycle=1, symbol="BTC/USDT")
+        # Executes without any exchange/network fixture in scope at all.
+        j.recover_pending_decisions()
+        j.find_by_cycle_key(namespace="test", cycle=1, symbol="BTC/USDT")
+        j.verify_digest("dec-no-network-1")
+
+    def test_restart_with_binding_preserves_binding_and_causes_no_resubmission(
+        self, tmp_path, monkeypatch
+    ):
+        """Full end-to-end restart proof combining Blocker A (decision
+        persistence) and Blocker B (decision-intent binding): a decision
+        is created, persisted, bound to its order intent, and submitted.
+        A full process restart (brand-new ExecutionEngine, same durable
+        paths, same decision_id) must reuse the SAME binding and cause
+        ZERO further exchange mutation calls."""
+        monkeypatch.setenv("EXEC_TRADE_LOG", str(tmp_path / "t.sqlite"))
+        monkeypatch.setenv("EXEC_MAX_ORDER_USD", "10000")
+        monkeypatch.setenv("PAPER_TRADING_ENABLED", "false")
+        monkeypatch.setenv(
+            "DECISION_IDENTITY_JOURNAL_PATH", str(tmp_path / "decisions.jsonl")
+        )
+        monkeypatch.setenv(
+            "ORDER_INTENT_JOURNAL_PATH", str(tmp_path / "order_intents.jsonl")
+        )
+        from unittest.mock import MagicMock
+
+        from quant_hedge_ai.agents.execution import order_intent_protocol as oip
+        from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
+
+        monkeypatch.setitem(
+            oip._ADAPTER_CAPABILITIES_BY_EXCHANGE,
+            "mexc",
+            oip.AdapterCapabilities(
+                verdict=oip.AdapterCapabilityVerdict.SUBMIT_AND_RECONCILE_VERIFIED,
+                client_order_id_param="clientOrderId",
+            ),
+        )
+
+        def _build_engine():
+            e = ExecutionEngine(live=False, _sleep=lambda _: None)
+            e._live = True
+            mock_exchange = MagicMock()
+            mock_exchange.fetch_ticker.return_value = {"last": 50_000.0}
+            mock_exchange.load_markets.return_value = {}
+            mock_exchange.fetch_balance.return_value = {"free": {"USDT": 10_000.0}}
+            mock_exchange.create_order.return_value = {"id": "restart-bind-ok"}
+            e._exchange = mock_exchange
+            e.start_session(10_000.0)
+            return e, mock_exchange
+
+        e1, ex1 = _build_engine()
+        e1._get_decision_identity_journal().persist("dec-restart-bind-1", namespace="test")
+        r1 = e1.create_order("BTC/USDT", "BUY", 100.0, decision_id="dec-restart-bind-1")
+        assert r1["mode"] == "live"
+
+        bound_digest_after_first = e1._get_decision_identity_journal().get(
+            "dec-restart-bind-1"
+        )["bound_intent_digest"]
+        assert bound_digest_after_first is not None
+
+        e2, ex2 = _build_engine()
+        r2 = e2.create_order("BTC/USDT", "BUY", 100.0, decision_id="dec-restart-bind-1")
+        assert r2["mode"] == "live"
+        ex2.create_order.assert_not_called()  # no resubmission after restart
+        bound_digest_after_restart = e2._get_decision_identity_journal().get(
+            "dec-restart-bind-1"
+        )["bound_intent_digest"]
+        assert bound_digest_after_restart == bound_digest_after_first
