@@ -507,3 +507,32 @@ persistence), does not start REM-C, and does not verify the two unverified
 adapter's exact parameter names (deliberately fails closed instead of
 guessing). No live trading, no real exchange call, no deployment occurred
 in this round.
+
+## 22.2 REM-B R1.1 correction round (2026-09-11)
+
+**Addendum to §22/§22.1, not a rewrite.** Three blockers from R1's MASTER
+review resolved, per ADR-0020's R1.1 section (full detail there).
+
+| Blocker | Resolution |
+|---|---|
+| A — durable upstream decision identity | **REMEDIATED_IN_PRE_T1_E_REM_B.** New `decision_identity.py` durably persists the decision's causal id BEFORE it can reach execution; `ExecutionEngine` requires this durable record, not merely a non-empty string. Causal ordering (`DECISION_ID_CREATED -> DECISION_PERSISTED -> REM_A_AUTHORIZATION -> ORDER_INTENT_RECORDED -> SUBMISSION_STARTED -> EXCHANGE_MUTATION`) proven, including a restart-simulation test. |
+| B — real adapter reconciliation capability | **REMEDIATED_IN_PRE_T1_E_REM_B (as a deny-closed correction).** No adapter in this repository is currently certified `SUBMIT_AND_RECONCILE_VERIFIED` — MEXC downgraded from R1's submission-authorized status to `SUBMIT_ONLY_RECONCILIATION_UNVERIFIED` (which, per the explicit verdict rule, does not authorize external submission either). `reconcile()` is now capability-gated; a caller-supplied `lookup` can no longer bypass certification. Zero runtime impact (`reconcile()` was never called from production; `PAPER_TRADING_ENABLED=true` blocks any live submission regardless). |
+| C — complete mutation-bypass detection | **REMEDIATED_IN_PRE_T1_E_REM_B.** Layered scanner (`_mutation_references()`) replaces R1's detector, closing its confirmed blind spot for a mutation-method reference passed BY REFERENCE to a wrapper (`_with_retry(X.create_order, ...)`). Bounded detection model stated explicitly (does not claim perfect static detection of arbitrary Python reflection), combined with an independent repository-wide `grep` corroboration. |
+
+**REM-C blockers remaining fully open, unattempted, explicitly out of this
+mission's scope (unchanged from §22/§22.1):** complete partial-fill
+lifecycle; full position reconstruction after a crash window; PnL
+accounting changes; any automatic resubmission policy after
+`RECONCILED_NOT_FOUND_PENDING`. PLUS, newly explicit: verification of
+`krakenfutures`/`binanceusdm`/MEXC's exact CCXT reconciliation methods
+against a real, installed `ccxt` package (currently fails closed rather
+than guessed — an explicit follow-up, not silently assumed done).
+
+**Updated verdict: still `REMEDIATION_REQUIRED`.** REM-B-R1.1 closes all
+three blockers MASTER's R1 review identified, but does not verify any
+adapter's real reconciliation capability against a pinned `ccxt`
+install (deliberately, per spec's own "a safe refusal is preferable to
+an unverifiable live capability" — this is a corrected posture, not a
+remaining defect), does not start REM-C, and does not enable live
+trading in any way. No real order, exchange call, VPS access, secret
+access, or deployment occurred in this round.

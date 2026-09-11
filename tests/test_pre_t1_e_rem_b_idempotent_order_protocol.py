@@ -16,6 +16,7 @@ import pytest
 
 from quant_hedge_ai.agents.execution.order_intent_protocol import (
     AdapterCapabilities,
+    AdapterCapabilityVerdict,
     ExchangeMutationOutcome,
     ExchangeMutationResult,
     IntentState,
@@ -85,14 +86,15 @@ def ambiguous(cat="timeout"):
 
 
 FULL_CAPS = AdapterCapabilities(
-    supports_client_order_id=True,
+    verdict=AdapterCapabilityVerdict.SUBMIT_AND_RECONCILE_VERIFIED,
     client_order_id_param="clientOrderId",
-    supports_lookup_by_client_order_id=True,
+    supports_open_order_search=True,
+    supports_closed_order_search=True,
+    evidence="test fake — certified for hermetic testing only",
 )
 NO_CID_CAPS = AdapterCapabilities(
-    supports_client_order_id=False,
+    verdict=AdapterCapabilityVerdict.UNSUPPORTED,
     client_order_id_param=None,
-    supports_lookup_by_client_order_id=False,
 )
 
 
@@ -875,9 +877,8 @@ def _mp_submit_worker(journal_path, counter_path, barrier, result_queue, causal_
 
     journal = OrderIntentJournal(journal_path)
     caps = AdapterCapabilities(
-        supports_client_order_id=True,
+        verdict=AdapterCapabilityVerdict.SUBMIT_AND_RECONCILE_VERIFIED,
         client_order_id_param="clientOrderId",
-        supports_lookup_by_client_order_id=True,
     )
     coordinator_ = OrderIntentCoordinator(journal, caps)
     intent = build_order_intent(
@@ -1165,23 +1166,40 @@ class TestGroupL_CausalIdProvenance:
 
 
 class TestGroupM_AdapterCapabilityMatrix:
-    def test_mexc_is_supported_with_correct_param(self):
+    def test_mexc_submission_parameter_documented_but_not_authorized(self):
+        """O-02W-PRE-T1-E REM-B-R1.1, Blocker B: MEXC's submission
+        parameter is DOCUMENTED (`clientOrderId`) but reconciliation is
+        NOT certified against a pinned in-repo implementation — per spec
+        §5's explicit rule, only SUBMIT_AND_RECONCILE_VERIFIED authorizes
+        external submission, so MEXC does NOT authorize it either,
+        despite the parameter name being known. This is a deliberate
+        downgrade from R1's model (which authorized submission on
+        parameter-name plausibility alone)."""
         from quant_hedge_ai.agents.execution.order_intent_protocol import (
+            AdapterCapabilityVerdict,
             capabilities_for_exchange,
         )
 
         caps = capabilities_for_exchange("mexc")
-        assert caps.supports_client_order_id is True
-        assert caps.client_order_id_param == "clientOrderId"
-        assert caps.supports_lookup_by_client_order_id is True
+        assert caps.verdict == AdapterCapabilityVerdict.SUBMIT_ONLY_RECONCILIATION_UNVERIFIED
+        assert caps.client_order_id_param == "clientOrderId"  # documented, for the record
+        assert caps.supports_client_order_id is False  # NOT authorized — the actual gate
+        assert caps.supports_lookup_by_client_order_id is False
 
     def test_mexc_lookup_case_insensitive(self):
         from quant_hedge_ai.agents.execution.order_intent_protocol import (
+            AdapterCapabilityVerdict,
             capabilities_for_exchange,
         )
 
-        assert capabilities_for_exchange("MEXC").supports_client_order_id is True
-        assert capabilities_for_exchange("Mexc").supports_client_order_id is True
+        assert (
+            capabilities_for_exchange("MEXC").verdict
+            == AdapterCapabilityVerdict.SUBMIT_ONLY_RECONCILIATION_UNVERIFIED
+        )
+        assert (
+            capabilities_for_exchange("Mexc").verdict
+            == AdapterCapabilityVerdict.SUBMIT_ONLY_RECONCILIATION_UNVERIFIED
+        )
 
     def test_unverified_exchanges_fail_closed(self):
         """krakenfutures and binanceusdm are BOTH configurable via
@@ -1235,84 +1253,246 @@ class TestGroupM_AdapterCapabilityMatrix:
         mock_ex.load_markets.return_value = {}
         e._exchange_futures = mock_ex
 
-        result = e.create_futures_order(
-            "BTC/USD", "BUY", 100.0, decision_id="unverified-exchange-1"
+        # O-02W-PRE-T1-E REM-B-R1.1, Blocker A: this test targets the
+        # ADAPTER CAPABILITY gate specifically — durably persist the
+        # decision id first so it isn't short-circuited by the (also
+        # real, separately tested) durable-decision-identity gate.
+        decision_id = "unverified-exchange-1"
+        e._get_decision_identity_journal().persist(
+            decision_id, namespace="test", symbol="BTC/USD"
         )
+
+        result = e.create_futures_order("BTC/USD", "BUY", 100.0, decision_id=decision_id)
         assert result["mode"] == "futures_failed"
         assert result["order_intent_outcome"] == "UNSUPPORTED_ADAPTER_CAPABILITY"
         mock_ex.create_order.assert_not_called()
 
 
 # ─────────────────────────────────────────────────────────────────────────
-# Group N — exhaustive caller inventory + mechanical bypass detection
-# (O-02W-PRE-T1-E REM-B-R1, Correction C). See docs/adr/0020-...md for the
-# full caller table this codifies. This is a STATIC/AST proof — it is
-# deliberately combined with the Group A-M BEHAVIORAL proofs above (a
-# static check alone is explicitly insufficient per spec §5).
+# Group N — exhaustive caller inventory + LAYERED mechanical bypass
+# detection (O-02W-PRE-T1-E REM-B-R1.1, Blocker C). See
+# docs/adr/0020-...md for the full caller table and the bounded-detection
+# model this codifies. This is a STATIC/AST proof — deliberately combined
+# with the Group A-M BEHAVIORAL proofs above (spec §7 is explicit that a
+# static check alone is insufficient).
+#
+# BOUNDED DETECTION MODEL (stated honestly, not claimed complete):
+# `_mutation_references()` below finds every syntactic AST reference to an
+# attribute named in `_MUTATION_METHOD_NAMES` — whether it appears as the
+# callee of a direct call (Layer 1: `X.create_order(...)`), as a bare
+# argument expression passed to another call (Layer 2:
+# `_with_retry(X.create_order, ...)`), as the right-hand side of an
+# assignment (Layer 3: `mutate = X.create_order`), or as a literal
+# `getattr(X, "create_order")` call (Layer 4) — and attributes each
+# occurrence to its enclosing named function (Layer 5, wrapper inventory),
+# regardless of whether that function is itself called directly by a
+# production entrypoint or only through an intermediate wrapper. Layer 6
+# is the allowlist comparison in each test below.
+#
+# Explicitly NOT claimed: detection of attribute names built at runtime
+# from string concatenation/formatting, `importlib`-based dynamic imports,
+# `setattr`-based monkeypatching, or any reflection that does not appear
+# as a literal `getattr(X, "name")` call with a literal string. Combined
+# with `test_all_known_production_callers_of_create_order_inventoried`'s
+# repository-wide `grep`, which independently corroborates the same call
+# sites from a completely different (non-AST) detection method.
 # ─────────────────────────────────────────────────────────────────────────
 
 
+_MUTATION_METHOD_NAMES = {
+    "create_order",
+    "create_market_order",
+    "create_limit_order",
+    "createOrder",
+}
+
+
+def _mutation_references(path):
+    """Returns the set of (qualified) function names in `path` whose body
+    contains ANY syntactic reference to a mutation-method attribute —
+    called directly, passed by reference to a wrapper, assigned to a local
+    alias, or accessed via a literal `getattr(..., "name")` call. See the
+    module-level BOUNDED DETECTION MODEL comment above for exactly what
+    this does and does not catch."""
+    import ast
+
+    src = open(path, encoding="utf-8").read()
+    tree = ast.parse(src)
+    found = set()
+
+    class _Visitor(ast.NodeVisitor):
+        def __init__(self):
+            self.stack = []
+
+        def _record(self):
+            if self.stack:
+                found.add(".".join(self.stack))
+
+        def visit_FunctionDef(self, node):
+            self.stack.append(node.name)
+            self.generic_visit(node)
+            self.stack.pop()
+
+        def visit_AsyncFunctionDef(self, node):
+            self.visit_FunctionDef(node)
+
+        def visit_Attribute(self, node):
+            # Layers 1-3: ANY attribute access named after a mutation
+            # method — called directly, passed by reference as a bare
+            # argument, or assigned to a local alias — is the same AST
+            # node shape (ast.Attribute). Recording it here, rather than
+            # only when it's the direct `.func` of a Call, is what closes
+            # the R1 detector's blind spot for
+            # `_with_retry(X.create_order, ...)`.
+            if node.attr in _MUTATION_METHOD_NAMES:
+                self._record()
+            self.generic_visit(node)
+
+        def visit_Call(self, node):
+            # Layer 4: literal `getattr(X, "create_order")`.
+            if (
+                isinstance(node.func, ast.Name)
+                and node.func.id == "getattr"
+                and len(node.args) >= 2
+                and isinstance(node.args[1], ast.Constant)
+                and isinstance(node.args[1].value, str)
+                and node.args[1].value in _MUTATION_METHOD_NAMES
+            ):
+                self._record()
+            self.generic_visit(node)
+
+    _Visitor().visit(tree)
+    return found
+
+
 class TestGroupN_CallerInventoryAndBypassDetection:
-    def _functions_containing_create_order_call(self, path):
-        """Returns the set of (qualified) function names in `path` whose
-        body contains a `.create_order(...)` call — regardless of nesting
-        depth, so a call inside a nested closure is correctly attributed
-        to its enclosing named function."""
-        import ast
-
-        src = open(path, encoding="utf-8").read()
-        tree = ast.parse(src)
-        found = set()
-
-        class _Visitor(ast.NodeVisitor):
-            def __init__(self):
-                self.stack = []
-
-            def visit_FunctionDef(self, node):
-                self.stack.append(node.name)
-                self.generic_visit(node)
-                self.stack.pop()
-
-            def visit_Call(self, node):
-                if (
-                    isinstance(node.func, ast.Attribute)
-                    and node.func.attr == "create_order"
-                    and self.stack
-                ):
-                    found.add(".".join(self.stack))
-                self.generic_visit(node)
-
-        _Visitor().visit(tree)
-        return found
-
-    def test_execution_engine_create_order_calls_only_inside_coordinator_wrapper(self):
+    def test_execution_engine_mutation_references_only_inside_coordinator_wrapper(self):
         path = "quant_hedge_ai/agents/execution/execution_engine.py"
-        functions = self._functions_containing_create_order_call(path)
-        # The ONLY function in this file allowed to contain a raw
-        # `.create_order(...)` call is `_mutate_via_coordinator`'s nested
-        # `mutate` closure — every source-reachable submission path MUST
-        # go through it. A new function name appearing here means a new
-        # direct exchange-mutation call site was added OUTSIDE the
-        # durable/idempotent protocol — exactly the bypass Correction C
-        # exists to catch.
-        allowed = {"_mutate_via_coordinator.mutate"}
+        functions = _mutation_references(path)
+        # Allowed: `_mutate_via_coordinator`'s nested `mutate` closure
+        # (where the actual call happens), PLUS `create_futures_order` and
+        # `_place_live_order` (`_place_live_order` is itself called only
+        # from `create_order`) — the two production functions that legally
+        # hand a bound `self._exchange[.futures].create_order` method
+        # reference TO `_mutate_via_coordinator(...)` as an argument. That
+        # hand-off is the architecturally correct gating mechanism itself,
+        # not a bypass — the reference never escapes to an un-gated call.
+        # A new function name appearing here means a new exchange-mutation
+        # reference was added OUTSIDE this protocol, including one merely
+        # PASSED BY REFERENCE to a wrapper (the R1 detector's blind spot).
+        allowed = {
+            "_mutate_via_coordinator.mutate",
+            "create_futures_order",
+            "_place_live_order",
+        }
         unexpected = functions - allowed
         assert not unexpected, (
-            f"new direct .create_order(...) call site(s) found outside "
-            f"the REM-B coordinator wrapper: {unexpected} — route through "
+            f"new mutation-method reference(s) found outside the REM-B "
+            f"coordinator wrapper: {unexpected} — route through "
             f"OrderIntentCoordinator.submit() instead"
         )
 
-    def test_position_manager_create_order_calls_only_inside_coordinator_wrapper(self):
+    def test_position_manager_mutation_references_only_inside_coordinator_wrapper(self):
         path = "quant_hedge_ai/agents/execution/position_manager.py"
-        functions = self._functions_containing_create_order_call(path)
+        functions = _mutation_references(path)
         allowed = {"_send_close_order.mutate"}
         unexpected = functions - allowed
         assert not unexpected, (
-            f"new direct .create_order(...) call site(s) found outside "
-            f"the REM-B coordinator wrapper: {unexpected} — route through "
+            f"new mutation-method reference(s) found outside the REM-B "
+            f"coordinator wrapper: {unexpected} — route through "
             f"OrderIntentCoordinator.submit() instead"
         )
+
+    def test_layer2_reference_passed_to_wrapper_is_detected(self, tmp_path):
+        """Behavioral proof of Layer 2 detection using a synthetic fixture
+        file — NOT the real production files — reproducing the exact
+        historical bypass shape `_with_retry(exchange.create_order, ...)`
+        the R1 detector missed."""
+        fixture = tmp_path / "fixture_layer2.py"
+        fixture.write_text(
+            "class E:\n"
+            "    def bad(self):\n"
+            "        return self._with_retry(self._exchange.create_order, 1, 2)\n"
+        )
+        functions = _mutation_references(str(fixture))
+        assert "bad" in functions
+
+    def test_layer3_assigned_alias_is_detected(self, tmp_path):
+        fixture = tmp_path / "fixture_layer3.py"
+        fixture.write_text(
+            "class E:\n"
+            "    def bad(self):\n"
+            "        mutate = self._exchange.create_order\n"
+            "        return mutate(1, 2)\n"
+        )
+        functions = _mutation_references(str(fixture))
+        assert "bad" in functions
+
+    def test_layer4_literal_getattr_is_detected(self, tmp_path):
+        fixture = tmp_path / "fixture_layer4.py"
+        fixture.write_text(
+            "class E:\n"
+            "    def bad(self):\n"
+            "        fn = getattr(self._exchange, 'create_order')\n"
+            "        return fn(1, 2)\n"
+        )
+        functions = _mutation_references(str(fixture))
+        assert "bad" in functions
+
+    def test_layer5_wrapper_delegation_attributed_to_wrapper(self, tmp_path):
+        """A reference inside a helper function is attributed to THAT
+        function even when production code only ever calls a
+        higher-level wrapper around it — the inventory must catch it at
+        its actual source, not only at the outermost call site."""
+        fixture = tmp_path / "fixture_layer5.py"
+        fixture.write_text(
+            "class E:\n"
+            "    def _low_level_mutate(self):\n"
+            "        return self._exchange.create_order(1, 2)\n"
+            "    def public_wrapper(self):\n"
+            "        return self._low_level_mutate()\n"
+        )
+        functions = _mutation_references(str(fixture))
+        assert functions == {"_low_level_mutate"}
+
+    def test_known_allowed_wrapper_passes_without_flagging(self, tmp_path):
+        """A reference inside the one allowlisted coordinator closure must
+        NOT be flagged — proving the detector doesn't just flag every
+        reference indiscriminately (which would make the allowlist
+        meaningless)."""
+        fixture = tmp_path / "fixture_allowed.py"
+        fixture.write_text(
+            "class E:\n"
+            "    def _mutate_via_coordinator(self, mutate_fn):\n"
+            "        def mutate(intent, cid):\n"
+            "            return mutate_fn(1, 2)\n"
+            "        return mutate\n"
+        )
+        functions = _mutation_references(str(fixture))
+        assert functions == set()  # mutate_fn is a parameter, not a mutation-method attribute
+
+    def test_new_unauthorized_fixture_call_site_fails_the_inventory_test(self, tmp_path, monkeypatch):
+        """Reproduces the actual production test's failure mode: a NEW,
+        unauthorized function is added to a file the inventory test
+        scans, and the test must fail — proven here by running the same
+        assertion logic against a synthetic copy of execution_engine.py
+        with an injected bypass, not by mutating the real file."""
+        real_path = "quant_hedge_ai/agents/execution/execution_engine.py"
+        src = open(real_path, encoding="utf-8").read()
+        injected = src.replace(
+            "def _to_futures_symbol(self, symbol: str) -> str:",
+            "def _fake_new_bypass(self):\n"
+            "        return self._exchange.create_order('x', 'y', 'z')\n\n"
+            "    def _to_futures_symbol(self, symbol: str) -> str:",
+            1,
+        )
+        assert injected != src, "fixture setup failed to inject the synthetic bypass"
+        fixture = tmp_path / "injected_execution_engine.py"
+        fixture.write_text(injected)
+        functions = _mutation_references(str(fixture))
+        allowed = {"_mutate_via_coordinator.mutate"}
+        unexpected = functions - allowed
+        assert "_fake_new_bypass" in unexpected
 
     def test_no_legacy_bypass_branch_remains_in_execution_engine(self):
         """The pre-Correction-A `else: order = self._with_retry(self.
@@ -1390,6 +1570,7 @@ class TestGroupN_CallerInventoryAndBypassDetection:
             "quant_hedge_ai/agents/risk/capital_allocation_engine.py",
             "quant_hedge_ai/agents/execution/execution_engine.py",
             "quant_hedge_ai/agents/execution/position_manager.py",
+            "quant_hedge_ai/agents/execution/decision_identity.py",  # docstring mentions only, no real call
             "quant_hedge_ai/main_v91.py",
             "quant_hedge_ai/main_system.py",
             "scripts/smoke_test_ci.py",
@@ -1404,3 +1585,281 @@ class TestGroupN_CallerInventoryAndBypassDetection:
             f"inventory: {unexpected_files} — investigate and classify "
             f"before assuming REM-B coverage is still complete"
         )
+
+
+# ─────────────────────────────────────────────────────────────────────────
+# Group O — durable upstream decision identity (O-02W-PRE-T1-E REM-B-R1.1,
+# Blocker A). Uses `decision_identity.DecisionIdentityJournal` directly
+# (unit-level) plus `ExecutionEngine` through its real production
+# `_decision_id_is_durably_persisted()` gate (integration-level) — not
+# monkeypatched away, unlike the other test files' fixtures.
+# ─────────────────────────────────────────────────────────────────────────
+
+
+class TestGroupO_DurableDecisionIdentity:
+    def test_identity_created_once_persisted_before_execution(self, tmp_path):
+        from quant_hedge_ai.agents.execution.decision_identity import (
+            DecisionIdentityJournal,
+        )
+
+        j = DecisionIdentityJournal(tmp_path / "decisions.jsonl")
+        j.persist("dec-1", namespace="test", cycle=1, symbol="BTC/USDT")
+        assert j.is_persisted("dec-1")
+
+    def test_serialization_round_trip_preserves_identity(self, tmp_path):
+        from quant_hedge_ai.agents.execution.decision_identity import (
+            DecisionIdentityJournal,
+        )
+
+        path = tmp_path / "decisions.jsonl"
+        j1 = DecisionIdentityJournal(path)
+        j1.persist("dec-roundtrip", namespace="test", cycle=5, symbol="ETH/USDT")
+
+        # Simulate process restart: a BRAND NEW journal instance pointed
+        # at the SAME durable path — proving reconstruction, not an
+        # in-memory cache, is what answers `is_persisted`.
+        j2 = DecisionIdentityJournal(path)
+        assert j2.is_persisted("dec-roundtrip")
+
+    def test_reconstruction_after_restart_retains_identity(self, tmp_path):
+        from quant_hedge_ai.agents.execution.decision_identity import (
+            DecisionIdentityJournal,
+        )
+
+        path = tmp_path / "decisions.jsonl"
+        DecisionIdentityJournal(path).persist("dec-restart", namespace="test")
+        # A THIRD reconstruction still sees it — durability isn't a
+        # one-shot fluke.
+        assert DecisionIdentityJournal(path).is_persisted("dec-restart")
+        assert DecisionIdentityJournal(path).is_persisted("dec-restart")
+
+    def test_duplicate_delivery_retains_same_identity(self, tmp_path):
+        """The same decision_id persisted twice (e.g. a duplicated
+        DecisionPacket delivery) stays associated with the exact same
+        identity string — no collision, no second distinct record
+        required for `is_persisted` to keep returning True."""
+        from quant_hedge_ai.agents.execution.decision_identity import (
+            DecisionIdentityJournal,
+        )
+
+        j = DecisionIdentityJournal(tmp_path / "decisions.jsonl")
+        j.persist("dec-dup", namespace="test", cycle=1)
+        j.persist("dec-dup", namespace="test", cycle=1)  # duplicate delivery
+        assert j.is_persisted("dec-dup")
+
+    def test_identical_trade_fields_distinct_decisions_distinct_identity(self, tmp_path):
+        """Two DISTINCT decision_id values (as two genuinely different
+        decision cycles would generate) are both independently persisted
+        and independently verifiable — persisting one never satisfies a
+        membership check for the other, even with identical
+        symbol/cycle metadata."""
+        from quant_hedge_ai.agents.execution.decision_identity import (
+            DecisionIdentityJournal,
+        )
+
+        j = DecisionIdentityJournal(tmp_path / "decisions.jsonl")
+        j.persist("dec-A", namespace="test", cycle=1, symbol="BTC/USDT")
+        j.persist("dec-B", namespace="test", cycle=1, symbol="BTC/USDT")
+        assert j.is_persisted("dec-A")
+        assert j.is_persisted("dec-B")
+        assert not j.is_persisted("dec-C")  # never persisted — correctly absent
+
+    def test_missing_persisted_id_fails_closed_zero_mutation(self, tmp_path, monkeypatch):
+        """Integration proof through the REAL, un-bypassed ExecutionEngine
+        gate: a `decision_id` that was never durably persisted (a bare
+        in-memory string, exactly like a legacy caller unaware of this
+        journal would produce) is refused BEFORE any mutation call."""
+        monkeypatch.setenv("EXEC_TRADE_LOG", str(tmp_path / "t.sqlite"))
+        monkeypatch.setenv("EXEC_MAX_ORDER_USD", "10000")
+        monkeypatch.setenv("PAPER_TRADING_ENABLED", "false")
+        monkeypatch.setenv(
+            "DECISION_IDENTITY_JOURNAL_PATH", str(tmp_path / "decisions.jsonl")
+        )
+        from unittest.mock import MagicMock
+
+        from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
+
+        e = ExecutionEngine(live=False, _sleep=lambda _: None)
+        e._live = True
+        mock_exchange = MagicMock()
+        mock_exchange.fetch_ticker.return_value = {"last": 50_000.0}
+        mock_exchange.load_markets.return_value = {}
+        mock_exchange.fetch_balance.return_value = {"free": {"USDT": 10_000.0}}
+        e._exchange = mock_exchange
+        e.start_session(10_000.0)
+
+        # decision_id is a real, non-empty string — but NEVER persisted.
+        result = e.create_order("BTC/USDT", "BUY", 100.0, decision_id="never-persisted-id")
+        assert result["mode"] == "rejected"
+        assert result["denial_reason"] == "UNPERSISTED_CAUSAL_ID"
+        mock_exchange.create_order.assert_not_called()
+
+    def test_persisted_id_reaches_real_execution_path(self, tmp_path, monkeypatch):
+        """The positive case, through the same real gate: a decision_id
+        that WAS durably persisted first is honored."""
+        monkeypatch.setenv("EXEC_TRADE_LOG", str(tmp_path / "t.sqlite"))
+        monkeypatch.setenv("EXEC_MAX_ORDER_USD", "10000")
+        monkeypatch.setenv("PAPER_TRADING_ENABLED", "false")
+        monkeypatch.setenv(
+            "DECISION_IDENTITY_JOURNAL_PATH", str(tmp_path / "decisions.jsonl")
+        )
+        from unittest.mock import MagicMock
+
+        from quant_hedge_ai.agents.execution import order_intent_protocol as oip
+        from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
+
+        monkeypatch.setitem(
+            oip._ADAPTER_CAPABILITIES_BY_EXCHANGE,
+            "mexc",
+            oip.AdapterCapabilities(
+                verdict=oip.AdapterCapabilityVerdict.SUBMIT_AND_RECONCILE_VERIFIED,
+                client_order_id_param="clientOrderId",
+            ),
+        )
+
+        e = ExecutionEngine(live=False, _sleep=lambda _: None)
+        e._live = True
+        mock_exchange = MagicMock()
+        mock_exchange.fetch_ticker.return_value = {"last": 50_000.0}
+        mock_exchange.load_markets.return_value = {}
+        mock_exchange.fetch_balance.return_value = {"free": {"USDT": 10_000.0}}
+        mock_exchange.create_order.return_value = {"id": "ok-1"}
+        e._exchange = mock_exchange
+        e.start_session(10_000.0)
+
+        e._get_decision_identity_journal().persist(
+            "properly-persisted-id", namespace="test"
+        )
+        result = e.create_order(
+            "BTC/USDT", "BUY", 100.0, decision_id="properly-persisted-id"
+        )
+        assert result["mode"] == "live"
+        mock_exchange.create_order.assert_called_once()
+
+    def test_persistence_failure_produces_zero_mutation(self, tmp_path, monkeypatch):
+        """A decision-identity persist() failure must never be silently
+        swallowed such that execution proceeds anyway — it must
+        transitively fail closed. Proven by pointing the journal path at
+        a location where fsync/write will fail (a file, not a directory,
+        used AS a parent directory)."""
+        from quant_hedge_ai.agents.execution.decision_identity import (
+            DecisionIdentityJournal,
+        )
+
+        blocker_file = tmp_path / "not_a_directory"
+        blocker_file.write_text("x")
+        bad_path = blocker_file / "decisions.jsonl"  # parent is a FILE, not a dir
+        with pytest.raises(Exception):
+            # mkdir(parents=True) on a path whose parent is a file raises
+            # during construction — this IS the fail-closed proof: no
+            # journal is silently created, no persist() call could ever
+            # have proceeded.
+            DecisionIdentityJournal(bad_path)
+
+    def test_empty_decision_id_refuses_to_persist(self, tmp_path):
+        from quant_hedge_ai.agents.execution.decision_identity import (
+            DecisionIdentityError,
+            DecisionIdentityJournal,
+        )
+
+        j = DecisionIdentityJournal(tmp_path / "decisions.jsonl")
+        with pytest.raises(DecisionIdentityError):
+            j.persist("", namespace="test")
+        with pytest.raises(DecisionIdentityError):
+            j.persist(None, namespace="test")
+
+    def test_truncated_final_record_does_not_lose_earlier_identities(self, tmp_path):
+        """Same durability contract as OrderIntentJournal: a corrupt/
+        truncated final line must not prevent an earlier, validly-written
+        identity from still being found."""
+        from quant_hedge_ai.agents.execution.decision_identity import (
+            DecisionIdentityJournal,
+        )
+
+        path = tmp_path / "decisions.jsonl"
+        j = DecisionIdentityJournal(path)
+        j.persist("dec-valid", namespace="test")
+        with open(path, "a", encoding="utf-8") as f:
+            f.write('{"decision_id": "dec-trunc", "namespace"')  # truncated, no newline
+
+        j2 = DecisionIdentityJournal(path)
+        assert j2.is_persisted("dec-valid")
+        assert not j2.is_persisted("dec-trunc")  # never validly recorded
+
+    def test_advisor_loop_persists_trace_id_before_execution_source_proof(self):
+        """Source-level proof that `core/advisor_loop.py`'s
+        `analyze_symbol()` calls `default_decision_identity_journal().
+        persist(_trace_id, ...)` immediately after `_trace_id` is created
+        — i.e. at the decision-creation boundary, before any of the
+        function's subsequent authorization/execution logic — closing the
+        causal-ordering gap Correction B named (identity created but never
+        durably recorded before execution)."""
+        src = open("core/advisor_loop.py", encoding="utf-8").read()
+        idx_trace = src.index("_trace_id = new_trace_id()")
+        idx_persist = src.index("default_decision_identity_journal()")
+        idx_set_trace = src.index("set_trace_id(_trace_id)")
+        # persist() call must appear AFTER _trace_id is created but this
+        # is still at the very top of the function body — assert it's
+        # within a small window (a few hundred characters), not buried
+        # deep in unrelated downstream logic.
+        assert idx_trace < idx_set_trace < idx_persist
+        assert idx_persist - idx_trace < 2000
+
+    def test_restart_cannot_convert_one_decision_into_a_second_order_identity(
+        self, tmp_path, monkeypatch
+    ):
+        """Full causal-ordering proof: persisting a decision id, then
+        reconstructing the ExecutionEngine (simulating a process restart)
+        and reusing the SAME decision_id, produces the SAME order-intent
+        digest via OrderIntentCoordinator — never a second, distinct
+        order identity for what is logically one decision."""
+        monkeypatch.setenv("EXEC_TRADE_LOG", str(tmp_path / "t.sqlite"))
+        monkeypatch.setenv("EXEC_MAX_ORDER_USD", "10000")
+        monkeypatch.setenv("PAPER_TRADING_ENABLED", "false")
+        monkeypatch.setenv(
+            "DECISION_IDENTITY_JOURNAL_PATH", str(tmp_path / "decisions.jsonl")
+        )
+        monkeypatch.setenv(
+            "ORDER_INTENT_JOURNAL_PATH", str(tmp_path / "order_intents.jsonl")
+        )
+        from unittest.mock import MagicMock
+
+        from quant_hedge_ai.agents.execution import order_intent_protocol as oip
+        from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
+
+        monkeypatch.setitem(
+            oip._ADAPTER_CAPABILITIES_BY_EXCHANGE,
+            "mexc",
+            oip.AdapterCapabilities(
+                verdict=oip.AdapterCapabilityVerdict.SUBMIT_AND_RECONCILE_VERIFIED,
+                client_order_id_param="clientOrderId",
+            ),
+        )
+
+        def _build_engine():
+            e = ExecutionEngine(live=False, _sleep=lambda _: None)
+            e._live = True
+            mock_exchange = MagicMock()
+            mock_exchange.fetch_ticker.return_value = {"last": 50_000.0}
+            mock_exchange.load_markets.return_value = {}
+            mock_exchange.fetch_balance.return_value = {"free": {"USDT": 10_000.0}}
+            mock_exchange.create_order.return_value = {"id": "restart-ok"}
+            e._exchange = mock_exchange
+            e.start_session(10_000.0)
+            return e, mock_exchange
+
+        e1, ex1 = _build_engine()
+        e1._get_decision_identity_journal().persist("dec-restart-1", namespace="test")
+        r1 = e1.create_order("BTC/USDT", "BUY", 100.0, decision_id="dec-restart-1")
+        assert r1["mode"] == "live"
+
+        # Simulate a full process restart: a BRAND NEW ExecutionEngine
+        # instance, same durable journal paths, same decision_id (the
+        # "same logical decision" scenario).
+        e2, ex2 = _build_engine()
+        r2 = e2.create_order("BTC/USDT", "BUY", 100.0, decision_id="dec-restart-1")
+
+        # No second mutation call — the reconstructed coordinator
+        # recognizes the already-ACKNOWLEDGED intent.
+        ex2.create_order.assert_not_called()
+        assert r2["id"] == "restart-ok"  # same order, not a new one

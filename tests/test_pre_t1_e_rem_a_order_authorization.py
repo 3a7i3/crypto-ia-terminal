@@ -477,12 +477,43 @@ def _fake_execution_exchange(
     return ex
 
 
+def _certify_mexc_for_test(monkeypatch):
+    """O-02W-PRE-T1-E REM-B-R1.1, Blocker B: real `mexc` is deliberately
+    deny-closed (reconciliation unproven against a pinned implementation).
+    Tests inject a fake, test-only certified capability instead."""
+    from quant_hedge_ai.agents.execution import order_intent_protocol as oip
+
+    monkeypatch.setitem(
+        oip._ADAPTER_CAPABILITIES_BY_EXCHANGE,
+        "mexc",
+        oip.AdapterCapabilities(
+            verdict=oip.AdapterCapabilityVerdict.SUBMIT_AND_RECONCILE_VERIFIED,
+            client_order_id_param="clientOrderId",
+            supports_open_order_search=True,
+            supports_closed_order_search=True,
+            evidence="test fixture — certified for hermetic testing only",
+        ),
+    )
+    # O-02W-PRE-T1-E REM-B-R1.1, Blocker A: these tests exercise OTHER
+    # behavior (sizing, symbol conversion, SEC-01 gate, etc.), not the
+    # decision-identity persistence check itself — bypass it here exactly
+    # like the capability fake above, so a bare decision_id string keeps
+    # working for them. Dedicated tests exercise the REAL persistence
+    # check via `decision_identity.DecisionIdentityJournal` directly.
+    from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine as _EE
+
+    monkeypatch.setattr(
+        _EE, "_decision_id_is_durably_persisted", lambda self, decision_id: bool(decision_id)
+    )
+
+
 @pytest.fixture
 def live_engine(tmp_path, monkeypatch):
     monkeypatch.setenv("EXEC_TRADE_LOG", str(tmp_path / "trades.sqlite"))
     monkeypatch.setenv("EXEC_MAX_ORDER_USD", "1e12")
     monkeypatch.setenv("PAPER_TRADING_ENABLED", "false")
     monkeypatch.setenv("EXEC_DEDUP_WINDOW", "0")
+    _certify_mexc_for_test(monkeypatch)
 
     def _make(mock_exchange=None):
         from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
@@ -596,6 +627,7 @@ class TestGroupF_PositionManager:
     def _make_pm(self, exchange, monkeypatch, paper_trading_enabled="false"):
         monkeypatch.setenv("PAPER_TRADING_ENABLED", paper_trading_enabled)
         monkeypatch.setenv("LIVE_TRADING_CONFIRMED", "true")
+        _certify_mexc_for_test(monkeypatch)
         from quant_hedge_ai.agents.execution.position_manager import PositionManager
 
         return PositionManager(exchange=exchange, paper_mode=False)

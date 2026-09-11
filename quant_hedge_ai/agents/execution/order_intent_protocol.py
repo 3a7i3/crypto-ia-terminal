@@ -480,60 +480,102 @@ class OrderIntentJournal:
 # ─────────────────────────────────────────────────────────────────────────
 
 
+class AdapterCapabilityVerdict(str, Enum):
+    """O-02W-PRE-T1-E REM-B-R1.1, Blocker B: a caller-supplied `lookup`
+    callable accepted by `reconcile()` is not proof that an adapter
+    actually supports reconciliation — it only proves a FAKE passed in a
+    test does. This is the closed verdict vocabulary spec §5 requires,
+    derived from what can actually be certified against the pinned,
+    in-repository implementation and documentation — never from
+    "a plausible parameter name" alone."""
+
+    SUBMIT_AND_RECONCILE_VERIFIED = "SUBMIT_AND_RECONCILE_VERIFIED"
+    SUBMIT_ONLY_RECONCILIATION_UNVERIFIED = "SUBMIT_ONLY_RECONCILIATION_UNVERIFIED"
+    UNSUPPORTED = "UNSUPPORTED"
+    INCONCLUSIVE = "INCONCLUSIVE"
+
+
 @dataclass(frozen=True)
 class AdapterCapabilities:
     """Typed capability declaration for one exchange adapter (spec §9,
-    tightened in REM-B-R1 Correction E). `max_client_order_id_len` and
-    `client_order_id_charset` describe the ACTUAL constraints the adapter's
-    upstream API imposes (not this module's own `client_order_id()` output
-    length, which stays under any reasonable exchange limit already —
-    these are for a caller to validate an adapter-specific ceiling
-    tighter than 32 chars, if one is ever found)."""
+    tightened in REM-B-R1 Correction E, gated by `verdict` in R1.1
+    Blocker B). `max_client_order_id_len` and `client_order_id_charset`
+    describe the ACTUAL constraints the adapter's upstream API imposes
+    (not this module's own `client_order_id()` output length, which stays
+    under any reasonable exchange limit already — these are for a caller
+    to validate an adapter-specific ceiling tighter than 32 chars, if one
+    is ever found).
 
-    supports_client_order_id: bool
+    `supports_client_order_id` is DERIVED from `verdict` — spec §5's own
+    rule is explicit: "Only SUBMIT_AND_RECONCILE_VERIFIED may authorize an
+    externally capable submission during PRE-T1." A
+    SUBMIT_ONLY_RECONCILIATION_UNVERIFIED verdict — despite its name
+    suggesting submission alone is fine — does NOT authorize external
+    submission under that rule; only the top verdict does. This is
+    intentionally more conservative than R1's model, which authorized
+    submission (`mexc`) without a certified reconciliation contract."""
+
+    verdict: AdapterCapabilityVerdict
     client_order_id_param: Optional[str]  # e.g. "clientOrderId", "newClientOrderId"
-    supports_lookup_by_client_order_id: bool
     max_client_order_id_len: int = 32
     client_order_id_charset: str = "alnum"  # "alnum" | "alnum_dash" | ...
     supports_open_order_search: bool = False
     supports_closed_order_search: bool = False
+    evidence: str = ""
+
+    @property
+    def supports_client_order_id(self) -> bool:
+        return self.verdict == AdapterCapabilityVerdict.SUBMIT_AND_RECONCILE_VERIFIED
+
+    @property
+    def supports_lookup_by_client_order_id(self) -> bool:
+        return self.verdict == AdapterCapabilityVerdict.SUBMIT_AND_RECONCILE_VERIFIED
 
 
-# O-02W-PRE-T1-E REM-B-R1, Correction E: a single hardcoded capability for
-# every `EXCHANGE_ID` this repo's execution paths can be configured with —
-# as they were before this correction — was a defect, not a simplification.
-# CCXT's raw client-order-id parameter name is NOT uniform across
-# exchanges (e.g. Binance-family REST APIs use `newClientOrderId`, not
-# `clientOrderId`); sending the wrong one is typically silently ignored by
-# the exchange, defeating REM-B's deterministic-identity guarantee while
-# the call still appears to succeed. `ccxt` is not installed in this
-# development sandbox (`pip install ccxt` failed here on an unrelated
-# system `cryptography` package conflict, not a network issue), so the
-# exact raw parameter name for `krakenfutures`/`binanceusdm` could NOT be
-# verified against the actual installed library version — rather than
-# guess and silently trust a plausible-but-unverified name, those adapters
-# fail closed (`supports_client_order_id=False` -> `submit()` returns
-# `UNSUPPORTED_ADAPTER_CAPABILITY`, zero mutation calls) until an operator
-# verifies and extends this table against the real `ccxt` package. Only
-# `mexc` is marked supported: it is this repo's default (`EXCHANGE_ID`
-# unset -> "mexc"), the only exchange REM-B's own test suite exercises
-# end-to-end, and `clientOrderId` is MEXC's documented spot-API parameter
-# name (also used, unverified beyond that, for its futures-demo path,
-# which in practice never reaches CCXT directly — see
-# `ExecutionEngine._init_futures_demo`).
+# O-02W-PRE-T1-E REM-B-R1.1, Blocker B: R1's "mexc verified" verdict
+# authorized external submission on the strength of a plausible,
+# documented `clientOrderId` submission parameter alone — but a
+# caller-supplied `lookup` callable accepted by `reconcile()` is not proof
+# an adapter actually supports reconciliation; it only proves a FAKE
+# passed in a test does. Repository-wide search
+# (`grep -rln "fetch_order\|fetch_open_orders\|fetch_closed_orders"`)
+# found no in-repo, pinned implementation of MEXC order lookup-by-
+# clientOrderId (the market-data connectors under `market_data/connectors/`
+# and `infra/mexc_reader.py` only fetch order BOOKS, not order status by
+# ID; `system/pending_order_tracker.py`'s `PendingOrderTracker` exists but
+# is never instantiated anywhere in production — confirmed via
+# `grep -rn "PendingOrderTracker("` — and is keyed by exchange-assigned
+# `order_id`, not `clientOrderId`, so it cannot certify this either).
+# `ccxt` remains uninstallable in this sandbox (unrelated system
+# `cryptography` package conflict). Per spec §5's explicit rule — "Only
+# SUBMIT_AND_RECONCILE_VERIFIED may authorize an externally capable
+# submission during PRE-T1" — MEXC is downgraded from R1's
+# submission-authorized verdict to `SUBMIT_ONLY_RECONCILIATION_UNVERIFIED`,
+# which under that same rule does NOT authorize external submission
+# either (only the top verdict does, despite the middle verdict's name).
+# A safe refusal is preferable to an unverifiable live capability (spec
+# §5). This has zero live-trading impact today: CLAUDE.md's stabilization
+# window already mandates `PAPER_TRADING_ENABLED=true`.
 _ADAPTER_CAPABILITIES_BY_EXCHANGE: dict[str, AdapterCapabilities] = {
     "mexc": AdapterCapabilities(
-        supports_client_order_id=True,
+        verdict=AdapterCapabilityVerdict.SUBMIT_ONLY_RECONCILIATION_UNVERIFIED,
         client_order_id_param="clientOrderId",
-        supports_lookup_by_client_order_id=True,
-        supports_open_order_search=True,
-        supports_closed_order_search=True,
+        supports_open_order_search=False,
+        supports_closed_order_search=False,
+        evidence=(
+            "clientOrderId is MEXC's documented spot-API submission "
+            "parameter (general knowledge, not verified against a "
+            "pinned in-repo ccxt install — ccxt uninstallable in this "
+            "sandbox). No in-repo, pinned implementation of order "
+            "lookup-by-clientOrderId found for MEXC — reconciliation "
+            "capability is UNVERIFIED, not merely undeclared."
+        ),
     ),
 }
 _UNVERIFIED_ADAPTER_CAPABILITIES = AdapterCapabilities(
-    supports_client_order_id=False,
+    verdict=AdapterCapabilityVerdict.UNSUPPORTED,
     client_order_id_param=None,
-    supports_lookup_by_client_order_id=False,
+    evidence="no capability entry for this EXCHANGE_ID — not reviewed, fails closed",
 )
 
 
@@ -839,6 +881,31 @@ class OrderIntentCoordinator:
         lookup: Callable[[str], ReconciliationLookupResult],
         verify_match: Optional[Callable[[dict, dict], bool]] = None,
     ) -> SubmissionResult:
+        """O-02W-PRE-T1-E REM-B-R1.1, Blocker B: a caller-supplied `lookup`
+        does not by itself prove an adapter supports reconciliation — only
+        a certified `AdapterCapabilityVerdict.SUBMIT_AND_RECONCILE_VERIFIED`
+        capability does. A production caller cannot bypass this gate by
+        supplying a permissive `lookup`; `lookup` is invoked only after
+        this check passes, and it is invoked with the SAME capability this
+        coordinator was constructed with, never a caller-substituted one.
+        Tests inject a fake `lookup` against a coordinator explicitly
+        constructed with a `SUBMIT_AND_RECONCILE_VERIFIED` fake capability
+        — the certified-adapter contract, not an arbitrary one."""
+        if (
+            self._capabilities.verdict
+            != AdapterCapabilityVerdict.SUBMIT_AND_RECONCILE_VERIFIED
+        ):
+            return SubmissionResult(
+                outcome=SubmissionOutcome.UNSUPPORTED_ADAPTER_CAPABILITY,
+                intent_digest=intent_digest,
+                client_order_id="",
+                state=None,
+                detail=(
+                    f"adapter capability verdict "
+                    f"{self._capabilities.verdict.value} does not certify "
+                    f"reconciliation — zero lookup calls"
+                ),
+            )
         with self._lock_for(intent_digest):
             record = self._journal.get(intent_digest)
             if record is None:

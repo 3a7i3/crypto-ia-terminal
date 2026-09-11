@@ -7,6 +7,10 @@ import time
 from observability.json_logger import get_logger
 from quant_hedge_ai.agents.execution.order_authorization import authorize_order
 from quant_hedge_ai.agents.execution.order_deduplicator import OrderDeduplicator
+from quant_hedge_ai.agents.execution.decision_identity import (
+    DecisionIdentityJournal,
+    default_decision_identity_journal,
+)
 from quant_hedge_ai.agents.execution.order_intent_protocol import (
     ExchangeMutationOutcome,
     ExchangeMutationResult,
@@ -83,6 +87,7 @@ class ExecutionEngine:
         # conftest.py) on every unrelated test run.
         self._order_intent_journal = None
         self._order_intent_coordinator = None
+        self._decision_identity_journal = None
 
         # Safety layer
         self._dedup = OrderDeduplicator(
@@ -512,7 +517,7 @@ class ExecutionEngine:
             # silent amplification).
             qty = auth.normalized_qty
 
-            if decision_id:
+            if self._decision_id_is_durably_persisted(decision_id):
                 intent = build_order_intent(
                     namespace="ExecutionEngine.futures",
                     causal_id=decision_id,
@@ -557,14 +562,21 @@ class ExecutionEngine:
                     }
                 order = (sub.raw_evidence or {}).get("order", {"id": sub.exchange_order_id})
             else:
-                # O-02W-PRE-T1-E REM-B-R1, Correction A: a missing causal id
-                # must never select the legacy direct-submission path — this
-                # adapter (futures demo) reaches a real external mutation
-                # call, so it fails closed with zero exchange mutation calls
-                # and no journal write rather than silently bypassing REM-B.
+                # O-02W-PRE-T1-E REM-B-R1, Correction A + R1.1 Blocker A: a
+                # missing OR unpersisted causal id must never select the
+                # legacy direct-submission path — this adapter (futures
+                # demo) reaches a real external mutation call, so it fails
+                # closed with zero exchange mutation calls and no journal
+                # write rather than silently bypassing REM-B.
+                _reason = (
+                    "MISSING_CAUSAL_ID"
+                    if not decision_id
+                    else "UNPERSISTED_CAUSAL_ID"
+                )
                 _log.warning(
                     "[ExecutionEngine] Ordre futures refusé — decision_id "
-                    "manquant (REM-B-R1 Correction A, fail-closed) %s %s",
+                    "%s (REM-B-R1.1, fail-closed) %s %s",
+                    "manquant" if not decision_id else "non-persisté durablement",
                     action,
                     symbol,
                 )
@@ -573,9 +585,10 @@ class ExecutionEngine:
                     "action": action,
                     "size": size_usd,
                     "mode": "rejected",
-                    "error": "decision_id is required for any externally "
+                    "error": "decision_id must be non-empty AND durably "
+                    "persisted (decision_identity.py) for any externally "
                     "reachable mutation — refusing the legacy bypass",
-                    "denial_reason": "MISSING_CAUSAL_ID",
+                    "denial_reason": _reason,
                 }
             _log.info(
                 "[ExecutionEngine] Ordre FUTURES DEMO: %s %.4f %s @ $%.2f (lev x%d) id=%s",
@@ -626,6 +639,29 @@ class ExecutionEngine:
                 self._order_intent_journal, capabilities_for_exchange(exch_id)
             )
         return self._order_intent_coordinator
+
+    def _get_decision_identity_journal(self) -> DecisionIdentityJournal:
+        # O-02W-PRE-T1-E REM-B-R1.1, Blocker A — lazily constructed, same
+        # rationale as `_get_order_intent_coordinator` above: a plain
+        # `ExecutionEngine()` construction must not touch disk unless a
+        # caller actually exercises the decision_id path.
+        if self._decision_identity_journal is None:
+            self._decision_identity_journal = default_decision_identity_journal()
+        return self._decision_identity_journal
+
+    def _decision_id_is_durably_persisted(self, decision_id: str | None) -> bool:
+        """O-02W-PRE-T1-E REM-B-R1.1, Blocker A: a `decision_id` value
+        being merely non-empty is NOT sufficient — it must have been
+        DURABLY PERSISTED (by the decision-creation boundary, e.g.
+        `core/advisor_loop.py`) before it can authorize a real mutation.
+        This enforces the causal ordering DECISION_ID_CREATED ->
+        DECISION_PERSISTED -> ... -> EXCHANGE_MUTATION: an in-memory-only
+        identity (never durably recorded, or belonging to a legacy caller
+        that doesn't persist one at all) fails closed exactly like a
+        missing one."""
+        if not decision_id:
+            return False
+        return self._get_decision_identity_journal().is_persisted(decision_id)
 
     def _mutate_via_coordinator(self, mutate_fn, ccxt_symbol, side, qty):
         """Wraps a raw `self._exchange.create_order(...)` call (via
@@ -793,10 +829,12 @@ class ExecutionEngine:
 
             qty = auth.normalized_qty
 
-            if decision_id:
+            if self._decision_id_is_durably_persisted(decision_id):
                 # O-02W-PRE-T1-E REM-B — durable, deterministic, idempotent
                 # submission path. Not entered when the caller has no
-                # upstream causal id (see create_order docstring).
+                # DURABLY PERSISTED upstream causal id (see create_order
+                # docstring; R1.1 Blocker A tightened this from "merely
+                # non-empty" to "durably recorded in decision_identity.py").
                 intent = build_order_intent(
                     namespace="ExecutionEngine.spot",
                     causal_id=decision_id,
@@ -841,13 +879,20 @@ class ExecutionEngine:
                     }
                 order = (sub.raw_evidence or {}).get("order", {"id": sub.exchange_order_id})
             else:
-                # O-02W-PRE-T1-E REM-B-R1, Correction A: a missing causal id
-                # must never select the legacy direct-submission path — this
-                # is the real live exchange, so it fails closed with zero
-                # exchange mutation calls and no journal write.
+                # O-02W-PRE-T1-E REM-B-R1, Correction A + R1.1 Blocker A: a
+                # missing OR unpersisted causal id must never select the
+                # legacy direct-submission path — this is the real live
+                # exchange, so it fails closed with zero exchange mutation
+                # calls and no journal write.
+                _reason = (
+                    "MISSING_CAUSAL_ID"
+                    if not decision_id
+                    else "UNPERSISTED_CAUSAL_ID"
+                )
                 _log.warning(
                     "[ExecutionEngine] Ordre live refusé — decision_id "
-                    "manquant (REM-B-R1 Correction A, fail-closed) %s %s",
+                    "%s (REM-B-R1.1, fail-closed) %s %s",
+                    "manquant" if not decision_id else "non-persisté durablement",
                     action,
                     symbol,
                 )
@@ -856,9 +901,10 @@ class ExecutionEngine:
                     "action": action,
                     "size": round(size, 4),
                     "mode": "rejected",
-                    "error": "decision_id is required for any externally "
+                    "error": "decision_id must be non-empty AND durably "
+                    "persisted (decision_identity.py) for any externally "
                     "reachable mutation — refusing the legacy bypass",
-                    "denial_reason": "MISSING_CAUSAL_ID",
+                    "denial_reason": _reason,
                 }
             _log.info(
                 "[ExecutionEngine] Ordre live: %s %.8f %s @ $%.2f (USD: $%.2f) id=%s",

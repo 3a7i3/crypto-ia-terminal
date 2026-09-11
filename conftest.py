@@ -100,6 +100,17 @@ os.environ.setdefault(
         "order_intent_journal.jsonl",
     ),
 )
+os.environ.setdefault(
+    # O-02W-PRE-T1-E REM-B-R1.1, Blocker A: decision_identity.py's durable
+    # journal path is a module-level constant, same DS-001 freeze-at-import
+    # hazard as ORDER_INTENT_JOURNAL_PATH immediately above — identical
+    # reasoning, identical fix.
+    "DECISION_IDENTITY_JOURNAL_PATH",
+    os.path.join(
+        tempfile.mkdtemp(prefix="pytest_decision_identity_journal_"),
+        "decision_identity_journal.jsonl",
+    ),
+)
 
 
 @pytest.fixture(autouse=True)

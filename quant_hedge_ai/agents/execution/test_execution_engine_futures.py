@@ -9,9 +9,42 @@ import pytest
 # ── Fixture ───────────────────────────────────────────────────────────────────
 
 
+def _certify_mexc_for_test(monkeypatch):
+    """O-02W-PRE-T1-E REM-B-R1.1, Blocker B: real `mexc` is deliberately
+    deny-closed (reconciliation unproven against a pinned implementation)
+    — see quant_hedge_ai/agents/execution/test_execution_engine.py for the
+    full rationale, duplicated here narrowly to avoid a cross-test-module
+    import."""
+    from quant_hedge_ai.agents.execution import order_intent_protocol as oip
+
+    monkeypatch.setitem(
+        oip._ADAPTER_CAPABILITIES_BY_EXCHANGE,
+        "mexc",
+        oip.AdapterCapabilities(
+            verdict=oip.AdapterCapabilityVerdict.SUBMIT_AND_RECONCILE_VERIFIED,
+            client_order_id_param="clientOrderId",
+            supports_open_order_search=True,
+            supports_closed_order_search=True,
+            evidence="test fixture — certified for hermetic testing only",
+        ),
+    )
+    # O-02W-PRE-T1-E REM-B-R1.1, Blocker A: these tests exercise OTHER
+    # behavior (sizing, symbol conversion, SEC-01 gate, etc.), not the
+    # decision-identity persistence check itself — bypass it here exactly
+    # like the capability fake above, so a bare decision_id string keeps
+    # working for them. Dedicated tests exercise the REAL persistence
+    # check via `decision_identity.DecisionIdentityJournal` directly.
+    from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine as _EE
+
+    monkeypatch.setattr(
+        _EE, "_decision_id_is_durably_persisted", lambda self, decision_id: bool(decision_id)
+    )
+
+
 @pytest.fixture
 def eng(tmp_path, monkeypatch):
     monkeypatch.setenv("EXCHANGE_ID", "mexc")  # isolate from .env krakenfutures; also the verified REM-B-R1 adapter capability
+    _certify_mexc_for_test(monkeypatch)
     monkeypatch.setenv("EXEC_TRADE_LOG", str(tmp_path / "trades.sqlite"))
     monkeypatch.setenv("EXEC_MAX_DD", "0.05")
     monkeypatch.setenv("EXEC_MAX_LOSS", "0.03")
@@ -120,7 +153,7 @@ class TestFuturesSizeClamping:
         mock_ex.create_order.assert_not_called()
 
     def test_above_max_clamped_down(self, eng):
-        mock_ex = _with_futures(eng)
+        _with_futures(eng)
         result = eng.create_futures_order("BTC/USDT", "BUY", 99999.0, decision_id="rem-b-r1-test-124")
         assert result["mode"] == "futures_demo"
         # size_usd est clampé à 200 avant conversion en qty ;
@@ -129,7 +162,7 @@ class TestFuturesSizeClamping:
         assert result["usd_size"] > 0
 
     def test_within_range_unchanged(self, eng):
-        mock_ex = _with_futures(eng)
+        _with_futures(eng)
         result = eng.create_futures_order("BTC/USDT", "BUY", 100.0, decision_id="rem-b-r1-test-133")
         assert result["mode"] == "futures_demo"
 

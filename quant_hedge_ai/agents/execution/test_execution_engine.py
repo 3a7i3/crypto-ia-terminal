@@ -7,6 +7,40 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 
+def _certify_mexc_for_test(monkeypatch):
+    """O-02W-PRE-T1-E REM-B-R1.1, Blocker B: real `mexc` is deliberately
+    deny-closed (`SUBMIT_ONLY_RECONCILIATION_UNVERIFIED` — reconciliation
+    unproven against a pinned implementation). Tests that need to exercise
+    the authorized-submission path inject a fake, test-only
+    `SUBMIT_AND_RECONCILE_VERIFIED` capability instead of relying on the
+    real (unverified) mexc entry — proving the certified-adapter contract
+    without silently promoting the real, unverified adapter."""
+    from quant_hedge_ai.agents.execution import order_intent_protocol as oip
+
+    monkeypatch.setitem(
+        oip._ADAPTER_CAPABILITIES_BY_EXCHANGE,
+        "mexc",
+        oip.AdapterCapabilities(
+            verdict=oip.AdapterCapabilityVerdict.SUBMIT_AND_RECONCILE_VERIFIED,
+            client_order_id_param="clientOrderId",
+            supports_open_order_search=True,
+            supports_closed_order_search=True,
+            evidence="test fixture — certified for hermetic testing only",
+        ),
+    )
+    # O-02W-PRE-T1-E REM-B-R1.1, Blocker A: these tests exercise OTHER
+    # behavior (sizing, symbol conversion, SEC-01 gate, etc.), not the
+    # decision-identity persistence check itself — bypass it here exactly
+    # like the capability fake above, so a bare decision_id string keeps
+    # working for them. Dedicated tests exercise the REAL persistence
+    # check via `decision_identity.DecisionIdentityJournal` directly.
+    from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine as _EE
+
+    monkeypatch.setattr(
+        _EE, "_decision_id_is_durably_persisted", lambda self, decision_id: bool(decision_id)
+    )
+
+
 @pytest.fixture
 def eng(tmp_path, monkeypatch):
     monkeypatch.setenv("EXEC_TRADE_LOG", str(tmp_path / "trades.sqlite"))
@@ -15,6 +49,7 @@ def eng(tmp_path, monkeypatch):
     monkeypatch.setenv("EXEC_MAX_CONSEC_LOSSES", "3")
     monkeypatch.setenv("EXEC_MAX_ORDER_USD", "10000")
     monkeypatch.setenv("EXEC_DEDUP_WINDOW", "30")
+    _certify_mexc_for_test(monkeypatch)
     from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
 
     e = ExecutionEngine(live=False)
@@ -140,6 +175,7 @@ class TestLiveFallback:
         monkeypatch.setenv("EXEC_TRADE_LOG", str(tmp_path / "t.sqlite"))
         monkeypatch.setenv("EXEC_MAX_ORDER_USD", "10000")
         monkeypatch.setenv("PAPER_TRADING_ENABLED", "false")  # gate SEC-01 ouvert
+        _certify_mexc_for_test(monkeypatch)
         from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
 
         e = ExecutionEngine(live=False, _sleep=lambda _: None)
@@ -164,6 +200,7 @@ class TestLiveFallback:
         monkeypatch.setenv("EXEC_TRADE_LOG", str(tmp_path / "t.sqlite"))
         monkeypatch.setenv("EXEC_MAX_ORDER_USD", "10000")
         monkeypatch.setenv("PAPER_TRADING_ENABLED", "false")  # gate SEC-01 ouvert
+        _certify_mexc_for_test(monkeypatch)
         from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
 
         e = ExecutionEngine(live=False)
@@ -181,6 +218,7 @@ class TestLiveFallback:
         monkeypatch.setenv("EXEC_TRADE_LOG", str(tmp_path / "t.sqlite"))
         monkeypatch.setenv("EXEC_MAX_ORDER_USD", "10000")
         monkeypatch.setenv("PAPER_TRADING_ENABLED", "false")  # gate SEC-01 ouvert
+        _certify_mexc_for_test(monkeypatch)
         from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
 
         e = ExecutionEngine(live=False)
@@ -202,6 +240,7 @@ class TestLiveFallback:
         monkeypatch.setenv("EXEC_TRADE_LOG", str(tmp_path / "t.sqlite"))
         monkeypatch.setenv("EXEC_MAX_ORDER_USD", "10000")
         monkeypatch.setenv("PAPER_TRADING_ENABLED", "false")  # gate SEC-01 ouvert
+        _certify_mexc_for_test(monkeypatch)
         from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
 
         e = ExecutionEngine(live=False)
@@ -234,6 +273,7 @@ class TestExecutionGateSEC01:
     def _make_live_engine(self, tmp_path, monkeypatch, mock_exchange):
         monkeypatch.setenv("EXEC_TRADE_LOG", str(tmp_path / "t.sqlite"))
         monkeypatch.setenv("EXEC_MAX_ORDER_USD", "10000")
+        _certify_mexc_for_test(monkeypatch)
         from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
 
         e = ExecutionEngine(live=False, _sleep=lambda _: None)

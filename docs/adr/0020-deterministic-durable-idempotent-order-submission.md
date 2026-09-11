@@ -497,3 +497,222 @@ not invented here.
   `binanceusdm` adapter capabilities remain unverified and therefore
   blocked from external submission until an operator confirms against
   the real `ccxt` package.
+
+---
+
+## R1.1 correction round (MASTER review, 2026-09-11)
+
+Three remaining blockers from R1, starting HEAD `cf9a9e74d8d699e6ca315af274da6d7bbef275d9`.
+
+### Blocker A — durable upstream decision identity
+
+**Investigation** (full trace, `core/advisor_loop.py`): `_trace_id = new_trace_id()`
+(a random UUID) is created exactly once per decision cycle, stored on
+`DecisionPacket.metadata["trace_id"]`, never regenerated before reaching
+execution — R1's Correction B had already established all of this. The
+one gap R1 named but did not close: `_trace_id` was never durably
+persisted BEFORE execution, only held in process memory.
+
+**Fix**: new module `quant_hedge_ai/agents/execution/decision_identity.py`
+— a minimal, narrowly-scoped append-only `DecisionIdentityJournal`
+(fsync-before-return, same durability contract as `OrderIntentJournal`:
+truncated final record tolerated, earlier valid records survive). This is
+the explicit fallback spec §4 describes ("if no canonical decision
+persistence exists, implement the minimum append-only decision-identity
+persistence necessary for REM-B") — confirmed no canonical decision
+persistence exists in this repository before execution (the various
+observability/audit logs record decisions only after an attempt, or
+asynchronously).
+
+`core/advisor_loop.py`'s `analyze_symbol()` now calls
+`default_decision_identity_journal().persist(_trace_id, ...)`
+IMMEDIATELY after `_trace_id` is created — before any authorization or
+execution logic runs (source-proven: the `persist()` call site is within
+2000 characters of the `_trace_id` assignment, before
+`set_trace_id(_trace_id)`'s only downstream use).
+
+`ExecutionEngine._decision_id_is_durably_persisted()` gates BOTH mutation
+paths (spot and futures): a `decision_id` that is merely non-empty is no
+longer sufficient — it must be found in the durable decision-identity
+journal. Missing OR unpersisted fails closed with a typed denial
+(`MISSING_CAUSAL_ID` / `UNPERSISTED_CAUSAL_ID`), zero mutation calls.
+
+**Causal ordering proven** (not merely asserted): `DECISION_ID_CREATED ->
+DECISION_PERSISTED -> REM_A_AUTHORIZATION -> ORDER_INTENT_RECORDED ->
+SUBMISSION_STARTED -> EXCHANGE_MUTATION`. A restart-simulation test
+(`test_restart_cannot_convert_one_decision_into_a_second_order_identity`)
+persists a decision id, submits successfully, reconstructs a BRAND NEW
+`ExecutionEngine` instance (simulating a process restart), and resubmits
+the SAME decision_id — the reconstructed coordinator recognizes the
+already-ACKNOWLEDGED intent and performs zero further mutation calls.
+
+**Legacy/missing identity**: any caller (including
+`quant_hedge_ai/main_v91.py`/`main_system.py`, R1's named unmodified
+parallel entrypoint) that supplies a `decision_id` never durably
+persisted fails closed — the SAME code path as a genuinely missing one,
+per spec §3 invariant 5 ("Missing persisted ID → typed fail-closed
+denial and zero mutation calls").
+
+**`PositionManager` scope note**: `PositionManager._send_close_order`'s
+causal id (`pos.order_id` + `CloseReason`, falling back to a
+`symbol_opened_at` composite) is derived from already-durable position
+state (a previously-acknowledged exchange order id, or an immutable
+position-creation timestamp) tracked by `PositionManager` itself — not
+requiring a SEPARATE persistence step, since the position object it's
+derived from is already the durable record. Left unchanged.
+
+**Fail-before proof** (behavioral, against `cf9a9e74`, NOT an import
+error): a standalone script constructing the OLD `ExecutionEngine` and
+calling `create_order(..., decision_id="never-persisted-anywhere")` (a
+bare string, never recorded anywhere) reached a REAL mutation call —
+`mode: "live"`, `mock_exchange.create_order.called: True`. On the
+corrected branch, the identical call returns `mode: "rejected"`,
+`denial_reason: "UNPERSISTED_CAUSAL_ID"`, zero mutation calls.
+
+**Correction to a prior claim**: while investigating whether any existing
+persistence/reconciliation infrastructure could be reused for this
+blocker, `system/pending_order_tracker.py::PendingOrderTracker` was found
+to actually EXIST as a class (contradicting R0's ADR claim that "no
+`PendingOrderTracker` class/module exists anywhere") — but confirmed via
+`grep -rn "PendingOrderTracker("` to never be instantiated anywhere in
+production code, and keyed by exchange-assigned `order_id` (not
+`clientOrderId`) with in-memory-only state, so it could not have served
+either this blocker's decision-identity requirement or Blocker B's
+reconciliation-certification requirement. B9's original resolution (REM-B
+built its own journal) stands; only the precise phrasing of "does not
+exist" is corrected to "exists but is never wired into any production
+code path."
+
+### Blocker B — real adapter reconciliation capability
+
+**Finding**: R1 authorized MEXC's external submission on the strength of
+a documented, plausible `clientOrderId` parameter name alone — but
+`OrderIntentCoordinator.reconcile()` accepted an arbitrary caller-supplied
+`lookup` callable with no certification that any REAL adapter implements
+matching semantics. A test fake accepting `"clientOrderId"` is not proof
+an adapter supports reconciliation.
+
+**Capability matrix** (repository-wide search:
+`grep -rln "fetch_order\|fetch_open_orders\|fetch_closed_orders"`):
+
+| Exchange | Configured | Submission param | Reconciliation evidence | Verdict |
+|---|---|---|---|---|
+| `mexc` | Yes (default) | `clientOrderId` (documented, general knowledge — NOT verified against a pinned `ccxt` install; `ccxt` uninstallable in this sandbox) | No in-repo pinned implementation of order lookup-by-clientOrderId found. `market_data/connectors/mexc.py`/`infra/mexc_reader.py` only fetch order BOOKS. `PendingOrderTracker` exists but is unwired and keyed by exchange `order_id`, not `clientOrderId`. | `SUBMIT_ONLY_RECONCILIATION_UNVERIFIED` |
+| `krakenfutures` | Yes | Unverified | Unverified | `UNSUPPORTED` |
+| `binanceusdm` | Yes | Unverified | Unverified | `UNSUPPORTED` |
+| any other | N/A | — | — | `UNSUPPORTED` |
+
+**MEXC verdict, precisely**: per spec §5's explicit rule — "Only
+`SUBMIT_AND_RECONCILE_VERIFIED` may authorize an externally capable
+submission during PRE-T1" — `SUBMIT_ONLY_RECONCILIATION_UNVERIFIED`, despite
+its name, does NOT authorize external submission either. MEXC is
+downgraded from R1's submission-authorized status.
+`AdapterCapabilities.supports_client_order_id` is now a DERIVED property
+(`verdict == SUBMIT_AND_RECONCILE_VERIFIED`), not an independently settable
+field — eliminating the possibility of a future capability entry
+accidentally authorizing submission without the matching verdict.
+
+**Reconciliation ownership**: `OrderIntentCoordinator.reconcile()` now
+checks `self._capabilities.verdict == SUBMIT_AND_RECONCILE_VERIFIED`
+BEFORE invoking the caller-supplied `lookup` — a production caller cannot
+inject a permissive `lookup` to bypass this; `reconcile()` is gated on the
+SAME capability object the coordinator was constructed with, never one
+the caller substitutes at call time. Tests inject a fake
+`SUBMIT_AND_RECONCILE_VERIFIED` capability (documented as
+"test fixture — certified for hermetic testing only" in its `evidence`
+field) to exercise the authorized path without promoting the real,
+unverified MEXC entry.
+
+**Runtime impact**: zero. `reconcile()` was never called from any
+production path (`grep -rn "\.reconcile("` finds only
+`core/advisor_loop.py`'s UNRELATED `_position_reconciler.reconcile()`,
+a different, pre-existing reconciler). This downgrade affects only a
+hypothetical future live-submission path, already blocked by
+`PAPER_TRADING_ENABLED=true` (CLAUDE.md stabilization window).
+
+**Fail-before proof** (behavioral): against `cf9a9e74`,
+`capabilities_for_exchange("mexc").supports_client_order_id` was `True`
+with `supports_lookup_by_client_order_id: True` — the exact
+over-authorization this blocker corrects.
+
+### Blocker C — complete mutation-bypass detection
+
+**Finding**: R1's detector matched `X.create_order(...)` only when the
+attribute access was the direct `.func` of a `Call` node — missing the
+exact historical bypass shape `_with_retry(exchange.create_order, ...)`
+(the method reference passed BY REFERENCE as a bare argument).
+
+**Fix**: `_mutation_references()` (replacing the R1 scanner) records ANY
+syntactic `ast.Attribute` access named after a mutation method — Layers
+1-3 (direct call, reference-passed-to-wrapper, assigned-to-alias) collapse
+into one AST node shape and are caught uniformly; Layer 4 (`getattr(X,
+"create_order")` with a literal string) is matched separately; Layer 5
+(wrapper delegation) falls out naturally from per-function attribution;
+Layer 6 is the allowlist comparison in each test.
+
+**Bounded detection model, stated explicitly** (spec §7's own
+requirement — "do not claim perfect static detection"): does NOT catch
+attribute names built from string concatenation/formatting at runtime,
+`importlib`-based dynamic imports, `setattr`-based monkeypatching, or any
+reflection beyond a literal `getattr(X, "name")` call. Combined with an
+independent repository-wide `grep` (a completely different, non-AST
+detection method) corroborating the same call sites.
+
+**Fail-before proof** (behavioral): the OLD scanner's exact logic, run
+against a synthetic fixture reproducing `_with_retry(exchange.
+create_order, ...)`, returns an EMPTY set (misses it entirely). The NEW
+scanner, run against the identical fixture, correctly attributes the
+reference to its enclosing function. Verified additionally (this branch)
+by reintroducing a synthetic bypass into a copy of the real
+`execution_engine.py` and confirming the new scanner catches it.
+
+## R1.1 files changed
+
+- `quant_hedge_ai/agents/execution/decision_identity.py` (new) —
+  `DecisionIdentityJournal`, `DecisionIdentityError`,
+  `default_decision_identity_journal()`.
+- `quant_hedge_ai/agents/execution/order_intent_protocol.py` —
+  `AdapterCapabilityVerdict` enum; `AdapterCapabilities.verdict`
+  (replacing independent `supports_client_order_id`/
+  `supports_lookup_by_client_order_id` fields with derived properties);
+  MEXC downgraded to `SUBMIT_ONLY_RECONCILIATION_UNVERIFIED`;
+  `reconcile()` capability-gated before invoking `lookup`.
+- `quant_hedge_ai/agents/execution/execution_engine.py` —
+  `_get_decision_identity_journal()`, `_decision_id_is_durably_persisted()`;
+  both mutation paths gated on it; `MISSING_CAUSAL_ID`/
+  `UNPERSISTED_CAUSAL_ID` distinguished.
+- `core/advisor_loop.py` — durably persists `_trace_id` immediately at
+  creation, before any downstream logic.
+- `conftest.py` (root) — `DECISION_IDENTITY_JOURNAL_PATH` DS-001 entry.
+- `tests/test_pre_t1_e_rem_b_idempotent_order_protocol.py` — Groups O
+  (durable decision identity), rewritten Group N (layered bypass
+  detector), updated Group M (MEXC downgrade).
+- `tests/test_pre_t1_e_order_cycle_safety.py`,
+  `tests/test_pre_t1_e_rem_a_order_authorization.py`,
+  `quant_hedge_ai/agents/execution/test_execution_engine.py`,
+  `quant_hedge_ai/agents/execution/test_execution_engine_futures.py` —
+  test-only capability/decision-identity fixture injection (mirroring the
+  existing fake-exchange pattern) so tests targeting OTHER behavior are
+  not broken by the stricter real gates; `.ci/ruff_baseline.json`
+  regenerated (958, 2 genuine fixes + 1 pre-existing line-shift).
+
+## Updated REM-C exclusions (still explicit, still not implemented)
+
+Unchanged from R1, PLUS: verification of `krakenfutures`/`binanceusdm`
+exact CCXT parameter names and reconciliation methods against a real
+`ccxt` install remains an explicit, named follow-up (not REM-C, but not
+done here either — deliberately fails closed instead of guessed).
+
+## R1.1 Consequences
+
+- Positive: a decision's causal identity is now durably established
+  BEFORE it can authorize a real mutation, closing the restart-
+  reconstruction gap R1 named but left open; no adapter can be granted
+  external-submission authority without a certified reconciliation
+  contract; the mutation-bypass detector catches the exact historical
+  bypass shape it previously missed.
+- Negative / accepted debt: MEXC's real-world submission capability is
+  now fully deny-closed pending an operator verifying `krakenfutures`/
+  `binanceusdm`/`mexc` reconciliation against the real `ccxt` package —
+  zero live impact today (paper-only stabilization window), but a
+  necessary follow-up before ANY future live-trading authorization.
