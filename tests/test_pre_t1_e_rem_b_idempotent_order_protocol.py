@@ -2946,3 +2946,361 @@ class TestGroupR_R13_LegacyExecutionIneligibility:
             src = inspect.getsource(getattr(DecisionIdentityJournal, name))
             for forbidden in ("requests.", "ccxt", "socket.", "urlopen", "fetch_"):
                 assert forbidden not in src, (name, forbidden)
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# Group S — R1.4: DecisionIdentityJournal.persist() idempotence —
+# legacy-upgrade closure and binding permanence (O-02W-PRE-T1-E
+# REM-B-R1.4). MASTER's R1.3 review correctly separated historical
+# existence from execution authority in `bind_intent()`, but `persist()`
+# itself still had two behavioral defects, both demonstrated with real
+# mutation counters against the R1.4 starting HEAD:
+#
+#   Scenario A: a legacy (schema_version=1) record has no
+#   `payload_digest` at all, so the old conflict check
+#   (`existing.get("payload_digest") and existing["payload_digest"] !=
+#   digest`) was skipped entirely and `persist()` fell through to append
+#   a BRAND NEW valid schema-v2 `CREATED` record over it — silently
+#   promoting a legacy/ineligible decision into fresh execution
+#   authority. `ExecutionEngine.create_order()` then accepted it and
+#   reached a real mutation call exactly once.
+#
+#   Scenario B: even a genuinely IDENTICAL duplicate persist() (same
+#   decision_id, same canonical payload) fell through to an
+#   UNCONDITIONAL append — resetting a durably `BOUND` record's
+#   `lifecycle_state` back to `CREATED` and erasing its
+#   `bound_intent_digest`, after which `bind_intent()` would accept a
+#   SECOND, INCOMPATIBLE intent digest for the same decision.
+#
+# This group codifies both fail-before scenarios as permanent regression
+# tests, plus the full I1-I8 invariant set from the R1.4 spec.
+# ═══════════════════════════════════════════════════════════════════════
+
+
+class TestGroupS_R14_PersistIdempotence:
+    def _build_spot_engine(self, monkeypatch, tmp_path, *, order_id="ok-1"):
+        """Same rationale as Group R's builder: journal-path env vars
+        freeze at import time (DS-001), so fresh journal/coordinator
+        instances are injected directly into the engine's private cache
+        attributes for genuine per-test isolation."""
+        from unittest.mock import MagicMock
+
+        from quant_hedge_ai.agents.execution import order_intent_protocol as oip
+        from quant_hedge_ai.agents.execution.decision_identity import (
+            DecisionIdentityJournal,
+        )
+        from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
+
+        monkeypatch.setenv("EXEC_TRADE_LOG", str(tmp_path / "t.sqlite"))
+        monkeypatch.setenv("EXEC_MAX_ORDER_USD", "10000")
+        monkeypatch.setenv("PAPER_TRADING_ENABLED", "false")
+        # This group tests decision-identity persist() idempotence
+        # specifically, not the unrelated OrderDeduplicator safety layer
+        # (a separate, pre-existing 30s window) — disable it so a
+        # deliberate second create_order() call for the same logical
+        # decision isn't masked by that other layer's own rejection.
+        monkeypatch.setenv("EXEC_DEDUP_WINDOW", "0")
+        decisions_path = tmp_path / "decisions.jsonl"
+        intents_path = tmp_path / "order_intents.jsonl"
+        mexc_caps = oip.AdapterCapabilities(
+            verdict=oip.AdapterCapabilityVerdict.SUBMIT_AND_RECONCILE_VERIFIED,
+            client_order_id_param="clientOrderId",
+        )
+        e = ExecutionEngine(live=False, _sleep=lambda _: None)
+        e._live = True
+        e._decision_identity_journal = DecisionIdentityJournal(decisions_path)
+        e._order_intent_journal = oip.OrderIntentJournal(intents_path)
+        e._order_intent_coordinator = oip.OrderIntentCoordinator(
+            e._order_intent_journal, mexc_caps
+        )
+        mock_exchange = MagicMock()
+        mock_exchange.fetch_ticker.return_value = {"last": 50_000.0}
+        mock_exchange.load_markets.return_value = {}
+        mock_exchange.fetch_balance.return_value = {"free": {"USDT": 10_000.0}}
+        mock_exchange.create_order.return_value = {"id": order_id}
+        e._exchange = mock_exchange
+        e.start_session(10_000.0)
+        return e, mock_exchange, decisions_path, intents_path
+
+    def _build_futures_engine(self, monkeypatch, tmp_path, *, order_id="fut-ok-1"):
+        from unittest.mock import MagicMock
+
+        from quant_hedge_ai.agents.execution import order_intent_protocol as oip
+        from quant_hedge_ai.agents.execution.decision_identity import (
+            DecisionIdentityJournal,
+        )
+        from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
+
+        monkeypatch.setenv("EXEC_TRADE_LOG", str(tmp_path / "t.sqlite"))
+        monkeypatch.setenv("EXEC_FUTURES_MIN_ORDER_USD", "55")
+        monkeypatch.setenv("EXEC_FUTURES_MAX_ORDER_USD", "200")
+        decisions_path = tmp_path / "decisions.jsonl"
+        intents_path = tmp_path / "order_intents.jsonl"
+        mexc_caps = oip.AdapterCapabilities(
+            verdict=oip.AdapterCapabilityVerdict.SUBMIT_AND_RECONCILE_VERIFIED,
+            client_order_id_param="clientOrderId",
+        )
+        e = ExecutionEngine(live=False, _sleep=lambda _: None)
+        e._decision_identity_journal = DecisionIdentityJournal(decisions_path)
+        e._order_intent_journal = oip.OrderIntentJournal(intents_path)
+        e._order_intent_coordinator = oip.OrderIntentCoordinator(
+            e._order_intent_journal, mexc_caps
+        )
+        e.start_session(10_000.0)
+        mock_ex = MagicMock()
+        mock_ex.fetch_ticker.return_value = {"last": 50_000.0}
+        mock_ex.load_markets.return_value = {}
+        mock_ex.create_order.return_value = {"id": order_id}
+        e._exchange_futures = mock_ex
+        return e, mock_ex, decisions_path, intents_path
+
+    # ── 1: identical duplicate CREATED persist is zero-append/idempotent ─
+
+    def test_identical_duplicate_created_persist_is_zero_append(self, tmp_path):
+        from quant_hedge_ai.agents.execution.decision_identity import (
+            DecisionIdentityJournal,
+        )
+
+        j = DecisionIdentityJournal(tmp_path / "decisions.jsonl")
+        rec1 = j.persist("dec-s1", namespace="test", cycle=1, symbol="BTC/USDT")
+        before = _jsonl_line_count(j.path)
+        rec2 = j.persist("dec-s1", namespace="test", cycle=1, symbol="BTC/USDT")
+        assert _jsonl_line_count(j.path) == before == 1
+        assert rec2 == rec1
+        assert rec2["lifecycle_state"] == "CREATED"
+
+    # ── 2-4: duplicate persist after BOUND preserves BOUND/digest/lines ──
+
+    def test_duplicate_persist_after_bound_preserves_bound_state(self, tmp_path):
+        from quant_hedge_ai.agents.execution.decision_identity import (
+            DecisionIdentityJournal,
+        )
+
+        j = DecisionIdentityJournal(tmp_path / "decisions.jsonl")
+        j.persist("dec-s2", namespace="test", cycle=1, symbol="BTC/USDT")
+        digest = "1" * 64
+        j.bind_intent("dec-s2", digest)
+        j.persist("dec-s2", namespace="test", cycle=1, symbol="BTC/USDT")  # duplicate
+        rec = j.get("dec-s2")
+        assert rec["lifecycle_state"] == "BOUND"
+
+    def test_duplicate_persist_after_bound_preserves_exact_bound_digest(self, tmp_path):
+        from quant_hedge_ai.agents.execution.decision_identity import (
+            DecisionIdentityJournal,
+        )
+
+        j = DecisionIdentityJournal(tmp_path / "decisions.jsonl")
+        j.persist("dec-s3", namespace="test", cycle=1, symbol="BTC/USDT")
+        digest = "2" * 64
+        j.bind_intent("dec-s3", digest)
+        j.persist("dec-s3", namespace="test", cycle=1, symbol="BTC/USDT")
+        assert j.get("dec-s3")["bound_intent_digest"] == digest
+
+    def test_duplicate_persist_after_bound_adds_zero_journal_lines(self, tmp_path):
+        from quant_hedge_ai.agents.execution.decision_identity import (
+            DecisionIdentityJournal,
+        )
+
+        j = DecisionIdentityJournal(tmp_path / "decisions.jsonl")
+        j.persist("dec-s4", namespace="test", cycle=1, symbol="BTC/USDT")
+        j.bind_intent("dec-s4", "3" * 64)
+        before = _jsonl_line_count(j.path)
+        j.persist("dec-s4", namespace="test", cycle=1, symbol="BTC/USDT")
+        assert _jsonl_line_count(j.path) == before
+
+    # ── 5: different bind after duplicate persist remains rejected ─────
+
+    def test_different_bind_after_duplicate_persist_remains_rejected(self, tmp_path):
+        from quant_hedge_ai.agents.execution.decision_identity import (
+            DecisionIdentityError,
+            DecisionIdentityJournal,
+        )
+
+        j = DecisionIdentityJournal(tmp_path / "decisions.jsonl")
+        j.persist("dec-s5", namespace="test", cycle=1, symbol="BTC/USDT")
+        digest_a = "4" * 64
+        digest_b = "5" * 64
+        j.bind_intent("dec-s5", digest_a)
+        j.persist("dec-s5", namespace="test", cycle=1, symbol="BTC/USDT")  # duplicate
+        with pytest.raises(DecisionIdentityError):
+            j.bind_intent("dec-s5", digest_b)
+        assert j.get("dec-s5")["bound_intent_digest"] == digest_a
+
+    # ── 6-7: legacy record + persist raises, zero-append, still ineligible
+
+    def test_legacy_record_plus_persist_raises_and_zero_appends(self, tmp_path):
+        from quant_hedge_ai.agents.execution.decision_identity import (
+            DecisionIdentityError,
+            DecisionIdentityJournal,
+        )
+
+        path = tmp_path / "decisions.jsonl"
+        _write_legacy_v1_record(path, "dec-s6")
+        j = DecisionIdentityJournal(path)
+        before = _jsonl_line_count(path)
+        with pytest.raises(DecisionIdentityError):
+            j.persist("dec-s6", namespace="advisor_loop.analyze_symbol", cycle=1, symbol="BTC/USDT")
+        assert _jsonl_line_count(path) == before
+
+    def test_legacy_record_remains_ineligible_after_persist_attempt(self, tmp_path):
+        from quant_hedge_ai.agents.execution.decision_identity import (
+            DecisionIdentityError,
+            DecisionIdentityJournal,
+        )
+
+        path = tmp_path / "decisions.jsonl"
+        _write_legacy_v1_record(path, "dec-s7")
+        j = DecisionIdentityJournal(path)
+        try:
+            j.persist("dec-s7", namespace="advisor_loop.analyze_symbol", cycle=1, symbol="BTC/USDT")
+        except DecisionIdentityError:
+            pass
+        assert j.is_execution_eligible("dec-s7") is False
+        assert j.execution_ineligibility_reason("dec-s7") == "LEGACY_SCHEMA_VERSION"
+
+    # ── 8-9: corrupted v2 + persist raises, zero-append, still ineligible
+
+    def _write_corrupted_v2_record(self, decisions_path, decision_id: str) -> None:
+        from quant_hedge_ai.agents.execution.decision_identity import (
+            DecisionIdentityJournal,
+        )
+
+        j = DecisionIdentityJournal(decisions_path)
+        rec = j.persist(decision_id, namespace="test", cycle=1, symbol="BTC/USDT")
+        corrupted = dict(rec)
+        corrupted["payload"] = dict(corrupted["payload"])
+        corrupted["payload"]["symbol"] = "ETH/USDT"  # digest NOT recomputed
+        with open(decisions_path, "a", encoding="utf-8") as f:
+            f.write(json.dumps(corrupted, sort_keys=True) + "\n")
+
+    def test_corrupted_v2_record_plus_persist_raises_and_zero_appends(self, tmp_path):
+        from quant_hedge_ai.agents.execution.decision_identity import (
+            DecisionIdentityError,
+            DecisionIdentityJournal,
+        )
+
+        path = tmp_path / "decisions.jsonl"
+        self._write_corrupted_v2_record(path, "dec-s8")
+        j = DecisionIdentityJournal(path)
+        before = _jsonl_line_count(path)
+        with pytest.raises(DecisionIdentityError):
+            j.persist("dec-s8", namespace="test", cycle=1, symbol="BTC/USDT")
+        assert _jsonl_line_count(path) == before
+
+    def test_corrupted_record_remains_ineligible_after_persist_attempt(self, tmp_path):
+        from quant_hedge_ai.agents.execution.decision_identity import (
+            DecisionIdentityError,
+            DecisionIdentityJournal,
+        )
+
+        path = tmp_path / "decisions.jsonl"
+        self._write_corrupted_v2_record(path, "dec-s9")
+        j = DecisionIdentityJournal(path)
+        try:
+            j.persist("dec-s9", namespace="test", cycle=1, symbol="BTC/USDT")
+        except DecisionIdentityError:
+            pass
+        assert j.is_execution_eligible("dec-s9") is False
+
+    # ── 10-11: different payload / provenance disagreement rejected ────
+
+    def test_same_id_different_payload_remains_rejected(self, tmp_path):
+        from quant_hedge_ai.agents.execution.decision_identity import (
+            DecisionIdentityError,
+            DecisionIdentityJournal,
+        )
+
+        j = DecisionIdentityJournal(tmp_path / "decisions.jsonl")
+        j.persist("dec-s10", namespace="test", cycle=1, symbol="BTC/USDT")
+        before = _jsonl_line_count(j.path)
+        with pytest.raises(DecisionIdentityError):
+            j.persist("dec-s10", namespace="test", cycle=2, symbol="ETH/USDT")
+        assert _jsonl_line_count(j.path) == before
+        assert j.get("dec-s10")["payload"]["cycle"] == 1
+
+    def test_same_id_provenance_disagreement_remains_rejected(self, tmp_path):
+        """Top-level provenance (namespace here) can disagree with the
+        existing record even while payload content might otherwise
+        collide — this must be rejected on its own, distinctly from a
+        pure payload-digest conflict (I7)."""
+        from quant_hedge_ai.agents.execution.decision_identity import (
+            DecisionIdentityError,
+            DecisionIdentityJournal,
+        )
+
+        j = DecisionIdentityJournal(tmp_path / "decisions.jsonl")
+        j.persist("dec-s11", namespace="advisor_loop.analyze_symbol", cycle=1, symbol="BTC/USDT")
+        before = _jsonl_line_count(j.path)
+        with pytest.raises(DecisionIdentityError):
+            j.persist("dec-s11", namespace="some.other.namespace", cycle=1, symbol="BTC/USDT")
+        assert _jsonl_line_count(j.path) == before
+
+    # ── 12: end-to-end spot proof — duplicate persist cannot produce a ──
+    # ── second incompatible mutation ────────────────────────────────────
+
+    def test_e2e_spot_duplicate_persist_cannot_produce_second_mutation(
+        self, monkeypatch, tmp_path
+    ):
+        e, mock_exchange, decisions_path, intents_path = self._build_spot_engine(
+            monkeypatch, tmp_path
+        )
+        e._get_decision_identity_journal().persist("dec-s12", namespace="test")
+
+        r1 = e.create_order("BTC/USDT", "BUY", 100.0, decision_id="dec-s12")
+        assert r1["mode"] == "live"
+        assert mock_exchange.create_order.call_count == 1
+
+        # Duplicate delivery: the SAME decision_id, persisted again with
+        # matching metadata (as a retried upstream delivery would do),
+        # then resubmitted through the SAME durable journals.
+        e._get_decision_identity_journal().persist("dec-s12", namespace="test")
+        r2 = e.create_order("BTC/USDT", "BUY", 100.0, decision_id="dec-s12")
+        assert r2["mode"] == "live"
+        assert mock_exchange.create_order.call_count == 1  # still exactly once
+
+    # ── 13: equivalent futures proof ────────────────────────────────────
+
+    def test_e2e_futures_duplicate_persist_cannot_produce_second_mutation(
+        self, monkeypatch, tmp_path
+    ):
+        e, mock_ex, decisions_path, intents_path = self._build_futures_engine(
+            monkeypatch, tmp_path
+        )
+        e._get_decision_identity_journal().persist("dec-s13", namespace="test")
+
+        r1 = e.create_futures_order("BTC/USDT", "BUY", 100.0, decision_id="dec-s13")
+        assert r1["mode"] == "futures_demo"
+        assert mock_ex.create_order.call_count == 1
+
+        e._get_decision_identity_journal().persist("dec-s13", namespace="test")
+        r2 = e.create_futures_order("BTC/USDT", "BUY", 100.0, decision_id="dec-s13")
+        assert r2["mode"] == "futures_demo"
+        assert mock_ex.create_order.call_count == 1
+
+    # ── 14: restart / new journal instance preserves binding permanence ─
+
+    def test_restart_new_journal_instance_preserves_binding_permanence(self, tmp_path):
+        from quant_hedge_ai.agents.execution.decision_identity import (
+            DecisionIdentityError,
+            DecisionIdentityJournal,
+        )
+
+        path = tmp_path / "decisions.jsonl"
+        j1 = DecisionIdentityJournal(path)
+        j1.persist("dec-s14", namespace="test", cycle=1, symbol="BTC/USDT")
+        digest_a = "6" * 64
+        j1.bind_intent("dec-s14", digest_a)
+        del j1  # discard — simulate restart
+
+        # brand-new instance, same durable path
+        j2 = DecisionIdentityJournal(path)
+        # duplicate persist through the restarted instance
+        j2.persist("dec-s14", namespace="test", cycle=1, symbol="BTC/USDT")
+        rec = j2.get("dec-s14")
+        assert rec["lifecycle_state"] == "BOUND"
+        assert rec["bound_intent_digest"] == digest_a
+
+        digest_b = "7" * 64
+        with pytest.raises(DecisionIdentityError):
+            j2.bind_intent("dec-s14", digest_b)
+        assert j2.get("dec-s14")["bound_intent_digest"] == digest_a

@@ -645,3 +645,75 @@ adapter's real reconciliation capability against a pinned `ccxt` install,
 and does not enable live trading in any way. No real order, testnet call,
 exchange call, VPS access, secret access, or deployment occurred in this
 round. PR #138 remains **draft** and **unmerged**.
+
+## 22.5 REM-B R1.4 persist() idempotence correction (2026-09-11)
+
+**Addendum to §22/§22.1-§22.4, not a rewrite.** MASTER's R1.4 review found
+that `DecisionIdentityJournal.persist()` — not `bind_intent()`, which R1.3
+already hardened — could still reset execution authority. Fail-before
+(behavioral, real mutation counters, exact starting HEAD `015f7015`):
+(A) a legacy schema-v1 record, passed to `persist()` with compatible
+metadata, was silently upgraded into a fresh valid schema-v2 `CREATED`
+record and reached a real mutation call exactly once; (B) a genuine
+`BOUND` decision, given a duplicate `persist()` call with identical
+provenance (the expected duplicate-delivery case), had its
+`lifecycle_state` reset to `CREATED` and `bound_intent_digest` erased,
+after which a SECOND, incompatible intent digest could be bound.
+
+**Resolution.** `persist()` now validates any EXISTING record with the
+same strict `_validate_record_for_execution()` function `bind_intent()`
+uses, before ever considering an append: an ineligible existing record
+raises (zero append, no silent upgrade); a provenance or payload-digest
+conflict against an eligible existing record still raises (zero append,
+unchanged rule); and — the actual Scenario-B fix — a genuine
+duplicate-delivery replay (matching provenance AND payload digest) now
+returns the existing record UNCHANGED with **zero append**, rather than
+falling through to an unconditional append that reset lifecycle state.
+`persist()` can therefore never reset `lifecycle_state`, never clear
+`bound_intent_digest`, and never silently promote legacy/corrupted
+evidence — the same three-way guarantee `bind_intent()` already gave for
+binding now also holds for persisting.
+
+**`persist(` production call-site inventory**: exactly one —
+`core/advisor_loop.py:1308` (`analyze_symbol()`, immediately after a
+fresh `new_trace_id()`), classified as first-creation-only under the
+current call pattern (no caller can force a duplicate call with the same
+id today); `ExecutionEngine` never calls `.persist()` directly.
+
+**Pass-after.** Both scenarios reproduced against the fixed code: (A)
+`persist()` now raises `DecisionIdentityError` with zero append, the
+record remains execution-ineligible, and `ExecutionEngine.create_order()`
+rejects with `denial_reason=INELIGIBLE_CAUSAL_ID` and zero mutation
+calls; (B) duplicate `persist()` preserves `BOUND`/`bound_intent_digest`
+exactly, zero append, and `bind_intent(D, B)` for `B != A` still raises.
+14 new permanent regression tests (`TestGroupS_R14_PersistIdempotence`)
+codify both scenarios plus the full I1-I8 invariant set (identical-
+duplicate idempotence, binding permanence, legacy/corrupted zero-append,
+provenance/digest conflict rejection, end-to-end spot/futures proofs,
+restart-reconstruction binding permanence).
+
+**Files changed**: exactly `quant_hedge_ai/agents/execution/decision_identity.py`
+and `tests/test_pre_t1_e_rem_b_idempotent_order_protocol.py` —
+`execution_engine.py` was not modified; the defect was entirely contained
+in `persist()`.
+
+**R1.3 properties revalidated, unchanged**: legacy/corrupted direct
+`bind_intent()` rejection, strict `execution_ineligibility_reason()`,
+spot/futures zero mutation, `recover_pending_decisions()` exclusion,
+`is_persisted()` still existence-only (never execution authority), and
+Blocker A's attribution remains `ALREADY_SATISFIED_AT_R1_1 —
+REVALIDATED_IN_R1_2` (not rewritten).
+
+**REM-C blockers remaining fully open, unattempted, explicitly out of this
+mission's scope (unchanged):** complete partial-fill lifecycle; full
+position reconstruction after a crash window; PnL accounting changes; any
+automatic resubmission policy after `RECONCILED_NOT_FOUND_PENDING`;
+verification of `krakenfutures`/`binanceusdm`/MEXC's exact CCXT
+reconciliation methods against a real, installed `ccxt` package.
+
+**Updated verdict: still `REMEDIATION_REQUIRED`.** R1.4 closes the
+`persist()` idempotence gap but does not start REM-C, does not verify any
+adapter's real reconciliation capability against a pinned `ccxt` install,
+and does not enable live trading in any way. No real order, testnet call,
+exchange call, VPS access, secret access, or deployment occurred in this
+round. PR #138 remains **draft** and **unmerged**.

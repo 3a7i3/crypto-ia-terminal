@@ -1060,3 +1060,167 @@ No real/testnet exchange call, no live trading, no deployment, no VPS
 access, no secrets touched, no REM-C scope started, no O-02W-E2/T-1/F-00
 scope started. PR remains **draft**, **unmerged**, no force-push, no
 rebase, no squash, no amend of previously reviewed commits.
+
+## R1.4 persist() idempotence — legacy upgrade closure and binding permanence (2026-09-11)
+
+Starting HEAD: `015f701574c099ae35f37bab3980e49d7edda35d` (verified:
+local/remote/GitHub PR metadata all matched; base `092bb88f...` unchanged;
+working tree clean). R1.3 correctly separated historical existence from
+execution authority in `bind_intent()`/`execution_ineligibility_reason()`
+— but MASTER's R1.4 review found `DecisionIdentityJournal.persist()`
+itself still had two related authority-reset defects.
+
+### `persist(` production call-site inventory
+
+Repository-wide grep for `.persist(` confirms exactly ONE production
+(non-test) call site: `core/advisor_loop.py:1308`, inside
+`analyze_symbol()`, immediately after `_trace_id = new_trace_id()`
+(line 1288) — classified as **first creation only**: `new_trace_id()`
+generates a fresh random UUID on every call, so under the current call
+pattern this site can never actually invoke `persist()` twice for the
+SAME `decision_id` (no outer caller can force id reuse; a caller-level
+retry of `analyze_symbol()` itself would regenerate a new id anyway).
+`ExecutionEngine` itself NEVER calls `.persist()` (confirmed by grep —
+only `is_persisted()`, `execution_ineligibility_reason()`, and
+`bind_intent()`). All other `.persist(` matches are either
+`RejectionStore.persist()` (`observability/rejection_store.py`,
+`tests/test_rejection_store.py` — an unrelated class with an unrelated
+method of the same name) or the ~35 test-only call sites in
+`tests/test_pre_t1_e_rem_b_idempotent_order_protocol.py`. Despite no
+current production path triggering a duplicate `persist()` call, the
+public API contract must still be safe against future retry/duplicate-
+delivery callers — which is exactly what R1.4 closes.
+
+### Fail-before proof (behavioral, real mutation counters, exact starting HEAD)
+
+**Scenario A (legacy upgrade through persist())**: a hand-crafted
+schema-v1 legacy record (`is_persisted()` → `True`,
+`is_execution_eligible()` → `False`, 1 journal line) was passed to the
+PUBLIC `persist()` API with metadata compatible with the legacy record.
+Result: `persist()` returned normally (no exception), appended a SECOND
+line (a brand-new valid schema-v2 `CREATED` record), and
+`is_execution_eligible()` flipped to `True`. Through the real
+`ExecutionEngine.create_order()` path (certified fake exchange, no
+network): `mode="live"`, `denial_reason=None`,
+**`mock_exchange.create_order.call_count == 1`**. Root cause: the OLD
+conflict check (`existing.get("payload_digest") and
+existing["payload_digest"] != digest`) is a no-op when `existing` has NO
+`payload_digest` key at all (exactly a legacy record's shape) — so
+`persist()` fell through to an unconditional append.
+
+**Scenario B (bound decision reset through persist())**: a genuine
+schema-v2 decision `D` was persisted and bound to intent digest `A`
+(`lifecycle_state="BOUND"`, `bound_intent_digest=A`, 2 journal lines).
+Calling `persist(D, ...)` again with the IDENTICAL canonical provenance
+(a duplicate-delivery replay) appended a THIRD line resetting
+`lifecycle_state` back to `"CREATED"` and `bound_intent_digest` to
+`None`. `bind_intent(D, B)` with `B != A` — which R1.3 correctly rejects
+when the durable binding is intact — then SUCCEEDED (no exception),
+overwriting the binding to `B`. Root cause: the OLD digest-conflict
+check only raised when digests DIFFERED; an IDENTICAL digest fell
+through the same unconditional-append path as Scenario A, with no
+early-return for "nothing changed, do nothing."
+
+Neither proof used `AttributeError`, an absent method, a collection
+failure, or a mock that bypasses the production gate — both used real
+`DecisionIdentityJournal`/`ExecutionEngine` instances against temp-path
+journals, with `MagicMock`-based fake exchanges whose `create_order`
+call counter is the actual evidence.
+
+### Precise root cause
+
+`persist()`'s existing-record handling had two independent gaps in the
+SAME code path: (1) the conflict check was skipped entirely (not merely
+under-triggered) when the existing record had no `payload_digest` — the
+exact shape of ANY legacy or otherwise-malformed record; (2) even when
+the check correctly did NOT trigger (matching digest — the legitimate
+duplicate-delivery case), the function had no early-return and fell
+through to the SAME unconditional append that a genuinely new decision
+uses — silently resetting lifecycle state regardless of whether anything
+had actually changed.
+
+### Fix — final `persist()` semantics
+
+`persist()` now branches into exactly three cases per call, matching the
+R1.4 spec's pseudocode:
+
+1. **`existing is None`** (I1 — first persistence): validate and append
+   exactly as before — one valid `CREATED` record.
+2. **`existing` exists**: it is first validated with the SAME strict
+   `_validate_record_for_execution()` function `bind_intent()` and
+   `execution_ineligibility_reason()` use.
+   - If `existing` is NOT execution-eligible (I5/I6 — legacy schema,
+     corrupted digest, invalid lifecycle, ...): raise
+     `DecisionIdentityError`, **zero append**. A legacy or corrupted
+     record can no longer be silently promoted into fresh v2 authority
+     merely by calling `persist()` again — the same rule `bind_intent()`
+     already enforced for BINDING now applies to PERSISTING too.
+   - If `existing` IS eligible but a duplicated top-level provenance
+     field (`namespace`/`cycle`/`symbol`/`action`) disagrees with the
+     candidate (I7): raise `DecisionIdentityError`, **zero append** —
+     checked before the payload-digest comparison so this specific
+     conflict is reported precisely.
+   - If the recomputed candidate digest disagrees with the existing
+     stored digest: raise `DecisionIdentityError`, **zero append**
+     (unchanged conflict rule from R1.2).
+   - Otherwise (I2/I3/I4/I8 — genuine duplicate-delivery replay, same
+     provenance, same payload): **return the existing record UNCHANGED,
+     zero append.** This is the change that actually fixes Scenario B —
+     there is no code path left that appends a new record for an
+     unchanged, already-persisted decision, so `lifecycle_state` and
+     `bound_intent_digest` can never be reset by a duplicate `persist()`
+     call.
+
+`persist()` MUST NEVER reset `lifecycle_state`, MUST NEVER clear
+`bound_intent_digest`, MUST NEVER silently upgrade legacy/corrupted
+evidence — all three are now structurally impossible: every branch either
+appends a genuinely NEW record for a genuinely NEW decision, or raises
+with zero writes, or returns the untouched existing record.
+
+### Pass-after (permanent regression tests)
+
+14 new tests, `TestGroupS_R14_PersistIdempotence` in
+`tests/test_pre_t1_e_rem_b_idempotent_order_protocol.py`: identical
+duplicate `CREATED` persist is zero-append/idempotent (1); duplicate
+persist after `BOUND` preserves state/digest/line-count (3); different
+bind after duplicate persist remains rejected (1); legacy record +
+persist raises with zero append and remains ineligible (2); corrupted v2
++ persist raises with zero append and remains ineligible (2); same-id
+different-payload and provenance-disagreement both remain rejected (2);
+end-to-end spot and futures proofs that duplicate persist cannot produce
+a second mutation (2); restart/new-journal-instance binding permanence
+(1). Both fail-before scripts re-run against the fixed code confirm the
+exact required pass-after transitions (see final report).
+
+### R1.4 verification
+
+Targeted suite (REM-B protocol file/order-cycle-safety/REM-A
+authorization/execution-engine/execution-engine-futures): 328 tests, 327
+pass, 1 pre-existing unrelated `ccxt`-not-installed environment failure
+(same class already confirmed pre-existing across R1.1/R1.2/R1.3). Ruff
+baseline gate: 958/958, 0 new. `git diff --check`: clean. No
+`databases/order_intent_journal.jsonl` or
+`databases/decision_identity_journal.jsonl` pollution. Exactly 2 files
+changed: `decision_identity.py` (production) and
+`tests/test_pre_t1_e_rem_b_idempotent_order_protocol.py` (tests) —
+`execution_engine.py` was NOT modified; the fail-before investigation
+confirmed the defect was entirely contained in `persist()` itself, with
+no production-code change needed at any `ExecutionEngine` call site.
+
+### R1.4 does not regress R1.3
+
+All R1.3 properties revalidated in the same test run: legacy/corrupted
+direct `bind_intent()` rejection, strict
+`execution_ineligibility_reason()`, spot/futures zero mutation,
+`recover_pending_decisions()` exclusion, historical `is_persisted()`
+semantics unchanged (still existence-only, never execution authority),
+and Blocker A's attribution remains
+`ALREADY_SATISFIED_AT_R1_1 — REVALIDATED_IN_R1_2` (unchanged, not
+rewritten).
+
+### R1.4 safety confirmations
+
+No real/testnet exchange call, no live trading, no deployment, no VPS
+access, no secrets touched, no REM-C scope started, no O-02W-E2/T-1/F-00
+scope started. PR remains **draft**, **unmerged**, no force-push, no
+rebase, no squash, no amend of previously reviewed commits.

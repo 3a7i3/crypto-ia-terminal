@@ -150,7 +150,33 @@ class DecisionIdentityJournal:
         payload is derived from the other keyword arguments so a digest can
         still be computed and later verified — but callers SHOULD pass a
         richer payload when available, since the payload (not the bare
-        `decision_id`) is what R1.2 calls "the scientific evidence"."""
+        `decision_id`) is what R1.2 calls "the scientific evidence".
+
+        R1.4 idempotence contract (O-02W-PRE-T1-E REM-B-R1.4): calling
+        `persist()` again for a `decision_id` that ALREADY has a durable
+        record is a DUPLICATE-DELIVERY replay, not a fresh creation.
+        `persist()` NEVER appends a new record in that case — it either
+        returns the existing effective record UNCHANGED (zero writes, the
+        matching-payload case) or raises `DecisionIdentityError` with ZERO
+        writes (an existing execution-ineligible record, a provenance
+        mismatch, or a conflicting payload digest). In particular:
+
+          - `persist()` MUST NEVER reset `lifecycle_state` (e.g. silently
+            turning a durably `BOUND` decision back into `CREATED`);
+          - `persist()` MUST NEVER clear `bound_intent_digest`;
+          - `persist()` MUST NEVER silently promote a legacy
+            (`schema_version != 2`) or corrupted (digest-mismatched,
+            lifecycle-invalid, ...) existing record into fresh schema-v2
+            authority merely by being called again with matching metadata.
+
+        This closes the exact gap MASTER's R1.4 review demonstrated
+        behaviorally: previously, a legacy record's absent
+        `payload_digest` skipped the conflict check entirely (silently
+        upgrading it to valid v2 `CREATED` authority), and even an
+        IDENTICAL-digest duplicate call fell through to an unconditional
+        append that reset `BOUND` back to `CREATED` and erased
+        `bound_intent_digest` — both proven to reach a real mutation call.
+        """
         if not decision_id or not str(decision_id).strip():
             raise DecisionIdentityError(
                 "decision_id is required to persist a decision identity — "
@@ -168,32 +194,84 @@ class DecisionIdentityJournal:
         digest = _payload_digest(payload)
         with self._lock:
             existing = self._latest_record_unlocked(decision_id)
-            if (
-                existing is not None
-                and existing.get("payload_digest")
-                and existing["payload_digest"] != digest
+
+            if existing is None:
+                # I1 — first persistence: a never-seen valid decision id
+                # creates exactly one valid v2 CREATED authority record.
+                record = {
+                    "schema_version": SCHEMA_VERSION,
+                    "decision_id": decision_id,
+                    "namespace": str(namespace),
+                    "cycle": cycle,
+                    "symbol": symbol,
+                    "action": action,
+                    "payload": payload,
+                    "payload_digest": digest,
+                    "lifecycle_state": "CREATED",
+                    "bound_intent_digest": None,
+                    "ts": time.time(),
+                }
+                self._append_unlocked(record)
+                return record
+
+            # I5/I6 — an existing record that is NOT strictly
+            # execution-eligible (legacy schema, missing/malformed/
+            # mismatched digest, unrecognized/invalid lifecycle state,
+            # ...) must never be silently healed/upgraded into fresh
+            # authority by a normal persist() call. Checked using the
+            # SAME strict function `bind_intent`/`execution_ineligibility_
+            # reason` use, so the three can never silently drift apart.
+            ineligibility_reason = self._validate_record_for_execution(existing)
+            if ineligibility_reason is not None:
+                raise DecisionIdentityError(
+                    f"decision_id={decision_id!r} already has a durable "
+                    f"record that failed strict execution-eligibility "
+                    f"validation ({ineligibility_reason}) — refusing to "
+                    f"persist over it (would silently upgrade legacy/"
+                    f"corrupted evidence into fresh authority, fail-closed, "
+                    f"O-02W-PRE-T1-E REM-B-R1.4)"
+                )
+
+            # I7 — provenance consistency: the duplicated top-level fields
+            # must agree with what is already durably recorded. Checked
+            # BEFORE the payload-digest comparison so a provenance-only
+            # mismatch is reported precisely, not folded into a generic
+            # digest conflict.
+            for field, candidate_value in (
+                ("namespace", str(namespace)),
+                ("cycle", cycle),
+                ("symbol", symbol),
+                ("action", action),
             ):
+                if existing.get(field) != candidate_value:
+                    raise DecisionIdentityError(
+                        f"decision_id={decision_id!r} was already persisted "
+                        f"with a DIFFERENT top-level {field}="
+                        f"{existing.get(field)!r} (candidate: "
+                        f"{candidate_value!r}) — refusing a conflicting "
+                        f"duplicate record (fail-closed, R1.2 §4.5 / "
+                        f"R1.4 I7)"
+                    )
+
+            existing_digest = existing.get("payload_digest")
+            if existing_digest != digest:
                 raise DecisionIdentityError(
                     f"decision_id={decision_id!r} was already persisted with a "
-                    f"DIFFERENT canonical payload (digest {existing['payload_digest']!r} "
+                    f"DIFFERENT canonical payload (digest {existing_digest!r} "
                     f"!= {digest!r}) — refusing a conflicting duplicate record "
                     f"(fail-closed, R1.2 §4.5)"
                 )
-            record = {
-                "schema_version": SCHEMA_VERSION,
-                "decision_id": decision_id,
-                "namespace": str(namespace),
-                "cycle": cycle,
-                "symbol": symbol,
-                "action": action,
-                "payload": payload,
-                "payload_digest": digest,
-                "lifecycle_state": "CREATED",
-                "bound_intent_digest": None,
-                "ts": time.time(),
-            }
-            self._append_unlocked(record)
-            return record
+
+            # I2/I3/I4/I8 — same logical decision replay: the durable
+            # effective record already exists and matches exactly (same
+            # provenance, same payload digest). Return it UNCHANGED —
+            # ZERO append. This is what actually preserves a `BOUND`
+            # lifecycle state and its `bound_intent_digest` across a
+            # duplicate-delivery persist() call; appending here at all
+            # (even with identical values) would still reset
+            # `lifecycle_state` back to `CREATED`, which is the exact
+            # defect this round closes.
+            return existing
 
     def bind_intent(self, decision_id: str, intent_digest: str) -> dict:
         """Atomically binds this decision to the order-intent digest it is
