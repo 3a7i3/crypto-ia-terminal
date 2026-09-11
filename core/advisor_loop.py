@@ -5735,13 +5735,20 @@ def main(
                     log.debug("[Universe] Sync erreur cycle %d: %s", cycle, _use)
             # ─────────────────────────────────────────────────────────────────
 
-            # Mise à jour du capital réel en début de cycle (balance live)
+            # Mise à jour du capital scientifique en début de cycle (O-02W-PRE-T1-D
+            # remediation) — order_size doit refléter le capital scientifique courant,
+            # pas la valeur figée au bootstrap (défaut #8 de l'audit PRE-T1-D).
             try:
                 fresh_capital = exec_engine.fetch_available_capital()
                 if fresh_capital > 0:
                     real_capital = fresh_capital
                     portfolio_brain.update_capital(real_capital)
                     capital_engine.update_capital(real_capital)
+                    order_size = min(
+                        max_order,
+                        real_capital
+                        * float(os.getenv("V9_MAX_POSITION_WEIGHT", "0.05")),
+                    )
             except Exception:
                 pass
 

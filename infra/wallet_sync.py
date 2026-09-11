@@ -39,6 +39,8 @@ import logging
 import os
 import threading
 import time
+from dataclasses import dataclass
+from enum import Enum
 from pathlib import Path
 from typing import Any, Optional
 
@@ -68,6 +70,59 @@ def _read_ledger_pnl() -> float:
     except Exception:
         pass
     return total
+
+
+def get_scientific_capital() -> float:
+    """
+    Capital de décision scientifique — SEULE entrée autorisée pour le sizing,
+    le risque, et toute calculation de décision (O-02W-PRE-T1-D remediation,
+    voir docs/adr/0018-scientific-capital-exchange-observation-separation.md).
+
+    Dérivé UNIQUEMENT du grand livre paper (WALLET_PAPER_CAPITAL + cumul PnL
+    du ledger depuis l'origine) — formule héritée de
+    WalletSync._base_capital()/get_balance() en mode paper, inchangée.
+
+    Garanties structurelles :
+      - Zéro appel réseau/exchange (aucune référence à un client ccxt ici).
+      - Indépendant de EXCHANGE_MODE, PAPER_TRADING_ENABLED,
+        LIVE_TRADING_CONFIRMED, et de l'ordre d'initialisation du singleton
+        WalletSync — cette fonction ne lit ni n'écrit `_singleton`.
+      - Valeur identique pour un même état de portefeuille scientifique quel
+        que soit le contexte d'appel.
+
+    Les soldes d'exchange réels restent purement observationnels — voir
+    WalletSync.observe_exchange_balance() — et ne doivent JAMAIS alimenter
+    cette fonction ni son appelant.
+    """
+    return _PAPER_CAPITAL + _read_ledger_pnl()
+
+
+class ExchangeObservationStatus(str, Enum):
+    """État de provenance d'une observation de solde d'exchange — jamais un
+    simple float ambigu (O-02W-PRE-T1-D défaut #6/#3/#4/#5)."""
+
+    FRESH = "fresh"  # fetch_balance() vient de réussir, valeur > 0
+    ZERO = "zero"  # fetch_balance() a réussi, solde réellement nul
+    STALE_CACHE = "stale_cache"  # dernière valeur connue, rejouée après échec
+    ERROR = "error"  # échec API (exception), aucune valeur fraîche disponible
+    ABSENT = "absent"  # aucun exchange configuré / mode paper — rien à observer
+
+
+@dataclass(frozen=True)
+class ExchangeBalanceObservation:
+    """Résultat d'une observation de solde d'exchange — DISPLAY-ONLY.
+
+    Ne doit jamais être consommé par un chemin de décision/sizing/risque —
+    seule get_scientific_capital() (ou WalletSync.get_balance() en mode
+    paper, formule identique) est autorisée pour cela. `value` est None sauf
+    pour FRESH/ZERO/STALE_CACHE, préservant la distinction provenance vs.
+    absence de valeur (défaut #6).
+    """
+
+    status: ExchangeObservationStatus
+    value: Optional[float]
+    mode: str
+    observed_at: Optional[float] = None
 
 
 class WalletSync:
@@ -204,6 +259,78 @@ class WalletSync:
         if self._last_value is not None:
             return self._last_value
         return self._base_capital()
+
+    def observe_exchange_balance(
+        self, force_refresh: bool = False
+    ) -> ExchangeBalanceObservation:
+        """
+        Observation READ-ONLY du solde d'exchange — DISPLAY-ONLY
+        (O-02W-PRE-T1-D remediation). Ne doit jamais alimenter le sizing, le
+        risque ou toute décision : utiliser get_scientific_capital() pour
+        cela. Distingue explicitement fresh/zero/stale/error/absent — jamais
+        de repli numérique ambigu (défaut #6 de l'audit).
+
+        En mode paper, ou sans exchange configuré : ABSENT (rien à observer,
+        ce n'est pas une erreur).
+        """
+        if self._mode == "paper" or self._exchange is None:
+            return ExchangeBalanceObservation(
+                status=ExchangeObservationStatus.ABSENT,
+                value=None,
+                mode=self._mode,
+            )
+
+        with self._lock:
+            now = time.time()
+            if (
+                not force_refresh
+                and self._last_value is not None
+                and now - self._last_fetch_ts < _CACHE_TTL_S
+            ):
+                return ExchangeBalanceObservation(
+                    status=ExchangeObservationStatus.STALE_CACHE
+                    if now - self._last_fetch_ts > 0
+                    else ExchangeObservationStatus.FRESH,
+                    value=self._last_value,
+                    mode=self._mode,
+                    observed_at=self._last_fetch_ts,
+                )
+
+            try:
+                bal = self._exchange.fetch_balance()
+                usdt = float(bal.get("free", {}).get(self._quote_asset, 0.0))
+            except Exception as exc:
+                _log.warning(
+                    "[WalletSync] observe_exchange_balance: erreur API (%s)", exc
+                )
+                if self._last_value is not None:
+                    return ExchangeBalanceObservation(
+                        status=ExchangeObservationStatus.STALE_CACHE,
+                        value=self._last_value,
+                        mode=self._mode,
+                        observed_at=self._last_fetch_ts,
+                    )
+                return ExchangeBalanceObservation(
+                    status=ExchangeObservationStatus.ERROR,
+                    value=None,
+                    mode=self._mode,
+                )
+
+            if usdt > 0:
+                self._last_value = usdt
+                self._last_fetch_ts = now
+                return ExchangeBalanceObservation(
+                    status=ExchangeObservationStatus.FRESH,
+                    value=usdt,
+                    mode=self._mode,
+                    observed_at=now,
+                )
+            return ExchangeBalanceObservation(
+                status=ExchangeObservationStatus.ZERO,
+                value=0.0,
+                mode=self._mode,
+                observed_at=now,
+            )
 
     def initial_capital(self) -> float:
         """Capital de départ — utilisé pour calculer ROI%/drawdown%."""
