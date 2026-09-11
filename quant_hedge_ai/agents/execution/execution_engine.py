@@ -519,7 +519,8 @@ class ExecutionEngine:
             # silent amplification).
             qty = auth.normalized_qty
 
-            if self._decision_id_is_durably_persisted(decision_id):
+            _denial_reason = self._decision_execution_denial_reason(decision_id)
+            if _denial_reason is None:
                 intent = build_order_intent(
                     namespace="ExecutionEngine.futures",
                     causal_id=decision_id,
@@ -577,21 +578,19 @@ class ExecutionEngine:
                     }
                 order = (sub.raw_evidence or {}).get("order", {"id": sub.exchange_order_id})
             else:
-                # O-02W-PRE-T1-E REM-B-R1, Correction A + R1.1 Blocker A: a
-                # missing OR unpersisted causal id must never select the
-                # legacy direct-submission path — this adapter (futures
-                # demo) reaches a real external mutation call, so it fails
-                # closed with zero exchange mutation calls and no journal
-                # write rather than silently bypassing REM-B.
-                _reason = (
-                    "MISSING_CAUSAL_ID"
-                    if not decision_id
-                    else "UNPERSISTED_CAUSAL_ID"
-                )
+                # O-02W-PRE-T1-E REM-B-R1, Correction A + R1.1 Blocker A +
+                # R1.3 (strict eligibility): missing, unpersisted, OR
+                # execution-INELIGIBLE (legacy/corrupted/lifecycle-invalid)
+                # must never select the legacy direct-submission path —
+                # this adapter (futures demo) reaches a real external
+                # mutation call, so it fails closed with zero exchange
+                # mutation calls and no journal write rather than silently
+                # bypassing REM-B.
                 _log.warning(
                     "[ExecutionEngine] Ordre futures refusé — decision_id "
-                    "%s (REM-B-R1.1, fail-closed) %s %s",
-                    "manquant" if not decision_id else "non-persisté durablement",
+                    "%s (REM-B-R1.3, fail-closed, motif=%s) %s %s",
+                    decision_id,
+                    _denial_reason,
                     action,
                     symbol,
                 )
@@ -600,10 +599,11 @@ class ExecutionEngine:
                     "action": action,
                     "size": size_usd,
                     "mode": "rejected",
-                    "error": "decision_id must be non-empty AND durably "
-                    "persisted (decision_identity.py) for any externally "
-                    "reachable mutation — refusing the legacy bypass",
-                    "denial_reason": _reason,
+                    "error": "decision_id must be non-empty, durably "
+                    "persisted, AND strictly execution-eligible "
+                    "(decision_identity.py) for any externally reachable "
+                    "mutation — refusing the legacy bypass",
+                    "denial_reason": _denial_reason,
                 }
             _log.info(
                 "[ExecutionEngine] Ordre FUTURES DEMO: %s %.4f %s @ $%.2f (lev x%d) id=%s",
@@ -665,18 +665,59 @@ class ExecutionEngine:
         return self._decision_identity_journal
 
     def _decision_id_is_durably_persisted(self, decision_id: str | None) -> bool:
-        """O-02W-PRE-T1-E REM-B-R1.1, Blocker A: a `decision_id` value
-        being merely non-empty is NOT sufficient — it must have been
-        DURABLY PERSISTED (by the decision-creation boundary, e.g.
-        `core/advisor_loop.py`) before it can authorize a real mutation.
-        This enforces the causal ordering DECISION_ID_CREATED ->
-        DECISION_PERSISTED -> ... -> EXCHANGE_MUTATION: an in-memory-only
-        identity (never durably recorded, or belonging to a legacy caller
-        that doesn't persist one at all) fails closed exactly like a
-        missing one."""
+        """O-02W-PRE-T1-E REM-B-R1.1, Blocker A: a HISTORICAL/EXISTENCE
+        query only — True iff SOME record (any schema version, any
+        validity) has ever been durably written for `decision_id`. R1.3:
+        THIS METHOD MUST NEVER BE USED TO GATE A MUTATION — its True/False
+        answer says nothing about whether that record is a legacy,
+        corrupted, or otherwise execution-ineligible one. It is retained
+        for audit/observability callers that genuinely only need "did this
+        id ever get recorded at all" (e.g. debugging tooling), and is no
+        longer read by `create_order()`/`create_futures_order()`'s
+        execution gate — see `_decision_execution_denial_reason` below,
+        which is the actual gate, built on the strict
+        `execution_ineligibility_reason()` check."""
         if not decision_id:
             return False
         return self._get_decision_identity_journal().is_persisted(decision_id)
+
+    def _decision_execution_denial_reason(self, decision_id: str | None) -> Optional[str]:
+        """O-02W-PRE-T1-E REM-B-R1.3 — the ACTUAL execution-authority gate.
+        Returns `None` when `decision_id` is strictly execution-eligible
+        (see `DecisionIdentityJournal.execution_ineligibility_reason`):
+        schema_version==2, a well-typed canonical payload whose recomputed
+        digest matches the stored one, internally consistent duplicated
+        provenance fields, and a recognized, structurally valid lifecycle
+        state. Otherwise returns one of three distinguishable typed
+        reasons, deliberately NOT collapsed into one generic denial (spec
+        §4 — "do not silently map corrupted evidence to ordinary
+        absence"):
+
+          - `MISSING_CAUSAL_ID`      — decision_id itself is falsy;
+          - `UNPERSISTED_CAUSAL_ID`  — non-empty, but no record exists at all;
+          - `INELIGIBLE_CAUSAL_ID`   — a record exists but fails strict
+                                       validation (legacy schema, corrupted
+                                       digest, contradictory provenance,
+                                       invalid lifecycle state, ...) — the
+                                       precise machine-readable reason is
+                                       logged, never silently discarded.
+        """
+        if not decision_id:
+            return "MISSING_CAUSAL_ID"
+        reason = self._get_decision_identity_journal().execution_ineligibility_reason(
+            decision_id
+        )
+        if reason is None:
+            return None
+        if reason == "NOT_PERSISTED":
+            return "UNPERSISTED_CAUSAL_ID"
+        _log.warning(
+            "[ExecutionEngine] decision_id=%s est INELIGIBLE pour "
+            "l'exécution (REM-B-R1.3, motif précis: %s) — refus fail-closed",
+            decision_id,
+            reason,
+        )
+        return "INELIGIBLE_CAUSAL_ID"
 
     def _bind_decision_to_intent(self, decision_id: str, intent) -> Optional[str]:
         """O-02W-PRE-T1-E REM-B-R1.2, Blocker B §4.3: atomically binds the
@@ -869,12 +910,15 @@ class ExecutionEngine:
 
             qty = auth.normalized_qty
 
-            if self._decision_id_is_durably_persisted(decision_id):
+            _denial_reason = self._decision_execution_denial_reason(decision_id)
+            if _denial_reason is None:
                 # O-02W-PRE-T1-E REM-B — durable, deterministic, idempotent
                 # submission path. Not entered when the caller has no
-                # DURABLY PERSISTED upstream causal id (see create_order
-                # docstring; R1.1 Blocker A tightened this from "merely
-                # non-empty" to "durably recorded in decision_identity.py").
+                # STRICTLY EXECUTION-ELIGIBLE upstream causal id (see
+                # create_order docstring; R1.1 Blocker A tightened this
+                # from "merely non-empty" to "durably recorded", and R1.3
+                # tightened it further from "merely recorded" to "recorded
+                # AND passes strict schema/digest/lifecycle validation").
                 intent = build_order_intent(
                     namespace="ExecutionEngine.spot",
                     causal_id=decision_id,
@@ -932,20 +976,17 @@ class ExecutionEngine:
                     }
                 order = (sub.raw_evidence or {}).get("order", {"id": sub.exchange_order_id})
             else:
-                # O-02W-PRE-T1-E REM-B-R1, Correction A + R1.1 Blocker A: a
-                # missing OR unpersisted causal id must never select the
-                # legacy direct-submission path — this is the real live
-                # exchange, so it fails closed with zero exchange mutation
-                # calls and no journal write.
-                _reason = (
-                    "MISSING_CAUSAL_ID"
-                    if not decision_id
-                    else "UNPERSISTED_CAUSAL_ID"
-                )
+                # O-02W-PRE-T1-E REM-B-R1, Correction A + R1.1 Blocker A +
+                # R1.3 (strict eligibility): missing, unpersisted, OR
+                # execution-INELIGIBLE (legacy/corrupted/lifecycle-invalid)
+                # must never select the legacy direct-submission path —
+                # this is the real live exchange, so it fails closed with
+                # zero exchange mutation calls and no journal write.
                 _log.warning(
                     "[ExecutionEngine] Ordre live refusé — decision_id "
-                    "%s (REM-B-R1.1, fail-closed) %s %s",
-                    "manquant" if not decision_id else "non-persisté durablement",
+                    "%s (REM-B-R1.3, fail-closed, motif=%s) %s %s",
+                    decision_id,
+                    _denial_reason,
                     action,
                     symbol,
                 )
@@ -954,10 +995,11 @@ class ExecutionEngine:
                     "action": action,
                     "size": round(size, 4),
                     "mode": "rejected",
-                    "error": "decision_id must be non-empty AND durably "
-                    "persisted (decision_identity.py) for any externally "
-                    "reachable mutation — refusing the legacy bypass",
-                    "denial_reason": _reason,
+                    "error": "decision_id must be non-empty, durably "
+                    "persisted, AND strictly execution-eligible "
+                    "(decision_identity.py) for any externally reachable "
+                    "mutation — refusing the legacy bypass",
+                    "denial_reason": _denial_reason,
                 }
             _log.info(
                 "[ExecutionEngine] Ordre live: %s %.8f %s @ $%.2f (USD: $%.2f) id=%s",

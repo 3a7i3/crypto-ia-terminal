@@ -726,6 +726,16 @@ blockers.
 
 ### Blocker A — every non-fully-verified adapter must fail closed
 
+**Classification (R1.3 correction, MASTER review): `ALREADY_SATISFIED_AT_R1_1 — REVALIDATED_IN_R1_2`.**
+R1.2 did NOT implement this production boundary — it was already fully
+implemented and in force as of R1.1's Blocker B fix. R1.2's contribution
+was exclusively the 16-test proof below, run against the R1.1 head with
+zero production-code change. The implementation round is **R1.1**; the
+revalidation round is **R1.2**. (R1.3, this section's own round, corrects
+an earlier draft of this document that could be read as implying R1.2
+itself closed the boundary — it did not; R1.2 only proved it was already
+closed.)
+
 **Investigation finding, not a code defect**: re-reading
 `OrderIntentCoordinator.submit()` (the actual production submission path)
 showed this invariant was **already fully enforced by R1.1**. `submit()`'s
@@ -874,3 +884,179 @@ No real/testnet exchange call, no live trading, no deployment, no VPS
 access, no secrets touched, no REM-C scope started. PR remains **draft**,
 **unmerged**, no force-push, no rebase, no squash, no amend of previously
 reviewed commits.
+
+## R1.3 legacy execution ineligibility correction (2026-09-11)
+
+Starting HEAD: `5bfe1a89ecdc4414dd7452386681a75615b20d74` (verified:
+local/remote/GitHub PR metadata all matched; base `092bb88f...` unchanged;
+working tree clean). MASTER's R1.3 review identified that R1.2's
+decision-identity gate, while genuinely closing the restart-reconstruction
+gap, conflated two DIFFERENT questions: "does a record exist for this
+`decision_id`?" (historical/existence) and "is this record valid enough to
+authorize a real mutation?" (execution authority). `ExecutionEngine`'s
+mutation gate used `DecisionIdentityJournal.is_persisted()` — the former —
+to answer the latter.
+
+### `is_persisted(` call-site inventory (complete repository grep)
+
+| File:Line | Classification |
+|---|---|
+| `decision_identity.py:266` (now shifted) — the `def is_persisted(...)` definition | Historical/existence query (by design) |
+| `execution_engine.py` — inside `_decision_id_is_durably_persisted()`, called from both mutation gates (`_place_live_order`, `create_futures_order`) | **EXECUTION-AUTHORITY DECISION** — the exact defect. Confirmed behaviorally (see fail-before proof below), not merely by code reading. |
+| `tests/test_pre_t1_e_rem_b_idempotent_order_protocol.py` — 12 call sites (Groups O/Q) | Test assertions verifying `is_persisted()`'s own existence-membership semantics, including an explicit R1.1-backward-compatibility test for legacy records |
+
+### Fail-before proof (behavioral, exact starting HEAD `5bfe1a89`, real mutation counters)
+
+**Scenario A — legacy authority.** A hand-crafted schema-v1 record
+(`{"schema_version": 1, "decision_id": "legacy-dec-A1", "namespace": ..., "cycle": 1, "symbol": "BTC/USDT", "ts": 0.0}`
+— no `payload`, no `payload_digest`, no `lifecycle_state`, no
+`bound_intent_digest`) was written directly to a temp journal file.
+```
+STEP 2 — is_persisted('legacy-dec-A1'): True
+STEP 3 — create_order() result mode: live
+STEP 3 — mock_exchange.create_order.call_count: 1
+STEP 4 — final record after execution: {"bound_intent_digest": "5ef7c05e...", "lifecycle_state": "BOUND", "schema_version": 1, ...}
+```
+Confirmed: `is_persisted()` returned `True`; `ExecutionEngine.create_order()`
+accepted the id and reached the certified fake exchange's `create_order()`
+exactly once; `bind_intent()` extended the record to `BOUND` while it was
+STILL `schema_version: 1` — never upgraded to schema-v2-valid.
+
+**Scenario B — corrupted v2 authority.** A genuine schema-v2 record was
+persisted, then a second line was appended reusing the same `decision_id`
+with its `payload.symbol` mutated WITHOUT recomputing `payload_digest`.
+```
+STEP 1 — verify_digest('corrupt-dec-B1'): False
+STEP 2 — create_order() result mode: live
+STEP 3 — mock_exchange.create_order.call_count: 1
+```
+Confirmed: `verify_digest()` correctly detected the corruption, but the
+R1.2 execution gate accepted the record anyway and reached the fake
+exchange's `create_order()` exactly once.
+
+Neither proof used an absent symbol, `AttributeError`, an import/
+collection failure, or source inspection alone — both are genuine
+behavioral acceptances with a real (fake-exchange) mutation counter
+reaching `1`.
+
+### Architectural correction
+
+`decision_identity.py` gained:
+
+- `_is_sha256_hex(value)` — structural-only check (64 lowercase hex
+  characters) for `payload_digest`/`bound_intent_digest`, used before any
+  digest recomputation is attempted;
+- `_validate_record_for_execution(record)` (static, pure, no I/O) — the
+  SOLE strict-validity function, checking in order: `schema_version == 2`;
+  exact non-empty `decision_id`; well-typed non-empty `payload`; a
+  structurally valid stored `payload_digest`; the recomputed digest
+  matches; duplicated provenance fields (`namespace`/`cycle`/`symbol`/
+  `action`) agree between the record's top level and `payload`; a
+  recognized lifecycle state (`CREATED`/`BOUND`); `CREATED` implies
+  unbound; `BOUND` implies a structurally valid `bound_intent_digest`.
+  Returns `None` (eligible) or a stable machine-readable reason string;
+- `execution_ineligibility_reason(decision_id)` — the read-only
+  EXECUTION-AUTHORITY query (`None`, `"NOT_PERSISTED"`, or one of
+  `_validate_record_for_execution`'s reasons);
+- `is_execution_eligible(decision_id)` — boolean convenience wrapper;
+- `is_persisted()` is now explicitly documented as historical/existence-
+  only and is no longer read by any execution gate;
+- `bind_intent()` now calls `_validate_record_for_execution()` BEFORE its
+  existing bind logic — a legacy or corrupted record raises
+  `DecisionIdentityError` with ZERO journal writes, closing exactly the
+  "silent upgrade to BOUND" gap Scenario A demonstrated. `intent_digest`
+  itself is now also validated for SHA-256 hex shape;
+- `recover_pending_decisions()` tightened to exclude every
+  execution-ineligible record (via the same strict function), not merely
+  ones missing `payload`/`payload_digest` outright.
+
+`execution_engine.py` gained `_decision_execution_denial_reason(decision_id)`
+— the ACTUAL execution gate for both `_place_live_order()` (spot/live
+`create_order()`) and `create_futures_order()`, replacing the
+`is_persisted()`-backed `_decision_id_is_durably_persisted()` check at
+both call sites. Returns `None` (proceed), `MISSING_CAUSAL_ID` (falsy
+id), `UNPERSISTED_CAUSAL_ID` (no record at all), or `INELIGIBLE_CAUSAL_ID`
+(a record exists but fails strict validation — the precise reason is
+logged via `_log.warning`, never silently discarded, satisfying spec §4's
+"do not silently map corrupted evidence to ordinary absence").
+`_decision_id_is_durably_persisted()` itself is RETAINED (its existence-
+only semantics are still occasionally useful for audit/observability
+tooling) but its docstring now explicitly forbids using it to gate a
+mutation, and neither mutation path reads it anymore.
+
+### Pass-after (permanent regression tests)
+
+14 new tests, `TestGroupR_R13_LegacyExecutionIneligibility` in
+`tests/test_pre_t1_e_rem_b_idempotent_order_protocol.py`: legacy v1
+rejected before spot/futures mutation (2); corrupted v2 rejected before
+spot/futures mutation (2); direct `bind_intent()` refusal with zero
+append for legacy/corrupted records (2); valid v2 `CREATED` binds exactly
+once, replay is idempotent, rebind-to-different-intent is rejected (3);
+valid v2 record still reaches a certified fake adapter exactly once (1);
+historical existence lookup finds legacy evidence without granting
+execution authority (1); restart reconstruction excludes every
+ineligible record (1); no default journal pollution (1); no network/
+exchange calls from the new gate/helpers (1). Two test-only helper
+builders (`_build_spot_engine`/`_build_futures_engine`) inject FRESH,
+temp-path-scoped `DecisionIdentityJournal`/`OrderIntentJournal`/
+`OrderIntentCoordinator` instances directly into the engine's private
+cache attributes, rather than relying on `monkeypatch.setenv()` for the
+journal-path env vars — those module constants freeze at import time
+(documented DS-001 pattern, root `conftest.py`), so a per-test env
+monkeypatch cannot actually redirect them; direct instance injection is
+the correct, genuinely isolated approach and was verified necessary by
+the initial 4 test failures this exact mistake produced during
+development (fixed before this round's final commit).
+
+For every invalid-record test: result is `"rejected"`; `denial_reason` is
+`"INELIGIBLE_CAUSAL_ID"`; the fake exchange's `create_order` call count is
+`0`; the order-intent journal's line count is unchanged (`0`); the
+decision journal's line count is unchanged (no spurious append); no
+`SUBMISSION_STARTED` state exists anywhere in the order-intent journal.
+None of the 4 existing `_certify_mexc_for_test` monkeypatch helpers
+(across `test_execution_engine.py`, `test_execution_engine_futures.py`,
+`test_pre_t1_e_order_cycle_safety.py`, `test_pre_t1_e_rem_a_order_authorization.py`)
+were changed to bypass `_validate_record_for_execution`/
+`execution_ineligibility_reason` themselves — they only bypass
+`_decision_execution_denial_reason` (mirroring the pre-existing
+`_decision_id_is_durably_persisted` bypass pattern) for tests that target
+OTHER behavior; Group R's tests exercise the REAL, un-bypassed strict
+gate directly, so the production correction is never itself weakened by
+a fixture.
+
+### Blocker A documentation correction (R1.3, per MASTER's explicit instruction)
+
+R1.2's phrasing risked being read as implying R1.2 itself corrected the
+adapter fail-closed production boundary. It did not: that boundary was
+**implemented in R1.1** (via `OrderIntentCoordinator.submit()`'s
+`supports_client_order_id` gate, itself derived from
+`AdapterCapabilityVerdict.SUBMIT_AND_RECONCILE_VERIFIED`) and **only
+revalidated in R1.2** (via the 16 `TestGroupP_R12_AdapterFailClosed`
+tests, which pass unmodified against the R1.1 head, with zero production
+code changed). The required classification, applied verbatim to this ADR,
+the order-cycle-safety contract, and the PR description:
+`ALREADY_SATISFIED_AT_R1_1 — REVALIDATED_IN_R1_2`. The 16-test proof, the
+zero-mutation evidence, and the exact source anchor
+(`if not self._capabilities.supports_client_order_id: return
+UNSUPPORTED_ADAPTER_CAPABILITY` in `OrderIntentCoordinator.submit()`,
+where `supports_client_order_id` is `True` ONLY when `verdict ==
+SUBMIT_AND_RECONCILE_VERIFIED`) are all preserved unchanged from R1.2's
+section above — only the attribution wording is corrected here and in
+§22.3 of the contract.
+
+### R1.3 verification
+
+Targeted suite (REM-B protocol file/order-cycle-safety/REM-A
+authorization/execution-engine/execution-engine-futures): 314 tests, 313
+pass, 1 pre-existing unrelated `ccxt`-not-installed environment failure
+(same class already confirmed pre-existing on `origin/main` in R1.1/R1.2).
+Ruff baseline gate, `git diff --check`, and journal-pollution checks: see
+final report. No REM-C scope started; no real/testnet exchange call; no
+deployment; no VPS or secret access.
+
+### R1.3 safety confirmations
+
+No real/testnet exchange call, no live trading, no deployment, no VPS
+access, no secrets touched, no REM-C scope started, no O-02W-E2/T-1/F-00
+scope started. PR remains **draft**, **unmerged**, no force-push, no
+rebase, no squash, no amend of previously reviewed commits.

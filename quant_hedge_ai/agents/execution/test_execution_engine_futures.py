@@ -39,6 +39,17 @@ def _certify_mexc_for_test(monkeypatch):
     monkeypatch.setattr(
         _EE, "_decision_id_is_durably_persisted", lambda self, decision_id: bool(decision_id)
     )
+    # O-02W-PRE-T1-E REM-B-R1.3: the actual execution gate is now
+    # `_decision_execution_denial_reason` (strict schema/digest/lifecycle
+    # eligibility), not `_decision_id_is_durably_persisted` (historical
+    # existence only) — bypass the REAL gate here too, for the same reason
+    # (these tests exercise OTHER behavior). Dedicated tests exercise the
+    # real, un-bypassed strict-eligibility gate directly.
+    monkeypatch.setattr(
+        _EE,
+        "_decision_execution_denial_reason",
+        lambda self, decision_id: None if decision_id else "MISSING_CAUSAL_ID",
+    )
     # O-02W-PRE-T1-E REM-B-R1.2, Blocker B: bypass the real decision->intent
     # binding gate the same way — see identical comment in
     # test_pre_t1_e_order_cycle_safety.py's _certify_mexc_for_test.

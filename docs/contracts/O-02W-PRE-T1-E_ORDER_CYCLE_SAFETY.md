@@ -544,7 +544,7 @@ MASTER's R1.2 review, per ADR-0020's R1.2 section (full detail there).
 
 | Blocker | Investigation finding | Resolution |
 |---|---|---|
-| A — every non-`SUBMIT_AND_RECONCILE_VERIFIED` adapter must fail closed before network mutation | **Investigation established this invariant was ALREADY FULLY SATISFIED by R1.1** — `OrderIntentCoordinator.submit()`'s `supports_client_order_id` gate (itself `verdict == SUBMIT_AND_RECONCILE_VERIFIED`, derived, not independently settable) already denies MEXC, `krakenfutures`, `binanceusdm`, any unknown/alias exchange id, and any `SUBMIT_ONLY_RECONCILIATION_UNVERIFIED`/`UNSUPPORTED`/`INCONCLUSIVE` verdict, before any mutation call, with zero `SUBMISSION_STARTED` journal writes; `reconcile()`'s capability gate (R1.1 Blocker B) already prevents a caller-supplied `lookup` from being invoked for an uncertified adapter. Confirmed via fail-before proof: 16 new Group P tests (`TestGroupP_R12_AdapterFailClosed`, covering MEXC spot/futures/PositionManager-close denial, Kraken Futures, Binance USD-M, unknown adapters, adapter aliases, direct `SUBMIT_ONLY_RECONCILIATION_UNVERIFIED` denial, caller-supplied lookup/capability non-promotion, verified-fake exactly-once submission, ambiguous-result no-resubmission, zero `SUBMISSION_STARTED` transition, and retry-wrapper non-bypass) **already pass unmodified against the R1.1 head** (`e5d81deb`). No production code change was needed or made for this blocker. | **CONFIRMED_ALREADY_REMEDIATED_IN_PRE_T1_E_REM_B_R1_1** — R1.2 adds only the explicit proof (Group P), not a behavior change. |
+| A — every non-`SUBMIT_AND_RECONCILE_VERIFIED` adapter must fail closed before network mutation | **Investigation established this invariant was ALREADY FULLY SATISFIED by R1.1** — `OrderIntentCoordinator.submit()`'s `supports_client_order_id` gate (itself `verdict == SUBMIT_AND_RECONCILE_VERIFIED`, derived, not independently settable) already denies MEXC, `krakenfutures`, `binanceusdm`, any unknown/alias exchange id, and any `SUBMIT_ONLY_RECONCILIATION_UNVERIFIED`/`UNSUPPORTED`/`INCONCLUSIVE` verdict, before any mutation call, with zero `SUBMISSION_STARTED` journal writes; `reconcile()`'s capability gate (R1.1 Blocker B) already prevents a caller-supplied `lookup` from being invoked for an uncertified adapter. Confirmed via fail-before proof: 16 new Group P tests (`TestGroupP_R12_AdapterFailClosed`, covering MEXC spot/futures/PositionManager-close denial, Kraken Futures, Binance USD-M, unknown adapters, adapter aliases, direct `SUBMIT_ONLY_RECONCILIATION_UNVERIFIED` denial, caller-supplied lookup/capability non-promotion, verified-fake exactly-once submission, ambiguous-result no-resubmission, zero `SUBMISSION_STARTED` transition, and retry-wrapper non-bypass) **already pass unmodified against the R1.1 head** (`e5d81deb`). No production code change was needed or made for this blocker. | **`ALREADY_SATISFIED_AT_R1_1 — REVALIDATED_IN_R1_2`** (R1.3-corrected classification; supersedes the earlier `CONFIRMED_ALREADY_REMEDIATED_IN_PRE_T1_E_REM_B_R1_1` phrasing with no change in meaning) — implementation round: **R1.1**; revalidation round: **R1.2**. R1.2 adds only the explicit proof (Group P), not a behavior change. |
 | B — genuine causal reconstruction after process restart | R1.1's `DecisionIdentityJournal` proved only that a `decision_id` string, once durably written, stays found by an `is_persisted()` membership check — MASTER correctly identified this as insufficient: it does not prove the DECISION's canonical payload is reconstructible, nor that it stays bound to exactly one authorized order intent. Confirmed via fail-before proof: 14 of 30 new Group Q tests (`TestGroupQ_R12_CausalReconstruction`) fail with `AttributeError` against the R1.1 head (`e5d81deb`) — `bind_intent`, `recover_pending_decisions`, `find_by_cycle_key`, `verify_digest`, `get` did not exist; behavioral, not import/collection failures. | **REMEDIATED_IN_PRE_T1_E_REM_B_R1_2.** `decision_identity.py` rewritten (schema_version 2): every `persist()` call now computes and stores a canonical `payload`/`payload_digest`; a NEW `bind_intent(decision_id, intent_digest)` atomically binds the persisted decision to the exact `OrderIntent` digest it authorizes (idempotent replay of the same digest; fail-closed `DecisionIdentityError` on a different digest, an unpersisted decision, or a conflicting duplicate `persist()` for the same id with a different payload); `recover_pending_decisions()`/`find_by_cycle_key()`/`get()`/`verify_digest()` let a caller with ONLY the durable journal path — no retained `decision_id` variable, coordinator, or engine object — reconstruct every recoverable decision from durable state alone. `ExecutionEngine._bind_decision_to_intent()` calls `bind_intent()` in both `create_order()`/`create_futures_order()` immediately after building the `OrderIntent`, before the mutation call — tightening the causal ordering to `DECISION_ID_CREATED -> DECISION_RECORD_DURABLY_PERSISTED -> REM_A_AUTHORIZATION -> ORDER_INTENT_BOUND_TO_DECISION -> ORDER_INTENT_DURABLY_PERSISTED -> SUBMISSION_STARTED -> EXCHANGE_MUTATION`. A genuinely legacy (schema_version=1) record without `payload`/`payload_digest` is excluded from `recover_pending_decisions()` (fails closed for reconstruction) while `is_persisted()` still honors it (R1.1 backward compatibility). All 30 Group Q tests pass on R1.2's head. |
 
 **REM-C blockers remaining fully open, unattempted, explicitly out of this
@@ -564,3 +564,84 @@ adapter's real reconciliation capability against a pinned `ccxt` install,
 and does not enable live trading in any way. No real order, exchange call,
 VPS access, secret access, or deployment occurred in this round. PR #138
 remains **draft** and **unmerged**.
+
+## 22.4 REM-B R1.3 legacy execution ineligibility correction (2026-09-11)
+
+**Addendum to §22/§22.1/§22.2/§22.3, not a rewrite.** MASTER's R1.3 review
+demonstrated, behaviorally (not via `AttributeError`/import failure), that
+R1.2's decision-identity gate confused HISTORICAL EXISTENCE with EXECUTION
+AUTHORITY: `ExecutionEngine._decision_id_is_durably_persisted()` used
+`DecisionIdentityJournal.is_persisted()` — a pure membership check — as its
+mutation gate. A hand-crafted schema-v1 legacy record (valid-looking
+`decision_id`, no canonical payload, no valid digest, no v2 lifecycle
+evidence) made `is_persisted()` return `True` and reached a real mutation
+call exactly once (fail-before Scenario A); a schema-v2 record whose
+stored payload no longer matched its stored `payload_digest` was likewise
+accepted (Scenario B). Both proofs also showed `bind_intent()` would
+silently extend either kind of record to `BOUND` without ever making it
+schema-v2-valid.
+
+**Resolution.** `DecisionIdentityJournal` gained a single strict-validity
+function, `_validate_record_for_execution()`, checking (in order): schema
+version == 2; exact non-empty `decision_id`; well-typed non-empty
+canonical `payload`; a structurally valid (64-lowercase-hex) stored
+`payload_digest`; the recomputed digest matches the stored one;
+duplicated top-level provenance fields (`namespace`/`cycle`/`symbol`/
+`action`) agree with the same fields inside `payload`; a recognized
+lifecycle state (`CREATED`/`BOUND`); a `CREATED` record is unbound; a
+`BOUND` record's `bound_intent_digest` is itself a structurally valid
+SHA-256 hex digest. `execution_ineligibility_reason()`/
+`is_execution_eligible()` expose this as the read-only EXECUTION-AUTHORITY
+query; `is_persisted()` is now explicitly documented as
+HISTORICAL/EXISTENCE-ONLY and is no longer consulted by any execution
+gate. `bind_intent()` independently calls the SAME validation function
+before writing, so a legacy or corrupted record can never be "upgraded"
+to `BOUND` merely by attempting to bind it — zero append on refusal.
+`ExecutionEngine._decision_execution_denial_reason()` (new) is the actual
+gate for both `create_order()`/`_place_live_order()` and
+`create_futures_order()`, returning `None` (proceed), `MISSING_CAUSAL_ID`,
+`UNPERSISTED_CAUSAL_ID`, or `INELIGIBLE_CAUSAL_ID` (with the precise
+machine-readable reason logged, never silently discarded).
+`recover_pending_decisions()` was tightened to exclude every
+execution-ineligible record, not only ones missing `payload`/
+`payload_digest` outright.
+
+**`is_persisted()` call-site inventory** (complete repository grep):
+1 definition (historical/existence semantics); 1 execution-authority call
+site (`ExecutionEngine._decision_id_is_durably_persisted`, now retained
+ONLY for audit/observability callers, no longer used to gate any
+mutation); 12 test-assertion call sites (all verifying `is_persisted()`'s
+own existence-membership semantics).
+
+**Fail-before/pass-after.** Both scenarios reproduced behaviorally against
+the exact R1.3 starting HEAD (`5bfe1a89`) with real mutation counters
+(fake-exchange `create_order.call_count`) — both reached `1` before the
+fix. After the fix, both are rejected with `denial_reason=
+INELIGIBLE_CAUSAL_ID`, `create_order.call_count == 0`, and zero order-
+intent-journal writes. 14 new permanent regression tests
+(`TestGroupR_R13_LegacyExecutionIneligibility`) codify both scenarios plus
+the direct `bind_intent()`-refusal proofs, valid-record positive paths,
+the historical-vs-authority distinction, and restart-reconstruction
+exclusion.
+
+**Blocker A documentation correction (this round).** §22.3's Blocker A
+classification is corrected to the exact required form:
+`ALREADY_SATISFIED_AT_R1_1 — REVALIDATED_IN_R1_2` — R1.2 did not implement
+the adapter fail-closed boundary (R1.1 did); R1.2 only revalidated it via
+the 16 Group P tests. See §22.3's updated table row and ADR-0020's R1.3
+section for full detail.
+
+**REM-C blockers remaining fully open, unattempted, explicitly out of this
+mission's scope (unchanged):** complete partial-fill lifecycle; full
+position reconstruction after a crash window; PnL accounting changes; any
+automatic resubmission policy after `RECONCILED_NOT_FOUND_PENDING`;
+verification of `krakenfutures`/`binanceusdm`/MEXC's exact CCXT
+reconciliation methods against a real, installed `ccxt` package.
+
+**Updated verdict: still `REMEDIATION_REQUIRED`.** R1.3 closes the
+legacy/corrupted-record execution-authority gap and corrects Blocker A's
+documentation attribution, but does not start REM-C, does not verify any
+adapter's real reconciliation capability against a pinned `ccxt` install,
+and does not enable live trading in any way. No real order, testnet call,
+exchange call, VPS access, secret access, or deployment occurred in this
+round. PR #138 remains **draft** and **unmerged**.

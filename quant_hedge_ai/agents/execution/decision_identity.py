@@ -64,6 +64,35 @@ def _payload_digest(payload: dict) -> str:
     return hashlib.sha256(_canonical_payload_json(payload).encode("utf-8")).hexdigest()
 
 
+def _is_sha256_hex(value: object) -> bool:
+    """Structural check only — does NOT recompute anything, just confirms
+    `value` has the SHAPE a `hashlib.sha256(...).hexdigest()` output always
+    has (64 lowercase hex characters). Used to reject a `payload_digest` or
+    `bound_intent_digest` that is missing, the wrong type, or obviously
+    malformed BEFORE any digest recomputation is attempted."""
+    return (
+        isinstance(value, str)
+        and len(value) == 64
+        and all(c in "0123456789abcdef" for c in value)
+    )
+
+
+# R1.3 (O-02W-PRE-T1-E REM-B-R1.3) — the exact set of lifecycle states a
+# record must be in to be considered for execution eligibility at all. Any
+# other value (missing, misspelled, from a future schema this code doesn't
+# know about) is unrecognized and therefore ineligible — never silently
+# treated as equivalent to a known state.
+_RECOGNIZED_LIFECYCLE_STATES = {"CREATED", "BOUND"}
+
+# Fields that may appear BOTH at the record's top level (used by
+# `find_by_cycle_key`'s lookup) and inside the canonical `payload` (used by
+# the digest). R1.3 Correction: these two copies must never be allowed to
+# silently disagree — a record where they diverge is contradictory
+# evidence, not usable for execution authority, even if the digest itself
+# is internally self-consistent.
+_DUPLICATED_PROVENANCE_FIELDS = ("namespace", "cycle", "symbol", "action")
+
+
 class DecisionIdentityJournal:
     """Append-only JSONL durable authority for decision identities — the
     DECISION-level counterpart to `order_intent_protocol.OrderIntentJournal`
@@ -168,10 +197,21 @@ class DecisionIdentityJournal:
 
     def bind_intent(self, decision_id: str, intent_digest: str) -> dict:
         """Atomically binds this decision to the order-intent digest it is
-        authorized to produce (R1.2 Blocker B, §4.3). Fail-closed rules:
+        authorized to produce (R1.2 Blocker B, §4.3; hardened R1.3). Fail-
+        closed rules:
 
           - unpersisted `decision_id` -> `DecisionIdentityError`, zero writes;
-          - first bind for this decision -> appends a BOUND record;
+          - a record that fails STRICT execution-eligibility validation
+            (legacy schema_version, missing/malformed/mismatched payload
+            digest, contradictory provenance, unrecognized or structurally
+            invalid lifecycle state — see `_validate_record_for_execution`)
+            -> `DecisionIdentityError`, zero writes. R1.3 closes the exact
+            gap MASTER's fail-before proof demonstrated: a legacy or
+            corrupted record must NEVER be silently "upgraded" to BOUND —
+            binding is refused BEFORE that append, not merely tolerated
+            after the fact;
+          - first bind for an otherwise-eligible decision -> appends a
+            BOUND record;
           - replaying the SAME (decision_id, intent_digest) pair -> no-op,
             returns the existing BOUND record (idempotent, matches restart
             idempotence expectations — a retried bind is not an error);
@@ -181,10 +221,11 @@ class DecisionIdentityJournal:
             REM-C may define an explicit versioned child-intent index for
             multi-intent decisions; this module does not silently allow it).
         """
-        if not intent_digest:
+        if not intent_digest or not _is_sha256_hex(intent_digest):
             raise DecisionIdentityError(
-                "intent_digest is required to bind an order intent to a "
-                "decision — refusing an empty binding"
+                "intent_digest must be a non-empty, well-formed SHA-256 hex "
+                "digest to bind an order intent to a decision — refusing an "
+                f"empty or malformed binding ({intent_digest!r})"
             )
         with self._lock:
             record = self._latest_record_unlocked(decision_id)
@@ -192,6 +233,15 @@ class DecisionIdentityJournal:
                 raise DecisionIdentityError(
                     f"cannot bind order intent: decision_id={decision_id!r} "
                     f"has no durably persisted record"
+                )
+            ineligibility_reason = self._validate_record_for_execution(record)
+            if ineligibility_reason is not None:
+                raise DecisionIdentityError(
+                    f"decision_id={decision_id!r} failed strict execution-"
+                    f"eligibility validation ({ineligibility_reason}) — "
+                    f"refusing to bind an order intent to a legacy, "
+                    f"corrupted, or otherwise invalid record (fail-closed, "
+                    f"O-02W-PRE-T1-E REM-B-R1.3)"
                 )
             existing_bound = record.get("bound_intent_digest")
             if existing_bound == intent_digest:
@@ -276,6 +326,97 @@ class DecisionIdentityJournal:
         rec = self.get(decision_id)
         return rec is not None
 
+    @staticmethod
+    def _validate_record_for_execution(record: dict) -> Optional[str]:
+        """R1.3 (O-02W-PRE-T1-E REM-B-R1.3) — the SOLE strict-validity
+        check for execution authority. Returns `None` if `record` satisfies
+        every applicable invariant (spec §4, points 1-9), or a stable
+        machine-readable reason string identifying the FIRST invariant
+        violated. This is deliberately the ONLY place this logic lives —
+        both `execution_ineligibility_reason` (the read-only query
+        `ExecutionEngine` consults before mutating) and `bind_intent` (which
+        must independently refuse to extend an ineligible record) call this
+        same method, so the two can never silently drift apart.
+
+        This function performs NO network I/O, NO journal I/O, and NO
+        mutation — it is a pure function of one already-loaded record."""
+        if record.get("schema_version") != SCHEMA_VERSION:
+            return "LEGACY_SCHEMA_VERSION"
+
+        decision_id = record.get("decision_id")
+        if (
+            not decision_id
+            or not isinstance(decision_id, str)
+            or not decision_id.strip()
+        ):
+            return "MISSING_OR_INVALID_DECISION_ID"
+
+        payload = record.get("payload")
+        if not isinstance(payload, dict) or not payload:
+            return "MISSING_OR_INVALID_PAYLOAD"
+
+        digest = record.get("payload_digest")
+        if not _is_sha256_hex(digest):
+            return "MISSING_OR_MALFORMED_PAYLOAD_DIGEST"
+
+        if _payload_digest(payload) != digest:
+            return "PAYLOAD_DIGEST_MISMATCH"
+
+        for field in _DUPLICATED_PROVENANCE_FIELDS:
+            if field in payload and payload[field] != record.get(field):
+                return "PROVENANCE_INCONSISTENT"
+
+        lifecycle_state = record.get("lifecycle_state")
+        if lifecycle_state not in _RECOGNIZED_LIFECYCLE_STATES:
+            return "UNRECOGNIZED_LIFECYCLE_STATE"
+
+        bound_intent_digest = record.get("bound_intent_digest")
+        if lifecycle_state == "CREATED":
+            if bound_intent_digest is not None:
+                return "CREATED_RECORD_UNEXPECTEDLY_BOUND"
+        elif lifecycle_state == "BOUND":
+            if not _is_sha256_hex(bound_intent_digest):
+                return "BOUND_RECORD_INVALID_INTENT_DIGEST"
+
+        return None
+
+    def execution_ineligibility_reason(self, decision_id: str) -> Optional[str]:
+        """R1.3 — the strict, fail-closed EXECUTION-AUTHORITY query.
+        Returns `None` only when `decision_id`'s latest effective record
+        satisfies every applicable invariant (spec §4, points 1-9) — schema
+        version, exact non-empty id, well-typed canonical payload, a
+        structurally valid digest that actually verifies, internally
+        consistent duplicated provenance fields, a recognized and
+        structurally valid lifecycle state. Otherwise returns a stable
+        machine-readable reason string (`"NOT_PERSISTED"` for a missing
+        record, or one of `_validate_record_for_execution`'s reasons for a
+        record that exists but is legacy/incomplete/corrupted/
+        contradictory/structurally invalid).
+
+        THIS — never `is_persisted()` — is the method any execution-
+        authority decision must consult. `is_persisted()` remains a pure
+        historical/existence query; it must never be read as permission to
+        mutate (R1.3, correcting the exact defect MASTER's fail-before
+        proof demonstrated: a schema-v1 record with no canonical payload,
+        digest, or lifecycle evidence previously made `is_persisted()`
+        return `True` and was accepted by `ExecutionEngine` as execution
+        authority)."""
+        if not decision_id or not str(decision_id).strip():
+            return "MISSING_DECISION_ID"
+        record = self.get(decision_id)
+        if record is None:
+            return "NOT_PERSISTED"
+        return self._validate_record_for_execution(record)
+
+    def is_execution_eligible(self, decision_id: str) -> bool:
+        """Convenience boolean wrapper over `execution_ineligibility_reason`
+        — `True` iff that method returns `None`. Prefer
+        `execution_ineligibility_reason` directly when the caller needs to
+        distinguish MISSING/UNPERSISTED/INELIGIBLE for a typed denial
+        (R1.3 spec §4 — "do not silently map corrupted evidence to
+        ordinary absence")."""
+        return self.execution_ineligibility_reason(decision_id) is None
+
     def recover_pending_decisions(
         self, *, namespace: Optional[str] = None
     ) -> dict[str, dict]:
@@ -288,16 +429,22 @@ class DecisionIdentityJournal:
         `DecisionIdentityJournal` instance and discover every recoverable
         decision from durable state alone.
 
-        A record missing `payload`/`payload_digest` (a genuinely legacy,
-        pre-R1.2 record) is excluded — it cannot be reconstructed with
-        digest-verifiable evidence, so it fails closed here rather than
-        being silently treated as recoverable."""
+        R1.3: uses the SAME strict `_validate_record_for_execution` check
+        `execution_ineligibility_reason`/`bind_intent` use — ANY
+        execution-ineligible record (legacy schema, missing/malformed/
+        mismatched digest, contradictory provenance, unrecognized or
+        structurally invalid lifecycle state) is excluded, not merely one
+        missing `payload`/`payload_digest` outright. Historical records
+        remain readable via `get()`/`is_persisted()` for audit purposes —
+        they simply never appear here, since this method's contract is
+        "recoverable enough to resume toward execution," not "ever
+        existed"."""
         with self._lock:
             latest = self._latest_by_decision_id_unlocked()
         out: dict[str, dict] = {}
         for decision_id, rec in latest.items():
-            if not rec.get("payload") or not rec.get("payload_digest"):
-                continue  # legacy/incomplete record — fail closed, not recoverable
+            if self._validate_record_for_execution(rec) is not None:
+                continue  # execution-ineligible — fail closed, not recoverable
             if namespace is not None and rec.get("namespace") != namespace:
                 continue
             out[decision_id] = rec

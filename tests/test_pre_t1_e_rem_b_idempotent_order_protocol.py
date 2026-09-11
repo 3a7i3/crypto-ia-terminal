@@ -10,6 +10,7 @@ counters, and threading.Barrier for concurrency proofs (never sleep-based).
 
 from __future__ import annotations
 
+import json
 import threading
 
 import pytest
@@ -2215,7 +2216,7 @@ class TestGroupQ_R12_CausalReconstruction:
 
         j = DecisionIdentityJournal(tmp_path / "decisions.jsonl")
         with pytest.raises(DecisionIdentityError):
-            j.bind_intent("never-persisted", "some-intent-digest")
+            j.bind_intent("never-persisted", "e" * 64)
         # zero writes — the journal file gained no records from the failed bind
         assert j.recover_pending_decisions() == {}
 
@@ -2226,10 +2227,11 @@ class TestGroupQ_R12_CausalReconstruction:
 
         j = DecisionIdentityJournal(tmp_path / "decisions.jsonl")
         j.persist("dec-bind-1", namespace="test", cycle=1, symbol="BTC/USDT")
-        rec = j.bind_intent("dec-bind-1", "intent-digest-1")
+        digest = "a" * 64  # R1.3: bind_intent now enforces SHA-256 hex shape
+        rec = j.bind_intent("dec-bind-1", digest)
         assert rec["lifecycle_state"] == "BOUND"
-        assert rec["bound_intent_digest"] == "intent-digest-1"
-        assert j.get("dec-bind-1")["bound_intent_digest"] == "intent-digest-1"
+        assert rec["bound_intent_digest"] == digest
+        assert j.get("dec-bind-1")["bound_intent_digest"] == digest
 
     def test_same_replay_preserves_bound_intent_digest_idempotent(self, tmp_path):
         from quant_hedge_ai.agents.execution.decision_identity import (
@@ -2238,11 +2240,12 @@ class TestGroupQ_R12_CausalReconstruction:
 
         j = DecisionIdentityJournal(tmp_path / "decisions.jsonl")
         j.persist("dec-bind-2", namespace="test")
-        j.bind_intent("dec-bind-2", "intent-digest-2")
+        digest = "b" * 64
+        j.bind_intent("dec-bind-2", digest)
         # Replaying the SAME bind (e.g. a retried submission attempt)
         # must succeed idempotently, never raise, never change the binding.
-        rec2 = j.bind_intent("dec-bind-2", "intent-digest-2")
-        assert rec2["bound_intent_digest"] == "intent-digest-2"
+        rec2 = j.bind_intent("dec-bind-2", digest)
+        assert rec2["bound_intent_digest"] == digest
 
     def test_binding_same_decision_to_different_intent_fails_closed(self, tmp_path):
         from quant_hedge_ai.agents.execution.decision_identity import (
@@ -2252,11 +2255,13 @@ class TestGroupQ_R12_CausalReconstruction:
 
         j = DecisionIdentityJournal(tmp_path / "decisions.jsonl")
         j.persist("dec-bind-3", namespace="test")
-        j.bind_intent("dec-bind-3", "intent-digest-original")
+        original_digest = "c" * 64
+        different_digest = "d" * 64
+        j.bind_intent("dec-bind-3", original_digest)
         with pytest.raises(DecisionIdentityError):
-            j.bind_intent("dec-bind-3", "intent-digest-DIFFERENT")
+            j.bind_intent("dec-bind-3", different_digest)
         # the original binding survives the failed rebind attempt
-        assert j.get("dec-bind-3")["bound_intent_digest"] == "intent-digest-original"
+        assert j.get("dec-bind-3")["bound_intent_digest"] == original_digest
 
     def test_restart_reconstructs_pending_decision_using_only_durable_state(self, tmp_path):
         """The R1.2 §4.4 core proof: a decision is created and persisted
@@ -2522,3 +2527,422 @@ class TestGroupQ_R12_CausalReconstruction:
             "dec-restart-bind-1"
         )["bound_intent_digest"]
         assert bound_digest_after_restart == bound_digest_after_first
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# Group R — R1.3: legacy/corrupted decision records must never become
+# execution authority (O-02W-PRE-T1-E REM-B-R1.3). MASTER's R1.2 review
+# demonstrated, behaviorally (not via AttributeError/import failure), that
+# a hand-crafted schema-v1 legacy record with no canonical payload, no
+# valid digest, and no v2 lifecycle evidence — and separately, a
+# schema-v2 record whose stored payload no longer matches its stored
+# payload_digest — were BOTH accepted by `is_persisted()` (a pure
+# historical/existence query) and, because `ExecutionEngine` used that
+# same existence-only check as its execution gate, reached a real
+# mutation call exactly once. This group converts those exact fail-before
+# scenarios into permanent hermetic regression tests, and additionally
+# proves `bind_intent()` independently refuses to extend either kind of
+# record to BOUND.
+# ═══════════════════════════════════════════════════════════════════════
+
+
+def _jsonl_line_count(path) -> int:
+    import pathlib
+
+    p = pathlib.Path(path)
+    if not p.exists():
+        return 0
+    return len([ln for ln in p.read_text(encoding="utf-8").splitlines() if ln.strip()])
+
+
+def _write_legacy_v1_record(path, decision_id: str, **fields) -> None:
+    import pathlib
+
+    record = {
+        "schema_version": 1,
+        "decision_id": decision_id,
+        "namespace": "advisor_loop.analyze_symbol",
+        "cycle": 1,
+        "symbol": "BTC/USDT",
+        "ts": 0.0,
+    }
+    record.update(fields)
+    p = pathlib.Path(path)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    with open(p, "a", encoding="utf-8") as f:
+        f.write(json.dumps(record) + "\n")
+
+
+class TestGroupR_R13_LegacyExecutionIneligibility:
+    def _build_spot_engine(self, monkeypatch, tmp_path, *, order_id="ok-1"):
+        # R1.3 note: `DECISION_IDENTITY_JOURNAL_PATH`/`ORDER_INTENT_JOURNAL_PATH`
+        # module constants freeze at import time (documented DS-001 pattern,
+        # root conftest.py) — a per-test `monkeypatch.setenv()` cannot change
+        # them post-import. Instead of relying on env vars, this helper
+        # constructs FRESH, tmp_path-scoped journal/coordinator instances
+        # and injects them directly into the engine's private cache
+        # attributes, guaranteeing genuine per-test isolation regardless of
+        # import order.
+        from unittest.mock import MagicMock
+
+        from quant_hedge_ai.agents.execution import order_intent_protocol as oip
+        from quant_hedge_ai.agents.execution.decision_identity import (
+            DecisionIdentityJournal,
+        )
+        from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
+
+        monkeypatch.setenv("EXEC_TRADE_LOG", str(tmp_path / "t.sqlite"))
+        monkeypatch.setenv("EXEC_MAX_ORDER_USD", "10000")
+        monkeypatch.setenv("PAPER_TRADING_ENABLED", "false")
+        decisions_path = tmp_path / "decisions.jsonl"
+        intents_path = tmp_path / "order_intents.jsonl"
+        mexc_caps = oip.AdapterCapabilities(
+            verdict=oip.AdapterCapabilityVerdict.SUBMIT_AND_RECONCILE_VERIFIED,
+            client_order_id_param="clientOrderId",
+        )
+        monkeypatch.setitem(oip._ADAPTER_CAPABILITIES_BY_EXCHANGE, "mexc", mexc_caps)
+
+        e = ExecutionEngine(live=False, _sleep=lambda _: None)
+        e._live = True
+        e._decision_identity_journal = DecisionIdentityJournal(decisions_path)
+        e._order_intent_journal = oip.OrderIntentJournal(intents_path)
+        e._order_intent_coordinator = oip.OrderIntentCoordinator(
+            e._order_intent_journal, mexc_caps
+        )
+        mock_exchange = MagicMock()
+        mock_exchange.fetch_ticker.return_value = {"last": 50_000.0}
+        mock_exchange.load_markets.return_value = {}
+        mock_exchange.fetch_balance.return_value = {"free": {"USDT": 10_000.0}}
+        mock_exchange.create_order.return_value = {"id": order_id}
+        e._exchange = mock_exchange
+        e.start_session(10_000.0)
+        return e, mock_exchange, decisions_path, intents_path
+
+    def _build_futures_engine(self, monkeypatch, tmp_path, *, order_id="fut-ok-1"):
+        from unittest.mock import MagicMock
+
+        from quant_hedge_ai.agents.execution import order_intent_protocol as oip
+        from quant_hedge_ai.agents.execution.decision_identity import (
+            DecisionIdentityJournal,
+        )
+        from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
+
+        monkeypatch.setenv("EXEC_TRADE_LOG", str(tmp_path / "t.sqlite"))
+        monkeypatch.setenv("EXEC_FUTURES_MIN_ORDER_USD", "55")
+        monkeypatch.setenv("EXEC_FUTURES_MAX_ORDER_USD", "200")
+        decisions_path = tmp_path / "decisions.jsonl"
+        intents_path = tmp_path / "order_intents.jsonl"
+        mexc_caps = oip.AdapterCapabilities(
+            verdict=oip.AdapterCapabilityVerdict.SUBMIT_AND_RECONCILE_VERIFIED,
+            client_order_id_param="clientOrderId",
+        )
+        monkeypatch.setitem(oip._ADAPTER_CAPABILITIES_BY_EXCHANGE, "mexc", mexc_caps)
+
+        e = ExecutionEngine(live=False, _sleep=lambda _: None)
+        e._decision_identity_journal = DecisionIdentityJournal(decisions_path)
+        e._order_intent_journal = oip.OrderIntentJournal(intents_path)
+        e._order_intent_coordinator = oip.OrderIntentCoordinator(
+            e._order_intent_journal, mexc_caps
+        )
+        e.start_session(10_000.0)
+        mock_ex = MagicMock()
+        mock_ex.fetch_ticker.return_value = {"last": 50_000.0}
+        mock_ex.load_markets.return_value = {}
+        mock_ex.create_order.return_value = {"id": order_id}
+        e._exchange_futures = mock_ex
+        return e, mock_ex, decisions_path, intents_path
+
+    # ── 1-2: legacy v1 record rejected before spot/futures mutation ────
+
+    def test_legacy_v1_record_rejected_before_spot_mutation(self, monkeypatch, tmp_path):
+        e, mock_exchange, decisions_path, intents_path = self._build_spot_engine(
+            monkeypatch, tmp_path
+        )
+        _write_legacy_v1_record(decisions_path, "legacy-spot-1")
+        decisions_before = _jsonl_line_count(decisions_path)
+        intents_before = _jsonl_line_count(intents_path)
+
+        result = e.create_order("BTC/USDT", "BUY", 100.0, decision_id="legacy-spot-1")
+
+        assert result["mode"] == "rejected"
+        assert result["denial_reason"] == "INELIGIBLE_CAUSAL_ID"
+        assert mock_exchange.create_order.call_count == 0
+        assert _jsonl_line_count(intents_path) == intents_before == 0
+        # the rejected binding attempt must not append a SPURIOUS decision
+        # record either — only the original legacy line remains.
+        assert _jsonl_line_count(decisions_path) == decisions_before == 1
+        from quant_hedge_ai.agents.execution.decision_identity import (
+            DecisionIdentityJournal,
+        )
+
+        j = DecisionIdentityJournal(decisions_path)
+        assert j.get("legacy-spot-1").get("lifecycle_state") != "BOUND"
+
+    def test_legacy_v1_record_rejected_before_futures_mutation(self, monkeypatch, tmp_path):
+        e, mock_ex, decisions_path, intents_path = self._build_futures_engine(
+            monkeypatch, tmp_path
+        )
+        _write_legacy_v1_record(decisions_path, "legacy-futures-1")
+        decisions_before = _jsonl_line_count(decisions_path)
+        intents_before = _jsonl_line_count(intents_path)
+
+        result = e.create_futures_order(
+            "BTC/USDT", "BUY", 100.0, decision_id="legacy-futures-1"
+        )
+
+        assert result["mode"] == "rejected"
+        assert result["denial_reason"] == "INELIGIBLE_CAUSAL_ID"
+        assert mock_ex.create_order.call_count == 0
+        assert _jsonl_line_count(intents_path) == intents_before == 0
+        assert _jsonl_line_count(decisions_path) == decisions_before == 1
+
+    # ── 3-4: corrupted v2 payload/digest rejected before spot/futures ──
+
+    def _write_corrupted_v2_record(self, decisions_path, decision_id: str) -> None:
+        from quant_hedge_ai.agents.execution.decision_identity import (
+            DecisionIdentityJournal,
+        )
+
+        j = DecisionIdentityJournal(decisions_path)
+        rec = j.persist(decision_id, namespace="test", cycle=1, symbol="BTC/USDT")
+        corrupted = dict(rec)
+        corrupted["payload"] = dict(corrupted["payload"])
+        corrupted["payload"]["symbol"] = "ETH/USDT"  # mutated, digest NOT recomputed
+        with open(decisions_path, "a", encoding="utf-8") as f:
+            f.write(json.dumps(corrupted, sort_keys=True) + "\n")
+
+    def test_corrupted_v2_record_rejected_before_spot_mutation(self, monkeypatch, tmp_path):
+        e, mock_exchange, decisions_path, intents_path = self._build_spot_engine(
+            monkeypatch, tmp_path
+        )
+        self._write_corrupted_v2_record(decisions_path, "corrupt-spot-1")
+        decisions_before = _jsonl_line_count(decisions_path)
+        intents_before = _jsonl_line_count(intents_path)
+
+        result = e.create_order("BTC/USDT", "BUY", 100.0, decision_id="corrupt-spot-1")
+
+        assert result["mode"] == "rejected"
+        assert result["denial_reason"] == "INELIGIBLE_CAUSAL_ID"
+        assert mock_exchange.create_order.call_count == 0
+        assert _jsonl_line_count(intents_path) == intents_before == 0
+        assert _jsonl_line_count(decisions_path) == decisions_before
+
+    def test_corrupted_v2_record_rejected_before_futures_mutation(self, monkeypatch, tmp_path):
+        e, mock_ex, decisions_path, intents_path = self._build_futures_engine(
+            monkeypatch, tmp_path
+        )
+        self._write_corrupted_v2_record(decisions_path, "corrupt-futures-1")
+        decisions_before = _jsonl_line_count(decisions_path)
+        intents_before = _jsonl_line_count(intents_path)
+
+        result = e.create_futures_order(
+            "BTC/USDT", "BUY", 100.0, decision_id="corrupt-futures-1"
+        )
+
+        assert result["mode"] == "rejected"
+        assert result["denial_reason"] == "INELIGIBLE_CAUSAL_ID"
+        assert mock_ex.create_order.call_count == 0
+        assert _jsonl_line_count(intents_path) == intents_before == 0
+        assert _jsonl_line_count(decisions_path) == decisions_before
+
+    # ── 5-6: direct bind_intent() refuses legacy/corrupted, zero append ─
+
+    def test_bind_intent_on_legacy_record_fails_zero_append(self, tmp_path):
+        from quant_hedge_ai.agents.execution.decision_identity import (
+            DecisionIdentityError,
+            DecisionIdentityJournal,
+        )
+
+        path = tmp_path / "decisions.jsonl"
+        _write_legacy_v1_record(path, "legacy-bind-1")
+        before = _jsonl_line_count(path)
+
+        j = DecisionIdentityJournal(path)
+        with pytest.raises(DecisionIdentityError):
+            j.bind_intent("legacy-bind-1", "f" * 64)
+        assert _jsonl_line_count(path) == before  # zero append
+        # never silently "upgraded" — still schema_version 1, still unbound
+        rec = j.get("legacy-bind-1")
+        assert rec["schema_version"] == 1
+        assert rec.get("bound_intent_digest") is None
+
+    def test_bind_intent_on_corrupted_record_fails_zero_append(self, tmp_path):
+        from quant_hedge_ai.agents.execution.decision_identity import (
+            DecisionIdentityError,
+            DecisionIdentityJournal,
+        )
+
+        path = tmp_path / "decisions.jsonl"
+        j = DecisionIdentityJournal(path)
+        rec = j.persist("corrupt-bind-1", namespace="test", cycle=1, symbol="BTC/USDT")
+        corrupted = dict(rec)
+        corrupted["payload"] = dict(corrupted["payload"])
+        corrupted["payload"]["symbol"] = "ETH/USDT"
+        with open(path, "a", encoding="utf-8") as f:
+            f.write(json.dumps(corrupted, sort_keys=True) + "\n")
+        before = _jsonl_line_count(path)
+
+        with pytest.raises(DecisionIdentityError):
+            j.bind_intent("corrupt-bind-1", "a" * 64)
+        assert _jsonl_line_count(path) == before  # zero append
+        assert j.get("corrupt-bind-1").get("bound_intent_digest") is None
+
+    # ── 7-9: valid v2 CREATED record binding semantics ──────────────────
+
+    def test_valid_v2_created_record_may_bind_exactly_once(self, tmp_path):
+        from quant_hedge_ai.agents.execution.decision_identity import (
+            DecisionIdentityJournal,
+        )
+
+        path = tmp_path / "decisions.jsonl"
+        j = DecisionIdentityJournal(path)
+        j.persist("valid-bind-1", namespace="test", cycle=1, symbol="BTC/USDT")
+        digest = "1" * 64
+        rec = j.bind_intent("valid-bind-1", digest)
+        assert rec["lifecycle_state"] == "BOUND"
+        assert rec["bound_intent_digest"] == digest
+
+    def test_replay_of_same_valid_binding_is_idempotent(self, tmp_path):
+        from quant_hedge_ai.agents.execution.decision_identity import (
+            DecisionIdentityJournal,
+        )
+
+        path = tmp_path / "decisions.jsonl"
+        j = DecisionIdentityJournal(path)
+        j.persist("valid-bind-2", namespace="test")
+        digest = "2" * 64
+        j.bind_intent("valid-bind-2", digest)
+        line_count_after_first_bind = _jsonl_line_count(path)
+        rec2 = j.bind_intent("valid-bind-2", digest)  # replay
+        assert rec2["bound_intent_digest"] == digest
+        assert _jsonl_line_count(path) == line_count_after_first_bind  # no extra write
+
+    def test_binding_same_decision_to_another_intent_remains_rejected(self, tmp_path):
+        from quant_hedge_ai.agents.execution.decision_identity import (
+            DecisionIdentityError,
+            DecisionIdentityJournal,
+        )
+
+        path = tmp_path / "decisions.jsonl"
+        j = DecisionIdentityJournal(path)
+        j.persist("valid-bind-3", namespace="test")
+        j.bind_intent("valid-bind-3", "3" * 64)
+        with pytest.raises(DecisionIdentityError):
+            j.bind_intent("valid-bind-3", "4" * 64)
+        assert j.get("valid-bind-3")["bound_intent_digest"] == "3" * 64
+
+    # ── 10: valid v2 record still reaches a certified fake adapter once ─
+
+    def test_valid_v2_record_reaches_certified_fake_adapter_exactly_once(
+        self, monkeypatch, tmp_path
+    ):
+        e, mock_exchange, decisions_path, intents_path = self._build_spot_engine(
+            monkeypatch, tmp_path
+        )
+        e._get_decision_identity_journal().persist("valid-e2e-1", namespace="test")
+
+        result = e.create_order("BTC/USDT", "BUY", 100.0, decision_id="valid-e2e-1")
+
+        assert result["mode"] == "live"
+        assert mock_exchange.create_order.call_count == 1
+
+    # ── 11: historical existence lookup finds legacy evidence, grants ──
+    # ── no execution authority ──────────────────────────────────────────
+
+    def test_historical_lookup_finds_legacy_evidence_without_execution_authority(
+        self, tmp_path
+    ):
+        from quant_hedge_ai.agents.execution.decision_identity import (
+            DecisionIdentityJournal,
+        )
+
+        path = tmp_path / "decisions.jsonl"
+        _write_legacy_v1_record(path, "legacy-audit-1")
+        j = DecisionIdentityJournal(path)
+        # Historical/audit query: the record is findable...
+        assert j.is_persisted("legacy-audit-1") is True
+        assert j.get("legacy-audit-1") is not None
+        # ...but confers ZERO execution authority.
+        assert j.is_execution_eligible("legacy-audit-1") is False
+        assert (
+            j.execution_ineligibility_reason("legacy-audit-1")
+            == "LEGACY_SCHEMA_VERSION"
+        )
+
+    # ── 12: restart/reconstruction excludes every execution-ineligible ──
+
+    def test_restart_reconstruction_excludes_every_ineligible_record(self, tmp_path):
+        from quant_hedge_ai.agents.execution.decision_identity import (
+            DecisionIdentityJournal,
+        )
+
+        path = tmp_path / "decisions.jsonl"
+        _write_legacy_v1_record(path, "ineligible-legacy-1")
+        j = DecisionIdentityJournal(path)
+        rec = j.persist("eligible-valid-1", namespace="test", cycle=1, symbol="BTC/USDT")
+        corrupted = dict(rec)
+        corrupted["decision_id"] = "ineligible-corrupted-1"
+        corrupted["payload"] = dict(corrupted["payload"])
+        corrupted["payload"]["symbol"] = "ETH/USDT"
+        with open(path, "a", encoding="utf-8") as f:
+            f.write(json.dumps(corrupted, sort_keys=True) + "\n")
+
+        # brand-new instance — restart simulation
+        j2 = DecisionIdentityJournal(path)
+        pending = j2.recover_pending_decisions()
+        assert "eligible-valid-1" in pending
+        assert "ineligible-legacy-1" not in pending
+        assert "ineligible-corrupted-1" not in pending
+
+    # ── 13: no default journal pollution ────────────────────────────────
+
+    def test_no_default_journal_pollution(self, monkeypatch, tmp_path):
+        """The default, non-test journal paths under `databases/` must
+        never be touched by this group's tests — every engine here is
+        explicitly pointed at tmp_path-scoped journals via
+        DECISION_IDENTITY_JOURNAL_PATH/ORDER_INTENT_JOURNAL_PATH env vars
+        (set by the `_build_spot_engine`/`_build_futures_engine` helpers).
+        This test snapshots the real repo-default paths' mtimes/existence
+        before and after exercising both fail-before scenarios and
+        confirms neither changed."""
+        import pathlib
+
+        real_decisions = pathlib.Path("databases/decision_identity_journal.jsonl")
+        real_intents = pathlib.Path("databases/order_intent_journal.jsonl")
+        existed_before = (real_decisions.exists(), real_intents.exists())
+        mtime_before = (
+            real_decisions.stat().st_mtime if real_decisions.exists() else None,
+            real_intents.stat().st_mtime if real_intents.exists() else None,
+        )
+
+        e, mock_exchange, decisions_path, intents_path = self._build_spot_engine(
+            monkeypatch, tmp_path
+        )
+        _write_legacy_v1_record(decisions_path, "no-pollution-1")
+        e.create_order("BTC/USDT", "BUY", 100.0, decision_id="no-pollution-1")
+
+        assert (real_decisions.exists(), real_intents.exists()) == existed_before
+        mtime_after = (
+            real_decisions.stat().st_mtime if real_decisions.exists() else None,
+            real_intents.stat().st_mtime if real_intents.exists() else None,
+        )
+        assert mtime_after == mtime_before
+
+    # ── 14: no real or testnet exchange/network access (source proof) ──
+
+    def test_r13_gate_and_helpers_perform_no_network_or_exchange_calls(self):
+        import inspect
+
+        from quant_hedge_ai.agents.execution.decision_identity import (
+            DecisionIdentityJournal,
+        )
+
+        for name in (
+            "execution_ineligibility_reason",
+            "is_execution_eligible",
+            "_validate_record_for_execution",
+            "bind_intent",
+        ):
+            src = inspect.getsource(getattr(DecisionIdentityJournal, name))
+            for forbidden in ("requests.", "ccxt", "socket.", "urlopen", "fetch_"):
+                assert forbidden not in src, (name, forbidden)

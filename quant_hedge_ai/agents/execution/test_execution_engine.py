@@ -39,6 +39,14 @@ def _certify_mexc_for_test(monkeypatch):
     monkeypatch.setattr(
         _EE, "_decision_id_is_durably_persisted", lambda self, decision_id: bool(decision_id)
     )
+    # O-02W-PRE-T1-E REM-B-R1.3: bypass the REAL execution gate too — see
+    # identical comment in test_execution_engine_futures.py's
+    # _certify_mexc_for_test.
+    monkeypatch.setattr(
+        _EE,
+        "_decision_execution_denial_reason",
+        lambda self, decision_id: None if decision_id else "MISSING_CAUSAL_ID",
+    )
     # O-02W-PRE-T1-E REM-B-R1.2, Blocker B: bypass the real decision->intent
     # binding gate the same way — see identical comment in
     # test_pre_t1_e_order_cycle_safety.py's _certify_mexc_for_test.
