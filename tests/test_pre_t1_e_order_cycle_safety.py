@@ -416,7 +416,17 @@ class TestScenarioP_PreT1DSeparationNonRegression:
         monkeypatch.setenv(
             "PAPER_TRADE_LOG", str(tmp_path / "paper_trades_ptd_e.jsonl")
         )
-        monkeypatch.setenv("WALLET_PAPER_CAPITAL", "250")
+        # infra.wallet_sync._PAPER_CAPITAL is a module-level constant read
+        # once from WALLET_PAPER_CAPITAL at import time (`infra/wallet_sync.py`
+        # line 50: `_PAPER_CAPITAL = float(os.getenv("WALLET_PAPER_CAPITAL",
+        # "100"))`), not re-read per call. Since the module is very likely
+        # already imported by the time this test runs (as part of the full
+        # suite), monkeypatching the env var alone has no effect on it —
+        # patch the already-bound module attribute directly instead, which
+        # is what get_scientific_capital() actually reads.
+        import infra.wallet_sync as _ws
+
+        monkeypatch.setattr(_ws, "_PAPER_CAPITAL", 250.0)
         from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
 
         e = ExecutionEngine(live=False)
