@@ -6563,17 +6563,31 @@ def main(
                                 pass
 
                         if _validated:
+                            # O-02W-PRE-T1-E REM-B: propagate the existing
+                            # per-decision-cycle trace_id (I-16, mandatory,
+                            # generated once via new_trace_id() at decision
+                            # time) as the deterministic causal identifier
+                            # for order-intent identity/idempotence. Missing
+                            # trace_id fails closed inside the protocol
+                            # rather than substituting a fabricated id.
+                            _decision_id = r.get("trace_id") or None
                             if exec_engine.has_futures_demo():
                                 fut = _stats_dict(
                                     exec_engine.create_futures_order(
-                                        sym, signal_action, effective_size
+                                        sym,
+                                        signal_action,
+                                        effective_size,
+                                        decision_id=_decision_id,
                                     )
                                 )
                                 exec_label = "FUTURES DEMO"
                             else:
                                 fut = _stats_dict(
                                     exec_engine.create_order(
-                                        sym, signal_action, effective_size
+                                        sym,
+                                        signal_action,
+                                        effective_size,
+                                        decision_id=_decision_id,
                                     )
                                 )
                                 exec_label = "EXECUTION"
