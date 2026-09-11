@@ -685,6 +685,168 @@ class TestGroupF_PositionManager:
         pm._close_position(pos, CloseReason.TP)
         assert pos.closed is True  # paper close still closes immediately
 
+    # ── Defect 2 (R1): dimensional correctness — qty vs USD notional ────────
+    # Proves the dead ternary (`qty * price if price > 0 else qty * price`)
+    # is gone and quantity/notional cannot be transposed, at non-trivial
+    # prices in both directions (large price, small price).
+
+    def test_dimensional_correctness_high_price(self, monkeypatch):
+        """price=50_000: notional (500) and quantity (0.01) are far apart —
+        transposing them would either submit a wildly wrong quantity to the
+        exchange or wrongly deny/allow on the exposure ceiling."""
+        from unittest.mock import MagicMock
+
+        ex = MagicMock()
+        ex.load_markets.return_value = {
+            "BTC/USD:USD": {"precision": {"amount": 1e-5}}
+        }
+        ex.create_order.return_value = {"id": "close-hp"}
+        pm = self._make_pm(ex, monkeypatch)
+        pos = self._make_position(qty=0.01, entry_price=50_000.0)
+        pos.current_price = 50_000.0
+        from quant_hedge_ai.agents.execution.position_manager import CloseReason
+
+        result = pm._send_close_order(pos, reason=CloseReason.TP)
+
+        assert result["authorized"] is True
+        submitted_qty = ex.create_order.call_args[0][3]
+        # Correct dimension: base-asset quantity (~0.01 BTC), never the USD
+        # notional (500) and never the raw ternary's accidental value.
+        assert submitted_qty == pytest.approx(0.01, abs=1e-9)
+        assert submitted_qty != pytest.approx(500.0, abs=1e-6)
+
+    def test_dimensional_correctness_low_price(self, monkeypatch):
+        """price=0.001: quantity (1000) and notional (1.0) are far apart in
+        the opposite direction — the low-price mirror of the high-price
+        case above."""
+        from unittest.mock import MagicMock
+
+        ex = MagicMock()
+        ex.load_markets.return_value = {
+            "BTC/USD:USD": {"precision": {"amount": 1e-3}}
+        }
+        ex.create_order.return_value = {"id": "close-lp"}
+        pm = self._make_pm(ex, monkeypatch)
+        pos = self._make_position(qty=1_000.0, entry_price=0.001)
+        pos.current_price = 0.001
+        from quant_hedge_ai.agents.execution.position_manager import CloseReason
+
+        result = pm._send_close_order(pos, reason=CloseReason.TP)
+
+        assert result["authorized"] is True
+        submitted_qty = ex.create_order.call_args[0][3]
+        # Correct dimension: base-asset quantity (~1000), never the USD
+        # notional (1.0).
+        assert submitted_qty == pytest.approx(1_000.0, abs=1e-6)
+        assert submitted_qty != pytest.approx(1.0, abs=1e-6)
+
+    def test_authorize_order_receives_usd_notional_not_raw_qty(self, monkeypatch):
+        """Directly proves `authorize_order()` is called with a USD notional
+        (`qty * price`), not the raw base-asset `qty`, for both
+        `requested_amount` and `authorized_max_amount`."""
+        from unittest.mock import MagicMock, patch
+
+        ex = MagicMock()
+        ex.load_markets.return_value = {
+            "BTC/USD:USD": {"precision": {"amount": 1e-5}}
+        }
+        pm = self._make_pm(ex, monkeypatch)
+        pos = self._make_position(qty=0.02, entry_price=50_000.0)
+        pos.current_price = 50_000.0
+        from quant_hedge_ai.agents.execution.position_manager import CloseReason
+
+        from quant_hedge_ai.agents.execution.order_authorization import (
+            authorize_order as real_authorize_order,
+        )
+
+        with patch(
+            "quant_hedge_ai.agents.execution.position_manager.authorize_order",
+            side_effect=real_authorize_order,
+        ) as mock_auth:
+            pm._send_close_order(pos, reason=CloseReason.TP)
+
+        _, kwargs = mock_auth.call_args
+        assert kwargs["requested_amount"] == pytest.approx(1_000.0)  # 0.02 * 50_000
+        assert kwargs["authorized_max_amount"] == pytest.approx(1_000.0)
+
+    # ── Defect 3 (R1): PositionManager calls the SHARED evaluate_trading_
+    # authority(), not a local re-implementation ────────────────────────────
+
+    def test_shared_evaluate_trading_authority_is_called_with_fresh_env(
+        self, monkeypatch
+    ):
+        """Monkeypatches `evaluate_trading_authority` itself in the
+        `position_manager` module namespace and proves `_send_close_order`
+        calls exactly that function (not a parallel local boolean
+        expression) with the freshly-read env values."""
+        from unittest.mock import MagicMock
+
+        monkeypatch.setenv("PAPER_TRADING_ENABLED", "false")
+        monkeypatch.setenv("LIVE_TRADING_CONFIRMED", "true")
+        import quant_hedge_ai.agents.execution.position_manager as pm_module
+
+        calls = []
+
+        def fake_evaluate_trading_authority(**kwargs):
+            calls.append(kwargs)
+            return False, "forced_denial_for_test"
+
+        monkeypatch.setattr(
+            pm_module, "evaluate_trading_authority", fake_evaluate_trading_authority
+        )
+
+        ex = MagicMock()
+        pm = pm_module.PositionManager(exchange=ex, paper_mode=False)
+        pos = self._make_position()
+        result = pm._send_close_order(pos, reason=pm_module.CloseReason.TP)
+
+        # The shared function was actually invoked — not bypassed — and its
+        # denial is exactly what PositionManager returns.
+        assert len(calls) == 1
+        assert calls[0]["paper_trading_enabled"] is False
+        assert calls[0]["live_trading_confirmed"] is True
+        assert result["authorized"] is False
+        assert result["denial_reason"] == "AUTHORITY_DENIED"
+        ex.create_order.assert_not_called()
+
+    def test_evaluate_trading_authority_result_drives_position_manager_identically(
+        self, monkeypatch
+    ):
+        """Behavioral proof (alternative to monkeypatching the call site):
+        changing what the shared `evaluate_trading_authority()` returns
+        changes `PositionManager`'s behavior identically to how it would
+        change `ExecutionEngine`'s — because both call the same function,
+        never a divergent local re-implementation."""
+        from unittest.mock import MagicMock
+
+        import quant_hedge_ai.agents.execution.position_manager as pm_module
+
+        monkeypatch.setenv("PAPER_TRADING_ENABLED", "false")
+        monkeypatch.setenv("LIVE_TRADING_CONFIRMED", "true")
+
+        # Force the shared function to always deny, regardless of what its
+        # own paper/live-confirmed logic would normally say — if
+        # PositionManager had a local duplicate gate, this override would
+        # have no effect and the close would still go through.
+        monkeypatch.setattr(
+            pm_module,
+            "evaluate_trading_authority",
+            lambda **kwargs: (False, "overridden_for_test"),
+        )
+
+        ex = MagicMock()
+        ex.load_markets.return_value = {
+            "BTC/USD:USD": {"precision": {"amount": 1e-5}}
+        }
+        pm = pm_module.PositionManager(exchange=ex, paper_mode=False)
+        pos = self._make_position()
+
+        result = pm._send_close_order(pos, reason=pm_module.CloseReason.TP)
+
+        assert result["authorized"] is False
+        assert result["denial_reason"] == "AUTHORITY_DENIED"
+        ex.create_order.assert_not_called()
+
 
 # ─────────────────────────────────────────────────────────────────────────
 # Group G — non-regression

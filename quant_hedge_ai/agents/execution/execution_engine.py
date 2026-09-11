@@ -387,7 +387,13 @@ class ExecutionEngine:
         """
         futures_min = float(os.getenv("EXEC_FUTURES_MIN_ORDER_USD", "55"))
         futures_max = float(os.getenv("EXEC_FUTURES_MAX_ORDER_USD", "100"))
-        size_usd = max(futures_min, min(futures_max, size_usd))
+        # Narrowing-only clamp (never amplifies): a request above the
+        # configured ceiling is capped down, exactly like `authorized_max_amount`
+        # elsewhere in this module. The below-minimum case is NOT handled here
+        # anymore — amplifying it up to `futures_min` was the H2-shaped defect
+        # (O-02W-PRE-T1-E REM-A R1); it is now rejected by `authorize_order()`
+        # below via `min_notional=futures_min`, never silently enlarged.
+        size_usd = min(futures_max, size_usd)
 
         if self._exchange_futures is None:
             return {
@@ -400,8 +406,6 @@ class ExecutionEngine:
         ccxt_symbol = self._to_futures_symbol(symbol)
 
         try:
-            import math as _math
-
             # Définir le levier
             if leverage != 1:
                 try:
@@ -416,21 +420,57 @@ class ExecutionEngine:
             try:
                 markets = self._exchange_futures.load_markets()
                 mkt = markets.get(ccxt_symbol, {})
-                amt_precision = mkt.get("precision", {}).get("amount") or 0.001
-                min_qty = (mkt.get("limits") or {}).get("amount", {}).get(
-                    "min"
-                ) or 0.001
+                amt_precision = mkt.get("precision", {}).get("amount") or 1e-5
             except Exception:
-                amt_precision = 0.001
-                min_qty = 0.001
+                amt_precision = 1e-5
 
-            raw_qty = size_usd / price
-            decimals = (
-                max(0, -int(round(_math.log10(amt_precision))))
-                if 0 < amt_precision < 1
-                else 3
+            # Pre-network authorization (Correction B, O-02W-PRE-T1-E REM-A
+            # R1): closes the H2-shaped defect this path had (silently
+            # enlarging a below-minimum size instead of rejecting it).
+            # `require_balance_check=False` — a futures/margin market draws
+            # down quote-denominated margin on BOTH buy and sell, unlike
+            # spot's base/quote split; there is no base-asset balance to
+            # check for a SHORT here (see order_authorization.py docstring,
+            # ADR-0019 §6). `min_qty` (exchange-reported minimum quantity)
+            # is folded into `amount_precision` handling below via the
+            # existing floor-only normalization — `authorize_order()` never
+            # rounds up to satisfy it.
+            auth = authorize_order(
+                symbol=ccxt_symbol,
+                side=side,
+                requested_amount=size_usd,
+                price=price,
+                amount_precision=amt_precision,
+                min_notional=futures_min,
+                require_balance_check=False,
+                balance_source="futures_margin_not_balance_checked",
             )
-            qty = max(min_qty, round(raw_qty, decimals))
+            if not auth.authorized:
+                reason = auth.denial_reason.value if auth.denial_reason else "denied"
+                _log.warning(
+                    "[ExecutionEngine] Ordre futures demo refusé (pre-network "
+                    "authorization) %s %s: %s — %s",
+                    action,
+                    symbol,
+                    reason,
+                    auth.detail,
+                )
+                return {
+                    "symbol": symbol,
+                    "action": action,
+                    "size": size_usd,
+                    "mode": "rejected",
+                    "error": auth.detail,
+                    "denial_reason": reason,
+                }
+
+            # NOT `max(min_qty, ...)`: clamping the authorized quantity up to
+            # the exchange's minimum tradeable size would silently re-widen
+            # exposure beyond what `authorize_order()` just authorized — the
+            # exact H2 shape this fix removes. If `min_qty` is unmet the
+            # exchange itself rejects the order (visible failure, not a
+            # silent amplification).
+            qty = auth.normalized_qty
 
             order = self._with_retry(
                 self._exchange_futures.create_order, ccxt_symbol, "market", side, qty

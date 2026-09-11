@@ -715,6 +715,19 @@ class PositionManager:
 
         price = pos.current_price if pos.current_price > 0 else pos.entry_price
 
+        # Dimensional fix (O-02W-PRE-T1-E REM-A R1, defect 2): `authorize_order()`
+        # expects `requested_amount`/`authorized_max_amount` as a USD notional
+        # (it divides by `price` internally to derive `normalized_qty`) — never
+        # a raw base-asset quantity. `qty` here is base-asset units (BTC, etc.);
+        # `requested_notional`/`ceiling_notional` are the corresponding USD
+        # notional at the current price. The previous dead ternary
+        # (`qty * price if price > 0 else qty * price`) always evaluated to
+        # `qty * price` regardless of the condition — removed entirely, not
+        # merely simplified, since a `price <= 0` here would have to be
+        # caught as METADATA_UNAVAILABLE by `authorize_order()` itself
+        # (via its own price validation), not silently computed as 0.
+        requested_notional = qty * price
+        ceiling_notional = pos.qty * price
         auth = authorize_order(
             symbol=ccxt_symbol,
             # Balance-check side is always "sell"/base-inventory here: a
@@ -722,11 +735,11 @@ class PositionManager:
             # always bounded by the tracked position's own base quantity,
             # never by a spot quote balance — see docstring above.
             side="sell",
-            requested_amount=qty * price if price > 0 else qty * price,
+            requested_amount=requested_notional,
             price=price,
             amount_precision=amount_precision,
             min_notional=0.0,  # closing never has a minimum — only a ceiling
-            authorized_max_amount=pos.qty * price if price > 0 else 0.0,
+            authorized_max_amount=ceiling_notional,
             available_base_balance=pos.qty,
             balance_source="position_manager.tracked_qty",
         )

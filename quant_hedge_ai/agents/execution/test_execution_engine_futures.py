@@ -108,11 +108,16 @@ class TestFuturesSymbolConversion:
 
 
 class TestFuturesSizeClamping:
-    def test_below_min_clamped_up(self, eng):
+    def test_below_min_rejected_not_amplified(self, eng):
+        """O-02W-PRE-T1-E REM-A R1 (defect 1 fix): a below-minimum futures
+        order must be REJECTED, never silently amplified up to the minimum
+        (the H2-shaped defect this round removed) — no mutation call at all.
+        """
         mock_ex = _with_futures(eng)
         result = eng.create_futures_order("BTC/USDT", "BUY", 1.0)
-        assert result["mode"] == "futures_demo"
-        assert result["usd_size"] >= 55.0
+        assert result["mode"] == "rejected"
+        assert result["denial_reason"] == "BELOW_MIN_NOTIONAL"
+        mock_ex.create_order.assert_not_called()
 
     def test_above_max_clamped_down(self, eng):
         mock_ex = _with_futures(eng)

@@ -149,6 +149,7 @@ def authorize_order(
     authority_denied: bool = False,
     authority_reason: str = "",
     market_semantics_supported: bool = True,
+    require_balance_check: bool = True,
 ) -> OrderAuthorizationResult:
     """The single pre-network authorization boundary.
 
@@ -163,6 +164,17 @@ def authorize_order(
     exceed (e.g. an already-decided position/order size). If omitted, the
     requested amount is its own ceiling — this function never widens intent,
     only ever narrows or rejects it.
+
+    `require_balance_check` (default True) gates step 6 (balance validation).
+    Spot BUY/SELL genuinely draws down a quote or base *asset* balance, so
+    that check applies. A futures/margin market draws down quote-denominated
+    *margin* on both BUY and SELL — there is no base-asset balance to check,
+    and treating a SHORT's `side="sell"` as requiring base-asset balance
+    would be a market-semantics bug, not a safety check. Callers on a
+    margin/futures path must pass `require_balance_check=False` and are
+    documented as doing so (O-02W-PRE-T1-E REM-A R1, ADR-0019 §6) — this
+    never widens amount/precision/min-notional validation, only narrows the
+    scope of what is validated.
     """
     side_norm = str(side).strip().lower() if isinstance(side, str) else ""
     if side_norm not in ("buy", "sell"):
@@ -348,71 +360,79 @@ def authorize_order(
         )
 
     # ── 6. Balance — correct executable asset per side (Correction D) ──────
-    if balance_error:
-        return _deny(
-            symbol=symbol,
-            side=side_norm,
-            requested_amount=amount_f,
-            authorized_max_amount=ceiling,
-            reason=DenialReason.BALANCE_UNAVAILABLE,
-            balance_source=balance_source,
-            precision_amount=float(precision_dec),
-            min_notional=float(min_notional_dec),
-            detail="balance fetch reported an error",
-        )
+    # Skipped entirely when `require_balance_check=False` (margin/futures
+    # markets — see docstring): no asset balance applies, so there is
+    # nothing honest to check here, not even a fabricated pass/fail.
+    if require_balance_check:
+        if balance_error:
+            return _deny(
+                symbol=symbol,
+                side=side_norm,
+                requested_amount=amount_f,
+                authorized_max_amount=ceiling,
+                reason=DenialReason.BALANCE_UNAVAILABLE,
+                balance_source=balance_source,
+                precision_amount=float(precision_dec),
+                min_notional=float(min_notional_dec),
+                detail="balance fetch reported an error",
+            )
 
-    if side_norm == "buy":
-        quote_dec = _to_finite_positive_decimal(available_quote_balance, allow_zero=True)
-        if quote_dec is None:
-            return _deny(
-                symbol=symbol,
-                side=side_norm,
-                requested_amount=amount_f,
-                authorized_max_amount=ceiling,
-                reason=DenialReason.BALANCE_UNAVAILABLE,
-                balance_source=balance_source,
-                precision_amount=float(precision_dec),
-                min_notional=float(min_notional_dec),
-                detail=f"invalid/missing quote balance: {available_quote_balance!r}",
+        if side_norm == "buy":
+            quote_dec = _to_finite_positive_decimal(
+                available_quote_balance, allow_zero=True
             )
-        if quote_dec < normalized_notional:
-            return _deny(
-                symbol=symbol,
-                side=side_norm,
-                requested_amount=amount_f,
-                authorized_max_amount=ceiling,
-                reason=DenialReason.INSUFFICIENT_QUOTE_BALANCE,
-                balance_source=balance_source,
-                precision_amount=float(precision_dec),
-                min_notional=float(min_notional_dec),
-                detail=f"quote balance {quote_dec} < required {normalized_notional}",
+            if quote_dec is None:
+                return _deny(
+                    symbol=symbol,
+                    side=side_norm,
+                    requested_amount=amount_f,
+                    authorized_max_amount=ceiling,
+                    reason=DenialReason.BALANCE_UNAVAILABLE,
+                    balance_source=balance_source,
+                    precision_amount=float(precision_dec),
+                    min_notional=float(min_notional_dec),
+                    detail=f"invalid/missing quote balance: {available_quote_balance!r}",
+                )
+            if quote_dec < normalized_notional:
+                return _deny(
+                    symbol=symbol,
+                    side=side_norm,
+                    requested_amount=amount_f,
+                    authorized_max_amount=ceiling,
+                    reason=DenialReason.INSUFFICIENT_QUOTE_BALANCE,
+                    balance_source=balance_source,
+                    precision_amount=float(precision_dec),
+                    min_notional=float(min_notional_dec),
+                    detail=f"quote balance {quote_dec} < required {normalized_notional}",
+                )
+        else:  # sell
+            base_dec = _to_finite_positive_decimal(
+                available_base_balance, allow_zero=True
             )
-    else:  # sell
-        base_dec = _to_finite_positive_decimal(available_base_balance, allow_zero=True)
-        if base_dec is None:
-            return _deny(
-                symbol=symbol,
-                side=side_norm,
-                requested_amount=amount_f,
-                authorized_max_amount=ceiling,
-                reason=DenialReason.BALANCE_UNAVAILABLE,
-                balance_source=balance_source,
-                precision_amount=float(precision_dec),
-                min_notional=float(min_notional_dec),
-                detail=f"invalid/missing base balance: {available_base_balance!r}",
-            )
-        if base_dec < normalized_qty:
-            return _deny(
-                symbol=symbol,
-                side=side_norm,
-                requested_amount=amount_f,
-                authorized_max_amount=ceiling,
-                reason=DenialReason.INSUFFICIENT_BASE_BALANCE,
-                balance_source=balance_source,
-                precision_amount=float(precision_dec),
-                min_notional=float(min_notional_dec),
-                detail=f"base balance {base_dec} < required {normalized_qty}",
-            )
+            if base_dec is None:
+                return _deny(
+                    symbol=symbol,
+                    side=side_norm,
+                    requested_amount=amount_f,
+                    authorized_max_amount=ceiling,
+                    reason=DenialReason.BALANCE_UNAVAILABLE,
+                    balance_source=balance_source,
+                    precision_amount=float(precision_dec),
+                    min_notional=float(min_notional_dec),
+                    detail=f"invalid/missing base balance: {available_base_balance!r}",
+                )
+            if base_dec < normalized_qty:
+                return _deny(
+                    symbol=symbol,
+                    side=side_norm,
+                    requested_amount=amount_f,
+                    authorized_max_amount=ceiling,
+                    reason=DenialReason.INSUFFICIENT_BASE_BALANCE,
+                    balance_source=balance_source,
+                    precision_amount=float(precision_dec),
+                    min_notional=float(min_notional_dec),
+                    detail=f"base balance {base_dec} < required {normalized_qty}",
+                )
 
     return OrderAuthorizationResult(
         authorized=True,

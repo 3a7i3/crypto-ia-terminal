@@ -24,9 +24,17 @@ réseau de mutation. Couverts dans cette phase (REM-A) :
 
 - `ExecutionEngine._place_live_order()` (chemin spot/live principal)
 - `PositionManager._send_close_order()` (chemin de fermeture reduceOnly)
+- `ExecutionEngine.create_futures_order()` (chemin futures demo — ajouté en
+  **R1**, voir §6bis ci-dessous ; §6 initial documentant sa non-couverture
+  reste conservé pour l'historique de la décision R0)
 
-`ExecutionEngine.create_futures_order()` (chemin futures demo) n'est PAS
-couvert par cette phase — voir §6 "Hors scope" ci-dessous.
+`authorize_order()` accepte désormais un paramètre `require_balance_check`
+(défaut `True`, ajouté en R1) : un marché futures/margin consomme de la
+marge en devise de cotation aussi bien en BUY qu'en SELL — contrairement au
+spot, il n'y a pas de solde d'actif de base à vérifier pour un SHORT.
+`create_futures_order()` passe `require_balance_check=False` ; les deux
+autres chemins (spot BUY/SELL, close reduceOnly) gardent le comportement
+inchangé (`True`).
 
 `authorize_order()` retourne un `OrderAuthorizationResult` immuable et
 explicite (jamais un booléen nu, jamais un rejet log-only) :
@@ -84,6 +92,9 @@ silencieux.
 | Capital scientifique | N'alimentait pas le sizing (ADR-0018, préservé) | Toujours exclu — `authorize_order()` n'a aucun paramètre `scientific_capital`, seul `exchange.fetch_balance()` alimente les soldes |
 | `PositionManager._send_close_order` swallow (B7) | Exception avalée, `pos.closed=True` inconditionnel | Retourne un résultat explicite ; `pos.closed` reste `False` sur refus/échec (retenté au tick suivant, aucune nouvelle machinerie de retry) |
 | Autorité `PositionManager` (H10 partiel) | Ne revérifiait pas `PAPER_TRADING_ENABLED`/`LIVE_TRADING_CONFIRMED` | Revérifie les deux, fail-closed, juste avant mutation |
+| Notionnel min futures demo (H2, R1) | `size_usd = max(futures_min, min(futures_max, size_usd))` — enlargissait toujours une taille sous le minimum | Rejeté (`BELOW_MIN_NOTIONAL` via `authorize_order()`), jamais amplifié ; le clamp vers le bas (`min(futures_max, ...)`) est conservé car il ne fait que rétrécir, jamais enlargir |
+| `PositionManager._send_close_order` dimension (R1) | Ternaire mort `qty * price if price > 0 else qty * price` — toujours `qty * price` quelle que soit la condition, code trompeur (jamais une vraie substitution de valeur) | Ternaire supprimé ; `requested_notional`/`ceiling_notional` nommés explicitement comme notionnel USD, jamais confondus avec `qty` (base) |
+| `PositionManager` appel à `evaluate_trading_authority()` (R1, vérifié) | Déjà correct sur ce HEAD — lit `PAPER_TRADING_ENABLED`/`LIVE_TRADING_CONFIRMED` fraîchement puis appelle la fonction partagée, aucune réimplémentation locale trouvée | Inchangé ; preuve par construction ajoutée (monkeypatch de `evaluate_trading_authority` dans le namespace du module, assertion d'appel avec les kwargs frais) |
 
 ## 5. Ce que REM-A NE résout PAS (réservé REM-B/REM-C)
 
@@ -98,19 +109,19 @@ Le contrat `O-02W-PRE-T1-E_ORDER_CYCLE_SAFETY.md` reste donc au verdict
 **`REMEDIATION_REQUIRED`** — REM-A ne clôt qu'un sous-ensemble des
 bloqueurs (voir la mise à jour §18 du contrat).
 
-## 6. Hors scope de cette phase (documenté, pas silencieusement omis)
+## 6. Hors scope de cette phase R0 (superseded en R1 — voir §6bis)
 
-- **`ExecutionEngine.create_futures_order()`** (chemin futures demo) n'a
-  PAS été mis derrière `authorize_order()`. Son clamp existant
-  (`size_usd = max(futures_min, min(futures_max, size_usd))`) enlarge
+- **`ExecutionEngine.create_futures_order()`** (chemin futures demo) n'avait
+  PAS été mis derrière `authorize_order()` en R0. Son clamp existant
+  (`size_usd = max(futures_min, min(futures_max, size_usd))`) enlargissait
   toujours une taille sous le minimum — le même anti-pattern que H2, mais
   sur un chemin demo/testnet distinct, avec un test de non-régression
-  existant (`test_below_min_clamped_up`) qui encode ce comportement comme
-  intentionnel pour ce chemin. Le traiter aurait élargi le blast radius
-  au-delà des citations H1/H2 de l'audit (qui visent explicitement
-  `execution_engine.py:274-283` et `:493-500`, le chemin spot/live) et créé
-  un risque de régression non justifié par une hypothèse H1-H12 précise.
-  Signalé ici comme candidat explicite pour REM-B.
+  existant (`test_below_min_clamped_up`) qui encodait ce comportement comme
+  intentionnel pour ce chemin.
+  **R1 (MASTER review) :** cette décision a été réexaminée — le chemin est
+  source-reachable depuis `core/advisor_loop.py:6568`
+  (`exec_engine.create_futures_order(...)` sous `has_futures_demo()`), donc
+  un candidat REM-B différé était insuffisant. Voir §6bis.
 - **`PositionManager._check_partial_close()`** ignore toujours la valeur de
   retour de `_send_close_order()` pour la comptabilité de `pos.qty`/
   `pos.size_usd` après un partial close — la honnêteté d'échec ajoutée à
@@ -125,6 +136,52 @@ bloqueurs (voir la mise à jour §18 du contrat).
   mais l'entrée de log reste trompeuse ("correction: True" pour une
   correction jamais appliquée). Non modifié dans cette phase (hors scope
   des corrections A-E).
+
+## 6bis. R1 — `create_futures_order()` mis derrière la frontière (2026-09-11)
+
+Trois défauts remontés par la revue MASTER du round R0 sont corrigés ici,
+sans introduire aucune fonctionnalité REM-B/REM-C :
+
+1. **`create_futures_order()` intégré.** Preuve de source-reachability :
+   `core/advisor_loop.py:6568` appelle
+   `exec_engine.create_futures_order(sym, signal_action, effective_size)`
+   quand `exec_engine.has_futures_demo()` est vrai — ce n'est pas du code
+   mort. Le clamp bas (`size_usd = min(futures_max, size_usd)`) est
+   conservé (il ne fait que rétrécir, jamais enlargir) ; le clamp haut vers
+   `futures_min` est supprimé et remplacé par un appel à `authorize_order()`
+   avec `min_notional=futures_min`, qui rejette (`BELOW_MIN_NOTIONAL`) au
+   lieu d'enlargir. `require_balance_check=False` car la marge futures
+   n'est pas un solde d'actif spot (voir §1). Le fallback de précision par
+   défaut (`amt_precision`) est aussi corrigé de `0.001` à `1e-5` — la
+   valeur `0.001` était trop grossière pour BTC et aurait causé un
+   `PRECISION_COLLAPSE` systématique sur de petits notionnels legitimes
+   sous l'arrondi strict (floor) désormais appliqué ; `1e-5` est la même
+   valeur de repli déjà utilisée par `_place_live_order()`. `qty` n'est
+   **jamais** re-clampé vers `min_qty` après autorisation (le faire
+   réintroduirait exactement l'anti-pattern H2 supprimé) — un ordre sous le
+   minimum exchange après autorisation échoue visiblement côté exchange,
+   il n'est pas silencieusement enlargi.
+2. **Défaut dimensionnel dans `PositionManager._send_close_order()`
+   corrigé.** Le ternaire mort `qty * price if price > 0 else qty * price`
+   est supprimé ; `requested_notional = qty * price` et
+   `ceiling_notional = pos.qty * price` sont nommés explicitement comme
+   notionnel USD (jamais `qty` brut). Vérification : la valeur numérique
+   était déjà correcte avant (le ternaire était toujours équivalent à
+   `qty * price`) — c'est un défaut de lisibilité/auditabilité, pas un
+   défaut de valeur ; corrigé quand même car un ternaire dont les deux
+   branches sont textuellement identiques est un signal fort d'erreur de
+   frappe non détectée, inacceptable dans une frontière de sécurité.
+   Tests ajoutés à prix non triviaux (50 000 et 0,001) prouvant que
+   `normalized_qty` et le notionnel ne peuvent pas être transposés.
+3. **Appel de `PositionManager` à `evaluate_trading_authority()`
+   ré-examiné.** Vérification sur ce HEAD : `_send_close_order()` lit déjà
+   `PAPER_TRADING_ENABLED`/`LIVE_TRADING_CONFIRMED` fraîchement puis appelle
+   la fonction partagée — aucune réimplémentation locale du gate n'a été
+   trouvée avant ou à la place de cet appel. Aucun changement de code requis
+   ; une preuve par construction est ajoutée (monkeypatch de
+   `evaluate_trading_authority` dans le namespace `position_manager`,
+   assertion que l'appel reçoit les kwargs frais et que sa réponse pilote
+   directement le résultat retourné).
 
 ## 7. Non-régression
 
