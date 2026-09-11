@@ -56,6 +56,13 @@ class ReconcileReport:
     # as CLEAN — a report for an operation that did not run is not
     # evidence of a clean system.
     performed: bool = True
+    # REM-C R1.2 — distinct from `exchange_reachable`: this names whether
+    # `pos_manager.get_open()` was actually read successfully, never
+    # conflating "the canonical API is missing" or "it raised" with "it
+    # returned zero positions". `False` means the internal side of the
+    # comparison is unknown, not empty — no ghost/orphan/price-drift
+    # comparison may be computed in that state (see reconcile() below).
+    internal_state_readable: bool = True
 
     @property
     def has_drift(self) -> bool:
@@ -68,11 +75,22 @@ class ReconcileReport:
 
     @property
     def is_clean(self) -> bool:
+        # REM-C R1.2 — `unresolved_domain_positions` is deliberately kept
+        # out of `has_drift` (it is neither a ghost nor an orphan claim —
+        # fabricating either from an unresolved domain is exactly what
+        # R1-I4 forbids). But its presence must still deny CLEAN: an
+        # unresolved position is unaccounted-for state, not a decided
+        # "nothing wrong here". Checked here, directly, rather than
+        # folded into `has_drift`, to keep that property's meaning (and
+        # every existing caller reading it, e.g. the Telegram ghost/orphan
+        # alert in advisor_loop.py) unchanged.
         return (
             self.performed
             and self.comparable
             and self.exchange_reachable
+            and self.internal_state_readable
             and not self.has_drift
+            and not self.unresolved_domain_positions
         )
 
     def summary(self) -> str:
@@ -83,6 +101,8 @@ class ReconcileReport:
                 f"NON_COMPARABLE (pm_domain={self.pm_domain} "
                 f"expected={self.expected_domain})"
             )
+        if not self.internal_state_readable:
+            return f"INTERNAL_STATE_UNREADABLE ({self.error})"
         parts = []
         if not self.exchange_reachable:
             parts.append("EXCHANGE_UNREACHABLE")
@@ -207,9 +227,26 @@ class PositionReconciler:
         # positions with an unresolved/UNKNOWN domain are still excluded
         # here and reported separately rather than folded into ghost/orphan
         # findings (R1-I4 — UNKNOWN can never produce a ghost/orphan claim).
+        #
+        # REM-C R1.2 — a missing get_open() or a raised exception means the
+        # internal side of the comparison is UNKNOWN, never empty. Silently
+        # falling back to `internal_pos = {}` in either case would let an
+        # unreadable internal state either read as CLEAN (empty exchange)
+        # or fabricate ORPHAN findings for every real exchange position
+        # (non-empty exchange) — both fail-open. Fail closed instead: no
+        # ghost/orphan/price-drift comparison is computed at all.
+        if not hasattr(self._pm, "get_open"):
+            report.internal_state_readable = False
+            report.error = (
+                "pos_manager exposes no get_open() — internal state "
+                "unreadable, not empty"
+            )
+            _log.warning("[Reconciler] %s", report.error)
+            return report
+
         internal_pos: dict[str, Any] = {}
         try:
-            for pos in self._pm.get_open() if hasattr(self._pm, "get_open") else []:
+            for pos in self._pm.get_open():
                 sym = getattr(pos, "symbol", "")
                 pos_domain = getattr(pos, "domain", ExecutionDomain.UNKNOWN)
                 if not sym:
@@ -219,8 +256,10 @@ class PositionReconciler:
                     continue
                 internal_pos[sym] = pos
         except Exception as e:
+            report.internal_state_readable = False
             report.error = f"pos_manager.get_open failed: {e}"
             _log.warning("[Reconciler] %s", report.error)
+            return report
 
         report.exchange_positions = len(exchange_pos)
         report.internal_positions = len(internal_pos)

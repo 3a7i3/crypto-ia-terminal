@@ -378,3 +378,148 @@ call site, one property.
   `python scripts/ci/ruff_baseline_gate.py check`, 958/958, zero new).
 
 No REM-C R2/R3/R4 functionality was implemented in this round either.
+
+---
+
+## R1.2 — MASTER correction round (2026-09-11)
+
+**Addendum to R1/R1.1 above, not a rewrite.** MASTER review of R1.1 (head
+`79cb77ebb77d202c8323509b0119cdd264f754a5`) found three residual defects
+plus one evidence-audit item, all closed here on the same PR/branch.
+
+### Finding A — UNRESOLVED != CLEAN
+
+`ReconcileReport.unresolved_domain_positions` (added in R1) was correctly
+kept out of `has_drift` — an unresolved-domain position is neither a ghost
+nor an orphan claim, and fabricating either from it is exactly what R1-I4
+forbids. But `is_clean` never checked `unresolved_domain_positions`
+either, so `performed=True, comparable=True, exchange_reachable=True,
+unresolved_domain_positions=["SOL/USDT"], ghost=[], orphan=[]` read as
+`is_clean=True` — an unaccounted-for position certified the system clean.
+
+**Correction.** `is_clean` now additionally requires
+`not self.unresolved_domain_positions`, checked directly rather than
+folded into `has_drift` — this keeps `has_drift`'s existing meaning (and
+every caller reading it, e.g. `core/advisor_loop.py`'s ghost/orphan
+Telegram alert) unchanged. `summary()` already never returned `"CLEAN"`
+while `unresolved_domain_positions` was non-empty (it appends
+`UNRESOLVED_DOMAIN=...` to the joined parts), so no change was needed
+there.
+
+### Finding B — INTERNAL READ FAILURE != EMPTY INTERNAL STATE
+
+Two related fail-open gaps in `PositionReconciler.reconcile()`'s internal-
+position read:
+
+1. `self._pm.get_open() if hasattr(self._pm, "get_open") else []` treated
+   "the canonical API doesn't exist" identically to "it returned zero
+   positions".
+2. `except Exception: report.error = ...` then **continued** with
+   `internal_pos = {}` — a raised exception from `get_open()` was treated
+   the same as a successful empty read. With an empty exchange this could
+   certify CLEAN despite the internal state never being read; with a
+   non-empty exchange it would fabricate an ORPHAN finding for every real
+   exchange position, purely because the internal side failed to load.
+
+**Correction.** New `ReconcileReport.internal_state_readable: bool =
+True` field, distinct from `exchange_reachable` (which only describes the
+exchange side) and from `comparable` (domain/account proof, a different
+axis). `reconcile()` now returns immediately — before any ghost/orphan/
+price-drift computation — when `get_open` is missing or raises,
+setting `internal_state_readable=False` and an explicit `error`.
+`is_clean` requires it; `summary()` reports
+`INTERNAL_STATE_UNREADABLE (...)` in that state, following the same
+early-return pattern as `NOT_PERFORMED`/`NON_COMPARABLE`. A genuinely
+empty `get_open() -> []` (no exception, API present) is unaffected and
+remains distinguishable — it still reaches CLEAN when the exchange is
+also genuinely empty.
+
+### Finding C — MISSING RAW EVENT PRICE != ZERO
+
+R1.1 correctly made the *derived* `exit_price`/`pnl_usd`/`pnl_pct`/
+`is_win` all `None` for an `expired_on_restore` close, but the *raw*
+`PaperTradeRecorder.record_close()` still wrote `TradeEvent.price = 0.0`
+for that same event — R1.1's own comment called this an "unread legacy
+placeholder", which is not sufficient for a durable scientific ledger:
+`MISSING EVIDENCE != ZERO` must apply to the raw event, not only to
+fields derived from it later.
+
+**Correction, after consumer audit.** Grepped every reader of
+`TradeEvent.price`/`evt.price`/`op.price`/`cl.price` in this repository:
+the only production reader is `paper_trading/recorder.py`'s own
+`trades()`, and only for OPEN events (`entry_price=op.price` — OPEN
+always carries a real evidenced price, unaffected). No reader anywhere
+requires a CLOSE event's `price` to be a non-null float.
+`paper_trading/dataset_validator.py::_check_core_fields()` already guards
+`val is not None` before its NaN check, so it already tolerates `None`
+without modification. Given zero broad-impact consumers, `TradeEvent.price`
+is now `Optional[float]` (schema-compatible — no field reordering, no
+default added) and `record_close()` passes `exit_price` straight through
+instead of substituting `0.0`. No
+`REM_C_R1_2_TRADEEVENT_PRICE_NULLABILITY_SCOPE_EXPANSION_REQUIRES_MASTER_DECISION`
+was needed — the audit found the change genuinely narrow.
+
+### Finding 4 — fee-entry evidence audit (defect found, smallest fix applied)
+
+Traced `MexcPosition.fee_entry_usd` → `_close_position()`'s
+`pnl_usd = pos.qty_usd * gross_pct - fee - pos.fee_entry_usd` →
+`PaperTradeRecorder.record_close()` → `trades()`/`status.py` display.
+Answer to the mission's question ("can an old restored position whose
+entry fee is UNKNOWN later close and produce a normal-looking
+authoritative PnL that assumes entry fee = 0?"): **YES** — confirmed by
+direct trace, not assumption. A pre-schema-v4-restored position's
+`fee_entry_usd=0.0` (the documented fallback, flagged only in the
+in-memory `MexcPosition.restored_evidence_gaps`, R1.1) flowed unflagged
+into `pnl_usd`, and `record_close()` recorded that PnL as ordinary,
+fully-evidenced data — indistinguishable from a trade whose fee was
+genuinely known to be zero.
+
+**Smallest fix applied** (no `MexcPosition`/PnL-architecture redesign):
+schema v5 adds one CLOSE-only field,
+`pnl_fee_evidence_incomplete: bool = False`, to `TradeEvent` and
+`CompleteTrade`. `record_close()` gained a matching parameter;
+`MexcSimulator._close_position()` sets it to
+`"fee_entry_unknown" in pos.restored_evidence_gaps` when calling
+`record_close()`. The PnL number itself is unchanged — it is real
+arithmetic against the best available (assumed) fee, not fabricated —
+but it can no longer be silently read as fully evidenced.
+`paper_trading/status.py`'s W/L column appends `*` when the flag is set
+(smallest possible display change; no population-statistics exclusion
+was added — that would have been a broader, unrequested behavior change
+to `dataset_validator.py`'s win/loss counting, not the narrow boundary
+this finding asked for).
+
+### Finding 5 — TESTNET reconciliation status (documented, not implemented)
+
+`core/advisor_loop.py`'s `PositionReconciler(...)` construction still
+passes no explicit `expected_domain`, so it defaults to `REAL` (per R1.1).
+A krakenfutures `PositionManager` correctly labeled `TESTNET` (via
+R1.1's `_futures_position_domain()`) will therefore fail closed as
+`NON_COMPARABLE` against that REAL-expecting reconciler today. **This is
+intentional and safe for the current PAPER-only T-1 scope**: no code
+change was made. TESTNET reconciliation is explicitly **not certified**
+and remains fail-closed until a future REM-C round adds a genuine
+TESTNET-capability certification path — this round makes no claim that
+TESTNET reconciliation works, only that it correctly refuses to run.
+
+### Files changed (R1.2, in addition to R1/R1.1's lists)
+
+- `system/position_reconciler.py` — `is_clean` requires
+  `not unresolved_domain_positions`; new `internal_state_readable` field
+  and fail-closed early return in `reconcile()`'s internal-read step;
+  `summary()`'s `INTERNAL_STATE_UNREADABLE` branch.
+- `paper_trading/recorder.py` — `TradeEvent.price: Optional[float]`;
+  `record_close()` passes `exit_price` through directly; schema v5
+  (`pnl_fee_evidence_incomplete`) on `TradeEvent`/`CompleteTrade`,
+  propagated in `trades()`.
+- `paper_trading/mexc_simulator.py` — `_close_position()` computes and
+  passes `pnl_fee_evidence_incomplete`.
+- `paper_trading/status.py` — `*` suffix on the W/L column when
+  `pnl_fee_evidence_incomplete`.
+- `paper_trading/dataset_validator.py` — `_VALID_SCHEMA_VERSIONS`
+  extended to include `5` (mechanical).
+- `tests/test_rem_c_r1_execution_domain.py` — 14 new tests (A1-A3, B1-B5,
+  C1-C4, the two fee-evidence tests).
+- `.ci/ruff_baseline.json` — mechanical line-shift only.
+
+No REM-C R2/R3/R4 functionality was implemented in this round either.

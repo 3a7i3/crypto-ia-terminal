@@ -815,3 +815,409 @@ def test_skipped_reconcile_is_not_reported_as_clean():
     assert skipped.performed is False
     assert skipped.is_clean is False
     assert skipped.error == "skipped — too soon"
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# REM-C R1.2 — MASTER correction round
+# ═════════════════════════════════════════════════════════════════════════════
+#
+# MASTER review of R1.1 (head 79cb77ebb77d202c8323509b0119cdd264f754a5) found:
+#   A. unresolved_domain_positions could coexist with is_clean=True;
+#   B. an internal-state read failure (missing get_open()/raised exception)
+#      fell back to treating the internal side as empty — fail-open, not
+#      fail-closed;
+#   C. the raw PaperTradeRecorder ledger event still fabricated price=0.0
+#      for an expired_on_restore CLOSE even though the derived exit_price/
+#      pnl fields were already None.
+# Each is reproduced against the exact reviewed semantics, then re-asserted
+# as a permanent regression.
+
+
+# ── Finding A — unresolved domain positions must deny CLEAN ────────────────
+
+
+def test_a1_unresolved_domain_position_denies_clean_without_fabricating_findings():
+    exch = _FakeRealExchange([])
+    pm = PositionManager(exchange=exch, domain=ExecutionDomain.REAL)
+    stray = Position(
+        symbol="SOL/USDT",
+        side=PositionSide.LONG,
+        entry_price=20.0,
+        size_usd=100.0,
+        qty=5.0,
+        domain=ExecutionDomain.UNKNOWN,
+    )
+    pm._positions[stray.symbol] = stray  # bypass add_position's auto-stamp
+
+    rec = PositionReconciler(exch, pm, expected_domain=ExecutionDomain.REAL)
+    report = rec.reconcile(force=True)
+
+    assert report.ghost_positions == []
+    assert report.orphan_positions == []
+    assert "SOL/USDT" in report.unresolved_domain_positions
+    assert report.is_clean is False  # R1.2 core invariant
+
+
+def test_a2_boot_gate_denies_clearance_on_unresolved_domain_position():
+    from unittest.mock import MagicMock
+
+    from system.boot_gate import BootGate
+
+    exch = _FakeRealExchange([])
+    pm = PositionManager(exchange=exch, domain=ExecutionDomain.REAL)
+    stray = Position(
+        symbol="SOL/USDT",
+        side=PositionSide.LONG,
+        entry_price=20.0,
+        size_usd=100.0,
+        qty=5.0,
+        domain=ExecutionDomain.UNKNOWN,
+    )
+    pm._positions[stray.symbol] = stray
+
+    rec = PositionReconciler(exch, pm, expected_domain=ExecutionDomain.REAL)
+    gate_rec = MagicMock()
+    gate_rec.reconcile.return_value = rec.reconcile(force=True)
+    gate = BootGate(gate_rec)
+    report = gate.check()
+
+    assert report.cleared is False
+
+
+def test_a3_summary_reports_unresolved_domain_never_clean():
+    exch = _FakeRealExchange([])
+    pm = PositionManager(exchange=exch, domain=ExecutionDomain.REAL)
+    stray = Position(
+        symbol="SOL/USDT",
+        side=PositionSide.LONG,
+        entry_price=20.0,
+        size_usd=100.0,
+        qty=5.0,
+        domain=ExecutionDomain.UNKNOWN,
+    )
+    pm._positions[stray.symbol] = stray
+
+    rec = PositionReconciler(exch, pm, expected_domain=ExecutionDomain.REAL)
+    report = rec.reconcile(force=True)
+
+    assert "UNRESOLVED_DOMAIN" in report.summary()
+    assert report.summary() != "CLEAN"
+
+
+# ── Finding B — internal-state read failure must fail closed ───────────────
+
+
+def test_b1_get_open_raises_with_empty_exchange_is_not_clean():
+    """Fail-before proof: an exception from get_open() must never allow a
+    CLEAN result just because the exchange side happens to be empty."""
+
+    class _RaisingPM:
+        domain = ExecutionDomain.REAL
+        _exchange = None
+
+        def get_open(self):
+            raise RuntimeError("internal state corrupted")
+
+    exch = _FakeRealExchange([])
+    pm = _RaisingPM()
+    pm._exchange = exch
+    rec = PositionReconciler(exch, pm, expected_domain=ExecutionDomain.REAL)
+    report = rec.reconcile(force=True)
+
+    assert report.is_clean is False
+    assert report.internal_state_readable is False
+    assert report.ghost_positions == []
+    assert report.orphan_positions == []
+
+
+def test_b2_get_open_raises_with_nonempty_exchange_does_not_fabricate_orphan():
+    """Fail-before proof: with real exchange positions present, a failed
+    internal read must not manufacture ORPHAN findings for every one of
+    them."""
+
+    class _RaisingPM:
+        domain = ExecutionDomain.REAL
+
+        def get_open(self):
+            raise RuntimeError("internal state corrupted")
+
+    exch = _FakeRealExchange([_real_position("BTC/USDT", 100.0)])
+    pm = _RaisingPM()
+    pm._exchange = exch
+    rec = PositionReconciler(exch, pm, expected_domain=ExecutionDomain.REAL)
+    report = rec.reconcile(force=True)
+
+    assert report.orphan_positions == []
+    assert report.is_clean is False
+    assert report.internal_state_readable is False
+
+
+def test_b3_missing_get_open_fails_closed_not_empty():
+    """Fail-before proof: a pos_manager exposing no get_open() at all must
+    not be silently treated as `[]` (zero positions)."""
+
+    class _NoGetOpenPM:
+        domain = ExecutionDomain.REAL
+
+    exch = _FakeRealExchange([_real_position("ETH/USDT", 10.0)])
+    pm = _NoGetOpenPM()
+    pm._exchange = exch
+    rec = PositionReconciler(exch, pm, expected_domain=ExecutionDomain.REAL)
+    report = rec.reconcile(force=True)
+
+    assert report.internal_state_readable is False
+    assert report.is_clean is False
+    assert report.orphan_positions == []
+
+
+def test_b4_valid_empty_get_open_is_distinguishable_and_can_be_clean():
+    """A pos_manager that genuinely has zero open positions (get_open()
+    returns [] without raising) must still be able to reach CLEAN when the
+    exchange is also genuinely empty — distinct from B1/B3's unreadable
+    state."""
+    exch = _FakeRealExchange([])
+    pm = PositionManager(exchange=exch, domain=ExecutionDomain.REAL)
+    rec = PositionReconciler(exch, pm, expected_domain=ExecutionDomain.REAL)
+    report = rec.reconcile(force=True)
+
+    assert report.internal_state_readable is True
+    assert report.is_clean is True
+
+
+def test_b5_boot_gate_denies_clearance_on_unreadable_internal_state():
+    from unittest.mock import MagicMock
+
+    from system.boot_gate import BootGate
+
+    class _RaisingPM:
+        domain = ExecutionDomain.REAL
+
+        def get_open(self):
+            raise RuntimeError("internal state corrupted")
+
+    exch = _FakeRealExchange([])
+    pm = _RaisingPM()
+    pm._exchange = exch
+    rec = PositionReconciler(exch, pm, expected_domain=ExecutionDomain.REAL)
+
+    gate_rec = MagicMock()
+    gate_rec.reconcile.return_value = rec.reconcile(force=True)
+    gate = BootGate(gate_rec)
+    report = gate.check()
+
+    assert report.cleared is False
+
+
+# ── Finding C — raw ledger event must not fabricate price=0.0 ──────────────
+
+
+def test_c1_raw_jsonl_expired_close_has_null_price(tmp_path, monkeypatch):
+    """Fail-before proof: the raw JSONL CLOSE line for an expired_on_restore
+    event must contain `"price": null`, never `0.0`."""
+    import json
+
+    from paper_trading.recorder import PaperTradeRecorder
+
+    log_path = tmp_path / "paper_trades.jsonl"
+    recorder = PaperTradeRecorder(log_path=str(log_path))
+    recorder.record_open(
+        trade_id="T10",
+        symbol="LTC/USDT",
+        side="buy",
+        price=100.0,
+        size_usd=50.0,
+        mode="futures_demo",
+    )
+    recorder.record_close(
+        trade_id="T10",
+        exit_price=None,
+        pnl_usd=None,
+        pnl_pct=None,
+        reason="expired_on_restore",
+        opened_at=time.time() - 100,
+        symbol="LTC/USDT",
+        side="buy",
+        size_usd=50.0,
+    )
+
+    lines = log_path.read_text().splitlines()
+    close_line = json.loads(lines[1])
+    assert close_line["event"] == "CLOSE"
+    assert close_line["price"] is None
+
+
+def test_c2_events_round_trip_preserves_price_none(tmp_path):
+    from paper_trading.recorder import PaperTradeRecorder
+
+    log_path = tmp_path / "paper_trades.jsonl"
+    recorder = PaperTradeRecorder(log_path=str(log_path))
+    recorder.record_open(
+        trade_id="T11",
+        symbol="LTC/USDT",
+        side="buy",
+        price=100.0,
+        size_usd=50.0,
+        mode="futures_demo",
+    )
+    recorder.record_close(
+        trade_id="T11",
+        exit_price=None,
+        pnl_usd=None,
+        pnl_pct=None,
+        reason="expired_on_restore",
+        opened_at=time.time() - 100,
+        symbol="LTC/USDT",
+        side="buy",
+        size_usd=50.0,
+    )
+
+    events = PaperTradeRecorder(log_path=str(log_path)).events()
+    close_evt = [e for e in events if e.event == "CLOSE"][0]
+    assert close_evt.price is None
+
+
+def test_c3_trades_still_reconstructs_full_unknown_semantics(tmp_path):
+    from paper_trading.recorder import PaperTradeRecorder
+
+    log_path = tmp_path / "paper_trades.jsonl"
+    recorder = PaperTradeRecorder(log_path=str(log_path))
+    recorder.record_open(
+        trade_id="T12",
+        symbol="LTC/USDT",
+        side="buy",
+        price=100.0,
+        size_usd=50.0,
+        mode="futures_demo",
+    )
+    recorder.record_close(
+        trade_id="T12",
+        exit_price=None,
+        pnl_usd=None,
+        pnl_pct=None,
+        reason="expired_on_restore",
+        opened_at=time.time() - 100,
+        symbol="LTC/USDT",
+        side="buy",
+        size_usd=50.0,
+    )
+
+    ct = PaperTradeRecorder(log_path=str(log_path)).trades()[0]
+    assert ct.exit_price is None
+    assert ct.pnl_usd is None
+    assert ct.pnl_pct is None
+    assert ct.is_win is None
+
+
+def test_c4_normal_close_with_genuine_price_is_unchanged(tmp_path):
+    from paper_trading.recorder import PaperTradeRecorder
+
+    log_path = tmp_path / "paper_trades.jsonl"
+    recorder = PaperTradeRecorder(log_path=str(log_path))
+    recorder.record_open(
+        trade_id="T13",
+        symbol="LTC/USDT",
+        side="buy",
+        price=100.0,
+        size_usd=50.0,
+        mode="futures_demo",
+    )
+    recorder.record_close(
+        trade_id="T13",
+        exit_price=105.0,
+        pnl_usd=2.5,
+        pnl_pct=0.05,
+        reason="take_profit",
+        opened_at=time.time() - 100,
+        symbol="LTC/USDT",
+        side="buy",
+        size_usd=50.0,
+    )
+
+    ct = PaperTradeRecorder(log_path=str(log_path)).trades()[0]
+    assert ct.exit_price == 105.0
+    assert ct.pnl_usd == 2.5
+    assert ct.is_win is True
+
+
+# ── Finding 4 — fee-entry evidence must not be reported as fully evidenced ──
+
+
+def test_fee_evidence_incomplete_flagged_on_restored_position_close(
+    tmp_path, monkeypatch
+):
+    """A restored position whose fee_entry_usd evidence was unknown (pre-
+    schema-v4 record) must have its eventual realized PnL flagged
+    `pnl_fee_evidence_incomplete=True` — the PnL is real arithmetic, but
+    must never be indistinguishable from a fully-evidenced trade."""
+    from paper_trading.mexc_simulator import MexcSimulator
+    from paper_trading.recorder import PaperTradeRecorder
+
+    log_path = tmp_path / "paper_trades.jsonl"
+    monkeypatch.setenv("PAPER_TRADE_LOG", str(log_path))
+
+    recorder = PaperTradeRecorder(log_path=str(log_path))
+    recorder.record_open(
+        trade_id="T14",
+        symbol="XRP/USDT",
+        side="buy",
+        price=1.0,
+        size_usd=50.0,
+        mode="futures_demo",
+        # tp_price/sl_price/fee_entry_usd intentionally omitted.
+    )
+
+    import paper_trading.recorder as _recorder_mod
+
+    _recorder_mod._recorder = None
+    sim = MexcSimulator()
+    sim._capital = 100000.0
+    sim._initial_capital = 100000.0
+    sim._restore_positions()
+
+    pos = sim._positions["XRP/USDT"]
+    assert "fee_entry_unknown" in pos.restored_evidence_gaps
+
+    sim._close_position("XRP/USDT", exit_price=1.10, reason="take_profit")
+
+    ct = PaperTradeRecorder(log_path=str(log_path)).trades()[-1]
+    assert ct.pnl_usd is not None  # real arithmetic, not fabricated
+    assert ct.pnl_fee_evidence_incomplete is True
+
+
+def test_fee_evidence_complete_when_fee_was_durably_recorded(tmp_path, monkeypatch):
+    """Regression: a normal, fully-evidenced position's close must NOT be
+    flagged — only genuinely-assumed entry fees are."""
+    from paper_trading.mexc_simulator import MexcSimulator
+    from paper_trading.recorder import PaperTradeRecorder
+
+    log_path = tmp_path / "paper_trades.jsonl"
+    monkeypatch.setenv("PAPER_TRADE_LOG", str(log_path))
+
+    recorder = PaperTradeRecorder(log_path=str(log_path))
+    recorder.record_open(
+        trade_id="T15",
+        symbol="ADA/USDT",
+        side="buy",
+        price=0.5,
+        size_usd=50.0,
+        mode="futures_demo",
+        tp_price=0.55,
+        sl_price=0.47,
+        fee_entry_usd=0.05,
+    )
+
+    import paper_trading.recorder as _recorder_mod
+
+    _recorder_mod._recorder = None
+    sim = MexcSimulator()
+    sim._capital = 100000.0
+    sim._initial_capital = 100000.0
+    sim._restore_positions()
+
+    pos = sim._positions["ADA/USDT"]
+    assert pos.restored_evidence_gaps == []
+
+    sim._close_position("ADA/USDT", exit_price=0.55, reason="take_profit")
+
+    ct = PaperTradeRecorder(log_path=str(log_path)).trades()[-1]
+    assert ct.pnl_fee_evidence_incomplete is False

@@ -996,6 +996,16 @@ class MexcSimulator:
         try:
             from paper_trading.recorder import get_recorder
 
+            # REM-C R1.2 — a position restored without durable fee_entry_usd
+            # evidence (pre-schema-v4 record) used 0.0 as a numeric fallback
+            # for `pos.fee_entry_usd` in the pnl_usd computation above. That
+            # PnL is real arithmetic, not fabricated, but it must never be
+            # reported as fully-evidenced: flag it explicitly rather than
+            # letting an assumed entry fee disappear into an ordinary-
+            # looking realized PnL.
+            fee_evidence_incomplete = "fee_entry_unknown" in getattr(
+                pos, "restored_evidence_gaps", []
+            )
             get_recorder().record_close(
                 trade_id=pos.pos_id,
                 exit_price=fill,
@@ -1011,6 +1021,7 @@ class MexcSimulator:
                 mfe_pct=pos.mfe_pct,
                 score=pos.score,
                 regime=pos.regime,
+                pnl_fee_evidence_incomplete=fee_evidence_incomplete,
             )
         except Exception as exc:
             _log.warning("[SIM] record_close échoué: %s", exc)

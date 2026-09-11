@@ -890,18 +890,58 @@ unrelated (`_cffi_backend`/`cryptography` sandbox gap, reproduces
 identically on `origin/main`). `ruff_baseline_gate.py check`: 958/958,
 zero new. `git diff --check`: clean.
 
-**Updated verdict: still `REMEDIATION_REQUIRED`.** REM-C R1.1 corrects all
-five MASTER-identified defects in R1's own implementation without
-expanding scope into REM-C R2/R3/R4: execution-domain inference is now
-evidence-based rather than presence-based, reconciliation requires
-exchange-identity proof in addition to a domain-label match, PAPER restart
-no longer substitutes any value (entry price or otherwise) for a genuinely
-unknown exit price, unknown PnL can no longer surface as a claimed LOSS
-anywhere in the read path, and BootGate can no longer clear trading on a
-reconciliation that was never actually proven comparable. It does not
-implement the fill-evidence chain, does not certify real exchange
-reconciliation, and does not enable live or testnet trading in any way. No
-real order, testnet call, exchange call, VPS access, secret access, or
-deployment occurred in this round. `PAPER_TRADING_ENABLED=true` and
-`LIVE_TRADING_CONFIRMED=false` are unchanged. T-1 and F-00 remain not
-started.
+**R1.1 verdict (superseded below by R1.2): still `REMEDIATION_REQUIRED`.**
+REM-C R1.1 corrected all five MASTER-identified defects in R1's own
+implementation without expanding scope into REM-C R2/R3/R4: execution-
+domain inference became evidence-based rather than presence-based,
+reconciliation required exchange-identity proof in addition to a domain-
+label match, PAPER restart no longer substituted any value (entry price
+or otherwise) for a genuinely unknown exit price, unknown PnL could no
+longer surface as a claimed LOSS anywhere in the read path, and BootGate
+could no longer clear trading on a reconciliation that was never actually
+proven comparable.
+
+### 23.7 REM-C R1.2 — MASTER correction round (2026-09-11)
+
+**Addendum to §23.1-23.6, not a rewrite.** MASTER review of R1.1 (head
+`79cb77ebb77d202c8323509b0119cdd264f754a5`) found three residual defects
+plus one confirmed evidence-audit finding. Full technical detail in
+ADR-0021's "R1.2 — MASTER correction round" addendum; summarized here:
+
+| Finding | R1.1 defect | R1.2 correction |
+|---|---|---|
+| A — UNRESOLVED != CLEAN | `unresolved_domain_positions` was correctly excluded from `has_drift` (never fabricated as ghost/orphan) but `is_clean` never checked it either — an unresolved-domain position could coexist with `is_clean=True`. | `is_clean` now additionally requires `not unresolved_domain_positions`, checked directly (not folded into `has_drift`, preserving that property's existing meaning for its other callers). |
+| B — INTERNAL READ FAILURE != EMPTY | `self._pm.get_open() if hasattr(...) else []`, and a raised exception from `get_open()`, both fell back to `internal_pos = {}` — fail-open: could read CLEAN with an empty exchange, or fabricate ORPHAN findings for every real exchange position with a non-empty one. | New `ReconcileReport.internal_state_readable` field; `reconcile()` now returns immediately (no ghost/orphan/price-drift computed) when `get_open` is missing or raises, with an explicit error. `is_clean` requires it. A genuinely empty `get_open() -> []` is unaffected. |
+| C — MISSING RAW EVENT PRICE != ZERO | R1.1 fixed the *derived* `exit_price`/`pnl_usd`/`pnl_pct`/`is_win` to `None` on `expired_on_restore`, but the *raw* `TradeEvent.price` written by `record_close()` still fabricated `0.0`. | Consumer audit found zero production readers of a CLOSE event's `price` (only OPEN's, via `entry_price=op.price`, unaffected) and that `dataset_validator.py` already tolerates `None`. `TradeEvent.price` is now `Optional[float]`; `record_close()` passes `exit_price` through directly. |
+| 4 — fee-entry evidence audit | Traced whether an UNKNOWN restored `fee_entry_usd` (defaulted to `0.0`, R1.1) can later close and produce an authoritative-looking PnL. **Confirmed YES** by direct code trace (`_close_position()`'s `pnl_usd` formula subtracts it unconditionally, with no propagation of the evidence gap to the recorded event). | Schema v5 adds `pnl_fee_evidence_incomplete: bool` (CLOSE-only) to `TradeEvent`/`CompleteTrade`, set by `_close_position()` from `"fee_entry_unknown" in pos.restored_evidence_gaps`. The PnL number is unchanged (real arithmetic against the best available fee, not fabricated) — it can no longer be mistaken for fully-evidenced. `status.py` appends `*` to the W/L column when set. |
+| 5 — TESTNET reconciliation status | — | Verified and documented, no code change: `core/advisor_loop.py`'s reconciler still defaults `expected_domain=REAL`, so a TESTNET-labeled `PositionManager` correctly fails closed as non-comparable today. This is intentional for T-1/PAPER scope — TESTNET reconciliation is explicitly **not certified**, reserved for a future REM-C round. |
+
+**Files changed (R1.2):** `system/position_reconciler.py`,
+`paper_trading/{recorder,mexc_simulator,status,dataset_validator}.py`,
+`tests/test_rem_c_r1_execution_domain.py` (14 new tests), `.ci/
+ruff_baseline.json` (mechanical line-shift), ADR-0021 + this §23.7
+addendum.
+
+**Tests:** `tests/test_rem_c_r1_execution_domain.py` — 44/44 passed (9 R1
++ 21 R1.1 + 14 R1.2). Full targeted regression (`test_position_manager`,
+`test_exchange_reality`, `test_restart_safety`, `test_dataset_validator`,
+`paper_trading/`, `test_pre_t1_c_portfolio_provider_read_only`, PRE-T1-D
+capital boundary, REM-A/REM-B suites): 748 passed. Same 9 pre-existing
+`TestB3AuditRecovery` failures as R1/R1.1, confirmed unrelated.
+`ruff_baseline_gate.py check`: 958/958, zero new. `git diff --check`:
+clean.
+
+**Updated verdict: still `REMEDIATION_REQUIRED`.** REM-C R1.2 closes the
+three residual fail-open gaps MASTER found in R1.1's own implementation
+(an unresolved-domain position could certify CLEAN; an unreadable internal
+position state was silently treated as empty rather than unknown; the raw
+paper ledger event still fabricated a zero exit price even after the
+derived fields were fixed), and closes a confirmed fee-evidence honesty
+gap (an assumed entry fee could produce an unflagged, seemingly fully-
+evidenced realized PnL). It does not implement the fill-evidence chain,
+does not certify real exchange or TESTNET reconciliation (explicitly
+documented as not certified, fail-closed by default), and does not enable
+live or testnet trading in any way. No real order, testnet call, exchange
+call, VPS access, secret access, or deployment occurred in this round.
+`PAPER_TRADING_ENABLED=true` and `LIVE_TRADING_CONFIRMED=false` are
+unchanged. T-1 and F-00 remain not started.

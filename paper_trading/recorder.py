@@ -40,7 +40,7 @@ from typing import Optional
 
 _DEFAULT_PATH = os.getenv("PAPER_TRADE_LOG", "databases/paper_trades.jsonl")
 
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5
 
 
 def _score_to_bin(score: int) -> str:
@@ -176,7 +176,14 @@ class TradeEvent:
     ts_iso: str
     symbol: str
     side: str  # "buy" | "sell" | "long" | "short"
-    price: float
+    # REM-C R1.2 — Optional: OPEN events always carry a real evidenced
+    # price (unchanged). A CLOSE event's `price` historically mirrored
+    # `exit_price` but has no reader that requires it non-null (see
+    # record_close() below) — an unknown exit (e.g. expired_on_restore)
+    # persists price=None here too, never a fabricated 0.0. MISSING
+    # EVIDENCE != ZERO applies to the raw ledger event, not only to the
+    # derived `exit_price`/`pnl_usd`/`pnl_pct`/`is_win` fields.
+    price: Optional[float]
     size_usd: float
     mode: str  # "futures_demo" | "paper" | "live"
     schema_version: int = 1  # 2 depuis cette release
@@ -204,6 +211,14 @@ class TradeEvent:
     tp_price: Optional[float] = None
     sl_price: Optional[float] = None
     fee_entry_usd: Optional[float] = None
+    # Schema v5 (REM-C R1.2) — CLOSE-only. True means this trade's pnl_usd/
+    # pnl_pct was computed against an entry fee that was NOT durably known
+    # (a restored position whose original fee_entry_usd evidence was
+    # missing — see MexcPosition.restored_evidence_gaps) and so used 0.0
+    # as a numeric fallback. The realized PnL is real arithmetic, not
+    # fabricated, but must never be presented as fully-evidenced when this
+    # is True: the entry-fee term in it is an assumption, not evidence.
+    pnl_fee_evidence_incomplete: bool = False
 
 
 @dataclass
@@ -243,6 +258,9 @@ class CompleteTrade:
     tp_price: Optional[float] = None
     sl_price: Optional[float] = None
     fee_entry_usd: Optional[float] = None
+    # Schema v5 (REM-C R1.2) — see TradeEvent. True = this trade's realized
+    # pnl_usd/pnl_pct used an assumed (not evidenced) entry fee.
+    pnl_fee_evidence_incomplete: bool = False
 
 
 # ── Recorder ─────────────────────────────────────────────────────────────────
@@ -328,14 +346,15 @@ class PaperTradeRecorder:
         mfe_pct: Optional[float] = None,
         score: int = 0,
         regime: str = "unknown",
+        pnl_fee_evidence_incomplete: bool = False,
     ) -> None:
-        # REM-C R1.1 — `exit_price=None` means the exit price is genuinely
-        # unknown (e.g. a downtime-window expiry — see MexcSimulator._
-        # restore_positions()). `TradeEvent.price` is a required legacy
-        # field with no consumer reading it for CLOSE events (only
-        # `.exit_price` is read for exit info — see `trades()` below); 0.0
-        # here is a placeholder for that unread field, never presented as
-        # a known exit price.
+        # REM-C R1.1/R1.2 — `exit_price=None` means the exit price is
+        # genuinely unknown (e.g. a downtime-window expiry — see
+        # MexcSimulator._restore_positions()). No consumer reads
+        # `TradeEvent.price` for CLOSE events (only `.exit_price` — see
+        # `trades()` below), and it is now `Optional[float]`, so the
+        # unknown exit price is persisted as `None` in the raw ledger
+        # event itself, never fabricated as `0.0`.
         now = time.time()
         duration = (now - opened_at) if opened_at else None
         evt = TradeEvent(
@@ -345,7 +364,7 @@ class PaperTradeRecorder:
             ts_iso=_iso(now),
             symbol=symbol,
             side=side,
-            price=exit_price if exit_price is not None else 0.0,
+            price=exit_price,
             size_usd=size_usd,
             mode=mode,
             schema_version=SCHEMA_VERSION,
@@ -359,6 +378,7 @@ class PaperTradeRecorder:
             duration_s=round(duration, 1) if duration else None,
             mae_pct=mae_pct,
             mfe_pct=mfe_pct,
+            pnl_fee_evidence_incomplete=pnl_fee_evidence_incomplete,
         )
         self._append(evt)
 
@@ -449,6 +469,7 @@ class PaperTradeRecorder:
                 ct.is_win = None if cl.pnl_usd is None else (cl.pnl_usd > 0)
                 ct.mae_pct = cl.mae_pct
                 ct.mfe_pct = cl.mfe_pct
+                ct.pnl_fee_evidence_incomplete = cl.pnl_fee_evidence_incomplete
             result.append(ct)
 
         # CLOSE orphelins (sans OPEN correspondant — cas VPS décalé)
@@ -477,6 +498,7 @@ class PaperTradeRecorder:
                     is_win=None if cl.pnl_usd is None else (cl.pnl_usd > 0),
                     mae_pct=cl.mae_pct,
                     mfe_pct=cl.mfe_pct,
+                    pnl_fee_evidence_incomplete=cl.pnl_fee_evidence_incomplete,
                 )
                 result.append(ct)
 

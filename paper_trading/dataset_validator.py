@@ -57,7 +57,7 @@ _MAX_OPEN_AGE_H = float(os.getenv("MEXC_SIM_MAX_AGE_H", "8.0")) * 1.5
 # runtime_config_version. Tant que 3 manquait ici, chaque evenement du corpus
 # produisait une violation et gate_c_dataset (scripts/prelive_gate.py) restait
 # en NO-GO permanent — pour un defaut du validateur, pas des donnees.
-_VALID_SCHEMA_VERSIONS = frozenset({1, 2, 3, 4})
+_VALID_SCHEMA_VERSIONS = frozenset({1, 2, 3, 4, 5})
 _VALID_CONVICTION_LEVELS = frozenset({"NONE", "LOW", "MEDIUM", "HIGH", "EXTREME"})
 
 # Bornes de plausibilité pour les variables de marché

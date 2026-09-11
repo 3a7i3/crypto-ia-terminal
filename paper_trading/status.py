@@ -70,6 +70,11 @@ def main() -> None:
             # REM-C R1.1 — t.is_win is None for genuinely unknown outcomes
             # (e.g. expired_on_restore); must never render as LOSS.
             wl = "N/A" if t.is_win is None else ("WIN" if t.is_win else "LOSS")
+            # REM-C R1.2 — a real, computed PnL that assumed an unevidenced
+            # entry fee (restored position, fee never durably recorded)
+            # must never look identical to a fully-evidenced result.
+            if getattr(t, "pnl_fee_evidence_incomplete", False):
+                wl += "*"
             ep = f"{t.entry_price:.2f}" if t.entry_price else "?"
             xp = f"{t.exit_price:.2f}" if t.exit_price else "?"
             row = (
