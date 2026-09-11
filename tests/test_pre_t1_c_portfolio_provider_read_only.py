@@ -542,15 +542,21 @@ def test_source_confirms_route_and_report_loop_at_cited_lines():
 
 
 def test_source_confirms_portfolio_bot_construction_at_cited_lines():
+    # O-02W-PRE-T1-E REM-B-R1.1: these line citations shift whenever
+    # core/advisor_loop.py gains/loses lines above them — REM-B-R1.1's
+    # Blocker A added a 28-line durable-decision-identity persistence
+    # block inside analyze_symbol() (line ~1288), shifting everything
+    # below by exactly +28. Updated to the current, source-confirmed
+    # location (grep-verified, not guessed).
     lines = (REPO_ROOT / "core" / "advisor_loop.py").read_text(encoding="utf-8").splitlines()
-    window = "\n".join(lines[4028:4030])
+    window = "\n".join(lines[4056:4058])
     assert "CommandCenterBot.from_env(" in window
     assert "_portfolio_bot.start()" in window
 
 
 def test_source_confirms_resume_negation_lines_contain_resume_string():
     lines = (REPO_ROOT / "core" / "advisor_loop.py").read_text(encoding="utf-8").splitlines()
-    for line_no in (3909, 3921, 5614):
+    for line_no in (3937, 3949, 5642):
         assert "/RESUME" in lines[line_no - 1]
 
 
@@ -576,8 +582,10 @@ def test_section_6_cites_current_telegramkillswitch_construction_line():
 
 
 def test_source_confirms_telegramkillswitch_construction_at_cited_line():
+    # Shifted +28 by REM-B-R1.1's Blocker A insertion — see comment on
+    # test_source_confirms_portfolio_bot_construction_at_cited_lines above.
     lines = (REPO_ROOT / "core" / "advisor_loop.py").read_text(encoding="utf-8").splitlines()
-    window = "\n".join(lines[3615:3619])
+    window = "\n".join(lines[3643:3647])
     assert "runtime.TelegramKillSwitch(" in window
 
 
