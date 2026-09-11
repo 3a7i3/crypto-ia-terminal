@@ -1398,6 +1398,185 @@ display-only status (§7), and the absence of VPS runtime proof (§9) are all
 unchanged and unaffected by this round’s correction.</p>
 <p><strong>VERDICT (unchanged): <code class="docutils literal notranslate"><span class="pre">REMEDIATION_REQUIRED</span></code>.</strong></p>
 </section>
+<hr class="docutils" />
+<section id="o-02w-pre-t1-d-remediation-2026-09-11-r2-closes-this-audits-remediation-required-verdict">
+<h2>14. O-02W-PRE-T1-D REMEDIATION (2026-09-11) — R2, closes this audit’s <code class="docutils literal notranslate"><span class="pre">REMEDIATION_REQUIRED</span></code> verdict<a class="headerlink" href="#o-02w-pre-t1-d-remediation-2026-09-11-r2-closes-this-audits-remediation-required-verdict" title="Link to this heading">¶</a></h2>
+<p><strong>This section does not erase the historical audit above</strong> — §1-§13 remain
+the accurate record of what PR #134 found and proved, under the heading
+<code class="docutils literal notranslate"><span class="pre">HISTORICAL_AUDIT_FINDING</span></code> throughout this section. This section records
+what changed, under <code class="docutils literal notranslate"><span class="pre">REMEDIATED_IN_PRE_T1_D</span></code>, and what now holds, under
+<code class="docutils literal notranslate"><span class="pre">CURRENT_INVARIANT</span></code>. Full design rationale:
+<code class="docutils literal notranslate"><span class="pre">docs/adr/0018-scientific-capital-exchange-observation-separation.md</span></code>.
+Branch: <code class="docutils literal notranslate"><span class="pre">claude/o02w-pre-t1-d-scientific-capital-separation</span></code>.</p>
+<p><strong>Approved policy (verbatim, per mission brief):</strong> <em>“Scientific/paper
+portfolio capital is the sole input to scientific decision, risk and
+sizing calculations. Real exchange balances are display-only during the
+F-00 scientific phase and must not influence those calculations.”</em></p>
+<section id="architectural-change">
+<h3>14.1 Architectural change<a class="headerlink" href="#architectural-change" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">infra.wallet_sync.get_scientific_capital()</span></code> — a new, standalone module
+function — is now the <strong>sole</strong> accessor for decision/sizing/risk capital.
+It equals <code class="docutils literal notranslate"><span class="pre">WALLET_PAPER_CAPITAL</span> <span class="pre">+</span> <span class="pre">cumulative</span> <span class="pre">ledger</span> <span class="pre">PnL</span></code> (the formula
+<code class="docutils literal notranslate"><span class="pre">WalletSync._base_capital()</span></code>/<code class="docutils literal notranslate"><span class="pre">get_balance()</span></code> already used in paper mode —
+<strong>unchanged</strong>), makes <strong>zero exchange calls</strong>, and reads no singleton
+state, no <code class="docutils literal notranslate"><span class="pre">EXCHANGE_MODE</span></code>, no <code class="docutils literal notranslate"><span class="pre">PAPER_TRADING_ENABLED</span></code>, no
+<code class="docutils literal notranslate"><span class="pre">LIVE_TRADING_CONFIRMED</span></code>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">WalletSync.observe_exchange_balance()</span></code> — a new method — is the <strong>sole</strong>
+exchange-observation accessor. It returns an <code class="docutils literal notranslate"><span class="pre">ExchangeBalanceObservation</span></code>
+(<code class="docutils literal notranslate"><span class="pre">status</span></code> ∈ <code class="docutils literal notranslate"><span class="pre">FRESH|ZERO|CACHED_FRESH|STALE_CACHE|ERROR|ABSENT</span></code>, <code class="docutils literal notranslate"><span class="pre">value</span></code>),
+never a bare ambiguous float. <code class="docutils literal notranslate"><span class="pre">CACHED_FRESH</span></code> is a normal within-TTL cache
+hit (no API call attempted this invocation); <code class="docutils literal notranslate"><span class="pre">STALE_CACHE</span></code> is reserved for
+the case where a refresh WAS attempted (TTL expired, or <code class="docutils literal notranslate"><span class="pre">force_refresh=True</span></code>)
+and failed, returning a previously-known value as fallback (R1 correction,
+§14.4 below — the initial remediation’s cache-hit branch collapsed these
+two into <code class="docutils literal notranslate"><span class="pre">STALE_CACHE</span></code> for virtually every cache reuse). It is DISPLAY-ONLY
+and is never called from any decisional path (proven structurally, §14.3
+invariant 20).</p>
+<p><code class="docutils literal notranslate"><span class="pre">ExecutionEngine.fetch_available_capital()</span></code> — the historical decisional
+entry point this audit’s §3/§11/§12 characterized — is rewritten to call
+<code class="docutils literal notranslate"><span class="pre">get_scientific_capital()</span></code> exclusively. It no longer references
+<code class="docutils literal notranslate"><span class="pre">get_wallet_sync</span></code>, <code class="docutils literal notranslate"><span class="pre">wallet_mode</span></code>, <code class="docutils literal notranslate"><span class="pre">self._exchange</span></code>, or <code class="docutils literal notranslate"><span class="pre">self._mode</span></code>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code>’s <code class="docutils literal notranslate"><span class="pre">order_size</span></code> (frozen at bootstrap per §5/H5) is
+now recomputed every cycle immediately after the scientific-capital
+refresh, using the same unchanged formula
+(<code class="docutils literal notranslate"><span class="pre">min(max_order,</span> <span class="pre">scientific_capital</span> <span class="pre">*</span> <span class="pre">V9_MAX_POSITION_WEIGHT)</span></code>). The
+decisional local variable in this flow was renamed from <code class="docutils literal notranslate"><span class="pre">real_capital</span></code> to
+<code class="docutils literal notranslate"><span class="pre">scientific_capital</span></code> (R1 correction, §14.5 below) — naming only, formula
+unchanged.</p>
+<p>P10 <code class="docutils literal notranslate"><span class="pre">CapitalThrottle</span></code> (<code class="docutils literal notranslate"><span class="pre">capital_deployment/capital_throttle.py</span></code>, §6/H6) is
+<strong>unchanged</strong> — still intentionally pinned to <code class="docutils literal notranslate"><span class="pre">WALLET_PAPER_CAPITAL</span></code> per
+ADR-0011/ADR-0007; no alternative was needed to satisfy the separation
+policy, since P10 was already reading a value structurally identical to
+<code class="docutils literal notranslate"><span class="pre">get_scientific_capital()</span></code>’s formula.</p>
+<p><code class="docutils literal notranslate"><span class="pre">RealAccountsObserver</span></code>/<code class="docutils literal notranslate"><span class="pre">observability/real_accounts.py</span></code> (§7, <code class="docutils literal notranslate"><span class="pre">DISPLAY_ONLY</span></code>)
+— <strong>unchanged</strong>, already structurally independent.</p>
+</section>
+<section id="defect-by-defect-status">
+<h3>14.2 Defect-by-defect status<a class="headerlink" href="#defect-by-defect-status" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>#</p></th>
+<th class="head"><p>Defect (§13 of the historical audit)</p></th>
+<th class="head"><p>Status</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>1</p></td>
+<td><p>Singleton mode frozen at first call</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">REMEDIATED_IN_PRE_T1_D</span></code> — decisional path no longer reads singleton mode</p></td>
+</tr>
+<tr class="row-odd"><td><p>2</p></td>
+<td><p>Later mode requests silently ignored</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">REMEDIATED_IN_PRE_T1_D</span></code> — decisional path no longer requests a mode</p></td>
+</tr>
+<tr class="row-even"><td><p>3</p></td>
+<td><p>API balance can influence PAPER-labeled calculations</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">REMEDIATED_IN_PRE_T1_D</span></code> — proven by <code class="docutils literal notranslate"><span class="pre">TestR2ScientificInvariance</span></code>/<code class="docutils literal notranslate"><span class="pre">TestR2DirectionalNonContamination</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>4</p></td>
+<td><p>Paper capital can influence LIVE/TESTNET-requesting calculations</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">REMEDIATED_IN_PRE_T1_D</span></code> — no LIVE/TESTNET request reaches the decisional accessor at all now</p></td>
+</tr>
+<tr class="row-even"><td><p>5</p></td>
+<td><p>Live/testnet API error can silently return <code class="docutils literal notranslate"><span class="pre">WALLET_PAPER_CAPITAL</span></code> as exchange evidence</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">REMEDIATED_IN_PRE_T1_D</span></code> — <code class="docutils literal notranslate"><span class="pre">observe_exchange_balance()</span></code> returns <code class="docutils literal notranslate"><span class="pre">ERROR</span></code>, never a masked paper value</p></td>
+</tr>
+<tr class="row-odd"><td><p>6</p></td>
+<td><p>API zero and API failure collapse to the same numeric result</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">REMEDIATED_IN_PRE_T1_D</span></code> — <code class="docutils literal notranslate"><span class="pre">ZERO</span></code> vs <code class="docutils literal notranslate"><span class="pre">ERROR</span></code> are distinct statuses</p></td>
+</tr>
+<tr class="row-even"><td><p>7</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">_x</span></code>/<code class="docutils literal notranslate"><span class="pre">_last_value</span></code> co-seeded, previously mis-described</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">CURRENT_INVARIANT</span></code> — classification already corrected in PR #134 (R1.2); untouched by this remediation, and now entirely outside the scientific-capital path regardless</p></td>
+</tr>
+<tr class="row-odd"><td><p>8</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">order_size</span></code> can remain frozen after capital changes</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">REMEDIATED_IN_PRE_T1_D</span></code> — recomputed every cycle, §14.1</p></td>
+</tr>
+<tr class="row-even"><td><p>9</p></td>
+<td><p>Order-execution gating and capital provenance are independent guarantees</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">CURRENT_INVARIANT</span></code> — confirmed unchanged, <code class="docutils literal notranslate"><span class="pre">TestR2ExecutionSafety</span></code> (invariants 16-19)</p></td>
+</tr>
+<tr class="row-odd"><td><p>10</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">RealAccountsObserver</span></code>/cockpit/Telegram are observational only</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">CURRENT_INVARIANT</span></code> — confirmed unchanged, no modification required</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="regression-proof">
+<h3>14.3 Regression proof<a class="headerlink" href="#regression-proof" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">tests/test_pre_t1_d_real_capital_boundary.py</span></code> — 94 tests total (the
+original 64, with 9 rewritten where their expected result deliberately
+demonstrated a now-fixed defect — marked <code class="docutils literal notranslate"><span class="pre">HISTORICAL_AUDIT_FINDING</span></code> /
+<code class="docutils literal notranslate"><span class="pre">REMEDIATED_IN_PRE_T1_D</span></code> in their docstrings — plus 30 new tests across
+<code class="docutils literal notranslate"><span class="pre">TestR2ScientificInvariance</span></code> (6), <code class="docutils literal notranslate"><span class="pre">TestR2DirectionalNonContamination</span></code> (4),
+<code class="docutils literal notranslate"><span class="pre">TestR2FailureHonesty</span></code> (5), <code class="docutils literal notranslate"><span class="pre">TestR2ExecutionSafety</span></code> (4), and
+<code class="docutils literal notranslate"><span class="pre">TestR2StructuralProof</span></code> (3), covering all 22 required invariants with
+some parametrized). All 94 pass at the remediated HEAD. Before this
+remediation (starting HEAD <code class="docutils literal notranslate"><span class="pre">2f226d09...</span></code>), the 9 rewritten tests failed as
+expected (they asserted the pre-remediation leak/frozen-state behavior).
+<code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/execution/test_execution_engine_futures.py</span></code>’s
+<code class="docutils literal notranslate"><span class="pre">TestFetchAvailableCapital::test_paper_trading_disabled_uses_exchange_balance</span></code>
+was likewise rewritten for the same reason (same historical-defect class,
+outside the two mandated test files but a direct caller of the changed
+function).</p>
+<p><strong>RUNTIME_UNKNOWN (unchanged from the historical audit):</strong> the actual VPS
+<code class="docutils literal notranslate"><span class="pre">.env</span></code>/process runtime state remains unestablished by this remediation, as
+by the original audit — this mission made no VPS changes and no
+deployment (per the stabilization-window freeze).</p>
+</section>
+<section id="r1-correction-post-review-2026-09-11">
+<h3>14.4 R1 correction (post-review, 2026-09-11)<a class="headerlink" href="#r1-correction-post-review-2026-09-11" title="Link to this heading">¶</a></h3>
+<p>Two defects found in MASTER review of the initial remediation, fixed on top
+of the same branch (no rebase, no history rewrite):</p>
+<ol class="arabic simple">
+<li><p><strong>Naming</strong> — the decisional local in <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code> assigned
+from <code class="docutils literal notranslate"><span class="pre">exec_engine.fetch_available_capital()</span></code> (feeding <code class="docutils literal notranslate"><span class="pre">order_size</span></code>,
+<code class="docutils literal notranslate"><span class="pre">portfolio_brain.update_capital()</span></code>, <code class="docutils literal notranslate"><span class="pre">capital_engine.update_capital()</span></code>)
+was still named <code class="docutils literal notranslate"><span class="pre">real_capital</span></code>, misleadingly implying a real exchange
+balance post-remediation. Renamed to <code class="docutils literal notranslate"><span class="pre">scientific_capital</span></code> throughout the
+decisional flow of that file (formula unchanged). The one keyword
+argument at the <code class="docutils literal notranslate"><span class="pre">system.state_integrity</span></code> <code class="docutils literal notranslate"><span class="pre">_integrity_audit.run(...)</span></code>
+call site kept its <code class="docutils literal notranslate"><span class="pre">real_capital=</span></code> parameter name (owned by a different,
+out-of-scope module) — only the value passed changed to
+<code class="docutils literal notranslate"><span class="pre">scientific_capital</span></code>.</p></li>
+<li><p><strong>Cache classification</strong> — <code class="docutils literal notranslate"><span class="pre">observe_exchange_balance()</span></code>’s cache-hit
+branch (<code class="docutils literal notranslate"><span class="pre">STALE_CACHE</span> <span class="pre">if</span> <span class="pre">now</span> <span class="pre">-</span> <span class="pre">self._last_fetch_ts</span> <span class="pre">&gt;</span> <span class="pre">0</span> <span class="pre">else</span> <span class="pre">FRESH</span></code>)
+collapsed virtually every within-TTL cache hit into <code class="docutils literal notranslate"><span class="pre">STALE_CACHE</span></code>, since
+time always advances. A new <code class="docutils literal notranslate"><span class="pre">CACHED_FRESH</span></code> status was added to
+<code class="docutils literal notranslate"><span class="pre">ExchangeObservationStatus</span></code>; the branch now returns <code class="docutils literal notranslate"><span class="pre">CACHED_FRESH</span></code>
+unconditionally for a normal within-TTL cache hit (no API call
+attempted), and <code class="docutils literal notranslate"><span class="pre">STALE_CACHE</span></code> is reserved for the failure-fallback case
+(refresh attempted because TTL expired or <code class="docutils literal notranslate"><span class="pre">force_refresh=True</span></code>, and
+failed). A genuine <code class="docutils literal notranslate"><span class="pre">ZERO</span></code> observation now also populates the cache
+(<code class="docutils literal notranslate"><span class="pre">_last_value</span></code>/<code class="docutils literal notranslate"><span class="pre">_last_fetch_ts</span></code>), same as <code class="docutils literal notranslate"><span class="pre">FRESH</span></code>, so a subsequent
+within-TTL call correctly returns <code class="docutils literal notranslate"><span class="pre">CACHED_FRESH(0.0)</span></code> instead of
+re-hitting the API every time.</p></li>
+</ol>
+<p><strong>Regression proof:</strong> <code class="docutils literal notranslate"><span class="pre">tests/test_pre_t1_d_real_capital_boundary.py</span></code> grew
+from 94 to 139 tests (45 new, in <code class="docutils literal notranslate"><span class="pre">TestR1CacheStateClassification</span></code> and
+<code class="docutils literal notranslate"><span class="pre">TestR1ObservationNeverAffectsScientificCapitalOrSizing</span></code>), using a
+monkeypatched <code class="docutils literal notranslate"><span class="pre">time.time</span></code> (<code class="docutils literal notranslate"><span class="pre">_FakeClock</span></code>, no <code class="docutils literal notranslate"><span class="pre">sleep()</span></code>) to deterministically
+reach and distinguish all 6 <code class="docutils literal notranslate"><span class="pre">ExchangeObservationStatus</span></code> states, confirm
+exact fake-exchange call counts per state, and prove none of the 6 states
+ever changes <code class="docutils literal notranslate"><span class="pre">get_scientific_capital()</span></code>’s return value or the derived
+<code class="docutils literal notranslate"><span class="pre">order_size</span></code>. Fail-before/pass-after: 4 of the new tests fail against the
+pre-R1 <code class="docutils literal notranslate"><span class="pre">infra/wallet_sync.py</span></code> (confirmed via <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">stash</span></code> of that file
+alone) and all 139 pass with the fix. Both fixes are naming/display-only —
+no sizing formula, threshold, or decisional data changed.</p>
+</section>
+<section id="verdict">
+<h3>14.5 Verdict<a class="headerlink" href="#verdict" title="Link to this heading">¶</a></h3>
+<p><strong>VERDICT: <code class="docutils literal notranslate"><span class="pre">REMEDIATION_REQUIRED</span></code> (§13) is now CLOSED by this section.</strong>
+Defects #1-#6 and #8 are <code class="docutils literal notranslate"><span class="pre">REMEDIATED_IN_PRE_T1_D</span></code>; defects #7, #9, #10 were
+already <code class="docutils literal notranslate"><span class="pre">CURRENT_INVARIANT</span></code>/acceptable design and remain so, unmodified.
+This remediation does not authorize live trading or deployment — see
+<code class="docutils literal notranslate"><span class="pre">docs/adr/0018-scientific-capital-exchange-observation-separation.md</span></code> §8.</p>
+</section>
+</section>
 </section>
 
         </article>
@@ -1452,6 +1631,14 @@ unchanged and unaffected by this round’s correction.</p>
 <li><a class="reference internal" href="#case-1-5-results-r1-combined-causal-order-tests-production-functions-with-injected-state">11. Case 1-5 results (R1 combined causal-order tests) — <code class="docutils literal notranslate"><span class="pre">PRODUCTION_FUNCTIONS_WITH_INJECTED_STATE</span></code></a></li>
 <li><a class="reference internal" href="#case-6-7-results-r1-1-real-executionengine-from-env-tests-real-from-env-path-proven-hermetic">12. Case 6-7 results (R1.1 real <code class="docutils literal notranslate"><span class="pre">ExecutionEngine.from_env()</span></code> tests) — <code class="docutils literal notranslate"><span class="pre">REAL_FROM_ENV_PATH_PROVEN_HERMETIC</span></code></a></li>
 <li><a class="reference internal" href="#final-verdict">13. Final verdict</a></li>
+<li><a class="reference internal" href="#o-02w-pre-t1-d-remediation-2026-09-11-r2-closes-this-audits-remediation-required-verdict">14. O-02W-PRE-T1-D REMEDIATION (2026-09-11) — R2, closes this audit’s <code class="docutils literal notranslate"><span class="pre">REMEDIATION_REQUIRED</span></code> verdict</a><ul>
+<li><a class="reference internal" href="#architectural-change">14.1 Architectural change</a></li>
+<li><a class="reference internal" href="#defect-by-defect-status">14.2 Defect-by-defect status</a></li>
+<li><a class="reference internal" href="#regression-proof">14.3 Regression proof</a></li>
+<li><a class="reference internal" href="#r1-correction-post-review-2026-09-11">14.4 R1 correction (post-review, 2026-09-11)</a></li>
+<li><a class="reference internal" href="#verdict">14.5 Verdict</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>

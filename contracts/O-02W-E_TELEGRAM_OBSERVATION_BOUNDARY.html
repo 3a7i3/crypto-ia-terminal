@@ -248,6 +248,23 @@
         <article role="main" id="furo-main-content">
           <section id="telegram-observation-boundary-safe-cutover-contract">
 <h1>Telegram Observation Boundary &amp; Safe Cutover Contract<a class="headerlink" href="#telegram-observation-boundary-safe-cutover-contract" title="Link to this heading">¶</a></h1>
+<p><strong>O-02W-PRE-T1-D remediation note (2026-09-11, added post-hoc, does not
+rewrite the audit text below):</strong> this document’s references to
+<code class="docutils literal notranslate"><span class="pre">ExecutionEngine.fetch_available_capital()</span></code>/<code class="docutils literal notranslate"><span class="pre">real_capital</span></code> being
+“mode-dependent” (e.g. §9a, §16, the French excerpt near “mode-dépendant”)
+describe the <strong>pre-remediation</strong> behavior, now <code class="docutils literal notranslate"><span class="pre">HISTORICAL_AUDIT_FINDING</span></code>.
+As of the O-02W-PRE-T1-D remediation
+(<code class="docutils literal notranslate"><span class="pre">docs/adr/0018-scientific-capital-exchange-observation-separation.md</span></code>,
+<code class="docutils literal notranslate"><span class="pre">docs/contracts/O-02W-PRE-T1-D_REAL_CAPITAL_BOUNDARY.md</span></code>’s remediation
+section), <code class="docutils literal notranslate"><span class="pre">fetch_available_capital()</span></code> returns the scientific/paper capital
+exclusively (<code class="docutils literal notranslate"><span class="pre">infra.wallet_sync.get_scientific_capital()</span></code>) — it is no
+longer mode-dependent, and <code class="docutils literal notranslate"><span class="pre">real_capital</span></code> in <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code> is
+fed by that function. This narrows, but does not withdraw, this document’s
+finding that real-account data was distinct from the pure display-only
+observer path: <code class="docutils literal notranslate"><span class="pre">fetch_available_capital()</span></code> remains outside
+<code class="docutils literal notranslate"><span class="pre">RealAccountsObserver</span></code>’s Flow 1, but is now itself fully decoupled from any
+exchange balance rather than merely a separate mode-dependent flow. See the
+remediation section of the PRE-T1-D contract for the current invariant.</p>
 <p>Mission O-02W-E1 · Base SHA <code class="docutils literal notranslate"><span class="pre">17a2f70537ee48f70500974dddf5f0458c02cc50</span></code> ·
 2026-09-10 · Documentation-only mission (no runtime code changes, no
 Telegram sender/poller/token/chat/command changed, no VPS access, no
