@@ -69,53 +69,71 @@ def paper_engine(tmp_path, monkeypatch):
 
 
 class TestScenarioA_InvalidSizes:
-    """H1 — REFUTED: source substitutes size=1.0 instead of rejecting, and
-    the substituted order still proceeds to the exchange call. NaN bypasses
-    the sanity check entirely (nan<=0 and nan>1e9 are both False)."""
+    """H1 — REFUTED at the original audit HEAD (`0ace5ccc1`): source
+    substituted size=1.0 instead of rejecting, and the substituted order
+    still proceeded to the exchange call. NaN bypassed the sanity check
+    entirely (nan<=0 and nan>1e9 are both False).
+
+    UPDATED by O-02W-PRE-T1-E REM-A (docs/adr/0019-...): Correction A
+    removed the substitution — invalid/non-finite/non-positive sizes are now
+    REJECTED before any network call, zero exchange mutations. These
+    assertions were flipped to match the corrected behavior so this file
+    stays an honest, current regression suite rather than asserting a
+    defect that no longer exists; the full REM-A proof (fail-before/pass-
+    after against this exact starting HEAD) lives in
+    tests/test_pre_t1_e_rem_a_order_authorization.py."""
 
     @pytest.mark.parametrize("bad_size", [0.0, -50.0, float("inf"), 2e9])
-    def test_anomalous_size_is_substituted_not_rejected(
+    def test_anomalous_size_is_rejected_not_substituted(
         self, live_engine_factory, bad_size
     ):
         mock_exchange = _fake_exchange()
         e = live_engine_factory(mock_exchange)
         result = e.create_order("BTC/USDT", "BUY", bad_size)
-        # REFUTES H1: the order is NOT rejected — it proceeds as "live"
-        # with the substituted size=1.0, an exchange call IS made.
-        assert result["mode"] == "live"
-        mock_exchange.create_order.assert_called_once()
+        # REM-A fix: the order IS rejected — no substitution, zero mutation.
+        assert result["mode"] == "rejected"
+        mock_exchange.create_order.assert_not_called()
 
-    def test_nan_size_bypasses_the_sanity_check_entirely(self, live_engine_factory):
+    def test_nan_size_is_now_caught_by_the_finiteness_check(
+        self, live_engine_factory
+    ):
         """NaN comparisons are always False in Python: `nan<=0` and
-        `nan>1e9` are both False, so the guard at execution_engine.py:274
-        never triggers for NaN — proves the guard is not exhaustive."""
+        `nan>1e9` are both False, so the ORIGINAL guard at
+        execution_engine.py:274 never triggered for NaN. REM-A added an
+        explicit `math.isfinite()` check ahead of those comparisons, closing
+        that gap."""
         assert not (float("nan") <= 0)
         assert not (float("nan") > 1e9)
         mock_exchange = _fake_exchange()
         e = live_engine_factory(mock_exchange)
         result = e.create_order("BTC/USDT", "BUY", float("nan"))
-        # The order is neither rejected nor corrected to 1.0 — NaN size
-        # (scaled by size_factor, still NaN) reaches the exchange call path.
-        assert result["mode"] != "rejected"
-        mock_exchange.create_order.assert_called_once()
+        assert result["mode"] == "rejected"
+        assert result["denial_reason"] == "NON_FINITE_AMOUNT"
+        mock_exchange.create_order.assert_not_called()
 
-    def test_negative_size_paper_mode_also_not_rejected(self, paper_engine):
-        """Same substitution behavior confirmed in paper mode (no exchange
-        involved) — establishes the defect is in create_order() itself, not
-        specific to the live path."""
+    def test_negative_size_paper_mode_also_rejected(self, paper_engine):
+        """Same rejection behavior confirmed in paper mode (no exchange
+        involved) — the fix is in create_order() itself, not specific to the
+        live path."""
         result = paper_engine.create_order("BTC/USDT", "BUY", -50.0)
-        assert result["mode"] == "paper"
-        assert result["size"] == pytest.approx(1.0)
+        assert result["mode"] == "rejected"
+        assert result["denial_reason"] == "NON_POSITIVE_AMOUNT"
 
 
 # ── Scenario B — minimum notional / silent amplification ───────────────────
 
 
 class TestScenarioB_MinNotionalAmplification:
-    """H2 — REFUTED: below-min-notional size is silently enlarged to
-    min_notional*1.05, exceeding the originally authorized amount."""
+    """H2 — REFUTED at the original audit HEAD: below-min-notional size was
+    silently enlarged to min_notional*1.05, exceeding the originally
+    authorized amount.
 
-    def test_below_min_notional_is_silently_enlarged(self, live_engine_factory):
+    UPDATED by O-02W-PRE-T1-E REM-A: Correction B removed the amplification
+    — a below-minimum order is now REJECTED (BELOW_MIN_NOTIONAL), never
+    enlarged. See tests/test_pre_t1_e_rem_a_order_authorization.py Group B
+    for the full proof set."""
+
+    def test_below_min_notional_is_rejected_not_enlarged(self, live_engine_factory):
         mock_exchange = _fake_exchange(last_price=1.0)
         mock_exchange.load_markets.return_value = {
             "BTC/USDT": {
@@ -125,15 +143,11 @@ class TestScenarioB_MinNotionalAmplification:
         }
         e = live_engine_factory(mock_exchange)
         authorized_size_usd = 5.0  # below the 20.0 min notional
-        e.create_order("BTC/USDT", "BUY", authorized_size_usd)
+        result = e.create_order("BTC/USDT", "BUY", authorized_size_usd)
 
-        # Exchange received a qty corresponding to > authorized_size_usd:
-        # min_notional * 1.05 = 21.0 USD @ price 1.0 => qty ~= 21.0
-        call_args = mock_exchange.create_order.call_args
-        submitted_qty = call_args[0][3]
-        submitted_usd = submitted_qty * 1.0
-        assert submitted_usd > authorized_size_usd
-        assert submitted_usd == pytest.approx(20.0 * 1.05, abs=0.5)
+        assert result["mode"] == "rejected"
+        assert result["denial_reason"] == "BELOW_MIN_NOTIONAL"
+        mock_exchange.create_order.assert_not_called()
 
 
 # ── Scenario D — order identity ─────────────────────────────────────────────
@@ -486,12 +500,21 @@ class TestCallSiteInventory:
         assert "for " not in src  # no retry loop
         assert "except Exception" in src  # swallow-and-log only
 
-    def test_position_manager_marks_closed_even_if_send_order_raised(self):
-        """Structural evidence for blocker B7: _close_position() sets
+    def test_position_manager_close_honesty_fixed_by_rem_a(self):
+        """Blocker B7 at the original audit HEAD: _close_position() set
         pos.closed = True unconditionally after calling _send_close_order,
-        which itself catches and swallows exceptions rather than
-        propagating them — so a failed close order cannot prevent the
-        local position from being marked closed."""
+        which itself caught and swallowed exceptions rather than
+        propagating them — so a failed close order could not prevent the
+        local position from being marked closed.
+
+        UPDATED by O-02W-PRE-T1-E REM-A (PositionManager exception-honesty
+        fix, narrow scope per mission instructions): _send_close_order now
+        returns an explicit authorized/mutation_attempted/mode/
+        denial_reason outcome, and _close_position only marks pos.closed
+        when that outcome was not a denial or a failed mutation. This test
+        now asserts the fix is present rather than the original defect —
+        see tests/test_pre_t1_e_rem_a_order_authorization.py Group F for
+        the behavioral proof."""
         import inspect
 
         from quant_hedge_ai.agents.execution import position_manager as mod
@@ -499,9 +522,10 @@ class TestCallSiteInventory:
         src = inspect.getsource(mod.PositionManager._close_position)
         assert "self._send_close_order(pos" in src
         assert "pos.closed = True" in src
-        # No conditional / try-except around the two statements that would
-        # make pos.closed contingent on _send_close_order's outcome.
+        # The two statements are now separated by an explicit outcome check
+        # — closing is no longer unconditional.
         send_idx = src.index("self._send_close_order(pos")
         closed_idx = src.index("pos.closed = True")
         between = src[send_idx:closed_idx]
-        assert "try" not in between and "if " not in between
+        assert "authorized" in between
+        assert "mutation_attempted" in between

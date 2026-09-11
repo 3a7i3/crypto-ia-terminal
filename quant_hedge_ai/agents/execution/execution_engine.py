@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import math
 import os
 import time
 
 from observability.json_logger import get_logger
+from quant_hedge_ai.agents.execution.order_authorization import authorize_order
 from quant_hedge_ai.agents.execution.order_deduplicator import OrderDeduplicator
 from quant_hedge_ai.agents.execution.trade_logger import TradeLogger
 from quant_hedge_ai.agents.risk.session_guard import (
@@ -270,8 +272,15 @@ class ExecutionEngine:
         """
         size = size * self._size_factor
 
-        # ── 1. Sanity check on size ────────────────────────────────────────────
-        if size <= 0 or size > 1e9:
+        # ── 1. Sanity check on size (Correction A, O-02W-PRE-T1-E REM-A) ───────
+        # Invalid/non-finite/non-positive sizes are REJECTED, never
+        # substituted with an arbitrary tradable amount — a substitution here
+        # would let one bad intention silently become a real order.
+        try:
+            size_is_finite = math.isfinite(size)
+        except TypeError:
+            size_is_finite = False
+        if not size_is_finite or size <= 0 or size > 1e9:
             alert = Alert(
                 type_="order_size_anomaly",
                 severity="critical",
@@ -280,7 +289,23 @@ class ExecutionEngine:
                 context={"symbol": symbol, "action": action, "size": size},
             )
             alert_manager.raise_alert(alert)
-            size = 1.0
+            reason = f"invalid order size (pre-network authorization): {size}"
+            _log.warning("[ExecutionEngine] Order rejected — %s", reason)
+            self._logger.log_rejected(symbol, action, size, reason)
+            return {
+                "symbol": symbol,
+                "action": action,
+                "size": size if size_is_finite else 0.0,
+                "mode": "rejected",
+                "error": reason,
+                "denial_reason": (
+                    "NON_FINITE_AMOUNT"
+                    if not size_is_finite
+                    else "NON_POSITIVE_AMOUNT"
+                    if size <= 0
+                    else "ABOVE_AUTHORIZED_EXPOSURE"
+                ),
+            }
 
         # ── 2. SessionGuard ────────────────────────────────────────────────────
         try:
@@ -322,7 +347,9 @@ class ExecutionEngine:
 
         # ── 5. Register dedup + audit log ─────────────────────────────────────
         self._dedup.register(symbol, action, size)
-        status = "ok" if result.get("mode") != "live_failed" else "error"
+        status = (
+            "error" if result.get("mode") in ("live_failed", "rejected") else "ok"
+        )
         self._logger.log(result, status=status)
 
         return result
@@ -470,6 +497,19 @@ class ExecutionEngine:
                 "error": "blocked_by_paper_gate",
             }
 
+        # Authority composition (Correction E, O-02W-PRE-T1-E REM-A):
+        # `_place_live_order` is only ever reachable when `self._exchange is
+        # not None` (create_order's step 4 gate) AND `self._live` is True.
+        # `self._live` is set True only by `ExecutionEngine.from_env()` after
+        # BOTH `info["has_api_key"]` and `LIVE_TRADING_CONFIRMED=true`
+        # (execution_engine.py `from_env`), or by an explicit
+        # `ExecutionEngine(live=True)` construction that a caller chose
+        # deliberately (out of this module's control — documented, not
+        # silently trusted: the `PAPER_TRADING_ENABLED` check immediately
+        # above is what actually fails closed on THIS call, read fresh from
+        # the environment on every invocation, never cached). This is the
+        # documented, tested composition of authorities for this path — no
+        # single canonical module claims to own it alone (see ADR).
         side = "buy" if action.upper() == "BUY" else "sell"
         ccxt_symbol = symbol.replace("USDT", "/USDT") if "/" not in symbol else symbol
         try:
@@ -489,44 +529,62 @@ class ExecutionEngine:
                 min_notional = 5.0
                 amt_precision = 1e-5
 
-            # Vérifier que le montant USD couvre le minimum notionnel
-            if size < min_notional:
-                _log.warning(
-                    "[ExecutionEngine] Montant $%.2f < minimum notionnel $%.2f pour %s — ajusté",
-                    size,
-                    min_notional,
-                    ccxt_symbol,
-                )
-                size = min_notional * 1.05  # 5% de marge au-dessus du minimum
-
-            # Vérifier la balance quote disponible pour un achat
-            if side == "buy":
-                quote = self.detect_quote_asset(ccxt_symbol)
+            # Récupérer la balance de l'actif exécutable pertinent (BUY: quote,
+            # SELL: base) — jamais le capital scientifique, jamais fabriquée
+            # (Correction D, O-02W-PRE-T1-E REM-A). fetch_balance() est le
+            # seul appel réseau ici, PAS une mutation — la mutation reste
+            # create_order() plus bas, seulement atteinte si autorize_order()
+            # autorise.
+            quote = self.detect_quote_asset(ccxt_symbol)
+            base = ccxt_symbol.split("/")[0] if "/" in ccxt_symbol else None
+            balance_error = False
+            available_quote = None
+            available_base = None
+            try:
                 bal = self._exchange.fetch_balance()
-                available = float(bal.get("free", {}).get(quote, 0.0))
-                if available < size:
-                    _log.warning(
-                        "[ExecutionEngine] Balance %s insuffisante (%.2f < %.2f USD) — taille réduite",
-                        quote,
-                        available,
-                        size,
-                    )
-                    size = available * 0.95  # utilise 95% de la balance disponible
+                free = bal.get("free", {}) or {}
+                available_quote = free.get(quote)
+                available_base = free.get(base) if base else None
+            except Exception as bal_exc:
+                _log.warning(
+                    "[ExecutionEngine] fetch_balance erreur (%s): %s",
+                    ccxt_symbol,
+                    bal_exc,
+                )
+                balance_error = True
 
-            # Convertir USD → quantité de base avec la bonne précision
-            import math as _math
-
-            raw_qty = size / price
-            # Arrondir à la précision du marché (ex: 1e-5 → 5 décimales)
-            decimals = (
-                max(0, -int(round(_math.log10(amt_precision))))
-                if 0 < amt_precision < 1
-                else 5
+            auth = authorize_order(
+                symbol=ccxt_symbol,
+                side=side,
+                requested_amount=size,
+                price=price,
+                amount_precision=amt_precision,
+                min_notional=min_notional,
+                available_quote_balance=available_quote,
+                available_base_balance=available_base,
+                balance_error=balance_error,
+                balance_source="exchange.fetch_balance",
             )
-            qty = round(raw_qty, decimals)
+            if not auth.authorized:
+                reason = auth.denial_reason.value if auth.denial_reason else "denied"
+                _log.warning(
+                    "[ExecutionEngine] Ordre live refusé (pre-network authorization) "
+                    "%s %s: %s — %s",
+                    action,
+                    symbol,
+                    reason,
+                    auth.detail,
+                )
+                return {
+                    "symbol": symbol,
+                    "action": action,
+                    "size": round(size, 4),
+                    "mode": "rejected",
+                    "error": auth.detail,
+                    "denial_reason": reason,
+                }
 
-            if qty <= 0:
-                raise ValueError(f"Quantité calculée nulle ou négative: {qty}")
+            qty = auth.normalized_qty
 
             order = self._with_retry(
                 self._exchange.create_order, ccxt_symbol, "market", side, qty

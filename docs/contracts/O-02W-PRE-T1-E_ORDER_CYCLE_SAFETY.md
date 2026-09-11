@@ -373,3 +373,33 @@ finding contingent on missing infrastructure — it is proven directly from
 this exact HEAD's source and confirmed behaviorally against a fake exchange
 in §17. No production code was modified to address any of it in this round,
 per the audit-first scope.
+
+## 21. REM-A remediation status (O-02W-PRE-T1-E-REM-A, 2026-09-11)
+
+**This section is an addendum, not a rewrite** — §1-20 above document the
+audit exactly as performed against `297eba89` and are preserved unedited.
+A first, narrow remediation phase (REM-A) has since fixed a subset of the
+blockers listed in §18, per
+`docs/adr/0019-pre-network-order-authorization.md`. Status per blocker:
+
+| Blocker | Status |
+|---|---|
+| B1 (H1, invalid-size substitution) | **REMEDIATED_IN_PRE_T1_E_REM_A** — rejected via `authorize_order()`, `math.isfinite()` closes the NaN gap. Zero exchange mutations on any invalid input. |
+| B2 (H2, min-notional amplification) | **REMEDIATED_IN_PRE_T1_E_REM_A** — rejected (`BELOW_MIN_NOTIONAL`), never enlarged. Precision normalization is `Decimal`/floor-only and provably never increases authorized exposure. |
+| B3 (H3, no deterministic order identity) | **UNRESOLVED — reserved for REM-B.** Not attempted; explicitly out of REM-A's scope. |
+| B4 (H4, durable write after network) | **UNRESOLVED — reserved for REM-B.** `TradeLogger.log()` still runs after `_place_live_order()`; no durable pre-network intent record was added. |
+| B5 (H5/H6, blind retry, no reconciliation) | **UNRESOLVED — reserved for REM-B.** `_with_retry` is unchanged; still resubmits identical parameters blindly. |
+| B6 (H7, no SELL balance check) | **REMEDIATED_IN_PRE_T1_E_REM_A** — `authorize_order()` requires and validates `available_base_balance` for every SELL, deny-closed on missing/insufficient/malformed/non-finite. |
+| B7 (`PositionManager` swallowed exception) | **PARTIALLY REMEDIATED_IN_PRE_T1_E_REM_A** — `_send_close_order()` now returns an explicit `authorized`/`mutation_attempted`/`mode`/`denial_reason` outcome instead of swallowing exceptions silently, and `_close_position()` no longer marks `pos.closed = True` on a denial or a failed mutation (the position stays open and is naturally re-evaluated on the next tick — no new retry/reconciliation machinery was added). This is the narrow honesty fix the REM-A mission authorized, not the full reconciliation system B9 still calls for. |
+| B8 (H9, no crash-window recovery) | **UNRESOLVED — reserved for REM-B/REM-C.** No durable pre-network record exists; unaffected by REM-A. |
+| B9 (`PendingOrderTracker` unwired) | **UNRESOLVED — reserved for REM-B.** Still not imported/wired into either mutation path; REM-A does not activate it (explicitly out of scope). |
+| B10 (H10 pre-network portion, `PositionManager` authority gap) | **REMEDIATED_IN_PRE_T1_E_REM_A (documented composition, not a single canonical module).** `_send_close_order()` now re-checks `PAPER_TRADING_ENABLED`/`LIVE_TRADING_CONFIRMED` itself, fail-closed, immediately before mutation, via `evaluate_trading_authority()` — see ADR-0019 §1 for the exact composition. The live-order path's `LIVE_TRADING_CONFIRMED` gate (`ExecutionEngine.from_env()`) and its `PAPER_TRADING_ENABLED` re-check (`_place_live_order`) were already fail-closed per the original H10 finding and are unchanged. No single "canonical authority" module was introduced — this remains a documented composition of existing/extended gates, consistent with H10's original characterization. |
+
+Not covered by REM-A and not claimed as fixed: `ExecutionEngine.create_futures_order()`'s own below-minimum clamp (`max(futures_min, ...)`) — a distinct instance of the H2 anti-pattern on the futures-demo path, left untouched to avoid unjustified blast radius (see ADR-0019 §6); `PositionManager._check_partial_close()` still ignores `_send_close_order()`'s return value for its own qty/size_usd bookkeeping.
+
+**Updated verdict: still `REMEDIATION_REQUIRED`.** REM-A closes B1, B2, B6,
+and B10 (pre-network authority), and narrows B7 to its documented honesty
+fix. B3, B4, B5, B8, B9 remain fully open and are reserved for REM-B/REM-C,
+per the mission's explicit scope boundary. The order cycle is not
+end-to-end safe after REM-A — only its pre-network input/exposure/balance/
+authority validation is.
