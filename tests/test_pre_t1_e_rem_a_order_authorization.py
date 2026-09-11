@@ -533,16 +533,31 @@ class TestGroupF_ExecutionEngine:
     def test_valid_buy_reaches_single_mutation(self, live_engine):
         ex = _fake_execution_exchange(base_balance=1.0)
         e = live_engine(ex)
-        result = e.create_order("BTC/USDT", "BUY", 100.0)
+        result = e.create_order(
+            "BTC/USDT", "BUY", 100.0, decision_id="rem-a-groupf-buy"
+        )
         assert result["mode"] == "live"
         ex.create_order.assert_called_once()
 
     def test_valid_sell_reaches_single_mutation(self, live_engine):
         ex = _fake_execution_exchange(base_balance=1.0)
         e = live_engine(ex)
-        result = e.create_order("BTC/USDT", "SELL", 100.0)
+        result = e.create_order(
+            "BTC/USDT", "SELL", 100.0, decision_id="rem-a-groupf-sell"
+        )
         assert result["mode"] == "live"
         ex.create_order.assert_called_once()
+
+    def test_missing_decision_id_fails_closed_zero_mutation(self, live_engine):
+        # O-02W-PRE-T1-E REM-B-R1, Correction A: a missing causal id must
+        # never select the legacy direct-submission path for a live-capable
+        # engine — zero exchange mutation calls, typed denial.
+        ex = _fake_execution_exchange(base_balance=1.0)
+        e = live_engine(ex)
+        result = e.create_order("BTC/USDT", "BUY", 100.0)
+        assert result["mode"] == "rejected"
+        assert result["denial_reason"] == "MISSING_CAUSAL_ID"
+        ex.create_order.assert_not_called()
 
     def test_paper_gate_blocks_before_any_authorization_call(self, tmp_path, monkeypatch):
         monkeypatch.setenv("EXEC_TRADE_LOG", str(tmp_path / "t2.sqlite"))

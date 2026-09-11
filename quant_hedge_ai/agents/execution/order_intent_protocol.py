@@ -225,6 +225,7 @@ class InvalidTransitionError(RuntimeError):
 
 
 class SubmissionOutcome(str, Enum):
+    MISSING_CAUSAL_ID = "MISSING_CAUSAL_ID"
     AUTHORIZATION_DENIED = "AUTHORIZATION_DENIED"
     ALREADY_RECORDED = "ALREADY_RECORDED"
     ACKNOWLEDGED = "ACKNOWLEDGED"

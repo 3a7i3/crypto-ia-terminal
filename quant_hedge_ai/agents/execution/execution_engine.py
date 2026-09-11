@@ -562,9 +562,26 @@ class ExecutionEngine:
                     }
                 order = (sub.raw_evidence or {}).get("order", {"id": sub.exchange_order_id})
             else:
-                order = self._with_retry(
-                    self._exchange_futures.create_order, ccxt_symbol, "market", side, qty
+                # O-02W-PRE-T1-E REM-B-R1, Correction A: a missing causal id
+                # must never select the legacy direct-submission path — this
+                # adapter (futures demo) reaches a real external mutation
+                # call, so it fails closed with zero exchange mutation calls
+                # and no journal write rather than silently bypassing REM-B.
+                _log.warning(
+                    "[ExecutionEngine] Ordre futures refusé — decision_id "
+                    "manquant (REM-B-R1 Correction A, fail-closed) %s %s",
+                    action,
+                    symbol,
                 )
+                return {
+                    "symbol": symbol,
+                    "action": action,
+                    "size": size_usd,
+                    "mode": "rejected",
+                    "error": "decision_id is required for any externally "
+                    "reachable mutation — refusing the legacy bypass",
+                    "denial_reason": "MISSING_CAUSAL_ID",
+                }
             _log.info(
                 "[ExecutionEngine] Ordre FUTURES DEMO: %s %.4f %s @ $%.2f (lev x%d) id=%s",
                 action,
@@ -643,7 +660,7 @@ class ExecutionEngine:
                         error_category="transport_error",
                         raw={"error": str(exc)},
                     )
-                if any(k in msg for k in ("insufficient", "invalid", "rejected", "not enough")):
+                if any(k in msg for k in ("insufficient", "invalid", "rejected", "not enough", "no permission", "permission denied")):
                     return ExchangeMutationResult(
                         outcome=ExchangeMutationOutcome.EXPLICITLY_REJECTED,
                         error_category="exchange_rejected",
@@ -681,6 +698,14 @@ class ExecutionEngine:
                 "size": round(size, 4),
                 "mode": "live_failed",
                 "error": "blocked_by_paper_gate",
+                # O-02W-PRE-T1-E REM-B-R1: the REM-B mutation-rejected shape
+                # gained `order_intent_outcome`/`client_order_id` — SEC-01
+                # neutrality requires this gate-blocked shape carry the same
+                # keys (null here, since no intent was ever built) so an
+                # observer cannot distinguish "gate blocked it" from "a real
+                # rejection occurred" merely by which keys are present.
+                "order_intent_outcome": None,
+                "client_order_id": None,
             }
 
         # Authority composition (Correction E, O-02W-PRE-T1-E REM-A):
@@ -820,9 +845,25 @@ class ExecutionEngine:
                     }
                 order = (sub.raw_evidence or {}).get("order", {"id": sub.exchange_order_id})
             else:
-                order = self._with_retry(
-                    self._exchange.create_order, ccxt_symbol, "market", side, qty
+                # O-02W-PRE-T1-E REM-B-R1, Correction A: a missing causal id
+                # must never select the legacy direct-submission path — this
+                # is the real live exchange, so it fails closed with zero
+                # exchange mutation calls and no journal write.
+                _log.warning(
+                    "[ExecutionEngine] Ordre live refusé — decision_id "
+                    "manquant (REM-B-R1 Correction A, fail-closed) %s %s",
+                    action,
+                    symbol,
                 )
+                return {
+                    "symbol": symbol,
+                    "action": action,
+                    "size": round(size, 4),
+                    "mode": "rejected",
+                    "error": "decision_id is required for any externally "
+                    "reachable mutation — refusing the legacy bypass",
+                    "denial_reason": "MISSING_CAUSAL_ID",
+                }
             _log.info(
                 "[ExecutionEngine] Ordre live: %s %.8f %s @ $%.2f (USD: $%.2f) id=%s",
                 action,

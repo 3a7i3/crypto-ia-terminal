@@ -849,7 +849,7 @@ class PositionManager:
                         error_category="transport_error",
                         raw={"error": str(exc)},
                     )
-                if any(k in msg for k in ("insufficient", "invalid", "rejected", "not enough")):
+                if any(k in msg for k in ("insufficient", "invalid", "rejected", "not enough", "no permission", "permission denied")):
                     return ExchangeMutationResult(
                         outcome=ExchangeMutationOutcome.EXPLICITLY_REJECTED,
                         error_category="exchange_rejected",

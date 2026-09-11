@@ -82,6 +82,24 @@ os.environ.setdefault(
 os.environ.setdefault(
     "LMI_DIR", os.path.join(tempfile.mkdtemp(prefix="pytest_lmi_"), "lmi")
 )
+os.environ.setdefault(
+    # O-02W-PRE-T1-E REM-B-R1, Correction G: order_intent_protocol.py's
+    # durable journal path is a module-level constant
+    # (execution_engine.py::_DEFAULT_ORDER_INTENT_JOURNAL_PATH), same
+    # DS-001 freeze-at-import hazard as OBS_LOG_ROOT/BLACK_BOX_PATH above.
+    # This MUST live here (root conftest.py, evaluated before collection)
+    # rather than in a tests/-scoped conftest.py: any test file outside
+    # tests/ (e.g. quant_hedge_ai/agents/execution/test_*.py) is not
+    # covered by a tests/conftest.py, so the module constant would freeze
+    # to the real production default (databases/order_intent_journal.jsonl)
+    # and every such test run would durably pollute that file — this was
+    # confirmed to actually happen during R1 development.
+    "ORDER_INTENT_JOURNAL_PATH",
+    os.path.join(
+        tempfile.mkdtemp(prefix="pytest_order_intent_journal_"),
+        "order_intent_journal.jsonl",
+    ),
+)
 
 
 @pytest.fixture(autouse=True)
