@@ -40,7 +40,7 @@ from typing import Optional
 
 _DEFAULT_PATH = os.getenv("PAPER_TRADE_LOG", "databases/paper_trades.jsonl")
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 5
 
 
 def _score_to_bin(score: int) -> str:
@@ -176,7 +176,14 @@ class TradeEvent:
     ts_iso: str
     symbol: str
     side: str  # "buy" | "sell" | "long" | "short"
-    price: float
+    # REM-C R1.2 — Optional: OPEN events always carry a real evidenced
+    # price (unchanged). A CLOSE event's `price` historically mirrored
+    # `exit_price` but has no reader that requires it non-null (see
+    # record_close() below) — an unknown exit (e.g. expired_on_restore)
+    # persists price=None here too, never a fabricated 0.0. MISSING
+    # EVIDENCE != ZERO applies to the raw ledger event, not only to the
+    # derived `exit_price`/`pnl_usd`/`pnl_pct`/`is_win` fields.
+    price: Optional[float]
     size_usd: float
     mode: str  # "futures_demo" | "paper" | "live"
     schema_version: int = 1  # 2 depuis cette release
@@ -198,6 +205,20 @@ class TradeEvent:
     decision_context: Optional[DecisionContext] = None
     # Schema v3
     runtime_config_version: str = ""
+    # Schema v4 (REM-C R1) — OPEN-only, evidence for honest PAPER restart
+    # restoration. None means "not recorded" and MUST NOT be treated as
+    # zero/default by any reader (see MexcSimulator._restore_positions()).
+    tp_price: Optional[float] = None
+    sl_price: Optional[float] = None
+    fee_entry_usd: Optional[float] = None
+    # Schema v5 (REM-C R1.2) — CLOSE-only. True means this trade's pnl_usd/
+    # pnl_pct was computed against an entry fee that was NOT durably known
+    # (a restored position whose original fee_entry_usd evidence was
+    # missing — see MexcPosition.restored_evidence_gaps) and so used 0.0
+    # as a numeric fallback. The realized PnL is real arithmetic, not
+    # fabricated, but must never be presented as fully-evidenced when this
+    # is True: the entry-fee term in it is an assumption, not evidence.
+    pnl_fee_evidence_incomplete: bool = False
 
 
 @dataclass
@@ -232,6 +253,14 @@ class CompleteTrade:
     decision_context: Optional[DecisionContext] = None
     # Schema v3
     runtime_config_version: str = ""
+    # Schema v4 (REM-C R1) — see TradeEvent. None = not recorded (unknown),
+    # never a fabricated original value.
+    tp_price: Optional[float] = None
+    sl_price: Optional[float] = None
+    fee_entry_usd: Optional[float] = None
+    # Schema v5 (REM-C R1.2) — see TradeEvent. True = this trade's realized
+    # pnl_usd/pnl_pct used an assumed (not evidenced) entry fee.
+    pnl_fee_evidence_incomplete: bool = False
 
 
 # ── Recorder ─────────────────────────────────────────────────────────────────
@@ -270,6 +299,9 @@ class PaperTradeRecorder:
         mode: str = "futures_demo",
         market_context: Optional[MarketContext] = None,
         decision_context: Optional[DecisionContext] = None,
+        tp_price: Optional[float] = None,
+        sl_price: Optional[float] = None,
+        fee_entry_usd: Optional[float] = None,
     ) -> None:
         from config.parameter_audit import current_config_version
 
@@ -292,15 +324,18 @@ class PaperTradeRecorder:
             market_context=market_context,
             decision_context=decision_context,
             runtime_config_version=current_config_version(),
+            tp_price=tp_price,
+            sl_price=sl_price,
+            fee_entry_usd=fee_entry_usd,
         )
         self._append(evt)
 
     def record_close(
         self,
         trade_id: str,
-        exit_price: float,
-        pnl_usd: float,
-        pnl_pct: float,
+        exit_price: Optional[float],
+        pnl_usd: Optional[float],
+        pnl_pct: Optional[float],
         reason: str = "",
         opened_at: Optional[float] = None,
         symbol: str = "",
@@ -311,7 +346,15 @@ class PaperTradeRecorder:
         mfe_pct: Optional[float] = None,
         score: int = 0,
         regime: str = "unknown",
+        pnl_fee_evidence_incomplete: bool = False,
     ) -> None:
+        # REM-C R1.1/R1.2 — `exit_price=None` means the exit price is
+        # genuinely unknown (e.g. a downtime-window expiry — see
+        # MexcSimulator._restore_positions()). No consumer reads
+        # `TradeEvent.price` for CLOSE events (only `.exit_price` — see
+        # `trades()` below), and it is now `Optional[float]`, so the
+        # unknown exit price is persisted as `None` in the raw ledger
+        # event itself, never fabricated as `0.0`.
         now = time.time()
         duration = (now - opened_at) if opened_at else None
         evt = TradeEvent(
@@ -329,12 +372,13 @@ class PaperTradeRecorder:
             score_bin=_score_to_bin(score),
             regime=regime,
             exit_price=exit_price,
-            pnl_usd=round(pnl_usd, 4),
-            pnl_pct=round(pnl_pct, 6),
+            pnl_usd=round(pnl_usd, 4) if pnl_usd is not None else None,
+            pnl_pct=round(pnl_pct, 6) if pnl_pct is not None else None,
             reason=reason,
             duration_s=round(duration, 1) if duration else None,
             mae_pct=mae_pct,
             mfe_pct=mfe_pct,
+            pnl_fee_evidence_incomplete=pnl_fee_evidence_incomplete,
         )
         self._append(evt)
 
@@ -405,6 +449,9 @@ class PaperTradeRecorder:
                 schema_version=op.schema_version,
                 market_context=op.market_context,
                 decision_context=op.decision_context,
+                tp_price=op.tp_price,
+                sl_price=op.sl_price,
+                fee_entry_usd=op.fee_entry_usd,
             )
             if cl:
                 ct.exit_price = cl.exit_price
@@ -415,9 +462,14 @@ class PaperTradeRecorder:
                 ct.closed_iso = cl.ts_iso
                 ct.duration_s = cl.duration_s
                 ct.is_open = False
-                ct.is_win = (cl.pnl_usd or 0) > 0
+                # REM-C R1.1 — pnl_usd=None (genuinely unknown, e.g. an
+                # `expired_on_restore` close) must stay is_win=None, never
+                # coerced into a LOSS. A real, known pnl_usd=0.0 is a real
+                # non-win and correctly stays is_win=False.
+                ct.is_win = None if cl.pnl_usd is None else (cl.pnl_usd > 0)
                 ct.mae_pct = cl.mae_pct
                 ct.mfe_pct = cl.mfe_pct
+                ct.pnl_fee_evidence_incomplete = cl.pnl_fee_evidence_incomplete
             result.append(ct)
 
         # CLOSE orphelins (sans OPEN correspondant — cas VPS décalé)
@@ -443,43 +495,70 @@ class PaperTradeRecorder:
                     closed_iso=cl.ts_iso,
                     duration_s=cl.duration_s,
                     is_open=False,
-                    is_win=(cl.pnl_usd or 0) > 0,
+                    is_win=None if cl.pnl_usd is None else (cl.pnl_usd > 0),
                     mae_pct=cl.mae_pct,
                     mfe_pct=cl.mfe_pct,
+                    pnl_fee_evidence_incomplete=cl.pnl_fee_evidence_incomplete,
                 )
                 result.append(ct)
 
         return sorted(result, key=lambda t: t.opened_at or t.closed_at or 0)
 
     def summary(self) -> dict:
-        """Statistiques agrégées des trades complétés."""
+        """Statistiques agrégées des trades complétés.
+
+        REM-C R1.3 — MISSING EVIDENCE != WIN/LOSS DENOMINATOR and
+        HISTORICAL RECORD != CERTIFIED PERFORMANCE SAMPLE. `total_closed`
+        (backward-compatible key, unchanged meaning) is the raw historical
+        closed-trade count — nothing is deleted or hidden. But `win_rate`,
+        every PnL-derived aggregate, `target_30_trades`, and
+        `go_live_ready` are now computed ONLY over the CERTIFIED subset:
+        closed trades whose outcome is actually known (`is_win is not
+        None` — excludes `expired_on_restore` and any other genuinely
+        unknown-outcome close) AND whose PnL was not computed against
+        assumed evidence (`pnl_fee_evidence_incomplete` is False, REM-C
+        R1.2). `certified_closed`/`excluded_unevidenced_count` make the
+        exclusion explicit rather than silent.
+        """
         all_trades = self.trades()
         closed = [t for t in all_trades if not t.is_open]
         open_pos = [t for t in all_trades if t.is_open]
+        certified = [
+            t
+            for t in closed
+            if t.is_win is not None
+            and not getattr(t, "pnl_fee_evidence_incomplete", False)
+        ]
+        excluded_count = len(closed) - len(certified)
 
-        if not closed:
+        if not certified:
             return {
-                "total_closed": 0,
+                "total_closed": len(closed),
                 "total_open": len(open_pos),
+                "certified_closed": 0,
+                "excluded_unevidenced_count": excluded_count,
                 "win_rate": None,
                 "pnl_total_usd": 0.0,
                 "pnl_avg_pct": None,
                 "best_trade_pct": None,
                 "worst_trade_pct": None,
                 "avg_duration_min": None,
-                "target_30_trades": f"0 / 30",
+                "target_30_trades": "0 / 30",
+                "go_live_ready": False,
             }
 
-        wins = [t for t in closed if t.is_win]
-        pnls_pct = [t.pnl_pct for t in closed if t.pnl_pct is not None]
-        pnls_usd = [t.pnl_usd for t in closed if t.pnl_usd is not None]
-        durations = [t.duration_s / 60 for t in closed if t.duration_s]
+        wins = [t for t in certified if t.is_win]
+        pnls_pct = [t.pnl_pct for t in certified if t.pnl_pct is not None]
+        pnls_usd = [t.pnl_usd for t in certified if t.pnl_usd is not None]
+        durations = [t.duration_s / 60 for t in certified if t.duration_s]
 
         return {
             "total_closed": len(closed),
             "total_open": len(open_pos),
-            "target_30_trades": f"{len(closed)} / 30",
-            "win_rate": round(len(wins) / len(closed) * 100, 1),
+            "certified_closed": len(certified),
+            "excluded_unevidenced_count": excluded_count,
+            "target_30_trades": f"{len(certified)} / 30",
+            "win_rate": round(len(wins) / len(certified) * 100, 1),
             "pnl_total_usd": round(sum(pnls_usd), 4) if pnls_usd else 0.0,
             "pnl_avg_pct": (
                 round(sum(pnls_pct) / len(pnls_pct) * 100, 3) if pnls_pct else None
@@ -489,7 +568,7 @@ class PaperTradeRecorder:
             "avg_duration_min": (
                 round(sum(durations) / len(durations), 1) if durations else None
             ),
-            "go_live_ready": len(closed) >= 30,
+            "go_live_ready": len(certified) >= 30,
         }
 
     # ── Interne ───────────────────────────────────────────────────────────────

@@ -220,7 +220,23 @@ def _materialize_position(
     else:
         regime_ov = observed(regime_raw)
 
-    tp_sl_source = "restored_default" if is_restored else "original"
+    # REM-C R1.3 — `is_restored` alone no longer determines whether TP/SL
+    # were reconstructed: schema v4 (REM-C R1) lets a restored position
+    # carry DURABLY RECORDED original TP/SL, not just a 4%/2% default
+    # recompute. `restored_evidence_gaps` (REM-C R1) is the actual source
+    # of truth for which one happened — "tp_sl_reconstructed_default"
+    # present means the values were reconstructed; absent (for a restored
+    # position) means they are genuine recovered evidence, not the same
+    # confidence tier as "restored_default" but also not an ordinary
+    # never-restored "original" fill. Never-restored positions are
+    # unaffected ("original", unchanged).
+    _evidence_gaps = getattr(pos, "restored_evidence_gaps", None) or []
+    if not is_restored:
+        tp_sl_source = "original"
+    elif "tp_sl_reconstructed_default" in _evidence_gaps:
+        tp_sl_source = "restored_default"
+    else:
+        tp_sl_source = "restored_original"
 
     return {
         "position_id": pos_id,
@@ -240,6 +256,7 @@ def _materialize_position(
         "restored_without_regime": restored_without_regime,
         "personality": getattr(pos, "personality", None),
         "restored": is_restored,
+        "restored_evidence_gaps": list(_evidence_gaps),
     }
 
 

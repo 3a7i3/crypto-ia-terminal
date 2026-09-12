@@ -20,6 +20,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from quant_hedge_ai.agents.execution.position_manager import ExecutionDomain
+
 # ══════════════════════════════════════════════════════════════════════════════
 # B1 — Snapshot Recovery
 # ══════════════════════════════════════════════════════════════════════════════
@@ -235,11 +237,15 @@ class TestB2MidExecutionCrash:
         """Factory : retourne un PositionReconciler avec mocks."""
         from system.position_reconciler import PositionReconciler
 
+        from quant_hedge_ai.agents.execution.position_manager import ExecutionDomain
+
         exchange = MagicMock()
         exchange.fetch_positions.return_value = exchange_positions
 
         pm = MagicMock()
-        pm.get_open_positions.return_value = internal_positions
+        pm.domain = ExecutionDomain.REAL
+        pm._exchange = exchange
+        pm.get_open.return_value = internal_positions
 
         rec = PositionReconciler(exchange, pm)
         return rec
@@ -250,9 +256,12 @@ class TestB2MidExecutionCrash:
         return {"symbol": symbol, "side": side, "contracts": 0.1, "markPrice": price}
 
     def _make_internal_pos(self, symbol: str, price: float = 50000.0):
+        from quant_hedge_ai.agents.execution.position_manager import ExecutionDomain
+
         pos = MagicMock()
         pos.symbol = symbol
         pos.entry_price = price  # reconciler utilise entry_price pour le drift
+        pos.domain = ExecutionDomain.REAL
         return pos
 
     # ── Ghost positions ────────────────────────────────────────────────────────
@@ -342,7 +351,9 @@ class TestB2MidExecutionCrash:
         exchange.fetch_positions.side_effect = ConnectionError("Exchange offline")
 
         pm = MagicMock()
-        pm.get_open_positions.return_value = []
+        pm.domain = ExecutionDomain.REAL
+        pm._exchange = exchange
+        pm.get_open.return_value = []
 
         rec = PositionReconciler(exchange, pm)
         report = rec.reconcile(force=True)
@@ -380,9 +391,12 @@ class TestB2MidExecutionCrash:
         internal_pos = MagicMock()
         internal_pos.symbol = "BTC/USDT"
         internal_pos.entry_price = 48000.0  # écart 4% > seuil 2%
+        internal_pos.domain = ExecutionDomain.REAL
 
         pm = MagicMock()
-        pm.get_open_positions.return_value = [internal_pos]
+        pm.domain = ExecutionDomain.REAL
+        pm._exchange = exchange
+        pm.get_open.return_value = [internal_pos]
 
         rec = PositionReconciler(exchange, pm)
         report = rec.reconcile(force=True)
@@ -401,9 +415,12 @@ class TestB2MidExecutionCrash:
         internal_pos = MagicMock()
         internal_pos.symbol = "BTC/USDT"
         internal_pos.entry_price = 50500.0  # écart 1% < seuil 2%
+        internal_pos.domain = ExecutionDomain.REAL
 
         pm = MagicMock()
-        pm.get_open_positions.return_value = [internal_pos]
+        pm.domain = ExecutionDomain.REAL
+        pm._exchange = exchange
+        pm.get_open.return_value = [internal_pos]
 
         rec = PositionReconciler(exchange, pm)
         report = rec.reconcile(force=True)
@@ -419,7 +436,9 @@ class TestB2MidExecutionCrash:
         exchange = MagicMock()
         exchange.fetch_positions.return_value = []
         pm = MagicMock()
-        pm.get_open_positions.return_value = []
+        pm.domain = ExecutionDomain.REAL
+        pm._exchange = exchange
+        pm.get_open.return_value = []
 
         rec = PositionReconciler(exchange, pm)
         rec.reconcile(force=True)  # première réconciliation
@@ -435,7 +454,9 @@ class TestB2MidExecutionCrash:
         exchange = MagicMock()
         exchange.fetch_positions.return_value = []
         pm = MagicMock()
-        pm.get_open_positions.return_value = []
+        pm.domain = ExecutionDomain.REAL
+        pm._exchange = exchange
+        pm.get_open.return_value = []
 
         rec = PositionReconciler(exchange, pm)
         rec.reconcile(force=True)

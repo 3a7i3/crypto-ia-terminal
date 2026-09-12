@@ -58,6 +58,7 @@ class _FakePosition:
         personality="scalper",
         regime="trend",
         opened_ts=0.0,
+        restored_evidence_gaps=None,
     ):
         self.pos_id = pos_id
         self.symbol = symbol
@@ -69,6 +70,7 @@ class _FakePosition:
         self.personality = personality
         self.regime = regime
         self.opened_ts = opened_ts
+        self.restored_evidence_gaps = restored_evidence_gaps or []
 
 
 class _FakeSimulator:
@@ -389,7 +391,15 @@ def test_normal_open_provenance_full_confidence():
 
 
 def test_restored_position_labeled_with_low_confidence_provenance():
-    pos = _FakePosition("trade-42", "BTC/USDT", personality="restored", regime="unknown")
+    # REM-C R1.3 — TP/SL were genuinely reconstructed (evidence gap
+    # present), so "restored_default" is the correct low-confidence label.
+    pos = _FakePosition(
+        "trade-42",
+        "BTC/USDT",
+        personality="restored",
+        regime="unknown",
+        restored_evidence_gaps=["tp_sl_reconstructed_default"],
+    )
     sim = _FakeSimulator(positions={"BTC/USDT": pos}, prices={"BTC/USDT": 100.0})
     result = osb.build_operator_snapshot(_inputs(mexc_simulator=sim))
     position = result["portfolio"]["open_positions"]["value"][0]
@@ -398,6 +408,45 @@ def test_restored_position_labeled_with_low_confidence_provenance():
     assert position["restored_without_regime"] is True
     assert position["regime"]["value"] == "unknown"
     assert position["tp_sl_source"] == "restored_default"
+
+
+def test_restored_position_with_durable_tp_sl_is_not_labeled_default():
+    """REM-C R1.3 Finding A / A2 — a restored position whose TP/SL were
+    durably recorded (schema v4) — no "tp_sl_reconstructed_default" gap —
+    must NOT be labeled "restored_default", since that would falsely claim
+    a reconstruction that never happened."""
+    pos = _FakePosition(
+        "trade-43",
+        "ETH/USDT",
+        personality="restored",
+        regime="trend",
+        restored_evidence_gaps=[],
+    )
+    sim = _FakeSimulator(positions={"ETH/USDT": pos}, prices={"ETH/USDT": 100.0})
+    result = osb.build_operator_snapshot(_inputs(mexc_simulator=sim))
+    position = result["portfolio"]["open_positions"]["value"][0]
+    assert position["restored"] is True  # A1/A3 — still identifiable as restored
+    assert position["tp_sl_source"] != "restored_default"
+    assert position["tp_sl_source"] == "restored_original"
+
+
+def test_evidence_incomplete_restored_position_remains_identifiable_as_restored():
+    """REM-C R1.3 Finding A / A3 — a restored position with ANY evidence
+    gap (not necessarily TP/SL) must still read restored=True. `personality`
+    no longer varies by evidence completeness (only `restored_evidence_gaps`
+    does), so this also guards against personality-based regressions."""
+    pos = _FakePosition(
+        "trade-44",
+        "SOL/USDT",
+        personality="restored",
+        regime="unknown",
+        restored_evidence_gaps=["fee_entry_unknown"],
+    )
+    sim = _FakeSimulator(positions={"SOL/USDT": pos}, prices={"SOL/USDT": 100.0})
+    result = osb.build_operator_snapshot(_inputs(mexc_simulator=sim))
+    position = result["portfolio"]["open_positions"]["value"][0]
+    assert position["restored"] is True
+    assert position["restored_evidence_gaps"] == ["fee_entry_unknown"]
 
 
 def test_ledger_join_never_falls_back_to_symbol_only_match():

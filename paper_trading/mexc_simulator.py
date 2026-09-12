@@ -134,6 +134,11 @@ class MexcPosition:
     close_reason: str = ""
     mae_pct: float = 0.0
     mfe_pct: float = 0.0
+    # REM-C R1 — restart evidence-honesty markers. Empty = nothing was
+    # reconstructed; non-empty entries name which fields could not be
+    # restored from durable evidence and were recomputed/defaulted instead
+    # (never presented as the original values). See _restore_positions().
+    restored_evidence_gaps: list = field(default_factory=list)
 
     @property
     def is_open(self) -> bool:
@@ -379,11 +384,19 @@ class MexcSimulator:
                     _RESTORE_MAX_AGE_S / 3600,
                 )
                 try:
+                    # REM-C R1.1 — the process was down; what actually
+                    # happened to price/PnL during the gap is not durably
+                    # known. exit price and PnL are recorded as unknown
+                    # (None), never fabricated as entry_price/0.0 pretending
+                    # nothing moved. MASTER review (R1.1) corrected R1's own
+                    # residual defect here: R1 already fixed pnl_usd/pnl_pct
+                    # but still substituted `trade.entry_price` as if it
+                    # were the genuine exit price.
                     recorder.record_close(
                         trade_id=trade.trade_id,
-                        exit_price=trade.entry_price,
-                        pnl_usd=0.0,
-                        pnl_pct=0.0,
+                        exit_price=None,
+                        pnl_usd=None,
+                        pnl_pct=None,
                         reason="expired_on_restore",
                         opened_at=trade.opened_at,
                         symbol=trade.symbol,
@@ -424,13 +437,54 @@ class MexcSimulator:
                 else OrderSide.SELL
             )
             entry = trade.entry_price
-            tp_pct, sl_pct = 0.04, 0.02
-            if side == OrderSide.BUY:
-                tp = entry * (1 + tp_pct)
-                sl = entry * (1 - sl_pct)
+            evidence_gaps: list = []
+
+            # REM-C R1 — schema v4 records the original TP/SL durably.
+            # Older (pre-v4) records never captured it: recomputing from
+            # defaults is a RECONSTRUCTION, not the original evidence, and
+            # must be flagged as such rather than presented as known fact.
+            trade_tp = getattr(trade, "tp_price", None)
+            trade_sl = getattr(trade, "sl_price", None)
+            if trade_tp is not None and trade_sl is not None:
+                tp, sl = trade_tp, trade_sl
             else:
-                tp = entry * (1 - tp_pct)
-                sl = entry * (1 + sl_pct)
+                tp_pct, sl_pct = 0.04, 0.02
+                if side == OrderSide.BUY:
+                    tp = entry * (1 + tp_pct)
+                    sl = entry * (1 - sl_pct)
+                else:
+                    tp = entry * (1 - tp_pct)
+                    sl = entry * (1 + sl_pct)
+                evidence_gaps.append("tp_sl_reconstructed_default")
+
+            trade_fee = getattr(trade, "fee_entry_usd", None)
+            if trade_fee is not None:
+                fee_entry = trade_fee
+            else:
+                fee_entry = 0.0
+                evidence_gaps.append("fee_entry_unknown")
+
+            # REM-C R1.3 — MASTER found that varying `personality` by
+            # evidence completeness broke `observability/
+            # operator_snapshot_builder.py`'s `is_restored = personality ==
+            # "restored"` check: an evidence-incomplete restored position
+            # would read as `restored=False` (case 1), and — the reverse
+            # error — a fully-evidenced restored position (durable TP/SL,
+            # `personality="restored"` unchanged) would still be labeled
+            # `tp_sl_source="restored_default"` as if reconstructed (case
+            # 2). `personality` now stays `"restored"` for EVERY
+            # ledger-restored position regardless of evidence completeness
+            # — "was this position restored from the ledger" and "is its
+            # evidence complete" are two different facts, and only
+            # `restored_evidence_gaps` (unchanged) carries the second one.
+            personality = "restored"
+            if evidence_gaps:
+                _log.warning(
+                    "[SIM] Restore %s — évidence incomplète (%s), valeurs "
+                    "reconstruites (non originales)",
+                    trade.symbol,
+                    ", ".join(evidence_gaps),
+                )
 
             pos = MexcPosition(
                 pos_id=trade.trade_id,
@@ -440,10 +494,11 @@ class MexcSimulator:
                 entry_price=entry,
                 tp_price=tp,
                 sl_price=sl,
-                fee_entry_usd=0.0,
+                fee_entry_usd=fee_entry,
                 score=trade.score,
-                personality="restored",
+                personality=personality,
                 opened_ts=trade.opened_at or now,
+                restored_evidence_gaps=evidence_gaps,
             )
             self._positions[trade.symbol] = pos
             self._capital -= trade.size_usd
@@ -794,6 +849,9 @@ class MexcSimulator:
                 score=pos.score,
                 regime=pos.regime,
                 mode="futures_demo",
+                tp_price=pos.tp_price,
+                sl_price=pos.sl_price,
+                fee_entry_usd=pos.fee_entry_usd,
             )
         except Exception as exc:
             _log.warning("[SIM] record_open échoué: %s", exc)
@@ -951,6 +1009,16 @@ class MexcSimulator:
         try:
             from paper_trading.recorder import get_recorder
 
+            # REM-C R1.2 — a position restored without durable fee_entry_usd
+            # evidence (pre-schema-v4 record) used 0.0 as a numeric fallback
+            # for `pos.fee_entry_usd` in the pnl_usd computation above. That
+            # PnL is real arithmetic, not fabricated, but it must never be
+            # reported as fully-evidenced: flag it explicitly rather than
+            # letting an assumed entry fee disappear into an ordinary-
+            # looking realized PnL.
+            fee_evidence_incomplete = "fee_entry_unknown" in getattr(
+                pos, "restored_evidence_gaps", []
+            )
             get_recorder().record_close(
                 trade_id=pos.pos_id,
                 exit_price=fill,
@@ -966,6 +1034,7 @@ class MexcSimulator:
                 mfe_pct=pos.mfe_pct,
                 score=pos.score,
                 regime=pos.regime,
+                pnl_fee_evidence_incomplete=fee_evidence_incomplete,
             )
         except Exception as exc:
             _log.warning("[SIM] record_close échoué: %s", exc)
