@@ -9,6 +9,8 @@ this test only reproduces its documented formula inline to prove the
 canonical model rejects it.
 """
 
+import math
+
 import pytest
 
 from paper_trading.ledger_events import (
@@ -32,6 +34,8 @@ from paper_trading.paper_portfolio_ledger import (
     SequenceRegressionError,
     project,
 )
+
+DBL_MAX = 1.7976931348623157e308
 
 EPOCH = "pe-core-001"
 
@@ -578,6 +582,91 @@ def test_contradictory_caller_gross_pnl_is_structurally_impossible():
 
     sig = inspect.signature(make_position_closed_event)
     assert "gross_pnl" not in sig.parameters
+
+
+# ── PPL-02A-R2: derived numeric finiteness (finite inputs can overflow) ──
+
+
+def test_long_close_arithmetic_overflow_rejected():
+    """entry_price finite>0, exit_price finite>0, but their ratio overflows
+    IEEE-754 double range — the derived gross_pct/gross_pnl must be caught,
+    not silently returned as inf."""
+    events = [
+        epoch_created(capital=100.0),
+        opened(2, "t1", principal=10.0, entry_fee=0.0, entry_price=1e-300, side="LONG"),
+        closed(3, "t1", exit_price=1e300, exit_fee=0.0),
+    ]
+    with pytest.raises(NonFiniteValueError):
+        project(events)
+
+
+def test_short_close_arithmetic_overflow_rejected():
+    """Same overflow class, independently reachable via the SHORT branch of
+    the gross_pct formula (entry - exit)/entry rather than LONG's
+    (exit - entry)/entry."""
+    events = [
+        epoch_created(capital=100.0),
+        opened(2, "t1", principal=10.0, entry_fee=0.0, entry_price=1e-300, side="SHORT"),
+        closed(3, "t1", exit_price=1e300, exit_fee=0.0),
+    ]
+    with pytest.raises(NonFiniteValueError):
+        project(events)
+
+
+def test_mark_to_market_overflow_rejected_distinct_from_missing_mark():
+    """A present, finite, positive mark whose arithmetic overflows is a
+    domain error (NonFiniteValueError) — NOT the same outcome as a missing
+    mark (which degrades mark_coverage_complete to False without raising)."""
+    events = [
+        epoch_created(capital=100.0),
+        opened(2, "t1", principal=10.0, entry_fee=0.0, entry_price=1e-300, symbol="BTCUSDT", side="LONG"),
+    ]
+    state = project(events)
+    # Sanity: a genuinely missing mark does NOT raise.
+    breakdown = state.equity()
+    assert breakdown.mark_coverage_complete is False
+    assert breakdown.equity is None
+
+    # A present but overflow-inducing mark DOES raise, distinctly.
+    with pytest.raises(NonFiniteValueError):
+        state.equity(mark_prices={"BTCUSDT": 1e300})
+
+
+def test_cumulative_realized_pnl_overflow_rejected():
+    """Two individually-finite gross_pnl values whose cumulative sum in
+    state.realized_pnl (or available_cash) overflows must still fail
+    closed, not silently produce inf in published state."""
+    huge_exit = 1.0 + 1e308  # entry=1.0 -> gross_pnl ~= 1e308, still finite
+    events = [
+        epoch_created(capital=100.0),
+        opened(2, "t1", principal=1.0, entry_fee=0.0, entry_price=1.0, side="LONG"),
+        closed(3, "t1", exit_price=huge_exit, exit_fee=0.0),
+        opened(4, "t2", principal=1.0, entry_fee=0.0, entry_price=1.0, side="LONG"),
+    ]
+    # First close alone must succeed (result is huge but finite).
+    state_after_first_close = project(events[:3])
+    assert math.isfinite(state_after_first_close.realized_pnl)
+    assert math.isfinite(state_after_first_close.available_cash)
+
+    # A second close of the same enormous magnitude pushes the cumulative
+    # total past DBL_MAX -> must fail closed, not become inf.
+    events_second_close = events + [closed(5, "t2", exit_price=huge_exit, exit_fee=0.0)]
+    with pytest.raises(NonFiniteValueError):
+        project(events_second_close)
+
+
+def test_ordinary_large_but_finite_values_remain_accepted():
+    """A large-but-finite result (no overflow) must NOT be rejected —
+    NonFiniteValueError is only for actual NaN/Inf, not merely 'big'."""
+    events = [
+        epoch_created(capital=1e100),
+        opened(2, "t1", principal=1e100, entry_fee=0.0, entry_price=1.0, side="LONG"),
+        closed(3, "t1", exit_price=2.0, exit_fee=0.0),
+    ]
+    state = project(events)
+    # gross_pnl = 1e100 * (2-1)/1 = 1e100, well within double range.
+    assert math.isfinite(state.realized_pnl)
+    assert state.realized_pnl == pytest.approx(1e100)
 
 
 # ── Determinism / replay ───────────────────────────────────────────────

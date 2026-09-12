@@ -142,6 +142,27 @@ def _valid_mark_price(price: Any) -> bool:
     return price > 0
 
 
+def _finite_derived(name: str, value: float) -> float:
+    """Validate a DERIVED arithmetic result stays finite (PPL-02A-R2).
+
+    R1's `_finite()` validates event *inputs*. Finite inputs do not
+    guarantee a finite *result* — `(exit_price - entry_price) / entry_price`
+    on two ordinary finite floats can still overflow to +/-inf, and any
+    finite quantity combined with it (gross_pnl, trade_realized_pnl,
+    available_cash, realized_pnl, fees_paid, unrealized PnL, equity) then
+    silently carries that infinity forward. This helper closes that gap:
+    every derived quantity is checked before it is folded into published
+    state or returned to a caller. Never clamps, never substitutes zero or
+    a maximum value — fails closed with `NonFiniteValueError`.
+    """
+    if math.isnan(value) or math.isinf(value):
+        raise NonFiniteValueError(
+            f"derived {name} is not finite ({value!r}) — arithmetic "
+            "overflow on otherwise-finite inputs"
+        )
+    return value
+
+
 # ── State ────────────────────────────────────────────────────────────────
 
 
@@ -235,18 +256,33 @@ class PaperPortfolioState:
         for trade_id, pos in self.open_positions.items():
             price = mark_prices.get(pos.symbol)
             if not _valid_mark_price(price):
+                # Missing/invalid mark: coverage is incomplete. This is
+                # distinct from an arithmetic overflow below on an
+                # otherwise-valid mark — a missing mark never raises, it
+                # only ever degrades mark_coverage_complete/equity to None.
                 unpriced.append(trade_id)
                 continue
             if pos.side is Side.LONG:
                 gross_pct = (price - pos.entry_price) / pos.entry_price
             else:
                 gross_pct = (pos.entry_price - price) / pos.entry_price
-            known_unrealized += pos.principal * gross_pct
+            gross_pct = _finite_derived("mark-to-market gross_pct", gross_pct)
+            position_unrealized_pnl = _finite_derived(
+                "position unrealized_pnl", pos.principal * gross_pct
+            )
+            known_unrealized = _finite_derived(
+                "known_unrealized_pnl", known_unrealized + position_unrealized_pnl
+            )
 
         mark_coverage_complete = not unpriced
         if mark_coverage_complete:
-            certified_equity = self.available_cash + self.reserved_principal + known_unrealized
-            equity_value = certified_equity + self.unresolved_capital
+            certified_equity = _finite_derived(
+                "certified_equity",
+                self.available_cash + self.reserved_principal + known_unrealized,
+            )
+            equity_value = _finite_derived(
+                "equity", certified_equity + self.unresolved_capital
+            )
         else:
             certified_equity = None
             equity_value = None
@@ -400,13 +436,19 @@ def _apply_position_opened(
     entry_price = _finite("entry_price", event.payload["entry_price"], positive=True)
     entry_fee = _finite("entry_fee", event.payload["entry_fee"], non_negative=True)
 
-    new_available_cash = state.available_cash - principal - entry_fee
+    new_available_cash = _finite_derived(
+        "available_cash", state.available_cash - principal - entry_fee
+    )
     if new_available_cash < 0:
         raise NegativeCashError(
             f"OPEN {trade_id!r} would drive available_cash negative: "
             f"{state.available_cash} - {principal} - {entry_fee} = "
             f"{new_available_cash}"
         )
+    new_reserved_principal = _finite_derived(
+        "reserved_principal", state.reserved_principal + principal
+    )
+    new_fees_paid = _finite_derived("fees_paid", state.fees_paid + entry_fee)
 
     pos = OpenPositionState(
         trade_id=trade_id,
@@ -423,8 +465,8 @@ def _apply_position_opened(
     return replace(
         state,
         available_cash=new_available_cash,
-        reserved_principal=state.reserved_principal + principal,
-        fees_paid=state.fees_paid + entry_fee,
+        reserved_principal=new_reserved_principal,
+        fees_paid=new_fees_paid,
         open_positions=MappingProxyType(new_open_positions),
         last_sequence=event.sequence,
         seen_event_ids=seen_event_ids,
@@ -448,22 +490,37 @@ def _apply_position_closed(
 
     # PNL AUTHORITY: gross_pnl is DERIVED here, never trusted from the event
     # payload (MASTER finding R1-G) — the event carries only exit_price and
-    # exit_fee as durable facts.
+    # exit_fee as durable facts. PPL-02A-R2: every derived quantity below is
+    # separately checked for finiteness — finite inputs do not guarantee a
+    # finite result (e.g. division by a very small entry_price can overflow).
     if pos.side is Side.LONG:
         gross_pct = (exit_price - pos.entry_price) / pos.entry_price
     else:
         gross_pct = (pos.entry_price - exit_price) / pos.entry_price
-    gross_pnl = pos.principal * gross_pct
+    gross_pct = _finite_derived("gross_pct", gross_pct)
 
-    trade_realized_pnl = gross_pnl - pos.entry_fee - exit_fee
+    gross_pnl = _finite_derived("gross_pnl", pos.principal * gross_pct)
 
-    new_available_cash = state.available_cash + pos.principal + gross_pnl - exit_fee
+    trade_realized_pnl = _finite_derived(
+        "trade_realized_pnl", gross_pnl - pos.entry_fee - exit_fee
+    )
+
+    new_available_cash = _finite_derived(
+        "available_cash", state.available_cash + pos.principal + gross_pnl - exit_fee
+    )
     if new_available_cash < 0:
         raise NegativeCashError(
             f"CLOSE {trade_id!r} would drive available_cash negative: "
             f"{state.available_cash} + {pos.principal} + {gross_pnl} - "
             f"{exit_fee} = {new_available_cash}"
         )
+    new_reserved_principal = _finite_derived(
+        "reserved_principal", state.reserved_principal - pos.principal
+    )
+    new_fees_paid = _finite_derived("fees_paid", state.fees_paid + exit_fee)
+    new_realized_pnl = _finite_derived(
+        "realized_pnl", state.realized_pnl + trade_realized_pnl
+    )
 
     new_open_positions = dict(state.open_positions)
     del new_open_positions[trade_id]
@@ -471,9 +528,9 @@ def _apply_position_closed(
     return replace(
         state,
         available_cash=new_available_cash,
-        reserved_principal=state.reserved_principal - pos.principal,
-        fees_paid=state.fees_paid + exit_fee,
-        realized_pnl=state.realized_pnl + trade_realized_pnl,
+        reserved_principal=new_reserved_principal,
+        fees_paid=new_fees_paid,
+        realized_pnl=new_realized_pnl,
         open_positions=MappingProxyType(new_open_positions),
         closed_trade_ids=state.closed_trade_ids | {trade_id},
         last_sequence=event.sequence,
@@ -495,6 +552,13 @@ def _apply_position_unresolved(
             f"POSITION_UNRESOLVED for trade_id={trade_id!r} with no OPEN"
         )
 
+    new_reserved_principal = _finite_derived(
+        "reserved_principal", state.reserved_principal - pos.principal
+    )
+    new_unresolved_capital = _finite_derived(
+        "unresolved_capital", state.unresolved_capital + pos.principal
+    )
+
     new_open_positions = dict(state.open_positions)
     del new_open_positions[trade_id]
 
@@ -512,8 +576,8 @@ def _apply_position_unresolved(
 
     return replace(
         state,
-        reserved_principal=state.reserved_principal - pos.principal,
-        unresolved_capital=state.unresolved_capital + pos.principal,
+        reserved_principal=new_reserved_principal,
+        unresolved_capital=new_unresolved_capital,
         # realized_pnl deliberately untouched: outcome stays UNKNOWN, never 0.
         open_positions=MappingProxyType(new_open_positions),
         unresolved_positions=MappingProxyType(new_unresolved),
