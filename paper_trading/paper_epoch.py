@@ -1,6 +1,7 @@
 """paper_trading/paper_epoch.py — PaperEpoch: scientific financial experiment boundary.
 
-PPL-02A. Pure domain model, no I/O, no wiring into any runtime path.
+PPL-02A (hardened in PPL-02A-R1). Pure domain model, no I/O, no wiring into
+any runtime path.
 
 A `paper_epoch_id` identifies one bounded PAPER financial experiment over the
 future PaperPortfolioLedger. It is NOT any of the other identifiers already
@@ -18,11 +19,23 @@ identity-relevant field, has no restart/deploy-triggered default, and this
 module contains no code path that could be invoked automatically. RESTART !=
 RESET, DEPLOY != RESET, PULL != RESET: none of those events may construct a
 PaperEpoch.
+
+PAPER EPOCH AUTHORITY CONTRACT (PPL-02A-R1, MASTER finding R1-C/R1-K):
+`EPOCH_CREATED` (see ledger_events.py) is the future DURABLE birth fact for a
+PaperEpoch. `PaperEpoch` itself is a pure domain VALUE OBJECT representing
+that fact — it is never an independent persisted financial authority. A
+caller builds a `PaperEpoch` via `create_paper_epoch()`, then builds the
+`EPOCH_CREATED` event from it (`ledger_events.make_epoch_created_event`,
+carrying every PaperEpoch field in its payload); `paper_portfolio_ledger.
+project()` reconstructs the complete `PaperEpoch` (as `PaperPortfolioState.
+epoch`) purely by replaying that one event — no external file or side
+channel is required to recover the epoch's birth metadata.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+import math
+from dataclasses import dataclass, replace
 from enum import Enum
 
 
@@ -45,6 +58,14 @@ class InvalidPaperEpochTransition(PaperEpochError):
     """Raised when a status transition is not permitted."""
 
 
+def _require_finite(name: str, value: float) -> float:
+    if not isinstance(value, (int, float)) or isinstance(value, bool):
+        raise ValueError(f"{name} must be a real number, got {value!r}")
+    if math.isnan(value) or math.isinf(value):
+        raise ValueError(f"{name} must be finite, got {value!r}")
+    return float(value)
+
+
 @dataclass(frozen=True)
 class PaperEpoch:
     """A bounded PAPER financial experiment.
@@ -65,12 +86,20 @@ class PaperEpoch:
     def __post_init__(self) -> None:
         if not self.paper_epoch_id:
             raise ValueError("paper_epoch_id must be non-empty")
-        if self.initial_virtual_capital <= 0:
+        created_at = _require_finite("created_at", self.created_at)
+        capital = _require_finite("initial_virtual_capital", self.initial_virtual_capital)
+        if capital <= 0:
             raise ValueError("initial_virtual_capital must be > 0")
         if not self.code_sha:
             raise ValueError("code_sha must be non-empty")
         if not self.config_snapshot_hash:
             raise ValueError("config_snapshot_hash must be non-empty")
+        if not isinstance(self.schema_version, int) or self.schema_version < 1:
+            raise ValueError("schema_version must be an integer >= 1")
+        # Normalize float coercion (e.g. created_at=1000 -> 1000.0) without
+        # mutating a frozen instance outside __post_init__'s object.__setattr__.
+        object.__setattr__(self, "created_at", created_at)
+        object.__setattr__(self, "initial_virtual_capital", capital)
 
     def close(self) -> "PaperEpoch":
         """Terminal transition ACTIVE -> CLOSED. Returns a new instance."""
@@ -86,8 +115,6 @@ class PaperEpoch:
                 f"epoch {self.paper_epoch_id} is already terminal "
                 f"({self.status.value}); cannot transition to {new_status.value}"
             )
-        from dataclasses import replace
-
         return replace(self, status=new_status)
 
     @property

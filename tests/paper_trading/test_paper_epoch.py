@@ -1,4 +1,4 @@
-"""Tests for paper_trading/paper_epoch.py (PPL-02A)."""
+"""Tests for paper_trading/paper_epoch.py (PPL-02A, hardened PPL-02A-R1)."""
 
 import pytest
 
@@ -50,6 +50,22 @@ def test_paper_epoch_id_never_aliases_exposure_epoch_id_field_name():
     ],
 )
 def test_create_paper_epoch_rejects_missing_identity_fields(field_name, bad_value):
+    with pytest.raises(ValueError):
+        _make_epoch(**{field_name: bad_value})
+
+
+@pytest.mark.parametrize(
+    "field_name,bad_value",
+    [
+        ("created_at", float("nan")),
+        ("created_at", float("inf")),
+        ("created_at", float("-inf")),
+        ("initial_virtual_capital", float("nan")),
+        ("initial_virtual_capital", float("inf")),
+        ("initial_virtual_capital", float("-inf")),
+    ],
+)
+def test_create_paper_epoch_rejects_non_finite_fields(field_name, bad_value):
     with pytest.raises(ValueError):
         _make_epoch(**{field_name: bad_value})
 

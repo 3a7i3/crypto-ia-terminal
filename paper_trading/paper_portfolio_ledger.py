@@ -11,8 +11,7 @@ path — `core/advisor_loop.py`, `infra/wallet_sync.py`,
 Telegram, or dashboards are untouched and unaware this module exists.
 Persistence (JSONL, fsync, SQLite) is explicitly deferred to PPL-02B.
 
-Canonical accounting model (PPL-02A mission, mirroring PPL-01R's ratified
-equations):
+Canonical accounting model (ratified PPL-01R, hardened PPL-02A-R1):
 
     OPEN:
         available_cash    -= principal + entry_fee
@@ -20,6 +19,13 @@ equations):
         fees_paid          += entry_fee
 
     CLOSE (normal, known outcome):
+        gross_pnl = DERIVED by this module from principal/side/entry_price
+                    (known from the matching OPEN) and the CLOSE event's
+                    exit_price — never a caller-supplied, independently
+                    trusted value (MASTER finding R1-G: one authority only).
+            LONG:  gross_pnl = principal * (exit_price - entry_price) / entry_price
+            SHORT: gross_pnl = principal * (entry_price - exit_price) / entry_price
+
         available_cash    += principal + gross_pnl - exit_fee
         reserved_principal -= principal
         fees_paid          += exit_fee
@@ -36,22 +42,29 @@ Entry fee is charged exactly once (at OPEN, folded into `fees_paid` and into
 `available_cash`'s debit) and appears exactly once more inside
 `trade_realized_pnl`'s bookkeeping formula for reporting purposes only — it
 is NOT re-debited from `available_cash` a second time at CLOSE (see
-`equity()`/`test_entry_fee_charged_exactly_once`, and the explicit
-regression test reproducing the confirmed MexcSimulator double-charge
-defect from PPL-01R's ENTRY_FEE_DEFECT_VERDICT).
+`test_entry_fee_charged_exactly_once`, and the explicit regression test
+reproducing the confirmed MexcSimulator double-charge defect from PPL-01R's
+ENTRY_FEE_DEFECT_VERDICT).
 
-equity = available_cash + reserved_principal + unrealized_pnl + unresolved_capital
-certified_equity = available_cash + reserved_principal + unrealized_pnl
-    (i.e. equity with unresolved_capital carved out and reported separately
-    — never silently folded into a single spendable number).
+MARK COVERAGE CONTRACT (PPL-02A-R1, MASTER finding R1-A): `equity()` never
+substitutes zero for a missing/invalid mark price. If every open position
+has a valid (finite, positive) mark, "mark coverage" is complete and
+`certified_equity`/`equity` are numbers. If ANY open position lacks a valid
+mark, coverage is incomplete and both are `None` — UNKNOWN != ZERO applies
+to mark-to-market exactly as it does to realized PnL. With zero open
+positions, coverage is trivially complete and unrealized PnL is legitimately
+0.0.
 """
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field, replace
-from typing import Mapping, Optional, Sequence
+from types import MappingProxyType
+from typing import Any, FrozenSet, Mapping, Optional, Sequence
 
-from paper_trading.ledger_events import LedgerEvent, LedgerEventType
+from paper_trading.ledger_events import LedgerEvent, LedgerEventType, Side
+from paper_trading.paper_epoch import PaperEpoch, PaperEpochStatus
 
 
 # ── Errors — fail closed, never silently repair malformed history ──────────
@@ -97,6 +110,38 @@ class NegativeCashError(LedgerReplayError):
     pass
 
 
+class NonFiniteValueError(LedgerReplayError):
+    """A financial field was NaN, +/-Inf, or otherwise not a real number."""
+
+
+class InvalidSideError(LedgerReplayError):
+    """A POSITION_OPENED payload carried a side outside {LONG, SHORT}."""
+
+
+# ── Numeric validation — fail closed on NaN/Inf (MASTER finding R1-D) ─────
+
+
+def _finite(name: str, value: Any, *, positive: bool = False, non_negative: bool = False) -> float:
+    if not isinstance(value, (int, float)) or isinstance(value, bool):
+        raise NonFiniteValueError(f"{name} must be a real number, got {value!r}")
+    if math.isnan(value) or math.isinf(value):
+        raise NonFiniteValueError(f"{name} must be finite, got {value!r}")
+    value = float(value)
+    if positive and value <= 0:
+        raise IllegalTransitionError(f"{name} must be > 0, got {value!r}")
+    if non_negative and value < 0:
+        raise IllegalTransitionError(f"{name} must be >= 0, got {value!r}")
+    return value
+
+
+def _valid_mark_price(price: Any) -> bool:
+    if not isinstance(price, (int, float)) or isinstance(price, bool):
+        return False
+    if math.isnan(price) or math.isinf(price):
+        return False
+    return price > 0
+
+
 # ── State ────────────────────────────────────────────────────────────────
 
 
@@ -104,7 +149,7 @@ class NegativeCashError(LedgerReplayError):
 class OpenPositionState:
     trade_id: str
     symbol: str
-    side: str
+    side: Side
     principal: float
     entry_price: float
     entry_fee: float
@@ -115,7 +160,7 @@ class OpenPositionState:
 class UnresolvedPositionState:
     trade_id: str
     symbol: str
-    side: str
+    side: Side
     principal: float
     entry_price: float
     entry_fee: float
@@ -125,29 +170,49 @@ class UnresolvedPositionState:
 
 @dataclass(frozen=True)
 class EquityBreakdown:
-    """Mark-to-market snapshot. Never persisted, always freshly computed."""
+    """Mark-to-market snapshot. Never persisted, always freshly computed.
+
+    `certified_equity` and `equity` are `None` whenever `mark_coverage_complete`
+    is `False` — a missing or invalid mark price for even one open position
+    means total unrealized PnL is UNKNOWN, not zero, and no equity figure is
+    presented as if it were exact (MASTER finding R1-A). `unpriced_trade_ids`
+    names exactly which open positions lack a valid mark.
+    """
 
     available_cash: float
     reserved_principal: float
-    unrealized_pnl: float
+    known_unrealized_pnl: float
     unresolved_capital: float
-    equity: float
-    certified_equity: float
+    mark_coverage_complete: bool
+    unpriced_trade_ids: FrozenSet[str]
+    certified_equity: Optional[float]
+    equity: Optional[float]
 
 
 @dataclass(frozen=True)
 class PaperPortfolioState:
-    """Immutable projection result. Every mutation returns a new instance."""
+    """Immutable projection result. Every mutation returns a new instance.
+
+    `open_positions` and `unresolved_positions` are exposed as
+    `MappingProxyType` read-only views (MASTER finding R1-C): a caller
+    cannot mutate them, and internal replay logic never mutates a
+    previously-published mapping in place — every transition builds a new
+    dict and wraps it in a fresh `MappingProxyType` before it becomes part
+    of the (also frozen) state.
+    """
 
     paper_epoch_id: Optional[str] = None
+    epoch: Optional[PaperEpoch] = None
     available_cash: float = 0.0
     reserved_principal: float = 0.0
     unresolved_capital: float = 0.0
     realized_pnl: float = 0.0
     fees_paid: float = 0.0
-    open_positions: Mapping[str, OpenPositionState] = field(default_factory=dict)
+    open_positions: Mapping[str, OpenPositionState] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
     unresolved_positions: Mapping[str, UnresolvedPositionState] = field(
-        default_factory=dict
+        default_factory=lambda: MappingProxyType({})
     )
     closed_trade_ids: frozenset = field(default_factory=frozenset)
     last_sequence: int = 0
@@ -159,33 +224,42 @@ class PaperPortfolioState:
         """Compute mark-to-market equity. Pure query, not part of replay.
 
         `mark_prices` maps symbol -> current price. A position whose symbol
-        is missing from `mark_prices` (or `mark_prices` is omitted
-        entirely) contributes zero unrealized PnL for that position — its
-        principal is still counted via `reserved_principal`, so equity is
-        never understated to zero, only its live P&L component is
-        unavailable.
+        is missing from `mark_prices`, or whose price is not finite and
+        positive, makes mark coverage incomplete for the whole snapshot —
+        `certified_equity` and `equity` become `None` rather than silently
+        treating that position's unrealized PnL as zero.
         """
         mark_prices = mark_prices or {}
-        unrealized = 0.0
-        for pos in self.open_positions.values():
+        known_unrealized = 0.0
+        unpriced: list = []
+        for trade_id, pos in self.open_positions.items():
             price = mark_prices.get(pos.symbol)
-            if price is None or price <= 0:
+            if not _valid_mark_price(price):
+                unpriced.append(trade_id)
                 continue
-            if pos.side.upper() in ("BUY", "LONG"):
+            if pos.side is Side.LONG:
                 gross_pct = (price - pos.entry_price) / pos.entry_price
             else:
                 gross_pct = (pos.entry_price - price) / pos.entry_price
-            unrealized += pos.principal * gross_pct
+            known_unrealized += pos.principal * gross_pct
 
-        certified_equity = self.available_cash + self.reserved_principal + unrealized
-        equity = certified_equity + self.unresolved_capital
+        mark_coverage_complete = not unpriced
+        if mark_coverage_complete:
+            certified_equity = self.available_cash + self.reserved_principal + known_unrealized
+            equity_value = certified_equity + self.unresolved_capital
+        else:
+            certified_equity = None
+            equity_value = None
+
         return EquityBreakdown(
             available_cash=self.available_cash,
             reserved_principal=self.reserved_principal,
-            unrealized_pnl=unrealized,
+            known_unrealized_pnl=known_unrealized,
             unresolved_capital=self.unresolved_capital,
-            equity=equity,
+            mark_coverage_complete=mark_coverage_complete,
+            unpriced_trade_ids=frozenset(unpriced),
             certified_equity=certified_equity,
+            equity=equity_value,
         )
 
 
@@ -194,6 +268,14 @@ class PaperPortfolioState:
 
 def project(events: Sequence[LedgerEvent]) -> PaperPortfolioState:
     """Deterministic, side-effect-free replay: events -> PaperPortfolioState.
+
+    STREAM PARTITION CONTRACT (MASTER finding R1-J): one call to `project()`
+    accepts exactly one scientific epoch. The first event must be
+    EPOCH_CREATED; every subsequent event must carry the same
+    `paper_epoch_id`; a second EPOCH_CREATED is rejected
+    (`IllegalTransitionError`). A future durable store holding multiple
+    epochs must partition/select a single epoch's events before calling
+    this function — `project()` itself never crosses epochs silently.
 
     Fails closed on any malformed/out-of-order history — raises a
     `LedgerReplayError` subclass rather than silently repairing or skipping
@@ -220,7 +302,8 @@ def _apply(state: PaperPortfolioState, event: LedgerEvent) -> PaperPortfolioStat
     else:
         if event.event_type is LedgerEventType.EPOCH_CREATED:
             raise IllegalTransitionError(
-                "EPOCH_CREATED may only appear as the first event"
+                "EPOCH_CREATED may only appear as the first event of a "
+                "projected stream — one project() call == one paper_epoch_id"
             )
         if event.paper_epoch_id != state.paper_epoch_id:
             raise EpochMismatchError(
@@ -258,13 +341,29 @@ def _apply(state: PaperPortfolioState, event: LedgerEvent) -> PaperPortfolioStat
 def _apply_epoch_created(
     state: PaperPortfolioState, event: LedgerEvent, seen_event_ids: frozenset
 ) -> PaperPortfolioState:
-    initial_virtual_capital = float(event.payload["initial_virtual_capital"])
-    if initial_virtual_capital <= 0:
-        raise IllegalTransitionError("initial_virtual_capital must be > 0")
+    initial_virtual_capital = _finite(
+        "initial_virtual_capital", event.payload["initial_virtual_capital"], positive=True
+    )
+    code_sha = str(event.payload["code_sha"])
+    config_snapshot_hash = str(event.payload["config_snapshot_hash"])
+
+    # PAPER EPOCH AUTHORITY CONTRACT: reconstruct the complete PaperEpoch
+    # domain object purely from this one durable event — no external file
+    # or side channel is required during replay (MASTER finding R1-K).
+    epoch = PaperEpoch(
+        paper_epoch_id=event.paper_epoch_id,
+        created_at=event.timestamp,
+        initial_virtual_capital=initial_virtual_capital,
+        status=PaperEpochStatus.ACTIVE,
+        code_sha=code_sha,
+        config_snapshot_hash=config_snapshot_hash,
+        schema_version=event.schema_version,
+    )
 
     return replace(
         state,
         paper_epoch_id=event.paper_epoch_id,
+        epoch=epoch,
         available_cash=initial_virtual_capital,
         reserved_principal=0.0,
         unresolved_capital=0.0,
@@ -288,12 +387,18 @@ def _apply_position_opened(
             f"trade_id={trade_id!r} already used by a prior trade lifecycle"
         )
 
-    principal = float(event.payload["principal"])
-    entry_fee = float(event.payload["entry_fee"])
-    if principal <= 0:
-        raise IllegalTransitionError("principal must be > 0")
-    if entry_fee < 0:
-        raise IllegalTransitionError("entry_fee must be >= 0")
+    raw_side = event.payload["side"]
+    try:
+        side = Side(raw_side)
+    except ValueError as exc:
+        raise InvalidSideError(
+            f"invalid side {raw_side!r} in POSITION_OPENED payload for "
+            f"trade_id={trade_id!r}"
+        ) from exc
+
+    principal = _finite("principal", event.payload["principal"], positive=True)
+    entry_price = _finite("entry_price", event.payload["entry_price"], positive=True)
+    entry_fee = _finite("entry_fee", event.payload["entry_fee"], non_negative=True)
 
     new_available_cash = state.available_cash - principal - entry_fee
     if new_available_cash < 0:
@@ -306,9 +411,9 @@ def _apply_position_opened(
     pos = OpenPositionState(
         trade_id=trade_id,
         symbol=str(event.payload["symbol"]),
-        side=str(event.payload["side"]),
+        side=side,
         principal=principal,
-        entry_price=float(event.payload["entry_price"]),
+        entry_price=entry_price,
         entry_fee=entry_fee,
         opened_sequence=event.sequence,
     )
@@ -320,7 +425,7 @@ def _apply_position_opened(
         available_cash=new_available_cash,
         reserved_principal=state.reserved_principal + principal,
         fees_paid=state.fees_paid + entry_fee,
-        open_positions=new_open_positions,
+        open_positions=MappingProxyType(new_open_positions),
         last_sequence=event.sequence,
         seen_event_ids=seen_event_ids,
     )
@@ -338,10 +443,17 @@ def _apply_position_closed(
     if pos is None:
         raise CloseWithoutOpenError(f"CLOSE for trade_id={trade_id!r} with no OPEN")
 
-    gross_pnl = float(event.payload["gross_pnl"])
-    exit_fee = float(event.payload["exit_fee"])
-    if exit_fee < 0:
-        raise IllegalTransitionError("exit_fee must be >= 0")
+    exit_price = _finite("exit_price", event.payload["exit_price"], positive=True)
+    exit_fee = _finite("exit_fee", event.payload["exit_fee"], non_negative=True)
+
+    # PNL AUTHORITY: gross_pnl is DERIVED here, never trusted from the event
+    # payload (MASTER finding R1-G) — the event carries only exit_price and
+    # exit_fee as durable facts.
+    if pos.side is Side.LONG:
+        gross_pct = (exit_price - pos.entry_price) / pos.entry_price
+    else:
+        gross_pct = (pos.entry_price - exit_price) / pos.entry_price
+    gross_pnl = pos.principal * gross_pct
 
     trade_realized_pnl = gross_pnl - pos.entry_fee - exit_fee
 
@@ -362,7 +474,7 @@ def _apply_position_closed(
         reserved_principal=state.reserved_principal - pos.principal,
         fees_paid=state.fees_paid + exit_fee,
         realized_pnl=state.realized_pnl + trade_realized_pnl,
-        open_positions=new_open_positions,
+        open_positions=MappingProxyType(new_open_positions),
         closed_trade_ids=state.closed_trade_ids | {trade_id},
         last_sequence=event.sequence,
         seen_event_ids=seen_event_ids,
@@ -403,8 +515,8 @@ def _apply_position_unresolved(
         reserved_principal=state.reserved_principal - pos.principal,
         unresolved_capital=state.unresolved_capital + pos.principal,
         # realized_pnl deliberately untouched: outcome stays UNKNOWN, never 0.
-        open_positions=new_open_positions,
-        unresolved_positions=new_unresolved,
+        open_positions=MappingProxyType(new_open_positions),
+        unresolved_positions=MappingProxyType(new_unresolved),
         unresolved_count_total=state.unresolved_count_total + 1,
         last_sequence=event.sequence,
         seen_event_ids=seen_event_ids,
