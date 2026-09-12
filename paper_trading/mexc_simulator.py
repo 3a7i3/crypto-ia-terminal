@@ -464,7 +464,20 @@ class MexcSimulator:
                 fee_entry = 0.0
                 evidence_gaps.append("fee_entry_unknown")
 
-            personality = "restored" if not evidence_gaps else "restored_evidence_incomplete"
+            # REM-C R1.3 — MASTER found that varying `personality` by
+            # evidence completeness broke `observability/
+            # operator_snapshot_builder.py`'s `is_restored = personality ==
+            # "restored"` check: an evidence-incomplete restored position
+            # would read as `restored=False` (case 1), and — the reverse
+            # error — a fully-evidenced restored position (durable TP/SL,
+            # `personality="restored"` unchanged) would still be labeled
+            # `tp_sl_source="restored_default"` as if reconstructed (case
+            # 2). `personality` now stays `"restored"` for EVERY
+            # ledger-restored position regardless of evidence completeness
+            # — "was this position restored from the ledger" and "is its
+            # evidence complete" are two different facts, and only
+            # `restored_evidence_gaps` (unchanged) carries the second one.
+            personality = "restored"
             if evidence_gaps:
                 _log.warning(
                     "[SIM] Restore %s — évidence incomplète (%s), valeurs "

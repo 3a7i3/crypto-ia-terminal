@@ -931,17 +931,59 @@ capital boundary, REM-A/REM-B suites): 748 passed. Same 9 pre-existing
 `ruff_baseline_gate.py check`: 958/958, zero new. `git diff --check`:
 clean.
 
-**Updated verdict: still `REMEDIATION_REQUIRED`.** REM-C R1.2 closes the
-three residual fail-open gaps MASTER found in R1.1's own implementation
-(an unresolved-domain position could certify CLEAN; an unreadable internal
-position state was silently treated as empty rather than unknown; the raw
-paper ledger event still fabricated a zero exit price even after the
-derived fields were fixed), and closes a confirmed fee-evidence honesty
-gap (an assumed entry fee could produce an unflagged, seemingly fully-
-evidenced realized PnL). It does not implement the fill-evidence chain,
-does not certify real exchange or TESTNET reconciliation (explicitly
-documented as not certified, fail-closed by default), and does not enable
-live or testnet trading in any way. No real order, testnet call, exchange
-call, VPS access, secret access, or deployment occurred in this round.
+**R1.2 verdict (superseded below by R1.3): still `REMEDIATION_REQUIRED`.**
+REM-C R1.2 closed the three residual fail-open gaps MASTER found in
+R1.1's own implementation (an unresolved-domain position could certify
+CLEAN; an unreadable internal position state was silently treated as
+empty rather than unknown; the raw paper ledger event still fabricated a
+zero exit price even after the derived fields were fixed), and closed a
+confirmed fee-evidence honesty gap (an assumed entry fee could produce an
+unflagged, seemingly fully-evidenced realized PnL).
+
+### 23.8 REM-C R1.3 — MASTER final evidence-semantics round (2026-09-12)
+
+**Addendum to §23.1-23.7, not a rewrite.** MASTER review of R1.2 (head
+`50fd9631a303efe1c431a379292ba2897d879bd2`) found R1.1's `personality`
+distinction had drifted out of sync with a downstream provenance-visible
+consumer, plus two aggregate-statistics gaps. Full technical detail in
+ADR-0021's "R1.3 — MASTER final evidence-semantics round" addendum;
+summarized here:
+
+| Finding | Defect | Correction |
+|---|---|---|
+| A — RESTORED != EVIDENCE_COMPLETE | R1.1's `personality="restored_evidence_incomplete"` broke `observability/operator_snapshot_builder.py`'s `is_restored = personality == "restored"` in both directions: an evidence-incomplete restored position read `restored=False`, and a fully-evidenced restored position (durable TP/SL) was labeled `tp_sl_source="restored_default"` as if reconstructed. | `personality` stays `"restored"` for every ledger-restored position; only `restored_evidence_gaps` carries completeness. `tp_sl_source` now derives from that gap list directly: `"original"` / `"restored_default"` (genuinely reconstructed) / new `"restored_original"` (restored, durably-recovered TP/SL). Frontend contract (`types.ts`, already `\| string`-tolerant) and `O-02W-B` contract doc updated additively — no redesign. |
+| B — HISTORICAL RECORD != CERTIFIED PERFORMANCE SAMPLE | `PaperTradeRecorder.summary()`'s `win_rate`/`target_30_trades`/`go_live_ready` were computed over ALL closed trades, including unknown-outcome (`is_win is None`) ones — diluting win_rate and letting 30 genuinely unknown closes advance `go_live_ready`. | `summary()` now derives those metrics from a `certified` subset (`is_win is not None` and not `pnl_fee_evidence_incomplete`). `total_closed` (raw, backward-compatible) is preserved; new `certified_closed`/`excluded_unevidenced_count` keys make the exclusion explicit. Sole consumer `paper_trading/status.py` updated to match. |
+| C — INCOMPLETE FEE EVIDENCE != FULLY-EVIDENCED PNL (corpus) | `dataset_validator.py::validate_corpus()` already excluded `expired_on_restore` from population stats, but a `pnl_fee_evidence_incomplete=True` close (R1.2) still counted as an ordinary certified WIN/LOSS/TP/SL observation. | New `CorpusReport.fee_evidence_incomplete` counter; population loop excludes such closes (same `continue` pattern as `expired_on_restore`) without touching paired-trade/integrity accounting or treating it as corrupted data — an explicit warning names the exclusion. |
+
+**Files changed (R1.3):** `paper_trading/{mexc_simulator,recorder,status,
+dataset_validator}.py`, `observability/operator_snapshot_builder.py`,
+`frontend/src/types.ts`, `docs/contracts/
+O-02W-B_CANONICAL_OPERATOR_API_CONTRACT.md`, `tests/
+test_operator_snapshot_builder.py` (2 new tests + 1 fixture extension),
+`tests/test_rem_c_r1_execution_domain.py` (15 new tests, 1 updated),
+ADR-0021 + this §23.8 addendum.
+
+**Tests:** `tests/test_rem_c_r1_execution_domain.py` — 55/55 passed (9 R1
++ 21 R1.1 + 14 R1.2 + 11 R1.3). `tests/test_operator_snapshot_builder.py`
+— 146/146 passed. Full targeted regression (`test_position_manager`,
+`test_exchange_reality`, `test_restart_safety`, `test_dataset_validator`,
+`paper_trading/`, `test_pre_t1_c_portfolio_provider_read_only`, PRE-T1-D
+capital boundary, REM-A/REM-B suites, `tests/cross_stack/`): 918 passed.
+Same 9 pre-existing `TestB3AuditRecovery` failures across all four
+rounds, confirmed unrelated. `ruff_baseline_gate.py check`: 957/957, zero
+new (one incidental pre-existing lint finding fixed during the
+`summary()` rewrite, baseline count correctly dropped 958→957).
+`git diff --check`: clean.
+
+**Updated verdict: still `REMEDIATION_REQUIRED`.** REM-C R1.3 closes the
+provenance-visible drift MASTER found between R1.1's restore-evidence
+model and the operator snapshot it feeds, and closes two aggregate-
+statistics surfaces (`PaperTradeRecorder.summary()`,
+`dataset_validator.py`'s corpus population) that still let unevidenced or
+unknown-outcome closes contribute to certified performance metrics. It
+does not implement the fill-evidence chain, does not certify real
+exchange or TESTNET reconciliation, and does not enable live or testnet
+trading in any way. No real order, testnet call, exchange call, VPS
+access, secret access, or deployment occurred in this round.
 `PAPER_TRADING_ENABLED=true` and `LIVE_TRADING_CONFIRMED=false` are
 unchanged. T-1 and F-00 remain not started.

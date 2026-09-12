@@ -26,6 +26,16 @@ def main() -> None:
     print("=" * 60)
     print(f"  Trades complétés : {s['total_closed']:>4}  /  objectif 30")
     print(f"  Positions ouvertes : {s['total_open']:>3}")
+    # REM-C R1.3 — the certified/scientific population (win_rate, PnL
+    # aggregates, GO/LIVE progress below) excludes unknown-outcome and
+    # fee-evidence-incomplete closes; surface that exclusion explicitly
+    # rather than let a smaller certified count look unexplained.
+    excluded = s.get("excluded_unevidenced_count", 0)
+    if excluded:
+        print(
+            f"  dont exclus (évidence incomplète) : {excluded:>3}  — "
+            f"certifiés : {s.get('certified_closed', 0)}"
+        )
     print()
 
     if s["total_closed"] == 0:
@@ -51,7 +61,12 @@ def main() -> None:
     print(f"  Durée moy   : {dur:.1f} min" if dur is not None else "  Durée moy   : —")
     print()
     go = s.get("go_live_ready", False)
-    status = "GO LIVE ✓" if go else f"EN COURS ({s['total_closed']}/30)"
+    # REM-C R1.3 — progress toward GO/LIVE is counted over the certified
+    # population (s["certified_closed"]), not the raw closed count, since
+    # go_live_ready itself is now certified-population-based.
+    status = (
+        "GO LIVE ✓" if go else f"EN COURS ({s.get('certified_closed', 0)}/30)"
+    )
     print(f"  Statut GO/LIVE : {status}")
     print()
 

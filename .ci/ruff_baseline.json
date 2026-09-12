@@ -1,7 +1,7 @@
 {
   "$schema": "CI-00B ruff differential baseline v1",
   "rule_selection": "E,F,W (ignore E501,E402)",
-  "count": 958,
+  "count": 957,
   "findings": [
     ".claude/tools/render_docs.py:143:5:F841",
     "S2/01_gate_logger.py:107:15:F541",
@@ -225,8 +225,7 @@
     "observability/live_topology.py:17:37:F401",
     "paper_trading/ledger.py:18:8:F401",
     "paper_trading/ledger.py:19:36:F401",
-    "paper_trading/mexc_simulator.py:1041:9:F841",
-    "paper_trading/recorder.py:523:37:F541",
+    "paper_trading/mexc_simulator.py:1054:9:F841",
     "pieuvre/brain.py:26:8:F401",
     "pieuvre/dashboard/tableau_bord.py:19:21:F401",
     "pieuvre/dashboard/tableau_bord.py:23:31:F401",

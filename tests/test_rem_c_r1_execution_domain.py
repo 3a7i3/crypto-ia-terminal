@@ -208,8 +208,11 @@ def test_scenario_c_restore_flags_reconstructed_tp_sl_and_fee(tmp_path, monkeypa
     sl_price/fee_entry_usd. Restoration must recompute usable values (the
     position-manager can't run with no TP/SL at all) but must NOT claim
     them as the original evidence — MexcPosition.restored_evidence_gaps
-    must say so, and personality must not silently read 'restored' as if
-    fully evidenced."""
+    must say so. `personality` stays "restored" regardless of evidence
+    completeness (REM-C R1.3 — "restored from ledger" and "evidence
+    complete" are different facts; only restored_evidence_gaps carries
+    the second one, since operator_snapshot_builder.py's is_restored
+    check keys off personality=="restored" alone)."""
     from paper_trading.mexc_simulator import MexcSimulator
     from paper_trading.recorder import PaperTradeRecorder
 
@@ -239,7 +242,7 @@ def test_scenario_c_restore_flags_reconstructed_tp_sl_and_fee(tmp_path, monkeypa
     pos = sim._positions["ETH/USDT"]
     assert "tp_sl_reconstructed_default" in pos.restored_evidence_gaps
     assert "fee_entry_unknown" in pos.restored_evidence_gaps
-    assert pos.personality == "restored_evidence_incomplete"
+    assert pos.personality == "restored"
 
 
 def test_scenario_c_restore_honors_durably_recorded_tp_sl_fee(tmp_path, monkeypatch):
@@ -1221,3 +1224,295 @@ def test_fee_evidence_complete_when_fee_was_durably_recorded(tmp_path, monkeypat
 
     ct = PaperTradeRecorder(log_path=str(log_path)).trades()[-1]
     assert ct.pnl_fee_evidence_incomplete is False
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# REM-C R1.3 — MASTER final evidence-semantics round
+# ═════════════════════════════════════════════════════════════════════════════
+#
+# MASTER review of R1.2 (head 50fd9631a303efe1c431a379292ba2897d879bd2) found:
+#   A. varying MexcPosition.personality by evidence completeness broke
+#      operator_snapshot_builder.py's is_restored/tp_sl_source derivation
+#      in both directions;
+#   B. PaperTradeRecorder.summary() let unknown-outcome closes dilute
+#      win_rate and advance the 30-trade/go_live_ready certification;
+#   C. dataset_validator.py's population statistics did not exclude
+#      pnl_fee_evidence_incomplete closes from certified WIN/LOSS/TP/SL.
+# Each is reproduced against the exact reviewed semantics, then re-asserted
+# as a permanent regression. Finding A's tests live in
+# tests/test_operator_snapshot_builder.py (provenance-visible structure);
+# this file covers B and C.
+
+
+# ── Finding B — summary() must not let unknown outcomes enter the ──────────
+# ── certified win/loss denominator or advance go_live readiness ────────────
+
+
+def test_b1_scientific_win_rate_excludes_unknown_outcome(tmp_path, monkeypatch):
+    """Fail-before proof: one known WIN + one expired_on_restore UNKNOWN
+    must yield win_rate=100%, never 50% (the unknown must not enter the
+    certified denominator at all)."""
+    from paper_trading.recorder import PaperTradeRecorder
+
+    log_path = tmp_path / "paper_trades.jsonl"
+    recorder = PaperTradeRecorder(log_path=str(log_path))
+
+    recorder.record_open(
+        trade_id="W1", symbol="BTC/USDT", side="buy", price=100.0,
+        size_usd=50.0, mode="futures_demo",
+    )
+    recorder.record_close(
+        trade_id="W1", exit_price=110.0, pnl_usd=5.0, pnl_pct=0.10,
+        reason="take_profit", opened_at=time.time() - 100,
+        symbol="BTC/USDT", side="buy", size_usd=50.0,
+    )
+    recorder.record_open(
+        trade_id="U1", symbol="ETH/USDT", side="buy", price=100.0,
+        size_usd=50.0, mode="futures_demo",
+    )
+    recorder.record_close(
+        trade_id="U1", exit_price=None, pnl_usd=None, pnl_pct=None,
+        reason="expired_on_restore", opened_at=time.time() - 999999,
+        symbol="ETH/USDT", side="buy", size_usd=50.0,
+    )
+
+    s = PaperTradeRecorder(log_path=str(log_path)).summary()
+    assert s["win_rate"] == 100.0  # not 50.0
+    assert s["certified_closed"] == 1
+    assert s["total_closed"] == 2
+    assert s["excluded_unevidenced_count"] == 1
+
+
+def test_b2_expired_on_restore_does_not_advance_certified_target(tmp_path):
+    from paper_trading.recorder import PaperTradeRecorder
+
+    log_path = tmp_path / "paper_trades.jsonl"
+    recorder = PaperTradeRecorder(log_path=str(log_path))
+    for i in range(5):
+        recorder.record_open(
+            trade_id=f"U{i}", symbol="BTC/USDT", side="buy", price=100.0,
+            size_usd=50.0, mode="futures_demo",
+        )
+        recorder.record_close(
+            trade_id=f"U{i}", exit_price=None, pnl_usd=None, pnl_pct=None,
+            reason="expired_on_restore", opened_at=time.time() - 999999,
+            symbol="BTC/USDT", side="buy", size_usd=50.0,
+        )
+
+    s = PaperTradeRecorder(log_path=str(log_path)).summary()
+    assert s["target_30_trades"] == "0 / 30"
+    assert s["certified_closed"] == 0
+    assert s["total_closed"] == 5
+
+
+def test_b3_thirty_unknown_closes_cannot_produce_go_live_ready(tmp_path):
+    """Fail-before proof: 30 UNKNOWN/expired closes must not certify
+    go_live_ready=True."""
+    from paper_trading.recorder import PaperTradeRecorder
+
+    log_path = tmp_path / "paper_trades.jsonl"
+    recorder = PaperTradeRecorder(log_path=str(log_path))
+    for i in range(30):
+        recorder.record_open(
+            trade_id=f"E{i}", symbol="BTC/USDT", side="buy", price=100.0,
+            size_usd=50.0, mode="futures_demo",
+        )
+        recorder.record_close(
+            trade_id=f"E{i}", exit_price=None, pnl_usd=None, pnl_pct=None,
+            reason="expired_on_restore", opened_at=time.time() - 999999,
+            symbol="BTC/USDT", side="buy", size_usd=50.0,
+        )
+
+    s = PaperTradeRecorder(log_path=str(log_path)).summary()
+    assert s["go_live_ready"] is False
+    assert s["total_closed"] == 30
+    assert s["certified_closed"] == 0
+
+
+def test_b4_fully_evidenced_trades_preserve_existing_summary_behavior(tmp_path):
+    """Regression: normal, fully-evidenced trades behave exactly as
+    before R1.3 — certified population equals raw closed population."""
+    from paper_trading.recorder import PaperTradeRecorder
+
+    log_path = tmp_path / "paper_trades.jsonl"
+    recorder = PaperTradeRecorder(log_path=str(log_path))
+    for i, (pnl, pct) in enumerate([(5.0, 0.10), (-2.0, -0.04)]):
+        recorder.record_open(
+            trade_id=f"N{i}", symbol="BTC/USDT", side="buy", price=100.0,
+            size_usd=50.0, mode="futures_demo",
+        )
+        recorder.record_close(
+            trade_id=f"N{i}", exit_price=100.0 * (1 + pct), pnl_usd=pnl,
+            pnl_pct=pct, reason="take_profit" if pnl > 0 else "stop_loss",
+            opened_at=time.time() - 100, symbol="BTC/USDT", side="buy",
+            size_usd=50.0,
+        )
+
+    s = PaperTradeRecorder(log_path=str(log_path)).summary()
+    assert s["total_closed"] == 2
+    assert s["certified_closed"] == 2
+    assert s["excluded_unevidenced_count"] == 0
+    assert s["win_rate"] == 50.0
+
+
+def test_b5_raw_historical_count_remains_observable(tmp_path):
+    """B5 — the raw historical closed count stays available even when the
+    certified population is smaller — nothing is deleted, only excluded
+    from the certified aggregates."""
+    from paper_trading.recorder import PaperTradeRecorder
+
+    log_path = tmp_path / "paper_trades.jsonl"
+    recorder = PaperTradeRecorder(log_path=str(log_path))
+    recorder.record_open(
+        trade_id="U1", symbol="BTC/USDT", side="buy", price=100.0,
+        size_usd=50.0, mode="futures_demo",
+    )
+    recorder.record_close(
+        trade_id="U1", exit_price=None, pnl_usd=None, pnl_pct=None,
+        reason="expired_on_restore", opened_at=time.time() - 999999,
+        symbol="BTC/USDT", side="buy", size_usd=50.0,
+    )
+
+    s = PaperTradeRecorder(log_path=str(log_path)).summary()
+    assert s["total_closed"] == 1  # raw count preserved, not hidden
+    assert len(PaperTradeRecorder(log_path=str(log_path)).trades()) == 1
+
+
+# ── Finding C — dataset_validator must exclude fee-incomplete PnL from ─────
+# ── certified performance population, without treating it as corrupt ──────
+
+
+def test_c1_fee_incomplete_close_is_a_valid_schema_v5_event(tmp_path):
+    from paper_trading.dataset_validator import validate_corpus
+    from paper_trading.recorder import PaperTradeRecorder
+
+    log_path = tmp_path / "corpus.jsonl"
+    recorder = PaperTradeRecorder(log_path=str(log_path))
+    recorder.record_open(
+        trade_id="F1", symbol="XRP/USDT", side="buy", price=1.0,
+        size_usd=50.0, mode="futures_demo",
+    )
+    recorder.record_close(
+        trade_id="F1", exit_price=1.10, pnl_usd=4.5, pnl_pct=0.09,
+        reason="take_profit", opened_at=time.time() - 100,
+        symbol="XRP/USDT", side="buy", size_usd=50.0,
+        pnl_fee_evidence_incomplete=True,
+    )
+    report = validate_corpus(str(log_path))
+    assert report.violations == []  # not treated as corrupted data
+
+
+def test_c2_fee_incomplete_close_remains_paired(tmp_path):
+    from paper_trading.dataset_validator import validate_corpus
+    from paper_trading.recorder import PaperTradeRecorder
+
+    log_path = tmp_path / "corpus.jsonl"
+    recorder = PaperTradeRecorder(log_path=str(log_path))
+    recorder.record_open(
+        trade_id="F2", symbol="XRP/USDT", side="buy", price=1.0,
+        size_usd=50.0, mode="futures_demo",
+    )
+    recorder.record_close(
+        trade_id="F2", exit_price=1.10, pnl_usd=4.5, pnl_pct=0.09,
+        reason="take_profit", opened_at=time.time() - 100,
+        symbol="XRP/USDT", side="buy", size_usd=50.0,
+        pnl_fee_evidence_incomplete=True,
+    )
+    report = validate_corpus(str(log_path))
+    assert report.paired_trades == 1
+    assert report.orphaned_opens == 0
+    assert report.integrity_pct == 100.0
+
+
+def test_c3_fee_incomplete_close_does_not_increment_certified_win_loss(tmp_path):
+    """Fail-before proof: an evidence-incomplete WIN must not silently
+    count toward certified win_count."""
+    from paper_trading.dataset_validator import validate_corpus
+    from paper_trading.recorder import PaperTradeRecorder
+
+    log_path = tmp_path / "corpus.jsonl"
+    recorder = PaperTradeRecorder(log_path=str(log_path))
+    recorder.record_open(
+        trade_id="F3", symbol="XRP/USDT", side="buy", price=1.0,
+        size_usd=50.0, mode="futures_demo",
+    )
+    recorder.record_close(
+        trade_id="F3", exit_price=1.10, pnl_usd=4.5, pnl_pct=0.09,
+        reason="take_profit", opened_at=time.time() - 100,
+        symbol="XRP/USDT", side="buy", size_usd=50.0,
+        pnl_fee_evidence_incomplete=True,
+    )
+    report = validate_corpus(str(log_path))
+    assert report.win_count == 0
+    assert report.loss_count == 0
+    assert report.tp_count == 0
+    assert report.fee_evidence_incomplete == 1
+
+
+def test_c4_fee_incomplete_close_does_not_advance_burnin_population(tmp_path):
+    from paper_trading.dataset_validator import validate_corpus
+    from paper_trading.recorder import PaperTradeRecorder
+
+    log_path = tmp_path / "corpus.jsonl"
+    recorder = PaperTradeRecorder(log_path=str(log_path))
+    for i in range(3):
+        recorder.record_open(
+            trade_id=f"F{i}", symbol="XRP/USDT", side="buy", price=1.0,
+            size_usd=50.0, mode="futures_demo",
+        )
+        recorder.record_close(
+            trade_id=f"F{i}", exit_price=1.10, pnl_usd=4.5, pnl_pct=0.09,
+            reason="take_profit", opened_at=time.time() - 100,
+            symbol="XRP/USDT", side="buy", size_usd=50.0,
+            pnl_fee_evidence_incomplete=True,
+        )
+    report = validate_corpus(str(log_path))
+    tradable = report.win_count + report.loss_count
+    assert tradable == 0
+    assert report.fee_evidence_incomplete == 3
+
+
+def test_c5_report_and_warnings_expose_fee_evidence_exclusion(tmp_path):
+    from paper_trading.dataset_validator import validate_corpus
+    from paper_trading.recorder import PaperTradeRecorder
+
+    log_path = tmp_path / "corpus.jsonl"
+    recorder = PaperTradeRecorder(log_path=str(log_path))
+    recorder.record_open(
+        trade_id="F5", symbol="XRP/USDT", side="buy", price=1.0,
+        size_usd=50.0, mode="futures_demo",
+    )
+    recorder.record_close(
+        trade_id="F5", exit_price=1.10, pnl_usd=4.5, pnl_pct=0.09,
+        reason="take_profit", opened_at=time.time() - 100,
+        symbol="XRP/USDT", side="buy", size_usd=50.0,
+        pnl_fee_evidence_incomplete=True,
+    )
+    report = validate_corpus(str(log_path))
+    assert any("frais" in w.lower() or "fee" in w.lower() for w in report.warnings)
+    assert "Frais incomplets" in report.report()
+    assert report.to_metadata()["stats"]["fee_evidence_incomplete"] == 1
+
+
+def test_c6_fully_evidenced_v5_trade_remains_included_normally(tmp_path):
+    """Regression: a normal schema-v5 trade with
+    pnl_fee_evidence_incomplete=False is unaffected."""
+    from paper_trading.dataset_validator import validate_corpus
+    from paper_trading.recorder import PaperTradeRecorder
+
+    log_path = tmp_path / "corpus.jsonl"
+    recorder = PaperTradeRecorder(log_path=str(log_path))
+    recorder.record_open(
+        trade_id="F6", symbol="XRP/USDT", side="buy", price=1.0,
+        size_usd=50.0, mode="futures_demo",
+    )
+    recorder.record_close(
+        trade_id="F6", exit_price=1.10, pnl_usd=4.5, pnl_pct=0.09,
+        reason="tp", opened_at=time.time() - 100,
+        symbol="XRP/USDT", side="buy", size_usd=50.0,
+        pnl_fee_evidence_incomplete=False,
+    )
+    report = validate_corpus(str(log_path))
+    assert report.win_count == 1
+    assert report.tp_count == 1
+    assert report.fee_evidence_incomplete == 0

@@ -505,34 +505,60 @@ class PaperTradeRecorder:
         return sorted(result, key=lambda t: t.opened_at or t.closed_at or 0)
 
     def summary(self) -> dict:
-        """Statistiques agrégées des trades complétés."""
+        """Statistiques agrégées des trades complétés.
+
+        REM-C R1.3 — MISSING EVIDENCE != WIN/LOSS DENOMINATOR and
+        HISTORICAL RECORD != CERTIFIED PERFORMANCE SAMPLE. `total_closed`
+        (backward-compatible key, unchanged meaning) is the raw historical
+        closed-trade count — nothing is deleted or hidden. But `win_rate`,
+        every PnL-derived aggregate, `target_30_trades`, and
+        `go_live_ready` are now computed ONLY over the CERTIFIED subset:
+        closed trades whose outcome is actually known (`is_win is not
+        None` — excludes `expired_on_restore` and any other genuinely
+        unknown-outcome close) AND whose PnL was not computed against
+        assumed evidence (`pnl_fee_evidence_incomplete` is False, REM-C
+        R1.2). `certified_closed`/`excluded_unevidenced_count` make the
+        exclusion explicit rather than silent.
+        """
         all_trades = self.trades()
         closed = [t for t in all_trades if not t.is_open]
         open_pos = [t for t in all_trades if t.is_open]
+        certified = [
+            t
+            for t in closed
+            if t.is_win is not None
+            and not getattr(t, "pnl_fee_evidence_incomplete", False)
+        ]
+        excluded_count = len(closed) - len(certified)
 
-        if not closed:
+        if not certified:
             return {
-                "total_closed": 0,
+                "total_closed": len(closed),
                 "total_open": len(open_pos),
+                "certified_closed": 0,
+                "excluded_unevidenced_count": excluded_count,
                 "win_rate": None,
                 "pnl_total_usd": 0.0,
                 "pnl_avg_pct": None,
                 "best_trade_pct": None,
                 "worst_trade_pct": None,
                 "avg_duration_min": None,
-                "target_30_trades": f"0 / 30",
+                "target_30_trades": "0 / 30",
+                "go_live_ready": False,
             }
 
-        wins = [t for t in closed if t.is_win]
-        pnls_pct = [t.pnl_pct for t in closed if t.pnl_pct is not None]
-        pnls_usd = [t.pnl_usd for t in closed if t.pnl_usd is not None]
-        durations = [t.duration_s / 60 for t in closed if t.duration_s]
+        wins = [t for t in certified if t.is_win]
+        pnls_pct = [t.pnl_pct for t in certified if t.pnl_pct is not None]
+        pnls_usd = [t.pnl_usd for t in certified if t.pnl_usd is not None]
+        durations = [t.duration_s / 60 for t in certified if t.duration_s]
 
         return {
             "total_closed": len(closed),
             "total_open": len(open_pos),
-            "target_30_trades": f"{len(closed)} / 30",
-            "win_rate": round(len(wins) / len(closed) * 100, 1),
+            "certified_closed": len(certified),
+            "excluded_unevidenced_count": excluded_count,
+            "target_30_trades": f"{len(certified)} / 30",
+            "win_rate": round(len(wins) / len(certified) * 100, 1),
             "pnl_total_usd": round(sum(pnls_usd), 4) if pnls_usd else 0.0,
             "pnl_avg_pct": (
                 round(sum(pnls_pct) / len(pnls_pct) * 100, 3) if pnls_pct else None
@@ -542,7 +568,7 @@ class PaperTradeRecorder:
             "avg_duration_min": (
                 round(sum(durations) / len(durations), 1) if durations else None
             ),
-            "go_live_ready": len(closed) >= 30,
+            "go_live_ready": len(certified) >= 30,
         }
 
     # ── Interne ───────────────────────────────────────────────────────────────

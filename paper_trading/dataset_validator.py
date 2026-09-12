@@ -342,6 +342,13 @@ class CorpusReport:
     orphaned_closes: int = 0  # CLOSE sans OPEN correspondant
     duplicate_trade_ids: int = 0
     expired_on_restore: int = 0  # clôturés via guard restauration
+    # REM-C R1.3 — VALID HISTORICAL EVENT + INCOMPLETE FINANCIAL EVIDENCE:
+    # a paired, chronologically valid CLOSE whose pnl_usd assumed an
+    # unevidenced entry fee (schema v5, REM-C R1.2). Never corrupted data
+    # — kept in paired_trades/integrity accounting — but excluded from the
+    # certified WIN/LOSS/TP/SL/win_rate/duration population below, same as
+    # expired_on_restore.
+    fee_evidence_incomplete: int = 0
 
     # Statistiques population
     win_count: int = 0
@@ -373,6 +380,7 @@ class CorpusReport:
             f"Orphelins CLOSE   : {self.orphaned_closes}",
             f"IDs dupliqués     : {self.duplicate_trade_ids}",
             f"Expirés restore   : {self.expired_on_restore}",
+            f"Frais incomplets  : {self.fee_evidence_incomplete}",
             f"{'─' * 45}",
             f"Win rate          : {self.win_rate:.1%}  (W={self.win_count} L={self.loss_count})",
             f"TP rate           : {self.tp_rate:.1%}  (TP={self.tp_count} SL={self.sl_count})",
@@ -410,6 +418,7 @@ class CorpusReport:
                 "orphaned_closes": self.orphaned_closes,
                 "duplicate_trade_ids": self.duplicate_trade_ids,
                 "expired_on_restore": self.expired_on_restore,
+                "fee_evidence_incomplete": self.fee_evidence_incomplete,
                 "win_rate": round(self.win_rate, 4),
                 "tp_rate": round(self.tp_rate, 4),
                 "mean_duration_s": round(self.mean_duration_s, 1),
@@ -509,6 +518,10 @@ def validate_corpus(log_path: str = _DEFAULT_PATH) -> CorpusReport:
             report.expired_on_restore += 1
             continue  # exclus des stats de trading
 
+        if getattr(cl, "pnl_fee_evidence_incomplete", False):
+            report.fee_evidence_incomplete += 1
+            continue  # évidence de frais incomplète — exclu des stats certifiées
+
         if pnl > 0:
             report.win_count += 1
         else:
@@ -583,6 +596,14 @@ def validate_corpus(log_path: str = _DEFAULT_PATH) -> CorpusReport:
         report.warnings.append(
             f"{report.expired_on_restore} trade(s) expiré(s) au restore "
             f"({rate:.0f}% du corpus) — exclus des stats"
+        )
+
+    if report.fee_evidence_incomplete > 0:
+        rate = report.fee_evidence_incomplete / max(1, report.paired_trades) * 100
+        report.warnings.append(
+            f"{report.fee_evidence_incomplete} trade(s) à évidence de frais "
+            f"incomplète ({rate:.0f}% du corpus) — historique valide, "
+            "exclus des stats certifiées (entry fee assumée, non évidencée)"
         )
 
     if tradable > 0 and report.mean_duration_s < 10:

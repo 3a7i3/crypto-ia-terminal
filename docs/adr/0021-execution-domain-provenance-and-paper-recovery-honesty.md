@@ -523,3 +523,132 @@ TESTNET reconciliation works, only that it correctly refuses to run.
 - `.ci/ruff_baseline.json` — mechanical line-shift only.
 
 No REM-C R2/R3/R4 functionality was implemented in this round either.
+
+---
+
+## R1.3 — MASTER final evidence-semantics round (2026-09-12)
+
+**Addendum to R1/R1.1/R1.2 above, not a rewrite.** MASTER review of R1.2
+(head `50fd9631a303efe1c431a379292ba2897d879bd2`) found that R1.1's own
+`personality` distinction had drifted out of sync with a downstream
+provenance-visible consumer, and that two aggregate-statistics surfaces
+still let unevidenced/unknown outcomes contaminate certified metrics.
+
+### Finding A — RESTORED != EVIDENCE_COMPLETE
+
+R1.1 set `MexcPosition.personality = "restored_evidence_incomplete"` for
+a restored position with any evidence gap, `"restored"` otherwise. But
+`observability/operator_snapshot_builder.py`'s
+`is_restored = personality == "restored"` — a provenance-visible
+structure consumed by the frontend (`frontend/src/types.ts`'s
+`OpenPosition.restored`/`tp_sl_source`) — predates that distinction and
+was never updated to match it. Two failure directions resulted:
+
+1. An evidence-incomplete restored position read `restored=False` —
+   silently misrepresented as a normally-opened position.
+2. A **fully-evidenced** restored position (durable TP/SL recovered via
+   schema v4) kept `personality="restored"` and so was labeled
+   `tp_sl_source="restored_default"` — falsely claiming a 4%/2%
+   reconstruction that never happened.
+
+**Correction.** `personality` now stays `"restored"` for every
+ledger-restored position regardless of evidence completeness — "was this
+position restored from the ledger" (A) and "is its evidence complete" (D)
+are different facts, and only `restored_evidence_gaps` (unchanged, R1)
+carries the second one; `personality` is not overloaded to carry both.
+`operator_snapshot_builder.py`'s `tp_sl_source` now derives from
+`restored_evidence_gaps` directly: `"original"` (never restored,
+unchanged), `"restored_default"` (restored AND
+`"tp_sl_reconstructed_default"` present — genuinely reconstructed),
+`"restored_original"` (new — restored AND that gap absent: durably
+recovered TP/SL, evidence-tier B in the mission's A/B/C/D framing, never
+conflated with either "original" or "restored_default"). The materialized
+position dict also now exposes `restored_evidence_gaps` directly (a
+transparent passthrough — no new state, no redesign). Checked against
+`frontend/src/lib/snapshotValidation.ts` and `frontend/src/types.ts`
+before changing: `tp_sl_source`'s type was already `"original" |
+"restored_default" | string` (the `| string` fallback already tolerated
+new values) and validation only checks it is a non-blank string, so
+adding `"restored_original"` and an optional `restored_evidence_gaps?`
+field required no Web contract redesign — both were extended additively.
+`docs/contracts/O-02W-B_CANONICAL_OPERATOR_API_CONTRACT.md`'s `tp_price`/
+`sl_price` row (which previously documented only the binary
+`"original"`/`"restored_default"` split) is corrected to describe all
+three tiers.
+
+### Finding B — HISTORICAL RECORD != CERTIFIED PERFORMANCE SAMPLE
+
+`PaperTradeRecorder.summary()` computed `win_rate = len(wins) /
+len(closed)`, `target_30_trades`, and `go_live_ready` over ALL closed
+trades — including `is_win is None` (unknown outcome, e.g.
+`expired_on_restore`) ones. An unknown outcome was never counted as a WIN
+(correct, R1.1) but still inflated the denominator (diluting win_rate),
+still advanced the 30-trade target, and could still flip
+`go_live_ready=True` on 30 genuinely unknown closes. Production consumer
+audit: the only reader of `PaperTradeRecorder.summary()` in this
+repository is `paper_trading/status.py` (CLI display) — no other
+production code depends on its keys.
+
+**Correction.** `summary()` now computes a `certified` subset of `closed`
+— trades with `is_win is not None` AND
+`not pnl_fee_evidence_incomplete` (R1.2) — and derives `win_rate`, every
+PnL aggregate, `target_30_trades`, and `go_live_ready` from `certified`
+only. `total_closed` (existing key, unchanged meaning: raw historical
+count) is preserved for backward compatibility — nothing is deleted from
+the historical record. Two new keys, `certified_closed` and
+`excluded_unevidenced_count`, make the exclusion explicit rather than
+silent. `paper_trading/status.py` updated to print the excluded count
+when non-zero and to compute its "EN COURS (x/30)" progress line from
+`certified_closed`, not the raw count.
+
+### Finding C — INCOMPLETE FEE EVIDENCE != FULLY-EVIDENCED PNL (dataset corpus)
+
+`paper_trading/dataset_validator.py::validate_corpus()`'s population loop
+already excluded `expired_on_restore` from WIN/LOSS/TP/SL/duration
+statistics, but a `pnl_fee_evidence_incomplete=True` close (R1.2) — a
+real, chronologically valid, paired trade whose realized PnL assumed an
+unevidenced entry fee — was still counted as an ordinary certified
+observation.
+
+**Correction.** A new `CorpusReport.fee_evidence_incomplete` counter and
+a `continue` in the population loop (mirroring the existing
+`expired_on_restore` pattern exactly) exclude such closes from
+`win_count`/`loss_count`/`tp_count`/`sl_count`/`win_rate`/`tp_rate`/
+`mean_duration_s`. Paired-trade/integrity accounting is unaffected — the
+exclusion happens only inside the population-statistics loop, after
+`paired_trades`/`integrity_pct` are already computed from the full paired
+set. Not treated as corrupted data (no `violations` entry): an explicit
+`warnings` entry names the count and rate, matching the existing
+`expired_on_restore` warning's style. `report()` and `to_metadata()`
+surface the new counter.
+
+### Files changed (R1.3)
+
+- `paper_trading/mexc_simulator.py` — `personality` no longer varies by
+  evidence completeness.
+- `observability/operator_snapshot_builder.py` — `tp_sl_source` derives
+  from `restored_evidence_gaps`; `restored_evidence_gaps` passthrough
+  added to the materialized position dict.
+- `frontend/src/types.ts` — `tp_sl_source` union extended with
+  `"restored_original"`; optional `restored_evidence_gaps?: string[]`
+  added to `OpenPosition`.
+- `docs/contracts/O-02W-B_CANONICAL_OPERATOR_API_CONTRACT.md` — `tp_price`/
+  `sl_price` row corrected to the three-tier model.
+- `paper_trading/recorder.py` — `summary()` computes a certified subset;
+  `certified_closed`/`excluded_unevidenced_count` keys added.
+- `paper_trading/status.py` — displays the excluded count;
+  GO/LIVE progress uses `certified_closed`.
+- `paper_trading/dataset_validator.py` — `fee_evidence_incomplete`
+  counter, population-loop exclusion, warning, `report()`/`to_metadata()`
+  surfacing.
+- `tests/test_operator_snapshot_builder.py` — `_FakePosition` gains
+  `restored_evidence_gaps`; existing restored-position test updated to
+  set it explicitly; two new tests (A2/A3-shaped).
+- `tests/test_rem_c_r1_execution_domain.py` — one existing R1.1 test
+  updated (`personality` assertion), 15 new tests (B1-B5, C1-C6, plus the
+  b/c fee-evidence coverage).
+- `.ci/ruff_baseline.json` — mechanical line-shift, plus one incidental
+  fix (`f"0 / 30"` → `"0 / 30"`, a stray f-string-without-placeholders
+  removed during the `summary()` rewrite — count dropped 958→957).
+
+No REM-C R2/R3/R4 functionality was implemented in this round either.
