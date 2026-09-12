@@ -2115,7 +2115,8 @@ the C1 authority gate and strictly before any exchange interaction;
 `set_leverage` was removed from the order-submission path entirely (not
 merely reordered) and does not appear anywhere in
 `create_futures_order()`'s body. `tests/test_pre_t1_e_final_paper_certification.py`
-contains no `xfail` markers (grep confirms zero) — the C1-A..E matrix,
+contains no active `@pytest.mark.xfail` marker in the PRE-T1-E
+certification suite (grep confirms zero) — the C1-A..E matrix,
 the leverage>1 fail-closed test, the zero-mutation-when-unauthorized
 test, and the full-pipeline durable-ordering proof
 (`test_c1_authorized_ordering_proof_full_pipeline`, which reads the real
@@ -2142,10 +2143,16 @@ regression.
 
 `create_futures_order()` re-traced per §28b. Four sub-claims verified by
 dedicated hermetic tests, all green on this HEAD:
-`test_c1_a_paper_gate_zero_mutation` (PAPER=true → zero), an equivalent
-LIVE_TRADING_CONFIRMED=false case in `test_c1_d_live_false_remains_fail_closed`,
-`test_c1_c_live_object_not_armed_by_environment` (`self._live=False` in
-memory, env vars alone cannot arm it), and
+`test_c1_a_paper_gate_zero_mutation` (PAPER=true, `self._live=false`,
+LIVE_TRADING_CONFIRMED=false → zero mutation),
+`test_c1_c_live_object_not_armed_by_environment` (PAPER=false,
+`self._live=true` in memory, LIVE_TRADING_CONFIRMED=false →
+`AUTHORITY_DENIED`; merely constructing/corrupting an object with
+`live=True` does not bypass the explicit operator confirmation),
+`test_c1_d_live_false_remains_fail_closed` (PAPER=false,
+`self._live=false`, LIVE_TRADING_CONFIRMED=true → `AUTHORITY_DENIED`;
+an armed environment alone, with the in-memory object still
+`live=False`, still fails closed), and
 `test_c1_leverage_gt_1_authorized_fail_closed`
 (full authority + leverage≠1 → `UNSUPPORTED_MARKET_SEMANTICS`, zero
 exchange interaction, `set_leverage` call count 0). Result: **PASS**, no
@@ -2220,21 +2227,22 @@ honestly instead (source comments at `recorder.py` lines ~183/~219/~257/
 ~357 explicitly document this "never fabricated" contract). No defect
 found. Result: **PASS**, no regression.
 
-### 28k. Adversarial matrix (mission §13, A–L)
+### 28k. Adversarial matrix (mission §13, A–K, plus retained historical Scenario L)
 
 | # | Scenario | Test(s) | Mutation count |
 |---|---|---|---|
 | A | PAPER=true/LIVE=false/no handle | `test_c1_a_paper_gate_zero_mutation` + spot equivalents | 0 |
 | B | PAPER=true/LIVE=false/stale spot handle | `test_scenario_a_paper_buy_zero_mutation`, `test_scenario_b_paper_sell_zero_mutation` | 0 |
 | C | PAPER=true/LIVE=false/stale futures handle | `test_scenario_c1_leverage_change_gated_before_mutation_REMEDIATED`, `test_c1_b_stale_handle_with_paper_zero_mutation` | 0 |
-| D | PAPER=false/self._live=true/LIVE confirmation=false | `test_c1_d_live_false_remains_fail_closed` | 0 |
-| E | PAPER=false/self._live=false/LIVE confirmation=true | `test_c1_c_live_object_not_armed_by_environment` (env alone cannot arm) | 0 |
+| D | PAPER=false/self._live=true/LIVE confirmation=false | `test_c1_c_live_object_not_armed_by_environment` | 0 |
+| E | PAPER=false/self._live=false/LIVE confirmation=true | `test_c1_d_live_false_remains_fail_closed` | 0 |
 | F | PAPER=true/decision_id present | `test_scenario_g_direct_paper_hold_zero_external_mutation` | 0 |
 | G | PAPER=true/decision_id absent | `test_scenario_h_direct_paper_missing_decision_id_zero_external_mutation` | 0 |
 | H | PAPER=true/BUY | `test_scenario_a_paper_buy_zero_mutation` | 0 |
 | I | PAPER=true/SELL | `test_scenario_b_paper_sell_zero_mutation` | 0 |
 | J | authorized hermetic futures leverage=1 | `test_c1_e_authorized_path_remains_reachable`, `test_c1_authorized_ordering_proof_full_pipeline` | exactly 1 (`create_order`), `set_leverage`=0 |
 | K | authorized hermetic futures leverage>1 | `test_c1_leverage_gt_1_authorized_fail_closed` | 0 (fail-closed, `UNSUPPORTED_MARKET_SEMANTICS`) |
+| L (historical, retained, NOT one of the mission's required A-K scenarios) | read-only real-account observation confers no execution/sizing authority | `test_scenario_l_real_account_observation_confers_no_authority` | 0 |
 
 Every PAPER/LIVE-false row: external mutation count = 0, confirmed by
 tripwire exchange objects that raise `MutationTripwire` on the first
@@ -2304,7 +2312,9 @@ separately above, exactly as run.
 
 No test file required a behavioral change:
 `tests/test_pre_t1_e_final_paper_certification.py` already existed,
-already covered mission scenarios A-L plus the C1 diagnostic matrix, and
+already covered the mission's adversarial matrix A-K plus retained
+historical Scenario L (real-account observation confers no execution
+authority) and the C1 authority/remediation matrix, and
 required no edits to pass on this HEAD. No production source file was
 touched. No `.env`, `runtime_config.json`, or deploy script was touched.
 
@@ -2340,7 +2350,7 @@ touched. No `.env`, `runtime_config.json`, or deploy script was touched.
 | REM-B (idempotent order protocol) | PASS |
 | PAPER execution domain (REM-C R1) | PASS |
 | Restart/recovery evidence-honesty | PASS |
-| Adversarial matrix A-L | PASS (0 mutation on every PAPER/LIVE-false row) |
+| Adversarial matrix A-K, plus retained historical Scenario L | PASS (0 mutation on every PAPER/LIVE-false row) |
 | Whole-repo `pytest -q` literal sweep | NOT APPLICABLE TO PAPER SAFETY — infeasible in this sandbox for reasons unrelated to execution-mutation certification (§28l item 5, §28n) |
 | REM-C R2/R3/R4 | NOT APPLICABLE — out of scope, not started |
 

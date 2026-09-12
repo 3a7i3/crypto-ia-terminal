@@ -2,8 +2,8 @@
 
 Hermetic adversarial proof suite. No real exchange, no network, no
 credentials. Uses fake/tripwire exchange objects that raise loudly on any
-unexpected mutating call. Covers mission scenarios A-L plus the C1
-blocking diagnostic.
+unexpected mutating call. Covers the retained PAPER certification
+scenarios plus the post-C1 authority/remediation matrix.
 
 This is a certification test file, not a remediation. It asserts the
 CURRENT behavior of `ExecutionEngine`/`PositionManager`/`MexcSimulator`/
@@ -183,9 +183,13 @@ def test_scenario_c_paper_futures_zero_mutation_leverage_1_only_NOT_GENERAL(
     guard) — this test proves only that the default-leverage path reaches
     neither `set_leverage` nor `create_order` on the tripwire. It says
     NOTHING about `leverage != 1`, which is a materially different code
-    path: see `test_scenario_c1_leverage_change_mutates_before_paper_gate_XFAIL`
-    below, which proves the general case is currently UNSAFE (C1, BLOCKS
-    T-1 per docs/contracts/O-02W-PRE-T1-E_ORDER_CYCLE_SAFETY.md §24)."""
+    path: `leverage>1` is independently covered by the remediated C1
+    tests, including `test_scenario_c1_leverage_change_gated_before_mutation_REMEDIATED`
+    below and `test_c1_leverage_gt_1_authorized_fail_closed`
+    (HISTORICAL / BEFORE C1 REMEDIATION: this path was once proven UNSAFE
+    by a strict-XFAIL test that blocked T-1; it has since been remediated
+    and that XFAIL test was removed — see
+    docs/contracts/O-02W-PRE-T1-E_ORDER_CYCLE_SAFETY.md §28b)."""
     eng, _, fut = engine_factory(with_futures_handle=True)
 
     result = eng.create_futures_order(
