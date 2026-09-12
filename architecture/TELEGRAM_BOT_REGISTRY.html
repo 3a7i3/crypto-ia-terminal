@@ -339,7 +339,7 @@ Tout contrôle du système passe exclusivement par le VPS (SSH).</p>
 <li><p><a class="reference internal" href="#bot-portfolio">💼 Portfolio (CommandCenter)</a></p></li>
 <li><p><a class="reference internal" href="#bot-quant-observer">🔬 Quant Observer (&#64;QuantCrpto_bot)</a></p></li>
 <li><p><a class="reference internal" href="#bot-rapport-automatique">🧠 Rapport Automatique</a></p></li>
-<li><p><a class="reference internal" href="#bot-paper-arena">🧪 Paper Arena</a></p></li>
+<li><p><a class="reference internal" href="#bot-paper-arena"><span class="xref myst">🧪 Paper Arena</span></a></p></li>
 </ul>
 </li>
 <li><p><a class="reference internal" href="#anomalies-resolues">Anomalies résolues</a></p></li>
@@ -423,10 +423,10 @@ Tout contrôle du système passe exclusivement par le VPS (SSH).</p>
 <td><p>Non</p></td>
 <td><p>Push 6h</p></td>
 </tr>
-<tr class="row-even"><td><p>🧪 Paper Arena</p></td>
+<tr class="row-even"><td><p>🧪 Paper Trade Notifier</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">PAPER_ARENA_BOT_TOKEN</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">PAPER_ARENA_CHAT_ID</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">src/paper/paper_runner.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">src/paper/paper_trade_notifier.py</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">paper-arena.service</span></code></p></td>
 <td><p>Non</p></td>
 <td><p>Push événements</p></td>
@@ -645,36 +645,44 @@ FORBIDDEN
 </div>
 </section>
 <hr class="docutils" />
-<section id="bot-paper-arena">
-<h3>BOT: Paper Arena<a class="headerlink" href="#bot-paper-arena" title="Link to this heading">¶</a></h3>
+<section id="bot-paper-trade-notifier-was-paper-arena">
+<h3>BOT: Paper Trade Notifier (was: Paper Arena)<a class="headerlink" href="#bot-paper-trade-notifier-was-paper-arena" title="Link to this heading">¶</a></h3>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 IDENTITY
-  Name            : 🧪 Paper Arena
+  Name            : 🧪 Paper Trade Notifier
   BotFather       : @PaperArena_bot
   Token ENV       : PAPER_ARENA_BOT_TOKEN
   Chat ENV        : PAPER_ARENA_CHAT_ID
-  Source          : src/paper/paper_runner.py + src/paper/paper_report.py
+  Source          : src/paper/paper_trade_notifier.py
   Service         : paper-arena.service
   Polling owner   : Non (push uniquement)
 
-MISSION : Rapporter les résultats d'une expérience scientifique isolée.
+MISSION (TG-PAPER-01, 2026-09) : Notification automatique des ENTRY/EXIT
+PAPER réels de la main machine (MexcSimulator -&gt; databases/paper_trades.jsonl,
+mode="futures_demo" uniquement). Rien d'autre : pas de stratégie, pas de
+calcul de métriques/equity, pas de décision de trading.
 
 AUTHORITY : PUSH_ONLY
-CRITICALITY : RECHERCHE
+CRITICALITY : OBSERVATION
 
 AUTOMATIC MESSAGES
-  - Notification d'entrée / sortie
-  - Résumé d'expérience périodique
-  - Statut gate (INSUFFICIENT_SAMPLE → CONCLUSIVE)
+  - Notification PAPER ENTRY (OPEN)
+  - Notification PAPER EXIT (CLOSE)
+  - Avertissement PAPER OUTCOME UNRESOLVED si pnl_usd est inconnu
 
 ALLOWED
-  - Résultats de l'expérience uniquement (WR, PF, PnL expérience, N trades)
-  - Gate progress
+  - Champs bruts d'un événement OPEN/CLOSE main-machine (symbole, side,
+    prix, taille, score, régime, PnL, raison, durée, trade_id)
 
 FORBIDDEN
   - État global du système
   - Portfolio / balances / PnL global
-  - Toute commande interactive
+  - Toute commande interactive (aucun getUpdates/setWebhook/polling)
+
+LEGACY : l'expérience RSI ETH/4H indépendante (src/paper/paper_runner.py)
+reste dans le dépôt en recherche manuelle uniquement — son chemin Telegram
+(src/paper/paper_report.py) est désormais silencieux (no-op), elle ne
+possède plus @PaperArena_bot.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 </pre></div>
 </div>
@@ -857,7 +865,7 @@ full in <code class="docutils literal notranslate"><span class="pre">docs/archit
 <li><a class="reference internal" href="#bot-portfolio">BOT: Portfolio</a></li>
 <li><a class="reference internal" href="#bot-quant-observer">BOT: Quant Observer</a></li>
 <li><a class="reference internal" href="#bot-rapport-automatique">BOT: Rapport Automatique</a></li>
-<li><a class="reference internal" href="#bot-paper-arena">BOT: Paper Arena</a></li>
+<li><a class="reference internal" href="#bot-paper-trade-notifier-was-paper-arena">BOT: Paper Trade Notifier (was: Paper Arena)</a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#anomalies-resolues">Anomalies résolues</a></li>

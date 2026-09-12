@@ -82,7 +82,7 @@
 | 💼 Portfolio | `MON_PORTFOLIO_BOT_TOKEN` | `MON_PORTFOLIO_CHAT_ID` | `capital_deployment/command_center_bot.py` | in-process `crypto-advisor` | Oui | Rapports périodiques |
 | 🔬 Quant Observer | `QUANT_CRYPTO_BOT_TOKEN` | `QUANT_CRYPTO_CHAT_ID` | `src/telegram/quant_observer/bot.py` | `crypto-quant-observer.service` | Oui | Message épinglé 10 min |
 | 🧠 Rapport Auto | `RAPPORT_AUTOMATIQUE_BOT_TOKEN` | `RAPPORT_AUTOMATIQUE_CHAT_ID` | `quant_hedge_ai/agents/intelligence/system_intel_reporter.py` | in-process `crypto-advisor` | Non | Push 6h |
-| 🧪 Paper Arena | `PAPER_ARENA_BOT_TOKEN` | `PAPER_ARENA_CHAT_ID` | `src/paper/paper_runner.py` | `paper-arena.service` | Non | Push événements |
+| 🧪 Paper Trade Notifier | `PAPER_ARENA_BOT_TOKEN` | `PAPER_ARENA_CHAT_ID` | `src/paper/paper_trade_notifier.py` | `paper-arena.service` | Non | Push événements |
 
 ---
 
@@ -280,37 +280,45 @@ FORBIDDEN
 
 ---
 
-### BOT: Paper Arena
+### BOT: Paper Trade Notifier (was: Paper Arena)
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 IDENTITY
-  Name            : 🧪 Paper Arena
+  Name            : 🧪 Paper Trade Notifier
   BotFather       : @PaperArena_bot
   Token ENV       : PAPER_ARENA_BOT_TOKEN
   Chat ENV        : PAPER_ARENA_CHAT_ID
-  Source          : src/paper/paper_runner.py + src/paper/paper_report.py
+  Source          : src/paper/paper_trade_notifier.py
   Service         : paper-arena.service
   Polling owner   : Non (push uniquement)
 
-MISSION : Rapporter les résultats d'une expérience scientifique isolée.
+MISSION (TG-PAPER-01, 2026-09) : Notification automatique des ENTRY/EXIT
+PAPER réels de la main machine (MexcSimulator -> databases/paper_trades.jsonl,
+mode="futures_demo" uniquement). Rien d'autre : pas de stratégie, pas de
+calcul de métriques/equity, pas de décision de trading.
 
 AUTHORITY : PUSH_ONLY
-CRITICALITY : RECHERCHE
+CRITICALITY : OBSERVATION
 
 AUTOMATIC MESSAGES
-  - Notification d'entrée / sortie
-  - Résumé d'expérience périodique
-  - Statut gate (INSUFFICIENT_SAMPLE → CONCLUSIVE)
+  - Notification PAPER ENTRY (OPEN)
+  - Notification PAPER EXIT (CLOSE)
+  - Avertissement PAPER OUTCOME UNRESOLVED si pnl_usd est inconnu
 
 ALLOWED
-  - Résultats de l'expérience uniquement (WR, PF, PnL expérience, N trades)
-  - Gate progress
+  - Champs bruts d'un événement OPEN/CLOSE main-machine (symbole, side,
+    prix, taille, score, régime, PnL, raison, durée, trade_id)
 
 FORBIDDEN
   - État global du système
   - Portfolio / balances / PnL global
-  - Toute commande interactive
+  - Toute commande interactive (aucun getUpdates/setWebhook/polling)
+
+LEGACY : l'expérience RSI ETH/4H indépendante (src/paper/paper_runner.py)
+reste dans le dépôt en recherche manuelle uniquement — son chemin Telegram
+(src/paper/paper_report.py) est désormais silencieux (no-op), elle ne
+possède plus @PaperArena_bot.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 

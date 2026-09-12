@@ -367,7 +367,7 @@ identity was found anywhere in the repository.</p>
 <td><p>ACTIVE</p></td>
 </tr>
 <tr class="row-even"><td><p>IDENTITY-05</p></td>
-<td><p>Paper Arena</p></td>
+<td><p>Paper Trade Notifier (was: Paper Arena)</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">PAPER_ARENA_BOT_TOKEN</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">PAPER_ARENA_CHAT_ID</span></code></p></td>
 <td><p>PUSH_ONLY</p></td>
@@ -522,23 +522,24 @@ Status: ACTIVE / INACTIVE / DEAD_CODE / UNKNOWN</p>
 </ul>
 </section>
 <hr class="docutils" />
-<section id="identity-05-paper-arena">
-<h3>[IDENTITY-05] Paper Arena<a class="headerlink" href="#identity-05-paper-arena" title="Link to this heading">¶</a></h3>
+<section id="identity-05-paper-arena-refondu-tg-paper-01-2026-09">
+<h3>[IDENTITY-05] Paper Arena — refondu TG-PAPER-01 (2026-09)<a class="headerlink" href="#identity-05-paper-arena-refondu-tg-paper-01-2026-09" title="Link to this heading">¶</a></h3>
 <ul class="simple">
 <li><p><strong>Token Variable</strong>: <code class="docutils literal notranslate"><span class="pre">PAPER_ARENA_BOT_TOKEN</span></code></p></li>
 <li><p><strong>Chat Variable</strong>: <code class="docutils literal notranslate"><span class="pre">PAPER_ARENA_CHAT_ID</span></code></p></li>
 <li><p><strong>Type</strong>: PUSH_ONLY</p></li>
-<li><p><strong>Entrypoint</strong>: <code class="docutils literal notranslate"><span class="pre">src/paper/paper_runner.py</span></code> (event triggers) + <code class="docutils literal notranslate"><span class="pre">src/paper/paper_report.py</span></code> (sender)</p></li>
-<li><p><strong>Service</strong>: <code class="docutils literal notranslate"><span class="pre">paper-arena.service</span></code> (<code class="docutils literal notranslate"><span class="pre">scripts/systemd/paper-arena.service</span></code>, <code class="docutils literal notranslate"><span class="pre">ExecStart=...</span> <span class="pre">python3</span> <span class="pre">-m</span> <span class="pre">src.paper.paper_runner</span></code>)</p></li>
-<li><p><strong>Polling (getUpdates)</strong>: NO — no <code class="docutils literal notranslate"><span class="pre">getUpdates</span></code> call found in either file.</p></li>
-<li><p><strong>Push (sendMessage)</strong>: YES — <code class="docutils literal notranslate"><span class="pre">src/paper/paper_report.py:23</span></code> (<code class="docutils literal notranslate"><span class="pre">requests.post(f&quot;.../bot{_TOKEN}/sendMessage&quot;,</span> <span class="pre">...)</span></code>)</p></li>
-<li><p><strong>In .env.example</strong>: YES — <code class="docutils literal notranslate"><span class="pre">.env.example:80-81</span></code></p></li>
-<li><p><strong>In TELEGRAM_BOT_REGISTRY.md</strong>: YES — full profile present (“BOT: Paper Arena” section)</p></li>
-<li><p><strong>Call sites</strong>: <code class="docutils literal notranslate"><span class="pre">src/paper/paper_report.py:11</span></code> (<code class="docutils literal notranslate"><span class="pre">_TOKEN</span> <span class="pre">=</span> <span class="pre">os.getenv(&quot;PAPER_ARENA_BOT_TOKEN&quot;,</span> <span class="pre">&quot;&quot;)</span></code>), <code class="docutils literal notranslate"><span class="pre">src/paper/paper_report.py:12</span></code> (<code class="docutils literal notranslate"><span class="pre">_CHAT</span> <span class="pre">=</span> <span class="pre">os.getenv(&quot;PAPER_ARENA_CHAT_ID&quot;,</span> <span class="pre">&quot;&quot;)</span></code>)</p></li>
-<li><p><strong>Mission (evidence-based)</strong>: Reports the outcome of one isolated research experiment (RSI ETH/4H) — entry/exit notifications, periodic summary, gate status (<code class="docutils literal notranslate"><span class="pre">INSUFFICIENT_SAMPLE</span></code> → <code class="docutils literal notranslate"><span class="pre">CONCLUSIVE</span></code>), scoped strictly to experiment metrics.</p></li>
+<li><p><strong>Entrypoint</strong>: <code class="docutils literal notranslate"><span class="pre">src/paper/paper_trade_notifier.py</span></code> (follower + sender, module unique)</p></li>
+<li><p><strong>Service</strong>: <code class="docutils literal notranslate"><span class="pre">paper-arena.service</span></code> (<code class="docutils literal notranslate"><span class="pre">scripts/systemd/paper-arena.service</span></code>, <code class="docutils literal notranslate"><span class="pre">ExecStart=...</span> <span class="pre">python3</span> <span class="pre">-m</span> <span class="pre">src.paper.paper_trade_notifier</span></code>)</p></li>
+<li><p><strong>Polling (getUpdates)</strong>: NO — no <code class="docutils literal notranslate"><span class="pre">getUpdates</span></code>/<code class="docutils literal notranslate"><span class="pre">setWebhook</span></code> call in the module.</p></li>
+<li><p><strong>Push (sendMessage)</strong>: YES — <code class="docutils literal notranslate"><span class="pre">TelegramSender.send()</span></code> in <code class="docutils literal notranslate"><span class="pre">src/paper/paper_trade_notifier.py</span></code> (urllib, <code class="docutils literal notranslate"><span class="pre">bot{token}/sendMessage</span></code> only)</p></li>
+<li><p><strong>In .env.example</strong>: YES — <code class="docutils literal notranslate"><span class="pre">.env.example:80-81</span></code> (unchanged variable names)</p></li>
+<li><p><strong>In TELEGRAM_BOT_REGISTRY.md</strong>: YES — profile updated for the new mission</p></li>
+<li><p><strong>Call sites</strong>: <code class="docutils literal notranslate"><span class="pre">NotifierConfig.from_env()</span></code> in <code class="docutils literal notranslate"><span class="pre">src/paper/paper_trade_notifier.py</span></code> (<code class="docutils literal notranslate"><span class="pre">PAPER_ARENA_BOT_TOKEN</span></code>, <code class="docutils literal notranslate"><span class="pre">PAPER_ARENA_CHAT_ID</span></code>, fail-closed if either is missing)</p></li>
+<li><p><strong>Mission (evidence-based, post TG-PAPER-01)</strong>: Automatic notification feed of the MAIN MACHINE’s actual PAPER OPEN/CLOSE events, sourced from <code class="docutils literal notranslate"><span class="pre">databases/paper_trades.jsonl</span></code> (<code class="docutils literal notranslate"><span class="pre">mode=&quot;futures_demo&quot;</span></code> only). Nothing else — no strategy, no metrics engine, no signal processing, no command dispatcher, no execution authority. Delivery-checkpoint based, AT-LEAST-ONCE, live-only bootstrap (no historical replay on first start).</p></li>
+<li><p><strong>Legacy</strong>: The independent RSI ETH/4H research experiment (<code class="docutils literal notranslate"><span class="pre">src/paper/paper_runner.py</span></code>, <code class="docutils literal notranslate"><span class="pre">paper_metrics.py</span></code>, <code class="docutils literal notranslate"><span class="pre">paper_gate.py</span></code>, <code class="docutils literal notranslate"><span class="pre">paper_position_manager.py</span></code>) remains in the repository as legacy/manual-research-only code. Its Telegram path (<code class="docutils literal notranslate"><span class="pre">src/paper/paper_report.py::_send</span></code>) has been silenced (no-op) so it can never again publish under the <code class="docutils literal notranslate"><span class="pre">&#64;PaperArena_bot</span></code> identity — that identity is now exclusively owned by <code class="docutils literal notranslate"><span class="pre">paper_trade_notifier.py</span></code>.</p></li>
 <li><p><strong>Owner</strong>: UNKNOWN (not documented)</p></li>
 <li><p><strong>Status</strong>: ACTIVE</p></li>
-<li><p><strong>Governance gaps</strong>: None found. (Noise level flagged elsewhere — <code class="docutils literal notranslate"><span class="pre">docs/TELEGRAM_NOTIFICATION_AUDIT.md</span></code> recommends batching per-trade pushes — but that is a message-volume concern, not an identity governance gap.)</p></li>
+<li><p><strong>Governance gaps</strong>: None found. Two independent producers no longer share this bot identity (previously a latent risk — see TG-PAPER-01 mission intent).</p></li>
 </ul>
 </section>
 <hr class="docutils" />
@@ -744,9 +745,9 @@ Status: ACTIVE / INACTIVE / DEAD_CODE / UNKNOWN</p>
 <td><p>KEEP</p></td>
 <td><p>Active, fully documented, push-only, no anomalies found</p></td>
 </tr>
-<tr class="row-even"><td><p>IDENTITY-05 Paper Arena</p></td>
+<tr class="row-even"><td><p>IDENTITY-05 Paper Trade Notifier (was: Paper Arena)</p></td>
 <td><p>KEEP</p></td>
-<td><p>Active, fully documented; noise-reduction is a message-volume matter, not an identity issue</p></td>
+<td><p>TG-PAPER-01 (2026-09) refounded this identity as a main-machine PAPER OPEN/CLOSE push-only feed; legacy RSI experiment’s Telegram path silenced to prevent a second producer on the same bot</p></td>
 </tr>
 <tr class="row-odd"><td><p>IDENTITY-06 CMVK / Sim Bot</p></td>
 <td><p>DOCUMENT or REMOVE</p></td>
@@ -851,7 +852,7 @@ Status: ACTIVE / INACTIVE / DEAD_CODE / UNKNOWN</p>
 <li><a class="reference internal" href="#identity-02-portfolio-commandcenter">[IDENTITY-02] Portfolio (CommandCenter)</a></li>
 <li><a class="reference internal" href="#identity-03-quant-observer">[IDENTITY-03] Quant Observer</a></li>
 <li><a class="reference internal" href="#identity-04-rapport-automatique-intel">[IDENTITY-04] Rapport Automatique / Intel</a></li>
-<li><a class="reference internal" href="#identity-05-paper-arena">[IDENTITY-05] Paper Arena</a></li>
+<li><a class="reference internal" href="#identity-05-paper-arena-refondu-tg-paper-01-2026-09">[IDENTITY-05] Paper Arena — refondu TG-PAPER-01 (2026-09)</a></li>
 <li><a class="reference internal" href="#identity-06-cmvk-sim-bot">[IDENTITY-06] CMVK / Sim Bot</a></li>
 <li><a class="reference internal" href="#identity-07-generic-alerts-moteur">[IDENTITY-07] Generic Alerts (Moteur)</a></li>
 <li><a class="reference internal" href="#identity-08-real-account-bot">[IDENTITY-08] Real Account Bot</a></li>
