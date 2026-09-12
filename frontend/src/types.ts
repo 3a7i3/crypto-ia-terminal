@@ -30,7 +30,11 @@ export interface OpenPosition {
   current_price_observed_at_utc: string | null;
   tp_price: number | null;
   sl_price: number | null;
-  tp_sl_source: "original" | "restored_default" | string;
+  // REM-C R1.3: "restored_original" — position was restored from the
+  // ledger AND its TP/SL were durably recorded evidence (schema v4), not
+  // a reconstructed default. Distinct from "restored_default" (genuinely
+  // reconstructed) and "original" (never restored at all).
+  tp_sl_source: "original" | "restored_default" | "restored_original" | string;
   unrealized_pnl_usd: ObservedValue<number>;
   unrealized_pnl_pct: ObservedValue<number>;
   opened_at: number | null; // epoch seconds (MexcPosition.opened_ts) — never an ISO string, per contract §5/§19
@@ -38,6 +42,7 @@ export interface OpenPosition {
   restored_without_regime: boolean;
   personality: string | null;
   restored: boolean;
+  restored_evidence_gaps?: string[];
 }
 
 export interface PortfolioDomain {

@@ -163,6 +163,39 @@ def _get_exchange_futures(exec_engine: Any) -> Any:
     return getattr(exec_engine, "_exchange_futures", None)
 
 
+def _futures_position_domain(exec_engine: Any, paper_mode: bool) -> Any:
+    """REM-C R1.1 — proven execution-domain for the futures PositionManager.
+
+    `_get_exchange_futures()` is non-None ONLY for krakenfutures (see
+    `ExecutionEngine._init_futures_demo()`), and in that case it is THE
+    SAME OBJECT as `exec_engine._exchange` — its real domain (REAL vs
+    TESTNET) is exactly `exec_engine._mode` ("live"/"testnet"/"paper"),
+    never something the handle's mere non-nullness proves. MEXC and every
+    other non-krakenfutures exchange never produce a non-None
+    `_exchange_futures` at all (paper-only via `MexcSimulator`) — that
+    path is `paper_mode=True` and never reaches this function's exchange
+    branch below.
+
+    FUTURES_DEMO is deliberately never returned here: this repository has
+    no execution path that connects to an actual sandboxed
+    "futures demo" venue distinct from the spot exchange's own
+    real/testnet mode — the "Futures Demo" name in `ExecutionEngine`
+    describes intent/labeling, not a third connection this function could
+    honestly attest to. It remains a defined `ExecutionDomain` value for
+    any future call site that does connect to one.
+    """
+    from quant_hedge_ai.agents.execution.position_manager import ExecutionDomain
+
+    if paper_mode:
+        return ExecutionDomain.PAPER
+    exec_mode = getattr(exec_engine, "_mode", None)
+    if exec_mode == "live":
+        return ExecutionDomain.REAL
+    if exec_mode == "testnet":
+        return ExecutionDomain.TESTNET
+    return ExecutionDomain.UNKNOWN
+
+
 def _get_regret_counts(regret_engine: Any) -> tuple[int, int]:
     records = cast(list[Any], getattr(regret_engine, "_records", []))
     candidates = cast(list[Any], getattr(regret_engine, "_candidates", []))
@@ -4117,11 +4150,13 @@ def main(
     )
 
     # Position Manager — surveille les positions ouvertes (TP/SL/trailing)
+    _pm_paper_mode = advisor_only or not has_futures
     pos_manager = _profile_bootstrap_step(
         "position_manager",
         lambda: runtime.PositionManager(
             exchange=_get_exchange_futures(exec_engine),
-            paper_mode=advisor_only or not has_futures,
+            paper_mode=_pm_paper_mode,
+            domain=_futures_position_domain(exec_engine, _pm_paper_mode),
         ),
     )
     if not advisor_only or background_position_watch:
@@ -5554,16 +5589,16 @@ def main(
         from system.state_machine import get_state_machine as _get_sm_boot
 
         _sm_boot = _get_sm_boot()
-        # Amorcer last_successful_order_at si des positions existent déjà au boot
-        if (
-            hasattr(pos_manager, "get_open_positions")
-            and pos_manager.get_open_positions()
-        ):
+        # Amorcer last_successful_order_at si des positions existent déjà au
+        # boot. REM-C R1 — canonical API is get_open(), not
+        # get_open_positions() (which never existed, so this guard was
+        # always False and this heartbeat amorçage silently never ran).
+        if hasattr(pos_manager, "get_open") and pos_manager.get_open():
             _sm_boot.update_heartbeat(
                 n_signals=0,
                 n_orders=1,
                 exchange_ok=True,
-                open_positions=len(pos_manager.get_open_positions()),
+                open_positions=len(pos_manager.get_open()),
             )
         _position_reconciler = _RecCls(_get_exchange_futures(exec_engine), pos_manager)
     except Exception as _obs_boot_exc:

@@ -717,3 +717,273 @@ adapter's real reconciliation capability against a pinned `ccxt` install,
 and does not enable live trading in any way. No real order, testnet call,
 exchange call, VPS access, secret access, or deployment occurred in this
 round. PR #138 remains **draft** and **unmerged**.
+
+## 23. REM-C R1 — execution-domain provenance and paper recovery honesty (2026-09-11)
+
+**Addendum to §1-22.2, not a rewrite.** This is the first REM-C
+implementation round (deliberately narrow, per
+`docs/adr/0021-execution-domain-provenance-and-paper-recovery-honesty.md`).
+It is not the fill-engine implementation, not exchange reconciliation
+certification, and not testnet/live enablement.
+
+### 23.1 Execution-domain provenance rule
+
+The canonical `Position` dataclass
+(`quant_hedge_ai/agents/execution/position_manager.py`) previously carried
+no execution-domain field at all — nothing prevented a PAPER-mode
+`PositionManager`'s internal state from being compared against a REAL
+exchange's `fetch_positions()` result by symbol string alone. A new
+`ExecutionDomain(str, Enum)` (`REAL | TESTNET | FUTURES_DEMO | PAPER |
+SHADOW | UNKNOWN`) is added; `Position.domain` defaults to `UNKNOWN`
+(fail-closed, never assumed REAL nor PAPER). `PositionManager` resolves
+its own `.domain` from the same construction context callers already pass
+(`domain=` explicit override > `paper_mode=True` -> `PAPER` >
+`exchange is not None` -> `REAL` > otherwise `UNKNOWN`) and stamps it onto
+any position added via `add_position()` that still carries the `UNKNOWN`
+default — an explicitly different domain on the position itself is never
+overwritten.
+
+### 23.2 Reconciliation same-domain invariant
+
+`system/position_reconciler.py`'s `PositionReconciler.reconcile()` called
+`pos_manager.get_open_positions()` — a method that never existed on the
+canonical `PositionManager` (only `get_open()` does). Because of
+`hasattr()` guarding, this silently returned `internal_pos = {}` in
+production, every cycle, for the life of the code (a second, structurally
+identical instance of the same defect existed in `core/advisor_loop.py`'s
+boot-time heartbeat amorçage, also fixed here). Fixing only the method
+name would have made the reconciler suddenly see real internal state for
+the first time — without a domain check, this creates the risk this
+mission was scoped to close: a PAPER-domain `PositionManager` compared
+against a REAL `fetch_positions()` call. `PositionReconciler` now takes an
+`expected_domain` (default `REAL`, since `exchange_futures.fetch_positions()`
+is definitionally a real/testnet account call) and refuses to run the
+comparison at all unless `pos_manager.domain == expected_domain` proves
+compatible; an incompatible or unproven (`UNKNOWN`) domain produces
+`comparable=False` with empty ghost/orphan lists — never a fabricated
+finding. Once domain-compatible, individual positions that themselves
+carry a non-matching or `UNKNOWN` domain are still excluded from
+ghost/orphan comparison and reported separately
+(`unresolved_domain_positions`), never folded into a ghost/orphan claim.
+Only after both gates pass does the corrected `get_open()` call run.
+Reconciliation remains strictly observational — it was already read-only
+(`fetch_positions()` + comparison), and REM-C R1 adds no mutation path.
+
+### 23.3 PAPER restart evidence-honesty rule
+
+`MexcSimulator._restore_positions()` (`paper_trading/mexc_simulator.py`)
+previously (a) recorded `pnl_usd=0.0`/`pnl_pct=0.0` for positions expired
+during a downtime window, presenting "nothing happened" as if it were
+known fact rather than genuinely unknown; (b) always recomputed TP/SL
+from hardcoded 4%/2% defaults, discarding whatever the position's actual
+original TP/SL had been, with no way to tell a reconstructed value from
+an original one; (c) always set `fee_entry_usd=0.0`, because the ledger
+schema never captured it. `PaperTradeRecorder`'s `TradeEvent`/
+`CompleteTrade` schema is extended to v4 with three new OPEN-only
+optional fields — `tp_price`, `sl_price`, `fee_entry_usd` — defaulting to
+`None` (absent evidence), never a fabricated number; `record_open()` now
+persists them when the caller has them (the live-order-fill path does).
+`_restore_positions()`: (a) expired-during-downtime positions are now
+closed with `pnl_usd=None`/`pnl_pct=None` — missing evidence stays
+missing, it is never converted to a known zero; (b) restoration uses the
+durably recorded `tp_price`/`sl_price`/`fee_entry_usd` verbatim when a
+schema-v4 record has them; only when genuinely absent (older records) does
+it fall back to the same recomputed defaults as before, but now flags the
+position's `restored_evidence_gaps` list (`tp_sl_reconstructed_default`,
+`fee_entry_unknown`) and its `personality` as
+`"restored_evidence_incomplete"` rather than the previously undifferentiated
+`"restored"` — a reconstructed value is never presented as the original
+evidence again.
+
+### 23.4 Files changed
+
+- `quant_hedge_ai/agents/execution/position_manager.py` — `ExecutionDomain`
+  enum, `Position.domain`, `PositionManager.domain` resolution and
+  stamping in `add_position()`.
+- `system/position_reconciler.py` — domain-compatibility gate,
+  `get_open_positions()` -> `get_open()` fix, per-position domain
+  filtering, `ReconcileReport.comparable`/`pm_domain`/`expected_domain`/
+  `unresolved_domain_positions`.
+- `core/advisor_loop.py` — the same `get_open_positions()` ->
+  `get_open()` fix in the boot-time heartbeat amorçage guard (no other
+  change; construction of `PositionReconciler` is unchanged).
+- `paper_trading/recorder.py` — schema v4 (`tp_price`/`sl_price`/
+  `fee_entry_usd`, all `Optional`), `record_open()`/`record_close()`
+  signature extensions (`record_close`'s `pnl_usd`/`pnl_pct` are now
+  `Optional[float]`), `trades()` propagation.
+- `paper_trading/mexc_simulator.py` — `MexcPosition.restored_evidence_gaps`,
+  `_restore_positions()` evidence-honest reconstruction, `record_open()`
+  call site passes through `tp_price`/`sl_price`/`fee_entry_usd`.
+- `paper_trading/dataset_validator.py` — `_VALID_SCHEMA_VERSIONS` extended
+  to include `4` (mechanical, matches the new `SCHEMA_VERSION`).
+- `tests/test_rem_c_r1_execution_domain.py` — new, fail-before/pass-after
+  regression suite (Scenarios A/B/C plus the observational-only
+  invariant).
+- `tests/test_restart_safety.py` — `TestB2MidExecutionCrash`'s
+  `PositionReconciler` mocks updated to the canonical `get_open()` API and
+  given an explicit `ExecutionDomain.REAL` (mechanical; these tests
+  exercise exactly the API this mission corrects).
+- `.ci/ruff_baseline.json` — 7 pre-existing findings (in
+  `paper_trading/mexc_simulator.py`, `paper_trading/recorder.py`,
+  `tests/test_restart_safety.py`) shifted line numbers only, due to lines
+  inserted above them by this mission; no new violation, verified via
+  `python scripts/ci/ruff_baseline_gate.py check` (958/958, zero new).
+
+### 23.5 REM-C blockers remaining fully open, unattempted, explicitly out of this mission's scope
+
+Canonical `ExecutionEvidence`/`FillRecord`; cumulative exchange fill
+journal; partial-fill ingestion and deduplication; exchange fill polling
+(`fetch_order()`/`fetch_my_trades()` production integration); real-exchange
+fee accounting and VWAP reconstruction; exchange adapter certification;
+resubmission policy; real position reconstruction from exchange fills;
+full crash-window/partial-fill recovery (B8, still only restart-idempotent
+per REM-B); durable pre-execution decision persistence beyond what R1.1
+already added. These are REM-C R2/R3/R4 scope.
+
+**R0 verdict (superseded below by R1.1): still `REMEDIATION_REQUIRED`.**
+REM-C R1 closed the execution-domain provenance gap and the reconciler API
+mismatch (now domain-gated, never fabricating cross-domain findings), and
+closed the PAPER-restart PnL/TP/SL/fee fabrication defects R0.1 found (now
+explicit `None`/flagged-reconstruction instead of silent zero/default). It
+did not implement the fill-evidence chain, did not certify real exchange
+reconciliation, and did not enable live or testnet trading in any way. No
+real order, testnet call, exchange call, VPS access, secret access, or
+deployment occurred in that round.
+
+### 23.6 REM-C R1.1 — MASTER correction round (2026-09-11)
+
+**Addendum to §23.1-23.5, not a rewrite.** MASTER review of R1 (PR #139,
+head `027cb0c71ce291209794ba929bff729ab71876c0`) found R1's own
+implementation of this contract's stated intent was itself incomplete in
+five places. Full technical detail in ADR-0021's "R1.1 — MASTER correction
+round" addendum; summarized here:
+
+| Finding | R1 defect | R1.1 correction |
+|---|---|---|
+| A | `PositionManager(exchange=X)` inferred `domain=REAL` merely because `X is not None` — false, since the only production caller (`core/advisor_loop.py` via `_get_exchange_futures()`) can pass a TESTNET-mode krakenfutures handle exactly as easily as a REAL one. | Inference removed entirely (`exchange is not None` no longer implies anything). New `core/advisor_loop.py::_futures_position_domain()` derives the proven domain from `exec_engine._mode` and passes it explicitly via `domain=`. |
+| B | `PositionReconciler` authorized comparison on domain-LABEL equality alone — two distinct REAL-labeled `PositionManager`/exchange pairs could pass. | Added an exchange-identity check (`pos_manager._exchange is <reconciler's own exchange_futures>`) after the domain check; mismatch or unprovable identity fails closed exactly like a domain mismatch. |
+| C | Expired-on-restore PAPER positions still wrote `exit_price=trade.entry_price` (R1 had already fixed `pnl_usd`/`pnl_pct` to `None` but left this one substitution in place). | `exit_price=None` on expiry; `PaperTradeRecorder.record_close()`'s `exit_price` param is now `Optional[float]`. |
+| D | `PaperTradeRecorder.trades()` computed `is_win = (cl.pnl_usd or 0) > 0`, silently converting `pnl_usd=None` (unknown) into `is_win=False` (a claimed LOSS). | `is_win = None if cl.pnl_usd is None else (cl.pnl_usd > 0)` in both aggregation branches; `paper_trading/status.py`'s display now renders `N/A` instead of `LOSS` for `is_win=None`; `dataset_validator.py`'s pre-existing `expired_on_restore` exclusion (unaffected) reverified by regression test. |
+| E | `BootGate.check()` never inspected `pos_report.comparable`/`is_clean` — a non-comparable reconciliation (empty ghost/orphan lists BY DESIGN) could still clear the gate. | `BootGateReport.position_reconcile_comparable` added; `check()` now blocks on non-comparable, then on not-clean (which also closes a related pre-existing gap: price-drift-only dirtiness was never checked by `BootGate`'s own `has_drift` variable), before the existing ghost/orphan/order-anomaly check. |
+
+Also closed, per the mission's semantic-sweep instruction (§6): the
+rate-limited "skipped — too soon" `ReconcileReport` previously read as
+`is_clean=True` despite no comparison having run at all. A new
+`ReconcileReport.performed: bool` field (default `True`, set `False` only
+on that skip path) is now part of `is_clean`'s condition.
+
+**Files changed (R1.1):** `quant_hedge_ai/agents/execution/
+position_manager.py`, `core/advisor_loop.py`, `system/
+position_reconciler.py`, `system/boot_gate.py`, `paper_trading/
+recorder.py`, `paper_trading/mexc_simulator.py`, `paper_trading/
+status.py`, `tests/test_rem_c_r1_execution_domain.py` (21 new tests),
+`tests/test_restart_safety.py` (mechanical — mock `_exchange` identity),
+`.ci/ruff_baseline.json` (mechanical line-shift only).
+
+**Tests:** `tests/test_rem_c_r1_execution_domain.py` — 30/30 passed (9 R1
++ 21 R1.1). Full targeted regression (`test_position_manager`,
+`test_exchange_reality` incl. `TestA7BootGate`, `test_restart_safety`,
+`test_dataset_validator`, `paper_trading/`, REM-A/REM-B suites, PRE-T1-D
+capital boundary, operator snapshot): 825 passed. The same 9
+`TestB3AuditRecovery` failures as R1 remain, confirmed pre-existing and
+unrelated (`_cffi_backend`/`cryptography` sandbox gap, reproduces
+identically on `origin/main`). `ruff_baseline_gate.py check`: 958/958,
+zero new. `git diff --check`: clean.
+
+**R1.1 verdict (superseded below by R1.2): still `REMEDIATION_REQUIRED`.**
+REM-C R1.1 corrected all five MASTER-identified defects in R1's own
+implementation without expanding scope into REM-C R2/R3/R4: execution-
+domain inference became evidence-based rather than presence-based,
+reconciliation required exchange-identity proof in addition to a domain-
+label match, PAPER restart no longer substituted any value (entry price
+or otherwise) for a genuinely unknown exit price, unknown PnL could no
+longer surface as a claimed LOSS anywhere in the read path, and BootGate
+could no longer clear trading on a reconciliation that was never actually
+proven comparable.
+
+### 23.7 REM-C R1.2 — MASTER correction round (2026-09-11)
+
+**Addendum to §23.1-23.6, not a rewrite.** MASTER review of R1.1 (head
+`79cb77ebb77d202c8323509b0119cdd264f754a5`) found three residual defects
+plus one confirmed evidence-audit finding. Full technical detail in
+ADR-0021's "R1.2 — MASTER correction round" addendum; summarized here:
+
+| Finding | R1.1 defect | R1.2 correction |
+|---|---|---|
+| A — UNRESOLVED != CLEAN | `unresolved_domain_positions` was correctly excluded from `has_drift` (never fabricated as ghost/orphan) but `is_clean` never checked it either — an unresolved-domain position could coexist with `is_clean=True`. | `is_clean` now additionally requires `not unresolved_domain_positions`, checked directly (not folded into `has_drift`, preserving that property's existing meaning for its other callers). |
+| B — INTERNAL READ FAILURE != EMPTY | `self._pm.get_open() if hasattr(...) else []`, and a raised exception from `get_open()`, both fell back to `internal_pos = {}` — fail-open: could read CLEAN with an empty exchange, or fabricate ORPHAN findings for every real exchange position with a non-empty one. | New `ReconcileReport.internal_state_readable` field; `reconcile()` now returns immediately (no ghost/orphan/price-drift computed) when `get_open` is missing or raises, with an explicit error. `is_clean` requires it. A genuinely empty `get_open() -> []` is unaffected. |
+| C — MISSING RAW EVENT PRICE != ZERO | R1.1 fixed the *derived* `exit_price`/`pnl_usd`/`pnl_pct`/`is_win` to `None` on `expired_on_restore`, but the *raw* `TradeEvent.price` written by `record_close()` still fabricated `0.0`. | Consumer audit found zero production readers of a CLOSE event's `price` (only OPEN's, via `entry_price=op.price`, unaffected) and that `dataset_validator.py` already tolerates `None`. `TradeEvent.price` is now `Optional[float]`; `record_close()` passes `exit_price` through directly. |
+| 4 — fee-entry evidence audit | Traced whether an UNKNOWN restored `fee_entry_usd` (defaulted to `0.0`, R1.1) can later close and produce an authoritative-looking PnL. **Confirmed YES** by direct code trace (`_close_position()`'s `pnl_usd` formula subtracts it unconditionally, with no propagation of the evidence gap to the recorded event). | Schema v5 adds `pnl_fee_evidence_incomplete: bool` (CLOSE-only) to `TradeEvent`/`CompleteTrade`, set by `_close_position()` from `"fee_entry_unknown" in pos.restored_evidence_gaps`. The PnL number is unchanged (real arithmetic against the best available fee, not fabricated) — it can no longer be mistaken for fully-evidenced. `status.py` appends `*` to the W/L column when set. |
+| 5 — TESTNET reconciliation status | — | Verified and documented, no code change: `core/advisor_loop.py`'s reconciler still defaults `expected_domain=REAL`, so a TESTNET-labeled `PositionManager` correctly fails closed as non-comparable today. This is intentional for T-1/PAPER scope — TESTNET reconciliation is explicitly **not certified**, reserved for a future REM-C round. |
+
+**Files changed (R1.2):** `system/position_reconciler.py`,
+`paper_trading/{recorder,mexc_simulator,status,dataset_validator}.py`,
+`tests/test_rem_c_r1_execution_domain.py` (14 new tests), `.ci/
+ruff_baseline.json` (mechanical line-shift), ADR-0021 + this §23.7
+addendum.
+
+**Tests:** `tests/test_rem_c_r1_execution_domain.py` — 44/44 passed (9 R1
++ 21 R1.1 + 14 R1.2). Full targeted regression (`test_position_manager`,
+`test_exchange_reality`, `test_restart_safety`, `test_dataset_validator`,
+`paper_trading/`, `test_pre_t1_c_portfolio_provider_read_only`, PRE-T1-D
+capital boundary, REM-A/REM-B suites): 748 passed. Same 9 pre-existing
+`TestB3AuditRecovery` failures as R1/R1.1, confirmed unrelated.
+`ruff_baseline_gate.py check`: 958/958, zero new. `git diff --check`:
+clean.
+
+**R1.2 verdict (superseded below by R1.3): still `REMEDIATION_REQUIRED`.**
+REM-C R1.2 closed the three residual fail-open gaps MASTER found in
+R1.1's own implementation (an unresolved-domain position could certify
+CLEAN; an unreadable internal position state was silently treated as
+empty rather than unknown; the raw paper ledger event still fabricated a
+zero exit price even after the derived fields were fixed), and closed a
+confirmed fee-evidence honesty gap (an assumed entry fee could produce an
+unflagged, seemingly fully-evidenced realized PnL).
+
+### 23.8 REM-C R1.3 — MASTER final evidence-semantics round (2026-09-12)
+
+**Addendum to §23.1-23.7, not a rewrite.** MASTER review of R1.2 (head
+`50fd9631a303efe1c431a379292ba2897d879bd2`) found R1.1's `personality`
+distinction had drifted out of sync with a downstream provenance-visible
+consumer, plus two aggregate-statistics gaps. Full technical detail in
+ADR-0021's "R1.3 — MASTER final evidence-semantics round" addendum;
+summarized here:
+
+| Finding | Defect | Correction |
+|---|---|---|
+| A — RESTORED != EVIDENCE_COMPLETE | R1.1's `personality="restored_evidence_incomplete"` broke `observability/operator_snapshot_builder.py`'s `is_restored = personality == "restored"` in both directions: an evidence-incomplete restored position read `restored=False`, and a fully-evidenced restored position (durable TP/SL) was labeled `tp_sl_source="restored_default"` as if reconstructed. | `personality` stays `"restored"` for every ledger-restored position; only `restored_evidence_gaps` carries completeness. `tp_sl_source` now derives from that gap list directly: `"original"` / `"restored_default"` (genuinely reconstructed) / new `"restored_original"` (restored, durably-recovered TP/SL). Frontend contract (`types.ts`, already `\| string`-tolerant) and `O-02W-B` contract doc updated additively — no redesign. |
+| B — HISTORICAL RECORD != CERTIFIED PERFORMANCE SAMPLE | `PaperTradeRecorder.summary()`'s `win_rate`/`target_30_trades`/`go_live_ready` were computed over ALL closed trades, including unknown-outcome (`is_win is None`) ones — diluting win_rate and letting 30 genuinely unknown closes advance `go_live_ready`. | `summary()` now derives those metrics from a `certified` subset (`is_win is not None` and not `pnl_fee_evidence_incomplete`). `total_closed` (raw, backward-compatible) is preserved; new `certified_closed`/`excluded_unevidenced_count` keys make the exclusion explicit. Sole consumer `paper_trading/status.py` updated to match. |
+| C — INCOMPLETE FEE EVIDENCE != FULLY-EVIDENCED PNL (corpus) | `dataset_validator.py::validate_corpus()` already excluded `expired_on_restore` from population stats, but a `pnl_fee_evidence_incomplete=True` close (R1.2) still counted as an ordinary certified WIN/LOSS/TP/SL observation. | New `CorpusReport.fee_evidence_incomplete` counter; population loop excludes such closes (same `continue` pattern as `expired_on_restore`) without touching paired-trade/integrity accounting or treating it as corrupted data — an explicit warning names the exclusion. |
+
+**Files changed (R1.3):** `paper_trading/{mexc_simulator,recorder,status,
+dataset_validator}.py`, `observability/operator_snapshot_builder.py`,
+`frontend/src/types.ts`, `docs/contracts/
+O-02W-B_CANONICAL_OPERATOR_API_CONTRACT.md`, `tests/
+test_operator_snapshot_builder.py` (2 new tests + 1 fixture extension),
+`tests/test_rem_c_r1_execution_domain.py` (15 new tests, 1 updated),
+ADR-0021 + this §23.8 addendum.
+
+**Tests:** `tests/test_rem_c_r1_execution_domain.py` — 55/55 passed (9 R1
++ 21 R1.1 + 14 R1.2 + 11 R1.3). `tests/test_operator_snapshot_builder.py`
+— 146/146 passed. Full targeted regression (`test_position_manager`,
+`test_exchange_reality`, `test_restart_safety`, `test_dataset_validator`,
+`paper_trading/`, `test_pre_t1_c_portfolio_provider_read_only`, PRE-T1-D
+capital boundary, REM-A/REM-B suites, `tests/cross_stack/`): 918 passed.
+Same 9 pre-existing `TestB3AuditRecovery` failures across all four
+rounds, confirmed unrelated. `ruff_baseline_gate.py check`: 957/957, zero
+new (one incidental pre-existing lint finding fixed during the
+`summary()` rewrite, baseline count correctly dropped 958→957).
+`git diff --check`: clean.
+
+**Updated verdict: still `REMEDIATION_REQUIRED`.** REM-C R1.3 closes the
+provenance-visible drift MASTER found between R1.1's restore-evidence
+model and the operator snapshot it feeds, and closes two aggregate-
+statistics surfaces (`PaperTradeRecorder.summary()`,
+`dataset_validator.py`'s corpus population) that still let unevidenced or
+unknown-outcome closes contribute to certified performance metrics. It
+does not implement the fill-evidence chain, does not certify real
+exchange or TESTNET reconciliation, and does not enable live or testnet
+trading in any way. No real order, testnet call, exchange call, VPS
+access, secret access, or deployment occurred in this round.
+`PAPER_TRADING_ENABLED=true` and `LIVE_TRADING_CONFIRMED=false` are
+unchanged. T-1 and F-00 remain not started.

@@ -25,6 +25,7 @@ from dataclasses import dataclass, field
 from typing import Any, Optional
 
 from observability.json_logger import get_logger
+from quant_hedge_ai.agents.execution.position_manager import ExecutionDomain
 
 _log = get_logger("system.position_reconciler")
 _PRICE_DRIFT_PCT_ALERT = 0.02  # alerte si écart prix > 2%
@@ -41,6 +42,27 @@ class ReconcileReport:
     price_drifts: list = field(default_factory=list)  # écart prix > seuil
     exchange_reachable: bool = True
     error: Optional[str] = None
+    # REM-C R1 — domain-safety fields. `comparable=False` means reconciliation
+    # was NOT performed (domain incompatible or unproven): ghost/orphan lists
+    # are empty in that case by construction, never fabricated findings.
+    comparable: bool = True
+    pm_domain: str = ExecutionDomain.UNKNOWN.value
+    expected_domain: str = ExecutionDomain.REAL.value
+    unresolved_domain_positions: list = field(default_factory=list)
+    # REM-C R1.1 — `performed=False` means no comparison was attempted at
+    # all (currently only the rate-limit skip path below). Distinct from
+    # `comparable=False`, where a comparison WAS attempted and concluded
+    # the domains/accounts are incompatible. Neither state may ever read
+    # as CLEAN — a report for an operation that did not run is not
+    # evidence of a clean system.
+    performed: bool = True
+    # REM-C R1.2 — distinct from `exchange_reachable`: this names whether
+    # `pos_manager.get_open()` was actually read successfully, never
+    # conflating "the canonical API is missing" or "it raised" with "it
+    # returned zero positions". `False` means the internal side of the
+    # comparison is unknown, not empty — no ghost/orphan/price-drift
+    # comparison may be computed in that state (see reconcile() below).
+    internal_state_readable: bool = True
 
     @property
     def has_drift(self) -> bool:
@@ -53,9 +75,34 @@ class ReconcileReport:
 
     @property
     def is_clean(self) -> bool:
-        return self.exchange_reachable and not self.has_drift
+        # REM-C R1.2 — `unresolved_domain_positions` is deliberately kept
+        # out of `has_drift` (it is neither a ghost nor an orphan claim —
+        # fabricating either from an unresolved domain is exactly what
+        # R1-I4 forbids). But its presence must still deny CLEAN: an
+        # unresolved position is unaccounted-for state, not a decided
+        # "nothing wrong here". Checked here, directly, rather than
+        # folded into `has_drift`, to keep that property's meaning (and
+        # every existing caller reading it, e.g. the Telegram ghost/orphan
+        # alert in advisor_loop.py) unchanged.
+        return (
+            self.performed
+            and self.comparable
+            and self.exchange_reachable
+            and self.internal_state_readable
+            and not self.has_drift
+            and not self.unresolved_domain_positions
+        )
 
     def summary(self) -> str:
+        if not self.performed:
+            return f"NOT_PERFORMED ({self.error or 'skipped'})"
+        if not self.comparable:
+            return (
+                f"NON_COMPARABLE (pm_domain={self.pm_domain} "
+                f"expected={self.expected_domain})"
+            )
+        if not self.internal_state_readable:
+            return f"INTERNAL_STATE_UNREADABLE ({self.error})"
         parts = []
         if not self.exchange_reachable:
             parts.append("EXCHANGE_UNREACHABLE")
@@ -65,6 +112,8 @@ class ReconcileReport:
             parts.append(f"ORPHAN={self.orphan_positions}")
         if self.price_drifts:
             parts.append(f"DRIFT={self.price_drifts}")
+        if self.unresolved_domain_positions:
+            parts.append(f"UNRESOLVED_DOMAIN={self.unresolved_domain_positions}")
         return " | ".join(parts) if parts else "CLEAN"
 
 
@@ -76,10 +125,21 @@ class PositionReconciler:
     pos_manager      : instance de PositionManager
     """
 
-    def __init__(self, exchange_futures: Any, pos_manager: Any) -> None:
+    def __init__(
+        self,
+        exchange_futures: Any,
+        pos_manager: Any,
+        expected_domain: ExecutionDomain = ExecutionDomain.REAL,
+    ) -> None:
         self._exchange = exchange_futures
         self._pm = pos_manager
         self._last_reconcile: float = 0.0
+        # REM-C R1 — reconciliation only ever means "compare internal state
+        # against THIS exchange handle's REAL account" by construction
+        # (exchange_futures.fetch_positions() is always a real/testnet
+        # account call). expected_domain names what pos_manager must prove
+        # itself to be before any comparison is attempted.
+        self._expected_domain = expected_domain
 
     def should_reconcile(self) -> bool:
         return time.time() - self._last_reconcile >= _MIN_RECONCILE_INTERVAL
@@ -88,12 +148,53 @@ class PositionReconciler:
         """
         Lance la réconciliation. Retourne un ReconcileReport.
         Ne lève jamais d'exception — toutes les erreurs sont capturées dans le rapport.
+
+        REM-C R1 — invariant de sécurité de domaine : la comparaison
+        exchange/interne n'est jamais effectuée si `pos_manager.domain`
+        n'est pas prouvé égal à `expected_domain` (typiquement REAL). Un
+        domaine non prouvé (UNKNOWN) ou incompatible (ex: PAPER contre un
+        compte REAL) échoue fermé — `comparable=False`, aucune liste
+        ghost/orphan n'est calculée, jamais de faux positif fabriqué.
         """
         if not force and not self.should_reconcile():
-            return ReconcileReport(error="skipped — too soon")
+            return ReconcileReport(error="skipped — too soon", performed=False)
 
-        report = ReconcileReport()
+        pm_domain = getattr(self._pm, "domain", ExecutionDomain.UNKNOWN)
+        report = ReconcileReport(
+            pm_domain=getattr(pm_domain, "value", str(pm_domain)),
+            expected_domain=self._expected_domain.value,
+        )
         self._last_reconcile = time.time()
+
+        if pm_domain != self._expected_domain:
+            report.comparable = False
+            report.error = (
+                f"non-comparable execution domains: pos_manager={report.pm_domain} "
+                f"expected={report.expected_domain}"
+            )
+            _log.warning("[Reconciler] %s", report.error)
+            return report
+
+        # REM-C R1.1 — same domain LABEL is not proof of same account or
+        # exchange connection: two distinct PositionManager/exchange pairs
+        # can both legitimately be labeled REAL. The smallest safe proof
+        # available in this architecture is object identity of the
+        # exchange handle itself — `pos_manager._exchange` (the connection
+        # it was constructed with and reports positions against) must be
+        # THIS reconciler's own `exchange_futures` handle. No new account
+        # identifier is invented; if pos_manager exposes no `_exchange`
+        # attribute at all, identity cannot be proven and this fails
+        # closed exactly like an unproven domain.
+        pm_exchange = getattr(self._pm, "_exchange", None)
+        if pm_exchange is not self._exchange:
+            report.comparable = False
+            report.error = (
+                f"domain matches ({report.pm_domain}) but exchange/account "
+                "identity is unproven — pos_manager's exchange handle is not "
+                "this reconciler's exchange_futures handle"
+            )
+            _log.warning("[Reconciler] %s", report.error)
+            return report
 
         # ── 1. Positions exchange ─────────────────────────────────────────────
         exchange_pos: dict[str, dict] = {}
@@ -120,19 +221,45 @@ class PositionReconciler:
             return report
 
         # ── 2. Positions internes ──────────────────────────────────────────────
+        # Canonical PositionManager API is get_open() (get_open_positions()
+        # never existed — REM-C R0/R1 finding). Domain compatibility was
+        # already proven above at the pos_manager level; individual
+        # positions with an unresolved/UNKNOWN domain are still excluded
+        # here and reported separately rather than folded into ghost/orphan
+        # findings (R1-I4 — UNKNOWN can never produce a ghost/orphan claim).
+        #
+        # REM-C R1.2 — a missing get_open() or a raised exception means the
+        # internal side of the comparison is UNKNOWN, never empty. Silently
+        # falling back to `internal_pos = {}` in either case would let an
+        # unreadable internal state either read as CLEAN (empty exchange)
+        # or fabricate ORPHAN findings for every real exchange position
+        # (non-empty exchange) — both fail-open. Fail closed instead: no
+        # ghost/orphan/price-drift comparison is computed at all.
+        if not hasattr(self._pm, "get_open"):
+            report.internal_state_readable = False
+            report.error = (
+                "pos_manager exposes no get_open() — internal state "
+                "unreadable, not empty"
+            )
+            _log.warning("[Reconciler] %s", report.error)
+            return report
+
         internal_pos: dict[str, Any] = {}
         try:
-            for pos in (
-                self._pm.get_open_positions()
-                if hasattr(self._pm, "get_open_positions")
-                else []
-            ):
+            for pos in self._pm.get_open():
                 sym = getattr(pos, "symbol", "")
-                if sym:
-                    internal_pos[sym] = pos
+                pos_domain = getattr(pos, "domain", ExecutionDomain.UNKNOWN)
+                if not sym:
+                    continue
+                if pos_domain != self._expected_domain:
+                    report.unresolved_domain_positions.append(sym)
+                    continue
+                internal_pos[sym] = pos
         except Exception as e:
-            report.error = f"pos_manager.get_open_positions failed: {e}"
+            report.internal_state_readable = False
+            report.error = f"pos_manager.get_open failed: {e}"
             _log.warning("[Reconciler] %s", report.error)
+            return report
 
         report.exchange_positions = len(exchange_pos)
         report.internal_positions = len(internal_pos)
