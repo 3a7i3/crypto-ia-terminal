@@ -23,7 +23,7 @@ def _write_close(path, pnl_usd: float) -> None:
 class TestGetBalanceContinuousAcrossRestarts:
     def test_new_instance_does_not_reset_balance(self, tmp_path, monkeypatch):
         trades_path = tmp_path / "paper_trades.jsonl"
-        monkeypatch.setattr(ws, "_TRADES_LOG", trades_path)
+        monkeypatch.setenv("PAPER_TRADE_LOG", str(trades_path))
         monkeypatch.setattr(ws, "_PAPER_CAPITAL", 1000.0)
 
         _write_close(trades_path, -50.0)
@@ -40,7 +40,7 @@ class TestGetBalanceContinuousAcrossRestarts:
         self, tmp_path, monkeypatch
     ):
         trades_path = tmp_path / "paper_trades.jsonl"
-        monkeypatch.setattr(ws, "_TRADES_LOG", trades_path)
+        monkeypatch.setenv("PAPER_TRADE_LOG", str(trades_path))
         monkeypatch.setattr(ws, "_PAPER_CAPITAL", 1000.0)
 
         _write_close(trades_path, 100.0)
@@ -54,7 +54,7 @@ class TestGetBalanceContinuousAcrossRestarts:
 class TestSessionPnlSinceRestart:
     def test_zero_right_after_init_even_with_prior_history(self, tmp_path, monkeypatch):
         trades_path = tmp_path / "paper_trades.jsonl"
-        monkeypatch.setattr(ws, "_TRADES_LOG", trades_path)
+        monkeypatch.setenv("PAPER_TRADE_LOG", str(trades_path))
         monkeypatch.setattr(ws, "_PAPER_CAPITAL", 1000.0)
 
         _write_close(trades_path, -200.0)  # historique pré-existant
@@ -65,7 +65,7 @@ class TestSessionPnlSinceRestart:
         self, tmp_path, monkeypatch
     ):
         trades_path = tmp_path / "paper_trades.jsonl"
-        monkeypatch.setattr(ws, "_TRADES_LOG", trades_path)
+        monkeypatch.setenv("PAPER_TRADE_LOG", str(trades_path))
         monkeypatch.setattr(ws, "_PAPER_CAPITAL", 1000.0)
 
         _write_close(trades_path, -200.0)  # avant le "redémarrage"
