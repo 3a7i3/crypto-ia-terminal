@@ -2,7 +2,8 @@
 
 Hermetic adversarial proof suite. No real exchange, no network, no
 credentials. Uses fake/tripwire exchange objects that raise loudly on any
-unexpected mutating call. Covers mission scenarios A-L verbatim.
+unexpected mutating call. Covers mission scenarios A-L plus the C1
+blocking diagnostic.
 
 This is a certification test file, not a remediation. It asserts the
 CURRENT behavior of `ExecutionEngine`/`PositionManager`/`MexcSimulator`/
@@ -169,7 +170,8 @@ def test_scenario_b_paper_sell_zero_mutation(engine_factory):
     assert result.get("mode") != "live"
 
 
-# ── Scenario C — futures-demo handle exists, actionable decision → zero ────
+# ── Scenario C — PAPER engine + futures handle + leverage=1 → narrow ───────
+# zero-mutation proof only (not a general/actionable-decision proof; see C1)
 # futures mutation calls
 
 
@@ -359,10 +361,12 @@ def test_scenario_f_paper_manager_with_foreign_real_handle_cannot_submit(monkeyp
     assert tripwire.mutation_calls == []
 
 
-# ── Scenario G — non-actionable DecisionPacket → zero execution mutation ──
+# ── Scenario G — direct PAPER ExecutionEngine call with HOLD → zero ────────
+# external mutation (does NOT exercise DecisionPacket authorization; see
+# core/decision_packet.py / advisor_loop.py G8 for that gate)
 
 
-def test_scenario_g_non_actionable_decision_zero_mutation(engine_factory):
+def test_scenario_g_direct_paper_hold_zero_external_mutation(engine_factory):
     eng, spot, _ = engine_factory(with_spot_handle=True)
 
     # "HOLD" / non-actionable action never reaches create_order in
@@ -376,10 +380,12 @@ def test_scenario_g_non_actionable_decision_zero_mutation(engine_factory):
     assert result.get("mode") != "live"
 
 
-# ── Scenario H — missing DecisionPacket (no decision_id) → zero mutation ──
+# ── Scenario H — direct PAPER ExecutionEngine call without decision_id → ───
+# zero external mutation (does NOT exercise DecisionPacket authorization;
+# decision_id is REM-B causal identity, a distinct concern — see contract §24)
 
 
-def test_scenario_h_missing_decision_id_zero_mutation(engine_factory):
+def test_scenario_h_direct_paper_missing_decision_id_zero_external_mutation(engine_factory):
     eng, spot, _ = engine_factory(with_spot_handle=True)
 
     result = eng.create_order("BTC/USDT", "BUY", 100.0)  # no decision_id at all
