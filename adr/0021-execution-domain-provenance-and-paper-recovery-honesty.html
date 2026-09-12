@@ -1,0 +1,964 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" />
+
+    <link rel="shortcut icon" href="../_static/favicon.ico"/><!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
+        <title>ADR-0021 — Execution-domain provenance and PAPER recovery honesty (O-02W-PRE-T1-E REM-C R1) - Crypto AI Terminal 9.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=354aac6f" />
+    <link rel="stylesheet" type="text/css" href="../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=1b9cecba" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=302659d7" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">Crypto AI Terminal 9.1 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="../_static/../assets/logo_ai_quant.png" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="../_static/../assets/logo_ai_quant.png" alt="Dark Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/blob/main/docs/adr/0021-execution-domain-provenance-and-paper-recovery-honesty.md?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/edit/main/docs/adr/0021-execution-domain-provenance-and-paper-recovery-honesty.md" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="adr-0021-execution-domain-provenance-and-paper-recovery-honesty-o-02w-pre-t1-e-rem-c-r1">
+<h1>ADR-0021 — Execution-domain provenance and PAPER recovery honesty (O-02W-PRE-T1-E REM-C R1)<a class="headerlink" href="#adr-0021-execution-domain-provenance-and-paper-recovery-honesty-o-02w-pre-t1-e-rem-c-r1" title="Link to this heading">¶</a></h1>
+<p>Status: Accepted (implementation scope, not runtime certification)
+Date: 2026-09-11
+Supersedes: none. Extends ADR-0019 (REM-A), ADR-0020 (REM-B).</p>
+<section id="context">
+<h2>Context<a class="headerlink" href="#context" title="Link to this heading">¶</a></h2>
+<p>REM-C R0/R0.1 established that the repository mixes or incompletely
+distinguishes REAL, PAPER, SHADOW, BURN-IN and OBSERVATION execution
+state, and that the reconciliation/recovery logic has source-proven
+honesty defects:</p>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">system/position_reconciler.py</span></code>’s <code class="docutils literal notranslate"><span class="pre">PositionReconciler.reconcile()</span></code>
+calls <code class="docutils literal notranslate"><span class="pre">pos_manager.get_open_positions()</span></code>, a method that never existed
+on the canonical <code class="docutils literal notranslate"><span class="pre">PositionManager</span></code>
+(<code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/execution/position_manager.py</span></code>, which only
+exposes <code class="docutils literal notranslate"><span class="pre">get_open()</span></code>). A <code class="docutils literal notranslate"><span class="pre">hasattr()</span></code> guard made this silently return an
+empty internal-position set in production for the life of the code — a
+second, identical instance of the same defect existed in
+<code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code>’s boot-time heartbeat amorçage.</p></li>
+<li><p>Nothing in the <code class="docutils literal notranslate"><span class="pre">Position</span></code>/<code class="docutils literal notranslate"><span class="pre">PositionManager</span></code> model records which
+execution domain a position belongs to. Simply renaming
+<code class="docutils literal notranslate"><span class="pre">get_open_positions()</span></code> to <code class="docutils literal notranslate"><span class="pre">get_open()</span></code> without first closing this gap
+would let a PAPER-mode <code class="docutils literal notranslate"><span class="pre">PositionManager</span></code>’s internal state be compared,
+by symbol string alone, against a REAL exchange’s <code class="docutils literal notranslate"><span class="pre">fetch_positions()</span></code>
+result.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MexcSimulator._restore_positions()</span></code>
+(<code class="docutils literal notranslate"><span class="pre">paper_trading/mexc_simulator.py</span></code>) — the production PAPER restart
+path — fabricates certainty where none exists: <code class="docutils literal notranslate"><span class="pre">pnl_usd=0.0</span></code>/
+<code class="docutils literal notranslate"><span class="pre">pnl_pct=0.0</span></code> for positions expired during a downtime window (as if
+nothing happened while the process was down), a hardcoded 4%/2%
+TP/SL recompute presented indistinguishably from the position’s actual
+original TP/SL, and <code class="docutils literal notranslate"><span class="pre">fee_entry_usd=0.0</span></code> because the ledger never
+captured it.</p></li>
+</ol>
+<p>This mission (REM-C R1) is deliberately narrow: it is not the fill-engine
+implementation (<code class="docutils literal notranslate"><span class="pre">ExecutionEvidence</span></code>/<code class="docutils literal notranslate"><span class="pre">FillRecord</span></code>, partial-fill ingestion,
+<code class="docutils literal notranslate"><span class="pre">fetch_order()</span></code>/<code class="docutils literal notranslate"><span class="pre">fetch_my_trades()</span></code> production integration — REM-C
+R2/R3/R4), not exchange reconciliation certification, and not
+testnet/live enablement.</p>
+</section>
+<section id="decision">
+<h2>Decision<a class="headerlink" href="#decision" title="Link to this heading">¶</a></h2>
+<section id="executiondomain-minimal-provenance-enum">
+<h3>1. <code class="docutils literal notranslate"><span class="pre">ExecutionDomain</span></code> — minimal provenance enum<a class="headerlink" href="#executiondomain-minimal-provenance-enum" title="Link to this heading">¶</a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">ExecutionDomain</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Enum</span><span class="p">):</span>
+    <span class="n">REAL</span> <span class="o">=</span> <span class="s2">"real"</span>
+    <span class="n">TESTNET</span> <span class="o">=</span> <span class="s2">"testnet"</span>
+    <span class="n">FUTURES_DEMO</span> <span class="o">=</span> <span class="s2">"futures_demo"</span>
+    <span class="n">PAPER</span> <span class="o">=</span> <span class="s2">"paper"</span>
+    <span class="n">SHADOW</span> <span class="o">=</span> <span class="s2">"shadow"</span>
+    <span class="n">UNKNOWN</span> <span class="o">=</span> <span class="s2">"unknown"</span>
+</pre></div>
+</div>
+<p>Added directly to <code class="docutils literal notranslate"><span class="pre">position_manager.py</span></code> alongside the existing
+<code class="docutils literal notranslate"><span class="pre">PositionSide</span></code>/<code class="docutils literal notranslate"><span class="pre">CloseReason</span></code> enums (no new module — this repository
+already keeps execution-state enums colocated with <code class="docutils literal notranslate"><span class="pre">Position</span></code>). Only
+domains reachable from actual construction call sites are included; no
+domain is added speculatively.</p>
+<p><code class="docutils literal notranslate"><span class="pre">Position.domain:</span> <span class="pre">ExecutionDomain</span> <span class="pre">=</span> <span class="pre">ExecutionDomain.UNKNOWN</span></code> — <code class="docutils literal notranslate"><span class="pre">UNKNOWN</span></code>
+is the safe default. It is never silently upgraded to <code class="docutils literal notranslate"><span class="pre">REAL</span></code> (the
+majority of historical positions were not created with a domain in mind)
+nor to <code class="docutils literal notranslate"><span class="pre">PAPER</span></code> (T-1 being paper-only is not proof an individual position
+is), per the mission’s explicit instruction.</p>
+<p><code class="docutils literal notranslate"><span class="pre">PositionManager.__init__(...,</span> <span class="pre">domain:</span> <span class="pre">Optional[ExecutionDomain]</span> <span class="pre">=</span> <span class="pre">None)</span></code>
+resolves its own <code class="docutils literal notranslate"><span class="pre">.domain</span></code>:</p>
+<ul class="simple">
+<li><p>explicit <code class="docutils literal notranslate"><span class="pre">domain=</span></code> argument always wins;</p></li>
+<li><p>else <code class="docutils literal notranslate"><span class="pre">paper_mode=True</span></code> -&gt; <code class="docutils literal notranslate"><span class="pre">PAPER</span></code> (the caller’s own explicit intent);</p></li>
+<li><p>else <code class="docutils literal notranslate"><span class="pre">exchange</span> <span class="pre">is</span> <span class="pre">not</span> <span class="pre">None</span></code> -&gt; <code class="docutils literal notranslate"><span class="pre">REAL</span></code> (a live exchange handle was
+actually passed — this is the shape <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py:4122</span></code> uses
+for its real-futures construction path);</p></li>
+<li><p>else <code class="docutils literal notranslate"><span class="pre">UNKNOWN</span></code> (ambiguous construction context — fails closed).</p></li>
+</ul>
+<p><code class="docutils literal notranslate"><span class="pre">add_position()</span></code> stamps <code class="docutils literal notranslate"><span class="pre">self.domain</span></code> onto any position that still
+carries the <code class="docutils literal notranslate"><span class="pre">UNKNOWN</span></code> default; a position explicitly constructed with a
+different, non-<code class="docutils literal notranslate"><span class="pre">UNKNOWN</span></code> domain is never overwritten (this is what lets a
+test — or a future caller with better information — assert a domain the
+manager itself cannot infer).</p>
+<p>This is the smallest representation that satisfies all of R1-I1 through
+R1-I4 without introducing domains no reachable code needs (no
+per-exchange-account or per-subaccount granularity was added — nothing in
+the current call graph distinguishes those).</p>
+</section>
+<section id="reconciliation-same-domain-invariant">
+<h3>2. Reconciliation same-domain invariant<a class="headerlink" href="#reconciliation-same-domain-invariant" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">PositionReconciler.__init__(...,</span> <span class="pre">expected_domain:</span> <span class="pre">ExecutionDomain</span> <span class="pre">=</span> <span class="pre">ExecutionDomain.REAL)</span></code> — <code class="docutils literal notranslate"><span class="pre">REAL</span></code> by construction default, since
+<code class="docutils literal notranslate"><span class="pre">exchange_futures.fetch_positions()</span></code> is definitionally a real/testnet
+account call; nothing about <code class="docutils literal notranslate"><span class="pre">PositionReconciler</span></code> changes this.</p>
+<p><code class="docutils literal notranslate"><span class="pre">reconcile()</span></code> now checks <code class="docutils literal notranslate"><span class="pre">pos_manager.domain</span> <span class="pre">==</span> <span class="pre">expected_domain</span></code> <em>before</em>
+calling <code class="docutils literal notranslate"><span class="pre">fetch_positions()</span></code> at all. On mismatch (including <code class="docutils literal notranslate"><span class="pre">UNKNOWN</span></code>):
+returns immediately with <code class="docutils literal notranslate"><span class="pre">comparable=False</span></code>, <code class="docutils literal notranslate"><span class="pre">pm_domain</span></code>,
+<code class="docutils literal notranslate"><span class="pre">expected_domain</span></code> populated, and empty <code class="docutils literal notranslate"><span class="pre">ghost_positions</span></code>/
+<code class="docutils literal notranslate"><span class="pre">orphan_positions</span></code> — never a fabricated finding from an incompatible or
+unproven comparison.</p>
+<p>Only once domain-compatible does the corrected internal-position read run
+— <code class="docutils literal notranslate"><span class="pre">pos_manager.get_open()</span></code>, replacing <code class="docutils literal notranslate"><span class="pre">get_open_positions()</span></code>. Individual
+positions read back that still carry a non-matching or <code class="docutils literal notranslate"><span class="pre">UNKNOWN</span></code> domain
+(e.g. a legacy position loaded outside the normal construction path) are
+excluded from ghost/orphan comparison and reported separately via
+<code class="docutils literal notranslate"><span class="pre">unresolved_domain_positions</span></code>, never folded into a ghost/orphan claim
+(R1-I4).</p>
+<p><code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code>’s structurally identical <code class="docutils literal notranslate"><span class="pre">get_open_positions()</span></code>
+guard (boot-time heartbeat amorçage) is fixed to <code class="docutils literal notranslate"><span class="pre">get_open()</span></code> alongside
+this — same root defect, same fix, no new domain logic needed there since
+it only counts positions, it does not compare them against an exchange.</p>
+<p>Reconciliation was already read-only (<code class="docutils literal notranslate"><span class="pre">fetch_positions()</span></code> plus a pure
+comparison, no order/position mutation anywhere in the file); this
+mission adds no mutation path (R1-I6).</p>
+</section>
+<section id="paper-restart-evidence-honesty-rule">
+<h3>3. PAPER restart evidence-honesty rule<a class="headerlink" href="#paper-restart-evidence-honesty-rule" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">PaperTradeRecorder</span></code>’s <code class="docutils literal notranslate"><span class="pre">TradeEvent</span></code>/<code class="docutils literal notranslate"><span class="pre">CompleteTrade</span></code> (<code class="docutils literal notranslate"><span class="pre">paper_trading/</span> <span class="pre">recorder.py</span></code>) gain schema v4: three new OPEN-only fields, <code class="docutils literal notranslate"><span class="pre">tp_price</span></code>,
+<code class="docutils literal notranslate"><span class="pre">sl_price</span></code>, <code class="docutils literal notranslate"><span class="pre">fee_entry_usd</span></code>, all <code class="docutils literal notranslate"><span class="pre">Optional[float]</span> <span class="pre">=</span> <span class="pre">None</span></code>. <code class="docutils literal notranslate"><span class="pre">None</span></code> means
+“not recorded” and must never be read as zero or as a default original
+value by any consumer. <code class="docutils literal notranslate"><span class="pre">record_open()</span></code> accepts and persists them when the
+caller has them; the live-order-fill call site
+(<code class="docutils literal notranslate"><span class="pre">paper_trading/mexc_simulator.py</span></code>’s <code class="docutils literal notranslate"><span class="pre">_execute_market_order</span></code>-equivalent)
+now passes the position’s actual <code class="docutils literal notranslate"><span class="pre">tp_price</span></code>/<code class="docutils literal notranslate"><span class="pre">sl_price</span></code>/<code class="docutils literal notranslate"><span class="pre">fee_entry_usd</span></code>
+through. <code class="docutils literal notranslate"><span class="pre">record_close()</span></code>’s <code class="docutils literal notranslate"><span class="pre">pnl_usd</span></code>/<code class="docutils literal notranslate"><span class="pre">pnl_pct</span></code> parameters become
+<code class="docutils literal notranslate"><span class="pre">Optional[float]</span></code> so a caller can durably record “unknown”, not merely
+“zero”.</p>
+<p><code class="docutils literal notranslate"><span class="pre">MexcSimulator._restore_positions()</span></code>:</p>
+<ul class="simple">
+<li><p><strong>Expired-during-downtime positions</strong> are now closed with
+<code class="docutils literal notranslate"><span class="pre">pnl_usd=None</span></code>/<code class="docutils literal notranslate"><span class="pre">pnl_pct=None</span></code> (previously <code class="docutils literal notranslate"><span class="pre">0.0</span></code>/<code class="docutils literal notranslate"><span class="pre">0.0</span></code>). What happened to
+price/PnL during a downtime window is genuinely unknown; it stays
+unknown. The <code class="docutils literal notranslate"><span class="pre">reason=&quot;expired_on_restore&quot;</span></code> string is preserved exactly
+(unchanged) because <code class="docutils literal notranslate"><span class="pre">paper_trading/dataset_validator.py</span></code> classifies on
+that literal.</p></li>
+<li><p><strong>TP/SL/fee reconstruction</strong>: when a schema-v4 record’s <code class="docutils literal notranslate"><span class="pre">tp_price</span></code>/
+<code class="docutils literal notranslate"><span class="pre">sl_price</span></code> are present, they are used verbatim — this is the actual
+original evidence, not a recompute. Only when genuinely absent (older
+records, or any future gap) does restoration fall back to the same
+4%/2% recompute as before — but now the position’s new
+<code class="docutils literal notranslate"><span class="pre">restored_evidence_gaps:</span> <span class="pre">list[str]</span></code> field records exactly which values
+were reconstructed (<code class="docutils literal notranslate"><span class="pre">&quot;tp_sl_reconstructed_default&quot;</span></code>,
+<code class="docutils literal notranslate"><span class="pre">&quot;fee_entry_unknown&quot;</span></code>), and <code class="docutils literal notranslate"><span class="pre">personality</span></code> is set to
+<code class="docutils literal notranslate"><span class="pre">&quot;restored_evidence_incomplete&quot;</span></code> instead of the previously
+undifferentiated <code class="docutils literal notranslate"><span class="pre">&quot;restored&quot;</span></code>. A reconstructed value can no longer be
+mistaken for original evidence by any downstream reader (R1-I8), while
+genuinely-evidenced restorations remain fully functional and
+unflagged (R1-I9).</p></li>
+</ul>
+<p>No nullable rewrite of <code class="docutils literal notranslate"><span class="pre">MexcPosition.tp_price</span></code>/<code class="docutils literal notranslate"><span class="pre">sl_price</span></code> (which would
+ripple through every <code class="docutils literal notranslate"><span class="pre">hits_tp()</span></code>/<code class="docutils literal notranslate"><span class="pre">hits_sl()</span></code> comparison and the live
+watch loop) was introduced — per the mission’s explicit
+smallest-alternative instruction, the honesty signal is carried
+separately (<code class="docutils literal notranslate"><span class="pre">restored_evidence_gaps</span></code>) rather than by making the running
+fields themselves optional.</p>
+<p><code class="docutils literal notranslate"><span class="pre">paper_trading/dataset_validator.py</span></code>’s <code class="docutils literal notranslate"><span class="pre">_VALID_SCHEMA_VERSIONS</span></code> is
+extended <code class="docutils literal notranslate"><span class="pre">{1,2,3}</span> <span class="pre">-&gt;</span> <span class="pre">{1,2,3,4}</span></code> — mechanical, matches the new
+<code class="docutils literal notranslate"><span class="pre">SCHEMA_VERSION</span></code>.</p>
+</section>
+</section>
+<section id="consequences">
+<h2>Consequences<a class="headerlink" href="#consequences" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>A PAPER position can never again be silently compared against a REAL
+account, and an unproven domain fails closed rather than defaulting to
+either REAL or PAPER.</p></li>
+<li><p>Reconciliation reads the canonical <code class="docutils literal notranslate"><span class="pre">PositionManager</span></code> API correctly once
+domain-compatibility is proven; a domain-incompatible or unproven
+pos_manager makes reconciliation report itself non-comparable rather
+than fabricate ghost/orphan findings.</p></li>
+<li><p>PAPER restart never again converts missing PnL evidence into a known
+zero, and never again claims an original TP/SL/fee value that was not
+durably recorded — a reconstructed value is now always distinguishable
+from a genuinely evidenced one.</p></li>
+<li><p>Scientific capital, sizing, signals, strategies, regimes, risk
+thresholds, Telegram, the frontend, and the Web API are all untouched.
+<code class="docutils literal notranslate"><span class="pre">PAPER_TRADING_ENABLED=true</span></code>/<code class="docutils literal notranslate"><span class="pre">LIVE_TRADING_CONFIRMED=false</span></code> are
+unchanged.</p></li>
+</ul>
+</section>
+<section id="explicitly-deferred-rem-c-r2-r3-r4">
+<h2>Explicitly deferred (REM-C R2/R3/R4)<a class="headerlink" href="#explicitly-deferred-rem-c-r2-r3-r4" title="Link to this heading">¶</a></h2>
+<p>Canonical <code class="docutils literal notranslate"><span class="pre">ExecutionEvidence</span></code>/<code class="docutils literal notranslate"><span class="pre">FillRecord</span></code>; cumulative exchange fill
+journal; partial-fill ingestion/deduplication; exchange fill polling
+(<code class="docutils literal notranslate"><span class="pre">fetch_order()</span></code>/<code class="docutils literal notranslate"><span class="pre">fetch_my_trades()</span></code> production integration);
+real-exchange fee accounting/VWAP reconstruction; exchange adapter
+certification; resubmission policy; real position reconstruction from
+exchange fills; full crash-window/partial-fill recovery (B8 remains only
+restart-idempotent, per REM-B).</p>
+</section>
+<hr class="docutils" />
+<section id="r1-1-master-correction-round-2026-09-11">
+<h2>R1.1 — MASTER correction round (2026-09-11)<a class="headerlink" href="#r1-1-master-correction-round-2026-09-11" title="Link to this heading">¶</a></h2>
+<p><strong>Addendum to the above, not a rewrite.</strong> MASTER review of the R1 PR (#139,
+head <code class="docutils literal notranslate"><span class="pre">027cb0c71ce291209794ba929bff729ab71876c0</span></code>) found five residual
+defects in R1’s own implementation of this ADR’s stated intent. All five
+are corrected here, on the same PR/branch, without touching R2/R3/R4 scope.</p>
+<section id="finding-a-exchange-is-not-none-is-not-proof-of-real">
+<h3>Finding A — <code class="docutils literal notranslate"><span class="pre">exchange</span> <span class="pre">is</span> <span class="pre">not</span> <span class="pre">None</span></code> is not proof of REAL<a class="headerlink" href="#finding-a-exchange-is-not-none-is-not-proof-of-real" title="Link to this heading">¶</a></h3>
+<p>R1’s <code class="docutils literal notranslate"><span class="pre">PositionManager.__init__()</span></code> inferred <code class="docutils literal notranslate"><span class="pre">domain=REAL</span></code> whenever a
+non-None <code class="docutils literal notranslate"><span class="pre">exchange</span></code> argument was passed and neither <code class="docutils literal notranslate"><span class="pre">domain=</span></code> nor
+<code class="docutils literal notranslate"><span class="pre">paper_mode=True</span></code> was given. This is false: the real advisor construction
+site (<code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code>) passes
+<code class="docutils literal notranslate"><span class="pre">exchange=_get_exchange_futures(exec_engine)</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">ExecutionEngine._init_futures_demo()</span></code> (<code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/execution/</span> <span class="pre">execution_engine.py</span></code>) returns a non-None value ONLY for <code class="docutils literal notranslate"><span class="pre">EXCHANGE_ID=</span> <span class="pre">krakenfutures</span></code>, in which case it is <strong>the same object</strong> as
+<code class="docutils literal notranslate"><span class="pre">exec_engine._exchange</span></code> (the spot exchange) — not a distinct “futures
+demo” sandbox. That object’s actual domain (REAL vs TESTNET) is exactly
+<code class="docutils literal notranslate"><span class="pre">exec_engine._mode</span></code> (“live”/“testnet”/“paper”, set by
+<code class="docutils literal notranslate"><span class="pre">infra.exchange_factory.detect_mode()</span></code> from <code class="docutils literal notranslate"><span class="pre">EXCHANGE_TESTNET</span></code>), never
+something the handle’s mere non-nullness proves. For every other
+exchange (MEXC included), <code class="docutils literal notranslate"><span class="pre">_exchange_futures</span></code> is always <code class="docutils literal notranslate"><span class="pre">None</span></code> and that
+branch is <code class="docutils literal notranslate"><span class="pre">paper_mode=True</span></code> regardless.</p>
+<p><strong>Correction.</strong> <code class="docutils literal notranslate"><span class="pre">PositionManager.__init__()</span></code> no longer infers anything
+from <code class="docutils literal notranslate"><span class="pre">exchange</span></code>’s nullness: <code class="docutils literal notranslate"><span class="pre">domain=</span></code> explicit argument wins, else
+<code class="docutils literal notranslate"><span class="pre">paper_mode=True</span></code> -&gt; <code class="docutils literal notranslate"><span class="pre">PAPER</span></code>, else <code class="docutils literal notranslate"><span class="pre">UNKNOWN</span></code> (fails closed). A new
+<code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py::_futures_position_domain(exec_engine,</span> <span class="pre">paper_mode)</span></code>
+resolves the proven domain from <code class="docutils literal notranslate"><span class="pre">exec_engine._mode</span></code> and is passed
+explicitly as <code class="docutils literal notranslate"><span class="pre">domain=</span></code> at the one production construction site. Per the
+mission’s evidence: <code class="docutils literal notranslate"><span class="pre">_mode</span> <span class="pre">==</span> <span class="pre">&quot;live&quot;</span></code> -&gt; <code class="docutils literal notranslate"><span class="pre">REAL</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;testnet&quot;</span></code> -&gt; <code class="docutils literal notranslate"><span class="pre">TESTNET</span></code>,
+anything else (including “paper” or missing) -&gt; <code class="docutils literal notranslate"><span class="pre">UNKNOWN</span></code>. <code class="docutils literal notranslate"><span class="pre">FUTURES_DEMO</span></code>
+is deliberately never produced by this call site — this codebase has no
+execution path that connects to an actual sandboxed futures-demo venue
+distinct from the spot exchange’s own real/testnet mode; the “Futures
+Demo” name in <code class="docutils literal notranslate"><span class="pre">ExecutionEngine</span></code> is a label, not a third connection this
+function could honestly attest to. <code class="docutils literal notranslate"><span class="pre">FUTURES_DEMO</span></code> remains a defined
+<code class="docutils literal notranslate"><span class="pre">ExecutionDomain</span></code> value for a future call site that does connect to one.</p>
+</section>
+<section id="finding-b-same-domain-label-is-not-same-account-exchange">
+<h3>Finding B — same domain label is not same account/exchange<a class="headerlink" href="#finding-b-same-domain-label-is-not-same-account-exchange" title="Link to this heading">¶</a></h3>
+<p>R1’s <code class="docutils literal notranslate"><span class="pre">PositionReconciler</span></code> verified only <code class="docutils literal notranslate"><span class="pre">pos_manager.domain</span> <span class="pre">==</span> <span class="pre">expected_domain</span></code>. Two independently-constructed <code class="docutils literal notranslate"><span class="pre">PositionManager</span></code>/
+exchange pairs can both legitimately carry the label <code class="docutils literal notranslate"><span class="pre">REAL</span></code> while
+representing different accounts or connections — a label match alone
+must not authorize comparing their positions.</p>
+<p><strong>Correction.</strong> After the domain-label check passes, <code class="docutils literal notranslate"><span class="pre">reconcile()</span></code> now
+additionally requires <code class="docutils literal notranslate"><span class="pre">pos_manager._exchange</span> <span class="pre">is</span> <span class="pre">&lt;this</span> <span class="pre">reconciler's</span> <span class="pre">own</span> <span class="pre">exchange_futures</span> <span class="pre">handle&gt;</span></code> — object identity, the smallest proof this
+architecture can make without inventing a new account-identifier concept.
+<code class="docutils literal notranslate"><span class="pre">PositionManager</span></code> already stores its <code class="docutils literal notranslate"><span class="pre">exchange</span></code> argument as <code class="docutils literal notranslate"><span class="pre">self.</span> <span class="pre">_exchange</span></code>; no new field was added to it. A missing <code class="docutils literal notranslate"><span class="pre">_exchange</span></code> attribute,
+a different object, or <code class="docutils literal notranslate"><span class="pre">None</span></code> all fail closed identically to a domain
+mismatch: <code class="docutils literal notranslate"><span class="pre">comparable=False</span></code>, empty ghost/orphan lists, an explicit
+<code class="docutils literal notranslate"><span class="pre">error</span></code> naming the identity gap.</p>
+</section>
+<section id="finding-c-expired-paper-restore-still-faked-the-exit-price">
+<h3>Finding C — expired PAPER restore still faked the exit price<a class="headerlink" href="#finding-c-expired-paper-restore-still-faked-the-exit-price" title="Link to this heading">¶</a></h3>
+<p>R1 already stopped fabricating <code class="docutils literal notranslate"><span class="pre">pnl_usd</span></code>/<code class="docutils literal notranslate"><span class="pre">pnl_pct</span></code> as <code class="docutils literal notranslate"><span class="pre">0.0</span></code> on a
+downtime-window expiry, but the same code path still wrote
+<code class="docutils literal notranslate"><span class="pre">exit_price=trade.entry_price</span></code> — false precision presenting “no price
+movement” as if it were known.</p>
+<p><strong>Correction.</strong> <code class="docutils literal notranslate"><span class="pre">PaperTradeRecorder.record_close()</span></code>’s <code class="docutils literal notranslate"><span class="pre">exit_price</span></code>
+parameter is now <code class="docutils literal notranslate"><span class="pre">Optional[float]</span></code>; <code class="docutils literal notranslate"><span class="pre">MexcSimulator._restore_positions()</span></code>’s
+expiry path passes <code class="docutils literal notranslate"><span class="pre">exit_price=None</span></code>. <code class="docutils literal notranslate"><span class="pre">TradeEvent.exit_price</span></code>/
+<code class="docutils literal notranslate"><span class="pre">CompleteTrade.exit_price</span></code> were already <code class="docutils literal notranslate"><span class="pre">Optional</span></code> from R1 — only the
+call site’s fabricated substitution needed removing.</p>
+</section>
+<section id="finding-d-unknown-pnl-was-silently-converted-to-loss">
+<h3>Finding D — unknown PnL was silently converted to LOSS<a class="headerlink" href="#finding-d-unknown-pnl-was-silently-converted-to-loss" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">PaperTradeRecorder.trades()</span></code> computed <code class="docutils literal notranslate"><span class="pre">is_win</span> <span class="pre">=</span> <span class="pre">(cl.pnl_usd</span> <span class="pre">or</span> <span class="pre">0)</span> <span class="pre">&gt;</span> <span class="pre">0</span></code>.
+For <code class="docutils literal notranslate"><span class="pre">pnl_usd=None</span></code> (genuinely unknown), Python’s <code class="docutils literal notranslate"><span class="pre">or</span></code> coerces this to
+<code class="docutils literal notranslate"><span class="pre">0</span> <span class="pre">&gt;</span> <span class="pre">0</span></code> = <code class="docutils literal notranslate"><span class="pre">False</span></code> — UNKNOWN became LOSS, directly contradicting this
+ADR’s evidence-honesty rule.</p>
+<p><strong>Correction.</strong> <code class="docutils literal notranslate"><span class="pre">is_win</span> <span class="pre">=</span> <span class="pre">None</span> <span class="pre">if</span> <span class="pre">cl.pnl_usd</span> <span class="pre">is</span> <span class="pre">None</span> <span class="pre">else</span> <span class="pre">(cl.pnl_usd</span> <span class="pre">&gt;</span> <span class="pre">0)</span></code> in both aggregation branches (paired trades and orphaned closes). A
+genuinely recorded <code class="docutils literal notranslate"><span class="pre">pnl_usd=0.0</span></code> still correctly resolves <code class="docutils literal notranslate"><span class="pre">is_win=False</span></code>
+(a known non-win, distinct from an unknown outcome). Consumer inventory
+(both <code class="docutils literal notranslate"><span class="pre">paper_trading.trades()</span></code>’s only two production call sites and
+direct format-string readers of the newly-reachable <code class="docutils literal notranslate"><span class="pre">None</span></code>s):</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">paper_trading/status.py</span></code> (<code class="docutils literal notranslate"><span class="pre">main()</span></code>) — line rendering <code class="docutils literal notranslate"><span class="pre">wl</span> <span class="pre">=</span> <span class="pre">&quot;WIN&quot;</span> <span class="pre">if</span> <span class="pre">t.is_win</span> <span class="pre">else</span> <span class="pre">&quot;LOSS&quot;</span></code> would render every unknown trade as LOSS. Fixed to
+<code class="docutils literal notranslate"><span class="pre">&quot;N/A&quot;</span> <span class="pre">if</span> <span class="pre">t.is_win</span> <span class="pre">is</span> <span class="pre">None</span> <span class="pre">else</span> <span class="pre">(&quot;WIN&quot;</span> <span class="pre">if</span> <span class="pre">t.is_win</span> <span class="pre">else</span> <span class="pre">&quot;LOSS&quot;)</span></code>. Its
+<code class="docutils literal notranslate"><span class="pre">pnl_pct</span></code>/<code class="docutils literal notranslate"><span class="pre">exit_price</span></code> formatting already guarded on <code class="docutils literal notranslate"><span class="pre">is</span> <span class="pre">not</span> <span class="pre">None</span></code>/
+truthiness before this round and needed no change.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">paper_trading/dataset_validator.py::validate_corpus()</span></code> — already
+excludes <code class="docutils literal notranslate"><span class="pre">reason</span> <span class="pre">==</span> <span class="pre">&quot;expired_on_restore&quot;</span></code> from win/loss population
+stats before touching <code class="docutils literal notranslate"><span class="pre">pnl_usd</span></code> at all (unchanged, reverified by
+regression test); its <code class="docutils literal notranslate"><span class="pre">pnl</span> <span class="pre">=</span> <span class="pre">getattr(cl,</span> <span class="pre">&quot;pnl_usd&quot;,</span> <span class="pre">0.0)</span> <span class="pre">or</span> <span class="pre">0.0</span></code> line is
+only reached for non-excluded (evidenced) trades, so the <code class="docutils literal notranslate"><span class="pre">or</span> <span class="pre">0.0</span></code>
+coercion there is inert for genuinely-unknown records and was left
+alone rather than widened speculatively.</p></li>
+<li><p>No other direct production consumer of <code class="docutils literal notranslate"><span class="pre">CompleteTrade.is_win</span></code> or
+<code class="docutils literal notranslate"><span class="pre">PaperTradeRecorder.trades()</span></code> exists in this repository (grep-verified).
+This closes the finding without a broader analytics rewrite.</p></li>
+</ul>
+</section>
+<section id="finding-e-bootgate-could-clear-trading-on-a-non-comparable-reconciliation">
+<h3>Finding E — BootGate could clear trading on a non-comparable reconciliation<a class="headerlink" href="#finding-e-bootgate-could-clear-trading-on-a-non-comparable-reconciliation" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">system/boot_gate.py::BootGate.check()</span></code> copied <code class="docutils literal notranslate"><span class="pre">pos_report.ghost_positions</span></code>/
+<code class="docutils literal notranslate"><span class="pre">orphan_positions</span></code> and computed its own <code class="docutils literal notranslate"><span class="pre">has_drift</span></code> from those (plus
+order-tracker fields) — but a <code class="docutils literal notranslate"><span class="pre">comparable=False</span></code> <code class="docutils literal notranslate"><span class="pre">ReconcileReport</span></code> has
+EMPTY ghost/orphan lists by design (R1’s own invariant: never fabricate a
+finding from an unproven comparison). <code class="docutils literal notranslate"><span class="pre">check()</span></code> never looked at
+<code class="docutils literal notranslate"><span class="pre">pos_report.comparable</span></code> or <code class="docutils literal notranslate"><span class="pre">pos_report.is_clean</span></code> at all, so a reconciler
+that could not prove domain/account compatibility — meaning NO comparison
+happened — still let the gate clear.</p>
+<p><strong>Correction.</strong> <code class="docutils literal notranslate"><span class="pre">BootGateReport</span></code> gains <code class="docutils literal notranslate"><span class="pre">position_reconcile_comparable</span></code>
+(copied from <code class="docutils literal notranslate"><span class="pre">pos_report.comparable</span></code>). <code class="docutils literal notranslate"><span class="pre">check()</span></code>’s final decision now
+checks, in order: <code class="docutils literal notranslate"><span class="pre">not</span> <span class="pre">comparable</span></code> -&gt; blocked (reason names the
+domain/identity gap); <code class="docutils literal notranslate"><span class="pre">not</span> <span class="pre">position_reconcile_clean</span></code> -&gt; blocked (reason
+names the reconciler’s own summary — this also closes a second,
+previously-unnoticed gap where a <code class="docutils literal notranslate"><span class="pre">price_drifts</span></code>-only-dirty report,
+which <code class="docutils literal notranslate"><span class="pre">is_clean</span></code> accounts for but the pre-existing local <code class="docutils literal notranslate"><span class="pre">has_drift</span></code>
+variable did not, could have cleared the gate); <code class="docutils literal notranslate"><span class="pre">has_drift</span></code> -&gt; blocked
+(unchanged ghost/orphan/order-anomaly path). Only when all three pass does
+the gate clear — identical outcome to before for every existing clean or
+ghost/orphan-dirty scenario (regression-tested), newly fail-closed for the
+non-comparable case.</p>
+</section>
+<section id="section-6-reconcilereport-must-never-read-clean-for-a-skipped-run">
+<h3>Section 6 — <code class="docutils literal notranslate"><span class="pre">ReconcileReport</span></code> must never read CLEAN for a skipped run<a class="headerlink" href="#section-6-reconcilereport-must-never-read-clean-for-a-skipped-run" title="Link to this heading">¶</a></h3>
+<p>The rate-limited early return, <code class="docutils literal notranslate"><span class="pre">ReconcileReport(error=&quot;skipped</span> <span class="pre">—</span> <span class="pre">too</span> <span class="pre">soon&quot;)</span></code>, left every other field at its default — including
+<code class="docutils literal notranslate"><span class="pre">comparable=True</span></code>, <code class="docutils literal notranslate"><span class="pre">exchange_reachable=True</span></code>, empty ghost/orphan/drift
+lists — so <code class="docutils literal notranslate"><span class="pre">is_clean</span></code> evaluated <code class="docutils literal notranslate"><span class="pre">True</span></code> for an operation that never ran at
+all. <code class="docutils literal notranslate"><span class="pre">BootGate.check()</span></code> always calls <code class="docutils literal notranslate"><span class="pre">reconcile(force=True)</span></code> so this
+specific gap does not currently reach it, but the report contract itself
+was unsound, exactly as named in the mission’s semantic-sweep instruction.</p>
+<p><strong>Correction.</strong> Added <code class="docutils literal notranslate"><span class="pre">ReconcileReport.performed:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">True</span></code>; the
+rate-limit skip path sets <code class="docutils literal notranslate"><span class="pre">performed=False</span></code>; <code class="docutils literal notranslate"><span class="pre">is_clean</span></code> now requires
+<code class="docutils literal notranslate"><span class="pre">performed</span></code> in addition to <code class="docutils literal notranslate"><span class="pre">comparable</span></code>, <code class="docutils literal notranslate"><span class="pre">exchange_reachable</span></code>, and <code class="docutils literal notranslate"><span class="pre">not</span> <span class="pre">has_drift</span></code>. No broader report-state-machine redesign — one field, one
+call site, one property.</p>
+</section>
+<section id="corrected-framing-supersedes-conflicting-r1-wording-above">
+<h3>Corrected framing (supersedes conflicting R1 wording above)<a class="headerlink" href="#corrected-framing-supersedes-conflicting-r1-wording-above" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>opaque exchange object != REAL provenance.</strong> A non-None exchange
+handle is evidence a connection exists, never evidence of which domain
+it connects to.</p></li>
+<li><p><strong>same domain label != same account/exchange.</strong> Two REAL-labeled
+managers can be different accounts; reconciliation requires exchange
+identity proof, not just a matching label.</p></li>
+<li><p><strong>MISSING EXIT EVIDENCE != ENTRY PRICE.</strong> An unknown exit price is
+<code class="docutils literal notranslate"><span class="pre">None</span></code>, never the entry price presented as if nothing moved.</p></li>
+<li><p><strong>MISSING PNL != ZERO, and MISSING PNL != LOSS.</strong> <code class="docutils literal notranslate"><span class="pre">pnl_usd=None</span></code> stays
+<code class="docutils literal notranslate"><span class="pre">None</span></code> through every layer, including the derived <code class="docutils literal notranslate"><span class="pre">is_win</span></code>, which must
+itself be <code class="docutils literal notranslate"><span class="pre">None</span></code> rather than falling back to <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p></li>
+</ul>
+</section>
+<section id="files-changed-r1-1-in-addition-to-r1s-list">
+<h3>Files changed (R1.1, in addition to R1’s list)<a class="headerlink" href="#files-changed-r1-1-in-addition-to-r1s-list" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/execution/position_manager.py</span></code> — removed the
+<code class="docutils literal notranslate"><span class="pre">exchange</span> <span class="pre">is</span> <span class="pre">not</span> <span class="pre">None</span> <span class="pre">-&gt;</span> <span class="pre">REAL</span></code> inference.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code> — added <code class="docutils literal notranslate"><span class="pre">_futures_position_domain()</span></code>; the
+<code class="docutils literal notranslate"><span class="pre">PositionManager</span></code> construction site now passes <code class="docutils literal notranslate"><span class="pre">domain=</span></code> explicitly.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">system/position_reconciler.py</span></code> — exchange-identity check after the
+domain check; <code class="docutils literal notranslate"><span class="pre">ReconcileReport.performed</span></code> and the “skipped” path setting
+it <code class="docutils literal notranslate"><span class="pre">False</span></code>; <code class="docutils literal notranslate"><span class="pre">summary()</span></code>/<code class="docutils literal notranslate"><span class="pre">is_clean</span></code> updated accordingly.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">system/boot_gate.py</span></code> — <code class="docutils literal notranslate"><span class="pre">position_reconcile_comparable</span></code>; fail-closed
+ordering in <code class="docutils literal notranslate"><span class="pre">check()</span></code>’s final decision.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">paper_trading/recorder.py</span></code> — <code class="docutils literal notranslate"><span class="pre">record_close(exit_price:</span> <span class="pre">Optional[float]</span> <span class="pre">)</span></code>; <code class="docutils literal notranslate"><span class="pre">is_win</span></code> no longer coerces <code class="docutils literal notranslate"><span class="pre">None</span></code> to <code class="docutils literal notranslate"><span class="pre">False</span></code> in either aggregation
+branch.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">paper_trading/mexc_simulator.py</span></code> — expiry path passes <code class="docutils literal notranslate"><span class="pre">exit_price=None</span></code>
+instead of <code class="docutils literal notranslate"><span class="pre">trade.entry_price</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">paper_trading/status.py</span></code> — <code class="docutils literal notranslate"><span class="pre">wl</span></code> rendering distinguishes <code class="docutils literal notranslate"><span class="pre">N/A</span></code> from
+<code class="docutils literal notranslate"><span class="pre">LOSS</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">tests/test_rem_c_r1_execution_domain.py</span></code> — 21 new tests (A1-A6, B1-B4,
+C, D1-D7, E1-E5, the <code class="docutils literal notranslate"><span class="pre">ReconcileReport.performed</span></code> regression).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">tests/test_restart_safety.py</span></code> — <code class="docutils literal notranslate"><span class="pre">TestB2MidExecutionCrash</span></code>’s mocks now
+set <code class="docutils literal notranslate"><span class="pre">pm._exchange</span></code> to the same object passed to <code class="docutils literal notranslate"><span class="pre">PositionReconciler</span></code>
+(mechanical — these mocks exercise exactly the identity check this
+round adds).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">.ci/ruff_baseline.json</span></code> — mechanical line-shift only (verified via
+<code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">scripts/ci/ruff_baseline_gate.py</span> <span class="pre">check</span></code>, 958/958, zero new).</p></li>
+</ul>
+<p>No REM-C R2/R3/R4 functionality was implemented in this round either.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="r1-2-master-correction-round-2026-09-11">
+<h2>R1.2 — MASTER correction round (2026-09-11)<a class="headerlink" href="#r1-2-master-correction-round-2026-09-11" title="Link to this heading">¶</a></h2>
+<p><strong>Addendum to R1/R1.1 above, not a rewrite.</strong> MASTER review of R1.1 (head
+<code class="docutils literal notranslate"><span class="pre">79cb77ebb77d202c8323509b0119cdd264f754a5</span></code>) found three residual defects
+plus one evidence-audit item, all closed here on the same PR/branch.</p>
+<section id="finding-a-unresolved-clean">
+<h3>Finding A — UNRESOLVED != CLEAN<a class="headerlink" href="#finding-a-unresolved-clean" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">ReconcileReport.unresolved_domain_positions</span></code> (added in R1) was correctly
+kept out of <code class="docutils literal notranslate"><span class="pre">has_drift</span></code> — an unresolved-domain position is neither a ghost
+nor an orphan claim, and fabricating either from it is exactly what R1-I4
+forbids. But <code class="docutils literal notranslate"><span class="pre">is_clean</span></code> never checked <code class="docutils literal notranslate"><span class="pre">unresolved_domain_positions</span></code>
+either, so <code class="docutils literal notranslate"><span class="pre">performed=True,</span> <span class="pre">comparable=True,</span> <span class="pre">exchange_reachable=True,</span> <span class="pre">unresolved_domain_positions=[&quot;SOL/USDT&quot;],</span> <span class="pre">ghost=[],</span> <span class="pre">orphan=[]</span></code> read as
+<code class="docutils literal notranslate"><span class="pre">is_clean=True</span></code> — an unaccounted-for position certified the system clean.</p>
+<p><strong>Correction.</strong> <code class="docutils literal notranslate"><span class="pre">is_clean</span></code> now additionally requires
+<code class="docutils literal notranslate"><span class="pre">not</span> <span class="pre">self.unresolved_domain_positions</span></code>, checked directly rather than
+folded into <code class="docutils literal notranslate"><span class="pre">has_drift</span></code> — this keeps <code class="docutils literal notranslate"><span class="pre">has_drift</span></code>’s existing meaning (and
+every caller reading it, e.g. <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code>’s ghost/orphan
+Telegram alert) unchanged. <code class="docutils literal notranslate"><span class="pre">summary()</span></code> already never returned <code class="docutils literal notranslate"><span class="pre">&quot;CLEAN&quot;</span></code>
+while <code class="docutils literal notranslate"><span class="pre">unresolved_domain_positions</span></code> was non-empty (it appends
+<code class="docutils literal notranslate"><span class="pre">UNRESOLVED_DOMAIN=...</span></code> to the joined parts), so no change was needed
+there.</p>
+</section>
+<section id="finding-b-internal-read-failure-empty-internal-state">
+<h3>Finding B — INTERNAL READ FAILURE != EMPTY INTERNAL STATE<a class="headerlink" href="#finding-b-internal-read-failure-empty-internal-state" title="Link to this heading">¶</a></h3>
+<p>Two related fail-open gaps in <code class="docutils literal notranslate"><span class="pre">PositionReconciler.reconcile()</span></code>’s internal-
+position read:</p>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">self._pm.get_open()</span> <span class="pre">if</span> <span class="pre">hasattr(self._pm,</span> <span class="pre">&quot;get_open&quot;)</span> <span class="pre">else</span> <span class="pre">[]</span></code> treated
+“the canonical API doesn’t exist” identically to “it returned zero
+positions”.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">except</span> <span class="pre">Exception:</span> <span class="pre">report.error</span> <span class="pre">=</span> <span class="pre">...</span></code> then <strong>continued</strong> with
+<code class="docutils literal notranslate"><span class="pre">internal_pos</span> <span class="pre">=</span> <span class="pre">{}</span></code> — a raised exception from <code class="docutils literal notranslate"><span class="pre">get_open()</span></code> was treated
+the same as a successful empty read. With an empty exchange this could
+certify CLEAN despite the internal state never being read; with a
+non-empty exchange it would fabricate an ORPHAN finding for every real
+exchange position, purely because the internal side failed to load.</p></li>
+</ol>
+<p><strong>Correction.</strong> New <code class="docutils literal notranslate"><span class="pre">ReconcileReport.internal_state_readable:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">True</span></code> field, distinct from <code class="docutils literal notranslate"><span class="pre">exchange_reachable</span></code> (which only describes the
+exchange side) and from <code class="docutils literal notranslate"><span class="pre">comparable</span></code> (domain/account proof, a different
+axis). <code class="docutils literal notranslate"><span class="pre">reconcile()</span></code> now returns immediately — before any ghost/orphan/
+price-drift computation — when <code class="docutils literal notranslate"><span class="pre">get_open</span></code> is missing or raises,
+setting <code class="docutils literal notranslate"><span class="pre">internal_state_readable=False</span></code> and an explicit <code class="docutils literal notranslate"><span class="pre">error</span></code>.
+<code class="docutils literal notranslate"><span class="pre">is_clean</span></code> requires it; <code class="docutils literal notranslate"><span class="pre">summary()</span></code> reports
+<code class="docutils literal notranslate"><span class="pre">INTERNAL_STATE_UNREADABLE</span> <span class="pre">(...)</span></code> in that state, following the same
+early-return pattern as <code class="docutils literal notranslate"><span class="pre">NOT_PERFORMED</span></code>/<code class="docutils literal notranslate"><span class="pre">NON_COMPARABLE</span></code>. A genuinely
+empty <code class="docutils literal notranslate"><span class="pre">get_open()</span> <span class="pre">-&gt;</span> <span class="pre">[]</span></code> (no exception, API present) is unaffected and
+remains distinguishable — it still reaches CLEAN when the exchange is
+also genuinely empty.</p>
+</section>
+<section id="finding-c-missing-raw-event-price-zero">
+<h3>Finding C — MISSING RAW EVENT PRICE != ZERO<a class="headerlink" href="#finding-c-missing-raw-event-price-zero" title="Link to this heading">¶</a></h3>
+<p>R1.1 correctly made the <em>derived</em> <code class="docutils literal notranslate"><span class="pre">exit_price</span></code>/<code class="docutils literal notranslate"><span class="pre">pnl_usd</span></code>/<code class="docutils literal notranslate"><span class="pre">pnl_pct</span></code>/
+<code class="docutils literal notranslate"><span class="pre">is_win</span></code> all <code class="docutils literal notranslate"><span class="pre">None</span></code> for an <code class="docutils literal notranslate"><span class="pre">expired_on_restore</span></code> close, but the <em>raw</em>
+<code class="docutils literal notranslate"><span class="pre">PaperTradeRecorder.record_close()</span></code> still wrote <code class="docutils literal notranslate"><span class="pre">TradeEvent.price</span> <span class="pre">=</span> <span class="pre">0.0</span></code>
+for that same event — R1.1’s own comment called this an “unread legacy
+placeholder”, which is not sufficient for a durable scientific ledger:
+<code class="docutils literal notranslate"><span class="pre">MISSING</span> <span class="pre">EVIDENCE</span> <span class="pre">!=</span> <span class="pre">ZERO</span></code> must apply to the raw event, not only to
+fields derived from it later.</p>
+<p><strong>Correction, after consumer audit.</strong> Grepped every reader of
+<code class="docutils literal notranslate"><span class="pre">TradeEvent.price</span></code>/<code class="docutils literal notranslate"><span class="pre">evt.price</span></code>/<code class="docutils literal notranslate"><span class="pre">op.price</span></code>/<code class="docutils literal notranslate"><span class="pre">cl.price</span></code> in this repository:
+the only production reader is <code class="docutils literal notranslate"><span class="pre">paper_trading/recorder.py</span></code>’s own
+<code class="docutils literal notranslate"><span class="pre">trades()</span></code>, and only for OPEN events (<code class="docutils literal notranslate"><span class="pre">entry_price=op.price</span></code> — OPEN
+always carries a real evidenced price, unaffected). No reader anywhere
+requires a CLOSE event’s <code class="docutils literal notranslate"><span class="pre">price</span></code> to be a non-null float.
+<code class="docutils literal notranslate"><span class="pre">paper_trading/dataset_validator.py::_check_core_fields()</span></code> already guards
+<code class="docutils literal notranslate"><span class="pre">val</span> <span class="pre">is</span> <span class="pre">not</span> <span class="pre">None</span></code> before its NaN check, so it already tolerates <code class="docutils literal notranslate"><span class="pre">None</span></code>
+without modification. Given zero broad-impact consumers, <code class="docutils literal notranslate"><span class="pre">TradeEvent.price</span></code>
+is now <code class="docutils literal notranslate"><span class="pre">Optional[float]</span></code> (schema-compatible — no field reordering, no
+default added) and <code class="docutils literal notranslate"><span class="pre">record_close()</span></code> passes <code class="docutils literal notranslate"><span class="pre">exit_price</span></code> straight through
+instead of substituting <code class="docutils literal notranslate"><span class="pre">0.0</span></code>. No
+<code class="docutils literal notranslate"><span class="pre">REM_C_R1_2_TRADEEVENT_PRICE_NULLABILITY_SCOPE_EXPANSION_REQUIRES_MASTER_DECISION</span></code>
+was needed — the audit found the change genuinely narrow.</p>
+</section>
+<section id="finding-4-fee-entry-evidence-audit-defect-found-smallest-fix-applied">
+<h3>Finding 4 — fee-entry evidence audit (defect found, smallest fix applied)<a class="headerlink" href="#finding-4-fee-entry-evidence-audit-defect-found-smallest-fix-applied" title="Link to this heading">¶</a></h3>
+<p>Traced <code class="docutils literal notranslate"><span class="pre">MexcPosition.fee_entry_usd</span></code> → <code class="docutils literal notranslate"><span class="pre">_close_position()</span></code>’s
+<code class="docutils literal notranslate"><span class="pre">pnl_usd</span> <span class="pre">=</span> <span class="pre">pos.qty_usd</span> <span class="pre">*</span> <span class="pre">gross_pct</span> <span class="pre">-</span> <span class="pre">fee</span> <span class="pre">-</span> <span class="pre">pos.fee_entry_usd</span></code> →
+<code class="docutils literal notranslate"><span class="pre">PaperTradeRecorder.record_close()</span></code> → <code class="docutils literal notranslate"><span class="pre">trades()</span></code>/<code class="docutils literal notranslate"><span class="pre">status.py</span></code> display.
+Answer to the mission’s question (“can an old restored position whose
+entry fee is UNKNOWN later close and produce a normal-looking
+authoritative PnL that assumes entry fee = 0?”): <strong>YES</strong> — confirmed by
+direct trace, not assumption. A pre-schema-v4-restored position’s
+<code class="docutils literal notranslate"><span class="pre">fee_entry_usd=0.0</span></code> (the documented fallback, flagged only in the
+in-memory <code class="docutils literal notranslate"><span class="pre">MexcPosition.restored_evidence_gaps</span></code>, R1.1) flowed unflagged
+into <code class="docutils literal notranslate"><span class="pre">pnl_usd</span></code>, and <code class="docutils literal notranslate"><span class="pre">record_close()</span></code> recorded that PnL as ordinary,
+fully-evidenced data — indistinguishable from a trade whose fee was
+genuinely known to be zero.</p>
+<p><strong>Smallest fix applied</strong> (no <code class="docutils literal notranslate"><span class="pre">MexcPosition</span></code>/PnL-architecture redesign):
+schema v5 adds one CLOSE-only field,
+<code class="docutils literal notranslate"><span class="pre">pnl_fee_evidence_incomplete:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False</span></code>, to <code class="docutils literal notranslate"><span class="pre">TradeEvent</span></code> and
+<code class="docutils literal notranslate"><span class="pre">CompleteTrade</span></code>. <code class="docutils literal notranslate"><span class="pre">record_close()</span></code> gained a matching parameter;
+<code class="docutils literal notranslate"><span class="pre">MexcSimulator._close_position()</span></code> sets it to
+<code class="docutils literal notranslate"><span class="pre">&quot;fee_entry_unknown&quot;</span> <span class="pre">in</span> <span class="pre">pos.restored_evidence_gaps</span></code> when calling
+<code class="docutils literal notranslate"><span class="pre">record_close()</span></code>. The PnL number itself is unchanged — it is real
+arithmetic against the best available (assumed) fee, not fabricated —
+but it can no longer be silently read as fully evidenced.
+<code class="docutils literal notranslate"><span class="pre">paper_trading/status.py</span></code>’s W/L column appends <code class="docutils literal notranslate"><span class="pre">*</span></code> when the flag is set
+(smallest possible display change; no population-statistics exclusion
+was added — that would have been a broader, unrequested behavior change
+to <code class="docutils literal notranslate"><span class="pre">dataset_validator.py</span></code>’s win/loss counting, not the narrow boundary
+this finding asked for).</p>
+</section>
+<section id="finding-5-testnet-reconciliation-status-documented-not-implemented">
+<h3>Finding 5 — TESTNET reconciliation status (documented, not implemented)<a class="headerlink" href="#finding-5-testnet-reconciliation-status-documented-not-implemented" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code>’s <code class="docutils literal notranslate"><span class="pre">PositionReconciler(...)</span></code> construction still
+passes no explicit <code class="docutils literal notranslate"><span class="pre">expected_domain</span></code>, so it defaults to <code class="docutils literal notranslate"><span class="pre">REAL</span></code> (per R1.1).
+A krakenfutures <code class="docutils literal notranslate"><span class="pre">PositionManager</span></code> correctly labeled <code class="docutils literal notranslate"><span class="pre">TESTNET</span></code> (via
+R1.1’s <code class="docutils literal notranslate"><span class="pre">_futures_position_domain()</span></code>) will therefore fail closed as
+<code class="docutils literal notranslate"><span class="pre">NON_COMPARABLE</span></code> against that REAL-expecting reconciler today. <strong>This is
+intentional and safe for the current PAPER-only T-1 scope</strong>: no code
+change was made. TESTNET reconciliation is explicitly <strong>not certified</strong>
+and remains fail-closed until a future REM-C round adds a genuine
+TESTNET-capability certification path — this round makes no claim that
+TESTNET reconciliation works, only that it correctly refuses to run.</p>
+</section>
+<section id="files-changed-r1-2-in-addition-to-r1-r1-1s-lists">
+<h3>Files changed (R1.2, in addition to R1/R1.1’s lists)<a class="headerlink" href="#files-changed-r1-2-in-addition-to-r1-r1-1s-lists" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">system/position_reconciler.py</span></code> — <code class="docutils literal notranslate"><span class="pre">is_clean</span></code> requires
+<code class="docutils literal notranslate"><span class="pre">not</span> <span class="pre">unresolved_domain_positions</span></code>; new <code class="docutils literal notranslate"><span class="pre">internal_state_readable</span></code> field
+and fail-closed early return in <code class="docutils literal notranslate"><span class="pre">reconcile()</span></code>’s internal-read step;
+<code class="docutils literal notranslate"><span class="pre">summary()</span></code>’s <code class="docutils literal notranslate"><span class="pre">INTERNAL_STATE_UNREADABLE</span></code> branch.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">paper_trading/recorder.py</span></code> — <code class="docutils literal notranslate"><span class="pre">TradeEvent.price:</span> <span class="pre">Optional[float]</span></code>;
+<code class="docutils literal notranslate"><span class="pre">record_close()</span></code> passes <code class="docutils literal notranslate"><span class="pre">exit_price</span></code> through directly; schema v5
+(<code class="docutils literal notranslate"><span class="pre">pnl_fee_evidence_incomplete</span></code>) on <code class="docutils literal notranslate"><span class="pre">TradeEvent</span></code>/<code class="docutils literal notranslate"><span class="pre">CompleteTrade</span></code>,
+propagated in <code class="docutils literal notranslate"><span class="pre">trades()</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">paper_trading/mexc_simulator.py</span></code> — <code class="docutils literal notranslate"><span class="pre">_close_position()</span></code> computes and
+passes <code class="docutils literal notranslate"><span class="pre">pnl_fee_evidence_incomplete</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">paper_trading/status.py</span></code> — <code class="docutils literal notranslate"><span class="pre">*</span></code> suffix on the W/L column when
+<code class="docutils literal notranslate"><span class="pre">pnl_fee_evidence_incomplete</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">paper_trading/dataset_validator.py</span></code> — <code class="docutils literal notranslate"><span class="pre">_VALID_SCHEMA_VERSIONS</span></code>
+extended to include <code class="docutils literal notranslate"><span class="pre">5</span></code> (mechanical).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">tests/test_rem_c_r1_execution_domain.py</span></code> — 14 new tests (A1-A3, B1-B5,
+C1-C4, the two fee-evidence tests).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">.ci/ruff_baseline.json</span></code> — mechanical line-shift only.</p></li>
+</ul>
+<p>No REM-C R2/R3/R4 functionality was implemented in this round either.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="r1-3-master-final-evidence-semantics-round-2026-09-12">
+<h2>R1.3 — MASTER final evidence-semantics round (2026-09-12)<a class="headerlink" href="#r1-3-master-final-evidence-semantics-round-2026-09-12" title="Link to this heading">¶</a></h2>
+<p><strong>Addendum to R1/R1.1/R1.2 above, not a rewrite.</strong> MASTER review of R1.2
+(head <code class="docutils literal notranslate"><span class="pre">50fd9631a303efe1c431a379292ba2897d879bd2</span></code>) found that R1.1’s own
+<code class="docutils literal notranslate"><span class="pre">personality</span></code> distinction had drifted out of sync with a downstream
+provenance-visible consumer, and that two aggregate-statistics surfaces
+still let unevidenced/unknown outcomes contaminate certified metrics.</p>
+<section id="finding-a-restored-evidence-complete">
+<h3>Finding A — RESTORED != EVIDENCE_COMPLETE<a class="headerlink" href="#finding-a-restored-evidence-complete" title="Link to this heading">¶</a></h3>
+<p>R1.1 set <code class="docutils literal notranslate"><span class="pre">MexcPosition.personality</span> <span class="pre">=</span> <span class="pre">&quot;restored_evidence_incomplete&quot;</span></code> for
+a restored position with any evidence gap, <code class="docutils literal notranslate"><span class="pre">&quot;restored&quot;</span></code> otherwise. But
+<code class="docutils literal notranslate"><span class="pre">observability/operator_snapshot_builder.py</span></code>’s
+<code class="docutils literal notranslate"><span class="pre">is_restored</span> <span class="pre">=</span> <span class="pre">personality</span> <span class="pre">==</span> <span class="pre">&quot;restored&quot;</span></code> — a provenance-visible
+structure consumed by the frontend (<code class="docutils literal notranslate"><span class="pre">frontend/src/types.ts</span></code>’s
+<code class="docutils literal notranslate"><span class="pre">OpenPosition.restored</span></code>/<code class="docutils literal notranslate"><span class="pre">tp_sl_source</span></code>) — predates that distinction and
+was never updated to match it. Two failure directions resulted:</p>
+<ol class="arabic simple">
+<li><p>An evidence-incomplete restored position read <code class="docutils literal notranslate"><span class="pre">restored=False</span></code> —
+silently misrepresented as a normally-opened position.</p></li>
+<li><p>A <strong>fully-evidenced</strong> restored position (durable TP/SL recovered via
+schema v4) kept <code class="docutils literal notranslate"><span class="pre">personality=&quot;restored&quot;</span></code> and so was labeled
+<code class="docutils literal notranslate"><span class="pre">tp_sl_source=&quot;restored_default&quot;</span></code> — falsely claiming a 4%/2%
+reconstruction that never happened.</p></li>
+</ol>
+<p><strong>Correction.</strong> <code class="docutils literal notranslate"><span class="pre">personality</span></code> now stays <code class="docutils literal notranslate"><span class="pre">&quot;restored&quot;</span></code> for every
+ledger-restored position regardless of evidence completeness — “was this
+position restored from the ledger” (A) and “is its evidence complete” (D)
+are different facts, and only <code class="docutils literal notranslate"><span class="pre">restored_evidence_gaps</span></code> (unchanged, R1)
+carries the second one; <code class="docutils literal notranslate"><span class="pre">personality</span></code> is not overloaded to carry both.
+<code class="docutils literal notranslate"><span class="pre">operator_snapshot_builder.py</span></code>’s <code class="docutils literal notranslate"><span class="pre">tp_sl_source</span></code> now derives from
+<code class="docutils literal notranslate"><span class="pre">restored_evidence_gaps</span></code> directly: <code class="docutils literal notranslate"><span class="pre">&quot;original&quot;</span></code> (never restored,
+unchanged), <code class="docutils literal notranslate"><span class="pre">&quot;restored_default&quot;</span></code> (restored AND
+<code class="docutils literal notranslate"><span class="pre">&quot;tp_sl_reconstructed_default&quot;</span></code> present — genuinely reconstructed),
+<code class="docutils literal notranslate"><span class="pre">&quot;restored_original&quot;</span></code> (new — restored AND that gap absent: durably
+recovered TP/SL, evidence-tier B in the mission’s A/B/C/D framing, never
+conflated with either “original” or “restored_default”). The materialized
+position dict also now exposes <code class="docutils literal notranslate"><span class="pre">restored_evidence_gaps</span></code> directly (a
+transparent passthrough — no new state, no redesign). Checked against
+<code class="docutils literal notranslate"><span class="pre">frontend/src/lib/snapshotValidation.ts</span></code> and <code class="docutils literal notranslate"><span class="pre">frontend/src/types.ts</span></code>
+before changing: <code class="docutils literal notranslate"><span class="pre">tp_sl_source</span></code>’s type was already <code class="docutils literal notranslate"><span class="pre">&quot;original&quot;</span> <span class="pre">|</span> <span class="pre">&quot;restored_default&quot;</span> <span class="pre">|</span> <span class="pre">string</span></code> (the <code class="docutils literal notranslate"><span class="pre">|</span> <span class="pre">string</span></code> fallback already tolerated
+new values) and validation only checks it is a non-blank string, so
+adding <code class="docutils literal notranslate"><span class="pre">&quot;restored_original&quot;</span></code> and an optional <code class="docutils literal notranslate"><span class="pre">restored_evidence_gaps?</span></code>
+field required no Web contract redesign — both were extended additively.
+<code class="docutils literal notranslate"><span class="pre">docs/contracts/O-02W-B_CANONICAL_OPERATOR_API_CONTRACT.md</span></code>’s <code class="docutils literal notranslate"><span class="pre">tp_price</span></code>/
+<code class="docutils literal notranslate"><span class="pre">sl_price</span></code> row (which previously documented only the binary
+<code class="docutils literal notranslate"><span class="pre">&quot;original&quot;</span></code>/<code class="docutils literal notranslate"><span class="pre">&quot;restored_default&quot;</span></code> split) is corrected to describe all
+three tiers.</p>
+</section>
+<section id="finding-b-historical-record-certified-performance-sample">
+<h3>Finding B — HISTORICAL RECORD != CERTIFIED PERFORMANCE SAMPLE<a class="headerlink" href="#finding-b-historical-record-certified-performance-sample" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">PaperTradeRecorder.summary()</span></code> computed <code class="docutils literal notranslate"><span class="pre">win_rate</span> <span class="pre">=</span> <span class="pre">len(wins)</span> <span class="pre">/</span> <span class="pre">len(closed)</span></code>, <code class="docutils literal notranslate"><span class="pre">target_30_trades</span></code>, and <code class="docutils literal notranslate"><span class="pre">go_live_ready</span></code> over ALL closed
+trades — including <code class="docutils literal notranslate"><span class="pre">is_win</span> <span class="pre">is</span> <span class="pre">None</span></code> (unknown outcome, e.g.
+<code class="docutils literal notranslate"><span class="pre">expired_on_restore</span></code>) ones. An unknown outcome was never counted as a WIN
+(correct, R1.1) but still inflated the denominator (diluting win_rate),
+still advanced the 30-trade target, and could still flip
+<code class="docutils literal notranslate"><span class="pre">go_live_ready=True</span></code> on 30 genuinely unknown closes. Production consumer
+audit: the only reader of <code class="docutils literal notranslate"><span class="pre">PaperTradeRecorder.summary()</span></code> in this
+repository is <code class="docutils literal notranslate"><span class="pre">paper_trading/status.py</span></code> (CLI display) — no other
+production code depends on its keys.</p>
+<p><strong>Correction.</strong> <code class="docutils literal notranslate"><span class="pre">summary()</span></code> now computes a <code class="docutils literal notranslate"><span class="pre">certified</span></code> subset of <code class="docutils literal notranslate"><span class="pre">closed</span></code>
+— trades with <code class="docutils literal notranslate"><span class="pre">is_win</span> <span class="pre">is</span> <span class="pre">not</span> <span class="pre">None</span></code> AND
+<code class="docutils literal notranslate"><span class="pre">not</span> <span class="pre">pnl_fee_evidence_incomplete</span></code> (R1.2) — and derives <code class="docutils literal notranslate"><span class="pre">win_rate</span></code>, every
+PnL aggregate, <code class="docutils literal notranslate"><span class="pre">target_30_trades</span></code>, and <code class="docutils literal notranslate"><span class="pre">go_live_ready</span></code> from <code class="docutils literal notranslate"><span class="pre">certified</span></code>
+only. <code class="docutils literal notranslate"><span class="pre">total_closed</span></code> (existing key, unchanged meaning: raw historical
+count) is preserved for backward compatibility — nothing is deleted from
+the historical record. Two new keys, <code class="docutils literal notranslate"><span class="pre">certified_closed</span></code> and
+<code class="docutils literal notranslate"><span class="pre">excluded_unevidenced_count</span></code>, make the exclusion explicit rather than
+silent. <code class="docutils literal notranslate"><span class="pre">paper_trading/status.py</span></code> updated to print the excluded count
+when non-zero and to compute its “EN COURS (x/30)” progress line from
+<code class="docutils literal notranslate"><span class="pre">certified_closed</span></code>, not the raw count.</p>
+</section>
+<section id="finding-c-incomplete-fee-evidence-fully-evidenced-pnl-dataset-corpus">
+<h3>Finding C — INCOMPLETE FEE EVIDENCE != FULLY-EVIDENCED PNL (dataset corpus)<a class="headerlink" href="#finding-c-incomplete-fee-evidence-fully-evidenced-pnl-dataset-corpus" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">paper_trading/dataset_validator.py::validate_corpus()</span></code>’s population loop
+already excluded <code class="docutils literal notranslate"><span class="pre">expired_on_restore</span></code> from WIN/LOSS/TP/SL/duration
+statistics, but a <code class="docutils literal notranslate"><span class="pre">pnl_fee_evidence_incomplete=True</span></code> close (R1.2) — a
+real, chronologically valid, paired trade whose realized PnL assumed an
+unevidenced entry fee — was still counted as an ordinary certified
+observation.</p>
+<p><strong>Correction.</strong> A new <code class="docutils literal notranslate"><span class="pre">CorpusReport.fee_evidence_incomplete</span></code> counter and
+a <code class="docutils literal notranslate"><span class="pre">continue</span></code> in the population loop (mirroring the existing
+<code class="docutils literal notranslate"><span class="pre">expired_on_restore</span></code> pattern exactly) exclude such closes from
+<code class="docutils literal notranslate"><span class="pre">win_count</span></code>/<code class="docutils literal notranslate"><span class="pre">loss_count</span></code>/<code class="docutils literal notranslate"><span class="pre">tp_count</span></code>/<code class="docutils literal notranslate"><span class="pre">sl_count</span></code>/<code class="docutils literal notranslate"><span class="pre">win_rate</span></code>/<code class="docutils literal notranslate"><span class="pre">tp_rate</span></code>/
+<code class="docutils literal notranslate"><span class="pre">mean_duration_s</span></code>. Paired-trade/integrity accounting is unaffected — the
+exclusion happens only inside the population-statistics loop, after
+<code class="docutils literal notranslate"><span class="pre">paired_trades</span></code>/<code class="docutils literal notranslate"><span class="pre">integrity_pct</span></code> are already computed from the full paired
+set. Not treated as corrupted data (no <code class="docutils literal notranslate"><span class="pre">violations</span></code> entry): an explicit
+<code class="docutils literal notranslate"><span class="pre">warnings</span></code> entry names the count and rate, matching the existing
+<code class="docutils literal notranslate"><span class="pre">expired_on_restore</span></code> warning’s style. <code class="docutils literal notranslate"><span class="pre">report()</span></code> and <code class="docutils literal notranslate"><span class="pre">to_metadata()</span></code>
+surface the new counter.</p>
+</section>
+<section id="files-changed-r1-3">
+<h3>Files changed (R1.3)<a class="headerlink" href="#files-changed-r1-3" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">paper_trading/mexc_simulator.py</span></code> — <code class="docutils literal notranslate"><span class="pre">personality</span></code> no longer varies by
+evidence completeness.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">observability/operator_snapshot_builder.py</span></code> — <code class="docutils literal notranslate"><span class="pre">tp_sl_source</span></code> derives
+from <code class="docutils literal notranslate"><span class="pre">restored_evidence_gaps</span></code>; <code class="docutils literal notranslate"><span class="pre">restored_evidence_gaps</span></code> passthrough
+added to the materialized position dict.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">frontend/src/types.ts</span></code> — <code class="docutils literal notranslate"><span class="pre">tp_sl_source</span></code> union extended with
+<code class="docutils literal notranslate"><span class="pre">&quot;restored_original&quot;</span></code>; optional <code class="docutils literal notranslate"><span class="pre">restored_evidence_gaps?:</span> <span class="pre">string[]</span></code>
+added to <code class="docutils literal notranslate"><span class="pre">OpenPosition</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">docs/contracts/O-02W-B_CANONICAL_OPERATOR_API_CONTRACT.md</span></code> — <code class="docutils literal notranslate"><span class="pre">tp_price</span></code>/
+<code class="docutils literal notranslate"><span class="pre">sl_price</span></code> row corrected to the three-tier model.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">paper_trading/recorder.py</span></code> — <code class="docutils literal notranslate"><span class="pre">summary()</span></code> computes a certified subset;
+<code class="docutils literal notranslate"><span class="pre">certified_closed</span></code>/<code class="docutils literal notranslate"><span class="pre">excluded_unevidenced_count</span></code> keys added.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">paper_trading/status.py</span></code> — displays the excluded count;
+GO/LIVE progress uses <code class="docutils literal notranslate"><span class="pre">certified_closed</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">paper_trading/dataset_validator.py</span></code> — <code class="docutils literal notranslate"><span class="pre">fee_evidence_incomplete</span></code>
+counter, population-loop exclusion, warning, <code class="docutils literal notranslate"><span class="pre">report()</span></code>/<code class="docutils literal notranslate"><span class="pre">to_metadata()</span></code>
+surfacing.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">tests/test_operator_snapshot_builder.py</span></code> — <code class="docutils literal notranslate"><span class="pre">_FakePosition</span></code> gains
+<code class="docutils literal notranslate"><span class="pre">restored_evidence_gaps</span></code>; existing restored-position test updated to
+set it explicitly; two new tests (A2/A3-shaped).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">tests/test_rem_c_r1_execution_domain.py</span></code> — one existing R1.1 test
+updated (<code class="docutils literal notranslate"><span class="pre">personality</span></code> assertion), 15 new tests (B1-B5, C1-C6, plus the
+b/c fee-evidence coverage).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">.ci/ruff_baseline.json</span></code> — mechanical line-shift, plus one incidental
+fix (<code class="docutils literal notranslate"><span class="pre">f&quot;0</span> <span class="pre">/</span> <span class="pre">30&quot;</span></code> → <code class="docutils literal notranslate"><span class="pre">&quot;0</span> <span class="pre">/</span> <span class="pre">30&quot;</span></code>, a stray f-string-without-placeholders
+removed during the <code class="docutils literal notranslate"><span class="pre">summary()</span></code> rewrite — count dropped 958→957).</p></li>
+</ul>
+<p>No REM-C R2/R3/R4 functionality was implemented in this round either.</p>
+</section>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Crypto AI Terminal
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">ADR-0021 — Execution-domain provenance and PAPER recovery honesty (O-02W-PRE-T1-E REM-C R1)</a><ul>
+<li><a class="reference internal" href="#context">Context</a></li>
+<li><a class="reference internal" href="#decision">Decision</a><ul>
+<li><a class="reference internal" href="#executiondomain-minimal-provenance-enum">1. <code class="docutils literal notranslate"><span class="pre">ExecutionDomain</span></code> — minimal provenance enum</a></li>
+<li><a class="reference internal" href="#reconciliation-same-domain-invariant">2. Reconciliation same-domain invariant</a></li>
+<li><a class="reference internal" href="#paper-restart-evidence-honesty-rule">3. PAPER restart evidence-honesty rule</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#consequences">Consequences</a></li>
+<li><a class="reference internal" href="#explicitly-deferred-rem-c-r2-r3-r4">Explicitly deferred (REM-C R2/R3/R4)</a></li>
+<li><a class="reference internal" href="#r1-1-master-correction-round-2026-09-11">R1.1 — MASTER correction round (2026-09-11)</a><ul>
+<li><a class="reference internal" href="#finding-a-exchange-is-not-none-is-not-proof-of-real">Finding A — <code class="docutils literal notranslate"><span class="pre">exchange</span> <span class="pre">is</span> <span class="pre">not</span> <span class="pre">None</span></code> is not proof of REAL</a></li>
+<li><a class="reference internal" href="#finding-b-same-domain-label-is-not-same-account-exchange">Finding B — same domain label is not same account/exchange</a></li>
+<li><a class="reference internal" href="#finding-c-expired-paper-restore-still-faked-the-exit-price">Finding C — expired PAPER restore still faked the exit price</a></li>
+<li><a class="reference internal" href="#finding-d-unknown-pnl-was-silently-converted-to-loss">Finding D — unknown PnL was silently converted to LOSS</a></li>
+<li><a class="reference internal" href="#finding-e-bootgate-could-clear-trading-on-a-non-comparable-reconciliation">Finding E — BootGate could clear trading on a non-comparable reconciliation</a></li>
+<li><a class="reference internal" href="#section-6-reconcilereport-must-never-read-clean-for-a-skipped-run">Section 6 — <code class="docutils literal notranslate"><span class="pre">ReconcileReport</span></code> must never read CLEAN for a skipped run</a></li>
+<li><a class="reference internal" href="#corrected-framing-supersedes-conflicting-r1-wording-above">Corrected framing (supersedes conflicting R1 wording above)</a></li>
+<li><a class="reference internal" href="#files-changed-r1-1-in-addition-to-r1s-list">Files changed (R1.1, in addition to R1’s list)</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#r1-2-master-correction-round-2026-09-11">R1.2 — MASTER correction round (2026-09-11)</a><ul>
+<li><a class="reference internal" href="#finding-a-unresolved-clean">Finding A — UNRESOLVED != CLEAN</a></li>
+<li><a class="reference internal" href="#finding-b-internal-read-failure-empty-internal-state">Finding B — INTERNAL READ FAILURE != EMPTY INTERNAL STATE</a></li>
+<li><a class="reference internal" href="#finding-c-missing-raw-event-price-zero">Finding C — MISSING RAW EVENT PRICE != ZERO</a></li>
+<li><a class="reference internal" href="#finding-4-fee-entry-evidence-audit-defect-found-smallest-fix-applied">Finding 4 — fee-entry evidence audit (defect found, smallest fix applied)</a></li>
+<li><a class="reference internal" href="#finding-5-testnet-reconciliation-status-documented-not-implemented">Finding 5 — TESTNET reconciliation status (documented, not implemented)</a></li>
+<li><a class="reference internal" href="#files-changed-r1-2-in-addition-to-r1-r1-1s-lists">Files changed (R1.2, in addition to R1/R1.1’s lists)</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#r1-3-master-final-evidence-semantics-round-2026-09-12">R1.3 — MASTER final evidence-semantics round (2026-09-12)</a><ul>
+<li><a class="reference internal" href="#finding-a-restored-evidence-complete">Finding A — RESTORED != EVIDENCE_COMPLETE</a></li>
+<li><a class="reference internal" href="#finding-b-historical-record-certified-performance-sample">Finding B — HISTORICAL RECORD != CERTIFIED PERFORMANCE SAMPLE</a></li>
+<li><a class="reference internal" href="#finding-c-incomplete-fee-evidence-fully-evidenced-pnl-dataset-corpus">Finding C — INCOMPLETE FEE EVIDENCE != FULLY-EVIDENCED PNL (dataset corpus)</a></li>
+<li><a class="reference internal" href="#files-changed-r1-3">Files changed (R1.3)</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../_static/documentation_options.js?v=ef6a59ae"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/scripts/furo.js?v=5fa4622c"></script>
+    </body>
+</html>

@@ -1303,6 +1303,330 @@ and does not enable live trading in any way. No real order, testnet call,
 exchange call, VPS access, secret access, or deployment occurred in this
 round. PR #138 remains <strong>draft</strong> and <strong>unmerged</strong>.</p>
 </section>
+<section id="rem-c-r1-execution-domain-provenance-and-paper-recovery-honesty-2026-09-11">
+<h2>23. REM-C R1 — execution-domain provenance and paper recovery honesty (2026-09-11)<a class="headerlink" href="#rem-c-r1-execution-domain-provenance-and-paper-recovery-honesty-2026-09-11" title="Link to this heading">¶</a></h2>
+<p><strong>Addendum to §1-22.2, not a rewrite.</strong> This is the first REM-C
+implementation round (deliberately narrow, per
+<code class="docutils literal notranslate"><span class="pre">docs/adr/0021-execution-domain-provenance-and-paper-recovery-honesty.md</span></code>).
+It is not the fill-engine implementation, not exchange reconciliation
+certification, and not testnet/live enablement.</p>
+<section id="execution-domain-provenance-rule">
+<h3>23.1 Execution-domain provenance rule<a class="headerlink" href="#execution-domain-provenance-rule" title="Link to this heading">¶</a></h3>
+<p>The canonical <code class="docutils literal notranslate"><span class="pre">Position</span></code> dataclass
+(<code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/execution/position_manager.py</span></code>) previously carried
+no execution-domain field at all — nothing prevented a PAPER-mode
+<code class="docutils literal notranslate"><span class="pre">PositionManager</span></code>’s internal state from being compared against a REAL
+exchange’s <code class="docutils literal notranslate"><span class="pre">fetch_positions()</span></code> result by symbol string alone. A new
+<code class="docutils literal notranslate"><span class="pre">ExecutionDomain(str,</span> <span class="pre">Enum)</span></code> (<code class="docutils literal notranslate"><span class="pre">REAL</span> <span class="pre">|</span> <span class="pre">TESTNET</span> <span class="pre">|</span> <span class="pre">FUTURES_DEMO</span> <span class="pre">|</span> <span class="pre">PAPER</span> <span class="pre">|</span> <span class="pre">SHADOW</span> <span class="pre">|</span> <span class="pre">UNKNOWN</span></code>) is added; <code class="docutils literal notranslate"><span class="pre">Position.domain</span></code> defaults to <code class="docutils literal notranslate"><span class="pre">UNKNOWN</span></code>
+(fail-closed, never assumed REAL nor PAPER). <code class="docutils literal notranslate"><span class="pre">PositionManager</span></code> resolves
+its own <code class="docutils literal notranslate"><span class="pre">.domain</span></code> from the same construction context callers already pass
+(<code class="docutils literal notranslate"><span class="pre">domain=</span></code> explicit override &gt; <code class="docutils literal notranslate"><span class="pre">paper_mode=True</span></code> -&gt; <code class="docutils literal notranslate"><span class="pre">PAPER</span></code> &gt;
+<code class="docutils literal notranslate"><span class="pre">exchange</span> <span class="pre">is</span> <span class="pre">not</span> <span class="pre">None</span></code> -&gt; <code class="docutils literal notranslate"><span class="pre">REAL</span></code> &gt; otherwise <code class="docutils literal notranslate"><span class="pre">UNKNOWN</span></code>) and stamps it onto
+any position added via <code class="docutils literal notranslate"><span class="pre">add_position()</span></code> that still carries the <code class="docutils literal notranslate"><span class="pre">UNKNOWN</span></code>
+default — an explicitly different domain on the position itself is never
+overwritten.</p>
+</section>
+<section id="reconciliation-same-domain-invariant">
+<h3>23.2 Reconciliation same-domain invariant<a class="headerlink" href="#reconciliation-same-domain-invariant" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">system/position_reconciler.py</span></code>’s <code class="docutils literal notranslate"><span class="pre">PositionReconciler.reconcile()</span></code> called
+<code class="docutils literal notranslate"><span class="pre">pos_manager.get_open_positions()</span></code> — a method that never existed on the
+canonical <code class="docutils literal notranslate"><span class="pre">PositionManager</span></code> (only <code class="docutils literal notranslate"><span class="pre">get_open()</span></code> does). Because of
+<code class="docutils literal notranslate"><span class="pre">hasattr()</span></code> guarding, this silently returned <code class="docutils literal notranslate"><span class="pre">internal_pos</span> <span class="pre">=</span> <span class="pre">{}</span></code> in
+production, every cycle, for the life of the code (a second, structurally
+identical instance of the same defect existed in <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code>’s
+boot-time heartbeat amorçage, also fixed here). Fixing only the method
+name would have made the reconciler suddenly see real internal state for
+the first time — without a domain check, this creates the risk this
+mission was scoped to close: a PAPER-domain <code class="docutils literal notranslate"><span class="pre">PositionManager</span></code> compared
+against a REAL <code class="docutils literal notranslate"><span class="pre">fetch_positions()</span></code> call. <code class="docutils literal notranslate"><span class="pre">PositionReconciler</span></code> now takes an
+<code class="docutils literal notranslate"><span class="pre">expected_domain</span></code> (default <code class="docutils literal notranslate"><span class="pre">REAL</span></code>, since <code class="docutils literal notranslate"><span class="pre">exchange_futures.fetch_positions()</span></code>
+is definitionally a real/testnet account call) and refuses to run the
+comparison at all unless <code class="docutils literal notranslate"><span class="pre">pos_manager.domain</span> <span class="pre">==</span> <span class="pre">expected_domain</span></code> proves
+compatible; an incompatible or unproven (<code class="docutils literal notranslate"><span class="pre">UNKNOWN</span></code>) domain produces
+<code class="docutils literal notranslate"><span class="pre">comparable=False</span></code> with empty ghost/orphan lists — never a fabricated
+finding. Once domain-compatible, individual positions that themselves
+carry a non-matching or <code class="docutils literal notranslate"><span class="pre">UNKNOWN</span></code> domain are still excluded from
+ghost/orphan comparison and reported separately
+(<code class="docutils literal notranslate"><span class="pre">unresolved_domain_positions</span></code>), never folded into a ghost/orphan claim.
+Only after both gates pass does the corrected <code class="docutils literal notranslate"><span class="pre">get_open()</span></code> call run.
+Reconciliation remains strictly observational — it was already read-only
+(<code class="docutils literal notranslate"><span class="pre">fetch_positions()</span></code> + comparison), and REM-C R1 adds no mutation path.</p>
+</section>
+<section id="paper-restart-evidence-honesty-rule">
+<h3>23.3 PAPER restart evidence-honesty rule<a class="headerlink" href="#paper-restart-evidence-honesty-rule" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">MexcSimulator._restore_positions()</span></code> (<code class="docutils literal notranslate"><span class="pre">paper_trading/mexc_simulator.py</span></code>)
+previously (a) recorded <code class="docutils literal notranslate"><span class="pre">pnl_usd=0.0</span></code>/<code class="docutils literal notranslate"><span class="pre">pnl_pct=0.0</span></code> for positions expired
+during a downtime window, presenting “nothing happened” as if it were
+known fact rather than genuinely unknown; (b) always recomputed TP/SL
+from hardcoded 4%/2% defaults, discarding whatever the position’s actual
+original TP/SL had been, with no way to tell a reconstructed value from
+an original one; © always set <code class="docutils literal notranslate"><span class="pre">fee_entry_usd=0.0</span></code>, because the ledger
+schema never captured it. <code class="docutils literal notranslate"><span class="pre">PaperTradeRecorder</span></code>’s <code class="docutils literal notranslate"><span class="pre">TradeEvent</span></code>/
+<code class="docutils literal notranslate"><span class="pre">CompleteTrade</span></code> schema is extended to v4 with three new OPEN-only
+optional fields — <code class="docutils literal notranslate"><span class="pre">tp_price</span></code>, <code class="docutils literal notranslate"><span class="pre">sl_price</span></code>, <code class="docutils literal notranslate"><span class="pre">fee_entry_usd</span></code> — defaulting to
+<code class="docutils literal notranslate"><span class="pre">None</span></code> (absent evidence), never a fabricated number; <code class="docutils literal notranslate"><span class="pre">record_open()</span></code> now
+persists them when the caller has them (the live-order-fill path does).
+<code class="docutils literal notranslate"><span class="pre">_restore_positions()</span></code>: (a) expired-during-downtime positions are now
+closed with <code class="docutils literal notranslate"><span class="pre">pnl_usd=None</span></code>/<code class="docutils literal notranslate"><span class="pre">pnl_pct=None</span></code> — missing evidence stays
+missing, it is never converted to a known zero; (b) restoration uses the
+durably recorded <code class="docutils literal notranslate"><span class="pre">tp_price</span></code>/<code class="docutils literal notranslate"><span class="pre">sl_price</span></code>/<code class="docutils literal notranslate"><span class="pre">fee_entry_usd</span></code> verbatim when a
+schema-v4 record has them; only when genuinely absent (older records) does
+it fall back to the same recomputed defaults as before, but now flags the
+position’s <code class="docutils literal notranslate"><span class="pre">restored_evidence_gaps</span></code> list (<code class="docutils literal notranslate"><span class="pre">tp_sl_reconstructed_default</span></code>,
+<code class="docutils literal notranslate"><span class="pre">fee_entry_unknown</span></code>) and its <code class="docutils literal notranslate"><span class="pre">personality</span></code> as
+<code class="docutils literal notranslate"><span class="pre">&quot;restored_evidence_incomplete&quot;</span></code> rather than the previously undifferentiated
+<code class="docutils literal notranslate"><span class="pre">&quot;restored&quot;</span></code> — a reconstructed value is never presented as the original
+evidence again.</p>
+</section>
+<section id="files-changed">
+<h3>23.4 Files changed<a class="headerlink" href="#files-changed" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/execution/position_manager.py</span></code> — <code class="docutils literal notranslate"><span class="pre">ExecutionDomain</span></code>
+enum, <code class="docutils literal notranslate"><span class="pre">Position.domain</span></code>, <code class="docutils literal notranslate"><span class="pre">PositionManager.domain</span></code> resolution and
+stamping in <code class="docutils literal notranslate"><span class="pre">add_position()</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">system/position_reconciler.py</span></code> — domain-compatibility gate,
+<code class="docutils literal notranslate"><span class="pre">get_open_positions()</span></code> -&gt; <code class="docutils literal notranslate"><span class="pre">get_open()</span></code> fix, per-position domain
+filtering, <code class="docutils literal notranslate"><span class="pre">ReconcileReport.comparable</span></code>/<code class="docutils literal notranslate"><span class="pre">pm_domain</span></code>/<code class="docutils literal notranslate"><span class="pre">expected_domain</span></code>/
+<code class="docutils literal notranslate"><span class="pre">unresolved_domain_positions</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code> — the same <code class="docutils literal notranslate"><span class="pre">get_open_positions()</span></code> -&gt;
+<code class="docutils literal notranslate"><span class="pre">get_open()</span></code> fix in the boot-time heartbeat amorçage guard (no other
+change; construction of <code class="docutils literal notranslate"><span class="pre">PositionReconciler</span></code> is unchanged).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">paper_trading/recorder.py</span></code> — schema v4 (<code class="docutils literal notranslate"><span class="pre">tp_price</span></code>/<code class="docutils literal notranslate"><span class="pre">sl_price</span></code>/
+<code class="docutils literal notranslate"><span class="pre">fee_entry_usd</span></code>, all <code class="docutils literal notranslate"><span class="pre">Optional</span></code>), <code class="docutils literal notranslate"><span class="pre">record_open()</span></code>/<code class="docutils literal notranslate"><span class="pre">record_close()</span></code>
+signature extensions (<code class="docutils literal notranslate"><span class="pre">record_close</span></code>’s <code class="docutils literal notranslate"><span class="pre">pnl_usd</span></code>/<code class="docutils literal notranslate"><span class="pre">pnl_pct</span></code> are now
+<code class="docutils literal notranslate"><span class="pre">Optional[float]</span></code>), <code class="docutils literal notranslate"><span class="pre">trades()</span></code> propagation.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">paper_trading/mexc_simulator.py</span></code> — <code class="docutils literal notranslate"><span class="pre">MexcPosition.restored_evidence_gaps</span></code>,
+<code class="docutils literal notranslate"><span class="pre">_restore_positions()</span></code> evidence-honest reconstruction, <code class="docutils literal notranslate"><span class="pre">record_open()</span></code>
+call site passes through <code class="docutils literal notranslate"><span class="pre">tp_price</span></code>/<code class="docutils literal notranslate"><span class="pre">sl_price</span></code>/<code class="docutils literal notranslate"><span class="pre">fee_entry_usd</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">paper_trading/dataset_validator.py</span></code> — <code class="docutils literal notranslate"><span class="pre">_VALID_SCHEMA_VERSIONS</span></code> extended
+to include <code class="docutils literal notranslate"><span class="pre">4</span></code> (mechanical, matches the new <code class="docutils literal notranslate"><span class="pre">SCHEMA_VERSION</span></code>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">tests/test_rem_c_r1_execution_domain.py</span></code> — new, fail-before/pass-after
+regression suite (Scenarios A/B/C plus the observational-only
+invariant).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">tests/test_restart_safety.py</span></code> — <code class="docutils literal notranslate"><span class="pre">TestB2MidExecutionCrash</span></code>’s
+<code class="docutils literal notranslate"><span class="pre">PositionReconciler</span></code> mocks updated to the canonical <code class="docutils literal notranslate"><span class="pre">get_open()</span></code> API and
+given an explicit <code class="docutils literal notranslate"><span class="pre">ExecutionDomain.REAL</span></code> (mechanical; these tests
+exercise exactly the API this mission corrects).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">.ci/ruff_baseline.json</span></code> — 7 pre-existing findings (in
+<code class="docutils literal notranslate"><span class="pre">paper_trading/mexc_simulator.py</span></code>, <code class="docutils literal notranslate"><span class="pre">paper_trading/recorder.py</span></code>,
+<code class="docutils literal notranslate"><span class="pre">tests/test_restart_safety.py</span></code>) shifted line numbers only, due to lines
+inserted above them by this mission; no new violation, verified via
+<code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">scripts/ci/ruff_baseline_gate.py</span> <span class="pre">check</span></code> (958/958, zero new).</p></li>
+</ul>
+</section>
+<section id="rem-c-blockers-remaining-fully-open-unattempted-explicitly-out-of-this-missions-scope">
+<h3>23.5 REM-C blockers remaining fully open, unattempted, explicitly out of this mission’s scope<a class="headerlink" href="#rem-c-blockers-remaining-fully-open-unattempted-explicitly-out-of-this-missions-scope" title="Link to this heading">¶</a></h3>
+<p>Canonical <code class="docutils literal notranslate"><span class="pre">ExecutionEvidence</span></code>/<code class="docutils literal notranslate"><span class="pre">FillRecord</span></code>; cumulative exchange fill
+journal; partial-fill ingestion and deduplication; exchange fill polling
+(<code class="docutils literal notranslate"><span class="pre">fetch_order()</span></code>/<code class="docutils literal notranslate"><span class="pre">fetch_my_trades()</span></code> production integration); real-exchange
+fee accounting and VWAP reconstruction; exchange adapter certification;
+resubmission policy; real position reconstruction from exchange fills;
+full crash-window/partial-fill recovery (B8, still only restart-idempotent
+per REM-B); durable pre-execution decision persistence beyond what R1.1
+already added. These are REM-C R2/R3/R4 scope.</p>
+<p><strong>R0 verdict (superseded below by R1.1): still <code class="docutils literal notranslate"><span class="pre">REMEDIATION_REQUIRED</span></code>.</strong>
+REM-C R1 closed the execution-domain provenance gap and the reconciler API
+mismatch (now domain-gated, never fabricating cross-domain findings), and
+closed the PAPER-restart PnL/TP/SL/fee fabrication defects R0.1 found (now
+explicit <code class="docutils literal notranslate"><span class="pre">None</span></code>/flagged-reconstruction instead of silent zero/default). It
+did not implement the fill-evidence chain, did not certify real exchange
+reconciliation, and did not enable live or testnet trading in any way. No
+real order, testnet call, exchange call, VPS access, secret access, or
+deployment occurred in that round.</p>
+</section>
+<section id="rem-c-r1-1-master-correction-round-2026-09-11">
+<h3>23.6 REM-C R1.1 — MASTER correction round (2026-09-11)<a class="headerlink" href="#rem-c-r1-1-master-correction-round-2026-09-11" title="Link to this heading">¶</a></h3>
+<p><strong>Addendum to §23.1-23.5, not a rewrite.</strong> MASTER review of R1 (PR #139,
+head <code class="docutils literal notranslate"><span class="pre">027cb0c71ce291209794ba929bff729ab71876c0</span></code>) found R1’s own
+implementation of this contract’s stated intent was itself incomplete in
+five places. Full technical detail in ADR-0021’s “R1.1 — MASTER correction
+round” addendum; summarized here:</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Finding</p></th>
+<th class="head"><p>R1 defect</p></th>
+<th class="head"><p>R1.1 correction</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>A</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PositionManager(exchange=X)</span></code> inferred <code class="docutils literal notranslate"><span class="pre">domain=REAL</span></code> merely because <code class="docutils literal notranslate"><span class="pre">X</span> <span class="pre">is</span> <span class="pre">not</span> <span class="pre">None</span></code> — false, since the only production caller (<code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code> via <code class="docutils literal notranslate"><span class="pre">_get_exchange_futures()</span></code>) can pass a TESTNET-mode krakenfutures handle exactly as easily as a REAL one.</p></td>
+<td><p>Inference removed entirely (<code class="docutils literal notranslate"><span class="pre">exchange</span> <span class="pre">is</span> <span class="pre">not</span> <span class="pre">None</span></code> no longer implies anything). New <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py::_futures_position_domain()</span></code> derives the proven domain from <code class="docutils literal notranslate"><span class="pre">exec_engine._mode</span></code> and passes it explicitly via <code class="docutils literal notranslate"><span class="pre">domain=</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p>B</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PositionReconciler</span></code> authorized comparison on domain-LABEL equality alone — two distinct REAL-labeled <code class="docutils literal notranslate"><span class="pre">PositionManager</span></code>/exchange pairs could pass.</p></td>
+<td><p>Added an exchange-identity check (<code class="docutils literal notranslate"><span class="pre">pos_manager._exchange</span> <span class="pre">is</span> <span class="pre">&lt;reconciler's</span> <span class="pre">own</span> <span class="pre">exchange_futures&gt;</span></code>) after the domain check; mismatch or unprovable identity fails closed exactly like a domain mismatch.</p></td>
+</tr>
+<tr class="row-even"><td><p>C</p></td>
+<td><p>Expired-on-restore PAPER positions still wrote <code class="docutils literal notranslate"><span class="pre">exit_price=trade.entry_price</span></code> (R1 had already fixed <code class="docutils literal notranslate"><span class="pre">pnl_usd</span></code>/<code class="docutils literal notranslate"><span class="pre">pnl_pct</span></code> to <code class="docutils literal notranslate"><span class="pre">None</span></code> but left this one substitution in place).</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">exit_price=None</span></code> on expiry; <code class="docutils literal notranslate"><span class="pre">PaperTradeRecorder.record_close()</span></code>’s <code class="docutils literal notranslate"><span class="pre">exit_price</span></code> param is now <code class="docutils literal notranslate"><span class="pre">Optional[float]</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p>D</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PaperTradeRecorder.trades()</span></code> computed <code class="docutils literal notranslate"><span class="pre">is_win</span> <span class="pre">=</span> <span class="pre">(cl.pnl_usd</span> <span class="pre">or</span> <span class="pre">0)</span> <span class="pre">&gt;</span> <span class="pre">0</span></code>, silently converting <code class="docutils literal notranslate"><span class="pre">pnl_usd=None</span></code> (unknown) into <code class="docutils literal notranslate"><span class="pre">is_win=False</span></code> (a claimed LOSS).</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">is_win</span> <span class="pre">=</span> <span class="pre">None</span> <span class="pre">if</span> <span class="pre">cl.pnl_usd</span> <span class="pre">is</span> <span class="pre">None</span> <span class="pre">else</span> <span class="pre">(cl.pnl_usd</span> <span class="pre">&gt;</span> <span class="pre">0)</span></code> in both aggregation branches; <code class="docutils literal notranslate"><span class="pre">paper_trading/status.py</span></code>’s display now renders <code class="docutils literal notranslate"><span class="pre">N/A</span></code> instead of <code class="docutils literal notranslate"><span class="pre">LOSS</span></code> for <code class="docutils literal notranslate"><span class="pre">is_win=None</span></code>; <code class="docutils literal notranslate"><span class="pre">dataset_validator.py</span></code>’s pre-existing <code class="docutils literal notranslate"><span class="pre">expired_on_restore</span></code> exclusion (unaffected) reverified by regression test.</p></td>
+</tr>
+<tr class="row-even"><td><p>E</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">BootGate.check()</span></code> never inspected <code class="docutils literal notranslate"><span class="pre">pos_report.comparable</span></code>/<code class="docutils literal notranslate"><span class="pre">is_clean</span></code> — a non-comparable reconciliation (empty ghost/orphan lists BY DESIGN) could still clear the gate.</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">BootGateReport.position_reconcile_comparable</span></code> added; <code class="docutils literal notranslate"><span class="pre">check()</span></code> now blocks on non-comparable, then on not-clean (which also closes a related pre-existing gap: price-drift-only dirtiness was never checked by <code class="docutils literal notranslate"><span class="pre">BootGate</span></code>’s own <code class="docutils literal notranslate"><span class="pre">has_drift</span></code> variable), before the existing ghost/orphan/order-anomaly check.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Also closed, per the mission’s semantic-sweep instruction (§6): the
+rate-limited “skipped — too soon” <code class="docutils literal notranslate"><span class="pre">ReconcileReport</span></code> previously read as
+<code class="docutils literal notranslate"><span class="pre">is_clean=True</span></code> despite no comparison having run at all. A new
+<code class="docutils literal notranslate"><span class="pre">ReconcileReport.performed:</span> <span class="pre">bool</span></code> field (default <code class="docutils literal notranslate"><span class="pre">True</span></code>, set <code class="docutils literal notranslate"><span class="pre">False</span></code> only
+on that skip path) is now part of <code class="docutils literal notranslate"><span class="pre">is_clean</span></code>’s condition.</p>
+<p><strong>Files changed (R1.1):</strong> <code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/execution/</span> <span class="pre">position_manager.py</span></code>, <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code>, <code class="docutils literal notranslate"><span class="pre">system/</span> <span class="pre">position_reconciler.py</span></code>, <code class="docutils literal notranslate"><span class="pre">system/boot_gate.py</span></code>, <code class="docutils literal notranslate"><span class="pre">paper_trading/</span> <span class="pre">recorder.py</span></code>, <code class="docutils literal notranslate"><span class="pre">paper_trading/mexc_simulator.py</span></code>, <code class="docutils literal notranslate"><span class="pre">paper_trading/</span> <span class="pre">status.py</span></code>, <code class="docutils literal notranslate"><span class="pre">tests/test_rem_c_r1_execution_domain.py</span></code> (21 new tests),
+<code class="docutils literal notranslate"><span class="pre">tests/test_restart_safety.py</span></code> (mechanical — mock <code class="docutils literal notranslate"><span class="pre">_exchange</span></code> identity),
+<code class="docutils literal notranslate"><span class="pre">.ci/ruff_baseline.json</span></code> (mechanical line-shift only).</p>
+<p><strong>Tests:</strong> <code class="docutils literal notranslate"><span class="pre">tests/test_rem_c_r1_execution_domain.py</span></code> — 30/30 passed (9 R1</p>
+<ul class="simple">
+<li><p>21 R1.1). Full targeted regression (<code class="docutils literal notranslate"><span class="pre">test_position_manager</span></code>,
+<code class="docutils literal notranslate"><span class="pre">test_exchange_reality</span></code> incl. <code class="docutils literal notranslate"><span class="pre">TestA7BootGate</span></code>, <code class="docutils literal notranslate"><span class="pre">test_restart_safety</span></code>,
+<code class="docutils literal notranslate"><span class="pre">test_dataset_validator</span></code>, <code class="docutils literal notranslate"><span class="pre">paper_trading/</span></code>, REM-A/REM-B suites, PRE-T1-D
+capital boundary, operator snapshot): 825 passed. The same 9
+<code class="docutils literal notranslate"><span class="pre">TestB3AuditRecovery</span></code> failures as R1 remain, confirmed pre-existing and
+unrelated (<code class="docutils literal notranslate"><span class="pre">_cffi_backend</span></code>/<code class="docutils literal notranslate"><span class="pre">cryptography</span></code> sandbox gap, reproduces
+identically on <code class="docutils literal notranslate"><span class="pre">origin/main</span></code>). <code class="docutils literal notranslate"><span class="pre">ruff_baseline_gate.py</span> <span class="pre">check</span></code>: 958/958,
+zero new. <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">diff</span> <span class="pre">--check</span></code>: clean.</p></li>
+</ul>
+<p><strong>R1.1 verdict (superseded below by R1.2): still <code class="docutils literal notranslate"><span class="pre">REMEDIATION_REQUIRED</span></code>.</strong>
+REM-C R1.1 corrected all five MASTER-identified defects in R1’s own
+implementation without expanding scope into REM-C R2/R3/R4: execution-
+domain inference became evidence-based rather than presence-based,
+reconciliation required exchange-identity proof in addition to a domain-
+label match, PAPER restart no longer substituted any value (entry price
+or otherwise) for a genuinely unknown exit price, unknown PnL could no
+longer surface as a claimed LOSS anywhere in the read path, and BootGate
+could no longer clear trading on a reconciliation that was never actually
+proven comparable.</p>
+</section>
+<section id="rem-c-r1-2-master-correction-round-2026-09-11">
+<h3>23.7 REM-C R1.2 — MASTER correction round (2026-09-11)<a class="headerlink" href="#rem-c-r1-2-master-correction-round-2026-09-11" title="Link to this heading">¶</a></h3>
+<p><strong>Addendum to §23.1-23.6, not a rewrite.</strong> MASTER review of R1.1 (head
+<code class="docutils literal notranslate"><span class="pre">79cb77ebb77d202c8323509b0119cdd264f754a5</span></code>) found three residual defects
+plus one confirmed evidence-audit finding. Full technical detail in
+ADR-0021’s “R1.2 — MASTER correction round” addendum; summarized here:</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Finding</p></th>
+<th class="head"><p>R1.1 defect</p></th>
+<th class="head"><p>R1.2 correction</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>A — UNRESOLVED != CLEAN</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">unresolved_domain_positions</span></code> was correctly excluded from <code class="docutils literal notranslate"><span class="pre">has_drift</span></code> (never fabricated as ghost/orphan) but <code class="docutils literal notranslate"><span class="pre">is_clean</span></code> never checked it either — an unresolved-domain position could coexist with <code class="docutils literal notranslate"><span class="pre">is_clean=True</span></code>.</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">is_clean</span></code> now additionally requires <code class="docutils literal notranslate"><span class="pre">not</span> <span class="pre">unresolved_domain_positions</span></code>, checked directly (not folded into <code class="docutils literal notranslate"><span class="pre">has_drift</span></code>, preserving that property’s existing meaning for its other callers).</p></td>
+</tr>
+<tr class="row-odd"><td><p>B — INTERNAL READ FAILURE != EMPTY</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">self._pm.get_open()</span> <span class="pre">if</span> <span class="pre">hasattr(...)</span> <span class="pre">else</span> <span class="pre">[]</span></code>, and a raised exception from <code class="docutils literal notranslate"><span class="pre">get_open()</span></code>, both fell back to <code class="docutils literal notranslate"><span class="pre">internal_pos</span> <span class="pre">=</span> <span class="pre">{}</span></code> — fail-open: could read CLEAN with an empty exchange, or fabricate ORPHAN findings for every real exchange position with a non-empty one.</p></td>
+<td><p>New <code class="docutils literal notranslate"><span class="pre">ReconcileReport.internal_state_readable</span></code> field; <code class="docutils literal notranslate"><span class="pre">reconcile()</span></code> now returns immediately (no ghost/orphan/price-drift computed) when <code class="docutils literal notranslate"><span class="pre">get_open</span></code> is missing or raises, with an explicit error. <code class="docutils literal notranslate"><span class="pre">is_clean</span></code> requires it. A genuinely empty <code class="docutils literal notranslate"><span class="pre">get_open()</span> <span class="pre">-&gt;</span> <span class="pre">[]</span></code> is unaffected.</p></td>
+</tr>
+<tr class="row-even"><td><p>C — MISSING RAW EVENT PRICE != ZERO</p></td>
+<td><p>R1.1 fixed the <em>derived</em> <code class="docutils literal notranslate"><span class="pre">exit_price</span></code>/<code class="docutils literal notranslate"><span class="pre">pnl_usd</span></code>/<code class="docutils literal notranslate"><span class="pre">pnl_pct</span></code>/<code class="docutils literal notranslate"><span class="pre">is_win</span></code> to <code class="docutils literal notranslate"><span class="pre">None</span></code> on <code class="docutils literal notranslate"><span class="pre">expired_on_restore</span></code>, but the <em>raw</em> <code class="docutils literal notranslate"><span class="pre">TradeEvent.price</span></code> written by <code class="docutils literal notranslate"><span class="pre">record_close()</span></code> still fabricated <code class="docutils literal notranslate"><span class="pre">0.0</span></code>.</p></td>
+<td><p>Consumer audit found zero production readers of a CLOSE event’s <code class="docutils literal notranslate"><span class="pre">price</span></code> (only OPEN’s, via <code class="docutils literal notranslate"><span class="pre">entry_price=op.price</span></code>, unaffected) and that <code class="docutils literal notranslate"><span class="pre">dataset_validator.py</span></code> already tolerates <code class="docutils literal notranslate"><span class="pre">None</span></code>. <code class="docutils literal notranslate"><span class="pre">TradeEvent.price</span></code> is now <code class="docutils literal notranslate"><span class="pre">Optional[float]</span></code>; <code class="docutils literal notranslate"><span class="pre">record_close()</span></code> passes <code class="docutils literal notranslate"><span class="pre">exit_price</span></code> through directly.</p></td>
+</tr>
+<tr class="row-odd"><td><p>4 — fee-entry evidence audit</p></td>
+<td><p>Traced whether an UNKNOWN restored <code class="docutils literal notranslate"><span class="pre">fee_entry_usd</span></code> (defaulted to <code class="docutils literal notranslate"><span class="pre">0.0</span></code>, R1.1) can later close and produce an authoritative-looking PnL. <strong>Confirmed YES</strong> by direct code trace (<code class="docutils literal notranslate"><span class="pre">_close_position()</span></code>’s <code class="docutils literal notranslate"><span class="pre">pnl_usd</span></code> formula subtracts it unconditionally, with no propagation of the evidence gap to the recorded event).</p></td>
+<td><p>Schema v5 adds <code class="docutils literal notranslate"><span class="pre">pnl_fee_evidence_incomplete:</span> <span class="pre">bool</span></code> (CLOSE-only) to <code class="docutils literal notranslate"><span class="pre">TradeEvent</span></code>/<code class="docutils literal notranslate"><span class="pre">CompleteTrade</span></code>, set by <code class="docutils literal notranslate"><span class="pre">_close_position()</span></code> from <code class="docutils literal notranslate"><span class="pre">&quot;fee_entry_unknown&quot;</span> <span class="pre">in</span> <span class="pre">pos.restored_evidence_gaps</span></code>. The PnL number is unchanged (real arithmetic against the best available fee, not fabricated) — it can no longer be mistaken for fully-evidenced. <code class="docutils literal notranslate"><span class="pre">status.py</span></code> appends <code class="docutils literal notranslate"><span class="pre">*</span></code> to the W/L column when set.</p></td>
+</tr>
+<tr class="row-even"><td><p>5 — TESTNET reconciliation status</p></td>
+<td><p>—</p></td>
+<td><p>Verified and documented, no code change: <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code>’s reconciler still defaults <code class="docutils literal notranslate"><span class="pre">expected_domain=REAL</span></code>, so a TESTNET-labeled <code class="docutils literal notranslate"><span class="pre">PositionManager</span></code> correctly fails closed as non-comparable today. This is intentional for T-1/PAPER scope — TESTNET reconciliation is explicitly <strong>not certified</strong>, reserved for a future REM-C round.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><strong>Files changed (R1.2):</strong> <code class="docutils literal notranslate"><span class="pre">system/position_reconciler.py</span></code>,
+<code class="docutils literal notranslate"><span class="pre">paper_trading/{recorder,mexc_simulator,status,dataset_validator}.py</span></code>,
+<code class="docutils literal notranslate"><span class="pre">tests/test_rem_c_r1_execution_domain.py</span></code> (14 new tests), <code class="docutils literal notranslate"><span class="pre">.ci/</span> <span class="pre">ruff_baseline.json</span></code> (mechanical line-shift), ADR-0021 + this §23.7
+addendum.</p>
+<p><strong>Tests:</strong> <code class="docutils literal notranslate"><span class="pre">tests/test_rem_c_r1_execution_domain.py</span></code> — 44/44 passed (9 R1</p>
+<ul class="simple">
+<li><p>21 R1.1 + 14 R1.2). Full targeted regression (<code class="docutils literal notranslate"><span class="pre">test_position_manager</span></code>,
+<code class="docutils literal notranslate"><span class="pre">test_exchange_reality</span></code>, <code class="docutils literal notranslate"><span class="pre">test_restart_safety</span></code>, <code class="docutils literal notranslate"><span class="pre">test_dataset_validator</span></code>,
+<code class="docutils literal notranslate"><span class="pre">paper_trading/</span></code>, <code class="docutils literal notranslate"><span class="pre">test_pre_t1_c_portfolio_provider_read_only</span></code>, PRE-T1-D
+capital boundary, REM-A/REM-B suites): 748 passed. Same 9 pre-existing
+<code class="docutils literal notranslate"><span class="pre">TestB3AuditRecovery</span></code> failures as R1/R1.1, confirmed unrelated.
+<code class="docutils literal notranslate"><span class="pre">ruff_baseline_gate.py</span> <span class="pre">check</span></code>: 958/958, zero new. <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">diff</span> <span class="pre">--check</span></code>:
+clean.</p></li>
+</ul>
+<p><strong>R1.2 verdict (superseded below by R1.3): still <code class="docutils literal notranslate"><span class="pre">REMEDIATION_REQUIRED</span></code>.</strong>
+REM-C R1.2 closed the three residual fail-open gaps MASTER found in
+R1.1’s own implementation (an unresolved-domain position could certify
+CLEAN; an unreadable internal position state was silently treated as
+empty rather than unknown; the raw paper ledger event still fabricated a
+zero exit price even after the derived fields were fixed), and closed a
+confirmed fee-evidence honesty gap (an assumed entry fee could produce an
+unflagged, seemingly fully-evidenced realized PnL).</p>
+</section>
+<section id="rem-c-r1-3-master-final-evidence-semantics-round-2026-09-12">
+<h3>23.8 REM-C R1.3 — MASTER final evidence-semantics round (2026-09-12)<a class="headerlink" href="#rem-c-r1-3-master-final-evidence-semantics-round-2026-09-12" title="Link to this heading">¶</a></h3>
+<p><strong>Addendum to §23.1-23.7, not a rewrite.</strong> MASTER review of R1.2 (head
+<code class="docutils literal notranslate"><span class="pre">50fd9631a303efe1c431a379292ba2897d879bd2</span></code>) found R1.1’s <code class="docutils literal notranslate"><span class="pre">personality</span></code>
+distinction had drifted out of sync with a downstream provenance-visible
+consumer, plus two aggregate-statistics gaps. Full technical detail in
+ADR-0021’s “R1.3 — MASTER final evidence-semantics round” addendum;
+summarized here:</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Finding</p></th>
+<th class="head"><p>Defect</p></th>
+<th class="head"><p>Correction</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>A — RESTORED != EVIDENCE_COMPLETE</p></td>
+<td><p>R1.1’s <code class="docutils literal notranslate"><span class="pre">personality=&quot;restored_evidence_incomplete&quot;</span></code> broke <code class="docutils literal notranslate"><span class="pre">observability/operator_snapshot_builder.py</span></code>’s <code class="docutils literal notranslate"><span class="pre">is_restored</span> <span class="pre">=</span> <span class="pre">personality</span> <span class="pre">==</span> <span class="pre">&quot;restored&quot;</span></code> in both directions: an evidence-incomplete restored position read <code class="docutils literal notranslate"><span class="pre">restored=False</span></code>, and a fully-evidenced restored position (durable TP/SL) was labeled <code class="docutils literal notranslate"><span class="pre">tp_sl_source=&quot;restored_default&quot;</span></code> as if reconstructed.</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">personality</span></code> stays <code class="docutils literal notranslate"><span class="pre">&quot;restored&quot;</span></code> for every ledger-restored position; only <code class="docutils literal notranslate"><span class="pre">restored_evidence_gaps</span></code> carries completeness. <code class="docutils literal notranslate"><span class="pre">tp_sl_source</span></code> now derives from that gap list directly: <code class="docutils literal notranslate"><span class="pre">&quot;original&quot;</span></code> / <code class="docutils literal notranslate"><span class="pre">&quot;restored_default&quot;</span></code> (genuinely reconstructed) / new <code class="docutils literal notranslate"><span class="pre">&quot;restored_original&quot;</span></code> (restored, durably-recovered TP/SL). Frontend contract (<code class="docutils literal notranslate"><span class="pre">types.ts</span></code>, already <code class="docutils literal notranslate"><span class="pre">|</span> <span class="pre">string</span></code>-tolerant) and <code class="docutils literal notranslate"><span class="pre">O-02W-B</span></code> contract doc updated additively — no redesign.</p></td>
+</tr>
+<tr class="row-odd"><td><p>B — HISTORICAL RECORD != CERTIFIED PERFORMANCE SAMPLE</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PaperTradeRecorder.summary()</span></code>’s <code class="docutils literal notranslate"><span class="pre">win_rate</span></code>/<code class="docutils literal notranslate"><span class="pre">target_30_trades</span></code>/<code class="docutils literal notranslate"><span class="pre">go_live_ready</span></code> were computed over ALL closed trades, including unknown-outcome (<code class="docutils literal notranslate"><span class="pre">is_win</span> <span class="pre">is</span> <span class="pre">None</span></code>) ones — diluting win_rate and letting 30 genuinely unknown closes advance <code class="docutils literal notranslate"><span class="pre">go_live_ready</span></code>.</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">summary()</span></code> now derives those metrics from a <code class="docutils literal notranslate"><span class="pre">certified</span></code> subset (<code class="docutils literal notranslate"><span class="pre">is_win</span> <span class="pre">is</span> <span class="pre">not</span> <span class="pre">None</span></code> and not <code class="docutils literal notranslate"><span class="pre">pnl_fee_evidence_incomplete</span></code>). <code class="docutils literal notranslate"><span class="pre">total_closed</span></code> (raw, backward-compatible) is preserved; new <code class="docutils literal notranslate"><span class="pre">certified_closed</span></code>/<code class="docutils literal notranslate"><span class="pre">excluded_unevidenced_count</span></code> keys make the exclusion explicit. Sole consumer <code class="docutils literal notranslate"><span class="pre">paper_trading/status.py</span></code> updated to match.</p></td>
+</tr>
+<tr class="row-even"><td><p>C — INCOMPLETE FEE EVIDENCE != FULLY-EVIDENCED PNL (corpus)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dataset_validator.py::validate_corpus()</span></code> already excluded <code class="docutils literal notranslate"><span class="pre">expired_on_restore</span></code> from population stats, but a <code class="docutils literal notranslate"><span class="pre">pnl_fee_evidence_incomplete=True</span></code> close (R1.2) still counted as an ordinary certified WIN/LOSS/TP/SL observation.</p></td>
+<td><p>New <code class="docutils literal notranslate"><span class="pre">CorpusReport.fee_evidence_incomplete</span></code> counter; population loop excludes such closes (same <code class="docutils literal notranslate"><span class="pre">continue</span></code> pattern as <code class="docutils literal notranslate"><span class="pre">expired_on_restore</span></code>) without touching paired-trade/integrity accounting or treating it as corrupted data — an explicit warning names the exclusion.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><strong>Files changed (R1.3):</strong> <code class="docutils literal notranslate"><span class="pre">paper_trading/{mexc_simulator,recorder,status,</span> <span class="pre">dataset_validator}.py</span></code>, <code class="docutils literal notranslate"><span class="pre">observability/operator_snapshot_builder.py</span></code>,
+<code class="docutils literal notranslate"><span class="pre">frontend/src/types.ts</span></code>, <code class="docutils literal notranslate"><span class="pre">docs/contracts/</span> <span class="pre">O-02W-B_CANONICAL_OPERATOR_API_CONTRACT.md</span></code>, <code class="docutils literal notranslate"><span class="pre">tests/</span> <span class="pre">test_operator_snapshot_builder.py</span></code> (2 new tests + 1 fixture extension),
+<code class="docutils literal notranslate"><span class="pre">tests/test_rem_c_r1_execution_domain.py</span></code> (15 new tests, 1 updated),
+ADR-0021 + this §23.8 addendum.</p>
+<p><strong>Tests:</strong> <code class="docutils literal notranslate"><span class="pre">tests/test_rem_c_r1_execution_domain.py</span></code> — 55/55 passed (9 R1</p>
+<ul class="simple">
+<li><p>21 R1.1 + 14 R1.2 + 11 R1.3). <code class="docutils literal notranslate"><span class="pre">tests/test_operator_snapshot_builder.py</span></code>
+— 146/146 passed. Full targeted regression (<code class="docutils literal notranslate"><span class="pre">test_position_manager</span></code>,
+<code class="docutils literal notranslate"><span class="pre">test_exchange_reality</span></code>, <code class="docutils literal notranslate"><span class="pre">test_restart_safety</span></code>, <code class="docutils literal notranslate"><span class="pre">test_dataset_validator</span></code>,
+<code class="docutils literal notranslate"><span class="pre">paper_trading/</span></code>, <code class="docutils literal notranslate"><span class="pre">test_pre_t1_c_portfolio_provider_read_only</span></code>, PRE-T1-D
+capital boundary, REM-A/REM-B suites, <code class="docutils literal notranslate"><span class="pre">tests/cross_stack/</span></code>): 918 passed.
+Same 9 pre-existing <code class="docutils literal notranslate"><span class="pre">TestB3AuditRecovery</span></code> failures across all four
+rounds, confirmed unrelated. <code class="docutils literal notranslate"><span class="pre">ruff_baseline_gate.py</span> <span class="pre">check</span></code>: 957/957, zero
+new (one incidental pre-existing lint finding fixed during the
+<code class="docutils literal notranslate"><span class="pre">summary()</span></code> rewrite, baseline count correctly dropped 958→957).
+<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">diff</span> <span class="pre">--check</span></code>: clean.</p></li>
+</ul>
+<p><strong>Updated verdict: still <code class="docutils literal notranslate"><span class="pre">REMEDIATION_REQUIRED</span></code>.</strong> REM-C R1.3 closes the
+provenance-visible drift MASTER found between R1.1’s restore-evidence
+model and the operator snapshot it feeds, and closes two aggregate-
+statistics surfaces (<code class="docutils literal notranslate"><span class="pre">PaperTradeRecorder.summary()</span></code>,
+<code class="docutils literal notranslate"><span class="pre">dataset_validator.py</span></code>’s corpus population) that still let unevidenced or
+unknown-outcome closes contribute to certified performance metrics. It
+does not implement the fill-evidence chain, does not certify real
+exchange or TESTNET reconciliation, and does not enable live or testnet
+trading in any way. No real order, testnet call, exchange call, VPS
+access, secret access, or deployment occurred in this round.
+<code class="docutils literal notranslate"><span class="pre">PAPER_TRADING_ENABLED=true</span></code> and <code class="docutils literal notranslate"><span class="pre">LIVE_TRADING_CONFIRMED=false</span></code> are
+unchanged. T-1 and F-00 remain not started.</p>
+</section>
+</section>
 </section>
 
         </article>
@@ -1380,6 +1704,17 @@ round. PR #138 remains <strong>draft</strong> and <strong>unmerged</strong>.</p>
 <li><a class="reference internal" href="#rem-b-r1-2-final-safety-correction-round-2026-09-11">22.3 REM-B R1.2 final safety correction round (2026-09-11)</a></li>
 <li><a class="reference internal" href="#rem-b-r1-3-legacy-execution-ineligibility-correction-2026-09-11">22.4 REM-B R1.3 legacy execution ineligibility correction (2026-09-11)</a></li>
 <li><a class="reference internal" href="#rem-b-r1-4-persist-idempotence-correction-2026-09-11">22.5 REM-B R1.4 persist() idempotence correction (2026-09-11)</a></li>
+<li><a class="reference internal" href="#rem-c-r1-execution-domain-provenance-and-paper-recovery-honesty-2026-09-11">23. REM-C R1 — execution-domain provenance and paper recovery honesty (2026-09-11)</a><ul>
+<li><a class="reference internal" href="#execution-domain-provenance-rule">23.1 Execution-domain provenance rule</a></li>
+<li><a class="reference internal" href="#reconciliation-same-domain-invariant">23.2 Reconciliation same-domain invariant</a></li>
+<li><a class="reference internal" href="#paper-restart-evidence-honesty-rule">23.3 PAPER restart evidence-honesty rule</a></li>
+<li><a class="reference internal" href="#files-changed">23.4 Files changed</a></li>
+<li><a class="reference internal" href="#rem-c-blockers-remaining-fully-open-unattempted-explicitly-out-of-this-missions-scope">23.5 REM-C blockers remaining fully open, unattempted, explicitly out of this mission’s scope</a></li>
+<li><a class="reference internal" href="#rem-c-r1-1-master-correction-round-2026-09-11">23.6 REM-C R1.1 — MASTER correction round (2026-09-11)</a></li>
+<li><a class="reference internal" href="#rem-c-r1-2-master-correction-round-2026-09-11">23.7 REM-C R1.2 — MASTER correction round (2026-09-11)</a></li>
+<li><a class="reference internal" href="#rem-c-r1-3-master-final-evidence-semantics-round-2026-09-12">23.8 REM-C R1.3 — MASTER final evidence-semantics round (2026-09-12)</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
