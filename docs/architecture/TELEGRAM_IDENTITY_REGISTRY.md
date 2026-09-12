@@ -59,7 +59,7 @@ identity was found anywhere in the repository.
 | IDENTITY-02 | Portfolio (CommandCenter) | `MON_PORTFOLIO_BOT_TOKEN` | `MON_PORTFOLIO_CHAT_ID` | INTERACTIVE | YES | YES | in-process `crypto-advisor.service` | YES | ACTIVE |
 | IDENTITY-03 | Quant Observer | `QUANT_CRYPTO_BOT_TOKEN` | `QUANT_CRYPTO_CHAT_ID` | INTERACTIVE | YES | YES | `crypto-quant-observer.service` | YES | ACTIVE |
 | IDENTITY-04 | Rapport Automatique / Intel | `RAPPORT_AUTOMATIQUE_BOT_TOKEN` | `RAPPORT_AUTOMATIQUE_CHAT_ID` | PUSH_ONLY | NO | YES | in-process `crypto-advisor.service` | YES | ACTIVE |
-| IDENTITY-05 | Paper Arena | `PAPER_ARENA_BOT_TOKEN` | `PAPER_ARENA_CHAT_ID` | PUSH_ONLY | NO | YES | `paper-arena.service` | YES | ACTIVE |
+| IDENTITY-05 | Paper Trade Notifier (was: Paper Arena) | `PAPER_ARENA_BOT_TOKEN` | `PAPER_ARENA_CHAT_ID` | PUSH_ONLY | NO | YES | `paper-arena.service` | YES | ACTIVE |
 | IDENTITY-06 | CMVK / Sim Bot | `TELEMETRIE_IA_BOT_TOKEN` | `TELEMETRIE_IA_CHAT_ID` | INTERACTIVE (code) | YES | YES | NONE found | PARTIAL | UNKNOWN |
 | IDENTITY-07 | Generic Alerts (Moteur) | `TELEGRAM_BOT_TOKEN` | `TELEGRAM_CHAT_ID` / `TELEGRAM_BEHAVIOR_CHAT_ID` | PUSH_ONLY | NO | YES | in-process `crypto-advisor.service` + standalone scripts | PARTIAL | ACTIVE |
 | IDENTITY-08 | ~~Real Account Bot~~ | ~~`REAL_ACCOUNT_BOT_TOKEN`~~ | ~~`REAL_ACCOUNT_CHAT_ID`~~ | **MERGED** | — | — | — | — | **MERGED → IDENTITY-02** |
@@ -146,21 +146,22 @@ Status: ACTIVE / INACTIVE / DEAD_CODE / UNKNOWN
 
 ---
 
-### [IDENTITY-05] Paper Arena
+### [IDENTITY-05] Paper Arena — refondu TG-PAPER-01 (2026-09)
 - **Token Variable**: `PAPER_ARENA_BOT_TOKEN`
 - **Chat Variable**: `PAPER_ARENA_CHAT_ID`
 - **Type**: PUSH_ONLY
-- **Entrypoint**: `src/paper/paper_runner.py` (event triggers) + `src/paper/paper_report.py` (sender)
-- **Service**: `paper-arena.service` (`scripts/systemd/paper-arena.service`, `ExecStart=... python3 -m src.paper.paper_runner`)
-- **Polling (getUpdates)**: NO — no `getUpdates` call found in either file.
-- **Push (sendMessage)**: YES — `src/paper/paper_report.py:23` (`requests.post(f".../bot{_TOKEN}/sendMessage", ...)`)
-- **In .env.example**: YES — `.env.example:80-81`
-- **In TELEGRAM_BOT_REGISTRY.md**: YES — full profile present ("BOT: Paper Arena" section)
-- **Call sites**: `src/paper/paper_report.py:11` (`_TOKEN = os.getenv("PAPER_ARENA_BOT_TOKEN", "")`), `src/paper/paper_report.py:12` (`_CHAT = os.getenv("PAPER_ARENA_CHAT_ID", "")`)
-- **Mission (evidence-based)**: Reports the outcome of one isolated research experiment (RSI ETH/4H) — entry/exit notifications, periodic summary, gate status (`INSUFFICIENT_SAMPLE` → `CONCLUSIVE`), scoped strictly to experiment metrics.
+- **Entrypoint**: `src/paper/paper_trade_notifier.py` (follower + sender, module unique)
+- **Service**: `paper-arena.service` (`scripts/systemd/paper-arena.service`, `ExecStart=... python3 -m src.paper.paper_trade_notifier`)
+- **Polling (getUpdates)**: NO — no `getUpdates`/`setWebhook` call in the module.
+- **Push (sendMessage)**: YES — `TelegramSender.send()` in `src/paper/paper_trade_notifier.py` (urllib, `bot{token}/sendMessage` only)
+- **In .env.example**: YES — `.env.example:80-81` (unchanged variable names)
+- **In TELEGRAM_BOT_REGISTRY.md**: YES — profile updated for the new mission
+- **Call sites**: `NotifierConfig.from_env()` in `src/paper/paper_trade_notifier.py` (`PAPER_ARENA_BOT_TOKEN`, `PAPER_ARENA_CHAT_ID`, fail-closed if either is missing)
+- **Mission (evidence-based, post TG-PAPER-01)**: Automatic notification feed of the MAIN MACHINE's actual PAPER OPEN/CLOSE events, sourced from `databases/paper_trades.jsonl` (`mode="futures_demo"` only). Nothing else — no strategy, no metrics engine, no signal processing, no command dispatcher, no execution authority. Delivery-checkpoint based, AT-LEAST-ONCE, live-only bootstrap (no historical replay on first start).
+- **Legacy**: The independent RSI ETH/4H research experiment (`src/paper/paper_runner.py`, `paper_metrics.py`, `paper_gate.py`, `paper_position_manager.py`) remains in the repository as legacy/manual-research-only code. Its Telegram path (`src/paper/paper_report.py::_send`) has been silenced (no-op) so it can never again publish under the `@PaperArena_bot` identity — that identity is now exclusively owned by `paper_trade_notifier.py`.
 - **Owner**: UNKNOWN (not documented)
 - **Status**: ACTIVE
-- **Governance gaps**: None found. (Noise level flagged elsewhere — `docs/TELEGRAM_NOTIFICATION_AUDIT.md` recommends batching per-trade pushes — but that is a message-volume concern, not an identity governance gap.)
+- **Governance gaps**: None found. Two independent producers no longer share this bot identity (previously a latent risk — see TG-PAPER-01 mission intent).
 
 ---
 
@@ -287,7 +288,7 @@ Severity: CRITICAL / HIGH / MEDIUM / LOW
 | IDENTITY-02 Portfolio (CommandCenter) | KEEP | Active, fully documented, minor chat-fallback is low risk |
 | IDENTITY-03 Quant Observer | KEEP + DOCUMENT | Active and documented functionally; add to `.env.example` for consistency |
 | IDENTITY-04 Rapport Automatique / Intel | KEEP | Active, fully documented, push-only, no anomalies found |
-| IDENTITY-05 Paper Arena | KEEP | Active, fully documented; noise-reduction is a message-volume matter, not an identity issue |
+| IDENTITY-05 Paper Trade Notifier (was: Paper Arena) | KEEP | TG-PAPER-01 (2026-09) refounded this identity as a main-machine PAPER OPEN/CLOSE push-only feed; legacy RSI experiment's Telegram path silenced to prevent a second producer on the same bot |
 | IDENTITY-06 CMVK / Sim Bot | DOCUMENT or REMOVE | Code is read-only compliant and fully wired, but no deployment evidence exists; operator should confirm intended use and update the Registry accordingly under the real variable names |
 | IDENTITY-07 Generic Alerts (Moteur) | DOCUMENT | Active and heavily used; needs a formal Registry profile matching identities 01-05 |
 | IDENTITY-08 Real Account Bot | MERGED → IDENTITY-02 | Same physical token as Portfolio; `REAL_ACCOUNT_BOT_TOKEN` variable deleted (2026-08-28) |
