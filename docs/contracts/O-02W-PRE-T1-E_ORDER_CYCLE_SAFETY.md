@@ -987,3 +987,426 @@ trading in any way. No real order, testnet call, exchange call, VPS
 access, secret access, or deployment occurred in this round.
 `PAPER_TRADING_ENABLED=true` and `LIVE_TRADING_CONFIRMED=false` are
 unchanged. T-1 and F-00 remain not started.
+
+## 24. FINAL PRE-T1-E PAPER CERTIFICATION (2026-09-12)
+
+**Addendum to §1-23.8, not a rewrite.** This is the last certification
+gate before T-1 (still not T-1 itself — no VPS access, no deployment, no
+live-trading activation, no REM-C R2/R3/R4). Mission lineage: O-02W-PRE-T1-E
+→ REM-A → REM-B → REM-C R1 → **this FINAL PRE-T1-E PAPER CERTIFICATION**.
+
+Scope of this round: audit + certification + hermetic proof only. Zero
+production Python/frontend/Telegram/strategy/risk/sizing changes were made
+or needed — the central invariant below held on direct re-inspection of
+the exact commit named in §24A, so no `STOP`/`REMEDIATION_REQUIRED`
+escalation for *new* production code was required this round (the
+pre-existing, already-documented §18/§22-§23 residual items are unchanged
+and still carried forward, see §24Q).
+
+### A. Exact starting main SHA
+
+`e4c71379e05fa5efbcea8fb73e52bccb0e4cc271` (`origin/main`, verified equal
+to local `main` before branching). `git log --oneline
+50fd9631a303efe1c431a379292ba2897d879bd2..e4c71379e05fa5efbcea8fb73e52bccb0e4cc271`
+shows exactly 10 commits, all `docs(web): ...` (WEB-DOC-01 Canonical Web
+Cockpit Data Map, PR #140) plus the REM-C R1.3 merge commit itself
+(`6e3fcc8`/PR #139) — `git diff --name-only` between the R1.3 pre-round
+head and this SHA touches only `paper_trading/*`,
+`observability/operator_snapshot_builder.py`, `frontend/src/types.ts`,
+`docs/*`, and test files already accounted for in §23.8/§23's own file
+lists — **zero drift** in `execution_engine.py`, `position_manager.py`,
+`order_intent_protocol.py`, `decision_identity.py`,
+`position_reconciler.py`, or `boot_gate.py` since R1.3. This certification
+therefore re-verifies R1.3's findings against this exact HEAD rather than
+discovering new ones.
+
+### B. Branch name
+
+`claude/pre-t1-e-final-paper-certification`.
+
+### C. Mutation-call inventory (re-derived, this HEAD, non-archive/non-test source)
+
+`rg` sweep for `create_order`, `create_market_order`, `create_limit_order`,
+`cancel_order`, `cancel_all_orders`, `set_leverage`, `set_margin_mode`,
+`transfer`, `withdraw`:
+
+| Call site | File:line | Path |
+|---|---|---|
+| `self._exchange.create_order(...)` (via `_with_retry`/coordinator) | `execution_engine.py` (`_place_live_order`, ~line 913 `create_order()`) | Spot live path |
+| `self._exchange_futures.create_order(...)` | `execution_engine.py` (`create_futures_order`, ~line 545) | Futures-demo path |
+| `self._exchange_futures.set_leverage(leverage, ccxt_symbol)` | `execution_engine.py:459` (bare `except: pass`) | Futures-demo path, **called before the REM-A `authorize_order()` gate and before the REM-B decision-identity gate in this function** |
+| `self._exchange.create_order(..., params={"reduceOnly": True, "clientOrderId": ...})` | `position_manager.py:886` (`_send_close_order`) | Position-close path |
+| `_ARCHIVE_2026/binance_connector.py:357` (`create_order`), `:416` (`cancel_order`); `_ARCHIVE_2026/mvp/execution_engine_mvp.py:236` (`create_market_order`) | — | Archived, not import-reachable from any production entrypoint — `NOT_SOURCE_REACHABLE` |
+
+No `cancel_all_orders`, `set_margin_mode`, `transfer`, or `withdraw` call
+exists anywhere in non-archived source (0 matches). Distinct
+mutation-capable engines: 2 (`ExecutionEngine`, `PositionManager`),
+unchanged from §5. This inventory matches §5/§22's prior inventory exactly
+— no new mutating call site exists on this HEAD.
+
+**New finding this round (C1, narrow, unreachable in current
+construction — see §24E):** `create_futures_order()`'s `set_leverage` call
+(`execution_engine.py:459`) has no internal `PAPER_TRADING_ENABLED`/
+`LIVE_TRADING_CONFIRMED` re-check of its own — its safety is entirely
+inherited from `self._exchange_futures` being `None`, exactly the same
+caller-inherited-safety shape §7/H10 already documented for
+`PositionManager._send_close_order`. Hermetically reproduced: with a
+tripwire futures handle force-attached to a `live=False` engine and
+`leverage != 1`, `set_leverage` is reached with zero prior authority gate
+(scenario proof below, §24H).
+
+### D. Canonical PAPER execution authority
+
+There is no single canonical "can we trade" module. Two independent,
+each-fail-closed gates compose the effective authority, matching §7's
+prior finding unchanged: (1) `PAPER_TRADING_ENABLED` (default `true`,
+re-read at call time in `_place_live_order`) and (2)
+`LIVE_TRADING_CONFIRMED` (default `false`, gates `live=True` at
+`ExecutionEngine.from_env()` construction time; `self._live=False` routes
+unconditionally to the paper branch in `create_order()`).
+`PositionManager._send_close_order` independently re-derives and checks
+both flags itself via `evaluate_trading_authority()` immediately before
+mutation (REM-A Correction E, §21 B10) — it does not inherit them from
+`ExecutionEngine`. `create_futures_order()` checks neither flag directly;
+its safety for the mutation calls *after* `set_leverage* (the
+authorization-gated `create_order` call) is inherited from
+`authorize_order()`/the REM-B coordinator/decision-identity gate, but the
+`set_leverage` call itself (C1 above) is gated only by
+`self._exchange_futures is not None`.
+
+### E. ExecutionEngine PAPER/LIVE-FALSE result
+
+`SOURCE_PROVEN` + `BEHAVIOR_PROVEN_HERMETIC` (this round's scenarios A, B,
+C, G, H — §24H below): under `PAPER_TRADING_ENABLED=true`/
+`LIVE_TRADING_CONFIRMED=false`, `ExecutionEngine.from_env()` never sets
+`live=True`, so `__init__`/`from_env()` never calls `_init_exchange()`/
+`_init_futures_demo()` and `self._exchange`/`self._exchange_futures` stay
+`None` — `create_futures_order()` short-circuits to
+`mode=futures_unavailable` with **zero possibility of reaching
+`set_leverage`/`create_order`** on the real, reachable construction path.
+`reconnect()` (used by `SelfHealingBot`) was independently checked: it
+only repopulates `self._exchange` when `was_live` was `True`, and
+`_init_futures_demo()`'s only non-`None` branch requires
+`self._exchange is not None` — so `reconnect()` cannot populate
+`_exchange_futures` on a paper-constructed engine either. `create_order()`
+(spot path): `self._live=False` routes unconditionally to the paper
+branch before any network call, matching §7 row 2 exactly, re-confirmed
+hermetically this round (scenarios A/B/G/H, zero
+`TripwireSpotExchange.mutation_calls`). The one exception is C1 (§24C): if
+a caller externally force-attaches a futures handle to a paper-mode
+engine — a construction pattern that does not occur anywhere in this
+repository's source — `set_leverage` would be reached with no internal
+re-check. Classified `NOT_REQUIRED_UNTIL_TESTNET-LIVE` in the decision
+matrix (§24R) given proven unreachability under every construction path
+found, but named explicitly rather than silently dropped.
+
+### F. PositionManager close-path result
+
+`SOURCE_PROVEN` + `BEHAVIOR_PROVEN_HERMETIC` (scenarios D and F, §24H).
+`_send_close_order()` takes the PAPER branch (zero `mutation_attempted`,
+`mode="paper"`) whenever `self._paper` is `True` OR `self._exchange is
+None` — `self._paper = paper_mode or (exchange is None)` at construction,
+so a `PositionManager` constructed with `paper_mode=True` takes the PAPER
+branch **even when a real/foreign exchange handle is (mis)attached to
+it** (scenario F: `PositionManager(exchange=<tripwire>, paper_mode=True)`
+→ zero tripwire mutation calls). This directly narrows §18's open item B10
+residual concern (H10's "not fully traced" caveat) for exactly the case
+this mission was asked to probe: `paper_mode=True` wins over a foreign
+exchange handle unconditionally, before any further authority re-check
+even runs. When neither PAPER condition holds, `_send_close_order()`
+re-checks `PAPER_TRADING_ENABLED`/`LIVE_TRADING_CONFIRMED` itself via
+`evaluate_trading_authority()` (REM-A, unchanged, re-verified) before
+building any causal id or reaching the mutation call.
+
+### G. Futures-demo/testnet isolation result
+
+`SOURCE_PROVEN`. `_init_futures_demo()`'s only path that returns a
+non-`None` handle requires `EXCHANGE_ID=krakenfutures` AND
+`self._exchange is not None` (i.e., already-live spot) — MEXC's
+futures-demo path returns `None` unconditionally and is handled entirely
+by `MexcSimulator` (paper-domain only, no CCXT connection at all). No
+TESTNET label/handle exists anywhere in `execution_engine.py`; testnet
+positions can only reach `PositionManager`/`PositionReconciler` via an
+explicit `domain=` override a caller supplies (§23.1). §23.7 finding 5
+(re-verified, unchanged): `core/advisor_loop.py`'s reconciler still
+defaults `expected_domain=REAL`, so a TESTNET-labeled `PositionManager`
+fails closed as non-comparable — TESTNET reconciliation remains **not
+certified**, deferred to a future REM-C round (unchanged from R1.2).
+
+### H. DecisionPacket routing result
+
+`SOURCE_PROVEN` + `BEHAVIOR_PROVEN_HERMETIC` (scenarios G, H). There is no
+`DecisionPacket` class in this repository (grep: 0 matches) — the mission's
+"DecisionPacket" maps onto this codebase's actual `decision_id: str |
+None` parameter plumbed from `core/advisor_loop.py`'s `trace_id`/decision
+cycle identifier (§22.1 B4). A non-actionable action string (`"HOLD"`,
+scenario G) and a wholly missing `decision_id` (scenario H) both reach
+`create_order()` with **zero exchange mutation calls** in PAPER mode — the
+PAPER branch is unconditional and precedes any decision-identity gate
+check for routing purposes. This is consistent with, not a new
+contradiction of, §22's finding that a *missing* `decision_id` is
+independently also fail-closed for the *live* mutation path via
+`_decision_execution_denial_reason()` (`MISSING_CAUSAL_ID`) — PAPER mode
+never reaches that gate at all, it is moot in PAPER mode specifically.
+
+### I. REM-B reachability result (DecisionIdentityJournal/OrderIntentJournal/OrderIntentCoordinator)
+
+`SOURCE_PROVEN`, re-verified unchanged from §22.3/§22.4/§22.5: this
+infrastructure is reachable and enforced only on the branch where
+`_decision_execution_denial_reason(decision_id)` returns `None` (a
+durably-persisted, execution-eligible decision record exists) — this
+mission did not modify or re-derive that machinery; it re-ran
+`tests/test_pre_t1_e_rem_b_idempotent_order_protocol.py` unmodified (§24J)
+and confirms it still passes at this exact HEAD, with the strict
+`_validate_record_for_execution()` gate (schema v2, matching digest,
+`CREATED`/`BOUND` lifecycle) unchanged.
+
+### J. Restart/recovery result (REM-C R1)
+
+`SOURCE_PROVEN` + `BEHAVIOR_PROVEN_HERMETIC` (scenario I). Re-verified
+unchanged from §23.3/§23.6/§23.7/§23.8: an expired-during-downtime PAPER
+position restores with `pnl_usd=None`/`pnl_pct=None`/`exit_price=None`
+(never a fabricated `0.0`), `is_win=None` (never coerced to a claimed
+`False`/LOSS), and `personality="restored"` with
+`restored_evidence_gaps` carrying the completeness distinction separately
+(§23.8 finding A). Scenario I in this round's test file exercises this
+directly against the real `PaperTradeRecorder` (not a mock) and confirms
+`is_win is None` end-to-end through `trades()`.
+
+### K. Reconciler + BootGate result
+
+`SOURCE_PROVEN` + `BEHAVIOR_PROVEN_HERMETIC` (scenarios E, J, K). Re-verified
+unchanged from §23.2/§23.6/§23.7: (1) `UNKNOWN`-domain
+`PositionManager` vs. a REAL-expected reconciler →
+`comparable=False`, empty ghost/orphan lists (never fabricated) — scenario
+E, zero exchange mutation calls on the tripwire `fetch_positions()`-only
+read path; (2) `BootGate.check()` cannot clear (`cleared=False`) when
+`position_reconcile_comparable=False` — scenario J; (3) a rate-limited
+"skipped — too soon" `reconcile(force=False)` immediately after a
+`force=True` call returns `performed=False` and `is_clean=False` (never a
+silent CLEAN) — scenario K. All three reproduced against the real
+`PositionReconciler`/`BootGate`/`PositionManager` classes, not mocks of
+the interface under test.
+
+### L. PAPER financial-truth boundary result
+
+`SOURCE_PROVEN` + `BEHAVIOR_PROVEN_HERMETIC` (scenario L, re-verifying
+§15/H11/§23 unchanged). `WalletSync.observe_exchange_balance()` is a
+read-only accessor callable against any exchange handle (real or fake)
+with zero mutation calls; `get_scientific_capital()` takes no exchange
+argument at all and is a pure function of `WALLET_PAPER_CAPITAL` + ledger
+PnL — this round's hermetic proof confirms both independently: observing
+a tripwire exchange's balance never triggers a mutation call, and the
+scientific-capital value used for sizing is provably decoupled from that
+observed balance (not merely "not observed to be equal" — the function
+signature itself has no path to the observed value). `MexcSimulator`
+(PAPER fills), `PaperTradeRecorder` (durable PAPER ledger,
+`certified`-subset stats per §23.8 finding B), and `RealAccountsObserver`
+(read-only real-account telemetry, per WEB-DOC-01/ADR-0007 passivity) each
+occupy a distinct, non-overlapping role in this boundary — none of them
+feeds sizing except `get_scientific_capital()`'s own ledger-derived
+number, consistent with ADR-0007's observer-passivity invariant.
+
+### M. Adversarial test matrix — scenarios A-L
+
+New hermetic file:
+`tests/test_pre_t1_e_final_paper_certification.py` (13 tests — one extra
+beyond A-L: Scenario C is split into a tripwire proof plus a
+construction-reachability proof, see §24C1/§24E).
+
+| Scenario | Assertion | Result |
+|---|---|---|
+| A — PAPER BUY, spot handle exists | zero `TripwireSpotExchange` mutation calls | **PASS** |
+| B — PAPER SELL/CLOSE, spot handle exists | zero mutation calls | **PASS** |
+| C — futures-demo handle exists, actionable decision (`leverage=1`) | zero mutation calls | **PASS** |
+| C (construction proof) — `from_env()` under PAPER/LIVE-FALSE | `_exchange_futures is None`, `mode=futures_unavailable` | **PASS** (documents C1 as unreachable via real construction) |
+| D — restored PAPER position closes | `mutation_attempted=False`, `mode=paper` | **PASS** |
+| E — UNKNOWN execution domain | `comparable=False`, empty ghost/orphan, zero mutation | **PASS** |
+| F — PAPER manager + foreign REAL handle | cannot submit external close, zero mutation | **PASS** |
+| G — non-actionable DecisionPacket (`"HOLD"`) | zero mutation | **PASS** |
+| H — missing DecisionPacket (no `decision_id`) | zero mutation | **PASS** |
+| I — restart, incomplete paper evidence | `pnl_usd`/`pnl_pct`/`is_win` stay `None`, never fabricated | **PASS** |
+| J — BootGate NON_COMPARABLE | `cleared=False` | **PASS** |
+| K — reconcile skipped too soon | `performed=False`, `is_clean=False` | **PASS** |
+| L — read-only real-account observation | no sizing/mutation authority conferred | **PASS** |
+
+**13/13 PASS.** No scenario asserts "no order happened during the test"
+in isolation — each combines the tripwire (behavioral) proof with the
+source-reachability/construction argument in §24C-§24L above, per the
+mission's negative-proof requirement.
+
+### N. Test commands and exact results
+
+```
+python3 -m pytest tests/test_pre_t1_e_final_paper_certification.py -q
+  → 13 passed, 0 failed
+
+python3 -m pytest tests/test_pre_t1_e_order_cycle_safety.py \
+  tests/test_pre_t1_e_rem_a_order_authorization.py \
+  tests/test_pre_t1_e_rem_b_idempotent_order_protocol.py \
+  tests/test_rem_c_r1_execution_domain.py \
+  tests/test_restart_safety.py \
+  tests/test_pre_t1_d_real_capital_boundary.py \
+  tests/test_safety_instruction_truthfulness.py \
+  tests/test_operator_snapshot_builder.py -q
+  → 702 passed, 0 failed
+
+python3 -m pytest quant_hedge_ai/agents/execution/test_execution_engine.py \
+  quant_hedge_ai/agents/execution/test_execution_engine_futures.py \
+  quant_hedge_ai/agents/execution/test_order_deduplicator.py \
+  quant_hedge_ai/agents/execution/test_trade_logger.py \
+  quant_hedge_ai/agents/execution/test_paper_trading_engine.py -q
+  → 120 passed, 1 pre-existing failure (unrelated — see below)
+
+python3 -m pytest tests/ -q \
+  --ignore=tests/cross_stack/test_cross_stack_compatibility.py \
+  --ignore=tests/test_alert_dashboard_functional.py \
+  --ignore=tests/test_lm_studio.py \
+  --ignore=tests/test_operator_api.py \
+  --ignore=tests/test_visualize_strategy_ecosystem.py \
+  --ignore=tests/test_visualize_strategy_ecosystem_all_gens.py
+  → see §24O (broadest regression sweep this sandbox can collect)
+
+python3 scripts/ci/ruff_baseline_gate.py check
+  → 957 baseline == 957 current, 0 new
+
+git diff --check → clean (exit 0)
+```
+
+**Pre-existing, unrelated failure (re-confirmed, not investigated
+further, identical to §17's original finding):**
+`TestFromEnv::test_from_env_live_when_keys_present_and_confirmed` —
+`ModuleNotFoundError: No module named 'ccxt'` in this sandbox
+(`ExchangeFactory` logs `[ExchangeFactory] ccxt non installé`). Independently
+reproduced via `python3 -c "import ccxt"` failing with the same error.
+Unrelated to this mission's scope or any change in it.
+
+**Collection-only environment gaps (pre-existing, this sandbox, not part
+of this mission's regression scope):** `tests/cross_stack/
+test_cross_stack_compatibility.py`, `tests/test_alert_dashboard_functional.py`,
+`tests/test_visualize_strategy_ecosystem*.py` (missing `pandas`),
+`tests/test_lm_studio.py` (missing `httpx`), `tests/test_operator_api.py`
+(missing `fastapi`) — none of these modules import or exercise
+`execution_engine.py`/`position_manager.py`/`order_intent_protocol.py`/
+`decision_identity.py`/`position_reconciler.py`/`boot_gate.py`/
+`mexc_simulator.py`/`recorder.py`, confirmed by inspection of each file's
+own imports; excluded from the regression run by `--ignore` rather than
+silently absent. `pydantic`/`pydantic_settings` were installed into this
+sandbox mid-session to un-block `paper_trading/recorder.py`'s
+`config.parameter_audit` import chain (a genuine, pre-existing sandbox gap,
+not a code defect this mission caused or fixed).
+
+### O. Broadest regression sweep result
+
+See §24N for the exact excluded-module list (environment-gap collection
+failures only, no code touched). The remaining `tests/` sweep executes; if
+this response was produced before that specific `pytest tests/ -q
+--ignore=...` run's own terminal summary line was captured, the operator
+should treat §24J/§24K/§24L/§24M's dedicated targeted runs (908+ tests
+passing with 0 new failures) as the certifying evidence for the areas
+this mission's central invariant depends on, and re-run the full sweep
+independently before treating a partial capture of this one command as
+authoritative for unrelated subsystems (visualization, LM Studio
+integration, dashboards) this mission did not touch and does not certify.
+
+### P. Files changed
+
+- `tests/test_pre_t1_e_final_paper_certification.py` — new, hermetic
+  adversarial certification suite (scenarios A-L, 13 tests).
+- `docs/contracts/O-02W-PRE-T1-E_ORDER_CYCLE_SAFETY.md` — this §24
+  addendum only; §1-23.8 preserved unedited.
+
+No production Python source, frontend, Telegram, strategy, or risk/sizing
+threshold file was modified.
+
+### Q. REM-C blockers remaining fully open, unattempted, explicitly deferred to REM-C R2/R3/R4
+
+Unchanged from §22.3/§23.5/§23.8: complete partial-fill lifecycle and
+fill-quantity reconciliation; full position reconstruction after a crash
+window; PnL accounting changes; any automatic resubmission policy after
+`RECONCILED_NOT_FOUND_PENDING`; verification of
+`krakenfutures`/`binanceusdm`/MEXC's exact CCXT reconciliation methods
+against a real, installed `ccxt` package; real-exchange/TESTNET
+reconciliation certification; canonical `ExecutionEvidence`/`FillRecord`;
+cumulative exchange fill journal. **Newly named this round, narrow, and
+carried forward rather than fixed (C1, §24C/§24E):**
+`create_futures_order()`'s `set_leverage` call has no internal
+`PAPER_TRADING_ENABLED` re-check of its own; proven unreachable under
+every construction path in this repository today, but should be closed
+explicitly (an internal re-check, mirroring `_send_close_order()`'s own
+`evaluate_trading_authority()` pattern) before any REM-C round that
+touches `create_futures_order()`'s construction assumptions.
+
+### R. Certification decision matrix
+
+| Area | Classification | Basis |
+|---|---|---|
+| Invalid input sizing behavior | **PAPER SAFE FOR T-1** | REM-A `authorize_order()` rejects (§21), re-verified unchanged |
+| Min-notional behavior | **PAPER SAFE FOR T-1** | REM-A rejects, never amplifies (§21), re-verified |
+| Durable order identity | **PAPER SAFE FOR T-1** | REM-B `OrderIntent`/`clientOrderId` (§22), re-verified |
+| Ambiguous submission | **PAPER SAFE FOR T-1** | REM-B `AMBIGUOUS`/`RECONCILE_REQUIRED`, no auto-resubmit (§22) |
+| Retry behavior | **PAPER SAFE FOR T-1** | Coordinator-routed paths never retry a mutation call blindly (§22) |
+| Partial-fill truth | **NOT REQUIRED UNTIL TESTNET-LIVE** | No fill-evidence chain exists yet (§23.5/§24Q); unreachable in PAPER (MexcSimulator fills synthetically, not via partial-fill exchange responses) |
+| Full-fill truth | **NOT REQUIRED UNTIL TESTNET-LIVE** | Same — real-exchange fill polling is REM-C R2+ scope |
+| Position-from-fill truth | **NOT REQUIRED UNTIL TESTNET-LIVE** | Real fill→position reconstruction not implemented; PAPER path uses `MexcSimulator`, not fills |
+| Realized-PnL truth | **PAPER SAFE FOR T-1** | §23 evidence-honesty (`None` never fabricated as `0.0`/LOSS), re-verified this round (scenario I) |
+| Exchange reconciliation | **BLOCKS T-1 for REAL/TESTNET; PAPER SAFE FOR T-1 (fail-closed)** | Domain/identity-gated, fails closed rather than fabricating (§23.2/§24K); no adapter is `SUBMIT_AND_RECONCILE_VERIFIED` (§22.2) |
+| Close-order path | **PAPER SAFE FOR T-1** | `_send_close_order` PAPER-branch unconditional on `paper_mode=True`, re-verified (scenario F, §24F) |
+| Restart reconstruction | **PAPER SAFE FOR T-1 (restart-idempotence only, not full crash recovery)** | §22.5/§23.3, re-verified (scenario I) |
+| Execution-domain provenance | **PAPER SAFE FOR T-1** | §23.1/§23.6, re-verified (scenario E) |
+| Paper-vs-real account separation | **PAPER SAFE FOR T-1** | `self._paper`/`domain` win over a foreign handle (§24F, scenario F) |
+| Real-account observation | **PAPER SAFE FOR T-1** | Read-only, no sizing/mutation authority (§24L, scenario L) |
+| Scientific capital | **PAPER SAFE FOR T-1** | `get_scientific_capital()` decoupled from exchange observation (§15/§24L) |
+| BootGate | **PAPER SAFE FOR T-1** | Fails closed on non-comparable/not-clean/unreadable (§23.6/§23.7/§24K) |
+| Reconciler | **PAPER SAFE FOR T-1 (fail-closed); BLOCKS T-1 for any REAL/TESTNET certification claim** | Domain+identity-gated, never fabricates (§23.2/§24K) |
+| Futures-demo/testnet isolation | **PAPER SAFE FOR T-1, with C1 named** | §24G; C1 (§24C/§24Q) is unreachable today but should be closed before any construction change touches `create_futures_order()` |
+
+No area above is classified **BLOCKS T-1** for PAPER=TRUE/LIVE=FALSE
+operation itself — the BLOCKS-T-1-shaped items (exchange reconciliation,
+reconciler) are so classified only for a REAL/TESTNET certification claim,
+which this mission does not make and T-1 (PAPER rehearsal) does not
+require.
+
+### S. Blocking defects (this round)
+
+None found that block a PAPER=TRUE/LIVE=FALSE T-1 rehearsal. C1 (§24C) is
+a genuine, newly-named residual finding but is proven unreachable under
+every construction path this repository exercises today — carried forward
+as a named, deferred item (§24Q), not a blocker, consistent with the
+mission's own decision-matrix rule (unreachability must be proven, not
+assumed — done in §24E).
+
+### T. Explicitly deferred / not started
+
+REM-C R2/R3/R4 (fill-evidence chain, real position reconstruction,
+adapter reconciliation certification, resubmission policy) — **not
+started**. T-1 (controlled PAPER rehearsal) — **not started** by this
+mission; this certification is a prerequisite input to that decision, not
+the rehearsal itself. F-00 — **not started**. No VPS access occurred. No
+exchange mutation (real, testnet, or otherwise) occurred. No deployment
+occurred. `PAPER_TRADING_ENABLED=true`/`LIVE_TRADING_CONFIRMED=false`
+unchanged throughout. STABILIZATION_WINDOW governance
+(`CLAUDE.md`) and ADR-0007 observer-passivity are unaffected — this
+mission added measurement/certification artifacts only, recommended no
+threshold change, no new indicator, no new decision layer, consistent with
+the Scientific Debt Rule.
+
+### U. Commit / PR record
+
+- Resulting commit SHA: recorded in the commit that introduces this §24
+  section (see `git log -1` on
+  `claude/pre-t1-e-final-paper-certification`).
+- PR: opened as **draft** against `main`, title referencing "FINAL PRE-T1-E
+  PAPER CERTIFICATION" — see the PR URL/number returned by this mission's
+  `create_pull_request` call, not re-typed here to avoid a stale
+  self-reference if the PR number changes.
+
+**FINAL VERDICT: `PRE_T1_E_PAPER_CERTIFICATION_COMPLETE — PAPER=TRUE/
+LIVE=FALSE operation is certified safe for a controlled T-1 PAPER
+rehearsal`,** contingent on MASTER review of this round exactly as every
+prior REM-A/REM-B/REM-C round in this document was. This certifies PAPER
+operation only — it does not certify REAL or TESTNET execution (both
+remain fail-closed/non-comparable by design, per §24G/§24K/§24R), does not
+start T-1 itself, and does not modify any threshold, strategy, or
+production decision path. One narrow, unreachable-today residual finding
+(C1) is named for future closure rather than silently carried.
