@@ -196,31 +196,21 @@ def test_scenario_c_paper_futures_zero_mutation_leverage_1_only_NOT_GENERAL(
     assert result.get("mode") != "live"
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "PRE-T1-E blocker C1: set_leverage mutation precedes PAPER/LIVE "
-        "authority gate"
-    ),
-)
-def test_scenario_c1_leverage_change_mutates_before_paper_gate_XFAIL(engine_factory):
-    """C1 (BLOCKS T-1): `create_futures_order()` calls
-    `self._exchange_futures.set_leverage(leverage, ccxt_symbol)`
-    (`execution_engine.py`, inside `if leverage != 1:`) BEFORE
-    `authorize_order()` and with no inline
-    PAPER_TRADING_ENABLED/LIVE_TRADING_CONFIRMED/`self._live` check of its
-    own. Its only safety is that `self._exchange_futures` happens to be
-    `None` on every construction path this repository exercises today —
-    that is caller-inherited safety, not an authority gate on the function
-    itself. A foreign/stale/tripwire futures handle force-attached in
-    memory (exactly what this test does) with `leverage=3` reaches
-    `set_leverage` regardless of PAPER=true/LIVE=false, which violates the
-    adversarial invariant that a REAL/TESTNET/FUTURES handle present in
-    memory must never allow mutation under PAPER=true/LIVE=false.
+def test_scenario_c1_leverage_change_gated_before_mutation_REMEDIATED(engine_factory):
+    """C1 REMEDIATED (O-02W-PRE-T1-E C1 remediation,
+    `ExecutionEngine._futures_mutation_authorized()`):
+    `create_futures_order()` now evaluates the external-mutation authority
+    gate (PAPER_TRADING_ENABLED / self._live / LIVE_TRADING_CONFIRMED)
+    BEFORE `self._exchange_futures.set_leverage(...)`,
+    `fetch_ticker`/`load_markets`, `authorize_order()`, and
+    `create_order(...)`. A foreign/stale/tripwire futures handle
+    force-attached in memory (exactly what this test does) with
+    `leverage=3` no longer reaches `set_leverage`: PAPER=true/LIVE=false
+    fails the gate closed regardless of handle identity — handle presence
+    != execution authority.
 
-    This test is expected to XFAIL (strict) until C1 is fixed: it asserts
-    zero tripwire mutation calls, but `fut.mutation_calls` will actually
-    contain `"set_leverage"` on the current HEAD."""
+    Was strict-XFAIL (`test_scenario_c1_leverage_change_mutates_before_paper_gate_XFAIL`)
+    proving the defect; now an ordinary PASS proving the fix."""
     eng, _, fut = engine_factory(with_futures_handle=True)
 
     result = eng.create_futures_order(
@@ -229,6 +219,184 @@ def test_scenario_c1_leverage_change_mutates_before_paper_gate_XFAIL(engine_fact
 
     assert fut.mutation_calls == []
     assert result.get("mode") != "live"
+    assert result.get("denial_reason") == "FUTURES_MUTATION_NOT_AUTHORIZED"
+
+
+# ── C1 authority matrix (O-02W-PRE-T1-E C1 remediation) ─────────────────────
+
+
+def test_c1_a_paper_gate_zero_mutation(engine_factory, monkeypatch):
+    """C1-A: PAPER=true, self._live=false, LIVE_TRADING_CONFIRMED=false,
+    futures handle exists, leverage=3 → zero mutation."""
+    monkeypatch.setenv("PAPER_TRADING_ENABLED", "true")
+    monkeypatch.setenv("LIVE_TRADING_CONFIRMED", "false")
+    eng, _, fut = engine_factory(with_futures_handle=True)
+    eng._live = False
+
+    result = eng.create_futures_order(
+        "BTC/USDT", "BUY", 100.0, leverage=3, decision_id="c1-a"
+    )
+
+    assert fut.mutation_calls == []
+    assert result["mode"] == "rejected"
+    assert result["denial_reason"] == "FUTURES_MUTATION_NOT_AUTHORIZED"
+
+
+def test_c1_b_stale_handle_with_paper_zero_mutation(engine_factory, monkeypatch):
+    """C1-B: PAPER=true, self._live=false, foreign/stale futures handle
+    exists → zero mutation regardless of handle identity."""
+    monkeypatch.setenv("PAPER_TRADING_ENABLED", "true")
+    monkeypatch.setenv("LIVE_TRADING_CONFIRMED", "false")
+    eng, _, fut = engine_factory(with_futures_handle=True)
+    eng._live = False
+    # Foreign/stale handle: a different tripwire instance than construction.
+    eng._exchange_futures = TripwireFuturesExchange()
+
+    result = eng.create_futures_order(
+        "BTC/USDT", "BUY", 100.0, leverage=3, decision_id="c1-b"
+    )
+
+    assert eng._exchange_futures.mutation_calls == []
+    assert result["mode"] == "rejected"
+    assert result["denial_reason"] == "FUTURES_MUTATION_NOT_AUTHORIZED"
+
+
+def test_c1_c_live_object_not_armed_by_environment(engine_factory, monkeypatch):
+    """C1-C: PAPER=false, self._live=true, LIVE_TRADING_CONFIRMED=false,
+    futures handle exists, leverage=3 → zero mutation. Proves merely
+    constructing/corrupting an object with `live=True` does not bypass the
+    explicit operator confirmation."""
+    monkeypatch.setenv("PAPER_TRADING_ENABLED", "false")
+    monkeypatch.setenv("LIVE_TRADING_CONFIRMED", "false")
+    eng, _, fut = engine_factory(with_futures_handle=True)
+    eng._live = True
+
+    result = eng.create_futures_order(
+        "BTC/USDT", "BUY", 100.0, leverage=3, decision_id="c1-c"
+    )
+
+    assert fut.mutation_calls == []
+    assert result["mode"] == "rejected"
+    assert result["denial_reason"] == "FUTURES_MUTATION_NOT_AUTHORIZED"
+
+
+def test_c1_d_live_false_remains_fail_closed(engine_factory, monkeypatch):
+    """C1-D: PAPER=false, self._live=false, LIVE_TRADING_CONFIRMED=true,
+    futures handle exists → zero mutation."""
+    monkeypatch.setenv("PAPER_TRADING_ENABLED", "false")
+    monkeypatch.setenv("LIVE_TRADING_CONFIRMED", "true")
+    eng, _, fut = engine_factory(with_futures_handle=True)
+    eng._live = False
+
+    result = eng.create_futures_order(
+        "BTC/USDT", "BUY", 100.0, leverage=3, decision_id="c1-d"
+    )
+
+    assert fut.mutation_calls == []
+    assert result["mode"] == "rejected"
+    assert result["denial_reason"] == "FUTURES_MUTATION_NOT_AUTHORIZED"
+
+
+def test_c1_e_authorized_path_remains_reachable(engine_factory, monkeypatch):
+    """C1-E: PAPER=false, self._live=true, LIVE_TRADING_CONFIRMED=true,
+    fake (non-tripwire) exchange only → the new C1 gate does not
+    permanently disable the legitimate future TESTNET/LIVE code path. This
+    proves ONLY that authorized authority state can proceed past the C1
+    gate — not that live trading is safe. No network call is made (the
+    fake exchange is fully in-memory)."""
+    monkeypatch.setenv("PAPER_TRADING_ENABLED", "false")
+    monkeypatch.setenv("LIVE_TRADING_CONFIRMED", "true")
+    monkeypatch.setenv("EXCHANGE_ID", "mexc")
+    from quant_hedge_ai.agents.execution import order_intent_protocol as oip
+
+    monkeypatch.setitem(
+        oip._ADAPTER_CAPABILITIES_BY_EXCHANGE,
+        "mexc",
+        oip.AdapterCapabilities(
+            verdict=oip.AdapterCapabilityVerdict.SUBMIT_AND_RECONCILE_VERIFIED,
+            client_order_id_param="clientOrderId",
+            supports_open_order_search=True,
+            supports_closed_order_search=True,
+            evidence="test fixture — certified for hermetic testing only",
+        ),
+    )
+    eng, _, _ = engine_factory(with_futures_handle=False)
+    eng._live = True
+
+    class _FakeAuthorizedFuturesExchange:
+        id = "krakenfutures"
+
+        def __init__(self):
+            self.leverage_calls = []
+            self.order_calls = []
+
+        def set_leverage(self, leverage, symbol):
+            self.leverage_calls.append((leverage, symbol))
+
+        def fetch_ticker(self, symbol):
+            return {"last": 100.0}
+
+        def load_markets(self):
+            return {}
+
+        def create_order(self, symbol, order_type, side, qty, params=None):
+            self.order_calls.append((symbol, order_type, side, qty))
+            return {"id": "fake-order-1", "status": "closed", "avgPrice": 100.0}
+
+    fake = _FakeAuthorizedFuturesExchange()
+    eng._exchange_futures = fake
+
+    result = eng.create_futures_order(
+        "BTC/USDT", "BUY", 100.0, leverage=3, decision_id="c1-e"
+    )
+
+    assert result["mode"] != "rejected"
+    assert fake.leverage_calls == [(3, "BTC/USDT:USDT")]
+    assert fake.order_calls != []
+
+
+def test_c1_mutation_ordering_zero_calls_when_unauthorized(engine_factory, monkeypatch):
+    """Mutation ordering proof: under an unauthorized authority state, NO
+    call of any kind (mutating or read-only) reaches the futures handle —
+    the gate short-circuits before `set_leverage`, `fetch_ticker`,
+    `load_markets`, AND `create_order`."""
+    monkeypatch.setenv("PAPER_TRADING_ENABLED", "true")
+    monkeypatch.setenv("LIVE_TRADING_CONFIRMED", "false")
+    eng, _, _ = engine_factory(with_futures_handle=False)
+    eng._live = False
+
+    class _AllCallsTripwire:
+        id = "krakenfutures"
+
+        def __init__(self):
+            self.calls: list[str] = []
+
+        def set_leverage(self, *a, **kw):
+            self.calls.append("set_leverage")
+            raise MutationTripwire("set_leverage called")
+
+        def fetch_ticker(self, *a, **kw):
+            self.calls.append("fetch_ticker")
+            return {"last": 100.0}
+
+        def load_markets(self, *a, **kw):
+            self.calls.append("load_markets")
+            return {}
+
+        def create_order(self, *a, **kw):
+            self.calls.append("create_order")
+            raise MutationTripwire("create_order called")
+
+    tripwire = _AllCallsTripwire()
+    eng._exchange_futures = tripwire
+
+    result = eng.create_futures_order(
+        "BTC/USDT", "BUY", 100.0, leverage=3, decision_id="c1-ordering"
+    )
+
+    assert tripwire.calls == []
+    assert result["mode"] == "rejected"
+    assert result["denial_reason"] == "FUTURES_MUTATION_NOT_AUTHORIZED"
 
 
 def test_scenario_c_construction_never_attaches_futures_handle_in_paper(

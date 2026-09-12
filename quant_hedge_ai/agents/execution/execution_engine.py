@@ -229,13 +229,40 @@ class ExecutionEngine:
         from infra.exchange_factory import ExchangeFactory
 
         info = ExchangeFactory.info()
-        live_trading_confirmed = os.getenv(
-            "LIVE_TRADING_CONFIRMED", "false"
-        ).lower() in {"1", "true", "yes", "on"}
+        live_trading_confirmed = cls._live_trading_confirmed()
         live = (
             info["has_api_key"] and info["mode"] != "paper" and live_trading_confirmed
         )
         return cls(live=live)
+
+    @staticmethod
+    def _live_trading_confirmed() -> bool:
+        """Lu à l'appel, jamais mis en cache — même vocabulaire truthy que
+        `_paper_trading_enabled()` (DS-001, ADR-0008)."""
+        return os.getenv("LIVE_TRADING_CONFIRMED", "false").lower() in {
+            "1",
+            "true",
+            "yes",
+            "on",
+        }
+
+    def _futures_mutation_authorized(self) -> bool:
+        """O-02W-PRE-T1-E C1 remediation — external-mutation authority gate
+        for `create_futures_order()`.
+
+        A futures exchange handle merely being present in memory
+        (`self._exchange_futures is not None`) is NOT execution authority —
+        it can be stale, foreign, testnet, REAL, or a tripwire attached by a
+        bug. Authority requires ALL of: PAPER_TRADING_ENABLED is False,
+        `self._live` is True, AND LIVE_TRADING_CONFIRMED is truthy. Any one
+        of the inverse conditions must fail this closed, before any
+        exchange interaction beyond the pre-existing
+        `_exchange_futures is None` short-circuit."""
+        return (
+            not self._paper_trading_enabled()
+            and self._live
+            and self._live_trading_confirmed()
+        )
 
     def has_futures_demo(self) -> bool:
         """True si le client Futures Demo est connecté."""
@@ -447,6 +474,34 @@ class ExecutionEngine:
                 "symbol": symbol,
                 "mode": "futures_unavailable",
                 "error": "Futures demo non configuré — paper trading via MexcSimulator (vérifier MEXC_API_KEY dans .env)",
+            }
+
+        # ── C1 external-mutation authority gate (O-02W-PRE-T1-E C1 remediation)
+        # A futures handle being attached is NOT execution authority — it can
+        # be stale, foreign, testnet, REAL, or a tripwire. This check MUST run
+        # before any exchange interaction (set_leverage, fetch_ticker,
+        # load_markets, create_order): PAPER_TRADING_ENABLED=true, OR
+        # self._live=False, OR LIVE_TRADING_CONFIRMED not truthy ⇒ zero
+        # external mutation, unconditionally, regardless of handle identity.
+        if not self._futures_mutation_authorized():
+            reason = (
+                "external futures execution blocked by authority gate "
+                "(PAPER_TRADING_ENABLED/self._live/LIVE_TRADING_CONFIRMED) — "
+                "no exchange call attempted"
+            )
+            _log.warning(
+                "[ExecutionEngine] Ordre futures refusé (C1 authority gate) %s %s: %s",
+                action,
+                symbol,
+                reason,
+            )
+            return {
+                "symbol": symbol,
+                "action": action,
+                "size": size_usd,
+                "mode": "rejected",
+                "error": reason,
+                "denial_reason": "FUTURES_MUTATION_NOT_AUTHORIZED",
             }
 
         side = "buy" if action.upper() == "BUY" else "sell"

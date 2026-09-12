@@ -68,9 +68,18 @@ def eng(tmp_path, monkeypatch):
     monkeypatch.setenv("EXEC_DEDUP_WINDOW", "30")
     monkeypatch.setenv("EXEC_FUTURES_MIN_ORDER_USD", "55")
     monkeypatch.setenv("EXEC_FUTURES_MAX_ORDER_USD", "200")
+    # O-02W-PRE-T1-E C1 remediation: this suite exercises symbol
+    # conversion/leverage/error-handling behavior of create_futures_order(),
+    # not the C1 authority gate itself (covered exhaustively in
+    # tests/test_pre_t1_e_final_paper_certification.py's C1-A..E matrix) —
+    # arm the external-mutation authority explicitly so these tests keep
+    # reaching the code they target instead of short-circuiting at the gate.
+    monkeypatch.setenv("PAPER_TRADING_ENABLED", "false")
+    monkeypatch.setenv("LIVE_TRADING_CONFIRMED", "true")
     from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
 
     e = ExecutionEngine(live=False, _sleep=lambda _: None)
+    e._live = True
     e.start_session(equity=10_000.0)
     return e
 
