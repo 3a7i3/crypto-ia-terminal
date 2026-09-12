@@ -118,32 +118,56 @@ class TelegramSender:
         self._chat_id = chat_id
 
     def send(self, text: str) -> bool:
-        """Retourne True si Telegram a répondu HTTP 2xx, False sinon.
+        """Retourne True seulement si Telegram a réellement livré le message.
 
-        Ne lève jamais — un échec réseau/HTTP est observable via le
-        retour False + un log, jamais via une exception qui remonterait
-        au moteur de trading.
+        Contrat d'ACK strict (TG-PAPER-01-R1 §5) : la requête HTTP doit
+        réussir, le statut doit être 2xx, le corps de réponse doit être un
+        JSON valide de la Bot API, et ce JSON doit contenir `"ok": true`.
+        Un statut 2xx avec `{"ok": false}` (ou un corps non-JSON/invalide)
+        n'est PAS un succès — Telegram peut renvoyer 200 sur une requête
+        malgré tout rejetée. Ne lève jamais — un échec réseau/HTTP/de
+        contenu est observable via le retour False + un log, jamais via une
+        exception qui remonterait au moteur de trading. Le token n'est
+        jamais loggé.
         """
         payload = {
             "chat_id": self._chat_id,
             "text": text,
-            "parse_mode": "Markdown",
         }
         data = urllib.parse.urlencode(payload).encode()
         try:
             with urllib.request.urlopen(
                 urllib.request.Request(self._url, data=data), timeout=_HTTP_TIMEOUT_S
             ) as resp:
-                ok = 200 <= resp.status < 300
-                if not ok:
-                    logger.warning("Telegram sendMessage HTTP status=%s", resp.status)
-                return ok
+                status = resp.status
+                body = resp.read()
         except urllib.error.HTTPError as e:
             logger.warning("Telegram sendMessage failed: HTTP %s %s", e.code, e.reason)
             return False
         except Exception as e:
             logger.warning("Telegram sendMessage failed: %s", e)
             return False
+
+        if not (200 <= status < 300):
+            logger.warning("Telegram sendMessage HTTP status=%s", status)
+            return False
+
+        try:
+            parsed = json.loads(body.decode("utf-8"))
+        except Exception:
+            logger.warning(
+                "Telegram sendMessage: réponse non-JSON malgré HTTP %s", status
+            )
+            return False
+
+        if not isinstance(parsed, dict) or parsed.get("ok") is not True:
+            logger.warning(
+                "Telegram sendMessage: ok != true (description=%r)",
+                parsed.get("description") if isinstance(parsed, dict) else None,
+            )
+            return False
+
+        return True
 
 
 # ── Checkpoint de livraison (non financier) ──────────────────────────────────
@@ -339,10 +363,13 @@ class PaperTradeLedgerFollower:
     Ne verrouille, ne tronque, ni ne renomme jamais le fichier source. Une
     ligne finale incomplète (écriture concurrente en cours) est ignorée
     jusqu'à ce qu'elle soit complète — l'offset n'avance pas dessus. Une
-    ligne complète mais JSON invalide est loguée et sautée définitivement
-    (l'offset avance après elle) : politique déterministe documentée en
-    mission §10, un enregistrement malformé ne doit jamais bloquer le
-    notificateur indéfiniment.
+    ligne complète mais JSON invalide est déterministement sautée (jamais un
+    blocage indéfini du notificateur), mais STRICTEMENT dans l'ordre
+    source : `poll_new_records()` ne mute jamais l'offset committé
+    elle-même (pur read-ahead) — c'est `run_once()` qui avance le
+    checkpoint événement par événement, dans l'ordre, si bien qu'une ligne
+    malformée ne peut jamais être sautée avant l'événement valide qui la
+    précède si ce dernier est encore en attente de livraison Telegram.
     """
 
     def __init__(self, config: NotifierConfig, checkpoint_store: CheckpointStore) -> None:
@@ -360,6 +387,24 @@ class PaperTradeLedgerFollower:
         """
         checkpoint = self._checkpoint_store.load()
         source_str = str(self._config.source_path)
+
+        if checkpoint is not None and checkpoint.source_path == source_str:
+            current_size = self._current_eof()
+            if checkpoint.byte_offset < 0 or checkpoint.byte_offset > current_size:
+                # Checkpoint incohérent avec la source actuelle (offset
+                # négatif, ou au-delà de la taille réelle — p.ex. une
+                # source tronquée/remplacée). Fail safe (§7) : jamais un
+                # seek au-delà d'EOF suivi d'un blocage silencieux, jamais
+                # un replay complet — on re-bootstrap sûrement à l'EOF
+                # courant, comme un premier démarrage.
+                logger.error(
+                    "Checkpoint incohérent (offset=%d, taille source=%d) — "
+                    "re-bootstrap sûr à l'EOF (%s)",
+                    checkpoint.byte_offset,
+                    current_size,
+                    source_str,
+                )
+                checkpoint = None
 
         if checkpoint is not None and checkpoint.source_path == source_str:
             self._offset = checkpoint.byte_offset
@@ -386,19 +431,27 @@ class PaperTradeLedgerFollower:
             return 0
         return self._config.source_path.stat().st_size
 
-    def poll_new_records(self) -> list[tuple[dict, int]]:
-        """Retourne les nouveaux (record, offset_après_cette_ligne) complets.
+    def poll_new_records(self) -> list[tuple[str, Optional[dict], int]]:
+        """Retourne les nouvelles lignes complètes, dans l'ordre source.
 
-        N'avance PAS l'offset interne — c'est à l'appelant de le faire via
-        advance() une fois chaque événement effectivement livré, pour que
-        l'échec d'envoi n'avance jamais le checkpoint au-delà de l'événement
-        raté.
+        Chaque élément est `(kind, record_or_none, offset_après_cette_ligne)`
+        où `kind` vaut `"event"` (JSON valide, `record` peuplé) ou
+        `"malformed"` (ligne complète mais JSON invalide, `record` vaut
+        None). N'avance JAMAIS `self._offset` — cette méthode est un pur
+        read-ahead. C'est exclusivement à l'appelant (`run_once`) de
+        committer via `advance()`, un élément à la fois, dans l'ordre
+        renvoyé ici. C'est ce qui garantit qu'un échec d'envoi Telegram sur
+        un événement ne peut jamais être contourné par un effet de bord du
+        parsing d'une ligne ultérieure (TG-PAPER-01-R1 §1/§2) : tant que
+        l'appelant n'a pas committé l'événement en échec, cette méthode
+        recommencera à le relire depuis le même `self._offset` au prochain
+        appel.
         """
         assert self._bootstrapped, "bootstrap() doit être appelé avant poll"
         if not self._config.source_path.exists():
             return []
 
-        results: list[tuple[dict, int]] = []
+        results: list[tuple[str, Optional[dict], int]] = []
         with self._config.source_path.open("rb") as f:
             f.seek(self._offset)
             pos = self._offset
@@ -418,16 +471,15 @@ class PaperTradeLedgerFollower:
                     record = json.loads(text)
                 except Exception as e:
                     logger.error(
-                        "Ligne JSONL complète mais invalide, sautée définitivement "
-                        "(offset avancé): %s | line=%r",
+                        "Ligne JSONL complète mais invalide, sautée "
+                        "(en ordre source, une fois son prédécesseur "
+                        "committé): %s | line=%r",
                         e,
                         text[:200],
                     )
-                    # Politique déterministe : on saute définitivement une
-                    # ligne malformée plutôt que de bloquer le notificateur.
-                    self._offset = pos
+                    results.append(("malformed", None, pos))
                     continue
-                results.append((record, pos))
+                results.append(("event", record, pos))
         return results
 
     def advance(self, offset: int, fingerprint_value: Optional[str] = None) -> None:
@@ -451,11 +503,18 @@ def run_once(
     """Traite les nouveaux événements disponibles. Retourne le nombre envoyé.
 
     AT-LEAST-ONCE : le checkpoint n'avance qu'après un send() réussi pour
-    chaque événement, un par un — un send raté arrête l'avancement à cet
-    événement, il sera retenté au prochain appel.
+    chaque événement, un par un, STRICTEMENT dans l'ordre source renvoyé par
+    poll_new_records() — un send raté arrête immédiatement le traitement
+    (`break`), avant de committer quoi que ce soit après lui, y compris une
+    ligne malformée qui le suivrait dans le fichier. Cela garantit qu'aucun
+    événement en attente de livraison ne peut être sauté par effet de bord
+    du traitement d'une ligne ultérieure (TG-PAPER-01-R1 §1/§2).
     """
     sent = 0
-    for record, offset_after in follower.poll_new_records():
+    for kind, record, offset_after in follower.poll_new_records():
+        if kind == "malformed":
+            follower.advance(offset_after)
+            continue
         if not is_main_machine_event(record):
             follower.advance(offset_after)
             continue

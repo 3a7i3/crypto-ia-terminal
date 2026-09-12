@@ -11,6 +11,8 @@ tolérance aux lignes partielles/malformées, et l'invariant de passivité
 from __future__ import annotations
 
 import json
+import urllib.error
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -426,3 +428,207 @@ def test_systemd_execstart_points_to_notifier():
     content = open(unit_path, encoding="utf-8").read()
     assert "src.paper.paper_trade_notifier" in content
     assert "src.paper.paper_runner" not in content
+
+
+# ── TG-PAPER-01-R1 §3: mandatory ordering regression ─────────────────────────
+
+
+def test_failed_send_never_skips_event_past_a_later_malformed_line(cfg):
+    """VALID OPEN A, MALFORMED, VALID OPEN B — A's failed send must never
+    be leapfrogged by the malformed-line skip that follows it in source
+    order (the R1-A defect: poll_new_records() used to advance the
+    follower's committed offset internally while merely reading ahead)."""
+    cfg.source_path.parent.mkdir(parents=True, exist_ok=True)
+    cfg.source_path.write_text("", encoding="utf-8")
+    follower = _make_follower(cfg)
+    offset_before_a = follower._offset
+
+    with cfg.source_path.open("a", encoding="utf-8") as f:
+        f.write(json.dumps(_open_record("A")) + "\n")
+        f.write("{not valid json\n")
+        f.write(json.dumps(_open_record("B")) + "\n")
+
+    # First run: Telegram fails on A.
+    sender = FakeSender(succeed=False)
+    sent = notifier.run_once(follower, sender.send)
+
+    assert sent == 0
+    assert len(sender.sent) == 1 and "A" in sender.sent[0]  # attempted, not delivered
+    # Committed checkpoint (and in-memory follower position) must remain
+    # strictly BEFORE A — neither the malformed line nor B may have been
+    # skipped over A.
+    assert follower._offset == offset_before_a
+    saved = notifier.CheckpointStore(cfg.checkpoint_path).load()
+    assert saved.byte_offset == offset_before_a
+
+    # Second run: Telegram now succeeds.
+    sender2 = FakeSender(succeed=True)
+    sent2 = notifier.run_once(follower, sender2.send)
+
+    assert sent2 == 2  # A delivered, then B delivered (malformed skipped in between)
+    assert "A" in sender2.sent[0]
+    assert "B" in sender2.sent[1]
+    assert follower._offset == cfg.source_path.stat().st_size
+    saved2 = notifier.CheckpointStore(cfg.checkpoint_path).load()
+    assert saved2.byte_offset == cfg.source_path.stat().st_size
+
+
+def test_poll_new_records_never_mutates_offset_itself(cfg):
+    """poll_new_records() is pure read-ahead: it must never advance the
+    follower's committed offset on its own, even across a malformed line —
+    only run_once()/advance() may do that, and only in source order."""
+    cfg.source_path.parent.mkdir(parents=True, exist_ok=True)
+    cfg.source_path.write_text("", encoding="utf-8")
+    follower = _make_follower(cfg)
+    offset_before = follower._offset
+
+    with cfg.source_path.open("a", encoding="utf-8") as f:
+        f.write(json.dumps(_open_record("A")) + "\n")
+        f.write("{not valid json\n")
+
+    results = follower.poll_new_records()
+
+    assert follower._offset == offset_before
+    assert [kind for kind, _, _ in results] == ["event", "malformed"]
+
+
+# ── TG-PAPER-01-R1 §4: no Markdown parse_mode ────────────────────────────────
+
+
+def test_send_payload_never_sets_parse_mode():
+    sender = notifier.TelegramSender("tok", "chat")
+    captured = {}
+
+    def fake_urlopen(request, timeout=None):
+        captured["data"] = request.data
+        resp = MagicMock()
+        resp.status = 200
+        resp.read.return_value = b'{"ok": true}'
+        resp.__enter__.return_value = resp
+        resp.__exit__.return_value = False
+        return resp
+
+    with patch.object(notifier.urllib.request, "urlopen", side_effect=fake_urlopen):
+        ok = sender.send("hello")
+
+    assert ok is True
+    body = captured["data"].decode()
+    assert "parse_mode" not in body
+
+
+# ── TG-PAPER-01-R1 §5: strict Telegram ACK contract ──────────────────────────
+
+
+def _mock_response(status, body_bytes):
+    resp = MagicMock()
+    resp.status = status
+    resp.read.return_value = body_bytes
+    resp.__enter__.return_value = resp
+    resp.__exit__.return_value = False
+    return resp
+
+
+def test_ack_http_2xx_with_ok_true_is_success():
+    sender = notifier.TelegramSender("tok", "chat")
+    with patch.object(
+        notifier.urllib.request,
+        "urlopen",
+        return_value=_mock_response(200, b'{"ok": true, "result": {}}'),
+    ):
+        assert sender.send("hi") is True
+
+
+def test_ack_http_2xx_with_ok_false_is_failure():
+    sender = notifier.TelegramSender("tok", "chat")
+    with patch.object(
+        notifier.urllib.request,
+        "urlopen",
+        return_value=_mock_response(200, b'{"ok": false, "description": "bad"}'),
+    ):
+        assert sender.send("hi") is False
+
+
+def test_ack_http_2xx_with_malformed_body_is_failure():
+    sender = notifier.TelegramSender("tok", "chat")
+    with patch.object(
+        notifier.urllib.request,
+        "urlopen",
+        return_value=_mock_response(200, b"not json at all"),
+    ):
+        assert sender.send("hi") is False
+
+
+def test_ack_http_2xx_with_json_missing_ok_is_failure():
+    sender = notifier.TelegramSender("tok", "chat")
+    with patch.object(
+        notifier.urllib.request,
+        "urlopen",
+        return_value=_mock_response(200, b'{"result": {}}'),
+    ):
+        assert sender.send("hi") is False
+
+
+def test_ack_http_error_is_failure():
+    sender = notifier.TelegramSender("tok", "chat")
+    with patch.object(
+        notifier.urllib.request,
+        "urlopen",
+        side_effect=urllib.error.HTTPError("url", 500, "Internal Error", {}, None),
+    ):
+        assert sender.send("hi") is False
+
+
+def test_ack_network_failure_is_failure():
+    sender = notifier.TelegramSender("tok", "chat")
+    with patch.object(
+        notifier.urllib.request, "urlopen", side_effect=OSError("network down")
+    ):
+        assert sender.send("hi") is False
+
+
+def test_ack_failure_never_logs_bot_token(caplog):
+    sender = notifier.TelegramSender("super-secret-token", "chat")
+    with patch.object(
+        notifier.urllib.request,
+        "urlopen",
+        side_effect=urllib.error.HTTPError("url", 401, "Unauthorized", {}, None),
+    ):
+        with caplog.at_level("WARNING"):
+            sender.send("hi")
+    assert "super-secret-token" not in caplog.text
+
+
+# ── TG-PAPER-01-R1 §7: checkpoint offset validity ────────────────────────────
+
+
+def test_negative_checkpoint_offset_rebootstraps_safely(cfg):
+    cfg.source_path.parent.mkdir(parents=True, exist_ok=True)
+    _write_lines(cfg.source_path, [_open_record("HIST1")])
+    notifier.CheckpointStore(cfg.checkpoint_path).save(
+        notifier.Checkpoint(source_path=str(cfg.source_path), byte_offset=-5)
+    )
+
+    follower = _make_follower(cfg)
+
+    assert follower._offset == cfg.source_path.stat().st_size
+    sender = FakeSender()
+    sent = notifier.run_once(follower, sender.send)
+    assert sent == 0  # no historical replay
+
+
+def test_checkpoint_offset_beyond_eof_rebootstraps_safely(cfg):
+    cfg.source_path.parent.mkdir(parents=True, exist_ok=True)
+    _write_lines(cfg.source_path, [_open_record("HIST1")])
+    real_size = cfg.source_path.stat().st_size
+    notifier.CheckpointStore(cfg.checkpoint_path).save(
+        notifier.Checkpoint(
+            source_path=str(cfg.source_path), byte_offset=real_size + 999
+        )
+    )
+
+    follower = _make_follower(cfg)
+
+    assert follower._offset == real_size
+    sender = FakeSender()
+    sent = notifier.run_once(follower, sender.send)
+    assert sent == 0  # no historical replay, no infinite seek-past-EOF
