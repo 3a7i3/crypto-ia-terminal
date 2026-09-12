@@ -200,17 +200,34 @@ class TestFuturesLeverage:
         eng.create_futures_order("BTC/USDT", "BUY", 60.0, leverage=1, decision_id="rem-b-r1-test-143")
         mock_ex.set_leverage.assert_not_called()
 
-    def test_leverage_3_calls_set_leverage(self, eng):
+    def test_leverage_gt_1_rejected_fail_closed(self, eng):
+        """O-02W-PRE-T1-E C1 R2: `leverage != 1` is fail-closed BEFORE any
+        exchange interaction — `set_leverage` is an independent external
+        mutation not modelled by REM-B's single-mutation OrderIntent
+        protocol (ADR-0020). Was `test_leverage_3_calls_set_leverage`,
+        which asserted the (now-removed) `set_leverage` mutation path."""
         mock_ex = _with_futures(eng)
-        eng.create_futures_order("BTC/USDT", "BUY", 60.0, leverage=3, decision_id="rem-b-r1-test-148")
-        mock_ex.set_leverage.assert_called_once()
-        assert mock_ex.set_leverage.call_args[0][0] == 3
+        result = eng.create_futures_order("BTC/USDT", "BUY", 60.0, leverage=3, decision_id="rem-b-r1-test-148")
+        assert result["mode"] == "rejected"
+        assert result["denial_reason"] == "UNSUPPORTED_MARKET_SEMANTICS"
+        mock_ex.set_leverage.assert_not_called()
+        mock_ex.fetch_ticker.assert_not_called()
+        mock_ex.create_order.assert_not_called()
 
-    def test_leverage_exception_order_still_placed(self, eng):
+    def test_leverage_gt_1_rejected_regardless_of_exchange_behavior(self, eng):
+        """O-02W-PRE-T1-E C1 R2: the leverage policy fails closed
+        unconditionally for `leverage != 1` — it never reaches
+        `set_leverage` at all, so the exchange's behavior (success,
+        exception, or anything else) is irrelevant. Was
+        `test_leverage_exception_order_still_placed`, which asserted the
+        (now-removed) best-effort `set_leverage` exception swallowing."""
         mock_ex = _with_futures(eng)
         mock_ex.set_leverage.side_effect = Exception("not supported")
         result = eng.create_futures_order("BTC/USDT", "BUY", 60.0, leverage=2, decision_id="rem-b-r1-test-155")
-        assert result["mode"] == "futures_demo"
+        assert result["mode"] == "rejected"
+        assert result["denial_reason"] == "UNSUPPORTED_MARKET_SEMANTICS"
+        mock_ex.set_leverage.assert_not_called()
+        mock_ex.create_order.assert_not_called()
 
 
 # ── Suite 6 : error handling ──────────────────────────────────────────────────

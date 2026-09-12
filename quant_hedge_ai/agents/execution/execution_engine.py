@@ -507,6 +507,40 @@ class ExecutionEngine:
                 "denial_reason": DenialReason.AUTHORITY_DENIED.value,
             }
 
+        # ── Temporary leverage safety policy (O-02W-PRE-T1-E C1 R2) ─────────
+        # `set_leverage` is itself an independent external exchange mutation
+        # whose durable, idempotent, at-most-once semantics are NOT modelled
+        # by REM-B's OrderIntent protocol (ADR-0020), which enforces exactly
+        # ONE physical exchange mutation per coordinator-submitted intent.
+        # Rather than hide a second mutation inside the coordinator's
+        # single-mutation callback (R1's approach, corrected here), an
+        # externally-authorized leverage change is fail-closed BEFORE any
+        # exchange interaction until an explicit, durable leverage-
+        # configuration protocol exists (deferred TESTNET work — see
+        # docs/contracts/O-02W-PRE-T1-E_ORDER_CYCLE_SAFETY.md §25). The
+        # caller retains valid trading authority; only the multi-mutation
+        # leverage semantics are unsupported on this path, hence
+        # UNSUPPORTED_MARKET_SEMANTICS rather than AUTHORITY_DENIED.
+        if leverage != 1:
+            reason = (
+                "external leverage mutation is not certified in this "
+                "execution path — no exchange call attempted"
+            )
+            _log.warning(
+                "[ExecutionEngine] Ordre futures refusé (leverage policy) %s %s: %s",
+                action,
+                symbol,
+                reason,
+            )
+            return {
+                "symbol": symbol,
+                "action": action,
+                "size": size_usd,
+                "mode": "rejected",
+                "error": reason,
+                "denial_reason": DenialReason.UNSUPPORTED_MARKET_SEMANTICS.value,
+            }
+
         side = "buy" if action.upper() == "BUY" else "sell"
         ccxt_symbol = self._to_futures_symbol(symbol)
 
@@ -596,30 +630,19 @@ class ExecutionEngine:
                         "order_intent_outcome": None,
                         "client_order_id": None,
                     }
-                order_mutate = self._mutate_via_coordinator(
+                # O-02W-PRE-T1-E C1 R2 correction: the coordinator's
+                # `mutate=` callback must represent exactly ONE physical
+                # exchange mutation (ADR-0020) — `create_order` only.
+                # `leverage != 1` is rejected above, before this point is
+                # ever reached, so no `set_leverage` call belongs here.
+                mutate = self._mutate_via_coordinator(
                     self._exchange_futures.create_order, ccxt_symbol, side, qty
                 )
-
-                def futures_mutate(intent, client_order_id, _order_mutate=order_mutate):
-                    # O-02W-PRE-T1-E C1 R1 correction: `set_leverage` is
-                    # itself an external exchange mutation — it must not run
-                    # before REM-A/REM-B, only inside the
-                    # OrderIntentCoordinator-controlled mutation callback,
-                    # after durable intent persistence, immediately before
-                    # `create_order`. Best-effort (bare except), unchanged
-                    # from the prior behavior.
-                    if leverage != 1:
-                        try:
-                            self._exchange_futures.set_leverage(leverage, ccxt_symbol)
-                        except Exception:
-                            pass
-                    return _order_mutate(intent, client_order_id)
-
                 sub = self._get_order_intent_coordinator().submit(
                     intent,
                     authorized=True,
                     authorization_ref=auth.detail,
-                    mutate=futures_mutate,
+                    mutate=mutate,
                 )
                 if sub.outcome != SubmissionOutcome.ACKNOWLEDGED:
                     _log.warning(
