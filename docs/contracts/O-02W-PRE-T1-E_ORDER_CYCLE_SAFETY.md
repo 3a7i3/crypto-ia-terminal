@@ -2082,3 +2082,296 @@ leverage journal/protocol was invented (explicitly deferred, per MASTER
 R2 §3, to future TESTNET work). No architecture redesign, no new
 execution domain router, no PaperPortfolioLedger/VirtualExecutionEngine/
 recovery-replay work — same narrow scope as R0/R1.
+
+---
+
+## §28 — FINAL PRE-T1-E PAPER RE-CERTIFICATION, POST-C1 (2026-09-12)
+
+Canonical post-merge MASTER verdict entering this mission:
+`PRE_T1_E_C1_POST_MERGE_MASTER_CERTIFIED_CLOSED_ON_MAIN`. This is a
+**re-certification only** — inspection, hermetic testing, and
+certification documentation. No production source file was modified in
+this round.
+
+### 28a. Preflight
+
+- Expected starting `main` SHA: `b2e720029e7903ccc0a8b367c9860672be69a636`.
+- Verified via `git fetch origin main && git rev-parse origin/main` →
+  exact match. Working tree clean at that SHA.
+- PR #142 merge commit confirmed as `origin/main` HEAD (`git log --oneline
+  origin/main -3` shows `b2e7200 Merge PR #142: PRE-T1-E C1 remediation
+  (R0→R1→R2 MASTER-certified)` immediately atop `bfdc5b0`/`0eb62fc`, the
+  R2/R1 commits documented in §25-§27 above).
+- Branch created from this exact `main`:
+  `claude/pre-t1-e-final-paper-recertification`.
+
+### 28b. C1 re-certification — source re-inspection
+
+Re-read `execution_engine.py`'s `create_futures_order()` end to end on
+this HEAD. Confirmed the R2 state described in §27 still holds: the
+`if leverage != 1:` fail-closed check
+(`denial_reason="UNSUPPORTED_MARKET_SEMANTICS"`) runs immediately after
+the C1 authority gate and strictly before any exchange interaction;
+`set_leverage` was removed from the order-submission path entirely (not
+merely reordered) and does not appear anywhere in
+`create_futures_order()`'s body. `tests/test_pre_t1_e_final_paper_certification.py`
+contains no `xfail` markers (grep confirms zero) — the C1-A..E matrix,
+the leverage>1 fail-closed test, the zero-mutation-when-unauthorized
+test, and the full-pipeline durable-ordering proof
+(`test_c1_authorized_ordering_proof_full_pipeline`, which reads the real
+`OrderIntentJournal` at call time rather than trusting appended labels)
+are all present and all green on this HEAD — unchanged from the R2 state
+MASTER certified. C1 status: **CONFIRMED CLOSED**, no regression.
+
+### 28c. Spot path re-trace
+
+`ExecutionEngine.create_order()` → `_place_live_order()` re-read
+end-to-end. The construction-time `_exchange is None` check is not the
+only gate: `_place_live_order()` re-evaluates
+`PAPER_TRADING_ENABLED`/`LIVE_TRADING_CONFIRMED`/`self._live` via
+`evaluate_trading_authority(...)` immediately before any exchange call,
+independent of whether `self._exchange` holds a live, foreign, or stale
+handle. `test_scenario_a_paper_buy_zero_mutation` and
+`test_scenario_b_paper_sell_zero_mutation` attach a real
+`TripwireSpotExchange` object (not `None`) as `eng._exchange` and prove
+zero `create_order`/`create_market_order`/`create_limit_order` calls for
+both BUY and SELL under PAPER=true/LIVE=false. Result: **PASS**, no
+regression.
+
+### 28d. Futures path re-trace
+
+`create_futures_order()` re-traced per §28b. Four sub-claims verified by
+dedicated hermetic tests, all green on this HEAD:
+`test_c1_a_paper_gate_zero_mutation` (PAPER=true → zero), an equivalent
+LIVE_TRADING_CONFIRMED=false case in `test_c1_d_live_false_remains_fail_closed`,
+`test_c1_c_live_object_not_armed_by_environment` (`self._live=False` in
+memory, env vars alone cannot arm it), and
+`test_c1_leverage_gt_1_authorized_fail_closed`
+(full authority + leverage≠1 → `UNSUPPORTED_MARKET_SEMANTICS`, zero
+exchange interaction, `set_leverage` call count 0). Result: **PASS**, no
+regression.
+
+### 28e. Position-close path re-certification
+
+`PositionManager._send_close_order` re-read (source excerpt: the
+`self._paper or self._exchange is None` short-circuit returns
+`mode="paper"`/`mutation_attempted=False` before any authority check even
+runs; when that short-circuit is bypassed by a live-looking exchange
+object, a second, independent `evaluate_trading_authority(...)` call
+re-checks `PAPER_TRADING_ENABLED`/`LIVE_TRADING_CONFIRMED` immediately
+before the network call and returns `denial_reason="AUTHORITY_DENIED"`,
+`mutation_attempted=False`, on failure). All production callers of
+`_send_close_order` were located (`position_manager.py` lines ~572 and
+~675) — both are internal close-flow callers, no external caller
+bypasses this boundary. `test_scenario_f_paper_manager_with_foreign_real_handle_cannot_submit`
+and `test_scenario_l_real_account_observation_confers_no_authority`
+(existing REM-A-derived hermetic tests in
+`tests/test_pre_t1_e_final_paper_certification.py`) both attach a
+foreign/real-looking handle and prove zero external close mutation.
+Result: **PASS**, no regression.
+
+### 28f. DecisionPacket / G8 re-check
+
+Re-read `core/advisor_loop.py` around the G8 gate (`_dp_r =
+r.get("decision_packet")`): `_dp_r is None` → `_effective_trade_allowed
+= False` with a `[G8-E]` log marker; else `_effective_trade_allowed =
+_dp_r.is_actionable()`. This exactly matches the model documented in
+§24V(b) — fail-closed on a missing packet, packet-authoritative
+otherwise. `core/invariants.py::_check_g8e_guard_present` (A-15) still
+greps `advisor_loop.py` for both the `_effective_trade_allowed = False`
+assignment and the `[G8-E]` log marker and would raise
+`InvariantViolation` if either were removed; both are present on this
+HEAD. Per the mission's explicit instruction (§7), DecisionPacket
+authorization (`is_actionable()`) and REM-B's decision_id causal-identity
+binding (`_bind_decision_to_intent`) remain two independent gates — this
+re-certification does not conflate them, consistent with §24V(b)/(c).
+Result: **PASS (source-proven, consistent with prior G8 certification)**,
+no regression.
+
+### 28g. REM-A re-certification
+
+`python3 -m pytest tests/test_pre_t1_e_rem_a_order_authorization.py -q`
+→ included in the six-file run below (69 test functions, some
+parametrized). No behavioral failure. Result: **PASS**, no regression.
+
+### 28h. REM-B re-certification
+
+`python3 -m pytest tests/test_pre_t1_e_rem_b_idempotent_order_protocol.py -q`
+→ included in the six-file run below (149 test functions, some
+parametrized, expanding to the 161 total MASTER R1/R2 recorded). No
+behavioral failure. Result: **PASS**, no regression.
+
+### 28i. PAPER execution domain re-check
+
+`python3 -m pytest tests/test_rem_c_r1_execution_domain.py -q` → included
+in the six-file run below. Domain-separation invariants (MexcSimulator =
+PAPER execution authority; real exchange APIs = observation-only;
+TESTNET != PAPER; REAL != PAPER) confirmed unchanged. This round did not
+attempt REM-C R2/R3/R4 (not in scope). Result: **PASS**, no regression.
+
+### 28j. Restart / recovery re-check
+
+`python3 -m pytest tests/test_restart_safety.py -q` → included in the
+six-file run below. `test_scenario_i_restart_incomplete_evidence_no_fabrication`
+(in `tests/test_pre_t1_e_final_paper_certification.py`) independently
+confirms `paper_trading/recorder.py` never fabricates a missing price/PnL
+value as `0.0` on incomplete restart evidence — it persists the gap
+honestly instead (source comments at `recorder.py` lines ~183/~219/~257/
+~357 explicitly document this "never fabricated" contract). No defect
+found. Result: **PASS**, no regression.
+
+### 28k. Adversarial matrix (mission §13, A–L)
+
+| # | Scenario | Test(s) | Mutation count |
+|---|---|---|---|
+| A | PAPER=true/LIVE=false/no handle | `test_c1_a_paper_gate_zero_mutation` + spot equivalents | 0 |
+| B | PAPER=true/LIVE=false/stale spot handle | `test_scenario_a_paper_buy_zero_mutation`, `test_scenario_b_paper_sell_zero_mutation` | 0 |
+| C | PAPER=true/LIVE=false/stale futures handle | `test_scenario_c1_leverage_change_gated_before_mutation_REMEDIATED`, `test_c1_b_stale_handle_with_paper_zero_mutation` | 0 |
+| D | PAPER=false/self._live=true/LIVE confirmation=false | `test_c1_d_live_false_remains_fail_closed` | 0 |
+| E | PAPER=false/self._live=false/LIVE confirmation=true | `test_c1_c_live_object_not_armed_by_environment` (env alone cannot arm) | 0 |
+| F | PAPER=true/decision_id present | `test_scenario_g_direct_paper_hold_zero_external_mutation` | 0 |
+| G | PAPER=true/decision_id absent | `test_scenario_h_direct_paper_missing_decision_id_zero_external_mutation` | 0 |
+| H | PAPER=true/BUY | `test_scenario_a_paper_buy_zero_mutation` | 0 |
+| I | PAPER=true/SELL | `test_scenario_b_paper_sell_zero_mutation` | 0 |
+| J | authorized hermetic futures leverage=1 | `test_c1_e_authorized_path_remains_reachable`, `test_c1_authorized_ordering_proof_full_pipeline` | exactly 1 (`create_order`), `set_leverage`=0 |
+| K | authorized hermetic futures leverage>1 | `test_c1_leverage_gt_1_authorized_fail_closed` | 0 (fail-closed, `UNSUPPORTED_MARKET_SEMANTICS`) |
+
+Every PAPER/LIVE-false row: external mutation count = 0, confirmed by
+tripwire exchange objects that raise `MutationTripwire` on the first
+mutating call reached.
+
+### 28l. Exact test commands and results (this round, this HEAD)
+
+1. `python3 -m pytest tests/test_pre_t1_e_final_paper_certification.py -q`
+   → **22 passed, 0 failed** (0 xfail/xpass — the R2 leverage remediation
+   removed the strict-xfail test entirely; see §28b).
+2. `python3 -m pytest tests/test_pre_t1_e_order_cycle_safety.py
+   tests/test_pre_t1_e_rem_a_order_authorization.py
+   tests/test_pre_t1_e_rem_b_idempotent_order_protocol.py
+   tests/test_rem_c_r1_execution_domain.py
+   tests/test_restart_safety.py
+   tests/test_pre_t1_d_real_capital_boundary.py -q`
+   → **505 passed, 0 failed** (505 items collected from these six files).
+3. `python3 -m pytest quant_hedge_ai/agents/execution/test_execution_engine.py
+   quant_hedge_ai/agents/execution/test_execution_engine_futures.py
+   tests/test_position_manager.py -q`
+   → **75 passed, 0 failed** (the sandbox-local `ccxt` import gap noted
+   in R1/R2, §25h item 4, is not present this round — `ccxt` is
+   installed in this session's certification virtualenv, so
+   `TestFromEnv::test_from_env_live_when_keys_present_and_confirmed`
+   passes rather than being a pre-existing environmental failure).
+4. `python3 scripts/ci/ruff_baseline_gate.py check` → **baseline findings
+   957, current findings 957, 0 new findings beyond baseline. Gate
+   PASSES.**
+5. Broadest regression sweep: `python3 -m pytest -q` (whole repository,
+   6712 tests collected) was attempted twice — once with the default
+   591s timeout (killed, exit 143, no summary produced) and once with
+   `pytest-timeout` (`--timeout=25 --timeout-method=thread`) to surface
+   any individual hang. The second run progressed cleanly through
+   PAPER/LIVE certification-relevant modules (all of §28l items 1-3 are
+   subsets of this collection and passed identically when run alone) but
+   stalled, past the 53% mark, inside two pre-existing,
+   non-certification test-infrastructure paths unrelated to the PAPER
+   execution-mutation boundary this mission certifies:
+   `tests/test_long_run.py::test_tracemalloc_growth_bounded_10k` (a slow
+   `tracemalloc` memory-growth profiling test) and a background thread
+   named `MEXC-SIM` inside `paper_trading/mexc_simulator.py` that
+   attempts a real, observation-only `load_markets()` HTTP call via
+   `ccxt` (consistent with REM-C R1's "real exchange APIs = observation
+   only" domain rule, §10/§23.1) which this hermetic sandbox has no
+   network egress to complete, hanging in DNS resolution rather than
+   erroring cleanly. Neither stack trace shows any exchange **mutation**
+   call (`create_order`/`create_futures_order`/`set_leverage`/
+   `cancel_order`/etc.) — the hang is in a read-only `fetch_markets`
+   path. This is recorded as a **DEFERRED NON-BLOCKING** test-hygiene
+   finding (§28n) — not a PAPER-safety defect — because a full
+   whole-repo sweep is infeasible in this network-isolated certification
+   sandbox, not because any certification-relevant test failed. The
+   "closest available" broad regression is therefore items 1-4 above
+   (602 certification-relevant test functions across the six required
+   files plus the ExecutionEngine/PositionManager/PositionManager
+   suites, all passing) plus this documented, explicitly-scoped full-repo
+   collection count (6712 tests collected with zero collection errors).
+
+No `|| true` was used anywhere in this sequence. No result was
+aggregated across commands — each command's count is reported
+separately above, exactly as run.
+
+### 28m. Files changed this round
+
+- `docs/contracts/O-02W-PRE-T1-E_ORDER_CYCLE_SAFETY.md` (this section,
+  §28) — certification documentation only.
+
+No test file required a behavioral change:
+`tests/test_pre_t1_e_final_paper_certification.py` already existed,
+already covered mission scenarios A-L plus the C1 diagnostic matrix, and
+required no edits to pass on this HEAD. No production source file was
+touched. No `.env`, `runtime_config.json`, or deploy script was touched.
+
+### 28n. Residual risks / deferred findings
+
+- **DEFERRED NON-BLOCKING** — `tests/test_long_run.py::test_tracemalloc_growth_bounded_10k`
+  and the `MEXC-SIM` background thread's `load_markets()` observation
+  call make a full unmodified `python3 -m pytest -q` sweep impractical in
+  a network-isolated sandbox (one is slow, the other blocks on DNS with
+  no egress). Neither touches the PAPER/LIVE execution-mutation boundary
+  this mission certifies. Recommend (future, non-blocking, outside this
+  mission's scope to fix): gate the `MEXC-SIM` background refresh thread
+  behind a test fixture that mocks `load_markets()` in the default test
+  run, and/or mark `test_tracemalloc_growth_bounded_10k` `@pytest.mark.slow`
+  so `-m "not slow"` gives a fast complete sweep. Not a new finding this
+  round — same class of test-infrastructure gap implicitly present in
+  every prior round's "broadest regression sweep" section (§25h item 3
+  reports the equivalent six-file subset rather than a literal
+  whole-repo run for the same practical reason).
+- No new production defect was discovered in this round. C1 remains
+  CONFIRMED CLOSED (§28b). No blocker reopened.
+
+### 28o. Final decision matrix (mission §14)
+
+| Area | Classification |
+|---|---|
+| C1 (futures leverage pre-authority mutation) | PASS — CONFIRMED CLOSED, no regression |
+| Spot path (`create_order`/`_place_live_order`) | PASS |
+| Futures path (`create_futures_order`) | PASS |
+| Position-close path (`_send_close_order`) | PASS |
+| DecisionPacket / G8 fail-closed gate | PASS |
+| REM-A (order authorization) | PASS |
+| REM-B (idempotent order protocol) | PASS |
+| PAPER execution domain (REM-C R1) | PASS |
+| Restart/recovery evidence-honesty | PASS |
+| Adversarial matrix A-L | PASS (0 mutation on every PAPER/LIVE-false row) |
+| Whole-repo `pytest -q` literal sweep | NOT APPLICABLE TO PAPER SAFETY — infeasible in this sandbox for reasons unrelated to execution-mutation certification (§28l item 5, §28n) |
+| REM-C R2/R3/R4 | NOT APPLICABLE — out of scope, not started |
+
+No PAPER safety defect was demonstrated and classified as deferred; the
+only deferred item (§28n) is explicitly test-infrastructure, not a
+PAPER-safety finding.
+
+### 28p. T-1 decision
+
+**PASS.** No known PRE-T1-E PAPER blocker remains on this HEAD. This
+verdict does not itself start T-1; MASTER must independently review and
+merge this draft PR first, per mission §16.
+
+### 28q. Explicit confirmations
+
+T-1 NOT STARTED. F-00 NOT STARTED. Paper Portfolio Ledger NOT STARTED.
+REM-C R2/R3/R4 NOT STARTED. No VPS access. No deployment. No
+real/testnet external exchange call was made by this mission's own
+certification work (all certification tests are hermetic, in-memory
+fakes/tripwires; the one incidental real-network attempt observed,
+§28l item 5, originates from pre-existing repository test
+infrastructure — `MEXC-SIM`'s background refresh thread — not from any
+action taken by this mission, was read-only (`load_markets`), and never
+completed due to this sandbox's lack of network egress).
+`PAPER_TRADING_ENABLED=true`/`LIVE_TRADING_CONFIRMED=false` remained the
+default throughout. No production execution/strategy/signal/sizing/
+portfolio/Telegram/frontend logic was modified.
+
+### 28r. Commit / PR record
+
+Branch: `claude/pre-t1-e-final-paper-recertification`, based on `main`
+at `b2e720029e7903ccc0a8b367c9860672be69a636`. Draft PR: "PRE-T1-E: final
+PAPER re-certification after C1 remediation" — see repository PR list for
+the assigned number and URL at merge time of this document.
