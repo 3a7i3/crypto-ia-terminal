@@ -44,8 +44,6 @@ from paper_trading.recorder import (
     TradeEvent,
 )
 
-_DEFAULT_PATH = os.getenv("PAPER_TRADE_LOG", "databases/paper_trades.jsonl")
-
 # Au-delà de cet âge, un OPEN sans CLOSE n'est plus une position en cours mais
 # une perte de traçabilité. Aligné sur le timeout du simulateur, qui clôture
 # toute position à MEXC_SIM_MAX_AGE_H (8 h) : la marge absorbe la période du
@@ -311,8 +309,13 @@ def _check_decision_context(
 # ── Audit de fichier complet ──────────────────────────────────────────────────
 
 
-def validate_log(log_path: str = _DEFAULT_PATH) -> ValidationResult:
-    """Valide l'intégralité du fichier JSONL paper_trades."""
+def validate_log(log_path: str | None = None) -> ValidationResult:
+    """Valide l'intégralité du fichier JSONL paper_trades.
+
+    log_path=None (défaut) : résolu par PaperTradeRecorder AU MOMENT DE
+    L'APPEL depuis PAPER_TRADE_LOG (DS-001/ADR-0008) — jamais figé à
+    l'import de ce module. Un log_path explicite est toujours prioritaire.
+    """
     recorder = PaperTradeRecorder(log_path)
     events = recorder.events()
     if not events:
@@ -428,9 +431,13 @@ class CorpusReport:
         }
 
 
-def validate_corpus(log_path: str = _DEFAULT_PATH) -> CorpusReport:
+def validate_corpus(log_path: str | None = None) -> CorpusReport:
     """
     Certification corpus : paires OPEN/CLOSE, doublons, statistiques population.
+
+    log_path=None (défaut) : résolu par PaperTradeRecorder AU MOMENT DE
+    L'APPEL depuis PAPER_TRADE_LOG (DS-001/ADR-0008) — jamais figé à
+    l'import de ce module. Un log_path explicite est toujours prioritaire.
 
     Vérifie les invariants impossibles à détecter événement par événement :
       - Toute OPEN a exactement un CLOSE correspondant

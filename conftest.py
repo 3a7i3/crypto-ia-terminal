@@ -59,6 +59,19 @@ _SCIENTIFIC_DATA_GUARD_BASELINE_PATH = (
 # d'exécution (CI, VPS...).
 os.environ.setdefault("OBS_LOG_ROOT", tempfile.mkdtemp(prefix="pytest_obs_logs_"))
 
+os.environ.setdefault(
+    # T1-HERM-01 (DS-001) : infra/wallet_sync.py et
+    # paper_trading/dataset_validator.py lisent PAPER_TRADE_LOG À L'APPEL
+    # (plus de constante de module figée à l'import) — mais poser cette
+    # valeur ici, avant toute collection de test, protège aussi tout module
+    # qui lirait PAPER_TRADE_LOG pendant l'import (collection), avant même
+    # que la fixture autouse _isolate_paper_recorder ci-dessous ne s'exécute.
+    "PAPER_TRADE_LOG",
+    os.path.join(
+        tempfile.mkdtemp(prefix="pytest_paper_trade_log_"), "paper_trades.jsonl"
+    ),
+)
+
 _pytest_data_dir = tempfile.mkdtemp(prefix="pytest_data_")
 os.environ.setdefault(
     "REJECTION_STORE_DIR", os.path.join(_pytest_data_dir, "rejections")

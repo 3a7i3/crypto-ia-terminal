@@ -38,9 +38,20 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
-_DEFAULT_PATH = os.getenv("PAPER_TRADE_LOG", "databases/paper_trades.jsonl")
+_DEFAULT_PATH = "databases/paper_trades.jsonl"
 
 SCHEMA_VERSION = 5
+
+
+def _resolve_log_path(log_path: Optional[str] = None) -> Path:
+    """Résout le chemin du ledger AU MOMENT DE L'APPEL (DS-001/ADR-0008).
+
+    Priorité : argument explicite > PAPER_TRADE_LOG (lu ici, jamais à
+    l'import) > défaut _DEFAULT_PATH — pour que
+    monkeypatch.setenv("PAPER_TRADE_LOG", ...) fait après l'import de ce
+    module reste effectif dans les tests.
+    """
+    return Path(log_path or os.getenv("PAPER_TRADE_LOG", _DEFAULT_PATH))
 
 
 def _score_to_bin(score: int) -> str:
@@ -277,11 +288,7 @@ class PaperTradeRecorder:
     """
 
     def __init__(self, log_path: Optional[str] = None) -> None:
-        # Lu à l'appel (pas au chargement du module) pour que
-        # monkeypatch.setenv("PAPER_TRADE_LOG", ...) fonctionne réellement
-        # dans les tests — un défaut lié à l'import ne réagit jamais à un
-        # changement d'env var fait après coup.
-        self._path = Path(log_path or os.getenv("PAPER_TRADE_LOG", _DEFAULT_PATH))
+        self._path = _resolve_log_path(log_path)
         self._path.parent.mkdir(parents=True, exist_ok=True)
 
     # ── Écriture ─────────────────────────────────────────────────────────────

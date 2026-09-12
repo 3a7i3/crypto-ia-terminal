@@ -43,9 +43,15 @@ def _reset_wallet_singleton():
 
 @pytest.fixture
 def isolated_ledger(tmp_path, monkeypatch):
-    """Point the paper ledger at a tmp_path file — never the repo CWD."""
+    """Point the paper ledger at a tmp_path file — never the repo CWD.
+
+    T1-HERM-01 (DS-001): infra.wallet_sync no longer freezes the ledger
+    path into a module-level _TRADES_LOG constant at import time — it is
+    resolved from PAPER_TRADE_LOG at call time instead (_resolve_trades_log).
+    Isolating the env var is therefore both correct and sufficient here.
+    """
     trades_path = tmp_path / "paper_trades.jsonl"
-    monkeypatch.setattr(ws, "_TRADES_LOG", trades_path)
+    monkeypatch.setenv("PAPER_TRADE_LOG", str(trades_path))
     return trades_path
 
 

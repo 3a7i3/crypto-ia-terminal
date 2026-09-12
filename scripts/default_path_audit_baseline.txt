@@ -58,7 +58,6 @@ infra/multi_exchange_feed.py:32
 infra/panels/panel_ci_report.py:85
 infra/startup_cache.py:169
 infra/visualization/visualize_strategy_ecosystem_all_gens.py:72
-infra/wallet_sync.py:44
 lm_studio/status.py:10
 observability/alerting.py:41
 observability/json_logger.py:38
