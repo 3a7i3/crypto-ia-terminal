@@ -1834,26 +1834,34 @@ still passing for every scenario that constructs an authorized engine.
      (`ModuleNotFoundError: No module named '_cffi_backend'` inside the
      `cryptography` package's Rust bindings), unrelated to C1 — not
      triggered by this diff.
-   - 5 failures in `tests/test_pre_t1_e_rem_b_idempotent_order_protocol.py`
+   - 5 failures (later fixed, see below) in
+     `tests/test_pre_t1_e_rem_b_idempotent_order_protocol.py`
      (`TestGroupM_AdapterCapabilityMatrix::test_execution_engine_uses_shared_capability_table_for_futures`,
      `TestGroupP_R12_AdapterFailClosed::test_mexc_futures_submission_via_execution_engine_denied_zero_mutation`,
      `TestGroupR_R13_LegacyExecutionIneligibility::test_legacy_v1_record_rejected_before_futures_mutation`,
      `TestGroupR_R13_LegacyExecutionIneligibility::test_corrupted_v2_record_rejected_before_futures_mutation`,
-     `TestGroupS_R14_PersistIdempotence::test_e2e_futures_duplicate_persist_cannot_produce_second_mutation`)
-     are **out of this mission's allowed file scope** (§11 lists only
-     `test_pre_t1_e_final_paper_certification.py` and the two
-     `test_execution_engine*.py` files as editable test files) and were
-     therefore left unmodified. Each constructs `ExecutionEngine(live=False)`
-     with default env (`PAPER_TRADING_ENABLED` unset → `true`,
-     `LIVE_TRADING_CONFIRMED` unset → `false`) and then asserts that
-     `create_futures_order()` reaches a mutating exchange call (real
-     `create_order`) or a deeper REM-A/REM-B denial reason — i.e. they
-     encode, as their expected behavior, exactly the construction state
-     (`PAPER=true`/`self._live=False`) that C1's target invariant (§2)
-     requires to produce **zero** external exchange mutation. They now
-     fail because the new gate correctly blocks earlier than they assumed.
-     This is flagged as a residual finding for MASTER (§25j), not a defect
-     in this remediation.
+     `TestGroupS_R14_PersistIdempotence::test_e2e_futures_duplicate_persist_cannot_produce_second_mutation`).
+     Each constructed `ExecutionEngine(live=False)` with default env
+     (`PAPER_TRADING_ENABLED` unset → `true`, `LIVE_TRADING_CONFIRMED`
+     unset → `false`) and asserted that `create_futures_order()` reaches a
+     mutating exchange call (real `create_order`) or a deeper REM-A/REM-B
+     denial reason — i.e. they encoded, as their expected behavior, exactly
+     the construction state (`PAPER=true`/`self._live=False`) that C1's
+     target invariant (§2) requires to produce **zero** external exchange
+     mutation. The real CI run (`TEST REGRESSION GATE`) confirmed these are
+     genuine, not sandbox artifacts — 5648 passed / 5 failed, all 5 in this
+     file. Since this is CI red in code the C1 diff directly touches
+     (`create_futures_order()`), these tests/helpers
+     (`_build_futures_engine`, and the two individual test bodies) were
+     updated to explicitly arm the C1 authority gate
+     (`PAPER_TRADING_ENABLED=false`, `LIVE_TRADING_CONFIRMED=true`,
+     `e._live = True`) — the same minimal pattern already used for
+     `test_execution_engine_futures.py`'s `eng` fixture — since each of
+     these 5 tests targets REM-A/REM-B behavior strictly downstream of C1,
+     not the C1 gate itself (which has its own dedicated, exhaustive
+     coverage in §25f). Re-run after the fix:
+     `python3 -m pytest tests/test_pre_t1_e_rem_b_idempotent_order_protocol.py -q`
+     → **161 passed, 0 failed.**
 3. `python3 -m pytest quant_hedge_ai/agents/execution/test_execution_engine_futures.py
    quant_hedge_ai/agents/execution/test_execution_engine.py -q`
    → **54 passed, 1 failed.** The `eng` fixture in
@@ -1879,13 +1887,18 @@ R2/R3/R4 NOT started. `PAPER_TRADING_ENABLED=true`/
 
 ### 25j. Residual risks / findings for MASTER
 
-- The 5 pre-existing `tests/test_pre_t1_e_rem_b_idempotent_order_protocol.py`
-  failures identified in §25h(2) encode the pre-C1 assumption that
+- The 5 `tests/test_pre_t1_e_rem_b_idempotent_order_protocol.py` fixtures/
+  tests identified in §25h(2) encoded the pre-C1 assumption that
   futures-demo mutation is reachable under `self._live=False` — the exact
-  shape of the C1 defect this mission closes. They are outside this
-  mission's declared file-edit scope (§11) and were left unmodified. A
-  follow-up mission should reconcile these fixtures/assertions with the
-  now-corrected C1 invariant.
+  shape of the C1 defect this mission closes. They were updated (arming
+  authority explicitly, not changing their actual REM-A/REM-B assertions)
+  once the real CI run (`TEST REGRESSION GATE`) confirmed the failure was
+  genuine and in code this diff touches. MASTER should note this file was
+  touched beyond the §11 list (`test_pre_t1_e_final_paper_certification.py`
+  + the two `test_execution_engine*.py` files) — narrowly, to arm authority
+  in 2 test bodies and 2 (textually duplicated) `_build_futures_engine`
+  helpers, with no change to what each test actually asserts about REM-A/
+  REM-B behavior.
 - This remediation does not address the PAPER-mode semantics roadmap item
   (a dedicated PAPER Portfolio Ledger) — `create_futures_order()` under
   PAPER continues to return a fail-closed rejection rather than a
