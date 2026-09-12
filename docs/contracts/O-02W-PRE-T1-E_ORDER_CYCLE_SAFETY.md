@@ -988,7 +988,7 @@ access, secret access, or deployment occurred in this round.
 `PAPER_TRADING_ENABLED=true` and `LIVE_TRADING_CONFIRMED=false` are
 unchanged. T-1 and F-00 remain not started.
 
-## 24. FINAL PRE-T1-E PAPER CERTIFICATION (2026-09-12)
+## 24. FINAL PRE-T1-E PAPER CERTIFICATION (2026-09-12) — SUPERSEDED, see §24V (MASTER correction round)
 
 **Addendum to §1-23.8, not a rewrite.** This is the last certification
 gate before T-1 (still not T-1 itself — no VPS access, no deployment, no
@@ -1044,16 +1044,31 @@ mutation-capable engines: 2 (`ExecutionEngine`, `PositionManager`),
 unchanged from §5. This inventory matches §5/§22's prior inventory exactly
 — no new mutating call site exists on this HEAD.
 
-**New finding this round (C1, narrow, unreachable in current
-construction — see §24E):** `create_futures_order()`'s `set_leverage` call
-(`execution_engine.py:459`) has no internal `PAPER_TRADING_ENABLED`/
+**C1 — RECLASSIFIED BLOCKS T-1, see §24V.** `create_futures_order()`'s
+`set_leverage` call (`execution_engine.py:459`, inside `if leverage != 1:`
+at line 456) has no internal `PAPER_TRADING_ENABLED`/
 `LIVE_TRADING_CONFIRMED` re-check of its own — its safety is entirely
 inherited from `self._exchange_futures` being `None`, exactly the same
 caller-inherited-safety shape §7/H10 already documented for
 `PositionManager._send_close_order`. Hermetically reproduced: with a
 tripwire futures handle force-attached to a `live=False` engine and
 `leverage != 1`, `set_leverage` is reached with zero prior authority gate
-(scenario proof below, §24H).
+(proof: `tests/test_pre_t1_e_final_paper_certification.py::
+test_scenario_c1_leverage_change_mutates_before_paper_gate_XFAIL`, marked
+`xfail(strict=True)` because the defect is real and confirmed, not
+theoretical). **This is the mission's own adversarial invariant violated,
+not a merely narrow/deferred item**: the mission requires that a foreign,
+stale, or in-memory REAL/TESTNET/FUTURES handle must never allow mutation
+under PAPER=true/LIVE=false, regardless of how that handle came to be
+attached — "unreachable under every construction path found in *this
+repository's `from_env()`/`reconnect()` today*" is a claim about today's
+call sites, not a proof that no in-memory futures handle can ever exist
+at the moment `create_futures_order()` runs (a `SelfHealingBot`
+reconnect race, a future caller, a test harness, or any future code path
+that (mis)attaches a handle would all reach `set_leverage` with zero
+internal gate). §24E's prior "NOT_REQUIRED_UNTIL_TESTNET/LIVE"
+classification and §24R's "PAPER SAFE FOR T-1, with C1 named" row were
+both incorrect for this reason and are corrected in §24V.
 
 ### D. Canonical PAPER execution authority
 
@@ -1094,11 +1109,15 @@ branch before any network call, matching §7 row 2 exactly, re-confirmed
 hermetically this round (scenarios A/B/G/H, zero
 `TripwireSpotExchange.mutation_calls`). The one exception is C1 (§24C): if
 a caller externally force-attaches a futures handle to a paper-mode
-engine — a construction pattern that does not occur anywhere in this
-repository's source — `set_leverage` would be reached with no internal
-re-check. Classified `NOT_REQUIRED_UNTIL_TESTNET-LIVE` in the decision
-matrix (§24R) given proven unreachability under every construction path
-found, but named explicitly rather than silently dropped.
+engine — a construction pattern that does not occur in today's
+`from_env()`/`reconnect()` call sites, but is not excluded by the function
+itself — `set_leverage` would be reached with no internal re-check.
+**CORRECTED (§24V): this is BLOCKS T-1, not
+`NOT_REQUIRED_UNTIL_TESTNET-LIVE`.** The prior classification conflated
+"no known caller does this today" with "this cannot happen," which is not
+the standard the mission's adversarial invariant sets (a foreign/stale
+handle in memory must never confer mutation authority under
+PAPER=true/LIVE=false, independent of how it got there).
 
 ### F. PositionManager close-path result
 
@@ -1133,21 +1152,39 @@ defaults `expected_domain=REAL`, so a TESTNET-labeled `PositionManager`
 fails closed as non-comparable — TESTNET reconciliation remains **not
 certified**, deferred to a future REM-C round (unchanged from R1.2).
 
-### H. DecisionPacket routing result
+### H. DecisionPacket routing result — CORRECTED, see §24V
 
-`SOURCE_PROVEN` + `BEHAVIOR_PROVEN_HERMETIC` (scenarios G, H). There is no
-`DecisionPacket` class in this repository (grep: 0 matches) — the mission's
-"DecisionPacket" maps onto this codebase's actual `decision_id: str |
-None` parameter plumbed from `core/advisor_loop.py`'s `trace_id`/decision
-cycle identifier (§22.1 B4). A non-actionable action string (`"HOLD"`,
-scenario G) and a wholly missing `decision_id` (scenario H) both reach
-`create_order()` with **zero exchange mutation calls** in PAPER mode — the
-PAPER branch is unconditional and precedes any decision-identity gate
-check for routing purposes. This is consistent with, not a new
-contradiction of, §22's finding that a *missing* `decision_id` is
-independently also fail-closed for the *live* mutation path via
-`_decision_execution_denial_reason()` (`MISSING_CAUSAL_ID`) — PAPER mode
-never reaches that gate at all, it is moot in PAPER mode specifically.
+**§24V correction: the claim "There is no `DecisionPacket` class in this
+repository (grep: 0 matches)" was FALSE and is retracted.**
+`core/decision_packet.py` DOES define `@dataclass class DecisionPacket`
+(line 381) with an `is_actionable()` method (line 717:
+`return not self.veto and self.lifecycle_state not in TERMINAL_STATES and
+self.side != DecisionSide.FLAT`). The actual execution-authorization
+model, verified in source this round, is:
+`DecisionPacket.is_actionable()` → consumed by `core/advisor_loop.py`'s
+G8 guard slice (`[G8-E]`, around line 6446-6459) → `_effective_trade_allowed`:
+if the packet (`_dp_r`/`_dp`) is `None` (packet creation failed),
+`_effective_trade_allowed = False` unconditionally (line 6452, logged as
+`[G8-E] ... execution bloquée : DecisionPacket absent`); if a packet
+exists, `_effective_trade_allowed = _dp_r.is_actionable()` (line 6459).
+The execution block downstream requires `_effective_trade_allowed` (line
+6462). `core/invariants.py` A-15 (line 515-535) is a source-level
+regression guard that specifically protects this G8-E missing-packet
+fail-closed behavior — it asserts the `_effective_trade_allowed = False`
+assignment and the `[G8-E]` log marker are present in `advisor_loop.py`.
+
+`SOURCE_PROVEN` + `BEHAVIOR_PROVEN_HERMETIC` (scenarios G, H) still holds
+for what those scenarios actually test — see §24V(d) for the corrected,
+narrower reading of scenarios G and H. This codebase's `decision_id: str |
+None` parameter (§22.1 B4) is a *separate* concept from
+`DecisionPacket`/`is_actionable()`: `decision_id` is the REM-B causal/order
+identity used by `_decision_execution_denial_reason()` and the
+idempotency/coordinator machinery (§22), while `DecisionPacket.is_actionable()`
+→ G8/`_effective_trade_allowed` is the actual trade-authorization gate in
+`advisor_loop.py`. §22's finding that a missing `decision_id` is
+independently fail-closed for the live mutation path via
+`_decision_execution_denial_reason()` (`MISSING_CAUSAL_ID`) is unaffected
+and still accurate — it is simply a different gate than G8/DecisionPacket.
 
 ### I. REM-B reachability result (DecisionIdentityJournal/OrderIntentJournal/OrderIntentCoordinator)
 
@@ -1223,23 +1260,42 @@ construction-reachability proof, see §24C1/§24E).
 | D — restored PAPER position closes | `mutation_attempted=False`, `mode=paper` | **PASS** |
 | E — UNKNOWN execution domain | `comparable=False`, empty ghost/orphan, zero mutation | **PASS** |
 | F — PAPER manager + foreign REAL handle | cannot submit external close, zero mutation | **PASS** |
-| G — non-actionable DecisionPacket (`"HOLD"`) | zero mutation | **PASS** |
-| H — missing DecisionPacket (no `decision_id`) | zero mutation | **PASS** |
+| G — `ExecutionEngine.create_order()` called directly with `"HOLD"` (see §24V(d): NOT a DecisionPacket-authorization proof) | zero mutation | **PASS** (ExecutionEngine PAPER-boundary fact only) |
+| H — `ExecutionEngine.create_order()` called directly with no `decision_id` (see §24V(d): `decision_id` ≠ DecisionPacket authorization) | zero mutation | **PASS** (ExecutionEngine PAPER-boundary fact only) |
+| C1 — futures handle present, `leverage != 1` | zero `set_leverage` calls | **XFAIL (strict), confirming the defect** — see §24V(a) |
 | I — restart, incomplete paper evidence | `pnl_usd`/`pnl_pct`/`is_win` stay `None`, never fabricated | **PASS** |
 | J — BootGate NON_COMPARABLE | `cleared=False` | **PASS** |
 | K — reconcile skipped too soon | `performed=False`, `is_clean=False` | **PASS** |
 | L — read-only real-account observation | no sizing/mutation authority conferred | **PASS** |
 
-**13/13 PASS.** No scenario asserts "no order happened during the test"
-in isolation — each combines the tripwire (behavioral) proof with the
-source-reachability/construction argument in §24C-§24L above, per the
-mission's negative-proof requirement.
+**CORRECTED (§24V): 13/13 PASS was true for the original 13 tests, but is
+no longer the complete picture.** After the MASTER correction round the
+file has 14 tests: 13 pass (including a renamed, honesty-clarified
+Scenario C test that now proves only the `leverage=1` path — see
+§24V(a)) and 1 new test (`test_scenario_c1_leverage_change_mutates_before_paper_gate_XFAIL`)
+is `xfail(strict=True)` — it is EXPECTED to fail, and its failure is the
+proof that C1 is a real, live defect, not a theoretical one. No scenario
+asserts "no order happened during the test" in isolation — each combines
+the tripwire (behavioral) proof with the source-reachability/construction
+argument in §24C-§24L above, per the mission's negative-proof
+requirement.
 
 ### N. Test commands and exact results
 
+**CORRECTED (§24V(f)): re-run after the MASTER correction round —**
 ```
 python3 -m pytest tests/test_pre_t1_e_final_paper_certification.py -q
-  → 13 passed, 0 failed
+  → 13 passed, 1 xfailed, 0 failed (14 collected total)
+```
+These three separate documented numbers below are NOT summed into a
+single aggregate figure (e.g. "908 targeted tests") anywhere in this
+document — each was produced by its own distinct command and is reported
+as its own distinct number:
+
+```
+python3 -m pytest tests/test_pre_t1_e_final_paper_certification.py -q
+  → 13 passed, 0 failed (original round, before the MASTER correction —
+    superseded by the re-run above)
 
 python3 -m pytest tests/test_pre_t1_e_order_cycle_safety.py \
   tests/test_pre_t1_e_rem_a_order_authorization.py \
@@ -1359,22 +1415,37 @@ touches `create_futures_order()`'s construction assumptions.
 | Scientific capital | **PAPER SAFE FOR T-1** | `get_scientific_capital()` decoupled from exchange observation (§15/§24L) |
 | BootGate | **PAPER SAFE FOR T-1** | Fails closed on non-comparable/not-clean/unreadable (§23.6/§23.7/§24K) |
 | Reconciler | **PAPER SAFE FOR T-1 (fail-closed); BLOCKS T-1 for any REAL/TESTNET certification claim** | Domain+identity-gated, never fabricates (§23.2/§24K) |
-| Futures-demo/testnet isolation | **PAPER SAFE FOR T-1, with C1 named** | §24G; C1 (§24C/§24Q) is unreachable today but should be closed before any construction change touches `create_futures_order()` |
+| Futures-demo/testnet isolation | **CORRECTED: BLOCKS T-1** (was: "PAPER SAFE FOR T-1, with C1 named") | §24C/§24G/§24V(a); a futures handle present in memory + `leverage != 1` reaches `set_leverage()` before any PAPER/LIVE authority check — violates the mission's explicit adversarial requirement that a foreign/stale REAL/TESTNET/FUTURES handle in memory must never allow mutation under PAPER=true/LIVE=false |
 
-No area above is classified **BLOCKS T-1** for PAPER=TRUE/LIVE=FALSE
+**CORRECTED (§24V): the statement below is FALSE and retracted.** One
+area above — futures-demo/testnet isolation (C1) — IS classified
+**BLOCKS T-1**, for PAPER=TRUE/LIVE=FALSE operation itself, not merely for
+a REAL/TESTNET certification claim: an in-memory futures handle need not
+be REAL or TESTNET to trigger `set_leverage` with no gate; a PAPER-mode
+engine that ever acquires (or is given) a futures handle is exposed
+regardless of what that handle ultimately talks to. All other
+BLOCKS-T-1-shaped items (exchange reconciliation, reconciler) remain
+classified as blocking only a REAL/TESTNET certification claim, as
+originally stated.
+
+~~No area above is classified **BLOCKS T-1** for PAPER=TRUE/LIVE=FALSE
 operation itself — the BLOCKS-T-1-shaped items (exchange reconciliation,
 reconciler) are so classified only for a REAL/TESTNET certification claim,
 which this mission does not make and T-1 (PAPER rehearsal) does not
-require.
+require.~~ (superseded, see correction immediately above)
 
-### S. Blocking defects (this round)
+### S. Blocking defects (this round) — CORRECTED, see §24V
 
-None found that block a PAPER=TRUE/LIVE=FALSE T-1 rehearsal. C1 (§24C) is
-a genuine, newly-named residual finding but is proven unreachable under
-every construction path this repository exercises today — carried forward
-as a named, deferred item (§24Q), not a blocker, consistent with the
-mission's own decision-matrix rule (unreachability must be proven, not
-assumed — done in §24E).
+**CORRECTED: one blocking defect was found this round — C1.** The
+original claim "None found that block a PAPER=TRUE/LIVE=FALSE T-1
+rehearsal" is retracted. C1 (§24C/§24V(a)) **BLOCKS T-1**:
+`create_futures_order()`'s `set_leverage` call is reachable with zero
+PAPER/LIVE authority gate whenever a futures exchange handle exists in
+memory and `leverage != 1`, regardless of how that handle was attached.
+This is not merely a "carried forward, deferred, unreachable" item — it
+is a live violation of the mission's own adversarial invariant, reproduced
+hermetically this round via a strict xfail test
+(`test_scenario_c1_leverage_change_mutates_before_paper_gate_XFAIL`).
 
 ### T. Explicitly deferred / not started
 
@@ -1401,12 +1472,213 @@ the Scientific Debt Rule.
   `create_pull_request` call, not re-typed here to avoid a stale
   self-reference if the PR number changes.
 
-**FINAL VERDICT: `PRE_T1_E_PAPER_CERTIFICATION_COMPLETE — PAPER=TRUE/
-LIVE=FALSE operation is certified safe for a controlled T-1 PAPER
-rehearsal`,** contingent on MASTER review of this round exactly as every
-prior REM-A/REM-B/REM-C round in this document was. This certifies PAPER
-operation only — it does not certify REAL or TESTNET execution (both
-remain fail-closed/non-comparable by design, per §24G/§24K/§24R), does not
-start T-1 itself, and does not modify any threshold, strategy, or
-production decision path. One narrow, unreachable-today residual finding
-(C1) is named for future closure rather than silently carried.
+**FINAL VERDICT (ORIGINAL, RETRACTED — see §24V): ~~`PRE_T1_E_PAPER_CERTIFICATION_COMPLETE`~~.**
+This verdict was rejected by MASTER review and is superseded.
+
+**FINAL VERDICT (CORRECTED, §24V): `PRE_T1_E_PAPER_CERTIFICATION_REMEDIATION_REQUIRED`
+— PAPER=TRUE/LIVE=FALSE operation is NOT certified safe for a controlled
+T-1 PAPER rehearsal until C1 is closed.** `create_futures_order()`'s
+`set_leverage` call can mutate before PAPER/LIVE authority enforcement
+whenever a futures handle is present in memory, which violates this
+mission's own adversarial invariant. This does not certify REAL or
+TESTNET execution either (both remain fail-closed/non-comparable by
+design, per §24G/§24K/§24R), does not start T-1, and no production
+threshold/strategy/decision-path change was made in this correction round.
+
+---
+
+## 24V. MASTER CORRECTION ROUND (2026-09-12)
+
+MASTER review rejected §24's original `PRE_T1_E_PAPER_CERTIFICATION_COMPLETE`
+verdict. This section documents the corrections made in response, addendum-style
+(§24 above is preserved, not deleted, with inline strikethrough/correction
+markers pointing here). Scope of this correction round: doc + test-file
+edits only, exactly as before — zero production Python/frontend/Telegram/
+strategy/risk/sizing changes.
+
+### 24V(a). C1 reclassified BLOCKS T-1
+
+`execution_engine.py`'s `create_futures_order()` (function starts at
+line 420) contains, at line 445, `if self._exchange_futures is None:
+return {...}` — the ONLY internal gate before, at lines 456-459:
+
+```python
+if leverage != 1:
+    try:
+        self._exchange_futures.set_leverage(leverage, ccxt_symbol)
+    except Exception:
+        pass
+```
+
+This runs BEFORE `authorize_order()` (line ~485) and has no inline
+`PAPER_TRADING_ENABLED`/`LIVE_TRADING_CONFIRMED`/`self._live` check of its
+own. Therefore: if a futures exchange handle exists in memory (even a
+foreign/stale/tripwire one, attached by any means — not only today's
+`from_env()`/`reconnect()` call sites) and `leverage != 1`, `set_leverage`
+is reachable regardless of PAPER/LIVE state. This violates the mission's
+explicit adversarial invariant: a REAL/TESTNET/FUTURES handle existing in
+memory must never allow mutation under PAPER=true/LIVE=false. C1 is
+reclassified from "NOT_REQUIRED_UNTIL_TESTNET/LIVE" to **BLOCKS T-1**
+throughout this document (§24C, §24E, §24R, §24S, final verdict).
+
+New hermetic proof:
+`tests/test_pre_t1_e_final_paper_certification.py::
+test_scenario_c1_leverage_change_mutates_before_paper_gate_XFAIL`,
+marked `@pytest.mark.xfail(strict=True, reason="PRE-T1-E blocker C1: set_leverage
+mutation precedes PAPER/LIVE authority gate")`. It constructs
+`ExecutionEngine(live=False)`, force-attaches a `TripwireFuturesExchange`
+as `_exchange_futures`, calls `create_futures_order(..., leverage=3,
+decision_id=...)`, and asserts `fut.mutation_calls == []`. On the current
+HEAD this assertion actually fails (`fut.mutation_calls == ["set_leverage"]`),
+which is exactly why the test is marked `xfail(strict=True)` — a
+non-strict xfail would hide a future accidental fix; strict mode makes
+the test file itself fail loudly (`XPASS`) the day C1 is actually closed,
+forcing an explicit test update rather than a silent verdict flip.
+Verified this round: `python3 -m pytest
+tests/test_pre_t1_e_final_paper_certification.py -q` → `13 passed, 1
+xfailed`.
+
+The former Scenario C test
+(`test_scenario_c_paper_futures_zero_mutation_no_leverage_change`) is
+renamed
+`test_scenario_c_paper_futures_zero_mutation_leverage_1_only_NOT_GENERAL`
+and its docstring now says explicitly that it proves only the
+`leverage=1` path (where `set_leverage` is never called at all, by the
+`if leverage != 1:` guard) — not a general "futures mutation is safe"
+claim, correcting the prior implication that Scenario C certified the
+`create_futures_order()` path broadly.
+
+### 24V(b). DecisionPacket correction
+
+**What was wrong:** §24H claimed "There is no `DecisionPacket` class in
+this repository (grep: 0 matches)." This was false.
+
+**What's accurate now:** `core/decision_packet.py:381` defines
+`@dataclass class DecisionPacket`, with `is_actionable()` at line 717:
+
+```python
+def is_actionable(self) -> bool:
+    """Vrai si le packet peut encore progresser vers l'exécution."""
+    return (
+        not self.veto
+        and self.lifecycle_state not in TERMINAL_STATES
+        and self.side != DecisionSide.FLAT
+    )
+```
+
+Actual execution-authorization model, verified by direct grep this round:
+`DecisionPacket.is_actionable()` → `core/advisor_loop.py` G8 guard
+(`_dp_r.is_actionable()` at line 6459, inside the `[G8-E]`-labeled block
+spanning roughly line 6446-6462) → `_effective_trade_allowed`: a missing
+packet (`_dp`/`_dp_r` is `None`) forces `_effective_trade_allowed = False`
+unconditionally (line 6452, `[G8-E]` log at line 6454); an existing packet
+sets `_effective_trade_allowed = _dp_r.is_actionable()` (line 6459). The
+execution block requires `_effective_trade_allowed` (checked at/around
+line 6462). `core/invariants.py` A-15 (lines 515-535, titled `"A-15: G8-E
+— guard DecisionPacket absent bloque l'exécution (source check)"`)
+source-checks that this exact fail-closed guard (`_effective_trade_allowed
+= False` assignment and the `[G8-E]` log marker) remains present in
+`advisor_loop.py` — i.e. it protects the missing-packet fail-closed path
+by static assertion, not by exercising the runtime.
+
+All names above (`DecisionPacket`, `is_actionable`, `core/advisor_loop.py`,
+`_effective_trade_allowed`, `[G8-E]`, `core/invariants.py`, `A-15`) were
+verified against this repository's source before being cited here (grep
+`core/decision_packet.py`, `core/advisor_loop.py`, `core/invariants.py`).
+
+### 24V(c). No new hermetic G8 test added — documented as source-proven only
+
+A focused hermetic test of `DecisionPacket.is_actionable()` →
+`_effective_trade_allowed` inside `core/advisor_loop.py`'s G8 slice would
+require standing up substantial pieces of the advisor runtime (the
+decision cycle that constructs `_dp`/`_dp_r`), which this correction round
+did not judge practical to add without spinning up machinery well beyond
+the two files this mission is scoped to touch. This gate is therefore
+left `SOURCE_PROVEN` only (cited above by exact file/line), not
+`BEHAVIOR_PROVEN_HERMETIC`, and no fabricated/simplified stand-in
+`DecisionPacket` model was invented to force a green hermetic test.
+
+### 24V(d). Scenarios G and H re-scoped
+
+**What changed:** Scenarios G (`"HOLD"` passed directly to
+`ExecutionEngine.create_order()`) and H (missing `decision_id` passed
+directly to `ExecutionEngine.create_order()`) are re-documented as proving
+only an `ExecutionEngine` PAPER-boundary fact — that direct calls into
+`create_order()` do not externally mutate while `self._live=False` — NOT
+`DecisionPacket` authorization. Neither scenario constructs, invokes, or
+even imports `DecisionPacket`; the `decision_id` string parameter used in
+both is the REM-B causal/order-identity value (§22.1 B4), which is a
+different concept from `DecisionPacket.is_actionable()`/G8 authorization
+(§24V(b)). The two must not be conflated: a present `decision_id` says
+"this call carries a causal id usable for idempotency/REM-B binding," it
+says nothing about whether a `DecisionPacket` authorized the trade in the
+first place. §24H, the scenario table in §24M, and the scenario docstrings
+are updated to state this explicitly rather than implying G8/DecisionPacket
+coverage that these two scenarios never provided.
+
+### 24V(e). Decision-matrix correction
+
+"Futures-demo/testnet isolation" row (§24R): **PAPER SAFE FOR T-1, with C1
+named** → **BLOCKS T-1**, with the C1 reasoning (§24V(a)). The
+document-level claim in §24R that "No area above is classified BLOCKS T-1
+for PAPER=TRUE/LIVE=FALSE operation itself" is retracted for the same
+reason — one area (futures-demo/testnet isolation, via C1) now is. No
+other row in §24R's matrix is affected by this correction round.
+
+### 24V(f). Test-count accounting correction
+
+§24O's phrase "908+ tests passing" (an implicit sum of 702 + 120 + a
+misremembered ~86, none of which was a single command's output) is
+retracted as a false aggregate. The three separately-run commands and
+their exact, non-aggregated counts (re-confirmed this round, this exact
+HEAD) are:
+
+- `python3 -m pytest tests/test_pre_t1_e_final_paper_certification.py -q`
+  → **13 passed, 1 xfailed** (was 13 passed, 0 xfailed, before this
+  round's new C1 test was added)
+- `python3 -m pytest tests/test_pre_t1_e_order_cycle_safety.py
+  tests/test_pre_t1_e_rem_a_order_authorization.py
+  tests/test_pre_t1_e_rem_b_idempotent_order_protocol.py
+  tests/test_rem_c_r1_execution_domain.py tests/test_restart_safety.py
+  tests/test_pre_t1_d_real_capital_boundary.py
+  tests/test_safety_instruction_truthfulness.py
+  tests/test_operator_snapshot_builder.py -q`
+  → **702 passed, 0 failed** (unchanged, re-run this round)
+- `python3 -m pytest
+  quant_hedge_ai/agents/execution/test_execution_engine.py
+  quant_hedge_ai/agents/execution/test_execution_engine_futures.py
+  quant_hedge_ai/agents/execution/test_order_deduplicator.py
+  quant_hedge_ai/agents/execution/test_trade_logger.py
+  quant_hedge_ai/agents/execution/test_paper_trading_engine.py -q`
+  → **120 passed, 1 pre-existing failure** (unchanged, same
+  `ccxt`-missing failure as before, re-run this round)
+
+These three numbers are never summed into a single figure anywhere in
+this document. No GitHub-CI-only number (panels workflow, coverage jobs)
+is merged into any of these local targeted-run counts.
+
+`python3 scripts/ci/ruff_baseline_gate.py check` → **957 baseline == 957
+current, 0 new** (re-run this round, unchanged).
+
+### 24V(g). Files changed, this correction round
+
+- `tests/test_pre_t1_e_final_paper_certification.py` — renamed/re-honestly-scoped
+  Scenario C test, added one new `xfail(strict=True)` test for C1.
+- `docs/contracts/O-02W-PRE-T1-E_ORDER_CYCLE_SAFETY.md` — this §24V
+  addendum plus inline correction markers in §24C/§24E/§24H/§24M/§24N/§24R/§24S
+  and the final verdict. §1-23.8 preserved unedited; §24's original body
+  preserved (not deleted) with corrections layered on top for audit
+  continuity.
+
+No production Python source, workflow, frontend, Telegram, strategy, or
+risk/sizing threshold file was modified in this correction round either.
+
+### 24V(h). Corrected final verdict
+
+**`PRE_T1_E_PAPER_CERTIFICATION_REMEDIATION_REQUIRED`.** Blocker: **C1 —
+`create_futures_order()`'s `set_leverage` can mutate before PAPER/LIVE
+authority enforcement when a futures handle is present in memory.**
+T-1 remains **NOT STARTED**. F-00 remains **NOT STARTED**. No VPS access,
+no exchange mutation (real, testnet, or otherwise), no deployment occurred
+in this correction round. `PAPER_TRADING_ENABLED=true`/
+`LIVE_TRADING_CONFIRMED=false` unchanged throughout.

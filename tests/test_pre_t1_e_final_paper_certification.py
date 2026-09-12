@@ -173,14 +173,56 @@ def test_scenario_b_paper_sell_zero_mutation(engine_factory):
 # futures mutation calls
 
 
-def test_scenario_c_paper_futures_zero_mutation_no_leverage_change(engine_factory):
-    """`leverage=1` (the default — no leverage change requested) is the
-    normal actionable-decision shape; this proves `create_futures_order()`
-    reaches neither `set_leverage` nor `create_order` on the tripwire."""
+def test_scenario_c_paper_futures_zero_mutation_leverage_1_only_NOT_GENERAL(
+    engine_factory,
+):
+    """NARROW PROOF, NOT A GENERAL SAFETY CLAIM: `leverage=1` never calls
+    `set_leverage` at all (see `execution_engine.py`'s `if leverage != 1:`
+    guard) — this test proves only that the default-leverage path reaches
+    neither `set_leverage` nor `create_order` on the tripwire. It says
+    NOTHING about `leverage != 1`, which is a materially different code
+    path: see `test_scenario_c1_leverage_change_mutates_before_paper_gate_XFAIL`
+    below, which proves the general case is currently UNSAFE (C1, BLOCKS
+    T-1 per docs/contracts/O-02W-PRE-T1-E_ORDER_CYCLE_SAFETY.md §24)."""
     eng, _, fut = engine_factory(with_futures_handle=True)
 
     result = eng.create_futures_order(
         "BTC/USDT", "BUY", 100.0, leverage=1, decision_id="cert-C-futures"
+    )
+
+    assert fut.mutation_calls == []
+    assert result.get("mode") != "live"
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason=(
+        "PRE-T1-E blocker C1: set_leverage mutation precedes PAPER/LIVE "
+        "authority gate"
+    ),
+)
+def test_scenario_c1_leverage_change_mutates_before_paper_gate_XFAIL(engine_factory):
+    """C1 (BLOCKS T-1): `create_futures_order()` calls
+    `self._exchange_futures.set_leverage(leverage, ccxt_symbol)`
+    (`execution_engine.py`, inside `if leverage != 1:`) BEFORE
+    `authorize_order()` and with no inline
+    PAPER_TRADING_ENABLED/LIVE_TRADING_CONFIRMED/`self._live` check of its
+    own. Its only safety is that `self._exchange_futures` happens to be
+    `None` on every construction path this repository exercises today —
+    that is caller-inherited safety, not an authority gate on the function
+    itself. A foreign/stale/tripwire futures handle force-attached in
+    memory (exactly what this test does) with `leverage=3` reaches
+    `set_leverage` regardless of PAPER=true/LIVE=false, which violates the
+    adversarial invariant that a REAL/TESTNET/FUTURES handle present in
+    memory must never allow mutation under PAPER=true/LIVE=false.
+
+    This test is expected to XFAIL (strict) until C1 is fixed: it asserts
+    zero tripwire mutation calls, but `fut.mutation_calls` will actually
+    contain `"set_leverage"` on the current HEAD."""
+    eng, _, fut = engine_factory(with_futures_handle=True)
+
+    result = eng.create_futures_order(
+        "BTC/USDT", "BUY", 100.0, leverage=3, decision_id="cert-C1-leverage-change"
     )
 
     assert fut.mutation_calls == []
