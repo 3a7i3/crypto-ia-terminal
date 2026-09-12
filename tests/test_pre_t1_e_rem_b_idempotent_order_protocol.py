@@ -1243,11 +1243,18 @@ class TestGroupM_AdapterCapabilityMatrix:
         monkeypatch.setenv("EXEC_TRADE_LOG", str(tmp_path / "t.sqlite"))
         monkeypatch.setenv("EXEC_FUTURES_MIN_ORDER_USD", "55")
         monkeypatch.setenv("EXEC_FUTURES_MAX_ORDER_USD", "200")
+        # O-02W-PRE-T1-E C1 remediation: arm the C1 external-mutation
+        # authority gate explicitly — this test targets the ADAPTER
+        # CAPABILITY gate downstream of it, not C1 itself (covered by
+        # tests/test_pre_t1_e_final_paper_certification.py's C1-A..E matrix).
+        monkeypatch.setenv("PAPER_TRADING_ENABLED", "false")
+        monkeypatch.setenv("LIVE_TRADING_CONFIRMED", "true")
         from unittest.mock import MagicMock
 
         from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
 
         e = ExecutionEngine(live=False, _sleep=lambda _: None)
+        e._live = True
         e.start_session(10_000.0)
         mock_ex = MagicMock()
         mock_ex.fetch_ticker.return_value = {"last": 50_000.0}
@@ -1947,11 +1954,20 @@ class TestGroupP_R12_AdapterFailClosed:
         monkeypatch.setenv(
             "ORDER_INTENT_JOURNAL_PATH", str(tmp_path / "order_intents.jsonl")
         )
+        # O-02W-PRE-T1-E C1 remediation: this test targets the ADAPTER
+        # CAPABILITY gate (REM-B), which sits downstream of the C1
+        # external-mutation authority gate — arm authority explicitly so
+        # the call reaches the capability check instead of short-circuiting
+        # earlier (C1's own gate has dedicated coverage in
+        # tests/test_pre_t1_e_final_paper_certification.py's C1-A..E matrix).
+        monkeypatch.setenv("PAPER_TRADING_ENABLED", "false")
+        monkeypatch.setenv("LIVE_TRADING_CONFIRMED", "true")
         from unittest.mock import MagicMock
 
         from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
 
         e = ExecutionEngine(live=False, _sleep=lambda _: None)
+        e._live = True
         e.start_session(10_000.0)
         mock_ex = MagicMock()
         mock_ex.fetch_ticker.return_value = {"last": 50_000.0}
@@ -2630,6 +2646,12 @@ class TestGroupR_R13_LegacyExecutionIneligibility:
         monkeypatch.setenv("EXEC_TRADE_LOG", str(tmp_path / "t.sqlite"))
         monkeypatch.setenv("EXEC_FUTURES_MIN_ORDER_USD", "55")
         monkeypatch.setenv("EXEC_FUTURES_MAX_ORDER_USD", "200")
+        # O-02W-PRE-T1-E C1 remediation: this helper is used by REM-B
+        # idempotence/eligibility tests exercising code strictly downstream
+        # of the C1 external-mutation authority gate — arm authority
+        # explicitly so those tests keep reaching the code they target.
+        monkeypatch.setenv("PAPER_TRADING_ENABLED", "false")
+        monkeypatch.setenv("LIVE_TRADING_CONFIRMED", "true")
         decisions_path = tmp_path / "decisions.jsonl"
         intents_path = tmp_path / "order_intents.jsonl"
         mexc_caps = oip.AdapterCapabilities(
@@ -2639,6 +2661,7 @@ class TestGroupR_R13_LegacyExecutionIneligibility:
         monkeypatch.setitem(oip._ADAPTER_CAPABILITIES_BY_EXCHANGE, "mexc", mexc_caps)
 
         e = ExecutionEngine(live=False, _sleep=lambda _: None)
+        e._live = True
         e._decision_identity_journal = DecisionIdentityJournal(decisions_path)
         e._order_intent_journal = oip.OrderIntentJournal(intents_path)
         e._order_intent_coordinator = oip.OrderIntentCoordinator(
@@ -3034,6 +3057,11 @@ class TestGroupS_R14_PersistIdempotence:
         monkeypatch.setenv("EXEC_TRADE_LOG", str(tmp_path / "t.sqlite"))
         monkeypatch.setenv("EXEC_FUTURES_MIN_ORDER_USD", "55")
         monkeypatch.setenv("EXEC_FUTURES_MAX_ORDER_USD", "200")
+        # O-02W-PRE-T1-E C1 remediation: arm the C1 external-mutation
+        # authority gate explicitly — this helper is used by REM-B
+        # idempotence tests exercising code strictly downstream of it.
+        monkeypatch.setenv("PAPER_TRADING_ENABLED", "false")
+        monkeypatch.setenv("LIVE_TRADING_CONFIRMED", "true")
         decisions_path = tmp_path / "decisions.jsonl"
         intents_path = tmp_path / "order_intents.jsonl"
         mexc_caps = oip.AdapterCapabilities(
@@ -3041,6 +3069,7 @@ class TestGroupS_R14_PersistIdempotence:
             client_order_id_param="clientOrderId",
         )
         e = ExecutionEngine(live=False, _sleep=lambda _: None)
+        e._live = True
         e._decision_identity_journal = DecisionIdentityJournal(decisions_path)
         e._order_intent_journal = oip.OrderIntentJournal(intents_path)
         e._order_intent_coordinator = oip.OrderIntentCoordinator(

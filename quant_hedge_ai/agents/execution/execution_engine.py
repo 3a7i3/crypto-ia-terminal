@@ -6,7 +6,10 @@ import time
 from typing import Optional
 
 from observability.json_logger import get_logger
-from quant_hedge_ai.agents.execution.order_authorization import authorize_order
+from quant_hedge_ai.agents.execution.order_authorization import (
+    DenialReason,
+    authorize_order,
+)
 from quant_hedge_ai.agents.execution.order_deduplicator import OrderDeduplicator
 from quant_hedge_ai.agents.execution.decision_identity import (
     DecisionIdentityError,
@@ -229,13 +232,40 @@ class ExecutionEngine:
         from infra.exchange_factory import ExchangeFactory
 
         info = ExchangeFactory.info()
-        live_trading_confirmed = os.getenv(
-            "LIVE_TRADING_CONFIRMED", "false"
-        ).lower() in {"1", "true", "yes", "on"}
+        live_trading_confirmed = cls._live_trading_confirmed()
         live = (
             info["has_api_key"] and info["mode"] != "paper" and live_trading_confirmed
         )
         return cls(live=live)
+
+    @staticmethod
+    def _live_trading_confirmed() -> bool:
+        """Lu à l'appel, jamais mis en cache — même vocabulaire truthy que
+        `_paper_trading_enabled()` (DS-001, ADR-0008)."""
+        return os.getenv("LIVE_TRADING_CONFIRMED", "false").lower() in {
+            "1",
+            "true",
+            "yes",
+            "on",
+        }
+
+    def _futures_mutation_authorized(self) -> bool:
+        """O-02W-PRE-T1-E C1 remediation — external-mutation authority gate
+        for `create_futures_order()`.
+
+        A futures exchange handle merely being present in memory
+        (`self._exchange_futures is not None`) is NOT execution authority —
+        it can be stale, foreign, testnet, REAL, or a tripwire attached by a
+        bug. Authority requires ALL of: PAPER_TRADING_ENABLED is False,
+        `self._live` is True, AND LIVE_TRADING_CONFIRMED is truthy. Any one
+        of the inverse conditions must fail this closed, before any
+        exchange interaction beyond the pre-existing
+        `_exchange_futures is None` short-circuit."""
+        return (
+            not self._paper_trading_enabled()
+            and self._live
+            and self._live_trading_confirmed()
+        )
 
     def has_futures_demo(self) -> bool:
         """True si le client Futures Demo est connecté."""
@@ -449,17 +479,72 @@ class ExecutionEngine:
                 "error": "Futures demo non configuré — paper trading via MexcSimulator (vérifier MEXC_API_KEY dans .env)",
             }
 
+        # ── C1 external-mutation authority gate (O-02W-PRE-T1-E C1 remediation)
+        # A futures handle being attached is NOT execution authority — it can
+        # be stale, foreign, testnet, REAL, or a tripwire. This check MUST run
+        # before any exchange interaction (set_leverage, fetch_ticker,
+        # load_markets, create_order): PAPER_TRADING_ENABLED=true, OR
+        # self._live=False, OR LIVE_TRADING_CONFIRMED not truthy ⇒ zero
+        # external mutation, unconditionally, regardless of handle identity.
+        if not self._futures_mutation_authorized():
+            reason = (
+                "external futures execution blocked by authority gate "
+                "(PAPER_TRADING_ENABLED/self._live/LIVE_TRADING_CONFIRMED) — "
+                "no exchange call attempted"
+            )
+            _log.warning(
+                "[ExecutionEngine] Ordre futures refusé (C1 authority gate) %s %s: %s",
+                action,
+                symbol,
+                reason,
+            )
+            return {
+                "symbol": symbol,
+                "action": action,
+                "size": size_usd,
+                "mode": "rejected",
+                "error": reason,
+                "denial_reason": DenialReason.AUTHORITY_DENIED.value,
+            }
+
+        # ── Temporary leverage safety policy (O-02W-PRE-T1-E C1 R2) ─────────
+        # `set_leverage` is itself an independent external exchange mutation
+        # whose durable, idempotent, at-most-once semantics are NOT modelled
+        # by REM-B's OrderIntent protocol (ADR-0020), which enforces exactly
+        # ONE physical exchange mutation per coordinator-submitted intent.
+        # Rather than hide a second mutation inside the coordinator's
+        # single-mutation callback (R1's approach, corrected here), an
+        # externally-authorized leverage change is fail-closed BEFORE any
+        # exchange interaction until an explicit, durable leverage-
+        # configuration protocol exists (deferred TESTNET work — see
+        # docs/contracts/O-02W-PRE-T1-E_ORDER_CYCLE_SAFETY.md §25). The
+        # caller retains valid trading authority; only the multi-mutation
+        # leverage semantics are unsupported on this path, hence
+        # UNSUPPORTED_MARKET_SEMANTICS rather than AUTHORITY_DENIED.
+        if leverage != 1:
+            reason = (
+                "external leverage mutation is not certified in this "
+                "execution path — no exchange call attempted"
+            )
+            _log.warning(
+                "[ExecutionEngine] Ordre futures refusé (leverage policy) %s %s: %s",
+                action,
+                symbol,
+                reason,
+            )
+            return {
+                "symbol": symbol,
+                "action": action,
+                "size": size_usd,
+                "mode": "rejected",
+                "error": reason,
+                "denial_reason": DenialReason.UNSUPPORTED_MARKET_SEMANTICS.value,
+            }
+
         side = "buy" if action.upper() == "BUY" else "sell"
         ccxt_symbol = self._to_futures_symbol(symbol)
 
         try:
-            # Définir le levier
-            if leverage != 1:
-                try:
-                    self._exchange_futures.set_leverage(leverage, ccxt_symbol)
-                except Exception:
-                    pass
-
             ticker = self._with_retry(self._exchange_futures.fetch_ticker, ccxt_symbol)
             price = float(ticker["last"])
 
@@ -545,6 +630,11 @@ class ExecutionEngine:
                         "order_intent_outcome": None,
                         "client_order_id": None,
                     }
+                # O-02W-PRE-T1-E C1 R2 correction: the coordinator's
+                # `mutate=` callback must represent exactly ONE physical
+                # exchange mutation (ADR-0020) — `create_order` only.
+                # `leverage != 1` is rejected above, before this point is
+                # ever reached, so no `set_leverage` call belongs here.
                 mutate = self._mutate_via_coordinator(
                     self._exchange_futures.create_order, ccxt_symbol, side, qty
                 )
