@@ -1,31 +1,24 @@
 import logging
-import os
-
-import requests
 
 from .paper_gate import gate_status
 from .paper_metrics import PaperMetrics
 
 logger = logging.getLogger(__name__)
 
-_TOKEN = os.getenv("PAPER_ARENA_BOT_TOKEN", "")
-_CHAT = os.getenv("PAPER_ARENA_CHAT_ID", "")
-
-
+# TG-PAPER-01 (2026-09) — @PaperArena_bot est réattribué au notificateur
+# main-machine (src/paper/paper_trade_notifier.py). L'expérience RSI
+# indépendante ci-dessous reste une recherche manuelle légale (voir
+# CLAUDE.md — gel fonctionnel), mais elle ne doit plus jamais publier sous
+# la même identité Telegram : deux producteurs indépendants ne peuvent pas
+# posséder le même bot. Le chemin Telegram est donc volontairement rendu
+# silencieux (no-op) plutôt que supprimé, pour préserver l'expérience.
 def _send(text: str) -> None:
-    if not _TOKEN or not _CHAT:
-        logger.debug(
-            "Telegram not configured (PAPER_ARENA_BOT_TOKEN / PAPER_ARENA_CHAT_ID)"
-        )
-        return
-    try:
-        requests.post(
-            f"https://api.telegram.org/bot{_TOKEN}/sendMessage",
-            json={"chat_id": _CHAT, "text": text, "parse_mode": "Markdown"},
-            timeout=5,
-        )
-    except Exception as e:
-        logger.warning(f"Telegram send failed: {e}")
+    logger.debug(
+        "Telegram path silenced for the RSI paper-arena experiment "
+        "(TG-PAPER-01 reassigned @PaperArena_bot to the main-machine "
+        "notifier) — message not sent: %r",
+        text[:80],
+    )
 
 
 def notify_entry(
