@@ -4,7 +4,6 @@ import pytest
 
 from paper_trading.paper_epoch import (
     InvalidPaperEpochTransition,
-    PaperEpoch,
     PaperEpochStatus,
     create_paper_epoch,
 )

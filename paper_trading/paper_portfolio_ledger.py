@@ -49,7 +49,7 @@ certified_equity = available_cash + reserved_principal + unrealized_pnl
 from __future__ import annotations
 
 from dataclasses import dataclass, field, replace
-from typing import Dict, Mapping, Optional, Sequence, Set
+from typing import Mapping, Optional, Sequence
 
 from paper_trading.ledger_events import LedgerEvent, LedgerEventType
 
