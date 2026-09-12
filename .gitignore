@@ -78,3 +78,5 @@ build/
 .claude/settings.local.json
 databases/shadow_execution/shadow_log.jsonl
 databases/strategy_ranking.json
+
+.claude/worktrees/
